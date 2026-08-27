@@ -1,0 +1,504 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { ShieldCheck, Microscope, Pill, BedDouble, RefreshCcw, CircleCheckBig, Clock3, FileClock, UserRound, Activity, Printer, Download, Pencil, Trash2, FolderOpen, ListTree, ChevronRight, AlertTriangle, CheckCircle2, Circle, X } from 'lucide-react'
+import { Page } from '../../design-system/Page'
+import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { Button } from '../../design-system/Button'
+import { AttachmentField } from '../../design-system/AttachmentField'
+import { ManualDateField } from '../../design-system/ManualDateField'
+import { UI_ACTIONS } from '../../core/actions/actionPolicy'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { EmptyState } from '../../design-system/EmptyState'
+import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { can, CAPABILITIES } from '../../core/permissions/roles'
+import { createClinicalSurveillance, findCaseByPatient, findCasesByPatient, getClinicalCase } from './clinicalDemoData'
+import { patientDemoData } from '../patients/patientDemoData'
+import { createDemoSurveillanceListItem } from './surveillanceDemoData'
+import { NewSurveillanceFlow } from './NewSurveillanceFlow'
+import { laboratorySamples } from '../laboratory/laboratoryDemoData'
+import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
+
+export function PatientClinicalRecordPage({patientMode=false}){
+  const { caseId, patientId } = useParams()
+  const navigate = useNavigate()
+  const {goBack,restored}=useContextualNavigation(patientMode?'/patients':'/surveillance')
+  const { t, language, locale } = useLanguage()
+  const [tab,setTab] = useState(()=>restored?.tab||'summary')
+  const { notify, confirm } = useFeedback()
+  const {role,membership,tenant}=useTenant()
+  const patient = patientDemoData.find(x=>x.id===patientId) ?? null
+  const [episodeVersion,setEpisodeVersion]=useState(0)
+  const [newSurveillanceOpen,setNewSurveillanceOpen]=useState(false)
+  const patientEpisodes = patientMode ? findCasesByPatient(patientId) : []
+  const defaultRecord = patientMode ? findCaseByPatient(patientId) : getClinicalCase(caseId)
+  const [selectedEpisodeId,setSelectedEpisodeId]=useState(defaultRecord?.id||'')
+  const record = patientMode ? (patientEpisodes.find(x=>x.id===selectedEpisodeId) || defaultRecord) : defaultRecord
+  const fmtDate=(value)=>value ? new Intl.DateTimeFormat(locale).format(new Date(`${value.slice(0,10)}T12:00:00`)) : '—'
+  const fmtDateTime=(value)=>value ? new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(value)) : '—'
+  const age=useMemo(()=>record?.dateOfBirth?Math.floor((new Date(record.admissionDate)-new Date(record.dateOfBirth))/(365.2425*24*60*60*1000)):null,[record])
+
+  if(!record && !patient) return <Page title={t('patientRecord')}><EmptyState title={t('noData')} description={t('noClinicalData')}/></Page>
+  const patientName=language==='el'?(record?.patient||patient?.name):(record?.patientEn||patient?.nameEn)
+  const department=language==='el'?(record?.department||patient?.department):(record?.departmentEn||patient?.departmentEn)
+  const patientCode=record?.patientId||patient?.id
+  const admissionDate=record?.admissionDate||patient?.admissionDate
+  const has=(cap)=>can(role,cap,membership?.capabilities??[],membership?.customCapabilities??[])
+  const canSurveillance=Boolean(record)&&has(CAPABILITIES.VIEW_SURVEILLANCE)
+  const canLab=Boolean(record)&&(has(CAPABILITIES.VIEW_LAB)||has(CAPABILITIES.VIEW_SURVEILLANCE))
+  const canTherapy=Boolean(record)&&(has(CAPABILITIES.VIEW_PHARMACY)||has(CAPABILITIES.VIEW_SURVEILLANCE))
+  const canClinical=canSurveillance||canLab||canTherapy
+  const canReopenSurveillance=has(CAPABILITIES.REOPEN_SURVEILLANCE)
+  const tabDefinitions=[
+    {id:'summary',label:t('summary'),icon:UserRound,show:true},
+    {id:'surveillanceJourney',label:t('surveillance'),icon:ListTree,show:has(CAPABILITIES.VIEW_SURVEILLANCE)||has(CAPABILITIES.CREATE_SURVEILLANCE)||canLab||canTherapy},
+    {id:'clinicalData',label:t('clinicalData'),icon:Activity,show:canClinical},
+    {id:'documents',label:t('documents'),icon:FolderOpen,show:true},
+    {id:'history',label:t('history'),icon:FileClock,show:canSurveillance},
+  ].filter(x=>x.show)
+  const activeTab=tabDefinitions.some(x=>x.id===tab)?tab:(tabDefinitions[0]?.id||'summary')
+
+  function createSurveillance(draft,selectedPatient=null){
+    const targetPatient=selectedPatient||patient||{
+      id:record?.patientId,
+      name:record?.patient,
+      nameEn:record?.patientEn,
+      department:record?.department,
+      departmentEn:record?.departmentEn,
+      admissionDate:record?.admissionDate,
+      dateOfBirth:record?.dateOfBirth,
+    }
+    if(!targetPatient?.id)return
+    const created=createClinicalSurveillance({
+      patientId:targetPatient.id,
+      patient:targetPatient.name,
+      patientEn:targetPatient.nameEn,
+      dateOfBirth:targetPatient.dateOfBirth,
+      department:targetPatient.department,
+      departmentEn:targetPatient.departmentEn,
+      admissionDate:targetPatient.admissionDate,
+      ...draft,
+      createdBy:t('currentUser'),
+    })
+    createDemoSurveillanceListItem(created)
+    setSelectedEpisodeId(created.id)
+    setEpisodeVersion(v=>v+1)
+    setTab('surveillanceJourney')
+    notify(t('surveillanceCreated'),'success')
+    return created
+  }
+
+  async function recordAction(action){ if(action===UI_ACTIONS.PRINT){window.print();return} if(action===UI_ACTIONS.DELETE){const ok=await confirm({title:t('confirmAction'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')});if(!ok)return} notify(t('actionCompleted'), action===UI_ACTIONS.DELETE?'warning':'success') }
+
+  return <Page fill title={patientName} subtitle={record?`${patientCode} · ${record.id}`:patientCode}>
+    <EntityRecordShell
+      className="patient-record-shell workspace-fill"
+      avatar={patientName?.split(' ').map(x=>x?.[0]).slice(0,2).join('')}
+      eyebrow={patientCode}
+      title={patientName}
+      subtitle={`${department||'—'} · ${t('admission')}: ${fmtDate(admissionDate)}`}
+      status={<><span className={`status-badge ${(record?.status||patient?.status)==='active'?'active':''}`}>{t(record?.status||patient?.status||'active')}</span>{(canLab||canSurveillance)&&record?.resistance&&<span className="status-badge danger">{record.resistance}</span>}</>}
+      headerActions={<><button className="entity-record-icon-button" title={t('print')} aria-label={t('print')} onClick={()=>window.print()}><Printer size={15}/></button><button className="entity-record-icon-button" title={t('export')} aria-label={t('export')} onClick={()=>recordAction(UI_ACTIONS.EXPORT)}><Download size={15}/></button></>}
+      tabs={tabDefinitions}
+      activeTab={activeTab}
+      onTabChange={setTab}
+      onBack={goBack}
+      backLabel={patientMode?t('backToPatients'):t('backToSurveillance')}
+    >
+
+    {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm}/>}
+        {activeTab==='surveillanceJourney'&&<SurveillanceWorkspace
+      episodes={patientMode?patientEpisodes:(record?[record]:[])}
+      selectedEpisodeId={record?.id||''}
+      onSelect={setSelectedEpisodeId}
+      onNewSurveillance={()=>setNewSurveillanceOpen(true)}
+      canCreateSurveillance={has(CAPABILITIES.CREATE_SURVEILLANCE)}
+      t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime}
+      canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy}
+      patientName={patientName} patientCode={patientCode} department={department}
+      organizationName={tenant?.name||membership?.organization?.name||t('hospital')}
+      canReopenSurveillance={canReopenSurveillance}
+    />}
+    {activeTab==='clinicalData'&&record&&<ClinicalDataHub record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy}/>}
+    {activeTab==='documents'&&<PatientDocuments t={t}/>}
+    {activeTab==='history'&&record&&<Timeline record={record} t={t} language={language} fmtDateTime={fmtDateTime}/>}
+    {newSurveillanceOpen&&<NewSurveillanceFlow patient={patient||{id:record?.patientId,name:record?.patient,nameEn:record?.patientEn,department:record?.department,departmentEn:record?.departmentEn,admissionDate:record?.admissionDate,dateOfBirth:record?.dateOfBirth,status:'active'}} onClose={()=>setNewSurveillanceOpen(false)} onCreate={createSurveillance} onRecordChange={()=>setEpisodeVersion(v=>v+1)}/>}
+    </EntityRecordShell>
+  </Page>
+}
+
+
+function PatientSummary({patient,record,t,language,fmtDate,fmtDateTime,age,has,notify,confirm}){
+  const latestSample=record?.samples?.[0]
+  return <div className="patient-summary-layout">
+    <PatientDetails patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} age={age} has={has} notify={notify} confirm={confirm}/>
+    {record&&<section className="patient-summary-strip">
+      <SummaryItem label={t('surveillance')} value={`${record.id} · ${t(record.status)}`} tone="info"/>
+      <SummaryItem label={t('haiClassification')} value={record.haiClassification?t(record.haiClassification.status):'—'} tone={record.haiClassification?.status==='confirmed'?'warning':'neutral'}/>
+      <SummaryItem label={t('latestFinding')} value={latestSample?.organism||t(latestSample?.result||'pending')} tone={latestSample?.result==='positive'?'warning':'neutral'}/>
+      <SummaryItem label={t('isolation')} value={record.isolation?t(record.isolation.status):t('no')} tone={record.isolation?'info':'neutral'}/>
+      <SummaryItem label={t('therapy')} value={record.therapy?.[0]?.antimicrobial||t('none')} tone={record.therapy?.length?'info':'neutral'}/>
+      <SummaryItem label={t('nextReview')} value={fmtDate(record.reviewDue)} tone="neutral"/>
+    </section>}
+  </div>
+}
+function SummaryItem({label,value,tone='neutral'}){return <div className={`patient-summary-item ${tone}`}><span>{label}</span><strong>{value}</strong></div>}
+
+
+function SurveillanceWorkspace({episodes,selectedEpisodeId,onSelect,onNewSurveillance,canCreateSurveillance,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance}){
+  const [episodeRows,setEpisodeRows]=useState(episodes)
+  useEffect(()=>setEpisodeRows(episodes),[episodes])
+  const active=episodeRows.filter(x=>x.status==='active')
+  const completed=episodeRows.filter(x=>x.status!=='active')
+  const [openEpisodeId,setOpenEpisodeId]=useState(null)
+  const openEpisode=episodeRows.find(x=>x.id===openEpisodeId) || null
+  const selectAndOpen=(id)=>{onSelect(id);setOpenEpisodeId(id)}
+  return <div className="surveillance-workspace">
+    <div className="surveillance-workspace-toolbar">
+      <div><span className="eyebrow">{t('surveillance')}</span><h3>{t('surveillanceEpisodes')}</h3><p>{t('surveillanceEpisodesHelp')}</p></div>
+      {canCreateSurveillance&&<Button onClick={onNewSurveillance}>+ {t('newSurveillance')}</Button>}
+    </div>
+    <div className="episode-list-columns">
+      <EpisodeList title={t('activeSurveillanceEpisodes')} tone="active" episodes={active} onOpen={selectAndOpen} t={t} fmtDate={fmtDate}/>
+      <EpisodeList title={t('completedSurveillanceEpisodes')} tone="completed" episodes={completed} onOpen={selectAndOpen} t={t} fmtDate={fmtDate}/>
+    </div>
+    <div className="episode-list-help">{t('episodeListHelp')}</div>
+    {!episodes.length&&<SurveillanceStartGuide t={t} canCreateSurveillance={canCreateSurveillance} onNew={onNewSurveillance}/>}
+    {openEpisode&&<EpisodeDetailOverlay
+      record={openEpisode}
+      onClose={()=>setOpenEpisodeId(null)}
+      t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime}
+      canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy}
+      patientName={patientName} patientCode={patientCode} department={department}
+      organizationName={organizationName}
+      canReopenSurveillance={canReopenSurveillance}
+      onReopen={(episodeId,reason)=>setEpisodeRows(rows=>rows.map(ep=>ep.id===episodeId?{...ep,status:'active',completedAt:null,outcome:null,timeline:[{at:new Date().toISOString(),type:'surveillanceReopened',actor:t('superAdmin'),detail:reason},...(ep.timeline||[])]}:ep))}
+    />}
+  </div>
+}
+
+function SurveillanceStartGuide({t,canCreateSurveillance,onNew}){
+  const steps=[
+    [t('clinicalAssessment'),t('guideAssessment')],
+    [t('microbiology'),t('guideMicrobiology')],
+    [t('haiAmr'),t('guideHaiAmr')],
+    [t('isolation'),t('guideIsolation')],
+    [t('therapy'),t('guideTherapy')],
+    [t('reassessment'),t('guideReassessment')],
+    [t('outcome'),t('guideOutcome')],
+  ]
+  return <section className="surveillance-start-guide">
+    <div className="start-guide-heading"><div><span className="eyebrow">{t('surveillanceJourney')}</span><h3>{t('howSurveillanceWorks')}</h3><p>{t('howSurveillanceWorksHelp')}</p></div></div>
+    <div className="start-guide-flow">
+      {steps.map(([label,help],index)=><div key={label} className="start-guide-step">
+        <span className="step-number">{String(index+1).padStart(2,'0')}</span>
+        <div><strong>{label}</strong><small>{help}</small></div>
+        {index<steps.length-1&&<span className="step-arrow">→</span>}
+      </div>)}
+    </div>
+    <div className="start-guide-advice"><AlertTriangle size={16}/><div><strong>{t('clinicalGuidance')}</strong><span>{t('clinicalGuidanceIntro')}</span></div></div>
+  </section>
+}
+
+function EpisodeList({title,tone,episodes,onOpen,t,fmtDate}){
+  return <section className={`episode-list-panel ${tone}`}>
+    <header><div><span className="episode-dot"/><strong>{title}</strong></div><span className="episode-count">{episodes.length}</span></header>
+    <div className="episode-table-wrap">
+      {episodes.length?<table className="episode-table"><thead><tr><th>{t('surveillanceId')}</th><th>{t('period')}</th><th>{t('classification')}</th><th>{t('status')}</th></tr></thead><tbody>{episodes.map(ep=><tr key={ep.id} tabIndex={0} onClick={()=>onOpen(ep.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen(ep.id)}}}>
+        <td><strong>{ep.id}</strong>{ep.resistance&&<b className="episode-resistance">{ep.resistance}</b>}</td>
+        <td>{fmtDate(ep.startedAt)}{ep.completedAt?` → ${fmtDate(ep.completedAt)}`:''}</td>
+        <td>{ep.haiClassification?.type?t(ep.haiClassification.type):t('underAssessment')}</td>
+        <td><span className={`status-badge ${ep.status==='active'?'active':''}`}>{t(ep.status)}</span></td>
+      </tr>)}</tbody></table>:<div className="episode-empty">{t('noData')}</div>}
+    </div>
+  </section>
+}
+function EpisodeDetailOverlay({record,onClose,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,onReopen}){
+  const completed=record.status!=='active'
+  const [reopenOpen,setReopenOpen]=useState(false)
+  const [reopenReason,setReopenReason]=useState('')
+  const reopen=()=>{if(!reopenReason.trim())return;onReopen(record.id,reopenReason.trim());setReopenOpen(false);setReopenReason('');onClose()}
+  return <div className="episode-overlay" role="dialog" aria-modal="true" aria-label={record.id}>
+    <section className="episode-detail-card">
+      <header className="episode-detail-header">
+        <div>
+          <span className="eyebrow">{completed?t('completedSurveillance'):t('activeSurveillance')}</span>
+          <h2>{record.id}</h2>
+          <p>{patientName} · {patientCode} · {department}</p>
+        </div>
+        <div className="episode-detail-actions">
+          <span className={`status-badge ${record.status==='active'?'active':''}`}>{t(record.status)}</span>
+          {record.resistance&&<span className="status-badge danger">{record.resistance}</span>}
+          {completed&&canReopenSurveillance&&<button className="reopen-surveillance-button" title={t('reopenSurveillance')} aria-label={t('reopenSurveillance')} onClick={()=>setReopenOpen(true)}><RefreshCcw size={16}/></button>}
+          <button title={t('print')} aria-label={t('print')} onClick={()=>window.print()}><Printer size={16}/></button>
+          <button title={t('close')} aria-label={t('close')} onClick={onClose}><X size={16}/></button>
+        </div>
+      </header>
+      <div className="episode-detail-scroll">
+        {completed
+          ? <CompletedSurveillanceReport record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName}/>
+          : <ActiveSurveillanceReport record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName}/>}
+      </div>
+      {reopenOpen&&<div className="reopen-confirm-backdrop"><div className="reopen-confirm-card"><span className="eyebrow">{t('restrictedAction')}</span><h3>{t('reopenSurveillance')}</h3><p>{t('reopenSurveillanceWarning')}</p><label><span>{t('reasonRequired')}</span><textarea value={reopenReason} onChange={e=>setReopenReason(e.target.value)} rows={4} autoFocus/></label><div><Button variant="secondary" onClick={()=>{setReopenOpen(false);setReopenReason('')}}>{t('cancel')}</Button><Button disabled={!reopenReason.trim()} onClick={reopen}>{t('restoreToActive')}</Button></div></div></div>}
+    </section>
+  </div>
+}
+function ReportIdentity({record,t,patientName,patientCode,department,organizationName,fmtDate,language}){
+  const actors=[record.assessment?.assessedBy,...(record.timeline||[]).map(x=>x.actor),...(record.reassessments||[]).map(x=>x.by)].filter(Boolean)
+  const users=[...new Set(actors)]
+  return <div className="episode-report-identity">
+    <div className="episode-report-group"><span>{t('hospital')}</span><strong>{organizationName||'—'}</strong></div>
+    <div className="episode-report-group"><span>{t('patient')}</span><strong>{patientName}</strong><small>{patientCode} · {department}</small></div>
+    <div className="episode-report-group"><span>{t('surveillance')}</span><strong>{record.id}</strong><small>{fmtDate(record.startedAt)}{record.completedAt?` → ${fmtDate(record.completedAt)}`:''}</small></div>
+    <div className="episode-report-group"><span>{t('involvedUsers')}</span><strong>{users.length?users.join(', '):'—'}</strong></div>
+  </div>
+}
+function CompletedSurveillanceReport({record,t,language,fmtDate,fmtDateTime,patientName,patientCode,department,organizationName}){
+  const positiveSamples=record.samples.filter(x=>x.result==='positive')
+  const actors=[record.assessment?.assessedBy,...(record.timeline||[]).map(x=>x.actor),...(record.reassessments||[]).map(x=>x.by)].filter(Boolean)
+  const users=[...new Set(actors)]
+  const assessmentText=record.assessment?(language==='el'?record.assessment.summary:record.assessment.summaryEn):t('notDocumented')
+  const haiText=record.haiClassification
+    ? `${t(record.haiClassification.status)}${record.haiClassification.type?` · ${t(record.haiClassification.type)}`:''}. ${language==='el'?(record.haiClassification.rationale||''):(record.haiClassification.rationaleEn||'')}`
+    : t('notDocumented')
+  const microbiologyText=record.samples.length
+    ? `${record.samples.length} ${t('samples').toLowerCase()}, ${positiveSamples.length} ${t('positive').toLowerCase()}. ${positiveSamples.map(x=>`${x.organism||'—'}${x.susceptibility?` (${x.susceptibility})`:''}`).join(' · ')||t('noPositiveFindings')}`
+    : t('noSamplesRecorded')
+  const therapyText=record.therapy.length
+    ? record.therapy.map(x=>`${x.antimicrobial} ${x.dose||''} ${x.route||''}, ${fmtDate(x.startedAt)}${x.plannedEnd?`–${fmtDate(x.plannedEnd)}`:''}`).join(' · ')
+    : t('noTherapyRecorded')
+  const isolationText=record.isolation
+    ? `${t(record.isolation.status)}${record.isolation.startedAt?` · ${fmtDate(record.isolation.startedAt)}`:''}${record.isolation.endedAt?`–${fmtDate(record.isolation.endedAt)}`:''}`
+    : t('noIsolationRecorded')
+  const reassessmentText=record.reassessments.length
+    ? record.reassessments.map(x=>`${fmtDate(x.date)}: ${t(x.status)} — ${language==='el'?(x.notes||''):(x.notesEn||'')}`).join(' ')
+    : t('noReassessmentRecorded')
+  const outcomeText=record.outcome
+    ? `${t(record.outcome.status)} · ${fmtDate(record.outcome.date)}. ${language==='el'?(record.outcome.notes||''):(record.outcome.notesEn||'')}`
+    : t('notDocumented')
+  return <article className="surveillance-final-report">
+    <header className="final-report-title">
+      <div><span>{t('finalSurveillanceReport')}</span><h2>{patientName}</h2><p>{record.id} · {fmtDate(record.startedAt)} → {fmtDate(record.completedAt||record.outcome?.date)}</p></div>
+      <div className="final-report-hospital"><span>{t('hospital')}</span><strong>{organizationName||'—'}</strong></div>
+    </header>
+
+    <section className="final-report-intro">
+      <p><strong>{t('patient')}:</strong> {patientName} ({patientCode}), {t('department').toLowerCase()} {department}. <strong>{t('surveillance')}:</strong> {record.id}. <strong>{t('period')}:</strong> {fmtDate(record.startedAt)} – {fmtDate(record.completedAt||record.outcome?.date)}.</p>
+      <p><strong>{t('involvedUsers')}:</strong> {users.length?users.join(', '):t('notDocumented')}.</p>
+    </section>
+
+    <NarrativeSection number="01" title={t('clinicalAssessment')} text={assessmentText}/>
+    <NarrativeSection number="02" title={t('haiAmr')} text={haiText}/>
+    <NarrativeSection number="03" title={t('microbiology')} text={microbiologyText}/>
+    <NarrativeSection number="04" title={t('therapy')} text={therapyText}/>
+    <NarrativeSection number="05" title={t('isolation')} text={isolationText}/>
+    <NarrativeSection number="06" title={t('reassessment')} text={reassessmentText}/>
+    <NarrativeSection number="07" title={t('outcome')} text={outcomeText}/>
+
+    <section className="final-report-course">
+      <div className="final-report-section-heading"><span>08</span><h3>{t('courseSummary')}</h3></div>
+      <div className="course-timeline">
+        {(record.timeline||[]).slice().reverse().map((item,index)=><div key={`${item.at}-${index}`} className="course-event"><time>{fmtDateTime(item.at)}</time><span>{t(item.type)}</span><strong>{item.actor||'—'}</strong><p>{t(item.detail)||item.detail}</p></div>)}
+      </div>
+    </section>
+
+    <footer className="final-report-footer">
+      <span>{t('completedRecordReadOnly')}</span>
+      <strong>{record.id}</strong>
+    </footer>
+  </article>
+}
+function NarrativeSection({number,title,text}){return <section className="final-report-narrative"><div className="final-report-section-heading"><span>{number}</span><h3>{title}</h3></div><p>{text}</p></section>}
+
+function ActiveSurveillanceReport({record,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName}){
+  return <div className="episode-report active-report">
+    <ReportIdentity record={record} t={t} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName} fmtDate={fmtDate} language={language}/>
+    <SurveillanceJourney record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy}/>
+  </div>
+}
+
+function SurveillanceJourney({record,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy}){
+  const linkedLab=laboratorySamples.filter(x=>x.surveillanceCase===record.id)
+  const validatedLab=linkedLab.filter(x=>x.resultStatus==='validated'&&x.organism)
+  const effectiveSamples=linkedLab.length?linkedLab:record.samples
+  const pendingSamples=effectiveSamples.filter(x=>['requested','received','processing'].includes(x.status)||x.result==='pending').length
+  const positiveSamples=effectiveSamples.filter(x=>x.result==='positive').length
+  const unlocked={
+    assessment:true,
+    samples:Boolean(record.assessment),
+    hai:validatedLab.length>0,
+    isolation:Boolean(record.assessment),
+    therapy:validatedLab.length>0,
+    reassessment:Boolean(record.assessment)&&(Boolean(record.isolation)||record.isolationDecision?.required===false||Boolean(record.haiClassification)||validatedLab.length>0),
+    outcome:Boolean(record.reassessments.length),
+  }
+  const nodes=[
+    {id:'assessment',label:t('clinicalAssessment'),icon:ShieldCheck,show:canSurveillance,status:record.assessment?'complete':'pending',meta:record.assessment?fmtDate(record.assessment.date):t('pending')},
+    {id:'samples',label:t('sampleAndLaboratory'),icon:Microscope,show:canLab,status:linkedLab.length?'complete':'pending',meta:linkedLab.length?(validatedLab.length?`${linkedLab.length} · ${validatedLab.length} ${t('validated').toLowerCase()}`:`${linkedLab.length} · ${t('waitingForLaboratory')}`):t('notStarted')},
+    {id:'hai',label:t('haiAmr'),icon:AlertTriangle,show:canSurveillance,status:record.haiClassification?'complete':'pending',meta:record.resistance||t(record.haiClassification?.status||'pending')},
+    {id:'isolation',label:t('isolation'),icon:BedDouble,show:canSurveillance,status:(record.isolation||record.isolationDecision?.required===false)?'complete':'pending',meta:record.isolation?t(record.isolation.status):(record.isolationDecision?.required===false?t('notRequired'):t('notStarted'))},
+    {id:'therapy',label:t('therapy'),icon:Pill,show:canTherapy,status:record.therapy.length?'complete':'pending',meta:record.therapy[0]?.antimicrobial||t('notStarted')},
+    {id:'reassessment',label:t('reassessment'),icon:RefreshCcw,show:canSurveillance,status:record.reassessments.length?'complete':'due',meta:record.reassessments[0]?fmtDate(record.reassessments[0].date):(record.reviewDue?fmtDate(record.reviewDue):t('notScheduled'))},
+    {id:'outcome',label:t('outcome'),icon:CircleCheckBig,show:canSurveillance,status:record.outcome?'complete':'pending',meta:record.outcome?t(record.outcome.status):t('pending')},
+  ].filter(x=>x.show).map(x=>({...x,locked:!unlocked[x.id]}))
+  const {notify,confirm}=useFeedback()
+  const [section,setSection]=useState(null)
+  return <div className="surveillance-journey">
+    <div className="journey-heading"><div><span className="eyebrow">{t('activeSurveillance')}</span><h3>{t('surveillanceJourney')}</h3><p>{t('strictActiveJourneyHelp')}</p></div><span className="journey-case-id">{record.id}</span></div>
+    <JourneyGuidance record={{...record,samples:effectiveSamples}} t={t} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy} onSelect={id=>{if(unlocked[id])setSection(id)}}/>
+    <div className="journey-map strict-journey-map">
+      <button className={`journey-start journey-start-button ${section==='start'?'active':''}`} onClick={()=>canSurveillance&&setSection('start')}><CheckCircle2 size={16}/><span>{t('surveillanceStarted')}</span><strong>{fmtDate(record.startedAt)}</strong></button>
+      <div className="journey-connector vertical"/>
+      <div className="journey-nodes strict-nodes">{nodes.slice(0,5).map(node=><JourneyNode key={node.id} node={node} active={section===node.id} onClick={()=>!node.locked&&setSection(node.id)}/>)}</div>
+      {nodes.some(x=>x.id==='reassessment')&&<><div className="journey-connector vertical"/><div className="journey-final-row">{nodes.filter(x=>x.id==='reassessment'||x.id==='outcome').map(node=><JourneyNode key={node.id} node={node} active={section===node.id} onClick={()=>!node.locked&&setSection(node.id)}/>)}</div></>}
+    </div>
+    {section&&<div className="journey-detail">
+      {section==='start'&&<ActiveStartEditor record={record} t={t} language={language} onSaved={()=>{notify(t('surveillanceUpdated'),'success');setSection(null)}}/>}
+      {section==='assessment'&&<ActiveAssessmentEditor record={record} t={t} language={language} onSaved={()=>{notify(t('clinicalAssessmentSaved'),'success');setSection(null)}}/>} 
+      {section==='samples'&&<Samples record={{...record,samples:effectiveSamples}} t={t} fmtDateTime={fmtDateTime}/>} 
+      {section==='hai'&&<HaiClassification record={record} t={t} language={language}/>} 
+      {section==='isolation'&&<ActiveIsolationEditor record={record} t={t} language={language} confirm={confirm} onSaved={()=>{notify(t('isolationSaved'),'success');setSection(null)}}/>} 
+      {section==='therapy'&&<Therapy record={record} t={t} fmtDate={fmtDate}/>} 
+      {section==='reassessment'&&<Reassessment record={record} t={t} language={language} fmtDate={fmtDate}/>} 
+      {section==='outcome'&&<Outcome record={record} t={t} fmtDate={fmtDate}/>} 
+    </div>}
+  </div>
+}
+
+function JourneyGuidance({record,t,canSurveillance,canLab,canTherapy,onSelect}){
+  const cues=[]
+  const pendingSamples=record.samples.filter(x=>x.result==='pending')
+  if(canSurveillance&&!record.assessment)cues.push({id:'assessment',tone:'warning',title:t('initialAssessmentRequired'),text:t('initialAssessmentRequiredHint')})
+  if(canLab&&pendingSamples.length)cues.push({id:'samples',tone:'info',title:t('pendingLaboratoryResult'),text:t('pendingLaboratoryResultHint')})
+  if(canSurveillance&&record.haiClassification&&!record.haiClassification.criteriaMet)cues.push({id:'hai',tone:'warning',title:t('haiCriteriaNeedReview'),text:t('haiCriteriaNeedReviewHint')})
+  if(canSurveillance&&record.resistance&&!record.isolation)cues.push({id:'isolation',tone:'warning',title:t('reviewIsolationNeed'),text:t('reviewIsolationNeedHint')})
+  if(canTherapy&&record.samples.some(x=>x.result==='positive')&&!record.therapy.length)cues.push({id:'therapy',tone:'warning',title:t('reviewAntimicrobialTherapy'),text:t('reviewAntimicrobialTherapyHint')})
+  if(canSurveillance&&!record.reassessments.length)cues.push({id:'reassessment',tone:'due',title:t('reassessmentRequired'),text:t('reassessmentRequiredHint')})
+  if(canSurveillance&&record.reviewDue)cues.push({id:'reassessment',tone:'neutral',title:t('nextReview'),text:`${t('planned')}: ${record.reviewDue}`})
+  if(!cues.length)return <div className="journey-guidance clear"><CheckCircle2 size={16}/><span>{t('noImmediateIntervention')}</span></div>
+  return <div className="journey-guidance"><div className="journey-guidance-title"><AlertTriangle size={15}/><strong>{t('attentionNeeded')}</strong><span>{cues.length}</span></div><div className="journey-guidance-items">{cues.map((cue,index)=><button key={`${cue.id}-${index}`} className={`guidance-cue ${cue.tone}`} onClick={()=>onSelect(cue.id)}><strong>{cue.title}</strong><small>{cue.text}</small><ChevronRight size={14}/></button>)}</div></div>
+}
+
+function JourneyNode({node,active,onClick}){
+  const Icon=node.icon
+  return <button disabled={node.locked} className={`journey-node ${node.status} ${active?'active':''} ${node.locked?'locked':''}`} onClick={onClick}>
+    <span className="journey-node-icon"><Icon size={17}/></span>
+    <span className="journey-node-copy"><strong>{node.label}</strong><small>{node.meta}</small></span>
+    <ChevronRight size={15}/>
+  </button>
+}
+
+function ClinicalDataHub({record,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy}){
+  return <div className="clinical-data-hub">
+    <div className="clinical-data-heading"><span className="eyebrow">{t('patientRecord')}</span><h3>{t('clinicalData')}</h3></div>
+    <div className="clinical-data-grid">
+      {canSurveillance&&<Assessment record={record} t={t} language={language} fmtDate={fmtDate}/>}
+      {canLab&&<Samples record={record} t={t} fmtDateTime={fmtDateTime}/>}
+      {canTherapy&&<Therapy record={record} t={t} fmtDate={fmtDate}/>}
+      {canSurveillance&&<DevicesRisk record={record} t={t} language={language} fmtDate={fmtDate}/>}
+    </div>
+  </div>
+}
+function PatientDocuments({t}){return <div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('patientRecord')}</span><h3>{t('documents')}</h3></div></div><AttachmentField/></div>}
+
+
+function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confirm}){
+  const [editing,setEditing]=useState(false)
+  const source=patient||{id:record?.patientId,name:record?.patient,nameEn:record?.patientEn,department:record?.department,departmentEn:record?.departmentEn,admissionDate:record?.admissionDate,status:record?.status}
+  const [draft,setDraft]=useState({...source})
+  const canEdit=has(CAPABILITIES.EDIT_PATIENT)
+  const canDelete=has(CAPABILITIES.DELETE_PATIENT)
+  const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
+  async function remove(){const ok=await confirm({title:t('confirmAction'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')});if(ok)notify(t('actionCompleted'),'warning')}
+  return <section className="clinical-panel full-panel patient-details-panel">
+    <div className="record-section-header"><div><span className="eyebrow">{t('patientRecord')}</span><h3>{t('patientDetails')}</h3></div><div className="record-inline-actions">{canEdit&&!editing&&<button title={t('edit')} onClick={()=>setEditing(true)}><Pencil size={16}/></button>}{canDelete&&!editing&&<button className="danger" title={t('delete')} onClick={remove}><Trash2 size={16}/></button>}</div></div>
+    <div className={`detail-grid patient-detail-grid ${editing?'employee-inline-edit':''}`}>
+      <PatientInline l={t('patientId')} v={draft.id||record?.patientId}/>
+      <PatientInline editing={editing} l={t('name')} v={language==='el'?(draft.name||record?.patient):(draft.nameEn||record?.patientEn)} onChange={v=>set(language==='el'?'name':'nameEn',v)}/>
+      <PatientInline editing={editing} l={t('department')} v={language==='el'?(draft.department||record?.department):(draft.departmentEn||record?.departmentEn)} onChange={v=>set(language==='el'?'department':'departmentEn',v)}/>
+      <PatientInline l={t('admissionDate')} v={fmtDate(draft.admissionDate||record?.admissionDate)}/>
+      <PatientInline l={t('age')} v={age??'—'}/>
+      <PatientInline l={t('status')} v={t(draft.status||record?.status||'active')}/>
+      {record&&<PatientInline l={t('surveillance')} v={`${record.id} · ${t(record.status)}`}/>}
+      {record&&<PatientInline l={t('isolation')} v={record.isolation?t(record.isolation.status):t('no')}/>}
+    </div>
+    {!record&&<div className="patient-no-surveillance"><strong>{t('noActiveSurveillance')}</strong><span>{t('noClinicalData')}</span></div>}
+    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...source});setEditing(false)}}>{t('cancel')}</Button><Button onClick={()=>{setEditing(false);notify(t('actionCompleted'),'success')}}>{t('save')}</Button></div>}
+  </section>
+}
+function PatientInline({editing=false,l,v,onChange}){return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<input value={v||''} onChange={e=>onChange?.(e.target.value)}/>:<strong>{v||'—'}</strong>}</div>}
+
+function Overview({record,t,language,fmtDate,fmtDateTime}){
+  const latestSample=record.samples[0]
+  return <div className="record-grid">
+    <section className="clinical-panel span-2"><PanelTitle icon={ShieldCheck} title={t('clinicalAssessment')}/>{record.assessment?<><div className="detail-grid"><Detail label={t('assessmentDate')} value={fmtDate(record.assessment.date)}/><Detail label={t('assessedBy')} value={record.assessment.assessedBy}/></div>{(record.assessment.summary||record.assessment.summaryEn)&&<p className="clinical-summary">{language==='el'?record.assessment.summary:record.assessment.summaryEn}</p>}</>:<EmptyInline text={t('noClinicalData')}/>}</section>
+    <section className="clinical-panel"><PanelTitle icon={Microscope} title={t('latestFinding')}/><Detail label={t('sampleType')} value={t(latestSample.type)}/><Detail label={t('cultureResult')} value={t(latestSample.result)}/><Detail label={t('organism')} value={latestSample.organism ?? '—'}/><Detail label={t('resultDate')} value={fmtDateTime(latestSample.resultedAt)}/></section>
+    <section className="clinical-panel"><PanelTitle icon={Pill} title={t('therapy')}/>{record.therapy[0]?<><Detail label={t('antimicrobial')} value={record.therapy[0].antimicrobial}/><Detail label={t('dose')} value={`${record.therapy[0].dose} · ${record.therapy[0].route}`}/><Detail label={t('startedOn')} value={fmtDate(record.therapy[0].startedAt)}/></>:<EmptyInline text={t('noClinicalData')}/>}</section>
+    <section className="clinical-panel"><PanelTitle icon={BedDouble} title={t('isolation')}/>{record.isolation?<><Detail label={t('precautions')} value={(record.isolation.precautions?.length?record.isolation.precautions:[record.isolation.type].filter(Boolean)).map(t).join(', ')}/><Detail label={t('isolationStarted')} value={fmtDateTime(record.isolation.startedAt)}/></>:<EmptyInline text={t('noClinicalData')}/>}</section>
+    <section className="clinical-panel"><PanelTitle icon={RefreshCcw} title={t('reassessment')}/>{record.reassessments[0]?<><Detail label={t('reviewStatus')} value={t(record.reassessments[0].status)}/><Detail label={t('decision')} value={t(record.reassessments[0].decision)}/><Detail label={t('assessmentDate')} value={fmtDate(record.reassessments[0].date)}/></>:<EmptyInline text={t('noClinicalData')}/>}</section>
+    <section className="clinical-panel span-2"><ClinicalAction capability={CAPABILITIES.ATTACH_FILES}><AttachmentField /></ClinicalAction></section>
+    <section className="clinical-panel span-2 traceability-panel"><PanelTitle icon={FileClock} title={t('auditTrail')}/><p>{t('auditHint')}</p><div className="mini-timeline">{record.timeline.slice(0,3).map((item,i)=><div key={`${item.at}-${i}`}><span className="timeline-dot"/><strong>{t(item.type)}</strong><span>{item.actor}</span><time>{fmtDateTime(item.at)}</time></div>)}</div></section>
+  </div>
+}
+
+function ActiveStartEditor({record,t,language,onSaved}){
+  const [draft,setDraft]=useState({startedAt:record.startedAt||'',reviewDue:record.reviewDue||'',department:record.department||'',departmentEn:record.departmentEn||'',room:record.room||'',reason:record.reason||'',reasonEn:record.reasonEn||''})
+  const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
+  function save(){Object.assign(record,draft);record.timeline=[{at:new Date().toISOString(),type:'surveillanceUpdated',actor:t('currentUser'),detail:'start'},...(record.timeline||[])];onSaved?.()}
+  return <section className="clinical-panel full-panel active-edit-panel"><div className="section-actions"><PanelTitle icon={Activity} title={t('surveillanceStart')}/><span className="edit-enabled-badge">{t('editableActiveSurveillance')}</span></div><div className="entry-grid"><ManualDateField label={t('surveillanceStartDate')} value={draft.startedAt} onChange={v=>set('startedAt',v)}/><ManualDateField label={t('nextReview')} optional value={draft.reviewDue} onChange={v=>set('reviewDue',v)}/><label><span>{t('department')}</span><input value={language==='el'?draft.department:draft.departmentEn} onChange={e=>set(language==='el'?'department':'departmentEn',e.target.value)}/></label><label><span>{t('room')}</span><input value={draft.room} onChange={e=>set('room',e.target.value)}/></label><label className="entry-span-2"><span>{t('surveillanceReason')}</span><textarea rows={3} value={language==='el'?draft.reason:draft.reasonEn} onChange={e=>set(language==='el'?'reason':'reasonEn',e.target.value)}/></label></div><div className="flow-step-actions"><Button onClick={save}>{t('save')}</Button></div></section>
+}
+
+function ActiveAssessmentEditor({record,t,language,onSaved}){
+  const a=record.assessment||{}
+  const [draft,setDraft]=useState({date:a.date||'',summary:a.summary||'',summaryEn:a.summaryEn||'',symptoms:(a.symptoms||[]).join(', '),risks:(a.riskFactors||[]).join(', '),notes:a.notes||'',notesEn:a.notesEn||''})
+  const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
+  function save(){record.assessment={...a,date:draft.date,assessedBy:a.assessedBy||t('currentUser'),summary:draft.summary,summaryEn:draft.summaryEn||draft.summary,symptoms:draft.symptoms.split(',').map(x=>x.trim()).filter(Boolean),symptomsEn:draft.symptoms.split(',').map(x=>x.trim()).filter(Boolean),riskFactors:draft.risks.split(',').map(x=>x.trim()).filter(Boolean),riskFactorsEn:draft.risks.split(',').map(x=>x.trim()).filter(Boolean),notes:draft.notes,notesEn:draft.notesEn||draft.notes};record.timeline=[{at:new Date().toISOString(),type:'clinicalAssessmentUpdated',actor:t('currentUser'),detail:'updated'},...(record.timeline||[])];onSaved?.()}
+  return <section className="clinical-panel full-panel active-edit-panel"><div className="section-actions"><PanelTitle icon={ShieldCheck} title={t('clinicalAssessment')}/><span className="edit-enabled-badge">{t('editableActiveSurveillance')}</span></div><div className="entry-grid"><ManualDateField label={t('assessmentDate')} value={draft.date} onChange={v=>set('date',v)}/><label className="entry-span-2"><span>{t('clinicalSummary')} · {t('optional')}</span><textarea rows={3} value={language==='el'?draft.summary:draft.summaryEn} onChange={e=>set(language==='el'?'summary':'summaryEn',e.target.value)}/></label><label><span>{t('signsSymptoms')}</span><input value={draft.symptoms} onChange={e=>set('symptoms',e.target.value)}/></label><label><span>{t('riskFactors')}</span><input value={draft.risks} onChange={e=>set('risks',e.target.value)}/></label></div><div className="flow-step-actions"><Button onClick={save}>{t('save')}</Button></div></section>
+}
+
+function ActiveIsolationEditor({record,t,language,confirm,onSaved}){
+  const existing=record.isolation
+  const initialNeeded=existing?true:(record.isolationDecision?.required===false?false:null)
+  const [needed,setNeeded]=useState(initialNeeded)
+  const [draft,setDraft]=useState({startedAt:existing?.startedAt?.slice(0,10)||new Date().toISOString().slice(0,10),precautionType:existing?.type||existing?.precautions?.[0]||'contact',reason:existing?.reason||'',reasonEn:existing?.reasonEn||'',provisional:existing?.provisional??true})
+  const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
+  async function save(){const now=new Date().toISOString();if(needed===false&&existing){const ok=await confirm({title:t('changeIsolationDecision'),message:t('removeActiveIsolationConfirm'),confirmLabel:t('confirm')});if(!ok)return}if(needed===false){record.isolation=null;record.isolationDecision={required:false,decidedAt:now,by:t('currentUser')};record.timeline=[{at:now,type:'isolationNotRequired',actor:t('currentUser'),detail:'no'},...(record.timeline||[])];onSaved?.();return}if(needed===true){record.isolationDecision={required:true,decidedAt:now,by:t('currentUser')};record.isolation={id:existing?.id||`ISO-${Date.now()}`,status:'active',startedAt:draft.startedAt,endedAt:null,type:draft.precautionType,precautions:[draft.precautionType],room:record.room||'',nextReview:record.reviewDue||null,reason:draft.reason||draft.reasonEn||'',reasonEn:draft.reasonEn||draft.reason||'',provisional:Boolean(draft.provisional),by:t('currentUser')};record.timeline=[{at:now,type:existing?'isolationUpdated':'isolationStarted',actor:t('currentUser'),detail:draft.precautionType},...(record.timeline||[])];onSaved?.()}}
+  return <section className="clinical-panel full-panel active-edit-panel"><div className="section-actions"><PanelTitle icon={BedDouble} title={t('isolation')}/><span className="edit-enabled-badge">{t('editableActiveSurveillance')}</span></div><div className="isolation-question"><strong>{t('isIsolationRequired')}</strong><span>{t('isIsolationRequiredHelp')}</span><div><button className={needed===true?'selected yes':''} onClick={()=>setNeeded(true)}>{t('yes')}</button><button className={needed===false?'selected no':''} onClick={()=>setNeeded(false)}>{t('no')}</button></div></div>{needed===true&&<div className="entry-grid isolation-fields"><ManualDateField label={t('isolationStart')} value={draft.startedAt} onChange={v=>set('startedAt',v)}/><label><span>{t('precautionType')}</span><select value={draft.precautionType} onChange={e=>set('precautionType',e.target.value)}><option value="contact">{t('contactPrecautions')}</option><option value="droplet">{t('dropletPrecautions')}</option><option value="airborne">{t('airbornePrecautions')}</option><option value="protective">{t('protectiveIsolation')}</option><option value="other">{t('other')}</option></select></label><label className="entry-span-2"><span>{t('isolationReason')}</span><textarea rows={3} value={language==='el'?draft.reason:draft.reasonEn} onChange={e=>set(language==='el'?'reason':'reasonEn',e.target.value)}/></label><label className="inline-check entry-span-2"><input type="checkbox" checked={draft.provisional} onChange={e=>set('provisional',e.target.checked)}/><span>{t('provisionalIsolation')}</span></label></div>}{needed===false&&<div className="no-isolation-note"><CheckCircle2 size={16}/><span>{t('noIsolationDecisionHint')}</span></div>}<div className="flow-step-actions"><Button disabled={needed===null||(needed===true&&!draft.startedAt)} onClick={save}>{t('save')}</Button></div></section>
+}
+
+function Assessment({record,t,language,fmtDate}){
+  const a=record.assessment
+  const screening=Object.entries(a?.screening||{}).filter(([,value])=>value&&value!=='unknown')
+  return <section className="clinical-panel full-panel"><div className="section-actions"><PanelTitle icon={ShieldCheck} title={t('clinicalAssessment')}/></div>
+    {!a?<div className="workflow-empty-step"><strong>{t('assessmentPending')}</strong><span>{t('assessmentPendingHint')}</span></div>:<>
+      <div className="detail-grid"><Detail label={t('assessmentDate')} value={fmtDate(a.date)}/><Detail label={t('assessedBy')} value={a.assessedBy}/></div>
+      {screening.length>0&&<><h4>{t('riskScreeningQuestionnaire')}</h4><div className="screening-summary-grid">{screening.map(([key,value])=><div key={key}><span>{t(`q${key[0].toUpperCase()}${key.slice(1)}`)}</span><strong>{t(value)}</strong></div>)}</div></>}
+      {(a.summary||a.summaryEn)&&<><h4>{t('clinicalSummary')}</h4><p className="clinical-summary">{language==='el'?a.summary:a.summaryEn}</p></>}
+      <div className="two-column-lists"><TagList title={t('signsSymptoms')} items={language==='el'?a.symptoms:a.symptomsEn}/><TagList title={t('riskFactors')} items={language==='el'?a.riskFactors:a.riskFactorsEn}/></div>
+      {(a.notes||a.notesEn)&&<div className="evidence-box"><strong>{t('notes')}</strong><span>{language==='el'?a.notes:a.notesEn}</span></div>}
+    </>}
+  </section>
+}
+
+function Samples({record,t,fmtDateTime}){return <section className="clinical-panel full-panel"><div className="section-actions"><div><PanelTitle icon={Microscope} title={t('samples')}/><p className="section-note">{t('sourceOfTruthLab')}</p></div><ClinicalAction capability={CAPABILITIES.VIEW_LAB}><Button>{t('openInLaboratory')}</Button></ClinicalAction></div><div className="table-wrap"><table className="data-table clinical-table"><thead><tr><th>ID</th><th>{t('sampleType')}</th><th>{t('collectionDate')}</th><th>{t('cultureResult')}</th><th>{t('organism')}</th><th>{t('resistanceClass')}</th><th>{t('criticalResult')}</th></tr></thead><tbody>{record.samples.map(s=><tr key={s.id}><td><strong>{s.id}</strong></td><td>{t(s.type)}</td><td>{fmtDateTime(s.collectedAt)}</td><td><span className={`status-badge ${s.result==='positive'?'risk':''}`}>{t(s.result)}</span></td><td>{s.organism??'—'}</td><td>{s.resistance??'—'}</td><td>{s.critical?`${t('positive')} · ${fmtDateTime(s.communicatedAt)}`:'—'}</td></tr>)}</tbody></table></div>{record.samples[0]?.susceptibility&&<div className="evidence-box"><strong>{t('susceptibility')}</strong><span>{record.samples[0].susceptibility}</span></div>}</section>}
+
+function Therapy({record,t,fmtDate}){return <section className="clinical-panel full-panel"><div className="section-actions"><div><PanelTitle icon={Pill} title={t('therapy')}/><p className="section-note">{t('sourceOfTruthPharmacy')}</p></div><ClinicalAction capability={CAPABILITIES.VIEW_PHARMACY}><Button>{t('openInPharmacy')}</Button></ClinicalAction></div>{record.therapy.length?<div className="therapy-list">{record.therapy.map(x=><article key={x.id}><header><strong>{x.antimicrobial}</strong><span className="status-badge active">{t('active')}</span></header><div className="detail-grid four"><Detail label={t('dose')} value={x.dose}/><Detail label={t('route')} value={x.route}/><Detail label={t('startedOn')} value={fmtDate(x.startedAt)}/><Detail label={t('plannedEnd')} value={fmtDate(x.plannedEnd)}/></div><Detail label={t('indication')} value={x.indication}/></article>)}</div>:<EmptyInline text={t('noClinicalData')}/>}</section>}
+
+function Isolation({record,t,fmtDateTime,fmtDate}){const x=record.isolation;const precautions=x?.precautions?.length?x.precautions:[x?.type].filter(Boolean);return <section className="clinical-panel full-panel"><div className="section-actions"><PanelTitle icon={BedDouble} title={t('isolation')}/></div>{x?<><div className="detail-grid four"><Detail label={t('status')} value={t(x.status)}/><Detail label={t('isolationStarted')} value={fmtDateTime(x.startedAt)}/><Detail label={t('provisionalIsolation')} value={x.provisional?t('yes'):t('no')}/><Detail label={t('nextReview')} value={fmtDate(x.nextReview)}/></div><h4>{t('precautions')}</h4><div className="tag-row">{precautions.map(p=><span className="clinical-tag" key={p}>{t(p)}</span>)}</div>{x.reason&&<div className="evidence-box"><strong>{t('isolationReason')}</strong><span>{x.reason}</span></div>}</>:<EmptyInline text={t('noClinicalData')}/>}</section>}
+
+function Reassessment({record,t,language,fmtDate}){return <section className="clinical-panel full-panel"><div className="section-actions"><PanelTitle icon={RefreshCcw} title={t('reassessment')}/><ClinicalAction capability={CAPABILITIES.REASSESS_SURVEILLANCE}><Button>{t('addReassessment')}</Button></ClinicalAction></div>{record.reassessments.length?<div className="review-list">{record.reassessments.map(x=><article key={x.id}><div className="review-date"><RefreshCcw size={16}/><strong>{fmtDate(x.date)}</strong></div><div><div className="detail-grid"><Detail label={t('reviewStatus')} value={t(x.status)}/><Detail label={t('decision')} value={t(x.decision)}/><Detail label={t('actor')} value={x.by}/></div><p>{language==='el'?x.notes:x.notesEn}</p></div></article>)}</div>:<EmptyInline text={t('noClinicalData')}/>}</section>}
+
+function Outcome({record,t,fmtDate}){return <section className="clinical-panel full-panel"><div className="section-actions"><PanelTitle icon={CircleCheckBig} title={t('outcome')}/><ClinicalAction capability={CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME}><Button>{t('recordOutcome')}</Button></ClinicalAction></div>{record.outcome?<div className="detail-grid"><Detail label={t('outcomeStatus')} value={t(record.outcome.status)}/><Detail label={t('outcomeDate')} value={fmtDate(record.outcome.date)}/></div>:<div className="outcome-open"><Clock3 size={22}/><div><strong>{t('ongoingOutcome')}</strong><p>{t('noClinicalData')}</p></div></div>}</section>}
+
+function Timeline({record,t,language,fmtDateTime}){return <section className="clinical-panel full-panel"><PanelTitle icon={FileClock} title={t('timeline')}/><div className="clinical-timeline">{record.timeline.map((item,i)=><article key={`${item.at}-${i}`}><div className="timeline-rail"><span/></div><div><header><strong>{t(item.type)}</strong><time>{fmtDateTime(item.at)}</time></header><p>{t(item.detail)} · {(language==='en'&&item.actorEn)?item.actorEn:item.actor}</p></div></article>)}</div></section>}
+
+function PanelTitle({icon:Icon,title}){return <div className="panel-title"><Icon size={17}/><strong>{title}</strong></div>}
+
+function HaiClassification({record,t,language}){const h=record.haiClassification;return <section className="clinical-panel full-panel"><div className="section-actions"><div><PanelTitle icon={ShieldCheck} title={t('haiClassification')}/><p className="section-note">{t('haiClassificationNote')}</p></div><ClinicalAction capability={CAPABILITIES.RECORD_CLINICAL_ASSESSMENT}><Button>{t('updateClassification')}</Button></ClinicalAction></div>{h?<><div className="detail-grid four"><Detail label={t('caseStatus')} value={t(h.status)}/><Detail label={t('haiType')} value={t(h.type)}/><Detail label={t('definitionSet')} value={h.definitionSet}/><Detail label={t('criteriaMet')} value={h.criteriaMet? t('yes'):t('no')}/></div><h4>{t('classificationRationale')}</h4><p className="clinical-summary">{language==='el'?h.rationale:h.rationaleEn}</p></>:<EmptyInline text={t('noClinicalData')}/>}</section>}
+
+function DevicesRisk({record,t,language,fmtDate}){return <section className="clinical-panel full-panel"><div className="section-actions"><div><PanelTitle icon={FileClock} title={t('devicesRisk')}/><p className="section-note">{t('devicesRiskNote')}</p></div></div>{record.devices?.length?<div className="therapy-list">{record.devices.map(x=><article key={x.id}><header><strong>{language==='el'?x.name:x.nameEn}</strong><span className={`status-badge ${x.status==='active'?'active':''}`}>{t(x.status)}</span></header><div className="detail-grid four"><Detail label={t('insertedOn')} value={fmtDate(x.insertedAt)}/><Detail label={t('deviceSite')} value={language==='el'?x.site:x.siteEn}/><Detail label={t('reviewDue')} value={fmtDate(x.reviewDue)}/><Detail label={t('deviceIndication')} value={language==='el'?x.indication:x.indicationEn}/></div></article>)}</div>:<EmptyInline text={t('noClinicalData')}/>}</section>}
+
+function Detail({label,value}){return <div className="detail-item"><span>{label}</span><strong>{value||'—'}</strong></div>}
+function TagList({title,items}){return <div><h4>{title}</h4><div className="tag-row">{items.map(item=><span className="clinical-tag" key={item}>{item}</span>)}</div></div>}
+function EmptyInline({text}){return <div className="empty-inline">{text}</div>}
+function ClinicalAction({capability,children}){const {role,membership,tenant}=useTenant();return can(role,capability,membership?.capabilities??[],membership?.customCapabilities??[])?children:null}

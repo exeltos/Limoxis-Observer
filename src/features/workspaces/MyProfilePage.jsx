@@ -1,0 +1,2 @@
+import { Page } from '../../design-system/Page'
+export function MyProfilePage(){ return <Page title="Η καρτέλα μου" subtitle="Στοιχεία, τμήμα/ιδιότητα, εμβολιασμοί, Ιατρός Εργασίας, εκπαιδεύσεις και πιστοποιήσεις - με read-only όρια όπου απαιτείται."><div className="surface"><div className="inline-empty">Η προσωπική καρτέλα θα εμφανίζει μόνο τα δεδομένα του συνδεδεμένου εργαζομένου.</div></div></Page> }

@@ -1,0 +1,19 @@
+/* Limoxis Observer central visual tokens.
+   Change these values to restyle shared screens globally. */
+:root{
+  --lo-color-nav:#16395f;
+  --lo-color-nav-dark:#102d4d;
+  --lo-color-primary:#1f6fa9;
+  --lo-color-bg:#f5f7fa;
+  --lo-color-surface:#ffffff;
+  --lo-color-border:#dfe5ec;
+  --lo-color-text:#172033;
+  --lo-color-muted:#6e7b8d;
+  --lo-color-danger:#b34f55;
+  --lo-radius-control:9px;
+  --lo-radius-card:14px;
+  --lo-control-height:34px;
+  --lo-record-header-padding:14px 18px;
+  --lo-record-tabs-height:48px;
+  --lo-shadow-popover:0 16px 38px rgba(22,39,58,.16);
+}

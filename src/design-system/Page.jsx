@@ -1,0 +1,1 @@
+export function Page({title,subtitle,actions,children,fill=false}) { return <section className={`page ${fill?'page-fill':''}`}><header className="page-header"><div><h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{actions&&<div className="page-actions">{actions}</div>}</header>{children}</section> }
