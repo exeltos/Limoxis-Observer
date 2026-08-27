@@ -9,6 +9,7 @@ import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useTenant } from '../../core/tenant/TenantContext'
 import { patientDemoData, createDemoPatient } from './patientDemoData'
 import { demoLibrarySeed } from '../management/managementData'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -17,6 +18,7 @@ export function PatientsPage(){
   const {t,language,locale}=useLanguage()
   const {notify}=useFeedback()
   const navigate=useNavigate()
+  const {canAccessRecord}=useTenant()
   const registry=useRegistryMemory('patients')
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query)
@@ -26,9 +28,10 @@ export function PatientsPage(){
   const [newOpen,setNewOpen]=useState(false)
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
   const rows=useMemo(()=>patients
+    .filter(p=>canAccessRecord(p))
     .filter(p=>`${p.id} ${p.name} ${p.nameEn||''} ${p.hospitalRecordNumber||''}`.toLowerCase().includes(query.toLowerCase()))
     .filter(p=>department==='all'||(language==='el'?p.department:p.departmentEn)===department)
-    .filter(p=>status==='all'||p.status===status),[query,patients,department,status,language])
+    .filter(p=>status==='all'||p.status===status),[query,patients,department,status,language,canAccessRecord])
   const fmt=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)):'—'
   const pageCaps={[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_PATIENT}
   function pageAction(action){
@@ -63,7 +66,7 @@ export function PatientsPage(){
 }
 
 function NewPatientCard({t,language,onClose,onSave}){
-  const firstDepartment=demoLibrarySeed.departments?.[0]||['ΜΕΘ','ICU']
+  const firstDepartment=demoLibrarySeed.departments?.[0]||['','']
   const [draft,setDraft]=useState({
     firstName:'',lastName:'',fatherName:'',hospitalRecordNumber:'',
     dateOfBirth:'',sex:'',department:firstDepartment[0],departmentEn:firstDepartment[1],

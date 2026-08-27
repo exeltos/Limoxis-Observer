@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { ROLES } from '../permissions/roles'
+import { uxPolicyFor, recordWithinRoleScope, canSeeSensitiveEmployeeHealth } from '../permissions/roleUxPolicy'
 import { listMemberships } from './tenantService'
 
 const TenantContext = createContext(null)
@@ -42,12 +43,17 @@ export function TenantProvider({ children }) {
   const tenant = baseMembership?.organization ?? null
   const actualRole = profile?.isPlatformOwner ? ROLES.PLATFORM_OWNER : baseMembership?.role ?? null
   const role = canRolePreview && rolePreview?.role ? rolePreview.role : actualRole
-  const membership = rolePreview?.role && canRolePreview
-    ? {...baseMembership, role: rolePreview.role, capabilities: [], customCapabilities: [], assignments: [], previewDepartment: rolePreview.department || null}
-    : baseMembership
-  const setTenantByMembership = (membershipId) => {
-    if (memberships.some((item) => item.id === membershipId)) setActiveMembershipId(membershipId)
-  }
+  const membership = useMemo(() => (
+    rolePreview?.role && canRolePreview
+      ? {...baseMembership, role: rolePreview.role, capabilities: [], customCapabilities: [], assignments: [], previewDepartment: rolePreview.department || null}
+      : baseMembership
+  ), [baseMembership, rolePreview, canRolePreview])
+  const setTenantByMembership = useCallback((membershipId) => {
+    setMemberships((current) => {
+      if (current.some((item) => item.id === membershipId)) setActiveMembershipId(membershipId)
+      return current
+    })
+  }, [])
 
   const value = useMemo(() => ({
     tenant,
@@ -64,7 +70,10 @@ export function TenantProvider({ children }) {
     startRolePreview: (previewRole, department='') => canRolePreview && setRolePreview({role:previewRole,department}),
     updateRolePreviewDepartment: (department='') => canRolePreview && setRolePreview(current=>current?{...current,department}:current),
     stopRolePreview: () => setRolePreview(null),
-  }), [tenant, membership, memberships, role, actualRole, rolePreview, loading, canRolePreview])
+    uxPolicy: uxPolicyFor(role),
+    canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
+    canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role),
+  }), [tenant, membership, memberships, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, user?.id])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
 }

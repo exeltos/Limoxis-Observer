@@ -10,7 +10,7 @@ function isoToDisplay(value){
 function displayToIso(value){
   const text=String(value||'').trim()
   if(!text)return ''
-  let m=text.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/)
+  let m=text.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/)
   if(m){
     const d=Number(m[1]),mo=Number(m[2]),y=Number(m[3])
     const date=new Date(Date.UTC(y,mo-1,d))

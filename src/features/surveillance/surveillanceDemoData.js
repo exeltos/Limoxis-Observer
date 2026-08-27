@@ -36,3 +36,29 @@ export function deleteDemoSurveillanceListItem(id){
   surveillanceDemoData.splice(index,1)
   return true
 }
+
+export function syncDemoSurveillanceListItem(record){
+  const item=surveillanceDemoData.find(x=>x.id===record.id)
+  if(!item)return createDemoSurveillanceListItem(record)
+  Object.assign(item,{
+    patientId:record.patientId,
+    patient:record.patient,
+    patientEn:record.patientEn,
+    department:record.department,
+    departmentEn:record.departmentEn,
+    startedAt:record.startedAt,
+    organism:record.organism||'',
+    resistance:record.resistance||null,
+    isolation:Boolean(record.isolation),
+    reviewDue:record.reviewDue||null,
+    state:record.status||'active',
+    domains:{
+      assessment:record.assessment?'completed':'pending',
+      microbiology:record.samples?.length?'active':'pending',
+      therapy:record.therapy?.length?'active':'pending',
+      isolation:(record.isolation||record.isolationDecision?.required===false)?'active':'pending',
+      reassessment:record.reassessments?.length?'inProgress':'pending',
+    },
+  })
+  return item
+}

@@ -5,6 +5,7 @@ import { Button } from '../../design-system/Button'
 import { Field } from '../../design-system/Field'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { APP_VERSION } from '../../core/version'
 
 export function LoginPage() {
   const { isAuthenticated, login, loginDemo, allowDemo, hasSupabaseConfig } = useAuth()
@@ -35,7 +36,7 @@ export function LoginPage() {
 
   return <div className="auth-layout">
     <section className="auth-brand-panel">
-      <div className="auth-brand"><span className="auth-logo">H+</span><div><strong>Limoxis Observer</strong><span>Hospital Operations Platform</span></div></div>
+      <div className="auth-brand"><span className="auth-logo">L+</span><div><strong>Limoxis Observer</strong><span>Hospital Operations Platform · v{APP_VERSION}</span></div></div>
       <div className="auth-value">
         <span className="eyebrow">{greek ? 'ΕΝΙΑΙΑ ΠΛΑΤΦΟΡΜΑ ΝΟΣΟΚΟΜΕΙΟΥ' : 'UNIFIED HOSPITAL PLATFORM'}</span>
         <h1>{greek ? 'Η καθημερινή λειτουργία, σε ένα καθαρό και ασφαλές περιβάλλον.' : 'Daily hospital operations, in one clean and secure workspace.'}</h1>

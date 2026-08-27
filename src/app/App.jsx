@@ -1,33 +1,42 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { ProtectedRoute } from '../core/auth/ProtectedRoute'
 import { RequireCapability } from '../core/permissions/RequireCapability'
 import { CAPABILITIES } from '../core/permissions/roles'
 import { LoginPage } from '../features/auth/LoginPage'
-import { DashboardPage } from '../features/dashboard/DashboardPage'
-import { SurveillancePage } from '../features/surveillance/SurveillancePage'
-import { PatientClinicalRecordPage } from '../features/surveillance/PatientClinicalRecordPage'
-import { LaboratoryPage } from '../features/laboratory/LaboratoryPage'
-import { LaboratorySampleRecordPage } from '../features/laboratory/LaboratorySampleRecordPage'
-import { PreventionPage } from '../features/prevention/PreventionPage'
-import { ControlsPage } from '../features/controls/ControlsPage'
-import { ControlRecordPage } from '../features/controls/ControlRecordPage'
-import { RecordsPage } from '../features/records/RecordsPage'
-import { QualityPage } from '../features/quality/QualityPage'
-import { QualityRecordPage } from '../features/quality/QualityRecordPage'
-import { QualityCreatePage } from '../features/quality/QualityCreatePage'
-import { TrainingPage } from '../features/training/TrainingPage'
-import { CommitteesPage } from '../features/committees/CommitteesPage'
-import { DocumentsPage } from '../features/documents/DocumentsPage'
-import { PatientsPage } from '../features/patients/PatientsPage'
-import { EmployeesPage } from '../features/employees/EmployeesPage'
-import { EmployeeRecordPage } from '../features/employees/EmployeeRecordPage'
-import { PharmacyPage } from '../features/pharmacy/PharmacyPage'
-import { OccupationalHealthPage } from '../features/occupational-health/OccupationalHealthPage'
-import { LiraPage } from '../features/lira/LiraPage'
-import { ManagementPage } from '../features/management/ManagementPage'
-import { IndicatorsPage } from '../features/indicators/IndicatorsPage'
-import { MyDepartmentPage } from '../features/workspaces/MyDepartmentPage'
+import { RouteLoading } from '../design-system/RouteLoading'
+
+// Route-level code splitting: each feature page loads its own chunk on first
+// visit instead of all being bundled into the single initial JS payload.
+// Named exports need the .then(...) wrapper since React.lazy expects a
+// module with a default export.
+const lazyNamed = (loader, name) => lazy(() => loader().then(m => ({ default: m[name] })))
+
+const DashboardPage = lazyNamed(() => import('../features/dashboard/DashboardPage'), 'DashboardPage')
+const SurveillancePage = lazyNamed(() => import('../features/surveillance/SurveillancePage'), 'SurveillancePage')
+const PatientClinicalRecordPage = lazyNamed(() => import('../features/surveillance/PatientClinicalRecordPage'), 'PatientClinicalRecordPage')
+const LaboratoryPage = lazyNamed(() => import('../features/laboratory/LaboratoryPage'), 'LaboratoryPage')
+const LaboratorySampleRecordPage = lazyNamed(() => import('../features/laboratory/LaboratorySampleRecordPage'), 'LaboratorySampleRecordPage')
+const PreventionPage = lazyNamed(() => import('../features/prevention/PreventionPage'), 'PreventionPage')
+const ControlsPage = lazyNamed(() => import('../features/controls/ControlsPage'), 'ControlsPage')
+const ControlRecordPage = lazyNamed(() => import('../features/controls/ControlRecordPage'), 'ControlRecordPage')
+const RecordsPage = lazyNamed(() => import('../features/records/RecordsPage'), 'RecordsPage')
+const QualityPage = lazyNamed(() => import('../features/quality/QualityPage'), 'QualityPage')
+const QualityRecordPage = lazyNamed(() => import('../features/quality/QualityRecordPage'), 'QualityRecordPage')
+const QualityCreatePage = lazyNamed(() => import('../features/quality/QualityCreatePage'), 'QualityCreatePage')
+const TrainingPage = lazyNamed(() => import('../features/training/TrainingPage'), 'TrainingPage')
+const CommitteesPage = lazyNamed(() => import('../features/committees/CommitteesPage'), 'CommitteesPage')
+const DocumentsPage = lazyNamed(() => import('../features/documents/DocumentsPage'), 'DocumentsPage')
+const PatientsPage = lazyNamed(() => import('../features/patients/PatientsPage'), 'PatientsPage')
+const EmployeesPage = lazyNamed(() => import('../features/employees/EmployeesPage'), 'EmployeesPage')
+const EmployeeRecordPage = lazyNamed(() => import('../features/employees/EmployeeRecordPage'), 'EmployeeRecordPage')
+const PharmacyPage = lazyNamed(() => import('../features/pharmacy/PharmacyPage'), 'PharmacyPage')
+const OccupationalHealthPage = lazyNamed(() => import('../features/occupational-health/OccupationalHealthPage'), 'OccupationalHealthPage')
+const LiraPage = lazyNamed(() => import('../features/lira/LiraPage'), 'LiraPage')
+const ManagementPage = lazyNamed(() => import('../features/management/ManagementPage'), 'ManagementPage')
+const IndicatorsPage = lazyNamed(() => import('../features/indicators/IndicatorsPage'), 'IndicatorsPage')
+const MyDepartmentPage = lazyNamed(() => import('../features/workspaces/MyDepartmentPage'), 'MyDepartmentPage')
 
 const gate = (capability, element) => <RequireCapability capability={capability}>{element}</RequireCapability>
 
@@ -36,32 +45,32 @@ export function App() {
     <Route path="/login" element={<LoginPage />} />
     <Route element={<ProtectedRoute />}>
       <Route element={<AppShell />}>
-        <Route index element={gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)} />
-        <Route path="my-department" element={gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)} />
-        <Route path="my-profile" element={gate(CAPABILITIES.VIEW_MY_PROFILE, <EmployeeRecordPage selfMode />)} />
-        <Route path="surveillance" element={gate(CAPABILITIES.VIEW_SURVEILLANCE, <SurveillancePage />)} />
-        <Route path="surveillance/:caseId" element={gate(CAPABILITIES.VIEW_SURVEILLANCE, <PatientClinicalRecordPage />)} />
-        <Route path="laboratory" element={gate(CAPABILITIES.VIEW_LAB, <LaboratoryPage />)} />
-        <Route path="laboratory/:sampleId" element={gate(CAPABILITIES.VIEW_LAB, <LaboratorySampleRecordPage />)} />
-        <Route path="prevention" element={gate(CAPABILITIES.VIEW_PREVENTION, <PreventionPage />)} />
-        <Route path="controls" element={gate(CAPABILITIES.VIEW_CONTROLS, <ControlsPage />)} />
-        <Route path="controls/:controlId" element={gate(CAPABILITIES.VIEW_CONTROLS, <ControlRecordPage />)} />
-        <Route path="records" element={gate(CAPABILITIES.VIEW_RECORDS, <RecordsPage />)} />
-        <Route path="quality" element={gate(CAPABILITIES.VIEW_QUALITY, <QualityPage />)} />
-        <Route path="quality/:recordType/new" element={gate(CAPABILITIES.VIEW_QUALITY, <QualityCreatePage />)} />
-        <Route path="quality/:recordType/:recordId" element={gate(CAPABILITIES.VIEW_QUALITY, <QualityRecordPage />)} />
-        <Route path="indicators" element={gate(CAPABILITIES.VIEW_INDICATORS, <IndicatorsPage />)} />
-        <Route path="training" element={gate(CAPABILITIES.VIEW_TRAINING, <TrainingPage />)} />
-        <Route path="committees" element={gate(CAPABILITIES.VIEW_COMMITTEES, <CommitteesPage />)} />
-        <Route path="documents" element={gate(CAPABILITIES.VIEW_DOCUMENTS, <DocumentsPage />)} />
-        <Route path="patients" element={gate(CAPABILITIES.VIEW_PATIENTS, <PatientsPage />)} />
-        <Route path="patients/:patientId" element={gate(CAPABILITIES.VIEW_PATIENTS, <PatientClinicalRecordPage patientMode />)} />
-        <Route path="employees" element={gate(CAPABILITIES.VIEW_STAFF, <EmployeesPage />)} />
-        <Route path="employees/:employeeId" element={gate(CAPABILITIES.VIEW_STAFF, <EmployeeRecordPage />)} />
-        <Route path="pharmacy" element={gate(CAPABILITIES.VIEW_PHARMACY, <PharmacyPage />)} />
-        <Route path="occupational-health" element={gate(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, <OccupationalHealthPage />)} />
-        <Route path="lira" element={gate(CAPABILITIES.VIEW_LIRA, <LiraPage />)} />
-        <Route path="management" element={gate(CAPABILITIES.MANAGE_ORGANIZATION, <ManagementPage />)} />
+        <Route index element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)}</Suspense>} />
+        <Route path="my-department" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)}</Suspense>} />
+        <Route path="my-profile" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_PROFILE, <EmployeeRecordPage selfMode />)}</Suspense>} />
+        <Route path="surveillance" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_SURVEILLANCE, <SurveillancePage />)}</Suspense>} />
+        <Route path="surveillance/:caseId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_SURVEILLANCE, <PatientClinicalRecordPage />)}</Suspense>} />
+        <Route path="laboratory" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LAB, <LaboratoryPage />)}</Suspense>} />
+        <Route path="laboratory/:sampleId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LAB, <LaboratorySampleRecordPage />)}</Suspense>} />
+        <Route path="prevention" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PREVENTION, <PreventionPage />)}</Suspense>} />
+        <Route path="controls" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_CONTROLS, <ControlsPage />)}</Suspense>} />
+        <Route path="controls/:controlId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_CONTROLS, <ControlRecordPage />)}</Suspense>} />
+        <Route path="records" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_RECORDS, <RecordsPage />)}</Suspense>} />
+        <Route path="quality" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_QUALITY, <QualityPage />)}</Suspense>} />
+        <Route path="quality/:recordType/new" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_QUALITY, <QualityCreatePage />)}</Suspense>} />
+        <Route path="quality/:recordType/:recordId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_QUALITY, <QualityRecordPage />)}</Suspense>} />
+        <Route path="indicators" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_INDICATORS, <IndicatorsPage />)}</Suspense>} />
+        <Route path="training" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_TRAINING, <TrainingPage />)}</Suspense>} />
+        <Route path="committees" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_COMMITTEES, <CommitteesPage />)}</Suspense>} />
+        <Route path="documents" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DOCUMENTS, <DocumentsPage />)}</Suspense>} />
+        <Route path="patients" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PATIENTS, <PatientsPage />)}</Suspense>} />
+        <Route path="patients/:patientId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PATIENTS, <PatientClinicalRecordPage patientMode />)}</Suspense>} />
+        <Route path="employees" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_STAFF, <EmployeesPage />)}</Suspense>} />
+        <Route path="employees/:employeeId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_STAFF, <EmployeeRecordPage />)}</Suspense>} />
+        <Route path="pharmacy" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PHARMACY, <PharmacyPage />)}</Suspense>} />
+        <Route path="occupational-health" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, <OccupationalHealthPage />)}</Suspense>} />
+        <Route path="lira" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LIRA, <LiraPage />)}</Suspense>} />
+        <Route path="management" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.MANAGE_ORGANIZATION, <ManagementPage />)}</Suspense>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Route>

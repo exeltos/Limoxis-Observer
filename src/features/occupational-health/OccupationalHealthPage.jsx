@@ -8,12 +8,13 @@ import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useTenant } from '../../core/tenant/TenantContext'
 import { employeeRows, employeeVaccinations, occupationalVisits } from '../employees/employeeDemoData'
 
 export function OccupationalHealthPage(){
- const {t,language,locale}=useLanguage();const {notify}=useFeedback();const navigate=useNavigate();const [tab,setTab]=useState('visits');const [query,setQuery]=useState('');const [status,setStatus]=useState('all');const [department,setDepartment]=useState('all')
- const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn))],[language]);const employeeMap=Object.fromEntries(employeeRows.map(x=>[x.id,x]));const source=tab==='visits'?occupationalVisits:employeeVaccinations
- const rows=useMemo(()=>source.filter(x=>{const e=employeeMap[x.employeeId];const hay=`${e?.id??''} ${e?.firstName??''} ${e?.firstNameEn??''} ${e?.lastName??''} ${e?.lastNameEn??''}`.toLowerCase();return hay.includes(query.toLowerCase())}).filter(x=>{const e=employeeMap[x.employeeId];return department==='all'||(language==='el'?e?.department:e?.departmentEn)===department}).filter(x=>status==='all'||x.status===status),[source,query,department,status,language])
+ const {t,language,locale}=useLanguage();const {notify}=useFeedback();const navigate=useNavigate();const {canAccessRecord}=useTenant();const [tab,setTab]=useState('visits');const [query,setQuery]=useState('');const [status,setStatus]=useState('all');const [department,setDepartment]=useState('all')
+ const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn))],[language]);const employeeMap=useMemo(()=>Object.fromEntries(employeeRows.map(x=>[x.id,x])),[]);const source=tab==='visits'?occupationalVisits:employeeVaccinations
+ const rows=useMemo(()=>source.filter(x=>{const e=employeeMap[x.employeeId];return canAccessRecord(e)}).filter(x=>{const e=employeeMap[x.employeeId];const hay=`${e?.id??''} ${e?.firstName??''} ${e?.firstNameEn??''} ${e?.lastName??''} ${e?.lastNameEn??''}`.toLowerCase();return hay.includes(query.toLowerCase())}).filter(x=>{const e=employeeMap[x.employeeId];return department==='all'||(language==='el'?e?.department:e?.departmentEn)===department}).filter(x=>status==='all'||x.status===status),[source,query,department,status,language,employeeMap,canAccessRecord])
  const fmt=v=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'; const name=e=>language==='el'?`${e.lastName} ${e.firstName}`:`${e.firstNameEn} ${e.lastNameEn}`
  const due=employeeVaccinations.filter(x=>x.status==='renewSoon').length;const scheduled=occupationalVisits.filter(x=>x.status==='scheduled').length
  function action(a){if(a===UI_ACTIONS.PRINT)window.print();else notify(t(a===UI_ACTIONS.CREATE?(tab==='visits'?'newOccupationalVisit':'newVaccinationRecord'):'actionCompleted'),'info')}

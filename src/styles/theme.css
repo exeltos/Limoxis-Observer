@@ -13,6 +13,12 @@
   --lo-radius-control:9px;
   --lo-radius-card:14px;
   --lo-control-height:34px;
+  --lo-shell-control-height:34px;
+  --lo-shell-control-radius:9px;
+  --lo-shell-control-bg:#ffffff;
+  --lo-shell-control-hover:#f5f8fb;
+  --lo-shell-control-border:#dfe5ec;
+  --lo-shell-control-fg:#40566d;
   --lo-record-header-padding:14px 18px;
   --lo-record-tabs-height:48px;
   --lo-shadow-popover:0 16px 38px rgba(22,39,58,.16);

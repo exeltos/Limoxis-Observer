@@ -14,3 +14,29 @@ export const getLabKpis=()=>({
   critical:laboratorySamples.filter(x=>x.critical&&!(x.communications?.length)).length,
   amr:laboratorySamples.filter(x=>x.resistance).length
 })
+
+export function updateLabSample(id,updater){
+  const index=laboratorySamples.findIndex(x=>x.id===id)
+  if(index<0)return null
+  const current=laboratorySamples[index]
+  const next=typeof updater==='function'?updater(current):{...current,...updater}
+  laboratorySamples[index]=next
+  return next
+}
+
+export const sampleSourceCatalog={
+  peripheral:{label:'peripheralBlood',el:'Περιφερική αιμοληψία',en:'Peripheral draw'},
+  centralLine:{label:'centralLine',el:'Κεντρική φλεβική γραμμή',en:'Central line'},
+  arterialLine:{label:'arterialLine',el:'Αρτηριακή γραμμή',en:'Arterial line'},
+  midstream:{label:'midstreamUrine',el:'Μέσο ρεύμα ούρων',en:'Midstream urine'},
+  urinaryCatheter:{label:'urinaryCatheter',el:'Ουροκαθετήρας',en:'Urinary catheter'},
+  nephrostomy:{label:'nephrostomy',el:'Νεφροστομία',en:'Nephrostomy'},
+  suprapubicCatheter:{label:'suprapubicCatheter',el:'Υπερηβικός καθετήρας',en:'Suprapubic catheter'},
+  sputum:{label:'sputum',el:'Πτύελα',en:'Sputum'},
+  trachealAspirate:{label:'trachealAspirate',el:'Τραχειακό αναρρόφημα',en:'Tracheal aspirate'},
+  bal:{label:'bal',el:'BAL',en:'BAL'},
+  woundSwab:{label:'woundSwab',el:'Επίχρισμα τραύματος',en:'Wound swab'},
+  deepTissue:{label:'deepTissue',el:'Βαθύς ιστός',en:'Deep tissue'},
+  drainage:{label:'drainage',el:'Παροχέτευση / έκκριμα',en:'Drainage'},
+  other:{label:'other',el:'Άλλο',en:'Other'},
+}

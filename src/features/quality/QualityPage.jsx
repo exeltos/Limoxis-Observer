@@ -33,15 +33,15 @@ export function QualityPage(){
   const addOns=membership?.capabilities??[]; const custom=membership?.customCapabilities??[]
   const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
   const canReportIncident=can(role,CAPABILITIES.REPORT_INCIDENT,addOns,custom)
-  const rows=qualityCollections[section]||[]
+  const rows=useMemo(()=>qualityCollections[section]||[],[section])
   const departments=[...new Set(rows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))]
   const filtered=useMemo(()=>rows.filter(row=>`${row.id} ${row.title} ${row.titleEn} ${row.owner||''}`.toLowerCase().includes(query.toLowerCase())).filter(row=>status==='all'||row.status===status).filter(row=>department==='all'||(language==='el'?row.department:row.departmentEn)===department),[rows,query,status,department,language])
   const canCreate=canManage||(section==='incidents'&&canReportIncident)
-  return <Page fill title={t('quality')} subtitle={t('qualitySubtitle')} actions={canCreate?<Button onClick={()=>{sessionStorage.setItem('limoxis.quality.section',section);registry.saveViewState({query,status,department});goTo(`/quality/${section}/new`,{registry:`quality.${section}`})}}><Plus size={15}/>{t(section==='incidents'?'newIncident':section==='findings'?'newFinding':section==='capas'?'newCapa':'newAudit')}</Button>:null}>
+  return <Page fill title={t('quality')} subtitle={t('qualityRecords.qualitySubtitle')} actions={canCreate?<Button onClick={()=>{sessionStorage.setItem('limoxis.quality.section',section);registry.saveViewState({query,status,department});goTo(`/quality/${section}/new`,{registry:`quality.${section}`})}}><Plus size={15}/>{t(section==='incidents'?'newIncident':section==='findings'?'newFinding':section==='capas'?'newCapa':'newAudit')}</Button>:null}>
     <div className="quality-workspace workspace-fill">
       <nav className="quality-tabs">{sections.map(({id,label,icon:Icon})=><button key={id} className={section===id?'active':''} onClick={()=>{registry.saveViewState({query,status,department});sessionStorage.setItem('limoxis.quality.section',id);setSection(id);const next=JSON.parse(sessionStorage.getItem(`limoxis.registry.quality.${id}.view`)||'{}');setQuery(next.query||'');setStatus(next.status||'all');setDepartment(next.department||'all')}}><Icon size={15}/><span>{t(label)}</span><b>{qualityCollections[id]?.length||0}</b></button>)}</nav>
       <section className="surface quality-registry">
-        <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
+        <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
           <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
           <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
         </FilterBar>

@@ -3,6 +3,7 @@ import { Building2, Database, Globe2, KeyRound, Plus, ShieldCheck, Users, X } fr
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { BedDaysPanel } from './BedDaysPanel'
+import { EnvironmentalStandardsPanel } from './EnvironmentalStandardsPanel'
 import { LibrariesPanel } from './LibrariesPanel'
 import { capabilityLabel } from '../../core/permissions/capabilityLabels'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -19,16 +20,24 @@ const externalSources=[
 ]
 
 export function ManagementPage(){
-  const {language,t}=useLanguage(); const {tenant,role,membership,isDemo}=useTenant(); const {notify}=useFeedback(); const [tab,setTab]=useState('users'); const [roleModal,setRoleModal]=useState(false); const [customRoles,setCustomRoles]=useState([]); const [roleName,setRoleName]=useState(''); const [selectedCaps,setSelectedCaps]=useState([]); const greek=language==='el'; const addOns=membership?.capabilities??[]; const customCaps=membership?.customCapabilities??[]
+  const {language,t}=useLanguage(); const {tenant,role,membership,isDemo}=useTenant(); const {notify}=useFeedback(); const [tab,setTab]=useState('users'); const [roleModal,setRoleModal]=useState(false); const [customRoles,setCustomRoles]=useState([]); const [roleName,setRoleName]=useState(''); const [selectedCaps,setSelectedCaps]=useState([])
+  const addOns=useMemo(()=>membership?.capabilities??[],[membership])
+  const customCaps=useMemo(()=>membership?.customCapabilities??[],[membership])
   const allowed=(cap)=>can(role,cap,addOns,customCaps)
-  const tabs=useMemo(()=>[
-    {id:'users',label:t('users'),icon:Users},{id:'organization',label:t('organization'),icon:Building2},
-    ...(allowed(CAPABILITIES.MANAGE_ROLES)?[{id:'roles',label:t('rolesPermissions'),icon:ShieldCheck}]:[]),
-    ...(allowed(CAPABILITIES.MANAGE_LIBRARIES)?[{id:'libraries',label:t('libraries'),icon:Database}]:[]),
-    ...(allowed(CAPABILITIES.MANAGE_BED_DAYS)?[{id:'patientDays',label:t('patientDays'),icon:Database}]:[]),
-    ...(allowed(CAPABILITIES.MANAGE_EXTERNAL_REFERENCES)?[{id:'references',label:t('externalReferences'),icon:Globe2}]:[]),
-    ...(role===ROLES.PLATFORM_OWNER?[{id:'platform',label:'Platform',icon:KeyRound}]:[]),
-  ],[role,language])
+  const tabs=useMemo(()=>{
+    const isAllowed=(cap)=>can(role,cap,addOns,customCaps)
+    return [
+      {id:'users',label:t('users'),icon:Users},{id:'organization',label:t('organization'),icon:Building2},
+      ...(isAllowed(CAPABILITIES.MANAGE_ROLES)?[{id:'roles',label:t('rolesPermissions'),icon:ShieldCheck}]:[]),
+      ...(isAllowed(CAPABILITIES.MANAGE_LIBRARIES)?[
+        {id:'libraries',label:t('libraries'),icon:Database},
+        {id:'environmentalProtocols',label:t('environmentalProtocols'),icon:ShieldCheck},
+      ]:[]),
+      ...(isAllowed(CAPABILITIES.MANAGE_BED_DAYS)?[{id:'patientDays',label:t('patientDays'),icon:Database}]:[]),
+      ...(isAllowed(CAPABILITIES.MANAGE_EXTERNAL_REFERENCES)?[{id:'references',label:t('externalReferences'),icon:Globe2}]:[]),
+      ...(role===ROLES.PLATFORM_OWNER?[{id:'platform',label:'Platform',icon:KeyRound}]:[]),
+    ]
+  },[role,addOns,customCaps,t])
   function toggleCap(cap){setSelectedCaps(current=>current.includes(cap)?current.filter(x=>x!==cap):[...current,cap])}
   function saveCustomRole(){if(!roleName.trim())return;setCustomRoles(current=>[...current,{id:`custom-${Date.now()}`,name:roleName.trim(),capabilities:selectedCaps}]);setRoleName('');setSelectedCaps([]);setRoleModal(false);notify(t('customRoleCreated'),'success')}
   return <Page fill title={t('management')} subtitle={t('managementSubtitle')}>
@@ -37,6 +46,7 @@ export function ManagementPage(){
       {tab==='organization'&&<section className="management-section"><div className="section-toolbar"><div><h2>{t('organizationDetails')}</h2><p>{t('tenantIdentity')}</p></div></div><div className="details-grid"><div><span>{t('name')}</span><strong>{tenant?.name??'—'}</strong></div><div><span>{t('codeLabel')}</span><strong>{tenant?.code??'—'}</strong></div><div><span>{t('typeLabel')}</span><strong>{tenant?.type??'—'}</strong></div><div><span>{t('modeLabel')}</span><strong>{isDemo?t('demo'):t('production')}</strong></div></div></section>}
       {tab==='roles'&&<section className="management-section"><div className="section-toolbar"><div><h2>{t('rolesPermissions')}</h2><p>{t('roleManagementNote')}</p></div><Button onClick={()=>setRoleModal(true)}><Plus size={15}/>{t('createRole')}</Button></div><div className="role-grid">{Object.entries(roleNames).filter(([key])=>key!=='demo').map(([key,labelKey])=><div className="role-card" key={key}><ShieldCheck size={18}/><strong>{t(labelKey)}</strong><span>{t('capabilityBasedAccess')}</span></div>)}{customRoles.map(item=><div className="role-card custom" key={item.id}><ShieldCheck size={18}/><strong>{item.name}</strong><span>{item.capabilities.length} {t('permissions')}</span></div>)}</div></section>}
       {tab==='libraries'&&<LibrariesPanel/>}
+      {tab==='environmentalProtocols'&&<EnvironmentalStandardsPanel/>}
       {tab==='patientDays'&&<BedDaysPanel/>}
       {tab==='references'&&<section className="management-section"><div className="section-toolbar"><div><h2>{t('externalReferences')}</h2><p>{t('externalReferenceNote')}</p></div><Button variant="secondary" onClick={()=>notify(t('actionCompleted'),'success')}>{t('refreshMetadata')}</Button></div><div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('officialSource')}</th><th>{t('source')}</th><th>{t('referenceVersion')}</th><th>{t('reviewStatusLabel')}</th></tr></thead><tbody>{externalSources.map(item=><tr key={item.id}><td><strong>{t(item.label)}</strong></td><td>{item.authority}</td><td>{item.version}</td><td><span className="status-badge active">{t(item.status)}</span></td></tr>)}</tbody></table></div></section>}
       {tab==='platform'&&<section className="management-section"><div className="section-toolbar"><div><h2>{t('platformOrganizations')}</h2><p>{t('platformOwnerRole')}</p></div><Button onClick={()=>notify(t('actionCompleted'),'info')}>{t('newOrganization')}</Button></div><div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>Organization</th><th>Type</th><th>Status</th><th>Members</th></tr></thead><tbody>{demoOrganizations.map(org=><tr key={org.id}><td><strong>{org.name}</strong><small>{org.code}</small></td><td>{org.type}</td><td><span className="status-badge active">{org.status}</span></td><td>{org.members}</td></tr>)}</tbody></table></div></section>}

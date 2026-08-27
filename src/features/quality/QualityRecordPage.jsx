@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { AlertTriangle, CheckSquare2, ClipboardCheck, FileClock, Link2, Paperclip, Pencil, Printer, ShieldCheck, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
@@ -17,7 +17,6 @@ const iconMap={incidents:AlertTriangle,findings:ShieldCheck,capas:CheckSquare2,a
 
 export function QualityRecordPage(){
   const {recordType,recordId}=useParams()
-  const navigate=useNavigate()
   const {restored,goBack}=useContextualNavigation('/quality')
   const {t,language,locale}=useLanguage()
   const {role,membership}=useTenant()
@@ -32,7 +31,7 @@ export function QualityRecordPage(){
   if(!record)return <Page title={t('quality')}><div className="inline-empty">{t('noData')}</div></Page>
   const Icon=iconMap[recordType]||ShieldCheck
   const title=language==='el'?record.title:record.titleEn
-  const tabs=[{id:'details',label:t('details'),icon:Icon},{id:'links',label:t('linkedRecords'),icon:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
+  const tabs=[{id:'details',label:t('details'),icon:Icon},{id:'links',label:t('qualityRecords.linkedRecords'),icon:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
   return <Page fill><EntityRecordShell
     className="quality-record-shell workspace-fill"
     avatar={<Icon size={19}/>}
@@ -54,7 +53,7 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
   const [draft,setDraft]=useState({...record})
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
   const save=()=>{setRecord({...draft,history:[{at:new Date().toISOString(),action:'recordUpdated',actor:t('currentUser')},...(record.history||[])]});setEditing(false);notify(t('recordUpdated'),'success')}
-  async function remove(){const ok=await confirm({title:t('delete'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')});if(ok){const collection=qualityCollections[recordType]||[];const index=collection.findIndex(x=>x.id===record.id);if(index>=0)collection.splice(index,1);notify(t('recordDeleted'),'warning');onDeleted?.()}}
+  async function remove(){const ok=await confirm({title:t('delete'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')});if(ok){const collection=qualityCollections[recordType]||[];const index=collection.findIndex(x=>x.id===record.id);if(index>=0)collection.splice(index,1);notify(t('qualityRecords.recordDeleted'),'warning');onDeleted?.()}}
   return <div className="record-section">
     <div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('details')}</h3></div>{canManage&&!editing&&<div className="record-inline-actions"><button onClick={()=>setEditing(true)} title={t('edit')}><Pencil size={16}/></button><button className="danger" onClick={remove} title={t('delete')}><Trash2 size={16}/></button></div>}</div>
     <div className={`detail-grid quality-detail-grid ${editing?'employee-inline-edit':''}`}>
@@ -62,12 +61,12 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
       <EditField editing={editing} label={t('title')} value={language==='el'?draft.title:draft.titleEn} onChange={v=>set(language==='el'?'title':'titleEn',v)}/>
       <EditField editing={editing} label={t('department')} value={language==='el'?draft.department:draft.departmentEn} onChange={v=>set(language==='el'?'department':'departmentEn',v)}/>
       <EditSelect editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(x=>[x,t(x)])}/>
-      {recordType==='incidents'&&<><EditSelect editing={editing} label={t('severity')} value={draft.severity} onChange={v=>set('severity',v)} options={['low','medium','high','critical'].map(x=>[x,t(x)])}/><Field label={t('reportedBy')} value={draft.reportedBy}/><EditField editing={editing} label={t('owner')} value={draft.owner} onChange={v=>set('owner',v)}/><Field label={t('date')} value={fmt(draft.date,locale)}/></>}
+      {recordType==='incidents'&&<><EditSelect editing={editing} label={t('severity')} value={draft.severity} onChange={v=>set('severity',v)} options={['low','medium','high','critical'].map(x=>[x,t(x)])}/><Field label={t('qualityRecords.reportedBy')} value={draft.reportedBy}/><EditField editing={editing} label={t('owner')} value={draft.owner} onChange={v=>set('owner',v)}/><Field label={t('date')} value={fmt(draft.date,locale)}/></>}
       {recordType==='findings'&&<><EditSelect editing={editing} label={t('severity')} value={draft.severity} onChange={v=>set('severity',v)} options={['low','medium','high','critical'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('owner')} value={draft.owner} onChange={v=>set('owner',v)}/><Field label={t('source')} value={`${t(draft.source)} · ${draft.sourceId||'—'}`}/></>}
-      {recordType==='capas'&&<><EditSelect editing={editing} label={t('actionType')} value={draft.actionType} onChange={v=>set('actionType',v)} options={['corrective','preventive'].map(x=>[x,t(x)])}/><EditSelect editing={editing} label={t('priority')} value={draft.priority} onChange={v=>set('priority',v)} options={['low','medium','high','critical'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('owner')} value={draft.owner} onChange={v=>set('owner',v)}/><EditField editing={editing} type="date" label={t('dueDate')} value={draft.dueDate} onChange={v=>set('dueDate',v)}/><EditField editing={editing} type="date" label={t('effectivenessDue')} value={draft.effectivenessDue} onChange={v=>set('effectivenessDue',v)}/><EditSelect editing={editing} label={t('effectiveness')} value={draft.effectivenessStatus} onChange={v=>set('effectivenessStatus',v)} options={['pending','effective','notEffective'].map(x=>[x,t(x)])}/></>}
-      {recordType==='audits'&&<><EditSelect editing={editing} label={t('auditType')} value={draft.auditType} onChange={v=>set('auditType',v)} options={['internal','external'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('leadAuditor')} value={draft.leadAuditor} onChange={v=>set('leadAuditor',v)}/><EditField editing={editing} type="date" label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)}/><Field label={t('completedDate')} value={fmt(draft.completedDate,locale)}/></>}
+      {recordType==='capas'&&<><EditSelect editing={editing} label={t('actionType')} value={draft.actionType} onChange={v=>set('actionType',v)} options={['corrective','preventive'].map(x=>[x,t(x)])}/><EditSelect editing={editing} label={t('priority')} value={draft.priority} onChange={v=>set('priority',v)} options={['low','medium','high','critical'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('owner')} value={draft.owner} onChange={v=>set('owner',v)}/><EditField editing={editing} type="date" label={t('dueDate')} value={draft.dueDate} onChange={v=>set('dueDate',v)}/><EditField editing={editing} type="date" label={t('qualityRecords.effectivenessDue')} value={draft.effectivenessDue} onChange={v=>set('effectivenessDue',v)}/><EditSelect editing={editing} label={t('qualityRecords.effectiveness')} value={draft.effectivenessStatus} onChange={v=>set('effectivenessStatus',v)} options={['pending','effective','notEffective'].map(x=>[x,t(x)])}/></>}
+      {recordType==='audits'&&<><EditSelect editing={editing} label={t('auditType')} value={draft.auditType} onChange={v=>set('auditType',v)} options={['internal','external'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('leadAuditor')} value={draft.leadAuditor} onChange={v=>set('leadAuditor',v)}/><EditField editing={editing} type="date" label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)}/><Field label={t('qualityRecords.completedDate')} value={fmt(draft.completedDate,locale)}/></>}
     </div>
-    <div className="quality-description"><span>{t(recordType==='audits'?'scope':'description')}</span>{editing?<textarea rows={5} value={language==='el'?(draft.description??draft.scope??''):(draft.descriptionEn??draft.scopeEn??'')} onChange={e=>set(language==='el'?(recordType==='audits'?'scope':'description'):(recordType==='audits'?'scopeEn':'descriptionEn'),e.target.value)}/>:<p>{language==='el'?(record.description??record.scope??'—'):(record.descriptionEn??record.scopeEn??'—')}</p>}</div>
+    <div className="quality-description"><span>{t(recordType==='audits'?'qualityRecords.auditScope':'description')}</span>{editing?<textarea rows={5} value={language==='el'?(draft.description??draft.scope??''):(draft.descriptionEn??draft.scopeEn??'')} onChange={e=>set(language==='el'?(recordType==='audits'?'scope':'description'):(recordType==='audits'?'scopeEn':'descriptionEn'),e.target.value)}/>:<p>{language==='el'?(record.description??record.scope??'—'):(record.descriptionEn??record.scopeEn??'—')}</p>}</div>
     {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...record});setEditing(false)}}>{t('cancel')}</Button><Button onClick={save}>{t('save')}</Button></div>}
   </div>
 }
@@ -77,9 +76,9 @@ function QualityLinks({recordType,record,t,language}){
   if(record.linkedPatient)links.push([t('patient'),record.linkedPatient])
   if(record.linkedSurveillance)links.push([t('surveillance'),record.linkedSurveillance])
   if(record.sourceId)links.push([t('source'),record.sourceId])
-  if(record.findingIds?.length)record.findingIds.forEach(id=>links.push([t('finding'),id]))
+  if(record.findingIds?.length)record.findingIds.forEach(id=>links.push([t('qualityRecords.finding'),id]))
   const related=recordType==='incidents'?qualityCollections.capas.filter(x=>x.sourceId===record.id):recordType==='findings'?qualityCollections.capas.filter(x=>x.sourceId===record.id):[]
-  return <div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('linkedRecords')}</h3></div></div><div className="quality-link-list">{links.map(([label,id])=><button key={`${label}-${id}`} onClick={()=>goTo(linkPath(label,id,t),{tab:'links'})}><span>{label}</span><strong>{id}</strong></button>)}{related.map(x=><button key={x.id} onClick={()=>goTo(`/quality/capas/${x.id}`,{tab:'links'})}><span>{t('capa')}</span><strong>{x.id} · {language==='el'?x.title:x.titleEn}</strong></button>)}{!links.length&&!related.length&&<div className="inline-empty">{t('noLinkedRecords')}</div>}</div></div>
+  return <div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('qualityRecords.linkedRecords')}</h3></div></div><div className="quality-link-list">{links.map(([label,id])=><button key={`${label}-${id}`} onClick={()=>goTo(linkPath(label,id,t),{tab:'links'})}><span>{label}</span><strong>{id}</strong></button>)}{related.map(x=><button key={x.id} onClick={()=>goTo(`/quality/capas/${x.id}`,{tab:'links'})}><span>{t('qualityRecords.capa')}</span><strong>{x.id} · {language==='el'?x.title:x.titleEn}</strong></button>)}{!links.length&&!related.length&&<div className="inline-empty">{t('qualityRecords.noLinkedRecords')}</div>}</div></div>
 }
 function linkPath(label,id,t){
   if(label===t('patient'))return `/patients/${id}`
@@ -89,7 +88,7 @@ function linkPath(label,id,t){
     if(id.startsWith('FND-'))return `/quality/findings/${id}`
     if(id.startsWith('INC-'))return `/quality/incidents/${id}`
   }
-  if(label===t('finding'))return `/quality/findings/${id}`
+  if(label===t('qualityRecords.finding'))return `/quality/findings/${id}`
   return '/quality'
 }
 function QualityHistory({record,t,locale}){const rows=useMemo(()=>[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)),[record.history]);return <div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('history')}</h3></div></div><div className="lab-history-list">{rows.map((x,i)=><div className="lab-history-row" key={`${x.at}-${i}`}><time>{new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(x.at))}</time><strong>{t(x.action)}</strong><span>{x.actor}</span></div>)}</div></div>}
