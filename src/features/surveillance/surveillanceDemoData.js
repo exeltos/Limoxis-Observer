@@ -29,3 +29,10 @@ export function createDemoSurveillanceListItem(record){
   surveillanceDemoData.unshift(item)
   return item
 }
+
+export function deleteDemoSurveillanceListItem(id){
+  const index=surveillanceDemoData.findIndex(x=>x.id===id)
+  if(index<0)return false
+  surveillanceDemoData.splice(index,1)
+  return true
+}

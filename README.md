@@ -204,3 +204,15 @@ A complete Vite build was not executed because npm dependencies are not installe
 - Completed/unlocked prior stages remain clickable during active surveillance and can be edited.
 - Surveillance Start, Clinical Assessment and Isolation have functional edit forms with audit timeline updates.
 - Changing an existing isolation to “Not required” requires confirmation.
+
+## v0.13.1
+- Active Isolation detail now always starts with an explicit required Yes/No decision when no decision exists.
+- Isolation fields appear only after Yes.
+- Added authorized deletion of active surveillance episodes for erroneous/test entries.
+- Delete requires a reason, removes the active episode from patient + central surveillance lists, and preserves a deletion audit snapshot in demo governance data.
+
+## v0.13.2
+- After “Save & notify Laboratory”, the New Surveillance flow remains open and moves directly to Isolation.
+- Isolation always asks the explicit Yes/No decision; saving that decision closes the flow with the existing success message.
+- Restored explicit Previous navigation in Sample/Laboratory and Isolation, in addition to the already available previous step in Clinical Assessment.
+- Completed/available steps remain clickable in the flow rail; locked future steps remain inaccessible.

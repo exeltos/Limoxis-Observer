@@ -12,9 +12,9 @@ import { EmptyState } from '../../design-system/EmptyState'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
-import { createClinicalSurveillance, findCaseByPatient, findCasesByPatient, getClinicalCase } from './clinicalDemoData'
+import { createClinicalSurveillance, deleteClinicalSurveillance, findCaseByPatient, findCasesByPatient, getClinicalCase } from './clinicalDemoData'
 import { patientDemoData } from '../patients/patientDemoData'
-import { createDemoSurveillanceListItem } from './surveillanceDemoData'
+import { createDemoSurveillanceListItem, deleteDemoSurveillanceListItem } from './surveillanceDemoData'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
@@ -49,6 +49,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
   const canTherapy=Boolean(record)&&(has(CAPABILITIES.VIEW_PHARMACY)||has(CAPABILITIES.VIEW_SURVEILLANCE))
   const canClinical=canSurveillance||canLab||canTherapy
   const canReopenSurveillance=has(CAPABILITIES.REOPEN_SURVEILLANCE)
+  const canDeleteSurveillance=has(CAPABILITIES.DELETE_SURVEILLANCE)
   const tabDefinitions=[
     {id:'summary',label:t('summary'),icon:UserRound,show:true},
     {id:'surveillanceJourney',label:t('surveillance'),icon:ListTree,show:has(CAPABILITIES.VIEW_SURVEILLANCE)||has(CAPABILITIES.CREATE_SURVEILLANCE)||canLab||canTherapy},
@@ -118,6 +119,17 @@ export function PatientClinicalRecordPage({patientMode=false}){
       patientName={patientName} patientCode={patientCode} department={department}
       organizationName={tenant?.name||membership?.organization?.name||t('hospital')}
       canReopenSurveillance={canReopenSurveillance}
+      canDeleteSurveillance={canDeleteSurveillance}
+      onDeleteSurveillance={(episodeId,reason)=>{
+        const removed=deleteClinicalSurveillance(episodeId,{actor:t('currentUser'),reason})
+        if(removed){
+          deleteDemoSurveillanceListItem(episodeId)
+          setEpisodeVersion(v=>v+1)
+          if(selectedEpisodeId===episodeId)setSelectedEpisodeId('')
+          notify(t('surveillanceDeleted'),'success')
+        }
+        return removed
+      }}
     />}
     {activeTab==='clinicalData'&&record&&<ClinicalDataHub record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy}/>}
     {activeTab==='documents'&&<PatientDocuments t={t}/>}
@@ -145,7 +157,7 @@ function PatientSummary({patient,record,t,language,fmtDate,fmtDateTime,age,has,n
 function SummaryItem({label,value,tone='neutral'}){return <div className={`patient-summary-item ${tone}`}><span>{label}</span><strong>{value}</strong></div>}
 
 
-function SurveillanceWorkspace({episodes,selectedEpisodeId,onSelect,onNewSurveillance,canCreateSurveillance,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance}){
+function SurveillanceWorkspace({episodes,selectedEpisodeId,onSelect,onNewSurveillance,canCreateSurveillance,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,canDeleteSurveillance,onDeleteSurveillance}){
   const [episodeRows,setEpisodeRows]=useState(episodes)
   useEffect(()=>setEpisodeRows(episodes),[episodes])
   const active=episodeRows.filter(x=>x.status==='active')
@@ -172,6 +184,8 @@ function SurveillanceWorkspace({episodes,selectedEpisodeId,onSelect,onNewSurveil
       patientName={patientName} patientCode={patientCode} department={department}
       organizationName={organizationName}
       canReopenSurveillance={canReopenSurveillance}
+      canDeleteSurveillance={canDeleteSurveillance}
+      onDeleteSurveillance={onDeleteSurveillance}
       onReopen={(episodeId,reason)=>setEpisodeRows(rows=>rows.map(ep=>ep.id===episodeId?{...ep,status:'active',completedAt:null,outcome:null,timeline:[{at:new Date().toISOString(),type:'surveillanceReopened',actor:t('superAdmin'),detail:reason},...(ep.timeline||[])]}:ep))}
     />}
   </div>
@@ -213,11 +227,14 @@ function EpisodeList({title,tone,episodes,onOpen,t,fmtDate}){
     </div>
   </section>
 }
-function EpisodeDetailOverlay({record,onClose,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,onReopen}){
+function EpisodeDetailOverlay({record,onClose,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,onReopen,canDeleteSurveillance,onDeleteSurveillance}){
   const completed=record.status!=='active'
   const [reopenOpen,setReopenOpen]=useState(false)
   const [reopenReason,setReopenReason]=useState('')
+  const [deleteOpen,setDeleteOpen]=useState(false)
+  const [deleteReason,setDeleteReason]=useState('')
   const reopen=()=>{if(!reopenReason.trim())return;onReopen(record.id,reopenReason.trim());setReopenOpen(false);setReopenReason('');onClose()}
+  const removeEpisode=()=>{if(!deleteReason.trim())return;const removed=onDeleteSurveillance?.(record.id,deleteReason.trim());if(removed){setDeleteOpen(false);setDeleteReason('');onClose()}}
   return <div className="episode-overlay" role="dialog" aria-modal="true" aria-label={record.id}>
     <section className="episode-detail-card">
       <header className="episode-detail-header">
@@ -229,7 +246,7 @@ function EpisodeDetailOverlay({record,onClose,t,language,fmtDate,fmtDateTime,can
         <div className="episode-detail-actions">
           <span className={`status-badge ${record.status==='active'?'active':''}`}>{t(record.status)}</span>
           {record.resistance&&<span className="status-badge danger">{record.resistance}</span>}
-          {completed&&canReopenSurveillance&&<button className="reopen-surveillance-button" title={t('reopenSurveillance')} aria-label={t('reopenSurveillance')} onClick={()=>setReopenOpen(true)}><RefreshCcw size={16}/></button>}
+          {!completed&&canDeleteSurveillance&&<button className="delete-surveillance-button" title={t('deleteSurveillance')} aria-label={t('deleteSurveillance')} onClick={()=>setDeleteOpen(true)}><Trash2 size={16}/></button>}{completed&&canReopenSurveillance&&<button className="reopen-surveillance-button" title={t('reopenSurveillance')} aria-label={t('reopenSurveillance')} onClick={()=>setReopenOpen(true)}><RefreshCcw size={16}/></button>}
           <button title={t('print')} aria-label={t('print')} onClick={()=>window.print()}><Printer size={16}/></button>
           <button title={t('close')} aria-label={t('close')} onClick={onClose}><X size={16}/></button>
         </div>
@@ -239,6 +256,7 @@ function EpisodeDetailOverlay({record,onClose,t,language,fmtDate,fmtDateTime,can
           ? <CompletedSurveillanceReport record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName}/>
           : <ActiveSurveillanceReport record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName}/>}
       </div>
+      {deleteOpen&&<div className="reopen-confirm-backdrop"><div className="reopen-confirm-card delete-surveillance-confirm"><span className="eyebrow">{t('restrictedAction')}</span><h3>{t('deleteSurveillance')}</h3><p>{t('deleteSurveillanceWarning')}</p><label><span>{t('reasonRequired')}</span><textarea value={deleteReason} onChange={e=>setDeleteReason(e.target.value)} rows={4} autoFocus placeholder={t('deleteSurveillanceReasonPlaceholder')}/></label><div><Button variant="secondary" onClick={()=>{setDeleteOpen(false);setDeleteReason('')}}>{t('cancel')}</Button><Button variant="danger" disabled={!deleteReason.trim()} onClick={removeEpisode}>{t('delete')}</Button></div></div></div>}
       {reopenOpen&&<div className="reopen-confirm-backdrop"><div className="reopen-confirm-card"><span className="eyebrow">{t('restrictedAction')}</span><h3>{t('reopenSurveillance')}</h3><p>{t('reopenSurveillanceWarning')}</p><label><span>{t('reasonRequired')}</span><textarea value={reopenReason} onChange={e=>setReopenReason(e.target.value)} rows={4} autoFocus/></label><div><Button variant="secondary" onClick={()=>{setReopenOpen(false);setReopenReason('')}}>{t('cancel')}</Button><Button disabled={!reopenReason.trim()} onClick={reopen}>{t('restoreToActive')}</Button></div></div></div>}
     </section>
   </div>
@@ -357,7 +375,7 @@ function SurveillanceJourney({record,t,language,fmtDate,fmtDateTime,canSurveilla
       {section==='assessment'&&<ActiveAssessmentEditor record={record} t={t} language={language} onSaved={()=>{notify(t('clinicalAssessmentSaved'),'success');setSection(null)}}/>} 
       {section==='samples'&&<Samples record={{...record,samples:effectiveSamples}} t={t} fmtDateTime={fmtDateTime}/>} 
       {section==='hai'&&<HaiClassification record={record} t={t} language={language}/>} 
-      {section==='isolation'&&<ActiveIsolationEditor record={record} t={t} language={language} confirm={confirm} onSaved={()=>{notify(t('isolationSaved'),'success');setSection(null)}}/>} 
+      {section==='isolation'&&<ActiveIsolationEditor record={record} t={t} language={language} confirm={confirm} onSaved={mode=>{if(mode!=='cancel')notify(t('isolationSaved'),'success');setSection(null)}}/>} 
       {section==='therapy'&&<Therapy record={record} t={t} fmtDate={fmtDate}/>} 
       {section==='reassessment'&&<Reassessment record={record} t={t} language={language} fmtDate={fmtDate}/>} 
       {section==='outcome'&&<Outcome record={record} t={t} fmtDate={fmtDate}/>} 
@@ -462,8 +480,8 @@ function ActiveIsolationEditor({record,t,language,confirm,onSaved}){
   const [needed,setNeeded]=useState(initialNeeded)
   const [draft,setDraft]=useState({startedAt:existing?.startedAt?.slice(0,10)||new Date().toISOString().slice(0,10),precautionType:existing?.type||existing?.precautions?.[0]||'contact',reason:existing?.reason||'',reasonEn:existing?.reasonEn||'',provisional:existing?.provisional??true})
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
-  async function save(){const now=new Date().toISOString();if(needed===false&&existing){const ok=await confirm({title:t('changeIsolationDecision'),message:t('removeActiveIsolationConfirm'),confirmLabel:t('confirm')});if(!ok)return}if(needed===false){record.isolation=null;record.isolationDecision={required:false,decidedAt:now,by:t('currentUser')};record.timeline=[{at:now,type:'isolationNotRequired',actor:t('currentUser'),detail:'no'},...(record.timeline||[])];onSaved?.();return}if(needed===true){record.isolationDecision={required:true,decidedAt:now,by:t('currentUser')};record.isolation={id:existing?.id||`ISO-${Date.now()}`,status:'active',startedAt:draft.startedAt,endedAt:null,type:draft.precautionType,precautions:[draft.precautionType],room:record.room||'',nextReview:record.reviewDue||null,reason:draft.reason||draft.reasonEn||'',reasonEn:draft.reasonEn||draft.reason||'',provisional:Boolean(draft.provisional),by:t('currentUser')};record.timeline=[{at:now,type:existing?'isolationUpdated':'isolationStarted',actor:t('currentUser'),detail:draft.precautionType},...(record.timeline||[])];onSaved?.()}}
-  return <section className="clinical-panel full-panel active-edit-panel"><div className="section-actions"><PanelTitle icon={BedDouble} title={t('isolation')}/><span className="edit-enabled-badge">{t('editableActiveSurveillance')}</span></div><div className="isolation-question"><strong>{t('isIsolationRequired')}</strong><span>{t('isIsolationRequiredHelp')}</span><div><button className={needed===true?'selected yes':''} onClick={()=>setNeeded(true)}>{t('yes')}</button><button className={needed===false?'selected no':''} onClick={()=>setNeeded(false)}>{t('no')}</button></div></div>{needed===true&&<div className="entry-grid isolation-fields"><ManualDateField label={t('isolationStart')} value={draft.startedAt} onChange={v=>set('startedAt',v)}/><label><span>{t('precautionType')}</span><select value={draft.precautionType} onChange={e=>set('precautionType',e.target.value)}><option value="contact">{t('contactPrecautions')}</option><option value="droplet">{t('dropletPrecautions')}</option><option value="airborne">{t('airbornePrecautions')}</option><option value="protective">{t('protectiveIsolation')}</option><option value="other">{t('other')}</option></select></label><label className="entry-span-2"><span>{t('isolationReason')}</span><textarea rows={3} value={language==='el'?draft.reason:draft.reasonEn} onChange={e=>set(language==='el'?'reason':'reasonEn',e.target.value)}/></label><label className="inline-check entry-span-2"><input type="checkbox" checked={draft.provisional} onChange={e=>set('provisional',e.target.checked)}/><span>{t('provisionalIsolation')}</span></label></div>}{needed===false&&<div className="no-isolation-note"><CheckCircle2 size={16}/><span>{t('noIsolationDecisionHint')}</span></div>}<div className="flow-step-actions"><Button disabled={needed===null||(needed===true&&!draft.startedAt)} onClick={save}>{t('save')}</Button></div></section>
+  async function save(){const now=new Date().toISOString();if(needed===false&&existing){const ok=await confirm({title:t('changeIsolationDecision'),message:t('removeActiveIsolationConfirm'),confirmLabel:t('confirm')});if(!ok)return}if(needed===false){record.isolation=null;record.isolationDecision={required:false,decidedAt:now,by:t('currentUser')};record.timeline=[{at:now,type:'isolationNotRequired',actor:t('currentUser'),detail:'no'},...(record.timeline||[])];onSaved?.('saved');return}if(needed===true){record.isolationDecision={required:true,decidedAt:now,by:t('currentUser')};record.isolation={id:existing?.id||`ISO-${Date.now()}`,status:'active',startedAt:draft.startedAt,endedAt:null,type:draft.precautionType,precautions:[draft.precautionType],room:record.room||'',nextReview:record.reviewDue||null,reason:draft.reason||draft.reasonEn||'',reasonEn:draft.reasonEn||draft.reason||'',provisional:Boolean(draft.provisional),by:t('currentUser')};record.timeline=[{at:now,type:existing?'isolationUpdated':'isolationStarted',actor:t('currentUser'),detail:draft.precautionType},...(record.timeline||[])];onSaved?.('saved')}}
+  return <section className="clinical-panel full-panel active-edit-panel isolation-decision-editor"><div className="section-actions"><div><PanelTitle icon={BedDouble} title={t('isolation')}/><p className="section-note">{t('isolationDecisionFirstHelp')}</p></div><span className="edit-enabled-badge">{t('editableActiveSurveillance')}</span></div><div className={`isolation-question ${needed===null?'required-decision':''}`}><strong>{t('isIsolationRequired')}</strong><span>{needed===null?t('isolationDecisionRequired'):t('isIsolationRequiredHelp')}</span><div><button type="button" className={needed===true?'selected yes':''} onClick={()=>setNeeded(true)}>{t('yes')}</button><button type="button" className={needed===false?'selected no':''} onClick={()=>setNeeded(false)}>{t('no')}</button></div></div>{needed===true&&<div className="entry-grid isolation-fields"><ManualDateField label={t('isolationStart')} value={draft.startedAt} onChange={v=>set('startedAt',v)}/><label><span>{t('precautionType')}</span><select value={draft.precautionType} onChange={e=>set('precautionType',e.target.value)}><option value="contact">{t('contactPrecautions')}</option><option value="droplet">{t('dropletPrecautions')}</option><option value="airborne">{t('airbornePrecautions')}</option><option value="protective">{t('protectiveIsolation')}</option><option value="other">{t('other')}</option></select></label><label className="entry-span-2"><span>{t('isolationReason')}</span><textarea rows={3} value={language==='el'?draft.reason:draft.reasonEn} onChange={e=>set(language==='el'?'reason':'reasonEn',e.target.value)}/></label><label className="inline-check entry-span-2"><input type="checkbox" checked={draft.provisional} onChange={e=>set('provisional',e.target.checked)}/><span>{t('provisionalIsolation')}</span></label></div>}{needed===false&&<div className="no-isolation-note"><CheckCircle2 size={16}/><span>{t('noIsolationDecisionHint')}</span></div>}<div className="flow-step-actions"><Button variant="secondary" onClick={()=>onSaved?.('cancel')}>{t('close')}</Button><Button disabled={needed===null||(needed===true&&!draft.startedAt)} onClick={save}>{t('save')}</Button></div></section>
 }
 
 function Assessment({record,t,language,fmtDate}){

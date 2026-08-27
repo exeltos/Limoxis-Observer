@@ -111,3 +111,20 @@ export function createClinicalSurveillance(data){
   clinicalCases[id]=record
   return record
 }
+
+export const surveillanceDeletionAudit=[]
+export function deleteClinicalSurveillance(id,{actor='Current user',reason='Deleted as erroneous entry'}={}){
+  const existing=clinicalCases[id]
+  if(!existing||existing.status!=='active')return false
+  surveillanceDeletionAudit.unshift({
+    id:`DEL-${Date.now()}`,
+    surveillanceId:id,
+    patientId:existing.patientId,
+    actor,
+    reason,
+    at:new Date().toISOString(),
+    snapshot:{...existing},
+  })
+  delete clinicalCases[id]
+  return true
+}
