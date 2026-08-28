@@ -14,6 +14,8 @@ import { antisepticRows,bundleRows,handHygieneRows,wasteRows } from './preventio
 import { PreventionEntryModal } from './PreventionEntryModal'
 import { WhoHandHygieneModal } from './WhoHandHygieneModal'
 import { WasteEntryModal } from './WasteEntryModal'
+import { AntisepticEntryModal,antisepticMethodLabel } from './AntisepticEntryModal'
+import { BundleExecutionModal } from './BundleExecutionModal'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { wasteCategoryTone } from './wasteVisuals'
 
@@ -29,7 +31,7 @@ export function PreventionPage(){
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const [tab,setTab]=useState(()=>searchParams.get('tab')||'handHygiene')
  const registry=useRegistryMemory(`prevention-${tab}`)
- const [query,setQuery]=useState(''),[department,setDepartment]=useState('all'),[period,setPeriod]=useState('all')
+ const [query,setQuery]=useState(''),[department,setDepartment]=useState('all'),[period,setPeriod]=useState('all'),[product,setProduct]=useState('all'),[method,setMethod]=useState('all')
  const [entryOpen,setEntryOpen]=useState(false),[editingRecord,setEditingRecord]=useState(null),[version,setVersion]=useState(0)
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
  const departmentScoped=[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER].includes(role)
@@ -38,15 +40,15 @@ export function PreventionPage(){
  const visibleTabs=tabs.filter(([id])=>can(role,id==='handHygiene'?CAPABILITIES.RECORD_HAND_HYGIENE:id==='waste'?CAPABILITIES.RECORD_WASTE:id==='antiseptics'?CAPABILITIES.RECORD_ANTISEPTIC:CAPABILITIES.RECORD_PREVENTION_BUNDLE,addOns,custom)||can(role,CAPABILITIES.VIEW_PREVENTION,addOns,custom))
  const source=tab==='handHygiene'?handHygieneRows:tab==='waste'?wasteRows:tab==='antiseptics'?antisepticRows:bundleRows
  const departments=useMemo(()=>[...new Set(source.map(x=>language==='el'?x.departmentEl:x.departmentEn))],[source,language,version])
- const rows=useMemo(()=>source.filter(x=>canAccessRecord({...x,department:x.departmentEl})).filter(x=>JSON.stringify(x).toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.departmentEl:x.departmentEn)===department).filter(x=>period==='all'||x.period===period),[source,query,department,period,language,canAccessRecord,version])
+ const rows=useMemo(()=>source.filter(x=>canAccessRecord({...x,department:x.departmentEl})).filter(x=>JSON.stringify(x).toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.departmentEl:x.departmentEn)===department).filter(x=>period==='all'||x.period===period).filter(x=>product==='all'||x.product===product).filter(x=>method==='all'||x.method===method),[source,query,department,period,product,method,language,canAccessRecord,version])
  const avg=handHygieneRows.length?handHygieneRows.reduce((sum,x)=>sum+x.rate,0)/handHygieneRows.length:0
  const fmtDate=v=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'
  function changeTab(id){
-  setTab(id);setQuery('');setDepartment('all');setPeriod('all')
+  setTab(id);setQuery('');setDepartment('all');setPeriod('all');setProduct('all');setMethod('all')
   setSearchParams({tab:id},{replace:true})
  }
  function openPreventionRecord(id,type){
-  registry.saveViewState({tab:type,query,department,period})
+  registry.saveViewState({tab:type,query,department,period,product,method})
   registry.openRecord(navigate,`/prevention/${type}/${id}?fromTab=${type}`,id)
  }
 
@@ -83,7 +85,11 @@ export function PreventionPage(){
 
   <div className="surface prevention-workspace workspace-fill">
    <div className="tabs prevention-tabs">{visibleTabs.map(([id,key])=><button key={id} className={`tab ${tab===id?'active':''}`} onClick={()=>changeTab(id)}>{t(key)}</button>)}</div>
-   <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPrevention')} onClear={()=>{setQuery('');setDepartment('all');setPeriod('all')}} advanced={tab==='antiseptics'||tab==='bundles'?<FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>:null} activeAdvancedCount={(department!=='all'?1:0)+(period!=='all'?1:0)}>
+   <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPrevention')} onClear={()=>{setQuery('');setDepartment('all');setPeriod('all');setProduct('all');setMethod('all')}} advanced={tab==='antiseptics'?<>
+     <FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
+     <FilterSelect label="Προϊόν" value={product} onChange={setProduct}><option value="all">Όλα τα προϊόντα</option>{[...new Set(source.map(x=>x.product).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
+     <FilterSelect label="Πηγή δεδομένων" value={method} onChange={setMethod}><option value="all">Όλες οι πηγές</option>{[...new Set(source.map(x=>x.method).filter(Boolean))].map(x=><option key={x} value={x}>{antisepticMethodLabel(x)}</option>)}</FilterSelect>
+    </>:tab==='bundles'?<FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>:null} activeAdvancedCount={(department!=='all'?1:0)+(period!=='all'?1:0)+(product!=='all'?1:0)+(method!=='all'?1:0)}>
     <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
    </FilterBar>
    <div className="scroll-table" ref={registry.scrollRef}>
@@ -94,7 +100,7 @@ export function PreventionPage(){
    </div>
   </div>
 
-  {entryOpen&&canCreate&&(tab==='handHygiene'?<WhoHandHygieneModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='waste'?<WasteEntryModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:<PreventionEntryModal tab={tab} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>)}
+  {entryOpen&&canCreate&&(tab==='handHygiene'?<WhoHandHygieneModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='waste'?<WasteEntryModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='antiseptics'?<AntisepticEntryModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='bundles'?<BundleExecutionModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:<PreventionEntryModal tab={tab} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>)}
  </Page>
 }
 
@@ -107,8 +113,8 @@ function makeId(tab){
 function exportRows(tab,rows,t,language){
  if(tab==='handHygiene')return downloadCsv('prevention-hand-hygiene.csv',['Ημερομηνία','Τμήμα','Κατηγορία','Παρατηρήσεις','Συμμορφούμενες','Συμμόρφωση','Παρατηρητής'],rows.map(x=>[x.date,language==='el'?x.departmentEl:x.departmentEn,t(x.profession),x.observations,x.compliant,`${x.rate}%`,x.observer]))
  if(tab==='waste')return downloadCsv('prevention-waste.csv',['Ημερομηνία','Τμήμα','Κατηγορία','Βάρος kg','Περιέκτες','Νοσηλευτικές ημέρες','Δείκτης kg/1.000','Παραστατικό','Εταιρεία συλλογής','Υπεύθυνος'],rows.map(x=>[x.date,language==='el'?x.departmentEl:x.departmentEn,language==='el'?(x.wasteType||x.type):(x.typeEn||x.wasteType||x.type),x.weight,x.containers,x.patientDays||'',x.indicator??'',x.documentNumber||'',x.collectionCompany||'',x.responsible||'']))
- if(tab==='antiseptics')return downloadCsv('prevention-antiseptics.csv',['Περίοδος','Τμήμα','Προϊόν','Κατανάλωση L'],rows.map(x=>[x.period,language==='el'?x.departmentEl:x.departmentEn,x.product,x.litres]))
- return downloadCsv('prevention-bundles.csv',['Bundle','Τμήμα','Περίοδος','Συμμόρφωση','Κατάσταση'],rows.map(x=>[t(x.bundle),language==='el'?x.departmentEl:x.departmentEn,x.period,`${x.score}%`,t(x.status)]))
+ if(tab==='antiseptics')return downloadCsv('prevention-antiseptics.csv',['Περίοδος','Τμήμα','Προϊόν','Κατανάλωση L','Νοσηλευτικές ημέρες','Δείκτης ABHR L/1.000','Πηγή δεδομένων','Αναφορά/Παραστατικό','Υπεύθυνος'],rows.map(x=>[x.period,language==='el'?x.departmentEl:x.departmentEn,language==='el'?x.product:(x.productEn||x.product),x.litres,x.patientDays||'',x.indicator??'',antisepticMethodLabel(x.method),x.referenceNumber||'',x.responsible||'']))
+ return downloadCsv('prevention-bundles.csv',['Ημερομηνία','Bundle','Έκδοση','Τμήμα','Βάρδια','Ασθενής','Συσκευή','Score','All-or-none','Αποκλίσεις','Υπεύθυνος'],rows.map(x=>[x.date||x.period,x.templateName||x.bundle,x.templateVersion||'',language==='el'?x.departmentEl:x.departmentEn,x.shift||'',x.patientRef||'',x.deviceRef||'',`${x.score}%`,x.allOrNone?'Ναι':'Όχι',x.failedCount??x.findings?.length??0,x.owner||'']))
 }
 
 function Kpi({icon:Icon,value,label}){return <div className="prevention-kpi"><Icon size={18}/><div><strong>{value}</strong><span>{label}</span></div></div>}
@@ -116,5 +122,5 @@ function EditCell({record,canEdit,onEdit}){return <td className="prevention-row-
 function HandTable({rows,t,language,fmtDate,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('date')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('observations')}</th><th>{t('compliant')}</th><th>{t('compliance')}</th><th>{t('observer')}</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{fmtDate(x.date)}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{t(x.profession)}</td><td>{x.observations}</td><td>{x.compliant}</td><td><strong>{x.rate}%</strong></td><td>{x.observer}</td><EditCell record={x} canEdit={canEdit} onEdit={onEdit}/></tr>})}</tbody></table>}
 
 function WasteTable({rows,t,language,fmtDate,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('date')}</th><th>{t('department')}</th><th>Κατηγορία</th><th>Βάρος</th><th>Περιέκτες</th><th>Δείκτης</th><th>Παραστατικό</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);const category=x.wasteType||x.type;return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{fmtDate(x.date)}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td><span className={`waste-category-badge ${wasteCategoryTone(category)}`}>{language==='el'?category:(x.typeEn||category)}</span></td><td>{Number(x.weight).toLocaleString('el-GR')} kg</td><td>{x.containers}</td><td>{x.indicator!=null?<><strong>{Number(x.indicator).toLocaleString('el-GR')}</strong><small className="table-cell-unit"> kg / 1.000</small></>:'—'}</td><td>{x.documentNumber||'—'}</td><EditCell record={x} canEdit={canEdit} onEdit={onEdit}/></tr>})}</tbody></table>}
-function AntisepticTable({rows,t,language,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('period')}</th><th>{t('department')}</th><th>{t('product')}</th><th>{t('consumptionLitres')}</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{x.period}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{x.product}</td><td><strong>{x.litres}</strong></td><EditCell record={x} canEdit={canEdit} onEdit={onEdit}/></tr>})}</tbody></table>}
-function BundleTable({rows,t,language,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('bundle')}</th><th>{t('department')}</th><th>{t('period')}</th><th>{t('score')}</th><th>{t('status')}</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{t(x.bundle)}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{x.period}</td><td><strong>{x.score}%</strong></td><td><span className="status-badge active">{t(x.status)}</span></td><EditCell record={x} canEdit={canEdit} onEdit={onEdit}/></tr>})}</tbody></table>}
+function AntisepticTable({rows,t,language,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('period')}</th><th>{t('department')}</th><th>Προϊόν</th><th>Κατανάλωση</th><th>Νοσηλευτικές ημέρες</th><th>Δείκτης ABHR</th><th>Πηγή</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{x.period}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td><strong>{language==='el'?x.product:(x.productEn||x.product)}</strong>{x.indicatorEligible===false&&<small className="table-cell-unit">εκτός δείκτη ABHR</small>}</td><td><strong>{Number(x.litres).toLocaleString('el-GR')} L</strong></td><td>{x.patientDays||'—'}</td><td>{x.indicator!=null?<><strong>{Number(x.indicator).toLocaleString('el-GR')}</strong><small className="table-cell-unit"> L / 1.000</small></>:'—'}</td><td><span className={`antiseptic-method-badge ${x.method||'other'}`}>{antisepticMethodLabel(x.method)}</span></td><EditCell record={x} canEdit={canEdit} onEdit={onEdit}/></tr>})}</tbody></table>}
+function BundleTable({rows,t,language,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>Ημερομηνία</th><th>Bundle</th><th>{t('department')}</th><th>Πλαίσιο</th><th>Score</th><th>All-or-none</th><th>Αποκλίσεις</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{x.date||x.period}</td><td><strong>{x.templateName||x.bundle}</strong><small className="table-cell-unit">v{x.templateVersion||'1.0'}</small></td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{x.shift||'—'}</td><td><strong>{x.score}%</strong></td><td><span className={`bundle-all-badge ${x.allOrNone?'passed':'failed'}`}>{x.allOrNone?'Ναι':'Όχι'}</span></td><td>{(x.failedCount??x.findings?.length??0)>0?<span className="bundle-finding-count">{x.failedCount??x.findings?.length}</span>:'—'}</td><EditCell record={x} canEdit={canEdit} onEdit={onEdit}/></tr>})}</tbody></table>}

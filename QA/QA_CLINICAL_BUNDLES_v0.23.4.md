@@ -1,0 +1,12 @@
+# Clinical Bundles — v0.23.4
+- Dedicated execution model for CLABSI, CAUTI, VAP/VAE and SSI.
+- Versioned template metadata and guideline-source label.
+- Per-element Yes / No / N/A answers.
+- Any No becomes a structured finding with optional note.
+- Percentage score excludes N/A.
+- All-or-none is separately calculated and only passes when every applicable element is Yes.
+- Context: department, date, shift, optional patient/device reference, actor.
+- Registry: score, all-or-none, finding count; contextual back/highlight retained.
+- Detail view: immutable-style execution evidence, element results, findings and source/version.
+- CSV export includes traceability and performance fields.
+- Future backend should persist template snapshot/version with each execution and lock finalized evidence; follow-up/CAPA should be linked rather than rewriting evidence.

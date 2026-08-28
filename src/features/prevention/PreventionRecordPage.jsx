@@ -10,6 +10,8 @@ import { WHO_MOMENTS } from './WhoHandHygieneModal'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { wasteCategoryTone } from './wasteVisuals'
+import { antisepticMethodLabel,isAbhrProduct } from './AntisepticEntryModal'
+import { getBundleTemplate } from './bundleTemplates'
 
 const sources={handHygiene:handHygieneRows,waste:wasteRows,antiseptics:antisepticRows,bundles:bundleRows}
 const icons={handHygiene:ShieldCheck,waste:Recycle,antiseptics:Droplets,bundles:ClipboardCheck}
@@ -34,10 +36,12 @@ export function PreventionRecordPage(){
  const Icon=icons[recordType]||ShieldCheck
  const fmtDate=v=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'
  const isWaste=recordType==='waste'
+ const isAntiseptic=recordType==='antiseptics'
  const wasteCategory=record.wasteType||record.type
- const recordTitle=recordType==='handHygiene'?`WHO Observation · ${fmtDate(record.date)}`:isWaste?`Μέτρηση αποβλήτων · ${fmtDate(record.date)}`:record.id
- const recordSubtitle=isWaste?`${record.departmentEl||''} · ${wasteCategory||''}`:(record.departmentEl||'')
- return <Page fill><EntityRecordShell className="prevention-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={labels[recordType]||'Πρόληψη'} title={recordTitle} subtitle={recordSubtitle} status={isWaste?<span className={`waste-category-badge ${wasteCategoryTone(wasteCategory)}`}>{wasteCategory}</span>:null} headerActions={canDelete?<button type="button" className="entity-record-icon-button danger" title="Διαγραφή" aria-label="Διαγραφή" onClick={removeRecord}><Trash2 size={15}/></button>:null} tabs={[]} activeTab="" onTabChange={()=>{}}>
+ const recordTitle=recordType==='handHygiene'?`WHO Observation · ${fmtDate(record.date)}`:isWaste?`Μέτρηση αποβλήτων · ${fmtDate(record.date)}`:isAntiseptic?`Κατανάλωση αντισηπτικού · ${record.period||''}`:recordType==='bundles'?`${record.templateName||record.bundle} · ${record.date||record.period||''}`:record.id
+ const recordSubtitle=isWaste?`${record.departmentEl||''} · ${wasteCategory||''}`:isAntiseptic?`${record.departmentEl||''} · ${record.product||''}`:recordType==='bundles'?`${record.departmentEl||''} · v${record.templateVersion||'1.0'}`:(record.departmentEl||'')
+ const recordStatus=isWaste?<span className={`waste-category-badge ${wasteCategoryTone(wasteCategory)}`}>{wasteCategory}</span>:isAntiseptic?<span className={`antiseptic-abhr-badge ${record.indicatorEligible!==false&&isAbhrProduct(record.product)?'active':'informative'}`}>{record.indicatorEligible!==false&&isAbhrProduct(record.product)?'ABHR · στον δείκτη':'Εκτός δείκτη ABHR'}</span>:null
+ return <Page fill><EntityRecordShell className="prevention-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={labels[recordType]||'Πρόληψη'} title={recordTitle} subtitle={recordSubtitle} status={recordStatus} headerActions={canDelete?<button type="button" className="entity-record-icon-button danger" title="Διαγραφή" aria-label="Διαγραφή" onClick={removeRecord}><Trash2 size={15}/></button>:null} tabs={[]} activeTab="" onTabChange={()=>{}}>
    <div className="record-section">
     {recordType==='handHygiene'?<HandHygieneDetails record={record} fmtDate={fmtDate}/>:recordType==='waste'?<WasteDetails record={record} fmtDate={fmtDate} t={t}/>:recordType==='antiseptics'?<AntisepticDetails record={record}/>:<BundleDetails record={record} t={t}/>}
    </div>
@@ -87,6 +91,45 @@ function WasteDetails({record,fmtDate}){
   {record.notes&&<div className="record-note-card"><span>ΣΗΜΕΙΩΣΕΙΣ</span><p>{record.notes}</p></div>}
  </div>
 }
-function AntisepticDetails({record}){return <div className="detail-grid quality-detail-grid"><D l="Περίοδος" v={record.period}/><D l="Τμήμα" v={record.departmentEl}/><D l="Προϊόν" v={record.product}/><D l="Κατανάλωση" v={`${record.litres} L`}/></div>}
-function BundleDetails({record,t}){return <div className="detail-grid quality-detail-grid"><D l="Bundle" v={t(record.bundle)}/><D l="Τμήμα" v={record.departmentEl}/><D l="Περίοδος" v={record.period}/><D l="Συμμόρφωση" v={`${record.score}%`}/><D l="Κατάσταση" v={t(record.status)}/></div>}
+function AntisepticDetails({record}){
+ const eligible=record.indicatorEligible!==false&&isAbhrProduct(record.product)
+ return <div className="antiseptic-record-view">
+  <section className="antiseptic-record-primary">
+   <div className="antiseptic-record-heading"><div><span>ΚΑΤΑΝΑΛΩΣΗ</span><strong>Στοιχεία περιόδου</strong></div><span className={`antiseptic-abhr-badge ${eligible?'active':'informative'}`}>{eligible?'ABHR · Δείκτης ενεργός':'Εκτός δείκτη ABHR'}</span></div>
+   <div className="antiseptic-record-measurements">
+    <div><span>Κατανάλωση</span><strong>{Number(record.litres).toLocaleString('el-GR')} <small>L</small></strong></div>
+    <div><span>Νοσηλευτικές ημέρες</span><strong>{record.patientDays||'—'}</strong>{record.patientDaysSource==='library'&&<small>από Βιβλιοθήκη</small>}</div>
+    <div className="antiseptic-record-indicator"><span>Δείκτης ABHR</span><strong>{record.indicator!=null?Number(record.indicator).toLocaleString('el-GR'):'—'}</strong><small>L / 1.000 νοσηλευτικές ημέρες</small></div>
+   </div>
+   <div className="antiseptic-record-meta-line"><span><b>Περίοδος</b>{record.period||'—'}</span><span><b>Τμήμα</b>{record.departmentEl||'—'}</span><span><b>Προϊόν</b>{record.product||'—'}</span></div>
+  </section>
+  <section className="antiseptic-record-trace">
+   <div className="antiseptic-record-heading"><div><span>ΤΕΚΜΗΡΙΩΣΗ</span><strong>Πηγή δεδομένων & ιχνηλασιμότητα</strong></div></div>
+   <div className="antiseptic-trace-grid">
+    <div><span>Πηγή / μέθοδος</span><strong>{antisepticMethodLabel(record.method)}</strong></div>
+    <div><span>Αναφορά / παραστατικό</span><strong>{record.referenceNumber||'—'}</strong></div>
+    <div><span>Υπεύθυνος</span><strong>{record.responsible||record.createdBy||'—'}</strong></div>
+   </div>
+   <div className="antiseptic-governance-note"><strong>{eligible?'Δείκτης πρόληψης':'Παρακολούθηση κατανάλωσης'}</strong><span>{eligible?'Η τιμή μπορεί να χρησιμοποιηθεί σε συγκρίσεις ανά περίοδο/τμήμα και σε συσχέτιση με τη συμμόρφωση Υγιεινής Χεριών.':'Η τιμή παραμένει διαθέσιμη για λειτουργική παρακολούθηση, χωρίς να αναμιγνύεται με τον δείκτη ABHR.'}</span></div>
+  </section>
+  {record.notes&&<div className="record-note-card"><span>ΣΗΜΕΙΩΣΕΙΣ</span><p>{record.notes}</p></div>}
+ </div>
+}
+function BundleDetails({record}){
+ const template=getBundleTemplate(record.templateId||record.bundle)
+ const findings=record.findings||template.elements.filter(([id])=>record.answers?.[id]==='no').map(([id,label])=>({id,label,note:record.answerNotes?.[id]||''}))
+ return <div className="bundle-record-view">
+  <section className="bundle-record-summary">
+   <div className="bundle-record-heading"><div><span>BUNDLE EXECUTION</span><strong>{record.templateName||template.name} · {record.templateTitle||template.title}</strong><small>{record.templateSource||template.source} · template v{record.templateVersion||template.version}</small></div><span className={`bundle-all-badge ${record.allOrNone?'passed':'failed'}`}>{record.allOrNone?'All-or-none ✓':'All-or-none ✕'}</span></div>
+   <div className="bundle-record-kpis"><div><span>Score</span><strong>{record.score}%</strong></div><div><span>Εφαρμόσιμα</span><strong>{record.applicableCount??'—'}</strong></div><div><span>Αποκλίσεις</span><strong>{record.failedCount??findings.length}</strong></div><div><span>Ημερομηνία</span><strong>{record.date||record.period||'—'}</strong></div></div>
+   <div className="bundle-record-meta"><span><b>Τμήμα</b>{record.departmentEl||'—'}</span><span><b>Βάρδια</b>{record.shift||'—'}</span><span><b>Ασθενής</b>{record.patientRef||'—'}</span><span><b>Συσκευή</b>{record.deviceRef||'—'}</span><span><b>Υπεύθυνος</b>{record.owner||record.createdBy||'—'}</span></div>
+  </section>
+  <section className="bundle-record-elements">
+   <div className="bundle-record-heading"><div><span>ΣΤΟΙΧΕΙΑ</span><strong>Αποτελέσματα Bundle</strong></div></div>
+   <div className="bundle-detail-list">{template.elements.map(([id,label],i)=>{const value=record.answers?.[id];return <div className={`bundle-detail-row ${value==='no'?'failed':value==='yes'?'passed':'na'}`} key={id}><span className="bundle-detail-index">{i+1}</span><strong>{label}</strong><span className="bundle-detail-answer">{value==='yes'?'Ναι':value==='no'?'Όχι':value==='na'?'Μ/Ε':'—'}</span>{value==='no'&&record.answerNotes?.[id]&&<small>{record.answerNotes[id]}</small>}</div>})}</div>
+  </section>
+  {findings.length>0&&<section className="bundle-record-findings"><div className="bundle-record-heading"><div><span>ΑΠΟΚΛΙΣΕΙΣ</span><strong>Σημεία για follow-up</strong></div></div>{findings.map(x=><div className="bundle-record-finding" key={x.id}><strong>{x.label}</strong><span>{x.note||'Απαιτείται διερεύνηση / διορθωτική ενέργεια.'}</span></div>)}</section>}
+  {record.generalNotes&&<div className="record-note-card"><span>ΣΗΜΕΙΩΣΕΙΣ</span><p>{record.generalNotes}</p></div>}
+ </div>
+}
 function D({l,v}){return <div className="detail-item"><span>{l}</span><strong>{v}</strong></div>}

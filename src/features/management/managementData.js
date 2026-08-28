@@ -36,5 +36,7 @@ export const demoLibrarySeed = {
 
 export const demoPatientDayPeriods = [
  {id:'pd1',from:'2026-08-01',to:'2026-08-31',scope:'department',departmentEl:'ΜΕΘ',departmentEn:'ICU',value:372,source:'manual'},
- {id:'pd2',from:'2026-07-01',to:'2026-07-31',scope:'hospital',departmentEl:'',departmentEn:'',value:5214,source:'manual'},
+ {id:'pd2',from:'2026-08-01',to:'2026-08-31',scope:'department',departmentEl:'Χειρουργική',departmentEn:'Surgery',value:318,source:'manual'},
+ {id:'pd3',from:'2026-08-01',to:'2026-08-31',scope:'department',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',value:441,source:'manual'},
+ {id:'pd4',from:'2026-07-01',to:'2026-07-31',scope:'hospital',departmentEl:'',departmentEn:'',value:5214,source:'manual'},
 ]
