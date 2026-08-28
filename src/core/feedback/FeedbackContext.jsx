@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import { CheckCircle2, Info, TriangleAlert, X, XCircle } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
+import { hasSupabaseConfig } from '../config/env'
 
 const FeedbackContext = createContext(null)
 let nextId = 1
@@ -23,7 +24,7 @@ export function FeedbackProvider({ children }) {
   const icons = { success: CheckCircle2, warning: TriangleAlert, danger: XCircle, info: Info }
   return <FeedbackContext.Provider value={value}>
     {children}
-    <div className="toast-stack" aria-live="polite">{items.map((item) => { const Icon = icons[item.tone] ?? Info; return <div className={`toast ${item.tone}`} key={item.id}><Icon size={18}/><span>{item.message}</span><button onClick={() => setItems((current) => current.filter((x) => x.id !== item.id))}><X size={15}/></button></div> })}</div>
+    <div className="toast-stack" aria-live="polite">{items.map((item) => { const Icon = icons[item.tone] ?? Info; return <div className={`toast ${item.tone} ${hasSupabaseConfig?'cloud':'local'}`} key={item.id}><Icon size={18}/><span>{item.message}</span><button onClick={() => setItems((current) => current.filter((x) => x.id !== item.id))}><X size={15}/></button></div> })}</div>
     {confirmState && <div className="modal-backdrop"><div className="confirm-dialog" role="dialog" aria-modal="true"><h3>{confirmState.title ?? t('confirmAction')}</h3><p>{confirmState.message}</p><div className="dialog-actions"><button className="button secondary" onClick={() => finishConfirm(false)}>{t('cancel')}</button><button className={`button ${confirmState.danger ? 'danger' : 'primary'}`} onClick={() => finishConfirm(true)}>{confirmState.confirmLabel ?? t('confirm')}</button></div></div></div>}
   </FeedbackContext.Provider>
 }

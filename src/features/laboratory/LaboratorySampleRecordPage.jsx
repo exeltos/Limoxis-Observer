@@ -274,6 +274,7 @@ function ResultPanel({sample,persist,syncValidatedResult,t,language,fmt,canManag
 }
 
 function AstPanel({sample,persist,t,language,canManage,notify,onNext}){
+  const {confirm}=useFeedback()
   const availableOrganisms=sample.organisms?.length?sample.organisms.map(x=>x.name):(sample.organism?[sample.organism]:[])
   const emptyDraft={organism:availableOrganisms[0]||'',drug:'',sir:'S',mic:'',method:'MIC',standard:'EUCAST',version:'16.0'}
   const [open,setOpen]=useState(false)
@@ -304,9 +305,11 @@ function AstPanel({sample,persist,t,language,canManage,notify,onNext}){
     setDraft(emptyDraft)
     notify(t(editingIndex===null?'astSaved':'astCorrectedMessage'),'success')
   }
-  function remove(index){
+  async function remove(index){
     const row=sample.ast?.[index]
     if(!row)return
+    const ok=await confirm({title:t('delete'),message:t('deleteConfirm'),confirmLabel:t('delete'),danger:true})
+    if(!ok)return
     persist(current=>({...current,ast:(current.ast||[]).filter((_,i)=>i!==index),timeline:[{at:new Date().toISOString(),type:'astDeleted',actor:t('currentUser'),detail:row.drug},...(current.timeline||[])]}))
     notify(t('laboratoryRecords.astDeletedMessage'),'success')
   }
@@ -741,10 +744,16 @@ function LabHistory({sample,t,fmt}){
 }
 function Detail({l,v}){return <div className="detail-item"><span>{l}</span><strong>{v||'—'}</strong></div>}
 function OrganismEditor({organisms,onChange,options,t,canClassify}){
+  const {confirm,notify}=useFeedback()
   const rows=organisms?.length?organisms:[{name:'',resistance:''}]
   const update=(index,key,value)=>onChange(rows.map((row,i)=>i===index?{...row,[key]:value}:row))
   const add=()=>onChange([...rows,{name:'',resistance:''}])
-  const remove=index=>onChange(rows.filter((_,i)=>i!==index))
+  const remove=async index=>{
+    const ok=await confirm({title:t('delete'),message:t('deleteConfirm'),confirmLabel:t('delete'),danger:true})
+    if(!ok)return
+    onChange(rows.filter((_,i)=>i!==index))
+    notify(t('actionCompleted'),'success')
+  }
   return <div className="organism-editor-list">{rows.map((row,index)=><div className="organism-editor-row" key={index}><input list="lab-microorganisms" value={row.name||''} onChange={e=>update(index,'name',e.target.value)} placeholder={t('organism')}/>{canClassify&&<select value={row.resistance||''} onChange={e=>update(index,'resistance',e.target.value)}><option value="">—</option><option>MDR</option><option>XDR</option><option>PDR</option></select>}{rows.length>1&&<button type="button" className="danger" title={t('delete')} onClick={()=>remove(index)}><Trash2 size={14}/></button>}<datalist id="lab-microorganisms">{options.map(option=><option key={option} value={option}/>)}</datalist></div>)}<button type="button" className="inline-add-button" onClick={add}>+ {t('laboratoryRecords.addOrganism')}</button></div>
 }
 function EditableSelect({editing,label,value,display,onChange,options}){return <div className={`detail-item ${editing?'editable':''}`}><span>{label}</span>{editing?<select value={typeof value==='boolean'?(value?'yes':'no'):value} onChange={e=>onChange(e.target.value)}>{options.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>:<strong>{display||'—'}</strong>}</div>}

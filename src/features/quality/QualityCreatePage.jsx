@@ -28,11 +28,17 @@ export function QualityCreatePage(){
   const {notify}=useFeedback()
   const c=config[recordType]||config.incidents
   const Icon=c.icon
-  const [draft,setDraft]=useState({
-    title:'',titleEn:'',department:'ΜΕΘ',departmentEn:'ICU',status:recordType==='incidents'?'reported':recordType==='findings'?'open':recordType==='capas'?'open':'planned',
-    severity:'medium',owner:'',description:'',descriptionEn:'',date:new Date().toISOString().slice(0,10),source:'manual',sourceId:'',
-    actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',
-    auditType:'internal',leadAuditor:'',plannedDate:'',scope:'',scopeEn:'',attachments:[],history:[]
+  const controlSource=location.state?.controlSource
+  const [draft,setDraft]=useState(()=>{
+    const base={
+      title:'',titleEn:'',department:'ΜΕΘ',departmentEn:'ICU',status:recordType==='incidents'?'reported':recordType==='findings'?'open':recordType==='capas'?'open':'planned',
+      severity:'medium',owner:'',description:'',descriptionEn:'',date:new Date().toISOString().slice(0,10),source:'manual',sourceId:'',
+      actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',
+      auditType:'internal',leadAuditor:'',plannedDate:'',scope:'',scopeEn:'',attachments:[],history:[]
+    }
+    if(!controlSource)return base
+    const rowText=(controlSource.rows||[]).map((r,i)=>`${i+1}. ${r.item||'Στοιχείο'}${r.finding?` — ${r.finding}${r.finding==='Άλλο'&&r.findingOther?`: ${r.findingOther}`:''}`:''}${r.action?` — Ενέργεια: ${r.action}`:''}`).join('\n')
+    return {...base,title:`Εύρημα από έλεγχο: ${controlSource.controlTitle}`,department:controlSource.department||base.department,source:'control',sourceId:controlSource.controlId||'',severity:controlSource.hasFinding?'medium':'low',description:[`Προέλευση: ${controlSource.controlId} — ${controlSource.controlTitle}`,controlSource.value?`Αποτέλεσμα: ${controlSource.value}`:'',controlSource.notes?`Σημειώσεις: ${controlSource.notes}`:'',rowText].filter(Boolean).join('\n\n')}
   })
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
   function setDepartment(el){const pair=demoLibrarySeed.departments.find(([x])=>x===el);setDraft(d=>({...d,department:el,departmentEn:pair?.[1]||el}))}

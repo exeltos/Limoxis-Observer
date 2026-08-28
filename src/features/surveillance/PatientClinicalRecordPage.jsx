@@ -91,7 +91,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
     return created
   }
 
-  async function recordAction(action){ if(action===UI_ACTIONS.PRINT){window.print();return} if(action===UI_ACTIONS.DELETE){const ok=await confirm({title:t('confirmAction'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')});if(!ok)return} notify(t('actionCompleted'), action===UI_ACTIONS.DELETE?'warning':'success') }
+  function recordAction(action){ if(action===UI_ACTIONS.PRINT){window.print();return} notify(t('actionCompleted'), action===UI_ACTIONS.DELETE?'warning':'success') }
 
   return <Page fill title={patientName} subtitle={record?`${patientCode} · ${record.id}`:patientCode}>
     <EntityRecordShell

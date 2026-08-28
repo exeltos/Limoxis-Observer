@@ -19,6 +19,7 @@ const PatientClinicalRecordPage = lazyNamed(() => import('../features/surveillan
 const LaboratoryPage = lazyNamed(() => import('../features/laboratory/LaboratoryPage'), 'LaboratoryPage')
 const LaboratorySampleRecordPage = lazyNamed(() => import('../features/laboratory/LaboratorySampleRecordPage'), 'LaboratorySampleRecordPage')
 const PreventionPage = lazyNamed(() => import('../features/prevention/PreventionPage'), 'PreventionPage')
+const PreventionRecordPage = lazyNamed(() => import('../features/prevention/PreventionRecordPage'), 'PreventionRecordPage')
 const ControlsPage = lazyNamed(() => import('../features/controls/ControlsPage'), 'ControlsPage')
 const ControlRecordPage = lazyNamed(() => import('../features/controls/ControlRecordPage'), 'ControlRecordPage')
 const RecordsPage = lazyNamed(() => import('../features/records/RecordsPage'), 'RecordsPage')
@@ -53,6 +54,7 @@ export function App() {
         <Route path="laboratory" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LAB, <LaboratoryPage />)}</Suspense>} />
         <Route path="laboratory/:sampleId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LAB, <LaboratorySampleRecordPage />)}</Suspense>} />
         <Route path="prevention" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PREVENTION, <PreventionPage />)}</Suspense>} />
+        <Route path="prevention/:recordType/:recordId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PREVENTION, <PreventionRecordPage />)}</Suspense>} />
         <Route path="controls" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_CONTROLS, <ControlsPage />)}</Suspense>} />
         <Route path="controls/:controlId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_CONTROLS, <ControlRecordPage />)}</Suspense>} />
         <Route path="records" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_RECORDS, <RecordsPage />)}</Suspense>} />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Eye, FilePlus2, Paperclip, Pencil, Trash2, X } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
+import { useFeedback } from '../core/feedback/FeedbackContext'
 import { Button } from './Button'
 
 const defaultCategories=[
@@ -20,6 +21,7 @@ export function AttachmentField({
   categories=defaultCategories,
 }){
   const {t}=useLanguage()
+  const {confirm,notify}=useFeedback()
   const [files,setFiles]=useState(value)
   const [editor,setEditor]=useState(null)
   useEffect(()=>setFiles(value),[value])
@@ -70,12 +72,15 @@ export function AttachmentField({
     onChange(next)
     setEditor(null)
   }
-  function remove(id){
+  async function remove(id){
+    const ok=await confirm({title:t('delete'),message:t('deleteConfirm'),confirmLabel:t('delete'),danger:true})
+    if(!ok)return
     const target=files.find(file=>file.id===id)
     if(target?.objectUrl)URL.revokeObjectURL(target.objectUrl)
     const next=files.filter(file=>file.id!==id)
     setFiles(next)
     onChange(next)
+    notify(t('actionCompleted'),'success')
   }
   function view(file){
     if(file.objectUrl||file.url)window.open(file.objectUrl||file.url,'_blank','noopener,noreferrer')
