@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { AlertTriangle, CheckSquare2, ClipboardCheck, FileClock, Link2, Paperclip, Pencil, Printer, ShieldCheck, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckSquare2, ClipboardCheck, FileClock, Link2, Paperclip, Pencil, Printer, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -12,15 +12,22 @@ import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { getQualityRecord, qualityCollections } from './qualityDemoData'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
+import { useAuth } from '../../core/auth/AuthContext'
+import { auditActorFromAuth, auditEvent } from '../../core/audit/actor'
+import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
+import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 
 const iconMap={incidents:AlertTriangle,findings:ShieldCheck,capas:CheckSquare2,audits:ClipboardCheck}
 
 export function QualityRecordPage(){
   const {recordType,recordId}=useParams()
+  const recordNavigation=useRecordSequenceNavigation({registry:`quality.${recordType}`,currentId:recordId,pathForId:id=>`/quality/${recordType}/${id}`})
   const {restored,goBack}=useContextualNavigation('/quality')
   const {t,language,locale}=useLanguage()
-  const {role,membership}=useTenant()
+  const {role,membership,canAccessRecord}=useTenant()
   const {notify,confirm}=useFeedback()
+  const {profile,user}=useAuth()
+  const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
   const original=getQualityRecord(recordType,recordId)
   const [record,setRecord]=useState(original?{...original}:null)
   const [tab,setTab]=useState(()=>restored?.tab||'details')
@@ -28,7 +35,10 @@ export function QualityRecordPage(){
   const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
   const canAttach=can(role,CAPABILITIES.ATTACH_FILES,addOns,custom)
   const canPrint=can(role,CAPABILITIES.PRINT_RECORDS,addOns,custom)
+  const finalized=Boolean(record&&['closed','completed','cancelled'].includes(record.status))
+  const recordInScope=!record||canAccessRecord({...record,department:record.department})
   if(!record)return <Page title={t('quality')}><div className="inline-empty">{t('noData')}</div></Page>
+  if(!recordInScope)return <Page title={t('quality')}><div className="inline-empty">Δεν έχετε πρόσβαση σε αυτή την εγγραφή.</div></Page>
   const Icon=iconMap[recordType]||ShieldCheck
   const title=language==='el'?record.title:record.titleEn
   const tabs=[{id:'details',label:t('details'),icon:Icon},{id:'links',label:t('qualityRecords.linkedRecords'),icon:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
@@ -39,23 +49,54 @@ export function QualityRecordPage(){
     title={title}
     subtitle={`${language==='el'?record.department:record.departmentEn||'—'} · ${t(record.status)}`}
     status={<span className={`status-badge ${['closed','completed'].includes(record.status)?'active':''}`}>{t(record.status)}</span>}
+    recordNavigation={recordNavigation}
     headerActions={canPrint?<button className="entity-record-icon-button" onClick={()=>window.print()} title={t('print')}><Printer size={15}/></button>:null}
     tabs={tabs} activeTab={tab} onTabChange={setTab}>
-      {tab==='details'&&<QualityDetails recordType={recordType} record={record} setRecord={setRecord} t={t} language={language} locale={locale} canManage={canManage} notify={notify} confirm={confirm} onDeleted={goBack}/>}
+      {tab==='details'&&<QualityDetails recordType={recordType} record={record} setRecord={setRecord} t={t} language={language} locale={locale} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack}/>}
       {tab==='links'&&<QualityLinks recordType={recordType} record={record} t={t} language={language}/>}
-      {tab==='documents'&&<div className="record-section"><AttachmentField disabled={!canAttach&&!canManage} value={record.attachments||[]} onChange={attachments=>setRecord(r=>({...r,attachments}))}/></div>}
+      {tab==='documents'&&<div className="record-section"><AttachmentField disabled={finalized||(!canAttach&&!canManage)} value={record.attachments||[]} onChange={attachments=>setRecord(r=>({...r,attachments}))}/></div>}
       {tab==='history'&&<QualityHistory record={record} t={t} locale={locale}/>}
   </EntityRecordShell></Page>
 }
 
-function QualityDetails({recordType,record,setRecord,t,language,locale,canManage,notify,confirm,onDeleted}){
+function QualityDetails({recordType,record,setRecord,t,language,locale,canManage,notify,actor,finalized,onDeleted}){
   const [editing,setEditing]=useState(false)
   const [draft,setDraft]=useState({...record})
+  const [governedAction,setGovernedAction]=useState(null)
+  const [correctionReason,setCorrectionReason]=useState('')
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
-  const save=()=>{setRecord({...draft,history:[{at:new Date().toISOString(),action:'recordUpdated',actor:t('currentUser')},...(record.history||[])]});setEditing(false);notify(t('recordUpdated'),'success')}
-  async function remove(){const ok=await confirm({title:t('delete'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')});if(ok){const collection=qualityCollections[recordType]||[];const index=collection.findIndex(x=>x.id===record.id);if(index>=0)collection.splice(index,1);notify(t('qualityRecords.recordDeleted'),'warning');onDeleted?.()}}
+
+  function persist(next){
+    const collection=qualityCollections[recordType]||[]
+    const index=collection.findIndex(x=>x.id===record.id)
+    if(index>=0)collection[index]=next
+    setRecord({...next})
+  }
+  function beginEdit(){
+    if(!canManage)return
+    if(finalized){setGovernedAction('correct');return}
+    setDraft({...record});setEditing(true)
+  }
+  function save(){
+    const now=new Date().toISOString()
+    const event=auditEvent(finalized?'recordCorrected':'recordUpdated',{actor,reason:correctionReason})
+    const next={...draft,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[event,...(record.history||[])]}
+    persist(next);setEditing(false);setCorrectionReason('');notify(t('recordUpdated'),'success')
+  }
+  function requestVoid(){if(canManage)setGovernedAction('void')}
+  function governedConfirm(reason){
+    if(governedAction==='correct'){
+      setCorrectionReason(reason);setDraft({...record});setEditing(true);setGovernedAction(null);return
+    }
+    if(governedAction==='void'){
+      const now=new Date().toISOString()
+      const event=auditEvent('recordVoided',{actor,reason})
+      const next={...record,lifecycleStatus:'voided',voidedAt:now,voidedBy:actor.name,voidedById:actor.id,voidReason:reason,history:[event,...(record.history||[])]}
+      persist(next);setGovernedAction(null);notify('Η εγγραφή ακυρώθηκε και διατηρήθηκε στο audit trail.','success');onDeleted?.()
+    }
+  }
   return <div className="record-section">
-    <div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('details')}</h3></div>{canManage&&!editing&&<div className="record-inline-actions"><button onClick={()=>setEditing(true)} title={t('edit')}><Pencil size={16}/></button><button className="danger" onClick={remove} title={t('delete')}><Trash2 size={16}/></button></div>}</div>
+    <div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('details')}</h3></div>{canManage&&!editing&&<div className="record-inline-actions"><button onClick={beginEdit} title={finalized?'Διόρθωση ολοκληρωμένης εγγραφής':t('edit')}>{finalized?<RotateCcw size={16}/>:<Pencil size={16}/>}</button><button className="danger" onClick={requestVoid} title="Ακύρωση εγγραφής"><Trash2 size={16}/></button></div>}</div>
     <div className={`detail-grid quality-detail-grid ${editing?'employee-inline-edit':''}`}>
       <Field label={t('code')} value={draft.id}/>
       <EditField editing={editing} label={t('title')} value={language==='el'?draft.title:draft.titleEn} onChange={v=>set(language==='el'?'title':'titleEn',v)}/>
@@ -67,7 +108,8 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
       {recordType==='audits'&&<><EditSelect editing={editing} label={t('auditType')} value={draft.auditType} onChange={v=>set('auditType',v)} options={['internal','external'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('leadAuditor')} value={draft.leadAuditor} onChange={v=>set('leadAuditor',v)}/><EditField editing={editing} type="date" label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)}/><Field label={t('qualityRecords.completedDate')} value={fmt(draft.completedDate,locale)}/></>}
     </div>
     <div className="quality-description"><span>{t(recordType==='audits'?'qualityRecords.auditScope':'description')}</span>{editing?<textarea rows={5} value={language==='el'?(draft.description??draft.scope??''):(draft.descriptionEn??draft.scopeEn??'')} onChange={e=>set(language==='el'?(recordType==='audits'?'scope':'description'):(recordType==='audits'?'scopeEn':'descriptionEn'),e.target.value)}/>:<p>{language==='el'?(record.description??record.scope??'—'):(record.descriptionEn??record.scopeEn??'—')}</p>}</div>
-    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...record});setEditing(false)}}>{t('cancel')}</Button><Button onClick={save}>{t('save')}</Button></div>}
+    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...record});setEditing(false);setCorrectionReason('')}}>{t('cancel')}</Button><Button onClick={save}>{t('save')}</Button></div>}
+    <GovernedReasonDialog open={Boolean(governedAction)} title={governedAction==='correct'?'Διόρθωση ολοκληρωμένης εγγραφής':'Ακύρωση εγγραφής'} description={governedAction==='correct'?'Η αρχική εγγραφή παραμένει στο ιστορικό. Καταγράψτε τον λόγο της διόρθωσης.':'Η εγγραφή δεν θα διαγραφεί φυσικά. Θα χαρακτηριστεί ως ακυρωμένη και θα παραμείνει στο audit trail.'} confirmLabel={governedAction==='correct'?'Έναρξη διόρθωσης':'Ακύρωση εγγραφής'} danger={governedAction==='void'} onCancel={()=>setGovernedAction(null)} onConfirm={governedConfirm}/>
   </div>
 }
 function QualityLinks({recordType,record,t,language}){

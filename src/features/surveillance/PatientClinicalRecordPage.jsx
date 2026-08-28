@@ -19,15 +19,22 @@ import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { demoLibrarySeed } from '../management/managementData'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
+import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 
 export function PatientClinicalRecordPage({patientMode=false}){
   const { caseId, patientId } = useParams()
+  const sequenceId=patientMode?patientId:caseId
+  const recordNavigation=useRecordSequenceNavigation({
+    registry:patientMode?'patients':'surveillance',
+    currentId:sequenceId,
+    pathForId:id=>patientMode?`/patients/${id}`:`/surveillance/${id}`,
+  })
   const location=useLocation()
   const {goBack,restored}=useContextualNavigation(patientMode?'/patients':'/surveillance')
   const { t, language, locale } = useLanguage()
   const [tab,setTab] = useState(()=>location.state?.openTab||restored?.tab||'summary')
   const { notify, confirm } = useFeedback()
-  const {role,membership,tenant}=useTenant()
+  const {role,membership,tenant,canAccessRecord}=useTenant()
   const patient = patientDemoData.find(x=>x.id===patientId) ?? null
   // eslint-disable-next-line no-unused-vars -- episodeVersion itself is never read; setEpisodeVersion is called after mutations purely to force a re-render (record/patientEpisodes below are recomputed fresh each render, not memoized).
   const [episodeVersion,setEpisodeVersion]=useState(0)
@@ -39,8 +46,11 @@ export function PatientClinicalRecordPage({patientMode=false}){
   const fmtDate=(value)=>value ? new Intl.DateTimeFormat(locale).format(new Date(`${value.slice(0,10)}T12:00:00`)) : '—'
   const fmtDateTime=(value)=>value ? new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(value)) : '—'
   const age=useMemo(()=>record?.dateOfBirth?Math.floor((new Date(record.admissionDate)-new Date(record.dateOfBirth))/(365.2425*24*60*60*1000)):null,[record])
+  const scopedSubject=record||patient
+  const subjectInScope=!scopedSubject||canAccessRecord({...scopedSubject,department:scopedSubject.department})
 
   if(!record && !patient) return <Page title={t('clinicalRecords.patientRecord')}><EmptyState title={t('noData')} description={t('clinicalRecords.noClinicalData')}/></Page>
+  if(!subjectInScope)return <Page title={t('clinicalRecords.patientRecord')}><EmptyState title="Μη επιτρεπτή πρόσβαση" description="Η εγγραφή είναι εκτός του επιτρεπόμενου οργανωτικού ή τμηματικού scope του ρόλου σας."/></Page>
   const patientName=language==='el'?(record?.patient||patient?.name):(record?.patientEn||patient?.nameEn)
   const department=language==='el'?(record?.department||patient?.department):(record?.departmentEn||patient?.departmentEn)
   const patientCode=record?.patientId||patient?.id
@@ -101,6 +111,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
       title={patientName}
       subtitle={`${department||'—'} · ${t('clinicalRecords.admission')}: ${fmtDate(admissionDate)}`}
       status={<><span className={`status-badge ${(record?.status||patient?.status)==='active'?'active':''}`}>{t(record?.status||patient?.status||'active')}</span>{(canLab||canSurveillance)&&record?.resistance&&<span className="status-badge danger">{record.resistance}</span>}</>}
+      recordNavigation={recordNavigation}
       headerActions={<><button className="entity-record-icon-button" title={t('print')} aria-label={t('print')} onClick={()=>window.print()}><Printer size={15}/></button><button className="entity-record-icon-button" title={t('export')} aria-label={t('export')} onClick={()=>recordAction(UI_ACTIONS.EXPORT)}><Download size={15}/></button></>}
       tabs={tabDefinitions}
       activeTab={activeTab}

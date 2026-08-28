@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft,ChevronLeft,ChevronRight } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useContextualNavigation } from '../core/navigation/useContextualNavigation'
 
@@ -9,6 +9,7 @@ export function EntityRecordShell({
   subtitle,
   status,
   headerActions,
+  recordNavigation,
   tabs=[],
   activeTab,
   onTabChange,
@@ -30,6 +31,11 @@ export function EntityRecordShell({
       </div>
       <div className="entity-record-header-actions">
         {status}
+        {recordNavigation&&<div className="entity-record-sequence" aria-label="Πλοήγηση εγγραφών">
+          <button type="button" className="entity-record-icon-button" disabled={!recordNavigation.hasPrevious} onClick={recordNavigation.previous} title="Προηγούμενη εγγραφή" aria-label="Προηγούμενη εγγραφή"><ChevronLeft size={16}/></button>
+          {recordNavigation.position&&recordNavigation.total>0&&<span>{recordNavigation.position}/{recordNavigation.total}</span>}
+          <button type="button" className="entity-record-icon-button" disabled={!recordNavigation.hasNext} onClick={recordNavigation.next} title="Επόμενη εγγραφή" aria-label="Επόμενη εγγραφή"><ChevronRight size={16}/></button>
+        </div>}
         {headerActions}
         <button className="entity-record-icon-button back" onClick={handleBack} title={backLabel||t('back')} aria-label={backLabel||t('back')}><ArrowLeft size={16}/></button>
       </div>

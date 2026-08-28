@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, Download, FileClock, FlaskConical, LockKeyhole, Microscope, Paperclip, Pencil, PhoneCall, PlayCircle, Printer, ShieldAlert, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Download, FileClock, FlaskConical, LockKeyhole, Microscope, Paperclip, Pencil, PhoneCall, PlayCircle, Printer, ShieldAlert, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -9,6 +9,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
+import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { getClinicalCase } from '../surveillance/clinicalDemoData'
 import { syncDemoSurveillanceListItem } from '../surveillance/surveillanceDemoData'
@@ -21,9 +22,10 @@ import { readEnvironmentalStandards } from '../management/EnvironmentalStandards
 
 export function LaboratorySampleRecordPage(){
   const {sampleId}=useParams()
+  const recordNavigation=useRecordSequenceNavigation({registry:'laboratory',currentId:sampleId,pathForId:id=>`/laboratory/${id}`})
   const {t,language,locale}=useLanguage()
   const {notify}=useFeedback()
-  const {role,membership}=useTenant()
+  const {role,membership,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
   const {goTo}=useContextualNavigation('/laboratory')
   const source=getLabSample(sampleId)
   const [sample,setLocalSample]=useState(source?{...source}:null)
@@ -41,13 +43,17 @@ export function LaboratorySampleRecordPage(){
   const canAttach=has(CAPABILITIES.ATTACH_FILES)
   const canPrint=has(CAPABILITIES.PRINT_RECORDS)
   const canExport=has(CAPABILITIES.EXPORT_RECORDS)
+  const sampleInScope=!sample||canAccessRecord({...sample,department:sample.department})
+  const employeeHealthAllowed=!sample||sample.workflowType!=='employee_screening'||canSeeSensitiveEmployeeHealth
   const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—'
 
   if(!sample)return <Page title={t('laboratoryRecords.sample')}><div className="inline-empty">{t('noData')}</div></Page>
+  if(!sampleInScope||!employeeHealthAllowed)return <Page title={t('laboratoryRecords.sample')}><div className="inline-empty">Δεν έχετε πρόσβαση σε αυτή την εγγραφή.</div></Page>
 
   const patientName=language==='el'?sample.patient:sample.patientEn
   const subjectLabel=sample.subjectType==='employee'?t('employee'):['surface','room','air','water'].includes(sample.subjectType)?t(sample.subjectType):t('patient')
   const finalized=Boolean(sample.finalizedAt)
+  const correctionLocked=finalized||sample.status==='completed'||sample.resultStatus==='validated'
   const resultValidated=sample.resultStatus==='validated'||finalized
   const astRequired=sample.result==='positive'
   const astComplete=!astRequired||Boolean(sample.ast?.length)
@@ -71,6 +77,15 @@ export function LaboratorySampleRecordPage(){
     {id:'finalize',label:t('laboratoryRecords.finalization'),icon:CheckCircle2,disabled:!tabAccess.finalize,lockedLabel:t('laboratoryRecords.completePreviousStep')},
     {id:'history',label:t('history'),icon:FileClock,disabled:!tabAccess.history,lockedLabel:t('laboratoryRecords.availableAfterFinalization')},
   ]
+  const workflowOrder=['summary','result','ast','communication','documents','finalize',...(finalized?['history']:[])]
+  const workflowLabels=Object.fromEntries(tabs.map(item=>[item.id,item.label]))
+  function openGeneralEdit(){
+    if(correctionLocked){
+      setCorrectionOpen(true)
+      return
+    }
+    setTab(tabAccess.result?'result':'summary')
+  }
 
   function persist(updater){
     const next=updateLabSample(sample.id,current=>{
@@ -82,7 +97,7 @@ export function LaboratorySampleRecordPage(){
   }
 
   if(sample.workflowType==='employee_screening'){
-    return <EmployeeScreeningLaboratoryRecord sample={sample} persist={persist} t={t} language={language} fmt={fmt} canManage={canManage} canValidate={canValidate} canAttach={canAttach} canReopen={canReopenLab} canPrint={canPrint} canExport={canExport} notify={notify}/>
+    return <EmployeeScreeningLaboratoryRecord sample={sample} persist={persist} t={t} language={language} fmt={fmt} canManage={canManage} canValidate={canValidate} canAttach={canAttach} canReopen={canReopenLab} canPrint={canPrint} canExport={canExport} notify={notify} recordNavigation={recordNavigation}/>
   }
 
   if(['environmental_plate','environmental_individual'].includes(sample.workflowType)){
@@ -99,6 +114,7 @@ export function LaboratorySampleRecordPage(){
       canPrint={canPrint}
       canExport={canExport}
       notify={notify}
+      recordNavigation={recordNavigation}
     />
   }
 
@@ -162,20 +178,20 @@ export function LaboratorySampleRecordPage(){
   return <Page fill>
     <EntityRecordShell
       className="laboratory-record-shell workspace-fill"
+      recordNavigation={recordNavigation}
       avatar={<FlaskConical size={20}/>}
       eyebrow={sample.id}
       title={t(sample.type)}
       subtitle={`${patientName} · ${sample.patientId} · ${language==='el'?sample.department:sample.departmentEn}`}
       status={<><Status text={t(sample.status)} kind={sample.status}/>{sample.resistance&&<b className="amr-chip">{sample.resistance}</b>}</>}
-      headerActions={<>{finalized&&canReopenLab&&<button className="general-edit-button" title={t('laboratoryRecords.generalEdit')} onClick={()=>setCorrectionOpen(true)}><Pencil size={15}/><span>{t('laboratoryRecords.generalEdit')}</span></button>}{canPrint&&<button className="entity-record-icon-button" title={t('print')} aria-label={t('print')} onClick={()=>window.print()}><Printer size={15}/></button>}{canExport&&<button className="entity-record-icon-button" title={t('export')} aria-label={t('export')}><Download size={15}/></button>}</>}
+      headerActions={<>{(canManage||canReopenLab)&&<button className="general-edit-button" title={correctionLocked?'Διόρθωση εργαστηριακής εγγραφής':t('laboratoryRecords.generalEdit')} onClick={openGeneralEdit}><Pencil size={15}/><span>{correctionLocked?'Διόρθωση':t('laboratoryRecords.generalEdit')}</span></button>}{canPrint&&<button className="entity-record-icon-button" title={t('print')} aria-label={t('print')} onClick={()=>window.print()}><Printer size={15}/></button>}{canExport&&<button className="entity-record-icon-button" title={t('export')} aria-label={t('export')}><Download size={15}/></button>}</>}
       tabs={tabs}
       activeTab={tab}
       onTabChange={next=>{
         if(finalized){setTab(next);return}
-        const order=['summary','result','ast','communication','documents','finalize']
-        const currentIndex=order.indexOf(tab)
-        const nextIndex=order.indexOf(next)
-        if(nextIndex>=0&&nextIndex<=currentIndex&&tabAccess[next])setTab(next)
+        const currentIndex=workflowOrder.indexOf(tab)
+        const nextIndex=workflowOrder.indexOf(next)
+        if(nextIndex>=0&&tabAccess[next]&&(nextIndex<=currentIndex||correctionLocked))setTab(next)
       }}
       backLabel={t('backToLaboratory')}
     >
@@ -187,6 +203,7 @@ export function LaboratorySampleRecordPage(){
       {tab==='finalize'&&<FinalizationPanel sample={sample} persist={persist} syncValidatedResult={syncValidatedResult} t={t} fmt={fmt} canFinalize={canValidate&&!finalized} notify={notify} onFinalized={()=>setTab('summary')}/>}
       {tab==='documents'&&<DocumentsPanel sample={sample} persist={persist} t={t} canAttach={canAttach&&!finalized} finalized={finalized} notify={notify} onNext={()=>setTab('finalize')}/>}
       {tab==='history'&&<LabHistory sample={sample} t={t} fmt={fmt}/>}
+      <LabStepNavigator active={tab} order={workflowOrder} labels={workflowLabels} canOpen={id=>Boolean(tabAccess[id])} onMove={setTab}/>
     </EntityRecordShell>
     {correctionOpen&&<div className="modal-backdrop"><div className="entry-card correction-entry-card"><header><div><span className="eyebrow">{t('laboratory')}</span><h3>{t('laboratoryRecords.generalEdit')}</h3><p>{t('laboratoryRecords.generalEditHelp')}</p></div><button className="icon-close" onClick={()=>setCorrectionOpen(false)}>×</button></header><div className="entry-grid"><label className="entry-span-2"><span>{t('reasonRequired')}</span><textarea rows={4} value={correctionReason} onChange={e=>setCorrectionReason(e.target.value)} placeholder={t('laboratoryRecords.generalEditReasonPlaceholder')}/></label></div><footer><Button variant="secondary" onClick={()=>setCorrectionOpen(false)}>{t('cancel')}</Button><Button disabled={!correctionReason.trim()} onClick={()=>{const now=new Date().toISOString();persist(current=>({...current,status:'processing',finalizedAt:null,finalizedBy:null,documentsReviewedAt:null,correctionReason,correctionOpenedAt:now,timeline:[{at:now,type:'laboratoryRecordReopened',actor:t('currentUser'),detail:correctionReason},...(current.timeline||[])]}));setCorrectionOpen(false);setCorrectionReason('');setTab('result');notify(t('laboratoryRecords.laboratoryRecordReopenedMessage'),'success')}}>{t('laboratoryRecords.unlockForCorrection')}</Button></footer></div></div>}
   </Page>
@@ -372,10 +389,11 @@ function CriticalCommunicationPanel({sample,persist,syncValidatedResult,t,langua
 
 
 
-function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canManage,canValidate,canAttach,canReopen,canPrint,canExport,notify}){
+function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canManage,canValidate,canAttach,canReopen,canPrint,canExport,notify,recordNavigation}){
   const navigate=useNavigate()
   const location=useLocation()
   const finalized=Boolean(sample.finalizedAt)
+  const correctionLocked=finalized||sample.status==='completed'||sample.resultStatus==='validated'
   const [tab,setTab]=useState('summary')
   const [correctionOpen,setCorrectionOpen]=useState(false)
   const [correctionReason,setCorrectionReason]=useState('')
@@ -401,7 +419,21 @@ function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canMan
     {id:'result',label:t('laboratoryRecords.screeningResult'),icon:Microscope,disabled:!['received','processing','completed'].includes(sample.status)&&!finalized},
     {id:'documents',label:t('documents'),icon:Paperclip,disabled:!resultDone&&!finalized},
     {id:'finalize',label:t('laboratoryRecords.finalization'),icon:CheckCircle2,disabled:!documentsDone&&!finalized},
+    {id:'history',label:t('history'),icon:FileClock,disabled:!finalized},
   ]
+  const workflowOrder=['summary','result','documents','finalize',...(finalized?['history']:[])]
+  const workflowLabels=Object.fromEntries(tabs.map(item=>[item.id,item.label]))
+  const access={
+    summary:true,
+    result:['received','processing','completed'].includes(sample.status)||finalized,
+    documents:resultDone||finalized,
+    finalize:documentsDone||finalized,
+    history:finalized,
+  }
+  function openGeneralEdit(){
+    if(correctionLocked){setCorrectionOpen(true);return}
+    setTab(access.result?'result':'summary')
+  }
   function receive(){const now=new Date().toISOString();persist(c=>({...c,status:'received',receivedAt:now,timeline:[{at:now,type:'employeeScreeningReceived',actor:t('currentUser')},...(c.timeline||[])]}));notify(t('laboratoryRecords.sampleReceivedMessage'),'success')}
   function start(){const now=new Date().toISOString();persist(c=>({...c,status:'processing',timeline:[{at:now,type:'employeeScreeningProcessingStarted',actor:t('currentUser')},...(c.timeline||[])]}));setTab('result')}
   function validate(){
@@ -435,11 +467,12 @@ function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canMan
   }
   return <Page fill><EntityRecordShell
     className="laboratory-record-shell workspace-fill employee-screening-lab"
+    recordNavigation={recordNavigation}
     avatar={<FlaskConical size={20}/>} eyebrow={sample.id} title={t(sample.sourceCode||'employeeScreening')}
     subtitle={`${language==='el'?sample.patient:sample.patientEn} · ${sample.employeeId||sample.patientId} · ${language==='el'?sample.department:sample.departmentEn}`}
     status={<Status text={finalized?t('completed'):t(sample.status)} kind={sample.status}/>} 
-    headerActions={<>{finalized&&canReopen&&<button className="general-edit-button" title={t('laboratoryRecords.generalEdit')} onClick={()=>setCorrectionOpen(true)}><Pencil size={15}/><span>{t('laboratoryRecords.generalEdit')}</span></button>}{canPrint&&<button className="entity-record-icon-button" onClick={()=>window.print()}><Printer size={15}/></button>}{canExport&&<button className="entity-record-icon-button"><Download size={15}/></button>}</>}
-    tabs={tabs} activeTab={tab} onTabChange={next=>{const order=['summary','result','documents','finalize'];const reached=finalized?3:documentsDone?3:resultDone?2:['received','processing'].includes(sample.status)?1:0;if(order.indexOf(next)<=reached)setTab(next)}} backLabel={t('backToLaboratory')}>
+    headerActions={<>{(canManage||canReopen)&&<button className="general-edit-button" title={correctionLocked?'Διόρθωση εργαστηριακής εγγραφής':t('laboratoryRecords.generalEdit')} onClick={openGeneralEdit}><Pencil size={15}/><span>{correctionLocked?'Διόρθωση':t('laboratoryRecords.generalEdit')}</span></button>}{canPrint&&<button className="entity-record-icon-button" onClick={()=>window.print()}><Printer size={15}/></button>}{canExport&&<button className="entity-record-icon-button"><Download size={15}/></button>}</>}
+    tabs={tabs} activeTab={tab} onTabChange={next=>{const reached=finalized?4:documentsDone?3:resultDone?2:['received','processing'].includes(sample.status)?1:0;const ni=workflowOrder.indexOf(next);if(ni>=0&&access[next]&&(ni<=reached||correctionLocked))setTab(next)}} backLabel={t('backToLaboratory')}>
       {tab==='summary'&&<div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('employeeSurveillance')}</span><h3>{t('laboratoryRecords.employeeScreeningSample')}</h3></div></div><div className="detail-grid lab-detail-grid"><Detail l={t('employee')} v={language==='el'?sample.patient:sample.patientEn}/><Detail l={t('employeeCode')} v={sample.employeeId||sample.patientId}/><Detail l={t('department')} v={language==='el'?sample.department:sample.departmentEn}/><Detail l={t('screeningType')} v={t(sample.sourceCode)}/><Detail l={t('samplingDate')} v={fmt(sample.collectedAt)}/><Detail l={t('status')} v={t(sample.status)}/></div>{(sample.interventionType||sample.interventionDetails)&&<div className="source-truth-note"><strong>{t('clinicalRecords.intervention')}:</strong> {sample.interventionType?t(`clinicalRecords.${sample.interventionType}`):''}{sample.interventionDetails?` · ${sample.interventionDetails}`:''}</div>}{canManage&&sample.status==='requested'&&<div className="lab-step-footer"><Button onClick={receive}>{t('laboratoryRecords.receiveSample')}</Button></div>}{canManage&&sample.status==='received'&&<div className="lab-step-footer"><Button onClick={start}>{t('laboratoryRecords.startProcessing')}</Button></div>}</div>}
       {tab==='result'&&<div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('laboratoryRecords.screeningResult')}</span><h3>{t('laboratoryRecords.employeeScreeningAssessment')}</h3><p>{t('laboratoryRecords.employeeScreeningAssessmentHelp')}</p></div></div><div className="form-grid two-col"><label className="field"><span>{t('result')}</span><select value={draft.result} disabled={finalized} onChange={e=>setDraft({...draft,result:e.target.value,organism:e.target.value==='negative'?'':draft.organism})}><option value="">{t('select')}</option><option value="negative">{t('negative')}</option><option value="positive">{t('positive')}</option></select></label>{draft.result==='positive'&&<label className="field"><span>{t('organism')}</span><input disabled={finalized} list="employee-screening-organisms" value={draft.organism} onChange={e=>setDraft({...draft,organism:e.target.value})}/><datalist id="employee-screening-organisms">{demoLibrarySeed.microorganisms.map(([el,en])=><option key={el} value={language==='el'?el:en}/>)}</datalist></label>}</div>
         {draft.result==='positive'&&<div className="record-section employee-screening-intervention-section"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.interventionAndRecheck')}</span><h3>{t('clinicalRecords.intervention')}</h3><p>{t('clinicalRecords.optionalNotes')}</p></div></div><div className="form-grid two-col">
@@ -454,13 +487,16 @@ function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canMan
   const from={pathname:location.pathname,search:location.search,hash:location.hash,state:location.state??null}
   navigate(`/surveillance?mode=employees&employeeSurveillanceId=${encodeURIComponent(sample.employeeSurveillanceCase||'')}`,{state:{limoxisFrom:from}})
 }}>{t('laboratoryRecords.openEmployeeFollowup')}</Button></div>}</div>}
+    {tab==='history'&&<LabHistory sample={sample} t={t} fmt={fmt}/>}
+    <LabStepNavigator active={tab} order={workflowOrder} labels={workflowLabels} canOpen={id=>Boolean(access[id])} onMove={setTab}/>
     {correctionOpen&&<div className="modal-backdrop"><div className="entry-card correction-entry-card"><header><div><span className="eyebrow">{t('laboratory')}</span><h3>{t('laboratoryRecords.generalEdit')}</h3><p>{t('laboratoryRecords.generalEditHelp')}</p></div><button className="icon-close" onClick={()=>setCorrectionOpen(false)}>×</button></header><div className="entry-grid"><label className="entry-span-2"><span>{t('reasonRequired')}</span><textarea rows={4} value={correctionReason} onChange={e=>setCorrectionReason(e.target.value)} placeholder={t('laboratoryRecords.generalEditReasonPlaceholder')}/></label></div><footer><Button variant="secondary" onClick={()=>setCorrectionOpen(false)}>{t('cancel')}</Button><Button disabled={!correctionReason.trim()} onClick={reopenForCorrection}>{t('laboratoryRecords.unlockForCorrection')}</Button></footer></div></div>}
   </EntityRecordShell></Page>
 }
 
-function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,canValidate,canAttach,canReopen,canPrint,canExport,notify}){
+function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,canValidate,canAttach,canReopen,canPrint,canExport,notify,recordNavigation}){
   const isPlate=sample.workflowType==='environmental_plate'
   const finalized=Boolean(sample.finalizedAt)
+  const correctionLocked=finalized||sample.status==='completed'||sample.resultStatus==='validated'
   const [tab,setTab]=useState('summary')
   const [correctionOpen,setCorrectionOpen]=useState(false)
   const [reason,setReason]=useState('')
@@ -497,7 +533,12 @@ function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,
     {id:'finalize',label:t('laboratoryRecords.finalization'),icon:CheckCircle2,disabled:!access.finalize,lockedLabel:t('laboratoryRecords.completePreviousStep')},
     {id:'history',label:t('history'),icon:FileClock,disabled:!access.history,lockedLabel:t('laboratoryRecords.availableAfterFinalization')},
   ]
-  const order=['summary','results','documents','finalize']
+  const order=['summary','results','documents','finalize',...(finalized?['history']:[])]
+  const workflowLabels=Object.fromEntries(tabs.map(item=>[item.id,item.label]))
+  function openGeneralEdit(){
+    if(correctionLocked){setCorrectionOpen(true);return}
+    setTab(access.results?'results':'summary')
+  }
 
   function receive(){
     const now=new Date().toISOString()
@@ -525,18 +566,19 @@ function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,
   return <Page fill>
     <EntityRecordShell
       className="laboratory-record-shell environmental-lab-record workspace-fill"
+      recordNavigation={recordNavigation}
       avatar={<FlaskConical size={20}/>}
       eyebrow={sample.id}
       title={isPlate?`${t('plate')} ${sample.plateCode||''}`:t(sample.type)}
       subtitle={`${language==='el'?sample.department:sample.departmentEn} · ${sample.batchId||sample.patientId}`}
       status={<Status text={finalized?t('completed'):t(sample.status)} kind={finalized?'completed':sample.status}/>}
-      headerActions={<>{finalized&&canReopen&&<button className="general-edit-button" onClick={()=>setCorrectionOpen(true)}><Pencil size={15}/><span>{t('laboratoryRecords.generalEdit')}</span></button>}{canPrint&&<button className="entity-record-icon-button" title={t('print')} onClick={()=>window.print()}><Printer size={15}/></button>}{canExport&&<button className="entity-record-icon-button" title={t('export')}><Download size={15}/></button>}</>}
+      headerActions={<>{(canManage||canReopen)&&<button className="general-edit-button" onClick={openGeneralEdit} title={correctionLocked?'Διόρθωση εργαστηριακής εγγραφής':t('laboratoryRecords.generalEdit')}><Pencil size={15}/><span>{correctionLocked?'Διόρθωση':t('laboratoryRecords.generalEdit')}</span></button>}{canPrint&&<button className="entity-record-icon-button" title={t('print')} onClick={()=>window.print()}><Printer size={15}/></button>}{canExport&&<button className="entity-record-icon-button" title={t('export')}><Download size={15}/></button>}</>}
       tabs={tabs}
       activeTab={tab}
       onTabChange={next=>{
         if(finalized){setTab(next);return}
         const ni=order.indexOf(next)
-        if(ni>=0&&ni<=reachedStep&&access[next])setTab(next)
+        if(ni>=0&&access[next]&&(ni<=reachedStep||correctionLocked))setTab(next)
       }}
       backLabel={t('backToLaboratory')}
     >
@@ -545,6 +587,7 @@ function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,
       {tab==='documents'&&<DocumentsPanel sample={sample} persist={persist} t={t} canAttach={canAttach&&!finalized} finalized={finalized} notify={notify} onNext={()=>setTab('finalize')}/>}
       {tab==='finalize'&&<EnvironmentalFinalization sample={sample} positions={positions} isPlate={isPlate} persist={persist} t={t} fmt={fmt} canFinalize={canValidate&&!finalized} notify={notify} onFinalized={()=>setTab('summary')}/>}
       {tab==='history'&&<LabHistory sample={sample} t={t} fmt={fmt}/>}
+      <LabStepNavigator active={tab} order={order} labels={workflowLabels} canOpen={id=>Boolean(access[id])} onMove={setTab}/>
     </EntityRecordShell>
     {correctionOpen&&<div className="modal-backdrop"><div className="entry-card correction-entry-card"><header><div><span className="eyebrow">{t('laboratory')}</span><h3>{t('laboratoryRecords.generalEdit')}</h3><p>{t('laboratoryRecords.generalEditHelp')}</p></div><button className="icon-close" onClick={()=>setCorrectionOpen(false)}>×</button></header><div className="entry-grid"><label className="entry-span-2"><span>{t('reasonRequired')}</span><textarea rows={4} value={reason} onChange={e=>setReason(e.target.value)}/></label></div><footer><Button variant="secondary" onClick={()=>setCorrectionOpen(false)}>{t('cancel')}</Button><Button disabled={!reason.trim()} onClick={reopen}>{t('laboratoryRecords.unlockForCorrection')}</Button></footer></div></div>}
   </Page>
@@ -742,6 +785,25 @@ function LabHistory({sample,t,fmt}){
   const rows=useMemo(()=>[...(sample.timeline||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)),[sample.timeline])
   return <div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('laboratoryRecords.sample')}</span><h3>{t('history')}</h3></div></div><div className="lab-history-list">{rows.map((row,index)=><div key={`${row.at}-${index}`} className="lab-history-row"><time>{fmt(row.at)}</time><strong>{t(row.type)}</strong><span>{row.actor||'—'}</span></div>)}</div></div>
 }
+
+function LabStepNavigator({active,order,labels,canOpen,onMove}){
+  const current=order.indexOf(active)
+  if(current<0)return null
+  let previous=null,next=null
+  for(let i=current-1;i>=0;i--){if(canOpen(order[i])){previous=order[i];break}}
+  for(let i=current+1;i<order.length;i++){if(canOpen(order[i])){next=order[i];break}}
+  if(!previous&&!next)return null
+  return <div className="lab-workflow-navigator" aria-label="Πλοήγηση βημάτων εργαστηρίου">
+    <button type="button" className="lab-workflow-nav-button previous" disabled={!previous} onClick={()=>previous&&onMove(previous)}>
+      <ChevronLeft size={16}/><span><small>Προηγούμενο βήμα</small><strong>{previous?labels[previous]:''}</strong></span>
+    </button>
+    <div className="lab-workflow-progress"><span>Βήμα {current+1} από {order.length}</span></div>
+    <button type="button" className="lab-workflow-nav-button next" disabled={!next} onClick={()=>next&&onMove(next)}>
+      <span><small>Επόμενο βήμα</small><strong>{next?labels[next]:''}</strong></span><ChevronRight size={16}/>
+    </button>
+  </div>
+}
+
 function Detail({l,v}){return <div className="detail-item"><span>{l}</span><strong>{v||'—'}</strong></div>}
 function OrganismEditor({organisms,onChange,options,t,canClassify}){
   const {confirm,notify}=useFeedback()

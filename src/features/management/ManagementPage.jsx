@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Building2, Database, Globe2, KeyRound, Plus, ShieldCheck, Users, X } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
@@ -27,7 +27,8 @@ export function ManagementPage(){
   const tabs=useMemo(()=>{
     const isAllowed=(cap)=>can(role,cap,addOns,customCaps)
     return [
-      {id:'users',label:t('users'),icon:Users},{id:'organization',label:t('organization'),icon:Building2},
+      ...(isAllowed(CAPABILITIES.MANAGE_USERS)?[{id:'users',label:t('users'),icon:Users}]:[]),
+      ...(isAllowed(CAPABILITIES.MANAGE_ORGANIZATION)?[{id:'organization',label:t('organization'),icon:Building2}]:[]),
       ...(isAllowed(CAPABILITIES.MANAGE_ROLES)?[{id:'roles',label:t('rolesPermissions'),icon:ShieldCheck}]:[]),
       ...(isAllowed(CAPABILITIES.MANAGE_LIBRARIES)?[
         {id:'libraries',label:t('libraries'),icon:Database},
@@ -38,6 +39,7 @@ export function ManagementPage(){
       ...(role===ROLES.PLATFORM_OWNER?[{id:'platform',label:'Platform',icon:KeyRound}]:[]),
     ]
   },[role,addOns,customCaps,t])
+  useEffect(()=>{if(tabs.length&&!tabs.some(item=>item.id===tab))setTab(tabs[0].id)},[tabs,tab])
   function toggleCap(cap){setSelectedCaps(current=>current.includes(cap)?current.filter(x=>x!==cap):[...current,cap])}
   function saveCustomRole(){if(!roleName.trim())return;setCustomRoles(current=>[...current,{id:`custom-${Date.now()}`,name:roleName.trim(),capabilities:selectedCaps}]);setRoleName('');setSelectedCaps([]);setRoleModal(false);notify(t('customRoleCreated'),'success')}
   return <Page fill title={t('management')} subtitle={t('managementSubtitle')}>

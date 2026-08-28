@@ -16,8 +16,11 @@ import { WhoHandHygieneModal } from './WhoHandHygieneModal'
 import { WasteEntryModal } from './WasteEntryModal'
 import { AntisepticEntryModal,antisepticMethodLabel } from './AntisepticEntryModal'
 import { BundleExecutionModal } from './BundleExecutionModal'
-import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
+import { readRegistryViewState, useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { wasteCategoryTone } from './wasteVisuals'
+import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
+import { useAuth } from '../../core/auth/AuthContext'
+import { auditActorFromAuth,auditEvent } from '../../core/audit/actor'
 
 const tabs=[['handHygiene','handHygiene'],['waste','wasteManagement'],['antiseptics','antisepticConsumption'],['bundles','preventionBundles']]
 
@@ -27,12 +30,16 @@ export function PreventionPage(){
  const location=useLocation()
  const [searchParams,setSearchParams]=useSearchParams()
  const {notify}=useFeedback()
+ const {profile,user}=useAuth()
+ const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
  const {role,membership,canAccessRecord}=useTenant()
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const [tab,setTab]=useState(()=>searchParams.get('tab')||'handHygiene')
  const registry=useRegistryMemory(`prevention-${tab}`)
- const [query,setQuery]=useState(''),[department,setDepartment]=useState('all'),[period,setPeriod]=useState('all'),[product,setProduct]=useState('all'),[method,setMethod]=useState('all')
+ const savedView=registry.loadViewState({query:'',department:'all',period:'all',product:'all',method:'all'})
+ const [query,setQuery]=useState(savedView.query),[department,setDepartment]=useState(savedView.department),[period,setPeriod]=useState(savedView.period),[product,setProduct]=useState(savedView.product),[method,setMethod]=useState(savedView.method)
  const [entryOpen,setEntryOpen]=useState(false),[editingRecord,setEditingRecord]=useState(null),[version,setVersion]=useState(0)
+ const [governedEdit,setGovernedEdit]=useState(null)
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
  const departmentScoped=[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER].includes(role)
  const createCapability=tab==='handHygiene'?CAPABILITIES.RECORD_HAND_HYGIENE:tab==='waste'?CAPABILITIES.RECORD_WASTE:tab==='antiseptics'?CAPABILITIES.RECORD_ANTISEPTIC:CAPABILITIES.RECORD_PREVENTION_BUNDLE
@@ -40,24 +47,32 @@ export function PreventionPage(){
  const visibleTabs=tabs.filter(([id])=>can(role,id==='handHygiene'?CAPABILITIES.RECORD_HAND_HYGIENE:id==='waste'?CAPABILITIES.RECORD_WASTE:id==='antiseptics'?CAPABILITIES.RECORD_ANTISEPTIC:CAPABILITIES.RECORD_PREVENTION_BUNDLE,addOns,custom)||can(role,CAPABILITIES.VIEW_PREVENTION,addOns,custom))
  const source=tab==='handHygiene'?handHygieneRows:tab==='waste'?wasteRows:tab==='antiseptics'?antisepticRows:bundleRows
  const departments=useMemo(()=>[...new Set(source.map(x=>language==='el'?x.departmentEl:x.departmentEn))],[source,language,version])
- const rows=useMemo(()=>source.filter(x=>canAccessRecord({...x,department:x.departmentEl})).filter(x=>JSON.stringify(x).toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.departmentEl:x.departmentEn)===department).filter(x=>period==='all'||x.period===period).filter(x=>product==='all'||x.product===product).filter(x=>method==='all'||x.method===method),[source,query,department,period,product,method,language,canAccessRecord,version])
+ const rows=useMemo(()=>source.filter(x=>x.lifecycleStatus!=='voided').filter(x=>canAccessRecord({...x,department:x.departmentEl})).filter(x=>JSON.stringify(x).toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.departmentEl:x.departmentEn)===department).filter(x=>period==='all'||x.period===period).filter(x=>product==='all'||x.product===product).filter(x=>method==='all'||x.method===method),[source,query,department,period,product,method,language,canAccessRecord,version])
  const avg=handHygieneRows.length?handHygieneRows.reduce((sum,x)=>sum+x.rate,0)/handHygieneRows.length:0
  const fmtDate=v=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'
  function changeTab(id){
-  setTab(id);setQuery('');setDepartment('all');setPeriod('all');setProduct('all');setMethod('all')
+  registry.saveViewState({tab,query,department,period,product,method})
+  const nextRegistry=readRegistryViewState(`prevention-${id}`)
+  setTab(id)
+  setQuery(nextRegistry?.query||'');setDepartment(nextRegistry?.department||'all');setPeriod(nextRegistry?.period||'all');setProduct(nextRegistry?.product||'all');setMethod(nextRegistry?.method||'all')
   setSearchParams({tab:id},{replace:true})
  }
  function openPreventionRecord(id,type){
   registry.saveViewState({tab:type,query,department,period,product,method})
-  registry.openRecord(navigate,`/prevention/${type}/${id}?fromTab=${type}`,id)
+  registry.openRecord(navigate,`/prevention/${type}/${id}?fromTab=${type}`,id,rows.map(x=>x.id))
  }
 
  function saveEntry(record){
   const target=tab==='handHygiene'?handHygieneRows:tab==='waste'?wasteRows:tab==='antiseptics'?antisepticRows:bundleRows
   if(editingRecord){
    const index=target.findIndex(x=>x.id===editingRecord.id)
-   if(index>=0)target[index]={...target[index],...record,id:editingRecord.id,updatedAt:new Date().toISOString()}
-   notify('Η εγγραφή ενημερώθηκε.','success')
+   if(index>=0){
+    const previous=target[index]
+    const {_correctionReason:discardedInternalReason,...cleanRecord}=record
+    const event=auditEvent('preventionRecordCorrected',{actor,reason:editingRecord._correctionReason||''})
+    target[index]={...previous,...cleanRecord,id:editingRecord.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id,revisionHistory:[event,...(previous.revisionHistory||[])]}
+   }
+   notify('Η διορθωμένη εγγραφή αποθηκεύτηκε και καταγράφηκε στο ιστορικό.','success')
   }else{
    target.unshift({id:makeId(tab),...record})
    notify('Η καταχώρηση Πρόληψης αποθηκεύτηκε.','success')
@@ -65,7 +80,13 @@ export function PreventionPage(){
   setVersion(v=>v+1);setEntryOpen(false);setEditingRecord(null)
  }
 
- function editRow(record,event){event?.stopPropagation();setEditingRecord(record);setEntryOpen(true)}
+ function editRow(record,event){event?.stopPropagation();setGovernedEdit(record)}
+ function confirmGovernedEdit(reason){
+  if(!governedEdit)return
+  setEditingRecord({...governedEdit,_correctionReason:reason})
+  setGovernedEdit(null)
+  setEntryOpen(true)
+ }
  function action(a){
   if(a===UI_ACTIONS.CREATE){setEditingRecord(null);setEntryOpen(true);return}
   if(a===UI_ACTIONS.PRINT){window.print();notify('Η προβολή είναι έτοιμη για εκτύπωση.','success');return}
@@ -101,6 +122,7 @@ export function PreventionPage(){
   </div>
 
   {entryOpen&&canCreate&&(tab==='handHygiene'?<WhoHandHygieneModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='waste'?<WasteEntryModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='antiseptics'?<AntisepticEntryModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='bundles'?<BundleExecutionModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:<PreventionEntryModal tab={tab} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>)}
+  <GovernedReasonDialog open={Boolean(governedEdit)} title="Διόρθωση καταγεγραμμένης μέτρησης" description="Η αρχική καταχώρηση παραμένει τεκμηριωμένη. Η αλλαγή απαιτεί αιτιολογία και θα προστεθεί στο revision history." confirmLabel="Έναρξη διόρθωσης" onCancel={()=>setGovernedEdit(null)} onConfirm={confirmGovernedEdit}/>
  </Page>
 }
 

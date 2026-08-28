@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { BookOpen,Check,Copy,Edit3,Plus,RotateCcw,ShieldCheck,X } from 'lucide-react'
+import { BookOpen,Check,Copy,Edit3,Plus,RotateCcw,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { FilterBar } from '../../design-system/FilterBar'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -49,13 +49,24 @@ export function BundleLibraryPanel(){
    <div className="bundle-library-actions"><span className="bundle-library-count"><b>{publishCount}</b> published</span><Button onClick={newBundle}><Plus size={15}/>Νέο Bundle</Button></div>
   </div>
   <FilterBar compact query={query} onQueryChange={setQuery} placeholder="Αναζήτηση Bundle..." onClear={()=>{setQuery('');setStatus('all')}} advanced={<label className="filter-select"><span>Κατάσταση</span><select value={status} onChange={e=>setStatus(e.target.value)}><option value="all">Όλες</option><option value="published">Published</option><option value="draft">Draft</option><option value="retired">Retired</option></select></label>} activeAdvancedCount={status==='all'?0:1}/>
-  <div className="bundle-library-grid">
-   {filtered.map(item=><article className={`bundle-library-card ${item.status}`} key={item.id}>
-    <div className="bundle-library-card-head"><div className="bundle-library-icon"><ShieldCheck size={17}/></div><div><strong>{item.name}</strong><span>{item.titleEl}</span></div><span className={`bundle-library-status ${item.status}`}>{STATUS_LABELS[item.status]}</span></div>
-    <div className="bundle-library-card-meta"><span><b>v{item.version}</b></span><span>{item.elements.length} στοιχεία</span><span>{item.source}</span></div>
-    <div className="bundle-library-scope">{item.scope||'—'}</div>
-    <div className="bundle-library-card-footer"><button className="icon-button" title="Άνοιγμα / επεξεργασία" onClick={()=>setSelected(JSON.parse(JSON.stringify(item)))}><Edit3 size={14}/></button><button className="icon-button" title="Δημιουργία νέας draft έκδοσης" onClick={()=>duplicate(item)}><Copy size={14}/></button>{item.status==='draft'&&<button className="text-button" onClick={()=>publish(item)}><Check size={13}/> Publish</button>}{item.status==='published'&&<button className="text-button" onClick={()=>retire(item)}><RotateCcw size={13}/> Retire</button>}</div>
-   </article>)}
+  <div className="table-wrap scroll-table bundle-library-table-wrap">
+   <table className="data-table sticky-table bundle-library-table">
+    <thead><tr><th>Bundle</th><th>Έκδοση</th><th>Κατάσταση</th><th>Στοιχεία</th><th>Πηγή / guideline</th><th>Scope</th><th></th></tr></thead>
+    <tbody>{filtered.map(item=><tr key={item.id} className="clickable-row" onClick={()=>setSelected(JSON.parse(JSON.stringify(item)))}>
+     <td><strong>{item.name}</strong><small>{item.titleEl}{item.titleEn?` · ${item.titleEn}`:''}</small></td>
+     <td><strong>v{item.version}</strong></td>
+     <td><span className={`bundle-library-status ${item.status}`}>{STATUS_LABELS[item.status]}</span></td>
+     <td>{item.elements.length}</td>
+     <td><strong>{item.source||'—'}</strong><small>{item.sourceVersion||''}</small></td>
+     <td><span className="bundle-library-scope-text">{item.scope||'—'}</span></td>
+     <td onClick={e=>e.stopPropagation()}><div className="row-actions">
+      <button className="icon-button" title="Άνοιγμα / επεξεργασία" onClick={()=>setSelected(JSON.parse(JSON.stringify(item)))}><Edit3 size={14}/></button>
+      <button className="icon-button" title="Δημιουργία νέας draft έκδοσης" onClick={()=>duplicate(item)}><Copy size={14}/></button>
+      {item.status==='draft'&&<button className="text-button compact" onClick={()=>publish(item)}><Check size={13}/> Publish</button>}
+      {item.status==='published'&&<button className="text-button compact" onClick={()=>retire(item)}><RotateCcw size={13}/> Retire</button>}
+     </div></td>
+    </tr>)}</tbody>
+   </table>
   </div>
   {selected&&<BundleEditor draft={selected} onClose={()=>setSelected(null)} onSave={save}/>}
  </div>

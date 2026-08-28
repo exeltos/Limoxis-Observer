@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Bell, BookOpen, ChevronDown, Eye, LogOut, Search, X } from 'lucide-react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Bell, BookOpen, ChevronDown, Eye, Layers3, LogOut, Search, X } from 'lucide-react'
 import { navigationFor } from './navigation'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'
@@ -10,16 +10,31 @@ import { ROLES } from '../core/permissions/roles'
 import { APP_VERSION, BUILD_ID } from '../core/version'
 
 export function AppShell(){
-  const {language,setLanguage,t}=useLanguage(); const {tenant,memberships,membership,role,isDemo,setTenantByMembership,canRolePreview,isRolePreview,rolePreview,startRolePreview,updateRolePreviewDepartment,stopRolePreview}=useTenant(); const {profile,logout}=useAuth(); const navigate=useNavigate(); const [helpOpen,setHelpOpen]=useState(false); const [previewOpen,setPreviewOpen]=useState(false)
+  const {language,setLanguage,t}=useLanguage(); const {tenant,memberships,membership,role,isDemo,setTenantByMembership,canRolePreview,isRolePreview,rolePreview,startRolePreview,updateRolePreviewDepartment,stopRolePreview}=useTenant(); const {profile,logout}=useAuth(); const navigate=useNavigate(); const location=useLocation(); const [helpOpen,setHelpOpen]=useState(false); const [previewOpen,setPreviewOpen]=useState(false); const [moreOpen,setMoreOpen]=useState(false)
 
   const previewRoles=[
     [ROLES.HOSPITAL_ADMIN,'hospitalAdminRole'],[ROLES.INFECTION_CONTROL_LEAD,'infectionControlLeadRole'],[ROLES.INFECTION_CONTROL_MEMBER,'infectionControlMemberRole'],[ROLES.DEPARTMENT_MANAGER,'departmentManagerRole'],[ROLES.DEPARTMENT_USER,'departmentUserRole'],[ROLES.LABORATORY,'laboratoryRole'],[ROLES.COMMITTEE_SECRETARIAT,'committeeSecretariatRole'],[ROLES.HR_OFFICE,'hrOfficeRole'],[ROLES.PHARMACY,'pharmacyRole'],[ROLES.OCCUPATIONAL_PHYSICIAN,'occupationalPhysicianRole'],[ROLES.DOCTOR_REVIEWER,'doctorReviewerRole'],[ROLES.QUALITY_MANAGER,'qualityManagerRole']
   ]
   const previewDepartments=[['','previewAllHospital'],['icu','previewIcu'],['surgery','previewSurgery'],['internal','previewInternalMedicine']]
   const visibleNavigation=navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
+  const managementNavigation=visibleNavigation.filter(item=>item.key==='management')
+  const moreNavigation=visibleNavigation.filter(item=>item.group==='more')
+  const primaryNavigation=visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='more')
+  const moreActive=moreNavigation.some(item=>location.pathname===item.to||location.pathname.startsWith(`${item.to}/`))
+  const moreExpanded=moreOpen||moreActive
   async function handleLogout(){await logout();navigate('/login',{replace:true})}
+  const NavEntry=({item,nested=false,collapseMore=false})=>{const Icon=item.icon;return <NavLink to={item.to} end={item.to==='/' } onClick={()=>collapseMore&&setMoreOpen(false)} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{t(item.key)}</span></NavLink>}
   return <div className="app-shell">
-    <aside className="sidebar"><div className="brand"><div className="brand-mark">L+</div><div><strong>Limoxis Observer</strong><span>{t('brandSubtitle')}</span></div></div><nav>{visibleNavigation.map(({to,key,icon:Icon})=><NavLink key={to} to={to} end={to==='/' } className={({isActive})=>`nav-item ${isActive?'active':''}`}><Icon size={18}/><span>{t(key)}</span></NavLink>)}</nav><div className="sidebar-footer"><div className="tenant-name">{tenant?.name??t('noOrganization')}</div><div className="sidebar-meta">{role?.replaceAll('_',' ')??'—'}</div>{isDemo&&<span className="demo-pill">{t('demo')}</span>}<div className="app-version-stamp">v{APP_VERSION} · {BUILD_ID}</div></div></aside>
+    <aside className="sidebar"><div className="brand"><div className="brand-mark">L+</div><div><strong>Limoxis Observer</strong><span>{t('brandSubtitle')}</span></div></div><nav>
+      {primaryNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}
+      {moreNavigation.length>0&&<div className={`sidebar-nav-group ${moreExpanded?'open':''}`}>
+        <button type="button" className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>setMoreOpen(v=>!v)} aria-expanded={moreExpanded}>
+          <Layers3 size={18}/><span>{language==='el'?'Περισσότερα':'More'}</span><ChevronDown className="nav-group-chevron" size={14}/>
+        </button>
+        {moreExpanded&&<div className="sidebar-nav-children">{moreNavigation.map(item=><NavEntry key={item.to} item={item} nested/>)}</div>}
+      </div>}
+      {managementNavigation.length>0&&<div className="sidebar-nav-management">{managementNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}</div>}
+    </nav><div className="sidebar-footer"><div className="tenant-name">{tenant?.name??t('noOrganization')}</div><div className="sidebar-meta">{role?.replaceAll('_',' ')??'—'}</div>{isDemo&&<span className="demo-pill">{t('demo')}</span>}<div className="app-version-stamp">v{APP_VERSION} · {BUILD_ID}</div></div></aside>
     <main className="main-column"><header className="topbar"><div className="search-box"><Search size={17}/><input aria-label={t('search')} placeholder={`${t('search')}...`}/></div><div className="topbar-actions">
       {canRolePreview&&<div className="role-preview-control"><button className={`preview-trigger ${isRolePreview?'active':''}`} onClick={()=>setPreviewOpen(v=>!v)} title={t('previewAsRole')}><Eye size={16}/><span>{isRolePreview?t('previewMode'):t('previewAsRole')}</span><ChevronDown size={13}/></button>{previewOpen&&<div className="role-preview-popover"><strong>{t('previewAsRole')}</strong><small>{t('previewSafeHint')}</small><label><span>{t('roleLabel')}</span><select value={rolePreview?.role||''} onChange={e=>{if(e.target.value)startRolePreview(e.target.value,rolePreview?.department||'')}}><option value="">{t('selectRole')}</option>{previewRoles.map(([value,key])=><option key={value} value={value}>{t(key)}</option>)}</select></label>{rolePreview?.role&&<label><span>{t('departmentScope')}</span><select value={rolePreview?.department||''} onChange={e=>updateRolePreviewDepartment(e.target.value)}>{previewDepartments.map(([value,key])=><option key={key} value={value}>{t(key)}</option>)}</select></label>}<div className="preview-popover-actions">{isRolePreview&&<button onClick={()=>{stopRolePreview();setPreviewOpen(false)}}>{t('exitPreview')}</button>}<button onClick={()=>setPreviewOpen(false)}>{t('close')}</button></div></div>}</div>}
       {memberships.length>1&&<label className="tenant-switch"><select value={membership?.id??''} onChange={e=>setTenantByMembership(e.target.value)}>{memberships.map(item=><option key={item.id} value={item.id}>{item.organization.name}</option>)}</select><ChevronDown size={14}/></label>}

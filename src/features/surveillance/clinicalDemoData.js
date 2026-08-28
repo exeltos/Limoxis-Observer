@@ -62,7 +62,7 @@ export const clinicalCases = {
 export function getClinicalCase(caseId){ return clinicalCases[caseId] ?? null }
 export function findCasesByPatient(patientId){
   return Object.values(clinicalCases)
-    .filter((item)=>item.patientId===patientId)
+    .filter((item)=>item.patientId===patientId&&item.lifecycleStatus!=='voided')
     .sort((a,b)=>new Date(b.startedAt)-new Date(a.startedAt))
 }
 export function findCaseByPatient(patientId){ return findCasesByPatient(patientId).find((item)=>item.status==='active') ?? findCasesByPatient(patientId)[0] ?? null }
@@ -125,6 +125,13 @@ export function deleteClinicalSurveillance(id,{actor='Current user',reason='Dele
     at:new Date().toISOString(),
     snapshot:{...existing},
   })
-  delete clinicalCases[id]
+  clinicalCases[id]={
+    ...existing,
+    lifecycleStatus:'voided',
+    voidedAt:new Date().toISOString(),
+    voidedBy:actor,
+    voidReason:reason,
+    timeline:[{at:new Date().toISOString(),type:'surveillanceVoided',actor,detail:reason},...(existing.timeline||[])],
+  }
   return true
 }

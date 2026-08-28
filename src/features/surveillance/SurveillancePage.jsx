@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, Clock3, Microscope, ShieldCheck } from 'lucide-react'
+import { Activity, AlertTriangle, Clock3, LockKeyhole, Microscope, ShieldCheck, Users } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
@@ -27,11 +27,11 @@ export function SurveillancePage(){
   const navigate = useNavigate()
   const location = useLocation()
   const registry = useRegistryMemory('surveillance')
-  const {role,membership,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
+  const {role,membership,isDemo,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
   const addOns=membership?.capabilities??[]
   const custom=membership?.customCapabilities??[]
   const canCreateSurveillance=can(role,CAPABILITIES.CREATE_SURVEILLANCE,addOns,custom)
-  const canSeeEmployeeSurveillance=canSeeSensitiveEmployeeHealth
+  const canSeeEmployeeSurveillance=isDemo||canSeeSensitiveEmployeeHealth
   const canSeeEnvironmental=![ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.DOCTOR_REVIEWER].includes(role)
   const saved = registry.loadViewState({
     query:'',
@@ -75,6 +75,8 @@ export function SurveillancePage(){
   const resistant = surveillanceDemoData.filter(x=>x.resistance).length
   const environmentalKpis=getEnvironmentalKpis()
   const employeeKpis=getEmployeeSurveillanceKpis()
+  const employeeSurveillanceCount=employeeSurveillanceRecords.length
+  const employeeBatchCount=employeeSurveillanceBatches.length
 
   const fmt = value => value
     ? new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`))
@@ -119,7 +121,7 @@ export function SurveillancePage(){
 
   function openRecord(item){
     registry.saveViewState({query,department,resistance,review})
-    registry.openRecord(navigate,`/surveillance/${item.id}`,item.id)
+    registry.openRecord(navigate,`/surveillance/${item.id}`,item.id,rows.map(x=>x.id))
   }
 
   return (
@@ -145,30 +147,37 @@ export function SurveillancePage(){
         />
       }
     >
-      <div className="workspace-summary">
-        {registryMode==='employees'?<div className="kpi-grid clinical-kpis"><Kpi icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active}/><Kpi icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive}/><Kpi icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention}/><Kpi icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck}/></div>:registryMode==='environmental'?<div className="kpi-grid clinical-kpis">
-          <Kpi icon={Activity} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentalKpis.active}/>
-          <Kpi icon={Clock3} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentalKpis.pendingLab}/>
-          <Kpi icon={Microscope} label={t('clinicalRecords.positiveEnvironmentalPoints')} value={environmentalKpis.positive}/>
-          <Kpi icon={AlertTriangle} label={t('pointsOutsideLimits')} value={environmentalKpis.outOfLimits}/>
-        </div>:<div className="kpi-grid clinical-kpis">
-          <Kpi icon={Activity} label={t('activeSurveillance')} value={active}/>
-          <Kpi icon={Clock3} label={t('clinicalRecords.needsReview')} value={due}/>
-          <Kpi icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation}/>
-          <Kpi icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant}/>
-        </div>}
-        <div className="governance-banner">
-          <ShieldCheck size={17}/>
+      <div className="workspace-summary surveillance-summary">
+        <div className="module-summary-strip">
+          {registryMode==='employees'||registryMode==='batches'?<>
+            <SummaryMetric icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active}/>
+            <SummaryMetric icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive}/>
+            <SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention}/>
+            <SummaryMetric icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck}/>
+          </>:registryMode==='environmental'?<>
+            <SummaryMetric icon={Activity} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentalKpis.active}/>
+            <SummaryMetric icon={Clock3} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentalKpis.pendingLab}/>
+            <SummaryMetric icon={Microscope} label={t('clinicalRecords.positiveEnvironmentalPoints')} value={environmentalKpis.positive}/>
+            <SummaryMetric icon={AlertTriangle} label={t('pointsOutsideLimits')} value={environmentalKpis.outOfLimits}/>
+          </>:<>
+            <SummaryMetric icon={Activity} label={t('activeSurveillance')} value={active}/>
+            <SummaryMetric icon={Clock3} label={t('clinicalRecords.needsReview')} value={due}/>
+            <SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation}/>
+            <SummaryMetric icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant}/>
+          </>}
+        </div>
+        <div className="governance-banner compact-governance">
+          <ShieldCheck size={16}/>
           <span>{registryMode==='environmental'?t('clinicalRecords.environmentalSurveillanceGovernance'):t('clinicalRecords.parallelSurveillanceNote')}</span>
         </div>
       </div>
 
-      <div className="surveillance-domain-tabs">
-        <button className={registryMode==='patients'?'active':''} onClick={()=>setRegistryMode('patients')}>{t('patients')}</button>
-        {canSeeEmployeeSurveillance&&<button className={registryMode==='employees'?'active':''} onClick={()=>setRegistryMode('employees')}>{t('employees')} <span>{employeeSurveillanceRecords.length}</span></button>}
-        {canSeeEmployeeSurveillance&&<button className={registryMode==='batches'?'active':''} onClick={()=>setRegistryMode('batches')}>{t('clinicalRecords.bulkSurveillance')} <span>{employeeSurveillanceBatches.length}</span></button>}
-        {canSeeEnvironmental&&<button className={registryMode==='environmental'?'active':''} onClick={()=>setRegistryMode('environmental')}>{t('clinicalRecords.environment')} <span>{environmentalSurveillanceRecords.length}</span></button>}
-      </div>
+      <nav className="tabs surveillance-domain-tabs canonical-module-tabs" aria-label="Κατηγορίες επιτήρησης">
+        <button className={`tab ${registryMode==='patients'?'active':''}`} onClick={()=>setRegistryMode('patients')}><Activity size={14}/>{t('patients')} <span className="tab-count">{surveillanceDemoData.length}</span></button>
+        <button className={`tab ${registryMode==='employees'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?'Απαιτείται δικαίωμα πρόσβασης σε ευαίσθητα δεδομένα υγείας εργαζομένων':''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('employees')}><Users size={14}/>{t('employees')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeSurveillanceCount}</span>:<LockKeyhole size={12}/>}</button>
+        <button className={`tab ${registryMode==='batches'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?'Απαιτείται δικαίωμα πρόσβασης σε ευαίσθητα δεδομένα υγείας εργαζομένων':''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('batches')}><Users size={14}/>{t('clinicalRecords.bulkSurveillance')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeBatchCount}</span>:<LockKeyhole size={12}/>}</button>
+        <button className={`tab ${registryMode==='environmental'?'active':''}`} disabled={!canSeeEnvironmental} onClick={()=>canSeeEnvironmental&&setRegistryMode('environmental')}><Microscope size={14}/>{t('clinicalRecords.environment')} <span className="tab-count">{environmentalSurveillanceRecords.length}</span></button>
+      </nav>
 
       {registryMode==='patients'&&<div className="workspace-fill surface surveillance-workspace">
         <FilterBar
@@ -492,3 +501,5 @@ function Kpi({icon:Icon,label,value}){
     </div>
   )
 }
+
+function SummaryMetric({icon:Icon,label,value}){return <div className="module-summary-metric"><Icon size={15}/><div><strong>{value}</strong><span>{label}</span></div></div>}

@@ -2,8 +2,8 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { ProtectedRoute } from '../core/auth/ProtectedRoute'
-import { RequireCapability } from '../core/permissions/RequireCapability'
-import { CAPABILITIES } from '../core/permissions/roles'
+import { RequireCapability, RequireAnyCapability } from '../core/permissions/RequireCapability'
+import { CAPABILITIES, MANAGEMENT_CAPABILITIES } from '../core/permissions/roles'
 import { LoginPage } from '../features/auth/LoginPage'
 import { RouteLoading } from '../design-system/RouteLoading'
 
@@ -40,6 +40,7 @@ const IndicatorsPage = lazyNamed(() => import('../features/indicators/Indicators
 const MyDepartmentPage = lazyNamed(() => import('../features/workspaces/MyDepartmentPage'), 'MyDepartmentPage')
 
 const gate = (capability, element) => <RequireCapability capability={capability}>{element}</RequireCapability>
+const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={capabilities}>{element}</RequireAnyCapability>
 
 export function App() {
   return <Routes>
@@ -72,7 +73,7 @@ export function App() {
         <Route path="pharmacy" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PHARMACY, <PharmacyPage />)}</Suspense>} />
         <Route path="occupational-health" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, <OccupationalHealthPage />)}</Suspense>} />
         <Route path="lira" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LIRA, <LiraPage />)}</Suspense>} />
-        <Route path="management" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.MANAGE_ORGANIZATION, <ManagementPage />)}</Suspense>} />
+        <Route path="management" element={<Suspense fallback={<RouteLoading/>}>{gateAny(MANAGEMENT_CAPABILITIES, <ManagementPage />)}</Suspense>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Route>

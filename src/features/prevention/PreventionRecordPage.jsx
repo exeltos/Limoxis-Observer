@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo,useState } from 'react'
 import { ClipboardCheck,Droplets,Recycle,ShieldCheck,Trash2 } from 'lucide-react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -8,29 +8,38 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { antisepticRows,bundleRows,handHygieneRows,wasteRows } from './preventionDemoData'
 import { WHO_MOMENTS } from './WhoHandHygieneModal'
 import { useTenant } from '../../core/tenant/TenantContext'
+import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { wasteCategoryTone } from './wasteVisuals'
 import { antisepticMethodLabel,isAbhrProduct } from './AntisepticEntryModal'
 import { getBundleTemplate } from './bundleTemplates'
+import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
+import { useAuth } from '../../core/auth/AuthContext'
+import { auditActorFromAuth,auditEvent } from '../../core/audit/actor'
 
 const sources={handHygiene:handHygieneRows,waste:wasteRows,antiseptics:antisepticRows,bundles:bundleRows}
 const icons={handHygiene:ShieldCheck,waste:Recycle,antiseptics:Droplets,bundles:ClipboardCheck}
 const labels={handHygiene:'Υγιεινή Χεριών',waste:'Απόβλητα',antiseptics:'Κατανάλωση αντισηπτικών',bundles:'Bundles πρόληψης'}
 
 export function PreventionRecordPage(){
- const {recordType,recordId}=useParams();const navigate=useNavigate();const {locale,t}=useLanguage();const {notify,confirm}=useFeedback();const {role,membership}=useTenant()
+ const {recordType,recordId}=useParams();const navigate=useNavigate();const {locale,t}=useLanguage();const {notify}=useFeedback();const {role,membership,canAccessRecord}=useTenant();const {profile,user}=useAuth();const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user]);const [voidOpen,setVoidOpen]=useState(false)
  const record=(sources[recordType]||[]).find(x=>x.id===recordId)
+ const recordNavigation=useRecordSequenceNavigation({registry:`prevention-${recordType}`,currentId:recordId,pathForId:id=>`/prevention/${recordType}/${id}?fromTab=${recordType}`})
+ const recordInScope=!record||canAccessRecord({...record,department:record.departmentEl||record.department})
  if(!record)return <Page title="Κέντρο Πρόληψης"><div className="inline-empty">Δεν βρέθηκε η εγγραφή.</div></Page>
+ if(!recordInScope)return <Page title="Κέντρο Πρόληψης"><div className="inline-empty">Δεν έχετε πρόσβαση σε αυτή την εγγραφή.</div></Page>
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const cap=recordType==='handHygiene'?CAPABILITIES.RECORD_HAND_HYGIENE:recordType==='waste'?CAPABILITIES.RECORD_WASTE:recordType==='antiseptics'?CAPABILITIES.RECORD_ANTISEPTIC:CAPABILITIES.RECORD_PREVENTION_BUNDLE
  const canDelete=can(role,cap,addOns,custom)
- async function removeRecord(){
-  const ok=await confirm({title:'Διαγραφή εγγραφής',message:'Η εγγραφή θα διαγραφεί. Θέλετε να συνεχίσετε;',confirmLabel:'Διαγραφή',danger:true})
-  if(!ok)return
+ function voidRecord(reason){
   const source=sources[recordType]||[]
   const index=source.findIndex(x=>x.id===recordId)
-  if(index>=0)source.splice(index,1)
-  notify('Η εγγραφή διαγράφηκε.','success')
+  if(index<0)return
+  const now=new Date().toISOString()
+  const event=auditEvent('preventionRecordVoided',{actor,reason})
+  source[index]={...source[index],lifecycleStatus:'voided',voidedAt:now,voidedBy:actor.name,voidedById:actor.id,voidReason:reason,revisionHistory:[event,...(source[index].revisionHistory||[])]}
+  setVoidOpen(false)
+  notify('Η εγγραφή ακυρώθηκε και διατηρήθηκε στο ιστορικό.','success')
   navigate(`/prevention?tab=${recordType}`)
  }
  const Icon=icons[recordType]||ShieldCheck
@@ -41,10 +50,11 @@ export function PreventionRecordPage(){
  const recordTitle=recordType==='handHygiene'?`WHO Observation · ${fmtDate(record.date)}`:isWaste?`Μέτρηση αποβλήτων · ${fmtDate(record.date)}`:isAntiseptic?`Κατανάλωση αντισηπτικού · ${record.period||''}`:recordType==='bundles'?`${record.templateName||record.bundle} · ${record.date||record.period||''}`:record.id
  const recordSubtitle=isWaste?`${record.departmentEl||''} · ${wasteCategory||''}`:isAntiseptic?`${record.departmentEl||''} · ${record.product||''}`:recordType==='bundles'?`${record.departmentEl||''} · v${record.templateVersion||'1.0'}`:(record.departmentEl||'')
  const recordStatus=isWaste?<span className={`waste-category-badge ${wasteCategoryTone(wasteCategory)}`}>{wasteCategory}</span>:isAntiseptic?<span className={`antiseptic-abhr-badge ${record.indicatorEligible!==false&&isAbhrProduct(record.product)?'active':'informative'}`}>{record.indicatorEligible!==false&&isAbhrProduct(record.product)?'ABHR · στον δείκτη':'Εκτός δείκτη ABHR'}</span>:null
- return <Page fill><EntityRecordShell className="prevention-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={labels[recordType]||'Πρόληψη'} title={recordTitle} subtitle={recordSubtitle} status={recordStatus} headerActions={canDelete?<button type="button" className="entity-record-icon-button danger" title="Διαγραφή" aria-label="Διαγραφή" onClick={removeRecord}><Trash2 size={15}/></button>:null} tabs={[]} activeTab="" onTabChange={()=>{}}>
+ return <Page fill><EntityRecordShell className="prevention-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={labels[recordType]||'Πρόληψη'} title={recordTitle} subtitle={recordSubtitle} status={recordStatus} recordNavigation={recordNavigation} headerActions={canDelete?<button type="button" className="entity-record-icon-button danger" title="Ακύρωση εγγραφής" aria-label="Ακύρωση εγγραφής" onClick={()=>setVoidOpen(true)}><Trash2 size={15}/></button>:null} tabs={[]} activeTab="" onTabChange={()=>{}}>
    <div className="record-section">
     {recordType==='handHygiene'?<HandHygieneDetails record={record} fmtDate={fmtDate}/>:recordType==='waste'?<WasteDetails record={record} fmtDate={fmtDate} t={t}/>:recordType==='antiseptics'?<AntisepticDetails record={record}/>:<BundleDetails record={record} t={t}/>}
    </div>
+  <GovernedReasonDialog open={voidOpen} title="Ακύρωση εγγραφής" description="Η εγγραφή δεν θα διαγραφεί φυσικά. Θα διατηρηθεί για ιχνηλασιμότητα και θα αφαιρεθεί από την ενεργή λίστα." confirmLabel="Ακύρωση εγγραφής" danger onCancel={()=>setVoidOpen(false)} onConfirm={voidRecord}/>
   </EntityRecordShell></Page>
 }
 

@@ -112,6 +112,7 @@ export function createEmployeeSurveillance({employee,screeningTypes,startedAt,no
     timeline:[{at:new Date().toISOString(),type:'employeeSurveillanceStarted',actor:createdBy}],
   }
   employeeSurveillanceRecords.unshift(record)
+  if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated',{detail:{type:'created',recordId:record.id}}))
   return record
 }
 export function createEmployeeSurveillanceBatch({employees,screeningTypes,startedAt,department,departmentEn,notes='',createdBy='Current user'}){
@@ -131,6 +132,7 @@ export function createEmployeeSurveillanceBatch({employees,screeningTypes,starte
     createdAt:new Date().toISOString(),
   }
   employeeSurveillanceBatches.unshift(batch)
+  if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated',{detail:{type:'batch-created',batchId:batch.id,count:records.length}}))
   return batch
 }
 export function getEmployeeSurveillanceRecord(id){

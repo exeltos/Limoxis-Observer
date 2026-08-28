@@ -4,7 +4,7 @@ import { SCOPES } from './accessModel'
 // Front-end UX scope. Supabase RLS must mirror this policy before production.
 export const ROLE_UX_POLICY = Object.freeze({
   [ROLES.PLATFORM_OWNER]: { scope: SCOPES.PLATFORM, sensitiveEmployeeHealth: false, label: 'Platform Owner' },
-  [ROLES.HOSPITAL_ADMIN]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Hospital Admin' },
+  [ROLES.HOSPITAL_ADMIN]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Hospital Admin' },
   [ROLES.INFECTION_CONTROL_LEAD]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Infection Control Lead' },
   [ROLES.INFECTION_CONTROL_MEMBER]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Infection Control Member' },
   [ROLES.DEPARTMENT_MANAGER]: { scope: SCOPES.DEPARTMENT, sensitiveEmployeeHealth: false, label: 'Department Manager' },

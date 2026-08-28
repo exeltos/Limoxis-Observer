@@ -2,13 +2,16 @@ import { useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Clock3, FlaskConical, Microscope, Plus, ShieldAlert } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
+import { RecordActions } from '../../design-system/RecordActions'
 import { Button } from '../../design-system/Button'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
+import { downloadCsv } from '../../core/export/csvExport'
 import { laboratorySamples, createDemoLabSample, getLabKpis, sampleSourceCatalog } from './laboratoryDemoData'
 import { patientDemoData } from '../patients/patientDemoData'
 import { demoLibrarySeed } from '../management/managementData'
@@ -71,10 +74,19 @@ export function LaboratoryPage(){
 
   function openSample(sample){
     registry.saveViewState({query,status,result,department})
-    registry.openRecord(navigate,`/laboratory/${sample.id}`,sample.id)
+    registry.openRecord(navigate,`/laboratory/${sample.id}`,sample.id,rows.map(x=>x.id))
   }
 
-  return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={canCreate?<Button onClick={()=>setNewOpen(true)}><Plus size={15}/>{t('laboratoryRecords.newSample')}</Button>:null}>
+  function pageAction(action){
+    if(action===UI_ACTIONS.CREATE){setNewOpen(true);return}
+    if(action===UI_ACTIONS.PRINT){window.print();notify('Η προβολή είναι έτοιμη για εκτύπωση.','success');return}
+    if(action===UI_ACTIONS.EXPORT){
+      downloadCsv('limoxis-laboratory.csv',['Κωδικός','Ασθενής / Υποκείμενο','Τμήμα','Δείγμα','Κατάσταση','Αποτέλεσμα','Μικροοργανισμός'],
+        rows.map(x=>[x.id,language==='el'?x.patient:x.patientEn,language==='el'?x.department:x.departmentEn,t(x.type),t(x.status),x.result?t(x.result):'',x.organism||'']))
+      notify('Η τρέχουσα λίστα Εργαστηρίου εξήχθη.','success')
+    }
+  }
+  return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_LAB_SAMPLES}} onAction={pageAction}/>}>
     <div className="workspace-summary">
       <div className="lab-kpis">
         <LabKpi icon={FlaskConical} label={t('laboratoryRecords.newSamplesToday')} value={k.today}/>

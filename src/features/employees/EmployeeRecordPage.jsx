@@ -12,14 +12,17 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { employeeRows, employeeVaccinations, occupationalVisits, employeeTraining, employeeEvaluations, employeeCertificates } from './employeeDemoData'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
+import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { EmployeeSurveillanceFlow } from '../surveillance/EmployeeSurveillanceFlow'
 import { getEmployeeSurveillanceForEmployee } from '../surveillance/employeeSurveillanceData'
 
 export function EmployeeRecordPage({selfMode=false}){
-  const {employeeId}=useParams(); const navigate=useNavigate(); const {goBack,restored}=useContextualNavigation('/employees'); const {t,language,locale}=useLanguage(); const {confirm,notify}=useFeedback(); const {role,membership,canSeeSensitiveEmployeeHealth}=useTenant()
+  const {employeeId}=useParams(); const navigate=useNavigate(); const {goBack,restored}=useContextualNavigation('/employees'); const {t,language,locale}=useLanguage(); const {confirm,notify}=useFeedback(); const {role,membership,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
   const id=selfMode?(employeeRows[0]?.id):(employeeId||employeeRows[0]?.id)
+  const recordNavigation=useRecordSequenceNavigation({registry:'employees',currentId:id,pathForId:nextId=>`/employees/${nextId}`})
   const employee=employeeRows.find(x=>x.id===id) || employeeRows[0]
+  const employeeInScope=selfMode||canAccessRecord({...employee,department:employee.department})
   const addOns=membership?.capabilities??[]; const custom=membership?.customCapabilities??[]
   const canAdmin=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,addOns,custom) && !selfMode
   const canOccupational=(can(role,CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,addOns,custom) || can(role,CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,addOns,custom)) && canSeeSensitiveEmployeeHealth
@@ -37,6 +40,7 @@ export function EmployeeRecordPage({selfMode=false}){
   const [tab,setTab]=useState(()=>restored?.tab||'details')
   const [surveillanceOpen,setSurveillanceOpen]=useState(false)
   const [surveillanceVersion,setSurveillanceVersion]=useState(0)
+  if(!employeeInScope)return <Page title={t('employees')}><div className="inline-empty">Δεν έχετε πρόσβαση σε αυτή την εγγραφή.</div></Page>
   const name=language==='el'?`${employee.lastName} ${employee.firstName}`:`${employee.firstNameEn} ${employee.lastNameEn}`
   const fmt=v=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'
   async function deleteEmployee(){const ok=await confirm({title:t('employeesRecords.deleteEmployee'),message:t('employeesRecords.confirmEmployeeDelete'),confirmLabel:t('delete'),danger:true});if(ok){notify(t('employeesRecords.employeeDeleted'),'success');navigate('/employees')}}
@@ -48,6 +52,7 @@ export function EmployeeRecordPage({selfMode=false}){
       title={name}
       subtitle={`${language==='el'?employee.profession:employee.professionEn} · ${language==='el'?employee.department:employee.departmentEn}`}
       status={<span className={`status-badge ${employee.employmentStatus==='active'?'active':''}`}>{t(employee.employmentStatus)}</span>}
+      recordNavigation={selfMode?null:recordNavigation}
       headerActions={<>{!selfMode&&canSeeSensitiveEmployeeHealth&&canOccupational&&<Button onClick={()=>setSurveillanceOpen(true)}>+ {t('newSurveillance')}</Button>}<button className="entity-record-icon-button" title={t('print')} aria-label={t('print')} onClick={()=>window.print()}><Printer size={15}/></button><button className="entity-record-icon-button" title={t('export')} aria-label={t('export')}><Download size={15}/></button></>}
       tabs={tabs}
       activeTab={tab}

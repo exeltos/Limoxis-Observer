@@ -22,9 +22,10 @@ export function useRegistryMemory(registry){
     return ()=>cancelAnimationFrame(frame)
   },[registry])
 
-  function openRecord(navigate,path,id){
+  function openRecord(navigate,path,id,orderedIds=[]){
     sessionStorage.setItem(keyFor(registry,'selected'),id)
     sessionStorage.setItem(keyFor(registry,'scroll'),String(scrollRef.current?.scrollTop||0))
+    if(Array.isArray(orderedIds)&&orderedIds.length)sessionStorage.setItem(keyFor(registry,'sequence'),JSON.stringify(orderedIds))
     setHighlightId(id)
     navigate(path,{state:{limoxisFrom:{pathname:location.pathname,search:location.search,hash:location.hash,state:location.state??null,registry}}})
   }
@@ -44,4 +45,9 @@ export function useRegistryMemory(registry){
     try{return {...fallback,...JSON.parse(sessionStorage.getItem(keyFor(registry,'view'))||'{}')}}catch{return fallback}
   }
   return {scrollRef,highlightId,openRecord,rowProps,saveViewState,loadViewState}
+}
+
+export function readRegistryViewState(registry){
+  if(typeof window==='undefined')return null
+  try{return JSON.parse(sessionStorage.getItem(`${registry}:view`)||'null')}catch{return null}
 }
