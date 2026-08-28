@@ -3,17 +3,18 @@ import { ClipboardCheck,ShieldAlert } from 'lucide-react'
 import { demoLibrarySeed } from '../management/managementData'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
-import { BUNDLE_TEMPLATES,bundleAllOrNone,bundleScore,getBundleTemplate } from './bundleTemplates'
+import { bundleAllOrNone,bundleScore,getBundleTemplate,loadPublishedBundleTemplates } from './bundleTemplates'
 
 export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialRecord=null}){
  const {profile,user}=useAuth()
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
  const departments=demoLibrarySeed.departments.map(([el,en])=>({el,en}))
+ const [templates]=useState(()=>loadPublishedBundleTemplates())
  const [draft,setDraft]=useState(()=>initialRecord?JSON.parse(JSON.stringify(initialRecord)):{
-  templateId:'CLABSI',departmentEl:fixedDepartment||departments[0]?.el||'',date:new Date().toISOString().slice(0,10),
+  templateId:loadPublishedBundleTemplates()[0]?.id||'CLABSI',departmentEl:fixedDepartment||departments[0]?.el||'',date:new Date().toISOString().slice(0,10),
   shift:'Πρωινή',context:'',patientRef:'',deviceRef:'',answers:{},answerNotes:{},generalNotes:'',status:'completed'
  })
- const template=getBundleTemplate(draft.templateId)
+ const template=templates.find(x=>x.id===draft.templateId)||getBundleTemplate(draft.templateId)
  const score=bundleScore(draft.answers)
  const allOrNone=bundleAllOrNone(draft.answers)
  const applicable=template.elements.filter(([id])=>['yes','no'].includes(draft.answers[id])).length
@@ -28,7 +29,7 @@ export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialR
   const now=new Date().toISOString()
   const dep=departments.find(x=>x.el===draft.departmentEl)
   onSave({...draft,bundle:template.id,templateName:template.name,templateTitle:template.title,templateVersion:template.version,
-   templateSource:template.source,departmentEn:dep?.en||draft.departmentEl,score:score??0,allOrNone,
+   templateSource:template.source,templateSnapshot:JSON.parse(JSON.stringify(template)),departmentEn:dep?.en||draft.departmentEl,score:score??0,allOrNone,
    applicableCount:applicable,failedCount:failures.length,findings:failures.map(([id,label])=>({id,label,note:draft.answerNotes[id]||''})),
    owner:actor.name,createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,
    updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,status:'completed'})
@@ -40,7 +41,7 @@ export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialR
    <div className="prevention-entry-actor"><span>Καταχώρηση από</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
    <section className="bundle-context-card">
     <div className="entry-grid">
-     <label><span>Bundle *</span><select value={draft.templateId} onChange={e=>setDraft(d=>({...d,templateId:e.target.value,answers:{},answerNotes:{}}))}>{BUNDLE_TEMPLATES.map(x=><option key={x.id} value={x.id}>{x.name} — {x.title}</option>)}</select></label>
+     <label><span>Bundle *</span><select value={draft.templateId} onChange={e=>setDraft(d=>({...d,templateId:e.target.value,answers:{},answerNotes:{}}))}>{templates.map(x=><option key={x.id} value={x.id}>{x.name} — {x.title}</option>)}</select></label>
      <label><span>Τμήμα *</span><select value={draft.departmentEl} disabled={Boolean(fixedDepartment)} onChange={e=>set('departmentEl',e.target.value)}>{departments.map(x=><option key={x.el}>{x.el}</option>)}</select></label>
      <label><span>Ημερομηνία *</span><input type="date" value={draft.date} onChange={e=>set('date',e.target.value)}/></label>
      <label><span>Βάρδια / πλαίσιο</span><select value={draft.shift} onChange={e=>set('shift',e.target.value)}><option>Πρωινή</option><option>Απογευματινή</option><option>Νυχτερινή</option><option>Άλλο</option></select></label>

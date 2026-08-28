@@ -116,7 +116,7 @@ function AntisepticDetails({record}){
  </div>
 }
 function BundleDetails({record}){
- const template=getBundleTemplate(record.templateId||record.bundle)
+ const template=record.templateSnapshot||getBundleTemplate(record.templateId||record.bundle)
  const findings=record.findings||template.elements.filter(([id])=>record.answers?.[id]==='no').map(([id,label])=>({id,label,note:record.answerNotes?.[id]||''}))
  return <div className="bundle-record-view">
   <section className="bundle-record-summary">
