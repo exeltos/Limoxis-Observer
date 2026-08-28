@@ -104,7 +104,7 @@ export function createClinicalSurveillance(data){
     timeline:[{
       at:new Date().toISOString(),
       type:'surveillanceStarted',
-      actor:data.createdBy||'Current user',
+      actor:data.createdBy||'Unknown actor',
       detail:data.reason||'',
     }],
   }
@@ -113,7 +113,7 @@ export function createClinicalSurveillance(data){
 }
 
 export const surveillanceDeletionAudit=[]
-export function deleteClinicalSurveillance(id,{actor='Current user',reason='Deleted as erroneous entry'}={}){
+export function deleteClinicalSurveillance(id,{actor='Unknown actor',reason='Deleted as erroneous entry'}={}){
   const existing=clinicalCases[id]
   if(!existing||existing.status!=='active')return false
   surveillanceDeletionAudit.unshift({

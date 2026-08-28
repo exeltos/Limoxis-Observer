@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
-import { ShieldCheck, Microscope, Pill, BedDouble, RefreshCcw, CircleCheckBig, FileClock, UserRound, Activity, Printer, Download, Pencil, Trash2, FolderOpen, ListTree, ChevronRight, AlertTriangle, CheckCircle2, X } from 'lucide-react'
+import { ShieldCheck, Microscope, Pill, BedDouble, RefreshCcw, CircleCheckBig, FileClock, UserRound, Activity, Printer, Pencil, Trash2, FolderOpen, ListTree, ChevronRight, AlertTriangle, CheckCircle2, X } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { Button } from '../../design-system/Button'
 import { AttachmentField } from '../../design-system/AttachmentField'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { EmptyState } from '../../design-system/EmptyState'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -20,8 +20,11 @@ import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { demoLibrarySeed } from '../management/managementData'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
+import { useAuditActor } from '../../core/audit/useAuditActor'
+import { downloadRecordJson } from '../../core/export/recordExport'
 
 export function PatientClinicalRecordPage({patientMode=false}){
+  const actor=useAuditActor()
   const { caseId, patientId } = useParams()
   const sequenceId=patientMode?patientId:caseId
   const recordNavigation=useRecordSequenceNavigation({
@@ -50,7 +53,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
   const subjectInScope=!scopedSubject||canAccessRecord({...scopedSubject,department:scopedSubject.department})
 
   if(!record && !patient) return <Page title={t('clinicalRecords.patientRecord')}><EmptyState title={t('noData')} description={t('clinicalRecords.noClinicalData')}/></Page>
-  if(!subjectInScope)return <Page title={t('clinicalRecords.patientRecord')}><EmptyState title="Μη επιτρεπτή πρόσβαση" description="Η εγγραφή είναι εκτός του επιτρεπόμενου οργανωτικού ή τμηματικού scope του ρόλου σας."/></Page>
+  if(!subjectInScope)return <Page title={t('clinicalRecords.patientRecord')}><EmptyState title={t('scopeAccessDeniedTitle')} description={t('scopeAccessDeniedDescription')}/></Page>
   const patientName=language==='el'?(record?.patient||patient?.name):(record?.patientEn||patient?.nameEn)
   const department=language==='el'?(record?.department||patient?.department):(record?.departmentEn||patient?.departmentEn)
   const patientCode=record?.patientId||patient?.id
@@ -91,7 +94,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
       departmentEn:targetPatient.departmentEn,
       admissionDate:targetPatient.admissionDate,
       ...draft,
-      createdBy:t('currentUser'),
+      createdBy:actor.name,
     })
     createDemoSurveillanceListItem(created)
     setSelectedEpisodeId(created.id)
@@ -100,8 +103,6 @@ export function PatientClinicalRecordPage({patientMode=false}){
     notify(t('surveillanceCreated'),'success')
     return created
   }
-
-  function recordAction(action){ if(action===UI_ACTIONS.PRINT){window.print();return} notify(t('actionCompleted'), action===UI_ACTIONS.DELETE?'warning':'success') }
 
   return <Page fill title={patientName} subtitle={record?`${patientCode} · ${record.id}`:patientCode}>
     <EntityRecordShell
@@ -112,7 +113,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
       subtitle={`${department||'—'} · ${t('clinicalRecords.admission')}: ${fmtDate(admissionDate)}`}
       status={<><span className={`status-badge ${(record?.status||patient?.status)==='active'?'active':''}`}>{t(record?.status||patient?.status||'active')}</span>{(canLab||canSurveillance)&&record?.resistance&&<span className="status-badge danger">{record.resistance}</span>}</>}
       recordNavigation={recordNavigation}
-      headerActions={<><button className="entity-record-icon-button" title={t('print')} aria-label={t('print')} onClick={()=>window.print()}><Printer size={15}/></button><button className="entity-record-icon-button" title={t('export')} aria-label={t('export')} onClick={()=>recordAction(UI_ACTIONS.EXPORT)}><Download size={15}/></button></>}
+      headerActions={<PrintExportActions onExport={()=>downloadRecordJson({patient,record},{filename:record?.id||patientCode})}/>}
       tabs={tabDefinitions}
       activeTab={activeTab}
       onTabChange={setTab}
@@ -134,7 +135,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
       canReopenSurveillance={canReopenSurveillance}
       canDeleteSurveillance={canDeleteSurveillance}
       onDeleteSurveillance={(episodeId,reason)=>{
-        const removed=deleteClinicalSurveillance(episodeId,{actor:t('currentUser'),reason})
+        const removed=deleteClinicalSurveillance(episodeId,{actor:actor.name,reason})
         if(removed){
           deleteDemoSurveillanceListItem(episodeId)
           setEpisodeVersion(v=>v+1)
@@ -396,6 +397,7 @@ function SurveillanceJourney({record,t,language,fmtDate,fmtDateTime,canSurveilla
 
 
 function ActiveHaiEditor({record,t,language,onSaved}){
+  const actor=useAuditActor()
   const current=record.haiClassification||{}
   const [draft,setDraft]=useState({
     status:current.status||'suspected',
@@ -409,7 +411,7 @@ function ActiveHaiEditor({record,t,language,onSaved}){
   function save(){
     const now=new Date().toISOString()
     record.haiClassification={...draft}
-    record.timeline=[{at:now,type:'haiClassificationUpdated',actor:t('currentUser'),detail:draft.status},...(record.timeline||[])]
+    record.timeline=[{at:now,type:'haiClassificationUpdated',actor:actor.name,detail:draft.status},...(record.timeline||[])]
     onSaved?.()
   }
   return <section className="clinical-panel full-panel active-edit-panel">
@@ -431,6 +433,8 @@ function ActiveHaiEditor({record,t,language,onSaved}){
 }
 
 function ActiveTherapyEditor({record,t,language,onSaved}){
+  const actor=useAuditActor()
+  const {confirm,notify}=useFeedback()
   const today=new Date().toISOString().slice(0,10)
   const [rows,setRows]=useState(record.therapy?.length?record.therapy.map(x=>({...x})):[])
   const [draft,setDraft]=useState({antimicrobial:'',dose:'',route:'IV',startedAt:today,plannedEnd:'',indication:'',organism:''})
@@ -455,9 +459,12 @@ function ActiveTherapyEditor({record,t,language,onSaved}){
     setDraft({...row})
     setEditingId(row.id)
   }
-  function remove(id){
+  async function remove(id){
+    const ok=await confirm({title:t('delete'),message:t('deleteConfirm'),confirmLabel:t('delete'),danger:true})
+    if(!ok)return
     setRows(rows.filter(x=>x.id!==id))
     if(editingId===id)reset()
+    notify(t('actionCompleted'),'success')
   }
   function applySuggestion(item){
     setDraft(d=>({...d,antimicrobial:item.antimicrobial,organism:item.organism||''}))
@@ -466,7 +473,7 @@ function ActiveTherapyEditor({record,t,language,onSaved}){
   function saveAll(){
     const now=new Date().toISOString()
     record.therapy=rows
-    record.timeline=[{at:now,type:'therapyUpdated',actor:t('currentUser'),detail:rows.map(x=>x.antimicrobial).join(', ')},...(record.timeline||[])]
+    record.timeline=[{at:now,type:'therapyUpdated',actor:actor.name,detail:rows.map(x=>x.antimicrobial).join(', ')},...(record.timeline||[])]
     onSaved?.()
   }
 
@@ -493,15 +500,16 @@ function ActiveTherapyEditor({record,t,language,onSaved}){
 }
 
 function ActiveReassessmentEditor({record,t,language,onSaved}){
+  const actor=useAuditActor()
   const today=new Date().toISOString().slice(0,10)
   const [draft,setDraft]=useState({date:today,status:'clinicalImprovement',decision:'continueTreatment',notes:'',notesEn:''})
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
   function save(){
     const now=new Date().toISOString()
-    const row={id:`REV-${Date.now()}`,...draft,by:t('currentUser')}
+    const row={id:`REV-${Date.now()}`,...draft,by:actor.name}
     record.reassessments=[row,...(record.reassessments||[])]
     record.reviewDue=null
-    record.timeline=[{at:now,type:'reassessment',actor:t('currentUser'),detail:draft.status},...(record.timeline||[])]
+    record.timeline=[{at:now,type:'reassessment',actor:actor.name,detail:draft.status},...(record.timeline||[])]
     onSaved?.()
   }
   return <section className="clinical-panel full-panel active-edit-panel">
@@ -517,6 +525,7 @@ function ActiveReassessmentEditor({record,t,language,onSaved}){
 }
 
 function ActiveOutcomeEditor({record,t,language,onSaved}){
+  const actor=useAuditActor()
   const today=new Date().toISOString().slice(0,10)
   const [draft,setDraft]=useState({status:'resolved',date:today,notes:'',notesEn:''})
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
@@ -526,7 +535,7 @@ function ActiveOutcomeEditor({record,t,language,onSaved}){
     record.outcome={...draft}
     record.status='completed'
     record.completedAt=draft.date
-    record.timeline=[{at:now,type:'outcome',actor:t('currentUser'),detail:draft.status},...(record.timeline||[])]
+    record.timeline=[{at:now,type:'outcome',actor:actor.name,detail:draft.status},...(record.timeline||[])]
     onSaved?.()
   }
   return <section className="clinical-panel full-panel active-edit-panel">
@@ -604,27 +613,30 @@ function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confir
 function PatientInline({editing=false,l,v,onChange}){return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<input value={v||''} onChange={e=>onChange?.(e.target.value)}/>:<strong>{v||'—'}</strong>}</div>}
 
 function ActiveStartEditor({record,t,language,onSaved}){
+  const actor=useAuditActor()
   const [draft,setDraft]=useState({startedAt:record.startedAt||'',reviewDue:record.reviewDue||'',department:record.department||'',departmentEn:record.departmentEn||'',room:record.room||'',reason:record.reason||'',reasonEn:record.reasonEn||''})
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
-  function save(){Object.assign(record,draft);record.timeline=[{at:new Date().toISOString(),type:'surveillanceUpdated',actor:t('currentUser'),detail:'start'},...(record.timeline||[])];onSaved?.()}
+  function save(){Object.assign(record,draft);record.timeline=[{at:new Date().toISOString(),type:'surveillanceUpdated',actor:actor.name,detail:'start'},...(record.timeline||[])];onSaved?.()}
   return <section className="clinical-panel full-panel active-edit-panel"><div className="section-actions"><PanelTitle icon={Activity} title={t('surveillanceStart')}/><span className="edit-enabled-badge">{t('clinicalRecords.editableActiveSurveillance')}</span></div><div className="entry-grid"><ManualDateField label={t('surveillanceStartDate')} value={draft.startedAt} onChange={v=>set('startedAt',v)}/><ManualDateField label={t('nextReview')} optional value={draft.reviewDue} onChange={v=>set('reviewDue',v)}/><label><span>{t('department')}</span><input value={language==='el'?draft.department:draft.departmentEn} onChange={e=>set(language==='el'?'department':'departmentEn',e.target.value)}/></label><label><span>{t('room')}</span><input value={draft.room} onChange={e=>set('room',e.target.value)}/></label><label className="entry-span-2"><span>{t('surveillanceReason')}</span><textarea rows={3} value={language==='el'?draft.reason:draft.reasonEn} onChange={e=>set(language==='el'?'reason':'reasonEn',e.target.value)}/></label></div><div className="flow-step-actions"><Button onClick={save}>{t('save')}</Button></div></section>
 }
 
 function ActiveAssessmentEditor({record,t,language,onSaved}){
+  const actor=useAuditActor()
   const a=record.assessment||{}
   const [draft,setDraft]=useState({date:a.date||'',summary:a.summary||'',summaryEn:a.summaryEn||'',symptoms:(a.symptoms||[]).join(', '),risks:(a.riskFactors||[]).join(', '),notes:a.notes||'',notesEn:a.notesEn||''})
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
-  function save(){record.assessment={...a,date:draft.date,assessedBy:a.assessedBy||t('currentUser'),summary:draft.summary,summaryEn:draft.summaryEn||draft.summary,symptoms:draft.symptoms.split(',').map(x=>x.trim()).filter(Boolean),symptomsEn:draft.symptoms.split(',').map(x=>x.trim()).filter(Boolean),riskFactors:draft.risks.split(',').map(x=>x.trim()).filter(Boolean),riskFactorsEn:draft.risks.split(',').map(x=>x.trim()).filter(Boolean),notes:draft.notes,notesEn:draft.notesEn||draft.notes};record.timeline=[{at:new Date().toISOString(),type:'clinicalAssessmentUpdated',actor:t('currentUser'),detail:'updated'},...(record.timeline||[])];onSaved?.()}
+  function save(){record.assessment={...a,date:draft.date,assessedBy:a.assessedBy||actor.name,summary:draft.summary,summaryEn:draft.summaryEn||draft.summary,symptoms:draft.symptoms.split(',').map(x=>x.trim()).filter(Boolean),symptomsEn:draft.symptoms.split(',').map(x=>x.trim()).filter(Boolean),riskFactors:draft.risks.split(',').map(x=>x.trim()).filter(Boolean),riskFactorsEn:draft.risks.split(',').map(x=>x.trim()).filter(Boolean),notes:draft.notes,notesEn:draft.notesEn||draft.notes};record.timeline=[{at:new Date().toISOString(),type:'clinicalAssessmentUpdated',actor:actor.name,detail:'updated'},...(record.timeline||[])];onSaved?.()}
   return <section className="clinical-panel full-panel active-edit-panel"><div className="section-actions"><PanelTitle icon={ShieldCheck} title={t('clinicalAssessment')}/><span className="edit-enabled-badge">{t('clinicalRecords.editableActiveSurveillance')}</span></div><div className="entry-grid"><ManualDateField label={t('assessmentDate')} value={draft.date} onChange={v=>set('date',v)}/><label className="entry-span-2"><span>{t('clinicalSummary')} · {t('optional')}</span><textarea rows={3} value={language==='el'?draft.summary:draft.summaryEn} onChange={e=>set(language==='el'?'summary':'summaryEn',e.target.value)}/></label><label><span>{t('signsSymptoms')}</span><input value={draft.symptoms} onChange={e=>set('symptoms',e.target.value)}/></label><label><span>{t('riskFactors')}</span><input value={draft.risks} onChange={e=>set('risks',e.target.value)}/></label></div><div className="flow-step-actions"><Button onClick={save}>{t('save')}</Button></div></section>
 }
 
 function ActiveIsolationEditor({record,t,language,confirm,onSaved}){
+  const actor=useAuditActor()
   const existing=record.isolation
   const initialNeeded=existing?true:(record.isolationDecision?.required===false?false:null)
   const [needed,setNeeded]=useState(initialNeeded)
   const [draft,setDraft]=useState({startedAt:existing?.startedAt?.slice(0,10)||new Date().toISOString().slice(0,10),precautionType:existing?.type||existing?.precautions?.[0]||'contact',reason:existing?.reason||'',reasonEn:existing?.reasonEn||'',provisional:existing?.provisional??true})
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
-  async function save(){const now=new Date().toISOString();if(needed===false&&existing){const ok=await confirm({title:t('clinicalRecords.changeIsolationDecision'),message:t('clinicalRecords.removeActiveIsolationConfirm'),confirmLabel:t('confirm')});if(!ok)return}if(needed===false){record.isolation=null;record.isolationDecision={required:false,decidedAt:now,by:t('currentUser')};record.timeline=[{at:now,type:'isolationNotRequired',actor:t('currentUser'),detail:'no'},...(record.timeline||[])];onSaved?.('saved');return}if(needed===true){record.isolationDecision={required:true,decidedAt:now,by:t('currentUser')};record.isolation={id:existing?.id||`ISO-${Date.now()}`,status:'active',startedAt:draft.startedAt,endedAt:null,type:draft.precautionType,precautions:[draft.precautionType],room:record.room||'',nextReview:record.reviewDue||null,reason:draft.reason||draft.reasonEn||'',reasonEn:draft.reasonEn||draft.reason||'',provisional:Boolean(draft.provisional),by:t('currentUser')};record.timeline=[{at:now,type:existing?'isolationUpdated':'isolationStarted',actor:t('currentUser'),detail:draft.precautionType},...(record.timeline||[])];onSaved?.('saved')}}
+  async function save(){const now=new Date().toISOString();if(needed===false&&existing){const ok=await confirm({title:t('clinicalRecords.changeIsolationDecision'),message:t('clinicalRecords.removeActiveIsolationConfirm'),confirmLabel:t('confirm')});if(!ok)return}if(needed===false){record.isolation=null;record.isolationDecision={required:false,decidedAt:now,by:actor.name};record.timeline=[{at:now,type:'isolationNotRequired',actor:actor.name,detail:'no'},...(record.timeline||[])];onSaved?.('saved');return}if(needed===true){record.isolationDecision={required:true,decidedAt:now,by:actor.name};record.isolation={id:existing?.id||`ISO-${Date.now()}`,status:'active',startedAt:draft.startedAt,endedAt:null,type:draft.precautionType,precautions:[draft.precautionType],room:record.room||'',nextReview:record.reviewDue||null,reason:draft.reason||draft.reasonEn||'',reasonEn:draft.reasonEn||draft.reason||'',provisional:Boolean(draft.provisional),by:actor.name};record.timeline=[{at:now,type:existing?'isolationUpdated':'isolationStarted',actor:actor.name,detail:draft.precautionType},...(record.timeline||[])];onSaved?.('saved')}}
   return <section className="clinical-panel full-panel active-edit-panel isolation-decision-editor"><div className="section-actions"><div><PanelTitle icon={BedDouble} title={t('isolation')}/><p className="section-note">{t('clinicalRecords.isolationDecisionFirstHelp')}</p></div><span className="edit-enabled-badge">{t('clinicalRecords.editableActiveSurveillance')}</span></div><div className={`isolation-question ${needed===null?'required-decision':''}`}><strong>{t('isIsolationRequired')}</strong><span>{needed===null?t('isolationDecisionRequired'):t('isIsolationRequiredHelp')}</span><div><button type="button" className={needed===true?'selected yes':''} onClick={()=>setNeeded(true)}>{t('yes')}</button><button type="button" className={needed===false?'selected no':''} onClick={()=>setNeeded(false)}>{t('no')}</button></div></div>{needed===true&&<div className="entry-grid isolation-fields"><ManualDateField label={t('isolationStart')} value={draft.startedAt} onChange={v=>set('startedAt',v)}/><label><span>{t('precautionType')}</span><select value={draft.precautionType} onChange={e=>set('precautionType',e.target.value)}><option value="contact">{t('contactPrecautions')}</option><option value="droplet">{t('dropletPrecautions')}</option><option value="airborne">{t('airbornePrecautions')}</option><option value="protective">{t('protectiveIsolation')}</option><option value="other">{t('other')}</option></select></label><label className="entry-span-2"><span>{t('isolationReason')}</span><textarea rows={3} value={language==='el'?draft.reason:draft.reasonEn} onChange={e=>set(language==='el'?'reason':'reasonEn',e.target.value)}/></label><label className="inline-check entry-span-2"><input type="checkbox" checked={draft.provisional} onChange={e=>set('provisional',e.target.checked)}/><span>{t('provisionalIsolation')}</span></label></div>}{needed===false&&<div className="no-isolation-note"><CheckCircle2 size={16}/><span>{t('noIsolationDecisionHint')}</span></div>}<div className="flow-step-actions"><Button variant="secondary" onClick={()=>onSaved?.('cancel')}>{t('close')}</Button><Button disabled={needed===null||(needed===true&&!draft.startedAt)} onClick={save}>{t('save')}</Button></div></section>
 }
 

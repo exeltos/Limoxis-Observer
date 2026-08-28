@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Clock3, FlaskConical, Microscope, Plus, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock3, FlaskConical, Microscope, ShieldAlert } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -9,7 +9,9 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { can, CAPABILITIES } from '../../core/permissions/roles'
+import { useAuth } from '../../core/auth/AuthContext'
+import { auditActorFromAuth } from '../../core/audit/actor'
+import { CAPABILITIES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { downloadCsv } from '../../core/export/csvExport'
 import { laboratorySamples, createDemoLabSample, getLabKpis, sampleSourceCatalog } from './laboratoryDemoData'
@@ -25,7 +27,9 @@ const sourceOptions={
 export function LaboratoryPage(){
   const {t,language,locale}=useLanguage()
   const {notify}=useFeedback()
-  const {role,membership,canAccessRecord}=useTenant()
+  const {profile,user}=useAuth()
+  const actor=auditActorFromAuth({profile,user})
+  const {canAccessRecord}=useTenant()
   const navigate=useNavigate()
   const registry=useRegistryMemory('laboratory')
   const saved=registry.loadViewState({query:'',status:'all',result:'all',department:'all'})
@@ -35,20 +39,18 @@ export function LaboratoryPage(){
   const [department,setDepartment]=useState(saved.department)
   const [newOpen,setNewOpen]=useState(false)
   const [version,setVersion]=useState(0)
-  const addOns=membership?.capabilities??[]
-  const custom=membership?.customCapabilities??[]
-  const canCreate=can(role,CAPABILITIES.MANAGE_LAB_SAMPLES,addOns,custom)
   const k=getLabKpis()
   const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—'
   const departments=[...new Set(laboratorySamples.map(s=>language==='el'?s.department:s.departmentEn).filter(Boolean))]
   const rows=useMemo(
     ()=>laboratorySamples
+      .filter(s=>canAccessRecord(s))
       .filter(s=>`${s.id} ${s.patient} ${s.patientEn} ${s.patientId} ${s.organism??''} ${s.surveillanceCase??''}`.toLowerCase().includes(query.toLowerCase()))
       .filter(s=>status==='all'||s.status===status)
       .filter(s=>result==='all'||(result==='critical'?s.critical:s.result===result))
       .filter(s=>department==='all'||(language==='el'?s.department:s.departmentEn)===department),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version deliberately forces recompute after mutations to the shared demo array.
-    [query,status,result,department,language,version]
+    [query,status,result,department,language,version,canAccessRecord]
   )
 
   function createSample(draft){
@@ -65,7 +67,7 @@ export function LaboratoryPage(){
       ast:[],
       communications:[],
       attachments:[],
-      timeline:[{at:new Date().toISOString(),type:'sampleRequested',actor:t('currentUser')}],
+      timeline:[{at:new Date().toISOString(),type:'sampleRequested',actor:actor.name}],
     })
     setVersion(v=>v+1)
     setNewOpen(false)
@@ -79,11 +81,11 @@ export function LaboratoryPage(){
 
   function pageAction(action){
     if(action===UI_ACTIONS.CREATE){setNewOpen(true);return}
-    if(action===UI_ACTIONS.PRINT){window.print();notify('Η προβολή είναι έτοιμη για εκτύπωση.','success');return}
+    if(action===UI_ACTIONS.PRINT){window.print();notify(t('printReadyMessage'),'success');return}
     if(action===UI_ACTIONS.EXPORT){
-      downloadCsv('limoxis-laboratory.csv',['Κωδικός','Ασθενής / Υποκείμενο','Τμήμα','Δείγμα','Κατάσταση','Αποτέλεσμα','Μικροοργανισμός'],
+      downloadCsv('limoxis-laboratory.csv',[t('code'),t('exportSubject'),t('department'),t('exportSample'),t('status'),t('result'),t('exportOrganism')],
         rows.map(x=>[x.id,language==='el'?x.patient:x.patientEn,language==='el'?x.department:x.departmentEn,t(x.type),t(x.status),x.result?t(x.result):'',x.organism||'']))
-      notify('Η τρέχουσα λίστα Εργαστηρίου εξήχθη.','success')
+      notify(t('laboratoryListExported'),'success')
     }
   }
   return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_LAB_SAMPLES}} onAction={pageAction}/>}>

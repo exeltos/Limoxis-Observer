@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { BookOpen,Check,Copy,Edit3,Plus,RotateCcw,X } from 'lucide-react'
+import { Check,Copy,Edit3,Plus,RotateCcw,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { FilterBar } from '../../design-system/FilterBar'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -77,7 +77,7 @@ function BundleEditor({draft,onClose,onSave}){
  const set=(k,v)=>setValue(x=>({...x,[k]:v}))
  function elementChange(index,key,v){setValue(x=>({...x,elements:x.elements.map((e,i)=>i===index?{...e,[key]:v}:e)}))}
  function addElement(){setValue(x=>({...x,elements:[...x.elements,{id:`item_${Date.now()}`,labelEl:'',labelEn:'',required:true}]}))}
- function removeElement(index){setValue(x=>({...x,elements:x.elements.filter((_,i)=>i!==index)}))}
+ async function removeElement(index){const ok=await confirm({title:'Αφαίρεση στοιχείου',message:'Το στοιχείο θα αφαιρεθεί από το Bundle. Θέλετε να συνεχίσετε;',confirmLabel:'Αφαίρεση',danger:true});if(!ok)return;setValue(x=>({...x,elements:x.elements.filter((_,i)=>i!==index)}));notify('Το στοιχείο αφαιρέθηκε.','success')}
  const locked=value.status==='published'||value.status==='retired'
  return <div className="modal-backdrop"><div className="entry-card bundle-library-editor">
   <header><div><span className="eyebrow">BUNDLE LIBRARY</span><h3>{locked?'Προβολή δημοσιευμένης έκδοσης':'Επεξεργασία Draft Bundle'}</h3><p>{locked?'Published/retired εκδόσεις παραμένουν αμετάβλητες. Δημιούργησε draft copy για αλλαγές.':'Οι αλλαγές ενεργοποιούνται μόνο μετά από Publish.'}</p></div><button className="icon-close" onClick={onClose}><X size={16}/></button></header>

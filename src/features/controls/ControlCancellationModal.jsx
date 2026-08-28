@@ -3,7 +3,7 @@ import { AlertTriangle,UserRound } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from './controlActor'
 
-export function ControlCancellationModal({execution,onClose,onConfirm}){
+export function ControlCancellationModal({onClose,onConfirm}){
  const {profile,user}=useAuth();const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user]);const [reason,setReason]=useState('')
  return <div className="modal-backdrop"><div className="entry-card control-cancel-card"><header><div><span className="eyebrow">ΑΝΑΙΡΕΣΗ ΚΑΤΑΧΩΡΗΣΗΣ</span><h3>Ακύρωση ελέγχου</h3><p>Η αρχική καταχώρηση θα παραμείνει στο ιστορικό ως ακυρωμένη.</p></div><button className="icon-close" onClick={onClose}>×</button></header>
  <div className="governance-banner warning"><AlertTriangle size={17}/><span>Η αναίρεση απαιτεί αιτιολογία και καταγράφεται στο audit trail.</span></div>

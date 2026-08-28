@@ -13,6 +13,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { patientDemoData, createDemoPatient } from './patientDemoData'
 import { demoLibrarySeed } from '../management/managementData'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { downloadCsv } from '../../core/export/csvExport'
 
 export function PatientsPage(){
   const {t,language,locale}=useLanguage()
@@ -37,6 +38,7 @@ export function PatientsPage(){
   function pageAction(action){
     if(action===UI_ACTIONS.CREATE)setNewOpen(true)
     else if(action===UI_ACTIONS.PRINT)window.print()
+    else if(action===UI_ACTIONS.EXPORT){downloadCsv('limoxis-patients.csv',[t('patientId'),t('name'),t('department'),t('admissionDate'),t('status')],rows.map(x=>[x.id,language==='el'?x.name:(x.nameEn||x.name),language==='el'?x.department:x.departmentEn,x.admissionDate,t(x.status)]));notify(t('currentListExported'),'success')}
     else notify(t('actionCompleted'),'success')
   }
   function savePatient(draft){

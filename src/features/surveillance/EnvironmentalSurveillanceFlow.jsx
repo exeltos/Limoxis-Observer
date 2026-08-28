@@ -3,6 +3,7 @@ import { Building2, Droplets, Layers3, Plus, Wind, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useAuditActor } from '../../core/audit/useAuditActor'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { demoLibrarySeed } from '../management/managementData'
 import { createEnvironmentalBatch, createEnvironmentalSurveillance, environmentalSourceCatalog, environmentalSubjectCatalog } from './environmentalSurveillanceData'
@@ -16,8 +17,9 @@ const sourceByType={
 }
 
 export function EnvironmentalSurveillanceFlow({onClose,onCreated}){
+  const actor=useAuditActor()
   const {t,language}=useLanguage()
-  const {notify}=useFeedback()
+  const {notify,confirm}=useFeedback()
   const [subjectType,setSubjectType]=useState('surface')
   const [mode,setMode]=useState('single')
   const [grouping,setGrouping]=useState('plate')
@@ -44,7 +46,7 @@ export function EnvironmentalSurveillanceFlow({onClose,onCreated}){
     if(mode==='single'){
       if(!location.trim()&&!point.trim())return
       const record=createEnvironmentalSurveillance({
-        subjectType,department:depEl,departmentEn:depEn,location,point,sourceCode,startedAt:date,notes,createdBy:t('currentUser'),
+        subjectType,department:depEl,departmentEn:depEn,location,point,sourceCode,startedAt:date,notes,createdBy:actor.name,
       })
       notify(t('clinicalRecords.environmentalSurveillanceCreated'),'success')
       onCreated?.(record)
@@ -53,13 +55,13 @@ export function EnvironmentalSurveillanceFlow({onClose,onCreated}){
     }
     const items=batchRows.filter(x=>x.location.trim()||x.point.trim()).map(x=>({location:x.location,point:x.point,plateCode:x.plateCode,platePosition:x.platePosition,department:depEl,departmentEn:depEn}))
     if(!items.length)return
-    const batch=createEnvironmentalBatch({items,subjectType,startedAt:date,department:depEl,departmentEn:depEn,sourceCode,notes,grouping,createdBy:t('currentUser')})
+    const batch=createEnvironmentalBatch({items,subjectType,startedAt:date,department:depEl,departmentEn:depEn,sourceCode,notes,grouping,createdBy:actor.name})
     notify(t('clinicalRecords.environmentalBatchCreated').replace('{count}',String(items.length)),'success')
     onCreated?.(batch)
     onClose()
   }
   const updateRow=(id,key,value)=>setBatchRows(rows=>rows.map(row=>row.id===id?{...row,[key]:value}:row))
-  const removeRow=id=>setBatchRows(rows=>rows.filter(row=>row.id!==id))
+  const removeRow=async id=>{const ok=await confirm({title:'Αφαίρεση σημείου',message:'Το σημείο δειγματοληψίας θα αφαιρεθεί από την τρέχουσα καταχώρηση. Θέλετε να συνεχίσετε;',confirmLabel:'Αφαίρεση',danger:true});if(!ok)return;setBatchRows(rows=>rows.filter(row=>row.id!==id));notify('Το σημείο αφαιρέθηκε.','success')}
   const addRow=()=>setBatchRows(rows=>[...rows,{id:Date.now(),location:'',point:'',plateCode:rows.at(-1)?.plateCode||'A',platePosition:String(rows.length+1)}])
   const sources=sourceByType[subjectType]||['other']
 

@@ -23,6 +23,7 @@ export function EntityRecordShell({
   const handleBack=onBack||goBack
   return <div className={`entity-record-shell ${className}`.trim()}>
     <header className="entity-record-header surface">
+      <button className="entity-record-icon-button back entity-record-back-left" onClick={handleBack} title={backLabel||t('back')} aria-label={backLabel||t('back')}><ArrowLeft size={16}/></button>
       <div className="entity-record-avatar">{avatar}</div>
       <div className="entity-record-identity">
         {eyebrow&&<span className="eyebrow">{eyebrow}</span>}
@@ -37,7 +38,6 @@ export function EntityRecordShell({
           <button type="button" className="entity-record-icon-button" disabled={!recordNavigation.hasNext} onClick={recordNavigation.next} title="Επόμενη εγγραφή" aria-label="Επόμενη εγγραφή"><ChevronRight size={16}/></button>
         </div>}
         {headerActions}
-        <button className="entity-record-icon-button back" onClick={handleBack} title={backLabel||t('back')} aria-label={backLabel||t('back')}><ArrowLeft size={16}/></button>
       </div>
     </header>
     <nav className="entity-record-tabs surface" role="tablist">

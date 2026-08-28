@@ -1,6 +1,7 @@
 import { useMemo,useState } from 'react'
 import { CalendarClock,Search } from 'lucide-react'
 import { demoLibrarySeed } from '../management/managementData'
+import { TimeField } from '../../design-system/TimeField'
 
 export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixedDepartment=''}){
  const departments=useMemo(()=>demoLibrarySeed.departments.map(x=>x[0]),[])
@@ -41,7 +42,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      <label className="field"><span>Συχνότητα *</span><select value={draft.frequency.kind} onChange={e=>setF('kind',e.target.value)}><option value="daily">Ημερήσια</option><option value="weekly">Εβδομαδιαία</option><option value="monthly">Μηνιαία / ανά Χ μήνες</option><option value="yearly">Ετήσια</option><option value="custom">Κάθε Χ ημέρες</option></select></label>
      {draft.frequency.kind==='daily'?<label className="field"><span>Φορές ανά ημέρα *</span><input type="number" min="1" max="12" value={count} onChange={e=>setF('timesPerDay',Math.max(1,Math.min(12,Number(e.target.value)||1)))}/></label>:<label className="field"><span>Κάθε πόσες {draft.frequency.kind==='monthly'?'μήνες':draft.frequency.kind==='weekly'?'εβδομάδες':draft.frequency.kind==='yearly'?'έτη':'ημέρες'}</span><input type="number" min="1" value={draft.frequency.interval||1} onChange={e=>setF('interval',Math.max(1,Number(e.target.value)||1))}/></label>}
     </div>
-    {draft.frequency.kind==='daily'&&<div className="control-times-panel"><div className="control-times-heading"><CalendarClock size={17}/><span>Ώρες εκτέλεσης</span><small>{count===1?'1 καταχώρηση την ημέρα':`${count} ξεχωριστές καταχωρήσεις την ημέρα`}</small></div><div className="control-time-grid">{times.map((time,i)=><label key={i}><span>{i+1}η εκτέλεση</span><input type="time" lang="en-GB" step="60" value={time} onChange={e=>{const next=[...times];next[i]=e.target.value;setF('times',next)}}/></label>)}</div></div>}
+    {draft.frequency.kind==='daily'&&<div className="control-times-panel"><div className="control-times-heading"><CalendarClock size={17}/><span>Ώρες εκτέλεσης</span><small>{count===1?'1 καταχώρηση την ημέρα':`${count} ξεχωριστές καταχωρήσεις την ημέρα`}</small></div><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} label={`${i+1}η εκτέλεση`} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
    </section>
    <section className="control-form-section control-notes-section"><div className="control-section-title"><span>5</span><div><strong>Οδηγίες</strong><small>Προαιρετικές πληροφορίες για την εκτέλεση</small></div></div><label className="field"><textarea rows="3" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder="Τι πρέπει να ελεγχθεί, αποδεκτά όρια ή άλλες οδηγίες..."/></label></section>
   </div>

@@ -4,6 +4,8 @@ import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useAuth } from '../../core/auth/AuthContext'
+import { auditActorFromAuth } from '../../core/audit/actor'
 import { demoLibrarySeed } from '../management/managementData'
 import { createDemoLabSample, laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { createDemoPatient } from '../patients/patientDemoData'
@@ -48,6 +50,8 @@ const sampleSourceOptions={
 export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,onRecordChange}){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
+  const {profile,user}=useAuth()
+  const actor=auditActorFromAuth({profile,user})
   const [patientMode,setPatientMode]=useState(patient?'fixed':'existing')
   const [selectedPatientId,setSelectedPatientId]=useState(patient?.id||'')
   const [createdPatient,setCreatedPatient]=useState(null)
@@ -157,9 +161,9 @@ export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,o
   }
   function saveAssessment(){
     if(!record||!assessmentDraft.date)return
-    const assessment={date:assessmentDraft.date||today,assessedBy:t('currentUser'),summary:assessmentDraft.summary||assessmentDraft.summaryEn||'',summaryEn:assessmentDraft.summaryEn||assessmentDraft.summary||'',screening:{...assessmentDraft.screening},symptoms:[...assessmentDraft.symptoms,...assessmentDraft.customSymptoms],symptomsEn:[...assessmentDraft.symptoms,...assessmentDraft.customSymptoms],riskFactors:[...assessmentDraft.risks,...assessmentDraft.customRisks],riskFactorsEn:[...assessmentDraft.risks,...assessmentDraft.customRisks],notes:assessmentDraft.notes,notesEn:assessmentDraft.notesEn}
+    const assessment={date:assessmentDraft.date||today,assessedBy:actor.name,summary:assessmentDraft.summary||assessmentDraft.summaryEn||'',summaryEn:assessmentDraft.summaryEn||assessmentDraft.summary||'',screening:{...assessmentDraft.screening},symptoms:[...assessmentDraft.symptoms,...assessmentDraft.customSymptoms],symptomsEn:[...assessmentDraft.symptoms,...assessmentDraft.customSymptoms],riskFactors:[...assessmentDraft.risks,...assessmentDraft.customRisks],riskFactorsEn:[...assessmentDraft.risks,...assessmentDraft.customRisks],notes:assessmentDraft.notes,notesEn:assessmentDraft.notesEn}
     record.assessment=assessment
-    record.timeline=[{at:new Date().toISOString(),type:'clinicalAssessment',actor:t('currentUser'),detail:'completed'},...(record.timeline||[])]
+    record.timeline=[{at:new Date().toISOString(),type:'clinicalAssessment',actor:actor.name,detail:'completed'},...(record.timeline||[])]
     setRecord({...record});onRecordChange?.(record)
     setActiveStep('microbiology')
   }
@@ -169,10 +173,10 @@ export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,o
     const sourceNames=sampleSourceNames[sampleDraft.source]||{el:sampleDraft.source,en:sampleDraft.source}
     const labPatient=selectedPatient||createdPatient
     if(!labPatient)return
-    const lab={id,patient:labPatient.name,patientEn:labPatient.nameEn||labPatient.name,patientId:labPatient.id,department:startDraft.department||labPatient.department,departmentEn:startDraft.departmentEn||labPatient.departmentEn,type:sampleDraft.type,source:sourceNames.el,sourceEn:sourceNames.en,sourceCode:sampleDraft.source,anatomicalSite:sampleDraft.anatomicalSite,collectedAt:sampleDraft.collectedAt?`${sampleDraft.collectedAt}T12:00:00`:new Date().toISOString(),receivedAt:null,status:'requested',priority:sampleDraft.priority,organism:null,result:null,resultStatus:'draft',resultedAt:null,validatedAt:null,validatedBy:null,resistance:null,critical:false,surveillanceCase:record.id,ast:[],communications:[],attachments:[],timeline:[{at:new Date().toISOString(),type:'sampleRequested',actor:t('currentUser')}],notes:sampleDraft.notes}
+    const lab={id,patient:labPatient.name,patientEn:labPatient.nameEn||labPatient.name,patientId:labPatient.id,department:startDraft.department||labPatient.department,departmentEn:startDraft.departmentEn||labPatient.departmentEn,type:sampleDraft.type,source:sourceNames.el,sourceEn:sourceNames.en,sourceCode:sampleDraft.source,anatomicalSite:sampleDraft.anatomicalSite,collectedAt:sampleDraft.collectedAt?`${sampleDraft.collectedAt}T12:00:00`:new Date().toISOString(),receivedAt:null,status:'requested',priority:sampleDraft.priority,organism:null,result:null,resultStatus:'draft',resultedAt:null,validatedAt:null,validatedBy:null,resistance:null,critical:false,surveillanceCase:record.id,ast:[],communications:[],attachments:[],timeline:[{at:new Date().toISOString(),type:'sampleRequested',actor:actor.name}],notes:sampleDraft.notes}
     createDemoLabSample(lab)
     record.samples=[...(record.samples||[]),{id,status:'requested',type:sampleDraft.type,collectedAt:lab.collectedAt,result:'pending',organism:null,resistance:null}]
-    record.timeline=[{at:new Date().toISOString(),type:'sampleRequested',actor:t('currentUser'),detail:id},...(record.timeline||[])]
+    record.timeline=[{at:new Date().toISOString(),type:'sampleRequested',actor:actor.name,detail:id},...(record.timeline||[])]
     setRecord({...record})
     setSavedDraft(v=>!v)
     onRecordChange?.(record)
@@ -185,14 +189,14 @@ export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,o
     const now=new Date().toISOString()
     if(isolationNeeded===false){
       record.isolation=null
-      record.isolationDecision={required:false,decidedAt:now,by:t('currentUser')}
-      record.timeline=[{at:now,type:'isolationNotRequired',actor:t('currentUser'),detail:'no'},...(record.timeline||[])]
+      record.isolationDecision={required:false,decidedAt:now,by:actor.name}
+      record.timeline=[{at:now,type:'isolationNotRequired',actor:actor.name,detail:'no'},...(record.timeline||[])]
       setRecord({...record});onRecordChange?.(record);notify(t('clinicalRecords.isolationDecisionSaved'),'success');onClose();return
     }
     if(!isolationDraft.startedAt)return
-    record.isolationDecision={required:true,decidedAt:now,by:t('currentUser')}
-    record.isolation={id:record.isolation?.id||`ISO-${Date.now()}`,status:'active',startedAt:isolationDraft.startedAt,endedAt:null,type:isolationDraft.precautionType,precautions:[isolationDraft.precautionType],room:startDraft.room||'',nextReview:startDraft.reviewDue||null,reason:isolationDraft.reason||isolationDraft.reasonEn||'',reasonEn:isolationDraft.reasonEn||isolationDraft.reason||'',provisional:Boolean(isolationDraft.provisional),by:t('currentUser')}
-    record.timeline=[{at:now,type:record.isolation?.id?'isolationUpdated':'isolationStarted',actor:t('currentUser'),detail:isolationDraft.precautionType},...(record.timeline||[])]
+    record.isolationDecision={required:true,decidedAt:now,by:actor.name}
+    record.isolation={id:record.isolation?.id||`ISO-${Date.now()}`,status:'active',startedAt:isolationDraft.startedAt,endedAt:null,type:isolationDraft.precautionType,precautions:[isolationDraft.precautionType],room:startDraft.room||'',nextReview:startDraft.reviewDue||null,reason:isolationDraft.reason||isolationDraft.reasonEn||'',reasonEn:isolationDraft.reasonEn||isolationDraft.reason||'',provisional:Boolean(isolationDraft.provisional),by:actor.name}
+    record.timeline=[{at:now,type:record.isolation?.id?'isolationUpdated':'isolationStarted',actor:actor.name,detail:isolationDraft.precautionType},...(record.timeline||[])]
     setRecord({...record});onRecordChange?.(record);notify(t('isolationSaved'),'success');onClose()
   }
   function addCustom(field,value,setter){

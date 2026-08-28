@@ -4,13 +4,16 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
+import { ManualDateField } from '../../design-system/ManualDateField'
 import { Button } from '../../design-system/Button'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
-import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
+import { CAPABILITIES, ROLES } from '../../core/permissions/roles'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useAuth } from '../../core/auth/AuthContext'
+import { auditActorFromAuth } from '../../core/audit/actor'
 import { createDemoSurveillanceListItem, surveillanceDemoData } from './surveillanceDemoData'
 import { createClinicalSurveillance } from './clinicalDemoData'
 import { patientDemoData } from '../patients/patientDemoData'
@@ -20,6 +23,7 @@ import { createEmployeeRecheck, employeeSurveillanceBatches, employeeSurveillanc
 import { EnvironmentalRegistry, EnvironmentalSurveillanceFlow } from './EnvironmentalSurveillanceFlow'
 import { environmentalSurveillanceBatches, environmentalSurveillanceRecords, getEnvironmentalKpis, syncEnvironmentalSurveillanceFromLab } from './environmentalSurveillanceData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
+import { downloadRecordJson } from '../../core/export/recordExport'
 
 export function SurveillancePage(){
   const { t, language, locale } = useLanguage()
@@ -27,10 +31,9 @@ export function SurveillancePage(){
   const navigate = useNavigate()
   const location = useLocation()
   const registry = useRegistryMemory('surveillance')
-  const {role,membership,isDemo,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
-  const addOns=membership?.capabilities??[]
-  const custom=membership?.customCapabilities??[]
-  const canCreateSurveillance=can(role,CAPABILITIES.CREATE_SURVEILLANCE,addOns,custom)
+  const {role,isDemo,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
+  const {profile,user}=useAuth()
+  const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
   const canSeeEmployeeSurveillance=isDemo||canSeeSensitiveEmployeeHealth
   const canSeeEnvironmental=![ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.DOCTOR_REVIEWER].includes(role)
   const saved = registry.loadViewState({
@@ -111,7 +114,7 @@ export function SurveillancePage(){
       departmentEn:patient.departmentEn,
       admissionDate:patient.admissionDate,
       ...draft,
-      createdBy:t('currentUser'),
+      createdBy:actor.name,
     })
     createDemoSurveillanceListItem(created)
     setVersion(v=>v+1)
@@ -140,6 +143,12 @@ export function SurveillancePage(){
             }
             if(action===UI_ACTIONS.PRINT){
               window.print()
+              return
+            }
+            if(action===UI_ACTIONS.EXPORT){
+              const exportRows=registryMode==='employees'?employeeSurveillanceRecords:registryMode==='batches'?employeeSurveillanceBatches:registryMode==='environmental'?environmentalSurveillanceRecords:rows
+              downloadRecordJson(exportRows,{filename:`surveillance-${registryMode}`})
+              notify(t('currentListExported'),'success')
               return
             }
             notify(t('actionCompleted'),'info')
@@ -172,10 +181,10 @@ export function SurveillancePage(){
         </div>
       </div>
 
-      <nav className="tabs surveillance-domain-tabs canonical-module-tabs" aria-label="Κατηγορίες επιτήρησης">
+      <nav className="tabs surveillance-domain-tabs canonical-module-tabs" aria-label={t('surveillanceCategoriesAria')}>
         <button className={`tab ${registryMode==='patients'?'active':''}`} onClick={()=>setRegistryMode('patients')}><Activity size={14}/>{t('patients')} <span className="tab-count">{surveillanceDemoData.length}</span></button>
-        <button className={`tab ${registryMode==='employees'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?'Απαιτείται δικαίωμα πρόσβασης σε ευαίσθητα δεδομένα υγείας εργαζομένων':''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('employees')}><Users size={14}/>{t('employees')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeSurveillanceCount}</span>:<LockKeyhole size={12}/>}</button>
-        <button className={`tab ${registryMode==='batches'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?'Απαιτείται δικαίωμα πρόσβασης σε ευαίσθητα δεδομένα υγείας εργαζομένων':''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('batches')}><Users size={14}/>{t('clinicalRecords.bulkSurveillance')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeBatchCount}</span>:<LockKeyhole size={12}/>}</button>
+        <button className={`tab ${registryMode==='employees'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?t('sensitiveEmployeeHealthPermissionRequired'):''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('employees')}><Users size={14}/>{t('employees')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeSurveillanceCount}</span>:<LockKeyhole size={12}/>}</button>
+        <button className={`tab ${registryMode==='batches'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?t('sensitiveEmployeeHealthPermissionRequired'):''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('batches')}><Users size={14}/>{t('clinicalRecords.bulkSurveillance')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeBatchCount}</span>:<LockKeyhole size={12}/>}</button>
         <button className={`tab ${registryMode==='environmental'?'active':''}`} disabled={!canSeeEnvironmental} onClick={()=>canSeeEnvironmental&&setRegistryMode('environmental')}><Microscope size={14}/>{t('clinicalRecords.environment')} <span className="tab-count">{environmentalSurveillanceRecords.length}</span></button>
       </nav>
 
@@ -298,7 +307,7 @@ export function SurveillancePage(){
 }
 
 
-function EmployeeSurveillanceRegistry({t,language,fmt,version,onChange,requestedRecordId,onRequestedRecordHandled,returnFrom,onReturn}){
+function EmployeeSurveillanceRegistry({t,language,fmt,version,onChange,requestedRecordId,onRequestedRecordHandled,returnFrom,onReturn,actorName}){
   const [selected,setSelected]=useState(null)
   const [editMode,setEditMode]=useState(false)
   const [intervention,setIntervention]=useState('')
@@ -374,10 +383,10 @@ function EmployeeSurveillanceRegistry({t,language,fmt,version,onChange,requested
       noRecheck,
       recheckRequired:false,
       correctionReason:correctionReason.trim()||selected.correctionReason||null,
-      timeline:[{at:now,type:hasFollowup(selected)?'employeeFollowupCorrected':'employeeFollowupRecorded',actor:t('currentUser'),detail:correctionReason.trim()||null},...(selected.timeline||[])]
+      timeline:[{at:now,type:hasFollowup(selected)?'employeeFollowupCorrected':'employeeFollowupRecorded',actor:actorName,detail:correctionReason.trim()||null},...(selected.timeline||[])]
     })
     if(!noRecheck&&recheckDate&&recheckDate!==previous.recheckDate){
-      createEmployeeRecheck(updated||selected,{date:recheckDate,createdBy:t('currentUser')})
+      createEmployeeRecheck(updated||selected,{date:recheckDate,createdBy:actorName})
     }
     const fresh=employeeSurveillanceRecords.find(x=>x.id===selected.id)
     setSelected(fresh||updated||selected)
@@ -427,9 +436,9 @@ function EmployeeSurveillanceRegistry({t,language,fmt,version,onChange,requested
 
         {editMode&&<div className="employee-followup-edit-grid">
           <div className="entry-span-2 followup-choice-row"><label><input type="checkbox" checked={noIntervention} onChange={e=>{setNoIntervention(e.target.checked);if(e.target.checked){setIntervention('');setInterventionType('');setInterventionStart('');setInterventionEnd('')}}}/><span>{t('clinicalRecords.noInterventionPlanned')}</span></label></div>
-          {!noIntervention&&<><label className="field"><span>{t('clinicalRecords.interventionType')}</span><input list="employee-intervention-types" value={interventionType} onChange={e=>setInterventionType(e.target.value)} placeholder={t('clinicalRecords.chooseOrType')}/><datalist id="employee-intervention-types"><option value={t('clinicalRecords.ointment')}/><option value={t('clinicalRecords.nasalOintment')}/><option value={t('clinicalRecords.topicalTreatment')}/><option value={t('clinicalRecords.decolonizationProtocol')}/><option value={t('other')}/></datalist></label><label className="field"><span>{t('clinicalRecords.interventionDetails')}</span><input value={intervention} onChange={e=>setIntervention(e.target.value)} placeholder={t('clinicalRecords.optionalNotes')}/></label><label className="field"><span>{t('clinicalRecords.start')}</span><input type="date" value={interventionStart} onChange={e=>setInterventionStart(e.target.value)}/></label><label className="field"><span>{t('clinicalRecords.end')}</span><input type="date" value={interventionEnd} onChange={e=>setInterventionEnd(e.target.value)}/></label></>}
+          {!noIntervention&&<><label className="field"><span>{t('clinicalRecords.interventionType')}</span><input list="employee-intervention-types" value={interventionType} onChange={e=>setInterventionType(e.target.value)} placeholder={t('clinicalRecords.chooseOrType')}/><datalist id="employee-intervention-types"><option value={t('clinicalRecords.ointment')}/><option value={t('clinicalRecords.nasalOintment')}/><option value={t('clinicalRecords.topicalTreatment')}/><option value={t('clinicalRecords.decolonizationProtocol')}/><option value={t('other')}/></datalist></label><label className="field"><span>{t('clinicalRecords.interventionDetails')}</span><input value={intervention} onChange={e=>setIntervention(e.target.value)} placeholder={t('clinicalRecords.optionalNotes')}/></label><ManualDateField className="field" label={t('clinicalRecords.start')} value={interventionStart} onChange={setInterventionStart}/><ManualDateField className="field" label={t('clinicalRecords.end')} value={interventionEnd} onChange={setInterventionEnd}/></>}
           <div className="entry-span-2 followup-choice-row"><label><input type="checkbox" checked={noRecheck} onChange={e=>{setNoRecheck(e.target.checked);if(e.target.checked)setRecheckDate('')}}/><span>{t('clinicalRecords.noRecheckPlanned')}</span></label></div>
-          {!noRecheck&&<label className="field entry-span-2"><span>{t('clinicalRecords.recheckDate')}</span><input type="date" value={recheckDate} onChange={e=>setRecheckDate(e.target.value)}/><small>{t('clinicalRecords.recheckOptionalHelp')}</small></label>}
+          {!noRecheck&&<div className="entry-span-2"><ManualDateField className="field" label={t('clinicalRecords.recheckDate')} value={recheckDate} onChange={setRecheckDate}/><small className="field-hint">{t('clinicalRecords.recheckOptionalHelp')}</small></div>}
           {hasFollowup(selected)&&<label className="field entry-span-2"><span>{t('clinicalRecords.correctionReason')}</span><textarea rows="2" value={correctionReason} onChange={e=>setCorrectionReason(e.target.value)} placeholder={t('clinicalRecords.correctionReasonPlaceholder')}/><small>{t('clinicalRecords.correctionReasonHelp')}</small></label>}
           <div className="lab-step-footer entry-span-2"><Button variant="secondary" onClick={cancelEdit}>{t('cancel')}</Button><Button disabled={saveDisabled} onClick={saveFollowup}>{t('clinicalRecords.saveChanges')}</Button></div>
         </div>}
@@ -490,16 +499,6 @@ function EmployeeBatchRegistry({t,language,fmt,version,onOpenRecord}){
       </div>
     </div>}
   </section>
-}
-
-function Kpi({icon:Icon,label,value}){
-  return (
-    <div className="kpi-card clinical-kpi">
-      <div className="clinical-kpi-icon"><Icon size={18}/></div>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  )
 }
 
 function SummaryMetric({icon:Icon,label,value}){return <div className="module-summary-metric"><Icon size={15}/><div><strong>{value}</strong><span>{label}</span></div></div>}

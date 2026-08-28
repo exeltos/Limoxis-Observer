@@ -31,7 +31,7 @@ function baseRecord({id,subjectType,department,departmentEn,location,locationEn,
   return {
     id,subjectType,department,departmentEn,location,locationEn:locationEn||location,point,pointEn:pointEn||point,sourceCode,startedAt,batchId,sampleId,
     plateCode,platePosition,status:'active',notes,result:null,cfu:null,limitCfu:null,withinLimit:null,organism:null,organisms:[],
-    timeline:[{at:new Date().toISOString(),type:'environmentalSurveillanceStarted',actor:'Current user'}],
+    timeline:[{at:new Date().toISOString(),type:'environmentalSurveillanceStarted',actor:'Demo seed'}],
   }
 }
 
@@ -50,7 +50,7 @@ function createIndividualLabSample({record,createdBy}){
   })
 }
 
-export function createEnvironmentalSurveillance({subjectType,department,departmentEn,location,locationEn,point,pointEn,sourceCode,startedAt,notes='',batchId=null,createdBy='Current user'}){
+export function createEnvironmentalSurveillance({subjectType,department,departmentEn,location,locationEn,point,pointEn,sourceCode,startedAt,notes='',batchId=null,createdBy='Unknown actor'}){
   const id=nextId(), sampleId=nextLabId()
   const record=baseRecord({id,subjectType,department,departmentEn,location,locationEn,point,pointEn,sourceCode,startedAt,batchId,sampleId,notes})
   record.timeline[0].actor=createdBy
@@ -59,7 +59,7 @@ export function createEnvironmentalSurveillance({subjectType,department,departme
   return record
 }
 
-export function createEnvironmentalBatch({items,subjectType,startedAt,department,departmentEn,sourceCode,notes='',grouping='individual',createdBy='Current user'}){
+export function createEnvironmentalBatch({items,subjectType,startedAt,department,departmentEn,sourceCode,notes='',grouping='individual',createdBy='Unknown actor'}){
   const id=nextBatchId()
   const records=[]
   const plateGroups=new Map()

@@ -4,6 +4,8 @@ import { demoLibrarySeed } from '../management/managementData'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { ManualDateField } from '../../design-system/ManualDateField'
+import { TimeField } from '../../design-system/TimeField'
 
 export const WHO_MOMENTS=[
  {id:'moment1',label:'1. Πριν την επαφή με τον ασθενή'},
@@ -78,11 +80,11 @@ export function WhoHandHygieneModal({onClose,onSave,fixedDepartment='',initialRe
   <header><div><span className="eyebrow">WHO HAND HYGIENE</span><h3>{initialRecord?'Επεξεργασία συνεδρίας':'Νέα συνεδρία παρατήρησης'}</h3><p>Καταγραφή ευκαιριών σύμφωνα με τα 5 Moments του WHO.</p></div><button className="icon-close" onClick={onClose}>×</button></header>
   <div className="who-observation-body">
    <section className="who-session-grid">
-    <label><span>Ημερομηνία *</span><input type="date" value={session.date} onChange={e=>setS('date',e.target.value)}/></label>
+    <ManualDateField label="Ημερομηνία *" value={session.date} onChange={v=>setS('date',v)}/>
     <label><span>Τμήμα *</span><select value={session.department} disabled={Boolean(fixedDepartment)} onChange={e=>setS('department',e.target.value)}>{departments.map(d=><option key={d.el} value={d.el}>{d.el}</option>)}</select></label>
     <label><span>Παρατηρητής</span><input value={session.observer} readOnly/></label>
-    <label><span>Έναρξη</span><input type="time" value={session.startTime} onChange={e=>setS('startTime',e.target.value)}/></label>
-    <label><span>Λήξη</span><input type="time" value={session.endTime} onChange={e=>setS('endTime',e.target.value)}/></label>
+    <TimeField label="Έναρξη" value={session.startTime} onChange={v=>setS('startTime',v)}/>
+    <TimeField label="Λήξη" value={session.endTime} onChange={v=>setS('endTime',v)}/>
    </section>
 
    <section className="who-opportunity-editor">

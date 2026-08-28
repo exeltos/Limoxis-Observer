@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,FileDown,PlayCircle,Plus,Printer } from 'lucide-react'
+import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,PlayCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -38,7 +38,9 @@ export function ControlsPage(){
  const canExecuteRole=isFullControlsAdmin||[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER].includes(role)
  const scopedRows=useMemo(()=>controlDefinitions.flatMap(item=>item.departments.filter(dep=>canAccessRecord({department:dep})).map(dep=>({item,department:dep,assignment:getAssignment(item,dep)}))),[canAccessRecord])
  const departments=[...new Set(scopedRows.map(x=>x.department))]
- const rows=useMemo(()=>scopedRows.filter(({item})=>`${item.id} ${item.title} ${item.category} ${item.owner}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||x.department===department).filter(({item,department:dep})=>status==='all'||(status==='temporary'?hasControlDraft(item.id,dep):assignmentStatus(item,dep)===status)).filter(({item})=>frequency==='all'||item.frequency.kind===frequency),[scopedRows,query,department,status,frequency,version])
+ const rows=useMemo(()=>scopedRows.filter(({item})=>`${item.id} ${item.title} ${item.category} ${item.owner}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||x.department===department).filter(({item,department:dep})=>status==='all'||(status==='temporary'?hasControlDraft(item.id,dep):assignmentStatus(item,dep)===status)).filter(({item})=>frequency==='all'||item.frequency.kind===frequency),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 'version' is a deliberate cache-bust counter bumped after mutations; not read directly but must stay in deps to force recompute.
+    [scopedRows,query,department,status,frequency,version])
  const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short',hour12:false}).format(new Date(v)):'—'
  const overdue=scopedRows.filter(({item,department:dep})=>assignmentStatus(item,dep)==='overdue').length
  const dueSoon=scopedRows.filter(({item,department:dep})=>assignmentStatus(item,dep)==='dueSoon').length

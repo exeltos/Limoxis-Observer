@@ -1,7 +1,7 @@
 import { useMemo,useState } from 'react'
 import { ClipboardCheck,Droplets,Pencil,Recycle,ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
-import { useLocation,useNavigate,useSearchParams } from 'react-router-dom'
+import { useNavigate,useSearchParams } from 'react-router-dom'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
@@ -27,7 +27,6 @@ const tabs=[['handHygiene','handHygiene'],['waste','wasteManagement'],['antisept
 export function PreventionPage(){
  const {t,language,locale}=useLanguage()
  const navigate=useNavigate()
- const location=useLocation()
  const [searchParams,setSearchParams]=useSearchParams()
  const {notify}=useFeedback()
  const {profile,user}=useAuth()
@@ -46,8 +45,12 @@ export function PreventionPage(){
  const canCreate=can(role,createCapability,addOns,custom)
  const visibleTabs=tabs.filter(([id])=>can(role,id==='handHygiene'?CAPABILITIES.RECORD_HAND_HYGIENE:id==='waste'?CAPABILITIES.RECORD_WASTE:id==='antiseptics'?CAPABILITIES.RECORD_ANTISEPTIC:CAPABILITIES.RECORD_PREVENTION_BUNDLE,addOns,custom)||can(role,CAPABILITIES.VIEW_PREVENTION,addOns,custom))
  const source=tab==='handHygiene'?handHygieneRows:tab==='waste'?wasteRows:tab==='antiseptics'?antisepticRows:bundleRows
- const departments=useMemo(()=>[...new Set(source.map(x=>language==='el'?x.departmentEl:x.departmentEn))],[source,language,version])
- const rows=useMemo(()=>source.filter(x=>x.lifecycleStatus!=='voided').filter(x=>canAccessRecord({...x,department:x.departmentEl})).filter(x=>JSON.stringify(x).toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.departmentEl:x.departmentEn)===department).filter(x=>period==='all'||x.period===period).filter(x=>product==='all'||x.product===product).filter(x=>method==='all'||x.method===method),[source,query,department,period,product,method,language,canAccessRecord,version])
+ const departments=useMemo(()=>[...new Set(source.map(x=>language==='el'?x.departmentEl:x.departmentEn))],
+   // eslint-disable-next-line react-hooks/exhaustive-deps -- 'version' is a deliberate cache-bust counter bumped after mutations; not read directly but must stay in deps to force recompute.
+   [source,language,version])
+ const rows=useMemo(()=>source.filter(x=>x.lifecycleStatus!=='voided').filter(x=>canAccessRecord({...x,department:x.departmentEl})).filter(x=>JSON.stringify(x).toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.departmentEl:x.departmentEn)===department).filter(x=>period==='all'||x.period===period).filter(x=>product==='all'||x.product===product).filter(x=>method==='all'||x.method===method),
+   // eslint-disable-next-line react-hooks/exhaustive-deps -- 'version' is a deliberate cache-bust counter bumped after mutations; not read directly but must stay in deps to force recompute.
+   [source,query,department,period,product,method,language,canAccessRecord,version])
  const avg=handHygieneRows.length?handHygieneRows.reduce((sum,x)=>sum+x.rate,0)/handHygieneRows.length:0
  const fmtDate=v=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'
  function changeTab(id){
@@ -68,14 +71,15 @@ export function PreventionPage(){
    const index=target.findIndex(x=>x.id===editingRecord.id)
    if(index>=0){
     const previous=target[index]
-    const {_correctionReason:discardedInternalReason,...cleanRecord}=record
+    // eslint-disable-next-line no-unused-vars -- intentionally destructured out to exclude the internal-only field from cleanRecord before persisting.
+   const {_correctionReason:discardedInternalReason,...cleanRecord}=record
     const event=auditEvent('preventionRecordCorrected',{actor,reason:editingRecord._correctionReason||''})
     target[index]={...previous,...cleanRecord,id:editingRecord.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id,revisionHistory:[event,...(previous.revisionHistory||[])]}
    }
-   notify('Η διορθωμένη εγγραφή αποθηκεύτηκε και καταγράφηκε στο ιστορικό.','success')
+   notify(t('preventionCorrectedSaved'),'success')
   }else{
    target.unshift({id:makeId(tab),...record})
-   notify('Η καταχώρηση Πρόληψης αποθηκεύτηκε.','success')
+   notify(t('preventionSaved'),'success')
   }
   setVersion(v=>v+1);setEntryOpen(false);setEditingRecord(null)
  }
@@ -89,13 +93,13 @@ export function PreventionPage(){
  }
  function action(a){
   if(a===UI_ACTIONS.CREATE){setEditingRecord(null);setEntryOpen(true);return}
-  if(a===UI_ACTIONS.PRINT){window.print();notify('Η προβολή είναι έτοιμη για εκτύπωση.','success');return}
-  if(a===UI_ACTIONS.EXPORT){exportRows(tab,rows,t,language);notify('Η τρέχουσα λίστα εξήχθη.','success')}
+  if(a===UI_ACTIONS.PRINT){window.print();notify(t('printReadyMessage'),'success');return}
+  if(a===UI_ACTIONS.EXPORT){exportRows(tab,rows,t,language);notify(t('currentListExported'),'success')}
  }
 
  return <Page fill title={t('preventionCenter')} subtitle={t('preventionSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} actionCapabilities={{[UI_ACTIONS.CREATE]:createCapability}} onAction={action}/>}>
   <div className="workspace-summary">
-   <div className="prevention-kpis">
+   <div className="module-summary-strip">
     <Kpi icon={ShieldCheck} value={`${avg.toFixed(1)}%`} label={t('whoCompliance')}/>
     <Kpi icon={ClipboardCheck} value={bundleRows.length} label={t('activeBundles')}/>
     <Kpi icon={Recycle} value={`${wasteRows.reduce((s,x)=>s+x.weight,0).toFixed(1)} kg`} label={t('wasteRecorded')}/>
@@ -108,8 +112,8 @@ export function PreventionPage(){
    <div className="tabs prevention-tabs">{visibleTabs.map(([id,key])=><button key={id} className={`tab ${tab===id?'active':''}`} onClick={()=>changeTab(id)}>{t(key)}</button>)}</div>
    <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPrevention')} onClear={()=>{setQuery('');setDepartment('all');setPeriod('all');setProduct('all');setMethod('all')}} advanced={tab==='antiseptics'?<>
      <FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
-     <FilterSelect label="Προϊόν" value={product} onChange={setProduct}><option value="all">Όλα τα προϊόντα</option>{[...new Set(source.map(x=>x.product).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
-     <FilterSelect label="Πηγή δεδομένων" value={method} onChange={setMethod}><option value="all">Όλες οι πηγές</option>{[...new Set(source.map(x=>x.method).filter(Boolean))].map(x=><option key={x} value={x}>{antisepticMethodLabel(x)}</option>)}</FilterSelect>
+     <FilterSelect label={t('productFilter')} value={product} onChange={setProduct}><option value="all">{t('allProducts')}</option>{[...new Set(source.map(x=>x.product).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
+     <FilterSelect label={t('dataSource')} value={method} onChange={setMethod}><option value="all">{t('allDataSources')}</option>{[...new Set(source.map(x=>x.method).filter(Boolean))].map(x=><option key={x} value={x}>{antisepticMethodLabel(x)}</option>)}</FilterSelect>
     </>:tab==='bundles'?<FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>:null} activeAdvancedCount={(department!=='all'?1:0)+(period!=='all'?1:0)+(product!=='all'?1:0)+(method!=='all'?1:0)}>
     <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
    </FilterBar>
@@ -122,7 +126,7 @@ export function PreventionPage(){
   </div>
 
   {entryOpen&&canCreate&&(tab==='handHygiene'?<WhoHandHygieneModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='waste'?<WasteEntryModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='antiseptics'?<AntisepticEntryModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='bundles'?<BundleExecutionModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:<PreventionEntryModal tab={tab} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>)}
-  <GovernedReasonDialog open={Boolean(governedEdit)} title="Διόρθωση καταγεγραμμένης μέτρησης" description="Η αρχική καταχώρηση παραμένει τεκμηριωμένη. Η αλλαγή απαιτεί αιτιολογία και θα προστεθεί στο revision history." confirmLabel="Έναρξη διόρθωσης" onCancel={()=>setGovernedEdit(null)} onConfirm={confirmGovernedEdit}/>
+  <GovernedReasonDialog open={Boolean(governedEdit)} title={t('correctionRecordedMeasurement')} description={t('correctionRevisionHelp')} confirmLabel={t('startCorrection')} onCancel={()=>setGovernedEdit(null)} onConfirm={confirmGovernedEdit}/>
  </Page>
 }
 
@@ -133,16 +137,16 @@ function makeId(tab){
 }
 
 function exportRows(tab,rows,t,language){
- if(tab==='handHygiene')return downloadCsv('prevention-hand-hygiene.csv',['Ημερομηνία','Τμήμα','Κατηγορία','Παρατηρήσεις','Συμμορφούμενες','Συμμόρφωση','Παρατηρητής'],rows.map(x=>[x.date,language==='el'?x.departmentEl:x.departmentEn,t(x.profession),x.observations,x.compliant,`${x.rate}%`,x.observer]))
- if(tab==='waste')return downloadCsv('prevention-waste.csv',['Ημερομηνία','Τμήμα','Κατηγορία','Βάρος kg','Περιέκτες','Νοσηλευτικές ημέρες','Δείκτης kg/1.000','Παραστατικό','Εταιρεία συλλογής','Υπεύθυνος'],rows.map(x=>[x.date,language==='el'?x.departmentEl:x.departmentEn,language==='el'?(x.wasteType||x.type):(x.typeEn||x.wasteType||x.type),x.weight,x.containers,x.patientDays||'',x.indicator??'',x.documentNumber||'',x.collectionCompany||'',x.responsible||'']))
- if(tab==='antiseptics')return downloadCsv('prevention-antiseptics.csv',['Περίοδος','Τμήμα','Προϊόν','Κατανάλωση L','Νοσηλευτικές ημέρες','Δείκτης ABHR L/1.000','Πηγή δεδομένων','Αναφορά/Παραστατικό','Υπεύθυνος'],rows.map(x=>[x.period,language==='el'?x.departmentEl:x.departmentEn,language==='el'?x.product:(x.productEn||x.product),x.litres,x.patientDays||'',x.indicator??'',antisepticMethodLabel(x.method),x.referenceNumber||'',x.responsible||'']))
- return downloadCsv('prevention-bundles.csv',['Ημερομηνία','Bundle','Έκδοση','Τμήμα','Βάρδια','Ασθενής','Συσκευή','Score','All-or-none','Αποκλίσεις','Υπεύθυνος'],rows.map(x=>[x.date||x.period,x.templateName||x.bundle,x.templateVersion||'',language==='el'?x.departmentEl:x.departmentEn,x.shift||'',x.patientRef||'',x.deviceRef||'',`${x.score}%`,x.allOrNone?'Ναι':'Όχι',x.failedCount??x.findings?.length??0,x.owner||'']))
+ if(tab==='handHygiene')return downloadCsv('prevention-hand-hygiene.csv',[t('date'),t('department'),t('exportCategory'),t('observations'),t('compliant'),t('compliance'),t('observer')],rows.map(x=>[x.date,language==='el'?x.departmentEl:x.departmentEn,t(x.profession),x.observations,x.compliant,`${x.rate}%`,x.observer]))
+ if(tab==='waste')return downloadCsv('prevention-waste.csv',[t('date'),t('department'),t('exportCategory'),`${t('weight')} kg`,t('containers'),t('patientDays'),`${t('indicator')} kg/1.000`,t('documentNumber'),t('collectionCompany'),t('responsible')],rows.map(x=>[x.date,language==='el'?x.departmentEl:x.departmentEn,language==='el'?(x.wasteType||x.type):(x.typeEn||x.wasteType||x.type),x.weight,x.containers,x.patientDays||'',x.indicator??'',x.documentNumber||'',x.collectionCompany||'',x.responsible||'']))
+ if(tab==='antiseptics')return downloadCsv('prevention-antiseptics.csv',[t('period'),t('department'),t('product'),`${t('consumptionLitres')}`,t('patientDays'),`${t('indicator')} ABHR L/1.000`,t('dataSource'),t('referenceDocument'),t('responsible')],rows.map(x=>[x.period,language==='el'?x.departmentEl:x.departmentEn,language==='el'?x.product:(x.productEn||x.product),x.litres,x.patientDays||'',x.indicator??'',antisepticMethodLabel(x.method),x.referenceNumber||'',x.responsible||'']))
+ return downloadCsv('prevention-bundles.csv',[t('date'),t('bundle'),t('version'),t('department'),t('shift'),t('patient'),t('device'),t('score'),t('allOrNone'),t('deviations'),t('owner')],rows.map(x=>[x.date||x.period,x.templateName||x.bundle,x.templateVersion||'',language==='el'?x.departmentEl:x.departmentEn,x.shift||'',x.patientRef||'',x.deviceRef||'',`${x.score}%`,x.allOrNone?t('yes'):t('no'),x.failedCount??x.findings?.length??0,x.owner||'']))
 }
 
-function Kpi({icon:Icon,value,label}){return <div className="prevention-kpi"><Icon size={18}/><div><strong>{value}</strong><span>{label}</span></div></div>}
-function EditCell({record,canEdit,onEdit}){return <td className="prevention-row-action">{canEdit&&<button type="button" className="prevention-row-edit" title="Επεξεργασία" aria-label="Επεξεργασία" onClick={e=>onEdit(record,e)}><Pencil size={15}/></button>}</td>}
-function HandTable({rows,t,language,fmtDate,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('date')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('observations')}</th><th>{t('compliant')}</th><th>{t('compliance')}</th><th>{t('observer')}</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{fmtDate(x.date)}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{t(x.profession)}</td><td>{x.observations}</td><td>{x.compliant}</td><td><strong>{x.rate}%</strong></td><td>{x.observer}</td><EditCell record={x} canEdit={canEdit} onEdit={onEdit}/></tr>})}</tbody></table>}
+function Kpi({icon:Icon,value,label}){return <div className="module-summary-metric"><Icon size={18}/><div><strong>{value}</strong><span>{label}</span></div></div>}
+function EditCell({record,canEdit,onEdit,t}){return <td className="prevention-row-action">{canEdit&&<button type="button" className="prevention-row-edit" title={t('edit')} aria-label={t('edit')} onClick={e=>onEdit(record,e)}><Pencil size={15}/></button>}</td>}
+function HandTable({rows,t,language,fmtDate,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('date')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('observations')}</th><th>{t('compliant')}</th><th>{t('compliance')}</th><th>{t('observer')}</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{fmtDate(x.date)}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{t(x.profession)}</td><td>{x.observations}</td><td>{x.compliant}</td><td><strong>{x.rate}%</strong></td><td>{x.observer}</td><EditCell record={x} canEdit={canEdit} onEdit={onEdit} t={t}/></tr>})}</tbody></table>}
 
-function WasteTable({rows,t,language,fmtDate,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('date')}</th><th>{t('department')}</th><th>Κατηγορία</th><th>Βάρος</th><th>Περιέκτες</th><th>Δείκτης</th><th>Παραστατικό</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);const category=x.wasteType||x.type;return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{fmtDate(x.date)}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td><span className={`waste-category-badge ${wasteCategoryTone(category)}`}>{language==='el'?category:(x.typeEn||category)}</span></td><td>{Number(x.weight).toLocaleString('el-GR')} kg</td><td>{x.containers}</td><td>{x.indicator!=null?<><strong>{Number(x.indicator).toLocaleString('el-GR')}</strong><small className="table-cell-unit"> kg / 1.000</small></>:'—'}</td><td>{x.documentNumber||'—'}</td><EditCell record={x} canEdit={canEdit} onEdit={onEdit}/></tr>})}</tbody></table>}
-function AntisepticTable({rows,t,language,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('period')}</th><th>{t('department')}</th><th>Προϊόν</th><th>Κατανάλωση</th><th>Νοσηλευτικές ημέρες</th><th>Δείκτης ABHR</th><th>Πηγή</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{x.period}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td><strong>{language==='el'?x.product:(x.productEn||x.product)}</strong>{x.indicatorEligible===false&&<small className="table-cell-unit">εκτός δείκτη ABHR</small>}</td><td><strong>{Number(x.litres).toLocaleString('el-GR')} L</strong></td><td>{x.patientDays||'—'}</td><td>{x.indicator!=null?<><strong>{Number(x.indicator).toLocaleString('el-GR')}</strong><small className="table-cell-unit"> L / 1.000</small></>:'—'}</td><td><span className={`antiseptic-method-badge ${x.method||'other'}`}>{antisepticMethodLabel(x.method)}</span></td><EditCell record={x} canEdit={canEdit} onEdit={onEdit}/></tr>})}</tbody></table>}
-function BundleTable({rows,t,language,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>Ημερομηνία</th><th>Bundle</th><th>{t('department')}</th><th>Πλαίσιο</th><th>Score</th><th>All-or-none</th><th>Αποκλίσεις</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{x.date||x.period}</td><td><strong>{x.templateName||x.bundle}</strong><small className="table-cell-unit">v{x.templateVersion||'1.0'}</small></td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{x.shift||'—'}</td><td><strong>{x.score}%</strong></td><td><span className={`bundle-all-badge ${x.allOrNone?'passed':'failed'}`}>{x.allOrNone?'Ναι':'Όχι'}</span></td><td>{(x.failedCount??x.findings?.length??0)>0?<span className="bundle-finding-count">{x.failedCount??x.findings?.length}</span>:'—'}</td><EditCell record={x} canEdit={canEdit} onEdit={onEdit}/></tr>})}</tbody></table>}
+function WasteTable({rows,t,language,fmtDate,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('date')}</th><th>{t('department')}</th><th>{t('exportCategory')}</th><th>{t('weight')}</th><th>{t('containers')}</th><th>{t('indicator')}</th><th>{t('documentNumber')}</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);const category=x.wasteType||x.type;return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{fmtDate(x.date)}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td><span className={`waste-category-badge ${wasteCategoryTone(category)}`}>{language==='el'?category:(x.typeEn||category)}</span></td><td>{Number(x.weight).toLocaleString('el-GR')} kg</td><td>{x.containers}</td><td>{x.indicator!=null?<><strong>{Number(x.indicator).toLocaleString('el-GR')}</strong><small className="table-cell-unit"> kg / 1.000</small></>:'—'}</td><td>{x.documentNumber||'—'}</td><EditCell record={x} canEdit={canEdit} onEdit={onEdit} t={t}/></tr>})}</tbody></table>}
+function AntisepticTable({rows,t,language,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('period')}</th><th>{t('department')}</th><th>{t('product')}</th><th>{t('consumptionLitres')}</th><th>{t('patientDays')}</th><th>{t('indicator')} ABHR</th><th>{t('dataSourceShort')}</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{x.period}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td><strong>{language==='el'?x.product:(x.productEn||x.product)}</strong>{x.indicatorEligible===false&&<small className="table-cell-unit">{t('notApplicable')} ABHR</small>}</td><td><strong>{Number(x.litres).toLocaleString('el-GR')} L</strong></td><td>{x.patientDays||'—'}</td><td>{x.indicator!=null?<><strong>{Number(x.indicator).toLocaleString('el-GR')}</strong><small className="table-cell-unit"> L / 1.000</small></>:'—'}</td><td><span className={`antiseptic-method-badge ${x.method||'other'}`}>{antisepticMethodLabel(x.method)}</span></td><EditCell record={x} canEdit={canEdit} onEdit={onEdit} t={t}/></tr>})}</tbody></table>}
+function BundleTable({rows,t,language,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('date')}</th><th>{t('bundle')}</th><th>{t('department')}</th><th>{t('context')}</th><th>{t('score')}</th><th>{t('allOrNone')}</th><th>{t('deviations')}</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{x.date||x.period}</td><td><strong>{x.templateName||x.bundle}</strong><small className="table-cell-unit">v{x.templateVersion||'1.0'}</small></td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{x.shift||'—'}</td><td><strong>{x.score}%</strong></td><td><span className={`bundle-all-badge ${x.allOrNone?'passed':'failed'}`}>{x.allOrNone?t('yes'):t('no')}</span></td><td>{(x.failedCount??x.findings?.length??0)>0?<span className="bundle-finding-count">{x.failedCount??x.findings?.length}</span>:'—'}</td><EditCell record={x} canEdit={canEdit} onEdit={onEdit} t={t}/></tr>})}</tbody></table>}

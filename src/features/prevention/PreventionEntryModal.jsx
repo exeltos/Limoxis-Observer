@@ -3,6 +3,7 @@ import { ClipboardCheck,Droplets,Recycle,ShieldCheck } from 'lucide-react'
 import { demoLibrarySeed } from '../management/managementData'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
+import { ManualDateField } from '../../design-system/ManualDateField'
 
 const config={
  handHygiene:{title:'Νέα παρατήρηση Υγιεινής Χεριών',icon:ShieldCheck},
@@ -54,7 +55,7 @@ export function PreventionEntryModal({tab,onClose,onSave,fixedDepartment='',init
    <div className="prevention-entry-actor"><span>Καταχώρηση από</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
    <div className="entry-grid">
     {tab==='handHygiene'&&<>
-     <label><span>Ημερομηνία *</span><input type="date" value={draft.date} onChange={e=>set('date',e.target.value)}/></label>
+     <ManualDateField label="Ημερομηνία *" value={draft.date} onChange={v=>set('date',v)}/>
      <DepartmentField value={draft.departmentEl} onChange={v=>set('departmentEl',v)} departments={departments} fixed={Boolean(fixedDepartment)}/>
      <label><span>Επαγγελματική κατηγορία *</span><select value={draft.profession} onChange={e=>set('profession',e.target.value)}><option value="nursing">Νοσηλευτικό προσωπικό</option><option value="medical">Ιατρικό προσωπικό</option><option value="other">Άλλο προσωπικό</option></select></label>
      <label><span>Παρατηρήσεις *</span><input type="number" min="0" value={draft.observations} onChange={e=>set('observations',e.target.value)}/></label>
@@ -62,7 +63,7 @@ export function PreventionEntryModal({tab,onClose,onSave,fixedDepartment='',init
      <label><span>Παρατηρητής</span><input value={draft.observer} readOnly/></label>
     </>}
     {tab==='waste'&&<>
-     <label><span>Ημερομηνία *</span><input type="date" value={draft.date} onChange={e=>set('date',e.target.value)}/></label>
+     <ManualDateField label="Ημερομηνία *" value={draft.date} onChange={v=>set('date',v)}/>
      <DepartmentField value={draft.departmentEl} onChange={v=>set('departmentEl',v)} departments={departments} fixed={Boolean(fixedDepartment)}/>
      <label className="entry-span-2"><span>Τύπος αποβλήτου *</span><select value={draft.type} onChange={e=>set('type',e.target.value)}><option value="infectiousWaste">Μολυσματικά απόβλητα</option><option value="mixedHazardousWaste">Μικτά επικίνδυνα απόβλητα</option><option value="otherWaste">Άλλο</option></select></label>
      <label><span>Βάρος (kg) *</span><input type="number" min="0" step="0.1" value={draft.weight} onChange={e=>set('weight',e.target.value)}/></label>

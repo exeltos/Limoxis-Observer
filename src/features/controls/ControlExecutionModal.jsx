@@ -7,6 +7,7 @@ import { getAssignment,frequencyLabel } from './controlsDemoData'
 import { controlActorFromAuth } from './controlActor'
 import { emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
 import { getControlDraft,saveControlDraft,removeControlDraft } from './controlDrafts'
+import { ManualDateField } from '../../design-system/ManualDateField'
 
 export function ControlExecutionModal({record,department,onClose,onSave,onDraftSaved,initialExecution=null}){
  const {profile,user}=useAuth()
@@ -95,7 +96,7 @@ export function ControlExecutionModal({record,department,onClose,onSave,onDraftS
 
   <div className="control-execution-tools">
    {!isEditing&&<><button className="button button-quiet" onClick={saveDraft}><Save size={15}/> Αποθήκευση προσωρινά</button>{draftSaved&&<span className="control-temp-save-state">Αποθηκευμένο προσωρινά · θα επανέλθει όταν ξανανοίξετε την καταχώρηση</span>}</>}
-   {response.mode==='list'&&<button className="button button-quiet" onClick={printDraft}><Printer size={15}/> Εκτύπωση φόρμας</button>}
+   {response.mode==='list'&&<button type="button" className="entity-record-icon-button" onClick={printDraft} title="Εκτύπωση φόρμας" aria-label="Εκτύπωση φόρμας"><Printer size={15}/></button>}
    {!isEditing&&<button className="button button-quiet" onClick={report}><FileWarning size={15}/> Δημιουργία αναφοράς</button>}
   </div>
 
@@ -125,7 +126,7 @@ function StructuredList({template,rows,setRow,addRow,removeRow}){
         ? <>
            <td><input value={r.item||''} onChange={e=>setRow(i,'item',e.target.value)} placeholder="Υλικό / Φάρμακο"/></td>
            <td><input type="number" min="0" value={r.quantity||''} onChange={e=>setRow(i,'quantity',e.target.value)} placeholder="Ποσότητα"/></td>
-           <td><input type="date" value={r.expiry||''} onChange={e=>setRow(i,'expiry',e.target.value)}/></td>
+           <td><ManualDateField className="table-date-field" value={r.expiry||''} onChange={v=>setRow(i,'expiry',v)}/></td>
            <td><div className="control-finding-cell"><select value={r.finding||''} onChange={e=>setRow(i,'finding',e.target.value)}><option value="">Επιλέξτε...</option><option>Ληγμένο</option><option>Κοντόληκτο</option><option>Άλλο</option></select>{r.finding==='Άλλο'&&<input className="control-finding-other" value={r.findingOther||''} onChange={e=>setRow(i,'findingOther',e.target.value)} placeholder="Συμπληρώστε το εύρημα"/>}</div></td>
           </>
         : <>

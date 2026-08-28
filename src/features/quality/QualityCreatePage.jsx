@@ -7,6 +7,8 @@ import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { AttachmentField } from '../../design-system/AttachmentField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useAuth } from '../../core/auth/AuthContext'
+import { auditActorFromAuth } from '../../core/audit/actor'
 import { qualityCollections } from './qualityDemoData'
 import { demoLibrarySeed } from '../management/managementData'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -26,6 +28,8 @@ export function QualityCreatePage(){
   const {goBack}=useContextualNavigation('/quality')
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
+  const {profile,user}=useAuth()
+  const actor=auditActorFromAuth({profile,user})
   const c=config[recordType]||config.incidents
   const Icon=c.icon
   const controlSource=location.state?.controlSource
@@ -44,7 +48,7 @@ export function QualityCreatePage(){
   function setDepartment(el){const pair=demoLibrarySeed.departments.find(([x])=>x===el);setDraft(d=>({...d,department:el,departmentEn:pair?.[1]||el}))}
   function save(){
     const id=`${c.prefix}-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String((qualityCollections[recordType]?.length||0)+1).padStart(3,'0')}`
-    const record={id,...draft,history:[{at:new Date().toISOString(),action:'recordCreated',actor:t('currentUser')}]}
+    const record={id,...draft,history:[{at:new Date().toISOString(),action:'recordCreated',actor:actor.name}]}
     qualityCollections[recordType]?.unshift(record)
     notify(t('recordCreated'),'success')
     navigate(`/quality/${recordType}/${id}`,{replace:true,state:{limoxisFrom:location.state?.limoxisFrom}})

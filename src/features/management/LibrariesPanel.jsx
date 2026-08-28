@@ -12,7 +12,7 @@ const categories=[
  ['notifiableDiseases','libraryNotifiableDiseases'],['sampleTypes','librarySampleTypes'],
  ['professionalCategories','libraryProfessionalCategories'],['vaccines','libraryVaccines'],
  ['wasteTypes','libraryWasteTypes'],['antiseptics','libraryAntiseptics'],['isolationTypes','libraryIsolationTypes'],
- ['controlTypes','libraryControlTypes'],['documentCategories','libraryDocumentCategories'],['bundles','Bundles Πρόληψης']
+ ['controlTypes','libraryControlTypes'],['documentCategories','libraryDocumentCategories'],['bundles','libraryPreventionBundles']
 ]
 
 export function LibrariesPanel(){
@@ -55,7 +55,7 @@ export function LibrariesPanel(){
   <div className="library-layout workspace-fill">
    <aside className="library-categories scroll-list">
     {categories.map(([id,key])=><button key={id} className={active===id?'active':''} onClick={()=>{setActive(id);setQuery('')}}>
-     <BookOpen size={15}/><span>{key==='Bundles Πρόληψης'?'Bundles Πρόληψης':t(key)}</span><small>{id==='bundles'?'6':(rows[id]?.length||0)}</small>
+     <BookOpen size={15}/><span>{t(key)}</span><small>{id==='bundles'?'6':(rows[id]?.length||0)}</small>
     </button>)}
    </aside>
    <div className="library-content workspace-column">

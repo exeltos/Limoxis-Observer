@@ -46,12 +46,12 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
  const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
  const departmentEn=departments.find(d=>d.el===draft.departmentEl)?.en||draft.departmentEl
  const productEn=products.find(d=>d.el===draft.product)?.en||draft.product
- const range=monthRange(draft.period)
+ const range=useMemo(()=>monthRange(draft.period),[draft.period])
  const suggestedPatientDays=useMemo(()=>{
   if(!range)return ''
   const exact=demoPatientDayPeriods.find(x=>x.departmentEl===draft.departmentEl&&range.from>=x.from&&range.to<=x.to)
   return exact?.value||''
- },[draft.period,draft.departmentEl])
+ },[range,draft.departmentEl])
  const patientDays=Number(draft.patientDays)||0
  const litres=Number(draft.litres)||0
  const abhr=isAbhrProduct(draft.product)

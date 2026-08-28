@@ -42,7 +42,12 @@ export function AttachmentField({
   function chooseFile(event){
     const file=event.target.files?.[0]||null
     if(!file)return
-    setEditor(current=>({...current,file,name:file.name}))
+    setEditor(current=>({...current,file,name:file.name,dataUrl:''}))
+    if(file.size<=4*1024*1024){
+      const reader=new FileReader()
+      reader.onload=()=>setEditor(current=>current?{...current,dataUrl:String(reader.result||'')}:current)
+      reader.readAsDataURL(file)
+    }
     event.target.value=''
   }
   function saveEditor(){
@@ -57,6 +62,7 @@ export function AttachmentField({
         size:file.size,
         type:file.type,
         objectUrl:URL.createObjectURL(file),
+        dataUrl:editor.dataUrl||'',
         category:editor.category,
         description:editor.description.trim(),
       }
@@ -83,7 +89,7 @@ export function AttachmentField({
     notify(t('actionCompleted'),'success')
   }
   function view(file){
-    if(file.objectUrl||file.url)window.open(file.objectUrl||file.url,'_blank','noopener,noreferrer')
+    if(file.dataUrl||file.objectUrl||file.url)window.open(file.dataUrl||file.objectUrl||file.url,'_blank','noopener,noreferrer')
   }
   const categoryLabel=code=>{
     const row=categories.find(([value])=>value===code)
@@ -100,7 +106,7 @@ export function AttachmentField({
           <div><span className="attachment-category">{categoryLabel(file.category)}</span>{file.description&&<small>{file.description}</small>}</div>
         </div>
         <div className="attachment-actions">
-          <button disabled={!file.objectUrl&&!file.url} onClick={()=>view(file)} title={t('viewAttachment')} aria-label={t('viewAttachment')}><Eye size={14}/></button>
+          <button disabled={!file.dataUrl&&!file.objectUrl&&!file.url} onClick={()=>view(file)} title={t('viewAttachment')} aria-label={t('viewAttachment')}><Eye size={14}/></button>
           {!disabled&&<button onClick={()=>beginEdit(file)} title={t('edit')} aria-label={t('edit')}><Pencil size={14}/></button>}
           {!disabled&&<button className="danger" onClick={()=>remove(file.id)} title={t('delete')} aria-label={t('delete')}><Trash2 size={14}/></button>}
         </div>

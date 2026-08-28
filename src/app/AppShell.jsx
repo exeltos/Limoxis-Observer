@@ -18,10 +18,13 @@ export function AppShell(){
   const previewDepartments=[['','previewAllHospital'],['icu','previewIcu'],['surgery','previewSurgery'],['internal','previewInternalMedicine']]
   const visibleNavigation=navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
   const managementNavigation=visibleNavigation.filter(item=>item.key==='management')
-  const moreNavigation=visibleNavigation.filter(item=>item.group==='more')
-  const primaryNavigation=visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='more')
-  const moreActive=moreNavigation.some(item=>location.pathname===item.to||location.pathname.startsWith(`${item.to}/`))
-  const moreExpanded=moreOpen||moreActive
+  const usesCompactMore=[ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD].includes(role)
+  const moreNavigation=usesCompactMore?visibleNavigation.filter(item=>item.group==='more'):[]
+  const primaryNavigation=usesCompactMore
+    ?visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='more')
+    :visibleNavigation.filter(item=>item.key!=='management')
+  const moreActive=usesCompactMore&&moreNavigation.some(item=>location.pathname===item.to||location.pathname.startsWith(`${item.to}/`))
+  const moreExpanded=usesCompactMore&&(moreOpen||moreActive)
   async function handleLogout(){await logout();navigate('/login',{replace:true})}
   const NavEntry=({item,nested=false,collapseMore=false})=>{const Icon=item.icon;return <NavLink to={item.to} end={item.to==='/' } onClick={()=>collapseMore&&setMoreOpen(false)} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{t(item.key)}</span></NavLink>}
   return <div className="app-shell">
@@ -29,7 +32,7 @@ export function AppShell(){
       {primaryNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}
       {moreNavigation.length>0&&<div className={`sidebar-nav-group ${moreExpanded?'open':''}`}>
         <button type="button" className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>setMoreOpen(v=>!v)} aria-expanded={moreExpanded}>
-          <Layers3 size={18}/><span>{language==='el'?'Περισσότερα':'More'}</span><ChevronDown className="nav-group-chevron" size={14}/>
+          <Layers3 size={18}/><span>{t('more')}</span><ChevronDown className="nav-group-chevron" size={14}/>
         </button>
         {moreExpanded&&<div className="sidebar-nav-children">{moreNavigation.map(item=><NavEntry key={item.to} item={item} nested/>)}</div>}
       </div>}

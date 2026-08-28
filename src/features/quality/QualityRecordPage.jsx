@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { AlertTriangle, CheckSquare2, ClipboardCheck, FileClock, Link2, Paperclip, Pencil, Printer, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckSquare2, ClipboardCheck, FileClock, Link2, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { downloadRecordJson } from '../../core/export/recordExport'
 import { AttachmentField } from '../../design-system/AttachmentField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -25,7 +27,7 @@ export function QualityRecordPage(){
   const {restored,goBack}=useContextualNavigation('/quality')
   const {t,language,locale}=useLanguage()
   const {role,membership,canAccessRecord}=useTenant()
-  const {notify,confirm}=useFeedback()
+  const {notify}=useFeedback()
   const {profile,user}=useAuth()
   const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
   const original=getQualityRecord(recordType,recordId)
@@ -50,7 +52,7 @@ export function QualityRecordPage(){
     subtitle={`${language==='el'?record.department:record.departmentEn||'—'} · ${t(record.status)}`}
     status={<span className={`status-badge ${['closed','completed'].includes(record.status)?'active':''}`}>{t(record.status)}</span>}
     recordNavigation={recordNavigation}
-    headerActions={canPrint?<button className="entity-record-icon-button" onClick={()=>window.print()} title={t('print')}><Printer size={15}/></button>:null}
+    headerActions={<PrintExportActions showPrint={canPrint} onExport={()=>downloadRecordJson(record,{filename:record.id})}/>}
     tabs={tabs} activeTab={tab} onTabChange={setTab}>
       {tab==='details'&&<QualityDetails recordType={recordType} record={record} setRecord={setRecord} t={t} language={language} locale={locale} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack}/>}
       {tab==='links'&&<QualityLinks recordType={recordType} record={record} t={t} language={language}/>}

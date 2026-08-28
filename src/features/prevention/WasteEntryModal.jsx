@@ -4,6 +4,7 @@ import { demoLibrarySeed,demoPatientDayPeriods } from '../management/managementD
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { wasteCategoryTone } from './wasteVisuals'
+import { ManualDateField } from '../../design-system/ManualDateField'
 
 export function WasteEntryModal({onClose,onSave,fixedDepartment='',initialRecord=null}){
  const {profile,user}=useAuth()
@@ -40,7 +41,7 @@ export function WasteEntryModal({onClose,onSave,fixedDepartment='',initialRecord
    <div className="prevention-entry-actor"><span>{initialRecord?'Επεξεργασία από':'Καταχώρηση από'}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
    <section className="waste-form-section"><div className="waste-form-section-title"><strong>Μέτρηση</strong><small>Η κατηγορία αποβλήτου προέρχεται από τη Βιβλιοθήκη.</small></div>
     <div className="entry-grid">
-     <label><span>Ημερομηνία *</span><input type="date" value={draft.date} onChange={e=>set('date',e.target.value)}/></label>
+     <ManualDateField label="Ημερομηνία *" value={draft.date} onChange={v=>set('date',v)}/>
      <DepartmentField value={draft.departmentEl} onChange={v=>set('departmentEl',v)} departments={departments} fixed={Boolean(fixedDepartment)}/>
      <label className="entry-span-2"><span>Κατηγορία αποβλήτου *</span><div className="waste-category-field"><select value={draft.wasteType} onChange={e=>set('wasteType',e.target.value)}>{wasteTypes.map(x=><option key={x.el} value={x.el}>{x.el} — {x.en}</option>)}</select><span className={`waste-category-badge ${wasteCategoryTone(draft.wasteType)}`}>{draft.wasteType}</span></div></label>
      <label><span>Βάρος (kg) *</span><input type="number" min="0" step="0.1" value={draft.weight} onChange={e=>set('weight',e.target.value)} placeholder="0,0"/></label>

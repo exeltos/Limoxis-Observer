@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Activity, BriefcaseBusiness, Download, FileCheck2, GraduationCap, HeartPulse, Pencil, Printer, ShieldCheck, Syringe, Trash2, UserRound } from 'lucide-react'
+import { Activity, BriefcaseBusiness, CheckCircle2, FileCheck2, FileSignature, GraduationCap, HeartPulse, Pencil, ShieldCheck, Syringe, Trash2, UserRound, XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { downloadRecordJson } from '../../core/export/recordExport'
 import { Button } from '../../design-system/Button'
 import { demoLibrarySeed } from '../management/managementData'
 import { AttachmentField } from '../../design-system/AttachmentField'
@@ -10,15 +12,19 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
-import { employeeRows, employeeVaccinations, occupationalVisits, employeeTraining, employeeEvaluations, employeeCertificates } from './employeeDemoData'
+import { employeeVaccinations, occupationalVisits, employeeTraining, employeeEvaluations, employeeCertificates } from './employeeDemoData'
+import { loadEmployees } from './employeeStore'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { EmployeeSurveillanceFlow } from '../surveillance/EmployeeSurveillanceFlow'
 import { getEmployeeSurveillanceForEmployee } from '../surveillance/employeeSurveillanceData'
+import { approvalsForEmployee, answerCommitteeApproval } from '../committees/committeeApprovals'
+import { loadCommittees, saveCommittees } from '../committees/committeeData'
+import { useAuditActor } from '../../core/audit/useAuditActor'
 
 export function EmployeeRecordPage({selfMode=false}){
-  const {employeeId}=useParams(); const navigate=useNavigate(); const {goBack,restored}=useContextualNavigation('/employees'); const {t,language,locale}=useLanguage(); const {confirm,notify}=useFeedback(); const {role,membership,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
+  const {employeeId}=useParams(); const navigate=useNavigate(); const employeeRows=useMemo(loadEmployees,[]); const {goBack,restored}=useContextualNavigation('/employees'); const {t,language,locale}=useLanguage(); const {confirm,notify}=useFeedback(); const {role,membership,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
   const id=selfMode?(employeeRows[0]?.id):(employeeId||employeeRows[0]?.id)
   const recordNavigation=useRecordSequenceNavigation({registry:'employees',currentId:id,pathForId:nextId=>`/employees/${nextId}`})
   const employee=employeeRows.find(x=>x.id===id) || employeeRows[0]
@@ -36,15 +42,34 @@ export function EmployeeRecordPage({selfMode=false}){
     {id:'evaluations',label:t('evaluations'),icon:FileCheck2,show:canAdmin || selfMode},
     {id:'certificates',label:t('employeesRecords.certificatesDocuments'),icon:BriefcaseBusiness,show:true},
     {id:'history',label:t('history'),icon:ShieldCheck,show:canOccupational || canAdmin},
-  ].filter(x=>x.show),[t,canAdmin,canOccupational,canTraining,selfMode])
+  ].filter(x=>x.show),[t,canAdmin,canOccupational,canTraining,canSeeSensitiveEmployeeHealth,selfMode])
   const [tab,setTab]=useState(()=>restored?.tab||'details')
   const [surveillanceOpen,setSurveillanceOpen]=useState(false)
   const [surveillanceVersion,setSurveillanceVersion]=useState(0)
+  const actor=useAuditActor()
+  const [committeeApprovalVersion,setCommitteeApprovalVersion]=useState(0)
+  const committeeApprovals=useMemo(()=>approvalsForEmployee(employee.id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 'committeeApprovalVersion' is a deliberate cache-bust counter bumped after answering a request; not read directly but must stay in deps to force recompute.
+    [employee.id,committeeApprovalVersion])
+  const pendingCommitteeApprovals=committeeApprovals.filter(x=>x.status==='pending')
   if(!employeeInScope)return <Page title={t('employees')}><div className="inline-empty">Δεν έχετε πρόσβαση σε αυτή την εγγραφή.</div></Page>
   const name=language==='el'?`${employee.lastName} ${employee.firstName}`:`${employee.firstNameEn} ${employee.lastNameEn}`
   const fmt=v=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'
   async function deleteEmployee(){const ok=await confirm({title:t('employeesRecords.deleteEmployee'),message:t('employeesRecords.confirmEmployeeDelete'),confirmLabel:t('delete'),danger:true});if(ok){notify(t('employeesRecords.employeeDeleted'),'success');navigate('/employees')}}
+  function answerCommitteeRequest(request,status){
+    answerCommitteeApproval(request.id,status,actor)
+    const now=new Date().toISOString()
+    const committees=loadCommittees().map(c=>c.id===request.committeeId?{
+      ...c,
+      memberRefs:(c.memberRefs||[]).map(m=>m.employeeId===employee.id?{...m,approvalStatus:status,approvalAnsweredAt:now,approvalAnsweredBy:actor.name,approvalAnsweredById:actor.id}:m),
+      history:[{at:now,actor:actor.name,actorId:actor.id,action:status==='approved'?'Έγκριση συμμετοχής μέλους':'Απόρριψη συμμετοχής μέλους',reason:`${employee.firstName} ${employee.lastName} — ${request.context?.committeeTitle||'Μέλος'}`},...(c.history||[])]
+    }:c)
+    saveCommittees(committees)
+    setCommitteeApprovalVersion(v=>v+1)
+    notify(status==='approved'?'Η συμμετοχή στην επιτροπή εγκρίθηκε.':'Η συμμετοχή στην επιτροπή απορρίφθηκε.',status==='approved'?'success':'warning')
+  }
   return <Page fill title={selfMode?t('employeesRecords.myProfile'):name} subtitle={selfMode?t('employeesRecords.myEmployeeRecordSubtitle'):t('employeesRecords.employeeFullRecordSubtitle')}>
+    {selfMode&&pendingCommitteeApprovals.length>0&&<div className="committee-approval-banner"><div className="committee-approval-banner-icon"><FileSignature size={18}/></div><div className="committee-approval-banner-copy"><strong>Εκκρεμεί έγκριση συμμετοχής σε επιτροπή</strong><span>Έχετε {pendingCommitteeApprovals.length} αίτημα{pendingCommitteeApprovals.length===1?'':'τα'} που απαιτεί προσωπική ηλεκτρονική επιβεβαίωση.</span></div><div className="committee-approval-banner-list">{pendingCommitteeApprovals.map(req=><div key={req.id} className="committee-approval-request"><div><strong>{req.committeeName}</strong><span>{req.context?.committeeTitle||'Μέλος'} · {req.context?.responsibilities||req.subject}</span></div><div className="record-inline-actions"><button className="approval-positive" title="Έγκριση" onClick={()=>answerCommitteeRequest(req,'approved')}><CheckCircle2 size={16}/></button><button className="danger" title="Απόρριψη" onClick={()=>answerCommitteeRequest(req,'rejected')}><XCircle size={16}/></button></div></div>)}</div></div>}
     <EntityRecordShell
       className="employee-record-shell workspace-fill"
       avatar={`${employee.firstName?.[0]||''}${employee.lastName?.[0]||''}`}
@@ -53,7 +78,7 @@ export function EmployeeRecordPage({selfMode=false}){
       subtitle={`${language==='el'?employee.profession:employee.professionEn} · ${language==='el'?employee.department:employee.departmentEn}`}
       status={<span className={`status-badge ${employee.employmentStatus==='active'?'active':''}`}>{t(employee.employmentStatus)}</span>}
       recordNavigation={selfMode?null:recordNavigation}
-      headerActions={<>{!selfMode&&canSeeSensitiveEmployeeHealth&&canOccupational&&<Button onClick={()=>setSurveillanceOpen(true)}>+ {t('newSurveillance')}</Button>}<button className="entity-record-icon-button" title={t('print')} aria-label={t('print')} onClick={()=>window.print()}><Printer size={15}/></button><button className="entity-record-icon-button" title={t('export')} aria-label={t('export')}><Download size={15}/></button></>}
+      headerActions={<>{!selfMode&&canSeeSensitiveEmployeeHealth&&canOccupational&&<Button onClick={()=>setSurveillanceOpen(true)}>+ {t('newSurveillance')}</Button>}<PrintExportActions onExport={()=>downloadRecordJson(employee,{filename:employee.id})}/></>}
       tabs={tabs}
       activeTab={tab}
       onTabChange={setTab}
@@ -96,7 +121,7 @@ function Details({employee,t,language,fmt,canAdmin,deleteEmployee,notify}){
     {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={cancel}>{t('cancel')}</Button><Button onClick={save}>{t('save')}</Button></div>}
   </div>
 }
-function InlineDetail({editing,l,v,display,onChange,type='text'}){return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<input type={type} value={v||''} onChange={e=>onChange?.(e.target.value)}/>:<strong>{display??v??'—'}</strong>}</div>}
+function InlineDetail({editing,l,v,display,onChange,type='text'}){if(editing&&type==='date')return <ManualDateField className="detail-item editable" label={l} value={v||''} onChange={onChange}/>;return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<input type={type} value={v||''} onChange={e=>onChange?.(e.target.value)}/>:<strong>{display??v??'—'}</strong>}</div>}
 function InlineSelect({editing,l,v,display,options,language,onChange}){return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<select value={v||''} onChange={e=>onChange(e.target.value)}>{options.map(([el,en])=><option key={el} value={el}>{language==='el'?el:en}</option>)}</select>:<strong>{display||'—'}</strong>}</div>}
 function Occupational({employee,t,fmt}){const rows=occupationalVisits.filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="occupationalHealth"/><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{fmt(x.date)}</strong><span>{t(x.type)}</span><small>{t('fitnessStatus')}: {t(x.fitStatus)} · {t('followUp')}: {fmt(x.followUpDate)}</small></article>):<Empty t={t}/>}</div><AttachmentField/></div>}
 function Vaccinations({employee,t,fmt}){const rows=employeeVaccinations.filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="vaccinations"/><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{x.vaccine}</strong><span>{t('dose')}: {x.dose}</span><small>{fmt(x.date)} · {t('validUntil')}: {fmt(x.validUntil)} · {t(x.status)}</small></article>):<Empty t={t}/>}</div></div>}

@@ -4,6 +4,7 @@ import { demoLibrarySeed } from '../management/managementData'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { bundleAllOrNone,bundleScore,getBundleTemplate,loadPublishedBundleTemplates } from './bundleTemplates'
+import { ManualDateField } from '../../design-system/ManualDateField'
 
 export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialRecord=null}){
  const {profile,user}=useAuth()
@@ -43,7 +44,7 @@ export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialR
     <div className="entry-grid">
      <label><span>Bundle *</span><select value={draft.templateId} onChange={e=>setDraft(d=>({...d,templateId:e.target.value,answers:{},answerNotes:{}}))}>{templates.map(x=><option key={x.id} value={x.id}>{x.name} — {x.title}</option>)}</select></label>
      <label><span>Τμήμα *</span><select value={draft.departmentEl} disabled={Boolean(fixedDepartment)} onChange={e=>set('departmentEl',e.target.value)}>{departments.map(x=><option key={x.el}>{x.el}</option>)}</select></label>
-     <label><span>Ημερομηνία *</span><input type="date" value={draft.date} onChange={e=>set('date',e.target.value)}/></label>
+     <ManualDateField label="Ημερομηνία *" value={draft.date} onChange={v=>set('date',v)}/>
      <label><span>Βάρδια / πλαίσιο</span><select value={draft.shift} onChange={e=>set('shift',e.target.value)}><option>Πρωινή</option><option>Απογευματινή</option><option>Νυχτερινή</option><option>Άλλο</option></select></label>
      <label><span>Αναφορά ασθενή</span><input value={draft.patientRef||''} onChange={e=>set('patientRef',e.target.value)} placeholder="Προαιρετικό ID / κωδικός"/></label>
      <label><span>Αναφορά συσκευής</span><input value={draft.deviceRef||''} onChange={e=>set('deviceRef',e.target.value)} placeholder="π.χ. CVC / UC / ventilator"/></label>

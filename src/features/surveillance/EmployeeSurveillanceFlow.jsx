@@ -3,11 +3,13 @@ import { FlaskConical, Users, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useAuditActor } from '../../core/audit/useAuditActor'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { employeeRows } from '../employees/employeeDemoData'
 import { createEmployeeSurveillance, createEmployeeSurveillanceBatch, employeeScreeningCatalog } from './employeeSurveillanceData'
 
 export function EmployeeSurveillanceFlow({employee=null,onClose,onCreated}){
+  const actor=useAuditActor()
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const [employeeId,setEmployeeId]=useState(employee?.id||'')
@@ -18,7 +20,7 @@ export function EmployeeSurveillanceFlow({employee=null,onClose,onCreated}){
   const toggle=id=>setTypes(rows=>rows.includes(id)?rows.filter(x=>x!==id):[...rows,id])
   function save(){
     if(!selected||!types.length||!date)return
-    const record=createEmployeeSurveillance({employee:selected,screeningTypes:types,startedAt:date,notes,createdBy:t('currentUser')})
+    const record=createEmployeeSurveillance({employee:selected,screeningTypes:types,startedAt:date,notes,createdBy:actor.name})
     notify(t('clinicalRecords.employeeSurveillanceCreated'),'success')
     onCreated?.(record)
     onClose()
@@ -38,6 +40,7 @@ export function EmployeeSurveillanceFlow({employee=null,onClose,onCreated}){
 }
 
 export function BulkEmployeeSurveillanceFlow({onClose,onCreated}){
+  const actor=useAuditActor()
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const [department,setDepartment]=useState('all')
@@ -62,7 +65,7 @@ export function BulkEmployeeSurveillanceFlow({onClose,onCreated}){
       department:department==='all'?t('clinicalRecords.multipleDepartments'):(language==='el'?first.department:first.departmentEn),
       departmentEn:department==='all'?'Multiple departments':first.departmentEn,
       notes,
-      createdBy:t('currentUser'),
+      createdBy:actor.name,
     })
     notify(t('clinicalRecords.bulkEmployeeSurveillanceCreated').replace('{count}',String(employees.length)),'success')
     onCreated?.(batch)

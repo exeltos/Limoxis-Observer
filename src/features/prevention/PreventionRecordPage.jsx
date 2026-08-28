@@ -16,6 +16,8 @@ import { getBundleTemplate } from './bundleTemplates'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { useAuth } from '../../core/auth/AuthContext'
 import { auditActorFromAuth,auditEvent } from '../../core/audit/actor'
+import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { downloadRecordJson } from '../../core/export/recordExport'
 
 const sources={handHygiene:handHygieneRows,waste:wasteRows,antiseptics:antisepticRows,bundles:bundleRows}
 const icons={handHygiene:ShieldCheck,waste:Recycle,antiseptics:Droplets,bundles:ClipboardCheck}
@@ -50,7 +52,7 @@ export function PreventionRecordPage(){
  const recordTitle=recordType==='handHygiene'?`WHO Observation · ${fmtDate(record.date)}`:isWaste?`Μέτρηση αποβλήτων · ${fmtDate(record.date)}`:isAntiseptic?`Κατανάλωση αντισηπτικού · ${record.period||''}`:recordType==='bundles'?`${record.templateName||record.bundle} · ${record.date||record.period||''}`:record.id
  const recordSubtitle=isWaste?`${record.departmentEl||''} · ${wasteCategory||''}`:isAntiseptic?`${record.departmentEl||''} · ${record.product||''}`:recordType==='bundles'?`${record.departmentEl||''} · v${record.templateVersion||'1.0'}`:(record.departmentEl||'')
  const recordStatus=isWaste?<span className={`waste-category-badge ${wasteCategoryTone(wasteCategory)}`}>{wasteCategory}</span>:isAntiseptic?<span className={`antiseptic-abhr-badge ${record.indicatorEligible!==false&&isAbhrProduct(record.product)?'active':'informative'}`}>{record.indicatorEligible!==false&&isAbhrProduct(record.product)?'ABHR · στον δείκτη':'Εκτός δείκτη ABHR'}</span>:null
- return <Page fill><EntityRecordShell className="prevention-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={labels[recordType]||'Πρόληψη'} title={recordTitle} subtitle={recordSubtitle} status={recordStatus} recordNavigation={recordNavigation} headerActions={canDelete?<button type="button" className="entity-record-icon-button danger" title="Ακύρωση εγγραφής" aria-label="Ακύρωση εγγραφής" onClick={()=>setVoidOpen(true)}><Trash2 size={15}/></button>:null} tabs={[]} activeTab="" onTabChange={()=>{}}>
+ return <Page fill><EntityRecordShell className="prevention-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={labels[recordType]||'Πρόληψη'} title={recordTitle} subtitle={recordSubtitle} status={recordStatus} recordNavigation={recordNavigation} headerActions={<>{canDelete&&<button type="button" className="entity-record-icon-button danger" title="Ακύρωση εγγραφής" aria-label="Ακύρωση εγγραφής" onClick={()=>setVoidOpen(true)}><Trash2 size={15}/></button>}<PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record.id})}/></>} tabs={[]} activeTab="" onTabChange={()=>{}}>
    <div className="record-section">
     {recordType==='handHygiene'?<HandHygieneDetails record={record} fmtDate={fmtDate}/>:recordType==='waste'?<WasteDetails record={record} fmtDate={fmtDate} t={t}/>:recordType==='antiseptics'?<AntisepticDetails record={record}/>:<BundleDetails record={record} t={t}/>}
    </div>

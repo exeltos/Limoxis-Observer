@@ -11,6 +11,7 @@ export function useRecordSequenceNavigation({registry,currentId,pathForId}){
    const parsed=JSON.parse(sessionStorage.getItem(keyFor(registry,'sequence'))||'[]')
    return Array.isArray(parsed)?parsed:[]
   }catch{return []}
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- 'currentId' forces re-read from sessionStorage when navigating to a different record (the stored sequence may have changed since this component last read it); not used directly in the body.
  },[registry,currentId])
  const index=ids.indexOf(currentId)
  const previousId=index>0?ids[index-1]:null

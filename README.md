@@ -1,3 +1,28 @@
+# Limoxis Observer v0.26.7 — Training Programme Workspace
+
+- Shared compact KPI cards now use one central `module-summary-*` pattern, aligned to the Prevention Center density. Prevention itself was refactored onto the shared pattern.
+- Training programmes now open as full workspaces with Summary, Participants, Materials, Learner feedback, Trainee assessment and Results.
+- Participant registry supports bulk invitation queue, attendance confirmation state, and training material inclusion.
+- Learner feedback uses a fixed 1–5 questionnaire for comparable trainer/training satisfaction metrics.
+- Trainer-built trainee assessment supports multiple-choice and true/false questions, pass thresholds, competence evidence and retraining flags.
+- Demo/local email actions queue messages only; production delivery remains a backend integration concern.
+
+# Limoxis Observer v0.26.7 — Training & Competence
+
+The Education/Training placeholder is now a functional, role-aware Training & Competence workspace. It follows the Observer UI contract and uses a competence-first model: programme → assignment → participation → assessment when required → competence outcome → validity/renewal → evidence.
+
+Key additions: management and employee self-service views, programme registry, due/overdue assignments, assessment thresholds, retraining signals, competence validity and certificate evidence. See `QA/QA_TRAINING_COMPETENCE_v0.26.7.md`.
+
+---
+
+# Limoxis Observer v0.25.17 — Observer Design System Consolidated
+
+This release consolidates the new Limoxis Observer UI contract across the application. It does not copy the legacy Limoxis/Healthcare Suite design. Print/Export are canonical icon-only utilities, record export actions are functional, feature date/time controls use shared Observer fields, existing dialogs inherit one common visual form language, and automated guardrails prevent these patterns from drifting again.
+
+See `docs/OBSERVER_UI_CONTRACT.md` and `QA/observer-ui-audit-v0.25.17.md`.
+
+---
+
 # Limoxis Observer v0.9.2 — Workforce & Occupational Health
 
 Clean continuation of the Limoxis Observer rebuild.
@@ -536,3 +561,69 @@ Verified: `lint` (0/0), all 6 audits, `test` (7/7), `build` clean, zero orphaned
 - Supports ointment/topical treatment, nasal ointment, other treatment, instructions, start date and planned end date.
 - Finalized employee screening records now support governed General Edit/reopen with mandatory correction reason, matching the environmental laboratory correction pattern.
 - Treatment data synchronizes back to linked Employee Surveillance follow-up.
+
+
+## v0.25.8 — Global long-text editing
+- All textarea fields receive a compact ⛶ expand control.
+- Expanded editor supports Apply/Cancel and read-only viewing.
+- Native vertical resize remains available.
+- Committee registry rows now use pointer cursor and hover feedback.
+
+## v0.25.9 — Committee Governance Workspace
+- Committee record summary upgraded with governance KPIs and attention watch.
+- Added annual IPC action plan with measurable objectives, baseline, target, owner, deadline and status.
+- Decisions/actions now support lifecycle status and overdue highlighting.
+- Existing legacy committee members are normalized into the historical member model without deleting stored data.
+- Seed ENL is aligned with the IPC committee template and includes realistic governance demo data.
+- Meetings capture date, time, location and agenda; finalized minutes remain governed.
+
+## v0.25.16 — Observer UI stabilization
+
+This release intentionally resets the committee work to the stable v0.25.10 Observer base and reintroduces only the approved governance functionality through shared Observer patterns.
+
+### Product-wide UI contract
+- Print and export actions rendered through `RecordActions` are always icon-only (tooltip + aria label).
+- Added `ObserverDialog` as the canonical modal form shell.
+- Added `ExpandableTextBlock` for large read-only text; editable text continues to use the global textarea expander.
+- Added `tools/check-observer-ui-patterns.mjs` and included it in `npm run check` to prevent committee-only form shells and visible Print/Export text buttons from returning.
+- The print action inside the controls execution form was aligned to the same icon-only pattern.
+
+### Committees
+- Member, new meeting, decision/action and annual-objective forms now use the shared Observer form geometry, date component, header/close control and footer actions.
+- Meeting editing is one continuous workspace (no step wizard): basic data, attendance/quorum, discussion topics/decisions, optional follow-up, approval summary.
+- Minutes are structured as `discussion topic -> decision/conclusion`, with optional action/owner/deadline/priority.
+- Follow-up actions created from minutes are added to the committee action tracker without duplicate re-entry.
+- Attendance is recorded per active committee member and quorum is calculated from voting members when the rule is computable.
+- Completing a meeting creates approval requests only for members recorded as present and creates compact email-outbox payloads for recipients with an email address. External delivery still requires the platform transactional-email provider/Edge Function.
+- Existing legacy meeting agenda/notes data is normalized into the structured topic model without deleting old records.
+
+### Verification performed in this environment
+- Full JSX/JS syntax parse through TypeScript: passed for all `src` files.
+- Navigation smoke audit: 18/18 passed.
+- React hooks smoke audit: passed (116 source files).
+- Product permission audit: 22 assertions passed.
+- Observer UI pattern audit: passed.
+
+A full Vite production build could not be executed in this sandbox because npm dependency retrieval cannot resolve `registry.npmjs.org` (EAI_AGAIN). This is an environment/network limitation; the source-level parser and static smoke checks above were completed successfully.
+
+## v0.25.17 (code review pass)
+This environment has network access, so the full `npm run check` pipeline (lint, all 7 audits, tests, build) was run for the first time on this codebase — and it caught what the previous environment's TypeScript-parse-only check couldn't.
+
+**4 confirmed runtime-crash bugs found and fixed** — all `no-undef` errors, meaning ESLint's parser found real references to variables that don't exist. A TS/JS syntax parse alone (as noted above) cannot catch these; only a proper lint pass with scope analysis can:
+- **Prevention page:** the shared `EditCell` component (used by all 4 tables — Hand Hygiene, Waste, Antiseptics, Bundles) called `t('edit')` without `t` ever being passed in as a prop. Any user with edit rights on any of those 4 registries would have crashed the page. Fixed by adding the missing `t` prop and updating all 4 call sites.
+- **Surveillance export:** referenced `employeeRows`, `employeeBatches`, `environmentalRows` — none of which exist in the file. The correct, already-imported names (`employeeSurveillanceRecords`, `employeeSurveillanceBatches`, `environmentalSurveillanceRecords`) were substituted in.
+- **Surveillance record creation:** referenced `actor.name` with `actor` never defined, despite `useAuth`/`auditActorFromAuth` already being imported. Added the missing `const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])`, matching the exact pattern already used in every sibling file (Laboratory, Quality, Prevention, NewSurveillanceFlow).
+- **Patient Clinical Record print button:** used the `Printer` icon without importing it. Added the import.
+
+**A real access-control gap found and fixed:** `LaboratoryPage.jsx` computed `canAccessRecord` from `useTenant()` but never applied it to the samples list — unlike `EmployeesPage.jsx` and `PatientsPage.jsx`, which both filter their rows with `.filter(x=>canAccessRecord(x))`. This meant a department-scoped user could see every lab sample across all departments, not just their own. Verified the fix against `recordWithinRoleScope`'s actual matching logic (`department`/`departmentId`/`organizationId` fields) before applying it.
+
+**A real stale-tab bug found and fixed** in `EmployeeRecordPage.jsx`: the visibility of the "Surveillance" tab depends on `canSeeSensitiveEmployeeHealth`, but that value was missing from the tabs `useMemo`'s dependency array — the same class of bug fixed in `ManagementPage.jsx` during the v0.13.3 review. If a user's sensitive-health visibility changed without `canAdmin`/`canOccupational`/`canTraining`/`selfMode` also changing, the tab wouldn't update to reflect it.
+
+**Remaining ~24 lint findings resolved**, each individually verified before fixing rather than blindly deleting:
+- Confirmed-safe removals: unused icon imports across 6 files, an unused `execution` prop in `ControlCancellationModal` (the caller already tracks its own reference), an unused `confirm` destructure in `QualityRecordPage` (delete/void has its own governance flow in the child `QualityDetails` component, not a missing confirmation dialog), a `recordAction` function in `PatientClinicalRecordPage` fully superseded by the newer `PrintExportActions`/`headerActions` pattern, an unused `Kpi` component and `canCreateSurveillance` variable in `SurveillancePage` (the latter's gating is already handled by `RecordActions`'s `actionCapabilities`), and a `location` variable in `PreventionPage`.
+- `react-hooks/exhaustive-deps` warnings for `version`-style cache-bust counters (Controls, Prevention, `useRecordSequenceNavigation`) and one `committeeApprovalVersion` counter — same established pattern from earlier reviews; documented with `eslint-disable-next-line` rather than "fixed" by adding the dependency, which would reintroduce stale-list bugs.
+- `AntisepticEntryModal`'s `range` was wrapped in its own `useMemo` (previously recomputed inline each render, which is what caused the missing-dependency warning) for a cleaner, warning-free fix.
+- `CommitteesPage.jsx` had 5 findings from what looks like leftover scaffolding: unused `nextCommitteeId`/`saveCommittees` imports and a `setRows` that was never called (the list already reads fresh data via `loadCommittees()` on every mount, matching the pattern other list pages like `QualityPage` use, so the setter added no value), an unused `notify`, and a dead `csv` variable inside a working `exportCsv()` function that already built its output from a separate `text` variable.
+
+Full pipeline verified clean: `lint` (0/0), all 7 custom audits (navigation 18/18, hooks 119 files, observer-ui pattern check), `test` (7/7), `build` clean (0 duplicate-key warnings; largest chunk 632KB, per-route code-splitting from the v0.13.3 pass still intact across the new Committees pages).
+
