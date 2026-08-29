@@ -1,6 +1,6 @@
 import { ROLES } from '../../core/permissions/roles'
 
-const configs = {
+const configsEl = {
   [ROLES.PLATFORM_OWNER]: {
     title: 'Κέντρο Πλατφόρμας',
     subtitle: 'Νοσοκομεία, ενεργοποιήσεις, demo environments, ασφάλεια και κατάσταση πλατφόρμας.',
@@ -69,5 +69,77 @@ const configs = {
   },
 }
 
-const fallback = { title: 'Limoxis Observer', subtitle: 'Οι εργασίες και οι πληροφορίες που αντιστοιχούν στον ρόλο σας.', kpis: [], tasks: [] }
-export const workspaceFor = (role) => configs[role] ?? fallback
+const fallbackEl = { title: 'Limoxis Observer', subtitle: 'Οι εργασίες και οι πληροφορίες που αντιστοιχούν στον ρόλο σας.', kpis: [], tasks: [] }
+
+const configsEn = {
+  [ROLES.PLATFORM_OWNER]: {
+    title: 'Platform Center',
+    subtitle: 'Hospitals, activations, demo environments, security and platform status.',
+    kpis: [['Hospitals','—'],['Active','—'],['Pending activation','—'],['Demo environments','—']],
+    tasks: ['Review pending activations','Platform audit & security','Service status'],
+  },
+  [ROLES.HOSPITAL_ADMIN]: {
+    title: 'Hospital Administration',
+    subtitle: 'Users, operational modules, management pending work and system alerts.',
+    kpis: [['Active users','—'],['Departments','—'],['Pending items','—'],['Alerts','—']],
+    tasks: ['Review users and permissions','Pending organization settings','Review audit events'],
+  },
+  [ROLES.INFECTION_CONTROL_LEAD]: {
+    title: 'Infection Control Command Center',
+    subtitle: 'What needs my attention today?',
+    kpis: [['New MDR/XDR','2'],['Isolation reviews','4'],['Overdue controls','3'],['Pending approvals','5']],
+    tasks: ['Patient without follow-up','Overdue isolation review','Department with low WHO compliance'],
+  },
+  [ROLES.INFECTION_CONTROL_MEMBER]: {
+    title: 'Infection Surveillance',
+    subtitle: 'Surveillance episodes, laboratory findings and prevention actions that require follow-up.',
+    kpis: [['Active surveillance','—'],['Positive laboratory results','—'],['Follow-ups','—'],['Pending actions','—']],
+    tasks: ['Surveillance follow-up','Isolation assessments','Prevention actions'],
+  },
+  [ROLES.DEPARTMENT_MANAGER]: {
+    title: 'My department',
+    subtitle: 'Operational overview of the department and tasks requiring action.',
+    kpis: [['Inpatients','—'],['Active surveillance','—'],['Pending samples','—'],['Active controls','—']],
+    tasks: ['Isolation bundle review - due tomorrow','Isolation reassessment','Staff training pending'],
+  },
+  [ROLES.DEPARTMENT_USER]: {
+    title: 'My department',
+    subtitle: 'Only your own pending work and the department information you need to know.',
+    kpis: [],
+    tasks: ['PPE control','Assigned training','Bundle follow-up'],
+  },
+  [ROLES.LABORATORY]: {
+    title: 'Laboratory',
+    subtitle: 'Queue of samples and results requiring laboratory action.',
+    kpis: [['New samples','—'],['Pending','—'],['Positive','—'],['Critical','—']],
+    tasks: ['Pending results','Critical results requiring communication','Laboratory controls'],
+  },
+  [ROLES.COMMITTEE_SECRETARIAT]: {
+    title: 'Committees', subtitle: 'Meetings, minutes and decisions requiring follow-up.',
+    kpis: [['Upcoming meetings','—'],['Minutes pending','—'],['Open decisions','—']], tasks: ['Finalize minutes','Follow up decisions'],
+  },
+  [ROLES.HR_OFFICE]: {
+    title: 'Staff', subtitle: 'Administrative employee registry without access to sensitive medical information.',
+    kpis: [['Active employees','—'],['New records','—'],['Pending information','—']], tasks: ['Review administrative information','Update departments/positions'],
+  },
+  [ROLES.OCCUPATIONAL_PHYSICIAN]: {
+    title: 'Occupational Health', subtitle: 'Employee visits, follow-up and vaccinations.',
+    kpis: [['Visits today','—'],['Follow-ups','—'],['Vaccinations due','—']], tasks: ['Employee follow-up','Health reassessments'],
+  },
+  [ROLES.PHARMACY]: {
+    title: 'Pharmacy', subtitle: 'Antimicrobial stewardship, approvals and consumption.',
+    kpis: [['Pending approvals','—'],['Restricted antimicrobials','—'],['DDD','—']], tasks: ['Pending approvals','Consumption review'],
+  },
+  [ROLES.DOCTOR_REVIEWER]: {
+    title: 'Clinical approvals', subtitle: 'Only the information required for the clinical review decision.',
+    kpis: [['Pending','—'],['Approved','—'],['Rejected','—']], tasks: ['Clinical approvals awaiting review'],
+  },
+  [ROLES.QUALITY_MANAGER]: {
+    title: 'Quality Center', subtitle: 'Incidents, CAPA, audits, controls and indicators.',
+    kpis: [['Open incidents','—'],['Serious','—'],['Overdue CAPA','—'],['Indicators off target','—']], tasks: ['Overdue CAPA','Audits in progress','Incidents under investigation'],
+  },
+}
+
+const fallbackEn = { title: 'Limoxis Observer', subtitle: 'Tasks and information available to your role.', kpis: [], tasks: [] }
+
+export const workspaceFor = (role, language='el') => language==='en' ? (configsEn[role] ?? fallbackEn) : (configsEl[role] ?? fallbackEl)

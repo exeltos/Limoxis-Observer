@@ -24,38 +24,11 @@ jobs:
       - name: Use Node.js 22
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 22.22.2
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Clinical i18n audit
-        run: npm run audit:clinical-i18n
-
-      - name: Laboratory i18n audit
-        run: npm run audit:lab-i18n
-
-      - name: Product i18n audit
-        run: npm run audit:product-i18n
-
-      - name: Permission audit
-        run: npm run audit:product-permissions
-
-      - name: Navigation audit
-        run: npm run audit:navigation
-
-      - name: React hooks audit
-        run: npm run audit:hooks
-
-      - name: Observer UI audit
-        run: npm run audit:observer-ui
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Tests
-        run: npm run test
-
-      - name: Production build
-        run: npm run build
+      - name: Run canonical quality gate
+        run: npm run check

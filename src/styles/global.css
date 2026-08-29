@@ -3294,3 +3294,138 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
 @media(max-height:700px){
   .manual-live-floating iframe{--help-float-scale:.52}
 }
+
+/* v0.26.60 — richer Help Center content */
+.manual-nav-empty{
+  margin:8px 6px!important;
+  padding:10px!important;
+  border:1px dashed #d8e2e7!important;
+  border-radius:8px!important;
+  font-size:9px!important;
+  line-height:1.45!important;
+  color:#7b8d98!important;
+  background:#fff!important;
+}
+.manual-detail-section{margin-top:18px!important}
+.manual-check-section{
+  margin-top:18px!important;
+  padding:12px 13px!important;
+  border:1px solid #dbe6e8!important;
+  border-radius:9px!important;
+  background:#fbfdfd!important;
+}
+.manual-check-section h3{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  margin:0 0 8px!important;
+  color:#2c6870!important;
+}
+.manual-check-section ul{
+  display:grid!important;
+  gap:7px!important;
+  margin:0!important;
+  padding:0!important;
+  list-style:none!important;
+}
+.manual-check-section li{
+  display:grid!important;
+  grid-template-columns:18px minmax(0,1fr)!important;
+  gap:7px!important;
+  align-items:start!important;
+  padding:0!important;
+  border:0!important;
+}
+.manual-check-section li svg{margin-top:1px!important;color:#3a7b80!important}
+.manual-check-section li span{font-size:10px!important;line-height:1.48!important;color:#526b79!important}
+.manual-good-practice{
+  display:grid!important;
+  grid-template-columns:22px minmax(0,1fr)!important;
+  gap:8px!important;
+  margin-top:14px!important;
+  padding:11px 12px!important;
+  border-radius:9px!important;
+  background:#f4f8fc!important;
+  color:#365f7c!important;
+}
+.manual-good-practice p{display:grid!important;gap:3px!important;margin:0!important}
+.manual-good-practice b{font-size:9.5px!important}
+.manual-good-practice span{font-size:9px!important;line-height:1.5!important;color:#647b8a!important}
+.manual-chapter-footer{
+  display:grid!important;
+  grid-template-columns:1fr auto 1fr!important;
+  gap:10px!important;
+  align-items:center!important;
+  margin-top:20px!important;
+  padding-top:12px!important;
+  border-top:1px solid #e5ebee!important;
+}
+.manual-chapter-footer button{
+  min-height:32px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  padding:0 9px!important;
+  border:1px solid #d8e2e7!important;
+  border-radius:7px!important;
+  background:#fff!important;
+  color:#3c6278!important;
+  font-size:8.5px!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+}
+.manual-chapter-footer button:last-child{justify-self:end!important}
+.manual-chapter-footer button:disabled{opacity:.38!important;cursor:default!important}
+.manual-chapter-footer>span{font-size:8px!important;color:#8797a0!important}
+.manual-related{
+  margin-top:10px!important;
+  border:1px solid #dce5e9!important;
+  border-radius:9px!important;
+  overflow:hidden!important;
+  background:#fff!important;
+}
+.manual-related h3{
+  margin:0!important;
+  padding:9px 10px!important;
+  border-bottom:1px solid #e5ebee!important;
+  background:#f8fafb!important;
+  font-size:9px!important;
+  color:#3c657b!important;
+}
+.manual-related button{
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:18px minmax(0,1fr) 14px!important;
+  gap:6px!important;
+  align-items:center!important;
+  padding:8px 10px!important;
+  border:0!important;
+  border-bottom:1px solid #eef2f4!important;
+  background:#fff!important;
+  text-align:left!important;
+  color:#536d7c!important;
+  font-size:8.5px!important;
+  cursor:pointer!important;
+}
+.manual-related button:last-child{border-bottom:0!important}
+.manual-related button:hover{background:#f4f8fa!important}
+.manual-special-search{
+  width:min(480px,100%)!important;
+  height:36px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  margin:12px 0!important;
+  padding:0 10px!important;
+  border:1px solid #d6e0e5!important;
+  border-radius:8px!important;
+  background:#fff!important;
+}
+.manual-special-search input{
+  flex:1!important;
+  min-width:0!important;
+  border:0!important;
+  outline:0!important;
+  background:transparent!important;
+  font-size:10px!important;
+}
