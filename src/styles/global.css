@@ -4532,3 +4532,11 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
   line-height:1.25!important;
   font-weight:700!important;
 }
+/* Last-resort recovery screen for unexpected render failures. */
+.app-error-boundary{min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--color-background,#f4f7fb)}
+.app-error-card{width:min(100%,560px);display:grid;grid-template-columns:auto 1fr;gap:16px;padding:28px;border:1px solid var(--color-border,#d8dee8);border-radius:16px;background:var(--color-surface,#fff);box-shadow:0 18px 50px rgba(15,23,42,.12)}
+.app-error-card>svg{color:var(--color-danger,#b42318)}
+.app-error-card h1{margin:0 0 8px;font-size:1.35rem}
+.app-error-card p{margin:0;color:var(--color-text-muted,#52606d);line-height:1.55}
+.app-error-card .button{grid-column:2;justify-self:start}
+@media(max-width:520px){.app-error-card{grid-template-columns:1fr}.app-error-card .button{grid-column:1}}
