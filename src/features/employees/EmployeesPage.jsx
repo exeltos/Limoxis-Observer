@@ -33,8 +33,9 @@ export function EmployeesPage(){
   }
   function openEmployee(row){
     registry.saveViewState({query,department,status})
-    registry.openRecord(navigate,`/employees/${row.id}`,row.id,rows.map(item=>item.id))
+    registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))
   }
+
   function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});setCreateOpen(true)} else if(a===UI_ACTIONS.PRINT)window.print(); else if(a===UI_ACTIONS.EXPORT){downloadCsv('limoxis-employees.csv',[t('employeeCode'),t('name'),t('department'),t('professionalCategory'),t('status'),t('employeesRecords.email')],rows.map(x=>[x.id,displayName(x),language==='el'?x.department:x.departmentEn,language==='el'?x.profession:x.professionEn,t(x.employmentStatus),x.email||'']));notify(t('currentListExported'),'success')} else notify(t('actionCompleted'),'success')}
   return <Page fill title={t('employees')} subtitle={t('employeesRecords.employeesRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/> }>
     <div className="workspace-summary employee-registry-summary">

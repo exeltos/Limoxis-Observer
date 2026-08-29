@@ -149,7 +149,7 @@ export function LaboratoryPage(){
 }
 
 function LabKpi({icon:Icon,label,value,danger}){
-  return <div className={`lab-kpi ${danger?'danger':''}`}><Icon size={18}/><div><strong>{value}</strong><span>{label}</span></div></div>
+  return <MetricCard icon={Icon} value={value} label={label} tone={danger?'danger':'neutral'}/>
 }
 
 export function Status({text,kind}){
