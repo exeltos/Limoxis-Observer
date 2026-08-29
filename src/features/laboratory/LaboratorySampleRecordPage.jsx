@@ -106,7 +106,7 @@ export function LaboratorySampleRecordPage(){
   }
 
   if(sample.workflowType==='employee_screening'){
-    return <EmployeeScreeningLaboratoryRecord sample={sample} persist={persist} t={t} language={language} fmt={fmt} canManage={canManage} canValidate={canValidate} canAttach={canAttach} canReopen={canReopenLab} canPrint={canPrint} canExport={canExport} notify={notify} recordNavigation={recordNavigation} actorName={actorName}/>
+    return <EmployeeScreeningLaboratoryRecord sample={sample} persist={persist} t={t} language={language} fmt={fmt} canManage={canManage} canValidate={canValidate} canAttach={canAttach} canReopen={canReopenLab} canPrint={canPrint} canExport={canExport} notify={notify} recordNavigation={recordNavigation} actor={actor} actorName={actorName}/>
   }
 
   if(['environmental_plate','environmental_individual'].includes(sample.workflowType)){
@@ -124,6 +124,7 @@ export function LaboratorySampleRecordPage(){
       canExport={canExport}
       notify={notify}
       recordNavigation={recordNavigation}
+      actor={actor}
       actorName={actorName}
     />
   }
@@ -207,10 +208,10 @@ export function LaboratorySampleRecordPage(){
     >
       {!canManage&&tab==='summary'&&<div className="permission-info-banner"><AlertTriangle size={16}/><span>{t('laboratoryRecords.laboratoryReadOnlyRole')}</span></div>}
       {tab==='summary'&&<SampleSummary sample={sample} t={t} language={language} fmt={fmt} subjectLabel={subjectLabel} canManage={canManage&&!finalized} finalized={finalized} onReceive={receiveSample} onStartProcessing={startProcessing} onOpenSurveillance={()=>sample.surveillanceCase&&goTo(`/surveillance/${sample.surveillanceCase}`,{state:{openTab:'surveillanceJourney'}})}/>}
-      {tab==='result'&&<ResultPanel sample={sample} persist={persist} syncValidatedResult={syncValidatedResult} t={t} language={language} fmt={fmt} canManage={canManage&&!finalized} canValidate={canValidate&&!finalized} canClassify={canClassify} notify={notify} actorName={actorName} onNext={()=>setTab('ast')}/>}
+      {tab==='result'&&<ResultPanel sample={sample} persist={persist} syncValidatedResult={syncValidatedResult} t={t} language={language} fmt={fmt} canManage={canManage&&!finalized} canValidate={canValidate&&!finalized} canClassify={canClassify} notify={notify} actor={actor} actorName={actorName} onNext={()=>setTab('ast')}/>}
       {tab==='ast'&&<AstPanel sample={sample} persist={persist} t={t} language={language} canManage={canManage&&!finalized} notify={notify} actorName={actorName} onNext={()=>setTab('communication')}/>}
       {tab==='communication'&&<CriticalCommunicationPanel sample={sample} persist={persist} syncValidatedResult={syncValidatedResult} t={t} language={language} fmt={fmt} canCommunicate={canCommunicate&&!finalized} notify={notify} actorName={actorName} onNext={()=>setTab('documents')}/>}
-      {tab==='finalize'&&<FinalizationPanel sample={sample} persist={persist} syncValidatedResult={syncValidatedResult} t={t} fmt={fmt} canFinalize={canValidate&&!finalized} notify={notify} actorName={actorName} onFinalized={()=>setTab('summary')}/>}
+      {tab==='finalize'&&<FinalizationPanel sample={sample} persist={persist} syncValidatedResult={syncValidatedResult} t={t} fmt={fmt} canFinalize={canValidate&&!finalized} notify={notify} actor={actor} actorName={actorName} onFinalized={()=>setTab('summary')}/>}
       {tab==='documents'&&<DocumentsPanel sample={sample} persist={persist} t={t} canAttach={canAttach&&!finalized} finalized={finalized} notify={notify} actorName={actorName} onNext={()=>setTab('finalize')}/>}
       {tab==='history'&&<LabHistory sample={sample} t={t} fmt={fmt}/>}
       <LabStepNavigator active={tab} order={workflowOrder} labels={workflowLabels} canOpen={id=>Boolean(tabAccess[id])} onMove={setTab}/>
@@ -248,7 +249,7 @@ function SampleSummary({sample,t,language,fmt,subjectLabel,canManage,finalized,o
   </div>
 }
 
-function ResultPanel({sample,persist,syncValidatedResult,t,language,fmt,canManage,canValidate,canClassify,notify,actorName,onNext}){
+function ResultPanel({sample,persist,syncValidatedResult,t,language,fmt,canManage,canValidate,canClassify,notify,actor,actorName,onNext}){
   const [editing,setEditing]=useState(()=>canManage&&sample.status==='processing'&&!sample.result)
   const [draft,setDraft]=useState({result:sample.result||'',organisms:sample.organisms?.length?sample.organisms:[...(sample.organism?[{name:sample.organism,resistance:sample.resistance||''}]:[])],critical:Boolean(sample.critical)})
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
@@ -399,7 +400,7 @@ function CriticalCommunicationPanel({sample,persist,syncValidatedResult,t,langua
 
 
 
-function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canManage,canValidate,canAttach,canReopen,canPrint,canExport,notify,recordNavigation,actorName}){
+function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canManage,canValidate,canAttach,canReopen,canPrint,canExport,notify,recordNavigation,actor,actorName}){
   const navigate=useNavigate()
   const location=useLocation()
   const finalized=Boolean(sample.finalizedAt)
@@ -503,7 +504,7 @@ function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canMan
   </EntityRecordShell></Page>
 }
 
-function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,canValidate,canAttach,canReopen,canPrint,canExport,notify,recordNavigation,actorName}){
+function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,canValidate,canAttach,canReopen,canPrint,canExport,notify,recordNavigation,actor,actorName}){
   const isPlate=sample.workflowType==='environmental_plate'
   const finalized=Boolean(sample.finalizedAt)
   const correctionLocked=finalized||sample.status==='completed'||sample.resultStatus==='validated'
@@ -595,7 +596,7 @@ function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,
       {tab==='summary'&&<EnvironmentalLabSummary sample={sample} positions={positions} isPlate={isPlate} t={t} language={language} fmt={fmt} canManage={canManage&&!finalized} finalized={finalized} onReceive={receive} onStart={start}/>}
       {tab==='results'&&<EnvironmentalResultsPanel sample={sample} positions={positions} isPlate={isPlate} persist={persist} t={t} language={language} canManage={canManage&&!finalized} notify={notify} actorName={actorName} onNext={()=>setTab('documents')}/>}
       {tab==='documents'&&<DocumentsPanel sample={sample} persist={persist} t={t} canAttach={canAttach&&!finalized} finalized={finalized} notify={notify} actorName={actorName} onNext={()=>setTab('finalize')}/>}
-      {tab==='finalize'&&<EnvironmentalFinalization sample={sample} positions={positions} isPlate={isPlate} persist={persist} t={t} fmt={fmt} canFinalize={canValidate&&!finalized} notify={notify} actorName={actorName} onFinalized={()=>setTab('summary')}/>}
+      {tab==='finalize'&&<EnvironmentalFinalization sample={sample} positions={positions} isPlate={isPlate} persist={persist} t={t} fmt={fmt} canFinalize={canValidate&&!finalized} notify={notify} actor={actor} actorName={actorName} onFinalized={()=>setTab('summary')}/>}
       {tab==='history'&&<LabHistory sample={sample} t={t} fmt={fmt}/>}
       <LabStepNavigator active={tab} order={order} labels={workflowLabels} canOpen={id=>Boolean(access[id])} onMove={setTab}/>
     </EntityRecordShell>
@@ -725,7 +726,7 @@ function EnvironmentalResultsPanel({sample,positions,isPlate,persist,t,language,
   </div>
 }
 
-function EnvironmentalFinalization({sample,isPlate,persist,t,fmt,canFinalize,notify,actorName,onFinalized}){
+function EnvironmentalFinalization({sample,isPlate,persist,t,fmt,canFinalize,notify,actor,actorName,onFinalized}){
   const resultsReady=isPlate?(sample.platePositions||[]).length>0&&(sample.platePositions||[]).every(row=>row.result&&row.withinLimit!==null):sample.resultStatus==='validated'&&sample.withinLimit!==null
   const ready=resultsReady&&Boolean(sample.documentsReviewedAt)
   function finalize(){
@@ -747,7 +748,7 @@ function EnvironmentalFinalization({sample,isPlate,persist,t,fmt,canFinalize,not
   </div>
 }
 
-function FinalizationPanel({sample,persist,syncValidatedResult,t,fmt,canFinalize,notify,actorName,onFinalized}){
+function FinalizationPanel({sample,persist,syncValidatedResult,t,fmt,canFinalize,notify,actor,actorName,onFinalized}){
   const ready=sample.resultStatus==='validated'&&(!sample.result||sample.result!=='positive'||Boolean(sample.ast?.length))&&(!sample.critical||Boolean(sample.communications?.length))&&Boolean(sample.documentsReviewedAt)
   function finalize(){
     if(!ready)return
