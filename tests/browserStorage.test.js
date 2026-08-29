@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readSessionJson, readSessionValue, writeSessionJson, writeSessionValue } from '../src/core/storage/browserStorage'
-import { registryStorageKey } from '../src/core/navigation/useRegistryMemory'
+import { readRegistryViewState, registryStorageKey } from '../src/core/navigation/useRegistryMemory'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -30,6 +30,8 @@ describe('browser storage safeguards', () => {
     expect(readSessionValue('plain')).toBe('42')
     expect(writeSessionJson('json', { enabled: true })).toBe(true)
     expect(readSessionJson('json')).toEqual({ enabled: true })
+    writeSessionJson(registryStorageKey('quality.incidents', 'view'), { status: 'open' })
+    expect(readRegistryViewState('quality.incidents')).toEqual({ status: 'open' })
   })
 
   it('does not crash when storage is blocked or contains invalid JSON', () => {

@@ -8,6 +8,7 @@ import { TenantProvider } from './core/tenant/TenantContext'
 import { FeedbackProvider } from './core/feedback/FeedbackContext'
 import { NotificationProvider } from './core/notifications/NotificationContext'
 import { DataAccessStatus } from './core/data/DataAccessStatus'
+import { AppErrorBoundary } from './core/errors/AppErrorBoundary'
 import './styles/theme.css'
 import './styles/global.css'
 
@@ -15,9 +16,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <LanguageProvider>
-        <AuthProvider>
-          <TenantProvider><FeedbackProvider><NotificationProvider><><App /><DataAccessStatus /></></NotificationProvider></FeedbackProvider></TenantProvider>
-        </AuthProvider>
+        <AppErrorBoundary>
+          <AuthProvider>
+            <TenantProvider><FeedbackProvider><NotificationProvider><><App /><DataAccessStatus /></></NotificationProvider></FeedbackProvider></TenantProvider>
+          </AuthProvider>
+        </AppErrorBoundary>
       </LanguageProvider>
     </BrowserRouter>
   </React.StrictMode>,
