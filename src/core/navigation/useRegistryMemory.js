@@ -2,18 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { readSessionJson, readSessionValue, writeSessionJson, writeSessionValue } from '../storage/browserStorage'
 
-const keyFor=(registry,part)=>`limoxis.registry.${registry}.${part}`
+export const registryStorageKey=(registry,part)=>`limoxis.registry.${registry}.${part}`
 
 export function useRegistryMemory(registry){
   const location=useLocation()
   const scrollRef=useRef(null)
-  const [highlightId,setHighlightId]=useState(()=>readSessionValue(keyFor(registry,'selected'),'')||'')
+  const [highlightId,setHighlightId]=useState(()=>readSessionValue(registryStorageKey(registry,'selected'),'')||'')
 
   useEffect(()=>{
-    const top=Number(readSessionValue(keyFor(registry,'scroll'),0))
+    const top=Number(readSessionValue(registryStorageKey(registry,'scroll'),0))
     const frame=requestAnimationFrame(()=>{
       if(scrollRef.current) scrollRef.current.scrollTop=top
-      const id=readSessionValue(keyFor(registry,'selected'),'')||''
+      const id=readSessionValue(registryStorageKey(registry,'selected'),'')||''
       setHighlightId(id)
       if(id){
         const row=scrollRef.current?.querySelector(`[data-record-id="${CSS.escape(id)}"]`)
@@ -24,9 +24,9 @@ export function useRegistryMemory(registry){
   },[registry])
 
   function openRecord(navigate,path,id,orderedIds=[]){
-    writeSessionValue(keyFor(registry,'selected'),id)
-    writeSessionValue(keyFor(registry,'scroll'),scrollRef.current?.scrollTop||0)
-    if(Array.isArray(orderedIds)&&orderedIds.length)writeSessionJson(keyFor(registry,'sequence'),orderedIds)
+    writeSessionValue(registryStorageKey(registry,'selected'),id)
+    writeSessionValue(registryStorageKey(registry,'scroll'),scrollRef.current?.scrollTop||0)
+    if(Array.isArray(orderedIds)&&orderedIds.length)writeSessionJson(registryStorageKey(registry,'sequence'),orderedIds)
     setHighlightId(id)
     navigate(path,{state:{limoxisFrom:{pathname:location.pathname,search:location.search,hash:location.hash,state:location.state??null,registry}}})
   }
@@ -40,15 +40,15 @@ export function useRegistryMemory(registry){
   }
 
   function saveViewState(state){
-    writeSessionJson(keyFor(registry,'view'),state||{})
+    writeSessionJson(registryStorageKey(registry,'view'),state||{})
   }
   function loadViewState(fallback={}){
-    const stored=readSessionJson(keyFor(registry,'view'),{})
+    const stored=readSessionJson(registryStorageKey(registry,'view'),{})
     return stored&&typeof stored==='object'&&!Array.isArray(stored)?{...fallback,...stored}:fallback
   }
   return {scrollRef,highlightId,openRecord,rowProps,saveViewState,loadViewState}
 }
 
 export function readRegistryViewState(registry){
-  return readSessionJson(`${registry}:view`,null)
+  return readSessionJson(registryStorageKey(registry,'view'),null)
 }
