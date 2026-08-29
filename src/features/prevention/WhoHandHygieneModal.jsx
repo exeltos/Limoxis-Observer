@@ -74,6 +74,9 @@ export function WhoHandHygieneModal({onClose,onSave,fixedDepartment='',initialRe
      createdAt:new Date().toISOString(),
      createdBy:actor.name,
      createdById:actor.id,
+      updatedAt:new Date().toISOString(),
+      updatedBy:actor.name,
+      updatedById:actor.id,
    })
  }
 

@@ -7,8 +7,8 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { demoLibrarySeed,newLocalLibraryItem } from './managementData'
 import { EnvironmentalStandardsPanel } from './EnvironmentalStandardsPanel'
+import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 
-const LIBRARY_STATE_KEY='limoxis.managementLibraries.v2'
 const categories=[
  ['departments','libraryDepartments',Building2,'blue'],['microorganisms','libraryMicroorganisms',Biohazard,'red'],
  ['antibiotics','libraryAntibiotics',Tablets,'purple'],['notifiableDiseases','libraryNotifiableDiseases',ClipboardCheck,'orange'],
@@ -19,8 +19,8 @@ const categories=[
  ['environmentalProtocols','environmentalProtocols',Wind,'sky'],
 ]
 const cloneSeed=()=>structuredClone(demoLibrarySeed)
-function loadState(){try{return {...cloneSeed(),...JSON.parse(localStorage.getItem(LIBRARY_STATE_KEY)||'{}')}}catch{return cloneSeed()}}
-function saveState(rows){try{localStorage.setItem(LIBRARY_STATE_KEY,JSON.stringify(rows))}catch{/* ignore: best-effort, falls back to defaults */}}
+function loadState(){const stored=loadSnapshot('management_libraries',{});return {...cloneSeed(),...(stored&&typeof stored==='object'?stored:{})}}
+function saveState(rows){return saveSnapshot('management_libraries',rows)}
 
 export function LibrariesPanel(){
  const {language,t}=useLanguage();const {notify,confirm}=useFeedback()

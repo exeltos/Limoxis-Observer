@@ -13,6 +13,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { demoLibrarySeed, demoOrganizations, demoUsers, externalSources } from './managementData'
+import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 
 const roleNames={platform_owner:'platformOwnerRole',hospital_admin:'hospitalAdminRole',infection_control_lead:'infectionControlLeadRole',infection_control_member:'infectionControlMemberRole',department_manager:'departmentManagerRole',department_user:'departmentUserRole',laboratory:'laboratoryRole',committee_secretariat:'committeeSecretariatRole',hr_office:'hrOfficeRole',pharmacy:'pharmacyRole',occupational_physician:'occupationalPhysicianRole',doctor_reviewer:'doctorReviewerRole',quality_manager:'qualityManagerRole',demo:'demoRole'}
 
@@ -85,7 +86,6 @@ function ManagementOverview({tenant,isDemo,allowed,onOpen,t}){
  </section>
 }
 
-const ORGANIZATION_SETTINGS_KEY='limoxis.organizationSettings.v1'
 const facilityTypeKeys={general:'generalHospitalType',university:'universityHospitalType',private:'privateHospitalType',clinic:'clinicType',rehab:'rehabCenterType'}
 // Accepts both the new stable identifiers ('general', 'university', ...) and legacy Greek
 // strings persisted by earlier versions that stored the option's display text directly.
@@ -97,7 +97,7 @@ function OrganizationPanel({tenant,notify,t}){
  const defaults={name:tenant?.name||'',shortName:'',code:tenant?.code||'',facilityType:'general',language:'el',timezone:'Europe/Athens',email:'',phone:'',website:'',address:'',city:'',postalCode:'',reportHeader:'',footerNote:''}
  const [editing,setEditing]=useState(false)
  const [value,setValue]=useState(()=>{
-  try{return {...defaults,...JSON.parse(localStorage.getItem(ORGANIZATION_SETTINGS_KEY)||'{}')}}catch{return defaults}
+  const stored=loadSnapshot('organization_settings',{});return {...defaults,...(stored&&typeof stored==='object'?stored:{})}
  })
  const [draft,setDraft]=useState(value)
  const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
@@ -106,7 +106,7 @@ function OrganizationPanel({tenant,notify,t}){
  function save(){
   const next={...draft,name:draft.name.trim(),code:draft.code.trim().toUpperCase()}
   if(!next.name||!next.code)return
-  setValue(next);localStorage.setItem(ORGANIZATION_SETTINGS_KEY,JSON.stringify(next));setEditing(false);notify(t('managementPanel.organizationSettingsSaved'),'success')
+  setValue(next);saveSnapshot('organization_settings',next);setEditing(false);notify(t('managementPanel.organizationSettingsSaved'),'success')
  }
  return <section className="management-section management-scroll-section organization-settings">
   <div className="section-toolbar"><div><h2>{t('organization')}</h2><p>{t('managementPanel.organizationPanelSubtitle')}</p></div>{!editing?<button type="button" className="entity-record-icon-button" onClick={begin} title={t('managementPanel.editOrganizationLabel')} aria-label={t('managementPanel.editOrganizationLabel')}><Pencil size={16}/></button>:null}</div>

@@ -1,4 +1,4 @@
-const KEY='limoxis.documents.v1'
+import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 
 const seed=[
   {
@@ -17,12 +17,35 @@ const seed=[
   }
 ]
 
-export function loadDocuments(){
-  try{const raw=localStorage.getItem(KEY);if(raw){const rows=JSON.parse(raw);if(Array.isArray(rows))return rows}}catch{/* ignore: best-effort, falls back to defaults */}
-  return structuredClone(seed)
-}
-export function saveDocuments(rows){try{localStorage.setItem(KEY,JSON.stringify(rows))}catch{/* ignore: best-effort, falls back to defaults */}return rows}
+export function loadDocuments(){const rows=loadSnapshot('documents',structuredClone(seed));return Array.isArray(rows)?rows:structuredClone(seed)}
+export function saveDocuments(rows){return saveSnapshot('documents',rows)}
 export function nextDocumentId(rows){
   const max=rows.reduce((m,x)=>Math.max(m,Number(String(x.id||'').match(/DOC-(\d+)/)?.[1]||0)),0)
   return `DOC-${String(max+1).padStart(3,'0')}`
+}
+
+export function nextRevisionVersion(version='1.0'){
+ const parts=String(version||'1.0').split('.')
+ const major=Number(parts[0])||1
+ const minor=Number(parts[1])||0
+ return `${major}.${minor+1}`
+}
+
+export function createDocumentRevision(source,{actor,version}={}){
+ const now=new Date().toISOString()
+ const nextVersion=version||nextRevisionVersion(source.version)
+ return {
+  ...source,
+  id:nextDocumentId(),
+  status:'draft',
+  version:nextVersion,
+  revisionOfId:source.id,
+  supersedesId:source.id,
+  supersededById:null,
+  publishedAt:null,publishedBy:null,publishedById:null,
+  archivedAt:null,archivedBy:null,archivedById:null,
+  createdAt:now,createdBy:actor?.name||'Άγνωστος χρήστης',createdById:actor?.id||'unknown',
+  updatedAt:now,updatedBy:actor?.name||'Άγνωστος χρήστης',updatedById:actor?.id||'unknown',
+  history:[{at:now,actor:actor?.name||'Άγνωστος χρήστης',actorId:actor?.id||'unknown',action:'Δημιουργία νέας έκδοσης',reason:`Από ${source.id} · ${source.version||'—'} → ${nextVersion}`}],
+ }
 }

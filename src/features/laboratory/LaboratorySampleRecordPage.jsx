@@ -12,6 +12,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuth } from '../../core/auth/AuthContext'
 import { auditActorFromAuth } from '../../core/audit/actor'
+import { finalizeRecord as applyGovernedFinalize, openCorrection } from '../../core/audit/governedLifecycle'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
@@ -214,7 +215,7 @@ export function LaboratorySampleRecordPage(){
       {tab==='history'&&<LabHistory sample={sample} t={t} fmt={fmt}/>}
       <LabStepNavigator active={tab} order={workflowOrder} labels={workflowLabels} canOpen={id=>Boolean(tabAccess[id])} onMove={setTab}/>
     </EntityRecordShell>
-    {correctionOpen&&<div className="modal-backdrop"><div className="entry-card correction-entry-card"><header><div><span className="eyebrow">{t('laboratory')}</span><h3>{t('laboratoryRecords.generalEdit')}</h3><p>{t('laboratoryRecords.generalEditHelp')}</p></div><button className="icon-close" onClick={()=>setCorrectionOpen(false)}>×</button></header><div className="entry-grid"><label className="entry-span-2"><span>{t('reasonRequired')}</span><textarea rows={4} value={correctionReason} onChange={e=>setCorrectionReason(e.target.value)} placeholder={t('laboratoryRecords.generalEditReasonPlaceholder')}/></label></div><footer><Button variant="secondary" onClick={()=>setCorrectionOpen(false)}>{t('cancel')}</Button><Button disabled={!correctionReason.trim()} onClick={()=>{const now=new Date().toISOString();persist(current=>({...current,status:'processing',finalizedAt:null,finalizedBy:null,documentsReviewedAt:null,correctionReason,correctionOpenedAt:now,timeline:[{at:now,type:'laboratoryRecordReopened',actor:actorName,detail:correctionReason},...(current.timeline||[])]}));setCorrectionOpen(false);setCorrectionReason('');setTab('result');notify(t('laboratoryRecords.laboratoryRecordReopenedMessage'),'success')}}>{t('laboratoryRecords.unlockForCorrection')}</Button></footer></div></div>}
+    {correctionOpen&&<div className="modal-backdrop"><div className="entry-card correction-entry-card"><header><div><span className="eyebrow">{t('laboratory')}</span><h3>{t('laboratoryRecords.generalEdit')}</h3><p>{t('laboratoryRecords.generalEditHelp')}</p></div><button className="icon-close" onClick={()=>setCorrectionOpen(false)}>×</button></header><div className="entry-grid"><label className="entry-span-2"><span>{t('reasonRequired')}</span><textarea rows={4} value={correctionReason} onChange={e=>setCorrectionReason(e.target.value)} placeholder={t('laboratoryRecords.generalEditReasonPlaceholder')}/></label></div><footer><Button variant="secondary" onClick={()=>setCorrectionOpen(false)}>{t('cancel')}</Button><Button disabled={!correctionReason.trim()} onClick={()=>{const now=new Date().toISOString();persist(current=>{const governed=openCorrection(current,{actor,reason:correctionReason,historyKey:'timeline',at:now});return {...governed,status:'processing',finalizedAt:null,finalizedBy:null,finalizedById:null,documentsReviewedAt:null,timeline:[{at:now,type:'laboratoryRecordReopened',actor:actorName,actorId:actor.id,detail:correctionReason},...(governed.timeline||[])]}});setCorrectionOpen(false);setCorrectionReason('');setTab('result');notify(t('laboratoryRecords.laboratoryRecordReopenedMessage'),'success')}}>{t('laboratoryRecords.unlockForCorrection')}</Button></footer></div></div>}
   </Page>
 }
 
@@ -269,7 +270,7 @@ function ResultPanel({sample,persist,syncValidatedResult,t,language,fmt,canManag
     if(!sample.result)return
     if(sample.result==='positive'&&!(sample.organisms?.length||sample.organism)){notify(t('laboratoryRecords.organismRequiredForPositive'),'warning');return}
     const now=new Date().toISOString()
-    const next=persist(current=>({...current,resultStatus:'validated',validatedAt:now,validatedBy:actorName,status:'completed',timeline:[{at:now,type:'resultValidated',actor:actorName},...(current.timeline||[])]}))
+    const next=persist(current=>({...current,resultStatus:'validated',validatedAt:now,validatedBy:actorName,validatedById:actor.id,updatedAt:now,updatedBy:actorName,updatedById:actor.id,status:'completed',timeline:[{at:now,type:'resultValidated',actor:actorName,actorId:actor.id},...(current.timeline||[])]}))
     syncValidatedResult(next)
     notify(t('laboratoryRecords.resultValidatedAndSynced'),'success')
     onNext?.()
@@ -464,14 +465,14 @@ function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canMan
   }
   function finalize(){
     const now=new Date().toISOString()
-    persist(c=>({...c,status:'completed',finalizedAt:now,finalizedBy:actorName,timeline:[{at:now,type:'employeeScreeningFinalized',actor:actorName},...(c.timeline||[])]}))
+    persist(c=>{const governed=applyGovernedFinalize(c,{actor,historyKey:'timeline',at:now});return {...governed,status:'completed',timeline:[{at:now,type:'employeeScreeningFinalized',actor:actorName,actorId:actor.id},...(governed.timeline||[])]}})
     syncEmployeeSurveillanceFromLab();window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated'));notify(t('laboratoryRecords.screeningFinalized'),'success');setTab('summary')
   }
   function reopenForCorrection(){
     const reason=correctionReason.trim()
     if(!reason)return
     const now=new Date().toISOString()
-    persist(c=>({...c,status:'processing',finalizedAt:null,finalizedBy:null,documentsReviewedAt:null,correctionReason:reason,correctionOpenedAt:now,timeline:[{at:now,type:'laboratoryRecordReopened',actor:actorName,detail:reason},...(c.timeline||[])]}))
+    persist(c=>{const governed=openCorrection(c,{actor,reason,historyKey:'timeline',at:now});return {...governed,status:'processing',finalizedAt:null,finalizedBy:null,finalizedById:null,documentsReviewedAt:null,timeline:[{at:now,type:'laboratoryRecordReopened',actor:actorName,actorId:actor.id,detail:reason},...(governed.timeline||[])]}})
     setCorrectionOpen(false);setCorrectionReason('');setTab('result');notify(t('laboratoryRecords.laboratoryRecordReopenedMessage'),'success')
   }
   return <Page fill><EntityRecordShell
@@ -567,7 +568,7 @@ function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,
   function reopen(){
     if(!reason.trim())return
     const now=new Date().toISOString()
-    persist(current=>({...current,status:'processing',finalizedAt:null,finalizedBy:null,documentsReviewedAt:null,correctionReason:reason,timeline:[{at:now,type:'laboratoryRecordReopened',actor:actorName,detail:reason},...(current.timeline||[])]}))
+    persist(current=>{const governed=openCorrection(current,{actor,reason,historyKey:'timeline',at:now});return {...governed,status:'processing',finalizedAt:null,finalizedBy:null,finalizedById:null,documentsReviewedAt:null,timeline:[{at:now,type:'laboratoryRecordReopened',actor:actorName,actorId:actor.id,detail:reason},...(governed.timeline||[])]}})
     setCorrectionOpen(false);setReason('');setTab('results')
     notify(t('laboratoryRecords.laboratoryRecordReopenedMessage'),'success')
   }
@@ -730,7 +731,7 @@ function EnvironmentalFinalization({sample,isPlate,persist,t,fmt,canFinalize,not
   function finalize(){
     if(!ready)return
     const now=new Date().toISOString()
-    persist(current=>({...current,status:'completed',finalizedAt:now,finalizedBy:actorName,timeline:[{at:now,type:isPlate?'environmentalPlateFinalized':'environmentalSampleFinalized',actor:actorName},...(current.timeline||[])]}))
+    persist(current=>{const governed=applyGovernedFinalize(current,{actor,historyKey:'timeline',at:now});return {...governed,status:'completed',timeline:[{at:now,type:isPlate?'environmentalPlateFinalized':'environmentalSampleFinalized',actor:actorName,actorId:actor.id},...(governed.timeline||[])]}})
     syncEnvironmentalSurveillanceFromLab()
     if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:environmental-updated'))
     notify(t('laboratoryRecords.environmentalLaboratoryFinalized'),'success')
@@ -751,7 +752,7 @@ function FinalizationPanel({sample,persist,syncValidatedResult,t,fmt,canFinalize
   function finalize(){
     if(!ready)return
     const now=new Date().toISOString()
-    const next=persist(current=>({...current,finalizedAt:now,finalizedBy:actorName,status:'completed',timeline:[{at:now,type:'laboratoryRecordFinalized',actor:actorName},...(current.timeline||[])]}))
+    const next=persist(current=>{const governed=applyGovernedFinalize(current,{actor,historyKey:'timeline',at:now});return {...governed,status:'completed',timeline:[{at:now,type:'laboratoryRecordFinalized',actor:actorName,actorId:actor.id},...(governed.timeline||[])]}})
     syncValidatedResult(next)
     notify(t('laboratoryRecords.laboratoryRecordFinalizedMessage'),'success')
     onFinalized?.()

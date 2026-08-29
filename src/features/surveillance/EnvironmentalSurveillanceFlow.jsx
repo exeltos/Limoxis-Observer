@@ -46,7 +46,7 @@ export function EnvironmentalSurveillanceFlow({onClose,onCreated}){
     if(mode==='single'){
       if(!location.trim()&&!point.trim())return
       const record=createEnvironmentalSurveillance({
-        subjectType,department:depEl,departmentEn:depEn,location,point,sourceCode,startedAt:date,notes,createdBy:actor.name,
+        subjectType,department:depEl,departmentEn:depEn,location,point,sourceCode,startedAt:date,notes,createdBy:actor.name,createdById:actor.id,
       })
       notify(t('clinicalRecords.environmentalSurveillanceCreated'),'success')
       onCreated?.(record)
@@ -55,7 +55,7 @@ export function EnvironmentalSurveillanceFlow({onClose,onCreated}){
     }
     const items=batchRows.filter(x=>x.location.trim()||x.point.trim()).map(x=>({location:x.location,point:x.point,plateCode:x.plateCode,platePosition:x.platePosition,department:depEl,departmentEn:depEn}))
     if(!items.length)return
-    const batch=createEnvironmentalBatch({items,subjectType,startedAt:date,department:depEl,departmentEn:depEn,sourceCode,notes,grouping,createdBy:actor.name})
+    const batch=createEnvironmentalBatch({items,subjectType,startedAt:date,department:depEl,departmentEn:depEn,sourceCode,notes,grouping,createdBy:actor.name,createdById:actor.id})
     notify(t('clinicalRecords.environmentalBatchCreated').replace('{count}',String(items.length)),'success')
     onCreated?.(batch)
     onClose()

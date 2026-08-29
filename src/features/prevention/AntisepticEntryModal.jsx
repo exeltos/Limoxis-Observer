@@ -67,7 +67,7 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
   onSave({...draft,departmentEn,productEn,litres,patientDays:patientDays||null,indicator,
    indicatorEligible:abhr,responsible:draft.responsible||actor.name,
    createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,
-   updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,status:'completed'})
+   updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized',finalizedAt:initialRecord?.finalizedAt||now,finalizedBy:initialRecord?.finalizedBy||actor.name,finalizedById:initialRecord?.finalizedById||actor.id})
  }
 
  return <div className="modal-backdrop"><div className="entry-card prevention-entry-card antiseptic-entry-card">

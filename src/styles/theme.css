@@ -23,3 +23,25 @@
   --lo-record-tabs-height:48px;
   --lo-shadow-popover:0 16px 38px rgba(22,39,58,.16);
 }
+
+/* v0.26.92 — semantic status + metric tokens */
+:root{
+  --lo-status-success-bg:#eaf6ef;
+  --lo-status-success-fg:#2d7650;
+  --lo-status-success-border:#cfe7d8;
+  --lo-status-info-bg:#edf5fa;
+  --lo-status-info-fg:#356982;
+  --lo-status-info-border:#d5e5ee;
+  --lo-status-warning-bg:#fff6df;
+  --lo-status-warning-fg:#8a641d;
+  --lo-status-warning-border:#f0dfae;
+  --lo-status-danger-bg:#fff0f0;
+  --lo-status-danger-fg:#a23f46;
+  --lo-status-danger-border:#efcfd2;
+  --lo-status-neutral-bg:#f1f4f6;
+  --lo-status-neutral-fg:#667786;
+  --lo-status-neutral-border:#dfe5e9;
+  --lo-metric-icon-bg:#edf5f9;
+  --lo-metric-icon-fg:#47718d;
+  --lo-metric-value:#173b5c;
+}

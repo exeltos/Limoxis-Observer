@@ -39,7 +39,7 @@ function nextLabId(){
 export function getEmployeeSurveillanceForEmployee(employeeId){
   return employeeSurveillanceRecords.filter(x=>x.employeeId===employeeId)
 }
-export function createEmployeeSurveillance({employee,screeningTypes,startedAt,notes='',batchId=null,createdBy='Unknown actor'}){
+export function createEmployeeSurveillance({employee,screeningTypes,startedAt,notes='',batchId=null,createdBy='Unknown actor',createdById='unknown'}){
   const id=nextSurveillanceId()
   const sampleIds=[]
   screeningTypes.forEach(typeId=>{
@@ -109,15 +109,16 @@ export function createEmployeeSurveillance({employee,screeningTypes,startedAt,no
     recheckSampleIds:[],
     sampleIds,
     notes,
-    timeline:[{at:new Date().toISOString(),type:'employeeSurveillanceStarted',actor:createdBy}],
+    createdAt:new Date().toISOString(),createdBy,createdById,updatedAt:new Date().toISOString(),updatedBy:createdBy,updatedById:createdById,
+    timeline:[{at:new Date().toISOString(),type:'employeeSurveillanceStarted',actor:createdBy,actorId:createdById}],
   }
   employeeSurveillanceRecords.unshift(record)
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated',{detail:{type:'created',recordId:record.id}}))
   return record
 }
-export function createEmployeeSurveillanceBatch({employees,screeningTypes,startedAt,department,departmentEn,notes='',createdBy='Unknown actor'}){
+export function createEmployeeSurveillanceBatch({employees,screeningTypes,startedAt,department,departmentEn,notes='',createdBy='Unknown actor',createdById='unknown'}){
   const id=nextBatchId()
-  const records=employees.map(employee=>createEmployeeSurveillance({employee,screeningTypes,startedAt,notes,batchId:id,createdBy}))
+  const records=employees.map(employee=>createEmployeeSurveillance({employee,screeningTypes,startedAt,notes,batchId:id,createdBy,createdById}))
   const batch={
     id,
     subjectType:'employee_batch',
@@ -129,7 +130,11 @@ export function createEmployeeSurveillanceBatch({employees,screeningTypes,starte
     surveillanceIds:records.map(x=>x.id),
     status:'active',
     createdBy,
+    createdById,
     createdAt:new Date().toISOString(),
+    updatedBy:createdBy,
+    updatedById:createdById,
+    updatedAt:new Date().toISOString(),
   }
   employeeSurveillanceBatches.unshift(batch)
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated',{detail:{type:'batch-created',batchId:batch.id,count:records.length}}))
@@ -145,7 +150,7 @@ export function updateEmployeeSurveillanceRecord(id,patch){
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated'))
   return record
 }
-export function createEmployeeRecheck(record,{date,createdBy='Unknown actor'}){
+export function createEmployeeRecheck(record,{date,createdBy='Unknown actor',createdById='unknown'}){
   if(!record||!date)return []
   const employee={
     id:record.employeeId,
@@ -175,7 +180,8 @@ export function createEmployeeRecheck(record,{date,createdBy='Unknown actor'}){
   record.recheckDate=date
   record.recheckSampleIds=[...(record.recheckSampleIds||[]),...sampleIds]
   record.status='active'
-  record.timeline=[{at:new Date().toISOString(),type:'employeeRecheckScheduled',actor:createdBy,detail:date},...(record.timeline||[])]
+  record.updatedAt=new Date().toISOString();record.updatedBy=createdBy;record.updatedById=createdById
+  record.timeline=[{at:new Date().toISOString(),type:'employeeRecheckScheduled',actor:createdBy,actorId:createdById,detail:date},...(record.timeline||[])]
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated'))
   return sampleIds
 }

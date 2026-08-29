@@ -16,6 +16,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useAuth } from '../../core/auth/AuthContext'
 import { auditActorFromAuth, auditEvent } from '../../core/audit/actor'
+import { openCorrection, voidRecord as applyGovernedVoid } from '../../core/audit/governedLifecycle'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 
@@ -40,7 +41,7 @@ export function QualityRecordPage(){
   const finalized=Boolean(record&&['closed','completed','cancelled'].includes(record.status))
   const recordInScope=!record||canAccessRecord({...record,department:record.department})
   if(!record)return <Page title={t('quality')}><div className="inline-empty">{t('noData')}</div></Page>
-  if(!recordInScope)return <Page title={t('quality')}><div className="inline-empty">Δεν έχετε πρόσβαση σε αυτή την εγγραφή.</div></Page>
+  if(!recordInScope)return <Page title={t('quality')}><div className="inline-empty">{language==='en'?'You do not have access to this record.':'Δεν έχετε πρόσβαση σε αυτή την εγγραφή.'}</div></Page>
   const Icon=iconMap[recordType]||ShieldCheck
   const title=language==='el'?record.title:record.titleEn
   const tabs=[{id:'details',label:t('details'),icon:Icon},{id:'links',label:t('qualityRecords.linkedRecords'),icon:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
@@ -62,6 +63,7 @@ export function QualityRecordPage(){
 }
 
 function QualityDetails({recordType,record,setRecord,t,language,locale,canManage,notify,actor,finalized,onDeleted}){
+  const en=language==='en'
   const [editing,setEditing]=useState(false)
   const [draft,setDraft]=useState({...record})
   const [governedAction,setGovernedAction]=useState(null)
@@ -82,23 +84,21 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
   function save(){
     const now=new Date().toISOString()
     const event=auditEvent(finalized?'recordCorrected':'recordUpdated',{actor,reason:correctionReason})
-    const next={...draft,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[event,...(record.history||[])]}
+    const next={...draft,lifecycleStatus:'active',updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[event,...(draft.history||record.history||[])]}
     persist(next);setEditing(false);setCorrectionReason('');notify(t('recordUpdated'),'success')
   }
   function requestVoid(){if(canManage)setGovernedAction('void')}
   function governedConfirm(reason){
     if(governedAction==='correct'){
-      setCorrectionReason(reason);setDraft({...record});setEditing(true);setGovernedAction(null);return
+      setCorrectionReason(reason);setDraft(openCorrection(record,{actor,reason}));setEditing(true);setGovernedAction(null);return
     }
     if(governedAction==='void'){
-      const now=new Date().toISOString()
-      const event=auditEvent('recordVoided',{actor,reason})
-      const next={...record,lifecycleStatus:'voided',voidedAt:now,voidedBy:actor.name,voidedById:actor.id,voidReason:reason,history:[event,...(record.history||[])]}
-      persist(next);setGovernedAction(null);notify('Η εγγραφή ακυρώθηκε και διατηρήθηκε στο audit trail.','success');onDeleted?.()
+      const next=applyGovernedVoid(record,{actor,reason})
+      persist(next);setGovernedAction(null);notify(en?'Record voided and retained in the audit trail.':'Η εγγραφή ακυρώθηκε και διατηρήθηκε στο audit trail.','success');onDeleted?.()
     }
   }
   return <div className="record-section">
-    <div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('details')}</h3></div>{canManage&&!editing&&<div className="record-inline-actions"><button onClick={beginEdit} title={finalized?'Διόρθωση ολοκληρωμένης εγγραφής':t('edit')}>{finalized?<RotateCcw size={16}/>:<Pencil size={16}/>}</button><button className="danger" onClick={requestVoid} title="Ακύρωση εγγραφής"><Trash2 size={16}/></button></div>}</div>
+    <div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('details')}</h3></div>{canManage&&!editing&&<div className="record-inline-actions"><button onClick={beginEdit} title={finalized?(en?'Correct finalized record':'Διόρθωση ολοκληρωμένης εγγραφής'):t('edit')}>{finalized?<RotateCcw size={16}/>:<Pencil size={16}/>}</button><button className="danger" onClick={requestVoid} title={en?'Void record':'Ακύρωση εγγραφής'}><Trash2 size={16}/></button></div>}</div>
     <div className={`detail-grid quality-detail-grid ${editing?'employee-inline-edit':''}`}>
       <Field label={t('code')} value={draft.id}/>
       <EditField editing={editing} label={t('title')} value={language==='el'?draft.title:draft.titleEn} onChange={v=>set(language==='el'?'title':'titleEn',v)}/>
@@ -106,12 +106,12 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
       <EditSelect editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(x=>[x,t(x)])}/>
       {recordType==='incidents'&&<><EditSelect editing={editing} label={t('severity')} value={draft.severity} onChange={v=>set('severity',v)} options={['low','medium','high','critical'].map(x=>[x,t(x)])}/><Field label={t('qualityRecords.reportedBy')} value={draft.reportedBy}/><EditField editing={editing} label={t('owner')} value={draft.owner} onChange={v=>set('owner',v)}/><Field label={t('date')} value={fmt(draft.date,locale)}/></>}
       {recordType==='findings'&&<><EditSelect editing={editing} label={t('severity')} value={draft.severity} onChange={v=>set('severity',v)} options={['low','medium','high','critical'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('owner')} value={draft.owner} onChange={v=>set('owner',v)}/><Field label={t('source')} value={`${t(draft.source)} · ${draft.sourceId||'—'}`}/></>}
-      {recordType==='capas'&&<><EditSelect editing={editing} label={t('actionType')} value={draft.actionType} onChange={v=>set('actionType',v)} options={['corrective','preventive'].map(x=>[x,t(x)])}/><EditSelect editing={editing} label={t('priority')} value={draft.priority} onChange={v=>set('priority',v)} options={['low','medium','high','critical'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('owner')} value={draft.owner} onChange={v=>set('owner',v)}/><EditField editing={editing} type="date" label={t('dueDate')} value={draft.dueDate} onChange={v=>set('dueDate',v)}/><EditField editing={editing} type="date" label={t('qualityRecords.effectivenessDue')} value={draft.effectivenessDue} onChange={v=>set('effectivenessDue',v)}/><EditSelect editing={editing} label={t('qualityRecords.effectiveness')} value={draft.effectivenessStatus} onChange={v=>set('effectivenessStatus',v)} options={['pending','effective','notEffective'].map(x=>[x,t(x)])}/></>}
-      {recordType==='audits'&&<><EditSelect editing={editing} label={t('auditType')} value={draft.auditType} onChange={v=>set('auditType',v)} options={['internal','external'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('leadAuditor')} value={draft.leadAuditor} onChange={v=>set('leadAuditor',v)}/><EditField editing={editing} type="date" label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)}/><Field label={t('qualityRecords.completedDate')} value={fmt(draft.completedDate,locale)}/></>}
+      {recordType==='capas'&&<><EditSelect editing={editing} label={t('actionType')} value={draft.actionType} onChange={v=>set('actionType',v)} options={['corrective','preventive'].map(x=>[x,t(x)])}/><EditSelect editing={editing} label={t('priority')} value={draft.priority} onChange={v=>set('priority',v)} options={['low','medium','high','critical'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('owner')} value={draft.owner} onChange={v=>set('owner',v)}/><EditDateField editing={editing} label={t('dueDate')} value={draft.dueDate} onChange={v=>set('dueDate',v)} locale={locale}/><EditDateField editing={editing} label={t('qualityRecords.effectivenessDue')} value={draft.effectivenessDue} onChange={v=>set('effectivenessDue',v)} locale={locale}/><EditSelect editing={editing} label={t('qualityRecords.effectiveness')} value={draft.effectivenessStatus} onChange={v=>set('effectivenessStatus',v)} options={['pending','effective','notEffective'].map(x=>[x,t(x)])}/></>}
+      {recordType==='audits'&&<><EditSelect editing={editing} label={t('auditType')} value={draft.auditType} onChange={v=>set('auditType',v)} options={['internal','external'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('leadAuditor')} value={draft.leadAuditor} onChange={v=>set('leadAuditor',v)}/><EditDateField editing={editing} label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)} locale={locale}/><Field label={t('qualityRecords.completedDate')} value={fmt(draft.completedDate,locale)}/></>}
     </div>
     <div className="quality-description"><span>{t(recordType==='audits'?'qualityRecords.auditScope':'description')}</span>{editing?<textarea rows={5} value={language==='el'?(draft.description??draft.scope??''):(draft.descriptionEn??draft.scopeEn??'')} onChange={e=>set(language==='el'?(recordType==='audits'?'scope':'description'):(recordType==='audits'?'scopeEn':'descriptionEn'),e.target.value)}/>:<p>{language==='el'?(record.description??record.scope??'—'):(record.descriptionEn??record.scopeEn??'—')}</p>}</div>
     {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...record});setEditing(false);setCorrectionReason('')}}>{t('cancel')}</Button><Button onClick={save}>{t('save')}</Button></div>}
-    <GovernedReasonDialog open={Boolean(governedAction)} title={governedAction==='correct'?'Διόρθωση ολοκληρωμένης εγγραφής':'Ακύρωση εγγραφής'} description={governedAction==='correct'?'Η αρχική εγγραφή παραμένει στο ιστορικό. Καταγράψτε τον λόγο της διόρθωσης.':'Η εγγραφή δεν θα διαγραφεί φυσικά. Θα χαρακτηριστεί ως ακυρωμένη και θα παραμείνει στο audit trail.'} confirmLabel={governedAction==='correct'?'Έναρξη διόρθωσης':'Ακύρωση εγγραφής'} danger={governedAction==='void'} onCancel={()=>setGovernedAction(null)} onConfirm={governedConfirm}/>
+    <GovernedReasonDialog open={Boolean(governedAction)} title={governedAction==='correct'?(en?'Correct finalized record':'Διόρθωση ολοκληρωμένης εγγραφής'):(en?'Void record':'Ακύρωση εγγραφής')} description={governedAction==='correct'?(en?'The original record remains in history. Enter the reason for the correction.':'Η αρχική εγγραφή παραμένει στο ιστορικό. Καταγράψτε τον λόγο της διόρθωσης.'):(en?'The record will not be physically deleted. It will be marked as voided and retained in the audit trail.':'Η εγγραφή δεν θα διαγραφεί φυσικά. Θα χαρακτηριστεί ως ακυρωμένη και θα παραμείνει στο audit trail.')} confirmLabel={governedAction==='correct'?(en?'Start correction':'Έναρξη διόρθωσης'):(en?'Void record':'Ακύρωση εγγραφής')} danger={governedAction==='void'} onCancel={()=>setGovernedAction(null)} onConfirm={governedConfirm}/>
   </div>
 }
 function QualityLinks({recordType,record,t,language}){
@@ -139,5 +139,7 @@ function QualityHistory({record,t,locale}){const rows=useMemo(()=>[...(record.hi
 function statusOptions(type){return type==='incidents'?['reported','underReview','closed']:type==='findings'?['open','inProgress','closed']:type==='capas'?['open','inProgress','verification','closed']:['planned','inProgress','completed','cancelled']}
 function fmt(v,locale){return v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'}
 function Field({label,value}){return <div className="detail-item"><span>{label}</span><strong>{value||'—'}</strong></div>}
+
+function EditDateField({editing,label,value,onChange,locale}){return editing?<ManualDateField label={label} value={value||''} onChange={onChange}/>:<Field label={label} value={fmt(value,locale)}/>} 
 function EditField({editing,label,value,onChange,type='text'}){if(editing&&type==='date')return <ManualDateField className="detail-item editable" label={label} value={value||''} onChange={onChange}/>;return <div className={`detail-item ${editing?'editable':''}`}><span>{label}</span>{editing?<input type={type} value={value||''} onChange={e=>onChange(e.target.value)}/>:<strong>{value||'—'}</strong>}</div>}
 function EditSelect({editing,label,value,onChange,options}){return <div className={`detail-item ${editing?'editable':''}`}><span>{label}</span>{editing?<select value={value||''} onChange={e=>onChange(e.target.value)}>{options.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>:<strong>{options.find(x=>x[0]===value)?.[1]||value||'—'}</strong>}</div>}

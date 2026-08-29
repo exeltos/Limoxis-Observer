@@ -3,16 +3,14 @@ import { useAuth } from '../auth/AuthContext'
 import { useTenant } from '../tenant/TenantContext'
 import { loadEmployees } from '../../features/employees/employeeStore'
 import { useLanguage } from '../i18n/LanguageContext'
+import { loadSnapshot, saveSnapshot } from '../data/repository'
 
 const NotificationContext=createContext(null)
-const ANN_KEY='limoxis.announcements.v2'
-const READ_KEY='limoxis.notificationReads.v1'
 
 const demoAnnouncements=[
  {id:'ANN-001',title:'Ενημέρωση Επιτήρησης',message:'Παρακαλούμε να ολοκληρωθούν οι εκκρεμείς επανεκτιμήσεις απομόνωσης.',priority:'high',audienceType:'all',audienceValues:[],createdBy:'Υπεύθυνος Λοιμώξεων',createdAt:'2026-08-29T07:30:00',requiresAck:true,startAt:'',endAt:''},
  {id:'ANN-002',title:'Υπενθύμιση εκπαίδευσης',message:'Η νέα ενότητα πρόληψης λοιμώξεων είναι διαθέσιμη στο Κέντρο Εκπαίδευσης.',priority:'normal',audienceType:'all',audienceValues:[],createdBy:'Διαχειριστής',createdAt:'2026-08-28T12:00:00',requiresAck:false,startAt:'',endAt:''},
 ]
-function readJson(key,fallback){try{const v=JSON.parse(localStorage.getItem(key));return v??fallback}catch{return fallback}}
 function valuesFor(a){return Array.isArray(a.audienceValues)?a.audienceValues:(a.audienceValue?[a.audienceValue]:[])}
 function applies(a,{role,membership,user,profile}){
  const vals=valuesFor(a)
@@ -70,12 +68,12 @@ const operationalText={
 }
 export function NotificationProvider({children}){
  const {user,profile}=useAuth(); const {role,membership}=useTenant(); const {language}=useLanguage()
- const [announcements,setAnnouncements]=useState(()=>readJson(ANN_KEY,null)||demoAnnouncements)
- const [reads,setReads]=useState(()=>readJson(READ_KEY,{}))
+ const [announcements,setAnnouncements]=useState(()=>loadSnapshot('announcements',null)||demoAnnouncements)
+ const [reads,setReads]=useState(()=>loadSnapshot('notification_reads',{}))
  const [clock,setClock]=useState(Date.now())
  useEffect(()=>{const id=window.setInterval(()=>setClock(Date.now()),60000);return()=>window.clearInterval(id)},[])
- useEffect(()=>{try{localStorage.setItem(ANN_KEY,JSON.stringify(announcements))}catch{/* storage unavailable */}},[announcements])
- useEffect(()=>{try{localStorage.setItem(READ_KEY,JSON.stringify(reads))}catch{/* storage unavailable */}},[reads])
+ useEffect(()=>{saveSnapshot('announcements',announcements)},[announcements])
+ useEffect(()=>{saveSnapshot('notification_reads',reads)},[reads])
  const audience=useMemo(()=>({role,membership,user,profile}),[role,membership,user,profile])
  const visibleAnnouncements=useMemo(()=>announcements.filter(a=>applies(a,audience)&&withinWindow(a,clock)).map(a=>{
    const localized=demoAnnouncementText[language]?.[a.id]

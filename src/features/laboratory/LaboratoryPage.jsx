@@ -17,6 +17,7 @@ import { downloadCsv } from '../../core/export/csvExport'
 import { laboratorySamples, createDemoLabSample, getLabKpis, sampleSourceCatalog } from './laboratoryDemoData'
 import { patientDemoData } from '../patients/patientDemoData'
 import { demoLibrarySeed } from '../management/managementData'
+import { MetricCard } from '../../design-system/MetricCard'
 
 const sourceOptions={
   bloodCulture:[['peripheral','peripheralBlood'],['centralLine','centralLine'],['arterialLine','arterialLine'],['other','other']],

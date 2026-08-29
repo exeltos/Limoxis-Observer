@@ -40,7 +40,8 @@ export function PreventionEntryModal({tab,onClose,onSave,fixedDepartment='',init
 
  function submit(){
   if(!valid)return
-  const common={...draft,departmentEn,createdAt:new Date().toISOString(),createdBy:actor.name,createdById:actor.id}
+  const now=new Date().toISOString()
+  const common={...draft,departmentEn,createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}
   if(tab==='handHygiene'){
    const observations=Number(draft.observations),compliant=Number(draft.compliant)
    onSave({...common,observations,compliant,rate:observations?Number(((compliant/observations)*100).toFixed(1)):0})

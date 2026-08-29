@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { Maximize2, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { Button } from './Button'
+import { useLanguage } from '../core/i18n/LanguageContext'
 
-function fieldLabel(textarea){
+function fieldLabel(textarea,en=false){
   const parent=textarea.closest('label')
   const label=parent?.querySelector(':scope > span')?.textContent?.trim()
-  return label?.replace(/\s*\*\s*$/,'') || textarea.getAttribute('aria-label') || textarea.getAttribute('placeholder') || 'Μεγάλο πεδίο κειμένου'
+  return label?.replace(/\s*\*\s*$/,'') || textarea.getAttribute('aria-label') || textarea.getAttribute('placeholder') || (en?'Large text field':'Μεγάλο πεδίο κειμένου')
 }
 
 export function GlobalTextareaExpander(){
+  const {language}=useLanguage();const en=language==='en'
   const [active,setActive]=useState(null)
   const [value,setValue]=useState('')
   const activeRef=useRef(null)
@@ -36,12 +38,12 @@ export function GlobalTextareaExpander(){
       const button=document.createElement('button')
       button.type='button'
       button.className='textarea-expand-trigger'
-      button.title='Μεγέθυνση πεδίου'
-      button.setAttribute('aria-label',`Μεγέθυνση: ${fieldLabel(textarea)}`)
+      button.title=en?'Expand field':'Μεγέθυνση πεδίου'
+      button.setAttribute('aria-label',en?`Expand: ${fieldLabel(textarea,true)}`:`Μεγέθυνση: ${fieldLabel(textarea,false)}`)
       button.innerHTML='<span aria-hidden="true">⛶</span>'
       const open=(event)=>{
         event.preventDefault();event.stopPropagation()
-        setActive({textarea,label:fieldLabel(textarea),readOnly:textarea.readOnly||textarea.disabled})
+        setActive({textarea,label:fieldLabel(textarea,en),readOnly:textarea.readOnly||textarea.disabled})
         setValue(textarea.value||'')
       }
       button.addEventListener('click',open)
@@ -59,7 +61,7 @@ export function GlobalTextareaExpander(){
       observer.disconnect();window.removeEventListener('resize',reposition)
       listeners.forEach(({button,open},textarea)=>{button.removeEventListener('click',open);button.remove();textarea.removeAttribute('data-limoxis-expandable');textarea.classList.remove('limoxis-expandable-textarea');textarea.parentElement?.classList.remove('has-textarea-expander')})
     }
-  },[])
+  },[en])
 
   useEffect(()=>{
     if(!active)return
@@ -82,9 +84,9 @@ export function GlobalTextareaExpander(){
   if(!active)return null
   return createPortal(<div className="global-textarea-editor-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setActive(null)}}>
     <section className="global-textarea-editor" role="dialog" aria-modal="true" aria-labelledby="global-textarea-title">
-      <header><div><span>Επεξεργασία μεγάλου κειμένου</span><h2 id="global-textarea-title">{active.label}</h2></div><button type="button" className="global-textarea-editor-close" onClick={()=>setActive(null)} aria-label="Κλείσιμο"><X size={18}/></button></header>
-      <div className="global-textarea-editor-body"><textarea autoFocus value={value} readOnly={active.readOnly} onChange={e=>setValue(e.target.value)} aria-label={active.label}/><div className="global-textarea-editor-hint"><Maximize2 size={14}/><span>{active.readOnly?'Προβολή μεγάλου κειμένου. Το πεδίο είναι μόνο για ανάγνωση.':'Γράψε ή επεξεργάσου άνετα το κείμενο. Η αλλαγή εφαρμόζεται στο αρχικό πεδίο όταν πατήσεις «Εφαρμογή».'}</span></div></div>
-      <footer><Button variant="secondary" onClick={()=>setActive(null)}>{active.readOnly?'Κλείσιμο':'Ακύρωση'}</Button>{!active.readOnly&&<Button onClick={apply}>Εφαρμογή</Button>}</footer>
+      <header><div><span>{en?'Large text editor':'Επεξεργασία μεγάλου κειμένου'}</span><h2 id="global-textarea-title">{active.label}</h2></div><button type="button" className="global-textarea-editor-close" onClick={()=>setActive(null)} aria-label={en?'Close':'Κλείσιμο'}><X size={18}/></button></header>
+      <div className="global-textarea-editor-body"><textarea autoFocus value={value} readOnly={active.readOnly} onChange={e=>setValue(e.target.value)} aria-label={active.label}/><div className="global-textarea-editor-hint"><Maximize2 size={14}/><span>{active.readOnly?(en?'Large-text view. This field is read-only.':'Προβολή μεγάλου κειμένου. Το πεδίο είναι μόνο για ανάγνωση.'):(en?'Write or edit the text comfortably. The change is applied to the original field when you select Apply.':'Γράψε ή επεξεργάσου άνετα το κείμενο. Η αλλαγή εφαρμόζεται στο αρχικό πεδίο όταν πατήσεις «Εφαρμογή».')}</span></div></div>
+      <footer><Button variant="secondary" onClick={()=>setActive(null)}>{active.readOnly?(en?'Close':'Κλείσιμο'):(en?'Cancel':'Ακύρωση')}</Button>{!active.readOnly&&<Button onClick={apply}>{en?'Apply':'Εφαρμογή'}</Button>}</footer>
     </section>
   </div>,document.body)
 }

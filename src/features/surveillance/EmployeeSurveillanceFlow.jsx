@@ -20,7 +20,7 @@ export function EmployeeSurveillanceFlow({employee=null,onClose,onCreated}){
   const toggle=id=>setTypes(rows=>rows.includes(id)?rows.filter(x=>x!==id):[...rows,id])
   function save(){
     if(!selected||!types.length||!date)return
-    const record=createEmployeeSurveillance({employee:selected,screeningTypes:types,startedAt:date,notes,createdBy:actor.name})
+    const record=createEmployeeSurveillance({employee:selected,screeningTypes:types,startedAt:date,notes,createdBy:actor.name,createdById:actor.id})
     notify(t('clinicalRecords.employeeSurveillanceCreated'),'success')
     onCreated?.(record)
     onClose()
@@ -66,6 +66,7 @@ export function BulkEmployeeSurveillanceFlow({onClose,onCreated}){
       departmentEn:department==='all'?'Multiple departments':first.departmentEn,
       notes,
       createdBy:actor.name,
+      createdById:actor.id,
     })
     notify(t('clinicalRecords.bulkEmployeeSurveillanceCreated').replace('{count}',String(employees.length)),'success')
     onCreated?.(batch)

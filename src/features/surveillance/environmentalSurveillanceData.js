@@ -27,11 +27,12 @@ function nextId(){return `ENV-${new Date().toISOString().slice(2,10).replaceAll(
 function nextBatchId(){return `ENVB-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(environmentalSurveillanceBatches.length+1).padStart(3,'0')}`}
 function nextLabId(){return `LAB-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(laboratorySamples.length+1).padStart(3,'0')}`}
 
-function baseRecord({id,subjectType,department,departmentEn,location,locationEn,point,pointEn,sourceCode,startedAt,batchId,sampleId,notes,plateCode=null,platePosition=null}){
+function baseRecord({id,subjectType,department,departmentEn,location,locationEn,point,pointEn,sourceCode,startedAt,batchId,sampleId,notes,plateCode=null,platePosition=null,createdBy='Unknown actor',createdById='unknown'}){
   return {
     id,subjectType,department,departmentEn,location,locationEn:locationEn||location,point,pointEn:pointEn||point,sourceCode,startedAt,batchId,sampleId,
     plateCode,platePosition,status:'active',notes,result:null,cfu:null,limitCfu:null,withinLimit:null,organism:null,organisms:[],
-    timeline:[{at:new Date().toISOString(),type:'environmentalSurveillanceStarted',actor:'Demo seed'}],
+    createdAt:new Date().toISOString(),createdBy,createdById,updatedAt:new Date().toISOString(),updatedBy:createdBy,updatedById:createdById,
+    timeline:[{at:new Date().toISOString(),type:'environmentalSurveillanceStarted',actor:createdBy,actorId:createdById}],
   }
 }
 
@@ -50,16 +51,16 @@ function createIndividualLabSample({record,createdBy}){
   })
 }
 
-export function createEnvironmentalSurveillance({subjectType,department,departmentEn,location,locationEn,point,pointEn,sourceCode,startedAt,notes='',batchId=null,createdBy='Unknown actor'}){
+export function createEnvironmentalSurveillance({subjectType,department,departmentEn,location,locationEn,point,pointEn,sourceCode,startedAt,notes='',batchId=null,createdBy='Unknown actor',createdById='unknown'}){
   const id=nextId(), sampleId=nextLabId()
-  const record=baseRecord({id,subjectType,department,departmentEn,location,locationEn,point,pointEn,sourceCode,startedAt,batchId,sampleId,notes})
+  const record=baseRecord({id,subjectType,department,departmentEn,location,locationEn,point,pointEn,sourceCode,startedAt,batchId,sampleId,notes,createdBy,createdById})
   record.timeline[0].actor=createdBy
   environmentalSurveillanceRecords.unshift(record)
   createIndividualLabSample({record,createdBy})
   return record
 }
 
-export function createEnvironmentalBatch({items,subjectType,startedAt,department,departmentEn,sourceCode,notes='',grouping='individual',createdBy='Unknown actor'}){
+export function createEnvironmentalBatch({items,subjectType,startedAt,department,departmentEn,sourceCode,notes='',grouping='individual',createdBy='Unknown actor',createdById='unknown'}){
   const id=nextBatchId()
   const records=[]
   const plateGroups=new Map()
@@ -72,7 +73,7 @@ export function createEnvironmentalBatch({items,subjectType,startedAt,department
     const record=baseRecord({
       id:recordId,subjectType,department:item.department||department,departmentEn:item.departmentEn||departmentEn,
       location:item.location,locationEn:item.locationEn||item.location,point:item.point,pointEn:item.pointEn||item.point,
-      sourceCode,startedAt,batchId:id,sampleId,notes,plateCode,platePosition
+      sourceCode,startedAt,batchId:id,sampleId,notes,plateCode,platePosition,createdBy,createdById
     })
     record.timeline[0].actor=createdBy
     environmentalSurveillanceRecords.unshift(record)
@@ -103,7 +104,7 @@ export function createEnvironmentalBatch({items,subjectType,startedAt,department
     }
   }
 
-  const batch={id,subjectType,startedAt,department,departmentEn,sourceCode,grouping,recordIds:records.map(x=>x.id),sampleIds:[...new Set(records.map(x=>x.sampleId))],status:'active',createdAt:new Date().toISOString(),createdBy}
+  const batch={id,subjectType,startedAt,department,departmentEn,sourceCode,grouping,recordIds:records.map(x=>x.id),sampleIds:[...new Set(records.map(x=>x.sampleId))],status:'active',createdAt:new Date().toISOString(),createdBy,createdById,updatedAt:new Date().toISOString(),updatedBy:createdBy,updatedById:createdById}
   environmentalSurveillanceBatches.unshift(batch)
   return batch
 }

@@ -1,6 +1,4 @@
-const KEY='limoxis.training.v3'
-const LEGACY_KEY='limoxis.training.v2'
-
+import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 export const trainerFeedbackTemplate=[
  {id:'clarity',label:'Σαφήνεια παρουσίασης'},
  {id:'knowledge',label:'Γνώση και επάρκεια εκπαιδευτή'},
@@ -41,11 +39,9 @@ function normalize(state){
 function stableToken(value,salt=''){let h=2166136261;for(const ch of `${value}|${salt}`){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return Math.abs(h>>>0).toString(36).toUpperCase()}
 export function trainingAccessUrl(token){return `${window.location.origin}/training-access/${encodeURIComponent(token)}`}
 export function findTrainingAccess(state,token){for(const program of state.programs||[]){if(program.checkInToken===token)return {program,mode:'checkin'};if(program.completionToken===token)return {program,mode:'complete'}}return null}
-export function loadTrainingState(){
- try{const raw=localStorage.getItem(KEY)||localStorage.getItem(LEGACY_KEY);return raw?normalize(JSON.parse(raw)):structuredClone(trainingDemoState)}catch{return structuredClone(trainingDemoState)}
-}
-export function saveTrainingState(state){try{localStorage.setItem(KEY,JSON.stringify(state))}catch{/* ignore: best-effort, falls back to defaults */}return state}
-export function resetTrainingState(){try{localStorage.removeItem(KEY)}catch{/* ignore: best-effort, falls back to defaults */}return structuredClone(trainingDemoState)}
+export function loadTrainingState(){return normalize(loadSnapshot('training_records',structuredClone(trainingDemoState)))}
+export function saveTrainingState(state){const normalized=normalize(state);saveSnapshot('training_records',normalized);return normalized}
+export function resetTrainingState(){const next=structuredClone(trainingDemoState);saveSnapshot('training_records',next);return next}
 export function computedAssignmentStatus(row,today=new Date()){
  if(row.status==='completed')return 'completed'
  if(row.status==='cancelled')return 'cancelled'

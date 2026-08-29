@@ -3429,3 +3429,1106 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
   background:transparent!important;
   font-size:10px!important;
 }
+
+
+/* v0.26.88 — canonical registry workspace
+   Headers, summary/actions and filters remain stable; only the result list/table scrolls. */
+.registry-workspace,
+.surface:has(> .filter-system):has(> .scroll-table){
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.registry-workspace > .filter-system,
+.surface:has(> .filter-system):has(> .scroll-table) > .filter-system{
+  flex:0 0 auto;
+}
+.registry-workspace > .scroll-table,
+.surface:has(> .filter-system):has(> .scroll-table) > .scroll-table{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+.scroll-table table thead th{
+  position:sticky;
+  top:0;
+  z-index:2;
+  background:#fbfcfd;
+}
+@media (max-width:900px){
+  .scroll-table{scrollbar-gutter:auto}
+}
+
+
+/* v0.26.89 — canonical dialog/action hierarchy */
+.observer-dialog>footer{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.observer-dialog>footer .button,
+.observer-dialog>footer button{
+  min-height:36px;
+}
+.record-inline-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:5px;
+  white-space:nowrap;
+}
+.record-inline-actions>button{
+  width:32px;
+  min-width:32px;
+  height:32px;
+  display:inline-grid;
+  place-items:center;
+  padding:0;
+  border:1px solid #dbe3ea;
+  border-radius:8px;
+  background:#fff;
+  color:#49657b;
+  cursor:pointer;
+}
+.record-inline-actions>button:hover{background:#f5f9fb;border-color:#c8d7e1;color:#214f67}
+.record-inline-actions>button.danger{color:#a34a4a;border-color:#edd7d7;background:#fffafa}
+.record-inline-actions>button.danger:hover{background:#fff1f1;border-color:#e3c0c0}
+
+
+/* v0.26.90 — canonical detail screen rhythm */
+.entity-record-shell{
+  min-height:0;
+  height:100%;
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr);
+  overflow:hidden;
+}
+.entity-record-header{
+  min-height:72px;
+  padding:12px 16px;
+  gap:12px;
+  border-radius:12px 12px 0 0;
+}
+.entity-record-identity h2{
+  margin:2px 0 3px;
+  font-size:20px;
+  line-height:1.2;
+  letter-spacing:-.015em;
+}
+.entity-record-identity p{
+  margin:0;
+  font-size:12px;
+  line-height:1.4;
+  color:#6b7f8f;
+}
+.entity-record-tabs{
+  width:100%;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:8px 12px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:thin;
+  border-radius:0;
+}
+.entity-record-tabs>button{
+  flex:0 0 auto;
+  min-height:34px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 10px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#587083;
+  font-size:12px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.entity-record-tabs>button:hover{background:#f1f5f8;color:#31566f}
+.entity-record-tabs>button.active{background:#eaf1f7;color:#194a74}
+.entity-record-body{
+  min-height:0;
+  overflow:auto;
+  padding:14px 16px 18px;
+  border-radius:0 0 12px 12px;
+  scrollbar-gutter:stable;
+}
+.entity-record-body>.record-section:first-child{margin-top:0}
+.record-section{
+  margin:0;
+  padding:0;
+}
+.record-section+.record-section{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid #edf1f4;
+}
+.record-section h3,
+.record-section .section-title{
+  font-size:14px;
+  line-height:1.3;
+}
+@media (max-width:900px){
+  .entity-record-header{padding:10px 12px}
+  .entity-record-tabs{padding:7px 9px}
+  .entity-record-body{padding:12px;scrollbar-gutter:auto}
+}
+
+/* v0.26.91 — canonical form field contract */
+:root{
+  --lo-field-height:40px;
+  --lo-field-radius:9px;
+  --lo-field-border:#d5dfe7;
+  --lo-field-focus:#5f93ad;
+  --lo-field-focus-ring:rgba(58,126,157,.10);
+}
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) label:not(.observer-check):not(.check-option):not(.bundle-required-toggle):not(.who-action-option){
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) label>span:first-child{
+  font-size:10.5px;
+  line-height:1.25;
+  font-weight:750;
+  color:#5a6f82;
+}
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid var(--lo-field-border);
+  border-radius:var(--lo-field-radius);
+  background:#fff;
+  color:#263b4d;
+  font:inherit;
+  font-size:12px;
+  outline:0;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) :where(input:not([type="checkbox"]):not([type="radio"]),select){
+  min-height:var(--lo-field-height);
+  padding:0 10px;
+}
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) textarea{
+  min-height:72px;
+  padding:9px 10px;
+  line-height:1.45;
+  resize:vertical;
+}
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus{
+  border-color:var(--lo-field-focus);
+  box-shadow:0 0 0 3px var(--lo-field-focus-ring);
+}
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) :where(input,select,textarea)::placeholder{color:#9aa7b2}
+:where(.entry-grid,.entry-form-grid,.form-grid,.committee-form-grid,.observer-dialog,.entity-record-body) :where(input,select,textarea):disabled{
+  background:#f4f7f9;
+  color:#728493;
+  border-color:#dfe6eb;
+}
+.field-error,.committee-validation,.form-error{font-size:10.5px;line-height:1.4}
+.inline-empty{
+  min-height:92px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  padding:22px;
+  color:#7e8d9a;
+  font-size:11.5px;
+  line-height:1.45;
+  text-align:center;
+  background:#fbfcfd;
+}
+
+/* v0.26.92 — canonical status badges + KPI visual hierarchy */
+.status-badge{
+ min-height:22px;
+ gap:5px;
+ padding:3px 8px;
+ border:1px solid var(--lo-status-neutral-border);
+ border-radius:999px;
+ background:var(--lo-status-neutral-bg);
+ color:var(--lo-status-neutral-fg);
+ font-size:10px;
+ line-height:1.2;
+ font-weight:750;
+ white-space:nowrap;
+}
+.status-badge.active,.status-badge.success{
+ background:var(--lo-status-success-bg);color:var(--lo-status-success-fg);border-color:var(--lo-status-success-border);
+}
+.status-badge.info{
+ background:var(--lo-status-info-bg);color:var(--lo-status-info-fg);border-color:var(--lo-status-info-border);
+}
+.status-badge.warning,.status-badge.temporary{
+ background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg);border-color:var(--lo-status-warning-border);
+}
+.status-badge.danger,.status-badge.risk{
+ background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg);border-color:var(--lo-status-danger-border);
+}
+.status-badge svg{width:11px;height:11px;flex:0 0 11px}
+
+.kpi-grid,.module-summary-strip{gap:10px!important}
+.kpi-card,.module-summary-metric{
+ border:1px solid var(--line)!important;
+ border-radius:12px!important;
+ background:var(--surface)!important;
+ box-shadow:none!important;
+}
+.kpi-card{min-height:108px;padding:15px 16px!important}
+.kpi-card span,.module-summary-metric span{color:var(--muted)!important;font-size:10.5px!important;font-weight:700!important}
+.kpi-card strong{margin:8px 0 4px!important;font-size:26px!important;line-height:1.05!important;color:var(--lo-metric-value)!important}
+.kpi-card small{font-size:10.5px!important;color:var(--muted)!important}
+.module-summary-metric{min-height:96px!important;padding:14px 15px!important;align-items:flex-start!important}
+.module-summary-metric>svg{
+ width:34px!important;height:34px!important;flex:0 0 34px!important;padding:8px!important;
+ border-radius:9px!important;background:var(--lo-metric-icon-bg)!important;color:var(--lo-metric-icon-fg)!important;
+}
+.module-summary-metric strong{font-size:22px!important;color:var(--lo-metric-value)!important;margin-bottom:6px!important}
+.environmental-summary-strip>div,.indicator-summary-strip>div,.bundle-summary-card>div{
+ border-color:var(--line)!important;background:var(--surface)!important;box-shadow:none!important;
+}
+
+
+/* v0.26.93 — canonical table density & information hierarchy */
+.data-table,
+.record-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:12px;
+  line-height:1.35;
+}
+.data-table thead th,
+.record-table thead th{
+  height:36px;
+  padding:8px 10px;
+  text-align:left;
+  vertical-align:middle;
+  background:#f8fafc;
+  color:#6a7c8c;
+  border-bottom:1px solid var(--line);
+  font-size:9.5px;
+  line-height:1.2;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.045em;
+  white-space:nowrap;
+}
+.data-table tbody td,
+.record-table tbody td{
+  min-height:42px;
+  padding:9px 10px;
+  vertical-align:middle;
+  color:#40586b;
+  border-bottom:1px solid #edf1f4;
+}
+.data-table tbody tr:last-child td,
+.record-table tbody tr:last-child td{border-bottom:0}
+.data-table td strong,
+.record-table td strong{
+  color:#20394e;
+  font-weight:750;
+}
+.data-table td small,
+.record-table td small{
+  display:block;
+  margin-top:2px;
+  color:#7e8e9c;
+  font-size:9.5px;
+  line-height:1.35;
+  font-weight:500;
+}
+.data-table tbody tr,
+.record-table-clickable tbody tr{
+  transition:background-color .12s ease;
+}
+.data-table tbody tr:hover,
+.record-table-clickable tbody tr:hover{
+  background:#f7fafc;
+}
+.data-table tbody tr.selected{
+  background:#eef5f9;
+  box-shadow:inset 3px 0 0 var(--primary,#247386);
+}
+.data-table td:last-child:has(.record-actions),
+.data-table td:last-child:has(.record-inline-actions){
+  width:1%;
+  white-space:nowrap;
+  padding-left:6px;
+  padding-right:8px;
+}
+.scroll-table{
+  border-radius:10px;
+}
+.scroll-table>.data-table,
+.scroll-table>.record-table{
+  min-width:720px;
+}
+@media(max-width:900px){
+  .data-table thead th,.record-table thead th{padding:7px 9px}
+  .data-table tbody td,.record-table tbody td{padding:8px 9px}
+}
+
+
+/* v0.26.94 - canonical page and section hierarchy */
+.page{min-height:0;padding:14px 16px 16px}
+.page>.page-header{min-height:58px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:2px 0 12px}
+.page-header>div:first-child{min-width:0}
+.page-header h1{margin:0;color:#1d3448;font-size:20px;line-height:1.2;font-weight:780;letter-spacing:-.015em}
+.page-header p,.page-header .page-subtitle{max-width:760px;margin:4px 0 0;color:#718290;font-size:11.5px;line-height:1.45}
+.page-actions{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:7px}
+.eyebrow{color:#6d8293;font-size:9px;line-height:1.2;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.section-head,.section-header{min-height:42px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin:0 0 10px}
+.section-head h2,.section-head h3,.section-header h2,.section-header h3{margin:0;color:#253d50;font-size:14px;line-height:1.3;font-weight:760;letter-spacing:-.005em}
+.section-head p,.section-header p{max-width:720px;margin:3px 0 0;color:#7b8b98;font-size:10.5px;line-height:1.4}
+.workspace-summary{margin-bottom:10px}
+.surface{border-color:var(--line)}
+@media(max-width:900px){.page{padding:12px}.page>.page-header{gap:10px;padding-bottom:10px}.page-header h1{font-size:18px}.section-head,.section-header{gap:10px}}
+
+
+/* v0.26.95 - visual consistency audit / shared surface polish */
+:root{
+  --lo-page-gap:12px;
+  --lo-surface-border:#dfe6ec;
+  --lo-surface-soft:#f8fafb;
+  --lo-text-strong:#20384c;
+  --lo-text-secondary:#6f8190;
+}
+.surface{
+  background:var(--surface,#fff);
+  border:1px solid var(--lo-surface-border);
+  border-radius:12px;
+  box-shadow:none;
+}
+.page>.surface,
+.workspace-fill>.surface{
+  min-width:0;
+}
+.card,
+.summary-card,
+.metric-card{
+  box-shadow:none;
+}
+.button,
+.action-button{
+  min-height:36px;
+  border-radius:8px;
+  font-size:11.5px;
+  font-weight:750;
+}
+.button svg,
+.action-button svg{
+  flex:0 0 auto;
+}
+.button:focus-visible,
+.action-button:focus-visible,
+.entity-record-icon-button:focus-visible,
+.record-inline-actions>button:focus-visible{
+  outline:2px solid rgba(36,115,134,.34);
+  outline-offset:2px;
+}
+.entity-record-icon-button{
+  border-radius:8px;
+}
+.status-badge{
+  vertical-align:middle;
+}
+.inline-empty{
+  min-height:86px;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  color:var(--lo-text-secondary);
+  text-align:center;
+}
+.scroll-table,
+.record-table-wrap{
+  background:#fff;
+  border-color:var(--lo-surface-border);
+}
+.filter-system{
+  border-color:var(--lo-surface-border);
+}
+@media(max-width:900px){
+  .button,.action-button{min-height:34px}
+}
+
+
+/* v0.26.96 - Surveillance daily workspace refinement */
+.page-fill:has(.surveillance-domain-tabs){
+  overflow:hidden;
+}
+.page-fill:has(.surveillance-domain-tabs)>.workspace-summary{
+  flex:0 0 auto;
+}
+.surveillance-domain-tabs{
+  flex:0 0 auto;
+  margin:0 0 10px!important;
+}
+.surveillance-workspace{
+  padding:0!important;
+  border-radius:12px;
+}
+.surveillance-workspace>.filter-system{
+  margin:0;
+  padding:10px 12px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  border-radius:12px 12px 0 0;
+}
+.surveillance-registry{
+  padding:0!important;
+  background:#fff;
+}
+.surveillance-registry-head,
+.surveillance-registry-row{
+  display:grid;
+  grid-template-columns:minmax(105px,.75fr) minmax(150px,1.15fr) minmax(115px,.9fr) minmax(105px,.75fr) minmax(150px,1.15fr) minmax(125px,.9fr) minmax(105px,.75fr);
+  align-items:center;
+  column-gap:0;
+}
+.surveillance-registry-head{
+  position:sticky;
+  top:0;
+  z-index:3;
+  min-width:940px;
+  min-height:36px;
+  background:#f8fafc;
+  border-bottom:1px solid var(--line);
+}
+.surveillance-registry-head>span{
+  padding:8px 10px;
+  color:#6a7c8c;
+  font-size:9.5px;
+  line-height:1.2;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.045em;
+  white-space:nowrap;
+}
+.surveillance-registry-row{
+  min-width:940px;
+  min-height:46px;
+  border-bottom:1px solid #edf1f4;
+  cursor:pointer;
+  transition:background-color .12s ease;
+}
+.surveillance-registry-row>div{
+  min-width:0;
+  padding:8px 10px;
+}
+.surveillance-registry-row:hover{background:#f7fafc}
+.surveillance-registry-row:focus-visible{
+  outline:2px solid rgba(36,115,134,.34);
+  outline-offset:-2px;
+}
+.surveillance-registry-row strong{
+  color:#20394e;
+  font-size:11.5px;
+  font-weight:750;
+}
+.surveillance-registry-row span{
+  color:#40586b;
+  font-size:11.5px;
+}
+.surveillance-registry-row small{
+  display:block;
+  margin-top:2px;
+  color:#7e8e9c;
+  font-size:9.5px;
+  line-height:1.3;
+}
+.surveillance-registry-row.registry-row-returned{
+  background:#eef5f9;
+  box-shadow:inset 3px 0 0 var(--primary,#247386);
+}
+.surv-status{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  flex-wrap:wrap;
+}
+.surv-review.overdue strong,
+.surv-review.overdue small{
+  color:var(--lo-status-danger-fg,#9a4141);
+}
+@media(max-width:1100px){
+  .surveillance-registry-head,.surveillance-registry-row{min-width:900px}
+}
+
+
+/* v0.26.97 - Laboratory daily workspace refinement */
+.page-fill:has(.lab-registry-shell){overflow:hidden}
+.page-fill:has(.lab-registry-shell)>.workspace-summary{flex:0 0 auto}
+.lab-registry-shell{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  overflow:hidden;
+  border-radius:12px;
+}
+.lab-registry-shell>.filter-system{
+  flex:0 0 auto;
+  margin:0;
+  padding:10px 12px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  border-radius:12px 12px 0 0;
+}
+.lab-registry-shell>.scroll-table{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  border-radius:0 0 12px 12px;
+}
+.lab-registry-shell .lab-table{min-width:900px}
+.lab-registry-shell .lab-table tbody tr{
+  cursor:pointer;
+  transition:background-color .12s ease;
+}
+.lab-registry-shell .lab-table tbody tr:hover{background:#f7fafc}
+.lab-registry-shell .lab-table tbody tr:focus-visible{
+  outline:2px solid rgba(36,115,134,.34);
+  outline-offset:-2px;
+}
+.lab-registry-shell .lab-table tbody tr.registry-row-returned{
+  background:#eef5f9;
+  box-shadow:inset 3px 0 0 var(--primary,#247386);
+}
+.lab-result-cell{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  flex-wrap:wrap;
+}
+.linked-case-chip,.amr-chip{
+  display:inline-flex;
+  align-items:center;
+  max-width:150px;
+  min-height:22px;
+  padding:3px 7px;
+  border-radius:999px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.linked-case-chip{
+  background:#eef4f7;
+  color:#496b80;
+  font-size:9.5px;
+  font-weight:750;
+}
+.amr-chip{
+  background:var(--lo-status-warning-bg,#fff4df);
+  color:var(--lo-status-warning-fg,#8b641c);
+  font-size:9px;
+  font-weight:800;
+}
+.critical-mini{
+  width:20px;
+  height:20px;
+  display:inline-grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--lo-status-danger-bg,#fceced);
+  color:var(--lo-status-danger-fg,#9a4141);
+  font-size:10px;
+  font-weight:900;
+}
+.lab-kpis{
+  gap:8px;
+  margin-bottom:10px;
+}
+.lab-kpi{
+  min-width:0;
+  padding:10px 12px;
+  border-radius:10px;
+}
+.lab-kpi>svg{
+  width:30px;
+  height:30px;
+  padding:6px;
+}
+.lab-kpi strong{font-size:17px}
+.lab-kpi span{font-size:9.5px;line-height:1.3}
+@media(max-width:1200px){
+  .lab-kpis{grid-template-columns:repeat(5,minmax(135px,1fr));overflow-x:auto}
+}
+
+
+/* v0.26.98 - Patient registry & intake refinement */
+.page-fill:has(.patient-registry-shell){overflow:hidden}
+.patient-summary-strip{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.patient-summary-metric{
+  min-width:0;
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  padding:8px 11px;
+  background:#fff;
+  border:1px solid var(--lo-surface-border,#dfe6ec);
+  border-radius:9px;
+}
+.patient-summary-metric strong{
+  color:#29485e;
+  font-size:16px;
+  line-height:1;
+  font-weight:800;
+}
+.patient-summary-metric span{
+  min-width:0;
+  overflow:hidden;
+  color:#748593;
+  font-size:9.5px;
+  font-weight:700;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.patient-summary-metric.active{
+  background:var(--lo-status-success-bg,#edf7f1);
+  border-color:#d8eadd;
+}
+.patient-summary-metric.active strong{color:var(--lo-status-success-fg,#2d7650)}
+.patient-registry-shell{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  overflow:hidden;
+  border-radius:12px;
+}
+.patient-registry-shell>.filter-system{
+  flex:0 0 auto;
+  margin:0;
+  padding:10px 12px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  border-radius:12px 12px 0 0;
+}
+.patient-registry-shell>.scroll-table{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  border-radius:0 0 12px 12px;
+}
+.patient-registry-shell .data-table{min-width:760px}
+.patient-registry-shell .data-table tbody tr{cursor:pointer}
+.patient-registry-shell .data-table tbody tr:focus-visible{
+  outline:2px solid rgba(36,115,134,.34);
+  outline-offset:-2px;
+}
+.patient-registry-shell .data-table tbody tr.registry-row-returned{
+  background:#eef5f9;
+  box-shadow:inset 3px 0 0 var(--primary,#247386);
+}
+.patient-entry-card .entry-grid{
+  row-gap:11px;
+}
+.patient-entry-card footer{
+  position:sticky;
+  bottom:-18px;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin:0 -18px -18px;
+  padding:12px 18px;
+  background:#fff;
+  border-top:1px solid #edf1f4;
+}
+@media(max-width:900px){
+  .patient-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+
+/* v0.26.99 - Employee registry refinement */
+.page-fill:has(.employee-registry-shell){overflow:hidden}
+.employee-registry-summary{margin-bottom:10px}
+.employee-registry-summary .employee-kpis{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-bottom:8px;
+}
+.employee-registry-summary .employee-kpi{
+  min-width:0;
+  padding:9px 11px;
+  border-radius:10px;
+}
+.employee-registry-summary .employee-kpi>svg{
+  width:30px;
+  height:30px;
+  padding:6px;
+}
+.employee-registry-summary .employee-kpi strong{font-size:17px}
+.employee-registry-summary .employee-kpi span{
+  font-size:9.5px;
+  line-height:1.3;
+}
+.employee-registry-summary .employee-kpi.active{
+  background:var(--lo-status-success-bg,#edf7f1);
+  border-color:#d8eadd;
+}
+.employee-registry-summary .employee-kpi.active>svg{
+  background:#fff;
+  color:var(--lo-status-success-fg,#2d7650);
+}
+.employee-registry-shell{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  overflow:hidden;
+  border-radius:12px;
+}
+.employee-registry-shell>.filter-system{
+  flex:0 0 auto;
+  margin:0;
+  padding:10px 12px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  border-radius:12px 12px 0 0;
+}
+.employee-registry-shell>.scroll-table{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  border-radius:0 0 12px 12px;
+}
+.employee-registry-shell .data-table{min-width:820px}
+.employee-registry-shell .data-table tbody tr{cursor:pointer}
+.employee-registry-shell .data-table tbody tr:focus-visible{
+  outline:2px solid rgba(36,115,134,.34);
+  outline-offset:-2px;
+}
+.employee-registry-shell .data-table tbody tr.registry-row-returned{
+  background:#eef5f9;
+  box-shadow:inset 3px 0 0 var(--primary,#247386);
+}
+@media(max-width:1000px){
+  .employee-registry-summary .employee-kpis{grid-template-columns:repeat(4,minmax(145px,1fr));overflow-x:auto}
+}
+
+
+/* v0.27.00 - Employee record refinement */
+.employee-record-shell .entity-record-body{
+  padding-top:0;
+}
+.employee-record-facts{
+  position:sticky;
+  top:0;
+  z-index:4;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin:0 0 12px;
+  padding:10px 0;
+  background:var(--surface,#fff);
+  border-bottom:1px solid #edf1f4;
+}
+.employee-record-fact{
+  min-width:0;
+  padding:8px 10px;
+  background:#f8fafb;
+  border:1px solid #e4e9ed;
+  border-radius:9px;
+}
+.employee-record-fact span{
+  display:block;
+  margin-bottom:3px;
+  color:#7a8a97;
+  font-size:9px;
+  line-height:1.2;
+  font-weight:750;
+  text-transform:uppercase;
+  letter-spacing:.035em;
+}
+.employee-record-fact strong{
+  display:block;
+  overflow:hidden;
+  color:#294256;
+  font-size:11px;
+  line-height:1.35;
+  font-weight:750;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.employee-record-fact.active{
+  background:var(--lo-status-success-bg,#edf7f1);
+  border-color:#d8eadd;
+}
+.employee-record-fact.active strong{color:var(--lo-status-success-fg,#2d7650)}
+.employee-record-shell .record-section{
+  max-width:none;
+}
+.employee-record-shell .record-section-header{
+  min-height:42px;
+  margin-bottom:10px;
+}
+.employee-record-shell .record-card-list{
+  display:grid;
+  gap:8px;
+}
+.employee-record-shell .record-subcard{
+  padding:11px 12px;
+  border:1px solid var(--lo-surface-border,#dfe6ec);
+  border-radius:10px;
+  background:#fff;
+  box-shadow:none;
+}
+.employee-record-shell .record-subcard strong{
+  color:#263f53;
+  font-size:11.5px;
+}
+.employee-record-shell .record-subcard span{
+  color:#536c7e;
+  font-size:10.5px;
+}
+.employee-record-shell .record-subcard small{
+  color:#7b8b98;
+  font-size:9.5px;
+  line-height:1.4;
+}
+.employee-record-shell .detail-grid{
+  gap:8px;
+}
+.employee-record-shell .detail-item{
+  min-height:64px;
+  padding:10px 11px;
+  border-radius:9px;
+}
+.employee-record-shell .inline-edit-footer{
+  position:sticky;
+  bottom:0;
+  z-index:3;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin:12px -2px -2px;
+  padding:10px 2px 2px;
+  background:linear-gradient(to bottom,rgba(255,255,255,.72),#fff 35%);
+}
+@media(max-width:1000px){
+  .employee-record-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* v0.27.1 - data access operation state */
+.data-access-state{position:fixed;right:18px;bottom:18px;z-index:2200;display:flex;align-items:center;gap:10px;max-width:460px;min-height:38px;padding:9px 12px;border:1px solid #d7e2ea;border-radius:10px;background:#fff;color:#486173;box-shadow:0 10px 30px rgba(24,50,70,.12);font-size:11px;font-weight:700}
+.data-access-state.saving{border-color:#d5e5ee;background:#edf5fa;color:#356982}
+.data-access-state.error{border-color:var(--lo-status-danger-border,#efcfd2);background:var(--lo-status-danger-bg,#fff0f0);color:var(--lo-status-danger-fg,#a23f46)}
+.data-access-state button{min-height:28px;padding:0 9px;border:1px solid currentColor;border-radius:7px;background:#fff;color:inherit;font:inherit;cursor:pointer}
+
+.inline-data-state{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;margin:8px 0;padding:9px 11px;border:1px solid #d5e5ee;border-radius:9px;background:#edf5fa;color:#356982;font-size:10.5px;font-weight:700}
+.inline-data-state.error{border-color:var(--lo-status-danger-border,#efcfd2);background:var(--lo-status-danger-bg,#fff0f0);color:var(--lo-status-danger-fg,#a23f46)}
+
+
+/* ============================================================
+   v0.27.3 — CANONICAL CARD + DIALOG GEOMETRY
+   One geometry contract. Feature CSS may define content layout,
+   but must not redefine shell width/radius/padding.
+   ============================================================ */
+:root{
+  --lo-card-radius:12px;
+  --lo-card-border:var(--lo-surface-border,#dfe6ec);
+  --lo-card-bg:#fff;
+  --lo-card-pad-compact:10px 12px;
+  --lo-card-pad-standard:14px 15px;
+  --lo-card-pad-comfortable:18px;
+  --lo-dialog-compact:520px;
+  --lo-dialog-standard:760px;
+  --lo-dialog-wide:1040px;
+  --lo-dialog-workspace:1280px;
+  --lo-dialog-max-height:calc(100vh - 32px);
+}
+.lo-card{
+  min-width:0;
+  box-sizing:border-box;
+  border:1px solid var(--lo-card-border);
+  border-radius:var(--lo-card-radius);
+  background:var(--lo-card-bg);
+  box-shadow:none;
+}
+.lo-card-compact{padding:var(--lo-card-pad-compact)}
+.lo-card-standard{padding:var(--lo-card-pad-standard)}
+.lo-card-comfortable{padding:var(--lo-card-pad-comfortable)}
+.lo-card-header{display:flex;align-items:flex-start;gap:10px}
+.lo-card-icon{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:9px;background:#edf5f9;color:#47718d}
+.lo-card-heading{min-width:0;flex:1}.lo-card-heading strong{display:block;color:#253d50;font-size:12px;line-height:1.3}.lo-card-heading small{display:block;margin-top:3px;color:#7b8b98;font-size:10px;line-height:1.4}
+.lo-card-actions{flex:0 0 auto;display:flex;align-items:center;gap:6px}
+
+/* All modal shells share the exact same chrome. Only the semantic size token changes. */
+.modal-backdrop>.observer-dialog{
+  width:min(var(--lo-dialog-standard),calc(100vw - 32px))!important;
+  max-width:none!important;
+  max-height:var(--lo-dialog-max-height)!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid var(--lo-card-border)!important;
+  border-radius:var(--lo-card-radius)!important;
+  background:var(--lo-card-bg)!important;
+  box-shadow:0 18px 54px rgba(23,49,70,.16)!important;
+}
+.modal-backdrop>.observer-dialog-compact{width:min(var(--lo-dialog-compact),calc(100vw - 32px))!important}
+.modal-backdrop>.observer-dialog-standard{width:min(var(--lo-dialog-standard),calc(100vw - 32px))!important}
+.modal-backdrop>.observer-dialog-wide{width:min(var(--lo-dialog-wide),calc(100vw - 32px))!important}
+.modal-backdrop>.observer-dialog-workspace{width:min(var(--lo-dialog-workspace),calc(100vw - 32px))!important}
+.modal-backdrop>.observer-dialog>header{
+  flex:0 0 auto;
+  min-height:64px;
+  padding:13px 15px!important;
+  border-bottom:1px solid var(--lo-card-border)!important;
+}
+.modal-backdrop>.observer-dialog>.observer-dialog-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  padding:14px 15px!important;
+}
+.modal-backdrop>.observer-dialog>footer{
+  flex:0 0 auto;
+  min-height:58px;
+  padding:10px 15px!important;
+  border-top:1px solid var(--lo-card-border)!important;
+  background:#fbfcfd!important;
+}
+
+/* Legacy feature entry cards: common shell geometry. Content remains feature-specific. */
+.modal-backdrop>:is(.entry-card,.entry-editor,.role-editor,.control-execution-card,.control-editor-card,.committee-create-card){
+  box-sizing:border-box;
+  border:1px solid var(--lo-card-border);
+  border-radius:var(--lo-card-radius);
+  background:var(--lo-card-bg);
+  box-shadow:0 18px 54px rgba(23,49,70,.16);
+}
+
+/* Common in-page information cards: one radius/border/padding family. */
+:is(.record-subcard,.record-note-card,.flow-step-panel,.clinical-panel,.active-edit-panel,.finalization-panel,.prevention-entry-card,.lab-entry-card,.ast-entry-card,.communication-entry-card){
+  box-sizing:border-box;
+  border:1px solid var(--lo-card-border);
+  border-radius:var(--lo-card-radius);
+  box-shadow:none;
+}
+:is(.record-subcard,.record-note-card,.flow-step-panel,.clinical-panel,.active-edit-panel,.finalization-panel){
+  padding:var(--lo-card-pad-standard);
+}
+
+/* Summary/KPI cards share one physical geometry even before their content is fully componentized. */
+:is(.kpi-card,.module-summary-metric,.employee-kpi,.lab-kpi,.patient-summary-metric){
+  box-sizing:border-box!important;
+  min-height:96px!important;
+  height:96px!important;
+  padding:14px 15px!important;
+  border:1px solid var(--lo-card-border)!important;
+  border-radius:var(--lo-card-radius)!important;
+  background:var(--lo-card-bg)!important;
+  box-shadow:none!important;
+}
+:is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis){
+  gap:10px!important;
+  align-items:stretch!important;
+}
+@media(max-width:760px){
+  .modal-backdrop>.observer-dialog,
+  .modal-backdrop>.observer-dialog-compact,
+  .modal-backdrop>.observer-dialog-standard,
+  .modal-backdrop>.observer-dialog-wide,
+  .modal-backdrop>.observer-dialog-workspace{width:calc(100vw - 20px)!important;max-height:calc(100vh - 20px)!important}
+}
+
+
+/* Legacy modal cards now resolve to the same semantic widths as ObserverDialog. */
+.modal-backdrop>:is(.entry-card,.entry-editor,.role-editor,.control-execution-card,.control-editor-card,.committee-create-card){
+  width:min(var(--lo-dialog-standard),calc(100vw - 32px))!important;
+  max-width:none!important;
+  max-height:var(--lo-dialog-max-height)!important;
+}
+.modal-backdrop>:is(.patient-entry-card,.surveillance-entry-card,.waste-entry-card,.antiseptic-entry-card,.lab-entry-card,.ast-entry-card,.communication-entry-card,.prevention-entry-card,.certificate-entry-card,.correction-entry-card){
+  width:min(var(--lo-dialog-standard),calc(100vw - 32px))!important;
+  max-width:none!important;
+}
+.modal-backdrop>:is(.control-editor-card,.control-execution-card-wide){
+  width:min(var(--lo-dialog-wide),calc(100vw - 32px))!important;
+  max-width:none!important;
+}
+/* A dialog may be tall because of content; feature CSS must not force an arbitrary shell height. */
+.modal-backdrop>:is(.entry-card,.entry-editor,.role-editor,.control-execution-card,.control-editor-card,.committee-create-card){
+  height:auto!important;
+}
+@media(max-width:760px){
+  .modal-backdrop>:is(.entry-card,.entry-editor,.role-editor,.control-execution-card,.control-editor-card,.committee-create-card,.patient-entry-card,.surveillance-entry-card,.waste-entry-card,.antiseptic-entry-card,.lab-entry-card,.ast-entry-card,.communication-entry-card,.prevention-entry-card,.certificate-entry-card,.correction-entry-card){
+    width:calc(100vw - 20px)!important;
+    max-height:calc(100vh - 20px)!important;
+  }
+}
+
+
+/* v0.27.4 — one metric card component: geometry + typography + iconography */
+.canonical-metric-card{
+  min-width:0!important;height:96px!important;min-height:96px!important;
+  display:flex!important;align-items:center!important;gap:12px!important;
+  padding:14px 15px!important;border:1px solid var(--lo-card-border,#dfe6ec)!important;
+  border-radius:12px!important;background:#fff!important;box-shadow:none!important;
+}
+.canonical-metric-icon{
+  width:38px!important;height:38px!important;min-width:38px!important;flex:0 0 38px!important;
+  display:grid!important;place-items:center!important;border-radius:10px!important;
+  background:var(--lo-status-info-bg,#eef5fb)!important;color:var(--lo-status-info-fg,#315f84)!important;
+}
+.canonical-metric-icon>svg{width:18px!important;height:18px!important;stroke-width:2!important}
+.canonical-metric-copy{min-width:0!important;display:flex!important;flex-direction:column!important;gap:3px!important}
+.canonical-metric-copy>strong{margin:0!important;color:#20384c!important;font-size:21px!important;line-height:1!important;font-weight:780!important;letter-spacing:-.02em!important}
+.canonical-metric-copy>span{margin:0!important;color:#718290!important;font-size:10.5px!important;line-height:1.3!important;font-weight:700!important}
+.canonical-metric-card.tone-active .canonical-metric-icon{background:var(--lo-status-success-bg,#edf7f1)!important;color:var(--lo-status-success-fg,#2d7650)!important}
+.canonical-metric-card.tone-danger .canonical-metric-icon{background:var(--lo-status-danger-bg,#fff0f0)!important;color:var(--lo-status-danger-fg,#a33f3f)!important}
+.canonical-metric-card.tone-warning .canonical-metric-icon{background:var(--lo-status-warning-bg,#fff7e8)!important;color:var(--lo-status-warning-fg,#8a641d)!important}
+:is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip){display:grid!important;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))!important;gap:10px!important;align-items:stretch!important}
+@media(max-width:620px){:is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip){grid-template-columns:1fr!important}}
+
+
+/* v0.27.6 — compact canonical metric-card internals */
+.canonical-metric-card{
+  height:84px!important;
+  min-height:84px!important;
+  padding:12px 13px!important;
+  gap:11px!important;
+}
+.canonical-metric-card .canonical-metric-icon{
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  flex:0 0 34px!important;
+  border-radius:9px!important;
+}
+.canonical-metric-card .canonical-metric-icon>svg{
+  width:17px!important;
+  height:17px!important;
+  stroke-width:2!important;
+}
+.canonical-metric-card .canonical-metric-copy{
+  gap:3px!important;
+}
+.canonical-metric-card .canonical-metric-copy>strong{
+  margin:0!important;
+  font-family:inherit!important;
+  font-size:19px!important;
+  line-height:1!important;
+  font-weight:780!important;
+  letter-spacing:-.015em!important;
+}
+.canonical-metric-card .canonical-metric-copy>span{
+  margin:0!important;
+  font-family:inherit!important;
+  font-size:10px!important;
+  line-height:1.25!important;
+  font-weight:700!important;
+}

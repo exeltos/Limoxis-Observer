@@ -17,6 +17,7 @@ import { ControlExecutionModal } from './ControlExecutionModal'
 import { controlActorFromAuth } from './controlActor'
 import { hasControlDraft } from './controlDrafts'
 import { downloadCsv } from '../../core/export/csvExport'
+import { MetricCard } from '../../design-system/MetricCard'
 
 
 const controlsText={
@@ -70,7 +71,7 @@ export function ControlsPage(){
  }
  return <Page fill title={t('controls')} subtitle={canCreateCentral?tx.centralSubtitle:tx.departmentSubtitle} actions={<RecordActions actions={[...(canCreate?[UI_ACTIONS.CREATE]:[]),UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} onAction={pageAction}/>}>
   <div className="workspace-summary"><div className="kpi-grid clinical-kpis"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedRows.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue}/><Kpi icon={CheckCircle2} label={tx.today} value={scopedRows.reduce((n,x)=>n+(x.assignment?.history||[]).filter(h=>h.at?.slice(0,10)===new Date().toISOString().slice(0,10)).length,0)}/></div></div>
-  <section className="surface controls-surface workspace-fill workspace-column">
+  <section className="surface registry-workspace controls-surface workspace-fill workspace-column">
    <div className="section-toolbar"><div><h2>{canCreateCentral?tx.programme:tx.departmentControls}</h2><p>{tx.hint}</p></div></div>
    <FilterBar query={query} onQueryChange={setQuery} placeholder={tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')+(frequency!=='all')} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setFrequency('all')}}>
     <FilterSelect label={tx.department} value={department} onChange={setDepartment}><option value="all">{tx.allDepartments}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
@@ -83,4 +84,4 @@ export function ControlsPage(){
   {executeRow&&<ControlExecutionModal record={executeRow.item} department={executeRow.department} onClose={()=>setExecuteRow(null)} onDraftSaved={()=>{setVersion(v=>v+1);setExecuteRow(null);notify(tx.draftSaved,'success')}} onSave={payload=>{completeControl(executeRow.item.id,executeRow.department,payload);setVersion(v=>v+1);setExecuteRow(null);notify(tx.saved,'success')}}/>}
  </Page>
 }
-function Kpi({icon:Icon,label,value}){return <div className="employee-kpi"><Icon size={18}/><div><strong>{value}</strong><span>{label}</span></div></div>}
+function Kpi({icon:Icon,label,value}){return <MetricCard icon={Icon} value={value} label={label}/>}

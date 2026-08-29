@@ -13,6 +13,7 @@ import { RecordActions } from '../../design-system/RecordActions'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { downloadCsv } from '../../core/export/csvExport'
+import { MetricCard } from '../../design-system/MetricCard'
 
 const sections=[
   {id:'incidents',label:'qualityIncidents',icon:AlertTriangle},
@@ -48,25 +49,25 @@ export function QualityPage(){
     if(action===UI_ACTIONS.CREATE&&canCreate){
       sessionStorage.setItem('limoxis.quality.section',section);registry.saveViewState({query,status,department});goTo(`/quality/${section}/new`,{registry:`quality.${section}`});return
     }
-    if(action===UI_ACTIONS.PRINT){window.print();notify('Η προβολή είναι έτοιμη για εκτύπωση.','success');return}
+    if(action===UI_ACTIONS.PRINT){window.print();notify(language==='en'?'View is ready to print.':'Η προβολή είναι έτοιμη για εκτύπωση.','success');return}
     if(action===UI_ACTIONS.EXPORT){
-      downloadCsv(`limoxis-quality-${section}.csv`,['Κωδικός','Τίτλος','Τμήμα','Ημερομηνία','Υπεύθυνος','Κατάσταση'],
+      downloadCsv(`limoxis-quality-${section}.csv`,language==='en'?['Code','Title','Department','Date','Owner','Status']:['Κωδικός','Τίτλος','Τμήμα','Ημερομηνία','Υπεύθυνος','Κατάσταση'],
         filtered.map(row=>[row.id,language==='el'?row.title:row.titleEn,language==='el'?row.department:row.departmentEn,row.dueDate||row.date||row.plannedDate||'',row.owner||row.leadAuditor||'',t(row.status)]))
-      notify('Η τρέχουσα λίστα Ποιότητας εξήχθη.','success')
+      notify(language==='en'?'Current Quality list exported.':'Η τρέχουσα λίστα Ποιότητας εξήχθη.','success')
     }
   }
   return <Page fill title={t('quality')} subtitle={t('qualityRecords.qualitySubtitle')} actions={<RecordActions actions={[...(canCreate?[UI_ACTIONS.CREATE]:[]),UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} onAction={pageAction}/>}>
     <div className="workspace-summary quality-summary">
       <div className="module-summary-strip">
-        <SummaryMetric icon={ClipboardCheck} label="Σύνολο" value={rows.length}/>
-        <SummaryMetric icon={Clock3} label="Ανοικτά / ενεργά" value={openCount}/>
-        <SummaryMetric icon={CheckCircle2} label="Ολοκληρωμένα" value={closedCount}/>
-        <SummaryMetric icon={AlertTriangle} label="Υψηλής προτεραιότητας" value={highCount}/>
+        <SummaryMetric icon={ClipboardCheck} label={language==='en'?'Total':'Σύνολο'} value={rows.length}/>
+        <SummaryMetric icon={Clock3} label={language==='en'?'Open / active':'Ανοικτά / ενεργά'} value={openCount}/>
+        <SummaryMetric icon={CheckCircle2} label={language==='en'?'Completed':'Ολοκληρωμένα'} value={closedCount}/>
+        <SummaryMetric icon={AlertTriangle} label={language==='en'?'High priority':'Υψηλής προτεραιότητας'} value={highCount}/>
       </div>
     </div>
     <div className="quality-workspace workspace-fill">
       <nav className="tabs quality-tabs canonical-module-tabs">{sections.map(({id,label,icon:Icon})=><button key={id} className={`tab ${section===id?'active':''}`} onClick={()=>{registry.saveViewState({query,status,department});sessionStorage.setItem('limoxis.quality.section',id);setSection(id);const next=JSON.parse(sessionStorage.getItem(`limoxis.registry.quality.${id}.view`)||'{}');setQuery(next.query||'');setStatus(next.status||'all');setDepartment(next.department||'all')}}><Icon size={15}/><span>{t(label)}</span><b className="tab-count">{qualityCollections[id]?.length||0}</b></button>)}</nav>
-      <section className="surface quality-registry">
+      <section className="surface registry-workspace quality-registry">
         <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
           <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
           <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
@@ -78,4 +79,4 @@ export function QualityPage(){
 }
 function fmtDate(value,locale){return value?new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)):'—'}
 
-function SummaryMetric({icon:Icon,label,value}){return <div className="module-summary-metric"><Icon size={15}/><div><strong>{value}</strong><span>{label}</span></div></div>}
+function SummaryMetric({icon:Icon,label,value}){return <MetricCard icon={Icon} value={value} label={label}/>}

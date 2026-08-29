@@ -7,6 +7,7 @@ import { LanguageProvider } from './core/i18n/LanguageContext'
 import { TenantProvider } from './core/tenant/TenantContext'
 import { FeedbackProvider } from './core/feedback/FeedbackContext'
 import { NotificationProvider } from './core/notifications/NotificationContext'
+import { DataAccessStatus } from './core/data/DataAccessStatus'
 import './styles/theme.css'
 import './styles/global.css'
 
@@ -15,7 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <LanguageProvider>
         <AuthProvider>
-          <TenantProvider><FeedbackProvider><NotificationProvider><App /></NotificationProvider></FeedbackProvider></TenantProvider>
+          <TenantProvider><FeedbackProvider><NotificationProvider><><App /><DataAccessStatus /></></NotificationProvider></FeedbackProvider></TenantProvider>
         </AuthProvider>
       </LanguageProvider>
     </BrowserRouter>

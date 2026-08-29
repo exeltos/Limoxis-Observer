@@ -5,39 +5,41 @@ import { FilterBar } from '../../design-system/FilterBar'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { demoLibrarySeed } from './managementData'
+import { loadSnapshot } from '../../core/data/repository'
+import { useRepositoryData } from '../../core/data/useRepositoryData'
 
-const storageKey='limoxis.environmentalStandards.v1'
 const empty={protocolCode:'',subjectType:'surface',sourceCode:'surfaceSwab',unit:'CFU',limitCfu:'',active:true}
 
 export function readEnvironmentalStandards(){
-  try{
-    const saved=JSON.parse(localStorage.getItem(storageKey)||'null')
-    return Array.isArray(saved)?saved:demoLibrarySeed.environmentalStandards
-  }catch{return demoLibrarySeed.environmentalStandards}
+  const saved=loadSnapshot('environmental_standards',demoLibrarySeed.environmentalStandards)
+  return Array.isArray(saved)?saved:demoLibrarySeed.environmentalStandards
 }
 export function EnvironmentalStandardsPanel({embedded=false}){
-  const {t}=useLanguage();const {notify,confirm}=useFeedback()
-  const [rows,setRows]=useState(()=>readEnvironmentalStandards())
+  const {t,language}=useLanguage();const {notify,confirm}=useFeedback()
+  const {data:repositoryRows,loading,saving,error,reload,saveData}=useRepositoryData('environmental_standards',{fallback:demoLibrarySeed.environmentalStandards})
+  const rows=Array.isArray(repositoryRows)?repositoryRows:demoLibrarySeed.environmentalStandards
   const [query,setQuery]=useState('')
   const [draft,setDraft]=useState(null)
   const filtered=useMemo(()=>rows.filter(x=>`${x.protocolCode} ${x.subjectType} ${x.sourceCode} ${x.unit}`.toLowerCase().includes(query.toLowerCase())),[rows,query])
-  function persist(next){setRows(next);localStorage.setItem(storageKey,JSON.stringify(next));window.dispatchEvent(new CustomEvent('limoxis:environmental-standards-updated'))}
-  function save(){
+  async function persist(next){await saveData(next);window.dispatchEvent(new CustomEvent('limoxis:environmental-standards-updated'))}
+  async function save(){
     if(!draft.protocolCode.trim()||!draft.subjectType||!draft.unit.trim()){notify(t('completeRequiredFields'),'error');return}
     const limit=draft.limitCfu===''?null:Number(draft.limitCfu)
     if(limit!==null&&(!Number.isFinite(limit)||limit<0)){notify(t('environmentalStandards.invalidLimit'),'error');return}
     const item={...draft,protocolCode:draft.protocolCode.trim(),unit:draft.unit.trim(),limitCfu:limit,id:draft.id||`ENV-${Date.now()}`}
-    persist(draft.id?rows.map(x=>x.id===draft.id?item:x):[...rows,item]);setDraft(null);notify(t('environmentalStandards.environmentalProtocolSaved'),'success')
+    try{await persist(draft.id?rows.map(x=>x.id===draft.id?item:x):[...rows,item]);setDraft(null);notify(t('environmentalStandards.environmentalProtocolSaved'),'success')}catch{return}
   }
   async function remove(item){
     const ok=await confirm({title:t('delete'),message:t('environmentalStandards.confirmEnvironmentalProtocolDelete'),confirmLabel:t('delete'),danger:true})
     if(!ok)return
-    persist(rows.filter(x=>x.id!==item.id));notify(t('environmentalStandards.environmentalProtocolDeleted'),'success')
+    try{await persist(rows.filter(x=>x.id!==item.id));notify(t('environmentalStandards.environmentalProtocolDeleted'),'success')}catch{return}
   }
   return <section className={embedded?"environmental-embedded management-scroll-section":"management-section management-scroll-section"}>
     <div className="section-toolbar"><div><h2>{t('environmentalProtocols')}</h2><p>{t('environmentalStandards.environmentalProtocolsSubtitle')}</p></div><Button onClick={()=>setDraft({...empty})}><Plus size={15}/>{t('environmentalStandards.newEnvironmentalProtocol')}</Button></div>
     <div className="governance-banner"><ShieldCheck size={16}/><span>{t('environmentalStandards.environmentalProtocolsGovernance')}</span></div>
     <FilterBar compact query={query} onQueryChange={setQuery} placeholder={t('environmentalStandards.searchEnvironmentalProtocols')} onClear={()=>setQuery('')}/>
+    {loading&&<div className="inline-data-state">{language==='en'?'Loading data…':'Φόρτωση δεδομένων…'}</div>}
+    {error&&<div className="inline-data-state error"><span>{language==='en'?'Unable to load data.':'Η φόρτωση δεδομένων απέτυχε.'}</span><Button variant="secondary" onClick={()=>reload().catch(()=>{})}>{language==='en'?'Retry':'Επανάληψη'}</Button></div>}
     <div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('environmentalStandards.protocolCode')}</th><th>{t('environmentalStandards.samplingCategory')}</th><th>{t('samplingMethod')}</th><th>{t('environmentalStandards.measurementUnit')}</th><th>{t('environmentalStandards.acceptableLimit')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead><tbody>{filtered.map(item=><tr key={item.id}><td><strong>{item.protocolCode}</strong></td><td>{t(item.subjectType)}</td><td>{t(item.sourceCode)}</td><td>{item.unit}</td><td><strong>{item.limitCfu??t('notConfigured')}</strong></td><td><span className={`status-badge ${item.active?'active':''}`}>{item.active?t('active'):t('environmentalStandards.protocolInactive')}</span></td><td><div className="row-actions"><button className="icon-button" title={t('edit')} onClick={()=>setDraft({...item,limitCfu:item.limitCfu??''})}><Edit3 size={15}/></button><button className="icon-button danger" title={t('delete')} onClick={()=>remove(item)}><Trash2 size={15}/></button></div></td></tr>)}</tbody></table></div>
     {draft&&<div className="modal-backdrop"><div className="role-editor environmental-standard-editor" role="dialog" aria-modal="true"><header><div><h3>{draft.id?t('environmentalStandards.editEnvironmentalProtocol'):t('environmentalStandards.newEnvironmentalProtocol')}</h3><p>{t('environmentalStandards.environmentalProtocolEditorHelp')}</p></div><button className="icon-button" onClick={()=>setDraft(null)}><X size={17}/></button></header>
       <div className="form-grid two-col">
@@ -48,7 +50,7 @@ export function EnvironmentalStandardsPanel({embedded=false}){
         <label className="field"><span>{t('environmentalStandards.acceptableLimit')}</span><div className="field-with-suffix"><input type="number" min="0" step="any" value={draft.limitCfu} onChange={e=>setDraft({...draft,limitCfu:e.target.value})} placeholder={t('environmentalStandards.enterProtocolLimit')}/><span>{draft.unit}</span></div><small>{t('environmentalStandards.acceptableLimitHelp')}</small></label>
         <label className="field checkbox-field"><span>{t('status')}</span><label><input type="checkbox" checked={draft.active} onChange={e=>setDraft({...draft,active:e.target.checked})}/>{t('active')}</label></label>
       </div>
-      <footer><Button variant="secondary" onClick={()=>setDraft(null)}>{t('cancel')}</Button><Button onClick={save}>{t('save')}</Button></footer>
+      <footer><Button variant="secondary" onClick={()=>setDraft(null)}>{t('cancel')}</Button><Button disabled={saving} onClick={save}>{saving?(language==='en'?'Saving…':'Αποθήκευση…'):t('save')}</Button></footer>
     </div></div>}
   </section>
 }

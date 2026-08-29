@@ -41,8 +41,16 @@ export function QualityCreatePage(){
       auditType:'internal',leadAuditor:'',plannedDate:'',scope:'',scopeEn:'',attachments:[],history:[]
     }
     if(!controlSource)return base
-    const rowText=(controlSource.rows||[]).map((r,i)=>`${i+1}. ${r.item||'Στοιχείο'}${r.finding?` — ${r.finding}${r.finding==='Άλλο'&&r.findingOther?`: ${r.findingOther}`:''}`:''}${r.action?` — Ενέργεια: ${r.action}`:''}`).join('\n')
-    return {...base,title:`Εύρημα από έλεγχο: ${controlSource.controlTitle}`,department:controlSource.department||base.department,source:'control',sourceId:controlSource.controlId||'',severity:controlSource.hasFinding?'medium':'low',description:[`Προέλευση: ${controlSource.controlId} — ${controlSource.controlTitle}`,controlSource.value?`Αποτέλεσμα: ${controlSource.value}`:'',controlSource.notes?`Σημειώσεις: ${controlSource.notes}`:'',rowText].filter(Boolean).join('\n\n')}
+    const rowTextEl=(controlSource.rows||[]).map((r,i)=>`${i+1}. ${r.item||'Στοιχείο'}${r.finding?` — ${r.finding}${r.finding==='Άλλο'&&r.findingOther?`: ${r.findingOther}`:''}`:''}${r.action?` — Ενέργεια: ${r.action}`:''}`).join('\n')
+    const rowTextEn=(controlSource.rows||[]).map((r,i)=>`${i+1}. ${r.item||'Item'}${r.finding?` — ${r.finding}${['Άλλο','Other'].includes(r.finding)&&r.findingOther?`: ${r.findingOther}`:''}`:''}${r.action?` — Action: ${r.action}`:''}`).join('\n')
+    return {...base,
+      title:`Εύρημα από έλεγχο: ${controlSource.controlTitle}`,
+      titleEn:`Finding from control: ${controlSource.controlTitleEn||controlSource.controlTitle}`,
+      department:controlSource.department||base.department,
+      source:'control',sourceId:controlSource.controlId||'',severity:controlSource.hasFinding?'medium':'low',
+      description:[`Προέλευση: ${controlSource.controlId} — ${controlSource.controlTitle}`,controlSource.value?`Αποτέλεσμα: ${controlSource.value}`:'',controlSource.notes?`Σημειώσεις: ${controlSource.notes}`:'',rowTextEl].filter(Boolean).join('\n\n'),
+      descriptionEn:[`Source: ${controlSource.controlId} — ${controlSource.controlTitleEn||controlSource.controlTitle}`,controlSource.value?`Result: ${controlSource.value}`:'',controlSource.notes?`Notes: ${controlSource.notes}`:'',rowTextEn].filter(Boolean).join('\n\n')
+    }
   })
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
   function setDepartment(el){const pair=demoLibrarySeed.departments.find(([x])=>x===el);setDraft(d=>({...d,department:el,departmentEn:pair?.[1]||el}))}

@@ -14,6 +14,7 @@ import { indicatorCategoryLabels } from './indicatorDefinitions'
 import { calculateIndicators,indicatorMetricCatalog } from './indicatorEngine'
 import { loadCustomIndicators,saveCustomIndicators,nextCustomIndicatorId,saveIndicatorOverride,markIndicatorDeleted } from './indicatorStore'
 import { downloadCsv } from '../../core/export/csvExport'
+import { useAuditActor } from '../../core/audit/useAuditActor'
 
 const statusLabel={onTarget:'indicatorsRecords.onTargetStatus',attention:'indicatorsRecords.attentionStatus',context:'indicatorsRecords.contextStatus'}
 
@@ -21,6 +22,7 @@ export function IndicatorsPage(){
  const {language,t}=useLanguage()
  const {notify,confirm}=useFeedback()
  const {role,membership}=useTenant()
+ const actor=useAuditActor()
  const [query,setQuery]=useState('')
  const [category,setCategory]=useState('all')
  const [selected,setSelected]=useState(null)
@@ -48,11 +50,11 @@ export function IndicatorsPage(){
   const current=loadCustomIndicators()
   const isExistingCustom=def.id&&current.some(x=>x.id===def.id)
   if(!def.id){
-   saveCustomIndicators([...current,{...def,id:nextCustomIndicatorId(current)}])
+   saveCustomIndicators([...current,{...def,id:nextCustomIndicatorId(current),createdAt:new Date().toISOString(),createdBy:actor.name,createdById:actor.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id}])
   }else if(isExistingCustom){
-   saveCustomIndicators(current.map(x=>x.id===def.id?def:x))
+   saveCustomIndicators(current.map(x=>x.id===def.id?{...x,...def,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id}:x))
   }else{
-   saveIndicatorOverride(def.id,def)
+   saveIndicatorOverride(def.id,def,{actor})
   }
   setEditor(null);setSelected(null);setRevision(x=>x+1)
   notify(def.id?t('indicatorsRecords.indicatorUpdated'):t('indicatorsRecords.indicatorCreated'),'success')
@@ -63,7 +65,7 @@ export function IndicatorsPage(){
   if(!ok)return
   const custom=loadCustomIndicators()
   if(custom.some(x=>x.id===item.id))saveCustomIndicators(custom.filter(x=>x.id!==item.id))
-  else markIndicatorDeleted(item.id)
+  else markIndicatorDeleted(item.id,{actor})
   setSelected(null);setRevision(x=>x+1);notify(t('indicatorsRecords.indicatorDeleted'),'success')
  }
 

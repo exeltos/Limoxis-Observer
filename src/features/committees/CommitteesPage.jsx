@@ -18,6 +18,7 @@ import { loadEmployees } from '../employees/employeeStore'
 import { IPC_COMMITTEE_CATALOG,ipcCommitteeById } from './ipcCommitteeCatalog'
 import { requestCommitteeApproval } from './committeeApprovals'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { MetricCard } from '../../design-system/MetricCard'
 
 export function CommitteesPage(){
  const navigate=useNavigate();const {role,membership}=useTenant();const {notify}=useFeedback();const actor=useAuditActor();const {language}=useLanguage();const en=language==='en'
@@ -37,7 +38,7 @@ export function CommitteesPage(){
     <Metric icon={CheckCircle2} label={en?'Open decisions':'Ανοιχτές αποφάσεις'} value={decisions.filter(x=>!['completed','closed'].includes(x.status)).length}/>
     <Metric icon={Clock3} label={en?'Overdue actions':'Εκπρόθεσμες ενέργειες'} value={overdue}/>
    </div>
-   <section className="surface committee-registry">
+   <section className="surface registry-workspace committee-registry">
     <FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search committee or chair...':'Αναζήτηση επιτροπής ή προέδρου...'} activeAdvancedCount={status!=='all'?1:0} onClear={()=>{setQuery('');setStatus('all')}}>
       <FilterSelect label={en?'Status':'Κατάσταση'} value={status} onChange={setStatus}><option value="all">{en?'All':'Όλες'}</option><option value="active">{en?'Active':'Ενεργή'}</option><option value="inactive">{en?'Inactive':'Ανενεργή'}</option></FilterSelect>
     </FilterBar>
@@ -50,7 +51,7 @@ export function CommitteesPage(){
    {createOpen&&<CommitteeCreateDialog language={language} actor={actor} onClose={()=>setCreateOpen(false)} onCreated={record=>{const next=[record,...rows];setRows(next);saveCommittees(next);setCreateOpen(false);notify(en?'Committee created.':'Η επιτροπή δημιουργήθηκε.','success');navigate(`/committees/${record.id}`)}}/>}
  </Page>
 }
-function Metric({icon:Icon,label,value}){return <div className="module-summary-metric"><Icon size={15}/><div><strong>{value}</strong><span>{label}</span></div></div>}
+function Metric({icon:Icon,label,value}){return <MetricCard icon={Icon} value={value} label={label}/>}
 
 
 const frequencies=[['monthly','Μηνιαία','Monthly'],['bimonthly','Ανά δίμηνο','Every two months'],['quarterly','Τριμηνιαία','Quarterly'],['semiannual','Εξαμηνιαία','Semiannual'],['annual','Ετήσια','Annual'],['as_needed','Όποτε απαιτείται','As needed']]

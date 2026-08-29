@@ -95,6 +95,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
       admissionDate:targetPatient.admissionDate,
       ...draft,
       createdBy:actor.name,
+      createdById:actor.id,
     })
     createDemoSurveillanceListItem(created)
     setSelectedEpisodeId(created.id)
@@ -133,9 +134,10 @@ export function PatientClinicalRecordPage({patientMode=false}){
       patientName={patientName} patientCode={patientCode} department={department}
       organizationName={tenant?.name||membership?.organization?.name||t('clinicalRecords.hospital')}
       canReopenSurveillance={canReopenSurveillance}
+      actor={actor}
       canDeleteSurveillance={canDeleteSurveillance}
       onDeleteSurveillance={(episodeId,reason)=>{
-        const removed=deleteClinicalSurveillance(episodeId,{actor:actor.name,reason})
+        const removed=deleteClinicalSurveillance(episodeId,{actor:actor.name,actorId:actor.id,reason})
         if(removed){
           deleteDemoSurveillanceListItem(episodeId)
           setEpisodeVersion(v=>v+1)
@@ -171,7 +173,7 @@ function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confir
 function SummaryItem({label,value,tone='neutral'}){return <div className={`patient-summary-item ${tone}`}><span>{label}</span><strong>{value}</strong></div>}
 
 
-function SurveillanceWorkspace({episodes,onSelect,onNewSurveillance,canCreateSurveillance,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,canDeleteSurveillance,onDeleteSurveillance}){
+function SurveillanceWorkspace({episodes,onSelect,onNewSurveillance,canCreateSurveillance,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,actor,canDeleteSurveillance,onDeleteSurveillance}){
   const [episodeRows,setEpisodeRows]=useState(episodes)
   useEffect(()=>setEpisodeRows(episodes),[episodes])
   const active=episodeRows.filter(x=>x.status==='active')
@@ -198,9 +200,10 @@ function SurveillanceWorkspace({episodes,onSelect,onNewSurveillance,canCreateSur
       patientName={patientName} patientCode={patientCode} department={department}
       organizationName={organizationName}
       canReopenSurveillance={canReopenSurveillance}
+      actor={actor}
       canDeleteSurveillance={canDeleteSurveillance}
       onDeleteSurveillance={onDeleteSurveillance}
-      onReopen={(episodeId,reason)=>setEpisodeRows(rows=>rows.map(ep=>ep.id===episodeId?{...ep,status:'active',completedAt:null,outcome:null,timeline:[{at:new Date().toISOString(),type:'surveillanceReopened',actor:t('clinicalRecords.superAdmin'),detail:reason},...(ep.timeline||[])]}:ep))}
+      onReopen={(episodeId,reason)=>{const now=new Date().toISOString();setEpisodeRows(rows=>rows.map(ep=>ep.id===episodeId?{...ep,status:'active',lifecycleStatus:'correction',completedAt:null,previousOutcome:ep.outcome?{...ep.outcome}:ep.previousOutcome||null,outcome:null,correctionReason:reason,correctionOpenedAt:now,correctionOpenedBy:actor.name,correctionOpenedById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,timeline:[{at:now,type:'surveillanceReopened',actor:actor.name,actorId:actor.id,detail:reason},...(ep.timeline||[])]}:ep))}}
     />}
   </div>
 }
@@ -411,7 +414,7 @@ function ActiveHaiEditor({record,t,language,onSaved}){
   function save(){
     const now=new Date().toISOString()
     record.haiClassification={...draft}
-    record.timeline=[{at:now,type:'haiClassificationUpdated',actor:actor.name,detail:draft.status},...(record.timeline||[])]
+    record.updatedAt=now;record.updatedBy=actor.name;record.updatedById=actor.id;record.timeline=[{at:now,type:'haiClassificationUpdated',actor:actor.name,actorId:actor.id,detail:draft.status},...(record.timeline||[])]
     onSaved?.()
   }
   return <section className="clinical-panel full-panel active-edit-panel">
@@ -450,7 +453,7 @@ function ActiveTherapyEditor({record,t,language,onSaved}){
   }
   function saveRow(){
     if(!draft.antimicrobial.trim()||!draft.startedAt)return
-    const row={id:editingId||`TX-${Date.now()}`,...draft,advancedAntibiotic:isAdvanced(draft.antimicrobial),approved:true}
+    const now=new Date().toISOString();const previous=rows.find(x=>x.id===editingId);const row={id:editingId||`TX-${Date.now()}`,...draft,advancedAntibiotic:isAdvanced(draft.antimicrobial),approved:true,createdAt:previous?.createdAt||now,createdBy:previous?.createdBy||actor.name,createdById:previous?.createdById||actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}
     const next=editingId?rows.map(x=>x.id===editingId?row:x):[...rows,row]
     setRows(next)
     reset()
@@ -473,7 +476,8 @@ function ActiveTherapyEditor({record,t,language,onSaved}){
   function saveAll(){
     const now=new Date().toISOString()
     record.therapy=rows
-    record.timeline=[{at:now,type:'therapyUpdated',actor:actor.name,detail:rows.map(x=>x.antimicrobial).join(', ')},...(record.timeline||[])]
+    record.updatedAt=now;record.updatedBy=actor.name;record.updatedById=actor.id
+    record.timeline=[{at:now,type:'therapyUpdated',actor:actor.name,actorId:actor.id,detail:rows.map(x=>x.antimicrobial).join(', ')},...(record.timeline||[])]
     onSaved?.()
   }
 
@@ -506,10 +510,11 @@ function ActiveReassessmentEditor({record,t,language,onSaved}){
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
   function save(){
     const now=new Date().toISOString()
-    const row={id:`REV-${Date.now()}`,...draft,by:actor.name}
+    const row={id:`REV-${Date.now()}`,...draft,by:actor.name,byId:actor.id,createdAt:now,createdBy:actor.name,createdById:actor.id}
     record.reassessments=[row,...(record.reassessments||[])]
     record.reviewDue=null
-    record.timeline=[{at:now,type:'reassessment',actor:actor.name,detail:draft.status},...(record.timeline||[])]
+    record.updatedAt=now;record.updatedBy=actor.name;record.updatedById=actor.id
+    record.timeline=[{at:now,type:'reassessment',actor:actor.name,actorId:actor.id,detail:draft.status},...(record.timeline||[])]
     onSaved?.()
   }
   return <section className="clinical-panel full-panel active-edit-panel">
@@ -532,10 +537,11 @@ function ActiveOutcomeEditor({record,t,language,onSaved}){
   function save(){
     if(!draft.date)return
     const now=new Date().toISOString()
-    record.outcome={...draft}
+    record.outcome={...draft,recordedAt:now,recordedBy:actor.name,recordedById:actor.id}
     record.status='completed'
     record.completedAt=draft.date
-    record.timeline=[{at:now,type:'outcome',actor:actor.name,detail:draft.status},...(record.timeline||[])]
+    record.lifecycleStatus='finalized';record.finalizedAt=now;record.finalizedBy=actor.name;record.finalizedById=actor.id;record.updatedAt=now;record.updatedBy=actor.name;record.updatedById=actor.id
+    record.timeline=[{at:now,type:'outcome',actor:actor.name,actorId:actor.id,detail:draft.status},...(record.timeline||[])]
     onSaved?.()
   }
   return <section className="clinical-panel full-panel active-edit-panel">
@@ -616,7 +622,7 @@ function ActiveStartEditor({record,t,language,onSaved}){
   const actor=useAuditActor()
   const [draft,setDraft]=useState({startedAt:record.startedAt||'',reviewDue:record.reviewDue||'',department:record.department||'',departmentEn:record.departmentEn||'',room:record.room||'',reason:record.reason||'',reasonEn:record.reasonEn||''})
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
-  function save(){Object.assign(record,draft);record.timeline=[{at:new Date().toISOString(),type:'surveillanceUpdated',actor:actor.name,detail:'start'},...(record.timeline||[])];onSaved?.()}
+  function save(){const now=new Date().toISOString();Object.assign(record,draft,{updatedAt:now,updatedBy:actor.name,updatedById:actor.id});record.timeline=[{at:now,type:'surveillanceUpdated',actor:actor.name,actorId:actor.id,detail:'start'},...(record.timeline||[])];onSaved?.()}
   return <section className="clinical-panel full-panel active-edit-panel"><div className="section-actions"><PanelTitle icon={Activity} title={t('surveillanceStart')}/><span className="edit-enabled-badge">{t('clinicalRecords.editableActiveSurveillance')}</span></div><div className="entry-grid"><ManualDateField label={t('surveillanceStartDate')} value={draft.startedAt} onChange={v=>set('startedAt',v)}/><ManualDateField label={t('nextReview')} optional value={draft.reviewDue} onChange={v=>set('reviewDue',v)}/><label><span>{t('department')}</span><input value={language==='el'?draft.department:draft.departmentEn} onChange={e=>set(language==='el'?'department':'departmentEn',e.target.value)}/></label><label><span>{t('room')}</span><input value={draft.room} onChange={e=>set('room',e.target.value)}/></label><label className="entry-span-2"><span>{t('surveillanceReason')}</span><textarea rows={3} value={language==='el'?draft.reason:draft.reasonEn} onChange={e=>set(language==='el'?'reason':'reasonEn',e.target.value)}/></label></div><div className="flow-step-actions"><Button onClick={save}>{t('save')}</Button></div></section>
 }
 
@@ -625,7 +631,7 @@ function ActiveAssessmentEditor({record,t,language,onSaved}){
   const a=record.assessment||{}
   const [draft,setDraft]=useState({date:a.date||'',summary:a.summary||'',summaryEn:a.summaryEn||'',symptoms:(a.symptoms||[]).join(', '),risks:(a.riskFactors||[]).join(', '),notes:a.notes||'',notesEn:a.notesEn||''})
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
-  function save(){record.assessment={...a,date:draft.date,assessedBy:a.assessedBy||actor.name,summary:draft.summary,summaryEn:draft.summaryEn||draft.summary,symptoms:draft.symptoms.split(',').map(x=>x.trim()).filter(Boolean),symptomsEn:draft.symptoms.split(',').map(x=>x.trim()).filter(Boolean),riskFactors:draft.risks.split(',').map(x=>x.trim()).filter(Boolean),riskFactorsEn:draft.risks.split(',').map(x=>x.trim()).filter(Boolean),notes:draft.notes,notesEn:draft.notesEn||draft.notes};record.timeline=[{at:new Date().toISOString(),type:'clinicalAssessmentUpdated',actor:actor.name,detail:'updated'},...(record.timeline||[])];onSaved?.()}
+  function save(){const now=new Date().toISOString();record.assessment={...a,date:draft.date,assessedBy:a.assessedBy||actor.name,assessedById:a.assessedById||actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,summary:draft.summary,summaryEn:draft.summaryEn||draft.summary,symptoms:draft.symptoms.split(',').map(x=>x.trim()).filter(Boolean),symptomsEn:draft.symptoms.split(',').map(x=>x.trim()).filter(Boolean),riskFactors:draft.risks.split(',').map(x=>x.trim()).filter(Boolean),riskFactorsEn:draft.risks.split(',').map(x=>x.trim()).filter(Boolean),notes:draft.notes,notesEn:draft.notesEn||draft.notes};record.updatedAt=now;record.updatedBy=actor.name;record.updatedById=actor.id;record.timeline=[{at:now,type:'clinicalAssessmentUpdated',actor:actor.name,actorId:actor.id,detail:'updated'},...(record.timeline||[])];onSaved?.()}
   return <section className="clinical-panel full-panel active-edit-panel"><div className="section-actions"><PanelTitle icon={ShieldCheck} title={t('clinicalAssessment')}/><span className="edit-enabled-badge">{t('clinicalRecords.editableActiveSurveillance')}</span></div><div className="entry-grid"><ManualDateField label={t('assessmentDate')} value={draft.date} onChange={v=>set('date',v)}/><label className="entry-span-2"><span>{t('clinicalSummary')} · {t('optional')}</span><textarea rows={3} value={language==='el'?draft.summary:draft.summaryEn} onChange={e=>set(language==='el'?'summary':'summaryEn',e.target.value)}/></label><label><span>{t('signsSymptoms')}</span><input value={draft.symptoms} onChange={e=>set('symptoms',e.target.value)}/></label><label><span>{t('riskFactors')}</span><input value={draft.risks} onChange={e=>set('risks',e.target.value)}/></label></div><div className="flow-step-actions"><Button onClick={save}>{t('save')}</Button></div></section>
 }
 
@@ -636,7 +642,7 @@ function ActiveIsolationEditor({record,t,language,confirm,onSaved}){
   const [needed,setNeeded]=useState(initialNeeded)
   const [draft,setDraft]=useState({startedAt:existing?.startedAt?.slice(0,10)||new Date().toISOString().slice(0,10),precautionType:existing?.type||existing?.precautions?.[0]||'contact',reason:existing?.reason||'',reasonEn:existing?.reasonEn||'',provisional:existing?.provisional??true})
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
-  async function save(){const now=new Date().toISOString();if(needed===false&&existing){const ok=await confirm({title:t('clinicalRecords.changeIsolationDecision'),message:t('clinicalRecords.removeActiveIsolationConfirm'),confirmLabel:t('confirm')});if(!ok)return}if(needed===false){record.isolation=null;record.isolationDecision={required:false,decidedAt:now,by:actor.name};record.timeline=[{at:now,type:'isolationNotRequired',actor:actor.name,detail:'no'},...(record.timeline||[])];onSaved?.('saved');return}if(needed===true){record.isolationDecision={required:true,decidedAt:now,by:actor.name};record.isolation={id:existing?.id||`ISO-${Date.now()}`,status:'active',startedAt:draft.startedAt,endedAt:null,type:draft.precautionType,precautions:[draft.precautionType],room:record.room||'',nextReview:record.reviewDue||null,reason:draft.reason||draft.reasonEn||'',reasonEn:draft.reasonEn||draft.reason||'',provisional:Boolean(draft.provisional),by:actor.name};record.timeline=[{at:now,type:existing?'isolationUpdated':'isolationStarted',actor:actor.name,detail:draft.precautionType},...(record.timeline||[])];onSaved?.('saved')}}
+  async function save(){const now=new Date().toISOString();if(needed===false&&existing){const ok=await confirm({title:t('clinicalRecords.changeIsolationDecision'),message:t('clinicalRecords.removeActiveIsolationConfirm'),confirmLabel:t('confirm')});if(!ok)return}if(needed===false){record.isolation=null;record.isolationDecision={required:false,decidedAt:now,by:actor.name,byId:actor.id};record.updatedAt=now;record.updatedBy=actor.name;record.updatedById=actor.id;record.timeline=[{at:now,type:'isolationNotRequired',actor:actor.name,actorId:actor.id,detail:'no'},...(record.timeline||[])];onSaved?.('saved');return}if(needed===true){record.isolationDecision={required:true,decidedAt:now,by:actor.name,byId:actor.id};record.updatedAt=now;record.updatedBy=actor.name;record.updatedById=actor.id;record.isolation={id:existing?.id||`ISO-${Date.now()}`,status:'active',startedAt:draft.startedAt,endedAt:null,type:draft.precautionType,precautions:[draft.precautionType],room:record.room||'',nextReview:record.reviewDue||null,reason:draft.reason||draft.reasonEn||'',reasonEn:draft.reasonEn||draft.reason||'',provisional:Boolean(draft.provisional),by:actor.name,byId:actor.id,createdAt:existing?.createdAt||now,createdBy:existing?.createdBy||actor.name,createdById:existing?.createdById||actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id};record.timeline=[{at:now,type:existing?'isolationUpdated':'isolationStarted',actor:actor.name,actorId:actor.id,detail:draft.precautionType},...(record.timeline||[])];onSaved?.('saved')}}
   return <section className="clinical-panel full-panel active-edit-panel isolation-decision-editor"><div className="section-actions"><div><PanelTitle icon={BedDouble} title={t('isolation')}/><p className="section-note">{t('clinicalRecords.isolationDecisionFirstHelp')}</p></div><span className="edit-enabled-badge">{t('clinicalRecords.editableActiveSurveillance')}</span></div><div className={`isolation-question ${needed===null?'required-decision':''}`}><strong>{t('isIsolationRequired')}</strong><span>{needed===null?t('isolationDecisionRequired'):t('isIsolationRequiredHelp')}</span><div><button type="button" className={needed===true?'selected yes':''} onClick={()=>setNeeded(true)}>{t('yes')}</button><button type="button" className={needed===false?'selected no':''} onClick={()=>setNeeded(false)}>{t('no')}</button></div></div>{needed===true&&<div className="entry-grid isolation-fields"><ManualDateField label={t('isolationStart')} value={draft.startedAt} onChange={v=>set('startedAt',v)}/><label><span>{t('precautionType')}</span><select value={draft.precautionType} onChange={e=>set('precautionType',e.target.value)}><option value="contact">{t('contactPrecautions')}</option><option value="droplet">{t('dropletPrecautions')}</option><option value="airborne">{t('airbornePrecautions')}</option><option value="protective">{t('protectiveIsolation')}</option><option value="other">{t('other')}</option></select></label><label className="entry-span-2"><span>{t('isolationReason')}</span><textarea rows={3} value={language==='el'?draft.reason:draft.reasonEn} onChange={e=>set(language==='el'?'reason':'reasonEn',e.target.value)}/></label><label className="inline-check entry-span-2"><input type="checkbox" checked={draft.provisional} onChange={e=>set('provisional',e.target.checked)}/><span>{t('provisionalIsolation')}</span></label></div>}{needed===false&&<div className="no-isolation-note"><CheckCircle2 size={16}/><span>{t('noIsolationDecisionHint')}</span></div>}<div className="flow-step-actions"><Button variant="secondary" onClick={()=>onSaved?.('cancel')}>{t('close')}</Button><Button disabled={needed===null||(needed===true&&!draft.startedAt)} onClick={save}>{t('save')}</Button></div></section>
 }
 

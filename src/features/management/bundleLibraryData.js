@@ -1,3 +1,4 @@
+import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 export const SYSTEM_BUNDLE_LIBRARY=[
  {id:'CLABSI',name:'CLABSI',titleEl:'Κεντρικός φλεβικός καθετήρας',titleEn:'Central venous catheter',version:'1.0',status:'published',scope:'CVC insertion / maintenance',source:'WHO · CDC',sourceVersion:'reviewed 2026',system:true,departments:['ΜΕΘ'],elements:[
   {id:'necessity',labelEl:'Τεκμηριωμένη ένδειξη / καθημερινή ανάγκη για CVC',labelEn:'Documented indication / daily CVC necessity review',required:true},
@@ -63,16 +64,14 @@ export const SYSTEM_BUNDLE_LIBRARY=[
 export function cloneBundleLibrary(){return JSON.parse(JSON.stringify(SYSTEM_BUNDLE_LIBRARY))}
 export function publishedBundleTemplates(library=SYSTEM_BUNDLE_LIBRARY){return library.filter(x=>x.status==='published')}
 
-const STORAGE_KEY='limoxis.bundleLibrary.v1'
 export function loadBundleLibrary(){
  if(typeof window==='undefined')return cloneBundleLibrary()
- try{
-  const saved=JSON.parse(window.localStorage.getItem(STORAGE_KEY)||'null')
-  return Array.isArray(saved)&&saved.length?saved:cloneBundleLibrary()
- }catch{return cloneBundleLibrary()}
+ const rows=loadSnapshot('bundle_library',cloneBundleLibrary())
+ return Array.isArray(rows)&&rows.length?rows:cloneBundleLibrary()
 }
 export function saveBundleLibrary(library){
- if(typeof window==='undefined')return
- window.localStorage.setItem(STORAGE_KEY,JSON.stringify(library))
+ if(typeof window==='undefined')return library
+ saveSnapshot('bundle_library',library)
  window.dispatchEvent(new CustomEvent('limoxis:bundle-library-changed',{detail:library}))
+ return library
 }

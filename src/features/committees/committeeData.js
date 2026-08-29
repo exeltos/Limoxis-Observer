@@ -1,4 +1,4 @@
-const KEY='limoxis.committees.v1'
+import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 const seed=[
  {id:'COM-001',templateId:'enl',name:'Επιτροπή Νοσοκομειακών Λοιμώξεων',shortName:'ΕΝΛ',type:'infection_control',status:'active',chair:'Δρ. Ελένη Παπαδοπούλου',secretary:'Μαρία Κωνσταντίνου',termStart:'2026-01-01',termEnd:'2027-12-31',committeeRole:'Κεντρικό θεσμικό όργανο του νοσοκομείου για την επιτήρηση, πρόληψη και τον έλεγχο των λοιμώξεων που συνδέονται με τη φροντίδα υγείας.',legalBasis:'ΥΑ Υ1.Γ.Π.114971/2014 · ισχύουσα πράξη συγκρότησης φορέα · WHO IPC Core Components',mandate:'Επιτήρηση, πρόληψη και έλεγχος λοιμώξεων, εφαρμογή μέτρων IPC και παρακολούθηση σχετικών δεικτών.',members:['Δρ. Ελένη Παπαδοπούλου','Μαρία Κωνσταντίνου','Γ. Νικολάου','Α. Δημητρίου'],memberRefs:[
   {id:'CM-SEED-1',employeeId:'',name:'Δρ. Ελένη Παπαδοπούλου',department:'Ιατρική Υπηρεσία',profession:'Ιατρός',committeeTitle:'Πρόεδρος',responsibilities:'Συντονισμός της ΕΝΛ, έγκριση ημερήσιας διάταξης και εποπτεία εφαρμογής αποφάσεων.',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:'2026-01-01T00:00:00Z'},
@@ -27,6 +27,6 @@ function normalizeRecord(r){
  const memberRefs=Array.isArray(r.memberRefs)&&r.memberRefs.length?r.memberRefs:(r.members||[]).map((name,i)=>({id:`LEGACY-${r.id}-${i}`,employeeId:'',name,department:'',profession:'',committeeTitle:name===r.chair?'Πρόεδρος':name===r.secretary?'Γραμματέας':'Μέλος',responsibilities:'',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:r.termStart?`${r.termStart}T00:00:00Z`:null}))
  return {...r,templateId:inferTemplate(r),memberRefs,meetings:(Array.isArray(r.meetings)?r.meetings:[]).map(normalizeMeeting),decisions:Array.isArray(r.decisions)?r.decisions:[],annualPlan:Array.isArray(r.annualPlan)?r.annualPlan:[],history:Array.isArray(r.history)?r.history:[]}
 }
-export function loadCommittees(){try{const v=JSON.parse(localStorage.getItem(KEY)||'null');return (Array.isArray(v)&&v.length?v:structuredClone(seed)).map(normalizeRecord)}catch{return structuredClone(seed).map(normalizeRecord)}}
-export function saveCommittees(rows){localStorage.setItem(KEY,JSON.stringify(rows))}
+export function loadCommittees(){const v=loadSnapshot('committees',structuredClone(seed));return (Array.isArray(v)&&v.length?v:structuredClone(seed)).map(normalizeRecord)}
+export function saveCommittees(rows){return saveSnapshot('committees',rows)}
 export function nextCommitteeId(rows){return `COM-${String(rows.length+1).padStart(3,'0')}`}

@@ -1,3 +1,4 @@
+import { creationMetadata, updateMetadata } from '../../core/audit/actor'
 export const controlDefinitions=[
  {id:'CTRL-001',title:'Θερμοκρασία ψυγείου φαρμάκων',titleEn:'Medication refrigerator temperature',category:'Θερμοκρασίες',responseConfig:{mode:'numeric',label:'Θερμοκρασία',unit:'°C',min:2,max:8,reportOnOutOfRange:true},departments:['ΜΕΘ'],departmentEn:['ICU'],frequency:{kind:'daily',timesPerDay:3,times:['08:00','14:00','20:00']},owner:'Νοσηλευτής βάρδιας',createdByScope:'department',createdByRole:'department_manager',createdForDepartment:'ΜΕΘ',createdBy:'Προϊστάμενος ΜΕΘ',createdById:'demo-dept-manager-icu',lastCompletedAt:'2026-08-27T14:05:00+03:00',nextDueAt:'2026-08-27T20:00:00+03:00',description:'Καταγραφή θερμοκρασίας ψυγείου και επιβεβαίωση αποδεκτών ορίων.',history:[{id:'EX-001',at:'2026-08-27T08:02:00+03:00',value:'4,2 °C',status:'completed',by:'Α. Νοσηλευτής'},{id:'EX-002',at:'2026-08-27T14:05:00+03:00',value:'4,5 °C',status:'completed',by:'Β. Νοσηλευτής'}]},
  {id:'CTRL-002',title:'Έλεγχος λήξης φαρμάκων',titleEn:'Medication expiry check',category:'Φάρμακα / Υλικά',responseConfig:{mode:'list',template:'medication_expiry',label:'Φάρμακα / υλικά που απαιτούν ενέργεια'},departments:['ΜΕΘ','ΤΕΠ'],departmentEn:['ICU','ED'],frequency:{kind:'monthly',interval:1},owner:'Προϊστάμενος τμήματος',createdByScope:'infection_control',createdByRole:'infection_control_lead',createdForDepartment:null,createdBy:'Προϊστάμενος Λοιμώξεων',createdById:'demo-infection-lead',lastCompletedAt:'2026-08-01T10:00:00+03:00',nextDueAt:'2026-09-01T10:00:00+03:00',description:'Έλεγχος ημερομηνιών λήξης φαρμάκων και αναλωσίμων.',history:[{id:'EX-003',at:'2026-08-01T10:00:00+03:00',value:'Ολοκληρώθηκε',status:'completed',by:'Προϊστάμενος ΜΕΘ'}]},
@@ -96,14 +97,14 @@ export function upsertControl(draft,{actor}={}){
  const actorSafe=actor||{id:'unknown',name:'Άγνωστος χρήστης',email:''}
  const now=new Date().toISOString()
  if(existing){
-  Object.assign(existing,normalized,{updatedAt:now,updatedBy:actorSafe.name,updatedById:actorSafe.id})
+  Object.assign(existing,normalized,updateMetadata(actorSafe,now))
   ensureAssignments(existing)
   controlsAuditLog.unshift({id:`AUD-${Date.now()}`,action:'control_definition_updated',controlId:existing.id,at:now,actor:actorSafe})
   return existing
  }
  normalized.id=`CTRL-${String(controlDefinitions.length+1).padStart(3,'0')}`
  normalized.history=[]
- normalized.createdAt=now;normalized.createdBy=actorSafe.name;normalized.createdById=actorSafe.id
+ Object.assign(normalized,creationMetadata(actorSafe,now))
  if(!normalized.nextDueAt)normalized.nextDueAt=calculateNextDue(normalized,new Date())
  normalized.assignments={}
  controlDefinitions.unshift(normalized);ensureAssignments(normalized)

@@ -15,7 +15,8 @@ import { antisepticMethodLabel,isAbhrProduct } from './AntisepticEntryModal'
 import { getBundleTemplate } from './bundleTemplates'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { useAuth } from '../../core/auth/AuthContext'
-import { auditActorFromAuth,auditEvent } from '../../core/audit/actor'
+import { auditActorFromAuth } from '../../core/audit/actor'
+import { voidRecord as applyGovernedVoid } from '../../core/audit/governedLifecycle'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { downloadRecordJson } from '../../core/export/recordExport'
 
@@ -37,9 +38,7 @@ export function PreventionRecordPage(){
   const source=sources[recordType]||[]
   const index=source.findIndex(x=>x.id===recordId)
   if(index<0)return
-  const now=new Date().toISOString()
-  const event=auditEvent('preventionRecordVoided',{actor,reason})
-  source[index]={...source[index],lifecycleStatus:'voided',voidedAt:now,voidedBy:actor.name,voidedById:actor.id,voidReason:reason,revisionHistory:[event,...(source[index].revisionHistory||[])]}
+  source[index]=applyGovernedVoid(source[index],{actor,reason,historyKey:'revisionHistory'})
   setVoidOpen(false)
   notify(en?'Record voided and retained in history.':'Η εγγραφή ακυρώθηκε και διατηρήθηκε στο ιστορικό.','success')
   navigate(`/prevention?tab=${recordType}`)

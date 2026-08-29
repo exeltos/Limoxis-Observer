@@ -35,7 +35,7 @@ export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialR
    templateSource:template.source,templateSnapshot:JSON.parse(JSON.stringify(template)),departmentEn:dep?.en||draft.departmentEl,score:score??0,allOrNone,
    applicableCount:applicable,failedCount:failures.length,findings:failures.map(([id,label])=>({id,label,note:draft.answerNotes[id]||''})),
    owner:actor.name,createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,
-   updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,status:'completed'})
+   updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized',finalizedAt:initialRecord?.finalizedAt||now,finalizedBy:initialRecord?.finalizedBy||actor.name,finalizedById:initialRecord?.finalizedById||actor.id})
  }
 
  return <div className="modal-backdrop"><div className="entry-card bundle-execution-card">

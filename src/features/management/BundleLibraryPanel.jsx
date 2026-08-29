@@ -5,17 +5,20 @@ import { FilterBar } from '../../design-system/FilterBar'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { loadBundleLibrary,saveBundleLibrary } from './bundleLibraryData'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useAuth } from '../../core/auth/AuthContext'
+import { auditActorFromAuth } from '../../core/audit/actor'
 
 const STATUS_LABELS={el:{draft:'Πρόχειρο',published:'Δημοσιευμένο',retired:'Αποσυρμένο'},en:{draft:'Draft',published:'Published',retired:'Retired'}}
 
 export function BundleLibraryPanel(){
  const {notify,confirm}=useFeedback()
+ const {profile,user}=useAuth();const actor=auditActorFromAuth({profile,user})
  const {language}=useLanguage();const en=language==='en';const statusLabels=STATUS_LABELS[language]
  const [rows,setRows]=useState(()=>loadBundleLibrary())
  const [query,setQuery]=useState('')
  const [status,setStatus]=useState('all')
  const [selected,setSelected]=useState(null)
- const filtered=useMemo(()=>rows.filter(x=>status==='all'||x.status===status).filter(x=>`${x.name} ${x.titleEl} ${x.titleEn} ${x.source} ${x.scope}`.toLowerCase().includes(query.toLowerCase())),[rows,query,status])
+ const filtered=useMemo(()=>rows.filter(x=>!x.hidden).filter(x=>status==='all'||x.status===status).filter(x=>`${x.name} ${x.titleEl} ${x.titleEn} ${x.source} ${x.scope}`.toLowerCase().includes(query.toLowerCase())),[rows,query,status])
  const publishCount=rows.filter(x=>x.status==='published').length
 
  function newBundle(){
@@ -31,7 +34,7 @@ export function BundleLibraryPanel(){
  async function removeBundle(item){
   const ok=await confirm({title:en?'Delete Bundle':'Διαγραφή Bundle',message:en?`Bundle “${item.name}” will be removed from the hospital library. Existing executions are not affected.`:`Το Bundle «${item.name}» θα αφαιρεθεί από τη βιβλιοθήκη του νοσοκομείου. Οι υπάρχουσες εκτελέσεις δεν επηρεάζονται.`,confirmLabel:en?'Delete':'Διαγραφή',danger:true})
   if(!ok)return
-  setRows(current=>{const next=current.filter(x=>x.id!==item.id);saveBundleLibrary(next);return next});notify(en?'Bundle removed.':'Το Bundle αφαιρέθηκε.','success')
+  setRows(current=>{const now=new Date().toISOString();const governed=item.status==='published'||item.status==='retired'||item.system;const next=governed?current.map(x=>x.id===item.id?{...x,hidden:true,hiddenAt:now,hiddenBy:actor.name,hiddenById:actor.id}:x):current.filter(x=>x.id!==item.id);saveBundleLibrary(next);return next});notify(en?'Bundle removed.':'Το Bundle αφαιρέθηκε.','success')
  }
  function save(item){
   setRows(current=>{
@@ -44,13 +47,13 @@ export function BundleLibraryPanel(){
  async function publish(item){
   const ok=await confirm({title:en?'Publish Bundle':'Δημοσίευση Bundle',message:en?'The published version will be used for new executions. Previous executions remain linked to their own version.':'Η δημοσιευμένη έκδοση θα χρησιμοποιείται σε νέες εκτελέσεις. Οι παλιές εκτελέσεις παραμένουν συνδεδεμένες με τη δική τους έκδοση.',confirmLabel:en?'Publish':'Δημοσίευση'})
   if(!ok)return
-  setRows(current=>{const next=current.map(x=>x.id===item.id?{...x,status:'published',publishedAt:new Date().toISOString()}:x);saveBundleLibrary(next);return next})
+  setRows(current=>{const next=current.map(x=>x.id===item.id?{...x,status:'published',publishedAt:new Date().toISOString(),publishedBy:actor.name,publishedById:actor.id}:x);saveBundleLibrary(next);return next})
   notify(en?'Version published.':'Η έκδοση δημοσιεύτηκε.','success')
  }
  async function retire(item){
   const ok=await confirm({title:en?'Retire Bundle':'Απόσυρση Bundle',message:en?'It will no longer be available for new executions. History remains available.':'Δεν θα είναι διαθέσιμο για νέες εκτελέσεις. Το ιστορικό παραμένει διαθέσιμο.',confirmLabel:en?'Retire':'Απόσυρση'})
   if(!ok)return
-  setRows(current=>{const next=current.map(x=>x.id===item.id?{...x,status:'retired',retiredAt:new Date().toISOString()}:x);saveBundleLibrary(next);return next})
+  setRows(current=>{const next=current.map(x=>x.id===item.id?{...x,status:'retired',retiredAt:new Date().toISOString(),retiredBy:actor.name,retiredById:actor.id}:x);saveBundleLibrary(next);return next})
   notify(en?'Bundle retired.':'Το Bundle αποσύρθηκε.','success')
  }
 

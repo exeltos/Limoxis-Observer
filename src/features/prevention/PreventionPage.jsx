@@ -21,6 +21,8 @@ import { wasteCategoryTone } from './wasteVisuals'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { useAuth } from '../../core/auth/AuthContext'
 import { auditActorFromAuth,auditEvent } from '../../core/audit/actor'
+import { openCorrection } from '../../core/audit/governedLifecycle'
+import { MetricCard } from '../../design-system/MetricCard'
 
 const tabs=[['handHygiene','handHygiene'],['waste','wasteManagement'],['antiseptics','antisepticConsumption'],['bundles','preventionBundles']]
 
@@ -74,7 +76,7 @@ export function PreventionPage(){
     // eslint-disable-next-line no-unused-vars -- intentionally destructured out to exclude the internal-only field from cleanRecord before persisting.
    const {_correctionReason:discardedInternalReason,...cleanRecord}=record
     const event=auditEvent('preventionRecordCorrected',{actor,reason:editingRecord._correctionReason||''})
-    target[index]={...previous,...cleanRecord,id:editingRecord.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id,revisionHistory:[event,...(previous.revisionHistory||[])]}
+    target[index]={...previous,...cleanRecord,lifecycleStatus:'active',correctionOpenedAt:editingRecord.correctionOpenedAt,correctionOpenedBy:editingRecord.correctionOpenedBy,correctionOpenedById:editingRecord.correctionOpenedById,correctionReason:editingRecord.correctionReason,id:editingRecord.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id,revisionHistory:[event,...(editingRecord.revisionHistory||previous.revisionHistory||[])]}
    }
    notify(t('preventionCorrectedSaved'),'success')
   }else{
@@ -87,7 +89,7 @@ export function PreventionPage(){
  function editRow(record,event){event?.stopPropagation();setGovernedEdit(record)}
  function confirmGovernedEdit(reason){
   if(!governedEdit)return
-  setEditingRecord({...governedEdit,_correctionReason:reason})
+  setEditingRecord({...openCorrection(governedEdit,{actor,reason,historyKey:'revisionHistory'}),_correctionReason:reason})
   setGovernedEdit(null)
   setEntryOpen(true)
  }
@@ -108,7 +110,7 @@ export function PreventionPage(){
    <div className="governance-banner"><ShieldCheck size={17}/><span>{t('preventionGovernance')}</span></div>
   </div>
 
-  <div className="surface prevention-workspace workspace-fill">
+  <div className="surface registry-workspace prevention-workspace workspace-fill">
    <div className="tabs prevention-tabs">{visibleTabs.map(([id,key])=><button key={id} className={`tab ${tab===id?'active':''}`} onClick={()=>changeTab(id)}>{t(key)}</button>)}</div>
    <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPrevention')} onClear={()=>{setQuery('');setDepartment('all');setPeriod('all');setProduct('all');setMethod('all')}} advanced={tab==='antiseptics'?<>
      <FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
@@ -143,7 +145,7 @@ function exportRows(tab,rows,t,language){
  return downloadCsv('prevention-bundles.csv',[t('date'),t('bundle'),t('version'),t('department'),t('shift'),t('patient'),t('device'),t('score'),t('allOrNone'),t('deviations'),t('owner')],rows.map(x=>[x.date||x.period,x.templateName||x.bundle,x.templateVersion||'',language==='el'?x.departmentEl:x.departmentEn,x.shift||'',x.patientRef||'',x.deviceRef||'',`${x.score}%`,x.allOrNone?t('yes'):t('no'),x.failedCount??x.findings?.length??0,x.owner||'']))
 }
 
-function Kpi({icon:Icon,value,label}){return <div className="module-summary-metric"><Icon size={18}/><div><strong>{value}</strong><span>{label}</span></div></div>}
+function Kpi({icon:Icon,value,label}){return <MetricCard icon={Icon} value={value} label={label}/>}
 function EditCell({record,canEdit,onEdit,t}){return <td className="prevention-row-action">{canEdit&&<button type="button" className="prevention-row-edit" title={t('edit')} aria-label={t('edit')} onClick={e=>onEdit(record,e)}><Pencil size={15}/></button>}</td>}
 function HandTable({rows,t,language,fmtDate,onOpen,canEdit,onEdit,registry}){return <table className="data-table sticky-table"><thead><tr><th>{t('date')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('observations')}</th><th>{t('compliant')}</th><th>{t('compliance')}</th><th>{t('observer')}</th><th></th></tr></thead><tbody>{rows.map(x=>{const rp=registry.rowProps(x.id);return <tr key={x.id} {...rp} className={`${rp.className} clickable-row`} onClick={()=>onOpen(x.id)}><td>{fmtDate(x.date)}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{t(x.profession)}</td><td>{x.observations}</td><td>{x.compliant}</td><td><strong>{x.rate}%</strong></td><td>{x.observer}</td><EditCell record={x} canEdit={canEdit} onEdit={onEdit} t={t}/></tr>})}</tbody></table>}
 

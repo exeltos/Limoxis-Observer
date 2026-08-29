@@ -34,8 +34,8 @@ export function WasteEntryModal({onClose,onSave,fixedDepartment='',initialRecord
  function submit(){
   if(!valid)return
   onSave({...draft,departmentEn,type:draft.wasteType,typeEn,weight,containers:Number(draft.containers)||0,patientDays:patientDays||null,indicator,
-   responsible:draft.responsible||actor.name,createdAt:initialRecord?.createdAt||new Date().toISOString(),createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,
-   updatedAt:initialRecord?new Date().toISOString():null,updatedBy:initialRecord?actor.name:null,status:'completed'})
+   responsible:draft.responsible||actor.name,createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,
+   updatedAt:initialRecord?new Date().toISOString():null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized',finalizedAt:initialRecord?.finalizedAt||now,finalizedBy:initialRecord?.finalizedBy||actor.name,finalizedById:initialRecord?.finalizedById||actor.id})
  }
  return <div className="modal-backdrop"><div className="entry-card prevention-entry-card waste-entry-card">
   <header><div className="prevention-entry-title"><Recycle size={20}/><div><span className="eyebrow">{en?'PREVENTION CENTER':'ΚΕΝΤΡΟ ΠΡΟΛΗΨΗΣ'}</span><h3>{initialRecord?(en?'Edit waste measurement':'Επεξεργασία μέτρησης αποβλήτων'):(en?'New waste measurement':'Νέα μέτρηση αποβλήτων')}</h3><p>{en?'Record weight, containers and indicator per 1,000 patient-days.':'Καταγραφή βάρους, περιεκτών και δείκτη ανά 1.000 νοσηλευτικές ημέρες.'}</p></div></div><button className="icon-close" onClick={onClose}>×</button></header>

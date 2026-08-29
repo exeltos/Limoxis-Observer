@@ -22,6 +22,7 @@ import { loadEmployees } from '../employees/employeeStore'
 import { ipcCommitteeById } from './ipcCommitteeCatalog'
 import { approvalStatusFor,minutesApprovalSummary,requestCommitteeApproval,requestMinutesApprovals } from './committeeApprovals'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { MetricCard } from '../../design-system/MetricCard'
 
 const todayIso=()=>new Date().toISOString().slice(0,10)
 const fmtDate=(value,locale='el-GR')=>value?new Date(`${String(value).slice(0,10)}T12:00:00`).toLocaleDateString(locale):'—'
@@ -103,8 +104,8 @@ export function CommitteeRecordPage(){
   }
   function addMeeting(data){
     const id=`MTG-${Date.now()}`
-    const meeting={id,...data,status:'planned',minutesNo:'',attendanceRecords:createAttendance(activeMembers),quorum:null,topics:(data.topics||[]).length?data.topics:[createTopic()],generalNotes:'',approvalState:'not_started'}
-    persist({...record,meetings:[meeting,...(record.meetings||[])],history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Δημιουργία συνεδρίασης',reason:data.title},...(record.history||[])]})
+    const now=new Date().toISOString();const meeting={id,...data,status:'planned',minutesNo:'',attendanceRecords:createAttendance(activeMembers),quorum:null,topics:(data.topics||[]).length?data.topics:[createTopic()],generalNotes:'',approvalState:'not_started',createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}
+    persist({...record,meetings:[meeting,...(record.meetings||[])],history:[{at:now,actor:actor.name,actorId:actor.id,action:'Δημιουργία συνεδρίασης',reason:data.title},...(record.history||[])]})
     setModal({type:'meeting',meetingId:id})
     notify(en?'Meeting created. You can continue with attendance and minutes.':'Η συνεδρίαση δημιουργήθηκε. Μπορείτε να συνεχίσετε με παρουσίες και πρακτικά.','success')
   }
@@ -114,7 +115,7 @@ export function CommitteeRecordPage(){
     const presentVoting=voting.filter(x=>x.status==='present').length
     const required=quorumRequirement(record.quorumRule||'simple_majority',voting.length)
     const quorum=required===null?null:presentVoting>=required
-    let updated={...draft,quorum,attendance: draft.attendanceRecords.filter(x=>x.status==='present').length,updatedAt:now,updatedBy:actor.name}
+    let updated={...draft,quorum,attendance: draft.attendanceRecords.filter(x=>x.status==='present').length,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}
     let nextDecisions=record.decisions||[]
     let historyAction='Ενημέρωση συνεδρίασης'
 
@@ -125,8 +126,8 @@ export function CommitteeRecordPage(){
       const incompleteTopic=(draft.topics||[]).some(x=>x.subject.trim()&&!x.decision.trim())
       if(incompleteTopic){notify(en?'Each recorded topic must have a decision / conclusion.':'Κάθε καταγεγραμμένο θέμα πρέπει να έχει απόφαση / συμπέρασμα.','error');return false}
       const {requests,queued}=requestMinutesApprovals({committee:record,meeting:updated,presentMembers:present,requestedBy:actor.name,requestedById:actor.id})
-      updated={...updated,status:requests.length?'approval_pending':'finalized',approvalState:requests.length?'pending':'not_required',approvalRequestedAt:now,approvalRecipients:requests.map(x=>x.id),finalizedAt:requests.length?null:now,finalizedBy:requests.length?null:actor.name}
-      const generated=(updated.topics||[]).filter(x=>x.followUp&&x.action.trim()).filter(topic=>!nextDecisions.some(d=>d.meetingId===updated.id&&d.topicId===topic.id)).map(topic=>({id:`DEC-${Date.now()}-${topic.id}`,meetingId:updated.id,topicId:topic.id,title:topic.subject,action:topic.action,owner:topic.owner,dueDate:topic.dueDate,priority:topic.priority||'medium',status:'open'}))
+      updated={...updated,status:requests.length?'approval_pending':'finalized',approvalState:requests.length?'pending':'not_required',approvalRequestedAt:now,approvalRecipients:requests.map(x=>x.id),finalizedAt:requests.length?null:now,finalizedBy:requests.length?null:actor.name,finalizedById:requests.length?null:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}
+      const generated=(updated.topics||[]).filter(x=>x.followUp&&x.action.trim()).filter(topic=>!nextDecisions.some(d=>d.meetingId===updated.id&&d.topicId===topic.id)).map(topic=>({id:`DEC-${Date.now()}-${topic.id}`,meetingId:updated.id,topicId:topic.id,title:topic.subject,action:topic.action,owner:topic.owner,dueDate:topic.dueDate,priority:topic.priority||'medium',status:'open',createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}))
       nextDecisions=[...generated,...nextDecisions]
       historyAction='Ολοκλήρωση συνεδρίασης και αίτημα έγκρισης πρακτικών'
       notify(requests.length?`Δημιουργήθηκαν ${requests.length} αιτήματα έγκρισης για τα παρόντα μέλη${queued.length?` και ${queued.length} email μπήκαν στο outbox`:''}.`:'Η συνεδρίαση οριστικοποιήθηκε.','success')
@@ -141,7 +142,7 @@ export function CommitteeRecordPage(){
   }
   function addDecision(data){
     const id=`DEC-${Date.now()}`
-    persist({...record,decisions:[{id,...data,status:'open'},...(record.decisions||[])],history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Καταχώρηση απόφασης',reason:data.title},...(record.history||[])]})
+    const now=new Date().toISOString();persist({...record,decisions:[{id,...data,status:'open',createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id},...(record.decisions||[])],history:[{at:now,actor:actor.name,actorId:actor.id,action:'Καταχώρηση απόφασης',reason:data.title},...(record.history||[])]})
     setModal(null)
     notify(en?'Decision recorded.':'Η απόφαση καταχωρήθηκε.','success')
   }
@@ -153,7 +154,7 @@ export function CommitteeRecordPage(){
   }
   function updateDecision(id,status){
     const item=record.decisions.find(x=>x.id===id)
-    persist({...record,decisions:record.decisions.map(x=>x.id===id?{...x,status,updatedAt:new Date().toISOString(),updatedBy:actor.name}:x),history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Ενημέρωση κατάστασης απόφασης',reason:`${item?.title||id} → ${status==='completed'?'Ολοκληρωμένη':status==='in_progress'?'Σε εξέλιξη':'Ανοιχτή'}`},...(record.history||[])]})
+    persist({...record,decisions:record.decisions.map(x=>x.id===id?{...x,status,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id}:x),history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Ενημέρωση κατάστασης απόφασης',reason:`${item?.title||id} → ${status==='completed'?'Ολοκληρωμένη':status==='in_progress'?'Σε εξέλιξη':'Ανοιχτή'}`},...(record.history||[])]})
     notify(en?'Action status updated.':'Η κατάσταση της ενέργειας ενημερώθηκε.','success')
   }
   function addObjective(data){
@@ -170,7 +171,7 @@ export function CommitteeRecordPage(){
   }
   function updateObjective(id,status){
     const item=record.annualPlan.find(x=>x.id===id)
-    persist({...record,annualPlan:record.annualPlan.map(x=>x.id===id?{...x,status,updatedAt:new Date().toISOString(),updatedBy:actor.name}:x),history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Ενημέρωση στόχου ετήσιου σχεδίου',reason:`${item?.title||id} → ${status==='completed'?'Ολοκληρώθηκε':status==='in_progress'?'Σε εξέλιξη':'Ανοιχτός'}`},...(record.history||[])]})
+    persist({...record,annualPlan:record.annualPlan.map(x=>x.id===id?{...x,status,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id}:x),history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Ενημέρωση στόχου ετήσιου σχεδίου',reason:`${item?.title||id} → ${status==='completed'?'Ολοκληρώθηκε':status==='in_progress'?'Σε εξέλιξη':'Ανοιχτός'}`},...(record.history||[])]})
     notify(en?'Objective updated.':'Ο στόχος ενημερώθηκε.','success')
   }
 
@@ -216,7 +217,7 @@ function Overview({r,activeMembers}){
   <ExpandableTextBlock label="Αρμοδιότητα / σκοπός" value={r.mandate}/>
  </section>
 }
-function SharedKpi({icon:Icon,label,value}){return <div className="module-summary-metric"><Icon size={15}/><div><strong>{value}</strong><span>{label}</span></div></div>}
+function SharedKpi({icon:Icon,label,value}){return <MetricCard icon={Icon} value={value} label={label}/>}
 function SectionHead({title,subtitle,action}){return <div className="record-section-header"><div><span className="eyebrow">Επιτροπές</span><h3>{title}</h3>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>}
 
 function AnnualPlan({rows,canManage,onAdd,onEdit,onStatus}){
@@ -308,7 +309,7 @@ function MeetingDialog({committee,meeting,activeMembers,canManage,onClose,onSave
   const patchTopic=(id,k,v)=>setD(x=>({...x,topics:x.topics.map(topic=>topic.id===id?{...topic,[k]:v}:topic)}))
   const addTopic=()=>setD(x=>({...x,topics:[...x.topics,createTopic()]}))
   const removeTopic=async id=>{const ok=await confirm({title:en?'Remove topic':'Αφαίρεση θέματος',message:en?'The topic and its unsaved information will be removed from the meeting. Continue?':'Το θέμα και τα μη αποθηκευμένα στοιχεία του θα αφαιρεθούν από τη συνεδρίαση. Θέλετε να συνεχίσετε;',confirmLabel:en?'Remove':'Αφαίρεση',danger:true});if(!ok)return;setD(x=>({...x,topics:x.topics.length===1?[createTopic()]:x.topics.filter(topic=>topic.id!==id)}))}
-  return <ObserverDialog eyebrow={en?'Meeting & minutes':'Συνεδρίαση & πρακτικά'} title={d.title} subtitle={en?'One unified flow: details, attendance, topics and decisions. Approval is sent only to members recorded as present.':'Μία ενιαία ροή: στοιχεία, παρουσίες, θέματα και αποφάσεις. Η έγκριση αποστέλλεται μόνο στα μέλη που καταγράφονται ως παρόντα.'} onClose={onClose} width="wide" className="committee-meeting-dialog" footer={canManage&&!locked?<><Button variant="secondary" onClick={onClose}>Ακύρωση</Button><Button variant="secondary" onClick={()=>onSave(d)}>Αποθήκευση</Button><Button onClick={()=>onSave(d,{finalize:true})} disabled={!present.length}>Ολοκλήρωση & αποστολή έγκρισης</Button></>:<Button variant="secondary" onClick={onClose}>Κλείσιμο</Button>}>
+  return <ObserverDialog eyebrow={en?'Meeting & minutes':'Συνεδρίαση & πρακτικά'} title={d.title} subtitle={en?'One unified flow: details, attendance, topics and decisions. Approval is sent only to members recorded as present.':'Μία ενιαία ροή: στοιχεία, παρουσίες, θέματα και αποφάσεις. Η έγκριση αποστέλλεται μόνο στα μέλη που καταγράφονται ως παρόντα.'} onClose={onClose} width="wide" className="committee-meeting-dialog" footer={canManage&&!locked?<DialogActions onCancel={onClose} onSave={()=>onSave(d)} saveLabel={en?'Save':'Αποθήκευση'}><Button onClick={()=>onSave(d,{finalize:true})} disabled={!present.length}>{en?'Complete & send for approval':'Ολοκλήρωση & αποστολή έγκρισης'}</Button></DialogActions> :<Button variant="secondary" onClick={onClose}>{en?'Close':'Κλείσιμο'}</Button>}>
     <div className="observer-form-section">
       <div className="observer-form-section-title"><div><strong>{en?'Meeting details':'Στοιχεία συνεδρίασης'}</strong><span>{en?'Basic details and minutes number.':'Βασικά στοιχεία και αριθμός πρακτικού.'}</span></div></div>
       <div className="entry-grid compact">

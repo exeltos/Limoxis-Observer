@@ -18,10 +18,10 @@ export function EntityRecordShell({
   children,
   className='',
 }) {
-  const { t }=useLanguage()
+  const { t,language }=useLanguage();const en=language==='en'
   const { goBack }=useContextualNavigation('/')
   const handleBack=onBack||goBack
-  return <div className={`entity-record-shell ${className}`.trim()}>
+  return <div className={`entity-record-shell canonical-detail-screen ${className}`.trim()}>
     <header className="entity-record-header surface">
       <button className="entity-record-icon-button back entity-record-back-left" onClick={handleBack} title={backLabel||t('back')} aria-label={backLabel||t('back')}><ArrowLeft size={16}/></button>
       <div className="entity-record-avatar">{avatar}</div>
@@ -32,10 +32,10 @@ export function EntityRecordShell({
       </div>
       <div className="entity-record-header-actions">
         {status}
-        {recordNavigation&&<div className="entity-record-sequence" aria-label="Πλοήγηση εγγραφών">
-          <button type="button" className="entity-record-icon-button" disabled={!recordNavigation.hasPrevious} onClick={recordNavigation.previous} title="Προηγούμενη εγγραφή" aria-label="Προηγούμενη εγγραφή"><ChevronLeft size={16}/></button>
+        {recordNavigation&&<div className="entity-record-sequence" aria-label={en?'Record navigation':'Πλοήγηση εγγραφών'}>
+          <button type="button" className="entity-record-icon-button" disabled={!recordNavigation.hasPrevious} onClick={recordNavigation.previous} title={en?'Previous record':'Προηγούμενη εγγραφή'} aria-label={en?'Previous record':'Προηγούμενη εγγραφή'}><ChevronLeft size={16}/></button>
           {recordNavigation.position&&recordNavigation.total>0&&<span>{recordNavigation.position}/{recordNavigation.total}</span>}
-          <button type="button" className="entity-record-icon-button" disabled={!recordNavigation.hasNext} onClick={recordNavigation.next} title="Επόμενη εγγραφή" aria-label="Επόμενη εγγραφή"><ChevronRight size={16}/></button>
+          <button type="button" className="entity-record-icon-button" disabled={!recordNavigation.hasNext} onClick={recordNavigation.next} title={en?'Next record':'Επόμενη εγγραφή'} aria-label={en?'Next record':'Επόμενη εγγραφή'}><ChevronRight size={16}/></button>
         </div>}
         {headerActions}
       </div>

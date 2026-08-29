@@ -1,21 +1,16 @@
-const KEY='limoxis.committeeApprovals.v2'
-const MINUTES_KEY='limoxis.committeeMinutesApprovals.v1'
-const OUTBOX_KEY='limoxis.committeeMailOutbox.v1'
+import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+const TABLES={approvals:'committee_approvals',minutes:'committee_minutes_approvals',outbox:'committee_mail_outbox'}
+function safeLoad(table){const v=loadSnapshot(table,[]);return Array.isArray(v)?v:[]}
+function safeSave(table,value){return saveSnapshot(table,value)}
 
-function safeLoad(key){
-  try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}
-  catch{return[]}
-}
-function safeSave(key,value){localStorage.setItem(key,JSON.stringify(value))}
-
-export function loadCommitteeApprovals(){return safeLoad(KEY)}
-export function saveCommitteeApprovals(v){safeSave(KEY,v)}
+export function loadCommitteeApprovals(){return safeLoad(TABLES.approvals)}
+export function saveCommitteeApprovals(v){safeSave(TABLES.approvals,v)}
 export function requestCommitteeApproval(data){const rows=loadCommitteeApprovals();const old=rows.find(x=>x.committeeId===data.committeeId&&x.employeeId===data.employeeId&&x.status==='pending');if(old)return old;const row={id:`APR-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,...data,status:'pending',requestedAt:new Date().toISOString()};saveCommitteeApprovals([row,...rows]);return row}
 export function approvalsForEmployee(employeeId){return loadCommitteeApprovals().filter(x=>x.employeeId===employeeId)}
 export function approvalStatusFor(committeeId,employeeId){return loadCommitteeApprovals().find(x=>x.committeeId===committeeId&&x.employeeId===employeeId)?.status||null}
 export function answerCommitteeApproval(id,status,actor){const now=new Date().toISOString();const rows=loadCommitteeApprovals().map(x=>x.id===id?{...x,status,answeredAt:now,answeredBy:actor.name,answeredById:actor.id}:x);saveCommitteeApprovals(rows);return rows.find(x=>x.id===id)}
 
-export function loadMinutesApprovals(){return safeLoad(MINUTES_KEY)}
+export function loadMinutesApprovals(){return safeLoad(TABLES.minutes)}
 export function minutesApprovalsForMeeting(committeeId,meetingId){return loadMinutesApprovals().filter(x=>x.committeeId===committeeId&&x.meetingId===meetingId)}
 export function minutesApprovalSummary(committeeId,meetingId){
   const rows=minutesApprovalsForMeeting(committeeId,meetingId)
@@ -41,9 +36,9 @@ export function requestMinutesApprovals({committee,meeting,presentMembers,reques
     requestedBy,
     requestedById,
   }))
-  safeSave(MINUTES_KEY,[...requests,...existing])
+  safeSave(TABLES.minutes,[...requests,...existing])
 
-  const outbox=safeLoad(OUTBOX_KEY)
+  const outbox=safeLoad(TABLES.outbox)
   const queued=requests.filter(x=>x.email).map((request,index)=>({
     id:`MAIL-${Date.now()}-${index}`,
     kind:'committee_minutes_approval',
@@ -61,8 +56,8 @@ export function requestMinutesApprovals({committee,meeting,presentMembers,reques
     },
     approvalId:request.id,
   }))
-  safeSave(OUTBOX_KEY,[...queued,...outbox])
+  safeSave(TABLES.outbox,[...queued,...outbox])
   return {requests,queued}
 }
 
-export function loadCommitteeMailOutbox(){return safeLoad(OUTBOX_KEY)}
+export function loadCommitteeMailOutbox(){return safeLoad(TABLES.outbox)}

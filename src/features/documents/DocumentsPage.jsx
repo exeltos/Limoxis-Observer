@@ -15,6 +15,7 @@ import { useAuditActor } from '../../core/audit/useAuditActor'
 import { loadDocuments,nextDocumentId,saveDocuments } from './documentStore'
 import { demoLibrarySeed } from '../management/managementData'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { MetricCard } from '../../design-system/MetricCard'
 
 const labels={
  el:{types:{policy:'Πολιτική',procedure:'Διαδικασία',instruction:'Οδηγία',form:'Έντυπο',protocol:'Πρωτόκολλο',other:'Άλλο'},statuses:{draft:'Πρόχειρο',published:'Δημοσιευμένο',archived:'Αρχειοθετημένο'}},
@@ -38,14 +39,14 @@ export function DocumentsPage(){
  }
  return <Page fill title={en?'Documents':'Έγγραφα'} subtitle={en?'Central library of controlled documents, versions and distributions.':'Κεντρική βιβλιοθήκη ελεγχόμενων εγγράφων, εκδόσεων και κοινοποιήσεων.'} actions={<RecordActions actions={[...(canManage?[UI_ACTIONS.CREATE]:[]),UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} resourceCapability={CAPABILITIES.VIEW_DOCUMENTS} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.EDIT_RECORDS,[UI_ACTIONS.PRINT]:CAPABILITIES.PRINT_RECORDS,[UI_ACTIONS.EXPORT]:CAPABILITIES.EXPORT_RECORDS}} onAction={action}/>}>
   <div className="module-summary-strip"><Metric icon={Files} label={en?'Total':'Σύνολο'} value={rows.length}/><Metric icon={FileCheck2} label={en?'Published':'Δημοσιευμένα'} value={rows.filter(x=>x.status==='published').length}/><Metric icon={FileClock} label={en?'Drafts':'Πρόχειρα'} value={rows.filter(x=>x.status==='draft').length}/><Metric icon={BookOpenCheck} label={en?'Review ≤30 days':'Review ≤30 ημέρες'} value={reviewDue}/></div>
-  <section className="surface workspace-column workspace-fill"><FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search document, owner or department...':'Αναζήτηση εγγράφου, υπευθύνου ή τμήματος...'} activeAdvancedCount={(status!=='all'?1:0)+(type!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setType('all')}}><FilterSelect label={en?'Type':'Τύπος'} value={type} onChange={setType}><option value="all">{en?'All':'Όλοι'}</option>{Object.entries(typeLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</FilterSelect><FilterSelect label={en?'Status':'Κατάσταση'} value={status} onChange={setStatus}><option value="all">{en?'All':'Όλες'}</option>{Object.entries(statusLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</FilterSelect></FilterBar>
+  <section className="surface registry-workspace workspace-column workspace-fill"><FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search document, owner or department...':'Αναζήτηση εγγράφου, υπευθύνου ή τμήματος...'} activeAdvancedCount={(status!=='all'?1:0)+(type!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setType('all')}}><FilterSelect label={en?'Type':'Τύπος'} value={type} onChange={setType}><option value="all">{en?'All':'Όλοι'}</option>{Object.entries(typeLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</FilterSelect><FilterSelect label={en?'Status':'Κατάσταση'} value={status} onChange={setStatus}><option value="all">{en?'All':'Όλες'}</option>{Object.entries(statusLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</FilterSelect></FilterBar>
    <div className="scroll-table"><table className="data-table sticky-table record-table-clickable"><thead><tr><th>{en?'Code':'Κωδικός'}</th><th>{en?'Document':'Έγγραφο'}</th><th>{en?'Type':'Τύπος'}</th><th>{en?'Version':'Έκδοση'}</th><th>{en?'Owner':'Υπεύθυνος'}</th><th>{en?'Department / audience':'Τμήμα / κοινό'}</th><th>Review</th><th>{en?'Status':'Κατάσταση'}</th></tr></thead><tbody>{filtered.map(x=><tr key={x.id} tabIndex={0} onClick={()=>navigate(`/documents/${x.id}`)} onKeyDown={e=>e.key==='Enter'&&navigate(`/documents/${x.id}`)}><td><strong>{x.id}</strong></td><td><strong>{x.title}</strong><small>{x.description||'—'}</small></td><td>{typeLabels[x.type]||x.type}</td><td>{x.version||'—'}</td><td>{x.owner||'—'}</td><td>{x.department||'—'}</td><td>{x.reviewDate||'—'}</td><td><span className={`status-badge ${x.status==='published'?'active':x.status==='draft'?'temporary':''}`}>{statusLabels[x.status]||x.status}</span></td></tr>)}</tbody></table>{filtered.length===0&&<div className="inline-empty">{en?'No documents found.':'Δεν βρέθηκαν έγγραφα.'}</div>}</div>
   </section>
   {createOpen&&<DocumentCreateDialog language={language} onClose={()=>setCreateOpen(false)} onSave={create}/>}
  </Page>
 }
 
-function Metric({icon:Icon,label,value}){return <div className="module-summary-metric"><Icon size={15}/><div><strong>{value}</strong><span>{label}</span></div></div>}
+function Metric({icon:Icon,label,value}){return <MetricCard icon={Icon} value={value} label={label}/>}
 
 function DocumentCreateDialog({onClose,onSave,language}){
  const en=language==='en',typeLabels=labels[language].types

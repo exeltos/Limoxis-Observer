@@ -68,6 +68,7 @@ export function findCasesByPatient(patientId){
 export function findCaseByPatient(patientId){ return findCasesByPatient(patientId).find((item)=>item.status==='active') ?? findCasesByPatient(patientId)[0] ?? null }
 
 export function createClinicalSurveillance(data){
+  const now=new Date().toISOString()
   const numericIds=Object.keys(clinicalCases)
     .map(id=>Number(String(id).replace(/\D/g,'')))
     .filter(Number.isFinite)
@@ -86,6 +87,13 @@ export function createClinicalSurveillance(data){
     startedAt:data.startedAt,
     reviewDue:data.reviewDue,
     status:'active',
+    lifecycleStatus:'active',
+    createdAt:now,
+    createdBy:data.createdBy||'Unknown actor',
+    createdById:data.createdById||'unknown',
+    updatedAt:now,
+    updatedBy:data.createdBy||'Unknown actor',
+    updatedById:data.createdById||'unknown',
     reason:data.reason||'',
     reasonEn:data.reasonEn||data.reason||'',
     suspectedSource:data.suspectedSource||null,
@@ -102,9 +110,10 @@ export function createClinicalSurveillance(data){
     reassessments:[],
     outcome:null,
     timeline:[{
-      at:new Date().toISOString(),
+      at:now,
       type:'surveillanceStarted',
       actor:data.createdBy||'Unknown actor',
+      actorId:data.createdById||'unknown',
       detail:data.reason||'',
     }],
   }
@@ -113,7 +122,7 @@ export function createClinicalSurveillance(data){
 }
 
 export const surveillanceDeletionAudit=[]
-export function deleteClinicalSurveillance(id,{actor='Unknown actor',reason='Deleted as erroneous entry'}={}){
+export function deleteClinicalSurveillance(id,{actor='Unknown actor',actorId='unknown',reason='Deleted as erroneous entry'}={}){
   const existing=clinicalCases[id]
   if(!existing||existing.status!=='active')return false
   surveillanceDeletionAudit.unshift({
@@ -121,6 +130,7 @@ export function deleteClinicalSurveillance(id,{actor='Unknown actor',reason='Del
     surveillanceId:id,
     patientId:existing.patientId,
     actor,
+    actorId,
     reason,
     at:new Date().toISOString(),
     snapshot:{...existing},
@@ -130,8 +140,12 @@ export function deleteClinicalSurveillance(id,{actor='Unknown actor',reason='Del
     lifecycleStatus:'voided',
     voidedAt:new Date().toISOString(),
     voidedBy:actor,
+    voidedById:actorId,
     voidReason:reason,
-    timeline:[{at:new Date().toISOString(),type:'surveillanceVoided',actor,detail:reason},...(existing.timeline||[])],
+    updatedAt:new Date().toISOString(),
+    updatedBy:actor,
+    updatedById:actorId,
+    timeline:[{at:new Date().toISOString(),type:'surveillanceVoided',actor,actorId,detail:reason},...(existing.timeline||[])],
   }
   return true
 }

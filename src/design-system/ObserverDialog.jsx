@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { Button } from './Button'
+import { useLanguage } from '../core/i18n/LanguageContext'
 
 export function ObserverDialog({
   eyebrow,
@@ -11,15 +12,18 @@ export function ObserverDialog({
   width='standard',
   className='',
 }){
+  const {language}=useLanguage();const en=language==='en'
+  const allowedWidths=new Set(['compact','standard','wide','workspace'])
+  const dialogWidth=allowedWidths.has(width)?width:'standard'
   return <div className="modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose?.()}}>
-    <section className={`entry-card observer-dialog observer-dialog-${width} ${className}`.trim()} role="dialog" aria-modal="true" aria-label={title}>
+    <section className={`entry-card observer-dialog observer-dialog-${dialogWidth} ${className}`.trim()} role="dialog" aria-modal="true" aria-label={title}>
       <header>
         <div>
           {eyebrow&&<span className="eyebrow">{eyebrow}</span>}
           <h3>{title}</h3>
           {subtitle&&<p>{subtitle}</p>}
         </div>
-        <button type="button" className="entity-record-icon-button" onClick={onClose} title="Κλείσιμο" aria-label="Κλείσιμο"><X size={17}/></button>
+        <button type="button" className="entity-record-icon-button" onClick={onClose} title={en?'Close':'Κλείσιμο'} aria-label={en?'Close':'Κλείσιμο'}><X size={17}/></button>
       </header>
       <div className="observer-dialog-body">{children}</div>
       {footer&&<footer>{footer}</footer>}
@@ -27,10 +31,11 @@ export function ObserverDialog({
   </div>
 }
 
-export function DialogActions({onCancel,onSave,saveLabel='Αποθήκευση',disabled=false,children}){
+export function DialogActions({onCancel,onSave,saveLabel,disabled=false,children,cancelLabel}){
+  const {language}=useLanguage();const en=language==='en';const resolvedSaveLabel=saveLabel||(en?'Save':'Αποθήκευση')
   return <>
     {children}
-    <Button variant="secondary" onClick={onCancel}>Ακύρωση</Button>
-    <Button disabled={disabled} onClick={onSave}>{saveLabel}</Button>
+    <Button variant="secondary" onClick={onCancel}>{cancelLabel||(en?'Cancel':'Ακύρωση')}</Button>
+    <Button disabled={disabled} onClick={onSave}>{resolvedSaveLabel}</Button>
   </>
 }

@@ -24,6 +24,7 @@ import { EnvironmentalRegistry, EnvironmentalSurveillanceFlow } from './Environm
 import { environmentalSurveillanceBatches, environmentalSurveillanceRecords, getEnvironmentalKpis, syncEnvironmentalSurveillanceFromLab } from './environmentalSurveillanceData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { downloadRecordJson } from '../../core/export/recordExport'
+import { MetricCard } from '../../design-system/MetricCard'
 
 export function SurveillancePage(){
   const { t, language, locale } = useLanguage()
@@ -386,7 +387,7 @@ function EmployeeSurveillanceRegistry({t,language,fmt,version,onChange,requested
       timeline:[{at:now,type:hasFollowup(selected)?'employeeFollowupCorrected':'employeeFollowupRecorded',actor:actorName,detail:correctionReason.trim()||null},...(selected.timeline||[])]
     })
     if(!noRecheck&&recheckDate&&recheckDate!==previous.recheckDate){
-      createEmployeeRecheck(updated||selected,{date:recheckDate,createdBy:actorName})
+      createEmployeeRecheck(updated||selected,{date:recheckDate,createdBy:actorName,createdById:actor.id})
     }
     const fresh=employeeSurveillanceRecords.find(x=>x.id===selected.id)
     setSelected(fresh||updated||selected)
@@ -501,4 +502,4 @@ function EmployeeBatchRegistry({t,language,fmt,version,onOpenRecord}){
   </section>
 }
 
-function SummaryMetric({icon:Icon,label,value}){return <div className="module-summary-metric"><Icon size={15}/><div><strong>{value}</strong><span>{label}</span></div></div>}
+function SummaryMetric({icon:Icon,label,value}){return <MetricCard icon={Icon} value={value} label={label}/>}

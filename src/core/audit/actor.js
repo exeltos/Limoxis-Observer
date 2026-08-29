@@ -18,3 +18,23 @@ export function auditEvent(action,{actor,reason='',detail=null}={}){
     detail,
   }
 }
+
+
+export function creationMetadata(actor,at=new Date().toISOString()){
+  return {
+    createdAt:at,
+    createdBy:actor?.name||'Άγνωστος χρήστης',
+    createdById:actor?.id||'unknown',
+    updatedAt:at,
+    updatedBy:actor?.name||'Άγνωστος χρήστης',
+    updatedById:actor?.id||'unknown',
+  }
+}
+
+export function updateMetadata(actor,at=new Date().toISOString()){
+  return {
+    updatedAt:at,
+    updatedBy:actor?.name||'Άγνωστος χρήστης',
+    updatedById:actor?.id||'unknown',
+  }
+}

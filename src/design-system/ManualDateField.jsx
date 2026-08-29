@@ -21,7 +21,7 @@ function displayToIso(value){
 }
 
 export function ManualDateField({label,value,onChange,optional=false,disabled=false,className=''}){
-  const {t}=useLanguage()
+  const {t,language}=useLanguage();const en=language==='en'
   const [text,setText]=useState(()=>isoToDisplay(value))
   const pickerRef=useRef(null)
   useEffect(()=>setText(isoToDisplay(value)),[value])
@@ -38,7 +38,7 @@ export function ManualDateField({label,value,onChange,optional=false,disabled=fa
   return <label className={`manual-date-field ${className}`.trim()}>
     {label&&<span>{label}{optional&&<small> · {t('optional')}</small>}</span>}
     <div className="manual-date-control">
-      <input disabled={disabled} inputMode="numeric" placeholder="ηη/μμ/εεεε" value={text} onChange={e=>setText(e.target.value)} onBlur={()=>commit()} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();commit()}}}/>
+      <input disabled={disabled} inputMode="numeric" placeholder={en?'dd/mm/yyyy':'ηη/μμ/εεεε'} value={text} onChange={e=>setText(e.target.value)} onBlur={()=>commit()} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();commit()}}}/>
       <button type="button" disabled={disabled} onClick={openPicker} aria-label="calendar"><CalendarDays size={16}/></button>
       <input ref={pickerRef} className="manual-date-native" tabIndex={-1} type="date" value={value||''} onChange={e=>{onChange(e.target.value);setText(isoToDisplay(e.target.value))}}/>
     </div>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Activity, ArrowRightLeft, LogOut, UsersRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
@@ -14,6 +15,7 @@ import { patientDemoData, createDemoPatient } from './patientDemoData'
 import { demoLibrarySeed } from '../management/managementData'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { downloadCsv } from '../../core/export/csvExport'
+import { MetricCard } from '../../design-system/MetricCard'
 
 export function PatientsPage(){
   const {t,language,locale}=useLanguage()
@@ -55,7 +57,20 @@ export function PatientsPage(){
     })
   }
   const activeAdvancedCount=(department!=='all'?1:0)+(status!=='all'?1:0)
+  const scopedPatients=patients.filter(p=>canAccessRecord(p))
+  const patientSummary={
+    total:scopedPatients.length,
+    active:scopedPatients.filter(p=>p.status==='active').length,
+    discharged:scopedPatients.filter(p=>p.status==='discharged').length,
+    transferred:scopedPatients.filter(p=>p.status==='transferred').length,
+  }
   return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} actionCapabilities={pageCaps} onAction={pageAction}/>}>
+    <div className="workspace-summary patient-summary-strip" aria-label={t('patientRegistry')}>
+      <PatientSummaryMetric icon={UsersRound} label={t('all')} value={patientSummary.total}/>
+      <PatientSummaryMetric icon={Activity} label={t('active')} value={patientSummary.active} kind="active"/>
+      <PatientSummaryMetric icon={LogOut} label={t('discharged')} value={patientSummary.discharged}/>
+      <PatientSummaryMetric icon={ArrowRightLeft} label={t('transferred')} value={patientSummary.transferred}/>
+    </div>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
@@ -66,6 +81,8 @@ export function PatientsPage(){
     {newOpen&&<NewPatientCard t={t} language={language} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
   </Page>
 }
+
+function PatientSummaryMetric({icon,label,value,kind=''}){return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'}/>}
 
 function NewPatientCard({t,language,onClose,onSave}){
   const firstDepartment=demoLibrarySeed.departments?.[0]||['','']
