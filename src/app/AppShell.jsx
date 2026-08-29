@@ -64,7 +64,7 @@ export function AppShell(){
       {memberships.length>1&&<label className="tenant-switch"><select value={membership?.id??''} onChange={e=>setTenantByMembership(e.target.value)}>{memberships.map(item=><option key={item.id} value={item.id}>{item.organization.name}</option>)}</select><ChevronDown size={14}/></label>}
       <div className="topbar-utility-group">
         <div className="notification-anchor"><button className={`icon-button notification-button ${notificationOpen?'active':''}`} aria-label={t('notifications')} title={t('notifications')} onClick={()=>setNotificationOpen(v=>!v)}><Bell size={19}/>{notifications.unreadCount>0&&<span className="notification-count">{notifications.unreadCount>99?'99+':notifications.unreadCount}</span>}</button><NotificationCenter open={notificationOpen} onClose={()=>setNotificationOpen(false)} onOpenBriefing={()=>{setNotificationOpen(false);setBriefingOpen(true)}} onOpenBirthday={()=>{setNotificationOpen(false);setBirthdayOpen(true)}}/></div>
-        <button className="icon-button help-button" aria-label="Κέντρο Βοήθειας & Πληροφοριών" title="Κέντρο Βοήθειας & Πληροφοριών" onClick={()=>setHelpOpen(true)}><BookOpen size={18}/></button>
+        <button className="icon-button help-button" aria-label={t('helpInformationCenter')} title={t('helpInformationCenter')} onClick={()=>setHelpOpen(true)}><BookOpen size={18}/></button>
         <button className="language-button" onClick={()=>setLanguage(language==='el'?'en':'el')}>{language==='el'?'EN':'EL'}</button>
       </div>
       <div className="user-chip"><div className="avatar">{(profile?.fullName||profile?.email||'U').slice(0,2).toUpperCase()}</div><div><strong>{profile?.fullName||profile?.email||'User'}</strong><span>{tenant?.name??''}</span></div></div>
