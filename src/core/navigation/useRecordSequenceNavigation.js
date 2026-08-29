@@ -1,16 +1,14 @@
 import { useMemo } from 'react'
 import { useLocation,useNavigate } from 'react-router-dom'
-
-const keyFor=(registry,part)=>`limoxis.registry.${registry}.${part}`
+import { readSessionJson, writeSessionValue } from '../storage/browserStorage'
+import { registryStorageKey } from './useRegistryMemory'
 
 export function useRecordSequenceNavigation({registry,currentId,pathForId}){
  const navigate=useNavigate()
  const location=useLocation()
  const ids=useMemo(()=>{
-  try{
-   const parsed=JSON.parse(sessionStorage.getItem(keyFor(registry,'sequence'))||'[]')
-   return Array.isArray(parsed)?parsed:[]
-  }catch{return []}
+  const parsed=readSessionJson(registryStorageKey(registry,'sequence'),[])
+  return Array.isArray(parsed)?parsed:[]
  // eslint-disable-next-line react-hooks/exhaustive-deps -- 'currentId' forces re-read from sessionStorage when navigating to a different record (the stored sequence may have changed since this component last read it); not used directly in the body.
  },[registry,currentId])
  const index=ids.indexOf(currentId)
@@ -18,7 +16,7 @@ export function useRecordSequenceNavigation({registry,currentId,pathForId}){
  const nextId=index>=0&&index<ids.length-1?ids[index+1]:null
  function move(id){
   if(!id)return
-  sessionStorage.setItem(keyFor(registry,'selected'),id)
+  writeSessionValue(registryStorageKey(registry,'selected'),id)
   navigate(pathForId(id),{replace:true,state:location.state})
  }
  return {
