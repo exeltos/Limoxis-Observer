@@ -27,7 +27,7 @@ export function ManagementPage(){
       {id:'overview',label:t('managementPanel.overviewTab'),icon:FileCheck2},
       ...(isAllowed(CAPABILITIES.MANAGE_ORGANIZATION)?[{id:'organization',label:t('organization'),icon:Building2}]:[]),
       ...(isAllowed(CAPABILITIES.MANAGE_USERS)?[{id:'users',label:t('users'),icon:Users}]:[]),
-      ...(isAllowed(CAPABILITIES.MANAGE_ANNOUNCEMENTS)?[{id:'announcements',label:'Ανακοινώσεις',icon:Bell}]:[]),
+      ...(isAllowed(CAPABILITIES.MANAGE_ANNOUNCEMENTS)?[{id:'announcements',label:t('announcements'),icon:Bell}]:[]),
       ...(isAllowed(CAPABILITIES.MANAGE_LIBRARIES)?[
         {id:'libraries',label:t('libraries'),icon:Database},
         {id:'bundles',label:t('managementPanel.preventionBundlesLabel'),icon:Layers3},

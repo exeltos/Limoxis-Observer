@@ -2638,3 +2638,659 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
 .real-screen-thumb>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top left;background:#fff;pointer-events:none}
 .manual-live-large{display:flex;align-items:center;justify-content:center}
 .manual-live-large>img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;background:#fff}
+
+/* v0.26.49 live Netlify help previews */
+.netlify-screen-thumb iframe{position:absolute;inset:0;width:1440px;height:900px;border:0;transform:scale(.268);transform-origin:top left;pointer-events:none;background:#fff}
+.netlify-live-large iframe{width:100%;height:100%;border:0;pointer-events:none;background:#fff}
+.netlify-live-large{display:block!important}
+
+/* v0.26.50 reliable embedded Netlify preview */
+.netlify-screen-thumb{height:270px!important;background:#f4f7f9!important}
+.netlify-screen-thumb iframe,.netlify-live-large iframe{visibility:visible!important;opacity:1!important;display:block!important;background:#fff!important}
+
+/* v0.26.51 — contextual slide-in Help Center + briefing refinement */
+
+/* Help Center opens as a right-side workspace and stops at the fixed sidebar. */
+.help-center-backdrop{
+  left:244px!important;
+  right:0!important;
+  top:0!important;
+  bottom:0!important;
+  inset:auto 0 0 244px!important;
+  padding:0!important;
+  background:rgba(21,38,52,.16)!important;
+  display:block!important;
+  overflow:hidden!important;
+}
+.manual-center{
+  position:absolute!important;
+  top:0!important;
+  right:0!important;
+  bottom:0!important;
+  width:100%!important;
+  height:100%!important;
+  border:0!important;
+  border-left:1px solid #cfdbe3!important;
+  border-radius:0!important;
+  box-shadow:-18px 0 46px rgba(20,37,50,.18)!important;
+  animation:helpSlideIn .22s ease-out both;
+}
+@keyframes helpSlideIn{
+  from{transform:translateX(100%);opacity:.96}
+  to{transform:translateX(0);opacity:1}
+}
+.manual-body{
+  grid-template-columns:250px minmax(430px,1fr) 430px!important;
+}
+.manual-topbar{
+  grid-template-columns:250px minmax(340px,560px) 1fr!important;
+  min-height:64px!important;
+}
+.manual-brand strong{font-size:11px!important}
+.manual-brand small{font-size:8.5px!important}
+.manual-search{height:38px!important}
+.manual-search input{font-size:11px!important}
+.manual-search kbd{font-size:8px!important}
+.manual-actions-clean>span{font-size:9px!important}
+.manual-side-label{font-size:8px!important;padding:15px 13px 9px!important}
+.manual-nav button,.manual-side-bottom button{
+  min-height:38px!important;
+  padding:9px 9px!important;
+  font-size:10.5px!important;
+}
+.manual-version{font-size:8.2px!important}
+.manual-article{padding:30px 34px 38px!important}
+.manual-breadcrumb{font-size:8px!important}
+.manual-article h1,.manual-special h1{font-size:27px!important}
+.manual-summary{font-size:11.5px!important;line-height:1.65!important}
+.manual-audience{font-size:9.5px!important;padding:10px 11px!important}
+.manual-chapter-tabs button{
+  min-height:34px!important;
+  padding:8px 10px!important;
+  font-size:9.5px!important;
+}
+.manual-chapter-tabs button span{font-size:8px!important}
+.manual-step-label{font-size:8px!important}
+.manual-copy h2{font-size:19px!important}
+.manual-copy>p{font-size:11.5px!important;line-height:1.75!important}
+.manual-copy h3{font-size:12px!important}
+.manual-copy li{padding:10px 0!important}
+.manual-copy li span{font-size:10.5px!important;line-height:1.45!important}
+.manual-copy li b{font-size:8.5px!important}
+.manual-role-note b{font-size:10px!important}
+.manual-role-note span{font-size:9.2px!important}
+.manual-preview-pane>header span{font-size:8px!important}
+.manual-preview-pane>header b{font-size:10px!important}
+.manual-explain h3{font-size:10.5px!important}
+.manual-explain strong{font-size:9px!important}
+.manual-explain span{font-size:8.5px!important}
+.manual-special>p{font-size:11px!important}
+.manual-glossary strong{font-size:10px!important}
+.manual-glossary span{font-size:9.5px!important}
+.manual-about-grid small{font-size:8px!important}
+.manual-about-grid span{font-size:8.5px!important}
+.manual-about-text h2{font-size:14px!important}
+.manual-about-text p{font-size:10.5px!important}
+
+/* User briefing — cleaner card, stronger hierarchy, close always at top-right. */
+.briefing-backdrop{
+  background:rgba(20,35,48,.30)!important;
+  backdrop-filter:blur(2px);
+}
+.login-briefing-v2{
+  width:min(720px,calc(100vw - 40px))!important;
+  max-height:calc(100vh - 48px)!important;
+  overflow:hidden!important;
+  border:1px solid #d7e1e7!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 26px 72px rgba(21,39,52,.24)!important;
+}
+.briefing-header-v2{
+  position:relative!important;
+  display:block!important;
+  padding:22px 58px 18px 22px!important;
+  border-bottom:1px solid #e2e8ec!important;
+  background:linear-gradient(135deg,#f7fbfc,#ffffff)!important;
+}
+.briefing-heading-v2{
+  display:grid!important;
+  grid-template-columns:42px minmax(0,1fr)!important;
+  gap:12px!important;
+  align-items:start!important;
+}
+.briefing-symbol-v2{
+  width:40px!important;
+  height:40px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:11px!important;
+  background:#e4f1f2!important;
+  color:#246c72!important;
+}
+.briefing-header-v2 .briefing-kicker{
+  font-size:8.5px!important;
+  font-weight:900!important;
+  letter-spacing:.09em!important;
+  color:#55808a!important;
+}
+.briefing-header-v2 h2{
+  margin:4px 0 4px!important;
+  font-size:22px!important;
+  color:#203442!important;
+}
+.briefing-header-v2 p{
+  margin:0!important;
+  font-size:10.5px!important;
+  line-height:1.5!important;
+  color:#738591!important;
+}
+.briefing-close-v2{
+  position:absolute!important;
+  top:14px!important;
+  right:14px!important;
+  width:34px!important;
+  height:34px!important;
+  display:grid!important;
+  place-items:center!important;
+  border:0!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#415d6e!important;
+  box-shadow:0 0 0 1px #dbe4e9 inset!important;
+  cursor:pointer!important;
+}
+.briefing-close-v2:hover{background:#eef4f6!important;color:#204f5b!important}
+.briefing-summary-v2{
+  display:flex!important;
+  align-items:center!important;
+  gap:14px!important;
+  padding:12px 18px!important;
+  border-bottom:1px solid #e7ecef!important;
+  background:#fbfcfd!important;
+}
+.briefing-summary-v2>div{
+  min-width:120px!important;
+  display:flex!important;
+  align-items:baseline!important;
+  gap:9px!important;
+}
+.briefing-summary-v2 small{
+  font-size:7px!important;
+  font-weight:900!important;
+  letter-spacing:.08em!important;
+  color:#7c8f9b!important;
+}
+.briefing-summary-v2 strong{
+  font-size:20px!important;
+  color:#255f67!important;
+}
+.briefing-summary-v2>span{
+  font-size:9px!important;
+  color:#758690!important;
+}
+.briefing-sections-v2{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:12px!important;
+  padding:14px 16px!important;
+  max-height:460px!important;
+  overflow:auto!important;
+}
+.briefing-sections-v2>section{
+  overflow:hidden!important;
+  border:1px solid #dfe6ea!important;
+  border-radius:11px!important;
+  background:#fff!important;
+}
+.briefing-sections-v2>section>header{
+  min-height:52px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  padding:10px 11px!important;
+  border-bottom:1px solid #e6ecef!important;
+  background:#f8fafb!important;
+}
+.briefing-sections-v2>section>header>div{display:grid!important;gap:2px!important}
+.briefing-sections-v2>section>header strong{font-size:10px!important;color:#294a5c!important}
+.briefing-sections-v2>section>header small{font-size:7.8px!important;color:#81919b!important}
+.briefing-sections-v2>section>header>span{
+  min-width:24px!important;
+  height:24px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:8px!important;
+  background:#e7f1f3!important;
+  color:#276970!important;
+  font-size:8px!important;
+  font-weight:900!important;
+}
+.briefing-sections-v2>section>button{
+  width:100%!important;
+  min-height:54px!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto 15px!important;
+  gap:8px!important;
+  align-items:center!important;
+  padding:9px 11px!important;
+  border:0!important;
+  border-bottom:1px solid #edf1f3!important;
+  background:#fff!important;
+  text-align:left!important;
+  cursor:pointer!important;
+}
+.briefing-sections-v2>section>button:last-child{border-bottom:0!important}
+.briefing-sections-v2>section>button:hover{background:#f6fafb!important}
+.briefing-sections-v2>section>button>span{display:grid!important;gap:2px!important}
+.briefing-sections-v2>section>button strong{font-size:9.5px!important;color:#2a4353!important}
+.briefing-sections-v2>section>button small{font-size:8px!important;line-height:1.35!important;color:#7c8d98!important}
+.briefing-sections-v2>section>button b{
+  min-width:25px!important;
+  padding:4px 6px!important;
+  border-radius:8px!important;
+  background:#edf4f6!important;
+  color:#28646b!important;
+  text-align:center!important;
+  font-size:9px!important;
+}
+.briefing-sections-v2>section>button i{
+  width:7px!important;
+  height:7px!important;
+  border-radius:50%!important;
+  background:#2b7b84!important;
+}
+.briefing-footer-v2{
+  justify-content:flex-start!important;
+  padding:11px 16px!important;
+  background:#fbfcfd!important;
+}
+.briefing-footer-v2>span{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  margin:0!important;
+  max-width:none!important;
+  font-size:8.5px!important;
+  color:#748792!important;
+}
+@media(max-width:1100px){
+  .help-center-backdrop{left:0!important;inset:0!important}
+  .manual-body{grid-template-columns:220px minmax(380px,1fr) 350px!important}
+}
+@media(max-width:800px){
+  .briefing-sections-v2{grid-template-columns:1fr!important}
+}
+
+/* v0.26.52 — Help Center slide-in visibility hotfix */
+.help-center-backdrop{
+  position:fixed!important;
+  inset:0 0 0 244px!important;
+  width:auto!important;
+  height:auto!important;
+  min-height:100vh!important;
+  z-index:1100!important;
+  display:block!important;
+  overflow:hidden!important;
+  background:rgba(21,38,52,.16)!important;
+}
+.help-center-backdrop .manual-center{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  visibility:visible!important;
+  opacity:1!important;
+  transform:none;
+}
+@media(max-width:1100px){
+  .help-center-backdrop{
+    inset:0!important;
+  }
+}
+
+/* v0.26.53 — direct fixed Help panel; independent of legacy backdrop CSS */
+.help-panel-shell{
+  position:fixed!important;
+  top:0!important;
+  right:0!important;
+  bottom:0!important;
+  left:244px!important;
+  z-index:1200!important;
+  display:block!important;
+  overflow:hidden!important;
+  background:#fff!important;
+  box-shadow:-18px 0 48px rgba(19,37,50,.20)!important;
+  animation:helpPanelEnter .24s cubic-bezier(.2,.75,.25,1) both;
+}
+.help-panel-shell>.manual-center{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  border:0!important;
+  border-left:1px solid #d2dde4!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  transform:none!important;
+  visibility:visible!important;
+  opacity:1!important;
+  background:#fff!important;
+}
+@keyframes helpPanelEnter{
+  from{transform:translateX(100%)}
+  to{transform:translateX(0)}
+}
+@media(max-width:1100px){
+  .help-panel-shell{left:0!important}
+}
+
+/* v0.26.54 — Netlify preview zoom fits the complete screen */
+.manual-image-lightbox>section{
+  width:min(1480px,calc(100vw - 36px))!important;
+  height:min(940px,calc(100vh - 36px))!important;
+  grid-template-rows:52px minmax(0,1fr) 32px!important;
+}
+.netlify-live-large{
+  position:relative!important;
+  overflow:hidden!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:10px!important;
+  background:#eef3f6!important;
+}
+.netlify-live-large iframe{
+  width:1440px!important;
+  height:900px!important;
+  max-width:none!important;
+  max-height:none!important;
+  flex:0 0 auto!important;
+  border:0!important;
+  transform:scale(var(--help-zoom-scale,.86))!important;
+  transform-origin:center center!important;
+  pointer-events:none!important;
+  background:#fff!important;
+  box-shadow:0 10px 30px rgba(25,45,58,.14)!important;
+}
+@media(max-width:1500px){
+  .netlify-live-large iframe{--help-zoom-scale:.78}
+}
+@media(max-width:1300px){
+  .netlify-live-large iframe{--help-zoom-scale:.68}
+}
+@media(max-width:1100px){
+  .netlify-live-large iframe{--help-zoom-scale:.58}
+}
+@media(max-width:900px){
+  .netlify-live-large iframe{--help-zoom-scale:.48}
+}
+@media(max-height:850px){
+  .netlify-live-large iframe{--help-zoom-scale:.68}
+}
+@media(max-height:720px){
+  .netlify-live-large iframe{--help-zoom-scale:.56}
+}
+
+/* v0.26.55 — frameless Help preview zoom */
+.manual-image-lightbox-frameless{
+  position:fixed!important;
+  inset:0!important;
+  z-index:2200!important;
+  display:block!important;
+  padding:0!important;
+  background:#fff!important;
+  backdrop-filter:none!important;
+}
+.manual-live-fullscreen{
+  position:absolute!important;
+  inset:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  background:#fff!important;
+}
+.manual-live-fullscreen iframe{
+  width:1440px!important;
+  height:900px!important;
+  max-width:none!important;
+  max-height:none!important;
+  flex:0 0 auto!important;
+  border:0!important;
+  margin:0!important;
+  padding:0!important;
+  box-shadow:none!important;
+  transform:scale(var(--help-fullscreen-scale,.96))!important;
+  transform-origin:center center!important;
+  pointer-events:none!important;
+  background:#fff!important;
+}
+.manual-lightbox-close{
+  position:fixed!important;
+  top:14px!important;
+  right:16px!important;
+  z-index:2202!important;
+  width:38px!important;
+  height:38px!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border:1px solid #d7e1e7!important;
+  border-radius:9px!important;
+  background:rgba(255,255,255,.96)!important;
+  color:#2f4c5f!important;
+  box-shadow:0 4px 14px rgba(25,44,57,.12)!important;
+  cursor:pointer!important;
+}
+.manual-lightbox-close:hover{
+  background:#eef4f6!important;
+  color:#173e4d!important;
+}
+@media(max-width:1500px){.manual-live-fullscreen iframe{--help-fullscreen-scale:.90}}
+@media(max-width:1360px){.manual-live-fullscreen iframe{--help-fullscreen-scale:.80}}
+@media(max-width:1180px){.manual-live-fullscreen iframe{--help-fullscreen-scale:.68}}
+@media(max-width:980px){.manual-live-fullscreen iframe{--help-fullscreen-scale:.56}}
+@media(max-height:900px){.manual-live-fullscreen iframe{--help-fullscreen-scale:.82}}
+@media(max-height:760px){.manual-live-fullscreen iframe{--help-fullscreen-scale:.66}}
+
+/* v0.26.56 — topbar simplification + Help search sizing */
+.topbar{
+  justify-content:flex-end!important;
+  gap:10px!important;
+}
+.topbar-spacer{
+  flex:1 1 auto!important;
+  min-width:0!important;
+}
+.search-box{
+  display:none!important;
+}
+
+/* Bell / Help / language share one compact card matching the user chip height. */
+.topbar-utility-card{
+  height:42px!important;
+  min-height:42px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:2px!important;
+  padding:3px 5px!important;
+  border:1px solid #dbe3e8!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.topbar-utility-card .icon-button,
+.topbar-utility-card .language-button{
+  height:34px!important;
+  min-height:34px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.topbar-utility-card .icon-button{
+  width:34px!important;
+  min-width:34px!important;
+}
+.topbar-utility-card .language-button{
+  min-width:38px!important;
+  padding:0 8px!important;
+}
+.topbar-utility-card .icon-button:hover,
+.topbar-utility-card .language-button:hover{
+  background:#f2f6f8!important;
+}
+.user-chip{
+  min-height:42px!important;
+  height:42px!important;
+  border:1px solid #dbe3e8!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  padding:3px 9px 3px 5px!important;
+}
+
+/* Smaller search inside the Help Center only. */
+.help-panel-shell .manual-search{
+  width:min(430px,100%)!important;
+  height:34px!important;
+  justify-self:start!important;
+}
+.help-panel-shell .manual-search input{
+  font-size:10px!important;
+}
+.help-panel-shell .manual-search kbd{
+  font-size:7.5px!important;
+}
+
+/* v0.26.57 — aligned topbar controls + floating Help preview */
+
+/* All right-side topbar controls share the same compact height as logout. */
+.topbar-utility-card,
+.user-chip,
+.logout-button{
+  height:38px!important;
+  min-height:38px!important;
+  max-height:38px!important;
+  box-sizing:border-box!important;
+  border-radius:10px!important;
+}
+.topbar-utility-card{
+  padding:2px 4px!important;
+}
+.topbar-utility-card .icon-button,
+.topbar-utility-card .language-button{
+  height:32px!important;
+  min-height:32px!important;
+}
+.user-chip{
+  padding:2px 8px 2px 4px!important;
+}
+.user-chip .avatar{
+  width:30px!important;
+  height:30px!important;
+  font-size:10px!important;
+}
+.user-chip strong{font-size:10px!important;line-height:1.15!important}
+.user-chip span{font-size:8px!important;line-height:1.15!important}
+.logout-button{
+  width:38px!important;
+  min-width:38px!important;
+  padding:0!important;
+  border:1px solid #dbe3e8!important;
+  background:#fff!important;
+}
+.logout-button:hover{
+  background:#f3f7f9!important;
+}
+
+/* Enlarged Help screenshot floats above the Help Center instead of taking the whole screen. */
+.manual-image-lightbox-floating{
+  position:fixed!important;
+  inset:0!important;
+  z-index:2200!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:28px!important;
+  background:rgba(19,35,47,.30)!important;
+  backdrop-filter:blur(7px)!important;
+  -webkit-backdrop-filter:blur(7px)!important;
+  animation:helpPreviewBackdropIn .18s ease-out both!important;
+}
+.manual-preview-floating-card{
+  position:relative!important;
+  width:min(1180px,86vw)!important;
+  height:min(760px,82vh)!important;
+  overflow:hidden!important;
+  border:1px solid rgba(255,255,255,.78)!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 28px 80px rgba(13,31,43,.28)!important;
+  animation:helpPreviewCardIn .24s cubic-bezier(.2,.78,.24,1) both!important;
+}
+.manual-live-floating{
+  position:absolute!important;
+  inset:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  background:#f6f9fa!important;
+}
+.manual-live-floating iframe{
+  width:1440px!important;
+  height:900px!important;
+  max-width:none!important;
+  max-height:none!important;
+  flex:0 0 auto!important;
+  border:0!important;
+  box-shadow:none!important;
+  transform:scale(var(--help-float-scale,.78))!important;
+  transform-origin:center center!important;
+  pointer-events:none!important;
+  background:#fff!important;
+}
+.manual-preview-floating-card .manual-lightbox-close{
+  position:absolute!important;
+  top:12px!important;
+  right:12px!important;
+  width:36px!important;
+  height:36px!important;
+  z-index:3!important;
+  border:1px solid #d7e1e7!important;
+  border-radius:10px!important;
+  background:rgba(255,255,255,.96)!important;
+  color:#294859!important;
+  box-shadow:0 5px 16px rgba(22,42,55,.14)!important;
+}
+.manual-preview-floating-card .manual-lightbox-close:hover{
+  background:#edf4f6!important;
+}
+@keyframes helpPreviewBackdropIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+@keyframes helpPreviewCardIn{
+  from{opacity:0;transform:translateY(18px) scale(.965)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(max-width:1300px){
+  .manual-live-floating iframe{--help-float-scale:.68}
+}
+@media(max-width:1100px){
+  .manual-preview-floating-card{width:92vw!important;height:78vh!important}
+  .manual-live-floating iframe{--help-float-scale:.58}
+}
+@media(max-height:820px){
+  .manual-live-floating iframe{--help-float-scale:.62}
+}
+@media(max-height:700px){
+  .manual-live-floating iframe{--help-float-scale:.52}
+}

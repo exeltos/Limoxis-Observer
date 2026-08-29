@@ -25,7 +25,7 @@ export function BirthdayGreeting({open,onClose}){
   <div className="birthday-confetti">✦ · ✧ · ✦</div><span className="birthday-icon"><PartyPopper size={28}/></span>
   <small>ΜΙΑ ΟΜΟΡΦΗ ΣΤΙΓΜΗ ΓΙΑ ΤΗΝ ΟΜΑΔΑ ΜΑΣ</small>
   <h2>Χρόνια πολλά!</h2>
-  <p>{n.birthday.map(e=>`${e.firstName} ${e.lastName}`).join(', ')} {n.birthday.length===1?'έχει':'έχουν'} γενέθλια σήμερα.</p>
+  <p>{n.birthday.map(e=>`${e.firstName} ${e.lastName}`).join(', ')} {n.birthday.length===1?'για τα γενέθλιά σου!':'για τα γενέθλιά σας!'}</p>
   <span className="birthday-wish">Με υγεία, χαρά και όμορφες στιγμές.</span>
   <button className="button primary" onClick={onClose}>Ευχαριστώ</button>
  </section></div>
@@ -34,12 +34,18 @@ export function BirthdayGreeting({open,onClose}){
 export function LoginBriefing({open,onClose}){
  const {profile}=useAuth(); const n=useNotifications(); const navigate=useNavigate()
  if(!open)return null
- return <div className="modal-backdrop briefing-backdrop"><section className="login-briefing" role="dialog" aria-modal="true">
-  <header><div><span className="briefing-kicker">ΣΗΜΕΡΑ · {new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long'})}</span><h2>Καλημέρα{profile?.fullName?`, ${profile.fullName.split(' ')[0]}`:''}</h2><p>Η επιχειρησιακή ενημέρωση που αφορά τον ρόλο και το scope σας.</p></div><button className="icon-button" onClick={onClose}><X size={18}/></button></header>
-  <div className="briefing-sections">
-   <div><h3>Εκκρεμότητες & αποτελέσματα</h3>{n.operational.length?n.operational.map(item=><button key={item.id} onClick={()=>{n.markRead(item.id);onClose();navigate(item.to)}}><span>{item.title}</span><b>{item.count}</b><ChevronRight size={14}/></button>):<p className="briefing-empty">Δεν υπάρχουν νέες εκκρεμότητες για τον ρόλο σας.</p>}</div>
-   <div><h3>Νέες ανακοινώσεις</h3>{n.visibleAnnouncements.filter(a=>!n.notificationItems.find(x=>x.id===a.id)?.read).slice(0,3).length?n.visibleAnnouncements.filter(a=>!n.notificationItems.find(x=>x.id===a.id)?.read).slice(0,3).map(item=><button key={item.id} onClick={()=>n.markRead(item.id)}><span><strong>{item.title}</strong><small>{item.message}</small></span><i/></button>):<p className="briefing-empty">Δεν υπάρχουν νέες ανακοινώσεις.</p>}</div>
+ const unreadAnnouncements=n.visibleAnnouncements.filter(a=>!n.notificationItems.find(x=>x.id===a.id)?.read).slice(0,3)
+ const totalAttention=n.operational.reduce((sum,item)=>sum+(Number(item.count)||0),0)
+ return <div className="modal-backdrop briefing-backdrop"><section className="login-briefing login-briefing-v2" role="dialog" aria-modal="true">
+  <header className="briefing-header-v2">
+   <div className="briefing-heading-v2"><span className="briefing-symbol-v2"><Bell size={19}/></span><div><span className="briefing-kicker">ΣΗΜΕΡΙΝΗ ΕΝΗΜΕΡΩΣΗ · {new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long'})}</span><h2>Καλημέρα{profile?.fullName?`, ${profile.fullName.split(' ')[0]}`:''}</h2><p>Μια σύντομη εικόνα των θεμάτων που χρειάζονται την προσοχή σας.</p></div></div>
+   <button className="briefing-close-v2" aria-label="Κλείσιμο ενημέρωσης" title="Κλείσιμο" onClick={onClose}><X size={19}/></button>
+  </header>
+  <div className="briefing-summary-v2"><div><small>ΘΕΜΑΤΑ ΠΡΟΣ ΠΡΟΣΟΧΗ</small><strong>{totalAttention}</strong></div><span>Οι εργασίες προκύπτουν από τον ρόλο και το scope σας.</span></div>
+  <div className="briefing-sections briefing-sections-v2">
+   <section><header><div><strong>Εκκρεμότητες & αποτελέσματα</strong><small>Πατήστε σε μία εργασία για να μεταβείτε απευθείας εκεί.</small></div><span>{n.operational.length}</span></header>{n.operational.length?n.operational.map(item=><button key={item.id} onClick={()=>{n.markRead(item.id);onClose();navigate(item.to)}}><span><strong>{item.title}</strong><small>{item.count} στοιχεία χρειάζονται προσοχή</small></span><b>{item.count}</b><ChevronRight size={15}/></button>):<p className="briefing-empty">Δεν υπάρχουν νέες εκκρεμότητες για τον ρόλο σας.</p>}</section>
+   <section><header><div><strong>Νέες ανακοινώσεις</strong><small>Ενημερώσεις που απευθύνονται σε εσάς.</small></div><span>{unreadAnnouncements.length}</span></header>{unreadAnnouncements.length?unreadAnnouncements.map(item=><button key={item.id} onClick={()=>n.markRead(item.id)}><span><strong>{item.title}</strong><small>{item.message}</small></span><i/><ChevronRight size={15}/></button>):<p className="briefing-empty">Δεν υπάρχουν νέες ανακοινώσεις.</p>}</section>
   </div>
-  <footer><span>Μπορείτε να ξανανοίξετε την ενημέρωση οποιαδήποτε στιγμή από το κουδουνάκι.</span><button className="button secondary" onClick={onClose}>Κλείσιμο</button><button className="button primary" onClick={()=>{onClose();navigate('/')}}>Dashboard</button></footer>
+  <footer className="briefing-footer-v2"><span><Bell size={13}/>Η ενημέρωση ανοίγει ξανά οποιαδήποτε στιγμή από το καμπανάκι.</span></footer>
  </section></div>
 }
