@@ -1,7 +1,7 @@
 {
   "name": "limoxis-observer",
   "private": true,
-  "version": "0.26.39",
+  "version": "0.26.46",
   "type": "module",
   "scripts": {
     "dev": "vite",

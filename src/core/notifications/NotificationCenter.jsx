@@ -7,10 +7,14 @@ export function NotificationCenter({open,onClose,onOpenBriefing,onOpenBirthday})
  const n=useNotifications(); const navigate=useNavigate()
  if(!open)return null
  const go=item=>{n.markRead(item.id);if(item.to){onClose();navigate(item.to)}}
- return <div className="notification-popover">
-  <header><div><Bell size={17}/><strong>Ειδοποιήσεις</strong><span>{n.unreadCount} μη αναγνωσμένες</span></div><button onClick={onClose}><X size={16}/></button></header>
-  <div className="notification-toolbar notification-toolbar-actions">{n.unreadCount>0&&<button onClick={n.markAllRead}><CheckCheck size={14}/>Όλα αναγνωσμένα</button>}</div><div className="notification-recovery"><span>Χάσατε την ενημέρωση εισόδου;</span><button onClick={onOpenBriefing}>Άνοιγμα ενημέρωσης</button>{n.birthday.length>0&&<button onClick={onOpenBirthday}><Gift size={13}/>Ευχή γενεθλίων</button>}</div>
-  <div className="notification-list">{n.unreadItems.length?n.unreadItems.map(item=><button key={item.id} className="notification-row unread" onClick={()=>go(item)}><span className={`notification-type ${item.type}`}>{item.type==='announcement'?<Megaphone size={15}/>:<Bell size={15}/>}</span><span><strong>{item.title}</strong><small>{item.message||`${item.count} στοιχεία χρειάζονται προσοχή`}</small></span><ChevronRight size={14}/></button>):<div className="notification-empty"><CheckCheck size={20}/><strong>Είστε ενημερωμένοι</strong><span>Δεν υπάρχουν μη αναγνωσμένες ειδοποιήσεις.</span></div>}</div>
+ return <div className="notification-popover notification-popover-v2">
+  <header className="notification-header-v2"><div><Bell size={18}/><strong>Ειδοποιήσεις</strong><span>{n.unreadCount} μη αναγνωσμένες</span></div><button className="notification-close-v2" onClick={onClose}><X size={18}/></button></header>
+  <div className="notification-shortcuts-v2">
+    <button onClick={onOpenBriefing}><Bell size={15}/><span>Σημερινή ενημέρωση</span></button>
+    {n.birthday.length>0&&<button onClick={onOpenBirthday}><Gift size={15}/><span>Σημερινή ευχή</span></button>}
+    {n.unreadCount>0&&<button onClick={n.markAllRead}><CheckCheck size={16}/><span>Όλα αναγνωσμένα</span></button>}
+  </div>
+  <div className="notification-list notification-list-v2">{n.unreadItems.length?n.unreadItems.map(item=><button key={item.id} className="notification-row notification-row-v2 unread" onClick={()=>go(item)}><span className={`notification-type notification-type-v2 ${item.type}`}>{item.type==='announcement'?<Megaphone size={16}/>:<Bell size={16}/>}</span><span className="notification-copy-v2"><strong>{item.title}</strong><small>{item.message||`${item.count} στοιχεία χρειάζονται προσοχή`}</small></span><ChevronRight className="notification-chevron-v2" size={16}/></button>):<div className="notification-empty notification-empty-v2"><CheckCheck size={22}/><strong>Είστε ενημερωμένοι</strong><span>Δεν υπάρχουν μη αναγνωσμένες ειδοποιήσεις.</span></div>}</div>
  </div>
 }
 
