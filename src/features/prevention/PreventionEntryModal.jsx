@@ -4,16 +4,18 @@ import { demoLibrarySeed } from '../management/managementData'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { useLanguage } from '../../core/i18n/LanguageContext'
 
 const config={
- handHygiene:{title:'Νέα παρατήρηση Υγιεινής Χεριών',icon:ShieldCheck},
- waste:{title:'Νέα καταγραφή αποβλήτων',icon:Recycle},
- antiseptics:{title:'Νέα καταγραφή αντισηπτικού',icon:Droplets},
- bundles:{title:'Νέα αξιολόγηση bundle',icon:ClipboardCheck},
+ handHygiene:{title:'Νέα παρατήρηση Υγιεινής Χεριών',titleEn:'New Hand Hygiene observation',icon:ShieldCheck},
+ waste:{title:'Νέα καταγραφή αποβλήτων',titleEn:'New waste entry',icon:Recycle},
+ antiseptics:{title:'Νέα καταγραφή αντισηπτικού',titleEn:'New antiseptic entry',icon:Droplets},
+ bundles:{title:'Νέα αξιολόγηση bundle',titleEn:'New bundle assessment',icon:ClipboardCheck},
 }
 
 export function PreventionEntryModal({tab,onClose,onSave,fixedDepartment='',initialRecord=null}) {
  const {profile,user}=useAuth()
+ const {language}=useLanguage(); const en=language==='en'
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
  const departments=useMemo(()=>demoLibrarySeed.departments.map(([el,en])=>({el,en})),[])
  const today=new Date().toISOString().slice(0,10)
@@ -50,43 +52,44 @@ export function PreventionEntryModal({tab,onClose,onSave,fixedDepartment='',init
  }
 
  return <div className="modal-backdrop"><div className="entry-card prevention-entry-card">
-  <header><div className="prevention-entry-title"><Icon size={20}/><div><span className="eyebrow">ΚΕΝΤΡΟ ΠΡΟΛΗΨΗΣ</span><h3>{initialRecord?'Επεξεργασία εγγραφής':item.title}</h3></div></div><button className="icon-close" onClick={onClose}>×</button></header>
+  <header><div className="prevention-entry-title"><Icon size={20}/><div><span className="eyebrow">{en?'PREVENTION CENTER':'ΚΕΝΤΡΟ ΠΡΟΛΗΨΗΣ'}</span><h3>{initialRecord?(en?'Edit record':'Επεξεργασία εγγραφής'):(en?item.titleEn:item.title)}</h3></div></div><button className="icon-close" onClick={onClose}>×</button></header>
   <div className="prevention-entry-body">
-   <div className="prevention-entry-actor"><span>Καταχώρηση από</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
+   <div className="prevention-entry-actor"><span>{en?'Recorded by':'Καταχώρηση από'}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
    <div className="entry-grid">
     {tab==='handHygiene'&&<>
-     <ManualDateField label="Ημερομηνία *" value={draft.date} onChange={v=>set('date',v)}/>
+     <ManualDateField label={en?'Date *':'Ημερομηνία *'} value={draft.date} onChange={v=>set('date',v)}/>
      <DepartmentField value={draft.departmentEl} onChange={v=>set('departmentEl',v)} departments={departments} fixed={Boolean(fixedDepartment)}/>
-     <label><span>Επαγγελματική κατηγορία *</span><select value={draft.profession} onChange={e=>set('profession',e.target.value)}><option value="nursing">Νοσηλευτικό προσωπικό</option><option value="medical">Ιατρικό προσωπικό</option><option value="other">Άλλο προσωπικό</option></select></label>
-     <label><span>Παρατηρήσεις *</span><input type="number" min="0" value={draft.observations} onChange={e=>set('observations',e.target.value)}/></label>
-     <label><span>Συμμορφούμενες *</span><input type="number" min="0" max={draft.observations||undefined} value={draft.compliant} onChange={e=>set('compliant',e.target.value)}/></label>
-     <label><span>Παρατηρητής</span><input value={draft.observer} readOnly/></label>
+     <label><span>{en?'Professional category *':'Επαγγελματική κατηγορία *'}</span><select value={draft.profession} onChange={e=>set('profession',e.target.value)}><option value="nursing">{en?'Nursing staff':'Νοσηλευτικό προσωπικό'}</option><option value="medical">{en?'Medical staff':'Ιατρικό προσωπικό'}</option><option value="other">{en?'Other staff':'Άλλο προσωπικό'}</option></select></label>
+     <label><span>{en?'Observations *':'Παρατηρήσεις *'}</span><input type="number" min="0" value={draft.observations} onChange={e=>set('observations',e.target.value)}/></label>
+     <label><span>{en?'Compliant *':'Συμμορφούμενες *'}</span><input type="number" min="0" max={draft.observations||undefined} value={draft.compliant} onChange={e=>set('compliant',e.target.value)}/></label>
+     <label><span>{en?'Observer':'Παρατηρητής'}</span><input value={draft.observer} readOnly/></label>
     </>}
     {tab==='waste'&&<>
-     <ManualDateField label="Ημερομηνία *" value={draft.date} onChange={v=>set('date',v)}/>
+     <ManualDateField label={en?'Date *':'Ημερομηνία *'} value={draft.date} onChange={v=>set('date',v)}/>
      <DepartmentField value={draft.departmentEl} onChange={v=>set('departmentEl',v)} departments={departments} fixed={Boolean(fixedDepartment)}/>
-     <label className="entry-span-2"><span>Τύπος αποβλήτου *</span><select value={draft.type} onChange={e=>set('type',e.target.value)}><option value="infectiousWaste">Μολυσματικά απόβλητα</option><option value="mixedHazardousWaste">Μικτά επικίνδυνα απόβλητα</option><option value="otherWaste">Άλλο</option></select></label>
-     <label><span>Βάρος (kg) *</span><input type="number" min="0" step="0.1" value={draft.weight} onChange={e=>set('weight',e.target.value)}/></label>
-     <label><span>Περιέκτες *</span><input type="number" min="0" value={draft.containers} onChange={e=>set('containers',e.target.value)}/></label>
+     <label className="entry-span-2"><span>{en?'Waste type *':'Τύπος αποβλήτου *'}</span><select value={draft.type} onChange={e=>set('type',e.target.value)}><option value="infectiousWaste">{en?'Infectious waste':'Μολυσματικά απόβλητα'}</option><option value="mixedHazardousWaste">{en?'Mixed hazardous waste':'Μικτά επικίνδυνα απόβλητα'}</option><option value="otherWaste">{en?'Other':'Άλλο'}</option></select></label>
+     <label><span>{en?'Weight (kg) *':'Βάρος (kg) *'}</span><input type="number" min="0" step="0.1" value={draft.weight} onChange={e=>set('weight',e.target.value)}/></label>
+     <label><span>{en?'Containers *':'Περιέκτες *'}</span><input type="number" min="0" value={draft.containers} onChange={e=>set('containers',e.target.value)}/></label>
     </>}
     {tab==='antiseptics'&&<>
-     <label><span>Περίοδος *</span><input type="month" value={draft.period} onChange={e=>set('period',e.target.value)}/></label>
+     <label><span>{en?'Period *':'Περίοδος *'}</span><input type="month" value={draft.period} onChange={e=>set('period',e.target.value)}/></label>
      <DepartmentField value={draft.departmentEl} onChange={v=>set('departmentEl',v)} departments={departments} fixed={Boolean(fixedDepartment)}/>
-     <label className="entry-span-2"><span>Προϊόν *</span><input value={draft.product} onChange={e=>set('product',e.target.value)} placeholder="π.χ. Alcohol hand rub 500 ml"/></label>
-     <label><span>Κατανάλωση (L) *</span><input type="number" min="0" step="0.1" value={draft.litres} onChange={e=>set('litres',e.target.value)}/></label>
+     <label className="entry-span-2"><span>{en?'Product *':'Προϊόν *'}</span><input value={draft.product} onChange={e=>set('product',e.target.value)} placeholder={en?'e.g. Alcohol hand rub 500 ml':'π.χ. Alcohol hand rub 500 ml'}/></label>
+     <label><span>{en?'Consumption (L) *':'Κατανάλωση (L) *'}</span><input type="number" min="0" step="0.1" value={draft.litres} onChange={e=>set('litres',e.target.value)}/></label>
     </>}
     {tab==='bundles'&&<>
-     <label><span>Περίοδος *</span><input type="month" value={draft.period} onChange={e=>set('period',e.target.value)}/></label>
+     <label><span>{en?'Period *':'Περίοδος *'}</span><input type="month" value={draft.period} onChange={e=>set('period',e.target.value)}/></label>
      <DepartmentField value={draft.departmentEl} onChange={v=>set('departmentEl',v)} departments={departments} fixed={Boolean(fixedDepartment)}/>
      <label><span>Bundle *</span><select value={draft.bundle} onChange={e=>set('bundle',e.target.value)}><option value="clabsiBundle">CLABSI bundle</option><option value="cautiBundle">CAUTI bundle</option><option value="vapBundle">VAP bundle</option></select></label>
-     <label><span>Συμμόρφωση (%) *</span><input type="number" min="0" max="100" step="0.1" value={draft.score} onChange={e=>set('score',e.target.value)}/></label>
+     <label><span>{en?'Compliance (%) *':'Συμμόρφωση (%) *'}</span><input type="number" min="0" max="100" step="0.1" value={draft.score} onChange={e=>set('score',e.target.value)}/></label>
     </>}
    </div>
   </div>
-  <footer><button className="button" onClick={onClose}>Ακύρωση</button><button className="button button-primary" disabled={!valid} onClick={submit}>{initialRecord?'Αποθήκευση αλλαγών':'Αποθήκευση'}</button></footer>
+  <footer><button className="button" onClick={onClose}>{en?'Cancel':'Ακύρωση'}</button><button className="button button-primary" disabled={!valid} onClick={submit}>{initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Save':'Αποθήκευση')}</button></footer>
  </div></div>
 }
 
 function DepartmentField({value,onChange,departments,fixed}){
- return <label><span>Τμήμα *</span><select value={value} disabled={fixed} onChange={e=>onChange(e.target.value)}>{departments.map(d=><option key={d.el} value={d.el}>{d.el}</option>)}</select></label>
+ const {language}=useLanguage()
+ return <label><span>{language==='en'?'Department *':'Τμήμα *'}</span><select value={value} disabled={fixed} onChange={e=>onChange(e.target.value)}>{departments.map(d=><option key={d.el} value={d.el}>{language==='en'?(d.en||d.el):d.el}</option>)}</select></label>
 }

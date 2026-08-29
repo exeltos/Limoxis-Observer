@@ -8,7 +8,7 @@ export const demoControls=controlDefinitions
 export const controlsAuditLog=[]
 export const getControl=id=>controlDefinitions.find(x=>x.id===id)??null
 
-export function frequencyLabel(f){if(f.kind==='daily')return f.timesPerDay>1?`${f.timesPerDay} φορές / ημέρα`:'Καθημερινά';if(f.kind==='weekly')return (f.interval||1)===1?'Εβδομαδιαία':`Κάθε ${f.interval} εβδομάδες`;if(f.kind==='monthly')return (f.interval||1)===1?'Μηνιαία':`Κάθε ${f.interval} μήνες`;if(f.kind==='yearly')return (f.interval||1)===1?'Ετήσια':`Κάθε ${f.interval} έτη`;return `Κάθε ${f.interval||1} ημέρες`}
+export function frequencyLabel(f,language='el'){const en=language==='en';if(f.kind==='daily')return f.timesPerDay>1?(en?`${f.timesPerDay} times / day`:`${f.timesPerDay} φορές / ημέρα`):(en?'Daily':'Καθημερινά');if(f.kind==='weekly')return (f.interval||1)===1?(en?'Weekly':'Εβδομαδιαία'):(en?`Every ${f.interval} weeks`:`Κάθε ${f.interval} εβδομάδες`);if(f.kind==='monthly')return (f.interval||1)===1?(en?'Monthly':'Μηνιαία'):(en?`Every ${f.interval} months`:`Κάθε ${f.interval} μήνες`);if(f.kind==='yearly')return (f.interval||1)===1?(en?'Yearly':'Ετήσια'):(en?`Every ${f.interval} years`:`Κάθε ${f.interval} έτη`);return en?`Every ${f.interval||1} days`:`Κάθε ${f.interval||1} ημέρες`}
 
 export function ensureAssignments(item){
  if(!item.assignments)item.assignments={}

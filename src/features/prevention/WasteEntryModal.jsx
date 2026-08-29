@@ -5,9 +5,11 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { wasteCategoryTone } from './wasteVisuals'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { useLanguage } from '../../core/i18n/LanguageContext'
 
 export function WasteEntryModal({onClose,onSave,fixedDepartment='',initialRecord=null}){
  const {profile,user}=useAuth()
+ const {language,locale}=useLanguage(); const en=language==='en'
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
  const departments=useMemo(()=>demoLibrarySeed.departments.map(([el,en])=>({el,en})),[])
  const wasteTypes=useMemo(()=>demoLibrarySeed.wasteTypes.map(([el,en])=>({el,en})),[])
@@ -36,40 +38,40 @@ export function WasteEntryModal({onClose,onSave,fixedDepartment='',initialRecord
    updatedAt:initialRecord?new Date().toISOString():null,updatedBy:initialRecord?actor.name:null,status:'completed'})
  }
  return <div className="modal-backdrop"><div className="entry-card prevention-entry-card waste-entry-card">
-  <header><div className="prevention-entry-title"><Recycle size={20}/><div><span className="eyebrow">ΚΕΝΤΡΟ ΠΡΟΛΗΨΗΣ</span><h3>{initialRecord?'Επεξεργασία μέτρησης αποβλήτων':'Νέα μέτρηση αποβλήτων'}</h3><p>Καταγραφή βάρους, περιεκτών και δείκτη ανά 1.000 νοσηλευτικές ημέρες.</p></div></div><button className="icon-close" onClick={onClose}>×</button></header>
+  <header><div className="prevention-entry-title"><Recycle size={20}/><div><span className="eyebrow">{en?'PREVENTION CENTER':'ΚΕΝΤΡΟ ΠΡΟΛΗΨΗΣ'}</span><h3>{initialRecord?(en?'Edit waste measurement':'Επεξεργασία μέτρησης αποβλήτων'):(en?'New waste measurement':'Νέα μέτρηση αποβλήτων')}</h3><p>{en?'Record weight, containers and indicator per 1,000 patient-days.':'Καταγραφή βάρους, περιεκτών και δείκτη ανά 1.000 νοσηλευτικές ημέρες.'}</p></div></div><button className="icon-close" onClick={onClose}>×</button></header>
   <div className="prevention-entry-body">
-   <div className="prevention-entry-actor"><span>{initialRecord?'Επεξεργασία από':'Καταχώρηση από'}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
-   <section className="waste-form-section"><div className="waste-form-section-title"><strong>Μέτρηση</strong><small>Η κατηγορία αποβλήτου προέρχεται από τη Βιβλιοθήκη.</small></div>
+   <div className="prevention-entry-actor"><span>{initialRecord?(en?'Edited by':'Επεξεργασία από'):(en?'Recorded by':'Καταχώρηση από')}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
+   <section className="waste-form-section"><div className="waste-form-section-title"><strong>{en?'Measurement':'Μέτρηση'}</strong><small>{en?'Waste category comes from the central Library.':'Η κατηγορία αποβλήτου προέρχεται από τη Βιβλιοθήκη.'}</small></div>
     <div className="entry-grid">
-     <ManualDateField label="Ημερομηνία *" value={draft.date} onChange={v=>set('date',v)}/>
+     <ManualDateField label={en?'Date *':'Ημερομηνία *'} value={draft.date} onChange={v=>set('date',v)}/>
      <DepartmentField value={draft.departmentEl} onChange={v=>set('departmentEl',v)} departments={departments} fixed={Boolean(fixedDepartment)}/>
-     <label className="entry-span-2"><span>Κατηγορία αποβλήτου *</span><div className="waste-category-field"><select value={draft.wasteType} onChange={e=>set('wasteType',e.target.value)}>{wasteTypes.map(x=><option key={x.el} value={x.el}>{x.el} — {x.en}</option>)}</select><span className={`waste-category-badge ${wasteCategoryTone(draft.wasteType)}`}>{draft.wasteType}</span></div></label>
-     <label><span>Βάρος (kg) *</span><input type="number" min="0" step="0.1" value={draft.weight} onChange={e=>set('weight',e.target.value)} placeholder="0,0"/></label>
-     <label><span>Περιέκτες</span><input type="number" min="0" step="1" value={draft.containers} onChange={e=>set('containers',e.target.value)} placeholder="0"/></label>
+     <label className="entry-span-2"><span>{en?'Waste category *':'Κατηγορία αποβλήτου *'}</span><div className="waste-category-field"><select value={draft.wasteType} onChange={e=>set('wasteType',e.target.value)}>{wasteTypes.map(x=><option key={x.el} value={x.el}>{x.el} — {x.en}</option>)}</select><span className={`waste-category-badge ${wasteCategoryTone(draft.wasteType)}`}>{draft.wasteType}</span></div></label>
+     <label><span>{en?'Weight (kg) *':'Βάρος (kg) *'}</span><input type="number" min="0" step="0.1" value={draft.weight} onChange={e=>set('weight',e.target.value)} placeholder="0,0"/></label>
+     <label><span>{en?'Containers':'Περιέκτες'}</span><input type="number" min="0" step="1" value={draft.containers} onChange={e=>set('containers',e.target.value)} placeholder="0"/></label>
     </div>
    </section>
-   <section className="waste-form-section"><div className="waste-form-section-title"><strong>Δείκτης</strong><small>kg ανά 1.000 νοσηλευτικές ημέρες.</small></div>
+   <section className="waste-form-section"><div className="waste-form-section-title"><strong>{en?'Indicator':'Δείκτης'}</strong><small>{en?'kg per 1,000 patient-days.':'kg ανά 1.000 νοσηλευτικές ημέρες.'}</small></div>
     <div className="entry-grid waste-indicator-grid">
-     <label><span>Νοσηλευτικές ημέρες</span>
+     <label><span>{en?'Patient-days':'Νοσηλευτικές ημέρες'}</span>
       <div className="waste-patient-days-field">
-       <input type="number" min="0" value={draft.patientDays} onChange={e=>setDraft(d=>({...d,patientDays:e.target.value,patientDaysSource:'manual'}))} placeholder={suggestedPatientDays?String(suggestedPatientDays):'Δεν υπάρχει διαθέσιμη περίοδος'}/>
-       {suggestedPatientDays&&<button type="button" className={usingSuggestedPatientDays?'applied':''} onClick={()=>setDraft(d=>({...d,patientDays:suggestedPatientDays,patientDaysSource:'library'}))}>{usingSuggestedPatientDays?'✓ Από βιβλιοθήκη':'Χρήση '+suggestedPatientDays}</button>}
+       <input type="number" min="0" value={draft.patientDays} onChange={e=>setDraft(d=>({...d,patientDays:e.target.value,patientDaysSource:'manual'}))} placeholder={suggestedPatientDays?String(suggestedPatientDays):(en?'No available period':'Δεν υπάρχει διαθέσιμη περίοδος')}/>
+       {suggestedPatientDays&&<button type="button" className={usingSuggestedPatientDays?'applied':''} onClick={()=>setDraft(d=>({...d,patientDays:suggestedPatientDays,patientDaysSource:'library'}))}>{usingSuggestedPatientDays?(en?'✓ From library':'✓ Από βιβλιοθήκη'):(en?'Use ':'Χρήση ')+suggestedPatientDays}</button>}
       </div>
-      {usingSuggestedPatientDays&&<small className="waste-patient-days-source">Χρησιμοποιούνται {suggestedPatientDays} νοσηλευτικές ημέρες από τη Βιβλιοθήκη.</small>}
+      {usingSuggestedPatientDays&&<small className="waste-patient-days-source">{en?`${suggestedPatientDays} patient-days from the Library are used.`:`Χρησιμοποιούνται ${suggestedPatientDays} νοσηλευτικές ημέρες από τη Βιβλιοθήκη.`}</small>}
      </label>
-     <div className="waste-indicator-card"><span>Δείκτης</span><strong>{indicator===null?'—':indicator.toLocaleString('el-GR')}</strong><small>kg / 1.000 νοσηλευτικές ημέρες</small></div>
+     <div className="waste-indicator-card"><span>{en?'Indicator':'Δείκτης'}</span><strong>{indicator===null?'—':indicator.toLocaleString(locale)}</strong><small>{en?'kg / 1,000 patient-days':'kg / 1.000 νοσηλευτικές ημέρες'}</small></div>
     </div>
    </section>
-   <section className="waste-form-section"><div className="waste-form-section-title"><strong>Παραστατικό & παραλαβή</strong><small>Προαιρετικά στοιχεία ιχνηλασιμότητας.</small></div>
+   <section className="waste-form-section"><div className="waste-form-section-title"><strong>{en?'Document & collection':'Παραστατικό & παραλαβή'}</strong><small>{en?'Optional traceability information.':'Προαιρετικά στοιχεία ιχνηλασιμότητας.'}</small></div>
     <div className="entry-grid">
-     <label><span>Υπεύθυνος</span><input value={draft.responsible} onChange={e=>set('responsible',e.target.value)} placeholder={actor.name}/></label>
-     <label><span>Αριθμός παραστατικού</span><input value={draft.documentNumber||''} onChange={e=>set('documentNumber',e.target.value)} placeholder="π.χ. 112233"/></label>
-     <label className="entry-span-2"><span>Εταιρεία συλλογής</span><input value={draft.collectionCompany||''} onChange={e=>set('collectionCompany',e.target.value)} placeholder="Επωνυμία εταιρείας"/></label>
-     <label className="entry-span-2"><span>Σημειώσεις</span><textarea rows="3" value={draft.notes||''} onChange={e=>set('notes',e.target.value)} placeholder="Προαιρετικές παρατηρήσεις"/></label>
+     <label><span>{en?'Responsible person':'Υπεύθυνος'}</span><input value={draft.responsible} onChange={e=>set('responsible',e.target.value)} placeholder={actor.name}/></label>
+     <label><span>{en?'Document number':'Αριθμός παραστατικού'}</span><input value={draft.documentNumber||''} onChange={e=>set('documentNumber',e.target.value)} placeholder={en?'e.g. 112233':'π.χ. 112233'}/></label>
+     <label className="entry-span-2"><span>{en?'Collection company':'Εταιρεία συλλογής'}</span><input value={draft.collectionCompany||''} onChange={e=>set('collectionCompany',e.target.value)} placeholder={en?'Company name':'Επωνυμία εταιρείας'}/></label>
+     <label className="entry-span-2"><span>{en?'Notes':'Σημειώσεις'}</span><textarea rows="3" value={draft.notes||''} onChange={e=>set('notes',e.target.value)} placeholder={en?'Optional notes':'Προαιρετικές παρατηρήσεις'}/></label>
     </div>
    </section>
   </div>
-  <footer><button className="button" onClick={onClose}>Ακύρωση</button><button className="button button-primary" disabled={!valid} onClick={submit}>{initialRecord?'Αποθήκευση αλλαγών':'Αποθήκευση μέτρησης'}</button></footer>
+  <footer><button className="button" onClick={onClose}>{en?'Cancel':'Ακύρωση'}</button><button className="button button-primary" disabled={!valid} onClick={submit}>{initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Save measurement':'Αποθήκευση μέτρησης')}</button></footer>
  </div></div>
 }
-function DepartmentField({value,onChange,departments,fixed}){return <label><span>Τμήμα *</span><select value={value} disabled={fixed} onChange={e=>onChange(e.target.value)}>{departments.map(d=><option key={d.el} value={d.el}>{d.el}</option>)}</select></label>}
+function DepartmentField({value,onChange,departments,fixed}){const {language}=useLanguage();return <label><span>{language==='en'?'Department *':'Τμήμα *'}</span><select value={value} disabled={fixed} onChange={e=>onChange(e.target.value)}>{departments.map(d=><option key={d.el} value={d.el}>{language==='en'?(d.en||d.el):d.el}</option>)}</select></label>}

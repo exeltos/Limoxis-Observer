@@ -61,7 +61,7 @@ export function EnvironmentalSurveillanceFlow({onClose,onCreated}){
     onClose()
   }
   const updateRow=(id,key,value)=>setBatchRows(rows=>rows.map(row=>row.id===id?{...row,[key]:value}:row))
-  const removeRow=async id=>{const ok=await confirm({title:'Αφαίρεση σημείου',message:'Το σημείο δειγματοληψίας θα αφαιρεθεί από την τρέχουσα καταχώρηση. Θέλετε να συνεχίσετε;',confirmLabel:'Αφαίρεση',danger:true});if(!ok)return;setBatchRows(rows=>rows.filter(row=>row.id!==id));notify('Το σημείο αφαιρέθηκε.','success')}
+  const removeRow=async id=>{const ok=await confirm({title:language==='el'?'Αφαίρεση σημείου':'Remove sampling point',message:language==='el'?'Το σημείο δειγματοληψίας θα αφαιρεθεί από την τρέχουσα καταχώρηση. Θέλετε να συνεχίσετε;':'The sampling point will be removed from the current entry. Do you want to continue?',confirmLabel:language==='el'?'Αφαίρεση':'Remove',danger:true});if(!ok)return;setBatchRows(rows=>rows.filter(row=>row.id!==id));notify(language==='el'?'Το σημείο αφαιρέθηκε.':'Sampling point removed.','success')}
   const addRow=()=>setBatchRows(rows=>[...rows,{id:Date.now(),location:'',point:'',plateCode:rows.at(-1)?.plateCode||'A',platePosition:String(rows.length+1)}])
   const sources=sourceByType[subjectType]||['other']
 

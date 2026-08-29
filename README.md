@@ -649,4 +649,20 @@ This version shipped several serious regressions — see below. Everything was f
 
 Full pipeline re-verified clean after all fixes: `lint` (0/0), all 7 custom audits (navigation 18/18, hooks 129 files, observer-ui pattern check now passing), `test` (7/7), `build` succeeds (0 duplicate-key warnings, largest chunk 648KB).
 
+## v0.26.71 "EN UI Audit Batch10" (code review pass)
+This version added real infrastructure the project needed — a GitHub Actions CI workflow running `npm run check` on every push/PR, Netlify deployment config, and two new audits (`audit:english-parity`, checking all 1346 dictionary keys have a matching EN entry; `audit:help-coverage`, checking an 18-section role-aware help manual has EL/EN parity). All 9 audits passed cleanly on this codebase, and `build`/`test` were fine — but `lint` was not clean, and it caught something the other 11 checks in the pipeline couldn't.
+
+**6 confirmed runtime-crash bugs, the largest batch found across this project's review history.** This version introduced a new inline-ternary pattern for English support (`en?'English text':'Greek text'`, with `en` derived per-component via `const en=language==='en'`) used alongside the established `t()` dictionary system — correctly declared in most places, but missing entirely in 6 separate functions:
+- `NewMeetingDialog` and `MeetingDialog` in `CommitteeRecordPage.jsx` — the "new meeting" and "meeting & minutes" dialogs for committees, each with dozens of `en` references and zero declarations. Both would crash immediately on open, regardless of UI language (a `ReferenceError` for an undeclared variable isn't a translation problem, it's a hard crash).
+- `ProgramOverview`, `Participants`, `Materials`, `AssessmentBuilder`, and the `QrToolbarAction` helper plus the `openTrainingMaterial` async helper in `TrainingPage.jsx` — the overview, participants, materials, and assessment tabs of every training program record, plus the QR check-in/completion buttons and the "open material" action. All were separate function components/helpers that received data as props but not `en`.
+
+All were fixed the same way: passing `en` down as a prop from the parent scope that already derived it correctly, rather than having each function call `useLanguage()` independently (matching how the rest of the codebase already threads `t`/`language` through prop chains).
+
+**One additional real bug found while fixing the above:** `AnnouncementsPanel.jsx`'s department-list `useMemo` read `en` but had an empty dependency array — switching the UI language wouldn't update the already-rendered department names. Added `en` to the dependency array.
+
+**Cleanup:** ~22 lint findings remained after the crash fixes, almost all a single repeated pattern — `const {language,locale}=useLanguage()` destructuring `locale` when only `language`/`en` were ever used — across `CommitteeRecordPage.jsx`, `DocumentRecordPage.jsx`, and `TrainingPage.jsx`. Also found and removed `language`/`en` in 5 `TrainingPage.jsx` dialogs (`DeleteParticipantDialog`, `MaterialDialog`, `QuestionDialog`, `ProgramDialog`, `CompletionDialog`) that derived `en` but never referenced it anywhere in their body — these dialogs' content is entirely Greek with no English variant at all, which is a separate, pre-existing i18n gap worth a future look but out of scope for this pass. One more `react-hooks/exhaustive-deps` false positive (`NotificationContext.jsx`'s birthday check, driven by a periodic 60-second `clock` ticker) was documented with `eslint-disable-next-line` rather than "fixed", consistent with every other cache-bust counter found in this project.
+
+Full pipeline re-verified clean after all fixes: `lint` (0/0), all 9 custom audits (english-parity 1346/1346, help-coverage 18 sections, navigation 18/18, hooks 136 files, observer-ui), `test` (7/7), `build` clean (0 duplicate-key warnings, largest chunk 723KB).
+
+
 

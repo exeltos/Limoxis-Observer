@@ -56,7 +56,7 @@ export function LaboratorySampleRecordPage(){
   const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—'
 
   if(!sample)return <Page title={t('laboratoryRecords.sample')}><div className="inline-empty">{t('noData')}</div></Page>
-  if(!sampleInScope||!employeeHealthAllowed)return <Page title={t('laboratoryRecords.sample')}><div className="inline-empty">Δεν έχετε πρόσβαση σε αυτή την εγγραφή.</div></Page>
+  if(!sampleInScope||!employeeHealthAllowed)return <Page title={t('laboratoryRecords.sample')}><div className="inline-empty">{language==='el'?'Δεν έχετε πρόσβαση σε αυτή την εγγραφή.':'You do not have access to this record.'}</div></Page>
 
   const patientName=language==='el'?sample.patient:sample.patientEn
   const subjectLabel=sample.subjectType==='employee'?t('employee'):['surface','room','air','water'].includes(sample.subjectType)?t(sample.subjectType):t('patient')
@@ -193,7 +193,7 @@ export function LaboratorySampleRecordPage(){
       title={t(sample.type)}
       subtitle={`${patientName} · ${sample.patientId} · ${language==='el'?sample.department:sample.departmentEn}`}
       status={<><Status text={t(sample.status)} kind={sample.status}/>{sample.resistance&&<b className="amr-chip">{sample.resistance}</b>}</>}
-      headerActions={<>{(canManage||canReopenLab)&&<button className="general-edit-button" title={correctionLocked?'Διόρθωση εργαστηριακής εγγραφής':t('laboratoryRecords.generalEdit')} onClick={openGeneralEdit}><Pencil size={15}/><span>{correctionLocked?'Διόρθωση':t('laboratoryRecords.generalEdit')}</span></button>}<PrintExportActions showPrint={canPrint} showExport={canExport} onExport={()=>downloadRecordJson(sample,{filename:sample.id})}/></>}
+      headerActions={<>{(canManage||canReopenLab)&&<button className="general-edit-button" title={correctionLocked?(language==='el'?'Διόρθωση εργαστηριακής εγγραφής':'Correct laboratory record'):t('laboratoryRecords.generalEdit')} onClick={openGeneralEdit}><Pencil size={15}/><span>{correctionLocked?(language==='el'?'Διόρθωση':'Correction'):t('laboratoryRecords.generalEdit')}</span></button>}<PrintExportActions showPrint={canPrint} showExport={canExport} onExport={()=>downloadRecordJson(sample,{filename:sample.id})}/></>}
       tabs={tabs}
       activeTab={tab}
       onTabChange={next=>{
@@ -480,7 +480,7 @@ function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canMan
     avatar={<FlaskConical size={20}/>} eyebrow={sample.id} title={t(sample.sourceCode||'employeeScreening')}
     subtitle={`${language==='el'?sample.patient:sample.patientEn} · ${sample.employeeId||sample.patientId} · ${language==='el'?sample.department:sample.departmentEn}`}
     status={<Status text={finalized?t('completed'):t(sample.status)} kind={sample.status}/>} 
-    headerActions={<>{(canManage||canReopen)&&<button className="general-edit-button" title={correctionLocked?'Διόρθωση εργαστηριακής εγγραφής':t('laboratoryRecords.generalEdit')} onClick={openGeneralEdit}><Pencil size={15}/><span>{correctionLocked?'Διόρθωση':t('laboratoryRecords.generalEdit')}</span></button>}<PrintExportActions showPrint={canPrint} showExport={canExport} onExport={()=>downloadRecordJson(sample,{filename:sample.id})}/></>}
+    headerActions={<>{(canManage||canReopen)&&<button className="general-edit-button" title={correctionLocked?(language==='el'?'Διόρθωση εργαστηριακής εγγραφής':'Correct laboratory record'):t('laboratoryRecords.generalEdit')} onClick={openGeneralEdit}><Pencil size={15}/><span>{correctionLocked?(language==='el'?'Διόρθωση':'Correction'):t('laboratoryRecords.generalEdit')}</span></button>}<PrintExportActions showPrint={canPrint} showExport={canExport} onExport={()=>downloadRecordJson(sample,{filename:sample.id})}/></>}
     tabs={tabs} activeTab={tab} onTabChange={next=>{const reached=finalized?4:documentsDone?3:resultDone?2:['received','processing'].includes(sample.status)?1:0;const ni=workflowOrder.indexOf(next);if(ni>=0&&access[next]&&(ni<=reached||correctionLocked))setTab(next)}} backLabel={t('backToLaboratory')}>
       {tab==='summary'&&<div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('employeeSurveillance')}</span><h3>{t('laboratoryRecords.employeeScreeningSample')}</h3></div></div><div className="detail-grid lab-detail-grid"><Detail l={t('employee')} v={language==='el'?sample.patient:sample.patientEn}/><Detail l={t('employeeCode')} v={sample.employeeId||sample.patientId}/><Detail l={t('department')} v={language==='el'?sample.department:sample.departmentEn}/><Detail l={t('screeningType')} v={t(sample.sourceCode)}/><Detail l={t('samplingDate')} v={fmt(sample.collectedAt)}/><Detail l={t('status')} v={t(sample.status)}/></div>{(sample.interventionType||sample.interventionDetails)&&<div className="source-truth-note"><strong>{t('clinicalRecords.intervention')}:</strong> {sample.interventionType?t(`clinicalRecords.${sample.interventionType}`):''}{sample.interventionDetails?` · ${sample.interventionDetails}`:''}</div>}{canManage&&sample.status==='requested'&&<div className="lab-step-footer"><Button onClick={receive}>{t('laboratoryRecords.receiveSample')}</Button></div>}{canManage&&sample.status==='received'&&<div className="lab-step-footer"><Button onClick={start}>{t('laboratoryRecords.startProcessing')}</Button></div>}</div>}
       {tab==='result'&&<div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('laboratoryRecords.screeningResult')}</span><h3>{t('laboratoryRecords.employeeScreeningAssessment')}</h3><p>{t('laboratoryRecords.employeeScreeningAssessmentHelp')}</p></div></div><div className="form-grid two-col"><label className="field"><span>{t('result')}</span><select value={draft.result} disabled={finalized} onChange={e=>setDraft({...draft,result:e.target.value,organism:e.target.value==='negative'?'':draft.organism})}><option value="">{t('select')}</option><option value="negative">{t('negative')}</option><option value="positive">{t('positive')}</option></select></label>{draft.result==='positive'&&<label className="field"><span>{t('organism')}</span><input disabled={finalized} list="employee-screening-organisms" value={draft.organism} onChange={e=>setDraft({...draft,organism:e.target.value})}/><datalist id="employee-screening-organisms">{demoLibrarySeed.microorganisms.map(([el,en])=><option key={el} value={language==='el'?el:en}/>)}</datalist></label>}</div>
@@ -581,7 +581,7 @@ function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,
       title={isPlate?`${t('plate')} ${sample.plateCode||''}`:t(sample.type)}
       subtitle={`${language==='el'?sample.department:sample.departmentEn} · ${sample.batchId||sample.patientId}`}
       status={<Status text={finalized?t('completed'):t(sample.status)} kind={finalized?'completed':sample.status}/>}
-      headerActions={<>{(canManage||canReopen)&&<button className="general-edit-button" onClick={openGeneralEdit} title={correctionLocked?'Διόρθωση εργαστηριακής εγγραφής':t('laboratoryRecords.generalEdit')}><Pencil size={15}/><span>{correctionLocked?'Διόρθωση':t('laboratoryRecords.generalEdit')}</span></button>}<PrintExportActions showPrint={canPrint} showExport={canExport} onExport={()=>downloadRecordJson(sample,{filename:sample.id})}/></>}
+      headerActions={<>{(canManage||canReopen)&&<button className="general-edit-button" onClick={openGeneralEdit} title={correctionLocked?(language==='el'?'Διόρθωση εργαστηριακής εγγραφής':'Correct laboratory record'):t('laboratoryRecords.generalEdit')}><Pencil size={15}/><span>{correctionLocked?(language==='el'?'Διόρθωση':'Correction'):t('laboratoryRecords.generalEdit')}</span></button>}<PrintExportActions showPrint={canPrint} showExport={canExport} onExport={()=>downloadRecordJson(sample,{filename:sample.id})}/></>}
       tabs={tabs}
       activeTab={tab}
       onTabChange={next=>{
@@ -796,19 +796,20 @@ function LabHistory({sample,t,fmt}){
 }
 
 function LabStepNavigator({active,order,labels,canOpen,onMove}){
+  const {language}=useLanguage()
   const current=order.indexOf(active)
   if(current<0)return null
   let previous=null,next=null
   for(let i=current-1;i>=0;i--){if(canOpen(order[i])){previous=order[i];break}}
   for(let i=current+1;i<order.length;i++){if(canOpen(order[i])){next=order[i];break}}
   if(!previous&&!next)return null
-  return <div className="lab-workflow-navigator" aria-label="Πλοήγηση βημάτων εργαστηρίου">
+  return <div className="lab-workflow-navigator" aria-label={language==='el'?'Πλοήγηση βημάτων εργαστηρίου':'Laboratory workflow navigation'}>
     <button type="button" className="lab-workflow-nav-button previous" disabled={!previous} onClick={()=>previous&&onMove(previous)}>
-      <ChevronLeft size={16}/><span><small>Προηγούμενο βήμα</small><strong>{previous?labels[previous]:''}</strong></span>
+      <ChevronLeft size={16}/><span><small>{language==='el'?'Προηγούμενο βήμα':'Previous step'}</small><strong>{previous?labels[previous]:''}</strong></span>
     </button>
-    <div className="lab-workflow-progress"><span>Βήμα {current+1} από {order.length}</span></div>
+    <div className="lab-workflow-progress"><span>{language==='el'?'Βήμα':'Step'} {current+1} {language==='el'?'από':'of'} {order.length}</span></div>
     <button type="button" className="lab-workflow-nav-button next" disabled={!next} onClick={()=>next&&onMove(next)}>
-      <span><small>Επόμενο βήμα</small><strong>{next?labels[next]:''}</strong></span><ChevronRight size={16}/>
+      <span><small>{language==='el'?'Επόμενο βήμα':'Next step'}</small><strong>{next?labels[next]:''}</strong></span><ChevronRight size={16}/>
     </button>
   </div>
 }

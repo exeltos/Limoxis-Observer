@@ -21,11 +21,12 @@ import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { loadEmployees } from '../employees/employeeStore'
 import { ipcCommitteeById } from './ipcCommitteeCatalog'
 import { approvalStatusFor,minutesApprovalSummary,requestCommitteeApproval,requestMinutesApprovals } from './committeeApprovals'
+import { useLanguage } from '../../core/i18n/LanguageContext'
 
 const todayIso=()=>new Date().toISOString().slice(0,10)
-const fmtDate=value=>value?new Date(`${String(value).slice(0,10)}T12:00:00`).toLocaleDateString('el-GR'):'—'
+const fmtDate=(value,locale='el-GR')=>value?new Date(`${String(value).slice(0,10)}T12:00:00`).toLocaleDateString(locale):'—'
 const isOverdue=item=>item?.dueDate&&item.status!=='completed'&&item.dueDate<todayIso()
-const meetingStatusLabel=status=>status==='finalized'?'Οριστικοποιημένα':status==='approval_pending'?'Σε έγκριση':status==='draft'?'Πρόχειρο':'Προγραμματισμένη'
+const meetingStatusLabel=(status,en=false)=>status==='finalized'?(en?'Finalized':'Οριστικοποιημένα'):status==='approval_pending'?(en?'Pending approval':'Σε έγκριση'):status==='draft'?(en?'Draft':'Πρόχειρο'):(en?'Planned':'Προγραμματισμένη')
 
 function quorumRequirement(rule,count){
   if(!count)return 0
@@ -50,6 +51,7 @@ export function CommitteeRecordPage(){
   const actor=useAuditActor()
   const {role,membership}=useTenant()
   const {notify}=useFeedback()
+  const {language,locale}=useLanguage();const en=language==='en'
   const [rows,setRows]=useState(loadCommittees)
   const record=rows.find(x=>x.id===committeeId)
   const [tab,setTab]=useState('overview')
@@ -58,7 +60,7 @@ export function CommitteeRecordPage(){
   const canManage=can(role,CAPABILITIES.MANAGE_COMMITTEES,membership?.capabilities??[],membership?.customCapabilities??[])
   const staff=useMemo(()=>loadEmployees().filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession,email:x.email||''})),[])
 
-  if(!record)return <Page title="Επιτροπές"><div className="inline-empty">Η επιτροπή δεν βρέθηκε.</div></Page>
+  if(!record)return <Page title={en?'Committees':'Επιτροπές'}><div className="inline-empty">{en?'Committee not found.':'Η επιτροπή δεν βρέθηκε.'}</div></Page>
 
   const template=ipcCommitteeById(record.templateId||'custom')
   const staffById=new Map(staff.map(x=>[x.id,x]))
@@ -85,7 +87,7 @@ export function CommitteeRecordPage(){
     persist(next)
     if(member.approvalRequired)requestCommitteeApproval({committeeId:record.id,committeeName:record.name,employeeId:member.employeeId,memberName:member.name,subject:'Έγκριση συμμετοχής στην επιτροπή',requestedBy:actor.name,requestedById:actor.id,context:{committeeTitle:member.committeeTitle,responsibilities:member.responsibilities}})
     setModal(null)
-    notify('Το μέλος προστέθηκε και καταγράφηκε στο ιστορικό.','success')
+    notify(en?'Member added and recorded in history.':'Το μέλος προστέθηκε και καταγράφηκε στο ιστορικό.','success')
   }
   function removeMember(reason){
     if(!removeTarget)return
@@ -93,18 +95,18 @@ export function CommitteeRecordPage(){
     const memberRefs=(record.memberRefs||[]).map(x=>x.id===removeTarget.id?{...x,active:false,endedAt:now,endedBy:actor.name,endedById:actor.id,endReason:reason}:x)
     persist(syncLegacy({...record,memberRefs,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Λήξη συμμετοχής μέλους',reason:`${removeTarget.name} — ${reason}`},...(record.history||[])]}))
     setRemoveTarget(null)
-    notify('Η συμμετοχή έληξε. Το μέλος διατηρείται στο ιστορικό.','success')
+    notify(en?'Membership ended. The member remains in history.':'Η συμμετοχή έληξε. Το μέλος διατηρείται στο ιστορικό.','success')
   }
   function resendApproval(member){
     requestCommitteeApproval({committeeId:record.id,committeeName:record.name,employeeId:member.employeeId,memberName:member.name,subject:'Έγκριση συμμετοχής στην επιτροπή',requestedBy:actor.name,requestedById:actor.id,context:{committeeTitle:member.committeeTitle,responsibilities:member.responsibilities}})
-    notify('Δημιουργήθηκε νέο αίτημα έγκρισης συμμετοχής.','success')
+    notify(en?'A new participation approval request was created.':'Δημιουργήθηκε νέο αίτημα έγκρισης συμμετοχής.','success')
   }
   function addMeeting(data){
     const id=`MTG-${Date.now()}`
     const meeting={id,...data,status:'planned',minutesNo:'',attendanceRecords:createAttendance(activeMembers),quorum:null,topics:(data.topics||[]).length?data.topics:[createTopic()],generalNotes:'',approvalState:'not_started'}
     persist({...record,meetings:[meeting,...(record.meetings||[])],history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Δημιουργία συνεδρίασης',reason:data.title},...(record.history||[])]})
     setModal({type:'meeting',meetingId:id})
-    notify('Η συνεδρίαση δημιουργήθηκε. Μπορείτε να συνεχίσετε με παρουσίες και πρακτικά.','success')
+    notify(en?'Meeting created. You can continue with attendance and minutes.':'Η συνεδρίαση δημιουργήθηκε. Μπορείτε να συνεχίσετε με παρουσίες και πρακτικά.','success')
   }
   function saveMeeting(draft,{finalize=false}={}){
     const now=new Date().toISOString()
@@ -118,10 +120,10 @@ export function CommitteeRecordPage(){
 
     if(finalize){
       const present=draft.attendanceRecords.filter(x=>x.status==='present')
-      if(!present.length){notify('Καταγράψτε τουλάχιστον ένα παρόν μέλος πριν την ολοκλήρωση.','error');return false}
-       if(required!==null&&!quorum){notify('Δεν μπορεί να ολοκληρωθεί η συνεδρίαση χωρίς την απαιτούμενη απαρτία.','error');return false}
+      if(!present.length){notify(en?'Record at least one present member before completion.':'Καταγράψτε τουλάχιστον ένα παρόν μέλος πριν την ολοκλήρωση.','error');return false}
+       if(required!==null&&!quorum){notify(en?'The meeting cannot be completed without the required quorum.':'Δεν μπορεί να ολοκληρωθεί η συνεδρίαση χωρίς την απαιτούμενη απαρτία.','error');return false}
       const incompleteTopic=(draft.topics||[]).some(x=>x.subject.trim()&&!x.decision.trim())
-      if(incompleteTopic){notify('Κάθε καταγεγραμμένο θέμα πρέπει να έχει απόφαση / συμπέρασμα.','error');return false}
+      if(incompleteTopic){notify(en?'Each recorded topic must have a decision / conclusion.':'Κάθε καταγεγραμμένο θέμα πρέπει να έχει απόφαση / συμπέρασμα.','error');return false}
       const {requests,queued}=requestMinutesApprovals({committee:record,meeting:updated,presentMembers:present,requestedBy:actor.name,requestedById:actor.id})
       updated={...updated,status:requests.length?'approval_pending':'finalized',approvalState:requests.length?'pending':'not_required',approvalRequestedAt:now,approvalRecipients:requests.map(x=>x.id),finalizedAt:requests.length?null:now,finalizedBy:requests.length?null:actor.name}
       const generated=(updated.topics||[]).filter(x=>x.followUp&&x.action.trim()).filter(topic=>!nextDecisions.some(d=>d.meetingId===updated.id&&d.topicId===topic.id)).map(topic=>({id:`DEC-${Date.now()}-${topic.id}`,meetingId:updated.id,topicId:topic.id,title:topic.subject,action:topic.action,owner:topic.owner,dueDate:topic.dueDate,priority:topic.priority||'medium',status:'open'}))
@@ -129,7 +131,7 @@ export function CommitteeRecordPage(){
       historyAction='Ολοκλήρωση συνεδρίασης και αίτημα έγκρισης πρακτικών'
       notify(requests.length?`Δημιουργήθηκαν ${requests.length} αιτήματα έγκρισης για τα παρόντα μέλη${queued.length?` και ${queued.length} email μπήκαν στο outbox`:''}.`:'Η συνεδρίαση οριστικοποιήθηκε.','success')
     }else{
-      notify('Οι αλλαγές της συνεδρίασης αποθηκεύτηκαν.','success')
+      notify(en?'Meeting changes saved.':'Οι αλλαγές της συνεδρίασης αποθηκεύτηκαν.','success')
     }
 
     const meetings=(record.meetings||[]).map(x=>x.id===updated.id?updated:x)
@@ -141,44 +143,44 @@ export function CommitteeRecordPage(){
     const id=`DEC-${Date.now()}`
     persist({...record,decisions:[{id,...data,status:'open'},...(record.decisions||[])],history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Καταχώρηση απόφασης',reason:data.title},...(record.history||[])]})
     setModal(null)
-    notify('Η απόφαση καταχωρήθηκε.','success')
+    notify(en?'Decision recorded.':'Η απόφαση καταχωρήθηκε.','success')
   }
   function editDecision(data){
     const now=new Date().toISOString()
     persist({...record,decisions:(record.decisions||[]).map(x=>x.id===data.id?{...x,...data,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}:x),history:[{at:now,actor:actor.name,actorId:actor.id,action:'Επεξεργασία απόφασης / ενέργειας',reason:data.title},...(record.history||[])]})
     setModal(null)
-    notify('Η απόφαση ενημερώθηκε.','success')
+    notify(en?'Decision updated.':'Η απόφαση ενημερώθηκε.','success')
   }
   function updateDecision(id,status){
     const item=record.decisions.find(x=>x.id===id)
     persist({...record,decisions:record.decisions.map(x=>x.id===id?{...x,status,updatedAt:new Date().toISOString(),updatedBy:actor.name}:x),history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Ενημέρωση κατάστασης απόφασης',reason:`${item?.title||id} → ${status==='completed'?'Ολοκληρωμένη':status==='in_progress'?'Σε εξέλιξη':'Ανοιχτή'}`},...(record.history||[])]})
-    notify('Η κατάσταση της ενέργειας ενημερώθηκε.','success')
+    notify(en?'Action status updated.':'Η κατάσταση της ενέργειας ενημερώθηκε.','success')
   }
   function addObjective(data){
     const id=`OBJ-${Date.now()}`
     persist({...record,annualPlan:[...(record.annualPlan||[]),{id,...data,status:'open'}],history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Προσθήκη στόχου ετήσιου σχεδίου',reason:data.title},...(record.history||[])]})
     setModal(null)
-    notify('Ο στόχος προστέθηκε στο ετήσιο σχέδιο δράσης.','success')
+    notify(en?'Objective added to the annual action plan.':'Ο στόχος προστέθηκε στο ετήσιο σχέδιο δράσης.','success')
   }
   function editObjective(data){
     const now=new Date().toISOString()
     persist({...record,annualPlan:(record.annualPlan||[]).map(x=>x.id===data.id?{...x,...data,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}:x),history:[{at:now,actor:actor.name,actorId:actor.id,action:'Επεξεργασία στόχου ετήσιου σχεδίου',reason:data.title},...(record.history||[])]})
     setModal(null)
-    notify('Ο στόχος ενημερώθηκε.','success')
+    notify(en?'Objective updated.':'Ο στόχος ενημερώθηκε.','success')
   }
   function updateObjective(id,status){
     const item=record.annualPlan.find(x=>x.id===id)
     persist({...record,annualPlan:record.annualPlan.map(x=>x.id===id?{...x,status,updatedAt:new Date().toISOString(),updatedBy:actor.name}:x),history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Ενημέρωση στόχου ετήσιου σχεδίου',reason:`${item?.title||id} → ${status==='completed'?'Ολοκληρώθηκε':status==='in_progress'?'Σε εξέλιξη':'Ανοιχτός'}`},...(record.history||[])]})
-    notify('Ο στόχος ενημερώθηκε.','success')
+    notify(en?'Objective updated.':'Ο στόχος ενημερώθηκε.','success')
   }
 
-  const tabs=[{id:'overview',label:'Σύνοψη',icon:CheckCircle2},{id:'members',label:'Μέλη',icon:Users},{id:'plan',label:'Ετήσιο σχέδιο',icon:Target},{id:'meetings',label:'Συνεδριάσεις',icon:CalendarDays},{id:'decisions',label:'Αποφάσεις & ενέργειες',icon:ClipboardList},{id:'guidance',label:'Ρόλος & πλαίσιο',icon:ShieldCheck},{id:'documents',label:'Έγγραφα',icon:Paperclip},{id:'history',label:'Ιστορικό',icon:FileClock}]
+  const tabs=[{id:'overview',label:en?'Overview':'Σύνοψη',icon:CheckCircle2},{id:'members',label:en?'Members':'Μέλη',icon:Users},{id:'plan',label:en?'Annual plan':'Ετήσιο σχέδιο',icon:Target},{id:'meetings',label:en?'Meetings':'Συνεδριάσεις',icon:CalendarDays},{id:'decisions',label:en?'Decisions & actions':'Αποφάσεις & ενέργειες',icon:ClipboardList},{id:'guidance',label:en?'Role & framework':'Ρόλος & πλαίσιο',icon:ShieldCheck},{id:'documents',label:en?'Documents':'Έγγραφα',icon:Paperclip},{id:'history',label:en?'History':'Ιστορικό',icon:FileClock}]
   const selectedMeeting=modal?.type==='meeting'?(record.meetings||[]).find(x=>x.id===modal.meetingId):null
 
   return <Page fill>
-    <EntityRecordShell avatar={<Users size={19}/>} eyebrow={record.id} title={record.name} subtitle={`${record.shortName||''}${record.chair?` · ${record.chair}`:''}`} status={<span className={`status-badge ${record.status==='active'?'active':''}`}>{record.status==='active'?'Ενεργή':'Ανενεργή'}</span>} onBack={()=>navigate('/committees')} headerActions={<PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record.id})}/>} tabs={tabs} activeTab={tab} onTabChange={setTab}>
-      {tab==='overview'&&<Overview r={record} activeMembers={activeMembers}/>} 
-      {tab==='members'&&<section className="record-section"><SectionHead title="Μέλη επιτροπής" subtitle="Η σύνθεση είναι ιστορική: λήξη συμμετοχής αντί για διαγραφή, με χρόνο και αιτιολογία." action={canManage&&<Button onClick={()=>setModal({type:'member'})}><Plus size={15}/> Προσθήκη μέλους</Button>}/><MembersTable rows={enrichedMemberRefs} canManage={canManage} onRemove={setRemoveTarget} onResend={resendApproval} committeeId={record.id}/></section>}
+    <EntityRecordShell avatar={<Users size={19}/>} eyebrow={record.id} title={record.name} subtitle={`${record.shortName||''}${record.chair?` · ${record.chair}`:''}`} status={<span className={`status-badge ${record.status==='active'?'active':''}`}>{record.status==='active'?(en?'Active':'Ενεργή'):(en?'Inactive':'Ανενεργή')}</span>} onBack={()=>navigate('/committees')} headerActions={<PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record.id})}/>} tabs={tabs} activeTab={tab} onTabChange={setTab}>
+      {tab==='overview'&&<Overview r={record} activeMembers={activeMembers} language={language} locale={locale}/>} 
+      {tab==='members'&&<section className="record-section"><SectionHead title={en?'Committee members':'Μέλη επιτροπής'} subtitle={en?'Composition is historical: end membership instead of deleting it, with timestamp and reason.':'Η σύνθεση είναι ιστορική: λήξη συμμετοχής αντί για διαγραφή, με χρόνο και αιτιολογία.'} action={canManage&&<Button onClick={()=>setModal({type:'member'})}><Plus size={15}/>{en?' Add member':' Προσθήκη μέλους'}</Button>}/><MembersTable rows={enrichedMemberRefs} canManage={canManage} onRemove={setRemoveTarget} onResend={resendApproval} committeeId={record.id}/></section>}
       {tab==='plan'&&<AnnualPlan rows={record.annualPlan||[]} canManage={canManage} onAdd={()=>setModal({type:'objective'})} onEdit={objective=>setModal({type:'objective',objective})} onStatus={updateObjective}/>} 
       {tab==='meetings'&&<section className="record-section"><SectionHead title="Συνεδριάσεις & πρακτικά" subtitle="Καταγραφή συνεδρίασης, πραγματικών παρουσιών, θεμάτων, αποφάσεων και έγκρισης πρακτικών." action={canManage&&<Button onClick={()=>setModal({type:'newMeeting'})}><Plus size={15}/> Νέα συνεδρίαση</Button>}/><Meetings rows={record.meetings||[]} committeeId={record.id} onOpen={meeting=>setModal({type:'meeting',meetingId:meeting.id})}/></section>}
       {tab==='decisions'&&<section className="record-section"><SectionHead title="Αποφάσεις & παρακολούθηση ενεργειών" subtitle="Κάθε απόφαση αποκτά υπεύθυνο, προθεσμία και κατάσταση μέχρι να κλείσει." action={canManage&&<Button onClick={()=>setModal({type:'decision'})}><Plus size={15}/> Νέα απόφαση</Button>}/><Decisions rows={record.decisions||[]} canManage={canManage} onEdit={decision=>setModal({type:'decision',decision})} onStatus={updateDecision}/></section>}
@@ -187,11 +189,11 @@ export function CommitteeRecordPage(){
       {tab==='history'&&<CommitteeHistory rows={record.history||[]}/>} 
     </EntityRecordShell>
 
-    {modal?.type==='member'&&<MemberDialog staff={staff} roles={template.requiredFunctions||[]} onClose={()=>setModal(null)} onSave={addMember}/>} 
+    {modal?.type==='member'&&<MemberDialog language={language} locale={locale} staff={staff} roles={template.requiredFunctions||[]} onClose={()=>setModal(null)} onSave={addMember}/>} 
     {modal?.type==='newMeeting'&&<NewMeetingDialog onClose={()=>setModal(null)} onSave={addMeeting}/>} 
     {selectedMeeting&&<MeetingDialog committee={record} meeting={selectedMeeting} activeMembers={activeMembers} canManage={canManage} onClose={()=>setModal(null)} onSave={saveMeeting}/>} 
-    {modal?.type==='decision'&&<DecisionDialog initial={modal.decision||null} members={activeMembers} meetings={record.meetings||[]} onClose={()=>setModal(null)} onSave={modal.decision?editDecision:addDecision}/>} 
-    {modal?.type==='objective'&&<ObjectiveDialog initial={modal.objective||null} members={activeMembers} onClose={()=>setModal(null)} onSave={modal.objective?editObjective:addObjective}/>} 
+    {modal?.type==='decision'&&<DecisionDialog language={language} locale={locale} initial={modal.decision||null} members={activeMembers} meetings={record.meetings||[]} onClose={()=>setModal(null)} onSave={modal.decision?editDecision:addDecision}/>} 
+    {modal?.type==='objective'&&<ObjectiveDialog language={language} locale={locale} initial={modal.objective||null} members={activeMembers} onClose={()=>setModal(null)} onSave={modal.objective?editObjective:addObjective}/>} 
     <GovernedReasonDialog open={Boolean(removeTarget)} title="Λήξη συμμετοχής μέλους" description="Το μέλος δεν θα διαγραφεί. Η συμμετοχή θα κλείσει με χρόνο, χρήστη και αιτιολογία ώστε να διατηρείται πλήρης ιστορικότητα." confirmLabel="Λήξη συμμετοχής" danger onCancel={()=>setRemoveTarget(null)} onConfirm={removeMember}/>
   </Page>
 }
@@ -261,35 +263,37 @@ function CommitteeHistory({rows}){
  </section>
 }
 
-function MemberDialog({staff,roles,onClose,onSave}){
+function MemberDialog({staff,roles,onClose,onSave}){const {language}=useLanguage();const en=language==='en';
   const [d,setD]=useState({employeeId:'',committeeTitle:'',responsibilities:'',voting:true,memberType:'regular',approvalRequired:false})
   const valid=d.employeeId&&d.committeeTitle.trim()&&d.responsibilities.trim()
-  return <ObserverDialog eyebrow="Μέλη επιτροπής" title="Προσθήκη μέλους" subtitle="Ορίστε την ιδιότητα και τις πραγματικές αρμοδιότητες του μέλους μέσα στην επιτροπή." onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(d)} disabled={!valid}/> }>
+  return <ObserverDialog eyebrow={en?'Committee members':'Μέλη επιτροπής'} title={en?'Add member':'Προσθήκη μέλους'} subtitle={en?'Define the member role and actual responsibilities within the committee.':'Ορίστε την ιδιότητα και τις πραγματικές αρμοδιότητες του μέλους μέσα στην επιτροπή.'} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(d)} disabled={!valid}/> }>
     <div className="entry-grid">
-      <label><span>Εργαζόμενος *</span><select value={d.employeeId} onChange={e=>setD({...d,employeeId:e.target.value})}><option value="">Επιλογή εργαζομένου</option>{staff.map(x=><option key={x.id} value={x.id}>{x.name} · {x.department}</option>)}</select></label>
-      <label><span>Ιδιότητα στην επιτροπή *</span><input list="committee-member-role-list" value={d.committeeTitle} onChange={e=>setD({...d,committeeTitle:e.target.value})} placeholder="π.χ. Πρόεδρος, Γραμματέας, Μέλος"/><datalist id="committee-member-role-list">{[...new Set(['Πρόεδρος','Αντιπρόεδρος','Συντονιστής','Γραμματέας','Μέλος','Αναπληρωματικό μέλος',...roles])].map(x=><option key={x} value={x}/>)}</datalist></label>
-      <label><span>Συμμετοχή</span><select value={d.memberType} onChange={e=>setD({...d,memberType:e.target.value})}><option value="regular">Τακτικό μέλος</option><option value="alternate">Αναπληρωματικό μέλος</option></select></label>
-      <div className="observer-check-grid"><label className="observer-check"><input type="checkbox" checked={d.voting} onChange={e=>setD({...d,voting:e.target.checked})}/><span>Δικαίωμα ψήφου</span></label><label className="observer-check"><input type="checkbox" checked={d.approvalRequired} onChange={e=>setD({...d,approvalRequired:e.target.checked})}/><span>Ηλεκτρονική αποδοχή συμμετοχής</span></label></div>
-      <label className="entry-span-2"><span>Αρμοδιότητες / τι κάνει *</span><textarea rows="4" value={d.responsibilities} onChange={e=>setD({...d,responsibilities:e.target.value})} placeholder="Καταγράψτε συνοπτικά τις πραγματικές αρμοδιότητες του μέλους..."/></label>
+      <label><span>{en?'Employee *':'Εργαζόμενος *'}</span><select value={d.employeeId} onChange={e=>setD({...d,employeeId:e.target.value})}><option value="">{en?'Select employee':'Επιλογή εργαζομένου'}</option>{staff.map(x=><option key={x.id} value={x.id}>{x.name} · {x.department}</option>)}</select></label>
+      <label><span>{en?'Committee role *':'Ιδιότητα στην επιτροπή *'}</span><input list="committee-member-role-list" value={d.committeeTitle} onChange={e=>setD({...d,committeeTitle:e.target.value})} placeholder={en?'e.g. Chair, Secretary, Member':'π.χ. Πρόεδρος, Γραμματέας, Μέλος'}/><datalist id="committee-member-role-list">{[...new Set(['Πρόεδρος','Αντιπρόεδρος','Συντονιστής','Γραμματέας','Μέλος','Αναπληρωματικό μέλος',...roles])].map(x=><option key={x} value={x}/>)}</datalist></label>
+      <label><span>{en?'Membership type':'Συμμετοχή'}</span><select value={d.memberType} onChange={e=>setD({...d,memberType:e.target.value})}><option value="regular">{en?'Regular member':'Τακτικό μέλος'}</option><option value="alternate">{en?'Alternate member':'Αναπληρωματικό μέλος'}</option></select></label>
+      <div className="observer-check-grid"><label className="observer-check"><input type="checkbox" checked={d.voting} onChange={e=>setD({...d,voting:e.target.checked})}/><span>{en?'Voting right':'Δικαίωμα ψήφου'}</span></label><label className="observer-check"><input type="checkbox" checked={d.approvalRequired} onChange={e=>setD({...d,approvalRequired:e.target.checked})}/><span>Ηλεκτρονική αποδοχή συμμετοχής</span></label></div>
+      <label className="entry-span-2"><span>{en?'Responsibilities *':'Αρμοδιότητες / τι κάνει *'}</span><textarea rows="4" value={d.responsibilities} onChange={e=>setD({...d,responsibilities:e.target.value})} placeholder={en?'Briefly record the member’s actual responsibilities...':'Καταγράψτε συνοπτικά τις πραγματικές αρμοδιότητες του μέλους...'}/></label>
     </div>
   </ObserverDialog>
 }
 
 function NewMeetingDialog({onClose,onSave}){
+  const {language}=useLanguage();const en=language==='en'
   const [d,setD]=useState({title:'',meetingType:'regular',date:'',time:'',location:'',topics:[createTopic()]})
   const valid=d.title.trim()&&d.date
-  return <ObserverDialog eyebrow="Συνεδριάσεις" title="Νέα συνεδρίαση" subtitle="Καταχωρίστε τα βασικά στοιχεία. Οι παρουσίες και τα πρακτικά συμπληρώνονται στη συνέχεια στην ίδια καρτέλα." onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(d)} saveLabel="Δημιουργία & συνέχεια" disabled={!valid}/> }>
+  return <ObserverDialog eyebrow={en?'Meetings':'Συνεδριάσεις'} title={en?'New meeting':'Νέα συνεδρίαση'} subtitle={en?'Enter the basic details. Attendance and minutes are completed next in the same workspace.':'Καταχωρίστε τα βασικά στοιχεία. Οι παρουσίες και τα πρακτικά συμπληρώνονται στη συνέχεια στην ίδια καρτέλα.'} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(d)} saveLabel="Δημιουργία & συνέχεια" disabled={!valid}/> }>
     <div className="entry-grid">
-      <label><span>Τίτλος *</span><input value={d.title} onChange={e=>setD({...d,title:e.target.value})} placeholder="π.χ. Τακτική συνεδρίαση Σεπτεμβρίου"/></label>
-      <label><span>Τύπος συνεδρίασης</span><select value={d.meetingType} onChange={e=>setD({...d,meetingType:e.target.value})}><option value="regular">Τακτική</option><option value="extraordinary">Έκτακτη</option></select></label>
-      <ManualDateField label="Ημερομηνία *" value={d.date} onChange={v=>setD({...d,date:v})}/>
-      <TimeField label="Ώρα" value={d.time} onChange={v=>setD({...d,time:v})}/>
-      <label className="entry-span-2"><span>Χώρος / τρόπος συνεδρίασης</span><input value={d.location} onChange={e=>setD({...d,location:e.target.value})} placeholder="π.χ. Αίθουσα ΔΣ / τηλεδιάσκεψη"/></label>
+      <label><span>{en?'Title *':'Τίτλος *'}</span><input value={d.title} onChange={e=>setD({...d,title:e.target.value})} placeholder={en?'e.g. September regular meeting':'π.χ. Τακτική συνεδρίαση Σεπτεμβρίου'}/></label>
+      <label><span>{en?'Meeting type':'Τύπος συνεδρίασης'}</span><select value={d.meetingType} onChange={e=>setD({...d,meetingType:e.target.value})}><option value="regular">{en?'Regular':'Τακτική'}</option><option value="extraordinary">{en?'Extraordinary':'Έκτακτη'}</option></select></label>
+      <ManualDateField label={en?'Date *':'Ημερομηνία *'} value={d.date} onChange={v=>setD({...d,date:v})}/>
+      <TimeField label={en?'Time':'Ώρα'} value={d.time} onChange={v=>setD({...d,time:v})}/>
+      <label className="entry-span-2"><span>{en?'Location / meeting mode':'Χώρος / τρόπος συνεδρίασης'}</span><input value={d.location} onChange={e=>setD({...d,location:e.target.value})} placeholder={en?'e.g. Board room / teleconference':'π.χ. Αίθουσα ΔΣ / τηλεδιάσκεψη'}/></label>
     </div>
   </ObserverDialog>
 }
 
 function MeetingDialog({committee,meeting,activeMembers,canManage,onClose,onSave}){
+  const {language}=useLanguage();const en=language==='en'
   const {confirm}=useFeedback()
   const [d,setD]=useState(()=>({...meeting,attendanceRecords:createAttendance(activeMembers,meeting.attendanceRecords||[]),topics:(meeting.topics&&meeting.topics.length?meeting.topics:(meeting.agenda||[]).map((subject,i)=>({id:`LEG-${meeting.id}-${i}`,subject,decision:i===0&&meeting.notes?meeting.notes:'',followUp:false,action:'',owner:'',dueDate:'',priority:'medium'}))).length? (meeting.topics&&meeting.topics.length?meeting.topics:(meeting.agenda||[]).map((subject,i)=>({id:`LEG-${meeting.id}-${i}`,subject,decision:i===0&&meeting.notes?meeting.notes:'',followUp:false,action:'',owner:'',dueDate:'',priority:'medium'}))) : [createTopic()]}))
   const locked=d.status==='finalized'||d.status==='approval_pending'
@@ -303,64 +307,64 @@ function MeetingDialog({committee,meeting,activeMembers,canManage,onClose,onSave
   const patchAttendance=(memberId,status)=>setD(x=>({...x,attendanceRecords:x.attendanceRecords.map(a=>a.memberId===memberId?{...a,status}:a)}))
   const patchTopic=(id,k,v)=>setD(x=>({...x,topics:x.topics.map(topic=>topic.id===id?{...topic,[k]:v}:topic)}))
   const addTopic=()=>setD(x=>({...x,topics:[...x.topics,createTopic()]}))
-  const removeTopic=async id=>{const ok=await confirm({title:'Αφαίρεση θέματος',message:'Το θέμα και τα μη αποθηκευμένα στοιχεία του θα αφαιρεθούν από τη συνεδρίαση. Θέλετε να συνεχίσετε;',confirmLabel:'Αφαίρεση',danger:true});if(!ok)return;setD(x=>({...x,topics:x.topics.length===1?[createTopic()]:x.topics.filter(topic=>topic.id!==id)}))}
-  return <ObserverDialog eyebrow="Συνεδρίαση & πρακτικά" title={d.title} subtitle="Μία ενιαία ροή: στοιχεία, παρουσίες, θέματα και αποφάσεις. Η έγκριση αποστέλλεται μόνο στα μέλη που καταγράφονται ως παρόντα." onClose={onClose} width="wide" className="committee-meeting-dialog" footer={canManage&&!locked?<><Button variant="secondary" onClick={onClose}>Ακύρωση</Button><Button variant="secondary" onClick={()=>onSave(d)}>Αποθήκευση</Button><Button onClick={()=>onSave(d,{finalize:true})} disabled={!present.length}>Ολοκλήρωση & αποστολή έγκρισης</Button></>:<Button variant="secondary" onClick={onClose}>Κλείσιμο</Button>}>
+  const removeTopic=async id=>{const ok=await confirm({title:en?'Remove topic':'Αφαίρεση θέματος',message:en?'The topic and its unsaved information will be removed from the meeting. Continue?':'Το θέμα και τα μη αποθηκευμένα στοιχεία του θα αφαιρεθούν από τη συνεδρίαση. Θέλετε να συνεχίσετε;',confirmLabel:en?'Remove':'Αφαίρεση',danger:true});if(!ok)return;setD(x=>({...x,topics:x.topics.length===1?[createTopic()]:x.topics.filter(topic=>topic.id!==id)}))}
+  return <ObserverDialog eyebrow={en?'Meeting & minutes':'Συνεδρίαση & πρακτικά'} title={d.title} subtitle={en?'One unified flow: details, attendance, topics and decisions. Approval is sent only to members recorded as present.':'Μία ενιαία ροή: στοιχεία, παρουσίες, θέματα και αποφάσεις. Η έγκριση αποστέλλεται μόνο στα μέλη που καταγράφονται ως παρόντα.'} onClose={onClose} width="wide" className="committee-meeting-dialog" footer={canManage&&!locked?<><Button variant="secondary" onClick={onClose}>Ακύρωση</Button><Button variant="secondary" onClick={()=>onSave(d)}>Αποθήκευση</Button><Button onClick={()=>onSave(d,{finalize:true})} disabled={!present.length}>Ολοκλήρωση & αποστολή έγκρισης</Button></>:<Button variant="secondary" onClick={onClose}>Κλείσιμο</Button>}>
     <div className="observer-form-section">
-      <div className="observer-form-section-title"><div><strong>Στοιχεία συνεδρίασης</strong><span>Βασικά στοιχεία και αριθμός πρακτικού.</span></div></div>
+      <div className="observer-form-section-title"><div><strong>{en?'Meeting details':'Στοιχεία συνεδρίασης'}</strong><span>{en?'Basic details and minutes number.':'Βασικά στοιχεία και αριθμός πρακτικού.'}</span></div></div>
       <div className="entry-grid compact">
-        <label><span>Τίτλος *</span><input disabled={locked} value={d.title} onChange={e=>set('title',e.target.value)}/></label>
-        <label><span>Τύπος συνεδρίασης</span><select disabled={locked} value={d.meetingType||'regular'} onChange={e=>set('meetingType',e.target.value)}><option value="regular">Τακτική</option><option value="extraordinary">Έκτακτη</option></select></label>
-        <label><span>Αριθμός πρακτικού</span><input disabled={locked} value={d.minutesNo||''} onChange={e=>set('minutesNo',e.target.value)} placeholder="π.χ. 05/2026"/></label>
-        <ManualDateField label="Ημερομηνία *" value={d.date} disabled={locked} onChange={v=>set('date',v)}/>
-        <TimeField label="Ώρα" disabled={locked} value={d.time||''} onChange={v=>set('time',v)}/>
-        <label className="entry-span-2"><span>Χώρος / τρόπος συνεδρίασης</span><input disabled={locked} value={d.location||''} onChange={e=>set('location',e.target.value)}/></label>
+        <label><span>{en?'Title *':'Τίτλος *'}</span><input disabled={locked} value={d.title} onChange={e=>set('title',e.target.value)}/></label>
+        <label><span>{en?'Meeting type':'Τύπος συνεδρίασης'}</span><select disabled={locked} value={d.meetingType||'regular'} onChange={e=>set('meetingType',e.target.value)}><option value="regular">{en?'Regular':'Τακτική'}</option><option value="extraordinary">{en?'Extraordinary':'Έκτακτη'}</option></select></label>
+        <label><span>{en?'Minutes number':'Αριθμός πρακτικού'}</span><input disabled={locked} value={d.minutesNo||''} onChange={e=>set('minutesNo',e.target.value)} placeholder="π.χ. 05/2026"/></label>
+        <ManualDateField label={en?'Date *':'Ημερομηνία *'} value={d.date} disabled={locked} onChange={v=>set('date',v)}/>
+        <TimeField label={en?'Time':'Ώρα'} disabled={locked} value={d.time||''} onChange={v=>set('time',v)}/>
+        <label className="entry-span-2"><span>{en?'Location / meeting mode':'Χώρος / τρόπος συνεδρίασης'}</span><input disabled={locked} value={d.location||''} onChange={e=>set('location',e.target.value)}/></label>
       </div>
     </div>
 
     <div className="observer-form-section">
-      <div className="observer-form-section-title"><div><strong>Παρουσίες & απαρτία</strong><span>{present.length} παρόντες · {presentVoting}/{voting.length} με δικαίωμα ψήφου</span></div><span className={`status-badge ${quorum===true?'active':quorum===false?'danger':''}`}>{required===null?'Απαρτία: σύμφωνα με κανονισμό':`Απαρτία: ${quorum?'Ναι':'Όχι'} · απαιτούνται ${required}`}</span></div>
-      <div className="committee-attendance-list">{d.attendanceRecords.map(item=><div className="committee-attendance-row" key={item.memberId}><div><strong>{item.name}</strong><span>{item.voting?'Με δικαίωμα ψήφου':'Χωρίς δικαίωμα ψήφου'}{item.email?` · ${item.email}`:''}</span></div><select disabled={locked} value={item.status} onChange={e=>patchAttendance(item.memberId,e.target.value)} aria-label={`Παρουσία ${item.name}`}><option value="not_recorded">Δεν καταγράφηκε</option><option value="present">Παρών / Παρούσα</option><option value="absent">Απών / Απούσα</option><option value="excused">Δικαιολογημένη απουσία</option></select></div>)}</div>
+      <div className="observer-form-section-title"><div><strong>{en?'Attendance & quorum':'Παρουσίες & απαρτία'}</strong><span>{present.length} παρόντες · {presentVoting}/{voting.length} με δικαίωμα ψήφου</span></div><span className={`status-badge ${quorum===true?'active':quorum===false?'danger':''}`}>{required===null?'Απαρτία: σύμφωνα με κανονισμό':`Απαρτία: ${quorum?'Ναι':'Όχι'} · απαιτούνται ${required}`}</span></div>
+      <div className="committee-attendance-list">{d.attendanceRecords.map(item=><div className="committee-attendance-row" key={item.memberId}><div><strong>{item.name}</strong><span>{item.voting?(en?'Voting member':'Με δικαίωμα ψήφου'):(en?'Non-voting member':'Χωρίς δικαίωμα ψήφου')}{item.email?` · ${item.email}`:''}</span></div><select disabled={locked} value={item.status} onChange={e=>patchAttendance(item.memberId,e.target.value)} aria-label={`Παρουσία ${item.name}`}><option value="not_recorded">Δεν καταγράφηκε</option><option value="present">Παρών / Παρούσα</option><option value="absent">Απών / Απούσα</option><option value="excused">Δικαιολογημένη απουσία</option></select></div>)}</div>
     </div>
 
     <div className="observer-form-section">
-      <div className="observer-form-section-title"><div><strong>Θέματα συζήτησης & αποφάσεις</strong><span>Ένα θέμα ανά γραμμή. Η ενέργεια follow-up είναι προαιρετική και περνά αυτόματα στην παρακολούθηση ενεργειών.</span></div>{!locked&&<Button onClick={addTopic}><Plus size={15}/> Προσθήκη θέματος</Button>}</div>
-      <div className="committee-topic-list">{d.topics.map((topic,index)=><article className="committee-topic-card" key={topic.id}><header><strong>{String(index+1).padStart(2,'0')}</strong><span>Θέμα συνεδρίασης</span>{!locked&&<button type="button" className="entity-record-icon-button danger compact" onClick={()=>removeTopic(topic.id)} title="Αφαίρεση θέματος" aria-label="Αφαίρεση θέματος"><Trash2 size={14}/></button>}</header><div className="entry-grid compact"><label className="entry-span-2"><span>Θέμα συζήτησης *</span><input disabled={locked} value={topic.subject} onChange={e=>patchTopic(topic.id,'subject',e.target.value)} placeholder="π.χ. Δείκτες λοιμώξεων ΜΕΘ"/></label><label className="entry-span-2"><span>Απόφαση / συμπέρασμα *</span><textarea disabled={locked} rows="3" value={topic.decision} onChange={e=>patchTopic(topic.id,'decision',e.target.value)} placeholder="Τι αποφασίστηκε για το συγκεκριμένο θέμα;"/></label></div>{!locked&&<label className="observer-check topic-followup"><input type="checkbox" checked={topic.followUp} onChange={e=>patchTopic(topic.id,'followUp',e.target.checked)}/><span>Δημιουργία ενέργειας follow-up</span></label>}{topic.followUp&&<div className="entry-grid compact topic-followup-fields"><label className="entry-span-2"><span>Ενέργεια / παραδοτέο</span><textarea disabled={locked} rows="2" value={topic.action} onChange={e=>patchTopic(topic.id,'action',e.target.value)}/></label><label><span>Υπεύθυνος</span><input disabled={locked} list={`owners-${topic.id}`} value={topic.owner} onChange={e=>patchTopic(topic.id,'owner',e.target.value)}/><datalist id={`owners-${topic.id}`}>{activeMembers.map(x=><option key={x.id} value={x.name}/>)}</datalist></label><ManualDateField label="Προθεσμία" value={topic.dueDate} disabled={locked} onChange={v=>patchTopic(topic.id,'dueDate',v)}/><label><span>Προτεραιότητα</span><select disabled={locked} value={topic.priority||'medium'} onChange={e=>patchTopic(topic.id,'priority',e.target.value)}><option value="low">Κανονική</option><option value="medium">Μέση</option><option value="high">Υψηλή</option></select></label></div>}</article>)}</div>
-      <label className="observer-notes-field"><span>Γενικές σημειώσεις συνεδρίασης</span><textarea disabled={locked} rows="3" value={d.generalNotes||''} onChange={e=>set('generalNotes',e.target.value)} placeholder="Προαιρετικές σημειώσεις που δεν αντιστοιχούν σε συγκεκριμένο θέμα..."/></label>
+      <div className="observer-form-section-title"><div><strong>{en?'Discussion topics & decisions':'Θέματα συζήτησης & αποφάσεις'}</strong><span>{en?'One topic per row. A follow-up action is optional and automatically enters action tracking.':'Ένα θέμα ανά γραμμή. Η ενέργεια follow-up είναι προαιρετική και περνά αυτόματα στην παρακολούθηση ενεργειών.'}</span></div>{!locked&&<Button onClick={addTopic}><Plus size={15}/>{en?' Add topic':' Προσθήκη θέματος'}</Button>}</div>
+      <div className="committee-topic-list">{d.topics.map((topic,index)=><article className="committee-topic-card" key={topic.id}><header><strong>{String(index+1).padStart(2,'0')}</strong><span>{en?'Meeting topic':'Θέμα συνεδρίασης'}</span>{!locked&&<button type="button" className="entity-record-icon-button danger compact" onClick={()=>removeTopic(topic.id)} title={en?'Remove topic':'Αφαίρεση θέματος'} aria-label="Αφαίρεση θέματος"><Trash2 size={14}/></button>}</header><div className="entry-grid compact"><label className="entry-span-2"><span>Θέμα συζήτησης *</span><input disabled={locked} value={topic.subject} onChange={e=>patchTopic(topic.id,'subject',e.target.value)} placeholder="π.χ. Δείκτες λοιμώξεων ΜΕΘ"/></label><label className="entry-span-2"><span>Απόφαση / συμπέρασμα *</span><textarea disabled={locked} rows="3" value={topic.decision} onChange={e=>patchTopic(topic.id,'decision',e.target.value)} placeholder="Τι αποφασίστηκε για το συγκεκριμένο θέμα;"/></label></div>{!locked&&<label className="observer-check topic-followup"><input type="checkbox" checked={topic.followUp} onChange={e=>patchTopic(topic.id,'followUp',e.target.checked)}/><span>Δημιουργία ενέργειας follow-up</span></label>}{topic.followUp&&<div className="entry-grid compact topic-followup-fields"><label className="entry-span-2"><span>Ενέργεια / παραδοτέο</span><textarea disabled={locked} rows="2" value={topic.action} onChange={e=>patchTopic(topic.id,'action',e.target.value)}/></label><label><span>Υπεύθυνος</span><input disabled={locked} list={`owners-${topic.id}`} value={topic.owner} onChange={e=>patchTopic(topic.id,'owner',e.target.value)}/><datalist id={`owners-${topic.id}`}>{activeMembers.map(x=><option key={x.id} value={x.name}/>)}</datalist></label><ManualDateField label={en?'Due date':'Προθεσμία'} value={topic.dueDate} disabled={locked} onChange={v=>patchTopic(topic.id,'dueDate',v)}/><label><span>{en?'Priority':'Προτεραιότητα'}</span><select disabled={locked} value={topic.priority||'medium'} onChange={e=>patchTopic(topic.id,'priority',e.target.value)}><option value="low">{en?'Normal':'Κανονική'}</option><option value="medium">{en?'Medium':'Μέση'}</option><option value="high">{en?'High':'Υψηλή'}</option></select></label></div>}</article>)}</div>
+      <label className="observer-notes-field"><span>{en?'General meeting notes':'Γενικές σημειώσεις συνεδρίασης'}</span><textarea disabled={locked} rows="3" value={d.generalNotes||''} onChange={e=>set('generalNotes',e.target.value)} placeholder={en?'Optional notes not linked to a specific topic...':'Προαιρετικές σημειώσεις που δεν αντιστοιχούν σε συγκεκριμένο θέμα...'}/></label>
     </div>
 
     <div className="observer-form-section approval-summary-section">
-      <div className="observer-form-section-title"><div><strong>Έγκριση πρακτικών</strong><span>Κατά την ολοκλήρωση δημιουργείται συνοπτικό αίτημα μόνο για τους παρόντες.</span></div><Mail size={18}/></div>
+      <div className="observer-form-section-title"><div><strong>{en?'Minutes approval':'Έγκριση πρακτικών'}</strong><span>{en?'On completion, a concise approval request is created only for present members.':'Κατά την ολοκλήρωση δημιουργείται συνοπτικό αίτημα μόνο για τους παρόντες.'}</span></div><Mail size={18}/></div>
       {approvals.total?<div className="committee-approval-summary"><strong>{approvals.approved}/{approvals.total} εγκρίσεις</strong><span>{approvals.pending?`${approvals.pending} αναμένουν απάντηση`:approvals.changes?`${approvals.changes} ζήτησαν αλλαγές`:'Η έγκριση ολοκληρώθηκε'}</span></div>:<div className="committee-approval-preview"><span>Παραλήπτες κατά την ολοκλήρωση</span><div>{present.length?present.map(x=><small key={x.memberId}>{x.name}{x.email?` · ${x.email}`:' · χωρίς email'}</small>):<small>Δεν έχουν δηλωθεί ακόμη παρόντες.</small>}</div></div>}
     </div>
   </ObserverDialog>
 }
 
-function DecisionDialog({initial,members,meetings,onClose,onSave}){
+function DecisionDialog({initial,members,meetings,onClose,onSave}){const {language}=useLanguage();const en=language==='en';
   const [d,setD]=useState(initial||{title:'',action:'',owner:'',dueDate:'',priority:'medium',meetingId:''})
   const valid=d.title.trim()&&d.action.trim()&&d.owner.trim()
-  return <ObserverDialog eyebrow="Αποφάσεις & ενέργειες" title={initial?'Επεξεργασία απόφασης / ενέργειας':'Νέα απόφαση / ενέργεια'} subtitle="Καταγράψτε τι αποφασίστηκε, τι πρέπει να γίνει, από ποιον και μέχρι πότε." onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(d)} disabled={!valid}/> }>
+  return <ObserverDialog eyebrow={en?'Decisions & actions':'Αποφάσεις & ενέργειες'} title={initial?(en?'Edit decision / action':'Επεξεργασία απόφασης / ενέργειας'):(en?'New decision / action':'Νέα απόφαση / ενέργεια')} subtitle={en?'Record what was decided, what must be done, by whom and by when.':'Καταγράψτε τι αποφασίστηκε, τι πρέπει να γίνει, από ποιον και μέχρι πότε.'} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(d)} disabled={!valid}/> }>
     <div className="entry-grid">
-      <label className="entry-span-2"><span>Απόφαση *</span><textarea rows="3" value={d.title} onChange={e=>setD({...d,title:e.target.value})}/></label>
-      <label className="entry-span-2"><span>Ενέργεια / παραδοτέο *</span><textarea rows="3" value={d.action} onChange={e=>setD({...d,action:e.target.value})}/></label>
-      <label><span>Υπεύθυνος *</span><input list="decision-owner-list" value={d.owner} onChange={e=>setD({...d,owner:e.target.value})}/><datalist id="decision-owner-list">{members.map(x=><option key={x.id} value={x.name}/>)}</datalist></label>
-      <ManualDateField label="Προθεσμία" value={d.dueDate} onChange={v=>setD({...d,dueDate:v})}/>
-      <label><span>Προτεραιότητα</span><select value={d.priority} onChange={e=>setD({...d,priority:e.target.value})}><option value="low">Κανονική</option><option value="medium">Μέση</option><option value="high">Υψηλή</option></select></label>
-      <label><span>Σύνδεση με συνεδρίαση</span><select value={d.meetingId} onChange={e=>setD({...d,meetingId:e.target.value})}><option value="">Χωρίς σύνδεση</option>{meetings.map(x=><option key={x.id} value={x.id}>{fmtDate(x.date)} · {x.title}</option>)}</select></label>
+      <label className="entry-span-2"><span>{en?'Decision *':'Απόφαση *'}</span><textarea rows="3" value={d.title} onChange={e=>setD({...d,title:e.target.value})}/></label>
+      <label className="entry-span-2"><span>{en?'Action / deliverable *':'Ενέργεια / παραδοτέο *'}</span><textarea rows="3" value={d.action} onChange={e=>setD({...d,action:e.target.value})}/></label>
+      <label><span>{en?'Owner *':'Υπεύθυνος *'}</span><input list="decision-owner-list" value={d.owner} onChange={e=>setD({...d,owner:e.target.value})}/><datalist id="decision-owner-list">{members.map(x=><option key={x.id} value={x.name}/>)}</datalist></label>
+      <ManualDateField label={en?'Due date':'Προθεσμία'} value={d.dueDate} onChange={v=>setD({...d,dueDate:v})}/>
+      <label><span>{en?'Priority':'Προτεραιότητα'}</span><select value={d.priority} onChange={e=>setD({...d,priority:e.target.value})}><option value="low">{en?'Normal':'Κανονική'}</option><option value="medium">{en?'Medium':'Μέση'}</option><option value="high">{en?'High':'Υψηλή'}</option></select></label>
+      <label><span>{en?'Link to meeting':'Σύνδεση με συνεδρίαση'}</span><select value={d.meetingId} onChange={e=>setD({...d,meetingId:e.target.value})}><option value="">{en?'No link':'Χωρίς σύνδεση'}</option>{meetings.map(x=><option key={x.id} value={x.id}>{fmtDate(x.date)} · {x.title}</option>)}</select></label>
     </div>
   </ObserverDialog>
 }
 
-function ObjectiveDialog({initial,members,onClose,onSave}){
+function ObjectiveDialog({initial,members,onClose,onSave}){const {language}=useLanguage();const en=language==='en';
   const [d,setD]=useState(initial||{title:'',indicator:'',baseline:'',target:'',owner:'',dueDate:''})
   const valid=d.title.trim()&&d.indicator.trim()&&d.target.trim()&&d.owner.trim()
-  return <ObserverDialog eyebrow="Ετήσιο σχέδιο" title={initial?'Επεξεργασία στόχου':'Νέος στόχος'} subtitle="Ο στόχος πρέπει να είναι μετρήσιμος και να έχει σαφή υπεύθυνο και επιθυμητό αποτέλεσμα." onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(d)} disabled={!valid}/> }>
+  return <ObserverDialog eyebrow={en?'Annual plan':'Ετήσιο σχέδιο'} title={initial?(en?'Edit objective':'Επεξεργασία στόχου'):(en?'New objective':'Νέος στόχος')} subtitle={en?'The objective should be measurable with a clear owner and desired result.':'Ο στόχος πρέπει να είναι μετρήσιμος και να έχει σαφή υπεύθυνο και επιθυμητό αποτέλεσμα.'} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(d)} disabled={!valid}/> }>
     <div className="entry-grid">
-      <label className="entry-span-2"><span>Στόχος / δράση *</span><input value={d.title} onChange={e=>setD({...d,title:e.target.value})}/></label>
-      <label><span>Δείκτης παρακολούθησης *</span><input value={d.indicator} onChange={e=>setD({...d,indicator:e.target.value})}/></label>
-      <label><span>Υπεύθυνος *</span><input list="objective-owner-list" value={d.owner} onChange={e=>setD({...d,owner:e.target.value})}/><datalist id="objective-owner-list">{members.map(x=><option key={x.id} value={x.name}/>)}</datalist></label>
-      <label><span>Τιμή βάσης</span><input value={d.baseline} onChange={e=>setD({...d,baseline:e.target.value})}/></label>
-      <label><span>Επιθυμητός στόχος *</span><input value={d.target} onChange={e=>setD({...d,target:e.target.value})}/></label>
-      <ManualDateField label="Προθεσμία" value={d.dueDate} onChange={v=>setD({...d,dueDate:v})}/>
+      <label className="entry-span-2"><span>{en?'Objective / action *':'Στόχος / δράση *'}</span><input value={d.title} onChange={e=>setD({...d,title:e.target.value})}/></label>
+      <label><span>{en?'Monitoring indicator *':'Δείκτης παρακολούθησης *'}</span><input value={d.indicator} onChange={e=>setD({...d,indicator:e.target.value})}/></label>
+      <label><span>{en?'Owner *':'Υπεύθυνος *'}</span><input list="objective-owner-list" value={d.owner} onChange={e=>setD({...d,owner:e.target.value})}/><datalist id="objective-owner-list">{members.map(x=><option key={x.id} value={x.name}/>)}</datalist></label>
+      <label><span>{en?'Baseline':'Τιμή βάσης'}</span><input value={d.baseline} onChange={e=>setD({...d,baseline:e.target.value})}/></label>
+      <label><span>{en?'Target *':'Επιθυμητός στόχος *'}</span><input value={d.target} onChange={e=>setD({...d,target:e.target.value})}/></label>
+      <ManualDateField label={en?'Due date':'Προθεσμία'} value={d.dueDate} onChange={v=>setD({...d,dueDate:v})}/>
     </div>
   </ObserverDialog>
 }

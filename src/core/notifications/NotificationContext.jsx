@@ -84,6 +84,7 @@ export function NotificationProvider({children}){
  const birthday=useMemo(()=>{
    const today=new Date(); const md=`${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
    return loadEmployees().filter(e=>e.employmentStatus==='active'&&String(e.birthDate||'').slice(5)===md)
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- 'clock' is a periodic ticker (60s) forcing this to re-check the current date as the day changes while the app stays open; not read directly in the body.
  },[clock])
  const operational=useMemo(()=>{
    const base=operationalText[language==='en'?'en':'el']
