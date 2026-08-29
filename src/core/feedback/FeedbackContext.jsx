@@ -15,16 +15,21 @@ export function FeedbackProvider({ children }) {
     setItems((current) => [...current, { id, message, tone }])
     window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), 4200)
   }, [])
+  const notifyUndo = useCallback((message, onUndo, timeout = 7000) => {
+    const id = nextId++
+    setItems((current) => [...current, { id, message, tone:'success', actionLabel:'Αναίρεση', onAction:()=>{onUndo?.();setItems(rows=>rows.filter(x=>x.id!==id))} }])
+    window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), timeout)
+  }, [])
   const confirm = useCallback((options) => new Promise((resolve) => setConfirmState({ ...options, resolve })), [])
   const finishConfirm = (answer) => {
     confirmState?.resolve(answer)
     setConfirmState(null)
   }
-  const value = useMemo(() => ({ notify, confirm }), [notify, confirm])
+  const value = useMemo(() => ({ notify, notifyUndo, confirm }), [notify, notifyUndo, confirm])
   const icons = { success: CheckCircle2, warning: TriangleAlert, danger: XCircle, info: Info }
   return <FeedbackContext.Provider value={value}>
     {children}
-    <div className="toast-stack" aria-live="polite">{items.map((item) => { const Icon = icons[item.tone] ?? Info; return <div className={`toast ${item.tone} ${hasSupabaseConfig?'cloud':'local'}`} key={item.id}><Icon size={18}/><span>{item.message}</span><button onClick={() => setItems((current) => current.filter((x) => x.id !== item.id))}><X size={15}/></button></div> })}</div>
+    <div className="toast-stack" aria-live="polite">{items.map((item) => { const Icon = icons[item.tone] ?? Info; return <div className={`toast ${item.tone} ${hasSupabaseConfig?'cloud':'local'}`} key={item.id}><Icon size={18}/><span>{item.message}</span>{item.onAction&&<button className="toast-action" onClick={item.onAction}>{item.actionLabel}</button>}<button onClick={() => setItems((current) => current.filter((x) => x.id !== item.id))}><X size={15}/></button></div> })}</div>
     {confirmState && <div className="modal-backdrop"><div className="confirm-dialog" role="dialog" aria-modal="true"><h3>{confirmState.title ?? t('confirmAction')}</h3><p>{confirmState.message}</p><div className="dialog-actions"><button className="button secondary" onClick={() => finishConfirm(false)}>{t('cancel')}</button><button className={`button ${confirmState.danger ? 'danger' : 'primary'}`} onClick={() => finishConfirm(true)}>{confirmState.confirmLabel ?? t('confirm')}</button></div></div></div>}
   </FeedbackContext.Provider>
 }

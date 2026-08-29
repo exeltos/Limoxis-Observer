@@ -41,6 +41,7 @@ const LiraPage = lazyNamed(() => import('../features/lira/LiraPage'), 'LiraPage'
 const ManagementPage = lazyNamed(() => import('../features/management/ManagementPage'), 'ManagementPage')
 const IndicatorsPage = lazyNamed(() => import('../features/indicators/IndicatorsPage'), 'IndicatorsPage')
 const MyDepartmentPage = lazyNamed(() => import('../features/workspaces/MyDepartmentPage'), 'MyDepartmentPage')
+const AboutPage = lazyNamed(() => import('../features/about/AboutPage'), 'AboutPage')
 
 const gate = (capability, element) => <RequireCapability capability={capability}>{element}</RequireCapability>
 const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={capabilities}>{element}</RequireAnyCapability>
@@ -53,6 +54,7 @@ export function App() {
     <Route path="/training-access/:token" element={<Suspense fallback={<RouteLoading/>}><TrainingAccessPage /></Suspense>} />
     <Route element={<ProtectedRoute />}>
       <Route element={<AppShell />}>
+        <Route path="about" element={<Suspense fallback={<RouteLoading/>}><AboutPage /></Suspense>} />
         <Route index element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)}</Suspense>} />
         <Route path="my-department" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)}</Suspense>} />
         <Route path="my-profile" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_PROFILE, <EmployeeRecordPage selfMode />)}</Suspense>} />

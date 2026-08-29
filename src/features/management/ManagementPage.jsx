@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Building2, Database, FileCheck2, Globe2, KeyRound, Layers3, Pencil, Plus, Save, ShieldCheck, Users, X } from 'lucide-react'
+import { Bell, Building2, Database, FileCheck2, Globe2, KeyRound, Layers3, Pencil, Plus, Save, ShieldCheck, Users, X } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { BedDaysPanel } from './BedDaysPanel'
 import { LibrariesPanel } from './LibrariesPanel'
 import { BundleLibraryPanel } from './BundleLibraryPanel'
+import { AnnouncementsPanel } from './AnnouncementsPanel'
 import { loadBundleLibrary } from './bundleLibraryData'
 import { capabilityLabel } from '../../core/permissions/capabilityLabels'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -26,6 +27,7 @@ export function ManagementPage(){
       {id:'overview',label:t('managementPanel.overviewTab'),icon:FileCheck2},
       ...(isAllowed(CAPABILITIES.MANAGE_ORGANIZATION)?[{id:'organization',label:t('organization'),icon:Building2}]:[]),
       ...(isAllowed(CAPABILITIES.MANAGE_USERS)?[{id:'users',label:t('users'),icon:Users}]:[]),
+      ...(isAllowed(CAPABILITIES.MANAGE_ANNOUNCEMENTS)?[{id:'announcements',label:'Ανακοινώσεις',icon:Bell}]:[]),
       ...(isAllowed(CAPABILITIES.MANAGE_LIBRARIES)?[
         {id:'libraries',label:t('libraries'),icon:Database},
         {id:'bundles',label:t('managementPanel.preventionBundlesLabel'),icon:Layers3},
@@ -43,6 +45,7 @@ export function ManagementPage(){
     <div className="management-shell workspace-fill"><div className="tabs canonical-module-tabs management-tabs">{tabs.map(({id,label,icon:Icon})=><button key={id} className={`tab ${tab===id?'active':''}`} onClick={()=>setTab(id)}><Icon size={16}/>{label}</button>)}</div>
       {tab==='overview'&&<ManagementOverview tenant={tenant} isDemo={isDemo} allowed={allowed} onOpen={setTab} t={t}/>}
       {tab==='users'&&<section className="management-section"><div className="section-toolbar"><div><h2>{t('organizationUsers')}</h2><p>{tenant?.name}</p></div>{allowed(CAPABILITIES.MANAGE_USERS)&&<Button onClick={()=>notify(t('actionCompleted'),'info')}><Plus size={15}/>{t('inviteUser')}</Button>}</div><div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('users')}</th><th>{t('roleLabel')}</th><th>{t('status')}</th><th/></tr></thead><tbody>{(isDemo?demoUsers:[]).map(user=><tr key={user.id}><td><strong>{user.name}</strong><small>{user.email}</small></td><td><span className="role-badge">{t(roleNames[user.role]??user.role)}</span></td><td><span className="status-badge active">{t('active')}</span></td><td>{allowed(CAPABILITIES.MANAGE_USERS)&&<button className="text-button" onClick={()=>notify(t('actionCompleted'),'info')}>{t('manage')}</button>}</td></tr>)}</tbody></table>{!isDemo&&<div className="inline-empty">{t('noConnectedUsers')}</div>}</div></section>}
+      {tab==='announcements'&&<AnnouncementsPanel/>}
       {tab==='organization'&&<OrganizationPanel tenant={tenant} notify={notify} t={t}/>}
       {tab==='roles'&&<section className="management-section"><div className="section-toolbar"><div><h2>{t('rolesPermissions')}</h2><p>{t('roleManagementNote')}</p></div><Button onClick={()=>setRoleModal(true)}><Plus size={15}/>{t('createRole')}</Button></div><div className="role-grid">{Object.entries(roleNames).filter(([key])=>key!=='demo').map(([key,labelKey])=><div className="role-card" key={key}><ShieldCheck size={18}/><strong>{t(labelKey)}</strong><span>{t('capabilityBasedAccess')}</span></div>)}{customRoles.map(item=><div className="role-card custom" key={item.id}><ShieldCheck size={18}/><strong>{item.name}</strong><span>{item.capabilities.length} {t('permissions')}</span></div>)}</div></section>}
       {tab==='libraries'&&<LibrariesPanel/>}
