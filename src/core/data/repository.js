@@ -88,7 +88,10 @@ export function loadSnapshot(table,fallback=null){
 export function saveSnapshot(table,rows,{organizationId=null}={}){
   if(backend==='supabase'&&hasSupabaseConfig&&supabase){
     memory.set(table,clone(rows))
-    void save(table,rows,{organizationId})
+    // Keep the synchronous snapshot API for existing stores, while ensuring a
+    // failed background write is reported through the data-operation event
+    // without also becoming an unhandled promise rejection.
+    void save(table,rows,{organizationId}).catch(()=>{})
     return clone(rows)
   }
   try{

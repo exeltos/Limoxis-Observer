@@ -75,9 +75,8 @@ export function EmployeeRecordPage({selfMode=false}){
   const [surveillanceOpen,setSurveillanceOpen]=useState(false)
   const [surveillanceVersion,setSurveillanceVersion]=useState(0)
   const actor=useAuditActor()
-  const [committeeApprovalVersion,setCommitteeApprovalVersion]=useState(0)
-  const committeeApprovals=useMemo(()=>employee?.id?approvalsForEmployee(employee.id):[],
-    [employee?.id,committeeApprovalVersion])
+  const [,setCommitteeApprovalVersion]=useState(0)
+  const committeeApprovals=employee?.id?approvalsForEmployee(employee.id):[]
   const pendingCommitteeApprovals=committeeApprovals.filter(x=>x.status==='pending')
 
   if(!employee){
