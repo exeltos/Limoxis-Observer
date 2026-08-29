@@ -59,7 +59,7 @@ export function App() {
         <Route path="my-department" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)}</Suspense>} />
         <Route path="my-profile" element={<Suspense fallback={<RouteLoading/>}><EmployeeRecordPage selfMode /></Suspense>} />
         <Route path="surveillance" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_SURVEILLANCE, <SurveillancePage />)}</Suspense>} />
-        <Route path="surveillance/:caseId" element={<Suspense fallback={<RouteLoading/>}><PatientClinicalRecordPage /></Suspense>} />
+        <Route path="surveillance/:caseId" element={<Suspense fallback={<RouteLoading/>}>{gateAny([CAPABILITIES.VIEW_SURVEILLANCE, CAPABILITIES.VIEW_LAB], <PatientClinicalRecordPage />)}</Suspense>} />
         <Route path="laboratory" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LAB, <LaboratoryPage />)}</Suspense>} />
         <Route path="laboratory/:sampleId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LAB, <LaboratorySampleRecordPage />)}</Suspense>} />
         <Route path="prevention" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PREVENTION, <PreventionPage />)}</Suspense>} />
@@ -79,7 +79,7 @@ export function App() {
         <Route path="patients" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PATIENTS, <PatientsPage />)}</Suspense>} />
         <Route path="patients/:patientId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PATIENTS, <PatientClinicalRecordPage patientMode />)}</Suspense>} />
         <Route path="employees" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_STAFF, <EmployeesPage />)}</Suspense>} />
-        <Route path="employees/:employeeId" element={<Suspense fallback={<RouteLoading/>}><EmployeeRecordPage /></Suspense>} />
+        <Route path="employees/:employeeId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_STAFF, <EmployeeRecordPage />)}</Suspense>} />
         <Route path="pharmacy" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PHARMACY, <PharmacyPage />)}</Suspense>} />
         <Route path="occupational-health" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, <OccupationalHealthPage />)}</Suspense>} />
         <Route path="lira" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LIRA, <LiraPage />)}</Suspense>} />

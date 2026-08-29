@@ -33,6 +33,7 @@ export function WasteEntryModal({onClose,onSave,fixedDepartment='',initialRecord
  const valid=Boolean(draft.date&&draft.departmentEl&&draft.wasteType&&weight>0&&Number(draft.containers)>=0)
  function submit(){
   if(!valid)return
+  const now=new Date().toISOString()
   onSave({...draft,departmentEn,type:draft.wasteType,typeEn,weight,containers:Number(draft.containers)||0,patientDays:patientDays||null,indicator,
    responsible:draft.responsible||actor.name,createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,
    updatedAt:initialRecord?new Date().toISOString():null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized',finalizedAt:initialRecord?.finalizedAt||now,finalizedBy:initialRecord?.finalizedBy||actor.name,finalizedById:initialRecord?.finalizedById||actor.id})

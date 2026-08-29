@@ -287,7 +287,7 @@ export function SurveillancePage(){
         </div>
       </div>}
 
-      {registryMode==='employees'&&<EmployeeSurveillanceRegistry t={t} language={language} fmt={fmt} version={version} onChange={()=>setVersion(v=>v+1)}/>}
+      {registryMode==='employees'&&<EmployeeSurveillanceRegistry t={t} language={language} fmt={fmt} version={version} onChange={()=>setVersion(v=>v+1)} actorName={actor.name} actorId={actor.id}/>}
       {registryMode==='batches'&&<EmployeeBatchRegistry t={t} language={language} fmt={fmt} version={version}/>}
       {registryMode==='environmental'&&<EnvironmentalRegistry records={environmentalSurveillanceRecords} batches={environmentalSurveillanceBatches} t={t} language={language} fmt={fmt} onOpenSample={sampleId=>navigate(`/laboratory/${sampleId}`,{state:{returnTo:'/surveillance'}})}/>}
 
@@ -308,7 +308,7 @@ export function SurveillancePage(){
 }
 
 
-function EmployeeSurveillanceRegistry({t,language,fmt,version,onChange,requestedRecordId,onRequestedRecordHandled,returnFrom,onReturn,actorName}){
+function EmployeeSurveillanceRegistry({t,language,fmt,version,onChange,requestedRecordId,onRequestedRecordHandled,returnFrom,onReturn,actorName,actorId}){
   const [selected,setSelected]=useState(null)
   const [editMode,setEditMode]=useState(false)
   const [intervention,setIntervention]=useState('')
@@ -387,7 +387,7 @@ function EmployeeSurveillanceRegistry({t,language,fmt,version,onChange,requested
       timeline:[{at:now,type:hasFollowup(selected)?'employeeFollowupCorrected':'employeeFollowupRecorded',actor:actorName,detail:correctionReason.trim()||null},...(selected.timeline||[])]
     })
     if(!noRecheck&&recheckDate&&recheckDate!==previous.recheckDate){
-      createEmployeeRecheck(updated||selected,{date:recheckDate,createdBy:actorName,createdById:actor.id})
+      createEmployeeRecheck(updated||selected,{date:recheckDate,createdBy:actorName,createdById:actorId})
     }
     const fresh=employeeSurveillanceRecords.find(x=>x.id===selected.id)
     setSelected(fresh||updated||selected)
