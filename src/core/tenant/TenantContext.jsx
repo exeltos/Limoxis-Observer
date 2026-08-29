@@ -14,7 +14,12 @@ export function TenantProvider({ children }) {
   const [memberships, setMemberships] = useState([])
   const [activeMembershipId, setActiveMembershipId] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [rolePreview, setRolePreview] = useState(null)
+  const [rolePreview, setRolePreview] = useState(()=>{
+    if(typeof window==='undefined')return null
+    const params=new URLSearchParams(window.location.search)
+    const requested=params.get('helpRole')
+    return params.get('helpPreview')==='1'&&Object.values(ROLES).includes(requested)?{role:requested,department:''}:null
+  })
 
   useEffect(() => {
     if (!isAuthenticated) {

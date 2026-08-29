@@ -10,10 +10,11 @@ import { navigationFor } from '../../app/navigation'
 
 const resolveManual=(path)=>helpManual[path]||helpManual[Object.keys(helpManual).find(k=>k!=='/'&&path.startsWith(k))]||helpManual['/']
 const NETLIFY_ORIGIN='https://limoxis-observer.netlify.app'
-const netlifyPreviewUrl=(path)=>{
+const netlifyPreviewUrl=(path,role)=>{
  const base=typeof window!=='undefined'&&window.location.hostname==='limoxis-observer.netlify.app'?window.location.origin:NETLIFY_ORIGIN
  const url=new URL(path||'/',base)
  url.searchParams.set('helpPreview','1')
+ if(role)url.searchParams.set('helpRole',role)
  return url.toString()
 }
 
@@ -50,10 +51,10 @@ export function HelpCenter({open,onClose}){
     </main>}
 
     {mode==='manual'&&<aside className="manual-preview-pane real-screen-pane"><header><span>ΖΩΝΤΑΝΗ ΟΘΟΝΗ ΑΠΟ NETLIFY</span><b>{current.title}</b></header>
-      <button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title="Μεγέθυνση πραγματικής οθόνης"><iframe src={netlifyPreviewUrl(selected)} title={`Netlify preview ${current.title}`} tabIndex="-1"/><span><Maximize2 size={14}/>Μεγέθυνση</span></button>
+      <button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title="Μεγέθυνση πραγματικής οθόνης"><iframe src={netlifyPreviewUrl(selected,role)} title={`Netlify preview ${current.title}`} tabIndex="-1"/><span><Maximize2 size={14}/>Μεγέθυνση</span></button>
       <section className="manual-explain"><h3>Πραγματική εικόνα εφαρμογής</h3><div><b>1</b><p><strong>Live από το Netlify</strong><span>Η μικρογραφία φορτώνει την πραγματική δημοσιευμένη οθόνη του Limoxis Observer από το limoxis-observer.netlify.app.</span></p></div><div><b>2</b><p><strong>Πάντα ενημερωμένη</strong><span>Με κάθε νέο Netlify deploy η προεπισκόπηση ακολουθεί αυτόματα την τρέχουσα έκδοση, χωρίς να αντικαθιστούμε screenshots χειροκίνητα.</span></p></div></section>
     </aside>}
-    {imageOpen&&<div className="manual-image-lightbox" onMouseDown={e=>e.target===e.currentTarget&&setImageOpen(false)}><section><header><div><small>ΖΩΝΤΑΝΗ ΟΘΟΝΗ ΑΠΟ NETLIFY</small><strong>{current.title}</strong></div><button onClick={()=>setImageOpen(false)}><X size={19}/></button></header><div className="manual-live-large netlify-live-large"><iframe src={netlifyPreviewUrl(selected)} title={`Netlify μεγέθυνση ${current.title}`} tabIndex="-1"/></div><footer>Read-only προεπισκόπηση της πραγματικής δημοσιευμένης οθόνης από το Netlify.</footer></section></div>}
+    {imageOpen&&<div className="manual-image-lightbox" onMouseDown={e=>e.target===e.currentTarget&&setImageOpen(false)}><section><header><div><small>ΖΩΝΤΑΝΗ ΟΘΟΝΗ ΑΠΟ NETLIFY</small><strong>{current.title}</strong></div><button onClick={()=>setImageOpen(false)}><X size={19}/></button></header><div className="manual-live-large netlify-live-large"><iframe src={netlifyPreviewUrl(selected,role)} title={`Netlify μεγέθυνση ${current.title}`} tabIndex="-1"/></div><footer>Read-only προεπισκόπηση της πραγματικής δημοσιευμένης οθόνης από το Netlify.</footer></section></div>}
 
     {mode==='glossary'&&<main className="manual-special"><span className="manual-step-label">ΟΡΟΛΟΓΙΑ</span><h1>Κλινικοί & λειτουργικοί όροι</h1><p>Οι όροι που χρησιμοποιούνται μέσα στο Limoxis Observer.</p><div className="manual-glossary">{terms.map(g=><div key={g.term}><strong>{g.term}</strong><span>{language==='el'?g.el:g.en}</span></div>)}</div></main>}
     {mode==='about'&&<main className="manual-special manual-about"><span className="manual-step-label">LIMOXIS OBSERVER</span><h1>Σχετικά με την εφαρμογή</h1><p>Hospital Infection Prevention, Surveillance & Governance platform.</p><div className="manual-about-grid"><section><small>ΤΡΕΧΟΥΣΑ ΕΚΔΟΣΗ</small><strong>v{APP_VERSION}</strong><span>Build {BUILD_ID}</span></section><section><small>ΠΡΟΣΒΑΣΗ</small><strong>Role + Scope</strong><span>Capabilities & assignments</span></section><section><small>ΓΛΩΣΣΕΣ</small><strong>EL / EN</strong><span>Ενιαίο περιβάλλον</span></section><section><small>ΔΙΑΚΥΒΕΡΝΗΣΗ</small><strong>Traceability</strong><span>Audit-aware workflows</span></section></div><div className="manual-about-text"><h2>Σκοπός</h2><p>Το Limoxis Observer οργανώνει την καθημερινή εργασία πρόληψης και ελέγχου λοιμώξεων σε ένα ενιαίο περιβάλλον. Η εμπειρία προσαρμόζεται στον πραγματικό χρήστη: το menu, οι οθόνες, οι ενέργειες, οι ειδοποιήσεις και αυτό το εγχειρίδιο ακολουθούν τον ίδιο μηχανισμό πρόσβασης.</p></div></main>}
