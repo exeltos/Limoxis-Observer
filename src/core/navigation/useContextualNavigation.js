@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { writeSessionJson } from '../storage/browserStorage'
 
 const CONTEXT_KEY='limoxis.navigation.context'
 export function useContextualNavigation(fallback='/'){
@@ -16,7 +17,7 @@ export function useContextualNavigation(fallback='/'){
       tab:tab??null,
       registry:registry??null,
     }
-    sessionStorage.setItem(CONTEXT_KEY,JSON.stringify(from))
+    writeSessionJson(CONTEXT_KEY,from)
     navigate(to,{...rest,state:{...(rest.state||{}),limoxisFrom:from}})
   },[location,navigate])
 
