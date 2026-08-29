@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { Check,Copy,Edit3,Plus,RotateCcw,X } from 'lucide-react'
+import { Check,Copy,Edit3,Plus,RotateCcw,Trash2,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { FilterBar } from '../../design-system/FilterBar'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -21,6 +21,15 @@ export function BundleLibraryPanel(){
  }
  function duplicate(item){
   setSelected({...JSON.parse(JSON.stringify(item)),id:`${item.id}-COPY-${Date.now()}`,name:`${item.name} Copy`,version:'0.1',status:'draft',system:false})
+ }
+ function editBundle(item){
+  if(item.status==='published'||item.status==='retired'||item.system)setSelected({...JSON.parse(JSON.stringify(item)),id:`${item.id}-LOCAL-${Date.now()}`,version:nextBundleVersion(item.version),status:'draft',system:false,source:`${item.source||'Core'} · hospital override`,basedOn:item.id})
+  else setSelected(JSON.parse(JSON.stringify(item)))
+ }
+ async function removeBundle(item){
+  const ok=await confirm({title:'Διαγραφή Bundle',message:`Το Bundle «${item.name}» θα αφαιρεθεί από τη βιβλιοθήκη του νοσοκομείου. Οι υπάρχουσες εκτελέσεις δεν επηρεάζονται.`,confirmLabel:'Διαγραφή',danger:true})
+  if(!ok)return
+  setRows(current=>{const next=current.filter(x=>x.id!==item.id);saveBundleLibrary(next);return next});notify('Το Bundle αφαιρέθηκε.','success')
  }
  function save(item){
   setRows(current=>{
@@ -52,7 +61,7 @@ export function BundleLibraryPanel(){
   <div className="table-wrap scroll-table bundle-library-table-wrap">
    <table className="data-table sticky-table bundle-library-table">
     <thead><tr><th>Bundle</th><th>Έκδοση</th><th>Κατάσταση</th><th>Στοιχεία</th><th>Πηγή / guideline</th><th>Scope</th><th></th></tr></thead>
-    <tbody>{filtered.map(item=><tr key={item.id} className="clickable-row" onClick={()=>setSelected(JSON.parse(JSON.stringify(item)))}>
+    <tbody>{filtered.map(item=><tr key={item.id} className="clickable-row" onClick={()=>editBundle(item)}>
      <td><strong>{item.name}</strong><small>{item.titleEl}{item.titleEn?` · ${item.titleEn}`:''}</small></td>
      <td><strong>v{item.version}</strong></td>
      <td><span className={`bundle-library-status ${item.status}`}>{STATUS_LABELS[item.status]}</span></td>
@@ -60,8 +69,8 @@ export function BundleLibraryPanel(){
      <td><strong>{item.source||'—'}</strong><small>{item.sourceVersion||''}</small></td>
      <td><span className="bundle-library-scope-text">{item.scope||'—'}</span></td>
      <td onClick={e=>e.stopPropagation()}><div className="row-actions">
-      <button className="icon-button" title="Άνοιγμα / επεξεργασία" onClick={()=>setSelected(JSON.parse(JSON.stringify(item)))}><Edit3 size={14}/></button>
-      <button className="icon-button" title="Δημιουργία νέας draft έκδοσης" onClick={()=>duplicate(item)}><Copy size={14}/></button>
+      <button className="icon-button" title="Άνοιγμα / επεξεργασία" onClick={()=>editBundle(item)}><Edit3 size={14}/></button>
+      <button className="icon-button" title="Δημιουργία νέας draft έκδοσης" onClick={()=>duplicate(item)}><Copy size={14}/></button><button className="icon-button danger" title="Διαγραφή από το νοσοκομείο" onClick={()=>removeBundle(item)}><Trash2 size={14}/></button>
       {item.status==='draft'&&<button className="text-button compact" onClick={()=>publish(item)}><Check size={13}/> Publish</button>}
       {item.status==='published'&&<button className="text-button compact" onClick={()=>retire(item)}><RotateCcw size={13}/> Retire</button>}
      </div></td>
@@ -72,7 +81,9 @@ export function BundleLibraryPanel(){
  </div>
 }
 
+function nextBundleVersion(version){const p=String(version||'1.0').split('.').map(Number);return p.length>=2&&p.every(Number.isFinite)?`${p[0]}.${p[1]+1}`:'1.1'}
 function BundleEditor({draft,onClose,onSave}){
+ const {notify,confirm}=useFeedback()
  const [value,setValue]=useState(draft)
  const set=(k,v)=>setValue(x=>({...x,[k]:v}))
  function elementChange(index,key,v){setValue(x=>({...x,elements:x.elements.map((e,i)=>i===index?{...e,[key]:v}:e)}))}

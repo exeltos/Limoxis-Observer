@@ -15,8 +15,8 @@ export function readEnvironmentalStandards(){
     return Array.isArray(saved)?saved:demoLibrarySeed.environmentalStandards
   }catch{return demoLibrarySeed.environmentalStandards}
 }
-export function EnvironmentalStandardsPanel(){
-  const {t}=useLanguage();const {notify}=useFeedback()
+export function EnvironmentalStandardsPanel({embedded=false}){
+  const {t}=useLanguage();const {notify,confirm}=useFeedback()
   const [rows,setRows]=useState(()=>readEnvironmentalStandards())
   const [query,setQuery]=useState('')
   const [draft,setDraft]=useState(null)
@@ -29,8 +29,12 @@ export function EnvironmentalStandardsPanel(){
     const item={...draft,protocolCode:draft.protocolCode.trim(),unit:draft.unit.trim(),limitCfu:limit,id:draft.id||`ENV-${Date.now()}`}
     persist(draft.id?rows.map(x=>x.id===draft.id?item:x):[...rows,item]);setDraft(null);notify(t('environmentalStandards.environmentalProtocolSaved'),'success')
   }
-  function remove(item){if(!confirm(t('environmentalStandards.confirmEnvironmentalProtocolDelete')))return;persist(rows.filter(x=>x.id!==item.id));notify(t('environmentalStandards.environmentalProtocolDeleted'),'success')}
-  return <section className="management-section management-scroll-section">
+  async function remove(item){
+    const ok=await confirm({title:t('delete'),message:t('environmentalStandards.confirmEnvironmentalProtocolDelete'),confirmLabel:t('delete'),danger:true})
+    if(!ok)return
+    persist(rows.filter(x=>x.id!==item.id));notify(t('environmentalStandards.environmentalProtocolDeleted'),'success')
+  }
+  return <section className={embedded?"environmental-embedded management-scroll-section":"management-section management-scroll-section"}>
     <div className="section-toolbar"><div><h2>{t('environmentalProtocols')}</h2><p>{t('environmentalStandards.environmentalProtocolsSubtitle')}</p></div><Button onClick={()=>setDraft({...empty})}><Plus size={15}/>{t('environmentalStandards.newEnvironmentalProtocol')}</Button></div>
     <div className="governance-banner"><ShieldCheck size={16}/><span>{t('environmentalStandards.environmentalProtocolsGovernance')}</span></div>
     <FilterBar compact query={query} onQueryChange={setQuery} placeholder={t('environmentalStandards.searchEnvironmentalProtocols')} onClear={()=>setQuery('')}/>

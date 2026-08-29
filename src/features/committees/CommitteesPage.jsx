@@ -1,7 +1,7 @@
 
 import { useMemo,useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BookOpenCheck, CalendarDays, CheckCircle2, Clock3, Plus, Trash2, Users } from 'lucide-react'
+import { BookOpenCheck, CalendarDays, CheckCircle2, Clock3, Plus, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
@@ -19,7 +19,7 @@ import { IPC_COMMITTEE_CATALOG,ipcCommitteeById } from './ipcCommitteeCatalog'
 import { requestCommitteeApproval } from './committeeApprovals'
 
 export function CommitteesPage(){
- const navigate=useNavigate();const {role,membership}=useTenant();const {notify,confirm}=useFeedback();const actor=useAuditActor()
+ const navigate=useNavigate();const {role,membership}=useTenant();const {notify}=useFeedback();const actor=useAuditActor()
  const [rows,setRows]=useState(loadCommittees);const [createOpen,setCreateOpen]=useState(false);const [query,setQuery]=useState('');const [status,setStatus]=useState('all')
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const canManage=can(role,CAPABILITIES.MANAGE_COMMITTEES,addOns,custom)
@@ -55,6 +55,7 @@ function Metric({icon:Icon,label,value}){return <div className="module-summary-m
 const frequencies=[['monthly','Μηνιαία'],['bimonthly','Ανά δίμηνο'],['quarterly','Τριμηνιαία'],['semiannual','Εξαμηνιαία'],['annual','Ετήσια'],['as_needed','Όποτε απαιτείται']]
 
 function CommitteeCreateDialog({actor,onClose,onCreated}){
+ const {confirm}=useFeedback()
  const staff=useMemo(()=>loadEmployees().filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession,email:x.email||''})),[])
  const first=IPC_COMMITTEE_CATALOG[0]
  const [draft,setDraft]=useState({templateId:first.id,name:first.name,shortName:first.code,committeeRole:first.role,mandate:first.duties.join('\n'),legalBasis:first.source,decisionNumber:'',termStart:'',termEnd:'',meetingFrequency:'quarterly',quorumRule:'simple_majority',notes:'',members:[]})
@@ -88,7 +89,7 @@ function CommitteeCreateDialog({actor,onClose,onCreated}){
     <label className="entry-span-2"><span>Αρμοδιότητες *</span><textarea rows="3" value={draft.mandate} onChange={e=>set('mandate',e.target.value)}/></label>
    </div></section>
    <section className="observer-form-section"><div className="observer-form-section-title"><div><strong>Σύνθεση</strong><span>Τα πραγματικά μέλη, η ιδιότητα και η αρμοδιότητά τους.</span></div><Button onClick={addMember}><Plus size={15}/> Προσθήκη μέλους</Button></div>
-    {draft.members.length?<div className="committee-dialog-member-list">{draft.members.map((m,i)=><CommitteeDialogMember key={m.id} m={m} index={i} staff={staff} suggestions={[...new Set(['Πρόεδρος','Αντιπρόεδρος','Συντονιστής','Γραμματέας','Μέλος','Αναπληρωματικό μέλος',...(template.requiredFunctions||[])])]} onChange={(k,v)=>patchMember(m.id,k,v)} onRemove={()=>removeMember(m.id)}/>)}</div>:<div className="inline-empty">Δεν έχουν προστεθεί μέλη.</div>}
+    {draft.members.length?<div className="committee-member-list">{draft.members.map((m,i)=><CommitteeDialogMember key={m.id} m={m} index={i} staff={staff} suggestions={[...new Set(['Πρόεδρος','Αντιπρόεδρος','Συντονιστής','Γραμματέας','Μέλος','Αναπληρωματικό μέλος',...(template.requiredFunctions||[])])]} onChange={(k,v)=>patchMember(m.id,k,v)} onRemove={()=>removeMember(m.id)}/>)}</div>:<div className="inline-empty">Δεν έχουν προστεθεί μέλη.</div>}
     {!membersValid&&draft.members.length>0&&<div className="source-truth-note">Συμπληρώστε εργαζόμενο, ιδιότητα και αρμοδιότητα για κάθε μέλος. Δεν επιτρέπεται διπλή καταχώρηση.</div>}
    </section>
    <section className="observer-form-section"><div className="observer-form-section-title"><div><strong>Θητεία & λειτουργία</strong><span>Οι βασικοί κανόνες που απαιτούνται για συνεδριάσεις και ιστορικότητα.</span></div></div><div className="entry-grid compact">
@@ -104,10 +105,10 @@ function CommitteeCreateDialog({actor,onClose,onCreated}){
 
 function CommitteeDialogMember({m,index,staff,suggestions,onChange,onRemove}){
  const person=staff.find(x=>x.id===m.employeeId)
- return <div className="committee-dialog-member"><div className="committee-dialog-member-head"><div><strong>{person?.name||`Μέλος ${index+1}`}</strong><small>{person?[person.profession,person.department].filter(Boolean).join(' · '):'Επιλέξτε εργαζόμενο'}</small></div><div className="record-inline-actions"><button type="button" className="danger" onClick={onRemove} title="Αφαίρεση μέλους"><Trash2 size={15}/></button></div></div><div className="entry-grid compact">
+ return <div className="committee-member"><div className="committee-member-head"><div><strong>{person?.name||`Μέλος ${index+1}`}</strong><small>{person?[person.profession,person.department].filter(Boolean).join(' · '):'Επιλέξτε εργαζόμενο'}</small></div><div className="record-inline-actions"><button type="button" className="danger" onClick={onRemove} title="Αφαίρεση μέλους"><Trash2 size={15}/></button></div></div><div className="entry-grid compact">
   <label><span>Εργαζόμενος *</span><select value={m.employeeId} onChange={e=>onChange('employeeId',e.target.value)}><option value="">Επιλογή</option>{staff.map(x=><option key={x.id} value={x.id}>{x.name} · {x.department}</option>)}</select></label>
   <label><span>Ιδιότητα στην επιτροπή *</span><input list={`committee-role-${index}`} value={m.title} onChange={e=>onChange('title',e.target.value)} placeholder="π.χ. Πρόεδρος, Γραμματέας, Μέλος"/><datalist id={`committee-role-${index}`}>{suggestions.map(x=><option key={x} value={x}/>)}</datalist></label>
   <label><span>Συμμετοχή</span><select value={m.memberType||'regular'} onChange={e=>onChange('memberType',e.target.value)}><option value="regular">Τακτικό</option><option value="alternate">Αναπληρωματικό</option></select></label>
   <label><span>Αρμοδιότητα *</span><input value={m.responsibilities} onChange={e=>onChange('responsibilities',e.target.value)}/></label>
- </div><div className="committee-dialog-member-options"><label><input type="checkbox" checked={m.voting} onChange={e=>onChange('voting',e.target.checked)}/><span>Δικαίωμα ψήφου</span></label><label><input type="checkbox" checked={m.approvalRequired} onChange={e=>onChange('approvalRequired',e.target.checked)}/><span>Απαιτείται προσωπική ηλεκτρονική έγκριση</span></label></div></div>
+ </div><div className="committee-member-options"><label><input type="checkbox" checked={m.voting} onChange={e=>onChange('voting',e.target.checked)}/><span>Δικαίωμα ψήφου</span></label><label><input type="checkbox" checked={m.approvalRequired} onChange={e=>onChange('approvalRequired',e.target.checked)}/><span>Απαιτείται προσωπική ηλεκτρονική έγκριση</span></label></div></div>
 }

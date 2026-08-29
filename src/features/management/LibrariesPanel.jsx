@@ -1,88 +1,54 @@
-import { useMemo, useState } from 'react'
-import { BookOpen, Edit3, Plus, Trash2, X } from 'lucide-react'
+import { useMemo,useState } from 'react'
+import { Biohazard,BriefcaseMedical,Building2,Tablets,ClipboardCheck,Edit3,FileText,FlaskConical,LockKeyhole,PackageOpen,Plus,ShieldCheck,Syringe,Trash2,UsersRound,Wind } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { FilterBar } from '../../design-system/FilterBar'
+import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { demoLibrarySeed } from './managementData'
-import { BundleLibraryPanel } from './BundleLibraryPanel'
+import { demoLibrarySeed,newLocalLibraryItem } from './managementData'
+import { EnvironmentalStandardsPanel } from './EnvironmentalStandardsPanel'
 
+const LIBRARY_STATE_KEY='limoxis.managementLibraries.v2'
 const categories=[
- ['departments','libraryDepartments'],['microorganisms','libraryMicroorganisms'],['antibiotics','libraryAntibiotics'],
- ['notifiableDiseases','libraryNotifiableDiseases'],['sampleTypes','librarySampleTypes'],
- ['professionalCategories','libraryProfessionalCategories'],['vaccines','libraryVaccines'],
- ['wasteTypes','libraryWasteTypes'],['antiseptics','libraryAntiseptics'],['isolationTypes','libraryIsolationTypes'],
- ['controlTypes','libraryControlTypes'],['documentCategories','libraryDocumentCategories'],['bundles','libraryPreventionBundles']
+ ['departments','libraryDepartments',Building2,'blue'],['microorganisms','libraryMicroorganisms',Biohazard,'red'],
+ ['antibiotics','libraryAntibiotics',Tablets,'purple'],['notifiableDiseases','libraryNotifiableDiseases',ClipboardCheck,'orange'],
+ ['sampleTypes','librarySampleTypes',FlaskConical,'teal'],['professionalCategories','libraryProfessionalCategories',UsersRound,'indigo'],
+ ['vaccines','libraryVaccines',Syringe,'green'],['wasteTypes','libraryWasteTypes',PackageOpen,'amber'],
+ ['antiseptics','libraryAntiseptics',BriefcaseMedical,'cyan'],['isolationTypes','libraryIsolationTypes',ShieldCheck,'rose'],
+ ['controlTypes','libraryControlTypes',ClipboardCheck,'slate'],['documentCategories','libraryDocumentCategories',FileText,'violet'],
+ ['environmentalProtocols','environmentalProtocols',Wind,'sky'],
 ]
+const cloneSeed=()=>structuredClone(demoLibrarySeed)
+function loadState(){try{return {...cloneSeed(),...JSON.parse(localStorage.getItem(LIBRARY_STATE_KEY)||'{}')}}catch{return cloneSeed()}}
+function saveState(rows){try{localStorage.setItem(LIBRARY_STATE_KEY,JSON.stringify(rows))}catch{/* ignore: best-effort, falls back to defaults */}}
 
 export function LibrariesPanel(){
- const {language,t}=useLanguage()
- const {notify,confirm}=useFeedback()
- const [active,setActive]=useState('departments')
- const [query,setQuery]=useState('')
- const [rows,setRows]=useState(demoLibrarySeed)
- const [editor,setEditor]=useState(null)
- const [editorValue,setEditorValue]=useState('')
- const filtered=useMemo(()=>(rows[active]||[]).filter(x=>x.join(' ').toLowerCase().includes(query.toLowerCase())),[active,query,rows])
-
- function openAdd(){setEditor({mode:'add'});setEditorValue('')}
- function openEdit(original){setEditor({mode:'edit',original});setEditorValue(original[language==='el'?0:1]||'')}
+ const {language,t}=useLanguage();const {notify,confirm}=useFeedback()
+ const [active,setActive]=useState('departments');const [query,setQuery]=useState('');const [rows,setRows]=useState(loadState);const [editor,setEditor]=useState(null);const [draft,setDraft]=useState({el:'',en:''})
+ const filtered=useMemo(()=>(rows[active]||[]).filter(x=>`${x[0]} ${x[1]} ${x[2]?.source||''}`.toLowerCase().includes(query.toLowerCase())),[active,query,rows])
+ const persist=next=>{setRows(next);saveState(next)}
+ function openEdit(row){setEditor({mode:'edit',row});setDraft({el:row[0]||'',en:row[1]||''})}
+ function openAdd(){setEditor({mode:'add'});setDraft({el:'',en:''})}
  function saveEditor(){
-  const value=editorValue.trim()
-  if(!value||!editor)return
-  if(editor.mode==='add'){
-   setRows(c=>({...c,[active]:[...(c[active]||[]),[value,value]]}))
-   notify(t('libraryItemCreated'),'success')
-  }else{
-   const original=editor.original
-   setRows(c=>({...c,[active]:c[active].map(x=>x===original?(language==='el'?[value,x[1]]:[x[0],value]):x)}))
-   notify(t('libraryItemUpdated'),'success')
-  }
-  setEditor(null);setEditorValue('')
+  const el=draft.el.trim(),en=(draft.en||draft.el).trim();if(!el||!editor)return
+  if(editor.mode==='add')persist({...rows,[active]:[...(rows[active]||[]),newLocalLibraryItem(el,en)]})
+  else persist({...rows,[active]:(rows[active]||[]).map(x=>x===editor.row?[el,en,{...(x[2]||{}),system:false,locked:false,source:x[2]?.system?'Hospital override':(x[2]?.source||'Hospital'),version:'local'}]:x)})
+  notify(editor.mode==='add'?t('libraryItemCreated'):t('librariesPanel.libraryItemUpdated'),'success');setEditor(null)
  }
- async function remove(original){
-  const ok=await confirm({title:t('delete'),message:t('confirmLibraryDelete'),confirmLabel:t('delete'),danger:true})
+ async function remove(row){
+  const ok=await confirm({title:t('librariesPanel.removeFromLibraryTitle'),message:row[2]?.system?t('librariesPanel.removeSystemLibraryMessage'):t('librariesPanel.removeLocalLibraryMessage'),confirmLabel:t('librariesPanel.removeLabel'),danger:true})
   if(!ok)return
-  setRows(c=>({...c,[active]:c[active].filter(x=>x!==original)}))
-  notify(t('libraryItemDeleted'),'success')
+  persist({...rows,[active]:(rows[active]||[]).filter(x=>x!==row)});notify(t('librariesPanel.libraryItemRemoved'),'success')
  }
-
  return <section className="management-section management-scroll-section">
-  <div className="section-toolbar">
-   <div><h2>{t('libraries')}</h2><p>{t('librariesSubtitle')}</p></div>
-   {active!=='bundles'&&<Button onClick={openAdd}><Plus size={15}/>{t('newLibraryItem')}</Button>}
-  </div>
+  <div className="section-toolbar"><div><h2>{t('libraries')}</h2><p>{t('librariesPanel.librariesSubtitle')}</p></div>{active!=='environmentalProtocols'&&<Button onClick={openAdd}><Plus size={15}/>{t('newLibraryItem')}</Button>}</div>
+  {active!=='environmentalProtocols'&&<div className="library-governance-strip"><LockKeyhole size={15}/><div><strong>Core baseline + hospital overrides</strong><span>{t('librariesPanel.libraryGovernanceNote')}</span></div></div>}
   <div className="library-layout workspace-fill">
-   <aside className="library-categories scroll-list">
-    {categories.map(([id,key])=><button key={id} className={active===id?'active':''} onClick={()=>{setActive(id);setQuery('')}}>
-     <BookOpen size={15}/><span>{t(key)}</span><small>{id==='bundles'?'6':(rows[id]?.length||0)}</small>
-    </button>)}
-   </aside>
-   <div className="library-content workspace-column">
-    {active==='bundles'?<BundleLibraryPanel/>:<>
-     <FilterBar compact query={query} onQueryChange={setQuery} placeholder={t('searchLibrary')} onClear={()=>setQuery('')}/>
-     {active==='notifiableDiseases'&&<div className="governance-banner"><span>{t('notifiableLibraryGovernance')}</span></div>}
-     <div className="table-wrap scroll-table"><table className="data-table sticky-table">
-      <thead><tr><th>{t('name')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead>
-      <tbody>{filtered.map(row=><tr key={`${active}-${row[0]}`}>
-       <td><strong>{row[language==='el'?0:1]}</strong>{row[0]!==row[1]&&<small>{row[language==='el'?1:0]}</small>}</td>
-       <td><span className="status-badge active">{t('active')}</span></td>
-       <td><div className="row-actions">
-        <button className="icon-button" title={t('edit')} onClick={()=>openEdit(row)}><Edit3 size={15}/></button>
-        <button className="icon-button danger" title={t('delete')} onClick={()=>remove(row)}><Trash2 size={15}/></button>
-       </div></td>
-      </tr>)}</tbody>
-     </table></div>
-    </>}
-   </div>
+   <aside className="library-categories library-categories-v2 scroll-list">{categories.map(([id,key,Icon,tone])=><button key={id} className={active===id?'active':''} onClick={()=>{setActive(id);setQuery('')}}><span className={`library-category-icon tone-${tone}`}><Icon size={16}/></span><span className="library-category-copy"><strong>{t(key)}</strong><small>{id==='environmentalProtocols'?t('librariesPanel.environmentalProtocolsHint'):t('librariesPanel.centralLibraryHint')}</small></span><b>{id==='environmentalProtocols'?'6':(rows[id]?.length||0)}</b></button>)}</aside>
+   <div className="library-content workspace-column">{active==='environmentalProtocols'?<EnvironmentalStandardsPanel embedded/>:<><FilterBar compact query={query} onQueryChange={setQuery} placeholder={t('searchLibrary')} onClear={()=>setQuery('')}/><div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('name')}</th><th>{t('librariesPanel.sourceReferenceLabel')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead><tbody>{filtered.map(row=>{const meta=row[2]||{};return <tr key={`${active}-${row[0]}-${row[1]}`}><td><strong>{row[language==='el'?0:1]}</strong>{row[0]!==row[1]&&<small>{row[language==='el'?1:0]}</small>}</td><td><span className="library-source">{meta.source||'Hospital'}</span>{meta.version&&meta.version!=='current'&&<small>{meta.version}</small>}</td><td>{meta.system?<span className="status-badge library-system-badge"><LockKeyhole size={11}/> Core</span>:<span className="status-badge active">{t('hospital')}</span>}</td><td><div className="record-inline-actions"><button title={t('edit')} onClick={()=>openEdit(row)}><Edit3 size={15}/></button><button className="danger" title={t('delete')} onClick={()=>remove(row)}><Trash2 size={15}/></button></div></td></tr>})}</tbody></table></div></>}</div>
   </div>
-
-  {editor&&<div className="modal-backdrop">
-   <div className="library-item-editor" role="dialog" aria-modal="true" aria-labelledby="library-item-editor-title">
-    <header><div><span className="eyebrow">LIBRARY</span><h3 id="library-item-editor-title">{editor.mode==='add'?t('newLibraryItem'):t('edit')}</h3></div><button className="icon-button" onClick={()=>setEditor(null)} aria-label={t('close')}><X size={16}/></button></header>
-    <label className="field"><span>{t('name')}</span><input autoFocus value={editorValue} onChange={e=>setEditorValue(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveEditor()}}/></label>
-    <footer><Button variant="secondary" onClick={()=>setEditor(null)}>{t('cancel')}</Button><Button disabled={!editorValue.trim()} onClick={saveEditor}>{t('save')}</Button></footer>
-   </div>
-  </div>}
+  {editor&&<ObserverDialog eyebrow={t('libraries')} title={editor.mode==='add'?t('librariesPanel.newLibraryItemTitle'):t('librariesPanel.editLibraryItemTitle')} subtitle={editor.row?.[2]?.system?t('librariesPanel.hospitalOverrideNote'):t('librariesPanel.localLibraryEntryNote')} width="standard" onClose={()=>setEditor(null)} footer={<DialogActions onCancel={()=>setEditor(null)} onSave={saveEditor} disabled={!draft.el.trim()}/>}>
+   <div className="entry-grid compact"><label className="field"><span>{t('librariesPanel.nameElRequired')}</span><input autoFocus value={draft.el} onChange={e=>setDraft(x=>({...x,el:e.target.value}))}/></label><label className="field"><span>Name EN</span><input value={draft.en} onChange={e=>setDraft(x=>({...x,en:e.target.value}))}/></label></div>
+  </ObserverDialog>}
  </section>
 }

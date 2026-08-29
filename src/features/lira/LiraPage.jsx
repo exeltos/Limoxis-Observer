@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { BrainCircuit,CheckCircle2,FlaskConical,Lightbulb,Search,ShieldAlert,Sparkles,TrendingUp } from 'lucide-react'
+import { BrainCircuit,CheckCircle2,Lightbulb,Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
@@ -54,7 +54,7 @@ function Briefing({analysis,navigate}){
 }
 function Pulse({label,value,note}){return <div className="lira-pulse-row"><div><span>{label}</span><small>{note}</small></div><strong>{value}</strong></div>}
 
-function Assistant({question,setQuestion,onAsk,answer,analysis,navigate}){
+function Assistant({question,setQuestion,onAsk,answer,navigate}){
  const prompts=['Πού χρειάζεται άμεση προσοχή σήμερα;','Τι συμβαίνει στη ΜΕΘ;','Υπάρχει θέμα με MDR/XDR;','Πού έχουμε χαμηλή συμμόρφωση πρόληψης;','Ποιες ενέργειες είναι εκπρόθεσμες;']
  return <section className="lira-chat-shell">
   <div className="lira-chat-main">
@@ -90,9 +90,6 @@ function Assistant({question,setQuestion,onAsk,answer,analysis,navigate}){
   </div>
  </section>
 }
-
-function Metric({icon:Icon,label,value}){return <div className="module-summary-metric"><Icon size={15}/><div><strong>{value}</strong><span>{label}</span></div></div>}
-function SignalRow({x,navigate}){return <article className="lira-signal-row"><span className={`lira-signal-dot ${x.severity}`}/><div><strong>{x.title}</strong><span>{x.summary}</span><small>{x.domain}{x.department?` · ${x.department}`:''} · {x.evidence}</small></div>{x.to&&<Button variant="secondary" onClick={()=>navigate(x.to)}>Έλεγχος</Button>}</article>}
 
 function buildAnalysis(){
  const active=surveillanceDemoData.filter(x=>x.state==='active')

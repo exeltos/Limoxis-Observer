@@ -146,7 +146,7 @@ async function openTrainingMaterial(material,notify){
  if(material.dataUrl)target=dataUrlToObjectUrl(material.dataUrl)
  else if(material.url)target=material.url
  else if(material.objectUrl){
-  try{const r=await fetch(material.objectUrl);if(r.ok)target=material.objectUrl}catch{}
+  try{const r=await fetch(material.objectUrl);if(r.ok)target=material.objectUrl}catch{/* ignore: best-effort, falls back to defaults */}
  }
  if(!target){notify?.('Το παλιό τοπικό αρχείο δεν είναι πλέον διαθέσιμο· ανεβάστε ξανά το αρχείο μία φορά.','warning');return}
  window.open(target,'_blank','noopener,noreferrer')

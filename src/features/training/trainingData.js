@@ -44,8 +44,8 @@ export function findTrainingAccess(state,token){for(const program of state.progr
 export function loadTrainingState(){
  try{const raw=localStorage.getItem(KEY)||localStorage.getItem(LEGACY_KEY);return raw?normalize(JSON.parse(raw)):structuredClone(trainingDemoState)}catch{return structuredClone(trainingDemoState)}
 }
-export function saveTrainingState(state){try{localStorage.setItem(KEY,JSON.stringify(state))}catch{}return state}
-export function resetTrainingState(){try{localStorage.removeItem(KEY)}catch{}return structuredClone(trainingDemoState)}
+export function saveTrainingState(state){try{localStorage.setItem(KEY,JSON.stringify(state))}catch{/* ignore: best-effort, falls back to defaults */}return state}
+export function resetTrainingState(){try{localStorage.removeItem(KEY)}catch{/* ignore: best-effort, falls back to defaults */}return structuredClone(trainingDemoState)}
 export function computedAssignmentStatus(row,today=new Date()){
  if(row.status==='completed')return 'completed'
  if(row.status==='cancelled')return 'cancelled'

@@ -18,10 +18,10 @@ const seed=[
 ]
 
 export function loadDocuments(){
-  try{const raw=localStorage.getItem(KEY);if(raw){const rows=JSON.parse(raw);if(Array.isArray(rows))return rows}}catch{}
+  try{const raw=localStorage.getItem(KEY);if(raw){const rows=JSON.parse(raw);if(Array.isArray(rows))return rows}}catch{/* ignore: best-effort, falls back to defaults */}
   return structuredClone(seed)
 }
-export function saveDocuments(rows){try{localStorage.setItem(KEY,JSON.stringify(rows))}catch{}return rows}
+export function saveDocuments(rows){try{localStorage.setItem(KEY,JSON.stringify(rows))}catch{/* ignore: best-effort, falls back to defaults */}return rows}
 export function nextDocumentId(rows){
   const max=rows.reduce((m,x)=>Math.max(m,Number(String(x.id||'').match(/DOC-(\d+)/)?.[1]||0)),0)
   return `DOC-${String(max+1).padStart(3,'0')}`

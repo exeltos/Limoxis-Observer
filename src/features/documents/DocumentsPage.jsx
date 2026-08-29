@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { BookOpenCheck,FileCheck2,FileClock,Files,Plus } from 'lucide-react'
+import { BookOpenCheck,FileCheck2,FileClock,Files } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'

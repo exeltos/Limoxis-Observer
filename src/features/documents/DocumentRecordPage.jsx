@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { Archive,BookOpenCheck,FileClock,Paperclip,Pencil,RotateCcw,Trash2 } from 'lucide-react'
+import { Archive,BookOpenCheck,FileClock,Paperclip,Pencil } from 'lucide-react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'

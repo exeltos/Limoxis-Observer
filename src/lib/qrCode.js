@@ -1,3 +1,4 @@
+/* eslint-disable no-redeclare -- vendored third-party source keeps its original var-based loop style; not modified to avoid diverging from upstream. */
 /* Vendored QR encoder based on Kazuhiko Arase QRCode for JavaScript (MIT). */
 
 // ---- QRMode.js ----

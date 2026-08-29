@@ -5,10 +5,9 @@ import { employeeVaccinations } from '../employees/employeeDemoData'
 import { loadEmployees } from '../employees/employeeStore'
 import { loadTrainingState } from '../training/trainingData'
 import { indicatorDefinitions } from './indicatorDefinitions'
-import { loadCustomIndicators } from './indicatorStore'
+import { loadCustomIndicators,loadIndicatorOverrides,loadDeletedIndicatorIds } from './indicatorStore'
 
 const round=(n,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
-const pct=(a,b)=>b?round(a/b*100,1):null
 
 export const indicatorMetricCatalog=[
  {key:'active_surveillance',label:'Ενεργές επιτηρήσεις',source:'Επιτήρηση'},
@@ -65,7 +64,12 @@ export function calculateDefinition(def,metrics){
 export function calculateIndicators(){
  const metrics=collectIndicatorMetrics()
  const custom=loadCustomIndicators()
- return [...indicatorDefinitions,...custom].filter(x=>x.active!==false).map(def=>calculateDefinition(def,metrics))
+ const overrides=loadIndicatorOverrides()
+ const deleted=new Set(loadDeletedIndicatorIds())
+ const definitions=[...indicatorDefinitions,...custom]
+   .filter(x=>x.active!==false&&!deleted.has(x.id))
+   .map(def=>overrides[def.id]?{...def,...overrides[def.id],id:def.id}:def)
+ return definitions.map(def=>calculateDefinition(def,metrics))
 }
 function evidenceFor(def,n,d){
  if(def.calculation==='manual')return 'Χειροκίνητη τιμή'

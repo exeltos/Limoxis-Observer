@@ -1,6 +1,6 @@
 import { useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
-import { AlertTriangle,CalendarDays,CheckCircle2,ClipboardList,FileClock,FileSignature,Info,Mail,Paperclip,Pencil,Plus,ShieldCheck,Target,Trash2,Users } from 'lucide-react'
+import { AlertTriangle,CalendarDays,CheckCircle2,ClipboardList,FileClock,FileSignature,Mail,Paperclip,Pencil,Plus,ShieldCheck,Target,Trash2,Users } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
@@ -215,7 +215,6 @@ function Overview({r,activeMembers}){
  </section>
 }
 function SharedKpi({icon:Icon,label,value}){return <div className="module-summary-metric"><Icon size={15}/><div><strong>{value}</strong><span>{label}</span></div></div>}
-function DetailField({l,v}){return <div className="detail-field"><span>{l}</span><strong>{v||'—'}</strong></div>}
 function SectionHead({title,subtitle,action}){return <div className="record-section-header"><div><span className="eyebrow">Επιτροπές</span><h3>{title}</h3>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>}
 
 function AnnualPlan({rows,canManage,onAdd,onEdit,onStatus}){
