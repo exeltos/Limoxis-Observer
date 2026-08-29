@@ -39,8 +39,8 @@ export function AnnouncementsPanel(){
    if(editor.audienceType!=='all'&&!editor.audienceValues.length)return notify('Επιλέξτε τουλάχιστον έναν παραλήπτη.','warning')
    const startAt=combine(editor.startDate,editor.startTime),endAt=combine(editor.endDate,editor.endTime)
    if(startAt&&endAt&&new Date(endAt)<=new Date(startAt))return notify('Η λήξη πρέπει να είναι μετά την έναρξη.','warning')
-   const {startDate,startTime,endDate,endTime,...rest}=editor
-   const payload={...rest,startAt,endAt,createdBy:'Διαχείριση Limoxis'}
+    const payload={...editor,startAt,endAt,createdBy:'Διαχείριση Limoxis'}
+    delete payload.startDate; delete payload.startTime; delete payload.endDate; delete payload.endTime
    if(editor.id)n.updateAnnouncement(payload);else n.addAnnouncement(payload)
    setEditor(null);setRecipientQuery('');notify('Η ανακοίνωση αποθηκεύτηκε.','success')
  }

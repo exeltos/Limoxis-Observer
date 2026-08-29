@@ -21,17 +21,17 @@ export function AppShell(){
     const birthdayKey=`limoxis.birthday.seen.${key}.${new Date().toISOString().slice(0,10)}`
     const briefingKey=`limoxis.briefing.seen.${key}`
     let birthdaySeen=false,briefingSeen=false
-    try{birthdaySeen=sessionStorage.getItem(birthdayKey)==='1';briefingSeen=sessionStorage.getItem(briefingKey)==='1'}catch{}
+    try{birthdaySeen=sessionStorage.getItem(birthdayKey)==='1';briefingSeen=sessionStorage.getItem(briefingKey)==='1'}catch{/* session storage unavailable */}
     if(notifications.birthday.length&&!birthdaySeen)setBirthdayOpen(true)
     else if(!briefingSeen)setBriefingOpen(true)
   },[profile,notifications.birthday.length])
   function closeBirthday(){
-    const key=profile?.id||profile?.email||'user';try{sessionStorage.setItem(`limoxis.birthday.seen.${key}.${new Date().toISOString().slice(0,10)}`,'1')}catch{}
+    const key=profile?.id||profile?.email||'user';try{sessionStorage.setItem(`limoxis.birthday.seen.${key}.${new Date().toISOString().slice(0,10)}`,'1')}catch{/* session storage unavailable */}
     setBirthdayOpen(false)
-    let briefingSeen=false;try{briefingSeen=sessionStorage.getItem(`limoxis.briefing.seen.${key}`)==='1'}catch{}
+    let briefingSeen=false;try{briefingSeen=sessionStorage.getItem(`limoxis.briefing.seen.${key}`)==='1'}catch{/* session storage unavailable */}
     if(!briefingSeen)window.setTimeout(()=>setBriefingOpen(true),180)
   }
-  function closeBriefing(){const key=profile?.id||profile?.email||'user';try{sessionStorage.setItem(`limoxis.briefing.seen.${key}`,'1')}catch{};setBriefingOpen(false)}
+  function closeBriefing(){const key=profile?.id||profile?.email||'user';try{sessionStorage.setItem(`limoxis.briefing.seen.${key}`,'1')}catch{/* session storage unavailable */};setBriefingOpen(false)}
 
   const previewRoles=[
     [ROLES.HOSPITAL_ADMIN,'hospitalAdminRole'],[ROLES.INFECTION_CONTROL_LEAD,'infectionControlLeadRole'],[ROLES.INFECTION_CONTROL_MEMBER,'infectionControlMemberRole'],[ROLES.DEPARTMENT_MANAGER,'departmentManagerRole'],[ROLES.DEPARTMENT_USER,'departmentUserRole'],[ROLES.LABORATORY,'laboratoryRole'],[ROLES.COMMITTEE_SECRETARIAT,'committeeSecretariatRole'],[ROLES.HR_OFFICE,'hrOfficeRole'],[ROLES.PHARMACY,'pharmacyRole'],[ROLES.OCCUPATIONAL_PHYSICIAN,'occupationalPhysicianRole'],[ROLES.DOCTOR_REVIEWER,'doctorReviewerRole'],[ROLES.QUALITY_MANAGER,'qualityManagerRole']

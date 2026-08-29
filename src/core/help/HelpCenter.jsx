@@ -9,13 +9,12 @@ import { useTenant } from '../tenant/TenantContext'
 import { navigationFor } from '../../app/navigation'
 
 const resolveManual=(path)=>helpManual[path]||helpManual[Object.keys(helpManual).find(k=>k!=='/'&&path.startsWith(k))]||helpManual['/']
-const realScreens={
- surveillance:'/help/screens/surveillance.png',
- prevention:'/help/screens/prevention.png',
- lira:'/help/screens/lira.png',
- quality:'/help/screens/quality.png',
- controls:'/help/screens/controls.png',
- committees:'/help/screens/committees.png',
+const NETLIFY_ORIGIN='https://limoxis-observer.netlify.app'
+const netlifyPreviewUrl=(path)=>{
+ const base=typeof window!=='undefined'&&window.location.hostname==='limoxis-observer.netlify.app'?window.location.origin:NETLIFY_ORIGIN
+ const url=new URL(path||'/',base)
+ url.searchParams.set('helpPreview','1')
+ return url.toString()
 }
 
 export function HelpCenter({open,onClose}){
@@ -38,7 +37,7 @@ export function HelpCenter({open,onClose}){
    <div className="manual-body">
     <aside className="manual-sidebar">
      <div className="manual-side-label">ΕΝΟΤΗΤΕΣ ΓΙΑ ΤΟΝ ΡΟΛΟ ΣΑΣ</div>
-     <div className="manual-nav">{filtered.map((x,i)=>{const Icon=x.icon||BookOpen;return <button key={x.to} className={selected===x.to&&mode==='manual'?'active':''} onClick={()=>{setMode('manual');setSelected(x.to);setChapter(0)}}><Icon size={15}/><span>{x.manual.title}</span><ChevronRight size={13}/></button>})}</div>
+     <div className="manual-nav">{filtered.map((x)=>{const Icon=x.icon||BookOpen;return <button key={x.to} className={selected===x.to&&mode==='manual'?'active':''} onClick={()=>{setMode('manual');setSelected(x.to);setChapter(0)}}><Icon size={15}/><span>{x.manual.title}</span><ChevronRight size={13}/></button>})}</div>
      <div className="manual-side-bottom"><button className={mode==='glossary'?'active':''} onClick={()=>setMode('glossary')}><BookOpen size={15}/><span>Ορολογία</span></button><button className={mode==='about'?'active':''} onClick={()=>setMode('about')}><Info size={15}/><span>Σχετικά / Έκδοση</span></button><div className="manual-version">Έκδοση v{APP_VERSION}<span>Build {BUILD_ID}</span></div></div>
     </aside>
 
@@ -50,11 +49,11 @@ export function HelpCenter({open,onClose}){
       <article className="manual-copy"><span className="manual-step-label">ΚΕΦΑΛΑΙΟ {chapter+1} / {current.chapters.length}</span><h2>{current.chapters[chapter][0]}</h2><p>{current.chapters[chapter][1]}</p><h3>Πώς το χρησιμοποιώ</h3><ol>{current.steps.map((s,i)=><li key={s}><b>{i+1}</b><span>{s}</span></li>)}</ol><div className="manual-role-note"><ShieldCheck size={17}/><p><b>Προσαρμοσμένο στον λογαριασμό σας</b><span>Βλέπετε μόνο κεφάλαια και ενότητες στις οποίες ο πραγματικός ρόλος, το scope ή οι πρόσθετες αρμοδιότητές σας δίνουν πρόσβαση.</span></p></div></article>
     </main>}
 
-    {mode==='manual'&&<aside className="manual-preview-pane real-screen-pane"><header><span>ΠΡΑΓΜΑΤΙΚΗ ΟΘΟΝΗ</span><b>{current.title}</b></header>
-      <button className="real-screen-thumb" onClick={()=>setImageOpen(true)} title="Μεγέθυνση πραγματικής οθόνης">{realScreens[current.preview]?<img src={realScreens[current.preview]} alt={`Πραγματική οθόνη ${current.title}`}/>:<iframe src={selected} title={`Ζωντανή προεπισκόπηση ${current.title}`} tabIndex="-1"/>}<span><Maximize2 size={14}/>Μεγέθυνση εικόνας</span></button>
-      <section className="manual-explain"><h3>Τι βλέπετε στην οθόνη</h3><div><b>1</b><p><strong>{realScreens[current.preview]?'Πραγματικό screenshot':'Πραγματικό UI'}</strong><span>{realScreens[current.preview]?'Η εικόνα προέρχεται από την πραγματική οθόνη του Limoxis Observer και αποθηκεύεται μαζί με το εγχειρίδιο.':'Όπου δεν έχει καταχωρηθεί ακόμη screenshot, εμφανίζεται read-only live preview της πραγματικής ενότητας.'}</span></p></div><div><b>2</b><p><strong>Μεγέθυνση</strong><span>Πατήστε τη μικρογραφία για καθαρή μεγάλη προβολή χωρίς να φύγετε από το εγχειρίδιο.</span></p></div></section>
+    {mode==='manual'&&<aside className="manual-preview-pane real-screen-pane"><header><span>ΖΩΝΤΑΝΗ ΟΘΟΝΗ ΑΠΟ NETLIFY</span><b>{current.title}</b></header>
+      <button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title="Μεγέθυνση πραγματικής οθόνης"><iframe src={netlifyPreviewUrl(selected)} title={`Netlify preview ${current.title}`} tabIndex="-1"/><span><Maximize2 size={14}/>Μεγέθυνση</span></button>
+      <section className="manual-explain"><h3>Πραγματική εικόνα εφαρμογής</h3><div><b>1</b><p><strong>Live από το Netlify</strong><span>Η μικρογραφία φορτώνει την πραγματική δημοσιευμένη οθόνη του Limoxis Observer από το limoxis-observer.netlify.app.</span></p></div><div><b>2</b><p><strong>Πάντα ενημερωμένη</strong><span>Με κάθε νέο Netlify deploy η προεπισκόπηση ακολουθεί αυτόματα την τρέχουσα έκδοση, χωρίς να αντικαθιστούμε screenshots χειροκίνητα.</span></p></div></section>
     </aside>}
-    {imageOpen&&<div className="manual-image-lightbox" onMouseDown={e=>e.target===e.currentTarget&&setImageOpen(false)}><section><header><div><small>ΠΡΑΓΜΑΤΙΚΗ ΟΘΟΝΗ</small><strong>{current.title}</strong></div><button onClick={()=>setImageOpen(false)}><X size={19}/></button></header><div className="manual-live-large">{realScreens[current.preview]?<img src={realScreens[current.preview]} alt={`Μεγέθυνση πραγματικής οθόνης ${current.title}`}/>:<iframe src={selected} title={`Μεγέθυνση ${current.title}`} tabIndex="-1"/>}</div><footer>{realScreens[current.preview]?'Πραγματικό screenshot της αντίστοιχης οθόνης του Limoxis Observer.':'Read-only live preview της πραγματικής οθόνης του Limoxis Observer.'}</footer></section></div>}
+    {imageOpen&&<div className="manual-image-lightbox" onMouseDown={e=>e.target===e.currentTarget&&setImageOpen(false)}><section><header><div><small>ΖΩΝΤΑΝΗ ΟΘΟΝΗ ΑΠΟ NETLIFY</small><strong>{current.title}</strong></div><button onClick={()=>setImageOpen(false)}><X size={19}/></button></header><div className="manual-live-large netlify-live-large"><iframe src={netlifyPreviewUrl(selected)} title={`Netlify μεγέθυνση ${current.title}`} tabIndex="-1"/></div><footer>Read-only προεπισκόπηση της πραγματικής δημοσιευμένης οθόνης από το Netlify.</footer></section></div>}
 
     {mode==='glossary'&&<main className="manual-special"><span className="manual-step-label">ΟΡΟΛΟΓΙΑ</span><h1>Κλινικοί & λειτουργικοί όροι</h1><p>Οι όροι που χρησιμοποιούνται μέσα στο Limoxis Observer.</p><div className="manual-glossary">{terms.map(g=><div key={g.term}><strong>{g.term}</strong><span>{language==='el'?g.el:g.en}</span></div>)}</div></main>}
     {mode==='about'&&<main className="manual-special manual-about"><span className="manual-step-label">LIMOXIS OBSERVER</span><h1>Σχετικά με την εφαρμογή</h1><p>Hospital Infection Prevention, Surveillance & Governance platform.</p><div className="manual-about-grid"><section><small>ΤΡΕΧΟΥΣΑ ΕΚΔΟΣΗ</small><strong>v{APP_VERSION}</strong><span>Build {BUILD_ID}</span></section><section><small>ΠΡΟΣΒΑΣΗ</small><strong>Role + Scope</strong><span>Capabilities & assignments</span></section><section><small>ΓΛΩΣΣΕΣ</small><strong>EL / EN</strong><span>Ενιαίο περιβάλλον</span></section><section><small>ΔΙΑΚΥΒΕΡΝΗΣΗ</small><strong>Traceability</strong><span>Audit-aware workflows</span></section></div><div className="manual-about-text"><h2>Σκοπός</h2><p>Το Limoxis Observer οργανώνει την καθημερινή εργασία πρόληψης και ελέγχου λοιμώξεων σε ένα ενιαίο περιβάλλον. Η εμπειρία προσαρμόζεται στον πραγματικό χρήστη: το menu, οι οθόνες, οι ενέργειες, οι ειδοποιήσεις και αυτό το εγχειρίδιο ακολουθούν τον ίδιο μηχανισμό πρόσβασης.</p></div></main>}
