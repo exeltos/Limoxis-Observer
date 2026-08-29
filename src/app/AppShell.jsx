@@ -11,6 +11,7 @@ import { APP_VERSION, BUILD_ID } from '../core/version'
 import { BirthdayGreeting, NotificationCenter, LoginBriefing } from '../core/notifications/NotificationCenter'
 import { useNotifications } from '../core/notifications/NotificationContext'
 import { useFeedback } from '../core/feedback/FeedbackContext'
+import { readSessionValue, writeSessionValue } from '../core/storage/browserStorage'
 
 export function AppShell(){
   const helpPreviewMode=typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('helpPreview')==='1'&&window.self!==window.top
@@ -22,18 +23,18 @@ export function AppShell(){
     const key=profile?.id||profile?.email||'user'
     const birthdayKey=`limoxis.birthday.seen.${key}.${new Date().toISOString().slice(0,10)}`
     const briefingKey=`limoxis.briefing.seen.${key}`
-    let birthdaySeen=false,briefingSeen=false
-    try{birthdaySeen=sessionStorage.getItem(birthdayKey)==='1';briefingSeen=sessionStorage.getItem(briefingKey)==='1'}catch{/* session storage unavailable */}
+    const birthdaySeen=readSessionValue(birthdayKey)==='1'
+    const briefingSeen=readSessionValue(briefingKey)==='1'
     if(notifications.birthday.length&&!birthdaySeen)setBirthdayOpen(true)
     else if(!briefingSeen)setBriefingOpen(true)
   },[profile,notifications.birthday.length,helpPreviewMode])
   function closeBirthday(){
-    const key=profile?.id||profile?.email||'user';try{sessionStorage.setItem(`limoxis.birthday.seen.${key}.${new Date().toISOString().slice(0,10)}`,'1')}catch{/* session storage unavailable */}
+    const key=profile?.id||profile?.email||'user';writeSessionValue(`limoxis.birthday.seen.${key}.${new Date().toISOString().slice(0,10)}`,'1')
     setBirthdayOpen(false)
-    let briefingSeen=false;try{briefingSeen=sessionStorage.getItem(`limoxis.briefing.seen.${key}`)==='1'}catch{/* session storage unavailable */}
+    const briefingSeen=readSessionValue(`limoxis.briefing.seen.${key}`)==='1'
     if(!briefingSeen)window.setTimeout(()=>setBriefingOpen(true),180)
   }
-  function closeBriefing(){const key=profile?.id||profile?.email||'user';try{sessionStorage.setItem(`limoxis.briefing.seen.${key}`,'1')}catch{/* session storage unavailable */};setBriefingOpen(false)}
+  function closeBriefing(){const key=profile?.id||profile?.email||'user';writeSessionValue(`limoxis.briefing.seen.${key}`,'1');setBriefingOpen(false)}
 
   const previewRoles=[
     [ROLES.HOSPITAL_ADMIN,'hospitalAdminRole'],[ROLES.INFECTION_CONTROL_LEAD,'infectionControlLeadRole'],[ROLES.INFECTION_CONTROL_MEMBER,'infectionControlMemberRole'],[ROLES.DEPARTMENT_MANAGER,'departmentManagerRole'],[ROLES.DEPARTMENT_USER,'departmentUserRole'],[ROLES.LABORATORY,'laboratoryRole'],[ROLES.COMMITTEE_SECRETARIAT,'committeeSecretariatRole'],[ROLES.HR_OFFICE,'hrOfficeRole'],[ROLES.PHARMACY,'pharmacyRole'],[ROLES.OCCUPATIONAL_PHYSICIAN,'occupationalPhysicianRole'],[ROLES.DOCTOR_REVIEWER,'doctorReviewerRole'],[ROLES.QUALITY_MANAGER,'qualityManagerRole']

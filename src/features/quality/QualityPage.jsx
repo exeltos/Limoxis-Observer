@@ -6,7 +6,7 @@ import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
-import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
+import { readRegistryViewState, useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { qualityCollections } from './qualityDemoData'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -14,6 +14,7 @@ import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { downloadCsv } from '../../core/export/csvExport'
 import { MetricCard } from '../../design-system/MetricCard'
+import { readSessionValue, writeSessionValue } from '../../core/storage/browserStorage'
 
 const sections=[
   {id:'incidents',label:'qualityIncidents',icon:AlertTriangle},
@@ -28,7 +29,8 @@ export function QualityPage(){
   const {notify}=useFeedback()
   const navigate=useNavigate()
   const {goTo}=useContextualNavigation('/quality')
-  const initialSection=sessionStorage.getItem('limoxis.quality.section')||'incidents'
+  const savedSection=readSessionValue('limoxis.quality.section','incidents')
+  const initialSection=sections.some(({id})=>id===savedSection)?savedSection:'incidents'
   const [section,setSection]=useState(initialSection)
   const registry=useRegistryMemory(`quality.${section}`)
   const saved=registry.loadViewState({query:'',status:'all',department:'all'})
@@ -47,7 +49,7 @@ export function QualityPage(){
   const highCount=rows.filter(x=>['high','critical'].includes(x.severity)).length
   function pageAction(action){
     if(action===UI_ACTIONS.CREATE&&canCreate){
-      sessionStorage.setItem('limoxis.quality.section',section);registry.saveViewState({query,status,department});goTo(`/quality/${section}/new`,{registry:`quality.${section}`});return
+      writeSessionValue('limoxis.quality.section',section);registry.saveViewState({query,status,department});goTo(`/quality/${section}/new`,{registry:`quality.${section}`});return
     }
     if(action===UI_ACTIONS.PRINT){window.print();notify(language==='en'?'View is ready to print.':'Η προβολή είναι έτοιμη για εκτύπωση.','success');return}
     if(action===UI_ACTIONS.EXPORT){
@@ -66,13 +68,13 @@ export function QualityPage(){
       </div>
     </div>
     <div className="quality-workspace workspace-fill">
-      <nav className="tabs quality-tabs canonical-module-tabs">{sections.map(({id,label,icon:Icon})=><button key={id} className={`tab ${section===id?'active':''}`} onClick={()=>{registry.saveViewState({query,status,department});sessionStorage.setItem('limoxis.quality.section',id);setSection(id);const next=JSON.parse(sessionStorage.getItem(`limoxis.registry.quality.${id}.view`)||'{}');setQuery(next.query||'');setStatus(next.status||'all');setDepartment(next.department||'all')}}><Icon size={15}/><span>{t(label)}</span><b className="tab-count">{qualityCollections[id]?.length||0}</b></button>)}</nav>
+      <nav className="tabs quality-tabs canonical-module-tabs">{sections.map(({id,label,icon:Icon})=><button key={id} className={`tab ${section===id?'active':''}`} onClick={()=>{registry.saveViewState({query,status,department});writeSessionValue('limoxis.quality.section',id);setSection(id);const next=readRegistryViewState(`quality.${id}`);setQuery(next?.query||'');setStatus(next?.status||'all');setDepartment(next?.department||'all')}}><Icon size={15}/><span>{t(label)}</span><b className="tab-count">{qualityCollections[id]?.length||0}</b></button>)}</nav>
       <section className="surface registry-workspace quality-registry">
         <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
           <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
           <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
         </FilterBar>
-        <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table quality-table"><thead><tr><th>{t('code')}</th><th>{t('title')}</th><th>{t('department')}</th><th>{t(section==='capas'?'dueDate':'date')}</th><th>{t('owner')}</th><th>{t('status')}</th></tr></thead><tbody>{filtered.map(row=><tr key={row.id} {...registry.rowProps(row.id)} onClick={()=>{sessionStorage.setItem('limoxis.quality.section',section);registry.saveViewState({query,status,department});registry.openRecord(navigate,`/quality/${section}/${row.id}`,row.id,filtered.map(x=>x.id))}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sessionStorage.setItem('limoxis.quality.section',section);registry.saveViewState({query,status,department});registry.openRecord(navigate,`/quality/${section}/${row.id}`,row.id,filtered.map(x=>x.id))}}}><td><strong>{row.id}</strong>{row.severity&&<small>{t(row.severity)}</small>}</td><td>{language==='el'?row.title:row.titleEn}</td><td>{language==='el'?row.department:row.departmentEn}</td><td>{fmtDate(row.dueDate||row.date||row.plannedDate,locale)}</td><td>{row.owner||row.leadAuditor||'—'}</td><td><span className={`status-badge ${['closed','completed'].includes(row.status)?'active':''}`}>{t(row.status)}</span></td></tr>)}</tbody></table></div>
+        <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table quality-table"><thead><tr><th>{t('code')}</th><th>{t('title')}</th><th>{t('department')}</th><th>{t(section==='capas'?'dueDate':'date')}</th><th>{t('owner')}</th><th>{t('status')}</th></tr></thead><tbody>{filtered.map(row=><tr key={row.id} {...registry.rowProps(row.id)} onClick={()=>{writeSessionValue('limoxis.quality.section',section);registry.saveViewState({query,status,department});registry.openRecord(navigate,`/quality/${section}/${row.id}`,row.id,filtered.map(x=>x.id))}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();writeSessionValue('limoxis.quality.section',section);registry.saveViewState({query,status,department});registry.openRecord(navigate,`/quality/${section}/${row.id}`,row.id,filtered.map(x=>x.id))}}}><td><strong>{row.id}</strong>{row.severity&&<small>{t(row.severity)}</small>}</td><td>{language==='el'?row.title:row.titleEn}</td><td>{language==='el'?row.department:row.departmentEn}</td><td>{fmtDate(row.dueDate||row.date||row.plannedDate,locale)}</td><td>{row.owner||row.leadAuditor||'—'}</td><td><span className={`status-badge ${['closed','completed'].includes(row.status)?'active':''}`}>{t(row.status)}</span></td></tr>)}</tbody></table></div>
       </section>
     </div>
   </Page>
