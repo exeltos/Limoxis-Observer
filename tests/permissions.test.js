@@ -1,0 +1,49 @@
+import { describe, expect, it } from 'vitest'
+import { ADD_ON_CAPABILITIES, CAPABILITIES, ROLES, can, capabilitiesFor } from '../src/core/permissions/roles'
+import { navigationFor } from '../src/app/navigation'
+
+describe('role + scope access foundation', () => {
+  it('keeps a department user on the quiet employee workspace', () => {
+    expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.VIEW_MY_DEPARTMENT)).toBe(true)
+    expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.VIEW_LAB)).toBe(false)
+    expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.MANAGE_ORGANIZATION)).toBe(false)
+  })
+
+  it('adds capability-driven modules without inventing a new role', () => {
+    const caps = capabilitiesFor(ROLES.DEPARTMENT_USER, [ADD_ON_CAPABILITIES.HAND_HYGIENE_OBSERVER])
+    expect(caps).toContain(CAPABILITIES.VIEW_PREVENTION)
+    expect(caps).not.toContain(CAPABILITIES.MANAGE_ORGANIZATION)
+  })
+
+  it('keeps platform owner navigation separate from hospital operational navigation', () => {
+    const keys = navigationFor({ role: ROLES.PLATFORM_OWNER }).map((item) => item.key)
+    expect(keys).toEqual(['platformCenter', 'management'])
+  })
+
+  it('shows controls when assigned even for a role whose normal workspace is restricted', () => {
+    const keys = navigationFor({ role: ROLES.COMMITTEE_SECRETARIAT, hasAssignments: true }).map((item) => item.key)
+    expect(keys).toContain('controls')
+  })
+
+  it('separates HR administration from occupational clinical access', () => {
+    expect(can(ROLES.HR_OFFICE, CAPABILITIES.MANAGE_STAFF_ADMIN)).toBe(true)
+    expect(can(ROLES.HR_OFFICE, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(false)
+    expect(can(ROLES.OCCUPATIONAL_PHYSICIAN, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(true)
+    expect(can(ROLES.OCCUPATIONAL_PHYSICIAN, CAPABILITIES.MANAGE_STAFF_ADMIN)).toBe(false)
+  })
+})
+
+describe('clinical domain capability split', () => {
+  it('keeps laboratory and pharmacy write responsibilities separated', () => {
+    expect(can(ROLES.LABORATORY, CAPABILITIES.MANAGE_LAB_SAMPLES)).toBe(true)
+    expect(can(ROLES.LABORATORY, CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)).toBe(false)
+    expect(can(ROLES.PHARMACY, CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)).toBe(true)
+    expect(can(ROLES.PHARMACY, CAPABILITIES.MANAGE_LAB_SAMPLES)).toBe(false)
+  })
+
+  it('keeps isolation and reassessment with infection-control roles', () => {
+    expect(can(ROLES.INFECTION_CONTROL_LEAD, CAPABILITIES.MANAGE_ISOLATION)).toBe(true)
+    expect(can(ROLES.INFECTION_CONTROL_MEMBER, CAPABILITIES.REASSESS_SURVEILLANCE)).toBe(true)
+    expect(can(ROLES.DEPARTMENT_MANAGER, CAPABILITIES.MANAGE_ISOLATION)).toBe(false)
+  })
+})
