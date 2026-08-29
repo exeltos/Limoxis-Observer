@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react'
 import { CalendarClock, Check, Megaphone, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { ManualDateField } from '../../design-system/ManualDateField'
-import { TimeField } from '../../design-system/TimeField'
 import { useNotifications } from '../../core/notifications/NotificationContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { ROLES } from '../../core/permissions/roles'
@@ -39,8 +37,8 @@ export function AnnouncementsPanel(){
    if(editor.audienceType!=='all'&&!editor.audienceValues.length)return notify('Επιλέξτε τουλάχιστον έναν παραλήπτη.','warning')
    const startAt=combine(editor.startDate,editor.startTime),endAt=combine(editor.endDate,editor.endTime)
    if(startAt&&endAt&&new Date(endAt)<=new Date(startAt))return notify('Η λήξη πρέπει να είναι μετά την έναρξη.','warning')
-    const payload={...editor,startAt,endAt,createdBy:'Διαχείριση Limoxis'}
-    delete payload.startDate; delete payload.startTime; delete payload.endDate; delete payload.endTime
+   const {startDate,startTime,endDate,endTime,...rest}=editor
+   const payload={...rest,startAt,endAt,createdBy:'Διαχείριση Limoxis'}
    if(editor.id)n.updateAnnouncement(payload);else n.addAnnouncement(payload)
    setEditor(null);setRecipientQuery('');notify('Η ανακοίνωση αποθηκεύτηκε.','success')
  }
@@ -56,10 +54,10 @@ export function AnnouncementsPanel(){
     </div></section>
     {editor.audienceType!=='all'&&<section className="announcement-form-section"><header><strong>Παραλήπτες</strong><span>Μπορείτε να επιλέξετε περισσότερους από έναν.</span></header><div className="recipient-picker"><label className="recipient-search"><Search size={15}/><input value={recipientQuery} onChange={e=>setRecipientQuery(e.target.value)} placeholder="Αναζήτηση..."/></label><div className="recipient-options">{filteredRecipients.map(item=><button type="button" key={item.id} className={editor.audienceValues.includes(item.id)?'selected':''} onClick={()=>toggleRecipient(item.id)}><span className="recipient-check">{editor.audienceValues.includes(item.id)&&<Check size={13}/>}</span><span><strong>{item.label}</strong><small>{item.secondary}</small></span></button>)}</div><div className="recipient-summary">{editor.audienceValues.length} επιλεγμένοι</div></div></section>}
     <section className="announcement-form-section"><header><strong>Πότε θα εμφανίζεται</strong><span>Αφήστε κενή την έναρξη για άμεση εμφάνιση και τη λήξη για να παραμένει ενεργή.</span></header><div className="announcement-schedule-grid">
-     <ManualDateField className="announcement-field" label="Ημερομηνία έναρξης" value={editor.startDate} onChange={value=>setEditor(x=>({...x,startDate:value}))} optional/>
-     <TimeField className="announcement-field" label="Ώρα έναρξης" value={editor.startTime} onChange={value=>setEditor(x=>({...x,startTime:value}))}/>
-     <ManualDateField className="announcement-field" label="Ημερομηνία λήξης" value={editor.endDate} onChange={value=>setEditor(x=>({...x,endDate:value}))} optional/>
-     <TimeField className="announcement-field" label="Ώρα λήξης" value={editor.endTime} onChange={value=>setEditor(x=>({...x,endTime:value}))}/>
+     <label className="field announcement-field"><span>Ημερομηνία έναρξης</span><input className="announcement-control" type="date" value={editor.startDate} onChange={e=>setEditor(x=>({...x,startDate:e.target.value}))}/></label>
+     <label className="field announcement-field"><span>Ώρα έναρξης</span><input className="announcement-control" type="time" value={editor.startTime} onChange={e=>setEditor(x=>({...x,startTime:e.target.value}))}/></label>
+     <label className="field announcement-field"><span>Ημερομηνία λήξης</span><input className="announcement-control" type="date" value={editor.endDate} onChange={e=>setEditor(x=>({...x,endDate:e.target.value}))}/></label>
+     <label className="field announcement-field"><span>Ώρα λήξης</span><input className="announcement-control" type="time" value={editor.endTime} onChange={e=>setEditor(x=>({...x,endTime:e.target.value}))}/></label>
     </div><label className="field checkbox-field acknowledgement-field"><input type="checkbox" checked={editor.requiresAck} onChange={e=>setEditor(x=>({...x,requiresAck:e.target.checked}))}/><span>Απαιτεί επιβεβαίωση «Έλαβα γνώση»</span></label></section>
    </div><footer><Button variant="secondary" onClick={()=>setEditor(null)}>Ακύρωση</Button><Button onClick={save}>Αποθήκευση</Button></footer></div></div>}
  </section>

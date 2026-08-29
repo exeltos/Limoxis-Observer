@@ -14,10 +14,9 @@ const DEMO_USER = Object.freeze({
 })
 
 export function AuthProvider({ children }) {
-  const helpPreviewMode=typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('helpPreview')==='1'&&window.self!==window.top
-  const [session, setSession] = useState(()=>helpPreviewMode?{access_token:'help-preview',user:DEMO_USER}:null)
-  const [profile, setProfile] = useState(()=>helpPreviewMode?DEMO_USER:null)
-  const [loading, setLoading] = useState(helpPreviewMode?false:hasSupabaseConfig)
+  const [session, setSession] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(hasSupabaseConfig)
 
   const loadProfile = useCallback(async (user) => {
     if (!supabase || !user) return null
@@ -33,7 +32,6 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    if (helpPreviewMode) return undefined
     if (!supabase) {
       setLoading(false)
       return undefined
@@ -62,7 +60,7 @@ export function AuthProvider({ children }) {
       mounted = false
       listener.subscription.unsubscribe()
     }
-  }, [loadProfile, helpPreviewMode])
+  }, [loadProfile])
 
   const login = useCallback(async (email, password) => signInWithPassword(email, password), [])
   const loginDemo = useCallback(() => {

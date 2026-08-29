@@ -17,9 +17,9 @@ export function FeedbackProvider({ children }) {
   }, [])
   const notifyUndo = useCallback((message, onUndo, timeout = 7000) => {
     const id = nextId++
-    setItems((current) => [...current, { id, message, tone:'success', actionLabel:t('undo'), onAction:()=>{onUndo?.();setItems(rows=>rows.filter(x=>x.id!==id))} }])
+    setItems((current) => [...current, { id, message, tone:'success', actionLabel:'Αναίρεση', onAction:()=>{onUndo?.();setItems(rows=>rows.filter(x=>x.id!==id))} }])
     window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), timeout)
-  }, [t])
+  }, [])
   const confirm = useCallback((options) => new Promise((resolve) => setConfirmState({ ...options, resolve })), [])
   const finishConfirm = (answer) => {
     confirmState?.resolve(answer)

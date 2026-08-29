@@ -35,8 +35,8 @@ export function NotificationProvider({children}){
  const [reads,setReads]=useState(()=>readJson(READ_KEY,{}))
  const [clock,setClock]=useState(Date.now())
  useEffect(()=>{const id=window.setInterval(()=>setClock(Date.now()),60000);return()=>window.clearInterval(id)},[])
- useEffect(()=>{try{localStorage.setItem(ANN_KEY,JSON.stringify(announcements))}catch{/* storage unavailable */}},[announcements])
- useEffect(()=>{try{localStorage.setItem(READ_KEY,JSON.stringify(reads))}catch{/* storage unavailable */}},[reads])
+ useEffect(()=>{try{localStorage.setItem(ANN_KEY,JSON.stringify(announcements))}catch{}},[announcements])
+ useEffect(()=>{try{localStorage.setItem(READ_KEY,JSON.stringify(reads))}catch{}},[reads])
  const audience=useMemo(()=>({role,membership,user,profile}),[role,membership,user,profile])
  const visibleAnnouncements=useMemo(()=>announcements.filter(a=>applies(a,audience)&&withinWindow(a,clock)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),[announcements,audience,clock])
  const birthday=useMemo(()=>{
