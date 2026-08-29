@@ -11,11 +11,12 @@ import { useTenant } from '../tenant/TenantContext'
 import { navigationFor } from '../../app/navigation'
 
 const NETLIFY_ORIGIN='https://limoxis-observer.netlify.app'
-const netlifyPreviewUrl=(path,role)=>{
+const netlifyPreviewUrl=(path,role,language)=>{
  const base=typeof window!=='undefined'&&window.location.hostname==='limoxis-observer.netlify.app'?window.location.origin:NETLIFY_ORIGIN
  const url=new URL(path||'/',base)
  url.searchParams.set('helpPreview','1')
  if(role)url.searchParams.set('helpRole',role)
+ if(language)url.searchParams.set('helpLang',language)
  return url.toString()
 }
 const resolveManual=(path,book)=>book[path]||book[Object.keys(book).find(k=>k!=='/'&&path.startsWith(k))]||book['/']
@@ -178,14 +179,14 @@ export function HelpCenter({open,onClose}){
 
     {mode==='manual'&&<aside className="manual-preview-pane real-screen-pane">
       <header><span>{tx.liveScreen}</span><b>{current.title}</b></header>
-      <button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title={tx.zoom}><iframe src={netlifyPreviewUrl(selected,role)} title={`Netlify preview ${current.title}`} tabIndex="-1"/><span><Maximize2 size={14}/>{tx.zoom}</span></button>
+      <button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title={tx.zoom}><iframe src={netlifyPreviewUrl(selected,role,language)} title={`Netlify preview ${current.title}`} tabIndex="-1"/><span><Maximize2 size={14}/>{tx.zoom}</span></button>
       <section className="manual-explain"><h3>{tx.realScreen}</h3><div><b>1</b><p><strong>{tx.liveTitle}</strong><span>{tx.liveBody}</span></p></div><div><b>2</b><p><strong>{tx.updatedTitle}</strong><span>{tx.updatedBody}</span></p></div></section>
       {related.length>0&&<section className="manual-related"><h3>{tx.related}</h3>{related.map(item=>{const Icon=item.icon||BookOpen;return <button key={item.to} onClick={()=>selectModule(item.to)}><Icon size={14}/><span>{item.manual.title}</span><ChevronRight size={13}/></button>})}</section>}
     </aside>}
 
     {imageOpen&&<div className="manual-image-lightbox manual-image-lightbox-floating" onMouseDown={e=>e.target===e.currentTarget&&setImageOpen(false)}>
       <div className="manual-preview-floating-card" onMouseDown={e=>e.stopPropagation()}>
-        <div className="manual-live-floating"><iframe src={netlifyPreviewUrl(selected,role)} title={`Netlify enlarged ${current.title}`} tabIndex="-1"/></div>
+        <div className="manual-live-floating"><iframe src={netlifyPreviewUrl(selected,role,language)} title={`Netlify enlarged ${current.title}`} tabIndex="-1"/></div>
         <button className="manual-lightbox-close" aria-label={tx.closeZoom} title={tx.closeZoom} onClick={()=>setImageOpen(false)}><X size={21}/></button>
       </div>
     </div>}

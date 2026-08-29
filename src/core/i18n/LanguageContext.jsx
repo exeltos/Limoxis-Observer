@@ -130,7 +130,8 @@ function lookupTranslation(key, language) {
 }
 
 export function LanguageProvider({ children }) {
-  const [language, setLanguage] = useState('el')
+  const previewLanguage = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('helpLang') : null
+  const [language, setLanguage] = useState(previewLanguage === 'en' ? 'en' : 'el')
   const value = useMemo(() => ({
     language,
     locale: language === 'el' ? 'el-GR' : 'en-GB',
