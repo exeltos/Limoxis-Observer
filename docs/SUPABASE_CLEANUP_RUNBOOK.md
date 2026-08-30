@@ -11,7 +11,8 @@ migrations depend on. Cleanup is therefore split into reviewed phases.
 2. Open **SQL Editor → New query**.
 3. Paste and run `supabase/maintenance/00_preflight_inventory.sql` in full.
 4. Export or copy every result grid: relations, policies, functions, triggers,
-   foreign keys, storage buckets, and migration history.
+   foreign keys, storage buckets, and migration-history availability. It is valid
+   for an older/test project not to have `supabase_migrations.schema_migrations`.
 5. Mark the project as **development/staging** or **production** and record whether
    any existing records must be retained.
 

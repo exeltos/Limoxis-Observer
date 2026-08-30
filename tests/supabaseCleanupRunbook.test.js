@@ -11,6 +11,8 @@ describe('Supabase cleanup preflight',()=>{
     for(const catalogue of ['pg_class','pg_policies','pg_proc','information_schema.triggers','pg_constraint','storage.buckets','supabase_migrations.schema_migrations']){
       expect(inventory).toContain(catalogue)
     }
+    expect(executable).not.toContain('from supabase_migrations.schema_migrations')
+    expect(inventory).toContain("to_regclass('supabase_migrations.schema_migrations')")
   })
 
   it('captures function overload identity and RLS expressions',()=>{

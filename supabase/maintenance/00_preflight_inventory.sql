@@ -84,7 +84,12 @@ select id,name,public,file_size_limit,allowed_mime_types,created_at,updated_at
 from storage.buckets
 order by id;
 
--- 7. Applied migration history. If access is denied, skip only this result and keep the rest.
-select version,name,statements
-from supabase_migrations.schema_migrations
-order by version;
+-- 7. Migration-history availability. Some hosted projects do not expose or create
+-- this relation, so the read-only preflight must not query it directly.
+select
+  to_regclass('supabase_migrations.schema_migrations') as migration_history_relation,
+  case
+    when to_regclass('supabase_migrations.schema_migrations') is null
+      then 'not available — this is valid for projects created outside the CLI migration flow'
+    else 'available — export it separately after the inventory if required'
+  end as migration_history_status;
