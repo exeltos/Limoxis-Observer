@@ -3,6 +3,7 @@ import { Bell, Building2, Database, FileCheck2, Globe2, KeyRound, Layers3, Penci
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
+import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { BedDaysPanel } from './BedDaysPanel'
 import { LibrariesPanel } from './LibrariesPanel'
 import { BundleLibraryPanel } from './BundleLibraryPanel'
@@ -16,11 +17,35 @@ import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { capabilityCatalogue,isCustomRoleEligible } from '../../core/permissions/capabilityCatalogue'
 import { demoLibrarySeed, demoOrganizations, demoUsers, externalSources } from './managementData'
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+import { supabase } from '../../core/supabase/client'
 
-const roleNames={platform_owner:'platformOwnerRole',hospital_admin:'hospitalAdminRole',infection_control_lead:'infectionControlLeadRole',infection_control_member:'infectionControlMemberRole',department_manager:'departmentManagerRole',department_user:'departmentUserRole',laboratory:'laboratoryRole',committee_secretariat:'committeeSecretariatRole',hr_office:'hrOfficeRole',pharmacy:'pharmacyRole',occupational_physician:'occupationalPhysicianRole',doctor_reviewer:'doctorReviewerRole',quality_manager:'qualityManagerRole',demo:'demoRole'}
+const roleNames={platform_owner:'platformOwnerRole',hospital_admin:'hospitalAdminRole',infection_control_lead:'infectionControlLeadRole',infection_control_member:'infectionControlMemberRole',department_manager:'departmentManagerRole',department_user:'departmentUserRole',laboratory:'laboratoryRole',committee_secretariat:'committeeSecretariatRole',hr_office:'hrOfficeRole',pharmacy:'pharmacyRole',occupational_physician:'occupationalPhysicianRole',doctor_reviewer:'doctorReviewerRole',quality_manager:'qualityManagerRole',link_nurse:'linkNurseRole',staff_user:'staffUserRole',demo:'demoRole'}
+// The organization_members.role column only accepts these values today (see the
+// app_role enum in 202608270001_v020_identity_tenants.sql) — the wider role set
+// above is the frontend's capability model and isn't all persisted yet.
+const creatableRoles=['hospital_admin','infection_control_lead','link_nurse','doctor_reviewer','department_user','laboratory','staff_user']
 
 export function ManagementPage(){
   const {language,t}=useLanguage(); const {tenant,role,membership,isDemo}=useTenant(); const {notify,confirm}=useFeedback(); const [tab,setTab]=useState('overview'); const [roleModal,setRoleModal]=useState(false); const [references,setReferences]=useState(externalSources); const [referenceEditor,setReferenceEditor]=useState(null); const [customRoles,setCustomRoles]=useState([]); const [roleName,setRoleName]=useState(''); const [selectedCaps,setSelectedCaps]=useState([])
+  const [orgUsers,setOrgUsers]=useState([]); const [orgUsersLoading,setOrgUsersLoading]=useState(false); const [createUserOpen,setCreateUserOpen]=useState(false); const [createdUser,setCreatedUser]=useState(null)
+  useEffect(()=>{
+    if(isDemo||!supabase||!tenant?.id||tab!=='users')return
+    let active=true
+    setOrgUsersLoading(true)
+    supabase.from('organization_members').select('id,role,status,profiles(id,full_name,username)').eq('organization_id',tenant.id).eq('status','active').then(({data,error})=>{
+      if(!active)return
+      if(!error)setOrgUsers((data||[]).map(row=>({id:row.id,role:row.role,username:row.profiles?.username||'—',name:row.profiles?.full_name||'—'})))
+      setOrgUsersLoading(false)
+    })
+    return ()=>{active=false}
+  },[isDemo,tenant?.id,tab,createdUser])
+  async function createUser({fullName,role:newRole}){
+    if(!supabase||!tenant?.id)return
+    const {data,error}=await supabase.functions.invoke('create-organization-user',{body:{organizationId:tenant.id,fullName,role:newRole}})
+    if(error||data?.error){notify(data?.error||error?.message||t('managementPanel.userCreationFailed'),'error');return}
+    setCreatedUser(data)
+    setCreateUserOpen(false)
+  }
   const addOns=useMemo(()=>membership?.capabilities??[],[membership])
   const customCaps=useMemo(()=>membership?.customCapabilities??[],[membership])
   const customRoleCapabilities=useMemo(()=>Object.values(capabilityCatalogue).filter(item=>isCustomRoleEligible(item.id)),[])
@@ -48,7 +73,7 @@ export function ManagementPage(){
   return <Page fill title={t('management')} subtitle={t('managementSubtitle')}>
     <div className="management-shell workspace-fill"><div className="tabs canonical-module-tabs management-tabs">{tabs.map(({id,label,icon:Icon})=><button key={id} className={`tab ${tab===id?'active':''}`} onClick={()=>setTab(id)}><Icon size={16}/>{label}</button>)}</div>
       {tab==='overview'&&<ManagementOverview tenant={tenant} isDemo={isDemo} allowed={allowed} onOpen={setTab} t={t}/>}
-      {tab==='users'&&<section className="management-section"><div className="section-toolbar"><div><h2>{t('organizationUsers')}</h2><p>{tenant?.name}</p></div>{allowed(CAPABILITIES.MANAGE_USERS)&&<Button onClick={()=>notify(t('actionCompleted'),'info')}><Plus size={15}/>{t('inviteUser')}</Button>}</div><div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('users')}</th><th>{t('roleLabel')}</th><th>{t('status')}</th><th/></tr></thead><tbody>{(isDemo?demoUsers:[]).map(user=><tr key={user.id}><td><strong>{user.name}</strong><small>{user.email}</small></td><td><span className="role-badge">{t(roleNames[user.role]??user.role)}</span></td><td><span className="status-badge active">{t('active')}</span></td><td>{allowed(CAPABILITIES.MANAGE_USERS)&&<button className="text-button" onClick={()=>notify(t('actionCompleted'),'info')}>{t('manage')}</button>}</td></tr>)}</tbody></table>{!isDemo&&<div className="inline-empty">{t('noConnectedUsers')}</div>}</div></section>}
+      {tab==='users'&&<section className="management-section"><div className="section-toolbar"><div><h2>{t('organizationUsers')}</h2><p>{tenant?.name}</p></div>{allowed(CAPABILITIES.MANAGE_USERS)&&!isDemo&&<Button onClick={()=>setCreateUserOpen(true)}><Plus size={15}/>{t('managementPanel.createUser')}</Button>}</div><div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('users')}</th><th>{t('roleLabel')}</th><th>{t('status')}</th><th/></tr></thead><tbody>{isDemo?demoUsers.map(user=><tr key={user.id}><td><strong>{user.name}</strong><small>{user.email}</small></td><td><span className="role-badge">{t(roleNames[user.role]??user.role)}</span></td><td><span className="status-badge active">{t('active')}</span></td><td>{allowed(CAPABILITIES.MANAGE_USERS)&&<button className="text-button" onClick={()=>notify(t('actionCompleted'),'info')}>{t('manage')}</button>}</td></tr>):orgUsers.map(user=><tr key={user.id}><td><strong>{user.name}</strong><small>{user.username}</small></td><td><span className="role-badge">{t(roleNames[user.role]??user.role)}</span></td><td><span className="status-badge active">{t('active')}</span></td><td/></tr>)}</tbody></table>{!isDemo&&!orgUsersLoading&&orgUsers.length===0&&<div className="inline-empty">{t('noConnectedUsers')}</div>}</div></section>}
       {tab==='announcements'&&<AnnouncementsPanel/>}
       {tab==='organization'&&<OrganizationPanel tenant={tenant} notify={notify} t={t}/>}
       {tab==='roles'&&<section className="management-section"><div className="section-toolbar"><div><h2>{t('rolesPermissions')}</h2><p>{t('roleManagementNote')}</p></div><Button onClick={()=>setRoleModal(true)}><Plus size={15}/>{t('createRole')}</Button></div><div className="role-grid">{Object.entries(roleNames).filter(([key])=>key!=='demo').map(([key,labelKey])=><div className="role-card" key={key}><ShieldCheck size={18}/><strong>{t(labelKey)}</strong><span>{t('capabilityBasedAccess')}</span></div>)}{customRoles.map(item=><div className="role-card custom" key={item.id}><ShieldCheck size={18}/><strong>{item.name}</strong><span>{item.capabilities.length} {t('permissions')}</span></div>)}</div></section>}
@@ -60,9 +85,31 @@ export function ManagementPage(){
     </div>
     {referenceEditor&&<div className="modal-backdrop"><div className="entry-editor" role="dialog" aria-modal="true"><header><div><h3>{t('managementPanel.editExternalSourceTitle')}</h3><p>{t('managementPanel.editExternalSourceSubtitle')}</p></div><button className="icon-button" onClick={()=>setReferenceEditor(null)}><X size={17}/></button></header><div className="entry-form-grid"><label className="field"><span>{t('managementPanel.authorityOrgLabel')}</span><input value={referenceEditor.authority} onChange={e=>setReferenceEditor(x=>({...x,authority:e.target.value}))}/></label><label className="field"><span>{t('managementPanel.versionReviewLabel')}</span><input value={referenceEditor.version} onChange={e=>setReferenceEditor(x=>({...x,version:e.target.value}))}/></label><label className="field entry-span-2"><span>{t('managementPanel.usageScopeLabel')}</span><input value={referenceEditor.scope} onChange={e=>setReferenceEditor(x=>({...x,scope:e.target.value}))}/></label></div><footer><Button variant="secondary" onClick={()=>setReferenceEditor(null)}>{t('cancel')}</Button><SaveButton onClick={()=>{setReferences(rows=>rows.map(r=>r.id===referenceEditor.id?referenceEditor:r));setReferenceEditor(null);notify(t('managementPanel.externalSourceUpdated'),'success')}}>{t('save')}</SaveButton></footer></div></div>}
     {roleModal&&<div className="modal-backdrop"><div className="role-editor" role="dialog" aria-modal="true"><header><div><h3>{t('createRole')}</h3><p>{t('roleManagementNote')}</p></div><button className="icon-button" onClick={()=>setRoleModal(false)}><X size={17}/></button></header><label className="field"><span>{t('roleName')}</span><input value={roleName} onChange={e=>setRoleName(e.target.value)}/></label><div className="capability-picker"><strong>{t('permissions')}</strong><div>{customRoleCapabilities.map(item=><label key={item.id}><input type="checkbox" checked={selectedCaps.includes(item.id)} onChange={()=>toggleCap(item.id)}/><span>{capabilityLabel(item.id,language)}</span></label>)}</div></div><footer><Button variant="secondary" onClick={()=>setRoleModal(false)}>{t('cancel')}</Button><SaveButton disabled={!roleName.trim()||!selectedCaps.length} onClick={saveCustomRole}>{t('saveRole')}</SaveButton></footer></div></div>}
+    {createUserOpen&&<CreateUserDialog t={t} onClose={()=>setCreateUserOpen(false)} onCreate={createUser}/>}
+    {createdUser&&<ObserverDialog eyebrow={t('managementPanel.createUser')} title={t('managementPanel.userCreatedTitle')} subtitle={t('managementPanel.userCreatedHint')} onClose={()=>setCreatedUser(null)} footer={<Button onClick={()=>setCreatedUser(null)}>{t('close')}</Button>}>
+      <div className="entry-grid"><label><span>{t('managementPanel.generatedUsernameLabel')}</span><input readOnly value={createdUser.username}/></label><label><span>{t('managementPanel.temporaryPasswordLabel')}</span><input readOnly value={createdUser.temporaryPassword}/></label></div>
+    </ObserverDialog>}
   </Page>
 }
 
+
+function CreateUserDialog({t,onClose,onCreate}){
+  const [fullName,setFullName]=useState('')
+  const [newRole,setNewRole]=useState(creatableRoles[0])
+  const [submitting,setSubmitting]=useState(false)
+  const valid=fullName.trim().length>1
+  async function submit(){
+    if(!valid)return
+    setSubmitting(true)
+    try{await onCreate({fullName:fullName.trim(),role:newRole})}finally{setSubmitting(false)}
+  }
+  return <ObserverDialog eyebrow={t('organizationUsers')} title={t('managementPanel.createUser')} subtitle={t('managementPanel.newUserSubtitle')} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={submit} disabled={!valid||submitting}/>}>
+    <div className="entry-grid">
+      <label className="entry-span-2"><span>{t('managementPanel.newUserFullNameLabel')}</span><input value={fullName} onChange={e=>setFullName(e.target.value)}/></label>
+      <label><span>{t('roleLabel')}</span><select value={newRole} onChange={e=>setNewRole(e.target.value)}>{creatableRoles.map(key=><option key={key} value={key}>{t(roleNames[key]??key)}</option>)}</select></label>
+    </div>
+  </ObserverDialog>
+}
 
 function ManagementOverview({tenant,isDemo,allowed,onOpen,t}){
  const libraryCount=Object.entries(demoLibrarySeed).filter(([key,value])=>Array.isArray(value)&&key!=='environmentalStandards').reduce((sum,[,value])=>sum+value.length,0)

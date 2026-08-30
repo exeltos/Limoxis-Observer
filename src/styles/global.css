@@ -1765,19 +1765,24 @@
 
 /* v0.24.3 — laboratory step navigation + sidebar auto-collapse */
 .lab-workflow-navigator{
- margin-top:auto;
- padding:12px 14px 4px;
+ position:sticky;
+ bottom:0;
+ margin-top:14px;
+ padding:12px 14px;
  display:grid;
  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
  align-items:center;
  gap:10px;
+ background:#fff;
  border-top:1px solid #e8edf1;
+ border-radius:0 0 var(--radius-lg) var(--radius-lg);
+ z-index:3;
 }
 .lab-workflow-nav-button{
  min-height:46px;
  border:1px solid #dce5eb;
  border-radius:10px;
- background:#fff;
+ background:#eef3f7;
  color:#395a73;
  padding:7px 10px;
  display:flex;
@@ -1795,8 +1800,8 @@
 .lab-workflow-nav-button.next:disabled small{color:#8494a1}
 .lab-workflow-nav-button.next:disabled strong{color:#294b65}
 .lab-workflow-nav-button.next:disabled svg{color:#294b65}
-.lab-workflow-nav-button:hover:not(:disabled){background:#f5f9fb;border-color:#c7d8e3}
-.lab-workflow-nav-button:disabled{opacity:.35;cursor:default}
+.lab-workflow-nav-button:hover:not(:disabled){background:#e3ecf3;border-color:#c7d8e3}
+.lab-workflow-nav-button:disabled{opacity:.35;cursor:default;background:#fff}
 .lab-workflow-nav-button span{display:flex;flex-direction:column;gap:2px;min-width:0}
 .lab-workflow-nav-button small{font-size:8px;color:#8494a1;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 .lab-workflow-nav-button strong{font-size:10px;color:#294b65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2350,6 +2355,9 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
 /* v0.26.32 Management Center normalization */
 .management-tabs{overflow-x:auto;scrollbar-width:thin;flex-wrap:nowrap!important}
 .management-tabs .tab{white-space:nowrap;flex:0 0 auto}
+/* Management Center has too many tabs for one row: wrap instead of horizontal-scrolling. */
+.canonical-module-tabs.management-tabs.tabs{flex-wrap:wrap!important;overflow-x:visible!important;height:auto!important}
+.canonical-module-tabs.management-tabs .tab{flex:0 0 auto}
 .management-overview{overflow:auto}
 .management-overview-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:1px solid var(--line)}
 .management-overview-head h2{margin:4px 0 0;font-size:18px;color:var(--text)}
@@ -2451,7 +2459,10 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
 .help-info-content{min-height:calc(100vh - 165px)}
 .announcement-field{gap:5px!important}
 .announcement-field>span{font-size:9px!important;font-weight:700!important;color:#50687b!important}
-.announcement-control{
+/* Also applies to the TimeField/ManualDateField inputs nested in an .announcement-field
+   wrapper, since those shared components don't forward a className to their <input>.
+   :not(.manual-date-native) excludes ManualDateField's hidden native picker input. */
+.announcement-control,.announcement-field input:not(.manual-date-native),.announcement-field select{
   width:100%!important;
   min-height:38px!important;
   height:38px!important;
@@ -2467,9 +2478,9 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
   outline:none!important;
   transition:border-color .15s ease,box-shadow .15s ease,background .15s ease!important;
 }
-.announcement-control:hover{border-color:#b9c8d3!important}
-.announcement-control:focus{border-color:#7ea7c4!important;box-shadow:0 0 0 3px rgba(73,123,157,.10)!important}
-select.announcement-control{
+.announcement-control:hover,.announcement-field input:not(.manual-date-native):hover,.announcement-field select:hover{border-color:#b9c8d3!important}
+.announcement-control:focus,.announcement-field input:not(.manual-date-native):focus,.announcement-field select:focus{border-color:#7ea7c4!important;box-shadow:0 0 0 3px rgba(73,123,157,.10)!important}
+select.announcement-control,.announcement-field select{
   appearance:none!important;
   -webkit-appearance:none!important;
   padding-right:34px!important;
@@ -2478,15 +2489,19 @@ select.announcement-control{
   background-size:5px 5px,5px 5px!important;
   background-repeat:no-repeat!important;
 }
-input[type="date"].announcement-control,input[type="time"].announcement-control{
+input[type="date"].announcement-control,input[type="time"].announcement-control,
+.announcement-field input[type="time"]{
   appearance:none!important;
   -webkit-appearance:none!important;
   color-scheme:light!important;
 }
 input[type="date"].announcement-control::-webkit-calendar-picker-indicator,
-input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
+input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
+.announcement-field input[type="time"]::-webkit-calendar-picker-indicator{
   opacity:.65!important;cursor:pointer!important
 }
+.announcement-field .manual-date-control>input:not(.manual-date-native){padding-right:42px!important}
+.announcement-field .time-field-control input{padding-right:36px!important}
 .announcement-textarea{
   height:auto!important;
   min-height:104px!important;
@@ -4566,9 +4581,12 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
 .app-error-card .button{grid-column:2;justify-self:start}
 @media(max-width:520px){.app-error-card{grid-template-columns:1fr}.app-error-card .button{grid-column:1}}
 
-/* Canonical edit-action style: orange + pencil, distinct from red delete/trash. */
-button.edit:not(.button-primary):not(.button-secondary):not(.button-danger),.prevention-row-edit{color:#a8661f!important;border-color:#f0ddbd!important;background:#fffaf2!important}
-button.edit:not(.button-primary):not(.button-secondary):not(.button-danger):hover,.prevention-row-edit:hover{background:#fdf3e2!important;border-color:#e6c78e!important}
+/* Canonical row-action icon buttons: plain orange pencil / red trash, no box or border.
+   Excludes labeled pill buttons (.general-edit-button) which keep their own bordered style. */
+button.edit:not(.button-primary):not(.button-secondary):not(.button-danger):not(.general-edit-button),.prevention-row-edit{color:#c2791e!important;border:0!important;background:transparent!important;box-shadow:none!important}
+button.edit:not(.button-primary):not(.button-secondary):not(.button-danger):not(.general-edit-button):hover,.prevention-row-edit:hover{color:#a8661f!important;background:transparent!important;border:0!important}
+button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):not(.general-edit-button){color:#c1443f!important;border:0!important;background:transparent!important;box-shadow:none!important}
+button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):not(.general-edit-button):hover{color:#a34a4a!important;background:transparent!important;border:0!important}
 .button.edit{color:#a8661f;border-color:#f0ddbd;background:#fffaf2}
 .button.edit:hover:not(:disabled){background:#fdf3e2;border-color:#e6c78e}
 

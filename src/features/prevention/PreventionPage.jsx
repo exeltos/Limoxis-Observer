@@ -107,7 +107,6 @@ export function PreventionPage(){
     <Kpi icon={Recycle} value={`${wasteRows.reduce((s,x)=>s+x.weight,0).toFixed(1)} kg`} label={t('wasteRecorded')}/>
     <Kpi icon={Droplets} value={`${antisepticRows.reduce((s,x)=>s+x.litres,0).toFixed(1)} L`} label={t('antisepticRecorded')}/>
    </div>
-   <div className="governance-banner"><ShieldCheck size={17}/><span>{t('preventionGovernance')}</span></div>
   </div>
 
   <div className="surface registry-workspace prevention-workspace workspace-fill">
