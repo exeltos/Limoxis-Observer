@@ -13,7 +13,11 @@ migrations depend on. Cleanup is therefore split into reviewed phases.
 4. Copy the single `inventory` JSON result. It contains relations, policies,
    functions, triggers, foreign keys, storage buckets, and migration-history availability. It is valid
    for an older/test project not to have `supabase_migrations.schema_migrations`.
-5. Mark the project as **development/staging** or **production** and record whether
+5. If the full JSON is too large to paste, run
+   `supabase/maintenance/01_preflight_compact_manifest.sql` and copy its single
+   `compact_manifest` result instead. It contains object names and function
+   signatures without the long policy expressions.
+6. Mark the project as **development/staging** or **production** and record whether
    any existing records must be retained.
 
 The phase-0 query is read-only. It contains no `DROP`, `TRUNCATE`, `DELETE`,
