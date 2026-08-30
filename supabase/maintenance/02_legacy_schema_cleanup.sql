@@ -144,11 +144,9 @@ where n.nspname = 'public';
 
 select tablename from pg_tables where schemaname = 'public' order by tablename;
 
--- Decide now:
---   COMMIT;    -- to make the cleanup permanent
---   ROLLBACK;  -- to undo everything above and leave the project untouched
---
--- Afterwards (only after COMMIT), delete the buckets themselves:
+commit;
+
+-- Afterwards, delete the buckets themselves:
 --   Dashboard -> Storage -> select each of healthcare-attachments,
 --   operationalattachments, patientattachments -> delete all files inside ->
 --   delete the bucket. This cannot be scripted here by SQL policy.
