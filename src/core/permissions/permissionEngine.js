@@ -25,6 +25,13 @@ export function canAccessDepartment(departmentId,{scope,departmentIds=[]}={}){
  return scope===DATA_SCOPES.DEPARTMENT&&Boolean(departmentId)&&departmentIds.includes(departmentId)
 }
 
+function assignmentMatchesRecord(item,record){
+ const resourceType=item.resourceType??item.sourceType
+ const resourceId=item.resourceId??item.sourceId??item.committeeId??item.controlId??item.recordId
+ const inactive=item.active===false||['cancelled','completed','expired'].includes(item.status)
+ return !inactive&&resourceType===record?.resourceType&&String(resourceId)===String(record?.id)
+}
+
 export function canForRecord(capability,record,context={}){
  const {role,addOns=[],customCapabilities=[],organizationId,userId,employeeId,assignments=[]}=context
  if(!can(role,capability,addOns,customCapabilities))return false
@@ -35,7 +42,7 @@ export function canForRecord(capability,record,context={}){
  if(scope===DATA_SCOPES.DEPARTMENT&&!canAccessDepartment(record.departmentId,{scope,departmentIds:context.departmentIds}))return false
  if(scope===DATA_SCOPES.SELF&&record.employeeId!==employeeId)return false
  if(definition.requiresOwnership&&record.ownerId!==userId&&record.createdBy!==userId)return false
- if((definition.requiresAssignment||roleCapabilityRule(role,capability)?.requiresAssignment)&&!assignments.some(item=>item.active!==false&&item.resourceType===record.resourceType&&item.resourceId===record.id))return false
+ if((definition.requiresAssignment||roleCapabilityRule(role,capability)?.requiresAssignment)&&!assignments.some(item=>assignmentMatchesRecord(item,record)))return false
  if(record.finalized&&definition.actionType==='edit')return false
  return true
 }
@@ -43,4 +50,4 @@ export function canForRecord(capability,record,context={}){
 export const hasAddOn=(addOnId,{addOns=[]}={})=>addOns.includes(addOnId)
 export const isSelf=(record,{employeeId}={})=>Boolean(employeeId)&&record?.employeeId===employeeId
 export const isOwner=(record,{userId}={})=>Boolean(userId)&&(record?.ownerId===userId||record?.createdBy===userId)
-export const isAssigned=(record,{assignments=[]}={})=>assignments.some(item=>item.active!==false&&item.resourceType===record?.resourceType&&item.resourceId===record?.id)
+export const isAssigned=(record,{assignments=[]}={})=>assignments.some(item=>assignmentMatchesRecord(item,record))

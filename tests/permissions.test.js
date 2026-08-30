@@ -60,6 +60,39 @@ describe('role + scope access foundation', () => {
     expect(isCustomRoleEligible(CAPABILITIES.RECORD_WASTE)).toBe(true)
   })
 
+  it('separates document editing from lifecycle authority', () => {
+    expect(can(ROLES.COMMITTEE_SECRETARIAT,CAPABILITIES.MANAGE_DOCUMENTS)).toBe(false)
+    expect(can(ROLES.COMMITTEE_SECRETARIAT,CAPABILITIES.PUBLISH_DOCUMENT)).toBe(false)
+    expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.PUBLISH_DOCUMENT)).toBe(true)
+    expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.SUBMIT_DOCUMENT_REVIEW)).toBe(true)
+    expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.APPROVE_DOCUMENT)).toBe(true)
+    expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.ARCHIVE_DOCUMENT)).toBe(true)
+    expect(capabilityCatalogue[CAPABILITIES.SUBMIT_DOCUMENT_REVIEW].customRoleClass).toBe('standard')
+    expect(capabilityCatalogue[CAPABILITIES.APPROVE_DOCUMENT].customRoleClass).toBe('restricted')
+    expect(capabilityCatalogue[CAPABILITIES.PUBLISH_DOCUMENT].governanceAction).toBe(true)
+    expect(capabilityCatalogue[CAPABILITIES.PUBLISH_DOCUMENT].customRoleClass).toBe('restricted')
+  })
+
+  it('separates routine control work from governance authority', () => {
+    expect(can(ROLES.DEPARTMENT_USER,CAPABILITIES.EXECUTE_CONTROL)).toBe(true)
+    expect(can(ROLES.DEPARTMENT_USER,CAPABILITIES.EDIT_CONTROL_EXECUTION)).toBe(true)
+    expect(can(ROLES.DEPARTMENT_USER,CAPABILITIES.VOID_CONTROL_EXECUTION)).toBe(false)
+    expect(can(ROLES.DEPARTMENT_MANAGER,CAPABILITIES.VOID_CONTROL_EXECUTION)).toBe(true)
+    expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.ARCHIVE_CONTROL_DEFINITION)).toBe(true)
+    expect(capabilityCatalogue[CAPABILITIES.VOID_CONTROL_EXECUTION].customRoleClass).toBe('restricted')
+  })
+
+  it('requires a matching committee assignment for secretariat actions', () => {
+    const committee={id:'committee-1',resourceType:'committee',organizationId:'org-1'}
+    const context={role:ROLES.COMMITTEE_SECRETARIAT,organizationId:'org-1'}
+    expect(can(ROLES.COMMITTEE_SECRETARIAT,CAPABILITIES.CREATE_COMMITTEE)).toBe(false)
+    expect(canForRecord(CAPABILITIES.EDIT_COMMITTEE_MINUTES,committee,context)).toBe(false)
+    expect(canForRecord(CAPABILITIES.EDIT_COMMITTEE_MINUTES,committee,{...context,assignments:[{sourceType:'committee',sourceId:'committee-1',status:'active'}]})).toBe(true)
+    expect(canForRecord(CAPABILITIES.EDIT_COMMITTEE_MINUTES,committee,{...context,assignments:[{resourceType:'committee',resourceId:'committee-2',active:true}]})).toBe(false)
+    expect(canForRecord(CAPABILITIES.FINALIZE_COMMITTEE_MINUTES,committee,{...context,assignments:[{committeeId:'committee-1',resourceType:'committee',active:true}]})).toBe(true)
+    expect(capabilityCatalogue[CAPABILITIES.FINALIZE_COMMITTEE_MINUTES].customRoleClass).toBe('restricted')
+  })
+
   it('keeps every matrix row attached to canonical metadata', () => {
     expect(systemRoleMatrix.length).toBeGreaterThan(0)
     for(const row of systemRoleMatrix){
