@@ -1,5 +1,6 @@
 import { supabase } from '../supabase/client'
 import { hasSupabaseConfig } from '../config/env'
+import { dataPartitionKey,environmentFallback,isDemoDataEnvironment } from './dataEnvironment'
 
 const backend=(import.meta.env.VITE_DATA_BACKEND||'local').trim().toLowerCase()
 const memory=new Map()
@@ -40,14 +41,21 @@ function emit(detail){
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:data-operation',{detail}))
 }
 function clone(v){return v==null?v:structuredClone(v)}
+function memoryKey(table){return `${dataPartitionKey()}:${table}`}
+function localKey(cfg){return `${dataPartitionKey()}:${cfg.storageKey}`}
 
 function readLocal(table,fallback){
   const cfg=config(table)
   try{
-    const keys=[cfg.storageKey,...(cfg.legacyKeys||[])]
+    const scopedKey=localKey(cfg)
+    const keys=[scopedKey,...(isDemoDataEnvironment()?[cfg.storageKey,...(cfg.legacyKeys||[])]:[])]
     const raw=keys.map(k=>localStorage.getItem(k)).find(Boolean)
-    if(raw)return JSON.parse(raw)
-    if(cfg.legacyPrefix){
+    if(raw){
+      const parsed=JSON.parse(raw)
+      if(!localStorage.getItem(scopedKey))localStorage.setItem(scopedKey,JSON.stringify(parsed))
+      return parsed
+    }
+    if(isDemoDataEnvironment()&&cfg.legacyPrefix){
       const migrated=[]
       for(let i=0;i<localStorage.length;i++){
         const key=localStorage.key(i)
@@ -55,9 +63,9 @@ function readLocal(table,fallback){
         const value=JSON.parse(localStorage.getItem(key)||'null')
         if(value)migrated.push({...value,recordKey:key.slice(cfg.legacyPrefix.length)})
       }
-      if(migrated.length){localStorage.setItem(cfg.storageKey,JSON.stringify(migrated));return migrated}
+      if(migrated.length){localStorage.setItem(scopedKey,JSON.stringify(migrated));return migrated}
     }
-    return clone(fallback)
+    return environmentFallback(fallback)
   }catch(cause){
     throw new DataAccessError('Local data could not be read.',{table,operation:'load',cause})
   }
@@ -65,8 +73,8 @@ function readLocal(table,fallback){
 function writeLocal(table,rows){
   const cfg=config(table)
   try{
-    localStorage.setItem(cfg.storageKey,JSON.stringify(rows))
-    memory.set(table,clone(rows))
+    localStorage.setItem(localKey(cfg),JSON.stringify(rows))
+    memory.set(memoryKey(table),clone(rows))
     return clone(rows)
   }catch(cause){
     throw new DataAccessError('Local data could not be saved.',{table,operation:'save',cause})
@@ -74,10 +82,11 @@ function writeLocal(table,rows){
 }
 
 export function loadSnapshot(table,fallback=null){
-  if(memory.has(table))return clone(memory.get(table))
+  const key=memoryKey(table)
+  if(memory.has(key))return clone(memory.get(key))
   try{
     const value=readLocal(table,fallback)
-    memory.set(table,clone(value))
+    memory.set(key,clone(value))
     return clone(value)
   }catch(error){
     emit({table,operation:'load',status:'error',error})
@@ -87,7 +96,7 @@ export function loadSnapshot(table,fallback=null){
 
 export function saveSnapshot(table,rows,{organizationId=null}={}){
   if(backend==='supabase'&&hasSupabaseConfig&&supabase){
-    memory.set(table,clone(rows))
+    memory.set(memoryKey(table),clone(rows))
     // Keep the synchronous snapshot API for existing stores, while ensuring a
     // failed background write is reported through the data-operation event
     // without also becoming an unhandled promise rejection.
@@ -110,7 +119,7 @@ export async function load(table,{fallback=null,organizationId=null}={}){
   emit({table,operation:'load',status:'loading'})
   try{
     if(backend!=='supabase'||!hasSupabaseConfig||!supabase){
-      const value=readLocal(table,fallback); memory.set(table,clone(value))
+      const value=readLocal(table,fallback); memory.set(memoryKey(table),clone(value))
       emit({table,operation:'load',status:'success'}); return clone(value)
     }
     if(config(table).cloud===false)throw new DataAccessError('This dataset is not mapped to a cloud table yet.',{table,operation:'load'})
@@ -132,7 +141,7 @@ export async function load(table,{fallback=null,organizationId=null}={}){
     }else{
       value=(data??[]).map(row=>row.payload)
     }
-    memory.set(table,clone(value))
+    memory.set(memoryKey(table),clone(value))
     emit({table,operation:'load',status:'success'})
     return clone(value)
   }catch(cause){
@@ -184,7 +193,7 @@ export async function save(table,rows,{organizationId=null}={}){
       const {error:deleteError}=await supabase.from(table).delete().eq('organization_id',organizationId).eq('record_key',row.record_key)
       if(deleteError)throw deleteError
     }
-    memory.set(table,clone(rows)); emit({table,operation:'save',status:'success'}); return clone(rows)
+    memory.set(memoryKey(table),clone(rows)); emit({table,operation:'save',status:'success'}); return clone(rows)
   }catch(cause){
     const error=cause instanceof DataAccessError?cause:new DataAccessError('Data could not be saved.',{table,operation:'save',cause})
     emit({table,operation:'save',status:'error',error,retry})

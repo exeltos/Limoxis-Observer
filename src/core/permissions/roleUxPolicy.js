@@ -1,15 +1,15 @@
-import { ROLES } from './roles'
+import { CAPABILITIES,ROLES,can } from './roles'
 import { SCOPES } from './accessModel'
 
 // Front-end UX scope. Supabase RLS must mirror this policy before production.
 export const ROLE_UX_POLICY = Object.freeze({
   [ROLES.PLATFORM_OWNER]: { scope: SCOPES.PLATFORM, sensitiveEmployeeHealth: false, label: 'Platform Owner' },
-  [ROLES.HOSPITAL_ADMIN]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Hospital Admin' },
-  [ROLES.INFECTION_CONTROL_LEAD]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Infection Control Lead' },
-  [ROLES.INFECTION_CONTROL_MEMBER]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Infection Control Member' },
+  [ROLES.HOSPITAL_ADMIN]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Hospital Admin' },
+  [ROLES.INFECTION_CONTROL_LEAD]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Infection Control Lead' },
+  [ROLES.INFECTION_CONTROL_MEMBER]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Infection Control Member' },
   [ROLES.DEPARTMENT_MANAGER]: { scope: SCOPES.DEPARTMENT, sensitiveEmployeeHealth: false, label: 'Department Manager' },
   [ROLES.DEPARTMENT_USER]: { scope: SCOPES.DEPARTMENT, sensitiveEmployeeHealth: false, label: 'Department User' },
-  [ROLES.LABORATORY]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Laboratory' },
+  [ROLES.LABORATORY]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Laboratory' },
   [ROLES.COMMITTEE_SECRETARIAT]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Committee Secretariat' },
   [ROLES.HR_OFFICE]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'HR Office' },
   [ROLES.PHARMACY]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Pharmacy' },
@@ -38,4 +38,6 @@ export function recordWithinRoleScope({role, membership, userId, record}={}){
   return !record.userId || record.userId===userId
 }
 
-export function canSeeSensitiveEmployeeHealth(role){ return Boolean(uxPolicyFor(role).sensitiveEmployeeHealth) }
+export function canSeeSensitiveEmployeeHealth(role,addOns=[],customCapabilities=[]){
+  return Boolean(uxPolicyFor(role).sensitiveEmployeeHealth)&&can(role,CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,addOns,customCapabilities)
+}
