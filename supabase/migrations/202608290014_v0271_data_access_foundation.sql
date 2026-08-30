@@ -52,10 +52,12 @@ create index if not exists idx_control_drafts_department on public.control_draft
 -- Capability bridge for RLS.
 -- The frontend remains responsible for UX, but authorization is repeated here.
 -- Custom-role capabilities and add-on grants are included so UI capability grants do not bypass DB enforcement.
--- The v0.8.0 version of this function named its second parameter capability_key;
--- CREATE OR REPLACE cannot rename an existing parameter, so drop it first.
-drop function if exists public.current_user_has_capability(uuid, text);
-create or replace function public.current_user_has_capability(target_org uuid, requested_capability text)
+-- Kept the v0.8.0 parameter name capability_key: earlier migrations' RLS
+-- policies (hand_hygiene_write, waste_write, employees_read/write, etc.)
+-- already depend on this function by that signature, so CREATE OR REPLACE
+-- must not rename it (Postgres rejects the rename, and DROP ... CASCADE
+-- would silently delete those dependent policies).
+create or replace function public.current_user_has_capability(target_org uuid, capability_key text)
 returns boolean
 language sql
 stable
@@ -74,18 +76,18 @@ as $$
           select 1
           from public.custom_role_capabilities crc
           where crc.custom_role_id=om.custom_role_id
-            and crc.capability=requested_capability
+            and crc.capability=capability_key
         )
         or exists (
           select 1
           from public.organization_member_capabilities omc
           where omc.membership_id=om.id
             and (
-              (omc.capability='lab_access' and requested_capability='view_lab')
-              or (omc.capability='quality_access' and requested_capability in ('view_quality','view_controls'))
+              (omc.capability='lab_access' and capability_key='view_lab')
+              or (omc.capability='quality_access' and capability_key in ('view_quality','view_controls'))
             )
         )
-        or case requested_capability
+        or case capability_key
           when 'view_training' then om.role in ('hospital_admin','infection_control_lead','infection_control_member','department_manager','department_user','hr_office')
           when 'manage_training' then om.role in ('hospital_admin')
           when 'view_prevention' then om.role in ('hospital_admin','infection_control_lead','infection_control_member')

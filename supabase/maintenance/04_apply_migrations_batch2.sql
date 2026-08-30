@@ -6,11 +6,17 @@
 -- which silently rolls back an uncommitted transaction left open across two
 -- separate executions).
 --
--- v2: includes a fix for a real bug in migration 202608290014_v0271 —
--- it redefined current_user_has_capability(uuid, text) with a renamed
--- second parameter, which CREATE OR REPLACE FUNCTION rejects. This version
--- drops the old signature first. That fix has also been committed to
--- supabase/migrations/202608290014_v0271_data_access_foundation.sql in git.
+-- v3: fixes a real bug in migration 202608290014_v0271 — it had redefined
+-- current_user_has_capability(uuid, text) with its second parameter renamed
+-- from capability_key to requested_capability. CREATE OR REPLACE FUNCTION
+-- rejects renaming a parameter (42P13). A first fix tried DROP FUNCTION
+-- first, but that failed too (2BP01: policies from migrations 010/011 —
+-- hand_hygiene_write, waste_write, employees_read/write, etc. — already
+-- depend on that exact signature; CASCADE would have silently deleted
+-- them). The real fix, applied here and committed to
+-- supabase/migrations/202608290014_v0271_data_access_foundation.sql, keeps
+-- the original parameter name capability_key so CREATE OR REPLACE can just
+-- swap the function body in place without touching dependents.
 
 begin;
 
@@ -1285,10 +1291,12 @@ create index if not exists idx_control_drafts_department on public.control_draft
 -- Capability bridge for RLS.
 -- The frontend remains responsible for UX, but authorization is repeated here.
 -- Custom-role capabilities and add-on grants are included so UI capability grants do not bypass DB enforcement.
--- The v0.8.0 version of this function named its second parameter capability_key;
--- CREATE OR REPLACE cannot rename an existing parameter, so drop it first.
-drop function if exists public.current_user_has_capability(uuid, text);
-create or replace function public.current_user_has_capability(target_org uuid, requested_capability text)
+-- Kept the v0.8.0 parameter name capability_key: earlier migrations' RLS
+-- policies (hand_hygiene_write, waste_write, employees_read/write, etc.)
+-- already depend on this function by that signature, so CREATE OR REPLACE
+-- must not rename it (Postgres rejects the rename, and DROP ... CASCADE
+-- would silently delete those dependent policies).
+create or replace function public.current_user_has_capability(target_org uuid, capability_key text)
 returns boolean
 language sql
 stable
@@ -1307,18 +1315,18 @@ as $$
           select 1
           from public.custom_role_capabilities crc
           where crc.custom_role_id=om.custom_role_id
-            and crc.capability=requested_capability
+            and crc.capability=capability_key
         )
         or exists (
           select 1
           from public.organization_member_capabilities omc
           where omc.membership_id=om.id
             and (
-              (omc.capability='lab_access' and requested_capability='view_lab')
-              or (omc.capability='quality_access' and requested_capability in ('view_quality','view_controls'))
+              (omc.capability='lab_access' and capability_key='view_lab')
+              or (omc.capability='quality_access' and capability_key in ('view_quality','view_controls'))
             )
         )
-        or case requested_capability
+        or case capability_key
           when 'view_training' then om.role in ('hospital_admin','infection_control_lead','infection_control_member','department_manager','department_user','hr_office')
           when 'manage_training' then om.role in ('hospital_admin')
           when 'view_prevention' then om.role in ('hospital_admin','infection_control_lead','infection_control_member')
