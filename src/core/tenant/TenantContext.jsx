@@ -22,32 +22,34 @@ export function TenantProvider({ children }) {
     return params.get('helpPreview')==='1'&&Object.values(ROLES).includes(requested)?{role:requested,department:''}:null
   })
 
-  useEffect(() => {
+  const reloadMemberships = useCallback(async () => {
     if (!isAuthenticated) {
       setMemberships([])
       setActiveMembershipId(null)
-      return
+      return []
     }
     if (isDemoSession) {
       setMemberships([DEMO_MEMBERSHIP])
       setActiveMembershipId(DEMO_MEMBERSHIP.id)
-      return
+      return [DEMO_MEMBERSHIP]
     }
-    let cancelled = false
     setLoading(true)
-    const loader = profile?.isPlatformOwner ? listPlatformOwnerOrganizations() : listMemberships(user?.id)
-    loader
-      .then((next) => {
-        if (cancelled) return
-        setMemberships(next)
-        setActiveMembershipId((current) => {
-          if (profile?.isPlatformOwner) return next.some((item) => item.id === current) ? current : null
-          return next.some((item) => item.id === current) ? current : next[0]?.id ?? null
-        })
+    try {
+      const next = await (profile?.isPlatformOwner ? listPlatformOwnerOrganizations() : listMemberships(user?.id))
+      setMemberships(next)
+      setActiveMembershipId((current) => {
+        if (profile?.isPlatformOwner) return next.some((item) => item.id === current) ? current : null
+        return next.some((item) => item.id === current) ? current : next[0]?.id ?? null
       })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
+      return next
+    } finally {
+      setLoading(false)
+    }
   }, [isAuthenticated, isDemoSession, user?.id, profile?.isPlatformOwner])
+
+  useEffect(() => {
+    reloadMemberships().catch(() => {})
+  }, [reloadMemberships])
 
   const baseMembership = memberships.find((item) => item.id === activeMembershipId) ?? null
   const tenant = baseMembership?.organization ?? null
@@ -78,6 +80,7 @@ export function TenantProvider({ children }) {
     isDemo: tenant?.mode === 'demo',
     setTenantByMembership,
     returnToPlatform,
+    reloadMemberships,
     actualRole,
     rolePreview,
     canRolePreview,
@@ -88,7 +91,7 @@ export function TenantProvider({ children }) {
     uxPolicy: uxPolicyFor(role),
     canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
     canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role,membership?.capabilities,membership?.customCapabilities),
-  }), [tenant, membership, memberships, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, returnToPlatform, user?.id])
+  }), [tenant, membership, memberships, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, returnToPlatform, reloadMemberships, user?.id])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
 }

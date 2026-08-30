@@ -24,13 +24,11 @@ export async function listMemberships(userId) {
   }))
 }
 
-
 export async function listPlatformOwnerOrganizations() {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('organizations')
     .select('id, name, code, type, status')
-    .neq('status', 'deleted')
     .order('name', { ascending: true })
   if (error) throw error
   return (data ?? []).map((organization) => ({
@@ -44,4 +42,31 @@ export async function listPlatformOwnerOrganizations() {
     assignments: [],
     platformSynthetic: true,
   }))
+}
+
+export async function createPlatformOrganization({ name, code, type = 'hospital', status = 'active' }) {
+  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const { data, error } = await supabase
+    .from('organizations')
+    .insert({ name: name.trim(), code: code.trim().toUpperCase(), type, status })
+    .select('id, name, code, type, status')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deletePlatformOrganization(organizationId) {
+  if (!supabase || !organizationId) return
+  const { error } = await supabase.from('organizations').delete().eq('id', organizationId)
+  if (error) throw error
+}
+
+export async function createOrganizationUser({ organizationId, fullName, role }) {
+  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const { data, error } = await supabase.functions.invoke('create-organization-user', {
+    body: { organizationId, fullName: fullName.trim(), role },
+  })
+  if (error) throw error
+  if (data?.error) throw new Error(data.error)
+  return data
 }
