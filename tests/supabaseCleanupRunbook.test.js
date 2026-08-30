@@ -3,6 +3,7 @@ import { URL } from 'node:url'
 import { describe,expect,it } from 'vitest'
 
 const inventory=readFileSync(new URL('../supabase/maintenance/00_preflight_inventory.sql',import.meta.url),'utf8')
+const compact=readFileSync(new URL('../supabase/maintenance/01_preflight_compact_manifest.sql',import.meta.url),'utf8')
 
 describe('Supabase cleanup preflight',()=>{
   it('is read-only and inventories every destructive dependency category',()=>{
@@ -30,4 +31,15 @@ describe('Supabase cleanup preflight',()=>{
     expect(inventory).toContain('using_expression')
     expect(inventory).toContain('check_expression')
   })
+  it('provides a compact read-only manifest when full policy expressions are too large',()=>{
+    const executable=compact.split('\n').filter(line=>!line.trim().startsWith('--')).join('\n')
+    expect(executable).not.toMatch(/\b(drop|truncate|delete|update|insert|alter|create)\b/i)
+    expect(executable.match(/;/g)).toHaveLength(1)
+    for(const category of ["'relations'","'policies'","'functions'","'triggers'","'foreign_keys'","'storage_buckets'"]){
+      expect(compact).toContain(category)
+    }
+    expect(compact).toContain('pg_get_function_identity_arguments')
+    expect(compact).not.toContain('using_expression')
+  })
+
 })
