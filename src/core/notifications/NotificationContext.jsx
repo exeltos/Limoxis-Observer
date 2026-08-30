@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { useTenant } from '../tenant/TenantContext'
 import { loadEmployees } from '../../features/employees/employeeStore'
@@ -72,8 +72,16 @@ export function NotificationProvider({children}){
  const [reads,setReads]=useState(()=>loadSnapshot('notification_reads',{}))
  const [clock,setClock]=useState(Date.now())
  useEffect(()=>{const id=window.setInterval(()=>setClock(Date.now()),60000);return()=>window.clearInterval(id)},[])
- useEffect(()=>{saveSnapshot('announcements',announcements)},[announcements])
- useEffect(()=>{saveSnapshot('notification_reads',reads)},[reads])
+ const announcementsMounted=useRef(false)
+ const readsMounted=useRef(false)
+ useEffect(()=>{
+   if(!announcementsMounted.current){announcementsMounted.current=true;return}
+   saveSnapshot('announcements',announcements)
+ },[announcements])
+ useEffect(()=>{
+   if(!readsMounted.current){readsMounted.current=true;return}
+   saveSnapshot('notification_reads',reads)
+ },[reads])
  const audience=useMemo(()=>({role,membership,user,profile}),[role,membership,user,profile])
  const visibleAnnouncements=useMemo(()=>announcements.filter(a=>applies(a,audience)&&withinWindow(a,clock)).map(a=>{
    const localized=demoAnnouncementText[language]?.[a.id]
