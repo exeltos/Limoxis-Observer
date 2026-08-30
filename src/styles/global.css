@@ -537,6 +537,16 @@
 .control-editor-header p{margin:0;color:var(--text-muted,#6f7f91);font-size:13px}
 .control-editor-body{flex:1;min-height:0;overflow:auto;padding:18px 26px 22px;display:flex;flex-direction:column;gap:14px}
 .control-form-section{border:1px solid var(--border-color,#dfe6ed);border-radius:13px;padding:15px 16px;background:var(--surface,#fff)}
+.observer-dialog .control-editor-body{padding:0;overflow:visible}
+.observer-dialog .control-form-section{
+  border:0;
+  border-top:1px solid var(--lo-card-border,#dfe6ed);
+  border-radius:0;
+  padding:16px 0;
+  background:transparent;
+}
+.observer-dialog .control-form-section:first-child{border-top:0;padding-top:0}
+.observer-dialog .control-form-section:last-child{padding-bottom:0}
 .control-section-title{display:flex;align-items:center;gap:10px;margin-bottom:13px}
 .control-section-title>span{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;background:var(--primary-soft,#e9f4f6);color:var(--primary,#247386);font-weight:800;font-size:12px}
 .control-section-title>div{display:flex;flex-direction:column;gap:1px}.control-section-title strong{font-size:14px}.control-section-title small{font-size:11px;color:var(--text-muted,#748394)}
@@ -3451,7 +3461,11 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
   overflow:auto;
   overscroll-behavior:contain;
   scrollbar-gutter:stable;
+  max-width:100%;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
 }
+.registry-workspace .data-table{width:100%;min-width:760px}
 .scroll-table table thead th{
   position:sticky;
   top:0;
@@ -4390,6 +4404,7 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
 }
 .modal-backdrop>.observer-dialog>.observer-dialog-body{
   flex:1 1 auto;
+  min-width:0;
   min-height:0;
   overflow:auto;
   padding:14px 15px!important;
@@ -4443,6 +4458,8 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
   .modal-backdrop>.observer-dialog-standard,
   .modal-backdrop>.observer-dialog-wide,
   .modal-backdrop>.observer-dialog-workspace{width:calc(100vw - 20px)!important;max-height:calc(100vh - 20px)!important}
+  .modal-backdrop>.observer-dialog>footer{flex-wrap:wrap}
+  .registry-workspace .data-table{min-width:640px}
 }
 
 
