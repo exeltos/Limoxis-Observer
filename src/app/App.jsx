@@ -14,6 +14,7 @@ import { GlobalTextareaExpander } from '../design-system/GlobalTextareaExpander'
 // module with a default export.
 const lazyNamed = (loader, name) => lazy(() => loader().then(m => ({ default: m[name] })))
 
+const PlatformCenterPage = lazyNamed(() => import('../features/workspaces/PlatformCenterPage'), 'PlatformCenterPage')
 const DashboardPage = lazyNamed(() => import('../features/dashboard/DashboardPage'), 'DashboardPage')
 const SurveillancePage = lazyNamed(() => import('../features/surveillance/SurveillancePage'), 'SurveillancePage')
 const PatientClinicalRecordPage = lazyNamed(() => import('../features/surveillance/PatientClinicalRecordPage'), 'PatientClinicalRecordPage')
@@ -54,6 +55,7 @@ export function App() {
     <Route path="/training-access/:token" element={<Suspense fallback={<RouteLoading/>}><TrainingAccessPage /></Suspense>} />
     <Route element={<ProtectedRoute />}>
       <Route element={<AppShell />}>
+        <Route path="platform" element={<Suspense fallback={<RouteLoading/>}><PlatformCenterPage /></Suspense>} />
         <Route path="about" element={<Suspense fallback={<RouteLoading/>}><AboutPage /></Suspense>} />
         <Route index element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)}</Suspense>} />
         <Route path="my-department" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)}</Suspense>} />

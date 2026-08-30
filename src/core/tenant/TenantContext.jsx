@@ -40,7 +40,10 @@ export function TenantProvider({ children }) {
       .then((next) => {
         if (cancelled) return
         setMemberships(next)
-        setActiveMembershipId((current) => next.some((item) => item.id === current) ? current : next[0]?.id ?? null)
+        setActiveMembershipId((current) => {
+          if (profile?.isPlatformOwner) return next.some((item) => item.id === current) ? current : null
+          return next.some((item) => item.id === current) ? current : next[0]?.id ?? null
+        })
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -62,6 +65,9 @@ export function TenantProvider({ children }) {
       return current
     })
   }, [])
+  const returnToPlatform = useCallback(() => {
+    if (profile?.isPlatformOwner) { setActiveMembershipId(null); setRolePreview(null) }
+  }, [profile?.isPlatformOwner])
 
   const value = useMemo(() => ({
     tenant,
@@ -71,6 +77,7 @@ export function TenantProvider({ children }) {
     loading,
     isDemo: tenant?.mode === 'demo',
     setTenantByMembership,
+    returnToPlatform,
     actualRole,
     rolePreview,
     canRolePreview,
@@ -81,7 +88,7 @@ export function TenantProvider({ children }) {
     uxPolicy: uxPolicyFor(role),
     canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
     canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role,membership?.capabilities,membership?.customCapabilities),
-  }), [tenant, membership, memberships, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, user?.id])
+  }), [tenant, membership, memberships, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, returnToPlatform, user?.id])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
 }
