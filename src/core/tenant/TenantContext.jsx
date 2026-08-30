@@ -2,11 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useAuth } from '../auth/AuthContext'
 import { ROLES } from '../permissions/roles'
 import { uxPolicyFor, recordWithinRoleScope, canSeeSensitiveEmployeeHealth } from '../permissions/roleUxPolicy'
-<<<<<<< HEAD
 import { listMemberships, listPlatformOwnerOrganizations } from './tenantService'
-=======
-import { listMemberships } from './tenantService'
->>>>>>> 7e60ed2bd6d8c8868f98759981a67d58cd251ea7
 import { configureDataEnvironment } from '../data/dataEnvironment'
 
 const TenantContext = createContext(null)
