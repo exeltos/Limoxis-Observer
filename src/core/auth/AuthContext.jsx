@@ -9,7 +9,7 @@ const DEMO_USER = Object.freeze({
   id: 'demo-user',
   email: 'demo@limoxis-observer.local',
   fullName: 'Demo Administrator',
-  role: ROLES.HOSPITAL_ADMIN,
+  role: ROLES.DEMO,
   isDemo: true,
 })
 
