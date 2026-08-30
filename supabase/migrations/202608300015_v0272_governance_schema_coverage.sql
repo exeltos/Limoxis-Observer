@@ -208,6 +208,7 @@ alter table public.committee_meetings add constraint committee_meetings_id_org_k
 alter table public.controlled_documents add constraint controlled_documents_id_org_key unique(id,organization_id);
 alter table public.control_definitions add constraint control_definitions_id_org_key unique(id,organization_id);
 alter table public.control_assignments add constraint control_assignments_id_org_key unique(id,organization_id);
+alter table public.control_assignments add constraint control_assignments_execution_key unique(id,organization_id,control_id,department_id);
 alter table public.control_executions add constraint control_executions_id_org_key unique(id,organization_id);
 alter table public.committee_members add constraint committee_members_tenant_fk foreign key(committee_id,organization_id) references public.committees(id,organization_id) on delete cascade;
 alter table public.committee_meetings add constraint committee_meetings_tenant_fk foreign key(committee_id,organization_id) references public.committees(id,organization_id) on delete cascade;
@@ -215,7 +216,7 @@ alter table public.committee_decisions add constraint committee_decisions_tenant
 alter table public.committee_decisions add constraint committee_decisions_meeting_tenant_fk foreign key(meeting_id,organization_id) references public.committee_meetings(id,organization_id);
 alter table public.document_approvals add constraint document_approvals_tenant_fk foreign key(document_id,organization_id) references public.controlled_documents(id,organization_id) on delete cascade;
 alter table public.control_assignments add constraint control_assignments_tenant_fk foreign key(control_id,organization_id) references public.control_definitions(id,organization_id) on delete cascade;
-alter table public.control_executions add constraint control_executions_assignment_tenant_fk foreign key(assignment_id,organization_id) references public.control_assignments(id,organization_id);
+alter table public.control_executions add constraint control_executions_assignment_tenant_fk foreign key(assignment_id,organization_id,control_id,department_id) references public.control_assignments(id,organization_id,control_id,department_id);
 alter table public.control_executions add constraint control_executions_definition_tenant_fk foreign key(control_id,organization_id) references public.control_definitions(id,organization_id);
 alter table public.control_execution_revisions add constraint control_revisions_tenant_fk foreign key(execution_id,organization_id) references public.control_executions(id,organization_id) on delete cascade;
 
@@ -276,10 +277,20 @@ create policy control_executions_manage on public.control_executions for update
 using (performed_by=auth.uid() or public.current_user_has_capability(organization_id,'manage_controls'))
 with check (performed_by=auth.uid() or public.current_user_has_capability(organization_id,'manage_controls'));
 create policy control_revisions_read on public.control_execution_revisions for select using (
-  public.current_user_has_capability(organization_id,'view_controls')
+  exists (
+    select 1 from public.control_executions execution
+    where execution.id=control_execution_revisions.execution_id
+      and execution.organization_id=control_execution_revisions.organization_id
+  )
 );
 create policy control_revisions_insert on public.control_execution_revisions for insert with check (
-  changed_by=auth.uid() and public.current_user_has_capability(organization_id,'view_controls')
+  changed_by=auth.uid()
+  and exists (
+    select 1 from public.control_executions execution
+    where execution.id=control_execution_revisions.execution_id
+      and execution.organization_id=control_execution_revisions.organization_id
+      and (execution.performed_by=auth.uid() or public.current_user_has_capability(control_execution_revisions.organization_id,'manage_controls'))
+  )
 );
 
 -- Quality fix: reporters can see their report; department roles only see their assigned scope.
@@ -290,6 +301,36 @@ create policy quality_incident_org_read on public.quality_incidents for select u
   or (department_id is not null
       and public.current_user_has_org_role(organization_id,array['department_manager']::public.app_role[])
       and public.current_user_has_department_scope(organization_id,department_id))
+);
+
+-- Apply the same department boundary to the rest of Quality. The original policies
+-- granted every department manager hospital-wide visibility.
+drop policy if exists quality_audit_authorized_read on public.quality_audits;
+create policy quality_audit_authorized_read on public.quality_audits for select using (
+  public.current_user_has_org_role(organization_id,array['hospital_admin','quality_manager','infection_control_lead']::public.app_role[])
+  or (department_id is not null
+      and public.current_user_has_org_role(organization_id,array['department_manager']::public.app_role[])
+      and public.current_user_has_department_scope(organization_id,department_id))
+);
+drop policy if exists quality_finding_authorized_read on public.quality_findings;
+create policy quality_finding_authorized_read on public.quality_findings for select using (
+  owner_id=auth.uid()
+  or public.current_user_has_org_role(organization_id,array['hospital_admin','quality_manager','infection_control_lead']::public.app_role[])
+  or (department_id is not null
+      and public.current_user_has_org_role(organization_id,array['department_manager']::public.app_role[])
+      and public.current_user_has_department_scope(organization_id,department_id))
+);
+drop policy if exists quality_capa_authorized_read on public.quality_capa_actions;
+create policy quality_capa_authorized_read on public.quality_capa_actions for select using (
+  owner_id=auth.uid()
+  or public.current_user_has_org_role(organization_id,array['hospital_admin','quality_manager','infection_control_lead']::public.app_role[])
+  or (department_id is not null
+      and public.current_user_has_org_role(organization_id,array['department_manager']::public.app_role[])
+      and public.current_user_has_department_scope(organization_id,department_id))
+);
+drop policy if exists quality_links_authorized on public.quality_record_links;
+create policy quality_links_authorized on public.quality_record_links for select using (
+  public.current_user_has_org_role(organization_id,array['hospital_admin','quality_manager','infection_control_lead']::public.app_role[])
 );
 
 -- Laboratory cleanup: these indexes duplicate the canonical indexes created by v0.5.0.
