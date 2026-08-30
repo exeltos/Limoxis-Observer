@@ -111,7 +111,7 @@ export function PreventionPage(){
   </div>
 
   <div className="surface registry-workspace prevention-workspace workspace-fill">
-   <div className="tabs prevention-tabs">{visibleTabs.map(([id,key])=><button key={id} className={`tab ${tab===id?'active':''}`} onClick={()=>changeTab(id)}>{t(key)}</button>)}</div>
+   <nav className="tabs prevention-tabs canonical-module-tabs">{visibleTabs.map(([id,key])=><button key={id} className={`tab ${tab===id?'active':''}`} onClick={()=>changeTab(id)}>{t(key)}</button>)}</nav>
    <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPrevention')} onClear={()=>{setQuery('');setDepartment('all');setPeriod('all');setProduct('all');setMethod('all')}} advanced={tab==='antiseptics'?<>
      <FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
      <FilterSelect label={t('productFilter')} value={product} onChange={setProduct}><option value="all">{t('allProducts')}</option>{[...new Set(source.map(x=>x.product).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>

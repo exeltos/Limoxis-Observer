@@ -1786,7 +1786,15 @@
  cursor:pointer;
  text-align:left;
 }
-.lab-workflow-nav-button.next{justify-content:flex-end;text-align:right}
+.lab-workflow-nav-button.next{justify-content:flex-end;text-align:right;background:#1f6fa9;border-color:#1f6fa9}
+.lab-workflow-nav-button.next small{color:rgba(255,255,255,.72)}
+.lab-workflow-nav-button.next strong{color:#fff}
+.lab-workflow-nav-button.next svg{color:#fff}
+.lab-workflow-nav-button.next:hover:not(:disabled){background:#175a8a;border-color:#175a8a}
+.lab-workflow-nav-button.next:disabled{background:#fff;border-color:#dce5eb}
+.lab-workflow-nav-button.next:disabled small{color:#8494a1}
+.lab-workflow-nav-button.next:disabled strong{color:#294b65}
+.lab-workflow-nav-button.next:disabled svg{color:#294b65}
 .lab-workflow-nav-button:hover:not(:disabled){background:#f5f9fb;border-color:#c7d8e3}
 .lab-workflow-nav-button:disabled{opacity:.35;cursor:default}
 .lab-workflow-nav-button span{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -4557,3 +4565,30 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
 .app-error-card p{margin:0;color:var(--color-text-muted,#52606d);line-height:1.55}
 .app-error-card .button{grid-column:2;justify-self:start}
 @media(max-width:520px){.app-error-card{grid-template-columns:1fr}.app-error-card .button{grid-column:1}}
+
+/* Canonical edit-action style: orange + pencil, distinct from red delete/trash. */
+button.edit:not(.button-primary):not(.button-secondary):not(.button-danger),.prevention-row-edit{color:#a8661f!important;border-color:#f0ddbd!important;background:#fffaf2!important}
+button.edit:not(.button-primary):not(.button-secondary):not(.button-danger):hover,.prevention-row-edit:hover{background:#fdf3e2!important;border-color:#e6c78e!important}
+.button.edit{color:#a8661f;border-color:#f0ddbd;background:#fffaf2}
+.button.edit:hover:not(:disabled){background:#fdf3e2;border-color:#e6c78e}
+
+/* Canonical, discreet contextual-help/info banner — replaces .governance-banner,
+   .source-truth-note, .evidence-box and .committee-guidance-banner. New code
+   should use the <InfoBanner> component (src/design-system/InfoBanner.jsx);
+   the older class names are aliased below so every existing screen picks up
+   the same look without a full JSX migration. */
+.info-banner,.governance-banner,.evidence-box,.source-truth-note,.committee-guidance-banner{padding:9px 11px!important;margin:10px 0!important;border:0!important;border-left:3px solid #9db8c9!important;background:#f6f9fb!important;border-radius:0 8px 8px 0!important;color:#5f7185!important;font-size:11px!important;line-height:1.5!important}
+.info-banner,.governance-banner,.committee-guidance-banner{display:flex!important;gap:8px!important;align-items:flex-start!important}
+.info-banner svg,.governance-banner>svg,.committee-guidance-banner>svg{flex:0 0 auto;margin-top:1px;color:#5f8095!important}
+.info-banner strong,.evidence-box strong,.committee-guidance-banner strong{display:block;font-size:10.5px!important;color:#4d6579!important;margin-bottom:2px!important}
+.info-banner span,.evidence-box span,.committee-guidance-banner span{display:block;font-size:11px!important;color:#5f7185!important;margin-top:0!important}
+.governance-banner.warning,.control-finding-banner{border-left-color:#c99a4a!important;background:#fdf7ec!important;color:#8a6521!important}
+.governance-banner.warning svg,.control-finding-banner svg{color:#b4842f!important}
+.compact-governance{margin:6px 0!important;padding:7px 10px!important}
+
+/* Canonical, discreet section-help lead-in (smaller, italic, muted). */
+.section-help{display:block;font-size:12.5px;font-style:italic;font-weight:600;color:var(--muted,#6e7b8d)}
+
+/* Button loading state: spinner + dimmed, reuses the route-loading-spin keyframe. */
+.button-spinner{width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;opacity:.7;animation:route-loading-spin .7s linear infinite}
+.button-loading{cursor:wait}

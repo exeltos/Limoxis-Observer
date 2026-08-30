@@ -24,6 +24,15 @@ describe('role + scope access foundation', () => {
     expect(keys).toEqual(['platformCenter', 'management'])
   })
 
+  it('does not show both Dashboard and My department to department roles', () => {
+    const managerKeys = navigationFor({ role: ROLES.DEPARTMENT_MANAGER }).map((item) => item.key)
+    const userKeys = navigationFor({ role: ROLES.DEPARTMENT_USER }).map((item) => item.key)
+    expect(managerKeys).toContain('myDepartment')
+    expect(managerKeys).not.toContain('dashboard')
+    expect(userKeys).toContain('myDepartment')
+    expect(userKeys).not.toContain('dashboard')
+  })
+
   it('shows controls when assigned even for a role whose normal workspace is restricted', () => {
     const keys = navigationFor({ role: ROLES.COMMITTEE_SECRETARIAT, hasAssignments: true }).map((item) => item.key)
     expect(keys).toContain('controls')

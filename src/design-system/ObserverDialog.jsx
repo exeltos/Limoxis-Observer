@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { Button } from './Button'
+import { SaveButton } from './SaveButton'
 import { useLanguage } from '../core/i18n/LanguageContext'
 
 export function ObserverDialog({
@@ -36,6 +37,6 @@ export function DialogActions({onCancel,onSave,saveLabel,disabled=false,children
   return <>
     {children}
     <Button variant="secondary" onClick={onCancel}>{cancelLabel||(en?'Cancel':'Ακύρωση')}</Button>
-    <Button disabled={disabled} onClick={onSave}>{resolvedSaveLabel}</Button>
+    <SaveButton disabled={disabled} onClick={onSave}>{resolvedSaveLabel}</SaveButton>
   </>
 }

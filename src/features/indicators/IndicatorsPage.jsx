@@ -90,7 +90,7 @@ function formatTarget(x){if(x.target==null)return '—';return `${x.direction===
 function IndicatorDialog({item,greek,canManage,t,onClose,onEdit,onDelete}){
  const metricLabel=key=>indicatorMetricCatalog.find(x=>x.key===key)?.label||key||'—'
  return <ObserverDialog eyebrow={t('indicatorsRecords.tableIndicator')} title={greek?item.titleEl:item.titleEn} subtitle={t('indicatorsRecords.dialogSubtitle')} width="wide" onClose={onClose} footer={<>
-   {canManage&&<div className="record-inline-actions indicator-dialog-icon-actions"><button type="button" onClick={onEdit} title={t('indicatorsRecords.editIndicator')} aria-label={t('indicatorsRecords.editIndicator')}><Pencil size={16}/></button><button type="button" className="danger" onClick={onDelete} title={t('indicatorsRecords.deleteIndicatorTitle')} aria-label={t('indicatorsRecords.deleteIndicatorTitle')}><Trash2 size={16}/></button></div>}
+   {canManage&&<div className="record-inline-actions indicator-dialog-icon-actions"><button type="button" className="edit" onClick={onEdit} title={t('indicatorsRecords.editIndicator')} aria-label={t('indicatorsRecords.editIndicator')}><Pencil size={16}/></button><button type="button" className="danger" onClick={onDelete} title={t('indicatorsRecords.deleteIndicatorTitle')} aria-label={t('indicatorsRecords.deleteIndicatorTitle')}><Trash2 size={16}/></button></div>}
    
    <Button onClick={onClose}>{t('close')}</Button>
   </>}>

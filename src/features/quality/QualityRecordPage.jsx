@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { AlertTriangle, CheckSquare2, ClipboardCheck, FileClock, Link2, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
+import { SaveButton } from '../../design-system/SaveButton'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { downloadRecordJson } from '../../core/export/recordExport'
@@ -98,7 +99,7 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
     }
   }
   return <div className="record-section">
-    <div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('details')}</h3></div>{canManage&&!editing&&<div className="record-inline-actions"><button onClick={beginEdit} title={finalized?(en?'Correct finalized record':'Διόρθωση ολοκληρωμένης εγγραφής'):t('edit')}>{finalized?<RotateCcw size={16}/>:<Pencil size={16}/>}</button><button className="danger" onClick={requestVoid} title={en?'Void record':'Ακύρωση εγγραφής'}><Trash2 size={16}/></button></div>}</div>
+    <div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('details')}</h3></div>{canManage&&!editing&&<div className="record-inline-actions"><button className="edit" onClick={beginEdit} title={finalized?(en?'Correct finalized record':'Διόρθωση ολοκληρωμένης εγγραφής'):t('edit')}>{finalized?<RotateCcw size={16}/>:<Pencil size={16}/>}</button><button className="danger" onClick={requestVoid} title={en?'Void record':'Ακύρωση εγγραφής'}><Trash2 size={16}/></button></div>}</div>
     <div className={`detail-grid quality-detail-grid ${editing?'employee-inline-edit':''}`}>
       <Field label={t('code')} value={draft.id}/>
       <EditField editing={editing} label={t('title')} value={language==='el'?draft.title:draft.titleEn} onChange={v=>set(language==='el'?'title':'titleEn',v)}/>
@@ -110,7 +111,7 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
       {recordType==='audits'&&<><EditSelect editing={editing} label={t('auditType')} value={draft.auditType} onChange={v=>set('auditType',v)} options={['internal','external'].map(x=>[x,t(x)])}/><EditField editing={editing} label={t('leadAuditor')} value={draft.leadAuditor} onChange={v=>set('leadAuditor',v)}/><EditDateField editing={editing} label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)} locale={locale}/><Field label={t('qualityRecords.completedDate')} value={fmt(draft.completedDate,locale)}/></>}
     </div>
     <div className="quality-description"><span>{t(recordType==='audits'?'qualityRecords.auditScope':'description')}</span>{editing?<textarea rows={5} value={language==='el'?(draft.description??draft.scope??''):(draft.descriptionEn??draft.scopeEn??'')} onChange={e=>set(language==='el'?(recordType==='audits'?'scope':'description'):(recordType==='audits'?'scopeEn':'descriptionEn'),e.target.value)}/>:<p>{language==='el'?(record.description??record.scope??'—'):(record.descriptionEn??record.scopeEn??'—')}</p>}</div>
-    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...record});setEditing(false);setCorrectionReason('')}}>{t('cancel')}</Button><Button onClick={save}>{t('save')}</Button></div>}
+    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...record});setEditing(false);setCorrectionReason('')}}>{t('cancel')}</Button><SaveButton onClick={save}>{t('save')}</SaveButton></div>}
     <GovernedReasonDialog open={Boolean(governedAction)} title={governedAction==='correct'?(en?'Correct finalized record':'Διόρθωση ολοκληρωμένης εγγραφής'):(en?'Void record':'Ακύρωση εγγραφής')} description={governedAction==='correct'?(en?'The original record remains in history. Enter the reason for the correction.':'Η αρχική εγγραφή παραμένει στο ιστορικό. Καταγράψτε τον λόγο της διόρθωσης.'):(en?'The record will not be physically deleted. It will be marked as voided and retained in the audit trail.':'Η εγγραφή δεν θα διαγραφεί φυσικά. Θα χαρακτηριστεί ως ακυρωμένη και θα παραμείνει στο audit trail.')} confirmLabel={governedAction==='correct'?(en?'Start correction':'Έναρξη διόρθωσης'):(en?'Void record':'Ακύρωση εγγραφής')} danger={governedAction==='void'} onCancel={()=>setGovernedAction(null)} onConfirm={governedConfirm}/>
   </div>
 }

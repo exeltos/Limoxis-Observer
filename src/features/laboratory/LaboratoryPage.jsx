@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { Button } from '../../design-system/Button'
+import { SaveButton } from '../../design-system/SaveButton'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
@@ -216,6 +217,6 @@ function NewSampleCard({t,language,onClose,onSave}){
       <label><span>{t('collectedLabel')}</span><input type="datetime-local" value={draft.collectedAt} onChange={e=>set('collectedAt',e.target.value)}/></label>
       <label><span>{t('priority')}</span><select value={draft.priority} onChange={e=>set('priority',e.target.value)}><option value="routine">{t('routine')}</option><option value="urgent">{t('urgent')}</option><option value="critical">{t('critical')}</option></select></label>
     </div>
-    <footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><Button disabled={!draft.patientId||!(draft.patient||draft.patientEn)} onClick={()=>onSave(draft)}>{t('save')}</Button></footer>
+    <footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={!draft.patientId||!(draft.patient||draft.patientEn)} onClick={()=>onSave(draft)}>{t('save')}</SaveButton></footer>
   </div></div>
 }
