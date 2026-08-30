@@ -15,6 +15,16 @@ describe('Supabase cleanup preflight',()=>{
     expect(inventory).toContain("to_regclass('supabase_migrations.schema_migrations')")
   })
 
+  it('returns one consolidated JSON inventory result',()=>{
+    const executable=inventory.split('\n').filter(line=>!line.trim().startsWith('--')).join('\n')
+    expect(executable.match(/;/g)).toHaveLength(1)
+    expect(inventory).toContain("'relations',relations.value")
+    expect(inventory).toContain("'policies',policies.value")
+    expect(inventory).toContain("'functions',functions.value")
+    expect(inventory).toContain("'storage_buckets',buckets.value")
+    expect(inventory).toMatch(/\) as inventory\s+from relations,policies,functions,triggers,foreign_keys,buckets,migration_history;/)
+  })
+
   it('captures function overload identity and RLS expressions',()=>{
     expect(inventory).toContain('pg_get_function_identity_arguments')
     expect(inventory).toContain('using_expression')
