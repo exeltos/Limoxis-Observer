@@ -15,7 +15,11 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { capabilityCatalogue,isCustomRoleEligible } from '../../core/permissions/capabilityCatalogue'
+<<<<<<< HEAD
 import { demoLibrarySeed, demoUsers, externalSources } from './managementData'
+=======
+import { demoLibrarySeed, demoOrganizations, demoUsers, externalSources } from './managementData'
+>>>>>>> 7e60ed2bd6d8c8868f98759981a67d58cd251ea7
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { supabase } from '../../core/supabase/client'
 
@@ -26,7 +30,11 @@ const roleNames={platform_owner:'platformOwnerRole',hospital_admin:'hospitalAdmi
 const creatableRoles=['hospital_admin','infection_control_lead','link_nurse','doctor_reviewer','department_user','laboratory','staff_user']
 
 export function ManagementPage(){
+<<<<<<< HEAD
   const {language,t}=useLanguage(); const {tenant,role,membership,memberships,isDemo,setTenantByMembership}=useTenant(); const {notify,confirm}=useFeedback(); const [tab,setTab]=useState('overview'); const [roleModal,setRoleModal]=useState(false); const [references,setReferences]=useState(externalSources); const [referenceEditor,setReferenceEditor]=useState(null); const [customRoles,setCustomRoles]=useState([]); const [roleName,setRoleName]=useState(''); const [selectedCaps,setSelectedCaps]=useState([])
+=======
+  const {language,t}=useLanguage(); const {tenant,role,membership,isDemo}=useTenant(); const {notify,confirm}=useFeedback(); const [tab,setTab]=useState('overview'); const [roleModal,setRoleModal]=useState(false); const [references,setReferences]=useState(externalSources); const [referenceEditor,setReferenceEditor]=useState(null); const [customRoles,setCustomRoles]=useState([]); const [roleName,setRoleName]=useState(''); const [selectedCaps,setSelectedCaps]=useState([])
+>>>>>>> 7e60ed2bd6d8c8868f98759981a67d58cd251ea7
   const [orgUsers,setOrgUsers]=useState([]); const [orgUsersLoading,setOrgUsersLoading]=useState(false); const [createUserOpen,setCreateUserOpen]=useState(false); const [createdUser,setCreatedUser]=useState(null)
   useEffect(()=>{
     if(isDemo||!supabase||!tenant?.id||tab!=='users')return

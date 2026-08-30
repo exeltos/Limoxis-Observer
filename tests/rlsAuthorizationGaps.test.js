@@ -8,7 +8,10 @@ const parallelSurveillance = readFileSync(new URL('../supabase/migrations/202608
 const labMicrobiology = readFileSync(new URL('../supabase/migrations/202608270007_v060_laboratory_microbiology.sql', import.meta.url), 'utf8')
 const governanceCoverage = readFileSync(new URL('../supabase/migrations/202608300015_v0272_governance_schema_coverage.sql', import.meta.url), 'utf8')
 const clinicalGapFix = readFileSync(new URL('../supabase/migrations/202608300016_v0273_clinical_rls_gap_fix.sql', import.meta.url), 'utf8')
+<<<<<<< HEAD
 const ownerFullControl = readFileSync(new URL('../supabase/migrations/202608300018_v0279_platform_owner_full_control.sql', import.meta.url), 'utf8')
+=======
+>>>>>>> 7e60ed2bd6d8c8868f98759981a67d58cd251ea7
 
 // These tests document a gap between the documented authorization model
 // (docs/AUTHORIZATION_MODEL.md) and the SQL RLS layer that
@@ -107,6 +110,7 @@ describe('RLS gap fix (v0273): hospital_admin and platform_owner excluded from c
     expect(clinicalGapFix).not.toContain('create or replace function public.current_user_has_org_role')
   })
 })
+<<<<<<< HEAD
 
 
 describe('Platform Owner full-control override (v0279)', () => {
@@ -124,3 +128,5 @@ describe('Platform Owner full-control override (v0279)', () => {
     expect(ownerFullControl).toContain('create or replace function public.current_user_can_access_control_department')
   })
 })
+=======
+>>>>>>> 7e60ed2bd6d8c8868f98759981a67d58cd251ea7

@@ -118,16 +118,27 @@ describe('sensitive domain isolation', () => {
     )
   })
 
+<<<<<<< HEAD
   it('keeps hospital_admin out of sensitive capabilities while platform_owner has explicit full control', () => {
     for (const capability of sensitiveCapabilities) {
       expect(can(ROLES.HOSPITAL_ADMIN, capability)).toBe(false)
       expect(can(ROLES.PLATFORM_OWNER, capability)).toBe(true)
+=======
+  it('never grants a sensitive capability to hospital_admin or platform_owner', () => {
+    for (const capability of sensitiveCapabilities) {
+      expect(can(ROLES.HOSPITAL_ADMIN, capability)).toBe(false)
+      expect(can(ROLES.PLATFORM_OWNER, capability)).toBe(false)
+>>>>>>> 7e60ed2bd6d8c8868f98759981a67d58cd251ea7
     }
   })
 
   it('keeps occupational health limited to the occupational physician and the isolated demo role', () => {
     for (const role of allRoleIds) {
+<<<<<<< HEAD
       if (role === ROLES.PLATFORM_OWNER || role === ROLES.OCCUPATIONAL_PHYSICIAN || role === ROLES.DEMO) continue
+=======
+      if (role === ROLES.OCCUPATIONAL_PHYSICIAN || role === ROLES.DEMO) continue
+>>>>>>> 7e60ed2bd6d8c8868f98759981a67d58cd251ea7
       expect(can(role, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(false)
       expect(can(role, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)).toBe(false)
     }

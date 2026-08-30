@@ -33,6 +33,15 @@ describe('role + scope access foundation', () => {
     expect(userKeys).not.toContain('dashboard')
   })
 
+  it('does not show both Dashboard and My department to department roles', () => {
+    const managerKeys = navigationFor({ role: ROLES.DEPARTMENT_MANAGER }).map((item) => item.key)
+    const userKeys = navigationFor({ role: ROLES.DEPARTMENT_USER }).map((item) => item.key)
+    expect(managerKeys).toContain('myDepartment')
+    expect(managerKeys).not.toContain('dashboard')
+    expect(userKeys).toContain('myDepartment')
+    expect(userKeys).not.toContain('dashboard')
+  })
+
   it('shows controls when assigned even for a role whose normal workspace is restricted', () => {
     const keys = navigationFor({ role: ROLES.COMMITTEE_SECRETARIAT, hasAssignments: true }).map((item) => item.key)
     expect(keys).toContain('controls')
@@ -45,9 +54,14 @@ describe('role + scope access foundation', () => {
     expect(can(ROLES.OCCUPATIONAL_PHYSICIAN, CAPABILITIES.MANAGE_STAFF_ADMIN)).toBe(false)
   })
 
+<<<<<<< HEAD
   it('keeps hospital administration clinically restricted while platform owner is the explicit full-control role', () => {
     expect(can(ROLES.PLATFORM_OWNER, CAPABILITIES.VIEW_PATIENTS)).toBe(true)
     expect(can(ROLES.PLATFORM_OWNER, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(true)
+=======
+  it('does not turn platform or hospital administration into a clinical bypass', () => {
+    expect(can(ROLES.PLATFORM_OWNER, CAPABILITIES.VIEW_PATIENTS)).toBe(false)
+>>>>>>> 7e60ed2bd6d8c8868f98759981a67d58cd251ea7
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(false)
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VALIDATE_LAB_RESULTS)).toBe(false)
   })
@@ -115,7 +129,10 @@ describe('role + scope access foundation', () => {
   it('requires both a sensitive capability and an allowed role family', () => {
     expect(canSeeSensitiveEmployeeHealth(ROLES.HOSPITAL_ADMIN)).toBe(false)
     expect(canSeeSensitiveEmployeeHealth(ROLES.LABORATORY,[],[CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH])).toBe(false)
+<<<<<<< HEAD
     expect(canSeeSensitiveEmployeeHealth(ROLES.PLATFORM_OWNER)).toBe(true)
+=======
+>>>>>>> 7e60ed2bd6d8c8868f98759981a67d58cd251ea7
     expect(canSeeSensitiveEmployeeHealth(ROLES.OCCUPATIONAL_PHYSICIAN)).toBe(true)
     expect(canSeeSensitiveEmployeeHealth(ROLES.DEMO)).toBe(true)
   })
