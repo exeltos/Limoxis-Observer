@@ -23,3 +23,25 @@ export async function listMemberships(userId) {
     assignments: (membership.assignments ?? []).filter((item) => item.status !== 'completed' && item.status !== 'cancelled'),
   }))
 }
+
+
+export async function listPlatformOwnerOrganizations() {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('id, name, code, type, status')
+    .neq('status', 'deleted')
+    .order('name', { ascending: true })
+  if (error) throw error
+  return (data ?? []).map((organization) => ({
+    id: `platform-owner:${organization.id}`,
+    role: 'platform_owner',
+    status: 'active',
+    organization,
+    departmentIds: [],
+    capabilities: [],
+    customCapabilities: [],
+    assignments: [],
+    platformSynthetic: true,
+  }))
+}

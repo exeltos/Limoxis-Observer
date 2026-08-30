@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { Check,Copy,Edit3,Plus,RotateCcw,Trash2,X } from 'lucide-react'
+import { Check,Copy,Pencil,Plus,RotateCcw,Trash2,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { FilterBar } from '../../design-system/FilterBar'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -74,7 +74,7 @@ export function BundleLibraryPanel(){
      <td><strong>{item.source||'—'}</strong><small>{item.sourceVersion||''}</small></td>
      <td><span className="bundle-library-scope-text">{item.scope||'—'}</span></td>
      <td onClick={e=>e.stopPropagation()}><div className="row-actions">
-      <button className="icon-button" title={en?'Open / edit':'Άνοιγμα / επεξεργασία'} onClick={()=>editBundle(item)}><Edit3 size={14}/></button>
+      <button className="icon-button edit" title={en?'Open / edit':'Άνοιγμα / επεξεργασία'} onClick={()=>editBundle(item)}><Pencil size={14}/></button>
       <button className="icon-button" title={en?'Create new draft version':'Δημιουργία νέας draft έκδοσης'} onClick={()=>duplicate(item)}><Copy size={14}/></button><button className="icon-button danger" title={en?'Delete from hospital':'Διαγραφή από το νοσοκομείο'} onClick={()=>removeBundle(item)}><Trash2 size={14}/></button>
       {item.status==='draft'&&<button className="text-button compact" onClick={()=>publish(item)}><Check size={13}/> Publish</button>}
       {item.status==='published'&&<button className="text-button compact" onClick={()=>retire(item)}><RotateCcw size={13}/> Retire</button>}

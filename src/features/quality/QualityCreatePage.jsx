@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, CheckSquare2, ClipboardCheck, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
+import { SaveButton } from '../../design-system/SaveButton'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { AttachmentField } from '../../design-system/AttachmentField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -74,7 +75,7 @@ export function QualityCreatePage(){
         <label className="entry-span-2"><span>{t(recordType==='audits'?'qualityRecords.auditScope':'description')}</span><textarea rows={6} value={language==='el'?(recordType==='audits'?draft.scope:draft.description):(recordType==='audits'?draft.scopeEn:draft.descriptionEn)} onChange={e=>set(language==='el'?(recordType==='audits'?'scope':'description'):(recordType==='audits'?'scopeEn':'descriptionEn'),e.target.value)}/></label>
       </div>
       <AttachmentField value={draft.attachments} onChange={v=>set('attachments',v)}/>
-      <div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{t('cancel')}</Button><Button disabled={!(draft.title||draft.titleEn)} onClick={save}>{t('save')}</Button></div>
+      <div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{t('cancel')}</Button><SaveButton disabled={!(draft.title||draft.titleEn)} onClick={save}>{t('save')}</SaveButton></div>
     </div>
   </EntityRecordShell></Page>
 }

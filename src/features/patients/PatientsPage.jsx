@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
+import { SaveButton } from '../../design-system/SaveButton'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
@@ -120,7 +121,7 @@ function NewPatientCard({t,language,onClose,onSave}){
         <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/>
         <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
       </div>
-      <footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><Button disabled={!draft.firstName.trim()||!draft.lastName.trim()||!draft.admissionDate} onClick={save}>{t('save')}</Button></footer>
+      <footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={!draft.firstName.trim()||!draft.lastName.trim()||!draft.admissionDate} onClick={save}>{t('save')}</SaveButton></footer>
     </div>
   </div>
 }

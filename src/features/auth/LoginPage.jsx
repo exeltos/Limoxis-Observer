@@ -12,7 +12,7 @@ export function LoginPage() {
   const { language, setLanguage } = useLanguage()
   const location = useLocation()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -25,12 +25,16 @@ export function LoginPage() {
     setError('')
     setSubmitting(true)
     try {
-      await login(email.trim(), password)
+      const trimmed = identifier.trim()
+      // Only the platform owner signs in with a real email; every other
+      // account uses a username, resolved to its internal synthetic address.
+      const authEmail = trimmed.includes('@') ? trimmed : `${trimmed}@users.limoxis.local`
+      await login(authEmail, password)
       navigate(location.state?.from ?? '/', { replace: true })
     } catch (nextError) {
       setError(nextError.message === 'SUPABASE_NOT_CONFIGURED'
         ? (greek ? 'Δεν έχει συνδεθεί ακόμη Supabase. Χρησιμοποίησε το Demo ή πρόσθεσε τα environment keys.' : 'Supabase is not configured yet. Use Demo or add the environment keys.')
-        : (greek ? 'Η σύνδεση απέτυχε. Έλεγξε email και κωδικό.' : 'Sign in failed. Check your email and password.'))
+        : (greek ? 'Η σύνδεση απέτυχε. Έλεγξε το όνομα χρήστη και τον κωδικό.' : 'Sign in failed. Check your username and password.'))
     } finally { setSubmitting(false) }
   }
 
@@ -48,7 +52,7 @@ export function LoginPage() {
       <button className="auth-language" onClick={() => setLanguage(greek ? 'en' : 'el')}><Languages size={16}/>{greek ? 'EN' : 'EL'}</button>
       <form className="login-card" onSubmit={handleSubmit}>
         <div className="login-heading"><span>{greek ? 'Καλώς ήρθατε' : 'Welcome back'}</span><h2>{greek ? 'Σύνδεση στο Limoxis Observer' : 'Sign in to Limoxis Observer'}</h2><p>{greek ? 'Χρησιμοποιήστε τον λογαριασμό του οργανισμού σας.' : 'Use your organization account.'}</p></div>
-        <Field label="Email"><input className="input" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
+        <Field label={greek ? 'Όνομα χρήστη' : 'Username'}><input className="input" type="text" autoComplete="username" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required /></Field>
         <Field label={greek ? 'Κωδικός πρόσβασης' : 'Password'}><input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Field>
         {error && <div className="form-error">{error}</div>}
         <Button type="submit" disabled={submitting || !hasSupabaseConfig}>{submitting ? (greek ? 'Σύνδεση…' : 'Signing in…') : (greek ? 'Σύνδεση' : 'Sign in')}</Button>

@@ -3,6 +3,7 @@ import { Eye, FilePlus2, Paperclip, Pencil, Trash2, X } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useFeedback } from '../core/feedback/FeedbackContext'
 import { Button } from './Button'
+import { SaveButton } from './SaveButton'
 
 const defaultCategories=[
   ['generalDocument','generalDocument'],
@@ -107,7 +108,7 @@ export function AttachmentField({
         </div>
         <div className="attachment-actions">
           <button disabled={!file.dataUrl&&!file.objectUrl&&!file.url} onClick={()=>view(file)} title={t('viewAttachment')} aria-label={t('viewAttachment')}><Eye size={14}/></button>
-          {!disabled&&<button onClick={()=>beginEdit(file)} title={t('edit')} aria-label={t('edit')}><Pencil size={14}/></button>}
+          {!disabled&&<button className="edit" onClick={()=>beginEdit(file)} title={t('edit')} aria-label={t('edit')}><Pencil size={14}/></button>}
           {!disabled&&<button className="danger" onClick={()=>remove(file.id)} title={t('delete')} aria-label={t('delete')}><Trash2 size={14}/></button>}
         </div>
       </div>)}
@@ -131,7 +132,7 @@ export function AttachmentField({
           <label><span>{t('documentCategory')}</span><select value={editor.category} onChange={e=>setEditor(x=>({...x,category:e.target.value}))}>{categories.map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}</select></label>
           <label className="attachment-editor-description"><span>{t('description')}</span><textarea rows={3} value={editor.description} onChange={e=>setEditor(x=>({...x,description:e.target.value}))} placeholder={t('attachmentDescriptionPlaceholder')}/></label>
         </div>
-        <footer><Button variant="secondary" onClick={()=>setEditor(null)}>{t('cancel')}</Button><Button disabled={editor.mode==='add'&&!editor.file} onClick={saveEditor}>{t('save')}</Button></footer>
+        <footer><Button variant="secondary" onClick={()=>setEditor(null)}>{t('cancel')}</Button><SaveButton disabled={editor.mode==='add'&&!editor.file} onClick={saveEditor}>{t('save')}</SaveButton></footer>
       </div>
     </div>}
   </div>

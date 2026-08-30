@@ -7,13 +7,14 @@ import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { TimeField } from '../../design-system/TimeField'
 import { Button } from '../../design-system/Button'
+import { SaveButton } from '../../design-system/SaveButton'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { ExpandableTextBlock } from '../../design-system/ExpandableTextBlock'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
-import { can,CAPABILITIES } from '../../core/permissions/roles'
+import { canForRecord,CAPABILITIES } from '../../core/permissions/roles'
 import { loadCommittees,saveCommittees } from './committeeData'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { AttachmentField } from '../../design-system/AttachmentField'
@@ -58,7 +59,15 @@ export function CommitteeRecordPage(){
   const [tab,setTab]=useState('overview')
   const [modal,setModal]=useState(null)
   const [removeTarget,setRemoveTarget]=useState(null)
-  const canManage=can(role,CAPABILITIES.MANAGE_COMMITTEES,membership?.capabilities??[],membership?.customCapabilities??[])
+  const committeeRecord=record?{...record,resourceType:'committee'}:null
+  const permissionContext={role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],organizationId:membership?.organizationId??membership?.organization?.id,assignments:membership?.assignments??[]}
+  const canForCommittee=capability=>Boolean(committeeRecord)&&canForRecord(capability,committeeRecord,permissionContext)
+  const canManageMembers=canForCommittee(CAPABILITIES.MANAGE_COMMITTEE_MEMBERS)
+  const canCreateMeeting=canForCommittee(CAPABILITIES.CREATE_COMMITTEE_MEETING)
+  const canEditMinutes=canForCommittee(CAPABILITIES.EDIT_COMMITTEE_MINUTES)
+  const canFinalizeMinutes=canForCommittee(CAPABILITIES.FINALIZE_COMMITTEE_MINUTES)
+  const canManageDecisions=canForCommittee(CAPABILITIES.MANAGE_COMMITTEE_DECISIONS)
+  const canManageDocuments=canForCommittee(CAPABILITIES.MANAGE_COMMITTEE_DOCUMENTS)
   const staff=useMemo(()=>loadEmployees().filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession,email:x.email||''})),[])
 
   if(!record)return <Page title={en?'Committees':'Επιτροπές'}><div className="inline-empty">{en?'Committee not found.':'Η επιτροπή δεν βρέθηκε.'}</div></Page>
@@ -90,6 +99,14 @@ export function CommitteeRecordPage(){
     setModal(null)
     notify(en?'Member added and recorded in history.':'Το μέλος προστέθηκε και καταγράφηκε στο ιστορικό.','success')
   }
+  function editMember(data){
+    const now=new Date().toISOString()
+    const memberRefs=(record.memberRefs||[]).map(x=>x.id===data.id?{...x,committeeTitle:data.committeeTitle||'Μέλος',responsibilities:data.responsibilities||'',voting:Boolean(data.voting),memberType:data.memberType||'regular',updatedAt:now,updatedBy:actor.name,updatedById:actor.id}:x)
+    const target=(record.memberRefs||[]).find(x=>x.id===data.id)
+    persist(syncLegacy({...record,memberRefs,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Επεξεργασία στοιχείων μέλους',reason:`${target?.name||''} — ${data.committeeTitle}`},...(record.history||[])]}))
+    setModal(null)
+    notify(en?'Member details updated.':'Τα στοιχεία του μέλους ενημερώθηκαν.','success')
+  }
   function removeMember(reason){
     if(!removeTarget)return
     const now=new Date().toISOString()
@@ -110,6 +127,7 @@ export function CommitteeRecordPage(){
     notify(en?'Meeting created. You can continue with attendance and minutes.':'Η συνεδρίαση δημιουργήθηκε. Μπορείτε να συνεχίσετε με παρουσίες και πρακτικά.','success')
   }
   function saveMeeting(draft,{finalize=false}={}){
+    if((finalize&&!canFinalizeMinutes)||(!finalize&&!canEditMinutes))return false
     const now=new Date().toISOString()
     const voting=draft.attendanceRecords.filter(x=>x.voting)
     const presentVoting=voting.filter(x=>x.status==='present').length
@@ -180,21 +198,21 @@ export function CommitteeRecordPage(){
 
   return <Page fill>
     <EntityRecordShell avatar={<Users size={19}/>} eyebrow={record.id} title={record.name} subtitle={`${record.shortName||''}${record.chair?` · ${record.chair}`:''}`} status={<span className={`status-badge ${record.status==='active'?'active':''}`}>{record.status==='active'?(en?'Active':'Ενεργή'):(en?'Inactive':'Ανενεργή')}</span>} onBack={()=>navigate('/committees')} headerActions={<PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record.id})}/>} tabs={tabs} activeTab={tab} onTabChange={setTab}>
-      {tab==='overview'&&<Overview r={record} activeMembers={activeMembers} language={language} locale={locale}/>} 
-      {tab==='members'&&<section className="record-section"><SectionHead title={en?'Committee members':'Μέλη επιτροπής'} subtitle={en?'Composition is historical: end membership instead of deleting it, with timestamp and reason.':'Η σύνθεση είναι ιστορική: λήξη συμμετοχής αντί για διαγραφή, με χρόνο και αιτιολογία.'} action={canManage&&<Button onClick={()=>setModal({type:'member'})}><Plus size={15}/>{en?' Add member':' Προσθήκη μέλους'}</Button>}/><MembersTable rows={enrichedMemberRefs} canManage={canManage} onRemove={setRemoveTarget} onResend={resendApproval} committeeId={record.id}/></section>}
-      {tab==='plan'&&<AnnualPlan rows={record.annualPlan||[]} canManage={canManage} onAdd={()=>setModal({type:'objective'})} onEdit={objective=>setModal({type:'objective',objective})} onStatus={updateObjective}/>} 
-      {tab==='meetings'&&<section className="record-section"><SectionHead title="Συνεδριάσεις & πρακτικά" subtitle="Καταγραφή συνεδρίασης, πραγματικών παρουσιών, θεμάτων, αποφάσεων και έγκρισης πρακτικών." action={canManage&&<Button onClick={()=>setModal({type:'newMeeting'})}><Plus size={15}/> Νέα συνεδρίαση</Button>}/><Meetings rows={record.meetings||[]} committeeId={record.id} onOpen={meeting=>setModal({type:'meeting',meetingId:meeting.id})}/></section>}
-      {tab==='decisions'&&<section className="record-section"><SectionHead title="Αποφάσεις & παρακολούθηση ενεργειών" subtitle="Κάθε απόφαση αποκτά υπεύθυνο, προθεσμία και κατάσταση μέχρι να κλείσει." action={canManage&&<Button onClick={()=>setModal({type:'decision'})}><Plus size={15}/> Νέα απόφαση</Button>}/><Decisions rows={record.decisions||[]} canManage={canManage} onEdit={decision=>setModal({type:'decision',decision})} onStatus={updateDecision}/></section>}
-      {tab==='guidance'&&<Guidance record={record} template={template}/>} 
-      {tab==='documents'&&<section className="record-section"><SectionHead title="Έγγραφα & τεκμήρια" subtitle="Αποφάσεις συγκρότησης, πρακτικά και αποδεικτικά εφαρμογής."/><AttachmentField disabled={!canManage} value={record.documents||[]} onChange={documents=>{const now=new Date().toISOString();persist({...record,documents,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Ενημέρωση εγγράφων επιτροπής',reason:`${documents.length} συνημμένα`},...(record.history||[])]});notify('Τα έγγραφα της επιτροπής ενημερώθηκαν.','success')}}/></section>}
-      {tab==='history'&&<CommitteeHistory rows={record.history||[]}/>} 
+      {tab==='overview'&&<Overview r={record} activeMembers={activeMembers} language={language} locale={locale}/>}
+      {tab==='members'&&<section className="record-section"><SectionHead title={en?'Committee members':'Μέλη επιτροπής'} subtitle={en?'Composition is historical: end membership instead of deleting it, with timestamp and reason.':'Η σύνθεση είναι ιστορική: λήξη συμμετοχής αντί για διαγραφή, με χρόνο και αιτιολογία.'} action={canManageMembers&&<Button onClick={()=>setModal({type:'member'})}><Plus size={15}/>{en?' Add member':' Προσθήκη μέλους'}</Button>}/><MembersTable rows={enrichedMemberRefs} canManage={canManageMembers} onEdit={member=>setModal({type:'member',member})} onRemove={setRemoveTarget} onResend={resendApproval} committeeId={record.id}/></section>}
+      {tab==='plan'&&<AnnualPlan rows={record.annualPlan||[]} canManage={canManageDecisions} onAdd={()=>setModal({type:'objective'})} onEdit={objective=>setModal({type:'objective',objective})} onStatus={updateObjective}/>}
+      {tab==='meetings'&&<section className="record-section"><SectionHead title="Συνεδριάσεις & πρακτικά" subtitle="Καταγραφή συνεδρίασης, πραγματικών παρουσιών, θεμάτων, αποφάσεων και έγκρισης πρακτικών." action={canCreateMeeting&&<Button onClick={()=>setModal({type:'newMeeting'})}><Plus size={15}/> Νέα συνεδρίαση</Button>}/><Meetings rows={record.meetings||[]} committeeId={record.id} onOpen={meeting=>setModal({type:'meeting',meetingId:meeting.id})}/></section>}
+      {tab==='decisions'&&<section className="record-section"><SectionHead title="Αποφάσεις & παρακολούθηση ενεργειών" subtitle="Κάθε απόφαση αποκτά υπεύθυνο, προθεσμία και κατάσταση μέχρι να κλείσει." action={canManageDecisions&&<Button onClick={()=>setModal({type:'decision'})}><Plus size={15}/> Νέα απόφαση</Button>}/><Decisions rows={record.decisions||[]} canManage={canManageDecisions} onEdit={decision=>setModal({type:'decision',decision})} onStatus={updateDecision}/></section>}
+      {tab==='guidance'&&<Guidance record={record} template={template} canManage={canManageMembers} persist={persist} actor={actor} en={en}/>}
+      {tab==='documents'&&<section className="record-section"><SectionHead title="Έγγραφα & τεκμήρια" subtitle="Αποφάσεις συγκρότησης, πρακτικά και αποδεικτικά εφαρμογής."/><AttachmentField disabled={!canManageDocuments} value={record.documents||[]} onChange={documents=>{const now=new Date().toISOString();persist({...record,documents,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Ενημέρωση εγγράφων επιτροπής',reason:`${documents.length} συνημμένα`},...(record.history||[])]});notify('Τα έγγραφα της επιτροπής ενημερώθηκαν.','success')}}/></section>}
+      {tab==='history'&&<CommitteeHistory rows={record.history||[]}/>}
     </EntityRecordShell>
 
-    {modal?.type==='member'&&<MemberDialog language={language} locale={locale} staff={staff} roles={template.requiredFunctions||[]} onClose={()=>setModal(null)} onSave={addMember}/>} 
-    {modal?.type==='newMeeting'&&<NewMeetingDialog onClose={()=>setModal(null)} onSave={addMeeting}/>} 
-    {selectedMeeting&&<MeetingDialog committee={record} meeting={selectedMeeting} activeMembers={activeMembers} canManage={canManage} onClose={()=>setModal(null)} onSave={saveMeeting}/>} 
-    {modal?.type==='decision'&&<DecisionDialog language={language} locale={locale} initial={modal.decision||null} members={activeMembers} meetings={record.meetings||[]} onClose={()=>setModal(null)} onSave={modal.decision?editDecision:addDecision}/>} 
-    {modal?.type==='objective'&&<ObjectiveDialog language={language} locale={locale} initial={modal.objective||null} members={activeMembers} onClose={()=>setModal(null)} onSave={modal.objective?editObjective:addObjective}/>} 
+    {canManageMembers&&modal?.type==='member'&&<MemberDialog language={language} locale={locale} staff={staff} roles={template.requiredFunctions||[]} initial={modal.member||null} onClose={()=>setModal(null)} onSave={modal.member?editMember:addMember}/>}
+    {canCreateMeeting&&modal?.type==='newMeeting'&&<NewMeetingDialog onClose={()=>setModal(null)} onSave={addMeeting}/>}
+    {selectedMeeting&&<MeetingDialog committee={record} meeting={selectedMeeting} activeMembers={activeMembers} canManage={canEditMinutes} canFinalize={canFinalizeMinutes} onClose={()=>setModal(null)} onSave={saveMeeting}/>}
+    {canManageDecisions&&modal?.type==='decision'&&<DecisionDialog language={language} locale={locale} initial={modal.decision||null} members={activeMembers} meetings={record.meetings||[]} onClose={()=>setModal(null)} onSave={modal.decision?editDecision:addDecision}/>}
+    {canManageDecisions&&modal?.type==='objective'&&<ObjectiveDialog language={language} locale={locale} initial={modal.objective||null} members={activeMembers} onClose={()=>setModal(null)} onSave={modal.objective?editObjective:addObjective}/>}
     <GovernedReasonDialog open={Boolean(removeTarget)} title="Λήξη συμμετοχής μέλους" description="Το μέλος δεν θα διαγραφεί. Η συμμετοχή θα κλείσει με χρόνο, χρήστη και αιτιολογία ώστε να διατηρείται πλήρης ιστορικότητα." confirmLabel="Λήξη συμμετοχής" danger onCancel={()=>setRemoveTarget(null)} onConfirm={removeMember}/>
   </Page>
 }
@@ -227,14 +245,38 @@ function AnnualPlan({rows,canManage,onAdd,onEdit,onStatus}){
  return <section className="record-section"><SectionHead title="Ετήσιο σχέδιο δράσης" subtitle="Μετρήσιμοι στόχοι, δείκτες, υπεύθυνοι και προθεσμίες σε μία κοινή λίστα." action={canManage&&<Button onClick={onAdd}><Plus size={15}/> Νέος στόχος</Button>}/>
   <div className="module-summary-strip"><SharedKpi icon={Target} label="Σύνολο στόχων" value={rows.length}/><SharedKpi icon={CheckCircle2} label="Ολοκληρωμένοι" value={complete}/><SharedKpi icon={AlertTriangle} label="Εκπρόθεσμοι" value={overdue}/></div>
   <FilterBar query={query} onQueryChange={setQuery} placeholder="Αναζήτηση στόχου, δείκτη ή υπευθύνου..." activeAdvancedCount={status!=='all'?1:0} onClear={()=>{setQuery('');setStatus('all')}}><FilterSelect label="Κατάσταση" value={status} onChange={setStatus}><option value="all">Όλες</option><option value="open">Ανοιχτοί</option><option value="in_progress">Σε εξέλιξη</option><option value="completed">Ολοκληρωμένοι</option></FilterSelect></FilterBar>
-  <div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>Στόχος / δράση</th><th>Δείκτης</th><th>Βάση → στόχος</th><th>Υπεύθυνος</th><th>Προθεσμία</th><th>Κατάσταση</th>{canManage&&<th></th>}</tr></thead><tbody>{filtered.map(x=><tr key={x.id} className={isOverdue(x)?'committee-row-overdue':''}><td><strong>{x.title}</strong></td><td>{x.indicator||'—'}</td><td>{x.baseline||'—'} → <strong>{x.target||'—'}</strong></td><td>{x.owner||'—'}</td><td>{fmtDate(x.dueDate)}{isOverdue(x)&&<small className="committee-overdue-label">Εκπρόθεσμο</small>}</td><td>{canManage?<StatusSelect value={x.status} onChange={v=>onStatus(x.id,v)} type="objective"/>:<StatusBadge value={x.status}/>}</td>{canManage&&<td><div className="record-inline-actions"><button onClick={()=>onEdit(x)} title="Επεξεργασία στόχου" aria-label="Επεξεργασία στόχου"><Pencil size={15}/></button></div></td>}</tr>)}</tbody></table>{filtered.length===0&&<div className="inline-empty">Δεν βρέθηκαν στόχοι με τα επιλεγμένα φίλτρα.</div>}</div>
+  <div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>Στόχος / δράση</th><th>Δείκτης</th><th>Βάση → στόχος</th><th>Υπεύθυνος</th><th>Προθεσμία</th><th>Κατάσταση</th>{canManage&&<th></th>}</tr></thead><tbody>{filtered.map(x=><tr key={x.id} className={isOverdue(x)?'committee-row-overdue':''}><td><strong>{x.title}</strong></td><td>{x.indicator||'—'}</td><td>{x.baseline||'—'} → <strong>{x.target||'—'}</strong></td><td>{x.owner||'—'}</td><td>{fmtDate(x.dueDate)}{isOverdue(x)&&<small className="committee-overdue-label">Εκπρόθεσμο</small>}</td><td>{canManage?<StatusSelect value={x.status} onChange={v=>onStatus(x.id,v)} type="objective"/>:<StatusBadge value={x.status}/>}</td>{canManage&&<td><div className="record-inline-actions"><button className="edit" onClick={()=>onEdit(x)} title="Επεξεργασία στόχου" aria-label="Επεξεργασία στόχου"><Pencil size={15}/></button></div></td>}</tr>)}</tbody></table>{filtered.length===0&&<div className="inline-empty">Δεν βρέθηκαν στόχοι με τα επιλεγμένα φίλτρα.</div>}</div>
  </section>
 }
 
-function Guidance({record,template}){return <section className="record-section"><SectionHead title="Ρόλος & θεσμικό πλαίσιο" subtitle="Η θεσμική βάση παραμένει ξεχωριστή από τις τοπικές αρμοδιότητες και μπορεί να ενημερώνεται ελεγχόμενα."/><div className="details-grid"><div><span>Κατηγορία</span><strong>{template.code||record.shortName||'Τοπική επιτροπή'}</strong></div><div><span>Θεσμική / κατευθυντήρια βάση</span><strong>{record.legalBasis||template.source||'Δεν έχει οριστεί'}</strong></div><div><span>Σχέση / πλαίσιο</span><strong>{template.relation||'Τοπικό πλαίσιο λειτουργίας'}</strong></div><div><span>Πρότυπο</span><strong>{template.core?'Βασική δομή IPC':'Τοπική / υποστηρικτική δομή'}</strong></div></div><ExpandableTextBlock label="Ρόλος" value={record.committeeRole||template.role}/>{template.roleGuidance?.length>0&&<div className="source-truth-note">{template.roleGuidance.map((g,i)=><div key={i}><strong>{g.label}</strong><span>{g.roles.join(' · ')}</span></div>)}</div>}</section>}
+function Guidance({record,template,canManage,persist,actor,en}){
+  const [editing,setEditing]=useState(false)
+  const [d,setD]=useState({legalBasis:record.legalBasis||'',committeeRole:record.committeeRole||'',decisionNumber:record.decisionNumber||''})
+  function startEdit(){setD({legalBasis:record.legalBasis||'',committeeRole:record.committeeRole||'',decisionNumber:record.decisionNumber||''});setEditing(true)}
+  function save(){
+    const now=new Date().toISOString()
+    persist({...record,legalBasis:d.legalBasis,committeeRole:d.committeeRole,decisionNumber:d.decisionNumber,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:en?'Institutional framework update':'Ενημέρωση θεσμικού πλαισίου',reason:d.decisionNumber||d.legalBasis||'—'},...(record.history||[])]})
+    setEditing(false)
+  }
+  return <section className="record-section">
+    <SectionHead title={en?'Role & institutional framework':'Ρόλος & θεσμικό πλαίσιο'} subtitle={en?'The institutional basis stays separate from local responsibilities and can be updated in a controlled way, with full history.':'Η θεσμική βάση παραμένει ξεχωριστή από τις τοπικές αρμοδιότητες και μπορεί να ενημερώνεται ελεγχόμενα, με πλήρες ιστορικό.'} action={canManage&&!editing&&<button type="button" className="general-edit-button" onClick={startEdit}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></button>}/>
+    {editing?<>
+      <div className="entry-grid">
+        <label><span>{en?'Founding decision no. / Gazette (ΦΕΚ)':'Αρ. πράξης σύστασης / ΦΕΚ'}</span><input value={d.decisionNumber} onChange={e=>setD({...d,decisionNumber:e.target.value})} placeholder={en?'e.g. Government Gazette 123/Β/2024':'π.χ. ΦΕΚ 123/Β/2024'}/></label>
+        <label className="entry-span-2"><span>{en?'Institutional / guidance basis':'Θεσμική / κατευθυντήρια βάση'}</span><textarea rows="2" value={d.legalBasis} onChange={e=>setD({...d,legalBasis:e.target.value})}/></label>
+        <label className="entry-span-2"><span>{en?'Role':'Ρόλος'}</span><textarea rows="4" value={d.committeeRole} onChange={e=>setD({...d,committeeRole:e.target.value})}/></label>
+      </div>
+      <div className="record-inline-actions"><Button variant="secondary" onClick={()=>setEditing(false)}>{en?'Cancel':'Άκυρο'}</Button><SaveButton onClick={save}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
+    </>:<>
+      <div className="details-grid"><div><span>{en?'Category':'Κατηγορία'}</span><strong>{template.code||record.shortName||(en?'Local committee':'Τοπική επιτροπή')}</strong></div><div><span>{en?'Institutional / guidance basis':'Θεσμική / κατευθυντήρια βάση'}</span><strong>{record.legalBasis||template.source||(en?'Not set':'Δεν έχει οριστεί')}</strong></div><div><span>{en?'Founding decision no. / Gazette (ΦΕΚ)':'Αρ. πράξης σύστασης / ΦΕΚ'}</span><strong>{record.decisionNumber||'—'}</strong></div><div><span>{en?'Relation / framework':'Σχέση / πλαίσιο'}</span><strong>{template.relation||(en?'Local operating framework':'Τοπικό πλαίσιο λειτουργίας')}</strong></div><div><span>{en?'Template':'Πρότυπο'}</span><strong>{template.core?(en?'Core IPC structure':'Βασική δομή IPC'):(en?'Local / support structure':'Τοπική / υποστηρικτική δομή')}</strong></div></div>
+      <ExpandableTextBlock label={en?'Role':'Ρόλος'} value={record.committeeRole||template.role}/>
+      {template.roleGuidance?.length>0&&<div className="source-truth-note">{template.roleGuidance.map((g,i)=><div key={i}><strong>{g.label}</strong><span>{g.roles.join(' · ')}</span></div>)}</div>}
+    </>}
+  </section>
+}
 
-function MembersTable({rows,canManage,onRemove,onResend,committeeId}){
-  return <div className="scroll-table"><table className="data-table committee-members-table"><thead><tr><th>Μέλος</th><th>Ιδιότητα</th><th>Αρμοδιότητες</th><th>Ψήφος</th><th>Έγκριση</th><th>Περίοδος</th>{canManage&&<th></th>}</tr></thead><tbody>{rows.map(m=>{const approval=m.employeeId?approvalStatusFor(committeeId,m.employeeId)||m.approvalStatus:m.approvalStatus;return <tr key={m.id} className={m.active===false?'committee-member-inactive':''}><td><strong>{m.name}</strong><small>{[m.profession,m.department].filter(Boolean).join(' · ')||'—'}</small></td><td>{m.committeeTitle||'Μέλος'}{m.memberType==='alternate'&&<small>Αναπληρωματικό</small>}</td><td className="committee-responsibilities">{m.responsibilities||'—'}</td><td>{m.voting?'Ναι':'Όχι'}</td><td><span className={`status-badge ${approval==='approved'?'active':''}`}>{approval==='approved'?'Εγκρίθηκε':approval==='rejected'?'Απορρίφθηκε':approval==='pending'?'Αναμένει':'Δεν απαιτείται'}</span></td><td>{m.startedAt?fmtDate(m.startedAt):'—'}{m.endedAt?` → ${fmtDate(m.endedAt)}`:' → σήμερα'}</td>{canManage&&<td><div className="record-inline-actions">{m.active!==false&&m.employeeId&&m.approvalRequired&&approval!=='approved'&&<button title="Νέο αίτημα έγκρισης" aria-label="Νέο αίτημα έγκρισης" onClick={()=>onResend(m)}><FileSignature size={15}/></button>}{m.active!==false&&<button className="danger" title="Λήξη συμμετοχής" aria-label="Λήξη συμμετοχής" onClick={()=>onRemove(m)}><Trash2 size={15}/></button>}</div></td>}</tr>})}</tbody></table></div>
+function MembersTable({rows,canManage,onEdit,onRemove,onResend,committeeId}){
+  return <div className="scroll-table"><table className="data-table committee-members-table"><thead><tr><th>Μέλος</th><th>Ιδιότητα</th><th>Αρμοδιότητες</th><th>Ψήφος</th><th>Έγκριση</th><th>Περίοδος</th>{canManage&&<th></th>}</tr></thead><tbody>{rows.map(m=>{const approval=m.employeeId?approvalStatusFor(committeeId,m.employeeId)||m.approvalStatus:m.approvalStatus;return <tr key={m.id} className={m.active===false?'committee-member-inactive':''}><td><strong>{m.name}</strong><small>{[m.profession,m.department].filter(Boolean).join(' · ')||'—'}</small></td><td>{m.committeeTitle||'Μέλος'}{m.memberType==='alternate'&&<small>Αναπληρωματικό</small>}</td><td className="committee-responsibilities">{m.responsibilities||'—'}</td><td>{m.voting?'Ναι':'Όχι'}</td><td><span className={`status-badge ${approval==='approved'?'active':''}`}>{approval==='approved'?'Εγκρίθηκε':approval==='rejected'?'Απορρίφθηκε':approval==='pending'?'Αναμένει':'Δεν απαιτείται'}</span></td><td>{m.startedAt?fmtDate(m.startedAt):'—'}{m.endedAt?` → ${fmtDate(m.endedAt)}`:' → σήμερα'}</td>{canManage&&<td><div className="record-inline-actions">{m.active!==false&&<button className="edit" title="Επεξεργασία μέλους" aria-label="Επεξεργασία μέλους" onClick={()=>onEdit(m)}><Pencil size={15}/></button>}{m.active!==false&&m.employeeId&&m.approvalRequired&&approval!=='approved'&&<button title="Νέο αίτημα έγκρισης" aria-label="Νέο αίτημα έγκρισης" onClick={()=>onResend(m)}><FileSignature size={15}/></button>}{m.active!==false&&<button className="danger" title="Λήξη συμμετοχής" aria-label="Λήξη συμμετοχής" onClick={()=>onRemove(m)}><Trash2 size={15}/></button>}</div></td>}</tr>})}</tbody></table></div>
 }
 
 function Meetings({rows,committeeId,onOpen}){
@@ -248,7 +290,7 @@ function Decisions({rows,canManage,onEdit,onStatus}){
  return <div className="workspace-column workspace-fill">
   <div className="module-summary-strip"><SharedKpi icon={ClipboardList} label="Ανοιχτές" value={open}/><SharedKpi icon={Target} label="Σε εξέλιξη" value={inProgress}/><SharedKpi icon={AlertTriangle} label="Εκπρόθεσμες" value={overdue}/></div>
   <FilterBar query={query} onQueryChange={setQuery} placeholder="Αναζήτηση απόφασης, ενέργειας ή υπευθύνου..." activeAdvancedCount={status!=='all'?1:0} onClear={()=>{setQuery('');setStatus('all')}}><FilterSelect label="Κατάσταση" value={status} onChange={setStatus}><option value="all">Όλες</option><option value="open">Ανοιχτές</option><option value="in_progress">Σε εξέλιξη</option><option value="completed">Ολοκληρωμένες</option></FilterSelect></FilterBar>
-  <div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>Απόφαση</th><th>Υπεύθυνος</th><th>Προθεσμία</th><th>Προτεραιότητα</th><th>Κατάσταση</th>{canManage&&<th></th>}</tr></thead><tbody>{filtered.map(x=><tr key={x.id} className={isOverdue(x)?'committee-row-overdue':''}><td><strong>{x.title}</strong><small>{x.action}</small></td><td>{x.owner||'—'}</td><td>{fmtDate(x.dueDate)}{isOverdue(x)&&<small className="committee-overdue-label">Εκπρόθεσμο</small>}</td><td>{x.priority==='high'?'Υψηλή':x.priority==='medium'?'Μέση':'Κανονική'}</td><td>{canManage?<StatusSelect value={x.status} onChange={v=>onStatus(x.id,v)}/>:<StatusBadge value={x.status}/>}</td>{canManage&&<td><div className="record-inline-actions"><button onClick={()=>onEdit(x)} title="Επεξεργασία απόφασης" aria-label="Επεξεργασία απόφασης"><Pencil size={15}/></button></div></td>}</tr>)}</tbody></table>{filtered.length===0&&<div className="inline-empty">Δεν βρέθηκαν αποφάσεις με τα επιλεγμένα φίλτρα.</div>}</div>
+  <div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>Απόφαση</th><th>Υπεύθυνος</th><th>Προθεσμία</th><th>Προτεραιότητα</th><th>Κατάσταση</th>{canManage&&<th></th>}</tr></thead><tbody>{filtered.map(x=><tr key={x.id} className={isOverdue(x)?'committee-row-overdue':''}><td><strong>{x.title}</strong><small>{x.action}</small></td><td>{x.owner||'—'}</td><td>{fmtDate(x.dueDate)}{isOverdue(x)&&<small className="committee-overdue-label">Εκπρόθεσμο</small>}</td><td>{x.priority==='high'?'Υψηλή':x.priority==='medium'?'Μέση':'Κανονική'}</td><td>{canManage?<StatusSelect value={x.status} onChange={v=>onStatus(x.id,v)}/>:<StatusBadge value={x.status}/>}</td>{canManage&&<td><div className="record-inline-actions"><button className="edit" onClick={()=>onEdit(x)} title="Επεξεργασία απόφασης" aria-label="Επεξεργασία απόφασης"><Pencil size={15}/></button></div></td>}</tr>)}</tbody></table>{filtered.length===0&&<div className="inline-empty">Δεν βρέθηκαν αποφάσεις με τα επιλεγμένα φίλτρα.</div>}</div>
  </div>
 }
 function StatusSelect({value,onChange,type}){return <select className="committee-status-select" value={value||'open'} onChange={e=>onChange(e.target.value)} aria-label="Κατάσταση"><option value="open">{type==='objective'?'Ανοιχτός':'Ανοιχτή'}</option><option value="in_progress">Σε εξέλιξη</option><option value="completed">{type==='objective'?'Ολοκληρώθηκε':'Ολοκληρωμένη'}</option></select>}
@@ -264,15 +306,15 @@ function CommitteeHistory({rows}){
  </section>
 }
 
-function MemberDialog({staff,roles,onClose,onSave}){const {language}=useLanguage();const en=language==='en';
-  const [d,setD]=useState({employeeId:'',committeeTitle:'',responsibilities:'',voting:true,memberType:'regular',approvalRequired:false})
+function MemberDialog({staff,roles,initial,onClose,onSave}){const {language}=useLanguage();const en=language==='en';
+  const [d,setD]=useState(initial?{id:initial.id,employeeId:initial.employeeId||'',committeeTitle:initial.committeeTitle||'',responsibilities:initial.responsibilities||'',voting:Boolean(initial.voting),memberType:initial.memberType||'regular',approvalRequired:Boolean(initial.approvalRequired)}:{employeeId:'',committeeTitle:'',responsibilities:'',voting:true,memberType:'regular',approvalRequired:false})
   const valid=d.employeeId&&d.committeeTitle.trim()&&d.responsibilities.trim()
-  return <ObserverDialog eyebrow={en?'Committee members':'Μέλη επιτροπής'} title={en?'Add member':'Προσθήκη μέλους'} subtitle={en?'Define the member role and actual responsibilities within the committee.':'Ορίστε την ιδιότητα και τις πραγματικές αρμοδιότητες του μέλους μέσα στην επιτροπή.'} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(d)} disabled={!valid}/> }>
+  return <ObserverDialog eyebrow={en?'Committee members':'Μέλη επιτροπής'} title={initial?(en?'Edit member':'Επεξεργασία μέλους'):(en?'Add member':'Προσθήκη μέλους')} subtitle={en?'Define the member role and actual responsibilities within the committee.':'Ορίστε την ιδιότητα και τις πραγματικές αρμοδιότητες του μέλους μέσα στην επιτροπή.'} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave(d)} disabled={!valid}/> }>
     <div className="entry-grid">
-      <label><span>{en?'Employee *':'Εργαζόμενος *'}</span><select value={d.employeeId} onChange={e=>setD({...d,employeeId:e.target.value})}><option value="">{en?'Select employee':'Επιλογή εργαζομένου'}</option>{staff.map(x=><option key={x.id} value={x.id}>{x.name} · {x.department}</option>)}</select></label>
+      {initial?<label><span>{en?'Employee':'Εργαζόμενος'}</span><input value={initial.name||''} disabled/></label>:<label><span>{en?'Employee *':'Εργαζόμενος *'}</span><select value={d.employeeId} onChange={e=>setD({...d,employeeId:e.target.value})}><option value="">{en?'Select employee':'Επιλογή εργαζομένου'}</option>{staff.map(x=><option key={x.id} value={x.id}>{x.name} · {x.department}</option>)}</select></label>}
       <label><span>{en?'Committee role *':'Ιδιότητα στην επιτροπή *'}</span><input list="committee-member-role-list" value={d.committeeTitle} onChange={e=>setD({...d,committeeTitle:e.target.value})} placeholder={en?'e.g. Chair, Secretary, Member':'π.χ. Πρόεδρος, Γραμματέας, Μέλος'}/><datalist id="committee-member-role-list">{[...new Set(['Πρόεδρος','Αντιπρόεδρος','Συντονιστής','Γραμματέας','Μέλος','Αναπληρωματικό μέλος',...roles])].map(x=><option key={x} value={x}/>)}</datalist></label>
       <label><span>{en?'Membership type':'Συμμετοχή'}</span><select value={d.memberType} onChange={e=>setD({...d,memberType:e.target.value})}><option value="regular">{en?'Regular member':'Τακτικό μέλος'}</option><option value="alternate">{en?'Alternate member':'Αναπληρωματικό μέλος'}</option></select></label>
-      <div className="observer-check-grid"><label className="observer-check"><input type="checkbox" checked={d.voting} onChange={e=>setD({...d,voting:e.target.checked})}/><span>{en?'Voting right':'Δικαίωμα ψήφου'}</span></label><label className="observer-check"><input type="checkbox" checked={d.approvalRequired} onChange={e=>setD({...d,approvalRequired:e.target.checked})}/><span>Ηλεκτρονική αποδοχή συμμετοχής</span></label></div>
+      <div className="observer-check-grid"><label className="observer-check"><input type="checkbox" checked={d.voting} onChange={e=>setD({...d,voting:e.target.checked})}/><span>{en?'Voting right':'Δικαίωμα ψήφου'}</span></label>{!initial&&<label className="observer-check"><input type="checkbox" checked={d.approvalRequired} onChange={e=>setD({...d,approvalRequired:e.target.checked})}/><span>Ηλεκτρονική αποδοχή συμμετοχής</span></label>}</div>
       <label className="entry-span-2"><span>{en?'Responsibilities *':'Αρμοδιότητες / τι κάνει *'}</span><textarea rows="4" value={d.responsibilities} onChange={e=>setD({...d,responsibilities:e.target.value})} placeholder={en?'Briefly record the member’s actual responsibilities...':'Καταγράψτε συνοπτικά τις πραγματικές αρμοδιότητες του μέλους...'}/></label>
     </div>
   </ObserverDialog>
@@ -293,7 +335,7 @@ function NewMeetingDialog({onClose,onSave}){
   </ObserverDialog>
 }
 
-function MeetingDialog({committee,meeting,activeMembers,canManage,onClose,onSave}){
+function MeetingDialog({committee,meeting,activeMembers,canManage,canFinalize,onClose,onSave}){
   const {language}=useLanguage();const en=language==='en'
   const {confirm}=useFeedback()
   const [d,setD]=useState(()=>({...meeting,attendanceRecords:createAttendance(activeMembers,meeting.attendanceRecords||[]),topics:(meeting.topics&&meeting.topics.length?meeting.topics:(meeting.agenda||[]).map((subject,i)=>({id:`LEG-${meeting.id}-${i}`,subject,decision:i===0&&meeting.notes?meeting.notes:'',followUp:false,action:'',owner:'',dueDate:'',priority:'medium'}))).length? (meeting.topics&&meeting.topics.length?meeting.topics:(meeting.agenda||[]).map((subject,i)=>({id:`LEG-${meeting.id}-${i}`,subject,decision:i===0&&meeting.notes?meeting.notes:'',followUp:false,action:'',owner:'',dueDate:'',priority:'medium'}))) : [createTopic()]}))
@@ -309,7 +351,7 @@ function MeetingDialog({committee,meeting,activeMembers,canManage,onClose,onSave
   const patchTopic=(id,k,v)=>setD(x=>({...x,topics:x.topics.map(topic=>topic.id===id?{...topic,[k]:v}:topic)}))
   const addTopic=()=>setD(x=>({...x,topics:[...x.topics,createTopic()]}))
   const removeTopic=async id=>{const ok=await confirm({title:en?'Remove topic':'Αφαίρεση θέματος',message:en?'The topic and its unsaved information will be removed from the meeting. Continue?':'Το θέμα και τα μη αποθηκευμένα στοιχεία του θα αφαιρεθούν από τη συνεδρίαση. Θέλετε να συνεχίσετε;',confirmLabel:en?'Remove':'Αφαίρεση',danger:true});if(!ok)return;setD(x=>({...x,topics:x.topics.length===1?[createTopic()]:x.topics.filter(topic=>topic.id!==id)}))}
-  return <ObserverDialog eyebrow={en?'Meeting & minutes':'Συνεδρίαση & πρακτικά'} title={d.title} subtitle={en?'One unified flow: details, attendance, topics and decisions. Approval is sent only to members recorded as present.':'Μία ενιαία ροή: στοιχεία, παρουσίες, θέματα και αποφάσεις. Η έγκριση αποστέλλεται μόνο στα μέλη που καταγράφονται ως παρόντα.'} onClose={onClose} width="wide" className="committee-meeting-dialog" footer={canManage&&!locked?<DialogActions onCancel={onClose} onSave={()=>onSave(d)} saveLabel={en?'Save':'Αποθήκευση'}><Button onClick={()=>onSave(d,{finalize:true})} disabled={!present.length}>{en?'Complete & send for approval':'Ολοκλήρωση & αποστολή έγκρισης'}</Button></DialogActions> :<Button variant="secondary" onClick={onClose}>{en?'Close':'Κλείσιμο'}</Button>}>
+  return <ObserverDialog eyebrow={en?'Meeting & minutes':'Συνεδρίαση & πρακτικά'} title={d.title} subtitle={en?'One unified flow: details, attendance, topics and decisions. Approval is sent only to members recorded as present.':'Μία ενιαία ροή: στοιχεία, παρουσίες, θέματα και αποφάσεις. Η έγκριση αποστέλλεται μόνο στα μέλη που καταγράφονται ως παρόντα.'} onClose={onClose} width="wide" className="committee-meeting-dialog" footer={canManage&&!locked?<DialogActions onCancel={onClose} onSave={()=>onSave(d)} saveLabel={en?'Save':'Αποθήκευση'}>{canFinalize&&<Button onClick={()=>onSave(d,{finalize:true})} disabled={!present.length}>{en?'Complete & send for approval':'Ολοκλήρωση & αποστολή έγκρισης'}</Button>}</DialogActions> :<Button variant="secondary" onClick={onClose}>{en?'Close':'Κλείσιμο'}</Button>}>
     <div className="observer-form-section">
       <div className="observer-form-section-title"><div><strong>{en?'Meeting details':'Στοιχεία συνεδρίασης'}</strong><span>{en?'Basic details and minutes number.':'Βασικά στοιχεία και αριθμός πρακτικού.'}</span></div></div>
       <div className="entry-grid compact">

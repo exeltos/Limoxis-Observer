@@ -42,7 +42,7 @@ export function AppShell(){
   const previewDepartments=[['','previewAllHospital'],['icu','previewIcu'],['surgery','previewSurgery'],['internal','previewInternalMedicine']]
   const visibleNavigation=navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
   const managementNavigation=visibleNavigation.filter(item=>item.key==='management')
-  const usesCompactMore=[ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD].includes(role)
+  const usesCompactMore=[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD].includes(role)
   const moreNavigation=usesCompactMore?visibleNavigation.filter(item=>item.group==='more'):[]
   const primaryNavigation=usesCompactMore
     ?visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='more')

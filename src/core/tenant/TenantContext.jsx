@@ -2,11 +2,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useAuth } from '../auth/AuthContext'
 import { ROLES } from '../permissions/roles'
 import { uxPolicyFor, recordWithinRoleScope, canSeeSensitiveEmployeeHealth } from '../permissions/roleUxPolicy'
-import { listMemberships } from './tenantService'
+import { listMemberships, listPlatformOwnerOrganizations } from './tenantService'
+import { configureDataEnvironment } from '../data/dataEnvironment'
 
 const TenantContext = createContext(null)
 const DEMO_TENANT = Object.freeze({ id: 'demo-hospital', name: 'Demo Hospital', code: 'DEMO', type: 'hospital', mode: 'demo' })
-const DEMO_MEMBERSHIP = Object.freeze({ id: 'demo-membership', role: ROLES.HOSPITAL_ADMIN, status: 'active', organization: DEMO_TENANT, departmentIds: [], capabilities: [], customCapabilities: [], assignments: [] })
+const DEMO_MEMBERSHIP = Object.freeze({ id: 'demo-membership', role: ROLES.DEMO, status: 'active', organization: DEMO_TENANT, departmentIds: [], capabilities: [], customCapabilities: [], assignments: [] })
 
 export function TenantProvider({ children }) {
   const { user, profile, isAuthenticated, isDemoSession } = useAuth()
@@ -34,7 +35,8 @@ export function TenantProvider({ children }) {
     }
     let cancelled = false
     setLoading(true)
-    listMemberships(user?.id)
+    const loader = profile?.isPlatformOwner ? listPlatformOwnerOrganizations() : listMemberships(user?.id)
+    loader
       .then((next) => {
         if (cancelled) return
         setMemberships(next)
@@ -42,10 +44,11 @@ export function TenantProvider({ children }) {
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [isAuthenticated, isDemoSession, user?.id])
+  }, [isAuthenticated, isDemoSession, user?.id, profile?.isPlatformOwner])
 
   const baseMembership = memberships.find((item) => item.id === activeMembershipId) ?? null
   const tenant = baseMembership?.organization ?? null
+  configureDataEnvironment({mode:isDemoSession?'demo':'production',organizationId:tenant?.id??(isDemoSession?DEMO_TENANT.id:null)})
   const actualRole = profile?.isPlatformOwner ? ROLES.PLATFORM_OWNER : baseMembership?.role ?? null
   const role = canRolePreview && rolePreview?.role ? rolePreview.role : actualRole
   const membership = useMemo(() => (
@@ -77,7 +80,7 @@ export function TenantProvider({ children }) {
     stopRolePreview: () => setRolePreview(null),
     uxPolicy: uxPolicyFor(role),
     canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
-    canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role),
+    canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role,membership?.capabilities,membership?.customCapabilities),
   }), [tenant, membership, memberships, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, user?.id])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>

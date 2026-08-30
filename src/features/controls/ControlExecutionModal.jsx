@@ -9,6 +9,8 @@ import { emptyStructuredRow,listHasFinding,printControlForm } from './controlStr
 import { getControlDraft,saveControlDraft,removeControlDraft } from './controlDrafts'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
+import { Button } from '../../design-system/Button'
 
 export function ControlExecutionModal({record,department,onClose,onSave,onDraftSaved,initialExecution=null}){
  const {profile,user}=useAuth()
@@ -65,8 +67,7 @@ export function ControlExecutionModal({record,department,onClose,onSave,onDraftS
    printControlForm({record,department,execution:{at:initialExecution?.at||new Date().toISOString(),value,notes,structuredData:response.mode==='list'?{template:response.template,rows}:null,by:actor.name},actorName:actor.name})
  }
 
- return <div className="modal-backdrop"><div className={`entry-card control-execution-card ${response.mode==='list'?'control-execution-card-wide':''}`}>
-  <header><div><span className="eyebrow">{isEditing?(en?'EDIT ENTRY':'ΕΠΕΞΕΡΓΑΣΙΑ ΚΑΤΑΧΩΡΗΣΗΣ'):(en?'CONTROL ENTRY':'ΚΑΤΑΧΩΡΗΣΗ ΕΛΕΓΧΟΥ')}</span><h3>{en?(record.titleEn||record.title):record.title}</h3><p>{department} · {frequencyLabel(record.frequency,language)}</p></div><button className="icon-close" onClick={onClose}>×</button></header>
+ return <ObserverDialog width={response.mode==='list'?'wide':'standard'} className="control-execution-card" eyebrow={isEditing?(en?'Edit entry':'Επεξεργασία καταχώρησης'):(en?'Control entry':'Καταχώρηση ελέγχου')} title={en?(record.titleEn||record.title):record.title} subtitle={`${department} · ${frequencyLabel(record.frequency,language)}`} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={submit} disabled={!confirmed||!valid} saveLabel={isEditing?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Confirm & save':'Επιβεβαίωση & αποθήκευση')}/> }>
 
   <div className="control-execution-summary">
    <div><CalendarClock size={17}/><span>{isEditing?(en?'Original entry':'Αρχική καταχώρηση'):(en?'Scheduled':'Προγραμματισμένος')}</span><strong>{fmt(isEditing?initialExecution?.at:assignment?.nextDueAt)}</strong></div>
@@ -97,13 +98,11 @@ export function ControlExecutionModal({record,department,onClose,onSave,onDraftS
   </label>
 
   <div className="control-execution-tools">
-   {!isEditing&&<><button className="button button-quiet" onClick={saveDraft}><Save size={15}/>{en?' Save draft':' Αποθήκευση προσωρινά'}</button>{draftSaved&&<span className="control-temp-save-state">{en?'Draft saved · it will be restored when you reopen the entry':'Αποθηκευμένο προσωρινά · θα επανέλθει όταν ξανανοίξετε την καταχώρηση'}</span>}</>}
+   {!isEditing&&<><Button variant="quiet" onClick={saveDraft}><Save size={15}/>{en?' Save draft':' Αποθήκευση προσωρινά'}</Button>{draftSaved&&<span className="control-temp-save-state">{en?'Draft saved · it will be restored when you reopen the entry':'Αποθηκευμένο προσωρινά · θα επανέλθει όταν ξανανοίξετε την καταχώρηση'}</span>}</>}
    {response.mode==='list'&&<button type="button" className="entity-record-icon-button" onClick={printDraft} title={en?'Print form':'Εκτύπωση φόρμας'} aria-label={en?'Print form':'Εκτύπωση φόρμας'}><Printer size={15}/></button>}
-   {!isEditing&&<button className="button button-quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</button>}
+   {!isEditing&&<Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>}
   </div>
-
-  <footer><button className="button" onClick={onClose}>{en?'Cancel':'Ακύρωση'}</button><button className="button button-primary" disabled={!confirmed||!valid} onClick={submit}>{isEditing?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Confirm & save':'Επιβεβαίωση & αποθήκευση')}</button></footer>
- </div></div>
+ </ObserverDialog>
 }
 
 function StructuredList({template,rows,setRow,addRow,removeRow,language}){
@@ -113,7 +112,7 @@ function StructuredList({template,rows,setRow,addRow,removeRow,language}){
   <section className="control-structured-form">
    <div className="control-structured-heading">
     <div><strong>{medication?(en?'Near-expiry / expired items':'Καταγραφή κοντόληκτων / ληγμένων'):(en?'Findings list':'Λίστα ευρημάτων')}</strong><small>{en?'Add a row only when there is something to record.':'Προσθέστε γραμμή μόνο όταν υπάρχει κάτι προς καταγραφή.'}</small></div>
-    <button type="button" className="button button-quiet" onClick={addRow}><Plus size={15}/>{en?' Add row':' Προσθήκη γραμμής'}</button>
+    <Button variant="quiet" onClick={addRow}><Plus size={15}/>{en?' Add row':' Προσθήκη γραμμής'}</Button>
    </div>
    <div className="control-structured-table-wrap">
     <table className="control-structured-table">

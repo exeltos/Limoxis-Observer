@@ -5,6 +5,7 @@ import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
+import { MetricCard } from '../../design-system/MetricCard'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -70,7 +71,12 @@ export function IndicatorsPage(){
  }
 
  return <Page fill title={t('indicators')} subtitle={t('indicatorsRecords.pageSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} resourceCapability={CAPABILITIES.VIEW_INDICATORS} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_INDICATORS,[UI_ACTIONS.PRINT]:CAPABILITIES.VIEW_INDICATORS,[UI_ACTIONS.EXPORT]:CAPABILITIES.VIEW_INDICATORS}} onAction={action}/>}>
-  <div className="indicator-summary-strip"><Summary icon={Activity} value={allRows.length} label={t('indicatorsRecords.activeIndicators')}/><Summary icon={CheckCircle2} value={onTarget} label={t('indicatorsRecords.onTargetStatus')}/><Summary icon={Target} value={attention} label={t('indicatorsRecords.needAttentionLabel')}/><Summary icon={TrendingUp} value={allRows.filter(x=>x.calculation==='auto').length} label={t('indicatorsRecords.autoCalculationLabel')}/></div>
+  <div className="indicator-summary-strip module-summary-strip">
+   <MetricCard icon={Activity} value={allRows.length} label={t('indicatorsRecords.activeIndicators')}/>
+   <MetricCard icon={CheckCircle2} value={onTarget} label={t('indicatorsRecords.onTargetStatus')} tone="active"/>
+   <MetricCard icon={Target} value={attention} label={t('indicatorsRecords.needAttentionLabel')} tone={attention?'warning':'neutral'}/>
+   <MetricCard icon={TrendingUp} value={allRows.filter(x=>x.calculation==='auto').length} label={t('indicatorsRecords.autoCalculationLabel')}/>
+  </div>
   <div className="workspace-fill indicator-workspace indicator-registry">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={t('indicatorsRecords.searchPlaceholder')} activeAdvancedCount={category!=='all'?1:0} onClear={()=>{setQuery('');setCategory('all')}}><FilterSelect label={t('indicatorsRecords.tableCategory')} value={category} onChange={setCategory}><option value="all">{t('indicatorsRecords.allFeminine')}</option>{categories.map(x=><option key={x} value={x}>{indicatorCategoryLabels[x]||x}</option>)}</FilterSelect></FilterBar>
    <div className="surface indicator-table-surface"><div className="scroll-table"><table className="data-table sticky-table indicator-click-table"><thead><tr><th>{t('indicatorsRecords.tableIndicator')}</th><th>{t('indicatorsRecords.tableCategory')}</th><th>{t('indicatorsRecords.tableResult')}</th><th>{t('indicatorsRecords.targetLabel')}</th><th>{t('indicatorsRecords.sourceDocumentationLabel')}</th><th>{t('indicatorsRecords.statusFieldLabel')}</th></tr></thead><tbody>{rows.map(x=><tr key={x.id} tabIndex="0" role="button" onClick={()=>setSelected(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(x)}}}><td><strong>{greek?x.titleEl:x.titleEn}</strong><small>{x.evidence}</small></td><td>{indicatorCategoryLabels[x.category]||x.category}</td><td className="indicator-result-cell"><strong>{x.value??'—'}</strong><small>{greek?x.unit:x.unitEn}</small></td><td>{formatTarget(x)}</td><td>{x.source}</td><td><span className={`indicator-status ${x.status}`}>{t(statusLabel[x.status])}</span></td></tr>)}</tbody></table></div></div>
@@ -81,12 +87,10 @@ export function IndicatorsPage(){
 }
 
 function formatTarget(x){if(x.target==null)return '—';return `${x.direction==='higher'?'≥':x.direction==='lower'?'≤':''} ${x.target}${x.unit==='%'?'%':''}`}
-function Summary({icon:Icon,value,label}){return <div><span className="indicator-summary-icon"><Icon size={15}/></span><strong>{value}</strong><small>{label}</small></div>}
-
 function IndicatorDialog({item,greek,canManage,t,onClose,onEdit,onDelete}){
  const metricLabel=key=>indicatorMetricCatalog.find(x=>x.key===key)?.label||key||'—'
  return <ObserverDialog eyebrow={t('indicatorsRecords.tableIndicator')} title={greek?item.titleEl:item.titleEn} subtitle={t('indicatorsRecords.dialogSubtitle')} width="wide" onClose={onClose} footer={<>
-   {canManage&&<div className="record-inline-actions indicator-dialog-icon-actions"><button type="button" onClick={onEdit} title={t('indicatorsRecords.editIndicator')} aria-label={t('indicatorsRecords.editIndicator')}><Pencil size={16}/></button><button type="button" className="danger" onClick={onDelete} title={t('indicatorsRecords.deleteIndicatorTitle')} aria-label={t('indicatorsRecords.deleteIndicatorTitle')}><Trash2 size={16}/></button></div>}
+   {canManage&&<div className="record-inline-actions indicator-dialog-icon-actions"><button type="button" className="edit" onClick={onEdit} title={t('indicatorsRecords.editIndicator')} aria-label={t('indicatorsRecords.editIndicator')}><Pencil size={16}/></button><button type="button" className="danger" onClick={onDelete} title={t('indicatorsRecords.deleteIndicatorTitle')} aria-label={t('indicatorsRecords.deleteIndicatorTitle')}><Trash2 size={16}/></button></div>}
    
    <Button onClick={onClose}>{t('close')}</Button>
   </>}>

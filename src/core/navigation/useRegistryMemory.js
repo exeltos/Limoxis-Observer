@@ -31,11 +31,15 @@ export function useRegistryMemory(registry){
     navigate(path,{state:{limoxisFrom:{pathname:location.pathname,search:location.search,hash:location.hash,state:location.state??null,registry}}})
   }
 
-  function rowProps(id){
+  function rowProps(id,onOpen){
     return {
       'data-record-id':id,
       className:`registry-row-clickable ${highlightId===id?'registry-row-returned':''}`.trim(),
       tabIndex:0,
+      ...(onOpen?{
+        onClick:onOpen,
+        onKeyDown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen(e)}},
+      }:null),
     }
   }
 

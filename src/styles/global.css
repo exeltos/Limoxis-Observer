@@ -537,6 +537,16 @@
 .control-editor-header p{margin:0;color:var(--text-muted,#6f7f91);font-size:13px}
 .control-editor-body{flex:1;min-height:0;overflow:auto;padding:18px 26px 22px;display:flex;flex-direction:column;gap:14px}
 .control-form-section{border:1px solid var(--border-color,#dfe6ed);border-radius:13px;padding:15px 16px;background:var(--surface,#fff)}
+.observer-dialog .control-editor-body{padding:0;overflow:visible}
+.observer-dialog .control-form-section{
+  border:0;
+  border-top:1px solid var(--lo-card-border,#dfe6ed);
+  border-radius:0;
+  padding:16px 0;
+  background:transparent;
+}
+.observer-dialog .control-form-section:first-child{border-top:0;padding-top:0}
+.observer-dialog .control-form-section:last-child{padding-bottom:0}
 .control-section-title{display:flex;align-items:center;gap:10px;margin-bottom:13px}
 .control-section-title>span{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;background:var(--primary-soft,#e9f4f6);color:var(--primary,#247386);font-weight:800;font-size:12px}
 .control-section-title>div{display:flex;flex-direction:column;gap:1px}.control-section-title strong{font-size:14px}.control-section-title small{font-size:11px;color:var(--text-muted,#748394)}
@@ -1755,19 +1765,24 @@
 
 /* v0.24.3 — laboratory step navigation + sidebar auto-collapse */
 .lab-workflow-navigator{
- margin-top:auto;
- padding:12px 14px 4px;
+ position:sticky;
+ bottom:0;
+ margin-top:14px;
+ padding:12px 14px;
  display:grid;
  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
  align-items:center;
  gap:10px;
+ background:#fff;
  border-top:1px solid #e8edf1;
+ border-radius:0 0 var(--radius-lg) var(--radius-lg);
+ z-index:3;
 }
 .lab-workflow-nav-button{
  min-height:46px;
  border:1px solid #dce5eb;
  border-radius:10px;
- background:#fff;
+ background:#eef3f7;
  color:#395a73;
  padding:7px 10px;
  display:flex;
@@ -1776,9 +1791,17 @@
  cursor:pointer;
  text-align:left;
 }
-.lab-workflow-nav-button.next{justify-content:flex-end;text-align:right}
-.lab-workflow-nav-button:hover:not(:disabled){background:#f5f9fb;border-color:#c7d8e3}
-.lab-workflow-nav-button:disabled{opacity:.35;cursor:default}
+.lab-workflow-nav-button.next{justify-content:flex-end;text-align:right;background:#1f6fa9;border-color:#1f6fa9}
+.lab-workflow-nav-button.next small{color:rgba(255,255,255,.72)}
+.lab-workflow-nav-button.next strong{color:#fff}
+.lab-workflow-nav-button.next svg{color:#fff}
+.lab-workflow-nav-button.next:hover:not(:disabled){background:#175a8a;border-color:#175a8a}
+.lab-workflow-nav-button.next:disabled{background:#fff;border-color:#dce5eb}
+.lab-workflow-nav-button.next:disabled small{color:#8494a1}
+.lab-workflow-nav-button.next:disabled strong{color:#294b65}
+.lab-workflow-nav-button.next:disabled svg{color:#294b65}
+.lab-workflow-nav-button:hover:not(:disabled){background:#e3ecf3;border-color:#c7d8e3}
+.lab-workflow-nav-button:disabled{opacity:.35;cursor:default;background:#fff}
 .lab-workflow-nav-button span{display:flex;flex-direction:column;gap:2px;min-width:0}
 .lab-workflow-nav-button small{font-size:8px;color:#8494a1;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 .lab-workflow-nav-button strong{font-size:10px;color:#294b65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2265,11 +2288,11 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
 @media(max-width:1050px){.lira-briefing-layout{grid-template-columns:1fr}.lira-next-list{grid-template-columns:1fr}.lira-next-list article{border-right:0;border-bottom:1px solid var(--line)}}
 
 /* v0.26.25 Indicators */
-.indicator-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}.indicator-summary-strip>div{display:grid;grid-template-columns:auto auto 1fr;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}.indicator-summary-strip strong{font-size:15px}.indicator-summary-strip small{font-size:9px;color:var(--muted)}.indicator-summary-icon{width:27px;height:27px;border-radius:8px;background:#f1f5f8;display:grid;place-items:center}
+.indicator-summary-strip{margin-bottom:10px}
 .indicator-registry{min-height:0}.indicator-table-surface{min-height:0;overflow:hidden;display:flex;flex-direction:column}.indicator-result-cell strong{display:block;font-size:13px}.indicator-result-cell small,.indicator-table-surface td small{display:block;font-size:8.5px;color:var(--muted);margin-top:2px}.indicator-status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:8.5px;font-weight:750;background:#eef2f5;color:#566775}.indicator-status.onTarget{background:#eaf6ef;color:#28754b}.indicator-status.attention{background:#fbefef;color:#a13d3d}.indicator-detail-link{border:0;background:transparent;font:inherit;font-size:9px;font-weight:750;color:#285d87;cursor:pointer}
 .indicator-detail{display:grid;gap:12px}.indicator-detail-result{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:9px}.indicator-detail-result>span{font-size:10px;color:var(--muted)}.indicator-detail-result>strong{font-size:22px}.indicator-detail-result>small{font-size:10px;color:var(--muted)}.indicator-detail-result>em{font-style:normal}
 .indicator-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.indicator-detail-grid>div{display:grid;gap:3px;padding:11px;border:1px solid var(--line);border-radius:9px}.indicator-detail-grid span{font-size:9px;color:var(--muted)}.indicator-detail-grid strong{font-size:11px}.indicator-detail-grid small{font-size:8.5px;color:var(--muted);line-height:1.4}.indicator-formula{display:flex;gap:9px;padding:11px;border:1px solid var(--line);border-radius:9px;background:#fbfcfd}.indicator-formula>div{display:grid;gap:2px}.indicator-formula strong{font-size:10px}.indicator-formula span{font-size:11px}.indicator-formula small{font-size:8.5px;color:var(--muted)}
-@media(max-width:900px){.indicator-summary-strip{grid-template-columns:repeat(2,1fr)}.indicator-detail-grid{grid-template-columns:1fr}} 
+@media(max-width:900px){.indicator-detail-grid{grid-template-columns:1fr}}
 
 /* v0.26.26 Indicator builder + simplified record */
 .indicator-record-card{display:grid;gap:10px}.indicator-record-top{display:flex;justify-content:space-between;align-items:center;padding:14px 2px 12px;border-bottom:1px solid var(--line)}.indicator-record-top>div{display:flex;align-items:baseline;gap:7px}.indicator-record-top span{font-size:9px;color:var(--muted)}.indicator-record-top strong{font-size:26px}.indicator-record-top small{font-size:10px;color:var(--muted)}
@@ -2332,6 +2355,9 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
 /* v0.26.32 Management Center normalization */
 .management-tabs{overflow-x:auto;scrollbar-width:thin;flex-wrap:nowrap!important}
 .management-tabs .tab{white-space:nowrap;flex:0 0 auto}
+/* Management Center has too many tabs for one row: wrap instead of horizontal-scrolling. */
+.canonical-module-tabs.management-tabs.tabs{flex-wrap:wrap!important;overflow-x:visible!important;height:auto!important}
+.canonical-module-tabs.management-tabs .tab{flex:0 0 auto}
 .management-overview{overflow:auto}
 .management-overview-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:1px solid var(--line)}
 .management-overview-head h2{margin:4px 0 0;font-size:18px;color:var(--text)}
@@ -2433,7 +2459,10 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
 .help-info-content{min-height:calc(100vh - 165px)}
 .announcement-field{gap:5px!important}
 .announcement-field>span{font-size:9px!important;font-weight:700!important;color:#50687b!important}
-.announcement-control{
+/* Also applies to the TimeField/ManualDateField inputs nested in an .announcement-field
+   wrapper, since those shared components don't forward a className to their <input>.
+   :not(.manual-date-native) excludes ManualDateField's hidden native picker input. */
+.announcement-control,.announcement-field input:not(.manual-date-native),.announcement-field select{
   width:100%!important;
   min-height:38px!important;
   height:38px!important;
@@ -2449,9 +2478,9 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
   outline:none!important;
   transition:border-color .15s ease,box-shadow .15s ease,background .15s ease!important;
 }
-.announcement-control:hover{border-color:#b9c8d3!important}
-.announcement-control:focus{border-color:#7ea7c4!important;box-shadow:0 0 0 3px rgba(73,123,157,.10)!important}
-select.announcement-control{
+.announcement-control:hover,.announcement-field input:not(.manual-date-native):hover,.announcement-field select:hover{border-color:#b9c8d3!important}
+.announcement-control:focus,.announcement-field input:not(.manual-date-native):focus,.announcement-field select:focus{border-color:#7ea7c4!important;box-shadow:0 0 0 3px rgba(73,123,157,.10)!important}
+select.announcement-control,.announcement-field select{
   appearance:none!important;
   -webkit-appearance:none!important;
   padding-right:34px!important;
@@ -2460,15 +2489,19 @@ select.announcement-control{
   background-size:5px 5px,5px 5px!important;
   background-repeat:no-repeat!important;
 }
-input[type="date"].announcement-control,input[type="time"].announcement-control{
+input[type="date"].announcement-control,input[type="time"].announcement-control,
+.announcement-field input[type="time"]{
   appearance:none!important;
   -webkit-appearance:none!important;
   color-scheme:light!important;
 }
 input[type="date"].announcement-control::-webkit-calendar-picker-indicator,
-input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
+input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
+.announcement-field input[type="time"]::-webkit-calendar-picker-indicator{
   opacity:.65!important;cursor:pointer!important
 }
+.announcement-field .manual-date-control>input:not(.manual-date-native){padding-right:42px!important}
+.announcement-field .time-field-control input{padding-right:36px!important}
 .announcement-textarea{
   height:auto!important;
   min-height:104px!important;
@@ -3451,7 +3484,11 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
   overflow:auto;
   overscroll-behavior:contain;
   scrollbar-gutter:stable;
+  max-width:100%;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
 }
+.registry-workspace .data-table{width:100%;min-width:760px}
 .scroll-table table thead th{
   position:sticky;
   top:0;
@@ -4390,6 +4427,7 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
 }
 .modal-backdrop>.observer-dialog>.observer-dialog-body{
   flex:1 1 auto;
+  min-width:0;
   min-height:0;
   overflow:auto;
   padding:14px 15px!important;
@@ -4443,6 +4481,8 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
   .modal-backdrop>.observer-dialog-standard,
   .modal-backdrop>.observer-dialog-wide,
   .modal-backdrop>.observer-dialog-workspace{width:calc(100vw - 20px)!important;max-height:calc(100vh - 20px)!important}
+  .modal-backdrop>.observer-dialog>footer{flex-wrap:wrap}
+  .registry-workspace .data-table{min-width:640px}
 }
 
 
@@ -4540,3 +4580,33 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
 .app-error-card p{margin:0;color:var(--color-text-muted,#52606d);line-height:1.55}
 .app-error-card .button{grid-column:2;justify-self:start}
 @media(max-width:520px){.app-error-card{grid-template-columns:1fr}.app-error-card .button{grid-column:1}}
+
+/* Canonical row-action icon buttons: plain orange pencil / red trash, no box or border.
+   Excludes labeled pill buttons (.general-edit-button) which keep their own bordered style. */
+button.edit:not(.button-primary):not(.button-secondary):not(.button-danger):not(.general-edit-button),.prevention-row-edit{color:#c2791e!important;border:0!important;background:transparent!important;box-shadow:none!important}
+button.edit:not(.button-primary):not(.button-secondary):not(.button-danger):not(.general-edit-button):hover,.prevention-row-edit:hover{color:#a8661f!important;background:transparent!important;border:0!important}
+button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):not(.general-edit-button){color:#c1443f!important;border:0!important;background:transparent!important;box-shadow:none!important}
+button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):not(.general-edit-button):hover{color:#a34a4a!important;background:transparent!important;border:0!important}
+.button.edit{color:#a8661f;border-color:#f0ddbd;background:#fffaf2}
+.button.edit:hover:not(:disabled){background:#fdf3e2;border-color:#e6c78e}
+
+/* Canonical, discreet contextual-help/info banner — replaces .governance-banner,
+   .source-truth-note, .evidence-box and .committee-guidance-banner. New code
+   should use the <InfoBanner> component (src/design-system/InfoBanner.jsx);
+   the older class names are aliased below so every existing screen picks up
+   the same look without a full JSX migration. */
+.info-banner,.governance-banner,.evidence-box,.source-truth-note,.committee-guidance-banner{padding:9px 11px!important;margin:10px 0!important;border:0!important;border-left:3px solid #9db8c9!important;background:#f6f9fb!important;border-radius:0 8px 8px 0!important;color:#5f7185!important;font-size:11px!important;line-height:1.5!important}
+.info-banner,.governance-banner,.committee-guidance-banner{display:flex!important;gap:8px!important;align-items:flex-start!important}
+.info-banner svg,.governance-banner>svg,.committee-guidance-banner>svg{flex:0 0 auto;margin-top:1px;color:#5f8095!important}
+.info-banner strong,.evidence-box strong,.committee-guidance-banner strong{display:block;font-size:10.5px!important;color:#4d6579!important;margin-bottom:2px!important}
+.info-banner span,.evidence-box span,.committee-guidance-banner span{display:block;font-size:11px!important;color:#5f7185!important;margin-top:0!important}
+.governance-banner.warning,.control-finding-banner{border-left-color:#c99a4a!important;background:#fdf7ec!important;color:#8a6521!important}
+.governance-banner.warning svg,.control-finding-banner svg{color:#b4842f!important}
+.compact-governance{margin:6px 0!important;padding:7px 10px!important}
+
+/* Canonical, discreet section-help lead-in (smaller, italic, muted). */
+.section-help{display:block;font-size:12.5px;font-style:italic;font-weight:600;color:var(--muted,#6e7b8d)}
+
+/* Button loading state: spinner + dimmed, reuses the route-loading-spin keyframe. */
+.button-spinner{width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;opacity:.7;animation:route-loading-spin .7s linear infinite}
+.button-loading{cursor:wait}

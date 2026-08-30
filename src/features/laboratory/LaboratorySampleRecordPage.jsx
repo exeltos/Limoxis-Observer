@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, FileClock, FlaskConical, LockKeyhole, Microscope, Paperclip, Pencil, PhoneCall, PlayCircle, ShieldAlert, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
+import { SaveButton } from '../../design-system/SaveButton'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { downloadRecordJson } from '../../core/export/recordExport'
@@ -281,7 +282,7 @@ function ResultPanel({sample,persist,syncValidatedResult,t,language,fmt,canManag
     <div className="record-section-header">
       <div><span className="eyebrow">{t('laboratoryRecords.microbiologyResult')}</span><h3>{t('laboratoryRecords.resultAndOrganism')}</h3></div>
       <div className="record-inline-actions">
-        {canManage&&canEnterResult&&!editing&&<button title={sample.resultStatus==='validated'?t('laboratoryRecords.amendResult'):t('edit')} onClick={()=>setEditing(true)}><Pencil size={16}/></button>}
+        {canManage&&canEnterResult&&!editing&&<button className="edit" title={sample.resultStatus==='validated'?t('laboratoryRecords.amendResult'):t('edit')} onClick={()=>setEditing(true)}><Pencil size={16}/></button>}
         
       </div>
     </div>
@@ -295,7 +296,7 @@ function ResultPanel({sample,persist,syncValidatedResult,t,language,fmt,canManag
       <Detail l={t('laboratoryRecords.validatedAt')} v={fmt(sample.validatedAt)}/>
       <Detail l={t('laboratoryRecords.validatedBy')} v={sample.validatedBy||'—'}/>
     </div>
-    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({result:sample.result||'',organisms:sample.organisms?.length?sample.organisms:[...(sample.organism?[{name:sample.organism,resistance:sample.resistance||''}]:[])],critical:Boolean(sample.critical)});setEditing(false)}}>{t('cancel')}</Button><Button onClick={save}>{t('save')}</Button></div>}
+    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({result:sample.result||'',organisms:sample.organisms?.length?sample.organisms:[...(sample.organism?[{name:sample.organism,resistance:sample.resistance||''}]:[])],critical:Boolean(sample.critical)});setEditing(false)}}>{t('cancel')}</Button><SaveButton onClick={save}>{t('save')}</SaveButton></div>}
     {!editing&&canValidate&&sample.result&&sample.resultStatus!=='validated'&&<div className="lab-validation-callout"><div><CheckCircle2 size={18}/><span><strong>{t('laboratoryRecords.resultReadyForValidation')}</strong><small>{t('laboratoryRecords.resultReadyForValidationHelp')}</small></span></div><Button onClick={validate}><CheckCircle2 size={15}/>{t('laboratoryRecords.validateResult')}</Button></div>}
     {sample.resultStatus==='validated'&&<div className="validated-result-note"><CheckCircle2 size={16}/><span>{t('laboratoryRecords.validatedResultSyncedHint')}</span></div>}
   </div>
@@ -371,7 +372,7 @@ function AstPanel({sample,persist,t,language,canManage,notify,actorName,onNext})
               <label><span>{t('laboratoryRecords.version')}</span><input value={draft.version} onChange={e=>setDraft(d=>({...d,version:e.target.value}))}/></label>
             </div>
           </div>
-        </div><footer><Button variant="secondary" onClick={()=>setOpen(false)}>{t('cancel')}</Button><Button onClick={save}>{t('save')}</Button></footer></div></div>}
+        </div><footer><Button variant="secondary" onClick={()=>setOpen(false)}>{t('cancel')}</Button><SaveButton onClick={save}>{t('save')}</SaveButton></footer></div></div>}
   </div>
 }
 
@@ -394,7 +395,7 @@ function CriticalCommunicationPanel({sample,persist,syncValidatedResult,t,langua
     {sample.critical&&!(sample.communications?.length)&&<div className="critical-box open"><AlertTriangle size={17}/><div><strong>{t('laboratoryRecords.criticalCommunicationRequired')}</strong><span>{t('laboratoryRecords.criticalCommunicationRequiredHint')}</span></div></div>}
     {(sample.communications||[]).length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('date')}</th><th>{t('laboratoryRecords.recipient')}</th><th>{t('laboratoryRecords.method')}</th><th>{t('laboratoryRecords.communicatedBy')}</th><th>{t('laboratoryRecords.readBack')}</th><th>{t('notes')}</th></tr></thead><tbody>{sample.communications.map(row=><tr key={row.id}><td>{fmt(row.at)}</td><td>{language==='el'?row.to:row.toEn||row.to}</td><td>{t(row.method)}</td><td>{row.by}</td><td>{row.readBack?t('yes'):t('no')}</td><td>{language==='el'?row.notes:row.notesEn||row.notes}</td></tr>)}</tbody></table></div>:null}
     {(!sample.critical||sample.communications?.length>0)&&<div className="lab-step-footer"><Button onClick={onNext}>{t('laboratoryRecords.continueToFinalization')}</Button></div>}
-    {open&&<div className="modal-backdrop"><div className="entry-card communication-entry-card"><header><div><span className="eyebrow">{t('laboratoryRecords.criticalCommunication')}</span><h3>{t('laboratoryRecords.newCommunication')}</h3></div><button className="icon-close" onClick={()=>setOpen(false)}>×</button></header><div className="entry-grid"><label><span>{t('laboratoryRecords.recipient')}</span><input value={language==='el'?draft.to:draft.toEn} onChange={e=>setDraft(d=>({...d,[language==='el'?'to':'toEn']:e.target.value}))}/></label><label><span>{t('laboratoryRecords.method')}</span><select value={draft.method} onChange={e=>setDraft(d=>({...d,method:e.target.value}))}><option value="phone">{t('phone')}</option><option value="in_person">{t('laboratoryRecords.inPerson')}</option><option value="secure_message">{t('laboratoryRecords.secureMessage')}</option><option value="other">{t('other')}</option></select></label><label><span>{t('laboratoryRecords.readBack')}</span><select value={draft.readBack?'yes':'no'} onChange={e=>setDraft(d=>({...d,readBack:e.target.value==='yes'}))}><option value="yes">{t('yes')}</option><option value="no">{t('no')}</option></select></label><label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={language==='el'?draft.notes:draft.notesEn} onChange={e=>setDraft(d=>({...d,[language==='el'?'notes':'notesEn']:e.target.value}))}/></label></div><footer><Button variant="secondary" onClick={()=>setOpen(false)}>{t('cancel')}</Button><Button disabled={!(draft.to||draft.toEn)} onClick={save}>{t('save')}</Button></footer></div></div>}
+    {open&&<div className="modal-backdrop"><div className="entry-card communication-entry-card"><header><div><span className="eyebrow">{t('laboratoryRecords.criticalCommunication')}</span><h3>{t('laboratoryRecords.newCommunication')}</h3></div><button className="icon-close" onClick={()=>setOpen(false)}>×</button></header><div className="entry-grid"><label><span>{t('laboratoryRecords.recipient')}</span><input value={language==='el'?draft.to:draft.toEn} onChange={e=>setDraft(d=>({...d,[language==='el'?'to':'toEn']:e.target.value}))}/></label><label><span>{t('laboratoryRecords.method')}</span><select value={draft.method} onChange={e=>setDraft(d=>({...d,method:e.target.value}))}><option value="phone">{t('phone')}</option><option value="in_person">{t('laboratoryRecords.inPerson')}</option><option value="secure_message">{t('laboratoryRecords.secureMessage')}</option><option value="other">{t('other')}</option></select></label><label><span>{t('laboratoryRecords.readBack')}</span><select value={draft.readBack?'yes':'no'} onChange={e=>setDraft(d=>({...d,readBack:e.target.value==='yes'}))}><option value="yes">{t('yes')}</option><option value="no">{t('no')}</option></select></label><label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={language==='el'?draft.notes:draft.notesEn} onChange={e=>setDraft(d=>({...d,[language==='el'?'notes':'notesEn']:e.target.value}))}/></label></div><footer><Button variant="secondary" onClick={()=>setOpen(false)}>{t('cancel')}</Button><SaveButton disabled={!(draft.to||draft.toEn)} onClick={save}>{t('save')}</SaveButton></footer></div></div>}
   </div>
 }
 
@@ -703,7 +704,7 @@ function EnvironmentalResultsPanel({sample,positions,isPlate,persist,t,language,
   }
 
   return <div className="record-section environmental-results-panel">
-    <div className="record-section-header"><div><span className="eyebrow">{isPlate?t('laboratoryRecords.plateResults'):t('laboratoryRecords.environmentalResult')}</span><h3>{isPlate?t('laboratoryRecords.evaluateWholePlate'):t('laboratoryRecords.evaluateEnvironmentalSample')}</h3><p>{t('laboratoryRecords.smartEnvironmentalEvaluationHelp')}</p></div>{canManage&&!editing&&<Button variant="secondary" onClick={()=>setEditing(true)}><Pencil size={14}/>{t('edit')}</Button>}</div>
+    <div className="record-section-header"><div><span className="eyebrow">{isPlate?t('laboratoryRecords.plateResults'):t('laboratoryRecords.environmentalResult')}</span><h3>{isPlate?t('laboratoryRecords.evaluateWholePlate'):t('laboratoryRecords.evaluateEnvironmentalSample')}</h3><p>{t('laboratoryRecords.smartEnvironmentalEvaluationHelp')}</p></div>{canManage&&!editing&&<Button variant="secondary" className="edit" onClick={()=>setEditing(true)}><Pencil size={14}/>{t('edit')}</Button>}</div>
     <div className={`smart-protocol-strip ${hasConfiguredLimit?'configured':'missing'}`}>
       <div><strong>{standard?.protocolCode||t('laboratoryRecords.noProtocolConfigured')}</strong><span>{hasConfiguredLimit?`${t('laboratoryRecords.automaticLimit')}: ${configuredLimit} ${standard?.unit||'CFU'}`:t('laboratoryRecords.environmentalProtocolNeedsLimit')}</span></div>
       <span className="smart-lock-chip">🔒 {t('laboratoryRecords.centrallyManaged')}</span>
