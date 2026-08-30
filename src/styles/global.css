@@ -537,6 +537,16 @@
 .control-editor-header p{margin:0;color:var(--text-muted,#6f7f91);font-size:13px}
 .control-editor-body{flex:1;min-height:0;overflow:auto;padding:18px 26px 22px;display:flex;flex-direction:column;gap:14px}
 .control-form-section{border:1px solid var(--border-color,#dfe6ed);border-radius:13px;padding:15px 16px;background:var(--surface,#fff)}
+.observer-dialog .control-editor-body{padding:0;overflow:visible}
+.observer-dialog .control-form-section{
+  border:0;
+  border-top:1px solid var(--lo-card-border,#dfe6ed);
+  border-radius:0;
+  padding:16px 0;
+  background:transparent;
+}
+.observer-dialog .control-form-section:first-child{border-top:0;padding-top:0}
+.observer-dialog .control-form-section:last-child{padding-bottom:0}
 .control-section-title{display:flex;align-items:center;gap:10px;margin-bottom:13px}
 .control-section-title>span{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;background:var(--primary-soft,#e9f4f6);color:var(--primary,#247386);font-weight:800;font-size:12px}
 .control-section-title>div{display:flex;flex-direction:column;gap:1px}.control-section-title strong{font-size:14px}.control-section-title small{font-size:11px;color:var(--text-muted,#748394)}
@@ -2265,11 +2275,11 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
 @media(max-width:1050px){.lira-briefing-layout{grid-template-columns:1fr}.lira-next-list{grid-template-columns:1fr}.lira-next-list article{border-right:0;border-bottom:1px solid var(--line)}}
 
 /* v0.26.25 Indicators */
-.indicator-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}.indicator-summary-strip>div{display:grid;grid-template-columns:auto auto 1fr;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}.indicator-summary-strip strong{font-size:15px}.indicator-summary-strip small{font-size:9px;color:var(--muted)}.indicator-summary-icon{width:27px;height:27px;border-radius:8px;background:#f1f5f8;display:grid;place-items:center}
+.indicator-summary-strip{margin-bottom:10px}
 .indicator-registry{min-height:0}.indicator-table-surface{min-height:0;overflow:hidden;display:flex;flex-direction:column}.indicator-result-cell strong{display:block;font-size:13px}.indicator-result-cell small,.indicator-table-surface td small{display:block;font-size:8.5px;color:var(--muted);margin-top:2px}.indicator-status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:8.5px;font-weight:750;background:#eef2f5;color:#566775}.indicator-status.onTarget{background:#eaf6ef;color:#28754b}.indicator-status.attention{background:#fbefef;color:#a13d3d}.indicator-detail-link{border:0;background:transparent;font:inherit;font-size:9px;font-weight:750;color:#285d87;cursor:pointer}
 .indicator-detail{display:grid;gap:12px}.indicator-detail-result{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:9px}.indicator-detail-result>span{font-size:10px;color:var(--muted)}.indicator-detail-result>strong{font-size:22px}.indicator-detail-result>small{font-size:10px;color:var(--muted)}.indicator-detail-result>em{font-style:normal}
 .indicator-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.indicator-detail-grid>div{display:grid;gap:3px;padding:11px;border:1px solid var(--line);border-radius:9px}.indicator-detail-grid span{font-size:9px;color:var(--muted)}.indicator-detail-grid strong{font-size:11px}.indicator-detail-grid small{font-size:8.5px;color:var(--muted);line-height:1.4}.indicator-formula{display:flex;gap:9px;padding:11px;border:1px solid var(--line);border-radius:9px;background:#fbfcfd}.indicator-formula>div{display:grid;gap:2px}.indicator-formula strong{font-size:10px}.indicator-formula span{font-size:11px}.indicator-formula small{font-size:8.5px;color:var(--muted)}
-@media(max-width:900px){.indicator-summary-strip{grid-template-columns:repeat(2,1fr)}.indicator-detail-grid{grid-template-columns:1fr}} 
+@media(max-width:900px){.indicator-detail-grid{grid-template-columns:1fr}}
 
 /* v0.26.26 Indicator builder + simplified record */
 .indicator-record-card{display:grid;gap:10px}.indicator-record-top{display:flex;justify-content:space-between;align-items:center;padding:14px 2px 12px;border-bottom:1px solid var(--line)}.indicator-record-top>div{display:flex;align-items:baseline;gap:7px}.indicator-record-top span{font-size:9px;color:var(--muted)}.indicator-record-top strong{font-size:26px}.indicator-record-top small{font-size:10px;color:var(--muted)}
@@ -3451,7 +3461,11 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
   overflow:auto;
   overscroll-behavior:contain;
   scrollbar-gutter:stable;
+  max-width:100%;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
 }
+.registry-workspace .data-table{width:100%;min-width:760px}
 .scroll-table table thead th{
   position:sticky;
   top:0;
@@ -4390,6 +4404,7 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
 }
 .modal-backdrop>.observer-dialog>.observer-dialog-body{
   flex:1 1 auto;
+  min-width:0;
   min-height:0;
   overflow:auto;
   padding:14px 15px!important;
@@ -4443,6 +4458,8 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator{
   .modal-backdrop>.observer-dialog-standard,
   .modal-backdrop>.observer-dialog-wide,
   .modal-backdrop>.observer-dialog-workspace{width:calc(100vw - 20px)!important;max-height:calc(100vh - 20px)!important}
+  .modal-backdrop>.observer-dialog>footer{flex-wrap:wrap}
+  .registry-workspace .data-table{min-width:640px}
 }
 
 

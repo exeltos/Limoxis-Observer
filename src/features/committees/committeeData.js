@@ -27,6 +27,6 @@ function normalizeRecord(r){
  const memberRefs=Array.isArray(r.memberRefs)&&r.memberRefs.length?r.memberRefs:(r.members||[]).map((name,i)=>({id:`LEGACY-${r.id}-${i}`,employeeId:'',name,department:'',profession:'',committeeTitle:name===r.chair?'Πρόεδρος':name===r.secretary?'Γραμματέας':'Μέλος',responsibilities:'',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:r.termStart?`${r.termStart}T00:00:00Z`:null}))
  return {...r,templateId:inferTemplate(r),memberRefs,meetings:(Array.isArray(r.meetings)?r.meetings:[]).map(normalizeMeeting),decisions:Array.isArray(r.decisions)?r.decisions:[],annualPlan:Array.isArray(r.annualPlan)?r.annualPlan:[],history:Array.isArray(r.history)?r.history:[]}
 }
-export function loadCommittees(){const v=loadSnapshot('committees',structuredClone(seed));return (Array.isArray(v)&&v.length?v:structuredClone(seed)).map(normalizeRecord)}
+export function loadCommittees(){const v=loadSnapshot('committees',structuredClone(seed));return (Array.isArray(v)?v:structuredClone(seed)).map(normalizeRecord)}
 export function saveCommittees(rows){return saveSnapshot('committees',rows)}
 export function nextCommitteeId(rows){return `COM-${String(rows.length+1).padStart(3,'0')}`}
