@@ -18,8 +18,8 @@ import { createDocumentRevision,loadDocuments,saveDocuments } from './documentSt
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 const labels={
- el:{types:{policy:'Πολιτική',procedure:'Διαδικασία',instruction:'Οδηγία',form:'Έντυπο',protocol:'Πρωτόκολλο',other:'Άλλο'},statuses:{draft:'Πρόχειρο',published:'Δημοσιευμένο',archived:'Αρχειοθετημένο'}},
- en:{types:{policy:'Policy',procedure:'Procedure',instruction:'Instruction',form:'Form',protocol:'Protocol',other:'Other'},statuses:{draft:'Draft',published:'Published',archived:'Archived'}}
+ el:{types:{policy:'Πολιτική',procedure:'Διαδικασία',instruction:'Οδηγία',form:'Έντυπο',protocol:'Πρωτόκολλο',other:'Άλλο'},statuses:{draft:'Πρόχειρο',review:'Σε έλεγχο',approved:'Εγκεκριμένο',published:'Δημοσιευμένο',superseded:'Αντικαταστάθηκε',archived:'Αρχειοθετημένο'}},
+ en:{types:{policy:'Policy',procedure:'Procedure',instruction:'Instruction',form:'Form',protocol:'Protocol',other:'Other'},statuses:{draft:'Draft',review:'In review',approved:'Approved',published:'Published',superseded:'Superseded',archived:'Archived'}}
 }
 
 export function DocumentRecordPage(){
@@ -27,17 +27,36 @@ export function DocumentRecordPage(){
  const [rows,setRows]=useState(loadDocuments),[tab,setTab]=useState('overview'),[editOpen,setEditOpen]=useState(false)
  const record=rows.find(x=>x.id===documentId)
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
- const canManage=can(role,CAPABILITIES.EDIT_RECORDS,addOns,custom)&&can(role,CAPABILITIES.ATTACH_FILES,addOns,custom)
+ const canManage=can(role,CAPABILITIES.MANAGE_DOCUMENTS,addOns,custom)
+ const canSubmitReview=can(role,CAPABILITIES.SUBMIT_DOCUMENT_REVIEW,addOns,custom)
+ const canApprove=can(role,CAPABILITIES.APPROVE_DOCUMENT,addOns,custom)
+ const canPublish=can(role,CAPABILITIES.PUBLISH_DOCUMENT,addOns,custom)
+ const canSupersede=can(role,CAPABILITIES.SUPERSEDE_DOCUMENT,addOns,custom)
+ const canArchive=can(role,CAPABILITIES.ARCHIVE_DOCUMENT,addOns,custom)
  if(!record)return <Page title={en?'Documents':'Έγγραφα'}><div className="inline-empty">{en?'Document not found.':'Το έγγραφο δεν βρέθηκε.'}</div></Page>
  function persist(next){const all=rows.map(x=>x.id===record.id?next:x);setRows(all);saveDocuments(all)}
  function audit(next,action,reason){const now=new Date().toISOString();return {...next,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action,reason},...(next.history||record.history||[])]}}
  function saveEdit(data){persist(audit({...record,...data},'Επεξεργασία στοιχείων εγγράφου',data.version?`Έκδοση ${data.version}`:''));setEditOpen(false);notify(en?'Document updated.':'Το έγγραφο ενημερώθηκε.','success')}
- async function publish(){const ok=await confirm({title:en?'Publish document':'Δημοσίευση εγγράφου',message:en?'The current version will be marked as published and available for use. Continue?':'Η τρέχουσα έκδοση θα χαρακτηριστεί ως δημοσιευμένη και διαθέσιμη για χρήση. Θέλετε να συνεχίσετε;',confirmLabel:en?'Publish':'Δημοσίευση'});if(!ok)return;{
+ async function submitReview(){
+  if(record.status!=='draft'||!canSubmitReview)return
+  const ok=await confirm({title:en?'Submit for review':'Υποβολή για έλεγχο',message:en?'Editing will be locked while the document is reviewed. Continue?':'Η επεξεργασία θα κλειδώσει όσο το έγγραφο βρίσκεται σε έλεγχο. Θέλετε να συνεχίσετε;',confirmLabel:en?'Submit':'Υποβολή'})
+  if(!ok)return
+  persist(audit({...record,status:'review',reviewSubmittedAt:new Date().toISOString(),reviewSubmittedBy:actor.name,reviewSubmittedById:actor.id},'Υποβολή εγγράφου για έλεγχο',`Έκδοση ${record.version}`))
+  notify(en?'Document submitted for review.':'Το έγγραφο υποβλήθηκε για έλεγχο.','success')
+ }
+ async function approve(){
+  if(record.status!=='review'||!canApprove)return
+  const ok=await confirm({title:en?'Approve document':'Έγκριση εγγράφου',message:en?'The reviewed version will be approved for publication. Continue?':'Η ελεγμένη έκδοση θα εγκριθεί για δημοσίευση. Θέλετε να συνεχίσετε;',confirmLabel:en?'Approve':'Έγκριση'})
+  if(!ok)return
+  persist(audit({...record,status:'approved',approvedAt:new Date().toISOString(),approvedBy:actor.name,approvedById:actor.id},'Έγκριση εγγράφου',`Έκδοση ${record.version}`))
+  notify(en?'Document approved.':'Το έγγραφο εγκρίθηκε.','success')
+ }
+ async function publish(){if(record.status!=='approved'||!canPublish||(record.supersedesId&&!canSupersede))return;const ok=await confirm({title:en?'Publish document':'Δημοσίευση εγγράφου',message:en?'The current version will be marked as published and available for use. Continue?':'Η τρέχουσα έκδοση θα χαρακτηριστεί ως δημοσιευμένη και διαθέσιμη για χρήση. Θέλετε να συνεχίσετε;',confirmLabel:en?'Publish':'Δημοσίευση'});if(!ok)return;{
  const now=new Date().toISOString()
  const published=audit({...record,status:'published',publishedAt:now,publishedBy:actor.name,publishedById:actor.id},'Δημοσίευση εγγράφου',`Έκδοση ${record.version}`)
  let all=rows.map(x=>x.id===record.id?published:x)
  if(record.supersedesId){
-  all=all.map(x=>x.id===record.supersedesId?{...x,status:'archived',archivedAt:now,archivedBy:actor.name,archivedById:actor.id,supersededById:record.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Αντικατάσταση από νέα έκδοση',reason:`${record.id} · Έκδοση ${record.version}`},...(x.history||[])]}:x)
+  all=all.map(x=>x.id===record.supersedesId?{...x,status:'superseded',supersededAt:now,supersededBy:actor.name,supersededByActorId:actor.id,supersededById:record.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Αντικατάσταση από νέα έκδοση',reason:`${record.id} · Έκδοση ${record.version}`},...(x.history||[])]}:x)
  }
  setRows(all);saveDocuments(all)
  }notify(en?'Document published.':'Το έγγραφο δημοσιεύτηκε.','success')}
@@ -53,7 +72,7 @@ export function DocumentRecordPage(){
  }
  function attachments(next){persist(audit({...record,attachments:next},'Ενημέρωση συνημμένων',`${next.length} συνημμένα`));notify(en?'Attachments updated.':'Τα συνημμένα ενημερώθηκαν.','success')}
  const tabs=[{id:'overview',label:en?'Overview':'Σύνοψη',icon:BookOpenCheck},{id:'files',label:en?'Files':'Αρχεία',icon:Paperclip},{id:'history',label:en?'History':'Ιστορικό',icon:FileClock}]
- return <Page fill><EntityRecordShell avatar={<BookOpenCheck size={19}/>} eyebrow={record.id} title={record.title} subtitle={`${typeLabels[record.type]||record.type} · {en?'Version':'Έκδοση'} ${record.version||'—'}`} status={<span className={`status-badge ${record.status==='published'?'active':record.status==='draft'?'temporary':''}`}>{statusLabels[record.status]||record.status}</span>} onBack={()=>navigate('/documents')} headerActions={<>{canManage&&record.status==='draft'&&<button className="general-edit-button" onClick={()=>setEditOpen(true)}><Pencil size={15}/>{en?' Edit':' Επεξεργασία'}</button>}{canManage&&record.status==='published'&&<button className="general-edit-button" onClick={createRevision}><Pencil size={15}/>{en?' New revision':' Νέα αναθεώρηση'}</button>}{canManage&&record.status==='draft'&&<Button onClick={publish}>{en?'Publish':'Δημοσίευση'}</Button>}{canManage&&record.status==='published'&&<button className="entity-record-icon-button danger" onClick={archive} title={en?'Archive':'Αρχειοθέτηση'} aria-label={en?'Archive':'Αρχειοθέτηση'}><Archive size={15}/></button>}<PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record.id})}/></>} tabs={tabs} activeTab={tab} onTabChange={setTab}>
+ return <Page fill><EntityRecordShell avatar={<BookOpenCheck size={19}/>} eyebrow={record.id} title={record.title} subtitle={`${typeLabels[record.type]||record.type} · ${en?'Version':'Έκδοση'} ${record.version||'—'}`} status={<span className={`status-badge ${record.status==='published'?'active':record.status==='draft'?'temporary':''}`}>{statusLabels[record.status]||record.status}</span>} onBack={()=>navigate('/documents')} headerActions={<>{canManage&&record.status==='draft'&&<button className="general-edit-button" onClick={()=>setEditOpen(true)}><Pencil size={15}/>{en?' Edit':' Επεξεργασία'}</button>}{canSupersede&&record.status==='published'&&<button className="general-edit-button" onClick={createRevision}><Pencil size={15}/>{en?' New revision':' Νέα αναθεώρηση'}</button>}{canSubmitReview&&record.status==='draft'&&<Button onClick={submitReview}>{en?'Submit for review':'Υποβολή για έλεγχο'}</Button>}{canApprove&&record.status==='review'&&<Button onClick={approve}>{en?'Approve':'Έγκριση'}</Button>}{canPublish&&record.status==='approved'&&<Button onClick={publish}>{en?'Publish':'Δημοσίευση'}</Button>}{canArchive&&record.status==='published'&&<button className="entity-record-icon-button danger" onClick={archive} title={en?'Archive':'Αρχειοθέτηση'} aria-label={en?'Archive':'Αρχειοθέτηση'}><Archive size={15}/></button>}<PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record.id})}/></>} tabs={tabs} activeTab={tab} onTabChange={setTab}>
   {tab==='overview'&&<section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{en?'Documents':'Έγγραφα'}</span><h3>{en?'Basic details':'Βασικά στοιχεία'}</h3></div></div><div className="details-grid"><div><span>{en?'Type':'Τύπος'}</span><strong>{typeLabels[record.type]||'—'}</strong></div><div><span>{en?'Version':'Έκδοση'}</span><strong>{record.version||'—'}</strong></div><div><span>{en?'Owner':'Υπεύθυνος'}</span><strong>{record.owner||'—'}</strong></div><div><span>{en?'Department / scope':'Τμήμα / πεδίο εφαρμογής'}</span><strong>{record.department||'—'}</strong></div><div><span>{en?'Effective date':'Ημερομηνία ισχύος'}</span><strong>{record.effectiveDate||'—'}</strong></div><div><span>{en?'Review':'Επανεξέταση'}</span><strong>{record.reviewDate||'—'}</strong></div></div><div className="source-truth-note">{record.description||(en?'No description has been recorded.':'Δεν έχει καταχωρηθεί περιγραφή.')}</div></section>}
   {tab==='files'&&<section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{en?'Documents':'Έγγραφα'}</span><h3>{en?'Files & attachments':'Αρχεία & συνημμένα'}</h3><p>{en?'Preview opens the file itself. Every addition or change is recorded in history.':'Η προβολή ανοίγει το ίδιο το αρχείο. Κάθε προσθήκη/μεταβολή καταγράφεται στο ιστορικό.'}</p></div></div><AttachmentField disabled={!canManage||record.status!=='draft'} value={record.attachments||[]} onChange={attachments}/></section>}
   {tab==='history'&&<DocumentHistory language={language} rows={record.history||[]}/>}

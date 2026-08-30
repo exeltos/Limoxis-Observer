@@ -24,14 +24,14 @@ export function CommitteesPage(){
  const navigate=useNavigate();const {role,membership}=useTenant();const {notify}=useFeedback();const actor=useAuditActor();const {language}=useLanguage();const en=language==='en'
  const [rows,setRows]=useState(loadCommittees);const [createOpen,setCreateOpen]=useState(false);const [query,setQuery]=useState('');const [status,setStatus]=useState('all')
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
- const canManage=can(role,CAPABILITIES.MANAGE_COMMITTEES,addOns,custom)
+ const canCreate=can(role,CAPABILITIES.CREATE_COMMITTEE,addOns,custom)
  const filtered=useMemo(()=>rows.filter(x=>(status==='all'||x.status===status)&&`${x.name} ${x.shortName} ${x.chair}`.toLowerCase().includes(query.toLowerCase())),[rows,query,status])
  const meetings=rows.flatMap(x=>x.meetings||[]),decisions=rows.flatMap(x=>x.decisions||[])
  const overdue=decisions.filter(x=>!['completed','closed'].includes(x.status)&&x.dueDate&&new Date(x.dueDate)<new Date()).length
  function exportCsv(){const text=[[(en?'Code':'Κωδικός'),(en?'Committee':'Επιτροπή'),(en?'Chair':'Πρόεδρος'),(en?'Status':'Κατάσταση')],...filtered.map(x=>[x.id,x.name,x.chair,x.status])].map(r=>r.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/csv'}));a.download='committees.csv';a.click();URL.revokeObjectURL(a.href)}
  function pageAction(action){if(action===UI_ACTIONS.CREATE){setCreateOpen(true);return}if(action===UI_ACTIONS.PRINT){window.print();return}if(action===UI_ACTIONS.EXPORT){exportCsv()}}
  return <Page fill title={en?'Committees':'Επιτροπές'} subtitle={en?'Governance of committees, meetings, minutes, decisions and actions.':'Διακυβέρνηση επιτροπών, συνεδριάσεων, πρακτικών, αποφάσεων και ενεργειών.'}
-   actions={<RecordActions actions={[...(canManage?[UI_ACTIONS.CREATE]:[]),UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} resourceCapability={CAPABILITIES.VIEW_COMMITTEES} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_COMMITTEES,[UI_ACTIONS.PRINT]:CAPABILITIES.PRINT_RECORDS,[UI_ACTIONS.EXPORT]:CAPABILITIES.EXPORT_RECORDS}} onAction={pageAction}/>}>
+   actions={<RecordActions actions={[...(canCreate?[UI_ACTIONS.CREATE]:[]),UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} resourceCapability={CAPABILITIES.VIEW_COMMITTEES} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_COMMITTEE,[UI_ACTIONS.PRINT]:CAPABILITIES.PRINT_RECORDS,[UI_ACTIONS.EXPORT]:CAPABILITIES.EXPORT_RECORDS}} onAction={pageAction}/>}>
    <div className="module-summary-strip">
     <Metric icon={BookOpenCheck} label={en?'Active committees':'Ενεργές επιτροπές'} value={rows.filter(x=>x.status==='active').length}/>
     <Metric icon={CalendarDays} label={en?'Meetings':'Συνεδριάσεις'} value={meetings.length}/>
