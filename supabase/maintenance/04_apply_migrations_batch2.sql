@@ -5,6 +5,12 @@
 -- Supabase SQL Editor (the editor closes its connection after each Run,
 -- which silently rolls back an uncommitted transaction left open across two
 -- separate executions).
+--
+-- v2: includes a fix for a real bug in migration 202608290014_v0271 —
+-- it redefined current_user_has_capability(uuid, text) with a renamed
+-- second parameter, which CREATE OR REPLACE FUNCTION rejects. This version
+-- drops the old signature first. That fix has also been committed to
+-- supabase/migrations/202608290014_v0271_data_access_foundation.sql in git.
 
 begin;
 
@@ -1279,6 +1285,9 @@ create index if not exists idx_control_drafts_department on public.control_draft
 -- Capability bridge for RLS.
 -- The frontend remains responsible for UX, but authorization is repeated here.
 -- Custom-role capabilities and add-on grants are included so UI capability grants do not bypass DB enforcement.
+-- The v0.8.0 version of this function named its second parameter capability_key;
+-- CREATE OR REPLACE cannot rename an existing parameter, so drop it first.
+drop function if exists public.current_user_has_capability(uuid, text);
 create or replace function public.current_user_has_capability(target_org uuid, requested_capability text)
 returns boolean
 language sql
