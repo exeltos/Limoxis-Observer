@@ -32,16 +32,8 @@ export async function loadPatients(organizationId, {isDemo=false}={}){
   return (data??[]).map(row=>mapRow(row,row.department?.name))
 }
 
-function nextPatientCode(existing){
-  const maxNumber=existing.reduce((max,item)=>{
-    const number=Number(String(item.id||'').replace(/\D/g,''))
-    return Number.isFinite(number)?Math.max(max,number):max
-  },260000)
-  return `PT-${String(maxNumber+1).slice(-6)}`
-}
-
 export async function createPatient(organizationId, existing, draft, {isDemo=false}={}){
-  const patientCode=nextPatientCode(existing)
+  const patientCode=draft.patientCode
   if(isDemo || !organizationId || !supabase){
     const record={id:patientCode,status:'active',...draft}
     return {record,list:[record,...existing]}
@@ -62,7 +54,64 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     status:draft.status||'active',
     notes:draft.notes||null,
   }).select().single()
-  if(error) throw error
+  if(error){
+    if(error.code==='23505')error.duplicateCode=true
+    throw error
+  }
+  try{
+    await supabase.from('patient_admissions').insert({
+      organization_id:organizationId,
+      patient_id:data.id,
+      department_id:departmentId,
+      admission_date:draft.admissionDate,
+      discharge_date:draft.dischargeDate||null,
+      status:draft.status||'active',
+      notes:draft.notes||null,
+    })
+  }catch{ /* the patient record itself is already saved; admission history can be added later */ }
   const record=mapRow(data,draft.department)
   return {record,list:[record,...existing]}
+}
+
+function mapAdmission(row, departmentLabel){
+  return {
+    id: row.id,
+    departmentId: row.department_id,
+    department: departmentLabel||'',
+    admissionDate: row.admission_date,
+    dischargeDate: row.discharge_date,
+    status: row.status,
+    notes: row.notes,
+  }
+}
+
+export async function loadAdmissions(patientRecordId){
+  if(!patientRecordId || !supabase) return []
+  const {data,error}=await supabase.from('patient_admissions').select('*, department:departments(name)').eq('patient_id',patientRecordId).order('admission_date',{ascending:false})
+  if(error) throw error
+  return (data??[]).map(row=>mapAdmission(row,row.department?.name))
+}
+
+export async function createAdmission(organizationId, patient, draft, {isDemo=false}={}){
+  if(isDemo || !patient.recordId || !supabase){
+    return mapAdmission({id:`ADM-${Date.now()}`,department_id:null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null},draft.department)
+  }
+  const departmentId=draft.department?await ensureDepartment(organizationId,draft.department):null
+  const {data,error}=await supabase.from('patient_admissions').insert({
+    organization_id:organizationId,
+    patient_id:patient.recordId,
+    department_id:departmentId,
+    admission_date:draft.admissionDate,
+    discharge_date:draft.dischargeDate||null,
+    status:draft.status||'active',
+    notes:draft.notes||null,
+  }).select().single()
+  if(error) throw error
+  await supabase.from('patients').update({
+    department_id:departmentId,
+    admission_date:draft.admissionDate,
+    discharge_date:draft.dischargeDate||null,
+    status:draft.status||'active',
+  }).eq('id',patient.recordId)
+  return mapAdmission(data,draft.department)
 }

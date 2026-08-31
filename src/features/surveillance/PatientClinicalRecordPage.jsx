@@ -14,7 +14,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { createClinicalSurveillance, deleteClinicalSurveillance, findCaseByPatient, findCasesByPatient, getClinicalCase } from './clinicalDemoData'
-import { loadPatients } from '../patients/patientsService'
+import { loadPatients, loadAdmissions, createAdmission } from '../patients/patientsService'
 import { createDemoSurveillanceListItem, deleteDemoSurveillanceListItem, syncDemoSurveillanceListItem } from './surveillanceDemoData'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
@@ -74,6 +74,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
   const canDeleteSurveillance=has(CAPABILITIES.DELETE_SURVEILLANCE)
   const tabDefinitions=[
     {id:'summary',label:t('summary'),icon:UserRound,show:true},
+    {id:'admissions',label:t('clinicalRecords.admissions'),icon:BedDouble,show:patientMode&&Boolean(patient)},
     {id:'surveillanceJourney',label:t('surveillance'),icon:ListTree,show:has(CAPABILITIES.VIEW_SURVEILLANCE)||has(CAPABILITIES.CREATE_SURVEILLANCE)||canLab||canTherapy},
     {id:'clinicalData',label:t('clinicalRecords.clinicalData'),icon:Activity,show:canClinical},
     {id:'documents',label:t('documents'),icon:FolderOpen,show:true},
@@ -130,6 +131,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
     >
 
     {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm}/>}
+    {activeTab==='admissions'&&patient&&<PatientAdmissions patient={patient} t={t} language={language} fmtDate={fmtDate} notify={notify} tenant={tenant} isDemo={isDemo}/>}
         {activeTab==='surveillanceJourney'&&<SurveillanceWorkspace
       episodes={patientMode?patientEpisodes:(record?[record]:[])}
       selectedEpisodeId={record?.id||''}
@@ -178,6 +180,58 @@ function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confir
   </div>
 }
 function SummaryItem({label,value,tone='neutral'}){return <div className={`patient-summary-item ${tone}`}><span>{label}</span><strong>{value}</strong></div>}
+
+function PatientAdmissions({patient,t,language,fmtDate,notify,tenant,isDemo}){
+  const [admissions,setAdmissions]=useState([])
+  const [open,setOpen]=useState(false)
+  useEffect(()=>{
+    let alive=true
+    if(patient?.recordId)loadAdmissions(patient.recordId).then(rows=>{if(alive)setAdmissions(rows)}).catch(()=>{})
+    return ()=>{alive=false}
+  },[patient?.recordId])
+  async function addAdmission(draft){
+    try{
+      const admission=await createAdmission(tenant?.id,patient,draft,{isDemo})
+      setAdmissions(rows=>[admission,...rows])
+      setOpen(false)
+      notify(t('clinicalRecords.admissionAdded'),'success')
+    }catch(error){
+      notify(error?.message||t('clinicalRecords.admissionSaveFailed'),'danger')
+    }
+  }
+  return <div className="record-section">
+    <div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.admissions')}</h3></div><Button onClick={()=>setOpen(true)}>+ {t('clinicalRecords.newAdmission')}</Button></div>
+    {admissions.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('admissionDate')}</th><th>{t('department')}</th><th>{t('clinicalRecords.dischargeDate')}</th><th>{t('status')}</th></tr></thead><tbody>{admissions.map(a=><tr key={a.id}><td>{fmtDate(a.admissionDate)}</td><td>{language==='el'?a.department:(a.departmentEn||a.department)||'—'}</td><td>{fmtDate(a.dischargeDate)}</td><td><span className={`status-badge ${a.status==='active'?'active':''}`}>{t(a.status)}</span></td></tr>)}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noAdmissions')}</div>}
+    {open&&<NewAdmissionCard t={t} language={language} onClose={()=>setOpen(false)} onSave={addAdmission}/>}
+  </div>
+}
+
+function NewAdmissionCard({t,language,onClose,onSave}){
+  const firstDepartment=demoLibrarySeed.departments?.[0]||['','']
+  const [draft,setDraft]=useState({department:firstDepartment[0],admissionDate:new Date().toISOString().slice(0,10),dischargeDate:'',status:'active',notes:''})
+  const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
+  function setDepartment(el){
+    const pair=demoLibrarySeed.departments.find(([value])=>value===el)||[el,el]
+    setDraft(d=>({...d,department:pair[0]}))
+  }
+  function save(){
+    if(!draft.admissionDate)return
+    onSave(draft)
+  }
+  return <div className="modal-backdrop">
+    <div className="entry-card">
+      <header><div><span className="eyebrow">{t('clinicalRecords.admissions')}</span><h3>{t('clinicalRecords.newAdmission')}</h3></div><button className="icon-close" onClick={onClose}>×</button></header>
+      <div className="entry-grid">
+        <label><span>{t('department')}</span><select value={draft.department} onChange={e=>setDepartment(e.target.value)}>{demoLibrarySeed.departments.map(([el,en])=><option key={el} value={el}>{language==='el'?el:en}</option>)}</select></label>
+        <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/>
+        <ManualDateField label={t('clinicalRecords.dischargeDate')} value={draft.dischargeDate} onChange={v=>set('dischargeDate',v)} optional/>
+        <label><span>{t('status')}</span><select value={draft.status} onChange={e=>set('status',e.target.value)}><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option></select></label>
+        <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
+      </div>
+      <footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={!draft.admissionDate} onClick={save}>{t('save')}</SaveButton></footer>
+    </div>
+  </div>
+}
 
 
 function SurveillanceWorkspace({episodes,onSelect,onNewSurveillance,canCreateSurveillance,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,actor,canDeleteSurveillance,onDeleteSurveillance}){
