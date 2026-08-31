@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const ALLOWED_ROLES=['hospital_admin','infection_control_lead','link_nurse','doctor_reviewer','department_user','laboratory','staff_user']
+const ROLE_LABELS:Record<string,string>={hospital_admin:'Διαχειριστής Νοσοκομείου',infection_control_lead:'Υπεύθυνος Λοιμώξεων',link_nurse:'Νοσηλευτής Σύνδεσμος',doctor_reviewer:'Ιατρός Ελεγκτής',department_user:'Χρήστης Τμήματος',laboratory:'Εργαστήριο',staff_user:'Γενικός Χρήστης'}
 const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 
@@ -40,7 +41,7 @@ Deno.serve(async(req)=>{
   if(!callerData?.user)return reply({error:'Invalid session'},401)
 
   const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{autoRefreshToken:false,persistSession:false}})
-  const {data:profile}=await admin.from('profiles').select('is_platform_owner').eq('id',callerData.user.id).maybeSingle()
+  const {data:profile}=await admin.from('profiles').select('is_platform_owner,full_name').eq('id',callerData.user.id).maybeSingle()
   let authorized=Boolean(profile?.is_platform_owner)
   if(!authorized){
     const {data:m}=await admin.from('organization_members').select('role,status').eq('organization_id',organizationId).eq('user_id',callerData.user.id).maybeSingle()
@@ -58,7 +59,16 @@ Deno.serve(async(req)=>{
 
   const {data:invited,error:inviteError}=await admin.auth.admin.inviteUserByEmail(normalizedEmail,{
     redirectTo,
-    data:{full_name:fullName,username,role,organization_id:organizationId,is_platform_owner:false}
+    data:{
+      full_name:fullName,
+      username,
+      role,
+      role_label:ROLE_LABELS[role]||role,
+      organization_id:organizationId,
+      organization_name:org.name,
+      invited_by:profile?.full_name||'',
+      is_platform_owner:false,
+    }
   })
   if(inviteError||!invited?.user)return reply({error:inviteError?.message||'Could not invite user'},500)
 
