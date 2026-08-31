@@ -55,9 +55,11 @@ export function PlatformCenterPage(){
       notify(en?'Organization saved.':'Ο οργανισμός αποθηκεύτηκε.','success')
       try{
         const invitation=await createOrganizationUser({organizationId:created.id,fullName:draft.adminFullName,role:'hospital_admin',email:draft.adminEmail})
-        notify(invitation?.emailSent?(en?'Hospital Admin invitation email sent.':'Το email πρόσκλησης του Hospital Admin στάλθηκε.'):(en?'Hospital Admin invitation created, but email delivery is not configured yet.':'Η πρόσκληση Hospital Admin δημιουργήθηκε, αλλά δεν έχει ρυθμιστεί ακόμη η αποστολή email.'),invitation?.emailSent?'success':'warning')
-      }catch{
-        notify(en?'Organization saved, but the Admin invitation could not be sent. You can retry from the organization users.':'Ο οργανισμός αποθηκεύτηκε, αλλά η πρόσκληση Admin δεν στάλθηκε. Μπορείς να την επαναλάβεις από τους χρήστες του οργανισμού.','warning')
+        if(invitation?.reused)notify(en?'This email already had an account — it was added as Hospital Admin for this organization directly (no new invitation email).':'Αυτό το email είχε ήδη λογαριασμό — προστέθηκε απευθείας ως Hospital Admin σε αυτόν τον οργανισμό (χωρίς νέο email πρόσκλησης).','success')
+        else notify(invitation?.emailSent?(en?'Hospital Admin invitation email sent.':'Το email πρόσκλησης του Hospital Admin στάλθηκε.'):(en?'Hospital Admin invitation created, but email delivery is not configured yet.':'Η πρόσκληση Hospital Admin δημιουργήθηκε, αλλά δεν έχει ρυθμιστεί ακόμη η αποστολή email.'),invitation?.emailSent?'success':'warning')
+      }catch(inviteError){
+        const detail=inviteError?.message?` (${inviteError.message})`:''
+        notify((en?'Organization saved, but the Admin invitation could not be sent. You can retry from the organization users.':'Ο οργανισμός αποθηκεύτηκε, αλλά η πρόσκληση Admin δεν στάλθηκε. Μπορείς να την επαναλάβεις από τους χρήστες του οργανισμού.')+detail,'warning')
       }
     }catch(error){
       const msg=String(error?.message||error||''); const duplicate=/duplicate|unique/i.test(msg)

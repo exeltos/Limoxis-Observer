@@ -70,7 +70,21 @@ Deno.serve(async(req)=>{
       is_platform_owner:false,
     }
   })
-  if(inviteError||!invited?.user)return reply({error:inviteError?.message||'Could not invite user'},500)
+
+  if(inviteError||!invited?.user){
+    // This email already has an account (e.g. the same person administers another
+    // organization too) — add them to this organization instead of failing outright.
+    if(/already been registered|already registered|already exists/i.test(inviteError?.message||'')){
+      const {data:existingProfile}=await admin.from('profiles').select('id,username').ilike('contact_email',normalizedEmail).maybeSingle()
+      if(!existingProfile)return reply({error:'Αυτό το email χρησιμοποιείται ήδη από λογαριασμό χωρίς αντίστοιχο προφίλ. Επικοινώνησε με τον Platform Owner.'},409)
+      const {data:existingMembership}=await admin.from('organization_members').select('id').eq('organization_id',organizationId).eq('user_id',existingProfile.id).maybeSingle()
+      if(existingMembership)return reply({error:'Αυτός ο χρήστης ανήκει ήδη σε αυτόν τον οργανισμό.'},409)
+      const {error:reuseMemberError}=await admin.from('organization_members').insert({organization_id:organizationId,user_id:existingProfile.id,role,status:'active'})
+      if(reuseMemberError)return reply({error:reuseMemberError.message},500)
+      return reply({ok:true,username:existingProfile.username,userId:existingProfile.id,emailSent:false,reused:true})
+    }
+    return reply({error:inviteError?.message||'Could not invite user'},500)
+  }
 
   const userId=invited.user.id
   const {error:profileError}=await admin.from('profiles').update({
