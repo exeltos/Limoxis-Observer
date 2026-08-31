@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { demoAccessEmail } from '../_shared/emailTemplates.ts'
 const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(b:unknown,s=200)=>new Response(JSON.stringify(b),{status:s,headers:cors})
 const ascii=(v:string)=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z]/g,'').toUpperCase()
@@ -19,6 +20,6 @@ Deno.serve(async(req)=>{
  await admin.from('profiles').update({full_name:contactName||label,username,contact_email:contactEmail,is_demo:true,demo_entitlement_id:ent.id}).eq('id',created.user.id)
  const app=(Deno.env.get('APP_URL')||req.headers.get('origin')||'').replace(/\/$/,'');const {data:link}=await admin.auth.admin.generateLink({type:'recovery',email:internalEmail,options:{redirectTo:`${app}/reset-password`}});const actionLink=(link as any)?.properties?.action_link||''
  const resend=Deno.env.get('RESEND_API_KEY');let emailSent=false
- if(resend&&actionLink){const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resend}`,'Content-Type':'application/json'},body:JSON.stringify({from:Deno.env.get('INVITE_FROM_EMAIL')||'Limoxis Observer <noreply@limoxis.com>',to:[contactEmail],subject:'Πρόσβαση Demo — Limoxis Observer',html:`<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto"><h2>Limoxis Observer</h2><p>Έχει ενεργοποιηθεί Demo πρόσβαση για <strong>${label}</strong>.</p><p><strong>Username:</strong> ${username}<br/><strong>Ισχύς:</strong> ${validFrom} έως ${validUntil}</p><p>Πατήστε το κουμπί για να ορίσετε προσωπικό κωδικό πρόσβασης.</p><p><a style="display:inline-block;padding:12px 18px;background:#174b74;color:white;text-decoration:none;border-radius:8px" href="${actionLink}">Ενεργοποίηση Demo</a></p><p style="font-size:12px;color:#667">Τα δεδομένα του Demo είναι συνθετικά και απομονωμένα από πραγματικούς οργανισμούς.</p></div>`})});emailSent=r.ok}
+ if(resend&&actionLink){const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resend}`,'Content-Type':'application/json'},body:JSON.stringify({from:Deno.env.get('INVITE_FROM_EMAIL')||'Limoxis Observer <noreply@limoxis.com>',to:[contactEmail],subject:'Πρόσβαση Demo — Limoxis Observer',html:demoAccessEmail({contactName,label,username,validFrom,validUntil,actionUrl:actionLink})})});emailSent=r.ok}
  return reply({ok:true,entitlement:ent,username,emailSent})
 })

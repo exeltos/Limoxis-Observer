@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { invitationEmail, passwordResetEmail } from '../_shared/emailTemplates.ts'
 
 const cors={
   'Content-Type':'application/json',
@@ -8,10 +9,6 @@ const cors={
 const reply=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 function randomSecret(length=32){const a=new Uint8Array(length);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('')}
 async function sha256(value:string){const bytes=new TextEncoder().encode(value);const digest=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')}
-function invitationHtml({fullName,orgName,username,activationUrl}:{fullName:string,orgName:string,username:string,activationUrl:string}){
-  return `<!doctype html><html><body style="margin:0;background:#eef4f7;font-family:Arial,sans-serif;color:#243b4d"><div style="max-width:620px;margin:28px auto;background:#fff;border:1px solid #d9e3e8"><div style="background:#136f79;color:#fff;padding:28px 40px"><div style="font-size:28px;font-weight:700">Limoxis Observer</div><div style="margin-top:8px;font-size:16px">Πρόληψη λοιμώξεων, επιτήρηση και ποιότητα</div></div><div style="padding:34px 40px"><p style="font-size:20px">Καλησπέρα ${fullName||''},</p><p style="font-size:17px;line-height:1.65">Η πρόσκλησή σας για το <strong>${orgName}</strong> επαναπροωθήθηκε.</p><div style="background:#f1f7f8;border:1px solid #d6e5e8;border-radius:10px;padding:18px 20px;margin:24px 0"><strong>Όνομα χρήστη:</strong> ${username}<br/><strong>Ρόλος:</strong> Hospital Admin</div><p style="font-size:16px;line-height:1.6">Πατήστε το ασφαλές κουμπί για να ορίσετε τον προσωπικό σας κωδικό πρόσβασης και να ενεργοποιήσετε τον λογαριασμό.</p><p style="margin:28px 0"><a href="${activationUrl}" style="display:inline-block;background:#136f79;color:#fff;text-decoration:none;padding:14px 22px;border-radius:8px;font-weight:700">Αποδοχή πρόσκλησης</a></p><p style="font-size:12px;color:#6c7f8b">Ο νέος σύνδεσμος είναι προσωπικός και λήγει σε 72 ώρες. Προηγούμενοι σύνδεσμοι πρόσκλησης ακυρώνονται.</p></div></div></body></html>`
-}
-
 Deno.serve(async(req)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors})
   if(req.method!=='POST')return reply({error:'Method not allowed'},405)
@@ -48,7 +45,7 @@ Deno.serve(async(req)=>{
     const {data:link}=await admin.auth.admin.generateLink({type:'recovery',email:`${String(p.username).toLowerCase()}@users.limoxis.local`,options:{redirectTo:`${app}/reset-password`}})
     const actionLink=(link as any)?.properties?.action_link||'',resend=Deno.env.get('RESEND_API_KEY')
     if(!resend)return reply({error:'Δεν έχει ρυθμιστεί RESEND_API_KEY.'},500)
-    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resend}`,'Content-Type':'application/json'},body:JSON.stringify({from:Deno.env.get('INVITE_FROM_EMAIL')||'Limoxis Observer <noreply@limoxis.com>',to:[p.contact_email],subject:'Επαναφορά κωδικού — Limoxis Observer',html:`<p><a href="${actionLink}">Επαναφορά κωδικού</a></p>`})})
+    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resend}`,'Content-Type':'application/json'},body:JSON.stringify({from:Deno.env.get('INVITE_FROM_EMAIL')||'Limoxis Observer <noreply@limoxis.com>',to:[p.contact_email],subject:'Επαναφορά κωδικού — Limoxis Observer',html:passwordResetEmail({actionUrl:actionLink})})})
     if(!r.ok)return reply({error:`Η αποστολή email απέτυχε: ${await r.text()}`},502)
     return reply({ok:true,emailSent:true})
   }
@@ -70,7 +67,7 @@ Deno.serve(async(req)=>{
     const resend=Deno.env.get('RESEND_API_KEY')
     if(!resend)return reply({error:'Η πρόσκληση ανανεώθηκε, αλλά δεν έχει ρυθμιστεί RESEND_API_KEY.',invitationCreated:true,activationUrl},500)
     if(!app)return reply({error:'Η πρόσκληση ανανεώθηκε, αλλά δεν έχει ρυθμιστεί APP_URL.',invitationCreated:true},500)
-    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resend}`,'Content-Type':'application/json'},body:JSON.stringify({from:Deno.env.get('INVITE_FROM_EMAIL')||'Limoxis Observer <noreply@limoxis.com>',to:[p.contact_email],subject:`Πρόσκληση στο Limoxis Observer — ${org?.name||''}`,html:invitationHtml({fullName:p.full_name||'',orgName:org?.name||'',username:p.username,activationUrl})})})
+    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resend}`,'Content-Type':'application/json'},body:JSON.stringify({from:Deno.env.get('INVITE_FROM_EMAIL')||'Limoxis Observer <noreply@limoxis.com>',to:[p.contact_email],subject:`Πρόσκληση στο Limoxis Observer — ${org?.name||''}`,html:invitationEmail({fullName:p.full_name||'',orgName:org?.name||'',username:p.username,role:member.role==='hospital_admin'?'Hospital Admin':member.role,activationUrl,resend:true})})})
     if(!r.ok)return reply({error:`Η πρόσκληση ανανεώθηκε, αλλά η αποστολή email απέτυχε: ${await r.text()}`,invitationCreated:true,activationUrl},502)
     return reply({ok:true,emailSent:true,expiresAt})
   }
