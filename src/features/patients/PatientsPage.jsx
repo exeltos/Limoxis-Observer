@@ -32,9 +32,9 @@ export function PatientsPage(){
   const [newOpen,setNewOpen]=useState(false)
   useEffect(()=>{
     let alive=true
-    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive)notify(String(error?.message||'Δεν φορτώθηκε το μητρώο ασθενών.'),'danger')})
+    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive)notify(error?.message||t('patientsLoadFailed'),'danger')})
     return ()=>{alive=false}
-  },[tenant?.id,isDemo,notify])
+  },[tenant?.id,isDemo,notify,t])
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
   const rows=useMemo(()=>patients
     .filter(p=>canAccessRecord(p))
@@ -63,7 +63,7 @@ export function PatientsPage(){
         registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))
       })
     }catch(error){
-      notify(String(error?.message||'Ο ασθενής δεν αποθηκεύτηκε.'),'danger')
+      notify(error?.message||t('patientSaveFailed'),'danger')
     }
   }
   const activeAdvancedCount=(department!=='all'?1:0)+(status!=='all'?1:0)
