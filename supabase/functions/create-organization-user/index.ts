@@ -4,6 +4,14 @@ const ALLOWED_ROLES=['hospital_admin','infection_control_lead','link_nurse','doc
 const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 function randomSecret(length=32){const a=new Uint8Array(length);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('')}
+
+const GREEK_INITIALS:Record<string,string>={α:'A',ά:'A',β:'V',γ:'G',δ:'D',ε:'E',έ:'E',ζ:'Z',η:'I',ή:'I',θ:'T',ι:'I',ί:'I',ϊ:'I',ΐ:'I',κ:'K',λ:'L',μ:'M',ν:'N',ξ:'X',ο:'O',ό:'O',π:'P',ρ:'R',σ:'S',ς:'S',τ:'T',υ:'Y',ύ:'Y',ϋ:'Y',ΰ:'Y',φ:'F',χ:'C',ψ:'P',ω:'O',ώ:'O'}
+function latinInitial(value=''){const ch=String(value).trim().charAt(0);if(!ch)return 'X';if(/[A-Za-z]/.test(ch))return ch.toUpperCase();return GREEK_INITIALS[ch.toLowerCase()]||'X'}
+async function generateUserName(admin:any,fullName:string){
+  const parts=String(fullName||'').trim().split(/\s+/).filter(Boolean);const first=parts[0]||'X';const last=parts.length>1?parts[parts.length-1]:'X';const prefix=`${latinInitial(first)}${latinInitial(last)}`
+  for(let i=0;i<40;i++){const digits=String(Math.floor(10000+Math.random()*90000));const candidate=`${prefix}${digits}`;const {data}=await admin.from('profiles').select('id').eq('username',candidate).maybeSingle();if(!data)return candidate}
+  throw new Error('Could not allocate a unique username')
+}
 async function sha256(value){const bytes=new TextEncoder().encode(value);const digest=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')}
 function emailHtml({fullName,orgName,username,activationUrl}){return `<!doctype html><html><body style="margin:0;background:#eef4f7;font-family:Arial,sans-serif;color:#243b4d"><div style="max-width:620px;margin:28px auto;background:#fff;border:1px solid #d9e3e8"><div style="background:#136f79;color:#fff;padding:28px 40px"><div style="font-size:28px;font-weight:700">Limoxis Observer</div><div style="margin-top:8px;font-size:16px">Πρόληψη λοιμώξεων, επιτήρηση και ποιότητα</div></div><div style="padding:34px 40px"><p style="font-size:20px">Καλησπέρα ${fullName},</p><p style="font-size:17px;line-height:1.65">Έχετε προσκληθεί να δημιουργήσετε λογαριασμό στο Limoxis Observer για το <strong>${orgName}</strong>.</p><div style="background:#f1f7f8;border:1px solid #d6e5e8;border-radius:10px;padding:18px 20px;margin:24px 0"><strong>Όνομα χρήστη:</strong> ${username}<br/><strong>Ρόλος:</strong> Hospital Admin</div><p style="font-size:16px;line-height:1.6">Πατήστε το ασφαλές κουμπί παρακάτω για να ορίσετε τον προσωπικό σας κωδικό πρόσβασης και να ενεργοποιήσετε τον λογαριασμό σας.</p><p style="margin:28px 0"><a href="${activationUrl}" style="display:inline-block;background:#136f79;color:#fff;text-decoration:none;padding:14px 22px;border-radius:8px;font-weight:700">Αποδοχή πρόσκλησης</a></p><p style="font-size:12px;color:#6c7f8b">Ο σύνδεσμος είναι προσωπικός και λήγει σε 72 ώρες.</p></div></div></body></html>`}
 
@@ -23,9 +31,7 @@ Deno.serve(async(req)=>{
   if(!authorized){const {data:m}=await admin.from('organization_members').select('role,status').eq('organization_id',organizationId).eq('user_id',callerData.user.id).eq('status','active').maybeSingle();authorized=m?.role==='hospital_admin'}
   if(!authorized)return reply({error:'Not authorized'},403)
   const {data:org,error:orgError}=await admin.from('organizations').select('id,name,code').eq('id',organizationId).single();if(orgError||!org)return reply({error:'Organization not found'},404)
-  const prefix=String(org.code||'HOSP').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,18)
-  const {data:profiles}=await admin.from('profiles').select('username').like('username',`${prefix}-%`)
-  const numbers=(profiles||[]).map(p=>Number(String(p.username||'').split('-').pop())).filter(Number.isFinite);const next=(numbers.length?Math.max(...numbers):0)+1;const username=`${prefix}-${String(next).padStart(4,'0')}`
+  const username=await generateUserName(admin,fullName)
   const syntheticEmail=`${username.toLowerCase()}@users.limoxis.local`,temporaryPassword=`A!${randomSecret(18)}9z`
   const {data:created,error:createError}=await admin.auth.admin.createUser({email:syntheticEmail,password:temporaryPassword,email_confirm:true,user_metadata:{full_name:fullName,username,is_platform_owner:false}})
   if(createError||!created?.user)return reply({error:createError?.message||'Could not create user'},500)

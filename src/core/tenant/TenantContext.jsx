@@ -15,6 +15,7 @@ export function TenantProvider({ children }) {
   const [memberships, setMemberships] = useState([])
   const [activeMembershipId, setActiveMembershipId] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [platformDemoMode, setPlatformDemoMode] = useState(false)
   const [rolePreview, setRolePreview] = useState(()=>{
     if(typeof window==='undefined')return null
     const params=new URLSearchParams(window.location.search)
@@ -51,9 +52,10 @@ export function TenantProvider({ children }) {
     reloadMemberships().catch(() => {})
   }, [reloadMemberships])
 
-  const baseMembership = memberships.find((item) => item.id === activeMembershipId) ?? null
+  const storedMembership = memberships.find((item) => item.id === activeMembershipId) ?? null
+  const baseMembership = platformDemoMode && profile?.isPlatformOwner ? {...DEMO_MEMBERSHIP, role: ROLES.PLATFORM_OWNER} : storedMembership
   const tenant = baseMembership?.organization ?? null
-  configureDataEnvironment({mode:isDemoSession?'demo':'production',organizationId:tenant?.id??(isDemoSession?DEMO_TENANT.id:null)})
+  configureDataEnvironment({mode:(isDemoSession||platformDemoMode)?'demo':'production',organizationId:tenant?.id??((isDemoSession||platformDemoMode)?DEMO_TENANT.id:null)})
   const actualRole = profile?.isPlatformOwner ? ROLES.PLATFORM_OWNER : baseMembership?.role ?? null
   const role = canRolePreview && rolePreview?.role ? rolePreview.role : actualRole
   const membership = useMemo(() => (
@@ -62,13 +64,17 @@ export function TenantProvider({ children }) {
       : baseMembership
   ), [baseMembership, rolePreview, canRolePreview])
   const setTenantByMembership = useCallback((membershipId) => {
+    setPlatformDemoMode(false)
     setMemberships((current) => {
       if (current.some((item) => item.id === membershipId)) setActiveMembershipId(membershipId)
       return current
     })
   }, [])
+  const enterPlatformDemo = useCallback(() => {
+    if (profile?.isPlatformOwner) { setPlatformDemoMode(true); setActiveMembershipId(null); setRolePreview(null) }
+  }, [profile?.isPlatformOwner])
   const returnToPlatform = useCallback(() => {
-    if (profile?.isPlatformOwner) { setActiveMembershipId(null); setRolePreview(null) }
+    if (profile?.isPlatformOwner) { setPlatformDemoMode(false); setActiveMembershipId(null); setRolePreview(null) }
   }, [profile?.isPlatformOwner])
 
   const value = useMemo(() => ({
@@ -77,8 +83,9 @@ export function TenantProvider({ children }) {
     memberships,
     role,
     loading,
-    isDemo: tenant?.mode === 'demo',
+    isDemo: Boolean(isDemoSession || platformDemoMode || tenant?.mode === 'demo'),
     setTenantByMembership,
+    enterPlatformDemo,
     returnToPlatform,
     reloadMemberships,
     actualRole,
@@ -91,7 +98,7 @@ export function TenantProvider({ children }) {
     uxPolicy: uxPolicyFor(role),
     canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
     canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role,membership?.capabilities,membership?.customCapabilities),
-  }), [tenant, membership, memberships, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, returnToPlatform, reloadMemberships, user?.id])
+  }), [tenant, membership, memberships, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, enterPlatformDemo, returnToPlatform, reloadMemberships, user?.id, isDemoSession, platformDemoMode])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
 }

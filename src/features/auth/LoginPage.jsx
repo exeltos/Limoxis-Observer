@@ -8,7 +8,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { APP_VERSION } from '../../core/version'
 
 export function LoginPage() {
-  const { isAuthenticated, login, loginDemo, allowDemo, hasSupabaseConfig } = useAuth()
+  const { isAuthenticated, login, hasSupabaseConfig } = useAuth()
   const { language, setLanguage } = useLanguage()
   const location = useLocation()
   const navigate = useNavigate()
@@ -34,7 +34,7 @@ export function LoginPage() {
       navigate(location.state?.from ?? '/', { replace: true })
     } catch (nextError) {
       setError(nextError.message === 'SUPABASE_NOT_CONFIGURED'
-        ? (greek ? 'Δεν έχει συνδεθεί ακόμη Supabase. Χρησιμοποίησε το Demo ή πρόσθεσε τα environment keys.' : 'Supabase is not configured yet. Use Demo or add the environment keys.')
+        ? (greek ? 'Δεν έχει συνδεθεί ακόμη Supabase. Πρόσθεσε τα environment keys.' : 'Supabase is not configured yet. Add the environment keys.')
         : (greek ? 'Η σύνδεση απέτυχε. Έλεγξε το όνομα χρήστη και τον κωδικό.' : 'Sign in failed. Check your username and password.'))
     } finally { setSubmitting(false) }
   }
@@ -57,7 +57,6 @@ export function LoginPage() {
         <Field label={greek ? 'Κωδικός πρόσβασης' : 'Password'}><div className="password-input-wrap"><input className="input" type={showPassword?'text':'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /><button type="button" className="password-visibility" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?(greek?'Απόκρυψη κωδικού':'Hide password'):(greek?'Εμφάνιση κωδικού':'Show password')}>{showPassword?<EyeOff size={17}/>:<Eye size={17}/>}</button></div></Field>
         {error && <div className="form-error">{error}</div>}
         <Button type="submit" disabled={submitting || !hasSupabaseConfig}>{submitting ? (greek ? 'Σύνδεση…' : 'Signing in…') : (greek ? 'Σύνδεση' : 'Sign in')}</Button>
-        {allowDemo && <><div className="auth-separator"><span>{greek ? 'ή' : 'or'}</span></div><Button variant="secondary" onClick={loginDemo}>{greek ? 'Είσοδος στο Demo' : 'Open Demo'}</Button></>}
         {!hasSupabaseConfig && <div className="setup-note">{greek ? 'Development mode: δεν έχουν οριστεί ακόμη Supabase keys.' : 'Development mode: Supabase keys are not configured yet.'}</div>}
       </form>
     </section>
