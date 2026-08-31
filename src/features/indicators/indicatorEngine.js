@@ -1,4 +1,5 @@
 import { surveillanceDemoData } from '../surveillance/surveillanceDemoData'
+import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { handHygieneRows,bundleRows,antisepticRows } from '../prevention/preventionDemoData'
 import { qualityIncidents } from '../quality/qualityDemoData'
 import { employeeVaccinations } from '../employees/employeeDemoData'
@@ -23,6 +24,8 @@ export const indicatorMetricCatalog=[
  {key:'active_staff',label:'Ενεργοί εργαζόμενοι',source:'Εργαζόμενοι'},
  {key:'active_staff_with_vaccination',label:'Ενεργοί εργαζόμενοι με καταγραφή εμβολιασμού',source:'Εργαζόμενοι'},
  {key:'open_high_incidents',label:'Ανοιχτά συμβάντα υψηλής σοβαρότητας',source:'Ποιότητα'},
+ {key:'mdro_bsi',label:'Βακτηριαιμίες από πολυανθεκτικά παθογόνα',source:'Εργαστήριο · ΕΟΔΥ'},
+ {key:'patient_days',label:'Κλινοημέρες',source:'Κλινοημέρες'},
 ]
 
 export function collectIndicatorMetrics(){
@@ -34,6 +37,8 @@ export function collectIndicatorMetrics(){
  const training=loadTrainingState(); const assignments=training.assignments||[]
  const employees=loadEmployees(); const activeStaff=employees.filter(x=>x.employmentStatus==='active')
  const vaccinated=new Set(employeeVaccinations.map(x=>x.employeeId))
+ const mdroBsi=laboratorySamples.filter(x=>x.result==='positive'&&x.organism&&x.resistance&&String(x.source||x.type||'').toLowerCase().includes('blood')).length
+ const patientDays=abhrEligible.reduce((s,x)=>s+Number(x.patientDays||0),0)
  return {
   active_surveillance:active.length,
   resistant_active_surveillance:resistant.length,
@@ -48,6 +53,8 @@ export function collectIndicatorMetrics(){
   active_staff:activeStaff.length,
   active_staff_with_vaccination:activeStaff.filter(x=>vaccinated.has(x.id)).length,
   open_high_incidents:qualityIncidents.filter(x=>x.severity==='high'&&x.status!=='closed').length,
+  mdro_bsi:mdroBsi,
+  patient_days:patientDays,
  }
 }
 

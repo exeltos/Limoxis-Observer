@@ -23,13 +23,19 @@ export function AuthProvider({ children }) {
     if (!supabase || !user) return null
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, username, contact_email, phone, job_title, is_platform_owner')
+      .select('id, full_name, username, contact_email, phone, job_title, is_platform_owner, is_demo, demo_entitlement_id')
       .eq('id', user.id)
       .maybeSingle()
     if (error) throw error
+    let demoActive=false
+    if(data?.is_demo&&data?.demo_entitlement_id){
+      const today=new Date().toISOString().slice(0,10)
+      const {data:demo}=await supabase.from('platform_demo_entitlements').select('status,valid_from,valid_until').eq('id',data.demo_entitlement_id).maybeSingle()
+      demoActive=Boolean(demo?.status==='active'&&demo.valid_from<=today&&demo.valid_until>=today)
+    }
     return data
-      ? { id: data.id, email: user.email, fullName: data.full_name, username: data.username, contactEmail: data.contact_email, phone: data.phone, jobTitle: data.job_title, isPlatformOwner: data.is_platform_owner }
-      : { id: user.id, email: user.email, fullName: user.email, isPlatformOwner: false }
+      ? { id: data.id, email: user.email, fullName: data.full_name, username: data.username, contactEmail: data.contact_email, phone: data.phone, jobTitle: data.job_title, isPlatformOwner: data.is_platform_owner, isDemo: demoActive, demoEntitlementId:data.demo_entitlement_id||null }
+      : { id: user.id, email: user.email, fullName: user.email, isPlatformOwner: false, isDemo:false }
   }, [])
 
   useEffect(() => {
