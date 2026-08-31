@@ -116,11 +116,36 @@ export async function updatePlatformOrganization(organizationId, patch) {
 
 export async function listOrganizationMembersDetailed(organizationId) {
   if (!supabase || !organizationId) return []
-  const { data, error } = await supabase.from('organization_members')
-    .select('id,user_id,role,status,profiles(id,full_name,username,contact_email,phone,job_title)')
+  // Do not rely on an implicit PostgREST relationship between organization_members
+  // and profiles: both point at auth.users, but there is no direct FK in all deployed
+  // schemas. Fetch in two explicit steps so the query works consistently.
+  const { data: memberRows, error: memberError } = await supabase.from('organization_members')
+    .select('id,user_id,role,status,created_at')
     .eq('organization_id', organizationId).order('created_at', { ascending: true })
-  if (error) throw error
-  return (data || []).map(row => ({ id: row.id, userId: row.user_id, role: row.role, status: row.status, username: row.profiles?.username || '—', name: row.profiles?.full_name || '—', email: row.profiles?.contact_email || '', phone: row.profiles?.phone || '', jobTitle: row.profiles?.job_title || '' }))
+  if (memberError) throw memberError
+  const userIds = [...new Set((memberRows || []).map(row => row.user_id).filter(Boolean))]
+  let profiles = []
+  let invitations = []
+  if (userIds.length) {
+    const [{ data: profileRows, error: profileError }, { data: inviteRows, error: inviteError }] = await Promise.all([
+      supabase.from('profiles').select('id,full_name,username,contact_email,phone,job_title').in('id', userIds),
+      supabase.from('account_invitations').select('id,user_id,expires_at,accepted_at,revoked_at,created_at,delivery_email').eq('organization_id', organizationId).in('user_id', userIds).order('created_at', { ascending: false }),
+    ])
+    if (profileError) throw profileError
+    // account_invitations may be absent on an older installation; member loading
+    // must still work. Invitation metadata is optional in that case.
+    profiles = profileRows || []
+    if (!inviteError) invitations = inviteRows || []
+  }
+  const profileById = new Map(profiles.map(row => [row.id, row]))
+  const latestInviteByUser = new Map()
+  for (const invite of invitations) if (!latestInviteByUser.has(invite.user_id)) latestInviteByUser.set(invite.user_id, invite)
+  return (memberRows || []).map(row => {
+    const profile = profileById.get(row.user_id) || {}
+    const invite = latestInviteByUser.get(row.user_id)
+    const invitationStatus = !invite ? null : invite.accepted_at ? 'accepted' : invite.revoked_at ? 'revoked' : new Date(invite.expires_at) < new Date() ? 'expired' : 'pending'
+    return { id: row.id, userId: row.user_id, role: row.role, status: row.status, username: profile.username || '—', name: profile.full_name || '—', email: profile.contact_email || invite?.delivery_email || '', phone: profile.phone || '', jobTitle: profile.job_title || '', invitationStatus, invitationCreatedAt: invite?.created_at || null, invitationExpiresAt: invite?.expires_at || null }
+  })
 }
 
 export async function manageOrganizationUser(payload) {

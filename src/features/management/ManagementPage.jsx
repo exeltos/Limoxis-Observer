@@ -32,11 +32,17 @@ export function ManagementPage(){
     if(isDemo||!supabase||!tenant?.id||tab!=='users')return
     let active=true
     setOrgUsersLoading(true)
-    supabase.from('organization_members').select('id,user_id,role,status,profiles(id,full_name,username,contact_email,phone,job_title)').eq('organization_id',tenant.id).then(({data,error})=>{
+    ;(async()=>{
+      const {data:memberRows,error:memberError}=await supabase.from('organization_members').select('id,user_id,role,status').eq('organization_id',tenant.id)
       if(!active)return
-      if(!error)setOrgUsers((data||[]).map(row=>({id:row.id,userId:row.user_id,role:row.role,status:row.status,username:row.profiles?.username||'—',name:row.profiles?.full_name||'—',email:row.profiles?.contact_email||'',phone:row.profiles?.phone||'',jobTitle:row.profiles?.job_title||''})))
-      setOrgUsersLoading(false)
-    })
+      if(memberError){setOrgUsersLoading(false);return}
+      const ids=[...new Set((memberRows||[]).map(row=>row.user_id).filter(Boolean))]
+      let profiles=[]
+      if(ids.length){const {data:profileRows}=await supabase.from('profiles').select('id,full_name,username,contact_email,phone,job_title').in('id',ids);profiles=profileRows||[]}
+      const byId=new Map(profiles.map(profile=>[profile.id,profile]))
+      if(active)setOrgUsers((memberRows||[]).map(row=>{const profile=byId.get(row.user_id)||{};return {id:row.id,userId:row.user_id,role:row.role,status:row.status,username:profile.username||'—',name:profile.full_name||'—',email:profile.contact_email||'',phone:profile.phone||'',jobTitle:profile.job_title||''}}))
+      if(active)setOrgUsersLoading(false)
+    })()
     return ()=>{active=false}
   },[isDemo,tenant?.id,tab,createdUser])
   async function createUser({fullName,role:newRole,email,phone,jobTitle}){
