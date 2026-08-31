@@ -22,7 +22,7 @@ Deno.serve(async(req)=>{
   if(!supabaseUrl||!serviceRoleKey||!anonKey)return reply({error:'Function is not configured'},500)
   const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); if(!jwt)return reply({error:'Missing Authorization header'},401)
   let body;try{body=await req.json()}catch{return reply({error:'Invalid JSON body'},400)}
-  const {organizationId,fullName,role,email}=body||{}
+  const {organizationId,fullName,role,email,phone,jobTitle}=body||{}
   if(!organizationId||!fullName||!role||!email)return reply({error:'organizationId, fullName, role and email are required'},400)
   if(!ALLOWED_ROLES.includes(role))return reply({error:`Unknown role: ${role}`},400)
   const caller=createClient(supabaseUrl,anonKey,{global:{headers:{Authorization:`Bearer ${jwt}`}}});const {data:callerData}=await caller.auth.getUser();if(!callerData?.user)return reply({error:'Invalid session'},401)
@@ -35,7 +35,7 @@ Deno.serve(async(req)=>{
   const syntheticEmail=`${username.toLowerCase()}@users.limoxis.local`,temporaryPassword=`A!${randomSecret(18)}9z`
   const {data:created,error:createError}=await admin.auth.admin.createUser({email:syntheticEmail,password:temporaryPassword,email_confirm:true,user_metadata:{full_name:fullName,username,is_platform_owner:false}})
   if(createError||!created?.user)return reply({error:createError?.message||'Could not create user'},500)
-  await admin.from('profiles').update({full_name:fullName,username}).eq('id',created.user.id)
+  await admin.from('profiles').update({full_name:fullName,username,contact_email:email||null,phone:phone||null,job_title:jobTitle||null}).eq('id',created.user.id)
   const {error:memberError}=await admin.from('organization_members').insert({organization_id:organizationId,user_id:created.user.id,role,status:'invited'})
   if(memberError){await admin.auth.admin.deleteUser(created.user.id);return reply({error:memberError.message},500)}
   const token=randomSecret(32),tokenHash=await sha256(token),expiresAt=new Date(Date.now()+72*3600*1000).toISOString()

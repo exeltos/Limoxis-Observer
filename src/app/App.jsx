@@ -6,6 +6,8 @@ import { RequireCapability, RequireAnyCapability } from '../core/permissions/Req
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES } from '../core/permissions/roles'
 import { LoginPage } from '../features/auth/LoginPage'
 import { ActivateAccountPage } from '../features/auth/ActivateAccountPage'
+import { ForgotAccessPage } from '../features/auth/ForgotAccessPage'
+import { ResetPasswordPage } from '../features/auth/ResetPasswordPage'
 import { RouteLoading } from '../design-system/RouteLoading'
 import { GlobalTextareaExpander } from '../design-system/GlobalTextareaExpander'
 
@@ -44,6 +46,8 @@ const ManagementPage = lazyNamed(() => import('../features/management/Management
 const IndicatorsPage = lazyNamed(() => import('../features/indicators/IndicatorsPage'), 'IndicatorsPage')
 const MyDepartmentPage = lazyNamed(() => import('../features/workspaces/MyDepartmentPage'), 'MyDepartmentPage')
 const AboutPage = lazyNamed(() => import('../features/about/AboutPage'), 'AboutPage')
+const AnalysisPage = lazyNamed(() => import('../features/analysis/AnalysisPage'), 'AnalysisPage')
+const AccountPage = lazyNamed(() => import('../features/account/AccountPage'), 'AccountPage')
 
 const gate = (capability, element) => <RequireCapability capability={capability}>{element}</RequireCapability>
 const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={capabilities}>{element}</RequireAnyCapability>
@@ -54,11 +58,15 @@ export function App() {
   <Routes>
     <Route path="/login" element={<LoginPage />} />
     <Route path="/activate" element={<ActivateAccountPage />} />
+    <Route path="/forgot-access" element={<ForgotAccessPage />} />
+    <Route path="/reset-password" element={<ResetPasswordPage />} />
     <Route path="/training-access/:token" element={<Suspense fallback={<RouteLoading/>}><TrainingAccessPage /></Suspense>} />
     <Route element={<ProtectedRoute />}>
       <Route element={<AppShell />}>
         <Route path="platform" element={<Suspense fallback={<RouteLoading/>}><PlatformCenterPage /></Suspense>} />
         <Route path="about" element={<Suspense fallback={<RouteLoading/>}><AboutPage /></Suspense>} />
+        <Route path="analysis" element={<Suspense fallback={<RouteLoading/>}><AnalysisPage /></Suspense>} />
+        <Route path="account" element={<Suspense fallback={<RouteLoading/>}><AccountPage /></Suspense>} />
         <Route index element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)}</Suspense>} />
         <Route path="my-department" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)}</Suspense>} />
         <Route path="my-profile" element={<Suspense fallback={<RouteLoading/>}><EmployeeRecordPage selfMode /></Suspense>} />

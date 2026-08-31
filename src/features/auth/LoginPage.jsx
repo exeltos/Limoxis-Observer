@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Building2, CheckCircle2, Eye, EyeOff, Languages, ShieldCheck } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { Field } from '../../design-system/Field'
@@ -55,6 +55,7 @@ export function LoginPage() {
         <div className="login-heading"><span>{greek ? 'Καλώς ήρθατε' : 'Welcome back'}</span><h2>{greek ? 'Σύνδεση στο Limoxis Observer' : 'Sign in to Limoxis Observer'}</h2><p>{greek ? 'Χρησιμοποιήστε τον λογαριασμό του οργανισμού σας.' : 'Use your organization account.'}</p></div>
         <Field label={greek ? 'Όνομα χρήστη' : 'Username'}><input className="input" type="text" autoComplete="username" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required /></Field>
         <Field label={greek ? 'Κωδικός πρόσβασης' : 'Password'}><div className="password-input-wrap"><input className="input" type={showPassword?'text':'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /><button type="button" className="password-visibility" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?(greek?'Απόκρυψη κωδικού':'Hide password'):(greek?'Εμφάνιση κωδικού':'Show password')}>{showPassword?<EyeOff size={17}/>:<Eye size={17}/>}</button></div></Field>
+        <div className="login-recovery-links"><Link to="/forgot-access">{greek?'Ξέχασα κωδικό ή username':'Forgot password or username'}</Link></div>
         {error && <div className="form-error">{error}</div>}
         <Button type="submit" disabled={submitting || !hasSupabaseConfig}>{submitting ? (greek ? 'Σύνδεση…' : 'Signing in…') : (greek ? 'Σύνδεση' : 'Sign in')}</Button>
         {!hasSupabaseConfig && <div className="setup-note">{greek ? 'Development mode: δεν έχουν οριστεί ακόμη Supabase keys.' : 'Development mode: Supabase keys are not configured yet.'}</div>}

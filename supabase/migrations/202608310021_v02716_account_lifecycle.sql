@@ -1,0 +1,10 @@
+alter table public.profiles add column if not exists username text;
+alter table public.profiles add column if not exists contact_email text;
+alter table public.profiles add column if not exists phone text;
+alter table public.profiles add column if not exists job_title text;
+create unique index if not exists profiles_username_unique_idx on public.profiles(lower(username)) where username is not null;
+create index if not exists profiles_contact_email_idx on public.profiles(lower(contact_email)) where contact_email is not null;
+drop policy if exists profiles_org_admin_read on public.profiles;
+create policy profiles_org_admin_read on public.profiles for select using (id=auth.uid() or public.current_user_is_platform_owner() or exists(select 1 from public.organization_members viewer join public.organization_members target on target.organization_id=viewer.organization_id where viewer.user_id=auth.uid() and viewer.status='active' and viewer.role='hospital_admin' and target.user_id=profiles.id));
+drop policy if exists profiles_self_update on public.profiles;
+create policy profiles_self_update on public.profiles for update using(id=auth.uid()) with check(id=auth.uid());

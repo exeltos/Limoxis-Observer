@@ -23,12 +23,12 @@ export function AuthProvider({ children }) {
     if (!supabase || !user) return null
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, is_platform_owner')
+      .select('id, full_name, username, contact_email, phone, job_title, is_platform_owner')
       .eq('id', user.id)
       .maybeSingle()
     if (error) throw error
     return data
-      ? { id: data.id, email: user.email, fullName: data.full_name, isPlatformOwner: data.is_platform_owner }
+      ? { id: data.id, email: user.email, fullName: data.full_name, username: data.username, contactEmail: data.contact_email, phone: data.phone, jobTitle: data.job_title, isPlatformOwner: data.is_platform_owner }
       : { id: user.id, email: user.email, fullName: user.email, isPlatformOwner: false }
   }, [])
 

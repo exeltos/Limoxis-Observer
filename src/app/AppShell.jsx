@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, Layers3, LogOut, X } from 'lucide-react'
+import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, Layers3, LogOut, UserRound, X } from 'lucide-react'
 import { navigationFor } from './navigation'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'
@@ -39,7 +39,7 @@ export function AppShell(){
   const isPlatformOwner=actualRole===ROLES.PLATFORM_OWNER
   const platformMode=isPlatformOwner&&!tenant
   useEffect(()=>{
-    if(platformMode&&!location.pathname.startsWith('/platform')&&location.pathname!=='/about') navigate('/platform',{replace:true})
+    if(platformMode&&!location.pathname.startsWith('/platform')&&location.pathname!=='/about'&&location.pathname!=='/account') navigate('/platform',{replace:true})
   },[platformMode,location.pathname,navigate])
   const platformItems=[
     ['/platform','Dashboard','Dashboard',BarChart3],
@@ -52,6 +52,7 @@ export function AppShell(){
   ]
   const previewDepartments=[['','previewAllHospital'],['icu','previewIcu'],['surgery','previewSurgery'],['internal','previewInternalMedicine']]
   const visibleNavigation=platformMode?[]:navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
+  const canOrganizationAnalysis=!platformMode&&[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD,ROLES.DEMO].includes(role)
   const managementNavigation=visibleNavigation.filter(item=>item.key==='management')
   const usesCompactMore=[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD].includes(role)
   const moreNavigation=usesCompactMore?visibleNavigation.filter(item=>item.group==='more'):[]
@@ -76,6 +77,7 @@ export function AppShell(){
       {platformMode&&platformItems.map(([to,el,en,Icon],index)=><a key={to} href={to} className={`nav-item ${index===0&&location.pathname==='/platform'?'active':''}`}><Icon size={18}/><span>{language==='en'?en:el}</span></a>)}
       {!platformMode&&isPlatformOwner&&tenant&&<button type="button" className="nav-item platform-return-nav" onClick={()=>{returnToPlatform();navigate('/platform')}}><ArrowLeft size={18}/><span>{language==='en'?'Back to Platform':'Επιστροφή στην Πλατφόρμα'}</span></button>}
       {primaryNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}
+      {canOrganizationAnalysis&&<NavLink to="/analysis" className={({isActive})=>`nav-item ${isActive?'active':''}`}><BarChart3 size={18}/><span>{language==='en'?'Analytics':'Ανάλυση'}</span></NavLink>}
       {moreNavigation.length>0&&<div className={`sidebar-nav-group ${moreExpanded?'open':''}`}>
         <button type="button" className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>setMoreOpen(v=>!v)} aria-expanded={moreExpanded}>
           <Layers3 size={18}/><span>{t('more')}</span><ChevronDown className="nav-group-chevron" size={14}/>
@@ -92,7 +94,7 @@ export function AppShell(){
         <button className="icon-button help-button" aria-label={t('helpInformationCenter')} title={t('helpInformationCenter')} onClick={()=>setHelpOpen(true)}><BookOpen size={18}/></button>
         <button className="language-button" onClick={()=>setLanguage(language==='el'?'en':'el')}>{language==='el'?'EN':'EL'}</button>
       </div>
-      <div className="user-chip"><div className="avatar">{(profile?.fullName||profile?.email||'U').slice(0,2).toUpperCase()}</div><div><strong>{profile?.fullName||profile?.email||'User'}</strong><span>{tenant?.name??''}</span></div></div>
+      <button type="button" className="user-chip user-chip-button" onClick={()=>navigate('/account')} title={language==='en'?'My account':'Ο λογαριασμός μου'}><div className="avatar">{(profile?.fullName||profile?.email||'U').slice(0,2).toUpperCase()}</div><div><strong>{profile?.fullName||profile?.email||'User'}</strong><span>{tenant?.name??''}</span></div><UserRound size={15}/></button>
       <button className="icon-button logout-button" title={t('logout')} aria-label={t('logout')} onClick={handleLogout}><LogOut size={17}/></button>
     </div></header>{isRolePreview&&<div className="preview-banner"><Eye size={15}/><span>{t('previewingAs')}: <strong>{t(previewRoles.find(([value])=>value===role)?.[1]||'roleLabel')}</strong>{rolePreview?.department?` · ${t(previewDepartments.find(([value])=>value===rolePreview.department)?.[1]||'departmentScope')}`:''}</span><button onClick={stopRolePreview}><X size={14}/>{t('exitPreview')}</button></div>}<div className="content"><Outlet/></div></main>{!helpPreviewMode&&<HelpCenter open={helpOpen} onClose={()=>setHelpOpen(false)}/>}{!helpPreviewMode&&<BirthdayGreeting open={birthdayOpen} onClose={closeBirthday}/>}{!helpPreviewMode&&<LoginBriefing open={briefingOpen} onClose={closeBriefing}/>}
   </div>
