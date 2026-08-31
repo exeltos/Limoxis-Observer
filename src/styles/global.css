@@ -4731,3 +4731,5 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
 .platform-admin-status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border,#dbe5ec)}
 .platform-admin-status-row .status-badge{min-width:86px;text-align:center}
 @media (max-width:700px){.platform-admin-status-row{align-items:stretch;flex-direction:column}.platform-admin-status-row .status-badge{align-self:flex-start}}
+
+/* v0.27.27 — explicit JWT forwarding for protected Edge Functions */

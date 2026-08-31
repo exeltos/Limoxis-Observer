@@ -1,4 +1,4 @@
-import { supabase } from '../supabase/client'
+import { supabase, invokeAuthenticatedFunction } from '../supabase/client'
 
 export async function listMemberships(userId) {
   if (!supabase || !userId) return []
@@ -62,13 +62,7 @@ export async function deletePlatformOrganization(organizationId) {
 }
 
 export async function createOrganizationUser({ organizationId, fullName, role, email = null }) {
-  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
-  const { data, error } = await supabase.functions.invoke('create-organization-user', {
-    body: { organizationId, fullName: fullName.trim(), role, email },
-  })
-  if (error) throw error
-  if (data?.error) throw new Error(data.error)
-  return data
+  return invokeAuthenticatedFunction('create-organization-user', { organizationId, fullName: fullName.trim(), role, email })
 }
 
 
@@ -150,26 +144,18 @@ export async function listOrganizationMembersDetailed(organizationId) {
 
 export async function manageOrganizationUser(payload) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
-  const { data, error } = await supabase.functions.invoke('manage-organization-user', { body: payload })
-  if (error) throw error
-  if (data?.error) throw new Error(data.error)
-  return data
+  return invokeAuthenticatedFunction('manage-organization-user', payload)
 }
 
 export async function purgePlatformOrganization({ organizationId, password, confirmation }) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
-  const { data, error } = await supabase.functions.invoke('platform-purge-organization', { body: { organizationId, password, confirmation } })
-  if (error) throw error
-  if (data?.error) throw new Error(data.error)
-  return data
+  return invokeAuthenticatedFunction('platform-purge-organization', { organizationId, password, confirmation })
 }
 
 export async function createPlatformDemoEntitlement(payload) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   if (payload.contactEmail) {
-    const { data, error } = await supabase.functions.invoke('create-demo-access', { body: payload })
-    if (error) throw error
-    if (data?.error) throw new Error(data.error)
+    const data = await invokeAuthenticatedFunction('create-demo-access', payload)
     return data.entitlement || data
   }
   const { data, error } = await supabase.from('platform_demo_entitlements').insert({ label: payload.label.trim(), contact_name: payload.contactName || null, contact_email: null, valid_from: payload.validFrom, valid_until: payload.validUntil, status: 'active' }).select().single()
