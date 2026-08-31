@@ -9,7 +9,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { createOrganizationUser, createPlatformOrganization, listPlatformDemos, listPlatformOrganizationMembers, setPlatformOrganizationStatus, updatePlatformOrganization, listOrganizationMembersDetailed, manageOrganizationUser, purgePlatformOrganization, createPlatformDemoEntitlement, convertDemoEntitlementToOrganization } from '../../core/tenant/tenantService'
+import { createOrganizationUser, createPlatformOrganization, listPlatformDemos, listPlatformOrganizationMembers, setPlatformOrganizationStatus, updatePlatformOrganization, listOrganizationMembersDetailed, manageOrganizationUser, purgePlatformOrganization, createPlatformDemoEntitlement } from '../../core/tenant/tenantService'
 import { AnalysisPage } from '../analysis/AnalysisPage'
 
 const GREEK_REGIONS=['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
@@ -56,7 +56,7 @@ export function PlatformCenterPage(){
       try{
         const invitation=await createOrganizationUser({organizationId:created.id,fullName:draft.adminFullName,role:'hospital_admin',email:draft.adminEmail})
         notify(invitation?.emailSent?(en?'Hospital Admin invitation email sent.':'Το email πρόσκλησης του Hospital Admin στάλθηκε.'):(en?'Hospital Admin invitation created, but email delivery is not configured yet.':'Η πρόσκληση Hospital Admin δημιουργήθηκε, αλλά δεν έχει ρυθμιστεί ακόμη η αποστολή email.'),invitation?.emailSent?'success':'warning')
-      }catch(inviteError){
+      }catch{
         notify(en?'Organization saved, but the Admin invitation could not be sent. You can retry from the organization users.':'Ο οργανισμός αποθηκεύτηκε, αλλά η πρόσκληση Admin δεν στάλθηκε. Μπορείς να την επαναλάβεις από τους χρήστες του οργανισμού.','warning')
       }
     }catch(error){

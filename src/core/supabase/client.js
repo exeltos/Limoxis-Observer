@@ -35,7 +35,7 @@ export async function invokeAuthenticatedFunction(name, body) {
         const payload = await context.json()
         if (payload?.error) message = payload.error
       }
-    } catch {}
+    } catch { /* fall back to error.message below */ }
     throw new Error(message)
   }
   if (data?.error) throw new Error(data.error)

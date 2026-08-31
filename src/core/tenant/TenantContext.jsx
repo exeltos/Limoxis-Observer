@@ -53,7 +53,9 @@ export function TenantProvider({ children }) {
   }, [reloadMemberships])
 
   const storedMembership = memberships.find((item) => item.id === activeMembershipId) ?? null
-  const baseMembership = platformDemoMode && profile?.isPlatformOwner ? {...DEMO_MEMBERSHIP, role: ROLES.PLATFORM_OWNER} : storedMembership
+  const baseMembership = useMemo(() => (
+    platformDemoMode && profile?.isPlatformOwner ? {...DEMO_MEMBERSHIP, role: ROLES.PLATFORM_OWNER} : storedMembership
+  ), [platformDemoMode, profile?.isPlatformOwner, storedMembership])
   const tenant = baseMembership?.organization ?? null
   configureDataEnvironment({mode:(isDemoSession||platformDemoMode)?'demo':'production',organizationId:tenant?.id??((isDemoSession||platformDemoMode)?DEMO_TENANT.id:null)})
   const actualRole = profile?.isPlatformOwner ? ROLES.PLATFORM_OWNER : baseMembership?.role ?? null
