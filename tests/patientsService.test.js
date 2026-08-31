@@ -4,6 +4,7 @@ import { patientDemoData } from '../src/features/patients/patientDemoData'
 const patientRows=new Map()
 const admissionRows=new Map()
 const departmentRows=new Map()
+let failAdmissionTransaction=false
 function patientsFor(organizationId){
   if(!patientRows.has(organizationId))patientRows.set(organizationId,[])
   return patientRows.get(organizationId)
@@ -19,6 +20,15 @@ function departmentsFor(organizationId){
 
 vi.mock('../src/core/supabase/client', () => ({
   supabase: {
+    rpc: (_name,payload) => {
+      if(failAdmissionTransaction)return Promise.resolve({data:null,error:{message:'admission transaction failed'}})
+      const patient=[...patientRows.values()].flat().find(row=>row.id===payload.p_patient_id&&row.organization_id===payload.p_organization_id)
+      if(!patient)return Promise.resolve({data:null,error:{message:'patient does not belong to organization'}})
+      const row={id:`adm-${admissionsFor(payload.p_organization_id).length+1}`,organization_id:payload.p_organization_id,patient_id:payload.p_patient_id,department_id:payload.p_department_id,admission_date:payload.p_admission_date,discharge_date:payload.p_discharge_date,status:payload.p_status,notes:payload.p_notes}
+      admissionsFor(payload.p_organization_id).push(row)
+      Object.assign(patient,{department_id:payload.p_department_id,admission_date:payload.p_admission_date,discharge_date:payload.p_discharge_date,status:payload.p_status})
+      return Promise.resolve({data:row,error:null})
+    },
     from: table => {
       if(table==='departments'){
         return {
@@ -73,6 +83,7 @@ vi.mock('../src/core/supabase/client', () => ({
               }
               const row={id:`patient-${rows.length+1}`,...payload}
               rows.unshift(row)
+              admissionsFor(payload.organization_id).push({id:`adm-${admissionsFor(payload.organization_id).length+1}`,organization_id:payload.organization_id,patient_id:row.id,department_id:payload.department_id,admission_date:payload.admission_date,discharge_date:payload.discharge_date,status:payload.status,notes:payload.notes})
               return Promise.resolve({ data: row, error: null })
             },
           }),
@@ -93,7 +104,7 @@ vi.mock('../src/core/supabase/client', () => ({
 const { loadPatients, createPatient, loadAdmissions, createAdmission } = await import('../src/features/patients/patientsService')
 
 describe('patientsService', () => {
-  beforeEach(() => { patientRows.clear(); admissionRows.clear(); departmentRows.clear() })
+  beforeEach(() => { patientRows.clear(); admissionRows.clear(); departmentRows.clear(); failAdmissionTransaction=false })
 
   it('gives a brand new organization an empty patient list, never the demo roster', async () => {
     expect(await loadPatients('hospital-new')).toEqual([])
@@ -128,5 +139,13 @@ describe('patientsService', () => {
     await createAdmission('hospital-a', record, { department: 'ICU', admissionDate: '2026-08-31' })
     const admissions = await loadAdmissions(record.recordId)
     expect(admissions).toHaveLength(2)
+  })
+
+  it('does not create a partial admission when the atomic operation fails', async () => {
+    const { record } = await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'A', lastName: 'Patient', department: 'ICU', admissionDate: '2026-01-10' })
+    failAdmissionTransaction=true
+    await expect(createAdmission('hospital-a', record, { department: 'ICU', admissionDate: '2026-08-31' }))
+      .rejects.toMatchObject({message:'admission transaction failed'})
+    expect(await loadAdmissions(record.recordId)).toHaveLength(1)
   })
 })

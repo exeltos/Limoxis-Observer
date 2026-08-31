@@ -131,7 +131,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
     >
 
     {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm}/>}
-    {activeTab==='admissions'&&patient&&<PatientAdmissions patient={patient} t={t} language={language} fmtDate={fmtDate} notify={notify} tenant={tenant} isDemo={isDemo}/>}
+    {activeTab==='admissions'&&patient&&<PatientAdmissions patient={patient} t={t} language={language} fmtDate={fmtDate} notify={notify} tenant={tenant} isDemo={isDemo} canEdit={has(CAPABILITIES.EDIT_PATIENT)}/>}
         {activeTab==='surveillanceJourney'&&<SurveillanceWorkspace
       episodes={patientMode?patientEpisodes:(record?[record]:[])}
       selectedEpisodeId={record?.id||''}
@@ -181,14 +181,14 @@ function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confir
 }
 function SummaryItem({label,value,tone='neutral'}){return <div className={`patient-summary-item ${tone}`}><span>{label}</span><strong>{value}</strong></div>}
 
-function PatientAdmissions({patient,t,language,fmtDate,notify,tenant,isDemo}){
+function PatientAdmissions({patient,t,language,fmtDate,notify,tenant,isDemo,canEdit}){
   const [admissions,setAdmissions]=useState([])
   const [open,setOpen]=useState(false)
   useEffect(()=>{
     let alive=true
-    if(patient?.recordId)loadAdmissions(patient.recordId).then(rows=>{if(alive)setAdmissions(rows)}).catch(()=>{})
+    if(patient?.recordId)loadAdmissions(patient.recordId).then(rows=>{if(alive)setAdmissions(rows)}).catch(error=>{if(alive)notify(error?.message||t('clinicalRecords.admissionSaveFailed'),'danger')})
     return ()=>{alive=false}
-  },[patient?.recordId])
+  },[patient?.recordId,notify,t])
   async function addAdmission(draft){
     try{
       const admission=await createAdmission(tenant?.id,patient,draft,{isDemo})
@@ -200,7 +200,7 @@ function PatientAdmissions({patient,t,language,fmtDate,notify,tenant,isDemo}){
     }
   }
   return <div className="record-section">
-    <div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.admissions')}</h3></div><Button onClick={()=>setOpen(true)}>+ {t('clinicalRecords.newAdmission')}</Button></div>
+    <div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.admissions')}</h3></div>{canEdit&&<Button onClick={()=>setOpen(true)}>+ {t('clinicalRecords.newAdmission')}</Button>}</div>
     {admissions.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('admissionDate')}</th><th>{t('department')}</th><th>{t('clinicalRecords.dischargeDate')}</th><th>{t('status')}</th></tr></thead><tbody>{admissions.map(a=><tr key={a.id}><td>{fmtDate(a.admissionDate)}</td><td>{language==='el'?a.department:(a.departmentEn||a.department)||'—'}</td><td>{fmtDate(a.dischargeDate)}</td><td><span className={`status-badge ${a.status==='active'?'active':''}`}>{t(a.status)}</span></td></tr>)}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noAdmissions')}</div>}
     {open&&<NewAdmissionCard t={t} language={language} onClose={()=>setOpen(false)} onSave={addAdmission}/>}
   </div>
