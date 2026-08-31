@@ -16,7 +16,7 @@ import { CAPABILITIES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { downloadCsv } from '../../core/export/csvExport'
 import { laboratorySamples, createDemoLabSample, getLabKpis, sampleSourceCatalog } from './laboratoryDemoData'
-import { patientDemoData } from '../patients/patientDemoData'
+import { loadPatients } from '../patients/patientsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { MetricCard } from '../../design-system/MetricCard'
 
@@ -41,6 +41,7 @@ export function LaboratoryPage(){
   const [department,setDepartment]=useState(saved.department)
   const [newOpen,setNewOpen]=useState(false)
   const [version,setVersion]=useState(0)
+  const patients=useMemo(loadPatients,[])
   const k=getLabKpis()
   const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—'
   const departments=[...new Set(laboratorySamples.map(s=>language==='el'?s.department:s.departmentEn).filter(Boolean))]
@@ -145,7 +146,7 @@ export function LaboratoryPage(){
       </div>
     </section>
 
-    {newOpen&&<NewSampleCard t={t} language={language} onClose={()=>setNewOpen(false)} onSave={createSample}/>}
+    {newOpen&&<NewSampleCard t={t} language={language} patients={patients} onClose={()=>setNewOpen(false)} onSave={createSample}/>}
   </Page>
 }
 
@@ -157,9 +158,9 @@ export function Status({text,kind}){
   return <span className={`lab-status ${kind}`}>{text}</span>
 }
 
-function NewSampleCard({t,language,onClose,onSave}){
+function NewSampleCard({t,language,patients,onClose,onSave}){
   const [patientMode,setPatientMode]=useState('existing')
-  const first=patientDemoData.find(x=>x.status==='active')||patientDemoData[0]
+  const first=patients.find(x=>x.status==='active')||patients[0]
   const [draft,setDraft]=useState({
     patient:first?.name||'',
     patientEn:first?.nameEn||'',
@@ -179,7 +180,7 @@ function NewSampleCard({t,language,onClose,onSave}){
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
 
   function choosePatient(id){
-    const patient=patientDemoData.find(x=>x.id===id)
+    const patient=patients.find(x=>x.id===id)
     if(patient)setDraft(d=>({...d,patient:patient.name,patientEn:patient.nameEn,patientId:patient.id,department:patient.department,departmentEn:patient.departmentEn}))
   }
 
@@ -207,7 +208,7 @@ function NewSampleCard({t,language,onClose,onSave}){
     </div>
     <div className="entry-grid">
       {patientMode==='existing'
-        ?<label className="entry-span-2"><span>{t('patient')}</span><select value={draft.patientId} onChange={e=>choosePatient(e.target.value)}>{patientDemoData.filter(x=>x.status==='active').map(patient=><option key={patient.id} value={patient.id}>{language==='el'?patient.name:patient.nameEn} · {patient.id}</option>)}</select></label>
+        ?<label className="entry-span-2"><span>{t('patient')}</span><select value={draft.patientId} onChange={e=>choosePatient(e.target.value)}>{patients.filter(x=>x.status==='active').map(patient=><option key={patient.id} value={patient.id}>{language==='el'?patient.name:patient.nameEn} · {patient.id}</option>)}</select></label>
         :<><label><span>{t('patient')}</span><input value={language==='el'?draft.patient:draft.patientEn} onChange={e=>set(language==='el'?'patient':'patientEn',e.target.value)}/></label><label><span>{t('patientId')}</span><input value={draft.patientId} onChange={e=>set('patientId',e.target.value)}/></label></>
       }
       <label><span>{t('department')}</span><select value={draft.department} onChange={e=>setDepartment(e.target.value)}>{demoLibrarySeed.departments.map(([el,en])=><option key={el} value={el}>{language==='el'?el:en}</option>)}</select></label>

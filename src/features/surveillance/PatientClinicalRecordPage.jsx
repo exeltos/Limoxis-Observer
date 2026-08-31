@@ -14,7 +14,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { createClinicalSurveillance, deleteClinicalSurveillance, findCaseByPatient, findCasesByPatient, getClinicalCase } from './clinicalDemoData'
-import { patientDemoData } from '../patients/patientDemoData'
+import { loadPatients } from '../patients/patientsService'
 import { createDemoSurveillanceListItem, deleteDemoSurveillanceListItem, syncDemoSurveillanceListItem } from './surveillanceDemoData'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
@@ -39,7 +39,8 @@ export function PatientClinicalRecordPage({patientMode=false}){
   const [tab,setTab] = useState(()=>location.state?.openTab||restored?.tab||'summary')
   const { notify, confirm } = useFeedback()
   const {role,membership,tenant,canAccessRecord}=useTenant()
-  const patient = patientDemoData.find(x=>x.id===patientId) ?? null
+  const [patients,setPatients] = useState(loadPatients)
+  const patient = patients.find(x=>x.id===patientId) ?? null
   // eslint-disable-next-line no-unused-vars -- episodeVersion itself is never read; setEpisodeVersion is called after mutations purely to force a re-render (record/patientEpisodes below are recomputed fresh each render, not memoized).
   const [episodeVersion,setEpisodeVersion]=useState(0)
   const [newSurveillanceOpen,setNewSurveillanceOpen]=useState(false)
@@ -151,7 +152,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
     {activeTab==='clinicalData'&&record&&<ClinicalDataHub record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy}/>}
     {activeTab==='documents'&&<PatientDocuments t={t} record={record}/>}
     {activeTab==='history'&&record&&<Timeline record={record} t={t} language={language} fmtDateTime={fmtDateTime}/>}
-    {newSurveillanceOpen&&<NewSurveillanceFlow patient={patient||{id:record?.patientId,name:record?.patient,nameEn:record?.patientEn,department:record?.department,departmentEn:record?.departmentEn,admissionDate:record?.admissionDate,dateOfBirth:record?.dateOfBirth,status:'active'}} onClose={()=>setNewSurveillanceOpen(false)} onCreate={createSurveillance} onRecordChange={()=>setEpisodeVersion(v=>v+1)}/>}
+    {newSurveillanceOpen&&<NewSurveillanceFlow patient={patient||{id:record?.patientId,name:record?.patient,nameEn:record?.patientEn,department:record?.department,departmentEn:record?.departmentEn,admissionDate:record?.admissionDate,dateOfBirth:record?.dateOfBirth,status:'active'}} patients={patients} onPatientsChange={setPatients} onClose={()=>setNewSurveillanceOpen(false)} onCreate={createSurveillance} onRecordChange={()=>setEpisodeVersion(v=>v+1)}/>}
     </EntityRecordShell>
   </Page>
 }

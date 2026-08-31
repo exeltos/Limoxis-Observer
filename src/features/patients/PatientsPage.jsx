@@ -12,7 +12,7 @@ import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { patientDemoData, createDemoPatient } from './patientDemoData'
+import { loadPatients, createPatient } from './patientsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { downloadCsv } from '../../core/export/csvExport'
@@ -26,7 +26,7 @@ export function PatientsPage(){
   const registry=useRegistryMemory('patients')
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query)
-  const [patients,setPatients]=useState([...patientDemoData])
+  const [patients,setPatients]=useState(loadPatients)
   const [department,setDepartment]=useState(saved.department)
   const [status,setStatus]=useState(saved.status)
   const [newOpen,setNewOpen]=useState(false)
@@ -45,8 +45,8 @@ export function PatientsPage(){
     else notify(t('actionCompleted'),'success')
   }
   function savePatient(draft){
-    const patient=createDemoPatient(draft)
-    setPatients([...patientDemoData])
+    const {record:patient,list}=createPatient(patients,draft)
+    setPatients(list)
     setNewOpen(false)
     setQuery('')
     setDepartment('all')

@@ -9,7 +9,7 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { auditActorFromAuth } from '../../core/audit/actor'
 import { demoLibrarySeed } from '../management/managementData'
 import { createDemoLabSample, laboratorySamples } from '../laboratory/laboratoryDemoData'
-import { createDemoPatient } from '../patients/patientDemoData'
+import { createPatient } from '../patients/patientsService'
 
 const stepDefs=[
   {id:'start',label:'surveillanceStart',icon:Activity},
@@ -48,7 +48,7 @@ const sampleSourceOptions={
 }
 
 
-export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,onRecordChange}){
+export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,onRecordChange,onPatientsChange}){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const {profile,user}=useAuth()
@@ -91,7 +91,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,o
     const lastName=patientDraft.lastName||patientDraft.lastNameEn
     const firstNameEn=patientDraft.firstNameEn||patientDraft.firstName
     const lastNameEn=patientDraft.lastNameEn||patientDraft.lastName
-    const created=createDemoPatient({
+    const {record:created,list}=createPatient(patients,{
       firstName,
       lastName,
       patronymic:patientDraft.patronymic||'',
@@ -105,6 +105,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,o
       admissionDate:patientDraft.admissionDate,
       dateOfBirth:patientDraft.dateOfBirth||null,
     })
+    onPatientsChange?.(list)
     setCreatedPatient(created)
     setSelectedPatientId(created.id)
     setStartDraft(d=>({...d,department:created.department,departmentEn:created.departmentEn}))
