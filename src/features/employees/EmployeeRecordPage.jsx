@@ -13,7 +13,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
-import { employeeVaccinations, occupationalVisits, employeeTraining, employeeEvaluations, employeeCertificates } from './employeeDemoData'
+import { loadVaccinations, loadOccupationalVisits, loadEmployeeTraining, loadEvaluations, loadCertificates, saveCertificates } from './employeeRecordsService'
 import { loadEmployees } from './employeeStore'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
@@ -172,16 +172,17 @@ function Details({employee,t,language,fmt,canAdmin,deleteEmployee,notify}){
 function InlineDetail({editing,l,v,display,onChange,type='text'}){if(editing&&type==='date')return <ManualDateField className="detail-item editable" label={l} value={v||''} onChange={onChange}/>;return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<input type={type} value={v||''} onChange={e=>onChange?.(e.target.value)}/>:<strong>{display??v??'—'}</strong>}</div>}
 function InlineSelect({editing,l,v,display,options,language,onChange}){return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<select value={v||''} onChange={e=>onChange(e.target.value)}>{options.map(([el,en])=><option key={el} value={el}>{language==='el'?el:en}</option>)}</select>:<strong>{display||'—'}</strong>}</div>}
 function Occupational({employee,t,fmt}){
-  const rows=occupationalVisits.filter(x=>x.employeeId===employee.id)
+  const rows=loadOccupationalVisits().filter(x=>x.employeeId===employee.id)
   const [attachments,setAttachments]=useState(()=>employee.occupationalAttachments||[])
   return <div className="record-section"><SectionTitle t={t} title="occupationalHealth"/><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{fmt(x.date)}</strong><span>{t(x.type)}</span><small>{t('fitnessStatus')}: {t(x.fitStatus)} · {t('followUp')}: {fmt(x.followUpDate)}</small></article>):<Empty t={t}/>}</div><AttachmentField value={attachments} onChange={setAttachments}/></div>
 }
-function Vaccinations({employee,t,fmt}){const rows=employeeVaccinations.filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="vaccinations"/><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{x.vaccine}</strong><span>{t('dose')}: {x.dose}</span><small>{fmt(x.date)} · {t('validUntil')}: {fmt(x.validUntil)} · {t(x.status)}</small></article>):<Empty t={t}/>}</div></div>}
-function Training({employee,t,language,fmt}){const rows=employeeTraining.filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="training"/>{rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('employeesRecords.trainingTitle')}</th><th>{t('date')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(x=><tr key={x.id}><td><strong>{language==='el'?x.titleEl:x.titleEn}</strong></td><td>{fmt(x.date)}</td><td><span className="status-badge active">{t(x.status)}</span></td></tr>)}</tbody></table></div>:<Empty t={t}/>}</div>}
-function Evaluations({employee,t,language,fmt,selfMode}){const rows=employeeEvaluations.filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="evaluations"/><div className="source-truth-note">{selfMode?t('employeesRecords.selfEvaluationReadOnly'):t('employeesRecords.evaluationGovernance')}</div><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{language==='el'?x.titleEl:x.titleEn}</strong><span>{fmt(x.date)}</span><small>{language==='el'?x.resultEl:x.resultEn}</small></article>):<Empty t={t}/>}</div></div>}
+function Vaccinations({employee,t,fmt}){const rows=loadVaccinations().filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="vaccinations"/><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{x.vaccine}</strong><span>{t('dose')}: {x.dose}</span><small>{fmt(x.date)} · {t('validUntil')}: {fmt(x.validUntil)} · {t(x.status)}</small></article>):<Empty t={t}/>}</div></div>}
+function Training({employee,t,language,fmt}){const rows=loadEmployeeTraining().filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="training"/>{rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('employeesRecords.trainingTitle')}</th><th>{t('date')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(x=><tr key={x.id}><td><strong>{language==='el'?x.titleEl:x.titleEn}</strong></td><td>{fmt(x.date)}</td><td><span className="status-badge active">{t(x.status)}</span></td></tr>)}</tbody></table></div>:<Empty t={t}/>}</div>}
+function Evaluations({employee,t,language,fmt,selfMode}){const rows=loadEvaluations().filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="evaluations"/><div className="source-truth-note">{selfMode?t('employeesRecords.selfEvaluationReadOnly'):t('employeesRecords.evaluationGovernance')}</div><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{language==='el'?x.titleEl:x.titleEn}</strong><span>{fmt(x.date)}</span><small>{language==='el'?x.resultEl:x.resultEn}</small></article>):<Empty t={t}/>}</div></div>}
 function Certificates({employee,t,language,fmt,selfMode,canAdmin,notify}){
   const emptyDraft={titleEl:'',titleEn:'',issuer:'',issueDate:'',validUntil:'',certificateNumber:'',attachments:[]}
-  const [rows,setRows]=useState(employeeCertificates.filter(x=>x.employeeId===employee.id))
+  const [allRows,setAllRows]=useState(loadCertificates)
+  const rows=allRows.filter(x=>x.employeeId===employee.id)
   const [open,setOpen]=useState(false)
   const [editingId,setEditingId]=useState(null)
   const [draft,setDraft]=useState(emptyDraft)
@@ -190,13 +191,16 @@ function Certificates({employee,t,language,fmt,selfMode,canAdmin,notify}){
   const openExisting=(row)=>{setEditingId(row.id);setDraft({...emptyDraft,...row,attachments:row.attachments||[]});setOpen(true)}
   const close=()=>{setOpen(false);setEditingId(null);setDraft(emptyDraft)}
   const save=()=>{
+    let next
     if(editingId){
-      setRows(r=>r.map(row=>row.id===editingId?{...row,...draft,id:editingId,employeeId:employee.id}:row))
+      next=allRows.map(row=>row.id===editingId?{...row,...draft,id:editingId,employeeId:employee.id}:row)
       notify(t('employeesRecords.certificateUpdated'),'success')
     }else{
-      setRows(r=>[...r,{...draft,id:`CERT-${Date.now()}`,employeeId:employee.id}])
+      next=[...allRows,{...draft,id:`CERT-${Date.now()}`,employeeId:employee.id}]
       notify(t('employeesRecords.certificateAdded'),'success')
     }
+    setAllRows(next)
+    saveCertificates(next)
     close()
   }
   return <div className="record-section">

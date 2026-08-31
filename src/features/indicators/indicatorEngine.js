@@ -2,8 +2,8 @@ import { surveillanceDemoData } from '../surveillance/surveillanceDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { handHygieneRows,bundleRows,antisepticRows } from '../prevention/preventionDemoData'
 import { qualityIncidents } from '../quality/qualityDemoData'
-import { employeeVaccinations } from '../employees/employeeDemoData'
 import { loadEmployees } from '../employees/employeeStore'
+import { loadVaccinations } from '../employees/employeeRecordsService'
 import { loadTrainingState } from '../training/trainingData'
 import { indicatorDefinitions } from './indicatorDefinitions'
 import { loadCustomIndicators,loadIndicatorOverrides,loadDeletedIndicatorIds } from './indicatorStore'
@@ -36,7 +36,7 @@ export function collectIndicatorMetrics(){
  const abhrEligible=antisepticRows.filter(x=>x.indicatorEligible)
  const training=loadTrainingState(); const assignments=training.assignments||[]
  const employees=loadEmployees(); const activeStaff=employees.filter(x=>x.employmentStatus==='active')
- const vaccinated=new Set(employeeVaccinations.map(x=>x.employeeId))
+ const vaccinated=new Set(loadVaccinations().map(x=>x.employeeId))
  const mdroBsi=laboratorySamples.filter(x=>x.result==='positive'&&x.organism&&x.resistance&&String(x.source||x.type||'').toLowerCase().includes('blood')).length
  const patientDays=abhrEligible.reduce((s,x)=>s+Number(x.patientDays||0),0)
  return {

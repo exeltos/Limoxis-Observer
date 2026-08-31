@@ -33,4 +33,12 @@ describe('demo data isolation',()=>{
     expect([...globalThis.localStorage.values.keys()]).toContain('demo.demo-hospital:limoxis.documents.v1')
     expect([...globalThis.localStorage.values.keys()]).not.toContain('org.hospital-1:limoxis.documents.v1')
   })
+
+  it('gives a real organization empty employee sub-records instead of the demo seed', ()=>{
+    const seed=[{id:'VAC-001',employeeId:'EMP-001'}]
+    configureDataEnvironment({mode:'production',organizationId:'hospital-1'})
+    expect(loadSnapshot('employee_vaccine_records',seed)).toEqual([])
+    configureDataEnvironment({mode:'demo',organizationId:'demo-hospital'})
+    expect(loadSnapshot('employee_vaccine_records',seed)).toEqual(seed)
+  })
 })

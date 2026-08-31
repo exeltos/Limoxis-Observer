@@ -6,6 +6,11 @@ const backend=(import.meta.env.VITE_DATA_BACKEND||'local').trim().toLowerCase()
 const memory=new Map()
 
 const TABLES=Object.freeze({
+  employee_health_visits:{storageKey:'limoxis.employeeHealthVisits.v1',kind:'rows',cloud:false},
+  employee_vaccine_records:{storageKey:'limoxis.employeeVaccineRecords.v1',kind:'rows',cloud:false},
+  employee_training_summary:{storageKey:'limoxis.employeeTrainingSummary.v1',kind:'rows',cloud:false},
+  employee_evaluations:{storageKey:'limoxis.employeeEvaluations.v1',kind:'rows',cloud:false},
+  employee_certificates:{storageKey:'limoxis.employeeCertificates.v1',kind:'rows',cloud:false},
   training_records:{storageKey:'limoxis.training.v3',legacyKeys:['limoxis.training.v2'],kind:'training'},
   environmental_standards:{storageKey:'limoxis.environmentalStandards.v1',kind:'rows'},
   control_drafts:{storageKey:'limoxis.controlDrafts.v1',legacyPrefix:'limoxis.control.execution.',kind:'rows'},
