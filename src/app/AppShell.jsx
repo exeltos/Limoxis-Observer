@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, Layers3, LogOut, Settings, ShieldCheck, Users, X } from 'lucide-react'
+import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, Layers3, LogOut, X } from 'lucide-react'
 import { navigationFor } from './navigation'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'
@@ -42,13 +42,10 @@ export function AppShell(){
     if(platformMode&&!location.pathname.startsWith('/platform')&&location.pathname!=='/about') navigate('/platform',{replace:true})
   },[platformMode,location.pathname,navigate])
   const platformItems=[
-    ['/platform','Κέντρο Πλατφόρμας','Platform Center',Building2],
+    ['/platform','Dashboard','Dashboard',BarChart3],
     ['/platform#organizations','Οργανισμοί','Organizations',Building2],
-    ['/platform#users','Χρήστες & Admins','Users & Admins',Users],
     ['/platform#demo','Demo','Demo',FlaskConical],
-    ['/platform#reports','Αναφορές','Reports',BarChart3],
-    ['/platform#governance','Audit & Governance','Audit & Governance',ShieldCheck],
-    ['/platform#settings','Ρυθμίσεις','Settings',Settings],
+    ['/platform#reports','Ανάλυση','Analytics',BarChart3],
   ]
   const previewRoles=[
     [ROLES.HOSPITAL_ADMIN,'hospitalAdminRole'],[ROLES.INFECTION_CONTROL_LEAD,'infectionControlLeadRole'],[ROLES.INFECTION_CONTROL_MEMBER,'infectionControlMemberRole'],[ROLES.DEPARTMENT_MANAGER,'departmentManagerRole'],[ROLES.DEPARTMENT_USER,'departmentUserRole'],[ROLES.LABORATORY,'laboratoryRole'],[ROLES.COMMITTEE_SECRETARIAT,'committeeSecretariatRole'],[ROLES.HR_OFFICE,'hrOfficeRole'],[ROLES.PHARMACY,'pharmacyRole'],[ROLES.OCCUPATIONAL_PHYSICIAN,'occupationalPhysicianRole'],[ROLES.DOCTOR_REVIEWER,'doctorReviewerRole'],[ROLES.QUALITY_MANAGER,'qualityManagerRole']

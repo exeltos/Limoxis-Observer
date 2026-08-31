@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Building2, CheckCircle2, Languages, ShieldCheck } from 'lucide-react'
+import { Building2, CheckCircle2, Eye, EyeOff, Languages, ShieldCheck } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { Field } from '../../design-system/Field'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -14,6 +14,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -53,7 +54,7 @@ export function LoginPage() {
       <form className="login-card" onSubmit={handleSubmit}>
         <div className="login-heading"><span>{greek ? 'Καλώς ήρθατε' : 'Welcome back'}</span><h2>{greek ? 'Σύνδεση στο Limoxis Observer' : 'Sign in to Limoxis Observer'}</h2><p>{greek ? 'Χρησιμοποιήστε τον λογαριασμό του οργανισμού σας.' : 'Use your organization account.'}</p></div>
         <Field label={greek ? 'Όνομα χρήστη' : 'Username'}><input className="input" type="text" autoComplete="username" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required /></Field>
-        <Field label={greek ? 'Κωδικός πρόσβασης' : 'Password'}><input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Field>
+        <Field label={greek ? 'Κωδικός πρόσβασης' : 'Password'}><div className="password-input-wrap"><input className="input" type={showPassword?'text':'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /><button type="button" className="password-visibility" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?(greek?'Απόκρυψη κωδικού':'Hide password'):(greek?'Εμφάνιση κωδικού':'Show password')}>{showPassword?<EyeOff size={17}/>:<Eye size={17}/>}</button></div></Field>
         {error && <div className="form-error">{error}</div>}
         <Button type="submit" disabled={submitting || !hasSupabaseConfig}>{submitting ? (greek ? 'Σύνδεση…' : 'Signing in…') : (greek ? 'Σύνδεση' : 'Sign in')}</Button>
         {allowDemo && <><div className="auth-separator"><span>{greek ? 'ή' : 'or'}</span></div><Button variant="secondary" onClick={loginDemo}>{greek ? 'Είσοδος στο Demo' : 'Open Demo'}</Button></>}

@@ -5,6 +5,7 @@ import { ProtectedRoute } from '../core/auth/ProtectedRoute'
 import { RequireCapability, RequireAnyCapability } from '../core/permissions/RequireCapability'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES } from '../core/permissions/roles'
 import { LoginPage } from '../features/auth/LoginPage'
+import { ActivateAccountPage } from '../features/auth/ActivateAccountPage'
 import { RouteLoading } from '../design-system/RouteLoading'
 import { GlobalTextareaExpander } from '../design-system/GlobalTextareaExpander'
 
@@ -52,6 +53,7 @@ export function App() {
   <GlobalTextareaExpander/>
   <Routes>
     <Route path="/login" element={<LoginPage />} />
+    <Route path="/activate" element={<ActivateAccountPage />} />
     <Route path="/training-access/:token" element={<Suspense fallback={<RouteLoading/>}><TrainingAccessPage /></Suspense>} />
     <Route element={<ProtectedRoute />}>
       <Route element={<AppShell />}>
