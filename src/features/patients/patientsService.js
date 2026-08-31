@@ -58,17 +58,6 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     if(error.code==='23505')error.duplicateCode=true
     throw error
   }
-  try{
-    await supabase.from('patient_admissions').insert({
-      organization_id:organizationId,
-      patient_id:data.id,
-      department_id:departmentId,
-      admission_date:draft.admissionDate,
-      discharge_date:draft.dischargeDate||null,
-      status:draft.status||'active',
-      notes:draft.notes||null,
-    })
-  }catch{ /* the patient record itself is already saved; admission history can be added later */ }
   const record=mapRow(data,draft.department)
   return {record,list:[record,...existing]}
 }
@@ -97,21 +86,15 @@ export async function createAdmission(organizationId, patient, draft, {isDemo=fa
     return mapAdmission({id:`ADM-${Date.now()}`,department_id:null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null},draft.department)
   }
   const departmentId=draft.department?await ensureDepartment(organizationId,draft.department):null
-  const {data,error}=await supabase.from('patient_admissions').insert({
-    organization_id:organizationId,
-    patient_id:patient.recordId,
-    department_id:departmentId,
-    admission_date:draft.admissionDate,
-    discharge_date:draft.dischargeDate||null,
-    status:draft.status||'active',
-    notes:draft.notes||null,
-  }).select().single()
+  const {data,error}=await supabase.rpc('create_patient_admission',{
+    p_organization_id:organizationId,
+    p_patient_id:patient.recordId,
+    p_department_id:departmentId,
+    p_admission_date:draft.admissionDate,
+    p_discharge_date:draft.dischargeDate||null,
+    p_status:draft.status||'active',
+    p_notes:draft.notes||null,
+  })
   if(error) throw error
-  await supabase.from('patients').update({
-    department_id:departmentId,
-    admission_date:draft.admissionDate,
-    discharge_date:draft.dischargeDate||null,
-    status:draft.status||'active',
-  }).eq('id',patient.recordId)
   return mapAdmission(data,draft.department)
 }

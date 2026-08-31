@@ -59,3 +59,19 @@ sensitive data, lifecycle states, and role preview denial.
 Production organizations remain empty unless data is intentionally imported. Demo
 seed data is loaded only into the dedicated demo organization and its isolated
 storage paths.
+# Post-v0.28.7 verification
+
+If `select * from public.demo_entitlements` returns PostgreSQL error `42P01`,
+that is expected after migration `v0285`: the legacy table has already been
+removed. Do not recreate it and do not use it as a deployment check.
+
+Run `supabase/maintenance/06_verify_v0287_deployment.sql` in the SQL Editor
+instead. It checks relation, RPC, trigger, and constraint installation through
+PostgreSQL catalogs and remains safe when the legacy table is absent. Every
+top-level boolean and every value under `constraints` should be `true`.
+
+If that report shows the canonical entitlement table but no admission RPC or
+trigger, migration v0285 is present while v0286-v0287 are still pending. Apply
+those migrations in order; do not recreate `demo_entitlements`. The corrected
+v0287 is idempotent and preserves the pre-existing patient statuses `deceased`
+and `transferred` from v040.
