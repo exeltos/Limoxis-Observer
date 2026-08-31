@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const DEFAULT_APP_URL='https://limoxis-observer.netlify.app'
 const ALLOWED_ROLES=['hospital_admin','infection_control_lead','link_nurse','doctor_reviewer','department_user','laboratory','staff_user']
 const ROLE_LABELS:Record<string,string>={hospital_admin:'Διαχειριστής Νοσοκομείου',infection_control_lead:'Υπεύθυνος Λοιμώξεων',link_nurse:'Νοσηλευτής Σύνδεσμος',doctor_reviewer:'Ιατρός Ελεγκτής',department_user:'Χρήστης Τμήματος',laboratory:'Εργαστήριο',staff_user:'Γενικός Χρήστης'}
 const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
@@ -54,8 +55,8 @@ Deno.serve(async(req)=>{
 
   const normalizedEmail=String(email).trim().toLowerCase()
   const username=await generateUserName(admin,fullName)
-  const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||'').replace(/\/$/,'')
-  const redirectTo=appUrl?`${appUrl}/activate`:undefined
+  const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||DEFAULT_APP_URL).replace(/\/$/,'')
+  const redirectTo=`${appUrl}/activate`
 
   const {data:invited,error:inviteError}=await admin.auth.admin.inviteUserByEmail(normalizedEmail,{
     redirectTo,

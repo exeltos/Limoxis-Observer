@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
+const DEFAULT_APP_URL='https://limoxis-observer.netlify.app'
 const ROLE_LABELS:Record<string,string>={hospital_admin:'Διαχειριστής Νοσοκομείου',infection_control_lead:'Υπεύθυνος Λοιμώξεων',link_nurse:'Νοσηλευτής Σύνδεσμος',doctor_reviewer:'Ιατρός Ελεγκτής',department_user:'Χρήστης Τμήματος',laboratory:'Εργαστήριο',staff_user:'Γενικός Χρήστης'}
 Deno.serve(async(req)=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({error:'Method not allowed'},405)
@@ -16,7 +17,7 @@ Deno.serve(async(req)=>{
  if(action==='update'){if(b.jobTitle!==undefined)await admin.from('profiles').update({job_title:b.jobTitle||null}).eq('id',userId);if(b.role)await admin.from('organization_members').update({role:b.role}).eq('organization_id',organizationId).eq('user_id',userId);return reply({ok:true})}
  if(action==='suspend'||action==='reactivate'){const status=action==='suspend'?'disabled':'active';await admin.from('organization_members').update({status}).eq('organization_id',organizationId).eq('user_id',userId);const {error}=await admin.auth.admin.updateUserById(userId,{ban_duration:action==='suspend'?'876000h':'none'});if(error)return reply({error:error.message},500);return reply({ok:true,status})}
  if(action==='delete'){await admin.from('organization_members').delete().eq('organization_id',organizationId).eq('user_id',userId);const {error}=await admin.auth.admin.deleteUser(userId);if(error)return reply({error:error.message},500);return reply({ok:true})}
- if(action==='reset_password'){const {data:p}=await admin.from('profiles').select('contact_email').eq('id',userId).single();if(!p?.contact_email)return reply({error:'Ο χρήστης δεν έχει email ανάκτησης.'},400);const app=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||'').replace(/\/$/,'');const {error}=await admin.auth.resetPasswordForEmail(String(p.contact_email).toLowerCase(),{redirectTo:`${app}/reset-password`});if(error)return reply({error:error.message},500);return reply({ok:true,emailSent:true,provider:'supabase_auth'})}
+ if(action==='reset_password'){const {data:p}=await admin.from('profiles').select('contact_email').eq('id',userId).single();if(!p?.contact_email)return reply({error:'Ο χρήστης δεν έχει email ανάκτησης.'},400);const app=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||DEFAULT_APP_URL).replace(/\/$/,'');const {error}=await admin.auth.resetPasswordForEmail(String(p.contact_email).toLowerCase(),{redirectTo:`${app}/reset-password`});if(error)return reply({error:error.message},500);return reply({ok:true,emailSent:true,provider:'supabase_auth'})}
  if(action==='resend_invitation'){
   const {data:member}=await admin.from('organization_members').select('role,status').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
   if(!member)return reply({error:'Ο χρήστης δεν ανήκει στον οργανισμό.'},404)
@@ -24,7 +25,7 @@ Deno.serve(async(req)=>{
   const {data:p}=await admin.from('profiles').select('full_name,username,contact_email,phone,job_title').eq('id',userId).single()
   if(!p?.contact_email)return reply({error:'Λείπει email πρόσκλησης.'},400)
   const {data:orgRow}=await admin.from('organizations').select('name').eq('id',organizationId).maybeSingle()
-  const app=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||'').replace(/\/$/,'')
+  const app=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||DEFAULT_APP_URL).replace(/\/$/,'')
   const email=String(p.contact_email).toLowerCase()
   // The invited person never set a password, so Supabase's stale unconfirmed account can be
   // safely replaced — it refuses to re-invite an email that is already registered.
