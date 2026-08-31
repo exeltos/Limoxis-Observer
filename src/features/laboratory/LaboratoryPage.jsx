@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Clock3, FlaskConical, Microscope, ShieldAlert } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -31,7 +31,7 @@ export function LaboratoryPage(){
   const {notify}=useFeedback()
   const {profile,user}=useAuth()
   const actor=auditActorFromAuth({profile,user})
-  const {canAccessRecord}=useTenant()
+  const {canAccessRecord,tenant,isDemo}=useTenant()
   const navigate=useNavigate()
   const registry=useRegistryMemory('laboratory')
   const saved=registry.loadViewState({query:'',status:'all',result:'all',department:'all'})
@@ -41,7 +41,12 @@ export function LaboratoryPage(){
   const [department,setDepartment]=useState(saved.department)
   const [newOpen,setNewOpen]=useState(false)
   const [version,setVersion]=useState(0)
-  const patients=useMemo(loadPatients,[])
+  const [patients,setPatients]=useState([])
+  useEffect(()=>{
+    let alive=true
+    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(()=>{})
+    return ()=>{alive=false}
+  },[tenant?.id,isDemo])
   const k=getLabKpis()
   const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—'
   const departments=[...new Set(laboratorySamples.map(s=>language==='el'?s.department:s.departmentEn).filter(Boolean))]

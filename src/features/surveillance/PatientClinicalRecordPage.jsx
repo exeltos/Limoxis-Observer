@@ -38,8 +38,13 @@ export function PatientClinicalRecordPage({patientMode=false}){
   const { t, language, locale } = useLanguage()
   const [tab,setTab] = useState(()=>location.state?.openTab||restored?.tab||'summary')
   const { notify, confirm } = useFeedback()
-  const {role,membership,tenant,canAccessRecord}=useTenant()
-  const [patients,setPatients] = useState(loadPatients)
+  const {role,membership,tenant,isDemo,canAccessRecord}=useTenant()
+  const [patients,setPatients] = useState([])
+  useEffect(()=>{
+    let alive=true
+    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(()=>{})
+    return ()=>{alive=false}
+  },[tenant?.id,isDemo])
   const patient = patients.find(x=>x.id===patientId) ?? null
   // eslint-disable-next-line no-unused-vars -- episodeVersion itself is never read; setEpisodeVersion is called after mutations purely to force a re-render (record/patientEpisodes below are recomputed fresh each render, not memoized).
   const [episodeVersion,setEpisodeVersion]=useState(0)

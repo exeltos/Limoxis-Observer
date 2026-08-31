@@ -6,6 +6,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuth } from '../../core/auth/AuthContext'
+import { useTenant } from '../../core/tenant/TenantContext'
 import { auditActorFromAuth } from '../../core/audit/actor'
 import { demoLibrarySeed } from '../management/managementData'
 import { createDemoLabSample, laboratorySamples } from '../laboratory/laboratoryDemoData'
@@ -52,6 +53,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,o
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const {profile,user}=useAuth()
+  const {tenant,isDemo}=useTenant()
   const actor=auditActorFromAuth({profile,user})
   const [patientMode,setPatientMode]=useState(patient?'fixed':'existing')
   const [selectedPatientId,setSelectedPatientId]=useState(patient?.id||'')
@@ -85,13 +87,13 @@ export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,o
     const pair=demoLibrarySeed.departments.find(([value])=>value===el)||[el,el]
     setPatientDraft(d=>({...d,department:pair[0],departmentEn:pair[1]}))
   }
-  function buildInlinePatient(){
+  async function buildInlinePatient(){
     if(!(patientDraft.firstName||patientDraft.firstNameEn)||!(patientDraft.lastName||patientDraft.lastNameEn)||!patientDraft.department||!patientDraft.admissionDate)return null
     const firstName=patientDraft.firstName||patientDraft.firstNameEn
     const lastName=patientDraft.lastName||patientDraft.lastNameEn
     const firstNameEn=patientDraft.firstNameEn||patientDraft.firstName
     const lastNameEn=patientDraft.lastNameEn||patientDraft.lastName
-    const {record:created,list}=createPatient(patients,{
+    const {record:created,list}=await createPatient(tenant?.id,patients,{
       firstName,
       lastName,
       patronymic:patientDraft.patronymic||'',
@@ -104,7 +106,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,o
       departmentEn:patientDraft.departmentEn||patientDraft.department,
       admissionDate:patientDraft.admissionDate,
       dateOfBirth:patientDraft.dateOfBirth||null,
-    })
+    },{isDemo})
     onPatientsChange?.(list)
     setCreatedPatient(created)
     setSelectedPatientId(created.id)
@@ -143,9 +145,9 @@ export function NewSurveillanceFlow({patient=null,patients=[],onClose,onCreate,o
     return false
   }
 
-  function saveStart(){
+  async function saveStart(){
     let targetPatient=selectedPatient
-    if(!targetPatient&&patientMode==='new')targetPatient=buildInlinePatient()
+    if(!targetPatient&&patientMode==='new')targetPatient=await buildInlinePatient()
     if(!targetPatient||!startDraft.startedAt||!(startDraft.reason||startDraft.reasonEn))return
     if(!record){
       const created=onCreate(startDraft,targetPatient)

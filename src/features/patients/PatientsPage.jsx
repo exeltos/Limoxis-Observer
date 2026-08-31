@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Activity, ArrowRightLeft, LogOut, UsersRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
@@ -22,14 +22,19 @@ export function PatientsPage(){
   const {t,language,locale}=useLanguage()
   const {notify}=useFeedback()
   const navigate=useNavigate()
-  const {canAccessRecord}=useTenant()
+  const {canAccessRecord,tenant,isDemo}=useTenant()
   const registry=useRegistryMemory('patients')
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query)
-  const [patients,setPatients]=useState(loadPatients)
+  const [patients,setPatients]=useState([])
   const [department,setDepartment]=useState(saved.department)
   const [status,setStatus]=useState(saved.status)
   const [newOpen,setNewOpen]=useState(false)
+  useEffect(()=>{
+    let alive=true
+    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive)notify(String(error?.message||'Δεν φορτώθηκε το μητρώο ασθενών.'),'danger')})
+    return ()=>{alive=false}
+  },[tenant?.id,isDemo,notify])
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
   const rows=useMemo(()=>patients
     .filter(p=>canAccessRecord(p))
@@ -44,18 +49,22 @@ export function PatientsPage(){
     else if(action===UI_ACTIONS.EXPORT){downloadCsv('limoxis-patients.csv',[t('patientId'),t('name'),t('department'),t('admissionDate'),t('status')],rows.map(x=>[x.id,language==='el'?x.name:(x.nameEn||x.name),language==='el'?x.department:x.departmentEn,x.admissionDate,t(x.status)]));notify(t('currentListExported'),'success')}
     else notify(t('actionCompleted'),'success')
   }
-  function savePatient(draft){
-    const {record:patient,list}=createPatient(patients,draft)
-    setPatients(list)
-    setNewOpen(false)
-    setQuery('')
-    setDepartment('all')
-    setStatus('all')
-    notify(t('patientCreated'),'success')
-    requestAnimationFrame(()=>{
-      registry.saveViewState({query:'',department:'all',status:'all'})
-      registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))
-    })
+  async function savePatient(draft){
+    try{
+      const {record:patient,list}=await createPatient(tenant?.id,patients,draft,{isDemo})
+      setPatients(list)
+      setNewOpen(false)
+      setQuery('')
+      setDepartment('all')
+      setStatus('all')
+      notify(t('patientCreated'),'success')
+      requestAnimationFrame(()=>{
+        registry.saveViewState({query:'',department:'all',status:'all'})
+        registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))
+      })
+    }catch(error){
+      notify(String(error?.message||'Ο ασθενής δεν αποθηκεύτηκε.'),'danger')
+    }
   }
   const activeAdvancedCount=(department!=='all'?1:0)+(status!=='all'?1:0)
   const scopedPatients=patients.filter(p=>canAccessRecord(p))
