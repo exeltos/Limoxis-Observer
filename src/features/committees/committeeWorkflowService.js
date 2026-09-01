@@ -55,10 +55,14 @@ async function syncAttendance(organizationId,committee,meeting,attendanceRecords
     if(existing?.id){const {data,error}=await supabase.from('committee_meeting_attendance').update(payload).eq('id',existing.id).select('id,client_key,member_id,employee_id,attendee_name,attendance_status,has_vote').single();if(error)throw error;rows.push(data)}else{const {data,error}=await supabase.from('committee_meeting_attendance').insert(payload).select('id,client_key,member_id,employee_id,attendee_name,attendance_status,has_vote').single();if(error)throw error;rows.push(data)}}return rows
 }
 async function requestMinutesApprovals(organizationId,committee,meeting,presentRecords){
-  const memberIds=[...new Set(presentRecords.map(x=>x.memberDbId).filter(Boolean))];if(!memberIds.length)return []
+  const votingPresent=presentRecords.filter(x=>x.has_vote!==false)
+  const memberIds=[...new Set(votingPresent.map(x=>x.member_id).filter(Boolean))]
+  if(!memberIds.length)return []
   const {data:members,error:membersError}=await supabase.from('committee_members').select('id,user_id').eq('organization_id',organizationId).eq('committee_id',committee.dbId).in('id',memberIds);if(membersError)throw membersError
-  const approvers=(members||[]).filter(x=>x.user_id)
-  if(!approvers.length)return []
+  const memberById=new Map((members||[]).map(member=>[member.id,member]))
+  const missingAccount=memberIds.some(memberId=>!memberById.get(memberId)?.user_id)
+  if(missingAccount)throw new Error('COMMITTEE_MINUTES_APPROVER_ACCOUNT_REQUIRED')
+  const approvers=memberIds.map(memberId=>memberById.get(memberId)).filter(Boolean)
   const {error:cancelError}=await supabase.from('committee_minutes_approvals').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('committee_id',committee.dbId).eq('meeting_id',meeting.dbId).eq('status','pending');if(cancelError)throw cancelError
   const {data,error}=await supabase.from('committee_minutes_approvals').insert(approvers.map(member=>({organization_id:organizationId,committee_id:committee.dbId,meeting_id:meeting.dbId,approver_id:member.user_id,member_id:member.id,status:'pending'}))).select('id,approver_id,member_id,status,requested_at');if(error)throw error
   return data||[]
