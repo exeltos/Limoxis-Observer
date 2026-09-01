@@ -7,6 +7,15 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   const lower=raw.toLowerCase()
   const en=language==='en'
 
+  if(lower.includes('committee_meeting_cancellation_reason_required')){
+    return en?'Enter a reason before cancelling the meeting.':'Συμπληρώστε αιτιολογία πριν ακυρώσετε τη συνεδρίαση.'
+  }
+  if(lower.includes('committee_meeting_cancellation_not_allowed')||lower.includes('committee_meeting_cancelled_immutable')){
+    return en?'This meeting can no longer be cancelled or restored.':'Η συγκεκριμένη συνεδρίαση δεν μπορεί πλέον να ακυρωθεί ή να επανενεργοποιηθεί.'
+  }
+  if(lower.includes('committee_meeting_not_found')){
+    return en?'The meeting could not be found. Refresh the committee and try again.':'Η συνεδρίαση δεν βρέθηκε. Ανανεώστε την επιτροπή και δοκιμάστε ξανά.'
+  }
   if(lower.includes('committee_minutes_approver_account_required')){
     return en?'The minutes cannot be submitted for approval because one or more present voting members do not have a linked user account.':'Δεν είναι δυνατή η υποβολή των πρακτικών για έγκριση, επειδή ένα ή περισσότερα παρόντα μέλη με δικαίωμα ψήφου δεν διαθέτουν συνδεδεμένο λογαριασμό.'
   }
