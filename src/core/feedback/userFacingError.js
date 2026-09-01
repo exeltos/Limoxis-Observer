@@ -22,6 +22,15 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   if(lower.includes('committee_minutes_approval_required')){
     return en?'The minutes must complete the approval workflow before they can be finalized.':'Τα πρακτικά πρέπει να ολοκληρώσουν τη διαδικασία έγκρισης πριν οριστικοποιηθούν.'
   }
+  if(lower.includes('committee_approval_rejection_comment_required')||lower.includes('committee_minutes_approval_comment_required')){
+    return en?'Describe the required corrections before sending the request.':'Περιγράψτε τις απαιτούμενες διορθώσεις πριν αποστείλετε το αίτημα.'
+  }
+  if(lower.includes('committee_approval_already_decided')||lower.includes('committee_minutes_approval_already_decided')){
+    return en?'Your decision has already been recorded and cannot be changed.':'Η απόφασή σας έχει ήδη καταγραφεί και δεν μπορεί να αλλάξει.'
+  }
+  if(lower.includes('approval_not_available')||lower.includes('committee_approval_not_available')){
+    return en?'This approval request is no longer available. It may already have been completed or replaced by a newer request.':'Το αίτημα έγκρισης δεν είναι πλέον διαθέσιμο. Μπορεί να έχει ήδη ολοκληρωθεί ή να έχει αντικατασταθεί από νεότερο αίτημα.'
+  }
   if(lower.includes('committee_membership_approval_not_available')){
     return en?'This participation request is no longer available for approval.':'Το αίτημα συμμετοχής δεν είναι πλέον διαθέσιμο για έγκριση.'
   }
