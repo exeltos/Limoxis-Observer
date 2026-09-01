@@ -3,13 +3,14 @@ import fs from 'node:fs'
 
 const matrix = fs.readFileSync(new URL('../src/core/permissions/systemRoleMatrix.js', import.meta.url), 'utf8')
 const workflow = fs.readFileSync(new URL('../src/features/committees/committeeWorkflowService.js', import.meta.url), 'utf8')
-const migration = fs.readFileSync(new URL('../supabase/migrations/202609010030_v0294_committee_workflow_alignment.sql', import.meta.url), 'utf8')
+const migration = fs.readFileSync(new URL('../supabase/migrations/20260902150000_committee_framework_governance.sql', import.meta.url), 'utf8')
 
 describe('committee framework governance boundary', () => {
   it('does not grant committee creation governance to committee secretariat', () => {
     const secretariat = matrix.match(/\[ROLES\.COMMITTEE_SECRETARIAT\]:\[([^\]]+)\]/)?.[1] ?? ''
-    expect(secretariat).not.toContain('CAPABILITIES.CREATE_COMMITTEE')
-    expect(secretariat).toContain('CAPABILITIES.MANAGE_COMMITTEE_MEMBERS')
+    const capabilities = secretariat.match(/CAPABILITIES\.[A-Z0-9_]+/g) ?? []
+    expect(capabilities).not.toContain('CAPABILITIES.CREATE_COMMITTEE')
+    expect(capabilities).toContain('CAPABILITIES.MANAGE_COMMITTEE_MEMBERS')
   })
 
   it('updates framework through the committees table rather than member workflow', () => {
