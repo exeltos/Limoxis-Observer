@@ -7,6 +7,9 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   const lower=raw.toLowerCase()
   const en=language==='en'
 
+  if(lower.includes('committee_minutes_approver_account_required')){
+    return en?'The minutes cannot be submitted for approval because one or more present voting members do not have a linked user account.':'Δεν είναι δυνατή η υποβολή των πρακτικών για έγκριση, επειδή ένα ή περισσότερα παρόντα μέλη με δικαίωμα ψήφου δεν διαθέτουν συνδεδεμένο λογαριασμό.'
+  }
   if(lower.includes('committee_membership_approval_not_available')){
     return en?'This participation request is no longer available for approval.':'Το αίτημα συμμετοχής δεν είναι πλέον διαθέσιμο για έγκριση.'
   }
