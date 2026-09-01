@@ -1,13 +1,18 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { loadCommittees as loadCommitteesLocal, inferTemplate } from './committeeData'
+import { loadCommittees as loadCommitteesLocal, saveCommittees as saveCommitteesLocal, inferTemplate, nextCommitteeId } from './committeeData'
 
 const MEMBER_COLUMNS = 'id,employee_id,member_name,title,responsibilities,member_type,has_vote,approval_status,started_at,ended_at,employee:employees(employee_code)'
-const COMMITTEE_COLUMNS = `code,name,short_name,committee_type,status,mandate,legal_basis,decision_number,term_start,term_end,meeting_frequency,quorum_rule,notes,created_at,updated_at,committee_members!committee_members_tenant_fk(${MEMBER_COLUMNS})`
+const COMMITTEE_COLUMNS = `id,organization_id,code,name,short_name,committee_type,status,mandate,legal_basis,decision_number,term_start,term_end,meeting_frequency,quorum_rule,notes,created_at,updated_at,committee_members!committee_members_tenant_fk(${MEMBER_COLUMNS})`
 
-// Chair/secretary are not stored columns on the real table — like the frontend
-// already does today for its local data, they're derived from member titles.
+function requireProduction(organizationId,operation){
+  if(isDemoDataEnvironment())return false
+  if(!hasSupabaseConfig||!supabase)throw new Error(`PRODUCTION_COMMITTEES_SUPABASE_REQUIRED:${operation}`)
+  if(!organizationId)throw new Error(`PRODUCTION_COMMITTEES_ORGANIZATION_REQUIRED:${operation}`)
+  return true
+}
+
 function deriveOfficer(memberRefs, pattern) {
   return memberRefs.find(x => pattern.test(x.committeeTitle))?.name || ''
 }
@@ -28,6 +33,7 @@ function fromMemberRow(row) {
     approvalStatus: row.approval_status,
     active: !row.ended_at,
     startedAt: row.started_at,
+    endedAt: row.ended_at || null,
   }
 }
 
@@ -36,6 +42,8 @@ function fromRow(row) {
   const base = { name: row.name, shortName: row.short_name || '' }
   return {
     id: row.code,
+    dbId: row.id,
+    organizationId: row.organization_id,
     templateId: inferTemplate(base),
     name: row.name,
     shortName: row.short_name || '',
@@ -54,9 +62,6 @@ function fromRow(row) {
     notes: row.notes || '',
     members: memberRefs.map(x => x.name),
     memberRefs,
-    // Meetings/decisions/annual plan/history are not wired to the cloud yet
-    // (see the file header comment) — a cloud-backed committee starts with
-    // an empty workflow history rather than crashing on a missing array.
     meetings: [],
     decisions: [],
     annualPlan: [],
@@ -66,23 +71,19 @@ function fromRow(row) {
   }
 }
 
-export function cloudEnabled() {
-  return hasSupabaseConfig && Boolean(supabase)
+export function committeesCloudEnabled() {
+  return hasSupabaseConfig && Boolean(supabase) && !isDemoDataEnvironment()
 }
 
 export async function loadCommitteesAsync(organizationId) {
-  if (!cloudEnabled() || !organizationId || isDemoDataEnvironment()) return loadCommitteesLocal()
-  const { data, error } = await supabase
-    .from('committees')
-    .select(COMMITTEE_COLUMNS)
-    .eq('organization_id', organizationId)
-    .order('name')
+  if(!requireProduction(organizationId,'load'))return loadCommitteesLocal()
+  const { data, error } = await supabase.from('committees').select(COMMITTEE_COLUMNS).eq('organization_id', organizationId).order('name')
   if (error) throw error
   return (data || []).map(fromRow)
 }
 
 export async function getNextCommitteeCodeAsync(organizationId) {
-  if (!cloudEnabled() || !organizationId || isDemoDataEnvironment()) return null // caller falls back to the existing local nextCommitteeId()
+  if(!requireProduction(organizationId,'next_code'))return nextCommitteeId(loadCommitteesLocal())
   const { data, error } = await supabase.from('committees').select('code').eq('organization_id', organizationId)
   if (error) throw error
   const used = new Set((data || []).map(r => r.code))
@@ -92,10 +93,14 @@ export async function getNextCommitteeCodeAsync(organizationId) {
 }
 
 export async function createCommitteeAsync(organizationId, draft) {
-  if (!cloudEnabled() || !organizationId || isDemoDataEnvironment()) return null // caller falls back to the existing local nextCommitteeId()+saveCommittees() path
-  const { data: committee, error: committeeError } = await supabase
-    .from('committees')
-    .insert({
+  if(!requireProduction(organizationId,'create')){
+    const rows=loadCommitteesLocal()
+    const now=new Date().toISOString()
+    const row={...draft,id:draft.id||nextCommitteeId(rows),status:'active',createdAt:now,updatedAt:now,meetings:draft.meetings||[],decisions:draft.decisions||[],annualPlan:draft.annualPlan||[],history:draft.history||[]}
+    saveCommitteesLocal([row,...rows])
+    return row
+  }
+  const { data: committee, error: committeeError } = await supabase.from('committees').insert({
       organization_id: organizationId,
       code: draft.id,
       name: draft.name,
@@ -110,17 +115,14 @@ export async function createCommitteeAsync(organizationId, draft) {
       meeting_frequency: draft.meetingFrequency || null,
       quorum_rule: draft.quorumRule || null,
       notes: draft.notes || null,
-    })
-    .select('code,name,short_name,committee_type,status,mandate,legal_basis,decision_number,term_start,term_end,meeting_frequency,quorum_rule,notes,created_at,updated_at,id')
-    .single()
+    }).select('id,organization_id,code,name,short_name,committee_type,status,mandate,legal_basis,decision_number,term_start,term_end,meeting_frequency,quorum_rule,notes,created_at,updated_at').single()
   if (committeeError) {
     if (committeeError.code === '23505') throw new Error('DUPLICATE_COMMITTEE_CODE')
     throw committeeError
   }
   const memberRefs = draft.memberRefs || []
   if (memberRefs.length) {
-    const { error: membersError } = await supabase.from('committee_members').insert(
-      memberRefs.map(m => ({
+    const { error: membersError } = await supabase.from('committee_members').insert(memberRefs.map(m => ({
         committee_id: committee.id,
         organization_id: organizationId,
         employee_id: m.employeeDbId || null,
@@ -130,13 +132,8 @@ export async function createCommitteeAsync(organizationId, draft) {
         member_type: m.memberType || 'regular',
         has_vote: m.voting !== false,
         approval_status: m.approvalRequired ? 'pending' : 'not_required',
-      }))
-    )
+      })))
     if (membersError) {
-      // Don't leave an orphaned, member-less committee behind on failure —
-      // it would keep occupying its code, causing a confusing
-      // "code already in use" on the very next retry (found live: a failed
-      // attempt during this session's own testing left exactly this behind).
       try { await supabase.from('committees').delete().eq('id', committee.id) } catch { /* best-effort cleanup */ }
       throw membersError
     }
