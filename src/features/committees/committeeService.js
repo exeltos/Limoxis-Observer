@@ -3,7 +3,7 @@ import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadCommittees as loadCommitteesLocal, saveCommittees as saveCommitteesLocal, inferTemplate, nextCommitteeId } from './committeeData'
 
-const MEMBER_COLUMNS = 'id,employee_id,member_name,title,responsibilities,member_type,has_vote,approval_status,started_at,ended_at,employee:employees(employee_code)'
+const MEMBER_COLUMNS = 'id,client_key,employee_id,member_name,title,responsibilities,member_type,has_vote,approval_status,started_at,ended_at,employee:employees(employee_code)'
 const COMMITTEE_COLUMNS = `id,organization_id,code,name,short_name,committee_type,status,mandate,legal_basis,decision_number,term_start,term_end,meeting_frequency,quorum_rule,notes,created_at,updated_at,committee_members!committee_members_tenant_fk(${MEMBER_COLUMNS})`
 
 function requireProduction(organizationId,operation){
@@ -19,7 +19,8 @@ function deriveOfficer(memberRefs, pattern) {
 
 function fromMemberRow(row) {
   return {
-    id: row.id,
+    id: row.client_key || row.id,
+    dbId: row.id,
     employeeId: row.employee?.employee_code || '',
     employeeDbId: row.employee_id || null,
     name: row.member_name,
@@ -37,15 +38,18 @@ function fromMemberRow(row) {
   }
 }
 
-function fromMeetingRow(row,attendance=[],approvals=[]){
+function fromMeetingRow(row,attendance=[],approvals=[],memberKeyByDbId=new Map()){
   const attendanceRows=attendance.filter(x=>x.meeting_id===row.id)
   const approvalRows=approvals.filter(x=>x.meeting_id===row.id)
   return {
-    id:row.id,
+    id:row.client_key||row.id,
     dbId:row.id,
     date:row.scheduled_at?.slice(0,10)||'',
+    time:row.scheduled_at?.slice(11,16)||'',
     scheduledAt:row.scheduled_at,
     title:row.title,
+    meetingType:row.meeting_type||'regular',
+    location:row.location||'',
     status:row.status,
     attendance:attendanceRows.filter(x=>x.attendance_status==='present').length,
     quorum:row.quorum_met,
@@ -57,8 +61,15 @@ function fromMeetingRow(row,attendance=[],approvals=[]){
     finalizedAt:row.finalized_at||null,
     finalizedById:row.finalized_by||null,
     attendanceRecords:attendanceRows.map(x=>({
-      id:x.id,memberId:x.member_id||null,employeeDbId:x.employee_id||null,name:x.attendee_name,
-      status:x.attendance_status,voting:x.has_vote,recordedById:x.recorded_by||null,
+      id:x.client_key||x.id,
+      dbId:x.id,
+      memberId:x.member_id?(memberKeyByDbId.get(x.member_id)||x.member_id):null,
+      memberDbId:x.member_id||null,
+      employeeDbId:x.employee_id||null,
+      name:x.attendee_name,
+      status:x.attendance_status,
+      voting:x.has_vote,
+      recordedById:x.recorded_by||null,
     })),
     approvalState:approvalRows.length?(approvalRows.every(x=>x.status==='approved')?'completed':approvalRows.some(x=>x.status==='rejected')?'rejected':'pending'):'not_started',
     approvals:approvalRows.map(x=>({id:x.id,approverId:x.approver_id,memberId:x.member_id||null,status:x.status,comment:x.comment||'',requestedAt:x.requested_at,decidedAt:x.decided_at||null})),
@@ -66,18 +77,20 @@ function fromMeetingRow(row,attendance=[],approvals=[]){
 }
 
 function fromDecisionRow(row){
-  return {id:row.id,dbId:row.id,meetingId:row.meeting_id||null,title:row.title,action:row.action||'',ownerId:row.owner_id||null,owner:'',dueDate:row.due_date||'',priority:row.priority,status:row.status,createdAt:row.created_at,updatedAt:row.updated_at}
+  return {id:row.client_key||row.id,dbId:row.id,meetingId:row.meeting_id||null,topicId:row.topic_key||null,title:row.title,action:row.action||'',ownerId:row.owner_id||null,owner:row.owner_label||'',dueDate:row.due_date||'',priority:row.priority,status:row.status,createdAt:row.created_at,updatedAt:row.updated_at}
 }
 function fromPlanRow(row){
-  return {id:row.id,dbId:row.id,title:row.title,indicator:row.indicator||'',baseline:row.baseline||'',target:row.target||'',ownerId:row.owner_id||null,owner:'',dueDate:row.due_date||'',status:row.status,createdAt:row.created_at,updatedAt:row.updated_at}
+  return {id:row.client_key||row.id,dbId:row.id,title:row.title,indicator:row.indicator||'',baseline:row.baseline||'',target:row.target||'',ownerId:row.owner_id||null,owner:row.owner_label||'',dueDate:row.due_date||'',status:row.status,createdAt:row.created_at,updatedAt:row.updated_at}
 }
 function fromHistoryRow(row){return {id:row.id,at:row.created_at,actorId:row.actor_id,actor:'',action:row.action,reason:row.reason||'',eventData:row.event_data||{}}}
 function fromDocumentRow(row){return {id:row.id,dbId:row.id,documentId:row.document_id||null,kind:row.document_kind,attachment:row.attachment||null,createdById:row.created_by,createdAt:row.created_at}}
 
 function fromRow(row,workflow={}) {
   const memberRefs = (row.committee_members || []).map(fromMemberRow)
+  const memberKeyByDbId=new Map(memberRefs.filter(x=>x.dbId).map(x=>[x.dbId,x.id]))
   const base = { name: row.name, shortName: row.short_name || '' }
-  const meetings=(workflow.meetings||[]).filter(x=>x.committee_id===row.id).map(x=>fromMeetingRow(x,workflow.attendance||[],workflow.approvals||[]))
+  const meetings=(workflow.meetings||[]).filter(x=>x.committee_id===row.id).map(x=>fromMeetingRow(x,workflow.attendance||[],workflow.approvals||[],memberKeyByDbId))
+  const meetingKeyByDbId=new Map(meetings.filter(x=>x.dbId).map(x=>[x.dbId,x.id]))
   return {
     id: row.code,
     dbId: row.id,
@@ -101,7 +114,7 @@ function fromRow(row,workflow={}) {
     members: memberRefs.map(x => x.name),
     memberRefs,
     meetings,
-    decisions:(workflow.decisions||[]).filter(x=>x.committee_id===row.id).map(fromDecisionRow),
+    decisions:(workflow.decisions||[]).filter(x=>x.committee_id===row.id).map(fromDecisionRow).map(x=>({...x,meetingId:x.meetingId?(meetingKeyByDbId.get(x.meetingId)||x.meetingId):null})),
     annualPlan:(workflow.plan||[]).filter(x=>x.committee_id===row.id).map(fromPlanRow),
     documents:(workflow.documents||[]).filter(x=>x.committee_id===row.id).map(fromDocumentRow),
     history:(workflow.history||[]).filter(x=>x.committee_id===row.id).map(fromHistoryRow),
@@ -125,11 +138,11 @@ export async function loadCommitteesAsync(organizationId) {
   const { data, error } = await supabase.from('committees').select(COMMITTEE_COLUMNS).eq('organization_id', organizationId).order('name')
   if (error) throw error
   const [meetings,attendance,decisions,approvals,plan,documents,history]=await Promise.all([
-    selectRows('committee_meetings','id,committee_id,organization_id,title,scheduled_at,status,minutes_number,quorum_met,agenda,minutes,finalized_at,finalized_by,created_by,created_at,updated_at',organizationId),
-    selectRows('committee_meeting_attendance','id,meeting_id,committee_id,organization_id,member_id,employee_id,attendee_name,attendance_status,has_vote,recorded_by,created_at,updated_at',organizationId),
-    selectRows('committee_decisions','id,committee_id,meeting_id,organization_id,title,action,owner_id,due_date,priority,status,created_at,updated_at',organizationId),
+    selectRows('committee_meetings','id,client_key,committee_id,organization_id,title,scheduled_at,meeting_type,location,status,minutes_number,quorum_met,agenda,minutes,finalized_at,finalized_by,created_by,created_at,updated_at',organizationId),
+    selectRows('committee_meeting_attendance','id,client_key,meeting_id,committee_id,organization_id,member_id,employee_id,attendee_name,attendance_status,has_vote,recorded_by,created_at,updated_at',organizationId),
+    selectRows('committee_decisions','id,client_key,committee_id,meeting_id,organization_id,topic_key,title,action,owner_id,owner_label,due_date,priority,status,created_at,updated_at',organizationId),
     selectRows('committee_minutes_approvals','id,meeting_id,committee_id,organization_id,approver_id,member_id,status,comment,requested_at,decided_at,created_at,updated_at',organizationId),
-    selectRows('committee_plan_items','id,committee_id,organization_id,title,indicator,baseline,target,owner_id,due_date,status,created_at,updated_at',organizationId),
+    selectRows('committee_plan_items','id,client_key,committee_id,organization_id,title,indicator,baseline,target,owner_id,owner_label,due_date,status,created_at,updated_at',organizationId),
     selectRows('committee_documents','id,committee_id,organization_id,document_id,document_kind,attachment,created_by,created_at',organizationId),
     selectRows('committee_history','id,committee_id,organization_id,action,reason,event_data,actor_id,created_at',organizationId),
   ])
@@ -177,9 +190,10 @@ export async function createCommitteeAsync(organizationId, draft) {
   }
   const memberRefs = draft.memberRefs || []
   if (memberRefs.length) {
-    const { error: membersError } = await supabase.from('committee_members').insert(memberRefs.map(m => ({
+    const { error: membersError } = await supabase.from('committee_members').insert(memberRefs.map((m,index) => ({
         committee_id: committee.id,
         organization_id: organizationId,
+        client_key: m.id || `CM-${Date.now()}-${index}`,
         employee_id: m.employeeDbId || null,
         member_name: m.name,
         title: m.committeeTitle,
@@ -187,11 +201,14 @@ export async function createCommitteeAsync(organizationId, draft) {
         member_type: m.memberType || 'regular',
         has_vote: m.voting !== false,
         approval_status: m.approvalRequired ? 'pending' : 'not_required',
+        started_at: m.startedAt ? String(m.startedAt).slice(0,10) : null,
       })))
     if (membersError) {
       try { await supabase.from('committees').delete().eq('id', committee.id) } catch { /* best-effort cleanup */ }
       throw membersError
     }
   }
-  return fromRow({ ...committee, committee_members: memberRefs.map((m, i) => ({ id: `pending-${i}`, employee_id: m.employeeDbId, employee: { employee_code: m.employeeId }, member_name: m.name, title: m.committeeTitle, responsibilities: m.responsibilities, member_type: m.memberType, has_vote: m.voting !== false, approval_status: m.approvalRequired ? 'pending' : 'not_required', started_at: null, ended_at: null })) })
+  const {data:created,error:reloadError}=await supabase.from('committees').select(COMMITTEE_COLUMNS).eq('id',committee.id).single()
+  if(reloadError)throw reloadError
+  return fromRow(created)
 }
