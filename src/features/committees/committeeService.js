@@ -81,6 +81,16 @@ export async function loadCommitteesAsync(organizationId) {
   return (data || []).map(fromRow)
 }
 
+export async function getNextCommitteeCodeAsync(organizationId) {
+  if (!cloudEnabled() || !organizationId || isDemoDataEnvironment()) return null // caller falls back to the existing local nextCommitteeId()
+  const { data, error } = await supabase.from('committees').select('code').eq('organization_id', organizationId)
+  if (error) throw error
+  const used = new Set((data || []).map(r => r.code))
+  let n = 1
+  while (used.has(`COM-${String(n).padStart(3, '0')}`)) n++
+  return `COM-${String(n).padStart(3, '0')}`
+}
+
 export async function createCommitteeAsync(organizationId, draft) {
   if (!cloudEnabled() || !organizationId || isDemoDataEnvironment()) return null // caller falls back to the existing local nextCommitteeId()+saveCommittees() path
   const { data: committee, error: committeeError } = await supabase
@@ -122,7 +132,14 @@ export async function createCommitteeAsync(organizationId, draft) {
         approval_status: m.approvalRequired ? 'pending' : 'not_required',
       }))
     )
-    if (membersError) throw membersError
+    if (membersError) {
+      // Don't leave an orphaned, member-less committee behind on failure —
+      // it would keep occupying its code, causing a confusing
+      // "code already in use" on the very next retry (found live: a failed
+      // attempt during this session's own testing left exactly this behind).
+      try { await supabase.from('committees').delete().eq('id', committee.id) } catch { /* best-effort cleanup */ }
+      throw membersError
+    }
   }
   return fromRow({ ...committee, committee_members: memberRefs.map((m, i) => ({ id: `pending-${i}`, employee_id: m.employeeDbId, employee: { employee_code: m.employeeId }, member_name: m.name, title: m.committeeTitle, responsibilities: m.responsibilities, member_type: m.memberType, has_vote: m.voting !== false, approval_status: m.approvalRequired ? 'pending' : 'not_required', started_at: null, ended_at: null })) })
 }

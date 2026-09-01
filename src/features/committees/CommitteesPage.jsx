@@ -10,7 +10,7 @@ import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can,CAPABILITIES } from '../../core/permissions/roles'
 import { loadCommittees,nextCommitteeId,saveCommittees } from './committeeData'
-import { createCommitteeAsync } from './committeeService'
+import { createCommitteeAsync, getNextCommitteeCodeAsync } from './committeeService'
 import { useCommitteesData } from './useCommitteesData'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
@@ -91,7 +91,7 @@ function CommitteeCreateDialog({actor,onClose,onCreated,language}){
   if(!valid||saving)return
   setSaving(true)
   try{
-   const rows=loadCommittees(),id=nextCommitteeId(rows),now=new Date().toISOString()
+   const rows=loadCommittees(),id=(await getNextCommitteeCodeAsync(tenant?.id??null))||nextCommitteeId(rows),now=new Date().toISOString()
    const memberRefs=draft.members.map((m,i)=>{const person=staff.find(x=>x.id===m.employeeId);return {id:`CM-${Date.now()}-${i}`,employeeId:m.employeeId,employeeDbId:person?.dbId||null,name:person?.name||'',email:person?.email||'',department:person?.department||'',profession:person?.profession||'',committeeTitle:m.title.trim(),responsibilities:m.responsibilities.trim(),voting:m.voting,memberType:m.memberType||'regular',approvalRequired:m.approvalRequired,approvalStatus:m.approvalRequired?'pending':'not_required',active:true,startedAt:now,endedAt:null}})
    const chair=memberRefs.find(x=>/πρόεδ|συντον/i.test(x.committeeTitle)),secretary=memberRefs.find(x=>/γραμματ/i.test(x.committeeTitle))
    const localRecord={id,name:draft.name.trim(),shortName:draft.shortName.trim(),status:'active',templateId:draft.templateId,structureKind:template.kind,isCoreCommittee:template.core,committeeRole:draft.committeeRole.trim(),mandate:draft.mandate.trim(),legalBasis:draft.legalBasis.trim(),officialRelation:template.relation,roleGuidance:template.roleGuidance||[],requiredFunctions:template.requiredFunctions,decisionNumber:draft.decisionNumber.trim(),termStart:draft.termStart,termEnd:draft.termEnd,meetingFrequency:draft.meetingFrequency,quorumRule:draft.quorumRule,notes:draft.notes.trim(),chair:chair?.name||'',secretary:secretary?.name||'',memberRefs,members:memberRefs.map(x=>x.name),meetings:[],decisions:[],annualPlan:[],createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Δημιουργία',reason:draft.name},{at:now,actor:actor.name,actorId:actor.id,action:'Αρχική σύνθεση',reason:`${memberRefs.length} μέλη`}]}

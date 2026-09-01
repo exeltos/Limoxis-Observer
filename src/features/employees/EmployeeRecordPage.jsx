@@ -9,6 +9,7 @@ import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { demoLibrarySeed } from '../management/managementData'
 import { AttachmentField } from '../../design-system/AttachmentField'
+import { uploadAttachment } from '../../core/attachments/attachmentService'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -216,8 +217,31 @@ function Certificates({employee,t,language,fmt,selfMode,canAdmin,notify,organiza
           notify(t('employeesRecords.certificateUpdated'),'success')
         }else{
           const created=await createCertificateAsync(organizationId,employee.dbId,draft)
-          setAllRows([created,...allRows])
-          notify(t('employeesRecords.certificateAdded'),'success')
+          // The dialog's AttachmentField had no real certificate id yet while
+          // this was a new record, so any file added just now is still only
+          // a local, unpersisted staged copy (objectUrl/dataUrl in memory) —
+          // never actually uploaded anywhere. Migrate each staged file to
+          // real cloud storage now that the certificate has a real id,
+          // instead of silently discarding it on the very next reload
+          // (found live: exactly this — an attached file "disappeared").
+          const staged=(draft.attachments||[]).filter(a=>a.objectUrl&&!a.storagePath)
+          let migratedCount=0
+          for(const att of staged){
+            try{
+              const blob=await fetch(att.objectUrl).then(r=>r.blob())
+              const file=new File([blob],att.name,{type:att.type||undefined})
+              await uploadAttachment(organizationId,'employee_certificate',created.id,file,{category:att.category,description:att.description})
+              migratedCount++
+            }catch{
+              // Continue with the remaining files; report the partial failure below.
+            }
+          }
+          if(staged.length&&migratedCount<staged.length){
+            notify(language==='en'?'Certificate saved, but not every attachment could be uploaded — please re-add the missing file(s).':'Το πιστοποιητικό αποθηκεύτηκε, αλλά κάποια συνημμένα δεν ανέβηκαν — προσθέστε ξανά το/τα αρχείο/α που λείπουν.','danger')
+          }else{
+            notify(t('employeesRecords.certificateAdded'),'success')
+          }
+          setAllRows([{...created,attachments:new Array(migratedCount).fill(null)},...allRows])
         }
         close()
       }catch{
