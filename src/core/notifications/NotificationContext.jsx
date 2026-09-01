@@ -4,6 +4,7 @@ import { useTenant } from '../tenant/TenantContext'
 import { useEmployeesData } from '../../features/employees/useEmployeesData'
 import { useLanguage } from '../i18n/LanguageContext'
 import { loadSnapshot, saveSnapshot } from '../data/repository'
+import { loadMyPendingCommitteeMembershipsAsync,answerMyCommitteeMembershipAsync } from '../../features/committees/committeeMembershipService'
 
 const NotificationContext=createContext(null)
 
@@ -12,105 +13,31 @@ const demoAnnouncements=[
  {id:'ANN-002',title:'Υπενθύμιση εκπαίδευσης',message:'Η νέα ενότητα πρόληψης λοιμώξεων είναι διαθέσιμη στο Κέντρο Εκπαίδευσης.',priority:'normal',audienceType:'all',audienceValues:[],createdBy:'Διαχειριστής',createdAt:'2026-08-28T12:00:00',requiresAck:false,startAt:'',endAt:''},
 ]
 function valuesFor(a){return Array.isArray(a.audienceValues)?a.audienceValues:(a.audienceValue?[a.audienceValue]:[])}
-function applies(a,{role,membership,user,profile}){
- const vals=valuesFor(a)
- if(a.audienceType==='all')return true
- if(a.audienceType==='role')return vals.includes(role)
- if(a.audienceType==='department'){
-   const own=[...(membership?.departmentIds||[]),membership?.previewDepartment].filter(Boolean)
-   return vals.some(v=>own.includes(v))
- }
- if(a.audienceType==='user')return vals.some(v=>[user?.id,user?.email,profile?.id,profile?.email].filter(Boolean).includes(v))
- return false
-}
-function withinWindow(a,now=Date.now()){
- const start=a.startAt?new Date(a.startAt).getTime():null
- const end=a.endAt?new Date(a.endAt).getTime():null
- return (!start||Number.isNaN(start)||now>=start)&&(!end||Number.isNaN(end)||now<=end)
-}
-const demoAnnouncementText={
- el:{
-  'ANN-001':{title:'Ενημέρωση Επιτήρησης',message:'Παρακαλούμε να ολοκληρωθούν οι εκκρεμείς επανεκτιμήσεις απομόνωσης.'},
-  'ANN-002':{title:'Υπενθύμιση εκπαίδευσης',message:'Η νέα ενότητα πρόληψης λοιμώξεων είναι διαθέσιμη στο Κέντρο Εκπαίδευσης.'},
- },
- en:{
-  'ANN-001':{title:'Surveillance update',message:'Please complete the pending isolation reassessments.'},
-  'ANN-002':{title:'Training reminder',message:'The new infection prevention module is available in the Training Center.'},
- }
-}
-const operationalText={
- el:{
-  infection_control_lead:[['Επανεκτιμήσεις απομόνωσης','4','/surveillance'],['Εκπρόθεσμοι έλεγχοι','3','/controls'],['Εκκρεμείς εγκρίσεις','5','/pharmacy']],
-  infection_control_member:[['Ενεργές επιτηρήσεις','6','/surveillance'],['Νέα εργαστηριακά αποτελέσματα','2','/laboratory']],
-  laboratory:[['Αποτελέσματα προς επικύρωση','3','/laboratory'],['Κρίσιμα αποτελέσματα','1','/laboratory']],
-  department_manager:[['Εκκρεμότητες τμήματος','3','/my-department'],['Εκπαίδευση σε εκκρεμότητα','2','/training']],
-  department_user:[['Ανατεθειμένη εκπαίδευση','1','/training']],
-  occupational_physician:[['Επανέλεγχοι εργαζομένων','2','/occupational-health']],
-  pharmacy:[['Εγκρίσεις αντιβιοτικών','3','/pharmacy']],
-  quality_manager:[['CAPA εκπρόθεσμα','2','/quality']],
-  doctor_reviewer:[['Ιατρικές εγκρίσεις','4','/surveillance']],
-  hospital_admin:[['Εκκρεμότητες διαχείρισης','3','/management'],['Alerts συστήματος','2','/management']],
-  platform_owner:[['Ενεργοποιήσεις οργανισμών','2','/management']],
- },
- en:{
-  infection_control_lead:[['Isolation reassessments','4','/surveillance'],['Overdue controls','3','/controls'],['Pending approvals','5','/pharmacy']],
-  infection_control_member:[['Active surveillance episodes','6','/surveillance'],['New laboratory results','2','/laboratory']],
-  laboratory:[['Results awaiting validation','3','/laboratory'],['Critical results','1','/laboratory']],
-  department_manager:[['Department pending work','3','/my-department'],['Training pending','2','/training']],
-  department_user:[['Assigned training','1','/training']],
-  occupational_physician:[['Employee follow-up','2','/occupational-health']],
-  pharmacy:[['Antimicrobial approvals','3','/pharmacy']],
-  quality_manager:[['Overdue CAPA','2','/quality']],
-  doctor_reviewer:[['Clinical approvals','4','/surveillance']],
-  hospital_admin:[['Management pending work','3','/management'],['System alerts','2','/management']],
-  platform_owner:[['Organization activations','2','/management']],
- }
-}
+function applies(a,{role,membership,user,profile}){const vals=valuesFor(a);if(a.audienceType==='all')return true;if(a.audienceType==='role')return vals.includes(role);if(a.audienceType==='department'){const own=[...(membership?.departmentIds||[]),membership?.previewDepartment].filter(Boolean);return vals.some(v=>own.includes(v))}if(a.audienceType==='user')return vals.some(v=>[user?.id,user?.email,profile?.id,profile?.email].filter(Boolean).includes(v));return false}
+function withinWindow(a,now=Date.now()){const start=a.startAt?new Date(a.startAt).getTime():null,end=a.endAt?new Date(a.endAt).getTime():null;return (!start||Number.isNaN(start)||now>=start)&&(!end||Number.isNaN(end)||now<=end)}
+const demoAnnouncementText={el:{'ANN-001':{title:'Ενημέρωση Επιτήρησης',message:'Παρακαλούμε να ολοκληρωθούν οι εκκρεμείς επανεκτιμήσεις απομόνωσης.'},'ANN-002':{title:'Υπενθύμιση εκπαίδευσης',message:'Η νέα ενότητα πρόληψης λοιμώξεων είναι διαθέσιμη στο Κέντρο Εκπαίδευσης.'}},en:{'ANN-001':{title:'Surveillance update',message:'Please complete the pending isolation reassessments.'},'ANN-002':{title:'Training reminder',message:'The new infection prevention module is available in the Training Center.'}}}
+const operationalText={el:{infection_control_lead:[['Επανεκτιμήσεις απομόνωσης','4','/surveillance'],['Εκπρόθεσμοι έλεγχοι','3','/controls'],['Εκκρεμείς εγκρίσεις','5','/pharmacy']],infection_control_member:[['Ενεργές επιτηρήσεις','6','/surveillance'],['Νέα εργαστηριακά αποτελέσματα','2','/laboratory']],laboratory:[['Αποτελέσματα προς επικύρωση','3','/laboratory'],['Κρίσιμα αποτελέσματα','1','/laboratory']],department_manager:[['Εκκρεμότητες τμήματος','3','/my-department'],['Εκπαίδευση σε εκκρεμότητα','2','/training']],department_user:[['Ανατεθειμένη εκπαίδευση','1','/training']],occupational_physician:[['Επανέλεγχοι εργαζομένων','2','/occupational-health']],pharmacy:[['Εγκρίσεις αντιβιοτικών','3','/pharmacy']],quality_manager:[['CAPA εκπρόθεσμα','2','/quality']],doctor_reviewer:[['Ιατρικές εγκρίσεις','4','/surveillance']],hospital_admin:[['Εκκρεμότητες διαχείρισης','3','/management'],['Alerts συστήματος','2','/management']],platform_owner:[['Ενεργοποιήσεις οργανισμών','2','/management']]},en:{infection_control_lead:[['Isolation reassessments','4','/surveillance'],['Overdue controls','3','/controls'],['Pending approvals','5','/pharmacy']],infection_control_member:[['Active surveillance episodes','6','/surveillance'],['New laboratory results','2','/laboratory']],laboratory:[['Results awaiting validation','3','/laboratory'],['Critical results','1','/laboratory']],department_manager:[['Department pending work','3','/my-department'],['Training pending','2','/training']],department_user:[['Assigned training','1','/training']],occupational_physician:[['Employee follow-up','2','/occupational-health']],pharmacy:[['Antimicrobial approvals','3','/pharmacy']],quality_manager:[['Overdue CAPA','2','/quality']],doctor_reviewer:[['Clinical approvals','4','/surveillance']],hospital_admin:[['Management pending work','3','/management'],['System alerts','2','/management']],platform_owner:[['Organization activations','2','/management']]}}
 export function NotificationProvider({children}){
- const {user,profile}=useAuth(); const {role,membership}=useTenant(); const {language}=useLanguage()
- const [announcements,setAnnouncements]=useState(()=>loadSnapshot('announcements',null)||demoAnnouncements)
- const [reads,setReads]=useState(()=>loadSnapshot('notification_reads',{}))
- const [clock,setClock]=useState(Date.now())
+ const {user,profile}=useAuth(); const {role,membership,tenant,isDemo}=useTenant(); const {language}=useLanguage()
+ const [announcements,setAnnouncements]=useState(()=>loadSnapshot('announcements',null)||demoAnnouncements),[reads,setReads]=useState(()=>loadSnapshot('notification_reads',{})),[committeeMemberships,setCommitteeMemberships]=useState([]),[clock,setClock]=useState(Date.now())
  useEffect(()=>{const id=window.setInterval(()=>setClock(Date.now()),60000);return()=>window.clearInterval(id)},[])
- const announcementsMounted=useRef(false)
- const readsMounted=useRef(false)
- useEffect(()=>{
-   if(!announcementsMounted.current){announcementsMounted.current=true;return}
-   saveSnapshot('announcements',announcements)
- },[announcements])
- useEffect(()=>{
-   if(!readsMounted.current){readsMounted.current=true;return}
-   saveSnapshot('notification_reads',reads)
- },[reads])
+ const announcementsMounted=useRef(false),readsMounted=useRef(false)
+ useEffect(()=>{if(!announcementsMounted.current){announcementsMounted.current=true;return}saveSnapshot('announcements',announcements)},[announcements])
+ useEffect(()=>{if(!readsMounted.current){readsMounted.current=true;return}saveSnapshot('notification_reads',reads)},[reads])
+ const reloadCommitteeMemberships=useCallback(async()=>{if(isDemo||!tenant?.id||!user?.id){setCommitteeMemberships([]);return}try{setCommitteeMemberships(await loadMyPendingCommitteeMembershipsAsync(tenant.id,user.id))}catch{setCommitteeMemberships([])}},[isDemo,tenant?.id,user?.id])
+ useEffect(()=>{void reloadCommitteeMemberships()},[reloadCommitteeMemberships,clock])
  const audience=useMemo(()=>({role,membership,user,profile}),[role,membership,user,profile])
- const visibleAnnouncements=useMemo(()=>announcements.filter(a=>applies(a,audience)&&withinWindow(a,clock)).map(a=>{
-   const localized=demoAnnouncementText[language]?.[a.id]
-   return localized?{...a,...localized}:a
- }).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),[announcements,audience,clock,language])
+ const visibleAnnouncements=useMemo(()=>announcements.filter(a=>applies(a,audience)&&withinWindow(a,clock)).map(a=>{const localized=demoAnnouncementText[language]?.[a.id];return localized?{...a,...localized}:a}).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),[announcements,audience,clock,language])
  const {data:employeeRows}=useEmployeesData()
- const birthday=useMemo(()=>{
-   const today=new Date(); const md=`${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
-   return employeeRows.filter(e=>e.employmentStatus==='active'&&String(e.birthDate||'').slice(5)===md)
- // eslint-disable-next-line react-hooks/exhaustive-deps -- 'clock' is a periodic ticker (60s) forcing this to re-check the current date as the day changes while the app stays open; not read directly in the body.
- },[clock,employeeRows])
- const operational=useMemo(()=>{
-   const base=operationalText[language==='en'?'en':'el']
-   return (base[role]||[]).map((x,i)=>({id:`TASK-${role}-${i}`,title:x[0],count:x[1],to:x[2],type:'task'}))
- },[role,language])
- const notificationItems=useMemo(()=>[
-   ...visibleAnnouncements.map(a=>({...a,type:'announcement',read:Boolean(reads[a.id]),to:'/'})),
-   ...operational.map(o=>({...o,read:Boolean(reads[o.id])}))
- ],[visibleAnnouncements,operational,reads])
- const unreadItems=useMemo(()=>notificationItems.filter(x=>!x.read),[notificationItems])
- const unreadCount=unreadItems.length
- const markRead=useCallback(id=>setReads(r=>({...r,[id]:true})),[])
- const markUnread=useCallback(id=>setReads(r=>{const next={...r};delete next[id];return next}),[])
- const markAllRead=useCallback(()=>setReads(r=>({...r,...Object.fromEntries(notificationItems.map(x=>[x.id,true]))})),[notificationItems])
- const addAnnouncement=useCallback(a=>setAnnouncements(rows=>[{...a,id:a.id||`ANN-${Date.now()}`,createdAt:a.createdAt||new Date().toISOString()},...rows]),[])
- const updateAnnouncement=useCallback(a=>setAnnouncements(rows=>rows.map(x=>x.id===a.id?a:x)),[])
- const removeAnnouncement=useCallback(id=>setAnnouncements(rows=>rows.filter(x=>x.id!==id)),[])
- const resetDemoReads=useCallback(()=>setReads({}),[])
- const value=useMemo(()=>({announcements,visibleAnnouncements,notificationItems,unreadItems,unreadCount,birthday,operational,markRead,markUnread,markAllRead,addAnnouncement,updateAnnouncement,removeAnnouncement,resetDemoReads}),[announcements,visibleAnnouncements,notificationItems,unreadItems,unreadCount,birthday,operational,markRead,markUnread,markAllRead,addAnnouncement,updateAnnouncement,removeAnnouncement,resetDemoReads])
+ const birthday=useMemo(()=>{const today=new Date(),md=`${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;return employeeRows.filter(e=>e.employmentStatus==='active'&&String(e.birthDate||'').slice(5)===md)},[clock,employeeRows])
+ const operational=useMemo(()=>{const base=operationalText[language==='en'?'en':'el'];return (base[role]||[]).map((x,i)=>({id:`TASK-${role}-${i}`,title:x[0],count:x[1],to:x[2],type:'task'}))},[role,language])
+ const membershipItems=useMemo(()=>committeeMemberships.map(item=>({...item,title:language==='en'?'Committee membership approval':'Αποδοχή συμμετοχής σε επιτροπή',message:`${item.committeeName}${item.committeeTitle?` · ${item.committeeTitle}`:''}`,to:item.committeeId?`/committees/${item.committeeId}`:'/committees',read:false})),[committeeMemberships,language])
+ const notificationItems=useMemo(()=>[...membershipItems,...visibleAnnouncements.map(a=>({...a,type:'announcement',read:Boolean(reads[a.id]),to:'/'})),...operational.map(o=>({...o,read:Boolean(reads[o.id])}))],[membershipItems,visibleAnnouncements,operational,reads])
+ const unreadItems=useMemo(()=>notificationItems.filter(x=>!x.read),[notificationItems]),unreadCount=unreadItems.length
+ const markRead=useCallback(id=>setReads(r=>({...r,[id]:true})),[]),markUnread=useCallback(id=>setReads(r=>{const next={...r};delete next[id];return next}),[]),markAllRead=useCallback(()=>setReads(r=>({...r,...Object.fromEntries(notificationItems.filter(x=>x.type!=='committee_membership').map(x=>[x.id,true]))})),[notificationItems])
+ const answerCommitteeMembership=useCallback(async(item,status)=>{await answerMyCommitteeMembershipAsync(item,status);await reloadCommitteeMemberships()},[reloadCommitteeMemberships])
+ const addAnnouncement=useCallback(a=>setAnnouncements(rows=>[{...a,id:a.id||`ANN-${Date.now()}`,createdAt:a.createdAt||new Date().toISOString()},...rows]),[]),updateAnnouncement=useCallback(a=>setAnnouncements(rows=>rows.map(x=>x.id===a.id?a:x)),[]),removeAnnouncement=useCallback(id=>setAnnouncements(rows=>rows.filter(x=>x.id!==id)),[]),resetDemoReads=useCallback(()=>setReads({}),[])
+ const value=useMemo(()=>({announcements,visibleAnnouncements,notificationItems,unreadItems,unreadCount,birthday,operational,committeeMemberships,answerCommitteeMembership,markRead,markUnread,markAllRead,addAnnouncement,updateAnnouncement,removeAnnouncement,resetDemoReads}),[announcements,visibleAnnouncements,notificationItems,unreadItems,unreadCount,birthday,operational,committeeMemberships,answerCommitteeMembership,markRead,markUnread,markAllRead,addAnnouncement,updateAnnouncement,removeAnnouncement,resetDemoReads])
  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>
 }
 export function useNotifications(){const v=useContext(NotificationContext);if(!v)throw new Error('useNotifications must be used inside NotificationProvider');return v}
