@@ -4,6 +4,7 @@ import { useTenant } from '../tenant/TenantContext'
 import { useEmployeesData } from '../../features/employees/useEmployeesData'
 import { useLanguage } from '../i18n/LanguageContext'
 import { loadSnapshot, saveSnapshot } from '../data/repository'
+import { processNotificationOutboxAsync } from './notificationEmailService'
 import { loadMyPendingCommitteeMembershipsAsync,answerMyCommitteeMembershipAsync } from '../../features/committees/committeeMembershipService'
 import { loadMyPendingCommitteeMinutesApprovalsAsync,answerMyCommitteeMinutesApprovalAsync } from '../../features/committees/committeeMinutesApprovalInboxService'
 
@@ -27,7 +28,7 @@ export function NotificationProvider({children}){
  useEffect(()=>{if(!readsMounted.current){readsMounted.current=true;return}saveSnapshot('notification_reads',reads)},[reads])
  const reloadCommitteeMemberships=useCallback(async()=>{if(isDemo||!tenant?.id||!user?.id){setCommitteeMemberships([]);return}try{setCommitteeMemberships(await loadMyPendingCommitteeMembershipsAsync(tenant.id,user.id))}catch{setCommitteeMemberships([])}},[isDemo,tenant?.id,user?.id])
  const reloadCommitteeMinutesApprovals=useCallback(async()=>{if(isDemo||!tenant?.id||!user?.id){setCommitteeMinutesApprovals([]);return}try{setCommitteeMinutesApprovals(await loadMyPendingCommitteeMinutesApprovalsAsync(tenant.id,user.id))}catch{setCommitteeMinutesApprovals([])}},[isDemo,tenant?.id,user?.id])
- useEffect(()=>{void reloadCommitteeMemberships();void reloadCommitteeMinutesApprovals()},[reloadCommitteeMemberships,reloadCommitteeMinutesApprovals,clock])
+ useEffect(()=>{void reloadCommitteeMemberships();void reloadCommitteeMinutesApprovals();if(!isDemo&&tenant?.id)void processNotificationOutboxAsync(tenant.id).catch(()=>{})},[reloadCommitteeMemberships,reloadCommitteeMinutesApprovals,isDemo,tenant?.id,clock])
  const audience=useMemo(()=>({role,membership,user,profile}),[role,membership,user,profile])
  const visibleAnnouncements=useMemo(()=>announcements.filter(a=>applies(a,audience)&&withinWindow(a,clock)).map(a=>{const localized=demoAnnouncementText[language]?.[a.id];return localized?{...a,...localized}:a}).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),[announcements,audience,clock,language])
  const {data:employeeRows}=useEmployeesData()
