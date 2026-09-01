@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6.10.1'
 import { committeeMinutesApprovalEmail } from '../_shared/committeeApprovalEmail.ts'
+import { trainingInvitationEmail } from '../_shared/trainingInvitationEmail.ts'
 
 const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
@@ -38,7 +39,7 @@ Deno.serve(async(req)=>{
   if(!profile?.is_platform_owner&&!membership?.id)return reply({error:'Not authorized'},403)
 
   const transport=nodemailer.createTransport({host:smtpHost,port:smtpPort,secure:smtpPort===465,auth:{user:smtpUser,pass:smtpPass}})
-  const {data:rows,error:listError}=await admin.from('notification_outbox').select('id,recipient_email,subject,payload,attempts').eq('organization_id',organizationId).eq('notification_type','committee_minutes_approval_requested').in('status',['pending','failed']).lte('available_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(20)
+  const {data:rows,error:listError}=await admin.from('notification_outbox').select('id,recipient_email,subject,payload,attempts,notification_type').eq('organization_id',organizationId).in('notification_type',['committee_minutes_approval_requested','training_invitation']).in('status',['pending','failed']).lte('available_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(20)
   if(listError)return reply({error:'Could not load notifications'},500)
 
   let sent=0,failed=0
@@ -47,8 +48,10 @@ Deno.serve(async(req)=>{
     if(claimError||!claimed?.id)continue
     try{
       const payload=row.payload||{}
-      const actionUrl=`${appUrl}${payload.path||'/committees'}`
-      const message=committeeMinutesApprovalEmail({committeeName:payload.committeeName||'',meetingTitle:payload.meetingTitle||'',scheduledAt:payload.scheduledAt||null,actionUrl,language:payload.language==='en'?'en':'el'})
+      const actionUrl=`${appUrl}${payload.path||'/'}`
+      const message=row.notification_type==='training_invitation'
+        ?trainingInvitationEmail({programTitle:payload.programTitle||'',employeeName:payload.employeeName||'',dueDate:payload.dueDate||null,requiresAssessment:Boolean(payload.requiresAssessment),actionUrl,language:payload.language==='en'?'en':'el'})
+        :committeeMinutesApprovalEmail({committeeName:payload.committeeName||'',meetingTitle:payload.meetingTitle||'',scheduledAt:payload.scheduledAt||null,actionUrl,language:payload.language==='en'?'en':'el'})
       await transport.sendMail({from:`Limoxis Observer <${smtpUser}>`,to:row.recipient_email,subject:message.subject||row.subject,html:message.html,text:message.text})
       await admin.from('notification_outbox').update({status:'sent',sent_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()}).eq('id',row.id)
       sent++
