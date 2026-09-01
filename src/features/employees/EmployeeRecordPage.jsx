@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Activity, BriefcaseBusiness, CheckCircle2, FileCheck2, FileSignature, GraduationCap, HeartPulse, Pencil, ShieldCheck, Syringe, Trash2, UserRound, XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -13,7 +13,9 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
-import { loadVaccinations, loadOccupationalVisits, loadEmployeeTraining, loadEvaluations, loadCertificates, saveCertificates } from './employeeRecordsService'
+import { loadCertificates } from './employeeRecordsService'
+import { loadOccupationalVisitsAsync, loadVaccinationsAsync, loadEmployeeTrainingAsync, loadEvaluationsAsync, loadCertificatesAsync, createCertificateAsync, updateCertificateAsync, certificatesCloudEnabled, saveCertificatesLocalFallback } from './employeeSubRecordsService'
+import { useEmployeeSubRecords } from './useEmployeeSubRecords'
 import { useEmployeesData } from './useEmployeesData'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
@@ -33,7 +35,7 @@ export function EmployeeRecordPage({selfMode=false}){
   const {goBack,restored}=useContextualNavigation('/employees')
   const {t,language,locale}=useLanguage()
   const {confirm,notify}=useFeedback()
-  const {role,membership,canAccessRecord,canSeeSensitiveEmployeeHealth,isDemo}=useTenant()
+  const {role,membership,canAccessRecord,canSeeSensitiveEmployeeHealth,isDemo,tenant}=useTenant()
   const {user,profile}=useAuth()
 
   const selfEmployee=useMemo(()=>{
@@ -136,12 +138,12 @@ export function EmployeeRecordPage({selfMode=false}){
           <RecordFact label={t('status')} value={t(employee.employmentStatus)} kind={employee.employmentStatus==='active'?'active':''}/>
         </div>
         {tab==='details'&&<Details employee={employee} t={t} language={language} fmt={fmt} canAdmin={canAdmin} deleteEmployee={deleteEmployee} notify={notify}/>} 
-        {tab==='occupational'&&<Occupational employee={employee} t={t} fmt={fmt}/>} 
-        {tab==='vaccinations'&&<Vaccinations employee={employee} t={t} fmt={fmt}/>} 
+        {tab==='occupational'&&<Occupational employee={employee} t={t} fmt={fmt} organizationId={tenant?.id}/>} 
+        {tab==='vaccinations'&&<Vaccinations employee={employee} t={t} fmt={fmt} organizationId={tenant?.id}/>} 
         {tab==='surveillance'&&<EmployeeSurveillance employee={employee} t={t} language={language} fmt={fmt} version={surveillanceVersion} onNew={()=>setSurveillanceOpen(true)}/>} 
-        {tab==='training'&&<Training employee={employee} t={t} language={language} fmt={fmt}/>} 
-        {tab==='evaluations'&&<Evaluations employee={employee} t={t} language={language} fmt={fmt} selfMode={selfMode}/>} 
-        {tab==='certificates'&&<Certificates employee={employee} t={t} language={language} fmt={fmt} selfMode={selfMode} canAdmin={canAdmin} notify={notify}/>} 
+        {tab==='training'&&<Training employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id}/>} 
+        {tab==='evaluations'&&<Evaluations employee={employee} t={t} language={language} fmt={fmt} selfMode={selfMode} organizationId={tenant?.id}/>} 
+        {tab==='certificates'&&<Certificates employee={employee} t={t} language={language} fmt={fmt} selfMode={selfMode} canAdmin={canAdmin} notify={notify} organizationId={tenant?.id}/>} 
         {tab==='history'&&<History t={t}/>} 
     </EntityRecordShell>
     {surveillanceOpen&&<EmployeeSurveillanceFlow employee={employee} onClose={()=>setSurveillanceOpen(false)} onCreated={()=>setSurveillanceVersion(v=>v+1)}/>} 
@@ -174,26 +176,57 @@ function Details({employee,t,language,fmt,canAdmin,deleteEmployee,notify}){
 }
 function InlineDetail({editing,l,v,display,onChange,type='text'}){if(editing&&type==='date')return <ManualDateField className="detail-item editable" label={l} value={v||''} onChange={onChange}/>;return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<input type={type} value={v||''} onChange={e=>onChange?.(e.target.value)}/>:<strong>{display??v??'—'}</strong>}</div>}
 function InlineSelect({editing,l,v,display,options,language,onChange}){return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<select value={v||''} onChange={e=>onChange(e.target.value)}>{options.map(([el,en])=><option key={el} value={el}>{language==='el'?el:en}</option>)}</select>:<strong>{display||'—'}</strong>}</div>}
-function Occupational({employee,t,fmt}){
-  const rows=loadOccupationalVisits().filter(x=>x.employeeId===employee.id)
+function Occupational({employee,t,fmt,organizationId}){
+  const {data:rows}=useEmployeeSubRecords(loadOccupationalVisitsAsync,organizationId,employee.dbId,employee.id)
   const [attachments,setAttachments]=useState(()=>employee.occupationalAttachments||[])
   return <div className="record-section"><SectionTitle t={t} title="occupationalHealth"/><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{fmt(x.date)}</strong><span>{t(x.type)}</span><small>{t('fitnessStatus')}: {t(x.fitStatus)} · {t('followUp')}: {fmt(x.followUpDate)}</small></article>):<Empty t={t}/>}</div><AttachmentField value={attachments} onChange={setAttachments}/></div>
 }
-function Vaccinations({employee,t,fmt}){const rows=loadVaccinations().filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="vaccinations"/><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{x.vaccine}</strong><span>{t('dose')}: {x.dose}</span><small>{fmt(x.date)} · {t('validUntil')}: {fmt(x.validUntil)} · {t(x.status)}</small></article>):<Empty t={t}/>}</div></div>}
-function Training({employee,t,language,fmt}){const rows=loadEmployeeTraining().filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="training"/>{rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('employeesRecords.trainingTitle')}</th><th>{t('date')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(x=><tr key={x.id}><td><strong>{language==='el'?x.titleEl:x.titleEn}</strong></td><td>{fmt(x.date)}</td><td><span className="status-badge active">{t(x.status)}</span></td></tr>)}</tbody></table></div>:<Empty t={t}/>}</div>}
-function Evaluations({employee,t,language,fmt,selfMode}){const rows=loadEvaluations().filter(x=>x.employeeId===employee.id);return <div className="record-section"><SectionTitle t={t} title="evaluations"/><div className="source-truth-note">{selfMode?t('employeesRecords.selfEvaluationReadOnly'):t('employeesRecords.evaluationGovernance')}</div><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{language==='el'?x.titleEl:x.titleEn}</strong><span>{fmt(x.date)}</span><small>{language==='el'?x.resultEl:x.resultEn}</small></article>):<Empty t={t}/>}</div></div>}
-function Certificates({employee,t,language,fmt,selfMode,canAdmin,notify}){
+function Vaccinations({employee,t,fmt,organizationId}){const {data:rows}=useEmployeeSubRecords(loadVaccinationsAsync,organizationId,employee.dbId,employee.id);return <div className="record-section"><SectionTitle t={t} title="vaccinations"/><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{x.vaccine}</strong><span>{t('dose')}: {x.dose}</span><small>{fmt(x.date)} · {t('validUntil')}: {fmt(x.validUntil)} · {t(x.status)}</small></article>):<Empty t={t}/>}</div></div>}
+function Training({employee,t,language,fmt,organizationId}){const {data:rows}=useEmployeeSubRecords(loadEmployeeTrainingAsync,organizationId,employee.dbId,employee.id);return <div className="record-section"><SectionTitle t={t} title="training"/>{rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('employeesRecords.trainingTitle')}</th><th>{t('date')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(x=><tr key={x.id}><td><strong>{language==='el'?x.titleEl:x.titleEn}</strong></td><td>{fmt(x.date)}</td><td><span className="status-badge active">{t(x.status)}</span></td></tr>)}</tbody></table></div>:<Empty t={t}/>}</div>}
+function Evaluations({employee,t,language,fmt,selfMode,organizationId}){const {data:rows}=useEmployeeSubRecords(loadEvaluationsAsync,organizationId,employee.dbId,employee.id);return <div className="record-section"><SectionTitle t={t} title="evaluations"/><div className="source-truth-note">{selfMode?t('employeesRecords.selfEvaluationReadOnly'):t('employeesRecords.evaluationGovernance')}</div><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{language==='el'?x.titleEl:x.titleEn}</strong><span>{fmt(x.date)}</span><small>{language==='el'?x.resultEl:x.resultEn}</small></article>):<Empty t={t}/>}</div></div>}
+function Certificates({employee,t,language,fmt,selfMode,canAdmin,notify,organizationId}){
   const emptyDraft={titleEl:'',titleEn:'',issuer:'',issueDate:'',validUntil:'',certificateNumber:'',attachments:[]}
-  const [allRows,setAllRows]=useState(loadCertificates)
-  const rows=allRows.filter(x=>x.employeeId===employee.id)
+  const cloud=certificatesCloudEnabled(employee.dbId)
+  const [allRows,setAllRows]=useState(cloud?[]:loadCertificates)
+  const [loading,setLoading]=useState(cloud)
+  useEffect(()=>{
+    if(!cloud)return
+    let cancelled=false
+    setLoading(true)
+    loadCertificatesAsync(organizationId,employee.dbId,employee.id).then(rows=>{if(!cancelled)setAllRows(rows)}).catch(()=>{}).finally(()=>{if(!cancelled)setLoading(false)})
+    return ()=>{cancelled=true}
+  },[cloud,organizationId,employee.dbId,employee.id])
+  const rows=cloud?allRows:allRows.filter(x=>x.employeeId===employee.id)
   const [open,setOpen]=useState(false)
   const [editingId,setEditingId]=useState(null)
   const [draft,setDraft]=useState(emptyDraft)
+  const [saving,setSaving]=useState(false)
   const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
   const beginNew=()=>{setEditingId(null);setDraft(emptyDraft);setOpen(true)}
   const openExisting=(row)=>{setEditingId(row.id);setDraft({...emptyDraft,...row,attachments:row.attachments||[]});setOpen(true)}
   const close=()=>{setOpen(false);setEditingId(null);setDraft(emptyDraft)}
-  const save=()=>{
+  async function save(){
+    if(saving)return
+    if(cloud){
+      setSaving(true)
+      try{
+        if(editingId){
+          const updated=await updateCertificateAsync(editingId,draft)
+          setAllRows(allRows.map(row=>row.id===editingId?updated:row))
+          notify(t('employeesRecords.certificateUpdated'),'success')
+        }else{
+          const created=await createCertificateAsync(organizationId,employee.dbId,draft)
+          setAllRows([created,...allRows])
+          notify(t('employeesRecords.certificateAdded'),'success')
+        }
+        close()
+      }catch{
+        notify(t('actionFailed')||'Could not save the certificate.','danger')
+      }finally{
+        setSaving(false)
+      }
+      return
+    }
     let next
     if(editingId){
       next=allRows.map(row=>row.id===editingId?{...row,...draft,id:editingId,employeeId:employee.id}:row)
@@ -203,13 +236,13 @@ function Certificates({employee,t,language,fmt,selfMode,canAdmin,notify}){
       notify(t('employeesRecords.certificateAdded'),'success')
     }
     setAllRows(next)
-    saveCertificates(next)
+    saveCertificatesLocalFallback(next)
     close()
   }
   return <div className="record-section">
     <div className="record-section-header"><div><span className="eyebrow">{t('employeesRecords.employeeRecord')}</span><h3>{t('employeesRecords.certificatesDocuments')}</h3></div>{canAdmin&&!selfMode&&<Button onClick={beginNew}>+ {t('employeesRecords.newCertificate')}</Button>}</div>
-    {rows.length?<div className="record-table-wrap"><table className="record-table record-table-clickable"><thead><tr><th>{t('employeesRecords.certificate')}</th><th>{t('employeesRecords.issuer')}</th><th>{t('employeesRecords.certificateNumber')}</th><th>{t('employeesRecords.issueDate')}</th><th>{t('validUntil')}</th><th>{t('attachments')}</th></tr></thead><tbody>{rows.map(x=><tr key={x.id} tabIndex={0} onClick={()=>openExisting(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openExisting(x)}}} title={canAdmin&&!selfMode?t('employeesRecords.openCertificateEdit'):t('employeesRecords.openCertificateView')}><td><strong>{language==='el'?x.titleEl:x.titleEn}</strong></td><td>{x.issuer||'—'}</td><td>{x.certificateNumber||'—'}</td><td>{fmt(x.issueDate)}</td><td>{fmt(x.validUntil)}</td><td>{x.attachments?.length||0}</td></tr>)}</tbody></table></div>:<Empty t={t}/>}
-    {open&&<div className="modal-backdrop"><div className="entry-card certificate-entry-card"><header><div><span className="eyebrow">{editingId?t('employeesRecords.certificate'):t('employeesRecords.newCertificate')}</span><h3>{editingId?(canAdmin&&!selfMode?t('employeesRecords.editCertificate'):t('employeesRecords.certificateDetails')):t('employeesRecords.certificateDetails')}</h3></div><button className="icon-close" onClick={close}>×</button></header><div className="entry-grid"><label><span>{t('employeesRecords.certificate')}</span><input disabled={!canAdmin||selfMode} value={language==='el'?draft.titleEl:draft.titleEn} onChange={e=>set(language==='el'?'titleEl':'titleEn',e.target.value)}/></label><label><span>{t('employeesRecords.issuer')}</span><input disabled={!canAdmin||selfMode} value={draft.issuer} onChange={e=>set('issuer',e.target.value)}/></label><label><span>{t('employeesRecords.certificateNumber')}</span><input disabled={!canAdmin||selfMode} value={draft.certificateNumber} onChange={e=>set('certificateNumber',e.target.value)}/></label><ManualDateField disabled={!canAdmin||selfMode} label={t('employeesRecords.issueDate')} value={draft.issueDate} onChange={v=>set('issueDate',v)}/><ManualDateField disabled={!canAdmin||selfMode} label={t('validUntil')} value={draft.validUntil} onChange={v=>set('validUntil',v)}/></div><AttachmentField disabled={!canAdmin||selfMode} value={draft.attachments} onChange={v=>set('attachments',v)}/><footer><Button variant="secondary" onClick={close}>{t('close')}</Button>{canAdmin&&!selfMode&&<SaveButton onClick={save}>{t('save')}</SaveButton>}</footer></div></div>}
+    {loading?<Empty t={t}/>:rows.length?<div className="record-table-wrap"><table className="record-table record-table-clickable"><thead><tr><th>{t('employeesRecords.certificate')}</th><th>{t('employeesRecords.issuer')}</th><th>{t('employeesRecords.certificateNumber')}</th><th>{t('employeesRecords.issueDate')}</th><th>{t('validUntil')}</th><th>{t('attachments')}</th></tr></thead><tbody>{rows.map(x=><tr key={x.id} tabIndex={0} onClick={()=>openExisting(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openExisting(x)}}} title={canAdmin&&!selfMode?t('employeesRecords.openCertificateEdit'):t('employeesRecords.openCertificateView')}><td><strong>{language==='el'?x.titleEl:x.titleEn}</strong></td><td>{x.issuer||'—'}</td><td>{x.certificateNumber||'—'}</td><td>{fmt(x.issueDate)}</td><td>{fmt(x.validUntil)}</td><td>{x.attachments?.length||0}</td></tr>)}</tbody></table></div>:<Empty t={t}/>}
+    {open&&<div className="modal-backdrop"><div className="entry-card certificate-entry-card"><header><div><span className="eyebrow">{editingId?t('employeesRecords.certificate'):t('employeesRecords.newCertificate')}</span><h3>{editingId?(canAdmin&&!selfMode?t('employeesRecords.editCertificate'):t('employeesRecords.certificateDetails')):t('employeesRecords.certificateDetails')}</h3></div><button className="icon-close" onClick={close}>×</button></header><div className="entry-grid"><label><span>{t('employeesRecords.certificate')}</span><input disabled={!canAdmin||selfMode} value={language==='el'?draft.titleEl:draft.titleEn} onChange={e=>set(language==='el'?'titleEl':'titleEn',e.target.value)}/></label><label><span>{t('employeesRecords.issuer')}</span><input disabled={!canAdmin||selfMode} value={draft.issuer} onChange={e=>set('issuer',e.target.value)}/></label><label><span>{t('employeesRecords.certificateNumber')}</span><input disabled={!canAdmin||selfMode} value={draft.certificateNumber} onChange={e=>set('certificateNumber',e.target.value)}/></label><ManualDateField disabled={!canAdmin||selfMode} label={t('employeesRecords.issueDate')} value={draft.issueDate} onChange={v=>set('issueDate',v)}/><ManualDateField disabled={!canAdmin||selfMode} label={t('validUntil')} value={draft.validUntil} onChange={v=>set('validUntil',v)}/></div><AttachmentField disabled={!canAdmin||selfMode} value={draft.attachments} onChange={v=>set('attachments',v)} organizationId={organizationId} entityType="employee_certificate" entityId={editingId}/><footer><Button variant="secondary" onClick={close} disabled={saving}>{t('close')}</Button>{canAdmin&&!selfMode&&<SaveButton onClick={save} disabled={saving}>{saving?(t('saving')||'…'):t('save')}</SaveButton>}</footer></div></div>}
   </div>
 }
 function InlineDateDetail({editing,l,v,display,onChange}){return editing?<ManualDateField label={l} value={v||''} onChange={onChange}/>:<div className="detail-item"><span>{l}</span><strong>{display||'—'}</strong></div>} 

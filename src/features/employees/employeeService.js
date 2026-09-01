@@ -9,9 +9,12 @@ import { loadEmployees as loadEmployeesLocal, saveEmployees as saveEmployeesLoca
 // its own per-organization uniqueness constraint — map frontend `id` to
 // `employee_code`, not to the uuid, so every existing consumer (Committees staff
 // picker, Training participants, routes, etc.) keeps working unchanged.
+const EMPLOYEE_COLUMNS = 'id,employee_code,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,employment_status,email,phone,hire_date,birth_date,created_at,updated_at'
+
 function fromRow(row) {
   return {
     id: row.employee_code,
+    dbId: row.id,
     firstName: row.first_name,
     firstNameEn: row.first_name_en || row.first_name,
     lastName: row.last_name,
@@ -61,7 +64,7 @@ export async function loadEmployeesAsync(organizationId) {
   if (!cloudEnabled() || !organizationId || isDemoDataEnvironment()) return loadEmployeesLocal()
   const { data, error } = await supabase
     .from('employees')
-    .select('employee_code,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,employment_status,email,phone,hire_date,birth_date,created_at,updated_at')
+    .select(EMPLOYEE_COLUMNS)
     .eq('organization_id', organizationId)
     .order('last_name')
   if (error) throw error
@@ -78,7 +81,7 @@ export async function createEmployeeAsync(organizationId, v) {
   const { data, error } = await supabase
     .from('employees')
     .insert(toInsertRow(organizationId, v))
-    .select('employee_code,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,employment_status,email,phone,hire_date,birth_date,created_at,updated_at')
+    .select(EMPLOYEE_COLUMNS)
     .single()
   if (error) {
     // Matches the organization_id+employee_code unique constraint already on the live table.

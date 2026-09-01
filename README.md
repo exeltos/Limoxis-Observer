@@ -735,3 +735,26 @@ Prompted by testing the Employees create flow: uploaded certificate files were b
 Committed the live Storage/RLS/column changes as `202609010002_v0289_attachment_storage.sql` (idempotent — safe to re-run), bumped `package.json` to `0.28.9` to match, and reconfirmed `migrationIntegrity.test.js` passes against the new file.
 
 Full pipeline verified clean: `lint` (0/0), `test` (93/93 across 13 files), `build` clean.
+
+## Employees sub-records: all 5 tabs (occupational health, vaccinations, training, evaluations, certificates) now cloud-backed
+Directly prompted by the user's question about where an uploaded certificate actually went, followed by "αυτός δεν είναι ο σκοπός της βάσης;" (isn't that the whole point of having a database?) — a fair challenge. Closes the gap flagged in the previous README entry.
+
+**Real destination tables for all 5, not just certificates:**
+- `occupational_health_visits` and `employee_vaccinations` already existed (v0.9.0) but were never queried by the frontend — wired both.
+- `employee_training_summary`, `employee_evaluations`, `employee_certificates` didn't exist at all — added via a new migration. These are lightweight, manually-entered HR records (distinct from the full Training domain's rich programs/assignments system), so RLS mirrors `employees`' own administrative read/write pattern (`hr_office`/`manage_staff_admin`) rather than the stricter clinical-only pattern used for occupational health/vaccinations.
+
+**A real, caught-immediately schema mismatch:** these sub-tables' `employee_id` is a genuine uuid foreign key into `employees.id` — not the `employee_code` text the frontend has always used as its own `id` (see the Employees domain entry above). Extended `employeeService.js`'s mapping to also expose the real database uuid as `dbId` alongside the existing frontend-facing `id`, so sub-record services can use the correct FK without a lookup query on every load.
+
+**Two of my own mistakes caught by Supabase's own error messages, not assumed away:**
+1. The new migration's RLS first tried a "the employee can see their own record" self-read clause via `employees.user_id` — that column doesn't exist (`employees` is an administrative registry, not tied 1:1 to a login account, unlike `profiles`). Supabase rejected the migration outright with a clear column-not-found error; removed the clause to match the parent `employees_read` policy's own role/capability-only shape exactly, rather than guessing at a fix.
+2. `employeeService.js`'s two Supabase `select()` calls didn't include `id` in their column list at all, meaning the newly-added `dbId` field would have silently been `undefined` for every employee — caught by tracing through the code before wiring any sub-record consumer against it, not discovered later through a broken query.
+
+**Only 1 of 5 tabs (Certificates) has any create/edit UI today** — the other 4 (occupational health visits, vaccinations, training, evaluations) are pure read-only displays with no add/edit dialog in the current frontend, so only `load*Async` functions were needed for those; full CRUD (`createCertificateAsync`/`updateCertificateAsync`) was built only where the UI actually uses it.
+
+**A real bug caught in my own new service, before any component used it:** the local-mode fallback path for all 5 `load*Async` functions initially returned every employee's records unfiltered (`loadVisitsLocal()` with no filter) instead of just the current employee's — the cloud path correctly filtered via `.eq('employee_id', ...)`, but the fallback path didn't mirror that. Fixed by adding the same `employeeId` filter to every local fallback before wiring any of the 5 record-page tabs against the service.
+
+**Certificates' attachments only get real cloud storage when editing an existing certificate** (`entityId={editingId}`), not while creating a new one — matches the same "no real id yet" rule already established for `AttachmentField`'s hybrid design (see the file-storage README entry above): a certificate must be saved once before files can be durably attached to it, exactly mirroring how Documents/Quality's own create flows already behave.
+
+Full pipeline verified clean: `lint` (0/0), `test` (93/93 across 13 files), `build` clean. Committed the 3 new tables as `202609010003_v0290_employee_subrecords.sql`, bumped `package.json` to `0.29.0` to match, reconfirmed `migrationIntegrity.test.js` passes.
+
+**The Employees domain, including all 5 sub-record tabs, is now fully connected to the live database.** 17 of the original 20 localStorage-only domains remain (Documents, Laboratory, Quality, and the rest), plus the Committees meetings/decisions sub-workflow still flagged from earlier.
