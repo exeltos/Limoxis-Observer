@@ -27,30 +27,19 @@ export const trainingDemoState={
  history:[{at:'2026-08-25T09:00:00Z',actor:'Demo Hospital Admin',action:'Δημιουργήθηκε ετήσιος κύκλος εκπαίδευσης Υγιεινής Χεριών'}]
 }
 
-function withoutKeys(value,keys){
- const clean={...value}
- for(const key of keys)delete clean[key]
- return clean
-}
+function withoutKeys(value,keys){const clean={...value};for(const key of keys)delete clean[key];return clean}
 function normalize(state){
  const source=state&&typeof state==='object'?state:structuredClone(trainingDemoState)
- return {
-  ...source,
-  programs:(source.programs||[]).map(p=>{const clean=withoutKeys(p,['checkInToken','completionToken']);return {...clean,trainer:clean.trainer||clean.owner||'',materials:clean.materials||[],assessmentQuestions:clean.assessmentQuestions||[],feedbackResponses:clean.feedbackResponses||[]}}),
-  assignments:(source.assignments||[]).map(a=>{const clean=withoutKeys(a,['checkInAt']);return {...clean,email:clean.email||'',accountLinked:clean.accountLinked!==false,invitationSentAt:clean.invitationSentAt||null,attendanceResponse:clean.attendanceResponse||(clean.attendance?'confirmed':'not_sent'),attendanceConfirmedAt:clean.attendanceConfirmedAt||null,completionConfirmedAt:clean.completionConfirmedAt||null,feedbackSubmittedAt:clean.feedbackSubmittedAt||null,assessmentSubmittedAt:clean.assessmentSubmittedAt||null}}),
-  certificates:source.certificates||[],emailOutbox:source.emailOutbox||[],history:source.history||[]
- }
+ return {...source,programs:(source.programs||[]).map(p=>{const clean=withoutKeys(p,['checkInToken','completionToken']);return {...clean,trainer:clean.trainer||clean.owner||'',materials:clean.materials||[],assessmentQuestions:clean.assessmentQuestions||[],feedbackResponses:clean.feedbackResponses||[]}}),assignments:(source.assignments||[]).map(a=>{const clean=withoutKeys(a,['checkInAt']);return {...clean,email:clean.email||'',accountLinked:clean.accountLinked!==false,invitationSentAt:clean.invitationSentAt||null,attendanceResponse:clean.attendanceResponse||(clean.attendance?'confirmed':'not_sent'),attendanceConfirmedAt:clean.attendanceConfirmedAt||null,completionConfirmedAt:clean.completionConfirmedAt||null,feedbackSubmittedAt:clean.feedbackSubmittedAt||null,assessmentSubmittedAt:clean.assessmentSubmittedAt||null}}),certificates:source.certificates||[],emailOutbox:source.emailOutbox||[],history:source.history||[]}
 }
 export function loadTrainingState(){return normalize(loadSnapshot('training_records',structuredClone(trainingDemoState)))}
 export function saveTrainingState(state){const normalized=normalize(state);saveSnapshot('training_records',normalized);return normalized}
 export function resetTrainingState(){const next=structuredClone(trainingDemoState);saveSnapshot('training_records',next);return next}
-export function computedAssignmentStatus(row,today=new Date()){
- if(row.status==='completed')return 'completed'
- if(row.status==='cancelled')return 'cancelled'
- if(row.dueDate&&new Date(`${row.dueDate}T23:59:59`)<today)return 'overdue'
- return row.status||'assigned'
+export function findTrainingAccess(state,token){
+ const normalized=normalize(state);const key=String(token||'').trim();if(!key)return null
+ const assignment=normalized.assignments.find(x=>x.id===key||x.accessToken===key)
+ const program=assignment?normalized.programs.find(x=>x.id===assignment.programId):normalized.programs.find(x=>x.id===key)
+ return program?{program,assignment:assignment||null}:null
 }
-export function validityUntil(completedDate,months){
- if(!completedDate||!months)return ''
- const d=new Date(`${completedDate}T12:00:00`);d.setMonth(d.getMonth()+Number(months));return d.toISOString().slice(0,10)
-}
+export function computedAssignmentStatus(row,today=new Date()){if(row.status==='completed')return 'completed';if(row.status==='cancelled')return 'cancelled';if(row.dueDate&&new Date(`${row.dueDate}T23:59:59`)<today)return 'overdue';return row.status||'assigned'}
+export function validityUntil(completedDate,months){if(!completedDate||!months)return '';const d=new Date(`${completedDate}T12:00:00`);d.setMonth(d.getMonth()+Number(months));return d.toISOString().slice(0,10)}
