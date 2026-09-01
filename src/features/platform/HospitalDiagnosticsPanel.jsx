@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Info, RefreshCw, ShieldAlert, XCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
@@ -28,14 +28,14 @@ export function HospitalDiagnosticsPanel({organization,language='el'}){
   const [module,setModule]=useState('all')
   const [query,setQuery]=useState('')
 
-  async function load(){
-    if(!organization?.id)return
+  const load=useCallback(async()=>{
+    if(!organization?.id){setRows([]);setLoading(false);return}
     setLoading(true);setError(null)
     try{setRows(await listRuntimeEvents(organization.id,{limit:500}))}
     catch(err){setError(err);notifyError(err,'load',{operation:'platform_diagnostics_load'})}
     finally{setLoading(false)}
-  }
-  useEffect(()=>{void load()},[organization?.id])
+  },[organization?.id,notifyError])
+  useEffect(()=>{void load()},[load])
 
   const modules=useMemo(()=>[...new Set(rows.map(x=>x.module).filter(Boolean))].sort(),[rows])
   const filtered=useMemo(()=>rows.filter(row=>{
