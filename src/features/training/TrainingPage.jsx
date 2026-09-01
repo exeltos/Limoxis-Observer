@@ -60,7 +60,7 @@ export function TrainingPage(){
 
 function TrainingProgramRecord({state,program,assignments,onBack,onSave,onUpdateProgram,onDeleteProgram,notify,language,actor}){
  const en=language==='en';const [tab,setTab]=useState('overview');const [dialog,setDialog]=useState(null)
- const confirmed=assignments.filter(x=>x.attendanceResponse==='confirmed').length;const invited=assignments.filter(x=>x.invitationSentAt).length;const completed=assignments.filter(x=>x.status==='completed').length
+ const confirmed=assignments.filter(x=>x.attendanceResponse==='confirmed').length;const invited=assignments.filter(x=>x.invitationSentAt).length
  const feedback=program.feedbackResponses||[];const feedbackAvg=feedback.length?Math.round(feedback.reduce((sum,r)=>sum+Object.values(r.scores||{}).reduce((a,b)=>a+Number(b||0),0)/(trainerFeedbackTemplate.length*5),0)/feedback.length*100):0
  const assessmentDone=assignments.filter(x=>x.score!=null).length
  const tabs=[{id:'overview',label:en?'Overview':'Σύνοψη',icon:CheckCircle2},{id:'participants',label:en?'Participants & attendance':'Συμμετέχοντες & παρουσία',icon:Users},{id:'materials',label:en?'Material':'Υλικό',icon:FileText},{id:'assessment',label:en?'Assessment':'Αξιολόγηση',icon:ClipboardCheck},{id:'results',label:en?'Results & evidence':'Αποτελέσματα & τεκμήρια',icon:Award}]
