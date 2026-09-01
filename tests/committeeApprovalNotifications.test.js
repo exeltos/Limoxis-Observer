@@ -11,10 +11,13 @@ describe('committee minutes approval notifications',()=>{
     expect(sql).toContain('trg_queue_committee_minutes_approval_notification')
   })
 
-  it('uses the real committee route and scheduled timestamp',()=>{
-    const sql=read('supabase/migrations/202609010035_fix_committee_minutes_approval_notification_route.sql')
+  it('uses the current committee code, meeting key and approval id in email links',()=>{
+    const sql=read('supabase/migrations/202609010038_v0308_committee_minutes_approval_deep_link.sql')
     expect(sql).toContain('m.scheduled_at')
-    expect(sql).toContain("'path', '/committees/' || new.committee_id::text")
+    expect(sql).toContain('c.code')
+    expect(sql).toContain('m.client_key')
+    expect(sql).toContain("'?meeting='")
+    expect(sql).toContain("'&approval='")
     expect(sql).not.toContain("'/meetings/'")
   })
 
