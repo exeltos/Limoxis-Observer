@@ -8,7 +8,14 @@ function safeSave(table,value){demoOnly(`save.${table}`);return saveSnapshot(tab
 
 export function loadCommitteeApprovals(){return safeLoad(TABLES.approvals)}
 export function saveCommitteeApprovals(v){return safeSave(TABLES.approvals,v)}
-export function requestCommitteeApproval(data){demoOnly('membership.request');const rows=loadCommitteeApprovals();const old=rows.find(x=>x.committeeId===data.committeeId&&x.employeeId===data.employeeId&&x.status==='pending');if(old)return old;const row={id:`APR-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,...data,status:'pending',requestedAt:new Date().toISOString()};saveCommitteeApprovals([row,...rows]);return row}
+export function requestCommitteeApproval(data){
+  // Production membership approval is represented by committee_members.approval_status
+  // and answered through the governed server workflow. This legacy store exists only
+  // for the isolated demo sandbox.
+  if(!isDemoDataEnvironment())return null
+  const rows=loadCommitteeApprovals();const old=rows.find(x=>x.committeeId===data.committeeId&&x.employeeId===data.employeeId&&x.status==='pending');if(old)return old
+  const row={id:`APR-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,...data,status:'pending',requestedAt:new Date().toISOString()};saveCommitteeApprovals([row,...rows]);return row
+}
 export function approvalsForEmployee(employeeId){return loadCommitteeApprovals().filter(x=>x.employeeId===employeeId)}
 export function approvalStatusFor(committeeId,employeeId){return loadCommitteeApprovals().find(x=>x.committeeId===committeeId&&x.employeeId===employeeId)?.status||null}
 export function answerCommitteeApproval(id,status,actor){demoOnly('membership.answer');const now=new Date().toISOString();const rows=loadCommitteeApprovals().map(x=>x.id===id?{...x,status,answeredAt:now,answeredBy:actor.name,answeredById:actor.id}:x);saveCommitteeApprovals(rows);return rows.find(x=>x.id===id)}
