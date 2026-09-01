@@ -7,6 +7,12 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   const lower=raw.toLowerCase()
   const en=language==='en'
 
+  if(lower.includes('training_access_not_available'))return en?'This training link is no longer available. Ask the training coordinator for the current QR.':'Ο σύνδεσμος εκπαίδευσης δεν είναι πλέον διαθέσιμος. Ζητήστε από τον υπεύθυνο εκπαίδευσης το τρέχον QR.'
+  if(lower.includes('training_assignment_not_found'))return en?'Your account is not assigned to this training. Contact the training coordinator if you believe this is incorrect.':'Ο λογαριασμός σας δεν έχει ανατεθεί σε αυτή την εκπαίδευση. Επικοινωνήστε με τον υπεύθυνο εκπαίδευσης αν θεωρείτε ότι αυτό δεν είναι σωστό.'
+  if(lower.includes('training_already_completed'))return en?'This training completion has already been recorded.':'Η ολοκλήρωση αυτής της εκπαίδευσης έχει ήδη καταγραφεί.'
+  if(lower.includes('training_assessment_not_configured'))return en?'The knowledge assessment has not been configured yet. Contact the training coordinator.':'Η αξιολόγηση γνώσεων δεν έχει διαμορφωθεί ακόμη. Επικοινωνήστε με τον υπεύθυνο εκπαίδευσης.'
+  if(lower.includes('training_assessment_incomplete'))return en?'Answer all required questions before submitting.':'Απαντήστε σε όλες τις απαιτούμενες ερωτήσεις πριν από την υποβολή.'
+  if(lower.includes('training_auth_required'))return en?'Sign in before recording this training action.':'Συνδεθείτε πριν καταγράψετε αυτή την ενέργεια εκπαίδευσης.'
   if(lower.includes('committee_meeting_cancellation_reason_required')){
     return en?'Enter a reason before cancelling the meeting.':'Συμπληρώστε αιτιολογία πριν ακυρώσετε τη συνεδρίαση.'
   }
