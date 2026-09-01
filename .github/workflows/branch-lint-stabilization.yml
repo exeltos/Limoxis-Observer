@@ -1,0 +1,102 @@
+name: Branch lint stabilization
+
+on:
+  push:
+    branches:
+      - refactor/demo-data-isolation
+    paths:
+      - .github/workflows/branch-lint-stabilization.yml
+
+permissions:
+  contents: write
+
+jobs:
+  stabilize:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/demo-data-isolation
+          fetch-depth: 0
+
+      - name: Apply targeted source fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(path, old, new, label):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 exact match, found {count}')
+              p.write_text(text.replace(old, new, 1))
+
+          # CommitteeRecordPage: keep Hooks unconditional and remount dialog state per meeting.
+          committee = 'src/features/committees/CommitteeRecordPage.jsx'
+          replace_once(
+              committee,
+              "{dialog?.type==='meeting'&&<MeetingDialog meeting={(record.meetings||[]).find(x=>x.id===dialog.id)}",
+              "{dialog?.type==='meeting'&&<MeetingDialog key={dialog.id} meeting={(record.meetings||[]).find(x=>x.id===dialog.id)}",
+              'committee dialog key',
+          )
+          replace_once(
+              committee,
+              "function MeetingDialog({meeting,members,actorId,canSave,canFinalize,busy,onClose,onSave,onApproval,en}){if(!meeting)return null;const [v,setV]=useState(()=>({...meeting,attendanceRecords:attendanceFor(members,meeting.attendanceRecords||[]),topics:(meeting.topics?.length?meeting.topics:[createTopic()])}));",
+              "function MeetingDialog({meeting,members,actorId,canSave,canFinalize,busy,onClose,onSave,onApproval,en}){const [v,setV]=useState(()=>meeting?({...meeting,attendanceRecords:attendanceFor(members,meeting.attendanceRecords||[]),topics:(meeting.topics?.length?meeting.topics:[createTopic()])}):null);if(!meeting||!v)return null;",
+              'committee hook order',
+          )
+
+          # EmployeeRecordPage: remove dead legacy local committee-response path and unused icons.
+          employee = Path('src/features/employees/EmployeeRecordPage.jsx')
+          text = employee.read_text()
+          text = text.replace('Activity, BriefcaseBusiness, CheckCircle2, FileCheck2, FileSignature, GraduationCap, HeartPulse, KeyRound, Pencil, ShieldCheck, Syringe, Trash2, UserRound, XCircle', 'Activity, BriefcaseBusiness, FileCheck2, FileSignature, GraduationCap, HeartPulse, KeyRound, Pencil, ShieldCheck, Syringe, Trash2, UserRound', 1)
+          text = text.replace("import { approvalsForEmployee, answerCommitteeApproval } from '../committees/committeeApprovals'\n", "import { approvalsForEmployee } from '../committees/committeeApprovals'\n", 1)
+          text = text.replace("import { loadCommittees, saveCommittees } from '../committees/committeeData'\n", '', 1)
+          text = text.replace("import { useAuditActor } from '../../core/audit/useAuditActor'\n", '', 1)
+          text, n = re.subn(r"  const actor=useAuditActor\(\);const \[,setCommitteeApprovalVersion\]=useState\(0\)\n", '', text, count=1)
+          if n != 1:
+              raise SystemExit(f'employee actor state: expected 1 match, found {n}')
+          text, n = re.subn(r"  function answerCommitteeRequest\(request,status\)\{.*?\}\n(?=  return <Page fill)", '', text, count=1)
+          if n != 1:
+              raise SystemExit(f'employee dead committee handler: expected 1 match, found {n}')
+          employee.write_text(text)
+
+          # TrainingProductionPage: make reload stable and use it as the effect dependency.
+          training = 'src/features/training/TrainingProductionPage.jsx'
+          replace_once(training, "import { useEffect,useMemo,useState } from 'react'", "import { useCallback,useEffect,useMemo,useState } from 'react'", 'training useCallback import')
+          replace_once(
+              training,
+              " async function reload(){if(!tenant?.id)return;setLoading(true);try{setState(await loadTrainingStateAsync(tenant.id))}catch(error){notifyError(error,'load',{operation:'training_load'})}finally{setLoading(false)}}\n useEffect(()=>{void reload()},[tenant?.id])",
+              " const reload=useCallback(async()=>{if(!tenant?.id)return;setLoading(true);try{setState(await loadTrainingStateAsync(tenant.id))}catch(error){notifyError(error,'load',{operation:'training_load'})}finally{setLoading(false)}},[tenant?.id,notifyError])\n useEffect(()=>{void reload()},[reload])",
+              'training reload callback',
+          )
+          PY
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Validate branch
+        shell: bash
+        run: |
+          npm ci
+          npm run lint
+          npm run test
+          npm run build
+
+      - name: Remove one-shot workflow and commit fixes
+        shell: bash
+        run: |
+          rm .github/workflows/branch-lint-stabilization.yml
+          git diff --check
+          git config user.name "Exeltos Automation"
+          git config user.email "info@exeltos.com"
+          git add src/features/committees/CommitteeRecordPage.jsx src/features/employees/EmployeeRecordPage.jsx src/features/training/TrainingProductionPage.jsx .github/workflows/branch-lint-stabilization.yml
+          git commit -m "Resolve remaining branch lint issues"
+          git push origin HEAD:refactor/demo-data-isolation
