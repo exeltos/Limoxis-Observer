@@ -11,11 +11,11 @@ describe('training production isolation',()=>{
     expect(service).toContain('isDemoDataEnvironment()')
   })
 
-  it('keeps learner writes behind narrow authenticated RPCs',()=>{
-    const service=read('src/features/training/trainingService.js')
-    expect(service).toContain("supabase.rpc('training_check_in'")
-    expect(service).toContain("supabase.rpc('training_complete'")
-    expect(service).not.toContain("from('training_records').update")
+  it('keeps learner writes behind narrow authenticated email-flow RPCs',()=>{
+    const service=read('src/features/training/trainingInvitationService.js')
+    expect(service).toContain("supabase.rpc('training_confirm_attendance'")
+    expect(service).toContain("supabase.rpc('training_submit_evaluation'")
+    expect(service).toContain("supabase.rpc('training_email_access'")
   })
 
   it('protects the training access route with authentication',()=>{
@@ -26,10 +26,11 @@ describe('training production isolation',()=>{
     expect(trainingIndex).toBeGreaterThan(protectedIndex)
   })
 
-  it('keeps employee-code identification demo-only',()=>{
+  it('keeps employee-code identification demo-only and production account-bound',()=>{
     const access=read('src/features/training/TrainingAccessPage.jsx')
     expect(access).toContain('DemoTrainingAccess')
     expect(access).toContain('ProductionTrainingAccess')
-    expect(access).toContain('Production requires a signed-in account')
+    expect(access).toContain('loadTrainingEmailAccessAsync')
+    expect(access).toContain('Sign in with the account that received the invitation.')
   })
 })
