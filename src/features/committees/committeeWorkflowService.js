@@ -29,6 +29,14 @@ export async function endCommitteeMemberAsync(organizationId,committee,member,re
   const {data,error}=await supabase.from('committee_members').update({ended_at:endedAt}).eq('organization_id',organizationId).eq('committee_id',committee.dbId).eq('id',member.dbId).select('id,ended_at').single();if(error)throw error
   await appendHistory(organizationId,committee,'Λήξη συμμετοχής μέλους',`${member.name} — ${reason||''}`,{member_id:data.id,reason:reason||null});return {...member,active:false,endedAt:data.ended_at,endReason:reason||''}
 }
+export async function answerCommitteeMembershipAsync(member,status){
+  if(isDemoDataEnvironment())throw new Error('DEMO_COMMITTEE_MEMBERSHIP_APPROVAL_LOCAL_ONLY')
+  if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_COMMITTEES_SUPABASE_REQUIRED:member.approval')
+  if(!member?.dbId)throw new Error('PRODUCTION_COMMITTEE_MEMBER_DB_ID_REQUIRED:member.approval')
+  if(!['approved','rejected'].includes(status))throw new Error('COMMITTEE_MEMBERSHIP_APPROVAL_STATUS_INVALID')
+  const {data,error}=await supabase.rpc('answer_committee_membership',{p_member_id:member.dbId,p_status:status});if(error)throw error
+  return {...member,approvalStatus:data?.approval_status||status}
+}
 export async function updateCommitteeFrameworkAsync(organizationId,committee,patch={}){
   requireProduction(organizationId,committee,'framework.update');const {data,error}=await supabase.from('committees').update({legal_basis:patch.legalBasis||null,committee_role:patch.committeeRole||null,decision_number:patch.decisionNumber||null,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',committee.dbId).select('legal_basis,committee_role,decision_number,updated_at').single();if(error)throw error
   await appendHistory(organizationId,committee,'Ενημέρωση θεσμικού πλαισίου',data.decision_number||data.legal_basis||'—');return {...committee,legalBasis:data.legal_basis||'',committeeRole:data.committee_role||'',decisionNumber:data.decision_number||'',updatedAt:data.updated_at}
