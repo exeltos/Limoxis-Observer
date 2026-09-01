@@ -11,31 +11,17 @@ export async function cancelCommitteeMeetingAsync(organizationId,committee,meeti
   const cleanReason=String(reason||'').trim()
   if(!cleanReason)throw new Error('COMMITTEE_MEETING_CANCELLATION_REASON_REQUIRED')
 
-  const {data,error}=await supabase
-    .from('committee_meetings')
-    .update({status:'cancelled',cancellation_reason:cleanReason,updated_at:new Date().toISOString()})
-    .eq('organization_id',organizationId)
-    .eq('committee_id',committee.dbId)
-    .eq('id',meeting.dbId)
-    .in('status',['draft','planned','in_progress'])
-    .select('id,client_key,status,cancellation_reason,cancelled_at,cancelled_by,updated_at')
-    .single()
-  if(error)throw error
-
-  const {error:historyError}=await supabase.from('committee_history').insert({
-    organization_id:organizationId,
-    committee_id:committee.dbId,
-    action:'Ακύρωση συνεδρίασης',
-    reason:cleanReason,
-    event_data:{meeting_id:meeting.dbId,client_key:meeting.id||meeting.clientKey||null},
+  const {data,error}=await supabase.rpc('cancel_committee_meeting',{
+    p_meeting_id:meeting.dbId,
+    p_reason:cleanReason,
   })
-  if(historyError)throw historyError
+  if(error)throw error
 
   return {
     ...meeting,
-    status:data.status,
-    cancellationReason:data.cancellation_reason||cleanReason,
-    cancelledAt:data.cancelled_at||null,
-    cancelledBy:data.cancelled_by||null,
+    status:data?.status||'cancelled',
+    cancellationReason:data?.cancellation_reason||cleanReason,
+    cancelledAt:data?.cancelled_at||null,
+    cancelledBy:data?.cancelled_by||null,
   }
 }
