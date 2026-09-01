@@ -7,14 +7,22 @@ import { loadEmployees as loadEmployeesLocal, saveEmployees as saveEmployeesLoca
 // own `id` (used directly in routes like /employees/EMP-001). The real table has
 // both a proper uuid primary key AND a separate `employee_code` text column with
 // its own per-organization uniqueness constraint — map frontend `id` to
-// `employee_code`, not to the uuid, so every existing consumer (Committees staff
-// picker, Training participants, routes, etc.) keeps working unchanged.
-const EMPLOYEE_COLUMNS = 'id,employee_code,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,employment_status,email,phone,hire_date,birth_date,created_at,updated_at'
+// `employee_code`, not to the uuid, so every existing consumer keeps working.
+const EMPLOYEE_COLUMNS = 'id,employee_code,department_id,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,employment_status,email,phone,hire_date,birth_date,created_at,updated_at'
+
+function productionContext(organizationId,operation){
+  if(isDemoDataEnvironment())return false
+  if(!hasSupabaseConfig||!supabase)throw new Error(`PRODUCTION_CLOUD_REQUIRED:${operation}`)
+  if(!organizationId)throw new Error(`PRODUCTION_ORGANIZATION_REQUIRED:${operation}`)
+  return true
+}
 
 function fromRow(row) {
   return {
     id: row.employee_code,
     dbId: row.id,
+    departmentId: row.department_id || null,
+    organizationId: row.organization_id || null,
     firstName: row.first_name,
     firstNameEn: row.first_name_en || row.first_name,
     lastName: row.last_name,
@@ -35,10 +43,11 @@ function fromRow(row) {
   }
 }
 
-function toInsertRow(organizationId, v) {
+function toWriteRow(organizationId, v) {
   return {
     organization_id: organizationId,
     employee_code: v.id,
+    department_id: v.departmentId || null,
     first_name: v.firstName,
     first_name_en: v.firstNameEn || v.firstName,
     last_name: v.lastName,
@@ -57,14 +66,15 @@ function toInsertRow(organizationId, v) {
 }
 
 export function cloudEnabled() {
-  return hasSupabaseConfig && Boolean(supabase)
+  return hasSupabaseConfig && Boolean(supabase) && !isDemoDataEnvironment()
 }
 
 export async function loadEmployeesAsync(organizationId) {
-  if (!cloudEnabled() || !organizationId || isDemoDataEnvironment()) return loadEmployeesLocal()
+  if(isDemoDataEnvironment())return loadEmployeesLocal()
+  productionContext(organizationId,'employees.load')
   const { data, error } = await supabase
     .from('employees')
-    .select(EMPLOYEE_COLUMNS)
+    .select(`${EMPLOYEE_COLUMNS},organization_id`)
     .eq('organization_id', organizationId)
     .order('last_name')
   if (error) throw error
@@ -72,21 +82,57 @@ export async function loadEmployeesAsync(organizationId) {
 }
 
 export async function createEmployeeAsync(organizationId, v) {
-  if (!cloudEnabled() || !organizationId || isDemoDataEnvironment()) {
-    const rows = loadEmployeesLocal()
-    const next = [v, ...rows]
+  if(isDemoDataEnvironment()){
+    const rows=loadEmployeesLocal()
+    const next=[v,...rows]
     saveEmployeesLocal(next)
     return v
   }
+  productionContext(organizationId,'employees.create')
   const { data, error } = await supabase
     .from('employees')
-    .insert(toInsertRow(organizationId, v))
-    .select(EMPLOYEE_COLUMNS)
+    .insert(toWriteRow(organizationId, v))
+    .select(`${EMPLOYEE_COLUMNS},organization_id`)
     .single()
   if (error) {
-    // Matches the organization_id+employee_code unique constraint already on the live table.
     if (error.code === '23505') throw new Error('DUPLICATE_EMPLOYEE_CODE')
     throw error
   }
   return fromRow(data)
+}
+
+export async function updateEmployeeAsync(organizationId, employeeDbId, v) {
+  if(isDemoDataEnvironment()){
+    const rows=loadEmployeesLocal()
+    const next=rows.map(row=>row.id===v.id?{...row,...v}:row)
+    saveEmployeesLocal(next)
+    return {...v}
+  }
+  productionContext(organizationId,'employees.update')
+  if(!employeeDbId)throw new Error('PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:employees.update')
+  const payload=toWriteRow(organizationId,v)
+  delete payload.organization_id
+  delete payload.employee_code
+  const {data,error}=await supabase
+    .from('employees')
+    .update({...payload,updated_at:new Date().toISOString()})
+    .eq('organization_id',organizationId)
+    .eq('id',employeeDbId)
+    .select(`${EMPLOYEE_COLUMNS},organization_id`)
+    .single()
+  if(error)throw error
+  return fromRow(data)
+}
+
+export async function deleteEmployeeAsync(organizationId, employeeDbId, employeeId) {
+  if(isDemoDataEnvironment()){
+    const rows=loadEmployeesLocal().filter(row=>row.id!==employeeId)
+    saveEmployeesLocal(rows)
+    return true
+  }
+  productionContext(organizationId,'employees.delete')
+  if(!employeeDbId)throw new Error('PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:employees.delete')
+  const {error}=await supabase.from('employees').delete().eq('organization_id',organizationId).eq('id',employeeDbId)
+  if(error)throw error
+  return true
 }
