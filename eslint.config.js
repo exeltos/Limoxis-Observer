@@ -17,5 +17,9 @@ export default [
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off'
     }
+  },
+  {
+    files: ['tests/**/*.{js,jsx}'],
+    languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { ...globals.node, ...globals.browser } }
   }
 ]
