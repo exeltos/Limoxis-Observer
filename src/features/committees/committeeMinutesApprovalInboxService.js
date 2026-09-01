@@ -9,8 +9,8 @@ export async function loadMyPendingCommitteeMinutesApprovalsAsync(organizationId
   const {data,error}=await supabase
     .from('committee_minutes_approvals')
     .select(`id,committee_id,meeting_id,status,requested_at,
-      committee:committees!committee_minutes_approvals_committee_id_fkey(id,name),
-      meeting:committee_meetings!committee_minutes_approvals_meeting_id_fkey(id,title,scheduled_at,status)`)
+      committee:committees!committee_minutes_approvals_committee_id_fkey(id,code,name),
+      meeting:committee_meetings!committee_minutes_approvals_meeting_id_fkey(id,client_key,title,scheduled_at,status)`)
     .eq('organization_id',organizationId)
     .eq('approver_id',userId)
     .eq('status','pending')
@@ -20,13 +20,15 @@ export async function loadMyPendingCommitteeMinutesApprovalsAsync(organizationId
     id:row.id,
     type:'committee_minutes_approval',
     committeeId:row.committee_id,
+    committeeCode:row.committee?.code||'',
     committeeName:row.committee?.name||'',
     meetingId:row.meeting_id,
+    meetingKey:row.meeting?.client_key||row.meeting_id,
     meetingTitle:row.meeting?.title||'',
     scheduledAt:row.meeting?.scheduled_at||null,
     requestedAt:row.requested_at,
     status:row.status,
-    to:row.committee_id?`/committees/${row.committee_id}`:'/committees'
+    to:row.committee?.code?`/committees/${encodeURIComponent(row.committee.code)}?meeting=${encodeURIComponent(row.meeting?.client_key||row.meeting_id)}&approval=${encodeURIComponent(row.id)}`:'/committees'
   }))
 }
 
