@@ -25,6 +25,15 @@ describe('committee minutes approval notifications',()=>{
     expect(context).toContain('processNotificationOutboxAsync')
   })
 
+  it('deep links an approval to the real committee code and meeting key',()=>{
+    const inbox=read('src/features/committees/committeeMinutesApprovalInboxService.js')
+    expect(inbox).toContain('id,code,name')
+    expect(inbox).toContain('id,client_key,title,scheduled_at,status')
+    expect(inbox).toContain('?meeting=')
+    expect(inbox).toContain('&approval=')
+    expect(inbox).toContain('row.committee.code')
+  })
+
   it('keeps email approval actions inside Limoxis Observer',()=>{
     const template=read('supabase/functions/_shared/committeeApprovalEmail.ts')
     expect(template).toContain('Προβολή πρακτικών')
