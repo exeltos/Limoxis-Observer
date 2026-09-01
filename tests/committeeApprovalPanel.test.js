@@ -13,10 +13,12 @@ describe('committee minutes approval panel',()=>{
     expect(ui).toContain('item.comment')
   })
 
-  it('requires a correction comment before sending a change request',()=>{
+  it('requires a correction comment and closes only after a successful request',()=>{
     const ui=read('src/features/committees/CommitteeApprovalPanel.jsx')
     expect(ui).toContain('disabled={busy||!comment.trim()}')
-    expect(ui).toContain("onRequestChanges(mine.id,comment.trim())")
+    expect(ui).toContain("const saved=await onRequestChanges(mine.id,comment.trim())")
+    expect(ui).toContain('if(saved){setChangesOpen(false);setComment')
+    expect(ui).toContain('changesOpen&&mine')
   })
 
   it('keeps decisions immutable at the database boundary',()=>{
