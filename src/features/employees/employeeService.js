@@ -1,4 +1,4 @@
-import { supabase } from '../../core/supabase/client'
+import { supabase, invokeAuthenticatedFunction } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadEmployees as loadEmployeesLocal, saveEmployees as saveEmployeesLocal } from './employeeStore'
@@ -8,7 +8,7 @@ import { loadEmployees as loadEmployeesLocal, saveEmployees as saveEmployeesLoca
 // both a proper uuid primary key AND a separate `employee_code` text column with
 // its own per-organization uniqueness constraint — map frontend `id` to
 // `employee_code`, not to the uuid, so every existing consumer keeps working.
-const EMPLOYEE_COLUMNS = 'id,employee_code,department_id,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,employment_status,email,phone,hire_date,birth_date,created_at,updated_at'
+const EMPLOYEE_COLUMNS = 'id,user_id,employee_code,department_id,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,employment_status,email,phone,hire_date,birth_date,created_at,updated_at'
 
 function productionContext(organizationId,operation){
   if(isDemoDataEnvironment())return false
@@ -21,6 +21,8 @@ function fromRow(row) {
   return {
     id: row.employee_code,
     dbId: row.id,
+    userId: row.user_id || null,
+    accountLinked: Boolean(row.user_id),
     departmentId: row.department_id || null,
     organizationId: row.organization_id || null,
     firstName: row.first_name,
@@ -122,6 +124,24 @@ export async function updateEmployeeAsync(organizationId, employeeDbId, v) {
     .single()
   if(error)throw error
   return fromRow(data)
+}
+
+export async function createEmployeeAccountAsync(organizationId,employee,{role='staff_user',email,phone,jobTitle}={}){
+  if(isDemoDataEnvironment())throw new Error('DEMO_EMPLOYEE_ACCOUNT_NOT_AVAILABLE')
+  productionContext(organizationId,'employees.account.create')
+  if(!employee?.dbId)throw new Error('EMPLOYEE_DB_ID_REQUIRED')
+  if(employee.userId)throw new Error('EMPLOYEE_ACCOUNT_ALREADY_LINKED')
+  const accountEmail=String(email||employee.email||'').trim()
+  if(!accountEmail)throw new Error('EMPLOYEE_EMAIL_REQUIRED')
+  return invokeAuthenticatedFunction('create-organization-user',{
+    organizationId,
+    fullName:`${employee.firstName||''} ${employee.lastName||''}`.trim(),
+    role,
+    email:accountEmail,
+    phone:phone??employee.phone??'',
+    jobTitle:jobTitle??employee.profession??'',
+    employeeDbId:employee.dbId,
+  })
 }
 
 export async function deleteEmployeeAsync(organizationId, employeeDbId, employeeId) {
