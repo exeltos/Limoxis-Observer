@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useState } from 'react'
+import { useCallback,useEffect,useMemo,useState } from 'react'
 import { Award,CheckCircle2,ClipboardCheck,FileText,ShieldCheck,Star } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
@@ -24,13 +24,13 @@ function ProductionTrainingAccess({token,language,notifyError}){
  const [comment,setComment]=useState('')
  const [answers,setAnswers]=useState({})
  const [result,setResult]=useState(null)
- async function load(){
+ const load=useCallback(async()=>{
   if(!token){setState({loading:false,data:null,error:new Error('TRAINING_ACCESS_NOT_AVAILABLE')});return}
   setState(s=>({...s,loading:true,error:null}))
   try{const data=await loadTrainingEmailAccessAsync(token);setState({loading:false,data,error:data?null:new Error('TRAINING_ACCESS_NOT_AVAILABLE')});if(data?.assignment?.attendance===true)setStep('evaluation')}
   catch(error){setState({loading:false,data:null,error})}
- }
- useEffect(()=>{void load()},[token])
+ },[token])
+ useEffect(()=>{void load()},[load])
  if(state.loading)return <PublicFrame><RouteLoading/></PublicFrame>
  if(state.error||!state.data?.program||!state.data?.assignment)return <PublicFrame><Status title={en?'This training link is not available':'Ο σύνδεσμος εκπαίδευσης δεν είναι διαθέσιμος'} text={en?'The personal link may have expired, been replaced, or may belong to another account. Sign in with the account that received the invitation.':'Ο προσωπικός σύνδεσμος μπορεί να έχει λήξει, να έχει αντικατασταθεί ή να ανήκει σε διαφορετικό λογαριασμό. Συνδεθείτε με τον λογαριασμό που έλαβε την πρόσκληση.'} icon={ShieldCheck}/></PublicFrame>
  const {program,assignment}=state.data
