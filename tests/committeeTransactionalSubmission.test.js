@@ -28,4 +28,9 @@ describe('transactional committee minutes submission',()=>{
     expect(workflow).toContain("supabase.rpc('submit_committee_minutes_for_approval'")
     expect(workflow).not.toContain('requestMinutesApprovals')
   })
+
+  it('kicks notification delivery immediately without making email delivery part of the approval transaction',()=>{
+    expect(workflow).toContain("supabase.functions.invoke('process-notification-outbox'")
+    expect(workflow).toContain('.catch(()=>{})')
+  })
 })
