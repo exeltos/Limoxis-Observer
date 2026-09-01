@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { useTenant } from '../tenant/TenantContext'
-import { loadEmployees } from '../../features/employees/employeeStore'
+import { useEmployeesData } from '../../features/employees/useEmployeesData'
 import { useLanguage } from '../i18n/LanguageContext'
 import { loadSnapshot, saveSnapshot } from '../data/repository'
 
@@ -87,11 +87,12 @@ export function NotificationProvider({children}){
    const localized=demoAnnouncementText[language]?.[a.id]
    return localized?{...a,...localized}:a
  }).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),[announcements,audience,clock,language])
+ const {data:employeeRows}=useEmployeesData()
  const birthday=useMemo(()=>{
    const today=new Date(); const md=`${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
-   return loadEmployees().filter(e=>e.employmentStatus==='active'&&String(e.birthDate||'').slice(5)===md)
+   return employeeRows.filter(e=>e.employmentStatus==='active'&&String(e.birthDate||'').slice(5)===md)
  // eslint-disable-next-line react-hooks/exhaustive-deps -- 'clock' is a periodic ticker (60s) forcing this to re-check the current date as the day changes while the app stays open; not read directly in the body.
- },[clock])
+ },[clock,employeeRows])
  const operational=useMemo(()=>{
    const base=operationalText[language==='en'?'en':'el']
    return (base[role]||[]).map((x,i)=>({id:`TASK-${role}-${i}`,title:x[0],count:x[1],to:x[2],type:'task'}))

@@ -9,14 +9,14 @@ import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { loadEmployees } from '../employees/employeeStore'
+import { useEmployeesData } from '../employees/useEmployeesData'
 import { loadVaccinations, loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { downloadCsv } from '../../core/export/csvExport'
 import { MetricCard } from '../../design-system/MetricCard'
 
 export function OccupationalHealthPage(){
  const {t,language,locale}=useLanguage();const {notify}=useFeedback();const navigate=useNavigate();const {canAccessRecord}=useTenant();const [tab,setTab]=useState('visits');const [query,setQuery]=useState('');const [status,setStatus]=useState('all');const [department,setDepartment]=useState('all')
- const employeeRows=useMemo(loadEmployees,[])
+ const {data:employeeRows}=useEmployeesData()
  const occupationalVisits=useMemo(loadOccupationalVisits,[])
  const employeeVaccinations=useMemo(loadVaccinations,[])
  const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn))],[employeeRows,language]);const employeeMap=useMemo(()=>Object.fromEntries(employeeRows.map(x=>[x.id,x])),[employeeRows]);const source=tab==='visits'?occupationalVisits:employeeVaccinations

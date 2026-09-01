@@ -10,19 +10,24 @@ import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { loadEmployees,saveEmployees } from './employeeStore'
 import { EmployeeCreateDialog } from './EmployeeCreatePage'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { downloadCsv } from '../../core/export/csvExport'
 import { MetricCard } from '../../design-system/MetricCard'
+import { useEmployeesData } from './useEmployeesData'
+import { createEmployeeAsync } from './employeeService'
+import { RouteLoading } from '../../design-system/RouteLoading'
 
 export function EmployeesPage(){
-  const {t,language}=useLanguage(); const {notify}=useFeedback(); const navigate=useNavigate(); const {canAccessRecord}=useTenant(); const actor=useAuditActor(); const [employeeRows,setEmployeeRows]=useState(loadEmployees); const [createOpen,setCreateOpen]=useState(false)
+  const {t,language}=useLanguage(); const {notify}=useFeedback(); const navigate=useNavigate(); const {canAccessRecord,tenant}=useTenant(); const actor=useAuditActor()
+  const {data:employeeRows,setData:setEmployeeRows,loading,error,reload}=useEmployeesData(); const [createOpen,setCreateOpen]=useState(false)
   const registry=useRegistryMemory('employees')
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query); const [department,setDepartment]=useState(saved.department); const [status,setStatus]=useState(saved.status)
   const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn))],[employeeRows,language])
   const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>status==='all'||x.employmentStatus===status),[employeeRows,query,department,status,language,canAccessRecord])
+  if(loading)return <RouteLoading/>
+  if(error)return <div className="data-access-state error" role="alert"><span>{language==='en'?'Could not load employees.':'Δεν ήταν δυνατή η φόρτωση του προσωπικού.'}</span><button type="button" onClick={reload}>{language==='en'?'Retry':'Επανάληψη'}</button></div>
   const displayName=x=>language==='el'?`${x.lastName} ${x.firstName}`:`${x.firstNameEn} ${x.lastNameEn}`
   const scopedEmployees=employeeRows.filter(x=>canAccessRecord(x))
   const employeeSummary={
@@ -50,7 +55,7 @@ export function EmployeesPage(){
     <section className="surface registry-workspace workspace-column workspace-fill employee-registry-shell"><FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(status!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}}><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect><FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option></FilterSelect></FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table"><thead><tr><th>{t('employeeCode')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><strong>{x.id}</strong></td><td>{displayName(x)}<small>{x.email}</small></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table></div>
     </section>
-    {createOpen&&<EmployeeCreateDialog rows={employeeRows} actor={actor} onClose={()=>setCreateOpen(false)} onSave={row=>{const next=[row,...employeeRows];setEmployeeRows(next);saveEmployees(next);setCreateOpen(false);notify(t('employeeCreated'),'success');navigate(`/employees/${row.id}`)}}/>}
+    {createOpen&&<EmployeeCreateDialog rows={employeeRows} actor={actor} onClose={()=>setCreateOpen(false)} onSave={async row=>{try{const created=await createEmployeeAsync(tenant?.id??null,row);setEmployeeRows([created,...employeeRows]);setCreateOpen(false);notify(t('employeeCreated'),'success');navigate(`/employees/${created.id}`)}catch(err){if(err.message==='DUPLICATE_EMPLOYEE_CODE'){notify(language==='en'?'This employee code is already in use.':'Αυτός ο κωδικός εργαζομένου χρησιμοποιείται ήδη.','danger')}else{notify(language==='en'?'Could not save the employee.':'Δεν ήταν δυνατή η αποθήκευση του εργαζομένου.','danger')}}}}/>}
   </Page>
 }
 function Kpi({icon:Icon,value,label,kind=''}){return <MetricCard icon={Icon} value={value} label={label} tone={kind||'neutral'}/>}

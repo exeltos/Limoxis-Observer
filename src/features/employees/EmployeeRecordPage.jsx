@@ -14,7 +14,8 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { loadVaccinations, loadOccupationalVisits, loadEmployeeTraining, loadEvaluations, loadCertificates, saveCertificates } from './employeeRecordsService'
-import { loadEmployees } from './employeeStore'
+import { useEmployeesData } from './useEmployeesData'
+import { RouteLoading } from '../../design-system/RouteLoading'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -28,7 +29,7 @@ import { useAuth } from '../../core/auth/AuthContext'
 export function EmployeeRecordPage({selfMode=false}){
   const {employeeId}=useParams()
   const navigate=useNavigate()
-  const employeeRows=useMemo(loadEmployees,[])
+  const {data:employeeRows,loading:employeesLoading,error:employeesError,reload:reloadEmployees}=useEmployeesData()
   const {goBack,restored}=useContextualNavigation('/employees')
   const {t,language,locale}=useLanguage()
   const {confirm,notify}=useFeedback()
@@ -80,6 +81,8 @@ export function EmployeeRecordPage({selfMode=false}){
   const committeeApprovals=employee?.id?approvalsForEmployee(employee.id):[]
   const pendingCommitteeApprovals=committeeApprovals.filter(x=>x.status==='pending')
 
+  if(employeesLoading)return <RouteLoading/>
+  if(employeesError)return <Page title={t('employees')}><div className="data-access-state error" role="alert"><span>{language==='en'?'Could not load employees.':'Δεν ήταν δυνατή η φόρτωση του προσωπικού.'}</span><button type="button" onClick={reloadEmployees}>{language==='en'?'Retry':'Επανάληψη'}</button></div></Page>
   if(!employee){
     return <Page title={selfMode?t('employeesRecords.myProfile'):t('employees')}>
       <div className="surface"><div className="inline-empty">

@@ -18,7 +18,7 @@ const seed=[
  ],history:[{at:'2026-08-19T09:20:00Z',actor:'Demo seed',action:'Πρακτικά οριστικοποιήθηκαν',reason:'Εγκεκριμένα από τη συνεδρίαση'}]},
  {id:'COM-002',templateId:'oekocha',name:'Επιτροπή Αντιμικροβιακής Επιτήρησης',shortName:'ΕΑΕ',type:'antimicrobial',status:'active',chair:'Δρ. Ν. Γεωργίου',secretary:'Ι. Σταύρου',termStart:'2026-01-01',termEnd:'2027-12-31',mandate:'Παρακολούθηση ορθολογικής χρήσης αντιμικροβιακών, κατανάλωσης και αντοχής.',members:['Δρ. Ν. Γεωργίου','Ι. Σταύρου','Κλινικός Φαρμακοποιός'],meetings:[],decisions:[],annualPlan:[],history:[]}
 ]
-function inferTemplate(r){if(r.templateId)return r.templateId;const n=`${r.shortName||''} ${r.name||''}`.toLowerCase();if(n.includes('ενλ')||n.includes('νοσοκομειακών λοιμ'))return'enl';if(n.includes('αντιμικροβ')||n.includes('αντιβιο'))return'oekocha';return'custom'}
+export function inferTemplate(r){if(r.templateId)return r.templateId;const n=`${r.shortName||''} ${r.name||''}`.toLowerCase();if(n.includes('ενλ')||n.includes('νοσοκομειακών λοιμ'))return'enl';if(n.includes('αντιμικροβ')||n.includes('αντιβιο'))return'oekocha';return'custom'}
 function normalizeMeeting(meeting){
  const topics=Array.isArray(meeting.topics)&&meeting.topics.length?meeting.topics:(meeting.agenda||[]).map((subject,i)=>({id:`LEG-${meeting.id}-${i}`,subject,decision:i===0?(meeting.notes||''):'',followUp:false,action:'',owner:'',dueDate:'',priority:'medium'}))
  return {...meeting,topics,attendanceRecords:Array.isArray(meeting.attendanceRecords)?meeting.attendanceRecords:[],generalNotes:meeting.generalNotes??'',approvalState:meeting.approvalState??(meeting.status==='finalized'?'completed':'not_started')}

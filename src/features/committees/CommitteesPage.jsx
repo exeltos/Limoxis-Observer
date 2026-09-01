@@ -3,18 +3,21 @@ import { useMemo,useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookOpenCheck, CalendarDays, CheckCircle2, Clock3, Plus, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
+import { RouteLoading } from '../../design-system/RouteLoading'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can,CAPABILITIES } from '../../core/permissions/roles'
 import { loadCommittees,nextCommitteeId,saveCommittees } from './committeeData'
+import { createCommitteeAsync } from './committeeService'
+import { useCommitteesData } from './useCommitteesData'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
-import { loadEmployees } from '../employees/employeeStore'
+import { useEmployeesData } from '../employees/useEmployeesData'
 import { IPC_COMMITTEE_CATALOG,ipcCommitteeById } from './ipcCommitteeCatalog'
 import { requestCommitteeApproval } from './committeeApprovals'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -22,12 +25,14 @@ import { MetricCard } from '../../design-system/MetricCard'
 
 export function CommitteesPage(){
  const navigate=useNavigate();const {role,membership}=useTenant();const {notify}=useFeedback();const actor=useAuditActor();const {language}=useLanguage();const en=language==='en'
- const [rows,setRows]=useState(loadCommittees);const [createOpen,setCreateOpen]=useState(false);const [query,setQuery]=useState('');const [status,setStatus]=useState('all')
+ const {data:rows,setData:setRows,loading,error,reload}=useCommitteesData();const [createOpen,setCreateOpen]=useState(false);const [query,setQuery]=useState('');const [status,setStatus]=useState('all')
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const canCreate=can(role,CAPABILITIES.CREATE_COMMITTEE,addOns,custom)
  const filtered=useMemo(()=>rows.filter(x=>(status==='all'||x.status===status)&&`${x.name} ${x.shortName} ${x.chair}`.toLowerCase().includes(query.toLowerCase())),[rows,query,status])
  const meetings=rows.flatMap(x=>x.meetings||[]),decisions=rows.flatMap(x=>x.decisions||[])
  const overdue=decisions.filter(x=>!['completed','closed'].includes(x.status)&&x.dueDate&&new Date(x.dueDate)<new Date()).length
+ if(loading)return <RouteLoading/>
+ if(error)return <div className="data-access-state error" role="alert"><span>{en?'Could not load committees.':'Δεν ήταν δυνατή η φόρτωση των επιτροπών.'}</span><button type="button" onClick={reload}>{en?'Retry':'Επανάληψη'}</button></div>
  function exportCsv(){const text=[[(en?'Code':'Κωδικός'),(en?'Committee':'Επιτροπή'),(en?'Chair':'Πρόεδρος'),(en?'Status':'Κατάσταση')],...filtered.map(x=>[x.id,x.name,x.chair,x.status])].map(r=>r.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/csv'}));a.download='committees.csv';a.click();URL.revokeObjectURL(a.href)}
  function pageAction(action){if(action===UI_ACTIONS.CREATE){setCreateOpen(true);return}if(action===UI_ACTIONS.PRINT){window.print();return}if(action===UI_ACTIONS.EXPORT){exportCsv()}}
  return <Page fill title={en?'Committees':'Επιτροπές'} subtitle={en?'Governance of committees, meetings, minutes, decisions and actions.':'Διακυβέρνηση επιτροπών, συνεδριάσεων, πρακτικών, αποφάσεων και ενεργειών.'}
@@ -48,7 +53,7 @@ export function CommitteesPage(){
       </tr>)}
     </tbody></table></div>
    </section>
-   {createOpen&&<CommitteeCreateDialog language={language} actor={actor} onClose={()=>setCreateOpen(false)} onCreated={record=>{const next=[record,...rows];setRows(next);saveCommittees(next);setCreateOpen(false);notify(en?'Committee created.':'Η επιτροπή δημιουργήθηκε.','success');navigate(`/committees/${record.id}`)}}/>}
+   {createOpen&&<CommitteeCreateDialog language={language} actor={actor} onClose={()=>setCreateOpen(false)} onCreated={record=>{setRows([record,...rows]);setCreateOpen(false);notify(en?'Committee created.':'Η επιτροπή δημιουργήθηκε.','success');navigate(`/committees/${record.id}`)}}/>}
  </Page>
 }
 function Metric({icon:Icon,label,value}){return <MetricCard icon={Icon} value={value} label={label}/>}
@@ -57,10 +62,13 @@ function Metric({icon:Icon,label,value}){return <MetricCard icon={Icon} value={v
 const frequencies=[['monthly','Μηνιαία','Monthly'],['bimonthly','Ανά δίμηνο','Every two months'],['quarterly','Τριμηνιαία','Quarterly'],['semiannual','Εξαμηνιαία','Semiannual'],['annual','Ετήσια','Annual'],['as_needed','Όποτε απαιτείται','As needed']]
 
 function CommitteeCreateDialog({actor,onClose,onCreated,language}){
- const {confirm}=useFeedback();const en=language==='en'
- const staff=useMemo(()=>loadEmployees().filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession,email:x.email||''})),[])
+ const {confirm,notify}=useFeedback();const en=language==='en'
+ const {tenant}=useTenant()
+ const {data:staffRows,loading:staffLoading}=useEmployeesData()
+ const staff=useMemo(()=>staffRows.filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession,email:x.email||''})),[staffRows])
  const first=IPC_COMMITTEE_CATALOG[0]
  const [draft,setDraft]=useState({templateId:first.id,name:first.name,shortName:first.code,committeeRole:first.role,mandate:first.duties.join('\n'),legalBasis:first.source,decisionNumber:'',termStart:'',termEnd:'',meetingFrequency:'quarterly',quorumRule:'simple_majority',notes:'',members:[]})
+ const [saving,setSaving]=useState(false)
  const set=(k,v)=>setDraft(x=>({...x,[k]:v})),template=ipcCommitteeById(draft.templateId)
  const ids=draft.members.map(x=>x.employeeId).filter(Boolean)
  const datesValid=!draft.termStart||!draft.termEnd||new Date(draft.termEnd)>=new Date(draft.termStart)
@@ -70,16 +78,32 @@ function CommitteeCreateDialog({actor,onClose,onCreated,language}){
  function addMember(){setDraft(x=>({...x,members:[...x.members,{id:`m-${Date.now()}`,employeeId:'',title:'',responsibilities:'',voting:true,approvalRequired:false,memberType:'regular'}]}))}
  function patchMember(id,k,v){setDraft(x=>({...x,members:x.members.map(m=>m.id===id?{...m,[k]:v}:m)}))}
  async function removeMember(id){const ok=await confirm({title:en?'Remove member':'Αφαίρεση μέλους',message:en?'The member will be removed before saving. Continue?':'Το μέλος θα αφαιρεθεί από τη νέα επιτροπή πριν από την αποθήκευση. Θέλετε να συνεχίσετε;',confirmLabel:en?'Remove':'Αφαίρεση',danger:true});if(!ok)return;setDraft(x=>({...x,members:x.members.filter(m=>m.id!==id)}))}
- function save(){
-  if(!valid)return
-  const rows=loadCommittees(),id=nextCommitteeId(rows),now=new Date().toISOString()
-  const memberRefs=draft.members.map((m,i)=>{const person=staff.find(x=>x.id===m.employeeId);return {id:`CM-${Date.now()}-${i}`,employeeId:m.employeeId,name:person?.name||'',email:person?.email||'',department:person?.department||'',profession:person?.profession||'',committeeTitle:m.title.trim(),responsibilities:m.responsibilities.trim(),voting:m.voting,memberType:m.memberType||'regular',approvalRequired:m.approvalRequired,approvalStatus:m.approvalRequired?'pending':'not_required',active:true,startedAt:now,endedAt:null}})
-  const chair=memberRefs.find(x=>/πρόεδ|συντον/i.test(x.committeeTitle)),secretary=memberRefs.find(x=>/γραμματ/i.test(x.committeeTitle))
-  const record={id,name:draft.name.trim(),shortName:draft.shortName.trim(),status:'active',templateId:draft.templateId,structureKind:template.kind,isCoreCommittee:template.core,committeeRole:draft.committeeRole.trim(),mandate:draft.mandate.trim(),legalBasis:draft.legalBasis.trim(),officialRelation:template.relation,roleGuidance:template.roleGuidance||[],requiredFunctions:template.requiredFunctions,decisionNumber:draft.decisionNumber.trim(),termStart:draft.termStart,termEnd:draft.termEnd,meetingFrequency:draft.meetingFrequency,quorumRule:draft.quorumRule,notes:draft.notes.trim(),chair:chair?.name||'',secretary:secretary?.name||'',memberRefs,members:memberRefs.map(x=>x.name),meetings:[],decisions:[],annualPlan:[],createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Δημιουργία',reason:draft.name},{at:now,actor:actor.name,actorId:actor.id,action:'Αρχική σύνθεση',reason:`${memberRefs.length} μέλη`}]}
-  memberRefs.filter(x=>x.approvalRequired).forEach(m=>requestCommitteeApproval({committeeId:id,committeeName:record.name,employeeId:m.employeeId,memberName:m.name,committeeTitle:m.committeeTitle,responsibilities:m.responsibilities,requestedBy:actor.name,requestedById:actor.id}))
-  onCreated(record)
+ async function save(){
+  if(!valid||saving)return
+  setSaving(true)
+  try{
+   const rows=loadCommittees(),id=nextCommitteeId(rows),now=new Date().toISOString()
+   const memberRefs=draft.members.map((m,i)=>{const person=staff.find(x=>x.id===m.employeeId);return {id:`CM-${Date.now()}-${i}`,employeeId:m.employeeId,name:person?.name||'',email:person?.email||'',department:person?.department||'',profession:person?.profession||'',committeeTitle:m.title.trim(),responsibilities:m.responsibilities.trim(),voting:m.voting,memberType:m.memberType||'regular',approvalRequired:m.approvalRequired,approvalStatus:m.approvalRequired?'pending':'not_required',active:true,startedAt:now,endedAt:null}})
+   const chair=memberRefs.find(x=>/πρόεδ|συντον/i.test(x.committeeTitle)),secretary=memberRefs.find(x=>/γραμματ/i.test(x.committeeTitle))
+   const localRecord={id,name:draft.name.trim(),shortName:draft.shortName.trim(),status:'active',templateId:draft.templateId,structureKind:template.kind,isCoreCommittee:template.core,committeeRole:draft.committeeRole.trim(),mandate:draft.mandate.trim(),legalBasis:draft.legalBasis.trim(),officialRelation:template.relation,roleGuidance:template.roleGuidance||[],requiredFunctions:template.requiredFunctions,decisionNumber:draft.decisionNumber.trim(),termStart:draft.termStart,termEnd:draft.termEnd,meetingFrequency:draft.meetingFrequency,quorumRule:draft.quorumRule,notes:draft.notes.trim(),chair:chair?.name||'',secretary:secretary?.name||'',memberRefs,members:memberRefs.map(x=>x.name),meetings:[],decisions:[],annualPlan:[],createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Δημιουργία',reason:draft.name},{at:now,actor:actor.name,actorId:actor.id,action:'Αρχική σύνθεση',reason:`${memberRefs.length} μέλη`}]}
+   let record=localRecord
+   const cloudRecord=await createCommitteeAsync(tenant?.id??null,{...localRecord,memberRefs})
+   if(cloudRecord){
+    record=cloudRecord
+   }else{
+    // Demo session or Supabase not configured: fall back to the existing local-only path.
+    saveCommittees([localRecord,...rows])
+   }
+   memberRefs.filter(x=>x.approvalRequired).forEach(m=>requestCommitteeApproval({committeeId:record.id,committeeName:record.name,employeeId:m.employeeId,memberName:m.name,committeeTitle:m.committeeTitle,responsibilities:m.responsibilities,requestedBy:actor.name,requestedById:actor.id}))
+   onCreated(record)
+  }catch(err){
+   if(err.message==='DUPLICATE_COMMITTEE_CODE'){notify(en?'This committee code is already in use.':'Αυτός ο κωδικός επιτροπής χρησιμοποιείται ήδη.','danger')}
+   else{notify(en?'Could not save the committee.':'Δεν ήταν δυνατή η αποθήκευση της επιτροπής.','danger')}
+  }finally{
+   setSaving(false)
+  }
  }
- return <ObserverDialog width="wide" eyebrow={en?'Committees':'Επιτροπές'} title={en?'New committee / group':'Νέα επιτροπή / ομάδα'} subtitle={en?'Establishment, composition and basic operating rules':'Σύσταση, σύνθεση και βασικοί κανόνες λειτουργίας'} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={!valid} onSave={save} saveLabel={en?'Save':'Αποθήκευση'}/>}>
+ return <ObserverDialog width="wide" eyebrow={en?'Committees':'Επιτροπές'} title={en?'New committee / group':'Νέα επιτροπή / ομάδα'} subtitle={en?'Establishment, composition and basic operating rules':'Σύσταση, σύνθεση και βασικοί κανόνες λειτουργίας'} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={!valid||saving} onSave={save} saveLabel={saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save':'Αποθήκευση')}/>}>
   <div className="committee-create-dialog-content">
    <section className="observer-form-section"><div className="observer-form-section-title"><div><strong>{en?'Basic details':'Βασικά στοιχεία'}</strong><span>{en?'Select a template or create a local committee. Details remain editable.':'Επιλέξτε πρότυπο ή δημιουργήστε τοπική επιτροπή. Τα στοιχεία παραμένουν επεξεργάσιμα.'}</span></div></div><div className="entry-grid compact">
     <label><span>{en?'Committee / group type *':'Τύπος επιτροπής / ομάδας *'}</span><select value={draft.templateId} onChange={e=>chooseTemplate(e.target.value)}>{IPC_COMMITTEE_CATALOG.map(x=><option key={x.id} value={x.id}>{x.code?`${x.code} — `:''}{x.name}</option>)}</select></label>
@@ -90,7 +114,7 @@ function CommitteeCreateDialog({actor,onClose,onCreated,language}){
     <label className="entry-span-2"><span>{en?'Committee role *':'Ρόλος της επιτροπής *'}</span><textarea rows="2" value={draft.committeeRole} onChange={e=>set('committeeRole',e.target.value)}/></label>
     <label className="entry-span-2"><span>{en?'Responsibilities *':'Αρμοδιότητες *'}</span><textarea rows="3" value={draft.mandate} onChange={e=>set('mandate',e.target.value)}/></label>
    </div></section>
-   <section className="observer-form-section"><div className="observer-form-section-title"><div><strong>{en?'Composition':'Σύνθεση'}</strong><span>{en?'Actual members, their role and responsibility.':'Τα πραγματικά μέλη, η ιδιότητα και η αρμοδιότητά τους.'}</span></div><Button onClick={addMember}><Plus size={15}/>{en?' Add member':' Προσθήκη μέλους'}</Button></div>
+   <section className="observer-form-section"><div className="observer-form-section-title"><div><strong>{en?'Composition':'Σύνθεση'}</strong><span>{en?'Actual members, their role and responsibility.':'Τα πραγματικά μέλη, η ιδιότητα και η αρμοδιότητά τους.'}</span></div><Button onClick={addMember} disabled={staffLoading}>{staffLoading?(en?'Loading staff…':'Φόρτωση προσωπικού…'):<><Plus size={15}/>{en?' Add member':' Προσθήκη μέλους'}</>}</Button></div>
     {draft.members.length?<div className="committee-member-list">{draft.members.map((m,i)=><CommitteeDialogMember en={en} key={m.id} m={m} index={i} staff={staff} suggestions={[...new Set(['Πρόεδρος','Αντιπρόεδρος','Συντονιστής','Γραμματέας','Μέλος','Αναπληρωματικό μέλος',...(template.requiredFunctions||[])])]} onChange={(k,v)=>patchMember(m.id,k,v)} onRemove={()=>removeMember(m.id)}/>)}</div>:<div className="inline-empty">{en?'No members added.':'Δεν έχουν προστεθεί μέλη.'}</div>}
     {!membersValid&&draft.members.length>0&&<div className="source-truth-note">{en?'Complete employee, role and responsibility for each member. Duplicates are not allowed.':'Συμπληρώστε εργαζόμενο, ιδιότητα και αρμοδιότητα για κάθε μέλος. Δεν επιτρέπεται διπλή καταχώρηση.'}</div>}
    </section>

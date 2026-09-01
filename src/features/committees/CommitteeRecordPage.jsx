@@ -1,4 +1,4 @@
-import { useMemo,useState } from 'react'
+import { useEffect,useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { AlertTriangle,CalendarDays,CheckCircle2,ClipboardList,FileClock,FileSignature,Mail,Paperclip,Pencil,Plus,ShieldCheck,Target,Trash2,Users } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -16,10 +16,11 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { canForRecord,CAPABILITIES } from '../../core/permissions/roles'
 import { loadCommittees,saveCommittees } from './committeeData'
+import { loadCommitteesAsync } from './committeeService'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { AttachmentField } from '../../design-system/AttachmentField'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
-import { loadEmployees } from '../employees/employeeStore'
+import { useEmployeesData } from '../employees/useEmployeesData'
 import { ipcCommitteeById } from './ipcCommitteeCatalog'
 import { approvalStatusFor,minutesApprovalSummary,requestCommitteeApproval,requestMinutesApprovals } from './committeeApprovals'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -51,10 +52,28 @@ export function CommitteeRecordPage(){
   const {committeeId}=useParams()
   const navigate=useNavigate()
   const actor=useAuditActor()
-  const {role,membership}=useTenant()
+  const {role,membership,tenant}=useTenant()
   const {notify}=useFeedback()
   const {language,locale}=useLanguage();const en=language==='en'
   const [rows,setRows]=useState(loadCommittees)
+  // A committee created via the cloud won't be in local storage. Merge it in
+  // by id so this page can find and display it — meetings/decisions editing
+  // for such a record still only persists locally for now (see
+  // committeeService.js header comment); that's an existing, already-flagged
+  // follow-up, not new scope for this fix.
+  useEffect(()=>{
+    if(!tenant?.id)return
+    let cancelled=false
+    loadCommitteesAsync(tenant.id).then(cloudRows=>{
+      if(cancelled||!cloudRows.length)return
+      setRows(current=>{
+        const localIds=new Set(current.map(x=>x.id))
+        const missing=cloudRows.filter(x=>!localIds.has(x.id))
+        return missing.length?[...current,...missing]:current
+      })
+    }).catch(()=>{})
+    return ()=>{cancelled=true}
+  },[tenant?.id])
   const record=rows.find(x=>x.id===committeeId)
   const [tab,setTab]=useState('overview')
   const [modal,setModal]=useState(null)
@@ -68,7 +87,8 @@ export function CommitteeRecordPage(){
   const canFinalizeMinutes=canForCommittee(CAPABILITIES.FINALIZE_COMMITTEE_MINUTES)
   const canManageDecisions=canForCommittee(CAPABILITIES.MANAGE_COMMITTEE_DECISIONS)
   const canManageDocuments=canForCommittee(CAPABILITIES.MANAGE_COMMITTEE_DOCUMENTS)
-  const staff=useMemo(()=>loadEmployees().filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession,email:x.email||''})),[])
+  const {data:staffRows}=useEmployeesData()
+  const staff=useMemo(()=>staffRows.filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession,email:x.email||''})),[staffRows])
 
   if(!record)return <Page title={en?'Committees':'Επιτροπές'}><div className="inline-empty">{en?'Committee not found.':'Η επιτροπή δεν βρέθηκε.'}</div></Page>
 

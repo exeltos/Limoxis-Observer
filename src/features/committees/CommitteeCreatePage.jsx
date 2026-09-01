@@ -8,8 +8,10 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
-import { loadEmployees } from '../employees/employeeStore'
+import { useEmployeesData } from '../employees/useEmployeesData'
+import { useTenant } from '../../core/tenant/TenantContext'
 import { loadCommittees,nextCommitteeId,saveCommittees } from './committeeData'
+import { createCommitteeAsync } from './committeeService'
 import { IPC_COMMITTEE_CATALOG,ipcCommitteeById } from './ipcCommitteeCatalog'
 import { requestCommitteeApproval } from './committeeApprovals'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -19,7 +21,10 @@ const frequencies=[['monthly','Μηνιαία','Monthly'],['bimonthly','Ανά �
 export function CommitteeCreatePage(){
  const navigate=useNavigate(),location=useLocation(),actor=useAuditActor(),{notify,confirm}=useFeedback(),{goBack}=useContextualNavigation('/committees')
  const {language}=useLanguage();const en=language==='en'
- const staff=useMemo(()=>loadEmployees().filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession})),[])
+ const {tenant}=useTenant()
+ const [saving,setSaving]=useState(false)
+ const {data:staffRows}=useEmployeesData()
+ const staff=useMemo(()=>staffRows.filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession})),[staffRows])
  const first=IPC_COMMITTEE_CATALOG[0]
  const [draft,setDraft]=useState({templateId:first.id,name:first.name,shortName:first.code,committeeRole:first.role,mandate:first.duties.join('\n'),legalBasis:first.source,decisionNumber:'',termStart:'',termEnd:'',meetingFrequency:'quarterly',quorumRule:'simple_majority',notes:'',members:[]})
  const set=(k,v)=>setDraft(x=>({...x,[k]:v}));const template=ipcCommitteeById(draft.templateId)
@@ -31,13 +36,24 @@ export function CommitteeCreatePage(){
  function addMember(){setDraft(x=>({...x,members:[...x.members,{id:`m-${Date.now()}`,employeeId:'',title:'',responsibilities:'',voting:true,approvalRequired:false,memberType:'regular'}]}))}
  function patchMember(id,k,v){setDraft(x=>({...x,members:x.members.map(m=>m.id===id?{...m,[k]:v}:m)}))}
  async function removeMember(id){const ok=await confirm({title:en?'Remove member':'Αφαίρεση μέλους',message:en?'The member will be removed from the new committee. Continue?':'Το μέλος θα αφαιρεθεί από τη νέα επιτροπή. Θέλετε να συνεχίσετε;',confirmLabel:en?'Remove':'Αφαίρεση',danger:true});if(!ok)return;setDraft(x=>({...x,members:x.members.filter(m=>m.id!==id)}))}
- function save(){
-  if(!valid)return;const rows=loadCommittees(),id=nextCommitteeId(rows),now=new Date().toISOString()
-  const memberRefs=draft.members.map((m,i)=>{const person=staff.find(x=>x.id===m.employeeId);return {id:`CM-${Date.now()}-${i}`,employeeId:m.employeeId,name:person?.name||'',department:person?.department||'',profession:person?.profession||'',committeeTitle:m.title.trim(),responsibilities:m.responsibilities.trim(),voting:m.voting,memberType:m.memberType||'regular',approvalRequired:m.approvalRequired,approvalStatus:m.approvalRequired?'pending':'not_required',active:true,startedAt:now,endedAt:null}})
-  const chair=memberRefs.find(x=>/πρόεδ|συντον/i.test(x.committeeTitle)),secretary=memberRefs.find(x=>/γραμματ/i.test(x.committeeTitle))
-  const record={id,name:draft.name.trim(),shortName:draft.shortName.trim(),status:'active',templateId:draft.templateId,structureKind:template.kind,isCoreCommittee:template.core,committeeRole:draft.committeeRole.trim(),mandate:draft.mandate.trim(),legalBasis:draft.legalBasis.trim(),officialRelation:template.relation,roleGuidance:template.roleGuidance||[],requiredFunctions:template.requiredFunctions,decisionNumber:draft.decisionNumber.trim(),termStart:draft.termStart,termEnd:draft.termEnd,meetingFrequency:draft.meetingFrequency,quorumRule:draft.quorumRule,notes:draft.notes.trim(),chair:chair?.name||'',secretary:secretary?.name||'',memberRefs,members:memberRefs.map(x=>x.name),meetings:[],decisions:[],createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Δημιουργία',reason:draft.name},{at:now,actor:actor.name,actorId:actor.id,action:'Αρχική σύνθεση',reason:`${memberRefs.length} μέλη`}]} 
-  saveCommittees([record,...rows]);memberRefs.filter(x=>x.approvalRequired).forEach(m=>requestCommitteeApproval({committeeId:id,committeeName:record.name,employeeId:m.employeeId,memberName:m.name,committeeTitle:m.committeeTitle,responsibilities:m.responsibilities,requestedBy:actor.name,requestedById:actor.id}))
-  notify(en?'Committee created.':'Η επιτροπή δημιουργήθηκε.','success');navigate(`/committees/${id}`,{replace:true,state:{limoxisFrom:location.state?.limoxisFrom}})
+ async function save(){
+  if(!valid||saving)return;setSaving(true)
+  try{
+   const rows=loadCommittees(),id=nextCommitteeId(rows),now=new Date().toISOString()
+   const memberRefs=draft.members.map((m,i)=>{const person=staff.find(x=>x.id===m.employeeId);return {id:`CM-${Date.now()}-${i}`,employeeId:m.employeeId,name:person?.name||'',department:person?.department||'',profession:person?.profession||'',committeeTitle:m.title.trim(),responsibilities:m.responsibilities.trim(),voting:m.voting,memberType:m.memberType||'regular',approvalRequired:m.approvalRequired,approvalStatus:m.approvalRequired?'pending':'not_required',active:true,startedAt:now,endedAt:null}})
+   const chair=memberRefs.find(x=>/πρόεδ|συντον/i.test(x.committeeTitle)),secretary=memberRefs.find(x=>/γραμματ/i.test(x.committeeTitle))
+   const localRecord={id,name:draft.name.trim(),shortName:draft.shortName.trim(),status:'active',templateId:draft.templateId,structureKind:template.kind,isCoreCommittee:template.core,committeeRole:draft.committeeRole.trim(),mandate:draft.mandate.trim(),legalBasis:draft.legalBasis.trim(),officialRelation:template.relation,roleGuidance:template.roleGuidance||[],requiredFunctions:template.requiredFunctions,decisionNumber:draft.decisionNumber.trim(),termStart:draft.termStart,termEnd:draft.termEnd,meetingFrequency:draft.meetingFrequency,quorumRule:draft.quorumRule,notes:draft.notes.trim(),chair:chair?.name||'',secretary:secretary?.name||'',memberRefs,members:memberRefs.map(x=>x.name),meetings:[],decisions:[],createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Δημιουργία',reason:draft.name},{at:now,actor:actor.name,actorId:actor.id,action:'Αρχική σύνθεση',reason:`${memberRefs.length} μέλη`}]}
+   let record=localRecord
+   const cloudRecord=await createCommitteeAsync(tenant?.id??null,{...localRecord,memberRefs})
+   if(cloudRecord){record=cloudRecord}else{saveCommittees([localRecord,...rows])}
+   memberRefs.filter(x=>x.approvalRequired).forEach(m=>requestCommitteeApproval({committeeId:record.id,committeeName:record.name,employeeId:m.employeeId,memberName:m.name,committeeTitle:m.committeeTitle,responsibilities:m.responsibilities,requestedBy:actor.name,requestedById:actor.id}))
+   notify(en?'Committee created.':'Η επιτροπή δημιουργήθηκε.','success');navigate(`/committees/${record.id}`,{replace:true,state:{limoxisFrom:location.state?.limoxisFrom}})
+  }catch(err){
+   if(err.message==='DUPLICATE_COMMITTEE_CODE'){notify(en?'This committee code is already in use.':'Αυτός ο κωδικός επιτροπής χρησιμοποιείται ήδη.','danger')}
+   else{notify(en?'Could not save the committee.':'Δεν ήταν δυνατή η αποθήκευση της επιτροπής.','danger')}
+  }finally{
+   setSaving(false)
+  }
  }
  return <Page fill><EntityRecordShell className="committee-create-shell workspace-fill" avatar={<BookOpenCheck size={19}/>} eyebrow={en?'Committees':'Επιτροπές'} title={en?'New committee / group':'Νέα επιτροπή / ομάδα'} subtitle={en?'Establishment, composition and basic operating rules':'Σύσταση, σύνθεση και βασικοί κανόνες λειτουργίας'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={goBack}>
   <div className="committee-create-scroll">
@@ -73,7 +89,7 @@ export function CommitteeCreatePage(){
      <div className={`committee-create-readiness ${valid?'ready':''}`}><CheckCircle2 size={17}/><div><strong>{valid?(en?'Ready to save':'Έτοιμη για αποθήκευση'):(en?'Information pending':'Εκκρεμούν στοιχεία')}</strong><span>{valid?(en?'The core establishment details are complete.':'Έχουν συμπληρωθεί τα βασικά στοιχεία σύστασης.'):(en?'Name, role, responsibilities, term and at least one complete member are required.':'Χρειάζονται ονομασία, ρόλος, αρμοδιότητες, θητεία και τουλάχιστον ένα πλήρες μέλος.')}</span></div></div>
     </aside>
    </div>
-  </div><div className="committee-create-footer"><Button variant="secondary" onClick={goBack}>{en?'Cancel':'Ακύρωση'}</Button><Button disabled={!valid} onClick={save}>{en?'Save committee':'Αποθήκευση επιτροπής'}</Button></div>
+  </div><div className="committee-create-footer"><Button variant="secondary" onClick={goBack}>{en?'Cancel':'Ακύρωση'}</Button><Button disabled={!valid||saving} onClick={save}>{saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save committee':'Αποθήκευση επιτροπής')}</Button></div>
  </EntityRecordShell></Page>
 }
 function TemplateGuidance({template,en}){return <div className="committee-template-panel"><div className="committee-template-head"><div><span className="committee-template-code">{template.code}</span><strong>{template.relation}</strong></div><span className="status-badge active">{en?'Template':'Πρότυπο'}</span></div><div className="committee-guidance-legend"><span><i className="legal"/>{en?'Institutional':'Θεσμικό'}</span><span><i className="recommended"/>{en?'Recommended':'Προτεινόμενο'}</span><span><i className="local"/>{en?'Local choice':'Τοπική επιλογή'}</span></div>{(template.roleGuidance||[]).map(group=><div className="committee-guidance-group" key={group.level}><div className={`committee-guidance-label ${group.level}`}><Info size={13}/>{group.label}</div><div>{group.roles.map(x=><small key={x}>{x}</small>)}</div></div>)}</div>}

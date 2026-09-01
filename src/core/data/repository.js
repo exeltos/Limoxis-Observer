@@ -1,7 +1,6 @@
 import { supabase } from '../supabase/client'
 import { hasSupabaseConfig } from '../config/env'
 import { dataPartitionKey,environmentFallback,isDemoDataEnvironment } from './dataEnvironment'
-
 const backend=(import.meta.env.VITE_DATA_BACKEND||'local').trim().toLowerCase()
 const memory=new Map()
 
@@ -100,7 +99,7 @@ export function loadSnapshot(table,fallback=null){
 }
 
 export function saveSnapshot(table,rows,{organizationId=null}={}){
-  if(backend==='supabase'&&hasSupabaseConfig&&supabase&&config(table).cloud!==false){
+  if(backend==='supabase'&&hasSupabaseConfig&&supabase&&config(table).cloud!==false&&!isDemoDataEnvironment()){
     memory.set(memoryKey(table),clone(rows))
     // Keep the synchronous snapshot API for existing stores, while ensuring a
     // failed background write is reported through the data-operation event
@@ -123,7 +122,7 @@ export function saveSnapshot(table,rows,{organizationId=null}={}){
 export async function load(table,{fallback=null,organizationId=null}={}){
   emit({table,operation:'load',status:'loading'})
   try{
-    if(backend!=='supabase'||!hasSupabaseConfig||!supabase||config(table).cloud===false){
+    if(backend!=='supabase'||!hasSupabaseConfig||!supabase||config(table).cloud===false||isDemoDataEnvironment()){
       const value=readLocal(table,fallback); memory.set(memoryKey(table),clone(value))
       emit({table,operation:'load',status:'success'}); return clone(value)
     }
@@ -159,7 +158,7 @@ export async function save(table,rows,{organizationId=null}={}){
   const retry=()=>save(table,rows,{organizationId})
   emit({table,operation:'save',status:'saving',retry})
   try{
-    if(backend!=='supabase'||!hasSupabaseConfig||!supabase||config(table).cloud===false){
+    if(backend!=='supabase'||!hasSupabaseConfig||!supabase||config(table).cloud===false||isDemoDataEnvironment()){
       const value=writeLocal(table,rows); emit({table,operation:'save',status:'success'}); return value
     }
     if(!organizationId)throw new DataAccessError('Organization is required for cloud data.',{table,operation:'save'})
