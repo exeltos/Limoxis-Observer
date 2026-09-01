@@ -20,10 +20,10 @@ describe('committee minutes revision cycle',()=>{
     expect(sql).toContain('Αίτημα διορθώσεων πρακτικών')
   })
 
-  it('keeps the existing client resubmission path reusable',()=>{
+  it('resubmits revisions through the governed transactional submission path',()=>{
     const workflow=read('src/features/committees/committeeWorkflowService.js')
-    expect(workflow).toContain('requestMinutesApprovals')
-    expect(workflow).toContain("status:'pending'")
-    expect(workflow).toContain("approval_pending")
+    expect(workflow).toContain("supabase.rpc('submit_committee_minutes_for_approval'")
+    expect(workflow).not.toContain('requestMinutesApprovals')
+    expect(workflow).toContain("status=submission?.status||'approval_pending'")
   })
 })
