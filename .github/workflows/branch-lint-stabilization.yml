@@ -35,7 +35,6 @@ jobs:
                   raise SystemExit(f'{label}: expected 1 exact match, found {count}')
               p.write_text(text.replace(old, new, 1))
 
-          # CommitteeRecordPage: keep Hooks unconditional and remount dialog state per meeting.
           committee = 'src/features/committees/CommitteeRecordPage.jsx'
           replace_once(
               committee,
@@ -50,7 +49,6 @@ jobs:
               'committee hook order',
           )
 
-          # EmployeeRecordPage: remove dead legacy local committee-response path and unused icons.
           employee = Path('src/features/employees/EmployeeRecordPage.jsx')
           text = employee.read_text()
           text = text.replace('Activity, BriefcaseBusiness, CheckCircle2, FileCheck2, FileSignature, GraduationCap, HeartPulse, KeyRound, Pencil, ShieldCheck, Syringe, Trash2, UserRound, XCircle', 'Activity, BriefcaseBusiness, FileCheck2, FileSignature, GraduationCap, HeartPulse, KeyRound, Pencil, ShieldCheck, Syringe, Trash2, UserRound', 1)
@@ -65,7 +63,6 @@ jobs:
               raise SystemExit(f'employee dead committee handler: expected 1 match, found {n}')
           employee.write_text(text)
 
-          # TrainingProductionPage: make reload stable and use it as the effect dependency.
           training = 'src/features/training/TrainingProductionPage.jsx'
           replace_once(training, "import { useEffect,useMemo,useState } from 'react'", "import { useCallback,useEffect,useMemo,useState } from 'react'", 'training useCallback import')
           replace_once(
@@ -94,6 +91,7 @@ jobs:
         shell: bash
         run: |
           rm .github/workflows/branch-lint-stabilization.yml
+          sed -i 's/[[:space:]]\+$//' src/features/committees/CommitteeRecordPage.jsx src/features/employees/EmployeeRecordPage.jsx src/features/training/TrainingProductionPage.jsx
           git diff --check
           git config user.name "Exeltos Automation"
           git config user.email "info@exeltos.com"
