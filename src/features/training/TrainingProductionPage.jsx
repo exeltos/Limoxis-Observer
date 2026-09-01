@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useState } from 'react'
+import { useCallback,useEffect,useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { Award,BookOpenCheck,CalendarClock,CheckCircle2,ClipboardCheck,Clock3,FileText,Mail,Plus,RefreshCw,Send,Star,Users } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -27,8 +27,8 @@ export function TrainingProductionPage(){
  const {programId}=useParams(),navigate=useNavigate(),{language}=useLanguage(),en=language==='en', {tenant,role,membership}=useTenant(),{notify,notifyError,confirm}=useFeedback(),{data:employees}=useEmployeesData()
  const [state,setState]=useState(blankState),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[dialog,setDialog]=useState(null),[query,setQuery]=useState(''),[status,setStatus]=useState('all'),[category,setCategory]=useState('all')
  const canManage=can(role,CAPABILITIES.MANAGE_TRAINING,membership?.capabilities??[],membership?.customCapabilities??[]),managerView=role===ROLES.DEPARTMENT_MANAGER&&!canManage,employeeView=!canManage&&!managerView
- async function reload(){if(!tenant?.id)return;setLoading(true);try{setState(await loadTrainingStateAsync(tenant.id))}catch(error){notifyError(error,'load',{operation:'training_load'})}finally{setLoading(false)}}
- useEffect(()=>{void reload()},[tenant?.id])
+ const reload=useCallback(async()=>{if(!tenant?.id)return;setLoading(true);try{setState(await loadTrainingStateAsync(tenant.id))}catch(error){notifyError(error,'load',{operation:'training_load'})}finally{setLoading(false)}},[tenant?.id,notifyError])
+ useEffect(()=>{void reload()},[reload])
  async function persist(next,success){if(!canManage)return false;setBusy(true);try{const saved=await saveManagedTrainingStateAsync(tenant.id,next);setState(saved);if(success)notify(success,'success');return true}catch(error){notifyError(error,'save',{operation:'training_save'});return false}finally{setBusy(false)}}
  const assignments=useMemo(()=>state.assignments.map(x=>({...x,computedStatus:computedAssignmentStatus(x)})),[state.assignments]),programs=state.programs.filter(x=>(status==='all'||x.status===status)&&(category==='all'||x.category===category)&&`${x.id} ${x.title} ${x.owner} ${x.trainer} ${x.audience}`.toLowerCase().includes(query.toLowerCase())),categories=[...new Set(state.programs.map(x=>x.category).filter(Boolean))]
  const selected=state.programs.find(x=>x.id===programId),selectedAssignments=selected?assignments.filter(x=>x.programId===selected.id):[]
