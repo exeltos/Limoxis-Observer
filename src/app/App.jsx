@@ -33,7 +33,7 @@ const QualityCreatePage = lazyNamed(() => import('../features/quality/QualityCre
 const TrainingPage = lazyNamed(() => import('../features/training/TrainingPage'), 'TrainingPage')
 const TrainingAccessPage = lazyNamed(() => import('../features/training/TrainingAccessPage'), 'TrainingAccessPage')
 const CommitteesPage = lazyNamed(() => import('../features/committees/CommitteesPage'), 'CommitteesPage')
-const CommitteeRecordPage = lazyNamed(() => import('../features/committees/CommitteeRecordPage'), 'CommitteeRecordPage')
+const CommitteeRecordPageRoute = lazyNamed(() => import('../features/committees/CommitteeRecordPageRoute'), 'CommitteeRecordPageRoute')
 const DocumentsPage = lazyNamed(() => import('../features/documents/DocumentsPage'), 'DocumentsPage')
 const DocumentRecordPage = lazyNamed(() => import('../features/documents/DocumentRecordPage'), 'DocumentRecordPage')
 const PatientsPage = lazyNamed(() => import('../features/patients/PatientsPage'), 'PatientsPage')
@@ -85,7 +85,7 @@ export function App() {
         <Route path="training" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_TRAINING, <TrainingPage />)}</Suspense>} />
         <Route path="training/:programId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_TRAINING, <TrainingPage />)}</Suspense>} />
         <Route path="committees" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_COMMITTEES, <CommitteesPage />)}</Suspense>} />
-        <Route path="committees/:committeeId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_COMMITTEES, <CommitteeRecordPage />)}</Suspense>} />
+        <Route path="committees/:committeeId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_COMMITTEES, <CommitteeRecordPageRoute />)}</Suspense>} />
         <Route path="documents" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DOCUMENTS, <DocumentsPage />)}</Suspense>} />
         <Route path="documents/:documentId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DOCUMENTS, <DocumentRecordPage />)}</Suspense>} />
         <Route path="patients" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PATIENTS, <PatientsPage />)}</Suspense>} />
