@@ -7,6 +7,15 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   const lower=raw.toLowerCase()
   const en=language==='en'
 
+  if(lower.includes('committee_membership_approval_not_available')){
+    return en?'This participation request is no longer available for approval.':'Το αίτημα συμμετοχής δεν είναι πλέον διαθέσιμο για έγκριση.'
+  }
+  if(lower.includes('committee_member_user_not_in_organization')){
+    return en?'The selected member account does not belong to this organization.':'Ο λογαριασμός του επιλεγμένου μέλους δεν ανήκει σε αυτόν τον οργανισμό.'
+  }
+  if(lower.includes('committee_membership_approval_status_invalid')||lower.includes('invalid_committee_membership_approval_status')){
+    return en?'The participation approval status is not valid.':'Η κατάσταση έγκρισης συμμετοχής δεν είναι έγκυρη.'
+  }
   if(lower.includes('permission')||lower.includes('not authorized')||lower.includes('row-level security')||lower.includes('rls')){
     return en?'You do not have permission to complete this action.':'Δεν έχετε δικαίωμα να ολοκληρώσετε αυτή την ενέργεια.'
   }
