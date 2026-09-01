@@ -51,7 +51,16 @@ export async function loadTrainingAccessAsync(organizationId,userId,token){
   return {access:{program,mode},assignment:{...(assignmentRow.payload||{}),id:assignmentRow.record_key,dbId:assignmentRow.id,departmentId:assignmentRow.department_id||null,userId:assignmentRow.employee_user_id||null}}
 }
 
-const learnerOwnedAssignmentFields=['attendance','attendanceResponse','checkInAt','completionConfirmedAt','feedbackSubmittedAt','assessmentSubmittedAt','score','competent','certificateId','feedbackScores','feedbackComment','completedDate']
+const learnerOwnedAssignmentFields=['attendance','attendanceResponse','attendanceConfirmedAt','checkInAt','completionConfirmedAt','feedbackSubmittedAt','assessmentSubmittedAt','score','competent','certificateId','feedbackScores','feedbackComment','completedDate','accessToken','invitationSentAt']
+
+async function resolveAssignmentIdentity(organizationId,assignment){
+  if(assignment?.userId)return {userId:assignment.userId,departmentId:assignment.departmentId||null,email:assignment.email||null,accountLinked:true}
+  const employeeCode=String(assignment?.employeeId||'').trim()
+  if(!employeeCode)return {userId:null,departmentId:assignment?.departmentId||null,email:assignment?.email||null,accountLinked:false}
+  const {data,error}=await supabase.from('employees').select('id,user_id,department_id,email,employee_code').eq('organization_id',organizationId).eq('employee_code',employeeCode).maybeSingle()
+  if(error)throw error
+  return {userId:data?.user_id||null,departmentId:data?.department_id||assignment?.departmentId||null,email:data?.email||assignment?.email||null,accountLinked:Boolean(data?.user_id)}
+}
 
 async function upsertRecord(organizationId,recordType,payload,{departmentId=null,employeeUserId=null}={}){
   const recordKey=payload?.id
@@ -75,7 +84,11 @@ export async function saveManagedTrainingStateAsync(organizationId,state){
   requireProduction(organizationId,'save')
   const programs=state?.programs||[],assignments=state?.assignments||[],certificates=state?.certificates||[]
   for(const program of programs)await upsertRecord(organizationId,'program',program)
-  for(const assignment of assignments)await upsertRecord(organizationId,'assignment',assignment,{departmentId:assignment.departmentId||null,employeeUserId:assignment.userId||null})
+  for(const assignment of assignments){
+    const identity=await resolveAssignmentIdentity(organizationId,assignment)
+    const linkedAssignment={...assignment,userId:identity.userId,email:identity.email||assignment.email||null,accountLinked:identity.accountLinked}
+    await upsertRecord(organizationId,'assignment',linkedAssignment,{departmentId:identity.departmentId,employeeUserId:identity.userId})
+  }
   for(const certificate of certificates)await upsertRecord(organizationId,'certificate',certificate,{departmentId:certificate.departmentId||null,employeeUserId:certificate.userId||null})
   await upsertRecord(organizationId,'history_snapshot',{id:'training-history',items:state?.history||[]})
   return loadTrainingStateAsync(organizationId)
