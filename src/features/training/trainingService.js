@@ -51,11 +51,20 @@ export async function loadTrainingAccessAsync(organizationId,userId,token){
   return {access:{program,mode},assignment:{...(assignmentRow.payload||{}),id:assignmentRow.record_key,dbId:assignmentRow.id,departmentId:assignmentRow.department_id||null,userId:assignmentRow.employee_user_id||null}}
 }
 
+const learnerOwnedAssignmentFields=['attendance','attendanceResponse','checkInAt','completionConfirmedAt','feedbackSubmittedAt','assessmentSubmittedAt','score','competent','certificateId','feedbackScores','feedbackComment','completedDate']
+
 async function upsertRecord(organizationId,recordType,payload,{departmentId=null,employeeUserId=null}={}){
   const recordKey=payload?.id
   if(!recordKey)throw new Error('TRAINING_RECORD_KEY_REQUIRED')
   const cleanPayload={...payload};delete cleanPayload.dbId
-  const row={organization_id:organizationId,record_key:recordKey,record_type:recordType,department_id:departmentId||payload.departmentId||null,employee_user_id:employeeUserId||payload.userId||null,payload:cleanPayload,updated_at:new Date().toISOString()}
+  const {data:existing,error:existingError}=await supabase.from('training_records').select('payload,department_id,employee_user_id').eq('organization_id',organizationId).eq('record_key',recordKey).maybeSingle()
+  if(existingError)throw existingError
+  if(recordType==='program'&&Array.isArray(existing?.payload?.feedbackResponses))cleanPayload.feedbackResponses=existing.payload.feedbackResponses
+  if(recordType==='assignment'&&existing?.payload){
+    for(const key of learnerOwnedAssignmentFields){if(Object.prototype.hasOwnProperty.call(existing.payload,key))cleanPayload[key]=existing.payload[key]}
+    if(existing.payload.status==='completed'||existing.payload.status==='in_progress')cleanPayload.status=existing.payload.status
+  }
+  const row={organization_id:organizationId,record_key:recordKey,record_type:recordType,department_id:departmentId||payload.departmentId||existing?.department_id||null,employee_user_id:employeeUserId||payload.userId||existing?.employee_user_id||null,payload:cleanPayload,updated_at:new Date().toISOString()}
   const {data,error}=await supabase.from('training_records').upsert(row,{onConflict:'organization_id,record_key'}).select('id,record_key,record_type,department_id,employee_user_id,payload').single()
   if(error)throw error
   return data
