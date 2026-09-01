@@ -19,6 +19,9 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   if(lower.includes('committee_minutes_approver_account_required')){
     return en?'The minutes cannot be submitted for approval because one or more present voting members do not have a linked user account.':'Δεν είναι δυνατή η υποβολή των πρακτικών για έγκριση, επειδή ένα ή περισσότερα παρόντα μέλη με δικαίωμα ψήφου δεν διαθέτουν συνδεδεμένο λογαριασμό.'
   }
+  if(lower.includes('committee_member_account_required_for_participation_approval')){
+    return en?'Participation approval cannot be requested because the selected employee does not have a uniquely linked active account in this organization. Check the employee email and user account first.':'Δεν είναι δυνατή η αποστολή αιτήματος αποδοχής συμμετοχής, επειδή ο επιλεγμένος εργαζόμενος δεν διαθέτει μοναδικά συνδεδεμένο ενεργό λογαριασμό στον οργανισμό. Ελέγξτε πρώτα το email του εργαζομένου και τον λογαριασμό χρήστη.'
+  }
   if(lower.includes('committee_minutes_approval_required')){
     return en?'The minutes must complete the approval workflow before they can be finalized.':'Τα πρακτικά πρέπει να ολοκληρώσουν τη διαδικασία έγκρισης πριν οριστικοποιηθούν.'
   }
