@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import { CheckCircle2, Info, TriangleAlert, X, XCircle } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { hasSupabaseConfig } from '../config/env'
+import { sanitizeUserMessage, userFacingError } from './userFacingError'
 
 const FeedbackContext = createContext(null)
 let nextId = 1
@@ -9,23 +10,31 @@ let nextId = 1
 export function FeedbackProvider({ children }) {
   const [items, setItems] = useState([])
   const [confirmState, setConfirmState] = useState(null)
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const notify = useCallback((message, tone = 'info') => {
     const id = nextId++
-    setItems((current) => [...current, { id, message, tone }])
+    const safeMessage=sanitizeUserMessage(message,{language})
+    setItems((current) => [...current, { id, message:safeMessage, tone }])
     window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), 4200)
-  }, [])
+  }, [language])
+  const notifyError = useCallback((error, context='generic') => {
+    const id = nextId++
+    const message=userFacingError(error,{language,context})
+    setItems((current) => [...current, { id, message, tone:'danger' }])
+    window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), 5200)
+  }, [language])
   const notifyUndo = useCallback((message, onUndo, timeout = 7000) => {
     const id = nextId++
-    setItems((current) => [...current, { id, message, tone:'success', actionLabel:t('undo'), onAction:()=>{onUndo?.();setItems(rows=>rows.filter(x=>x.id!==id))} }])
+    const safeMessage=sanitizeUserMessage(message,{language})
+    setItems((current) => [...current, { id, message:safeMessage, tone:'success', actionLabel:t('undo'), onAction:()=>{onUndo?.();setItems(rows=>rows.filter(x=>x.id!==id))} }])
     window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), timeout)
-  }, [t])
+  }, [t,language])
   const confirm = useCallback((options) => new Promise((resolve) => setConfirmState({ ...options, resolve })), [])
   const finishConfirm = (answer) => {
     confirmState?.resolve(answer)
     setConfirmState(null)
   }
-  const value = useMemo(() => ({ notify, notifyUndo, confirm }), [notify, notifyUndo, confirm])
+  const value = useMemo(() => ({ notify, notifyError, notifyUndo, confirm }), [notify, notifyError, notifyUndo, confirm])
   const icons = { success: CheckCircle2, warning: TriangleAlert, danger: XCircle, info: Info }
   return <FeedbackContext.Provider value={value}>
     {children}
