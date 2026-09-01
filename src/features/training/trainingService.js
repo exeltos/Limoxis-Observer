@@ -1,7 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { findTrainingAccess,loadTrainingState,saveTrainingState,trainingDemoState } from './trainingData'
+import { loadTrainingState,saveTrainingState,trainingDemoState } from './trainingData'
 
 function requireProduction(organizationId,operation){
   if(isDemoDataEnvironment())return false
@@ -32,26 +32,7 @@ export async function loadTrainingStateAsync(organizationId){
   return normalizeRows(data||[])
 }
 
-export async function loadTrainingAccessAsync(organizationId,userId,token){
-  if(isDemoDataEnvironment()){
-    const state=loadTrainingState();const access=findTrainingAccess(state,token)
-    return access?{state,access,assignment:null}:null
-  }
-  requireProduction(organizationId,'access.load')
-  if(!userId||!token)return null
-  const {data:programRow,error:programError}=await supabase.from('training_records').select('id,record_key,payload').eq('organization_id',organizationId).eq('record_type','program').or(`payload->>checkInToken.eq.${token},payload->>completionToken.eq.${token}`).maybeSingle()
-  if(programError)throw programError
-  if(!programRow)return null
-  const program={...(programRow.payload||{}),id:programRow.record_key,dbId:programRow.id}
-  const mode=program.checkInToken===token?'checkin':program.completionToken===token?'complete':null
-  if(!mode)return null
-  const {data:assignmentRow,error:assignmentError}=await supabase.from('training_records').select('id,record_key,department_id,employee_user_id,payload').eq('organization_id',organizationId).eq('record_type','assignment').eq('employee_user_id',userId).eq('payload->>programId',programRow.record_key).maybeSingle()
-  if(assignmentError)throw assignmentError
-  if(!assignmentRow)return {access:{program,mode},assignment:null}
-  return {access:{program,mode},assignment:{...(assignmentRow.payload||{}),id:assignmentRow.record_key,dbId:assignmentRow.id,departmentId:assignmentRow.department_id||null,userId:assignmentRow.employee_user_id||null}}
-}
-
-const learnerOwnedAssignmentFields=['attendance','attendanceResponse','attendanceConfirmedAt','checkInAt','completionConfirmedAt','feedbackSubmittedAt','assessmentSubmittedAt','score','competent','certificateId','feedbackScores','feedbackComment','completedDate','accessToken','invitationSentAt']
+const learnerOwnedAssignmentFields=['attendance','attendanceResponse','attendanceConfirmedAt','completionConfirmedAt','feedbackSubmittedAt','assessmentSubmittedAt','score','competent','certificateId','feedbackScores','feedbackComment','completedDate','accessToken','invitationSentAt']
 
 async function resolveAssignmentIdentity(organizationId,assignment){
   if(assignment?.userId)return {userId:assignment.userId,departmentId:assignment.departmentId||null,email:assignment.email||null,accountLinked:true}
@@ -100,22 +81,6 @@ export async function deleteTrainingRecordAsync(organizationId,recordKey){
   const {error}=await supabase.from('training_records').delete().eq('organization_id',organizationId).eq('record_key',recordKey)
   if(error)throw error
   return true
-}
-
-export async function trainingCheckInAsync(token){
-  if(isDemoDataEnvironment())throw new Error('DEMO_TRAINING_CHECKIN_LOCAL_ONLY')
-  if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_TRAINING_CLOUD_REQUIRED:checkin')
-  const {data,error}=await supabase.rpc('training_check_in',{p_token:token})
-  if(error)throw error
-  return data
-}
-
-export async function trainingCompleteAsync(token,{answers={},feedbackScores={},feedbackComment=''}={}){
-  if(isDemoDataEnvironment())throw new Error('DEMO_TRAINING_COMPLETION_LOCAL_ONLY')
-  if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_TRAINING_CLOUD_REQUIRED:completion')
-  const {data,error}=await supabase.rpc('training_complete',{p_token:token,p_answers:answers,p_feedback_scores:feedbackScores,p_feedback_comment:feedbackComment||null})
-  if(error)throw error
-  return data
 }
 
 export function demoTrainingState(){return structuredClone(trainingDemoState)}
