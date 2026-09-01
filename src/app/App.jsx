@@ -60,8 +60,8 @@ export function App() {
     <Route path="/activate" element={<ActivateAccountPage />} />
     <Route path="/forgot-access" element={<ForgotAccessPage />} />
     <Route path="/reset-password" element={<ResetPasswordPage />} />
-    <Route path="/training-access/:token" element={<Suspense fallback={<RouteLoading/>}><TrainingAccessPage /></Suspense>} />
     <Route element={<ProtectedRoute />}>
+      <Route path="training-access/:token" element={<Suspense fallback={<RouteLoading/>}><TrainingAccessPage /></Suspense>} />
       <Route element={<AppShell />}>
         <Route path="platform" element={<Suspense fallback={<RouteLoading/>}><PlatformCenterPage /></Suspense>} />
         <Route path="about" element={<Suspense fallback={<RouteLoading/>}><AboutPage /></Suspense>} />
