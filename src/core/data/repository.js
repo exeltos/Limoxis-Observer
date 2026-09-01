@@ -6,6 +6,11 @@ const backend=(import.meta.env.VITE_DATA_BACKEND||'local').trim().toLowerCase()
 const memory=new Map()
 
 const TABLES=Object.freeze({
+  employee_health_visits:{storageKey:'limoxis.employeeHealthVisits.v1',kind:'rows',cloud:false},
+  employee_vaccine_records:{storageKey:'limoxis.employeeVaccineRecords.v1',kind:'rows',cloud:false},
+  employee_training_summary:{storageKey:'limoxis.employeeTrainingSummary.v1',kind:'rows',cloud:false},
+  employee_evaluations:{storageKey:'limoxis.employeeEvaluations.v1',kind:'rows',cloud:false},
+  employee_certificates:{storageKey:'limoxis.employeeCertificates.v1',kind:'rows',cloud:false},
   training_records:{storageKey:'limoxis.training.v3',legacyKeys:['limoxis.training.v2'],kind:'training'},
   environmental_standards:{storageKey:'limoxis.environmentalStandards.v1',kind:'rows'},
   control_drafts:{storageKey:'limoxis.controlDrafts.v1',legacyPrefix:'limoxis.control.execution.',kind:'rows'},
@@ -95,7 +100,7 @@ export function loadSnapshot(table,fallback=null){
 }
 
 export function saveSnapshot(table,rows,{organizationId=null}={}){
-  if(backend==='supabase'&&hasSupabaseConfig&&supabase){
+  if(backend==='supabase'&&hasSupabaseConfig&&supabase&&config(table).cloud!==false){
     memory.set(memoryKey(table),clone(rows))
     // Keep the synchronous snapshot API for existing stores, while ensuring a
     // failed background write is reported through the data-operation event
@@ -118,11 +123,10 @@ export function saveSnapshot(table,rows,{organizationId=null}={}){
 export async function load(table,{fallback=null,organizationId=null}={}){
   emit({table,operation:'load',status:'loading'})
   try{
-    if(backend!=='supabase'||!hasSupabaseConfig||!supabase){
+    if(backend!=='supabase'||!hasSupabaseConfig||!supabase||config(table).cloud===false){
       const value=readLocal(table,fallback); memory.set(memoryKey(table),clone(value))
       emit({table,operation:'load',status:'success'}); return clone(value)
     }
-    if(config(table).cloud===false)throw new DataAccessError('This dataset is not mapped to a cloud table yet.',{table,operation:'load'})
     if(!organizationId)throw new DataAccessError('Organization is required for cloud data.',{table,operation:'load'})
     const {data,error}=await supabase.from(table).select('record_key,record_type,department_id,employee_user_id,payload').eq('organization_id',organizationId).order('record_key')
     if(error)throw error
@@ -155,10 +159,9 @@ export async function save(table,rows,{organizationId=null}={}){
   const retry=()=>save(table,rows,{organizationId})
   emit({table,operation:'save',status:'saving',retry})
   try{
-    if(backend!=='supabase'||!hasSupabaseConfig||!supabase){
+    if(backend!=='supabase'||!hasSupabaseConfig||!supabase||config(table).cloud===false){
       const value=writeLocal(table,rows); emit({table,operation:'save',status:'success'}); return value
     }
-    if(config(table).cloud===false)throw new DataAccessError('This dataset is not mapped to a cloud table yet.',{table,operation:'save'})
     if(!organizationId)throw new DataAccessError('Organization is required for cloud data.',{table,operation:'save'})
     const cfg=config(table)
     let records

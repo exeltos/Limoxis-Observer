@@ -8,7 +8,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
-import { employeeRows } from '../employees/employeeDemoData'
+import { loadEmployees } from '../employees/employeeStore'
 import { loadCommittees,nextCommitteeId,saveCommittees } from './committeeData'
 import { IPC_COMMITTEE_CATALOG,ipcCommitteeById } from './ipcCommitteeCatalog'
 import { requestCommitteeApproval } from './committeeApprovals'
@@ -19,7 +19,7 @@ const frequencies=[['monthly','Μηνιαία','Monthly'],['bimonthly','Ανά �
 export function CommitteeCreatePage(){
  const navigate=useNavigate(),location=useLocation(),actor=useAuditActor(),{notify,confirm}=useFeedback(),{goBack}=useContextualNavigation('/committees')
  const {language}=useLanguage();const en=language==='en'
- const staff=useMemo(()=>employeeRows.filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession})),[])
+ const staff=useMemo(()=>loadEmployees().filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession})),[])
  const first=IPC_COMMITTEE_CATALOG[0]
  const [draft,setDraft]=useState({templateId:first.id,name:first.name,shortName:first.code,committeeRole:first.role,mandate:first.duties.join('\n'),legalBasis:first.source,decisionNumber:'',termStart:'',termEnd:'',meetingFrequency:'quarterly',quorumRule:'simple_majority',notes:'',members:[]})
  const set=(k,v)=>setDraft(x=>({...x,[k]:v}));const template=ipcCommitteeById(draft.templateId)

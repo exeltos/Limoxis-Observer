@@ -666,3 +666,18 @@ Full pipeline re-verified clean after all fixes: `lint` (0/0), all 9 custom audi
 
 
 
+
+## Frontend ↔ Live Database Parallel Functionality Check (2026-09-01)
+Systematic cross-check between what the frontend code expects and what actually exists in the live Supabase project (`wnnssaicdsdgesysaamv`), covering every `.from()` table reference, every `.rpc()` call, and the generic data-access repository's cloud/local routing.
+
+**RPC calls — both verified live and correct.** The entire frontend + Edge Function codebase calls exactly 2 database functions: `create_patient_admission` and `platform_report_summary`. Both confirmed to exist in the live database (the second one only because it was restored during this session's audit — see the "Live database backend audit" section above).
+
+**Direct `.from()` table references — all correct.** `account_invitations`, `departments`, `organization_members`, `organizations`, `patient_admissions`, `patients`, `platform_demo_entitlements`, `profiles` — every one of these exists live with matching structure.
+
+**The generic data repository (`src/core/data/repository.js`) — the most important finding of this check.** This module is the app's abstraction for "maybe read from Supabase, maybe read from localStorage," and it declares 23 logical tables. Of those, only **3 are actually configured for cloud storage** (`cloud` is not set to `false`): `training_records`, `environmental_standards`, `control_drafts`. Verified these 3 correctly match the live `training_records`/`environmental_standards`/`control_drafts` tables' columns (`organization_id`, `record_key`, `payload`, etc.) — genuinely, correctly wired end-to-end.
+
+**The other 20 repository tables are still `cloud:false` — localStorage only — despite the live database already having real, purpose-built tables for several of them.** Confirmed by tracing `EmployeesPage.jsx` → `employeeStore.js` → `repository.js`'s `employees` entry (`cloud:false`): the Employees feature never talks to Supabase at all right now, even though `public.employees` exists live with proper columns, RLS, and role-based policies (verified during the earlier backend audit in this session). The same gap applies to `committees` (a rich, governance-capability-driven `public.committees` schema exists live — 8 tables, immutability triggers, secretariat-assignment authority — but the frontend's committee pages still only read/write `localStorage`) and `documents` (the repository key is literally `documents`, while the real live table is named `controlled_documents` — even flipping the `cloud` flag on as-is wouldn't work without also renaming the target table and reshaping the generic `record_key`/`payload` writes into the real, normalized columns each of these tables actually has).
+
+**This is the most consequential open item for backend excellence going forward**: the database is considerably more capable, secure, and complete than what the frontend currently uses. Wiring each of the remaining 20 domains to their real tables is a genuine, non-trivial piece of work per domain (each has its own real column shape, unlike the generic 3 that share one simple `record_key`/`payload` pattern) — recommended as a dedicated follow-up project, domain by domain, with the same rigor applied throughout this session (verify live schema first, write the service layer against it, test before moving to the next domain) rather than attempted as one large, unverifiable batch change.
+
+Full pipeline verified clean for this final delivery: `lint` (0/0), `test` (89/89 across 12 files), `build` clean.

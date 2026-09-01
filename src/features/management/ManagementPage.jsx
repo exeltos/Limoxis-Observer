@@ -20,10 +20,7 @@ import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { supabase, invokeAuthenticatedFunction } from '../../core/supabase/client'
 
 const roleNames={platform_owner:'platformOwnerRole',hospital_admin:'hospitalAdminRole',infection_control_lead:'infectionControlLeadRole',infection_control_member:'infectionControlMemberRole',department_manager:'departmentManagerRole',department_user:'departmentUserRole',laboratory:'laboratoryRole',committee_secretariat:'committeeSecretariatRole',hr_office:'hrOfficeRole',pharmacy:'pharmacyRole',occupational_physician:'occupationalPhysicianRole',doctor_reviewer:'doctorReviewerRole',quality_manager:'qualityManagerRole',link_nurse:'linkNurseRole',staff_user:'staffUserRole',demo:'demoRole'}
-// The organization_members.role column only accepts these values today (see the
-// app_role enum in 202608270001_v020_identity_tenants.sql) — the wider role set
-// above is the frontend's capability model and isn't all persisted yet.
-const creatableRoles=['hospital_admin','infection_control_lead','link_nurse','doctor_reviewer','department_user','laboratory','staff_user']
+const creatableRoles=['hospital_admin','infection_control_lead','infection_control_member','department_manager','department_user','laboratory','committee_secretariat','hr_office','pharmacy','occupational_physician','doctor_reviewer','quality_manager','link_nurse','staff_user']
 
 export function ManagementPage(){
   const {language,t}=useLanguage(); const {tenant,role,membership,memberships,isDemo,setTenantByMembership}=useTenant(); const {notify,confirm}=useFeedback(); const [tab,setTab]=useState('overview'); const [roleModal,setRoleModal]=useState(false); const [references,setReferences]=useState(externalSources); const [referenceEditor,setReferenceEditor]=useState(null); const [customRoles,setCustomRoles]=useState([]); const [roleName,setRoleName]=useState(''); const [selectedCaps,setSelectedCaps]=useState([])

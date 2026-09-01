@@ -2,23 +2,27 @@ import { useState } from 'react'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { demoLibrarySeed } from '../management/managementData'
-import { nextEmployeeId } from './employeeStore'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
 
 export function EmployeeCreateDialog({rows,actor,onClose,onSave}){
  const {language}=useLanguage();const en=language==='en'
- const [v,setV]=useState({firstName:'',lastName:'',fatherName:'',department:'',profession:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
+ const {notify}=useFeedback()
+ const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',department:'',profession:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
  const set=(k,x)=>setV(s=>({...s,[k]:x}))
- const valid=v.firstName.trim()&&v.lastName.trim()&&v.department&&v.profession
+ const valid=v.employeeCode.trim()&&v.firstName.trim()&&v.lastName.trim()&&v.department&&v.profession
  function submit(){
    if(!valid)return
-   const id=nextEmployeeId(rows),now=new Date().toISOString()
+   const id=v.employeeCode.trim()
+   if(rows.some(row=>row.id===id)){notify(en?'This employee code is already in use.':'Αυτός ο κωδικός εργαζομένου χρησιμοποιείται ήδη.','danger');return}
+   const now=new Date().toISOString()
    const dep=demoLibrarySeed.departments.find(([el])=>el===v.department)
    const prof=demoLibrarySeed.professionalCategories.find(([el])=>el===v.profession)
    onSave({...v,id,firstNameEn:v.firstName,lastNameEn:v.lastName,fatherNameEn:v.fatherName,departmentEn:dep?.[1]||v.department,professionEn:prof?.[1]||v.profession,createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id})
  }
  return <ObserverDialog width="wide" eyebrow={en?'Staff':'Προσωπικό'} title={en?'New employee':'Νέος εργαζόμενος'} subtitle={en?'Create employee record':'Δημιουργία καρτέλας προσωπικού'} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={!valid} onSave={submit} saveLabel={en?'Save':'Αποθήκευση'}/>}>
   <div className="observer-form-section"><div className="observer-form-section-title"><div><strong>{en?'Basic details':'Βασικά στοιχεία'}</strong><span>{en?'Department and professional category are selected from the shared libraries.':'Τμήμα και επαγγελματική κατηγορία επιλέγονται από τις κοινές βιβλιοθήκες.'}</span></div></div><div className="entry-grid compact">
+   <label className="field"><span>{en?'Employee code *':'Κωδικός εργαζομένου *'}</span><input autoFocus value={v.employeeCode} onChange={e=>set('employeeCode',e.target.value)}/></label>
    <label className="field"><span>{en?'First name *':'Όνομα *'}</span><input value={v.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
    <label className="field"><span>{en?'Last name *':'Επώνυμο *'}</span><input value={v.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
    <label className="field"><span>{en?'Father’s name':'Πατρώνυμο'}</span><input value={v.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>

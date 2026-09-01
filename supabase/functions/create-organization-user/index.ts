@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const ALLOWED_ROLES=['hospital_admin','infection_control_lead','link_nurse','doctor_reviewer','department_user','laboratory','staff_user']
+const DEFAULT_APP_URL='https://limoxis-observer.netlify.app'
+const ALLOWED_ROLES=['hospital_admin','infection_control_lead','infection_control_member','department_manager','department_user','laboratory','committee_secretariat','hr_office','pharmacy','occupational_physician','doctor_reviewer','quality_manager','link_nurse','staff_user']
+const ROLE_LABELS:Record<string,string>={hospital_admin:'Διαχειριστής Νοσοκομείου',infection_control_lead:'Υπεύθυνος Λοιμώξεων',infection_control_member:'Μέλος Ομάδας Λοιμώξεων',department_manager:'Προϊστάμενος Τμήματος',department_user:'Χρήστης Τμήματος',laboratory:'Εργαστήριο',committee_secretariat:'Γραμματεία Επιτροπών',hr_office:'Γραφείο Προσωπικού',pharmacy:'Φαρμακείο',occupational_physician:'Ιατρός Εργασίας',doctor_reviewer:'Ιατρός Ελεγκτής',quality_manager:'Υπεύθυνος Ποιότητας',link_nurse:'Νοσηλευτής Σύνδεσμος',staff_user:'Γενικός Χρήστης'}
 const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 
@@ -40,7 +42,7 @@ Deno.serve(async(req)=>{
   if(!callerData?.user)return reply({error:'Invalid session'},401)
 
   const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{autoRefreshToken:false,persistSession:false}})
-  const {data:profile}=await admin.from('profiles').select('is_platform_owner').eq('id',callerData.user.id).maybeSingle()
+  const {data:profile}=await admin.from('profiles').select('is_platform_owner,full_name').eq('id',callerData.user.id).maybeSingle()
   let authorized=Boolean(profile?.is_platform_owner)
   if(!authorized){
     const {data:m}=await admin.from('organization_members').select('role,status').eq('organization_id',organizationId).eq('user_id',callerData.user.id).maybeSingle()
@@ -53,14 +55,37 @@ Deno.serve(async(req)=>{
 
   const normalizedEmail=String(email).trim().toLowerCase()
   const username=await generateUserName(admin,fullName)
-  const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||'').replace(/\/$/,'')
-  const redirectTo=appUrl?`${appUrl}/activate`:undefined
+  const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||DEFAULT_APP_URL).replace(/\/$/,'')
+  const redirectTo=`${appUrl}/activate`
 
   const {data:invited,error:inviteError}=await admin.auth.admin.inviteUserByEmail(normalizedEmail,{
     redirectTo,
-    data:{full_name:fullName,username,role,organization_id:organizationId,is_platform_owner:false}
+    data:{
+      full_name:fullName,
+      username,
+      role,
+      role_label:ROLE_LABELS[role]||role,
+      organization_id:organizationId,
+      organization_name:org.name,
+      invited_by:profile?.full_name||'',
+      is_platform_owner:false,
+    }
   })
-  if(inviteError||!invited?.user)return reply({error:inviteError?.message||'Could not invite user'},500)
+
+  if(inviteError||!invited?.user){
+    // This email already has an account (e.g. the same person administers another
+    // organization too) — add them to this organization instead of failing outright.
+    if(/already been registered|already registered|already exists/i.test(inviteError?.message||'')){
+      const {data:existingProfile}=await admin.from('profiles').select('id,username').ilike('contact_email',normalizedEmail).maybeSingle()
+      if(!existingProfile)return reply({error:'Αυτό το email χρησιμοποιείται ήδη από λογαριασμό χωρίς αντίστοιχο προφίλ. Επικοινώνησε με τον Platform Owner.'},409)
+      const {data:existingMembership}=await admin.from('organization_members').select('id').eq('organization_id',organizationId).eq('user_id',existingProfile.id).maybeSingle()
+      if(existingMembership)return reply({error:'Αυτός ο χρήστης ανήκει ήδη σε αυτόν τον οργανισμό.'},409)
+      const {error:reuseMemberError}=await admin.from('organization_members').insert({organization_id:organizationId,user_id:existingProfile.id,role,status:'active'})
+      if(reuseMemberError)return reply({error:reuseMemberError.message},500)
+      return reply({ok:true,username:existingProfile.username,userId:existingProfile.id,emailSent:false,reused:true})
+    }
+    return reply({error:inviteError?.message||'Could not invite user'},500)
+  }
 
   const userId=invited.user.id
   const {error:profileError}=await admin.from('profiles').update({

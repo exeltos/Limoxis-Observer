@@ -5,7 +5,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { employeeRows } from '../employees/employeeDemoData'
+import { loadEmployees } from '../employees/employeeStore'
 import { createEmployeeSurveillance, createEmployeeSurveillanceBatch, employeeScreeningCatalog } from './employeeSurveillanceData'
 
 export function EmployeeSurveillanceFlow({employee=null,onClose,onCreated}){
@@ -13,6 +13,7 @@ export function EmployeeSurveillanceFlow({employee=null,onClose,onCreated}){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const [employeeId,setEmployeeId]=useState(employee?.id||'')
+  const employeeRows=useMemo(loadEmployees,[])
   const selected=employee||employeeRows.find(x=>x.id===employeeId)
   const [date,setDate]=useState(new Date().toISOString().slice(0,10))
   const [types,setTypes]=useState(['nasalSwab'])
@@ -48,7 +49,8 @@ export function BulkEmployeeSurveillanceFlow({onClose,onCreated}){
   const [date,setDate]=useState(new Date().toISOString().slice(0,10))
   const [types,setTypes]=useState(['nasalSwab'])
   const [notes,setNotes]=useState('')
-  const departments=useMemo(()=>[...new Set(employeeRows.filter(x=>x.employmentStatus==='active').map(x=>language==='el'?x.department:x.departmentEn))],[language])
+  const employeeRows=useMemo(loadEmployees,[])
+  const departments=useMemo(()=>[...new Set(employeeRows.filter(x=>x.employmentStatus==='active').map(x=>language==='el'?x.department:x.departmentEn))],[employeeRows,language])
   const visible=employeeRows.filter(x=>x.employmentStatus==='active').filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department)
   const toggleEmployee=id=>setSelectedIds(ids=>ids.includes(id)?ids.filter(x=>x!==id):[...ids,id])
   const toggleType=id=>setTypes(rows=>rows.includes(id)?rows.filter(x=>x!==id):[...rows,id])

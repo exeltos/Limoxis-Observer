@@ -16,7 +16,7 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { auditActorFromAuth } from '../../core/audit/actor'
 import { createDemoSurveillanceListItem, surveillanceDemoData } from './surveillanceDemoData'
 import { createClinicalSurveillance } from './clinicalDemoData'
-import { patientDemoData } from '../patients/patientDemoData'
+import { loadPatients } from '../patients/patientsService'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { BulkEmployeeSurveillanceFlow, EmployeeSurveillanceFlow, SurveillanceSubjectChooser } from './EmployeeSurveillanceFlow'
 import { createEmployeeRecheck, employeeSurveillanceBatches, employeeSurveillanceRecords, getEmployeeSurveillanceKpis, syncEmployeeSurveillanceFromLab, updateEmployeeSurveillanceRecord } from './employeeSurveillanceData'
@@ -32,9 +32,15 @@ export function SurveillancePage(){
   const navigate = useNavigate()
   const location = useLocation()
   const registry = useRegistryMemory('surveillance')
-  const {role,isDemo,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
+  const {role,isDemo,tenant,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
   const {profile,user}=useAuth()
   const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
+  const [patients,setPatients]=useState([])
+  useEffect(()=>{
+    let alive=true
+    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(()=>{})
+    return ()=>{alive=false}
+  },[tenant?.id,isDemo])
   const canSeeEmployeeSurveillance=isDemo||canSeeSensitiveEmployeeHealth
   const canSeeEnvironmental=![ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.DOCTOR_REVIEWER].includes(role)
   const saved = registry.loadViewState({
@@ -293,7 +299,8 @@ export function SurveillancePage(){
 
       {newOpen&&(
         <NewSurveillanceFlow
-          patients={patientDemoData}
+          patients={patients}
+          onPatientsChange={setPatients}
           onClose={()=>setNewOpen(false)}
           onCreate={createSurveillance}
           onRecordChange={()=>setVersion(v=>v+1)}

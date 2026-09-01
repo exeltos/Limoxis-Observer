@@ -42,6 +42,10 @@ export function AppShell(){
   useEffect(()=>{
     if(platformMode&&!location.pathname.startsWith('/platform')&&location.pathname!=='/about'&&location.pathname!=='/account') navigate('/platform',{replace:true})
   },[platformMode,location.pathname,navigate])
+  const isDepartmentRole=role===ROLES.DEPARTMENT_MANAGER||role===ROLES.DEPARTMENT_USER
+  useEffect(()=>{
+    if(isDepartmentRole&&location.pathname==='/') navigate('/my-department',{replace:true})
+  },[isDepartmentRole,location.pathname,navigate])
   const platformItems=[
     ['/platform','platformDashboardNav',BarChart3],
     ['/platform#organizations','platformOrganizationsNav',Building2],
