@@ -48,12 +48,13 @@ export function CommitteeRecordPageRoute(){
   const routeMatches=useMemo(()=>!meetingKey||!meeting||[meeting.id,meeting.dbId].filter(Boolean).map(String).includes(String(meetingKey)),[meetingKey,meeting])
 
   async function decide(status,comment=''){
-    if(!approvalId)return
+    if(!approvalId)return false
     try{
       await decideCommitteeApprovalDeepLinkAsync(approvalId,status,comment)
       notify(status==='approved'?(en?'Minutes approved.':'Τα πρακτικά εγκρίθηκαν.'):(en?'Correction request sent.':'Το αίτημα διορθώσεων καταχωρήθηκε.'),'success',{operation:'committee_minutes_approval'})
       await load()
-    }catch(error){notifyError(error,'save',{operation:'committee_minutes_approval'})}
+      return true
+    }catch(error){notifyError(error,'save',{operation:'committee_minutes_approval'});return false}
   }
 
   if(!canViewCommittee&&!approvalId)return <Navigate to="/" replace/>
