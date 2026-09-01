@@ -9,6 +9,7 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useNotifications } from '../../core/notifications/NotificationContext'
 import { can,CAPABILITIES } from '../../core/permissions/roles'
 import { CommitteeRecordPage } from './CommitteeRecordPage'
 import { CommitteeApprovalPanel } from './CommitteeApprovalPanel'
@@ -23,8 +24,10 @@ export function CommitteeRecordPageRoute(){
   const {user}=useAuth()
   const {tenant,isDemo,role,membership}=useTenant()
   const {notify,notifyError}=useFeedback()
+  const {reloadCommitteeMinutesApprovals}=useNotifications()
   const {language}=useLanguage();const en=language==='en'
   const [state,setState]=useState({loading:false,data:null,error:null})
+  const [deciding,setDeciding]=useState(false)
   const canViewCommittee=can(role,CAPABILITIES.VIEW_COMMITTEES,membership?.capabilities??[],membership?.customCapabilities??[])
 
   const closeApproval=useCallback(()=>{
@@ -48,13 +51,14 @@ export function CommitteeRecordPageRoute(){
   const routeMatches=useMemo(()=>!meetingKey||!meeting||[meeting.id,meeting.dbId].filter(Boolean).map(String).includes(String(meetingKey)),[meetingKey,meeting])
 
   async function decide(status,comment=''){
-    if(!approvalId)return false
+    if(!approvalId||deciding)return false
+    setDeciding(true)
     try{
       await decideCommitteeApprovalDeepLinkAsync(approvalId,status,comment)
       notify(status==='approved'?(en?'Minutes approved.':'Τα πρακτικά εγκρίθηκαν.'):(en?'Correction request sent.':'Το αίτημα διορθώσεων καταχωρήθηκε.'),'success',{operation:'committee_minutes_approval'})
-      await load()
+      await Promise.all([load(),reloadCommitteeMinutesApprovals()])
       return true
-    }catch(error){notifyError(error,'save',{operation:'committee_minutes_approval'});return false}
+    }catch(error){notifyError(error,'save',{operation:'committee_minutes_approval'});return false}finally{setDeciding(false)}
   }
 
   if(!canViewCommittee&&!approvalId)return <Navigate to="/" replace/>
@@ -68,7 +72,7 @@ export function CommitteeRecordPageRoute(){
       <div className="observer-form-section"><div className="details-grid"><div><span>{en?'Minutes number':'Αρ. πρακτικού'}</span><strong>{meeting?.minutesNo||'—'}</strong></div><div><span>{en?'Quorum':'Απαρτία'}</span><strong>{meeting?.quorum===true?(en?'Yes':'Ναι'):meeting?.quorum===false?(en?'No':'Όχι'):'—'}</strong></div><div><span>{en?'Meeting':'Συνεδρίαση'}</span><strong><ClipboardCheck size={15}/> {meeting?.title||'—'}</strong></div><div><span>{en?'Location':'Χώρος'}</span><strong><MapPin size={15}/> {meeting?.location||'—'}</strong></div></div></div>
       <div className="observer-form-section"><div className="record-section-header"><div><span className="eyebrow">Limoxis Observer</span><h3>{en?'Agenda & conclusions':'Θέματα & συμπεράσματα'}</h3></div></div>{(meeting?.topics||[]).map((topic,index)=><div className="committee-topic-card" key={topic.id||index}><strong>{en?'Topic':'Θέμα'} {index+1}</strong><div className="source-truth-note"><strong>{topic.subject||'—'}</strong><p>{topic.decision||'—'}</p></div></div>)}{!(meeting?.topics||[]).length&&<div className="inline-empty">{en?'No agenda items recorded.':'Δεν έχουν καταγραφεί θέματα.'}</div>}</div>
       <div className="observer-form-section"><div className="record-section-header"><div><span className="eyebrow">Limoxis Observer</span><h3>{en?'Minutes':'Πρακτικά'}</h3></div></div><div className="source-truth-note"><p>{meeting?.generalNotes|| (en?'No additional minutes text.':'Δεν υπάρχει πρόσθετο κείμενο πρακτικών.')}</p></div></div>
-      <CommitteeApprovalPanel approvals={meeting?.approvals||[]} actorId={user?.id} busy={state.loading} onApprove={()=>decide('approved','')} onRequestChanges={(id,comment)=>decide('rejected',comment)} en={en}/>
+      <CommitteeApprovalPanel approvals={meeting?.approvals||[]} actorId={user?.id} busy={state.loading||deciding} onApprove={()=>decide('approved','')} onRequestChanges={(id,comment)=>decide('rejected',comment)} en={en}/>
       {state.data.approval.status!=='pending'&&<div className="source-truth-note"><strong><CheckCircle2 size={15}/> {en?'Your decision has been recorded':'Η απόφασή σας έχει καταγραφεί'}</strong></div>}
     </ObserverDialog>}
   </>
