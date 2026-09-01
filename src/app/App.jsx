@@ -11,10 +11,6 @@ import { ResetPasswordPage } from '../features/auth/ResetPasswordPage'
 import { RouteLoading } from '../design-system/RouteLoading'
 import { GlobalTextareaExpander } from '../design-system/GlobalTextareaExpander'
 
-// Route-level code splitting: each feature page loads its own chunk on first
-// visit instead of all being bundled into the single initial JS payload.
-// Named exports need the .then(...) wrapper since React.lazy expects a
-// module with a default export.
 const lazyNamed = (loader, name) => lazy(() => loader().then(m => ({ default: m[name] })))
 
 const PlatformCenterPage = lazyNamed(() => import('../features/workspaces/PlatformCenterPage'), 'PlatformCenterPage')
@@ -30,7 +26,7 @@ const ControlRecordPage = lazyNamed(() => import('../features/controls/ControlRe
 const QualityPage = lazyNamed(() => import('../features/quality/QualityPage'), 'QualityPage')
 const QualityRecordPage = lazyNamed(() => import('../features/quality/QualityRecordPage'), 'QualityRecordPage')
 const QualityCreatePage = lazyNamed(() => import('../features/quality/QualityCreatePage'), 'QualityCreatePage')
-const TrainingPage = lazyNamed(() => import('../features/training/TrainingPage'), 'TrainingPage')
+const TrainingPageRoute = lazyNamed(() => import('../features/training/TrainingPageRoute'), 'TrainingPageRoute')
 const TrainingAccessPage = lazyNamed(() => import('../features/training/TrainingAccessPage'), 'TrainingAccessPage')
 const CommitteesPage = lazyNamed(() => import('../features/committees/CommitteesPage'), 'CommitteesPage')
 const CommitteeRecordPageRoute = lazyNamed(() => import('../features/committees/CommitteeRecordPageRoute'), 'CommitteeRecordPageRoute')
@@ -82,8 +78,8 @@ export function App() {
         <Route path="quality/:recordType/new" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_QUALITY, <QualityCreatePage />)}</Suspense>} />
         <Route path="quality/:recordType/:recordId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_QUALITY, <QualityRecordPage />)}</Suspense>} />
         <Route path="indicators" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_INDICATORS, <IndicatorsPage />)}</Suspense>} />
-        <Route path="training" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_TRAINING, <TrainingPage />)}</Suspense>} />
-        <Route path="training/:programId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_TRAINING, <TrainingPage />)}</Suspense>} />
+        <Route path="training" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_TRAINING, <TrainingPageRoute />)}</Suspense>} />
+        <Route path="training/:programId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_TRAINING, <TrainingPageRoute />)}</Suspense>} />
         <Route path="committees" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_COMMITTEES, <CommitteesPage />)}</Suspense>} />
         <Route path="committees/:committeeId" element={<Suspense fallback={<RouteLoading/>}><CommitteeRecordPageRoute /></Suspense>} />
         <Route path="documents" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DOCUMENTS, <DocumentsPage />)}</Suspense>} />
