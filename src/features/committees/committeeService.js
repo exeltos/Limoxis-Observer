@@ -4,7 +4,7 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadCommittees as loadCommitteesLocal, inferTemplate } from './committeeData'
 
 const MEMBER_COLUMNS = 'id,employee_id,member_name,title,responsibilities,member_type,has_vote,approval_status,started_at,ended_at'
-const COMMITTEE_COLUMNS = `code,name,short_name,committee_type,status,mandate,legal_basis,decision_number,term_start,term_end,meeting_frequency,quorum_rule,notes,created_at,updated_at,committee_members(${MEMBER_COLUMNS})`
+const COMMITTEE_COLUMNS = `code,name,short_name,committee_type,status,mandate,legal_basis,decision_number,term_start,term_end,meeting_frequency,quorum_rule,notes,created_at,updated_at,committee_members!committee_members_tenant_fk(${MEMBER_COLUMNS})`
 
 // Chair/secretary are not stored columns on the real table — like the frontend
 // already does today for its local data, they're derived from member titles.
