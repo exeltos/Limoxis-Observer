@@ -20,6 +20,6 @@ export default [
   },
   {
     files: ['tests/**/*.{js,jsx}'],
-    languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { ...globals.node, ...globals.browser } }
+    languageOptions: { ecmaVersion: 2024, sourceType: 'module', parserOptions: { ecmaFeatures: { jsx: true } }, globals: { ...globals.node, ...globals.browser } }
   }
 ]
