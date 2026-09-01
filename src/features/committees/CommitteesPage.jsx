@@ -65,15 +65,24 @@ function CommitteeCreateDialog({actor,onClose,onCreated,language}){
  const {confirm,notify}=useFeedback();const en=language==='en'
  const {tenant}=useTenant()
  const {data:staffRows,loading:staffLoading}=useEmployeesData()
- const staff=useMemo(()=>staffRows.filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession,email:x.email||''})),[staffRows])
- const first=IPC_COMMITTEE_CATALOG[0]
- const [draft,setDraft]=useState({templateId:first.id,name:first.name,shortName:first.code,committeeRole:first.role,mandate:first.duties.join('\n'),legalBasis:first.source,decisionNumber:'',termStart:'',termEnd:'',meetingFrequency:'quarterly',quorumRule:'simple_majority',notes:'',members:[]})
+ const staff=useMemo(()=>staffRows.filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,dbId:x.dbId,name:`${x.firstName} ${x.lastName}`,department:x.department,profession:x.profession,email:x.email||''})),[staffRows])
+ const first=IPC_COMMITTEE_CATALOG.find(x=>x.id==='custom')||IPC_COMMITTEE_CATALOG[0]
+ const [draft,setDraft]=useState({templateId:first.id,name:'',shortName:'',committeeRole:'',mandate:'',legalBasis:'',decisionNumber:'',termStart:'',termEnd:'',meetingFrequency:'quarterly',quorumRule:'simple_majority',notes:'',members:[]})
  const [saving,setSaving]=useState(false)
  const set=(k,v)=>setDraft(x=>({...x,[k]:v})),template=ipcCommitteeById(draft.templateId)
  const ids=draft.members.map(x=>x.employeeId).filter(Boolean)
  const datesValid=!draft.termStart||!draft.termEnd||new Date(draft.termEnd)>=new Date(draft.termStart)
  const membersValid=draft.members.length>0&&draft.members.every(x=>x.employeeId&&x.title.trim()&&x.responsibilities.trim())&&new Set(ids).size===ids.length
  const valid=draft.name.trim()&&draft.committeeRole.trim()&&draft.mandate.trim()&&draft.termStart&&draft.termEnd&&datesValid&&membersValid
+ const missingReasons=[
+  !draft.name.trim()&&(en?'committee name':'ονομασία επιτροπής'),
+  !draft.committeeRole.trim()&&(en?'committee role':'ιδιότητα επιτροπής'),
+  !draft.mandate.trim()&&(en?'mandate':'αποστολή'),
+  (!draft.termStart||!draft.termEnd)&&(en?'term start/end dates':'ημερομηνίες έναρξης/λήξης θητείας'),
+  draft.termStart&&draft.termEnd&&!datesValid&&(en?'term end must be after term start':'η λήξη θητείας πρέπει να είναι μετά την έναρξη'),
+  draft.members.length===0&&(en?'at least one member':'τουλάχιστον ένα μέλος'),
+  draft.members.length>0&&!membersValid&&(en?'every member needs a person, title and responsibilities filled in':'κάθε μέλος χρειάζεται πρόσωπο, ιδιότητα και αρμοδιότητες συμπληρωμένα'),
+ ].filter(Boolean)
  function chooseTemplate(id){const t=ipcCommitteeById(id);setDraft(x=>({...x,templateId:id,name:t.id==='custom'?x.name:t.name,shortName:t.id==='custom'?x.shortName:t.code,committeeRole:t.id==='custom'?'':t.role,mandate:t.id==='custom'?'':t.duties.join('\n'),legalBasis:t.id==='custom'?'':t.source}))}
  function addMember(){setDraft(x=>({...x,members:[...x.members,{id:`m-${Date.now()}`,employeeId:'',title:'',responsibilities:'',voting:true,approvalRequired:false,memberType:'regular'}]}))}
  function patchMember(id,k,v){setDraft(x=>({...x,members:x.members.map(m=>m.id===id?{...m,[k]:v}:m)}))}
@@ -83,7 +92,7 @@ function CommitteeCreateDialog({actor,onClose,onCreated,language}){
   setSaving(true)
   try{
    const rows=loadCommittees(),id=nextCommitteeId(rows),now=new Date().toISOString()
-   const memberRefs=draft.members.map((m,i)=>{const person=staff.find(x=>x.id===m.employeeId);return {id:`CM-${Date.now()}-${i}`,employeeId:m.employeeId,name:person?.name||'',email:person?.email||'',department:person?.department||'',profession:person?.profession||'',committeeTitle:m.title.trim(),responsibilities:m.responsibilities.trim(),voting:m.voting,memberType:m.memberType||'regular',approvalRequired:m.approvalRequired,approvalStatus:m.approvalRequired?'pending':'not_required',active:true,startedAt:now,endedAt:null}})
+   const memberRefs=draft.members.map((m,i)=>{const person=staff.find(x=>x.id===m.employeeId);return {id:`CM-${Date.now()}-${i}`,employeeId:m.employeeId,employeeDbId:person?.dbId||null,name:person?.name||'',email:person?.email||'',department:person?.department||'',profession:person?.profession||'',committeeTitle:m.title.trim(),responsibilities:m.responsibilities.trim(),voting:m.voting,memberType:m.memberType||'regular',approvalRequired:m.approvalRequired,approvalStatus:m.approvalRequired?'pending':'not_required',active:true,startedAt:now,endedAt:null}})
    const chair=memberRefs.find(x=>/πρόεδ|συντον/i.test(x.committeeTitle)),secretary=memberRefs.find(x=>/γραμματ/i.test(x.committeeTitle))
    const localRecord={id,name:draft.name.trim(),shortName:draft.shortName.trim(),status:'active',templateId:draft.templateId,structureKind:template.kind,isCoreCommittee:template.core,committeeRole:draft.committeeRole.trim(),mandate:draft.mandate.trim(),legalBasis:draft.legalBasis.trim(),officialRelation:template.relation,roleGuidance:template.roleGuidance||[],requiredFunctions:template.requiredFunctions,decisionNumber:draft.decisionNumber.trim(),termStart:draft.termStart,termEnd:draft.termEnd,meetingFrequency:draft.meetingFrequency,quorumRule:draft.quorumRule,notes:draft.notes.trim(),chair:chair?.name||'',secretary:secretary?.name||'',memberRefs,members:memberRefs.map(x=>x.name),meetings:[],decisions:[],annualPlan:[],createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[{at:now,actor:actor.name,actorId:actor.id,action:'Δημιουργία',reason:draft.name},{at:now,actor:actor.name,actorId:actor.id,action:'Αρχική σύνθεση',reason:`${memberRefs.length} μέλη`}]}
    let record=localRecord
@@ -103,7 +112,7 @@ function CommitteeCreateDialog({actor,onClose,onCreated,language}){
    setSaving(false)
   }
  }
- return <ObserverDialog width="wide" eyebrow={en?'Committees':'Επιτροπές'} title={en?'New committee / group':'Νέα επιτροπή / ομάδα'} subtitle={en?'Establishment, composition and basic operating rules':'Σύσταση, σύνθεση και βασικοί κανόνες λειτουργίας'} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={!valid||saving} onSave={save} saveLabel={saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save':'Αποθήκευση')}/>}>
+ return <ObserverDialog width="workspace" eyebrow={en?'Committees':'Επιτροπές'} title={en?'New committee / group':'Νέα επιτροπή / ομάδα'} subtitle={en?'Establishment, composition and basic operating rules':'Σύσταση, σύνθεση και βασικοί κανόνες λειτουργίας'} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={!valid||saving} onSave={save} saveLabel={saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save':'Αποθήκευση')}/>}>
   <div className="committee-create-dialog-content">
    <section className="observer-form-section"><div className="observer-form-section-title"><div><strong>{en?'Basic details':'Βασικά στοιχεία'}</strong><span>{en?'Select a template or create a local committee. Details remain editable.':'Επιλέξτε πρότυπο ή δημιουργήστε τοπική επιτροπή. Τα στοιχεία παραμένουν επεξεργάσιμα.'}</span></div></div><div className="entry-grid compact">
     <label><span>{en?'Committee / group type *':'Τύπος επιτροπής / ομάδας *'}</span><select value={draft.templateId} onChange={e=>chooseTemplate(e.target.value)}>{IPC_COMMITTEE_CATALOG.map(x=><option key={x.id} value={x.id}>{x.code?`${x.code} — `:''}{x.name}</option>)}</select></label>
@@ -125,6 +134,7 @@ function CommitteeCreateDialog({actor,onClose,onCreated,language}){
     <label className="entry-span-2"><span>{en?'Notes / special rules':'Σημειώσεις / ειδικοί κανόνες'}</span><textarea rows="2" value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
     {!datesValid&&<div className="source-truth-note entry-span-2">{en?'End date cannot precede start date.':'Η λήξη δεν μπορεί να προηγείται της έναρξης.'}</div>}
    </div></section>
+   {missingReasons.length>0&&<div className="source-truth-note">{en?'Still needed to save: ':'Χρειάζεται ακόμα για αποθήκευση: '}{missingReasons.join(', ')}.</div>}
   </div>
  </ObserverDialog>
 }

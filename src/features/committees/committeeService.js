@@ -3,7 +3,7 @@ import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadCommittees as loadCommitteesLocal, inferTemplate } from './committeeData'
 
-const MEMBER_COLUMNS = 'id,employee_id,member_name,title,responsibilities,member_type,has_vote,approval_status,started_at,ended_at'
+const MEMBER_COLUMNS = 'id,employee_id,member_name,title,responsibilities,member_type,has_vote,approval_status,started_at,ended_at,employee:employees(employee_code)'
 const COMMITTEE_COLUMNS = `code,name,short_name,committee_type,status,mandate,legal_basis,decision_number,term_start,term_end,meeting_frequency,quorum_rule,notes,created_at,updated_at,committee_members!committee_members_tenant_fk(${MEMBER_COLUMNS})`
 
 // Chair/secretary are not stored columns on the real table — like the frontend
@@ -15,7 +15,8 @@ function deriveOfficer(memberRefs, pattern) {
 function fromMemberRow(row) {
   return {
     id: row.id,
-    employeeId: row.employee_id || '',
+    employeeId: row.employee?.employee_code || '',
+    employeeDbId: row.employee_id || null,
     name: row.member_name,
     department: '',
     profession: '',
@@ -112,7 +113,7 @@ export async function createCommitteeAsync(organizationId, draft) {
       memberRefs.map(m => ({
         committee_id: committee.id,
         organization_id: organizationId,
-        employee_id: m.employeeId || null,
+        employee_id: m.employeeDbId || null,
         member_name: m.name,
         title: m.committeeTitle,
         responsibilities: m.responsibilities || null,
@@ -123,5 +124,5 @@ export async function createCommitteeAsync(organizationId, draft) {
     )
     if (membersError) throw membersError
   }
-  return fromRow({ ...committee, committee_members: memberRefs.map((m, i) => ({ id: `pending-${i}`, employee_id: m.employeeId, member_name: m.name, title: m.committeeTitle, responsibilities: m.responsibilities, member_type: m.memberType, has_vote: m.voting !== false, approval_status: m.approvalRequired ? 'pending' : 'not_required', started_at: null, ended_at: null })) })
+  return fromRow({ ...committee, committee_members: memberRefs.map((m, i) => ({ id: `pending-${i}`, employee_id: m.employeeDbId, employee: { employee_code: m.employeeId }, member_name: m.name, title: m.committeeTitle, responsibilities: m.responsibilities, member_type: m.memberType, has_vote: m.voting !== false, approval_status: m.approvalRequired ? 'pending' : 'not_required', started_at: null, ended_at: null })) })
 }
