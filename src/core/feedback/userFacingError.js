@@ -16,6 +16,9 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   if(lower.includes('committee_meeting_not_found')){
     return en?'The meeting could not be found. Refresh the committee and try again.':'Η συνεδρίαση δεν βρέθηκε. Ανανεώστε την επιτροπή και δοκιμάστε ξανά.'
   }
+  if(lower.includes('committee_minutes_submission_not_allowed')){
+    return en?'These minutes cannot be submitted again in their current status. Refresh the meeting to see the latest approval state.':'Τα πρακτικά δεν μπορούν να υποβληθούν ξανά στην τρέχουσα κατάστασή τους. Ανανεώστε τη συνεδρίαση για να δείτε την τελευταία κατάσταση έγκρισης.'
+  }
   if(lower.includes('committee_minutes_approver_account_required')){
     return en?'The minutes cannot be submitted for approval because one or more present voting members do not have a linked user account.':'Δεν είναι δυνατή η υποβολή των πρακτικών για έγκριση, επειδή ένα ή περισσότερα παρόντα μέλη με δικαίωμα ψήφου δεν διαθέτουν συνδεδεμένο λογαριασμό.'
   }
