@@ -11,7 +11,8 @@ describe('system-managed library governance',()=>{
   })
 
   it('opens protected system Bundles read-only for hospital users',()=>{
-    expect(bundles).toContain('readOnly:true')
+    expect(bundles).toContain('const readOnly=(item.system&&!isPlatformOwner)||immutable')
+    expect(bundles).toContain('setSelected({...clone(item),readOnly})')
     expect(bundles).toContain('System · Μόνο Owner')
     expect(bundles).toContain('Μόνο ο Platform Owner μπορεί να το τροποποιήσει ή να το διαγράψει.')
   })
