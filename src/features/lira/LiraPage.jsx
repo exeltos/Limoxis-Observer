@@ -10,7 +10,7 @@ import { describeLiraPlan,interpretLiraQuestion,LIRA_INTENTS,LIRA_TOPICS } from 
 import { compareLiraDepartments,compareLiraPeriods,inferComparisonSpec,rankLiraDepartments } from './liraComparison'
 import { calculateHaiRate,compareHaiRates,inferHaiType } from './liraHaiMetrics'
 import { analyzeHaiContext,compareHaiContext } from './liraCorrelation'
-import { buildOperationalOverview } from './liraOperationalOverview'
+import { buildOperationalOverview,compareOperationalOverview } from './liraOperationalOverview'
 
 const severityLabels={el:{critical:'Κρίσιμο',high:'Υψηλό',medium:'Μέτριο',low:'Χαμηλό'},en:{critical:'Critical',high:'High',medium:'Medium',low:'Low'}}
 
@@ -69,6 +69,7 @@ function answerQuestion(plan,analysis,language='el',{data=null,comparisonSpec=nu
  if(haiType&&plan.intent===LIRA_INTENTS.EXPLANATION&&data){const answer=analyzeHaiContext(data,haiType,{department:plan.department,today,language});return {...answer,scopeNote}}
  if(haiType&&comparisonSpec?.mode==='period'&&data){const answer=compareHaiRates(data,haiType,comparisonSpec.current,comparisonSpec.reference,{department:plan.department,today,language});return {...answer,scopeNote}}
  if(haiType&&data){const metric=calculateHaiRate(data,haiType,{department:plan.department,today});return {title:haiType.toUpperCase(),subtitle:en?`Device-associated HAI incidence per 1,000 ${metric.denominatorLabel}.`:`Device-associated HAI επίπτωση ανά 1.000 ${metric.denominatorLabel}.`,scopeNote,points:metric.normalized?[`${metric.rate}${metric.unit} (${metric.events}/${metric.deviceDays}).`,en?'Calculated from authorized HAI classifications and device exposure records.':'Υπολογίστηκε από εξουσιοδοτημένες HAI ταξινομήσεις και καταγραφές έκθεσης σε συσκευές.']:[en?`${metric.events} validated/eligible HAI records were found, but a rate cannot be calculated because device-days are unavailable.`:`Βρέθηκαν ${metric.events} επιλέξιμες HAI εγγραφές, αλλά δεν μπορεί να υπολογιστεί δείκτης επειδή δεν υπάρχουν διαθέσιμα device-days.`]}}
+ if(plan.topic===LIRA_TOPICS.GENERAL&&comparisonSpec?.mode==='period'&&data){const answer=compareOperationalOverview(data,comparisonSpec,{department:plan.department,today,language});return {...answer,scopeNote}}
  if(comparisonSpec?.mode==='period'&&data){const answer=compareLiraPeriods(data,plan,comparisonSpec,language);return {...answer,scopeNote}}
  if(comparisonSpec?.mode==='department_pair'&&data){const answer=compareLiraDepartments(data,plan,comparisonSpec,language);return {...answer,scopeNote}}
  if((comparisonSpec?.mode==='department'||plan.intent===LIRA_INTENTS.RANKING)&&data){const answer=rankLiraDepartments(data,plan,language);return {...answer,scopeNote}}
