@@ -37,4 +37,15 @@ describe('LIRA infection-quality question understanding', () => {
     expect(interpretLiraQuestion('Γιατί μου δείχνεις αυξημένο κίνδυνο στη ΜΕΘ;').intent).toBe(LIRA_INTENTS.EXPLANATION)
     expect(interpretLiraQuestion('Πώς είμαστε σε σχέση με τον προηγούμενο μήνα;').intent).toBe(LIRA_INTENTS.COMPARISON)
   })
+
+  it('treats what changed or worsened as a cross-domain operational question',()=>{
+    const changed=interpretLiraQuestion('Τι άλλαξε στη ΜΕΘ σε σχέση με τον προηγούμενο μήνα;',{scope:{department:'ΜΕΘ',periodDays:0}})
+    expect(changed.topic).toBe(LIRA_TOPICS.GENERAL)
+    expect(changed.operationalChange).toBe(true)
+    expect(changed.intent).toBe(LIRA_INTENTS.COMPARISON)
+    const worsened=interpretLiraQuestion('Τι χειροτέρεψε περισσότερο στη ΜΕΘ;',{scope:{department:'ΜΕΘ',periodDays:0},previousPlan:changed})
+    expect(worsened.topic).toBe(LIRA_TOPICS.GENERAL)
+    expect(worsened.entity).toBeNull()
+    expect(worsened.operationalChange).toBe(true)
+  })
 })
