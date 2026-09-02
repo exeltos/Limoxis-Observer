@@ -1,11 +1,11 @@
 import { describe,expect,it } from 'vitest'
-import { compareLiraPeriods,inferComparisonSpec,rankLiraDepartments } from '../src/features/lira/liraComparison'
+import { compareLiraDepartments,compareLiraPeriods,inferComparisonSpec,rankLiraDepartments } from '../src/features/lira/liraComparison'
 
 const data={
  laboratory:[
   {id:'a',department:'ΜΕΘ',result:'positive',resistance:'MDR',organism:'Klebsiella',signalDate:'2026-09-01'},
-  {id:'b',department:'ΜΕΘ',result:'positive',resistance:null,organism:'Klebsiella',signalDate:'2026-08-10'},
-  {id:'c',department:'Παθολογική',result:'positive',resistance:'MDR',organism:'E. coli',signalDate:'2026-08-15'},
+  {id:'b',department:'ΜΕΘ',result:'positive',resistance:null,organism:'Klebsiella',signalDate:'2026-08-01'},
+  {id:'c',department:'Παθολογική',result:'positive',resistance:'MDR',organism:'E. coli',signalDate:'2026-09-01'},
  ],
  surveillance:[
   {id:'s1',department:'ΜΕΘ',state:'active',signalDate:'2026-09-01'},
@@ -19,11 +19,11 @@ const data={
 }
 
 describe('LIRA comparisons',()=>{
- it('infers current month versus previous month',()=>{
+ it('uses matched month-to-date periods',()=>{
   const spec=inferComparisonSpec('Σύγκρινε αυτόν τον μήνα με τον προηγούμενο',{today:'2026-09-02'})
   expect(spec.mode).toBe('period')
-  expect(spec.current.start).toBe('2026-09-01')
-  expect(spec.reference.start).toBe('2026-08-01')
+  expect(spec.current).toMatchObject({start:'2026-09-01',end:'2026-09-02'})
+  expect(spec.reference).toMatchObject({start:'2026-08-01',end:'2026-08-02'})
  })
 
  it('infers explicit year versus year',()=>{
@@ -34,13 +34,21 @@ describe('LIRA comparisons',()=>{
 
  it('compares matched periods for a topic and department',()=>{
   const spec=inferComparisonSpec('Σύγκρινε αυτόν τον μήνα με τον προηγούμενο',{today:'2026-09-02'})
-  const answer=compareLiraPeriods(data,{topic:'laboratory',department:'ΜΕΘ'},spec,'el')
-  expect(answer.points[0]).toContain('9/2026: 1')
-  expect(answer.points[0]).toContain('8/2026: 1')
+  const answer=compareLiraPeriods(data,{topic:'laboratory',department:'ΜΕΘ',entity:null},spec,'el')
+  expect(answer.points[0]).toContain('9/2026 MTD: 1')
+  expect(answer.points[0]).toContain('8/2026 MTD: 1')
+ })
+
+ it('detects and compares two named departments',()=>{
+  const spec=inferComparisonSpec('Σύγκρινε ΜΕΘ σε σχέση με Παθολογική',{today:'2026-09-02',data})
+  expect(spec).toEqual({mode:'department_pair',departments:['ΜΕΘ','Παθολογική']})
+  const answer=compareLiraDepartments(data,{topic:'hand_hygiene',entity:null},spec,'el')
+  expect(answer.points[0]).toContain('ΜΕΘ: 65%')
+  expect(answer.points[0]).toContain('Παθολογική: 90%')
  })
 
  it('ranks low hand hygiene compliance as worse',()=>{
-  const answer=rankLiraDepartments(data,{topic:'hand_hygiene',department:'all'},'el')
+  const answer=rankLiraDepartments(data,{topic:'hand_hygiene',department:'all',entity:null},'el')
   expect(answer.points[0]).toContain('ΜΕΘ: 65%')
   expect(answer.points[1]).toContain('Παθολογική: 90%')
  })
