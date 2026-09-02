@@ -1,4 +1,4 @@
-import { supabase } from '../../core/data/supabaseClient'
+import { supabase } from '../../core/supabase/client'
 
 function requireCloud(){if(!supabase) throw new Error('Supabase is not configured')}
 function requireOrganization(organizationId){if(!organizationId) throw new Error('Organization is required')}
