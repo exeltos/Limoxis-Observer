@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, CheckSquare2, ClipboardCheck, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
@@ -9,6 +9,8 @@ import { AttachmentField } from '../../design-system/AttachmentField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuth } from '../../core/auth/AuthContext'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { auditActorFromAuth } from '../../core/audit/actor'
 import { qualityCollections } from './qualityDemoData'
 import { demoLibrarySeed } from '../management/managementData'
@@ -30,6 +32,7 @@ export function QualityCreatePage(){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const {profile,user}=useAuth()
+  const {role,membership}=useTenant()
   const actor=auditActorFromAuth({profile,user})
   const c=config[recordType]||config.incidents
   const Icon=c.icon
@@ -53,15 +56,22 @@ export function QualityCreatePage(){
       descriptionEn:[`Source: ${controlSource.controlId} — ${controlSource.controlTitleEn||controlSource.controlTitle}`,controlSource.value?`Result: ${controlSource.value}`:'',controlSource.notes?`Notes: ${controlSource.notes}`:'',rowTextEn].filter(Boolean).join('\n\n')
     }
   })
+  const addOns=membership?.capabilities??[]
+  const custom=membership?.customCapabilities??[]
+  const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
+  const canReportIncident=can(role,CAPABILITIES.REPORT_INCIDENT,addOns,custom)
+  const canCreate=canManage||(recordType==='incidents'&&canReportIncident)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
   function setDepartment(el){const pair=demoLibrarySeed.departments.find(([x])=>x===el);setDraft(d=>({...d,department:el,departmentEn:pair?.[1]||el}))}
   function save(){
+    if(!canCreate)return
     const id=`${c.prefix}-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String((qualityCollections[recordType]?.length||0)+1).padStart(3,'0')}`
     const record={id,...draft,history:[{at:new Date().toISOString(),action:'recordCreated',actor:actor.name}]}
     qualityCollections[recordType]?.unshift(record)
     notify(t('recordCreated'),'success')
     navigate(`/quality/${recordType}/${id}`,{replace:true,state:{limoxisFrom:location.state?.limoxisFrom}})
   }
+  if(!canCreate)return <Navigate to="/quality" replace/>
   return <Page fill><EntityRecordShell className="quality-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={t('quality')} title={t(c.title)} subtitle={t('qualityRecords.newQualityRecord')} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={goBack}>
     <div className="record-section quality-create-form">
       <div className="entry-grid">
