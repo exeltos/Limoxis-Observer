@@ -40,16 +40,16 @@ export function inferLiraTimeWindow(question, { today = new Date().toISOString()
   const now = parseIso(today)
   if (!now) return null
 
-  if (/\b(σημερα|today)\b/.test(text)) {
+  if (text.includes('σημερα') || /\btoday\b/.test(text)) {
     return { start: today, end: today, label: text.includes('today') ? 'today' : 'σήμερα', kind: 'day' }
   }
-  if (/\b(χθες|yesterday)\b/.test(text)) {
-    const date = iso(shift(now, -1))
-    return { start: date, end: date, label: text.includes('yesterday') ? 'yesterday' : 'χθες', kind: 'day' }
-  }
-  if (/\b(προχθες|day before yesterday)\b/.test(text)) {
+  if (text.includes('προχθες') || /\bday before yesterday\b/.test(text)) {
     const date = iso(shift(now, -2))
     return { start: date, end: date, label: text.includes('day before') ? 'day before yesterday' : 'προχθές', kind: 'day' }
+  }
+  if (text.includes('χθες') || /\byesterday\b/.test(text)) {
+    const date = iso(shift(now, -1))
+    return { start: date, end: date, label: text.includes('yesterday') ? 'yesterday' : 'χθες', kind: 'day' }
   }
   if (/(αυτη\s+την\s+εβδομαδα|this\s+week)/.test(text)) {
     return {
