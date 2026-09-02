@@ -11,6 +11,7 @@ import { demoLibrarySeed,newLocalLibraryItem } from './managementData'
 import { EnvironmentalStandardsPanel } from './EnvironmentalStandardsPanel'
 import { loadSnapshot,saveSnapshot } from '../../core/data/repository'
 import { createManagementLibraryItem,loadManagementLibraries,removeManagementLibraryItem,updateManagementLibraryItem } from './managementCloudService'
+import { isHospitalManagedLibraryKey } from './libraryGovernance'
 
 const categories=[
  ['departments','libraryDepartments',Building2,'blue'],['microorganisms','libraryMicroorganisms',Biohazard,'red'],
@@ -22,7 +23,15 @@ const categories=[
  ['environmentalProtocols','environmentalProtocols',Wind,'sky'],
 ]
 const cloneSeed=()=>structuredClone(demoLibrarySeed)
-function loadDemoState(){const stored=loadSnapshot('management_libraries',{});return {...cloneSeed(),...(stored&&typeof stored==='object'?stored:{})}}
+function normalizeGovernance(seed){
+ const next={...seed}
+ for(const key of Object.keys(next)){
+  if(!isHospitalManagedLibraryKey(key)||!Array.isArray(next[key]))continue
+  next[key]=next[key].map(row=>[row[0],row[1],{...(row[2]||{}),system:false,locked:false,source:'Hospital',version:'local'}])
+ }
+ return next
+}
+function loadDemoState(){const stored=loadSnapshot('management_libraries',{});return normalizeGovernance({...cloneSeed(),...(stored&&typeof stored==='object'?stored:{})})}
 
 export function LibrariesPanel(){
  const {language,t}=useLanguage();const {notify,confirm}=useFeedback();const {tenant,isDemo,role}=useTenant();const isPlatformOwner=role===ROLES.PLATFORM_OWNER
