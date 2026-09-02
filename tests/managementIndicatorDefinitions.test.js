@@ -1,5 +1,6 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
+import {CAPABILITIES,MANAGEMENT_CAPABILITIES,ROLES,can} from '../src/core/permissions/roles.js'
 
 const migration=fs.readFileSync('supabase/migrations/202609021210_indicator_definitions_management_governance.sql','utf8')
 const service=fs.readFileSync('src/features/management/managementCloudService.js','utf8')
@@ -19,6 +20,14 @@ describe('management indicator definitions',()=>{
   expect(service).toContain('loadIndicatorDefinitions')
   expect(service).toContain('saveIndicatorDefinition')
   expect(service).toContain('removeIndicatorDefinition')
+ })
+ it('routes indicator management through its dedicated capability',()=>{
+  expect(MANAGEMENT_CAPABILITIES).toContain(CAPABILITIES.MANAGE_INDICATORS)
+  expect(MANAGEMENT_CAPABILITIES).toContain(CAPABILITIES.MANAGE_ANNOUNCEMENTS)
+  expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_INDICATORS)).toBe(true)
+  expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_LIBRARIES)).toBe(false)
+  expect(page).toContain("ok(CAPABILITIES.MANAGE_INDICATORS)?[{id:'indicators'")
+  expect(page).toContain("{cap:CAPABILITIES.MANAGE_INDICATORS,id:'indicators'")
  })
  it('exposes a governed management UI',()=>{
   expect(page).toContain("id:'indicators'")
