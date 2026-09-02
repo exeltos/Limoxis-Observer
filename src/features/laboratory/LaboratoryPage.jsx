@@ -1,10 +1,11 @@
 import { useTenant } from '../../core/tenant/TenantContext'
-import { LaboratoryPage as LaboratoryDemoPage, Status } from './LaboratoryDemoPage'
+import { LaboratoryPage as LaboratoryDemoPage } from './LaboratoryDemoPage'
 import { LaboratoryCloudPage } from './LaboratoryCloudPage'
+import { LaboratoryStatus } from './LaboratoryStatus'
 
 export function LaboratoryPage(){
   const {isDemo}=useTenant()
   return isDemo?<LaboratoryDemoPage/>:<LaboratoryCloudPage/>
 }
 
-export { Status }
+export { LaboratoryStatus as Status }
