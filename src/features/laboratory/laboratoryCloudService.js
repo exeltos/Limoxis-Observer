@@ -56,6 +56,7 @@ function mapSample(row,patient,department,microbiology=[]){
     collectedAt:row.collected_at,
     requestedAt:row.requested_at,
     receivedAt:row.received_at,
+    rejectedAt:row.rejected_at,
     status:row.status,
     priority:row.priority,
     specimenCondition:row.specimen_condition||'',
