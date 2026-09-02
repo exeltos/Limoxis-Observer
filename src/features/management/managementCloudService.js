@@ -116,3 +116,28 @@ export async function removeExternalReference(organizationId,item){
   query=item.isGlobal?query.is('organization_id',null):query.eq('organization_id',organizationId)
   const {error}=await query;if(error)throw error
 }
+
+const toIndicatorDefinition=row=>({id:row.id,organizationId:row.organization_id||null,system:row.organization_id==null,key:row.indicator_key,version:row.version,titleEl:row.title_el,titleEn:row.title_en,category:row.category,numeratorDefinition:row.numerator_definition||{},denominatorDefinition:row.denominator_definition||{},multiplier:Number(row.multiplier||1),unit:row.unit||'',sourceAuthority:row.source_authority||'',effectiveFrom:row.effective_from||'',effectiveTo:row.effective_to||'',status:row.status||'draft'})
+
+export async function loadIndicatorDefinitions(organizationId){
+  assertCloud(organizationId)
+  const {data,error}=await supabase.from('indicator_definitions').select('id,organization_id,indicator_key,version,title_el,title_en,category,numerator_definition,denominator_definition,multiplier,unit,source_authority,effective_from,effective_to,status').or(`organization_id.eq.${organizationId},organization_id.is.null`).order('category').order('title_el');if(error)throw error
+  return (data||[]).map(toIndicatorDefinition)
+}
+
+export async function saveIndicatorDefinition(organizationId,item){
+  assertCloud(organizationId)
+  const {data:userData}=await supabase.auth.getUser();const actor=userData?.user?.id||null
+  const payload={organization_id:item.system?null:organizationId,indicator_key:String(item.key||'').trim(),version:String(item.version||'1.0').trim(),title_el:String(item.titleEl||'').trim(),title_en:String(item.titleEn||item.titleEl||'').trim(),category:String(item.category||'general').trim(),numerator_definition:item.numeratorDefinition||{},denominator_definition:item.denominatorDefinition||{},multiplier:Number(item.multiplier||1),unit:item.unit||null,source_authority:item.sourceAuthority||null,effective_from:item.effectiveFrom||null,effective_to:item.effectiveTo||null,status:item.status||'draft',created_by:actor}
+  let query=isUuid(item.id)?supabase.from('indicator_definitions').update(payload).eq('id',item.id):supabase.from('indicator_definitions').insert(payload)
+  query=item.system&&isUuid(item.id)?query.is('organization_id',null):query
+  const {data,error}=await query.select('id,organization_id,indicator_key,version,title_el,title_en,category,numerator_definition,denominator_definition,multiplier,unit,source_authority,effective_from,effective_to,status').single();if(error)throw error
+  return toIndicatorDefinition(data)
+}
+
+export async function removeIndicatorDefinition(organizationId,item){
+  assertCloud(organizationId);if(!isUuid(item?.id))return
+  let query=supabase.from('indicator_definitions').delete().eq('id',item.id)
+  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
+  const {error}=await query;if(error)throw error
+}
