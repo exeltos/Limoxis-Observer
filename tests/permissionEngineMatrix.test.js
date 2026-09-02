@@ -89,13 +89,10 @@ describe('system-only capabilities never leak into custom roles or add-ons', () 
     }
   })
 
-  // Documented as an open item, not a passing invariant: docs/AUTHORIZATION_MODEL.md
-  // ("Known legacy gaps to remove during migration") states that manage_users,
-  // manage_roles and manage_organization are system-only in the first production
-  // version, but the current hospital_admin compatibility grant still includes
-  // them. This test pins today's (non-compliant) behavior so the gap can only be
-  // closed on purpose, not silently reopened once someone starts fixing it.
-  it('still grants hospital_admin the system-only user/role/org capabilities (legacy gap, see AUTHORIZATION_MODEL.md)', () => {
+  // Hospital Admin is an immutable hospital system role. These capabilities
+  // are system-only for custom-role composition, but remain valid grants on
+  // the built-in Hospital Admin role.
+  it('grants hospital_admin the built-in user, role and organization administration capabilities', () => {
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.MANAGE_USERS)).toBe(true)
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.MANAGE_ROLES)).toBe(true)
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.MANAGE_ORGANIZATION)).toBe(true)
@@ -169,9 +166,7 @@ describe('canForRecord: department scoping', () => {
 })
 
 describe('canForRecord: self scope', () => {
-  it('enforces the self relationship whenever a capability actually resolves to SELF scope', () => {
-    // No system role has a matrix row here, so scopeFor falls back to the
-    // catalogue's own default scope (SELF, because the id contains "my_").
+  it('enforces the self relationship whenever a capability resolves to SELF scope', () => {
     const roleWithNoMatrixRow = 'role_outside_the_system_matrix'
     const context = { role: roleWithNoMatrixRow, employeeId: 'emp-1', customCapabilities: [CAPABILITIES.VIEW_MY_PROFILE] }
     expect(scopeFor(CAPABILITIES.VIEW_MY_PROFILE, context)).toBe(DATA_SCOPES.SELF)
@@ -181,21 +176,13 @@ describe('canForRecord: self scope', () => {
     expect(canForRecord(CAPABILITIES.VIEW_MY_PROFILE, someoneElsesRecord, context)).toBe(false)
   })
 
-  // Documented gap: the two real "my_" capabilities (VIEW_MY_PROFILE,
-  // VIEW_MY_DEPARTMENT) are only ever granted to department_user/department_manager,
-  // and systemRoleMatrix assigns every capability held by a department role
-  // DEPARTMENT scope regardless of what the catalogue declares. So in practice
-  // these two capabilities never resolve to SELF through canForRecord — the
-  // self-relationship branch above is exercised by no real system role today.
-  // The app currently only gates the /my-department route with a plain can()
-  // check (no record, no canForRecord), so this has no known runtime impact,
-  // but canForRecord should not be assumed to restrict "my profile" access to
-  // the caller's own employee record.
-  it('resolves VIEW_MY_PROFILE to DEPARTMENT (not SELF) for the department roles that actually hold it', () => {
-    expect(scopeFor(CAPABILITIES.VIEW_MY_PROFILE, { role: ROLES.DEPARTMENT_USER })).toBe(DATA_SCOPES.DEPARTMENT)
+  it('keeps VIEW_MY_PROFILE self-scoped for real department users', () => {
+    expect(scopeFor(CAPABILITIES.VIEW_MY_PROFILE, { role: ROLES.DEPARTMENT_USER })).toBe(DATA_SCOPES.SELF)
     const context = { role: ROLES.DEPARTMENT_USER, organizationId: 'org-1', departmentIds: ['dept-1'], employeeId: 'emp-1' }
+    const ownRecord = { organizationId: 'org-1', departmentId: 'dept-1', employeeId: 'emp-1' }
     const someoneElsesRecordInMyDepartment = { organizationId: 'org-1', departmentId: 'dept-1', employeeId: 'emp-2' }
-    expect(canForRecord(CAPABILITIES.VIEW_MY_PROFILE, someoneElsesRecordInMyDepartment, context)).toBe(true)
+    expect(canForRecord(CAPABILITIES.VIEW_MY_PROFILE, ownRecord, context)).toBe(true)
+    expect(canForRecord(CAPABILITIES.VIEW_MY_PROFILE, someoneElsesRecordInMyDepartment, context)).toBe(false)
   })
 })
 
