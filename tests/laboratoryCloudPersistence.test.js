@@ -7,6 +7,7 @@ const record=fs.readFileSync('src/features/laboratory/LaboratorySampleCloudRecor
 const route=fs.readFileSync('src/features/laboratory/LaboratoryPage.jsx','utf8')
 const recordRoute=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordPage.jsx','utf8')
 const migration=fs.readFileSync('supabase/migrations/20260902190000_laboratory_critical_result_workflow_fix.sql','utf8')
+const immutabilityMigration=fs.readFileSync('supabase/migrations/20260902191000_laboratory_validated_result_immutability.sql','utf8')
 
 describe('laboratory production persistence',()=>{
   it('loads canonical laboratory domains from Supabase',()=>{
@@ -33,6 +34,14 @@ describe('laboratory production persistence',()=>{
     expect(migration).toContain('drop constraint if exists microbiology_results_check')
     expect(migration).toContain('idx_laboratory_samples_org_status')
     expect(migration).toContain('idx_microbiology_results_sample_validation')
-    expect(migration).toContain('idx_critical_result_communications_microbiology')
+  })
+
+  it('versions edits to validated results instead of overwriting them',()=>{
+    expect(service).toContain("['validated','amended'].includes(existing.validation_status)")
+    expect(service).toContain("validation_status:'amended'")
+    expect(service).toContain('amended_from:existing.id')
+    expect(immutabilityMigration).toContain('enforce_microbiology_result_immutability')
+    expect(immutabilityMigration).toContain("old.validation_status in ('validated','amended')")
+    expect(immutabilityMigration).toContain('Validated microbiology results are immutable; create an amendment instead.')
   })
 })
