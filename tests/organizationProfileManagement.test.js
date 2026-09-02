@@ -2,6 +2,7 @@ import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 
 const migration=fs.readFileSync('supabase/migrations/202609020108_organization_profile_management.sql','utf8')
+const privilegeMigration=fs.readFileSync('supabase/migrations/202609021150_organization_profile_privilege_hardening.sql','utf8')
 const panel=fs.readFileSync('src/features/management/OrganizationProfilePanel.jsx','utf8')
 
 describe('organization profile management',()=>{
@@ -11,6 +12,14 @@ describe('organization profile management',()=>{
   expect(migration).toContain("'source','management_center'")
   expect(migration).toContain('revoke all on function')
   expect(migration).toContain('grant execute')
+ })
+ it('removes direct organization table mutation from browser roles',()=>{
+  expect(privilegeMigration).toContain('revoke all on table public.organizations from anon')
+  expect(privilegeMigration).toContain('revoke all on table public.organizations from authenticated')
+  expect(privilegeMigration).toContain('grant select on table public.organizations to authenticated')
+  expect(privilegeMigration).not.toContain('grant update on table public.organizations to authenticated')
+  expect(privilegeMigration).not.toContain('grant insert on table public.organizations to authenticated')
+  expect(privilegeMigration).not.toContain('grant delete on table public.organizations to authenticated')
  })
  it('keeps platform-controlled identity fields read only in the hospital editor',()=>{
   expect(panel).toContain("value={form.code} disabled")
