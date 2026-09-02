@@ -7,7 +7,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { loadLiraData } from './liraDataLayer'
 import { buildLiraAnalysis,filterLiraData,inferLiraQuestionScope } from './liraAnalysis'
 import { describeLiraPlan,interpretLiraQuestion,LIRA_INTENTS,LIRA_TOPICS } from './liraQuestionModel'
-import { compareLiraPeriods,inferComparisonSpec,rankLiraDepartments } from './liraComparison'
+import { compareLiraDepartments,compareLiraPeriods,inferComparisonSpec,rankLiraDepartments } from './liraComparison'
 
 const severityLabels={el:{critical:'Κρίσιμο',high:'Υψηλό',medium:'Μέτριο',low:'Χαμηλό'},en:{critical:'Critical',high:'High',medium:'Medium',low:'Low'}}
 
@@ -36,7 +36,7 @@ export function LiraPage(){
   const plan=interpretLiraQuestion(q,{scope:inferred,previousPlan})
   const scopedData=filterLiraData(data,{department:plan.department,periodDays:plan.periodDays,language})
   const analysis=buildLiraAnalysis(scopedData,language)
-  const comparisonSpec=inferComparisonSpec(q)
+  const comparisonSpec=inferComparisonSpec(q,{data})
   const answer=answerQuestion(plan,analysis,language,{data,comparisonSpec})
   setPreviousPlan(plan)
   setConversation(items=>[...items,{id:`${Date.now()}-q`,kind:'question',text:q},{id:`${Date.now()}-a`,kind:'answer',answer}])
@@ -62,6 +62,7 @@ function answerQuestion(plan,analysis,language='el',{data=null,comparisonSpec=nu
  const en=language==='en';const sev=severityLabels[language];const scopeNote=describeLiraPlan(plan,language)
  const signalPoints=(rows=analysis.signals.slice(0,8))=>rows.map(x=>`${sev[x.severity]} — ${x.title}: ${x.summary}`)
  if(comparisonSpec?.mode==='period'&&data){const answer=compareLiraPeriods(data,plan,comparisonSpec,language);return {...answer,scopeNote}}
+ if(comparisonSpec?.mode==='department_pair'&&data){const answer=compareLiraDepartments(data,plan,comparisonSpec,language);return {...answer,scopeNote}}
  if((comparisonSpec?.mode==='department'||plan.intent===LIRA_INTENTS.RANKING)&&data){const answer=rankLiraDepartments(data,plan,language);return {...answer,scopeNote}}
  if(plan.intent===LIRA_INTENTS.COUNT)return {title:en?'Count':'Πλήθος',subtitle:en?'Count derived from the authorized records in the understood context.':'Πλήθος από τις εξουσιοδοτημένες εγγραφές στο πλαίσιο που καταλάβαμε.',scopeNote,points:[plan.topic===LIRA_TOPICS.AMR?(en?`${analysis.amr} resistance-flagged records.`:`${analysis.amr} εγγραφές με σήμανση ανθεκτικότητας.`):(en?`${analysis.activeSurveillance} active surveillance records.`:`${analysis.activeSurveillance} ενεργές επιτηρήσεις.`)]}
  if(plan.intent===LIRA_INTENTS.CLUSTER)return {title:en?'Possible cluster signal':'Πιθανό σήμα συρροής',subtitle:en?'A cluster signal requires epidemiological assessment; LIRA does not diagnose an outbreak.':'Το σήμα συρροής απαιτεί επιδημιολογική αξιολόγηση· η LIRA δεν διαγιγνώσκει έξαρση.',scopeNote,points:signalPoints(analysis.signals.filter(x=>x.domain.includes('AMR')||x.domain.includes('Surveillance')||x.domain.includes('Επιτήρηση')))}
