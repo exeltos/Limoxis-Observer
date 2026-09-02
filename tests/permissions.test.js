@@ -45,11 +45,11 @@ describe('role + scope access foundation', () => {
     expect(can(ROLES.OCCUPATIONAL_PHYSICIAN, CAPABILITIES.MANAGE_STAFF_ADMIN)).toBe(false)
   })
 
-  it('keeps hospital administration clinically restricted while platform owner is the explicit full-control role', () => {
+  it('keeps sensitive occupational health restricted while Hospital Admin can operate Laboratory', () => {
     expect(can(ROLES.PLATFORM_OWNER, CAPABILITIES.VIEW_PATIENTS)).toBe(true)
     expect(can(ROLES.PLATFORM_OWNER, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(true)
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(false)
-    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VALIDATE_LAB_RESULTS)).toBe(false)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VALIDATE_LAB_RESULTS)).toBe(true)
   })
 
   it('keeps the isolated demo role broad enough to demonstrate hospital workflows', () => {
