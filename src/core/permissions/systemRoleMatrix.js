@@ -65,9 +65,18 @@ export const addonCapabilityMap=Object.freeze({
 
 const departmentRoles=new Set([ROLES.LINK_NURSE,ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LABORATORY])
 const assignmentRoles=new Set([ROLES.DOCTOR_REVIEWER,ROLES.COMMITTEE_SECRETARIAT])
+const laboratoryOrganizationCapabilities=new Set([
+  CAPABILITIES.VIEW_LAB,
+  CAPABILITIES.MANAGE_LAB_SAMPLES,
+  CAPABILITIES.VALIDATE_LAB_RESULTS,
+  CAPABILITIES.COMMUNICATE_CRITICAL_RESULTS,
+  CAPABILITIES.CLASSIFY_RESISTANCE,
+  CAPABILITIES.REOPEN_LAB_RECORD,
+])
 const scopeForSystemRole=(role,capability)=>{
   if(capability===CAPABILITIES.VIEW_MY_PROFILE)return DATA_SCOPES.SELF
   if(role===ROLES.PLATFORM_OWNER&&capability.includes('platform'))return DATA_SCOPES.PLATFORM
+  if(role===ROLES.LABORATORY&&laboratoryOrganizationCapabilities.has(capability))return DATA_SCOPES.ORGANIZATION
   if(departmentRoles.has(role))return DATA_SCOPES.DEPARTMENT
   return DATA_SCOPES.ORGANIZATION
 }
