@@ -21,8 +21,9 @@ describe('laboratory operational scope separation',()=>{
  })
  it('keeps employee visibility and laboratory operations as distinct authorization rules',()=>{
   expect(workforceMigration).toContain("array['link_nurse','department_manager','laboratory']::public.app_role[]")
+  expect(workforceMigration).toContain('public.current_user_can_view_employee')
   expect(migration).toContain('public.current_user_can_view_laboratory_sample')
-  expect(migration).toContain('public.current_user_can_view_employee') === false
+  expect(migration).not.toContain('public.current_user_can_view_employee')
  })
  it('makes microbiology result reads inherit the authorized parent sample',()=>{
   expect(migration).toContain('drop policy if exists microbiology_results_read')
