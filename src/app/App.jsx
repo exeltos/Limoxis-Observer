@@ -59,13 +59,13 @@ export function App() {
     <Route element={<ProtectedRoute />}>
       <Route path="training-access/:token" element={<Suspense fallback={<RouteLoading/>}><TrainingAccessPage /></Suspense>} />
       <Route element={<AppShell />}>
-        <Route path="platform" element={<Suspense fallback={<RouteLoading/>}><PlatformCenterPage /></Suspense>} />
+        <Route path="platform" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM, <PlatformCenterPage />)}</Suspense>} />
         <Route path="about" element={<Suspense fallback={<RouteLoading/>}><AboutPage /></Suspense>} />
         <Route path="analysis" element={<Suspense fallback={<RouteLoading/>}><AnalysisPage /></Suspense>} />
         <Route path="account" element={<Suspense fallback={<RouteLoading/>}><AccountPage /></Suspense>} />
         <Route index element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)}</Suspense>} />
         <Route path="my-department" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)}</Suspense>} />
-        <Route path="my-profile" element={<Suspense fallback={<RouteLoading/>}><EmployeeRecordPage selfMode /></Suspense>} />
+        <Route path="my-profile" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_PROFILE, <EmployeeRecordPage selfMode />)}</Suspense>} />
         <Route path="surveillance" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_SURVEILLANCE, <SurveillancePage />)}</Suspense>} />
         <Route path="surveillance/:caseId" element={<Suspense fallback={<RouteLoading/>}>{gateAny([CAPABILITIES.VIEW_SURVEILLANCE, CAPABILITIES.VIEW_LAB], <PatientClinicalRecordRoute />)}</Suspense>} />
         <Route path="laboratory" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LAB, <LaboratoryPage />)}</Suspense>} />
