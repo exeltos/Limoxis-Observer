@@ -30,14 +30,11 @@ async function mdroBloodstreamCount(organizationId,{from,to,departmentId}){
  if(departmentId)samples=samples.eq('department_id',departmentId)
  const {data:sampleRows,error:sampleError}=await samples;if(sampleError)throw sampleError
  const sampleIds=(sampleRows||[]).map(row=>row.id);if(!sampleIds.length)return 0
- const {data:micro,error:microError}=await supabase.from('microbiology_results').select('id,sample_id,result_status,resistance_class').eq('organization_id',organizationId).in('sample_id',sampleIds).eq('result_status','positive')
- if(microError)throw microError
+ const {data:micro,error:microError}=await supabase.from('microbiology_results').select('id,resistance_class').eq('organization_id',organizationId).in('sample_id',sampleIds).eq('result_status','positive');if(microError)throw microError
  const direct=(micro||[]).filter(row=>['MDR','XDR','PDR'].includes(String(row.resistance_class||'').toUpperCase()))
  const ids=(micro||[]).map(row=>row.id);if(!ids.length)return direct.length
- const {data:amr,error:amrError}=await supabase.from('amr_classifications').select('microbiology_result_id,classification,status').eq('organization_id',organizationId).in('microbiology_result_id',ids)
- if(amrError)throw amrError
- const classified=new Set((amr||[]).filter(row=>row.status!=='rejected'&&['MDR','XDR','PDR'].includes(String(row.classification||'').toUpperCase())).map(row=>row.microbiology_result_id))
- direct.forEach(row=>classified.add(row.id));return classified.size
+ const {data:amr,error:amrError}=await supabase.from('amr_classifications').select('microbiology_result_id,classification,status').eq('organization_id',organizationId).in('microbiology_result_id',ids);if(amrError)throw amrError
+ const classified=new Set((amr||[]).filter(row=>row.status!=='rejected'&&['MDR','XDR','PDR'].includes(String(row.classification||'').toUpperCase())).map(row=>row.microbiology_result_id));direct.forEach(row=>classified.add(row.id));return classified.size
 }
 
 export async function collectCloudIndicatorMetrics(organizationId,{from,to,departmentId=null}){
@@ -59,19 +56,20 @@ export async function collectCloudIndicatorMetrics(organizationId,{from,to,depar
  const hh=hhRows.data||[],bundles=bundleRows.data||[],antiseptics=antisepticRows.data||[],training=trainingRows.data||[]
  const hhOpp=hh.reduce((s,row)=>s+Number(row.observations||0),0),hhOk=hh.reduce((s,row)=>s+Number(row.compliant_observations||0),0)
  const vaccinated=new Set((vaccinations.data||[]).map(row=>row.employee_id))
- return {
-  active_surveillance:activeSurveillance,resistant_active_surveillance:resistantSurveillance,
-  hh_compliant_actions:hhOk,hh_opportunities:hhOpp,
-  bundle_all_or_none_pass:bundles.filter(row=>Number(row.score)>=100).length,bundle_executions:bundles.length,
-  abhr_litres:round(antiseptics.reduce((s,row)=>s+Number(row.litres||0),0),2),abhr_patient_days:patientDayValue,
-  training_completed:training.filter(row=>row.status==='completed').length,training_assignments:training.length,
-  active_staff:activeStaff,active_staff_with_vaccination:vaccinated.size,
-  open_high_incidents:highIncidents,mdro_bsi:mdroBsi,patient_days:patientDayValue,
- }
+ return {active_surveillance:activeSurveillance,resistant_active_surveillance:resistantSurveillance,hh_compliant_actions:hhOk,hh_opportunities:hhOpp,bundle_all_or_none_pass:bundles.filter(row=>Number(row.score)>=100).length,bundle_executions:bundles.length,abhr_litres:round(antiseptics.reduce((s,row)=>s+Number(row.litres||0),0),2),training_completed:training.filter(row=>row.status==='completed').length,training_assignments:training.length,active_staff:activeStaff,active_staff_with_vaccination:vaccinated.size,open_high_incidents:highIncidents,mdro_bsi:mdroBsi,patient_days:patientDayValue}
 }
 
-const metricAlias={compliant_hh_actions:'hh_compliant_actions',completed_training_assignments:'training_completed',active_staff_with_vaccination_record:'active_staff_with_vaccination'}
-const metricValue=(metrics,key)=>metrics[metricAlias[key]||key]
+export async function loadOperationalIndicatorDefinitions(organizationId,{from,to}={}){
+ assertCloud(organizationId)
+ let query=supabase.from('indicator_definitions').select('id,organization_id,indicator_key,version,title_el,title_en,category,numerator_definition,denominator_definition,multiplier,unit,unit_en,source_authority,effective_from,effective_to,status,calculation_type,numerator_metric,denominator_metric,target_value,direction').or(`organization_id.eq.${organizationId},organization_id.is.null`).eq('status','active').order('category').order('title_el')
+ if(from)query=query.or(`effective_to.is.null,effective_to.gte.${from}`)
+ if(to)query=query.or(`effective_from.is.null,effective_from.lte.${to}`)
+ const {data,error}=await query;if(error)throw error
+ const rows=data||[];const localKeys=new Set(rows.filter(r=>r.organization_id).map(r=>r.indicator_key))
+ return rows.filter(r=>r.organization_id||!localKeys.has(r.indicator_key)).map(r=>({definitionId:r.id,id:r.indicator_key,version:r.version,titleEl:r.title_el,titleEn:r.title_en,category:r.category,numerator:r.numerator_metric,denominator:r.denominator_metric,multiplier:Number(r.multiplier||1),unit:r.unit||'',unitEn:r.unit_en||r.unit||'',source:r.source_authority||'',calculation:r.calculation_type||'auto',target:r.target_value==null?null:Number(r.target_value),direction:r.direction||'context',numeratorDefinition:r.numerator_definition||{},denominatorDefinition:r.denominator_definition||{}}))
+}
+
+const metricValue=(metrics,key)=>key?metrics[key]:null
 export function calculateCloudDefinition(def,metrics){
  const numerator=metricValue(metrics,def.numerator),denominator=def.denominator?metricValue(metrics,def.denominator):null
  let value=null
@@ -79,7 +77,7 @@ export function calculateCloudDefinition(def,metrics){
  else if(def.denominator)value=denominator?round(Number(numerator||0)/Number(denominator)*Number(def.multiplier||1),1):null
  else value=Number.isFinite(Number(numerator))?round(Number(numerator)*Number(def.multiplier||1),1):null
  const status=value==null||def.target==null?'context':def.direction==='higher'?(value>=def.target?'onTarget':'attention'):def.direction==='lower'?(value<=def.target?'onTarget':'attention'):'context'
- return {...def,value,numerator,denominator,status,evidence:def.denominator?`${numerator??'—'} / ${denominator??'—'}`:`${numerator??'—'}`}
+ return {...def,value,numerator,denominator,status,evidence:def.calculation==='manual'?'manual':def.denominator?`${numerator??'—'} / ${denominator??'—'}`:`${numerator??'—'}`}
 }
 
 export async function loadIndicatorSnapshots(organizationId,{from,to,departmentId=null}={}){
@@ -89,18 +87,19 @@ export async function loadIndicatorSnapshots(organizationId,{from,to,departmentI
 }
 
 async function findExistingSnapshot(organizationId,row,{from,to,departmentId}){
- let query=supabase.from('indicator_snapshots').select('id').eq('organization_id',organizationId).eq('indicator_key',row.id).eq('period_start',from).eq('period_end',to)
- query=departmentId?query.eq('department_id',departmentId):query.is('department_id',null)
+ let query=supabase.from('indicator_snapshots').select('id').eq('organization_id',organizationId).eq('indicator_key',row.id).eq('period_start',from).eq('period_end',to);query=departmentId?query.eq('department_id',departmentId):query.is('department_id',null)
  const {data,error}=await query.maybeSingle();if(error)throw error;return data?.id||null
 }
 
 export async function saveIndicatorSnapshots(organizationId,rows,{from,to,departmentId=null}={}){
  assertCloud(organizationId);const {data:{user}}=await supabase.auth.getUser();const now=new Date().toISOString();const saved=[]
  for(const row of (rows||[]).filter(item=>item.value!=null)){
-  const payload={organization_id:organizationId,indicator_key:row.id,definition_id:/^[0-9a-f-]{36}$/i.test(String(row.definitionId||''))?row.definitionId:null,department_id:departmentId||null,period_start:from,period_end:to,numerator:row.numerator??null,denominator:row.denominator??null,value:row.value,unit:row.unit||null,target_value:row.target??null,direction:row.direction||'context',calculation_type:row.calculation||'auto',source_snapshot:{source:row.source||'',version:row.version||'',evidence:row.evidence||''},status:'calculated',calculated_at:now,calculated_by:user?.id||null,updated_at:now}
-  const existingId=await findExistingSnapshot(organizationId,row,{from,to,departmentId})
-  const request=existingId?supabase.from('indicator_snapshots').update(payload).eq('id',existingId):supabase.from('indicator_snapshots').insert(payload)
-  const {data,error}=await request.select('*').single();if(error)throw error;saved.push(data)
+  const payload={organization_id:organizationId,indicator_key:row.id,definition_id:row.definitionId||null,department_id:departmentId||null,period_start:from,period_end:to,numerator:row.numerator??null,denominator:row.denominator??null,value:row.value,unit:row.unit||null,target_value:row.target??null,direction:row.direction||'context',calculation_type:row.calculation||'auto',source_snapshot:{source:row.source||'',version:row.version||'',evidence:row.evidence||'',numerator_definition:row.numeratorDefinition||{},denominator_definition:row.denominatorDefinition||{}},status:'calculated',calculated_at:now,calculated_by:user?.id||null,reviewed_at:null,reviewed_by:null,updated_at:now}
+  const existingId=await findExistingSnapshot(organizationId,row,{from,to,departmentId});const request=existingId?supabase.from('indicator_snapshots').update(payload).eq('id',existingId):supabase.from('indicator_snapshots').insert(payload);const {data,error}=await request.select('*').single();if(error)throw error;saved.push(data)
  }
  return saved
+}
+
+export async function reviewIndicatorSnapshot(organizationId,snapshotId,notes=''){
+ assertCloud(organizationId);const {data:{user}}=await supabase.auth.getUser();const now=new Date().toISOString();const {data,error}=await supabase.from('indicator_snapshots').update({status:'reviewed',reviewed_at:now,reviewed_by:user?.id||null,notes:notes||null,updated_at:now}).eq('organization_id',organizationId).eq('id',snapshotId).select('*').single();if(error)throw error;return data
 }
