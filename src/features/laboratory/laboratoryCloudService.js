@@ -19,6 +19,7 @@ function mapMicrobiology(row,ast=[],communications=[],amr=[]){
     id:row.id,
     result:row.result_status,
     resultStatus:row.validation_status,
+    amendedFrom:row.amended_from||null,
     organism:row.organism,
     resistance:classification?.classification||row.resistance_class||null,
     susceptibilitySummary:row.susceptibility_summary||'',
@@ -136,18 +137,28 @@ export async function saveMicrobiologyResult(organizationId,sampleRecordId,draft
   assertCloud()
   const actorId=await currentUserId()
   const now=new Date().toISOString()
-  const row={organization_id:organizationId,sample_id:sampleRecordId,result_status:draft.result||'inconclusive',organism:draft.organism||null,resistance_class:draft.resistance||null,susceptibility_summary:draft.susceptibilitySummary||null,is_critical:Boolean(draft.critical),resulted_at:iso(draft.resultedAt||new Date()),updated_by:actorId,updated_at:now,method:draft.method||null,preliminary:Boolean(draft.preliminary),validation_status:draft.validationStatus||'draft',validated_at:draft.validationStatus==='validated'?now:null,validated_by:draft.validationStatus==='validated'?actorId:null,interpretation_standard:draft.interpretationStandard||null,interpretation_version:draft.interpretationVersion||null}
+  const base={organization_id:organizationId,sample_id:sampleRecordId,result_status:draft.result||'inconclusive',organism:draft.organism||null,resistance_class:draft.resistance||null,susceptibility_summary:draft.susceptibilitySummary||null,is_critical:Boolean(draft.critical),resulted_at:iso(draft.resultedAt||new Date()),updated_by:actorId,updated_at:now,method:draft.method||null,preliminary:Boolean(draft.preliminary),interpretation_standard:draft.interpretationStandard||null,interpretation_version:draft.interpretationVersion||null}
   let data
   if(draft.id){
-    const result=await supabase.from('microbiology_results').update(row).eq('organization_id',organizationId).eq('id',draft.id).select('*').single()
-    if(result.error)throw result.error
-    data=result.data
+    const {data:existing,error:existingError}=await supabase.from('microbiology_results').select('id,validation_status').eq('organization_id',organizationId).eq('id',draft.id).single()
+    if(existingError)throw existingError
+    if(['validated','amended'].includes(existing.validation_status)){
+      const result=await supabase.from('microbiology_results').insert({...base,validation_status:'amended',validated_at:now,validated_by:actorId,amended_from:existing.id,created_by:actorId}).select('*').single()
+      if(result.error)throw result.error
+      data=result.data
+    }else{
+      const validationStatus=draft.validationStatus||'draft'
+      const result=await supabase.from('microbiology_results').update({...base,validation_status:validationStatus,validated_at:validationStatus==='validated'?now:null,validated_by:validationStatus==='validated'?actorId:null}).eq('organization_id',organizationId).eq('id',draft.id).select('*').single()
+      if(result.error)throw result.error
+      data=result.data
+    }
   }else{
-    const result=await supabase.from('microbiology_results').insert({...row,created_by:actorId}).select('*').single()
+    const validationStatus=draft.validationStatus||'draft'
+    const result=await supabase.from('microbiology_results').insert({...base,validation_status:validationStatus,validated_at:validationStatus==='validated'?now:null,validated_by:validationStatus==='validated'?actorId:null,created_by:actorId}).select('*').single()
     if(result.error)throw result.error
     data=result.data
   }
-  if(draft.validationStatus==='validated'){
+  if(['validated','amended'].includes(data.validation_status)){
     const {error:sampleError}=await supabase.from('laboratory_samples').update({status:'completed',updated_by:actorId,updated_at:now}).eq('organization_id',organizationId).eq('id',sampleRecordId)
     if(sampleError)throw sampleError
   }
