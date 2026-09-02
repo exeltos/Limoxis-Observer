@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, BedDouble, CircleCheckBig, FileClock, ListTree, Microscope, RefreshCcw, UserRound } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Activity, BedDouble, FileClock, ListTree, Microscope, UserRound } from 'lucide-react'
+import { useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
@@ -23,7 +23,6 @@ export function PatientClinicalCloudRecordPage({patientMode=false}){
   const {t,language,locale}=useLanguage()
   const {notify}=useFeedback()
   const {role,membership,tenant,canAccessRecord}=useTenant()
-  const navigate=useNavigate()
   const {goBack}=useContextualNavigation(patientMode?'/patients':'/surveillance')
   const [patients,setPatients]=useState([])
   const [episodes,setEpisodes]=useState([])
@@ -152,8 +151,8 @@ function CloudClinicalJourney({record,t,language,fmtDate,fmtDateTime,canAssess,c
     <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('outcome')}</strong><small>{record.outcome?t(record.outcome.status):t('pending')}</small></div>{canOutcome&&record.status==='active'&&record.reassessments.length>0&&<Button onClick={()=>setOutcomeOpen(true)}>{t('clinicalRecords.completeSurveillance')}</Button>}</div>{record.outcome?<div className="evidence-box"><strong>{t(record.outcome.status)} · {fmtDate(record.outcome.date)}</strong><span>{record.outcome.notes||'—'}</span></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
   </div>
   {assessmentOpen&&<AssessmentDialog t={t} language={language} record={record} onClose={()=>setAssessmentOpen(false)} onSave={async draft=>{await saveClinicalEvent(tenantId,record.recordId,'clinical_assessment',{...draft,detail:'completed'},{occurredAt:draft.date});setAssessmentOpen(false);await onSaved();notify(t('clinicalRecords.clinicalAssessmentSaved'),'success')}}/>}
-  {reviewOpen&&<ReassessmentDialog t={t} record={record} onClose={()=>setReviewOpen(false)} onSave={async draft=>{await addClinicalReassessment(tenantId,record.recordId,record.patientRecordId,draft);setReviewOpen(false);await onSaved();notify(t('clinicalRecords.reassessmentSaved'),'success')}}/>}
-  {outcomeOpen&&<OutcomeDialog t={t} record={record} onClose={()=>setOutcomeOpen(false)} onSave={async draft=>{await completeClinicalCase(tenantId,record.recordId,record.patientRecordId,draft);setOutcomeOpen(false);await onSaved();notify(t('clinicalRecords.outcomeSaved'),'success')}}/>}
+  {reviewOpen&&<ReassessmentDialog t={t} onClose={()=>setReviewOpen(false)} onSave={async draft=>{await addClinicalReassessment(tenantId,record.recordId,record.patientRecordId,draft);setReviewOpen(false);await onSaved();notify(t('clinicalRecords.reassessmentSaved'),'success')}}/>}
+  {outcomeOpen&&<OutcomeDialog t={t} onClose={()=>setOutcomeOpen(false)} onSave={async draft=>{await completeClinicalCase(tenantId,record.recordId,record.patientRecordId,draft);setOutcomeOpen(false);await onSaved();notify(t('clinicalRecords.outcomeSaved'),'success')}}/>}
   </div>
 }
 
