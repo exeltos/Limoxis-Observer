@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { ProtectedRoute } from '../core/auth/ProtectedRoute'
+import { useAuth } from '../core/auth/AuthContext'
+import { useTenant } from '../core/tenant/TenantContext'
 import { RequireCapability, RequireAnyCapability } from '../core/permissions/RequireCapability'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES } from '../core/permissions/roles'
 import { LoginPage } from '../features/auth/LoginPage'
@@ -48,6 +50,16 @@ const AccountPage = lazyNamed(() => import('../features/account/AccountPage'), '
 const gate = (capability, element) => <RequireCapability capability={capability}>{element}</RequireCapability>
 const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={capabilities}>{element}</RequireAnyCapability>
 
+function HomeRoute() {
+  const { profile } = useAuth()
+  const { tenant, loading } = useTenant()
+
+  if (loading) return <RouteLoading />
+  if (profile?.isPlatformOwner && !tenant) return <Navigate to="/platform" replace />
+
+  return gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)
+}
+
 export function App() {
   return <>
   <GlobalTextareaExpander/>
@@ -63,7 +75,7 @@ export function App() {
         <Route path="about" element={<Suspense fallback={<RouteLoading/>}><AboutPage /></Suspense>} />
         <Route path="analysis" element={<Suspense fallback={<RouteLoading/>}><AnalysisPage /></Suspense>} />
         <Route path="account" element={<Suspense fallback={<RouteLoading/>}><AccountPage /></Suspense>} />
-        <Route index element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)}</Suspense>} />
+        <Route index element={<Suspense fallback={<RouteLoading/>}><HomeRoute /></Suspense>} />
         <Route path="my-department" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)}</Suspense>} />
         <Route path="my-profile" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_PROFILE, <EmployeeRecordPage selfMode />)}</Suspense>} />
         <Route path="surveillance" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_SURVEILLANCE, <SurveillancePage />)}</Suspense>} />
