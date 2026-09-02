@@ -11,8 +11,10 @@ describe('migration integrity',()=>{
     expect(new Set(prefixes).size).toBe(prefixes.length)
   })
 
-  it('keeps the package version aligned with the latest migration release',()=>{
-    const latest=migrations.at(-1)
+  it('keeps the package version aligned with the latest versioned release migration',()=>{
+    const versioned=migrations.filter(name=>/_v0(\d{2})(\d+)_[^.]+\.sql$/.test(name))
+    expect(versioned.length).toBeGreaterThan(0)
+    const latest=versioned.at(-1)
     const match=latest.match(/_v0(\d{2})(\d+)_[^.]+\.sql$/)
     expect(match).not.toBeNull()
     const expected=`0.${Number(match[1])}.${Number(match[2])}`

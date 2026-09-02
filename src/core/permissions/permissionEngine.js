@@ -28,8 +28,9 @@ export function canAccessDepartment(departmentId,{scope,departmentIds=[]}={}){
 function assignmentMatchesRecord(item,record){
  const resourceType=item.resourceType??item.sourceType
  const resourceId=item.resourceId??item.sourceId??item.committeeId??item.controlId??item.recordId
+ const recordId=record?.dbId??record?.id
  const inactive=item.active===false||['cancelled','completed','expired'].includes(item.status)
- return !inactive&&resourceType===record?.resourceType&&String(resourceId)===String(record?.id)
+ return !inactive&&resourceType===record?.resourceType&&String(resourceId)===String(recordId)
 }
 
 export function canForRecord(capability,record,context={}){

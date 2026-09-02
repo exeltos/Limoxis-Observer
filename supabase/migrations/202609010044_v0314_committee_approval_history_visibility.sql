@@ -1,0 +1,3 @@
+drop policy if exists committee_minutes_approval_history_read on public.committee_minutes_approval_history;
+create policy committee_minutes_approval_history_read on public.committee_minutes_approval_history for select to authenticated using (public.current_user_can_view_committee(organization_id,committee_id));
+grant select on table public.committee_minutes_approval_history to authenticated;

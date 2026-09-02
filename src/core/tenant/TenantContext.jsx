@@ -57,7 +57,9 @@ export function TenantProvider({ children }) {
     platformDemoMode && profile?.isPlatformOwner ? {...DEMO_MEMBERSHIP, role: ROLES.PLATFORM_OWNER} : storedMembership
   ), [platformDemoMode, profile?.isPlatformOwner, storedMembership])
   const tenant = baseMembership?.organization ?? null
-  configureDataEnvironment({mode:(isDemoSession||platformDemoMode)?'demo':'production',organizationId:tenant?.id??((isDemoSession||platformDemoMode)?DEMO_TENANT.id:null)})
+  const demoMode=Boolean(isDemoSession||platformDemoMode)
+  const demoAccountId=isDemoSession?(profile?.id||user?.id||null):(platformDemoMode&&profile?.isPlatformOwner?`owner-preview.${profile?.id||user?.id||'owner'}`:null)
+  configureDataEnvironment({mode:demoMode?'demo':'production',organizationId:tenant?.id??(demoMode?DEMO_TENANT.id:null),demoAccountId})
   const actualRole = profile?.isPlatformOwner ? ROLES.PLATFORM_OWNER : baseMembership?.role ?? null
   const role = canRolePreview && rolePreview?.role ? rolePreview.role : actualRole
   const membership = useMemo(() => (

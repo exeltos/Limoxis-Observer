@@ -1,6 +1,5 @@
 import { supabase } from '../../core/supabase/client'
 import { patientDemoData } from './patientDemoData'
-import { ensureDepartment } from '../management/departmentsService'
 
 function mapRow(row, departmentLabel){
   const name=`${row.first_name||''} ${row.last_name||''}`.trim()
@@ -32,13 +31,21 @@ export async function loadPatients(organizationId, {isDemo=false}={}){
   return (data??[]).map(row=>mapRow(row,row.department?.name))
 }
 
+async function resolveDepartment(organizationId, departmentId){
+  if(!departmentId) return null
+  const {data,error}=await supabase.from('departments').select('id,name,is_active').eq('organization_id',organizationId).eq('id',departmentId).eq('is_active',true).maybeSingle()
+  if(error) throw error
+  if(!data) throw new Error('Selected department is not available for this organization.')
+  return data
+}
+
 export async function createPatient(organizationId, existing, draft, {isDemo=false}={}){
   const patientCode=draft.patientCode
   if(isDemo || !organizationId || !supabase){
     const record={id:patientCode,status:'active',...draft}
     return {record,list:[record,...existing]}
   }
-  const departmentId=draft.department?await ensureDepartment(organizationId,draft.department):null
+  const department=await resolveDepartment(organizationId,draft.departmentId)
   const {data,error}=await supabase.from('patients').insert({
     organization_id:organizationId,
     patient_code:patientCode,
@@ -48,7 +55,7 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     hospital_record_number:draft.hospitalRecordNumber||null,
     date_of_birth:draft.dateOfBirth||null,
     sex:draft.sex||null,
-    department_id:departmentId,
+    department_id:department?.id||null,
     admission_date:draft.admissionDate,
     discharge_date:draft.dischargeDate||null,
     status:draft.status||'active',
@@ -58,7 +65,7 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     if(error.code==='23505')error.duplicateCode=true
     throw error
   }
-  const record=mapRow(data,draft.department)
+  const record=mapRow(data,department?.name||draft.department)
   return {record,list:[record,...existing]}
 }
 
@@ -83,18 +90,18 @@ export async function loadAdmissions(patientRecordId){
 
 export async function createAdmission(organizationId, patient, draft, {isDemo=false}={}){
   if(isDemo || !patient.recordId || !supabase){
-    return mapAdmission({id:`ADM-${Date.now()}`,department_id:null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null},draft.department)
+    return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId||null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null},draft.department)
   }
-  const departmentId=draft.department?await ensureDepartment(organizationId,draft.department):null
+  const department=await resolveDepartment(organizationId,draft.departmentId)
   const {data,error}=await supabase.rpc('create_patient_admission',{
     p_organization_id:organizationId,
     p_patient_id:patient.recordId,
-    p_department_id:departmentId,
+    p_department_id:department?.id||null,
     p_admission_date:draft.admissionDate,
     p_discharge_date:draft.dischargeDate||null,
     p_status:draft.status||'active',
     p_notes:draft.notes||null,
   })
   if(error) throw error
-  return mapAdmission(data,draft.department)
+  return mapAdmission(data,department?.name||draft.department)
 }

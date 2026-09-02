@@ -10,7 +10,7 @@ export async function listMemberships(userId) {
       organization:organizations(id, name, code, type, status),
       scopes:organization_member_scopes(department_id),
       add_ons:organization_member_capabilities(capability),
-      assignments:work_assignments(id, assignment_type, status, due_at, department_id)
+      assignments:work_assignments(id, assignment_type, source_type, source_id, status, due_at, department_id)
     `)
     .eq('user_id', userId)
     .eq('status', 'active')

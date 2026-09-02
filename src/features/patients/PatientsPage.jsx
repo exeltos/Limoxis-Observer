@@ -14,6 +14,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadPatients, createPatient } from './patientsService'
 import { demoLibrarySeed } from '../management/managementData'
+import { loadDepartments } from '../management/departmentsService'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { downloadCsv } from '../../core/export/csvExport'
 import { MetricCard } from '../../design-system/MetricCard'
@@ -27,12 +28,18 @@ export function PatientsPage(){
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query)
   const [patients,setPatients]=useState([])
+  const [departmentOptions,setDepartmentOptions]=useState([])
   const [department,setDepartment]=useState(saved.department)
   const [status,setStatus]=useState(saved.status)
   const [newOpen,setNewOpen]=useState(false)
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive)notify(error?.message||t('patientsLoadFailed'),'danger')})
+    if(isDemo){
+      setDepartmentOptions(demoLibrarySeed.departments.map(([el,en],index)=>({id:`demo-department-${index}`,name:el,nameEn:en,is_active:true})))
+    }else{
+      loadDepartments(tenant?.id).then(list=>{if(alive)setDepartmentOptions((list||[]).filter(item=>item.is_active!==false).map(item=>({...item,nameEn:item.name})))}).catch(error=>{if(alive)notify(error?.message||t('actionFailed'),'danger')})
+    }
     return ()=>{alive=false}
   },[tenant?.id,isDemo,notify,t])
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
@@ -88,34 +95,34 @@ export function PatientsPage(){
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table"><thead><tr><th>{t('patientId')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('admissionDate')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(patient=><tr key={patient.id} {...registry.rowProps(patient.id)} onClick={()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))}}}><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></tr>)}</tbody></table></div>
     </div>
-    {newOpen&&<NewPatientCard t={t} language={language} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
+    {newOpen&&<NewPatientCard t={t} language={language} departments={departmentOptions} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
   </Page>
 }
 
 function PatientSummaryMetric({icon,label,value,kind=''}){return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'}/>}
 
-function NewPatientCard({t,language,onClose,onSave}){
-  const firstDepartment=demoLibrarySeed.departments?.[0]||['','']
+function NewPatientCard({t,language,departments,onClose,onSave}){
+  const firstDepartment=departments?.[0]||null
   const [draft,setDraft]=useState({
     patientCode:'',firstName:'',lastName:'',fatherName:'',hospitalRecordNumber:'',
-    dateOfBirth:'',sex:'',department:firstDepartment[0],departmentEn:firstDepartment[1],
+    dateOfBirth:'',sex:'',departmentId:firstDepartment?.id||'',department:firstDepartment?.name||'',departmentEn:firstDepartment?.nameEn||firstDepartment?.name||'',
     admissionDate:new Date().toISOString().slice(0,10),status:'active',notes:''
   })
+  useEffect(()=>{
+    if(draft.departmentId||!departments?.length)return
+    const first=departments[0]
+    setDraft(current=>({...current,departmentId:first.id,department:first.name,departmentEn:first.nameEn||first.name}))
+  },[departments,draft.departmentId])
   const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
-  function setDepartment(el){
-    const pair=demoLibrarySeed.departments.find(([value])=>value===el)||[el,el]
-    setDraft(d=>({...d,department:pair[0],departmentEn:pair[1]}))
+  function setDepartment(id){
+    const item=departments.find(value=>value.id===id)
+    setDraft(d=>({...d,departmentId:id,department:item?.name||'',departmentEn:item?.nameEn||item?.name||''}))
   }
   function save(){
     const first=draft.firstName.trim()
     const last=draft.lastName.trim()
     if(!draft.patientCode.trim()||!first||!last||!draft.admissionDate)return
-    onSave({
-      ...draft,
-      patientCode:draft.patientCode.trim(),
-      name:`${first} ${last}`.trim(),
-      nameEn:`${first} ${last}`.trim(),
-    })
+    onSave({...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim()})
   }
   return <div className="modal-backdrop">
     <div className="entry-card patient-entry-card">
@@ -128,7 +135,7 @@ function NewPatientCard({t,language,onClose,onSave}){
         <label><span>{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
         <ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>
         <label><span>{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
-        <label><span>{t('department')}</span><select value={draft.department} onChange={e=>setDepartment(e.target.value)}>{demoLibrarySeed.departments.map(([el,en])=><option key={el} value={el}>{language==='el'?el:en}</option>)}</select></label>
+        <label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
         <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/>
         <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
       </div>

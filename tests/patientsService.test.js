@@ -17,6 +17,11 @@ function departmentsFor(organizationId){
   if(!departmentRows.has(organizationId))departmentRows.set(organizationId,[])
   return departmentRows.get(organizationId)
 }
+function seedDepartment(organizationId,name='ICU'){
+  const row={id:`dept-${departmentsFor(organizationId).length+1}`,name,is_active:true}
+  departmentsFor(organizationId).push(row)
+  return row
+}
 
 vi.mock('../src/core/supabase/client', () => ({
   supabase: {
@@ -34,18 +39,11 @@ vi.mock('../src/core/supabase/client', () => ({
         return {
           select: () => ({
             eq: (_orgCol, organizationId) => ({
-              eq: (_nameCol, name) => ({
-                maybeSingle: () => Promise.resolve({ data: departmentsFor(organizationId).find(d=>d.name===name)||null, error: null }),
+              eq: (_idCol, departmentId) => ({
+                eq: (_activeCol, active) => ({
+                  maybeSingle: () => Promise.resolve({ data: departmentsFor(organizationId).find(d=>d.id===departmentId&&d.is_active===active)||null, error: null }),
+                }),
               }),
-            }),
-          }),
-          insert: payload => ({
-            select: () => ({
-              single: () => {
-                const row={id:`dept-${departmentsFor(payload.organization_id).length+1}`,name:payload.name}
-                departmentsFor(payload.organization_id).push(row)
-                return Promise.resolve({ data: row, error: null })
-              },
             }),
           }),
         }
@@ -115,7 +113,8 @@ describe('patientsService', () => {
   })
 
   it('keeps patients created in one organization out of another', async () => {
-    const { record, list } = await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'Real', lastName: 'Patient', department: 'ICU', admissionDate: '2026-08-31' })
+    const department=seedDepartment('hospital-a')
+    const { record, list } = await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'Real', lastName: 'Patient', departmentId:department.id, department:department.name, admissionDate: '2026-08-31' })
     expect(record.id).toBe('HOSP-1001')
     expect(list).toHaveLength(1)
     expect(await loadPatients('hospital-a')).toHaveLength(1)
@@ -123,28 +122,32 @@ describe('patientsService', () => {
   })
 
   it('rejects a duplicate patient code in the same organization', async () => {
-    await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'A', lastName: 'One', department: 'ICU', admissionDate: '2026-08-31' })
-    await expect(createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'B', lastName: 'Two', department: 'ICU', admissionDate: '2026-08-31' }))
+    const department=seedDepartment('hospital-a')
+    await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'A', lastName: 'One', departmentId:department.id, department:department.name, admissionDate: '2026-08-31' })
+    await expect(createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'B', lastName: 'Two', departmentId:department.id, department:department.name, admissionDate: '2026-08-31' }))
       .rejects.toMatchObject({ duplicateCode: true })
   })
 
-  it('reuses an existing department instead of creating a duplicate', async () => {
-    await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'A', lastName: 'One', department: 'ICU', admissionDate: '2026-08-31' })
-    await createPatient('hospital-a', [], { patientCode: 'HOSP-1002', firstName: 'B', lastName: 'Two', department: 'ICU', admissionDate: '2026-08-31' })
+  it('uses an existing canonical department without creating a duplicate', async () => {
+    const department=seedDepartment('hospital-a')
+    await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'A', lastName: 'One', departmentId:department.id, department:department.name, admissionDate: '2026-08-31' })
+    await createPatient('hospital-a', [], { patientCode: 'HOSP-1002', firstName: 'B', lastName: 'Two', departmentId:department.id, department:department.name, admissionDate: '2026-08-31' })
     expect(departmentsFor('hospital-a')).toHaveLength(1)
   })
 
   it('lets a patient have more than one admission over time', async () => {
-    const { record } = await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'Dialysis', lastName: 'Patient', department: 'ICU', admissionDate: '2026-01-10' })
-    await createAdmission('hospital-a', record, { department: 'ICU', admissionDate: '2026-08-31' })
+    const department=seedDepartment('hospital-a')
+    const { record } = await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'Dialysis', lastName: 'Patient', departmentId:department.id, department:department.name, admissionDate: '2026-01-10' })
+    await createAdmission('hospital-a', record, { departmentId:department.id, department:department.name, admissionDate: '2026-08-31' })
     const admissions = await loadAdmissions(record.recordId)
     expect(admissions).toHaveLength(2)
   })
 
   it('does not create a partial admission when the atomic operation fails', async () => {
-    const { record } = await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'A', lastName: 'Patient', department: 'ICU', admissionDate: '2026-01-10' })
+    const department=seedDepartment('hospital-a')
+    const { record } = await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'A', lastName: 'Patient', departmentId:department.id, department:department.name, admissionDate: '2026-01-10' })
     failAdmissionTransaction=true
-    await expect(createAdmission('hospital-a', record, { department: 'ICU', admissionDate: '2026-08-31' }))
+    await expect(createAdmission('hospital-a', record, { departmentId:department.id, department:department.name, admissionDate: '2026-08-31' }))
       .rejects.toMatchObject({message:'admission transaction failed'})
     expect(await loadAdmissions(record.recordId)).toHaveLength(1)
   })

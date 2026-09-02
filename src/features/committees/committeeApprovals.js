@@ -1,14 +1,24 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+
 const TABLES={approvals:'committee_approvals',minutes:'committee_minutes_approvals',outbox:'committee_mail_outbox'}
-function safeLoad(table){const v=loadSnapshot(table,[]);return Array.isArray(v)?v:[]}
-function safeSave(table,value){return saveSnapshot(table,value)}
+function demoOnly(operation){if(!isDemoDataEnvironment())throw new Error(`PRODUCTION_COMMITTEE_LOCAL_APPROVAL_FORBIDDEN:${operation}`)}
+function safeLoad(table){if(!isDemoDataEnvironment())return [];const v=loadSnapshot(table,[]);return Array.isArray(v)?v:[]}
+function safeSave(table,value){demoOnly(`save.${table}`);return saveSnapshot(table,value)}
 
 export function loadCommitteeApprovals(){return safeLoad(TABLES.approvals)}
-export function saveCommitteeApprovals(v){safeSave(TABLES.approvals,v)}
-export function requestCommitteeApproval(data){const rows=loadCommitteeApprovals();const old=rows.find(x=>x.committeeId===data.committeeId&&x.employeeId===data.employeeId&&x.status==='pending');if(old)return old;const row={id:`APR-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,...data,status:'pending',requestedAt:new Date().toISOString()};saveCommitteeApprovals([row,...rows]);return row}
+export function saveCommitteeApprovals(v){return safeSave(TABLES.approvals,v)}
+export function requestCommitteeApproval(data){
+  // Production membership approval is represented by committee_members.approval_status
+  // and answered through the governed server workflow. This legacy store exists only
+  // for the isolated demo sandbox.
+  if(!isDemoDataEnvironment())return null
+  const rows=loadCommitteeApprovals();const old=rows.find(x=>x.committeeId===data.committeeId&&x.employeeId===data.employeeId&&x.status==='pending');if(old)return old
+  const row={id:`APR-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,...data,status:'pending',requestedAt:new Date().toISOString()};saveCommitteeApprovals([row,...rows]);return row
+}
 export function approvalsForEmployee(employeeId){return loadCommitteeApprovals().filter(x=>x.employeeId===employeeId)}
 export function approvalStatusFor(committeeId,employeeId){return loadCommitteeApprovals().find(x=>x.committeeId===committeeId&&x.employeeId===employeeId)?.status||null}
-export function answerCommitteeApproval(id,status,actor){const now=new Date().toISOString();const rows=loadCommitteeApprovals().map(x=>x.id===id?{...x,status,answeredAt:now,answeredBy:actor.name,answeredById:actor.id}:x);saveCommitteeApprovals(rows);return rows.find(x=>x.id===id)}
+export function answerCommitteeApproval(id,status,actor){demoOnly('membership.answer');const now=new Date().toISOString();const rows=loadCommitteeApprovals().map(x=>x.id===id?{...x,status,answeredAt:now,answeredBy:actor.name,answeredById:actor.id}:x);saveCommitteeApprovals(rows);return rows.find(x=>x.id===id)}
 
 export function loadMinutesApprovals(){return safeLoad(TABLES.minutes)}
 export function minutesApprovalsForMeeting(committeeId,meetingId){return loadMinutesApprovals().filter(x=>x.committeeId===committeeId&&x.meetingId===meetingId)}
@@ -18,6 +28,7 @@ export function minutesApprovalSummary(committeeId,meetingId){
 }
 
 export function requestMinutesApprovals({committee,meeting,presentMembers,requestedBy,requestedById}){
+  demoOnly('minutes.request')
   const now=new Date().toISOString()
   const existing=loadMinutesApprovals().filter(x=>!(x.committeeId===committee.id&&x.meetingId===meeting.id))
   const requests=presentMembers.map((member,index)=>({

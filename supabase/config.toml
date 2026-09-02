@@ -1,0 +1,13 @@
+# Edge Function gateway authentication policy.
+# Public onboarding/recovery endpoints intentionally manage their own access model.
+# Privileged administrative endpoints require Supabase JWT verification at the gateway
+# in addition to the authorization checks implemented inside each function.
+
+[functions.manage-organization-user]
+verify_jwt = true
+
+[functions.platform-create-hospital]
+verify_jwt = true
+
+[functions.process-notification-outbox]
+verify_jwt = true

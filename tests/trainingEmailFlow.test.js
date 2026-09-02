@@ -1,0 +1,5 @@
+import {describe,expect,it} from 'vitest'
+import fs from 'node:fs'
+const migration=fs.readFileSync(new URL('../supabase/migrations/20260902120500_training_email_confirmation_flow.sql',import.meta.url),'utf8')
+const email=fs.readFileSync(new URL('../supabase/functions/_shared/trainingInvitationEmail.ts',import.meta.url),'utf8')
+describe('training email confirmation flow',()=>{it('uses personal assignment tokens and explicit attendance confirmation',()=>{expect(migration).toContain("payload->>'accessToken'=p_token");expect(migration).toContain("'attendanceResponse','confirmed'");expect(migration).toContain("'training_invitation'")});it('requires authenticated execution',()=>{expect(migration).toContain('revoke execute on function public.training_email_access(text) from public,anon');expect(migration).toContain('grant execute on function public.training_email_access(text) to authenticated')});it('explains the personal signed-in email flow',()=>{expect(email).toContain('Ο σύνδεσμος είναι προσωπικός');expect(email).toContain('Απαιτείται σύνδεση')})})

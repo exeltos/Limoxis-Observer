@@ -17,5 +17,12 @@ export default [
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off'
     }
+  },
+  {
+    files: ['tests/**/*.{js,jsx}'],
+    languageOptions: { ecmaVersion: 2024, sourceType: 'module', parserOptions: { ecmaFeatures: { jsx: true } }, globals: { ...globals.node, ...globals.browser } },
+    plugins: { react },
+    settings: { react: { version: 'detect' } },
+    rules: { 'react/jsx-uses-vars': 'error' }
   }
 ]
