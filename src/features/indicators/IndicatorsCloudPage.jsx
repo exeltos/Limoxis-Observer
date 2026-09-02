@@ -8,7 +8,8 @@ import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { CAPABILITIES,can } from '../../core/permissions/roles'
+import { CAPABILITIES,can,scopeFor } from '../../core/permissions/roles'
+import { DATA_SCOPES } from '../../core/permissions/scopeTypes'
 import { loadDepartments } from '../management/departmentsService'
 import { collectCloudIndicatorMetrics,calculateCloudDefinition,loadOperationalIndicatorDefinitions,loadIndicatorSnapshots,saveIndicatorSnapshots,approveIndicatorSnapshot } from './indicatorCloudService'
 import { downloadCsv } from '../../core/export/csvExport'
@@ -21,7 +22,8 @@ const statusText=(status,el)=>status==='onTarget'?(el?'Εντός στόχου':
 export function IndicatorsCloudPage(){
  const {tenant,membership,role}=useTenant();const {language,locale}=useLanguage();const {notify}=useFeedback();const el=language==='el'
  const addOns=membership?.capabilities||[],customCapabilities=membership?.customCapabilities||[];const canManage=can(role,CAPABILITIES.MANAGE_INDICATORS,addOns,customCapabilities)
- const scopedDepartmentIds=membership?.departmentIds||[],departmentScoped=scopedDepartmentIds.length>0
+ const indicatorScope=scopeFor(CAPABILITIES.VIEW_INDICATORS,{role,scopeOverrides:membership?.scopeOverrides||{}})
+ const scopedDepartmentIds=membership?.previewDepartment?[membership.previewDepartment]:(membership?.departmentIds||[]),departmentScoped=indicatorScope===DATA_SCOPES.DEPARTMENT
  const [from,setFrom]=useState(monthStart);const [to,setTo]=useState(today);const [department,setDepartment]=useState('');const [departments,setDepartments]=useState([]);const [definitions,setDefinitions]=useState([]);const [manualValues,setManualValues]=useState({});const [rows,setRows]=useState([]);const [snapshots,setSnapshots]=useState([]);const [loading,setLoading]=useState(false);const [selected,setSelected]=useState(null);const [query,setQuery]=useState('');const [category,setCategory]=useState('all')
  const allowedDepartments=useMemo(()=>departmentScoped?departments.filter(d=>scopedDepartmentIds.includes(d.id)):departments,[departments,departmentScoped,scopedDepartmentIds]);const effectiveDepartment=departmentScoped?(department||allowedDepartments[0]?.id||''):department
  useEffect(()=>{if(!tenant?.id)return;loadDepartments(tenant.id).then(data=>setDepartments((data||[]).filter(x=>x.is_active!==false))).catch(()=>setDepartments([]))},[tenant?.id])
