@@ -8,6 +8,7 @@ import { loadLiraData } from './liraDataLayer'
 import { buildLiraAnalysis,filterLiraData,inferLiraQuestionScope } from './liraAnalysis'
 import { describeLiraPlan,interpretLiraQuestion,LIRA_INTENTS,LIRA_TOPICS } from './liraQuestionModel'
 import { compareLiraDepartments,compareLiraPeriods,inferComparisonSpec,rankLiraDepartments } from './liraComparison'
+import { calculateHaiRate,compareHaiRates,inferHaiType } from './liraHaiMetrics'
 
 const severityLabels={el:{critical:'Κρίσιμο',high:'Υψηλό',medium:'Μέτριο',low:'Χαμηλό'},en:{critical:'Critical',high:'High',medium:'Medium',low:'Low'}}
 
@@ -37,7 +38,8 @@ export function LiraPage(){
   const scopedData=filterLiraData(data,{department:plan.department,periodDays:plan.periodDays,language})
   const analysis=buildLiraAnalysis(scopedData,language)
   const comparisonSpec=inferComparisonSpec(q,{data})
-  const answer=answerQuestion(plan,analysis,language,{data,comparisonSpec})
+  const haiType=inferHaiType(q)
+  const answer=answerQuestion(plan,analysis,language,{data,comparisonSpec,haiType})
   setPreviousPlan(plan)
   setConversation(items=>[...items,{id:`${Date.now()}-q`,kind:'question',text:q},{id:`${Date.now()}-a`,kind:'answer',answer}])
   setQuestion('')
@@ -58,9 +60,11 @@ function LiraAnswer({answer,language}){
  return <article className="lira-ai-response"><div className="lira-ai-avatar"><Sparkles size={16}/></div><div className="lira-ai-content"><div className="lira-ai-response-head"><strong>{answer.title}</strong><small>{answer.subtitle}</small></div>{answer.scopeNote&&<div className="lira-ai-source-note">{answer.scopeNote}</div>}<div className="lira-ai-points">{answer.points.length?answer.points.map((point,index)=><div key={`${point}-${index}`}><CheckCircle2 size={15}/><span>{point}</span></div>):<div><CheckCircle2 size={15}/><span>{en?'No relevant finding emerged from the context of your question.':'Δεν προέκυψε σχετικό εύρημα από το πλαίσιο της ερώτησής σας.'}</span></div>}</div><div className="lira-ai-source-note">{en?'Based only on authorized Limoxis records. Signals require professional verification and do not by themselves establish causality or an outbreak.':'Βασίζεται μόνο σε εξουσιοδοτημένες εγγραφές Limoxis. Τα σήματα απαιτούν επαγγελματική επιβεβαίωση και δεν τεκμηριώνουν από μόνα τους αιτιότητα ή έξαρση.'}</div></div></article>
 }
 
-function answerQuestion(plan,analysis,language='el',{data=null,comparisonSpec=null}={}){
+function answerQuestion(plan,analysis,language='el',{data=null,comparisonSpec=null,haiType=null}={}){
  const en=language==='en';const sev=severityLabels[language];const scopeNote=describeLiraPlan(plan,language)
  const signalPoints=(rows=analysis.signals.slice(0,8))=>rows.map(x=>`${sev[x.severity]} — ${x.title}: ${x.summary}`)
+ if(haiType&&comparisonSpec?.mode==='period'&&data){const answer=compareHaiRates(data,haiType,comparisonSpec.current,comparisonSpec.reference,{department:plan.department,today:data.generatedAt?.slice(0,10),language});return {...answer,scopeNote}}
+ if(haiType&&data){const metric=calculateHaiRate(data,haiType,{department:plan.department,today:data.generatedAt?.slice(0,10)});return {title:haiType.toUpperCase(),subtitle:en?`Device-associated HAI incidence per 1,000 ${metric.denominatorLabel}.`:`Device-associated HAI επίπτωση ανά 1.000 ${metric.denominatorLabel}.`,scopeNote,points:metric.normalized?[`${metric.rate}${metric.unit} (${metric.events}/${metric.deviceDays}).`,en?'Calculated from authorized HAI classifications and device exposure records.':'Υπολογίστηκε από εξουσιοδοτημένες HAI ταξινομήσεις και καταγραφές έκθεσης σε συσκευές.']:[en?`${metric.events} validated/eligible HAI records were found, but a rate cannot be calculated because device-days are unavailable.`:`Βρέθηκαν ${metric.events} επιλέξιμες HAI εγγραφές, αλλά δεν μπορεί να υπολογιστεί δείκτης επειδή δεν υπάρχουν διαθέσιμα device-days.`]}}
  if(comparisonSpec?.mode==='period'&&data){const answer=compareLiraPeriods(data,plan,comparisonSpec,language);return {...answer,scopeNote}}
  if(comparisonSpec?.mode==='department_pair'&&data){const answer=compareLiraDepartments(data,plan,comparisonSpec,language);return {...answer,scopeNote}}
  if((comparisonSpec?.mode==='department'||plan.intent===LIRA_INTENTS.RANKING)&&data){const answer=rankLiraDepartments(data,plan,language);return {...answer,scopeNote}}
