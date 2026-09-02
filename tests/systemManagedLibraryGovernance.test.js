@@ -12,7 +12,8 @@ describe('Platform Owner-only system library governance',()=>{
   it('restricts system Bundles to the Platform Owner',()=>{
     expect(bundles).toContain('ROLES.PLATFORM_OWNER')
     expect(bundles).toContain('item.system&&!isPlatformOwner')
-    expect(bundles).toContain('System · Owner only')
+    expect(bundles).toContain("System · Owner managed")
+    expect(bundles).toContain("System · Μόνο Owner")
   })
 
   it('renders system library records read-only for hospital users',()=>{
