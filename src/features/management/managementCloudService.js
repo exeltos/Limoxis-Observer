@@ -8,14 +8,7 @@ const assertCloud=(organizationId)=>{
 const toLibraryTuple=row=>[
   row.name_el,
   row.name_en||row.name_el,
-  {
-    id:row.id,
-    system:Boolean(row.metadata?.system),
-    locked:Boolean(row.metadata?.locked),
-    source:row.source_authority||'Hospital',
-    version:row.source_version||'local',
-    code:row.code||null,
-  },
+  {id:row.id,system:Boolean(row.metadata?.system),locked:Boolean(row.metadata?.locked),source:row.source_authority||'Hospital',version:row.source_version||'local',code:row.code||null},
 ]
 
 export async function loadManagementLibraries(organizationId){
@@ -27,10 +20,7 @@ export async function loadManagementLibraries(organizationId){
   if(departmentError) throw departmentError
   if(itemError) throw itemError
   const result={departments:(departments||[]).map(row=>[row.name,row.name,{id:row.id,system:false,locked:false,source:'Hospital',version:'local',code:row.code||null}])}
-  for(const row of items||[]){
-    if(!result[row.library_key]) result[row.library_key]=[]
-    result[row.library_key].push(toLibraryTuple(row))
-  }
+  for(const row of items||[]){if(!result[row.library_key])result[row.library_key]=[];result[row.library_key].push(toLibraryTuple(row))}
   return result
 }
 
@@ -47,47 +37,65 @@ export async function createManagementLibraryItem(organizationId,libraryKey,{nam
 }
 
 export async function updateManagementLibraryItem(organizationId,libraryKey,row,{nameEl,nameEn}){
-  assertCloud(organizationId)
-  const id=row?.[2]?.id
-  if(!id) throw new Error('Cloud library item id is missing.')
+  assertCloud(organizationId);const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
   if(libraryKey==='departments'){
     const {data,error}=await supabase.from('departments').update({name:nameEl}).eq('organization_id',organizationId).eq('id',id).select('id,name,code').single()
     if(error) throw error
     return [data.name,data.name,{id:data.id,system:false,locked:false,source:'Hospital',version:'local',code:data.code||null}]
   }
-  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl,source_authority:row?.[2]?.system?'Hospital override':(row?.[2]?.source||'Hospital'),source_version:'local',metadata:{...(row?.[2]||{}),id:undefined,system:false,locked:false}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
+  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl,source_authority:row?.[2]?.system?'Hospital override':(row?.[2]?.source||'Hospital'),source_version:'local',metadata:{system:false,locked:false}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
   if(error) throw error
   return toLibraryTuple(data)
 }
 
 export async function removeManagementLibraryItem(organizationId,libraryKey,row){
-  assertCloud(organizationId)
-  const id=row?.[2]?.id
-  if(!id) throw new Error('Cloud library item id is missing.')
+  assertCloud(organizationId);const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
   const table=libraryKey==='departments'?'departments':'master_library_items'
-  const {error}=await supabase.from(table).update({is_active:false}).eq('organization_id',organizationId).eq('id',id)
-  if(error) throw error
+  const {error}=await supabase.from(table).update({is_active:false}).eq('organization_id',organizationId).eq('id',id);if(error)throw error
 }
 
 export async function loadCustomRoles(organizationId){
   assertCloud(organizationId)
-  const {data:roles,error}=await supabase.from('custom_roles').select('id,name,description,is_active').eq('organization_id',organizationId).eq('is_active',true).order('name')
-  if(error) throw error
-  const ids=(roles||[]).map(row=>row.id)
-  if(!ids.length) return []
-  const {data:caps,error:capError}=await supabase.from('custom_role_capabilities').select('custom_role_id,capability').in('custom_role_id',ids)
-  if(capError) throw capError
+  const {data:roles,error}=await supabase.from('custom_roles').select('id,name,description,is_active').eq('organization_id',organizationId).eq('is_active',true).order('name');if(error)throw error
+  const ids=(roles||[]).map(row=>row.id);if(!ids.length)return []
+  const {data:caps,error:capError}=await supabase.from('custom_role_capabilities').select('custom_role_id,capability').in('custom_role_id',ids);if(capError)throw capError
   return (roles||[]).map(row=>({...row,capabilities:(caps||[]).filter(cap=>cap.custom_role_id===row.id).map(cap=>cap.capability)}))
 }
 
 export async function createCustomRole(organizationId,{name,capabilities}){
   assertCloud(organizationId)
-  const {data:role,error}=await supabase.from('custom_roles').insert({organization_id:organizationId,name}).select('id,name,description,is_active').single()
-  if(error) throw error
+  const {data:role,error}=await supabase.from('custom_roles').insert({organization_id:organizationId,name}).select('id,name,description,is_active').single();if(error)throw error
   const rows=(capabilities||[]).map(capability=>({custom_role_id:role.id,capability}))
-  if(rows.length){
-    const {error:capError}=await supabase.from('custom_role_capabilities').insert(rows)
-    if(capError){await supabase.from('custom_roles').delete().eq('id',role.id);throw capError}
-  }
+  if(rows.length){const {error:capError}=await supabase.from('custom_role_capabilities').insert(rows);if(capError){await supabase.from('custom_roles').delete().eq('id',role.id);throw capError}}
   return {...role,capabilities:[...(capabilities||[])]}
+}
+
+export async function deactivateCustomRole(organizationId,roleId){
+  assertCloud(organizationId)
+  const {error}=await supabase.from('custom_roles').update({is_active:false}).eq('organization_id',organizationId).eq('id',roleId);if(error)throw error
+}
+
+const toExternalReference=row=>({
+  id:row.id,label:row.title,authority:row.authority,version:row.version_label||'',versionEn:row.metadata?.version_en||row.version_label||'',status:row.status||'approved',scope:row.metadata?.scope||'',scopeEn:row.metadata?.scope_en||row.metadata?.scope||'',sourceKey:row.source_key,url:row.source_url||'',checkedAt:row.checked_at||null,
+})
+
+export async function loadExternalReferences(organizationId){
+  assertCloud(organizationId)
+  const {data,error}=await supabase.from('external_reference_versions').select('id,organization_id,source_key,authority,title,source_url,version_label,checked_at,status,metadata').or(`organization_id.eq.${organizationId},organization_id.is.null`).order('authority');if(error)throw error
+  return (data||[]).map(toExternalReference)
+}
+
+export async function updateExternalReference(organizationId,item){
+  assertCloud(organizationId)
+  const payload={organization_id:organizationId,source_key:item.sourceKey||item.id,authority:item.authority,title:item.label||item.authority,source_url:item.url||null,version_label:item.version||null,checked_at:new Date().toISOString(),status:item.status||'approved',metadata:{scope:item.scope||'',scope_en:item.scopeEn||item.scope||'',version_en:item.versionEn||item.version||''}}
+  const existingId=String(item.id||'').includes('-')?item.id:null
+  const query=existingId?supabase.from('external_reference_versions').update(payload).eq('organization_id',organizationId).eq('id',existingId):supabase.from('external_reference_versions').insert(payload)
+  const {data,error}=await query.select('id,organization_id,source_key,authority,title,source_url,version_label,checked_at,status,metadata').single();if(error)throw error
+  return toExternalReference(data)
+}
+
+export async function removeExternalReference(organizationId,item){
+  assertCloud(organizationId)
+  if(!String(item?.id||'').includes('-'))return
+  const {error}=await supabase.from('external_reference_versions').delete().eq('organization_id',organizationId).eq('id',item.id);if(error)throw error
 }
