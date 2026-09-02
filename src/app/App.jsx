@@ -16,7 +16,7 @@ const lazyNamed = (loader, name) => lazy(() => loader().then(m => ({ default: m[
 const PlatformCenterPage = lazyNamed(() => import('../features/workspaces/PlatformCenterPage'), 'PlatformCenterPage')
 const DashboardPage = lazyNamed(() => import('../features/dashboard/DashboardPage'), 'DashboardPage')
 const SurveillancePage = lazyNamed(() => import('../features/surveillance/SurveillancePage'), 'SurveillancePage')
-const PatientClinicalRecordPage = lazyNamed(() => import('../features/surveillance/PatientClinicalRecordPage'), 'PatientClinicalRecordPage')
+const PatientClinicalRecordRoute = lazyNamed(() => import('../features/surveillance/PatientClinicalRecordRoute'), 'PatientClinicalRecordRoute')
 const LaboratoryPage = lazyNamed(() => import('../features/laboratory/LaboratoryPage'), 'LaboratoryPage')
 const LaboratorySampleRecordPage = lazyNamed(() => import('../features/laboratory/LaboratorySampleRecordPage'), 'LaboratorySampleRecordPage')
 const PreventionPage = lazyNamed(() => import('../features/prevention/PreventionPage'), 'PreventionPage')
@@ -67,7 +67,7 @@ export function App() {
         <Route path="my-department" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)}</Suspense>} />
         <Route path="my-profile" element={<Suspense fallback={<RouteLoading/>}><EmployeeRecordPage selfMode /></Suspense>} />
         <Route path="surveillance" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_SURVEILLANCE, <SurveillancePage />)}</Suspense>} />
-        <Route path="surveillance/:caseId" element={<Suspense fallback={<RouteLoading/>}>{gateAny([CAPABILITIES.VIEW_SURVEILLANCE, CAPABILITIES.VIEW_LAB], <PatientClinicalRecordPage />)}</Suspense>} />
+        <Route path="surveillance/:caseId" element={<Suspense fallback={<RouteLoading/>}>{gateAny([CAPABILITIES.VIEW_SURVEILLANCE, CAPABILITIES.VIEW_LAB], <PatientClinicalRecordRoute />)}</Suspense>} />
         <Route path="laboratory" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LAB, <LaboratoryPage />)}</Suspense>} />
         <Route path="laboratory/:sampleId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_LAB, <LaboratorySampleRecordPage />)}</Suspense>} />
         <Route path="prevention" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PREVENTION, <PreventionPage />)}</Suspense>} />
@@ -85,7 +85,7 @@ export function App() {
         <Route path="documents" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DOCUMENTS, <DocumentsPage />)}</Suspense>} />
         <Route path="documents/:documentId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DOCUMENTS, <DocumentRecordPage />)}</Suspense>} />
         <Route path="patients" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PATIENTS, <PatientsPage />)}</Suspense>} />
-        <Route path="patients/:patientId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PATIENTS, <PatientClinicalRecordPage patientMode />)}</Suspense>} />
+        <Route path="patients/:patientId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PATIENTS, <PatientClinicalRecordRoute patientMode />)}</Suspense>} />
         <Route path="employees" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_STAFF, <EmployeesPage />)}</Suspense>} />
         <Route path="employees/:employeeId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_STAFF, <EmployeeRecordPage />)}</Suspense>} />
         <Route path="pharmacy" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PHARMACY, <PharmacyPage />)}</Suspense>} />
