@@ -28,9 +28,9 @@ const topicRules=[
 const intentFrom=text=>{
  if(has(text,['γιατι','why','εξηγησε','explain','τι σημαινει','πως προκυπτ']))return LIRA_INTENTS.EXPLANATION
  if(has(text,['συρρο','εξαρσ','outbreak','cluster','συσσωρευση']))return LIRA_INTENTS.CLUSTER
- if(has(text,['σε σχεση','συγκρι','compare','versus',' vs ','προηγουμεν','last month compared']))return LIRA_INTENTS.COMPARISON
+ if(has(text,['σε σχεση','συγκρι','compare','versus',' vs ','προηγουμεν','last month compared','τι αλλαξε','what changed']))return LIRA_INTENTS.COMPARISON
  if(has(text,['αυξη','μειω','ταση','trend','increas','decreas','μεταβολ']))return LIRA_INTENTS.TREND
- if(has(text,['ποιο τμημα','ποια μοναδα','χειροτερ','καλυτερ','περισσοτερ','λιγοτερ','ranking','rank']))return LIRA_INTENTS.RANKING
+ if(has(text,['ποιο τμημα','ποια μοναδα','χειροτερ','καλυτερ','περισσοτερ','λιγοτερ','ranking','rank','τι χειροτερεψε','τι βελτιωθηκε','what worsened','what improved','changed most','αλλαξε περισσοτερο']))return LIRA_INTENTS.RANKING
  if(has(text,['εκπροθεσ','εκκρεμ','overdue','pending','καθυστερ']))return LIRA_INTENTS.OVERDUE
  if(has(text,['ποσοι','ποσες','ποσα','how many','count']))return LIRA_INTENTS.COUNT
  if(has(text,['κατασταση','status','ενεργ','active','ανοικτ','open']))return LIRA_INTENTS.STATUS
@@ -52,13 +52,15 @@ export function interpretLiraQuestion(question,{scope={},previousPlan=null}={}){
  const topic=topicFrom(text)
  const entity=entityFrom(text)
  const followUp=intent===LIRA_INTENTS.FOLLOW_UP||(!entity&&topic===LIRA_TOPICS.GENERAL&&Boolean(previousPlan))
+ const operationalChange=has(text,['τι αλλαξε','τι χειροτερεψε','τι βελτιωθηκε','what changed','what worsened','what improved','αλλαξε περισσοτερο','changed most'])
  return {
   intent:followUp&&previousPlan?.intent?previousPlan.intent:intent,
-  topic:topic===LIRA_TOPICS.GENERAL&&previousPlan?.topic?previousPlan.topic:topic,
-  entity:entity||previousPlan?.entity||null,
+  topic:operationalChange?LIRA_TOPICS.GENERAL:(topic===LIRA_TOPICS.GENERAL&&previousPlan?.topic?previousPlan.topic:topic),
+  entity:operationalChange?null:(entity||previousPlan?.entity||null),
   department:scope.department&&scope.department!=='all'?scope.department:(followUp?previousPlan?.department||'all':'all'),
   periodDays:scope.periodDays||((followUp&&previousPlan?.periodDays)?previousPlan.periodDays:0),
   comparison: intent===LIRA_INTENTS.COMPARISON||Boolean(previousPlan?.comparison&&followUp),
+  operationalChange,
   followUp,
   rawQuestion:question,
  }
