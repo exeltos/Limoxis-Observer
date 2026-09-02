@@ -10,6 +10,15 @@ describe('laboratory operational scope separation',()=>{
  it('keeps laboratory workforce visibility department-scoped in the permission engine',()=>{
   expect(scopeFor(CAPABILITIES.VIEW_STAFF,{role:ROLES.LABORATORY})).toBe(DATA_SCOPES.DEPARTMENT)
  })
+ it('makes laboratory workflow capabilities organization-scoped in the permission engine',()=>{
+  for(const capability of [CAPABILITIES.VIEW_LAB,CAPABILITIES.MANAGE_LAB_SAMPLES,CAPABILITIES.VALIDATE_LAB_RESULTS,CAPABILITIES.COMMUNICATE_CRITICAL_RESULTS,CAPABILITIES.CLASSIFY_RESISTANCE,CAPABILITIES.REOPEN_LAB_RECORD]){
+   expect(scopeFor(capability,{role:ROLES.LABORATORY})).toBe(DATA_SCOPES.ORGANIZATION)
+  }
+ })
+ it('keeps laboratory controls department-scoped',()=>{
+  expect(scopeFor(CAPABILITIES.VIEW_CONTROLS,{role:ROLES.LABORATORY})).toBe(DATA_SCOPES.DEPARTMENT)
+  expect(scopeFor(CAPABILITIES.EXECUTE_CONTROL,{role:ROLES.LABORATORY})).toBe(DATA_SCOPES.DEPARTMENT)
+ })
  it('keeps laboratory sample processing organization-wide at the RLS boundary',()=>{
   expect(migration).toContain("array['hospital_admin','infection_control_lead','infection_control_member','laboratory']::public.app_role[]")
   expect(migration).toContain("array['laboratory']::public.app_role[]")
