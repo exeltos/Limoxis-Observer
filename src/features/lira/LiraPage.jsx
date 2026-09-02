@@ -9,6 +9,7 @@ import { buildLiraAnalysis,filterLiraData,inferLiraQuestionScope } from './liraA
 import { describeLiraPlan,interpretLiraQuestion,LIRA_INTENTS,LIRA_TOPICS } from './liraQuestionModel'
 import { compareLiraDepartments,compareLiraPeriods,inferComparisonSpec,rankLiraDepartments } from './liraComparison'
 import { calculateHaiRate,compareHaiRates,inferHaiType } from './liraHaiMetrics'
+import { analyzeHaiContext,compareHaiContext } from './liraCorrelation'
 
 const severityLabels={el:{critical:'Κρίσιμο',high:'Υψηλό',medium:'Μέτριο',low:'Χαμηλό'},en:{critical:'Critical',high:'High',medium:'Medium',low:'Low'}}
 
@@ -63,6 +64,8 @@ function LiraAnswer({answer,language}){
 function answerQuestion(plan,analysis,language='el',{data=null,comparisonSpec=null,haiType=null}={}){
  const en=language==='en';const sev=severityLabels[language];const scopeNote=describeLiraPlan(plan,language)
  const signalPoints=(rows=analysis.signals.slice(0,8))=>rows.map(x=>`${sev[x.severity]} — ${x.title}: ${x.summary}`)
+ if(haiType&&plan.intent===LIRA_INTENTS.EXPLANATION&&comparisonSpec?.mode==='period'&&data){const answer=compareHaiContext(data,haiType,comparisonSpec.current,comparisonSpec.reference,{department:plan.department,today:data.generatedAt?.slice(0,10),language});return {...answer,scopeNote}}
+ if(haiType&&plan.intent===LIRA_INTENTS.EXPLANATION&&data){const answer=analyzeHaiContext(data,haiType,{department:plan.department,today:data.generatedAt?.slice(0,10),language});return {...answer,scopeNote}}
  if(haiType&&comparisonSpec?.mode==='period'&&data){const answer=compareHaiRates(data,haiType,comparisonSpec.current,comparisonSpec.reference,{department:plan.department,today:data.generatedAt?.slice(0,10),language});return {...answer,scopeNote}}
  if(haiType&&data){const metric=calculateHaiRate(data,haiType,{department:plan.department,today:data.generatedAt?.slice(0,10)});return {title:haiType.toUpperCase(),subtitle:en?`Device-associated HAI incidence per 1,000 ${metric.denominatorLabel}.`:`Device-associated HAI επίπτωση ανά 1.000 ${metric.denominatorLabel}.`,scopeNote,points:metric.normalized?[`${metric.rate}${metric.unit} (${metric.events}/${metric.deviceDays}).`,en?'Calculated from authorized HAI classifications and device exposure records.':'Υπολογίστηκε από εξουσιοδοτημένες HAI ταξινομήσεις και καταγραφές έκθεσης σε συσκευές.']:[en?`${metric.events} validated/eligible HAI records were found, but a rate cannot be calculated because device-days are unavailable.`:`Βρέθηκαν ${metric.events} επιλέξιμες HAI εγγραφές, αλλά δεν μπορεί να υπολογιστεί δείκτης επειδή δεν υπάρχουν διαθέσιμα device-days.`]}}
  if(comparisonSpec?.mode==='period'&&data){const answer=compareLiraPeriods(data,plan,comparisonSpec,language);return {...answer,scopeNote}}
