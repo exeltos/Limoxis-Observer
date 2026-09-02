@@ -63,11 +63,17 @@ export const addonCapabilityMap=Object.freeze({
 
 const departmentRoles=new Set([ROLES.LINK_NURSE,ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LABORATORY])
 const assignmentRoles=new Set([ROLES.DOCTOR_REVIEWER,ROLES.COMMITTEE_SECRETARIAT])
+const scopeForSystemRole=(role,capability)=>{
+  if(capability===CAPABILITIES.VIEW_MY_PROFILE)return DATA_SCOPES.SELF
+  if(role===ROLES.PLATFORM_OWNER&&capability.includes('platform'))return DATA_SCOPES.PLATFORM
+  if(departmentRoles.has(role))return DATA_SCOPES.DEPARTMENT
+  return DATA_SCOPES.ORGANIZATION
+}
 export const systemRoleMatrix=Object.freeze(Object.entries(roleCapabilities).flatMap(([role,capabilities])=>capabilities.map(capability=>Object.freeze({
   role,
   capability,
-  defaultScope:role===ROLES.PLATFORM_OWNER&&capability.includes('platform')?DATA_SCOPES.PLATFORM:departmentRoles.has(role)?DATA_SCOPES.DEPARTMENT:DATA_SCOPES.ORGANIZATION,
-  maximumScope:role===ROLES.PLATFORM_OWNER&&capability.includes('platform')?DATA_SCOPES.PLATFORM:departmentRoles.has(role)?DATA_SCOPES.DEPARTMENT:DATA_SCOPES.ORGANIZATION,
+  defaultScope:scopeForSystemRole(role,capability),
+  maximumScope:scopeForSystemRole(role,capability),
   requiresAssignment:assignmentRoles.has(role),
 }))))
 
