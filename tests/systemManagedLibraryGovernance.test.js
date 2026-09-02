@@ -4,6 +4,8 @@ import fs from 'node:fs'
 const bundles=fs.readFileSync('src/features/management/BundleLibraryPanel.jsx','utf8')
 const libraries=fs.readFileSync('src/features/management/LibrariesPanel.jsx','utf8')
 const service=fs.readFileSync('src/features/management/managementCloudService.js','utf8')
+const referenceMigration=fs.readFileSync('supabase/migrations/202609020103_platform_owner_system_reference_governance.sql','utf8')
+const libraryMigration=fs.readFileSync('supabase/migrations/202609020104_platform_owner_system_library_governance.sql','utf8')
 
 describe('Platform Owner-only system library governance',()=>{
   it('restricts system Bundles to the Platform Owner',()=>{
@@ -23,5 +25,17 @@ describe('Platform Owner-only system library governance',()=>{
     expect(service).toContain('isGlobal:row.organization_id==null')
     expect(service).toContain('const isUuid=value=>')
     expect(service).toContain("item.isGlobal?query.is('organization_id',null)")
+  })
+
+  it('allows only Platform Owner to mutate global external references',()=>{
+    expect(referenceMigration).toContain('external_refs_manage_system_owner')
+    expect(referenceMigration).toContain('organization_id is null')
+    expect(referenceMigration).toContain('public.current_user_is_platform_owner()')
+  })
+
+  it('prevents hospital admins from mutating system master-library rows',()=>{
+    expect(libraryMigration).toContain('master_library_items_manage_system_owner')
+    expect(libraryMigration).toContain("coalesce(metadata->>'system','false') = 'true'")
+    expect(libraryMigration).toContain('public.current_user_is_platform_owner()')
   })
 })
