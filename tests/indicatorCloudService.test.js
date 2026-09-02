@@ -3,8 +3,8 @@ import fs from 'node:fs'
 import { calculateCloudDefinition } from '../src/features/indicators/indicatorCloudService'
 
 describe('production indicator calculation',()=>{
- it('calculates rates with aliases and patient-day denominators',()=>{
-  const row=calculateCloudDefinition({id:'who-hh',calculation:'auto',numerator:'compliant_hh_actions',denominator:'hh_opportunities',multiplier:100,target:85,direction:'higher'},{hh_compliant_actions:90,hh_opportunities:100})
+ it('calculates governed rates with canonical metric keys and patient-day denominators',()=>{
+  const row=calculateCloudDefinition({id:'who-hh',calculation:'auto',numerator:'hh_compliant_actions',denominator:'hh_opportunities',multiplier:100,target:85,direction:'higher'},{hh_compliant_actions:90,hh_opportunities:100})
   expect(row.value).toBe(90);expect(row.status).toBe('onTarget')
  })
  it('does not invent a rate when the denominator is zero',()=>{
@@ -21,7 +21,7 @@ describe('production indicator calculation',()=>{
   expect(wrapper).toContain('isDemo?<IndicatorsDemoPage/>:<IndicatorsCloudPage/>')
   expect(page).toContain('departmentScoped')
   expect(page).toContain('effectiveDepartment')
-  expect(page).toContain('Historical trend')
+  expect(page).toContain('trendFor')
   expect(page).toContain('CAPABILITIES.MANAGE_INDICATORS')
  })
  it('updates an existing snapshot explicitly instead of relying on expression-index onConflict',()=>{
