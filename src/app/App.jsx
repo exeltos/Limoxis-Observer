@@ -52,9 +52,11 @@ const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={c
 
 function HomeRoute() {
   const { profile } = useAuth()
-  const { activeMembershipId, loading } = useTenant()
+  const { activeMembershipId, isDemo, loading } = useTenant()
   if (loading) return <RouteLoading />
-  if (profile?.isPlatformOwner && !activeMembershipId) return <Navigate to="/platform" replace />
+  // A Platform Owner with no production organization belongs in Platform Center,
+  // except while explicitly using the isolated full-app demo workspace.
+  if (profile?.isPlatformOwner && !activeMembershipId && !isDemo) return <Navigate to="/platform" replace />
   return gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)
 }
 
