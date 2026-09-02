@@ -11,6 +11,7 @@ import { compareLiraDepartments,compareLiraPeriods,inferComparisonSpec,rankLiraD
 import { calculateHaiRate,compareHaiRates,inferHaiType } from './liraHaiMetrics'
 import { analyzeHaiContext,compareHaiContext } from './liraCorrelation'
 import { buildOperationalOverview,compareOperationalOverview } from './liraOperationalOverview'
+import { createConversationContext,resolveConversationContext } from './liraConversation'
 
 const severityLabels={el:{critical:'Κρίσιμο',high:'Υψηλό',medium:'Μέτριο',low:'Χαμηλό'},en:{critical:'Critical',high:'High',medium:'Medium',low:'Low'}}
 
@@ -19,7 +20,7 @@ export function LiraPage(){
  const {tenant,isDemo}=useTenant()
  const [question,setQuestion]=useState('')
  const [conversation,setConversation]=useState([])
- const [previousPlan,setPreviousPlan]=useState(null)
+ const [previousContext,setPreviousContext]=useState(null)
  const [data,setData]=useState(null)
  const [loading,setLoading]=useState(true)
  const [loadError,setLoadError]=useState('')
@@ -36,13 +37,15 @@ export function LiraPage(){
   const q=question.trim()
   if(!q||loading||loadError||!data)return
   const inferred=inferLiraQuestionScope(q,data,language)
-  const plan=interpretLiraQuestion(q,{scope:inferred,previousPlan})
+  const rawPlan=interpretLiraQuestion(q,{scope:inferred,previousPlan:previousContext?.plan||null})
+  const rawComparison=inferComparisonSpec(q,{data})
+  const rawHaiType=inferHaiType(q)
+  const resolved=resolveConversationContext(q,{plan:rawPlan,comparisonSpec:rawComparison,haiType:rawHaiType,previousContext})
+  const plan=resolved.plan;const comparisonSpec=resolved.comparisonSpec;const haiType=resolved.haiType
   const scopedData=filterLiraData(data,{department:plan.department,periodDays:plan.periodDays,language})
   const analysis=buildLiraAnalysis(scopedData,language)
-  const comparisonSpec=inferComparisonSpec(q,{data})
-  const haiType=inferHaiType(q)
   const answer=answerQuestion(plan,analysis,language,{data:scopedData,comparisonSpec,haiType,generatedAt:data.generatedAt})
-  setPreviousPlan(plan)
+  setPreviousContext(createConversationContext({plan,comparisonSpec,haiType,answer}))
   setConversation(items=>[...items,{id:`${Date.now()}-q`,kind:'question',text:q},{id:`${Date.now()}-a`,kind:'answer',answer}])
   setQuestion('')
  }
