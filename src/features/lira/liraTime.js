@@ -68,7 +68,7 @@ export function inferLiraTimeWindow(question, { today = new Date().toISOString()
     }
   }
 
-  const range = text.match(/(?:απο|from)\s+(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\s+(?:εως|μεχρι|to|until)\s+(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?/)
+  const range = text.match(/(?:απο|from)\s+(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\s+(?:εως|μεχρι|to|until)\s+(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/)
   if (range) {
     const rawYearA = Number(range[3] || now.getFullYear())
     const rawYearB = Number(range[6] || rawYearA)
