@@ -67,7 +67,8 @@ describe('LIRA comparisons',()=>{
 
  it('ranks infection departments by normalized rate instead of raw count',()=>{
   const answer=rankLiraDepartments(data,{topic:'infections',department:'all',entity:null},'el')
-  expect(answer.points[0]).toContain('ΜΕΘ: 10 / 1,000 patient-days')
+  expect(answer.points[0]).toContain('ΜΕΘ: 6.67 / 1,000 patient-days')
+  expect(answer.points[0]).toContain('(2/300)')
   expect(answer.points[1]).toContain('Παθολογική: 2.5 / 1,000 patient-days')
  })
 
