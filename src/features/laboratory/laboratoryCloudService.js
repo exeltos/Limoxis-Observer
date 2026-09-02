@@ -135,14 +135,22 @@ export async function updateLaboratorySampleStatus(organizationId,sampleRecordId
 export async function saveMicrobiologyResult(organizationId,sampleRecordId,draft){
   assertCloud()
   const actorId=await currentUserId()
-  const row={organization_id:organizationId,sample_id:sampleRecordId,result_status:draft.result||'inconclusive',organism:draft.organism||null,resistance_class:draft.resistance||null,susceptibility_summary:draft.susceptibilitySummary||null,is_critical:Boolean(draft.critical),resulted_at:iso(draft.resultedAt||new Date()),created_by:actorId,updated_by:actorId,method:draft.method||null,preliminary:Boolean(draft.preliminary),validation_status:draft.validationStatus||'draft',validated_at:draft.validationStatus==='validated'?new Date().toISOString():null,validated_by:draft.validationStatus==='validated'?actorId:null,interpretation_standard:draft.interpretationStandard||null,interpretation_version:draft.interpretationVersion||null}
+  const now=new Date().toISOString()
+  const row={organization_id:organizationId,sample_id:sampleRecordId,result_status:draft.result||'inconclusive',organism:draft.organism||null,resistance_class:draft.resistance||null,susceptibility_summary:draft.susceptibilitySummary||null,is_critical:Boolean(draft.critical),resulted_at:iso(draft.resultedAt||new Date()),updated_by:actorId,updated_at:now,method:draft.method||null,preliminary:Boolean(draft.preliminary),validation_status:draft.validationStatus||'draft',validated_at:draft.validationStatus==='validated'?now:null,validated_by:draft.validationStatus==='validated'?actorId:null,interpretation_standard:draft.interpretationStandard||null,interpretation_version:draft.interpretationVersion||null}
+  let data
   if(draft.id){
-    const {data,error}=await supabase.from('microbiology_results').update(row).eq('organization_id',organizationId).eq('id',draft.id).select('*').single()
-    if(error)throw error
-    return data
+    const result=await supabase.from('microbiology_results').update(row).eq('organization_id',organizationId).eq('id',draft.id).select('*').single()
+    if(result.error)throw result.error
+    data=result.data
+  }else{
+    const result=await supabase.from('microbiology_results').insert({...row,created_by:actorId}).select('*').single()
+    if(result.error)throw result.error
+    data=result.data
   }
-  const {data,error}=await supabase.from('microbiology_results').insert(row).select('*').single()
-  if(error)throw error
+  if(draft.validationStatus==='validated'){
+    const {error:sampleError}=await supabase.from('laboratory_samples').update({status:'completed',updated_by:actorId,updated_at:now}).eq('organization_id',organizationId).eq('id',sampleRecordId)
+    if(sampleError)throw sampleError
+  }
   return data
 }
 
