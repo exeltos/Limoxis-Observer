@@ -21,12 +21,12 @@ export function AuthProvider({ children }) {
 
   const loadProfile = useCallback(async (user) => {
     if (!supabase || !user) return null
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, username, contact_email, phone, job_title, is_platform_owner, is_demo, demo_entitlement_id')
-      .eq('id', user.id)
-      .maybeSingle()
+    // Bootstrap identity through a self-only SECURITY DEFINER RPC. This avoids
+    // profile-loading failures caused by RLS policy recursion/ordering while
+    // still deriving the user exclusively from auth.uid() on the server.
+    const { data: rows, error } = await supabase.rpc('current_user_profile_bootstrap')
     if (error) throw error
+    const data=Array.isArray(rows)?rows[0]:rows
     let demoActive=false
     if(data?.is_demo&&data?.demo_entitlement_id){
       const today=new Date().toISOString().slice(0,10)
@@ -34,7 +34,7 @@ export function AuthProvider({ children }) {
       demoActive=Boolean(demo?.status==='active'&&demo.valid_from<=today&&demo.valid_until>=today)
     }
     return data
-      ? { id: data.id, email: user.email, fullName: data.full_name, username: data.username, contactEmail: data.contact_email, phone: data.phone, jobTitle: data.job_title, isPlatformOwner: data.is_platform_owner, isDemo: demoActive, demoEntitlementId:data.demo_entitlement_id||null }
+      ? { id: data.id, email: user.email, fullName: data.full_name, username: data.username, contactEmail: data.contact_email, phone: data.phone, jobTitle: data.job_title, isPlatformOwner: Boolean(data.is_platform_owner), isDemo: demoActive, demoEntitlementId:data.demo_entitlement_id||null }
       : { id: user.id, email: user.email, fullName: user.email, isPlatformOwner: false, isDemo:false }
   }, [])
 
