@@ -40,20 +40,19 @@ export async function createManagementLibraryItem(organizationId,libraryKey,{nam
 
 export async function updateManagementLibraryItem(organizationId,libraryKey,row,{nameEl,nameEn}){
   assertCloud(organizationId);const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
-  if(row?.[2]?.system)throw new Error('System-managed library records are changed only through Platform Owner governance.')
   if(libraryKey==='departments'){
     const {data,error}=await supabase.from('departments').update({name:nameEl}).eq('organization_id',organizationId).eq('id',id).select('id,name,code').single()
     if(error) throw error
     return [data.name,data.name,{id:data.id,system:false,locked:false,source:'Hospital',version:'local',code:data.code||null}]
   }
-  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl,source_authority:row?.[2]?.source||'Hospital',source_version:'local',metadata:{system:false,locked:false}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
+  const system=Boolean(row?.[2]?.system)
+  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl,source_authority:system?'Limoxis System':(row?.[2]?.source||'Hospital'),source_version:system?(row?.[2]?.version||'current'):'local',metadata:{system,locked:system}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
   if(error) throw error
   return toLibraryTuple(data)
 }
 
 export async function removeManagementLibraryItem(organizationId,libraryKey,row){
   assertCloud(organizationId);const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
-  if(row?.[2]?.system)throw new Error('System-managed library records are deleted only through Platform Owner governance.')
   const table=libraryKey==='departments'?'departments':'master_library_items'
   const {error}=await supabase.from(table).update({is_active:false}).eq('organization_id',organizationId).eq('id',id);if(error)throw error
 }
@@ -95,10 +94,8 @@ export async function updateExternalReference(organizationId,item){
   const payload={organization_id:targetOrganization,source_key:item.sourceKey||item.id,authority:item.authority,title:item.label||item.authority,source_url:item.url||null,version_label:item.version||null,checked_at:new Date().toISOString(),status:item.status||'approved',metadata:{scope:item.scope||'',scope_en:item.scopeEn||item.scope||'',version_en:item.versionEn||item.version||''}}
   const existingId=isUuid(item.id)?item.id:null
   let query
-  if(existingId){
-    query=supabase.from('external_reference_versions').update(payload).eq('id',existingId)
-    query=item.isGlobal?query.is('organization_id',null):query.eq('organization_id',organizationId)
-  }else query=supabase.from('external_reference_versions').insert(payload)
+  if(existingId){query=supabase.from('external_reference_versions').update(payload).eq('id',existingId);query=item.isGlobal?query.is('organization_id',null):query.eq('organization_id',organizationId)}
+  else query=supabase.from('external_reference_versions').insert(payload)
   const {data,error}=await query.select('id,organization_id,source_key,authority,title,source_url,version_label,checked_at,status,metadata').single();if(error)throw error
   return toExternalReference(data)
 }
