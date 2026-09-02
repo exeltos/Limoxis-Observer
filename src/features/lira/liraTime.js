@@ -9,20 +9,18 @@ const monthWindow=(year,month)=>({start:`${year}-${String(month).padStart(2,'0')
 export function inferLiraTimeWindow(question,{today=new Date().toISOString().slice(0,10)}={}){
  const text=normalize(question);const now=parseIso(today);if(!now)return null
  if(/\b(σημερα|today)\b/.test(text))return {start:today,end:today,label:text.includes('today')?'today':'σήμερα',kind:'day'}
- if(/\b(χθες|yesterday)\b/.test(text)){const d=iso(shift(now,-1));return {start:d,end:d,label:text.includes('yesterday')?'yesterday':'χθες',kind:'day'}}
- if(/\b(προχθες|day before yesterday)\b/.test(text)){const d=iso(shift(now,-2));return {start:d,end:d,label:text.includes('day before')?'day before yesterday':'προχθές',kind:'day'}}
+ if(/\b(χθες|yesterday)\b/.test(text)){const d=iso(shift(now,-1));return {start:d,end:d,label:text.includes('yesterday')?'yesterday':'χθες',kind:'day'}
+ if(/\b(προχθες|day before yesterday)\b/.test(text)){const d=iso(shift(now,-2));return {start:d,end:d,label:text.includes('day before')?'day before yesterday':'προχθές',kind:'day'}
  if(/(αυτη\s+την\s+εβδομαδα|this\s+week)/.test(text)){const start=iso(startOfWeek(now));return {start,end:today,label:text.includes('this week')?'this week':'αυτή την εβδομάδα',kind:'week'}}
- if(/(τελευταιο\s+τριμηνο|τελευταιους\s+3\s+μηνες|last\s+quarter|last\s+3\s+months)/.test(text)){return {start:iso(shift(now,-89)),end:today,label:text.includes('last')?'last 90 days':'τελευταίες 90 ημέρες',kind:'rolling'}}
+ if(/(τελευταιο\s+τριμηνο|τελευταιους\s+3\s+μηνες|last\s+quarter|last\s+3\s+months)/.test(text))return {start:iso(shift(now,-89)),end:today,label:text.includes('last')?'last 90 days':'τελευταίες 90 ημέρες',kind:'rolling'}
  const range=text.match(/(?:απο|from)\s+(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\s+(?:εως|μεχρι|to|until)\s+(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?/)
  if(range){const yearA=Number(range[3]||now.getFullYear());const yearB=Number(range[6]||yearA);const full=y=>y<100?2000+y:y;const start=`${full(yearA)}-${String(range[2]).padStart(2,'0')}-${String(range[1]).padStart(2,'0')}`;const end=`${full(yearB)}-${String(range[5]).padStart(2,'0')}-${String(range[4]).padStart(2,'0')}`;if(parseIso(start)&&parseIso(end)&&start<=end)return {start,end,label:`${start} – ${end}`,kind:'range'}}
  for(const [name,month] of Object.entries(monthNames)){if(text.includes(name)){const yearMatch=text.match(/\b(20\d{2})\b/);let year=yearMatch?Number(yearMatch[1]):now.getFullYear();if(!yearMatch&&month>now.getMonth()+1)year-=1;return {...monthWindow(year,month),kind:'month'}}
  return null
 }
 
-export function filterLiraDataByWindow(data,window,language='el'){
+export function filterLiraDataByWindow(data,window){
  if(!data||!window)return data
- const departmentOf=row=>language==='en'?(row.departmentEn||row.departmentEl||row.department):(row.departmentEl||row.departmentEn||row.department)
- void departmentOf
  const dateOf=row=>row?.signalDate||row?.resultedAt||row?.collectedAt||row?.date||row?.startedAt||row?.dueDate||null
  const rows=items=>(items||[]).filter(row=>{const value=dateOf(row);if(!value)return false;const d=String(value).slice(0,10);return d>=window.start&&d<=window.end})
  return {...data,surveillance:rows(data.surveillance),laboratory:rows(data.laboratory),handHygiene:rows(data.handHygiene),bundles:rows(data.bundles),qualityIncidents:rows(data.qualityIncidents),qualityCapas:rows(data.qualityCapas),patientDays:rows(data.patientDays),devices:rows(data.devices),haiClassifications:rows(data.haiClassifications)}
