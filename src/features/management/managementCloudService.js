@@ -65,12 +65,21 @@ export async function loadCustomRoles(organizationId){
   return (roles||[]).map(row=>({...row,capabilities:(caps||[]).filter(cap=>cap.custom_role_id===row.id).map(cap=>cap.capability)}))
 }
 
-export async function createCustomRole(organizationId,{name,capabilities}){
+async function saveCustomRoleRpc(organizationId,{id=null,name,description='',capabilities}){
   assertCloud(organizationId)
-  const {data:role,error}=await supabase.from('custom_roles').insert({organization_id:organizationId,name}).select('id,name,description,is_active').single();if(error)throw error
-  const rows=(capabilities||[]).map(capability=>({custom_role_id:role.id,capability}))
-  if(rows.length){const {error:capError}=await supabase.from('custom_role_capabilities').insert(rows);if(capError){await supabase.from('custom_roles').delete().eq('id',role.id);throw capError}}
-  return {...role,capabilities:[...(capabilities||[])]}
+  const cleanCapabilities=[...new Set((capabilities||[]).filter(Boolean))]
+  const {data,error}=await supabase.rpc('save_custom_role',{p_organization_id:organizationId,p_role_id:id||null,p_name:name,p_description:description||null,p_capabilities:cleanCapabilities})
+  if(error)throw error
+  return data
+}
+
+export async function createCustomRole(organizationId,{name,description='',capabilities}){
+  return saveCustomRoleRpc(organizationId,{name,description,capabilities})
+}
+
+export async function updateCustomRole(organizationId,roleId,{name,description='',capabilities}){
+  if(!roleId)throw new Error('Custom role id is required.')
+  return saveCustomRoleRpc(organizationId,{id:roleId,name,description,capabilities})
 }
 
 export async function deactivateCustomRole(organizationId,roleId){
