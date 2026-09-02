@@ -18,84 +18,25 @@ import { downloadCsv } from '../../core/export/csvExport'
 import { loadPatients } from '../patients/patientsService'
 import { loadDepartments } from '../management/departmentsService'
 import { createLaboratorySample, getLaboratoryKpis, loadLaboratorySamples } from './laboratoryCloudService'
-import { Status } from './LaboratoryPage'
+import { LaboratoryStatus as Status } from './LaboratoryStatus'
 
 export function LaboratoryCloudPage(){
-  const {t,language,locale}=useLanguage()
-  const {notify}=useFeedback()
-  const {tenant,canAccessRecord}=useTenant()
-  const navigate=useNavigate()
-  const registry=useRegistryMemory('laboratory')
-  const saved=registry.loadViewState({query:'',status:'all',result:'all',department:'all'})
-  const [query,setQuery]=useState(saved.query)
-  const [status,setStatus]=useState(saved.status)
-  const [result,setResult]=useState(saved.result)
-  const [department,setDepartment]=useState(saved.department)
-  const [rows,setRows]=useState([])
-  const [patients,setPatients]=useState([])
-  const [departments,setDepartments]=useState([])
-  const [newOpen,setNewOpen]=useState(false)
-  const [loading,setLoading]=useState(true)
-  const [error,setError]=useState('')
-
-  async function reload(){
-    setLoading(true);setError('')
-    try{
-      const [sampleRows,patientRows,departmentRows]=await Promise.all([
-        loadLaboratorySamples(tenant?.id),
-        loadPatients(tenant?.id,{isDemo:false}),
-        loadDepartments(tenant?.id),
-      ])
-      setRows(sampleRows);setPatients(patientRows);setDepartments((departmentRows||[]).filter(row=>row.is_active!==false))
-    }catch(err){setError(err?.message||t('actionFailed'))}
-    finally{setLoading(false)}
-  }
+  const {t,language,locale}=useLanguage();const {notify}=useFeedback();const {tenant,canAccessRecord}=useTenant();const navigate=useNavigate();const registry=useRegistryMemory('laboratory')
+  const saved=registry.loadViewState({query:'',status:'all',result:'all',department:'all'});const [query,setQuery]=useState(saved.query);const [status,setStatus]=useState(saved.status);const [result,setResult]=useState(saved.result);const [department,setDepartment]=useState(saved.department)
+  const [rows,setRows]=useState([]);const [patients,setPatients]=useState([]);const [departments,setDepartments]=useState([]);const [newOpen,setNewOpen]=useState(false);const [loading,setLoading]=useState(true);const [error,setError]=useState('')
+  async function reload(){setLoading(true);setError('');try{const [sampleRows,patientRows,departmentRows]=await Promise.all([loadLaboratorySamples(tenant?.id),loadPatients(tenant?.id,{isDemo:false}),loadDepartments(tenant?.id)]);setRows(sampleRows);setPatients(patientRows);setDepartments((departmentRows||[]).filter(row=>row.is_active!==false))}catch(err){setError(err?.message||t('actionFailed'))}finally{setLoading(false)}}
   useEffect(()=>{reload()},[tenant?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const filtered=useMemo(()=>rows
-    .filter(row=>canAccessRecord(row))
-    .filter(row=>`${row.id} ${row.patient} ${row.patientId} ${row.organism||''} ${row.surveillanceCase||''}`.toLowerCase().includes(query.toLowerCase()))
-    .filter(row=>status==='all'||row.status===status)
-    .filter(row=>result==='all'||(result==='critical'?row.critical:row.result===result))
-    .filter(row=>department==='all'||row.departmentId===department),[rows,query,status,result,department,canAccessRecord])
-  const k=getLaboratoryKpis(rows)
-  const fmt=value=>value?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(value)):'—'
-
+  const filtered=useMemo(()=>rows.filter(row=>canAccessRecord(row)).filter(row=>`${row.id} ${row.patient} ${row.patientId} ${row.organism||''} ${row.surveillanceCase||''}`.toLowerCase().includes(query.toLowerCase())).filter(row=>status==='all'||row.status===status).filter(row=>result==='all'||(result==='critical'?row.critical:row.result===result)).filter(row=>department==='all'||row.departmentId===department),[rows,query,status,result,department,canAccessRecord])
+  const k=getLaboratoryKpis(rows);const fmt=value=>value?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(value)):'—'
   function openSample(sample){registry.saveViewState({query,status,result,department});registry.openRecord(navigate,`/laboratory/${sample.id}`,sample.id,filtered.map(item=>item.id))}
-  async function createSample(draft){
-    const patient=patients.find(item=>item.id===draft.patientId)
-    if(!patient?.recordId)return
-    await createLaboratorySample(tenant?.id,patient.recordId,{...draft,departmentId:draft.departmentId||patient.departmentId||null})
-    setNewOpen(false);await reload();notify(t('laboratoryRecords.sampleCreated'),'success')
-  }
-  function pageAction(action){
-    if(action===UI_ACTIONS.CREATE){setNewOpen(true);return}
-    if(action===UI_ACTIONS.PRINT){window.print();notify(t('printReadyMessage'),'success');return}
-    if(action===UI_ACTIONS.EXPORT){downloadCsv('limoxis-laboratory.csv',[t('code'),t('exportSubject'),t('department'),t('exportSample'),t('status'),t('result'),t('exportOrganism')],filtered.map(row=>[row.id,row.patient,row.department,t(row.type),t(row.status),row.result?t(row.result):'',row.organism||'']));notify(t('laboratoryListExported'),'success')}
-  }
-
+  async function createSample(draft){const patient=patients.find(item=>item.id===draft.patientId);if(!patient?.recordId)return;await createLaboratorySample(tenant?.id,patient.recordId,{...draft,departmentId:draft.departmentId||patient.departmentId||null});setNewOpen(false);await reload();notify(t('laboratoryRecords.sampleCreated'),'success')}
+  function pageAction(action){if(action===UI_ACTIONS.CREATE){setNewOpen(true);return}if(action===UI_ACTIONS.PRINT){window.print();notify(t('printReadyMessage'),'success');return}if(action===UI_ACTIONS.EXPORT){downloadCsv('limoxis-laboratory.csv',[t('code'),t('exportSubject'),t('department'),t('exportSample'),t('status'),t('result'),t('exportOrganism')],filtered.map(row=>[row.id,row.patient,row.department,t(row.type),t(row.status),row.result?t(row.result):'',row.organism||'']));notify(t('laboratoryListExported'),'success')}}
   if(error&&!rows.length)return <Page title={t('laboratory')}><EmptyState title={t('actionFailed')} description={error}/></Page>
   return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_LAB_SAMPLES}} onAction={pageAction}/>}>
     <div className="workspace-summary"><div className="lab-kpis"><LabKpi icon={FlaskConical} label={t('laboratoryRecords.newSamplesToday')} value={k.today}/><LabKpi icon={Clock3} label={t('laboratoryRecords.pendingResults')} value={k.pending}/><LabKpi icon={Microscope} label={t('laboratoryRecords.positiveResults')} value={k.positive}/><LabKpi icon={ShieldAlert} label={t('laboratoryRecords.amrFindings')} value={k.amr}/><LabKpi icon={AlertTriangle} label={t('laboratoryRecords.uncommunicatedCritical')} value={k.critical} danger={k.critical>0}/></div><div className="governance-banner"><CheckCircle2 size={17}/><span>{t('laboratoryRecords.labGovernanceNote')}</span></div></div>
-    <section className="surface workspace-fill lab-registry-shell">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)+(result!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setResult('all');setDepartment('all')}}>
-        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="requested">{t('requested')}</option><option value="collected">{t('collected')}</option><option value="received">{t('received')}</option><option value="processing">{t('processing')}</option><option value="completed">{t('completed')}</option></FilterSelect>
-        <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</FilterSelect>
-        <FilterSelect label={t('result')} value={result} onChange={setResult}><option value="all">{t('all')}</option><option value="positive">{t('positive')}</option><option value="negative">{t('negative')}</option><option value="critical">{t('criticalResult')}</option></FilterSelect>
-      </FilterBar>
+    <section className="surface workspace-fill lab-registry-shell"><FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)+(result!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setResult('all');setDepartment('all')}}><FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="requested">{t('requested')}</option><option value="collected">{t('collected')}</option><option value="received">{t('received')}</option><option value="processing">{t('processing')}</option><option value="completed">{t('completed')}</option></FilterSelect><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</FilterSelect><FilterSelect label={t('result')} value={result} onChange={setResult}><option value="all">{t('all')}</option><option value="positive">{t('positive')}</option><option value="negative">{t('negative')}</option><option value="critical">{t('criticalResult')}</option></FilterSelect></FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>{loading?<div className="inline-empty">{t('loading')}</div>:filtered.length?<table className="data-table lab-table sticky-table"><thead><tr><th>{t('sampleCode')}</th><th>{t('laboratoryRecords.subject')}</th><th>{t('sampleType')}</th><th>{t('clinicalSource')}</th><th>{t('status')}</th><th>{t('result')}</th><th>{t('surveillance')}</th></tr></thead><tbody>{filtered.map(sample=><tr key={sample.id} {...registry.rowProps(sample.id)} onClick={()=>openSample(sample)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openSample(sample)}}}><td><strong>{sample.id}</strong><small>{fmt(sample.collectedAt||sample.requestedAt)}</small></td><td><strong>{sample.patient}</strong><small>{sample.patientId} · {sample.department||'—'}</small></td><td>{t(sample.type)}</td><td>{sample.source||'—'}</td><td><Status text={t(sample.status)} kind={sample.status}/></td><td><div className="lab-result-cell">{sample.result?<Status text={t(sample.result)} kind={sample.result}/>:<span>—</span>}{sample.resistance&&<b className="amr-chip">{sample.resistance}</b>}{sample.critical&&<span className="critical-mini" title={t('criticalResult')}>!</span>}</div></td><td>{sample.surveillanceCase?<span className="linked-case-chip">{sample.surveillanceCase}</span>:'—'}</td></tr>)}</tbody></table>:<div className="inline-empty">{t('noData')}</div>}</div>
-    </section>
-    {newOpen&&<NewCloudSampleCard t={t} language={language} patients={patients} departments={departments} onClose={()=>setNewOpen(false)} onSave={createSample}/>} 
-  </Page>
+    </section>{newOpen&&<NewCloudSampleCard t={t} language={language} patients={patients} departments={departments} onClose={()=>setNewOpen(false)} onSave={createSample}/>}</Page>
 }
-
 function LabKpi({icon:Icon,label,value,danger}){return <MetricCard icon={Icon} value={value} label={label} tone={danger?'danger':'neutral'}/>}
-
-function NewCloudSampleCard({t,language,patients,departments,onClose,onSave}){
-  const activePatients=patients.filter(item=>item.status==='active')
-  const first=activePatients[0]
-  const [draft,setDraft]=useState({patientId:first?.id||'',departmentId:first?.departmentId||'',type:'bloodCulture',source:'',collectedAt:'',priority:'routine'})
-  const set=(key,value)=>setDraft(current=>({...current,[key]:value}))
-  function choosePatient(id){const patient=patients.find(item=>item.id===id);setDraft(current=>({...current,patientId:id,departmentId:patient?.departmentId||current.departmentId}))}
-  return <div className="modal-backdrop"><div className="entry-card lab-entry-card"><header><div><span className="eyebrow">{t('laboratoryRecords.newSample')}</span><h3>{t('sampleDetails')}</h3></div><button className="icon-close" onClick={onClose}>×</button></header><div className="entry-grid"><label className="entry-span-2"><span>{t('patient')}</span><select value={draft.patientId} onChange={event=>choosePatient(event.target.value)}><option value="">{t('select')}</option>{activePatients.map(patient=><option key={patient.id} value={patient.id}>{language==='el'?patient.name:patient.nameEn} · {patient.id}</option>)}</select></label><label><span>{t('department')}</span><select value={draft.departmentId} onChange={event=>set('departmentId',event.target.value)}><option value="">{t('select')}</option>{departments.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label><label><span>{t('sampleType')}</span><select value={draft.type} onChange={event=>set('type',event.target.value)}><option value="bloodCulture">{t('bloodCulture')}</option><option value="urineCulture">{t('urineCulture')}</option><option value="respiratorySample">{t('respiratorySample')}</option><option value="woundCulture">{t('woundCulture')}</option></select></label><label><span>{t('clinicalSource')}</span><input value={draft.source} onChange={event=>set('source',event.target.value)}/></label><label><span>{t('collectedLabel')}</span><input type="datetime-local" value={draft.collectedAt} onChange={event=>set('collectedAt',event.target.value)}/></label><label><span>{t('priority')}</span><select value={draft.priority} onChange={event=>set('priority',event.target.value)}><option value="routine">{t('routine')}</option><option value="urgent">{t('urgent')}</option><option value="critical">{t('critical')}</option></select></label></div><footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={!draft.patientId||!draft.type} onClick={()=>onSave(draft)}>{t('save')}</SaveButton></footer></div></div>
-}
+function NewCloudSampleCard({t,language,patients,departments,onClose,onSave}){const activePatients=patients.filter(item=>item.status==='active');const first=activePatients[0];const [draft,setDraft]=useState({patientId:first?.id||'',departmentId:first?.departmentId||'',type:'bloodCulture',source:'',collectedAt:'',priority:'routine'});const set=(key,value)=>setDraft(current=>({...current,[key]:value}));function choosePatient(id){const patient=patients.find(item=>item.id===id);setDraft(current=>({...current,patientId:id,departmentId:patient?.departmentId||current.departmentId}))}return <div className="modal-backdrop"><div className="entry-card lab-entry-card"><header><div><span className="eyebrow">{t('laboratoryRecords.newSample')}</span><h3>{t('sampleDetails')}</h3></div><button className="icon-close" onClick={onClose}>×</button></header><div className="entry-grid"><label className="entry-span-2"><span>{t('patient')}</span><select value={draft.patientId} onChange={event=>choosePatient(event.target.value)}><option value="">{t('select')}</option>{activePatients.map(patient=><option key={patient.id} value={patient.id}>{language==='el'?patient.name:patient.nameEn} · {patient.id}</option>)}</select></label><label><span>{t('department')}</span><select value={draft.departmentId} onChange={event=>set('departmentId',event.target.value)}><option value="">{t('select')}</option>{departments.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label><label><span>{t('sampleType')}</span><select value={draft.type} onChange={event=>set('type',event.target.value)}><option value="bloodCulture">{t('bloodCulture')}</option><option value="urineCulture">{t('urineCulture')}</option><option value="respiratorySample">{t('respiratorySample')}</option><option value="woundCulture">{t('woundCulture')}</option></select></label><label><span>{t('clinicalSource')}</span><input value={draft.source} onChange={event=>set('source',event.target.value)}/></label><label><span>{t('collectedLabel')}</span><input type="datetime-local" value={draft.collectedAt} onChange={event=>set('collectedAt',event.target.value)}/></label><label><span>{t('priority')}</span><select value={draft.priority} onChange={event=>set('priority',event.target.value)}><option value="routine">{t('routine')}</option><option value="urgent">{t('urgent')}</option><option value="critical">{t('critical')}</option></select></label></div><footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={!draft.patientId||!draft.type} onClick={()=>onSave(draft)}>{t('save')}</SaveButton></footer></div></div>}
