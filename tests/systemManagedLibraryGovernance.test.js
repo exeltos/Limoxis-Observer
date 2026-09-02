@@ -3,6 +3,7 @@ import fs from 'node:fs'
 
 const bundles=fs.readFileSync('src/features/management/BundleLibraryPanel.jsx','utf8')
 const libraries=fs.readFileSync('src/features/management/LibrariesPanel.jsx','utf8')
+const management=fs.readFileSync('src/features/management/ManagementPage.jsx','utf8')
 const service=fs.readFileSync('src/features/management/managementCloudService.js','utf8')
 const referenceMigration=fs.readFileSync('supabase/migrations/202609020103_platform_owner_system_reference_governance.sql','utf8')
 const libraryMigration=fs.readFileSync('supabase/migrations/202609020104_platform_owner_system_library_governance.sql','utf8')
@@ -19,6 +20,13 @@ describe('Platform Owner-only system library governance',()=>{
     expect(libraries).toContain("mode:system&&!isPlatformOwner?'view':'edit'")
     expect(libraries).toContain('meta.system&&!isPlatformOwner')
     expect(libraries).toContain("(!meta.system||isPlatformOwner)")
+  })
+
+  it('hides global reference mutation actions from hospital users',()=>{
+    expect(management).toContain('const isPlatformOwner=role===ROLES.PLATFORM_OWNER')
+    expect(management).toContain('(!item.isGlobal||isPlatformOwner)')
+    expect(management).toContain('referenceEditor?.isGlobal&&!isPlatformOwner')
+    expect(management).toContain('item?.isGlobal&&!isPlatformOwner')
   })
 
   it('distinguishes global references and uses strict UUID detection',()=>{
