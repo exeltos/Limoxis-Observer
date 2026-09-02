@@ -88,9 +88,19 @@ export async function loadIndicatorSnapshots(organizationId,{from,to,departmentI
  const {data,error}=await query;if(error)throw error;return data||[]
 }
 
+async function findExistingSnapshot(organizationId,row,{from,to,departmentId}){
+ let query=supabase.from('indicator_snapshots').select('id').eq('organization_id',organizationId).eq('indicator_key',row.id).eq('period_start',from).eq('period_end',to)
+ query=departmentId?query.eq('department_id',departmentId):query.is('department_id',null)
+ const {data,error}=await query.maybeSingle();if(error)throw error;return data?.id||null
+}
+
 export async function saveIndicatorSnapshots(organizationId,rows,{from,to,departmentId=null}={}){
- assertCloud(organizationId);const {data:{user}}=await supabase.auth.getUser();const now=new Date().toISOString()
- const payload=(rows||[]).filter(row=>row.value!=null).map(row=>({organization_id:organizationId,indicator_key:row.id,definition_id:/^[0-9a-f-]{36}$/i.test(String(row.definitionId||''))?row.definitionId:null,department_id:departmentId||null,period_start:from,period_end:to,numerator:row.numerator??null,denominator:row.denominator??null,value:row.value,unit:row.unit||null,target_value:row.target??null,direction:row.direction||'context',calculation_type:row.calculation||'auto',source_snapshot:{source:row.source||'',version:row.version||'',evidence:row.evidence||''},status:'calculated',calculated_at:now,calculated_by:user?.id||null,updated_at:now}))
- if(!payload.length)return []
- const {data,error}=await supabase.from('indicator_snapshots').upsert(payload,{onConflict:'organization_id,indicator_key,department_id,period_start,period_end'}).select('*');if(error)throw error;return data||[]
+ assertCloud(organizationId);const {data:{user}}=await supabase.auth.getUser();const now=new Date().toISOString();const saved=[]
+ for(const row of (rows||[]).filter(item=>item.value!=null)){
+  const payload={organization_id:organizationId,indicator_key:row.id,definition_id:/^[0-9a-f-]{36}$/i.test(String(row.definitionId||''))?row.definitionId:null,department_id:departmentId||null,period_start:from,period_end:to,numerator:row.numerator??null,denominator:row.denominator??null,value:row.value,unit:row.unit||null,target_value:row.target??null,direction:row.direction||'context',calculation_type:row.calculation||'auto',source_snapshot:{source:row.source||'',version:row.version||'',evidence:row.evidence||''},status:'calculated',calculated_at:now,calculated_by:user?.id||null,updated_at:now}
+  const existingId=await findExistingSnapshot(organizationId,row,{from,to,departmentId})
+  const request=existingId?supabase.from('indicator_snapshots').update(payload).eq('id',existingId):supabase.from('indicator_snapshots').insert(payload)
+  const {data,error}=await request.select('*').single();if(error)throw error;saved.push(data)
+ }
+ return saved
 }
