@@ -27,14 +27,14 @@ export function assertLiraScope(context){
 }
 
 export async function loadLiraData({isDemo=false,organizationId=null}={}){
-  if(isDemo)return {surveillance:surveillanceDemoData,laboratory:laboratorySamples,handHygiene:handHygieneRows,bundles:bundleRows,qualityIncidents,qualityCapas,generatedAt:new Date().toISOString(),source:'demo'}
+  if(isDemo)return {surveillance:surveillanceDemoData,laboratory:laboratorySamples,handHygiene:handHygieneRows,bundles:bundleRows,qualityIncidents,qualityCapas,patientDays:[],generatedAt:new Date().toISOString(),source:'demo'}
   if(!supabase||!organizationId) throw new Error('LIRA_CONTEXT_NOT_AVAILABLE')
 
   const q=(table,columns)=>supabase.from(table).select(columns).eq('organization_id',organizationId).limit(500)
-  const [departmentsRes,patientsRes,casesRes,reassessmentsRes,isolationRes,samplesRes,resultsRes,handRes,bundleRes,incidentRes,capaRes]=await Promise.all([
-    q('departments','id,name,code'),q('patients','id,patient_code,first_name,last_name,department_id,status'),q('surveillance_cases','id,patient_id,department_id,status,started_at,closed_at'),q('surveillance_reassessments','id,surveillance_case_id,reassessed_at,next_review_due_at'),q('isolation_episodes','id,surveillance_case_id,review_due_at,status'),q('laboratory_samples','id,patient_id,surveillance_case_id,department_id,sample_code,sample_type,status,collected_at'),q('microbiology_results','id,sample_id,result_status,organism,resistance_class,is_critical,critical_communicated_at,resulted_at,validation_status'),q('hand_hygiene_sessions','id,department_id,observation_date,observations,compliant_observations,status'),q('prevention_bundle_assessments','id,department_id,bundle_key,assessment_date,score,criteria,status'),q('quality_incidents','id,code,title,department_id,occurred_at,severity,status'),q('quality_capa_actions','id,code,title,department_id,due_date,priority,status'),
+  const [departmentsRes,patientsRes,casesRes,reassessmentsRes,isolationRes,samplesRes,resultsRes,handRes,bundleRes,incidentRes,capaRes,patientDaysRes]=await Promise.all([
+    q('departments','id,name,code'),q('patients','id,patient_code,first_name,last_name,department_id,status'),q('surveillance_cases','id,patient_id,department_id,status,started_at,closed_at'),q('surveillance_reassessments','id,surveillance_case_id,reassessed_at,next_review_due_at'),q('isolation_episodes','id,surveillance_case_id,review_due_at,status'),q('laboratory_samples','id,patient_id,surveillance_case_id,department_id,sample_code,sample_type,status,collected_at'),q('microbiology_results','id,sample_id,result_status,organism,resistance_class,is_critical,critical_communicated_at,resulted_at,validation_status'),q('hand_hygiene_sessions','id,department_id,observation_date,observations,compliant_observations,status'),q('prevention_bundle_assessments','id,department_id,bundle_key,assessment_date,score,criteria,status'),q('quality_incidents','id,code,title,department_id,occurred_at,severity,status'),q('quality_capa_actions','id,code,title,department_id,due_date,priority,status'),q('patient_days','id,department_id,census_date,patient_days,source,review_status'),
   ])
-  const responses=[departmentsRes,patientsRes,casesRes,reassessmentsRes,isolationRes,samplesRes,resultsRes,handRes,bundleRes,incidentRes,capaRes]
+  const responses=[departmentsRes,patientsRes,casesRes,reassessmentsRes,isolationRes,samplesRes,resultsRes,handRes,bundleRes,incidentRes,capaRes,patientDaysRes]
   const failed=responses.find(x=>x.error);if(failed?.error)throw failed.error
   const departments=new Map((departmentsRes.data||[]).map(x=>[x.id,x.name||x.code||'—']))
   const patients=new Map((patientsRes.data||[]).map(x=>[x.id,x]));const samples=samplesRes.data||[];const results=resultsRes.data||[];const sampleById=new Map(samples.map(x=>[x.id,x]));const resultsBySample=new Map()
@@ -52,5 +52,6 @@ export async function loadLiraData({isDemo=false,organizationId=null}={}){
   )
   const qualityIncidentsRows=(incidentRes.data||[]).map(row=>({id:row.id,title:row.title,department:departments.get(row.department_id)||'—',severity:row.severity,status:row.status,date:row.occurred_at,signalDate:row.occurred_at}))
   const qualityCapaRows=(capaRes.data||[]).map(row=>({id:row.id,title:row.title,department:departments.get(row.department_id)||'—',status:row.status,dueDate:row.due_date,priority:row.priority,signalDate:row.due_date}))
-  return {surveillance,laboratory,handHygiene,bundles,qualityIncidents:qualityIncidentsRows,qualityCapas:qualityCapaRows,generatedAt:new Date().toISOString(),source:'production'}
+  const patientDayRows=(patientDaysRes.data||[]).filter(row=>row.review_status!=='rejected').map(row=>({id:row.id,department:departments.get(row.department_id)||'—',date:row.census_date,patientDays:Number(row.patient_days)||0,source:row.source||null,reviewStatus:row.review_status||null,signalDate:row.census_date}))
+  return {surveillance,laboratory,handHygiene,bundles,qualityIncidents:qualityIncidentsRows,qualityCapas:qualityCapaRows,patientDays:patientDayRows,generatedAt:new Date().toISOString(),source:'production'}
 }
