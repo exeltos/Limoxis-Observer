@@ -1,0 +1,19 @@
+name: Add unlinked profile tabs one off
+on:
+  push:
+    paths:
+      - .github/workflows/add-unlinked-profile-tabs-oneoff.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/add-unlinked-profile-tabs.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/employees/EmployeeRecordPage.jsx src/styles/my-profile.css
+          git commit -m "fix(profile): keep self profile tabs visible without employee link" || exit 0
+          git push
