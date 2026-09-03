@@ -329,9 +329,9 @@
   min-width:0!important;
   min-height:0!important;
   overflow:auto!important;
-  padding:14px var(--lo-layout-page-x) 30px!important;
+  padding:14px calc(var(--lo-layout-page-x) - 14px) 30px var(--lo-layout-page-x)!important;
   background:#f5f7fa!important;
-  scrollbar-gutter:stable;
+  scrollbar-gutter:auto;
 }
 
 .analysis-report{
@@ -361,6 +361,7 @@
   .analysis-header{min-height:auto;padding-bottom:12px!important}
   .analysis-sticky{margin:0 var(--lo-layout-page-x)!important}
   .analysis-filters{grid-template-columns:1fr 1fr!important}
+  .analysis-scroll{padding-right:var(--lo-layout-page-x)!important}
   .platform-registry-shell>.filter-bar{width:100%;max-width:none}
 }
 
