@@ -878,7 +878,8 @@ export function PlatformCenterPage() {
         </Page>
         {demoOpen && (
           <ObserverDialog
-            width="wide"
+            width="workspace"
+            className="platform-demo-create-dialog"
             eyebrow="Platform Owner"
             title={tx('Νέο Demo', 'New Demo')}
             subtitle={tx('Χρονικά περιορισμένη πρόσβαση σε αποκλειστικά synthetic demo δεδομένα.', 'Time-limited access to synthetic demo data only.')}
