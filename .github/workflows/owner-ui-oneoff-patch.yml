@@ -1,0 +1,84 @@
+name: Owner UI one-off canonicalization
+
+on:
+  push:
+    paths:
+      - .github/workflows/owner-ui-oneoff-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply canonical Owner UI patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f'Missing expected source for {label}')
+              return text.replace(old, new, 1)
+
+          platform = Path('src/features/workspaces/PlatformCenterPage.jsx')
+          s = platform.read_text(encoding='utf-8')
+          s = replace_once(
+              s,
+              "  Clock3,\n  Send,",
+              "  Clock3,\n  FlaskConical,\n  LogIn,\n  Send,",
+              'Demo action icons',
+          )
+          s = replace_once(
+              s,
+              "              <Button variant=\"secondary\" onClick={() => setDemoOpen(true)}>+ {tx('Νέο Demo', 'New Demo')}</Button>\n              <Button onClick={() => { enterPlatformDemo(); nav('/') }}>{tx('Πρόσβαση Demo', 'Open Demo')}</Button>",
+              "              <Button onClick={() => setDemoOpen(true)}>+ {tx('Νέο Demo', 'New Demo')}</Button>\n              <Button variant=\"secondary\" className=\"platform-demo-enter-action\" onClick={() => { enterPlatformDemo(); nav('/') }}>\n                <LogIn size={15} />\n                {tx('Είσοδος Demo', 'Enter Demo')}\n              </Button>",
+              'Demo actions',
+          )
+          s = replace_once(
+              s,
+              "                <div className=\"inline-empty\">{tx('Δεν υπάρχουν Demo προσβάσεις.', 'No demo access records.')}</div>",
+              "                <div className=\"empty-state platform-empty\">\n                  <FlaskConical size={24} />\n                  <strong>{tx('Δεν υπάρχουν Demo προσβάσεις', 'No demo access records')}</strong>\n                  <span>{tx('Δεν βρέθηκαν Demo για τα επιλεγμένα φίλτρα.', 'No demos match the selected filters.')}</span>\n                </div>",
+              'Demo empty state',
+          )
+          s = replace_once(
+              s,
+              "                  <strong>{tx('Δεν υπάρχουν οργανισμοί', 'No organizations')}</strong>\n                </div>",
+              "                  <strong>{tx('Δεν υπάρχουν οργανισμοί', 'No organizations')}</strong>\n                  <span>{tx('Δεν βρέθηκαν οργανισμοί για τα επιλεγμένα φίλτρα.', 'No organizations match the selected filters.')}</span>\n                </div>",
+              'Organization empty state',
+          )
+          platform.write_text(s, encoding='utf-8')
+
+          analysis = Path('src/features/analysis/AnalysisPage.jsx')
+          a = analysis.read_text(encoding='utf-8')
+          a = replace_once(
+              a,
+              "function GroupBars({rows}){const safe=rows?.length?rows:[['ΜΕΘ',0,0],['Παθολογική',0,0],['Χειρουργική',0,0]];const max=Math.max(1,...safe.flatMap(([,a,b])=>[Number(a)||0,Number(b)||0]));return <div className=\"analysis-group-bars\">{safe.map(([label,a,b])=><div className=\"analysis-group-row\" key={label}><span>{label}</span><div><i style={{width:`${(Number(a)||0)/max*100}%`,background:COLORS[0]}}/><i style={{width:`${(Number(b)||0)/max*100}%`,background:COLORS[1]}}/></div><strong>{a}</strong></div>)}</div>}",
+              "function GroupBars({rows,tx}){if(!rows?.length)return <div className=\"analysis-chart-empty\">{tx('Δεν υπάρχουν δεδομένα κατανομής για το ενεργό scope.','No distribution data is available for the active scope.')}</div>;const max=Math.max(1,...rows.flatMap(([,a,b])=>[Number(a)||0,Number(b)||0]));return <div className=\"analysis-group-bars\">{rows.map(([label,a,b])=><div className=\"analysis-group-row\" key={label}><span>{label}</span><div><i style={{width:`${(Number(a)||0)/max*100}%`,background:COLORS[0]}}/><i style={{width:`${(Number(b)||0)/max*100}%`,background:COLORS[1]}}/></div><strong>{a}</strong></div>)}</div>}",
+              'GroupBars truthful empty state',
+          )
+          a = replace_once(
+              a,
+              "  const groupRows=platform&&details?.byOrganization?.length?details.byOrganization.slice(0,5).map(([name,total,resistant])=>[name,total,resistant]):[['ΜΕΘ',72,58],['Παθολογική',54,47],['Χειρουργική',41,35],['ΤΕΠ',29,24],['Αιμοκάθαρση',22,19]]",
+              "  const groupRows=isDemo?[['ΜΕΘ',72,58],['Παθολογική',54,47],['Χειρουργική',41,35],['ΤΕΠ',29,24],['Αιμοκάθαρση',22,19]]:(platform&&details?.byOrganization?.length?details.byOrganization.slice(0,5).map(([name,total,resistant])=>[name,total,resistant]):[])",
+              'Production comparison isolation',
+          )
+          a = replace_once(
+              a,
+              '<GroupBars rows={groupRows}/>',
+              '<GroupBars rows={groupRows} tx={tx}/>',
+              'GroupBars translation prop',
+          )
+          analysis.write_text(a, encoding='utf-8')
+      - name: Commit patched sources
+        run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/workspaces/PlatformCenterPage.jsx src/features/analysis/AnalysisPage.jsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(owner-ui): match canonical demo and analytics layouts"
+          git push origin main
