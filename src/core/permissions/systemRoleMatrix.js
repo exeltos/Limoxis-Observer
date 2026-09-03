@@ -18,6 +18,27 @@ export const ROLES = Object.freeze({
   DEMO: 'demo',
 })
 
+// Role preview may simulate organization roles only. Platform Owner is an
+// authenticated identity attribute and Demo is an isolated environment, so
+// neither can ever be selected through preview state or URL parameters.
+export const PREVIEWABLE_ROLES = Object.freeze([
+  ROLES.HOSPITAL_ADMIN,
+  ROLES.INFECTION_CONTROL_LEAD,
+  ROLES.INFECTION_CONTROL_MEMBER,
+  ROLES.DEPARTMENT_MANAGER,
+  ROLES.LINK_NURSE,
+  ROLES.DEPARTMENT_USER,
+  ROLES.LABORATORY,
+  ROLES.COMMITTEE_SECRETARIAT,
+  ROLES.HR_OFFICE,
+  ROLES.PHARMACY,
+  ROLES.OCCUPATIONAL_PHYSICIAN,
+  ROLES.DOCTOR_REVIEWER,
+  ROLES.QUALITY_MANAGER,
+])
+
+export const isPreviewableRole = (role) => PREVIEWABLE_ROLES.includes(role)
+
 export const MANAGEMENT_CAPABILITIES = Object.freeze([
   CAPABILITIES.MANAGE_ORGANIZATION,
   CAPABILITIES.MANAGE_USERS,

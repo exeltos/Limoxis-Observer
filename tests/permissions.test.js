@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ADD_ON_CAPABILITIES, CAPABILITIES, ROLES, can, canForRecord, capabilitiesFor, scopeFor } from '../src/core/permissions/roles'
+import { ADD_ON_CAPABILITIES, CAPABILITIES, PREVIEWABLE_ROLES, ROLES, can, canForRecord, capabilitiesFor, isPreviewableRole, scopeFor } from '../src/core/permissions/roles'
 import { DATA_SCOPES } from '../src/core/permissions/scopeTypes'
 import { capabilityCatalogue,isCustomRoleEligible } from '../src/core/permissions/capabilityCatalogue'
 import { systemRoleMatrix } from '../src/core/permissions/systemRoleMatrix'
@@ -31,6 +31,23 @@ describe('role + scope access foundation', () => {
     expect(managerKeys).not.toContain('dashboard')
     expect(userKeys).toContain('myDepartment')
     expect(userKeys).not.toContain('dashboard')
+  })
+
+  it('uses My department for Link Nurse but keeps Laboratory on its dashboard', () => {
+    const linkNurseKeys = navigationFor({ role: ROLES.LINK_NURSE }).map((item) => item.key)
+    const laboratoryKeys = navigationFor({ role: ROLES.LABORATORY }).map((item) => item.key)
+    expect(linkNurseKeys).toContain('myDepartment')
+    expect(linkNurseKeys).not.toContain('dashboard')
+    expect(laboratoryKeys).toContain('dashboard')
+    expect(laboratoryKeys).not.toContain('myDepartment')
+  })
+
+  it('never allows Platform Owner or Demo to be selected through role preview', () => {
+    expect(PREVIEWABLE_ROLES).not.toContain(ROLES.PLATFORM_OWNER)
+    expect(PREVIEWABLE_ROLES).not.toContain(ROLES.DEMO)
+    expect(isPreviewableRole(ROLES.PLATFORM_OWNER)).toBe(false)
+    expect(isPreviewableRole(ROLES.DEMO)).toBe(false)
+    expect(isPreviewableRole(ROLES.HOSPITAL_ADMIN)).toBe(true)
   })
 
   it('shows controls when assigned even for a role whose normal workspace is restricted', () => {
