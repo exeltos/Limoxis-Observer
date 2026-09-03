@@ -1,0 +1,22 @@
+.lo-icon-button{
+  width:var(--lo-control-height);
+  height:var(--lo-control-height);
+  display:inline-grid;
+  place-items:center;
+  padding:0;
+  border:1px solid var(--lo-shell-control-border);
+  border-radius:var(--lo-radius-control);
+  background:var(--lo-color-surface);
+  color:var(--lo-shell-control-fg);
+  cursor:pointer;
+  transition:background .15s ease,border-color .15s ease,color .15s ease,transform .15s ease;
+}
+.lo-icon-button:hover{background:var(--lo-shell-control-hover);transform:translateY(-1px)}
+.lo-icon-button:focus-visible{outline:2px solid color-mix(in srgb,var(--lo-color-primary) 45%,transparent);outline-offset:2px}
+.lo-icon-button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.lo-icon-button-primary{color:var(--lo-color-primary);background:var(--lo-status-info-bg);border-color:var(--lo-status-info-border)}
+.lo-icon-button-edit{color:var(--lo-status-warning-fg);background:var(--lo-status-warning-bg);border-color:var(--lo-status-warning-border)}
+.lo-icon-button-danger{color:var(--lo-status-danger-fg);background:var(--lo-status-danger-bg);border-color:var(--lo-status-danger-border)}
+.lo-icon-button-success{color:var(--lo-status-success-fg);background:var(--lo-status-success-bg);border-color:var(--lo-status-success-border)}
+.lo-icon-button-sm{width:30px;height:30px;border-radius:8px}
+.lo-icon-button-lg{width:40px;height:40px}
