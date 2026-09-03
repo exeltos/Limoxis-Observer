@@ -16,14 +16,14 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Apply workspace wiring
-        shell: python
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           p=Path('src/features/workspaces/PlatformCenterPage.jsx')
           s=p.read_text()
           marker="import { PlatformDemoRecord } from '../platform/PlatformDemoRecord'\n"
-          if "PlatformOrganizationRecord" not in s:
+          if "import { PlatformOrganizationRecord }" not in s:
               s=s.replace(marker, marker+"import { PlatformOrganizationRecord } from '../platform/PlatformOrganizationRecord'\n")
           start=s.index("    if (selectedOrg) {", s.index("  if (activeKey === 'organizations') {"))
           end=s.index("\n    return (\n      <>\n        <Page\n          title={tx('Οργανισμοί'", start)
@@ -61,7 +61,8 @@ jobs:
     .select('id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,demo_user_id,organization:organizations(id,name,code,is_demo)')
     .neq('status', 'revoked')
     .order('valid_until', { ascending: true })"""
-          if old in s:s=s.replace(old,new)
+          if old in s:
+              s=s.replace(old,new)
           p.write_text(s)
 
           p=Path('src/features/platform/platformDemoService.js')
@@ -92,21 +93,24 @@ jobs:
       .eq('user_id', demo.demo_user_id)
       .eq('role', 'demo')
     if (membershipError) throw membershipError
-    await supabase
+    const { error: profileError } = await supabase
       .from('profiles')
       .update({ is_demo: false, demo_entitlement_id: null })
       .eq('id', demo.demo_user_id)
+    if (profileError) throw profileError
   }
 
   return organization
 }"""
-          if old not in s: raise SystemExit('platformDemoService conversion marker not found')
+          if old not in s:
+              raise SystemExit('platformDemoService conversion marker not found')
           s=s.replace(old,new)
           p.write_text(s)
 
           p=Path('supabase/functions/create-demo-access/index.ts')
           s=p.read_text().replace("const country=String(body.country||'Greece').trim()||'Greece'","const country=String(body.country||'').trim()||null")
           p.write_text(s)
+          PY
       - name: Commit changes
         run: |
           git config user.name "Exeltos"
