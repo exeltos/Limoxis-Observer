@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Activity,
-  BarChart3,
   Building2,
   Clock3,
   FlaskConical,
@@ -9,12 +7,10 @@ import {
   Send,
   ShieldCheck,
   Trash2,
-  Users,
 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { BackButton } from '../../design-system/BackButton'
-import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { FilterBar } from '../../design-system/FilterBar'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
@@ -23,25 +19,17 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { roleLabel } from '../../core/permissions/roleLabels'
 import {
   createOrganizationUser,
   createPlatformDemoEntitlement,
   createPlatformOrganization,
-  listOrganizationMembersDetailed,
   listPlatformDemos,
   listPlatformOrganizationMembers,
-  manageOrganizationUser,
   purgePlatformOrganization,
-  setPlatformOrganizationStatus,
-  updatePlatformOrganization,
 } from '../../core/tenant/tenantService'
 import { AnalysisPage } from '../analysis/AnalysisPage'
-import { HospitalDiagnosticsPanel } from '../platform/HospitalDiagnosticsPanel'
 import { PlatformDemoRecord } from '../platform/PlatformDemoRecord'
 import { PlatformOrganizationRecord } from '../platform/PlatformOrganizationRecord'
-import { PlatformOrganizationActions } from './PlatformOrganizationActions'
-import { PlatformUserDialog } from './PlatformUserDialog'
 
 const GREEK_REGIONS = [
   'Ανατολική Μακεδονία και Θράκη',
@@ -120,32 +108,6 @@ function FormSection({ title, subtitle, children }) {
   )
 }
 
-function InfoSection({ title, children }) {
-  return (
-    <section className="platform-info-section">
-      <h3>{title}</h3>
-      <dl>{children}</dl>
-    </section>
-  )
-}
-
-function InfoRow({ label, value, status }) {
-  return (
-    <div className="platform-info-row">
-      <dt>{label}</dt>
-      <dd>
-        {status ? (
-          <span className={`status-badge ${status === 'active' ? 'active' : 'danger'}`}>
-            {value || '—'}
-          </span>
-        ) : (
-          value ?? '—'
-        )}
-      </dd>
-    </div>
-  )
-}
-
 export function PlatformCenterPage() {
   const { memberships, setTenantByMembership, reloadMemberships, enterPlatformDemo } = useTenant()
   const { language } = useLanguage()
@@ -163,12 +125,6 @@ export function PlatformCenterPage() {
   const [members, setMembers] = useState([])
   const [demos, setDemos] = useState([])
   const [loadingStats, setLoadingStats] = useState(true)
-  const [editOrg, setEditOrg] = useState(null)
-  const [inviteSending, setInviteSending] = useState(false)
-  const [editAdmin, setEditAdmin] = useState(null)
-  const [orgUsers, setOrgUsers] = useState([])
-  const [orgUsersLoading, setOrgUsersLoading] = useState(false)
-  const [selectedUser, setSelectedUser] = useState(null)
   const [deleteOrg, setDeleteOrg] = useState(null)
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState('')
@@ -272,39 +228,10 @@ export function PlatformCenterPage() {
     }
   }
 
-  async function loadOrgUsers(org) {
-    setOrgUsersLoading(true)
-    try {
-      setOrgUsers(await listOrganizationMembersDetailed(org.id))
-    } catch (error) {
-      notifyError(error, 'load', { operation: 'platform_users_load' })
-    } finally {
-      setOrgUsersLoading(false)
-    }
-  }
-
   useEffect(() => {
     void refreshPlatformData()
   }, [memberships.length])
 
-  useEffect(() => {
-    if (!selectedOrgId) return
-    let cancelled = false
-    setOrgUsersLoading(true)
-    listOrganizationMembersDetailed(selectedOrgId)
-      .then(users => {
-        if (!cancelled) setOrgUsers(users)
-      })
-      .catch(error => {
-        if (!cancelled) notifyError(error, 'load', { operation: 'platform_users_load' })
-      })
-      .finally(() => {
-        if (!cancelled) setOrgUsersLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [selectedOrgId, notifyError])
 
   const setField = (key, value) => setDraft(current => ({ ...current, [key]: value }))
   const codeValid = /^[A-Z0-9_-]{2,24}$/.test(draft.code.trim().toUpperCase())
@@ -326,7 +253,6 @@ export function PlatformCenterPage() {
   }
 
   function openOrganization(org) {
-    setSelectedUser(null)
     nav(`/platform#organizations?organization=${org.id}&tab=details`, {
       state: { returnTo: '/platform#organizations' },
     })
@@ -426,33 +352,6 @@ export function PlatformCenterPage() {
     }
   }
 
-  async function togglePause(org) {
-    const next = org.status === 'suspended' ? 'active' : 'suspended'
-    const ok = await confirm({
-      title:
-        next === 'suspended'
-          ? tx('Παύση οργανισμού', 'Suspend organization')
-          : tx('Επανενεργοποίηση οργανισμού', 'Reactivate organization'),
-      message:
-        next === 'suspended'
-          ? tx(`Να τεθεί σε παύση ο οργανισμός «${org.name}»;`, `Suspend “${org.name}”?`)
-          : tx(`Να ενεργοποιηθεί ξανά ο οργανισμός «${org.name}»;`, `Reactivate “${org.name}”?`),
-      confirmLabel:
-        next === 'suspended' ? tx('Παύση', 'Suspend') : tx('Ενεργοποίηση', 'Reactivate'),
-    })
-    if (!ok) return
-    try {
-      await setPlatformOrganizationStatus(org.id, next)
-      await reloadMemberships()
-      await refreshPlatformData()
-      notify(tx('Η κατάσταση του οργανισμού ενημερώθηκε.', 'Organization status updated.'), 'success', {
-        operation: 'platform_organization_status',
-      })
-    } catch (error) {
-      notifyError(error, 'action', { operation: 'platform_organization_status' })
-    }
-  }
-
   function requestRemoveOrganization(org) {
     setDeleteOrg(org)
     setDeletePassword('')
@@ -507,169 +406,6 @@ export function PlatformCenterPage() {
     } finally {
       setDeleting(false)
     }
-  }
-
-  async function beginEditOrg(org) {
-    setEditAdmin(null)
-    setEditOrg({
-      id: org.id,
-      name: org.name || '',
-      code: org.code || '',
-      type: org.type || 'hospital',
-      status: org.status || 'active',
-      region: org.region || '',
-      healthRegion: org.health_region || '',
-      city: org.city || '',
-      country: org.country || '',
-      contactEmail: org.contact_email || '',
-      contactPhone: org.contact_phone || '',
-      bedCapacity: org.bed_capacity ?? '',
-      adminFullName: '',
-      adminEmail: '',
-    })
-    try {
-      const users = await listOrganizationMembersDetailed(org.id)
-      const admin = users.find(user => user.role === 'hospital_admin') || null
-      setEditAdmin(admin)
-      if (admin) {
-        setEditOrg(current =>
-          current
-            ? { ...current, adminFullName: admin.name || '', adminEmail: admin.email || '' }
-            : current
-        )
-      }
-    } catch (error) {
-      console.warn(error)
-    }
-  }
-
-  async function saveOrgEdit({ sendInitialInvitation = false } = {}) {
-    if (!editOrg?.name?.trim() || !editOrg?.code?.trim()) return
-    setSaving(true)
-    try {
-      await updatePlatformOrganization(editOrg.id, editOrg)
-      if (sendInitialInvitation && !editAdmin) {
-        const name = String(editOrg.adminFullName || '').trim()
-        const email = String(editOrg.adminEmail || '').trim()
-        if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          throw new Error(
-            tx(
-              'Συμπλήρωσε ονοματεπώνυμο και έγκυρο email Hospital Admin.',
-              'Enter a full name and valid Hospital Admin email.'
-            )
-          )
-        }
-        const result = await createOrganizationUser({
-          organizationId: editOrg.id,
-          fullName: name,
-          role: 'hospital_admin',
-          email,
-        })
-        if (!result?.emailSent) {
-          throw new Error(
-            tx(
-              'Η αποθήκευση ολοκληρώθηκε, αλλά η πρόσκληση δεν μπόρεσε να αποσταλεί.',
-              'Changes were saved, but the invitation could not be sent.'
-            )
-          )
-        }
-      }
-      await reloadMemberships()
-      await refreshPlatformData()
-      if (selectedOrg?.id === editOrg.id) await loadOrgUsers(selectedOrg)
-      setEditOrg(null)
-      setEditAdmin(null)
-      notify(tx('Τα στοιχεία του οργανισμού ενημερώθηκαν.', 'Organization details updated.'), 'success', {
-        operation: 'platform_organization_update',
-      })
-    } catch (error) {
-      notifyError(error, 'save', { operation: 'platform_organization_update' })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function resendHospitalAdminInvitation() {
-    if (!editOrg?.id || !editAdmin?.userId || inviteSending) return
-    if (editAdmin.status !== 'invited') {
-      notify(
-        editAdmin.status === 'active'
-          ? tx(
-              'Ο Hospital Admin είναι ήδη ενεργός. Χρησιμοποίησε επαναφορά κωδικού αν χρειάζεται.',
-              'Hospital Admin is already active. Use password reset if needed.'
-            )
-          : tx(
-              'Ο Hospital Admin βρίσκεται σε παύση. Επανενεργοποίησέ τον πριν από οποιαδήποτε πρόσκληση.',
-              'Hospital Admin is suspended. Reactivate the account before resending an invitation.'
-            ),
-        'warning',
-        { operation: 'platform_admin_invite' }
-      )
-      return
-    }
-    setInviteSending(true)
-    try {
-      const result = await manageOrganizationUser({
-        organizationId: editOrg.id,
-        userId: editAdmin.userId,
-        action: 'resend_invitation',
-      })
-      notify(
-        result?.emailSent
-          ? tx('Η πρόσκληση Hospital Admin επαναποστάλθηκε.', 'Hospital Admin invitation resent.')
-          : tx('Η πρόσκληση ανανεώθηκε.', 'Invitation refreshed.'),
-        'success',
-        { operation: 'platform_admin_invite' }
-      )
-      const users = await listOrganizationMembersDetailed(editOrg.id)
-      setEditAdmin(users.find(user => user.role === 'hospital_admin') || null)
-      if (selectedOrg?.id === editOrg.id) await loadOrgUsers(selectedOrg)
-    } catch (error) {
-      notifyError(error, 'action', { operation: 'platform_admin_invite' })
-    } finally {
-      setInviteSending(false)
-    }
-  }
-
-  async function userAction(action, extra = {}) {
-    if (!selectedOrg || !selectedUser) return
-    try {
-      await manageOrganizationUser({
-        organizationId: selectedOrg.id,
-        userId: selectedUser.userId,
-        action,
-        ...extra,
-      })
-      notify(
-        action === 'reset_password'
-          ? tx('Στάλθηκε email επαναφοράς κωδικού.', 'Password reset email sent.')
-          : action === 'resend_invitation'
-            ? tx('Η πρόσκληση επαναπροωθήθηκε.', 'Invitation resent.')
-            : tx('Η ενέργεια ολοκληρώθηκε.', 'Action completed.'),
-        'success',
-        { operation: `platform_user_${action}` }
-      )
-      await loadOrgUsers(selectedOrg)
-      if (action === 'delete') setSelectedUser(null)
-      else if (action === 'suspend') setSelectedUser(user => ({ ...user, status: 'disabled' }))
-      else if (action === 'reactivate') setSelectedUser(user => ({ ...user, status: 'active' }))
-    } catch (error) {
-      notifyError(error, 'action', { operation: `platform_user_${action}` })
-    }
-  }
-
-  async function confirmUserDelete() {
-    if (!selectedUser) return
-    const ok = await confirm({
-      title: tx('Οριστική διαγραφή χρήστη', 'Delete user permanently'),
-      message: tx(
-        `Θα διαγραφεί ο λογαριασμός ${selectedUser.username} από τον οργανισμό.`,
-        `The account ${selectedUser.username} will be removed from the organization.`
-      ),
-      confirmLabel: tx('Οριστική διαγραφή', 'Delete permanently'),
-      danger: true,
-    })
-    if (ok) await userAction('delete')
   }
 
   async function createDemo() {
@@ -818,131 +554,6 @@ export function PlatformCenterPage() {
           {formError}
         </div>
       )}
-    </ObserverDialog>
-  ) : null
-
-  const editDialog = editOrg ? (
-    <ObserverDialog
-      width="wide"
-      eyebrow={tx('Platform Owner · Οργανισμός', 'Platform Owner · Organization')}
-      title={`${tx('Επεξεργασία', 'Edit')} — ${editOrg.name}`}
-      subtitle={tx(
-        'Ενημέρωση στοιχείων οργανισμού και Hospital Admin.',
-        'Update organization and Hospital Admin details.'
-      )}
-      onClose={() => {
-        setEditOrg(null)
-        setEditAdmin(null)
-      }}
-      footer={
-        <SaveButton loading={saving} onClick={() => saveOrgEdit({ sendInitialInvitation: !editAdmin })}>
-          {editAdmin ? tx('Αποθήκευση', 'Save') : tx('Αποθήκευση & αποστολή πρόσκλησης', 'Save & send invitation')}
-        </SaveButton>
-      }
-    >
-      <div className="platform-form-shell">
-        <FormSection title={tx('Στοιχεία οργανισμού', 'Organization details')}>
-          <div className="platform-form-grid">
-            <label className="field field-wide">
-              <span>{tx('Επωνυμία', 'Name')}</span>
-              <input value={editOrg.name} onChange={event => setEditOrg(current => ({ ...current, name: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>{tx('Κωδικός', 'Code')}</span>
-              <input value={editOrg.code} readOnly />
-            </label>
-            <label className="field">
-              <span>{tx('Τύπος', 'Type')}</span>
-              <select value={editOrg.type} onChange={event => setEditOrg(current => ({ ...current, type: event.target.value }))}>
-                <option value="hospital">{tx('Νοσοκομείο', 'Hospital')}</option>
-                <option value="clinic">{tx('Κλινική', 'Clinic')}</option>
-                <option value="group">{tx('Όμιλος', 'Group')}</option>
-                <option value="other">{tx('Άλλο', 'Other')}</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>{tx('Περιφέρεια', 'Region')}</span>
-              <select value={editOrg.region} onChange={event => setEditOrg(current => ({ ...current, region: event.target.value }))}>
-                <option value="">—</option>
-                {GREEK_REGIONS.map(region => <option key={region}>{region}</option>)}
-              </select>
-            </label>
-            <label className="field field-wide">
-              <span>{tx('ΥΠΕ', 'Health Region')}</span>
-              <select value={editOrg.healthRegion} onChange={event => setEditOrg(current => ({ ...current, healthRegion: event.target.value }))}>
-                <option value="">—</option>
-                {HEALTH_REGIONS.map(region => <option key={region}>{region}</option>)}
-              </select>
-            </label>
-            <label className="field">
-              <span>{tx('Πόλη', 'City')}</span>
-              <input value={editOrg.city} onChange={event => setEditOrg(current => ({ ...current, city: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>{tx('Χώρα', 'Country')}</span>
-              <input value={editOrg.country} onChange={event => setEditOrg(current => ({ ...current, country: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>{tx('Κλίνες', 'Beds')}</span>
-              <input type="number" value={editOrg.bedCapacity} onChange={event => setEditOrg(current => ({ ...current, bedCapacity: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>Email</span>
-              <input value={editOrg.contactEmail} onChange={event => setEditOrg(current => ({ ...current, contactEmail: event.target.value }))} />
-            </label>
-            <label className="field">
-              <span>{tx('Τηλέφωνο', 'Phone')}</span>
-              <input value={editOrg.contactPhone} onChange={event => setEditOrg(current => ({ ...current, contactPhone: event.target.value }))} />
-            </label>
-          </div>
-        </FormSection>
-        <FormSection title="Hospital Admin">
-          <div className="platform-form-grid">
-            <label className="field">
-              <span>{tx('Ονοματεπώνυμο Admin', 'Admin full name')}</span>
-              <input
-                value={editOrg.adminFullName || ''}
-                readOnly={Boolean(editAdmin)}
-                onChange={event => setEditOrg(current => ({ ...current, adminFullName: event.target.value }))}
-              />
-            </label>
-            <label className="field">
-              <span>{tx('Email πρόσκλησης', 'Invitation email')}</span>
-              <input
-                type="email"
-                value={editOrg.adminEmail || ''}
-                readOnly={Boolean(editAdmin)}
-                onChange={event => setEditOrg(current => ({ ...current, adminEmail: event.target.value }))}
-              />
-            </label>
-          </div>
-          {editAdmin && (
-            <div className="platform-admin-status-row">
-              <span
-                className={`status-badge ${
-                  editAdmin.status === 'active'
-                    ? 'active'
-                    : editAdmin.status === 'disabled'
-                      ? 'danger'
-                      : 'temporary'
-                }`}
-              >
-                {editAdmin.status === 'active'
-                  ? tx('Ενεργός', 'Active')
-                  : editAdmin.status === 'disabled'
-                    ? tx('Σε παύση', 'Suspended')
-                    : tx('Εκκρεμής', 'Pending')}
-              </span>
-              {editAdmin.status === 'invited' && (
-                <Button variant="secondary" disabled={inviteSending} onClick={resendHospitalAdminInvitation}>
-                  <Send size={15} />
-                  {inviteSending ? tx('Αποστολή…', 'Sending…') : tx('Επαναποστολή πρόσκλησης', 'Resend invitation')}
-                </Button>
-              )}
-            </div>
-          )}
-        </FormSection>
-      </div>
     </ObserverDialog>
   ) : null
 
