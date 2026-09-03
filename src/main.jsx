@@ -11,6 +11,7 @@ import { DataAccessStatus } from './core/data/DataAccessStatus'
 import { AppErrorBoundary } from './core/errors/AppErrorBoundary'
 import './styles/theme.css'
 import './styles/global.css'
+import './styles/design-system-actions.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
