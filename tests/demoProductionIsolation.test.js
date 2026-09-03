@@ -33,10 +33,13 @@ describe('demo / production isolation',()=>{
     expect(cloudPatientRecord).not.toContain('surveillanceDemoData')
   })
 
-  it('blocks synthetic analytics from production rendering',()=>{
-    expect(analysis).toContain('!isDemo?')
-    expect(analysis).toContain('analysis-production-empty')
-    expect(analysis).toContain('Demo or synthetic values are never used as a fallback.')
+  it('keeps synthetic analytics behind the demo branch and production on persisted aggregates',()=>{
+    expect(analysis).toContain('const productionScope=!isDemo&&')
+    expect(analysis).toContain('loadGlobalReportSummary(')
+    expect(analysis).toContain('loadPlatformAnalyticsDetails(')
+    expect(analysis).toContain("isDemo?(DEMO_KPI[tab]||DEMO_KPI.overview)")
+    expect(analysis).toContain("isDemo?<DemoNationalSurveillance")
+    expect(analysis).toContain('<ProductionNationalSurveillance')
   })
 
   it('returns empty-shaped fallbacks outside the demo environment',()=>{
