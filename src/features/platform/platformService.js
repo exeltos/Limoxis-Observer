@@ -41,3 +41,48 @@ export async function saveDemoEntitlement(input){
   return data
 }
 export async function loadGlobalReportSummary({organizationId='',from='',to=''}={}){if(!hasSupabaseConfig||!supabase)return {surveillance:24,laboratory:41,prevention:87,controls:34,quality:12,training:56,documents:18,committees:7,antimicrobial:15,occupationalHealth:29,waste:22,handHygiene:64};const {data,error}=await supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null});if(error)throw error;return data||{}}
+
+function monthKey(value){return String(value||'').slice(0,7)}
+function countBy(rows,keyFn){const out={};for(const row of rows){const key=keyFn(row);if(!key)continue;out[key]=(out[key]||0)+1}return out}
+function sortedEntries(map,limit=10){return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,limit)}
+
+export async function loadPlatformAnalyticsDetails({organizationId='',from='',to=''}={}){
+  if(!hasSupabaseConfig||!supabase){
+    return {
+      source:'local-demo',
+      microorganisms:[['Klebsiella pneumoniae',19],['Acinetobacter baumannii',12],['Pseudomonas aeruginosa',11],['Escherichia coli',9],['Staphylococcus aureus',6]],
+      resistance:[['MDR',29],['XDR',13],['PDR',2]],
+      monthly:[['2026-03',9],['2026-04',12],['2026-05',14],['2026-06',17],['2026-07',21],['2026-08',24]],
+      byOrganization:[['Demo Hospital',41,17]],
+      totalPositive:57,
+      totalCritical:8,
+    }
+  }
+
+  let query=supabase.from('microbiology_results').select('organization_id,result_status,organism,resistance_class,is_critical,resulted_at').order('resulted_at',{ascending:true}).limit(5000)
+  if(organizationId)query=query.eq('organization_id',organizationId)
+  if(from)query=query.gte('resulted_at',`${from}T00:00:00`)
+  if(to)query=query.lte('resulted_at',`${to}T23:59:59.999`)
+  const {data,error}=await query
+  if(error)throw error
+  const rows=data||[]
+  const positive=rows.filter(row=>row.result_status==='positive')
+  const microorganisms=sortedEntries(countBy(positive,row=>row.organism?.trim()),12)
+  const resistance=sortedEntries(countBy(positive,row=>row.resistance_class),5)
+  const monthly=Object.entries(countBy(positive,row=>monthKey(row.resulted_at))).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12)
+  const organizations=(await loadPlatformSnapshot()).organizations||[]
+  const names=new Map(organizations.map(row=>[row.id,row.name]))
+  const orgTotals=countBy(positive,row=>row.organization_id)
+  const resistantRows=positive.filter(row=>['MDR','XDR','PDR'].includes(row.resistance_class))
+  const orgResistant=countBy(resistantRows,row=>row.organization_id)
+  const byOrganization=Object.entries(orgTotals).map(([id,total])=>[names.get(id)||id,total,orgResistant[id]||0]).sort((a,b)=>b[1]-a[1]).slice(0,12)
+  return {
+    source:'production',
+    microorganisms,
+    resistance,
+    monthly,
+    byOrganization,
+    totalPositive:positive.length,
+    totalCritical:positive.filter(row=>row.is_critical).length,
+  }
+}
