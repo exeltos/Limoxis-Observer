@@ -16,7 +16,27 @@ describe('Platform Owner UI audit',()=>{
     expect(source).toContain('if(!isDemo)return []')
   })
 
-  it('uses the shared dialog and semantic icon actions in the Platform Owner workspace',()=>{
+  it('opens organizations as full record workspaces with actions inside the record',()=>{
+    const source=fs.readFileSync('src/features/workspaces/PlatformCenterPage.jsx','utf8')
+    expect(source).toContain('function openOrganization(org)')
+    expect(source).toContain('platform-owner-record-workspace')
+    expect(source).toContain('actions={<PlatformOrganizationActions organization={selectedOrg}')
+    expect(source).toContain("orgDetailTab==='details'")
+    expect(source).toContain("orgDetailTab==='users'")
+    expect(source).toContain("orgDetailTab==='diagnostics'")
+    expect(source).toContain("orgDetailTab==='analysis'")
+    expect(source).toContain('platform-owner-details-grid')
+  })
+
+  it('makes owner registry entries and user rows directly clickable',()=>{
+    const source=fs.readFileSync('src/features/workspaces/PlatformCenterPage.jsx','utf8')
+    expect(source).toContain('platform-owner-clickable-row')
+    expect(source).toContain('onClick={()=>openOrganization(org)}')
+    expect(source).toContain('onClick={()=>setSelectedUser(user)}')
+    expect(source).not.toContain('>{tx(\'Διαχείριση\',\'Manage\')}</button>')
+  })
+
+  it('uses the shared dialog and localized semantic actions in the Platform Owner workspace',()=>{
     const source=fs.readFileSync('src/features/workspaces/PlatformCenterPage.jsx','utf8')
     expect(source).toContain('PlatformOrganizationActions')
     expect(source).toContain('PlatformUserDialog')
