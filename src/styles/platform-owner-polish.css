@@ -6,67 +6,95 @@
   display:flex;
   flex-direction:column;
 }
-.page-fill:has(.platform-owner-record-workspace)>.page-header{flex:0 0 auto;padding-bottom:10px}
-.page-fill:has(.platform-owner-record-workspace)>.platform-workspace-toolbar{flex:0 0 auto;margin-bottom:8px}
+.page-fill:has(.platform-owner-record-workspace)>.page-header{flex:0 0 auto;padding-bottom:8px}
+.page-fill:has(.platform-owner-record-workspace)>.page-header h1{font-size:22px;letter-spacing:-.02em}
+.page-fill:has(.platform-owner-record-workspace)>.page-header p{margin-top:3px}
+.page-fill:has(.platform-owner-record-workspace)>.platform-workspace-toolbar{flex:0 0 auto;margin-bottom:6px}
 .page-fill:has(.platform-owner-record-workspace)>.platform-owner-record-workspace{flex:1 1 auto;min-height:0}
 
 .page:has(.platform-org-list){height:calc(100dvh - var(--lo-shell-header-height,56px));min-height:0;overflow:hidden;display:flex;flex-direction:column}
 .page:has(.platform-org-list)>.page-header,.page:has(.platform-org-list)>.platform-workspace-toolbar{flex:0 0 auto}
-.page:has(.platform-org-list)>.platform-center-section{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-.page:has(.platform-org-list) .platform-org-list{flex:1 1 auto;min-height:0;overflow:auto;padding-right:4px}
+.page:has(.platform-org-list)>.page-header{padding-bottom:8px}
+.page:has(.platform-org-list)>.platform-center-section{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;border-radius:14px;box-shadow:0 8px 28px rgb(15 23 42 / 4%)}
+.page:has(.platform-org-list) .platform-section-heading{padding-bottom:12px;border-bottom:1px solid var(--lo-color-border)}
+.page:has(.platform-org-list) .platform-section-heading h2{font-size:16px}
+.page:has(.platform-org-list) .platform-section-heading p{font-size:11px}
+.page:has(.platform-org-list) .platform-org-list{flex:1 1 auto;min-height:0;overflow:auto;padding:10px 2px 2px}
+.platform-org-list{display:grid;align-content:start;gap:8px}
+.platform-owner-clickable-row{min-height:60px;border-radius:10px;padding:11px 13px;box-shadow:none}
+.platform-owner-clickable-row:hover{box-shadow:none;transform:none}
+.platform-owner-clickable-row strong{font-size:13px}
+.platform-owner-clickable-row small{font-size:10.5px}
 
-.platform-owner-record-workspace{border-radius:14px;box-shadow:0 8px 28px rgb(15 23 42 / 4%)}
-.platform-owner-record-workspace>.platform-org-tabs{flex:0 0 auto;min-height:50px}
-.platform-owner-record-workspace>.platform-org-tabs button{font-size:12px;font-weight:700}
-.platform-owner-details{flex:1 1 auto;min-height:0;overflow:auto;padding:18px 22px 22px}
-.platform-record-intro{align-items:center;padding:0 0 15px;margin:0 0 4px}
-.platform-record-intro h2{font-size:18px}
-.platform-record-intro p{max-width:720px}
+.platform-owner-record-workspace{border-radius:14px;box-shadow:0 8px 28px rgb(15 23 42 / 4%);border:1px solid var(--lo-color-border)}
+.platform-owner-record-workspace>.platform-org-tabs{flex:0 0 auto;min-height:48px;padding:0 14px;background:color-mix(in srgb,var(--lo-color-surface) 98%,var(--lo-shell-control-hover))}
+.platform-owner-record-workspace>.platform-org-tabs button{font-size:11.5px;font-weight:700;min-height:48px;padding:0 11px}
+.platform-owner-details{flex:1 1 auto;min-height:0;overflow:auto;padding:16px 20px 20px}
+.platform-record-intro{align-items:center;padding:0 0 13px;margin:0}
+.platform-record-intro .eyebrow{font-size:9px;margin-bottom:3px}
+.platform-record-intro h2{font-size:18px;letter-spacing:-.01em}
+.platform-record-intro p{max-width:720px;margin-top:4px;font-size:11px}
 
-.platform-record-intro .platform-org-actions{display:flex;align-items:flex-start;gap:12px;padding:0}
-.platform-org-action-item{display:grid;justify-items:center;gap:3px;min-width:56px}
-.platform-org-action-item>span{font-size:9.5px;line-height:1.15;color:var(--lo-color-muted);white-space:nowrap}
-.platform-org-action-item:last-child>span{color:var(--lo-status-danger-fg)}
-.platform-org-action-item .lo-icon-button{width:32px;height:32px}
+.platform-record-intro .platform-org-actions{display:flex;align-items:flex-start;gap:10px;padding:0}
+.platform-org-action-item{display:grid;justify-items:center;gap:4px;min-width:62px}
+.platform-org-action-item>span{font-size:9.5px;line-height:1.15;color:var(--lo-color-muted);white-space:nowrap;font-weight:650}
+.platform-org-action-item:nth-last-child(1)>span{color:var(--lo-status-danger-fg)}
+.platform-org-action-item .lo-icon-button{width:30px;height:30px}
+.platform-org-action-item .lo-icon-button svg{width:16px;height:16px}
 
-.platform-info-sections{gap:0;margin-top:12px;border:1px solid var(--lo-color-border);border-radius:12px;overflow:hidden;background:var(--lo-color-surface)}
-.platform-info-section{padding:14px 18px 12px;border-right:1px solid var(--lo-color-border)}
+.platform-info-sections{gap:0;margin-top:12px;border:1px solid var(--lo-color-border);border-radius:11px;overflow:hidden;background:var(--lo-color-surface)}
+.platform-info-section{padding:13px 17px 11px;border-right:1px solid var(--lo-color-border)}
 .platform-info-section:last-child{border-right:0}
-.platform-info-section h3{display:flex;align-items:center;min-height:28px;margin:0 0 4px;padding:0;border-bottom:0;font-size:12px}
-.platform-info-row{grid-template-columns:minmax(120px,.9fr) minmax(0,1.1fr);padding:9px 0}
-.platform-info-row dt{font-size:10.5px;font-weight:600}
-.platform-info-row dd{font-size:12px;font-weight:700}
+.platform-info-section h3{display:flex;align-items:center;min-height:26px;margin:0 0 3px;padding:0;border-bottom:0;font-size:11.5px;color:var(--lo-color-text)}
+.platform-info-row{grid-template-columns:minmax(118px,.9fr) minmax(0,1.1fr);padding:8px 0}
+.platform-info-row dt{font-size:10.25px;font-weight:600}
+.platform-info-row dd{font-size:11.75px;font-weight:700}
 
-.platform-owner-record-workspace>.platform-owner-users{padding:12px 16px 16px}
-.platform-owner-record-workspace>.platform-owner-users .scroll-table{border-radius:10px;box-shadow:none}
-.platform-owner-users .data-table thead th{position:sticky;top:0;z-index:2;background:var(--lo-color-surface);font-size:10px;letter-spacing:.02em}
-.platform-owner-users .data-table tbody tr{height:54px}
+.platform-owner-record-workspace>.platform-owner-users{padding:12px 14px 14px;background:color-mix(in srgb,var(--lo-color-surface) 99%,var(--lo-shell-control-hover))}
+.platform-owner-record-workspace>.platform-owner-users .scroll-table{border-radius:10px;box-shadow:none;border:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
+.platform-owner-users .data-table thead th{position:sticky;top:0;z-index:2;background:color-mix(in srgb,var(--lo-color-surface) 96%,var(--lo-shell-control-hover));font-size:9.75px;letter-spacing:.025em;height:38px}
+.platform-owner-users .data-table tbody tr{height:52px}
+.platform-owner-users .data-table tbody td{font-size:11px}
+.platform-owner-users .data-table tbody td strong{font-size:11.25px}
+.platform-owner-users .data-table tbody td small{font-size:9.75px}
 
-.platform-owner-record-workspace>.diagnostics-panel,
-.platform-owner-record-workspace .hospital-diagnostics-panel{flex:1 1 auto;min-height:0;overflow:hidden}
-.diagnostics-table-wrap{max-height:calc(100dvh - 430px);overflow:auto;border:1px solid var(--lo-color-border);border-radius:10px}
-.diagnostics-table-wrap .data-table thead th{position:sticky;top:0;z-index:2;background:var(--lo-color-surface)}
+.platform-owner-record-workspace>.platform-diagnostics-panel{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:14px 16px 16px;background:color-mix(in srgb,var(--lo-color-surface) 99%,var(--lo-shell-control-hover))}
+.platform-diagnostics-panel>.platform-section-heading{flex:0 0 auto;padding:0 0 10px;border-bottom:1px solid var(--lo-color-border)}
+.platform-diagnostics-panel>.platform-section-heading h3{font-size:17px;margin:0}
+.platform-diagnostics-panel>.platform-section-heading p{font-size:10.5px;max-width:880px;margin-top:4px;line-height:1.45}
+.diagnostics-summary-strip{flex:0 0 auto;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.diagnostics-summary{min-height:48px;padding:8px 11px;border-radius:9px}
+.diagnostics-summary span{font-size:10px}
+.diagnostics-summary strong{font-size:17px}
+.platform-diagnostics-panel .filter-bar{flex:0 0 auto;margin-bottom:10px}
+.diagnostics-table-wrap{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.diagnostics-table-wrap .data-table thead th{position:sticky;top:0;z-index:2;background:color-mix(in srgb,var(--lo-color-surface) 96%,var(--lo-shell-control-hover));font-size:9.5px;height:38px}
+.diagnostics-table-wrap .data-table tbody td{font-size:10.5px;vertical-align:middle}
+.diagnostics-table-wrap .data-table tbody td strong{font-size:10.75px}
+.diagnostics-table-wrap .data-table tbody td small{font-size:9.25px}
 
-.platform-workspace-toolbar{margin:0 0 8px;padding:0 2px}
-.platform-back-button{padding:0 6px;min-height:32px;height:32px;font-size:11px;border-radius:8px}
-.platform-back-button svg{width:15px;height:15px}
+.platform-workspace-toolbar{margin:0 0 6px;padding:0 2px}
+.platform-back-button{padding:0 5px;min-height:30px;height:30px;font-size:10.5px;border-radius:7px}
+.platform-back-button svg{width:14px;height:14px}
 
 /* Form language from the approved mockup: compact groups instead of oversized cards. */
-.platform-form-shell{gap:10px}
-.platform-form-section{padding:12px 14px 14px;border-radius:10px;background:color-mix(in srgb,var(--lo-color-surface) 97%,var(--lo-shell-control-hover))}
-.platform-form-section>header{margin-bottom:10px;padding-bottom:8px}
-.platform-form-section>header strong{font-size:12px}
-.platform-form-section>header span{font-size:10px}
-.platform-form-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 12px}
+.platform-form-shell{gap:9px}
+.platform-form-section{padding:11px 13px 13px;border-radius:9px;background:color-mix(in srgb,var(--lo-color-surface) 97%,var(--lo-shell-control-hover));border-color:color-mix(in srgb,var(--lo-color-border) 86%,transparent)}
+.platform-form-section>header{margin-bottom:9px;padding-bottom:7px}
+.platform-form-section>header strong{font-size:11.5px}
+.platform-form-section>header span{font-size:9.75px}
+.platform-form-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px 11px}
 .platform-form-grid .field-wide{grid-column:span 2}
-.platform-form-grid .field>span{font-size:10px}
-.platform-form-grid .field input,.platform-form-grid .field select{min-height:34px;height:34px;border-radius:7px;padding:0 9px;font-size:11px}
-.platform-form-grid .field small{font-size:9.5px}
-.platform-admin-status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid var(--lo-color-border)}
+.platform-form-grid .field>span{font-size:9.75px}
+.platform-form-grid .field input,.platform-form-grid .field select{min-height:33px;height:33px;border-radius:7px;padding:0 9px;font-size:10.75px;background:var(--lo-color-surface)}
+.platform-form-grid .field small{font-size:9px}
+.platform-admin-status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px;padding-top:9px;border-top:1px solid var(--lo-color-border)}
 
 /* Keep dialogs anchored inside the viewport; only the dialog body scrolls. */
-.observer-dialog{max-height:min(88dvh,820px)}
+.observer-dialog{max-height:min(86dvh,790px);border-radius:14px;box-shadow:0 18px 60px rgb(15 23 42 / 14%)}
 .observer-dialog .observer-dialog-body{min-height:0;overflow:auto}
+.observer-dialog .observer-dialog-header{padding-bottom:12px}
+.observer-dialog .observer-dialog-footer{padding-top:10px}
 
 @media (max-width:1180px){
   .platform-info-sections{grid-template-columns:1fr 1fr}
@@ -74,6 +102,8 @@
   .platform-info-section:nth-child(2){border-right:0}
   .platform-info-section:last-child{grid-column:1/-1;border-bottom:0}
   .platform-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .platform-record-intro{align-items:flex-start;flex-direction:column}
+  .platform-record-intro .platform-org-actions{width:100%;justify-content:flex-start}
 }
 @media (max-width:760px){
   .page-fill:has(.platform-owner-record-workspace),.page:has(.platform-org-list){height:auto;overflow:visible}
@@ -83,4 +113,5 @@
   .platform-info-section:last-child{grid-column:auto;border-bottom:0}
   .platform-form-grid{grid-template-columns:1fr}
   .platform-form-grid .field-wide{grid-column:auto}
+  .diagnostics-summary-strip{grid-template-columns:1fr}
 }
