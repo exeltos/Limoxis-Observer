@@ -7,7 +7,7 @@ export async function listMemberships(userId) {
     .select(`
       id, role, status, custom_role_id,
       custom_role:custom_roles(id, name, capabilities:custom_role_capabilities(capability)),
-      organization:organizations(id, name, code, type, status),
+      organization:organizations(id, name, code, type, status, is_demo),
       scopes:organization_member_scopes(department_id),
       add_ons:organization_member_capabilities(capability),
       assignments:work_assignments(id, assignment_type, source_type, source_id, status, due_at, department_id)
@@ -28,7 +28,8 @@ export async function listPlatformOwnerOrganizations() {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at')
+    .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo')
+    .eq('is_demo', false)
     .order('name', { ascending: true })
   if (error) throw error
   return (data ?? []).map((organization) => ({
@@ -48,8 +49,8 @@ export async function createPlatformOrganization({ name, code, type = 'hospital'
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data, error } = await supabase
     .from('organizations')
-    .insert({ name: name.trim(), code: code.trim().toUpperCase(), type, status, region: region || null, health_region: healthRegion || null, city: city || null, country: country || 'Greece', contact_email: contactEmail || null, contact_phone: contactPhone || null, bed_capacity: bedCapacity ? Number(bedCapacity) : null })
-    .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at')
+    .insert({ name: name.trim(), code: code.trim().toUpperCase(), type, status, region: region || null, health_region: healthRegion || null, city: city || null, country: country || 'Greece', contact_email: contactEmail || null, contact_phone: contactPhone || null, bed_capacity: bedCapacity ? Number(bedCapacity) : null, is_demo: false })
+    .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo')
     .single()
   if (error) throw error
   return data
@@ -65,21 +66,20 @@ export async function createOrganizationUser({ organizationId, fullName, role, e
   return invokeAuthenticatedFunction('create-organization-user', { organizationId, fullName: fullName.trim(), role, email })
 }
 
-
 export async function listPlatformOrganizationMembers() {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('organization_members')
-    .select('id, organization_id, user_id, role, status, organization:organizations(id,name,code)')
+    .select('id, organization_id, user_id, role, status, organization:organizations(id,name,code,is_demo)')
   if (error) throw error
-  return data ?? []
+  return (data ?? []).filter((membership) => !membership.organization?.is_demo)
 }
 
 export async function listPlatformDemos() {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('platform_demo_entitlements')
-    .select('id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,organization:organizations(id,name,code)')
+    .select('id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,demo_user_id,organization:organizations(id,name,code,is_demo)')
     .order('valid_until', { ascending: true })
   if (error) throw error
   return data ?? []
@@ -93,7 +93,6 @@ export async function setPlatformOrganizationStatus(organizationId, status) {
   return data
 }
 
-
 export async function updatePlatformOrganization(organizationId, patch) {
   if (!supabase || !organizationId) throw new Error('SUPABASE_NOT_CONFIGURED')
   const payload = {
@@ -103,16 +102,13 @@ export async function updatePlatformOrganization(organizationId, patch) {
     contact_phone: patch.contactPhone ?? patch.contact_phone ?? null, bed_capacity: patch.bedCapacity === '' ? null : Number(patch.bedCapacity ?? patch.bed_capacity ?? 0) || null,
     updated_at: new Date().toISOString(),
   }
-  const { data, error } = await supabase.from('organizations').update(payload).eq('id', organizationId).select().single()
+  const { data, error } = await supabase.from('organizations').update(payload).eq('id', organizationId).eq('is_demo', false).select().single()
   if (error) throw error
   return data
 }
 
 export async function listOrganizationMembersDetailed(organizationId) {
   if (!supabase || !organizationId) return []
-  // Do not rely on an implicit PostgREST relationship between organization_members
-  // and profiles: both point at auth.users, but there is no direct FK in all deployed
-  // schemas. Fetch in two explicit steps so the query works consistently.
   const { data: memberRows, error: memberError } = await supabase.from('organization_members')
     .select('id,user_id,role,status,created_at')
     .eq('organization_id', organizationId).order('created_at', { ascending: true })
@@ -126,8 +122,6 @@ export async function listOrganizationMembersDetailed(organizationId) {
       supabase.from('account_invitations').select('id,user_id,expires_at,accepted_at,revoked_at,created_at,delivery_email').eq('organization_id', organizationId).in('user_id', userIds).order('created_at', { ascending: false }),
     ])
     if (profileError) throw profileError
-    // account_invitations may be absent on an older installation; member loading
-    // must still work. Invitation metadata is optional in that case.
     profiles = profileRows || []
     if (!inviteError) invitations = inviteRows || []
   }
@@ -154,17 +148,13 @@ export async function purgePlatformOrganization({ organizationId, password, conf
 
 export async function createPlatformDemoEntitlement(payload) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
-  if (payload.contactEmail) {
-    const data = await invokeAuthenticatedFunction('create-demo-access', payload)
-    return data.entitlement || data
-  }
-  const { data, error } = await supabase.from('platform_demo_entitlements').insert({ label: payload.label.trim(), contact_name: payload.contactName || null, contact_email: null, valid_from: payload.validFrom, valid_until: payload.validUntil, status: 'active' }).select().single()
-  if (error) throw error
-  return data
+  if (!payload.contactEmail) throw new Error('DEMO_EMAIL_REQUIRED')
+  const data = await invokeAuthenticatedFunction('create-demo-access', payload)
+  return data.entitlement || data
 }
 
 export async function convertDemoEntitlementToOrganization(demoId, organizationDraft) {
   const org = await createPlatformOrganization(organizationDraft)
-  if (supabase) await supabase.from('platform_demo_entitlements').update({ organization_id: org.id, status: 'revoked', updated_at: new Date().toISOString() }).eq('id', demoId)
+  if (supabase) await supabase.from('platform_demo_entitlements').update({ status: 'revoked', updated_at: new Date().toISOString() }).eq('id', demoId)
   return org
 }
