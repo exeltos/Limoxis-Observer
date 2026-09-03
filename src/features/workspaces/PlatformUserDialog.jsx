@@ -1,7 +1,6 @@
-import { KeyRound,PauseCircle,PlayCircle,Send,Trash2 } from 'lucide-react'
+import { KeyRound,PauseCircle,PlayCircle,Send,Trash2,Save } from 'lucide-react'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
-import { Button } from '../../design-system/Button'
-import { SaveButton } from '../../design-system/SaveButton'
+import { IconButton } from '../../design-system/IconButton'
 import { SYSTEM_ROLE_KEYS,roleLabel } from '../../core/permissions/roleLabels'
 
 export function PlatformUserDialog({organization,user,language='el',onChange,onAction,onDeleteConfirm}){
@@ -14,12 +13,12 @@ export function PlatformUserDialog({organization,user,language='el',onChange,onA
       <label className="field"><span>Email</span><input value={user.email||''} readOnly/></label>
       <label className="field"><span>{en?'Phone':'Τηλέφωνο'}</span><input value={user.phone||''} readOnly/></label>
     </div>
-    <div className="user-management-actions">
-      <SaveButton onClick={()=>onAction('update',{role:user.role,jobTitle:user.jobTitle})}>{en?'Save changes':'Αποθήκευση αλλαγών'}</SaveButton>
-      <Button variant="secondary" onClick={()=>onAction('reset_password')}><KeyRound size={15}/>{en?'Reset password':'Επαναφορά κωδικού'}</Button>
-      {user.status==='invited'&&<Button variant="secondary" onClick={()=>onAction('resend_invitation')}><Send size={15}/>{en?'Resend invitation':'Επαναποστολή πρόσκλησης'}</Button>}
-      <Button variant="secondary" onClick={()=>onAction(user.status==='disabled'?'reactivate':'suspend')}>{user.status==='disabled'?<PlayCircle size={15}/>:<PauseCircle size={15}/>} {user.status==='disabled'?(en?'Reactivate':'Επανενεργοποίηση'):(en?'Suspend user':'Παύση χρήστη')}</Button>
-      <Button variant="secondary" className="button-destructive" onClick={onDeleteConfirm}><Trash2 size={15}/>{en?'Delete':'Διαγραφή'}</Button>
+    <div className="user-management-actions lo-dialog-icon-actions" aria-label={en?'User actions':'Ενέργειες χρήστη'}>
+      <IconButton tone="success" label={en?'Save changes':'Αποθήκευση αλλαγών'} onClick={()=>onAction('update',{role:user.role,jobTitle:user.jobTitle})}><Save size={17}/></IconButton>
+      <IconButton label={en?'Reset password':'Επαναφορά κωδικού'} onClick={()=>onAction('reset_password')}><KeyRound size={17}/></IconButton>
+      {user.status==='invited'&&<IconButton label={en?'Resend invitation':'Επαναποστολή πρόσκλησης'} onClick={()=>onAction('resend_invitation')}><Send size={17}/></IconButton>}
+      <IconButton label={user.status==='disabled'?(en?'Reactivate':'Επανενεργοποίηση'):(en?'Suspend user':'Παύση χρήστη')} onClick={()=>onAction(user.status==='disabled'?'reactivate':'suspend')}>{user.status==='disabled'?<PlayCircle size={17}/>:<PauseCircle size={17}/>}</IconButton>
+      <IconButton tone="danger" label={en?'Delete user':'Διαγραφή χρήστη'} onClick={onDeleteConfirm}><Trash2 size={17}/></IconButton>
     </div>
   </ObserverDialog>
 }
