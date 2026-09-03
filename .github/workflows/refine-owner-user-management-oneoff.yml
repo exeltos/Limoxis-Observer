@@ -1,0 +1,23 @@
+name: Refine owner user management one off
+
+on:
+  push:
+    paths:
+      - .github/workflows/refine-owner-user-management-oneoff.yml
+      - scripts/refine-owner-user-management.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/refine-owner-user-management.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/platform/PlatformOrganizationRecord.jsx src/styles/design-system-layouts.css
+          git commit -m "fix(owner): move user actions into selected user panel" || exit 0
+          git push
