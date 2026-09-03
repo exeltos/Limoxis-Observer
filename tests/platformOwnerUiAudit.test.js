@@ -20,11 +20,12 @@ describe('Platform Owner UI audit',()=>{
 
   it('uses the canonical record shell for organization and demo records',()=>{
     const owner=read('src/features/workspaces/PlatformCenterPage.jsx')
+    const organization=read('src/features/platform/PlatformOrganizationRecord.jsx')
     const demo=read('src/features/platform/PlatformDemoRecord.jsx')
-    expect(owner).toContain('<EntityRecordShell')
-    expect(owner).toContain('className="platform-owner-record-shell"')
-    expect(owner).toContain('PlatformOrganizationActions')
-    expect(owner).toContain('PlatformUserDialog')
+    expect(owner).toContain('<PlatformOrganizationRecord')
+    expect(organization).toContain('<EntityRecordShell')
+    expect(organization).toContain('className="platform-owner-record-shell platform-organization-record-workspace"')
+    expect(organization).toContain("title={tx('ΚΑΡΤΕΛΑ ΟΡΓΑΝΙΣΜΟΥ','ORGANIZATION RECORD')}")
     expect(demo).toContain('<EntityRecordShell')
     expect(demo).toContain('className="platform-owner-record-shell platform-demo-record-workspace"')
   })
@@ -47,13 +48,15 @@ describe('Platform Owner UI audit',()=>{
     expect(source).toContain('organization=${selectedOrg.id}&tab=analysis')
   })
 
-  it('uses the shared dialog and localized semantic actions in the Platform Owner workspace',()=>{
-    const source=read('src/features/workspaces/PlatformCenterPage.jsx')
-    expect(source).toContain('PlatformOrganizationActions')
-    expect(source).toContain('PlatformUserDialog')
-    expect(source).toContain('roleLabel(user.role, language)')
-    expect(source).toContain('Λειτουργία & συμβάντα')
+  it('uses shared record actions and localized role management in the Platform Owner workspace',()=>{
+    const source=read('src/features/platform/PlatformOrganizationRecord.jsx')
+    expect(source).toContain('<EntityRecordShell')
+    expect(source).toContain('className="platform-org-actions"')
+    expect(source).toContain('roleLabel(user.role,language)')
+    expect(source).toContain("tx('Λειτουργία & συμβάντα','Activity & events')")
     expect(source).toContain('platform-form-shell')
+    expect(source).toContain("role:'hospital_admin'")
+    expect(source).toContain("action:'update',role")
   })
 
   it('renders Platform reports through the exact same Analysis workspace with platform scope only',()=>{
