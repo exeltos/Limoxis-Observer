@@ -1,0 +1,19 @@
+name: Link platform users to employees one off
+on:
+  push:
+    paths:
+      - .github/workflows/link-platform-users-to-employees-oneoff.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/link-platform-users-to-employees.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/platform/PlatformOrganizationRecord.jsx src/styles/design-system-layouts.css supabase/functions/manage-organization-user/index.ts
+          git commit -m "feat(profile): link organization users to employee records" || exit 0
+          git push
