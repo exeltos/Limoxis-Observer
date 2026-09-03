@@ -16,16 +16,26 @@ describe('Platform Owner UI audit',()=>{
     expect(source).toContain('if(!isDemo)return []')
   })
 
-  it('opens organizations as full record workspaces with actions inside the record',()=>{
+  it('opens organizations as full record workspaces with actions inside general information',()=>{
     const source=fs.readFileSync('src/features/workspaces/PlatformCenterPage.jsx','utf8')
     expect(source).toContain('function openOrganization(org)')
     expect(source).toContain('platform-owner-record-workspace')
-    expect(source).toContain('actions={<PlatformOrganizationActions organization={selectedOrg}')
+    expect(source).toContain('platform-record-intro')
+    expect(source).toContain('<PlatformOrganizationActions organization={selectedOrg}')
     expect(source).toContain("orgDetailTab==='details'")
     expect(source).toContain("orgDetailTab==='users'")
     expect(source).toContain("orgDetailTab==='diagnostics'")
     expect(source).toContain("orgDetailTab==='analysis'")
-    expect(source).toContain('platform-owner-details-grid')
+    expect(source).toContain('platform-info-sections')
+  })
+
+  it('preserves organization and tab context in navigation history',()=>{
+    const source=fs.readFileSync('src/features/workspaces/PlatformCenterPage.jsx','utf8')
+    expect(source).toContain('parsePlatformHash')
+    expect(source).toContain('organization=${org.id}&tab=details')
+    expect(source).toContain('replace:true,state:location.state')
+    expect(source).toContain('location.state?.returnTo')
+    expect(source).toContain('organization=${selectedOrg.id}&tab=analysis')
   })
 
   it('makes owner registry entries and user rows directly clickable',()=>{
@@ -42,6 +52,7 @@ describe('Platform Owner UI audit',()=>{
     expect(source).toContain('PlatformUserDialog')
     expect(source).toContain('roleLabel(user.role,language)')
     expect(source).toContain('Λειτουργία & συμβάντα')
+    expect(source).toContain('platform-form-shell')
     expect(source).not.toContain('footer={<Button variant="secondary" onClick={()=>setSelectedUser(null)}>Κλείσιμο</Button>}')
   })
 
