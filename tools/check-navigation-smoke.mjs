@@ -17,7 +17,7 @@ const checks=[
   ['employees registry hook',employeeList.includes("useRegistryMemory('employees')")],
   ['employees registry variable',employeeList.includes("const registry=useRegistryMemory('employees')")],
   ['employees row navigation',employeeList.includes('registry.openRecord')],
-  ['laboratory registry hook',read('src/features/laboratory/LaboratoryPage.jsx').includes("useRegistryMemory('laboratory')")],
+  ['laboratory registry hook',[read('src/features/laboratory/LaboratoryCloudPage.jsx'),read('src/features/laboratory/LaboratoryDemoPage.jsx')].every(source=>source.includes("useRegistryMemory('laboratory')"))],
   ['surveillance registry hook',read('src/features/surveillance/SurveillancePage.jsx').includes("useRegistryMemory('surveillance')")],
   ['patient contextual back',patientRecord.includes('const {goBack,restored}=useContextualNavigation')],
   ['employee contextual back',employeeRecord.includes('const {goBack,restored}=useContextualNavigation')],

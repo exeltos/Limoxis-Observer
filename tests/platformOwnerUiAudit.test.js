@@ -38,6 +38,18 @@ describe('Platform Owner UI audit',()=>{
     expect(source).toContain('organization=${selectedOrg.id}&tab=analysis')
   })
 
+  it('presents owner areas as one persistent primary navigation instead of duplicate back flows',()=>{
+    const shell=fs.readFileSync('src/app/AppShell.jsx','utf8')
+    const page=fs.readFileSync('src/features/workspaces/PlatformCenterPage.jsx','utf8')
+    const styles=fs.readFileSync('src/styles/platform-owner-polish.css','utf8')
+    expect(shell).toContain('className="platform-primary-nav"')
+    expect(shell).toContain("['/platform#organizations','platformOrganizationsNav'")
+    expect(shell).toContain("['/platform#demo','platformDemoNav'")
+    expect(shell).toContain("['/platform#reports','platformAnalyticsNav'")
+    expect(styles).toContain('.platform-primary-nav a.active')
+    expect(page).not.toContain("onClick={()=>nav('/platform')}><ArrowLeft")
+  })
+
   it('makes owner registry entries and user rows directly clickable',()=>{
     const source=fs.readFileSync('src/features/workspaces/PlatformCenterPage.jsx','utf8')
     expect(source).toContain('platform-owner-clickable-row')

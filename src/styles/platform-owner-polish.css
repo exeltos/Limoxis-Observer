@@ -1,4 +1,11 @@
 /* Platform Owner visual contract: fixed workspace, calm hospital-grade hierarchy. */
+.platform-topbar{gap:18px}
+.platform-primary-nav{display:flex;align-items:center;gap:4px;min-width:0;padding:4px;border:1px solid var(--lo-color-border);border-radius:11px;background:color-mix(in srgb,var(--lo-color-surface) 94%,var(--lo-shell-control-hover))}
+.platform-primary-nav a{display:flex;align-items:center;gap:7px;min-height:36px;padding:0 13px;border-radius:8px;color:var(--lo-color-muted);font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap}
+.platform-primary-nav a:hover{background:var(--lo-color-surface);color:var(--lo-color-text)}
+.platform-primary-nav a.active{background:var(--lo-color-surface);color:var(--lo-color-primary);box-shadow:0 1px 3px rgb(15 23 42 / 8%)}
+.platform-primary-nav a.active svg{color:var(--lo-color-primary)}
+
 .content:has(.platform-owner-record-workspace),
 .content:has(.platform-org-list),
 .content:has(.platform-demo-access){height:calc(100dvh - 64px);min-height:0;overflow:hidden;padding-bottom:22px}
@@ -12,8 +19,7 @@
 
 /* Registry pages: title/back live together, while the registry itself is a calm surface. */
 .page:has(.platform-org-list),.page:has(.platform-demo-access){height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column;position:relative}
-.page:has(.platform-org-list)>.page-header,.page:has(.platform-demo-access)>.page-header{flex:0 0 auto;padding:0 0 8px 50px}
-.page:has(.platform-org-list)>.platform-workspace-toolbar,.page:has(.platform-demo-access)>.platform-workspace-toolbar{position:absolute;left:0;top:0;z-index:3}
+.page:has(.platform-org-list)>.page-header,.page:has(.platform-demo-access)>.page-header{flex:0 0 auto;padding:0 0 8px}
 
 /* Organizations use the same two-layer visual hierarchy as Demo: command header + registry. */
 .page:has(.platform-org-list)>.platform-center-section{flex:0 1 auto;min-height:0;max-height:calc(100% - 74px);overflow:hidden;display:flex;flex-direction:column;gap:12px;padding:0;background:transparent;border:0;box-shadow:none}
@@ -132,6 +138,8 @@
 .observer-dialog .observer-dialog-footer{padding-top:10px}
 
 @media (max-width:1180px){
+  .platform-primary-nav a{padding:0 9px}
+  .platform-primary-nav a span{display:none}
   .platform-info-sections{grid-template-columns:1fr 1fr}
   .platform-info-section{border-bottom:1px solid var(--lo-color-border)}
   .platform-info-section:nth-child(2){border-right:0}
@@ -147,7 +155,7 @@
 @media (max-width:760px){
   .content:has(.platform-owner-record-workspace),.content:has(.platform-org-list),.content:has(.platform-demo-access){height:auto;overflow:visible}
   .page-fill:has(.platform-owner-record-workspace),.page:has(.platform-org-list),.page:has(.platform-demo-access){height:auto;overflow:visible}
-  .page-fill:has(.platform-owner-record-workspace)>.page-header,.page:has(.platform-org-list)>.page-header,.page:has(.platform-demo-access)>.page-header{padding-left:46px}
+  .page-fill:has(.platform-owner-record-workspace)>.page-header{padding-left:46px}
   .platform-record-intro .platform-org-actions{width:100%;justify-content:flex-start;overflow-x:auto;padding-bottom:4px}
   .platform-info-sections,.platform-demo-info-sections{grid-template-columns:1fr}
   .platform-info-section{border-right:0;border-bottom:1px solid var(--lo-color-border)}
