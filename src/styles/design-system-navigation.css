@@ -1,6 +1,59 @@
 /* Canonical navigation contract.
    Feature-specific layouts must not redefine record navigation or registry geometry here. */
 
+/* Sidebar navigation uses both NavLink anchors and semantic buttons.
+   Normalize both elements so platform navigation cannot inherit browser/button chrome. */
+.sidebar .nav-item{
+  width:100%;
+  min-height:40px;
+  margin:0;
+  padding:10px 11px;
+  border:0;
+  border-radius:9px;
+  appearance:none;
+  -webkit-appearance:none;
+  background:transparent;
+  box-shadow:none;
+  color:rgba(255,255,255,.78);
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:11px;
+  text-align:left;
+  text-decoration:none;
+  font:inherit;
+  font-size:13px;
+  line-height:1.2;
+  cursor:pointer;
+}
+
+.sidebar .nav-item svg{
+  flex:0 0 auto;
+  color:currentColor;
+}
+
+.sidebar .nav-item:hover{
+  background:rgba(255,255,255,.08);
+  color:#fff;
+}
+
+.sidebar .nav-item.active{
+  background:var(--lo-color-surface);
+  color:var(--lo-color-nav);
+  font-weight:700;
+  box-shadow:none;
+}
+
+.sidebar .nav-item:focus-visible{
+  outline:2px solid rgba(255,255,255,.72);
+  outline-offset:2px;
+}
+
+.sidebar .nav-item:disabled{
+  opacity:.48;
+  cursor:not-allowed;
+}
+
 .page-heading-group{
   min-width:0;
   display:flex;
