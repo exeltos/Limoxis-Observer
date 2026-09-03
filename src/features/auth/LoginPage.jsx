@@ -13,9 +13,12 @@ export function LoginPage() {
   const { language, setLanguage } = useLanguage()
   const location = useLocation(), navigate = useNavigate()
   const [identifier,setIdentifier]=useState(''),[password,setPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[error,setError]=useState(''),[submitting,setSubmitting]=useState(false)
-  const returnTo = typeof location.state?.from === 'string' && location.state.from.startsWith('/') && !location.state.from.startsWith('//')
+  const requestedReturnTo = typeof location.state?.from === 'string' && location.state.from.startsWith('/') && !location.state.from.startsWith('//')
     ? location.state.from
     : '/'
+  // Platform Owner sessions always enter through the Platform Dashboard instead of
+  // restoring a stale Platform sub-route such as #reports from a previous session.
+  const returnTo = requestedReturnTo.startsWith('/platform') ? '/platform' : requestedReturnTo
   if (isAuthenticated) return <Navigate to={returnTo} replace />
   const greek=language==='el'
   async function handleSubmit(event){event.preventDefault();setError('');setSubmitting(true);try{await login(identifier.trim(),password);navigate(returnTo,{replace:true})}catch(nextError){setError(userFacingError(nextError,{language,context:'login'}))}finally{setSubmitting(false)}}
