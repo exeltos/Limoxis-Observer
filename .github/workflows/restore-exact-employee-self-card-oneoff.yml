@@ -1,0 +1,19 @@
+name: Restore exact employee self card one off
+on:
+  push:
+    paths:
+      - .github/workflows/restore-exact-employee-self-card-oneoff.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/restore-exact-employee-self-card.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/employees/EmployeeRecordPage.jsx
+          git commit -m "fix(profile): show exact employee card in self profile" || exit 0
+          git push
