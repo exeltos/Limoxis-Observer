@@ -1,6 +1,7 @@
-import { ArrowLeft,ChevronLeft,ChevronRight } from 'lucide-react'
+import { ChevronLeft,ChevronRight } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useContextualNavigation } from '../core/navigation/useContextualNavigation'
+import { BackButton } from './BackButton'
 
 export function EntityRecordShell({
   avatar,
@@ -23,7 +24,7 @@ export function EntityRecordShell({
   const handleBack=onBack||goBack
   return <div className={`entity-record-shell canonical-detail-screen ${className}`.trim()}>
     <header className="entity-record-header surface">
-      <button className="entity-record-icon-button back entity-record-back-left" onClick={handleBack} title={backLabel||t('back')} aria-label={backLabel||t('back')}><ArrowLeft size={16}/></button>
+      <BackButton className="entity-record-back-left" onClick={handleBack} label={backLabel||t('back')}/>
       <div className="entity-record-avatar">{avatar}</div>
       <div className="entity-record-identity">
         {eyebrow&&<span className="eyebrow">{eyebrow}</span>}
