@@ -93,7 +93,7 @@ export function AnalysisPage({platform=false,organizations=[]}){
   return (
     <Page
       fill
-      className="analysis-page"
+      className={`analysis-page ${platform?'platform-analysis-page':''}`.trim()}
       navigation={returnTo?<BackButton onClick={()=>nav(returnTo)} label={tx('Πίσω','Back')}/>:null}
       title={tx('Ανάλυση','Analytics')}
       subtitle={platform?tx('Συγκεντρωτική και συγκριτική εικόνα πλατφόρμας.','Platform-wide reporting and comparison.'):tenant?.name||tx('Οργανισμός','Organization')}
