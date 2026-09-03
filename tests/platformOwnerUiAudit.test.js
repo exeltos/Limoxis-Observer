@@ -25,7 +25,7 @@ describe('Platform Owner UI audit',()=>{
     expect(owner).toContain('<PlatformOrganizationRecord')
     expect(organization).toContain('<EntityRecordShell')
     expect(organization).toContain('className="platform-owner-record-shell platform-organization-record-workspace"')
-    expect(organization).toContain("title={tx('ΚΑΡΤΕΛΑ ΟΡΓΑΝΙΣΜΟΥ','ORGANIZATION RECORD')}")
+    expect(organization).toContain("eyebrow={tx('ΚΑΡΤΕΛΑ ΟΡΓΑΝΙΣΜΟΥ','ORGANIZATION RECORD')}")
     expect(demo).toContain('<EntityRecordShell')
     expect(demo).toContain('className="platform-owner-record-shell platform-demo-record-workspace"')
   })
