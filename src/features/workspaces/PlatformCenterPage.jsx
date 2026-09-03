@@ -4,7 +4,6 @@ import {
   Clock3,
   FlaskConical,
   LogIn,
-  Send,
   ShieldCheck,
   Trash2,
 } from 'lucide-react'
@@ -111,7 +110,7 @@ function FormSection({ title, subtitle, children }) {
 export function PlatformCenterPage() {
   const { memberships, setTenantByMembership, reloadMemberships, enterPlatformDemo } = useTenant()
   const { language } = useLanguage()
-  const { notify, notifyError, confirm } = useFeedback()
+  const { notify, notifyError } = useFeedback()
   const nav = useNavigate()
   const location = useLocation()
   const en = language === 'en'
@@ -266,7 +265,6 @@ export function PlatformCenterPage() {
   }
 
   function returnFromRecord() {
-    setSelectedUser(null)
     nav(location.state?.returnTo || '/platform#organizations')
   }
 
