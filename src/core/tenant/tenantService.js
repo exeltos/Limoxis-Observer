@@ -85,6 +85,31 @@ export async function listPlatformDemos() {
   return data ?? []
 }
 
+export async function updatePlatformDemoEntitlement(demoId, patch) {
+  if (!supabase || !demoId) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const payload = {}
+  if (patch.label !== undefined) payload.label = String(patch.label || '').trim()
+  if (patch.contactName !== undefined || patch.contact_name !== undefined) payload.contact_name = patch.contactName ?? patch.contact_name ?? null
+  if (patch.contactEmail !== undefined || patch.contact_email !== undefined) payload.contact_email = String(patch.contactEmail ?? patch.contact_email ?? '').trim().toLowerCase() || null
+  if (patch.validFrom !== undefined || patch.valid_from !== undefined) payload.valid_from = patch.validFrom ?? patch.valid_from
+  if (patch.validUntil !== undefined || patch.valid_until !== undefined) payload.valid_until = patch.validUntil ?? patch.valid_until
+  if (patch.status !== undefined) payload.status = patch.status
+  payload.updated_at = new Date().toISOString()
+  const { data, error } = await supabase.from('platform_demo_entitlements').update(payload).eq('id', demoId).select('id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,demo_user_id,organization:organizations(id,name,code,is_demo)').single()
+  if (error) throw error
+  return data
+}
+
+export async function setPlatformDemoStatus(demoId, status) {
+  if (!['active', 'paused', 'expired', 'revoked'].includes(status)) throw new Error('INVALID_DEMO_STATUS')
+  return updatePlatformDemoEntitlement(demoId, { status })
+}
+
+export async function resetPlatformDemoPassword(demo) {
+  if (!demo?.organization_id || !demo?.demo_user_id) throw new Error('DEMO_ACCOUNT_NOT_LINKED')
+  return manageOrganizationUser({ organizationId: demo.organization_id, userId: demo.demo_user_id, action: 'reset_password' })
+}
+
 export async function setPlatformOrganizationStatus(organizationId, status) {
   if (!supabase || !organizationId) throw new Error('SUPABASE_NOT_CONFIGURED')
   const patch = { status, paused_at: status === 'suspended' ? new Date().toISOString() : null }
