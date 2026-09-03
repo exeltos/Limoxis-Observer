@@ -469,3 +469,32 @@
   .modal-backdrop:has(.platform-demo-create-dialog){padding:10px}
   .platform-demo-create-dialog{width:calc(100vw - 20px)!important}
 }
+
+
+/* Platform Owner · refined user record geometry */
+.platform-user-management-panel{
+  width:100%;
+  margin:16px 0 0;
+}
+.platform-user-management-heading{padding:14px 16px}
+.platform-user-management-identity>span{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap}
+.platform-user-management-heading .platform-user-email{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
+.platform-user-meta-separator{flex:0 0 auto}
+.platform-user-management-panel .scroll-table{overflow-x:hidden}
+.platform-user-detail-table{min-width:0;table-layout:auto}
+.platform-user-detail-table th{width:150px}
+.platform-user-detail-table tr>th:nth-child(3){width:150px}
+.platform-user-detail-table td{min-width:0}
+.platform-user-detail-table tr:first-child td:nth-child(2){width:34%}
+.platform-user-detail-table tr:first-child td:nth-child(4){width:34%}
+.platform-user-detail-table tr:first-child td:nth-child(4){overflow-wrap:anywhere;word-break:break-word}
+.platform-record-edit-toolbar{position:relative}
+.platform-record-edit-toolbar>.entity-record-icon-button{position:absolute;right:12px;top:10px;z-index:2;margin:0}
+.platform-organization-record-form>.platform-record-edit-toolbar,
+.platform-demo-record-workspace .platform-record-edit-toolbar{height:0;margin:0;overflow:visible}
+@media(max-width:760px){
+ .platform-user-detail-table{min-width:0}
+ .platform-user-detail-table tr{display:grid;grid-template-columns:118px minmax(0,1fr)}
+ .platform-user-detail-table th,.platform-user-detail-table td{width:auto!important}
+ .platform-user-detail-table td[colspan="3"]{grid-column:2}
+}
