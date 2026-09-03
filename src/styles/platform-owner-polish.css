@@ -12,17 +12,19 @@
 .page-fill:has(.platform-owner-record-workspace)>.platform-workspace-toolbar{flex:0 0 auto;margin-bottom:6px}
 .page-fill:has(.platform-owner-record-workspace)>.platform-owner-record-workspace{flex:1 1 auto;min-height:0}
 
+/* Registry pages keep the shell fixed, but the registry itself only grows as needed.
+   Once it reaches the available viewport, only its list scrolls. */
 .page:has(.platform-org-list){height:calc(100dvh - var(--lo-shell-header-height,56px));min-height:0;overflow:hidden;display:flex;flex-direction:column}
 .page:has(.platform-org-list)>.page-header,.page:has(.platform-org-list)>.platform-workspace-toolbar{flex:0 0 auto}
 .page:has(.platform-org-list)>.page-header{padding-bottom:8px}
-.page:has(.platform-org-list)>.platform-center-section{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;border-radius:14px;box-shadow:0 8px 28px rgb(15 23 42 / 4%)}
+.page:has(.platform-org-list)>.platform-center-section{flex:0 1 auto;min-height:0;max-height:calc(100dvh - 220px);overflow:hidden;display:flex;flex-direction:column;border-radius:14px;box-shadow:0 8px 28px rgb(15 23 42 / 4%)}
 .page:has(.platform-org-list) .platform-section-heading{padding-bottom:12px;border-bottom:1px solid var(--lo-color-border)}
 .page:has(.platform-org-list) .platform-section-heading h2{font-size:16px}
 .page:has(.platform-org-list) .platform-section-heading p{font-size:11px}
-.page:has(.platform-org-list) .platform-org-list{flex:1 1 auto;min-height:0;overflow:auto;padding:10px 2px 2px}
+.page:has(.platform-org-list) .platform-org-list{flex:0 1 auto;min-height:0;overflow:auto;padding:10px 2px 2px}
 .platform-org-list{display:grid;align-content:start;gap:8px}
-.platform-owner-clickable-row{min-height:60px;border-radius:10px;padding:11px 13px;box-shadow:none}
-.platform-owner-clickable-row:hover{box-shadow:none;transform:none}
+.platform-owner-clickable-row{min-height:58px;border-radius:10px;padding:10px 13px;box-shadow:none;background:var(--lo-color-surface);border:1px solid var(--lo-color-border)}
+.platform-owner-clickable-row:hover{box-shadow:none;transform:none;background:color-mix(in srgb,var(--lo-shell-control-hover) 42%,var(--lo-color-surface));border-color:color-mix(in srgb,var(--lo-color-primary) 26%,var(--lo-color-border))}
 .platform-owner-clickable-row strong{font-size:13px}
 .platform-owner-clickable-row small{font-size:10.5px}
 
@@ -50,10 +52,13 @@
 .platform-info-row dt{font-size:10.25px;font-weight:600}
 .platform-info-row dd{font-size:11.75px;font-weight:700}
 
-.platform-owner-record-workspace>.platform-owner-users{padding:12px 14px 14px;background:color-mix(in srgb,var(--lo-color-surface) 99%,var(--lo-shell-control-hover))}
-.platform-owner-record-workspace>.platform-owner-users .scroll-table{border-radius:10px;box-shadow:none;border:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
+/* Users are a registry, not a full-height empty table. */
+.platform-owner-record-workspace>.platform-owner-users{flex:1 1 auto;min-height:0;overflow:hidden;padding:12px 14px 14px;background:color-mix(in srgb,var(--lo-color-surface) 99%,var(--lo-shell-control-hover))}
+.platform-owner-record-workspace>.platform-owner-users .scroll-table{height:auto;max-height:100%;overflow:auto;border-radius:10px;box-shadow:none;border:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
+.platform-owner-users .data-table{height:auto;min-height:0}
 .platform-owner-users .data-table thead th{position:sticky;top:0;z-index:2;background:color-mix(in srgb,var(--lo-color-surface) 96%,var(--lo-shell-control-hover));font-size:9.75px;letter-spacing:.025em;height:38px}
-.platform-owner-users .data-table tbody tr{height:52px}
+.platform-owner-users .data-table tbody tr{height:52px;cursor:pointer}
+.platform-owner-users .data-table tbody tr:hover{background:color-mix(in srgb,var(--lo-shell-control-hover) 42%,var(--lo-color-surface))}
 .platform-owner-users .data-table tbody td{font-size:11px}
 .platform-owner-users .data-table tbody td strong{font-size:11.25px}
 .platform-owner-users .data-table tbody td small{font-size:9.75px}
@@ -72,6 +77,16 @@
 .diagnostics-table-wrap .data-table tbody td{font-size:10.5px;vertical-align:middle}
 .diagnostics-table-wrap .data-table tbody td strong{font-size:10.75px}
 .diagnostics-table-wrap .data-table tbody td small{font-size:9.25px}
+
+/* Demo registries follow the same visual language as organizations and dashboard rows. */
+.page:has(.platform-demo-access){height:calc(100dvh - var(--lo-shell-header-height,56px));min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.page:has(.platform-demo-access)>.page-header,.page:has(.platform-demo-access)>.platform-workspace-toolbar{flex:0 0 auto}
+.page:has(.platform-demo-access)>.platform-center-section{flex:0 0 auto}
+.page:has(.platform-demo-access)>.platform-center-section:last-of-type{flex:0 1 auto;min-height:0;max-height:calc(100dvh - 360px);overflow:hidden;display:flex;flex-direction:column}
+.page:has(.platform-demo-access)>.platform-center-section:last-of-type .platform-demo-list{min-height:0;overflow:auto}
+.platform-demo-list{display:grid;gap:8px}
+.platform-demo-row{min-height:58px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);padding:10px 13px}
+.platform-demo-row:hover{background:color-mix(in srgb,var(--lo-shell-control-hover) 42%,var(--lo-color-surface));border-color:color-mix(in srgb,var(--lo-color-primary) 24%,var(--lo-color-border))}
 
 .platform-workspace-toolbar{margin:0 0 6px;padding:0 2px}
 .platform-back-button{padding:0 5px;min-height:30px;height:30px;font-size:10.5px;border-radius:7px}
@@ -106,7 +121,7 @@
   .platform-record-intro .platform-org-actions{width:100%;justify-content:flex-start}
 }
 @media (max-width:760px){
-  .page-fill:has(.platform-owner-record-workspace),.page:has(.platform-org-list){height:auto;overflow:visible}
+  .page-fill:has(.platform-owner-record-workspace),.page:has(.platform-org-list),.page:has(.platform-demo-access){height:auto;overflow:visible}
   .platform-record-intro .platform-org-actions{width:100%;justify-content:flex-start;overflow-x:auto;padding-bottom:4px}
   .platform-info-sections{grid-template-columns:1fr}
   .platform-info-section{border-right:0;border-bottom:1px solid var(--lo-color-border)}
