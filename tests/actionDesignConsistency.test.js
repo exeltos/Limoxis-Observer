@@ -34,11 +34,13 @@ describe('shared semantic action design',()=>{
     expect(observerDialog).toContain('showCancel&&onCancel')
   })
 
-  it('uses the shared icon control for analytics print and export',()=>{
-    expect(analysis).toContain("import { IconButton } from '../../design-system/IconButton'")
-    expect(analysis).toContain('<IconButton label={tx(')
+  it('keeps analytics print and export as the same compact utility action pattern',()=>{
+    expect(analysis).toContain('className="analysis-actions"')
+    expect(analysis).toContain('className="icon-button"')
     expect(analysis).toContain("tx('Εκτύπωση','Print')")
     expect(analysis).toContain("tx('Εξαγωγή CSV','Export CSV')")
+    expect(analysis).toContain('<Printer size={16}/>')
+    expect(analysis).toContain('<Download size={16}/>')
   })
 
   it('centralizes edit, destructive and success tones in one stylesheet',()=>{
