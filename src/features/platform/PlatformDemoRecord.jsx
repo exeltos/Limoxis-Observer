@@ -1,6 +1,6 @@
 import { useEffect,useState } from 'react'
 import { FlaskConical,KeyRound,LogIn,PauseCircle,Pencil,PlayCircle,Trash2 } from 'lucide-react'
-import { BackButton } from '../../design-system/BackButton'
+import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { IconButton } from '../../design-system/IconButton'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -36,27 +36,36 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
   async function saveEdit(){if(!draft?.label?.trim()||!draft?.validFrom||!draft?.validUntil||saving)return;setSaving(true);try{const next=await updatePlatformDemoEntitlement(record.id,draft);setRecord(next);setEditOpen(false);onChanged?.(next);notify(tx('Η καρτέλα Demo ενημερώθηκε.','Demo record updated.'),'success',{operation:'platform_demo_update'})}catch(error){notifyError(error,'save',{operation:'platform_demo_update'})}finally{setSaving(false)}}
   async function togglePause(){if(working)return;const next=record.status==='paused'?'active':'paused';const ok=await confirm({title:next==='paused'?tx('Παύση Demo','Pause Demo'):tx('Ενεργοποίηση Demo','Reactivate Demo'),message:next==='paused'?tx('Η πρόσβαση του Demo χρήστη θα απενεργοποιηθεί μέχρι να την ενεργοποιήσεις ξανά.','The Demo user will lose Demo access until you reactivate it.'):tx('Να ενεργοποιηθεί ξανά η πρόσβαση Demo;','Reactivate Demo access?'),confirmLabel:next==='paused'?tx('Παύση','Pause'):tx('Ενεργοποίηση','Reactivate')});if(!ok)return;setWorking(true);try{const updated=await setPlatformDemoStatus(record.id,next);setRecord(updated);onChanged?.(updated);notify(next==='paused'?tx('Το Demo τέθηκε σε παύση.','Demo paused.'):tx('Το Demo ενεργοποιήθηκε.','Demo reactivated.'),'success',{operation:'platform_demo_status'})}catch(error){notifyError(error,'action',{operation:'platform_demo_status'})}finally{setWorking(false)}}
   async function resetPassword(){if(working)return;setWorking(true);try{await resetPlatformDemoPassword(record);notify(tx('Στάλθηκε email επαναφοράς κωδικού στον Demo χρήστη.','Password reset email sent to the Demo user.'),'success',{operation:'platform_demo_reset_password'})}catch(error){notifyError(error,'action',{operation:'platform_demo_reset_password'})}finally{setWorking(false)}}
-  async function removeDemo(){if(working)return;const ok=await confirm({title:tx('Οριστική διαγραφή Demo','Delete Demo permanently'),message:tx(`Θα διαγραφούν η Demo πρόσβαση, ο Demo λογαριασμός και ο απομονωμένος Demo οργανισμός «${org?.name||record.label}». Η ενέργεια δεν αναιρείται.`,`The Demo access, Demo account, and isolated Demo organization “${org?.name||record.label}” will be permanently deleted. This cannot be undone.`),confirmLabel:tx('Οριστική διαγραφή','Delete permanently'),danger:true});if(!ok)return;setWorking(true);try{await deletePlatformDemo(record);notify(tx('Το Demo διαγράφηκε οριστικά.','Demo deleted permanently.'),'success',{operation:'platform_demo_delete'});if(onDeleted)onDeleted(record.id);else{onBack?.();window.setTimeout(()=>window.location.reload(),0)}}catch(error){notifyError(error,'delete',{operation:'platform_demo_delete'});setWorking(false)}}
+  async function removeDemo(){if(working)return;const ok=await confirm({title:tx('Οριστική διαγραφή Demo','Delete Demo permanently'),message:tx(`Θα διαγραφούν η Demo πρόσβαση, ο Demo λογαριασμός και ο απομονωμένος Demo οργανισμός «${org?.name||record.label}». Η ενέργεια δεν αναιρείται.`,`The Demo access, Demo account, and isolated Demo organization “${org?.name||record.label}” will be permanently deleted. This cannot be undone.`),confirmLabel:tx('Οριστική διαγραφή','Delete permanently'),danger:true});if(!ok)return;setWorking(true);try{await deletePlatformDemo(record);notify(tx('Το Demo διαγράφηκε οριστικά.','Demo deleted permanently.'),'success',{operation:'platform_demo_delete'});if(onDeleted)onDeleted(record.id);else onBack?.()}catch(error){notifyError(error,'delete',{operation:'platform_demo_delete'});setWorking(false)}}
 
-  return <div className="platform-demo-record-shell">
-    <header className="platform-record-header surface">
-      <BackButton onClick={onBack} label={tx('Πίσω','Back')}/>
-      <span className="platform-demo-icon"><FlaskConical size={20}/></span>
-      <div className="platform-record-header-copy"><span className="eyebrow">{tx('ΚΑΡΤΕΛΑ DEMO','DEMO RECORD')}</span><h2>{org?.name||record.label}</h2><p>{tx('Χρονικά περιορισμένο και πλήρως απομονωμένο περιβάλλον επίδειξης.','Time-limited, fully isolated demonstration environment.')}</p></div>
-      <div className="platform-org-actions" aria-label={tx('Ενέργειες Demo','Demo actions')}>
-        <Action icon={<LogIn size={18}/>} tone="primary" label={tx('Είσοδος','Enter')} title={tx('Είσοδος στο Demo','Open Demo')} onClick={onOpenDemo}/>
-        <Action icon={<Pencil size={17}/>} tone="edit" label={tx('Επεξεργασία','Edit')} title={tx('Επεξεργασία Demo','Edit Demo')} onClick={openEdit}/>
-        <Action icon={<KeyRound size={17}/>} tone="neutral" label={tx('Κωδικός','Password')} title={tx('Επαναφορά κωδικού Demo χρήστη','Reset Demo user password')} disabled={working||!record.demo_user_id||!record.organization_id} onClick={resetPassword}/>
-        <Action icon={record.status==='paused'?<PlayCircle size={17}/>:<PauseCircle size={17}/>} tone={record.status==='paused'?'success':'neutral'} label={record.status==='paused'?tx('Ενεργοποίηση','Reactivate'):tx('Παύση','Pause')} title={record.status==='paused'?tx('Ενεργοποίηση Demo','Reactivate Demo'):tx('Παύση Demo','Pause Demo')} disabled={working} onClick={togglePause}/>
-        <Action icon={<Trash2 size={17}/>} tone="danger" label={tx('Διαγραφή','Delete')} title={tx('Οριστική διαγραφή Demo','Delete Demo permanently')} disabled={working} onClick={removeDemo}/>
-      </div>
-    </header>
-    <section className="platform-center-section platform-owner-record-workspace platform-demo-record-workspace">
+  const actions=<div className="platform-org-actions" aria-label={tx('Ενέργειες Demo','Demo actions')}>
+    <Action icon={<LogIn size={18}/>} tone="primary" label={tx('Είσοδος','Enter')} title={tx('Είσοδος στο Demo','Open Demo')} onClick={onOpenDemo}/>
+    <Action icon={<Pencil size={17}/>} tone="edit" label={tx('Επεξεργασία','Edit')} title={tx('Επεξεργασία Demo','Edit Demo')} onClick={openEdit}/>
+    <Action icon={<KeyRound size={17}/>} tone="neutral" label={tx('Κωδικός','Password')} title={tx('Επαναφορά κωδικού Demo χρήστη','Reset Demo user password')} disabled={working||!record.demo_user_id||!record.organization_id} onClick={resetPassword}/>
+    <Action icon={record.status==='paused'?<PlayCircle size={17}/>:<PauseCircle size={17}/>} tone={record.status==='paused'?'success':'neutral'} label={record.status==='paused'?tx('Ενεργοποίηση','Reactivate'):tx('Παύση','Pause')} title={record.status==='paused'?tx('Ενεργοποίηση Demo','Reactivate Demo'):tx('Παύση Demo','Pause Demo')} disabled={working} onClick={togglePause}/>
+    <Action icon={<Trash2 size={17}/>} tone="danger" label={tx('Διαγραφή','Delete')} title={tx('Οριστική διαγραφή Demo','Delete Demo permanently')} disabled={working} onClick={removeDemo}/>
+  </div>
+
+  return <>
+    <EntityRecordShell
+      className="platform-owner-record-shell platform-demo-record-workspace"
+      avatar={<FlaskConical size={20}/>} eyebrow={tx('ΚΑΡΤΕΛΑ DEMO','DEMO RECORD')}
+      title={org?.name||record.label}
+      subtitle={tx('Χρονικά περιορισμένο και πλήρως απομονωμένο περιβάλλον επίδειξης.','Time-limited, fully isolated demonstration environment.')}
+      status={<span className={`status-badge ${active?'active':status==='paused'?'temporary':'danger'}`}>{statusLabel}</span>}
+      headerActions={actions}
+      onBack={onBack}
+      backLabel={tx('Πίσω','Back')}
+    >
       <div className="platform-owner-details">
         <div className="platform-demo-record-status"><span className="platform-demo-icon"><FlaskConical size={20}/></span><div><strong>{statusLabel}</strong><span>{active?`${remaining} ${tx('ημέρες υπόλοιπο','days remaining')}`:status==='paused'?tx('Η πρόσβαση έχει τεθεί σε παύση.','Access is paused.'):tx('Η πρόσβαση δεν είναι ενεργή.','Access is not active.')}</span></div></div>
-        <div className="platform-info-sections platform-demo-info-sections"><InfoSection title={tx('Demo οργανισμός','Demo organization')}><InfoRow label={tx('Επωνυμία','Name')} value={org?.name||record.label}/><InfoRow label={tx('Κωδικός','Code')} value={org?.code||'—'}/><InfoRow label={tx('Τύπος','Type')} value={tx('Demo / Prospect','Demo / Prospect')}/><InfoRow label={tx('Κατάσταση','Status')} value={statusLabel} status={active?'active':'danger'}/></InfoSection><InfoSection title={tx('Επικοινωνία','Contact')}><InfoRow label={tx('Υπεύθυνος','Contact person')} value={record.contact_name||'—'}/><InfoRow label="Email" value={record.contact_email||'—'}/><InfoRow label={tx('Λογαριασμός Demo','Demo account')} value={record.demo_user_id?tx('Συνδεδεμένος','Linked'):tx('Δεν έχει συνδεθεί','Not linked')}/></InfoSection><InfoSection title={tx('Διάρκεια πρόσβασης','Access period')}><InfoRow label={tx('Έναρξη','Start')} value={record.valid_from}/><InfoRow label={tx('Λήξη','End')} value={record.valid_until}/><InfoRow label={tx('Υπόλοιπο','Remaining')} value={`${remaining} ${tx('ημέρες','days')}`}/><InfoRow label={tx('Απομόνωση δεδομένων','Data isolation')} value={tx('Μόνο Demo δεδομένα','Demo data only')}/></InfoSection></div>
+        <div className="platform-info-sections platform-demo-info-sections">
+          <InfoSection title={tx('Demo οργανισμός','Demo organization')}><InfoRow label={tx('Επωνυμία','Name')} value={org?.name||record.label}/><InfoRow label={tx('Κωδικός','Code')} value={org?.code||'—'}/><InfoRow label={tx('Τύπος','Type')} value="Demo / Prospect"/><InfoRow label={tx('Κατάσταση','Status')} value={statusLabel} status={active?'active':'danger'}/></InfoSection>
+          <InfoSection title={tx('Επικοινωνία','Contact')}><InfoRow label={tx('Υπεύθυνος','Contact person')} value={record.contact_name||'—'}/><InfoRow label="Email" value={record.contact_email||'—'}/><InfoRow label={tx('Λογαριασμός Demo','Demo account')} value={record.demo_user_id?tx('Συνδεδεμένος','Linked'):tx('Δεν έχει συνδεθεί','Not linked')}/></InfoSection>
+          <InfoSection title={tx('Διάρκεια πρόσβασης','Access period')}><InfoRow label={tx('Έναρξη','Start')} value={record.valid_from}/><InfoRow label={tx('Λήξη','End')} value={record.valid_until}/><InfoRow label={tx('Υπόλοιπο','Remaining')} value={`${remaining} ${tx('ημέρες','days')}`}/><InfoRow label={tx('Απομόνωση δεδομένων','Data isolation')} value={tx('Μόνο Demo δεδομένα','Demo data only')}/></InfoSection>
+        </div>
       </div>
-    </section>
+    </EntityRecordShell>
     {editOpen&&<ObserverDialog width="wide" eyebrow={tx('Platform Owner · Demo','Platform Owner · Demo')} title={tx('Επεξεργασία Demo','Edit Demo')} subtitle={tx('Ενημέρωση στοιχείων και διάρκειας πρόσβασης.','Update details and access period.')} onClose={()=>!saving&&setEditOpen(false)} footer={<SaveButton loading={saving} onClick={saveEdit}>{tx('Αποθήκευση','Save')}</SaveButton>}><div className="platform-form-shell"><section className="platform-form-section"><header><strong>{tx('Στοιχεία Demo','Demo details')}</strong></header><div className="platform-form-grid platform-demo-edit-grid"><label className="field field-wide"><span>{tx('Οργανισμός / Prospect','Organization / Prospect')} *</span><input value={draft?.label||''} onChange={e=>setDraft(x=>({...x,label:e.target.value}))}/></label><label className="field"><span>{tx('Υπεύθυνος επικοινωνίας','Contact person')}</span><input value={draft?.contactName||''} onChange={e=>setDraft(x=>({...x,contactName:e.target.value}))}/></label><label className="field"><span>Email</span><input type="email" value={draft?.contactEmail||''} onChange={e=>setDraft(x=>({...x,contactEmail:e.target.value}))}/></label><ManualDateField label={tx('Έναρξη','Start')} value={draft?.validFrom||''} onChange={value=>setDraft(x=>({...x,validFrom:value}))}/><ManualDateField label={tx('Λήξη','End')} value={draft?.validUntil||''} onChange={value=>setDraft(x=>({...x,validUntil:value}))}/></div></section></div></ObserverDialog>}
-  </div>
+  </>
 }
