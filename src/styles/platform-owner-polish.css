@@ -1,39 +1,29 @@
 /* Platform Owner visual contract: fixed workspace, calm hospital-grade hierarchy. */
 .content:has(.platform-owner-record-workspace),
 .content:has(.platform-org-list),
-.content:has(.platform-demo-access){
-  height:calc(100dvh - 64px);
-  min-height:0;
-  overflow:hidden;
-  padding-bottom:22px;
-}
+.content:has(.platform-demo-access){height:calc(100dvh - 64px);min-height:0;overflow:hidden;padding-bottom:22px}
 
-.page-fill:has(.platform-owner-record-workspace){
-  height:100%;
-  min-height:0;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-}
-.page-fill:has(.platform-owner-record-workspace)>.page-header{flex:0 0 auto;padding-bottom:8px}
+.page-fill:has(.platform-owner-record-workspace){height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.page-fill:has(.platform-owner-record-workspace)>.page-header{flex:0 0 auto;padding:0 0 8px 50px}
 .page-fill:has(.platform-owner-record-workspace)>.page-header h1{font-size:22px;letter-spacing:-.02em}
 .page-fill:has(.platform-owner-record-workspace)>.page-header p{margin-top:3px}
-.page-fill:has(.platform-owner-record-workspace)>.platform-workspace-toolbar{flex:0 0 auto;margin-bottom:6px}
+.page-fill:has(.platform-owner-record-workspace)>.platform-workspace-toolbar{position:absolute;left:0;top:0;z-index:3}
 .page-fill:has(.platform-owner-record-workspace)>.platform-owner-record-workspace{flex:1 1 auto;min-height:0}
 
-/* Registry pages use the same compact language as the Demo registry.
-   The shell stays fixed; only the registry body scrolls when it actually needs to. */
-.page:has(.platform-org-list){height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-.page:has(.platform-org-list)>.page-header,.page:has(.platform-org-list)>.platform-workspace-toolbar{flex:0 0 auto}
-.page:has(.platform-org-list)>.page-header{padding-bottom:8px}
-.page:has(.platform-org-list)>.platform-center-section{flex:0 1 auto;min-height:0;max-height:calc(100% - 118px);overflow:hidden;display:flex;flex-direction:column;border-radius:14px;box-shadow:0 8px 28px rgb(15 23 42 / 4%)}
-.page:has(.platform-org-list) .platform-section-heading{padding-bottom:12px;border-bottom:1px solid var(--lo-color-border)}
+/* Registry pages: title/back live together, while the registry itself is a calm surface. */
+.page:has(.platform-org-list),.page:has(.platform-demo-access){height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.page:has(.platform-org-list)>.page-header,.page:has(.platform-demo-access)>.page-header{flex:0 0 auto;padding:0 0 8px 50px}
+.page:has(.platform-org-list)>.platform-workspace-toolbar,.page:has(.platform-demo-access)>.platform-workspace-toolbar{position:absolute;left:0;top:0;z-index:3}
+
+/* Organizations use the same two-layer visual hierarchy as Demo: command header + registry. */
+.page:has(.platform-org-list)>.platform-center-section{flex:0 1 auto;min-height:0;max-height:calc(100% - 74px);overflow:hidden;display:flex;flex-direction:column;gap:12px;padding:0;background:transparent;border:0;box-shadow:none}
+.page:has(.platform-org-list) .platform-section-heading{flex:0 0 auto;padding:14px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);box-shadow:0 6px 22px rgb(15 23 42 / 3%)}
 .page:has(.platform-org-list) .platform-section-heading h2{font-size:16px}
 .page:has(.platform-org-list) .platform-section-heading p{font-size:11px}
-.page:has(.platform-org-list) .platform-org-list{flex:0 1 auto;min-height:0;overflow:auto;padding:10px 0 0;border:0;background:transparent;box-shadow:none}
-.platform-org-list{display:grid;align-content:start;gap:8px;border:0!important;background:transparent!important}
+.page:has(.platform-org-list) .platform-org-list{flex:0 1 auto;min-height:0;overflow:auto;padding:10px;border:1px solid var(--lo-color-border)!important;border-radius:12px;background:var(--lo-color-surface)!important;box-shadow:0 6px 22px rgb(15 23 42 / 3%)}
+.platform-org-list{display:grid;align-content:start;gap:8px}
 .platform-org-row.platform-owner-clickable-row{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left}
-.platform-owner-clickable-row{min-height:58px;border-radius:10px;padding:10px 13px;box-shadow:none;background:var(--lo-color-surface);border:1px solid var(--lo-color-border)}
+.platform-owner-clickable-row{min-height:58px;border-radius:9px;padding:10px 13px;box-shadow:none;background:var(--lo-color-surface);border:1px solid var(--lo-color-border)}
 .platform-owner-clickable-row:hover{box-shadow:none;transform:none;background:color-mix(in srgb,var(--lo-shell-control-hover) 42%,var(--lo-color-surface));border-color:color-mix(in srgb,var(--lo-color-primary) 26%,var(--lo-color-border))}
 .platform-owner-clickable-row strong{font-size:13px}
 .platform-owner-clickable-row small{font-size:10.5px}
@@ -46,7 +36,6 @@
 .platform-record-intro .eyebrow{font-size:9px;margin-bottom:3px}
 .platform-record-intro h2{font-size:18px;letter-spacing:-.01em}
 .platform-record-intro p{max-width:720px;margin-top:4px;font-size:11px}
-
 .platform-record-intro .platform-org-actions{display:flex;align-items:flex-start;gap:10px;padding:0}
 .platform-org-action-item{display:grid;justify-items:center;gap:4px;min-width:62px}
 .platform-org-action-item>span{font-size:9.5px;line-height:1.15;color:var(--lo-color-muted);white-space:nowrap;font-weight:650}
@@ -62,15 +51,16 @@
 .platform-info-row dt{font-size:10.25px;font-weight:600}
 .platform-info-row dd{font-size:11.75px;font-weight:700}
 
-/* Users are a registry, not a full-height empty table. */
-.platform-owner-record-workspace>.platform-owner-users{flex:1 1 auto;min-height:0;overflow:hidden;padding:12px 14px 14px;background:color-mix(in srgb,var(--lo-color-surface) 99%,var(--lo-shell-control-hover))}
-.platform-owner-record-workspace>.platform-owner-users .scroll-table{height:auto;max-height:100%;overflow:auto;border-radius:10px;box-shadow:none;border:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
-.platform-owner-users .data-table{height:auto;min-height:0}
-.platform-owner-users .data-table thead th{position:sticky;top:0;z-index:2;background:color-mix(in srgb,var(--lo-color-surface) 96%,var(--lo-shell-control-hover));font-size:9.75px;letter-spacing:.025em;height:38px}
-.platform-owner-users .data-table tbody tr{height:52px;cursor:pointer}
-.platform-owner-users .data-table tbody tr:hover{background:color-mix(in srgb,var(--lo-shell-control-hover) 42%,var(--lo-color-surface))}
-.platform-owner-users .data-table tbody td{font-size:11px}
-.platform-owner-users .data-table tbody td strong{font-size:11.25px}
+/* Users use a true compact registry instead of a full-height empty table canvas. */
+.platform-owner-record-workspace>.platform-owner-users{flex:1 1 auto;min-height:0;overflow:auto;padding:12px 14px 14px;background:var(--lo-color-surface)}
+.platform-owner-record-workspace>.platform-owner-users .scroll-table{height:auto;max-height:100%;overflow:auto;border:0;background:transparent;box-shadow:none}
+.platform-owner-users .data-table{display:block;width:100%;height:auto;min-height:0;border-collapse:separate}
+.platform-owner-users .data-table thead{display:none}
+.platform-owner-users .data-table tbody{display:grid;gap:8px}
+.platform-owner-users .data-table tbody tr{display:grid;grid-template-columns:minmax(220px,1.35fr) minmax(120px,.8fr) minmax(180px,1fr) minmax(100px,.55fr);align-items:center;min-height:58px;padding:8px 12px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);cursor:pointer}
+.platform-owner-users .data-table tbody tr:hover{background:color-mix(in srgb,var(--lo-shell-control-hover) 42%,var(--lo-color-surface));border-color:color-mix(in srgb,var(--lo-color-primary) 24%,var(--lo-color-border))}
+.platform-owner-users .data-table tbody td{display:block;border:0;padding:4px 8px;font-size:11px}
+.platform-owner-users .data-table tbody td strong{font-size:11.5px}
 .platform-owner-users .data-table tbody td small{font-size:9.75px}
 
 .platform-owner-record-workspace>.platform-diagnostics-panel{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:14px 16px 16px;background:color-mix(in srgb,var(--lo-color-surface) 99%,var(--lo-shell-control-hover))}
@@ -88,22 +78,20 @@
 .diagnostics-table-wrap .data-table tbody td strong{font-size:10.75px}
 .diagnostics-table-wrap .data-table tbody td small{font-size:9.25px}
 
-/* Demo registries follow the same visual language as organizations and dashboard rows. */
-.page:has(.platform-demo-access){height:100%;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-.page:has(.platform-demo-access)>.page-header,.page:has(.platform-demo-access)>.platform-workspace-toolbar{flex:0 0 auto}
+/* Demo registries retain the approved hierarchy and fixed-screen behavior. */
 .page:has(.platform-demo-access)>.platform-center-section{flex:0 0 auto}
-.page:has(.platform-demo-access)>.platform-center-section:last-of-type{flex:0 1 auto;min-height:0;max-height:calc(100% - 260px);overflow:hidden;display:flex;flex-direction:column}
+.page:has(.platform-demo-access)>.platform-center-section:last-of-type{flex:0 1 auto;min-height:0;max-height:calc(100% - 220px);overflow:hidden;display:flex;flex-direction:column}
 .page:has(.platform-demo-access)>.platform-center-section:last-of-type .platform-demo-list{min-height:0;overflow:auto}
 .platform-demo-list{display:grid;gap:8px}
-.platform-demo-row{width:100%;min-height:58px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);padding:10px 13px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.platform-demo-row{width:100%;min-height:58px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);padding:10px 13px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:18px}
 .platform-demo-row:hover{background:color-mix(in srgb,var(--lo-shell-control-hover) 42%,var(--lo-color-surface));border-color:color-mix(in srgb,var(--lo-color-primary) 24%,var(--lo-color-border))}
 .platform-demo-row>div:first-child{display:grid;gap:3px;min-width:0}
 .platform-demo-row small{color:var(--lo-color-muted)}
 
 /* Full Demo record uses exactly the same record language as an organization. */
-.platform-demo-record-shell{height:100%;min-height:0;display:flex;flex-direction:column}
-.platform-record-back-row{flex:0 0 auto;margin:0 0 8px}
-.platform-record-back{width:42px;height:42px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);display:grid;place-items:center;color:var(--lo-color-text);cursor:pointer}
+.platform-demo-record-shell{height:100%;min-height:0;display:flex;flex-direction:column;position:relative}
+.platform-record-back-row{position:absolute;left:0;top:-54px;z-index:4;margin:0}
+.platform-record-back{width:38px;height:38px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);display:grid;place-items:center;color:var(--lo-color-text);cursor:pointer;box-shadow:none}
 .platform-record-back:hover{background:var(--lo-shell-control-hover)}
 .platform-demo-record-shell>.platform-demo-record-workspace{flex:1 1 auto;min-height:0;overflow:hidden}
 .platform-demo-record-workspace .platform-owner-details{height:100%;display:flex;flex-direction:column}
@@ -113,9 +101,9 @@
 .platform-demo-record-status span{font-size:10px;color:var(--lo-color-muted)}
 .platform-demo-info-sections{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}
 
-/* Platform navigation uses the same compact back control as canonical record screens. */
-.platform-workspace-toolbar{margin:0 0 8px;padding:0}
-.platform-back-button{width:42px;height:42px;min-height:42px;padding:0;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);display:grid;place-items:center;font-size:0;color:var(--lo-color-text);cursor:pointer}
+/* Back control visually belongs to the page/record header, as in canonical record screens. */
+.platform-workspace-toolbar{margin:0;padding:0}
+.platform-back-button{width:38px;height:38px;min-height:38px;padding:0;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);display:grid;place-items:center;font-size:0;color:var(--lo-color-text);cursor:pointer;box-shadow:none}
 .platform-back-button:hover{background:var(--lo-shell-control-hover)}
 .platform-back-button svg{width:16px;height:16px}
 
@@ -154,10 +142,12 @@
   .platform-record-intro{align-items:flex-start;flex-direction:column}
   .platform-record-intro .platform-org-actions{width:100%;justify-content:flex-start}
   .platform-demo-info-sections{grid-template-columns:1fr 1fr}
+  .platform-owner-users .data-table tbody tr{grid-template-columns:minmax(200px,1.3fr) minmax(110px,.7fr) minmax(160px,1fr) minmax(90px,.55fr)}
 }
 @media (max-width:760px){
   .content:has(.platform-owner-record-workspace),.content:has(.platform-org-list),.content:has(.platform-demo-access){height:auto;overflow:visible}
   .page-fill:has(.platform-owner-record-workspace),.page:has(.platform-org-list),.page:has(.platform-demo-access){height:auto;overflow:visible}
+  .page-fill:has(.platform-owner-record-workspace)>.page-header,.page:has(.platform-org-list)>.page-header,.page:has(.platform-demo-access)>.page-header{padding-left:46px}
   .platform-record-intro .platform-org-actions{width:100%;justify-content:flex-start;overflow-x:auto;padding-bottom:4px}
   .platform-info-sections,.platform-demo-info-sections{grid-template-columns:1fr}
   .platform-info-section{border-right:0;border-bottom:1px solid var(--lo-color-border)}
@@ -165,4 +155,6 @@
   .platform-form-grid,.platform-form-section:last-child .platform-form-grid,.platform-demo-edit-grid{grid-template-columns:1fr!important}
   .platform-form-grid .field-wide{grid-column:auto}
   .diagnostics-summary-strip{grid-template-columns:1fr}
+  .platform-owner-users .data-table tbody tr{grid-template-columns:1fr;padding:10px}
+  .platform-owner-users .data-table tbody td{padding:3px 4px}
 }
