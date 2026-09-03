@@ -6,7 +6,7 @@ import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'
 import { useAuth } from '../core/auth/AuthContext'
 import { HelpCenter } from '../core/help/HelpCenter'
-import { ROLES } from '../core/permissions/roles'
+import { PREVIEWABLE_ROLES, ROLES } from '../core/permissions/roles'
 import { roleLabel } from '../core/permissions/roleLabels'
 import { APP_VERSION, BUILD_ID } from '../core/version'
 import { BirthdayGreeting, NotificationCenter } from '../core/notifications/NotificationCenter'
@@ -63,19 +63,18 @@ export function AppShell(){
   useEffect(()=>{
     if(platformMode&&!location.pathname.startsWith('/platform')&&location.pathname!=='/about'&&location.pathname!=='/account') navigate('/platform',{replace:true})
   },[platformMode,location.pathname,navigate])
-  const isDepartmentRole=role===ROLES.DEPARTMENT_MANAGER||role===ROLES.DEPARTMENT_USER||role===ROLES.LINK_NURSE||role===ROLES.LABORATORY
+  const isDepartmentHomeRole=role===ROLES.DEPARTMENT_MANAGER||role===ROLES.DEPARTMENT_USER||role===ROLES.LINK_NURSE
   useEffect(()=>{
-    if(isDepartmentRole&&location.pathname==='/') navigate('/my-department',{replace:true})
-  },[isDepartmentRole,location.pathname,navigate])
+    if(isDepartmentHomeRole&&location.pathname==='/') navigate('/my-department',{replace:true})
+  },[isDepartmentHomeRole,location.pathname,navigate])
   const platformItems=[
     ['/platform','platformDashboardNav',BarChart3],
     ['/platform#organizations','platformOrganizationsNav',Building2],
     ['/platform#demo','platformDemoNav',FlaskConical],
     ['/platform#reports','platformAnalyticsNav',BarChart3],
   ]
-  const previewRoles=[
-    [ROLES.HOSPITAL_ADMIN,'hospitalAdminRole'],[ROLES.INFECTION_CONTROL_LEAD,'infectionControlLeadRole'],[ROLES.INFECTION_CONTROL_MEMBER,'infectionControlMemberRole'],[ROLES.DEPARTMENT_MANAGER,'departmentManagerRole'],[ROLES.LINK_NURSE,'linkNurseRole'],[ROLES.DEPARTMENT_USER,'departmentUserRole'],[ROLES.LABORATORY,'laboratoryRole'],[ROLES.COMMITTEE_SECRETARIAT,'committeeSecretariatRole'],[ROLES.HR_OFFICE,'hrOfficeRole'],[ROLES.PHARMACY,'pharmacyRole'],[ROLES.OCCUPATIONAL_PHYSICIAN,'occupationalPhysicianRole'],[ROLES.DOCTOR_REVIEWER,'doctorReviewerRole'],[ROLES.QUALITY_MANAGER,'qualityManagerRole']
-  ]
+  const previewRoleLabels={hospital_admin:'hospitalAdminRole',infection_control_lead:'infectionControlLeadRole',infection_control_member:'infectionControlMemberRole',department_manager:'departmentManagerRole',link_nurse:'linkNurseRole',department_user:'departmentUserRole',laboratory:'laboratoryRole',committee_secretariat:'committeeSecretariatRole',hr_office:'hrOfficeRole',pharmacy:'pharmacyRole',occupational_physician:'occupationalPhysicianRole',doctor_reviewer:'doctorReviewerRole',quality_manager:'qualityManagerRole'}
+  const previewRoles=PREVIEWABLE_ROLES.map(previewRole=>[previewRole,previewRoleLabels[previewRole]])
   const previewDepartments=[['','previewAllHospital'],['icu','previewIcu'],['surgery','previewSurgery'],['internal','previewInternalMedicine']]
   const visibleNavigation=platformMode?[]:navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
   const canOrganizationAnalysis=!platformMode&&[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD,ROLES.DEMO].includes(role)
