@@ -1,0 +1,19 @@
+name: Toggle selected owner user one off
+on:
+  push:
+    paths:
+      - .github/workflows/toggle-selected-owner-user-oneoff.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/toggle-selected-owner-user.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/platform/PlatformOrganizationRecord.jsx
+          git commit -m "fix(owner): toggle selected user management panel" || exit 0
+          git push
