@@ -21,8 +21,20 @@
 .lo-icon-button-sm{width:30px;height:30px;border-radius:8px}
 .lo-icon-button-lg{width:40px;height:40px}
 
-.button.button-destructive{color:var(--lo-status-danger-fg);background:var(--lo-status-danger-bg);border-color:var(--lo-status-danger-border)}
-.button.button-destructive:hover{background:color-mix(in srgb,var(--lo-status-danger-bg) 72%,white)}
+.lo-action-button{min-height:var(--lo-control-height);height:var(--lo-control-height);border-radius:var(--lo-radius-control)}
+.lo-action-button-edit{color:var(--lo-status-warning-fg);background:var(--lo-status-warning-bg);border-color:var(--lo-status-warning-border)}
+.lo-action-button-edit:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-warning-bg) 78%,white)}
+.lo-action-button-danger,.button.button-destructive{color:var(--lo-status-danger-fg);background:var(--lo-status-danger-bg);border-color:var(--lo-status-danger-border)}
+.lo-action-button-danger:hover:not(:disabled),.button.button-destructive:hover{background:color-mix(in srgb,var(--lo-status-danger-bg) 72%,white)}
+.lo-action-button-success{color:var(--lo-status-success-fg);background:var(--lo-status-success-bg);border-color:var(--lo-status-success-border)}
+.lo-action-button-success:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-success-bg) 76%,white)}
+.record-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* Compatibility bridge: legacy icon-style actions share the central geometry while modules are migrated. */
+.icon-button,.section-report-actions button{width:var(--lo-control-height);height:var(--lo-control-height);border-radius:var(--lo-radius-control);border:1px solid var(--lo-shell-control-border);background:var(--lo-color-surface);color:var(--lo-shell-control-fg);display:inline-grid;place-items:center;padding:0}
+.icon-button:hover,.section-report-actions button:hover{background:var(--lo-shell-control-hover)}
+.platform-back-button{min-height:var(--lo-control-height);height:var(--lo-control-height);display:inline-flex;align-items:center;gap:7px;border:1px solid var(--lo-shell-control-border);border-radius:var(--lo-radius-control);padding:0 12px;background:var(--lo-color-surface);color:var(--lo-shell-control-fg);font-weight:700;cursor:pointer}
+.platform-back-button:hover{background:var(--lo-shell-control-hover)}
 
 .lo-dialog-icon-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--lo-color-border)}
 .diagnostics-summary-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 14px}
