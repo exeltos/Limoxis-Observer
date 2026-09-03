@@ -66,11 +66,31 @@ export function EmployeeRecordPage({selfMode=false}){
     {id:'details',label:t('employeesRecords.employeeDetailsTab'),icon:UserRound,show:true},{id:'occupational',label:t('occupationalHealth'),icon:HeartPulse,show:canOccupational||selfMode},{id:'vaccinations',label:t('vaccinations'),icon:Syringe,show:canOccupational||selfMode},{id:'surveillance',label:t('surveillance'),icon:Activity,show:canSeeSensitiveEmployeeHealth&&(canOccupational||selfMode)},{id:'training',label:t('training'),icon:GraduationCap,show:canTraining||selfMode},{id:'evaluations',label:t('evaluations'),icon:FileCheck2,show:canAdmin||selfMode},{id:'certificates',label:t('employeesRecords.certificatesDocuments'),icon:BriefcaseBusiness,show:true},{id:'history',label:t('history'),icon:ShieldCheck,show:canOccupational||canAdmin},
   ].filter(x=>x.show),[t,canAdmin,canOccupational,canTraining,canSeeSensitiveEmployeeHealth,selfMode])
   const [tab,setTab]=useState(()=>restored?.tab||'details'),[surveillanceOpen,setSurveillanceOpen]=useState(false),[surveillanceVersion,setSurveillanceVersion]=useState(0)
+  const selfProfileTabs=useMemo(()=>[
+    {id:'details',label:t('employeesRecords.employeeDetailsTab'),icon:UserRound},
+    {id:'occupational',label:t('occupationalHealth'),icon:HeartPulse},
+    {id:'vaccinations',label:t('vaccinations'),icon:Syringe},
+    {id:'surveillance',label:t('surveillance'),icon:Activity},
+    {id:'training',label:t('training'),icon:GraduationCap},
+    {id:'evaluations',label:t('evaluations'),icon:FileCheck2},
+    {id:'certificates',label:t('employeesRecords.certificatesDocuments'),icon:BriefcaseBusiness},
+  ],[t])
   const committeeApprovals=employee?.id?approvalsForEmployee(employee.id):[],pendingCommitteeApprovals=committeeApprovals.filter(x=>x.status==='pending')
 
   if(employeesLoading)return <RouteLoading/>
   if(employeesError)return <Page title={t('employees')}><div className="data-access-state error" role="alert"><span>{language==='en'?'Could not load employees.':'Δεν ήταν δυνατή η φόρτωση του προσωπικού.'}</span><button type="button" onClick={reloadEmployees}>{language==='en'?'Retry':'Επανάληψη'}</button></div></Page>
-  if(!employee){const platformOwner=Boolean(profile?.isPlatformOwner||profile?.is_platform_owner);return <Page title={selfMode?t('employeesRecords.myProfile'):t('employees')} subtitle={selfMode?(platformOwner?(language==='en'?'Platform account identity and access context.':'Στοιχεία λογαριασμού πλατφόρμας και πλαισίου πρόσβασης.'):(language==='en'?'Account identity and personal employee record.':'Στοιχεία λογαριασμού και προσωπική καρτέλα εργαζομένου.')):undefined}><div className="my-profile-shell">{selfMode&&<SelfAccountSummary profile={profile} user={user} role={role} membership={membership} tenant={tenant} language={language}/>}<section className="surface my-profile-section"><header><div><h3>{platformOwner?(language==='en'?'Platform Owner profile':'Προφίλ Platform Owner'):(language==='en'?'Employee record':'Καρτέλα εργαζομένου')}</h3><p>{platformOwner?(language==='en'?'This account governs the platform and is not required to be linked to a hospital employee record. Role preview does not create an employee identity.':'Ο λογαριασμός αυτός διαχειρίζεται την πλατφόρμα και δεν απαιτείται να συνδέεται με καρτέλα εργαζομένου νοσοκομείου. Η «Προβολή ως ρόλος» δεν δημιουργεί ταυτότητα εργαζομένου.'):(language==='en'?'Personal clinical and HR tabs become available when this account is linked to an employee record.':'Οι προσωπικές καρτέλες υγείας και HR ενεργοποιούνται όταν ο λογαριασμός συνδεθεί με πραγματική καρτέλα εργαζομένου.')}</p></div></header><div className="my-profile-unlinked"><div className="my-profile-unlinked-icon">{platformOwner?'PL':'—'}</div><div><strong>{platformOwner?(language==='en'?'No employee link required':'Δεν απαιτείται σύνδεση εργαζομένου'):(language==='en'?'No employee record linked':'Δεν έχει συνδεθεί καρτέλα εργαζομένου')}</strong><span>{platformOwner?(language==='en'?'Use the real hospital user account to test employee tabs such as vaccinations, Occupational Health, training, evaluations and certificates.':'Για έλεγχο των καρτελών Εμβολιασμών, Ιατρού Εργασίας, Εκπαίδευσης, Αξιολογήσεων και Πιστοποιήσεων χρησιμοποιήστε τον πραγματικό λογαριασμό χρήστη του νοσοκομείου.'):(language==='en'?'Link this user to an employee from Organization → Users.':'Συνδέστε τον χρήστη με εργαζόμενο από Οργανισμός → Χρήστες.')}</span></div></div></section></div></Page>}
+  if(!employee){
+    const platformOwner=Boolean(profile?.isPlatformOwner||profile?.is_platform_owner)
+    const fullName=profile?.fullName||profile?.full_name||user?.user_metadata?.full_name||user?.email||'—'
+    const email=profile?.contactEmail||profile?.email||user?.email||'—'
+    const initials=String(fullName||'').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'L'
+    return <Page fill title={selfMode?t('employeesRecords.myProfile'):t('employees')} subtitle={selfMode?(platformOwner?(language==='en'?'Platform account identity and access context.':'Στοιχεία λογαριασμού πλατφόρμας και πλαισίου πρόσβασης.'):(language==='en'?'Account identity and personal employee record.':'Στοιχεία λογαριασμού και προσωπική καρτέλα εργαζομένου.')):undefined}>
+      <EntityRecordShell className="employee-record-shell workspace-fill my-profile-unlinked-shell" avatar={initials} eyebrow={platformOwner?(language==='en'?'PLATFORM ACCOUNT':'ΛΟΓΑΡΙΑΣΜΟΣ ΠΛΑΤΦΟΡΜΑΣ'):(language==='en'?'MY PROFILE':'ΤΟ ΠΡΟΦΙΛ ΜΟΥ')} title={fullName} subtitle={email} status={<span className="status-badge active">{language==='en'?'Active':'Ενεργός'}</span>} tabs={selfProfileTabs} activeTab={tab} onTabChange={setTab} onBack={()=>navigate('/')} backLabel={t('back')}>
+        {tab==='details'&&<><SelfAccountSummary profile={profile} user={user} role={role} membership={membership} tenant={tenant} language={language}/><UnlinkedProfileTab tab="details" platformOwner={platformOwner} language={language}/></>}
+        {tab!=='details'&&<UnlinkedProfileTab tab={tab} platformOwner={platformOwner} language={language}/>}
+      </EntityRecordShell>
+    </Page>
+  }
   const employeeInScope=selfMode||canAccessRecord({...employee,department:employee.department})
   if(!employeeInScope)return <Page title={t('employees')}><div className="inline-empty">{language==='en'?'You do not have access to this record.':'Δεν έχετε πρόσβαση σε αυτή την εγγραφή.'}</div></Page>
   const name=language==='el'?`${employee.lastName} ${employee.firstName}`:`${employee.firstNameEn} ${employee.lastNameEn}`
@@ -88,6 +108,13 @@ export function EmployeeRecordPage({selfMode=false}){
     {surveillanceOpen&&<EmployeeSurveillanceFlow employee={employee} onClose={()=>setSurveillanceOpen(false)} onCreated={()=>setSurveillanceVersion(v=>v+1)}/>}
     {accountOpen&&<EmployeeAccountDialog employee={employee} language={language} saving={accountSaving} onClose={()=>setAccountOpen(false)} onCreate={createAccount}/>}
   </Page>
+}
+function UnlinkedProfileTab({tab,platformOwner,language}){
+  const en=language==='en'
+  const labels={occupational:en?'Occupational Health':'Ιατρός Εργασίας',vaccinations:en?'Vaccinations':'Εμβολιασμοί',surveillance:en?'Surveillance':'Επιτήρηση',training:en?'Training':'Εκπαίδευση',evaluations:en?'Evaluations':'Αξιολογήσεις',certificates:en?'Certificates & documents':'Πιστοποιήσεις / Έγγραφα',details:en?'Employee record':'Καρτέλα εργαζομένου'}
+  const title=labels[tab]||labels.details
+  const message=platformOwner?(en?'This Platform Owner account is not a hospital employee identity. This tab remains visible for a consistent profile structure, but employee data does not apply to this account.':'Ο λογαριασμός Platform Owner δεν αποτελεί ταυτότητα εργαζομένου νοσοκομείου. Η καρτέλα παραμένει ορατή για σταθερή δομή του προφίλ, αλλά τα δεδομένα εργαζομένου δεν εφαρμόζονται σε αυτόν τον λογαριασμό.'):(en?'No employee record is linked to this account yet. Link the user from Organization → Users to load the real personal data in this tab.':'Δεν έχει συνδεθεί ακόμη καρτέλα εργαζομένου με αυτόν τον λογαριασμό. Συνδέστε τον χρήστη από Οργανισμός → Χρήστες για να φορτωθούν εδώ τα πραγματικά προσωπικά δεδομένα.')
+  return <section className="my-profile-tab-state"><div className="my-profile-unlinked-icon">—</div><div><strong>{title}</strong><span>{message}</span></div></section>
 }
 function SelfAccountSummary({profile,user,role,membership,tenant,language}){
   const en=language==='en'
