@@ -1,11 +1,11 @@
 import { useEffect,useState } from 'react'
-import { ArrowLeft,FlaskConical,KeyRound,LogIn,PauseCircle,Pencil,PlayCircle } from 'lucide-react'
+import { ArrowLeft,FlaskConical,KeyRound,LogIn,PauseCircle,Pencil,PlayCircle,Trash2 } from 'lucide-react'
 import { IconButton } from '../../design-system/IconButton'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { resetPlatformDemoPassword,setPlatformDemoStatus,updatePlatformDemoEntitlement } from '../../core/tenant/tenantService'
+import { deletePlatformDemo,resetPlatformDemoPassword,setPlatformDemoStatus,updatePlatformDemoEntitlement } from '../../core/tenant/tenantService'
 
 function daysBetween(a,b){return Math.max(0,Math.ceil((new Date(b)-new Date(a))/86400000))}
 
@@ -21,7 +21,7 @@ function Action({icon,tone,label,title,onClick,disabled=false}){
   return <div className="platform-org-action-item"><IconButton tone={tone} label={title} disabled={disabled} onClick={onClick}>{icon}</IconButton><span>{label}</span></div>
 }
 
-export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChanged}){
+export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChanged,onDeleted}){
   const [record,setRecord]=useState(demo)
   const [editOpen,setEditOpen]=useState(false)
   const [draft,setDraft]=useState(null)
@@ -62,6 +62,14 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
     try{await resetPlatformDemoPassword(record);notify(tx('Στάλθηκε email επαναφοράς κωδικού στον Demo χρήστη.','Password reset email sent to the Demo user.'),'success',{operation:'platform_demo_reset_password'})}
     catch(error){notifyError(error,'action',{operation:'platform_demo_reset_password'})}finally{setWorking(false)}
   }
+  async function removeDemo(){
+    if(working)return
+    const ok=await confirm({title:tx('Οριστική διαγραφή Demo','Delete Demo permanently'),message:tx(`Θα διαγραφούν η Demo πρόσβαση, ο Demo λογαριασμός και ο απομονωμένος Demo οργανισμός «${org?.name||record.label}». Η ενέργεια δεν αναιρείται.`,`The Demo access, Demo account, and isolated Demo organization “${org?.name||record.label}” will be permanently deleted. This cannot be undone.`),confirmLabel:tx('Οριστική διαγραφή','Delete permanently'),danger:true})
+    if(!ok)return
+    setWorking(true)
+    try{await deletePlatformDemo(record);notify(tx('Το Demo διαγράφηκε οριστικά.','Demo deleted permanently.'),'success',{operation:'platform_demo_delete'});if(onDeleted)onDeleted(record.id);else{onBack?.();window.setTimeout(()=>window.location.reload(),0)}}
+    catch(error){notifyError(error,'delete',{operation:'platform_demo_delete'});setWorking(false)}
+  }
 
   return <div className="platform-demo-record-shell">
     <div className="platform-record-back-row"><button type="button" className="entity-record-icon-button back platform-record-back" onClick={onBack} title={tx('Πίσω','Back')} aria-label={tx('Πίσω','Back')}><ArrowLeft size={16}/></button></div>
@@ -78,6 +86,7 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
             <Action icon={<Pencil size={17}/>} tone="edit" label={tx('Επεξεργασία','Edit')} title={tx('Επεξεργασία Demo','Edit Demo')} onClick={openEdit}/>
             <Action icon={<KeyRound size={17}/>} tone="neutral" label={tx('Κωδικός','Password')} title={tx('Επαναφορά κωδικού Demo χρήστη','Reset Demo user password')} disabled={working||!record.demo_user_id||!record.organization_id} onClick={resetPassword}/>
             <Action icon={record.status==='paused'?<PlayCircle size={17}/>:<PauseCircle size={17}/>} tone={record.status==='paused'?'success':'neutral'} label={record.status==='paused'?tx('Ενεργοποίηση','Reactivate'):tx('Παύση','Pause')} title={record.status==='paused'?tx('Ενεργοποίηση Demo','Reactivate Demo'):tx('Παύση Demo','Pause Demo')} disabled={working} onClick={togglePause}/>
+            <Action icon={<Trash2 size={17}/>} tone="danger" label={tx('Διαγραφή','Delete')} title={tx('Οριστική διαγραφή Demo','Delete Demo permanently')} disabled={working} onClick={removeDemo}/>
           </div>
         </div>
 
