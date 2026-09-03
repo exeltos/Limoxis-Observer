@@ -35,7 +35,21 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
   function openEdit(){setDraft({label:record.label||'',contactName:record.contact_name||'',contactEmail:record.contact_email||'',validFrom:record.valid_from||'',validUntil:record.valid_until||''});setEditOpen(true)}
   async function saveEdit(){if(!draft?.label?.trim()||!draft?.validFrom||!draft?.validUntil||saving)return;setSaving(true);try{const next=await updatePlatformDemoEntitlement(record.id,draft);setRecord(next);setEditOpen(false);onChanged?.(next);notify(tx('Η καρτέλα Demo ενημερώθηκε.','Demo record updated.'),'success',{operation:'platform_demo_update'})}catch(error){notifyError(error,'save',{operation:'platform_demo_update'})}finally{setSaving(false)}}
   async function togglePause(){if(working)return;const next=record.status==='paused'?'active':'paused';const ok=await confirm({title:next==='paused'?tx('Παύση Demo','Pause Demo'):tx('Ενεργοποίηση Demo','Reactivate Demo'),message:next==='paused'?tx('Η πρόσβαση του Demo χρήστη θα απενεργοποιηθεί μέχρι να την ενεργοποιήσεις ξανά.','The Demo user will lose Demo access until you reactivate it.'):tx('Να ενεργοποιηθεί ξανά η πρόσβαση Demo;','Reactivate Demo access?'),confirmLabel:next==='paused'?tx('Παύση','Pause'):tx('Ενεργοποίηση','Reactivate')});if(!ok)return;setWorking(true);try{const updated=await setPlatformDemoStatus(record.id,next);setRecord(updated);onChanged?.(updated);notify(next==='paused'?tx('Το Demo τέθηκε σε παύση.','Demo paused.'):tx('Το Demo ενεργοποιήθηκε.','Demo reactivated.'),'success',{operation:'platform_demo_status'})}catch(error){notifyError(error,'action',{operation:'platform_demo_status'})}finally{setWorking(false)}}
-  async function resetPassword(){if(working)return;setWorking(true);try{await resetPlatformDemoPassword(record);notify(tx('Στάλθηκε email επαναφοράς κωδικού στον Demo χρήστη.','Password reset email sent to the Demo user.'),'success',{operation:'platform_demo_reset_password'})}catch(error){notifyError(error,'action',{operation:'platform_demo_reset_password'})}finally{setWorking(false)}}
+  async function resetPassword(){
+    if(working)return
+    const target=record.contact_email||tx('το καταχωρημένο email','the registered email address')
+    const ok=await confirm({
+      title:tx('Επαναφορά κωδικού Demo','Reset Demo password'),
+      message:tx(
+        `Θα αποσταλεί email ασφαλούς επαναφοράς κωδικού στο ${target}. Ο κωδικός δεν αλλάζει μέχρι ο Demo χρήστης να ολοκληρώσει τη διαδικασία. Θέλεις να συνεχίσεις;`,
+        `A secure password-reset email will be sent to ${target}. The password will not change until the Demo user completes the reset flow. Do you want to continue?`
+      ),
+      confirmLabel:tx('Αποστολή email','Send reset email'),
+    })
+    if(!ok)return
+    setWorking(true)
+    try{await resetPlatformDemoPassword(record);notify(tx('Στάλθηκε email επαναφοράς κωδικού στον Demo χρήστη.','Password reset email sent to the Demo user.'),'success',{operation:'platform_demo_reset_password'})}catch(error){notifyError(error,'action',{operation:'platform_demo_reset_password'})}finally{setWorking(false)}
+  }
   async function removeDemo(){if(working)return;const ok=await confirm({title:tx('Οριστική διαγραφή Demo','Delete Demo permanently'),message:tx(`Θα διαγραφούν η Demo πρόσβαση, ο Demo λογαριασμός και ο απομονωμένος Demo οργανισμός «${org?.name||record.label}». Η ενέργεια δεν αναιρείται.`,`The Demo access, Demo account, and isolated Demo organization “${org?.name||record.label}” will be permanently deleted. This cannot be undone.`),confirmLabel:tx('Οριστική διαγραφή','Delete permanently'),danger:true});if(!ok)return;setWorking(true);try{await deletePlatformDemo(record);notify(tx('Το Demo διαγράφηκε οριστικά.','Demo deleted permanently.'),'success',{operation:'platform_demo_delete'});if(onDeleted)onDeleted(record.id);else onBack?.()}catch(error){notifyError(error,'delete',{operation:'platform_demo_delete'});setWorking(false)}}
 
   const actions=<div className="platform-org-actions" aria-label={tx('Ενέργειες Demo','Demo actions')}>
