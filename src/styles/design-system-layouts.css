@@ -498,3 +498,20 @@
  .platform-user-detail-table th,.platform-user-detail-table td{width:auto!important}
  .platform-user-detail-table td[colspan="3"]{grid-column:2}
 }
+
+
+/* Platform Owner · final record interaction geometry */
+.platform-form-section>header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;min-height:42px}
+.platform-form-section>header>div:first-child{display:flex;min-width:0;flex-direction:column;gap:4px}
+.platform-form-section-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto}
+.platform-form-section-actions .button{min-height:40px}
+.platform-form-section-actions .entity-record-icon-button{flex:0 0 auto}
+.platform-owner-users{overflow:visible!important}
+.platform-owner-users>.scroll-table{overflow-x:auto;overflow-y:visible;max-height:none!important}
+.platform-user-management-panel{overflow:visible}
+.platform-user-management-panel>.scroll-table{overflow:visible!important}
+.platform-demo-contact-grid{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)!important}
+.platform-demo-contact-grid>.field-wide{grid-column:auto!important}
+.platform-demo-contact-grid>.manual-date-field{min-width:0}
+.platform-demo-contact-grid input{min-width:0;width:100%}
+@media(max-width:760px){.platform-demo-contact-grid{grid-template-columns:1fr!important}.platform-form-section>header{align-items:flex-start}.platform-form-section-actions{flex-wrap:wrap}}
