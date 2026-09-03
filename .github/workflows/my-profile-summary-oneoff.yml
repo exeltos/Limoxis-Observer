@@ -1,0 +1,19 @@
+name: My profile summary one off
+on:
+  push:
+    paths:
+      - .github/workflows/my-profile-summary-oneoff.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/convert-my-profile-to-summary.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/employees/EmployeeRecordPage.jsx src/styles/my-profile.css
+          git commit -m "refactor(profile): replace duplicate tabs with employee summary" || exit 0
+          git push
