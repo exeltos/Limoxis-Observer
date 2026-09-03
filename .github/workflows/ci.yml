@@ -3,7 +3,6 @@ name: Limoxis Observer CI
 on:
   push:
     branches:
-      - main
       - refactor/demo-data-isolation
   pull_request:
 

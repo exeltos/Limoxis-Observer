@@ -4,7 +4,6 @@ import { BrowserRouter } from 'react-router-dom'
 import { App } from './app/App'
 import { AuthProvider } from './core/auth/AuthContext'
 import { LanguageProvider } from './core/i18n/LanguageContext'
-import './core/i18n/managementCompatibility'
 import { TenantProvider } from './core/tenant/TenantContext'
 import { FeedbackProvider } from './core/feedback/FeedbackContext'
 import { NotificationProvider } from './core/notifications/NotificationContext'
@@ -12,7 +11,7 @@ import { DataAccessStatus } from './core/data/DataAccessStatus'
 import { AppErrorBoundary } from './core/errors/AppErrorBoundary'
 import './styles/theme.css'
 import './styles/global.css'
-import './styles/management-overview.css'
+import './styles/design-system-actions.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -45,8 +45,6 @@ const IndicatorsPage = lazyNamed(() => import('../features/indicators/Indicators
 const MyDepartmentPage = lazyNamed(() => import('../features/workspaces/MyDepartmentPage'), 'MyDepartmentPage')
 const AboutPage = lazyNamed(() => import('../features/about/AboutPage'), 'AboutPage')
 const AnalysisPage = lazyNamed(() => import('../features/analysis/AnalysisPage'), 'AnalysisPage')
-const PlatformAnalysisPage = lazyNamed(() => import('../features/analysis/PlatformAnalysisPage'), 'PlatformAnalysisPage')
-const ProductionAnalysisPage = lazyNamed(() => import('../features/analysis/ProductionAnalysisPage'), 'ProductionAnalysisPage')
 const AccountPage = lazyNamed(() => import('../features/account/AccountPage'), 'AccountPage')
 
 const gate = (capability, element) => <RequireCapability capability={capability}>{element}</RequireCapability>
@@ -54,22 +52,12 @@ const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={c
 
 function HomeRoute() {
   const { profile } = useAuth()
-  const { activeMembershipId, isDemo, loading } = useTenant()
-  if (loading) return <RouteLoading />
-  if (profile?.isPlatformOwner && !activeMembershipId && !isDemo) return <Navigate to="/platform" replace />
-  return gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)
-}
+  const { tenant, loading } = useTenant()
 
-function AnalysisRoute() {
-  const { profile } = useAuth()
-  const { memberships, isDemo, loading } = useTenant()
   if (loading) return <RouteLoading />
-  if (isDemo) return <AnalysisPage />
-  if (profile?.isPlatformOwner) {
-    const organizations = (memberships || []).map(m => m.organization).filter(Boolean)
-    return <PlatformAnalysisPage organizations={organizations} />
-  }
-  return <ProductionAnalysisPage />
+  if (profile?.isPlatformOwner && !tenant) return <Navigate to="/platform" replace />
+
+  return gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)
 }
 
 export function App() {
@@ -85,7 +73,7 @@ export function App() {
       <Route element={<AppShell />}>
         <Route path="platform" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM, <PlatformCenterPage />)}</Suspense>} />
         <Route path="about" element={<Suspense fallback={<RouteLoading/>}><AboutPage /></Suspense>} />
-        <Route path="analysis" element={<Suspense fallback={<RouteLoading/>}><AnalysisRoute /></Suspense>} />
+        <Route path="analysis" element={<Suspense fallback={<RouteLoading/>}><AnalysisPage /></Suspense>} />
         <Route path="account" element={<Suspense fallback={<RouteLoading/>}><AccountPage /></Suspense>} />
         <Route index element={<Suspense fallback={<RouteLoading/>}><HomeRoute /></Suspense>} />
         <Route path="my-department" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)}</Suspense>} />

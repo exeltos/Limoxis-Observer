@@ -21,7 +21,7 @@ export function EnvironmentalStandardsPanel({embedded=false}){
   const {t,language}=useLanguage();const {notify,confirm}=useFeedback();const {role,isDemo}=useTenant();const isPlatformOwner=role===ROLES.PLATFORM_OWNER
   const fallback=useMemo(()=>normalizeSystemStandards(demoLibrarySeed.environmentalStandards),[])
   const {data:repositoryRows,loading,saving,error,reload,saveData}=useRepositoryData('environmental_standards',{fallback})
-  const rows=useMemo(()=>Array.isArray(repositoryRows)?repositoryRows:(isDemo?fallback:[]),[repositoryRows,isDemo,fallback])
+  const rows=Array.isArray(repositoryRows)?repositoryRows:(isDemo?fallback:[])
   const [query,setQuery]=useState('')
   const [draft,setDraft]=useState(null)
   const readOnlySystem=Boolean(draft?.system&&!isPlatformOwner)

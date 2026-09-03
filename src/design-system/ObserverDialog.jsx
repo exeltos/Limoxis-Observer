@@ -32,11 +32,11 @@ export function ObserverDialog({
   </div>
 }
 
-export function DialogActions({onCancel,onSave,saveLabel,disabled=false,children,cancelLabel}){
+export function DialogActions({onCancel,onSave,saveLabel,disabled=false,children,cancelLabel,showCancel=false}){
   const {language}=useLanguage();const en=language==='en';const resolvedSaveLabel=saveLabel||(en?'Save':'Αποθήκευση')
   return <>
     {children}
-    <Button variant="secondary" onClick={onCancel}>{cancelLabel||(en?'Cancel':'Ακύρωση')}</Button>
-    <SaveButton disabled={disabled} onClick={onSave}>{resolvedSaveLabel}</SaveButton>
+    {showCancel&&onCancel&&<Button variant="secondary" onClick={onCancel}>{cancelLabel||(en?'Cancel':'Ακύρωση')}</Button>}
+    {onSave&&<SaveButton disabled={disabled} onClick={onSave}>{resolvedSaveLabel}</SaveButton>}
   </>
 }
