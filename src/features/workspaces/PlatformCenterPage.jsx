@@ -278,8 +278,23 @@ export function PlatformCenterPage() {
   }, [memberships.length])
 
   useEffect(() => {
-    if (selectedOrg) void loadOrgUsers(selectedOrg)
-  }, [selectedOrgId])
+    if (!selectedOrgId) return
+    let cancelled = false
+    setOrgUsersLoading(true)
+    listOrganizationMembersDetailed(selectedOrgId)
+      .then(users => {
+        if (!cancelled) setOrgUsers(users)
+      })
+      .catch(error => {
+        if (!cancelled) notifyError(error, 'load', { operation: 'platform_users_load' })
+      })
+      .finally(() => {
+        if (!cancelled) setOrgUsersLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedOrgId, notifyError])
 
   const setField = (key, value) => setDraft(current => ({ ...current, [key]: value }))
   const codeValid = /^[A-Z0-9_-]{2,24}$/.test(draft.code.trim().toUpperCase())
