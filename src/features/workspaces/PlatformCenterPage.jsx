@@ -39,6 +39,7 @@ import {
 import { AnalysisPage } from '../analysis/AnalysisPage'
 import { HospitalDiagnosticsPanel } from '../platform/HospitalDiagnosticsPanel'
 import { PlatformDemoRecord } from '../platform/PlatformDemoRecord'
+import { PlatformOrganizationRecord } from '../platform/PlatformOrganizationRecord'
 import { PlatformOrganizationActions } from './PlatformOrganizationActions'
 import { PlatformUserDialog } from './PlatformUserDialog'
 
@@ -1057,167 +1058,21 @@ export function PlatformCenterPage() {
 
   if (activeKey === 'organizations') {
     if (selectedOrg) {
-      const tabs = [
-        { id: 'details', label: tx('Στοιχεία', 'Details'), icon: Building2 },
-        { id: 'users', label: `${tx('Χρήστες', 'Users')} (${orgUsers.length})`, icon: Users },
-        { id: 'diagnostics', label: tx('Λειτουργία & συμβάντα', 'Activity & events'), icon: Activity },
-        { id: 'analysis', label: tx('Ανάλυση', 'Analytics'), icon: BarChart3 },
-      ]
-
       return (
         <>
-          <EntityRecordShell
-            className="platform-owner-record-shell"
-            avatar={<Building2 size={20} />}
-            eyebrow={tx('ΚΑΡΤΕΛΑ ΟΡΓΑΝΙΣΜΟΥ', 'ORGANIZATION RECORD')}
-            title={selectedOrg.name}
-            subtitle={`${selectedOrg.code || '—'} · ${selectedOrg.city || '—'} · ${selectedOrg.region || '—'}`}
-            status={
-              <span className={`status-badge ${selectedOrg.status === 'active' ? 'active' : 'danger'}`}>
-                {selectedOrg.status === 'active' ? tx('Ενεργός', 'Active') : tx('Σε παύση', 'Suspended')}
-              </span>
-            }
-            headerActions={
-              <PlatformOrganizationActions
-                organization={selectedOrg}
-                language={language}
-                onEnter={() => enterOrganization(selectedOrg)}
-                onEdit={() => beginEditOrg(selectedOrg)}
-                onTogglePause={() => togglePause(selectedOrg)}
-                onDelete={() => requestRemoveOrganization(selectedOrg)}
-              />
-            }
-            tabs={tabs}
-            activeTab={orgDetailTab}
+          <PlatformOrganizationRecord
+            organization={selectedOrg}
+            language={language}
+            initialTab={orgDetailTab}
             onTabChange={changeOrgTab}
             onBack={returnFromRecord}
-            backLabel={tx('Πίσω', 'Back')}
-          >
-            {orgDetailTab === 'details' && (
-              <div className="platform-owner-details">
-                <div className="platform-info-sections">
-                  <InfoSection title={tx('Ταυτότητα', 'Identity')}>
-                    <InfoRow label={tx('Επωνυμία', 'Name')} value={selectedOrg.name} />
-                    <InfoRow label={tx('Κωδικός / Hospital Prefix', 'Code / Hospital Prefix')} value={selectedOrg.code} />
-                    <InfoRow label={tx('Τύπος οργανισμού', 'Organization type')} value={selectedOrg.type || 'hospital'} />
-                    <InfoRow
-                      label={tx('Κατάσταση', 'Status')}
-                      value={selectedOrg.status === 'active' ? tx('Ενεργός', 'Active') : tx('Σε παύση', 'Suspended')}
-                      status={selectedOrg.status}
-                    />
-                  </InfoSection>
-                  <InfoSection title={tx('Διοικητικά & γεωγραφικά', 'Administrative & location')}>
-                    <InfoRow label={tx('Υγειονομική Περιφέρεια (ΥΠΕ)', 'Health Region')} value={selectedOrg.health_region} />
-                    <InfoRow label={tx('Περιφέρεια', 'Region')} value={selectedOrg.region} />
-                    <InfoRow label={tx('Πόλη', 'City')} value={selectedOrg.city} />
-                    <InfoRow label={tx('Χώρα', 'Country')} value={selectedOrg.country} />
-                  </InfoSection>
-                  <InfoSection title={tx('Επικοινωνία & λειτουργία', 'Contact & operations')}>
-                    <InfoRow label={tx('Κεντρικό email', 'Main email')} value={selectedOrg.contact_email} />
-                    <InfoRow label={tx('Τηλέφωνο', 'Phone')} value={selectedOrg.contact_phone} />
-                    <InfoRow label={tx('Δυναμικότητα κλινών', 'Bed capacity')} value={selectedOrg.bed_capacity} />
-                    <InfoRow label={tx('Χρήστες οργανισμού', 'Organization users')} value={memberCountByOrg[selectedOrg.id] || 0} />
-                    <InfoRow
-                      label="Hospital Admin"
-                      value={
-                        hospitalAdminStatusByOrg[selectedOrg.id] === 'active'
-                          ? tx('Ενεργός', 'Active')
-                          : hospitalAdminStatusByOrg[selectedOrg.id] === 'disabled'
-                            ? tx('Σε παύση', 'Suspended')
-                            : hospitalAdminStatusByOrg[selectedOrg.id] === 'invited'
-                              ? tx('Εκκρεμής πρόσκληση', 'Invitation pending')
-                              : tx('Δεν έχει οριστεί', 'Not assigned')
-                      }
-                    />
-                  </InfoSection>
-                </div>
-              </div>
-            )}
-
-            {orgDetailTab === 'users' && (
-              <div className="platform-owner-users">
-                {orgUsersLoading ? (
-                  <div className="inline-empty">{tx('Φόρτωση χρηστών…', 'Loading users…')}</div>
-                ) : orgUsers.length ? (
-                  <div className="scroll-table">
-                    <table className="data-table sticky-table">
-                      <thead>
-                        <tr>
-                          <th>{tx('Χρήστης', 'User')}</th>
-                          <th>Username</th>
-                          <th>{tx('Ρόλος', 'Role')}</th>
-                          <th>{tx('Κατάσταση', 'Status')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orgUsers.map(user => (
-                          <tr
-                            key={user.id}
-                            tabIndex={0}
-                            onClick={() => setSelectedUser(user)}
-                            onKeyDown={event => {
-                              if (event.key === 'Enter' || event.key === ' ') {
-                                event.preventDefault()
-                                setSelectedUser(user)
-                              }
-                            }}
-                          >
-                            <td><strong>{user.name}</strong><small>{user.email || '—'}</small></td>
-                            <td>{user.username}</td>
-                            <td>{roleLabel(user.role, language)}</td>
-                            <td>
-                              <span
-                                className={`status-badge ${
-                                  user.status === 'active'
-                                    ? 'active'
-                                    : user.status === 'disabled'
-                                      ? 'danger'
-                                      : 'temporary'
-                                }`}
-                              >
-                                {user.status === 'active'
-                                  ? tx('Ενεργός', 'Active')
-                                  : user.status === 'disabled'
-                                    ? tx('Σε παύση', 'Suspended')
-                                    : tx('Εκκρεμής', 'Pending')}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="inline-empty">{tx('Δεν υπάρχουν χρήστες.', 'No users found.')}</div>
-                )}
-              </div>
-            )}
-
-            {orgDetailTab === 'diagnostics' && (
-              <HospitalDiagnosticsPanel organization={selectedOrg} language={language} />
-            )}
-
-            {orgDetailTab === 'analysis' && (
-              <div className="platform-org-analysis-link">
-                <div>
-                  <strong>{tx('Ανάλυση οργανισμού', 'Organization analytics')}</strong>
-                  <span>{tx('Δείκτες, μικροοργανισμοί, trends και report για το συγκεκριμένο νοσοκομείο.', 'Indicators, microorganisms, trends and report for this hospital.')}</span>
-                </div>
-                <Button onClick={openOrganizationAnalysis}>
-                  <BarChart3 size={15} />
-                  {tx('Άνοιγμα Analysis / Report', 'Open Analysis / Report')}
-                </Button>
-              </div>
-            )}
-          </EntityRecordShell>
-          {editDialog}
-          <PlatformUserDialog
-            organization={selectedOrg}
-            user={selectedUser}
-            language={language}
-            onChange={setSelectedUser}
-            onAction={userAction}
-            onDeleteConfirm={confirmUserDelete}
+            onEnter={() => enterOrganization(selectedOrg)}
+            onDelete={() => requestRemoveOrganization(selectedOrg)}
+            onChanged={async () => {
+              await reloadMemberships()
+              await refreshPlatformData()
+            }}
+            onOpenAnalysis={openOrganizationAnalysis}
           />
           {deleteDialog}
         </>

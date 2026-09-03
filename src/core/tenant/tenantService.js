@@ -82,6 +82,7 @@ export async function listPlatformDemos() {
   const { data, error } = await supabase
     .from('platform_demo_entitlements')
     .select('id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,demo_user_id,organization:organizations(id,name,code,is_demo)')
+    .neq('status', 'revoked')
     .order('valid_until', { ascending: true })
   if (error) throw error
   return data ?? []

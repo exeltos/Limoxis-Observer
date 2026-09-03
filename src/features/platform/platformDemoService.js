@@ -93,5 +93,20 @@ export async function convertPlatformDemoToOrganization(demo, patch) {
     throw entitlementError
   }
 
+  if (demo.demo_user_id) {
+    const { error: membershipError } = await supabase
+      .from('organization_members')
+      .update({ role: 'staff_user' })
+      .eq('organization_id', demo.organization_id)
+      .eq('user_id', demo.demo_user_id)
+      .eq('role', 'demo')
+    if (membershipError) throw membershipError
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ is_demo: false, demo_entitlement_id: null })
+      .eq('id', demo.demo_user_id)
+    if (profileError) throw profileError
+  }
+
   return organization
 }
