@@ -59,7 +59,7 @@ describe('Platform Owner UI audit',()=>{
   it('renders Platform reports through the exact same Analysis workspace with platform scope only',()=>{
     const owner=read('src/features/workspaces/PlatformCenterPage.jsx')
     const analysis=read('src/features/analysis/AnalysisPage.jsx')
-    expect(owner).toContain('<AnalysisPage platform organizations={organizations}/>')
+    expect(owner).toMatch(/<AnalysisPage\s+platform\s+organizations=\{organizations\}\s*\/>/)
     expect(analysis).toContain('export function AnalysisPage({platform=false,organizations=[]})')
     expect(analysis).toContain('className="analysis-workspace"')
     expect(analysis).toContain('className="analysis-filters"')
