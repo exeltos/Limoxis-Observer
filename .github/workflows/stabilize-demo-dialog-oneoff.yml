@@ -1,0 +1,19 @@
+name: Stabilize demo dialog one off
+on:
+  push:
+    paths:
+      - .github/workflows/stabilize-demo-dialog-oneoff.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/stabilize-demo-dialog.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/styles/design-system-layouts.css
+          git commit -m "fix(owner): keep demo action footer always visible" || exit 0
+          git push
