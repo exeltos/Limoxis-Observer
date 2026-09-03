@@ -515,3 +515,22 @@
 .platform-demo-contact-grid>.manual-date-field{min-width:0}
 .platform-demo-contact-grid input{min-width:0;width:100%}
 @media(max-width:760px){.platform-demo-contact-grid{grid-template-columns:1fr!important}.platform-form-section>header{align-items:flex-start}.platform-form-section-actions{flex-wrap:wrap}}
+
+
+/* Platform Owner · functional lock without disabling edit actions */
+.platform-record-edit-fieldset.is-locked input,
+.platform-record-edit-fieldset.is-locked select,
+.platform-record-edit-fieldset.is-locked textarea{
+  pointer-events:none;
+  background:var(--lo-color-surface-soft,#f6f8fb);
+  color:var(--lo-color-text);
+  cursor:default;
+  opacity:1
+}
+.platform-record-edit-fieldset.is-locked .location-autocomplete-field input{pointer-events:none}
+.platform-record-edit-fieldset.is-editing input,
+.platform-record-edit-fieldset.is-editing select,
+.platform-record-edit-fieldset.is-editing textarea{pointer-events:auto}
+.platform-demo-create-dialog .observer-dialog-body{padding-bottom:18px!important}
+.platform-demo-create-dialog .platform-form-shell{padding-bottom:4px}
+.platform-demo-create-dialog footer{padding-top:14px!important}
