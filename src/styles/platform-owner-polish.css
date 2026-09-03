@@ -135,7 +135,6 @@
   height:100%;
 }
 
-/* The shared shell owns the outer record surface. Owner content must not create a second large shell inside it. */
 .platform-owner-record-shell>.entity-record-body{
   padding:0;
   background:transparent;
@@ -240,6 +239,10 @@
 .platform-form-grid .field input,
 .platform-form-grid .field select{width:100%;min-height:38px;height:38px;border-radius:var(--lo-radius-control);padding:0 10px;font-size:11.5px;background:var(--lo-color-surface)}
 .platform-form-grid .field input[readonly]{background:var(--lo-shell-control-hover);color:var(--lo-color-muted)}
+/* Demo access dates belong together as one range. When a form section contains
+   ManualDateField controls, contact + email + from + until share one row. */
+.platform-form-grid:has(>.manual-date-field){grid-template-columns:repeat(4,minmax(0,1fr))}
+.platform-form-grid:has(>.manual-date-field)>.manual-date-field{min-width:0}
 .platform-demo-edit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .platform-demo-edit-grid .field-wide{grid-column:1/-1}
 .platform-admin-status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:11px;padding-top:11px;border-top:1px solid var(--lo-color-border)}
@@ -251,7 +254,6 @@
 .analysis-page>.page-header{flex:0 0 auto}
 .analysis-page>.analysis-workspace{flex:1 1 auto;min-height:0}
 
-/* Analytics controls belong to the page canvas, not to a second card shell. */
 .platform-analysis-page>.analysis-workspace{
   display:flex;
   flex-direction:column;
@@ -340,13 +342,14 @@
   .platform-info-sections{grid-template-columns:1fr 1fr}
   .platform-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .platform-form-grid .field-wide{grid-column:1/-1}
+  .platform-form-grid:has(>.manual-date-field){grid-template-columns:repeat(2,minmax(0,1fr))}
   .platform-org-actions{flex-wrap:wrap;justify-content:flex-end}
 }
 
 @media (max-width:760px){
   .platform-kpi-grid{grid-template-columns:1fr}
   .platform-info-sections{grid-template-columns:1fr}
-  .platform-form-grid,.platform-demo-edit-grid{grid-template-columns:1fr}
+  .platform-form-grid,.platform-demo-edit-grid,.platform-form-grid:has(>.manual-date-field){grid-template-columns:1fr}
   .platform-form-grid .field-wide{grid-column:auto}
   .platform-org-analysis-link{align-items:flex-start;flex-direction:column}
   .platform-demo-row{align-items:flex-start;flex-direction:column}
