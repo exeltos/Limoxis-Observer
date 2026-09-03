@@ -6,7 +6,7 @@ import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'
 import { useAuth } from '../core/auth/AuthContext'
 import { HelpCenter } from '../core/help/HelpCenter'
-import { PREVIEWABLE_ROLES, ROLES } from '../core/permissions/roles'
+import { CAPABILITIES, PREVIEWABLE_ROLES, ROLES, can } from '../core/permissions/roles'
 import { roleLabel } from '../core/permissions/roleLabels'
 import { APP_VERSION, BUILD_ID } from '../core/version'
 import { BirthdayGreeting, NotificationCenter } from '../core/notifications/NotificationCenter'
@@ -77,7 +77,7 @@ export function AppShell(){
   const previewRoles=PREVIEWABLE_ROLES.map(previewRole=>[previewRole,previewRoleLabels[previewRole]])
   const previewDepartments=[['','previewAllHospital'],['icu','previewIcu'],['surgery','previewSurgery'],['internal','previewInternalMedicine']]
   const visibleNavigation=platformMode?[]:navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
-  const canOrganizationAnalysis=!platformMode&&[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD,ROLES.DEMO].includes(role)
+  const canOrganizationAnalysis=!platformMode&&can(role,CAPABILITIES.VIEW_ANALYSIS,membership?.capabilities??[],membership?.customCapabilities??[])
   const managementNavigation=visibleNavigation.filter(item=>item.key==='management')
   const usesCompactMore=[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD].includes(role)
   const moreNavigation=usesCompactMore?visibleNavigation.filter(item=>item.group==='more'):[]
