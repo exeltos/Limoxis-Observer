@@ -50,6 +50,21 @@ export function EmployeeRecordPage({selfMode=false}){
     if(linkedUserId){const byUser=employeeRows.find(x=>x.userId===linkedUserId);if(byUser)return byUser}
     const identityEmail=(profile?.email||user?.email||'').trim().toLowerCase()
     if(identityEmail){const byEmail=employeeRows.find(x=>(x.email||'').trim().toLowerCase()===identityEmail);if(byEmail)return byEmail}
+    const platformOwner=Boolean(profile?.isPlatformOwner||profile?.is_platform_owner)
+    if(platformOwner){
+      const fullName=profile?.fullName||profile?.full_name||user?.user_metadata?.full_name||user?.email||'Platform Owner'
+      const parts=String(fullName).trim().split(/\s+/).filter(Boolean)
+      const firstName=parts[0]||'Platform'
+      const lastName=parts.slice(1).join(' ')||'Owner'
+      return {
+        id:'PLATFORM-OWNER',dbId:null,userId:profile?.id||user?.id||null,
+        firstName,lastName,firstNameEn:firstName,lastNameEn:lastName,
+        email:profile?.contactEmail||profile?.email||user?.email||'',
+        profession:'Platform Owner',professionEn:'Platform Owner',
+        department:'Πλατφόρμα',departmentEn:'Platform',
+        employmentStatus:'active',hireDate:'',employeeCode:'PLATFORM-OWNER',
+      }
+    }
     if(isDemo)return employeeRows.find(x=>x.id==='EMP-001')||employeeRows[0]||null
     return null
   },[selfMode,membership,profile,user?.id,user?.email,isDemo,employeeRows])
