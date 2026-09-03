@@ -3,8 +3,18 @@ import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'
 import { useFeedback } from '../core/feedback/FeedbackContext'
 import { canPerform, UI_ACTIONS } from '../core/actions/actionPolicy'
+import { ActionButton } from './ActionButton'
 
-const config={create:{icon:Plus,key:'create'},edit:{icon:Pencil,key:'edit'},delete:{icon:Trash2,key:'delete'},attach:{icon:Paperclip,key:'attachments'},print:{icon:Printer,key:'print'},export:{icon:Download,key:'export'},complete:{icon:CheckCircle2,key:'complete'},approve:{icon:CheckCircle2,key:'approval'}}
+const config={
+ create:{icon:Plus,key:'create',tone:'primary'},
+ edit:{icon:Pencil,key:'edit',tone:'edit'},
+ delete:{icon:Trash2,key:'delete',tone:'danger'},
+ attach:{icon:Paperclip,key:'attachments',tone:'neutral'},
+ print:{icon:Printer,key:'print',tone:'neutral'},
+ export:{icon:Download,key:'export',tone:'neutral'},
+ complete:{icon:CheckCircle2,key:'complete',tone:'success'},
+ approve:{icon:CheckCircle2,key:'approval',tone:'success'},
+}
 export function RecordActions({actions=[],resourceCapability,actionCapabilities={},locked=false,onAction=()=>{},iconOnly=false}){
  const {t}=useLanguage()
  const {role,membership}=useTenant()
@@ -18,5 +28,5 @@ export function RecordActions({actions=[],resourceCapability,actionCapabilities=
   }
   onAction(action)
  }
- return <div className="record-actions">{actions.filter(action=>canPerform({role,addOns,customCapabilities,action,resourceCapability:actionCapabilities[action]??resourceCapability,locked})).map(action=>{const item=config[action];if(!item)return null;const Icon=item.icon;const compact=iconOnly||action===UI_ACTIONS.PRINT||action===UI_ACTIONS.EXPORT;return <button type="button" key={action} className={`action-button ${compact?'icon-only':''} ${action===UI_ACTIONS.DELETE?'danger':''} ${action===UI_ACTIONS.EDIT?'edit':''}`} onClick={()=>dispatch(action)} title={t(item.key)} aria-label={t(item.key)}><Icon size={15}/>{!compact&&<span>{t(item.key)}</span>}</button>})}</div>
+ return <div className="record-actions">{actions.filter(action=>canPerform({role,addOns,customCapabilities,action,resourceCapability:actionCapabilities[action]??resourceCapability,locked})).map(action=>{const item=config[action];if(!item)return null;const Icon=item.icon;const compact=iconOnly||action===UI_ACTIONS.PRINT||action===UI_ACTIONS.EXPORT;return <ActionButton key={action} label={t(item.key)} tone={item.tone} iconOnly={compact} onClick={()=>dispatch(action)}><Icon size={15}/>{!compact&&<span>{t(item.key)}</span>}</ActionButton>})}</div>
 }
