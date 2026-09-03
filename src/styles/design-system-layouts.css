@@ -579,3 +579,10 @@
   font-weight:400;
   color:var(--lo-color-text-muted);
 }
+
+
+/* Platform Owner · user to employee record linkage */
+.platform-user-employee-link{display:flex;align-items:center;gap:10px;max-width:760px}
+.platform-user-employee-link .platform-role-select{flex:1;min-width:0}
+.platform-user-linked-employee{display:block;margin-top:7px;color:var(--lo-color-text-muted);font-size:11px}
+@media(max-width:760px){.platform-user-employee-link{align-items:stretch;flex-direction:column}.platform-user-employee-link .button{width:100%}}
