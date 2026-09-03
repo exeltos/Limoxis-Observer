@@ -5,6 +5,7 @@ const app=fs.readFileSync(new URL('../src/app/App.jsx',import.meta.url),'utf8')
 const route=fs.readFileSync(new URL('../src/features/surveillance/SurveillanceRoutePage.jsx',import.meta.url),'utf8')
 const productionSurveillance=fs.readFileSync(new URL('../src/features/surveillance/ProductionSurveillancePage.jsx',import.meta.url),'utf8')
 const patientRoute=fs.readFileSync(new URL('../src/features/surveillance/PatientClinicalRecordRoute.jsx',import.meta.url),'utf8')
+const cloudPatientRecord=fs.readFileSync(new URL('../src/features/surveillance/PatientClinicalCloudRecordPage.jsx',import.meta.url),'utf8')
 const analysis=fs.readFileSync(new URL('../src/features/analysis/AnalysisPage.jsx',import.meta.url),'utf8')
 const environment=fs.readFileSync(new URL('../src/core/data/dataEnvironment.js',import.meta.url),'utf8')
 
@@ -25,16 +26,17 @@ describe('demo / production isolation',()=>{
     expect(productionSurveillance).not.toContain('laboratoryDemoData')
   })
 
-  it('does not fall back to demo records for a missing production clinical record',()=>{
-    expect(patientRoute).toContain('if(!isDemo)')
-    expect(patientRoute).toContain('if(cloudCase===null)')
-    expect(patientRoute).toContain('surveillanceDemoData.find')
+  it('routes production clinical records only to the cloud record implementation',()=>{
+    expect(patientRoute).toContain('return isDemo')
+    expect(patientRoute).toContain('<PatientClinicalRecordPage patientMode={patientMode}/>')
+    expect(patientRoute).toContain('<PatientClinicalCloudRecordPage patientMode={patientMode}/>')
+    expect(cloudPatientRecord).not.toContain('surveillanceDemoData')
   })
 
   it('blocks synthetic analytics from production rendering',()=>{
     expect(analysis).toContain('!isDemo?')
     expect(analysis).toContain('analysis-production-empty')
-    expect(analysis).toContain('Demo data exists only in the Demo environment')
+    expect(analysis).toContain('Demo or synthetic values are never used as a fallback.')
   })
 
   it('returns empty-shaped fallbacks outside the demo environment',()=>{
