@@ -110,6 +110,20 @@ export async function resetPlatformDemoPassword(demo) {
   return manageOrganizationUser({ organizationId: demo.organization_id, userId: demo.demo_user_id, action: 'reset_password' })
 }
 
+export async function deletePlatformDemo(demo) {
+  if (!supabase || !demo?.id) throw new Error('SUPABASE_NOT_CONFIGURED')
+  if (demo.organization_id && demo.demo_user_id) {
+    await manageOrganizationUser({ organizationId: demo.organization_id, userId: demo.demo_user_id, action: 'delete' })
+  }
+  if (demo.organization_id) {
+    const { error } = await supabase.from('organizations').delete().eq('id', demo.organization_id).eq('is_demo', true)
+    if (error) throw error
+    return
+  }
+  const { error } = await supabase.from('platform_demo_entitlements').delete().eq('id', demo.id)
+  if (error) throw error
+}
+
 export async function setPlatformOrganizationStatus(organizationId, status) {
   if (!supabase || !organizationId) throw new Error('SUPABASE_NOT_CONFIGURED')
   const patch = { status, paused_at: status === 'suspended' ? new Date().toISOString() : null }
