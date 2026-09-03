@@ -6,7 +6,7 @@ import { listOrganizationMembersDetailed,manageOrganizationUser } from '../../co
 
 export function PlatformOrganizationActions({organization,language='el',onEnter,onEdit,onTogglePause,onDelete}){
   const en=language==='en',suspended=organization.status==='suspended'
-  const {notify,notifyError}=useFeedback()
+  const {notify,notifyError,confirm}=useFeedback()
   const [resetting,setResetting]=useState(false)
 
   async function resetHospitalAdminPassword(){
@@ -19,15 +19,27 @@ export function PlatformOrganizationActions({organization,language='el',onEnter,
         notify(en?'No Hospital Admin is assigned to this organization.':'Δεν έχει οριστεί Hospital Admin για τον οργανισμό.','warning',{operation:'platform_admin_reset_password'})
         return
       }
-      if(admin.status==='invited'){
-        const result=await manageOrganizationUser({organizationId:organization.id,userId:admin.userId,action:'resend_invitation'})
-        notify(result?.emailSent?(en?'Hospital Admin invitation resent.':'Η πρόσκληση του Hospital Admin επαναποστάλθηκε.'):(en?'Invitation refreshed.':'Η πρόσκληση ανανεώθηκε.'),'success',{operation:'platform_admin_resend_invitation'})
-        return
-      }
       if(admin.status==='disabled'){
         notify(en?'Reactivate the Hospital Admin before resetting the password.':'Επανενεργοποίησε πρώτα τον Hospital Admin πριν από επαναφορά κωδικού.','warning',{operation:'platform_admin_reset_password'})
         return
       }
+
+      const invited=admin.status==='invited'
+      const ok=await confirm({
+        title:invited?(en?'Resend Hospital Admin invitation':'Επαναποστολή πρόσκλησης Hospital Admin'):(en?'Reset Hospital Admin password':'Επαναφορά κωδικού Hospital Admin'),
+        message:invited
+          ?(en?`The Hospital Admin invitation for “${organization.name}” will be sent again to ${admin.email||'the registered email address'}. Do you want to continue?`:`Η πρόσκληση του Hospital Admin για τον οργανισμό «${organization.name}» θα αποσταλεί ξανά στο ${admin.email||'καταχωρημένο email'}. Θέλεις να συνεχίσεις;`)
+          :(en?`A password-reset email will be sent to the Hospital Admin of “${organization.name}” at ${admin.email||'the registered email address'}. No password will be changed until the recipient completes the secure reset flow. Do you want to continue?`:`Θα αποσταλεί email ασφαλούς επαναφοράς κωδικού στον Hospital Admin του οργανισμού «${organization.name}» στο ${admin.email||'καταχωρημένο email'}. Ο κωδικός δεν αλλάζει μέχρι ο παραλήπτης να ολοκληρώσει τη διαδικασία. Θέλεις να συνεχίσεις;`),
+        confirmLabel:invited?(en?'Resend invitation':'Επαναποστολή'):(en?'Send reset email':'Αποστολή email'),
+      })
+      if(!ok)return
+
+      if(invited){
+        const result=await manageOrganizationUser({organizationId:organization.id,userId:admin.userId,action:'resend_invitation'})
+        notify(result?.emailSent?(en?'Hospital Admin invitation resent.':'Η πρόσκληση του Hospital Admin επαναποστάλθηκε.'):(en?'Invitation refreshed.':'Η πρόσκληση ανανεώθηκε.'),'success',{operation:'platform_admin_resend_invitation'})
+        return
+      }
+
       await manageOrganizationUser({organizationId:organization.id,userId:admin.userId,action:'reset_password'})
       notify(en?'Password reset email sent to the Hospital Admin.':'Στάλθηκε email επαναφοράς κωδικού στον Hospital Admin.','success',{operation:'platform_admin_reset_password'})
     }catch(error){notifyError(error,'action',{operation:'platform_admin_reset_password'})}
