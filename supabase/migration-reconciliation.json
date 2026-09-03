@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "projectRef": "wnnssaicdsdgesysaamv",
+  "reconciledAt": "2026-09-03",
+  "policy": {
+    "productionAuthority": "deployed_state",
+    "repositoryAuthority": "intended_reproducible_history",
+    "productionMutationAllowed": false,
+    "notes": "This manifest is evidence for reconciliation. It is not a deployment instruction."
+  },
+  "historicalEquivalents": [
+    {
+      "file": "202609010001_v0288_session_backend_fixes.sql",
+      "classification": "superseded",
+      "deployment": "do_not_replay",
+      "productionEvidence": "Represented in production by four split corrective migrations."
+    },
+    {
+      "file": "202609010002_v0289_attachment_storage.sql",
+      "classification": "superseded",
+      "deployment": "do_not_replay",
+      "productionEvidence": "Represented in production by split storage bucket/policy and attachment metadata migrations."
+    },
+    {
+      "file": "202609010003_v0290_employee_subrecords.sql",
+      "classification": "state_equivalent",
+      "deployment": "do_not_replay",
+      "productionEvidence": "Production contains the equivalent employee training, evaluation, and certificate schema under different history."
+    },
+    {
+      "file": "202609010030_v0294_committee_workflow_alignment.sql",
+      "classification": "consolidation",
+      "deployment": "do_not_replay",
+      "productionEvidence": "Production received equivalent committee hardening as a staged migration sequence."
+    },
+    {
+      "file": "202609020001_v0316_committee_minutes_transactional_submission.sql",
+      "classification": "state_equivalent",
+      "deployment": "do_not_replay",
+      "productionEvidence": "Production contains the transactional committee minutes submission change under different timestamp history."
+    },
+    {
+      "file": "202609020002_v0317_committee_history_finalize_capability.sql",
+      "classification": "state_equivalent",
+      "deployment": "do_not_replay",
+      "productionEvidence": "Production contains the committee history finalize capability change under different timestamp history."
+    },
+    {
+      "file": "20260902150000_committee_framework_governance.sql",
+      "classification": "state_equivalent",
+      "deployment": "do_not_replay",
+      "productionEvidence": "Production committee edit governance has the equivalent status and create-capability conditions."
+    },
+    {
+      "file": "20260902173000_retire_legacy_training_rpcs_and_harden_internal_functions.sql",
+      "classification": "superseded",
+      "deployment": "do_not_replay",
+      "productionEvidence": "Production contains split hardening and RPC-retirement migrations followed by corrective grants."
+    },
+    {
+      "file": "20260902204000_indicator_authorized_metric_rpc.sql",
+      "classification": "superseded",
+      "deployment": "do_not_replay",
+      "productionEvidence": "Production contains the v2 authorized indicator metric RPC end-state."
+    }
+  ],
+  "blockedAuthorizationMigrations": [
+    {
+      "file": "20260902205000_indicator_role_scope_alignment.sql",
+      "deployment": "blocked_pending_rewrite",
+      "rolloutOrder": 7,
+      "blockedReason": "Requires the canonical database capability resolver and department-scope policy tests."
+    },
+    {
+      "file": "20260902211500_workforce_role_scope_alignment.sql",
+      "deployment": "blocked_pending_rewrite",
+      "rolloutOrder": 2,
+      "blockedReason": "Must replace the active production employee policy names and preserve Occupational Health separation."
+    },
+    {
+      "file": "20260902213000_laboratory_operational_scope_alignment.sql",
+      "deployment": "blocked_pending_rewrite",
+      "rolloutOrder": 3,
+      "blockedReason": "Requires assignment-aware Doctor Reviewer sample visibility and Laboratory scope tests."
+    },
+    {
+      "file": "20260902214500_surveillance_role_scope_alignment.sql",
+      "deployment": "blocked_pending_rewrite",
+      "rolloutOrder": 4,
+      "blockedReason": "Depends on capability resolver parity and assignment-aware surveillance reads."
+    },
+    {
+      "file": "20260902215500_clinical_write_capability_alignment.sql",
+      "deployment": "blocked_pending_rewrite",
+      "rolloutOrder": 5,
+      "blockedReason": "Depends on complete system-role mappings in the database capability resolver."
+    },
+    {
+      "file": "20260902220500_antimicrobial_therapy_role_alignment.sql",
+      "deployment": "blocked_pending_rewrite",
+      "rolloutOrder": 5,
+      "blockedReason": "Depends on clinical capability parity and role-boundary tests."
+    },
+    {
+      "file": "20260902222000_patient_surveillance_lifecycle_alignment.sql",
+      "deployment": "blocked_pending_rewrite",
+      "rolloutOrder": 6,
+      "blockedReason": "Depends on capability parity and explicit lifecycle authorization."
+    },
+    {
+      "file": "20260902223500_employee_self_profile_rls.sql",
+      "deployment": "blocked_pending_rewrite",
+      "rolloutOrder": 2,
+      "blockedReason": "Must be tested with workforce policy replacement and stable membership-to-employee links."
+    },
+    {
+      "file": "20260902224500_surveillance_lifecycle_transition_guard.sql",
+      "deployment": "blocked_pending_rewrite",
+      "rolloutOrder": 6,
+      "blockedReason": "Depends on the corrected surveillance capability layer and close/reopen regression tests."
+    }
+  ]
+}
