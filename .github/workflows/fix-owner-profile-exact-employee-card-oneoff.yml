@@ -1,0 +1,19 @@
+name: Fix owner profile exact employee card one off
+on:
+  push:
+    paths:
+      - .github/workflows/fix-owner-profile-exact-employee-card-oneoff.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/fix-owner-profile-exact-employee-card.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/employees/EmployeeRecordPage.jsx
+          git commit -m "fix(profile): render exact employee card for platform owner self profile" || exit 0
+          git push
