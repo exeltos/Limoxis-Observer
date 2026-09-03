@@ -1,0 +1,111 @@
+name: Owner UI auth refinement one-off
+
+on:
+  push:
+    paths:
+      - .github/workflows/owner-ui-auth-refinement-oneoff.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply requested refinement
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f'Missing expected source for {label}')
+              return text.replace(old, new, 1)
+
+          # Brand mark: clean L everywhere in auth + shell.
+          for name in [
+              'src/features/auth/LoginPage.jsx',
+              'src/features/auth/ForgotAccessPage.jsx',
+              'src/features/auth/ResetPasswordPage.jsx',
+              'src/features/auth/ActivateAccountPage.jsx',
+          ]:
+              p=Path(name); s=p.read_text(encoding='utf-8'); s=s.replace('className="auth-logo">L+</span>','className="auth-logo">L</span>'); p.write_text(s,encoding='utf-8')
+          p=Path('src/app/AppShell.jsx'); s=p.read_text(encoding='utf-8'); s=s.replace('className="brand-mark">L+</div>','className="brand-mark">L</div>'); p.write_text(s,encoding='utf-8')
+
+          # Login language: username-first copy and fully Greek terminology.
+          p=Path('src/features/auth/LoginPage.jsx'); s=p.read_text(encoding='utf-8')
+          s=replace_once(s,
+              "{greek?'Επιτήρηση λοιμώξεων, εργαστήριο, πρόληψη, ποιότητα και governance με ενιαία λογική.':'Infection surveillance, laboratory, prevention, quality and governance with one consistent workflow.'}",
+              "{greek?'Επιτήρηση λοιμώξεων, εργαστήριο, πρόληψη, ποιότητα και διακυβέρνηση με ενιαία λογική.':'Infection surveillance, laboratory, prevention, quality and governance with one consistent workflow.'}",
+              'Greek governance wording')
+          s=replace_once(s,"<ShieldCheck size={17}/>Role-based access","<ShieldCheck size={17}/>{greek?'Πρόσβαση βάσει ρόλου':'Role-based access'}",'role access wording')
+          s=replace_once(s,"<CheckCircle2 size={17}/>{greek?'Audit-ready βάση':'Audit-ready foundation'}","<CheckCircle2 size={17}/>{greek?'Πλήρης ιχνηλασιμότητα':'Audit-ready foundation'}",'audit wording')
+          s=replace_once(s,
+              "{greek?'Συνδεθείτε με το όνομα χρήστη ή το δηλωμένο email του λογαριασμού σας.':'Sign in with your username or the email registered to your account.'}",
+              "{greek?'Συνδεθείτε με το όνομα χρήστη του λογαριασμού σας.':'Sign in with your account username.'}",
+              'login helper wording')
+          s=replace_once(s,"label={greek?'Όνομα χρήστη ή email':'Username or email'}","label={greek?'Όνομα χρήστη':'Username'}",'username label')
+          p.write_text(s,encoding='utf-8')
+
+          # Auth hydration: never expose an authenticated session before its profile/role is ready.
+          p=Path('src/core/auth/AuthContext.jsx'); s=p.read_text(encoding='utf-8')
+          s=replace_once(s,
+              "    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {\n      setSession(nextSession)\n      if (!nextSession?.user) {\n        setProfile(null)\n        return\n      }\n      loadProfile(nextSession.user).then(setProfile).catch(() => setProfile(null))\n    })",
+              "    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {\n      if (!nextSession?.user) {\n        setSession(null)\n        setProfile(null)\n        return\n      }\n      loadProfile(nextSession.user)\n        .then(nextProfile => {\n          setProfile(nextProfile)\n          setSession(nextSession)\n        })\n        .catch(() => {\n          setProfile(null)\n          setSession(nextSession)\n        })\n    })",
+              'auth state hydration')
+          s=replace_once(s,
+              "  const login = useCallback(async (email, password) => signInWithPassword(email, password), [])",
+              "  const login = useCallback(async (identifier, password) => {\n    const data = await signInWithPassword(identifier, password)\n    const nextSession = data?.session ?? data ?? null\n    const nextUser = nextSession?.user ?? data?.user ?? null\n    if (nextUser) {\n      const nextProfile = await loadProfile(nextUser)\n      setProfile(nextProfile)\n      if (nextSession) setSession(nextSession)\n    }\n    return data\n  }, [loadProfile])",
+              'login hydration')
+          p.write_text(s,encoding='utf-8')
+
+          # Demo create form: organization-grade sections + persisted organization metadata.
+          p=Path('src/features/workspaces/PlatformCenterPage.jsx'); s=p.read_text(encoding='utf-8')
+          s=replace_once(s,
+              "  const [demoDraft, setDemoDraft] = useState({\n    label: '',\n    contactName: '',\n    contactEmail: '',\n    validFrom: new Date().toISOString().slice(0, 10),\n    validUntil: '',\n  })",
+              "  const [demoDraft, setDemoDraft] = useState({\n    label: '',\n    type: 'hospital',\n    region: '',\n    healthRegion: '',\n    city: '',\n    country: 'Greece',\n    contactPhone: '',\n    bedCapacity: '',\n    contactName: '',\n    contactEmail: '',\n    validFrom: new Date().toISOString().slice(0, 10),\n    validUntil: '',\n  })",
+              'expanded demo draft')
+          s=replace_once(s,
+              "      await refreshPlatformData()\n      setDemoOpen(false)\n      notify(tx('Το Demo ενεργοποιήθηκε.', 'Demo access enabled.'), 'success', {",
+              "      await refreshPlatformData()\n      setDemoOpen(false)\n      setDemoDraft({ label:'', type:'hospital', region:'', healthRegion:'', city:'', country:'Greece', contactPhone:'', bedCapacity:'', contactName:'', contactEmail:'', validFrom:new Date().toISOString().slice(0,10), validUntil:'' })\n      notify(tx('Το Demo ενεργοποιήθηκε.', 'Demo access enabled.'), 'success', {",
+              'reset demo draft')
+          s=replace_once(s,
+              "              <Button onClick={() => setDemoOpen(true)}>+ {tx('Νέο Demo', 'New Demo')}</Button>\n              <Button variant=\"secondary\" className=\"platform-demo-enter-action\" onClick={() => { enterPlatformDemo(); nav('/') }}>\n                <LogIn size={15} />\n                {tx('Είσοδος Demo', 'Enter Demo')}\n              </Button>",
+              "              <Button variant=\"secondary\" className=\"platform-demo-enter-action\" onClick={() => { enterPlatformDemo(); nav('/') }}>\n                <LogIn size={15} />\n                {tx('Είσοδος Demo', 'Enter Demo')}\n              </Button>\n              <Button onClick={() => setDemoOpen(true)}>+ {tx('Νέο Demo', 'New Demo')}</Button>",
+              'swap demo actions')
+          old_form="""            <div className=\"platform-form-grid\">\n              <label className=\"field field-wide\">\n                <span>{tx('Οργανισμός / Prospect', 'Organization / Prospect')} *</span>\n                <input value={demoDraft.label} onChange={event => setDemoDraft(current => ({ ...current, label: event.target.value }))} />\n              </label>\n              <label className=\"field\">\n                <span>{tx('Υπεύθυνος επικοινωνίας', 'Contact person')}</span>\n                <input value={demoDraft.contactName} onChange={event => setDemoDraft(current => ({ ...current, contactName: event.target.value }))} />\n              </label>\n              <label className=\"field\">\n                <span>Email *</span>\n                <input type=\"email\" value={demoDraft.contactEmail} onChange={event => setDemoDraft(current => ({ ...current, contactEmail: event.target.value }))} />\n              </label>\n              <ManualDateField label={tx('Έναρξη', 'Start')} value={demoDraft.validFrom} onChange={value => setDemoDraft(current => ({ ...current, validFrom: value }))} />\n              <ManualDateField label={`${tx('Λήξη', 'End')} *`} value={demoDraft.validUntil} onChange={value => setDemoDraft(current => ({ ...current, validUntil: value }))} />\n            </div>"""
+          new_form="""            <div className=\"platform-form-shell\">\n              <FormSection title={tx('Ταυτότητα Demo οργανισμού', 'Demo organization identity')} subtitle={tx('Τα βασικά στοιχεία αποθηκεύονται στον απομονωμένο Demo οργανισμό.', 'Core details are stored on the isolated Demo organization.')}>\n                <div className=\"platform-form-grid\">\n                  <label className=\"field field-wide\">\n                    <span>{tx('Επωνυμία οργανισμού / Prospect', 'Organization / Prospect name')} *</span>\n                    <input autoFocus value={demoDraft.label} onChange={event => setDemoDraft(current => ({ ...current, label: event.target.value }))} />\n                  </label>\n                  <label className=\"field\">\n                    <span>{tx('Τύπος', 'Type')}</span>\n                    <select value={demoDraft.type} onChange={event => setDemoDraft(current => ({ ...current, type: event.target.value }))}>\n                      <option value=\"hospital\">{tx('Νοσοκομείο', 'Hospital')}</option>\n                      <option value=\"clinic\">{tx('Κλινική', 'Clinic')}</option>\n                      <option value=\"group\">{tx('Όμιλος', 'Group')}</option>\n                      <option value=\"other\">{tx('Άλλο', 'Other')}</option>\n                    </select>\n                  </label>\n                </div>\n              </FormSection>\n              <FormSection title={tx('Τοποθεσία & λειτουργία', 'Location & operations')}>\n                <div className=\"platform-form-grid\">\n                  <label className=\"field\"><span>{tx('Περιφέρεια', 'Region')}</span><select value={demoDraft.region} onChange={event => setDemoDraft(current => ({ ...current, region: event.target.value }))}><option value=\"\">{tx('Επιλογή…', 'Select…')}</option>{GREEK_REGIONS.map(region => <option key={region}>{region}</option>)}</select></label>\n                  <label className=\"field field-wide\"><span>{tx('Υγειονομική Περιφέρεια (ΥΠΕ)', 'Health Region')}</span><select value={demoDraft.healthRegion} onChange={event => setDemoDraft(current => ({ ...current, healthRegion: event.target.value }))}><option value=\"\">{tx('Επιλογή…', 'Select…')}</option>{HEALTH_REGIONS.map(region => <option key={region}>{region}</option>)}</select></label>\n                  <label className=\"field\"><span>{tx('Πόλη', 'City')}</span><input value={demoDraft.city} onChange={event => setDemoDraft(current => ({ ...current, city: event.target.value }))} /></label>\n                  <label className=\"field\"><span>{tx('Χώρα', 'Country')}</span><input value={demoDraft.country} onChange={event => setDemoDraft(current => ({ ...current, country: event.target.value }))} /></label>\n                  <label className=\"field\"><span>{tx('Τηλέφωνο', 'Phone')}</span><input value={demoDraft.contactPhone} onChange={event => setDemoDraft(current => ({ ...current, contactPhone: event.target.value }))} /></label>\n                  <label className=\"field\"><span>{tx('Δυναμικότητα κλινών', 'Bed capacity')}</span><input type=\"number\" min=\"0\" value={demoDraft.bedCapacity} onChange={event => setDemoDraft(current => ({ ...current, bedCapacity: event.target.value }))} /></label>\n                </div>\n              </FormSection>\n              <FormSection title={tx('Υπεύθυνος Demo & πρόσβαση', 'Demo contact & access')}>\n                <div className=\"platform-form-grid\">\n                  <label className=\"field\"><span>{tx('Υπεύθυνος επικοινωνίας', 'Contact person')}</span><input value={demoDraft.contactName} onChange={event => setDemoDraft(current => ({ ...current, contactName: event.target.value }))} /></label>\n                  <label className=\"field\"><span>{tx('Email πρόσκλησης', 'Invitation email')} *</span><input type=\"email\" value={demoDraft.contactEmail} onChange={event => setDemoDraft(current => ({ ...current, contactEmail: event.target.value }))} /></label>\n                  <ManualDateField label={tx('Έναρξη', 'Start')} value={demoDraft.validFrom} onChange={value => setDemoDraft(current => ({ ...current, validFrom: value }))} />\n                  <ManualDateField label={`${tx('Λήξη', 'End')} *`} value={demoDraft.validUntil} onChange={value => setDemoDraft(current => ({ ...current, validUntil: value }))} />\n                </div>\n              </FormSection>\n            </div>"""
+          s=replace_once(s,old_form,new_form,'organization-style demo form')
+          p.write_text(s,encoding='utf-8')
+
+          # Persist Demo organization metadata in the real isolated organization row.
+          p=Path('supabase/functions/create-demo-access/index.ts'); s=p.read_text(encoding='utf-8')
+          s=replace_once(s,
+              "  const validFrom=String(body.validFrom||'')\n  const validUntil=String(body.validUntil||'')",
+              "  const validFrom=String(body.validFrom||'')\n  const validUntil=String(body.validUntil||'')\n  const organizationType=String(body.type||'hospital')\n  const region=String(body.region||'').trim()||null\n  const healthRegion=String(body.healthRegion||'').trim()||null\n  const city=String(body.city||'').trim()||null\n  const country=String(body.country||'Greece').trim()||'Greece'\n  const contactPhone=String(body.contactPhone||'').trim()||null\n  const bedCapacity=body.bedCapacity===''||body.bedCapacity==null?null:Number(body.bedCapacity)",
+              'demo organization metadata parsing')
+          s=replace_once(s,
+              "    type:'other',\n    status:'active',\n    country:'Greece',\n    contact_email:contactEmail,\n    is_demo:true,",
+              "    type:organizationType,\n    status:'active',\n    region,\n    health_region:healthRegion,\n    city,\n    country,\n    contact_email:contactEmail,\n    contact_phone:contactPhone,\n    bed_capacity:Number.isFinite(bedCapacity)?bedCapacity:null,\n    is_demo:true,",
+              'demo organization metadata insert')
+          p.write_text(s,encoding='utf-8')
+
+          # Analysis controls use the white surface from the approved visual.
+          p=Path('src/styles/design-system-layouts.css'); s=p.read_text(encoding='utf-8')
+          old=""".analysis-sticky{\n  position:relative!important;\n  top:auto!important;\n  z-index:3!important;\n  min-width:0;\n  padding:0 var(--lo-layout-page-x)!important;\n  background:#f5f7fa!important;\n  border:0!important;\n  box-shadow:none!important;\n}"""
+          new=""".analysis-sticky{\n  position:relative!important;\n  top:auto!important;\n  z-index:3!important;\n  min-width:0;\n  margin:0 var(--lo-layout-page-x)!important;\n  padding:14px 14px 0!important;\n  background:var(--lo-color-surface)!important;\n  border:1px solid var(--lo-color-border)!important;\n  border-radius:var(--lo-radius-card)!important;\n  box-shadow:0 6px 20px rgba(23,32,51,.04)!important;\n}"""
+          s=replace_once(s,old,new,'analysis white filter surface')
+          s=s.replace("  .analysis-header{min-height:auto;padding-bottom:12px!important}\n", "  .analysis-header{min-height:auto;padding-bottom:12px!important}\n  .analysis-sticky{margin:0 var(--lo-layout-page-x)!important}\n")
+          p.write_text(s,encoding='utf-8')
+
+      - name: Commit patched sources
+        run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/app/AppShell.jsx src/features/auth src/core/auth/AuthContext.jsx src/features/workspaces/PlatformCenterPage.jsx src/styles/design-system-layouts.css supabase/functions/create-demo-access/index.ts
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(ui-auth): refine login demo creation and analytics surface"
+          git push origin main
