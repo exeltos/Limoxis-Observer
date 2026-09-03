@@ -1,5 +1,6 @@
 import { useMemo,useState } from 'react'
-import { BarChart3,Download,FlaskConical,Printer } from 'lucide-react'
+import { ArrowLeft,BarChart3,Download,FlaskConical,Printer } from 'lucide-react'
+import { useLocation,useNavigate } from 'react-router-dom'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ROLES } from '../../core/permissions/roles'
@@ -24,44 +25,32 @@ const DEMO_KPI={
   training:[['Coverage','92%'],['Completions','1.034'],['Overdue','44'],['Pass rate','94%']],
   governance:[['EODY reporting completeness','98%'],['Audit completeness','99%'],['Committees active','94%'],['Policies in-date','96%']],
 }
+const DEMO_ROWS=[['ΜΕΘ','72','58'],['Παθολογική','54','47'],['Χειρουργική','41','35'],['ΤΕΠ','29','24'],['Αιμοκάθαρση','22','19']]
 
-const DEMO_ROWS=[
-  ['ΜΕΘ','72','58'],['Παθολογική','54','47'],['Χειρουργική','41','35'],['ΤΕΠ','29','24'],['Αιμοκάθαρση','22','19'],
-]
+function downloadDemoCsv(tab,rows){const lines=[['Tab','Department','Current','Previous'],...rows.map(row=>[tab,...row])];const csv=lines.map(row=>row.map(value=>`"${String(value??'').replaceAll('"','""')}"`).join(',')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`limoxis-demo-analysis-${tab}.csv`;link.click();URL.revokeObjectURL(link.href)}
+function hashOrganization(hash=''){const query=hash.includes('?')?hash.split('?')[1]:'';return new URLSearchParams(query).get('organization')||'all'}
 
-function downloadDemoCsv(tab,rows){
-  const lines=[['Tab','Department','Current','Previous'],...rows.map(row=>[tab,...row])]
-  const csv=lines.map(row=>row.map(value=>`"${String(value??'').replaceAll('"','""')}"`).join(',')).join('\n')
-  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})
-  const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`limoxis-demo-analysis-${tab}.csv`;link.click();URL.revokeObjectURL(link.href)
-}
-
-function ProductionEmpty({platform,tenant,language}){
-  const en=language==='en'
-  return <section className="analysis-production-empty" role="status">
-    <div className="analysis-production-empty-icon"><BarChart3 size={24}/></div>
-    <strong>{en?'No production analytics data for the selected scope':'Δεν υπάρχουν δεδομένα παραγωγής για το επιλεγμένο εύρος'}</strong>
-    <span>{en?'Only records stored for the active organization and permitted scope are shown here. Demo or synthetic values are never used as a fallback.':'Εδώ εμφανίζονται αποκλειστικά πραγματικές εγγραφές του ενεργού οργανισμού και του επιτρεπόμενου scope. Demo ή συνθετικές τιμές δεν χρησιμοποιούνται ποτέ ως εναλλακτικά δεδομένα.'}</span>
-    <small>{platform?(en?'Platform scope':'Επίπεδο πλατφόρμας'):(tenant?.name|| (en?'Organization':'Οργανισμός'))}</small>
-  </section>
-}
+function ProductionEmpty({platform,tenant,language}){const en=language==='en';return <section className="analysis-production-empty" role="status"><div className="analysis-production-empty-icon"><BarChart3 size={24}/></div><strong>{en?'No production analytics data for the selected scope':'Δεν υπάρχουν δεδομένα παραγωγής για το επιλεγμένο εύρος'}</strong><span>{en?'Only records stored for the active organization and permitted scope are shown here. Demo or synthetic values are never used as a fallback.':'Εδώ εμφανίζονται αποκλειστικά πραγματικές εγγραφές του ενεργού οργανισμού και του επιτρεπόμενου scope. Demo ή συνθετικές τιμές δεν χρησιμοποιούνται ποτέ ως εναλλακτικά δεδομένα.'}</span><small>{platform?(en?'Platform scope':'Επίπεδο πλατφόρμας'):(tenant?.name||(en?'Organization':'Οργανισμός'))}</small></section>}
 
 export function AnalysisPage({platform=false,organizations=[]}){
   const {tenant,role,isDemo}=useTenant()
   const {language}=useLanguage()
+  const location=useLocation(),nav=useNavigate()
   const en=language==='en',tx=(elText,enText)=>en?enText:elText
-  const [tab,setTab]=useState('overview'),[period,setPeriod]=useState('year'),[org,setOrg]=useState('all'),[department,setDepartment]=useState('all')
+  const initialOrg=platform?hashOrganization(location.hash):'all'
+  const [tab,setTab]=useState('overview'),[period,setPeriod]=useState('year'),[org,setOrg]=useState(initialOrg),[department,setDepartment]=useState('all')
   const allowed=[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD,ROLES.DEMO].includes(role)
   const demoRows=useMemo(()=>DEMO_KPI[tab]||DEMO_KPI.overview,[tab])
+  const returnTo=location.state?.returnTo
   if(!allowed)return <div className="empty-state"><strong>{tx('Δεν υπάρχει πρόσβαση στην Ανάλυση.','Analytics access is not available.')}</strong></div>
 
   return <div className="analysis-workspace analysis-safe-workspace">
     <div className="analysis-header">
-      <div><span className="eyebrow">ANALYTICS & REPORTING</span><h1>{tx('Ανάλυση','Analytics')}</h1><p>{platform?tx('Συγκεντρωτική και συγκριτική εικόνα πλατφόρμας.','Platform-wide reporting and comparison.'):tenant?.name||tx('Οργανισμός','Organization')}</p></div>
-      <div className="analysis-actions">
-        <IconButton label={tx('Εκτύπωση','Print')} onClick={()=>window.print()}><Printer size={16}/></IconButton>
-        <IconButton label={tx('Εξαγωγή CSV','Export CSV')} disabled={!isDemo} onClick={()=>downloadDemoCsv(tab,DEMO_ROWS)}><Download size={16}/></IconButton>
+      <div className="analysis-heading-stack">
+        {returnTo&&<button type="button" className="platform-back-button" onClick={()=>nav(returnTo)}><ArrowLeft size={16}/>{tx('Πίσω','Back')}</button>}
+        <div><span className="eyebrow">ANALYTICS & REPORTING</span><h1>{tx('Ανάλυση','Analytics')}</h1><p>{platform?tx('Συγκεντρωτική και συγκριτική εικόνα πλατφόρμας.','Platform-wide reporting and comparison.'):tenant?.name||tx('Οργανισμός','Organization')}</p></div>
       </div>
+      <div className="analysis-actions"><IconButton label={tx('Εκτύπωση','Print')} onClick={()=>window.print()}><Printer size={16}/></IconButton><IconButton label={tx('Εξαγωγή CSV','Export CSV')} disabled={!isDemo} onClick={()=>downloadDemoCsv(tab,DEMO_ROWS)}><Download size={16}/></IconButton></div>
     </div>
 
     <div className="analysis-sticky">
@@ -73,13 +62,6 @@ export function AnalysisPage({platform=false,organizations=[]}){
       <div className="analysis-tabs">{TABS.map(([id,elLabel,enLabel])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{en?enLabel:elLabel}</button>)}</div>
     </div>
 
-    <div className="analysis-scroll"><section className="analysis-report">
-      <div className="analysis-section-title"><div><h2>{TABS.find(item=>item[0]===tab)?.[en?2:1]}</h2><p>{isDemo?tx('Αποκλειστικά συνθετικό dataset του Demo environment.','Synthetic dataset from the isolated Demo environment only.'):tx('Production δεδομένα μόνο — χωρίς fallback σε demo τιμές.','Production records only — no fallback to demo values.')}</p></div>{isDemo&&<span className="status-badge temporary"><FlaskConical size={12}/> DEMO DATA</span>}</div>
-
-      {!isDemo?<ProductionEmpty platform={platform} tenant={tenant} language={language}/>:<>
-        <div className="analysis-kpis">{demoRows.map(([label,value])=><article key={label}><span>{label}</span><strong>{value}</strong><small>{tx('Συνθετικό demo δεδομένο','Synthetic demo value')}</small></article>)}</div>
-        <article className="analysis-compare-card"><header><div><strong>{tx('Κατανομή ανά τμήμα','Distribution by department')}</strong><span>{tx('Τρέχουσα έναντι προηγούμενης περιόδου','Current versus previous period')}</span></div></header><div className="table-wrap"><table className="data-table"><thead><tr><th>{tx('Τμήμα','Department')}</th><th>{tx('Τρέχουσα περίοδος','Current period')}</th><th>{tx('Προηγούμενη περίοδος','Previous period')}</th></tr></thead><tbody>{DEMO_ROWS.filter(row=>department==='all'||row[0]===department).map(row=><tr key={row[0]}><td><strong>{row[0]}</strong></td><td>{row[1]}</td><td>{row[2]}</td></tr>)}</tbody></table></div></article>
-      </>}
-    </section></div>
+    <div className="analysis-scroll"><section className="analysis-report"><div className="analysis-section-title"><div><h2>{TABS.find(item=>item[0]===tab)?.[en?2:1]}</h2><p>{isDemo?tx('Αποκλειστικά συνθετικό dataset του Demo environment.','Synthetic dataset from the isolated Demo environment only.'):tx('Production δεδομένα μόνο — χωρίς fallback σε demo τιμές.','Production records only — no fallback to demo values.')}</p></div>{isDemo&&<span className="status-badge temporary"><FlaskConical size={12}/> DEMO DATA</span>}</div>{!isDemo?<ProductionEmpty platform={platform} tenant={tenant} language={language}/>:<><div className="analysis-kpis">{demoRows.map(([label,value])=><article key={label}><span>{label}</span><strong>{value}</strong><small>{tx('Συνθετικό demo δεδομένο','Synthetic demo value')}</small></article>)}</div><article className="analysis-compare-card"><header><div><strong>{tx('Κατανομή ανά τμήμα','Distribution by department')}</strong><span>{tx('Τρέχουσα έναντι προηγούμενης περιόδου','Current versus previous period')}</span></div></header><div className="table-wrap"><table className="data-table"><thead><tr><th>{tx('Τμήμα','Department')}</th><th>{tx('Τρέχουσα περίοδος','Current period')}</th><th>{tx('Προηγούμενη περίοδος','Previous period')}</th></tr></thead><tbody>{DEMO_ROWS.filter(row=>department==='all'||row[0]===department).map(row=><tr key={row[0]}><td><strong>{row[0]}</strong></td><td>{row[1]}</td><td>{row[2]}</td></tr>)}</tbody></table></div></article></>}</section></div>
   </div>
 }
