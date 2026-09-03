@@ -1,0 +1,6 @@
+import fs from 'node:fs'
+const p='src/styles/design-system-layouts.css'
+let css=fs.readFileSync(p,'utf8')
+const marker='/* Platform Owner · stable demo dialog viewport contract */'
+if(!css.includes(marker)) css+=`\n\n${marker}\n.platform-demo-create-dialog{\n  display:grid!important;\n  grid-template-rows:auto minmax(0,1fr) auto!important;\n  max-height:calc(100dvh - 24px)!important;\n  overflow:hidden!important;\n}\n.platform-demo-create-dialog .observer-dialog-body{\n  min-height:0!important;\n  overflow-y:auto!important;\n  overflow-x:hidden!important;\n  padding-bottom:28px!important;\n  scrollbar-gutter:stable;\n}\n.platform-demo-create-dialog .platform-form-shell{\n  padding-bottom:12px!important;\n}\n.platform-demo-create-dialog .platform-form-shell>.platform-form-section:last-child{\n  margin-bottom:8px!important;\n}\n.platform-demo-create-dialog footer{\n  position:relative!important;\n  inset:auto!important;\n  z-index:5!important;\n  margin:0!important;\n  padding:14px 20px!important;\n  background:var(--lo-color-surface)!important;\n  border-top:1px solid var(--lo-color-border)!important;\n  box-shadow:0 -8px 18px rgba(23,32,51,.035)!important;\n}\n@media(max-width:760px){\n  .platform-demo-create-dialog{max-height:calc(100dvh - 12px)!important}\n  .platform-demo-create-dialog footer{padding:12px 14px!important}\n}\n`
+fs.writeFileSync(p,css)
