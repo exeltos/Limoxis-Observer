@@ -786,6 +786,14 @@ export function PlatformCenterPage() {
           onChanged={updated =>
             setDemos(current => current.map(item => (item.id === updated.id ? updated : item)))
           }
+          onConverted={async organization => {
+            setDemos(current => current.filter(item => item.id !== selectedDemo.id))
+            await reloadMemberships()
+            await refreshPlatformData()
+            nav(`/platform#organizations?organization=${organization.id}&tab=details`, {
+              state: { returnTo: '/platform#organizations' },
+            })
+          }}
           onDeleted={id => {
             setDemos(current => current.filter(item => item.id !== id))
             nav('/platform#demo')
