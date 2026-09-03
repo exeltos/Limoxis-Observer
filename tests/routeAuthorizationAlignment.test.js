@@ -4,6 +4,7 @@ import fs from 'node:fs'
 const app=fs.readFileSync(new URL('../src/app/App.jsx',import.meta.url),'utf8')
 const qualityCreate=fs.readFileSync(new URL('../src/features/quality/QualityCreatePage.jsx',import.meta.url),'utf8')
 const committeeRoute=fs.readFileSync(new URL('../src/features/committees/CommitteeRecordPageRoute.jsx',import.meta.url),'utf8')
+const tenantContext=fs.readFileSync(new URL('../src/core/tenant/TenantContext.jsx',import.meta.url),'utf8')
 
 describe('route authorization alignment',()=>{
  it('protects Platform Center with VIEW_PLATFORM',()=>{
@@ -22,5 +23,9 @@ describe('route authorization alignment',()=>{
   expect(app).toContain('<CommitteeRecordPageRoute />')
   expect(committeeRoute).toContain('if(!canViewCommittee&&!approvalId)return <Navigate to="/" replace/>')
   expect(committeeRoute).toContain('loadCommitteeApprovalDeepLinkAsync')
+ })
+ it('exposes active membership state used by the tenant-aware HomeRoute',()=>{
+  expect(app).toContain('const { activeMembershipId, isDemo, loading } = useTenant()')
+  expect(tenantContext).toContain('activeMembershipId,')
  })
 })

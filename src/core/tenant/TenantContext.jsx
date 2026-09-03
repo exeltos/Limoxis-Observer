@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
-import { ROLES } from '../permissions/roles'
+import { ROLES, isPreviewableRole } from '../permissions/roles'
 import { uxPolicyFor, recordWithinRoleScope, canSeeSensitiveEmployeeHealth } from '../permissions/roleUxPolicy'
 import { listMemberships, listPlatformOwnerOrganizations } from './tenantService'
 import { configureDataEnvironment } from '../data/dataEnvironment'
@@ -20,7 +20,7 @@ export function TenantProvider({ children }) {
     if(typeof window==='undefined')return null
     const params=new URLSearchParams(window.location.search)
     const requested=params.get('helpRole')
-    return params.get('helpPreview')==='1'&&Object.values(ROLES).includes(requested)?{role:requested,department:''}:null
+    return params.get('helpPreview')==='1'&&isPreviewableRole(requested)?{role:requested,department:''}:null
   })
 
   const reloadMemberships = useCallback(async () => {
@@ -68,12 +68,12 @@ export function TenantProvider({ children }) {
       : baseMembership
   ), [baseMembership, rolePreview, canRolePreview])
   const setTenantByMembership = useCallback((membershipId) => {
+    if (!memberships.some((item) => item.id === membershipId)) return false
     setPlatformDemoMode(false)
-    setMemberships((current) => {
-      if (current.some((item) => item.id === membershipId)) setActiveMembershipId(membershipId)
-      return current
-    })
-  }, [])
+    setActiveMembershipId(membershipId)
+    setRolePreview(null)
+    return true
+  }, [memberships])
   const enterPlatformDemo = useCallback(() => {
     if (profile?.isPlatformOwner) { setPlatformDemoMode(true); setActiveMembershipId(null); setRolePreview(null) }
   }, [profile?.isPlatformOwner])
@@ -85,6 +85,7 @@ export function TenantProvider({ children }) {
     tenant,
     membership,
     memberships,
+    activeMembershipId,
     role,
     loading,
     isDemo: Boolean(isDemoSession || platformDemoMode || tenant?.mode === 'demo'),
@@ -96,13 +97,13 @@ export function TenantProvider({ children }) {
     rolePreview,
     canRolePreview,
     isRolePreview: Boolean(canRolePreview && rolePreview?.role),
-    startRolePreview: (previewRole, department='') => canRolePreview && setRolePreview({role:previewRole,department}),
+    startRolePreview: (previewRole, department='') => canRolePreview && isPreviewableRole(previewRole) && setRolePreview({role:previewRole,department}),
     updateRolePreviewDepartment: (department='') => canRolePreview && setRolePreview(current=>current?{...current,department}:current),
     stopRolePreview: () => setRolePreview(null),
     uxPolicy: uxPolicyFor(role),
     canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
     canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role,membership?.capabilities,membership?.customCapabilities),
-  }), [tenant, membership, memberships, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, enterPlatformDemo, returnToPlatform, reloadMemberships, user?.id, isDemoSession, platformDemoMode])
+  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, enterPlatformDemo, returnToPlatform, reloadMemberships, user?.id, isDemoSession, platformDemoMode])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
 }

@@ -11,6 +11,14 @@ Repository baseline: `exeltos/Limoxis-Observer` / `main`
 - A filename mismatch is not sufficient evidence that SQL is pending. Compare migration intent and resulting database state before applying anything.
 - Do not use `supabase db push` against production while the items in the IND02 section below remain unresolved.
 
+The machine-readable companion manifest is
+`supabase/migration-reconciliation.json`. It records the nine historical
+equivalents that must not be replayed and the nine authorization migrations
+that remain blocked pending rewrite. `npm run audit:migrations` verifies that
+every manifest entry still has a matching migration file, that the two groups
+remain complete, and that the manifest cannot authorize a production mutation.
+The manifest is reconciliation evidence, not a deployment queue.
+
 ## Corrected interpretation of the reported 18 repo-only migrations
 
 The reported 18 are 9 consolidation/renumbering/state-equivalent migrations plus 9 IND02 role/security migrations. They are not a single class of pending work.

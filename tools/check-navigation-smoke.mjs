@@ -5,6 +5,7 @@ const employeeRecord=read('src/features/employees/EmployeeRecordPage.jsx')
 const patientRecord=read('src/features/surveillance/PatientClinicalRecordPage.jsx')
 const surveillanceList=read('src/features/surveillance/SurveillancePage.jsx')
 const controls=read('src/features/controls/ControlsPage.jsx')
+const laboratoryLists=[read('src/features/laboratory/LaboratoryDemoPage.jsx'),read('src/features/laboratory/LaboratoryCloudPage.jsx')]
 const checks=[
   ['patients route',read('src/app/App.jsx').includes('patients/:patientId')],
   ['employees route',read('src/app/App.jsx').includes('employees/:employeeId')],
@@ -17,7 +18,7 @@ const checks=[
   ['employees registry hook',employeeList.includes("useRegistryMemory('employees')")],
   ['employees registry variable',employeeList.includes("const registry=useRegistryMemory('employees')")],
   ['employees row navigation',employeeList.includes('registry.openRecord')],
-  ['laboratory registry hook',read('src/features/laboratory/LaboratoryPage.jsx').includes("useRegistryMemory('laboratory')")],
+  ['laboratory registry hook',laboratoryLists.every(source=>source.includes("useRegistryMemory('laboratory')"))],
   ['surveillance registry hook',read('src/features/surveillance/SurveillancePage.jsx').includes("useRegistryMemory('surveillance')")],
   ['patient contextual back',patientRecord.includes('const {goBack,restored}=useContextualNavigation')],
   ['employee contextual back',employeeRecord.includes('const {goBack,restored}=useContextualNavigation')],
