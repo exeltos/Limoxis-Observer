@@ -1,0 +1,23 @@
+name: Refine owner edit dialog one off
+
+on:
+  push:
+    paths:
+      - .github/workflows/refine-owner-edit-dialog-oneoff.yml
+      - scripts/refine-owner-edit-dialog.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/refine-owner-edit-dialog.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/platform/PlatformOrganizationRecord.jsx src/features/platform/PlatformDemoRecord.jsx src/features/workspaces/PlatformCenterPage.jsx src/styles/design-system-layouts.css
+          git commit -m "fix(owner): use pencil-only edit and remove demo inner scrolling" || exit 0
+          git push
