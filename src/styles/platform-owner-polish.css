@@ -1,0 +1,86 @@
+/* Platform Owner visual contract: fixed workspace, calm hospital-grade hierarchy. */
+.page-fill:has(.platform-owner-record-workspace){
+  height:calc(100dvh - var(--lo-shell-header-height,56px));
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.page-fill:has(.platform-owner-record-workspace)>.page-header{flex:0 0 auto;padding-bottom:10px}
+.page-fill:has(.platform-owner-record-workspace)>.platform-workspace-toolbar{flex:0 0 auto;margin-bottom:8px}
+.page-fill:has(.platform-owner-record-workspace)>.platform-owner-record-workspace{flex:1 1 auto;min-height:0}
+
+.page:has(.platform-org-list){height:calc(100dvh - var(--lo-shell-header-height,56px));min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.page:has(.platform-org-list)>.page-header,.page:has(.platform-org-list)>.platform-workspace-toolbar{flex:0 0 auto}
+.page:has(.platform-org-list)>.platform-center-section{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.page:has(.platform-org-list) .platform-org-list{flex:1 1 auto;min-height:0;overflow:auto;padding-right:4px}
+
+.platform-owner-record-workspace{border-radius:14px;box-shadow:0 8px 28px rgb(15 23 42 / 4%)}
+.platform-owner-record-workspace>.platform-org-tabs{flex:0 0 auto;min-height:50px}
+.platform-owner-record-workspace>.platform-org-tabs button{font-size:12px;font-weight:700}
+.platform-owner-details{flex:1 1 auto;min-height:0;overflow:auto;padding:18px 22px 22px}
+.platform-record-intro{align-items:center;padding:0 0 15px;margin:0 0 4px}
+.platform-record-intro h2{font-size:18px}
+.platform-record-intro p{max-width:720px}
+
+.platform-record-intro .platform-org-actions{display:flex;align-items:flex-start;gap:12px;padding:0}
+.platform-org-action-item{display:grid;justify-items:center;gap:3px;min-width:56px}
+.platform-org-action-item>span{font-size:9.5px;line-height:1.15;color:var(--lo-color-muted);white-space:nowrap}
+.platform-org-action-item:last-child>span{color:var(--lo-status-danger-fg)}
+.platform-org-action-item .lo-icon-button{width:32px;height:32px}
+
+.platform-info-sections{gap:0;margin-top:12px;border:1px solid var(--lo-color-border);border-radius:12px;overflow:hidden;background:var(--lo-color-surface)}
+.platform-info-section{padding:14px 18px 12px;border-right:1px solid var(--lo-color-border)}
+.platform-info-section:last-child{border-right:0}
+.platform-info-section h3{display:flex;align-items:center;min-height:28px;margin:0 0 4px;padding:0;border-bottom:0;font-size:12px}
+.platform-info-row{grid-template-columns:minmax(120px,.9fr) minmax(0,1.1fr);padding:9px 0}
+.platform-info-row dt{font-size:10.5px;font-weight:600}
+.platform-info-row dd{font-size:12px;font-weight:700}
+
+.platform-owner-record-workspace>.platform-owner-users{padding:12px 16px 16px}
+.platform-owner-record-workspace>.platform-owner-users .scroll-table{border-radius:10px;box-shadow:none}
+.platform-owner-users .data-table thead th{position:sticky;top:0;z-index:2;background:var(--lo-color-surface);font-size:10px;letter-spacing:.02em}
+.platform-owner-users .data-table tbody tr{height:54px}
+
+.platform-owner-record-workspace>.diagnostics-panel,
+.platform-owner-record-workspace .hospital-diagnostics-panel{flex:1 1 auto;min-height:0;overflow:hidden}
+.diagnostics-table-wrap{max-height:calc(100dvh - 430px);overflow:auto;border:1px solid var(--lo-color-border);border-radius:10px}
+.diagnostics-table-wrap .data-table thead th{position:sticky;top:0;z-index:2;background:var(--lo-color-surface)}
+
+.platform-workspace-toolbar{margin:0 0 8px;padding:0 2px}
+.platform-back-button{padding:0 6px;min-height:32px;height:32px;font-size:11px;border-radius:8px}
+.platform-back-button svg{width:15px;height:15px}
+
+/* Form language from the approved mockup: compact groups instead of oversized cards. */
+.platform-form-shell{gap:10px}
+.platform-form-section{padding:12px 14px 14px;border-radius:10px;background:color-mix(in srgb,var(--lo-color-surface) 97%,var(--lo-shell-control-hover))}
+.platform-form-section>header{margin-bottom:10px;padding-bottom:8px}
+.platform-form-section>header strong{font-size:12px}
+.platform-form-section>header span{font-size:10px}
+.platform-form-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 12px}
+.platform-form-grid .field-wide{grid-column:span 2}
+.platform-form-grid .field>span{font-size:10px}
+.platform-form-grid .field input,.platform-form-grid .field select{min-height:34px;height:34px;border-radius:7px;padding:0 9px;font-size:11px}
+.platform-form-grid .field small{font-size:9.5px}
+.platform-admin-status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid var(--lo-color-border)}
+
+/* Keep dialogs anchored inside the viewport; only the dialog body scrolls. */
+.observer-dialog{max-height:min(88dvh,820px)}
+.observer-dialog .observer-dialog-body{min-height:0;overflow:auto}
+
+@media (max-width:1180px){
+  .platform-info-sections{grid-template-columns:1fr 1fr}
+  .platform-info-section{border-bottom:1px solid var(--lo-color-border)}
+  .platform-info-section:nth-child(2){border-right:0}
+  .platform-info-section:last-child{grid-column:1/-1;border-bottom:0}
+  .platform-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  .page-fill:has(.platform-owner-record-workspace),.page:has(.platform-org-list){height:auto;overflow:visible}
+  .platform-record-intro .platform-org-actions{width:100%;justify-content:flex-start;overflow-x:auto;padding-bottom:4px}
+  .platform-info-sections{grid-template-columns:1fr}
+  .platform-info-section{border-right:0;border-bottom:1px solid var(--lo-color-border)}
+  .platform-info-section:last-child{grid-column:auto;border-bottom:0}
+  .platform-form-grid{grid-template-columns:1fr}
+  .platform-form-grid .field-wide{grid-column:auto}
+}
