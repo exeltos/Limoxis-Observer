@@ -26,7 +26,7 @@ describe('shared semantic action design',()=>{
 
   it('always gives save actions the disk icon',()=>{
     expect(saveButton).toContain("import { Save } from 'lucide-react'")
-    expect(saveButton).toContain('<Save size={15}/>')
+    expect(saveButton).toContain('<Save size={15} />')
   })
 
   it('does not automatically duplicate the dialog close action with Cancel',()=>{
@@ -36,8 +36,9 @@ describe('shared semantic action design',()=>{
 
   it('uses the shared icon control for analytics print and export',()=>{
     expect(analysis).toContain("import { IconButton } from '../../design-system/IconButton'")
-    expect(analysis).toContain('<IconButton label="Print"')
-    expect(analysis).toContain('<IconButton label="Export CSV"')
+    expect(analysis).toContain('<IconButton label={tx(')
+    expect(analysis).toContain("tx('Εκτύπωση','Print')")
+    expect(analysis).toContain("tx('Εξαγωγή CSV','Export CSV')")
   })
 
   it('centralizes edit, destructive and success tones in one stylesheet',()=>{
