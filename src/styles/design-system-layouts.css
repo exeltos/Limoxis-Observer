@@ -1,0 +1,327 @@
+/* Canonical workspace layout contract
+   One visual grammar, different composition by screen type:
+   - dashboard: page header -> KPI row -> content sections
+   - registry: page header/actions -> search/filter -> list surface
+   - record: EntityRecordShell owns identity/header/tabs/body
+   - analytics: analysis header -> flat filters/tabs -> report content
+   This file intentionally owns geometry and rhythm, not module-specific colors/content. */
+
+:root{
+  --lo-layout-page-x:30px;
+  --lo-layout-page-top:28px;
+  --lo-layout-section-gap:16px;
+  --lo-layout-control-gap:10px;
+  --lo-layout-empty-min:220px;
+}
+
+/* ---------- Canonical root page frame ---------- */
+.page:has(.platform-kpi-grid),
+.page:has(.platform-registry-shell){
+  width:100%;
+  max-width:1500px;
+  min-height:0;
+}
+
+.page:has(.platform-kpi-grid)>.page-header,
+.page:has(.platform-registry-shell)>.page-header{
+  min-height:64px;
+  margin:0 0 var(--lo-layout-section-gap);
+  align-items:flex-start;
+}
+
+.page:has(.platform-kpi-grid)>.page-header h1,
+.page:has(.platform-registry-shell)>.page-header h1{
+  margin:0;
+  font-size:26px;
+  line-height:1.2;
+  letter-spacing:-.015em;
+}
+
+.page:has(.platform-kpi-grid)>.page-header p,
+.page:has(.platform-registry-shell)>.page-header p{
+  max-width:760px;
+  margin:6px 0 0;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.page:has(.platform-kpi-grid)>.page-header .page-actions,
+.page:has(.platform-registry-shell)>.page-header .page-actions{
+  align-self:flex-start;
+  gap:8px;
+}
+
+/* ---------- Dashboard pattern ---------- */
+.platform-kpi-grid{
+  gap:12px;
+  margin:0 0 var(--lo-layout-section-gap);
+}
+
+.platform-kpi-grid>.kpi-card,
+.platform-kpi-grid>.card{
+  min-height:110px;
+  padding:16px 17px;
+}
+
+.platform-center-section{
+  margin:0;
+  border-radius:var(--lo-radius-card);
+}
+
+.platform-center-section>.platform-section-heading{
+  min-height:70px;
+  padding:15px 17px;
+}
+
+.platform-section-heading h2,
+.platform-section-heading h3{
+  font-size:15px;
+  line-height:1.3;
+}
+
+.platform-section-heading p{
+  margin-top:4px;
+  font-size:10.5px;
+}
+
+/* ---------- Registry / list pattern ---------- */
+.platform-registry-shell{
+  gap:12px;
+}
+
+.platform-registry-shell>.filter-bar{
+  width:min(560px,100%);
+  max-width:560px;
+  margin:0;
+}
+
+.platform-registry-card{
+  min-height:var(--lo-layout-empty-min);
+  border-radius:var(--lo-radius-card);
+}
+
+.platform-registry-card .empty-state,
+.platform-center-section .empty-state{
+  min-height:var(--lo-layout-empty-min);
+  padding:28px;
+}
+
+.platform-registry-card .empty-state strong,
+.platform-center-section .empty-state strong{
+  font-size:15px;
+}
+
+.platform-governance{
+  min-height:42px;
+  margin:0;
+  padding:9px 12px;
+  border-radius:var(--lo-radius-control);
+}
+
+/* Demo and Organizations use exactly the same registry rhythm. */
+.platform-registry-shell:has(.platform-governance)>.platform-governance + .filter-bar{
+  margin-top:0;
+}
+
+/* ---------- Record pattern ---------- */
+.platform-owner-record-shell{
+  width:100%;
+  max-width:none;
+}
+
+.platform-owner-record-shell>.entity-record-body{
+  min-height:0;
+}
+
+.platform-info-sections{
+  gap:12px;
+}
+
+.platform-info-section{
+  border-radius:var(--lo-radius-card);
+}
+
+/* ---------- Analytics pattern ----------
+   AnalysisPage is one canonical component for organization and platform scope.
+   Controls sit on the page canvas; only data/content remains carded. */
+@supports selector(.content:has(> .analysis-workspace)){
+  .content:has(> .analysis-workspace){
+    padding:0!important;
+    overflow:hidden!important;
+    background:#f5f7fa!important;
+  }
+}
+
+.analysis-workspace{
+  width:100%!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  margin:0!important;
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+  overflow:hidden!important;
+  background:#f5f7fa!important;
+}
+
+.analysis-header{
+  min-width:0;
+  min-height:92px;
+  padding:var(--lo-layout-page-top) var(--lo-layout-page-x) 16px!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:18px!important;
+  background:#f5f7fa!important;
+  border:0!important;
+}
+
+.analysis-header h1{
+  margin:3px 0 0!important;
+  font-size:26px!important;
+  line-height:1.2!important;
+  letter-spacing:-.015em;
+}
+
+.analysis-header p{
+  max-width:900px;
+  margin:6px 0 0!important;
+  font-size:12px!important;
+  line-height:1.45;
+}
+
+.analysis-actions{
+  flex:0 0 auto;
+  display:flex;
+  gap:8px;
+  padding-top:0;
+}
+
+.analysis-sticky{
+  position:relative!important;
+  top:auto!important;
+  z-index:3!important;
+  min-width:0;
+  padding:0 var(--lo-layout-page-x)!important;
+  background:#f5f7fa!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+
+.analysis-filters{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(150px,260px))!important;
+  justify-content:start;
+  gap:10px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+.analysis-filters label{
+  min-width:0!important;
+  width:auto!important;
+  gap:5px!important;
+}
+
+.analysis-filters label>span{
+  color:var(--lo-color-muted)!important;
+  font-size:9.5px!important;
+  font-weight:700!important;
+}
+
+.analysis-filters select{
+  width:100%!important;
+  min-width:0!important;
+  height:38px!important;
+  padding:0 28px 0 10px!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:var(--lo-radius-control)!important;
+  background:var(--lo-color-surface)!important;
+  color:var(--lo-color-text)!important;
+  font-size:10.5px!important;
+}
+
+.analysis-tabs{
+  display:flex!important;
+  align-items:center!important;
+  gap:3px!important;
+  margin:10px 0 0!important;
+  padding:0 0 8px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  border:0!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+  border-radius:0!important;
+  background:transparent!important;
+  white-space:nowrap!important;
+  box-shadow:none!important;
+  scrollbar-width:thin;
+}
+
+.analysis-tabs button{
+  flex:0 0 auto!important;
+  min-width:max-content!important;
+  min-height:34px!important;
+  padding:0 10px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  color:var(--lo-color-muted)!important;
+  font-size:10px!important;
+  font-weight:700!important;
+}
+
+.analysis-tabs button:hover{
+  background:var(--lo-shell-control-hover)!important;
+  color:var(--lo-color-text)!important;
+}
+
+.analysis-tabs button.active{
+  background:color-mix(in srgb,var(--lo-color-primary) 9%,transparent)!important;
+  color:var(--lo-color-primary)!important;
+}
+
+.analysis-scroll{
+  min-width:0!important;
+  min-height:0!important;
+  overflow:auto!important;
+  padding:14px var(--lo-layout-page-x) 30px!important;
+  background:#f5f7fa!important;
+  scrollbar-gutter:stable;
+}
+
+.analysis-report{
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  margin:0!important;
+}
+
+/* Never show the old static comparative bars when platform comparison is empty.
+   The adjacent empty state is the truthful production representation. */
+.analysis-chart-grid:has(+ .analysis-chart-empty) .analysis-chart-card:nth-child(2){
+  display:none!important;
+}
+.analysis-chart-grid:has(+ .analysis-chart-empty){
+  grid-template-columns:minmax(0,1fr)!important;
+}
+
+@media(max-width:1200px){
+  :root{--lo-layout-page-x:24px}
+  .analysis-filters{grid-template-columns:repeat(2,minmax(170px,1fr))!important}
+}
+
+@media(max-width:760px){
+  :root{--lo-layout-page-x:14px;--lo-layout-page-top:16px}
+  .analysis-header{min-height:auto;padding-bottom:12px!important}
+  .analysis-filters{grid-template-columns:1fr 1fr!important}
+  .platform-registry-shell>.filter-bar{width:100%;max-width:none}
+}
+
+@media(max-width:480px){
+  .analysis-filters{grid-template-columns:1fr!important}
+}
