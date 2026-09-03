@@ -76,7 +76,7 @@ const emptyOrganization = {
   region: '',
   healthRegion: '',
   city: '',
-  country: 'Greece',
+  country: '',
   contactEmail: '',
   contactPhone: '',
   bedCapacity: '',
@@ -179,7 +179,7 @@ export function PlatformCenterPage() {
     region: '',
     healthRegion: '',
     city: '',
-    country: 'Greece',
+    country: '',
     contactPhone: '',
     bedCapacity: '',
     contactName: '',
@@ -519,7 +519,7 @@ export function PlatformCenterPage() {
       region: org.region || '',
       healthRegion: org.health_region || '',
       city: org.city || '',
-      country: org.country || 'Greece',
+      country: org.country || '',
       contactEmail: org.contact_email || '',
       contactPhone: org.contact_phone || '',
       bedCapacity: org.bed_capacity ?? '',
@@ -678,7 +678,7 @@ export function PlatformCenterPage() {
       await createPlatformDemoEntitlement(demoDraft)
       await refreshPlatformData()
       setDemoOpen(false)
-      setDemoDraft({ label:'', type:'hospital', region:'', healthRegion:'', city:'', country:'Greece', contactPhone:'', bedCapacity:'', contactName:'', contactEmail:'', validFrom:new Date().toISOString().slice(0,10), validUntil:'' })
+      setDemoDraft({ label:'', type:'hospital', region:'', healthRegion:'', city:'', country:'', contactPhone:'', bedCapacity:'', contactName:'', contactEmail:'', validFrom:new Date().toISOString().slice(0,10), validUntil:'' })
       notify(tx('Το Demo ενεργοποιήθηκε.', 'Demo access enabled.'), 'success', {
         operation: 'platform_demo_create',
       })
