@@ -368,3 +368,14 @@
 @media(max-width:480px){
   .analysis-filters{grid-template-columns:1fr!important}
 }
+
+/* Platform Owner · user management record panel */
+.platform-owner-users .platform-owner-clickable-row.is-selected{background:var(--lo-color-surface-soft,#f6f8fb)}
+.platform-user-management-panel{margin-top:14px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-card);background:var(--lo-color-surface);overflow:hidden}
+.platform-user-management-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border-bottom:1px solid var(--lo-color-border)}
+.platform-user-management-heading>div{display:flex;flex-direction:column;gap:3px}.platform-user-management-heading span{font-size:12px;color:var(--lo-color-text-muted)}
+.platform-user-detail-table{margin:0}.platform-user-detail-table th{width:150px;white-space:nowrap;background:var(--lo-color-surface-soft,#f6f8fb)}
+.platform-user-detail-table td{vertical-align:middle}.platform-user-detail-table .platform-role-select{width:min(100%,360px)}
+.platform-user-panel-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.platform-user-actions-row td{padding-top:12px;padding-bottom:12px}
+@media(max-width:760px){.platform-user-management-heading{align-items:flex-start;flex-direction:column}.platform-user-detail-table th{width:auto}.platform-user-panel-actions{align-items:stretch;flex-direction:column}.platform-user-panel-actions .button{width:100%}}
