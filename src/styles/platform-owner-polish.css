@@ -155,6 +155,20 @@
   background:transparent;
 }
 
+/* Demo contact details need more horizontal room than the identity/access cards.
+   Keep the same canonical three-card composition, but weight the middle card wider. */
+.platform-demo-info-sections{
+  grid-template-columns:minmax(0,.92fr) minmax(340px,1.28fr) minmax(0,.92fr);
+}
+.platform-demo-info-sections>.platform-info-section:nth-child(2) .platform-info-row{
+  grid-template-columns:minmax(92px,.65fr) minmax(0,1.35fr);
+  gap:10px;
+}
+.platform-demo-info-sections>.platform-info-section:nth-child(2) .platform-info-row dd{
+  overflow-wrap:normal;
+  word-break:normal;
+}
+
 .platform-info-section{
   min-width:0;
   padding:13px 15px;
@@ -340,6 +354,7 @@
 
 @media (max-width:1180px){
   .platform-info-sections{grid-template-columns:1fr 1fr}
+  .platform-demo-info-sections{grid-template-columns:1fr 1fr}
   .platform-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .platform-form-grid .field-wide{grid-column:1/-1}
   .platform-form-grid:has(>.manual-date-field){grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -348,7 +363,7 @@
 
 @media (max-width:760px){
   .platform-kpi-grid{grid-template-columns:1fr}
-  .platform-info-sections{grid-template-columns:1fr}
+  .platform-info-sections,.platform-demo-info-sections{grid-template-columns:1fr}
   .platform-form-grid,.platform-demo-edit-grid,.platform-form-grid:has(>.manual-date-field){grid-template-columns:1fr}
   .platform-form-grid .field-wide{grid-column:auto}
   .platform-org-analysis-link{align-items:flex-start;flex-direction:column}
