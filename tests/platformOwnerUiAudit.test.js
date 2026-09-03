@@ -56,14 +56,17 @@ describe('Platform Owner UI audit',()=>{
     expect(source).toContain('platform-form-shell')
   })
 
-  it('renders Platform reports through the canonical Page and BackButton components',()=>{
-    const source=read('src/features/analysis/AnalysisPage.jsx')
-    expect(source).toContain("import { BackButton } from '../../design-system/BackButton'")
-    expect(source).toContain("import { Page } from '../../design-system/Page'")
-    expect(source).toContain('<Page')
-    expect(source).toContain('navigation={returnTo?<BackButton')
-    expect(source).not.toContain('platform-back-button')
-    expect(source).not.toContain('analysis-header')
+  it('renders Platform reports through the exact same Analysis workspace with platform scope only',()=>{
+    const owner=read('src/features/workspaces/PlatformCenterPage.jsx')
+    const analysis=read('src/features/analysis/AnalysisPage.jsx')
+    expect(owner).toContain('<AnalysisPage platform organizations={organizations}/>')
+    expect(analysis).toContain('export function AnalysisPage({platform=false,organizations=[]})')
+    expect(analysis).toContain('className="analysis-workspace"')
+    expect(analysis).toContain('className="analysis-filters"')
+    expect(analysis).toContain('className="analysis-tabs"')
+    expect(analysis).toContain('className="analysis-kpis"')
+    expect(analysis).toContain("platform&&<label><span>{tx('Οργανισμός','Organization')}")
+    expect(analysis).not.toContain('platform-back-button')
   })
 
   it('keeps owner layout rules out of shared action and navigation stylesheets',()=>{
