@@ -11,7 +11,10 @@ const DEMO_MEMBERSHIP = Object.freeze({ id: 'demo-membership', role: ROLES.DEMO,
 
 export function TenantProvider({ children }) {
   const { user, profile, isAuthenticated, isDemoSession } = useAuth()
-  const canRolePreview = Boolean(profile?.isPlatformOwner || isDemoSession || (import.meta.env.DEV && isAuthenticated))
+  // Preview changes the effective role used by every UI guard. Keep it tied to
+  // trusted owner/demo identities; a development build must never turn an
+  // ordinary authenticated membership into a privilege-escalation path.
+  const canRolePreview = Boolean(profile?.isPlatformOwner || isDemoSession)
   const [memberships, setMemberships] = useState([])
   const [activeMembershipId, setActiveMembershipId] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -97,7 +100,11 @@ export function TenantProvider({ children }) {
     rolePreview,
     canRolePreview,
     isRolePreview: Boolean(canRolePreview && rolePreview?.role),
-    startRolePreview: (previewRole, department='') => canRolePreview && isPreviewableRole(previewRole) && setRolePreview({role:previewRole,department}),
+    startRolePreview: (previewRole, department='') => {
+      if (!canRolePreview || !isPreviewableRole(previewRole)) return false
+      setRolePreview({role:previewRole,department})
+      return true
+    },
     updateRolePreviewDepartment: (department='') => canRolePreview && setRolePreview(current=>current?{...current,department}:current),
     stopRolePreview: () => setRolePreview(null),
     uxPolicy: uxPolicyFor(role),

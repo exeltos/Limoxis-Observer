@@ -46,6 +46,7 @@ const MyDepartmentPage = lazyNamed(() => import('../features/workspaces/MyDepart
 const AboutPage = lazyNamed(() => import('../features/about/AboutPage'), 'AboutPage')
 const AnalysisPage = lazyNamed(() => import('../features/analysis/AnalysisPage'), 'AnalysisPage')
 const AccountPage = lazyNamed(() => import('../features/account/AccountPage'), 'AccountPage')
+const AccessDeniedPage = lazyNamed(() => import('../features/auth/AccessDeniedPage'), 'AccessDeniedPage')
 
 const gate = (capability, element) => <RequireCapability capability={capability}>{element}</RequireCapability>
 const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={capabilities}>{element}</RequireAnyCapability>
@@ -73,8 +74,9 @@ export function App() {
       <Route element={<AppShell />}>
         <Route path="platform" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM, <PlatformCenterPage />)}</Suspense>} />
         <Route path="about" element={<Suspense fallback={<RouteLoading/>}><AboutPage /></Suspense>} />
-        <Route path="analysis" element={<Suspense fallback={<RouteLoading/>}><AnalysisPage /></Suspense>} />
+        <Route path="analysis" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_ANALYSIS, <AnalysisPage />)}</Suspense>} />
         <Route path="account" element={<Suspense fallback={<RouteLoading/>}><AccountPage /></Suspense>} />
+        <Route path="access-denied" element={<Suspense fallback={<RouteLoading/>}><AccessDeniedPage /></Suspense>} />
         <Route index element={<Suspense fallback={<RouteLoading/>}><HomeRoute /></Suspense>} />
         <Route path="my-department" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_DEPARTMENT, <MyDepartmentPage />)}</Suspense>} />
         <Route path="my-profile" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_MY_PROFILE, <EmployeeRecordPage selfMode />)}</Suspense>} />

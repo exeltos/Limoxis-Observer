@@ -15,13 +15,15 @@ export async function listMemberships(userId) {
     .eq('user_id', userId)
     .eq('status', 'active')
   if (error) throw error
-  return (data ?? []).filter((membership) => membership.organization).map((membership) => ({
+  return (data ?? [])
+    .filter((membership) => membership.organization?.status === 'active')
+    .map((membership) => ({
     ...membership,
     departmentIds: (membership.scopes ?? []).map((item) => item.department_id).filter(Boolean),
     capabilities: (membership.add_ons ?? []).map((item) => item.capability).filter(Boolean),
     customCapabilities: (membership.custom_role?.capabilities ?? []).map((item) => item.capability).filter(Boolean),
     assignments: (membership.assignments ?? []).filter((item) => item.status !== 'completed' && item.status !== 'cancelled'),
-  }))
+    }))
 }
 
 export async function listPlatformOwnerOrganizations() {
