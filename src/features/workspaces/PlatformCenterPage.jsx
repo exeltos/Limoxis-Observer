@@ -175,6 +175,13 @@ export function PlatformCenterPage() {
   const [demoOpen, setDemoOpen] = useState(false)
   const [demoDraft, setDemoDraft] = useState({
     label: '',
+    type: 'hospital',
+    region: '',
+    healthRegion: '',
+    city: '',
+    country: 'Greece',
+    contactPhone: '',
+    bedCapacity: '',
     contactName: '',
     contactEmail: '',
     validFrom: new Date().toISOString().slice(0, 10),
@@ -671,6 +678,7 @@ export function PlatformCenterPage() {
       await createPlatformDemoEntitlement(demoDraft)
       await refreshPlatformData()
       setDemoOpen(false)
+      setDemoDraft({ label:'', type:'hospital', region:'', healthRegion:'', city:'', country:'Greece', contactPhone:'', bedCapacity:'', contactName:'', contactEmail:'', validFrom:new Date().toISOString().slice(0,10), validUntil:'' })
       notify(tx('Το Demo ενεργοποιήθηκε.', 'Demo access enabled.'), 'success', {
         operation: 'platform_demo_create',
       })
@@ -1329,11 +1337,11 @@ export function PlatformCenterPage() {
           subtitle={tx('Απομονωμένο περιβάλλον παρουσίασης. Τα demo δεδομένα υπάρχουν μόνο εδώ και δεν αναμειγνύονται με πραγματικούς οργανισμούς.', 'Isolated presentation environment. Demo data exists only here and never mixes with production organizations.')}
           actions={
             <>
-              <Button onClick={() => setDemoOpen(true)}>+ {tx('Νέο Demo', 'New Demo')}</Button>
               <Button variant="secondary" className="platform-demo-enter-action" onClick={() => { enterPlatformDemo(); nav('/') }}>
                 <LogIn size={15} />
                 {tx('Είσοδος Demo', 'Enter Demo')}
               </Button>
+              <Button onClick={() => setDemoOpen(true)}>+ {tx('Νέο Demo', 'New Demo')}</Button>
             </>
           }
         >
@@ -1417,21 +1425,42 @@ export function PlatformCenterPage() {
               </SaveButton>
             }
           >
-            <div className="platform-form-grid">
-              <label className="field field-wide">
-                <span>{tx('Οργανισμός / Prospect', 'Organization / Prospect')} *</span>
-                <input value={demoDraft.label} onChange={event => setDemoDraft(current => ({ ...current, label: event.target.value }))} />
-              </label>
-              <label className="field">
-                <span>{tx('Υπεύθυνος επικοινωνίας', 'Contact person')}</span>
-                <input value={demoDraft.contactName} onChange={event => setDemoDraft(current => ({ ...current, contactName: event.target.value }))} />
-              </label>
-              <label className="field">
-                <span>Email *</span>
-                <input type="email" value={demoDraft.contactEmail} onChange={event => setDemoDraft(current => ({ ...current, contactEmail: event.target.value }))} />
-              </label>
-              <ManualDateField label={tx('Έναρξη', 'Start')} value={demoDraft.validFrom} onChange={value => setDemoDraft(current => ({ ...current, validFrom: value }))} />
-              <ManualDateField label={`${tx('Λήξη', 'End')} *`} value={demoDraft.validUntil} onChange={value => setDemoDraft(current => ({ ...current, validUntil: value }))} />
+            <div className="platform-form-shell">
+              <FormSection title={tx('Ταυτότητα Demo οργανισμού', 'Demo organization identity')} subtitle={tx('Τα βασικά στοιχεία αποθηκεύονται στον απομονωμένο Demo οργανισμό.', 'Core details are stored on the isolated Demo organization.')}>
+                <div className="platform-form-grid">
+                  <label className="field field-wide">
+                    <span>{tx('Επωνυμία οργανισμού / Prospect', 'Organization / Prospect name')} *</span>
+                    <input autoFocus value={demoDraft.label} onChange={event => setDemoDraft(current => ({ ...current, label: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>{tx('Τύπος', 'Type')}</span>
+                    <select value={demoDraft.type} onChange={event => setDemoDraft(current => ({ ...current, type: event.target.value }))}>
+                      <option value="hospital">{tx('Νοσοκομείο', 'Hospital')}</option>
+                      <option value="clinic">{tx('Κλινική', 'Clinic')}</option>
+                      <option value="group">{tx('Όμιλος', 'Group')}</option>
+                      <option value="other">{tx('Άλλο', 'Other')}</option>
+                    </select>
+                  </label>
+                </div>
+              </FormSection>
+              <FormSection title={tx('Τοποθεσία & λειτουργία', 'Location & operations')}>
+                <div className="platform-form-grid">
+                  <label className="field"><span>{tx('Περιφέρεια', 'Region')}</span><select value={demoDraft.region} onChange={event => setDemoDraft(current => ({ ...current, region: event.target.value }))}><option value="">{tx('Επιλογή…', 'Select…')}</option>{GREEK_REGIONS.map(region => <option key={region}>{region}</option>)}</select></label>
+                  <label className="field field-wide"><span>{tx('Υγειονομική Περιφέρεια (ΥΠΕ)', 'Health Region')}</span><select value={demoDraft.healthRegion} onChange={event => setDemoDraft(current => ({ ...current, healthRegion: event.target.value }))}><option value="">{tx('Επιλογή…', 'Select…')}</option>{HEALTH_REGIONS.map(region => <option key={region}>{region}</option>)}</select></label>
+                  <label className="field"><span>{tx('Πόλη', 'City')}</span><input value={demoDraft.city} onChange={event => setDemoDraft(current => ({ ...current, city: event.target.value }))} /></label>
+                  <label className="field"><span>{tx('Χώρα', 'Country')}</span><input value={demoDraft.country} onChange={event => setDemoDraft(current => ({ ...current, country: event.target.value }))} /></label>
+                  <label className="field"><span>{tx('Τηλέφωνο', 'Phone')}</span><input value={demoDraft.contactPhone} onChange={event => setDemoDraft(current => ({ ...current, contactPhone: event.target.value }))} /></label>
+                  <label className="field"><span>{tx('Δυναμικότητα κλινών', 'Bed capacity')}</span><input type="number" min="0" value={demoDraft.bedCapacity} onChange={event => setDemoDraft(current => ({ ...current, bedCapacity: event.target.value }))} /></label>
+                </div>
+              </FormSection>
+              <FormSection title={tx('Υπεύθυνος Demo & πρόσβαση', 'Demo contact & access')}>
+                <div className="platform-form-grid">
+                  <label className="field"><span>{tx('Υπεύθυνος επικοινωνίας', 'Contact person')}</span><input value={demoDraft.contactName} onChange={event => setDemoDraft(current => ({ ...current, contactName: event.target.value }))} /></label>
+                  <label className="field"><span>{tx('Email πρόσκλησης', 'Invitation email')} *</span><input type="email" value={demoDraft.contactEmail} onChange={event => setDemoDraft(current => ({ ...current, contactEmail: event.target.value }))} /></label>
+                  <ManualDateField label={tx('Έναρξη', 'Start')} value={demoDraft.validFrom} onChange={value => setDemoDraft(current => ({ ...current, validFrom: value }))} />
+                  <ManualDateField label={`${tx('Λήξη', 'End')} *`} value={demoDraft.validUntil} onChange={value => setDemoDraft(current => ({ ...current, validUntil: value }))} />
+                </div>
+              </FormSection>
             </div>
           </ObserverDialog>
         )}

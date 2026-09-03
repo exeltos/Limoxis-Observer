@@ -51,6 +51,13 @@ Deno.serve(async(req)=>{
   const contactEmail=String(body.contactEmail||'').trim().toLowerCase()
   const validFrom=String(body.validFrom||'')
   const validUntil=String(body.validUntil||'')
+  const organizationType=String(body.type||'hospital')
+  const region=String(body.region||'').trim()||null
+  const healthRegion=String(body.healthRegion||'').trim()||null
+  const city=String(body.city||'').trim()||null
+  const country=String(body.country||'Greece').trim()||'Greece'
+  const contactPhone=String(body.contactPhone||'').trim()||null
+  const bedCapacity=body.bedCapacity===''||body.bedCapacity==null?null:Number(body.bedCapacity)
   if(!label||!contactEmail||!validFrom||!validUntil)return reply({error:'Missing demo fields.'},400)
 
   const username=await allocateUsername(admin,contactName||label)
@@ -60,10 +67,15 @@ Deno.serve(async(req)=>{
   const {data:organization,error:organizationError}=await admin.from('organizations').insert({
     name:label,
     code:organizationCode,
-    type:'other',
+    type:organizationType,
     status:'active',
-    country:'Greece',
+    region,
+    health_region:healthRegion,
+    city,
+    country,
     contact_email:contactEmail,
+    contact_phone:contactPhone,
+    bed_capacity:Number.isFinite(bedCapacity)?bedCapacity:null,
     is_demo:true,
   }).select('id,name,code,is_demo').single()
   if(organizationError||!organization)return reply({error:organizationError?.message||'Demo organization creation failed'},500)

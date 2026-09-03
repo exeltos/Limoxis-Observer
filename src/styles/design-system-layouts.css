@@ -235,10 +235,12 @@
   top:auto!important;
   z-index:3!important;
   min-width:0;
-  padding:0 var(--lo-layout-page-x)!important;
-  background:#f5f7fa!important;
-  border:0!important;
-  box-shadow:none!important;
+  margin:0 var(--lo-layout-page-x)!important;
+  padding:14px 14px 0!important;
+  background:var(--lo-color-surface)!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:var(--lo-radius-card)!important;
+  box-shadow:0 6px 20px rgba(23,32,51,.04)!important;
 }
 
 .analysis-filters{
@@ -357,6 +359,7 @@
 @media(max-width:760px){
   :root{--lo-layout-page-x:14px;--lo-layout-page-top:16px}
   .analysis-header{min-height:auto;padding-bottom:12px!important}
+  .analysis-sticky{margin:0 var(--lo-layout-page-x)!important}
   .analysis-filters{grid-template-columns:1fr 1fr!important}
   .platform-registry-shell>.filter-bar{width:100%;max-width:none}
 }

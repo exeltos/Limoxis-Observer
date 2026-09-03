@@ -56,12 +56,20 @@ export function AuthProvider({ children }) {
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession)
       if (!nextSession?.user) {
+        setSession(null)
         setProfile(null)
         return
       }
-      loadProfile(nextSession.user).then(setProfile).catch(() => setProfile(null))
+      loadProfile(nextSession.user)
+        .then(nextProfile => {
+          setProfile(nextProfile)
+          setSession(nextSession)
+        })
+        .catch(() => {
+          setProfile(null)
+          setSession(nextSession)
+        })
     })
 
     return () => {
@@ -70,7 +78,17 @@ export function AuthProvider({ children }) {
     }
   }, [loadProfile, helpPreviewMode])
 
-  const login = useCallback(async (email, password) => signInWithPassword(email, password), [])
+  const login = useCallback(async (identifier, password) => {
+    const data = await signInWithPassword(identifier, password)
+    const nextSession = data?.session ?? data ?? null
+    const nextUser = nextSession?.user ?? data?.user ?? null
+    if (nextUser) {
+      const nextProfile = await loadProfile(nextUser)
+      setProfile(nextProfile)
+      if (nextSession) setSession(nextSession)
+    }
+    return data
+  }, [loadProfile])
   const loginDemo = useCallback(() => {
     if (!appConfig.allowDemo) throw new Error('DEMO_DISABLED')
     setSession({ access_token: 'demo', user: DEMO_USER })
