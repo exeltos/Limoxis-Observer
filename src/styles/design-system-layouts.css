@@ -58,14 +58,14 @@
   border-radius:var(--lo-radius-control);
 }
 .platform-demo-enter-action{
-  background:var(--lo-color-nav)!important;
-  border-color:var(--lo-color-nav)!important;
+  background:var(--lo-color-primary)!important;
+  border-color:var(--lo-color-primary)!important;
   color:#fff!important;
-  box-shadow:0 5px 14px rgba(18,59,94,.14);
+  box-shadow:0 6px 16px rgba(31,111,169,.18);
 }
 .platform-demo-enter-action:hover:not(:disabled){
-  background:var(--lo-color-nav-dark)!important;
-  border-color:var(--lo-color-nav-dark)!important;
+  background:#195f91!important;
+  border-color:#195f91!important;
 }
 
 /* ---------- Dashboard pattern ---------- */
