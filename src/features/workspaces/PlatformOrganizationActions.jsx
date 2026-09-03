@@ -39,7 +39,7 @@ export function PlatformOrganizationActions({organization,language='el',onEnter,
   return <div className="platform-org-actions" aria-label={en?'Organization actions':'Ενέργειες οργανισμού'}>
     <Action icon={<LogIn size={18}/>} tone="primary" label={en?'Enter':'Είσοδος'} title={en?'Enter organization':'Είσοδος στον οργανισμό'} onClick={onEnter}/>
     <Action icon={<Pencil size={17}/>} tone="edit" label={en?'Edit':'Επεξεργασία'} title={en?'Edit organization':'Επεξεργασία οργανισμού'} onClick={onEdit}/>
-    <Action icon={<KeyRound size={17}/>} tone="neutral" label={en?'Reset password':'Επαν. κωδικού'} title={en?'Reset Hospital Admin password':'Επαναφορά κωδικού Hospital Admin'} disabled={resetting} onClick={resetHospitalAdminPassword}/>
+    <Action icon={<KeyRound size={17}/>} tone="neutral" label={en?'Reset password':'Επαναφορά κωδικού'} title={en?'Reset Hospital Admin password':'Επαναφορά κωδικού Hospital Admin'} disabled={resetting} onClick={resetHospitalAdminPassword}/>
     <Action icon={suspended?<PlayCircle size={17}/>:<PauseCircle size={17}/>} tone={suspended?'success':'neutral'} label={suspended?(en?'Reactivate':'Ενεργοποίηση'):(en?'Suspend':'Παύση')} title={suspended?(en?'Reactivate organization':'Ενεργοποίηση οργανισμού'):(en?'Suspend organization':'Παύση οργανισμού')} onClick={onTogglePause}/>
     <Action icon={<Trash2 size={17}/>} tone="danger" label={en?'Delete':'Διαγραφή'} title={en?'Delete permanently':'Οριστική διαγραφή'} onClick={onDelete}/>
   </div>
