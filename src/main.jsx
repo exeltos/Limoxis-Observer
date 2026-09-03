@@ -14,7 +14,6 @@ import './styles/global.css'
 import './styles/design-system-actions.css'
 import './styles/platform-owner-polish.css'
 import './styles/design-system-navigation.css'
-import './styles/design-system-analytics.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
