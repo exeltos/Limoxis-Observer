@@ -62,6 +62,38 @@
 .platform-owner-users .text-button{border:0;background:transparent;color:var(--lo-color-primary);padding:6px 8px;border-radius:8px;cursor:pointer}
 .platform-owner-users .text-button:hover{background:var(--lo-status-info-bg)}
 
+/* Current Platform Owner organization workspace. */
+.platform-owner-clickable-row{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:68px;
+  padding:14px 16px;
+  border:1px solid var(--lo-color-border);
+  border-radius:var(--lo-radius-card);
+  background:var(--lo-color-surface);
+  color:var(--lo-color-text);
+  text-align:left;
+  cursor:pointer;
+}
+.platform-owner-clickable-row:hover{background:var(--lo-shell-control-hover);border-color:color-mix(in srgb,var(--lo-color-primary) 24%,var(--lo-color-border))}
+.platform-owner-clickable-row>span{display:grid;gap:5px}
+.platform-owner-clickable-row strong{font-size:13px}
+.platform-owner-clickable-row small{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--lo-color-muted)}
+.platform-owner-record-workspace{display:flex;flex-direction:column;min-height:calc(100vh - 190px);overflow:hidden;padding:0}
+.platform-owner-record-workspace>.platform-org-tabs{display:flex;align-items:center;gap:2px;flex-wrap:wrap;padding:0 14px;border-bottom:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
+.platform-owner-record-workspace>.platform-org-tabs button{display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:0 12px;border:0;border-radius:0;background:transparent;color:var(--lo-color-muted);font-weight:700;cursor:pointer}
+.platform-owner-record-workspace>.platform-org-tabs button:hover{color:var(--lo-color-text);background:var(--lo-shell-control-hover)}
+.platform-owner-record-workspace>.platform-org-tabs button.active{color:var(--lo-color-primary);box-shadow:inset 0 -2px 0 var(--lo-color-primary)}
+.platform-owner-details-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:18px;overflow:auto}
+.platform-owner-field{display:grid;align-content:start;gap:7px;min-height:82px;padding:14px 15px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface)}
+.platform-owner-field>span{font-size:11px;font-weight:700;color:var(--lo-color-muted)}
+.platform-owner-field>strong{font-size:13px;color:var(--lo-color-text);overflow-wrap:anywhere}
+.platform-owner-record-workspace>.platform-owner-users{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.platform-owner-record-workspace>.platform-owner-users .scroll-table{flex:1;min-height:0;overflow:auto;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-card)}
+.platform-owner-record-workspace>.platform-owner-users .data-table tbody tr:focus-visible{outline:2px solid color-mix(in srgb,var(--lo-color-primary) 42%,transparent);outline-offset:-2px}
+
 .lo-dialog-icon-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--lo-color-border)}
 .diagnostics-summary-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 14px}
 .diagnostics-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:54px;padding:10px 13px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface)}
@@ -89,6 +121,7 @@
 .login-briefing-dialog .briefing-navigation-row>span{display:grid;gap:2px}.login-briefing-dialog .briefing-navigation-row small{color:var(--lo-color-muted)}
 .login-briefing-dialog .briefing-empty{margin:0;padding:18px 14px;color:var(--lo-color-muted)}
 .login-briefing-dialog .briefing-footer-v2{display:flex;align-items:center;gap:7px;color:var(--lo-color-muted);font-size:11px}
+@media (max-width:1000px){.platform-owner-details-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:760px){
   .login-briefing-dialog .briefing-sections-v2{grid-template-columns:1fr}
   .login-briefing-dialog .briefing-summary-v2{align-items:flex-start;flex-direction:column}
@@ -98,4 +131,6 @@
   .platform-org-row.selected>.platform-org-actions{grid-row:2;justify-content:flex-start;padding:0 10px 10px}
   .platform-org-row.selected>.platform-org-expanded{grid-row:3}
   .platform-org-row.selected .platform-org-detail{grid-template-columns:1fr}
+  .platform-owner-details-grid{grid-template-columns:1fr;padding:12px}
+  .platform-owner-record-workspace>.platform-org-tabs{overflow-x:auto;flex-wrap:nowrap}
 }
