@@ -47,11 +47,11 @@ export async function listPlatformOwnerOrganizations() {
   }))
 }
 
-export async function createPlatformOrganization({ name, code, type = 'hospital', status = 'active', region = null, healthRegion = null, city = null, country = 'Greece', contactEmail = null, contactPhone = null, bedCapacity = null }) {
+export async function createPlatformOrganization({ name, code, type = 'hospital', status = 'active', region = null, healthRegion = null, city = null, country = '', contactEmail = null, contactPhone = null, bedCapacity = null }) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data, error } = await supabase
     .from('organizations')
-    .insert({ name: name.trim(), code: code.trim().toUpperCase(), type, status, region: region || null, health_region: healthRegion || null, city: city || null, country: country || 'Greece', contact_email: contactEmail || null, contact_phone: contactPhone || null, bed_capacity: bedCapacity ? Number(bedCapacity) : null, is_demo: false })
+    .insert({ name: name.trim(), code: code.trim().toUpperCase(), type, status, region: region || null, health_region: healthRegion || null, city: city || null, country: country || null, contact_email: contactEmail || null, contact_phone: contactPhone || null, bed_capacity: bedCapacity ? Number(bedCapacity) : null, is_demo: false })
     .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo')
     .single()
   if (error) throw error
@@ -139,7 +139,7 @@ export async function updatePlatformOrganization(organizationId, patch) {
   const payload = {
     name: patch.name?.trim(), code: patch.code?.trim().toUpperCase(), type: patch.type, status: patch.status,
     region: patch.region || null, health_region: patch.healthRegion || patch.health_region || null, city: patch.city || null,
-    country: patch.country || 'Greece', contact_email: patch.contactEmail ?? patch.contact_email ?? null,
+    country: patch.country || null, contact_email: patch.contactEmail ?? patch.contact_email ?? null,
     contact_phone: patch.contactPhone ?? patch.contact_phone ?? null, bed_capacity: patch.bedCapacity === '' ? null : Number(patch.bedCapacity ?? patch.bed_capacity ?? 0) || null,
     updated_at: new Date().toISOString(),
   }
