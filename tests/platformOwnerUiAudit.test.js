@@ -25,6 +25,16 @@ describe('Platform Owner UI audit',()=>{
     expect(source).not.toContain('footer={<Button variant="secondary" onClick={()=>setSelectedUser(null)}>Κλείσιμο</Button>}')
   })
 
+  it('renders login briefing through the shared ObserverDialog with no duplicate close action',()=>{
+    const briefing=fs.readFileSync('src/core/notifications/LoginBriefingDialog.jsx','utf8')
+    const shell=fs.readFileSync('src/app/AppShell.jsx','utf8')
+    expect(briefing).toContain('<ObserverDialog')
+    expect(briefing).toContain('onClose={onClose}')
+    expect(briefing).not.toContain('closeBriefing')
+    expect(shell).toContain('LoginBriefingDialog')
+    expect(shell).toContain('roleLabel(role,language)')
+  })
+
   it('does not add a duplicate cancel button to shared dialog actions by default',()=>{
     const source=fs.readFileSync('src/design-system/ObserverDialog.jsx','utf8')
     expect(source).toContain('showCancel=false')
