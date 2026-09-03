@@ -442,35 +442,6 @@
 @media(max-width:760px){.platform-demo-contact-grid,.platform-demo-access-grid{grid-template-columns:1fr!important}.platform-record-edit-toolbar{justify-content:stretch}.platform-record-edit-toolbar .button{flex:1}}
 
 
-/* Platform Owner · demo create dialog: scroll the overlay, never the card body */
-.modal-backdrop:has(.platform-demo-create-dialog){
-  align-items:flex-start;
-  overflow-y:auto;
-  overflow-x:hidden;
-  padding:24px
-}
-.platform-demo-create-dialog{
-  width:min(var(--lo-dialog-workspace,1280px),calc(100vw - 48px))!important;
-  max-height:none!important;
-  margin:auto;
-  overflow:visible!important
-}
-.platform-demo-create-dialog .observer-dialog-body{
-  min-width:0;
-  overflow:visible!important
-}
-.platform-demo-create-dialog .platform-form-shell,
-.platform-demo-create-dialog .platform-form-section,
-.platform-demo-create-dialog .platform-form-grid{min-width:0}
-.platform-demo-create-dialog .platform-form-grid>*{min-width:0}
-.platform-demo-create-dialog footer{position:static}
-.platform-record-edit-toolbar>.entity-record-icon-button{margin-left:auto}
-@media(max-width:760px){
-  .modal-backdrop:has(.platform-demo-create-dialog){padding:10px}
-  .platform-demo-create-dialog{width:calc(100vw - 20px)!important}
-}
-
-
 /* Platform Owner · refined user record geometry */
 .platform-user-management-panel{
   width:100%;
@@ -531,51 +502,52 @@
 .platform-record-edit-fieldset.is-editing input,
 .platform-record-edit-fieldset.is-editing select,
 .platform-record-edit-fieldset.is-editing textarea{pointer-events:auto}
-.platform-demo-create-dialog .observer-dialog-body{padding-bottom:18px!important}
-.platform-demo-create-dialog .platform-form-shell{padding-bottom:4px}
-.platform-demo-create-dialog footer{padding-top:14px!important}
 
-
-/* Platform Owner · demo footer clearance */
-.platform-demo-create-dialog{display:flex!important;flex-direction:column!important}
-.platform-demo-create-dialog .observer-dialog-body{flex:0 0 auto!important;padding-bottom:34px!important}
-.platform-demo-create-dialog .platform-form-shell>.platform-form-section:last-child{margin-bottom:18px!important}
-.platform-demo-create-dialog footer{position:relative!important;inset:auto!important;flex:0 0 auto!important;margin-top:0!important;padding:16px 20px!important;background:var(--lo-color-surface)!important;border-top:1px solid var(--lo-color-border)!important}
-.platform-demo-create-dialog .platform-demo-contact-grid{padding-bottom:4px}
-@media(max-height:760px){.platform-demo-create-dialog .observer-dialog-body{padding-bottom:42px!important}}
-
-
-/* Platform Owner · stable demo dialog viewport contract */
+/* Platform Owner · canonical Demo create dialog */
+.modal-backdrop:has(.platform-demo-create-dialog){
+  align-items:center;
+  overflow:hidden;
+  padding:16px;
+}
 .platform-demo-create-dialog{
-  display:grid!important;
-  grid-template-rows:auto minmax(0,1fr) auto!important;
-  max-height:calc(100dvh - 24px)!important;
+  width:min(var(--lo-dialog-workspace,1280px),calc(100vw - 32px))!important;
+  max-height:calc(100dvh - 32px)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  margin:auto!important;
   overflow:hidden!important;
 }
 .platform-demo-create-dialog .observer-dialog-body{
+  flex:1 1 auto!important;
+  min-width:0!important;
   min-height:0!important;
   overflow-y:auto!important;
   overflow-x:hidden!important;
-  padding-bottom:28px!important;
-  scrollbar-gutter:stable;
+  padding-bottom:24px!important;
 }
-.platform-demo-create-dialog .platform-form-shell{
-  padding-bottom:12px!important;
-}
-.platform-demo-create-dialog .platform-form-shell>.platform-form-section:last-child{
-  margin-bottom:8px!important;
-}
+.platform-demo-create-dialog .platform-form-shell,
+.platform-demo-create-dialog .platform-form-section,
+.platform-demo-create-dialog .platform-form-grid{min-width:0}
+.platform-demo-create-dialog .platform-form-grid>*{min-width:0}
+.platform-demo-create-dialog .platform-form-shell{padding-bottom:0!important}
+.platform-demo-create-dialog .platform-form-shell>.platform-form-section:last-child{margin-bottom:0!important}
 .platform-demo-create-dialog footer{
-  position:relative!important;
+  position:static!important;
   inset:auto!important;
-  z-index:5!important;
+  z-index:2!important;
+  flex:0 0 auto!important;
   margin:0!important;
   padding:14px 20px!important;
   background:var(--lo-color-surface)!important;
   border-top:1px solid var(--lo-color-border)!important;
-  box-shadow:0 -8px 18px rgba(23,32,51,.035)!important;
+  box-shadow:none!important;
 }
 @media(max-width:760px){
-  .platform-demo-create-dialog{max-height:calc(100dvh - 12px)!important}
+  .modal-backdrop:has(.platform-demo-create-dialog){padding:8px}
+  .platform-demo-create-dialog{
+    width:calc(100vw - 16px)!important;
+    max-height:calc(100dvh - 16px)!important;
+  }
   .platform-demo-create-dialog footer{padding:12px 14px!important}
 }
+
