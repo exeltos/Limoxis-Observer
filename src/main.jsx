@@ -13,6 +13,7 @@ import './styles/theme.css'
 import './styles/global.css'
 import './styles/design-system-actions.css'
 import './styles/platform-owner-polish.css'
+import './styles/design-system-layouts.css'
 import './styles/design-system-navigation.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
