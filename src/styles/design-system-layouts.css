@@ -428,3 +428,15 @@
   .platform-user-panel-actions{align-items:stretch;flex-direction:column}
   .platform-user-panel-actions .button{width:100%}
 }
+
+
+/* Canonical locked record details + edit affordance */
+.platform-record-edit-toolbar{display:flex;justify-content:flex-end;gap:8px;margin:0 0 10px}
+.platform-record-edit-toolbar .button{min-height:38px}
+.platform-record-edit-fieldset{min-width:0;margin:0;padding:0;border:0}
+.platform-record-edit-fieldset:disabled{opacity:1}
+.platform-record-edit-fieldset:disabled input,.platform-record-edit-fieldset:disabled select{background:var(--lo-color-surface-soft,#f6f8fb);color:var(--lo-color-text);cursor:default;opacity:1}
+.platform-demo-contact-grid{grid-template-columns:minmax(260px,1.35fr) minmax(300px,1.65fr) minmax(170px,.8fr) minmax(170px,.8fr)!important}
+.platform-demo-access-grid{grid-template-columns:minmax(260px,1.35fr) minmax(300px,1.65fr) minmax(170px,.8fr) minmax(170px,.8fr)!important}
+@media(max-width:1180px){.platform-demo-contact-grid,.platform-demo-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:760px){.platform-demo-contact-grid,.platform-demo-access-grid{grid-template-columns:1fr!important}.platform-record-edit-toolbar{justify-content:stretch}.platform-record-edit-toolbar .button{flex:1}}
