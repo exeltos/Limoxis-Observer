@@ -1,0 +1,253 @@
+name: Demo record inline conversion one-off
+
+on:
+  push:
+    paths:
+      - .github/workflows/demo-record-inline-conversion-oneoff.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Patch Demo record workspace
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          # tenant service: richer demo organization projection, editable organization fields, in-place conversion
+          p=Path('src/core/tenant/tenantService.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace("organization:organizations(id,name,code,is_demo)')", "organization:organizations(id,name,code,type,status,region,health_region,city,country,contact_email,contact_phone,bed_capacity,is_demo)')")
+          s=s.replace("organization:organizations(id,name,code,is_demo)').single()", "organization:organizations(id,name,code,type,status,region,health_region,city,country,contact_email,contact_phone,bed_capacity,is_demo)').single()")
+          old="""export async function updatePlatformDemoEntitlement(demoId, patch) {
+  if (!supabase || !demoId) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const payload = {}
+  if (patch.label !== undefined) payload.label = String(patch.label || '').trim()
+  if (patch.contactName !== undefined || patch.contact_name !== undefined) payload.contact_name = patch.contactName ?? patch.contact_name ?? null
+  if (patch.contactEmail !== undefined || patch.contact_email !== undefined) payload.contact_email = String(patch.contactEmail ?? patch.contact_email ?? '').trim().toLowerCase() || null
+  if (patch.validFrom !== undefined || patch.valid_from !== undefined) payload.valid_from = patch.validFrom ?? patch.valid_from
+  if (patch.validUntil !== undefined || patch.valid_until !== undefined) payload.valid_until = patch.validUntil ?? patch.valid_until
+  if (patch.status !== undefined) payload.status = patch.status
+  payload.updated_at = new Date().toISOString()
+  const { data, error } = await supabase.from('platform_demo_entitlements').update(payload).eq('id', demoId).select('id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,demo_user_id,organization:organizations(id,name,code,is_demo)').single()
+  if (error) throw error
+  return data
+}
+"""
+          new="""export async function updatePlatformDemoEntitlement(demoId, patch) {
+  if (!supabase || !demoId) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const payload = {}
+  if (patch.label !== undefined) payload.label = String(patch.label || '').trim()
+  if (patch.contactName !== undefined || patch.contact_name !== undefined) payload.contact_name = patch.contactName ?? patch.contact_name ?? null
+  if (patch.contactEmail !== undefined || patch.contact_email !== undefined) payload.contact_email = String(patch.contactEmail ?? patch.contact_email ?? '').trim().toLowerCase() || null
+  if (patch.validFrom !== undefined || patch.valid_from !== undefined) payload.valid_from = patch.validFrom ?? patch.valid_from
+  if (patch.validUntil !== undefined || patch.valid_until !== undefined) payload.valid_until = patch.validUntil ?? patch.valid_until
+  if (patch.status !== undefined) payload.status = patch.status
+  payload.updated_at = new Date().toISOString()
+
+  if (patch.organizationId) {
+    const organizationPayload = {}
+    if (patch.label !== undefined) organizationPayload.name = String(patch.label || '').trim()
+    if (patch.type !== undefined) organizationPayload.type = patch.type || 'hospital'
+    if (patch.region !== undefined) organizationPayload.region = patch.region || null
+    if (patch.healthRegion !== undefined || patch.health_region !== undefined) organizationPayload.health_region = patch.healthRegion ?? patch.health_region ?? null
+    if (patch.city !== undefined) organizationPayload.city = patch.city || null
+    if (patch.country !== undefined) organizationPayload.country = patch.country || null
+    if (patch.contactEmail !== undefined || patch.contact_email !== undefined) organizationPayload.contact_email = String(patch.contactEmail ?? patch.contact_email ?? '').trim().toLowerCase() || null
+    if (patch.contactPhone !== undefined || patch.contact_phone !== undefined) organizationPayload.contact_phone = patch.contactPhone ?? patch.contact_phone ?? null
+    if (patch.bedCapacity !== undefined || patch.bed_capacity !== undefined) {
+      const value = patch.bedCapacity ?? patch.bed_capacity
+      organizationPayload.bed_capacity = value === '' || value == null ? null : Number(value) || null
+    }
+    if (Object.keys(organizationPayload).length) {
+      organizationPayload.updated_at = new Date().toISOString()
+      const { error: organizationError } = await supabase.from('organizations').update(organizationPayload).eq('id', patch.organizationId).eq('is_demo', true)
+      if (organizationError) throw organizationError
+    }
+  }
+
+  const { data, error } = await supabase.from('platform_demo_entitlements').update(payload).eq('id', demoId).select('id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,demo_user_id,organization:organizations(id,name,code,type,status,region,health_region,city,country,contact_email,contact_phone,bed_capacity,is_demo)').single()
+  if (error) throw error
+  return data
+}
+"""
+          if old not in s:
+              raise SystemExit('updatePlatformDemoEntitlement block not found')
+          s=s.replace(old,new,1)
+          old2="""export async function convertDemoEntitlementToOrganization(demoId, organizationDraft) {
+  const org = await createPlatformOrganization(organizationDraft)
+  if (supabase) await supabase.from('platform_demo_entitlements').update({ status: 'revoked', updated_at: new Date().toISOString() }).eq('id', demoId)
+  return org
+}
+"""
+          new2="""export async function convertDemoEntitlementToOrganization(demoId, organizationId, patch = {}) {
+  if (!supabase || !demoId || !organizationId) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const organizationPayload = {
+    is_demo: false,
+    status: 'active',
+    name: String(patch.label || '').trim() || undefined,
+    type: patch.type || 'hospital',
+    region: patch.region || null,
+    health_region: patch.healthRegion || patch.health_region || null,
+    city: patch.city || null,
+    country: patch.country || null,
+    contact_email: String(patch.contactEmail || patch.contact_email || '').trim().toLowerCase() || null,
+    contact_phone: patch.contactPhone || patch.contact_phone || null,
+    bed_capacity: patch.bedCapacity === '' || patch.bed_capacity === '' ? null : Number(patch.bedCapacity ?? patch.bed_capacity ?? 0) || null,
+    updated_at: new Date().toISOString(),
+  }
+  if (!organizationPayload.name) delete organizationPayload.name
+  const { data: organization, error: organizationError } = await supabase.from('organizations').update(organizationPayload).eq('id', organizationId).eq('is_demo', true).select('id,name,code,type,status,region,health_region,city,country,contact_email,contact_phone,bed_capacity,is_demo').single()
+  if (organizationError) throw organizationError
+  const { error: demoError } = await supabase.from('platform_demo_entitlements').update({ status: 'revoked', updated_at: new Date().toISOString() }).eq('id', demoId)
+  if (demoError) {
+    await supabase.from('organizations').update({ is_demo: true, updated_at: new Date().toISOString() }).eq('id', organizationId)
+    throw demoError
+  }
+  return organization
+}
+"""
+          if old2 not in s:
+              raise SystemExit('convertDemoEntitlementToOrganization block not found')
+          s=s.replace(old2,new2,1)
+          p.write_text(s,encoding='utf-8')
+
+          # replace Demo record with inline editable full workspace
+          p=Path('src/features/platform/PlatformDemoRecord.jsx')
+          p.write_text(r'''import { useEffect,useState } from 'react'
+import { Building2,FlaskConical,KeyRound,LogIn,PauseCircle,PlayCircle,Save,Trash2 } from 'lucide-react'
+import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { IconButton } from '../../design-system/IconButton'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { Button } from '../../design-system/Button'
+import { ManualDateField } from '../../design-system/ManualDateField'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { convertDemoEntitlementToOrganization,purgePlatformOrganization,resetPlatformDemoPassword,setPlatformDemoStatus,updatePlatformDemoEntitlement } from '../../core/tenant/tenantService'
+
+const GREEK_REGIONS=['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
+const HEALTH_REGIONS=['1η ΥΠΕ Αττικής','2η ΥΠΕ Πειραιώς και Αιγαίου','3η ΥΠΕ Μακεδονίας','4η ΥΠΕ Μακεδονίας και Θράκης','5η ΥΠΕ Θεσσαλίας και Στερεάς Ελλάδας','6η ΥΠΕ Πελοποννήσου, Ιονίων Νήσων, Ηπείρου και Δυτικής Ελλάδας','7η ΥΠΕ Κρήτης']
+function daysBetween(a,b){return Math.max(0,Math.ceil((new Date(b)-new Date(a))/86400000))}
+function Action({icon,tone,label,title,onClick,disabled=false}){return <div className="platform-org-action-item"><IconButton tone={tone} label={title} disabled={disabled} onClick={onClick}>{icon}</IconButton><span>{label}</span></div>}
+function FormSection({title,subtitle,children}){return <section className="platform-form-section"><header><strong>{title}</strong>{subtitle&&<span>{subtitle}</span>}</header>{children}</section>}
+
+export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChanged,onDeleted,onConverted}){
+  const [record,setRecord]=useState(demo)
+  const [draft,setDraft]=useState(null)
+  const [saving,setSaving]=useState(false)
+  const [working,setWorking]=useState(false)
+  const [deleteOpen,setDeleteOpen]=useState(false)
+  const [deleteConfirm,setDeleteConfirm]=useState('')
+  const [deletePassword,setDeletePassword]=useState('')
+  const {notify,notifyError,confirm}=useFeedback()
+  const en=language==='en'
+  const tx=(elText,enText)=>en?enText:elText
+
+  useEffect(()=>{setRecord(demo);const org=demo?.organization||{};setDraft(demo?{label:org.name||demo.label||'',type:org.type||'hospital',region:org.region||'',healthRegion:org.health_region||'',city:org.city||'',country:org.country||'',contactPhone:org.contact_phone||'',bedCapacity:org.bed_capacity??'',contactName:demo.contact_name||'',contactEmail:demo.contact_email||org.contact_email||'',validFrom:demo.valid_from||'',validUntil:demo.valid_until||''}:null)},[demo])
+  if(!record||!draft)return null
+
+  const today=new Date().toISOString().slice(0,10)
+  const remaining=daysBetween(today,record.valid_until)
+  const active=record.status==='active'&&remaining>0
+  const status=active?'active':record.status==='paused'?'paused':'expired'
+  const statusLabel=active?tx('Ενεργό','Active'):status==='paused'?tx('Σε παύση','Paused'):tx('Ληγμένο / ανενεργό','Expired / inactive')
+  const org=record.organization||null
+  const deleteCode=org?.code||''
+  const canSave=Boolean(draft.label.trim()&&draft.contactEmail.trim()&&draft.validFrom&&draft.validUntil)
+
+  async function saveEdit(){if(!canSave||saving)return;setSaving(true);try{const next=await updatePlatformDemoEntitlement(record.id,{...draft,organizationId:record.organization_id});setRecord(next);setDraft(current=>({...current,label:next.organization?.name||next.label||current.label}));onChanged?.(next);notify(tx('Η καρτέλα Demo ενημερώθηκε.','Demo record updated.'),'success',{operation:'platform_demo_update'})}catch(error){notifyError(error,'save',{operation:'platform_demo_update'})}finally{setSaving(false)}}
+  async function togglePause(){if(working)return;const next=record.status==='paused'?'active':'paused';const ok=await confirm({title:next==='paused'?tx('Παύση Demo','Pause Demo'):tx('Ενεργοποίηση Demo','Reactivate Demo'),message:next==='paused'?tx('Η πρόσβαση του Demo χρήστη θα απενεργοποιηθεί μέχρι να την ενεργοποιήσεις ξανά.','The Demo user will lose Demo access until you reactivate it.'):tx('Να ενεργοποιηθεί ξανά η πρόσβαση Demo;','Reactivate Demo access?'),confirmLabel:next==='paused'?tx('Παύση','Pause'):tx('Ενεργοποίηση','Reactivate')});if(!ok)return;setWorking(true);try{const updated=await setPlatformDemoStatus(record.id,next);setRecord(updated);onChanged?.(updated);notify(next==='paused'?tx('Το Demo τέθηκε σε παύση.','Demo paused.'):tx('Το Demo ενεργοποιήθηκε.','Demo reactivated.'),'success',{operation:'platform_demo_status'})}catch(error){notifyError(error,'action',{operation:'platform_demo_status'})}finally{setWorking(false)}}
+  async function resetPassword(){if(working)return;const target=record.contact_email||tx('το καταχωρημένο email','the registered email address');const ok=await confirm({title:tx('Επαναφορά κωδικού Demo','Reset Demo password'),message:tx(`Θα αποσταλεί email ασφαλούς επαναφοράς κωδικού στο ${target}. Θέλεις να συνεχίσεις;`,`A secure password-reset email will be sent to ${target}. Continue?`),confirmLabel:tx('Αποστολή email','Send reset email')});if(!ok)return;setWorking(true);try{await resetPlatformDemoPassword(record);notify(tx('Στάλθηκε email επαναφοράς κωδικού στον Demo χρήστη.','Password reset email sent to the Demo user.'),'success',{operation:'platform_demo_reset_password'})}catch(error){notifyError(error,'action',{operation:'platform_demo_reset_password'})}finally{setWorking(false)}}
+  async function convertToOrganization(){if(working||!record.organization_id)return;const ok=await confirm({title:tx('Μετατροπή Demo σε οργανισμό','Convert Demo to organization'),message:tx('Το Demo θα πάψει να είναι απομονωμένο demo περιβάλλον και ο ίδιος οργανισμός θα γίνει κανονικός production οργανισμός. Η Demo πρόσβαση θα ανακληθεί. Θέλεις να συνεχίσεις;','This Demo will stop being an isolated demo environment and the same organization will become a production organization. Demo access will be revoked. Continue?'),confirmLabel:tx('Μετατροπή σε οργανισμό','Convert to organization')});if(!ok)return;setWorking(true);try{if(canSave)await updatePlatformDemoEntitlement(record.id,{...draft,organizationId:record.organization_id});const organization=await convertDemoEntitlementToOrganization(record.id,record.organization_id,draft);notify(tx('Το Demo μετατράπηκε σε κανονικό οργανισμό.','Demo converted to a production organization.'),'success',{operation:'platform_demo_convert'});onConverted?.(organization)}catch(error){notifyError(error,'action',{operation:'platform_demo_convert'});setWorking(false)}}
+  function requestDelete(){setDeleteConfirm('');setDeletePassword('');setDeleteOpen(true)}
+  async function confirmDelete(){if(working||!record.organization_id||!deleteCode||deleteConfirm.trim().toUpperCase()!==deleteCode.toUpperCase()||!deletePassword)return;setWorking(true);try{await purgePlatformOrganization({organizationId:record.organization_id,password:deletePassword,confirmation:deleteConfirm.trim()});setDeleteOpen(false);notify(tx('Το Demo και όλα τα σχετικά δεδομένα διαγράφηκαν οριστικά.','The Demo and all related data were permanently deleted.'),'success',{operation:'platform_demo_delete'});if(onDeleted)onDeleted(record.id);else onBack?.()}catch(error){notifyError(error,'delete',{operation:'platform_demo_delete'});setWorking(false)}}
+
+  const actions=<div className="platform-org-actions" aria-label={tx('Ενέργειες Demo','Demo actions')}>
+    <Action icon={<LogIn size={18}/>} tone="primary" label={tx('Είσοδος','Enter')} title={tx('Είσοδος στο Demo','Open Demo')} onClick={onOpenDemo}/>
+    <Action icon={<Save size={17}/>} tone="edit" label={saving?tx('Αποθήκευση…','Saving…'):tx('Αποθήκευση','Save')} title={tx('Αποθήκευση αλλαγών','Save changes')} disabled={!canSave||saving||working} onClick={saveEdit}/>
+    <Action icon={<KeyRound size={17}/>} tone="neutral" label={tx('Κωδικός','Password')} title={tx('Επαναφορά κωδικού Demo χρήστη','Reset Demo user password')} disabled={working||!record.demo_user_id||!record.organization_id} onClick={resetPassword}/>
+    <Action icon={record.status==='paused'?<PlayCircle size={17}/>:<PauseCircle size={17}/>} tone={record.status==='paused'?'success':'neutral'} label={record.status==='paused'?tx('Ενεργοποίηση','Reactivate'):tx('Παύση','Pause')} title={record.status==='paused'?tx('Ενεργοποίηση Demo','Reactivate Demo'):tx('Παύση Demo','Pause Demo')} disabled={working} onClick={togglePause}/>
+    <Action icon={<Building2 size={17}/>} tone="success" label={tx('Σε οργανισμό','Convert')} title={tx('Μετατροπή Demo σε κανονικό οργανισμό','Convert Demo to production organization')} disabled={working||!record.organization_id} onClick={convertToOrganization}/>
+    <Action icon={<Trash2 size={17}/>} tone="danger" label={tx('Διαγραφή','Delete')} title={tx('Οριστική διαγραφή Demo','Delete Demo permanently')} disabled={working||!record.organization_id||!deleteCode} onClick={requestDelete}/>
+  </div>
+
+  return <>
+    <EntityRecordShell className="platform-owner-record-shell platform-demo-record-workspace" avatar={<FlaskConical size={20}/>} eyebrow={tx('ΚΑΡΤΕΛΑ DEMO','DEMO RECORD')} title={draft.label||org?.name||record.label} subtitle={tx('Μεγάλη επεξεργάσιμη καρτέλα Demo με τα ίδια βασικά στοιχεία της δημιουργίας.','Full editable Demo record with the same core fields as creation.')} status={<span className={`status-badge ${active?'active':status==='paused'?'temporary':'danger'}`}>{statusLabel}</span>} headerActions={actions} onBack={onBack} backLabel={tx('Πίσω','Back')}>
+      <div className="platform-owner-details platform-demo-record-form">
+        <div className="platform-demo-record-status"><span className="platform-demo-icon"><FlaskConical size={20}/></span><div><strong>{statusLabel}</strong><span>{active?`${remaining} ${tx('ημέρες υπόλοιπο','days remaining')}`:status==='paused'?tx('Η πρόσβαση έχει τεθεί σε παύση.','Access is paused.'):tx('Η πρόσβαση δεν είναι ενεργή.','Access is not active.')}</span></div></div>
+        <div className="platform-form-shell">
+          <FormSection title={tx('Ταυτότητα Demo οργανισμού','Demo organization identity')} subtitle={tx('Τα στοιχεία αυτά ανήκουν στον απομονωμένο Demo οργανισμό.','These details belong to the isolated Demo organization.')}>
+            <div className="platform-form-grid"><label className="field field-wide"><span>{tx('Επωνυμία οργανισμού / Prospect','Organization / Prospect name')} *</span><input value={draft.label} onChange={e=>setDraft(x=>({...x,label:e.target.value}))}/></label><label className="field"><span>{tx('Τύπος','Type')}</span><select value={draft.type} onChange={e=>setDraft(x=>({...x,type:e.target.value}))}><option value="hospital">{tx('Νοσοκομείο','Hospital')}</option><option value="clinic">{tx('Κλινική','Clinic')}</option><option value="group">{tx('Όμιλος','Group')}</option><option value="other">{tx('Άλλο','Other')}</option></select></label></div>
+          </FormSection>
+          <FormSection title={tx('Τοποθεσία & λειτουργία','Location & operations')}>
+            <div className="platform-form-grid"><label className="field"><span>{tx('Περιφέρεια','Region')}</span><select value={draft.region} onChange={e=>setDraft(x=>({...x,region:e.target.value}))}><option value="">{tx('Επιλογή…','Select…')}</option>{GREEK_REGIONS.map(region=><option key={region}>{region}</option>)}</select></label><label className="field field-wide"><span>{tx('Υγειονομική Περιφέρεια (ΥΠΕ)','Health Region')}</span><select value={draft.healthRegion} onChange={e=>setDraft(x=>({...x,healthRegion:e.target.value}))}><option value="">{tx('Επιλογή…','Select…')}</option>{HEALTH_REGIONS.map(region=><option key={region}>{region}</option>)}</select></label><label className="field"><span>{tx('Πόλη','City')}</span><input value={draft.city} onChange={e=>setDraft(x=>({...x,city:e.target.value}))}/></label><label className="field"><span>{tx('Χώρα','Country')}</span><input value={draft.country} onChange={e=>setDraft(x=>({...x,country:e.target.value}))}/></label><label className="field"><span>{tx('Τηλέφωνο','Phone')}</span><input value={draft.contactPhone} onChange={e=>setDraft(x=>({...x,contactPhone:e.target.value}))}/></label><label className="field"><span>{tx('Δυναμικότητα κλινών','Bed capacity')}</span><input type="number" min="0" value={draft.bedCapacity} onChange={e=>setDraft(x=>({...x,bedCapacity:e.target.value}))}/></label></div>
+          </FormSection>
+          <FormSection title={tx('Υπεύθυνος Demo & πρόσβαση','Demo contact & access')}>
+            <div className="platform-demo-access-grid"><label className="field"><span>{tx('Υπεύθυνος επικοινωνίας','Contact person')}</span><input value={draft.contactName} onChange={e=>setDraft(x=>({...x,contactName:e.target.value}))}/></label><label className="field"><span>{tx('Email πρόσκλησης','Invitation email')} *</span><input type="email" value={draft.contactEmail} onChange={e=>setDraft(x=>({...x,contactEmail:e.target.value}))}/></label><ManualDateField label={tx('Έναρξη','Start')} value={draft.validFrom} onChange={value=>setDraft(x=>({...x,validFrom:value}))}/><ManualDateField label={`${tx('Λήξη','End')} *`} value={draft.validUntil} onChange={value=>setDraft(x=>({...x,validUntil:value}))}/></div>
+          </FormSection>
+        </div>
+      </div>
+    </EntityRecordShell>
+
+    {deleteOpen&&<ObserverDialog width="wide" eyebrow={tx('Κρίσιμη ενέργεια · Επαναταυτοποίηση','Critical action · Re-authentication')} title={tx('Οριστική διαγραφή Demo','Delete Demo permanently')} subtitle={tx('Η ενέργεια δεν αναιρείται.','This action cannot be undone.')} onClose={()=>!working&&setDeleteOpen(false)} footer={<Button className="button-destructive" loading={working} disabled={!deletePassword||deleteConfirm.trim().toUpperCase()!==deleteCode.toUpperCase()} onClick={confirmDelete}><Trash2 size={15}/>{tx('Οριστική διαγραφή','Delete permanently')}</Button>}><div className="destructive-warning"><Trash2 size={20}/><div><strong>{tx('Θα διαγραφούν το Demo, ο απομονωμένος οργανισμός και όλα τα δεδομένα του.','The Demo, isolated organization, and all related data will be deleted.')}</strong><span>{tx('Η ενέργεια είναι οριστική.','This action is permanent.')}</span></div></div><div className="platform-form-grid"><label className="field"><span>{tx('Πληκτρολόγησε τον κωδικό','Type the code')}: <b>{deleteCode}</b></span><input value={deleteConfirm} onChange={e=>setDeleteConfirm(e.target.value)} autoComplete="off"/></label><label className="field"><span>{tx('Κωδικός Platform Owner','Platform Owner password')}</span><input type="password" value={deletePassword} onChange={e=>setDeletePassword(e.target.value)} autoComplete="new-password"/></label></div></ObserverDialog>}
+  </>
+}
+''',encoding='utf-8')
+
+          # wire conversion navigation after refresh
+          p=Path('src/features/workspaces/PlatformCenterPage.jsx')
+          s=p.read_text(encoding='utf-8')
+          needle="""          onDeleted={id => {
+            setDemos(current => current.filter(item => item.id !== id))
+            nav('/platform#demo')
+          }}
+"""
+          repl=needle+"""          onConverted={async organization => {
+            await reloadMemberships()
+            await refreshPlatformData()
+            nav(`/platform#organizations?organization=${organization.id}&tab=details`, { state: { returnTo: '/platform#organizations' } })
+          }}
+"""
+          if needle not in s:
+              raise SystemExit('PlatformDemoRecord props block not found')
+          s=s.replace(needle,repl,1)
+          p.write_text(s,encoding='utf-8')
+
+          # record form geometry: contact/email wider, dates compact side-by-side
+          p=Path('src/styles/platform-owner-polish.css')
+          s=p.read_text(encoding='utf-8')
+          anchor=".platform-demo-edit-grid .field-wide{grid-column:1/-1}\n"
+          addition=""".platform-demo-record-form{padding:12px 14px 18px}
+.platform-demo-record-form .platform-form-shell{max-width:none}
+.platform-demo-access-grid{display:grid;grid-template-columns:minmax(220px,1.25fr) minmax(280px,1.55fr) minmax(155px,.8fr) minmax(155px,.8fr);gap:11px 13px;align-items:start}
+.platform-demo-access-grid>.field,.platform-demo-access-grid>.manual-date-field{min-width:0}
+.platform-demo-access-grid .field>span{font-size:10px}
+.platform-demo-access-grid .field input{width:100%;min-height:38px;height:38px;border-radius:var(--lo-radius-control);padding:0 10px;font-size:11.5px;background:var(--lo-color-surface)}
+"""
+          if addition not in s:
+              s=s.replace(anchor,anchor+addition,1)
+          s=s.replace("  .platform-form-grid:has(>.manual-date-field){grid-template-columns:repeat(2,minmax(0,1fr))}\n", "  .platform-form-grid:has(>.manual-date-field){grid-template-columns:repeat(2,minmax(0,1fr))}\n  .platform-demo-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))}\n")
+          s=s.replace("  .platform-form-grid,.platform-demo-edit-grid,.platform-form-grid:has(>.manual-date-field){grid-template-columns:1fr}\n", "  .platform-form-grid,.platform-demo-edit-grid,.platform-form-grid:has(>.manual-date-field),.platform-demo-access-grid{grid-template-columns:1fr}\n")
+          p.write_text(s,encoding='utf-8')
+
+          wf=Path('.github/workflows/demo-record-inline-conversion-oneoff.yml')
+          wf.unlink()
+      - name: Validate
+        run: |
+          npm ci
+          npm run lint
+          npm test -- --run
+          npm run build
+      - name: Commit patch
+        run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/core/tenant/tenantService.js src/features/platform/PlatformDemoRecord.jsx src/features/workspaces/PlatformCenterPage.jsx src/styles/platform-owner-polish.css .github/workflows/demo-record-inline-conversion-oneoff.yml
+          git commit -m "feat(owner): make demo records full editable workspaces"
+          git push origin main
