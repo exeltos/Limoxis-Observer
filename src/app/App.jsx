@@ -17,7 +17,7 @@ const lazyNamed = (loader, name) => lazy(() => loader().then(m => ({ default: m[
 
 const PlatformCenterPage = lazyNamed(() => import('../features/workspaces/PlatformCenterPage'), 'PlatformCenterPage')
 const DashboardPage = lazyNamed(() => import('../features/dashboard/DashboardPage'), 'DashboardPage')
-const SurveillancePage = lazyNamed(() => import('../features/surveillance/SurveillancePage'), 'SurveillancePage')
+const SurveillancePage = lazyNamed(() => import('../features/surveillance/SurveillanceRoutePage'), 'SurveillanceRoutePage')
 const PatientClinicalRecordRoute = lazyNamed(() => import('../features/surveillance/PatientClinicalRecordRoute'), 'PatientClinicalRecordRoute')
 const LaboratoryPage = lazyNamed(() => import('../features/laboratory/LaboratoryPage'), 'LaboratoryPage')
 const LaboratorySampleRecordPage = lazyNamed(() => import('../features/laboratory/LaboratorySampleRecordPage'), 'LaboratorySampleRecordPage')
