@@ -1,6 +1,22 @@
 /* Canonical navigation contract.
    Feature-specific layouts must not redefine record navigation or registry geometry here. */
 
+.page-heading-group{
+  min-width:0;
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.page-navigation{
+  flex:0 0 auto;
+  padding-top:1px;
+}
+
+.page-heading-copy{
+  min-width:0;
+}
+
 .lo-back-button{
   width:40px;
   height:40px;
