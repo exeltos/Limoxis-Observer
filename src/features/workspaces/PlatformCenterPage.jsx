@@ -4,6 +4,8 @@ import {
   BarChart3,
   Building2,
   Clock3,
+  FlaskConical,
+  LogIn,
   Send,
   ShieldCheck,
   Trash2,
@@ -1287,6 +1289,7 @@ export function PlatformCenterPage() {
                 <div className="empty-state platform-empty">
                   <Building2 size={22} />
                   <strong>{tx('Δεν υπάρχουν οργανισμοί', 'No organizations')}</strong>
+                  <span>{tx('Δεν βρέθηκαν οργανισμοί για τα επιλεγμένα φίλτρα.', 'No organizations match the selected filters.')}</span>
                 </div>
               )}
             </div>
@@ -1326,8 +1329,11 @@ export function PlatformCenterPage() {
           subtitle={tx('Απομονωμένο περιβάλλον παρουσίασης. Τα demo δεδομένα υπάρχουν μόνο εδώ και δεν αναμειγνύονται με πραγματικούς οργανισμούς.', 'Isolated presentation environment. Demo data exists only here and never mixes with production organizations.')}
           actions={
             <>
-              <Button variant="secondary" onClick={() => setDemoOpen(true)}>+ {tx('Νέο Demo', 'New Demo')}</Button>
-              <Button onClick={() => { enterPlatformDemo(); nav('/') }}>{tx('Πρόσβαση Demo', 'Open Demo')}</Button>
+              <Button onClick={() => setDemoOpen(true)}>+ {tx('Νέο Demo', 'New Demo')}</Button>
+              <Button variant="secondary" className="platform-demo-enter-action" onClick={() => { enterPlatformDemo(); nav('/') }}>
+                <LogIn size={15} />
+                {tx('Είσοδος Demo', 'Enter Demo')}
+              </Button>
             </>
           }
         >
@@ -1385,7 +1391,11 @@ export function PlatformCenterPage() {
                   </table>
                 </div>
               ) : (
-                <div className="inline-empty">{tx('Δεν υπάρχουν Demo προσβάσεις.', 'No demo access records.')}</div>
+                <div className="empty-state platform-empty">
+                  <FlaskConical size={24} />
+                  <strong>{tx('Δεν υπάρχουν Demo προσβάσεις', 'No demo access records')}</strong>
+                  <span>{tx('Δεν βρέθηκαν Demo για τα επιλεγμένα φίλτρα.', 'No demos match the selected filters.')}</span>
+                </div>
               )}
             </div>
           </div>
