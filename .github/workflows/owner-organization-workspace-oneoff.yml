@@ -1,0 +1,116 @@
+name: Owner organization workspace one off
+
+on:
+  push:
+    paths:
+      - .github/workflows/owner-organization-workspace-oneoff.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply workspace wiring
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p=Path('src/features/workspaces/PlatformCenterPage.jsx')
+          s=p.read_text()
+          marker="import { PlatformDemoRecord } from '../platform/PlatformDemoRecord'\n"
+          if "PlatformOrganizationRecord" not in s:
+              s=s.replace(marker, marker+"import { PlatformOrganizationRecord } from '../platform/PlatformOrganizationRecord'\n")
+          start=s.index("    if (selectedOrg) {", s.index("  if (activeKey === 'organizations') {"))
+          end=s.index("\n    return (\n      <>\n        <Page\n          title={tx('Οργανισμοί'", start)
+          replacement="""    if (selectedOrg) {
+      return (
+        <>
+          <PlatformOrganizationRecord
+            organization={selectedOrg}
+            language={language}
+            initialTab={orgDetailTab}
+            onTabChange={changeOrgTab}
+            onBack={returnFromRecord}
+            onEnter={() => enterOrganization(selectedOrg)}
+            onDelete={() => requestRemoveOrganization(selectedOrg)}
+            onChanged={async () => {
+              await reloadMemberships()
+              await refreshPlatformData()
+            }}
+            onOpenAnalysis={openOrganizationAnalysis}
+          />
+          {deleteDialog}
+        </>
+      )
+    }
+"""
+          s=s[:start]+replacement+s[end:]
+          p.write_text(s)
+
+          p=Path('src/core/tenant/tenantService.js')
+          s=p.read_text()
+          old="""    .from('platform_demo_entitlements')
+    .select('id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,demo_user_id,organization:organizations(id,name,code,is_demo)')
+    .order('valid_until', { ascending: true })"""
+          new="""    .from('platform_demo_entitlements')
+    .select('id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,demo_user_id,organization:organizations(id,name,code,is_demo)')
+    .neq('status', 'revoked')
+    .order('valid_until', { ascending: true })"""
+          if old in s:s=s.replace(old,new)
+          p.write_text(s)
+
+          p=Path('src/features/platform/platformDemoService.js')
+          s=p.read_text()
+          old="""  if (entitlementError) {
+    await supabase
+      .from('organizations')
+      .update({ is_demo: true, updated_at: new Date().toISOString() })
+      .eq('id', demo.organization_id)
+    throw entitlementError
+  }
+
+  return organization
+}"""
+          new="""  if (entitlementError) {
+    await supabase
+      .from('organizations')
+      .update({ is_demo: true, updated_at: new Date().toISOString() })
+      .eq('id', demo.organization_id)
+    throw entitlementError
+  }
+
+  if (demo.demo_user_id) {
+    const { error: membershipError } = await supabase
+      .from('organization_members')
+      .update({ role: 'staff_user' })
+      .eq('organization_id', demo.organization_id)
+      .eq('user_id', demo.demo_user_id)
+      .eq('role', 'demo')
+    if (membershipError) throw membershipError
+    await supabase
+      .from('profiles')
+      .update({ is_demo: false, demo_entitlement_id: null })
+      .eq('id', demo.demo_user_id)
+  }
+
+  return organization
+}"""
+          if old not in s: raise SystemExit('platformDemoService conversion marker not found')
+          s=s.replace(old,new)
+          p.write_text(s)
+
+          p=Path('supabase/functions/create-demo-access/index.ts')
+          s=p.read_text().replace("const country=String(body.country||'Greece').trim()||'Greece'","const country=String(body.country||'').trim()||null")
+          p.write_text(s)
+      - name: Commit changes
+        run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/workspaces/PlatformCenterPage.jsx src/core/tenant/tenantService.js src/features/platform/platformDemoService.js supabase/functions/create-demo-access/index.ts
+          git commit -m "feat(owner): unify organization record and demo conversion" || exit 0
+          git push
