@@ -11,7 +11,7 @@
   --lo-layout-page-top:28px;
   --lo-layout-section-gap:16px;
   --lo-layout-control-gap:10px;
-  --lo-layout-empty-min:220px;
+  --lo-layout-empty-min:250px;
 }
 
 /* ---------- Canonical root page frame ---------- */
@@ -49,6 +49,23 @@
 .page:has(.platform-registry-shell)>.page-header .page-actions{
   align-self:flex-start;
   gap:8px;
+}
+
+/* All create/add actions share the same primary treatment. Context-entry actions may
+   use a stronger dedicated class without changing the canonical Button component. */
+.page:has(.platform-registry-shell)>.page-header .button{
+  min-height:40px;
+  border-radius:var(--lo-radius-control);
+}
+.platform-demo-enter-action{
+  background:var(--lo-color-nav)!important;
+  border-color:var(--lo-color-nav)!important;
+  color:#fff!important;
+  box-shadow:0 5px 14px rgba(18,59,94,.14);
+}
+.platform-demo-enter-action:hover:not(:disabled){
+  background:var(--lo-color-nav-dark)!important;
+  border-color:var(--lo-color-nav-dark)!important;
 }
 
 /* ---------- Dashboard pattern ---------- */
@@ -104,11 +121,27 @@
 .platform-center-section .empty-state{
   min-height:var(--lo-layout-empty-min);
   padding:28px;
+  gap:8px;
+  color:var(--lo-color-muted);
+}
+
+.platform-registry-card .empty-state svg,
+.platform-center-section .empty-state svg{
+  color:#7b8da0;
 }
 
 .platform-registry-card .empty-state strong,
 .platform-center-section .empty-state strong{
   font-size:15px;
+  color:var(--lo-color-text);
+}
+
+.platform-registry-card .empty-state span,
+.platform-center-section .empty-state span{
+  max-width:480px;
+  color:var(--lo-color-muted);
+  font-size:11px;
+  line-height:1.5;
 }
 
 .platform-governance{
@@ -245,34 +278,39 @@
   font-size:10.5px!important;
 }
 
+/* No horizontal tab scrollbar. Desktop keeps a single compact row when space permits;
+   narrower widths wrap naturally to a second tidy row. */
 .analysis-tabs{
   display:flex!important;
   align-items:center!important;
-  gap:3px!important;
+  align-content:center!important;
+  flex-wrap:wrap!important;
+  gap:3px 4px!important;
   margin:10px 0 0!important;
   padding:0 0 8px!important;
-  overflow-x:auto!important;
-  overflow-y:hidden!important;
+  overflow:visible!important;
   border:0!important;
   border-bottom:1px solid var(--lo-color-border)!important;
   border-radius:0!important;
   background:transparent!important;
-  white-space:nowrap!important;
+  white-space:normal!important;
   box-shadow:none!important;
-  scrollbar-width:thin;
+  scrollbar-width:none!important;
 }
+.analysis-tabs::-webkit-scrollbar{display:none!important}
 
 .analysis-tabs button{
   flex:0 0 auto!important;
-  min-width:max-content!important;
+  min-width:0!important;
   min-height:34px!important;
-  padding:0 10px!important;
+  padding:0 9px!important;
   border:0!important;
   border-radius:8px!important;
   background:transparent!important;
   color:var(--lo-color-muted)!important;
-  font-size:10px!important;
+  font-size:9.5px!important;
   font-weight:700!important;
+  white-space:nowrap!important;
 }
 
 .analysis-tabs button:hover{
@@ -301,13 +339,14 @@
   margin:0!important;
 }
 
-/* Never show the old static comparative bars when platform comparison is empty.
-   The adjacent empty state is the truthful production representation. */
-.analysis-chart-grid:has(+ .analysis-chart-empty) .analysis-chart-card:nth-child(2){
-  display:none!important;
-}
-.analysis-chart-grid:has(+ .analysis-chart-empty){
-  grid-template-columns:minmax(0,1fr)!important;
+.analysis-chart-empty{
+  min-height:170px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  padding:24px;
+  text-align:center;
+  color:var(--lo-color-muted);
 }
 
 @media(max-width:1200px){
