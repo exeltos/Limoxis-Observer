@@ -188,7 +188,7 @@ export function AnalysisPage({platform=false,organizations=[]}){
         </>:platform&&domainMeta?<>
           <MetricCards rows={domainRows} subtitle={tx('καταγραφές στην επιλεγμένη περίοδο','records in selected period')}/>
           <div className="analytics-dashboard-grid"><article className="analytics-panel analytics-panel-wide"><header><div><BarChart3 size={17}/><strong>{tx('Δραστηριότητα πλατφόρμας','Platform activity')}</strong></div><span>{tx('συγκριτική συνολική εικόνα','comparative overview')}</span></header><HorizontalBars rows={Object.values(DOMAIN_META).map(([key,elLabel,enLabel])=>[en?enLabel:elLabel,summary[key]??0]).sort((a,b)=>b[1]-a[1])} emptyLabel={tx('Δεν υπάρχουν δεδομένα.','No data.')}/></article><article className="analytics-panel"><header><div><Microscope size={17}/><strong>{tx('Μικροβιολογικό context','Microbiology context')}</strong></div></header><HorizontalBars rows={(details?.microorganisms||[]).slice(0,6)} emptyLabel={tx('Δεν υπάρχουν δεδομένα.','No data.')}/></article></div>
-        </>:isDemo?<MetricCards rows={DEMO_KPI[tab]||DEMO_KPI.overview} subtitle={tx('συνθετικό demo δεδομένο','synthetic demo value')}/>:<ProductionEmpty platform={platform} tenant={tenant} language={language}/>} 
+        </>:!isDemo?<ProductionEmpty platform={platform} tenant={tenant} language={language}/>:<MetricCards rows={DEMO_KPI[tab]||DEMO_KPI.overview} subtitle={tx('συνθετικό demo δεδομένο','synthetic demo value')}/>} 
       </div>
     </div>
   </Page>
