@@ -52,10 +52,10 @@ const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={c
 
 function HomeRoute() {
   const { profile } = useAuth()
-  const { tenant, loading } = useTenant()
+  const { activeMembershipId, isDemo, loading } = useTenant()
 
   if (loading) return <RouteLoading />
-  if (profile?.isPlatformOwner && !tenant) return <Navigate to="/platform" replace />
+  if (profile?.isPlatformOwner && !activeMembershipId && !isDemo) return <Navigate to="/platform" replace />
 
   return gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)
 }
