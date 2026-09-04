@@ -1,0 +1,19 @@
+/* Global application density: keep primary workspaces closer to the sticky top bar
+   and reserve more vertical space for tables, registries and clinical content. */
+.content{
+  padding-top:16px;
+  padding-bottom:32px;
+}
+.page-header{
+  margin-bottom:14px;
+}
+.page-header p{
+  margin-top:5px;
+}
+.page-navigation{
+  margin-bottom:6px;
+}
+
+@media(max-width:1200px){
+  .content{padding-top:14px}
+}
