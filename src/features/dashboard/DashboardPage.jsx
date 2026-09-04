@@ -34,7 +34,7 @@ export function DashboardPage() {
   const tasks=n.operational.length?n.operational:workspace.tasks.map((title,index)=>({id:`workspace-${index}`,title,count:null,to:null,fallback:true}))
   const announcements=n.visibleAnnouncements.slice(0,4)
 
-  return <Page title={workspace.title} subtitle={workspace.subtitle}>
+  return <Page className="dashboard-page" title={workspace.title} subtitle={workspace.subtitle}>
     {workspace.kpis.length > 0 && <div className="kpi-grid role-kpis">{workspace.kpis.map(([label,value])=><article className="kpi-card" key={label}><span>{label}</span><strong>{value}</strong></article>)}</div>}
     <div className="workspace-grid dashboard-workspace">
       <Card title={workspace.actionTitle??(english?'Priority work':'Εργασίες προτεραιότητας')}>
