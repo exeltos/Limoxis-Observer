@@ -45,25 +45,18 @@ export function ControlsPage(){
  const canExecuteRole=isFullControlsAdmin||[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER].includes(role)
  const scopedRows=useMemo(()=>controlDefinitions.flatMap(item=>item.departments.filter(dep=>canAccessRecord({department:dep})).map(dep=>({item,department:dep,assignment:getAssignment(item,dep)}))),[canAccessRecord])
  const departments=[...new Set(scopedRows.map(x=>x.department))]
- const rows=useMemo(()=>scopedRows.filter(({item})=>`${item.id} ${item.title} ${item.category} ${item.owner}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||x.department===department).filter(({item,department:dep})=>status==='all'||(status==='temporary'?hasControlDraft(item.id,dep):assignmentStatus(item,dep)===status)).filter(({item})=>frequency==='all'||item.frequency.kind===frequency),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [scopedRows,query,department,status,frequency,version])
+ const rows=useMemo(()=>scopedRows.filter(({item})=>`${item.id} ${item.title} ${item.category} ${item.owner}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||x.department===department).filter(({item,department:dep})=>status==='all'||(status==='temporary'?hasControlDraft(item.id,dep):assignmentStatus(item,dep)===status)).filter(({item})=>frequency==='all'||item.frequency.kind===frequency),[scopedRows,query,department,status,frequency,version])
  useEffect(()=>{setPage(1)},[query,department,status,frequency,pageSize])
  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
  const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short',hour12:false}).format(new Date(v)):'—'
  const overdue=scopedRows.filter(({item,department:dep})=>assignmentStatus(item,dep)==='overdue').length
  const dueSoon=scopedRows.filter(({item,department:dep})=>assignmentStatus(item,dep)==='dueSoon').length
- function saveNew(draft){
-   const saved=upsertControl({...draft,createdByRole:role,createdByScope:isPlatformOwner?'platform':isHospitalAdmin?'hospital_admin':canCreateCentral?'infection_control':'department',createdForDepartment:canCreateDepartment?ownDepartment:null},{actor})
-   setVersion(v=>v+1);setEditorOpen(false);notify(tx.created,'success')
-   const dep=canCreateDepartment?ownDepartment:saved.departments[0]
-   registry.openRecord(navigate,`/controls/${saved.id}?department=${encodeURIComponent(dep)}`,`${saved.id}:${dep}`)
- }
+ function saveNew(draft){const saved=upsertControl({...draft,createdByRole:role,createdByScope:isPlatformOwner?'platform':isHospitalAdmin?'hospital_admin':canCreateCentral?'infection_control':'department',createdForDepartment:canCreateDepartment?ownDepartment:null},{actor});setVersion(v=>v+1);setEditorOpen(false);notify(tx.created,'success');const dep=canCreateDepartment?ownDepartment:saved.departments[0];registry.openRecord(navigate,`/controls/${saved.id}?department=${encodeURIComponent(dep)}`,`${saved.id}:${dep}`)}
  function execute(row,e){e?.stopPropagation();const draft=hasControlDraft(row.item.id,row.department);const allowed=draft||isFullControlsAdmin||(canExecuteRole&&isControlDue(row.item,row.department));if(!allowed)return;setExecuteRow(row)}
  function pageAction(action){if(action===UI_ACTIONS.CREATE)setEditorOpen(true)}
  return <Page fill className="controls-page" title={t('controls')} subtitle={canCreateCentral?tx.centralSubtitle:tx.departmentSubtitle} actions={canCreate?<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>:null}>
   <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedRows.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue}/><Kpi icon={CheckCircle2} label={tx.today} value={scopedRows.reduce((n,x)=>n+(x.assignment?.history||[]).filter(h=>h.at?.slice(0,10)===new Date().toISOString().slice(0,10)).length,0)}/></div></div>
-  <section className="registry-workspace controls-fullscreen-workspace workspace-fill workspace-column">
+  <section className="registry-workspace controls-surface workspace-fill workspace-column">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')+(frequency!=='all')} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setFrequency('all')}}>
     <FilterSelect label={tx.department} value={department} onChange={setDepartment}><option value="all">{tx.allDepartments}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
     <FilterSelect label={tx.status} value={status} onChange={setStatus}><option value="all">{tx.all}</option><option value="temporary">{tx.temporary}</option><option value="scheduled">{tx.scheduled}</option><option value="dueSoon">{tx.dueSoon}</option><option value="overdue">{tx.overdue}</option></FilterSelect>
