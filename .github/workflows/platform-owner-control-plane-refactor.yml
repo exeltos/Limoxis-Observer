@@ -26,9 +26,9 @@ jobs:
         run: |
           git config user.name "Exeltos"
           git config user.email "info@exeltos.com"
-          git add src/features/workspaces/PlatformCenterPage.jsx src/styles/platform-owner-polish.css
-          git commit -m "refactor(owner): split dashboard and organization registry" || exit 0
+          git add src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformDashboardView.jsx src/features/platform/PlatformOrganizationsRegistry.jsx src/features/platform/PlatformOrganizationRecord.jsx src/styles/platform-owner-polish.css
+          git commit -m "refactor(owner): improve organization workspace" || exit 0
           git push
-      - run: npm run lint
+      - run: npx eslint src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformDashboardView.jsx src/features/platform/PlatformOrganizationsRegistry.jsx src/features/platform/PlatformOrganizationRecord.jsx
       - run: npm run test
       - run: npm run build
