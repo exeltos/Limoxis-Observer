@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Activity,AlertTriangle,Clock3,Microscope,Users } from 'lucide-react'
+import { Activity,AlertTriangle,Clock3,Microscope } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -35,83 +35,29 @@ export function ProductionSurveillancePage(){
   const {t,language,locale}=useLanguage()
   const {notify,notifyError}=useFeedback()
   const navigate=useNavigate()
-
-  const [records,setRecords]=useState([])
-  const [patients,setPatients]=useState([])
-  const [labSamples,setLabSamples]=useState([])
-  const [employeeRecords,setEmployeeRecords]=useState([])
-  const [employeeBatches,setEmployeeBatches]=useState([])
-  const [loading,setLoading]=useState(true)
-
-  const [query,setQuery]=useState('')
-  const [department,setDepartment]=useState('all')
-  const [resistance,setResistance]=useState('all')
-  const [review,setReview]=useState('all')
-
-  const [environmentQuery,setEnvironmentQuery]=useState('')
-  const [environmentType,setEnvironmentType]=useState('all')
-  const [environmentDepartment,setEnvironmentDepartment]=useState('all')
-  const [environmentStatus,setEnvironmentStatus]=useState('all')
-
-  const [employeeQuery,setEmployeeQuery]=useState('')
-  const [employeeDepartment,setEmployeeDepartment]=useState('all')
-  const [employeeStatus,setEmployeeStatus]=useState('all')
-
-  const [batchQuery,setBatchQuery]=useState('')
-  const [batchDepartment,setBatchDepartment]=useState('all')
-
-  const [registryMode,setRegistryMode]=useState('patients')
-  const [page,setPage]=useState(1)
-  const [pageSize,setPageSize]=useState(15)
-  const [creationMode,setCreationMode]=useState(null)
-  const [saving,setSaving]=useState(false)
+  const [records,setRecords]=useState([]),[patients,setPatients]=useState([]),[labSamples,setLabSamples]=useState([]),[employeeRecords,setEmployeeRecords]=useState([]),[employeeBatches,setEmployeeBatches]=useState([]),[loading,setLoading]=useState(true)
+  const [query,setQuery]=useState(''),[department,setDepartment]=useState('all'),[resistance,setResistance]=useState('all'),[review,setReview]=useState('all')
+  const [environmentQuery,setEnvironmentQuery]=useState(''),[environmentType,setEnvironmentType]=useState('all'),[environmentDepartment,setEnvironmentDepartment]=useState('all'),[environmentStatus,setEnvironmentStatus]=useState('all')
+  const [employeeQuery,setEmployeeQuery]=useState(''),[employeeDepartment,setEmployeeDepartment]=useState('all'),[employeeStatus,setEmployeeStatus]=useState('all')
+  const [batchQuery,setBatchQuery]=useState(''),[batchDepartment,setBatchDepartment]=useState('all')
+  const [registryMode,setRegistryMode]=useState('patients'),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(15),[creationMode,setCreationMode]=useState(null),[saving,setSaving]=useState(false)
   const [draft,setDraft]=useState({patientId:'',startedAt:today(),reviewDue:'',room:'',reason:''})
-
   const canSeeEmployeeSurveillance=role===ROLES.HOSPITAL_ADMIN||Boolean(canSeeSensitiveEmployeeHealth)
   const canSeeEnvironmental=![ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.DOCTOR_REVIEWER].includes(role)
 
   async function load(){
-    if(!tenant?.id){
-      setRecords([]);setPatients([]);setLabSamples([]);setEmployeeRecords([]);setEmployeeBatches([]);setLoading(false);return
-    }
+    if(!tenant?.id){setRecords([]);setPatients([]);setLabSamples([]);setEmployeeRecords([]);setEmployeeBatches([]);setLoading(false);return}
     setLoading(true)
     try{
-      const [casesResult,patientsResult,samplesResult]=await Promise.allSettled([
-        loadClinicalCases(tenant.id),
-        loadPatients(tenant.id,{isDemo:false}),
-        loadLaboratorySamples(tenant.id),
-      ])
-      if(casesResult.status==='fulfilled')setRecords(casesResult.value)
-      else{setRecords([]);notifyError(casesResult.reason,'load',{operation:'surveillance_cases_load'})}
-      if(patientsResult.status==='fulfilled')setPatients(patientsResult.value)
-      else{setPatients([]);notifyError(patientsResult.reason,'load',{operation:'surveillance_patients_load'})}
-      if(samplesResult.status==='fulfilled')setLabSamples(samplesResult.value)
-      else{setLabSamples([]);notifyError(samplesResult.reason,'load',{operation:'surveillance_environment_load'})}
-
-      if(canSeeEmployeeSurveillance){
-        try{
-          const employeeRows=await loadEmployeeSurveillanceRecords(tenant.id)
-          const batchRows=await loadEmployeeSurveillanceBatches(tenant.id,employeeRows)
-          setEmployeeRecords(employeeRows)
-          setEmployeeBatches(batchRows)
-        }catch(error){
-          setEmployeeRecords([])
-          setEmployeeBatches([])
-          notifyError(error,'load',{operation:'employee_surveillance_registry_load'})
-        }
-      }else{
-        setEmployeeRecords([])
-        setEmployeeBatches([])
-      }
+      const [casesResult,patientsResult,samplesResult]=await Promise.allSettled([loadClinicalCases(tenant.id),loadPatients(tenant.id,{isDemo:false}),loadLaboratorySamples(tenant.id)])
+      if(casesResult.status==='fulfilled')setRecords(casesResult.value);else{setRecords([]);notifyError(casesResult.reason,'load',{operation:'surveillance_cases_load'})}
+      if(patientsResult.status==='fulfilled')setPatients(patientsResult.value);else{setPatients([]);notifyError(patientsResult.reason,'load',{operation:'surveillance_patients_load'})}
+      if(samplesResult.status==='fulfilled')setLabSamples(samplesResult.value);else{setLabSamples([]);notifyError(samplesResult.reason,'load',{operation:'surveillance_environment_load'})}
+      if(canSeeEmployeeSurveillance){try{const employeeRows=await loadEmployeeSurveillanceRecords(tenant.id);const batchRows=await loadEmployeeSurveillanceBatches(tenant.id,employeeRows);setEmployeeRecords(employeeRows);setEmployeeBatches(batchRows)}catch(error){setEmployeeRecords([]);setEmployeeBatches([]);notifyError(error,'load',{operation:'employee_surveillance_registry_load'})}}else{setEmployeeRecords([]);setEmployeeBatches([])}
     }finally{setLoading(false)}
   }
-
   useEffect(()=>{void load()},[tenant?.id,canSeeEmployeeSurveillance])
-  useEffect(()=>{setPage(1)},[
-    registryMode,pageSize,query,department,resistance,review,
-    environmentQuery,environmentType,environmentDepartment,environmentStatus,
-    employeeQuery,employeeDepartment,employeeStatus,batchQuery,batchDepartment
-  ])
+  useEffect(()=>{setPage(1)},[registryMode,pageSize,query,department,resistance,review,environmentQuery,environmentType,environmentDepartment,environmentStatus,employeeQuery,employeeDepartment,employeeStatus,batchQuery,batchDepartment])
 
   const environmental=useMemo(()=>labSamples.filter(isEnvironmentalSample),[labSamples])
   const departments=useMemo(()=>uniqueSorted(records.map(row=>language==='el'?row.department:row.departmentEn)),[records,language])
@@ -121,102 +67,34 @@ export function ProductionSurveillancePage(){
   const employeeDepartments=useMemo(()=>uniqueSorted(employeeRecords.map(row=>language==='en'?row.departmentEn:row.department)),[employeeRecords,language])
   const employeeStatuses=useMemo(()=>uniqueSorted(employeeRecords.map(row=>row.resultStatus)),[employeeRecords])
   const batchDepartments=useMemo(()=>uniqueSorted(employeeBatches.map(row=>language==='en'?row.departmentEn:row.department)),[employeeBatches,language])
-
-  const patientRows=useMemo(()=>records
-    .filter(row=>canAccessRecord(row))
-    .filter(row=>`${row.id} ${row.patientId} ${row.patient} ${row.patientEn} ${latestOrganism(row)||''}`.toLowerCase().includes(query.trim().toLowerCase()))
-    .filter(row=>department==='all'||(language==='el'?row.department:row.departmentEn)===department)
-    .filter(row=>resistance==='all'||(resistance==='resistant'?Boolean(latestResistance(row)):!latestResistance(row)))
-    .filter(row=>review==='all'||reviewState(row)===review),[records,canAccessRecord,query,department,resistance,review,language])
-
-  const environmentalRows=useMemo(()=>environmental
-    .filter(row=>`${row.id||''} ${row.type||''} ${row.source||''} ${row.department||''} ${row.organism||''}`.toLowerCase().includes(environmentQuery.trim().toLowerCase()))
-    .filter(row=>environmentType==='all'||row.type===environmentType)
-    .filter(row=>environmentDepartment==='all'||row.department===environmentDepartment)
-    .filter(row=>environmentStatus==='all'||row.status===environmentStatus),
-    [environmental,environmentQuery,environmentType,environmentDepartment,environmentStatus])
-
-  const employeeRows=useMemo(()=>employeeRecords
-    .filter(row=>`${row.id||''} ${row.employeeId||''} ${row.employeeName||''} ${row.employeeNameEn||''}`.toLowerCase().includes(employeeQuery.trim().toLowerCase()))
-    .filter(row=>employeeDepartment==='all'||(language==='en'?row.departmentEn:row.department)===employeeDepartment)
-    .filter(row=>employeeStatus==='all'||row.resultStatus===employeeStatus),
-    [employeeRecords,employeeQuery,employeeDepartment,employeeStatus,language])
-
-  const batchRows=useMemo(()=>employeeBatches
-    .filter(row=>`${row.id||''} ${row.department||''} ${row.departmentEn||''} ${(row.screeningTypes||[]).join(' ')}`.toLowerCase().includes(batchQuery.trim().toLowerCase()))
-    .filter(row=>batchDepartment==='all'||(language==='en'?row.departmentEn:row.department)===batchDepartment),
-    [employeeBatches,batchQuery,batchDepartment,language])
-
-  const active=records.filter(row=>row.status==='active').length
-  const due=records.filter(row=>reviewState(row)==='overdue').length
-  const isolation=records.filter(row=>row.isolation?.status==='active').length
-  const resistant=records.filter(row=>Boolean(latestResistance(row))).length
-  const employeeKpis=getEmployeeSurveillanceKpis(employeeRecords)
-  const employeeMode=registryMode==='employees'||registryMode==='batches'
+  const patientRows=useMemo(()=>records.filter(row=>canAccessRecord(row)).filter(row=>`${row.id} ${row.patientId} ${row.patient} ${row.patientEn} ${latestOrganism(row)||''}`.toLowerCase().includes(query.trim().toLowerCase())).filter(row=>department==='all'||(language==='el'?row.department:row.departmentEn)===department).filter(row=>resistance==='all'||(resistance==='resistant'?Boolean(latestResistance(row)):!latestResistance(row))).filter(row=>review==='all'||reviewState(row)===review),[records,canAccessRecord,query,department,resistance,review,language])
+  const environmentalRows=useMemo(()=>environmental.filter(row=>`${row.id||''} ${row.type||''} ${row.source||''} ${row.department||''} ${row.organism||''}`.toLowerCase().includes(environmentQuery.trim().toLowerCase())).filter(row=>environmentType==='all'||row.type===environmentType).filter(row=>environmentDepartment==='all'||row.department===environmentDepartment).filter(row=>environmentStatus==='all'||row.status===environmentStatus),[environmental,environmentQuery,environmentType,environmentDepartment,environmentStatus])
+  const employeeRows=useMemo(()=>employeeRecords.filter(row=>`${row.id||''} ${row.employeeId||''} ${row.employeeName||''} ${row.employeeNameEn||''}`.toLowerCase().includes(employeeQuery.trim().toLowerCase())).filter(row=>employeeDepartment==='all'||(language==='en'?row.departmentEn:row.department)===employeeDepartment).filter(row=>employeeStatus==='all'||row.resultStatus===employeeStatus),[employeeRecords,employeeQuery,employeeDepartment,employeeStatus,language])
+  const batchRows=useMemo(()=>employeeBatches.filter(row=>`${row.id||''} ${row.department||''} ${row.departmentEn||''} ${(row.screeningTypes||[]).join(' ')}`.toLowerCase().includes(batchQuery.trim().toLowerCase())).filter(row=>batchDepartment==='all'||(language==='en'?row.departmentEn:row.department)===batchDepartment),[employeeBatches,batchQuery,batchDepartment,language])
+  const active=records.filter(row=>row.status==='active').length,due=records.filter(row=>reviewState(row)==='overdue').length,isolation=records.filter(row=>row.isolation?.status==='active').length,resistant=records.filter(row=>Boolean(latestResistance(row))).length
+  const employeeKpis=getEmployeeSurveillanceKpis(employeeRecords),employeeMode=registryMode==='employees'||registryMode==='batches'
   const fmt=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
-
   const activeRows=registryMode==='environmental'?environmentalRows:registryMode==='employees'?employeeRows:registryMode==='batches'?batchRows:patientRows
-  const totalPages=Math.max(1,Math.ceil(activeRows.length/pageSize))
-  const safePage=Math.min(page,totalPages)
-  const pagedRows=activeRows.slice((safePage-1)*pageSize,safePage*pageSize)
+  const totalPages=Math.max(1,Math.ceil(activeRows.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=activeRows.slice((safePage-1)*pageSize,safePage*pageSize)
 
-  async function createPatientRecord(){
-    const patient=patients.find(item=>item.id===draft.patientId)
-    if(!patient||!draft.startedAt||!draft.reason.trim()||saving)return
-    setSaving(true)
-    try{
-      const created=await createClinicalCase(tenant.id,patient.recordId,{startedAt:draft.startedAt,reviewDue:draft.reviewDue||null,room:draft.room.trim(),reason:draft.reason.trim(),departmentId:patient.departmentId||null})
-      setRecords(current=>[created,...current])
-      setCreationMode(null)
-      setDraft({patientId:'',startedAt:today(),reviewDue:'',room:'',reason:''})
-      notify(t('surveillanceCreated'),'success')
-      navigate(`/surveillance/${created.id}`)
-    }catch(error){notifyError(error,'save',{operation:'surveillance_create'})}
-    finally{setSaving(false)}
-  }
+  async function createPatientRecord(){const patient=patients.find(item=>item.id===draft.patientId);if(!patient||!draft.startedAt||!draft.reason.trim()||saving)return;setSaving(true);try{const created=await createClinicalCase(tenant.id,patient.recordId,{startedAt:draft.startedAt,reviewDue:draft.reviewDue||null,room:draft.room.trim(),reason:draft.reason.trim(),departmentId:patient.departmentId||null});setRecords(current=>[created,...current]);setCreationMode(null);setDraft({patientId:'',startedAt:today(),reviewDue:'',room:'',reason:''});notify(t('surveillanceCreated'),'success');navigate(`/surveillance/${created.id}`)}catch(error){notifyError(error,'save',{operation:'surveillance_create'})}finally{setSaving(false)}}
 
-  return <Page
-    fill
-    className="production-surveillance-page"
-    title={t('clinicalRecords.surveillanceCenter')}
-    subtitle={t('surveillanceSubtitleV051')}
-    actions={<RecordActions
-      actions={[UI_ACTIONS.CREATE]}
-      actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_SURVEILLANCE}}
-      onAction={action=>{if(action===UI_ACTIONS.CREATE)setCreationMode('chooser')}}
-    />}
-  >
-    <div className="workspace-summary surveillance-summary">
-      <div className="module-summary-strip">
-        {employeeMode?<>
-          <SummaryMetric icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active}/>
-          <SummaryMetric icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive}/>
-          <SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention}/>
-          <SummaryMetric icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck}/>
-        </>:<>
-          <SummaryMetric icon={Activity} label={t('activeSurveillance')} value={active}/>
-          <SummaryMetric icon={Clock3} label={t('clinicalRecords.needsReview')} value={due}/>
-          <SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation}/>
-          <SummaryMetric icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant}/>
-        </>}
+  return <Page fill className="production-surveillance-page" title={t('clinicalRecords.surveillanceCenter')} subtitle={t('surveillanceSubtitleV051')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_SURVEILLANCE}} onAction={action=>{if(action===UI_ACTIONS.CREATE)setCreationMode('chooser')}}/>}>
+    <div className="workspace-summary surveillance-summary"><div className="module-summary-strip">{employeeMode?<><SummaryMetric icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active}/><SummaryMetric icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive}/><SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention}/><SummaryMetric icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck}/></>:<><SummaryMetric icon={Activity} label={t('activeSurveillance')} value={active}/><SummaryMetric icon={Clock3} label={t('clinicalRecords.needsReview')} value={due}/><SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation}/><SummaryMetric icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant}/></>}</div></div>
+
+    <div className="surface registry-workspace production-surveillance-frame workspace-fill">
+      <nav className="tabs surveillance-domain-tabs canonical-module-tabs" aria-label={t('surveillanceCategoriesAria')}>
+        <button className={`tab ${registryMode==='patients'?'active':''}`} onClick={()=>setRegistryMode('patients')}>{t('patients')}</button>
+        {canSeeEmployeeSurveillance&&<><button className={`tab ${registryMode==='employees'?'active':''}`} onClick={()=>setRegistryMode('employees')}>{t('employees')}</button><button className={`tab ${registryMode==='batches'?'active':''}`} onClick={()=>setRegistryMode('batches')}>{t('clinicalRecords.bulkSurveillance')}</button></>}
+        {canSeeEnvironmental&&<button className={`tab ${registryMode==='environmental'?'active':''}`} onClick={()=>setRegistryMode('environmental')}>{t('clinicalRecords.environment')}</button>}
+      </nav>
+      <div className="surveillance-workspace production-surveillance-workspace">
+        {registryMode==='patients'&&<FilterBar query={query} onQueryChange={setQuery} placeholder={t('clinicalRecords.searchSurveillance')} activeAdvancedCount={(department!=='all'?1:0)+(resistance!=='all'?1:0)+(review!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setResistance('all');setReview('all')}} advanced={<><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect><FilterSelect label={t('clinicalRecords.resistance')} value={resistance} onChange={setResistance}><option value="all">{t('all')}</option><option value="resistant">{t('clinicalRecords.mdrXdr')}</option><option value="none">{t('clinicalRecords.noResistanceFlag')}</option></FilterSelect><FilterSelect label={t('reassessment')} value={review} onChange={setReview}><option value="all">{t('all')}</option><option value="overdue">{t('overdue')}</option><option value="inProgress">{t('inProgress')}</option><option value="completed">{t('completed')}</option></FilterSelect></>}/>} 
+        {registryMode==='environmental'&&<FilterBar query={environmentQuery} onQueryChange={setEnvironmentQuery} placeholder={language==='en'?'Search sample, source, department or microorganism…':'Αναζήτηση δείγματος, πηγής, τμήματος ή μικροοργανισμού…'} activeAdvancedCount={(environmentType!=='all'?1:0)+(environmentDepartment!=='all'?1:0)+(environmentStatus!=='all'?1:0)} onClear={()=>{setEnvironmentQuery('');setEnvironmentType('all');setEnvironmentDepartment('all');setEnvironmentStatus('all')}} advanced={<><FilterSelect label={language==='en'?'Type':'Τύπος'} value={environmentType} onChange={setEnvironmentType}><option value="all">{t('all')}</option>{environmentalTypes.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect><FilterSelect label={t('department')} value={environmentDepartment} onChange={setEnvironmentDepartment}><option value="all">{t('allDepartments')}</option>{environmentalDepartments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect><FilterSelect label={t('status')} value={environmentStatus} onChange={setEnvironmentStatus}><option value="all">{t('all')}</option>{environmentalStatuses.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect></>}/>} 
+        {registryMode==='employees'&&canSeeEmployeeSurveillance&&<FilterBar query={employeeQuery} onQueryChange={setEmployeeQuery} placeholder={language==='en'?'Search employee surveillance…':'Αναζήτηση επιτήρησης εργαζομένου…'} activeAdvancedCount={(employeeDepartment!=='all'?1:0)+(employeeStatus!=='all'?1:0)} onClear={()=>{setEmployeeQuery('');setEmployeeDepartment('all');setEmployeeStatus('all')}} advanced={<><FilterSelect label={t('department')} value={employeeDepartment} onChange={setEmployeeDepartment}><option value="all">{t('allDepartments')}</option>{employeeDepartments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect><FilterSelect label={t('status')} value={employeeStatus} onChange={setEmployeeStatus}><option value="all">{t('all')}</option>{employeeStatuses.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect></>}/>} 
+        {registryMode==='batches'&&canSeeEmployeeSurveillance&&<FilterBar query={batchQuery} onQueryChange={setBatchQuery} placeholder={language==='en'?'Search bulk surveillance…':'Αναζήτηση μαζικής επιτήρησης…'} activeAdvancedCount={batchDepartment!=='all'?1:0} onClear={()=>{setBatchQuery('');setBatchDepartment('all')}} advanced={<FilterSelect label={t('department')} value={batchDepartment} onChange={setBatchDepartment}><option value="all">{t('allDepartments')}</option>{batchDepartments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>}/>} 
+        {loading?<div className="inline-empty">{t('loading')}</div>:<><>{registryMode==='patients'&&<PatientRegistry rows={pagedRows} totalRows={patientRows.length} t={t} language={language} fmt={fmt} navigate={navigate}/>}</>{registryMode==='environmental'&&<EnvironmentalRegistry rows={pagedRows} totalRows={environmentalRows.length} language={language} t={t} fmt={fmt} navigate={navigate}/>} {registryMode==='employees'&&canSeeEmployeeSurveillance&&<EmployeeRegistry rows={pagedRows} totalRows={employeeRows.length} language={language} fmt={fmt}/>} {registryMode==='batches'&&canSeeEmployeeSurveillance&&<BatchRegistry rows={pagedRows} totalRows={batchRows.length} language={language} fmt={fmt}/>}<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={activeRows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/></>}
       </div>
-    </div>
-
-    <nav className="tabs surveillance-domain-tabs canonical-module-tabs" aria-label={t('surveillanceCategoriesAria')}>
-      <button className={`tab ${registryMode==='patients'?'active':''}`} onClick={()=>setRegistryMode('patients')}><Activity size={14}/>{t('patients')} <span className="tab-count">{patientRows.length}</span></button>
-      {canSeeEmployeeSurveillance&&<>
-        <button className={`tab ${registryMode==='employees'?'active':''}`} onClick={()=>setRegistryMode('employees')}><Users size={14}/>{t('employees')} <span className="tab-count">{employeeRows.length}</span></button>
-        <button className={`tab ${registryMode==='batches'?'active':''}`} onClick={()=>setRegistryMode('batches')}><Users size={14}/>{t('clinicalRecords.bulkSurveillance')} <span className="tab-count">{batchRows.length}</span></button>
-      </>}
-      {canSeeEnvironmental&&<button className={`tab ${registryMode==='environmental'?'active':''}`} onClick={()=>setRegistryMode('environmental')}><Microscope size={14}/>{t('clinicalRecords.environment')} <span className="tab-count">{environmentalRows.length}</span></button>}
-    </nav>
-
-    <div className="workspace-fill surface surveillance-workspace production-surveillance-workspace">
-      {registryMode==='patients'&&<FilterBar query={query} onQueryChange={setQuery} placeholder={t('clinicalRecords.searchSurveillance')} activeAdvancedCount={(department!=='all'?1:0)+(resistance!=='all'?1:0)+(review!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setResistance('all');setReview('all')}} advanced={<><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect><FilterSelect label={t('clinicalRecords.resistance')} value={resistance} onChange={setResistance}><option value="all">{t('all')}</option><option value="resistant">{t('clinicalRecords.mdrXdr')}</option><option value="none">{t('clinicalRecords.noResistanceFlag')}</option></FilterSelect><FilterSelect label={t('reassessment')} value={review} onChange={setReview}><option value="all">{t('all')}</option><option value="overdue">{t('overdue')}</option><option value="inProgress">{t('inProgress')}</option><option value="completed">{t('completed')}</option></FilterSelect></>}/>} 
-      {registryMode==='environmental'&&<FilterBar query={environmentQuery} onQueryChange={setEnvironmentQuery} placeholder={language==='en'?'Search sample, source, department or microorganism…':'Αναζήτηση δείγματος, πηγής, τμήματος ή μικροοργανισμού…'} activeAdvancedCount={(environmentType!=='all'?1:0)+(environmentDepartment!=='all'?1:0)+(environmentStatus!=='all'?1:0)} onClear={()=>{setEnvironmentQuery('');setEnvironmentType('all');setEnvironmentDepartment('all');setEnvironmentStatus('all')}} advanced={<><FilterSelect label={language==='en'?'Type':'Τύπος'} value={environmentType} onChange={setEnvironmentType}><option value="all">{t('all')}</option>{environmentalTypes.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect><FilterSelect label={t('department')} value={environmentDepartment} onChange={setEnvironmentDepartment}><option value="all">{t('allDepartments')}</option>{environmentalDepartments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect><FilterSelect label={t('status')} value={environmentStatus} onChange={setEnvironmentStatus}><option value="all">{t('all')}</option>{environmentalStatuses.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect></>}/>} 
-      {registryMode==='employees'&&canSeeEmployeeSurveillance&&<FilterBar query={employeeQuery} onQueryChange={setEmployeeQuery} placeholder={language==='en'?'Search employee surveillance…':'Αναζήτηση επιτήρησης εργαζομένου…'} activeAdvancedCount={(employeeDepartment!=='all'?1:0)+(employeeStatus!=='all'?1:0)} onClear={()=>{setEmployeeQuery('');setEmployeeDepartment('all');setEmployeeStatus('all')}} advanced={<><FilterSelect label={t('department')} value={employeeDepartment} onChange={setEmployeeDepartment}><option value="all">{t('allDepartments')}</option>{employeeDepartments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect><FilterSelect label={t('status')} value={employeeStatus} onChange={setEmployeeStatus}><option value="all">{t('all')}</option>{employeeStatuses.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect></>}/>} 
-      {registryMode==='batches'&&canSeeEmployeeSurveillance&&<FilterBar query={batchQuery} onQueryChange={setBatchQuery} placeholder={language==='en'?'Search bulk surveillance…':'Αναζήτηση μαζικής επιτήρησης…'} activeAdvancedCount={batchDepartment!=='all'?1:0} onClear={()=>{setBatchQuery('');setBatchDepartment('all')}} advanced={<FilterSelect label={t('department')} value={batchDepartment} onChange={setBatchDepartment}><option value="all">{t('allDepartments')}</option>{batchDepartments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>}/>} 
-      {loading?<div className="inline-empty">{t('loading')}</div>:<><>{registryMode==='patients'&&<PatientRegistry rows={pagedRows} totalRows={patientRows.length} t={t} language={language} fmt={fmt} navigate={navigate}/>}</>{registryMode==='environmental'&&<EnvironmentalRegistry rows={pagedRows} totalRows={environmentalRows.length} language={language} t={t} fmt={fmt} navigate={navigate}/>} {registryMode==='employees'&&canSeeEmployeeSurveillance&&<EmployeeRegistry rows={pagedRows} totalRows={employeeRows.length} language={language} fmt={fmt}/>} {registryMode==='batches'&&canSeeEmployeeSurveillance&&<BatchRegistry rows={pagedRows} totalRows={batchRows.length} language={language} fmt={fmt}/>}<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={activeRows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/></>}
     </div>
 
     {creationMode==='chooser'&&<SubjectChooser language={language} canEmployee={canSeeEmployeeSurveillance} canEnvironmental={canSeeEnvironmental} onClose={()=>setCreationMode(null)} onPatient={()=>setCreationMode('patient')} onEmployee={()=>setCreationMode('employee')} onBulk={()=>setCreationMode('bulk')} onEnvironmental={()=>{setCreationMode(null);navigate('/laboratory',{state:{returnTo:'/surveillance',createEnvironmental:true}})}}/>}
