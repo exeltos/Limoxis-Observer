@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,Settings2,ShieldCheck } from 'lucide-react'
+import { AlertTriangle,ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { SaveButton } from '../../design-system/SaveButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -65,8 +65,8 @@ export function PlatformSettingsPage(){
               <input type="email" value={draft.supportEmail} onChange={event=>setDraft(current=>({...current,supportEmail:event.target.value}))}/>
               {!emailValid?<small className="field-error">{tx('Μη έγκυρο email.','Invalid email.')}</small>:null}
             </FieldBlock>
-            <FieldBlock label={tx('Προεπιλεγμένη διάρκεια Demo','Default demo duration')} hint={tx('Χρησιμοποιείται ως αρχική διάρκεια κατά τη δημιουργία νέου Demo.','Used as the initial duration when creating a new demo.')}>
-              <div className="platform-settings-number"><input type="number" min="1" max="365" value={draft.defaultDemoDurationDays} onChange={event=>setDraft(current=>({...current,defaultDemoDurationDays:event.target.value}))}/><span>{tx('ημέρες','days')}</span></div>
+            <FieldBlock label={tx('Προεπιλεγμένη διάρκεια Demo (ημέρες)','Default demo duration (days)')} hint={tx('Καθολική προεπιλογή για provisioning νέων Demo.','Global default for new demo provisioning.')}>
+              <input type="number" min="1" max="365" value={draft.defaultDemoDurationDays} onChange={event=>setDraft(current=>({...current,defaultDemoDurationDays:event.target.value}))}/>
               {!durationValid?<small className="field-error">{tx('Επιτρέπονται 1–365 ημέρες.','Allowed range is 1–365 days.')}</small>:null}
             </FieldBlock>
           </div>
@@ -74,11 +74,13 @@ export function PlatformSettingsPage(){
 
         <section className="platform-form-section">
           <header><strong>{tx('Ανακοίνωση συντήρησης','Maintenance notice')}</strong><span>{tx('Καθολικό μήνυμα λειτουργίας της πλατφόρμας. Δεν αφορά δεδομένα νοσοκομείου.','Global platform operational message. It does not contain hospital data.')}</span></header>
-          <div className="platform-settings-toggle-row">
-            <div><strong>{tx('Ενεργή ανακοίνωση','Notice enabled')}</strong><small>{tx('Το μήνυμα αποθηκεύεται κεντρικά και είναι διαθέσιμο για καθολική προβολή.','The message is stored centrally and is available for global display.')}</small></div>
-            <label className="switch-control"><input type="checkbox" checked={draft.maintenanceNoticeEnabled} onChange={event=>setDraft(current=>({...current,maintenanceNoticeEnabled:event.target.checked}))}/><span/></label>
-          </div>
           <div className="platform-form-grid">
+            <FieldBlock label={tx('Κατάσταση ανακοίνωσης','Notice status')} hint={tx('Ενεργοποιήστε μόνο όταν υπάρχει καθολικό λειτουργικό μήνυμα.','Enable only when there is a platform-wide operational notice.')}>
+              <select value={draft.maintenanceNoticeEnabled?'enabled':'disabled'} onChange={event=>setDraft(current=>({...current,maintenanceNoticeEnabled:event.target.value==='enabled'}))}>
+                <option value="disabled">{tx('Ανενεργή','Disabled')}</option>
+                <option value="enabled">{tx('Ενεργή','Enabled')}</option>
+              </select>
+            </FieldBlock>
             <FieldBlock label={tx('Μήνυμα στα Ελληνικά','Greek message')}><textarea rows="4" value={draft.maintenanceNoticeEl} onChange={event=>setDraft(current=>({...current,maintenanceNoticeEl:event.target.value}))}/></FieldBlock>
             <FieldBlock label={tx('Μήνυμα στα Αγγλικά','English message')}><textarea rows="4" value={draft.maintenanceNoticeEn} onChange={event=>setDraft(current=>({...current,maintenanceNoticeEn:event.target.value}))}/></FieldBlock>
           </div>
