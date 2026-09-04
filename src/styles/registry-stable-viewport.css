@@ -1,17 +1,17 @@
 /* Canonical stable viewport for primary registries.
    One outer shell owns the height, frame, scroll area and pagination placement. */
 :root{
-  --canonical-registry-height:clamp(390px,calc(100vh - 300px),620px);
+  --canonical-registry-height:clamp(360px,calc(100dvh - 360px),560px);
   --canonical-registry-radius:11px;
 }
 
-/* Primary registry shells: one consistent fixed viewport. */
+/* Primary registry shells: one consistent fixed viewport with safe bottom clearance. */
 .registry-workspace,
 .patient-registry-shell,
 .laboratory-registry-page .lab-registry-shell{
   height:var(--canonical-registry-height)!important;
-  min-height:390px!important;
-  max-height:620px!important;
+  min-height:360px!important;
+  max-height:560px!important;
   flex:0 0 auto!important;
   overflow:hidden!important;
   display:flex!important;
@@ -35,8 +35,8 @@
 .laboratory-registry-page .lab-registry-shell:has(.registry-empty-state),
 .registry-workspace:has(.surveillance-registry-empty){
   height:var(--canonical-registry-height)!important;
-  min-height:390px!important;
-  max-height:620px!important;
+  min-height:360px!important;
+  max-height:560px!important;
   flex:0 0 auto!important;
 }
 
@@ -67,16 +67,20 @@
 .registry-workspace>.registry-pagination,
 .patient-registry-shell>.registry-pagination,
 .laboratory-registry-page .lab-registry-shell>.registry-pagination{
-  flex:0 0 auto!important;
+  flex:0 0 44px!important;
+  min-height:44px!important;
   margin-top:auto!important;
+  position:relative!important;
+  z-index:3!important;
+  background:#fff!important;
 }
 
 /* Surveillance: the OUTER .registry-workspace owns the canonical height.
-   The inner surveillance workspace must only fill the remaining area so pagination is never clipped. */
+   The inner surveillance workspace only fills the remaining area so pagination is never clipped. */
 .production-surveillance-frame{
   height:var(--canonical-registry-height)!important;
-  min-height:390px!important;
-  max-height:620px!important;
+  min-height:360px!important;
+  max-height:560px!important;
 }
 .production-surveillance-frame>.canonical-module-tabs{flex:0 0 auto!important}
 .production-surveillance-frame>.production-surveillance-workspace{
@@ -97,8 +101,12 @@
   overflow:auto!important;
 }
 .production-surveillance-workspace>.registry-pagination{
-  flex:0 0 auto!important;
+  flex:0 0 44px!important;
+  min-height:44px!important;
   margin-top:auto!important;
+  position:relative!important;
+  z-index:3!important;
+  background:#fff!important;
 }
 .production-surveillance-workspace .surveillance-registry-empty{
   min-height:132px!important;
@@ -109,8 +117,8 @@
 /* Controls use exactly the same outer frame and rounded corners. */
 .controls-page>.controls-surface{
   height:var(--canonical-registry-height)!important;
-  min-height:390px!important;
-  max-height:620px!important;
+  min-height:360px!important;
+  max-height:560px!important;
   display:flex!important;
   flex-direction:column!important;
   margin:0!important;
@@ -132,22 +140,32 @@
   background:#fff!important;
 }
 .controls-page>.controls-surface .registry-pagination{
-  flex:0 0 auto!important;
+  flex:0 0 44px!important;
+  min-height:44px!important;
   margin-top:auto!important;
   border:0!important;
   border-top:1px solid var(--line)!important;
   border-radius:0!important;
   background:#fff!important;
+  position:relative!important;
+  z-index:3!important;
+}
+
+/* Keep the full registry frame separated from the browser/taskbar edge. */
+.page:has(.registry-workspace),
+.page:has(.patient-registry-shell),
+.laboratory-registry-page{
+  padding-bottom:18px!important;
 }
 
 @media(max-width:1200px){
-  :root{--canonical-registry-height:clamp(340px,calc(100vh - 340px),560px)}
+  :root{--canonical-registry-height:clamp(330px,calc(100dvh - 390px),500px)}
   .registry-workspace,
   .patient-registry-shell,
   .laboratory-registry-page .lab-registry-shell,
   .production-surveillance-frame,
   .controls-page>.controls-surface{
-    min-height:340px!important;
-    max-height:560px!important;
+    min-height:330px!important;
+    max-height:500px!important;
   }
 }
