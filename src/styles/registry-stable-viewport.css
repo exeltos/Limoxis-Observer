@@ -1,17 +1,17 @@
 /* Canonical stable viewport for primary registries.
    One outer shell owns the height, frame, scroll area and pagination placement. */
 :root{
-  --canonical-registry-height:clamp(360px,calc(100dvh - 360px),560px);
+  --canonical-registry-height:clamp(390px,calc(100dvh - 300px),620px);
   --canonical-registry-radius:11px;
 }
 
-/* Primary registry shells: one consistent fixed viewport with safe bottom clearance. */
+/* Primary registry shells: match the Quality Center vertical depth exactly. */
 .registry-workspace,
 .patient-registry-shell,
 .laboratory-registry-page .lab-registry-shell{
   height:var(--canonical-registry-height)!important;
-  min-height:360px!important;
-  max-height:560px!important;
+  min-height:390px!important;
+  max-height:620px!important;
   flex:0 0 auto!important;
   overflow:hidden!important;
   display:flex!important;
@@ -35,8 +35,8 @@
 .laboratory-registry-page .lab-registry-shell:has(.registry-empty-state),
 .registry-workspace:has(.surveillance-registry-empty){
   height:var(--canonical-registry-height)!important;
-  min-height:360px!important;
-  max-height:560px!important;
+  min-height:390px!important;
+  max-height:620px!important;
   flex:0 0 auto!important;
 }
 
@@ -79,8 +79,8 @@
    The inner surveillance workspace only fills the remaining area so pagination is never clipped. */
 .production-surveillance-frame{
   height:var(--canonical-registry-height)!important;
-  min-height:360px!important;
-  max-height:560px!important;
+  min-height:390px!important;
+  max-height:620px!important;
 }
 .production-surveillance-frame>.canonical-module-tabs{flex:0 0 auto!important}
 .production-surveillance-frame>.production-surveillance-workspace{
@@ -117,8 +117,8 @@
 /* Controls use exactly the same outer frame and rounded corners. */
 .controls-page>.controls-surface{
   height:var(--canonical-registry-height)!important;
-  min-height:360px!important;
-  max-height:560px!important;
+  min-height:390px!important;
+  max-height:620px!important;
   display:flex!important;
   flex-direction:column!important;
   margin:0!important;
@@ -159,13 +159,13 @@
 }
 
 @media(max-width:1200px){
-  :root{--canonical-registry-height:clamp(330px,calc(100dvh - 390px),500px)}
+  :root{--canonical-registry-height:clamp(340px,calc(100dvh - 340px),560px)}
   .registry-workspace,
   .patient-registry-shell,
   .laboratory-registry-page .lab-registry-shell,
   .production-surveillance-frame,
   .controls-page>.controls-surface{
-    min-height:330px!important;
-    max-height:500px!important;
+    min-height:340px!important;
+    max-height:560px!important;
   }
 }
