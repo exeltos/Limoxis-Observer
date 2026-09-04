@@ -25,12 +25,13 @@ function eventLabel(value,en){
     platform_organization_create:{el:'Δημιουργία οργανισμού',en:'Organization created'},platform_organization_update:{el:'Ενημέρωση οργανισμού',en:'Organization updated'},
     platform_organization_delete:{el:'Διαγραφή οργανισμού',en:'Organization deleted'},platform_organization_status:{el:'Αλλαγή κατάστασης οργανισμού',en:'Organization status changed'},
     platform_admin_assign:{el:'Ανάθεση Hospital Admin',en:'Hospital Admin assigned'},platform_admin_invite:{el:'Πρόσκληση Hospital Admin',en:'Hospital Admin invited'},
+    platform_settings_update:{el:'Αλλαγή ρυθμίσεων πλατφόρμας',en:'Platform settings changed'},
   }
   return labels[value]?.[en?'en':'el']||String(value||'—').replaceAll('_',' ')
 }
 
 function entityLabel(value,en){
-  const labels={organization:{el:'Οργανισμός',en:'Organization'},organization_member:{el:'Χρήστης / ρόλος',en:'User / role'},demo_entitlement:{el:'Demo πρόσβαση',en:'Demo access'},profile:{el:'Προφίλ',en:'Profile'}}
+  const labels={organization:{el:'Οργανισμός',en:'Organization'},organization_member:{el:'Χρήστης / ρόλος',en:'User / role'},demo_entitlement:{el:'Demo πρόσβαση',en:'Demo access'},profile:{el:'Προφίλ',en:'Profile'},platform_settings:{el:'Ρυθμίσεις πλατφόρμας',en:'Platform settings'}}
   return labels[value]?.[en?'en':'el']||String(value||'—').replaceAll('_',' ')
 }
 
