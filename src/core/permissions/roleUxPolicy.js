@@ -43,10 +43,5 @@ export function recordWithinRoleScope({role, membership, userId, record}={}){
 }
 
 export function canSeeSensitiveEmployeeHealth(role,addOns=[],customCapabilities=[]){
-  // Production Surveillance historically consumes this UX flag for the employee
-  // infection-surveillance registry. Hospital Admin may view that registry through
-  // VIEW_SURVEILLANCE, while Occupational Health remains separately protected by
-  // VIEW_OCCUPATIONAL_HEALTH / MANAGE_OCCUPATIONAL_HEALTH at its actual screens.
-  if(role===ROLES.HOSPITAL_ADMIN)return can(role,CAPABILITIES.VIEW_SURVEILLANCE,addOns,customCapabilities)
   return Boolean(uxPolicyFor(role).sensitiveEmployeeHealth)&&can(role,CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,addOns,customCapabilities)
 }
