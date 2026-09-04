@@ -1,8 +1,11 @@
-/* Global application density: keep primary workspaces closer to the sticky top bar
-   and reserve more vertical space for tables, registries and clinical content. */
+/* Global application density: keep every primary workspace on one shared visual baseline
+   below the sticky application chrome and reserve more vertical room for working content. */
 .content{
   padding-top:16px;
   padding-bottom:32px;
+}
+.page{
+  margin-top:-18px;
 }
 .page-header{
   margin-bottom:14px;
@@ -14,16 +17,13 @@
   margin-bottom:6px;
 }
 
-/* Dashboard has its own dense KPI/workspace stack. Nudge its page shell to the
-   same visual start line as the compact operational screens. */
-.dashboard-page{
-  margin-top:-8px;
-}
+/* Dashboard uses the same baseline as every other Page; only its internal header
+   spacing stays slightly tighter because of the KPI stack directly below it. */
 .dashboard-page .page-header{
   margin-bottom:12px;
 }
 
 @media(max-width:1200px){
   .content{padding-top:14px}
-  .dashboard-page{margin-top:-6px}
+  .page{margin-top:-12px}
 }
