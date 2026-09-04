@@ -8,20 +8,16 @@ import { RecordActions } from '../../design-system/RecordActions'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { EmployeeCreateDialog } from './EmployeeCreatePage'
-import { useAuditActor } from '../../core/audit/useAuditActor'
 import { MetricCard } from '../../design-system/MetricCard'
 import { useEmployeesData } from './useEmployeesData'
-import { createEmployeeAsync } from './employeeService'
 import { RouteLoading } from '../../design-system/RouteLoading'
 
 const PAGE_SIZE_OPTIONS=[15,25,50]
 
 export function EmployeesPage(){
-  const {t,language}=useLanguage(); const {notify}=useFeedback(); const navigate=useNavigate(); const {canAccessRecord,tenant}=useTenant(); const actor=useAuditActor()
-  const {data:employeeRows,setData:setEmployeeRows,loading,error,reload}=useEmployeesData(); const [createOpen,setCreateOpen]=useState(false)
+  const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord}=useTenant()
+  const {data:employeeRows,loading,error,reload}=useEmployeesData()
   const registry=useRegistryMemory('employees')
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query); const [department,setDepartment]=useState(saved.department); const [status,setStatus]=useState(saved.status)
@@ -41,7 +37,7 @@ export function EmployeesPage(){
   }
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)); const safePage=Math.min(page,totalPages); const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
   function openEmployee(row){registry.saveViewState({query,department,status});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
-  function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});setCreateOpen(true)}}
+  function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});navigate('/employees/new')}}
   return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t('employeesRecords.employeesRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/> }>
     <div className="workspace-summary employee-registry-summary">
       <div className="employee-kpis">
@@ -62,7 +58,6 @@ export function EmployeesPage(){
       </div>
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </section>
-    {createOpen&&<EmployeeCreateDialog rows={employeeRows} actor={actor} onClose={()=>setCreateOpen(false)} onSave={async row=>{try{const created=await createEmployeeAsync(tenant?.id??null,row);setEmployeeRows([created,...employeeRows]);setCreateOpen(false);notify(t('employeeCreated'),'success');navigate(`/employees/${created.id}`)}catch(err){if(err.message==='DUPLICATE_EMPLOYEE_CODE'){notify(language==='en'?'This employee code is already in use.':'Αυτός ο κωδικός εργαζομένου χρησιμοποιείται ήδη.','danger')}else{notify(language==='en'?'Could not save the employee.':'Δεν ήταν δυνατή η αποθήκευση του εργαζομένου.','danger')}}}}/>}
   </Page>
 }
 function Kpi({icon:Icon,value,label,kind=''}){return <MetricCard icon={Icon} value={value} label={label} tone={kind||'neutral'}/>}
