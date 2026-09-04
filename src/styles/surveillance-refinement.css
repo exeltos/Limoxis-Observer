@@ -1,12 +1,10 @@
-/* Canonical Surveillance workspace refinement.
-   Scoped to Surveillance-only classes so accepted design-system patterns elsewhere remain unchanged. */
-
-.production-surveillance-page{max-width:none;margin-top:-18px}
+/* Surveillance-specific layout only.
+   Shared page baseline, KPI density, empty states and pagination live in page-density.css. */
+.production-surveillance-page{max-width:none}
 .production-surveillance-page .page-header{margin-bottom:10px}
 .production-surveillance-page .page-header p{margin-top:4px}
 
-.surveillance-summary{margin-bottom:8px}
-.surveillance-summary .module-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}
+.surveillance-summary .module-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:0}
 .surveillance-summary .summary-metric{min-height:0!important;height:66px;padding:8px 12px!important;border-radius:11px}
 .surveillance-summary .summary-metric>div{gap:9px}
 .surveillance-summary .summary-metric svg{width:17px;height:17px}
@@ -21,9 +19,7 @@
 .production-surveillance-workspace .filter-system{margin:0;border-bottom:1px solid var(--line);padding:8px 10px;background:#fff}
 .production-surveillance-workspace .filter-primary-row{gap:8px}
 .production-surveillance-workspace .filter-search{max-width:560px}
-.production-surveillance-workspace .filter-search input{height:36px}
-.production-surveillance-workspace .filter-trigger,.production-surveillance-workspace .filter-clear-button{height:36px}
-
+.production-surveillance-workspace .filter-search input,.production-surveillance-workspace .filter-trigger,.production-surveillance-workspace .filter-clear-button{height:36px}
 .production-surveillance-workspace .surveillance-registry{border:0;border-radius:0;min-height:0;max-height:calc(100vh - 330px);overflow:auto;flex:1 1 auto}
 .production-surveillance-workspace .surveillance-registry-head{position:sticky;top:0;z-index:2;background:#f7f9fb;border-bottom:1px solid var(--line)}
 .production-surveillance-workspace .surveillance-registry-head>span{padding-top:8px;padding-bottom:8px}
@@ -31,19 +27,10 @@
 .production-surveillance-workspace .surveillance-registry-empty{min-height:132px!important;height:132px;padding:22px;background:#fff}
 .production-surveillance-workspace .surveillance-registry-empty strong{font-size:15px}
 .production-surveillance-workspace .surveillance-registry-empty span{font-size:12px;line-height:1.45}
-
 .production-surveillance-workspace:has(.surveillance-registry-empty){flex:0 0 auto!important;height:auto!important;min-height:0!important}
 .production-surveillance-workspace:has(.surveillance-registry-empty) .surveillance-registry{height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden}
 
-.registry-pagination{min-height:44px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:14px;padding:7px 10px;background:#fff;color:#6f7d8e;font-size:11.5px}
-.registry-pagination-controls{display:flex;align-items:center;gap:7px}
-.registry-pagination-controls label{display:flex;align-items:center;gap:6px}
-.registry-pagination-controls select{height:30px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 24px 0 8px;color:#43566b}
-.registry-pagination-controls button{width:30px;height:30px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#294b70;display:grid;place-items:center;font-size:18px;cursor:pointer}
-.registry-pagination-controls button:disabled{opacity:.35;cursor:not-allowed}
-
 @media(max-width:1200px){
-  .production-surveillance-page{margin-top:-12px}
   .surveillance-summary .module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
   .production-surveillance-workspace .surveillance-registry{max-height:calc(100vh - 385px)}
 }
