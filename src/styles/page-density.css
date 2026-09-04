@@ -33,6 +33,23 @@
 .workspace-summary .canonical-metric-copy span,
 .patient-summary-strip .canonical-metric-copy span{font-size:10.5px!important;line-height:1.2!important}
 
+/* Canonical module tabs: Prevention is the visual reference for every registry tab bar. */
+.canonical-module-tabs{
+  display:flex!important;align-items:center!important;gap:3px!important;
+  min-height:42px!important;margin:0!important;padding:5px 9px!important;
+  background:#fff!important;border:1px solid var(--line)!important;
+  border-bottom:1px solid var(--line)!important;border-radius:11px 11px 0 0!important
+}
+.canonical-module-tabs .tab{
+  min-height:32px!important;padding:5px 10px!important;border:0!important;
+  border-radius:8px!important;background:transparent!important;color:#6b7888!important;
+  font-size:12px!important;font-weight:700!important;box-shadow:none!important;outline-offset:1px
+}
+.canonical-module-tabs .tab.active{background:#eaf1f7!important;color:#194a74!important}
+/* Category icons/count bubbles are not part of the canonical module-tab language. */
+.canonical-module-tabs .tab>svg,
+.canonical-module-tabs .tab-count{display:none!important}
+
 /* Canonical registry shell: no page-specific outer gap or padded white frame. */
 .registry-workspace,
 .patient-registry-shell,
@@ -74,15 +91,10 @@
   position:sticky;top:0;z-index:2;background:#f7f9fb
 }
 
-/* Tabs inside registries use the same compact edge-to-edge contract. */
-.registry-workspace>.tabs,
+/* When canonical tabs are the first section of a registry card, the list continues the same frame. */
 .registry-workspace>.canonical-module-tabs{
-  margin:0!important;padding:5px 9px!important;min-height:42px!important;
-  border-radius:0!important;border-left:0!important;border-right:0!important;
-  border-top:0!important;border-bottom:1px solid var(--line)!important;background:#fff!important;gap:3px!important
+  border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important
 }
-.registry-workspace>.tabs .tab,
-.registry-workspace>.canonical-module-tabs .tab{min-height:32px!important;padding:5px 10px!important}
 
 /* Canonical empty registry: table header -> concise message -> pagination. */
 .registry-empty-state{
