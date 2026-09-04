@@ -17,63 +17,195 @@ import { loadPatients } from '../patients/patientsService'
 import { loadLaboratorySamples } from '../laboratory/laboratoryCloudService'
 import { createClinicalCase,loadClinicalCases } from './clinicalCloudService'
 import { loadEmployeeSurveillanceBatches,loadEmployeeSurveillanceRecords,getEmployeeSurveillanceKpis } from './employeeSurveillanceCloudService'
+import { ProductionEmployeeSurveillanceFlow } from './ProductionEmployeeSurveillanceFlow'
 import { downloadRecordJson } from '../../core/export/recordExport'
 
 const today=()=>new Date().toISOString().slice(0,10)
 const reviewState=row=>row.status!=='active'?'completed':row.reviewDue&&new Date(`${row.reviewDue}T23:59:59`)<new Date()?'overdue':'inProgress'
 const latestOrganism=row=>row.samples?.find(sample=>sample.organism)?.organism||null
 const latestResistance=row=>row.samples?.find(sample=>sample.resistance)?.resistance||null
-const isEnvironmentalSample=row=>{const type=String(row.type||'').toLowerCase();return ['water','surface','environment','environmental','νερό','επιφάνεια','επιφανεια'].some(value=>type.includes(value))||!row.patientRecordId}
+const isEnvironmentalSample=row=>{
+  const type=String(row.type||'').toLowerCase()
+  return ['water','surface','environment','environmental','νερό','επιφάνεια','επιφανεια'].some(value=>type.includes(value))||!row.patientRecordId
+}
 
 export function ProductionSurveillancePage(){
   const {tenant,role,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
   const {t,language,locale}=useLanguage()
   const {notify,notifyError}=useFeedback()
   const navigate=useNavigate()
-  const [records,setRecords]=useState([]),[patients,setPatients]=useState([]),[labSamples,setLabSamples]=useState([])
-  const [employeeRecords,setEmployeeRecords]=useState([]),[employeeBatches,setEmployeeBatches]=useState([])
-  const [loading,setLoading]=useState(true),[query,setQuery]=useState(''),[department,setDepartment]=useState('all'),[resistance,setResistance]=useState('all'),[review,setReview]=useState('all'),[registryMode,setRegistryMode]=useState('patients')
-  const [createOpen,setCreateOpen]=useState(false),[saving,setSaving]=useState(false),[draft,setDraft]=useState({patientId:'',startedAt:today(),reviewDue:'',room:'',reason:''})
+  const [records,setRecords]=useState([])
+  const [patients,setPatients]=useState([])
+  const [labSamples,setLabSamples]=useState([])
+  const [employeeRecords,setEmployeeRecords]=useState([])
+  const [employeeBatches,setEmployeeBatches]=useState([])
+  const [loading,setLoading]=useState(true)
+  const [query,setQuery]=useState('')
+  const [department,setDepartment]=useState('all')
+  const [resistance,setResistance]=useState('all')
+  const [review,setReview]=useState('all')
+  const [registryMode,setRegistryMode]=useState('patients')
+  const [creationMode,setCreationMode]=useState(null)
+  const [saving,setSaving]=useState(false)
+  const [draft,setDraft]=useState({patientId:'',startedAt:today(),reviewDue:'',room:'',reason:''})
+
   const canSeeEmployeeSurveillance=Boolean(canSeeSensitiveEmployeeHealth)
   const canSeeEnvironmental=![ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.DOCTOR_REVIEWER].includes(role)
 
   async function load(){
-    if(!tenant?.id){setRecords([]);setPatients([]);setLabSamples([]);setEmployeeRecords([]);setEmployeeBatches([]);setLoading(false);return}
+    if(!tenant?.id){
+      setRecords([]);setPatients([]);setLabSamples([]);setEmployeeRecords([]);setEmployeeBatches([]);setLoading(false);return
+    }
     setLoading(true)
     try{
-      const [caseRows,patientRows,sampleRows]=await Promise.all([loadClinicalCases(tenant.id),loadPatients(tenant.id,{isDemo:false}),loadLaboratorySamples(tenant.id)])
-      setRecords(caseRows);setPatients(patientRows);setLabSamples(sampleRows)
+      const [caseRows,patientRows,sampleRows]=await Promise.all([
+        loadClinicalCases(tenant.id),
+        loadPatients(tenant.id,{isDemo:false}),
+        loadLaboratorySamples(tenant.id),
+      ])
+      setRecords(caseRows)
+      setPatients(patientRows)
+      setLabSamples(sampleRows)
       if(canSeeEmployeeSurveillance){
         const employeeRows=await loadEmployeeSurveillanceRecords(tenant.id)
         const batchRows=await loadEmployeeSurveillanceBatches(tenant.id,employeeRows)
-        setEmployeeRecords(employeeRows);setEmployeeBatches(batchRows)
-      }else{setEmployeeRecords([]);setEmployeeBatches([])}
-    }catch(error){notifyError(error,'load',{operation:'surveillance_registry_load'});setRecords([]);setLabSamples([]);setEmployeeRecords([]);setEmployeeBatches([])}finally{setLoading(false)}
+        setEmployeeRecords(employeeRows)
+        setEmployeeBatches(batchRows)
+      }else{
+        setEmployeeRecords([])
+        setEmployeeBatches([])
+      }
+    }catch(error){
+      notifyError(error,'load',{operation:'surveillance_registry_load'})
+      setRecords([]);setLabSamples([]);setEmployeeRecords([]);setEmployeeBatches([])
+    }finally{setLoading(false)}
   }
   useEffect(()=>{void load()},[tenant?.id,canSeeEmployeeSurveillance])
 
   const environmental=useMemo(()=>labSamples.filter(isEnvironmentalSample),[labSamples])
   const departments=useMemo(()=>[...new Set(records.map(row=>language==='el'?row.department:row.departmentEn).filter(Boolean))].sort(),[records,language])
-  const rows=useMemo(()=>records.filter(row=>canAccessRecord(row)).filter(row=>`${row.id} ${row.patientId} ${row.patient} ${row.patientEn} ${latestOrganism(row)||''}`.toLowerCase().includes(query.trim().toLowerCase())).filter(row=>department==='all'||(language==='el'?row.department:row.departmentEn)===department).filter(row=>resistance==='all'||(resistance==='resistant'?Boolean(latestResistance(row)):!latestResistance(row))).filter(row=>review==='all'||reviewState(row)===review),[records,canAccessRecord,query,department,resistance,review,language])
-  const active=records.filter(row=>row.status==='active').length,due=records.filter(row=>reviewState(row)==='overdue').length,isolation=records.filter(row=>row.isolation?.status==='active').length,resistant=records.filter(row=>Boolean(latestResistance(row))).length
+  const rows=useMemo(()=>records
+    .filter(row=>canAccessRecord(row))
+    .filter(row=>`${row.id} ${row.patientId} ${row.patient} ${row.patientEn} ${latestOrganism(row)||''}`.toLowerCase().includes(query.trim().toLowerCase()))
+    .filter(row=>department==='all'||(language==='el'?row.department:row.departmentEn)===department)
+    .filter(row=>resistance==='all'||(resistance==='resistant'?Boolean(latestResistance(row)):!latestResistance(row)))
+    .filter(row=>review==='all'||reviewState(row)===review),[records,canAccessRecord,query,department,resistance,review,language])
+
+  const active=records.filter(row=>row.status==='active').length
+  const due=records.filter(row=>reviewState(row)==='overdue').length
+  const isolation=records.filter(row=>row.isolation?.status==='active').length
+  const resistant=records.filter(row=>Boolean(latestResistance(row))).length
   const employeeKpis=getEmployeeSurveillanceKpis(employeeRecords)
+  const employeeMode=registryMode==='employees'||registryMode==='batches'
   const fmt=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
-  async function createRecord(){const patient=patients.find(item=>item.id===draft.patientId);if(!patient||!draft.startedAt||!draft.reason.trim()||saving)return;setSaving(true);try{const created=await createClinicalCase(tenant.id,patient.recordId,{startedAt:draft.startedAt,reviewDue:draft.reviewDue||null,room:draft.room.trim(),reason:draft.reason.trim(),departmentId:patient.departmentId||null});setRecords(current=>[created,...current]);setCreateOpen(false);setDraft({patientId:'',startedAt:today(),reviewDue:'',room:'',reason:''});notify(t('surveillanceCreated'),'success');navigate(`/surveillance/${created.id}`)}catch(error){notifyError(error,'save',{operation:'surveillance_create'})}finally{setSaving(false)}}
+
+  async function createPatientRecord(){
+    const patient=patients.find(item=>item.id===draft.patientId)
+    if(!patient||!draft.startedAt||!draft.reason.trim()||saving)return
+    setSaving(true)
+    try{
+      const created=await createClinicalCase(tenant.id,patient.recordId,{startedAt:draft.startedAt,reviewDue:draft.reviewDue||null,room:draft.room.trim(),reason:draft.reason.trim(),departmentId:patient.departmentId||null})
+      setRecords(current=>[created,...current])
+      setCreationMode(null)
+      setDraft({patientId:'',startedAt:today(),reviewDue:'',room:'',reason:''})
+      notify(t('surveillanceCreated'),'success')
+      navigate(`/surveillance/${created.id}`)
+    }catch(error){notifyError(error,'save',{operation:'surveillance_create'})}
+    finally{setSaving(false)}
+  }
 
   const exportRows=registryMode==='environmental'?environmental:registryMode==='employees'?employeeRecords:registryMode==='batches'?employeeBatches:rows
-  const employeeMode=registryMode==='employees'||registryMode==='batches'
-  return <Page fill title={t('clinicalRecords.surveillanceCenter')} subtitle={t('surveillanceSubtitleV051')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_SURVEILLANCE}} onAction={action=>{if(action===UI_ACTIONS.CREATE){if(registryMode==='patients')setCreateOpen(true);else notify(language==='en'?'Create from the employee surveillance workflow.':'Η δημιουργία γίνεται από τη ροή επιτήρησης εργαζομένων.','info');return}if(action===UI_ACTIONS.PRINT){window.print();return}if(action===UI_ACTIONS.EXPORT){downloadRecordJson(exportRows,{filename:`surveillance-${registryMode}`});notify(t('currentListExported'),'success')}}}/> }>
-    <div className="workspace-summary surveillance-summary"><div className="module-summary-strip">{employeeMode?<><SummaryMetric icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active}/><SummaryMetric icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive}/><SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention}/><SummaryMetric icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck}/></>:<><SummaryMetric icon={Activity} label={t('activeSurveillance')} value={active}/><SummaryMetric icon={Clock3} label={t('clinicalRecords.needsReview')} value={due}/><SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation}/><SummaryMetric icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant}/></>}</div><div className="governance-banner compact-governance"><ShieldCheck size={16}/><span>{registryMode==='environmental'?t('clinicalRecords.environmentalSurveillanceGovernance'):t('clinicalRecords.parallelSurveillanceNote')}</span></div></div>
-    <nav className="tabs surveillance-domain-tabs canonical-module-tabs" aria-label={t('surveillanceCategoriesAria')}><button className={`tab ${registryMode==='patients'?'active':''}`} onClick={()=>setRegistryMode('patients')}><Activity size={14}/>{t('patients')} <span className="tab-count">{records.length}</span></button><button className={`tab ${registryMode==='employees'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?t('sensitiveEmployeeHealthPermissionRequired'):''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('employees')}><Users size={14}/>{t('employees')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeRecords.length}</span>:<LockKeyhole size={12}/>}</button><button className={`tab ${registryMode==='batches'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?t('sensitiveEmployeeHealthPermissionRequired'):''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('batches')}><Users size={14}/>{t('clinicalRecords.bulkSurveillance')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeBatches.length}</span>:<LockKeyhole size={12}/>}</button><button className={`tab ${registryMode==='environmental'?'active':''}`} disabled={!canSeeEnvironmental} onClick={()=>canSeeEnvironmental&&setRegistryMode('environmental')}><Microscope size={14}/>{t('clinicalRecords.environment')} <span className="tab-count">{environmental.length}</span></button></nav>
-    {registryMode==='patients'&&<div className="workspace-fill surface surveillance-workspace"><FilterBar query={query} onQueryChange={setQuery} placeholder={t('clinicalRecords.searchSurveillance')} activeAdvancedCount={(department!=='all'?1:0)+(resistance!=='all'?1:0)+(review!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setResistance('all');setReview('all')}} advanced={<><FilterSelect label={t('clinicalRecords.resistance')} value={resistance} onChange={setResistance}><option value="all">{t('all')}</option><option value="resistant">{t('clinicalRecords.mdrXdr')}</option><option value="none">{t('clinicalRecords.noResistanceFlag')}</option></FilterSelect><FilterSelect label={t('reassessment')} value={review} onChange={setReview}><option value="all">{t('all')}</option><option value="overdue">{t('overdue')}</option><option value="inProgress">{t('inProgress')}</option><option value="completed">{t('completed')}</option></FilterSelect></>}><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect></FilterBar>{loading?<div className="inline-empty">{t('loading')}</div>:rows.length?<Registry rows={rows} t={t} language={language} fmt={fmt} navigate={navigate}/>:<Empty title={language==='en'?'No surveillance records':'Δεν υπάρχουν καταγραφές επιτήρησης'} text={language==='en'?'No surveillance records have been stored for this organization yet.':'Δεν έχουν καταχωριστεί ακόμη εγγραφές επιτήρησης για τον συγκεκριμένο οργανισμό.'}/>}</div>}
-    {registryMode==='employees'&&<div className="workspace-fill surface surveillance-workspace">{loading?<div className="inline-empty">{t('loading')}</div>:employeeRecords.length?<EmployeeRegistry rows={employeeRecords} language={language} fmt={fmt}/>:<Empty title={language==='en'?'No employee surveillance records':'Δεν υπάρχουν καταγραφές επιτήρησης εργαζομένων'} text={language==='en'?'No employee surveillance records have been stored for this organization yet.':'Δεν έχουν καταχωριστεί ακόμη επιτηρήσεις εργαζομένων για τον συγκεκριμένο οργανισμό.'}/>}</div>}
-    {registryMode==='batches'&&<div className="workspace-fill surface surveillance-workspace">{loading?<div className="inline-empty">{t('loading')}</div>:employeeBatches.length?<BatchRegistry rows={employeeBatches} language={language} fmt={fmt}/>:<Empty title={language==='en'?'No bulk surveillance records':'Δεν υπάρχουν μαζικές επιτηρήσεις'} text={language==='en'?'No bulk employee surveillance records have been stored for this organization yet.':'Δεν έχουν καταχωριστεί ακόμη μαζικές επιτηρήσεις εργαζομένων για τον συγκεκριμένο οργανισμό.'}/>}</div>}
-    {registryMode==='environmental'&&<div className="workspace-fill surface surveillance-workspace">{loading?<div className="inline-empty">{t('loading')}</div>:environmental.length?<div className="surveillance-list surveillance-registry scroll-list"><div className="surveillance-registry-head"><span>{language==='en'?'Sample':'Δείγμα'}</span><span>{language==='en'?'Type / source':'Τύπος / πηγή'}</span><span>{t('department')}</span><span>{language==='en'?'Collected':'Συλλογή'}</span><span>{t('microbiology')}</span><span>{t('status')}</span><span>{language==='en'?'Priority':'Προτεραιότητα'}</span></div>{environmental.map(item=><article key={item.recordId||item.id} className="surveillance-registry-row" tabIndex={0} onClick={()=>navigate(`/laboratory/${item.id}`,{state:{returnTo:'/surveillance'}})}><div className="surv-main"><strong>{item.id}</strong></div><div><strong>{item.type||'—'}</strong><small>{item.source||'—'}</small></div><div>{item.department||'—'}</div><div>{fmt(item.collectedAt||item.requestedAt)}</div><div className="surv-micro"><strong>{item.organism||'—'}</strong>{item.resistance&&<span className="risk-badge">{item.resistance}</span>}</div><div className="surv-status"><span className={`status-badge ${item.status==='completed'?'':'active'}`}>{item.status||'—'}</span></div><div>{item.priority||'—'}</div></article>)}</div>:<Empty title={language==='en'?'No environmental surveillance records':'Δεν υπάρχουν περιβαλλοντικές καταγραφές'} text={language==='en'?'Water, surface and environmental laboratory samples for this organization will appear here.':'Τα δείγματα νερού, επιφανειών και περιβάλλοντος του συγκεκριμένου οργανισμού θα εμφανίζονται εδώ.'}/>}</div>}
-    {createOpen&&<ObserverDialog width="wide" eyebrow={language==='en'?'Surveillance':'Επιτήρηση'} title={language==='en'?'Start surveillance':'Έναρξη επιτήρησης'} subtitle={language==='en'?'The record will be stored in the organization database.':'Η εγγραφή θα αποθηκευτεί στη βάση του οργανισμού.'} onClose={()=>!saving&&setCreateOpen(false)} footer={<SaveButton loading={saving} disabled={!draft.patientId||!draft.startedAt||!draft.reason.trim()} onClick={createRecord}>{language==='en'?'Create surveillance':'Δημιουργία επιτήρησης'}</SaveButton>}><div className="entry-grid compact"><label className="field entry-span-2"><span>{t('patient')} *</span><select value={draft.patientId} onChange={event=>setDraft(current=>({...current,patientId:event.target.value}))}><option value="">{language==='en'?'Select patient…':'Επιλογή ασθενούς…'}</option>{patients.map(patient=><option key={patient.id} value={patient.id}>{patient.id} · {patient.name} · {patient.department||'—'}</option>)}</select></label><ManualDateField label={`${language==='en'?'Start date':'Ημερομηνία έναρξης'} *`} value={draft.startedAt} onChange={value=>setDraft(current=>({...current,startedAt:value}))}/><ManualDateField label={language==='en'?'Review due':'Επανεκτίμηση έως'} value={draft.reviewDue} onChange={value=>setDraft(current=>({...current,reviewDue:value}))}/><label className="field"><span>{language==='en'?'Room':'Θάλαμος'}</span><input value={draft.room} onChange={event=>setDraft(current=>({...current,room:event.target.value}))}/></label><label className="field"><span>{language==='en'?'Reason / indication':'Αιτία / ένδειξη'} *</span><input value={draft.reason} onChange={event=>setDraft(current=>({...current,reason:event.target.value}))}/></label></div></ObserverDialog>}
+
+  return <Page
+    fill
+    title={t('clinicalRecords.surveillanceCenter')}
+    subtitle={t('surveillanceSubtitleV051')}
+    actions={<RecordActions
+      actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]}
+      actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_SURVEILLANCE}}
+      onAction={action=>{
+        if(action===UI_ACTIONS.CREATE){setCreationMode('chooser');return}
+        if(action===UI_ACTIONS.PRINT){window.print();return}
+        if(action===UI_ACTIONS.EXPORT){downloadRecordJson(exportRows,{filename:`surveillance-${registryMode}`});notify(t('currentListExported'),'success')}
+      }}
+    />}
+  >
+    <div className="workspace-summary surveillance-summary">
+      <div className="module-summary-strip">
+        {employeeMode?<>
+          <SummaryMetric icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active}/>
+          <SummaryMetric icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive}/>
+          <SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention}/>
+          <SummaryMetric icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck}/>
+        </>:<>
+          <SummaryMetric icon={Activity} label={t('activeSurveillance')} value={active}/>
+          <SummaryMetric icon={Clock3} label={t('clinicalRecords.needsReview')} value={due}/>
+          <SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation}/>
+          <SummaryMetric icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant}/>
+        </>}
+      </div>
+      <div className="governance-banner compact-governance"><ShieldCheck size={16}/><span>{registryMode==='environmental'?t('clinicalRecords.environmentalSurveillanceGovernance'):t('clinicalRecords.parallelSurveillanceNote')}</span></div>
+    </div>
+
+    <nav className="tabs surveillance-domain-tabs canonical-module-tabs" aria-label={t('surveillanceCategoriesAria')}>
+      <button className={`tab ${registryMode==='patients'?'active':''}`} onClick={()=>setRegistryMode('patients')}><Activity size={14}/>{t('patients')} <span className="tab-count">{records.length}</span></button>
+      <button className={`tab ${registryMode==='employees'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?t('sensitiveEmployeeHealthPermissionRequired'):''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('employees')}><Users size={14}/>{t('employees')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeRecords.length}</span>:<LockKeyhole size={12}/>}</button>
+      <button className={`tab ${registryMode==='batches'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?t('sensitiveEmployeeHealthPermissionRequired'):''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('batches')}><Users size={14}/>{t('clinicalRecords.bulkSurveillance')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeBatches.length}</span>:<LockKeyhole size={12}/>}</button>
+      <button className={`tab ${registryMode==='environmental'?'active':''}`} disabled={!canSeeEnvironmental} onClick={()=>canSeeEnvironmental&&setRegistryMode('environmental')}><Microscope size={14}/>{t('clinicalRecords.environment')} <span className="tab-count">{environmental.length}</span></button>
+    </nav>
+
+    {registryMode==='patients'&&<div className="workspace-fill surface surveillance-workspace production-surveillance-workspace">
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('clinicalRecords.searchSurveillance')} activeAdvancedCount={(department!=='all'?1:0)+(resistance!=='all'?1:0)+(review!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setResistance('all');setReview('all')}} advanced={<><FilterSelect label={t('clinicalRecords.resistance')} value={resistance} onChange={setResistance}><option value="all">{t('all')}</option><option value="resistant">{t('clinicalRecords.mdrXdr')}</option><option value="none">{t('clinicalRecords.noResistanceFlag')}</option></FilterSelect><FilterSelect label={t('reassessment')} value={review} onChange={setReview}><option value="all">{t('all')}</option><option value="overdue">{t('overdue')}</option><option value="inProgress">{t('inProgress')}</option><option value="completed">{t('completed')}</option></FilterSelect></>}>
+        <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+      </FilterBar>
+      {loading?<div className="inline-empty">{t('loading')}</div>:<PatientRegistry rows={rows} t={t} language={language} fmt={fmt} navigate={navigate}/>} 
+    </div>}
+
+    {registryMode==='employees'&&<div className="workspace-fill surface surveillance-workspace production-surveillance-workspace">{loading?<div className="inline-empty">{t('loading')}</div>:<EmployeeRegistry rows={employeeRecords} language={language} fmt={fmt}/>}</div>}
+    {registryMode==='batches'&&<div className="workspace-fill surface surveillance-workspace production-surveillance-workspace">{loading?<div className="inline-empty">{t('loading')}</div>:<BatchRegistry rows={employeeBatches} language={language} fmt={fmt}/>}</div>}
+    {registryMode==='environmental'&&<div className="workspace-fill surface surveillance-workspace production-surveillance-workspace">{loading?<div className="inline-empty">{t('loading')}</div>:<EnvironmentalRegistry rows={environmental} language={language} t={t} fmt={fmt} navigate={navigate}/>}</div>}
+
+    {creationMode==='chooser'&&<SubjectChooser
+      language={language}
+      canEmployee={canSeeEmployeeSurveillance}
+      canEnvironmental={canSeeEnvironmental}
+      onClose={()=>setCreationMode(null)}
+      onPatient={()=>setCreationMode('patient')}
+      onEmployee={()=>setCreationMode('employee')}
+      onBulk={()=>setCreationMode('bulk')}
+      onEnvironmental={()=>{setCreationMode(null);navigate('/laboratory',{state:{returnTo:'/surveillance',createEnvironmental:true}})}}
+    />}
+    {creationMode==='patient'&&<ObserverDialog width="wide" eyebrow={language==='en'?'Patient surveillance':'Επιτήρηση ασθενούς'} title={language==='en'?'Start surveillance':'Έναρξη επιτήρησης'} subtitle={language==='en'?'The record will be stored in the organization database.':'Η εγγραφή θα αποθηκευτεί στη βάση του οργανισμού.'} onClose={()=>!saving&&setCreationMode(null)} footer={<SaveButton loading={saving} disabled={!draft.patientId||!draft.startedAt||!draft.reason.trim()} onClick={createPatientRecord}>{language==='en'?'Create surveillance':'Δημιουργία επιτήρησης'}</SaveButton>}>
+      <div className="entry-grid compact"><label className="field entry-span-2"><span>{t('patient')} *</span><select value={draft.patientId} onChange={event=>setDraft(current=>({...current,patientId:event.target.value}))}><option value="">{language==='en'?'Select patient…':'Επιλογή ασθενούς…'}</option>{patients.map(patient=><option key={patient.id} value={patient.id}>{patient.id} · {patient.name} · {patient.department||'—'}</option>)}</select></label><ManualDateField label={`${language==='en'?'Start date':'Ημερομηνία έναρξης'} *`} value={draft.startedAt} onChange={value=>setDraft(current=>({...current,startedAt:value}))}/><ManualDateField label={language==='en'?'Review due':'Επανεκτίμηση έως'} value={draft.reviewDue} onChange={value=>setDraft(current=>({...current,reviewDue:value}))}/><label className="field"><span>{language==='en'?'Room':'Θάλαμος'}</span><input value={draft.room} onChange={event=>setDraft(current=>({...current,room:event.target.value}))}/></label><label className="field"><span>{language==='en'?'Reason / indication':'Αιτία / ένδειξη'} *</span><input value={draft.reason} onChange={event=>setDraft(current=>({...current,reason:event.target.value}))}/></label></div>
+    </ObserverDialog>}
+    {creationMode==='employee'&&canSeeEmployeeSurveillance&&<ProductionEmployeeSurveillanceFlow mode="single" onClose={()=>setCreationMode(null)} onCreated={load}/>} 
+    {creationMode==='bulk'&&canSeeEmployeeSurveillance&&<ProductionEmployeeSurveillanceFlow mode="bulk" onClose={()=>setCreationMode(null)} onCreated={load}/>} 
   </Page>
 }
-function Registry({rows,t,language,fmt,navigate}){return <div className="surveillance-list surveillance-registry scroll-list"><div className="surveillance-registry-head"><span>{t('surveillance')}</span><span>{t('patient')}</span><span>{t('department')}</span><span>{t('clinicalRecords.startedAt')}</span><span>{t('microbiology')}</span><span>{t('status')}</span><span>{t('reassessment')}</span></div>{rows.map(item=>{const state=reviewState(item);return <article key={item.id} className="surveillance-registry-row" tabIndex={0} onClick={()=>navigate(`/surveillance/${item.id}`)}><div className="surv-main"><strong>{item.id}</strong><small>{item.patientId}</small></div><div className="surv-patient"><strong>{language==='el'?item.patient:item.patientEn}</strong></div><div>{language==='el'?item.department:item.departmentEn}</div><div>{fmt(item.startedAt)}</div><div className="surv-micro"><strong>{latestOrganism(item)||'—'}</strong>{latestResistance(item)&&<span className="risk-badge">{latestResistance(item)}</span>}</div><div className="surv-status"><span className={`status-badge ${item.status==='active'?'active':''}`}>{item.status==='active'?t('clinicalRecords.activeSurveillanceState'):t('completed')}</span></div><div className={`surv-review ${state==='overdue'?'overdue':''}`}><strong>{fmt(item.reviewDue)}</strong><small>{t(state)}</small></div></article>})}</div>}
-function EmployeeRegistry({rows,language,fmt}){return <div className="surveillance-list surveillance-registry scroll-list"><div className="surveillance-registry-head"><span>{language==='en'?'Surveillance':'Επιτήρηση'}</span><span>{language==='en'?'Employee':'Εργαζόμενος'}</span><span>{language==='en'?'Department':'Τμήμα'}</span><span>{language==='en'?'Started':'Έναρξη'}</span><span>{language==='en'?'Screening':'Έλεγχος'}</span><span>{language==='en'?'Result':'Αποτέλεσμα'}</span><span>{language==='en'?'Recheck':'Επανέλεγχος'}</span></div>{rows.map(item=><article key={item.recordId} className="surveillance-registry-row"><div className="surv-main"><strong>{item.id}</strong></div><div className="surv-patient"><strong>{language==='en'?item.employeeNameEn:item.employeeName}</strong><small>{item.employeeId}</small></div><div>{language==='en'?item.departmentEn:item.department}</div><div>{fmt(item.startedAt)}</div><div>{item.screeningTypes?.join(', ')||'—'}</div><div className="surv-status"><span className={`status-badge ${item.resultStatus==='positive'?'active':''}`}>{item.resultStatus||'pending'}</span></div><div className={`surv-review ${item.recheckDue&&item.status==='active'?'':''}`}><strong>{fmt(item.recheckDue)}</strong><small>{item.interventionStatus||'—'}</small></div></article>)}</div>}
-function BatchRegistry({rows,language,fmt}){return <div className="surveillance-list surveillance-registry scroll-list"><div className="surveillance-registry-head"><span>{language==='en'?'Batch':'Μαζική επιτήρηση'}</span><span>{language==='en'?'Employees':'Εργαζόμενοι'}</span><span>{language==='en'?'Department':'Τμήμα'}</span><span>{language==='en'?'Started':'Έναρξη'}</span><span>{language==='en'?'Screening':'Έλεγχος'}</span><span>{language==='en'?'Active':'Ενεργοί'}</span><span>{language==='en'?'Positive':'Θετικοί'}</span></div>{rows.map(item=><article key={item.recordId} className="surveillance-registry-row"><div className="surv-main"><strong>{item.id}</strong></div><div><strong>{item.employeeCount}</strong></div><div>{item.department||'—'}</div><div>{fmt(item.startedAt)}</div><div>{item.screeningTypes?.join(', ')||'—'}</div><div>{item.activeCount}</div><div>{item.positiveCount}</div></article>)}</div>}
-function Empty({title,text}){return <div className="empty-state"><strong>{title}</strong><span>{text}</span></div>}
+
+function SubjectChooser({language,canEmployee,canEnvironmental,onClose,onPatient,onEmployee,onBulk,onEnvironmental}){
+  const en=language==='en'
+  return <div className="modal-backdrop"><div className="entry-card surveillance-subject-chooser"><header><div><span className="eyebrow">{en?'Surveillance':'Επιτήρηση'}</span><h3>{en?'New surveillance':'Νέα επιτήρηση'}</h3><p>{en?'Choose the subject of the surveillance record.':'Επιλέξτε το αντικείμενο της επιτήρησης.'}</p></div><button className="icon-close" onClick={onClose}>×</button></header><div className="subject-choice-grid"><button onClick={onPatient}><span>01</span><strong>{en?'Patient':'Ασθενής'}</strong><small>{en?'Clinical surveillance episode':'Κλινικό επεισόδιο επιτήρησης'}</small></button><button disabled={!canEmployee} onClick={onEmployee}><span>02</span><strong>{en?'Employee':'Εργαζόμενος'}</strong><small>{en?'Individual employee screening':'Ατομικός έλεγχος εργαζομένου'}</small></button><button disabled={!canEmployee} onClick={onBulk}><span>03</span><strong>{en?'Bulk employee surveillance':'Μαζική επιτήρηση εργαζομένων'}</strong><small>{en?'Department or multi-employee screening':'Έλεγχος πολλών εργαζομένων'}</small></button><button disabled={!canEnvironmental} onClick={onEnvironmental}><span>04</span><strong>{en?'Environment':'Περιβάλλον'}</strong><small>{en?'Water, surfaces or environmental sample':'Νερό, επιφάνειες ή περιβαλλοντικό δείγμα'}</small></button></div></div></div>
+}
+
+function PatientRegistry({rows,t,language,fmt,navigate}){
+  return <div className="surveillance-list surveillance-registry scroll-list"><div className="surveillance-registry-head"><span>{t('surveillance')}</span><span>{t('patient')}</span><span>{t('department')}</span><span>{t('clinicalRecords.startedAt')}</span><span>{t('microbiology')}</span><span>{t('status')}</span><span>{t('reassessment')}</span></div>{rows.length?rows.map(item=>{const state=reviewState(item);return <article key={item.id} className="surveillance-registry-row" tabIndex={0} onClick={()=>navigate(`/surveillance/${item.id}`)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();navigate(`/surveillance/${item.id}`)}}><div className="surv-main"><strong>{item.id}</strong><small>{item.patientId}</small></div><div className="surv-patient"><strong>{language==='el'?item.patient:item.patientEn}</strong></div><div>{language==='el'?item.department:item.departmentEn}</div><div>{fmt(item.startedAt)}</div><div className="surv-micro"><strong>{latestOrganism(item)||'—'}</strong>{latestResistance(item)&&<span className="risk-badge">{latestResistance(item)}</span>}</div><div className="surv-status"><span className={`status-badge ${item.status==='active'?'active':''}`}>{item.status==='active'?t('clinicalRecords.activeSurveillanceState'):t('completed')}</span>{item.isolation?.status==='active'&&<span className="status-badge active">{t('isolation')}</span>}</div><div className={`surv-review ${state==='overdue'?'overdue':''}`}><strong>{fmt(item.reviewDue)}</strong><small>{t(state)}</small></div></article>}):<RegistryEmpty title={language==='en'?'No surveillance records':'Δεν υπάρχουν καταγραφές επιτήρησης'} text={language==='en'?'No surveillance records have been stored for this organization yet.':'Δεν έχουν καταχωριστεί ακόμη εγγραφές επιτήρησης για τον συγκεκριμένο οργανισμό.'}/>}</div>
+}
+
+function EmployeeRegistry({rows,language,fmt}){
+  const en=language==='en'
+  return <div className="surveillance-list surveillance-registry scroll-list"><div className="surveillance-registry-head"><span>{en?'Surveillance':'Επιτήρηση'}</span><span>{en?'Employee':'Εργαζόμενος'}</span><span>{en?'Department':'Τμήμα'}</span><span>{en?'Started':'Έναρξη'}</span><span>{en?'Screening':'Έλεγχος'}</span><span>{en?'Result':'Αποτέλεσμα'}</span><span>{en?'Recheck':'Επανέλεγχος'}</span></div>{rows.length?rows.map(item=><article key={item.recordId||item.id} className="surveillance-registry-row"><div className="surv-main"><strong>{item.id}</strong><small>{item.employeeId}</small></div><div className="surv-patient"><strong>{en?item.employeeNameEn:item.employeeName}</strong></div><div>{en?item.departmentEn:item.department}</div><div>{fmt(item.startedAt)}</div><div>{(item.screeningTypes||[]).join(', ')||'—'}</div><div className="surv-status"><span className={`status-badge ${item.resultStatus==='positive'?'active':''}`}>{item.resultStatus||'pending'}</span></div><div className={`surv-review ${item.recheckDue&&item.status==='active'?'overdue':''}`}><strong>{fmt(item.recheckDue)}</strong><small>{item.interventionStatus||'—'}</small></div></article>):<RegistryEmpty title={en?'No employee surveillance records':'Δεν υπάρχουν καταγραφές επιτήρησης εργαζομένων'} text={en?'No employee surveillance records have been stored for this organization yet.':'Δεν έχουν καταχωριστεί ακόμη επιτηρήσεις εργαζομένων για τον συγκεκριμένο οργανισμό.'}/>}</div>
+}
+
+function BatchRegistry({rows,language,fmt}){
+  const en=language==='en'
+  return <div className="surveillance-list surveillance-registry scroll-list"><div className="surveillance-registry-head"><span>{en?'Batch':'Μαζική επιτήρηση'}</span><span>{en?'Department':'Τμήμα'}</span><span>{en?'Started':'Έναρξη'}</span><span>{en?'Employees':'Εργαζόμενοι'}</span><span>{en?'Active':'Ενεργές'}</span><span>{en?'Positive':'Θετικές'}</span><span>{en?'Screening':'Έλεγχος'}</span></div>{rows.length?rows.map(item=><article key={item.recordId||item.id} className="surveillance-registry-row"><div className="surv-main"><strong>{item.id}</strong></div><div>{en?item.departmentEn:item.department||'—'}</div><div>{fmt(item.startedAt)}</div><div><strong>{item.employeeCount}</strong></div><div>{item.activeCount}</div><div>{item.positiveCount}</div><div>{(item.screeningTypes||[]).join(', ')||'—'}</div></article>):<RegistryEmpty title={en?'No bulk surveillance records':'Δεν υπάρχουν μαζικές επιτηρήσεις'} text={en?'No bulk employee surveillance records have been stored for this organization yet.':'Δεν έχουν καταχωριστεί ακόμη μαζικές επιτηρήσεις εργαζομένων για τον συγκεκριμένο οργανισμό.'}/>}</div>
+}
+
+function EnvironmentalRegistry({rows,language,t,fmt,navigate}){
+  const en=language==='en'
+  return <div className="surveillance-list surveillance-registry scroll-list"><div className="surveillance-registry-head"><span>{en?'Sample':'Δείγμα'}</span><span>{en?'Type / source':'Τύπος / πηγή'}</span><span>{t('department')}</span><span>{en?'Collected':'Συλλογή'}</span><span>{t('microbiology')}</span><span>{t('status')}</span><span>{en?'Priority':'Προτεραιότητα'}</span></div>{rows.length?rows.map(item=><article key={item.recordId||item.id} className="surveillance-registry-row" tabIndex={0} onClick={()=>navigate(`/laboratory/${item.id}`,{state:{returnTo:'/surveillance'}})}><div className="surv-main"><strong>{item.id}</strong></div><div><strong>{item.type||'—'}</strong><small>{item.source||'—'}</small></div><div>{item.department||'—'}</div><div>{fmt(item.collectedAt||item.requestedAt)}</div><div className="surv-micro"><strong>{item.organism||'—'}</strong>{item.resistance&&<span className="risk-badge">{item.resistance}</span>}</div><div className="surv-status"><span className={`status-badge ${item.status==='completed'?'':'active'}`}>{item.status||'—'}</span></div><div>{item.priority||'—'}</div></article>):<RegistryEmpty title={en?'No environmental surveillance records':'Δεν υπάρχουν περιβαλλοντικές καταγραφές'} text={en?'Water, surface and environmental laboratory samples for this organization will appear here.':'Τα δείγματα νερού, επιφανειών και περιβάλλοντος του συγκεκριμένου οργανισμού θα εμφανίζονται εδώ.'}/>}</div>
+}
+
+function RegistryEmpty({title,text}){return <div className="empty-state surveillance-registry-empty"><strong>{title}</strong><span>{text}</span></div>}
 function SummaryMetric({icon:Icon,label,value}){return <MetricCard className="summary-metric" icon={Icon} label={label} value={value}/>}
