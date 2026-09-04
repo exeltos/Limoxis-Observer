@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 
 // One-off, idempotent refactor runner for the Platform Owner control-plane split.
+// Organization workspace refinement batch.
 const centerPath='src/features/workspaces/PlatformCenterPage.jsx'
 const orgPath='src/features/platform/PlatformOrganizationRecord.jsx'
 const cssPath='src/styles/platform-owner-polish.css'
