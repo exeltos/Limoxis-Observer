@@ -1,48 +1,7 @@
-export const handHygieneRows=[
-  {id:'HH-2608-014',date:'2026-08-26',departmentEl:'ΜΕΘ',departmentEn:'ICU',profession:'nursing',observations:5,compliant:4,rate:80,observer:'Μ. Παπαδοπούλου',session:{facility:'ΙΑΣΩ Θεσσαλίας',startTime:'09:00',endTime:'09:25'},whoObservations:[
-    {id:'WHO-1',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment1',action:'HR',gloves:false,notes:''},
-    {id:'WHO-2',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment2',action:'HR',gloves:false,notes:''},
-    {id:'WHO-3',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment3',action:'HW',gloves:true,notes:''},
-    {id:'WHO-4',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment4',action:'MISSED',gloves:false,notes:'Δεν πραγματοποιήθηκε υγιεινή χεριών.'},
-    {id:'WHO-5',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment5',action:'HR',gloves:false,notes:''}
-  ]},
-  {id:'HH-2608-013',date:'2026-08-25',departmentEl:'Χειρουργική',departmentEn:'Surgery',profession:'medical',observations:4,compliant:3,rate:75,observer:'Ν. Γεωργίου',session:{facility:'ΙΑΣΩ Θεσσαλίας',startTime:'11:10',endTime:'11:35'},whoObservations:[
-    {id:'WHO-6',professionalsCount:1,professionalCategory:'Ιατρός',moment:'moment1',action:'HR',gloves:false,notes:''},
-    {id:'WHO-7',professionalsCount:1,professionalCategory:'Ιατρός',moment:'moment2',action:'MISSED',gloves:true,notes:''},
-    {id:'WHO-8',professionalsCount:1,professionalCategory:'Ιατρός',moment:'moment4',action:'HR',gloves:false,notes:''},
-    {id:'WHO-9',professionalsCount:1,professionalCategory:'Ιατρός',moment:'moment5',action:'HW',gloves:false,notes:''}
-  ]},
-  {id:'HH-2608-012',date:'2026-08-24',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',profession:'nursing',observations:5,compliant:5,rate:100,observer:'Α. Δημητρίου',session:{facility:'ΙΑΣΩ Θεσσαλίας',startTime:'08:30',endTime:'08:55'},whoObservations:[
-    {id:'WHO-10',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment1',action:'HR',gloves:false,notes:''},
-    {id:'WHO-11',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment2',action:'HR',gloves:false,notes:''},
-    {id:'WHO-12',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment3',action:'HW',gloves:true,notes:''},
-    {id:'WHO-13',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment4',action:'HR',gloves:false,notes:''},
-    {id:'WHO-14',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment5',action:'HR',gloves:false,notes:''}
-  ]},
-  {id:'HH-2608-011',date:'2026-08-22',departmentEl:'ΜΕΘ',departmentEn:'ICU',profession:'medical',observations:5,compliant:3,rate:60,observer:'Μ. Παπαδοπούλου',session:{facility:'ΙΑΣΩ Θεσσαλίας',startTime:'14:00',endTime:'14:20'},whoObservations:[
-    {id:'WHO-15',professionalsCount:1,professionalCategory:'Ιατρός',moment:'moment1',action:'MISSED',gloves:false,notes:''},
-    {id:'WHO-16',professionalsCount:1,professionalCategory:'Ιατρός',moment:'moment2',action:'HR',gloves:false,notes:''},
-    {id:'WHO-17',professionalsCount:1,professionalCategory:'Ιατρός',moment:'moment3',action:'HW',gloves:true,notes:''},
-    {id:'WHO-18',professionalsCount:1,professionalCategory:'Ιατρός',moment:'moment4',action:'MISSED',gloves:false,notes:''},
-    {id:'WHO-19',professionalsCount:1,professionalCategory:'Ιατρός',moment:'moment5',action:'HR',gloves:false,notes:''}
-  ]},
-]
-export const wasteRows=[
-  {id:'W-2608-09',date:'2026-08-26',departmentEl:'ΜΕΘ',departmentEn:'ICU',wasteType:'ΕΑΑΜ',type:'ΕΑΑΜ',typeEn:'Infectious healthcare waste',weight:42.5,containers:7,patientDays:372,indicator:114.25,responsible:'Μ. Παπαδοπούλου',documentNumber:'EAAM-0826',collectionCompany:'EcoMed',notes:'',status:'completed'},
-  {id:'W-2608-08',date:'2026-08-25',departmentEl:'Χειρουργική',departmentEn:'Surgery',wasteType:'ΜΕΑ',type:'ΜΕΑ',typeEn:'Mixed hazardous waste',weight:31.2,containers:5,patientDays:318,indicator:98.11,responsible:'Ν. Γεωργίου',documentNumber:'MEA-0825',collectionCompany:'EcoMed',notes:'',status:'completed'},
-  {id:'W-2608-07',date:'2026-08-24',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',wasteType:'ΕΑΑΜ',type:'ΕΑΑΜ',typeEn:'Infectious healthcare waste',weight:18.8,containers:3,patientDays:441,indicator:42.63,responsible:'Α. Δημητρίου',documentNumber:'EAAM-0824',collectionCompany:'EcoMed',notes:'',status:'completed'},
-]
-export const antisepticRows=[
-  {id:'A-2026-08-ICU',period:'2026-08',departmentEl:'ΜΕΘ',departmentEn:'ICU',product:'Αλκοολούχο αντισηπτικό χεριών',productEn:'Alcohol-based hand rub',litres:48.5,patientDays:372,patientDaysSource:'library',indicator:130.38,indicatorEligible:true,method:'pharmacy_issue',referenceNumber:'ΦΑΡΜ-2026-08-ICU',responsible:'Μ. Παπαδοπούλου',notes:'',status:'completed'},
-  {id:'A-2026-08-SUR',period:'2026-08',departmentEl:'Χειρουργική',departmentEn:'Surgery',product:'Αλκοολούχο αντισηπτικό χεριών',productEn:'Alcohol-based hand rub',litres:35.0,patientDays:318,patientDaysSource:'library',indicator:110.06,indicatorEligible:true,method:'warehouse_issue',referenceNumber:'ΑΠΟΘ-2026-08-SUR',responsible:'Ν. Γεωργίου',notes:'',status:'completed'},
-  {id:'A-2026-08-IM',period:'2026-08',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',product:'Αλκοολούχο αντισηπτικό χεριών',productEn:'Alcohol-based hand rub',litres:29.5,patientDays:441,patientDaysSource:'library',indicator:66.89,indicatorEligible:true,method:'stock_difference',referenceNumber:'STOCK-2026-08-IM',responsible:'Α. Δημητρίου',notes:'',status:'completed'},
-  {id:'A-2026-08-CHX',period:'2026-08',departmentEl:'Χειρουργική',departmentEn:'Surgery',product:'Χλωρεξιδίνη',productEn:'Chlorhexidine',litres:8.2,patientDays:318,patientDaysSource:'library',indicator:null,indicatorEligible:false,method:'pharmacy_issue',referenceNumber:'ΦΑΡΜ-CHX-0826',responsible:'Ν. Γεωργίου',notes:'Παρακολουθείται ως κατανάλωση αντισηπτικού εκτός δείκτη ABHR.',status:'completed'},
-]
-export const bundleRows=[
- {id:'B-CLABSI-ICU-0826',bundle:'CLABSI',templateId:'CLABSI',templateName:'CLABSI',templateTitle:'Κεντρικός φλεβικός καθετήρας',templateVersion:'1.0',templateSource:'WHO 2026 · CDC',departmentEl:'ΜΕΘ',departmentEn:'ICU',date:'2026-08-26',period:'2026-08',shift:'Πρωινή',patientRef:'P-1024',deviceRef:'CVC-441',score:89,allOrNone:false,applicableCount:9,failedCount:1,status:'completed',owner:'Μ. Παπαδοπούλου',answers:{necessity:'yes',hand_hygiene:'yes',aseptic:'yes',barrier:'yes',skin:'yes',site:'yes',hub:'no',dressing:'yes',remove:'yes'},answerNotes:{hub:'Δεν τεκμηριώθηκε πλήρης απολύμανση συνδέσμου πριν την πρόσβαση.'},findings:[{id:'hub',label:'Απολύμανση συνδέσμου πριν από πρόσβαση',note:'Δεν τεκμηριώθηκε πλήρης απολύμανση συνδέσμου πριν την πρόσβαση.'}]},
- {id:'B-CAUTI-IM-0825',bundle:'CAUTI',templateId:'CAUTI',templateName:'CAUTI',templateTitle:'Ουροκαθετήρας',templateVersion:'1.0',templateSource:'CDC/HICPAC',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',date:'2026-08-25',period:'2026-08',shift:'Πρωινή',patientRef:'P-1008',deviceRef:'UC-218',score:100,allOrNone:true,applicableCount:8,failedCount:0,status:'completed',owner:'Α. Δημητρίου',answers:{indication:'yes',aseptic:'yes',trained:'yes',closed:'yes',flow:'yes',handling:'yes',daily:'yes',remove:'yes'},answerNotes:{},findings:[]},
- {id:'B-VAP-ICU-0824',bundle:'VAP',templateId:'VAP',templateName:'VAP / VAE',templateTitle:'Μηχανικός αερισμός',templateVersion:'1.0',templateSource:'SHEA/IDSA/APIC/AHA/TJC 2022',departmentEl:'ΜΕΘ',departmentEn:'ICU',date:'2026-08-24',period:'2026-08',shift:'Απογευματινή',patientRef:'P-1019',deviceRef:'VENT-09',score:86,allOrNone:false,applicableCount:7,failedCount:1,status:'completed',owner:'Μ. Παπαδοπούλου',answers:{necessity:'yes',sedation:'yes',mobility:'no',oral:'yes',position:'yes',circuit:'yes',secretion:'yes'},answerNotes:{mobility:'Δεν πραγματοποιήθηκε κινητοποίηση λόγω κλινικής αστάθειας· απαιτείται επανεκτίμηση.'},findings:[{id:'mobility',label:'Πρώιμη κινητοποίηση όταν είναι κλινικά εφικτή',note:'Δεν πραγματοποιήθηκε κινητοποίηση λόγω κλινικής αστάθειας· απαιτείται επανεκτίμηση.'}]},
- {id:'B-SSI-SUR-0823',bundle:'SSI',templateId:'SSI',templateName:'SSI',templateTitle:'Χειρουργική λοίμωξη',templateVersion:'1.0',templateSource:'CDC · WHO',departmentEl:'Χειρουργική',departmentEn:'Surgery',date:'2026-08-23',period:'2026-08',shift:'Πρωινή',patientRef:'P-0996',deviceRef:'',score:100,allOrNone:true,applicableCount:7,failedCount:0,status:'completed',owner:'Ν. Γεωργίου',answers:{antibiotic:'yes',hair:'yes',skin:'yes',glucose:'yes',temperature:'yes',asepsis:'yes',wound:'yes'},answerNotes:{},findings:[]},
-  {id:'B-PIV-IM-0822',bundle:'PIV',templateId:'PIV',templateName:'Peripheral IV',templateTitle:'Περιφερικός φλεβικός καθετήρας',templateVersion:'1.0',templateSource:'WHO · Peripheral catheter guideline 2024',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',date:'2026-08-22',period:'2026-08',shift:'Πρωινή',patientRef:'P-0974',deviceRef:'PIV-662',score:88,allOrNone:false,applicableCount:8,failedCount:1,status:'completed',owner:'Α. Δημητρίου',answers:{indication:'yes',hand_hygiene:'yes',aseptic:'yes',skin:'yes',site:'yes',hub:'no',dressing:'yes',remove:'yes'},answerNotes:{hub:'Απαιτείται ενίσχυση της τυποποιημένης απολύμανσης πριν από πρόσβαση.'},findings:[{id:'hub',label:'Απολύμανση συνδέσμου πριν από κάθε πρόσβαση',note:'Απαιτείται ενίσχυση της τυποποιημένης απολύμανσης πριν από πρόσβαση.'}]},
-  {id:'B-HD-0821',bundle:'HD',templateId:'HD',templateName:'Hemodialysis',templateTitle:'Αγγειακή προσπέλαση αιμοκάθαρσης',templateVersion:'1.0',templateSource:'CDC · Dialysis infection prevention',departmentEl:'ΜΕΘ',departmentEn:'ICU',date:'2026-08-21',period:'2026-08',shift:'Απογευματινή',patientRef:'P-0955',deviceRef:'HD-CVC-18',score:100,allOrNone:true,applicableCount:8,failedCount:0,status:'completed',owner:'Μ. Παπαδοπούλου',answers:{hand_hygiene:'yes',aseptic:'yes',hub:'yes',site:'yes',dressing:'yes',medication:'yes',cleaning:'yes',surveillance:'yes'},answerNotes:{},findings:[]},
-]
+// Prevention operational registries start empty.
+// Demo/preview datasets must be injected explicitly by a dedicated demo layer,
+// never bundled into the production registry source.
+export const handHygieneRows=[]
+export const wasteRows=[]
+export const antisepticRows=[]
+export const bundleRows=[]
