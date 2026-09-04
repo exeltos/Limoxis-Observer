@@ -1,6 +1,5 @@
 import { useMemo,useState } from 'react'
 import { CheckCircle2,Plus,Trash2 } from 'lucide-react'
-import { demoLibrarySeed } from '../management/managementData'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -19,16 +18,16 @@ export const WHO_PROFESSIONS=[['Ιατρός','Physician'],['Νοσηλευτή�
 
 const blankObservation=()=>({id:'',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment1',action:'HR',gloves:false,notes:''})
 
-export function WhoHandHygieneModal({onClose,onSave,fixedDepartment='',initialRecord=null}) {
+export function WhoHandHygieneModal({onClose,onSave,fixedDepartment='',initialRecord=null,departments=[]}) {
  const {profile,user}=useAuth()
  const {language}=useLanguage(); const en=language==='en'
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
  const {confirm,notify}=useFeedback()
- const departments=useMemo(()=>demoLibrarySeed.departments.map(([el,en])=>({el,en})),[])
  const today=new Date().toISOString().slice(0,10)
+ const firstDepartment=fixedDepartment||departments[0]?.el||''
  const [session,setSession]=useState(()=>initialRecord?.session
-   ? {...initialRecord.session,department:initialRecord.departmentEl||initialRecord.session.department||fixedDepartment||departments[0]?.el||'',date:initialRecord.date||initialRecord.session.date||today,observer:initialRecord.observer||initialRecord.session.observer||actor.name}
-   : {facility:'ΙΑΣΩ Θεσσαλίας',department:fixedDepartment||departments[0]?.el||'',date:today,observer:actor.name,startTime:'',endTime:''})
+   ? {...initialRecord.session,department:initialRecord.departmentEl||initialRecord.session.department||firstDepartment,date:initialRecord.date||initialRecord.session.date||today,observer:initialRecord.observer||initialRecord.session.observer||actor.name}
+   : {facility:'',department:firstDepartment,date:today,observer:actor.name,startTime:'',endTime:''})
  const [current,setCurrent]=useState(blankObservation())
  const [items,setItems]=useState(()=>initialRecord?.whoObservations?JSON.parse(JSON.stringify(initialRecord.whoObservations)):[])
 
@@ -71,12 +70,12 @@ export function WhoHandHygieneModal({onClose,onSave,fixedDepartment='',initialRe
      session,
      whoObservations:items,
      whoStats:stats,
-     createdAt:new Date().toISOString(),
-     createdBy:actor.name,
-     createdById:actor.id,
-      updatedAt:new Date().toISOString(),
-      updatedBy:actor.name,
-      updatedById:actor.id,
+     createdAt:initialRecord?.createdAt||new Date().toISOString(),
+     createdBy:initialRecord?.createdBy||actor.name,
+     createdById:initialRecord?.createdById||actor.id,
+     updatedAt:new Date().toISOString(),
+     updatedBy:actor.name,
+     updatedById:actor.id,
    })
  }
 
@@ -86,7 +85,7 @@ export function WhoHandHygieneModal({onClose,onSave,fixedDepartment='',initialRe
   <div className="who-observation-body">
    <section className="who-session-grid">
     <ManualDateField label={en?'Date *':'Ημερομηνία *'} value={session.date} onChange={v=>setS('date',v)}/>
-    <label><span>{en?'Department *':'Τμήμα *'}</span><select value={session.department} disabled={Boolean(fixedDepartment)} onChange={e=>setS('department',e.target.value)}>{departments.map(d=><option key={d.el} value={d.el}>{d.el}</option>)}</select></label>
+    <label><span>{en?'Department *':'Τμήμα *'}</span><select value={session.department} disabled={Boolean(fixedDepartment)} onChange={e=>setS('department',e.target.value)}>{departments.map(d=><option key={d.id||d.el} value={d.el}>{en?(d.en||d.el):d.el}</option>)}</select></label>
     <label><span>{en?'Observer':'Παρατηρητής'}</span><input value={session.observer} readOnly/></label>
     <TimeField label={en?'Start':'Έναρξη'} value={session.startTime} onChange={v=>setS('startTime',v)}/>
     <TimeField label={en?'End':'Λήξη'} value={session.endTime} onChange={v=>setS('endTime',v)}/>
