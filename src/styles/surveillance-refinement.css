@@ -1,0 +1,34 @@
+/* Canonical Surveillance workspace refinement.
+   Scoped to Surveillance-only classes so accepted design-system patterns elsewhere remain unchanged. */
+
+.surveillance-summary{margin-bottom:10px}
+.surveillance-summary .module-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.surveillance-summary .summary-metric{min-height:78px;padding:12px 14px;border-radius:12px}
+.surveillance-summary .summary-metric>div{gap:10px}
+.surveillance-summary .summary-metric svg{width:18px;height:18px}
+.surveillance-summary .summary-metric strong{font-size:22px;line-height:1}
+.surveillance-summary .summary-metric span{font-size:11px}
+.surveillance-summary .compact-governance{min-height:38px;margin:0;padding:8px 12px;font-size:11.5px}
+
+.surveillance-domain-tabs{margin:0;border:1px solid var(--line);border-bottom:0;border-radius:12px 12px 0 0;padding:7px 10px;background:var(--surface);gap:3px}
+.surveillance-domain-tabs .tab{min-height:36px;padding:7px 10px}
+.surveillance-domain-tabs .tab:disabled{opacity:.58;color:#7d8997;cursor:not-allowed}
+.surveillance-domain-tabs .tab:disabled svg{opacity:.82}
+.surveillance-domain-tabs .tab-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:rgba(25,74,116,.08);font-size:10px}
+
+.production-surveillance-workspace{margin:0;border-radius:0 0 12px 12px;border-top:1px solid var(--line);padding:0!important;min-height:0!important;overflow:hidden;background:var(--surface)}
+.production-surveillance-workspace .filter-bar{margin:0;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 12px;background:#fff}
+.production-surveillance-workspace .filter-bar input{min-height:38px}
+
+.production-surveillance-workspace .surveillance-registry{border:0;border-radius:0;min-height:0;max-height:calc(100vh - 455px);overflow:auto}
+.production-surveillance-workspace .surveillance-registry-head{position:sticky;top:0;z-index:2;background:#f7f9fb;border-bottom:1px solid var(--line)}
+.production-surveillance-workspace .surveillance-registry-head>span{padding-top:10px;padding-bottom:10px}
+.production-surveillance-workspace .surveillance-registry-row{min-height:58px}
+.production-surveillance-workspace .surveillance-registry-empty{min-height:190px;padding:30px 24px;background:#fff}
+.production-surveillance-workspace .surveillance-registry-empty strong{font-size:15px}
+.production-surveillance-workspace .surveillance-registry-empty span{font-size:12px;line-height:1.5}
+
+@media(max-width:1200px){
+  .surveillance-summary .module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .production-surveillance-workspace .surveillance-registry{max-height:calc(100vh - 500px)}
+}
