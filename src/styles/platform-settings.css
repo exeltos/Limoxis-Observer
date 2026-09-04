@@ -1,0 +1,39 @@
+.platform-settings-page .platform-form-section{padding:14px 16px}
+.platform-settings-page .platform-settings-defaults-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-width:860px}
+.platform-settings-page .platform-settings-notice-grid{grid-template-columns:minmax(180px,220px) minmax(180px,220px) minmax(0,1fr);align-items:start}
+.platform-settings-page .field{display:grid;gap:6px}
+.platform-settings-page .field>span{font-size:10px;font-weight:700;color:var(--lo-color-muted)}
+.platform-settings-page .field input,
+.platform-settings-page .field select,
+.platform-settings-page .field textarea{
+  width:100%;
+  border:1px solid var(--lo-color-border);
+  border-radius:var(--lo-radius-control);
+  background:var(--lo-color-surface);
+  color:var(--lo-color-text);
+  font:inherit;
+  font-size:11.5px;
+  outline:none;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+.platform-settings-page .field input,
+.platform-settings-page .field select{height:38px;min-height:38px;padding:0 10px}
+.platform-settings-page .field textarea{min-height:96px;padding:10px 11px;line-height:1.5;resize:vertical}
+.platform-settings-page .field input:focus,
+.platform-settings-page .field select:focus,
+.platform-settings-page .field textarea:focus{border-color:color-mix(in srgb,var(--lo-color-primary) 55%,var(--lo-color-border));box-shadow:0 0 0 3px color-mix(in srgb,var(--lo-color-primary) 10%,transparent)}
+.platform-settings-page .field-hint{font-size:9.75px;line-height:1.4;color:var(--lo-color-muted)}
+.platform-settings-page .platform-settings-duration-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);overflow:hidden;background:var(--lo-color-surface)}
+.platform-settings-page .platform-settings-duration-control input{border:0;border-radius:0;box-shadow:none}
+.platform-settings-page .platform-settings-duration-control span{padding:0 11px;border-left:1px solid var(--lo-color-border);color:var(--lo-color-muted);font-size:10.5px;font-weight:700;white-space:nowrap}
+.platform-settings-page .platform-settings-message-field{grid-column:1/-1}
+@media (max-width:900px){
+  .platform-settings-page .platform-settings-defaults-grid,
+  .platform-settings-page .platform-settings-notice-grid{grid-template-columns:1fr 1fr;max-width:none}
+  .platform-settings-page .platform-settings-message-field{grid-column:1/-1}
+}
+@media (max-width:640px){
+  .platform-settings-page .platform-settings-defaults-grid,
+  .platform-settings-page .platform-settings-notice-grid{grid-template-columns:1fr}
+  .platform-settings-page .platform-settings-message-field{grid-column:auto}
+}
