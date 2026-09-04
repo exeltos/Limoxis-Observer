@@ -628,3 +628,27 @@
 @media(max-width:760px){
   .platform-owner-user-expanded-row>td{padding:10px 6px 14px!important}
 }
+
+
+/* Platform Owner · user management true card workspace */
+.platform-user-card-body{padding:18px 18px 16px;background:var(--lo-color-surface)}
+.platform-user-card-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.platform-user-card-field{min-width:0;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface-soft,#f6f8fb);display:flex;flex-direction:column;gap:5px}
+.platform-user-card-field span{font-size:9.5px;font-weight:800;letter-spacing:.03em;color:var(--lo-color-muted);text-transform:uppercase}
+.platform-user-card-field strong{font-size:12px;font-weight:650;color:var(--lo-color-text);overflow-wrap:anywhere}
+.platform-user-card-section{padding:16px 0;border-top:1px solid var(--lo-color-border)}
+.platform-user-card-section-heading{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+.platform-user-card-section-heading strong{font-size:12.5px;color:var(--lo-color-text)}
+.platform-user-card-section-heading span{font-size:10.5px;color:var(--lo-color-muted)}
+.platform-user-card-role-select{width:min(100%,420px)!important}
+.platform-user-card-footer{display:flex;align-items:center;gap:9px;padding-top:14px;border-top:1px solid var(--lo-color-border)}
+.platform-user-card-footer .button{min-height:40px}
+.platform-user-management-panel{overflow:hidden!important}
+.platform-user-management-panel *{cursor:default}
+.platform-user-management-panel select,.platform-user-management-panel button{cursor:pointer}
+.platform-user-management-panel .platform-user-card-body:hover,
+.platform-user-management-panel .platform-user-card-grid:hover,
+.platform-user-management-panel .platform-user-card-field:hover,
+.platform-user-management-panel .platform-user-card-section:hover{background:inherit!important}
+@media(max-width:1050px){.platform-user-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.platform-user-card-grid{grid-template-columns:1fr}.platform-user-card-footer{align-items:stretch;flex-direction:column}.platform-user-card-footer .button{width:100%}}
