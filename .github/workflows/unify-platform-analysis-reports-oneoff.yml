@@ -1,0 +1,20 @@
+name: Unify platform analysis reports one off
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/unify-platform-analysis-reports.mjs
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/unify-platform-analysis-reports.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformOrganizationRecord.jsx tests/platformAnalysisReportsRouting.test.js
+          git commit -m "fix(platform): route organization analysis directly to reports"
+          git push
