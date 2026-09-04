@@ -106,6 +106,25 @@
   border-radius:11px 11px 0 0!important
 }
 
+/* Operational full-workspace pattern: no outer card, use the whole content canvas. */
+.controls-page{max-width:none!important}
+.controls-fullscreen-workspace{
+  border:0!important;border-radius:0!important;background:transparent!important;
+  box-shadow:none!important;overflow:visible!important
+}
+.controls-fullscreen-workspace .filter-system{
+  border:1px solid var(--line)!important;border-radius:11px 11px 0 0!important;
+  border-bottom:1px solid var(--line)!important
+}
+.controls-fullscreen-workspace .scroll-table{
+  background:#fff;border-left:1px solid var(--line);border-right:1px solid var(--line);
+  max-height:calc(100vh - 285px)
+}
+.controls-fullscreen-workspace .registry-pagination{
+  border:1px solid var(--line);border-top:1px solid var(--line);
+  border-radius:0 0 11px 11px
+}
+
 /* Canonical empty registry: table header -> concise message -> pagination. */
 .registry-empty-state{
   min-height:132px;height:132px;display:flex;flex-direction:column;align-items:center;
