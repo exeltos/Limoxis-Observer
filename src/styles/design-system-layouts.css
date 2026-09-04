@@ -586,3 +586,45 @@
 .platform-user-employee-link .platform-role-select{flex:1;min-width:0}
 .platform-user-linked-employee{display:block;margin-top:7px;color:var(--lo-color-text-muted);font-size:11px}
 @media(max-width:760px){.platform-user-employee-link{align-items:stretch;flex-direction:column}.platform-user-employee-link .button{width:100%}}
+
+
+/* Platform Owner · inline expanded user card */
+.platform-owner-user-expanded-row>td{
+  padding:12px 10px 16px!important;
+  background:var(--lo-color-surface-soft,#f6f8fb)!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+}
+.platform-owner-users .data-table tbody .platform-owner-user-expanded-row:hover,
+.platform-owner-users .data-table tbody .platform-owner-user-expanded-row:hover>td{
+  background:var(--lo-color-surface-soft,#f6f8fb)!important;
+}
+.platform-owner-user-expanded-row .platform-user-management-panel{
+  margin:0!important;
+  border:1px solid var(--lo-color-border);
+  border-radius:var(--lo-radius-card);
+  background:var(--lo-color-surface);
+  box-shadow:0 10px 28px rgba(23,32,51,.06);
+  overflow:hidden;
+}
+.platform-user-management-panel .platform-user-detail-table tbody tr:hover,
+.platform-user-management-panel .platform-user-detail-table tbody tr:hover>th,
+.platform-user-management-panel .platform-user-detail-table tbody tr:hover>td{
+  background:inherit!important;
+}
+.platform-user-management-panel .platform-user-detail-table tbody tr{cursor:default!important}
+.platform-user-management-panel .platform-user-detail-table th{
+  background:var(--lo-color-surface-soft,#f6f8fb)!important;
+}
+.platform-user-management-panel .platform-user-detail-table td{
+  background:var(--lo-color-surface)!important;
+}
+.platform-user-management-panel .platform-user-actions-row th,
+.platform-user-management-panel .platform-user-actions-row td{
+  border-top:1px solid var(--lo-color-border);
+}
+.platform-owner-clickable-row.is-selected{
+  box-shadow:inset 3px 0 0 var(--lo-color-primary);
+}
+@media(max-width:760px){
+  .platform-owner-user-expanded-row>td{padding:10px 6px 14px!important}
+}
