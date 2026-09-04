@@ -208,19 +208,24 @@ export async function completeControlExecution(organizationId,record,department,
 
 export async function updateControlExecution(organizationId,record,department,execution,payload={}){
  assertCloud(organizationId)
- const userId=await currentUserId()
  const assignment=record.assignments?.[department]
  if(!assignment?.dbId)throw new Error('Control assignment is required.')
- const {data:current,error:currentError}=await supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('id',execution.id).single()
+ const {data:current,error:currentError}=await supabase.from('control_executions').select('id,response_data').eq('organization_id',organizationId).eq('id',execution.id).single()
  if(currentError)throw currentError
- const before={value_text:current.value_text,response_data:current.response_data,notes:current.notes,has_finding:current.has_finding}
- const responseData={...(current.response_data||{}),structuredData:payload.structuredData||null,editedByName:payload.actor?.name||''}
- const after={value_text:payload.value||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding)}
- const editedAt=new Date().toISOString()
- const {data,error}=await supabase.from('control_executions').update({...after,edited_at:editedAt,edited_by:userId}).eq('organization_id',organizationId).eq('id',execution.id).select('*').single()
+ const responseData={
+  ...(current.response_data||{}),
+  structuredData:payload.structuredData||null,
+  editedByName:payload.actor?.name||'',
+  editReason:(payload.reason||'Correction after completion').trim(),
+ }
+ const updatePayload={
+  value_text:payload.value||null,
+  response_data:responseData,
+  notes:payload.notes||null,
+  has_finding:Boolean(payload.hasFinding),
+ }
+ const {data,error}=await supabase.from('control_executions').update(updatePayload).eq('organization_id',organizationId).eq('id',execution.id).select('*').single()
  if(error)throw error
- const {error:revisionError}=await supabase.from('control_execution_revisions').insert({execution_id:execution.id,organization_id:organizationId,before_data:before,after_data:after,reason:payload.reason||null,changed_by:userId})
- if(revisionError)throw revisionError
  return mapExecution(data)
 }
 
