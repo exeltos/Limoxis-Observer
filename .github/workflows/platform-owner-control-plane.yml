@@ -1,0 +1,32 @@
+name: Platform Owner Control Plane Refactor
+
+on:
+  push:
+    branches:
+      - refactor/platform-owner-phase1
+    paths:
+      - scripts/refactor-platform-owner-control-plane.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/refactor-platform-owner-control-plane.mjs
+      - run: npx eslint src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformDashboardView.jsx src/features/platform/PlatformOrganizationsRegistry.jsx
+      - run: npm run test
+      - run: npm run build
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformDashboardView.jsx src/features/platform/PlatformOrganizationsRegistry.jsx src/styles/platform-owner-polish.css
+          git commit -m "refactor(platform): split control-plane dashboard and registry"
+          git push
