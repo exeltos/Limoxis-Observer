@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Activity, ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, Layers3, LogOut, ShieldCheck, UserRound, X } from 'lucide-react'
+import { Activity, ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, Layers3, LogOut, Settings, ShieldCheck, UserRound, X } from 'lucide-react'
 import { navigationFor } from './navigation'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'
@@ -74,8 +74,9 @@ export function AppShell(){
     ['/platform#reports','platformAnalyticsNav',BarChart3],
     ['/platform/health','platformHealthNav',Activity],
     ['/platform/audit','platformAuditNav',ShieldCheck],
+    ['/platform/settings','platformSettingsNav',Settings],
   ]
-  const platformLabel=key=>key==='platformHealthNav'?(language==='en'?'Platform Health':'Υγεία Πλατφόρμας'):key==='platformAuditNav'?(language==='en'?'Audit & Security':'Audit & Ασφάλεια'):t(key)
+  const platformLabel=key=>key==='platformHealthNav'?(language==='en'?'Platform Health':'Υγεία Πλατφόρμας'):key==='platformAuditNav'?(language==='en'?'Audit & Security':'Audit & Ασφάλεια'):key==='platformSettingsNav'?(language==='en'?'Platform Settings':'Ρυθμίσεις Πλατφόρμας'):t(key)
   const previewRoleLabels={hospital_admin:'hospitalAdminRole',infection_control_lead:'infectionControlLeadRole',infection_control_member:'infectionControlMemberRole',department_manager:'departmentManagerRole',link_nurse:'linkNurseRole',department_user:'departmentUserRole',laboratory:'laboratoryRole',committee_secretariat:'committeeSecretariatRole',hr_office:'hrOfficeRole',pharmacy:'pharmacyRole',occupational_physician:'occupationalPhysicianRole',doctor_reviewer:'doctorReviewerRole',quality_manager:'qualityManagerRole'}
   const previewRoles=PREVIEWABLE_ROLES.map(previewRole=>[previewRole,previewRoleLabels[previewRole]])
   const previewDepartments=[['','previewAllHospital'],['icu','previewIcu'],['surgery','previewSurgery'],['internal','previewInternalMedicine']]
