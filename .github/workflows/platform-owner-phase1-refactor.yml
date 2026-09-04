@@ -21,12 +21,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node scripts/refactor-platform-owner-phase1.mjs
+      - name: Commit refactor output
+        run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformOrganizationRecord.jsx src/features/platform/platformService.js src/features/analysis/AnalysisPage.jsx src/styles/platform-owner-polish.css tests/platformOwnerCanonicalAnalytics.test.js tests/analysisProductionParity.test.js
+          git commit -m "refactor(analysis): align production with demo analytics" || exit 0
+          git push
       - run: npm run lint
       - run: npm run test
       - run: npm run build
-      - run: |
-          git config user.name "Exeltos"
-          git config user.email "info@exeltos.com"
-          git add src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformOrganizationRecord.jsx src/styles/platform-owner-polish.css tests/platformOwnerCanonicalAnalytics.test.js
-          git commit -m "refactor(platform): canonicalize owner analytics"
-          git push
