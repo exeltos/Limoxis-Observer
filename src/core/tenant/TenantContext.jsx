@@ -10,14 +10,12 @@ const DEMO_TENANT = Object.freeze({ id: 'demo-hospital', name: 'Demo Hospital', 
 const DEMO_MEMBERSHIP = Object.freeze({ id: 'demo-membership', role: ROLES.DEMO, status: 'active', organization: DEMO_TENANT, departmentIds: [], capabilities: [], customCapabilities: [], assignments: [] })
 
 export function TenantProvider({ children }) {
-  const { user, profile, isAuthenticated, isDemoSession } = useAuth()
-  // Preview changes the effective role used by every UI guard. Keep it tied to
-  // trusted owner/demo identities; a development build must never turn an
-  // ordinary authenticated membership into a privilege-escalation path.
+  const { user, profile, isAuthenticated, isDemoSession, loading: authLoading } = useAuth()
   const canRolePreview = Boolean(profile?.isPlatformOwner || isDemoSession)
   const [memberships, setMemberships] = useState([])
   const [activeMembershipId, setActiveMembershipId] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [hydratedKey, setHydratedKey] = useState(null)
   const [platformDemoMode, setPlatformDemoMode] = useState(false)
   const [rolePreview, setRolePreview] = useState(()=>{
     if(typeof window==='undefined')return null
@@ -26,34 +24,47 @@ export function TenantProvider({ children }) {
     return params.get('helpPreview')==='1'&&isPreviewableRole(requested)?{role:requested,department:''}:null
   })
 
+  const membershipContextKey = authLoading
+    ? 'auth-loading'
+    : !isAuthenticated
+      ? 'anonymous'
+      : `${user?.id||'user'}:${profile?.isPlatformOwner?'owner':'member'}:${isDemoSession?'demo':'production'}`
+
   const reloadMemberships = useCallback(async () => {
-    if (!isAuthenticated) {
-      setMemberships([])
-      setActiveMembershipId(null)
+    if (authLoading) {
+      setLoading(true)
       return []
-    }
-    if (isDemoSession) {
-      setMemberships([DEMO_MEMBERSHIP])
-      setActiveMembershipId(DEMO_MEMBERSHIP.id)
-      return [DEMO_MEMBERSHIP]
     }
     setLoading(true)
     try {
+      if (!isAuthenticated) {
+        setMemberships([])
+        setActiveMembershipId(null)
+        setHydratedKey(membershipContextKey)
+        return []
+      }
+      if (isDemoSession) {
+        setMemberships([DEMO_MEMBERSHIP])
+        setActiveMembershipId(DEMO_MEMBERSHIP.id)
+        setHydratedKey(membershipContextKey)
+        return [DEMO_MEMBERSHIP]
+      }
       const next = await (profile?.isPlatformOwner ? listPlatformOwnerOrganizations() : listMemberships(user?.id))
       setMemberships(next)
       setActiveMembershipId((current) => {
         if (profile?.isPlatformOwner) return next.some((item) => item.id === current) ? current : null
         return next.some((item) => item.id === current) ? current : next[0]?.id ?? null
       })
+      setHydratedKey(membershipContextKey)
       return next
     } finally {
       setLoading(false)
     }
-  }, [isAuthenticated, isDemoSession, user?.id, profile?.isPlatformOwner])
+  }, [authLoading, isAuthenticated, isDemoSession, user?.id, profile?.isPlatformOwner, membershipContextKey])
 
   useEffect(() => {
-    reloadMemberships().catch(() => {})
-  }, [reloadMemberships])
+    reloadMemberships().catch(() => setHydratedKey(membershipContextKey))
+  }, [reloadMemberships, membershipContextKey])
 
   const storedMembership = memberships.find((item) => item.id === activeMembershipId) ?? null
   const baseMembership = useMemo(() => (
@@ -84,13 +95,15 @@ export function TenantProvider({ children }) {
     if (profile?.isPlatformOwner) { setPlatformDemoMode(false); setActiveMembershipId(null); setRolePreview(null) }
   }, [profile?.isPlatformOwner])
 
+  const tenantLoading = Boolean(authLoading || loading || hydratedKey !== membershipContextKey)
+
   const value = useMemo(() => ({
     tenant,
     membership,
     memberships,
     activeMembershipId,
     role,
-    loading,
+    loading: tenantLoading,
     isDemo: Boolean(isDemoSession || platformDemoMode || tenant?.mode === 'demo'),
     setTenantByMembership,
     enterPlatformDemo,
@@ -110,7 +123,7 @@ export function TenantProvider({ children }) {
     uxPolicy: uxPolicyFor(role),
     canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
     canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role,membership?.capabilities,membership?.customCapabilities),
-  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, loading, canRolePreview, setTenantByMembership, enterPlatformDemo, returnToPlatform, reloadMemberships, user?.id, isDemoSession, platformDemoMode])
+  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, tenantLoading, canRolePreview, setTenantByMembership, enterPlatformDemo, returnToPlatform, reloadMemberships, user?.id, isDemoSession, platformDemoMode])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
 }
