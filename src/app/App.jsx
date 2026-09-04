@@ -18,6 +18,7 @@ const lazyNamed = (loader, name) => lazy(() => loader().then(m => ({ default: m[
 const PlatformCenterPage = lazyNamed(() => import('../features/workspaces/PlatformCenterPage'), 'PlatformCenterPage')
 const PlatformHealthPage = lazyNamed(() => import('../features/platform/PlatformControlPlaneRoutes'), 'PlatformHealthPage')
 const PlatformAuditSecurityPage = lazyNamed(() => import('../features/platform/PlatformControlPlaneRoutes'), 'PlatformAuditSecurityPage')
+const PlatformSettingsPage = lazyNamed(() => import('../features/platform/PlatformControlPlaneRoutes'), 'PlatformSettingsPage')
 const DashboardPage = lazyNamed(() => import('../features/dashboard/DashboardPage'), 'DashboardPage')
 const SurveillancePage = lazyNamed(() => import('../features/surveillance/SurveillanceRoutePage'), 'SurveillanceRoutePage')
 const PatientClinicalRecordRoute = lazyNamed(() => import('../features/surveillance/PatientClinicalRecordRoute'), 'PatientClinicalRecordRoute')
@@ -77,6 +78,7 @@ export function App() {
         <Route path="platform" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM, <PlatformCenterPage />)}</Suspense>} />
         <Route path="platform/health" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM, <PlatformHealthPage />)}</Suspense>} />
         <Route path="platform/audit" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM, <PlatformAuditSecurityPage />)}</Suspense>} />
+        <Route path="platform/settings" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM, <PlatformSettingsPage />)}</Suspense>} />
         <Route path="about" element={<Suspense fallback={<RouteLoading/>}><AboutPage /></Suspense>} />
         <Route path="analysis" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_ANALYSIS, <AnalysisPage />)}</Suspense>} />
         <Route path="account" element={<Suspense fallback={<RouteLoading/>}><AccountPage /></Suspense>} />
