@@ -56,6 +56,25 @@
   margin-top:0!important;padding:0!important;min-height:0!important;overflow:hidden;
   display:flex;flex-direction:column
 }
+
+/* One shared white frame for every tabbed registry (Prevention, Surveillance and future modules). */
+.registry-workspace.surface{
+  border:1px solid var(--line)!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  overflow:hidden!important
+}
+.registry-workspace.surface>.canonical-module-tabs{
+  flex:0 0 auto!important;
+  border-left:0!important;border-right:0!important;border-top:0!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important
+}
+.registry-workspace.surface>.canonical-module-tabs + *{
+  border-top:0!important;
+  margin-top:0!important
+}
+
 .registry-workspace .filter-system,
 .patient-registry-shell .filter-system,
 .laboratory-registry-page .lab-registry-shell .filter-system{
@@ -88,18 +107,6 @@
 .patient-registry-shell .sticky-table thead th,
 .laboratory-registry-page .lab-registry-shell .sticky-table thead th{
   position:sticky;top:0;z-index:2;background:#f7f9fb
-}
-
-.registry-workspace>.canonical-module-tabs{
-  border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important
-}
-
-/* Split tab + workspace layouts (Surveillance) visually behave as one registry card. */
-.canonical-module-tabs + .production-surveillance-workspace{
-  margin-top:-1px!important;border-top:0!important;border-radius:0 0 11px 11px!important
-}
-.surveillance-domain-tabs.canonical-module-tabs{
-  border-bottom:1px solid var(--line)!important;border-radius:11px 11px 0 0!important
 }
 
 /* Controls: true operational canvas, not an outer card. */
