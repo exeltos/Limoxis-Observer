@@ -6,6 +6,11 @@ const cssPath='src/styles/platform-owner-polish.css'
 
 let center=fs.readFileSync(centerPath,'utf8')
 
+center=center.replace(
+  "import {\n  Building2,\n  Clock3,\n  FlaskConical,\n  LogIn,\n  ShieldCheck,\n  Trash2,\n} from 'lucide-react'",
+  "import {\n  FlaskConical,\n  LogIn,\n  ShieldCheck,\n  Trash2,\n} from 'lucide-react'"
+)
+
 if(!center.includes("import { PlatformDashboardView } from '../platform/PlatformDashboardView'")){
   center=center.replace(
     "import { PlatformOrganizationRecord } from '../platform/PlatformOrganizationRecord'",
