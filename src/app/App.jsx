@@ -12,6 +12,7 @@ import { ForgotAccessPage } from '../features/auth/ForgotAccessPage'
 import { ResetPasswordPage } from '../features/auth/ResetPasswordPage'
 import { RouteLoading } from '../design-system/RouteLoading'
 import { GlobalTextareaExpander } from '../design-system/GlobalTextareaExpander'
+import { PlatformMaintenanceBanner } from '../features/platform/PlatformMaintenanceBanner'
 
 const lazyNamed = (loader, name) => lazy(() => loader().then(m => ({ default: m[name] })))
 
@@ -67,6 +68,7 @@ function HomeRoute() {
 export function App() {
   return <>
   <GlobalTextareaExpander/>
+  <PlatformMaintenanceBanner/>
   <Routes>
     <Route path="/login" element={<LoginPage />} />
     <Route path="/activate" element={<ActivateAccountPage />} />
