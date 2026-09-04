@@ -1,12 +1,13 @@
-import { useMemo,useState } from 'react'
+import { useEffect,useMemo,useState } from 'react'
 import { ClipboardCheck,Droplets,Recycle,ShieldCheck,Trash2 } from 'lucide-react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { antisepticRows,bundleRows,handHygieneRows,wasteRows } from './preventionDemoData'
+import { antisepticRows,bundleRows,wasteRows } from './preventionDemoData'
 import { WHO_MOMENTS } from './WhoHandHygieneModal'
+import { loadHandHygieneSessions } from './handHygieneCloudService'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { CAPABILITIES,can } from '../../core/permissions/roles'
@@ -20,20 +21,29 @@ import { voidRecord as applyGovernedVoid } from '../../core/audit/governedLifecy
 import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { downloadRecordJson } from '../../core/export/recordExport'
 
-const sources={handHygiene:handHygieneRows,waste:wasteRows,antiseptics:antisepticRows,bundles:bundleRows}
+const sources={waste:wasteRows,antiseptics:antisepticRows,bundles:bundleRows}
 const icons={handHygiene:ShieldCheck,waste:Recycle,antiseptics:Droplets,bundles:ClipboardCheck}
 const labels={handHygiene:['Υγιεινή Χεριών','Hand Hygiene'],waste:['Απόβλητα','Waste'],antiseptics:['Κατανάλωση αντισηπτικών','Antiseptic consumption'],bundles:['Bundles πρόληψης','Prevention Bundles']}
 
 export function PreventionRecordPage(){
- const {recordType,recordId}=useParams();const navigate=useNavigate();const {locale,t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const {role,membership,canAccessRecord}=useTenant();const {profile,user}=useAuth();const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user]);const [voidOpen,setVoidOpen]=useState(false)
- const record=(sources[recordType]||[]).find(x=>x.id===recordId)
+ const {recordType,recordId}=useParams();const navigate=useNavigate();const {locale,t,language}=useLanguage();const en=language==='en';const {notify,notifyError}=useFeedback();const {role,membership,canAccessRecord,tenant}=useTenant();const {profile,user}=useAuth();const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user]);const [voidOpen,setVoidOpen]=useState(false);const [handRecord,setHandRecord]=useState(null);const [loading,setLoading]=useState(recordType==='handHygiene')
+ useEffect(()=>{
+  if(recordType!=='handHygiene'){setLoading(false);return}
+  if(!tenant?.id){setHandRecord(null);setLoading(false);return}
+  let active=true
+  setLoading(true)
+  loadHandHygieneSessions(tenant.id).then(rows=>{if(active)setHandRecord(rows.find(x=>x.id===recordId)||null)}).catch(error=>{if(active){setHandRecord(null);notifyError(error,'load',{operation:'hand_hygiene_record_load'})}}).finally(()=>{if(active)setLoading(false)})
+  return()=>{active=false}
+ },[recordType,recordId,tenant?.id])
+ const record=recordType==='handHygiene'?handRecord:(sources[recordType]||[]).find(x=>x.id===recordId)
  const recordNavigation=useRecordSequenceNavigation({registry:`prevention-${recordType}`,currentId:recordId,pathForId:id=>`/prevention/${recordType}/${id}?fromTab=${recordType}`})
  const recordInScope=!record||canAccessRecord({...record,department:record.departmentEl||record.department})
+ if(loading)return <Page title={en?'Prevention Center':'Κέντρο Πρόληψης'}><div className="inline-empty">{en?'Loading record…':'Φόρτωση εγγραφής…'}</div></Page>
  if(!record)return <Page title={en?'Prevention Center':'Κέντρο Πρόληψης'}><div className="inline-empty">{en?'Record not found.':'Δεν βρέθηκε η εγγραφή.'}</div></Page>
  if(!recordInScope)return <Page title={en?'Prevention Center':'Κέντρο Πρόληψης'}><div className="inline-empty">{en?'You do not have access to this record.':'Δεν έχετε πρόσβαση σε αυτή την εγγραφή.'}</div></Page>
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const cap=recordType==='handHygiene'?CAPABILITIES.RECORD_HAND_HYGIENE:recordType==='waste'?CAPABILITIES.RECORD_WASTE:recordType==='antiseptics'?CAPABILITIES.RECORD_ANTISEPTIC:CAPABILITIES.RECORD_PREVENTION_BUNDLE
- const canDelete=can(role,cap,addOns,custom)
+ const canDelete=recordType!=='handHygiene'&&can(role,cap,addOns,custom)
  function voidRecord(reason){
   const source=sources[recordType]||[]
   const index=source.findIndex(x=>x.id===recordId)
