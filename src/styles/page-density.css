@@ -1,146 +1,96 @@
-/* Global application density: keep every primary workspace on one shared visual baseline
-   below the sticky application chrome and reserve more vertical room for working content. */
-.content{
-  padding-top:16px;
-  padding-bottom:32px;
-}
-.page{
-  margin-top:-18px;
-}
-.page-header{
-  margin-bottom:14px;
-}
-.page-header p{
-  margin-top:5px;
-}
-.page-navigation{
-  margin-bottom:6px;
-}
+/* Canonical application workspace + registry pattern.
+   New primary list screens should inherit these rules instead of introducing page-specific spacing. */
+.content{padding-top:16px;padding-bottom:32px}
+.page{margin-top:-18px}
+.page-header{margin-bottom:14px}
+.page-header p{margin-top:5px}
+.page-navigation{margin-bottom:6px}
+.dashboard-page .page-header{margin-bottom:12px}
 
-/* Dashboard uses the same baseline as every other Page; only its internal header
-   spacing stays slightly tighter because of the KPI stack directly below it. */
-.dashboard-page .page-header{
-  margin-bottom:12px;
-}
+/* Canonical registry vertical rhythm: page header -> KPI strip -> registry panel. */
+.workspace-summary,
+.patient-summary-strip,
+.surveillance-summary{margin-bottom:8px!important}
 
-/* Shared compact empty state for registry/list screens. */
-.registry-empty-state{
-  min-height:132px;
-  height:132px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  padding:22px;
-  text-align:center;
-  background:#fff;
-  color:#718096;
-}
-.registry-empty-state strong{
-  color:#213b59;
-  font-size:15px;
-  font-weight:700;
-}
-.registry-empty-state span{
-  max-width:720px;
-  font-size:12px;
-  line-height:1.45;
-}
-
-/* Patient registry follows the same compact workspace rhythm as Surveillance. */
-.patient-summary-strip{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:8px;
-  margin-bottom:8px;
-}
+/* Canonical compact KPI cards for registry screens. */
+.workspace-summary .canonical-metric-card,
 .patient-summary-strip .canonical-metric-card{
-  min-height:0!important;
-  height:66px;
-  padding:8px 12px!important;
-  border-radius:11px;
+  min-height:0!important;height:66px;padding:8px 12px!important;border-radius:11px
 }
-.patient-summary-strip .canonical-metric-icon svg{
-  width:17px;
-  height:17px;
-}
-.patient-summary-strip .canonical-metric-copy strong{
-  font-size:20px;
-  line-height:1;
-}
-.patient-summary-strip .canonical-metric-copy span{
-  font-size:10.5px;
-}
+.workspace-summary .canonical-metric-icon svg,
+.patient-summary-strip .canonical-metric-icon svg{width:17px;height:17px}
+.workspace-summary .canonical-metric-copy strong,
+.patient-summary-strip .canonical-metric-copy strong{font-size:20px;line-height:1}
+.workspace-summary .canonical-metric-copy span,
+.patient-summary-strip .canonical-metric-copy span{font-size:10.5px}
+.patient-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+
+/* Canonical registry shell. */
 .patient-registry-shell,
 .laboratory-registry-page .lab-registry-shell{
-  padding:0!important;
-  min-height:0!important;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
+  margin-top:0!important;padding:0!important;min-height:0!important;overflow:hidden;
+  display:flex;flex-direction:column
 }
 .patient-registry-shell .filter-system,
 .laboratory-registry-page .lab-registry-shell .filter-system{
-  margin:0;
-  padding:8px 10px;
-  border-bottom:1px solid var(--line);
-  background:#fff;
+  margin:0;padding:8px 10px;border-bottom:1px solid var(--line);background:#fff
 }
 .patient-registry-shell .filter-primary-row,
-.laboratory-registry-page .lab-registry-shell .filter-primary-row{
-  gap:8px;
-}
+.laboratory-registry-page .lab-registry-shell .filter-primary-row{gap:8px}
 .patient-registry-shell .filter-search,
-.laboratory-registry-page .lab-registry-shell .filter-search{
-  max-width:560px;
-}
+.laboratory-registry-page .lab-registry-shell .filter-search{max-width:560px}
 .patient-registry-shell .filter-search input,
 .patient-registry-shell .filter-trigger,
 .patient-registry-shell .filter-clear-button,
 .laboratory-registry-page .lab-registry-shell .filter-search input,
 .laboratory-registry-page .lab-registry-shell .filter-trigger,
-.laboratory-registry-page .lab-registry-shell .filter-clear-button{
-  height:36px;
-}
+.laboratory-registry-page .lab-registry-shell .filter-clear-button{height:36px}
 .patient-registry-shell .scroll-table,
 .laboratory-registry-page .lab-registry-shell .scroll-table{
-  flex:1 1 auto;
-  min-height:0;
-  max-height:calc(100vh - 285px);
-  overflow:auto;
+  flex:1 1 auto;min-height:0;max-height:calc(100vh - 285px);overflow:auto
 }
 .patient-registry-shell .sticky-table thead th,
 .laboratory-registry-page .lab-registry-shell .sticky-table thead th{
-  position:sticky;
-  top:0;
-  z-index:2;
-  background:#f7f9fb;
+  position:sticky;top:0;z-index:2;background:#f7f9fb
 }
 
-/* Empty patient/laboratory registries collapse to header + message + pagination. */
+/* Canonical empty registry: table header -> concise message -> pagination. */
+.registry-empty-state{
+  min-height:132px;height:132px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:6px;padding:22px;text-align:center;background:#fff;color:#718096
+}
+.registry-empty-state strong{color:#213b59;font-size:15px;font-weight:700}
+.registry-empty-state span{max-width:720px;font-size:12px;line-height:1.45}
 .patient-registry-shell:has(.registry-empty-state),
 .laboratory-registry-page .lab-registry-shell:has(.registry-empty-state){
-  flex:0 0 auto!important;
-  height:auto!important;
-  min-height:0!important;
+  flex:0 0 auto!important;height:auto!important;min-height:0!important
 }
 .patient-registry-shell:has(.registry-empty-state) .scroll-table,
 .laboratory-registry-page .lab-registry-shell:has(.registry-empty-state) .scroll-table{
-  flex:0 0 auto!important;
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:hidden;
+  flex:0 0 auto!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden
 }
 .patient-registry-shell:has(.registry-empty-state) .data-table,
-.laboratory-registry-page .lab-registry-shell:has(.registry-empty-state) .data-table{
-  margin-bottom:0;
+.laboratory-registry-page .lab-registry-shell:has(.registry-empty-state) .data-table{margin-bottom:0}
+
+/* Canonical pagination for every registry. */
+.registry-pagination{
+  min-height:44px;border-top:1px solid var(--line);display:flex;align-items:center;
+  justify-content:space-between;gap:14px;padding:7px 10px;background:#fff;color:#6f7d8e;font-size:11.5px
 }
+.registry-pagination-controls{display:flex;align-items:center;gap:7px}
+.registry-pagination-controls label{display:flex;align-items:center;gap:6px}
+.registry-pagination-controls select{
+  height:30px;border:1px solid var(--line);border-radius:8px;background:#fff;
+  padding:0 24px 0 8px;color:#43566b
+}
+.registry-pagination-controls button{
+  width:30px;height:30px;border:1px solid var(--line);border-radius:8px;background:#fff;
+  color:#294b70;display:grid;place-items:center;font-size:18px;cursor:pointer
+}
+.registry-pagination-controls button:disabled{opacity:.35;cursor:not-allowed}
 
 @media(max-width:1200px){
-  .content{padding-top:14px}
-  .page{margin-top:-12px}
+  .content{padding-top:14px}.page{margin-top:-12px}
   .patient-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
   .patient-registry-shell .scroll-table,
   .laboratory-registry-page .lab-registry-shell .scroll-table{max-height:calc(100vh - 340px)}
