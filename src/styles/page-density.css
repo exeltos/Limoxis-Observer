@@ -109,6 +109,38 @@
   position:sticky;top:0;z-index:2;background:#f7f9fb
 }
 
+/* Stable registry viewport: tab changes must never resize the list panel. */
+.stable-registry-height{
+  height:calc(100vh - 285px)!important;
+  min-height:360px!important;
+  max-height:calc(100vh - 285px)!important;
+  flex:0 0 auto!important
+}
+.stable-registry-height .scroll-table{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:auto!important
+}
+.stable-registry-height:has(.registry-empty-state){
+  height:calc(100vh - 285px)!important;
+  min-height:360px!important;
+  max-height:calc(100vh - 285px)!important;
+  flex:0 0 auto!important
+}
+.stable-registry-height:has(.registry-empty-state) .scroll-table{
+  flex:1 1 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important
+}
+.stable-registry-height .registry-empty-state{
+  min-height:132px!important;
+  height:100%!important
+}
+
 /* Controls: true operational canvas, not an outer card. */
 .controls-page{max-width:none!important;width:100%!important}
 .controls-page>.workspace-summary{width:100%!important}
@@ -174,4 +206,6 @@
   .registry-workspace .scroll-table,
   .patient-registry-shell .scroll-table,
   .laboratory-registry-page .lab-registry-shell .scroll-table{max-height:calc(100vh - 340px)}
+  .stable-registry-height,
+  .stable-registry-height:has(.registry-empty-state){height:calc(100vh - 340px)!important;max-height:calc(100vh - 340px)!important}
 }
