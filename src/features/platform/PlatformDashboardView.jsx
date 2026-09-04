@@ -33,15 +33,6 @@ export function PlatformDashboardView({
       )}
     >
       <section className="platform-center-section platform-control-plane">
-        <div className="platform-section-heading">
-          <div>
-            <h2>{tx('Κέντρο ελέγχου', 'Control center')}</h2>
-            <p>{tx(
-              'Μία είσοδος για τις λειτουργίες του Platform Owner, χωρίς δεύτερες εκδόσεις των hospital workspaces.',
-              'One entry point for Platform Owner operations without duplicate hospital workspaces.'
-            )}</p>
-          </div>
-        </div>
         <div className="platform-control-grid">
           <DashboardAction
             icon={<Building2 size={18} />}
