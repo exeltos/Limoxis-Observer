@@ -1,17 +1,6 @@
-/* Surveillance-specific layout only.
-   Shared page baseline, KPI density, tabs, empty states and pagination live in page-density.css. */
-.production-surveillance-page{max-width:none}
-.production-surveillance-page .page-header{margin-bottom:10px}
-.production-surveillance-page .page-header p{margin-top:4px}
-
-.surveillance-summary .module-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:0}
-.surveillance-summary .summary-metric{min-height:0!important;height:66px;padding:8px 12px!important;border-radius:11px}
-.surveillance-summary .summary-metric>div{gap:9px}
-.surveillance-summary .summary-metric svg{width:17px;height:17px}
-.surveillance-summary .summary-metric strong{font-size:20px;line-height:1}
-.surveillance-summary .summary-metric span{font-size:10.5px}
-
-/* Same DOM/frame contract as Prevention: one outer surface owns the complete outline. */
+/* Surveillance-specific list geometry only.
+   Page width, header spacing, KPI density, tab frame, empty state and pagination
+   intentionally inherit the canonical registry pattern from page-density.css. */
 .production-surveillance-frame{margin:0!important;padding:0!important;min-height:0!important;overflow:hidden;display:flex;flex-direction:column}
 .production-surveillance-frame>.surveillance-domain-tabs{margin:0!important}
 .production-surveillance-workspace{
@@ -22,7 +11,7 @@
 .production-surveillance-workspace .filter-primary-row{gap:8px}
 .production-surveillance-workspace .filter-search{max-width:560px}
 .production-surveillance-workspace .filter-search input,.production-surveillance-workspace .filter-trigger,.production-surveillance-workspace .filter-clear-button{height:36px}
-.production-surveillance-workspace .surveillance-registry{border:0;border-radius:0;min-height:0;max-height:calc(100vh - 330px);overflow:auto;flex:1 1 auto}
+.production-surveillance-workspace .surveillance-registry{border:0;border-radius:0;min-height:0;max-height:calc(100vh - 285px);overflow:auto;flex:1 1 auto}
 .production-surveillance-workspace .surveillance-registry-head{position:sticky;top:0;z-index:2;background:#f7f9fb;border-bottom:1px solid var(--line)}
 .production-surveillance-workspace .surveillance-registry-head>span{padding-top:8px;padding-bottom:8px}
 .production-surveillance-workspace .surveillance-registry-row{min-height:52px}
@@ -33,6 +22,5 @@
 .production-surveillance-frame:has(.surveillance-registry-empty) .surveillance-registry{height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden}
 
 @media(max-width:1200px){
-  .surveillance-summary .module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .production-surveillance-workspace .surveillance-registry{max-height:calc(100vh - 385px)}
+  .production-surveillance-workspace .surveillance-registry{max-height:calc(100vh - 340px)}
 }
