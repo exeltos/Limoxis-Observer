@@ -18,9 +18,7 @@ export function PlatformDashboardView({
   tx,
   organizations,
   activeOrganizations,
-  members,
   activeDemos,
-  expiringDemos,
   loadingStats,
   demoProgress,
   onOpenDemo,
@@ -34,24 +32,6 @@ export function PlatformDashboardView({
         'Central control of organizations, access, analytics and operational status.'
       )}
     >
-      <div className="kpi-grid platform-kpi-grid">
-        <article className="kpi-card">
-          <span>{tx('Οργανισμοί', 'Organizations')}</span>
-          <strong>{organizations.length}</strong>
-          <small>{activeOrganizations} {tx('ενεργοί', 'active')}</small>
-        </article>
-        <article className="kpi-card">
-          <span>{tx('Χρήστες', 'Users')}</span>
-          <strong>{loadingStats ? '—' : members.length}</strong>
-          <small>{tx('σε όλη την πλατφόρμα', 'across the platform')}</small>
-        </article>
-        <article className="kpi-card">
-          <span>{tx('Ενεργά Demo', 'Active demos')}</span>
-          <strong>{loadingStats ? '—' : activeDemos.length}</strong>
-          <small>{expiringDemos.length} {tx('λήγουν ≤14 ημέρες', 'expire within 14 days')}</small>
-        </article>
-      </div>
-
       <section className="platform-center-section platform-control-plane">
         <div className="platform-section-heading">
           <div>
