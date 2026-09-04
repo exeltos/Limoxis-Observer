@@ -16,7 +16,7 @@ if(panelEnd<0)throw new Error('selected user panel end not found')
 const mapSource=s.slice(tbodyStart,tbodyEnd)
 const panelSource=s.slice(panelStart,panelEnd+'</section>}'.length)
 const rowStart=mapSource.indexOf('<tr key={user.userId}')
-const rowEnd=mapSource.lastIndexOf('</tr>)}</tbody>')
+const rowEnd=mapSource.lastIndexOf('</tr>)}')
 if(rowStart<0||rowEnd<0)throw new Error('user row source not found')
 const row=mapSource.slice(rowStart,rowEnd+'</tr>'.length)
 
