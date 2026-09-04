@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Activity,BarChart3,Building2,KeyRound,LogIn,PauseCircle,Pencil,PlayCircle,Save,Send,Trash2,Users,X } from 'lucide-react'
+import { Activity,Building2,KeyRound,LogIn,PauseCircle,Pencil,PlayCircle,Save,Send,Trash2,Users,X } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
@@ -26,7 +26,7 @@ function FormSection({title,subtitle,actions,children}){return <section classNam
 
 function toDraft(org){return {id:org.id,name:org.name||'',code:org.code||'',type:org.type||'hospital',status:org.status||'active',region:org.region||'',healthRegion:org.health_region||'',city:org.city||'',country:org.country||'',contactEmail:org.contact_email||'',contactPhone:org.contact_phone||'',bedCapacity:org.bed_capacity??''}}
 
-export function PlatformOrganizationRecord({organization,language='el',initialTab='details',onTabChange,onBack,onEnter,onDelete,onChanged,onOpenAnalysis}){
+export function PlatformOrganizationRecord({organization,language='el',initialTab='details',onTabChange,onBack,onEnter,onDelete,onChanged}){
   const en=language==='en',tx=(elText,enText)=>en?enText:elText
   const {notify,notifyError,confirm}=useFeedback()
   const [record,setRecord]=useState(organization)
@@ -101,7 +101,7 @@ export function PlatformOrganizationRecord({organization,language='el',initialTa
     catch(error){notifyError(error,'action',{operation:'platform_user_status'})}finally{setWorking(false)}
   }
 
-  const tabs=[{id:'details',label:tx('Στοιχεία','Details'),icon:Building2},{id:'users',label:`${tx('Χρήστες','Users')} (${users.length})`,icon:Users},{id:'diagnostics',label:tx('Λειτουργία & συμβάντα','Activity & events'),icon:Activity},{id:'analysis',label:tx('Ανάλυση','Analytics'),icon:BarChart3}]
+  const tabs=[{id:'details',label:tx('Στοιχεία','Details'),icon:Building2},{id:'users',label:`${tx('Χρήστες','Users')} (${users.length})`,icon:Users},{id:'diagnostics',label:tx('Λειτουργία & συμβάντα','Activity & events'),icon:Activity}]
   const actions=<div className="platform-org-actions" aria-label={tx('Ενέργειες οργανισμού','Organization actions')}>
     <Action icon={<LogIn size={18}/>} tone="primary" label={tx('Είσοδος','Enter')} title={tx('Είσοδος στον οργανισμό','Enter organization')} onClick={onEnter}/>
     <Action icon={<KeyRound size={17}/>} tone="neutral" label={tx('Admin κωδικός','Admin password')} title={tx('Επαναφορά κωδικού ή πρόσκλησης Hospital Admin','Reset Hospital Admin password or invitation')} disabled={!admins.length||working} onClick={resetAdmin}/>
@@ -149,6 +149,5 @@ export function PlatformOrganizationRecord({organization,language='el',initialTa
     {initialTab==='users'&&<div className="platform-owner-users"><div className="platform-user-role-help"><strong>{tx('Ρόλοι χρηστών','User roles')}</strong><span>{tx('Επίλεξε έναν χρήστη για να ανοίξεις την πλήρη καρτέλα διαχείρισης.','Select a user to open the full management record.')}</span></div>{loadingUsers?<div className="inline-empty">{tx('Φόρτωση χρηστών…','Loading users…')}</div>:users.length?<div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>{tx('Χρήστης','User')}</th><th>Username</th><th>{tx('Ρόλος','Role')}</th><th>{tx('Κατάσταση','Status')}</th></tr></thead><tbody>{users.map(user=><tr key={user.userId} tabIndex={0} className="platform-owner-clickable-row" onClick={()=>setSelectedUserId(user.userId)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setSelectedUserId(user.userId)}}}><td><strong>{user.name}</strong><small>{user.email||'—'}</small></td><td>{user.username}</td><td>{roleLabel(user.role,language)}</td><td><span className={'status-badge '+(user.status==='active'?'active':user.status==='disabled'?'danger':'temporary')}>{user.status==='active'?tx('Ενεργός','Active'):user.status==='disabled'?tx('Σε παύση','Suspended'):tx('Εκκρεμής','Pending')}</span></td></tr>)}</tbody></table></div>:<div className="inline-empty">{tx('Δεν υπάρχουν χρήστες. Δημιούργησε Hospital Admin από την καρτέλα Στοιχεία.','No users. Create a Hospital Admin from the Details tab.')}</div>}</div>}
 
     {initialTab==='diagnostics'&&<HospitalDiagnosticsPanel organization={record} language={language}/>} 
-    {initialTab==='analysis'&&<div className="platform-org-analysis-link"><div><strong>{tx('Ανάλυση οργανισμού','Organization analytics')}</strong><span>{tx('Δείκτες, μικροοργανισμοί, trends και report για τον συγκεκριμένο οργανισμό.','Indicators, microorganisms, trends and report for this organization.')}</span></div><Button onClick={onOpenAnalysis}><BarChart3 size={15}/>{tx('Άνοιγμα Analysis / Report','Open Analysis / Report')}</Button></div>}
   </EntityRecordShell>
 }

@@ -54,12 +54,16 @@ export async function loadPlatformAnalyticsDetails({organizationId='',from='',to
       resistance:[['MDR',29],['XDR',13],['PDR',2]],
       monthly:[['2026-03',9],['2026-04',12],['2026-05',14],['2026-06',17],['2026-07',21],['2026-08',24]],
       byOrganization:[['Demo Hospital',41,17]],
-      totalPositive:57,
-      totalCritical:8,
+      byDepartment:[['ΜΕΘ',24],['Παθολογική',15],['Χειρουργική',10],['ΤΕΠ',8]],
+      bySource:[['Αίμα / αιμοκαλλιέργεια',21],['Ούρα',16],['Αναπνευστικό',13],['Τραύμα / έκκριμα',7]],
+      bySampleType:[['Αίμα',21],['Ούρα',16],['Αναπνευστικό',13],['Άλλο',7]],
+      departments:['ΜΕΘ','Παθολογική','Χειρουργική','ΤΕΠ'],
+      nationalRows:[['Klebsiella pneumoniae','MDR','ΜΕΘ','Αίμα / αιμοκαλλιέργεια',12,'2026-08-27'],['Acinetobacter baumannii','XDR','ΜΕΘ','Αναπνευστικό',10,'2026-08-26'],['Pseudomonas aeruginosa','XDR','ΜΕΘ','Αναπνευστικό',8,'2026-08-26']],
+      totalPositive:57,totalCritical:8,departmentCount:4,
     }
   }
 
-  let query=supabase.from('microbiology_results').select('organization_id,result_status,organism,resistance_class,is_critical,resulted_at').order('resulted_at',{ascending:true}).limit(5000)
+  let query=supabase.from('microbiology_results').select('organization_id,sample_id,result_status,organism,resistance_class,is_critical,resulted_at').order('resulted_at',{ascending:true}).limit(5000)
   if(organizationId)query=query.eq('organization_id',organizationId)
   if(from)query=query.gte('resulted_at',`${from}T00:00:00`)
   if(to)query=query.lte('resulted_at',`${to}T23:59:59.999`)
@@ -67,22 +71,52 @@ export async function loadPlatformAnalyticsDetails({organizationId='',from='',to
   if(error)throw error
   const rows=data||[]
   const positive=rows.filter(row=>row.result_status==='positive')
-  const microorganisms=sortedEntries(countBy(positive,row=>row.organism?.trim()),12)
-  const resistance=sortedEntries(countBy(positive,row=>row.resistance_class),5)
-  const monthly=Object.entries(countBy(positive,row=>monthKey(row.resulted_at))).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12)
+  const sampleIds=[...new Set(positive.map(row=>row.sample_id).filter(Boolean))]
+  const samples=[]
+  for(let i=0;i<sampleIds.length;i+=200){
+    const {data:batch,error:sampleError}=await supabase.from('laboratory_samples').select('id,organization_id,department_id,sample_type,source_site,collected_at').in('id',sampleIds.slice(i,i+200))
+    if(sampleError)throw sampleError
+    samples.push(...(batch||[]))
+  }
+  let departmentQuery=supabase.from('departments').select('id,organization_id,name').eq('is_active',true)
+  if(organizationId)departmentQuery=departmentQuery.eq('organization_id',organizationId)
+  const {data:departmentRows,error:departmentError}=await departmentQuery
+  if(departmentError)throw departmentError
+  const sampleMap=new Map(samples.map(row=>[row.id,row]))
+  const departmentMap=new Map((departmentRows||[]).map(row=>[row.id,row.name]))
+  const enriched=positive.map(row=>{
+    const sample=sampleMap.get(row.sample_id)||{}
+    const department=departmentMap.get(sample.department_id)||'—'
+    const source=(sample.source_site||sample.sample_type||'—').trim?.()||sample.source_site||sample.sample_type||'—'
+    return {...row,department,source,sampleType:sample.sample_type||'—',eventDate:String(row.resulted_at||sample.collected_at||'').slice(0,10)}
+  })
+  const microorganisms=sortedEntries(countBy(enriched,row=>row.organism?.trim()),12)
+  const resistance=sortedEntries(countBy(enriched,row=>row.resistance_class),5)
+  const monthly=Object.entries(countBy(enriched,row=>monthKey(row.resulted_at))).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12)
+  const byDepartment=sortedEntries(countBy(enriched,row=>row.department),12)
+  const bySource=sortedEntries(countBy(enriched,row=>row.source),12)
+  const bySampleType=sortedEntries(countBy(enriched,row=>row.sampleType),12)
+  const grouped=new Map()
+  for(const row of enriched){
+    const organism=row.organism?.trim()||'—'
+    const resistanceClass=row.resistance_class||'—'
+    const key=[organism,resistanceClass,row.department,row.source].join('|||')
+    const current=grouped.get(key)||{organism,resistanceClass,department:row.department,source:row.source,count:0,lastDate:''}
+    current.count+=1
+    if(row.eventDate>current.lastDate)current.lastDate=row.eventDate
+    grouped.set(key,current)
+  }
+  const nationalRows=[...grouped.values()].sort((a,b)=>b.count-a.count||b.lastDate.localeCompare(a.lastDate)).slice(0,80).map(row=>[row.organism,row.resistanceClass,row.department,row.source,row.count,row.lastDate])
   const organizations=(await loadPlatformSnapshot()).organizations||[]
   const names=new Map(organizations.map(row=>[row.id,row.name]))
-  const orgTotals=countBy(positive,row=>row.organization_id)
-  const resistantRows=positive.filter(row=>['MDR','XDR','PDR'].includes(row.resistance_class))
+  const orgTotals=countBy(enriched,row=>row.organization_id)
+  const resistantRows=enriched.filter(row=>['MDR','XDR','PDR'].includes(row.resistance_class))
   const orgResistant=countBy(resistantRows,row=>row.organization_id)
   const byOrganization=Object.entries(orgTotals).map(([id,total])=>[names.get(id)||id,total,orgResistant[id]||0]).sort((a,b)=>b[1]-a[1]).slice(0,12)
   return {
-    source:'production',
-    microorganisms,
-    resistance,
-    monthly,
-    byOrganization,
-    totalPositive:positive.length,
-    totalCritical:positive.filter(row=>row.is_critical).length,
+    source:'production',microorganisms,resistance,monthly,byOrganization,byDepartment,bySource,bySampleType,
+    departments:byDepartment.map(([name])=>name).filter(name=>name&&name!=='—'),
+    nationalRows,totalPositive:enriched.length,totalCritical:enriched.filter(row=>row.is_critical).length,
+    departmentCount:new Set(enriched.map(row=>row.department).filter(name=>name&&name!=='—')).size,
   }
 }

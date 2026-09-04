@@ -154,7 +154,8 @@ export function PlatformCenterPage() {
   const selectedOrg = organizations.find(org => org.id === selectedOrgId) || null
   const selectedDemoId = hashParams.get('demo') || ''
   const selectedDemo = demos.find(item => item.id === selectedDemoId) || null
-  const orgDetailTab = hashParams.get('tab') || 'details'
+  const requestedOrgDetailTab = hashParams.get('tab') || 'details'
+  const orgDetailTab = requestedOrgDetailTab === 'analysis' ? 'details' : requestedOrgDetailTab
   const activeOrganizations = organizations.filter(org => org.status === 'active').length
   const activeDemos = demos.filter(
     demo =>
@@ -270,13 +271,6 @@ export function PlatformCenterPage() {
     nav(location.state?.returnTo || '/platform#organizations')
   }
 
-  function openOrganizationAnalysis() {
-    nav(`/platform#reports?organization=${selectedOrg.id}`, {
-      state: {
-        returnTo: `/platform#organizations?organization=${selectedOrg.id}&tab=analysis`,
-      },
-    })
-  }
 
   function openDemoRecord(demo) {
     nav(`/platform#demo?demo=${demo.id}`, { state: { returnTo: '/platform#demo' } })
@@ -677,7 +671,6 @@ export function PlatformCenterPage() {
               await reloadMemberships()
               await refreshPlatformData()
             }}
-            onOpenAnalysis={openOrganizationAnalysis}
           />
           {deleteDialog}
         </>

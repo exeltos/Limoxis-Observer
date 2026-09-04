@@ -222,21 +222,6 @@
 .platform-org-action-item .lo-icon-button{width:32px;height:32px}
 .platform-org-action-item .lo-icon-button svg{width:16px;height:16px}
 
-.platform-org-analysis-link{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:20px;
-  margin:12px 14px 14px;
-  padding:14px 15px;
-  border:1px solid var(--lo-color-border);
-  border-radius:var(--lo-radius-card);
-  background:var(--lo-color-surface);
-}
-.platform-org-analysis-link>div{display:grid;gap:4px}
-.platform-org-analysis-link strong{font-size:12px}
-.platform-org-analysis-link span{font-size:10.5px;color:var(--lo-color-muted);line-height:1.45}
-
 .platform-diagnostics-panel{min-height:0;overflow:auto;padding:12px 14px 14px}
 .diagnostics-table-wrap{overflow:auto;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-card);background:var(--lo-color-surface)}
 
