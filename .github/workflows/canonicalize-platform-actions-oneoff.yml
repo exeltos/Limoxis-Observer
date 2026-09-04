@@ -1,0 +1,20 @@
+name: Canonicalize platform actions one off
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/canonicalize-platform-actions.mjs
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/canonicalize-platform-actions.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/platform/PlatformOrganizationRecord.jsx src/styles/design-system-actions.css tests/platformActionConsistency.test.js
+          git commit -m "refactor(platform): standardize record action buttons"
+          git push
