@@ -70,8 +70,8 @@ export function PlatformAuditSecurityView({organizations=[],language='el',onBack
   return <Page title={tx('Audit & Ασφάλεια','Audit & Security')} subtitle={tx('Ιχνηλασιμότητα ενεργειών Platform Owner, αλλαγών πρόσβασης και σημαντικών διοικητικών μεταβολών.','Traceability of Platform Owner actions, access changes and significant administrative changes.')}>
     <div className="platform-registry-shell">
       <div className="platform-registry-navigation"><BackButton onClick={onBack} label={tx('Dashboard','Dashboard')}/></div>
-      <div className="platform-section-heading"><div><h2>{tx('Διοικητικό audit trail','Administrative audit trail')}</h2><p>{tx('Εμφανίζει governance συμβάντα και όχι κλινικό περιεχόμενο.','Shows governance events, not clinical-record content.')}</p></div><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>
-      <div className="diagnostics-summary-strip">
+      <div className="platform-section-tools"><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>
+      <div className="diagnostics-summary-strip platform-summary-strip">
         <div className="diagnostics-summary"><span>{tx('Καταγεγραμμένες ενέργειες','Recorded actions')}</span><strong>{rows.length}</strong></div>
         <div className="diagnostics-summary"><span>{tx('Ενέργειες Platform Owner','Platform Owner actions')}</span><strong>{ownerActions}</strong></div>
         <div className="diagnostics-summary"><span>{tx('Αλλαγές πρόσβασης','Access changes')}</span><strong>{accessChanges}</strong></div>
