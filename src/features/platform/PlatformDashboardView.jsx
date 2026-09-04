@@ -1,5 +1,9 @@
+import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Activity, BarChart3, Building2, Clock3, FlaskConical } from 'lucide-react'
 import { Page } from '../../design-system/Page'
+import { useLanguage } from '../../core/i18n/LanguageContext'
+import { PlatformHealthView } from './PlatformHealthView'
 
 function DashboardAction({ icon, title, description, meta, onClick }) {
   return (
@@ -24,6 +28,18 @@ export function PlatformDashboardView({
   onOpenDemo,
   onNavigate,
 }) {
+  const { language } = useLanguage()
+  const location = useLocation()
+  const [healthOpen,setHealthOpen]=useState(false)
+
+  useEffect(()=>{
+    setHealthOpen(false)
+  },[location.key])
+
+  if(healthOpen){
+    return <PlatformHealthView organizations={organizations} language={language} onBack={()=>setHealthOpen(false)} />
+  }
+
   return (
     <Page
       title={tx('Dashboard Πλατφόρμας', 'Platform Dashboard')}
@@ -68,7 +84,7 @@ export function PlatformDashboardView({
             title={tx('Υγεία Πλατφόρμας', 'Platform Health')}
             description={tx('Συγκεντρωτική λειτουργική εικόνα, αποτυχίες και προειδοποιήσεις όλων των οργανισμών.', 'Aggregated operational health, failures and warnings across organizations.')}
             meta={tx('live εικόνα', 'live view')}
-            onClick={() => onNavigate('/platform#health')}
+            onClick={() => setHealthOpen(true)}
           />
         </div>
       </section>
