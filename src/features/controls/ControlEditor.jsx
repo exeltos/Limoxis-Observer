@@ -7,7 +7,9 @@ import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { useTenant } from '../../core/tenant/TenantContext'
+import { loadSnapshot } from '../../core/data/repository'
 import { loadDepartments } from '../management/departmentsService'
+import { createManagementLibraryItem } from '../management/managementCloudService'
 
 const CATEGORY_PRESETS={
   'Θερμοκρασίες':{mode:'numeric',label:'Θερμοκρασία',unit:'°C',min:'',max:''},
@@ -17,6 +19,12 @@ const CATEGORY_PRESETS={
   'Καθαριότητα / Απολύμανση':{mode:'choice',label:'Κατάσταση',options:['Συμμορφώνεται','Μη συμμόρφωση']},
 }
 
+function legacyDepartmentNames(){
+ const snapshot=loadSnapshot('management_libraries',{})
+ const rows=Array.isArray(snapshot?.departments)?snapshot.departments:[]
+ return [...new Set(rows.map(row=>String(row?.[0]||'').trim()).filter(Boolean))]
+}
+
 export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixedDepartment=''}){
  const {language}=useLanguage();const en=language==='en'
  const {tenant}=useTenant()
@@ -24,9 +32,22 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const [departmentRows,setDepartmentRows]=useState([])
  const [departmentsLoading,setDepartmentsLoading]=useState(false)
  const [departmentsError,setDepartmentsError]=useState('')
+ const [legacyDepartments,setLegacyDepartments]=useState([])
+ const [migratingDepartments,setMigratingDepartments]=useState(false)
  const [deptQuery,setDeptQuery]=useState('')
  const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify(initial)):{title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',description:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
- useEffect(()=>{let active=true;if(departmentOnly&&fixedDepartment){setDepartmentRows([{name:fixedDepartment}]);setDepartmentsError('');setDepartmentsLoading(false);return()=>{active=false}};if(!organizationId){setDepartmentRows([]);setDepartmentsError(en?'No active organization is selected.':'Δεν έχει επιλεγεί ενεργός οργανισμός.');return()=>{active=false}};(async()=>{setDepartmentsLoading(true);setDepartmentsError('');try{const rows=await loadDepartments(organizationId);if(active)setDepartmentRows((rows||[]).filter(x=>x.is_active!==false))}catch(error){if(active){setDepartmentRows([]);setDepartmentsError(error?.message||(en?'Departments could not be loaded.':'Δεν ήταν δυνατή η φόρτωση των τμημάτων.'))}}finally{if(active)setDepartmentsLoading(false)}})();return()=>{active=false}},[organizationId,departmentOnly,fixedDepartment,en])
+ async function refreshDepartments(){
+  if(!organizationId)return
+  setDepartmentsLoading(true);setDepartmentsError('')
+  try{
+   const rows=await loadDepartments(organizationId)
+   const active=(rows||[]).filter(x=>x.is_active!==false)
+   setDepartmentRows(active)
+   setLegacyDepartments(active.length?[]:legacyDepartmentNames())
+  }catch(error){setDepartmentRows([]);setDepartmentsError(error?.message||(en?'Departments could not be loaded.':'Δεν ήταν δυνατή η φόρτωση των τμημάτων.'))}
+  finally{setDepartmentsLoading(false)}
+ }
+ useEffect(()=>{let active=true;if(departmentOnly&&fixedDepartment){setDepartmentRows([{name:fixedDepartment}]);setDepartmentsError('');setLegacyDepartments([]);setDepartmentsLoading(false);return()=>{active=false}};if(!organizationId){setDepartmentRows([]);setDepartmentsError(en?'No active organization is selected.':'Δεν έχει επιλεγεί ενεργός οργανισμός.');return()=>{active=false}};(async()=>{setDepartmentsLoading(true);setDepartmentsError('');try{const rows=await loadDepartments(organizationId);if(active){const current=(rows||[]).filter(x=>x.is_active!==false);setDepartmentRows(current);setLegacyDepartments(current.length?[]:legacyDepartmentNames())}}catch(error){if(active){setDepartmentRows([]);setDepartmentsError(error?.message||(en?'Departments could not be loaded.':'Δεν ήταν δυνατή η φόρτωση των τμημάτων.'))}}finally{if(active)setDepartmentsLoading(false)}})();return()=>{active=false}},[organizationId,departmentOnly,fixedDepartment,en])
  const departments=useMemo(()=>departmentRows.map(x=>x.name).filter(Boolean),[departmentRows])
  const set=(k,v)=>setDraft(d=>({...d,[k]:v})),setF=(k,v)=>setDraft(d=>({...d,frequency:{...d.frequency,[k]:v}})),setR=(k,v)=>setDraft(d=>({...d,responseConfig:{...(d.responseConfig||{mode:'text',label:'Αποτέλεσμα'}),[k]:v}}))
  const toggleDept=d=>set('departments',draft.departments.includes(d)?draft.departments.filter(x=>x!==d):[...draft.departments,d])
@@ -36,6 +57,15 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const valid=draft.title.trim()&&draft.category.trim()&&draft.departments.length>0&&draft.owner.trim()&&(draft.frequency.kind!=='daily'||times.every(Boolean))
  function changeCategory(value){setDraft(d=>({...d,category:value,responseConfig:CATEGORY_PRESETS[value]?{...CATEGORY_PRESETS[value]}:(d.category===value?d.responseConfig:{mode:'text',label:'Αποτέλεσμα'})}))}
  function submit(){if(!valid)return;onSave({...draft,titleEn:draft.titleEn||draft.title,frequency:{...draft.frequency,timesPerDay:count,times:draft.frequency.kind==='daily'?times:[]}})}
+ async function migrateLegacyDepartments(){
+  if(!organizationId||!legacyDepartments.length||migratingDepartments)return
+  setMigratingDepartments(true);setDepartmentsError('')
+  try{
+   for(const name of legacyDepartments)await createManagementLibraryItem(organizationId,'departments',{nameEl:name,nameEn:name})
+   await refreshDepartments()
+  }catch(error){setDepartmentsError(error?.message||(en?'Departments could not be migrated.':'Δεν ήταν δυνατή η μεταφορά των τμημάτων.'))}
+  finally{setMigratingDepartments(false)}
+ }
  const title=initial?(en?'Edit control':'Επεξεργασία ελέγχου'):(en?'New control':'Νέος έλεγχος')
  return <Page fill className="control-editor-page">
   <EntityRecordShell className="control-create-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'CONTROLS':'ΕΛΕΓΧΟΙ'} title={title} subtitle={en?'Define what is checked, how it is recorded, where and when it runs.':'Ορίστε τι ελέγχεται, πώς καταχωρείται, πού εφαρμόζεται και πότε εκτελείται.'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={onCancel}>
@@ -74,7 +104,8 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     <div className="control-form-block">
      <div className="control-form-block-title"><strong>{en?'Applicable departments':'Τμήματα εφαρμογής'}</strong><span>{draft.departments.length?`${draft.departments.length} ${en?'selected':'επιλεγμένα'}`:(en?'Select at least one department':'Επιλέξτε τουλάχιστον ένα τμήμα')}</span></div>
      <div className="control-dept-search"><Search size={16}/><input value={deptQuery} onChange={e=>setDeptQuery(e.target.value)} placeholder={en?'Search department...':'Αναζήτηση τμήματος...'}/></div>
-     <div className="control-department-picker">{departmentsLoading?<div className="inline-empty">{en?'Loading departments…':'Φόρτωση τμημάτων…'}</div>:departmentsError?<div className="inline-empty">{departmentsError}</div>:visibleDepartments.map(d=><label key={d} className={`check-option ${draft.departments.includes(d)?'selected':''}`}><input type="checkbox" checked={draft.departments.includes(d)} disabled={departmentOnly&&draft.departments.includes(d)} onChange={()=>toggleDept(d)}/><span>{d}</span></label>)}{!departmentsLoading&&!departmentsError&&!visibleDepartments.length&&<div className="inline-empty">{en?'No active departments exist in Supabase for this organization.':'Δεν υπάρχουν ενεργά τμήματα στη Supabase για τον συγκεκριμένο οργανισμό.'}</div>}</div>
+     {legacyDepartments.length>0&&!departmentsLoading&&<div className="governance-banner warning"><span>{en?`Found ${legacyDepartments.length} departments stored locally from the previous version: ${legacyDepartments.join(', ')}.`:`Βρέθηκαν ${legacyDepartments.length} τμήματα αποθηκευμένα τοπικά από την προηγούμενη έκδοση: ${legacyDepartments.join(', ')}.`}</span><Button variant="secondary" disabled={migratingDepartments} onClick={migrateLegacyDepartments}>{migratingDepartments?(en?'Migrating…':'Μεταφορά…'):(en?'Move to Supabase':'Μεταφορά στη Supabase')}</Button></div>}
+     <div className="control-department-picker">{departmentsLoading?<div className="inline-empty">{en?'Loading departments…':'Φόρτωση τμημάτων…'}</div>:departmentsError?<div className="inline-empty">{departmentsError}</div>:visibleDepartments.map(d=><label key={d} className={`check-option ${draft.departments.includes(d)?'selected':''}`}><input type="checkbox" checked={draft.departments.includes(d)} disabled={departmentOnly&&draft.departments.includes(d)} onChange={()=>toggleDept(d)}/><span>{d}</span></label>)}{!departmentsLoading&&!departmentsError&&!visibleDepartments.length&&!legacyDepartments.length&&<div className="inline-empty">{en?'No active departments exist in Supabase for this organization.':'Δεν υπάρχουν ενεργά τμήματα στη Supabase για τον συγκεκριμένο οργανισμό.'}</div>}</div>
     </div>
 
     <div className="control-form-block control-guidance-block">
