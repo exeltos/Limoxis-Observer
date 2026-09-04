@@ -16,6 +16,7 @@ import './styles/platform-owner-polish.css'
 import './styles/design-system-layouts.css'
 import './styles/design-system-navigation.css'
 import './styles/my-profile.css'
+import './styles/clickable-cursor.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
