@@ -5,6 +5,7 @@ const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*',
 const reply=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 const GREEK:Record<string,string>={α:'A',ά:'A',β:'V',γ:'G',δ:'D',ε:'E',έ:'E',ζ:'Z',η:'I',ή:'I',θ:'T',ι:'I',ί:'I',κ:'K',λ:'L',μ:'M',ν:'N',ξ:'X',ο:'O',ό:'O',π:'P',ρ:'R',σ:'S',ς:'S',τ:'T',υ:'Y',ύ:'Y',φ:'F',χ:'C',ψ:'P',ω:'O',ώ:'O'}
 const initial=(value='')=>{const c=String(value).trim().charAt(0);return /[A-Za-z]/.test(c)?c.toUpperCase():(GREEK[c.toLowerCase()]||'D')}
+const addDays=(isoDate:string,days:number)=>{const date=new Date(`${isoDate}T00:00:00Z`);if(Number.isNaN(date.getTime()))return '';date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)}
 
 async function allocateUsername(admin:any,contactName:string){
   const parts=contactName.split(/\s+/).filter(Boolean)
@@ -50,7 +51,7 @@ Deno.serve(async(req)=>{
   const contactName=String(body.contactName||'').trim()
   const contactEmail=String(body.contactEmail||'').trim().toLowerCase()
   const validFrom=String(body.validFrom||'')
-  const validUntil=String(body.validUntil||'')
+  let validUntil=String(body.validUntil||'')
   const organizationType=String(body.type||'hospital')
   const region=String(body.region||'').trim()||null
   const healthRegion=String(body.healthRegion||'').trim()||null
@@ -58,7 +59,14 @@ Deno.serve(async(req)=>{
   const country=String(body.country||'').trim()||null
   const contactPhone=String(body.contactPhone||'').trim()||null
   const bedCapacity=body.bedCapacity===''||body.bedCapacity==null?null:Number(body.bedCapacity)
-  if(!label||!contactEmail||!validFrom||!validUntil)return reply({error:'Missing demo fields.'},400)
+  if(!label||!contactEmail||!validFrom)return reply({error:'Missing demo fields.'},400)
+
+  if(!validUntil){
+    const {data:settings}=await admin.from('platform_settings').select('default_demo_duration_days').eq('id','global').maybeSingle()
+    const duration=Math.min(365,Math.max(1,Number(settings?.default_demo_duration_days)||30))
+    validUntil=addDays(validFrom,duration)
+  }
+  if(!validUntil)return reply({error:'Invalid demo dates.'},400)
 
   const username=await allocateUsername(admin,contactName||label)
   const organizationCode=await allocateDemoOrganizationCode(admin)
