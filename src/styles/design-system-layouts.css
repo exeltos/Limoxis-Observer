@@ -652,3 +652,23 @@
 .platform-user-management-panel .platform-user-card-section:hover{background:inherit!important}
 @media(max-width:1050px){.platform-user-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.platform-user-card-grid{grid-template-columns:1fr}.platform-user-card-footer{align-items:stretch;flex-direction:column}.platform-user-card-footer .button{width:100%}}
+
+
+/* Platform Owner · full-screen organization user record */
+.platform-user-record-shell{width:100%;max-width:none}
+.platform-user-record-shell>.entity-record-body{min-height:0}
+.platform-user-record-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.platform-user-record-workspace{display:grid;gap:14px;padding:4px 0 18px}
+.platform-user-record-section{padding:18px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-card);background:var(--lo-color-surface)}
+.platform-user-record-section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.platform-user-record-section-heading>div{display:flex;flex-direction:column;gap:4px}
+.platform-user-record-section-heading strong{font-size:14px;color:var(--lo-color-text)}
+.platform-user-record-section-heading span{font-size:11px;line-height:1.45;color:var(--lo-color-muted)}
+.platform-user-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+.platform-user-record-grid .field{min-width:0}
+.platform-user-record-grid input,.platform-user-record-grid select{width:100%;min-height:40px}
+.platform-user-record-grid input[readonly],.platform-user-record-grid select:disabled{background:var(--lo-color-surface-soft,#f6f8fb);color:var(--lo-color-text);opacity:1;cursor:default}
+.platform-user-record-link-row{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:10px;align-items:center}
+.platform-user-record-link-row .platform-role-select{width:100%;min-height:40px}
+.platform-user-record-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+@media(max-width:760px){.platform-user-record-grid{grid-template-columns:1fr}.platform-user-record-link-row{grid-template-columns:1fr}.platform-user-record-link-row .button{width:100%}.platform-user-record-header-actions{width:100%}.platform-user-record-header-actions .button{flex:1}}
