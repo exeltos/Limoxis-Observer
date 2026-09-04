@@ -58,27 +58,48 @@ export function ProductionSurveillancePage(){
     }
     setLoading(true)
     try{
-      const [caseRows,patientRows,sampleRows]=await Promise.all([
+      const [casesResult,patientsResult,samplesResult]=await Promise.allSettled([
         loadClinicalCases(tenant.id),
         loadPatients(tenant.id,{isDemo:false}),
         loadLaboratorySamples(tenant.id),
       ])
-      setRecords(caseRows)
-      setPatients(patientRows)
-      setLabSamples(sampleRows)
+
+      if(casesResult.status==='fulfilled')setRecords(casesResult.value)
+      else{
+        setRecords([])
+        notifyError(casesResult.reason,'load',{operation:'surveillance_cases_load'})
+      }
+
+      if(patientsResult.status==='fulfilled')setPatients(patientsResult.value)
+      else{
+        setPatients([])
+        notifyError(patientsResult.reason,'load',{operation:'surveillance_patients_load'})
+      }
+
+      if(samplesResult.status==='fulfilled')setLabSamples(samplesResult.value)
+      else{
+        setLabSamples([])
+        notifyError(samplesResult.reason,'load',{operation:'surveillance_environment_load'})
+      }
+
       if(canSeeEmployeeSurveillance){
-        const employeeRows=await loadEmployeeSurveillanceRecords(tenant.id)
-        const batchRows=await loadEmployeeSurveillanceBatches(tenant.id,employeeRows)
-        setEmployeeRecords(employeeRows)
-        setEmployeeBatches(batchRows)
+        try{
+          const employeeRows=await loadEmployeeSurveillanceRecords(tenant.id)
+          const batchRows=await loadEmployeeSurveillanceBatches(tenant.id,employeeRows)
+          setEmployeeRecords(employeeRows)
+          setEmployeeBatches(batchRows)
+        }catch(error){
+          setEmployeeRecords([])
+          setEmployeeBatches([])
+          notifyError(error,'load',{operation:'employee_surveillance_registry_load'})
+        }
       }else{
         setEmployeeRecords([])
         setEmployeeBatches([])
       }
-    }catch(error){
-      notifyError(error,'load',{operation:'surveillance_registry_load'})
-      setRecords([]);setLabSamples([]);setEmployeeRecords([]);setEmployeeBatches([])
-    }finally{setLoading(false)}
+    }finally{
+      setLoading(false)
+    }
   }
   useEffect(()=>{void load()},[tenant?.id,canSeeEmployeeSurveillance])
 
