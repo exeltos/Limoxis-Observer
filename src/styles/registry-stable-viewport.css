@@ -1,18 +1,54 @@
-/* Canonical stable viewport for primary registries.
-   One outer shell owns the height, frame, scroll area and pagination placement. */
+/* Canonical primary-registry viewport.
+   The Quality Center is the visual reference: every redesigned registry stretches to the same
+   bottom line of the available app content area. The registry HEIGHT is therefore fluid; the
+   registry BOTTOM is stable. */
 :root{
-  --canonical-registry-height:clamp(360px,calc(100dvh - 360px),560px);
   --canonical-registry-radius:11px;
+  --canonical-registry-min-height:300px;
+  --canonical-preview-height:40px;
 }
 
-/* Primary registry shells: one consistent fixed viewport with safe bottom clearance. */
+/* Turn the app content into a bounded viewport only when the active page is one of our
+   primary registry pages. This preserves normal document scrolling for forms/detail screens. */
+.main-column>.content:has(>.page-fill>.registry-workspace),
+.main-column>.content:has(>.page-fill>.patient-registry-shell),
+.main-column>.content:has(>.page-fill .lab-registry-shell){
+  height:calc(100dvh - 64px)!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.main-column:has(>.preview-banner)>.content:has(>.page-fill>.registry-workspace),
+.main-column:has(>.preview-banner)>.content:has(>.page-fill>.patient-registry-shell),
+.main-column:has(>.preview-banner)>.content:has(>.page-fill .lab-registry-shell){
+  height:calc(100dvh - 64px - var(--canonical-preview-height))!important;
+}
+
+/* Registry pages fill the bounded content viewport. Everything above the registry consumes
+   only its natural height; the registry gets exactly the remaining space down to the Quality
+   Center bottom line. */
+.main-column>.content:has(>.page-fill>.registry-workspace)>.page-fill,
+.main-column>.content:has(>.page-fill>.patient-registry-shell)>.page-fill,
+.main-column>.content:has(>.page-fill .lab-registry-shell)>.page-fill{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:100%!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  padding-bottom:0!important;
+}
+
+/* Primary registry shells: fluid height, one common outer frame. */
 .registry-workspace,
 .patient-registry-shell,
 .laboratory-registry-page .lab-registry-shell{
-  height:var(--canonical-registry-height)!important;
-  min-height:360px!important;
-  max-height:560px!important;
-  flex:0 0 auto!important;
+  flex:1 1 0!important;
+  height:auto!important;
+  min-height:var(--canonical-registry-min-height)!important;
+  max-height:none!important;
+  margin-bottom:0!important;
   overflow:hidden!important;
   display:flex!important;
   flex-direction:column!important;
@@ -29,15 +65,23 @@
   box-shadow:none!important;
 }
 
+/* KPI / summary areas and tab bars never steal flexible height. */
+.page-fill>.workspace-summary,
+.page-fill>.patient-summary-strip,
+.page-fill>.surveillance-summary,
+.registry-workspace>.canonical-module-tabs{
+  flex:0 0 auto!important;
+}
+
 /* Empty/data/loading states never alter the outer shell height. */
 .registry-workspace:has(.registry-empty-state),
 .patient-registry-shell:has(.registry-empty-state),
 .laboratory-registry-page .lab-registry-shell:has(.registry-empty-state),
 .registry-workspace:has(.surveillance-registry-empty){
-  height:var(--canonical-registry-height)!important;
-  min-height:360px!important;
-  max-height:560px!important;
-  flex:0 0 auto!important;
+  flex:1 1 0!important;
+  height:auto!important;
+  min-height:var(--canonical-registry-min-height)!important;
+  max-height:none!important;
 }
 
 /* Standard table scroll regions. */
@@ -64,6 +108,7 @@
   margin:0!important;
 }
 
+/* Pagination owns the final 44px of every registry and therefore shares one bottom baseline. */
 .registry-workspace>.registry-pagination,
 .patient-registry-shell>.registry-pagination,
 .laboratory-registry-page .lab-registry-shell>.registry-pagination{
@@ -75,12 +120,12 @@
   background:#fff!important;
 }
 
-/* Surveillance: the OUTER .registry-workspace owns the canonical height.
-   The inner surveillance workspace only fills the remaining area so pagination is never clipped. */
+/* Surveillance: only the OUTER frame stretches to the common bottom. */
 .production-surveillance-frame{
-  height:var(--canonical-registry-height)!important;
-  min-height:360px!important;
-  max-height:560px!important;
+  flex:1 1 0!important;
+  height:auto!important;
+  min-height:var(--canonical-registry-min-height)!important;
+  max-height:none!important;
 }
 .production-surveillance-frame>.canonical-module-tabs{flex:0 0 auto!important}
 .production-surveillance-frame>.production-surveillance-workspace{
@@ -114,11 +159,12 @@
   flex:1 1 auto!important;
 }
 
-/* Controls use exactly the same outer frame and rounded corners. */
+/* Controls use the same fluid bottom-aligned frame. */
 .controls-page>.controls-surface{
-  height:var(--canonical-registry-height)!important;
-  min-height:360px!important;
-  max-height:560px!important;
+  flex:1 1 0!important;
+  height:auto!important;
+  min-height:var(--canonical-registry-min-height)!important;
+  max-height:none!important;
   display:flex!important;
   flex-direction:column!important;
   margin:0!important;
@@ -151,21 +197,6 @@
   z-index:3!important;
 }
 
-/* Keep the full registry frame separated from the browser/taskbar edge. */
-.page:has(.registry-workspace),
-.page:has(.patient-registry-shell),
-.laboratory-registry-page{
-  padding-bottom:18px!important;
-}
-
 @media(max-width:1200px){
-  :root{--canonical-registry-height:clamp(330px,calc(100dvh - 390px),500px)}
-  .registry-workspace,
-  .patient-registry-shell,
-  .laboratory-registry-page .lab-registry-shell,
-  .production-surveillance-frame,
-  .controls-page>.controls-surface{
-    min-height:330px!important;
-    max-height:500px!important;
-  }
+  :root{--canonical-registry-min-height:260px}
 }
