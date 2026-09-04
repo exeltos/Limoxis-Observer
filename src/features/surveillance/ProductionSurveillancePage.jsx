@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Activity,AlertTriangle,Clock3,Microscope,ShieldCheck,Users } from 'lucide-react'
+import { Activity,AlertTriangle,Clock3,Microscope,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -200,7 +200,6 @@ export function ProductionSurveillancePage(){
           <SummaryMetric icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant}/>
         </>}
       </div>
-      <div className="governance-banner compact-governance"><ShieldCheck size={16}/><span>{registryMode==='environmental'?t('clinicalRecords.environmentalSurveillanceGovernance'):t('clinicalRecords.parallelSurveillanceNote')}</span></div>
     </div>
 
     <nav className="tabs surveillance-domain-tabs canonical-module-tabs" aria-label={t('surveillanceCategoriesAria')}>
