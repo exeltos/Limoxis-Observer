@@ -1,5 +1,5 @@
 /* Surveillance-specific layout only.
-   Shared page baseline, KPI density, empty states and pagination live in page-density.css. */
+   Shared page baseline, KPI density, tabs, empty states and pagination live in page-density.css. */
 .production-surveillance-page{max-width:none}
 .production-surveillance-page .page-header{margin-bottom:10px}
 .production-surveillance-page .page-header p{margin-top:4px}
@@ -11,21 +11,13 @@
 .surveillance-summary .summary-metric strong{font-size:20px;line-height:1}
 .surveillance-summary .summary-metric span{font-size:10.5px}
 
-/* Match the Prevention tab treatment: the white registry shell owns the full outline. */
-.surveillance-domain-tabs{
-  margin:0!important;border:0!important;border-bottom:1px solid var(--line)!important;
-  border-radius:0!important;padding:5px 9px!important;background:#fff!important;gap:3px!important
-}
-.surveillance-domain-tabs .tab{min-height:32px;padding:5px 10px}
-.surveillance-domain-tabs .tab-count{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 6px;border-radius:999px;background:rgba(25,74,116,.08);font-size:10px}
-
+/* Tabs inherit the canonical Prevention tab style. They form the top edge of the same registry card. */
+.surveillance-domain-tabs{margin:0!important}
 .production-surveillance-workspace{
-  margin:0!important;border:1px solid var(--line)!important;border-radius:11px!important;
-  padding:0!important;min-height:0!important;overflow:hidden;background:var(--surface);
-  display:flex;flex-direction:column
+  margin:0!important;border:1px solid var(--line)!important;border-top:0!important;
+  border-radius:0 0 11px 11px!important;padding:0!important;min-height:0!important;
+  overflow:hidden;background:var(--surface);display:flex;flex-direction:column
 }
-/* Tabs are the first child of the shell: keep one continuous rounded white frame, like Prevention. */
-.production-surveillance-workspace:has(>.surveillance-domain-tabs){border-radius:11px!important}
 .production-surveillance-workspace .filter-system{margin:0;border-bottom:1px solid var(--line);padding:8px 10px;background:#fff}
 .production-surveillance-workspace .filter-primary-row{gap:8px}
 .production-surveillance-workspace .filter-search{max-width:560px}
