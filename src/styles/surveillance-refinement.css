@@ -3,7 +3,6 @@
 
 .production-surveillance-page{max-width:none;margin-top:-18px}
 .production-surveillance-page .page-header{margin-bottom:10px}
-.production-surveillance-page .page-header h1{font-size:24px}
 .production-surveillance-page .page-header p{margin-top:4px}
 
 .surveillance-summary{margin-bottom:8px}
@@ -13,7 +12,6 @@
 .surveillance-summary .summary-metric svg{width:17px;height:17px}
 .surveillance-summary .summary-metric strong{font-size:20px;line-height:1}
 .surveillance-summary .summary-metric span{font-size:10.5px}
-.surveillance-summary .compact-governance{min-height:32px;margin:0;padding:6px 10px;font-size:11px}
 
 .surveillance-domain-tabs{margin:0;border:1px solid var(--line);border-bottom:0;border-radius:11px 11px 0 0;padding:5px 9px;background:var(--surface);gap:3px}
 .surveillance-domain-tabs .tab{min-height:32px;padding:5px 10px}
