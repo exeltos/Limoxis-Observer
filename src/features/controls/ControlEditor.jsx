@@ -25,23 +25,23 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const subtitle=en?'Define what is checked, where it applies and when it must be performed.':'Ορίστε τι ελέγχεται, πού εφαρμόζεται και πότε πρέπει να εκτελείται.'
  return <Page fill className="control-editor-page" title={title} subtitle={subtitle} navigation={<BackButton onClick={onCancel} label={en?'Back to controls':'Επιστροφή στους ελέγχους'}/>}>
    <Card className="control-editor-sheet control-editor-sheet-card">
-    <section className="control-sheet-section">
+    <section className="control-sheet-section control-sheet-basic">
       <div className="control-section-title"><span>1</span><div><strong>{en?'Basic details':'Βασικά στοιχεία'}</strong><small>{en?'Name, category and owner':'Ονομασία, κατηγορία και υπεύθυνος'}</small></div></div>
       <div className="control-two-col">
-        <label className="field control-span-2"><span>{en?'Control name (Greek) *':'Ονομασία ελέγχου *'}</span><input value={draft.title} onChange={e=>set('title',e.target.value)} placeholder={en?'e.g. Refrigerator temperature':'π.χ. Θερμοκρασία ψυγείου'}/></label>
-        <label className="field control-span-2"><span>{en?'Control name (English)':'Ονομασία στα Αγγλικά'}</span><input value={draft.titleEn||''} onChange={e=>set('titleEn',e.target.value)} placeholder="e.g. Medication refrigerator temperature"/></label>
+        <label className="field"><span>{en?'Control name (Greek) *':'Ονομασία ελέγχου *'}</span><input value={draft.title} onChange={e=>set('title',e.target.value)} placeholder={en?'e.g. Refrigerator temperature':'π.χ. Θερμοκρασία ψυγείου'}/></label>
+        <label className="field"><span>{en?'Control name (English)':'Ονομασία στα Αγγλικά'}</span><input value={draft.titleEn||''} onChange={e=>set('titleEn',e.target.value)} placeholder="e.g. Medication refrigerator temperature"/></label>
         <label className="field"><span>{en?'Category *':'Κατηγορία *'}</span><input list="control-categories" value={draft.category} onChange={e=>set('category',e.target.value)} placeholder={en?'Select or type':'Επιλέξτε ή γράψτε'}/><datalist id="control-categories"><option value="Θερμοκρασίες"/><option value="Φάρμακα / Υλικά"/><option value="Καλλιέργειες"/><option value="Εξοπλισμός"/><option value="Καθαριότητα / Απολύμανση"/></datalist></label>
         <label className="field"><span>{en?'Owner *':'Υπεύθυνος *'}</span><input list="control-owners" value={draft.owner} onChange={e=>set('owner',e.target.value)} placeholder={en?'Select or type':'Επιλέξτε ή γράψτε'}/><datalist id="control-owners"><option value="Υπεύθυνος βάρδιας"/><option value="Προϊστάμενος τμήματος"/><option value="Νοσηλευτής βάρδιας"/><option value="Ομάδα Ελέγχου Λοιμώξεων"/></datalist></label>
       </div>
     </section>
 
-    <section className="control-sheet-section">
+    <section className="control-sheet-section control-sheet-departments">
       <div className="control-section-title"><span>2</span><div><strong>{en?'Applicable departments':'Τμήματα εφαρμογής'}</strong><small>{en?'The control appears only in selected departments':'Ο έλεγχος θα εμφανίζεται μόνο στα επιλεγμένα τμήματα'}</small></div><b>{draft.departments.length} {en?'selected':'επιλεγμένα'}</b></div>
       <div className="control-dept-search"><Search size={16}/><input value={deptQuery} onChange={e=>setDeptQuery(e.target.value)} placeholder={en?'Search department...':'Αναζήτηση τμήματος...'}/></div>
       <div className="control-department-picker">{visibleDepartments.map(d=><label key={d} className={`check-option ${draft.departments.includes(d)?'selected':''}`}><input type="checkbox" checked={draft.departments.includes(d)} disabled={departmentOnly&&draft.departments.includes(d)} onChange={()=>toggleDept(d)}/><span>{d}</span></label>)}</div>
     </section>
 
-    <section className="control-sheet-section">
+    <section className="control-sheet-section control-sheet-entry">
       <div className="control-section-title"><span>3</span><div><strong>{en?'Entry type':'Τύπος καταχώρησης'}</strong><small>{en?'What the user records during execution':'Τι θα συμπληρώνει ο χρήστης κατά την εκτέλεση'}</small></div></div>
       <div className="control-two-col">
         <label className="field"><span>{en?'Result format *':'Μορφή αποτελέσματος *'}</span><select value={draft.responseConfig?.mode||'text'} onChange={e=>setR('mode',e.target.value)}><option value="text">{en?'Text / simple value':'Κείμενο / απλή τιμή'}</option><option value="numeric">{en?'Numeric value with limits':'Αριθμητική τιμή με όρια'}</option><option value="choice">{en?'Status choice':'Επιλογή κατάστασης'}</option><option value="list">{en?'Findings / items list':'Λίστα ευρημάτων / αντικειμένων'}</option></select></label>
@@ -54,16 +54,18 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
 
     <section className="control-sheet-section control-schedule-section">
       <div className="control-section-title"><span>4</span><div><strong>{en?'Scheduling':'Προγραμματισμός'}</strong><small>{en?'Frequency and expected executions':'Συχνότητα και αναμενόμενες εκτελέσεις'}</small></div></div>
-      <div className="control-schedule-grid">
-        <label className="field"><span>{en?'Frequency *':'Συχνότητα *'}</span><select value={draft.frequency.kind} onChange={e=>setF('kind',e.target.value)}><option value="daily">{en?'Daily':'Ημερήσια'}</option><option value="weekly">{en?'Weekly':'Εβδομαδιαία'}</option><option value="monthly">{en?'Monthly / every N months':'Μηνιαία / ανά Χ μήνες'}</option><option value="yearly">{en?'Yearly':'Ετήσια'}</option><option value="custom">{en?'Every N days':'Κάθε Χ ημέρες'}</option></select></label>
-        {draft.frequency.kind==='daily'?<label className="field"><span>{en?'Times per day *':'Φορές ανά ημέρα *'}</span><input type="number" min="1" max="12" value={count} onChange={e=>setF('timesPerDay',Math.max(1,Math.min(12,Number(e.target.value)||1)))}/></label>:<label className="field"><span>{en?'Interval *':'Διάστημα *'}</span><input type="number" min="1" value={draft.frequency.interval||1} onChange={e=>setF('interval',Math.max(1,Number(e.target.value)||1))}/></label>}
+      <div className="control-schedule-content">
+        <div className="control-schedule-grid">
+          <label className="field"><span>{en?'Frequency *':'Συχνότητα *'}</span><select value={draft.frequency.kind} onChange={e=>setF('kind',e.target.value)}><option value="daily">{en?'Daily':'Ημερήσια'}</option><option value="weekly">{en?'Weekly':'Εβδομαδιαία'}</option><option value="monthly">{en?'Monthly / every N months':'Μηνιαία / ανά Χ μήνες'}</option><option value="yearly">{en?'Yearly':'Ετήσια'}</option><option value="custom">{en?'Every N days':'Κάθε Χ ημέρες'}</option></select></label>
+          {draft.frequency.kind==='daily'?<label className="field"><span>{en?'Times per day *':'Φορές ανά ημέρα *'}</span><input type="number" min="1" max="12" value={count} onChange={e=>setF('timesPerDay',Math.max(1,Math.min(12,Number(e.target.value)||1)))}/></label>:<label className="field"><span>{en?'Interval *':'Διάστημα *'}</span><input type="number" min="1" value={draft.frequency.interval||1} onChange={e=>setF('interval',Math.max(1,Number(e.target.value)||1))}/></label>}
+        </div>
+        {draft.frequency.kind==='daily'&&<div className="control-times-panel"><div className="control-times-heading"><CalendarClock size={17}/><div><span>{en?'Execution times':'Ώρες εκτέλεσης'}</span><small>{count===1?(en?'1 entry per day':'1 καταχώρηση την ημέρα'):(en?`${count} separate entries per day`:`${count} ξεχωριστές καταχωρήσεις την ημέρα`)}</small></div></div><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} className="control-time-field" label={en?`Execution ${i+1}`:`${i+1}η εκτέλεση`} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
       </div>
-      {draft.frequency.kind==='daily'&&<div className="control-times-panel"><div className="control-times-heading"><CalendarClock size={17}/><div><span>{en?'Execution times':'Ώρες εκτέλεσης'}</span><small>{count===1?(en?'1 entry per day':'1 καταχώρηση την ημέρα'):(en?`${count} separate entries per day`:`${count} ξεχωριστές καταχωρήσεις την ημέρα`)}</small></div></div><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} className="control-time-field" label={en?`Execution ${i+1}`:`${i+1}η εκτέλεση`} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
     </section>
 
     <section className="control-sheet-section control-notes-section">
       <div className="control-section-title"><span>5</span><div><strong>{en?'Instructions':'Οδηγίες'}</strong><small>{en?'Optional execution guidance':'Προαιρετικές οδηγίες εκτέλεσης'}</small></div></div>
-      <label className="field"><textarea rows="3" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'What should be checked, acceptable limits or other instructions...':'Τι πρέπει να ελεγχθεί, αποδεκτά όρια ή άλλες οδηγίες...'}/></label>
+      <label className="field"><textarea rows="2" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'What should be checked, acceptable limits or other instructions...':'Τι πρέπει να ελεγχθεί, αποδεκτά όρια ή άλλες οδηγίες...'}/></label>
     </section>
 
     <footer className="control-editor-actions"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton disabled={!valid} onClick={submit}>{initial?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Create control':'Δημιουργία ελέγχου')}</SaveButton></footer>
