@@ -109,38 +109,6 @@
   position:sticky;top:0;z-index:2;background:#f7f9fb
 }
 
-/* Stable registry viewport: tab changes must never resize the list panel. */
-.stable-registry-height{
-  height:calc(100vh - 285px)!important;
-  min-height:360px!important;
-  max-height:calc(100vh - 285px)!important;
-  flex:0 0 auto!important
-}
-.stable-registry-height .scroll-table{
-  flex:1 1 auto!important;
-  min-height:0!important;
-  height:auto!important;
-  max-height:none!important;
-  overflow:auto!important
-}
-.stable-registry-height:has(.registry-empty-state){
-  height:calc(100vh - 285px)!important;
-  min-height:360px!important;
-  max-height:calc(100vh - 285px)!important;
-  flex:0 0 auto!important
-}
-.stable-registry-height:has(.registry-empty-state) .scroll-table{
-  flex:1 1 auto!important;
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:auto!important
-}
-.stable-registry-height .registry-empty-state{
-  min-height:132px!important;
-  height:100%!important
-}
-
 /* Controls: true operational canvas, not an outer card. */
 .controls-page{max-width:none!important;width:100%!important}
 .controls-page>.workspace-summary{width:100%!important}
@@ -182,6 +150,31 @@
 .patient-registry-shell:has(.registry-empty-state) .data-table,
 .laboratory-registry-page .lab-registry-shell:has(.registry-empty-state) .data-table{margin-bottom:0!important}
 
+/* Stable tabbed registries override compact empty-state behavior.
+   Loading, empty and populated tabs keep the exact same outer height from the first render. */
+.registry-workspace.stable-registry-height,
+.registry-workspace.stable-registry-height:has(.registry-empty-state){
+  flex:0 0 auto!important;
+  height:calc(100vh - 300px)!important;
+  min-height:390px!important;
+  max-height:620px!important;
+}
+.registry-workspace.stable-registry-height>.scroll-table,
+.registry-workspace.stable-registry-height:has(.registry-empty-state)>.scroll-table{
+  flex:1 1 0!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+.registry-workspace.stable-registry-height .registry-empty-state{
+  flex:0 0 132px!important;
+  min-height:132px!important;
+  height:132px!important;
+  margin:0!important;
+}
+.registry-workspace.stable-registry-height>.registry-pagination{flex:0 0 auto!important}
+
 /* Canonical pagination. */
 .registry-pagination{
   min-height:44px;border-top:1px solid var(--line);display:flex;align-items:center;
@@ -206,6 +199,8 @@
   .registry-workspace .scroll-table,
   .patient-registry-shell .scroll-table,
   .laboratory-registry-page .lab-registry-shell .scroll-table{max-height:calc(100vh - 340px)}
-  .stable-registry-height,
-  .stable-registry-height:has(.registry-empty-state){height:calc(100vh - 340px)!important;max-height:calc(100vh - 340px)!important}
+  .registry-workspace.stable-registry-height,
+  .registry-workspace.stable-registry-height:has(.registry-empty-state){
+    height:calc(100vh - 340px)!important;min-height:340px!important;max-height:560px!important
+  }
 }
