@@ -65,10 +65,10 @@ export function PlatformDashboardView({
           />
           <DashboardAction
             icon={<Activity size={18} />}
-            title={tx('Λειτουργική εικόνα', 'Operational view')}
-            description={tx('Diagnostics και συμβάντα παραμένουν μέσα στον πραγματικό οργανισμό.', 'Diagnostics and events remain inside the real organization workspace.')}
-            meta={tx('ανά οργανισμό', 'per organization')}
-            onClick={() => onNavigate('/platform#organizations')}
+            title={tx('Υγεία Πλατφόρμας', 'Platform Health')}
+            description={tx('Συγκεντρωτική λειτουργική εικόνα, αποτυχίες και προειδοποιήσεις όλων των οργανισμών.', 'Aggregated operational health, failures and warnings across organizations.')}
+            meta={tx('live εικόνα', 'live view')}
+            onClick={() => onNavigate('/platform#health')}
           />
         </div>
       </section>
