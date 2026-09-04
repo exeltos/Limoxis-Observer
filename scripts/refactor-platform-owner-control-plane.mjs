@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 
+// One-off, idempotent refactor runner for the Platform Owner control-plane split.
 const centerPath='src/features/workspaces/PlatformCenterPage.jsx'
 const cssPath='src/styles/platform-owner-polish.css'
 
