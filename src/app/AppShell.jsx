@@ -6,7 +6,7 @@ import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'
 import { useAuth } from '../core/auth/AuthContext'
 import { HelpCenter } from '../core/help/HelpCenter'
-import { CAPABILITIES, PREVIEWABLE_ROLES, ROLES, can } from '../core/permissions/roles'
+import { PREVIEWABLE_ROLES, ROLES } from '../core/permissions/roles'
 import { roleLabel } from '../core/permissions/roleLabels'
 import { APP_VERSION, BUILD_ID } from '../core/version'
 import { BirthdayGreeting, NotificationCenter } from '../core/notifications/NotificationCenter'
@@ -37,12 +37,10 @@ export function AppShell(){
   const departmentScopedPreviewRoles=new Set([ROLES.DEPARTMENT_MANAGER,ROLES.LINK_NURSE,ROLES.DEPARTMENT_USER,ROLES.LABORATORY])
   const previewNeedsDepartment=Boolean(rolePreview?.role&&departmentScopedPreviewRoles.has(rolePreview.role))
   const visibleNavigation=platformMode?[]:navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
-  const canOrganizationAnalysis=!platformMode&&can(role,CAPABILITIES.VIEW_ANALYSIS,membership?.capabilities??[],membership?.customCapabilities??[])
   const managementNavigation=visibleNavigation.filter(item=>item.key==='management')
-  const accountNavigation=visibleNavigation.filter(item=>item.group==='account')
   const usesCompactMore=[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD].includes(role)
   const moreNavigation=usesCompactMore?visibleNavigation.filter(item=>item.group==='more'):[]
-  const primaryNavigation=usesCompactMore?visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='more'&&item.group!=='account'):visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='account')
+  const primaryNavigation=usesCompactMore?visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='more'):visibleNavigation.filter(item=>item.key!=='management')
   const moreActive=usesCompactMore&&moreNavigation.some(item=>location.pathname===item.to||location.pathname.startsWith(`${item.to}/`))
   const moreExpanded=usesCompactMore&&(moreOpen||moreActive)
   async function handleLogout(){const ok=await confirm({title:t('logoutConfirmTitle'),message:`${t('logoutConfirmMessage')} ${t('logoutFarewell')}`,confirmLabel:t('logout')});if(!ok)return;await logout();navigate('/login',{replace:true})}
@@ -54,10 +52,8 @@ export function AppShell(){
       {platformMode&&platformItems.map(([to,labelKey,Icon])=>{const [path,hash='']=to.split('#');const active=location.pathname===path&&((!hash&&!location.hash)||location.hash===`#${hash}`||location.hash.startsWith(`#${hash}?`));return <button type="button" key={to} onClick={()=>navigatePlatformItem(to)} className={`nav-item ${active?'active':''}`}><Icon size={18}/><span>{platformLabel(labelKey)}</span></button>})}
       {!platformMode&&isPlatformOwner&&tenant&&<button type="button" className="nav-item platform-return-nav" onClick={()=>{returnToPlatform();navigate({pathname:'/platform',search:'',hash:''})}}><ArrowLeft size={18}/><span>{t('backToPlatform')}</span></button>}
       {primaryNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}
-      {canOrganizationAnalysis&&<NavLink to="/analysis" className={({isActive})=>`nav-item ${isActive?'active':''}`}><BarChart3 size={18}/><span>{t('platformAnalyticsNav')}</span></NavLink>}
       {moreNavigation.length>0&&<div className={`sidebar-nav-group ${moreExpanded?'open':''}`}><button type="button" className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>setMoreOpen(v=>!v)} aria-expanded={moreExpanded}><Layers3 size={18}/><span>{t('more')}</span><ChevronDown className="nav-group-chevron" size={14}/></button>{moreExpanded&&<div className="sidebar-nav-children">{moreNavigation.map(item=><NavEntry key={item.to} item={item} nested/>)}</div>}</div>}
       {managementNavigation.length>0&&<div className="sidebar-nav-management">{managementNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}</div>}
-      {accountNavigation.length>0&&<div className="sidebar-nav-management">{accountNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}</div>}
     </nav><div className="sidebar-footer"><div className="tenant-name">{platformMode?t('platformLevel'):(tenant?.name??t('noOrganization'))}</div><div className="sidebar-meta">{roleLabel(role,language)}</div>{isDemo&&<span className="demo-pill">{t('demo')}</span>}<div className="app-version-stamp">v{APP_VERSION} · {BUILD_ID}</div></div></aside>
     <main className="main-column"><header className="topbar"><div className="topbar-spacer"/><div className="topbar-actions">
       {canRolePreview&&!platformMode&&<div className="role-preview-control"><button className={`preview-trigger ${isRolePreview?'active':''}`} onClick={()=>setPreviewOpen(v=>!v)} title={t('previewAsRole')}><Eye size={16}/><span>{isRolePreview?t('previewMode'):t('previewAsRole')}</span><ChevronDown size={13}/></button>{previewOpen&&<div className="role-preview-popover"><strong>{t('previewAsRole')}</strong><small>{t('previewSafeHint')}</small><label><span>{t('roleLabel')}</span><select value={rolePreview?.role||''} onChange={e=>handlePreviewRoleChange(e.target.value)}><option value="">{t('selectRole')}</option>{previewRoles.map(([value,key])=><option key={value} value={value}>{t(key)}</option>)}</select></label>{previewNeedsDepartment&&<label><span>{t('departmentScope')}</span><select value={rolePreview?.department||''} onChange={e=>updateRolePreviewDepartment(e.target.value)}>{previewDepartments.map(([value,key])=><option key={key} value={value}>{t(key)}</option>)}</select></label>}<div className="preview-popover-actions">{isRolePreview&&<button onClick={()=>{stopRolePreview();setPreviewOpen(false)}}>{t('exitPreview')}</button>}<button onClick={()=>setPreviewOpen(false)}>{t('close')}</button></div></div>}</div>}
