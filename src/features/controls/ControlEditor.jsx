@@ -19,12 +19,14 @@ const CATEGORY_PRESETS={
 
 export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixedDepartment=''}){
  const {language}=useLanguage();const en=language==='en'
- const {membership}=useTenant()
- const organizationId=membership?.organization?.id||membership?.organization_id||membership?.organizationId||''
+ const {tenant}=useTenant()
+ const organizationId=tenant?.id||''
  const [departmentRows,setDepartmentRows]=useState([])
+ const [departmentsLoading,setDepartmentsLoading]=useState(false)
+ const [departmentsError,setDepartmentsError]=useState('')
  const [deptQuery,setDeptQuery]=useState('')
  const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify(initial)):{title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',description:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
- useEffect(()=>{let active=true;if(departmentOnly&&fixedDepartment){setDepartmentRows([{name:fixedDepartment}]);return()=>{active=false}};(async()=>{try{const rows=await loadDepartments(organizationId);if(active)setDepartmentRows((rows||[]).filter(x=>x.is_active!==false))}catch{if(active)setDepartmentRows([])}})();return()=>{active=false}},[organizationId,departmentOnly,fixedDepartment])
+ useEffect(()=>{let active=true;if(departmentOnly&&fixedDepartment){setDepartmentRows([{name:fixedDepartment}]);setDepartmentsError('');setDepartmentsLoading(false);return()=>{active=false}};if(!organizationId){setDepartmentRows([]);setDepartmentsError(en?'No active organization is selected.':'Δεν έχει επιλεγεί ενεργός οργανισμός.');return()=>{active=false}};(async()=>{setDepartmentsLoading(true);setDepartmentsError('');try{const rows=await loadDepartments(organizationId);if(active)setDepartmentRows((rows||[]).filter(x=>x.is_active!==false))}catch(error){if(active){setDepartmentRows([]);setDepartmentsError(error?.message||(en?'Departments could not be loaded.':'Δεν ήταν δυνατή η φόρτωση των τμημάτων.'))}}finally{if(active)setDepartmentsLoading(false)}})();return()=>{active=false}},[organizationId,departmentOnly,fixedDepartment,en])
  const departments=useMemo(()=>departmentRows.map(x=>x.name).filter(Boolean),[departmentRows])
  const set=(k,v)=>setDraft(d=>({...d,[k]:v})),setF=(k,v)=>setDraft(d=>({...d,frequency:{...d.frequency,[k]:v}})),setR=(k,v)=>setDraft(d=>({...d,responseConfig:{...(d.responseConfig||{mode:'text',label:'Αποτέλεσμα'}),[k]:v}}))
  const toggleDept=d=>set('departments',draft.departments.includes(d)?draft.departments.filter(x=>x!==d):[...draft.departments,d])
@@ -72,15 +74,14 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     <div className="control-form-block">
      <div className="control-form-block-title"><strong>{en?'Applicable departments':'Τμήματα εφαρμογής'}</strong><span>{draft.departments.length?`${draft.departments.length} ${en?'selected':'επιλεγμένα'}`:(en?'Select at least one department':'Επιλέξτε τουλάχιστον ένα τμήμα')}</span></div>
      <div className="control-dept-search"><Search size={16}/><input value={deptQuery} onChange={e=>setDeptQuery(e.target.value)} placeholder={en?'Search department...':'Αναζήτηση τμήματος...'}/></div>
-     <div className="control-department-picker">{visibleDepartments.map(d=><label key={d} className={`check-option ${draft.departments.includes(d)?'selected':''}`}><input type="checkbox" checked={draft.departments.includes(d)} disabled={departmentOnly&&draft.departments.includes(d)} onChange={()=>toggleDept(d)}/><span>{d}</span></label>)}{!visibleDepartments.length&&<div className="inline-empty">{en?'No active departments found.':'Δεν βρέθηκαν ενεργά τμήματα.'}</div>}</div>
+     <div className="control-department-picker">{departmentsLoading?<div className="inline-empty">{en?'Loading departments…':'Φόρτωση τμημάτων…'}</div>:departmentsError?<div className="inline-empty">{departmentsError}</div>:visibleDepartments.map(d=><label key={d} className={`check-option ${draft.departments.includes(d)?'selected':''}`}><input type="checkbox" checked={draft.departments.includes(d)} disabled={departmentOnly&&draft.departments.includes(d)} onChange={()=>toggleDept(d)}/><span>{d}</span></label>)}{!departmentsLoading&&!departmentsError&&!visibleDepartments.length&&<div className="inline-empty">{en?'No active departments exist in Supabase for this organization.':'Δεν υπάρχουν ενεργά τμήματα στη Supabase για τον συγκεκριμένο οργανισμό.'}</div>}</div>
     </div>
 
     <div className="control-form-block control-guidance-block">
      <div className="control-form-block-title"><strong>{en?'Instructions':'Οδηγίες'}</strong><span>{en?'Optional guidance shown during execution':'Προαιρετικές οδηγίες που εμφανίζονται κατά την εκτέλεση'}</span></div>
-     <label><textarea rows="3" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'What should be checked, acceptable limits or other instructions...':'Τι πρέπει να ελεγχθεί, αποδεκτά όρια ή άλλες οδηγίες...'}/></label>
+     <label className="field"><textarea rows="3" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'Optional instructions…':'Προαιρετικές οδηγίες…'}/></label>
     </div>
-
-    <div className="inline-edit-footer control-create-footer"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton disabled={!valid} onClick={submit}>{initial?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Create control':'Δημιουργία ελέγχου')}</SaveButton></div>
+    <div className="inline-edit-footer"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Άκυρο'}</Button><SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
    </div>
   </EntityRecordShell>
  </Page>
