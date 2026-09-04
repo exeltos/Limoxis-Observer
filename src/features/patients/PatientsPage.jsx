@@ -16,8 +16,9 @@ import { loadPatients, createPatient } from './patientsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { loadDepartments } from '../management/departmentsService'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { downloadCsv } from '../../core/export/csvExport'
 import { MetricCard } from '../../design-system/MetricCard'
+
+const PAGE_SIZE_OPTIONS=[15,25,50]
 
 export function PatientsPage(){
   const {t,language,locale}=useLanguage()
@@ -31,6 +32,8 @@ export function PatientsPage(){
   const [departmentOptions,setDepartmentOptions]=useState([])
   const [department,setDepartment]=useState(saved.department)
   const [status,setStatus]=useState(saved.status)
+  const [page,setPage]=useState(1)
+  const [pageSize,setPageSize]=useState(15)
   const [newOpen,setNewOpen]=useState(false)
   useEffect(()=>{
     let alive=true
@@ -42,19 +45,20 @@ export function PatientsPage(){
     }
     return ()=>{alive=false}
   },[tenant?.id,isDemo,notify,t])
+  useEffect(()=>{setPage(1)},[query,department,status,pageSize])
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
   const rows=useMemo(()=>patients
     .filter(p=>canAccessRecord(p))
     .filter(p=>`${p.id} ${p.name} ${p.nameEn||''} ${p.hospitalRecordNumber||''}`.toLowerCase().includes(query.toLowerCase()))
     .filter(p=>department==='all'||(language==='el'?p.department:p.departmentEn)===department)
     .filter(p=>status==='all'||p.status===status),[query,patients,department,status,language,canAccessRecord])
+  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))
+  const safePage=Math.min(page,totalPages)
+  const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
   const fmt=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)):'—'
   const pageCaps={[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_PATIENT}
   function pageAction(action){
     if(action===UI_ACTIONS.CREATE)setNewOpen(true)
-    else if(action===UI_ACTIONS.PRINT)window.print()
-    else if(action===UI_ACTIONS.EXPORT){downloadCsv('limoxis-patients.csv',[t('patientId'),t('name'),t('department'),t('admissionDate'),t('status')],rows.map(x=>[x.id,language==='el'?x.name:(x.nameEn||x.name),language==='el'?x.department:x.departmentEn,x.admissionDate,t(x.status)]));notify(t('currentListExported'),'success')}
-    else notify(t('actionCompleted'),'success')
   }
   async function savePatient(draft){
     try{
@@ -81,7 +85,7 @@ export function PatientsPage(){
     discharged:scopedPatients.filter(p=>p.status==='discharged').length,
     transferred:scopedPatients.filter(p=>p.status==='transferred').length,
   }
-  return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} actionCapabilities={pageCaps} onAction={pageAction}/>}>
+  return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction}/>}>
     <div className="workspace-summary patient-summary-strip" aria-label={t('patientRegistry')}>
       <PatientSummaryMetric icon={UsersRound} label={t('all')} value={patientSummary.total}/>
       <PatientSummaryMetric icon={Activity} label={t('active')} value={patientSummary.active} kind="active"/>
@@ -93,10 +97,18 @@ export function PatientsPage(){
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option></FilterSelect>
       </FilterBar>
-      <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table"><thead><tr><th>{t('patientId')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('admissionDate')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(patient=><tr key={patient.id} {...registry.rowProps(patient.id)} onClick={()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))}}}><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></tr>)}</tbody></table></div>
+      <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table"><thead><tr><th>{t('patientId')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('admissionDate')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(patient=><tr key={patient.id} {...registry.rowProps(patient.id)} onClick={()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))}}}><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></tr>)}</tbody></table></div>
+      <PatientRegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </div>
     {newOpen&&<NewPatientCard t={t} language={language} departments={departmentOptions} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
   </Page>
+}
+
+function PatientRegistryPagination({language,page,totalPages,totalItems,pageSize,onPageChange,onPageSizeChange}){
+  const en=language==='en'
+  const start=totalItems?((page-1)*pageSize)+1:0
+  const end=Math.min(page*pageSize,totalItems)
+  return <div className="registry-pagination patient-registry-pagination"><div className="registry-pagination-summary">{totalItems?`${start}–${end} ${en?'of':'από'} ${totalItems}`:(en?'0 records':'0 εγγραφές')}</div><div className="registry-pagination-controls"><label><span>{en?'Rows':'Γραμμές'}</span><select value={pageSize} onChange={event=>onPageSizeChange(Number(event.target.value))}>{PAGE_SIZE_OPTIONS.map(value=><option key={value} value={value}>{value}</option>)}</select></label><button type="button" disabled={page<=1} onClick={()=>onPageChange(page-1)} aria-label={en?'Previous page':'Προηγούμενη σελίδα'}>‹</button><span>{en?'Page':'Σελίδα'} {page} / {totalPages}</span><button type="button" disabled={page>=totalPages} onClick={()=>onPageChange(page+1)} aria-label={en?'Next page':'Επόμενη σελίδα'}>›</button></div></div>
 }
 
 function PatientSummaryMetric({icon,label,value,kind=''}){return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'}/>}
