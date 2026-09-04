@@ -11,6 +11,7 @@ export const navigation=[
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
   {to:'/quality',key:'quality',icon:HeartPulse,capability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
+  {to:'/analysis',key:'platformAnalyticsNav',group:'more',icon:BarChart3,capability:CAPABILITIES.VIEW_ANALYSIS},
   {to:'/indicators',key:'indicators',group:'more',icon:BarChart3,capability:CAPABILITIES.VIEW_INDICATORS},
   {to:'/training',key:'training',group:'more',icon:GraduationCap,capability:CAPABILITIES.VIEW_TRAINING},
   {to:'/committees',key:'committees',group:'more',icon:BookOpenCheck,capability:CAPABILITIES.VIEW_COMMITTEES},
@@ -18,7 +19,6 @@ export const navigation=[
   {to:'/pharmacy',key:'pharmacy',group:'more',icon:Pill,capability:CAPABILITIES.VIEW_PHARMACY},
   {to:'/occupational-health',key:'occupationalHealth',group:'more',icon:Stethoscope,capability:CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH},
   {to:'/lira',key:'lira',group:'more',icon:Sparkles,capability:CAPABILITIES.VIEW_LIRA},
-  {to:'/my-profile',key:'myProfile',group:'account',icon:Stethoscope,capability:CAPABILITIES.VIEW_MY_PROFILE},
   {to:'/management',key:'management',icon:Building2,capability:CAPABILITIES.MANAGE_ORGANIZATION,anyCapabilities:MANAGEMENT_CAPABILITIES},
 ]
 export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignments=false}={}){
