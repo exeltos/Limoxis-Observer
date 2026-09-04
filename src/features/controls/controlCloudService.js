@@ -29,6 +29,7 @@ function mapExecution(row){
   value:row.value_text||'',
   notes:row.notes||'',
   structuredData:response.structuredData||null,
+  responseData:response,
   hasFinding:Boolean(row.has_finding),
   status:row.status,
   actorId:row.performed_by,
@@ -196,26 +197,8 @@ export async function completeControlExecution(organizationId,record,department,
  const assignment=record.assignments?.[department]
  if(!assignment?.dbId||!assignment?.departmentId)throw new Error('Control assignment is required.')
  const now=new Date()
- const responseData={
-  structuredData:payload.structuredData||null,
-  actorName:payload.actor?.name||'',
-  actorEmail:payload.actor?.email||'',
-  previousLastCompletedAt:assignment.lastCompletedAt||null,
-  previousNextDueAt:assignment.nextDueAt||null,
- }
- const {data,error}=await supabase.from('control_executions').insert({
-  assignment_id:assignment.dbId,
-  control_id:record.dbId,
-  organization_id:organizationId,
-  department_id:assignment.departmentId,
-  status:'completed',
-  value_text:payload.value||null,
-  response_data:responseData,
-  notes:payload.notes||null,
-  has_finding:Boolean(payload.hasFinding),
-  performed_at:now.toISOString(),
-  performed_by:userId,
- }).select('*').single()
+ const responseData={structuredData:payload.structuredData||null,actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
+ const {data,error}=await supabase.from('control_executions').insert({assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}).select('*').single()
  if(error)throw error
  const {error:updateError}=await supabase.from('control_assignments').update({last_completed_at:now.toISOString(),next_due_at:calculateNextDue(record.frequency||{},now),status:'scheduled'}).eq('organization_id',organizationId).eq('id',assignment.dbId)
  if(updateError)throw updateError
@@ -257,14 +240,12 @@ export async function voidControlExecution(organizationId,record,department,exec
  return mapExecution(data)
 }
 
-function draftKey(record,assignment){return `${record.id}.${assignment.departmentId}`}
-
 export async function saveControlDraft(organizationId,record,department,payload){
  assertCloud(organizationId)
  const userId=await currentUserId()
  const assignment=record.assignments?.[department]
  if(!assignment?.departmentId)throw new Error('Control assignment is required.')
- const recordKey=draftKey(record,assignment)
+ const recordKey=`${record.id}.${assignment.departmentId}.${userId}`
  const row={organization_id:organizationId,record_key:recordKey,control_id:record.id,department_id:assignment.departmentId,created_by:userId,payload,saved_at:new Date().toISOString(),updated_at:new Date().toISOString()}
  const {data,error}=await supabase.from('control_drafts').upsert(row,{onConflict:'organization_id,record_key'}).select('*').single()
  if(error)throw error
@@ -273,9 +254,9 @@ export async function saveControlDraft(organizationId,record,department,payload)
 
 export async function removeControlDraft(organizationId,record,department){
  assertCloud(organizationId)
+ const userId=await currentUserId()
  const assignment=record.assignments?.[department]
  if(!assignment?.departmentId)return
- const recordKey=draftKey(record,assignment)
- const {error}=await supabase.from('control_drafts').delete().eq('organization_id',organizationId).eq('record_key',recordKey)
+ const {error}=await supabase.from('control_drafts').delete().eq('organization_id',organizationId).eq('control_id',record.id).eq('department_id',assignment.departmentId).eq('created_by',userId)
  if(error)throw error
 }
