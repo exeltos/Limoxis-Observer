@@ -11,20 +11,27 @@
 .workspace-summary,
 .patient-summary-strip,
 .surveillance-summary{margin:0 0 8px!important}
-.workspace-summary>*{margin-top:0!important;margin-bottom:0!important}
-.patient-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.workspace-summary>*{margin:0!important}
+.patient-summary-strip,
+.workspace-summary>.module-summary-strip{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:8px!important
+}
 
 /* Canonical compact KPI cards for registry screens. */
 .workspace-summary .canonical-metric-card,
 .patient-summary-strip .canonical-metric-card{
-  min-height:0!important;height:66px;padding:8px 12px!important;border-radius:11px
+  min-height:0!important;height:66px!important;padding:8px 12px!important;border-radius:11px!important
 }
+.workspace-summary .canonical-metric-icon,
+.patient-summary-strip .canonical-metric-icon{width:34px!important;height:34px!important}
 .workspace-summary .canonical-metric-icon svg,
-.patient-summary-strip .canonical-metric-icon svg{width:17px;height:17px}
+.patient-summary-strip .canonical-metric-icon svg{width:17px!important;height:17px!important}
 .workspace-summary .canonical-metric-copy strong,
-.patient-summary-strip .canonical-metric-copy strong{font-size:20px;line-height:1}
+.patient-summary-strip .canonical-metric-copy strong{font-size:20px!important;line-height:1!important}
 .workspace-summary .canonical-metric-copy span,
-.patient-summary-strip .canonical-metric-copy span{font-size:10.5px}
+.patient-summary-strip .canonical-metric-copy span{font-size:10.5px!important;line-height:1.2!important}
 
 /* Canonical registry shell: no page-specific outer gap or padded white frame. */
 .registry-workspace,
@@ -40,10 +47,10 @@
 }
 .registry-workspace .filter-primary-row,
 .patient-registry-shell .filter-primary-row,
-.laboratory-registry-page .lab-registry-shell .filter-primary-row{gap:8px}
+.laboratory-registry-page .lab-registry-shell .filter-primary-row{gap:8px!important}
 .registry-workspace .filter-search,
 .patient-registry-shell .filter-search,
-.laboratory-registry-page .lab-registry-shell .filter-search{max-width:560px}
+.laboratory-registry-page .lab-registry-shell .filter-search{max-width:560px!important}
 .registry-workspace .filter-search input,
 .registry-workspace .filter-trigger,
 .registry-workspace .filter-clear-button,
@@ -52,12 +59,15 @@
 .patient-registry-shell .filter-clear-button,
 .laboratory-registry-page .lab-registry-shell .filter-search input,
 .laboratory-registry-page .lab-registry-shell .filter-trigger,
-.laboratory-registry-page .lab-registry-shell .filter-clear-button{height:36px}
+.laboratory-registry-page .lab-registry-shell .filter-clear-button{height:36px!important}
 .registry-workspace .scroll-table,
 .patient-registry-shell .scroll-table,
 .laboratory-registry-page .lab-registry-shell .scroll-table{
   flex:1 1 auto;min-height:0;max-height:calc(100vh - 285px);overflow:auto
 }
+.registry-workspace .sticky-table,
+.patient-registry-shell .sticky-table,
+.laboratory-registry-page .lab-registry-shell .sticky-table{margin:0!important}
 .registry-workspace .sticky-table thead th,
 .patient-registry-shell .sticky-table thead th,
 .laboratory-registry-page .lab-registry-shell .sticky-table thead th{
@@ -67,8 +77,12 @@
 /* Tabs inside registries use the same compact edge-to-edge contract. */
 .registry-workspace>.tabs,
 .registry-workspace>.canonical-module-tabs{
-  margin:0!important;border-radius:0!important;border-left:0!important;border-right:0!important
+  margin:0!important;padding:5px 9px!important;min-height:42px!important;
+  border-radius:0!important;border-left:0!important;border-right:0!important;
+  border-top:0!important;border-bottom:1px solid var(--line)!important;background:#fff!important;gap:3px!important
 }
+.registry-workspace>.tabs .tab,
+.registry-workspace>.canonical-module-tabs .tab{min-height:32px!important;padding:5px 10px!important}
 
 /* Canonical empty registry: table header -> concise message -> pagination. */
 .registry-empty-state{
@@ -89,7 +103,7 @@
 }
 .registry-workspace:has(.registry-empty-state) .data-table,
 .patient-registry-shell:has(.registry-empty-state) .data-table,
-.laboratory-registry-page .lab-registry-shell:has(.registry-empty-state) .data-table{margin-bottom:0}
+.laboratory-registry-page .lab-registry-shell:has(.registry-empty-state) .data-table{margin-bottom:0!important}
 
 /* Canonical pagination for every registry. */
 .registry-pagination{
@@ -110,7 +124,8 @@
 
 @media(max-width:1200px){
   .content{padding-top:14px}.page{margin-top:-12px}
-  .patient-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .patient-summary-strip,
+  .workspace-summary>.module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .registry-workspace .scroll-table,
   .patient-registry-shell .scroll-table,
   .laboratory-registry-page .lab-registry-shell .scroll-table{max-height:calc(100vh - 340px)}
