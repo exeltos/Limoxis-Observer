@@ -20,6 +20,7 @@ import './styles/my-profile.css'
 import './styles/clickable-cursor.css'
 import './styles/surveillance-refinement.css'
 import './styles/page-density.css'
+import './styles/registry-stable-viewport.css'
 import './styles/control-editor-fullscreen.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
