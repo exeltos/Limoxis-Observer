@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Building2, Clock3, FlaskConical, Users } from 'lucide-react'
+import { Activity, BarChart3, Building2, Clock3, FlaskConical } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 
 function DashboardAction({ icon, title, description, meta, onClick }) {
