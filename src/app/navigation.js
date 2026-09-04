@@ -25,21 +25,81 @@ export const navigation=[
   {to:'/management',key:'management',icon:Building2,capability:CAPABILITIES.MANAGE_ORGANIZATION,anyCapabilities:MANAGEMENT_CAPABILITIES},
 ]
 
+const policy=(primaryOrder=[],moreOrder=[],hidden=[])=>Object.freeze({
+  primaryOrder,
+  moreOrder,
+  more:new Set(moreOrder),
+  hidden:new Set(hidden),
+})
+
+// Role-specific information architecture. Capabilities remain the source of
+// truth for access; these policies only decide prominence, grouping and order.
 const roleMenuPolicy=Object.freeze({
-  [ROLES.HOSPITAL_ADMIN]:Object.freeze({
-    primaryOrder:['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees'],
-    moreOrder:['platformAnalyticsNav','indicators','lira','training','committees','documents'],
-    more:new Set(['platformAnalyticsNav','indicators','lira','training','committees','documents']),
-    hidden:new Set(['pharmacy','occupationalHealth']),
-  }),
-  [ROLES.INFECTION_CONTROL_LEAD]:Object.freeze({
-    // Core infection-control work stays permanently visible. Indicators and
-    // committees are promoted because they are central governance tools for IC.
-    primaryOrder:['dashboard','surveillance','patients','laboratory','prevention','controls','indicators','committees'],
-    moreOrder:['platformAnalyticsNav','lira','quality','employees','training','documents'],
-    more:new Set(['platformAnalyticsNav','lira','quality','employees','training','documents']),
-    hidden:new Set(['pharmacy','occupationalHealth']),
-  }),
+  [ROLES.HOSPITAL_ADMIN]:policy(
+    ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees'],
+    ['platformAnalyticsNav','indicators','lira','training','committees','documents'],
+    ['pharmacy','occupationalHealth'],
+  ),
+  [ROLES.INFECTION_CONTROL_LEAD]:policy(
+    ['dashboard','surveillance','patients','laboratory','prevention','controls','indicators','committees'],
+    ['platformAnalyticsNav','lira','quality','employees','training','documents'],
+    ['pharmacy','occupationalHealth'],
+  ),
+  [ROLES.INFECTION_CONTROL_MEMBER]:policy(
+    ['dashboard','surveillance','patients','laboratory','prevention','controls'],
+    ['indicators','training','documents'],
+    ['pharmacy','occupationalHealth','management'],
+  ),
+  [ROLES.LABORATORY]:policy(
+    ['dashboard','laboratory','employees','controls'],
+    ['documents'],
+    ['management','pharmacy','occupationalHealth'],
+  ),
+  [ROLES.DEPARTMENT_MANAGER]:policy(
+    ['myDepartment','employees','controls','surveillance','patients'],
+    ['indicators','training','documents'],
+    ['management','pharmacy','occupationalHealth'],
+  ),
+  [ROLES.LINK_NURSE]:policy(
+    ['myDepartment','surveillance','patients','prevention','controls'],
+    ['employees','indicators','training','documents','lira','laboratory','quality','committees'],
+    ['management','pharmacy','occupationalHealth'],
+  ),
+  [ROLES.DEPARTMENT_USER]:policy(
+    ['myDepartment','controls'],
+    ['training','documents','lira','laboratory','quality','committees'],
+    ['management','pharmacy','occupationalHealth'],
+  ),
+  [ROLES.HR_OFFICE]:policy(
+    ['dashboard','employees','training'],
+    ['documents'],
+    ['management','pharmacy','occupationalHealth'],
+  ),
+  [ROLES.OCCUPATIONAL_PHYSICIAN]:policy(
+    ['dashboard','occupationalHealth','employees'],
+    ['documents'],
+    ['management','pharmacy'],
+  ),
+  [ROLES.QUALITY_MANAGER]:policy(
+    ['dashboard','quality','controls','indicators','documents'],
+    ['committees'],
+    ['pharmacy','occupationalHealth'],
+  ),
+  [ROLES.PHARMACY]:policy(
+    ['dashboard','pharmacy','indicators'],
+    ['documents'],
+    ['management','occupationalHealth'],
+  ),
+  [ROLES.DOCTOR_REVIEWER]:policy(
+    ['dashboard','patients','surveillance','laboratory','indicators'],
+    [],
+    ['management','pharmacy','occupationalHealth'],
+  ),
+  [ROLES.COMMITTEE_SECRETARIAT]:policy(
+    ['dashboard','committees','documents'],
+    [],
+    ['management','pharmacy','occupationalHealth'],
+  ),
 })
 
 function orderByKeys(items,keys=[]){
@@ -53,16 +113,16 @@ function orderByKeys(items,keys=[]){
 }
 
 function applyRoleMenuPolicy(role,items){
-  const policy=roleMenuPolicy[role]
-  if(!policy)return items
-  const visible=items.filter(item=>!policy.hidden.has(item.key))
+  const currentPolicy=roleMenuPolicy[role]
+  if(!currentPolicy)return items
+  const visible=items.filter(item=>!currentPolicy.hidden.has(item.key))
   const primary=orderByKeys(
-    visible.filter(item=>item.key!=='management'&&!policy.more.has(item.key)).map(item=>({...item,group:undefined})),
-    policy.primaryOrder,
+    visible.filter(item=>item.key!=='management'&&!currentPolicy.more.has(item.key)).map(item=>({...item,group:undefined})),
+    currentPolicy.primaryOrder,
   )
   const more=orderByKeys(
-    visible.filter(item=>policy.more.has(item.key)).map(item=>({...item,group:'more'})),
-    policy.moreOrder,
+    visible.filter(item=>currentPolicy.more.has(item.key)).map(item=>({...item,group:'more'})),
+    currentPolicy.moreOrder,
   )
   const management=visible.filter(item=>item.key==='management').map(item=>({...item,group:undefined}))
   return [...primary,...more,...management]
