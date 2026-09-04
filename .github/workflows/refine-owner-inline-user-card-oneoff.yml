@@ -17,3 +17,4 @@ jobs:
           git add src/features/platform/PlatformOrganizationRecord.jsx src/styles/design-system-layouts.css
           git commit -m "fix(owner): expand user management as inline record card" || exit 0
           git push
+      - run: echo "owner inline card refinement complete"
