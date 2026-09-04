@@ -1,0 +1,19 @@
+name: Refactor owner user full record one off
+on:
+  push:
+    paths:
+      - .github/workflows/refactor-owner-user-full-record-oneoff.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/refactor-owner-user-full-record.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/platform/PlatformOrganizationRecord.jsx src/styles/design-system-layouts.css supabase/functions/manage-organization-user/index.ts
+          git commit -m "refactor(owner): open organization user as full record workspace" || exit 0
+          git push
