@@ -23,7 +23,80 @@
   margin-bottom:12px;
 }
 
+/* Patient registry follows the same compact workspace rhythm as Surveillance. */
+.patient-summary-strip{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-bottom:8px;
+}
+.patient-summary-strip .canonical-metric-card{
+  min-height:0!important;
+  height:66px;
+  padding:8px 12px!important;
+  border-radius:11px;
+}
+.patient-summary-strip .canonical-metric-icon svg{
+  width:17px;
+  height:17px;
+}
+.patient-summary-strip .canonical-metric-copy strong{
+  font-size:20px;
+  line-height:1;
+}
+.patient-summary-strip .canonical-metric-copy span{
+  font-size:10.5px;
+}
+.patient-registry-shell{
+  padding:0!important;
+  min-height:0!important;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.patient-registry-shell .filter-system{
+  margin:0;
+  padding:8px 10px;
+  border-bottom:1px solid var(--line);
+  background:#fff;
+}
+.patient-registry-shell .filter-primary-row{
+  gap:8px;
+}
+.patient-registry-shell .filter-search{
+  max-width:560px;
+}
+.patient-registry-shell .filter-search input,
+.patient-registry-shell .filter-trigger,
+.patient-registry-shell .filter-clear-button{
+  height:36px;
+}
+.patient-registry-shell .scroll-table{
+  flex:1 1 auto;
+  min-height:0;
+  max-height:calc(100vh - 285px);
+  overflow:auto;
+}
+.patient-registry-shell .sticky-table thead th{
+  position:sticky;
+  top:0;
+  z-index:2;
+  background:#f7f9fb;
+}
+.patient-registry-shell:has(tbody:empty){
+  flex:0 0 auto!important;
+  height:auto!important;
+}
+.patient-registry-shell:has(tbody:empty) .scroll-table{
+  flex:0 0 132px;
+  height:132px;
+  min-height:132px;
+  max-height:132px;
+}
+
 @media(max-width:1200px){
   .content{padding-top:14px}
   .page{margin-top:-12px}
+  .patient-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .patient-registry-shell .scroll-table{max-height:calc(100vh - 340px)}
 }
