@@ -20,62 +20,16 @@ import { recordRuntimeEvent } from '../core/diagnostics/runtimeDiagnosticsServic
 export function AppShell(){
   const helpPreviewMode=typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('helpPreview')==='1'&&window.self!==window.top
   const {language,setLanguage,t}=useLanguage(); const {tenant,memberships,membership,role,isDemo,setTenantByMembership,returnToPlatform,actualRole,canRolePreview,isRolePreview,rolePreview,startRolePreview,updateRolePreviewDepartment,stopRolePreview}=useTenant(); const {profile,logout}=useAuth(); const notifications=useNotifications(); const {confirm}=useFeedback(); const navigate=useNavigate(); const location=useLocation(); const [helpOpen,setHelpOpen]=useState(false); const [notificationOpen,setNotificationOpen]=useState(false); const [birthdayOpen,setBirthdayOpen]=useState(false); const [briefingOpen,setBriefingOpen]=useState(false); const [previewOpen,setPreviewOpen]=useState(false); const [moreOpen,setMoreOpen]=useState(false); const [accountOpen,setAccountOpen]=useState(false)
-
-  useEffect(()=>{
-    if(helpPreviewMode||!tenant?.id||isDemo)return
-    const handleFeedback=(event)=>{
-      const detail=event?.detail||{}
-      if(!detail.message)return
-      void recordRuntimeEvent({
-        organizationId:tenant.id,
-        severity:detail.severity||'info',
-        eventType:detail.eventType||'ui_feedback',
-        route:window.location.pathname,
-        operation:detail.operation||null,
-        userMessage:detail.message,
-        diagnosticCode:detail.diagnosticCode||null,
-      }).catch(()=>{/* diagnostics must never interrupt the user's workflow */})
-    }
-    window.addEventListener('limoxis:feedback',handleFeedback)
-    return ()=>window.removeEventListener('limoxis:feedback',handleFeedback)
-  },[tenant?.id,isDemo,helpPreviewMode])
-
-  useEffect(()=>{
-    if(helpPreviewMode||!profile)return
-    const key=profile?.id||profile?.email||'user'
-    const birthdayKey=`limoxis.birthday.seen.${key}.${new Date().toISOString().slice(0,10)}`
-    const briefingKey=`limoxis.briefing.seen.${key}`
-    const birthdaySeen=readSessionValue(birthdayKey)==='1'
-    const briefingSeen=readSessionValue(briefingKey)==='1'
-    if(notifications.birthday.length&&!birthdaySeen)setBirthdayOpen(true)
-    else if(!briefingSeen)setBriefingOpen(true)
-  },[profile,notifications.birthday.length,helpPreviewMode])
-  function closeBirthday(){
-    const key=profile?.id||profile?.email||'user';writeSessionValue(`limoxis.birthday.seen.${key}.${new Date().toISOString().slice(0,10)}`,'1')
-    setBirthdayOpen(false)
-    const briefingSeen=readSessionValue(`limoxis.briefing.seen.${key}`)==='1'
-    if(!briefingSeen)window.setTimeout(()=>setBriefingOpen(true),180)
-  }
+  useEffect(()=>{if(helpPreviewMode||!tenant?.id||isDemo)return;const handleFeedback=(event)=>{const detail=event?.detail||{};if(!detail.message)return;void recordRuntimeEvent({organizationId:tenant.id,severity:detail.severity||'info',eventType:detail.eventType||'ui_feedback',route:window.location.pathname,operation:detail.operation||null,userMessage:detail.message,diagnosticCode:detail.diagnosticCode||null}).catch(()=>{})};window.addEventListener('limoxis:feedback',handleFeedback);return ()=>window.removeEventListener('limoxis:feedback',handleFeedback)},[tenant?.id,isDemo,helpPreviewMode])
+  useEffect(()=>{if(helpPreviewMode||!profile)return;const key=profile?.id||profile?.email||'user';const birthdayKey=`limoxis.birthday.seen.${key}.${new Date().toISOString().slice(0,10)}`;const briefingKey=`limoxis.briefing.seen.${key}`;const birthdaySeen=readSessionValue(birthdayKey)==='1';const briefingSeen=readSessionValue(briefingKey)==='1';if(notifications.birthday.length&&!birthdaySeen)setBirthdayOpen(true);else if(!briefingSeen)setBriefingOpen(true)},[profile,notifications.birthday.length,helpPreviewMode])
+  function closeBirthday(){const key=profile?.id||profile?.email||'user';writeSessionValue(`limoxis.birthday.seen.${key}.${new Date().toISOString().slice(0,10)}`,'1');setBirthdayOpen(false);const briefingSeen=readSessionValue(`limoxis.briefing.seen.${key}`)==='1';if(!briefingSeen)window.setTimeout(()=>setBriefingOpen(true),180)}
   function closeBriefing(){const key=profile?.id||profile?.email||'user';writeSessionValue(`limoxis.briefing.seen.${key}`,'1');setBriefingOpen(false)}
-
   const isPlatformOwner=actualRole===ROLES.PLATFORM_OWNER
   const platformMode=isPlatformOwner&&!tenant
-  useEffect(()=>{
-    if(platformMode&&!location.pathname.startsWith('/platform')&&location.pathname!=='/about'&&location.pathname!=='/account') navigate('/platform',{replace:true})
-  },[platformMode,location.pathname,navigate])
+  useEffect(()=>{if(platformMode&&!location.pathname.startsWith('/platform')&&location.pathname!=='/about'&&location.pathname!=='/account')navigate('/platform',{replace:true})},[platformMode,location.pathname,navigate])
   const isDepartmentHomeRole=role===ROLES.DEPARTMENT_MANAGER||role===ROLES.DEPARTMENT_USER||role===ROLES.LINK_NURSE
-  useEffect(()=>{
-    if(isDepartmentHomeRole&&location.pathname==='/') navigate('/my-department',{replace:true})
-  },[isDepartmentHomeRole,location.pathname,navigate])
-  const platformItems=[
-    ['/platform','platformDashboardNav',BarChart3],
-    ['/platform#organizations','platformOrganizationsNav',Building2],
-    ['/platform#demo','platformDemoNav',FlaskConical],
-    ['/platform#reports','platformAnalyticsNav',BarChart3],
-    ['/platform/health','platformHealthNav',Activity],
-    ['/platform/audit','platformAuditNav',ShieldCheck],
-    ['/platform/settings','platformSettingsNav',Settings],
-  ]
+  useEffect(()=>{if(isDepartmentHomeRole&&location.pathname==='/')navigate('/my-department',{replace:true})},[isDepartmentHomeRole,location.pathname,navigate])
+  const platformItems=[['/platform','platformDashboardNav',BarChart3],['/platform#organizations','platformOrganizationsNav',Building2],['/platform#demo','platformDemoNav',FlaskConical],['/platform#reports','platformAnalyticsNav',BarChart3],['/platform/health','platformHealthNav',Activity],['/platform/audit','platformAuditNav',ShieldCheck],['/platform/settings','platformSettingsNav',Settings]]
   const platformLabel=key=>key==='platformHealthNav'?(language==='en'?'Platform Health':'Υγεία Πλατφόρμας'):key==='platformAuditNav'?(language==='en'?'Audit & Security':'Audit & Ασφάλεια'):key==='platformSettingsNav'?(language==='en'?'Platform Settings':'Ρυθμίσεις Πλατφόρμας'):t(key)
   const previewRoleLabels={hospital_admin:'hospitalAdminRole',infection_control_lead:'infectionControlLeadRole',infection_control_member:'infectionControlMemberRole',department_manager:'departmentManagerRole',link_nurse:'linkNurseRole',department_user:'departmentUserRole',laboratory:'laboratoryRole',committee_secretariat:'committeeSecretariatRole',hr_office:'hrOfficeRole',pharmacy:'pharmacyRole',occupational_physician:'occupationalPhysicianRole',doctor_reviewer:'doctorReviewerRole',quality_manager:'qualityManagerRole'}
   const previewRoles=PREVIEWABLE_ROLES.map(previewRole=>[previewRole,previewRoleLabels[previewRole]])
@@ -85,31 +39,16 @@ export function AppShell(){
   const visibleNavigation=platformMode?[]:navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
   const canOrganizationAnalysis=!platformMode&&can(role,CAPABILITIES.VIEW_ANALYSIS,membership?.capabilities??[],membership?.customCapabilities??[])
   const managementNavigation=visibleNavigation.filter(item=>item.key==='management')
+  const accountNavigation=visibleNavigation.filter(item=>item.group==='account')
   const usesCompactMore=[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD].includes(role)
   const moreNavigation=usesCompactMore?visibleNavigation.filter(item=>item.group==='more'):[]
-  const primaryNavigation=usesCompactMore
-    ?visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='more')
-    :visibleNavigation.filter(item=>item.key!=='management')
+  const primaryNavigation=usesCompactMore?visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='more'&&item.group!=='account'):visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='account')
   const moreActive=usesCompactMore&&moreNavigation.some(item=>location.pathname===item.to||location.pathname.startsWith(`${item.to}/`))
   const moreExpanded=usesCompactMore&&(moreOpen||moreActive)
-  async function handleLogout(){
-    const ok=await confirm({title:t('logoutConfirmTitle'),message:`${t('logoutConfirmMessage')} ${t('logoutFarewell')}`,confirmLabel:t('logout')})
-    if(!ok)return
-    await logout();navigate('/login',{replace:true})
-  }
-  function navigatePlatformItem(to){
-    if(to==='/platform'){
-      navigate({pathname:'/platform',search:'',hash:''})
-      return
-    }
-    navigate(to)
-  }
-  function handlePreviewRoleChange(nextRole){
-    if(!nextRole)return
-    const nextNeedsDepartment=departmentScopedPreviewRoles.has(nextRole)
-    startRolePreview(nextRole,nextNeedsDepartment?(rolePreview?.department||''):'')
-  }
-  const NavEntry=({item,nested=false,collapseMore=false})=>{const Icon=item.icon;return <NavLink to={item.to} end={item.to==='/' } onClick={()=>collapseMore&&setMoreOpen(false)} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{t(item.key)}</span></NavLink>}
+  async function handleLogout(){const ok=await confirm({title:t('logoutConfirmTitle'),message:`${t('logoutConfirmMessage')} ${t('logoutFarewell')}`,confirmLabel:t('logout')});if(!ok)return;await logout();navigate('/login',{replace:true})}
+  function navigatePlatformItem(to){if(to==='/platform'){navigate({pathname:'/platform',search:'',hash:''});return}navigate(to)}
+  function handlePreviewRoleChange(nextRole){if(!nextRole)return;const nextNeedsDepartment=departmentScopedPreviewRoles.has(nextRole);startRolePreview(nextRole,nextNeedsDepartment?(rolePreview?.department||''):'')}
+  const NavEntry=({item,nested=false,collapseMore=false})=>{const Icon=item.icon;return <NavLink to={item.to} end={item.to==='/'} onClick={()=>collapseMore&&setMoreOpen(false)} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{t(item.key)}</span></NavLink>}
   return <div className={`app-shell ${helpPreviewMode?'help-preview-mode':''}`}>
     <aside className="sidebar"><div className="brand"><div className="brand-mark">L</div><div><strong>Limoxis Observer</strong><span>{platformMode?t('platformAdministration'):t('brandSubtitle')}</span></div></div><nav>
       {platformMode&&platformItems.map(([to,labelKey,Icon])=>{const [path,hash='']=to.split('#');const active=location.pathname===path&&((!hash&&!location.hash)||location.hash===`#${hash}`||location.hash.startsWith(`#${hash}?`));return <button type="button" key={to} onClick={()=>navigatePlatformItem(to)} className={`nav-item ${active?'active':''}`}><Icon size={18}/><span>{platformLabel(labelKey)}</span></button>})}
@@ -118,6 +57,7 @@ export function AppShell(){
       {canOrganizationAnalysis&&<NavLink to="/analysis" className={({isActive})=>`nav-item ${isActive?'active':''}`}><BarChart3 size={18}/><span>{t('platformAnalyticsNav')}</span></NavLink>}
       {moreNavigation.length>0&&<div className={`sidebar-nav-group ${moreExpanded?'open':''}`}><button type="button" className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>setMoreOpen(v=>!v)} aria-expanded={moreExpanded}><Layers3 size={18}/><span>{t('more')}</span><ChevronDown className="nav-group-chevron" size={14}/></button>{moreExpanded&&<div className="sidebar-nav-children">{moreNavigation.map(item=><NavEntry key={item.to} item={item} nested/>)}</div>}</div>}
       {managementNavigation.length>0&&<div className="sidebar-nav-management">{managementNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}</div>}
+      {accountNavigation.length>0&&<div className="sidebar-nav-management">{accountNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}</div>}
     </nav><div className="sidebar-footer"><div className="tenant-name">{platformMode?t('platformLevel'):(tenant?.name??t('noOrganization'))}</div><div className="sidebar-meta">{roleLabel(role,language)}</div>{isDemo&&<span className="demo-pill">{t('demo')}</span>}<div className="app-version-stamp">v{APP_VERSION} · {BUILD_ID}</div></div></aside>
     <main className="main-column"><header className="topbar"><div className="topbar-spacer"/><div className="topbar-actions">
       {canRolePreview&&!platformMode&&<div className="role-preview-control"><button className={`preview-trigger ${isRolePreview?'active':''}`} onClick={()=>setPreviewOpen(v=>!v)} title={t('previewAsRole')}><Eye size={16}/><span>{isRolePreview?t('previewMode'):t('previewAsRole')}</span><ChevronDown size={13}/></button>{previewOpen&&<div className="role-preview-popover"><strong>{t('previewAsRole')}</strong><small>{t('previewSafeHint')}</small><label><span>{t('roleLabel')}</span><select value={rolePreview?.role||''} onChange={e=>handlePreviewRoleChange(e.target.value)}><option value="">{t('selectRole')}</option>{previewRoles.map(([value,key])=><option key={value} value={value}>{t(key)}</option>)}</select></label>{previewNeedsDepartment&&<label><span>{t('departmentScope')}</span><select value={rolePreview?.department||''} onChange={e=>updateRolePreviewDepartment(e.target.value)}>{previewDepartments.map(([value,key])=><option key={key} value={value}>{t(key)}</option>)}</select></label>}<div className="preview-popover-actions">{isRolePreview&&<button onClick={()=>{stopRolePreview();setPreviewOpen(false)}}>{t('exitPreview')}</button>}<button onClick={()=>setPreviewOpen(false)}>{t('close')}</button></div></div>}</div>}
