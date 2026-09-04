@@ -46,7 +46,6 @@
   font-size:12px!important;font-weight:700!important;box-shadow:none!important;outline-offset:1px
 }
 .canonical-module-tabs .tab.active{background:#eaf1f7!important;color:#194a74!important}
-/* Category icons/count bubbles are not part of the canonical module-tab language. */
 .canonical-module-tabs .tab>svg,
 .canonical-module-tabs .tab-count{display:none!important}
 
@@ -91,9 +90,20 @@
   position:sticky;top:0;z-index:2;background:#f7f9fb
 }
 
-/* When canonical tabs are the first section of a registry card, the list continues the same frame. */
+/* Tabs nested inside a registry card: the parent surface owns the outside border. */
 .registry-workspace>.canonical-module-tabs{
   border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important
+}
+
+/* Split tab + workspace layouts (Surveillance) must look identical to one registry card. */
+.canonical-module-tabs + .production-surveillance-workspace{
+  margin-top:-1px!important;
+  border-top:1px solid transparent!important;
+  border-radius:0 0 11px 11px!important
+}
+.surveillance-domain-tabs.canonical-module-tabs{
+  border-bottom:1px solid var(--line)!important;
+  border-radius:11px 11px 0 0!important
 }
 
 /* Canonical empty registry: table header -> concise message -> pagination. */
