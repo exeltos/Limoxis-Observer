@@ -91,11 +91,18 @@ export function AppShell(){
     if(!ok)return
     await logout();navigate('/login',{replace:true})
   }
+  function navigatePlatformItem(to){
+    if(to==='/platform'){
+      navigate({pathname:'/platform',search:'',hash:''})
+      return
+    }
+    navigate(to)
+  }
   const NavEntry=({item,nested=false,collapseMore=false})=>{const Icon=item.icon;return <NavLink to={item.to} end={item.to==='/' } onClick={()=>collapseMore&&setMoreOpen(false)} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{t(item.key)}</span></NavLink>}
   return <div className={`app-shell ${helpPreviewMode?'help-preview-mode':''}`}>
     <aside className="sidebar"><div className="brand"><div className="brand-mark">L</div><div><strong>Limoxis Observer</strong><span>{platformMode?t('platformAdministration'):t('brandSubtitle')}</span></div></div><nav>
-      {platformMode&&platformItems.map(([to,labelKey,Icon])=>{const [path,hash='']=to.split('#');const active=location.pathname===path&&((!hash&&!location.hash)||location.hash===`#${hash}`||location.hash.startsWith(`#${hash}?`));return <button type="button" key={to} onClick={()=>navigate(to)} className={`nav-item ${active?'active':''}`}><Icon size={18}/><span>{t(labelKey)}</span></button>})}
-      {!platformMode&&isPlatformOwner&&tenant&&<button type="button" className="nav-item platform-return-nav" onClick={()=>{returnToPlatform();navigate('/platform')}}><ArrowLeft size={18}/><span>{t('backToPlatform')}</span></button>}
+      {platformMode&&platformItems.map(([to,labelKey,Icon])=>{const [path,hash='']=to.split('#');const active=location.pathname===path&&((!hash&&!location.hash)||location.hash===`#${hash}`||location.hash.startsWith(`#${hash}?`));return <button type="button" key={to} onClick={()=>navigatePlatformItem(to)} className={`nav-item ${active?'active':''}`}><Icon size={18}/><span>{t(labelKey)}</span></button>})}
+      {!platformMode&&isPlatformOwner&&tenant&&<button type="button" className="nav-item platform-return-nav" onClick={()=>{returnToPlatform();navigate({pathname:'/platform',search:'',hash:''})}}><ArrowLeft size={18}/><span>{t('backToPlatform')}</span></button>}
       {primaryNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}
       {canOrganizationAnalysis&&<NavLink to="/analysis" className={({isActive})=>`nav-item ${isActive?'active':''}`}><BarChart3 size={18}/><span>{t('platformAnalyticsNav')}</span></NavLink>}
       {moreNavigation.length>0&&<div className={`sidebar-nav-group ${moreExpanded?'open':''}`}><button type="button" className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>setMoreOpen(v=>!v)} aria-expanded={moreExpanded}><Layers3 size={18}/><span>{t('more')}</span><ChevronDown className="nav-group-chevron" size={14}/></button>{moreExpanded&&<div className="sidebar-nav-children">{moreNavigation.map(item=><NavEntry key={item.to} item={item} nested/>)}</div>}</div>}
