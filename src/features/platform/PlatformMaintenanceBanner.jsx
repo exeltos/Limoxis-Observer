@@ -28,8 +28,10 @@ export function PlatformMaintenanceBanner(){
   useEffect(()=>{setDismissed(false)},[notice?.updated_at])
 
   if(!profile||dismissed||!notice?.enabled)return null
-  const message=language==='en'?notice.message_en:notice.message_el
-  if(!String(message||'').trim())return null
+  const preferred=language==='en'?notice.message_en:notice.message_el
+  const fallback=language==='en'?notice.message_el:notice.message_en
+  const message=String(preferred||'').trim()||String(fallback||'').trim()
+  if(!message)return null
 
   return <div className="platform-maintenance-banner" role="status" aria-live="polite">
     <AlertTriangle size={16}/>
