@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, Layers3, LogOut, UserRound, X } from 'lucide-react'
+import { Activity, ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, Layers3, LogOut, ShieldCheck, UserRound, X } from 'lucide-react'
 import { navigationFor } from './navigation'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'
@@ -72,7 +72,10 @@ export function AppShell(){
     ['/platform#organizations','platformOrganizationsNav',Building2],
     ['/platform#demo','platformDemoNav',FlaskConical],
     ['/platform#reports','platformAnalyticsNav',BarChart3],
+    ['/platform/health','platformHealthNav',Activity],
+    ['/platform/audit','platformAuditNav',ShieldCheck],
   ]
+  const platformLabel=key=>key==='platformHealthNav'?(language==='en'?'Platform Health':'Υγεία Πλατφόρμας'):key==='platformAuditNav'?(language==='en'?'Audit & Security':'Audit & Ασφάλεια'):t(key)
   const previewRoleLabels={hospital_admin:'hospitalAdminRole',infection_control_lead:'infectionControlLeadRole',infection_control_member:'infectionControlMemberRole',department_manager:'departmentManagerRole',link_nurse:'linkNurseRole',department_user:'departmentUserRole',laboratory:'laboratoryRole',committee_secretariat:'committeeSecretariatRole',hr_office:'hrOfficeRole',pharmacy:'pharmacyRole',occupational_physician:'occupationalPhysicianRole',doctor_reviewer:'doctorReviewerRole',quality_manager:'qualityManagerRole'}
   const previewRoles=PREVIEWABLE_ROLES.map(previewRole=>[previewRole,previewRoleLabels[previewRole]])
   const previewDepartments=[['','previewAllHospital'],['icu','previewIcu'],['surgery','previewSurgery'],['internal','previewInternalMedicine']]
@@ -101,7 +104,7 @@ export function AppShell(){
   const NavEntry=({item,nested=false,collapseMore=false})=>{const Icon=item.icon;return <NavLink to={item.to} end={item.to==='/' } onClick={()=>collapseMore&&setMoreOpen(false)} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{t(item.key)}</span></NavLink>}
   return <div className={`app-shell ${helpPreviewMode?'help-preview-mode':''}`}>
     <aside className="sidebar"><div className="brand"><div className="brand-mark">L</div><div><strong>Limoxis Observer</strong><span>{platformMode?t('platformAdministration'):t('brandSubtitle')}</span></div></div><nav>
-      {platformMode&&platformItems.map(([to,labelKey,Icon])=>{const [path,hash='']=to.split('#');const active=location.pathname===path&&((!hash&&!location.hash)||location.hash===`#${hash}`||location.hash.startsWith(`#${hash}?`));return <button type="button" key={to} onClick={()=>navigatePlatformItem(to)} className={`nav-item ${active?'active':''}`}><Icon size={18}/><span>{t(labelKey)}</span></button>})}
+      {platformMode&&platformItems.map(([to,labelKey,Icon])=>{const [path,hash='']=to.split('#');const active=location.pathname===path&&((!hash&&!location.hash)||location.hash===`#${hash}`||location.hash.startsWith(`#${hash}?`));return <button type="button" key={to} onClick={()=>navigatePlatformItem(to)} className={`nav-item ${active?'active':''}`}><Icon size={18}/><span>{platformLabel(labelKey)}</span></button>})}
       {!platformMode&&isPlatformOwner&&tenant&&<button type="button" className="nav-item platform-return-nav" onClick={()=>{returnToPlatform();navigate({pathname:'/platform',search:'',hash:''})}}><ArrowLeft size={18}/><span>{t('backToPlatform')}</span></button>}
       {primaryNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}
       {canOrganizationAnalysis&&<NavLink to="/analysis" className={({isActive})=>`nav-item ${isActive?'active':''}`}><BarChart3 size={18}/><span>{t('platformAnalyticsNav')}</span></NavLink>}
