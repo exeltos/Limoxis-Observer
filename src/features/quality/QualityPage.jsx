@@ -63,7 +63,7 @@ export function QualityPage(){
       <SummaryMetric icon={CheckCircle2} label={language==='en'?'Completed':'Ολοκληρωμένα'} value={closedCount}/>
       <SummaryMetric icon={AlertTriangle} label={language==='en'?'High priority':'Υψηλής προτεραιότητας'} value={highCount}/>
     </div></div>
-    <div className="surface registry-workspace quality-workspace workspace-fill">
+    <div className="surface registry-workspace stable-registry-height quality-workspace workspace-fill">
       <nav className="tabs quality-tabs canonical-module-tabs">{sections.map(({id,label})=><button key={id} className={`tab ${section===id?'active':''}`} onClick={()=>changeSection(id)}>{t(label)}</button>)}</nav>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status).filter(Boolean))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
