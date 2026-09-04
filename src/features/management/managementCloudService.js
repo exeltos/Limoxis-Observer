@@ -29,7 +29,19 @@ export async function loadManagementLibraries(organizationId){
 export async function createManagementLibraryItem(organizationId,libraryKey,{nameEl,nameEn}){
   assertCloud(organizationId)
   if(libraryKey==='departments'){
-    const {data,error}=await supabase.from('departments').insert({organization_id:organizationId,name:nameEl}).select('id,name,code').single()
+    const cleanName=String(nameEl||'').trim()
+    if(!cleanName)throw new Error('Department name is required.')
+    const {data:existing,error:existingError}=await supabase.from('departments').select('id,name,code,is_active').eq('organization_id',organizationId).ilike('name',cleanName).maybeSingle()
+    if(existingError) throw existingError
+    if(existing){
+      if(existing.is_active===false){
+        const {data:reactivated,error:reactivateError}=await supabase.from('departments').update({is_active:true,name:cleanName}).eq('organization_id',organizationId).eq('id',existing.id).select('id,name,code').single()
+        if(reactivateError)throw reactivateError
+        return [reactivated.name,reactivated.name,{id:reactivated.id,system:false,locked:false,source:'Hospital',version:'local',code:reactivated.code||null}]
+      }
+      return [existing.name,existing.name,{id:existing.id,system:false,locked:false,source:'Hospital',version:'local',code:existing.code||null}]
+    }
+    const {data,error}=await supabase.from('departments').insert({organization_id:organizationId,name:cleanName}).select('id,name,code').single()
     if(error) throw error
     return [data.name,data.name,{id:data.id,system:false,locked:false,source:'Hospital',version:'local',code:data.code||null}]
   }
