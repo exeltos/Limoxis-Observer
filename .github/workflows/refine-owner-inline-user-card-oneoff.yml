@@ -1,0 +1,19 @@
+name: Refine owner inline user card one off
+on:
+  push:
+    paths:
+      - .github/workflows/refine-owner-inline-user-card-oneoff.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/refine-owner-inline-user-card.mjs
+      - run: |
+          git config user.name "Exeltos"
+          git config user.email "info@exeltos.com"
+          git add src/features/platform/PlatformOrganizationRecord.jsx src/styles/design-system-layouts.css
+          git commit -m "fix(owner): expand user management as inline record card" || exit 0
+          git push
