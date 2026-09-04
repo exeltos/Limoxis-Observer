@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Building2,
-  Clock3,
   FlaskConical,
   LogIn,
   ShieldCheck,
@@ -31,6 +29,8 @@ import {
 import { AnalysisPage } from '../analysis/AnalysisPage'
 import { PlatformDemoRecord } from '../platform/PlatformDemoRecord'
 import { PlatformOrganizationRecord } from '../platform/PlatformOrganizationRecord'
+import { PlatformDashboardView } from '../platform/PlatformDashboardView'
+import { PlatformOrganizationsRegistry } from '../platform/PlatformOrganizationsRegistry'
 
 const GREEK_REGIONS = [
   'Ανατολική Μακεδονία και Θράκη',
@@ -588,70 +588,18 @@ export function PlatformCenterPage() {
 
   if (!activeKey) {
     return (
-      <Page
-        title={tx('Dashboard Πλατφόρμας', 'Platform Dashboard')}
-        subtitle={tx('Συνολική εικόνα του Limoxis Observer και των οργανισμών του.', 'Overview of Limoxis Observer and its organizations.')}
-      >
-        <div className="kpi-grid platform-kpi-grid">
-          <article className="kpi-card">
-            <span>{tx('Σύνολο οργανισμών', 'Organizations')}</span>
-            <strong>{organizations.length}</strong>
-            <small>{activeOrganizations} {tx('ενεργοί', 'active')}</small>
-          </article>
-          <article className="kpi-card">
-            <span>{tx('Σύνολο χρηστών', 'Users')}</span>
-            <strong>{loadingStats ? '—' : members.length}</strong>
-            <small>{tx('σε όλους τους οργανισμούς', 'across all organizations')}</small>
-          </article>
-          <article className="kpi-card">
-            <span>{tx('Ενεργά Demo', 'Active demos')}</span>
-            <strong>{loadingStats ? '—' : activeDemos.length}</strong>
-            <small>{expiringDemos.length} {tx('λήγουν ≤14 ημέρες', 'expire within 14 days')}</small>
-          </article>
-        </div>
-        <section className="platform-center-section">
-          <div className="platform-section-heading">
-            <div>
-              <h2>{tx('Demo που βρίσκονται σε εξέλιξη', 'Active demos')}</h2>
-              <p>{tx('Παρακολούθηση διάρκειας και έγκαιρη ειδοποίηση πριν τη λήξη.', 'Track duration and upcoming expiry.')}</p>
-            </div>
-          </div>
-          {activeDemos.length ? (
-            <div className="platform-demo-list">
-              {activeDemos.map(demo => {
-                const progress = demoProgress(demo)
-                return (
-                  <button
-                    type="button"
-                    className="platform-demo-row platform-owner-clickable-row"
-                    key={demo.id}
-                    onClick={() => openDemoRecord(demo)}
-                  >
-                    <div>
-                      <strong>{demo.organization?.name || demo.label}</strong>
-                      <small>
-                        {demo.contact_name || demo.contact_email || 'Demo access'} · {tx('έως', 'until')}{' '}
-                        {new Date(demo.valid_until).toLocaleDateString(en ? 'en-GB' : 'el-GR')}
-                      </small>
-                    </div>
-                    <div className="platform-demo-progress">
-                      <div><span style={{ width: `${progress.pct}%` }} /></div>
-                      <small className={progress.remaining <= 14 ? 'warning' : ''}>
-                        {progress.remaining} {tx('ημέρες υπόλοιπο', 'days remaining')}
-                      </small>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="empty-state platform-empty">
-              <Clock3 size={22} />
-              <strong>{tx('Δεν υπάρχουν ενεργά Demo', 'No active demos')}</strong>
-            </div>
-          )}
-        </section>
-      </Page>
+      <PlatformDashboardView
+        tx={tx}
+        organizations={organizations}
+        activeOrganizations={activeOrganizations}
+        members={members}
+        activeDemos={activeDemos}
+        expiringDemos={expiringDemos}
+        loadingStats={loadingStats}
+        demoProgress={demoProgress}
+        onOpenDemo={openDemoRecord}
+        onNavigate={nav}
+      />
     )
   }
 
@@ -679,83 +627,17 @@ export function PlatformCenterPage() {
 
     return (
       <>
-        <Page
-          title={tx('Οργανισμοί', 'Organizations')}
-          subtitle={tx('Διαχείριση οργανισμών, χρηστών, πρόσβασης και ανάλυσης.', 'Manage organizations, users, access and analytics.')}
-          actions={<Button onClick={openCreate}>+ {tx('Νέος οργανισμός', 'New organization')}</Button>}
-        >
-          <div className="platform-registry-shell">
-            <div className="platform-registry-navigation">
-              <BackButton onClick={() => nav('/platform')} label={tx('Dashboard', 'Dashboard')} />
-            </div>
-            <FilterBar
-              query={organizationQuery}
-              onQueryChange={setOrganizationQuery}
-              placeholder={tx('Αναζήτηση οργανισμού…', 'Search organization…')}
-            />
-            <div className="platform-center-section platform-registry-card">
-              {filteredOrganizations.length ? (
-                <div className="scroll-table">
-                  <table className="data-table sticky-table">
-                    <thead>
-                      <tr>
-                        <th>{tx('Οργανισμός', 'Organization')}</th>
-                        <th>{tx('Κωδικός', 'Code')}</th>
-                        <th>{tx('Πόλη / Περιφέρεια', 'City / Region')}</th>
-                        <th>{tx('Χρήστες', 'Users')}</th>
-                        <th>Hospital Admin</th>
-                        <th>{tx('Κατάσταση', 'Status')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredOrganizations.map(org => (
-                        <tr
-                          key={org.id}
-                          tabIndex={0}
-                          className="platform-owner-clickable-row"
-                          onClick={() => openOrganization(org)}
-                          onKeyDown={event => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault()
-                              openOrganization(org)
-                            }
-                          }}
-                        >
-                          <td><strong>{org.name}</strong></td>
-                          <td>{org.code}</td>
-                          <td>{org.city || '—'} · {org.region || '—'}</td>
-                          <td>{memberCountByOrg[org.id] || 0}</td>
-                          <td>
-                            {hospitalAdminStatusByOrg[org.id] === 'active' ? (
-                              <span className="status-badge active">{tx('Ενεργός', 'Active')}</span>
-                            ) : hospitalAdminStatusByOrg[org.id] === 'disabled' ? (
-                              <span className="status-badge danger">{tx('Σε παύση', 'Suspended')}</span>
-                            ) : hospitalAdminStatusByOrg[org.id] === 'invited' ? (
-                              <span className="status-badge temporary">{tx('Εκκρεμής', 'Pending')}</span>
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-                          <td>
-                            <span className={`status-badge ${org.status === 'active' ? 'active' : 'danger'}`}>
-                              {org.status === 'active' ? tx('Ενεργός', 'Active') : tx('Σε παύση', 'Suspended')}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="empty-state platform-empty">
-                  <Building2 size={22} />
-                  <strong>{tx('Δεν υπάρχουν οργανισμοί', 'No organizations')}</strong>
-                  <span>{tx('Δεν βρέθηκαν οργανισμοί για τα επιλεγμένα φίλτρα.', 'No organizations match the selected filters.')}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </Page>
+        <PlatformOrganizationsRegistry
+          tx={tx}
+          query={organizationQuery}
+          onQueryChange={setOrganizationQuery}
+          organizations={filteredOrganizations}
+          memberCountByOrg={memberCountByOrg}
+          hospitalAdminStatusByOrg={hospitalAdminStatusByOrg}
+          onBack={() => nav('/platform')}
+          onCreate={openCreate}
+          onOpenOrganization={openOrganization}
+        />
         {createDialog}
       </>
     )

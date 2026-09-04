@@ -356,3 +356,14 @@
   .platform-demo-progress{width:100%;min-width:0;text-align:left}
   .platform-analysis-page .analysis-filters label{width:100%;max-width:none}
 }
+/* Platform Owner control-plane primitives */
+.platform-control-plane{display:grid;gap:14px}
+.platform-control-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.platform-control-card{appearance:none;border:1px solid var(--lo-color-border);background:var(--lo-color-surface);border-radius:var(--lo-radius-card);padding:14px;text-align:left;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;min-height:88px;color:inherit}
+.platform-control-card-icon{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--lo-color-surface-subtle);color:var(--lo-color-primary)}
+.platform-control-card-copy{display:grid;gap:4px;min-width:0}
+.platform-control-card-copy strong{font-size:13px}
+.platform-control-card-copy small{font-size:11px;line-height:1.45;color:var(--lo-color-muted)}
+.platform-control-card-meta{font-size:11px;font-weight:700;color:var(--lo-color-primary);white-space:nowrap}
+@media (max-width:1180px){.platform-control-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:720px){.platform-control-grid{grid-template-columns:1fr}.platform-control-card{grid-template-columns:auto minmax(0,1fr)}}
