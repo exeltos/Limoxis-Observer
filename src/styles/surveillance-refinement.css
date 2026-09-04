@@ -1,10 +1,10 @@
 /* Canonical Surveillance workspace refinement.
    Scoped to Surveillance-only classes so accepted design-system patterns elsewhere remain unchanged. */
 
-.production-surveillance-page{max-width:none}
-.production-surveillance-page .page-header{margin-bottom:12px}
+.production-surveillance-page{max-width:none;margin-top:-18px}
+.production-surveillance-page .page-header{margin-bottom:10px}
 .production-surveillance-page .page-header h1{font-size:24px}
-.production-surveillance-page .page-header p{margin-top:5px}
+.production-surveillance-page .page-header p{margin-top:4px}
 
 .surveillance-summary{margin-bottom:8px}
 .surveillance-summary .module-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}
@@ -26,7 +26,7 @@
 .production-surveillance-workspace .filter-search input{height:36px}
 .production-surveillance-workspace .filter-trigger,.production-surveillance-workspace .filter-clear-button{height:36px}
 
-.production-surveillance-workspace .surveillance-registry{border:0;border-radius:0;min-height:0;max-height:calc(100vh - 350px);overflow:auto;flex:1 1 auto}
+.production-surveillance-workspace .surveillance-registry{border:0;border-radius:0;min-height:0;max-height:calc(100vh - 330px);overflow:auto;flex:1 1 auto}
 .production-surveillance-workspace .surveillance-registry-head{position:sticky;top:0;z-index:2;background:#f7f9fb;border-bottom:1px solid var(--line)}
 .production-surveillance-workspace .surveillance-registry-head>span{padding-top:8px;padding-bottom:8px}
 .production-surveillance-workspace .surveillance-registry-row{min-height:52px}
@@ -45,6 +45,7 @@
 .registry-pagination-controls button:disabled{opacity:.35;cursor:not-allowed}
 
 @media(max-width:1200px){
+  .production-surveillance-page{margin-top:-12px}
   .surveillance-summary .module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .production-surveillance-workspace .surveillance-registry{max-height:calc(100vh - 405px)}
+  .production-surveillance-workspace .surveillance-registry{max-height:calc(100vh - 385px)}
 }
