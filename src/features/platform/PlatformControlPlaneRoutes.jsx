@@ -3,6 +3,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { PlatformHealthView } from './PlatformHealthView'
 import { PlatformAuditSecurityView } from './PlatformAuditSecurityView'
+import { PlatformSettingsPage as PlatformSettingsWorkspace } from './PlatformSettingsPage'
 
 function usePlatformOrganizations(){
   const {memberships}=useTenant()
@@ -21,4 +22,8 @@ export function PlatformAuditSecurityPage(){
   const {language}=useLanguage()
   const navigate=useNavigate()
   return <PlatformAuditSecurityView organizations={organizations} language={language} onBack={()=>navigate('/platform')} />
+}
+
+export function PlatformSettingsPage(){
+  return <PlatformSettingsWorkspace />
 }
