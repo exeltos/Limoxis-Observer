@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useAuth } from '../auth/AuthContext'
 import { ROLES, isPreviewableRole } from '../permissions/roles'
 import { uxPolicyFor, recordWithinRoleScope, canSeeSensitiveEmployeeHealth } from '../permissions/roleUxPolicy'
@@ -81,13 +82,20 @@ export function TenantProvider({ children }) {
       ? {...baseMembership, role: rolePreview.role, capabilities: [], customCapabilities: [], assignments: [], previewDepartment: rolePreview.department || null}
       : baseMembership
   ), [baseMembership, rolePreview, canRolePreview])
+
   const setTenantByMembership = useCallback((membershipId) => {
     if (!memberships.some((item) => item.id === membershipId)) return false
-    setPlatformDemoMode(false)
-    setActiveMembershipId(membershipId)
-    setRolePreview(null)
+    // PlatformCenter navigates immediately after this call. Force the organization
+    // switch to commit first so AppShell/route guards never render one frame with
+    // the old platform context and the new organization route.
+    flushSync(() => {
+      setPlatformDemoMode(false)
+      setActiveMembershipId(membershipId)
+      setRolePreview(null)
+    })
     return true
   }, [memberships])
+
   const enterPlatformDemo = useCallback(() => {
     if (profile?.isPlatformOwner) { setPlatformDemoMode(true); setActiveMembershipId(null); setRolePreview(null) }
   }, [profile?.isPlatformOwner])
