@@ -23,6 +23,31 @@
   margin-bottom:12px;
 }
 
+/* Shared compact empty state for registry/list screens. */
+.registry-empty-state{
+  min-height:132px;
+  height:132px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:22px;
+  text-align:center;
+  background:#fff;
+  color:#718096;
+}
+.registry-empty-state strong{
+  color:#213b59;
+  font-size:15px;
+  font-weight:700;
+}
+.registry-empty-state span{
+  max-width:720px;
+  font-size:12px;
+  line-height:1.45;
+}
+
 /* Patient registry follows the same compact workspace rhythm as Surveillance. */
 .patient-summary-strip{
   display:grid;
@@ -92,6 +117,23 @@
   height:132px;
   min-height:132px;
   max-height:132px;
+}
+
+/* Laboratory empty registry follows the same compact list pattern. */
+.laboratory-registry-page .lab-registry-shell:has(.registry-empty-state){
+  flex:0 0 auto!important;
+  height:auto!important;
+  min-height:0!important;
+}
+.laboratory-registry-page .lab-registry-shell:has(.registry-empty-state) .scroll-table{
+  flex:0 0 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:hidden;
+}
+.laboratory-registry-page .lab-registry-shell:has(.registry-empty-state) .data-table{
+  margin-bottom:0;
 }
 
 @media(max-width:1200px){
