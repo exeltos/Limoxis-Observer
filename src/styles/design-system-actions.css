@@ -60,6 +60,9 @@
 .diagnostics-table thead th{white-space:nowrap;vertical-align:middle}
 .diagnostics-table tbody td{vertical-align:middle}
 
+.platform-maintenance-banner{position:fixed;z-index:2000;left:50%;top:10px;transform:translateX(-50%);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;width:min(760px,calc(100vw - 32px));padding:10px 12px;border:1px solid var(--lo-status-warning-border);border-radius:var(--lo-radius-control);background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg);box-shadow:0 10px 28px color-mix(in srgb,var(--lo-color-text) 14%,transparent);font-size:11.5px;font-weight:650;line-height:1.45}
+.platform-maintenance-banner>svg{flex:0 0 auto}.platform-maintenance-banner button{width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer}.platform-maintenance-banner button:hover{background:color-mix(in srgb,var(--lo-status-warning-fg) 10%,transparent)}
+
 .analysis-production-empty{min-height:300px;display:grid;place-items:center;align-content:center;gap:9px;text-align:center;padding:36px;border:1px dashed var(--lo-color-border);border-radius:var(--lo-radius-card);background:var(--lo-color-surface)}
 .analysis-production-empty-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:var(--lo-status-info-bg);color:var(--lo-color-primary)}
 .analysis-production-empty strong{font-size:16px;color:var(--lo-color-text)}
@@ -88,4 +91,5 @@
   .login-briefing-dialog .briefing-summary-v2{align-items:flex-start;flex-direction:column}
   .diagnostics-summary-strip,.platform-summary-strip{grid-template-columns:1fr}
   .lo-dialog-icon-actions{justify-content:flex-start}
+  .platform-maintenance-banner{top:8px;width:calc(100vw - 20px);font-size:11px}
 }
