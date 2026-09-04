@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Activity, BarChart3, Building2, Clock3, FlaskConical } from 'lucide-react'
+import { Activity, BarChart3, Building2, Clock3, FlaskConical, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { PlatformHealthView } from './PlatformHealthView'
+import { PlatformAuditSecurityView } from './PlatformAuditSecurityView'
 
 function DashboardAction({ icon, title, description, meta, onClick }) {
   return (
@@ -30,14 +31,17 @@ export function PlatformDashboardView({
 }) {
   const { language } = useLanguage()
   const location = useLocation()
-  const [healthOpen,setHealthOpen]=useState(false)
+  const [workspace,setWorkspace]=useState(null)
 
   useEffect(()=>{
-    setHealthOpen(false)
+    setWorkspace(null)
   },[location.key])
 
-  if(healthOpen){
-    return <PlatformHealthView organizations={organizations} language={language} onBack={()=>setHealthOpen(false)} />
+  if(workspace==='health'){
+    return <PlatformHealthView organizations={organizations} language={language} onBack={()=>setWorkspace(null)} />
+  }
+  if(workspace==='audit'){
+    return <PlatformAuditSecurityView organizations={organizations} language={language} onBack={()=>setWorkspace(null)} />
   }
 
   return (
@@ -84,7 +88,14 @@ export function PlatformDashboardView({
             title={tx('Υγεία Πλατφόρμας', 'Platform Health')}
             description={tx('Συγκεντρωτική λειτουργική εικόνα, αποτυχίες και προειδοποιήσεις όλων των οργανισμών.', 'Aggregated operational health, failures and warnings across organizations.')}
             meta={tx('live εικόνα', 'live view')}
-            onClick={() => setHealthOpen(true)}
+            onClick={() => setWorkspace('health')}
+          />
+          <DashboardAction
+            icon={<ShieldCheck size={18} />}
+            title={tx('Audit & Ασφάλεια', 'Audit & Security')}
+            description={tx('Ιχνηλασιμότητα ενεργειών Platform Owner, αλλαγών πρόσβασης και κρίσιμων διοικητικών ενεργειών.', 'Trace Platform Owner actions, access changes and critical administrative operations.')}
+            meta={tx('μόνο ανάγνωση', 'read only')}
+            onClick={() => setWorkspace('audit')}
           />
         </div>
       </section>
