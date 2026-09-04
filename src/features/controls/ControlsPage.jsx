@@ -61,9 +61,9 @@ export function ControlsPage(){
  }
  function execute(row,e){e?.stopPropagation();const draft=hasControlDraft(row.item.id,row.department);const allowed=draft||isFullControlsAdmin||(canExecuteRole&&isControlDue(row.item,row.department));if(!allowed)return;setExecuteRow(row)}
  function pageAction(action){if(action===UI_ACTIONS.CREATE)setEditorOpen(true)}
- return <Page fill title={t('controls')} subtitle={canCreateCentral?tx.centralSubtitle:tx.departmentSubtitle} actions={canCreate?<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>:null}>
+ return <Page fill className="controls-page" title={t('controls')} subtitle={canCreateCentral?tx.centralSubtitle:tx.departmentSubtitle} actions={canCreate?<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>:null}>
   <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedRows.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue}/><Kpi icon={CheckCircle2} label={tx.today} value={scopedRows.reduce((n,x)=>n+(x.assignment?.history||[]).filter(h=>h.at?.slice(0,10)===new Date().toISOString().slice(0,10)).length,0)}/></div></div>
-  <section className="surface registry-workspace controls-surface workspace-fill workspace-column">
+  <section className="registry-workspace controls-fullscreen-workspace workspace-fill workspace-column">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')+(frequency!=='all')} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setFrequency('all')}}>
     <FilterSelect label={tx.department} value={department} onChange={setDepartment}><option value="all">{tx.allDepartments}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
     <FilterSelect label={tx.status} value={status} onChange={setStatus}><option value="all">{tx.all}</option><option value="temporary">{tx.temporary}</option><option value="scheduled">{tx.scheduled}</option><option value="dueSoon">{tx.dueSoon}</option><option value="overdue">{tx.overdue}</option></FilterSelect>
