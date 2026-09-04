@@ -21,12 +21,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node scripts/refactor-platform-owner-control-plane.mjs
-      - run: npx eslint src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformDashboardView.jsx src/features/platform/PlatformOrganizationsRegistry.jsx
+      - run: npx eslint src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformDashboardView.jsx src/features/platform/PlatformOrganizationsRegistry.jsx src/features/platform/PlatformOrganizationRecord.jsx
       - run: npm run test
       - run: npm run build
       - run: |
           git config user.name "Exeltos"
           git config user.email "info@exeltos.com"
-          git add src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformDashboardView.jsx src/features/platform/PlatformOrganizationsRegistry.jsx src/styles/platform-owner-polish.css
-          git commit -m "refactor(platform): split control-plane dashboard and registry"
+          git add src/features/workspaces/PlatformCenterPage.jsx src/features/platform/PlatformDashboardView.jsx src/features/platform/PlatformOrganizationsRegistry.jsx src/features/platform/PlatformOrganizationRecord.jsx src/styles/platform-owner-polish.css
+          git commit -m "refactor(platform): improve organization workspace" || exit 0
           git push
