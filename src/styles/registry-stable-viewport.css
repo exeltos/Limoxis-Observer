@@ -1,13 +1,14 @@
 /* Canonical stable viewport for primary registries.
-   Applied after page-density.css so empty/loading/data states never resize the list shell. */
+   One outer shell owns the height, frame, scroll area and pagination placement. */
 :root{
   --canonical-registry-height:clamp(390px,calc(100vh - 300px),620px);
+  --canonical-registry-radius:11px;
 }
 
+/* Primary registry shells: one consistent fixed viewport. */
 .registry-workspace,
 .patient-registry-shell,
-.laboratory-registry-page .lab-registry-shell,
-.production-surveillance-workspace{
+.laboratory-registry-page .lab-registry-shell{
   height:var(--canonical-registry-height)!important;
   min-height:390px!important;
   max-height:620px!important;
@@ -17,22 +18,32 @@
   flex-direction:column!important;
 }
 
+.registry-workspace.surface,
+.patient-registry-shell,
+.laboratory-registry-page .lab-registry-shell,
+.controls-page>.controls-surface{
+  border:1px solid var(--line)!important;
+  border-radius:var(--canonical-registry-radius)!important;
+  background:#fff!important;
+  overflow:hidden!important;
+  box-shadow:none!important;
+}
+
+/* Empty/data/loading states never alter the outer shell height. */
 .registry-workspace:has(.registry-empty-state),
 .patient-registry-shell:has(.registry-empty-state),
 .laboratory-registry-page .lab-registry-shell:has(.registry-empty-state),
-.production-surveillance-workspace:has(.registry-empty-state),
-.production-surveillance-workspace:has(.surveillance-registry-empty){
+.registry-workspace:has(.surveillance-registry-empty){
   height:var(--canonical-registry-height)!important;
   min-height:390px!important;
   max-height:620px!important;
   flex:0 0 auto!important;
 }
 
+/* Standard table scroll regions. */
 .registry-workspace>.scroll-table,
 .patient-registry-shell>.scroll-table,
 .laboratory-registry-page .lab-registry-shell>.scroll-table,
-.production-surveillance-workspace>.scroll-table,
-.production-surveillance-workspace>.surveillance-registry,
 .registry-workspace:has(.registry-empty-state)>.scroll-table,
 .patient-registry-shell:has(.registry-empty-state)>.scroll-table,
 .laboratory-registry-page .lab-registry-shell:has(.registry-empty-state)>.scroll-table{
@@ -46,8 +57,7 @@
 .registry-workspace .registry-empty-state,
 .patient-registry-shell .registry-empty-state,
 .laboratory-registry-page .lab-registry-shell .registry-empty-state,
-.production-surveillance-workspace .registry-empty-state,
-.production-surveillance-workspace .surveillance-registry-empty{
+.registry-workspace .surveillance-registry-empty{
   flex:1 1 auto!important;
   min-height:132px!important;
   height:auto!important;
@@ -56,20 +66,61 @@
 
 .registry-workspace>.registry-pagination,
 .patient-registry-shell>.registry-pagination,
-.laboratory-registry-page .lab-registry-shell>.registry-pagination,
-.production-surveillance-workspace>.registry-pagination{
+.laboratory-registry-page .lab-registry-shell>.registry-pagination{
   flex:0 0 auto!important;
   margin-top:auto!important;
 }
 
-/* Controls use the same stable list viewport while retaining their flat operational frame. */
+/* Surveillance: the OUTER .registry-workspace owns the canonical height.
+   The inner surveillance workspace must only fill the remaining area so pagination is never clipped. */
+.production-surveillance-frame{
+  height:var(--canonical-registry-height)!important;
+  min-height:390px!important;
+  max-height:620px!important;
+}
+.production-surveillance-frame>.canonical-module-tabs{flex:0 0 auto!important}
+.production-surveillance-frame>.production-surveillance-workspace{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.production-surveillance-workspace>.filter-system{flex:0 0 auto!important}
+.production-surveillance-workspace>.surveillance-registry{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+.production-surveillance-workspace>.registry-pagination{
+  flex:0 0 auto!important;
+  margin-top:auto!important;
+}
+.production-surveillance-workspace .surveillance-registry-empty{
+  min-height:132px!important;
+  height:auto!important;
+  flex:1 1 auto!important;
+}
+
+/* Controls use exactly the same outer frame and rounded corners. */
 .controls-page>.controls-surface{
   height:var(--canonical-registry-height)!important;
   min-height:390px!important;
   max-height:620px!important;
-  overflow:hidden!important;
   display:flex!important;
   flex-direction:column!important;
+  margin:0!important;
+}
+.controls-page>.controls-surface .filter-system{
+  flex:0 0 auto!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:#fff!important;
 }
 .controls-page>.controls-surface .scroll-table{
   flex:1 1 0!important;
@@ -77,6 +128,16 @@
   height:auto!important;
   max-height:none!important;
   overflow:auto!important;
+  border:0!important;
+  background:#fff!important;
+}
+.controls-page>.controls-surface .registry-pagination{
+  flex:0 0 auto!important;
+  margin-top:auto!important;
+  border:0!important;
+  border-top:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:#fff!important;
 }
 
 @media(max-width:1200px){
@@ -84,7 +145,7 @@
   .registry-workspace,
   .patient-registry-shell,
   .laboratory-registry-page .lab-registry-shell,
-  .production-surveillance-workspace,
+  .production-surveillance-frame,
   .controls-page>.controls-surface{
     min-height:340px!important;
     max-height:560px!important;
