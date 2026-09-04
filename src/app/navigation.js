@@ -2,8 +2,8 @@ import { Activity, BarChart3, Beaker, BookOpenCheck, Building2, ClipboardCheck, 
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny } from '../core/permissions/roles'
 
 // Canonical destinations. Visibility comes from capabilities; sidebar placement
-// is resolved separately per role so the same feature can remain accessible
-// without every role receiving an identical menu hierarchy.
+// and ordering are resolved separately per role so each workspace reflects the
+// user's actual operational priorities without duplicating feature code.
 export const navigation=[
   {to:'/',key:'dashboard',icon:LayoutDashboard,capability:CAPABILITIES.VIEW_DASHBOARD,excludeRoles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
   {to:'/my-department',key:'myDepartment',icon:Home,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
@@ -27,23 +27,45 @@ export const navigation=[
 
 const roleMenuPolicy=Object.freeze({
   [ROLES.HOSPITAL_ADMIN]:Object.freeze({
-    more:new Set(['platformAnalyticsNav','indicators','training','committees','documents','lira']),
+    primaryOrder:['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees'],
+    moreOrder:['platformAnalyticsNav','indicators','lira','training','committees','documents'],
+    more:new Set(['platformAnalyticsNav','indicators','lira','training','committees','documents']),
     hidden:new Set(['pharmacy','occupationalHealth']),
   }),
   [ROLES.INFECTION_CONTROL_LEAD]:Object.freeze({
-    // IC Lead keeps the infection-control workflow prominent. Quality and staff
-    // remain accessible but are secondary to surveillance/prevention work.
-    more:new Set(['quality','employees','platformAnalyticsNav','indicators','training','committees','documents','lira']),
+    // Core infection-control work stays permanently visible. Indicators and
+    // committees are promoted because they are central governance tools for IC.
+    primaryOrder:['dashboard','surveillance','patients','laboratory','prevention','controls','indicators','committees'],
+    moreOrder:['platformAnalyticsNav','lira','quality','employees','training','documents'],
+    more:new Set(['platformAnalyticsNav','lira','quality','employees','training','documents']),
     hidden:new Set(['pharmacy','occupationalHealth']),
   }),
 })
 
+function orderByKeys(items,keys=[]){
+  if(!keys.length)return items
+  const rank=new Map(keys.map((key,index)=>[key,index]))
+  return [...items].sort((a,b)=>{
+    const aRank=rank.has(a.key)?rank.get(a.key):Number.MAX_SAFE_INTEGER
+    const bRank=rank.has(b.key)?rank.get(b.key):Number.MAX_SAFE_INTEGER
+    return aRank-bRank
+  })
+}
+
 function applyRoleMenuPolicy(role,items){
   const policy=roleMenuPolicy[role]
   if(!policy)return items
-  return items
-    .filter(item=>!policy.hidden.has(item.key))
-    .map(item=>policy.more.has(item.key)?{...item,group:'more'}:{...item,group:undefined})
+  const visible=items.filter(item=>!policy.hidden.has(item.key))
+  const primary=orderByKeys(
+    visible.filter(item=>item.key!=='management'&&!policy.more.has(item.key)).map(item=>({...item,group:undefined})),
+    policy.primaryOrder,
+  )
+  const more=orderByKeys(
+    visible.filter(item=>policy.more.has(item.key)).map(item=>({...item,group:'more'})),
+    policy.moreOrder,
+  )
+  const management=visible.filter(item=>item.key==='management').map(item=>({...item,group:undefined}))
+  return [...primary,...more,...management]
 }
 
 export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignments=false}={}){
