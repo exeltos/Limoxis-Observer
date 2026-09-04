@@ -81,11 +81,10 @@ export function PlatformHealthView({organizations=[],language='el',onBack}){
   >
     <div className="platform-registry-shell">
       <div className="platform-registry-navigation"><BackButton onClick={onBack} label={tx('Dashboard','Dashboard')}/></div>
-      <div className="platform-section-heading">
-        <div><h2>{tx('Λειτουργική κατάσταση','Operational status')}</h2><p>{tx('Συμβάντα εφαρμογής, αποτυχίες, αποκλεισμοί και προειδοποιήσεις ανά οργανισμό.','Application events, failures, blocked actions and warnings by organization.')}</p></div>
+      <div className="platform-section-tools">
         <IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton>
       </div>
-      <div className="diagnostics-summary-strip">
+      <div className="diagnostics-summary-strip platform-summary-strip">
         <div className="diagnostics-summary"><span>{tx('Κατάσταση','Status')}</span><strong>{healthLabel}</strong></div>
         <div className="diagnostics-summary"><span>{tx('Αποτυχίες / αποκλεισμοί','Errors / blocked')}</span><strong>{failures}</strong></div>
         <div className="diagnostics-summary"><span>{tx('Προειδοποιήσεις','Warnings')}</span><strong>{warnings}</strong></div>
