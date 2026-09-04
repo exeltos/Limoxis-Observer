@@ -19,6 +19,7 @@ import './styles/design-system-navigation.css'
 import './styles/my-profile.css'
 import './styles/clickable-cursor.css'
 import './styles/surveillance-refinement.css'
+import './styles/page-density.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
