@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Building2, Clock3, FlaskConical, ShieldCheck } from 'lucide-react'
+import { Activity, BarChart3, Building2, Clock3, FlaskConical, Settings, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 
 function DashboardAction({ icon, title, description, meta, onClick }) {
@@ -67,6 +67,12 @@ export function PlatformDashboardView({
             description={tx('Ιχνηλασιμότητα ενεργειών Platform Owner, αλλαγών πρόσβασης και κρίσιμων διοικητικών ενεργειών.', 'Trace Platform Owner actions, access changes and critical administrative operations.')}
             meta={tx('μόνο ανάγνωση', 'read only')}
             onClick={() => onNavigate('/platform/audit')}
+          />
+          <DashboardAction
+            icon={<Settings size={18} />}
+            title={tx('Ρυθμίσεις Πλατφόρμας', 'Platform Settings')}
+            description={tx('Καθολικές λειτουργικές προεπιλογές και ανακοινώσεις πλατφόρμας.', 'Global operational defaults and platform notices.')}
+            onClick={() => onNavigate('/platform/settings')}
           />
         </div>
       </section>
