@@ -192,6 +192,78 @@
 }
 .registry-pagination-controls button:disabled{opacity:.35;cursor:not-allowed}
 
+/* Record tabs that contain registries use the exact same full-height contract as Indicators.
+   The record header/tabs stay fixed; only the table body scrolls. */
+.entity-record-shell:has(.platform-owner-users),
+.entity-record-shell:has(.platform-diagnostics-view),
+.entity-record-shell:has(.training-participants-view),
+.entity-record-shell:has(.training-assessment-view){
+  height:calc(100dvh - 96px)!important;
+  min-height:0!important;
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+  overflow:hidden!important;
+}
+.entity-record-shell:has(.platform-owner-users)>.entity-record-body,
+.entity-record-shell:has(.platform-diagnostics-view)>.entity-record-body,
+.entity-record-shell:has(.training-participants-view)>.entity-record-body,
+.entity-record-shell:has(.training-assessment-view)>.entity-record-body{
+  min-height:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+:is(.platform-owner-users,.platform-diagnostics-view,.training-participants-view,.training-assessment-view){
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:100%!important;
+  overflow:hidden!important;
+}
+:is(.platform-diagnostics-view,.training-participants-view,.training-assessment-view){
+  display:flex!important;
+  flex-direction:column!important;
+  gap:10px!important;
+}
+:is(.platform-diagnostics-view,.training-participants-view,.training-assessment-view)>.registry-workspace{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+}
+:is(.platform-diagnostics-view,.training-participants-view,.training-assessment-view)>.registry-workspace>.scroll-table{
+  flex:1 1 0!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+:is(.platform-diagnostics-view,.training-participants-view,.training-assessment-view)>.registry-workspace>.registry-pagination{
+  flex:0 0 auto!important;
+}
+
+/* Platform Owner users: same visual order as a canonical registry without a private stylesheet. */
+.platform-owner-users{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  grid-template-rows:auto auto minmax(0,1fr) auto!important;
+  gap:8px 10px!important;
+}
+.platform-owner-users>.platform-user-role-help{grid-column:1;grid-row:1;min-width:0!important}
+.platform-owner-users>.platform-user-record-header-actions{grid-column:2;grid-row:1;align-self:start!important}
+.platform-owner-users>.filter-bar{grid-column:1/-1;grid-row:2;margin:0!important;max-width:560px!important}
+.platform-owner-users>.scroll-table{
+  grid-column:1/-1;grid-row:3;min-height:0!important;height:auto!important;max-height:none!important;
+  overflow:auto!important;border:1px solid var(--line)!important;border-radius:11px 11px 0 0!important;background:#fff!important
+}
+.platform-owner-users>.registry-pagination{
+  grid-column:1/-1;grid-row:4;margin-top:-8px!important;border:1px solid var(--line)!important;
+  border-top:1px solid var(--line)!important;border-radius:0 0 11px 11px!important
+}
+
+/* Assessment actions stay in one row at the end of each table row. */
+.training-assessment-registry .open-record-cell{white-space:nowrap!important}
+.training-assessment-registry .open-record-cell .record-actions{
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:4px!important;flex-wrap:nowrap!important
+}
+
 @media(max-width:1200px){
   .content{padding-top:14px}.page{margin-top:-12px}
   .patient-summary-strip,
