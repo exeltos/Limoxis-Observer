@@ -1,5 +1,6 @@
-/* Shared compact registry polish for owner users and training participant lists.
-   This file intentionally owns only cross-module list geometry and density. */
+/* Canonical list/table polish used by record-level registries.
+   Pattern: heading/actions -> search/filter -> flexible table viewport -> pagination at bottom.
+   The table viewport owns scrolling; surrounding record chrome stays fixed. */
 
 :root{
   --lo-registry-row-h:46px;
@@ -7,19 +8,9 @@
   --lo-registry-radius:10px;
 }
 
-/* ---------- Shared table surface ---------- */
-.platform-owner-users>.scroll-table,
-.training-participants-registry>.training-participants-table-wrap,
-.training-participant-workspace .training-participant-table-wrap,
-.training-participant-workspace .training-manual-table-wrap{
-  border:1px solid var(--lo-color-border)!important;
-  border-radius:var(--lo-registry-radius)!important;
-  background:var(--lo-color-surface)!important;
-  box-shadow:none!important;
-  scrollbar-gutter:auto!important;
-}
-
+/* ---------- Shared table density ---------- */
 .platform-owner-users .data-table,
+.platform-diagnostics-panel .data-table,
 .training-participants-registry .data-table,
 .training-participant-workspace .data-table{
   width:100%!important;
@@ -28,6 +19,7 @@
 }
 
 .platform-owner-users .data-table thead th,
+.platform-diagnostics-panel .data-table thead th,
 .training-participants-registry .data-table thead th,
 .training-participant-workspace .data-table thead th{
   height:var(--lo-registry-head-h)!important;
@@ -42,6 +34,7 @@
 }
 
 .platform-owner-users .data-table tbody td,
+.platform-diagnostics-panel .data-table tbody td,
 .training-participants-registry .data-table tbody td,
 .training-participant-workspace .data-table tbody td{
   min-height:var(--lo-registry-row-h)!important;
@@ -53,18 +46,19 @@
 }
 
 .platform-owner-users .data-table tbody tr:last-child td,
+.platform-diagnostics-panel .data-table tbody tr:last-child td,
 .training-participants-registry .data-table tbody tr:last-child td,
-.training-participant-workspace .data-table tbody tr:last-child td{
-  border-bottom:0!important;
-}
+.training-participant-workspace .data-table tbody tr:last-child td{border-bottom:0!important}
 
 .platform-owner-users .data-table tbody tr:hover td,
+.platform-diagnostics-panel .data-table tbody tr:hover td,
 .training-participants-registry .data-table tbody tr:hover td,
 .training-participant-workspace .data-table tbody tr:hover td{
   background:color-mix(in srgb,var(--lo-color-primary) 3%,var(--lo-color-surface))!important;
 }
 
 .platform-owner-users .data-table td strong,
+.platform-diagnostics-panel .data-table td strong,
 .training-participants-registry .data-table td strong,
 .training-participant-workspace .data-table td strong{
   font-size:12.5px!important;
@@ -73,6 +67,7 @@
 }
 
 .platform-owner-users .data-table td small,
+.platform-diagnostics-panel .data-table td small,
 .training-participants-registry .data-table td small,
 .training-participant-workspace .data-table td small{
   display:block!important;
@@ -82,198 +77,164 @@
   line-height:1.2!important;
 }
 
-.platform-owner-users .status-badge,
-.training-participants-registry .status-badge,
-.training-participant-workspace .status-badge{
-  min-height:25px!important;
-  padding:4px 9px!important;
-  font-size:10.5px!important;
-  line-height:1!important;
-  border-radius:999px!important;
-}
-
 /* ---------- Owner · Users & Roles ---------- */
 .platform-owner-users{
-  align-content:start!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  grid-template-rows:auto auto minmax(0,1fr) auto!important;
   gap:12px!important;
-}
-
-.platform-owner-users>.platform-user-role-help{
-  padding:0!important;
-}
-
-.platform-owner-users>.platform-user-record-header-actions .button{
-  min-height:36px!important;
-  height:36px!important;
-  padding:0 12px!important;
-}
-
-.platform-owner-users>.filter-bar{
-  width:min(620px,100%)!important;
-  margin:2px 0 4px!important;
-}
-
-.platform-owner-users>.scroll-table{
-  height:auto!important;
+  height:100%!important;
   min-height:0!important;
-  max-height:min(420px,calc(100dvh - 390px))!important;
-  overflow-x:auto!important;
-  overflow-y:auto!important;
+  overflow:hidden!important;
+  align-content:stretch!important;
 }
-
-.platform-owner-users>.scroll-table .data-table{
-  table-layout:fixed!important;
+.platform-owner-users>.platform-user-role-help{grid-column:1;grid-row:1;padding:0!important;margin:0!important}
+.platform-owner-users>.platform-user-record-header-actions{grid-column:2;grid-row:1;align-self:start!important;margin:0!important}
+.platform-owner-users>.platform-user-record-header-actions .button{min-height:36px!important;height:36px!important;padding:0 12px!important}
+.platform-owner-users>.filter-bar{grid-column:1/-1;grid-row:2;width:min(620px,100%)!important;margin:0!important}
+.platform-owner-users>.scroll-table{
+  grid-column:1/-1;grid-row:3;
+  min-height:0!important;
+  height:100%!important;
+  max-height:none!important;
+  overflow:auto!important;
+  overscroll-behavior:contain!important;
+  scrollbar-gutter:stable!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:var(--lo-registry-radius)!important;
+  background:var(--lo-color-surface)!important;
 }
-
+.platform-owner-users>.scroll-table .data-table{table-layout:fixed!important}
 .platform-owner-users>.scroll-table .data-table th:nth-child(1){width:31%!important}
 .platform-owner-users>.scroll-table .data-table th:nth-child(2){width:17%!important}
 .platform-owner-users>.scroll-table .data-table th:nth-child(3){width:32%!important}
 .platform-owner-users>.scroll-table .data-table th:nth-child(4){width:20%!important}
-
 .platform-owner-users>.registry-pagination{
-  min-height:38px!important;
+  grid-column:1/-1;grid-row:4;
+  flex:0 0 auto!important;
+  min-height:58px!important;
   margin:0!important;
-  padding:6px 0 0!important;
+  padding:8px 0 0!important;
   border-top:0!important;
 }
 
-.platform-owner-users>.registry-pagination select{
-  min-height:32px!important;
-  height:32px!important;
-}
-
-.platform-owner-users>.registry-pagination button{
-  width:30px!important;
-  height:30px!important;
-}
-
-/* ---------- Training · Participants tab ---------- */
-.training-participants-registry{
-  height:auto!important;
-  min-height:0!important;
-  align-content:start!important;
-  overflow:visible!important;
+/* ---------- Owner · Activity & Events ---------- */
+.platform-diagnostics-panel{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr) auto!important;
   gap:12px!important;
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  padding:12px 14px 14px!important;
 }
-
-.training-participants-registry>.module-summary-strip{
+.platform-diagnostics-panel>.platform-section-heading,
+.platform-diagnostics-panel>.diagnostics-summary-strip,
+.platform-diagnostics-panel>.filter-bar{min-height:0!important;margin:0!important}
+.platform-diagnostics-panel>.filter-bar{width:min(760px,100%)!important}
+.platform-diagnostics-panel>.diagnostics-table-wrap{
+  min-height:0!important;
+  height:100%!important;
+  max-height:none!important;
+  overflow:auto!important;
+  overscroll-behavior:contain!important;
+  scrollbar-gutter:stable!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:var(--lo-registry-radius)!important;
+  background:var(--lo-color-surface)!important;
+}
+.platform-diagnostics-panel>.registry-pagination{
+  min-height:58px!important;
+  margin:0!important;
+  padding-top:8px!important;
   flex:0 0 auto!important;
 }
 
-.training-participants-toolbar{
-  min-height:44px!important;
-  padding:2px 0!important;
-}
-
-.training-participants-toolbar .record-actions .button{
-  min-height:36px!important;
-  height:36px!important;
-  padding:0 11px!important;
-}
-
-.training-participants-registry>.filter-bar{
-  width:min(680px,100%)!important;
-  margin:0 0 2px!important;
-}
-
-.training-participants-registry>.training-participants-table-wrap{
-  flex:0 1 auto!important;
-  height:auto!important;
+/* ---------- Training · Participants record tab ---------- */
+.training-participants-registry{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr) auto!important;
+  gap:10px!important;
+  height:100%!important;
   min-height:0!important;
-  max-height:min(430px,calc(100dvh - 470px))!important;
+  overflow:hidden!important;
+  align-content:stretch!important;
+}
+.training-participants-registry>.module-summary-strip,
+.training-participants-registry>.training-participants-toolbar,
+.training-participants-registry>.filter-bar{min-height:0!important;margin:0!important}
+.training-participants-toolbar{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:14px!important;padding:2px 0!important}
+.training-participants-toolbar .record-actions{display:flex!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;justify-content:flex-end!important}
+.training-participants-toolbar .record-actions .button{min-height:36px!important;height:36px!important;padding:0 11px!important}
+.training-participants-registry>.filter-bar{width:min(680px,100%)!important}
+.training-participants-registry>.training-participants-table-wrap{
+  min-height:0!important;
+  height:100%!important;
+  max-height:none!important;
   overflow:auto!important;
+  overscroll-behavior:contain!important;
+  scrollbar-gutter:stable!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:var(--lo-registry-radius)!important;
+  background:var(--lo-color-surface)!important;
 }
-
-.training-participants-registry .training-participants-table{
-  min-width:980px!important;
-  table-layout:fixed!important;
-}
-
-.training-participants-registry>.registry-pagination{
-  min-height:38px!important;
-  padding-top:4px!important;
-  margin:0!important;
-}
+.training-participants-registry .training-participants-table{min-width:980px!important;table-layout:fixed!important}
+.training-participants-registry>.registry-pagination{min-height:58px!important;margin:0!important;padding-top:8px!important}
 
 /* ---------- Training · Add participants dialog ---------- */
 .training-participant-workspace{
   width:min(1120px,calc(100vw - 48px))!important;
-  height:auto!important;
-  min-height:0!important;
-  max-height:min(760px,calc(100dvh - 48px))!important;
+  height:min(720px,calc(100dvh - 48px))!important;
+  min-height:min(620px,calc(100dvh - 48px))!important;
+  max-height:min(720px,calc(100dvh - 48px))!important;
+  overflow:hidden!important;
 }
-
-.training-participant-workspace .observer-dialog-body{
-  overflow:auto!important;
-}
-
+.training-participant-workspace .observer-dialog-body{min-height:0!important;overflow:hidden!important}
 .training-participant-dialog{
-  height:auto!important;
+  height:100%!important;
   min-height:0!important;
-  grid-template-rows:auto auto auto!important;
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+  gap:10px!important;
+  overflow:hidden!important;
 }
-
-.training-participant-stage,
+.training-participant-stage{height:100%!important;min-height:0!important;overflow:hidden!important}
 .training-participant-panel{
-  height:auto!important;
+  height:100%!important;
   min-height:0!important;
-  overflow:visible!important;
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr)!important;
+  gap:8px!important;
+  overflow:hidden!important;
 }
-
-.training-participant-panel{
-  grid-template-rows:auto auto auto auto!important;
-}
-
-.training-participant-panel-heading{
-  height:auto!important;
-  min-height:52px!important;
-  max-height:none!important;
-}
-
-.training-participant-filters{
-  height:auto!important;
-  min-height:38px!important;
-  max-height:none!important;
-}
-
+.training-participant-manual{grid-template-rows:auto auto minmax(0,1fr)!important}
+.training-participant-panel-heading{height:auto!important;min-height:52px!important;max-height:none!important}
+.training-participant-filters{height:auto!important;min-height:38px!important;max-height:none!important}
 .training-participant-table-wrap,
 .training-manual-table-wrap{
-  height:auto!important;
-  min-height:120px!important;
-  max-height:330px!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
   overflow:auto!important;
+  overscroll-behavior:contain!important;
+  scrollbar-gutter:stable!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:var(--lo-registry-radius)!important;
+  background:var(--lo-color-surface)!important;
 }
-
-.training-participant-table{
-  min-width:760px!important;
-}
-
-.training-participant-list-head{
-  min-height:24px!important;
-  height:auto!important;
-  max-height:none!important;
-}
-
-.training-participant-empty.compact{
-  min-height:150px!important;
-  height:auto!important;
-}
-
-.training-participant-mode,
-.training-participant-basket-summary{
-  height:auto!important;
-  min-height:38px!important;
-  max-height:none!important;
-}
+.training-participant-table{min-width:760px!important}
+.training-participant-list-head{min-height:24px!important;height:auto!important;max-height:none!important}
+.training-participant-empty.compact{min-height:140px!important;height:100%!important}
+.training-participant-mode,.training-participant-basket-summary{height:auto!important;min-height:38px!important;max-height:none!important}
 
 @media(max-width:900px){
-  .platform-owner-users>.scroll-table,
-  .training-participants-registry>.training-participants-table-wrap{
-    max-height:380px!important;
-  }
-
-  .training-participant-workspace{
-    width:calc(100vw - 16px)!important;
-    max-height:calc(100dvh - 16px)!important;
-  }
+  .platform-owner-users{grid-template-columns:1fr!important}
+  .platform-owner-users>.platform-user-record-header-actions{grid-column:1;grid-row:2}
+  .platform-owner-users>.filter-bar{grid-row:3}
+  .platform-owner-users>.scroll-table{grid-row:4;overflow-x:auto!important}
+  .platform-owner-users>.registry-pagination{grid-row:5}
+  .platform-owner-users>.scroll-table .data-table{min-width:720px!important}
+  .training-participant-workspace{width:calc(100vw - 16px)!important;height:calc(100dvh - 16px)!important;min-height:0!important;max-height:calc(100dvh - 16px)!important}
+  .training-participants-toolbar{align-items:stretch!important;flex-direction:column!important}
+  .training-participants-toolbar .record-actions{justify-content:flex-start!important}
 }
