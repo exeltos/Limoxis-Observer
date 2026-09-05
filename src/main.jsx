@@ -26,6 +26,7 @@ import './styles/registry-stable-viewport.css'
 import './styles/control-editor-fullscreen.css'
 import './styles/lira-assistant.css'
 import './styles/registry-return-highlight.css'
+import './styles/training-workspace.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
