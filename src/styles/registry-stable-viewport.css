@@ -1,9 +1,13 @@
 /* Canonical registry viewport.
    Top-level and record-embedded registries share one geometry contract:
-   fixed workspace, internal table scroll, attached pagination. */
+   fixed workspace, internal table scroll, attached pagination.
+
+   IMPORTANT: record forms are NOT registries. Their body must remain vertically
+   scrollable so create/edit actions at the bottom can always be reached. */
 
 .page-fill:has(>.registry-workspace),
 .page-fill:has(>.patient-registry-shell),
+.page-fill:has(>.surveillance-domain-tabs),
 .page:has(>.platform-registry-shell),
 .laboratory-registry-page,
 .controls-page{
@@ -17,6 +21,7 @@
 
 .main-column:has(>.preview-banner) .page-fill:has(>.registry-workspace),
 .main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
+.main-column:has(>.preview-banner) .page-fill:has(>.surveillance-domain-tabs),
 .main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
 .main-column:has(>.preview-banner) .laboratory-registry-page,
 .main-column:has(>.preview-banner) .controls-page{
@@ -27,12 +32,14 @@
 .page:has(>.platform-registry-shell)>.page-header,
 .page-fill>.workspace-summary,
 .page-fill>.patient-summary-strip,
-.page-fill>.surveillance-summary{
+.page-fill>.surveillance-summary,
+.page-fill>.surveillance-domain-tabs{
   flex:0 0 auto!important;
 }
 
 .page-fill>.registry-workspace,
 .page-fill>.patient-registry-shell,
+.page-fill>.surveillance-workspace,
 .page>.platform-registry-shell,
 .laboratory-registry-page>.lab-registry-shell,
 .controls-page>.controls-surface{
@@ -45,6 +52,8 @@
 
 .page-fill>.registry-workspace>.scroll-table,
 .page-fill>.patient-registry-shell>.scroll-table,
+.page-fill>.surveillance-workspace>.scroll-table,
+.page-fill>.surveillance-workspace>.scroll-list,
 .page>.platform-registry-shell .scroll-table,
 .laboratory-registry-page>.lab-registry-shell>.scroll-table,
 .controls-page>.controls-surface .scroll-table{
@@ -56,6 +65,7 @@
 
 .page-fill>.registry-workspace>.registry-pagination,
 .page-fill>.patient-registry-shell>.registry-pagination,
+.page-fill>.surveillance-workspace>.registry-pagination,
 .page>.platform-registry-shell .registry-pagination,
 .laboratory-registry-page>.lab-registry-shell>.registry-pagination,
 .controls-page>.controls-surface .registry-pagination{
@@ -63,21 +73,31 @@
   margin-top:auto!important;
 }
 
-/* Any registry inside an EntityRecordShell uses the same contract as a top-level
-   registry. Module-specific wrappers must not redefine table height or pagination. */
+/* Record bodies: normal records/forms scroll vertically. This is the canonical
+   behavior for Training, Committees, Documents, Employees, Quality, Indicators,
+   Laboratory records and every other create/edit/detail card. */
 .entity-record-shell>.entity-record-body{
   min-height:0!important;
+  overflow:auto!important;
+  overscroll-behavior:contain;
+}
+
+/* Only a body whose direct workspace is an embedded registry is locked. In that
+   case the table scrolls internally and pagination remains attached underneath. */
+.entity-record-shell>.entity-record-body:has(>.workspace-column.workspace-fill>.registry-workspace){
   overflow:hidden!important;
 }
 .entity-record-shell>.entity-record-body>.workspace-column.workspace-fill{
   width:100%!important;
-  height:100%!important;
   min-height:0!important;
+  box-sizing:border-box!important;
+}
+.entity-record-shell>.entity-record-body:has(>.workspace-column.workspace-fill>.registry-workspace)>.workspace-column.workspace-fill{
+  height:100%!important;
   display:flex!important;
   flex-direction:column!important;
   gap:10px!important;
   overflow:hidden!important;
-  box-sizing:border-box!important;
 }
 .entity-record-shell>.entity-record-body>.workspace-column.workspace-fill>.section-toolbar{
   flex:0 0 auto!important;
@@ -135,11 +155,13 @@
 @media(max-width:1200px){
   .page-fill:has(>.registry-workspace),
   .page-fill:has(>.patient-registry-shell),
+  .page-fill:has(>.surveillance-domain-tabs),
   .page:has(>.platform-registry-shell),
   .laboratory-registry-page,
   .controls-page{height:calc(100dvh - 102px)!important}
   .main-column:has(>.preview-banner) .page-fill:has(>.registry-workspace),
   .main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
+  .main-column:has(>.preview-banner) .page-fill:has(>.surveillance-domain-tabs),
   .main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
   .main-column:has(>.preview-banner) .laboratory-registry-page,
   .main-column:has(>.preview-banner) .controls-page{height:calc(100dvh - 142px)!important}
