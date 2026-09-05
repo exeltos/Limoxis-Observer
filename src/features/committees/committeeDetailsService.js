@@ -30,3 +30,13 @@ export async function updateCommitteeDetailsAsync(organizationId,committee,patch
   if(historyError)throw historyError
   return {...committee,name:data.name,shortName:data.short_name||'',status:data.status,decisionNumber:data.decision_number||'',termStart:data.term_start||'',termEnd:data.term_end||'',meetingFrequency:data.meeting_frequency||'quarterly',quorumRule:data.quorum_rule||'simple_majority',notes:data.notes||'',updatedAt:data.updated_at}
 }
+
+export async function archiveCommitteeAsync(organizationId,committee){
+  requireProduction(organizationId,committee)
+  const updatedAt=new Date().toISOString()
+  const {data,error}=await supabase.from('committees').update({status:'inactive',updated_at:updatedAt}).eq('organization_id',organizationId).eq('id',committee.dbId).select('id,status,updated_at').single()
+  if(error)throw error
+  const {error:historyError}=await supabase.from('committee_history').insert({organization_id:organizationId,committee_id:committee.dbId,action:'Αρχειοθέτηση επιτροπής',reason:committee.name||committee.id,event_data:{previous_status:committee.status||null,status:data.status}})
+  if(historyError)throw historyError
+  return {...committee,status:data.status,updatedAt:data.updated_at}
+}
