@@ -1,24 +1,175 @@
-/* Canonical employee record details.
-   Locked state is a compact read-only information sheet.
-   Edit state is the only state that looks like a form. */
+/* Canonical record details contract.
+   This file is intentionally global for every EntityRecordShell.
+   Module pages provide content; the design system owns action placement, summary facts,
+   read-only presentation, edit-form geometry and save/cancel placement. */
 
+/* ---------- Record section header / record-level actions ---------- */
+.entity-record-shell .record-section-header{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:16px!important;
+  min-width:0!important;
+  margin:0 0 16px!important;
+}
+.entity-record-shell .record-section-header>div:first-child{min-width:0!important}
+.entity-record-shell .record-section-header .eyebrow{
+  display:block!important;
+  margin:0 0 5px!important;
+  color:#8a9baa!important;
+  font-size:10px!important;
+  font-weight:800!important;
+  letter-spacing:.035em!important;
+}
+.entity-record-shell .record-section-header h2,
+.entity-record-shell .record-section-header h3{
+  margin:0!important;
+  color:#172b40!important;
+  font-size:18px!important;
+  line-height:1.25!important;
+}
+.entity-record-shell .record-inline-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  flex:0 0 auto!important;
+  gap:6px!important;
+  min-height:36px!important;
+}
+.entity-record-shell .record-inline-actions button.edit,
+.entity-record-shell .record-inline-actions button.danger{
+  width:36px!important;
+  height:36px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  cursor:pointer!important;
+  transition:background .15s ease,transform .15s ease!important;
+}
+.entity-record-shell .record-inline-actions button.edit{color:var(--lo-status-warning-fg)!important}
+.entity-record-shell .record-inline-actions button.danger{color:var(--lo-status-danger-fg)!important}
+.entity-record-shell .record-inline-actions button.edit:hover{background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)}
+.entity-record-shell .record-inline-actions button.danger:hover{background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)}
+
+/* ---------- Canonical record summary / KPI facts ---------- */
+.entity-record-shell :is(.employee-record-facts,.record-facts,.record-summary-strip){
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  margin:0 0 14px!important;
+  padding:0 0 14px!important;
+  border-bottom:1px solid #e8edf2!important;
+}
+.entity-record-shell :is(.employee-record-fact,.record-fact,.record-summary-strip>div){
+  min-width:0!important;
+  min-height:58px!important;
+  padding:10px 12px!important;
+  border:1px solid #e2e8ee!important;
+  border-radius:10px!important;
+  background:#f8fafc!important;
+  box-shadow:none!important;
+}
+.entity-record-shell :is(.employee-record-fact,.record-fact,.record-summary-strip>div)>span{
+  display:block!important;
+  margin:0 0 4px!important;
+  color:#758797!important;
+  font-size:9.5px!important;
+  font-weight:800!important;
+  line-height:1.25!important;
+}
+.entity-record-shell :is(.employee-record-fact,.record-fact,.record-summary-strip>div)>strong{
+  display:block!important;
+  margin:0!important;
+  color:#173650!important;
+  font-size:12.5px!important;
+  font-weight:750!important;
+  line-height:1.35!important;
+  overflow-wrap:anywhere!important;
+}
+.entity-record-shell :is(.employee-record-fact,.record-fact).active{
+  border-color:#d5e8dc!important;
+  background:#edf8f1!important;
+}
+.entity-record-shell :is(.employee-record-fact,.record-fact).active strong{color:#2d7650!important}
+
+/* ---------- Canonical edit form ---------- */
+.entity-record-shell :is(.entry-grid,.record-edit-grid,.employee-full-grid.employee-inline-edit){
+  min-width:0!important;
+}
+.entity-record-shell :is(.entry-grid,.record-edit-grid){
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:14px 16px!important;
+}
+.entity-record-shell :is(.entry-grid,.record-edit-grid) label,
+.entity-record-shell .employee-full-grid.employee-inline-edit .detail-item{
+  min-width:0!important;
+}
+.entity-record-shell :is(.entry-grid,.record-edit-grid) label>span,
+.entity-record-shell .employee-full-grid.employee-inline-edit .detail-item>span{
+  display:block!important;
+  margin:0 0 6px!important;
+  color:#667c90!important;
+  font-size:10px!important;
+  font-weight:750!important;
+  line-height:1.3!important;
+}
+.entity-record-shell :is(.entry-grid,.record-edit-grid) :is(input,select,textarea),
+.entity-record-shell .employee-full-grid.employee-inline-edit .detail-item :is(input,select){
+  width:100%!important;
+  min-width:0!important;
+  min-height:42px!important;
+  border:1px solid #cfdbe5!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#243f53!important;
+  padding:0 11px!important;
+  box-shadow:none!important;
+  outline:0!important;
+}
+.entity-record-shell :is(.entry-grid,.record-edit-grid) textarea{min-height:92px!important;padding:10px 11px!important;resize:vertical!important}
+.entity-record-shell :is(.entry-grid,.record-edit-grid) :is(input,select,textarea):focus,
+.entity-record-shell .employee-full-grid.employee-inline-edit .detail-item :is(input,select):focus{
+  border-color:#79a8cc!important;
+  box-shadow:0 0 0 3px rgba(31,111,169,.08)!important;
+}
+
+/* Save/Cancel are always the closing action row of an edit form. */
+.entity-record-shell :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions){
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:10px!important;
+  margin:18px 0 0!important;
+  padding:14px 0 0!important;
+  border-top:1px solid #e5ebf0!important;
+  background:#fff!important;
+}
+.entity-record-shell :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions) .button{
+  min-width:112px!important;
+  min-height:42px!important;
+  border-radius:9px!important;
+}
+
+/* ---------- Employee details: semantic locked information sheet ---------- */
 .employee-details-overview .employee-full-grid{
   display:grid!important;
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
   margin:10px 0 0!important;
 }
-
-/* Read-only layout: three semantic columns without input/card styling. */
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit){
   grid-template-rows:repeat(4,minmax(58px,auto))!important;
   column-gap:0!important;
   row-gap:0!important;
   padding:12px 0!important;
-  border-top:1px solid #e5ebf0!important;
-  border-bottom:1px solid #e5ebf0!important;
+  border:1px solid #e4eaf0!important;
+  border-radius:11px!important;
   background:#fff!important;
+  overflow:hidden!important;
 }
-
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item{
   min-width:0!important;
   min-height:58px!important;
@@ -28,28 +179,17 @@
   background:transparent!important;
   box-shadow:none!important;
 }
-
-/* Identity */
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(1){grid-column:1;grid-row:1}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(2){grid-column:1;grid-row:2}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(3){grid-column:1;grid-row:3}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(4){grid-column:1;grid-row:4}
-
-/* Employment */
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(5){grid-column:2;grid-row:1}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(6){grid-column:2;grid-row:2}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(7){grid-column:2;grid-row:3}
-
-/* Contact */
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(8){grid-column:3;grid-row:1}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(9){grid-column:3;grid-row:2}
-
-/* Subtle group separators only; individual values never look editable. */
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(n+5):nth-child(-n+7),
-.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(n+8){
-  border-left:1px solid #e8edf2!important;
-}
-
+.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(n+8){border-left:1px solid #e8edf2!important}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item span{
   display:block!important;
   margin:0 0 5px!important;
@@ -60,7 +200,6 @@
   letter-spacing:.01em!important;
   text-transform:none!important;
 }
-
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item strong{
   display:block!important;
   margin:0!important;
@@ -68,63 +207,26 @@
   font-size:13.5px!important;
   font-weight:700!important;
   line-height:1.35!important;
-  overflow-wrap:anywhere;
+  overflow-wrap:anywhere!important;
 }
-
-.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:has(strong:empty) strong::after{
-  content:'—';
-  color:#98a7b4;
-  font-weight:600;
-}
-
-/* Edit mode: standard 3-column form, visually distinct from locked state. */
+.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:has(strong:empty) strong::after{content:'—';color:#98a7b4;font-weight:600}
 .employee-details-overview .employee-full-grid.employee-inline-edit{
-  gap:12px!important;
-  padding:14px!important;
+  gap:14px 16px!important;
+  padding:16px!important;
   border:1px solid #dfe7ee!important;
-  border-radius:10px!important;
+  border-radius:11px!important;
   background:#fbfcfd!important;
 }
-
 .employee-details-overview .employee-full-grid.employee-inline-edit .detail-item{
-  min-width:0!important;
-  min-height:70px!important;
-  padding:8px!important;
+  min-height:68px!important;
+  padding:0!important;
   border:0!important;
   border-radius:0!important;
   background:transparent!important;
   box-shadow:none!important;
 }
 
-.employee-details-overview .employee-full-grid.employee-inline-edit .detail-item span{
-  display:block!important;
-  margin:0 0 5px!important;
-  color:#687d90!important;
-  font-size:9.5px!important;
-  font-weight:750!important;
-}
-
-.employee-details-overview .employee-full-grid.employee-inline-edit .detail-item input,
-.employee-details-overview .employee-full-grid.employee-inline-edit .detail-item select{
-  width:100%!important;
-  min-width:0!important;
-  height:38px!important;
-  margin:0!important;
-  padding:0 10px!important;
-  border:1px solid #cbd9e4!important;
-  border-radius:8px!important;
-  background:#fff!important;
-  color:#243f53!important;
-  outline:0!important;
-}
-
-.employee-details-overview .employee-full-grid.employee-inline-edit .detail-item input:focus,
-.employee-details-overview .employee-full-grid.employee-inline-edit .detail-item select:focus{
-  border-color:#79a8cc!important;
-  box-shadow:0 0 0 3px rgba(31,111,169,.08)!important;
-}
-
-/* Linked account status: compact supporting row with icon badge and clear text hierarchy. */
+/* Linked-account metadata: supporting status, never a primary content card. */
 .employee-details-overview>.source-truth-note{
   display:grid!important;
   grid-template-columns:34px minmax(0,1fr) auto!important;
@@ -138,7 +240,6 @@
   background:#f8fafc!important;
   box-shadow:none!important;
 }
-
 .employee-details-overview>.source-truth-note>svg{
   width:30px!important;
   height:30px!important;
@@ -148,60 +249,25 @@
   background:#fff!important;
   color:#557895!important;
 }
-
-.employee-details-overview>.source-truth-note>div{
-  min-width:0!important;
-  display:flex!important;
-  flex-direction:column!important;
-  gap:2px!important;
-}
-
-.employee-details-overview>.source-truth-note strong{
-  display:block!important;
-  margin:0!important;
-  color:#35546d!important;
-  font-size:11px!important;
-  font-weight:750!important;
-  line-height:1.3!important;
-}
-
-.employee-details-overview>.source-truth-note span{
-  display:block!important;
-  margin:0!important;
-  color:#73869a!important;
-  font-size:10.5px!important;
-  font-weight:500!important;
-  line-height:1.4!important;
-}
-
-.employee-details-overview>.source-truth-note>.button{
-  justify-self:end!important;
-  flex:0 0 auto!important;
-}
+.employee-details-overview>.source-truth-note>div{min-width:0!important;display:flex!important;flex-direction:column!important;gap:2px!important}
+.employee-details-overview>.source-truth-note strong{display:block!important;margin:0!important;color:#35546d!important;font-size:11px!important;font-weight:750!important;line-height:1.3!important}
+.employee-details-overview>.source-truth-note span{display:block!important;margin:0!important;color:#73869a!important;font-size:10.5px!important;font-weight:500!important;line-height:1.4!important}
+.employee-details-overview>.source-truth-note>.button{justify-self:end!important;flex:0 0 auto!important}
 
 @media(max-width:1100px){
-  .employee-details-overview .employee-full-grid:not(.employee-inline-edit){
-    grid-template-columns:1fr!important;
-    grid-template-rows:none!important;
-  }
+  .entity-record-shell :is(.employee-record-facts,.record-facts,.record-summary-strip){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .entity-record-shell :is(.entry-grid,.record-edit-grid),
+  .entity-record-shell .employee-full-grid.employee-inline-edit{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .employee-details-overview .employee-full-grid:not(.employee-inline-edit){grid-template-columns:1fr!important;grid-template-rows:none!important}
+  .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item{grid-column:1!important;grid-row:auto!important;border-left:0!important;border-bottom:1px solid #edf1f4!important}
+  .employee-details-overview>.source-truth-note{grid-template-columns:34px minmax(0,1fr)!important}
+  .employee-details-overview>.source-truth-note>.button{grid-column:2!important;justify-self:start!important;margin-top:6px!important}
+}
 
-  .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item{
-    grid-column:1!important;
-    grid-row:auto!important;
-    border-left:0!important;
-    border-bottom:1px solid #edf1f4!important;
-  }
-
-  .employee-details-overview .employee-full-grid.employee-inline-edit{
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  }
-
-  .employee-details-overview>.source-truth-note{
-    grid-template-columns:34px minmax(0,1fr)!important;
-  }
-  .employee-details-overview>.source-truth-note>.button{
-    grid-column:2!important;
-    justify-self:start!important;
-    margin-top:6px!important;
-  }
+@media(max-width:760px){
+  .entity-record-shell :is(.employee-record-facts,.record-facts,.record-summary-strip),
+  .entity-record-shell :is(.entry-grid,.record-edit-grid),
+  .entity-record-shell .employee-full-grid.employee-inline-edit{grid-template-columns:1fr!important}
+  .entity-record-shell :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions){align-items:stretch!important;flex-direction:column-reverse!important}
+  .entity-record-shell :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions) .button{width:100%!important}
 }
