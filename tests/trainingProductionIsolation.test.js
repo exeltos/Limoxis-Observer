@@ -11,26 +11,28 @@ describe('training production isolation',()=>{
     expect(service).toContain('isDemoDataEnvironment()')
   })
 
-  it('keeps learner writes behind narrow authenticated email-flow RPCs',()=>{
+  it('keeps learner writes behind narrow secure-token email-flow RPCs',()=>{
     const service=read('src/features/training/trainingInvitationService.js')
     expect(service).toContain("supabase.rpc('training_confirm_attendance'")
     expect(service).toContain("supabase.rpc('training_submit_evaluation'")
     expect(service).toContain("supabase.rpc('training_email_access'")
   })
 
-  it('protects the training access route with authentication',()=>{
+  it('allows the personal training token route without a Limoxis login',()=>{
+    const guard=read('src/core/auth/ProtectedRoute.jsx')
     const app=read('src/app/App.jsx')
-    const protectedIndex=app.indexOf('<Route element={<ProtectedRoute />}>')
-    const trainingIndex=app.indexOf('path="training-access/:token"')
-    expect(protectedIndex).toBeGreaterThanOrEqual(0)
-    expect(trainingIndex).toBeGreaterThan(protectedIndex)
+    expect(app).toContain('path="training-access/:token"')
+    expect(guard).toContain('isPublicSecureTokenRoute')
+    expect(guard).toContain('/training-access/')
+    expect(guard).toContain('return <Outlet />')
   })
 
-  it('keeps employee-code identification demo-only and production account-bound',()=>{
+  it('keeps employee-code identification demo-only and production token-bound',()=>{
     const access=read('src/features/training/TrainingAccessPage.jsx')
     expect(access).toContain('DemoTrainingAccess')
     expect(access).toContain('ProductionTrainingAccess')
     expect(access).toContain('loadTrainingEmailAccessAsync')
-    expect(access).toContain('Sign in with the account that received the invitation.')
+    expect(access).toContain('Δεν απαιτείται λογαριασμός Limoxis')
+    expect(access).toContain('No Limoxis account is required')
   })
 })
