@@ -18,13 +18,14 @@ describe('training production isolation',()=>{
     expect(service).toContain("supabase.rpc('training_email_access'")
   })
 
-  it('allows the personal training token route without a Limoxis login',()=>{
-    const guard=read('src/core/auth/ProtectedRoute.jsx')
+  it('keeps login and the personal training token route public',()=>{
     const app=read('src/app/App.jsx')
-    expect(app).toContain('path="training-access/:token"')
-    expect(guard).toContain('isPublicSecureTokenRoute')
-    expect(guard).toContain('/training-access/')
-    expect(guard).toContain('return <Outlet />')
+    const loginIndex=app.indexOf('path="/login"')
+    const trainingIndex=app.indexOf('path="training-access/:token"')
+    const protectedIndex=app.indexOf('<Route element={<ProtectedRoute/>}>')
+    expect(loginIndex).toBeGreaterThanOrEqual(0)
+    expect(trainingIndex).toBeGreaterThan(loginIndex)
+    expect(protectedIndex).toBeGreaterThan(trainingIndex)
   })
 
   it('keeps employee-code identification demo-only and production token-bound',()=>{
