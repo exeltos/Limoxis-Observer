@@ -62,6 +62,16 @@
 .canonical-detail-screen .record-inline-actions > :is(.record-crud-delete,button.danger,.lo-icon-button-danger):hover{background:var(--lo-status-danger-bg)!important}
 .canonical-detail-screen .record-inline-actions{gap:6px!important}
 
+/* Controls: the pencil remains visually neutral on hover. The user asked for no
+   yellow hover tile in the control record while keeping the icon itself unchanged. */
+.control-record-shell .record-crud-edit:hover,
+.control-record-shell .entity-record-general-actions .record-crud-edit:hover,
+.control-record-shell .record-inline-actions > :is(button.edit,.lo-icon-button-edit):hover{
+  background:transparent!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+
 /* KPI + actions become one visual row. */
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts),
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-facts),
