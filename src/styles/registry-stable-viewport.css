@@ -48,6 +48,7 @@
 .controls-page>.controls-surface{
   flex:1 1 0!important;
   min-height:260px!important;
+  height:auto!important;
   margin-top:0!important;
   overflow:hidden!important;
   display:flex!important;
@@ -82,6 +83,7 @@
 .controls-page>.controls-surface .scroll-table{
   flex:1 1 0!important;
   min-height:0!important;
+  height:auto!important;
   max-height:none!important;
   margin:0!important;
   overflow:auto!important;
@@ -94,6 +96,47 @@
 .page>.platform-registry-shell .registry-pagination,
 .laboratory-registry-page>.lab-registry-shell>.registry-pagination,
 .controls-page>.controls-surface .registry-pagination{
+  flex:0 0 auto!important;
+  min-height:44px!important;
+  margin-top:auto!important;
+  border-top:1px solid var(--line)!important;
+  background:#fff!important;
+}
+
+/* Surveillance still uses its legacy row renderer. Keep that single implementation,
+   but force it to obey the exact canonical registry geometry: header fixed, data area
+   fills the available height, empty state grows with the list, pagination stays at the
+   bottom edge instead of floating above unused white space. */
+.page-fill>.surveillance-workspace>.surveillance-list{
+  width:100%!important;
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:auto!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+.page-fill>.surveillance-workspace>.surveillance-list>.surveillance-registry-head{
+  position:sticky!important;
+  top:0!important;
+  z-index:2!important;
+  flex:0 0 auto!important;
+  margin:0!important;
+  background:#f7f9fb!important;
+  border-bottom:1px solid var(--line)!important;
+}
+.page-fill>.surveillance-workspace>.surveillance-list>.registry-empty-state,
+.page-fill>.surveillance-workspace>.surveillance-list>.inline-empty{
+  flex:1 1 auto!important;
+  min-height:132px!important;
+  height:auto!important;
+  margin:0!important;
+}
+.page-fill>.surveillance-workspace .registry-pagination{
   flex:0 0 auto!important;
   min-height:44px!important;
   margin-top:auto!important;
@@ -118,6 +161,7 @@
   margin:0!important;
   border-radius:11px 11px 0 0!important;
   border-bottom:1px solid var(--line)!important;
+  background:#fff!important;
 }
 .page-fill>.surveillance-domain-tabs + .surveillance-workspace{
   border-top:0!important;
