@@ -11,18 +11,18 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
-import { createDocumentAsync } from './documentService'
+import { createDocumentAsync,loadDocumentsAsync } from './documentService'
 import { loadDepartments } from '../management/departmentsService'
 
 const types={el:{policy:'Πολιτική',procedure:'Διαδικασία',instruction:'Οδηγία',form:'Έντυπο',protocol:'Πρωτόκολλο',other:'Άλλο'},en:{policy:'Policy',procedure:'Procedure',instruction:'Instruction',form:'Form',protocol:'Protocol',other:'Other'}}
 
 export function DocumentCreatePage(){
  const navigate=useNavigate();const {tenant}=useTenant();const {language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const actor=useAuditActor()
- const [saving,setSaving]=useState(false),[departments,setDepartments]=useState([])
+ const [saving,setSaving]=useState(false),[departments,setDepartments]=useState([]),[existing,setExisting]=useState([])
  const [v,setV]=useState({title:'',type:'policy',version:'0.1',owner:'',department:'',departmentId:null,audience:'all',effectiveDate:'',reviewDate:'',description:'',attachments:[]})
  const set=(k,x)=>setV(s=>({...s,[k]:x}));const valid=v.title.trim()&&v.version.trim()
- useEffect(()=>{let active=true;if(!tenant?.id)return;loadDepartments(tenant.id).then(rows=>{if(active)setDepartments((rows||[]).filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[tenant?.id])
- async function save(){if(!valid||saving)return;setSaving(true);try{const selected=departments.find(x=>x.id===v.departmentId);const record=await createDocumentAsync(tenant.id,{...v,department:selected?.name||v.department||'',departmentId:selected?.id||null},actor,[]);notify(en?'Document created.':'Το έγγραφο δημιουργήθηκε.','success');navigate(`/documents/${record.id}`,{replace:true})}catch(error){notify(en?'The document could not be saved. No local fallback was used.':'Το έγγραφο δεν αποθηκεύτηκε. Δεν χρησιμοποιήθηκε τοπική εναλλακτική αποθήκευση.','danger')}finally{setSaving(false)}}
+ useEffect(()=>{let active=true;if(!tenant?.id)return;Promise.all([loadDepartments(tenant.id),loadDocumentsAsync(tenant.id)]).then(([departmentRows,documentRows])=>{if(!active)return;setDepartments((departmentRows||[]).filter(x=>x.is_active!==false));setExisting(documentRows||[])}).catch(()=>{if(active){setDepartments([]);setExisting([])}});return()=>{active=false}},[tenant?.id])
+ async function save(){if(!valid||saving)return;setSaving(true);try{const selected=departments.find(x=>x.id===v.departmentId);const record=await createDocumentAsync(tenant.id,{...v,department:selected?.name||v.department||'',departmentId:selected?.id||null},actor,existing);notify(en?'Document created.':'Το έγγραφο δημιουργήθηκε.','success');navigate(`/documents/${record.id}`,{replace:true})}catch(error){notify(en?'The document could not be saved. No local fallback was used.':'Το έγγραφο δεν αποθηκεύτηκε. Δεν χρησιμοποιήθηκε τοπική εναλλακτική αποθήκευση.','danger')}finally{setSaving(false)}}
  return <Page fill><EntityRecordShell className="document-create-shell workspace-fill" avatar={<FilePlus2 size={19}/>} eyebrow={en?'Documents':'Έγγραφα'} title={en?'New document':'Νέο έγγραφο'} subtitle={en?'Create controlled document record':'Δημιουργία ελεγχόμενου εγγράφου'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/documents')}>
   <div className="record-section document-create-form">
    <div className="entry-grid">
