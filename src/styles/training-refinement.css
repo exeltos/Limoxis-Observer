@@ -45,6 +45,28 @@
 .training-feedback-table th:first-child,.training-feedback-table td:first-child{width:44px!important}
 .training-feedback-table th:nth-child(2){width:33%!important}.training-feedback-table th:nth-child(3){width:33%!important}.training-feedback-table th:nth-child(4){width:80px!important}.training-feedback-table th:last-child,.training-feedback-table td:last-child{width:120px!important}
 
+/* Participant selection uses the same registry table, with one compact selection column. */
+.training-participants-table .training-select-col{width:46px!important;text-align:center!important}
+.training-participants-table .training-select-col input{width:16px;height:16px;accent-color:var(--lo-color-primary)}
+
+/* Public training form: single-use, token-only access, compact professional hierarchy. */
+.training-email-flow{display:grid;gap:18px;max-width:920px!important}
+.training-public-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:4px}
+.training-public-header h1{margin:6px 0 4px}
+.training-public-header p{margin:0;color:var(--lo-color-text-muted)}
+.training-public-details{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.training-public-details>div{display:grid;gap:5px;padding:13px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface-subtle,#f8fafc)}
+.training-public-details span{font-size:12px;font-weight:700;color:var(--lo-color-text-muted);text-transform:uppercase;letter-spacing:.04em}
+.training-public-details strong{font-size:14px;color:var(--lo-color-text)}
+.training-public-section{margin:0!important}
+.training-public-section-title{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.training-public-section-title h2{margin:2px 0 0!important}
+.training-feedback-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.training-attestation{display:flex;align-items:flex-start;gap:12px;padding:15px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface-subtle,#f8fafc);cursor:pointer}
+.training-attestation input{margin-top:3px;width:18px;height:18px;accent-color:var(--lo-color-primary);flex:0 0 auto}
+.training-attestation span{display:grid;gap:4px}
+.training-attestation small{color:var(--lo-color-text-muted);line-height:1.5}
+
 @media(max-width:900px){
   .training-participant-workspace{width:calc(100vw - 16px)!important;height:calc(100dvh - 16px)!important;min-height:calc(100dvh - 16px)!important;max-height:calc(100dvh - 16px)!important}
   .training-participant-filters{grid-template-columns:1fr!important}
@@ -52,4 +74,6 @@
   .training-manual-add-cell{grid-column:2;justify-content:flex-end}
   .training-participant-manual{grid-template-rows:58px 112px minmax(0,1fr)!important}
   .training-feedback-table{min-width:720px!important}
+  .training-public-details,.training-feedback-grid{grid-template-columns:1fr 1fr}
 }
+@media(max-width:620px){.training-public-details,.training-feedback-grid{grid-template-columns:1fr}.training-public-header{gap:12px}}
