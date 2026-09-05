@@ -1,34 +1,56 @@
-/* Canonical record details contract.
-   This file is intentionally global for every EntityRecordShell.
-   Module pages provide content; the design system owns action placement, summary facts,
-   read-only presentation, edit-form geometry and save/cancel placement. */
+/* Canonical record/detail contract for every EntityRecordShell.
+   Module pages own data and workflow. The design system owns geometry, action placement,
+   read-only presentation, edit controls, KPI facts and Save/Cancel placement. */
 
-/* ---------- Record section header / record-level actions ---------- */
-.entity-record-shell .record-section-header{
+/* --------------------------------------------------------------------------
+   Section geometry
+   -------------------------------------------------------------------------- */
+.canonical-detail-screen .record-section,
+.canonical-detail-screen .clinical-panel,
+.canonical-detail-screen .document-record-workspace>section{
+  min-width:0;
+}
+
+.canonical-detail-screen .record-section-header{
   display:flex!important;
   align-items:flex-start!important;
   justify-content:space-between!important;
-  gap:16px!important;
+  gap:18px!important;
   min-width:0!important;
-  margin:0 0 16px!important;
+  margin:0 0 18px!important;
 }
-.entity-record-shell .record-section-header>div:first-child{min-width:0!important}
-.entity-record-shell .record-section-header .eyebrow{
+.canonical-detail-screen .record-section-header>div:first-child{min-width:0!important}
+.canonical-detail-screen .record-section-header .eyebrow{
   display:block!important;
   margin:0 0 5px!important;
-  color:#8a9baa!important;
+  color:#8999a8!important;
   font-size:10px!important;
   font-weight:800!important;
+  line-height:1.2!important;
   letter-spacing:.035em!important;
+  text-transform:uppercase!important;
 }
-.entity-record-shell .record-section-header h2,
-.entity-record-shell .record-section-header h3{
+.canonical-detail-screen .record-section-header h2,
+.canonical-detail-screen .record-section-header h3{
   margin:0!important;
   color:#172b40!important;
   font-size:18px!important;
+  font-weight:800!important;
   line-height:1.25!important;
+  letter-spacing:-.01em!important;
 }
-.entity-record-shell .record-inline-actions{
+.canonical-detail-screen .record-section-header p{
+  max-width:760px!important;
+  margin:5px 0 0!important;
+  color:#738395!important;
+  font-size:11px!important;
+  line-height:1.45!important;
+}
+
+/* --------------------------------------------------------------------------
+   Record-level edit/delete placement
+   -------------------------------------------------------------------------- */
+.canonical-detail-screen .record-inline-actions{
   display:flex!important;
   align-items:center!important;
   justify-content:flex-end!important;
@@ -36,26 +58,57 @@
   gap:6px!important;
   min-height:36px!important;
 }
-.entity-record-shell .record-inline-actions button.edit,
-.entity-record-shell .record-inline-actions button.danger{
+.canonical-detail-screen .record-inline-actions>button.edit,
+.canonical-detail-screen .record-inline-actions>button.danger,
+.canonical-detail-screen.record-general-tab-active .entity-record-header-actions>.general-edit-button,
+.canonical-detail-screen.record-general-tab-active .entity-record-header-actions>.entity-record-icon-button.danger{
   width:36px!important;
+  min-width:36px!important;
   height:36px!important;
+  min-height:36px!important;
   display:inline-grid!important;
   place-items:center!important;
   padding:0!important;
   border:0!important;
   border-radius:9px!important;
   background:transparent!important;
+  box-shadow:none!important;
   cursor:pointer!important;
   transition:background .15s ease,transform .15s ease!important;
 }
-.entity-record-shell .record-inline-actions button.edit{color:var(--lo-status-warning-fg)!important}
-.entity-record-shell .record-inline-actions button.danger{color:var(--lo-status-danger-fg)!important}
-.entity-record-shell .record-inline-actions button.edit:hover{background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)}
-.entity-record-shell .record-inline-actions button.danger:hover{background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)}
+.canonical-detail-screen .record-inline-actions>button.edit,
+.canonical-detail-screen.record-general-tab-active .entity-record-header-actions>.general-edit-button{
+  color:var(--lo-status-warning-fg)!important;
+}
+.canonical-detail-screen .record-inline-actions>button.danger,
+.canonical-detail-screen.record-general-tab-active .entity-record-header-actions>.entity-record-icon-button.danger{
+  color:var(--lo-status-danger-fg)!important;
+}
+.canonical-detail-screen.record-general-tab-active .entity-record-header-actions>.general-edit-button{
+  font-size:0!important;
+}
+.canonical-detail-screen.record-general-tab-active .entity-record-header-actions>.general-edit-button svg{width:16px!important;height:16px!important}
+.canonical-detail-screen .record-inline-actions>button.edit:hover,
+.canonical-detail-screen.record-general-tab-active .entity-record-header-actions>.general-edit-button:hover{
+  background:var(--lo-status-warning-bg)!important;
+  transform:translateY(-1px)!important;
+}
+.canonical-detail-screen .record-inline-actions>button.danger:hover,
+.canonical-detail-screen.record-general-tab-active .entity-record-header-actions>.entity-record-icon-button.danger:hover{
+  background:var(--lo-status-danger-bg)!important;
+  transform:translateY(-1px)!important;
+}
 
-/* ---------- Canonical record summary / KPI facts ---------- */
-.entity-record-shell :is(.employee-record-facts,.record-facts,.record-summary-strip){
+/* Record-level edit/delete never leak into secondary tabs. */
+.canonical-detail-screen.record-secondary-tab-active .entity-record-header-actions :is(.general-edit-button,.lo-icon-button-edit,.lo-icon-button-danger,.entity-record-icon-button.danger),
+.canonical-detail-screen.record-secondary-tab-active>.entity-record-body>.record-section:first-child>.record-section-header .record-inline-actions>button:is(.edit,.danger){
+  display:none!important;
+}
+
+/* --------------------------------------------------------------------------
+   Summary / KPI facts
+   -------------------------------------------------------------------------- */
+.canonical-detail-screen :is(.employee-record-facts,.record-facts,.record-summary-strip,.record-kpi-strip){
   display:grid!important;
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
   gap:10px!important;
@@ -63,24 +116,26 @@
   padding:0 0 14px!important;
   border-bottom:1px solid #e8edf2!important;
 }
-.entity-record-shell :is(.employee-record-fact,.record-fact,.record-summary-strip>div){
+.canonical-detail-screen :is(.employee-record-fact,.record-fact,.record-summary-strip>div,.record-kpi-strip>div){
   min-width:0!important;
   min-height:58px!important;
   padding:10px 12px!important;
-  border:1px solid #e2e8ee!important;
+  border:1px solid #e1e8ee!important;
   border-radius:10px!important;
   background:#f8fafc!important;
   box-shadow:none!important;
 }
-.entity-record-shell :is(.employee-record-fact,.record-fact,.record-summary-strip>div)>span{
+.canonical-detail-screen :is(.employee-record-fact,.record-fact,.record-summary-strip>div,.record-kpi-strip>div)>span{
   display:block!important;
   margin:0 0 4px!important;
   color:#758797!important;
   font-size:9.5px!important;
   font-weight:800!important;
   line-height:1.25!important;
+  text-transform:uppercase!important;
+  letter-spacing:.02em!important;
 }
-.entity-record-shell :is(.employee-record-fact,.record-fact,.record-summary-strip>div)>strong{
+.canonical-detail-screen :is(.employee-record-fact,.record-fact,.record-summary-strip>div,.record-kpi-strip>div)>strong{
   display:block!important;
   margin:0!important;
   color:#173650!important;
@@ -89,27 +144,116 @@
   line-height:1.35!important;
   overflow-wrap:anywhere!important;
 }
-.entity-record-shell :is(.employee-record-fact,.record-fact).active{
-  border-color:#d5e8dc!important;
+.canonical-detail-screen :is(.employee-record-fact,.record-fact).active{
+  border-color:#d4e8dc!important;
   background:#edf8f1!important;
 }
-.entity-record-shell :is(.employee-record-fact,.record-fact).active strong{color:#2d7650!important}
+.canonical-detail-screen :is(.employee-record-fact,.record-fact).active strong{color:#2d7650!important}
 
-/* ---------- Canonical edit form ---------- */
-.entity-record-shell :is(.entry-grid,.record-edit-grid,.employee-full-grid.employee-inline-edit){
+/* --------------------------------------------------------------------------
+   Locked/read-only information sheets
+   Applies to Quality, Controls, Prevention, Patient/Surveillance, Laboratory,
+   Committees and any record screen using the shared detail-grid vocabulary.
+   -------------------------------------------------------------------------- */
+.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid){
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:0!important;
+  min-width:0!important;
+  margin:10px 0 0!important;
+  padding:8px 0!important;
+  border:1px solid #e2e9ef!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  overflow:hidden!important;
+}
+.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item,
+.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field{
+  min-width:0!important;
+  min-height:64px!important;
+  padding:11px 18px!important;
+  border:0!important;
+  border-right:1px solid #e9eef2!important;
+  border-bottom:1px solid #edf1f4!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item:nth-child(3n),
+.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field:nth-child(3n){border-right:0!important}
+.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid) :is(.detail-item,.detail-field)>span{
+  display:block!important;
+  margin:0 0 5px!important;
+  color:#7b8c9c!important;
+  font-size:9.5px!important;
+  font-weight:800!important;
+  line-height:1.25!important;
+  text-transform:none!important;
+  letter-spacing:.01em!important;
+}
+.canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid) :is(.detail-item,.detail-field)>strong{
+  display:block!important;
+  margin:0!important;
+  color:#173650!important;
+  font-size:13px!important;
+  font-weight:700!important;
+  line-height:1.4!important;
+  overflow-wrap:anywhere!important;
+}
+
+/* Descriptive text follows the details sheet instead of becoming another heavy card. */
+.canonical-detail-screen.record-general-tab-active :is(.quality-description,.record-description,.clinical-record-description){
+  margin:14px 0 0!important;
+  padding:12px 14px!important;
+  border:1px solid #e5ebf0!important;
+  border-radius:10px!important;
+  background:#fafbfd!important;
+}
+.canonical-detail-screen.record-general-tab-active :is(.quality-description,.record-description,.clinical-record-description)>span{
+  display:block!important;
+  margin-bottom:6px!important;
+  color:#758797!important;
+  font-size:9.5px!important;
+  font-weight:800!important;
+}
+.canonical-detail-screen.record-general-tab-active :is(.quality-description,.record-description,.clinical-record-description)>p{
+  margin:0!important;
+  color:#354d63!important;
+  font-size:12px!important;
+  line-height:1.55!important;
+}
+
+/* --------------------------------------------------------------------------
+   Edit forms
+   -------------------------------------------------------------------------- */
+.canonical-detail-screen :is(.entry-grid,.record-edit-grid,.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid){
   min-width:0!important;
 }
-.entity-record-shell :is(.entry-grid,.record-edit-grid){
+.canonical-detail-screen :is(.entry-grid,.record-edit-grid,.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid){
   display:grid!important;
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
   gap:14px 16px!important;
 }
-.entity-record-shell :is(.entry-grid,.record-edit-grid) label,
-.entity-record-shell .employee-full-grid.employee-inline-edit .detail-item{
+.canonical-detail-screen :is(.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid){
+  padding:16px!important;
+  border:1px solid #dfe7ee!important;
+  border-radius:11px!important;
+  background:#fbfcfd!important;
+}
+.canonical-detail-screen :is(.entry-grid,.record-edit-grid) label,
+.canonical-detail-screen :is(.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid) :is(.detail-item,.detail-field){
   min-width:0!important;
 }
-.entity-record-shell :is(.entry-grid,.record-edit-grid) label>span,
-.entity-record-shell .employee-full-grid.employee-inline-edit .detail-item>span{
+.canonical-detail-screen :is(.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid) :is(.detail-item,.detail-field){
+  min-height:68px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.canonical-detail-screen :is(.entry-grid,.record-edit-grid) label>span,
+.canonical-detail-screen :is(.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid) :is(.detail-item,.detail-field)>span{
   display:block!important;
   margin:0 0 6px!important;
   color:#667c90!important;
@@ -117,8 +261,9 @@
   font-weight:750!important;
   line-height:1.3!important;
 }
-.entity-record-shell :is(.entry-grid,.record-edit-grid) :is(input,select,textarea),
-.entity-record-shell .employee-full-grid.employee-inline-edit .detail-item :is(input,select){
+.canonical-detail-screen :is(.entry-grid,.record-edit-grid) :is(input,select,textarea),
+.canonical-detail-screen :is(.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid) :is(.detail-item,.detail-field) :is(input,select,textarea),
+.canonical-detail-screen.record-general-tab-active .quality-description textarea{
   width:100%!important;
   min-width:0!important;
   min-height:42px!important;
@@ -129,32 +274,70 @@
   padding:0 11px!important;
   box-shadow:none!important;
   outline:0!important;
+  font-size:12px!important;
 }
-.entity-record-shell :is(.entry-grid,.record-edit-grid) textarea{min-height:92px!important;padding:10px 11px!important;resize:vertical!important}
-.entity-record-shell :is(.entry-grid,.record-edit-grid) :is(input,select,textarea):focus,
-.entity-record-shell .employee-full-grid.employee-inline-edit .detail-item :is(input,select):focus{
+.canonical-detail-screen :is(.entry-grid,.record-edit-grid) textarea,
+.canonical-detail-screen.record-general-tab-active .quality-description textarea{
+  min-height:92px!important;
+  padding:10px 11px!important;
+  resize:vertical!important;
+}
+.canonical-detail-screen :is(.entry-grid,.record-edit-grid) :is(input,select,textarea):focus,
+.canonical-detail-screen :is(.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid) :is(input,select,textarea):focus,
+.canonical-detail-screen.record-general-tab-active .quality-description textarea:focus{
   border-color:#79a8cc!important;
   box-shadow:0 0 0 3px rgba(31,111,169,.08)!important;
 }
 
-/* Save/Cancel are always the closing action row of an edit form. */
-.entity-record-shell :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions){
+/* Save/Cancel always close the editable region at bottom-right. */
+.canonical-detail-screen :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions,.document-record-edit-actions,.committee-create-footer,.training-create-footer){
   display:flex!important;
   align-items:center!important;
   justify-content:flex-end!important;
   gap:10px!important;
+  width:100%!important;
   margin:18px 0 0!important;
   padding:14px 0 0!important;
   border-top:1px solid #e5ebf0!important;
-  background:#fff!important;
+  background:transparent!important;
 }
-.entity-record-shell :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions) .button{
+.canonical-detail-screen :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions,.document-record-edit-actions,.committee-create-footer,.training-create-footer) .button{
   min-width:112px!important;
   min-height:42px!important;
   border-radius:9px!important;
 }
 
-/* ---------- Employee details: semantic locked information sheet ---------- */
+/* Dialog/modal editors use the same control geometry and action hierarchy. */
+.observer-dialog .entry-grid,
+.observer-dialog .record-edit-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:14px 16px!important;
+}
+.observer-dialog :is(.entry-grid,.record-edit-grid) label>span{
+  display:block!important;
+  margin:0 0 6px!important;
+  color:#667c90!important;
+  font-size:10px!important;
+  font-weight:750!important;
+}
+.observer-dialog :is(.entry-grid,.record-edit-grid) :is(input,select,textarea){
+  width:100%!important;
+  min-width:0!important;
+  min-height:42px!important;
+  border:1px solid #cfdbe5!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#243f53!important;
+}
+.observer-dialog .observer-dialog-footer,
+.observer-dialog .dialog-actions{
+  justify-content:flex-end!important;
+}
+
+/* --------------------------------------------------------------------------
+   Employee locked details keep semantic identity/employment/contact columns.
+   -------------------------------------------------------------------------- */
 .employee-details-overview .employee-full-grid{
   display:grid!important;
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
@@ -190,43 +373,11 @@
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(9){grid-column:3;grid-row:2}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(n+5):nth-child(-n+7),
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(n+8){border-left:1px solid #e8edf2!important}
-.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item span{
-  display:block!important;
-  margin:0 0 5px!important;
-  color:#7c8d9d!important;
-  font-size:9.5px!important;
-  font-weight:800!important;
-  line-height:1.25!important;
-  letter-spacing:.01em!important;
-  text-transform:none!important;
-}
-.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item strong{
-  display:block!important;
-  margin:0!important;
-  color:#173650!important;
-  font-size:13.5px!important;
-  font-weight:700!important;
-  line-height:1.35!important;
-  overflow-wrap:anywhere!important;
-}
+.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item span{display:block!important;margin:0 0 5px!important;color:#7c8d9d!important;font-size:9.5px!important;font-weight:800!important;line-height:1.25!important;letter-spacing:.01em!important;text-transform:none!important}
+.employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item strong{display:block!important;margin:0!important;color:#173650!important;font-size:13.5px!important;font-weight:700!important;line-height:1.35!important;overflow-wrap:anywhere!important}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:has(strong:empty) strong::after{content:'—';color:#98a7b4;font-weight:600}
-.employee-details-overview .employee-full-grid.employee-inline-edit{
-  gap:14px 16px!important;
-  padding:16px!important;
-  border:1px solid #dfe7ee!important;
-  border-radius:11px!important;
-  background:#fbfcfd!important;
-}
-.employee-details-overview .employee-full-grid.employee-inline-edit .detail-item{
-  min-height:68px!important;
-  padding:0!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-}
 
-/* Linked-account metadata: supporting status, never a primary content card. */
+/* Linked-account metadata stays secondary. */
 .employee-details-overview>.source-truth-note{
   display:grid!important;
   grid-template-columns:34px minmax(0,1fr) auto!important;
@@ -240,24 +391,20 @@
   background:#f8fafc!important;
   box-shadow:none!important;
 }
-.employee-details-overview>.source-truth-note>svg{
-  width:30px!important;
-  height:30px!important;
-  padding:7px!important;
-  border:1px solid #d9e5ed!important;
-  border-radius:8px!important;
-  background:#fff!important;
-  color:#557895!important;
-}
+.employee-details-overview>.source-truth-note>svg{width:30px!important;height:30px!important;padding:7px!important;border:1px solid #d9e5ed!important;border-radius:8px!important;background:#fff!important;color:#557895!important}
 .employee-details-overview>.source-truth-note>div{min-width:0!important;display:flex!important;flex-direction:column!important;gap:2px!important}
 .employee-details-overview>.source-truth-note strong{display:block!important;margin:0!important;color:#35546d!important;font-size:11px!important;font-weight:750!important;line-height:1.3!important}
 .employee-details-overview>.source-truth-note span{display:block!important;margin:0!important;color:#73869a!important;font-size:10.5px!important;font-weight:500!important;line-height:1.4!important}
 .employee-details-overview>.source-truth-note>.button{justify-self:end!important;flex:0 0 auto!important}
 
 @media(max-width:1100px){
-  .entity-record-shell :is(.employee-record-facts,.record-facts,.record-summary-strip){grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .entity-record-shell :is(.entry-grid,.record-edit-grid),
-  .entity-record-shell .employee-full-grid.employee-inline-edit{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .canonical-detail-screen :is(.employee-record-facts,.record-facts,.record-summary-strip,.record-kpi-strip){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item:nth-child(3n),
+  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field:nth-child(3n){border-right:1px solid #e9eef2!important}
+  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item:nth-child(2n),
+  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field:nth-child(2n){border-right:0!important}
+  .canonical-detail-screen :is(.entry-grid,.record-edit-grid,.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid){grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .employee-details-overview .employee-full-grid:not(.employee-inline-edit){grid-template-columns:1fr!important;grid-template-rows:none!important}
   .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item{grid-column:1!important;grid-row:auto!important;border-left:0!important;border-bottom:1px solid #edf1f4!important}
   .employee-details-overview>.source-truth-note{grid-template-columns:34px minmax(0,1fr)!important}
@@ -265,9 +412,12 @@
 }
 
 @media(max-width:760px){
-  .entity-record-shell :is(.employee-record-facts,.record-facts,.record-summary-strip),
-  .entity-record-shell :is(.entry-grid,.record-edit-grid),
-  .entity-record-shell .employee-full-grid.employee-inline-edit{grid-template-columns:1fr!important}
-  .entity-record-shell :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions){align-items:stretch!important;flex-direction:column-reverse!important}
-  .entity-record-shell :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions) .button{width:100%!important}
+  .canonical-detail-screen :is(.employee-record-facts,.record-facts,.record-summary-strip,.record-kpi-strip),
+  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid),
+  .canonical-detail-screen :is(.entry-grid,.record-edit-grid,.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid),
+  .observer-dialog :is(.entry-grid,.record-edit-grid){grid-template-columns:1fr!important}
+  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-item,
+  .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid)>.detail-field{border-right:0!important}
+  .canonical-detail-screen :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions,.document-record-edit-actions,.committee-create-footer,.training-create-footer){align-items:stretch!important;flex-direction:column-reverse!important}
+  .canonical-detail-screen :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions,.document-record-edit-actions,.committee-create-footer,.training-create-footer) .button{width:100%!important}
 }
