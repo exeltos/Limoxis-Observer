@@ -14,8 +14,11 @@ export const INDICATOR_RATIO_RULES=Object.freeze({
  abhr_litres:{patient_days:{multiplier:1000,unit:'L/1.000 patient-days'}},
 })
 
+export function allowedIndicatorDenominators(numerator){return numerator?Object.keys(INDICATOR_RATIO_RULES[numerator]||{}):[]}
 export function indicatorRatioRule(numerator,denominator){return numerator&&denominator?INDICATOR_RATIO_RULES[numerator]?.[denominator]||null:null}
-export function indicatorMetricPairIsValid(numerator,denominator){return !denominator||Boolean(indicatorRatioRule(numerator,denominator))}
+export function indicatorMetricRule(numerator){const denominator=allowedIndicatorDenominators(numerator)[0]||'';const rule=indicatorRatioRule(numerator,denominator);return rule?{denominator,...rule}:null}
+export function indicatorMetricCombinationIsValid(numerator,denominator){return !denominator||Boolean(indicatorRatioRule(numerator,denominator))}
+export const indicatorMetricPairIsValid=indicatorMetricCombinationIsValid
 export function normalizeIndicatorDefinition(item){const next={...item};if(next.calculationType!=='auto')return next;const rule=indicatorRatioRule(next.numeratorMetric,next.denominatorMetric);if(rule){next.multiplier=rule.multiplier;next.unit=rule.unit}return next}
 
 const assertCloud=organizationId=>{if(!supabase)throw new Error('Supabase is not configured.');if(!organizationId)throw new Error('Organization is required.')}
@@ -31,7 +34,7 @@ export async function saveIndicatorDefinition(organizationId,item){
  const normalized=normalizeIndicatorDefinition(item)
  if(normalized.calculationType==='auto'&&!INDICATOR_METRICS.includes(normalized.numeratorMetric))throw new Error('Unsupported numerator metric.')
  if(normalized.denominatorMetric&&!INDICATOR_METRICS.includes(normalized.denominatorMetric))throw new Error('Unsupported denominator metric.')
- if(normalized.calculationType==='auto'&&!indicatorMetricPairIsValid(normalized.numeratorMetric,normalized.denominatorMetric))throw new Error('Unsupported numerator / denominator combination.')
+ if(normalized.calculationType==='auto'&&!indicatorMetricCombinationIsValid(normalized.numeratorMetric,normalized.denominatorMetric))throw new Error('Unsupported numerator / denominator combination.')
  const {data:{user}}=await supabase.auth.getUser();const actor=user?.id||null,activating=normalized.status==='active'
  const payload={organization_id:normalized.system?null:organizationId,indicator_key:String(normalized.key||'').trim(),version:String(normalized.version||'1.0').trim(),title_el:String(normalized.titleEl||'').trim(),title_en:String(normalized.titleEl||'').trim(),category:String(normalized.category||'general').trim(),numerator_definition:normalized.numeratorDefinition||{},denominator_definition:normalized.denominatorDefinition||{},numerator_metric:normalized.calculationType==='auto'?(normalized.numeratorMetric||null):null,denominator_metric:normalized.calculationType==='auto'?(normalized.denominatorMetric||null):null,multiplier:Number(normalized.multiplier||1),unit:normalized.unit||null,unit_en:normalized.unit||null,source_authority:normalized.sourceAuthority||null,effective_from:normalized.effectiveFrom||null,effective_to:normalized.effectiveTo||null,status:normalized.status||'draft',calculation_type:normalized.calculationType||'auto',target_value:normalized.targetValue===''||normalized.targetValue==null?null:Number(normalized.targetValue),direction:normalized.direction||'context',approved_by:activating?actor:null,approved_at:activating?new Date().toISOString():null}
  if(!isUuid(normalized.id))payload.created_by=actor
