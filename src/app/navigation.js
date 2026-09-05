@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Beaker, BookOpenCheck, Building2, ClipboardCheck, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, Pill, ShieldCheck, Sparkles, Stethoscope, Users } from 'lucide-react'
+import { Activity, BarChart3, Beaker, BookOpenCheck, Building2, ClipboardCheck, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny } from '../core/permissions/roles'
 
 // Canonical destinations. Visibility comes from capabilities; sidebar placement
@@ -21,7 +21,6 @@ export const navigation=[
   {to:'/documents',key:'documents',icon:FileText,capability:CAPABILITIES.VIEW_DOCUMENTS},
   {to:'/pharmacy',key:'pharmacy',icon:Pill,capability:CAPABILITIES.VIEW_PHARMACY},
   {to:'/occupational-health',key:'occupationalHealth',icon:Stethoscope,capability:CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH},
-  {to:'/lira',key:'lira',icon:Sparkles,capability:CAPABILITIES.VIEW_LIRA},
   {to:'/management',key:'management',icon:Building2,capability:CAPABILITIES.MANAGE_ORGANIZATION,anyCapabilities:MANAGEMENT_CAPABILITIES},
 ]
 
@@ -37,17 +36,17 @@ const policy=(primaryOrder=[],moreOrder=[],hidden=[])=>Object.freeze({
 const roleMenuPolicy=Object.freeze({
   [ROLES.PLATFORM_OWNER]:policy(
     ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees'],
-    ['platformAnalyticsNav','indicators','lira','training','committees','documents'],
+    ['platformAnalyticsNav','indicators','training','committees','documents'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.HOSPITAL_ADMIN]:policy(
-    ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','platformAnalyticsNav','indicators','lira','training','committees','documents'],
+    ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','platformAnalyticsNav','indicators','training','committees','documents'],
     [],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
     ['dashboard','surveillance','patients','laboratory','prevention','controls','indicators','committees'],
-    ['platformAnalyticsNav','lira','quality','employees','training','documents'],
+    ['platformAnalyticsNav','quality','employees','training','documents'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.INFECTION_CONTROL_MEMBER]:policy(
@@ -67,12 +66,12 @@ const roleMenuPolicy=Object.freeze({
   ),
   [ROLES.LINK_NURSE]:policy(
     ['myDepartment','surveillance','patients','prevention','controls'],
-    ['employees','indicators','training','documents','lira','laboratory','quality','committees'],
+    ['employees','indicators','training','documents','laboratory','quality','committees'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_USER]:policy(
     ['myDepartment','controls'],
-    ['training','documents','lira','laboratory','quality','committees'],
+    ['training','documents','laboratory','quality','committees'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.HR_OFFICE]:policy(
