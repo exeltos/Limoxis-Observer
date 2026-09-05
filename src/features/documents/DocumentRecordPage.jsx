@@ -23,6 +23,28 @@ const labels={
 }
 const toDraft=record=>({title:record?.title||'',type:record?.type||'policy',version:record?.version||'0.1',departmentId:record?.departmentId||null,audience:record?.audience||'organization',effectiveDate:record?.effectiveDate||'',reviewDate:record?.reviewDate||'',description:record?.description||''})
 
+function formatHistoryAction(item,en,statusLabels){
+ if(item.action==='created')return en?'Created':'Δημιουργία'
+ if(item.action==='updated')return en?'Updated':'Ενημέρωση'
+ if(item.action==='deleted')return en?'Deleted':'Διαγραφή'
+ if(item.action?.startsWith('status:')){
+  const transition=item.action.slice(7)
+  if(transition.includes('->')){
+   const [from,to]=transition.split('->')
+   return `${statusLabels[from]||from} → ${statusLabels[to]||to}`
+  }
+  return `${en?'Current state':'Τρέχουσα κατάσταση'}: ${statusLabels[transition]||transition}`
+ }
+ return item.action||'—'
+}
+
+function formatDateTime(value,en){
+ if(!value)return '—'
+ const date=new Date(value)
+ if(Number.isNaN(date.getTime()))return value
+ return date.toLocaleString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+}
+
 export function DocumentRecordPage(){
  const {documentId}=useParams(),navigate=useNavigate(),actor=useAuditActor(),{notify,confirm}=useFeedback(),{role,membership,tenant,isDemo}=useTenant(),{language}=useLanguage();const en=language==='en',typeLabels=labels[language].types,statusLabels=labels[language].statuses
  const {data:rows,loading,error,reload}=useDocumentsData()
@@ -63,6 +85,6 @@ export function DocumentRecordPage(){
    {!editing&&<section className="record-section document-lifecycle-section"><div className="record-section-header"><div><span className="eyebrow">{en?'Workflow':'Ροή έγκρισης'}</span><h3>{en?'Next action':'Επόμενη ενέργεια'}</h3><p>{record.status==='draft'?(en?'The document is still editable and can be submitted for review.':'Το έγγραφο παραμένει επεξεργάσιμο και μπορεί να υποβληθεί για έλεγχο.'):record.status==='review'?(en?'The document is waiting for approval.':'Το έγγραφο βρίσκεται σε αναμονή έγκρισης.'):record.status==='approved'?(en?'The approved document is ready to publish.':'Το εγκεκριμένο έγγραφο είναι έτοιμο για δημοσίευση.'):record.status==='published'?(en?'The published document is active. Create a revision for changes.':'Το δημοσιευμένο έγγραφο είναι ενεργό. Για αλλαγές δημιουργήστε νέα αναθεώρηση.'):(en?'No further workflow action is available.':'Δεν υπάρχει διαθέσιμη επόμενη ενέργεια.')}</p></div></div><div className="record-actions">{record.status==='draft'&&canSubmitReview&&<Button onClick={submitReview} disabled={busy}>{en?'Submit for review':'Υποβολή για έλεγχο'}</Button>}{record.status==='review'&&canApprove&&<Button onClick={approve} disabled={busy}>{en?'Approve':'Έγκριση'}</Button>}{record.status==='approved'&&canPublish&&<Button onClick={publish} disabled={busy}>{en?'Publish':'Δημοσίευση'}</Button>}{record.status==='published'&&canSupersede&&<Button onClick={createRevision} disabled={busy}><Pencil size={15}/>{en?'New revision':'Νέα αναθεώρηση'}</Button>}{record.status==='published'&&canArchive&&<button type="button" className="lo-icon-button lo-icon-button-danger" onClick={archive} disabled={busy} title={en?'Archive':'Αρχειοθέτηση'} aria-label={en?'Archive':'Αρχειοθέτηση'}><Archive size={16}/></button>}</div></section>}
   </div>}
   {tab==='files'&&<section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{en?'Documents':'Έγγραφα'}</span><h3>{en?'Files & attachments':'Αρχεία & συνημμένα'}</h3><p>{en?'Attachments are governed by the document lifecycle and the current role.':'Τα συνημμένα διέπονται από τον κύκλο ζωής του εγγράφου και τον τρέχοντα ρόλο.'}</p></div></div><AttachmentField disabled={!canManage||record.status!=='draft'} value={record.attachments||[]} onChange={attachments} organizationId={organizationId} entityType="controlled_document" entityId={record.dbId||record.id}/></section>}
-  {tab==='history'&&<section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{en?'Governance':'Διακυβέρνηση'}</span><h3>{en?'Lifecycle history':'Ιστορικό κύκλου ζωής'}</h3></div></div><div className="timeline-line"><strong>{en?'Created':'Δημιουργήθηκε'}</strong><span>{record.createdAt||'—'}</span></div><div className="timeline-line"><strong>{en?'Last updated':'Τελευταία ενημέρωση'}</strong><span>{record.updatedAt||'—'}</span></div>{record.publishedAt&&<div className="timeline-line"><strong>{en?'Published':'Δημοσιεύτηκε'}</strong><span>{record.publishedAt}</span></div>}{isDemo&&(record.history||[]).map((item,index)=><div key={`${item.at}-${index}`} className="timeline-line"><strong>{item.action}</strong><span>{item.at} · {item.actor}</span></div>)}</section>}
+  {tab==='history'&&<section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{en?'Governance':'Διακυβέρνηση'}</span><h3>{en?'Lifecycle history':'Ιστορικό κύκλου ζωής'}</h3><p>{en?'Recorded from the canonical system audit trail.':'Καταγράφεται από το κεντρικό audit trail του συστήματος.'}</p></div></div>{(record.history||[]).length===0?<div className="inline-empty">{en?'No lifecycle audit events are available yet.':'Δεν υπάρχουν ακόμη καταγεγραμμένα audit events για τον κύκλο ζωής.'}</div>:(record.history||[]).map((item,index)=><div key={`${item.at}-${index}`} className="timeline-line"><strong>{formatHistoryAction(item,en,statusLabels)}</strong><span>{formatDateTime(item.at,en)} · {item.actor}{item.version?` · ${en?'Version':'Έκδοση'} ${item.version}`:''}</span></div>)}</section>}
  </EntityRecordShell></Page>
 }
