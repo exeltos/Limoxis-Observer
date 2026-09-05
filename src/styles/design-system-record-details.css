@@ -1,121 +1,106 @@
 /* Canonical locked record-details sheet.
-   Read-only record data should read as one information surface, not as a grid of form cards.
-   Editing intentionally switches back to clear form controls. */
-
+   Read-only record data must read like an information profile, not like disabled form controls. */
 .employee-details-overview .committee-detail-grid.employee-full-grid{
   display:grid!important;
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  margin:0!important;
-}
-
-/* Locked/read-only state: flat information sheet */
-.employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit){
-  gap:0!important;
+  gap:0 28px!important;
+  margin:2px 0 0!important;
+  padding:4px 0 2px!important;
   border:0!important;
-  border-top:1px solid var(--line)!important;
-  border-bottom:1px solid var(--line)!important;
   border-radius:0!important;
   background:transparent!important;
   overflow:visible!important;
 }
+
+/* Locked state: flat profile rows, no cards, no input-like boxes. */
 .employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit) .detail-item{
-  min-height:68px;
-  padding:14px 18px!important;
+  min-height:68px!important;
+  padding:13px 0 12px!important;
   border:0!important;
-  border-right:1px solid #edf1f4!important;
-  border-bottom:1px solid #edf1f4!important;
+  border-bottom:1px solid #e7edf2!important;
   border-radius:0!important;
   background:transparent!important;
   box-shadow:none!important;
 }
-.employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(3n){
-  border-right:0!important;
-}
-.employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit) .detail-item:nth-last-child(-n+3){
-  border-bottom:0!important;
-}
 .employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit) .detail-item span{
   display:block;
-  margin:0 0 6px;
-  color:#7f8fa0;
+  margin:0 0 5px!important;
+  color:#7b8b9b!important;
   font-size:9.5px!important;
-  font-weight:750;
-  line-height:1.25;
+  font-weight:750!important;
+  line-height:1.25!important;
+  text-transform:none!important;
+  letter-spacing:0!important;
 }
 .employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit) .detail-item strong{
   display:block;
   margin:0!important;
-  color:#1f3a50;
-  font-size:13px!important;
-  font-weight:750;
-  line-height:1.4;
+  color:#18324b!important;
+  font-size:13.5px!important;
+  font-weight:750!important;
+  line-height:1.4!important;
   overflow-wrap:anywhere;
 }
+.employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit) .detail-item:has(strong:empty) strong::after{content:'—';color:#9aa7b3;font-weight:600}
 
-/* Editing state: controls become clearly editable without changing the information order. */
+/* Editing state: only then does the sheet become a real form. */
 .employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit{
-  gap:10px!important;
-  border:0!important;
-  background:transparent!important;
-  overflow:visible!important;
+  gap:10px 12px!important;
+  padding:12px!important;
+  border:1px solid #dfe7ee!important;
+  border-radius:10px!important;
+  background:#fbfcfd!important;
 }
 .employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item{
-  min-height:72px;
-  padding:11px 12px!important;
-  border:1px solid #d8e2ea!important;
-  border-radius:9px!important;
-  background:#fff!important;
+  min-height:72px!important;
+  padding:10px 11px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
   box-shadow:none!important;
 }
 .employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item span{
   display:block;
-  margin:0 0 5px;
-  color:#738493;
+  margin:0 0 5px!important;
+  color:#687d90!important;
   font-size:9.5px!important;
-  font-weight:750;
-  line-height:1.25;
-}
-.employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item strong{
-  display:block;
-  margin:0!important;
-  color:#243f53;
-  font-size:12.5px!important;
-  font-weight:750;
-  line-height:1.45;
+  font-weight:750!important;
 }
 .employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item input,
 .employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item select{
   width:100%;
   min-width:0;
-  height:36px;
+  height:38px!important;
   margin:0;
-  border:1px solid #cbd9e4;
-  border-radius:8px;
-  background:#fff;
-  color:#243f53;
-  padding:0 9px;
+  border:1px solid #cbd9e4!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  color:#243f53!important;
+  padding:0 10px!important;
   outline:0;
 }
 .employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item input:focus,
 .employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item select:focus{
-  border-color:#79a8cc;
-  box-shadow:0 0 0 3px rgba(31,111,169,.08);
+  border-color:#79a8cc!important;
+  box-shadow:0 0 0 3px rgba(31,111,169,.08)!important;
 }
 
+/* Account linkage is supporting metadata, not another large card. */
 .employee-details-overview>.source-truth-note{
-  margin-top:12px;
-  min-height:auto;
-  padding:9px 11px;
-  border-radius:8px;
+  margin-top:14px!important;
+  min-height:auto!important;
+  padding:9px 0 0!important;
+  border:0!important;
+  border-top:1px solid #e7edf2!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
 }
-.employee-details-overview>.source-truth-note>svg{flex:0 0 auto}
-.employee-details-overview>.source-truth-note strong{font-size:10.5px}
-.employee-details-overview>.source-truth-note span{font-size:10.5px;line-height:1.45}
+.employee-details-overview>.source-truth-note>svg{flex:0 0 auto;color:#71879a}
+.employee-details-overview>.source-truth-note strong{font-size:10.5px!important}
+.employee-details-overview>.source-truth-note span{font-size:10.5px!important;line-height:1.45!important}
 
 @media(max-width:1100px){
-  .employee-details-overview .committee-detail-grid.employee-full-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(3n){border-right:1px solid #edf1f4!important}
-  .employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit) .detail-item:nth-child(2n){border-right:0!important}
-  .employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit) .detail-item:nth-last-child(-n+3){border-bottom:1px solid #edf1f4!important}
-  .employee-details-overview .committee-detail-grid.employee-full-grid:not(.employee-inline-edit) .detail-item:nth-last-child(-n+2){border-bottom:0!important}
+  .employee-details-overview .committee-detail-grid.employee-full-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:0 22px!important}
+  .employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit{gap:10px!important}
 }
