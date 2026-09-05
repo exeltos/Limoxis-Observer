@@ -29,32 +29,35 @@ export async function createIndicatorDefinition(organizationId,draft){
  const {data:{user}}=await supabase.auth.getUser()
  const proposed=String(draft.indicatorKey||'').trim().toLowerCase().replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'')
  const key=proposed||`custom_${Date.now()}`
- if(draft.calculationType!=='manual'&&!INDICATOR_METRICS.includes(draft.numeratorMetric))throw new Error('Unsupported numerator metric.')
+ const automatic=draft.calculationType!=='manual'
+ if(automatic&&!INDICATOR_METRICS.includes(draft.numeratorMetric))throw new Error('Unsupported numerator metric.')
  if(draft.denominatorMetric&&!INDICATOR_METRICS.includes(draft.denominatorMetric))throw new Error('Unsupported denominator metric.')
+ if(draft.effectiveFrom&&draft.effectiveTo&&draft.effectiveTo<draft.effectiveFrom)throw new Error('Effective-to cannot be before effective-from.')
+ const status=draft.status||'active',activating=status==='active',actor=user?.id||null
  const payload={
   organization_id:organizationId,
   indicator_key:key,
   version:String(draft.version||'1.0').trim()||'1.0',
   title_el:String(draft.titleEl||'').trim(),
-  title_en:String(draft.titleEn||draft.titleEl||'').trim(),
+  title_en:String(draft.titleEl||'').trim(),
   category:draft.category||'quality',
-  numerator_definition:{label:draft.numeratorLabel||draft.numeratorMetric||''},
-  denominator_definition:{label:draft.denominatorLabel||draft.denominatorMetric||''},
+  numerator_definition:{description:String(draft.numeratorDefinition||'').trim()},
+  denominator_definition:{description:String(draft.denominatorDefinition||'').trim()},
   multiplier:Number(draft.multiplier||1),
   unit:String(draft.unit||'').trim(),
-  unit_en:String(draft.unitEn||draft.unit||'').trim(),
+  unit_en:String(draft.unit||'').trim(),
   source_authority:String(draft.sourceAuthority||'Hospital-defined').trim(),
   effective_from:draft.effectiveFrom||new Date().toISOString().slice(0,10),
-  effective_to:null,
-  status:'active',
+  effective_to:draft.effectiveTo||null,
+  status,
   calculation_type:draft.calculationType||'manual',
-  numerator_metric:draft.calculationType==='manual'?null:draft.numeratorMetric||null,
-  denominator_metric:draft.calculationType==='manual'?null:draft.denominatorMetric||null,
+  numerator_metric:automatic?draft.numeratorMetric||null:null,
+  denominator_metric:automatic?draft.denominatorMetric||null:null,
   target_value:draft.targetValue===''||draft.targetValue==null?null:Number(draft.targetValue),
   direction:draft.direction||'context',
-  created_by:user?.id||null,
-  approved_by:user?.id||null,
-  approved_at:new Date().toISOString(),
+  created_by:actor,
+  approved_by:activating?actor:null,
+  approved_at:activating?new Date().toISOString():null,
  }
  if(!payload.title_el)throw new Error('Indicator title is required.')
  const {data,error}=await supabase.from('indicator_definitions').insert(payload).select('*').single()
