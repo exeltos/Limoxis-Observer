@@ -1,9 +1,7 @@
 /* Canonical KPI + record action rail.
-   KPI groups stay compact and use the available width. When a record has KPI cards,
-   edit/delete sit together in a dedicated rail beside the KPI row instead of floating
-   in a different place inside each module. */
+   Registry/dashboard KPI cards stay as MetricCard. Inside record screens, summary KPIs
+   follow the compact Employee record rhythm and CRUD actions always remain a visible pair. */
 
-/* KPI strips: use one row whenever the viewport can support it. */
 .workspace-summary > :is(.module-summary-strip,.lab-kpis),
 .canonical-detail-screen :is(.employee-record-facts,.record-facts,.record-summary-strip,.record-kpi-strip,.module-summary-strip){
   display:grid!important;
@@ -12,7 +10,7 @@
   min-width:0!important;
 }
 
-/* Laboratory has five operational KPIs; on desktop they must stay on one line. */
+/* Laboratory has five operational KPIs; on desktop they stay on one row. */
 @media (min-width:1180px){
   .page .workspace-summary > .lab-kpis,
   .page .workspace-summary > .module-summary-strip:has(> :nth-child(5):last-child){
@@ -20,12 +18,61 @@
   }
 }
 
-/* Every record CRUD pair uses the employee-card visual treatment. */
+/* Record-only MetricCards use the same compact proportions as Employee summary facts. */
+.canonical-detail-screen .module-summary-strip>.canonical-metric-card{
+  min-width:0!important;
+  min-height:58px!important;
+  height:58px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding:9px 12px!important;
+  border:1px solid #e1e8ee!important;
+  border-radius:10px!important;
+  background:#f8fafc!important;
+  box-shadow:none!important;
+}
+.canonical-detail-screen .module-summary-strip>.canonical-metric-card .canonical-metric-icon{
+  width:30px!important;
+  min-width:30px!important;
+  height:30px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:8px!important;
+  background:#eef6fb!important;
+}
+.canonical-detail-screen .module-summary-strip>.canonical-metric-card .canonical-metric-icon svg{
+  width:16px!important;
+  height:16px!important;
+}
+.canonical-detail-screen .module-summary-strip>.canonical-metric-card .canonical-metric-copy{
+  min-width:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:2px!important;
+}
+.canonical-detail-screen .module-summary-strip>.canonical-metric-card .canonical-metric-copy>strong{
+  margin:0!important;
+  font-size:14px!important;
+  line-height:1.15!important;
+  color:#173650!important;
+}
+.canonical-detail-screen .module-summary-strip>.canonical-metric-card .canonical-metric-copy>span{
+  margin:0!important;
+  font-size:9.5px!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+  color:#758797!important;
+}
+
+/* Every record CRUD pair uses the Employee-card visual treatment. */
 .canonical-detail-screen .record-inline-actions > :is(.record-crud-action,button.edit,button.danger,.lo-icon-button-edit,.lo-icon-button-danger){
   width:36px!important;
   min-width:36px!important;
+  max-width:36px!important;
   height:36px!important;
   min-height:36px!important;
+  max-height:36px!important;
   display:inline-grid!important;
   place-items:center!important;
   padding:0!important;
@@ -34,6 +81,12 @@
   background:transparent!important;
   box-shadow:none!important;
   font-size:0!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button.danger,
+.canonical-detail-screen.record-general-tab-active>.entity-record-body>.entity-record-general-actions>.record-crud-delete{
+  display:inline-grid!important;
 }
 .canonical-detail-screen .record-inline-actions > :is(.record-crud-edit,button.edit,.lo-icon-button-edit){color:var(--lo-status-warning-fg)!important}
 .canonical-detail-screen .record-inline-actions > :is(.record-crud-delete,button.danger,.lo-icon-button-danger){color:var(--lo-status-danger-fg)!important}
@@ -41,8 +94,7 @@
 .canonical-detail-screen .record-inline-actions > :is(.record-crud-delete,button.danger,.lo-icon-button-danger):hover{background:var(--lo-status-danger-bg)!important}
 .canonical-detail-screen .record-inline-actions{gap:6px!important}
 
-/* KPI + actions become one visual row. This covers the Employee facts strip and
-   record pages whose first section owns a shared module-summary-strip. */
+/* KPI + actions become one visual row. */
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts),
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-facts),
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-summary-strip),
@@ -51,7 +103,6 @@
   position:relative!important;
 }
 
-/* Reserve a narrow right rail for the pair; KPI cards still receive almost all width. */
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts) > .employee-record-facts,
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-facts) > .record-facts,
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-summary-strip) > .record-summary-strip,
@@ -60,7 +111,6 @@
   width:calc(100% - 88px)!important;
 }
 
-/* Shell-owned general actions. */
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> :is(.employee-record-facts,.record-facts,.record-summary-strip,.record-kpi-strip)) > .entity-record-general-actions,
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(.record-section:first-of-type > .module-summary-strip) > .entity-record-general-actions{
   position:absolute!important;
@@ -74,7 +124,15 @@
   padding:0!important;
 }
 
-/* Employee-style local pair: visually move it beside the KPI row without changing workflow code. */
+/* Local Employee/Training-style pairs remain together; never separate the trash icon. */
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:6px!important;
+  flex-wrap:nowrap!important;
+}
+
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts) > .record-section:first-of-type > .record-section-header .record-inline-actions{
   position:absolute!important;
   top:10px!important;
@@ -82,8 +140,6 @@
   z-index:5!important;
   margin:0!important;
 }
-
-/* Once the action pair is in the KPI rail, the section heading no longer reserves space. */
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts) > .record-section:first-of-type > .record-section-header{
   padding-right:0!important;
 }
