@@ -10,6 +10,7 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can,CAPABILITIES } from '../../core/permissions/roles'
+import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { loadCommittees,nextCommitteeId,saveCommittees } from './committeeData'
 import { createCommitteeAsync, getNextCommitteeCodeAsync } from './committeeService'
 import { useCommitteesData } from './useCommitteesData'
@@ -25,7 +26,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { MetricCard } from '../../design-system/MetricCard'
 
 export function CommitteesPage(){
- const navigate=useNavigate();const {role,membership}=useTenant();const {notify}=useFeedback();const actor=useAuditActor();const {language}=useLanguage();const en=language==='en'
+ const navigate=useNavigate();const registry=useRegistryMemory('committees');const {role,membership}=useTenant();const {notify}=useFeedback();const actor=useAuditActor();const {language}=useLanguage();const en=language==='en'
  const {data:rows,setData:setRows,loading,error,reload}=useCommitteesData();const [createOpen,setCreateOpen]=useState(false);const [query,setQuery]=useState('');const [status,setStatus]=useState('all');const [page,setPage]=useState(1);const [pageSize,setPageSize]=useState(15)
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const canCreate=can(role,CAPABILITIES.CREATE_COMMITTEE,addOns,custom)
@@ -37,6 +38,7 @@ export function CommitteesPage(){
  if(loading)return <RouteLoading/>
  if(error)return <div className="data-access-state error" role="alert"><span>{en?'Could not load committees.':'Δεν ήταν δυνατή η φόρτωση των επιτροπών.'}</span><button type="button" onClick={reload}>{en?'Retry':'Επανάληψη'}</button></div>
  function pageAction(action){if(action===UI_ACTIONS.CREATE)setCreateOpen(true)}
+ function openCommittee(row){registry.openRecord(navigate,`/committees/${row.id}`,row.id,filtered.map(x=>x.id))}
  return <Page fill title={en?'Committees':'Επιτροπές'} subtitle={en?'Governance of committees, meetings, minutes, decisions and actions.':'Διακυβέρνηση επιτροπών, συνεδριάσεων, πρακτικών, αποφάσεων και ενεργειών.'}
    actions={<RecordActions actions={canCreate?[UI_ACTIONS.CREATE]:[]} resourceCapability={CAPABILITIES.VIEW_COMMITTEES} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_COMMITTEE}} onAction={pageAction}/>}>
    <div className="module-summary-strip">
@@ -49,14 +51,14 @@ export function CommitteesPage(){
     <FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search committee or chair...':'Αναζήτηση επιτροπής ή προέδρου...'} activeAdvancedCount={status!=='all'?1:0} onClear={()=>{setQuery('');setStatus('all')}}>
       <FilterSelect label={en?'Status':'Κατάσταση'} value={status} onChange={setStatus}><option value="all">{en?'All':'Όλες'}</option><option value="active">{en?'Active':'Ενεργή'}</option><option value="inactive">{en?'Inactive':'Ανενεργή'}</option></FilterSelect>
     </FilterBar>
-    <div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>{en?'Code':'Κωδικός'}</th><th>{en?'Committee':'Επιτροπή'}</th><th>{en?'Chair':'Πρόεδρος'}</th><th>{en?'Term':'Θητεία'}</th><th>{en?'Members':'Μέλη'}</th><th>{en?'Pending decisions':'Εκκρεμείς αποφάσεις'}</th><th>{en?'Status':'Κατάσταση'}</th></tr></thead><tbody>
-      {pagedRows.map(row=><tr key={row.id} tabIndex={0} onClick={()=>navigate(`/committees/${row.id}`)} onKeyDown={e=>e.key==='Enter'&&navigate(`/committees/${row.id}`)}>
+    <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table"><thead><tr><th>{en?'Code':'Κωδικός'}</th><th>{en?'Committee':'Επιτροπή'}</th><th>{en?'Chair':'Πρόεδρος'}</th><th>{en?'Term':'Θητεία'}</th><th>{en?'Members':'Μέλη'}</th><th>{en?'Pending decisions':'Εκκρεμείς αποφάσεις'}</th><th>{en?'Status':'Κατάσταση'}</th></tr></thead><tbody>
+      {pagedRows.map(row=><tr key={row.id} {...registry.rowProps(row.id,()=>openCommittee(row))}>
         <td><strong>{row.id}</strong></td><td><strong>{row.name}</strong><small>{row.shortName}</small></td><td>{row.chair||'—'}</td><td>{row.termStart||'—'} → {row.termEnd||'—'}</td><td>{row.members?.length||0}</td><td>{row.decisions?.filter(x=>!['completed','closed'].includes(x.status)).length||0}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{row.status==='active'?(en?'Active':'Ενεργή'):(en?'Inactive':'Ανενεργή')}</span></td>
       </tr>)}
     </tbody></table>{!filtered.length&&<div className="registry-empty-state"><strong>{en?'No committees':'Δεν υπάρχουν επιτροπές'}</strong></div>}</div>
     <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
    </section>
-   {createOpen&&<CommitteeCreateDialog language={language} actor={actor} onClose={()=>setCreateOpen(false)} onCreated={record=>{setRows([record,...rows]);setCreateOpen(false);notify(en?'Committee created.':'Η επιτροπή δημιουργήθηκε.','success');navigate(`/committees/${record.id}`)}}/>}
+   {createOpen&&<CommitteeCreateDialog language={language} actor={actor} onClose={()=>setCreateOpen(false)} onCreated={record=>{const next=[record,...rows];setRows(next);setCreateOpen(false);notify(en?'Committee created.':'Η επιτροπή δημιουργήθηκε.','success');registry.openRecord(navigate,`/committees/${record.id}`,record.id,next.map(x=>x.id))}}/>}
  </Page>
 }
 function Metric({icon:Icon,label,value}){return <MetricCard icon={Icon} value={value} label={label}/>}
