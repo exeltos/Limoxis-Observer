@@ -60,6 +60,17 @@ async function upsertRecord(organizationId,recordType,payload,{departmentId=null
   return data
 }
 
+export async function createTrainingProgramAsync(organizationId,draft){
+  const now=new Date().toISOString()
+  const program={...draft,id:`TRN-${Date.now()}`,validMonths:Number(draft.validMonths)||null,passScore:draft.requiresAssessment?Number(draft.passScore)||0:null,materials:[],assessmentQuestions:[],feedbackResponses:[],createdAt:now,updatedAt:now}
+  if(isDemoDataEnvironment()){
+    const state=loadTrainingState();saveTrainingState({...state,programs:[program,...state.programs]});return program
+  }
+  requireProduction(organizationId,'create_program')
+  const saved=await upsertRecord(organizationId,'program',program)
+  return {...program,dbId:saved.id}
+}
+
 export async function saveManagedTrainingStateAsync(organizationId,state){
   if(isDemoDataEnvironment())return saveTrainingState(state)
   requireProduction(organizationId,'save')
