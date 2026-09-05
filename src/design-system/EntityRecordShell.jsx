@@ -1,6 +1,9 @@
 import { ChevronLeft,ChevronRight } from 'lucide-react'
+import { useLocation,useNavigate } from 'react-router-dom'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useContextualNavigation } from '../core/navigation/useContextualNavigation'
+import { registryStorageKey } from '../core/navigation/useRegistryMemory'
+import { readSessionJson,writeSessionValue } from '../core/storage/browserStorage'
 import { BackButton } from './BackButton'
 
 export function EntityRecordShell({
@@ -21,10 +24,36 @@ export function EntityRecordShell({
 }) {
   const { t,language }=useLanguage();const en=language==='en'
   const { goBack }=useContextualNavigation('/')
+  const navigate=useNavigate();const location=useLocation()
   const handleBack=onBack||goBack
   const primaryTabId=tabs[0]?.id||null
   const primaryTabActive=!primaryTabId||!activeTab||activeTab===primaryTabId
   const recordTabClass=primaryTabActive?'record-general-tab-active':'record-secondary-tab-active'
+
+  const sourceRegistry=typeof location.state?.limoxisFrom?.registry==='string'?location.state.limoxisFrom.registry:null
+  const currentRecordId=eyebrow==null?'':String(eyebrow)
+  const fallbackIds=sourceRegistry?readSessionJson(registryStorageKey(sourceRegistry,'sequence'),[]):[]
+  const fallbackSequence=Array.isArray(fallbackIds)?fallbackIds.map(String):[]
+  const fallbackIndex=currentRecordId?fallbackSequence.indexOf(currentRecordId):-1
+  function moveFallback(nextIndex){
+    const id=fallbackSequence[nextIndex]
+    if(!sourceRegistry||!id)return
+    writeSessionValue(registryStorageKey(sourceRegistry,'selected'),id)
+    const segments=location.pathname.split('/').filter(Boolean)
+    if(!segments.length)return
+    segments[segments.length-1]=encodeURIComponent(id)
+    navigate(`/${segments.join('/')}${location.search||''}${location.hash||''}`,{replace:true,state:location.state})
+  }
+  const fallbackNavigation=fallbackIndex>=0&&fallbackSequence.length>1?{
+    position:fallbackIndex+1,
+    total:fallbackSequence.length,
+    hasPrevious:fallbackIndex>0,
+    hasNext:fallbackIndex<fallbackSequence.length-1,
+    previous:()=>moveFallback(fallbackIndex-1),
+    next:()=>moveFallback(fallbackIndex+1),
+  }:null
+  const effectiveRecordNavigation=recordNavigation||fallbackNavigation
+
   return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${className}`.trim()}>
     <header className="entity-record-header surface">
       <BackButton className="entity-record-back-left" onClick={handleBack} label={backLabel||t('back')}/>
@@ -36,10 +65,10 @@ export function EntityRecordShell({
       </div>
       <div className="entity-record-header-actions">
         {status}
-        {recordNavigation&&<div className="entity-record-sequence" aria-label={en?'Record navigation':'Πλοήγηση εγγραφών'}>
-          <button type="button" className="entity-record-icon-button" disabled={!recordNavigation.hasPrevious} onClick={recordNavigation.previous} title={en?'Previous record':'Προηγούμενη εγγραφή'} aria-label={en?'Previous record':'Προηγούμενη εγγραφή'}><ChevronLeft size={16}/></button>
-          {recordNavigation.position&&recordNavigation.total>0&&<span>{recordNavigation.position}/{recordNavigation.total}</span>}
-          <button type="button" className="entity-record-icon-button" disabled={!recordNavigation.hasNext} onClick={recordNavigation.next} title={en?'Next record':'Επόμενη εγγραφή'} aria-label={en?'Next record':'Επόμενη εγγραφή'}><ChevronRight size={16}/></button>
+        {effectiveRecordNavigation&&<div className="entity-record-sequence" aria-label={en?'Record navigation':'Πλοήγηση εγγραφών'}>
+          <button type="button" className="entity-record-icon-button" disabled={!effectiveRecordNavigation.hasPrevious} onClick={effectiveRecordNavigation.previous} title={en?'Previous record':'Προηγούμενη εγγραφή'} aria-label={en?'Previous record':'Προηγούμενη εγγραφή'}><ChevronLeft size={16}/></button>
+          {effectiveRecordNavigation.position&&effectiveRecordNavigation.total>0&&<span>{effectiveRecordNavigation.position}/{effectiveRecordNavigation.total}</span>}
+          <button type="button" className="entity-record-icon-button" disabled={!effectiveRecordNavigation.hasNext} onClick={effectiveRecordNavigation.next} title={en?'Next record':'Επόμενη εγγραφή'} aria-label={en?'Next record':'Επόμενη εγγραφή'}><ChevronRight size={16}/></button>
         </div>}
         {headerActions}
       </div>
