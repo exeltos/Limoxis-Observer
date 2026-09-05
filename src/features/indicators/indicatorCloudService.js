@@ -3,6 +3,10 @@ import { supabase } from '../../core/supabase/client'
 const assertCloud=organizationId=>{if(!supabase)throw new Error('Supabase is not configured.');if(!organizationId)throw new Error('Organization is required.')}
 const round=(value,digits=1)=>Number.isFinite(Number(value))?Number(Number(value).toFixed(digits)):null
 
+export const INDICATOR_METRICS=Object.freeze([
+ 'patient_days','active_surveillance','resistant_active_surveillance','hh_compliant_actions','hh_opportunities','bundle_all_or_none_pass','bundle_executions','abhr_litres','active_staff','active_staff_with_vaccination','training_completed','training_assignments','open_high_incidents','mdro_bsi',
+])
+
 export async function collectCloudIndicatorMetrics(organizationId,{from,to,departmentId=null}){
  assertCloud(organizationId)
  const {data,error}=await supabase.rpc('get_indicator_metric_snapshot',{p_organization_id:organizationId,p_from:from,p_to:to,p_department_id:departmentId||null})
@@ -18,6 +22,44 @@ export async function loadOperationalIndicatorDefinitions(organizationId,{from,t
  const {data,error}=await query;if(error)throw error
  const rows=data||[],localKeys=new Set(rows.filter(r=>r.organization_id).map(r=>r.indicator_key))
  return rows.filter(r=>r.organization_id||!localKeys.has(r.indicator_key)).map(r=>({definitionId:r.id,id:r.indicator_key,version:r.version,titleEl:r.title_el,titleEn:r.title_en,category:r.category,numerator:r.numerator_metric,denominator:r.denominator_metric,multiplier:Number(r.multiplier||1),unit:r.unit||'',unitEn:r.unit_en||r.unit||'',source:r.source_authority||'',calculation:r.calculation_type||'auto',target:r.target_value==null?null:Number(r.target_value),direction:r.direction||'context',numeratorDefinition:r.numerator_definition||{},denominatorDefinition:r.denominator_definition||{}}))
+}
+
+export async function createIndicatorDefinition(organizationId,draft){
+ assertCloud(organizationId)
+ const {data:{user}}=await supabase.auth.getUser()
+ const key=String(draft.indicatorKey||'').trim().toLowerCase().replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'')
+ if(!key)throw new Error('Indicator key is required.')
+ if(draft.calculationType!=='manual'&&!INDICATOR_METRICS.includes(draft.numeratorMetric))throw new Error('Unsupported numerator metric.')
+ if(draft.denominatorMetric&&!INDICATOR_METRICS.includes(draft.denominatorMetric))throw new Error('Unsupported denominator metric.')
+ const payload={
+  organization_id:organizationId,
+  indicator_key:key,
+  version:String(draft.version||'1.0').trim()||'1.0',
+  title_el:String(draft.titleEl||'').trim(),
+  title_en:String(draft.titleEn||draft.titleEl||'').trim(),
+  category:draft.category||'quality',
+  numerator_definition:{label:draft.numeratorLabel||draft.numeratorMetric||''},
+  denominator_definition:{label:draft.denominatorLabel||draft.denominatorMetric||''},
+  multiplier:Number(draft.multiplier||1),
+  unit:String(draft.unit||'').trim(),
+  unit_en:String(draft.unitEn||draft.unit||'').trim(),
+  source_authority:String(draft.sourceAuthority||'Hospital-defined').trim(),
+  effective_from:draft.effectiveFrom||new Date().toISOString().slice(0,10),
+  effective_to:null,
+  status:'active',
+  calculation_type:draft.calculationType||'manual',
+  numerator_metric:draft.calculationType==='manual'?null:draft.numeratorMetric||null,
+  denominator_metric:draft.calculationType==='manual'?null:draft.denominatorMetric||null,
+  target_value:draft.targetValue===''||draft.targetValue==null?null:Number(draft.targetValue),
+  direction:draft.direction||'context',
+  created_by:user?.id||null,
+  approved_by:user?.id||null,
+  approved_at:new Date().toISOString(),
+ }
+ if(!payload.title_el)throw new Error('Indicator title is required.')
+ const {data,error}=await supabase.from('indicator_definitions').insert(payload).select('*').single()
+ if(error)throw error
+ return data
 }
 
 const metricValue=(metrics,key)=>key?metrics[key]:null
