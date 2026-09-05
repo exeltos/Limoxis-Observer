@@ -1,0 +1,17 @@
+.registry-row-clickable{cursor:pointer}
+
+.data-table tbody tr.registry-row-returned,
+.data-table tbody tr.registry-row-returned:hover,
+.registry-row-returned{
+  background:color-mix(in srgb,var(--accent,#2f6f8f) 10%,var(--surface,#fff))!important;
+  box-shadow:inset 3px 0 0 color-mix(in srgb,var(--accent,#2f6f8f) 72%,transparent);
+}
+
+.data-table tbody tr.registry-row-returned td{
+  background:transparent!important;
+}
+
+.registry-row-returned:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--accent,#2f6f8f) 52%,transparent);
+  outline-offset:-2px;
+}
