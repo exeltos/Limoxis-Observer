@@ -3,14 +3,40 @@ import { Page } from '../../design-system/Page'
 
 function DashboardAction({ icon, title, description, meta, onClick }) {
   return (
-    <button type="button" className="platform-control-card platform-owner-clickable-row" onClick={onClick}>
-      <span className="platform-control-card-icon">{icon}</span>
-      <span className="platform-control-card-copy">
-        <strong>{title}</strong>
-        <small>{description}</small>
-        {meta ? <span className="platform-control-card-meta">{meta}</span> : null}
+    <button
+      type="button"
+      className="platform-control-card platform-owner-clickable-row"
+      onClick={onClick}
+      style={{
+        minHeight:154,
+        padding:'20px 21px',
+        gridTemplateColumns:'auto minmax(0,1fr) auto',
+        alignItems:'start',
+        border:'1px solid color-mix(in srgb,var(--lo-color-primary) 12%,var(--lo-color-border))',
+        background:'linear-gradient(180deg,var(--lo-color-surface) 0%,color-mix(in srgb,var(--lo-color-primary) 2.5%,var(--lo-color-surface)) 100%)',
+        boxShadow:'0 8px 22px rgba(31,52,73,.07)'
+      }}
+    >
+      <span
+        className="platform-control-card-icon"
+        style={{
+          width:44,
+          height:44,
+          borderRadius:11,
+          background:'color-mix(in srgb,var(--lo-color-primary) 10%,var(--lo-color-surface))',
+          border:'1px solid color-mix(in srgb,var(--lo-color-primary) 13%,var(--lo-color-border))'
+        }}
+      >{icon}</span>
+      <span className="platform-control-card-copy" style={{gap:7,paddingTop:1}}>
+        <strong style={{fontSize:15,lineHeight:1.25,color:'var(--lo-color-text)'}}>{title}</strong>
+        <small style={{fontSize:11.25,lineHeight:1.52,maxWidth:330}}>{description}</small>
+        {meta ? <span className="platform-control-card-meta" style={{marginTop:5,fontSize:10.75}}>{meta}</span> : null}
       </span>
-      <span className="platform-control-card-arrow" aria-hidden="true"><ArrowRight size={17}/></span>
+      <span
+        className="platform-control-card-arrow"
+        aria-hidden="true"
+        style={{display:'grid',placeItems:'center',width:30,height:30,borderRadius:8,color:'var(--lo-color-primary)',background:'color-mix(in srgb,var(--lo-color-primary) 7%,transparent)'}}
+      ><ArrowRight size={17}/></span>
     </button>
   )
 }
@@ -25,7 +51,7 @@ export function PlatformDashboardView({tx,organizations,activeOrganizations,acti
       )}
     >
       <section className="platform-control-plane">
-        <div className="platform-control-grid">
+        <div className="platform-control-grid" style={{gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:14}}>
           <DashboardAction
             icon={<Building2 size={21}/>} title={tx('Οργανισμοί','Organizations')}
             description={tx('Registry, χρήστες, πρόσβαση και ρυθμίσεις οργανισμού.','Registry, users, access and organization settings.')}
