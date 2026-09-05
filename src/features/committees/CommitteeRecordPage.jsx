@@ -3,7 +3,6 @@ import { useNavigate,useParams } from 'react-router-dom'
 import { CalendarDays,CheckCircle2,ClipboardList,FileClock,Paperclip,Pencil,Plus,ShieldCheck,Target,Trash2,Users,XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { Button } from '../../design-system/Button'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -11,7 +10,7 @@ import { AttachmentField } from '../../design-system/AttachmentField'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { MetricCard } from '../../design-system/MetricCard'
-import { downloadRecordJson } from '../../core/export/recordExport'
+import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
@@ -21,8 +20,7 @@ import { useEmployeesData } from '../employees/useEmployeesData'
 import { useCommitteesData } from './useCommitteesData'
 import { saveCommittees } from './committeeData'
 import { CommitteeApprovalPanel } from './CommitteeApprovalPanel'
-import { updateCommitteeDetailsAsync } from './committeeDetailsService'
-import { printCommitteeRecord } from './committeePrint'
+import { archiveCommitteeAsync,updateCommitteeDetailsAsync } from './committeeDetailsService'
 import {
   createCommitteeMemberAsync,updateCommitteeMemberAsync,endCommitteeMemberAsync,updateCommitteeFrameworkAsync,
   createCommitteeMeetingAsync,saveCommitteeMeetingAsync,answerCommitteeMinutesApprovalAsync,
@@ -44,11 +42,12 @@ export function CommitteeRecordPage(){
   const {role,membership,tenant,isDemo}=useTenant();const {language}=useLanguage();const en=language==='en'
   const {notify,notifyError,confirm}=useFeedback();const {data:rows,setData:setRows,loading,error,reload}=useCommitteesData()
   const {data:employeeRows}=useEmployeesData();const [tab,setTab]=useState('overview');const [dialog,setDialog]=useState(null);const [busy,setBusy]=useState(false)
+  const recordNavigation=useRecordSequenceNavigation({registry:'committees',currentId:committeeId,pathForId:id=>`/committees/${id}`})
   const record=useMemo(()=>rows.find(x=>x.id===committeeId)||null,[rows,committeeId]);const organizationId=tenant?.id||null
   const staff=useMemo(()=>employeeRows.filter(x=>x.employmentStatus==='active').map(x=>({id:x.id,dbId:x.dbId||null,name:`${x.firstName||''} ${x.lastName||''}`.trim(),department:x.department||'',profession:x.profession||'',email:x.email||''})),[employeeRows])
   const permissionContext={role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],organizationId:membership?.organizationId??membership?.organization?.id,assignments:membership?.assignments??[]}
   const canDo=cap=>record?canForRecord(cap,{...record,resourceType:'committee'},permissionContext):false
-  const canMembers=canDo(CAPABILITIES.MANAGE_COMMITTEE_MEMBERS),canMeeting=canDo(CAPABILITIES.CREATE_COMMITTEE_MEETING),canMinutes=canDo(CAPABILITIES.EDIT_COMMITTEE_MINUTES),canFinalize=canDo(CAPABILITIES.FINALIZE_COMMITTEE_MINUTES),canDecisions=canDo(CAPABILITIES.MANAGE_COMMITTEE_DECISIONS),canDocuments=canDo(CAPABILITIES.MANAGE_COMMITTEE_DOCUMENTS),canFramework=canDo(CAPABILITIES.CREATE_COMMITTEE)
+  const canMembers=canDo(CAPABILITIES.MANAGE_COMMITTEE_MEMBERS),canMeeting=canDo(CAPABILITIES.CREATE_COMMITTEE_MEETING),canMinutes=canDo(CAPABILITIES.EDIT_COMMITTEE_MINUTES),canFinalize=canDo(CAPABILITIES.FINALIZE_COMMITTEE_MINUTES),canDecisions=canDo(CAPABILITIES.MANAGE_COMMITTEE_DECISIONS),canDocuments=canDo(CAPABILITIES.MANAGE_COMMITTEE_DOCUMENTS),canFramework=canDo(CAPABILITIES.CREATE_COMMITTEE),canArchive=canDo(CAPABILITIES.ARCHIVE_COMMITTEE)
 
   async function execute({operation,local,success,context='save',close=true}){
     if(busy)return null;setBusy(true)
@@ -66,6 +65,12 @@ export function CommitteeRecordPage(){
   const tabs=[{id:'overview',label:en?'Overview':'Σύνοψη',icon:CheckCircle2},{id:'members',label:en?'Members':'Μέλη',icon:Users},{id:'plan',label:en?'Annual plan':'Ετήσιο σχέδιο',icon:Target},{id:'meetings',label:en?'Meetings':'Συνεδριάσεις',icon:CalendarDays},{id:'decisions',label:en?'Decisions':'Αποφάσεις',icon:ClipboardList},{id:'framework',label:en?'Framework':'Θεσμικό πλαίσιο',icon:ShieldCheck},{id:'documents',label:en?'Documents':'Έγγραφα',icon:Paperclip},{id:'history',label:en?'History':'Ιστορικό',icon:FileClock}]
 
   async function saveDetails(draft){await execute({operation:()=>updateCommitteeDetailsAsync(organizationId,record,draft),local:()=>({...record,...draft,updatedAt:new Date().toISOString()}),success:en?'Committee details updated.':'Τα βασικά στοιχεία της επιτροπής ενημερώθηκαν.'})}
+  async function archiveCommittee(){
+    const ok=await confirm({title:en?'Archive committee':'Αρχειοθέτηση επιτροπής',message:en?'The committee will become inactive while its members, meetings, decisions and history remain available. Continue?':'Η επιτροπή θα γίνει ανενεργή, ενώ τα μέλη, οι συνεδριάσεις, οι αποφάσεις και το ιστορικό της θα διατηρηθούν. Συνέχεια;',confirmLabel:en?'Archive':'Αρχειοθέτηση',danger:true})
+    if(!ok)return
+    const result=await execute({operation:()=>archiveCommitteeAsync(organizationId,record),local:()=>({...record,status:'inactive',updatedAt:new Date().toISOString(),history:[{at:new Date().toISOString(),actor:actor.name,actorId:actor.id,action:'Αρχειοθέτηση επιτροπής',reason:record.name},...(record.history||[])]}),success:en?'Committee archived.':'Η επιτροπή αρχειοθετήθηκε.',close:false})
+    if(result)navigate('/committees',{replace:true})
+  }
   async function addMember(draft){
     const person=staff.find(x=>x.id===draft.employeeId)
     const manualName=String(draft.manualName||'').trim()
@@ -89,9 +94,9 @@ export function CommitteeRecordPage(){
   async function saveFramework(draft){await execute({operation:()=>updateCommitteeFrameworkAsync(organizationId,record,draft),local:()=>({...record,...draft}),success:en?'Framework updated.':'Το θεσμικό πλαίσιο ενημερώθηκε.'})}
   function saveDemoDocuments(files){if(!isDemo)return;const nextRows=rows.map(x=>x.id===record.id?{...x,documents:files}:x);setRows(nextRows);saveCommittees(nextRows)}
 
-  const headerActions=<>{tab==='overview'&&<button type="button" className="entity-record-icon-button" title={en?'Edit committee':'Επεξεργασία επιτροπής'} aria-label={en?'Edit committee':'Επεξεργασία επιτροπής'} disabled={!canFramework||busy} onClick={()=>setDialog({type:'details'})}><Pencil size={16}/></button>}<PrintExportActions onPrint={()=>printCommitteeRecord(record,{en})} onExport={()=>downloadRecordJson(record,{filename:record.id})}/></>
+  const headerActions=tab==='overview'?<div className="record-actions">{canFramework&&<button type="button" className="lo-icon-button lo-icon-button-edit" title={en?'Edit committee':'Επεξεργασία επιτροπής'} aria-label={en?'Edit committee':'Επεξεργασία επιτροπής'} disabled={busy} onClick={()=>setDialog({type:'details'})}><Pencil size={16}/></button>}{canArchive&&<button type="button" className="lo-icon-button lo-icon-button-danger" title={en?'Archive committee':'Αρχειοθέτηση επιτροπής'} aria-label={en?'Archive committee':'Αρχειοθέτηση επιτροπής'} disabled={busy} onClick={archiveCommittee}><Trash2 size={16}/></button>}</div>:null
 
-  return <Page fill><EntityRecordShell avatar={<Users size={19}/>} eyebrow={record.id} title={record.name} subtitle={record.shortName||''} status={<span className={`status-badge ${record.status==='active'?'active':''}`}>{record.status==='active'?(en?'Active':'Ενεργή'):(en?'Inactive':'Ανενεργή')}</span>} onBack={()=>navigate('/committees')} headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab}>
+  return <Page fill><EntityRecordShell avatar={<Users size={19}/>} eyebrow={record.id} title={record.name} subtitle={record.shortName||''} status={<span className={`status-badge ${record.status==='active'?'active':''}`}>{record.status==='active'?(en?'Active':'Ενεργή'):(en?'Inactive':'Ανενεργή')}</span>} recordNavigation={recordNavigation} onBack={()=>navigate('/committees')} headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab}>
     {tab==='overview'&&<Overview record={record} members={activeMembers} en={en}/>} 
     {tab==='members'&&<Members rows={record.memberRefs||[]} canManage={canMembers&&!busy} onAdd={()=>setDialog({type:'member'})} onEdit={x=>setDialog({type:'member',value:x})} onEnd={endMember} en={en}/>} 
     {tab==='plan'&&<Plan rows={record.annualPlan||[]} canManage={canDecisions&&!busy} onAdd={()=>setDialog({type:'plan'})} onEdit={x=>setDialog({type:'plan',value:x})} onStatus={planStatus} en={en}/>} 
