@@ -7,6 +7,7 @@
    Keep a small visual bottom gap while letting every registry reach the same baseline. */
 .page-fill:has(>.registry-workspace),
 .page-fill:has(>.patient-registry-shell),
+.page:has(>.platform-registry-shell),
 .laboratory-registry-page,
 .controls-page{
   height:calc(100dvh - 108px)!important;
@@ -21,6 +22,7 @@
 /* Role-preview banner consumes additional vertical space. */
 .main-column:has(>.preview-banner) .page-fill:has(>.registry-workspace),
 .main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
+.main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
 .main-column:has(>.preview-banner) .laboratory-registry-page,
 .main-column:has(>.preview-banner) .controls-page{
   height:calc(100dvh - 148px)!important;
@@ -28,6 +30,7 @@
 
 /* Everything above the registry keeps natural height. */
 .page-fill>.page-header,
+.page:has(>.platform-registry-shell)>.page-header,
 .page-fill>.workspace-summary,
 .page-fill>.patient-summary-strip,
 .page-fill>.surveillance-summary{
@@ -37,6 +40,7 @@
 /* One common outer shell fills the remaining page space. */
 .page-fill>.registry-workspace,
 .page-fill>.patient-registry-shell,
+.page>.platform-registry-shell,
 .laboratory-registry-page>.lab-registry-shell,
 .controls-page>.controls-surface,
 .page-fill>.registry-workspace.stable-registry-height,
@@ -53,6 +57,7 @@
 
 .registry-workspace.surface,
 .patient-registry-shell,
+.platform-registry-card,
 .laboratory-registry-page .lab-registry-shell,
 .controls-page>.controls-surface{
   border:1px solid var(--line)!important;
@@ -62,9 +67,48 @@
   box-shadow:none!important;
 }
 
+/* Owner registries use the exact same vertical contract as operational registries. */
+.platform-registry-shell>.platform-registry-navigation,
+.platform-registry-shell>.platform-governance,
+.platform-registry-shell>.filter-bar,
+.platform-registry-shell>.platform-section-tools,
+.platform-registry-shell>.platform-summary-strip,
+.platform-registry-shell>.diagnostics-summary-strip{
+  flex:0 0 auto!important;
+}
+.platform-registry-shell>.platform-registry-card{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  margin-bottom:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+.platform-registry-shell>.scroll-table,
+.platform-registry-shell>.table-wrap.scroll-table,
+.platform-registry-card>.scroll-table{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+.platform-registry-shell>.registry-pagination,
+.platform-registry-card>.registry-pagination{
+  flex:0 0 44px!important;
+  min-height:44px!important;
+  margin-top:auto!important;
+  position:relative!important;
+  z-index:3!important;
+  background:#fff!important;
+}
+
 /* Empty, loading and populated states never change the outer height. */
 .page-fill>.registry-workspace:has(.registry-empty-state),
 .page-fill>.patient-registry-shell:has(.registry-empty-state),
+.page>.platform-registry-shell:has(.platform-empty),
 .laboratory-registry-page>.lab-registry-shell:has(.registry-empty-state),
 .page-fill>.registry-workspace:has(.surveillance-registry-empty){
   flex:1 1 0!important;
@@ -176,10 +220,12 @@
 @media(max-width:1200px){
   .page-fill:has(>.registry-workspace),
   .page-fill:has(>.patient-registry-shell),
+  .page:has(>.platform-registry-shell),
   .laboratory-registry-page,
   .controls-page{height:calc(100dvh - 102px)!important}
   .main-column:has(>.preview-banner) .page-fill:has(>.registry-workspace),
   .main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
+  .main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
   .main-column:has(>.preview-banner) .laboratory-registry-page,
   .main-column:has(>.preview-banner) .controls-page{height:calc(100dvh - 142px)!important}
 }
