@@ -3,8 +3,6 @@
    No .content or page-width rules are changed here. */
 :root{--canonical-registry-radius:11px}
 
-/* The content area uses 16px top / 32px bottom padding and pages are shifted up 18px.
-   Keep a small visual bottom gap while letting every registry reach the same baseline. */
 .page-fill:has(>.registry-workspace),
 .page-fill:has(>.patient-registry-shell),
 .page:has(>.platform-registry-shell),
@@ -18,26 +16,18 @@
   overflow:hidden!important;
   padding-bottom:0!important;
 }
-
-/* Role-preview banner consumes additional vertical space. */
 .main-column:has(>.preview-banner) .page-fill:has(>.registry-workspace),
 .main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
 .main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
 .main-column:has(>.preview-banner) .laboratory-registry-page,
-.main-column:has(>.preview-banner) .controls-page{
-  height:calc(100dvh - 148px)!important;
-}
+.main-column:has(>.preview-banner) .controls-page{height:calc(100dvh - 148px)!important}
 
-/* Everything above the registry keeps natural height. */
 .page-fill>.page-header,
 .page:has(>.platform-registry-shell)>.page-header,
 .page-fill>.workspace-summary,
 .page-fill>.patient-summary-strip,
-.page-fill>.surveillance-summary{
-  flex:0 0 auto!important;
-}
+.page-fill>.surveillance-summary{flex:0 0 auto!important}
 
-/* One common outer shell fills the remaining page space. */
 .page-fill>.registry-workspace,
 .page-fill>.patient-registry-shell,
 .page>.platform-registry-shell,
@@ -67,205 +57,105 @@
   box-shadow:none!important;
 }
 
-/* Owner registries use the exact same vertical contract as operational registries. */
 .platform-registry-shell>.platform-registry-navigation,
 .platform-registry-shell>.platform-governance,
 .platform-registry-shell>.filter-bar,
 .platform-registry-shell>.platform-section-tools,
 .platform-registry-shell>.platform-summary-strip,
-.platform-registry-shell>.diagnostics-summary-strip{
-  flex:0 0 auto!important;
-}
+.platform-registry-shell>.diagnostics-summary-strip{flex:0 0 auto!important}
 .platform-registry-shell>.platform-registry-card{
-  flex:1 1 0!important;
-  min-height:0!important;
-  height:auto!important;
-  max-height:none!important;
-  margin-bottom:0!important;
-  display:flex!important;
-  flex-direction:column!important;
-  overflow:hidden!important;
+  flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;margin-bottom:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important
 }
 .platform-registry-shell>.scroll-table,
 .platform-registry-shell>.table-wrap.scroll-table,
 .platform-registry-card>.scroll-table{
-  flex:1 1 0!important;
-  min-height:0!important;
-  height:auto!important;
-  max-height:none!important;
-  overflow:auto!important;
+  flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:auto!important
 }
 .platform-registry-shell>.registry-pagination,
 .platform-registry-card>.registry-pagination{
-  flex:0 0 44px!important;
-  min-height:44px!important;
-  margin-top:auto!important;
-  position:relative!important;
-  z-index:3!important;
-  background:#fff!important;
+  flex:0 0 44px!important;min-height:44px!important;margin-top:auto!important;position:relative!important;z-index:3!important;background:#fff!important
 }
 
-/* Empty, loading and populated states never change the outer height. */
 .page-fill>.registry-workspace:has(.registry-empty-state),
 .page-fill>.patient-registry-shell:has(.registry-empty-state),
 .page>.platform-registry-shell:has(.platform-empty),
 .laboratory-registry-page>.lab-registry-shell:has(.registry-empty-state),
 .page-fill>.registry-workspace:has(.surveillance-registry-empty){
-  flex:1 1 0!important;
-  height:auto!important;
-  min-height:260px!important;
-  max-height:none!important;
+  flex:1 1 0!important;height:auto!important;min-height:260px!important;max-height:none!important
 }
 
-/* Standard list scroll region. */
 .registry-workspace>.scroll-table,
 .patient-registry-shell>.scroll-table,
 .laboratory-registry-page .lab-registry-shell>.scroll-table,
 .page-fill>.registry-workspace.stable-registry-height>.scroll-table,
 .page-fill>.registry-workspace.stable-registry-height:has(.registry-empty-state)>.scroll-table{
-  flex:1 1 0!important;
-  min-height:0!important;
-  height:auto!important;
-  max-height:none!important;
-  overflow:auto!important;
+  flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:auto!important
 }
-
 .registry-workspace .registry-empty-state,
 .patient-registry-shell .registry-empty-state,
 .laboratory-registry-page .lab-registry-shell .registry-empty-state,
 .registry-workspace .surveillance-registry-empty,
 .page-fill>.registry-workspace.stable-registry-height .registry-empty-state{
-  flex:1 1 auto!important;
-  min-height:132px!important;
-  height:auto!important;
-  margin:0!important;
+  flex:1 1 auto!important;min-height:132px!important;height:auto!important;margin:0!important
 }
-
-/* Pagination always owns the final row inside the rounded frame. */
 .registry-workspace>.registry-pagination,
 .patient-registry-shell>.registry-pagination,
 .laboratory-registry-page .lab-registry-shell>.registry-pagination,
 .page-fill>.registry-workspace.stable-registry-height>.registry-pagination{
-  flex:0 0 44px!important;
-  min-height:44px!important;
-  margin-top:auto!important;
-  position:relative!important;
-  z-index:3!important;
-  background:#fff!important;
+  flex:0 0 44px!important;min-height:44px!important;margin-top:auto!important;position:relative!important;z-index:3!important;background:#fff!important
 }
 
-/* Surveillance: only the outer frame participates in page sizing. */
-.production-surveillance-frame{
+/* Canonical embedded registry contract used inside record tabs as well.
+   This is the same shell/table/pagination behavior as top-level Indicators. */
+.workspace-fill>.registry-workspace,
+.workspace-column>.registry-workspace{
   flex:1 1 0!important;
-  height:auto!important;
   min-height:260px!important;
-  max-height:none!important;
-}
-.production-surveillance-frame>.canonical-module-tabs{flex:0 0 auto!important}
-.production-surveillance-frame>.production-surveillance-workspace{
-  flex:1 1 0!important;
-  min-height:0!important;
   height:auto!important;
   max-height:none!important;
-  overflow:hidden!important;
   display:flex!important;
   flex-direction:column!important;
+  overflow:hidden!important;
+  gap:0!important;
 }
+.workspace-fill>.registry-workspace>.filter-bar,
+.workspace-column>.registry-workspace>.filter-bar{flex:0 0 auto!important}
+.workspace-fill>.registry-workspace>.scroll-table,
+.workspace-column>.registry-workspace>.scroll-table{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+.workspace-fill>.registry-workspace>.registry-pagination,
+.workspace-column>.registry-workspace>.registry-pagination{
+  flex:0 0 44px!important;
+  min-height:44px!important;
+  margin-top:auto!important;
+  position:relative!important;
+  z-index:3!important;
+  background:#fff!important;
+}
+
+.production-surveillance-frame{flex:1 1 0!important;height:auto!important;min-height:260px!important;max-height:none!important}
+.production-surveillance-frame>.canonical-module-tabs{flex:0 0 auto!important}
+.production-surveillance-frame>.production-surveillance-workspace{flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
 .production-surveillance-workspace>.filter-system{flex:0 0 auto!important}
-.production-surveillance-workspace>.surveillance-registry{
-  flex:1 1 0!important;
-  min-height:0!important;
-  height:auto!important;
-  max-height:none!important;
-  overflow:auto!important;
-}
-.production-surveillance-workspace>.registry-pagination{
-  flex:0 0 44px!important;
-  min-height:44px!important;
-  margin-top:auto!important;
-  position:relative!important;
-  z-index:3!important;
-  background:#fff!important;
-}
+.production-surveillance-workspace>.surveillance-registry{flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:auto!important}
+.production-surveillance-workspace>.registry-pagination{flex:0 0 44px!important;min-height:44px!important;margin-top:auto!important;position:relative!important;z-index:3!important;background:#fff!important}
 
-/* Controls retain the common frame while their table alone scrolls. */
-.controls-page>.controls-surface .filter-system{
-  flex:0 0 auto!important;
-  border:0!important;
-  border-bottom:1px solid var(--line)!important;
-  border-radius:0!important;
-  background:#fff!important;
-}
-.controls-page>.controls-surface .scroll-table{
-  flex:1 1 0!important;
-  min-height:0!important;
-  height:auto!important;
-  max-height:none!important;
-  overflow:auto!important;
-  border:0!important;
-  background:#fff!important;
-}
-.controls-page>.controls-surface .registry-pagination{
-  flex:0 0 44px!important;
-  min-height:44px!important;
-  margin-top:auto!important;
-  border:0!important;
-  border-top:1px solid var(--line)!important;
-  border-radius:0!important;
-  background:#fff!important;
-  position:relative!important;
-  z-index:3!important;
-}
+.controls-page>.controls-surface .filter-system{flex:0 0 auto!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:#fff!important}
+.controls-page>.controls-surface .scroll-table{flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:auto!important;border:0!important;background:#fff!important}
+.controls-page>.controls-surface .registry-pagination{flex:0 0 44px!important;min-height:44px!important;margin-top:auto!important;border:0!important;border-top:1px solid var(--line)!important;border-radius:0!important;background:#fff!important;position:relative!important;z-index:3!important}
 
-/* Embedded record registries use the same visual contract without assuming the
-   record-tab parent has an explicit computed height. Their previous flex-basis:0
-   could collapse the entire registry (including toolbar/actions) to zero height. */
-:is(.training-participants-registry,.platform-owner-users){
+/* Owner users retain their record toolbar, but the list itself follows the same table/pagination contract. */
+.platform-owner-users{
   flex:1 1 auto!important;
   min-height:420px!important;
   height:auto!important;
   max-height:none!important;
   overflow:hidden!important;
-  display:flex!important;
-  flex-direction:column!important;
-  gap:8px!important;
-}
-:is(.training-participants-registry,.platform-owner-users)>.module-summary-strip,
-:is(.training-participants-registry,.platform-owner-users)>.section-toolbar,
-:is(.training-participants-registry,.platform-owner-users)>.filter-bar,
-:is(.training-participants-registry,.platform-owner-users)>.platform-user-role-help,
-:is(.training-participants-registry,.platform-owner-users)>.platform-user-record-header-actions{
-  flex:0 0 auto!important;
-}
-:is(.training-participants-registry,.platform-owner-users)>.scroll-table{
-  flex:1 1 auto!important;
-  min-height:180px!important;
-  height:auto!important;
-  max-height:none!important;
-  margin:0!important;
-  overflow:auto!important;
-  border:1px solid var(--line)!important;
-  border-radius:var(--canonical-registry-radius) var(--canonical-registry-radius) 0 0!important;
-  background:#fff!important;
-}
-:is(.training-participants-registry,.platform-owner-users)>.registry-pagination{
-  flex:0 0 44px!important;
-  min-height:44px!important;
-  margin:0!important;
-  padding-inline:14px!important;
-  border:1px solid var(--line)!important;
-  border-top:0!important;
-  border-radius:0 0 var(--canonical-registry-radius) var(--canonical-registry-radius)!important;
-  background:#fff!important;
-  position:relative!important;
-  z-index:2!important;
-}
-:is(.training-participants-registry,.platform-owner-users)>.scroll-table .data-table{margin:0!important}
-:is(.training-participants-registry,.platform-owner-users)>.scroll-table .registry-empty-state,
-:is(.training-participants-registry,.platform-owner-users)>.inline-empty{min-height:140px!important}
-
-/* Owner user registry: heading/action occupy one canonical toolbar row. */
-.platform-owner-users{
   display:grid!important;
   grid-template-columns:minmax(0,1fr) auto!important;
   grid-template-rows:auto auto minmax(180px,1fr) 44px!important;
@@ -276,8 +166,8 @@
 .platform-owner-users>.platform-user-role-help{grid-column:1;grid-row:1}
 .platform-owner-users>.platform-user-record-header-actions{grid-column:2;grid-row:1;align-self:center}
 .platform-owner-users>.filter-bar{grid-column:1/-1;grid-row:2;width:100%!important;max-width:none!important;margin:0!important}
-.platform-owner-users>.scroll-table{grid-column:1/-1;grid-row:3}
-.platform-owner-users>.registry-pagination{grid-column:1/-1;grid-row:4}
+.platform-owner-users>.scroll-table{grid-column:1/-1;grid-row:3;min-height:0!important;height:auto!important;max-height:none!important;overflow:auto!important;border:1px solid var(--line)!important;border-radius:var(--canonical-registry-radius) var(--canonical-registry-radius) 0 0!important;background:#fff!important}
+.platform-owner-users>.registry-pagination{grid-column:1/-1;grid-row:4;flex:0 0 44px!important;min-height:44px!important;margin:0!important;border:1px solid var(--line)!important;border-top:0!important;border-radius:0 0 var(--canonical-registry-radius) var(--canonical-registry-radius)!important;background:#fff!important;position:relative!important;z-index:2!important}
 .platform-owner-users>.inline-empty{grid-column:1/-1;grid-row:3}
 
 @media(max-width:1200px){
@@ -292,10 +182,8 @@
   .main-column:has(>.preview-banner) .laboratory-registry-page,
   .main-column:has(>.preview-banner) .controls-page{height:calc(100dvh - 142px)!important}
 }
-
 @media(max-width:760px){
-  :is(.training-participants-registry,.platform-owner-users){min-height:360px!important}
-  .platform-owner-users{grid-template-columns:1fr!important;grid-template-rows:auto auto auto minmax(180px,1fr) 44px!important}
+  .platform-owner-users{min-height:360px!important;grid-template-columns:1fr!important;grid-template-rows:auto auto auto minmax(180px,1fr) 44px!important}
   .platform-owner-users>.platform-user-role-help{grid-column:1;grid-row:1}
   .platform-owner-users>.platform-user-record-header-actions{grid-column:1;grid-row:2;justify-self:start}
   .platform-owner-users>.filter-bar{grid-column:1;grid-row:3}
