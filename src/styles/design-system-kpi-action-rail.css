@@ -62,14 +62,60 @@
 .canonical-detail-screen .record-inline-actions > :is(.record-crud-delete,button.danger,.lo-icon-button-danger):hover{background:var(--lo-status-danger-bg)!important}
 .canonical-detail-screen .record-inline-actions{gap:6px!important}
 
-/* Controls: the pencil remains visually neutral on hover. The user asked for no
-   yellow hover tile in the control record while keeping the icon itself unchanged. */
+/* Controls: keep the pencil transparent on hover, but preserve the subtle movement. */
 .control-record-shell .record-crud-edit:hover,
 .control-record-shell .entity-record-general-actions .record-crud-edit:hover,
 .control-record-shell .record-inline-actions > :is(button.edit,.lo-icon-button-edit):hover{
   background:transparent!important;
   box-shadow:none!important;
-  transform:none!important;
+  transform:translateY(-1px)!important;
+}
+
+/* Control history follows the standard registry/table rhythm. */
+.control-record-shell .control-history-registry{
+  min-height:0!important;
+  height:100%!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+.control-record-shell .control-history-table-wrap{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:auto!important;
+}
+.control-record-shell .control-history-registry>.registry-pagination{
+  flex:0 0 auto!important;
+}
+.control-record-shell .control-action-col{width:120px!important;text-align:right!important}
+.control-record-shell .control-history-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:6px!important;
+  white-space:nowrap!important;
+}
+.control-record-shell .control-history-actions>button{
+  width:32px!important;
+  min-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+  transition:transform .15s ease,color .15s ease!important;
+}
+.control-record-shell .control-history-edit{color:var(--lo-status-warning-fg)!important}
+.control-record-shell .control-history-undo{color:var(--lo-status-danger-fg)!important}
+.control-record-shell .control-history-print{color:var(--lo-shell-control-fg)!important}
+.control-record-shell .control-history-actions>button:hover{
+  background:transparent!important;
+  box-shadow:none!important;
+  transform:translateY(-1px)!important;
 }
 
 /* KPI + actions become one visual row. */
