@@ -41,7 +41,7 @@ export function DocumentRecordPage(){
 
  if(loading)return <RouteLoading/>
  if(error)return <Page title={en?'Documents':'Έγγραφα'}><div className="data-access-state error" role="alert"><span>{en?'Could not load the document.':'Δεν ήταν δυνατή η φόρτωση του εγγράφου.'}</span><button type="button" onClick={()=>reload().catch(()=>{})}>{en?'Retry':'Επανάληψη'}</button></div></Page>
- if(!record)return <Page title={en?'Documents':'Έγγραφα'}><div className="inline-empty">{en?'Document not found.':'Η επιτροπή δεν βρέθηκε.'}</div></Page>
+ if(!record)return <Page title={en?'Documents':'Έγγραφα'}><div className="inline-empty">{en?'Document not found.':'Το έγγραφο δεν βρέθηκε.'}</div></Page>
 
  async function run(operation,successMessage){if(busy)return null;setBusy(true);try{const result=await operation();await reload();if(successMessage)notify(successMessage,'success');return result}catch{notify(en?'The action could not be completed.':'Η ενέργεια δεν ήταν δυνατό να ολοκληρωθεί.','danger');return null}finally{setBusy(false)}}
  async function saveEdit(data){const result=await run(()=>updateDocumentAsync(organizationId,record,data,actor),en?'Document updated.':'Το έγγραφο ενημερώθηκε.');if(result)setEditOpen(false)}
