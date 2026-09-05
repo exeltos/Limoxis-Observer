@@ -1,5 +1,9 @@
 import { supabase } from '../../core/supabase/client'
 
+export const INDICATOR_METRICS=Object.freeze([
+ 'patient_days','active_surveillance','resistant_active_surveillance','hh_compliant_actions','hh_opportunities','bundle_all_or_none_pass','bundle_executions','abhr_litres','active_staff','active_staff_with_vaccination','training_completed','training_assignments','open_high_incidents','mdro_bsi',
+])
+
 const assertCloud=organizationId=>{if(!supabase)throw new Error('Supabase is not configured.');if(!organizationId)throw new Error('Organization is required.')}
 const isUuid=value=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''))
 const select='id,organization_id,indicator_key,version,title_el,title_en,category,numerator_definition,denominator_definition,numerator_metric,denominator_metric,multiplier,unit,unit_en,source_authority,effective_from,effective_to,status,calculation_type,target_value,direction,approved_at'
@@ -9,6 +13,8 @@ export async function loadIndicatorDefinitions(organizationId){assertCloud(organ
 
 export async function saveIndicatorDefinition(organizationId,item){
  assertCloud(organizationId)
+ if(item.calculationType==='auto'&&!INDICATOR_METRICS.includes(item.numeratorMetric))throw new Error('Unsupported numerator metric.')
+ if(item.denominatorMetric&&!INDICATOR_METRICS.includes(item.denominatorMetric))throw new Error('Unsupported denominator metric.')
  const {data:{user}}=await supabase.auth.getUser();const actor=user?.id||null,activating=item.status==='active'
  const payload={organization_id:item.system?null:organizationId,indicator_key:String(item.key||'').trim(),version:String(item.version||'1.0').trim(),title_el:String(item.titleEl||'').trim(),title_en:String(item.titleEl||'').trim(),category:String(item.category||'general').trim(),numerator_definition:item.numeratorDefinition||{},denominator_definition:item.denominatorDefinition||{},numerator_metric:item.calculationType==='auto'?(item.numeratorMetric||null):null,denominator_metric:item.calculationType==='auto'?(item.denominatorMetric||null):null,multiplier:Number(item.multiplier||1),unit:item.unit||null,unit_en:item.unit||null,source_authority:item.sourceAuthority||null,effective_from:item.effectiveFrom||null,effective_to:item.effectiveTo||null,status:item.status||'draft',calculation_type:item.calculationType||'auto',target_value:item.targetValue===''||item.targetValue==null?null:Number(item.targetValue),direction:item.direction||'context',approved_by:activating?actor:null,approved_at:activating?new Date().toISOString():null}
  if(!isUuid(item.id))payload.created_by=actor
