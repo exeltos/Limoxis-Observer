@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { appConfig, hasSupabaseConfig } from '../config/env'
 import { supabase } from '../supabase/client'
 import { signInWithPassword, signOut as remoteSignOut } from './authService'
@@ -15,9 +15,14 @@ const DEMO_USER = Object.freeze({
 
 export function AuthProvider({ children }) {
   const helpPreviewMode=typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('helpPreview')==='1'&&window.self!==window.top
-  const [session, setSession] = useState(()=>helpPreviewMode?{access_token:'help-preview',user:DEMO_USER}:null)
-  const [profile, setProfile] = useState(()=>helpPreviewMode?DEMO_USER:null)
-  const [loading, setLoading] = useState(helpPreviewMode?false:hasSupabaseConfig)
+  const initial=helpPreviewMode
+    ? {session:{access_token:'help-preview',user:DEMO_USER},profile:DEMO_USER,loading:false}
+    : {session:null,profile:null,loading:hasSupabaseConfig}
+  const [authState,setAuthState]=useState(initial)
+  const stateRef=useRef(initial)
+  const transitionRef=useRef(0)
+
+  useEffect(()=>{stateRef.current=authState},[authState])
 
   const loadProfile = useCallback(async (user) => {
     if (!supabase || !user) return null
@@ -38,84 +43,87 @@ export function AuthProvider({ children }) {
       : { id: user.id, email: user.email, fullName: user.email, isPlatformOwner: false, isDemo:false }
   }, [])
 
+  const hydrateSession=useCallback(async(nextSession,{force=false}={})=>{
+    const transition=++transitionRef.current
+    if(!nextSession?.user){
+      if(transition===transitionRef.current)setAuthState({session:null,profile:null,loading:false})
+      return null
+    }
+    const current=stateRef.current
+    if(!force&&current.session?.access_token===nextSession.access_token&&current.profile?.id===nextSession.user.id){
+      if(current.loading)setAuthState({...current,loading:false})
+      return current.profile
+    }
+    try{
+      const nextProfile=await loadProfile(nextSession.user)
+      if(transition!==transitionRef.current)return nextProfile
+      setAuthState({session:nextSession,profile:nextProfile,loading:false})
+      return nextProfile
+    }catch(error){
+      if(transition===transitionRef.current)setAuthState({session:nextSession,profile:null,loading:false})
+      throw error
+    }
+  },[loadProfile])
+
   useEffect(() => {
     if (helpPreviewMode) return undefined
     if (!supabase) {
-      setLoading(false)
+      setAuthState({session:null,profile:null,loading:false})
       return undefined
     }
 
     let mounted = true
-    supabase.auth.getSession().then(async ({ data }) => {
+    supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return
-      setSession(data.session)
-      if (data.session?.user) {
-        try { setProfile(await loadProfile(data.session.user)) } catch { setProfile(null) }
-      }
-      setLoading(false)
+      hydrateSession(data.session,{force:true}).catch(()=>{})
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!nextSession?.user) {
-        setSession(null)
-        setProfile(null)
-        return
-      }
-      loadProfile(nextSession.user)
-        .then(nextProfile => {
-          setProfile(nextProfile)
-          setSession(nextSession)
-        })
-        .catch(() => {
-          setProfile(null)
-          setSession(nextSession)
-        })
+      if(!mounted)return
+      hydrateSession(nextSession).catch(()=>{})
     })
 
     return () => {
       mounted = false
+      transitionRef.current+=1
       listener.subscription.unsubscribe()
     }
-  }, [loadProfile, helpPreviewMode])
+  }, [hydrateSession, helpPreviewMode])
 
   const login = useCallback(async (identifier, password) => {
     const data = await signInWithPassword(identifier, password)
     const nextSession = data?.session ?? data ?? null
-    const nextUser = nextSession?.user ?? data?.user ?? null
-    if (nextUser) {
-      const nextProfile = await loadProfile(nextUser)
-      setProfile(nextProfile)
-      if (nextSession) setSession(nextSession)
-    }
+    if(nextSession?.user)await hydrateSession(nextSession,{force:true})
     return data
-  }, [loadProfile])
+  }, [hydrateSession])
   const loginDemo = useCallback(() => {
     if (!appConfig.allowDemo) throw new Error('DEMO_DISABLED')
-    setSession({ access_token: 'demo', user: DEMO_USER })
-    setProfile(DEMO_USER)
+    transitionRef.current+=1
+    setAuthState({session:{ access_token: 'demo', user: DEMO_USER },profile:DEMO_USER,loading:false})
   }, [])
   const logout = useCallback(async () => {
-    if (profile?.isDemo) {
-      setSession(null)
-      setProfile(null)
+    if (authState.profile?.isDemo) {
+      transitionRef.current+=1
+      setAuthState({session:null,profile:null,loading:false})
       return
     }
     await remoteSignOut()
-  }, [profile])
+    await hydrateSession(null)
+  }, [authState.profile?.isDemo,hydrateSession])
 
   const value = useMemo(() => ({
-    session,
-    user: session?.user ?? null,
-    profile,
-    loading,
-    isAuthenticated: Boolean(session?.user),
-    isDemoSession: Boolean(profile?.isDemo),
+    session:authState.session,
+    user: authState.session?.user ?? null,
+    profile:authState.profile,
+    loading:authState.loading,
+    isAuthenticated: Boolean(authState.session?.user),
+    isDemoSession: Boolean(authState.profile?.isDemo),
     hasSupabaseConfig,
     allowDemo: appConfig.allowDemo,
     login,
     loginDemo,
     logout,
-  }), [session, profile, loading, login, loginDemo, logout])
+  }), [authState, login, loginDemo, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
