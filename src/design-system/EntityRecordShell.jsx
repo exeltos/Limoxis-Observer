@@ -26,7 +26,8 @@ function isGeneralRecordAction(action){
     className.includes('general-edit-button')||
     (className.includes('entity-record-icon-button')&&className.includes('danger'))||
     aria.startsWith('edit')||aria.startsWith('επεξεργ')||
-    title==='edit'||title==='επεξεργασία'
+    aria.startsWith('delete')||aria.startsWith('διαγραφ')||aria.startsWith('archive')||aria.startsWith('αρχειοθέτ')||
+    title==='edit'||title==='επεξεργασία'||title.startsWith('delete')||title.startsWith('διαγραφ')||title.startsWith('archive')||title.startsWith('αρχειοθέτ')
 }
 
 export function EntityRecordShell({
@@ -77,9 +78,10 @@ export function EntityRecordShell({
   }:null
   const effectiveRecordNavigation=recordNavigation||fallbackNavigation
 
-  const actionList=flattenActions(headerActions)
-  const generalActions=actionList.filter(isGeneralRecordAction)
-  const utilityActions=actionList.filter(action=>!isGeneralRecordAction(action))
+  // Record cards deliberately expose only the canonical edit/destructive pair.
+  // Print, export, download and workflow buttons belong to their module/list or tab content,
+  // never to the record header. This keeps every record visually identical to Employee.
+  const generalActions=flattenActions(headerActions).filter(isGeneralRecordAction)
 
   return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${className}`.trim()}>
     <header className="entity-record-header surface">
@@ -97,7 +99,6 @@ export function EntityRecordShell({
           {effectiveRecordNavigation.position&&effectiveRecordNavigation.total>0&&<span>{effectiveRecordNavigation.position}/{effectiveRecordNavigation.total}</span>}
           <button type="button" className="entity-record-icon-button" disabled={!effectiveRecordNavigation.hasNext} onClick={effectiveRecordNavigation.next} title={en?'Next record':'Επόμενη εγγραφή'} aria-label={en?'Next record':'Επόμενη εγγραφή'}><ChevronRight size={16}/></button>
         </div>}
-        {utilityActions}
       </div>
     </header>
     <nav className="entity-record-tabs surface" role="tablist">
