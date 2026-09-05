@@ -26,7 +26,7 @@ function fromRow(row){
     version:row.version,
     description:row.description||'',
     ownerId:row.owner_id||null,
-    owner:row.owner_id||'',
+    owner:'',
     revisionOfDbId:row.revision_of_id||null,
     supersedesDbId:row.supersedes_id||null,
     effectiveDate:row.effective_date||'',
@@ -59,6 +59,13 @@ export async function loadDocumentsAsync(organizationId){
   const {data,error}=await supabase.from('controlled_documents').select(COLUMNS).eq('organization_id',organizationId).order('updated_at',{ascending:false})
   if(error)throw error
   return (data||[]).map(fromRow)
+}
+
+export async function loadDocumentOwnerProfile(ownerId){
+  if(!ownerId||!supabase)return null
+  const {data,error}=await supabase.from('profiles').select('id,full_name,username,job_title').eq('id',ownerId).maybeSingle()
+  if(error)throw error
+  return data||null
 }
 
 export async function createDocumentAsync(organizationId,draft,actor,existing=[]){
