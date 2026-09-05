@@ -1,17 +1,23 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Activity, BarChart3, Building2, Clock3, FlaskConical, Settings, ShieldCheck } from 'lucide-react'
+import { Activity, ArrowRight, BarChart3, Building2, Clock3, FlaskConical, Settings, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 
 function DashboardAction({ icon, title, description, meta, onClick }) {
   return (
-    <button type="button" className="platform-control-card platform-owner-clickable-row" onClick={onClick}>
-      <span className="platform-control-card-icon">{icon}</span>
-      <span className="platform-control-card-copy">
-        <strong>{title}</strong>
-        <small>{description}</small>
+    <button
+      type="button"
+      className="platform-control-card platform-owner-clickable-row"
+      onClick={onClick}
+      style={{minHeight:168,padding:22,gridTemplateColumns:'auto minmax(0,1fr) auto',alignItems:'start'}}
+    >
+      <span className="platform-control-card-icon" style={{width:46,height:46,borderRadius:13}}>{icon}</span>
+      <span className="platform-control-card-copy" style={{gap:8,paddingTop:2}}>
+        <strong style={{fontSize:15,lineHeight:1.25}}>{title}</strong>
+        <small style={{fontSize:11.5,lineHeight:1.55,maxWidth:310}}>{description}</small>
+        {meta ? <span className="platform-control-card-meta" style={{marginTop:5}}>{meta}</span> : null}
       </span>
-      {meta ? <span className="platform-control-card-meta">{meta}</span> : null}
+      <span aria-hidden="true" style={{display:'grid',placeItems:'center',width:30,height:30,borderRadius:9,color:'var(--lo-color-primary)',background:'var(--lo-color-surface-subtle)'}}><ArrowRight size={16}/></span>
     </button>
   )
 }
@@ -43,46 +49,48 @@ export function PlatformDashboardView({
         'Central control of organizations, access, analytics and operational status.'
       )}
     >
-      <section className="platform-center-section platform-control-plane">
-        <div className="platform-control-grid">
+      <section className="platform-center-section platform-control-plane" style={{padding:18}}>
+        <div className="platform-control-grid" style={{gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:14}}>
           <DashboardAction
-            icon={<Building2 size={18} />}
+            icon={<Building2 size={21} />}
             title={tx('Οργανισμοί', 'Organizations')}
             description={tx('Registry, χρήστες, πρόσβαση και ρυθμίσεις οργανισμού.', 'Registry, users, access and organization settings.')}
-            meta={`${activeOrganizations}/${organizations.length}`}
+            meta={`${activeOrganizations}/${organizations.length} ${tx('ενεργοί','active')}`}
             onClick={() => onNavigate('/platform#organizations')}
           />
           <DashboardAction
-            icon={<BarChart3 size={18} />}
+            icon={<BarChart3 size={21} />}
             title={tx('Ανάλυση', 'Analytics')}
             description={tx('Canonical analytics για όλη την πλατφόρμα ή επιλεγμένο οργανισμό.', 'Canonical analytics for the whole platform or a selected organization.')}
+            meta={tx('Συγκεντρωτική εικόνα','Platform overview')}
             onClick={() => onNavigate('/platform#reports')}
           />
           <DashboardAction
-            icon={<FlaskConical size={18} />}
+            icon={<FlaskConical size={21} />}
             title="Demo"
-            description={tx('Διαχείριση demo πρόσβασης και lifecycle.', 'Manage demo access and lifecycle.')}
-            meta={loadingStats ? '—' : String(activeDemos.length)}
+            description={tx('Διαχείριση demo πρόσβασης, διάρκειας και lifecycle.', 'Manage demo access, duration and lifecycle.')}
+            meta={loadingStats ? '—' : `${activeDemos.length} ${tx('ενεργά','active')}`}
             onClick={() => onNavigate('/platform#demo')}
           />
           <DashboardAction
-            icon={<Activity size={18} />}
+            icon={<Activity size={21} />}
             title={tx('Υγεία Πλατφόρμας', 'Platform Health')}
             description={tx('Συγκεντρωτική λειτουργική εικόνα, αποτυχίες και προειδοποιήσεις όλων των οργανισμών.', 'Aggregated operational health, failures and warnings across organizations.')}
-            meta={tx('live εικόνα', 'live view')}
+            meta={tx('Ζωντανή εικόνα', 'Live view')}
             onClick={() => onNavigate('/platform/health')}
           />
           <DashboardAction
-            icon={<ShieldCheck size={18} />}
+            icon={<ShieldCheck size={21} />}
             title={tx('Audit & Ασφάλεια', 'Audit & Security')}
             description={tx('Ιχνηλασιμότητα ενεργειών Platform Owner, αλλαγών πρόσβασης και κρίσιμων διοικητικών ενεργειών.', 'Trace Platform Owner actions, access changes and critical administrative operations.')}
-            meta={tx('μόνο ανάγνωση', 'read only')}
+            meta={tx('Μόνο ανάγνωση', 'Read only')}
             onClick={() => onNavigate('/platform/audit')}
           />
           <DashboardAction
-            icon={<Settings size={18} />}
+            icon={<Settings size={21} />}
             title={tx('Ρυθμίσεις Πλατφόρμας', 'Platform Settings')}
             description={tx('Καθολικές λειτουργικές προεπιλογές και ανακοινώσεις πλατφόρμας.', 'Global operational defaults and platform notices.')}
+            meta={tx('Διαχείριση','Manage')}
             onClick={() => onNavigate('/platform/settings')}
           />
         </div>
