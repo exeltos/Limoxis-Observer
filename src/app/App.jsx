@@ -33,8 +33,10 @@ const QualityPage = lazyNamed(() => import('../features/quality/QualityPage'), '
 const QualityRecordPage = lazyNamed(() => import('../features/quality/QualityRecordPage'), 'QualityRecordPage')
 const QualityCreatePage = lazyNamed(() => import('../features/quality/QualityCreatePage'), 'QualityCreatePage')
 const TrainingPageRoute = lazyNamed(() => import('../features/training/TrainingPageRoute'), 'TrainingPageRoute')
+const TrainingCreatePage = lazyNamed(() => import('../features/training/TrainingCreatePage'), 'TrainingCreatePage')
 const TrainingAccessPage = lazyNamed(() => import('../features/training/TrainingAccessPage'), 'TrainingAccessPage')
 const CommitteesPage = lazyNamed(() => import('../features/committees/CommitteesPage'), 'CommitteesPage')
+const CommitteeCreatePage = lazyNamed(() => import('../features/committees/CommitteeCreatePage'), 'CommitteeCreatePage')
 const CommitteeRecordPageRoute = lazyNamed(() => import('../features/committees/CommitteeRecordPageRoute'), 'CommitteeRecordPageRoute')
 const DocumentsPage = lazyNamed(() => import('../features/documents/DocumentsPage'), 'DocumentsPage')
 const DocumentRecordPage = lazyNamed(() => import('../features/documents/DocumentRecordPage'), 'DocumentRecordPage')
@@ -47,6 +49,7 @@ const OccupationalHealthPage = lazyNamed(() => import('../features/occupational-
 const LiraPage = lazyNamed(() => import('../features/lira/LiraPage'), 'LiraPage')
 const ManagementPage = lazyNamed(() => import('../features/management/ManagementPage'), 'ManagementPage')
 const IndicatorsPage = lazyNamed(() => import('../features/indicators/IndicatorsPage'), 'IndicatorsPage')
+const IndicatorCreatePage = lazyNamed(() => import('../features/indicators/IndicatorCreatePage'), 'IndicatorCreatePage')
 const MyDepartmentPage = lazyNamed(() => import('../features/workspaces/MyDepartmentPage'), 'MyDepartmentPage')
 const AboutPage = lazyNamed(() => import('../features/about/AboutPage'), 'AboutPage')
 const AnalysisPage = lazyNamed(() => import('../features/analysis/AnalysisPage'), 'AnalysisPage')
@@ -59,10 +62,8 @@ const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={c
 function HomeRoute() {
   const { profile } = useAuth()
   const { activeMembershipId, isDemo, loading } = useTenant()
-
   if (loading) return <RouteLoading />
   if (profile?.isPlatformOwner && !activeMembershipId && !isDemo) return <Navigate to="/platform" replace />
-
   return gate(CAPABILITIES.VIEW_DASHBOARD, <DashboardPage />)
 }
 
@@ -101,9 +102,12 @@ export function App() {
         <Route path="quality/:recordType/new" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_QUALITY, <QualityCreatePage />)}</Suspense>} />
         <Route path="quality/:recordType/:recordId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_QUALITY, <QualityRecordPage />)}</Suspense>} />
         <Route path="indicators" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_INDICATORS, <IndicatorsPage />)}</Suspense>} />
+        <Route path="indicators/new" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.MANAGE_INDICATORS, <IndicatorCreatePage />)}</Suspense>} />
         <Route path="training" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_TRAINING, <TrainingPageRoute />)}</Suspense>} />
+        <Route path="training/new" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.MANAGE_TRAINING, <TrainingCreatePage />)}</Suspense>} />
         <Route path="training/:programId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_TRAINING, <TrainingPageRoute />)}</Suspense>} />
         <Route path="committees" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_COMMITTEES, <CommitteesPage />)}</Suspense>} />
+        <Route path="committees/new" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.CREATE_COMMITTEE, <CommitteeCreatePage />)}</Suspense>} />
         <Route path="committees/:committeeId" element={<Suspense fallback={<RouteLoading/>}><CommitteeRecordPageRoute /></Suspense>} />
         <Route path="documents" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DOCUMENTS, <DocumentsPage />)}</Suspense>} />
         <Route path="documents/:documentId" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_DOCUMENTS, <DocumentRecordPage />)}</Suspense>} />
