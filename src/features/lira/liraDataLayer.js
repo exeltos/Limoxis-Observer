@@ -26,6 +26,17 @@ export function assertLiraScope(context){
   return {safe:true,reason:null}
 }
 
+function bundleSignals(criteria,score){
+  if(Array.isArray(criteria)){
+    const failedCount=criteria.filter(item=>item&&(item.compliant===false||item.passed===false||item.value===false)).length
+    return {failedCount,allOrNone:criteria.length?failedCount===0:Number(score)>=100}
+  }
+  const answers=criteria?.answers&&typeof criteria.answers==='object'?criteria.answers:{}
+  const applicable=Object.values(answers).filter(value=>value==='yes'||value==='no')
+  const failedCount=applicable.filter(value=>value==='no').length
+  return {failedCount,allOrNone:applicable.length?failedCount===0:Number(score)>=100}
+}
+
 export async function loadLiraData({isDemo=false,organizationId=null}={}){
   if(isDemo)return {surveillance:surveillanceDemoData,laboratory:laboratorySamples,handHygiene:handHygieneRows,bundles:bundleRows,qualityIncidents,qualityCapas,patientDays:[],haiClassifications:[],devices:[],generatedAt:new Date().toISOString(),source:'demo'}
   if(!supabase||!organizationId) throw new Error('LIRA_CONTEXT_NOT_AVAILABLE')
@@ -49,7 +60,7 @@ export async function loadLiraData({isDemo=false,organizationId=null}={}){
   )
   const handHygiene=(handRes.data||[]).filter(x=>x.status!=='draft').map(row=>{const observations=Number(row.observations)||0;const compliant=Number(row.compliant_observations)||0;return {id:row.id,departmentEl:departments.get(row.department_id)||'—',departmentEn:departments.get(row.department_id)||'—',observations,rate:observations?Math.round(compliant/observations*100):0,date:row.observation_date,signalDate:row.observation_date}}
   )
-  const bundles=(bundleRes.data||[]).filter(x=>x.status!=='draft').map(row=>{const criteria=Array.isArray(row.criteria)?row.criteria:[];const failedCount=criteria.filter(item=>item&&(item.compliant===false||item.passed===false||item.value===false)).length;const score=Number(row.score)||0;return {id:row.id,departmentEl:departments.get(row.department_id)||'—',departmentEn:departments.get(row.department_id)||'—',bundle:row.bundle_key,score,failedCount,allOrNone:criteria.length?failedCount===0:score>=100,date:row.assessment_date,signalDate:row.assessment_date}}
+  const bundles=(bundleRes.data||[]).filter(x=>x.status!=='draft').map(row=>{const score=Number(row.score)||0;const signals=bundleSignals(row.criteria,score);return {id:row.id,departmentEl:departments.get(row.department_id)||'—',departmentEn:departments.get(row.department_id)||'—',bundle:row.bundle_key,score,failedCount:signals.failedCount,allOrNone:signals.allOrNone,date:row.assessment_date,signalDate:row.assessment_date}}
   )
   const qualityIncidentsRows=(incidentRes.data||[]).map(row=>({id:row.id,title:row.title,department:departments.get(row.department_id)||'—',severity:row.severity,status:row.status,date:row.occurred_at,signalDate:row.occurred_at}))
   const qualityCapaRows=(capaRes.data||[]).map(row=>({id:row.id,title:row.title,department:departments.get(row.department_id)||'—',status:row.status,dueDate:row.due_date,priority:row.priority,signalDate:row.due_date}))
