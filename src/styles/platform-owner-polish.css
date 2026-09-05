@@ -155,8 +155,6 @@
   background:transparent;
 }
 
-/* Demo contact details need more horizontal room than the identity/access cards.
-   Keep the same canonical three-card composition, but weight the middle card wider. */
 .platform-demo-info-sections{
   grid-template-columns:minmax(0,.92fr) minmax(340px,1.28fr) minmax(0,.92fr);
 }
@@ -238,8 +236,6 @@
 .platform-form-grid .field input,
 .platform-form-grid .field select{width:100%;min-height:38px;height:38px;border-radius:var(--lo-radius-control);padding:0 10px;font-size:11.5px;background:var(--lo-color-surface)}
 .platform-form-grid .field input[readonly]{background:var(--lo-shell-control-hover);color:var(--lo-color-muted)}
-/* Demo access dates belong together as one range. When a form section contains
-   ManualDateField controls, contact + email + from + until share one row. */
 .platform-form-grid:has(>.manual-date-field){grid-template-columns:repeat(4,minmax(0,1fr))}
 .platform-form-grid:has(>.manual-date-field)>.manual-date-field{min-width:0}
 .platform-demo-edit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -373,3 +369,20 @@
 .platform-organization-summary-strip span{font-size:11px;color:var(--lo-color-muted)}
 .platform-organization-summary-strip strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:900px){.platform-organization-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Organization users: canonical registry geometry inside the owner record. */
+.platform-owner-users{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(220px,1fr) auto!important;
+  gap:10px!important;
+  overflow:hidden!important;
+  height:100%!important;
+}
+.platform-owner-users>.platform-user-role-help{grid-row:1}
+.platform-owner-users>.platform-user-record-header-actions{grid-row:1;justify-self:end;align-self:start}
+.platform-owner-users>.filter-bar{grid-row:2;width:min(620px,100%);margin:0!important}
+.platform-owner-users>.scroll-table{grid-row:3;min-height:220px!important;height:100%!important;max-height:none!important;overflow:auto!important;border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-radius-card)!important;background:var(--lo-color-surface)!important}
+.platform-owner-users>.scroll-table .data-table{table-layout:fixed;width:100%}
+.platform-owner-users>.scroll-table th{font-size:10px!important;padding:8px 10px!important}.platform-owner-users>.scroll-table td{font-size:11.5px!important;padding:9px 10px!important}.platform-owner-users>.scroll-table td strong{font-size:12px!important}.platform-owner-users>.scroll-table td small{font-size:10px!important}
+.platform-owner-users>.registry-pagination{grid-row:4;margin-top:0!important;border-top:0!important;padding-top:0!important}
+@media(max-width:760px){.platform-owner-users{grid-template-rows:auto auto minmax(180px,1fr) auto!important}.platform-owner-users>.platform-user-record-header-actions{grid-row:auto;justify-self:stretch}.platform-owner-users>.filter-bar{width:100%}}
