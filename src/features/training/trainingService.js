@@ -2,6 +2,7 @@ import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadTrainingState,saveTrainingState,trainingDemoState } from './trainingData'
+import { DEFAULT_TRAINER_FEEDBACK_TEMPLATE,normalizeTrainerFeedbackTemplate } from './trainingFeedbackTemplate'
 
 function requireProduction(organizationId,operation){
   if(isDemoDataEnvironment())return false
@@ -32,7 +33,7 @@ export async function loadTrainingStateAsync(organizationId){
   return normalizeRows(data||[])
 }
 
-const learnerOwnedAssignmentFields=['attendance','attendanceResponse','attendanceConfirmedAt','completionConfirmedAt','feedbackSubmittedAt','assessmentSubmittedAt','score','competent','certificateId','feedbackScores','feedbackComment','completedDate','accessToken','invitationSentAt']
+const learnerOwnedAssignmentFields=['attendance','attendanceResponse','attendanceConfirmedAt','completionConfirmedAt','feedbackSubmittedAt','assessmentSubmittedAt','assessmentAnswers','score','competent','certificateId','feedbackScores','feedbackComment','completedDate','accessToken','invitationSentAt','assessmentReviewStatus']
 
 async function resolveAssignmentIdentity(organizationId,assignment){
   if(assignment?.userId)return {userId:assignment.userId,departmentId:assignment.departmentId||null,email:assignment.email||null,accountLinked:true}
@@ -60,9 +61,27 @@ async function upsertRecord(organizationId,recordType,payload,{departmentId=null
   return data
 }
 
+export async function loadTrainerFeedbackTemplateAsync(organizationId){
+  if(isDemoDataEnvironment())return normalizeTrainerFeedbackTemplate(DEFAULT_TRAINER_FEEDBACK_TEMPLATE)
+  requireProduction(organizationId,'feedback_template_load')
+  const {data,error}=await supabase.from('training_records').select('payload').eq('organization_id',organizationId).eq('record_type','feedback_template').eq('record_key','TRAINER-FEEDBACK-DEFAULT').maybeSingle()
+  if(error)throw error
+  return normalizeTrainerFeedbackTemplate(data?.payload||DEFAULT_TRAINER_FEEDBACK_TEMPLATE)
+}
+
+export async function saveTrainerFeedbackTemplateAsync(organizationId,template){
+  const normalized=normalizeTrainerFeedbackTemplate(template)
+  if(!normalized.questions.length)throw new Error('TRAINER_FEEDBACK_TEMPLATE_REQUIRES_QUESTIONS')
+  if(isDemoDataEnvironment())return normalized
+  requireProduction(organizationId,'feedback_template_save')
+  await upsertRecord(organizationId,'feedback_template',{...normalized,id:'TRAINER-FEEDBACK-DEFAULT',updatedAt:new Date().toISOString()})
+  return normalized
+}
+
 export async function createTrainingProgramAsync(organizationId,draft){
   const now=new Date().toISOString()
-  const program={...draft,id:`TRN-${Date.now()}`,validMonths:Number(draft.validMonths)||null,passScore:draft.requiresAssessment?Number(draft.passScore)||0:null,materials:[],assessmentQuestions:[],feedbackResponses:[],createdAt:now,updatedAt:now}
+  const trainerFeedbackTemplate=isDemoDataEnvironment()?normalizeTrainerFeedbackTemplate(DEFAULT_TRAINER_FEEDBACK_TEMPLATE):await loadTrainerFeedbackTemplateAsync(organizationId)
+  const program={...draft,id:`TRN-${Date.now()}`,validMonths:Number(draft.validMonths)||null,passScore:draft.requiresAssessment?Number(draft.passScore)||0:null,materials:[],assessmentQuestions:[],trainerFeedbackTemplate,feedbackResponses:[],createdAt:now,updatedAt:now}
   if(isDemoDataEnvironment()){
     const state=loadTrainingState();saveTrainingState({...state,programs:[program,...state.programs]});return program
   }
