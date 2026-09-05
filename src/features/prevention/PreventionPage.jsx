@@ -9,7 +9,6 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { wasteRows } from './preventionDemoData'
 import { PreventionEntryModal } from './PreventionEntryModal'
 import { WhoHandHygieneModal } from './WhoHandHygieneModal'
 import { WasteEntryModal } from './WasteEntryModal'
@@ -18,11 +17,12 @@ import { BundleExecutionModal } from './BundleExecutionModal'
 import { loadHandHygieneDepartments,loadHandHygieneSessions,saveHandHygieneSession } from './handHygieneCloudService'
 import { findPatientDaysForPeriod,loadAntisepticRecords,loadAntisepticSupportData,saveAntisepticRecord } from './antisepticCloudService'
 import { loadBundleAssessments,loadBundleSupportData,saveBundleAssessment } from './bundleCloudService'
+import { findWastePatientDays,loadWasteMeasurements,loadWasteSupportData,saveWasteMeasurement } from './wasteCloudService'
 import { readRegistryViewState, useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { wasteCategoryTone } from './wasteVisuals'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { useAuth } from '../../core/auth/AuthContext'
-import { auditActorFromAuth,auditEvent } from '../../core/audit/actor'
+import { auditActorFromAuth } from '../../core/audit/actor'
 import { openCorrection } from '../../core/audit/governedLifecycle'
 import { MetricCard } from '../../design-system/MetricCard'
 
@@ -42,10 +42,11 @@ export function PreventionPage(){
  const registry=useRegistryMemory(`prevention-${tab}`)
  const savedView=registry.loadViewState({query:'',department:'all',period:'all',product:'all',method:'all'})
  const [query,setQuery]=useState(savedView.query),[department,setDepartment]=useState(savedView.department),[period,setPeriod]=useState(savedView.period),[product,setProduct]=useState(savedView.product),[method,setMethod]=useState(savedView.method)
- const [entryOpen,setEntryOpen]=useState(false),[editingRecord,setEditingRecord]=useState(null),[version,setVersion]=useState(0)
+ const [entryOpen,setEntryOpen]=useState(false),[editingRecord,setEditingRecord]=useState(null)
  const [governedEdit,setGovernedEdit]=useState(null)
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
  const [handRows,setHandRows]=useState([]),[handDepartments,setHandDepartments]=useState([]),[handLoading,setHandLoading]=useState(false)
+ const [wasteRows,setWasteRows]=useState([]),[wasteSupport,setWasteSupport]=useState({departments:[],wasteTypes:[]}),[wasteLoading,setWasteLoading]=useState(false)
  const [antisepticRows,setAntisepticRows]=useState([]),[antisepticSupport,setAntisepticSupport]=useState({departments:[],products:[]}),[antisepticLoading,setAntisepticLoading]=useState(false)
  const [bundleRows,setBundleRows]=useState([]),[bundleSupport,setBundleSupport]=useState({departments:[],templates:[]}),[bundleLoading,setBundleLoading]=useState(false)
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
@@ -57,13 +58,13 @@ export function PreventionPage(){
  const source=tab==='handHygiene'?handRows:tab==='waste'?wasteRows:tab==='antiseptics'?antisepticRows:bundleRows
  const departments=useMemo(()=>{
   if(tab==='handHygiene')return handDepartments.map(x=>language==='el'?x.el:(x.en||x.el))
+  if(tab==='waste')return wasteSupport.departments.map(x=>language==='el'?x.el:(x.en||x.el))
   if(tab==='antiseptics')return antisepticSupport.departments.map(x=>language==='el'?x.el:(x.en||x.el))
-  if(tab==='bundles')return bundleSupport.departments.map(x=>language==='el'?x.el:(x.en||x.el))
-  return [...new Set(source.map(x=>language==='el'?x.departmentEl:x.departmentEn))]
- },[tab,handDepartments,antisepticSupport.departments,bundleSupport.departments,source,language,version])
- const rows=useMemo(()=>source.filter(x=>x.lifecycleStatus!=='voided').filter(x=>canAccessRecord({...x,department:x.departmentEl})).filter(x=>JSON.stringify(x).toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.departmentEl:x.departmentEn)===department).filter(x=>period==='all'||x.period===period).filter(x=>product==='all'||x.product===product).filter(x=>method==='all'||x.method===method),[source,query,department,period,product,method,language,canAccessRecord,version])
+  return bundleSupport.departments.map(x=>language==='el'?x.el:(x.en||x.el))
+ },[tab,handDepartments,wasteSupport.departments,antisepticSupport.departments,bundleSupport.departments,language])
+ const rows=useMemo(()=>source.filter(x=>x.lifecycleStatus!=='voided').filter(x=>canAccessRecord({...x,department:x.departmentEl})).filter(x=>JSON.stringify(x).toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.departmentEl:x.departmentEn)===department).filter(x=>period==='all'||x.period===period).filter(x=>product==='all'||x.product===product).filter(x=>method==='all'||x.method===method),[source,query,department,period,product,method,language,canAccessRecord])
  useEffect(()=>{setPage(1)},[tab,query,department,period,product,method,pageSize])
- useEffect(()=>{if(tenant?.id){void reloadHandHygiene();void reloadAntiseptics();void reloadBundles()}},[tenant?.id])
+ useEffect(()=>{if(tenant?.id){void reloadHandHygiene();void reloadWaste();void reloadAntiseptics();void reloadBundles()}},[tenant?.id])
  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))
  const safePage=Math.min(page,totalPages)
  const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
@@ -75,6 +76,13 @@ export function PreventionPage(){
   try{const [records,departmentsResult]=await Promise.all([loadHandHygieneSessions(tenant.id),loadHandHygieneDepartments(tenant.id)]);setHandRows(records);setHandDepartments(departmentsResult)}
   catch(error){notifyError(error,'load',{operation:'hand_hygiene_load'})}
   finally{setHandLoading(false)}
+ }
+ async function reloadWaste(){
+  if(!tenant?.id){setWasteRows([]);setWasteSupport({departments:[],wasteTypes:[]});return}
+  setWasteLoading(true)
+  try{const [records,support]=await Promise.all([loadWasteMeasurements(tenant.id),loadWasteSupportData(tenant.id)]);setWasteRows(records);setWasteSupport(support)}
+  catch(error){notifyError(error,'load',{operation:'waste_load'})}
+  finally{setWasteLoading(false)}
  }
  async function reloadAntiseptics(){
   if(!tenant?.id){setAntisepticRows([]);setAntisepticSupport({departments:[],products:[]});return}
@@ -99,33 +107,19 @@ export function PreventionPage(){
  }
  function openPreventionRecord(id,type){registry.saveViewState({tab:type,query,department,period,product,method});registry.openRecord(navigate,`/prevention/${type}/${id}?fromTab=${type}`,id,rows.map(x=>x.id))}
  async function saveEntry(record){
-  if(tab==='handHygiene'){
-   try{await saveHandHygieneSession(tenant.id,record,{existingId:editingRecord?.id||null});await reloadHandHygiene();notify(editingRecord?t('preventionCorrectedSaved'):t('preventionSaved'),'success');setEntryOpen(false);setEditingRecord(null)}
-   catch(error){notifyError(error,'save',{operation:editingRecord?'hand_hygiene_update':'hand_hygiene_create'})}
-   return
-  }
-  if(tab==='antiseptics'){
-   try{await saveAntisepticRecord(tenant.id,record,{existingId:editingRecord?.id||null});await reloadAntiseptics();notify(editingRecord?t('preventionCorrectedSaved'):t('preventionSaved'),'success');setEntryOpen(false);setEditingRecord(null)}
-   catch(error){notifyError(error,'save',{operation:editingRecord?'antiseptic_update':'antiseptic_create'})}
-   return
-  }
-  if(tab==='bundles'){
-   try{await saveBundleAssessment(tenant.id,record,{existingId:editingRecord?.id||null});await reloadBundles();notify(editingRecord?t('preventionCorrectedSaved'):t('preventionSaved'),'success');setEntryOpen(false);setEditingRecord(null)}
-   catch(error){notifyError(error,'save',{operation:editingRecord?'bundle_update':'bundle_create'})}
-   return
-  }
-  const target=wasteRows
-  if(editingRecord){
-   const index=target.findIndex(x=>x.id===editingRecord.id)
-   if(index>=0){const previous=target[index];const {_correctionReason:discardedInternalReason,...cleanRecord}=record;void discardedInternalReason;const event=auditEvent('preventionRecordCorrected',{actor,reason:editingRecord._correctionReason||''});target[index]={...previous,...cleanRecord,lifecycleStatus:'active',correctionOpenedAt:editingRecord.correctionOpenedAt,correctionOpenedBy:editingRecord.correctionOpenedBy,correctionOpenedById:editingRecord.correctionOpenedById,correctionReason:editingRecord.correctionReason,id:editingRecord.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id,revisionHistory:[event,...(editingRecord.revisionHistory||previous.revisionHistory||[])]}}
-   notify(t('preventionCorrectedSaved'),'success')
-  }else{target.unshift({id:makeId(tab),...record});notify(t('preventionSaved'),'success')}
-  setVersion(v=>v+1);setEntryOpen(false);setEditingRecord(null)
+  if(tab==='handHygiene')return saveCloud(()=>saveHandHygieneSession(tenant.id,record,{existingId:editingRecord?.id||null}),reloadHandHygiene,'hand_hygiene')
+  if(tab==='waste')return saveCloud(()=>saveWasteMeasurement(tenant.id,record,{existingId:editingRecord?.id||null}),reloadWaste,'waste')
+  if(tab==='antiseptics')return saveCloud(()=>saveAntisepticRecord(tenant.id,record,{existingId:editingRecord?.id||null}),reloadAntiseptics,'antiseptic')
+  return saveCloud(()=>saveBundleAssessment(tenant.id,record,{existingId:editingRecord?.id||null}),reloadBundles,'bundle')
+ }
+ async function saveCloud(saveFn,reloadFn,operation){
+  try{await saveFn();await reloadFn();notify(editingRecord?t('preventionCorrectedSaved'):t('preventionSaved'),'success');setEntryOpen(false);setEditingRecord(null)}
+  catch(error){notifyError(error,'save',{operation:editingRecord?`${operation}_update`:`${operation}_create`})}
  }
  function editRow(record,event){event?.stopPropagation();setGovernedEdit(record)}
  function confirmGovernedEdit(reason){if(!governedEdit)return;setEditingRecord({...openCorrection(governedEdit,{actor,reason,historyKey:'revisionHistory'}),_correctionReason:reason});setGovernedEdit(null);setEntryOpen(true)}
  function action(a){if(a===UI_ACTIONS.CREATE&&canCreateRecord){setEditingRecord(null);setEntryOpen(true)}}
- const loading=tab==='handHygiene'?handLoading:tab==='antiseptics'?antisepticLoading:tab==='bundles'?bundleLoading:false
+ const loading=tab==='handHygiene'?handLoading:tab==='waste'?wasteLoading:tab==='antiseptics'?antisepticLoading:bundleLoading
 
  return <Page fill className="prevention-registry-page" title={t('preventionCenter')} subtitle={t('preventionSubtitle')} actions={canCreateRecord?<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:createCapability}} onAction={action}/>:null}>
   <div className="workspace-summary prevention-summary"><div className="module-summary-strip"><Kpi icon={ShieldCheck} value={`${avg.toFixed(1)}%`} label={t('whoCompliance')}/><Kpi icon={ClipboardCheck} value={bundleRows.length} label={t('activeBundles')}/><Kpi icon={Recycle} value={`${wasteRows.reduce((s,x)=>s+x.weight,0).toFixed(1)} kg`} label={t('wasteRecorded')}/><Kpi icon={Droplets} value={`${antisepticRows.reduce((s,x)=>s+x.litres,0).toFixed(1)} L`} label={t('antisepticRecorded')}/></div></div>
@@ -135,19 +129,18 @@ export function PreventionPage(){
    <div className="scroll-table" ref={registry.scrollRef}>
     {loading&&<div className="registry-empty-state"><strong>{language==='en'?'Loading records…':'Φόρτωση καταγραφών…'}</strong></div>}
     {tab==='handHygiene'&&!loading&&<HandTable rows={pagedRows} t={t} language={language} fmtDate={fmtDate} onOpen={id=>openPreventionRecord(id,'handHygiene')} registry={registry} canEdit={canCreateRecord} onEdit={editRow}/>}
-    {tab==='waste'&&<WasteTable rows={pagedRows} t={t} language={language} fmtDate={fmtDate} onOpen={id=>openPreventionRecord(id,'waste')} registry={registry} canEdit={canCreateRecord} onEdit={editRow}/>}
+    {tab==='waste'&&!loading&&<WasteTable rows={pagedRows} t={t} language={language} fmtDate={fmtDate} onOpen={id=>openPreventionRecord(id,'waste')} registry={registry} canEdit={canCreateRecord} onEdit={editRow}/>}
     {tab==='antiseptics'&&!loading&&<AntisepticTable rows={pagedRows} t={t} language={language} onOpen={id=>openPreventionRecord(id,'antiseptics')} registry={registry} canEdit={canCreateRecord} onEdit={editRow}/>}
     {tab==='bundles'&&!loading&&<BundleTable rows={pagedRows} t={t} language={language} onOpen={id=>openPreventionRecord(id,'bundles')} registry={registry} canEdit={canCreateRecord} onEdit={editRow}/>}
     {!loading&&!rows.length&&<PreventionEmpty language={language} tab={tab}/>} 
    </div>
    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
   </div>
-  {entryOpen&&canCreateRecord&&(tab==='handHygiene'?<WhoHandHygieneModal departments={handDepartments} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='waste'?<WasteEntryModal initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='antiseptics'?<AntisepticEntryModal departments={antisepticSupport.departments} products={antisepticSupport.products} findPatientDays={(departmentId,from,to)=>findPatientDaysForPeriod(tenant.id,departmentId,from,to)} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='bundles'?<BundleExecutionModal departments={bundleSupport.departments} templates={bundleSupport.templates} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:<PreventionEntryModal tab={tab} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>)}
+  {entryOpen&&canCreateRecord&&(tab==='handHygiene'?<WhoHandHygieneModal departments={handDepartments} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='waste'?<WasteEntryModal departments={wasteSupport.departments} wasteTypes={wasteSupport.wasteTypes} findPatientDays={(departmentId,date)=>findWastePatientDays(tenant.id,departmentId,date)} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='antiseptics'?<AntisepticEntryModal departments={antisepticSupport.departments} products={antisepticSupport.products} findPatientDays={(departmentId,from,to)=>findPatientDaysForPeriod(tenant.id,departmentId,from,to)} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:tab==='bundles'?<BundleExecutionModal departments={bundleSupport.departments} templates={bundleSupport.templates} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>:<PreventionEntryModal tab={tab} initialRecord={editingRecord} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>{setEntryOpen(false);setEditingRecord(null)}} onSave={saveEntry}/>)}
   <GovernedReasonDialog open={Boolean(governedEdit)} title={t('correctionRecordedMeasurement')} description={t('correctionRevisionHelp')} confirmLabel={t('startCorrection')} onCancel={()=>setGovernedEdit(null)} onConfirm={confirmGovernedEdit}/>
  </Page>
 }
 
-function makeId(tab){const stamp=new Date().toISOString().replace(/\D/g,'').slice(2,12);const prefix=tab==='handHygiene'?'HH':tab==='waste'?'W':tab==='antiseptics'?'A':'B';return `${prefix}-${stamp}-${Math.floor(Math.random()*900+100)}`}
 function Kpi({icon:Icon,value,label}){return <MetricCard icon={Icon} value={value} label={label}/>}
 function PreventionEmpty({language,tab}){const en=language==='en';const names={handHygiene:en?'hand hygiene':'υγιεινής χεριών',waste:en?'waste':'αποβλήτων',antiseptics:en?'antiseptic consumption':'κατανάλωσης αντισηπτικών',bundles:en?'prevention bundles':'bundles πρόληψης'};return <div className="registry-empty-state"><strong>{en?`No ${names[tab]} records`:`Δεν υπάρχουν καταγραφές ${names[tab]}`}</strong><span>{en?'No records have been entered for this organization yet.':'Δεν έχουν καταχωριστεί ακόμη δεδομένα για τον συγκεκριμένο οργανισμό.'}</span></div>}
 function RegistryPagination({language,page,totalPages,totalItems,pageSize,onPageChange,onPageSizeChange}){const en=language==='en';const start=totalItems?((page-1)*pageSize)+1:0;const end=Math.min(page*pageSize,totalItems);return <div className="registry-pagination"><div className="registry-pagination-summary">{totalItems?`${start}–${end} ${en?'of':'από'} ${totalItems}`:(en?'0 records':'0 εγγραφές')}</div><div className="registry-pagination-controls"><label><span>{en?'Rows':'Γραμμές'}</span><select value={pageSize} onChange={event=>onPageSizeChange(Number(event.target.value))}>{PAGE_SIZE_OPTIONS.map(value=><option key={value} value={value}>{value}</option>)}</select></label><button type="button" disabled={page<=1} onClick={()=>onPageChange(page-1)}>‹</button><span>{en?'Page':'Σελίδα'} {page} / {totalPages}</span><button type="button" disabled={page>=totalPages} onClick={()=>onPageChange(page+1)}>›</button></div></div>}
