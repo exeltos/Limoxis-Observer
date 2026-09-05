@@ -1,0 +1,17 @@
+.training-participant-dialog{min-height:0;gap:14px;font-size:14px}
+.observer-dialog-workspace .training-participant-dialog{min-height:560px}
+.training-participant-mode{gap:6px;padding:3px;border-radius:12px}
+.training-participant-mode>button{padding:9px 12px;gap:9px}
+.training-participant-mode>button strong{font-size:13px}.training-participant-mode>button small{font-size:11px}
+.training-participant-basket-summary{padding:8px 10px;border-radius:9px}.training-participant-basket-summary strong{font-size:12.5px}.training-participant-basket-summary span{font-size:11.5px}
+.training-participant-panel{gap:10px}.training-participant-panel-heading h3{font-size:18px;margin:2px 0 3px}.training-participant-panel-heading p{font-size:12.5px;line-height:1.4}.training-selection-count{font-size:11.5px;padding:5px 9px}
+.training-participant-filters{grid-template-columns:minmax(0,1fr) 210px;gap:8px}.training-participant-search{min-height:42px}.training-participant-search input{font-size:14px!important;padding:8px 0!important}.training-participant-filters select{min-height:42px;font-size:14px}
+.training-participant-list-head{font-size:11.5px}.training-participant-table-wrap{max-height:390px}.training-participant-table th{font-size:11px;padding:8px 9px}.training-participant-table td{font-size:13px;padding:10px 9px}.training-participant-table td strong{font-size:13.5px}
+.training-manual-table-wrap{max-height:260px}
+.training-feedback-template-panel{gap:10px}.training-feedback-template-panel .section-toolbar{min-height:auto;align-items:flex-start;gap:12px}.training-feedback-template-panel .section-toolbar h2{font-size:23px;line-height:1.15;margin:2px 0 4px}.training-feedback-template-panel .section-toolbar p{font-size:12.5px;line-height:1.4;max-width:760px}.training-feedback-template-panel .section-toolbar .button{min-height:38px;padding:8px 13px;font-size:13px}
+.training-feedback-template-panel>.record-section{padding:10px 0;margin:0;border:0;background:transparent}.training-feedback-template-panel>.record-section .entry-grid{gap:10px}.training-feedback-template-panel>.record-section input{min-height:40px;font-size:14px;padding:8px 11px}
+.training-feedback-table-wrap{max-height:430px}.training-feedback-table th{font-size:11px;padding:8px 10px}.training-feedback-table td{font-size:13px;padding:10px}.training-feedback-table td strong{font-size:13.5px}.training-feedback-table .record-actions{gap:3px}.training-feedback-table .lo-icon-button{width:30px;height:30px}
+.training-feedback-template-panel .inline-edit-footer{padding-top:10px;gap:10px}.training-feedback-template-panel .source-truth-note{font-size:11.5px;padding:8px 10px}.training-feedback-template-panel .inline-edit-footer .button{min-height:38px;padding:8px 13px;font-size:13px}
+.entity-record-shell .open-record-cell .record-actions .button-secondary{min-height:34px;padding:6px 9px;font-size:12px;border-radius:8px;gap:5px}.entity-record-shell .open-record-cell .record-actions .button-secondary svg{width:14px;height:14px}
+.entity-record-shell .section-toolbar{min-height:auto;padding-block:8px}.entity-record-shell .section-toolbar strong{font-size:15px}.entity-record-shell .section-toolbar small{font-size:11.5px;line-height:1.35}.entity-record-shell .section-toolbar>.button{min-height:38px;padding:8px 12px;font-size:13px}
+@media(max-width:900px){.observer-dialog-workspace .training-participant-dialog{min-height:0}.training-participant-filters{grid-template-columns:1fr}.training-feedback-template-panel .section-toolbar h2{font-size:21px}}
