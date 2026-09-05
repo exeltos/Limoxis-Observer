@@ -1,5 +1,5 @@
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { INDICATOR_METRICS } from './indicatorCloudService'
+import { INDICATOR_METRICS } from './indicatorDefinitionService'
 
 const metricLabels={patient_days:['Νοσηλευτικές ημέρες','Patient days'],active_surveillance:['Ενεργές επιτηρήσεις','Active surveillance'],resistant_active_surveillance:['Ενεργές επιτηρήσεις με MDR/XDR/PDR','Active surveillance with MDR/XDR/PDR'],hh_compliant_actions:['Συμμορφούμενες ενέργειες υγιεινής χεριών','Compliant hand-hygiene actions'],hh_opportunities:['Ευκαιρίες υγιεινής χεριών','Hand-hygiene opportunities'],bundle_all_or_none_pass:['Πλήρως συμμορφούμενα bundles','All-or-none bundle passes'],bundle_executions:['Εκτελέσεις bundles','Bundle executions'],abhr_litres:['Λίτρα αντισηπτικού','Antiseptic litres'],active_staff:['Ενεργοί εργαζόμενοι','Active staff'],active_staff_with_vaccination:['Εργαζόμενοι με εμβολιασμό','Staff with vaccination'],training_completed:['Ολοκληρωμένες εκπαιδεύσεις','Completed training'],training_assignments:['Αναθέσεις εκπαίδευσης','Training assignments'],open_high_incidents:['Ανοιχτά συμβάντα υψηλής σοβαρότητας','Open high-severity incidents'],mdro_bsi:['MDRO θετικές καλλιέργειες','MDRO positive cultures']}
 
