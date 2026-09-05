@@ -164,11 +164,14 @@
   background:#fff!important;
 }
 
-/* Record bodies: normal records/forms scroll vertically. */
+/* Record bodies: normal records/forms scroll vertically. Keep native scroll
+   chaining enabled so the mouse wheel works anywhere over the form, even when
+   the record body itself has no remaining scroll range and the page is the
+   active scroll container. */
 .entity-record-shell>.entity-record-body{
   min-height:0!important;
   overflow:auto!important;
-  overscroll-behavior:contain;
+  overscroll-behavior:auto!important;
 }
 
 /* Only embedded registries lock the record body; their table scrolls internally. */
