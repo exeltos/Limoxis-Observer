@@ -8,12 +8,12 @@ import { loadTrainingEmailAccessAsync,submitTrainingEvaluationAsync } from './tr
 import { trainerFeedbackQuestionsForProgram } from './trainingFeedbackTemplate'
 import { trainingCategoryLabel,trainingMethodLabel } from './TrainingProgramForm'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 
 export function TrainingAccessPage(){
- const {token}=useParams();const {language}=useLanguage();const {isDemo}=useTenant();const {notifyError}=useFeedback()
- if(isDemo)return <DemoTrainingAccess token={token} language={language}/>
+ const {token}=useParams();const {language}=useLanguage();const {notifyError}=useFeedback()
+ const demoAccess=useMemo(()=>findTrainingAccess(loadTrainingState(),token),[token])
+ if(demoAccess)return <DemoTrainingAccess token={token} language={language}/>
  return <ProductionTrainingAccess token={token} language={language} notifyError={notifyError}/>
 }
 
