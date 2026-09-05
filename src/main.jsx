@@ -9,6 +9,7 @@ import { FeedbackProvider } from './core/feedback/FeedbackContext'
 import { NotificationProvider } from './core/notifications/NotificationContext'
 import { DataAccessStatus } from './core/data/DataAccessStatus'
 import { AppErrorBoundary } from './core/errors/AppErrorBoundary'
+import { LiraAssistantLauncher } from './features/lira/LiraAssistantLauncher'
 import './styles/theme.css'
 import './styles/global.css'
 import './styles/design-system-actions.css'
@@ -22,6 +23,7 @@ import './styles/surveillance-refinement.css'
 import './styles/page-density.css'
 import './styles/registry-stable-viewport.css'
 import './styles/control-editor-fullscreen.css'
+import './styles/lira-assistant.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -29,7 +31,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <LanguageProvider>
         <AppErrorBoundary>
           <AuthProvider>
-            <TenantProvider><FeedbackProvider><NotificationProvider><><App /><DataAccessStatus /></></NotificationProvider></FeedbackProvider></TenantProvider>
+            <TenantProvider><FeedbackProvider><NotificationProvider><><App /><LiraAssistantLauncher/><DataAccessStatus /></></NotificationProvider></FeedbackProvider></TenantProvider>
           </AuthProvider>
         </AppErrorBoundary>
       </LanguageProvider>
