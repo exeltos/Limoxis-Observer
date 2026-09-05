@@ -1,73 +1,39 @@
-/* Canonical list/table polish used by record-level registries.
-   Pattern: heading/actions -> search/filter -> flexible table viewport -> pagination at bottom.
-   The table viewport owns scrolling; surrounding record chrome stays fixed. */
+/* Record-level registry support.
+   Tables and pagination intentionally inherit the same canonical contract used by Indicators.
+   No local list density, pagination height, table frame, or filter width overrides live here. */
 
-:root{--lo-registry-row-h:46px;--lo-registry-head-h:36px;--lo-registry-radius:10px}
-
-:is(.platform-owner-users,.platform-diagnostics-panel,.training-participants-registry,.training-participant-workspace) .data-table{width:100%!important;border-collapse:separate!important;border-spacing:0!important}
-:is(.platform-owner-users,.platform-diagnostics-panel,.training-participants-registry,.training-participant-workspace) .data-table thead th{height:var(--lo-registry-head-h)!important;padding:8px 12px!important;background:var(--lo-color-surface-soft,#f6f8fb)!important;color:var(--lo-color-muted)!important;font-size:10px!important;font-weight:800!important;line-height:1.15!important;letter-spacing:.025em!important;border-bottom:1px solid var(--lo-color-border)!important}
-:is(.platform-owner-users,.platform-diagnostics-panel,.training-participants-registry,.training-participant-workspace) .data-table tbody td{min-height:var(--lo-registry-row-h)!important;padding:9px 12px!important;vertical-align:middle!important;font-size:12px!important;line-height:1.28!important;border-bottom:1px solid color-mix(in srgb,var(--lo-color-border) 72%,transparent)!important}
-:is(.platform-owner-users,.platform-diagnostics-panel,.training-participants-registry,.training-participant-workspace) .data-table tbody tr:last-child td{border-bottom:0!important}
-:is(.platform-owner-users,.platform-diagnostics-panel,.training-participants-registry,.training-participant-workspace) .data-table tbody tr:hover td{background:color-mix(in srgb,var(--lo-color-primary) 3%,var(--lo-color-surface))!important}
-:is(.platform-owner-users,.platform-diagnostics-panel,.training-participants-registry,.training-participant-workspace) .data-table td strong{font-size:12.5px!important;line-height:1.25!important;color:var(--lo-color-text)!important}
-:is(.platform-owner-users,.platform-diagnostics-panel,.training-participants-registry,.training-participant-workspace) .data-table td small{display:block!important;margin-top:2px!important;color:var(--lo-color-muted)!important;font-size:10.5px!important;line-height:1.2!important}
-
-/* Owner users: same frame as every canonical registry. */
-.platform-owner-users{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto minmax(0,1fr) 44px!important;gap:10px!important;height:100%!important;min-height:0!important;overflow:hidden!important;align-content:stretch!important}
-.platform-owner-users>.platform-user-role-help{grid-column:1;grid-row:1;padding:0!important;margin:0!important}
-.platform-owner-users>.platform-user-record-header-actions{grid-column:2;grid-row:1;align-self:center!important;margin:0!important}
-.platform-owner-users>.platform-user-record-header-actions .button{min-height:36px!important;height:36px!important;padding:0 12px!important}
-.platform-owner-users>.filter-bar{grid-column:1/-1;grid-row:2;width:min(620px,100%)!important;margin:0!important}
-.platform-owner-users>.scroll-table{grid-column:1/-1;grid-row:3;min-height:0!important;height:100%!important;max-height:none!important;overflow:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-registry-radius) var(--lo-registry-radius) 0 0!important;background:var(--lo-color-surface)!important}
-.platform-owner-users>.scroll-table .data-table{table-layout:fixed!important}
-.platform-owner-users>.scroll-table .data-table th:nth-child(1){width:31%!important}.platform-owner-users>.scroll-table .data-table th:nth-child(2){width:17%!important}.platform-owner-users>.scroll-table .data-table th:nth-child(3){width:32%!important}.platform-owner-users>.scroll-table .data-table th:nth-child(4){width:20%!important}
-.platform-owner-users>.registry-pagination{grid-column:1/-1;grid-row:4;min-height:44px!important;height:44px!important;margin:0!important;padding:0 12px!important;border:1px solid var(--lo-color-border)!important;border-top:0!important;border-radius:0 0 var(--lo-registry-radius) var(--lo-registry-radius)!important;background:#fff!important}
-
-/* Owner activity/events: same table + attached pagination contract. */
-.platform-diagnostics-panel{display:grid!important;grid-template-rows:auto auto auto minmax(0,1fr) 44px!important;gap:10px!important;height:100%!important;min-height:0!important;overflow:hidden!important;padding:12px 14px 14px!important}
-.platform-diagnostics-panel>.platform-section-heading,.platform-diagnostics-panel>.diagnostics-summary-strip,.platform-diagnostics-panel>.filter-bar{min-height:0!important;margin:0!important}
-.platform-diagnostics-panel>.filter-bar{width:min(760px,100%)!important}
-.platform-diagnostics-panel>.diagnostics-table-wrap{min-height:0!important;height:100%!important;max-height:none!important;overflow:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-registry-radius) var(--lo-registry-radius) 0 0!important;background:var(--lo-color-surface)!important}
-.platform-diagnostics-panel>.registry-pagination{min-height:44px!important;height:44px!important;margin:0!important;padding:0 12px!important;border:1px solid var(--lo-color-border)!important;border-top:0!important;border-radius:0 0 var(--lo-registry-radius) var(--lo-registry-radius)!important;background:#fff!important}
-
-/* Training participants: compact heading and one continuous list frame. */
-.training-participants-registry{display:grid!important;grid-template-rows:auto auto auto minmax(0,1fr) 44px!important;gap:10px!important;height:100%!important;min-height:0!important;overflow:hidden!important;align-content:stretch!important}
-.training-participants-registry>.module-summary-strip,.training-participants-registry>.training-participants-toolbar,.training-participants-registry>.filter-bar{min-height:0!important;margin:0!important}
-.training-participants-toolbar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;padding:0!important}
-.training-participants-toolbar small{display:none!important}
-.training-participants-toolbar .record-actions{display:flex!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;justify-content:flex-end!important}
-.training-participants-toolbar .record-actions .button{min-height:36px!important;height:36px!important;padding:0 11px!important}
-.training-participants-registry>.filter-bar{width:min(680px,100%)!important}
-.training-participants-registry>.training-participants-table-wrap{min-height:0!important;height:100%!important;max-height:none!important;overflow:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-registry-radius) var(--lo-registry-radius) 0 0!important;background:var(--lo-color-surface)!important}
-.training-participants-registry .training-participants-table{min-width:980px!important;table-layout:fixed!important}
-.training-participants-registry>.registry-pagination{min-height:44px!important;height:44px!important;margin:0!important;padding:0 12px!important;border:1px solid var(--lo-color-border)!important;border-top:0!important;border-radius:0 0 var(--lo-registry-radius) var(--lo-registry-radius)!important;background:#fff!important}
-
-/* Training record: remove redundant helper copy below Overview title. */
-.workspace-column.workspace-fill>.record-section:first-child>.record-section-header p{display:none!important}
-
-/* Assessment builder: compact heading and question rows that read like a registry, not cards. */
-.training-assessment-editor>.record-section-header p{display:none!important}
-.training-assessment-editor>.record-section-header{align-items:center!important;margin-bottom:12px!important}
-.training-assessment-editor>.training-assessment-metrics{margin-bottom:12px!important}
-.training-assessment-editor>.training-question-list{display:block!important;border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-registry-radius)!important;background:#fff!important;overflow:auto!important;max-height:calc(100dvh - 430px)!important;min-height:120px!important}
-.training-assessment-editor .training-question-card{display:grid!important;grid-template-columns:42px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;min-height:58px!important;margin:0!important;padding:7px 12px!important;border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
-.training-assessment-editor .training-question-card:last-child{border-bottom:0!important}
-.training-assessment-editor .training-question-card:hover{background:color-mix(in srgb,var(--lo-color-primary) 3%,#fff)!important}
-.training-assessment-editor .training-question-index{width:30px!important;height:30px!important;min-width:30px!important;border-radius:8px!important;font-size:12px!important}
-.training-assessment-editor .training-question-heading{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:12px!important}
-.training-assessment-editor .training-question-heading>div:first-child{display:flex!important;align-items:baseline!important;gap:12px!important;min-width:0!important}
-.training-assessment-editor .training-question-heading strong{font-size:13px!important;line-height:1.25!important}
-.training-assessment-editor .training-question-heading span{font-size:11px!important;color:var(--lo-color-muted)!important;white-space:nowrap!important}
-.training-assessment-editor .training-question-options-summary{margin-top:5px!important;display:flex!important;gap:5px!important;flex-wrap:wrap!important}
-.training-assessment-editor .training-question-options-summary span{font-size:10.5px!important;padding:3px 8px!important}
-
-/* Add participants dialog keeps one physical size for both modes. */
-.training-participant-workspace{width:min(1120px,calc(100vw - 48px))!important;height:min(720px,calc(100dvh - 48px))!important;min-height:min(620px,calc(100dvh - 48px))!important;max-height:min(720px,calc(100dvh - 48px))!important;overflow:hidden!important}
+/* Training participant dialog keeps one physical size across automatic/manual modes. */
+.training-participant-workspace{
+  width:min(1120px,calc(100vw - 48px))!important;
+  height:min(720px,calc(100dvh - 48px))!important;
+  min-height:min(620px,calc(100dvh - 48px))!important;
+  max-height:min(720px,calc(100dvh - 48px))!important;
+  overflow:hidden!important;
+}
 .training-participant-workspace .observer-dialog-body{min-height:0!important;overflow:hidden!important}
 .training-participant-dialog{height:100%!important;min-height:0!important;display:grid!important;grid-template-rows:auto auto minmax(0,1fr)!important;gap:10px!important;overflow:hidden!important}
 .training-participant-stage{height:100%!important;min-height:0!important;overflow:hidden!important}
 .training-participant-panel{height:100%!important;min-height:0!important;display:grid!important;grid-template-rows:auto auto auto minmax(0,1fr)!important;gap:8px!important;overflow:hidden!important}
-.training-participant-manual{grid-template-rows:auto auto minmax(0,1fr)!important}.training-participant-panel-heading{height:auto!important;min-height:52px!important;max-height:none!important}.training-participant-filters{height:auto!important;min-height:38px!important;max-height:none!important}
-.training-participant-table-wrap,.training-manual-table-wrap{height:100%!important;min-height:0!important;max-height:none!important;overflow:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-registry-radius)!important;background:var(--lo-color-surface)!important}.training-participant-table{min-width:760px!important}.training-participant-list-head{min-height:24px!important;height:auto!important;max-height:none!important}.training-participant-empty.compact{min-height:140px!important;height:100%!important}.training-participant-mode,.training-participant-basket-summary{height:auto!important;min-height:38px!important;max-height:none!important}
+.training-participant-manual{grid-template-rows:auto auto minmax(0,1fr)!important}
+.training-participant-panel-heading{height:auto!important;min-height:52px!important;max-height:none!important}
+.training-participant-filters{height:auto!important;min-height:38px!important;max-height:none!important}
+.training-participant-table-wrap,.training-manual-table-wrap{height:100%!important;min-height:0!important;max-height:none!important;overflow:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important}
+.training-participant-table{min-width:760px!important}
+.training-participant-list-head{min-height:24px!important;height:auto!important;max-height:none!important}
+.training-participant-empty.compact{min-height:140px!important;height:100%!important}
+.training-participant-mode,.training-participant-basket-summary{height:auto!important;min-height:38px!important;max-height:none!important}
 
-@media(max-width:900px){.platform-owner-users{grid-template-columns:1fr!important;grid-template-rows:auto auto auto minmax(0,1fr) 44px!important}.platform-owner-users>.platform-user-record-header-actions{grid-column:1;grid-row:2}.platform-owner-users>.filter-bar{grid-row:3}.platform-owner-users>.scroll-table{grid-row:4;overflow-x:auto!important}.platform-owner-users>.registry-pagination{grid-row:5}.platform-owner-users>.scroll-table .data-table{min-width:720px!important}.training-participant-workspace{width:calc(100vw - 16px)!important;height:calc(100dvh - 16px)!important;min-height:0!important;max-height:calc(100dvh - 16px)!important}.training-participants-toolbar{align-items:stretch!important;flex-direction:column!important}.training-participants-toolbar .record-actions{justify-content:flex-start!important}}
+/* Record toolbars above canonical registries remain compact. */
+.training-participants-view>.section-toolbar,
+.training-assessment-view>.section-toolbar{flex:0 0 auto;margin:0}
+.training-participants-view>.section-toolbar .record-actions,
+.training-assessment-view>.section-toolbar .record-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* Assessment is a true table registry; only preserve usable action-column width. */
+.training-assessment-registry .data-table{min-width:980px}
+.training-assessment-registry .open-record-cell{width:154px}
+.training-assessment-registry .record-actions{justify-content:flex-end;flex-wrap:nowrap}
+
+@media(max-width:900px){
+  .training-participant-workspace{width:calc(100vw - 16px)!important;height:calc(100dvh - 16px)!important;min-height:0!important;max-height:calc(100dvh - 16px)!important}
+}
