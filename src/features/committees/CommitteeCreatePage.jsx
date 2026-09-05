@@ -36,7 +36,7 @@ export function CommitteeCreatePage(){
    navigate(`/committees/${record.id}`,{replace:true,state:{limoxisFrom:location.state?.limoxisFrom}})
   }catch(err){notify(err.message==='DUPLICATE_COMMITTEE_CODE'?(en?'This committee code is already in use.':'Αυτός ο κωδικός επιτροπής χρησιμοποιείται ήδη.'):(en?'Could not save the committee.':'Δεν ήταν δυνατή η αποθήκευση της επιτροπής.'),'danger')}finally{setSaving(false)}
  }
- return <Page fill><EntityRecordShell className="committee-create-shell workspace-fill" avatar={<BookOpenCheck size={19}/>} eyebrow={en?'Committees':'Επιτροπές'} title={en?'New committee / group':'Νέα επιτροπή / ομάδα'} subtitle={en?'Create committee record':'Δημιουργία καρτέλας επιτροπής'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={goBack}>
+ return <Page><EntityRecordShell className="committee-create-shell" avatar={<BookOpenCheck size={19}/>} eyebrow={en?'Committees':'Επιτροπές'} title={en?'New committee / group':'Νέα επιτροπή / ομάδα'} subtitle={en?'Create committee record':'Δημιουργία καρτέλας επιτροπής'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={goBack}>
   <div className="record-section committee-create-form">
    <div className="entry-grid">
     <label><span>{en?'Committee / group type *':'Τύπος επιτροπής / ομάδας *'}</span><select value={draft.templateId} onChange={e=>chooseTemplate(e.target.value)}>{IPC_COMMITTEE_CATALOG.map(x=><option key={x.id} value={x.id}>{x.code?`${x.code} — `:''}{x.name}</option>)}</select></label>
