@@ -9,6 +9,15 @@ import { configureDataEnvironment } from '../data/dataEnvironment'
 const TenantContext = createContext(null)
 const DEMO_TENANT = Object.freeze({ id: 'demo-hospital', name: 'Demo Hospital', code: 'DEMO', type: 'hospital', mode: 'demo' })
 const DEMO_MEMBERSHIP = Object.freeze({ id: 'demo-membership', role: ROLES.DEMO, status: 'active', organization: DEMO_TENANT, departmentIds: [], capabilities: [], customCapabilities: [], assignments: [] })
+const HYDRATION_TIMEOUT_MS=12000
+
+function withTimeout(promise,ms=HYDRATION_TIMEOUT_MS){
+  let timer
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('TENANT_HYDRATION_TIMEOUT')),ms)}),
+  ]).finally(()=>clearTimeout(timer))
+}
 
 export function TenantProvider({ children }) {
   const { user, profile, isAuthenticated, isDemoSession, loading: authLoading } = useAuth()
@@ -54,7 +63,8 @@ export function TenantProvider({ children }) {
         setHydratedKey(membershipContextKey)
         return [DEMO_MEMBERSHIP]
       }
-      const next = await (profile?.isPlatformOwner ? listPlatformOwnerOrganizations() : listMemberships(user?.id))
+      const fetchMemberships=profile?.isPlatformOwner ? listPlatformOwnerOrganizations() : listMemberships(user?.id)
+      const next = await withTimeout(fetchMemberships)
       if(request!==hydrationRef.current)return next
       setMemberships(next)
       setActiveMembershipId((current) => {
@@ -63,6 +73,13 @@ export function TenantProvider({ children }) {
       })
       setHydratedKey(membershipContextKey)
       return next
+    } catch(error) {
+      if(request===hydrationRef.current){
+        setMemberships([])
+        setActiveMembershipId(null)
+        setHydratedKey(membershipContextKey)
+      }
+      throw error
     } finally {
       if(request===hydrationRef.current)setLoading(false)
     }
