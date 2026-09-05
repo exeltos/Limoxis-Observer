@@ -12,7 +12,7 @@ function requireProduction(organizationId,operation){
   return true
 }
 
-function fromRow(row){
+function fromRow(row,history=[]){
   return {
     id:row.code,
     dbId:row.id,
@@ -38,7 +38,7 @@ function fromRow(row){
     createdAt:row.created_at,
     updatedAt:row.updated_at,
     attachments:[],
-    history:[],
+    history,
   }
 }
 
@@ -54,11 +54,56 @@ function localTransition(record,status,actor,extra={}){
   return localReplace(record,{...record,...extra,status,updatedAt:now,updatedBy:actor?.name||'Demo user',updatedById:actor?.id||null,history:[event,...(record.history||[])]})
 }
 
+function historyAction(event){
+  const oldStatus=event?.metadata?.old_status||null
+  const newStatus=event?.metadata?.new_status||null
+  if(event.event_type==='history_baseline')return `status:${newStatus||'unknown'}`
+  if(event.event_type==='insert')return 'created'
+  if(event.event_type==='delete')return 'deleted'
+  if(oldStatus&&newStatus&&oldStatus!==newStatus)return `status:${oldStatus}->${newStatus}`
+  return 'updated'
+}
+
+async function loadDocumentHistoryMap(organizationId){
+  const {data:events,error}=await supabase.from('system_audit_log').select('id,actor_user_id,actor_role,event_type,entity_id,metadata,created_at').eq('organization_id',organizationId).eq('entity_type','controlled_documents').order('created_at',{ascending:false})
+  if(error){
+    if(error.code==='42501')return new Map()
+    throw error
+  }
+  const actorIds=[...new Set((events||[]).map(x=>x.actor_user_id).filter(Boolean))]
+  const actorNames=new Map()
+  if(actorIds.length){
+    const {data:profiles,error:profileError}=await supabase.from('profiles').select('id,full_name,username').in('id',actorIds)
+    if(!profileError)(profiles||[]).forEach(profile=>actorNames.set(profile.id,profile.full_name||profile.username||''))
+  }
+  const map=new Map()
+  ;(events||[]).forEach(event=>{
+    const item={
+      at:event.created_at,
+      actor:actorNames.get(event.actor_user_id)||event.actor_role||'—',
+      actorId:event.actor_user_id||null,
+      action:historyAction(event),
+      oldStatus:event?.metadata?.old_status||null,
+      newStatus:event?.metadata?.new_status||null,
+      version:event?.metadata?.version||null,
+      reason:event?.metadata?.code||'',
+      eventType:event.event_type,
+    }
+    const current=map.get(event.entity_id)||[]
+    current.push(item)
+    map.set(event.entity_id,current)
+  })
+  return map
+}
+
 export async function loadDocumentsAsync(organizationId){
   if(!requireProduction(organizationId,'load'))return loadDocumentsLocal()
-  const {data,error}=await supabase.from('controlled_documents').select(COLUMNS).eq('organization_id',organizationId).order('updated_at',{ascending:false})
+  const [{data,error},historyMap]=await Promise.all([
+    supabase.from('controlled_documents').select(COLUMNS).eq('organization_id',organizationId).order('updated_at',{ascending:false}),
+    loadDocumentHistoryMap(organizationId),
+  ])
   if(error)throw error
-  return (data||[]).map(fromRow)
+  return (data||[]).map(row=>fromRow(row,historyMap.get(String(row.id))||[]))
 }
 
 export async function loadDocumentOwnerProfile(ownerId){
