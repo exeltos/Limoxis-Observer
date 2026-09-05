@@ -28,8 +28,6 @@ import './styles/lira-assistant.css'
 import './styles/registry-return-highlight.css'
 import './styles/training-workspace.css'
 import './styles/training-refinement.css'
-import './styles/platform-owner-users.css'
-import './styles/registry-list-polish.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
