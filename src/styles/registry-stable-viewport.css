@@ -90,6 +90,63 @@
   padding:0 24px 0 8px!important;
 }
 
+/* Organization users is an embedded registry inside EntityRecordShell. Older Owner
+   composition rules must not turn it into a two-column panel or natural-height list.
+   This bridge keeps the same canonical geometry as Indicators: toolbar -> filter ->
+   scrollable table -> attached pagination. */
+.platform-owner-record-shell>.entity-record-body:has(>.platform-owner-users){
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.platform-owner-record-shell>.entity-record-body>.platform-owner-users{
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:10px!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+.platform-owner-users>.training-participants-toolbar{
+  width:100%!important;
+  flex:0 0 auto!important;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+}
+.platform-owner-users>.training-participants-toolbar>div:first-child{
+  min-width:0!important;
+}
+.platform-owner-users>.training-participants-toolbar .record-actions{
+  margin-left:auto!important;
+  flex:0 0 auto!important;
+}
+.platform-owner-users>.registry-workspace{
+  width:100%!important;
+  flex:1 1 0!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  margin:0!important;
+}
+.platform-owner-users>.registry-workspace>.filter-system{
+  flex:0 0 auto!important;
+}
+.platform-owner-users>.registry-workspace>.scroll-table{
+  flex:1 1 0!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+.platform-owner-users>.registry-workspace>.registry-pagination{
+  flex:0 0 auto!important;
+  margin-top:auto!important;
+}
+
 @media(max-width:1200px){
   .page-fill:has(>.registry-workspace),
   .page-fill:has(>.patient-registry-shell),
