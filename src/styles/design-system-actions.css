@@ -77,6 +77,70 @@
   padding-right:88px!important;
 }
 
+/* Employee is the canonical record CRUD appearance. All record-level edit/destructive
+   actions resolve to this exact geometry, color and placement. */
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions,
+.canonical-detail-screen.record-general-tab-active>.entity-record-body>.entity-record-general-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:6px!important;
+}
+.canonical-detail-screen .record-crud-action,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button:is(.edit,.danger),
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.lo-icon-button:is(.lo-icon-button-edit,.lo-icon-button-danger),
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.entity-record-icon-button.danger,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.general-edit-button{
+  width:36px!important;
+  min-width:36px!important;
+  max-width:36px!important;
+  height:36px!important;
+  min-height:36px!important;
+  max-height:36px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  font-size:0!important;
+  line-height:1!important;
+  cursor:pointer!important;
+}
+.canonical-detail-screen .record-crud-action svg,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button:is(.edit,.danger) svg,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.general-edit-button svg{
+  width:16px!important;
+  height:16px!important;
+}
+.canonical-detail-screen .record-crud-edit,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button.edit,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.lo-icon-button-edit,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.general-edit-button{
+  color:var(--lo-status-warning-fg)!important;
+}
+.canonical-detail-screen .record-crud-delete,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button.danger,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.lo-icon-button-danger,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.entity-record-icon-button.danger{
+  color:var(--lo-status-danger-fg)!important;
+}
+.canonical-detail-screen .record-crud-edit:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button.edit:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.lo-icon-button-edit:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.general-edit-button:hover{
+  background:var(--lo-status-warning-bg)!important;
+  transform:translateY(-1px)!important;
+}
+.canonical-detail-screen .record-crud-delete:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button.danger:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.lo-icon-button-danger:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.entity-record-icon-button.danger:hover{
+  background:var(--lo-status-danger-bg)!important;
+  transform:translateY(-1px)!important;
+}
+
 .lo-action-button{min-height:var(--lo-control-height);height:var(--lo-control-height);border-radius:var(--lo-radius-control)}
 .lo-action-button-edit{color:var(--lo-status-warning-fg);background:var(--lo-status-warning-bg);border-color:var(--lo-status-warning-border)}
 .lo-action-button-edit:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-warning-bg) 78%,white)}
