@@ -18,39 +18,47 @@ Deno.serve(async(req)=>{
   const smtpUser=Deno.env.get('SMTP_USER')||Deno.env.get('GMAIL_SMTP_USER')
   const smtpPass=Deno.env.get('SMTP_PASS')||Deno.env.get('GMAIL_SMTP_PASS')
   const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||'https://limoxis-observer.netlify.app').replace(/\/$/,'')
-  if(!supabaseUrl||!serviceRoleKey||!anonKey||!smtpUser||!smtpPass)return reply({error:'Email service is not configured'},500)
+  if(!supabaseUrl||!serviceRoleKey||!anonKey)return reply({ok:false,code:'EMAIL_BACKEND_CONFIG_MISSING',error:'Supabase email backend configuration is incomplete'},500)
 
   const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'')
-  if(!jwt)return reply({error:'Missing authorization'},401)
+  if(!jwt)return reply({ok:false,code:'EMAIL_AUTH_REQUIRED',error:'Missing authorization'},401)
   let body:any={}
-  try{body=await req.json()}catch{return reply({error:'Invalid request'},400)}
+  try{body=await req.json()}catch{return reply({ok:false,code:'EMAIL_INVALID_REQUEST',error:'Invalid request'},400)}
   const organizationId=String(body?.organizationId||'').trim()
-  if(!organizationId)return reply({error:'Organization is required'},400)
+  if(!organizationId)return reply({ok:false,code:'EMAIL_ORGANIZATION_REQUIRED',error:'Organization is required'},400)
 
   const caller=createClient(supabaseUrl,anonKey,{global:{headers:{Authorization:`Bearer ${jwt}`}}})
   const {data:callerData}=await caller.auth.getUser()
-  if(!callerData?.user)return reply({error:'Invalid session'},401)
+  if(!callerData?.user)return reply({ok:false,code:'EMAIL_INVALID_SESSION',error:'Invalid session'},401)
 
   const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{autoRefreshToken:false,persistSession:false}})
   const [{data:profile},{data:membership}]=await Promise.all([
     admin.from('profiles').select('is_platform_owner').eq('id',callerData.user.id).maybeSingle(),
     admin.from('organization_members').select('id,status').eq('organization_id',organizationId).eq('user_id',callerData.user.id).eq('status','active').maybeSingle()
   ])
-  if(!profile?.is_platform_owner&&!membership?.id)return reply({error:'Not authorized'},403)
+  if(!profile?.is_platform_owner&&!membership?.id)return reply({ok:false,code:'EMAIL_NOT_AUTHORIZED',error:'Not authorized'},403)
+
+  const {data:rows,error:listError}=await admin.from('notification_outbox').select('id,recipient_email,subject,payload,attempts,notification_type').eq('organization_id',organizationId).in('notification_type',['committee_minutes_approval_requested','training_invitation']).in('status',['pending','failed']).lte('available_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(20)
+  if(listError)return reply({ok:false,code:'EMAIL_OUTBOX_LOAD_FAILED',error:'Could not load notifications'},500)
+  if(!rows?.length)return reply({ok:true,sent:0,failed:0,pending:0})
+
+  if(!smtpUser||!smtpPass){
+    const now=new Date().toISOString()
+    const ids=rows.map(row=>row.id)
+    await admin.from('notification_outbox').update({status:'failed',last_error:'EMAIL_SERVICE_NOT_CONFIGURED',updated_at:now}).in('id',ids)
+    return reply({ok:false,code:'EMAIL_SERVICE_NOT_CONFIGURED',error:'SMTP credentials are not configured for process-notification-outbox',sent:0,failed:rows.length},200)
+  }
 
   const transport=nodemailer.createTransport({host:smtpHost,port:smtpPort,secure:smtpPort===465,auth:{user:smtpUser,pass:smtpPass}})
-  const {data:rows,error:listError}=await admin.from('notification_outbox').select('id,recipient_email,subject,payload,attempts,notification_type').eq('organization_id',organizationId).in('notification_type',['committee_minutes_approval_requested','training_invitation']).in('status',['pending','failed']).lte('available_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(20)
-  if(listError)return reply({error:'Could not load notifications'},500)
-
   let sent=0,failed=0
-  for(const row of rows||[]){
+  for(const row of rows){
     const {data:claimed,error:claimError}=await admin.from('notification_outbox').update({status:'processing',attempts:Number(row.attempts||0)+1,updated_at:new Date().toISOString()}).eq('id',row.id).in('status',['pending','failed']).select('id').maybeSingle()
     if(claimError||!claimed?.id)continue
     try{
       const payload=row.payload||{}
       const actionUrl=`${appUrl}${payload.path||'/'}`
       const message=row.notification_type==='training_invitation'
-        ?trainingInvitationEmail({programTitle:payload.programTitle||'',employeeName:payload.employeeName||'',dueDate:payload.dueDate||null,requiresAssessment:Boolean(payload.requiresAssessment),actionUrl,language:payload.language==='en'?'en':'el'})
+        ?trainingInvitationEmail({programTitle:payload.programTitle||'',employeeName:payload.employeeName||'',dueDate:payload.dueDate||null,requiresAssessment:Boolean(payload.requiresAssessment),questionCount:Number(payload.questionCount||0),externalAccess:Boolean(payload.externalAccess),actionUrl,language:payload.language==='en'?'en':'el'})
         :committeeMinutesApprovalEmail({committeeName:payload.committeeName||'',meetingTitle:payload.meetingTitle||'',scheduledAt:payload.scheduledAt||null,actionUrl,language:payload.language==='en'?'en':'el'})
       await transport.sendMail({from:`Limoxis Observer <${smtpUser}>`,to:row.recipient_email,subject:message.subject||row.subject,html:message.html,text:message.text})
       await admin.from('notification_outbox').update({status:'sent',sent_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()}).eq('id',row.id)
@@ -62,5 +70,5 @@ Deno.serve(async(req)=>{
       failed++
     }
   }
-  return reply({ok:true,sent,failed})
+  return reply({ok:failed===0,sent,failed,pending:Math.max(0,rows.length-sent-failed)})
 })
