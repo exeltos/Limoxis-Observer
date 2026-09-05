@@ -99,3 +99,26 @@
   width:16px;
   height:16px;
 }
+
+/* Platform Owner home affordance: intentionally stronger than utility buttons,
+   but visually part of the shell rather than a bordered control. */
+.platform-owner-dashboard-shell .topbar-spacer .icon-button{
+  width:38px;
+  height:38px;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+  color:var(--lo-color-primary);
+}
+.platform-owner-dashboard-shell .topbar-spacer .icon-button svg{
+  width:21px;
+  height:21px;
+  stroke-width:2.35;
+}
+.platform-owner-dashboard-shell .topbar-spacer .icon-button:hover{
+  background:color-mix(in srgb,var(--lo-color-primary) 8%,transparent);
+}
+.platform-owner-dashboard-shell .topbar-spacer .icon-button:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--lo-color-primary) 34%,transparent);
+  outline-offset:2px;
+}
