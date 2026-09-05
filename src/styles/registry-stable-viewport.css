@@ -37,6 +37,9 @@
   flex:0 0 auto!important;
 }
 
+/* One registry surface grammar for Surveillance, Laboratory, Controls, Quality,
+   Indicators and the rest: white frame, filter row, scrollable data area,
+   pagination attached to the bottom. Module content may differ; geometry does not. */
 .page-fill>.registry-workspace,
 .page-fill>.patient-registry-shell,
 .page-fill>.surveillance-workspace,
@@ -45,9 +48,29 @@
 .controls-page>.controls-surface{
   flex:1 1 0!important;
   min-height:260px!important;
+  margin-top:0!important;
   overflow:hidden!important;
   display:flex!important;
   flex-direction:column!important;
+  background:#fff!important;
+  border:1px solid var(--line)!important;
+  border-radius:11px!important;
+  box-shadow:none!important;
+}
+
+.page-fill>.registry-workspace>.filter-system,
+.page-fill>.patient-registry-shell>.filter-system,
+.page-fill>.surveillance-workspace>.filter-system,
+.page>.platform-registry-shell .filter-system,
+.laboratory-registry-page>.lab-registry-shell>.filter-system,
+.controls-page>.controls-surface .filter-system{
+  flex:0 0 auto!important;
+  margin:0!important;
+  padding:8px 10px!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:#fff!important;
 }
 
 .page-fill>.registry-workspace>.scroll-table,
@@ -60,7 +83,9 @@
   flex:1 1 0!important;
   min-height:0!important;
   max-height:none!important;
+  margin:0!important;
   overflow:auto!important;
+  background:#fff!important;
 }
 
 .page-fill>.registry-workspace>.registry-pagination,
@@ -70,7 +95,33 @@
 .laboratory-registry-page>.lab-registry-shell>.registry-pagination,
 .controls-page>.controls-surface .registry-pagination{
   flex:0 0 auto!important;
+  min-height:44px!important;
   margin-top:auto!important;
+  border-top:1px solid var(--line)!important;
+  background:#fff!important;
+}
+
+/* If a module has canonical tabs, they belong to the same surface and never
+   create a second floating card or independent vertical scroll area. */
+.page-fill>.registry-workspace>.canonical-module-tabs{
+  flex:0 0 auto!important;
+  margin:0!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important;
+}
+
+/* Surveillance currently keeps its domain tabs immediately above its list.
+   Visually bind them to the same registry frame while retaining its single
+   canonical implementation. */
+.page-fill>.surveillance-domain-tabs{
+  margin:0!important;
+  border-radius:11px 11px 0 0!important;
+  border-bottom:1px solid var(--line)!important;
+}
+.page-fill>.surveillance-domain-tabs + .surveillance-workspace{
+  border-top:0!important;
+  border-radius:0 0 11px 11px!important;
 }
 
 /* Record bodies: normal records/forms scroll vertically. This is the canonical
