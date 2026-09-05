@@ -7,6 +7,7 @@ const productionSurveillance=fs.readFileSync(new URL('../src/features/surveillan
 const patientRoute=fs.readFileSync(new URL('../src/features/surveillance/PatientClinicalRecordRoute.jsx',import.meta.url),'utf8')
 const cloudPatientRecord=fs.readFileSync(new URL('../src/features/surveillance/PatientClinicalCloudRecordPage.jsx',import.meta.url),'utf8')
 const analysis=fs.readFileSync(new URL('../src/features/analysis/AnalysisPage.jsx',import.meta.url),'utf8')
+const platformService=fs.readFileSync(new URL('../src/features/platform/platformService.js',import.meta.url),'utf8')
 const environment=fs.readFileSync(new URL('../src/core/data/dataEnvironment.js',import.meta.url),'utf8')
 
 describe('demo / production isolation',()=>{
@@ -33,13 +34,15 @@ describe('demo / production isolation',()=>{
     expect(cloudPatientRecord).not.toContain('surveillanceDemoData')
   })
 
-  it('keeps synthetic analytics behind the demo branch and production on persisted aggregates',()=>{
+  it('keeps synthetic analytics behind demo and production on one canonical persisted loader',()=>{
     expect(analysis).toContain('const productionScope=!isDemo&&')
-    expect(analysis).toContain('loadGlobalReportSummary(')
-    expect(analysis).toContain('loadPlatformAnalyticsDetails(')
+    expect(analysis).toContain('loadAnalysisSnapshot(')
     expect(analysis).toContain("isDemo?(DEMO_KPI[tab]||DEMO_KPI.overview)")
-    expect(analysis).toContain("isDemo?<DemoNationalSurveillance")
+    expect(analysis).toContain('isDemo?<DemoNationalSurveillance')
     expect(analysis).toContain('<ProductionNationalSurveillance')
+    expect(platformService).toContain('export async function loadAnalysisSnapshot')
+    expect(platformService).not.toContain('export async function loadGlobalReportSummary')
+    expect(platformService).not.toContain('export async function loadPlatformAnalyticsDetails')
   })
 
   it('returns empty-shaped fallbacks outside the demo environment',()=>{
