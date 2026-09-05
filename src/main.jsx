@@ -16,7 +16,6 @@ import './styles/design-system-actions.css'
 import './styles/platform-owner-polish.css'
 import './styles/platform-settings.css'
 import './styles/design-system-layouts.css'
-import './styles/design-system-record-details.css'
 import './styles/analysis-toolbar.css'
 import './styles/design-system-navigation.css'
 import './styles/my-profile.css'
@@ -28,6 +27,7 @@ import './styles/lira-assistant.css'
 import './styles/registry-return-highlight.css'
 import './styles/training-workspace.css'
 import './styles/training-refinement.css'
+import './styles/design-system-record-details.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
