@@ -45,7 +45,7 @@ export function AppShell(){
   async function handleLogout(){const ok=await confirm({title:t('logoutConfirmTitle'),message:`${t('logoutConfirmMessage')} ${t('logoutFarewell')}`,confirmLabel:t('logout')});if(!ok)return;await logout();navigate('/login',{replace:true})}
   function handlePreviewRoleChange(nextRole){if(!nextRole)return;const nextNeedsDepartment=departmentScopedPreviewRoles.has(nextRole);startRolePreview(nextRole,nextNeedsDepartment?(rolePreview?.department||''):'')}
   const NavEntry=({item,nested=false,collapseMore=false})=>{const Icon=item.icon;return <NavLink to={item.to} end={item.to==='/'} onClick={()=>collapseMore&&setMoreOpen(false)} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{t(item.key)}</span></NavLink>}
-  return <div className={`app-shell ${platformMode?'platform-owner-dashboard-shell':''} ${helpPreviewMode?'help-preview-mode':''}`}>
+  return <div className={`app-shell ${platformMode?'platform-owner-dashboard-shell':''} ${helpPreviewMode?'help-preview-mode':''}`} style={platformMode?{gridTemplateColumns:'minmax(0,1fr)'}:undefined}>
     {!platformMode&&<aside className="sidebar"><div className="brand"><div className="brand-mark">L</div><div><strong>Limoxis Observer</strong><span>{t('brandSubtitle')}</span></div></div><nav>
       {isPlatformOwner&&tenant&&<button type="button" className="nav-item platform-return-nav" onClick={()=>{returnToPlatform();navigate({pathname:'/platform',search:'',hash:''})}}><ArrowLeft size={18}/><span>{t('backToPlatform')}</span></button>}
       {primaryNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}
