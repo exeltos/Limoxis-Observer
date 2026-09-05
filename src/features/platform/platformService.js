@@ -55,6 +55,10 @@ export async function saveDemoEntitlement(input){
 function monthKey(value){return String(value||'').slice(0,7)}
 function countBy(rows,keyFn){const out={};for(const row of rows){const key=keyFn(row);if(!key)continue;out[key]=(out[key]||0)+1}return out}
 function sortedEntries(map,limit=10){return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,limit)}
+function mergeEntryRows(snapshots,key,limit=12){const merged={};for(const snapshot of snapshots){for(const [label,value] of snapshot?.microbiology?.[key]||[]){merged[label]=(merged[label]||0)+(Number(value)||0)}}return sortedEntries(merged,limit)}
+function sumSummary(snapshots){const result={};for(const snapshot of snapshots){for(const [key,value] of Object.entries(snapshot?.summary||{})){const n=Number(value);if(Number.isFinite(n))result[key]=(result[key]||0)+n}}return result}
+function mergeMonthly(snapshots){const merged={};for(const snapshot of snapshots){for(const [month,value] of snapshot?.microbiology?.monthly||[]){merged[month]=(merged[month]||0)+(Number(value)||0)}}return Object.entries(merged).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12)}
+function mergeNationalRows(snapshots){const grouped=new Map();for(const snapshot of snapshots){for(const [organism,resistanceClass,department,source,count,lastDate] of snapshot?.microbiology?.nationalRows||[]){const key=[organism,resistanceClass,department,source].join('|||');const current=grouped.get(key)||{organism,resistanceClass,department,source,count:0,lastDate:''};current.count+=Number(count)||0;if(lastDate>current.lastDate)current.lastDate=lastDate;grouped.set(key,current)}}return [...grouped.values()].sort((a,b)=>b.count-a.count||b.lastDate.localeCompare(a.lastDate)).slice(0,80).map(row=>[row.organism,row.resistanceClass,row.department,row.source,row.count,row.lastDate])}
 
 async function loadMicrobiologyAnalytics({organizationId='',from='',to='',departmentId=''}){
   let query=supabase.from('microbiology_results').select('organization_id,sample_id,result_status,organism,resistance_class,is_critical,resulted_at').order('resulted_at',{ascending:true}).limit(5000)
@@ -96,12 +100,28 @@ async function loadMicrobiologyAnalytics({organizationId='',from='',to='',depart
   return {microorganisms,resistance,monthly,byOrganization,byDepartment,bySource,nationalRows,totalPositive:enriched.length,totalCritical:enriched.filter(row=>row.is_critical).length,departmentCount:new Set(enriched.map(row=>row.department).filter(name=>name&&name!=='—')).size,departments:departments.map(row=>({id:row.id,organizationId:row.organization_id,name:row.name}))}
 }
 
-export async function loadAnalysisSnapshot({organizationId='',from='',to='',departmentId=''}={}){
-  if(!hasSupabaseConfig||!supabase)throw new Error('SUPABASE_REQUIRED_FOR_PRODUCTION_ANALYTICS')
+async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',departmentId=''}){
   const [summaryResult,microbiology]=await Promise.all([
     supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null}),
     loadMicrobiologyAnalytics({organizationId,from,to,departmentId}),
   ])
   if(summaryResult.error)throw summaryResult.error
   return {source:'production',summary:summaryResult.data||{},microbiology}
+}
+
+function mergeAnalysisSnapshots(snapshots){
+  const departments=[];const seenDepartments=new Set();const byOrganization=[]
+  for(const snapshot of snapshots){for(const item of snapshot?.microbiology?.departments||[]){if(seenDepartments.has(item.id))continue;seenDepartments.add(item.id);departments.push(item)}for(const row of snapshot?.microbiology?.byOrganization||[])byOrganization.push(row)}
+  const totalPositive=snapshots.reduce((sum,item)=>sum+(Number(item?.microbiology?.totalPositive)||0),0)
+  const totalCritical=snapshots.reduce((sum,item)=>sum+(Number(item?.microbiology?.totalCritical)||0),0)
+  return {source:'production',summary:sumSummary(snapshots),microbiology:{microorganisms:mergeEntryRows(snapshots,'microorganisms'),resistance:mergeEntryRows(snapshots,'resistance',5),monthly:mergeMonthly(snapshots),byOrganization:byOrganization.sort((a,b)=>Number(b[1]||0)-Number(a[1]||0)),byDepartment:mergeEntryRows(snapshots,'byDepartment'),bySource:mergeEntryRows(snapshots,'bySource'),nationalRows:mergeNationalRows(snapshots),totalPositive,totalCritical,departmentCount:new Set(snapshots.flatMap(item=>(item?.microbiology?.byDepartment||[]).map(([name])=>name))).size,departments}}
+}
+
+export async function loadAnalysisSnapshot({organizationId='',organizationIds=[],from='',to='',departmentId=''}={}){
+  if(!hasSupabaseConfig||!supabase)throw new Error('SUPABASE_REQUIRED_FOR_PRODUCTION_ANALYTICS')
+  const scopedIds=[...new Set((organizationIds||[]).filter(Boolean))]
+  if(!scopedIds.length)return loadSingleAnalysisSnapshot({organizationId,from,to,departmentId})
+  if(scopedIds.length===1)return loadSingleAnalysisSnapshot({organizationId:scopedIds[0],from,to,departmentId})
+  const snapshots=await Promise.all(scopedIds.map(id=>loadSingleAnalysisSnapshot({organizationId:id,from,to,departmentId:''})))
+  return mergeAnalysisSnapshots(snapshots)
 }
