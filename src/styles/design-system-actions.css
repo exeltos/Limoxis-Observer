@@ -47,11 +47,13 @@
   transform:translateY(-1px);
 }
 
-/* General-record edit belongs only to the first/general-details tab.
-   Row/item pencils inside tab content are intentionally unaffected. */
+/* Record-level edit and delete belong together and only on the first/general-details tab.
+   Row/item edit/delete actions inside tab content are intentionally unaffected. */
 .record-secondary-tab-active .entity-record-header-actions .lo-icon-button-edit,
+.record-secondary-tab-active .entity-record-header-actions .lo-icon-button-danger,
 .record-secondary-tab-active .entity-record-header-actions .general-edit-button,
 .record-secondary-tab-active .entity-record-header-actions button.edit,
+.record-secondary-tab-active .entity-record-header-actions .entity-record-icon-button.danger,
 .record-secondary-tab-active .entity-record-header-actions .entity-record-icon-button[aria-label="Επεξεργασία επιτροπής"],
 .record-secondary-tab-active .entity-record-header-actions .entity-record-icon-button[aria-label="Edit committee"]{
   display:none!important;
