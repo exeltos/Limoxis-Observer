@@ -15,6 +15,51 @@ function cloudEnabled() {
   return hasSupabaseConfig && Boolean(supabase) && !isDemoDataEnvironment()
 }
 
+async function loadCanonicalTrainingContext(organizationId,employeeDbId,employeeId){
+  ensureProductionContext(organizationId,employeeDbId,'training_records.employee_context')
+  const {data:employee,error:employeeError}=await supabase
+    .from('employees')
+    .select('id,employee_code,user_id')
+    .eq('organization_id',organizationId)
+    .eq('id',employeeDbId)
+    .maybeSingle()
+  if(employeeError)throw employeeError
+
+  const {data:assignmentRows,error:assignmentError}=await supabase
+    .from('training_records')
+    .select('id,record_key,record_type,employee_user_id,payload,created_at,updated_at')
+    .eq('organization_id',organizationId)
+    .eq('record_type','assignment')
+    .order('updated_at',{ascending:false})
+  if(assignmentError)throw assignmentError
+
+  const employeeCode=String(employee?.employee_code||employeeId||'').trim()
+  const userId=employee?.user_id||null
+  const assignments=(assignmentRows||[]).filter(row=>{
+    const payload=row.payload||{}
+    const payloadEmployeeId=String(payload.employeeId||'').trim()
+    return Boolean(
+      (userId&&row.employee_user_id===userId)||
+      (employeeCode&&payloadEmployeeId===employeeCode)||
+      (employeeId&&payloadEmployeeId===String(employeeId))
+    )
+  })
+
+  const programIds=[...new Set(assignments.map(row=>row.payload?.programId).filter(Boolean))]
+  let programMap=new Map()
+  if(programIds.length){
+    const {data:programRows,error:programError}=await supabase
+      .from('training_records')
+      .select('record_key,payload')
+      .eq('organization_id',organizationId)
+      .eq('record_type','program')
+      .in('record_key',programIds)
+    if(programError)throw programError
+    programMap=new Map((programRows||[]).map(row=>[row.record_key,row.payload||{}]))
+  }
+  return {assignments,programMap}
+}
+
 // --- Occupational health visits ---
 function visitFromRow(row) {
   return { id: row.id, employeeId: row.employee_id, date: row.visit_date, type: row.visit_type, status: row.status, followUpDate: row.follow_up_date || null, fitStatus: row.fitness_status || '' }
@@ -50,20 +95,29 @@ export async function loadVaccinationsAsync(organizationId, employeeDbId, employ
 }
 
 // --- Training summary ---
-function trainingFromRow(row) {
-  return { id: row.id, employeeId: row.employee_id, titleEl: row.title, titleEn: row.title_en || row.title, date: row.training_date, status: row.status }
-}
+// Production training has one source of truth: training_records. The employee tab derives
+// its rows from assignment records and joins the corresponding programme payload. This
+// avoids the stale duplicate employee_training_summary table that was never populated by
+// the production Training workflow.
 export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadTrainingLocal().filter(x => x.employeeId === employeeId)
-  ensureProductionContext(organizationId,employeeDbId,'employee_training_summary.load')
-  const { data, error } = await supabase
-    .from('employee_training_summary')
-    .select('id,employee_id,title,title_en,training_date,status')
-    .eq('organization_id', organizationId)
-    .eq('employee_id', employeeDbId)
-    .order('training_date', { ascending: false })
-  if (error) throw error
-  return (data || []).map(trainingFromRow)
+  const {assignments,programMap}=await loadCanonicalTrainingContext(organizationId,employeeDbId,employeeId)
+  return assignments.map(row=>{
+    const assignment=row.payload||{}
+    const program=programMap.get(assignment.programId)||{}
+    const title=program.title||assignment.programTitle||assignment.title||assignment.programId||'Training'
+    return {
+      id:row.record_key,
+      employeeId:employeeDbId,
+      titleEl:title,
+      titleEn:program.titleEn||title,
+      date:assignment.completedDate||program.startDate||assignment.assignedDate||program.dueDate||String(row.updated_at||row.created_at||'').slice(0,10),
+      status:assignment.status||'assigned',
+      programId:assignment.programId||null,
+      score:assignment.score??null,
+      competent:assignment.competent??null,
+    }
+  })
 }
 
 // --- Evaluations ---
@@ -73,14 +127,45 @@ function evaluationFromRow(row) {
 export async function loadEvaluationsAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadEvaluationsLocal().filter(x => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'employee_evaluations.load')
-  const { data, error } = await supabase
-    .from('employee_evaluations')
-    .select('id,employee_id,title,title_en,evaluation_date,result,result_en')
-    .eq('organization_id', organizationId)
-    .eq('employee_id', employeeDbId)
-    .order('evaluation_date', { ascending: false })
-  if (error) throw error
-  return (data || []).map(evaluationFromRow)
+
+  const [{data:formalRows,error:formalError},trainingContext]=await Promise.all([
+    supabase
+      .from('employee_evaluations')
+      .select('id,employee_id,title,title_en,evaluation_date,result,result_en')
+      .eq('organization_id', organizationId)
+      .eq('employee_id', employeeDbId)
+      .order('evaluation_date', { ascending: false }),
+    loadCanonicalTrainingContext(organizationId,employeeDbId,employeeId),
+  ])
+  if(formalError)throw formalError
+
+  const trainingEvaluations=trainingContext.assignments
+    .filter(row=>{
+      const a=row.payload||{}
+      return a.score!=null||Boolean(a.assessmentSubmittedAt)||Boolean(a.assessmentReviewStatus)
+    })
+    .map(row=>{
+      const a=row.payload||{}
+      const program=trainingContext.programMap.get(a.programId)||{}
+      const title=program.title||a.programTitle||a.programId||'Training'
+      const score=a.score!=null?Number(a.score):null
+      const competent=a.competent===true
+      const resultEl=score!=null?`Βαθμολογία ${score}%${a.competent!=null?` · ${competent?'Επιτυχής':'Μη επιτυχής'}`:''}`:(a.assessmentReviewStatus||'Υποβλήθηκε')
+      const resultEn=score!=null?`Score ${score}%${a.competent!=null?` · ${competent?'Passed':'Not passed'}`:''}`:(a.assessmentReviewStatus||'Submitted')
+      return {
+        id:`training-${row.record_key}`,
+        employeeId:employeeDbId,
+        titleEl:`Αξιολόγηση γνώσεων · ${title}`,
+        titleEn:`Knowledge assessment · ${program.titleEn||title}`,
+        date:a.completedDate||String(a.assessmentSubmittedAt||row.updated_at||row.created_at||'').slice(0,10),
+        resultEl,
+        resultEn,
+        source:'training',
+      }
+    })
+
+  return [...(formalRows||[]).map(evaluationFromRow),...trainingEvaluations]
+    .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))
 }
 
 // --- Certificates ---
@@ -127,9 +212,8 @@ export async function createCertificateAsync(organizationId, employeeDbId, draft
   return certificateFromRow(data)
 }
 
-export async function updateCertificateAsync(id, draft) {
-  if(isDemoDataEnvironment())throw new Error('DEMO_CERTIFICATE_UPDATE_USES_LOCAL_STORE')
-  if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_CLOUD_REQUIRED:employee_certificates.update')
+export async function updateCertificateAsync(organizationId, employeeDbId, id, draft) {
+  ensureProductionContext(organizationId,employeeDbId,'employee_certificates.update')
   const { data, error } = await supabase
     .from('employee_certificates')
     .update({
@@ -141,6 +225,8 @@ export async function updateCertificateAsync(id, draft) {
       certificate_number: draft.certificateNumber || null,
       updated_at: new Date().toISOString(),
     })
+    .eq('organization_id',organizationId)
+    .eq('employee_id',employeeDbId)
     .eq('id', id)
     .select(CERTIFICATE_COLUMNS)
     .single()
