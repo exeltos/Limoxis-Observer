@@ -1,4 +1,4 @@
-import { Children, Fragment, isValidElement } from 'react'
+import { Children, Fragment, cloneElement, isValidElement } from 'react'
 import { ChevronLeft,ChevronRight } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'
 import { useLanguage } from '../core/i18n/LanguageContext'
@@ -16,18 +16,23 @@ function flattenActions(node,result=[]){
   return result
 }
 
-function isGeneralRecordAction(action){
-  if(!isValidElement(action))return false
-  const className=String(action.props.className||'')
+function recordActionKind(action){
+  if(!isValidElement(action))return null
+  const className=String(action.props.className||'').toLowerCase()
   const aria=String(action.props['aria-label']||'').toLowerCase()
   const title=String(action.props.title||'').toLowerCase()
-  return className.includes('lo-icon-button-edit')||
-    className.includes('lo-icon-button-danger')||
-    className.includes('general-edit-button')||
-    (className.includes('entity-record-icon-button')&&className.includes('danger'))||
-    aria.startsWith('edit')||aria.startsWith('επεξεργ')||
-    aria.startsWith('delete')||aria.startsWith('διαγραφ')||aria.startsWith('archive')||aria.startsWith('αρχειοθέτ')||
-    title==='edit'||title==='επεξεργασία'||title.startsWith('delete')||title.startsWith('διαγραφ')||title.startsWith('archive')||title.startsWith('αρχειοθέτ')
+  const destructive=className.includes('danger')||className.includes('delete')||className.includes('archive')||
+    aria.startsWith('delete')||aria.startsWith('διαγραφ')||aria.startsWith('archive')||aria.startsWith('αρχειοθέτ')||aria.startsWith('void')||aria.startsWith('ακύρ')||
+    title.startsWith('delete')||title.startsWith('διαγραφ')||title.startsWith('archive')||title.startsWith('αρχειοθέτ')||title.startsWith('void')||title.startsWith('ακύρ')
+  if(destructive)return 'delete'
+  const edit=className.includes('edit')||aria.startsWith('edit')||aria.startsWith('επεξεργ')||title==='edit'||title==='επεξεργασία'||title.startsWith('correct')||title.startsWith('διόρθ')
+  return edit?'edit':null
+}
+
+function normalizeGeneralAction(action){
+  const kind=recordActionKind(action)
+  if(!kind)return null
+  return cloneElement(action,{className:`${action.props.className||''} record-crud-action record-crud-${kind}`.trim()})
 }
 
 export function EntityRecordShell({
@@ -81,7 +86,7 @@ export function EntityRecordShell({
   // Record cards deliberately expose only the canonical edit/destructive pair.
   // Print, export, download and workflow buttons belong to their module/list or tab content,
   // never to the record header. This keeps every record visually identical to Employee.
-  const generalActions=flattenActions(headerActions).filter(isGeneralRecordAction)
+  const generalActions=flattenActions(headerActions).map(normalizeGeneralAction).filter(Boolean)
 
   return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${className}`.trim()}>
     <header className="entity-record-header surface">
