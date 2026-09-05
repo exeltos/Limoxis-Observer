@@ -1,0 +1,78 @@
+/* Canonical locked record-details sheet.
+   Read-only record data should read as one information surface, not as a grid of form cards. */
+.employee-details-overview .committee-detail-grid.employee-full-grid{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:0!important;
+  margin:0!important;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+  overflow:hidden;
+}
+.employee-details-overview .committee-detail-grid.employee-full-grid .detail-item{
+  min-height:72px;
+  padding:13px 15px!important;
+  border:0!important;
+  border-right:1px solid #e8edf1!important;
+  border-bottom:1px solid #e8edf1!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.employee-details-overview .committee-detail-grid.employee-full-grid .detail-item:nth-child(3n){border-right:0!important}
+.employee-details-overview .committee-detail-grid.employee-full-grid .detail-item:nth-last-child(-n+3){border-bottom:0!important}
+.employee-details-overview .committee-detail-grid.employee-full-grid .detail-item span{
+  display:block;
+  margin:0 0 5px;
+  color:#738493;
+  font-size:9.5px!important;
+  font-weight:750;
+  line-height:1.25;
+}
+.employee-details-overview .committee-detail-grid.employee-full-grid .detail-item strong{
+  display:block;
+  margin:0!important;
+  color:#243f53;
+  font-size:12.5px!important;
+  font-weight:750;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
+.employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item{
+  background:#fbfdff!important;
+}
+.employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item input,
+.employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item select{
+  width:100%;
+  min-width:0;
+  height:36px;
+  margin:0;
+  border:1px solid #cbd9e4;
+  border-radius:8px;
+  background:#fff;
+  color:#243f53;
+  padding:0 9px;
+  outline:0;
+}
+.employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item input:focus,
+.employee-details-overview .committee-detail-grid.employee-full-grid.employee-inline-edit .detail-item select:focus{
+  border-color:#79a8cc;
+  box-shadow:0 0 0 3px rgba(31,111,169,.08);
+}
+.employee-details-overview>.source-truth-note{
+  margin-top:12px;
+  min-height:auto;
+  padding:10px 12px;
+  border-radius:8px;
+}
+.employee-details-overview>.source-truth-note>svg{flex:0 0 auto}
+.employee-details-overview>.source-truth-note strong{font-size:10.5px}
+.employee-details-overview>.source-truth-note span{font-size:10.5px;line-height:1.45}
+@media(max-width:1100px){
+  .employee-details-overview .committee-detail-grid.employee-full-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .employee-details-overview .committee-detail-grid.employee-full-grid .detail-item:nth-child(3n){border-right:1px solid #e8edf1!important}
+  .employee-details-overview .committee-detail-grid.employee-full-grid .detail-item:nth-child(2n){border-right:0!important}
+  .employee-details-overview .committee-detail-grid.employee-full-grid .detail-item:nth-last-child(-n+3){border-bottom:1px solid #e8edf1!important}
+  .employee-details-overview .committee-detail-grid.employee-full-grid .detail-item:nth-last-child(-n+2){border-bottom:0!important}
+}
