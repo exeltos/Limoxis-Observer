@@ -3,10 +3,12 @@ import { hasSupabaseConfig } from '../../core/config/env'
 
 const localKey='limoxis.platform.center.v1'
 const NO_EXPIRATION_DATE='9999-12-31'
+const ANALYTICS_TIMEOUT_MS=15000
 const seed={organizations:[{id:'demo-hospital',name:'Demo Hospital',code:'DEMO',type:'hospital',status:'active',region:'Thessaly',city:'Larissa',created_at:'2026-08-30T10:00:00Z'}],members:[{id:'demo-admin',organization_id:'demo-hospital',full_name:'Demo Administrator',email:'demo@limoxis-observer.local',role:'hospital_admin',status:'active'}],entitlements:[{id:'demo-entitlement',organization_id:'demo-hospital',scope_type:'organization',scope_id:'demo-hospital',valid_from:'2026-08-01',valid_until:'2026-09-30',status:'active',notes:'Platform demo access'}]}
 
 function localRead(){try{return {...seed,...JSON.parse(localStorage.getItem(localKey)||'{}')}}catch{return seed}}
 function localWrite(value){localStorage.setItem(localKey,JSON.stringify(value));return value}
+function withTimeout(promise,ms=ANALYTICS_TIMEOUT_MS){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('ANALYTICS_LOAD_TIMEOUT')),ms)})]).finally(()=>clearTimeout(timer))}
 
 export async function loadPlatformSnapshot(){
   if(!hasSupabaseConfig||!supabase)return localRead()
@@ -101,10 +103,10 @@ async function loadMicrobiologyAnalytics({organizationId='',from='',to='',depart
 }
 
 async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',departmentId=''}){
-  const [summaryResult,microbiology]=await Promise.all([
+  const [summaryResult,microbiology]=await withTimeout(Promise.all([
     supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}),
     loadMicrobiologyAnalytics({organizationId,from,to,departmentId}),
-  ])
+  ]))
   if(summaryResult.error)throw summaryResult.error
   return {source:'production',summary:summaryResult.data||{},microbiology}
 }
@@ -122,6 +124,6 @@ export async function loadAnalysisSnapshot({organizationId='',organizationIds=[]
   const scopedIds=[...new Set((organizationIds||[]).filter(Boolean))]
   if(!scopedIds.length)return loadSingleAnalysisSnapshot({organizationId,from,to,departmentId})
   if(scopedIds.length===1)return loadSingleAnalysisSnapshot({organizationId:scopedIds[0],from,to,departmentId})
-  const snapshots=await Promise.all(scopedIds.map(id=>loadSingleAnalysisSnapshot({organizationId:id,from,to,departmentId:''})))
+  const snapshots=await withTimeout(Promise.all(scopedIds.map(id=>loadSingleAnalysisSnapshot({organizationId:id,from,to,departmentId:''}))))
   return mergeAnalysisSnapshots(snapshots)
 }
