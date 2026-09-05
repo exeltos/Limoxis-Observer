@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
   const [authState,setAuthState]=useState(initial)
   const stateRef=useRef(initial)
   const transitionRef=useRef(0)
+  const listenerTimerRef=useRef(null)
 
   useEffect(()=>{stateRef.current=authState},[authState])
 
@@ -80,12 +81,18 @@ export function AuthProvider({ children }) {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if(!mounted)return
-      hydrateSession(nextSession).catch(()=>{})
+      if(listenerTimerRef.current)clearTimeout(listenerTimerRef.current)
+      listenerTimerRef.current=setTimeout(()=>{
+        listenerTimerRef.current=null
+        if(!mounted)return
+        hydrateSession(nextSession).catch(()=>{})
+      },0)
     })
 
     return () => {
       mounted = false
       transitionRef.current+=1
+      if(listenerTimerRef.current){clearTimeout(listenerTimerRef.current);listenerTimerRef.current=null}
       listener.subscription.unsubscribe()
     }
   }, [hydrateSession, helpPreviewMode])
@@ -102,6 +109,7 @@ export function AuthProvider({ children }) {
     setAuthState({session:{ access_token: 'demo', user: DEMO_USER },profile:DEMO_USER,loading:false})
   }, [])
   const logout = useCallback(async () => {
+    if(listenerTimerRef.current){clearTimeout(listenerTimerRef.current);listenerTimerRef.current=null}
     if (authState.profile?.isDemo) {
       transitionRef.current+=1
       setAuthState({session:null,profile:null,loading:false})
