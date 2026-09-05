@@ -1,13 +1,12 @@
 /* Canonical registry viewport.
    Top-level and record-embedded registries share one geometry contract:
-   fixed workspace, internal table scroll, attached pagination.
+   fixed workspace, internal data scroll, attached pagination.
 
-   IMPORTANT: record forms are NOT registries. Their body must remain vertically
+   IMPORTANT: record forms are NOT registries. Their body remains vertically
    scrollable so create/edit actions at the bottom can always be reached. */
 
 .page-fill:has(>.registry-workspace),
 .page-fill:has(>.patient-registry-shell),
-.page-fill:has(>.surveillance-domain-tabs),
 .page:has(>.platform-registry-shell),
 .laboratory-registry-page,
 .controls-page{
@@ -21,7 +20,6 @@
 
 .main-column:has(>.preview-banner) .page-fill:has(>.registry-workspace),
 .main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
-.main-column:has(>.preview-banner) .page-fill:has(>.surveillance-domain-tabs),
 .main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
 .main-column:has(>.preview-banner) .laboratory-registry-page,
 .main-column:has(>.preview-banner) .controls-page{
@@ -32,24 +30,21 @@
 .page:has(>.platform-registry-shell)>.page-header,
 .page-fill>.workspace-summary,
 .page-fill>.patient-summary-strip,
-.page-fill>.surveillance-summary,
-.page-fill>.surveillance-domain-tabs{
+.page-fill>.surveillance-summary{
   flex:0 0 auto!important;
 }
 
-/* One registry surface grammar for Surveillance, Laboratory, Controls, Quality,
-   Indicators and the rest: white frame, filter row, scrollable data area,
-   pagination attached to the bottom. Module content may differ; geometry does not. */
+/* One registry surface grammar for every top-level list. */
 .page-fill>.registry-workspace,
 .page-fill>.patient-registry-shell,
-.page-fill>.surveillance-workspace,
 .page>.platform-registry-shell,
 .laboratory-registry-page>.lab-registry-shell,
 .controls-page>.controls-surface{
   flex:1 1 0!important;
   min-height:260px!important;
   height:auto!important;
-  margin-top:0!important;
+  max-height:none!important;
+  margin:0!important;
   overflow:hidden!important;
   display:flex!important;
   flex-direction:column!important;
@@ -59,12 +54,30 @@
   box-shadow:none!important;
 }
 
+/* Older stable-height opt-in must not create a second geometry contract. */
+.page-fill>.registry-workspace.stable-registry-height,
+.page-fill>.registry-workspace.stable-registry-height:has(.registry-empty-state){
+  flex:1 1 0!important;
+  min-height:260px!important;
+  height:auto!important;
+  max-height:none!important;
+}
+
+.page-fill>.registry-workspace>.canonical-module-tabs{
+  flex:0 0 auto!important;
+  margin:0!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+
 .page-fill>.registry-workspace>.filter-system,
 .page-fill>.patient-registry-shell>.filter-system,
-.page-fill>.surveillance-workspace>.filter-system,
 .page>.platform-registry-shell .filter-system,
 .laboratory-registry-page>.lab-registry-shell>.filter-system,
-.controls-page>.controls-surface .filter-system{
+.controls-page>.controls-surface .filter-system,
+.production-surveillance-workspace>.filter-system{
   flex:0 0 auto!important;
   margin:0!important;
   padding:8px 10px!important;
@@ -76,8 +89,6 @@
 
 .page-fill>.registry-workspace>.scroll-table,
 .page-fill>.patient-registry-shell>.scroll-table,
-.page-fill>.surveillance-workspace>.scroll-table,
-.page-fill>.surveillance-workspace>.scroll-list,
 .page>.platform-registry-shell .scroll-table,
 .laboratory-registry-page>.lab-registry-shell>.scroll-table,
 .controls-page>.controls-surface .scroll-table{
@@ -92,7 +103,6 @@
 
 .page-fill>.registry-workspace>.registry-pagination,
 .page-fill>.patient-registry-shell>.registry-pagination,
-.page-fill>.surveillance-workspace>.registry-pagination,
 .page>.platform-registry-shell .registry-pagination,
 .laboratory-registry-page>.lab-registry-shell>.registry-pagination,
 .controls-page>.controls-surface .registry-pagination{
@@ -103,40 +113,50 @@
   background:#fff!important;
 }
 
-/* Surveillance still uses its legacy row renderer. Keep that single implementation,
-   but force it to obey the exact canonical registry geometry: header fixed, data area
-   fills the available height, empty state grows with the list, pagination stays at the
-   bottom edge instead of floating above unused white space. */
-.page-fill>.surveillance-workspace>.surveillance-list{
+/* Production Surveillance uses the canonical registry surface above. Its inner
+   mode wrapper is layout-only; it is not allowed to define another card/list geometry. */
+.production-surveillance-frame>.production-surveillance-workspace{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+.production-surveillance-workspace>.surveillance-registry,
+.production-surveillance-workspace>.surveillance-list{
   width:100%!important;
   flex:1 1 0!important;
   min-height:0!important;
   height:auto!important;
   max-height:none!important;
-  display:flex!important;
-  flex-direction:column!important;
+  margin:0!important;
   overflow:auto!important;
   border:0!important;
   border-radius:0!important;
   background:#fff!important;
 }
-.page-fill>.surveillance-workspace>.surveillance-list>.surveillance-registry-head{
+.production-surveillance-workspace .surveillance-registry-head{
   position:sticky!important;
   top:0!important;
   z-index:2!important;
-  flex:0 0 auto!important;
   margin:0!important;
   background:#f7f9fb!important;
   border-bottom:1px solid var(--line)!important;
 }
-.page-fill>.surveillance-workspace>.surveillance-list>.registry-empty-state,
-.page-fill>.surveillance-workspace>.surveillance-list>.inline-empty{
-  flex:1 1 auto!important;
+.production-surveillance-workspace .surveillance-registry-empty{
   min-height:132px!important;
   height:auto!important;
   margin:0!important;
+  padding:22px!important;
+  background:#fff!important;
 }
-.page-fill>.surveillance-workspace .registry-pagination{
+.production-surveillance-frame>.registry-pagination{
   flex:0 0 auto!important;
   min-height:44px!important;
   margin-top:auto!important;
@@ -144,41 +164,14 @@
   background:#fff!important;
 }
 
-/* If a module has canonical tabs, they belong to the same surface and never
-   create a second floating card or independent vertical scroll area. */
-.page-fill>.registry-workspace>.canonical-module-tabs{
-  flex:0 0 auto!important;
-  margin:0!important;
-  border:0!important;
-  border-bottom:1px solid var(--line)!important;
-  border-radius:0!important;
-}
-
-/* Surveillance currently keeps its domain tabs immediately above its list.
-   Visually bind them to the same registry frame while retaining its single
-   canonical implementation. */
-.page-fill>.surveillance-domain-tabs{
-  margin:0!important;
-  border-radius:11px 11px 0 0!important;
-  border-bottom:1px solid var(--line)!important;
-  background:#fff!important;
-}
-.page-fill>.surveillance-domain-tabs + .surveillance-workspace{
-  border-top:0!important;
-  border-radius:0 0 11px 11px!important;
-}
-
-/* Record bodies: normal records/forms scroll vertically. This is the canonical
-   behavior for Training, Committees, Documents, Employees, Quality, Indicators,
-   Laboratory records and every other create/edit/detail card. */
+/* Record bodies: normal records/forms scroll vertically. */
 .entity-record-shell>.entity-record-body{
   min-height:0!important;
   overflow:auto!important;
   overscroll-behavior:contain;
 }
 
-/* Only a body whose direct workspace is an embedded registry is locked. In that
-   case the table scrolls internally and pagination remains attached underneath. */
+/* Only embedded registries lock the record body; their table scrolls internally. */
 .entity-record-shell>.entity-record-body:has(>.workspace-column.workspace-fill>.registry-workspace){
   overflow:hidden!important;
 }
@@ -220,8 +213,7 @@
   margin-top:auto!important;
 }
 
-/* Record shells contain generic form label rules. Pagination must always keep the
-   exact horizontal layout of the canonical Indicators registry. */
+/* Pagination stays horizontal even inside record shells. */
 .entity-record-shell .registry-pagination-controls label,
 .platform-owner-record-shell .registry-pagination-controls label{
   display:flex!important;
@@ -250,13 +242,11 @@
 @media(max-width:1200px){
   .page-fill:has(>.registry-workspace),
   .page-fill:has(>.patient-registry-shell),
-  .page-fill:has(>.surveillance-domain-tabs),
   .page:has(>.platform-registry-shell),
   .laboratory-registry-page,
   .controls-page{height:calc(100dvh - 102px)!important}
   .main-column:has(>.preview-banner) .page-fill:has(>.registry-workspace),
   .main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
-  .main-column:has(>.preview-banner) .page-fill:has(>.surveillance-domain-tabs),
   .main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
   .main-column:has(>.preview-banner) .laboratory-registry-page,
   .main-column:has(>.preview-banner) .controls-page{height:calc(100dvh - 142px)!important}
