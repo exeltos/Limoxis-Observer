@@ -102,7 +102,7 @@ async function loadMicrobiologyAnalytics({organizationId='',from='',to='',depart
 
 async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',departmentId=''}){
   const [summaryResult,microbiology]=await Promise.all([
-    supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null}),
+    supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}),
     loadMicrobiologyAnalytics({organizationId,from,to,departmentId}),
   ])
   if(summaryResult.error)throw summaryResult.error
