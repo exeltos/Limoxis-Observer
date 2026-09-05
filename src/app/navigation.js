@@ -35,9 +35,14 @@ const policy=(primaryOrder=[],moreOrder=[],hidden=[])=>Object.freeze({
 // Role-specific information architecture. Capabilities remain the source of
 // truth for access; these policies only decide prominence, grouping and order.
 const roleMenuPolicy=Object.freeze({
-  [ROLES.HOSPITAL_ADMIN]:policy(
+  [ROLES.PLATFORM_OWNER]:policy(
     ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees'],
     ['platformAnalyticsNav','indicators','lira','training','committees','documents'],
+    ['pharmacy','occupationalHealth'],
+  ),
+  [ROLES.HOSPITAL_ADMIN]:policy(
+    ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','platformAnalyticsNav','indicators','lira','training','committees','documents'],
+    [],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
