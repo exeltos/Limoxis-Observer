@@ -4,6 +4,7 @@ import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { FilterBar } from '../../design-system/FilterBar'
+import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { LocationAutocompleteField } from '../../design-system/LocationAutocompleteField'
 import { CITY_OPTIONS,COUNTRY_OPTIONS } from '../../core/reference/locationOptions'
@@ -49,6 +50,8 @@ export function PlatformOrganizationRecord({organization,language='el',initialTa
   const [userEditing,setUserEditing]=useState(false)
   const [userDraft,setUserDraft]=useState({fullName:'',email:'',phone:'',jobTitle:'',role:''})
   const [userQuery,setUserQuery]=useState('')
+  const [userPage,setUserPage]=useState(1)
+  const [userPageSize,setUserPageSize]=useState(15)
   const [createUserOpen,setCreateUserOpen]=useState(false)
   const [createUserDraft,setCreateUserDraft]=useState({fullName:'',email:'',role:'department_user'})
 
@@ -61,9 +64,12 @@ export function PlatformOrganizationRecord({organization,language='el',initialTa
   const selectedEmployee=useMemo(()=>selectedUser?employees.find(employee=>employee.userId===selectedUser.userId)||null:null,[employees,selectedUser])
   const employeeOptions=useMemo(()=>selectedUser?employees.filter(employee=>!employee.userId||employee.userId===selectedUser.userId):[],[employees,selectedUser])
   const filteredUsers=useMemo(()=>{const locale=language==='el'?'el-GR':'en-US',query=userQuery.trim().toLocaleLowerCase(locale);if(!query)return users;return users.filter(user=>[user.name,user.email,user.username,roleLabel(user.role,language)].some(value=>String(value||'').toLocaleLowerCase(locale).includes(query)))},[users,userQuery,language])
+  const userTotalPages=Math.max(1,Math.ceil(filteredUsers.length/userPageSize)),safeUserPage=Math.min(userPage,userTotalPages),pagedUsers=filteredUsers.slice((safeUserPage-1)*userPageSize,safeUserPage*userPageSize)
   const canSave=Boolean(draft.name.trim()&&draft.code.trim())
   const createUserValid=Boolean(createUserDraft.fullName.trim().length>=2&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createUserDraft.email.trim())&&createUserDraft.role)
 
+  useEffect(()=>setUserPage(1),[userQuery,userPageSize])
+  useEffect(()=>{if(userPage>userTotalPages)setUserPage(userTotalPages)},[userPage,userTotalPages])
   useEffect(()=>{
     if(!selectedUser){setUserEditing(false);return}
     setUserDraft({fullName:selectedUser.name||'',email:selectedUser.email||'',phone:selectedUser.phone||'',jobTitle:selectedUser.jobTitle||'',role:selectedUser.role||''})
@@ -172,7 +178,7 @@ export function PlatformOrganizationRecord({organization,language='el',initialTa
         </FormSection>
       </div></div></div>}
 
-      {initialTab==='users'&&<div className="platform-owner-users"><div className="platform-user-role-help"><strong>{tx('Χρήστες & Ρόλοι','Users & Roles')}</strong><span>{tx('Επίλεξε έναν χρήστη για πλήρη διαχείριση λογαριασμού, ρόλου και σύνδεσης με εργαζόμενο.','Select a user to manage the account, role and employee link.')}</span></div><div className="platform-user-record-header-actions"><Button onClick={()=>{setCreateUserDraft({fullName:'',email:'',role:'department_user'});setCreateUserOpen(true)}}><UserPlus size={15}/>{tx('Νέος χρήστης','New user')}</Button></div><FilterBar query={userQuery} onQueryChange={setUserQuery} placeholder={tx('Αναζήτηση χρήστη, email ή ρόλου…','Search user, email or role…')} />{loadingUsers?<div className="inline-empty">{tx('Φόρτωση χρηστών…','Loading users…')}</div>:filteredUsers.length?<div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>{tx('Χρήστης','User')}</th><th>Username</th><th>{tx('Ρόλος','Role')}</th><th>{tx('Κατάσταση','Status')}</th></tr></thead><tbody>{filteredUsers.map(user=><tr key={user.userId} tabIndex={0} className="platform-owner-clickable-row" onClick={()=>setSelectedUserId(user.userId)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setSelectedUserId(user.userId)}}}><td><strong>{user.name}</strong><small>{user.email||'—'}</small></td><td>{user.username}</td><td>{roleLabel(user.role,language)}</td><td><span className={'status-badge '+(user.status==='active'?'active':user.status==='disabled'?'danger':'temporary')}>{user.status==='active'?tx('Ενεργός','Active'):user.status==='disabled'?tx('Σε παύση','Suspended'):tx('Εκκρεμής','Pending')}</span></td></tr>)}</tbody></table></div>:<div className="inline-empty">{users.length?tx('Δεν βρέθηκαν χρήστες για την αναζήτηση.','No users match the search.'):tx('Δεν υπάρχουν χρήστες. Δημιούργησε τον πρώτο χρήστη από το κουμπί Νέος χρήστης.','No users. Create the first user with the New user button.')}</div>}</div>}
+      {initialTab==='users'&&<div className="platform-owner-users workspace-column"><div className="platform-user-role-help"><strong>{tx('Χρήστες & Ρόλοι','Users & Roles')}</strong><span>{tx('Επίλεξε έναν χρήστη για πλήρη διαχείριση λογαριασμού, ρόλου και σύνδεσης με εργαζόμενο.','Select a user to manage the account, role and employee link.')}</span></div><div className="platform-user-record-header-actions"><Button onClick={()=>{setCreateUserDraft({fullName:'',email:'',role:'department_user'});setCreateUserOpen(true)}}><UserPlus size={15}/>{tx('Νέος χρήστης','New user')}</Button></div><FilterBar query={userQuery} onQueryChange={setUserQuery} placeholder={tx('Αναζήτηση χρήστη, email ή ρόλου…','Search user, email or role…')} />{loadingUsers?<div className="inline-empty">{tx('Φόρτωση χρηστών…','Loading users…')}</div>:filteredUsers.length?<><div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>{tx('Χρήστης','User')}</th><th>Username</th><th>{tx('Ρόλος','Role')}</th><th>{tx('Κατάσταση','Status')}</th></tr></thead><tbody>{pagedUsers.map(user=><tr key={user.userId} tabIndex={0} className="platform-owner-clickable-row" onClick={()=>setSelectedUserId(user.userId)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setSelectedUserId(user.userId)}}}><td><strong>{user.name}</strong><small>{user.email||'—'}</small></td><td>{user.username}</td><td>{roleLabel(user.role,language)}</td><td><span className={'status-badge '+(user.status==='active'?'active':user.status==='disabled'?'danger':'temporary')}>{user.status==='active'?tx('Ενεργός','Active'):user.status==='disabled'?tx('Σε παύση','Suspended'):tx('Εκκρεμής','Pending')}</span></td></tr>)}</tbody></table></div><RegistryPagination language={language} page={safeUserPage} totalPages={userTotalPages} totalItems={filteredUsers.length} pageSize={userPageSize} onPageChange={setUserPage} onPageSizeChange={setUserPageSize}/></>:<div className="inline-empty">{users.length?tx('Δεν βρέθηκαν χρήστες για την αναζήτηση.','No users match the search.'):tx('Δεν υπάρχουν χρήστες. Δημιούργησε τον πρώτο χρήστη από το κουμπί Νέος χρήστης.','No users. Create the first user with the New user button.')}</div>}</div>}
 
       {initialTab==='diagnostics'&&<HospitalDiagnosticsPanel organization={record} language={language}/>} 
     </EntityRecordShell>
