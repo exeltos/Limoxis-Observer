@@ -27,8 +27,8 @@ export async function loadOperationalIndicatorDefinitions(organizationId,{from,t
 export async function createIndicatorDefinition(organizationId,draft){
  assertCloud(organizationId)
  const {data:{user}}=await supabase.auth.getUser()
- const key=String(draft.indicatorKey||'').trim().toLowerCase().replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'')
- if(!key)throw new Error('Indicator key is required.')
+ const proposed=String(draft.indicatorKey||'').trim().toLowerCase().replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'')
+ const key=proposed||`custom_${Date.now()}`
  if(draft.calculationType!=='manual'&&!INDICATOR_METRICS.includes(draft.numeratorMetric))throw new Error('Unsupported numerator metric.')
  if(draft.denominatorMetric&&!INDICATOR_METRICS.includes(draft.denominatorMetric))throw new Error('Unsupported denominator metric.')
  const payload={
