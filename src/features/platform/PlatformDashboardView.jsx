@@ -1,5 +1,7 @@
+import { useEffect,useMemo,useState } from 'react'
 import { Activity, BarChart3, Building2, Clock3, FlaskConical, Settings, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
+import { RegistryPagination } from '../../design-system/RegistryPagination'
 
 function DashboardAction({ icon, title, description, meta, onClick }) {
   return (
@@ -24,6 +26,15 @@ export function PlatformDashboardView({
   onOpenDemo,
   onNavigate,
 }) {
+  const language=tx('el','en')
+  const [demoPage,setDemoPage]=useState(1)
+  const [demoPageSize,setDemoPageSize]=useState(15)
+  const demoTotalPages=Math.max(1,Math.ceil(activeDemos.length/demoPageSize))
+  const safeDemoPage=Math.min(demoPage,demoTotalPages)
+  const pagedDemos=useMemo(()=>activeDemos.slice((safeDemoPage-1)*demoPageSize,safeDemoPage*demoPageSize),[activeDemos,safeDemoPage,demoPageSize])
+  useEffect(()=>{if(demoPage>demoTotalPages)setDemoPage(demoTotalPages)},[demoPage,demoTotalPages])
+  useEffect(()=>setDemoPage(1),[demoPageSize])
+
   return (
     <Page
       title={tx('Dashboard Πλατφόρμας', 'Platform Dashboard')}
@@ -77,7 +88,7 @@ export function PlatformDashboardView({
         </div>
       </section>
 
-      <section className="platform-center-section">
+      <section className="platform-center-section workspace-column">
         <div className="platform-section-heading">
           <div>
             <h2>{tx('Demo που βρίσκονται σε εξέλιξη', 'Active demos')}</h2>
@@ -85,33 +96,36 @@ export function PlatformDashboardView({
           </div>
         </div>
         {activeDemos.length ? (
-          <div className="platform-demo-list">
-            {activeDemos.map(demo => {
-              const progress = demoProgress(demo)
-              return (
-                <button
-                  type="button"
-                  className="platform-demo-row platform-owner-clickable-row"
-                  key={demo.id}
-                  onClick={() => onOpenDemo(demo)}
-                >
-                  <div>
-                    <strong>{demo.organization?.name || demo.label}</strong>
-                    <small>
-                      {demo.contact_name || demo.contact_email || 'Demo access'} · {tx('έως', 'until')}{' '}
-                      {new Date(demo.valid_until).toLocaleDateString()}
-                    </small>
-                  </div>
-                  <div className="platform-demo-progress">
-                    <div><span style={{ width: `${progress.pct}%` }} /></div>
-                    <small className={progress.remaining <= 14 ? 'warning' : ''}>
-                      {progress.remaining} {tx('ημέρες υπόλοιπο', 'days remaining')}
-                    </small>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+          <>
+            <div className="platform-demo-list">
+              {pagedDemos.map(demo => {
+                const progress = demoProgress(demo)
+                return (
+                  <button
+                    type="button"
+                    className="platform-demo-row platform-owner-clickable-row"
+                    key={demo.id}
+                    onClick={() => onOpenDemo(demo)}
+                  >
+                    <div>
+                      <strong>{demo.organization?.name || demo.label}</strong>
+                      <small>
+                        {demo.contact_name || demo.contact_email || 'Demo access'} · {tx('έως', 'until')}{' '}
+                        {new Date(demo.valid_until).toLocaleDateString()}
+                      </small>
+                    </div>
+                    <div className="platform-demo-progress">
+                      <div><span style={{ width: `${progress.pct}%` }} /></div>
+                      <small className={progress.remaining <= 14 ? 'warning' : ''}>
+                        {progress.remaining} {tx('ημέρες υπόλοιπο', 'days remaining')}
+                      </small>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <RegistryPagination language={language} page={safeDemoPage} totalPages={demoTotalPages} totalItems={activeDemos.length} pageSize={demoPageSize} onPageChange={setDemoPage} onPageSizeChange={setDemoPageSize}/>
+          </>
         ) : (
           <div className="empty-state platform-empty">
             <Clock3 size={22} />
