@@ -38,7 +38,7 @@ export function AppShell(){
   const previewNeedsDepartment=Boolean(rolePreview?.role&&departmentScopedPreviewRoles.has(rolePreview.role))
   const visibleNavigation=platformMode?[]:navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
   const managementNavigation=visibleNavigation.filter(item=>item.key==='management')
-  const usesCompactMore=[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD].includes(role)
+  const usesCompactMore=[ROLES.PLATFORM_OWNER,ROLES.INFECTION_CONTROL_LEAD].includes(role)
   const moreNavigation=usesCompactMore?visibleNavigation.filter(item=>item.group==='more'):[]
   const primaryNavigation=usesCompactMore?visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='more'):visibleNavigation.filter(item=>item.key!=='management')
   const moreActive=usesCompactMore&&moreNavigation.some(item=>location.pathname===item.to||location.pathname.startsWith(`${item.to}/`))
