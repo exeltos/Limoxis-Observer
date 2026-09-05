@@ -22,7 +22,10 @@ export function EntityRecordShell({
   const { t,language }=useLanguage();const en=language==='en'
   const { goBack }=useContextualNavigation('/')
   const handleBack=onBack||goBack
-  return <div className={`entity-record-shell canonical-detail-screen ${className}`.trim()}>
+  const primaryTabId=tabs[0]?.id||null
+  const primaryTabActive=!primaryTabId||!activeTab||activeTab===primaryTabId
+  const recordTabClass=primaryTabActive?'record-general-tab-active':'record-secondary-tab-active'
+  return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${className}`.trim()}>
     <header className="entity-record-header surface">
       <BackButton className="entity-record-back-left" onClick={handleBack} label={backLabel||t('back')}/>
       <div className="entity-record-avatar">{avatar}</div>
