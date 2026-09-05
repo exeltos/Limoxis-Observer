@@ -59,6 +59,24 @@
   display:none!important;
 }
 
+/* General-tab record actions are relocated by EntityRecordShell next to the first
+   details-section heading. This is the one canonical position for edit/archive/delete. */
+.canonical-detail-screen>.entity-record-body{position:relative!important}
+.canonical-detail-screen>.entity-record-body>.entity-record-general-actions{
+  position:absolute!important;
+  top:22px!important;
+  right:24px!important;
+  z-index:4!important;
+  width:auto!important;
+  min-height:36px!important;
+  margin:0!important;
+  padding:0!important;
+}
+.canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type>.record-section-header,
+.canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type .record-section-header:first-child{
+  padding-right:88px!important;
+}
+
 .lo-action-button{min-height:var(--lo-control-height);height:var(--lo-control-height);border-radius:var(--lo-radius-control)}
 .lo-action-button-edit{color:var(--lo-status-warning-fg);background:var(--lo-status-warning-bg);border-color:var(--lo-status-warning-border)}
 .lo-action-button-edit:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-warning-bg) 78%,white)}
@@ -120,6 +138,9 @@
   .platform-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:760px){
+  .canonical-detail-screen>.entity-record-body>.entity-record-general-actions{top:16px!important;right:16px!important}
+  .canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type>.record-section-header,
+  .canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type .record-section-header:first-child{padding-right:78px!important}
   .login-briefing-dialog .briefing-sections-v2{grid-template-columns:1fr}
   .login-briefing-dialog .briefing-summary-v2{align-items:flex-start;flex-direction:column}
   .diagnostics-summary-strip,.platform-summary-strip{grid-template-columns:1fr}
