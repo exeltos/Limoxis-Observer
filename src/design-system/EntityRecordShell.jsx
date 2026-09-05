@@ -58,6 +58,7 @@ export function EntityRecordShell({
   const primaryTabId=tabs[0]?.id||null
   const primaryTabActive=!primaryTabId||!activeTab||activeTab===primaryTabId
   const recordTabClass=primaryTabActive?'record-general-tab-active':'record-secondary-tab-active'
+  const isPlatformOwnerRecord=String(className||'').includes('platform-owner-record-shell')
 
   const sourceRegistry=typeof location.state?.limoxisFrom?.registry==='string'?location.state.limoxisFrom.registry:null
   const currentRecordId=eyebrow==null?'':String(eyebrow)
@@ -83,10 +84,11 @@ export function EntityRecordShell({
   }:null
   const effectiveRecordNavigation=recordNavigation||fallbackNavigation
 
-  // Record cards deliberately expose only the canonical edit/destructive pair.
-  // Print, export, download and workflow buttons belong to their module/list or tab content,
-  // never to the record header. This keeps every record visually identical to Employee.
-  const generalActions=flattenActions(headerActions).map(normalizeGeneralAction).filter(Boolean)
+  // Standard clinical/operational records expose only the canonical edit/destructive pair.
+  // Platform Owner organization/demo records are a management workspace and keep their
+  // dedicated action toolbar (enter, reset password, pause/reactivate, convert, delete).
+  const generalActions=isPlatformOwnerRecord?[]:flattenActions(headerActions).map(normalizeGeneralAction).filter(Boolean)
+  const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
 
   return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${className}`.trim()}>
     <header className="entity-record-header surface">
@@ -104,6 +106,7 @@ export function EntityRecordShell({
           {effectiveRecordNavigation.position&&effectiveRecordNavigation.total>0&&<span>{effectiveRecordNavigation.position}/{effectiveRecordNavigation.total}</span>}
           <button type="button" className="entity-record-icon-button" disabled={!effectiveRecordNavigation.hasNext} onClick={effectiveRecordNavigation.next} title={en?'Next record':'Επόμενη εγγραφή'} aria-label={en?'Next record':'Επόμενη εγγραφή'}><ChevronRight size={16}/></button>
         </div>}
+        {ownerHeaderActions}
       </div>
     </header>
     <nav className="entity-record-tabs surface" role="tablist">
