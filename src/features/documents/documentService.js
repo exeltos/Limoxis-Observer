@@ -51,7 +51,7 @@ function localReplace(record,next){
 function localTransition(record,status,actor,extra={}){
   const now=new Date().toISOString()
   const event={at:now,actor:actor?.name||'Demo user',actorId:actor?.id||null,action:`status:${record.status}->${status}`,reason:`${record.id} · ${record.version||'—'}`}
-  return localReplace(record,{...record,...extra,status,updatedAt:now,updatedBy:actor?.name||'Demo user',updatedById:actor?.id||null,history:[event,...(record.history||[])]})
+  return localReplace(record,{...record,...extra,status,updatedAt:now,updatedBy:actor?.name||'Demo user',updatedById:actor?.id||null,history:[...(record.history||[]),event]})
 }
 
 function historyAction(event){
@@ -65,7 +65,7 @@ function historyAction(event){
 }
 
 async function loadDocumentHistoryMap(organizationId){
-  const {data:events,error}=await supabase.from('system_audit_log').select('id,actor_user_id,actor_role,event_type,entity_id,metadata,created_at').eq('organization_id',organizationId).eq('entity_type','controlled_documents').order('created_at',{ascending:false})
+  const {data:events,error}=await supabase.from('system_audit_log').select('id,actor_user_id,actor_role,event_type,entity_id,metadata,created_at').eq('organization_id',organizationId).eq('entity_type','controlled_documents').order('created_at',{ascending:true})
   if(error){
     if(error.code==='42501')return new Map()
     throw error
