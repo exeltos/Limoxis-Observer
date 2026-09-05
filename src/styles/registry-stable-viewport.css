@@ -217,6 +217,72 @@
   z-index:3!important;
 }
 
+/* Embedded registries inside record tabs use the same single contract.
+   This is shared by Training participants and Platform Owner users: toolbar/filter stay fixed,
+   only the table scrolls, and pagination is the final fixed row of the same frame. */
+:is(.training-participants-registry,.platform-owner-users){
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:100%!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:8px!important;
+}
+:is(.training-participants-registry,.platform-owner-users)>.module-summary-strip,
+:is(.training-participants-registry,.platform-owner-users)>.section-toolbar,
+:is(.training-participants-registry,.platform-owner-users)>.filter-bar,
+:is(.training-participants-registry,.platform-owner-users)>.platform-user-role-help,
+:is(.training-participants-registry,.platform-owner-users)>.platform-user-record-header-actions{
+  flex:0 0 auto!important;
+}
+:is(.training-participants-registry,.platform-owner-users)>.scroll-table{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  margin:0!important;
+  overflow:auto!important;
+  border:1px solid var(--line)!important;
+  border-radius:var(--canonical-registry-radius) var(--canonical-registry-radius) 0 0!important;
+  background:#fff!important;
+}
+:is(.training-participants-registry,.platform-owner-users)>.registry-pagination{
+  flex:0 0 44px!important;
+  min-height:44px!important;
+  margin:0!important;
+  padding-inline:14px!important;
+  border:1px solid var(--line)!important;
+  border-top:0!important;
+  border-radius:0 0 var(--canonical-registry-radius) var(--canonical-registry-radius)!important;
+  background:#fff!important;
+  position:relative!important;
+  z-index:2!important;
+}
+:is(.training-participants-registry,.platform-owner-users)>.scroll-table .data-table{
+  margin:0!important;
+}
+:is(.training-participants-registry,.platform-owner-users)>.scroll-table .registry-empty-state,
+:is(.training-participants-registry,.platform-owner-users)>.inline-empty{
+  min-height:140px!important;
+}
+
+/* Owner user registry: heading/action occupy one canonical toolbar row. */
+.platform-owner-users{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  grid-template-rows:auto auto minmax(0,1fr) 44px!important;
+  align-content:stretch!important;
+  column-gap:12px!important;
+  row-gap:8px!important;
+}
+.platform-owner-users>.platform-user-role-help{grid-column:1;grid-row:1}
+.platform-owner-users>.platform-user-record-header-actions{grid-column:2;grid-row:1;align-self:center}
+.platform-owner-users>.filter-bar{grid-column:1/-1;grid-row:2;width:100%!important;max-width:none!important;margin:0!important}
+.platform-owner-users>.scroll-table{grid-column:1/-1;grid-row:3}
+.platform-owner-users>.registry-pagination{grid-column:1/-1;grid-row:4}
+.platform-owner-users>.inline-empty{grid-column:1/-1;grid-row:3}
+
 @media(max-width:1200px){
   .page-fill:has(>.registry-workspace),
   .page-fill:has(>.patient-registry-shell),
@@ -228,4 +294,13 @@
   .main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
   .main-column:has(>.preview-banner) .laboratory-registry-page,
   .main-column:has(>.preview-banner) .controls-page{height:calc(100dvh - 142px)!important}
+}
+
+@media(max-width:760px){
+  .platform-owner-users{grid-template-columns:1fr!important;grid-template-rows:auto auto auto minmax(0,1fr) 44px!important}
+  .platform-owner-users>.platform-user-role-help{grid-column:1;grid-row:1}
+  .platform-owner-users>.platform-user-record-header-actions{grid-column:1;grid-row:2;justify-self:start}
+  .platform-owner-users>.filter-bar{grid-column:1;grid-row:3}
+  .platform-owner-users>.scroll-table{grid-column:1;grid-row:4}
+  .platform-owner-users>.registry-pagination{grid-column:1;grid-row:5}
 }
