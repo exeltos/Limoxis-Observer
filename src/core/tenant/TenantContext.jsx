@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react'
 import { flushSync } from 'react-dom'
 import { useAuth } from '../auth/AuthContext'
 import { ROLES, isPreviewableRole } from '../permissions/roles'
@@ -18,6 +18,7 @@ export function TenantProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [hydratedKey, setHydratedKey] = useState(null)
   const [platformDemoMode, setPlatformDemoMode] = useState(false)
+  const hydrationRef=useRef(0)
   const [rolePreview, setRolePreview] = useState(()=>{
     if(typeof window==='undefined')return null
     const params=new URLSearchParams(window.location.search)
@@ -32,6 +33,7 @@ export function TenantProvider({ children }) {
       : `${user?.id||'user'}:${profile?.isPlatformOwner?'owner':'member'}:${isDemoSession?'demo':'production'}`
 
   const reloadMemberships = useCallback(async () => {
+    const request=++hydrationRef.current
     if (authLoading) {
       setLoading(true)
       return []
@@ -39,18 +41,21 @@ export function TenantProvider({ children }) {
     setLoading(true)
     try {
       if (!isAuthenticated) {
+        if(request!==hydrationRef.current)return []
         setMemberships([])
         setActiveMembershipId(null)
         setHydratedKey(membershipContextKey)
         return []
       }
       if (isDemoSession) {
+        if(request!==hydrationRef.current)return [DEMO_MEMBERSHIP]
         setMemberships([DEMO_MEMBERSHIP])
         setActiveMembershipId(DEMO_MEMBERSHIP.id)
         setHydratedKey(membershipContextKey)
         return [DEMO_MEMBERSHIP]
       }
       const next = await (profile?.isPlatformOwner ? listPlatformOwnerOrganizations() : listMemberships(user?.id))
+      if(request!==hydrationRef.current)return next
       setMemberships(next)
       setActiveMembershipId((current) => {
         if (profile?.isPlatformOwner) return next.some((item) => item.id === current) ? current : null
@@ -59,13 +64,15 @@ export function TenantProvider({ children }) {
       setHydratedKey(membershipContextKey)
       return next
     } finally {
-      setLoading(false)
+      if(request===hydrationRef.current)setLoading(false)
     }
   }, [authLoading, isAuthenticated, isDemoSession, user?.id, profile?.isPlatformOwner, membershipContextKey])
 
   useEffect(() => {
-    reloadMemberships().catch(() => setHydratedKey(membershipContextKey))
-  }, [reloadMemberships, membershipContextKey])
+    reloadMemberships().catch(() => {
+      if(!authLoading)setHydratedKey(membershipContextKey)
+    })
+  }, [reloadMemberships, membershipContextKey, authLoading])
 
   const storedMembership = memberships.find((item) => item.id === activeMembershipId) ?? null
   const baseMembership = useMemo(() => (
@@ -74,7 +81,9 @@ export function TenantProvider({ children }) {
   const tenant = baseMembership?.organization ?? null
   const demoMode=Boolean(isDemoSession||platformDemoMode)
   const demoAccountId=isDemoSession?(profile?.id||user?.id||null):(platformDemoMode&&profile?.isPlatformOwner?`owner-preview.${profile?.id||user?.id||'owner'}`:null)
-  configureDataEnvironment({mode:demoMode?'demo':'production',organizationId:tenant?.id??(demoMode?DEMO_TENANT.id:null),demoAccountId})
+  useLayoutEffect(()=>{
+    configureDataEnvironment({mode:demoMode?'demo':'production',organizationId:tenant?.id??(demoMode?DEMO_TENANT.id:null),demoAccountId})
+  },[demoMode,tenant?.id,demoAccountId])
   const actualRole = profile?.isPlatformOwner ? ROLES.PLATFORM_OWNER : baseMembership?.role ?? null
   const role = canRolePreview && rolePreview?.role ? rolePreview.role : actualRole
   const membership = useMemo(() => (
@@ -85,9 +94,6 @@ export function TenantProvider({ children }) {
 
   const setTenantByMembership = useCallback((membershipId) => {
     if (!memberships.some((item) => item.id === membershipId)) return false
-    // PlatformCenter navigates immediately after this call. Force the organization
-    // switch to commit first so AppShell/route guards never render one frame with
-    // the old platform context and the new organization route.
     flushSync(() => {
       setPlatformDemoMode(false)
       setActiveMembershipId(membershipId)
