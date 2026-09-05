@@ -28,6 +28,7 @@ import './styles/registry-return-highlight.css'
 import './styles/training-workspace.css'
 import './styles/training-refinement.css'
 import './styles/design-system-record-details.css'
+import './styles/design-system-kpi-action-rail.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
