@@ -9,28 +9,35 @@
 }
 
 /* Announcement acknowledgement: compact inline control instead of a large empty checkbox card. */
-.announcement-editor .acknowledgement-field{
+.announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field{
   display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
   align-items:center!important;
   justify-content:flex-start!important;
-  gap:11px!important;
+  gap:10px!important;
   width:max-content!important;
-  max-width:100%;
-  margin:14px 0 0!important;
+  max-width:100%!important;
+  margin:14px 0 2px!important;
   padding:0!important;
-  min-height:0!important;
+  min-height:24px!important;
   border:0!important;
   background:transparent!important;
   border-radius:0!important;
   cursor:pointer;
 }
-.announcement-editor .acknowledgement-field>input[type="checkbox"]{
-  appearance:none;
-  -webkit-appearance:none;
+.announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field>input[type="checkbox"]{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  position:static!important;
+  inset:auto!important;
+  flex:0 0 20px!important;
   width:20px!important;
   height:20px!important;
   min-width:20px!important;
+  min-height:20px!important;
   margin:0!important;
+  padding:0!important;
   border:1.5px solid #9aacbc!important;
   border-radius:6px!important;
   background:#fff!important;
@@ -39,7 +46,7 @@
   cursor:pointer;
   transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;
 }
-.announcement-editor .acknowledgement-field>input[type="checkbox"]::before{
+.announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field>input[type="checkbox"]::before{
   content:"";
   width:9px;
   height:5px;
@@ -50,29 +57,38 @@
   transition:transform .14s ease;
   margin-top:-2px;
 }
-.announcement-editor .acknowledgement-field>input[type="checkbox"]:checked{
+.announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field>input[type="checkbox"]:checked{
   border-color:var(--lo-primary,#17446f)!important;
   background:var(--lo-primary,#17446f)!important;
 }
-.announcement-editor .acknowledgement-field>input[type="checkbox"]:checked::before{
+.announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field>input[type="checkbox"]:checked::before{
   transform:rotate(-45deg) scale(1);
 }
-.announcement-editor .acknowledgement-field>input[type="checkbox"]:focus-visible{
+.announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field>input[type="checkbox"]:focus-visible{
   outline:none!important;
   box-shadow:0 0 0 3px rgba(23,68,111,.14)!important;
 }
-.announcement-editor .acknowledgement-field>span{
+.announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field>span{
+  position:static!important;
+  display:inline!important;
+  flex:0 1 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
   color:#2f465c!important;
   font-size:13px!important;
-  line-height:1.35!important;
+  line-height:20px!important;
   font-weight:650!important;
   text-align:left!important;
+  text-transform:none!important;
+  letter-spacing:normal!important;
 }
-.announcement-editor .acknowledgement-field:hover>input[type="checkbox"]{
+.announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field:hover>input[type="checkbox"]{
   border-color:var(--lo-primary,#17446f)!important;
 }
 
 @media(max-width:720px){
   .management-section .data-table td:has(.management-self-account){padding-left:14px}
-  .announcement-editor .acknowledgement-field{width:100%!important}
+  .announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field{width:100%!important}
 }
