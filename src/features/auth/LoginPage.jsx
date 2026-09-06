@@ -4,12 +4,14 @@ import { Building2, CheckCircle2, Eye, EyeOff, Languages, ShieldCheck } from 'lu
 import { Button } from '../../design-system/Button'
 import { Field } from '../../design-system/Field'
 import { useAuth } from '../../core/auth/AuthContext'
+import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { userFacingError } from '../../core/feedback/userFacingError'
 import { APP_VERSION } from '../../core/version'
 
 export function LoginPage() {
-  const { isAuthenticated, login, hasSupabaseConfig } = useAuth()
+  const { isAuthenticated, loading:authLoading, login, hasSupabaseConfig } = useAuth()
+  const { loading:tenantLoading } = useTenant()
   const { language, setLanguage } = useLanguage()
   const location = useLocation()
   const [identifier,setIdentifier]=useState(''),[password,setPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[error,setError]=useState(''),[submitting,setSubmitting]=useState(false)
@@ -17,7 +19,12 @@ export function LoginPage() {
     ? location.state.from
     : '/'
   const returnTo = requestedReturnTo.startsWith('/platform') ? '/platform' : requestedReturnTo
+
+  if (authLoading || (isAuthenticated && tenantLoading)) {
+    return <div className="boot-screen" role="status" aria-live="polite"><div className="boot-mark">L+</div><span>Limoxis Observer</span></div>
+  }
   if (isAuthenticated) return <Navigate to={returnTo} replace />
+
   const greek=language==='el'
   async function handleSubmit(event){
     event.preventDefault()
