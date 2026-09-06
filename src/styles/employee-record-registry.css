@@ -44,6 +44,24 @@
   letter-spacing: -.018em !important;
 }
 
+/* A tab containing a secondary registry must itself consume the record body.
+   Without this parent flex contract the registry only grows to its rows, leaving
+   pagination immediately below the table instead of on the bottom rail. */
+.employee-record-shell > .entity-record-body:has(.employee-secondary-registry) {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+
+.employee-record-shell > .entity-record-body > .record-section:has(.employee-secondary-registry),
+.employee-record-shell > .entity-record-body > .employee-secondary-registry {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  flex: 1 1 0 !important;
+}
+
 /* Secondary registries occupy the available record body just like the main registries.
    The table gets the flexible middle area and pagination stays at the bottom. */
 .employee-record-shell .employee-secondary-registry {
@@ -51,7 +69,7 @@
   flex-direction: column !important;
   min-height: 0 !important;
   height: 100% !important;
-  flex: 1 1 auto !important;
+  flex: 1 1 0 !important;
 }
 
 .employee-record-shell .employee-secondary-registry > .employee-section-title,
@@ -69,13 +87,13 @@
   border-radius: 11px !important;
   background: #fff !important;
   box-shadow: none !important;
-  flex: 1 1 auto !important;
+  flex: 1 1 0 !important;
 }
 
 .employee-record-shell .employee-secondary-registry > .registry-pagination,
 .employee-record-shell .employee-secondary-registry > [class*="registry-pagination"] {
   flex: 0 0 auto !important;
-  margin-top: auto !important;
+  margin-top: 0 !important;
 }
 
 .employee-record-shell .employee-secondary-registry > .scroll-table > .data-table {
