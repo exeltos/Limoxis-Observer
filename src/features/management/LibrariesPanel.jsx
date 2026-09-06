@@ -13,6 +13,7 @@ import { TrainingFeedbackTemplatePanel } from './TrainingFeedbackTemplatePanel'
 import { loadSnapshot,saveSnapshot } from '../../core/data/repository'
 import { createManagementLibraryItem,loadManagementLibraries,removeManagementLibraryItem,updateManagementLibraryItem } from './managementCloudService'
 import { isHospitalManagedLibraryKey } from './libraryGovernance'
+import '../../styles/library-workspace.css'
 
 const categories=[
  ['departments','libraryDepartments',Building2,'blue'],['microorganisms','libraryMicroorganisms',Biohazard,'red'],
