@@ -8,15 +8,15 @@
   display: none !important;
 }
 
-/* One section-title contract for ALL employee tabs.
-   Covers both the explicit record-section-header markup and the lightweight
-   SectionTitle component used by Training / Vaccinations / Evaluations / History. */
+/* One section-title contract for ALL employee tabs. */
 .employee-record-shell .record-section-header,
+.employee-record-shell .employee-section-title,
 .employee-record-shell .record-section > div:first-child:has(> .eyebrow) {
   margin: 0 0 18px !important;
 }
 
 .employee-record-shell .record-section-header .eyebrow,
+.employee-record-shell .employee-section-title > .eyebrow,
 .employee-record-shell .record-section > div:first-child > .eyebrow {
   display: block !important;
   margin: 0 0 6px !important;
@@ -31,6 +31,8 @@
 
 .employee-record-shell .record-section-header h2,
 .employee-record-shell .record-section-header h3,
+.employee-record-shell .employee-section-title > h2,
+.employee-record-shell .employee-section-title > h3,
 .employee-record-shell .record-section > div:first-child > h2,
 .employee-record-shell .record-section > div:first-child > h3 {
   margin: 0 !important;
@@ -42,8 +44,141 @@
   letter-spacing: -.018em !important;
 }
 
-/* Training and any remaining employee table use the canonical registry surface,
-   rather than the old boxed record-table treatment. */
+/* Canonical secondary registry: same geometry as the application's common tables. */
+.employee-record-shell .employee-secondary-registry > .scroll-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-top: 12px !important;
+  overflow: auto !important;
+  border: 1px solid #e1e8ee !important;
+  border-radius: 11px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table {
+  width: 100% !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  table-layout: fixed !important;
+  background: #fff !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table thead th {
+  height: 42px !important;
+  padding: 0 16px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #dfe7ed !important;
+  background: #f7f9fb !important;
+  color: #6f8294 !important;
+  font-size: 9.5px !important;
+  font-weight: 750 !important;
+  line-height: 1.2 !important;
+  letter-spacing: .045em !important;
+  text-align: left !important;
+  text-transform: uppercase !important;
+  vertical-align: middle !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table tbody td {
+  height: 52px !important;
+  padding: 10px 16px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e7edf2 !important;
+  background: #fff !important;
+  color: #486177 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  vertical-align: middle !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table tbody tr:hover td {
+  background: #fbfcfd !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td strong {
+  display: block !important;
+  color: #173650 !important;
+  font-size: 12.5px !important;
+  font-weight: 650 !important;
+  line-height: 1.35 !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td small {
+  display: block !important;
+  margin-top: 3px !important;
+  color: #7d8f9f !important;
+  font-size: 10.5px !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table .status-badge {
+  min-height: 24px !important;
+  padding: 3px 9px !important;
+  border-radius: 999px !important;
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+}
+
+/* Training columns. */
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table th:nth-child(1),
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td:nth-child(1) {
+  width: 48% !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table th:nth-child(2),
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td:nth-child(2) {
+  width: 24% !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table th:nth-child(3),
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td:nth-child(3) {
+  width: 28% !important;
+}
+
+/* Certificates use four balanced columns. */
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table th:nth-child(4),
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td:nth-child(4) {
+  width: 22% !important;
+}
+
+/* Empty/loading states span the available content width instead of rendering as a small grey box. */
+.employee-record-shell .employee-registry-empty,
+.employee-record-shell .registry-loading-state {
+  width: 100% !important;
+  min-height: 150px !important;
+  margin: 12px 0 0 !important;
+  padding: 28px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  border: 1px dashed #d8e2ea !important;
+  border-radius: 11px !important;
+  background: #fbfcfd !important;
+  color: #73879a !important;
+  text-align: center !important;
+}
+
+.employee-record-shell .employee-registry-empty strong {
+  color: #35536c !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+
+.employee-record-shell .employee-registry-empty span {
+  color: #8293a3 !important;
+  font-size: 11px !important;
+}
+
+/* Keep older employee subrecord tables aligned while they are gradually migrated. */
 .employee-record-shell .record-section > .record-table-wrap {
   width: 100% !important;
   min-width: 0 !important;
@@ -72,7 +207,6 @@
   border-bottom: 1px solid #dfe7ed !important;
   background: #f7f9fb !important;
   color: #6f8294 !important;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   font-size: 9.5px !important;
   font-weight: 750 !important;
   line-height: 1.2 !important;
@@ -95,50 +229,13 @@
   vertical-align: middle !important;
 }
 
-.employee-record-shell .record-section > .record-table-wrap > .record-table tbody tr:last-child td {
-  border-bottom: 0 !important;
-}
-
-.employee-record-shell .record-section > .record-table-wrap > .record-table tbody tr:hover td {
-  background: #fbfcfd !important;
-}
-
-.employee-record-shell .record-section > .record-table-wrap > .record-table td strong {
-  display: block !important;
-  color: #173650 !important;
-  font-size: 12.5px !important;
-  font-weight: 650 !important;
-  line-height: 1.35 !important;
-}
-
-.employee-record-shell .record-section > .record-table-wrap > .record-table .status-badge {
-  min-height: 24px !important;
-  padding: 3px 9px !important;
-  border-radius: 999px !important;
-  font-size: 10.5px !important;
-  font-weight: 650 !important;
-}
-
-.employee-record-shell .record-section > .record-table-wrap > .record-table th:nth-child(1),
-.employee-record-shell .record-section > .record-table-wrap > .record-table td:nth-child(1) {
-  width: 52% !important;
-}
-
-.employee-record-shell .record-section > .record-table-wrap > .record-table th:nth-child(2),
-.employee-record-shell .record-section > .record-table-wrap > .record-table td:nth-child(2) {
-  width: 24% !important;
-}
-
-.employee-record-shell .record-section > .record-table-wrap > .record-table th:nth-child(3),
-.employee-record-shell .record-section > .record-table-wrap > .record-table td:nth-child(3) {
-  width: 24% !important;
-}
-
 @media (max-width: 760px) {
+  .employee-record-shell .employee-secondary-registry > .scroll-table,
   .employee-record-shell .record-section > .record-table-wrap {
     overflow-x: auto !important;
   }
 
+  .employee-record-shell .employee-secondary-registry > .scroll-table > .data-table,
   .employee-record-shell .record-section > .record-table-wrap > .record-table {
     min-width: 620px !important;
     table-layout: auto !important;
