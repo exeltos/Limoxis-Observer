@@ -26,8 +26,8 @@
 .lo-icon-button-sm{width:30px;height:30px;border-radius:8px}
 .lo-icon-button-lg{width:40px;height:40px}
 
-/* Canonical attachment actions: all icons are quiet/neutral by default.
-   Color is semantic feedback on hover/focus only: view=blue, edit=warning, delete=danger. */
+/* Canonical attachment actions: keep each icon's semantic stroke color visible,
+   but no permanent box. Hover/focus adds only the soft semantic surface. */
 .attachment-actions>button{
   width:32px!important;
   min-width:32px!important;
@@ -39,20 +39,22 @@
   border:0!important;
   border-radius:8px!important;
   background:transparent!important;
-  color:var(--lo-shell-control-fg)!important;
   box-shadow:none!important;
   cursor:pointer!important;
   transition:background .15s ease,color .15s ease,transform .15s ease!important;
 }
+.attachment-actions>button:not(.edit):not(.danger){color:var(--lo-color-primary)!important}
+.attachment-actions>button.edit{color:var(--lo-status-warning-fg)!important}
+.attachment-actions>button.danger{color:var(--lo-status-danger-fg)!important}
 .attachment-actions>button:not(.edit):not(.danger):hover:not(:disabled),
-.attachment-actions>button:not(.edit):not(.danger):focus-visible:not(:disabled){color:var(--lo-color-primary)!important;background:var(--lo-status-info-bg)!important;transform:translateY(-1px)!important}
+.attachment-actions>button:not(.edit):not(.danger):focus-visible:not(:disabled){background:var(--lo-status-info-bg)!important;transform:translateY(-1px)!important}
 .attachment-actions>button.edit:hover:not(:disabled),
-.attachment-actions>button.edit:focus-visible:not(:disabled){color:var(--lo-status-warning-fg)!important;background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)!important}
+.attachment-actions>button.edit:focus-visible:not(:disabled){background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)!important}
 .attachment-actions>button.danger:hover:not(:disabled),
-.attachment-actions>button.danger:focus-visible:not(:disabled){color:var(--lo-status-danger-fg)!important;background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)!important}
+.attachment-actions>button.danger:focus-visible:not(:disabled){background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)!important}
 .attachment-actions>button:disabled{opacity:.4!important;cursor:not-allowed!important;transform:none!important}
 
-/* Control execution history uses the same quiet icon-action language as attachments. */
+/* Control execution history follows the same semantic icon language. */
 .control-history-actions{display:flex;align-items:center;justify-content:flex-end;gap:4px}
 .control-history-actions>.control-history-action{
   width:30px!important;
@@ -63,16 +65,18 @@
   border:0!important;
   border-radius:8px!important;
   background:transparent!important;
-  color:var(--lo-shell-control-fg)!important;
   box-shadow:none!important;
   transition:background .15s ease,color .15s ease,transform .15s ease!important;
 }
+.control-history-actions>.control-history-action-view{color:var(--lo-color-primary)!important}
+.control-history-actions>.control-history-action-edit{color:var(--lo-status-warning-fg)!important}
+.control-history-actions>.control-history-action-danger{color:var(--lo-status-danger-fg)!important}
 .control-history-actions>.control-history-action-view:hover:not(:disabled),
-.control-history-actions>.control-history-action-view:focus-visible:not(:disabled){color:var(--lo-color-primary)!important;background:var(--lo-status-info-bg)!important;transform:translateY(-1px)!important}
+.control-history-actions>.control-history-action-view:focus-visible:not(:disabled){background:var(--lo-status-info-bg)!important;transform:translateY(-1px)!important}
 .control-history-actions>.control-history-action-edit:hover:not(:disabled),
-.control-history-actions>.control-history-action-edit:focus-visible:not(:disabled){color:var(--lo-status-warning-fg)!important;background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)!important}
+.control-history-actions>.control-history-action-edit:focus-visible:not(:disabled){background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)!important}
 .control-history-actions>.control-history-action-danger:hover:not(:disabled),
-.control-history-actions>.control-history-action-danger:focus-visible:not(:disabled){color:var(--lo-status-danger-fg)!important;background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)!important}
+.control-history-actions>.control-history-action-danger:focus-visible:not(:disabled){background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)!important}
 
 /* Canonical record-level edit control: same pencil treatment everywhere. */
 .entity-record-header-actions .entity-record-icon-button[aria-label="Επεξεργασία επιτροπής"],
