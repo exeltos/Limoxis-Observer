@@ -32,6 +32,7 @@ import './styles/design-system-kpi-action-rail.css'
 import './styles/employee-record-registry.css'
 import './styles/control-record.css'
 import './styles/semantic-icon-actions.css'
+import './styles/committee-record.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
