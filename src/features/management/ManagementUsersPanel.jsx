@@ -1,5 +1,5 @@
 import { useEffect,useState } from 'react'
-import { CirclePause,KeyRound,Plus,RotateCcw,Trash2 } from 'lucide-react'
+import { CirclePause,KeyRound,Plus,RotateCcw,ShieldCheck,Trash2,UserRound } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
@@ -11,6 +11,7 @@ import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 import { supabase,invokeAuthenticatedFunction } from '../../core/supabase/client'
 import { demoUsers } from './managementData'
 import { creatableManagementRoles,managementMemberStatusLabel,managementRoleNames } from './managementRoles'
+import '../../styles/management-users.css'
 
 export function ManagementUsersPanel(){
  const {language,t}=useLanguage()
@@ -116,7 +117,7 @@ export function ManagementUsersPanel(){
   <div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('users')}</th><th>Username</th><th>{t('roleLabel')}</th><th>{t('status')}</th><th/></tr></thead><tbody>
    {isDemo?demoUsers.map(user=><tr key={user.id}><td><strong>{user.name}</strong><small>{user.email}</small></td><td>DEMO</td><td>{user.role}</td><td><span className="status-badge active">{managementMemberStatusLabel('active',language)}</span></td><td/></tr>):rows.map(user=>{
     const self=user.userId===currentUserId
-    return <tr key={user.id}><td><strong>{user.name}</strong><small>{user.email||'—'}</small></td><td>{user.username}</td><td><span className="role-badge">{t(managementRoleNames[user.role]??user.role)}</span></td><td><span className={`status-badge ${user.status==='active'?'active':user.status==='disabled'?'danger':'temporary'}`}>{managementMemberStatusLabel(user.status,language)}</span></td><td>{canManageRow(user)?<button className="text-button" onClick={()=>setSelectedUser(user)}>{t('manageUserAction')}</button>:<span className="role-badge">{language==='en'?'Your account':'Ο λογαριασμός σας'}</span>}{self&&isPlatformOwner&&<small>{language==='en'?'Platform Owner control':'Έλεγχος Platform Owner'}</small>}</td></tr>
+    return <tr key={user.id}><td><strong>{user.name}</strong><small>{user.email||'—'}</small></td><td>{user.username}</td><td><span className="role-badge">{t(managementRoleNames[user.role]??user.role)}</span></td><td><span className={`status-badge ${user.status==='active'?'active':user.status==='disabled'?'danger':'temporary'}`}>{managementMemberStatusLabel(user.status,language)}</span></td><td>{canManageRow(user)?<button className="text-button" onClick={()=>setSelectedUser(user)}>{t('manageUserAction')}</button>:<span className="management-self-account"><ShieldCheck size={13}/>{language==='en'?'Your account':'Ο λογαριασμός σας'}</span>}{self&&isPlatformOwner&&<small>{language==='en'?'Platform Owner control':'Έλεγχος Platform Owner'}</small>}</td></tr>
    })}
   </tbody></table>{loading&&<div className="inline-empty">{t('loading')}</div>}{!isDemo&&!loading&&!rows.length&&<div className="inline-empty">{t('noConnectedUsers')}</div>}</div>
   {createOpen&&<CreateUserDialog t={t} language={language} busy={busy} onClose={()=>setCreateOpen(false)} onCreate={createUser}/>} 
@@ -138,15 +139,45 @@ function UserAccessDialog({user,t,language,busy,onClose,onAction}){
  const [role,setRole]=useState(user.role)
  const roleChanged=role!==user.role
  const active=user.status==='active'
- return <ObserverDialog open width="wide" eyebrow={language==='en'?'USER ACCESS':'ΠΡΟΣΒΑΣΗ ΧΡΗΣΤΗ'} title={language==='en'?'Manage access':'Διαχείριση πρόσβασης'} subtitle={user.name} onClose={onClose}>
-  <div className="detail-grid quality-detail-grid">
-   <div className="detail-item"><span>{language==='en'?'Username':'Όνομα χρήστη'}</span><strong>{user.username||'—'}</strong></div>
-   <div className="detail-item"><span>Email</span><strong>{user.email||'—'}</strong></div>
-   <div className="detail-item"><span>{t('status')}</span><strong><span className={`status-badge ${active?'active':user.status==='disabled'?'danger':'temporary'}`}>{managementMemberStatusLabel(user.status,language)}</span></strong></div>
+ return <ObserverDialog open width="standard" className="management-user-dialog" title={language==='en'?'User access':'Πρόσβαση χρήστη'} subtitle={user.name} onClose={onClose}>
+  <div className="management-user-summary">
+   <div className="management-user-identity">
+    <div className="management-user-avatar"><UserRound size={20}/></div>
+    <div className="management-user-identity-text">
+     <strong>{user.name}</strong>
+     <div className="management-user-identity-meta"><span>{user.username||'—'}</span><span>•</span><span>{user.email||'—'}</span></div>
+    </div>
+   </div>
+   <div className="management-user-status"><span className={`status-badge ${active?'active':user.status==='disabled'?'danger':'temporary'}`}>{managementMemberStatusLabel(user.status,language)}</span></div>
   </div>
-  <div className="quality-description"><span>{t('roleLabel')}</span><div className="field"><select value={role} disabled={busy} onChange={e=>setRole(e.target.value)}>{creatableManagementRoles.map(item=><option key={item} value={item}>{t(managementRoleNames[item]??item)}</option>)}</select></div></div>
-  <div className="source-truth-note"><strong>{language==='en'?'Login access is separate from the employee record':'Η πρόσβαση σύνδεσης είναι ανεξάρτητη από την καρτέλα εργαζομένου'}</strong><p>{language==='en'?'Pausing or deleting this login never deletes the employee record, training, certifications or workforce history.':'Η παύση ή η διαγραφή του λογαριασμού σύνδεσης δεν διαγράφει ποτέ την καρτέλα εργαζομένου, τις εκπαιδεύσεις, τις πιστοποιήσεις ή το ιστορικό προσωπικού.'}</p></div>
-  <div className="record-actions"><Button variant="secondary" disabled={busy} onClick={()=>onAction('reset_password')}><KeyRound size={15}/>{language==='en'?'Reset password':'Επαναφορά κωδικού'}</Button>{active?<Button variant="secondary" disabled={busy} onClick={()=>onAction('suspend')}><CirclePause size={15}/>{language==='en'?'Pause access':'Παύση πρόσβασης'}</Button>:<Button variant="secondary" disabled={busy} onClick={()=>onAction('reactivate')}><RotateCcw size={15}/>{language==='en'?'Restore access':'Ενεργοποίηση πρόσβασης'}</Button>}<Button variant="secondary" className="button-destructive" disabled={busy} onClick={()=>onAction('delete')}><Trash2 size={15}/>{language==='en'?'Delete login':'Διαγραφή λογαριασμού'}</Button></div>
-  <DialogActions><Button variant="secondary" onClick={onClose} disabled={busy}>{t('close')}</Button><SaveButton disabled={busy||!roleChanged} onClick={()=>onAction('update',{role})}>{language==='en'?'Save role':'Αποθήκευση ρόλου'}</SaveButton></DialogActions>
+
+  <section className="management-user-section">
+   <div className="management-user-section-heading"><div><strong>{language==='en'?'Role and permissions':'Ρόλος και δικαιώματα'}</strong><p>{language==='en'?'Change the role that controls access inside Limoxis Observer.':'Αλλάξτε τον ρόλο που καθορίζει την πρόσβαση μέσα στο Limoxis Observer.'}</p></div></div>
+   <div className="management-user-role-row">
+    <label className="field"><span>{t('roleLabel')}</span><select value={role} disabled={busy} onChange={e=>setRole(e.target.value)}>{creatableManagementRoles.map(item=><option key={item} value={item}>{t(managementRoleNames[item]??item)}</option>)}</select></label>
+    <SaveButton disabled={busy||!roleChanged} onClick={()=>onAction('update',{role})}>{language==='en'?'Save role':'Αποθήκευση ρόλου'}</SaveButton>
+   </div>
+  </section>
+
+  <section className="management-user-section">
+   <div className="management-user-section-heading"><div><strong>{language==='en'?'Account access':'Πρόσβαση λογαριασμού'}</strong><p>{language==='en'?'Manage login access without changing the employee record.':'Διαχειριστείτε μόνο την πρόσβαση σύνδεσης, χωρίς αλλαγή στην καρτέλα εργαζομένου.'}</p></div></div>
+   <div className="management-user-actions">
+    <div className="management-user-action-row">
+     <div className="management-user-action-copy"><div className="management-user-action-icon"><KeyRound size={15}/></div><div><strong>{language==='en'?'Reset password':'Επαναφορά κωδικού'}</strong><span>{language==='en'?'Send a secure password-reset email to the user.':'Αποστολή ασφαλούς email επαναφοράς κωδικού στον χρήστη.'}</span></div></div>
+     <Button variant="secondary" disabled={busy} onClick={()=>onAction('reset_password')}>{language==='en'?'Send email':'Αποστολή email'}</Button>
+    </div>
+    <div className="management-user-action-row">
+     <div className="management-user-action-copy"><div className="management-user-action-icon">{active?<CirclePause size={15}/>:<RotateCcw size={15}/>}</div><div><strong>{active?(language==='en'?'Pause access':'Παύση πρόσβασης'):(language==='en'?'Restore access':'Ενεργοποίηση πρόσβασης')}</strong><span>{active?(language==='en'?'Temporarily block sign-in while keeping the account.':'Προσωρινός αποκλεισμός σύνδεσης με διατήρηση του λογαριασμού.'):(language==='en'?'Allow the user to sign in again.':'Επαναφορά δυνατότητας σύνδεσης του χρήστη.')}</span></div></div>
+     <Button variant="secondary" disabled={busy} onClick={()=>onAction(active?'suspend':'reactivate')}>{active?(language==='en'?'Pause':'Παύση'):(language==='en'?'Activate':'Ενεργοποίηση')}</Button>
+    </div>
+    <div className="management-user-action-row danger">
+     <div className="management-user-action-copy"><div className="management-user-action-icon"><Trash2 size={15}/></div><div><strong>{language==='en'?'Delete login account':'Διαγραφή λογαριασμού σύνδεσης'}</strong><span>{language==='en'?'Permanently remove login and organization access.':'Οριστική διαγραφή login και πρόσβασης στον οργανισμό.'}</span></div></div>
+     <Button variant="secondary" className="button-destructive" disabled={busy} onClick={()=>onAction('delete')}>{language==='en'?'Delete account':'Διαγραφή'}</Button>
+    </div>
+   </div>
+  </section>
+
+  <div className="management-user-preserve-note"><ShieldCheck size={15}/><span>{language==='en'?'The employee record, training, vaccinations, certifications and workforce history are never deleted from this screen.':'Η καρτέλα εργαζομένου, οι εκπαιδεύσεις, οι εμβολιασμοί, οι πιστοποιήσεις και το ιστορικό προσωπικού δεν διαγράφονται ποτέ από αυτή την οθόνη.'}</span></div>
+  <div className="management-user-dialog-actions"><Button variant="secondary" onClick={onClose} disabled={busy}>{t('close')}</Button></div>
  </ObserverDialog>
 }
