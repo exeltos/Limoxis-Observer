@@ -45,9 +45,8 @@
 }
 
 /* Canonical full-height contract for secondary employee tabs.
-   Use the same three-row geometry as the main registries:
-   section title -> flexible results viewport -> pagination rail.
-   This deliberately avoids absolute positioning and :has-dependent sizing. */
+   The body is a stable viewport. Registry-like tabs consume it completely,
+   matching the main application lists instead of collapsing around their rows. */
 .employee-record-shell.record-secondary-tab-active > .entity-record-body {
   display: grid !important;
   grid-template-rows: minmax(0, 1fr) !important;
@@ -56,6 +55,7 @@
   overflow: hidden !important;
 }
 
+/* Table registries: title -> flexible table -> bottom pagination rail. */
 .employee-record-shell.record-secondary-tab-active > .entity-record-body > .employee-secondary-registry {
   display: grid !important;
   grid-template-rows: auto minmax(0, 1fr) auto !important;
@@ -65,6 +65,32 @@
   height: 100% !important;
   margin: 0 !important;
   overflow: hidden !important;
+}
+
+/* Remaining employee list tabs use the same full-height viewport while they keep
+   their existing workflow-specific row/card content. This prevents any list from
+   collapsing at the top of the tab and keeps the screen rhythm consistent. */
+.employee-record-shell.record-secondary-tab-active > .entity-record-body > .record-section:has(> .record-card-list) {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+.employee-record-shell.record-secondary-tab-active > .entity-record-body > .record-section:has(> .source-truth-note):has(> .record-card-list) {
+  grid-template-rows: auto auto minmax(0, 1fr) !important;
+}
+
+.employee-record-shell.record-secondary-tab-active > .entity-record-body > .record-section > .record-card-list {
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
 }
 
 .employee-record-shell .employee-secondary-registry > .employee-section-title,
@@ -79,12 +105,15 @@
   height: 100% !important;
   margin-top: 12px !important;
   overflow: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
   border: 1px solid #e1e8ee !important;
   border-radius: 11px !important;
   background: #fff !important;
   box-shadow: none !important;
 }
 
+/* Pagination is always the bottom rail, identical to canonical registries. */
 .employee-record-shell .employee-secondary-registry > .registry-pagination,
 .employee-record-shell .employee-secondary-registry > [class*="registry-pagination"] {
   align-self: end !important;
