@@ -69,7 +69,7 @@ function ProgramRecord({en,language,organizationId,program,assignments,state,emp
   const saved=await onPersist({...state,assignments:[...state.assignments,...fromEmployees,...fromManual]},en?'Participants added.':'Οι συμμετέχοντες προστέθηκαν.')
   if(saved)setDialog(null)
  }
- const headerActions=!editing?<><button type="button" className="lo-icon-button lo-icon-button-edit" onClick={()=>setEditing(true)} title={en?'Edit':'Επεξεργασία'} aria-label={en?'Edit':'Επεξεργασία'}><Pencil size={16}/></button>{assignments.length===0&&<button type="button" className="lo-icon-button lo-icon-button-danger" onClick={onDelete} disabled={busy} title={en?'Delete':'Διαγραφή'} aria-label={en?'Delete':'Διαγραφή'}><Trash2 size={16}/></button>}</>:null
+ const headerActions=!editing?<><button type="button" className="lo-icon-button lo-icon-button-edit" onClick={()=>setEditing(true)} title={en?'Edit':'Επεξεργασία'} aria-label={en?'Edit':'Επεξεργασία'}><Pencil size={16}/></button><button type="button" className="lo-icon-button lo-icon-button-danger" onClick={onDelete} disabled={busy} title={en?'Delete':'Διαγραφή'} aria-label={en?'Delete':'Διαγραφή'}><Trash2 size={16}/></button></>:null
  const activeEmployees=employees.filter(isActiveEmployee),assignedEmployeeIds=new Set(assignments.map(a=>String(a.employeeId||'')).filter(Boolean)),questionCount=(program.assessmentQuestions||[]).length
  return (
   <Page fill>
