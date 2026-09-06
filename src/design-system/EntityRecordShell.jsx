@@ -89,6 +89,10 @@ export function EntityRecordShell({
   // dedicated action toolbar (enter, reset password, pause/reactivate, convert, delete).
   const generalActions=isPlatformOwnerRecord?[]:flattenActions(headerActions).map(normalizeGeneralAction).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
+  // Secondary tabs are layout containers. Making the body a column flex container lets
+  // registry children consume the full grid row while ordinary long forms still scroll
+  // through the body's existing overflow contract.
+  const secondaryBodyStyle=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
 
   return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${className}`.trim()}>
     <header className="entity-record-header surface">
@@ -112,7 +116,7 @@ export function EntityRecordShell({
     <nav className="entity-record-tabs surface" role="tablist">
       {tabs.map(({id,label,icon:Icon,disabled=false,lockedLabel})=><button key={id} role="tab" aria-selected={activeTab===id} aria-disabled={disabled} disabled={disabled} title={disabled?(lockedLabel||t('locked')):undefined} className={`${activeTab===id?'active':''} ${disabled?'locked':''}`.trim()} onClick={()=>!disabled&&onTabChange(id)}>{Icon&&<Icon size={16}/>}<span>{label}</span>{disabled&&<small className="tab-lock">🔒</small>}</button>)}
     </nav>
-    <section className="entity-record-body surface">
+    <section className="entity-record-body surface" style={secondaryBodyStyle}>
       {primaryTabActive&&generalActions.length>0&&<div className="record-inline-actions entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}>{generalActions}</div>}
       {children}
     </section>
