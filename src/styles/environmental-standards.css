@@ -1,7 +1,6 @@
-.environmental-active-field{display:flex;flex-direction:column;gap:8px;align-items:flex-start;justify-content:flex-start}
-.environmental-active-field>span{display:block;color:var(--lo-color-text-muted,#5f7488);font-size:12px;font-weight:700}
-.environmental-active-toggle{display:inline-flex!important;align-items:center;gap:8px;margin:0!important;padding:0!important;min-height:40px;border:0!important;background:transparent!important;cursor:pointer}
-.environmental-active-toggle input{width:17px!important;height:17px!important;margin:0!important;flex:0 0 auto;accent-color:var(--lo-color-primary)}
-.environmental-active-toggle span{margin:0!important;font-size:14px!important;font-weight:600!important;color:var(--lo-color-text,#243f53)!important;line-height:1.2}
+.environmental-active-field{display:flex!important;align-items:flex-start!important;justify-content:flex-start!important;min-width:0;padding-top:2px}
+.environmental-standard-editor .form-grid .environmental-active-field .environmental-active-toggle{display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;width:auto!important;max-width:max-content!important;min-height:44px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;cursor:pointer!important;white-space:nowrap!important}
+.environmental-standard-editor .environmental-active-toggle input[type="checkbox"]{display:inline-block!important;position:static!important;float:none!important;width:17px!important;height:17px!important;min-width:17px!important;max-width:17px!important;margin:0!important;padding:0!important;flex:0 0 17px!important;accent-color:var(--lo-color-primary)}
+.environmental-standard-editor .environmental-active-toggle>span{display:inline!important;width:auto!important;margin:0!important;padding:0!important;font-size:14px!important;font-weight:600!important;line-height:17px!important;color:var(--lo-color-text,#243f53)!important;white-space:nowrap!important}
 .environmental-active-toggle input:disabled{cursor:not-allowed}
-.environmental-active-toggle:has(input:disabled){cursor:default;opacity:.72}
+.environmental-active-toggle:has(input:disabled){cursor:default!important;opacity:.72}
