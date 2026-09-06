@@ -34,6 +34,7 @@ import './styles/control-record.css'
 import './styles/semantic-icon-actions.css'
 import './styles/committee-record.css'
 import './styles/management-user-create.css'
+import './styles/management-polish.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
