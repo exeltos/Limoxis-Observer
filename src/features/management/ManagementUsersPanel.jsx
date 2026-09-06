@@ -1,5 +1,5 @@
 import { useEffect,useState } from 'react'
-import { CirclePause,KeyRound,Plus,RotateCcw,ShieldCheck,Trash2,UserRound } from 'lucide-react'
+import { CirclePause,KeyRound,Link2,Plus,RotateCcw,ShieldCheck,Trash2,UserPlus,UserRound,UsersRound } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
@@ -14,170 +14,27 @@ import { creatableManagementRoles,managementMemberStatusLabel,managementRoleName
 import '../../styles/management-users.css'
 
 export function ManagementUsersPanel(){
- const {language,t}=useLanguage()
- const {tenant,role,membership,isDemo}=useTenant()
- const {user:authUser}=useAuth()
- const {notify,confirm}=useFeedback()
- const [rows,setRows]=useState([])
- const [loading,setLoading]=useState(false)
- const [createOpen,setCreateOpen]=useState(false)
- const [createdUser,setCreatedUser]=useState(null)
- const [selectedUser,setSelectedUser]=useState(null)
- const [busy,setBusy]=useState(false)
- const [revision,setRevision]=useState(0)
- const currentUserId=authUser?.id||''
- const isPlatformOwner=role===ROLES.PLATFORM_OWNER
- const addOns=membership?.capabilities??[]
- const customCaps=membership?.customCapabilities??[]
- const canManageUsers=can(role,CAPABILITIES.MANAGE_USERS,addOns,customCaps)
- const canManageRow=user=>isPlatformOwner||user?.userId!==currentUserId
-
- useEffect(()=>{
-  if(isDemo||!supabase||!tenant?.id)return
-  let active=true
-  setLoading(true)
-  ;(async()=>{
-   try{
-    const {data:memberRows,error}=await supabase.from('organization_members').select('id,user_id,role,status').eq('organization_id',tenant.id)
-    if(error)throw error
-    if(!active)return
-    const ids=[...new Set((memberRows||[]).map(x=>x.user_id).filter(Boolean))]
-    let profiles=[]
-    if(ids.length){
-     const result=await supabase.from('profiles').select('id,full_name,username,contact_email,phone,job_title').in('id',ids)
-     if(result.error)throw result.error
-     profiles=result.data||[]
-    }
-    const byId=new Map(profiles.map(x=>[x.id,x]))
-    setRows((memberRows||[]).map(row=>{
-     const p=byId.get(row.user_id)||{}
-     return {id:row.id,userId:row.user_id,role:row.role,status:row.status,username:p.username||'—',name:p.full_name||'—',email:p.contact_email||'',phone:p.phone||'',jobTitle:p.job_title||''}
-    }))
-   }catch(error){if(active)notify(error?.message||(language==='en'?'Could not load users.':'Αποτυχία φόρτωσης χρηστών.'),'error')}
-   finally{if(active)setLoading(false)}
-  })()
-  return()=>{active=false}
- },[isDemo,tenant?.id,revision,language,notify])
-
- async function createUser(payload){
-  if(!supabase||!tenant?.id)return
-  try{
-   setBusy(true)
-   const data=await invokeAuthenticatedFunction('create-organization-user',{organizationId:tenant.id,...payload})
-   setCreateOpen(false)
-   setCreatedUser({...data,employeeCreated:Boolean(data?.employeeId)})
-   setRevision(x=>x+1)
-   notify(payload.employee?.create?(language==='en'?'Employee and user account created.':'Ο εργαζόμενος και ο λογαριασμός χρήστη δημιουργήθηκαν.'):(language==='en'?'User account created.':'Ο λογαριασμός χρήστη δημιουργήθηκε.'),'success')
-  }catch(error){notify(error?.message||(language==='en'?'User creation failed.':'Η δημιουργία χρήστη απέτυχε.'),'error')}
-  finally{setBusy(false)}
- }
-
- async function runAction(user,action,payload={}){
-  if(!tenant?.id||!user?.userId)return
-  if(!canManageRow(user)){
-   notify(language==='en'?'Only the Platform Owner can manage your own account from this screen.':'Ο δικός σας λογαριασμός μπορεί να διαχειριστεί από αυτή την οθόνη μόνο από τον Platform Owner.','warning')
-   return
-  }
-  if(action==='suspend'){
-   const ok=await confirm({title:language==='en'?'Pause access':'Παύση πρόσβασης',message:language==='en'?`Pause ${user.name}'s access? The employee record remains unchanged.`:`Να τεθεί σε παύση η πρόσβαση του χρήστη «${user.name}»; Η καρτέλα εργαζομένου παραμένει κανονικά.`,confirmLabel:language==='en'?'Pause access':'Παύση πρόσβασης'})
-   if(!ok)return
-  }
-  if(action==='delete'){
-   const ok=await confirm({title:language==='en'?'Delete login account':'Διαγραφή λογαριασμού σύνδεσης',message:language==='en'?`Delete ${user.name}'s login and organization access? The employee record and all workforce history are preserved.`:`Θα διαγραφεί μόνο ο λογαριασμός σύνδεσης και η πρόσβαση του «${user.name}». Η καρτέλα εργαζομένου και όλο το ιστορικό προσωπικού διατηρούνται.`,confirmLabel:language==='en'?'Delete account':'Διαγραφή λογαριασμού',danger:true})
-   if(!ok)return
-  }
-  try{
-   setBusy(true)
-   await invokeAuthenticatedFunction('manage-organization-user',{organizationId:tenant.id,userId:user.userId,action,...payload})
-   if(action==='delete'){
-    setRows(current=>current.filter(row=>row.userId!==user.userId))
-    setSelectedUser(null)
-    notify(language==='en'?'Login account deleted. Employee record preserved.':'Ο λογαριασμός σύνδεσης διαγράφηκε. Η καρτέλα εργαζομένου διατηρήθηκε.','success')
-    return
-   }
-   if(action==='reset_password'){
-    notify(language==='en'?'Password reset email sent.':'Στάλθηκε email επαναφοράς κωδικού.','success')
-    return
-   }
-   const nextStatus=action==='suspend'?'disabled':action==='reactivate'?'active':user.status
-   const nextRole=action==='update'&&payload.role?payload.role:user.role
-   const patch={status:nextStatus,role:nextRole}
-   setRows(current=>current.map(row=>row.userId===user.userId?{...row,...patch}:row))
-   setSelectedUser(current=>current?.userId===user.userId?{...current,...patch}:current)
-   notify(action==='update'?(language==='en'?'User role updated.':'Ο ρόλος του χρήστη ενημερώθηκε.'):action==='reactivate'?(language==='en'?'Access restored.':'Η πρόσβαση ενεργοποιήθηκε ξανά.'):(language==='en'?'Access paused.':'Η πρόσβαση τέθηκε σε παύση.'),'success')
-  }catch(error){notify(error?.message||(language==='en'?'The user action failed.':'Η ενέργεια χρήστη απέτυχε.'),'error')}
-  finally{setBusy(false)}
- }
-
- return <section className="management-section management-scroll-section">
-  <div className="section-toolbar">
-   <div><h2>{t('organizationUsers')}</h2><p>{tenant?.name} · {language==='en'?'Accounts, roles and access lifecycle':'Λογαριασμοί, ρόλοι και κύκλος ζωής πρόσβασης'}</p></div>
-   {canManageUsers&&!isDemo&&<Button onClick={()=>setCreateOpen(true)}><Plus size={15}/>{t('managementPanel.createUser')}</Button>}
-  </div>
-  <div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('users')}</th><th>Username</th><th>{t('roleLabel')}</th><th>{t('status')}</th><th/></tr></thead><tbody>
-   {isDemo?demoUsers.map(user=><tr key={user.id}><td><strong>{user.name}</strong><small>{user.email}</small></td><td>DEMO</td><td>{user.role}</td><td><span className="status-badge active">{managementMemberStatusLabel('active',language)}</span></td><td/></tr>):rows.map(user=>{
-    const self=user.userId===currentUserId
-    return <tr key={user.id}><td><strong>{user.name}</strong><small>{user.email||'—'}</small></td><td>{user.username}</td><td><span className="role-badge">{t(managementRoleNames[user.role]??user.role)}</span></td><td><span className={`status-badge ${user.status==='active'?'active':user.status==='disabled'?'danger':'temporary'}`}>{managementMemberStatusLabel(user.status,language)}</span></td><td>{canManageRow(user)?<button className="text-button" onClick={()=>setSelectedUser(user)}>{t('manageUserAction')}</button>:<span className="management-self-account"><ShieldCheck size={13}/>{language==='en'?'Your account':'Ο λογαριασμός σας'}</span>}{self&&isPlatformOwner&&<small>{language==='en'?'Platform Owner control':'Έλεγχος Platform Owner'}</small>}</td></tr>
-   })}
-  </tbody></table>{loading&&<div className="inline-empty">{t('loading')}</div>}{!isDemo&&!loading&&!rows.length&&<div className="inline-empty">{t('noConnectedUsers')}</div>}</div>
-  {createOpen&&<CreateUserDialog t={t} language={language} busy={busy} onClose={()=>setCreateOpen(false)} onCreate={createUser}/>} 
-  {createdUser&&<CreatedUserDialog data={createdUser} t={t} language={language} onClose={()=>setCreatedUser(null)}/>} 
-  {selectedUser&&canManageRow(selectedUser)&&<UserAccessDialog user={selectedUser} t={t} language={language} busy={busy} onClose={()=>setSelectedUser(null)} onAction={(action,payload)=>runAction(selectedUser,action,payload)}/>} 
- </section>
+ const {language,t}=useLanguage(),{tenant,role,membership,isDemo}=useTenant(),{user:authUser}=useAuth(),{notify,confirm}=useFeedback()
+ const [rows,setRows]=useState([]),[loading,setLoading]=useState(false),[createOpen,setCreateOpen]=useState(false),[createdUser,setCreatedUser]=useState(null),[selectedUser,setSelectedUser]=useState(null),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0)
+ const currentUserId=authUser?.id||'',isPlatformOwner=role===ROLES.PLATFORM_OWNER,canManageUsers=can(role,CAPABILITIES.MANAGE_USERS,membership?.capabilities??[],membership?.customCapabilities??[]),canManageRow=u=>isPlatformOwner||u?.userId!==currentUserId
+ useEffect(()=>{if(isDemo||!supabase||!tenant?.id)return;let active=true;setLoading(true);(async()=>{try{const {data:members,error}=await supabase.from('organization_members').select('id,user_id,role,status').eq('organization_id',tenant.id);if(error)throw error;const ids=[...new Set((members||[]).map(x=>x.user_id).filter(Boolean))];let profiles=[];if(ids.length){const r=await supabase.from('profiles').select('id,full_name,username,contact_email,phone,job_title').in('id',ids);if(r.error)throw r.error;profiles=r.data||[]}if(!active)return;const byId=new Map(profiles.map(x=>[x.id,x]));setRows((members||[]).map(row=>{const p=byId.get(row.user_id)||{};return{id:row.id,userId:row.user_id,role:row.role,status:row.status,username:p.username||'—',name:p.full_name||'—',email:p.contact_email||''}}))}catch(e){if(active)notify(e?.message||'Αποτυχία φόρτωσης χρηστών.','error')}finally{if(active)setLoading(false)}})();return()=>{active=false}},[isDemo,tenant?.id,revision,notify])
+ async function createUser(payload){try{setBusy(true);const data=await invokeAuthenticatedFunction('create-organization-user',{organizationId:tenant.id,...payload});setCreateOpen(false);setCreatedUser({...data,employeeLinked:Boolean(data?.employeeId)});setRevision(x=>x+1);notify(data?.emailSent===false?'Ο υπάρχων λογαριασμός συνδέθηκε με τον οργανισμό.':'Η πρόσκληση στάλθηκε.','success')}catch(e){notify(e?.message||'Η δημιουργία χρήστη απέτυχε.','error')}finally{setBusy(false)}}
+ async function runAction(user,action,payload={}){if(!canManageRow(user)){notify('Μόνο ο Platform Owner μπορεί να διαχειριστεί τον δικό σας λογαριασμό εδώ.','warning');return}if(action==='suspend'&&!await confirm({title:'Παύση πρόσβασης',message:`Να τεθεί σε παύση η πρόσβαση του «${user.name}»; Η καρτέλα εργαζομένου παραμένει.`,confirmLabel:'Παύση πρόσβασης'}))return;if(action==='delete'&&!await confirm({title:'Διαγραφή λογαριασμού σύνδεσης',message:`Θα διαγραφεί μόνο ο λογαριασμός σύνδεσης του «${user.name}». Η καρτέλα εργαζομένου και το ιστορικό του διατηρούνται.`,confirmLabel:'Διαγραφή λογαριασμού',danger:true}))return;try{setBusy(true);await invokeAuthenticatedFunction('manage-organization-user',{organizationId:tenant.id,userId:user.userId,action,...payload});if(action==='delete'){setRows(v=>v.filter(x=>x.userId!==user.userId));setSelectedUser(null);return notify('Ο λογαριασμός σύνδεσης διαγράφηκε.','success')}if(action==='reset_password')return notify('Στάλθηκε email επαναφοράς κωδικού.','success');const patch={status:action==='suspend'?'disabled':action==='reactivate'?'active':user.status,role:action==='update'&&payload.role?payload.role:user.role};setRows(v=>v.map(x=>x.userId===user.userId?{...x,...patch}:x));setSelectedUser(v=>v?.userId===user.userId?{...v,...patch}:v);notify('Η πρόσβαση ενημερώθηκε.','success')}catch(e){notify(e?.message||'Η ενέργεια απέτυχε.','error')}finally{setBusy(false)}}
+ return <section className="management-section management-scroll-section"><div className="section-toolbar"><div><h2>{t('organizationUsers')}</h2><p>{tenant?.name} · Λογαριασμοί, ρόλοι και κύκλος ζωής πρόσβασης</p></div>{canManageUsers&&!isDemo&&<Button onClick={()=>setCreateOpen(true)}><Plus size={15}/>Νέος χρήστης</Button>}</div><div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('users')}</th><th>Username</th><th>{t('roleLabel')}</th><th>{t('status')}</th><th/></tr></thead><tbody>{rows.map(u=><tr key={u.id}><td><strong>{u.name}</strong><small>{u.email||'—'}</small></td><td>{u.username}</td><td><span className="role-badge">{t(managementRoleNames[u.role]??u.role)}</span></td><td><span className={`status-badge ${u.status==='active'?'active':u.status==='disabled'?'danger':'temporary'}`}>{managementMemberStatusLabel(u.status,language)}</span></td><td>{canManageRow(u)?<button className="text-button" onClick={()=>setSelectedUser(u)}>{t('manageUserAction')}</button>:<span className="management-self-account"><ShieldCheck size={13}/>Ο λογαριασμός σας</span>}</td></tr>)}</tbody></table>{loading&&<div className="inline-empty">{t('loading')}</div>}</div>{createOpen&&<CreateUserDialog tenantId={tenant?.id} t={t} busy={busy} onClose={()=>setCreateOpen(false)} onCreate={createUser}/>} {createdUser&&<CreatedUserDialog data={createdUser} onClose={()=>setCreatedUser(null)}/>} {selectedUser&&canManageRow(selectedUser)&&<UserAccessDialog user={selectedUser} t={t} busy={busy} onClose={()=>setSelectedUser(null)} onAction={(a,p)=>runAction(selectedUser,a,p)}/>}</section>
 }
 
-function CreateUserDialog({t,language,busy,onClose,onCreate}){
- const [form,setForm]=useState({fullName:'',role:'staff_user',email:'',phone:'',jobTitle:'',createEmployee:true,employeeCode:'',departmentId:'',employmentStatus:'active'})
- const valid=form.fullName.trim()&&form.email.trim()&&form.role
- const set=(key,value)=>setForm(current=>({...current,[key]:value}))
- return <ObserverDialog open title={t('managementPanel.createUser')} onClose={onClose}><div className="entry-form-grid"><label className="field"><span>{t('name')}</span><input value={form.fullName} onChange={e=>set('fullName',e.target.value)}/></label><label className="field"><span>Email</span><input type="email" value={form.email} onChange={e=>set('email',e.target.value)}/></label><label className="field"><span>{t('roleLabel')}</span><select value={form.role} onChange={e=>set('role',e.target.value)}>{creatableManagementRoles.map(item=><option key={item} value={item}>{t(managementRoleNames[item]??item)}</option>)}</select></label><label className="field"><span>{t('phone')}</span><input value={form.phone} onChange={e=>set('phone',e.target.value)}/></label><label className="field"><span>{t('jobTitle')}</span><input value={form.jobTitle} onChange={e=>set('jobTitle',e.target.value)}/></label><label className="field checkbox-field"><input type="checkbox" checked={form.createEmployee} onChange={e=>set('createEmployee',e.target.checked)}/><span>{language==='en'?'Also create employee record':'Δημιουργία και καρτέλας εργαζομένου'}</span></label>{form.createEmployee&&<><label className="field"><span>{language==='en'?'Employee code':'Κωδικός εργαζομένου'}</span><input value={form.employeeCode} onChange={e=>set('employeeCode',e.target.value)}/></label><label className="field"><span>{language==='en'?'Employment status':'Κατάσταση εργασίας'}</span><select value={form.employmentStatus} onChange={e=>set('employmentStatus',e.target.value)}><option value="active">{language==='en'?'Active':'Ενεργός'}</option><option value="inactive">{language==='en'?'Inactive':'Ανενεργός'}</option></select></label></>}</div><DialogActions><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={busy||!valid} onClick={()=>onCreate({fullName:form.fullName,role:form.role,email:form.email,phone:form.phone,jobTitle:form.jobTitle,employee:{create:form.createEmployee,employeeCode:form.employeeCode,departmentId:form.departmentId||null,employmentStatus:form.employmentStatus}})}>{t('managementPanel.createUser')}</SaveButton></DialogActions></ObserverDialog>
+function CreateUserDialog({tenantId,t,busy,onClose,onCreate}){
+ const [mode,setMode]=useState('existing'),[employees,setEmployees]=useState([]),[employeesLoading,setEmployeesLoading]=useState(false),[form,setForm]=useState({fullName:'',role:'staff_user',email:'',phone:'',jobTitle:'',employeeDbId:'',employeeCode:'',employmentStatus:'active'})
+ const set=(k,v)=>setForm(x=>({...x,[k]:v}))
+ useEffect(()=>{if(!supabase||!tenantId)return;let alive=true;setEmployeesLoading(true);supabase.from('employees').select('id,user_id,employee_code,first_name,last_name,email,phone,profession_name,employment_status').eq('organization_id',tenantId).order('last_name').then(({data,error})=>{if(alive){if(!error)setEmployees((data||[]).filter(x=>!x.user_id));setEmployeesLoading(false)}});return()=>{alive=false}},[tenantId])
+ const selectEmployee=id=>{const e=employees.find(x=>x.id===id);setForm(x=>({...x,employeeDbId:id,fullName:e?`${e.first_name||''} ${e.last_name||''}`.trim():x.fullName,email:e?.email||x.email,phone:e?.phone||x.phone,jobTitle:e?.profession_name||x.jobTitle}))}
+ const parts=form.fullName.trim().split(/\s+/),valid=Boolean(form.fullName.trim()&&form.email.trim()&&form.role&&(mode!=='existing'||form.employeeDbId)&&(mode!=='new'||(form.employeeCode.trim()&&parts.length>1)))
+ const payload={fullName:form.fullName.trim(),role:form.role,email:form.email.trim(),phone:form.phone.trim(),jobTitle:form.jobTitle.trim(),employeeDbId:mode==='existing'?form.employeeDbId||null:null,employee:mode==='new'?{create:true,employeeCode:form.employeeCode.trim(),firstName:parts[0]||'',lastName:parts.slice(1).join(' '),employmentStatus:form.employmentStatus}:undefined}
+ return <ObserverDialog open width="wide" className="management-create-user-dialog" title="Νέος χρήστης" subtitle="Δημιουργία πρόσβασης και σύνδεση με το μητρώο εργαζομένων." onClose={onClose}><div className="management-create-modes"><Mode active={mode==='existing'} onClick={()=>setMode('existing')} icon={<Link2 size={18}/>} title="Σύνδεση με υπάρχοντα εργαζόμενο" text="Για εργαζόμενο που υπάρχει ήδη στο μητρώο."/><Mode active={mode==='new'} onClick={()=>setMode('new')} icon={<UserPlus size={18}/>} title="Νέα καρτέλα εργαζομένου" text="Δημιουργία εργαζομένου και πρόσβασης μαζί."/><Mode active={mode==='none'} onClick={()=>setMode('none')} icon={<UsersRound size={18}/>} title="Χωρίς καρτέλα εργαζομένου" text="Δημιουργία μόνο λογαριασμού συστήματος."/></div>{mode==='existing'&&<div className="management-create-employee-picker"><label className="field"><span>Εργαζόμενος</span><select value={form.employeeDbId} onChange={e=>selectEmployee(e.target.value)}><option value="">{employeesLoading?'Φόρτωση…':'Επιλέξτε εργαζόμενο…'}</option>{employees.map(e=><option key={e.id} value={e.id}>{e.last_name} {e.first_name} · {e.employee_code}</option>)}</select></label></div>}<CreateSection title="Στοιχεία λογαριασμού" hint="Το username δημιουργείται αυτόματα."><div className="entry-form-grid"><Field label={t('name')} value={form.fullName} disabled={mode==='existing'&&!!form.employeeDbId} onChange={v=>set('fullName',v)}/><Field label="Email" type="email" value={form.email} onChange={v=>set('email',v)}/><label className="field"><span>{t('roleLabel')}</span><select value={form.role} onChange={e=>set('role',e.target.value)}>{creatableManagementRoles.map(r=><option key={r} value={r}>{t(managementRoleNames[r]??r)}</option>)}</select></label><Field label="Τηλέφωνο" value={form.phone} onChange={v=>set('phone',v)}/><Field label="Θέση / Ιδιότητα" value={form.jobTitle} onChange={v=>set('jobTitle',v)}/></div></CreateSection>{mode==='new'&&<CreateSection title="Καρτέλα εργαζομένου" hint="Μόνο τα στοιχεία που αφορούν το μητρώο προσωπικού."><div className="entry-form-grid"><Field label="Κωδικός εργαζομένου" value={form.employeeCode} onChange={v=>set('employeeCode',v)}/><label className="field"><span>Κατάσταση εργασίας</span><select value={form.employmentStatus} onChange={e=>set('employmentStatus',e.target.value)}><option value="active">Ενεργός</option><option value="inactive">Ανενεργός</option></select></label></div></CreateSection>}<div className="management-create-invite-note"><KeyRound size={16}/><span>Ο χρήστης θα λάβει πρόσκληση ενεργοποίησης στο email του. Ο διαχειριστής δεν βλέπει ούτε διαμοιράζει κωδικό πρόσβασης.</span></div><div className="management-create-dialog-actions"><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={busy||!valid} onClick={()=>onCreate(payload)}>{busy?'Αποστολή…':'Αποστολή πρόσκλησης'}</SaveButton></div></ObserverDialog>
 }
-
-function CreatedUserDialog({data,t,language,onClose}){return <ObserverDialog open title={t('managementPanel.credentialsTitle')} onClose={onClose}><div className="credential-box"><strong>{data.username}</strong><code>{data.temporaryPassword}</code><p>{language==='en'?'Share the temporary password securely. The user must change it at first sign-in.':'Δώστε τον προσωρινό κωδικό με ασφαλή τρόπο. Ο χρήστης πρέπει να τον αλλάξει στην πρώτη σύνδεση.'}</p>{data.employeeCreated&&<p>{language==='en'?'Employee record created and linked.':'Δημιουργήθηκε και συνδέθηκε καρτέλα εργαζομένου.'}</p>}</div><DialogActions><Button onClick={onClose}>{t('close')}</Button></DialogActions></ObserverDialog>}
-
-function UserAccessDialog({user,t,language,busy,onClose,onAction}){
- const [role,setRole]=useState(user.role)
- const roleChanged=role!==user.role
- const active=user.status==='active'
- return <ObserverDialog open width="standard" className="management-user-dialog" title={language==='en'?'User access':'Πρόσβαση χρήστη'} subtitle={user.name} onClose={onClose}>
-  <div className="management-user-summary">
-   <div className="management-user-identity">
-    <div className="management-user-avatar"><UserRound size={20}/></div>
-    <div className="management-user-identity-text">
-     <strong>{user.name}</strong>
-     <div className="management-user-identity-meta"><span>{user.username||'—'}</span><span>•</span><span>{user.email||'—'}</span></div>
-    </div>
-   </div>
-   <div className="management-user-status"><span className={`status-badge ${active?'active':user.status==='disabled'?'danger':'temporary'}`}>{managementMemberStatusLabel(user.status,language)}</span></div>
-  </div>
-
-  <section className="management-user-section">
-   <div className="management-user-section-heading"><div><strong>{language==='en'?'Role and permissions':'Ρόλος και δικαιώματα'}</strong><p>{language==='en'?'Change the role that controls access inside Limoxis Observer.':'Αλλάξτε τον ρόλο που καθορίζει την πρόσβαση μέσα στο Limoxis Observer.'}</p></div></div>
-   <div className="management-user-role-row">
-    <label className="field"><span>{t('roleLabel')}</span><select value={role} disabled={busy} onChange={e=>setRole(e.target.value)}>{creatableManagementRoles.map(item=><option key={item} value={item}>{t(managementRoleNames[item]??item)}</option>)}</select></label>
-    <SaveButton disabled={busy||!roleChanged} onClick={()=>onAction('update',{role})}>{language==='en'?'Save role':'Αποθήκευση ρόλου'}</SaveButton>
-   </div>
-  </section>
-
-  <section className="management-user-section">
-   <div className="management-user-section-heading"><div><strong>{language==='en'?'Account access':'Πρόσβαση λογαριασμού'}</strong><p>{language==='en'?'Manage login access without changing the employee record.':'Διαχειριστείτε μόνο την πρόσβαση σύνδεσης, χωρίς αλλαγή στην καρτέλα εργαζομένου.'}</p></div></div>
-   <div className="management-user-actions">
-    <div className="management-user-action-row">
-     <div className="management-user-action-copy"><div className="management-user-action-icon"><KeyRound size={15}/></div><div><strong>{language==='en'?'Reset password':'Επαναφορά κωδικού'}</strong><span>{language==='en'?'Send a secure password-reset email to the user.':'Αποστολή ασφαλούς email επαναφοράς κωδικού στον χρήστη.'}</span></div></div>
-     <Button variant="secondary" disabled={busy} onClick={()=>onAction('reset_password')}>{language==='en'?'Send email':'Αποστολή email'}</Button>
-    </div>
-    <div className="management-user-action-row">
-     <div className="management-user-action-copy"><div className="management-user-action-icon">{active?<CirclePause size={15}/>:<RotateCcw size={15}/>}</div><div><strong>{active?(language==='en'?'Pause access':'Παύση πρόσβασης'):(language==='en'?'Restore access':'Ενεργοποίηση πρόσβασης')}</strong><span>{active?(language==='en'?'Temporarily block sign-in while keeping the account.':'Προσωρινός αποκλεισμός σύνδεσης με διατήρηση του λογαριασμού.'):(language==='en'?'Allow the user to sign in again.':'Επαναφορά δυνατότητας σύνδεσης του χρήστη.')}</span></div></div>
-     <Button variant="secondary" disabled={busy} onClick={()=>onAction(active?'suspend':'reactivate')}>{active?(language==='en'?'Pause':'Παύση'):(language==='en'?'Activate':'Ενεργοποίηση')}</Button>
-    </div>
-    <div className="management-user-action-row danger">
-     <div className="management-user-action-copy"><div className="management-user-action-icon"><Trash2 size={15}/></div><div><strong>{language==='en'?'Delete login account':'Διαγραφή λογαριασμού σύνδεσης'}</strong><span>{language==='en'?'Permanently remove login and organization access.':'Οριστική διαγραφή login και πρόσβασης στον οργανισμό.'}</span></div></div>
-     <Button variant="secondary" className="button-destructive" disabled={busy} onClick={()=>onAction('delete')}>{language==='en'?'Delete account':'Διαγραφή'}</Button>
-    </div>
-   </div>
-  </section>
-
-  <div className="management-user-preserve-note"><ShieldCheck size={15}/><span>{language==='en'?'The employee record, training, vaccinations, certifications and workforce history are never deleted from this screen.':'Η καρτέλα εργαζομένου, οι εκπαιδεύσεις, οι εμβολιασμοί, οι πιστοποιήσεις και το ιστορικό προσωπικού δεν διαγράφονται ποτέ από αυτή την οθόνη.'}</span></div>
-  <div className="management-user-dialog-actions"><Button variant="secondary" onClick={onClose} disabled={busy}>{t('close')}</Button></div>
- </ObserverDialog>
-}
+function Mode({active,onClick,icon,title,text}){return <button type="button" className={active?'active':''} onClick={onClick}>{icon}<span><strong>{title}</strong><small>{text}</small></span></button>}
+function CreateSection({title,hint,children}){return <div className="management-create-section"><div className="management-create-section-title"><strong>{title}</strong><span>{hint}</span></div>{children}</div>}
+function Field({label,value,onChange,type='text',disabled=false}){return <label className="field"><span>{label}</span><input type={type} value={value} disabled={disabled} onChange={e=>onChange(e.target.value)}/></label>}
+function CreatedUserDialog({data,onClose}){return <ObserverDialog open width="compact" title="Η πρόσκληση ολοκληρώθηκε" onClose={onClose}><div className="management-invite-result"><ShieldCheck size={28}/><strong>{data.emailSent===false?'Ο λογαριασμός συνδέθηκε':'Η πρόσκληση στάλθηκε'}</strong><p>{data.emailSent===false?'Υπάρχων λογαριασμός συνδέθηκε με τον οργανισμό.':'Ο χρήστης θα ενεργοποιήσει την πρόσβασή του από την πρόσκληση που έλαβε στο email.'}</p><small>Username: {data.username||'—'}</small>{data.employeeLinked&&<small>Η καρτέλα εργαζομένου συνδέθηκε.</small>}</div><DialogActions><Button onClick={onClose}>Κλείσιμο</Button></DialogActions></ObserverDialog>}
+function UserAccessDialog({user,t,busy,onClose,onAction}){const [role,setRole]=useState(user.role),changed=role!==user.role,active=user.status==='active';return <ObserverDialog open width="standard" className="management-user-dialog" title="Πρόσβαση χρήστη" subtitle={user.name} onClose={onClose}><div className="management-user-summary"><div className="management-user-identity"><div className="management-user-avatar"><UserRound size={20}/></div><div><strong>{user.name}</strong><div className="management-user-identity-meta"><span>{user.username}</span><span>·</span><span>{user.email||'—'}</span></div></div></div><span className={`status-badge ${active?'active':'danger'}`}>{managementMemberStatusLabel(user.status,'el')}</span></div><div className="management-user-section"><div className="management-user-section-heading"><div><strong>Ρόλος & δικαιώματα</strong><p>Καθορίζει τι μπορεί να βλέπει και να διαχειρίζεται ο χρήστης.</p></div></div><div className="management-user-role-row"><label className="field"><span>{t('roleLabel')}</span><select value={role} onChange={e=>setRole(e.target.value)}>{creatableManagementRoles.map(r=><option key={r} value={r}>{t(managementRoleNames[r]??r)}</option>)}</select></label><SaveButton disabled={busy||!changed} onClick={()=>onAction('update',{role})}>Αποθήκευση ρόλου</SaveButton></div></div><div className="management-user-actions"><Action icon={<KeyRound size={15}/>} title="Επαναφορά κωδικού" text="Αποστολή email επαναφοράς κωδικού." action={<Button variant="secondary" disabled={busy} onClick={()=>onAction('reset_password')}>Αποστολή</Button>}/><Action icon={active?<CirclePause size={15}/>:<RotateCcw size={15}/>} title={active?'Παύση πρόσβασης':'Ενεργοποίηση πρόσβασης'} text="Δεν επηρεάζει την καρτέλα εργαζομένου." action={<Button variant="secondary" disabled={busy} onClick={()=>onAction(active?'suspend':'reactivate')}>{active?'Παύση':'Ενεργοποίηση'}</Button>}/><Action danger icon={<Trash2 size={15}/>} title="Διαγραφή λογαριασμού σύνδεσης" text="Η καρτέλα και το ιστορικό εργαζομένου διατηρούνται." action={<Button variant="danger" disabled={busy} onClick={()=>onAction('delete')}>Διαγραφή</Button>}/></div><div className="management-user-dialog-actions"><Button variant="secondary" onClick={onClose}>Κλείσιμο</Button></div></ObserverDialog>}
+function Action({icon,title,text,action,danger=false}){return <div className={`management-user-action-row${danger?' danger':''}`}><div className="management-user-action-copy"><span className="management-user-action-icon">{icon}</span><div><strong>{title}</strong><span>{text}</span></div></div>{action}</div>}
