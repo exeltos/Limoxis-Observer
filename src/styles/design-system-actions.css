@@ -52,6 +52,28 @@
 .attachment-actions>button.danger:focus-visible:not(:disabled){color:var(--lo-status-danger-fg)!important;background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)!important}
 .attachment-actions>button:disabled{opacity:.4!important;cursor:not-allowed!important;transform:none!important}
 
+/* Control execution history uses the same quiet icon-action language as attachments. */
+.control-history-actions{display:flex;align-items:center;justify-content:flex-end;gap:4px}
+.control-history-actions>.control-history-action{
+  width:30px!important;
+  min-width:30px!important;
+  height:30px!important;
+  min-height:30px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  color:var(--lo-shell-control-fg)!important;
+  box-shadow:none!important;
+  transition:background .15s ease,color .15s ease,transform .15s ease!important;
+}
+.control-history-actions>.control-history-action-view:hover:not(:disabled),
+.control-history-actions>.control-history-action-view:focus-visible:not(:disabled){color:var(--lo-color-primary)!important;background:var(--lo-status-info-bg)!important;transform:translateY(-1px)!important}
+.control-history-actions>.control-history-action-edit:hover:not(:disabled),
+.control-history-actions>.control-history-action-edit:focus-visible:not(:disabled){color:var(--lo-status-warning-fg)!important;background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)!important}
+.control-history-actions>.control-history-action-danger:hover:not(:disabled),
+.control-history-actions>.control-history-action-danger:focus-visible:not(:disabled){color:var(--lo-status-danger-fg)!important;background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)!important}
+
 /* Canonical record-level edit control: same pencil treatment everywhere. */
 .entity-record-header-actions .entity-record-icon-button[aria-label="Επεξεργασία επιτροπής"],
 .entity-record-header-actions .entity-record-icon-button[aria-label="Edit committee"]{
