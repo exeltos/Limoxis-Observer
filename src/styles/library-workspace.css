@@ -1,0 +1,44 @@
+/* Libraries workspace: keep one visual contract for normal and specialized library panels. */
+.management-section .library-layout{grid-template-columns:340px minmax(0,1fr)!important;gap:22px!important;min-height:0!important}
+.management-section .library-categories-v2{min-height:0!important;height:100%!important;overflow:auto!important;padding-right:8px!important}
+.management-section .library-categories-v2>button{min-height:64px!important}
+.management-section .library-content{min-width:0!important;min-height:0!important;height:100%!important;overflow:hidden!important}
+.management-section .library-content>.scroll-table{min-width:0!important;width:100%!important;height:100%!important;overflow:auto!important}
+.management-section .library-content .record-inline-actions,
+.management-section .library-content .row-actions,
+.management-section .training-feedback-template-panel .record-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;white-space:nowrap!important}
+
+/* Environmental protocols embedded in Libraries should look like the surrounding registry. */
+.environmental-embedded{display:grid!important;grid-template-rows:auto auto auto minmax(0,1fr)!important;gap:12px!important;min-width:0!important;min-height:0!important;height:100%!important;overflow:hidden!important}
+.environmental-embedded .section-toolbar{margin:0!important;align-items:flex-start!important}
+.environmental-embedded .section-toolbar h2{font-size:18px!important;margin:0!important}
+.environmental-embedded .section-toolbar p{margin:5px 0 0!important;font-size:11.5px!important}
+.environmental-embedded .governance-banner{margin:0!important;padding:10px 12px!important;border-radius:9px!important;font-size:11px!important}
+.environmental-embedded>.filter-bar{margin:0!important;max-width:560px!important}
+.environmental-embedded>.scroll-table{min-width:0!important;width:100%!important;height:100%!important;overflow:auto!important;border:1px solid #e1e8ee!important;border-radius:11px!important}
+.environmental-embedded .data-table{min-width:900px!important;width:100%!important}
+.environmental-embedded .data-table th,.environmental-embedded .data-table td{padding-left:12px!important;padding-right:12px!important}
+.environmental-embedded .data-table th:last-child,.environmental-embedded .data-table td:last-child{width:92px!important;text-align:right!important}
+
+/* Trainer evaluation template: compact, registry-like editing surface. */
+.training-feedback-template-panel{display:grid!important;grid-template-rows:auto auto minmax(0,1fr) auto!important;gap:14px!important;min-width:0!important;min-height:0!important;height:100%!important;overflow:hidden!important}
+.training-feedback-template-panel .section-toolbar{margin:0!important;align-items:flex-start!important}
+.training-feedback-template-panel .section-toolbar .eyebrow{margin:0 0 5px!important;font-size:9px!important;letter-spacing:.07em!important;color:#8798a8!important}
+.training-feedback-template-panel .section-toolbar h2{margin:0!important;font-size:18px!important;line-height:1.3!important;letter-spacing:-.015em!important}
+.training-feedback-template-panel .section-toolbar p{margin:5px 0 0!important;max-width:760px!important;font-size:11.5px!important;line-height:1.45!important}
+.training-feedback-template-panel>.record-section{margin:0!important;padding:0!important;border:0!important;background:transparent!important}
+.training-feedback-template-panel>.record-section .entry-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
+.training-feedback-template-panel>.record-section input{height:42px!important;font-size:12px!important}
+.training-feedback-table-wrap{min-height:0!important;height:100%!important;overflow:auto!important;border:1px solid #e1e8ee!important;border-radius:11px!important;background:#fff!important}
+.training-feedback-table{width:100%!important;table-layout:fixed!important}
+.training-feedback-table th:nth-child(1),.training-feedback-table td:nth-child(1){width:52px!important}
+.training-feedback-table th:nth-child(4),.training-feedback-table td:nth-child(4){width:100px!important}
+.training-feedback-table th:last-child,.training-feedback-table td:last-child{width:150px!important;text-align:right!important}
+.training-feedback-table td{height:54px!important;padding:10px 12px!important;font-size:12px!important}
+.training-feedback-table td strong{font-size:12.5px!important}
+.training-feedback-template-panel .inline-edit-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin:0!important;padding-top:12px!important;border-top:1px solid #e5ebf0!important}
+.training-feedback-template-panel .source-truth-note{margin:0!important;min-width:0!important;padding:9px 11px!important;font-size:10.5px!important}
+
+@media(max-width:1200px){
+ .management-section .library-layout{grid-template-columns:300px minmax(0,1fr)!important}
+}
