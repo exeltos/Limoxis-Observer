@@ -33,6 +33,7 @@ import './styles/employee-record-registry.css'
 import './styles/control-record.css'
 import './styles/semantic-icon-actions.css'
 import './styles/committee-record.css'
+import './styles/management-user-create.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
