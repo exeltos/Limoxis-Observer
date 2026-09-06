@@ -8,6 +8,33 @@
 .management-section .library-content .row-actions,
 .management-section .training-feedback-template-panel .record-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;white-space:nowrap!important}
 
+/* Canonical row icons: same borderless semantic controls used across registries. */
+.management-section .library-content .library-row-actions>.lo-icon-button,
+.environmental-embedded .row-actions>.lo-icon-button,
+.training-feedback-template-panel .record-actions>.lo-icon-button{
+  width:30px!important;min-width:30px!important;max-width:30px!important;
+  height:30px!important;min-height:30px!important;max-height:30px!important;
+  display:inline-grid!important;place-items:center!important;padding:0!important;
+  border:0!important;border-radius:8px!important;background:transparent!important;
+  box-shadow:none!important;font-size:0!important;line-height:1!important;
+}
+.management-section .library-content .library-row-actions>.lo-icon-button-edit,
+.environmental-embedded .row-actions>.lo-icon-button-edit,
+.training-feedback-template-panel .record-actions>.lo-icon-button-edit{color:var(--lo-status-warning-fg)!important}
+.management-section .library-content .library-row-actions>.lo-icon-button-danger,
+.environmental-embedded .row-actions>.lo-icon-button-danger,
+.training-feedback-template-panel .record-actions>.lo-icon-button-danger{color:var(--lo-status-danger-fg)!important}
+.management-section .library-content .library-row-actions>.lo-icon-button-primary,
+.environmental-embedded .row-actions>.lo-icon-button-primary{color:var(--lo-color-primary)!important}
+.management-section .library-content .library-row-actions>.lo-icon-button-edit:hover:not(:disabled),
+.environmental-embedded .row-actions>.lo-icon-button-edit:hover:not(:disabled),
+.training-feedback-template-panel .record-actions>.lo-icon-button-edit:hover:not(:disabled){background:var(--lo-status-warning-bg)!important}
+.management-section .library-content .library-row-actions>.lo-icon-button-danger:hover:not(:disabled),
+.environmental-embedded .row-actions>.lo-icon-button-danger:hover:not(:disabled),
+.training-feedback-template-panel .record-actions>.lo-icon-button-danger:hover:not(:disabled){background:var(--lo-status-danger-bg)!important}
+.management-section .library-content .library-row-actions>.lo-icon-button-primary:hover:not(:disabled),
+.environmental-embedded .row-actions>.lo-icon-button-primary:hover:not(:disabled){background:var(--lo-status-info-bg)!important}
+
 /* Environmental protocols embedded in Libraries should look like the surrounding registry. */
 .environmental-embedded{display:grid!important;grid-template-rows:auto auto auto minmax(0,1fr)!important;gap:12px!important;min-width:0!important;min-height:0!important;height:100%!important;overflow:hidden!important}
 .environmental-embedded .section-toolbar{margin:0!important;align-items:flex-start!important}
