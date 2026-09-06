@@ -44,32 +44,26 @@
   letter-spacing: -.018em !important;
 }
 
-/* A tab containing a secondary registry must itself consume the record body.
-   Without this parent flex contract the registry only grows to its rows, leaving
-   pagination immediately below the table instead of on the bottom rail. */
-.employee-record-shell > .entity-record-body:has(.employee-secondary-registry) {
-  display: flex !important;
-  flex-direction: column !important;
+/* Secondary employee registries use the complete record viewport.
+   The record body becomes the fixed viewport and the registry owns the available
+   height. This keeps the table stretched to the bottom rail and pagination pinned
+   to the bottom exactly like the main application registries. */
+.employee-record-shell > .entity-record-body:has(> .employee-secondary-registry) {
+  position: relative !important;
   min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
 }
 
-.employee-record-shell > .entity-record-body > .record-section:has(.employee-secondary-registry),
 .employee-record-shell > .entity-record-body > .employee-secondary-registry {
+  position: absolute !important;
+  inset: 14px 16px 18px !important;
   display: flex !important;
   flex-direction: column !important;
+  min-width: 0 !important;
   min-height: 0 !important;
-  height: 100% !important;
-  flex: 1 1 0 !important;
-}
-
-/* Secondary registries occupy the available record body just like the main registries.
-   The table gets the flexible middle area and pagination stays at the bottom. */
-.employee-record-shell .employee-secondary-registry {
-  display: flex !important;
-  flex-direction: column !important;
-  min-height: 0 !important;
-  height: 100% !important;
-  flex: 1 1 0 !important;
+  height: auto !important;
+  margin: 0 !important;
 }
 
 .employee-record-shell .employee-secondary-registry > .employee-section-title,
@@ -271,6 +265,10 @@
 }
 
 @media (max-width: 760px) {
+  .employee-record-shell > .entity-record-body > .employee-secondary-registry {
+    inset: 12px !important;
+  }
+
   .employee-record-shell .employee-secondary-registry > .scroll-table,
   .employee-record-shell .record-section > .record-table-wrap {
     overflow-x: auto !important;
