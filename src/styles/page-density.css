@@ -239,6 +239,28 @@
   flex:0 0 auto!important;
 }
 
+/* Any paginated table placed directly inside a record section is compact by default.
+   It grows only to its row content (with a safe max-height), so pagination never gets
+   pushed to the bottom of the whole record canvas. */
+.record-section:has(> .scroll-table + .registry-pagination){
+  display:block!important;
+  flex:0 0 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+}
+.record-section:has(> .scroll-table + .registry-pagination)>.scroll-table{
+  display:block!important;
+  flex:0 0 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:min(420px,calc(100dvh - 360px))!important;
+  overflow:auto!important;
+}
+.record-section:has(> .scroll-table + .registry-pagination)>.registry-pagination{
+  flex:0 0 auto!important;
+}
+
 /* Platform Owner users: same visual order as a canonical registry without a private stylesheet. */
 .platform-owner-users{
   display:grid!important;
