@@ -44,49 +44,51 @@
   letter-spacing: -.018em !important;
 }
 
-/* Secondary employee registries use the complete record viewport.
-   The record body becomes the fixed viewport and the registry owns the available
-   height. This keeps the table stretched to the bottom rail and pagination pinned
-   to the bottom exactly like the main application registries. */
-.employee-record-shell > .entity-record-body:has(> .employee-secondary-registry) {
-  position: relative !important;
+/* Canonical full-height contract for secondary employee tabs.
+   Use the same three-row geometry as the main registries:
+   section title -> flexible results viewport -> pagination rail.
+   This deliberately avoids absolute positioning and :has-dependent sizing. */
+.employee-record-shell.record-secondary-tab-active > .entity-record-body {
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) !important;
   min-height: 0 !important;
+  height: 100% !important;
   overflow: hidden !important;
-  padding: 0 !important;
 }
 
-.employee-record-shell > .entity-record-body > .employee-secondary-registry {
-  position: absolute !important;
-  inset: 14px 16px 18px !important;
-  display: flex !important;
-  flex-direction: column !important;
+.employee-record-shell.record-secondary-tab-active > .entity-record-body > .employee-secondary-registry {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
   min-width: 0 !important;
   min-height: 0 !important;
-  height: auto !important;
+  width: 100% !important;
+  height: 100% !important;
   margin: 0 !important;
+  overflow: hidden !important;
 }
 
 .employee-record-shell .employee-secondary-registry > .employee-section-title,
 .employee-record-shell .employee-secondary-registry > .record-section-header {
-  flex: 0 0 auto !important;
+  min-width: 0 !important;
 }
 
 .employee-record-shell .employee-secondary-registry > .scroll-table {
   width: 100% !important;
   min-width: 0 !important;
   min-height: 0 !important;
+  height: 100% !important;
   margin-top: 12px !important;
   overflow: auto !important;
   border: 1px solid #e1e8ee !important;
   border-radius: 11px !important;
   background: #fff !important;
   box-shadow: none !important;
-  flex: 1 1 0 !important;
 }
 
 .employee-record-shell .employee-secondary-registry > .registry-pagination,
 .employee-record-shell .employee-secondary-registry > [class*="registry-pagination"] {
-  flex: 0 0 auto !important;
+  align-self: end !important;
+  width: 100% !important;
   margin-top: 0 !important;
 }
 
@@ -186,7 +188,8 @@
 .employee-record-shell .employee-registry-empty,
 .employee-record-shell .registry-loading-state {
   width: 100% !important;
-  min-height: 180px !important;
+  min-height: 0 !important;
+  height: 100% !important;
   margin: 12px 0 0 !important;
   padding: 28px !important;
   display: flex !important;
@@ -199,7 +202,6 @@
   background: #fbfcfd !important;
   color: #73879a !important;
   text-align: center !important;
-  flex: 1 1 auto !important;
 }
 
 .employee-record-shell .employee-registry-empty strong {
@@ -265,10 +267,6 @@
 }
 
 @media (max-width: 760px) {
-  .employee-record-shell > .entity-record-body > .employee-secondary-registry {
-    inset: 12px !important;
-  }
-
   .employee-record-shell .employee-secondary-registry > .scroll-table,
   .employee-record-shell .record-section > .record-table-wrap {
     overflow-x: auto !important;
