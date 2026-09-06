@@ -2,6 +2,13 @@
    Keep legacy subrecord markup visually aligned with the canonical registry contract
    until all employee subrecords migrate to the shared registry component. */
 
+/* Employee identity is already present in the record header and details tab.
+   Do not repeat the department / profession / hire date / status strip on every tab. */
+.employee-record-shell > .entity-record-body > .employee-record-facts,
+.employee-record-shell .employee-record-facts {
+  display: none !important;
+}
+
 .employee-record-shell .record-section > .record-table-wrap {
   width: 100%;
   min-width: 0;
