@@ -11,7 +11,8 @@ function flattenActions(node,result=[]){
   Children.forEach(node,child=>{
     if(!isValidElement(child))return
     if(child.type===Fragment){flattenActions(child.props.children,result);return}
-    result.push(child)
+    if(recordActionKind(child)){result.push(child);return}
+    if(child.props?.children)flattenActions(child.props.children,result)
   })
   return result
 }
@@ -85,8 +86,8 @@ export function EntityRecordShell({
   const effectiveRecordNavigation=recordNavigation||fallbackNavigation
 
   // Standard clinical/operational records expose only the canonical edit/destructive pair.
-  // Platform Owner organization/demo records are a management workspace and keep their
-  // dedicated action toolbar (enter, reset password, pause/reactivate, convert, delete).
+  // Action wrappers are traversed so modules may group buttons without hiding them from the
+  // canonical record-action rail. Platform Owner management workspaces keep their own toolbar.
   const generalActions=isPlatformOwnerRecord?[]:flattenActions(headerActions).map(normalizeGeneralAction).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   // Secondary tabs are layout containers. Making the body a column flex container lets
