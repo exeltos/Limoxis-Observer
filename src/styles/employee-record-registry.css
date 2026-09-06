@@ -1,91 +1,138 @@
 /* Employee record secondary registries.
-   Keep legacy subrecord markup visually aligned with the canonical registry contract
-   until all employee subrecords migrate to the shared registry component. */
+   Employee tabs share the same quiet typography and registry language as the rest
+   of Limoxis Observer. */
 
-/* Employee identity is already present in the record header and details tab.
-   Do not repeat the department / profession / hire date / status strip on every tab. */
+/* Employee identity is already present in the record header and details tab. */
 .employee-record-shell > .entity-record-body > .employee-record-facts,
 .employee-record-shell .employee-record-facts {
   display: none !important;
 }
 
+/* Clearer, lighter section hierarchy inside every employee tab. */
+.employee-record-shell .record-section-header {
+  margin: 0 0 18px !important;
+}
+
+.employee-record-shell .record-section-header .eyebrow {
+  margin: 0 0 6px !important;
+  color: #8798a8 !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  letter-spacing: .055em !important;
+  text-transform: uppercase !important;
+}
+
+.employee-record-shell .record-section-header h2,
+.employee-record-shell .record-section-header h3 {
+  margin: 0 !important;
+  color: #18334d !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  letter-spacing: -.018em !important;
+}
+
+/* Training and any remaining employee table use the canonical registry surface,
+   rather than the old boxed record-table treatment. */
 .employee-record-shell .record-section > .record-table-wrap {
-  width: 100%;
-  min-width: 0;
-  margin-top: 14px;
-  overflow: auto;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-top: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid #e1e8ee !important;
+  border-radius: 11px !important;
+  background: #fff !important;
+  box-shadow: none !important;
 }
 
 .employee-record-shell .record-section > .record-table-wrap > .record-table {
-  width: 100%;
-  border-collapse: collapse;
-  border-spacing: 0;
-  table-layout: fixed;
-  background: var(--lo-color-surface, #fff);
+  width: 100% !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  table-layout: fixed !important;
+  background: #fff !important;
 }
 
 .employee-record-shell .record-section > .record-table-wrap > .record-table thead th {
-  height: 46px;
-  padding: 0 14px;
-  border: 0;
-  border-bottom: 1px solid var(--lo-color-border, #dfe7ee);
-  background: var(--lo-color-surface-soft, #f7f9fb);
-  color: #667c90;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: .025em;
-  text-align: left;
-  text-transform: uppercase;
-  vertical-align: middle;
+  height: 42px !important;
+  padding: 0 16px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #dfe7ed !important;
+  background: #f7f9fb !important;
+  color: #6f8294 !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 9.5px !important;
+  font-weight: 750 !important;
+  line-height: 1.2 !important;
+  letter-spacing: .045em !important;
+  text-align: left !important;
+  text-transform: uppercase !important;
+  vertical-align: middle !important;
 }
 
 .employee-record-shell .record-section > .record-table-wrap > .record-table tbody td {
-  min-height: 54px;
-  padding: 12px 14px;
-  border: 0;
-  border-bottom: 1px solid var(--lo-color-border, #e4ebf0);
-  background: var(--lo-color-surface, #fff);
-  color: #405a70;
-  font-size: 12px;
-  line-height: 1.4;
-  vertical-align: middle;
+  height: 52px !important;
+  padding: 10px 16px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e7edf2 !important;
+  background: #fff !important;
+  color: #486177 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  vertical-align: middle !important;
 }
 
 .employee-record-shell .record-section > .record-table-wrap > .record-table tbody tr:last-child td {
-  border-bottom: 0;
+  border-bottom: 0 !important;
+}
+
+.employee-record-shell .record-section > .record-table-wrap > .record-table tbody tr:hover td {
+  background: #fbfcfd !important;
 }
 
 .employee-record-shell .record-section > .record-table-wrap > .record-table td strong {
-  display: block;
-  color: #173650;
-  font-size: 12.5px;
-  font-weight: 750;
-  line-height: 1.35;
+  display: block !important;
+  color: #173650 !important;
+  font-size: 12.5px !important;
+  font-weight: 650 !important;
+  line-height: 1.35 !important;
+}
+
+.employee-record-shell .record-section > .record-table-wrap > .record-table .status-badge {
+  min-height: 24px !important;
+  padding: 3px 9px !important;
+  border-radius: 999px !important;
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
 }
 
 .employee-record-shell .record-section > .record-table-wrap > .record-table th:nth-child(1),
 .employee-record-shell .record-section > .record-table-wrap > .record-table td:nth-child(1) {
-  width: 42%;
+  width: 52% !important;
 }
 
 .employee-record-shell .record-section > .record-table-wrap > .record-table th:nth-child(2),
 .employee-record-shell .record-section > .record-table-wrap > .record-table td:nth-child(2) {
-  width: 28%;
+  width: 24% !important;
 }
 
 .employee-record-shell .record-section > .record-table-wrap > .record-table th:nth-child(3),
 .employee-record-shell .record-section > .record-table-wrap > .record-table td:nth-child(3) {
-  width: 30%;
+  width: 24% !important;
 }
 
 @media (max-width: 760px) {
+  .employee-record-shell .record-section > .record-table-wrap {
+    overflow-x: auto !important;
+  }
+
   .employee-record-shell .record-section > .record-table-wrap > .record-table {
-    min-width: 620px;
-    table-layout: auto;
+    min-width: 620px !important;
+    table-layout: auto !important;
   }
 }
