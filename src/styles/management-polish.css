@@ -1,45 +1,61 @@
 /* Management Center visual refinements */
 
-/* Keep the protected Hospital Admin action a touch farther to the right without shifting other columns. */
-.management-section .data-table td:has(.management-self-account){
-  padding-left:28px;
+/* User table actions: keep every action on the same vertical axis. */
+.management-section .data-table th:last-child,
+.management-section .data-table td:last-child{
+  width:410px;
+  padding-left:46px!important;
 }
-.management-section .data-table td:has(.management-self-account) .management-self-account{
-  margin-left:12px;
+.management-section .data-table td:last-child>.text-button{
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:flex-start;
+  width:92px;
+  margin:0!important;
+  padding:0!important;
+}
+.management-section .data-table td:last-child>.management-self-account{
+  margin-left:10px!important;
+  vertical-align:middle;
 }
 
-/* Announcement acknowledgement: compact inline control instead of a large empty checkbox card. */
+/* Announcement acknowledgement: compact, aligned option row under the schedule fields. */
 .announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field{
-  display:flex!important;
+  display:inline-flex!important;
   flex-direction:row!important;
   flex-wrap:nowrap!important;
   align-items:center!important;
   justify-content:flex-start!important;
-  gap:10px!important;
-  width:max-content!important;
-  max-width:100%!important;
-  margin:14px 0 2px!important;
-  padding:0!important;
-  min-height:24px!important;
-  border:0!important;
+  gap:9px!important;
+  width:auto!important;
+  max-width:calc(100% - 32px)!important;
+  margin:18px 16px 2px!important;
+  padding:7px 9px!important;
+  min-height:34px!important;
+  border:1px solid transparent!important;
   background:transparent!important;
-  border-radius:0!important;
+  border-radius:8px!important;
   cursor:pointer;
+  transition:background .16s ease,border-color .16s ease;
+}
+.announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field:hover{
+  background:#f7f9fb!important;
+  border-color:#e4eaf0!important;
 }
 .announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field>input[type="checkbox"]{
   appearance:none!important;
   -webkit-appearance:none!important;
   position:static!important;
   inset:auto!important;
-  flex:0 0 20px!important;
-  width:20px!important;
-  height:20px!important;
-  min-width:20px!important;
-  min-height:20px!important;
+  flex:0 0 18px!important;
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+  min-height:18px!important;
   margin:0!important;
   padding:0!important;
-  border:1.5px solid #9aacbc!important;
-  border-radius:6px!important;
+  border:1.5px solid #8fa4b7!important;
+  border-radius:5px!important;
   background:#fff!important;
   display:grid!important;
   place-content:center!important;
@@ -48,8 +64,8 @@
 }
 .announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field>input[type="checkbox"]::before{
   content:"";
-  width:9px;
-  height:5px;
+  width:8px;
+  height:4px;
   border-left:2px solid #fff;
   border-bottom:2px solid #fff;
   transform:rotate(-45deg) scale(0);
@@ -66,7 +82,7 @@
 }
 .announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field>input[type="checkbox"]:focus-visible{
   outline:none!important;
-  box-shadow:0 0 0 3px rgba(23,68,111,.14)!important;
+  box-shadow:0 0 0 3px rgba(23,68,111,.13)!important;
 }
 .announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field>span{
   position:static!important;
@@ -76,19 +92,21 @@
   min-width:0!important;
   margin:0!important;
   padding:0!important;
-  color:#2f465c!important;
-  font-size:13px!important;
-  line-height:20px!important;
-  font-weight:650!important;
+  color:#30475d!important;
+  font-size:12.5px!important;
+  line-height:18px!important;
+  font-weight:700!important;
   text-align:left!important;
   text-transform:none!important;
   letter-spacing:normal!important;
 }
-.announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field:hover>input[type="checkbox"]{
-  border-color:var(--lo-primary,#17446f)!important;
-}
 
 @media(max-width:720px){
-  .management-section .data-table td:has(.management-self-account){padding-left:14px}
-  .announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field{width:100%!important}
+  .management-section .data-table th:last-child,
+  .management-section .data-table td:last-child{width:auto;padding-left:14px!important}
+  .announcement-editor .announcement-form-section .field.checkbox-field.acknowledgement-field{
+    width:calc(100% - 24px)!important;
+    max-width:none!important;
+    margin:14px 12px 2px!important;
+  }
 }
