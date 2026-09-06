@@ -1,0 +1,81 @@
+/* Committee record-specific layout polish. Uses shared design-system tokens and icon actions. */
+
+.committee-overview-grid .committee-governance-watch{
+  align-self:start;
+  margin-top:54px;
+}
+
+.committee-member-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:4px;
+}
+
+.committee-member-actions .lo-icon-button-edit:hover:not(:disabled),
+.committee-member-actions .lo-icon-button-edit:focus-visible:not(:disabled){
+  color:var(--lo-status-warning-fg)!important;
+  background:var(--lo-status-warning-bg)!important;
+}
+
+.committee-member-actions .lo-icon-button-danger:hover:not(:disabled),
+.committee-member-actions .lo-icon-button-danger:focus-visible:not(:disabled){
+  color:var(--lo-status-danger-fg)!important;
+  background:var(--lo-status-danger-bg)!important;
+}
+
+.committee-member-dialog-grid .committee-member-name-field{
+  grid-column:1 / -1;
+}
+
+.committee-member-dialog-grid .committee-member-name-field small{
+  display:block;
+  margin-top:6px;
+  color:var(--lo-color-muted);
+  font-size:11px;
+  line-height:1.4;
+}
+
+.committee-member-options-row{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.committee-check-option{
+  min-height:52px;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding:0 14px;
+  border:1px solid var(--lo-color-border);
+  border-radius:var(--lo-radius-control);
+  background:var(--lo-color-surface);
+  color:var(--lo-color-text);
+  cursor:pointer;
+}
+
+.committee-check-option input[type='checkbox']{
+  flex:0 0 auto;
+  width:18px;
+  height:18px;
+  margin:0;
+}
+
+.committee-check-option span{
+  margin:0!important;
+  font-size:13px;
+  font-weight:650;
+}
+
+.committee-check-option:has(input:disabled){
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+@media (max-width:760px){
+  .committee-overview-grid .committee-governance-watch{margin-top:18px}
+  .committee-member-options-row{grid-template-columns:1fr}
+}
