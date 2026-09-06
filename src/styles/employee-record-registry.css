@@ -44,16 +44,38 @@
   letter-spacing: -.018em !important;
 }
 
-/* Canonical secondary registry: same geometry as the application's common tables. */
+/* Secondary registries occupy the available record body just like the main registries.
+   The table gets the flexible middle area and pagination stays at the bottom. */
+.employee-record-shell .employee-secondary-registry {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  flex: 1 1 auto !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .employee-section-title,
+.employee-record-shell .employee-secondary-registry > .record-section-header {
+  flex: 0 0 auto !important;
+}
+
 .employee-record-shell .employee-secondary-registry > .scroll-table {
   width: 100% !important;
   min-width: 0 !important;
+  min-height: 0 !important;
   margin-top: 12px !important;
   overflow: auto !important;
   border: 1px solid #e1e8ee !important;
   border-radius: 11px !important;
   background: #fff !important;
   box-shadow: none !important;
+  flex: 1 1 auto !important;
+}
+
+.employee-record-shell .employee-secondary-registry > .registry-pagination,
+.employee-record-shell .employee-secondary-registry > [class*="registry-pagination"] {
+  flex: 0 0 auto !important;
+  margin-top: auto !important;
 }
 
 .employee-record-shell .employee-secondary-registry > .scroll-table > .data-table {
@@ -148,11 +170,11 @@
   width: 22% !important;
 }
 
-/* Empty/loading states span the available content width instead of rendering as a small grey box. */
+/* Empty/loading states span and fill the available registry body. */
 .employee-record-shell .employee-registry-empty,
 .employee-record-shell .registry-loading-state {
   width: 100% !important;
-  min-height: 150px !important;
+  min-height: 180px !important;
   margin: 12px 0 0 !important;
   padding: 28px !important;
   display: flex !important;
@@ -165,6 +187,7 @@
   background: #fbfcfd !important;
   color: #73879a !important;
   text-align: center !important;
+  flex: 1 1 auto !important;
 }
 
 .employee-record-shell .employee-registry-empty strong {
