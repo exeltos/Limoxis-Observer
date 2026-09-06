@@ -45,8 +45,9 @@
 }
 .attachment-actions>button:not(.edit):not(.danger){color:var(--lo-color-primary)!important}
 .attachment-actions>button:not(.edit):not(.danger):hover:not(:disabled){background:var(--lo-status-info-bg)!important;transform:translateY(-1px)!important}
-.attachment-actions>button.edit{color:var(--lo-status-warning-fg)!important}
-.attachment-actions>button.edit:hover:not(:disabled){background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)!important}
+.attachment-actions>button.edit{color:var(--lo-shell-control-fg)!important}
+.attachment-actions>button.edit:hover:not(:disabled),
+.attachment-actions>button.edit:focus-visible:not(:disabled){color:var(--lo-status-warning-fg)!important;background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)!important}
 .attachment-actions>button.danger{color:var(--lo-status-danger-fg)!important}
 .attachment-actions>button.danger:hover:not(:disabled){background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)!important}
 .attachment-actions>button:disabled{opacity:.4!important;cursor:not-allowed!important;transform:none!important}
