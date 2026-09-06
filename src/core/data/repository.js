@@ -16,6 +16,7 @@ const TABLES=Object.freeze({
   organization_settings:{storageKey:'limoxis.organizationSettings.v1',kind:'document',cloud:false},
   bundle_library:{storageKey:'limoxis.bundleLibrary.v1',kind:'rows',cloud:false},
   management_libraries:{storageKey:'limoxis.managementLibraries.v2',kind:'document',cloud:false},
+  management_questionnaires_v1:{storageKey:'limoxis.managementQuestionnaires.v1',kind:'rows',cloud:false},
   documents:{storageKey:'limoxis.documents.v1',kind:'rows',cloud:false},
   employees:{storageKey:'limoxis.employees.v1',kind:'rows',cloud:false},
   indicator_custom:{storageKey:'limoxis.customIndicators.v1',kind:'rows',cloud:false},
@@ -101,9 +102,6 @@ export function loadSnapshot(table,fallback=null){
 export function saveSnapshot(table,rows,{organizationId=null}={}){
   if(backend==='supabase'&&hasSupabaseConfig&&supabase&&config(table).cloud!==false&&!isDemoDataEnvironment()){
     memory.set(memoryKey(table),clone(rows))
-    // Keep the synchronous snapshot API for existing stores, while ensuring a
-    // failed background write is reported through the data-operation event
-    // without also becoming an unhandled promise rejection.
     void save(table,rows,{organizationId}).catch(()=>{})
     return clone(rows)
   }
@@ -145,8 +143,7 @@ export async function load(table,{fallback=null,organizationId=null}={}){
       value=(data??[]).map(row=>row.payload)
     }
     memory.set(memoryKey(table),clone(value))
-    emit({table,operation:'load',status:'success'})
-    return clone(value)
+    emit({table,operation:'load',status:'success'}); return clone(value)
   }catch(cause){
     const error=cause instanceof DataAccessError?cause:new DataAccessError('Data could not be loaded.',{table,operation:'load',cause})
     emit({table,operation:'load',status:'error',error})
