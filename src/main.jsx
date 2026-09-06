@@ -30,6 +30,7 @@ import './styles/training-refinement.css'
 import './styles/design-system-record-details.css'
 import './styles/design-system-kpi-action-rail.css'
 import './styles/employee-record-registry.css'
+import './styles/control-record.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
