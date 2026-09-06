@@ -1,0 +1,37 @@
+/* Final shared interaction layer for semantic icon-only actions.
+   Kept separate from legacy global.css so older generic button.edit/button.danger
+   rules cannot suppress the canonical soft hover surface. */
+
+.attachment-field-v2 .attachment-row-v2 .attachment-actions > button.lo-icon-button-primary:hover:not(:disabled),
+.attachment-field-v2 .attachment-row-v2 .attachment-actions > button.lo-icon-button-primary:focus-visible:not(:disabled){
+  color:var(--lo-color-primary)!important;
+  background-color:var(--lo-status-info-bg)!important;
+}
+
+.attachment-field-v2 .attachment-row-v2 .attachment-actions > button.edit.lo-icon-button-edit:hover:not(:disabled),
+.attachment-field-v2 .attachment-row-v2 .attachment-actions > button.edit.lo-icon-button-edit:focus-visible:not(:disabled){
+  color:var(--lo-status-warning-fg)!important;
+  background-color:var(--lo-status-warning-bg)!important;
+}
+
+.attachment-field-v2 .attachment-row-v2 .attachment-actions > button.danger.lo-icon-button-danger:hover:not(:disabled),
+.attachment-field-v2 .attachment-row-v2 .attachment-actions > button.danger.lo-icon-button-danger:focus-visible:not(:disabled){
+  color:var(--lo-status-danger-fg)!important;
+  background-color:var(--lo-status-danger-bg)!important;
+}
+
+.control-history-actions > button.control-history-action-view:hover:not(:disabled),
+.control-history-actions > button.control-history-action-view:focus-visible:not(:disabled){
+  color:var(--lo-color-primary)!important;
+  background-color:var(--lo-status-info-bg)!important;
+}
+.control-history-actions > button.control-history-action-edit:hover:not(:disabled),
+.control-history-actions > button.control-history-action-edit:focus-visible:not(:disabled){
+  color:var(--lo-status-warning-fg)!important;
+  background-color:var(--lo-status-warning-bg)!important;
+}
+.control-history-actions > button.control-history-action-danger:hover:not(:disabled),
+.control-history-actions > button.control-history-action-danger:focus-visible:not(:disabled){
+  color:var(--lo-status-danger-fg)!important;
+  background-color:var(--lo-status-danger-bg)!important;
+}
