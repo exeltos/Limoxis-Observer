@@ -1,0 +1,7 @@
+.environmental-active-field{display:flex;flex-direction:column;gap:8px;align-items:flex-start;justify-content:flex-start}
+.environmental-active-field>span{display:block;color:var(--lo-color-text-muted,#5f7488);font-size:12px;font-weight:700}
+.environmental-active-toggle{display:inline-flex!important;align-items:center;gap:8px;margin:0!important;padding:0!important;min-height:40px;border:0!important;background:transparent!important;cursor:pointer}
+.environmental-active-toggle input{width:17px!important;height:17px!important;margin:0!important;flex:0 0 auto;accent-color:var(--lo-color-primary)}
+.environmental-active-toggle span{margin:0!important;font-size:14px!important;font-weight:600!important;color:var(--lo-color-text,#243f53)!important;line-height:1.2}
+.environmental-active-toggle input:disabled{cursor:not-allowed}
+.environmental-active-toggle:has(input:disabled){cursor:default;opacity:.72}
