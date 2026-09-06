@@ -1,0 +1,40 @@
+/* Control record refinements.
+   The shared record-detail contract owns geometry; this file only scopes the
+   control-specific action behavior requested for the definition overview. */
+
+.control-record-shell .control-details-overview > .record-section-header {
+  margin-bottom: 14px !important;
+}
+
+.control-record-shell .control-details-overview > .record-section-header + .detail-grid {
+  margin-top: 0 !important;
+}
+
+.control-record-shell .control-definition-actions > button.edit,
+.control-record-shell .control-definition-actions > button.danger {
+  color: #74879a !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  transition: color .15s ease, background .15s ease, border-color .15s ease, transform .15s ease !important;
+}
+
+.control-record-shell .control-definition-actions > button.edit:hover,
+.control-record-shell .control-definition-actions > button.edit:focus-visible {
+  color: var(--lo-status-warning-fg) !important;
+  background: var(--lo-status-warning-bg) !important;
+  border-color: color-mix(in srgb, var(--lo-status-warning-fg) 18%, transparent) !important;
+  transform: translateY(-1px) !important;
+}
+
+.control-record-shell .control-definition-actions > button.danger:hover,
+.control-record-shell .control-definition-actions > button.danger:focus-visible {
+  color: var(--lo-status-danger-fg) !important;
+  background: var(--lo-status-danger-bg) !important;
+  border-color: color-mix(in srgb, var(--lo-status-danger-fg) 18%, transparent) !important;
+  transform: translateY(-1px) !important;
+}
+
+.control-record-shell .control-definition-actions > button:focus-visible {
+  outline: 2px solid rgba(49, 111, 158, .18) !important;
+  outline-offset: 2px !important;
+}
