@@ -26,6 +26,31 @@
 .lo-icon-button-sm{width:30px;height:30px;border-radius:8px}
 .lo-icon-button-lg{width:40px;height:40px}
 
+/* Canonical attachment actions: view/edit/delete are icon-only controls.
+   View (eye) must never carry a permanent box; hover may use the shared soft surface. */
+.attachment-actions>button{
+  width:32px!important;
+  min-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+  transition:background .15s ease,color .15s ease,transform .15s ease!important;
+}
+.attachment-actions>button:not(.edit):not(.danger){color:var(--lo-color-primary)!important}
+.attachment-actions>button:not(.edit):not(.danger):hover:not(:disabled){background:var(--lo-status-info-bg)!important;transform:translateY(-1px)!important}
+.attachment-actions>button.edit{color:var(--lo-status-warning-fg)!important}
+.attachment-actions>button.edit:hover:not(:disabled){background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)!important}
+.attachment-actions>button.danger{color:var(--lo-status-danger-fg)!important}
+.attachment-actions>button.danger:hover:not(:disabled){background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)!important}
+.attachment-actions>button:disabled{opacity:.4!important;cursor:not-allowed!important;transform:none!important}
+
 /* Canonical record-level edit control: same pencil treatment everywhere. */
 .entity-record-header-actions .entity-record-icon-button[aria-label="Επεξεργασία επιτροπής"],
 .entity-record-header-actions .entity-record-icon-button[aria-label="Edit committee"]{
