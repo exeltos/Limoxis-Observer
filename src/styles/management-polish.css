@@ -1,0 +1,78 @@
+/* Management Center visual refinements */
+
+/* Keep the protected Hospital Admin action a touch farther to the right without shifting other columns. */
+.management-section .data-table td:has(.management-self-account){
+  padding-left:28px;
+}
+.management-section .data-table td:has(.management-self-account) .management-self-account{
+  margin-left:12px;
+}
+
+/* Announcement acknowledgement: compact inline control instead of a large empty checkbox card. */
+.announcement-editor .acknowledgement-field{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:11px!important;
+  width:max-content!important;
+  max-width:100%;
+  margin:14px 0 0!important;
+  padding:0!important;
+  min-height:0!important;
+  border:0!important;
+  background:transparent!important;
+  border-radius:0!important;
+  cursor:pointer;
+}
+.announcement-editor .acknowledgement-field>input[type="checkbox"]{
+  appearance:none;
+  -webkit-appearance:none;
+  width:20px!important;
+  height:20px!important;
+  min-width:20px!important;
+  margin:0!important;
+  border:1.5px solid #9aacbc!important;
+  border-radius:6px!important;
+  background:#fff!important;
+  display:grid!important;
+  place-content:center!important;
+  cursor:pointer;
+  transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;
+}
+.announcement-editor .acknowledgement-field>input[type="checkbox"]::before{
+  content:"";
+  width:9px;
+  height:5px;
+  border-left:2px solid #fff;
+  border-bottom:2px solid #fff;
+  transform:rotate(-45deg) scale(0);
+  transform-origin:center;
+  transition:transform .14s ease;
+  margin-top:-2px;
+}
+.announcement-editor .acknowledgement-field>input[type="checkbox"]:checked{
+  border-color:var(--lo-primary,#17446f)!important;
+  background:var(--lo-primary,#17446f)!important;
+}
+.announcement-editor .acknowledgement-field>input[type="checkbox"]:checked::before{
+  transform:rotate(-45deg) scale(1);
+}
+.announcement-editor .acknowledgement-field>input[type="checkbox"]:focus-visible{
+  outline:none!important;
+  box-shadow:0 0 0 3px rgba(23,68,111,.14)!important;
+}
+.announcement-editor .acknowledgement-field>span{
+  color:#2f465c!important;
+  font-size:13px!important;
+  line-height:1.35!important;
+  font-weight:650!important;
+  text-align:left!important;
+}
+.announcement-editor .acknowledgement-field:hover>input[type="checkbox"]{
+  border-color:var(--lo-primary,#17446f)!important;
+}
+
+@media(max-width:720px){
+  .management-section .data-table td:has(.management-self-account){padding-left:14px}
+  .announcement-editor .acknowledgement-field{width:100%!important}
+}
