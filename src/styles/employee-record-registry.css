@@ -1,0 +1,84 @@
+/* Employee record secondary registries.
+   Keep legacy subrecord markup visually aligned with the canonical registry contract
+   until all employee subrecords migrate to the shared registry component. */
+
+.employee-record-shell .record-section > .record-table-wrap {
+  width: 100%;
+  min-width: 0;
+  margin-top: 14px;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.employee-record-shell .record-section > .record-table-wrap > .record-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: fixed;
+  background: var(--lo-color-surface, #fff);
+}
+
+.employee-record-shell .record-section > .record-table-wrap > .record-table thead th {
+  height: 46px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 1px solid var(--lo-color-border, #dfe7ee);
+  background: var(--lo-color-surface-soft, #f7f9fb);
+  color: #667c90;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: .025em;
+  text-align: left;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.employee-record-shell .record-section > .record-table-wrap > .record-table tbody td {
+  min-height: 54px;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--lo-color-border, #e4ebf0);
+  background: var(--lo-color-surface, #fff);
+  color: #405a70;
+  font-size: 12px;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+.employee-record-shell .record-section > .record-table-wrap > .record-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.employee-record-shell .record-section > .record-table-wrap > .record-table td strong {
+  display: block;
+  color: #173650;
+  font-size: 12.5px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.employee-record-shell .record-section > .record-table-wrap > .record-table th:nth-child(1),
+.employee-record-shell .record-section > .record-table-wrap > .record-table td:nth-child(1) {
+  width: 42%;
+}
+
+.employee-record-shell .record-section > .record-table-wrap > .record-table th:nth-child(2),
+.employee-record-shell .record-section > .record-table-wrap > .record-table td:nth-child(2) {
+  width: 28%;
+}
+
+.employee-record-shell .record-section > .record-table-wrap > .record-table th:nth-child(3),
+.employee-record-shell .record-section > .record-table-wrap > .record-table td:nth-child(3) {
+  width: 30%;
+}
+
+@media (max-width: 760px) {
+  .employee-record-shell .record-section > .record-table-wrap > .record-table {
+    min-width: 620px;
+    table-layout: auto;
+  }
+}
