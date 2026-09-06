@@ -12,16 +12,23 @@ import { useRepositoryData } from '../../core/data/useRepositoryData'
 
 const empty={protocolCode:'',subjectType:'surface',sourceCode:'surfaceSwab',unit:'CFU',limitCfu:'',active:true,system:false,locked:false,source:'Hospital',version:'local'}
 const normalizeSystemStandards=rows=>(rows||[]).map(row=>row?.system===undefined?{...row,system:true,locked:true,source:'Limoxis System',version:'core'}:row)
+function mergeCoreWithLocal(core,stored){
+  const byId=new Map()
+  for(const row of core||[])byId.set(row.id,row)
+  for(const row of stored||[])byId.set(row.id,row)
+  return [...byId.values()]
+}
 
 export function readEnvironmentalStandards(){
-  const saved=loadSnapshot('environmental_standards',normalizeSystemStandards(demoLibrarySeed.environmentalStandards))
-  return Array.isArray(saved)?saved:normalizeSystemStandards(demoLibrarySeed.environmentalStandards)
+  const core=normalizeSystemStandards(demoLibrarySeed.environmentalStandards)
+  const saved=loadSnapshot('environmental_standards',core)
+  return Array.isArray(saved)?mergeCoreWithLocal(core,saved):core
 }
 export function EnvironmentalStandardsPanel({embedded=false}){
-  const {t,language}=useLanguage();const {notify,confirm}=useFeedback();const {role,isDemo}=useTenant();const isPlatformOwner=role===ROLES.PLATFORM_OWNER
+  const {t,language}=useLanguage();const {notify,confirm}=useFeedback();const {role}=useTenant();const isPlatformOwner=role===ROLES.PLATFORM_OWNER
   const fallback=useMemo(()=>normalizeSystemStandards(demoLibrarySeed.environmentalStandards),[])
   const {data:repositoryRows,loading,saving,error,reload,saveData}=useRepositoryData('environmental_standards',{fallback})
-  const rows=Array.isArray(repositoryRows)?repositoryRows:(isDemo?fallback:[])
+  const rows=useMemo(()=>mergeCoreWithLocal(fallback,Array.isArray(repositoryRows)?repositoryRows:[]),[fallback,repositoryRows])
   const [query,setQuery]=useState('')
   const [draft,setDraft]=useState(null)
   const readOnlySystem=Boolean(draft?.system&&!isPlatformOwner)
@@ -47,7 +54,7 @@ export function EnvironmentalStandardsPanel({embedded=false}){
     <FilterBar compact query={query} onQueryChange={setQuery} placeholder={t('environmentalStandards.searchEnvironmentalProtocols')} onClear={()=>setQuery('')}/>
     {loading&&<div className="inline-data-state">{language==='en'?'Loading data…':'Φόρτωση δεδομένων…'}</div>}
     {error&&<div className="inline-data-state error"><span>{language==='en'?'Unable to load data.':'Η φόρτωση δεδομένων απέτυχε.'}</span><Button variant="secondary" onClick={()=>reload().catch(()=>{})}>{language==='en'?'Retry':'Επανάληψη'}</Button></div>}
-    <div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('environmentalStandards.protocolCode')}</th><th>{t('environmentalStandards.samplingCategory')}</th><th>{t('samplingMethod')}</th><th>{t('environmentalStandards.measurementUnit')}</th><th>{t('environmentalStandards.acceptableLimit')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead><tbody>{filtered.map(item=>{const systemLocked=item.system&&!isPlatformOwner;return <tr key={item.id}><td><strong>{item.protocolCode}</strong>{item.system&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{t(item.subjectType)}</td><td>{t(item.sourceCode)}</td><td>{item.unit}</td><td><strong>{item.limitCfu??t('notConfigured')}</strong></td><td><span className={`status-badge ${item.active?'active':''}`}>{item.active?t('active'):t('environmentalStandards.protocolInactive')}</span></td><td><div className="record-inline-actions"><button className={systemLocked?'lo-icon-button lo-icon-button-view':'lo-icon-button lo-icon-button-edit'} title={systemLocked?(language==='en'?'View system protocol':'Προβολή πρωτοκόλλου συστήματος'):t('edit')} aria-label={systemLocked?(language==='en'?'View system protocol':'Προβολή πρωτοκόλλου συστήματος'):t('edit')} onClick={()=>setDraft({...item,limitCfu:item.limitCfu??''})}>{systemLocked?<LockKeyhole size={15}/>:<Pencil size={15}/>}</button>{(!item.system||isPlatformOwner)&&<button className="lo-icon-button lo-icon-button-delete" title={t('delete')} aria-label={t('delete')} onClick={()=>remove(item)}><Trash2 size={15}/></button>}</div></td></tr>})}</tbody></table>{!loading&&filtered.length===0&&<div className="inline-empty">{t('noData')}</div>}</div>
+    <div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('environmentalStandards.protocolCode')}</th><th>{t('environmentalStandards.samplingCategory')}</th><th>{t('samplingMethod')}</th><th>{t('environmentalStandards.measurementUnit')}</th><th>{t('environmentalStandards.acceptableLimit')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead><tbody>{filtered.map(item=>{const systemLocked=item.system&&!isPlatformOwner;return <tr key={item.id}><td><strong>{item.protocolCode}</strong>{item.system&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{t(item.subjectType)}</td><td>{t(item.sourceCode)}</td><td>{item.unit}</td><td><strong>{item.limitCfu??t('notConfigured')}</strong></td><td><span className={`status-badge ${item.active?'active':''}`}>{item.active?t('active'):t('environmentalStandards.protocolInactive')}</span></td><td><div className="record-inline-actions"><button className={systemLocked?'lo-icon-button lo-icon-button-view':'lo-icon-button lo-icon-button-edit'} title={systemLocked?(language==='en'?'View system protocol':'Προβολή πρωτοκόλλου συστήματος'):t('edit')} aria-label={systemLocked?(language==='en'?'View system protocol':'Προβολή πρωτοκόλλου συστήματος'):t('edit')} onClick={()=>setDraft({...item,limitCfu:item.limitCfu??''})}>{systemLocked?<LockKeyhole size={15}/>:<Pencil size={15}/>}</button>{(!item.system||isPlatformOwner)&&<button className="lo-icon-button lo-icon-button-danger" title={t('delete')} aria-label={t('delete')} onClick={()=>remove(item)}><Trash2 size={15}/></button>}</div></td></tr>})}</tbody></table>{!loading&&filtered.length===0&&<div className="inline-empty">{t('noData')}</div>}</div>
     {draft&&<div className="modal-backdrop"><div className="role-editor environmental-standard-editor" role="dialog" aria-modal="true"><header><div><h3>{draft.id?t('environmentalStandards.editEnvironmentalProtocol'):t('environmentalStandards.newEnvironmentalProtocol')}</h3><p>{draft.system?(language==='en'?'Centrally governed Limoxis system protocol.':'Κεντρικά διαχειριζόμενο πρωτόκολλο συστήματος Limoxis.'):t('environmentalStandards.environmentalProtocolEditorHelp')}</p></div><button className="icon-button" onClick={()=>setDraft(null)}><X size={17}/></button></header>
       <div className="form-grid two-col">
         <label className="field"><span>{t('environmentalStandards.protocolCode')}</span><input value={draft.protocolCode} readOnly={Boolean(draft.id)||readOnlySystem} disabled={readOnlySystem} onChange={e=>setDraft({...draft,protocolCode:e.target.value})}/><small>{draft.id?t('environmentalStandards.protocolCodeLockedHelp'):t('environmentalStandards.protocolCodeHelp')}</small></label>
