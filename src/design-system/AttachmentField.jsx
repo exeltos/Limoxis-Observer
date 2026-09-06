@@ -176,9 +176,9 @@ export function AttachmentField({
           <div><span className="attachment-category">{categoryLabel(file.category)}</span>{file.description&&<small>{file.description}</small>}</div>
         </div>
         <div className="attachment-actions">
-          <button disabled={busy||(!cloudMode&&!file.dataUrl&&!file.objectUrl&&!file.url)} onClick={()=>view(file)} title={t('viewAttachment')} aria-label={t('viewAttachment')}><Eye size={14}/></button>
-          {!disabled&&<button className="edit" disabled={busy} onClick={()=>beginEdit(file)} title={t('edit')} aria-label={t('edit')}><Pencil size={14}/></button>}
-          {!disabled&&<button className="danger" disabled={busy} onClick={()=>remove(file.id)} title={t('delete')} aria-label={t('delete')}><Trash2 size={14}/></button>}
+          <button className="lo-icon-button lo-icon-button-primary lo-icon-button-sm" disabled={busy||(!cloudMode&&!file.dataUrl&&!file.objectUrl&&!file.url)} onClick={()=>view(file)} title={t('viewAttachment')} aria-label={t('viewAttachment')}><Eye size={14}/></button>
+          {!disabled&&<button className="edit lo-icon-button lo-icon-button-edit lo-icon-button-sm" disabled={busy} onClick={()=>beginEdit(file)} title={t('edit')} aria-label={t('edit')}><Pencil size={14}/></button>}
+          {!disabled&&<button className="danger lo-icon-button lo-icon-button-danger lo-icon-button-sm" disabled={busy} onClick={()=>remove(file.id)} title={t('delete')} aria-label={t('delete')}><Trash2 size={14}/></button>}
         </div>
       </div>)}
     </div>}
