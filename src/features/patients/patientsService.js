@@ -83,9 +83,15 @@ function mapAdmission(row, departmentLabel){
 
 export async function loadAdmissions(patientRecordId){
   if(!patientRecordId || !supabase) return []
-  const {data,error}=await supabase.from('patient_admissions').select('*, department:departments(name)').eq('patient_id',patientRecordId).order('admission_date',{ascending:false})
+  const {data,error}=await supabase.from('patient_admissions').select('*').eq('patient_id',patientRecordId).order('admission_date',{ascending:false})
   if(error) throw error
-  return (data??[]).map(row=>mapAdmission(row,row.department?.name))
+  const rows=data??[]
+  const departmentIds=[...new Set(rows.map(row=>row.department_id).filter(Boolean))]
+  if(!departmentIds.length) return rows.map(row=>mapAdmission(row,''))
+  const {data:departments,error:departmentError}=await supabase.from('departments').select('id,name').in('id',departmentIds)
+  if(departmentError) throw departmentError
+  const departmentById=new Map((departments??[]).map(department=>[department.id,department.name]))
+  return rows.map(row=>mapAdmission(row,departmentById.get(row.department_id)||''))
 }
 
 export async function createAdmission(organizationId, patient, draft, {isDemo=false}={}){
