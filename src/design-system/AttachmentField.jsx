@@ -146,10 +146,18 @@ export function AttachmentField({
   }
   async function view(file){
     if(cloudMode&&file.storagePath){
+      const previewWindow=window.open('about:blank','_blank')
       try{
         const url=await getAttachmentUrl(file.storagePath)
-        if(url)window.open(url,'_blank','noopener,noreferrer')
+        if(!url){previewWindow?.close();return}
+        if(previewWindow){
+          previewWindow.opener=null
+          previewWindow.location.href=url
+        }else{
+          window.location.assign(url)
+        }
       }catch{
+        previewWindow?.close()
         notify(t('actionFailed')||'Could not open the file.','danger')
       }
       return
