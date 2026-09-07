@@ -5,6 +5,7 @@ import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { Button } from '../../design-system/Button'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can,CAPABILITIES } from '../../core/permissions/roles'
@@ -30,7 +31,7 @@ export function DocumentsPage(){
  function action(a){if(a===UI_ACTIONS.CREATE)navigate('/documents/new')}
  function openDocument(family){const target=family.current;registry.openRecord(navigate,`/documents/${target.id}`,family.key,filtered.map(x=>x.key))}
  if(loading)return <RouteLoading/>
- if(error)return <Page title={en?'Documents':'Έγγραφα'}><div className="data-access-state error" role="alert"><span>{en?'Could not load documents.':'Δεν ήταν δυνατή η φόρτωση των εγγράφων.'}</span><button type="button" onClick={()=>reload()}>{en?'Retry':'Επανάληψη'}</button></div></Page>
+ if(error)return <Page title={en?'Documents':'Έγγραφα'}><div className="data-access-state error" role="alert"><span>{en?'Could not load documents.':'Δεν ήταν δυνατή η φόρτωση των εγγράφων.'}</span><Button variant="secondary" onClick={()=>reload()}>{en?'Retry':'Επανάληψη'}</Button></div></Page>
  return <Page fill title={en?'Documents':'Έγγραφα'} subtitle={en?'Central library of controlled documents, versions and distributions.':'Κεντρική βιβλιοθήκη ελεγχόμενων εγγράφων, εκδόσεων και κοινοποιήσεων.'} actions={<RecordActions actions={canManage?[UI_ACTIONS.CREATE]:[]} resourceCapability={CAPABILITIES.VIEW_DOCUMENTS} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_DOCUMENTS}} onAction={action}/>}>
   <div className="module-summary-strip"><Metric icon={Files} label={en?'Total':'Σύνολο'} value={families.length}/><Metric icon={FileCheck2} label={en?'Published':'Δημοσιευμένα'} value={publishedCount}/><Metric icon={FileClock} label={en?'Drafts':'Πρόχειρα'} value={draftCount}/><Metric icon={BookOpenCheck} label={en?'Review ≤30 days':'Review ≤30 ημέρες'} value={reviewDue}/></div>
   <section className="surface registry-workspace workspace-column workspace-fill"><FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search document, owner or department...':'Αναζήτηση εγγράφου, υπευθύνου ή τμήματος...'} activeAdvancedCount={(status!=='all'?1:0)+(type!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setType('all')}}><FilterSelect label={en?'Type':'Τύπος'} value={type} onChange={setType}><option value="all">{en?'All':'Όλοι'}</option>{Object.entries(typeLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</FilterSelect><FilterSelect label={en?'Status':'Κατάσταση'} value={status} onChange={setStatus}><option value="all">{en?'All':'Όλες'}</option>{Object.entries(statusLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</FilterSelect></FilterBar>
