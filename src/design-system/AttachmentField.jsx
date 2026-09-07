@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Eye, FilePlus2, Paperclip, Pencil, Trash2, X } from 'lucide-react'
+import { Eye, FilePlus2, Paperclip, Pencil, Trash2 } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useFeedback } from '../core/feedback/FeedbackContext'
 import { cloudAttachmentsEnabled, loadAttachments, uploadAttachment, updateAttachmentMetadata, deleteAttachment, getAttachmentUrl } from '../core/attachments/attachmentService'
-import { Button } from './Button'
-import { SaveButton } from './SaveButton'
+import { ActionButton } from './ActionButton'
 import { OverflowMenu } from './OverflowMenu'
+import { ObserverDialog, DialogActions } from './ObserverDialog'
 
 const defaultCategories=[
   ['generalDocument','generalDocument'],
@@ -192,26 +192,25 @@ export function AttachmentField({
       </div>)}
     </div>}
 
-    {!disabled&&!cloudLoading&&<button type="button" className="attachment-add attachment-add-button" disabled={busy} onClick={beginAdd}><FilePlus2 size={15}/>{t('addAttachment')}</button>}
+    {!disabled&&!cloudLoading&&<div className="attachment-add-row"><ActionButton tone="neutral" label={t('addAttachment')} disabled={busy} onClick={beginAdd}><FilePlus2 size={15}/><span>{t('addAttachment')}</span></ActionButton></div>}
 
-    {editor&&<div className="attachment-editor-backdrop">
-      <div className="attachment-editor-card" role="dialog" aria-modal="true">
-        <header>
-          <div><span className="eyebrow">{t('attachments')}</span><h3>{editor.mode==='add'?t('newAttachment'):t('editAttachment')}</h3></div>
-          <button className="icon-close" onClick={()=>setEditor(null)} aria-label={t('close')}><X size={18}/></button>
-        </header>
-        <div className="attachment-editor-grid">
-          {editor.mode==='add'&&<label className="attachment-file-picker">
-            <span>{t('file')}</span>
-            <input type="file" accept={accept} onChange={chooseFile}/>
-            <div className={editor.file?'has-file':''}><FilePlus2 size={16}/><strong>{editor.file?.name||t('selectFile')}</strong></div>
-          </label>}
-          {editor.mode==='edit'&&<div className="attachment-current-file"><span>{t('file')}</span><strong>{editor.name}</strong></div>}
-          <label><span>{t('documentCategory')}</span><select value={editor.category} onChange={e=>setEditor(x=>({...x,category:e.target.value}))}>{categories.map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}</select></label>
-          <label className="attachment-editor-description"><span>{t('description')}</span><textarea rows={3} value={editor.description} onChange={e=>setEditor(x=>({...x,description:e.target.value}))} placeholder={t('attachmentDescriptionPlaceholder')}/></label>
-        </div>
-        <footer><Button variant="secondary" onClick={()=>setEditor(null)} disabled={busy}>{t('cancel')}</Button><SaveButton disabled={busy||(editor.mode==='add'&&!editor.file)} onClick={saveEditor}>{busy?(t('saving')||'…'):t('save')}</SaveButton></footer>
+    {editor&&<ObserverDialog
+      eyebrow={t('attachments')}
+      title={editor.mode==='add'?t('newAttachment'):t('editAttachment')}
+      onClose={()=>!busy&&setEditor(null)}
+      width="standard"
+      className="attachment-editor-dialog"
+      footer={<DialogActions onSave={saveEditor} saveLabel={busy?(t('saving')||'…'):t('save')} disabled={busy||(editor.mode==='add'&&!editor.file)} showCancel onCancel={()=>setEditor(null)} cancelLabel={t('cancel')}/>}>
+      <div className="attachment-editor-grid">
+        {editor.mode==='add'&&<label className="attachment-file-picker field">
+          <span>{t('file')}</span>
+          <input type="file" accept={accept} onChange={chooseFile}/>
+          <div className={editor.file?'has-file':''}><FilePlus2 size={16}/><strong>{editor.file?.name||t('selectFile')}</strong></div>
+        </label>}
+        {editor.mode==='edit'&&<div className="attachment-current-file"><span>{t('file')}</span><strong>{editor.name}</strong></div>}
+        <label className="field"><span>{t('documentCategory')}</span><select value={editor.category} onChange={e=>setEditor(x=>({...x,category:e.target.value}))}>{categories.map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}</select></label>
+        <label className="attachment-editor-description field"><span>{t('description')}</span><textarea rows={3} value={editor.description} onChange={e=>setEditor(x=>({...x,description:e.target.value}))} placeholder={t('attachmentDescriptionPlaceholder')}/></label>
       </div>
-    </div>}
+    </ObserverDialog>}
   </div>
 }
