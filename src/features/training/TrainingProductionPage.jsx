@@ -75,6 +75,7 @@ function ProgramRecord({en,language,organizationId,program,assignments,state,emp
    {id:'delete',label:en?'Delete':'Διαγραφή',icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:onDelete},
  ]}/>:null
  const activeEmployees=employees.filter(isActiveEmployee),assignedEmployeeIds=new Set(assignments.map(a=>String(a.employeeId||'')).filter(Boolean)),questionCount=(program.assessmentQuestions||[]).length
+ if(dialog?.type==='participants')return <TrainingParticipantsDialog en={en} departments={departments} employees={activeEmployees} alreadyAssignedIds={[...assignedEmployeeIds]} busy={busy} onClose={()=>setDialog(null)} onSave={addParticipants}/>
  return (
   <Page fill>
    <EntityRecordShell className="workspace-fill" avatar={<BookOpenCheck size={19}/>} eyebrow={program.id} title={program.title} subtitle={`${trainingCategoryLabel(program.category,language)} · ${trainingMethodLabel(program.method,language)} · ${en?'Trainer':'Εκπαιδευτής'}: ${program.trainer||program.owner||'—'}`} status={<Badge status={program.status}/>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={onBack} backLabel={en?'Back to programs':'Πίσω στα προγράμματα'}>
@@ -84,7 +85,6 @@ function ProgramRecord({en,language,organizationId,program,assignments,state,emp
      <section hidden={tab!=='materials'} className="record-section training-materials-panel"><div className="record-section-header"><div><span className="eyebrow">{en?'Training material':'Εκπαιδευτικό υλικό'}</span><h3>{en?'Files & attachments':'Αρχεία & συνημμένα'}</h3><p>{en?'Upload presentations, procedures, attendance sheets or supporting material.':'Ανεβάστε παρουσιάσεις, διαδικασίες, παρουσιολόγια ή άλλο υποστηρικτικό υλικό.'}</p></div></div><AttachmentField organizationId={organizationId} entityType="training_program" entityId={program.dbId||program.id} value={[]} onChange={()=>{}}/></section>
      {tab==='assessment'&&<TrainingAssessmentEditor program={program} state={state} onPersist={onPersist} busy={busy} en={en} language={language}/>} 
      {tab==='results'&&<Results rows={assignments} en={en}/>} 
-     {dialog?.type==='participants'&&<TrainingParticipantsDialog en={en} departments={departments} employees={activeEmployees} alreadyAssignedIds={[...assignedEmployeeIds]} busy={busy} onClose={()=>setDialog(null)} onSave={addParticipants}/>} 
     </div>
    </EntityRecordShell>
   </Page>
