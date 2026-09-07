@@ -250,6 +250,20 @@
 .login-briefing-dialog .briefing-empty{margin:0;padding:18px 14px;color:var(--lo-color-muted)}
 .login-briefing-dialog .briefing-footer-v2{display:flex;align-items:center;gap:7px;color:var(--lo-color-muted);font-size:11px}
 
+/* Shared overflow action language: visible primary workflow, secondary tools behind a single ellipsis. */
+.lo-overflow-menu{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.lo-overflow-popover{position:absolute;top:calc(100% + 6px);z-index:80;min-width:190px;padding:6px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);box-shadow:0 14px 36px color-mix(in srgb,var(--lo-color-text) 16%,transparent)}
+.lo-overflow-menu-end .lo-overflow-popover{right:0}
+.lo-overflow-menu-start .lo-overflow-popover{left:0}
+.lo-overflow-item{width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:var(--lo-color-text);font:inherit;font-size:12px;font-weight:650;text-align:left;cursor:pointer}
+.lo-overflow-item:hover:not(:disabled),.lo-overflow-item:focus-visible{background:var(--lo-shell-control-hover);outline:none}
+.lo-overflow-item:disabled{opacity:.45;cursor:not-allowed}
+.lo-overflow-separated{margin-top:5px;padding-top:5px;border-top:1px solid var(--lo-color-border)}
+.lo-overflow-item-danger{color:var(--lo-status-danger-fg)}
+.lo-overflow-item-danger:hover:not(:disabled),.lo-overflow-item-danger:focus-visible{background:var(--lo-status-danger-bg)}
+.attachment-file-info>strong.attachment-open-target{cursor:pointer;color:var(--lo-color-text);text-decoration:none}
+.attachment-file-info>strong.attachment-open-target:hover{text-decoration:underline;text-underline-offset:3px;color:var(--lo-color-primary)}
+
 @media (max-width:1100px){
   .platform-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -262,4 +276,5 @@
   .diagnostics-summary-strip,.platform-summary-strip{grid-template-columns:1fr}
   .lo-dialog-icon-actions{justify-content:flex-start}
   .platform-maintenance-banner{top:8px;width:calc(100vw - 20px);font-size:11px}
+  .lo-overflow-popover{min-width:176px}
 }
