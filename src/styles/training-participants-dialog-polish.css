@@ -1,0 +1,145 @@
+/* Participants dialog visual polish: compact, clinical, no oversized empty canvas. */
+.training-participant-workspace{
+  width:min(1120px,calc(100vw - 32px))!important;
+  height:min(650px,calc(100dvh - 28px))!important;
+  min-height:0!important;
+  max-height:min(650px,calc(100dvh - 28px))!important;
+}
+.training-participant-workspace>header{flex:0 0 68px!important;padding:14px 20px!important}
+.training-participant-workspace .observer-dialog-body{padding:12px 16px!important}
+.training-participant-workspace>footer{flex:0 0 58px!important;padding:10px 16px!important}
+
+.training-participant-dialog{
+  grid-template-rows:44px 34px minmax(0,1fr)!important;
+  gap:8px!important;
+}
+.training-participant-mode{
+  height:44px!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:4px!important;
+  padding:3px!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:12px!important;
+  background:var(--lo-shell-control-hover)!important;
+}
+.training-participant-mode>button{
+  height:36px!important;
+  min-height:36px!important;
+  padding:0 12px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:9px!important;
+  border-radius:9px!important;
+  overflow:hidden!important;
+}
+.training-participant-mode>button>span{
+  min-width:0!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  white-space:nowrap!important;
+}
+.training-participant-mode>button strong{font-size:13px!important;line-height:1.1!important}
+.training-participant-mode>button small{font-size:11px!important;line-height:1!important;color:var(--lo-color-muted)!important}
+.training-participant-mode>button.active{background:var(--lo-color-surface)!important;box-shadow:0 1px 3px color-mix(in srgb,var(--lo-color-text) 10%,transparent)!important}
+
+.training-participant-basket-summary{
+  height:34px!important;
+  min-height:34px!important;
+  padding:0 12px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  border-radius:10px!important;
+}
+.training-participant-basket-summary strong{font-size:12px!important}
+.training-participant-basket-summary span{font-size:11px!important;color:var(--lo-color-muted)!important}
+
+.training-participant-panel{
+  grid-template-rows:48px 40px 26px minmax(0,1fr)!important;
+  gap:7px!important;
+}
+.training-participant-manual{
+  grid-template-rows:48px 58px minmax(0,1fr)!important;
+}
+.training-participant-panel-heading{
+  height:48px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  overflow:hidden!important;
+}
+.training-participant-panel-heading>div{min-width:0!important}
+.training-participant-panel-heading .eyebrow{margin:0 0 2px!important;font-size:10px!important;line-height:1!important}
+.training-participant-panel-heading h3{margin:0!important;font-size:20px!important;line-height:1.15!important}
+.training-participant-panel-heading p{display:none!important}
+.training-selection-count{
+  flex:0 0 auto!important;
+  padding:7px 10px!important;
+  border-radius:999px!important;
+  background:var(--lo-status-info-bg)!important;
+  color:var(--lo-color-primary)!important;
+  font-size:11px!important;
+  font-weight:700!important;
+}
+
+.training-participant-filters{
+  height:40px!important;
+  grid-template-columns:minmax(0,1fr) 250px!important;
+  gap:10px!important;
+}
+.training-participant-search,.training-participant-filters select{height:40px!important}
+.training-participant-list-head{
+  height:26px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  padding:0 4px!important;
+}
+.training-participant-list-head button{font-size:11px!important;font-weight:700!important}
+.training-participant-list-head span{font-size:11px!important;color:var(--lo-color-muted)!important}
+
+.training-participant-table-wrap{border:1px solid var(--lo-color-border)!important;border-radius:12px!important}
+.training-participant-table{table-layout:fixed!important}
+.training-participant-table th:nth-child(2){width:27%!important}
+.training-participant-table th:nth-child(3){width:20%!important}
+.training-participant-table th:nth-child(4){width:14%!important}
+.training-participant-table th:nth-child(5){width:auto!important}
+.training-participant-table td,.training-participant-table th{vertical-align:middle!important}
+.training-participant-table td:nth-child(3){overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.training-participant-table td:nth-child(5){overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.training-participant-table tbody tr{cursor:pointer!important}
+
+.training-manual-form-row{
+  height:58px!important;
+  grid-template-columns:minmax(210px,1.25fr) minmax(190px,1fr) minmax(220px,1.1fr) 150px!important;
+  gap:10px!important;
+}
+.training-manual-form-row input{height:38px!important}
+.training-manual-add-cell{height:38px!important}
+.training-manual-add-cell .button{width:100%!important;justify-content:center!important;white-space:nowrap!important}
+.training-manual-list-slot{min-height:0!important}
+.training-participant-empty.compact{
+  min-height:180px!important;
+  height:100%!important;
+  max-height:260px!important;
+  margin-top:2px!important;
+  border:1px dashed var(--lo-color-border)!important;
+  border-radius:12px!important;
+  background:var(--lo-color-surface)!important;
+  padding:22px!important;
+}
+.training-participant-empty.compact strong{font-size:15px!important}
+.training-participant-empty.compact span{font-size:12px!important;max-width:540px!important}
+
+@media(max-width:900px){
+  .training-participant-workspace{width:calc(100vw - 16px)!important;height:calc(100dvh - 16px)!important;max-height:calc(100dvh - 16px)!important}
+  .training-participant-mode>button small{display:none!important}
+  .training-participant-filters{grid-template-columns:1fr!important;height:auto!important}
+  .training-participant-panel{grid-template-rows:48px auto 26px minmax(0,1fr)!important}
+  .training-manual-form-row{height:auto!important;grid-template-columns:1fr 1fr!important}
+  .training-manual-add-cell{grid-column:2!important;justify-content:flex-end!important}
+  .training-participant-manual{grid-template-rows:48px auto minmax(0,1fr)!important}
+}
