@@ -1,0 +1,166 @@
+/* Full-screen participant workspace: this flow is a working screen, not a floating card. */
+.modal-backdrop:has(.training-participant-workspace){
+  padding:0!important;
+  align-items:stretch!important;
+  justify-content:stretch!important;
+  background:var(--lo-color-background,#f4f7fa)!important;
+}
+.training-participant-workspace{
+  width:100vw!important;
+  min-width:100vw!important;
+  max-width:none!important;
+  height:100dvh!important;
+  min-height:100dvh!important;
+  max-height:100dvh!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  background:var(--lo-color-surface)!important;
+}
+.training-participant-workspace>header{
+  flex:0 0 76px!important;
+  min-height:76px!important;
+  padding:16px 28px!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+  background:var(--lo-color-surface)!important;
+}
+.training-participant-workspace>header>div:first-child{max-width:1500px;width:100%;margin:0 auto}
+.training-participant-workspace>header h3{font-size:24px!important;line-height:1.2!important;margin:0!important}
+.training-participant-workspace .observer-dialog-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  padding:18px 28px!important;
+  background:var(--lo-color-background,#f4f7fa)!important;
+}
+.training-participant-workspace .training-participant-dialog{
+  width:min(1500px,100%)!important;
+  height:100%!important;
+  min-height:0!important;
+  margin:0 auto!important;
+  display:grid!important;
+  grid-template-rows:58px 44px minmax(0,1fr)!important;
+  gap:14px!important;
+  overflow:hidden!important;
+}
+.training-participant-workspace .training-participant-mode{
+  height:58px!important;
+  padding:4px!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:14px!important;
+  background:var(--lo-color-surface)!important;
+  overflow:visible!important;
+}
+.training-participant-workspace .training-participant-mode>button{
+  height:48px!important;
+  min-height:48px!important;
+  padding:6px 18px!important;
+  overflow:visible!important;
+}
+.training-participant-workspace .training-participant-basket-summary{
+  height:44px!important;
+  min-height:44px!important;
+  padding:0 16px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  overflow:visible!important;
+}
+.training-participant-workspace .training-participant-stage{
+  min-height:0!important;
+  height:100%!important;
+  overflow:hidden!important;
+}
+.training-participant-workspace .training-participant-panel{
+  height:100%!important;
+  min-height:0!important;
+  display:grid!important;
+  grid-template-rows:auto 48px 30px minmax(0,1fr)!important;
+  gap:10px!important;
+  overflow:hidden!important;
+}
+.training-participant-workspace .training-participant-panel-heading{
+  height:auto!important;
+  min-height:64px!important;
+  padding:0 2px!important;
+  overflow:visible!important;
+}
+.training-participant-workspace .training-participant-panel-heading h3{font-size:25px!important;line-height:1.2!important;margin:3px 0 0!important}
+.training-participant-workspace .training-participant-filters{
+  height:48px!important;
+  min-height:48px!important;
+  grid-template-columns:minmax(360px,1fr) minmax(250px,340px)!important;
+  gap:12px!important;
+}
+.training-participant-workspace .training-participant-search,
+.training-participant-workspace .training-participant-filters select{
+  height:48px!important;
+  min-height:48px!important;
+}
+.training-participant-workspace .training-participant-list-head{
+  height:30px!important;
+  min-height:30px!important;
+  overflow:visible!important;
+}
+.training-participant-workspace .training-participant-table-wrap,
+.training-participant-workspace .training-manual-table-wrap{
+  height:100%!important;
+  min-height:0!important;
+  overflow:auto!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:14px!important;
+  background:var(--lo-color-surface)!important;
+}
+.training-participant-workspace .training-participant-table{
+  min-width:980px!important;
+  table-layout:fixed!important;
+}
+.training-participant-workspace .training-participant-table th:nth-child(2){width:27%!important}
+.training-participant-workspace .training-participant-table th:nth-child(3){width:22%!important}
+.training-participant-workspace .training-participant-table th:nth-child(4){width:18%!important}
+.training-participant-workspace .training-participant-table th:nth-child(5){width:27%!important}
+.training-participant-workspace .training-participant-manual{
+  grid-template-rows:auto 78px minmax(0,1fr)!important;
+}
+.training-participant-workspace .training-manual-form-row{
+  height:78px!important;
+  min-height:78px!important;
+  grid-template-columns:minmax(260px,1.25fr) minmax(230px,1fr) minmax(300px,1.2fr) 170px!important;
+  gap:12px!important;
+  align-items:end!important;
+}
+.training-participant-workspace .training-manual-form-row input{height:44px!important}
+.training-participant-workspace .training-manual-add-cell{height:44px!important}
+.training-participant-workspace .training-manual-add-cell .button{width:100%!important;justify-content:center!important}
+.training-participant-workspace .training-manual-list-slot{
+  min-height:0!important;
+  height:100%!important;
+  overflow:hidden!important;
+}
+.training-participant-workspace .training-participant-empty.compact{
+  min-height:260px!important;
+  height:100%!important;
+  border:1px dashed var(--lo-color-border)!important;
+  border-radius:14px!important;
+  background:var(--lo-color-surface)!important;
+}
+.training-participant-workspace>footer{
+  flex:0 0 72px!important;
+  min-height:72px!important;
+  padding:12px 28px!important;
+  border-top:1px solid var(--lo-color-border)!important;
+  background:var(--lo-color-surface)!important;
+}
+.training-participant-workspace>footer>*{margin-left:auto}
+
+@media(max-width:1050px){
+  .training-participant-workspace .observer-dialog-body{padding:14px 18px!important}
+  .training-participant-workspace .training-manual-form-row{grid-template-columns:1fr 1fr!important;height:auto!important;min-height:132px!important;align-content:start!important}
+  .training-participant-workspace .training-manual-add-cell{grid-column:2!important;justify-content:flex-end!important}
+  .training-participant-workspace .training-participant-manual{grid-template-rows:auto auto minmax(0,1fr)!important}
+}
+@media(max-width:760px){
+  .training-participant-workspace .observer-dialog-body{overflow:auto!important}
+  .training-participant-workspace .training-participant-dialog{min-width:720px!important}
+}
