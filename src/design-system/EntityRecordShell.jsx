@@ -6,6 +6,7 @@ import { useContextualNavigation } from '../core/navigation/useContextualNavigat
 import { registryStorageKey } from '../core/navigation/useRegistryMemory'
 import { readSessionJson,writeSessionValue } from '../core/storage/browserStorage'
 import { BackButton } from './BackButton'
+import { IconButton } from './IconButton'
 
 function flattenActions(node,result=[]){
   Children.forEach(node,child=>{
@@ -85,14 +86,8 @@ export function EntityRecordShell({
   }:null
   const effectiveRecordNavigation=recordNavigation||fallbackNavigation
 
-  // Standard clinical/operational records expose only the canonical edit/destructive pair.
-  // Action wrappers are traversed so modules may group buttons without hiding them from the
-  // canonical record-action rail. Platform Owner management workspaces keep their own toolbar.
   const generalActions=isPlatformOwnerRecord?[]:flattenActions(headerActions).map(normalizeGeneralAction).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
-  // Secondary tabs are layout containers. Making the body a column flex container lets
-  // registry children consume the full grid row while ordinary long forms still scroll
-  // through the body's existing overflow contract.
   const secondaryBodyStyle=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
 
   return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${className}`.trim()}>
@@ -107,9 +102,9 @@ export function EntityRecordShell({
       <div className="entity-record-header-actions">
         {status}
         {effectiveRecordNavigation&&<div className="entity-record-sequence" aria-label={en?'Record navigation':'Πλοήγηση εγγραφών'}>
-          <button type="button" className="entity-record-icon-button" disabled={!effectiveRecordNavigation.hasPrevious} onClick={effectiveRecordNavigation.previous} title={en?'Previous record':'Προηγούμενη εγγραφή'} aria-label={en?'Previous record':'Προηγούμενη εγγραφή'}><ChevronLeft size={16}/></button>
+          <IconButton size="sm" disabled={!effectiveRecordNavigation.hasPrevious} onClick={effectiveRecordNavigation.previous} label={en?'Previous record':'Προηγούμενη εγγραφή'}><ChevronLeft size={16}/></IconButton>
           {effectiveRecordNavigation.position&&effectiveRecordNavigation.total>0&&<span>{effectiveRecordNavigation.position}/{effectiveRecordNavigation.total}</span>}
-          <button type="button" className="entity-record-icon-button" disabled={!effectiveRecordNavigation.hasNext} onClick={effectiveRecordNavigation.next} title={en?'Next record':'Επόμενη εγγραφή'} aria-label={en?'Next record':'Επόμενη εγγραφή'}><ChevronRight size={16}/></button>
+          <IconButton size="sm" disabled={!effectiveRecordNavigation.hasNext} onClick={effectiveRecordNavigation.next} label={en?'Next record':'Επόμενη εγγραφή'}><ChevronRight size={16}/></IconButton>
         </div>}
         {ownerHeaderActions}
       </div>
