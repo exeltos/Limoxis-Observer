@@ -39,7 +39,7 @@ export function EmployeeSurveillanceFlow({employee=null,onClose,onCreated}){
       {selected&&<div className="entry-span-2 subject-summary"><strong>{language==='el'?`${selected.lastName} ${selected.firstName}`:`${selected.firstNameEn} ${selected.lastNameEn}`}</strong><span>{language==='el'?selected.department:selected.departmentEn} · {selected.id}</span></div>}
       <ManualDateField label={t('screeningDate')} value={date} onChange={setDate}/>
       <label><span>{t('screeningType')}</span><div className="screening-choice-list">{employeeScreeningCatalog.map(item=><button type="button" key={item.id} className={types.includes(item.id)?'selected':''} onClick={()=>toggle(item.id)}>{t(item.label)}</button>)}</div></label>
-      <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
+      <label className="field entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
     </div>
     <div className="source-truth-note">{t('clinicalRecords.employeeScreeningCreatesLabRequests')}</div>
   </ObserverDialog>
@@ -97,7 +97,7 @@ export function BulkEmployeeSurveillanceFlow({onClose,onCreated}){
       <div className="bulk-list-head"><button type="button" onClick={toggleAll}>{allVisible?t('clinicalRecords.clearVisible'):t('clinicalRecords.selectAllVisible')}</button><strong>{t('clinicalRecords.selectedEmployees')}: {selectedIds.length}</strong></div>
       {visible.map(row=><label key={row.id} className={selectedIds.includes(row.id)?'selected':''}><input type="checkbox" checked={selectedIds.includes(row.id)} onChange={()=>toggleEmployee(row.id)}/><span><strong>{language==='el'?`${row.lastName} ${row.firstName}`:`${row.firstNameEn} ${row.lastNameEn}`}</strong><small>{row.id} · {language==='el'?row.department:row.departmentEn}</small></span></label>)}
     </div>
-    <label className="bulk-notes"><span>{t('notes')}</span><textarea rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
+    <label className="field bulk-notes"><span>{t('notes')}</span><textarea rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
   </ObserverDialog>
 }
 
