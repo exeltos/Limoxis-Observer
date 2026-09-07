@@ -3,10 +3,10 @@ import { Activity, ArrowRightLeft, LogOut, UsersRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
-import { Button } from '../../design-system/Button'
-import { SaveButton } from '../../design-system/SaveButton'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
+import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -17,8 +17,6 @@ import { demoLibrarySeed } from '../management/managementData'
 import { loadDepartments } from '../management/departmentsService'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MetricCard } from '../../design-system/MetricCard'
-
-const PAGE_SIZE_OPTIONS=[15,25,50]
 
 export function PatientsPage(){
   const {t,language,locale}=useLanguage()
@@ -98,7 +96,7 @@ export function PatientsPage(){
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option></FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table"><thead><tr><th>{t('patientId')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('admissionDate')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(patient=><tr key={patient.id} {...registry.rowProps(patient.id)} onClick={()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))}}}><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></tr>)}</tbody></table>{!rows.length&&<PatientRegistryEmpty language={language}/>}</div>
-      <PatientRegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
+      <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </div>
     {newOpen&&<NewPatientCard t={t} language={language} departments={departmentOptions} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
   </Page>
@@ -107,13 +105,6 @@ export function PatientsPage(){
 function PatientRegistryEmpty({language}){
   const en=language==='en'
   return <div className="registry-empty-state"><strong>{en?'No patient records':'Δεν υπάρχουν καταγραφές ασθενών'}</strong><span>{en?'No patients have been recorded for this organization yet.':'Δεν έχουν καταχωριστεί ακόμη ασθενείς για τον συγκεκριμένο οργανισμό.'}</span></div>
-}
-
-function PatientRegistryPagination({language,page,totalPages,totalItems,pageSize,onPageChange,onPageSizeChange}){
-  const en=language==='en'
-  const start=totalItems?((page-1)*pageSize)+1:0
-  const end=Math.min(page*pageSize,totalItems)
-  return <div className="registry-pagination patient-registry-pagination"><div className="registry-pagination-summary">{totalItems?`${start}–${end} ${en?'of':'από'} ${totalItems}`:(en?'0 records':'0 εγγραφές')}</div><div className="registry-pagination-controls"><label><span>{en?'Rows':'Γραμμές'}</span><select value={pageSize} onChange={event=>onPageSizeChange(Number(event.target.value))}>{PAGE_SIZE_OPTIONS.map(value=><option key={value} value={value}>{value}</option>)}</select></label><button type="button" disabled={page<=1} onClick={()=>onPageChange(page-1)} aria-label={en?'Previous page':'Προηγούμενη σελίδα'}>‹</button><span>{en?'Page':'Σελίδα'} {page} / {totalPages}</span><button type="button" disabled={page>=totalPages} onClick={()=>onPageChange(page+1)} aria-label={en?'Next page':'Επόμενη σελίδα'}>›</button></div></div>
 }
 
 function PatientSummaryMetric({icon,label,value,kind=''}){return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'}/>}
@@ -141,22 +132,19 @@ export function NewPatientCard({t,language,departments,onClose,onSave}){
     if(!draft.patientCode.trim()||!first||!last||!draft.admissionDate)return
     onSave({...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim()})
   }
-  return <div className="modal-backdrop">
-    <div className="entry-card patient-entry-card">
-      <header><div><span className="eyebrow">{t('patients')}</span><h3>{t('newPatient')}</h3><p>{t('newPatientHelp')}</p></div><button className="icon-close" onClick={onClose}>×</button></header>
-      <div className="entry-grid">
-        <label><span>{t('patientId')}</span><input autoFocus value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)}/></label>
-        <label><span>{t('firstName')}</span><input value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
-        <label><span>{t('lastName')}</span><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
-        <label><span>{t('fatherName')}</span><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
-        <label><span>{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
-        <ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>
-        <label><span>{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
-        <label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
-        <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/>
-        <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
-      </div>
-      <footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||!draft.admissionDate} onClick={save}>{t('save')}</SaveButton></footer>
+  const disabled=!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||!draft.admissionDate
+  return <ObserverDialog width="wide" eyebrow={t('patients')} title={t('newPatient')} subtitle={t('newPatientHelp')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={save} disabled={disabled}/> }>
+    <div className="entry-grid patient-entry-grid">
+      <label><span>{t('patientId')}</span><input autoFocus value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)}/></label>
+      <label><span>{t('firstName')}</span><input value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
+      <label><span>{t('lastName')}</span><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
+      <label><span>{t('fatherName')}</span><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
+      <label><span>{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
+      <ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>
+      <label><span>{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
+      <label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
+      <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/>
+      <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
     </div>
-  </div>
+  </ObserverDialog>
 }
