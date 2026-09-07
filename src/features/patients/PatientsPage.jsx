@@ -118,7 +118,7 @@ function PatientRegistryPagination({language,page,totalPages,totalItems,pageSize
 
 function PatientSummaryMetric({icon,label,value,kind=''}){return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'}/>}
 
-function NewPatientCard({t,language,departments,onClose,onSave}){
+export function NewPatientCard({t,language,departments,onClose,onSave}){
   const firstDepartment=departments?.[0]||null
   const [draft,setDraft]=useState({
     patientCode:'',firstName:'',lastName:'',fatherName:'',hospitalRecordNumber:'',
