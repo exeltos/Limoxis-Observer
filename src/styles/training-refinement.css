@@ -49,6 +49,38 @@
 .training-participants-table .training-select-col{width:46px!important;text-align:center!important}
 .training-participants-table .training-select-col input{width:16px;height:16px;accent-color:var(--lo-color-primary)}
 
+/* Assessment builder: clear title hierarchy and compact form controls. */
+.training-assessment-toolbar{align-items:flex-start!important;gap:18px!important;padding-top:2px!important}
+.training-assessment-heading{display:grid!important;gap:4px!important;min-width:0!important}
+.training-assessment-heading .eyebrow{display:block!important;margin:0!important;line-height:1.2!important}
+.training-assessment-heading h3{margin:0!important;font-size:21px!important;line-height:1.2!important;color:var(--lo-color-text)!important;font-weight:800!important}
+.training-assessment-registry .open-record-cell{width:56px!important;text-align:right!important}
+.training-question-dialog .entry-grid{align-items:end!important}
+.training-question-dialog .training-required-toggle{
+  min-height:42px!important;
+  height:42px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:9px!important;
+  padding:0 12px!important;
+  margin:0!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:10px!important;
+  background:var(--lo-color-surface)!important;
+  color:var(--lo-color-text)!important;
+  font-weight:650!important;
+  cursor:pointer!important;
+}
+.training-question-dialog .training-required-toggle input{
+  width:17px!important;
+  height:17px!important;
+  min-width:17px!important;
+  margin:0!important;
+  accent-color:var(--lo-color-primary)!important;
+}
+.training-question-dialog .training-required-toggle span{margin:0!important;line-height:1.2!important;white-space:nowrap!important}
+
 /* Public training form: single-use, token-only access, compact professional hierarchy. */
 .training-email-flow{display:grid;gap:18px;max-width:920px!important}
 .training-public-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:4px}
@@ -76,4 +108,4 @@
   .training-feedback-table{min-width:720px!important}
   .training-public-details,.training-feedback-grid{grid-template-columns:1fr 1fr}
 }
-@media(max-width:620px){.training-public-details,.training-feedback-grid{grid-template-columns:1fr}.training-public-header{gap:12px}}
+@media(max-width:620px){.training-public-details,.training-feedback-grid{grid-template-columns:1fr}.training-public-header{gap:12px}.training-question-dialog .training-required-toggle span{white-space:normal!important}}
