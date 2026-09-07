@@ -36,7 +36,7 @@
   background-color:var(--lo-status-danger-bg)!important;
 }
 
-/* Canonical overflow menu used by attachments, dense registries and record utilities. */
+/* Canonical overflow menu used by training, attachments, dense registries and record utilities. */
 .lo-overflow-menu{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
 .lo-overflow-menu>.lo-icon-button{border:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
 .lo-overflow-menu>.lo-icon-button:hover:not(:disabled),
@@ -84,8 +84,34 @@
 .lo-overflow-item-danger svg{color:var(--lo-status-danger-fg)}
 .lo-overflow-item-danger:hover:not(:disabled),.lo-overflow-item-danger:focus-visible:not(:disabled){background:var(--lo-status-danger-bg)}
 
-/* Attachment rows need an overflow context that is not clipped by the row itself. */
+/* Attachment rows must not leak their legacy icon-button geometry into menu items. */
 .attachment-field-v2 .attachment-list,
 .attachment-field-v2 .attachment-row-v2,
 .attachment-field-v2 .attachment-actions{overflow:visible}
 .attachment-field-v2 .attachment-actions{display:flex;align-items:center;justify-content:flex-end;position:relative;z-index:2}
+.attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-menu{position:relative!important;display:inline-flex!important;width:auto!important;height:auto!important;overflow:visible!important}
+.attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-menu>.lo-icon-button{
+  width:32px!important;min-width:32px!important;max-width:32px!important;
+  height:32px!important;min-height:32px!important;max-height:32px!important;
+  padding:0!important;border:1px solid var(--lo-color-border)!important;border-radius:8px!important;
+  background:var(--lo-color-surface)!important;display:inline-grid!important;place-items:center!important;
+}
+.attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-popover{
+  position:absolute!important;top:calc(100% + 6px)!important;right:0!important;left:auto!important;
+  z-index:220!important;width:max-content!important;min-width:200px!important;max-width:280px!important;
+  height:auto!important;min-height:0!important;padding:6px!important;margin:0!important;
+  display:block!important;overflow:visible!important;border:1px solid var(--lo-color-border)!important;
+  border-radius:12px!important;background:var(--lo-color-surface)!important;box-shadow:var(--lo-shadow-popover)!important;
+}
+.attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-popover .lo-overflow-item{
+  width:100%!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:38px!important;max-height:none!important;
+  display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:9px!important;
+  padding:8px 10px!important;margin:0!important;border:0!important;border-radius:8px!important;
+  background:transparent!important;box-shadow:none!important;font-size:12px!important;font-weight:700!important;line-height:1.25!important;
+  text-align:left!important;white-space:nowrap!important;
+}
+.attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-popover .lo-overflow-item:hover:not(:disabled),
+.attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-popover .lo-overflow-item:focus-visible:not(:disabled){background:var(--lo-shell-control-hover)!important}
+.attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-popover .lo-overflow-item-danger{color:var(--lo-status-danger-fg)!important}
+.attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-popover .lo-overflow-item-danger:hover:not(:disabled),
+.attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-popover .lo-overflow-item-danger:focus-visible:not(:disabled){background:var(--lo-status-danger-bg)!important}
