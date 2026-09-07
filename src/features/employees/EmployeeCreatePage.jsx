@@ -12,16 +12,23 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { can,CAPABILITIES } from '../../core/permissions/roles'
 import { createEmployeeAsync } from './employeeService'
+import { useEmployeesData } from './useEmployeesData'
 import { loadDepartments } from '../management/departmentsService'
 import { loadManagementLibraries } from '../management/managementCloudService'
 
+function nextReadableEmployeeCode(rows=[]){
+ const max=rows.reduce((value,row)=>{const match=String(row?.id||row?.employeeCode||'').match(/^EMP-(\d+)$/i);return match?Math.max(value,Number(match[1])):value},0)
+ return `EMP-${String(max+1).padStart(4,'0')}`
+}
+
 export function EmployeeCreatePage(){
- const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const navigate=useNavigate();const {tenant,role,membership}=useTenant();const actor=useAuditActor()
+ const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const navigate=useNavigate();const {tenant,role,membership}=useTenant();const actor=useAuditActor();const {data:employeeRows}=useEmployeesData()
  const [saving,setSaving]=useState(false);const [departments,setDepartments]=useState([]);const [professionalCategories,setProfessionalCategories]=useState([])
- const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',department:'',profession:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
+ const employeeCode=useMemo(()=>nextReadableEmployeeCode(employeeRows),[employeeRows])
+ const [v,setV]=useState({firstName:'',lastName:'',fatherName:'',department:'',profession:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[];const canCreate=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,addOns,custom)
  const set=(k,x)=>setV(s=>({...s,[k]:x}))
- const valid=Boolean(v.employeeCode.trim()&&v.firstName.trim()&&v.lastName.trim()&&v.department&&v.profession)
+ const valid=Boolean(v.firstName.trim()&&v.lastName.trim()&&v.department&&v.profession)
 
  useEffect(()=>{
   let active=true
@@ -41,13 +48,13 @@ export function EmployeeCreatePage(){
   if(!canCreate||!valid||saving)return
   setSaving(true)
   try{
-   const now=new Date().toISOString();const id=v.employeeCode.trim()
+   const now=new Date().toISOString();const id=employeeCode
    const row={...v,id,employeeCode:id,department:selectedDepartment?.name||v.department,departmentId:selectedDepartment?.id||null,departmentEn:selectedDepartment?.nameEn||selectedDepartment?.name||v.department,profession:selectedProfession?.[0]||v.profession,professionEn:selectedProfession?.[1]||selectedProfession?.[0]||v.profession,firstNameEn:v.firstName,lastNameEn:v.lastName,fatherNameEn:v.fatherName,createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}
    const created=await createEmployeeAsync(tenant?.id??null,row)
    notify(t('employeeCreated'),'success')
    navigate(`/employees/${encodeURIComponent(created.id)}`,{replace:true})
   }catch(err){
-   if(err?.message==='DUPLICATE_EMPLOYEE_CODE')notify(en?'This employee code is already in use.':'Αυτός ο κωδικός εργαζομένου χρησιμοποιείται ήδη.','danger')
+   if(err?.message==='DUPLICATE_EMPLOYEE_CODE')notify(en?'This employee code is already in use. Please retry.':'Ο κωδικός εργαζομένου χρησιμοποιείται ήδη. Δοκιμάστε ξανά.','danger')
    else notify(en?'Could not save the employee.':'Δεν ήταν δυνατή η αποθήκευση του εργαζομένου.','danger')
   }finally{setSaving(false)}
  }
@@ -56,9 +63,9 @@ export function EmployeeCreatePage(){
  return <Page fill><EntityRecordShell className="employee-create-shell workspace-fill" avatar={<UserPlus size={19}/>} eyebrow={en?'Staff':'Προσωπικό'} title={en?'New employee':'Νέος εργαζόμενος'} subtitle={en?'Create employee record':'Δημιουργία καρτέλας προσωπικού'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/employees')}>
   <div className="record-section employee-create-form">
    <div className="entry-grid">
-    <label><span>{en?'Employee code *':'Κωδικός εργαζομένου *'}</span><input autoFocus value={v.employeeCode} onChange={e=>set('employeeCode',e.target.value)}/></label>
+    <label><span>{en?'Employee code':'Κωδικός εργαζομένου'}</span><input value={employeeCode} readOnly disabled/></label>
     <label><span>{en?'Status':'Κατάσταση'}</span><select value={v.employmentStatus} onChange={e=>set('employmentStatus',e.target.value)}><option value="active">{en?'Active':'Ενεργός'}</option><option value="inactive">{en?'Inactive':'Ανενεργός'}</option></select></label>
-    <label><span>{en?'First name *':'Όνομα *'}</span><input value={v.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
+    <label><span>{en?'First name *':'Όνομα *'}</span><input autoFocus value={v.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
     <label><span>{en?'Last name *':'Επώνυμο *'}</span><input value={v.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
     <label><span>{en?'Father’s name':'Πατρώνυμο'}</span><input value={v.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
     <ManualDateField label={en?'Hire date':'Ημερομηνία πρόσληψης'} value={v.hireDate} onChange={x=>set('hireDate',x)} optional/>
@@ -67,6 +74,7 @@ export function EmployeeCreatePage(){
     <label><span>Email</span><input type="email" value={v.email} onChange={e=>set('email',e.target.value)}/></label>
     <label><span>{en?'Phone':'Τηλέφωνο'}</span><input value={v.phone} onChange={e=>set('phone',e.target.value)}/></label>
    </div>
+   <div className="source-truth-note">{en?'The employee code is generated automatically in a short, readable format (for example EMP-0001).':'Ο κωδικός εργαζομένου δημιουργείται αυτόματα σε σύντομη, ευανάγνωστη μορφή (π.χ. EMP-0001).'}</div>
    <div className="inline-edit-footer"><Button variant="secondary" onClick={()=>navigate('/employees')}>{t('cancel')}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{t('save')}</SaveButton></div>
   </div>
  </EntityRecordShell></Page>
