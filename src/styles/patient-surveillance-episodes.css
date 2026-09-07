@@ -1,17 +1,127 @@
-/* Patient surveillance episode lists: use the available record workspace height. */
+/* Patient surveillance / clinical record refinement.
+   Keep technical UUIDs for routing/data integrity, but do not surface them as primary UI identifiers. */
+
 .patient-record-shell .episode-list-columns{
-  align-items:stretch;
-  min-height:clamp(360px,42vh,520px);
+  align-items:start;
+  min-height:0!important;
+  gap:12px!important;
 }
 
 .patient-record-shell .episode-list-panel{
-  min-height:clamp(360px,42vh,520px);
+  min-height:240px!important;
+  height:auto!important;
 }
 
 .patient-record-shell .episode-table-wrap{
-  max-height:none;
-  height:100%;
+  max-height:360px!important;
+  height:auto!important;
   overflow:auto;
+}
+
+/* Technical surveillance UUID is not a user-facing identifier. */
+.production-surveillance-page .surveillance-registry-head>span:first-child,
+.production-surveillance-page .surveillance-registry-row>.surv-main{
+  display:none!important;
+}
+.production-surveillance-page .surveillance-registry-head,
+.production-surveillance-page .surveillance-registry-row{
+  grid-template-columns:minmax(210px,1.25fr) minmax(120px,.7fr) minmax(105px,.62fr) minmax(150px,.9fr) minmax(145px,.82fr) minmax(125px,.72fr)!important;
+}
+.patient-record-shell .patient-summary-strip .patient-summary-item:first-child{
+  display:none!important;
+}
+.patient-record-shell .patient-summary-strip{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+}
+.patient-record-shell .patient-details-panel .patient-detail-grid>.detail-item:nth-child(7){
+  display:none!important;
+}
+.patient-record-shell .episode-table th:first-child,
+.patient-record-shell .episode-table td:first-child{
+  display:none!important;
+}
+.patient-record-shell .episode-table{
+  table-layout:fixed!important;
+}
+.patient-record-shell .episode-detail-header h2,
+.patient-record-shell .journey-case-id,
+.patient-record-shell .episode-report-group:nth-child(3)>strong,
+.patient-record-shell .final-report-footer>strong{
+  display:none!important;
+}
+
+/* The record tabs should feel like one compact clinical workspace, not large empty canvases. */
+.patient-record-shell .patient-summary-layout,
+.patient-record-shell .clinical-data-hub,
+.patient-record-shell .surveillance-workspace{
+  width:100%!important;
+  max-width:none!important;
+  min-height:0!important;
+}
+.patient-record-shell .patient-summary-layout{
+  display:grid!important;
+  gap:12px!important;
+  align-content:start!important;
+}
+.patient-record-shell .patient-details-panel,
+.patient-record-shell .clinical-panel.full-panel{
+  min-height:0!important;
+  height:auto!important;
+}
+.patient-record-shell .patient-details-panel{
+  padding:16px 18px!important;
+}
+.patient-record-shell .patient-detail-grid{
+  margin-top:14px!important;
+}
+.patient-record-shell .patient-summary-strip{
+  gap:8px!important;
+}
+.patient-record-shell .patient-summary-item{
+  min-height:74px!important;
+  padding:12px 14px!important;
+  align-content:center!important;
+}
+.patient-record-shell .clinical-data-hub{
+  padding:16px 18px 24px!important;
+}
+.patient-record-shell .clinical-data-heading{
+  margin-bottom:12px!important;
+}
+.patient-record-shell .clinical-data-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  align-items:start!important;
+}
+.patient-record-shell .clinical-data-grid>.clinical-panel{
+  min-height:0!important;
+  height:auto!important;
+  padding:16px!important;
+}
+.patient-record-shell .workflow-empty-step{
+  min-height:92px!important;
+  padding:18px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+}
+.patient-record-shell .clinical-timeline{
+  min-height:0!important;
+}
+.patient-record-shell .clinical-panel:has(.clinical-timeline){
+  min-height:180px!important;
+  height:auto!important;
+  padding:16px 18px!important;
+}
+.patient-record-shell .surveillance-workspace{
+  padding:16px 18px 22px!important;
+}
+.patient-record-shell .surveillance-workspace-toolbar{
+  margin-bottom:12px!important;
+}
+.patient-record-shell .episode-list-help{
+  margin-top:10px!important;
 }
 
 /* Production surveillance uses the same shared spacing, control rhythm and registry language. */
@@ -266,11 +376,14 @@
 .bulk-notes{display:grid!important;gap:6px!important;margin-top:14px!important}
 .bulk-notes textarea{width:100%!important;min-height:92px!important}
 
+@media(max-width:1100px){
+  .patient-record-shell .patient-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .patient-record-shell .clinical-data-grid{grid-template-columns:1fr!important}
+}
+
 @media(max-width:1000px){
-  .patient-record-shell .episode-list-columns,
-  .patient-record-shell .episode-list-panel{
-    min-height:320px;
-  }
+  .patient-record-shell .episode-list-columns{grid-template-columns:1fr!important}
+  .patient-record-shell .episode-list-panel{min-height:220px!important}
   .surveillance-subject-chooser .subject-choice-grid{grid-template-columns:1fr!important}
   .bulk-surveillance-controls{grid-template-columns:1fr!important}
 }
