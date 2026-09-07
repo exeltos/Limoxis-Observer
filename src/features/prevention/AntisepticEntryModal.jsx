@@ -1,7 +1,7 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Droplets } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
+import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 export const ANTISEPTIC_METHODS=[
@@ -87,11 +87,15 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
   setDraft(d=>({...d,antisepticItemId:value,product:selected?.el||'',productEn:selected?.en||''}))
  }
 
- return <div className="modal-backdrop"><div className="entry-card prevention-entry-card antiseptic-entry-card">
-  <header>
-   <div className="prevention-entry-title"><Droplets size={20}/><div><span className="eyebrow">{en?'PREVENTION CENTER':'ΚΕΝΤΡΟ ΠΡΟΛΗΨΗΣ'}</span><h3>{initialRecord?(en?'Edit antiseptic consumption':'Επεξεργασία κατανάλωσης αντισηπτικού'):(en?'New antiseptic consumption entry':'Νέα καταγραφή κατανάλωσης αντισηπτικού')}</h3><p>{en?'Documented consumption and automatic ABHR indicator per 1,000 patient-days.':'Τεκμηριωμένη κατανάλωση και αυτόματος δείκτης ABHR ανά 1.000 νοσηλευτικές ημέρες.'}</p></div></div>
-   <button className="icon-close" onClick={onClose}>×</button>
-  </header>
+ return <ObserverDialog
+  eyebrow={en?'PREVENTION CENTER':'ΚΕΝΤΡΟ ΠΡΟΛΗΨΗΣ'}
+  title={initialRecord?(en?'Edit antiseptic consumption':'Επεξεργασία κατανάλωσης αντισηπτικού'):(en?'New antiseptic consumption entry':'Νέα καταγραφή κατανάλωσης αντισηπτικού')}
+  subtitle={en?'Documented consumption and automatic ABHR indicator per 1,000 patient-days.':'Τεκμηριωμένη κατανάλωση και αυτόματος δείκτης ABHR ανά 1.000 νοσηλευτικές ημέρες.'}
+  width="workspace"
+  className="prevention-entry-card antiseptic-entry-card"
+  onClose={onClose}
+  footer={<DialogActions showCancel onCancel={onClose} onSave={submit} disabled={!valid||!departments.length||!products.length} saveLabel={initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Save entry':'Αποθήκευση καταγραφής')}/>}
+ >
   <div className="prevention-entry-body">
    <div className="prevention-entry-actor"><span>{initialRecord?(en?'Edited by':'Επεξεργασία από'):(en?'Recorded by':'Καταχώρηση από')}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
    <section className="antiseptic-form-section">
@@ -117,8 +121,7 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
     <div className="entry-grid"><label><span>{en?'Responsible person':'Υπεύθυνος'}</span><input value={draft.responsible||''} onChange={e=>set('responsible',e.target.value)} placeholder={actor.name}/></label><label><span>{en?'Reference / document':'Αναφορά / παραστατικό'}</span><input value={draft.referenceNumber||''} onChange={e=>set('referenceNumber',e.target.value)} placeholder={en?'e.g. PHARM-2026-08':'π.χ. ΦΑΡΜ-2026-08'}/></label><label className="entry-span-2"><span>{en?'Notes':'Σημειώσεις'}</span><textarea rows="3" value={draft.notes||''} onChange={e=>set('notes',e.target.value)} placeholder={en?'Optional notes or clarifications about the data source':'Προαιρετικές παρατηρήσεις ή διευκρινίσεις για την πηγή των δεδομένων'}/></label></div>
    </section>
   </div>
-  <footer><button className="button" onClick={onClose}>{en?'Cancel':'Ακύρωση'}</button><button className="button button-primary" disabled={!valid||!departments.length||!products.length} onClick={submit}>{initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Save entry':'Αποθήκευση καταγραφής')}</button></footer>
- </div></div>
+ </ObserverDialog>
 }
 
 function DepartmentField({value,onChange,departments,fixed}){
