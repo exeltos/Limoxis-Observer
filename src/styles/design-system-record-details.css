@@ -513,28 +513,36 @@
 
 .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit){
   display:grid!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:10px!important;
-  margin:0!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:0!important;
+  margin:2px 0 0!important;
   padding:0!important;
-  border:0!important;
+  border-top:1px solid #e4eaf0!important;
+  border-bottom:1px solid #e4eaf0!important;
+  border-left:0!important;
+  border-right:0!important;
   border-radius:0!important;
   background:transparent!important;
   overflow:visible!important;
 }
 
 .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item{
-  min-height:72px!important;
-  padding:14px 16px!important;
-  border:1px solid #e3eaf0!important;
-  border-radius:10px!important;
-  background:#f8fafc!important;
+  min-height:76px!important;
+  padding:14px 18px!important;
+  border:0!important;
+  border-right:1px solid #e8edf2!important;
+  border-bottom:1px solid #edf1f4!important;
+  border-radius:0!important;
+  background:transparent!important;
   box-shadow:none!important;
 }
 
-.patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(n){
-  border-right:1px solid #e3eaf0!important;
-  border-bottom:1px solid #e3eaf0!important;
+.patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(4n){
+  border-right:0!important;
+}
+
+.patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-last-child(-n+4){
+  border-bottom:0!important;
 }
 
 .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item>span{
@@ -542,6 +550,7 @@
   color:#7b8c9c!important;
   font-size:10px!important;
   font-weight:750!important;
+  letter-spacing:.01em!important;
 }
 
 .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item>strong{
@@ -562,6 +571,12 @@
   .patient-record-shell .patient-summary-strip{
     grid-template-columns:repeat(2,minmax(0,1fr))!important;
   }
+  .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(n){
+    border-right:1px solid #e8edf2!important;
+    border-bottom:1px solid #edf1f4!important;
+  }
+  .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(2n){border-right:0!important}
+  .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-last-child(-n+2){border-bottom:0!important}
 }
 
 @media(max-width:760px){
@@ -569,4 +584,9 @@
   .patient-record-shell .patient-summary-strip{
     grid-template-columns:1fr!important;
   }
+  .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(n){
+    border-right:0!important;
+    border-bottom:1px solid #edf1f4!important;
+  }
+  .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:last-child{border-bottom:0!important}
 }
