@@ -1,0 +1,279 @@
+/* Canonical registry visual language.
+   Reference: the compact Prevention / Training list pattern.
+   This file is intentionally loaded last so feature-specific CSS cannot fragment
+   the primary registry appearance again. */
+
+.page-fill>.registry-workspace,
+.page-fill>.patient-registry-shell,
+.page>.platform-registry-shell,
+.laboratory-registry-page>.lab-registry-shell,
+.controls-page>.controls-surface{
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:14px!important;
+  background:var(--lo-color-surface)!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+
+.page-fill>.registry-workspace>.filter-system,
+.page-fill>.patient-registry-shell>.filter-system,
+.page>.platform-registry-shell .filter-system,
+.laboratory-registry-page>.lab-registry-shell>.filter-system,
+.controls-page>.controls-surface .filter-system,
+.production-surveillance-workspace>.filter-system{
+  flex:0 0 auto!important;
+  margin:0!important;
+  padding:10px 14px!important;
+  border:0!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+  border-radius:0!important;
+  background:var(--lo-color-surface)!important;
+}
+
+.page-fill>.registry-workspace>.scroll-table,
+.page-fill>.patient-registry-shell>.scroll-table,
+.page>.platform-registry-shell .scroll-table,
+.laboratory-registry-page>.lab-registry-shell>.scroll-table,
+.controls-page>.controls-surface .scroll-table,
+.production-surveillance-workspace>.scroll-table{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:auto!important;
+  border:0!important;
+  border-radius:0!important;
+  background:var(--lo-color-surface)!important;
+  scrollbar-gutter:stable!important;
+}
+
+.registry-workspace .data-table,
+.patient-registry-shell .data-table,
+.platform-registry-shell .data-table,
+.lab-registry-shell .data-table,
+.controls-surface .data-table,
+.production-surveillance-workspace .data-table{
+  width:100%!important;
+  min-width:720px!important;
+  margin:0!important;
+  border:0!important;
+  border-collapse:separate!important;
+  border-spacing:0!important;
+  table-layout:auto!important;
+  background:var(--lo-color-surface)!important;
+}
+
+.registry-workspace .data-table thead th,
+.patient-registry-shell .data-table thead th,
+.platform-registry-shell .data-table thead th,
+.lab-registry-shell .data-table thead th,
+.controls-surface .data-table thead th,
+.production-surveillance-workspace .data-table thead th{
+  position:sticky!important;
+  top:0!important;
+  z-index:3!important;
+  height:56px!important;
+  min-height:56px!important;
+  padding:0 24px!important;
+  vertical-align:middle!important;
+  text-align:left!important;
+  background:#f7f9fb!important;
+  border:0!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+  color:#6c8199!important;
+  font-size:11px!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+  letter-spacing:.055em!important;
+  text-transform:uppercase!important;
+  white-space:nowrap!important;
+}
+
+.registry-workspace .data-table tbody tr,
+.patient-registry-shell .data-table tbody tr,
+.platform-registry-shell .data-table tbody tr,
+.lab-registry-shell .data-table tbody tr,
+.controls-surface .data-table tbody tr,
+.production-surveillance-workspace .data-table tbody tr{
+  height:66px!important;
+  min-height:66px!important;
+  background:var(--lo-color-surface)!important;
+  transition:background .14s ease!important;
+}
+
+.registry-workspace .data-table tbody td,
+.patient-registry-shell .data-table tbody td,
+.platform-registry-shell .data-table tbody td,
+.lab-registry-shell .data-table tbody td,
+.controls-surface .data-table tbody td,
+.production-surveillance-workspace .data-table tbody td{
+  padding:14px 24px!important;
+  vertical-align:middle!important;
+  border:0!important;
+  border-bottom:1px solid #edf1f4!important;
+  background:transparent!important;
+  color:#314a67!important;
+  font-size:12.5px!important;
+  line-height:1.35!important;
+}
+
+.registry-workspace .data-table tbody tr:last-child td,
+.patient-registry-shell .data-table tbody tr:last-child td,
+.platform-registry-shell .data-table tbody tr:last-child td,
+.lab-registry-shell .data-table tbody tr:last-child td,
+.controls-surface .data-table tbody tr:last-child td,
+.production-surveillance-workspace .data-table tbody tr:last-child td{
+  border-bottom:0!important;
+}
+
+.registry-workspace .data-table tbody tr.clickable-row:hover td,
+.registry-workspace .data-table tbody tr.registry-row-clickable:hover td,
+.patient-registry-shell .data-table tbody tr:hover td,
+.platform-registry-shell .data-table tbody tr:hover td,
+.lab-registry-shell .data-table tbody tr:hover td,
+.controls-surface .data-table tbody tr:hover td,
+.production-surveillance-workspace .data-table tbody tr:hover td{
+  background:#f8fafc!important;
+}
+
+.registry-workspace .data-table td strong,
+.patient-registry-shell .data-table td strong,
+.platform-registry-shell .data-table td strong,
+.lab-registry-shell .data-table td strong,
+.controls-surface .data-table td strong,
+.production-surveillance-workspace .data-table td strong{
+  color:#17395c!important;
+  font-weight:750!important;
+}
+
+.registry-workspace .data-table td small,
+.patient-registry-shell .data-table td small,
+.platform-registry-shell .data-table td small,
+.lab-registry-shell .data-table td small,
+.controls-surface .data-table td small,
+.production-surveillance-workspace .data-table td small{
+  margin-top:3px!important;
+  color:#7a8998!important;
+  font-size:10.5px!important;
+}
+
+.registry-workspace>.registry-pagination,
+.patient-registry-shell>.registry-pagination,
+.platform-registry-shell .registry-pagination,
+.lab-registry-shell>.registry-pagination,
+.controls-surface .registry-pagination,
+.production-surveillance-workspace>.registry-pagination{
+  flex:0 0 58px!important;
+  min-height:58px!important;
+  height:58px!important;
+  margin:0!important;
+  padding:0 18px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:16px!important;
+  border:0!important;
+  border-top:1px solid var(--lo-color-border)!important;
+  border-radius:0!important;
+  background:var(--lo-color-surface)!important;
+  color:#66788d!important;
+  font-size:12px!important;
+}
+
+.registry-pagination-controls{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+.registry-pagination-controls label{
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  gap:8px!important;
+  margin:0!important;
+}
+.registry-pagination-controls label>span{
+  margin:0!important;
+  color:#566b82!important;
+  font-size:11.5px!important;
+  font-weight:750!important;
+  white-space:nowrap!important;
+}
+.registry-pagination-controls select{
+  width:auto!important;
+  min-width:86px!important;
+  height:36px!important;
+  min-height:36px!important;
+  margin:0!important;
+  padding:0 30px 0 12px!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:10px!important;
+  background:var(--lo-color-surface)!important;
+  color:#314a67!important;
+}
+.registry-pagination-controls button{
+  width:36px!important;
+  height:36px!important;
+  min-width:36px!important;
+  min-height:36px!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:10px!important;
+  background:var(--lo-color-surface)!important;
+  color:#607a96!important;
+  display:grid!important;
+  place-items:center!important;
+  font-size:18px!important;
+}
+.registry-pagination-controls button:disabled{opacity:.32!important}
+
+.registry-empty-state{
+  min-height:180px!important;
+  height:auto!important;
+  padding:28px 20px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+  background:var(--lo-color-surface)!important;
+  text-align:center!important;
+}
+
+/* Surveillance had accumulated its own grid/list geometry. Force it back onto
+   the same table + attached pagination contract as Prevention. */
+.production-surveillance-frame>.production-surveillance-workspace{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-content:stretch!important;
+  overflow:hidden!important;
+  background:var(--lo-color-surface)!important;
+}
+.production-surveillance-page .production-surveillance-workspace>.filter-system{margin:0!important}
+.production-surveillance-page .production-surveillance-workspace>.scroll-table{margin:0!important;max-height:none!important;align-self:stretch!important}
+.production-surveillance-page .production-surveillance-workspace>.registry-pagination{margin:0!important}
+
+@media(max-width:900px){
+  .registry-workspace .data-table thead th,
+  .patient-registry-shell .data-table thead th,
+  .platform-registry-shell .data-table thead th,
+  .lab-registry-shell .data-table thead th,
+  .controls-surface .data-table thead th,
+  .production-surveillance-workspace .data-table thead th{padding:0 14px!important}
+
+  .registry-workspace .data-table tbody td,
+  .patient-registry-shell .data-table tbody td,
+  .platform-registry-shell .data-table tbody td,
+  .lab-registry-shell .data-table tbody td,
+  .controls-surface .data-table tbody td,
+  .production-surveillance-workspace .data-table tbody td{padding:12px 14px!important}
+}
