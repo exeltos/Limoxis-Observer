@@ -262,6 +262,52 @@
 .production-surveillance-page .production-surveillance-workspace>.scroll-table{margin:0!important;max-height:none!important;align-self:stretch!important}
 .production-surveillance-page .production-surveillance-workspace>.registry-pagination{margin:0!important}
 
+/* Keep empty surveillance registries visually identical to populated canonical lists.
+   The current surveillance render does not emit <thead> when a registry has zero rows,
+   so the shared empty state provides the same header rail instead of collapsing into
+   a blank white canvas. */
+.production-surveillance-frame:has(.surveillance-domain-tabs .tab:nth-child(1).active) .production-surveillance-workspace>.scroll-table:has(.registry-empty-state)::before,
+.production-surveillance-frame:has(.surveillance-domain-tabs .tab:nth-child(2).active) .production-surveillance-workspace>.scroll-table:has(.registry-empty-state)::before,
+.production-surveillance-frame:has(.surveillance-domain-tabs .tab:nth-child(3).active) .production-surveillance-workspace>.scroll-table:has(.registry-empty-state)::before{
+  content:"";
+  display:grid!important;
+  flex:0 0 56px!important;
+  min-height:56px!important;
+  height:56px!important;
+  align-items:center!important;
+  padding:0 24px!important;
+  box-sizing:border-box!important;
+  background:#f7f9fb!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+  color:#6c8199!important;
+  font-size:11px!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+  letter-spacing:.055em!important;
+  text-transform:uppercase!important;
+  white-space:nowrap!important;
+}
+.production-surveillance-frame:has(.surveillance-domain-tabs .tab:nth-child(1).active) .production-surveillance-workspace>.scroll-table:has(.registry-empty-state)::before{
+  content:"ΑΣΘΕΝΗΣ     ΤΜΗΜΑ     ΕΝΑΡΞΗ     ΜΙΚΡΟΒΙΟΛΟΓΙΑ     ΚΑΤΑΣΤΑΣΗ     ΕΠΑΝΕΚΤΙΜΗΣΗ";
+  word-spacing:2.4rem!important;
+}
+.production-surveillance-frame:has(.surveillance-domain-tabs .tab:nth-child(2).active) .production-surveillance-workspace>.scroll-table:has(.registry-empty-state)::before{
+  content:"ΕΡΓΑΖΟΜΕΝΟΣ / ΟΜΑΔΑ     ΤΜΗΜΑ     ΕΝΑΡΞΗ     ΕΛΕΓΧΟΣ     ΑΠΟΤΕΛΕΣΜΑ     ΕΠΑΝΕΛΕΓΧΟΣ";
+  word-spacing:2rem!important;
+}
+.production-surveillance-frame:has(.surveillance-domain-tabs .tab:nth-child(3).active) .production-surveillance-workspace>.scroll-table:has(.registry-empty-state)::before{
+  content:"ΤΥΠΟΣ / ΠΗΓΗ     ΤΜΗΜΑ     ΣΥΛΛΟΓΗ     ΜΙΚΡΟΒΙΟΛΟΓΙΑ     ΚΑΤΑΣΤΑΣΗ     ΠΡΟΤΕΡΑΙΟΤΗΤΑ";
+  word-spacing:2.25rem!important;
+}
+.production-surveillance-workspace>.scroll-table:has(.registry-empty-state){
+  display:flex!important;
+  flex-direction:column!important;
+}
+.production-surveillance-workspace>.scroll-table:has(.registry-empty-state)>.registry-empty-state{
+  flex:1 1 auto!important;
+  min-height:180px!important;
+}
+
 @media(max-width:900px){
   .registry-workspace .data-table thead th,
   .patient-registry-shell .data-table thead th,
