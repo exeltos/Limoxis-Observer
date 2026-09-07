@@ -4,7 +4,9 @@ import fs from 'node:fs'
 const actionButton=fs.readFileSync(new URL('../src/design-system/ActionButton.jsx',import.meta.url),'utf8')
 const recordActions=fs.readFileSync(new URL('../src/design-system/RecordActions.jsx',import.meta.url),'utf8')
 const saveButton=fs.readFileSync(new URL('../src/design-system/SaveButton.jsx',import.meta.url),'utf8')
+const backButton=fs.readFileSync(new URL('../src/design-system/BackButton.jsx',import.meta.url),'utf8')
 const observerDialog=fs.readFileSync(new URL('../src/design-system/ObserverDialog.jsx',import.meta.url),'utf8')
+const confirmDialog=fs.readFileSync(new URL('../src/design-system/ConfirmDialog.jsx',import.meta.url),'utf8')
 const analysis=fs.readFileSync(new URL('../src/features/analysis/AnalysisPage.jsx',import.meta.url),'utf8')
 const css=fs.readFileSync(new URL('../src/styles/design-system-actions.css',import.meta.url),'utf8')
 
@@ -29,9 +31,22 @@ describe('shared semantic action design',()=>{
     expect(saveButton).toContain('<Save size={15} />')
   })
 
+  it('routes back and dialog-close icon actions through the shared IconButton',()=>{
+    expect(backButton).toContain("import { IconButton } from './IconButton'")
+    expect(backButton).toContain('<IconButton')
+    expect(observerDialog).toContain("import { IconButton } from './IconButton'")
+    expect(observerDialog).toContain('<IconButton')
+  })
+
   it('does not automatically duplicate the dialog close action with Cancel',()=>{
     expect(observerDialog).toContain('showCancel=false')
     expect(observerDialog).toContain('showCancel&&onCancel')
+  })
+
+  it('provides a shared destructive confirmation dialog',()=>{
+    expect(confirmDialog).toContain("import { ObserverDialog } from './ObserverDialog'")
+    expect(confirmDialog).toContain("tone='danger'")
+    expect(confirmDialog).toContain('<ActionButton')
   })
 
   it('keeps analytics print and export as the same compact utility action pattern',()=>{
