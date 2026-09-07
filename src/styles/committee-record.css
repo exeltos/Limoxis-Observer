@@ -1,29 +1,28 @@
-/* Committee record-specific layout polish. Uses shared design-system tokens and icon actions. */
+/* Committee record-specific layout polish. Uses shared design-system tokens and actions. */
 
 .committee-overview-grid .committee-governance-watch{
   align-self:start;
   margin-top:54px;
 }
 
-/* Keep shared overflow menus visible in committee tables instead of clipping them inside the row viewport. */
-.record-section .scroll-table:has(.lo-overflow){
-  overflow-x:auto;
-  overflow-y:visible;
-  padding-bottom:88px;
-  margin-bottom:-88px;
+/* Committee creation: larger controls without wasting a full row per field. */
+.committee-create-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:16px 18px!important;
 }
-
-.record-section .scroll-table:has(.lo-overflow) .data-table{
-  overflow:visible;
+.committee-create-grid .committee-type-field{
+  grid-column:span 2!important;
 }
-
-.record-section .data-table td:has(.lo-overflow){
-  position:relative;
-  overflow:visible;
+.committee-create-grid .committee-name-field,
+.committee-create-grid .committee-manual-wide,
+.committee-create-grid .committee-notes-field{
+  grid-column:span 2!important;
 }
-
-.record-section .data-table td:has(.lo-overflow[open]){
-  z-index:30;
+.committee-create-grid :is(input,select){
+  min-height:46px!important;
+}
+.committee-create-grid textarea{
+  min-height:104px!important;
 }
 
 .committee-member-actions{
@@ -31,18 +30,6 @@
   align-items:center;
   justify-content:flex-end;
   gap:4px;
-}
-
-.committee-member-actions .lo-icon-button-edit:hover:not(:disabled),
-.committee-member-actions .lo-icon-button-edit:focus-visible:not(:disabled){
-  color:var(--lo-status-warning-fg)!important;
-  background:var(--lo-status-warning-bg)!important;
-}
-
-.committee-member-actions .lo-icon-button-danger:hover:not(:disabled),
-.committee-member-actions .lo-icon-button-danger:focus-visible:not(:disabled){
-  color:var(--lo-status-danger-fg)!important;
-  background:var(--lo-status-danger-bg)!important;
 }
 
 .committee-member-dialog-grid .committee-member-name-field{
@@ -96,7 +83,17 @@
   cursor:not-allowed;
 }
 
+@media (max-width:980px){
+  .committee-create-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .committee-create-grid .committee-type-field,
+  .committee-create-grid .committee-name-field,
+  .committee-create-grid .committee-manual-wide,
+  .committee-create-grid .committee-notes-field{grid-column:1 / -1!important}
+}
+
 @media (max-width:760px){
   .committee-overview-grid .committee-governance-watch{margin-top:18px}
   .committee-member-options-row{grid-template-columns:1fr}
+  .committee-create-grid{grid-template-columns:1fr!important}
+  .committee-create-grid>*{grid-column:1!important}
 }
