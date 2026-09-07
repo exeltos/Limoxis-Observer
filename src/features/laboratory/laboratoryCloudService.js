@@ -44,8 +44,8 @@ function mapSample(row,patient,department,microbiology=[]){
     organizationId:row.organization_id,
     patientRecordId:row.patient_id,
     patientId:patient?.patient_code||row.patient_id,
-    patient:`${patient?.first_name||''} ${patient?.last_name||''}`.trim(),
-    patientEn:`${patient?.first_name||''} ${patient?.last_name||''}`.trim(),
+    patient:patient?`${patient.first_name||''} ${patient.last_name||''}`.trim():'',
+    patientEn:patient?`${patient.first_name||''} ${patient.last_name||''}`.trim():'',
     departmentId:row.department_id,
     department:department?.name||'',
     departmentEn:department?.name||'',
@@ -72,11 +72,11 @@ function mapSample(row,patient,department,microbiology=[]){
 
 async function hydrateSamples(rows){
   if(!rows?.length)return []
-  const patientIds=[...new Set(rows.map(row=>row.patient_id))]
+  const patientIds=[...new Set(rows.map(row=>row.patient_id).filter(Boolean))]
   const departmentIds=[...new Set(rows.map(row=>row.department_id).filter(Boolean))]
   const sampleIds=rows.map(row=>row.id)
   const [patientsResult,departmentsResult,microResult]=await Promise.all([
-    supabase.from('patients').select('id,patient_code,first_name,last_name').in('id',patientIds),
+    patientIds.length?supabase.from('patients').select('id,patient_code,first_name,last_name').in('id',patientIds):Promise.resolve({data:[],error:null}),
     departmentIds.length?supabase.from('departments').select('id,name').in('id',departmentIds):Promise.resolve({data:[],error:null}),
     supabase.from('microbiology_results').select('*').in('sample_id',sampleIds).order('resulted_at',{ascending:false}),
   ])
@@ -117,7 +117,7 @@ export async function createLaboratorySample(organizationId,patientRecordId,draf
   assertCloud()
   const actorId=await currentUserId()
   const code=draft.sampleCode||`LAB-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`
-  const {data,error}=await supabase.from('laboratory_samples').insert({organization_id:organizationId,patient_id:patientRecordId,department_id:draft.departmentId||null,surveillance_case_id:draft.surveillanceCaseId||null,sample_code:code,sample_type:draft.type,source_site:draft.source||null,collected_at:iso(draft.collectedAt),requested_at:iso(draft.requestedAt||new Date()),requested_by:actorId,received_at:iso(draft.receivedAt),status:draft.collectedAt?'collected':'requested',priority:draft.priority||'routine',created_by:actorId}).select('*').single()
+  const {data,error}=await supabase.from('laboratory_samples').insert({organization_id:organizationId,patient_id:patientRecordId||null,department_id:draft.departmentId||null,surveillance_case_id:draft.surveillanceCaseId||null,sample_code:code,sample_type:draft.type,source_site:draft.source||null,collected_at:iso(draft.collectedAt),requested_at:iso(draft.requestedAt||new Date()),requested_by:actorId,received_at:iso(draft.receivedAt),status:draft.collectedAt?'collected':'requested',priority:draft.priority||'routine',created_by:actorId}).select('*').single()
   if(error)throw error
   return (await hydrateSamples([data]))[0]
 }
