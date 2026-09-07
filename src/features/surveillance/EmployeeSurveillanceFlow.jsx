@@ -1,6 +1,4 @@
 import { useMemo, useState } from 'react'
-import { FlaskConical, Users } from 'lucide-react'
-import { Button } from '../../design-system/Button'
 import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
