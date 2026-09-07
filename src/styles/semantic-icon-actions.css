@@ -35,3 +35,57 @@
   color:var(--lo-status-danger-fg)!important;
   background-color:var(--lo-status-danger-bg)!important;
 }
+
+/* Canonical overflow menu used by attachments, dense registries and record utilities. */
+.lo-overflow-menu{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.lo-overflow-menu>.lo-icon-button{border:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
+.lo-overflow-menu>.lo-icon-button:hover:not(:disabled),
+.lo-overflow-menu>.lo-icon-button:focus-visible:not(:disabled){background:var(--lo-shell-control-hover)}
+.lo-overflow-popover{
+  position:absolute;
+  top:calc(100% + 6px);
+  z-index:120;
+  width:max-content;
+  min-width:190px;
+  max-width:280px;
+  padding:6px;
+  border:1px solid var(--lo-color-border);
+  border-radius:12px;
+  background:var(--lo-color-surface);
+  box-shadow:var(--lo-shadow-popover);
+}
+.lo-overflow-menu-end .lo-overflow-popover{right:0}
+.lo-overflow-menu-start .lo-overflow-popover{left:0}
+.lo-overflow-item{
+  width:100%;
+  min-height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:9px;
+  padding:8px 10px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:var(--lo-color-text);
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  line-height:1.25;
+  text-align:left;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.lo-overflow-item svg{flex:0 0 auto;color:var(--lo-color-primary)}
+.lo-overflow-item:hover:not(:disabled),.lo-overflow-item:focus-visible:not(:disabled){background:var(--lo-shell-control-hover);outline:none}
+.lo-overflow-item:disabled{opacity:.45;cursor:not-allowed}
+.lo-overflow-separated{margin-top:5px;padding-top:5px;border-top:1px solid var(--lo-color-border)}
+.lo-overflow-item-danger{color:var(--lo-status-danger-fg)}
+.lo-overflow-item-danger svg{color:var(--lo-status-danger-fg)}
+.lo-overflow-item-danger:hover:not(:disabled),.lo-overflow-item-danger:focus-visible:not(:disabled){background:var(--lo-status-danger-bg)}
+
+/* Attachment rows need an overflow context that is not clipped by the row itself. */
+.attachment-field-v2 .attachment-list,
+.attachment-field-v2 .attachment-row-v2,
+.attachment-field-v2 .attachment-actions{overflow:visible}
+.attachment-field-v2 .attachment-actions{display:flex;align-items:center;justify-content:flex-end;position:relative;z-index:2}
