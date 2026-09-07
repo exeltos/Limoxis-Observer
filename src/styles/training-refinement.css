@@ -60,6 +60,7 @@
   min-height:42px!important;
   height:42px!important;
   display:flex!important;
+  flex-direction:row!important;
   align-items:center!important;
   justify-content:flex-start!important;
   gap:9px!important;
@@ -71,15 +72,40 @@
   color:var(--lo-color-text)!important;
   font-weight:650!important;
   cursor:pointer!important;
+  position:relative!important;
 }
 .training-question-dialog .training-required-toggle input{
   width:17px!important;
   height:17px!important;
   min-width:17px!important;
+  max-width:17px!important;
+  flex:0 0 17px!important;
   margin:0!important;
+  padding:0!important;
+  position:static!important;
+  transform:none!important;
   accent-color:var(--lo-color-primary)!important;
 }
-.training-question-dialog .training-required-toggle span{margin:0!important;line-height:1.2!important;white-space:nowrap!important}
+.training-question-dialog .entry-grid>label.training-required-toggle>span{
+  display:inline-flex!important;
+  align-items:center!important;
+  position:static!important;
+  inset:auto!important;
+  transform:none!important;
+  width:auto!important;
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:var(--lo-color-text)!important;
+  font-size:13px!important;
+  font-weight:700!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+}
 
 /* Trial overflow menus in Training: isolate them from legacy generic button rules. */
 .training-assessment-view .lo-overflow-popover,
