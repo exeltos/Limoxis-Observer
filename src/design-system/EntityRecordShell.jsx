@@ -24,11 +24,13 @@ function recordActionKind(action){
   const className=String(action.props.className||'').toLowerCase()
   const aria=String(action.props['aria-label']||'').toLowerCase()
   const title=String(action.props.title||'').toLowerCase()
-  const destructive=className.includes('danger')||className.includes('delete')||className.includes('archive')||
-    aria.startsWith('delete')||aria.startsWith('διαγραφ')||aria.startsWith('archive')||aria.startsWith('αρχειοθέτ')||aria.startsWith('void')||aria.startsWith('ακύρ')||
-    title.startsWith('delete')||title.startsWith('διαγραφ')||title.startsWith('archive')||title.startsWith('αρχειοθέτ')||title.startsWith('void')||title.startsWith('ακύρ')
+  const label=String(action.props.label||'').toLowerCase()
+  const tone=String(action.props.tone||'').toLowerCase()
+  const semanticText=`${aria} ${title} ${label}`.trim()
+  const destructive=tone==='danger'||className.includes('danger')||className.includes('delete')||className.includes('archive')||
+    semanticText.startsWith('delete')||semanticText.startsWith('διαγραφ')||semanticText.startsWith('archive')||semanticText.startsWith('αρχειοθέτ')||semanticText.startsWith('void')||semanticText.startsWith('ακύρ')
   if(destructive)return 'delete'
-  const edit=className.includes('edit')||aria.startsWith('edit')||aria.startsWith('επεξεργ')||title==='edit'||title==='επεξεργασία'||title.startsWith('correct')||title.startsWith('διόρθ')
+  const edit=tone==='edit'||className.includes('edit')||semanticText.startsWith('edit')||semanticText.startsWith('επεξεργ')||semanticText.startsWith('correct')||semanticText.startsWith('διόρθ')
   return edit?'edit':null
 }
 
@@ -37,7 +39,7 @@ function normalizeGeneralAction(action){
   if(!kind)return null
   const className=`${action.props.className||''} record-crud-action record-crud-${kind}`.trim()
   const tone=kind==='delete'?'danger':'edit'
-  const label=action.props['aria-label']||action.props.title||(kind==='delete'?'Delete':'Edit')
+  const label=action.props.label||action.props['aria-label']||action.props.title||(kind==='delete'?'Delete':'Edit')
   const explicitDestructive=kind==='delete'
   if(action.type===ActionButton){
     const children=explicitDestructive?<>{action.props.children}<span>{label}</span></>:action.props.children
