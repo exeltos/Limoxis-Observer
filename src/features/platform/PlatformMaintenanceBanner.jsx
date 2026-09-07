@@ -1,5 +1,6 @@
 import { useEffect,useState } from 'react'
 import { AlertTriangle,X } from 'lucide-react'
+import { IconButton } from '../../design-system/IconButton'
 import { supabase } from '../../core/supabase/client'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -33,9 +34,10 @@ export function PlatformMaintenanceBanner(){
   const message=String(preferred||'').trim()||String(fallback||'').trim()
   if(!message)return null
 
+  const dismissLabel=language==='en'?'Dismiss notice':'Κλείσιμο ανακοίνωσης'
   return <div className="platform-maintenance-banner" role="status" aria-live="polite">
     <AlertTriangle size={16}/>
     <span>{message}</span>
-    <button type="button" onClick={()=>setDismissed(true)} aria-label={language==='en'?'Dismiss notice':'Κλείσιμο ανακοίνωσης'} title={language==='en'?'Dismiss notice':'Κλείσιμο ανακοίνωσης'}><X size={15}/></button>
+    <IconButton label={dismissLabel} size="sm" onClick={()=>setDismissed(true)}><X size={15}/></IconButton>
   </div>
 }
