@@ -38,6 +38,7 @@ import './styles/committee-record.css'
 import './styles/management-user-create.css'
 import './styles/management-polish.css'
 import './styles/patient-surveillance-episodes.css'
+import './styles/canonical-registry-visual.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
