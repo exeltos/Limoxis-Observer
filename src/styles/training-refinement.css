@@ -214,3 +214,51 @@
   .training-public-details,.training-feedback-grid{grid-template-columns:1fr 1fr}
 }
 @media(max-width:620px){.training-public-details,.training-feedback-grid{grid-template-columns:1fr}.training-public-header{gap:12px}.training-question-dialog .training-required-toggle span{white-space:normal!important}}
+
+/* Final participant-dialog geometry: stable card, generous capacity, no clipped content. */
+.training-participant-workspace{
+  width:min(1280px,calc(100vw - 48px))!important;
+  height:min(780px,calc(100dvh - 32px))!important;
+  min-height:min(780px,calc(100dvh - 32px))!important;
+  max-height:min(780px,calc(100dvh - 32px))!important;
+}
+.training-participant-workspace>header{flex:0 0 74px!important;padding:16px 22px!important}
+.training-participant-workspace .observer-dialog-body{padding:16px 22px!important;overflow:hidden!important}
+.training-participant-workspace>footer{flex:0 0 66px!important;padding:12px 22px!important}
+.training-participant-dialog{grid-template-rows:52px 44px minmax(0,1fr)!important;gap:12px!important;overflow:hidden!important}
+.training-participant-mode{height:52px!important;border-radius:14px!important}
+.training-participant-mode>button{height:46px!important;padding:7px 14px!important;min-width:0!important}
+.training-participant-basket-summary{height:44px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:0 14px!important;border-radius:12px!important}
+.training-participant-stage{min-height:0!important;height:100%!important;overflow:hidden!important;border:1px solid var(--lo-color-border)!important;border-radius:14px!important;background:var(--lo-color-surface)!important;padding:14px!important}
+.training-participant-panel{height:100%!important;min-height:0!important;grid-template-rows:64px 46px 28px minmax(0,1fr)!important;gap:10px!important;overflow:hidden!important}
+.training-participant-manual{grid-template-rows:64px 76px minmax(230px,1fr)!important}
+.training-participant-panel-heading{height:64px!important;min-height:64px!important;overflow:visible!important;display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:16px!important}
+.training-participant-panel-heading h3{margin:2px 0 0!important;line-height:1.2!important}
+.training-participant-panel-heading p{display:none!important}
+.training-participant-filters{height:46px!important;grid-template-columns:minmax(0,1fr) 250px!important;gap:10px!important}
+.training-participant-search,.training-participant-filters select{height:46px!important;min-height:46px!important}
+.training-participant-list-head{height:28px!important;min-height:28px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;overflow:visible!important}
+.training-participant-table-wrap{height:100%!important;min-height:0!important;overflow:auto!important;border:1px solid var(--lo-color-border)!important;border-radius:12px!important;background:var(--lo-color-surface)!important}
+.training-participant-table{min-width:1040px!important;table-layout:fixed!important}
+.training-check-col{width:46px!important}
+.training-participant-table th:nth-child(2){width:28%!important}
+.training-participant-table th:nth-child(3){width:25%!important}
+.training-participant-table th:nth-child(4){width:16%!important}
+.training-participant-table th:nth-child(5){width:31%!important}
+.training-participant-table td:nth-child(3),.training-participant-table td:nth-child(5){overflow-wrap:anywhere!important;word-break:break-word!important}
+.training-manual-form-row{height:76px!important;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.2fr) 170px!important;gap:12px!important;align-items:end!important;overflow:visible!important}
+.training-manual-form-row input{height:42px!important;min-height:42px!important}
+.training-manual-add-cell{height:42px!important;min-width:170px!important;display:flex!important;align-items:stretch!important}
+.training-manual-add-cell>.button{width:100%!important;min-width:0!important;height:42px!important;white-space:nowrap!important;justify-content:center!important}
+.training-manual-list-slot{height:100%!important;min-height:230px!important;overflow:hidden!important;border:1px solid var(--lo-color-border)!important;border-radius:12px!important;background:var(--lo-color-surface)!important}
+.training-manual-table-wrap{height:100%!important;min-height:0!important;overflow:auto!important}
+.training-participant-empty.compact{height:100%!important;min-height:230px!important;padding:28px!important;gap:8px!important}
+.training-participant-panel>.training-participant-empty.compact{grid-row:auto!important}
+
+@media(max-width:1100px){
+  .training-participant-workspace{width:calc(100vw - 24px)!important;height:calc(100dvh - 24px)!important;min-height:calc(100dvh - 24px)!important;max-height:calc(100dvh - 24px)!important}
+  .training-manual-form-row{grid-template-columns:1fr 1fr!important;height:auto!important}
+  .training-manual-add-cell{grid-column:2!important;min-width:0!important;justify-content:flex-end!important}
+  .training-manual-add-cell>.button{width:auto!important;min-width:160px!important}
+  .training-participant-manual{grid-template-rows:64px auto minmax(230px,1fr)!important}
+}
