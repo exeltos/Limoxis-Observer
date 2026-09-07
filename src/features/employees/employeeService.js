@@ -48,7 +48,7 @@ function fromRow(row) {
 function toWriteRow(organizationId, v) {
   return {
     organization_id: organizationId,
-    employee_code: v.id,
+    employee_code: String(v.id||v.employeeCode||'').trim(),
     department_id: v.departmentId || null,
     first_name: v.firstName,
     first_name_en: v.firstNameEn || v.firstName,
@@ -85,10 +85,12 @@ export async function loadEmployeesAsync(organizationId) {
 
 export async function createEmployeeAsync(organizationId, v) {
   if(isDemoDataEnvironment()){
+    const code=String(v.id||v.employeeCode||'').trim()
     const rows=loadEmployeesLocal()
-    const next=[v,...rows]
+    if(rows.some(row=>String(row.id||row.employeeCode||'').trim().toLowerCase()===code.toLowerCase()))throw new Error('DUPLICATE_EMPLOYEE_CODE')
+    const next=[{...v,id:code,employeeCode:code},...rows]
     saveEmployeesLocal(next)
-    return v
+    return next[0]
   }
   productionContext(organizationId,'employees.create')
   const { data, error } = await supabase
@@ -103,18 +105,21 @@ export async function createEmployeeAsync(organizationId, v) {
   return fromRow(data)
 }
 
-export async function updateEmployeeAsync(organizationId, employeeDbId, v) {
+export async function updateEmployeeAsync(organizationId, employeeDbId, v, previousEmployeeCode=null) {
+  const nextCode=String(v.id||v.employeeCode||'').trim()
+  if(!nextCode)throw new Error('EMPLOYEE_CODE_REQUIRED')
   if(isDemoDataEnvironment()){
     const rows=loadEmployeesLocal()
-    const next=rows.map(row=>row.id===v.id?{...row,...v}:row)
+    const currentCode=String(previousEmployeeCode||v.previousEmployeeCode||v.id||'').trim()
+    if(rows.some(row=>String(row.id||row.employeeCode||'').trim().toLowerCase()===nextCode.toLowerCase()&&String(row.id||row.employeeCode||'').trim().toLowerCase()!==currentCode.toLowerCase()))throw new Error('DUPLICATE_EMPLOYEE_CODE')
+    const next=rows.map(row=>String(row.id||row.employeeCode||'').trim()===currentCode?{...row,...v,id:nextCode,employeeCode:nextCode}:row)
     saveEmployeesLocal(next)
-    return {...v}
+    return {...v,id:nextCode,employeeCode:nextCode}
   }
   productionContext(organizationId,'employees.update')
   if(!employeeDbId)throw new Error('PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:employees.update')
-  const payload=toWriteRow(organizationId,v)
+  const payload=toWriteRow(organizationId,{...v,id:nextCode})
   delete payload.organization_id
-  delete payload.employee_code
   const {data,error}=await supabase
     .from('employees')
     .update({...payload,updated_at:new Date().toISOString()})
@@ -122,7 +127,10 @@ export async function updateEmployeeAsync(organizationId, employeeDbId, v) {
     .eq('id',employeeDbId)
     .select(`${EMPLOYEE_COLUMNS},organization_id`)
     .single()
-  if(error)throw error
+  if(error){
+    if(error.code==='23505')throw new Error('DUPLICATE_EMPLOYEE_CODE')
+    throw error
+  }
   return fromRow(data)
 }
 
