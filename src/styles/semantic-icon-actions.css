@@ -88,7 +88,11 @@
 .attachment-field-v2 .attachment-list,
 .attachment-field-v2 .attachment-row-v2,
 .attachment-field-v2 .attachment-actions{overflow:visible}
+.attachment-field-v2 .attachment-row-v2{position:relative;z-index:0}
 .attachment-field-v2 .attachment-actions{display:flex;align-items:center;justify-content:flex-end;position:relative;z-index:2}
+/* The row that owns an open menu must rise above following sibling rows/buttons. */
+.attachment-field-v2 .attachment-row-v2:has(.lo-overflow-popover){z-index:40}
+.attachment-field-v2 .attachment-row-v2 .attachment-actions:has(.lo-overflow-popover){z-index:50}
 .attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-menu{position:relative!important;display:inline-flex!important;width:auto!important;height:auto!important;overflow:visible!important}
 .attachment-field-v2 .attachment-row-v2 .attachment-actions .lo-overflow-menu>.lo-icon-button{
   width:32px!important;min-width:32px!important;max-width:32px!important;
