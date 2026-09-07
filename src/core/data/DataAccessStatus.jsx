@@ -1,4 +1,5 @@
 import { useEffect,useState } from 'react'
+import { Button } from '../../design-system/Button'
 
 export function DataAccessStatus(){
   const [state,setState]=useState(null)
@@ -19,7 +20,7 @@ export function DataAccessStatus(){
   if(state.status==='saving')return <div className="data-access-state saving" role="status">{greek?'Αποθήκευση…':'Saving…'}</div>
   if(state.status==='error')return <div className="data-access-state error" role="alert">
     <span>{greek?'Η αποθήκευση/φόρτωση απέτυχε. Τα δεδομένα δεν θεωρούνται αποθηκευμένα.':'Load/save failed. Data is not considered saved.'}</span>
-    {state.retry&&<button type="button" onClick={()=>state.retry()}>{greek?'Επανάληψη':'Retry'}</button>}
+    {state.retry&&<Button variant="secondary" onClick={()=>state.retry()}>{greek?'Επανάληψη':'Retry'}</Button>}
   </div>
   return null
 }
