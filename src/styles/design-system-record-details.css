@@ -152,8 +152,6 @@
 
 /* --------------------------------------------------------------------------
    Locked/read-only information sheets
-   Applies to Quality, Controls, Prevention, Patient/Surveillance, Laboratory,
-   Committees and any record screen using the shared detail-grid vocabulary.
    -------------------------------------------------------------------------- */
 .canonical-detail-screen.record-general-tab-active :is(.detail-grid,.committee-detail-grid,.record-detail-grid):not(.employee-inline-edit):not(.editable-grid){
   display:grid!important;
@@ -201,7 +199,6 @@
   overflow-wrap:anywhere!important;
 }
 
-/* Descriptive text follows the details sheet instead of becoming another heavy card. */
 .canonical-detail-screen.record-general-tab-active :is(.quality-description,.record-description,.clinical-record-description){
   margin:14px 0 0!important;
   padding:12px 14px!important;
@@ -226,9 +223,7 @@
 /* --------------------------------------------------------------------------
    Edit forms
    -------------------------------------------------------------------------- */
-.canonical-detail-screen :is(.entry-grid,.record-edit-grid,.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid){
-  min-width:0!important;
-}
+.canonical-detail-screen :is(.entry-grid,.record-edit-grid,.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid){min-width:0!important}
 .canonical-detail-screen :is(.entry-grid,.record-edit-grid,.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid){
   display:grid!important;
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
@@ -241,9 +236,7 @@
   background:#fbfcfd!important;
 }
 .canonical-detail-screen :is(.entry-grid,.record-edit-grid) label,
-.canonical-detail-screen :is(.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid) :is(.detail-item,.detail-field){
-  min-width:0!important;
-}
+.canonical-detail-screen :is(.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid) :is(.detail-item,.detail-field){min-width:0!important}
 .canonical-detail-screen :is(.employee-full-grid.employee-inline-edit,.detail-grid.employee-inline-edit,.detail-grid.editable-grid) :is(.detail-item,.detail-field){
   min-height:68px!important;
   padding:0!important;
@@ -289,7 +282,6 @@
   box-shadow:0 0 0 3px rgba(31,111,169,.08)!important;
 }
 
-/* Save/Cancel always close the editable region at bottom-right. */
 .canonical-detail-screen :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions,.document-record-edit-actions,.committee-create-footer,.training-create-footer){
   display:flex!important;
   align-items:center!important;
@@ -307,7 +299,6 @@
   border-radius:9px!important;
 }
 
-/* Dialog/modal editors use the same control geometry and action hierarchy. */
 .observer-dialog .entry-grid,
 .observer-dialog .record-edit-grid{
   display:grid!important;
@@ -331,12 +322,10 @@
   color:#243f53!important;
 }
 .observer-dialog .observer-dialog-footer,
-.observer-dialog .dialog-actions{
-  justify-content:flex-end!important;
-}
+.observer-dialog .dialog-actions{justify-content:flex-end!important}
 
 /* --------------------------------------------------------------------------
-   Employee locked details keep semantic identity/employment/contact columns.
+   Employee locked details
    -------------------------------------------------------------------------- */
 .employee-details-overview .employee-full-grid{
   display:grid!important;
@@ -377,7 +366,6 @@
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item strong{display:block!important;margin:0!important;color:#173650!important;font-size:13.5px!important;font-weight:700!important;line-height:1.35!important;overflow-wrap:anywhere!important}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit) .detail-item:has(strong:empty) strong::after{content:'—';color:#98a7b4;font-weight:600}
 
-/* Linked-account metadata stays secondary. */
 .employee-details-overview>.source-truth-note{
   display:grid!important;
   grid-template-columns:34px minmax(0,1fr) auto!important;
@@ -424,15 +412,11 @@
 
 /* --------------------------------------------------------------------------
    Patient record tab geometry
-   All tabs in the patient/surveillance record share the same visual origin and
-   heading hierarchy. This lives in the shared record design system, not in a
-   page-specific stylesheet.
    -------------------------------------------------------------------------- */
 .patient-record-shell>.entity-record-body{
   --patient-tab-start:18px;
   --patient-tab-inline:22px;
 }
-
 .patient-record-shell>.entity-record-body>:is(.record-section,.surveillance-workspace,.clinical-data-hub){
   box-sizing:border-box!important;
   width:100%!important;
@@ -441,26 +425,19 @@
   padding-right:var(--patient-tab-inline)!important;
   padding-left:var(--patient-tab-inline)!important;
 }
-
 .patient-record-shell>.entity-record-body>.patient-summary-layout{
   box-sizing:border-box!important;
   width:100%!important;
   margin:0!important;
   padding:var(--patient-tab-start) var(--patient-tab-inline) 0!important;
 }
-
-.patient-record-shell>.entity-record-body>.patient-summary-layout>.patient-details-panel{
-  margin:0!important;
-  padding-top:0!important;
-}
-
+.patient-record-shell>.entity-record-body>.patient-summary-layout>.patient-details-panel{margin:0!important;padding-top:0!important}
 .patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar,.clinical-data-heading){
   min-height:54px!important;
   margin:0 0 16px!important;
   padding:0!important;
   align-items:flex-start!important;
 }
-
 .patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar,.clinical-data-heading) .eyebrow,
 .patient-record-shell .clinical-data-heading>.eyebrow{
   display:block!important;
@@ -472,37 +449,27 @@
   letter-spacing:.035em!important;
   text-transform:uppercase!important;
 }
-
 .patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar,.clinical-data-heading) h3,
 .patient-record-shell .clinical-data-heading>h3{
   margin:0!important;
   color:#172b40!important;
-  font-size:18px!important;
+  font-size:19px!important;
   font-weight:800!important;
   line-height:1.25!important;
-  letter-spacing:-.01em!important;
+  letter-spacing:-.012em!important;
 }
-
 .patient-record-shell .surveillance-workspace-toolbar p{
   margin:5px 0 0!important;
   color:#738395!important;
-  font-size:11px!important;
+  font-size:11.5px!important;
   line-height:1.45!important;
 }
 
-@media(max-width:760px){
-  .patient-record-shell>.entity-record-body{
-    --patient-tab-start:14px;
-    --patient-tab-inline:14px;
-  }
-}
-
-/* Patient summary uses the shared record shell but reads as a clinical summary,
-   not as a data-entry form. The repeated "patient record" eyebrow is hidden
-   inside patient tabs because the surrounding record shell already provides context. */
+/* Repeated section context is not shown inside the patient card. */
 .patient-record-shell .patient-details-panel .record-section-header .eyebrow,
 .patient-record-shell>.entity-record-body>.record-section>.record-section-header .eyebrow,
-.patient-record-shell .clinical-data-heading>.eyebrow{
+.patient-record-shell .clinical-data-heading>.eyebrow,
+.patient-record-shell .surveillance-workspace-toolbar .eyebrow{
   display:none!important;
 }
 
@@ -511,51 +478,44 @@
   margin-bottom:14px!important;
 }
 
+/* Patient identity summary follows the canonical read-only information sheet:
+   one bordered surface, three columns, internal dividers, no tile/tab treatment. */
 .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit){
   display:grid!important;
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
   gap:0!important;
-  margin:2px 0 0!important;
+  margin:8px 0 0!important;
   padding:0!important;
-  border-top:1px solid #e4eaf0!important;
-  border-bottom:1px solid #e4eaf0!important;
-  border-left:0!important;
-  border-right:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  overflow:visible!important;
+  border:1px solid #dfe7ee!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  overflow:hidden!important;
 }
-
 .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item{
-  min-height:76px!important;
-  padding:14px 18px!important;
+  min-height:86px!important;
+  padding:17px 24px!important;
   border:0!important;
-  border-right:1px solid #e8edf2!important;
-  border-bottom:1px solid #edf1f4!important;
+  border-right:1px solid #e7edf2!important;
+  border-bottom:1px solid #e7edf2!important;
   border-radius:0!important;
-  background:transparent!important;
+  background:#fff!important;
   box-shadow:none!important;
 }
-
-.patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(4n){
-  border-right:0!important;
-}
-
-.patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-last-child(-n+4){
-  border-bottom:0!important;
-}
-
+.patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(3n){border-right:0!important}
 .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item>span{
-  margin-bottom:7px!important;
-  color:#7b8c9c!important;
-  font-size:10px!important;
-  font-weight:750!important;
-  letter-spacing:.01em!important;
+  display:block!important;
+  margin:0 0 8px!important;
+  color:#7c8c9b!important;
+  font-size:10.5px!important;
+  font-weight:800!important;
+  line-height:1.25!important;
+  letter-spacing:.005em!important;
 }
-
 .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item>strong{
+  display:block!important;
+  margin:0!important;
   color:#173650!important;
-  font-size:14px!important;
+  font-size:14.5px!important;
   font-weight:700!important;
   line-height:1.35!important;
 }
@@ -568,25 +528,15 @@
 
 @media(max-width:1100px){
   .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit),
-  .patient-record-shell .patient-summary-strip{
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  }
-  .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(n){
-    border-right:1px solid #e8edf2!important;
-    border-bottom:1px solid #edf1f4!important;
-  }
+  .patient-record-shell .patient-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(n){border-right:1px solid #e7edf2!important;border-bottom:1px solid #e7edf2!important}
   .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(2n){border-right:0!important}
-  .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-last-child(-n+2){border-bottom:0!important}
 }
 
 @media(max-width:760px){
+  .patient-record-shell>.entity-record-body{--patient-tab-start:14px;--patient-tab-inline:14px}
   .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit),
-  .patient-record-shell .patient-summary-strip{
-    grid-template-columns:1fr!important;
-  }
-  .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(n){
-    border-right:0!important;
-    border-bottom:1px solid #edf1f4!important;
-  }
+  .patient-record-shell .patient-summary-strip{grid-template-columns:1fr!important}
+  .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:nth-child(n){border-right:0!important;border-bottom:1px solid #e7edf2!important}
   .patient-record-shell.record-general-tab-active .patient-details-panel .patient-detail-grid:not(.employee-inline-edit)>.detail-item:last-child{border-bottom:0!important}
 }
