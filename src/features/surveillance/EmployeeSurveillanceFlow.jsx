@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { FlaskConical, Users, X } from 'lucide-react'
+import { FlaskConical, Users } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
@@ -26,8 +27,15 @@ export function EmployeeSurveillanceFlow({employee=null,onClose,onCreated}){
     onCreated?.(record)
     onClose()
   }
-  return <div className="modal-backdrop"><div className="entry-card employee-surveillance-entry">
-    <header><div><span className="eyebrow">{t('employeeSurveillance')}</span><h3>{t('clinicalRecords.newEmployeeSurveillance')}</h3><p>{t('clinicalRecords.employeeSurveillanceHelp')}</p></div><button className="icon-close" onClick={onClose}><X size={18}/></button></header>
+  return <ObserverDialog
+    eyebrow={t('employeeSurveillance')}
+    title={t('clinicalRecords.newEmployeeSurveillance')}
+    subtitle={t('clinicalRecords.employeeSurveillanceHelp')}
+    width="wide"
+    className="employee-surveillance-entry"
+    onClose={onClose}
+    footer={<DialogActions onSave={save} saveLabel={t('createSurveillance')} disabled={!selected||!date||!types.length}/>}
+  >
     <div className="entry-grid">
       {!employee&&<label className="entry-span-2"><span>{t('employee')}</span><select value={employeeId} onChange={e=>setEmployeeId(e.target.value)}><option value="">{t('clinicalRecords.selectEmployee')}</option>{employeeRows.filter(x=>x.employmentStatus==='active').map(row=><option key={row.id} value={row.id}>{language==='el'?`${row.lastName} ${row.firstName}`:`${row.firstNameEn} ${row.lastNameEn}`} · {row.id}</option>)}</select></label>}
       {selected&&<div className="entry-span-2 subject-summary"><strong>{language==='el'?`${selected.lastName} ${selected.firstName}`:`${selected.firstNameEn} ${selected.lastNameEn}`}</strong><span>{language==='el'?selected.department:selected.departmentEn} · {selected.id}</span></div>}
@@ -36,8 +44,7 @@ export function EmployeeSurveillanceFlow({employee=null,onClose,onCreated}){
       <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
     </div>
     <div className="source-truth-note">{t('clinicalRecords.employeeScreeningCreatesLabRequests')}</div>
-    <footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><Button disabled={!selected||!date||!types.length} onClick={save}><FlaskConical size={15}/>{t('createSurveillance')}</Button></footer>
-  </div></div>
+  </ObserverDialog>
 }
 
 export function BulkEmployeeSurveillanceFlow({onClose,onCreated}){
@@ -74,8 +81,15 @@ export function BulkEmployeeSurveillanceFlow({onClose,onCreated}){
     onCreated?.(batch)
     onClose()
   }
-  return <div className="modal-backdrop"><div className="entry-card bulk-surveillance-entry">
-    <header><div><span className="eyebrow">{t('employeeSurveillance')}</span><h3>{t('clinicalRecords.bulkEmployeeSurveillance')}</h3><p>{t('clinicalRecords.bulkEmployeeSurveillanceHelp')}</p></div><button className="icon-close" onClick={onClose}><X size={18}/></button></header>
+  return <ObserverDialog
+    eyebrow={t('employeeSurveillance')}
+    title={t('clinicalRecords.bulkEmployeeSurveillance')}
+    subtitle={t('clinicalRecords.bulkEmployeeSurveillanceHelp')}
+    width="workspace"
+    className="bulk-surveillance-entry"
+    onClose={onClose}
+    footer={<DialogActions onSave={save} saveLabel={t('clinicalRecords.createBatch')} disabled={!selectedIds.length||!types.length||!date}/>}
+  >
     <div className="bulk-surveillance-controls">
       <label><span>{t('department')}</span><select value={department} onChange={e=>setDepartment(e.target.value)}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</select></label>
       <ManualDateField label={t('screeningDate')} value={date} onChange={setDate}/>
@@ -86,19 +100,24 @@ export function BulkEmployeeSurveillanceFlow({onClose,onCreated}){
       {visible.map(row=><label key={row.id} className={selectedIds.includes(row.id)?'selected':''}><input type="checkbox" checked={selectedIds.includes(row.id)} onChange={()=>toggleEmployee(row.id)}/><span><strong>{language==='el'?`${row.lastName} ${row.firstName}`:`${row.firstNameEn} ${row.lastNameEn}`}</strong><small>{row.id} · {language==='el'?row.department:row.departmentEn}</small></span></label>)}
     </div>
     <label className="bulk-notes"><span>{t('notes')}</span><textarea rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
-    <footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><Button disabled={!selectedIds.length||!types.length||!date} onClick={save}><Users size={15}/>{t('clinicalRecords.createBatch')}</Button></footer>
-  </div></div>
+  </ObserverDialog>
 }
 
 export function SurveillanceSubjectChooser({onClose,onPatient,onEmployee,onBulkEmployee,onEnvironmental}){
   const {t}=useLanguage()
-  return <div className="modal-backdrop"><div className="entry-card surveillance-subject-chooser">
-    <header><div><span className="eyebrow">{t('surveillance')}</span><h3>{t('newSurveillance')}</h3><p>{t('clinicalRecords.chooseSurveillanceSubject')}</p></div><button className="icon-close" onClick={onClose}><X size={18}/></button></header>
+  return <ObserverDialog
+    eyebrow={t('surveillance')}
+    title={t('newSurveillance')}
+    subtitle={t('clinicalRecords.chooseSurveillanceSubject')}
+    width="wide"
+    className="surveillance-subject-chooser"
+    onClose={onClose}
+  >
     <div className="subject-choice-grid">
       <button onClick={onPatient}><span>01</span><strong>{t('patient')}</strong><small>{t('clinicalRecords.patientSurveillanceChoiceHelp')}</small></button>
       <button onClick={onEmployee}><span>02</span><strong>{t('employee')}</strong><small>{t('clinicalRecords.employeeSurveillanceChoiceHelp')}</small></button>
       <button onClick={onBulkEmployee}><span>03</span><strong>{t('clinicalRecords.bulkEmployeeSurveillance')}</strong><small>{t('clinicalRecords.bulkEmployeeChoiceHelp')}</small></button>
       <button onClick={onEnvironmental}><span>04</span><strong>{t('environmentalSurveillance')}</strong><small>{t('clinicalRecords.environmentalSurveillanceChoiceHelp')}</small></button>
     </div>
-  </div></div>
+  </ObserverDialog>
 }
