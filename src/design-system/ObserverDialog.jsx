@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { Button } from './Button'
+import { IconButton } from './IconButton'
 import { SaveButton } from './SaveButton'
 import { useLanguage } from '../core/i18n/LanguageContext'
 
@@ -24,7 +25,7 @@ export function ObserverDialog({
           <h3>{title}</h3>
           {subtitle&&<p>{subtitle}</p>}
         </div>
-        <button type="button" className="entity-record-icon-button" onClick={onClose} title={en?'Close':'Κλείσιμο'} aria-label={en?'Close':'Κλείσιμο'}><X size={17}/></button>
+        <IconButton label={en?'Close':'Κλείσιμο'} tone="neutral" className="entity-record-icon-button" onClick={onClose}><X size={17}/></IconButton>
       </header>
       <div className="observer-dialog-body">{children}</div>
       {footer&&<footer>{footer}</footer>}
