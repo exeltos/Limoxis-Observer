@@ -12,16 +12,19 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { can,CAPABILITIES } from '../../core/permissions/roles'
 import { createEmployeeAsync } from './employeeService'
+import { useEmployeesData } from './useEmployeesData'
 import { loadDepartments } from '../management/departmentsService'
 import { loadManagementLibraries } from '../management/managementCloudService'
 
 export function EmployeeCreatePage(){
- const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const navigate=useNavigate();const {tenant,role,membership}=useTenant();const actor=useAuditActor()
+ const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const navigate=useNavigate();const {tenant,role,membership}=useTenant();const actor=useAuditActor();const {data:employeeRows}=useEmployeesData()
  const [saving,setSaving]=useState(false);const [departments,setDepartments]=useState([]);const [professionalCategories,setProfessionalCategories]=useState([])
  const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',department:'',profession:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[];const canCreate=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,addOns,custom)
  const set=(k,x)=>setV(s=>({...s,[k]:x}))
- const valid=Boolean(v.employeeCode.trim()&&v.firstName.trim()&&v.lastName.trim()&&v.department&&v.profession)
+ const normalizedCode=v.employeeCode.trim().toLowerCase()
+ const duplicateCode=Boolean(normalizedCode&&employeeRows.some(row=>String(row.id||row.employeeCode||'').trim().toLowerCase()===normalizedCode))
+ const valid=Boolean(v.employeeCode.trim()&&!duplicateCode&&v.firstName.trim()&&v.lastName.trim()&&v.department&&v.profession)
 
  useEffect(()=>{
   let active=true
@@ -56,7 +59,7 @@ export function EmployeeCreatePage(){
  return <Page fill><EntityRecordShell className="employee-create-shell workspace-fill" avatar={<UserPlus size={19}/>} eyebrow={en?'Staff':'Προσωπικό'} title={en?'New employee':'Νέος εργαζόμενος'} subtitle={en?'Create employee record':'Δημιουργία καρτέλας προσωπικού'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/employees')}>
   <div className="record-section employee-create-form">
    <div className="entry-grid">
-    <label><span>{en?'Employee / folder code *':'Κωδικός εργαζομένου / φακέλου *'}</span><input autoFocus value={v.employeeCode} onChange={e=>set('employeeCode',e.target.value)} placeholder={en?'e.g. 123':'π.χ. 123'}/></label>
+    <label><span>{en?'Employee / folder code *':'Κωδικός εργαζομένου / φακέλου *'}</span><input autoFocus value={v.employeeCode} onChange={e=>set('employeeCode',e.target.value)} placeholder={en?'e.g. 123':'π.χ. 123'} aria-invalid={duplicateCode||undefined}/>{duplicateCode&&<small className="field-error">{en?'This code already belongs to another employee record.':'Ο κωδικός αυτός ανήκει ήδη σε άλλη καρτέλα εργαζομένου.'}</small>}</label>
     <label><span>{en?'Status':'Κατάσταση'}</span><select value={v.employmentStatus} onChange={e=>set('employmentStatus',e.target.value)}><option value="active">{en?'Active':'Ενεργός'}</option><option value="inactive">{en?'Inactive':'Ανενεργός'}</option></select></label>
     <label><span>{en?'First name *':'Όνομα *'}</span><input value={v.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
     <label><span>{en?'Last name *':'Επώνυμο *'}</span><input value={v.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
@@ -67,7 +70,7 @@ export function EmployeeCreatePage(){
     <label><span>Email</span><input type="email" value={v.email} onChange={e=>set('email',e.target.value)}/></label>
     <label><span>{en?'Phone':'Τηλέφωνο'}</span><input value={v.phone} onChange={e=>set('phone',e.target.value)}/></label>
    </div>
-   <div className="source-truth-note">{en?'This is the only visible employee identifier. The database UUID remains internal and is never used as the folder code.':'Αυτός είναι ο μοναδικός εμφανιζόμενος κωδικός εργαζομένου. Το τεχνικό UUID της βάσης παραμένει εσωτερικό και δεν χρησιμοποιείται ως κωδικός φακέλου.'}</div>
+   <div className="source-truth-note">{en?'One code identifies one employee folder. Training, evaluations, certificates, surveillance and future employment history remain under that single record.':'Ένας κωδικός αντιστοιχεί σε μία καρτέλα εργαζομένου. Εκπαιδεύσεις, αξιολογήσεις, πιστοποιήσεις, επιτήρηση και μελλοντικό ιστορικό παραμένουν κάτω από τον ίδιο φάκελο.'}</div>
    <div className="inline-edit-footer"><Button variant="secondary" onClick={()=>navigate('/employees')}>{t('cancel')}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{t('save')}</SaveButton></div>
   </div>
  </EntityRecordShell></Page>
