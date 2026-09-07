@@ -5,6 +5,7 @@ import { useFeedback } from '../core/feedback/FeedbackContext'
 import { cloudAttachmentsEnabled, loadAttachments, uploadAttachment, updateAttachmentMetadata, deleteAttachment, getAttachmentUrl } from '../core/attachments/attachmentService'
 import { Button } from './Button'
 import { SaveButton } from './SaveButton'
+import { OverflowMenu } from './OverflowMenu'
 
 const defaultCategories=[
   ['generalDocument','generalDocument'],
@@ -25,11 +26,8 @@ export function AttachmentField({
   entityType=null,
   entityId=null,
 }){
-  const {t}=useLanguage()
+  const {t,language}=useLanguage();const en=language==='en'
   const {confirm,notify}=useFeedback()
-  // Cloud mode needs a real, already-saved record to attach files to — a
-  // brand-new record being created (no id yet) always uses the local path
-  // below, same as it always has, until the record itself is saved once.
   const cloudMode = cloudAttachmentsEnabled() && Boolean(organizationId) && Boolean(entityType) && Boolean(entityId)
   const [files,setFiles]=useState(value)
   const [cloudLoading,setCloudLoading]=useState(cloudMode)
@@ -162,6 +160,7 @@ export function AttachmentField({
     const row=categories.find(([value])=>value===code)
     return t(row?.[1]||code||'other')
   }
+  const canView=file=>cloudMode?Boolean(file.storagePath):Boolean(file.dataUrl||file.objectUrl||file.url)
 
   return <div className="attachment-field attachment-field-v2">
     <div className="attachment-heading"><Paperclip size={16}/><strong>{t('attachments')}</strong><span>{files.length}</span></div>
@@ -172,13 +171,15 @@ export function AttachmentField({
     {!cloudLoading&&files.length>0&&<div className="attachment-list">
       {files.map(file=><div key={file.id} className="attachment-row attachment-row-v2">
         <div className="attachment-file-info">
-          <strong title={file.name}>{file.name}</strong>
+          <strong className={canView(file)?'attachment-open-target':''} title={file.name} role={canView(file)?'button':undefined} tabIndex={canView(file)?0:undefined} onClick={()=>canView(file)&&view(file)} onKeyDown={event=>{if(canView(file)&&(event.key==='Enter'||event.key===' ')){event.preventDefault();view(file)}}}>{file.name}</strong>
           <div><span className="attachment-category">{categoryLabel(file.category)}</span>{file.description&&<small>{file.description}</small>}</div>
         </div>
         <div className="attachment-actions">
-          <button className="lo-icon-button lo-icon-button-primary lo-icon-button-sm" disabled={busy||(!cloudMode&&!file.dataUrl&&!file.objectUrl&&!file.url)} onClick={()=>view(file)} title={t('viewAttachment')} aria-label={t('viewAttachment')}><Eye size={14}/></button>
-          {!disabled&&<button className="edit lo-icon-button lo-icon-button-edit lo-icon-button-sm" disabled={busy} onClick={()=>beginEdit(file)} title={t('edit')} aria-label={t('edit')}><Pencil size={14}/></button>}
-          {!disabled&&<button className="danger lo-icon-button lo-icon-button-danger lo-icon-button-sm" disabled={busy} onClick={()=>remove(file.id)} title={t('delete')} aria-label={t('delete')}><Trash2 size={14}/></button>}
+          <OverflowMenu label={en?'Attachment actions':'Ενέργειες συνημμένου'} items={[
+            {id:'view',label:t('viewAttachment'),icon:Eye,disabled:busy||!canView(file),onClick:()=>view(file)},
+            !disabled&&{id:'edit',label:t('edit'),icon:Pencil,disabled:busy,onClick:()=>beginEdit(file)},
+            !disabled&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>remove(file.id)},
+          ]}/>
         </div>
       </div>)}
     </div>}
