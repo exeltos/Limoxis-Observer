@@ -1,4 +1,4 @@
-import { Children, Fragment, cloneElement, isValidElement } from 'react'
+import { Children, Fragment, isValidElement } from 'react'
 import { ChevronLeft,ChevronRight } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'
 import { useLanguage } from '../core/i18n/LanguageContext'
@@ -59,27 +59,6 @@ function toOverflowItem(action,index,en){
   }
 }
 
-function normalizeInlineRecordActions(node,en){
-  if(!isValidElement(node))return node
-  if(node.type===Fragment){
-    return cloneElement(node,undefined,Children.map(node.props.children,child=>normalizeInlineRecordActions(child,en)))
-  }
-  const className=String(node.props.className||'')
-  if(className.split(/\s+/).includes('record-inline-actions')){
-    const children=Children.toArray(node.props.children)
-    const menuItems=children.map((child,index)=>toOverflowItem(child,index,en)).filter(Boolean)
-    const passthrough=children.filter(child=>!recordActionKind(child))
-    if(menuItems.length){
-      return cloneElement(node,undefined,
-        ...passthrough,
-        <OverflowMenu key="record-inline-overflow" label={en?'Record actions':'Ενέργειες εγγραφής'} items={menuItems}/>
-      )
-    }
-  }
-  if(!node.props?.children)return node
-  return cloneElement(node,undefined,Children.map(node.props.children,child=>normalizeInlineRecordActions(child,en)))
-}
-
 export function EntityRecordShell({
   avatar,
   eyebrow,
@@ -133,7 +112,6 @@ export function EntityRecordShell({
   const generalMenuItems=rawGeneralActions.map((action,index)=>toOverflowItem(action,index,en)).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   const secondaryBodyStyle=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
-  const normalizedChildren=Children.map(children,child=>normalizeInlineRecordActions(child,en))
 
   return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${className}`.trim()}>
     <header className="entity-record-header surface">
@@ -159,7 +137,7 @@ export function EntityRecordShell({
     </nav>
     <section className="entity-record-body surface" style={secondaryBodyStyle}>
       {primaryTabActive&&generalMenuItems.length>0&&<div className="entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}><OverflowMenu label={en?'Record actions':'Ενέργειες εγγραφής'} items={generalMenuItems}/></div>}
-      {normalizedChildren}
+      {children}
     </section>
   </div>
 }
