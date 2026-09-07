@@ -421,3 +421,78 @@
   .canonical-detail-screen :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions,.document-record-edit-actions,.committee-create-footer,.training-create-footer){align-items:stretch!important;flex-direction:column-reverse!important}
   .canonical-detail-screen :is(.inline-edit-footer,.record-edit-footer,.form-footer-actions,.document-record-edit-actions,.committee-create-footer,.training-create-footer) .button{width:100%!important}
 }
+
+/* --------------------------------------------------------------------------
+   Patient record tab geometry
+   All tabs in the patient/surveillance record share the same visual origin and
+   heading hierarchy. This lives in the shared record design system, not in a
+   page-specific stylesheet.
+   -------------------------------------------------------------------------- */
+.patient-record-shell>.entity-record-body{
+  --patient-tab-start:18px;
+  --patient-tab-inline:22px;
+}
+
+.patient-record-shell>.entity-record-body>:is(.record-section,.surveillance-workspace,.clinical-data-hub){
+  box-sizing:border-box!important;
+  width:100%!important;
+  margin:0!important;
+  padding-top:var(--patient-tab-start)!important;
+  padding-right:var(--patient-tab-inline)!important;
+  padding-left:var(--patient-tab-inline)!important;
+}
+
+.patient-record-shell>.entity-record-body>.patient-summary-layout{
+  box-sizing:border-box!important;
+  width:100%!important;
+  margin:0!important;
+  padding:var(--patient-tab-start) var(--patient-tab-inline) 0!important;
+}
+
+.patient-record-shell>.entity-record-body>.patient-summary-layout>.patient-details-panel{
+  margin:0!important;
+  padding-top:0!important;
+}
+
+.patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar,.clinical-data-heading){
+  min-height:54px!important;
+  margin:0 0 16px!important;
+  padding:0!important;
+  align-items:flex-start!important;
+}
+
+.patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar,.clinical-data-heading) .eyebrow,
+.patient-record-shell .clinical-data-heading>.eyebrow{
+  display:block!important;
+  margin:0 0 6px!important;
+  color:#8999a8!important;
+  font-size:10px!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+  letter-spacing:.035em!important;
+  text-transform:uppercase!important;
+}
+
+.patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar,.clinical-data-heading) h3,
+.patient-record-shell .clinical-data-heading>h3{
+  margin:0!important;
+  color:#172b40!important;
+  font-size:18px!important;
+  font-weight:800!important;
+  line-height:1.25!important;
+  letter-spacing:-.01em!important;
+}
+
+.patient-record-shell .surveillance-workspace-toolbar p{
+  margin:5px 0 0!important;
+  color:#738395!important;
+  font-size:11px!important;
+  line-height:1.45!important;
+}
+
+@media(max-width:760px){
+  .patient-record-shell>.entity-record-body{
+    --patient-tab-start:14px;
+    --patient-tab-inline:14px;
+  }
+}
