@@ -5,11 +5,41 @@
   margin-top:54px;
 }
 
-.committee-member-actions{
+/* Committee tables keep their action menus above neighbouring rows and out of clipped scroll content. */
+.record-section:has(.committee-member-actions) .scroll-table,
+.record-section:has(.committee-plan-actions) .scroll-table,
+.record-section:has(.committee-meeting-actions) .scroll-table,
+.record-section:has(.committee-decision-actions) .scroll-table{
+  overflow-x:auto;
+  overflow-y:visible;
+  padding-bottom:88px;
+  margin-bottom:-88px;
+}
+
+.record-section:has(.committee-member-actions) .data-table,
+.record-section:has(.committee-plan-actions) .data-table,
+.record-section:has(.committee-meeting-actions) .data-table,
+.record-section:has(.committee-decision-actions) .data-table{
+  overflow:visible;
+}
+
+.committee-member-actions,
+.committee-plan-actions,
+.committee-meeting-actions,
+.committee-decision-actions{
+  position:relative;
+  z-index:2;
   display:flex;
   align-items:center;
   justify-content:flex-end;
   gap:4px;
+}
+
+.committee-member-actions:has(.lo-overflow[open]),
+.committee-plan-actions:has(.lo-overflow[open]),
+.committee-meeting-actions:has(.lo-overflow[open]),
+.committee-decision-actions:has(.lo-overflow[open]){
+  z-index:30;
 }
 
 .committee-member-actions .lo-icon-button-edit:hover:not(:disabled),
