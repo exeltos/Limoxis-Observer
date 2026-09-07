@@ -38,10 +38,14 @@ function normalizeGeneralAction(action){
   const className=`${action.props.className||''} record-crud-action record-crud-${kind}`.trim()
   const tone=kind==='delete'?'danger':'edit'
   const label=action.props['aria-label']||action.props.title||(kind==='delete'?'Delete':'Edit')
-  if(action.type===ActionButton)return cloneElement(action,{tone,iconOnly:true,className,label})
-  if(action.type===IconButton)return cloneElement(action,{tone,className,label})
+  const explicitDestructive=kind==='delete'
+  if(action.type===ActionButton){
+    const children=explicitDestructive?<>{action.props.children}<span>{label}</span></>:action.props.children
+    return cloneElement(action,{tone,iconOnly:!explicitDestructive,className,label},children)
+  }
+  if(action.type===IconButton&&!explicitDestructive)return cloneElement(action,{tone,className,label})
   const {children,title:actionTitle,className:ignoredClassName,...props}=action.props
-  return <ActionButton key={action.key||`${kind}-${label}`} label={label} tone={tone} iconOnly className={className} title={actionTitle||label} {...props}>{children}</ActionButton>
+  return <ActionButton key={action.key||`${kind}-${label}`} label={label} tone={tone} iconOnly={!explicitDestructive} className={className} title={actionTitle||label} {...props}>{children}{explicitDestructive&&<span>{label}</span>}</ActionButton>
 }
 
 export function EntityRecordShell({
