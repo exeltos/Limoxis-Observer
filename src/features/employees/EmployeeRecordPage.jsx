@@ -167,7 +167,27 @@ function Certificates({employee,t,language,selfMode,canAdmin,organizationId}){
   const canEdit=canAdmin&&!selfMode
   return <div className="record-section employee-certificates-attachments"><SectionTitle t={t} title="employeesRecords.certificatesDocuments"/><p className="employee-certificates-hint">{language==='en'?'Upload certificates, attestations or other supporting documents.':'Ανεβάστε πιστοποιήσεις, βεβαιώσεις ή άλλα υποστηρικτικά έγγραφα.'}</p><AttachmentField disabled={!canEdit} value={files} onChange={setFiles} organizationId={organizationId} entityType="employee-certificate" entityId={employee.dbId||employee.id}/></div>
 }
-function EmployeeSurveillance({employee,t,language,fmt,version,onNew,readOnly=false}){void version;const rows=getEmployeeSurveillanceForEmployee(employee.id);return <div className="record-section"><div className="record-section-header"><SectionTitle t={t} title="surveillance"/>{!readOnly&&<Button onClick={onNew}>+ {t('newSurveillance')}</Button>}</div><div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard"><strong>{language==='en'?x.titleEn:x.title}</strong><span>{fmt(x.date)}</span><small>{x.status}</small></article>):<Empty t={t}/>}</div></div>}
+function EmployeeSurveillance({employee,t,language,fmt,version,onNew,readOnly=false}){
+  void version
+  const rows=getEmployeeSurveillanceForEmployee(employee.id)
+  const [selected,setSelected]=useState(null)
+  const value=(label,content)=><div className="detail-item"><span>{label}</span><strong>{content||'—'}</strong></div>
+  return <div className="record-section">
+    <div className="record-section-header"><SectionTitle t={t} title="surveillance"/>{!readOnly&&<Button onClick={onNew}>+ {t('newSurveillance')}</Button>}</div>
+    <div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard registry-row-clickable" role="button" tabIndex={0} onClick={()=>setSelected(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(x)}}}><strong>{x.id}</strong><span>{fmt(x.startedAt)}</span><small>{x.screeningTypes?.map(type=>t(type)).join(', ')||t(x.status)}</small></article>):<Empty t={t}/>}</div>
+    {selected&&<ObserverDialog eyebrow={t('employeeSurveillance')} title={language==='en'?selected.employeeNameEn:selected.employeeName} subtitle={`${selected.id} · ${language==='en'?selected.departmentEn:selected.department}`} width="wide" onClose={()=>setSelected(null)}>
+      <div className="detail-grid">
+        {value(t('screeningDate'),fmt(selected.startedAt))}
+        {value(t('screeningType'),selected.screeningTypes?.map(type=>t(type)).join(', '))}
+        {value(t('result'),t(selected.resultStatus||'pending'))}
+        {value(t('status'),t(selected.status||'active'))}
+        {value(t('clinicalRecords.intervention'),selected.noIntervention?t('clinicalRecords.noInterventionPlanned'):(selected.interventionType||selected.intervention||'—'))}
+        {value(t('clinicalRecords.recheck'),selected.noRecheck?t('clinicalRecords.noRecheckPlanned'):(selected.recheckDate?fmt(selected.recheckDate):'—'))}
+      </div>
+      {selected.notes&&<div className="source-truth-note"><div><strong>{t('notes')}</strong><span>{selected.notes}</span></div></div>}
+    </ObserverDialog>}
+  </div>
+}
 function History({t}){const {language}=useLanguage();return <div className="record-section employee-secondary-registry"><SectionTitle t={t} title="history"/><RegistryEmpty language={language} title={language==='en'?'No history entries':'Δεν υπάρχουν καταχωρήσεις ιστορικού'}/></div>}
 function SectionTitle({t,title}){return <div className="employee-section-title"><span className="eyebrow">{t(title)}</span><h3>{t(title)}</h3></div>}
 function RegistryEmpty({language,title,subtitle=''}){return <div className="registry-empty-state employee-registry-empty"><strong>{title}</strong>{subtitle&&<span>{subtitle}</span>}</div>}
