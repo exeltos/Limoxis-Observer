@@ -132,7 +132,7 @@ export function EmployeeRecordPage({selfMode=false}){
   return <Page fill title={name} subtitle={t('employeesRecords.employeeFullRecordSubtitle')}>
     <EntityRecordShell className={`employee-record-shell workspace-fill${selfReadOnly?' employee-self-readonly':''}`} avatar={`${employee.firstName?.[0]||''}${employee.lastName?.[0]||''}`} eyebrow={employee.id} title={name} subtitle={`${language==='el'?employee.profession:employee.professionEn} · ${language==='el'?employee.department:employee.departmentEn}`} status={<span className={`status-badge ${employee.employmentStatus==='active'?'active':''}`}>{t(employee.employmentStatus)}</span>} recordNavigation={selfMode?null:recordNavigation} headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={selfMode?()=>navigate('/'):goBack} backLabel={t('back')}>
       {selfReadOnly&&<div className="source-truth-note"><ShieldCheck size={16}/><div><strong>{language==='en'?'Your employee record is read-only':'Η προσωπική σας καρτέλα είναι μόνο για προβολή'}</strong><span>{language==='en'?'You cannot edit, delete or perform administrative actions on your own employee record.':'Δεν μπορείτε να επεξεργαστείτε, να διαγράψετε ή να εκτελέσετε διοικητικές ενέργειες στη δική σας καρτέλα.'}</span></div></div>}
-      {tab==='details'&&<Details employee={employee} t={t} language={language} fmt={fmt} canAdmin={canAdmin} canManageUsers={canManageUsers} onCreateAccount={()=>!selfReadOnly&&setAccountOpen(true)} deleteEmployee={deleteEmployee} notify={notify} organizationId={tenant?.id} departmentOptions={departmentOptions} professionOptions={professionalCategories} reloadEmployees={reloadEmployees}/>} 
+      {tab==='details'&&<Details employee={employee} t={t} language={language} fmt={fmt} canAdmin={canAdmin} canManageUsers={canManageUsers} onCreateAccount={()=>!selfReadOnly&&setAccountOpen(true)} deleteEmployee={deleteEmployee} notify={notify} organizationId={tenant?.id} departmentOptions={departmentOptions} professionOptions={professionalCategories} reloadEmployees={reloadEmployees} onCodeChanged={newCode=>navigate(`/employees/${encodeURIComponent(newCode)}`,{replace:true})}/>} 
       {tab==='occupational'&&<Occupational employee={employee} t={t} fmt={fmt} organizationId={tenant?.id} readOnly={selfReadOnly}/>} 
       {tab==='vaccinations'&&<Vaccinations employee={employee} t={t} fmt={fmt} organizationId={tenant?.id}/>} 
       {tab==='surveillance'&&<EmployeeSurveillance employee={employee} t={t} language={language} fmt={fmt} version={surveillanceVersion} readOnly={selfReadOnly} onNew={()=>!selfReadOnly&&setSurveillanceOpen(true)}/>} 
@@ -167,26 +167,32 @@ function SelfAccountSummary({profile,user,role,membership,tenant,language}){
   return <section className="surface my-profile-hero" aria-label={en?'Account details':'Στοιχεία λογαριασμού'}><div className="my-profile-avatar">{initials}</div><div className="my-profile-identity"><span>{isPlatformOwner?(en?'PLATFORM ACCOUNT':'ΛΟΓΑΡΙΑΣΜΟΣ ΠΛΑΤΦΟΡΜΑΣ'):(en?'ACCOUNT':'ΛΟΓΑΡΙΑΣΜΟΣ')}</span><h2>{fullName}</h2><p>{email}</p></div><span className={`status-badge ${active?'active':'danger'}`}>{active?(en?'Active':'Ενεργός'):(en?'Suspended':'Σε παύση')}</span><div className="my-profile-grid my-profile-account-grid"><div className="my-profile-value"><span className="my-profile-value-label">Username</span><strong>{username}</strong></div><div className="my-profile-value"><span className="my-profile-value-label">{en?'Role':'Ρόλος'}</span><strong>{roleLabel(role,language)}</strong></div><div className="my-profile-value"><span className="my-profile-value-label">{en?'Organization':'Οργανισμός'}</span><strong>{organization}</strong></div><div className="my-profile-value"><span className="my-profile-value-label">Email</span><strong>{email}</strong></div></div></section>
 }
 
-function Details({employee,t,language,fmt,canAdmin,canManageUsers,onCreateAccount,deleteEmployee,notify,organizationId,departmentOptions,professionOptions,reloadEmployees}){
+function Details({employee,t,language,fmt,canAdmin,canManageUsers,onCreateAccount,deleteEmployee,notify,organizationId,departmentOptions,professionOptions,reloadEmployees,onCodeChanged}){
   const [editing,setEditing]=useState(false),[saving,setSaving]=useState(false),[record,setRecord]=useState({...employee})
   useEffect(()=>setRecord({...employee}),[employee])
   const set=(k,v)=>setRecord(r=>({...r,[k]:v}))
   const cancel=()=>{setRecord({...employee});setEditing(false)}
   async function save(){
     if(saving)return
+    const nextCode=String(record.id||'').trim()
+    if(!nextCode){notify(language==='en'?'Employee / folder code is required.':'Ο κωδικός εργαζομένου / φακέλου είναι υποχρεωτικός.','danger');return}
     setSaving(true)
     try{
-      await updateEmployeeAsync(organizationId,employee.dbId,record)
+      const updated=await updateEmployeeAsync(organizationId,employee.dbId,{...record,id:nextCode},employee.id)
       await reloadEmployees?.()
       setEditing(false)
       notify(t('employeesRecords.employeeUpdated'),'success')
-    }catch(error){notify(error?.message||(language==='en'?'Could not update the employee.':'Δεν ήταν δυνατή η ενημέρωση του εργαζομένου.'),'error')}finally{setSaving(false)}
+      if(updated.id!==employee.id)onCodeChanged?.(updated.id)
+    }catch(error){
+      if(error?.message==='DUPLICATE_EMPLOYEE_CODE')notify(language==='en'?'This employee / folder code is already in use.':'Ο κωδικός εργαζομένου / φακέλου χρησιμοποιείται ήδη.','danger')
+      else notify(error?.message||(language==='en'?'Could not update the employee.':'Δεν ήταν δυνατή η ενημέρωση του εργαζομένου.'),'error')
+    }finally{setSaving(false)}
   }
   const actions=canAdmin&&!editing?[{id:'edit',label:t('employeesRecords.editEmployee'),icon:Pencil,onClick:()=>setEditing(true)},{id:'delete',label:t('employeesRecords.deleteEmployee'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:deleteEmployee}]:[]
   return <div className="record-section committee-overview employee-details-overview">
     <div className="record-section-header"><div><span className="eyebrow">{t('employeesRecords.employeeAdministrativeData')}</span><h3>{t('employeesRecords.basicDetails')}</h3></div>{actions.length>0&&<OverflowMenu label={language==='en'?'Employee actions':'Ενέργειες εργαζομένου'} items={actions}/>}</div>
     <div className={`committee-detail-grid employee-full-grid ${editing?'employee-inline-edit':''}`}>
-      <InlineDetail editing={false} l={language==='en'?'Employee / folder code':'Κωδικός εργαζομένου / φακέλου'} v={record.id}/>
+      <InlineDetail editing={editing} l={language==='en'?'Employee / folder code':'Κωδικός εργαζομένου / φακέλου'} v={record.id} onChange={v=>set('id',v)}/>
       <InlineDetail editing={editing} l={t('firstName')} v={record.firstName} onChange={v=>set('firstName',v)}/>
       <InlineDetail editing={editing} l={t('lastName')} v={record.lastName} onChange={v=>set('lastName',v)}/>
       <InlineDetail editing={editing} l={t('fatherName')} v={language==='el'?record.fatherName:record.fatherNameEn} onChange={v=>set(language==='el'?'fatherName':'fatherNameEn',v)}/>
