@@ -1,8 +1,7 @@
-import { TrainingPage } from './TrainingPage'
 import { TrainingProductionPage } from './TrainingProductionPage'
-import { useTenant } from '../../core/tenant/TenantContext'
 
+// One canonical Training frontend for every data environment.
+// Demo/production differences belong in the service layer, not in separate pages.
 export function TrainingPageRoute(){
-  const {isDemo}=useTenant()
-  return isDemo?<TrainingPage/>:<TrainingProductionPage/>
+  return <TrainingProductionPage/>
 }
