@@ -81,6 +81,85 @@
 }
 .training-question-dialog .training-required-toggle span{margin:0!important;line-height:1.2!important;white-space:nowrap!important}
 
+/* Trial overflow menus in Training: isolate them from legacy generic button rules. */
+.training-assessment-view .lo-overflow-popover,
+.training-participants-view .lo-overflow-popover,
+.training-materials-panel .lo-overflow-popover,
+.training-assessment-view .lo-overflow-popover *,
+.training-participants-view .lo-overflow-popover *,
+.training-materials-panel .lo-overflow-popover *{box-sizing:border-box!important}
+.training-assessment-view .lo-overflow-popover,
+.training-participants-view .lo-overflow-popover,
+.training-materials-panel .lo-overflow-popover{
+  width:auto!important;
+  min-width:210px!important;
+  max-width:260px!important;
+  height:auto!important;
+  min-height:0!important;
+  padding:6px!important;
+  overflow:visible!important;
+}
+.training-assessment-view .lo-overflow-popover .lo-overflow-item,
+.training-participants-view .lo-overflow-popover .lo-overflow-item,
+.training-materials-panel .lo-overflow-popover .lo-overflow-item{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:38px!important;
+  min-height:38px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:10px!important;
+  padding:0 10px!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  font-size:12px!important;
+  font-weight:650!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+  text-align:left!important;
+}
+.training-assessment-view .lo-overflow-popover .lo-overflow-item svg,
+.training-participants-view .lo-overflow-popover .lo-overflow-item svg,
+.training-materials-panel .lo-overflow-popover .lo-overflow-item svg{
+  width:16px!important;
+  min-width:16px!important;
+  height:16px!important;
+  min-height:16px!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  flex:0 0 16px!important;
+}
+.training-assessment-view .lo-overflow-popover .lo-overflow-item span,
+.training-participants-view .lo-overflow-popover .lo-overflow-item span,
+.training-materials-panel .lo-overflow-popover .lo-overflow-item span{
+  display:block!important;
+  width:auto!important;
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  line-height:1.2!important;
+}
+.training-assessment-view .lo-overflow-popover .lo-overflow-item:hover:not(:disabled),
+.training-participants-view .lo-overflow-popover .lo-overflow-item:hover:not(:disabled),
+.training-materials-panel .lo-overflow-popover .lo-overflow-item:hover:not(:disabled){background:var(--lo-shell-control-hover)!important}
+.training-assessment-view .lo-overflow-popover .lo-overflow-item-danger:hover:not(:disabled),
+.training-participants-view .lo-overflow-popover .lo-overflow-item-danger:hover:not(:disabled),
+.training-materials-panel .lo-overflow-popover .lo-overflow-item-danger:hover:not(:disabled){background:var(--lo-status-danger-bg)!important}
+
 /* Public training form: single-use, token-only access, compact professional hierarchy. */
 .training-email-flow{display:grid;gap:18px;max-width:920px!important}
 .training-public-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:4px}
