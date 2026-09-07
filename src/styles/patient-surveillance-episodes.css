@@ -18,37 +18,64 @@
   overflow:auto;
 }
 
-/* Technical surveillance UUID is not a user-facing identifier. */
-.production-surveillance-page .surveillance-registry-head>span:first-child,
-.production-surveillance-page .surveillance-registry-row>.surv-main{
+/* Technical surveillance UUID is not a user-facing identifier in the patient registry. */
+.production-surveillance-page .surveillance-registry:not(.surveillance-registry-employee):not(.surveillance-registry-environment) .surveillance-registry-head>span:first-child,
+.production-surveillance-page .surveillance-registry:not(.surveillance-registry-employee):not(.surveillance-registry-environment) .surveillance-registry-row>.surv-main{
   display:none!important;
 }
-.production-surveillance-page .surveillance-registry-head,
-.production-surveillance-page .surveillance-registry-row{
+.production-surveillance-page .surveillance-registry:not(.surveillance-registry-employee):not(.surveillance-registry-environment) .surveillance-registry-head,
+.production-surveillance-page .surveillance-registry:not(.surveillance-registry-employee):not(.surveillance-registry-environment) .surveillance-registry-row{
   grid-template-columns:minmax(210px,1.25fr) minmax(120px,.7fr) minmax(105px,.62fr) minmax(150px,.9fr) minmax(145px,.82fr) minmax(125px,.72fr)!important;
 }
-.patient-record-shell .patient-summary-strip .patient-summary-item:first-child{
-  display:none!important;
+
+/* Unified employee surveillance: individual and bulk records share one table. */
+.production-surveillance-page .surveillance-registry-employee .surveillance-registry-head,
+.production-surveillance-page .surveillance-registry-employee .surveillance-registry-row{
+  grid-template-columns:minmax(250px,1.4fr) minmax(140px,.8fr) minmax(110px,.65fr) minmax(180px,1fr) minmax(145px,.8fr) minmax(135px,.75fr)!important;
 }
-.patient-record-shell .patient-summary-strip{
-  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+.production-surveillance-page .surveillance-registry-employee .surveillance-registry-head>span:first-child{
+  display:block!important;
 }
-.patient-record-shell .patient-details-panel .patient-detail-grid>.detail-item:nth-child(7){
-  display:none!important;
+.production-surveillance-page .surveillance-registry-employee .surv-patient{
+  min-width:0!important;
 }
+.production-surveillance-page .surveillance-registry-employee .surv-patient strong,
+.production-surveillance-page .surveillance-registry-employee .surv-patient small{
+  display:block!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+/* Environment uses the same compact registry language; no technical sample-ID column. */
+.production-surveillance-page .surveillance-registry-environment .surveillance-registry-head,
+.production-surveillance-page .surveillance-registry-environment .surveillance-registry-row{
+  grid-template-columns:minmax(260px,1.45fr) minmax(140px,.8fr) minmax(120px,.68fr) minmax(180px,1fr) minmax(140px,.78fr) minmax(120px,.68fr)!important;
+}
+.production-surveillance-page .surveillance-registry-environment .surveillance-registry-head>span:first-child{
+  display:block!important;
+}
+.production-surveillance-page .surveillance-registry-environment .surveillance-registry-row>div:first-child{
+  min-width:0!important;
+}
+.production-surveillance-page .surveillance-registry-environment .surveillance-registry-row>div:first-child strong,
+.production-surveillance-page .surveillance-registry-environment .surveillance-registry-row>div:first-child small{
+  display:block!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+.patient-record-shell .patient-summary-strip .patient-summary-item:first-child{display:none!important}
+.patient-record-shell .patient-summary-strip{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.patient-record-shell .patient-details-panel .patient-detail-grid>.detail-item:nth-child(7){display:none!important}
 .patient-record-shell .episode-table th:first-child,
-.patient-record-shell .episode-table td:first-child{
-  display:none!important;
-}
-.patient-record-shell .episode-table{
-  table-layout:fixed!important;
-}
+.patient-record-shell .episode-table td:first-child{display:none!important}
+.patient-record-shell .episode-table{table-layout:fixed!important}
 .patient-record-shell .episode-detail-header h2,
 .patient-record-shell .journey-case-id,
 .patient-record-shell .episode-report-group:nth-child(3)>strong,
-.patient-record-shell .final-report-footer>strong{
-  display:none!important;
-}
+.patient-record-shell .final-report-footer>strong{display:none!important}
 
 /* The record tabs should feel like one compact clinical workspace, not large empty canvases. */
 .patient-record-shell .patient-summary-layout,
@@ -58,71 +85,23 @@
   max-width:none!important;
   min-height:0!important;
 }
-.patient-record-shell .patient-summary-layout{
-  display:grid!important;
-  gap:12px!important;
-  align-content:start!important;
-}
+.patient-record-shell .patient-summary-layout{display:grid!important;gap:12px!important;align-content:start!important}
 .patient-record-shell .patient-details-panel,
-.patient-record-shell .clinical-panel.full-panel{
-  min-height:0!important;
-  height:auto!important;
-}
-.patient-record-shell .patient-details-panel{
-  padding:16px 18px!important;
-}
-.patient-record-shell .patient-detail-grid{
-  margin-top:14px!important;
-}
-.patient-record-shell .patient-summary-strip{
-  gap:8px!important;
-}
-.patient-record-shell .patient-summary-item{
-  min-height:74px!important;
-  padding:12px 14px!important;
-  align-content:center!important;
-}
-.patient-record-shell .clinical-data-hub{
-  padding:16px 18px 24px!important;
-}
-.patient-record-shell .clinical-data-heading{
-  margin-bottom:12px!important;
-}
-.patient-record-shell .clinical-data-grid{
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:12px!important;
-  align-items:start!important;
-}
-.patient-record-shell .clinical-data-grid>.clinical-panel{
-  min-height:0!important;
-  height:auto!important;
-  padding:16px!important;
-}
-.patient-record-shell .workflow-empty-step{
-  min-height:92px!important;
-  padding:18px!important;
-  display:flex!important;
-  flex-direction:column!important;
-  justify-content:center!important;
-}
-.patient-record-shell .clinical-timeline{
-  min-height:0!important;
-}
-.patient-record-shell .clinical-panel:has(.clinical-timeline){
-  min-height:180px!important;
-  height:auto!important;
-  padding:16px 18px!important;
-}
-.patient-record-shell .surveillance-workspace{
-  padding:16px 18px 22px!important;
-}
-.patient-record-shell .surveillance-workspace-toolbar{
-  margin-bottom:12px!important;
-}
-.patient-record-shell .episode-list-help{
-  margin-top:10px!important;
-}
+.patient-record-shell .clinical-panel.full-panel{min-height:0!important;height:auto!important}
+.patient-record-shell .patient-details-panel{padding:16px 18px!important}
+.patient-record-shell .patient-detail-grid{margin-top:14px!important}
+.patient-record-shell .patient-summary-strip{gap:8px!important}
+.patient-record-shell .patient-summary-item{min-height:74px!important;padding:12px 14px!important;align-content:center!important}
+.patient-record-shell .clinical-data-hub{padding:16px 18px 24px!important}
+.patient-record-shell .clinical-data-heading{margin-bottom:12px!important}
+.patient-record-shell .clinical-data-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;align-items:start!important}
+.patient-record-shell .clinical-data-grid>.clinical-panel{min-height:0!important;height:auto!important;padding:16px!important}
+.patient-record-shell .workflow-empty-step{min-height:92px!important;padding:18px!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
+.patient-record-shell .clinical-timeline{min-height:0!important}
+.patient-record-shell .clinical-panel:has(.clinical-timeline){min-height:180px!important;height:auto!important;padding:16px 18px!important}
+.patient-record-shell .surveillance-workspace{padding:16px 18px 22px!important}
+.patient-record-shell .surveillance-workspace-toolbar{margin-bottom:12px!important}
+.patient-record-shell .episode-list-help{margin-top:10px!important}
 
 /* Production surveillance uses the same shared spacing, control rhythm and registry language. */
 .production-surveillance-page .production-surveillance-frame{
@@ -134,7 +113,6 @@
 }
 
 .production-surveillance-page .surveillance-domain-tabs,
-.production-surveillance-page .surveillance-workspace > .canonical-module-tabs,
 .surveillance-mode-tabs{
   min-height:58px!important;
   display:flex!important;
@@ -162,39 +140,31 @@
   font-weight:700!important;
   cursor:pointer!important;
 }
-
 .production-surveillance-page .canonical-module-tabs .tab:hover,
-.surveillance-mode-tabs .tab:hover{
-  background:var(--lo-shell-control-hover)!important;
-  color:var(--lo-color-text)!important;
-}
-
+.surveillance-mode-tabs .tab:hover{background:var(--lo-shell-control-hover)!important;color:var(--lo-color-text)!important}
 .production-surveillance-page .canonical-module-tabs .tab.active,
-.surveillance-mode-tabs .tab.active{
-  background:var(--lo-status-info-bg)!important;
-  color:var(--lo-color-primary)!important;
-}
+.surveillance-mode-tabs .tab.active{background:var(--lo-status-info-bg)!important;color:var(--lo-color-primary)!important}
 
+/* Registries sit immediately below filters; no artificial empty vertical band. */
 .production-surveillance-page .production-surveillance-workspace{
   min-height:0!important;
   display:grid!important;
-  grid-template-rows:auto minmax(0,1fr) auto!important;
+  grid-template-rows:auto auto auto!important;
+  align-content:start!important;
   background:var(--lo-color-surface)!important;
 }
-
-.production-surveillance-page .filter-bar{
-  margin:12px 14px 0!important;
-}
-
+.production-surveillance-page .filter-bar{margin:12px 14px 0!important}
 .production-surveillance-page .surveillance-list{
   min-height:0!important;
+  height:auto!important;
+  max-height:520px!important;
+  align-self:start!important;
   margin:12px 14px 0!important;
   border:1px solid var(--lo-color-border)!important;
   border-radius:12px 12px 0 0!important;
   background:var(--lo-color-surface)!important;
   overflow:auto!important;
 }
-
 .production-surveillance-page .surveillance-registry-head{
   position:sticky!important;
   top:0!important;
@@ -209,7 +179,6 @@
   letter-spacing:.045em!important;
   text-transform:uppercase!important;
 }
-
 .production-surveillance-page .surveillance-registry-row{
   min-height:58px!important;
   align-items:center!important;
@@ -217,21 +186,10 @@
   background:var(--lo-color-surface)!important;
   transition:background .14s ease!important;
 }
-
-.production-surveillance-page .surveillance-registry-row:last-child{
-  border-bottom:0!important;
-}
-
+.production-surveillance-page .surveillance-registry-row:last-child{border-bottom:0!important}
 .production-surveillance-page .surveillance-registry-row:hover,
-.production-surveillance-page .surveillance-registry-row:focus-visible{
-  background:color-mix(in srgb,var(--lo-color-primary) 4%,var(--lo-color-surface))!important;
-  outline:none!important;
-}
-
-.production-surveillance-page .surveillance-registry-row strong{
-  color:var(--lo-color-text)!important;
-}
-
+.production-surveillance-page .surveillance-registry-row:focus-visible{background:color-mix(in srgb,var(--lo-color-primary) 4%,var(--lo-color-surface))!important;outline:none!important}
+.production-surveillance-page .surveillance-registry-row strong{color:var(--lo-color-text)!important}
 .production-surveillance-page .registry-pagination{
   margin:0 14px 12px!important;
   border:1px solid var(--lo-color-border)!important;
@@ -239,134 +197,44 @@
   border-radius:0 0 12px 12px!important;
   background:var(--lo-color-surface)!important;
 }
-
-/* Subject chooser keeps the existing workflow but follows the same card language. */
-.surveillance-subject-chooser .subject-choice-grid{
-  display:grid!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:12px!important;
-}
-
-.surveillance-subject-chooser .subject-choice-grid > button{
-  min-height:156px!important;
-  padding:20px!important;
+.production-surveillance-page .surveillance-registry-empty.compact{
+  min-height:150px!important;
+  height:auto!important;
+  padding:28px 20px!important;
   display:flex!important;
   flex-direction:column!important;
-  align-items:flex-start!important;
-  justify-content:flex-start!important;
+  align-items:center!important;
+  justify-content:center!important;
   gap:8px!important;
-  border:1px solid var(--lo-color-border)!important;
-  border-radius:14px!important;
-  background:var(--lo-color-surface)!important;
-  color:var(--lo-color-text)!important;
-  text-align:left!important;
-  cursor:pointer!important;
-  transition:border-color .14s ease,box-shadow .14s ease,transform .14s ease!important;
+  text-align:center!important;
 }
+.production-surveillance-page .surveillance-registry-empty.compact strong{font-size:16px!important}
+.production-surveillance-page .surveillance-registry-empty.compact span{max-width:620px!important;font-size:12px!important;color:var(--lo-color-muted)!important}
 
+/* Subject chooser keeps the existing workflow but follows the same card language. */
+.surveillance-subject-chooser .subject-choice-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}
+.surveillance-subject-chooser .subject-choice-grid > button{min-height:156px!important;padding:20px!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:8px!important;border:1px solid var(--lo-color-border)!important;border-radius:14px!important;background:var(--lo-color-surface)!important;color:var(--lo-color-text)!important;text-align:left!important;cursor:pointer!important;transition:border-color .14s ease,box-shadow .14s ease,transform .14s ease!important}
 .surveillance-subject-chooser .subject-choice-grid > button:hover,
-.surveillance-subject-chooser .subject-choice-grid > button:focus-visible{
-  border-color:color-mix(in srgb,var(--lo-color-primary) 34%,var(--lo-color-border))!important;
-  box-shadow:0 8px 24px color-mix(in srgb,var(--lo-color-text) 8%,transparent)!important;
-  transform:translateY(-1px)!important;
-  outline:none!important;
-}
-
-.surveillance-subject-chooser .subject-choice-grid > button > span{
-  color:var(--lo-color-muted)!important;
-  font-size:11px!important;
-  font-weight:700!important;
-}
-
-.surveillance-subject-chooser .subject-choice-grid > button > strong{
-  font-size:17px!important;
-  line-height:1.25!important;
-}
-
-.surveillance-subject-chooser .subject-choice-grid > button > small{
-  color:var(--lo-color-muted)!important;
-  font-size:12px!important;
-  line-height:1.45!important;
-}
+.surveillance-subject-chooser .subject-choice-grid > button:focus-visible{border-color:color-mix(in srgb,var(--lo-color-primary) 34%,var(--lo-color-border))!important;box-shadow:0 8px 24px color-mix(in srgb,var(--lo-color-text) 8%,transparent)!important;transform:translateY(-1px)!important;outline:none!important}
+.surveillance-subject-chooser .subject-choice-grid > button > span{color:var(--lo-color-muted)!important;font-size:11px!important;font-weight:700!important}
+.surveillance-subject-chooser .subject-choice-grid > button > strong{font-size:17px!important;line-height:1.25!important}
+.surveillance-subject-chooser .subject-choice-grid > button > small{color:var(--lo-color-muted)!important;font-size:12px!important;line-height:1.45!important}
 
 /* Employee surveillance flow: shared fields/buttons, compact but readable bulk workspace. */
 .employee-surveillance-entry .entry-grid,
-.bulk-surveillance-entry .entry-grid{
-  gap:14px!important;
-}
-
-.bulk-surveillance-controls{
-  display:grid!important;
-  grid-template-columns:minmax(260px,1fr) minmax(240px,1fr)!important;
-  gap:14px!important;
-  margin-bottom:14px!important;
-}
-
-.bulk-screening-types{
-  display:grid!important;
-  gap:8px!important;
-  margin:0 0 14px!important;
-}
-
+.bulk-surveillance-entry .entry-grid{gap:14px!important}
+.bulk-surveillance-controls{display:grid!important;grid-template-columns:minmax(260px,1fr) minmax(240px,1fr)!important;gap:14px!important;margin-bottom:14px!important}
+.bulk-screening-types{display:grid!important;gap:8px!important;margin:0 0 14px!important}
 .bulk-screening-types > span,
 .bulk-surveillance-entry .field > span,
-.employee-surveillance-entry .field > span{
-  color:var(--lo-color-muted)!important;
-  font-size:11px!important;
-  font-weight:700!important;
-}
-
-.screening-choice-list{
-  display:flex!important;
-  flex-wrap:wrap!important;
-  gap:8px!important;
-}
-
-.screening-choice-list .button{
-  min-height:38px!important;
-  padding:0 13px!important;
-}
-
+.employee-surveillance-entry .field > span{color:var(--lo-color-muted)!important;font-size:11px!important;font-weight:700!important}
+.screening-choice-list{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
+.screening-choice-list .button{min-height:38px!important;padding:0 13px!important}
 .screening-choice-list .button.selected,
-.screening-choice-list .button[aria-pressed='true']{
-  border-color:color-mix(in srgb,var(--lo-status-success-fg) 32%,var(--lo-color-border))!important;
-  background:var(--lo-status-success-bg)!important;
-  color:var(--lo-status-success-fg)!important;
-}
-
-.bulk-employee-list{
-  min-height:220px!important;
-  max-height:360px!important;
-  overflow:auto!important;
-  border:1px solid var(--lo-color-border)!important;
-  border-radius:12px!important;
-  background:var(--lo-color-surface)!important;
-}
-
-.bulk-list-head{
-  position:sticky!important;
-  top:0!important;
-  z-index:2!important;
-  min-height:56px!important;
-  padding:8px 12px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:space-between!important;
-  gap:12px!important;
-  border-bottom:1px solid var(--lo-color-border)!important;
-  background:var(--lo-shell-control-hover)!important;
-}
-
-.bulk-employee-list > label{
-  min-height:54px!important;
-  padding:9px 12px!important;
-  display:flex!important;
-  align-items:center!important;
-  gap:12px!important;
-  border-bottom:1px solid var(--lo-color-border)!important;
-  cursor:pointer!important;
-}
-
+.screening-choice-list .button[aria-pressed='true']{border-color:color-mix(in srgb,var(--lo-status-success-fg) 32%,var(--lo-color-border))!important;background:var(--lo-status-success-bg)!important;color:var(--lo-status-success-fg)!important}
+.bulk-employee-list{min-height:220px!important;max-height:360px!important;overflow:auto!important;border:1px solid var(--lo-color-border)!important;border-radius:12px!important;background:var(--lo-color-surface)!important}
+.bulk-list-head{position:sticky!important;top:0!important;z-index:2!important;min-height:56px!important;padding:8px 12px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;border-bottom:1px solid var(--lo-color-border)!important;background:var(--lo-shell-control-hover)!important}
+.bulk-employee-list > label{min-height:54px!important;padding:9px 12px!important;display:flex!important;align-items:center!important;gap:12px!important;border-bottom:1px solid var(--lo-color-border)!important;cursor:pointer!important}
 .bulk-employee-list > label:last-child{border-bottom:0!important}
 .bulk-employee-list > label:hover{background:color-mix(in srgb,var(--lo-color-primary) 3%,var(--lo-color-surface))!important}
 .bulk-employee-list > label.selected{background:var(--lo-status-info-bg)!important}
@@ -380,7 +248,6 @@
   .patient-record-shell .patient-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .patient-record-shell .clinical-data-grid{grid-template-columns:1fr!important}
 }
-
 @media(max-width:1000px){
   .patient-record-shell .episode-list-columns{grid-template-columns:1fr!important}
   .patient-record-shell .episode-list-panel{min-height:220px!important}
