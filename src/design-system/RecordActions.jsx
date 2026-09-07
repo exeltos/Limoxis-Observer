@@ -17,8 +17,9 @@ const config={
 }
 export function RecordActions({actions=[],resourceCapability,actionCapabilities={},locked=false,onAction=()=>{},iconOnly=false}){
  const {t}=useLanguage()
- const {role,membership}=useTenant()
+ const {role,actualRole,membership}=useTenant()
  const {confirm}=useFeedback()
+ const permissionRole=role||actualRole
  const addOns=membership?.capabilities??[]
  const customCapabilities=membership?.customCapabilities??[]
  async function dispatch(action){
@@ -28,5 +29,5 @@ export function RecordActions({actions=[],resourceCapability,actionCapabilities=
   }
   onAction(action)
  }
- return <div className="record-actions">{actions.filter(action=>canPerform({role,addOns,customCapabilities,action,resourceCapability:actionCapabilities[action]??resourceCapability,locked})).map(action=>{const item=config[action];if(!item)return null;const Icon=item.icon;const compact=iconOnly||action===UI_ACTIONS.PRINT||action===UI_ACTIONS.EXPORT;return <ActionButton key={action} label={t(item.key)} tone={item.tone} iconOnly={compact} onClick={()=>dispatch(action)}><Icon size={15}/>{!compact&&<span>{t(item.key)}</span>}</ActionButton>})}</div>
+ return <div className="record-actions">{actions.filter(action=>canPerform({role:permissionRole,addOns,customCapabilities,action,resourceCapability:actionCapabilities[action]??resourceCapability,locked})).map(action=>{const item=config[action];if(!item)return null;const Icon=item.icon;const compact=iconOnly||action===UI_ACTIONS.PRINT||action===UI_ACTIONS.EXPORT;return <ActionButton key={action} label={t(item.key)} tone={item.tone} iconOnly={compact} onClick={()=>dispatch(action)}><Icon size={15}/>{!compact&&<span>{t(item.key)}</span>}</ActionButton>})}</div>
 }
