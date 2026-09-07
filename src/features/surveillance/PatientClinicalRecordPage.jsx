@@ -8,6 +8,7 @@ import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { AttachmentField } from '../../design-system/AttachmentField'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { EmptyState } from '../../design-system/EmptyState'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -664,8 +665,12 @@ function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confir
   const canDelete=has(CAPABILITIES.DELETE_PATIENT)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
   async function remove(){const ok=await confirm({title:t('confirmAction'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')});if(ok)notify(t('actionCompleted'),'warning')}
+  const patientActions=[
+    canEdit&&{id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setEditing(true)},
+    canDelete&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:canEdit,onClick:remove},
+  ].filter(Boolean)
   return <section className="clinical-panel full-panel patient-details-panel">
-    <div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.patientDetails')}</h3></div><div className="record-inline-actions">{canEdit&&!editing&&<button className="edit" title={t('edit')} onClick={()=>setEditing(true)}><Pencil size={16}/></button>}{canDelete&&!editing&&<button className="danger" title={t('delete')} onClick={remove}><Trash2 size={16}/></button>}</div></div>
+    <div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.patientDetails')}</h3></div>{!editing&&patientActions.length>0&&<OverflowMenu label={t('actions')} items={patientActions}/>}</div>
     <div className={`detail-grid patient-detail-grid ${editing?'employee-inline-edit':''}`}>
       <PatientInline l={t('patientId')} v={draft.id||record?.patientId}/>
       <PatientInline editing={editing} l={t('name')} v={language==='el'?(draft.name||record?.patient):(draft.nameEn||record?.patientEn)} onChange={v=>set(language==='el'?'name':'nameEn',v)}/>
