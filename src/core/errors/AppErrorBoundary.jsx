@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { TriangleAlert } from 'lucide-react'
+import { Button } from '../../design-system/Button'
 
 export class AppErrorBoundary extends Component {
   state = { error: null }
@@ -29,9 +30,9 @@ export class AppErrorBoundary extends Component {
             ?'The application could not display this screen. Your stored records have not been changed.'
             :'Η εφαρμογή δεν μπόρεσε να εμφανίσει αυτή την οθόνη. Οι αποθηκευμένες εγγραφές σας δεν έχουν τροποποιηθεί.'}</p>
         </div>
-        <button type="button" className="button primary" onClick={this.reload}>
+        <Button onClick={this.reload}>
           {english?'Reload application':'Επαναφόρτωση εφαρμογής'}
-        </button>
+        </Button>
       </div>
     </main>
   }
