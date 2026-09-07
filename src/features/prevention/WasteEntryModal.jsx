@@ -1,9 +1,9 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Recycle } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { wasteCategoryTone } from './wasteVisuals'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 export function WasteEntryModal({onClose,onSave,fixedDepartment='',initialRecord=null,departments=[],wasteTypes=[],findPatientDays}){
@@ -49,8 +49,15 @@ export function WasteEntryModal({onClose,onSave,fixedDepartment='',initialRecord
    updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized'})
  }
  function changeWasteType(value){const selected=wasteTypes.find(x=>x.id===value);setDraft(d=>({...d,wasteTypeId:value,wasteType:selected?.el||'',type:selected?.el||'',typeEn:selected?.en||''}))}
- return <div className="modal-backdrop"><div className="entry-card prevention-entry-card waste-entry-card">
-  <header><div className="prevention-entry-title"><Recycle size={20}/><div><span className="eyebrow">{en?'PREVENTION CENTER':'ΚΕΝΤΡΟ ΠΡΟΛΗΨΗΣ'}</span><h3>{initialRecord?(en?'Edit waste measurement':'Επεξεργασία μέτρησης αποβλήτων'):(en?'New waste measurement':'Νέα μέτρηση αποβλήτων')}</h3><p>{en?'Record weight, containers and indicator per 1,000 patient-days.':'Καταγραφή βάρους, περιεκτών και δείκτη ανά 1.000 νοσηλευτικές ημέρες.'}</p></div></div><button className="icon-close" onClick={onClose}>×</button></header>
+ return <ObserverDialog
+  eyebrow={en?'PREVENTION CENTER':'ΚΕΝΤΡΟ ΠΡΟΛΗΨΗΣ'}
+  title={initialRecord?(en?'Edit waste measurement':'Επεξεργασία μέτρησης αποβλήτων'):(en?'New waste measurement':'Νέα μέτρηση αποβλήτων')}
+  subtitle={en?'Record weight, containers and indicator per 1,000 patient-days.':'Καταγραφή βάρους, περιεκτών και δείκτη ανά 1.000 νοσηλευτικές ημέρες.'}
+  width="workspace"
+  className="prevention-entry-card waste-entry-card"
+  onClose={onClose}
+  footer={<DialogActions showCancel onCancel={onClose} onSave={submit} disabled={!valid||!departments.length||!wasteTypes.length} saveLabel={initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Save measurement':'Αποθήκευση μέτρησης')}/>}
+ >
   <div className="prevention-entry-body">
    <div className="prevention-entry-actor"><span>{initialRecord?(en?'Edited by':'Επεξεργασία από'):(en?'Recorded by':'Καταχώρηση από')}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
    <section className="waste-form-section"><div className="waste-form-section-title"><strong>{en?'Measurement':'Μέτρηση'}</strong><small>{en?'Waste category comes from the central Library.':'Η κατηγορία αποβλήτου προέρχεται από τη Βιβλιοθήκη.'}</small></div>
@@ -72,7 +79,6 @@ export function WasteEntryModal({onClose,onSave,fixedDepartment='',initialRecord
     <div className="entry-grid"><label><span>{en?'Responsible person':'Υπεύθυνος'}</span><input value={draft.responsible||''} onChange={e=>set('responsible',e.target.value)} placeholder={actor.name}/></label><label><span>{en?'Document number':'Αριθμός παραστατικού'}</span><input value={draft.documentNumber||''} onChange={e=>set('documentNumber',e.target.value)} placeholder={en?'e.g. 112233':'π.χ. 112233'}/></label><label className="entry-span-2"><span>{en?'Collection company':'Εταιρεία συλλογής'}</span><input value={draft.collectionCompany||''} onChange={e=>set('collectionCompany',e.target.value)} placeholder={en?'Company name':'Επωνυμία εταιρείας'}/></label><label className="entry-span-2"><span>{en?'Notes':'Σημειώσεις'}</span><textarea rows="3" value={draft.notes||''} onChange={e=>set('notes',e.target.value)} placeholder={en?'Optional notes':'Προαιρετικές παρατηρήσεις'}/></label></div>
    </section>
   </div>
-  <footer><button className="button" onClick={onClose}>{en?'Cancel':'Ακύρωση'}</button><button className="button button-primary" disabled={!valid||!departments.length||!wasteTypes.length} onClick={submit}>{initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Save measurement':'Αποθήκευση μέτρησης')}</button></footer>
- </div></div>
+ </ObserverDialog>
 }
 function DepartmentField({value,onChange,departments,fixed}){const {language}=useLanguage();return <label><span>{language==='en'?'Department *':'Τμήμα *'}</span><select value={value} disabled={fixed} onChange={e=>onChange(e.target.value)}>{departments.map(d=><option key={d.id||d.el} value={d.el}>{language==='en'?(d.en||d.el):d.el}</option>)}</select></label>}
