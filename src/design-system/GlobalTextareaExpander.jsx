@@ -86,7 +86,7 @@ export function GlobalTextareaExpander(){
     <section className="global-textarea-editor" role="dialog" aria-modal="true" aria-labelledby="global-textarea-title">
       <header><div><span>{en?'Large text editor':'Επεξεργασία μεγάλου κειμένου'}</span><h2 id="global-textarea-title">{active.label}</h2></div><button type="button" className="global-textarea-editor-close" onClick={()=>setActive(null)} aria-label={en?'Close':'Κλείσιμο'}><X size={18}/></button></header>
       <div className="global-textarea-editor-body"><textarea autoFocus value={value} readOnly={active.readOnly} onChange={e=>setValue(e.target.value)} aria-label={active.label}/><div className="global-textarea-editor-hint"><Maximize2 size={14}/><span>{active.readOnly?(en?'Large-text view. This field is read-only.':'Προβολή μεγάλου κειμένου. Το πεδίο είναι μόνο για ανάγνωση.'):(en?'Write or edit the text comfortably. The change is applied to the original field when you select Apply.':'Γράψε ή επεξεργάσου άνετα το κείμενο. Η αλλαγή εφαρμόζεται στο αρχικό πεδίο όταν πατήσεις «Εφαρμογή».')}</span></div></div>
-      <footer><Button variant="secondary" onClick={()=>setActive(null)}>{active.readOnly?(en?'Close':'Κλείσιμο'):(en?'Cancel':'Ακύρωση')}</Button>{!active.readOnly&&<Button onClick={apply}>{en?'Apply':'Εφαρμογή'}</Button>}</footer>
+      {!active.readOnly&&<footer><Button variant="secondary" onClick={()=>setActive(null)}>{en?'Cancel':'Ακύρωση'}</Button><Button onClick={apply}>{en?'Apply':'Εφαρμογή'}</Button></footer>}
     </section>
   </div>,document.body)
 }
