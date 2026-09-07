@@ -1,0 +1,22 @@
+/* Patient surveillance episode lists: use the available record workspace height. */
+.patient-record-shell .episode-list-columns{
+  align-items:stretch;
+  min-height:clamp(360px,42vh,520px);
+}
+
+.patient-record-shell .episode-list-panel{
+  min-height:clamp(360px,42vh,520px);
+}
+
+.patient-record-shell .episode-table-wrap{
+  max-height:none;
+  height:100%;
+  overflow:auto;
+}
+
+@media(max-width:1000px){
+  .patient-record-shell .episode-list-columns,
+  .patient-record-shell .episode-list-panel{
+    min-height:320px;
+  }
+}
