@@ -5,6 +5,7 @@ import { useLanguage } from '../core/i18n/LanguageContext'
 import { useContextualNavigation } from '../core/navigation/useContextualNavigation'
 import { registryStorageKey } from '../core/navigation/useRegistryMemory'
 import { readSessionJson,writeSessionValue } from '../core/storage/browserStorage'
+import { ActionButton } from './ActionButton'
 import { BackButton } from './BackButton'
 import { IconButton } from './IconButton'
 
@@ -34,7 +35,13 @@ function recordActionKind(action){
 function normalizeGeneralAction(action){
   const kind=recordActionKind(action)
   if(!kind)return null
-  return cloneElement(action,{className:`${action.props.className||''} record-crud-action record-crud-${kind}`.trim()})
+  const className=`${action.props.className||''} record-crud-action record-crud-${kind}`.trim()
+  const tone=kind==='delete'?'danger':'edit'
+  const label=action.props['aria-label']||action.props.title||(kind==='delete'?'Delete':'Edit')
+  if(action.type===ActionButton)return cloneElement(action,{tone,iconOnly:true,className,label})
+  if(action.type===IconButton)return cloneElement(action,{tone,className,label})
+  const {children,title:actionTitle,className:ignoredClassName,...props}=action.props
+  return <ActionButton key={action.key||`${kind}-${label}`} label={label} tone={tone} iconOnly className={className} title={actionTitle||label} {...props}>{children}</ActionButton>
 }
 
 export function EntityRecordShell({
