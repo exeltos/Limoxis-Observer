@@ -1,13 +1,13 @@
-import { Children, Fragment, cloneElement, isValidElement } from 'react'
+import { Children, Fragment, isValidElement } from 'react'
 import { ChevronLeft,ChevronRight } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useContextualNavigation } from '../core/navigation/useContextualNavigation'
 import { registryStorageKey } from '../core/navigation/useRegistryMemory'
 import { readSessionJson,writeSessionValue } from '../core/storage/browserStorage'
-import { ActionButton } from './ActionButton'
 import { BackButton } from './BackButton'
 import { IconButton } from './IconButton'
+import { OverflowMenu } from './OverflowMenu'
 
 function flattenActions(node,result=[]){
   Children.forEach(node,child=>{
@@ -34,20 +34,29 @@ function recordActionKind(action){
   return edit?'edit':null
 }
 
-function normalizeGeneralAction(action){
+function actionLabel(action,kind,en){
+  return action.props.label||action.props['aria-label']||action.props.title||(kind==='delete'?(en?'Delete':'Διαγραφή'):(en?'Edit':'Επεξεργασία'))
+}
+
+function actionIcon(action){
+  const children=Children.toArray(action.props.children)
+  const icon=children.find(child=>isValidElement(child)&&typeof child.type!=='string')
+  return icon?.type||null
+}
+
+function toOverflowItem(action,index,en){
   const kind=recordActionKind(action)
   if(!kind)return null
-  const className=`${action.props.className||''} record-crud-action record-crud-${kind}`.trim()
-  const tone=kind==='delete'?'danger':'edit'
-  const label=action.props.label||action.props['aria-label']||action.props.title||(kind==='delete'?'Delete':'Edit')
-  const explicitDestructive=kind==='delete'
-  if(action.type===ActionButton){
-    const children=explicitDestructive?<>{action.props.children}<span>{label}</span></>:action.props.children
-    return cloneElement(action,{tone,iconOnly:!explicitDestructive,className,label},children)
+  const label=actionLabel(action,kind,en)
+  return {
+    id:action.key||`${kind}-${index}`,
+    label,
+    icon:actionIcon(action),
+    tone:kind==='delete'?'danger':undefined,
+    separatorBefore:kind==='delete',
+    disabled:action.props.disabled,
+    onClick:action.props.onClick,
   }
-  if(action.type===IconButton&&!explicitDestructive)return cloneElement(action,{tone,className,label})
-  const {children,title:actionTitle,className:ignoredClassName,...props}=action.props
-  return <ActionButton key={action.key||`${kind}-${label}`} label={label} tone={tone} iconOnly={!explicitDestructive} className={className} title={actionTitle||label} {...props}>{children}{explicitDestructive&&<span>{label}</span>}</ActionButton>
 }
 
 export function EntityRecordShell({
@@ -99,7 +108,8 @@ export function EntityRecordShell({
   }:null
   const effectiveRecordNavigation=recordNavigation||fallbackNavigation
 
-  const generalActions=isPlatformOwnerRecord?[]:flattenActions(headerActions).map(normalizeGeneralAction).filter(Boolean)
+  const rawGeneralActions=isPlatformOwnerRecord?[]:flattenActions(headerActions)
+  const generalMenuItems=rawGeneralActions.map((action,index)=>toOverflowItem(action,index,en)).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   const secondaryBodyStyle=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
 
@@ -126,7 +136,7 @@ export function EntityRecordShell({
       {tabs.map(({id,label,icon:Icon,disabled=false,lockedLabel})=><button key={id} role="tab" aria-selected={activeTab===id} aria-disabled={disabled} disabled={disabled} title={disabled?(lockedLabel||t('locked')):undefined} className={`${activeTab===id?'active':''} ${disabled?'locked':''}`.trim()} onClick={()=>!disabled&&onTabChange(id)}>{Icon&&<Icon size={16}/>}<span>{label}</span>{disabled&&<small className="tab-lock">🔒</small>}</button>)}
     </nav>
     <section className="entity-record-body surface" style={secondaryBodyStyle}>
-      {primaryTabActive&&generalActions.length>0&&<div className="record-inline-actions entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}>{generalActions}</div>}
+      {primaryTabActive&&generalMenuItems.length>0&&<div className="record-inline-actions entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}><OverflowMenu label={en?'Record actions':'Ενέργειες εγγραφής'} items={generalMenuItems}/></div>}
       {children}
     </section>
   </div>
