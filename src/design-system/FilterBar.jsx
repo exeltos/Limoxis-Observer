@@ -1,4 +1,5 @@
 import { ManualDateField } from './ManualDateField'
+import { ActionButton } from './ActionButton'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Filter, Search, X } from 'lucide-react'
@@ -54,6 +55,7 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
 
   const filterContent=(children||advanced)?<>{children}{advanced}</>:null
   const showClear=Boolean(onClear&&(query||activeAdvancedCount>0))
+  const clearLabel=t('clearFilters')
 
   const popover=filterContent&&open&&createPortal(
     <div
@@ -64,7 +66,7 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
       aria-label={t('filters')}
     >
       <div className="filter-popover-fields">{filterContent}</div>
-      {onClear&&activeAdvancedCount>0&&<div className="filter-popover-footer"><button type="button" className="filter-popover-clear" onClick={()=>{onClear();setOpen(false)}}><X size={14}/><span>{t('clearFilters')}</span></button></div>}
+      {onClear&&activeAdvancedCount>0&&<div className="filter-popover-footer"><ActionButton label={clearLabel} tone="neutral" className="filter-popover-clear" onClick={()=>{onClear();setOpen(false)}}><X size={14}/><span>{clearLabel}</span></ActionButton></div>}
     </div>,
     document.body
   )
@@ -73,7 +75,7 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
     <div className="filter-primary-row">
       {onQueryChange&&<label className="filter-search"><Search size={16}/><input value={query} onChange={e=>onQueryChange(e.target.value)} placeholder={placeholder||`${t('search')}...`}/></label>}
       {filterContent&&<button ref={triggerRef} type="button" className={`filter-trigger ${open||activeAdvancedCount?'active':''}`} aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Filter size={16}/><span>{t('filters')}</span>{activeAdvancedCount>0&&<b>{activeAdvancedCount}</b>}</button>}
-      {showClear&&<button type="button" className="filter-clear-button" onClick={onClear}><X size={14}/><span>{t('clearFilters')}</span></button>}
+      {showClear&&<ActionButton label={clearLabel} tone="neutral" className="filter-clear-button" onClick={onClear}><X size={14}/><span>{clearLabel}</span></ActionButton>}
     </div>
     {popover}
   </div>
