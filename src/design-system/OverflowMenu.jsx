@@ -17,9 +17,10 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm'}
     const trigger=triggerRef.current
     if(!trigger)return
     const rect=trigger.getBoundingClientRect()
-    const estimatedWidth=220
-    const left=align==='start'?rect.left:Math.max(8,rect.right-estimatedWidth)
-    setPosition({top:rect.bottom+6,left})
+    const width=220
+    const viewportWidth=window.innerWidth||document.documentElement.clientWidth
+    const left=align==='start'?Math.min(rect.left,viewportWidth-width-8):Math.max(8,Math.min(rect.right-width,viewportWidth-width-8))
+    setPosition({top:rect.bottom+6,left,width})
   }
 
   useLayoutEffect(()=>{if(open)updatePosition()},[open,align])
@@ -46,7 +47,7 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm'}
 
   if(!visibleItems.length)return null
   const resolvedLabel=label||(en?'More actions':'Περισσότερες ενέργειες')
-  const popover=open&&position?<div ref={popoverRef} className="lo-overflow-popover lo-overflow-popover-portal" style={{top:position.top,left:position.left}} role="menu" aria-label={resolvedLabel} onClick={event=>event.stopPropagation()}>
+  const popover=open&&position?<div ref={popoverRef} className="lo-overflow-popover lo-overflow-popover-portal" style={{position:'fixed',top:position.top,left:position.left,width:position.width,zIndex:2400}} role="menu" aria-label={resolvedLabel} onClick={event=>event.stopPropagation()}>
     {visibleItems.map((item,index)=>{
       const Icon=item.icon
       return <div key={item.id||item.label||index} className={item.separatorBefore?'lo-overflow-separated':''}>
