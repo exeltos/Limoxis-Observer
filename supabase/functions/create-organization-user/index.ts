@@ -22,9 +22,12 @@ async function linkOrCreateEmployee(admin:any,{organizationId,userId,normalizedE
   if(!employee?.create)return null
   const firstName=String(employee.firstName||'').trim(),lastName=String(employee.lastName||'').trim(),employeeCode=String(employee.employeeCode||'').trim()
   if(!firstName||!lastName||!employeeCode)throw new Error('EMPLOYEE_REQUIRED_FIELDS_MISSING')
+  const {data:duplicate,error:duplicateError}=await admin.from('employees').select('id').eq('organization_id',organizationId).ilike('employee_code',employeeCode).maybeSingle()
+  if(duplicateError)throw duplicateError
+  if(duplicate)throw new Error('DUPLICATE_EMPLOYEE_CODE')
   const row={organization_id:organizationId,user_id:userId,employee_code:employeeCode,department_id:employee.departmentId||null,first_name:firstName,first_name_en:employee.firstNameEn||firstName,last_name:lastName,last_name_en:employee.lastNameEn||lastName,father_name:employee.fatherName||null,department_name:employee.departmentName||null,department_name_en:employee.departmentNameEn||employee.departmentName||null,profession_name:employee.professionName||jobTitle||null,profession_name_en:employee.professionNameEn||employee.professionName||jobTitle||null,employment_status:employee.employmentStatus||'active',email:normalizedEmail,phone:phone||null,hire_date:employee.hireDate||null,birth_date:employee.birthDate||null}
   const {data:created,error}=await admin.from('employees').insert(row).select('id').single()
-  if(error)throw error
+  if(error){if(error.code==='23505')throw new Error('DUPLICATE_EMPLOYEE_CODE');throw error}
   return created.id
 }
 
