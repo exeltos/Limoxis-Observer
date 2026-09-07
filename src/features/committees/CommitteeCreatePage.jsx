@@ -39,7 +39,7 @@ export function CommitteeCreatePage(){
  return <Page><EntityRecordShell className="committee-create-shell" avatar={<BookOpenCheck size={19}/>} eyebrow={en?'Committees':'Επιτροπές'} title={en?'New committee / group':'Νέα επιτροπή / ομάδα'} subtitle={en?'Create committee record':'Δημιουργία καρτέλας επιτροπής'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={goBack}>
   <div className="record-section committee-create-form">
    <div className="entry-grid">
-    <label><span>{en?'Committee / group type *':'Τύπος επιτροπής / ομάδας *'}</span><select value={draft.templateId} onChange={e=>chooseTemplate(e.target.value)}>{IPC_COMMITTEE_CATALOG.map(x=><option key={x.id} value={x.id}>{x.code?`${x.code} — `:''}{x.name}</option>)}</select></label>
+    <label className="entry-span-2"><span>{en?'Committee / group type *':'Τύπος επιτροπής / ομάδας *'}</span><select value={draft.templateId} onChange={e=>chooseTemplate(e.target.value)}>{IPC_COMMITTEE_CATALOG.map(x=><option key={x.id} value={x.id}>{x.code?`${x.code} — `:''}{x.name}</option>)}</select></label>
     <label><span>{en?'Short name':'Σύντομη ονομασία'}</span><input value={draft.shortName} onChange={e=>set('shortName',e.target.value)}/></label>
     <label className="entry-span-2"><span>{en?'Name *':'Ονομασία *'}</span><input autoFocus value={draft.name} onChange={e=>set('name',e.target.value)}/></label>
     <label><span>{en?'Decision no.':'Αρ. απόφασης'}</span><input value={draft.decisionNumber} onChange={e=>set('decisionNumber',e.target.value)}/></label>
