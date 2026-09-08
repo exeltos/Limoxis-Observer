@@ -108,7 +108,7 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
       <button type="button" className={`who-action-option ${current.action==='HW'?'selected':''}`} onClick={()=>setO('action','HW')} role="radio" aria-checked={current.action==='HW'}><span className="who-action-check">{current.action==='HW'?'✓':''}</span><span><strong>{en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'}</strong><small>Hand Wash (HW)</small></span></button>
       <button type="button" className={`who-action-option ${current.action==='MISSED'?'selected danger':''}`} onClick={()=>setO('action','MISSED')} role="radio" aria-checked={current.action==='MISSED'}><span className="who-action-check">{current.action==='MISSED'?'✓':''}</span><span><strong>{en?'Not performed':'Δεν πραγματοποιήθηκε'}</strong><small>Missed</small></span></button>
      </div>
-     <label className="who-gloves-row"><input type="checkbox" checked={current.gloves} onChange={event=>setO('gloves',event.target.checked)}/><span><strong>{en?'Glove use':'Χρήση γαντιών'}</strong><small>{current.gloves?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</small></span></label>
+     <label className="who-gloves-toggle"><input type="checkbox" checked={current.gloves} onChange={event=>setO('gloves',event.target.checked)}/><span><strong>{en?'Glove use':'Χρήση γαντιών'}</strong><small>{current.gloves?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</small></span></label>
     </div>
     <label className="who-full-row who-note-field"><span>{en?'Note':'Σημείωση'}</span><input value={current.notes} onChange={event=>setO('notes',event.target.value)} placeholder={en?'Optional note':'Προαιρετική σημείωση'}/></label>
    </div>
