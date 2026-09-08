@@ -12,13 +12,16 @@ export function ObserverDialog({
   children,
   footer,
   width='standard',
+  presentation='modal',
   className='',
 }){
   const {language}=useLanguage();const en=language==='en'
   const allowedWidths=new Set(['compact','standard','wide','workspace'])
+  const allowedPresentations=new Set(['modal','workspace'])
   const dialogWidth=allowedWidths.has(width)?width:'standard'
-  return <div className="modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose?.()}}>
-    <section className={`entry-card observer-dialog observer-dialog-${dialogWidth} ${className}`.trim()} role="dialog" aria-modal="true" aria-label={title}>
+  const dialogPresentation=allowedPresentations.has(presentation)?presentation:'modal'
+  return <div className={`modal-backdrop observer-dialog-backdrop observer-dialog-backdrop-${dialogPresentation}`} role="presentation" onMouseDown={e=>{if(dialogPresentation==='modal'&&e.target===e.currentTarget)onClose?.()}}>
+    <section className={`entry-card observer-dialog observer-dialog-${dialogWidth} observer-dialog-presentation-${dialogPresentation} ${className}`.trim()} role="dialog" aria-modal={dialogPresentation==='modal'} aria-label={title}>
       <header>
         <div>
           {eyebrow&&<span className="eyebrow">{eyebrow}</span>}
