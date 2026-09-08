@@ -1,6 +1,14 @@
 import { Activity, BarChart3, Beaker, BookOpenCheck, Building2, ClipboardCheck, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny } from '../core/permissions/roles'
 
+const preventionAccessCapabilities=[
+  CAPABILITIES.VIEW_PREVENTION,
+  CAPABILITIES.RECORD_HAND_HYGIENE,
+  CAPABILITIES.RECORD_WASTE,
+  CAPABILITIES.RECORD_ANTISEPTIC,
+  CAPABILITIES.RECORD_PREVENTION_BUNDLE,
+]
+
 // Canonical destinations. Visibility comes from capabilities; sidebar placement
 // and ordering are resolved separately per role so each workspace reflects the
 // user's actual operational priorities without duplicating feature code.
@@ -10,7 +18,7 @@ export const navigation=[
   {to:'/surveillance',key:'surveillance',icon:Activity,capability:CAPABILITIES.VIEW_SURVEILLANCE},
   {to:'/patients',key:'patients',icon:HeartPulse,capability:CAPABILITIES.VIEW_PATIENTS},
   {to:'/laboratory',key:'laboratory',icon:Beaker,capability:CAPABILITIES.VIEW_LAB},
-  {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION},
+  {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION,anyCapabilities:preventionAccessCapabilities},
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
   {to:'/quality',key:'quality',icon:HeartPulse,capability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
