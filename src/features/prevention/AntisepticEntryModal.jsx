@@ -91,7 +91,7 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
  return <ObserverDialog
   eyebrow={en?'PREVENTION CENTER':'ΚΕΝΤΡΟ ΠΡΟΛΗΨΗΣ'}
   title={initialRecord?(en?'Edit antiseptic consumption':'Επεξεργασία κατανάλωσης αντισηπτικού'):(en?'New antiseptic consumption entry':'Νέα καταγραφή κατανάλωσης αντισηπτικού')}
-  subtitle={en?'Documented consumption and automatic ABHR indicator per 1,000 patient-days.':'Τεκμηριωμένη κατανάλωση και αυτόματος δείκτης ABHR ανά 1.000 νοσηλευτικές ημέρες.'}
+  subtitle={en?'Documented monthly consumption and automatic ABHR indicator per 1,000 patient-days.':'Τεκμηριωμένη μηνιαία κατανάλωση και αυτόματος δείκτης ABHR ανά 1.000 νοσηλευτικές ημέρες.'}
   width="workspace"
   presentation="workspace"
   className="prevention-entry-card antiseptic-entry-card"
@@ -101,9 +101,9 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
   <div className="prevention-entry-body">
    <div className="prevention-entry-actor"><span>{initialRecord?(en?'Edited by':'Επεξεργασία από'):(en?'Recorded by':'Καταχώρηση από')}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
    <section className="antiseptic-form-section">
-    <div className="antiseptic-form-heading"><strong>{en?'Consumption':'Κατανάλωση'}</strong><small>{en?'Product is selected from the central antiseptic Library.':'Το προϊόν επιλέγεται από την κεντρική Βιβλιοθήκη αντισηπτικών.'}</small></div>
+    <div className="antiseptic-form-heading"><strong>{en?'Monthly consumption':'Μηνιαία κατανάλωση'}</strong><small>{en?'Product is selected from the central antiseptic Library.':'Το προϊόν επιλέγεται από την κεντρική Βιβλιοθήκη αντισηπτικών.'}</small></div>
     <div className="entry-grid">
-     <label><span>{en?'Period *':'Περίοδος *'}</span><input type="month" value={String(draft.period||'').slice(0,7)} onChange={e=>set('period',e.target.value)}/></label>
+     <label><span>{en?'Reporting month *':'Μήνας αναφοράς *'}</span><input type="month" value={String(draft.period||'').slice(0,7)} onChange={e=>set('period',e.target.value)}/></label>
      <DepartmentField value={draft.departmentEl} onChange={v=>set('departmentEl',v)} departments={departments} fixed={Boolean(fixedDepartment)}/>
      <label className="entry-span-2"><span>{en?'Product *':'Προϊόν *'}</span><select value={draft.antisepticItemId||productInfo?.id||''} onChange={e=>changeProduct(e.target.value)}>{products.map(x=><option key={x.id} value={x.id}>{en?(x.en||x.el):x.el}</option>)}</select></label>
      <label><span>{en?'Consumption *':'Κατανάλωση *'}</span><div className="field-with-unit"><input type="number" min="0" step="0.1" value={draft.litres} onChange={e=>set('litres',e.target.value)} placeholder="0,0"/><span>L</span></div></label>
@@ -112,9 +112,9 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
     <div className={`antiseptic-eligibility ${abhr?'eligible':'informative'}`}><strong>{abhr?(en?'ABHR · Indicator active':'ABHR · Δείκτης ενεργός'):(en?'Non-ABHR product':'Μη ABHR προϊόν')}</strong><span>{abhr?(en?'Consumption contributes to the L / 1,000 patient-days indicator.':'Η κατανάλωση προσμετράται στον δείκτη L / 1.000 νοσηλευτικές ημέρες.'):(en?'Consumption is stored and analysed but does not contribute to the alcohol-based hand rub consumption indicator.':'Η κατανάλωση αποθηκεύεται και αναλύεται, αλλά δεν προσμετράται στον δείκτη κατανάλωσης αλκοολούχου αντισηπτικού.')}</span></div>
    </section>
    <section className="antiseptic-form-section">
-    <div className="antiseptic-form-heading"><strong>{en?'Denominator & indicator':'Παρονομαστής & δείκτης'}</strong><small>{en?'The denominator retains its source for traceability.':'Ο παρονομαστής διατηρεί την προέλευσή του για ιχνηλασιμότητα.'}</small></div>
+    <div className="antiseptic-form-heading"><strong>{en?'Denominator & indicator':'Παρονομαστής & δείκτης'}</strong><small>{en?'Library patient-days are offered only when an approved record exists for this exact reporting month.':'Οι νοσηλευτικές ημέρες της Βιβλιοθήκης προτείνονται μόνο όταν υπάρχει εγκεκριμένη εγγραφή για τον ίδιο ακριβώς μήνα αναφοράς.'}</small></div>
     <div className="entry-grid antiseptic-indicator-grid">
-     <label><span>{en?'Patient-days':'Νοσηλευτικές ημέρες'}</span><div className="antiseptic-patient-days-field"><input type="number" min="0" value={draft.patientDays||''} onChange={e=>setDraft(d=>({...d,patientDays:e.target.value,patientDaysSource:'manual'}))} placeholder={suggestedPatientDays?String(suggestedPatientDays):(en?'No available period':'Δεν υπάρχει διαθέσιμη περίοδος')}/>{suggestedPatientDays&&<button type="button" className={usingLibraryDays?'applied':''} onClick={()=>setDraft(d=>({...d,patientDays:suggestedPatientDays,patientDaysSource:'library'}))}>{usingLibraryDays?(en?'✓ From library':'✓ Από βιβλιοθήκη'):(en?'Use ':'Χρήση ')+suggestedPatientDays}</button>}</div>{usingLibraryDays&&<small className="antiseptic-source-note">{en?`${suggestedPatientDays} patient-days from the Library are used.`:`Χρησιμοποιούνται ${suggestedPatientDays} νοσηλευτικές ημέρες από τη Βιβλιοθήκη.`}</small>}</label>
+     <label><span>{en?'Patient-days for reporting month':'Νοσηλευτικές ημέρες μήνα αναφοράς'}</span><div className="antiseptic-patient-days-field"><input type="number" min="0" value={draft.patientDays||''} onChange={e=>setDraft(d=>({...d,patientDays:e.target.value,patientDaysSource:'manual'}))} placeholder={suggestedPatientDays?String(suggestedPatientDays):(en?'No approved matching month':'Δεν βρέθηκε εγκεκριμένος ίδιος μήνας')}/>{suggestedPatientDays&&<button type="button" className={usingLibraryDays?'applied':''} onClick={()=>setDraft(d=>({...d,patientDays:suggestedPatientDays,patientDaysSource:'library'}))}>{usingLibraryDays?(en?'✓ Exact month from Library':'✓ Ίδιος μήνας από Βιβλιοθήκη'):(en?'Use ':'Χρήση ')+suggestedPatientDays}</button>}</div>{usingLibraryDays&&<small className="antiseptic-source-note">{en?`${suggestedPatientDays} patient-days from the approved matching month are used.`:`Χρησιμοποιούνται ${suggestedPatientDays} νοσηλευτικές ημέρες από τον εγκεκριμένο ίδιο μήνα.`}</small>}</label>
      <div className={`antiseptic-indicator-card ${abhr?'active':''}`}><span>{en?'ABHR indicator':'Δείκτης ABHR'}</span><strong>{indicator===null?'—':indicator.toLocaleString(locale)}</strong><small>{en?'L / 1,000 patient-days':'L / 1.000 νοσηλευτικές ημέρες'}</small></div>
     </div>
    </section>
