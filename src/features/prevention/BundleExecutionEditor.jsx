@@ -53,10 +53,25 @@ export function BundleExecutionEditor({onCancel,onSave,fixedDepartment='',initia
  const note=(id,value)=>setDraft(current=>({...current,answerNotes:{...current.answerNotes,[id]:value}}))
  const elementLabel=(id,fallback)=>{const raw=(template?.rawElements||[]).find(item=>item.id===id);if(!raw)return fallback;return en?(raw.labelEn||raw.label_en||raw.labelEl||raw.label_el||fallback):(raw.labelEl||raw.label_el||raw.label||fallback)}
  const patients=clinicalOptions.patients||[]
+ const departmentById=useMemo(()=>new Map(departments.map(item=>[item.id,item])),[departments])
+ const selectedDepartment=departments.find(item=>item.el===draft.departmentEl)||null
+ const visiblePatients=patients.filter(item=>!selectedDepartment?.id||item.departmentId===selectedDepartment.id)
  const selectedPatient=patients.find(item=>item.id===draft.patientId)||null
  const devices=(clinicalOptions.devices||[]).filter(item=>!draft.patientId||item.patientId===draft.patientId)
  const selectedDevice=devices.find(item=>item.id===draft.deviceId)||null
- const choosePatient=value=>{const patient=patients.find(item=>item.id===value);setDraft(current=>({...current,patientId:value,patientRef:patient?.label||'',deviceId:'',deviceRef:''}))}
+ const chooseDepartment=value=>{
+  const department=departments.find(item=>item.el===value)||null
+  setDraft(current=>{
+   const currentPatient=patients.find(item=>item.id===current.patientId)||null
+   const patientMatches=!currentPatient||!department?.id||currentPatient.departmentId===department.id
+   return {...current,departmentEl:value,...(!patientMatches?{patientId:'',patientRef:'',deviceId:'',deviceRef:''}:{})}
+  })
+ }
+ const choosePatient=value=>{
+  const patient=patients.find(item=>item.id===value)||null
+  const patientDepartment=patient?.departmentId?departmentById.get(patient.departmentId):null
+  setDraft(current=>({...current,patientId:value,patientRef:patient?.label||'',departmentEl:patientDepartment?.el||current.departmentEl,deviceId:'',deviceRef:''}))
+ }
  const chooseDevice=value=>{const device=devices.find(item=>item.id===value);setDraft(current=>({...current,deviceId:value,deviceRef:device?.label||''}))}
  async function submit(){
   if(!canSave||saving)return
@@ -68,10 +83,10 @@ export function BundleExecutionEditor({onCancel,onSave,fixedDepartment='',initia
   <div className="bundle-page-actor"><span>{en?'Recorded by':'Καταχώρηση από'}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
   <section className="bundle-page-context"><div className="bundle-page-grid">
    <label><span>Bundle *</span><select value={draft.templateId} onChange={e=>setDraft(current=>({...current,templateId:e.target.value,answers:{},answerNotes:{}}))}><option value="">{en?'Select Bundle':'Επιλέξτε Bundle'}</option>{templates.map(item=><option key={item.id} value={item.id}>{item.name} — {en?(item.titleEn||item.title):item.title}</option>)}</select></label>
-   <label><span>{en?'Department *':'Τμήμα *'}</span><select value={draft.departmentEl} disabled={Boolean(fixedDepartment)} onChange={e=>set('departmentEl',e.target.value)}><option value="">{en?'Select department':'Επιλέξτε τμήμα'}</option>{departments.map(item=><option key={item.id||item.el} value={item.el}>{en?(item.en||item.el):item.el}</option>)}</select></label>
+   <label><span>{en?'Department *':'Τμήμα *'}</span><select value={draft.departmentEl} disabled={Boolean(fixedDepartment)} onChange={e=>chooseDepartment(e.target.value)}><option value="">{en?'Select department':'Επιλέξτε τμήμα'}</option>{departments.map(item=><option key={item.id||item.el} value={item.el}>{en?(item.en||item.el):item.el}</option>)}</select></label>
    <ManualDateField label={en?'Date *':'Ημερομηνία *'} value={draft.date} onChange={value=>set('date',value)}/>
    <label><span>{en?'Shift / context':'Βάρδια / πλαίσιο'}</span><select value={draft.shift} onChange={e=>set('shift',e.target.value)}><option value="Πρωινή">{en?'Morning':'Πρωινή'}</option><option value="Απογευματινή">{en?'Afternoon':'Απογευματινή'}</option><option value="Νυχτερινή">{en?'Night':'Νυχτερινή'}</option><option value="Άλλο">{en?'Other':'Άλλο'}</option></select></label>
-   <label><span>{en?'Patient':'Ασθενής'}</span><select value={draft.patientId||''} onChange={e=>choosePatient(e.target.value)} disabled={clinicalLoading}><option value="">{clinicalLoading?(en?'Loading patients…':'Φόρτωση ασθενών…'):(en?'Select patient (optional)':'Επιλέξτε ασθενή (προαιρετικό)')}</option>{patients.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+   <label><span>{en?'Patient':'Ασθενής'}</span><select value={draft.patientId||''} onChange={e=>choosePatient(e.target.value)} disabled={clinicalLoading}><option value="">{clinicalLoading?(en?'Loading patients…':'Φόρτωση ασθενών…'):(en?'Select patient (optional)':'Επιλέξτε ασθενή (προαιρετικό)')}</option>{visiblePatients.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
    <label><span>{en?'Device':'Συσκευή'}</span><select value={draft.deviceId||''} onChange={e=>chooseDevice(e.target.value)} disabled={clinicalLoading||!draft.patientId}><option value="">{!draft.patientId?(en?'Select patient first':'Επιλέξτε πρώτα ασθενή'):(clinicalLoading?(en?'Loading devices…':'Φόρτωση συσκευών…'):(en?'Select device (optional)':'Επιλέξτε συσκευή (προαιρετικό)'))}</option>{devices.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
   </div>{template&&<div className="bundle-page-template-meta"><span><b>{template.name}</b> · v{template.version}</span><span>{template.source}</span></div>}</section>
   {template?<section className="bundle-page-checklist"><div className="bundle-page-checklist-head"><div><strong>{en?'Bundle elements':'Στοιχεία Bundle'}</strong><small>{en?'You can save at any time. A complete checklist is finalized automatically.':'Μπορείτε να αποθηκεύσετε οποιαδήποτε στιγμή. Όταν απαντηθούν όλα τα στοιχεία, η αξιολόγηση ολοκληρώνεται αυτόματα.'}</small></div><div className="bundle-page-progress"><span>{en?'Answered':'Απαντημένα'} {answered}/{elements.length}</span><strong>{score===null?'—':`${score}%`}</strong><small>{allOrNone?'All-or-none ✓':'All-or-none —'}</small></div></div><div className="bundle-page-rows">{elements.map(([id,label],index)=>{const value=draft.answers[id];return <div className={`bundle-page-row ${value||'unanswered'}`} key={id}><div className="bundle-page-row-main"><span className="bundle-page-index">{index+1}</span><strong>{elementLabel(id,label)}</strong><div className="bundle-page-answers">{[['yes',en?'Yes':'Ναι'],['no',en?'No':'Όχι'],['na',en?'N/A':'Μ/Ε']].map(([answerValue,text])=><button type="button" key={answerValue} className={value===answerValue?'active':''} onClick={()=>answer(id,answerValue)}>{text}</button>)}</div></div>{value==='no'&&<div className="bundle-page-deviation"><ShieldAlert size={15}/><input value={draft.answerNotes[id]||''} onChange={e=>note(id,e.target.value)} placeholder={en?'Deviation / action required':'Απόκλιση / ενέργεια που απαιτείται'}/></div>}</div>})}</div></section>:<div className="inline-empty">{en?'No published bundle templates are available.':'Δεν υπάρχουν διαθέσιμα δημοσιευμένα Bundle templates.'}</div>}
