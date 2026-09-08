@@ -58,7 +58,7 @@ export function PreventionRecordPage(){
    .catch(error=>{if(active){setRecord(null);notifyError(error,'load',{operation:`${recordType}_record_load`})}})
    .finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
- },[creating,recordType,recordId,tenant?.id])
+ },[creating,editing,recordType,recordId,tenant?.id])
 
  useEffect(()=>{
   if(!tenant?.id)return
@@ -94,6 +94,7 @@ export function PreventionRecordPage(){
  async function saveHandHygiene(updated){
   try{
    const saved=await saveHandHygieneSession(tenant.id,updated,{existingId:creating?null:record.id})
+   if(saved)setRecord(saved)
    notify(creating?(en?'Observation saved.':'Η παρατήρηση αποθηκεύτηκε.'):(en?'Changes saved.':'Οι αλλαγές αποθηκεύτηκαν.'),'success')
    navigate(saved?.id?`/prevention/handHygiene/${saved.id}?fromTab=handHygiene`:'/prevention?tab=handHygiene',{replace:true})
   }catch(error){notifyError(error,'save',{operation:creating?'hand_hygiene_create':'hand_hygiene_record_update'});throw error}
@@ -101,6 +102,7 @@ export function PreventionRecordPage(){
  async function saveWaste(updated){
   try{
    const saved=await saveWasteMeasurement(tenant.id,updated,{existingId:creating?null:record.id})
+   if(saved)setRecord(saved)
    notify(creating?(en?'Waste measurement saved.':'Η μέτρηση αποβλήτων αποθηκεύτηκε.'):(en?'Changes saved.':'Οι αλλαγές αποθηκεύτηκαν.'),'success')
    navigate(saved?.id?`/prevention/waste/${saved.id}?fromTab=waste`:'/prevention?tab=waste',{replace:true})
   }catch(error){notifyError(error,'save',{operation:creating?'waste_create':'waste_record_update'});throw error}
