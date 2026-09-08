@@ -92,6 +92,7 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
   title={initialRecord?(en?'Edit antiseptic consumption':'Επεξεργασία κατανάλωσης αντισηπτικού'):(en?'New antiseptic consumption entry':'Νέα καταγραφή κατανάλωσης αντισηπτικού')}
   subtitle={en?'Documented consumption and automatic ABHR indicator per 1,000 patient-days.':'Τεκμηριωμένη κατανάλωση και αυτόματος δείκτης ABHR ανά 1.000 νοσηλευτικές ημέρες.'}
   width="workspace"
+  presentation="workspace"
   className="prevention-entry-card antiseptic-entry-card"
   onClose={onClose}
   footer={<DialogActions showCancel onCancel={onClose} onSave={submit} disabled={!valid||!departments.length||!products.length} saveLabel={initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Save entry':'Αποθήκευση καταγραφής')}/>}
