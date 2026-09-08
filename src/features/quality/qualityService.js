@@ -17,11 +17,23 @@ function uiStatus(value){
   return ({under_review:'underReview',in_progress:'inProgress',not_effective:'notEffective'})[value]||value||''
 }
 
+function compactCode(code=''){
+  const value=String(code||'')
+  const match=value.match(/^(INC|FND|CAPA|AUD)-(\d{6})(\d{6,})$/)
+  if(match)return `${match[1]}-${match[2]}-${match[3].slice(0,6)}`
+  return value
+}
+
+function isUuid(value=''){
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''))
+}
+
 function mapRow(section,row){
   const department=row.department?.name||''
   const common={
     dbId:row.id,
     id:row.code,
+    displayId:compactCode(row.code),
     title:row.title||'',
     titleEn:row.title||'',
     department,
@@ -40,7 +52,7 @@ function mapRow(section,row){
     date:row.occurred_at?.slice(0,10)||'',
     description:row.description||'',
     descriptionEn:row.description||'',
-    reportedBy:row.reported_by||'',
+    reportedBy:isUuid(row.reported_by)?'':(row.reported_by||''),
     reportedById:row.reported_by||null,
     linkedPatient:row.linked_patient_id||'',
     linkedSurveillance:row.linked_surveillance_id||'',
@@ -74,7 +86,7 @@ function mapRow(section,row){
     completedDate:row.completed_date||'',
     scope:row.scope||'',
     scopeEn:row.scope||'',
-    leadAuditor:row.lead_auditor_id||'',
+    leadAuditor:isUuid(row.lead_auditor_id)?'':(row.lead_auditor_id||''),
     leadAuditorId:row.lead_auditor_id||null,
   }
 }
@@ -124,8 +136,8 @@ export async function loadQualityRecord(section,organizationId,code){
 
 function codeFor(section){
   const prefix={incidents:'INC',findings:'FND',capas:'CAPA',audits:'AUD'}[section]||'QLT'
-  const stamp=new Date().toISOString().replace(/\D/g,'').slice(2,17)
-  return `${prefix}-${stamp}`
+  const stamp=new Date().toISOString().replace(/\D/g,'')
+  return `${prefix}-${stamp.slice(2,8)}-${stamp.slice(8,14)}`
 }
 
 export async function createQualityRecord(section,organizationId,draft,userId){
