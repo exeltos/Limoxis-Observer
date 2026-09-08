@@ -14,13 +14,12 @@ async function currentUserId(){
 }
 
 function statsFromObservations(items=[]){
- const total=(filter)=>items.filter(filter).reduce((sum,x)=>sum+(Number(x.professionalsCount)||1),0)
  const professionals=items.reduce((sum,x)=>sum+(Number(x.professionalsCount)||1),0)
- const handRub=total(x=>x.action==='HR')
- const handWash=total(x=>x.action==='HW')
- const missed=total(x=>x.action==='MISSED')
+ const opportunities=items.length
+ const handRub=items.filter(x=>x.action==='HR').length
+ const handWash=items.filter(x=>x.action==='HW').length
+ const missed=items.filter(x=>x.action==='MISSED').length
  const compliant=handRub+handWash
- const opportunities=professionals
  return {opportunities,handRub,handWash,missed,professionals,compliant,compliance:opportunities?Number(((compliant/opportunities)*100).toFixed(1)):0}
 }
 
