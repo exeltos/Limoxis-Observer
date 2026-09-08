@@ -12,6 +12,10 @@ function assertReady(organizationId){
   if(!organizationId) throw new Error('Organization is required.')
 }
 
+function uiStatus(value){
+  return ({under_review:'underReview',in_progress:'inProgress',not_effective:'notEffective'})[value]||value||''
+}
+
 function mapRow(section,row){
   const department=row.department?.name||''
   const common={
@@ -22,14 +26,56 @@ function mapRow(section,row){
     department,
     departmentEn:department,
     departmentId:row.department_id||null,
-    status:row.status||'',
+    status:uiStatus(row.status),
     owner:'',
+    ownerId:row.owner_id||null,
     lifecycleStatus:'active',
+    attachments:[],
+    history:[],
   }
-  if(section==='incidents') return {...common,severity:row.severity||'medium',date:row.occurred_at?.slice(0,10)||'',description:row.description||''}
-  if(section==='findings') return {...common,severity:row.severity||'medium',date:row.identified_at?.slice(0,10)||'',description:row.description||'',source:row.source_type||'manual',sourceId:row.source_id||''}
-  if(section==='capas') return {...common,severity:row.priority||'medium',priority:row.priority||'medium',actionType:row.action_type||'corrective',dueDate:row.due_date||'',description:row.description||'',source:row.source_type||'other',sourceId:row.source_id||''}
-  return {...common,auditType:row.audit_type||'internal',plannedDate:row.planned_date||'',completedDate:row.completed_date||'',scope:row.scope||'',leadAuditor:''}
+  if(section==='incidents') return {
+    ...common,
+    severity:row.severity||'medium',
+    date:row.occurred_at?.slice(0,10)||'',
+    description:row.description||'',
+    descriptionEn:row.description||'',
+    reportedBy:row.reported_by||'',
+    reportedById:row.reported_by||null,
+    linkedPatient:row.linked_patient_id||'',
+    linkedSurveillance:row.linked_surveillance_id||'',
+  }
+  if(section==='findings') return {
+    ...common,
+    severity:row.severity||'medium',
+    date:row.identified_at?.slice(0,10)||'',
+    description:row.description||'',
+    descriptionEn:row.description||'',
+    source:row.source_type||'manual',
+    sourceId:row.source_id||'',
+  }
+  if(section==='capas') return {
+    ...common,
+    severity:row.priority||'medium',
+    priority:row.priority||'medium',
+    actionType:row.action_type||'corrective',
+    dueDate:row.due_date||'',
+    effectivenessDue:row.effectiveness_due||'',
+    effectivenessStatus:uiStatus(row.effectiveness_status||'pending'),
+    description:row.description||'',
+    descriptionEn:row.description||'',
+    source:row.source_type||'other',
+    sourceId:row.source_id||'',
+  }
+  return {
+    ...common,
+    auditType:row.audit_type||'internal',
+    plannedDate:row.planned_date||'',
+    completedDate:row.completed_date||'',
+    scope:row.scope||'',
+    scopeEn:row.scope||'',
+    leadAuditor:row.lead_auditor_id||'',
+    leadAuditorId:row.lead_auditor_id||null,
+  }
 }
 
 export async function loadQualityRecords(section,organizationId){
@@ -43,6 +89,20 @@ export async function loadQualityRecords(section,organizationId){
     .order(config.date,{ascending:false,nullsFirst:false})
   if(error) throw error
   return (data||[]).map(row=>mapRow(section,row))
+}
+
+export async function loadQualityRecord(section,organizationId,code){
+  assertReady(organizationId)
+  const config=sectionConfig[section]
+  if(!config||!code) return null
+  const {data,error}=await supabase
+    .from(config.table)
+    .select('*,department:departments(name)')
+    .eq('organization_id',organizationId)
+    .eq('code',code)
+    .maybeSingle()
+  if(error) throw error
+  return data?mapRow(section,data):null
 }
 
 function codeFor(section){
@@ -62,10 +122,6 @@ export async function createQualityRecord(section,organizationId,draft,userId){
   if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,owner_id:null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending'}
   if(section==='audits') payload={...payload,audit_type:draft.auditType||'internal',scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:null}
 
-  // Creation does not request a nested return representation. PostgREST executes
-  // the insert only; the registry reloads the canonical row after navigation.
-  // This avoids rolling back otherwise-valid writes because of relationship
-  // embedding/return-policy issues on a mutation response.
   const {error}=await supabase.from(config.table).insert(payload)
   if(error) throw error
   return {code,...payload}
