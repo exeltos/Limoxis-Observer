@@ -2,14 +2,10 @@
    This file contains only Prevention content styling. Shell/action geometry stays owned
    by the central EntityRecordShell contract. */
 
-/* Prevention is a true single-pane record. EntityRecordShell now omits an empty tab rail,
-   so there is no CSS-generated second navigation layer. */
 .prevention-record-shell.record-single-pane-screen>.entity-record-body{
   padding-top:22px!important;
 }
 
-/* Resolve the previous competing action rules explicitly against the central selector.
-   The ellipsis is a plain ghost icon, positioned inside a dedicated white breathing area. */
 .canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions{
   position:absolute!important;
   top:28px!important;
@@ -62,13 +58,10 @@
   outline-offset:2px!important;
 }
 
-/* Reserve a real top band in the opened record so the ellipsis never sits on top of fields.
-   This is spacing in the content itself, not another visual wrapper/card. */
 .prevention-record-shell>.entity-record-body>.prevention-record-card{
   padding-top:64px!important;
 }
 
-/* WHO create/edit footer: bottom-right and separated from the form. */
 .prevention-record-shell .who-editor-page-actions{
   display:flex!important;
   align-items:center!important;
@@ -85,40 +78,85 @@
   min-height:42px!important;
 }
 
-/* Gloves use is visually identifiable but has the same control geometry as the three
-   hand-hygiene action choices; it must never look like a larger fourth panel. */
-.prevention-record-shell .who-gloves-card,
-.prevention-record-shell .who-readonly-choice{
-  align-self:stretch!important;
+/* WHO action row: gloves is a fourth peer choice, not a separate side panel.
+   This removes the unused blank column above it and keeps one clear visual hierarchy. */
+.prevention-record-shell .who-action-options-with-gloves{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  align-items:stretch!important;
+}
+.prevention-record-shell .who-action-options-with-gloves .who-action-option,
+.prevention-record-shell .who-action-options-with-gloves .who-gloves-inline{
+  min-width:0!important;
   min-height:64px!important;
   height:64px!important;
+  margin:0!important;
   padding:10px 14px!important;
   border:1px solid #d6e1e9!important;
   border-radius:11px!important;
-  background:#f7fafc!important;
+  background:#fff!important;
   box-shadow:none!important;
 }
-.prevention-record-shell .who-gloves-card>span,
-.prevention-record-shell .who-readonly-choice>span{
+.prevention-record-shell .who-action-options-with-gloves .who-gloves-inline{
+  display:flex!important;
+  align-items:center!important;
+  gap:11px!important;
+  cursor:pointer!important;
+  color:#31566f!important;
+}
+.prevention-record-shell .who-action-options-with-gloves .who-gloves-inline:hover{
+  border-color:#b9cedd!important;
+  background:#f8fbfd!important;
+}
+.prevention-record-shell .who-action-options-with-gloves .who-gloves-inline.selected{
+  border-color:#73aeca!important;
+  background:#edf7fa!important;
+}
+.prevention-record-shell .who-action-options-with-gloves .who-gloves-inline>input{
+  flex:0 0 auto!important;
+  width:20px!important;
+  height:20px!important;
+  margin:0!important;
+  accent-color:var(--lo-color-primary)!important;
+}
+.prevention-record-shell .who-action-options-with-gloves .who-gloves-inline>span{
+  min-width:0!important;
   display:flex!important;
   flex-direction:column!important;
   justify-content:center!important;
   gap:2px!important;
 }
-.prevention-record-shell .who-gloves-card strong,
-.prevention-record-shell .who-readonly-choice strong{
+.prevention-record-shell .who-action-options-with-gloves .who-gloves-inline strong{
   color:#31566f!important;
   font-weight:800!important;
 }
-.prevention-record-shell .who-gloves-card small,
-.prevention-record-shell .who-readonly-choice small{color:#72899a!important}
+.prevention-record-shell .who-action-options-with-gloves .who-gloves-inline small{
+  color:#72899a!important;
+}
 
+/* Legacy/read-only glove block no longer reserves a separate oversized panel. */
+.prevention-record-shell .who-gloves-card,
+.prevention-record-shell .who-readonly-choice{
+  min-height:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+@media(max-width:1200px){
+  .prevention-record-shell .who-action-options-with-gloves{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
 @media(max-width:900px){
   .prevention-record-shell.record-single-pane-screen>.entity-record-body{padding-top:18px!important}
   .canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions{top:22px!important;right:20px!important}
   .prevention-record-shell>.entity-record-body>.prevention-record-card{padding-top:56px!important}
   .prevention-record-shell .who-editor-page-actions{padding-inline:0!important}
   .prevention-record-shell .who-editor-page-actions .button{min-width:120px!important}
-  .prevention-record-shell .who-gloves-card,
-  .prevention-record-shell .who-readonly-choice{height:64px!important;min-height:64px!important}
+}
+@media(max-width:680px){
+  .prevention-record-shell .who-action-options-with-gloves{grid-template-columns:1fr!important}
 }
