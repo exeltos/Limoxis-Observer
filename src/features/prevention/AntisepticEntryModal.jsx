@@ -12,9 +12,10 @@ export const ANTISEPTIC_METHODS=[
  {id:'other',label:'Άλλη τεκμηριωμένη πηγή',labelEn:'Other documented source'},
 ]
 
-export function isAbhrProduct(product=''){
- const value=String(product).toLowerCase()
- return value.includes('αλκοολ')||value.includes('alcohol')
+export function isAbhrProduct(product){
+ if(!product)return false
+ if(typeof product==='object')return product.indicatorEligible===true||product.metadata?.is_abhr===true||product.code==='ANT-ABHR'||product.productCode==='ANT-ABHR'
+ return String(product).trim()==='ANT-ABHR'
 }
 
 export function antisepticMethodLabel(id,language='el'){
@@ -67,7 +68,7 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
 
  const patientDays=Number(draft.patientDays)||0
  const litres=Number(draft.litres)||0
- const abhr=isAbhrProduct(`${draft.product} ${productEn}`)
+ const abhr=isAbhrProduct(productInfo)
  const indicator=abhr&&patientDays>0?Number((litres/patientDays*1000).toFixed(2)):null
  const usingLibraryDays=Boolean(suggestedPatientDays)&&Number(draft.patientDays)===Number(suggestedPatientDays)&&draft.patientDaysSource==='library'
  const valid=Boolean(draft.period&&draft.departmentEl&&draft.product&&Number.isFinite(litres)&&litres>=0&&draft.method)
@@ -76,15 +77,15 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
   if(!valid)return
   const selectedProduct=products.find(x=>x.id===draft.antisepticItemId||x.el===draft.product)
   const now=new Date().toISOString()
-  onSave({...draft,antisepticItemId:selectedProduct?.id||draft.antisepticItemId||'',departmentEn,product:selectedProduct?.el||draft.product,productEn:selectedProduct?.en||productEn,litres,patientDays:patientDays||null,indicator,
-   indicatorEligible:abhr,responsible:draft.responsible||actor.name,
+  onSave({...draft,antisepticItemId:selectedProduct?.id||draft.antisepticItemId||'',productCode:selectedProduct?.code||'',departmentEn,product:selectedProduct?.el||draft.product,productEn:selectedProduct?.en||productEn,litres,patientDays:patientDays||null,indicator,
+   indicatorEligible:isAbhrProduct(selectedProduct),responsible:draft.responsible||actor.name,
    createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,
    updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized'})
  }
 
  function changeProduct(value){
   const selected=products.find(x=>x.id===value)
-  setDraft(d=>({...d,antisepticItemId:value,product:selected?.el||'',productEn:selected?.en||''}))
+  setDraft(d=>({...d,antisepticItemId:value,product:selected?.el||'',productEn:selected?.en||'',productCode:selected?.code||''}))
  }
 
  return <ObserverDialog
