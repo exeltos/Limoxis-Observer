@@ -7,8 +7,9 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { WHO_MOMENTS,WHO_PROFESSIONS,WhoHandHygieneEditor } from './WhoHandHygieneEditor'
+import { WasteEntryEditor } from './WasteEntryEditor'
 import { deleteHandHygieneSession,loadHandHygieneDepartments,loadHandHygieneSessions,saveHandHygieneSession } from './handHygieneCloudService'
-import { deleteWasteMeasurement,loadWasteMeasurements } from './wasteCloudService'
+import { deleteWasteMeasurement,findWastePatientDays,loadWasteMeasurements,loadWasteSupportData,saveWasteMeasurement } from './wasteCloudService'
 import { deleteAntisepticRecord,loadAntisepticRecords } from './antisepticCloudService'
 import { deleteBundleAssessment,loadBundleAssessments } from './bundleCloudService'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -22,6 +23,7 @@ import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 const icons={handHygiene:ShieldCheck,waste:Recycle,antiseptics:Droplets,bundles:ClipboardCheck}
 const loaders={handHygiene:loadHandHygieneSessions,waste:loadWasteMeasurements,antiseptics:loadAntisepticRecords,bundles:loadBundleAssessments}
 const deleters={handHygiene:deleteHandHygieneSession,waste:deleteWasteMeasurement,antiseptics:deleteAntisepticRecord,bundles:deleteBundleAssessment}
+const editCapabilities={handHygiene:CAPABILITIES.RECORD_HAND_HYGIENE,waste:CAPABILITIES.RECORD_WASTE,antiseptics:CAPABILITIES.RECORD_ANTISEPTIC,bundles:CAPABILITIES.RECORD_PREVENTION_BUNDLE}
 
 export function PreventionRecordPage(){
  const {recordType,recordId}=useParams()
@@ -31,17 +33,19 @@ export function PreventionRecordPage(){
  const en=language==='en'
  const {notifyError,notify,confirm}=useFeedback()
  const {canAccessRecord,tenant,role,membership}=useTenant()
- const creating=recordType==='handHygiene'&&recordId==='new'
- const editing=recordType==='handHygiene'&&!creating&&searchParams.get('edit')==='1'
+ const supportsPageEditor=['handHygiene','waste'].includes(recordType)
+ const creating=supportsPageEditor&&recordId==='new'
+ const editing=supportsPageEditor&&!creating&&searchParams.get('edit')==='1'
  const [record,setRecord]=useState(null)
  const [loading,setLoading]=useState(!creating)
  const [handDepartments,setHandDepartments]=useState([])
+ const [wasteSupport,setWasteSupport]=useState({departments:[],wasteTypes:[]})
  const recordNavigation=useRecordSequenceNavigation({registry:`prevention-${recordType}`,currentId:recordId,pathForId:id=>`/prevention/${recordType}/${id}?fromTab=${recordType}`})
  const addOns=membership?.capabilities??[]
  const custom=membership?.customCapabilities??[]
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
  const departmentScoped=[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE].includes(role)
- const canEditHandHygiene=recordType==='handHygiene'&&role!==ROLES.HOSPITAL_ADMIN&&can(role,CAPABILITIES.RECORD_HAND_HYGIENE,addOns,custom)
+ const canEditRecord=role!==ROLES.HOSPITAL_ADMIN&&can(role,editCapabilities[recordType],addOns,custom)
 
  useEffect(()=>{
   if(creating){setLoading(false);setRecord(null);return}
@@ -57,11 +61,14 @@ export function PreventionRecordPage(){
  },[creating,recordType,recordId,tenant?.id])
 
  useEffect(()=>{
-  if(recordType!=='handHygiene'||!tenant?.id)return
+  if(!tenant?.id)return
   let active=true
-  loadHandHygieneDepartments(tenant.id)
-   .then(rows=>{if(active)setHandDepartments(rows)})
-   .catch(error=>notifyError(error,'load',{operation:'hand_hygiene_departments_load'}))
+  if(recordType==='handHygiene'){
+   loadHandHygieneDepartments(tenant.id).then(rows=>{if(active)setHandDepartments(rows)}).catch(error=>notifyError(error,'load',{operation:'hand_hygiene_departments_load'}))
+  }
+  if(recordType==='waste'){
+   loadWasteSupportData(tenant.id).then(data=>{if(active)setWasteSupport(data)}).catch(error=>notifyError(error,'load',{operation:'waste_support_load'}))
+  }
   return()=>{active=false}
  },[recordType,tenant?.id])
 
@@ -74,14 +81,14 @@ export function PreventionRecordPage(){
  const fmtDate=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)):'—'
  const wasteCategory=record?.wasteType||record?.type
  const recordTitle=creating
-  ? (en?'New WHO hand hygiene observation':'Νέα παρατήρηση Υγιεινής Χεριών WHO')
+  ? recordType==='waste'?(en?'New waste measurement':'Νέα μέτρηση αποβλήτων'):(en?'New WHO hand hygiene observation':'Νέα παρατήρηση Υγιεινής Χεριών WHO')
   : editing
-   ? `${en?'Edit WHO hand hygiene observation':'Επεξεργασία παρατήρησης Υγιεινής Χεριών WHO'} · ${fmtDate(record?.date)}`
+   ? recordType==='waste'?`${en?'Edit waste measurement':'Επεξεργασία μέτρησης αποβλήτων'} · ${fmtDate(record?.date)}`:`${en?'Edit WHO hand hygiene observation':'Επεξεργασία παρατήρησης Υγιεινής Χεριών WHO'} · ${fmtDate(record?.date)}`
    : recordType==='handHygiene'?`${en?'WHO hand hygiene observation':'Παρατήρηση Υγιεινής Χεριών WHO'} · ${fmtDate(record?.date)}`
    : recordType==='waste'?`${en?'Waste measurement':'Μέτρηση αποβλήτων'} · ${fmtDate(record?.date)}`
    : recordType==='antiseptics'?`${en?'Antiseptic consumption':'Κατανάλωση αντισηπτικού'} · ${record?.period||''}`
    : `${record?.templateName||record?.bundle} · ${record?.date||record?.period||''}`
- const subtitle=recordType==='handHygiene'?(en?'WHO 5 Moments · Prevention & Infection Control':'WHO 5 Moments · Πρόληψη & Έλεγχος Λοιμώξεων'):undefined
+ const subtitle=recordType==='handHygiene'?(en?'WHO 5 Moments · Prevention & Infection Control':'WHO 5 Moments · Πρόληψη & Έλεγχος Λοιμώξεων'):recordType==='waste'?(en?'Waste management · Prevention & Infection Control':'Διαχείριση αποβλήτων · Πρόληψη & Έλεγχος Λοιμώξεων'):undefined
  const recordStatus=!record?null:recordType==='waste'?<span className={`waste-category-badge ${wasteCategoryTone(wasteCategory)}`}>{en?(record.typeEn||wasteCategory):wasteCategory}</span>:recordType==='antiseptics'?<span className={`antiseptic-abhr-badge ${record.indicatorEligible!==false&&isAbhrProduct(record)?'active':'informative'}`}>{record.indicatorEligible!==false&&isAbhrProduct(record)?(en?'ABHR · included in indicator':'ABHR · στον δείκτη'):(en?'Outside ABHR indicator':'Εκτός δείκτη ABHR')}</span>:recordType==='bundles'?<span className={`bundle-all-badge ${record.allOrNone?'passed':'failed'}`}>{record.allOrNone?'All-or-none ✓':'All-or-none ✕'}</span>:null
 
  async function saveHandHygiene(updated){
@@ -90,6 +97,13 @@ export function PreventionRecordPage(){
    notify(creating?(en?'Observation saved.':'Η παρατήρηση αποθηκεύτηκε.'):(en?'Changes saved.':'Οι αλλαγές αποθηκεύτηκαν.'),'success')
    navigate(saved?.id?`/prevention/handHygiene/${saved.id}?fromTab=handHygiene`:'/prevention?tab=handHygiene',{replace:true})
   }catch(error){notifyError(error,'save',{operation:creating?'hand_hygiene_create':'hand_hygiene_record_update'});throw error}
+ }
+ async function saveWaste(updated){
+  try{
+   const saved=await saveWasteMeasurement(tenant.id,updated,{existingId:creating?null:record.id})
+   notify(creating?(en?'Waste measurement saved.':'Η μέτρηση αποβλήτων αποθηκεύτηκε.'):(en?'Changes saved.':'Οι αλλαγές αποθηκεύτηκαν.'),'success')
+   navigate(saved?.id?`/prevention/waste/${saved.id}?fromTab=waste`:'/prevention?tab=waste',{replace:true})
+  }catch(error){notifyError(error,'save',{operation:creating?'waste_create':'waste_record_update'});throw error}
  }
 
  async function deleteCurrent(){
@@ -104,9 +118,11 @@ export function PreventionRecordPage(){
 
  const recordActions=!creating&&!editing?<>
   <PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record.id})}/>
-  {canEditHandHygiene&&<ActionButton label={en?'Edit':'Επεξεργασία'} tone="edit" onClick={()=>navigate(`/prevention/handHygiene/${record.id}?edit=1`)}><Pencil size={16}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
+  {canEditRecord&&supportsPageEditor&&<ActionButton label={en?'Edit':'Επεξεργασία'} tone="edit" onClick={()=>navigate(`/prevention/${recordType}/${record.id}?edit=1`)}><Pencil size={16}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   <ActionButton label={en?'Delete':'Διαγραφή'} tone="danger" onClick={deleteCurrent}><Trash2 size={16}/><span>{en?'Delete':'Διαγραφή'}</span></ActionButton>
  </>:null
+ const backToList=()=>navigate(`/prevention?tab=${recordType}`)
+ const backToRecord=()=>navigate(`/prevention/${recordType}/${record.id}?fromTab=${recordType}`)
 
  return <Page fill>
   <EntityRecordShell
@@ -115,10 +131,10 @@ export function PreventionRecordPage(){
    recordNavigation={creating||editing?null:recordNavigation}
    headerActions={recordActions}
    tabs={[]}
-   onBack={creating?()=>navigate('/prevention?tab=handHygiene'):editing?()=>navigate(`/prevention/handHygiene/${record.id}?fromTab=handHygiene`):undefined}
+   onBack={creating?backToList:editing?backToRecord:undefined}
   >
    {(creating||editing)
-    ? <div className="record-section prevention-record-card who-record-editor-card"><WhoHandHygieneEditor departments={handDepartments} initialRecord={editing?record:null} fixedDepartment={departmentScoped?ownDepartment:''} onCancel={creating?()=>navigate('/prevention?tab=handHygiene'):()=>navigate(`/prevention/handHygiene/${record.id}?fromTab=handHygiene`)} onSave={saveHandHygiene}/></div>
+    ? <div className="record-section prevention-record-card prevention-page-editor-card">{recordType==='handHygiene'?<WhoHandHygieneEditor departments={handDepartments} initialRecord={editing?record:null} fixedDepartment={departmentScoped?ownDepartment:''} onCancel={creating?backToList:backToRecord} onSave={saveHandHygiene}/>:<WasteEntryEditor departments={wasteSupport.departments} wasteTypes={wasteSupport.wasteTypes} initialRecord={editing?record:null} fixedDepartment={departmentScoped?ownDepartment:''} findPatientDays={(departmentId,date)=>findWastePatientDays(tenant.id,departmentId,date)} onCancel={creating?backToList:backToRecord} onSave={saveWaste}/>}</div>
     : <div className="record-section prevention-record-card">{recordType==='handHygiene'?<HandHygieneDetails record={record} language={language}/>:recordType==='waste'?<WasteDetails record={record} fmtDate={fmtDate} language={language} locale={locale}/>:recordType==='antiseptics'?<AntisepticDetails record={record} language={language} locale={locale}/>:<BundleDetails record={record} language={language}/>}</div>
    }
   </EntityRecordShell>
@@ -146,23 +162,17 @@ function HandHygieneDetails({record,language}){
    <div><span>Missed</span><strong>{stats.missed||0}</strong></div>
    <div className="who-compliance"><span>{en?'Compliance':'Συμμόρφωση'}</span><strong>{stats.compliance}%</strong></div>
   </section>
-  <div className="who-record-saved-list">{items.map((item,index)=>{
-   return <section className="who-opportunity-editor who-record-saved-opportunity" key={item.id||index}>
-    <div className="who-section-title"><div><strong>{en?`Opportunity ${index+1}`:`Ευκαιρία ${index+1}`}</strong><small>{en?'Recorded hand-hygiene opportunity':'Καταγεγραμμένη ευκαιρία υγιεινής χεριών'}</small></div></div>
-    <div className="who-opportunity-grid">
-     <label><span>{en?'Number of professionals':'Αριθμός επαγγελματιών'}</span><input value={item.professionalsCount||1} readOnly/></label>
-     <label><span>{en?'Professional category':'Επαγγελματική κατηγορία'}</span><select value={item.professionalCategory||''} disabled>{WHO_PROFESSIONS.map(([el,enLabel])=><option key={el} value={el}>{en?enLabel:el}</option>)}</select></label>
-     <label className="who-span-2"><span>WHO Moment</span><select value={item.moment||''} disabled>{WHO_MOMENTS.map(option=><option key={option.id} value={option.id}>{en?option.labelEn:option.label}</option>)}</select></label>
-     <div className="who-span-2 who-action-field"><span>{en?'Action':'Ενέργεια'}</span><div className="who-action-options" aria-readonly="true">
-      <button type="button" tabIndex={-1} className={`who-action-option ${item.action==='HR'?'selected':''}`}><span className="who-action-check">{item.action==='HR'?'✓':''}</span><span><strong>{en?'Alcohol-based hand rub':'Αλκοολούχο αντισηπτικό'}</strong><small>Hand Rub (HR)</small></span></button>
-      <button type="button" tabIndex={-1} className={`who-action-option ${item.action==='HW'?'selected':''}`}><span className="who-action-check">{item.action==='HW'?'✓':''}</span><span><strong>{en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'}</strong><small>Hand Wash (HW)</small></span></button>
-      <button type="button" tabIndex={-1} className={`who-action-option ${item.action==='MISSED'?'selected danger':''}`}><span className="who-action-check">{item.action==='MISSED'?'✓':''}</span><span><strong>{en?'Not performed':'Δεν πραγματοποιήθηκε'}</strong><small>Missed</small></span></button>
-     </div></div>
-     <label className="who-gloves-card who-readonly-choice"><input type="checkbox" checked={Boolean(item.gloves)} readOnly/><span><strong>{en?'Glove use':'Χρήση γαντιών'}</strong><small>Gloves</small></span></label>
-     <label className="who-note-field"><span>{en?'Note':'Σημείωση'}</span><input value={item.notes||''} placeholder={en?'No note':'Χωρίς σημείωση'} readOnly/></label>
-    </div>
-   </section>
-  })}</div>
+  <div className="who-record-saved-list">{items.map((item,index)=><section className="who-opportunity-editor who-record-saved-opportunity" key={item.id||index}>
+   <div className="who-section-title"><div><strong>{en?`Opportunity ${index+1}`:`Ευκαιρία ${index+1}`}</strong><small>{en?'Recorded hand-hygiene opportunity':'Καταγεγραμμένη ευκαιρία υγιεινής χεριών'}</small></div></div>
+   <div className="who-opportunity-grid">
+    <label><span>{en?'Number of professionals':'Αριθμός επαγγελματιών'}</span><input value={item.professionalsCount||1} readOnly/></label>
+    <label><span>{en?'Professional category':'Επαγγελματική κατηγορία'}</span><select value={item.professionalCategory||''} disabled>{WHO_PROFESSIONS.map(([el,enLabel])=><option key={el} value={el}>{en?enLabel:el}</option>)}</select></label>
+    <label className="who-span-2"><span>WHO Moment</span><select value={item.moment||''} disabled>{WHO_MOMENTS.map(option=><option key={option.id} value={option.id}>{en?option.labelEn:option.label}</option>)}</select></label>
+    <div className="who-span-2 who-action-field"><span>{en?'Action':'Ενέργεια'}</span><div className="who-action-options" aria-readonly="true"><button type="button" tabIndex={-1} className={`who-action-option ${item.action==='HR'?'selected':''}`}><span className="who-action-check">{item.action==='HR'?'✓':''}</span><span><strong>{en?'Alcohol-based hand rub':'Αλκοολούχο αντισηπτικό'}</strong><small>Hand Rub (HR)</small></span></button><button type="button" tabIndex={-1} className={`who-action-option ${item.action==='HW'?'selected':''}`}><span className="who-action-check">{item.action==='HW'?'✓':''}</span><span><strong>{en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'}</strong><small>Hand Wash (HW)</small></span></button><button type="button" tabIndex={-1} className={`who-action-option ${item.action==='MISSED'?'selected danger':''}`}><span className="who-action-check">{item.action==='MISSED'?'✓':''}</span><span><strong>{en?'Not performed':'Δεν πραγματοποιήθηκε'}</strong><small>Missed</small></span></button></div></div>
+    <label className="who-gloves-card who-readonly-choice"><input type="checkbox" checked={Boolean(item.gloves)} readOnly/><span><strong>{en?'Glove use':'Χρήση γαντιών'}</strong><small>Gloves</small></span></label>
+    <label className="who-note-field"><span>{en?'Note':'Σημείωση'}</span><input value={item.notes||''} placeholder={en?'No note':'Χωρίς σημείωση'} readOnly/></label>
+   </div>
+  </section>)}</div>
  </div>
 }
 
