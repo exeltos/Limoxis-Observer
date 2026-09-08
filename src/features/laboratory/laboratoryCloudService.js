@@ -2,6 +2,7 @@ import { supabase } from '../../core/supabase/client'
 
 const assertCloud=()=>{if(!supabase)throw new Error('Supabase is not configured.')}
 const iso=value=>value?new Date(value).toISOString():null
+const environmentalTypes=['water','surface','environment','environmental','νερό','επιφάνεια','επιφανεια']
 
 async function currentUserId(){
   assertCloud()
@@ -38,14 +39,24 @@ function mapMicrobiology(row,ast=[],communications=[],amr=[]){
 
 function mapSample(row,patient,department,microbiology=[]){
   const result=microbiology[0]||null
+  const patientName=patient?`${patient.first_name||''} ${patient.last_name||''}`.trim():''
+  const inferredType=patient?'patient':environmentalTypes.some(value=>String(row.sample_type||'').toLowerCase().includes(value))?'environment':'other'
+  const subjectType=row.subject_type||inferredType
+  const subjectName=row.subject_name||patientName||(subjectType==='environment'?(row.source_site||''):'')
+  const subjectCode=row.subject_code||patient?.patient_code||''
   return {
     id:row.sample_code,
     recordId:row.id,
     organizationId:row.organization_id,
     patientRecordId:row.patient_id,
     patientId:patient?.patient_code||row.patient_id,
-    patient:patient?`${patient.first_name||''} ${patient.last_name||''}`.trim():'',
-    patientEn:patient?`${patient.first_name||''} ${patient.last_name||''}`.trim():'',
+    patient:patientName,
+    patientEn:patientName,
+    subjectType,
+    subjectName,
+    subjectCode,
+    employeeSurveillanceId:row.employee_surveillance_id||null,
+    employeeSurveillanceBatchId:row.employee_surveillance_batch_id||null,
     departmentId:row.department_id,
     department:department?.name||'',
     departmentEn:department?.name||'',
@@ -117,7 +128,27 @@ export async function createLaboratorySample(organizationId,patientRecordId,draf
   assertCloud()
   const actorId=await currentUserId()
   const code=draft.sampleCode||`LAB-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`
-  const {data,error}=await supabase.from('laboratory_samples').insert({organization_id:organizationId,patient_id:patientRecordId||null,department_id:draft.departmentId||null,surveillance_case_id:draft.surveillanceCaseId||null,sample_code:code,sample_type:draft.type,source_site:draft.source||null,collected_at:iso(draft.collectedAt),requested_at:iso(draft.requestedAt||new Date()),requested_by:actorId,received_at:iso(draft.receivedAt),status:draft.collectedAt?'collected':'requested',priority:draft.priority||'routine',created_by:actorId}).select('*').single()
+  const {data,error}=await supabase.from('laboratory_samples').insert({
+    organization_id:organizationId,
+    patient_id:patientRecordId||null,
+    department_id:draft.departmentId||null,
+    surveillance_case_id:draft.surveillanceCaseId||null,
+    employee_surveillance_id:draft.employeeSurveillanceId||null,
+    employee_surveillance_batch_id:draft.employeeSurveillanceBatchId||null,
+    subject_type:draft.subjectType||null,
+    subject_name:draft.subjectName||null,
+    subject_code:draft.subjectCode||null,
+    sample_code:code,
+    sample_type:draft.type,
+    source_site:draft.source||null,
+    collected_at:iso(draft.collectedAt),
+    requested_at:iso(draft.requestedAt||new Date()),
+    requested_by:actorId,
+    received_at:iso(draft.receivedAt),
+    status:draft.collectedAt?'collected':'requested',
+    priority:draft.priority||'routine',
+    created_by:actorId,
+  }).select('*').single()
   if(error)throw error
   return (await hydrateSamples([data]))[0]
 }
