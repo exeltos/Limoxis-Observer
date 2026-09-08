@@ -1,0 +1,29 @@
+.prevention-record-shell .waste-smart-editor{width:100%;min-width:0}
+.prevention-record-shell .waste-smart-layout{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(320px,.72fr);gap:16px;align-items:start;min-width:0}
+.prevention-record-shell .waste-smart-main{display:grid;gap:14px;min-width:0}
+.prevention-record-shell .waste-smart-rail{display:grid;gap:12px;min-width:0;position:sticky;top:12px}
+.prevention-record-shell .waste-smart-section,.prevention-record-shell .waste-smart-indicator{margin:0!important;padding:16px 18px!important;border:1px solid var(--lo-color-border,#dce5ec)!important;border-radius:14px!important;background:#fff!important;box-shadow:none!important}
+.prevention-record-shell .waste-form-section-title{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:14px!important;margin:0 0 14px!important}
+.prevention-record-shell .waste-form-section-title>div{min-width:0}
+.prevention-record-shell .waste-form-section-title strong{color:#173650!important;font-size:14px!important;font-weight:800!important}
+.prevention-record-shell .waste-form-section-title small{max-width:520px;color:#7a8d9e!important;font-size:10.5px!important;line-height:1.4!important}
+.prevention-record-shell .waste-smart-measurement-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:13px 14px!important}
+.prevention-record-shell .waste-smart-measurement-grid .entry-span-2{grid-column:1 / -1!important}
+.prevention-record-shell .waste-category-field{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:9px!important;align-items:center!important}
+.prevention-record-shell .waste-category-field .waste-category-badge{white-space:nowrap!important;align-self:center!important}
+.prevention-record-shell .waste-smart-indicator{padding:16px!important}
+.prevention-record-shell .waste-indicator-hero{display:grid;gap:5px;padding:15px 16px;border:1px solid #d9e8eb;border-radius:12px;background:#f2f8f9;margin-bottom:14px}
+.prevention-record-shell .waste-indicator-hero strong{color:#176f7e;font-size:30px;line-height:1;font-weight:850;letter-spacing:-.03em}
+.prevention-record-shell .waste-indicator-hero span{color:#6e8792;font-size:10px;font-weight:750}
+.prevention-record-shell .waste-patient-days-control{display:grid;gap:6px}
+.prevention-record-shell .waste-patient-days-control>span{color:#5f7487;font-size:10px;font-weight:800}
+.prevention-record-shell .waste-patient-days-control input{width:100%;min-height:42px;border:1px solid #cfdbe5;border-radius:9px;background:#fff;padding:0 11px;color:#27455b}
+.prevention-record-shell .waste-library-source{width:100%;min-height:38px;margin-top:9px;border:1px solid #d6e1e7;border-radius:9px;background:#f8fafb;color:#365c73;font-size:10.5px;font-weight:750;cursor:pointer}
+.prevention-record-shell .waste-library-source:hover{border-color:#aac4d2;background:#f3f8fa}
+.prevention-record-shell .waste-library-source.applied{border-color:#b9dcc8;background:#eef8f2;color:#2b6f4b}
+.prevention-record-shell .waste-source-note{margin-top:9px;padding-top:9px;border-top:1px solid #edf1f4;color:#7b8e9e;font-size:9.5px}
+.prevention-record-shell .waste-smart-actor{margin:0!important;padding:12px 14px!important;border:1px solid #e1e8ed!important;border-radius:11px!important;background:#fafbfd!important}
+.prevention-record-shell .waste-smart-editor>.prevention-editor-page-actions{margin-top:14px!important;padding-top:14px!important;background:transparent!important;border-top:1px solid #e5ebf0!important}
+@media(max-width:1180px){.prevention-record-shell .waste-smart-layout{grid-template-columns:minmax(0,1.45fr) minmax(300px,.75fr)}}
+@media(max-width:920px){.prevention-record-shell .waste-smart-layout{grid-template-columns:1fr}.prevention-record-shell .waste-smart-rail{position:static}.prevention-record-shell .waste-smart-indicator{order:-1}}
+@media(max-width:640px){.prevention-record-shell .waste-smart-measurement-grid{grid-template-columns:1fr!important}.prevention-record-shell .waste-smart-measurement-grid>*{grid-column:1!important}.prevention-record-shell .waste-category-field{grid-template-columns:1fr!important}.prevention-record-shell .waste-category-field .waste-category-badge{justify-self:start}}
