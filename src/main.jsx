@@ -45,6 +45,7 @@ import './styles/prevention-hand-hygiene-refinement.css'
 import './styles/prevention-who-record-refinement.css'
 import './styles/prevention-waste-refinement.css'
 import './styles/prevention-antiseptic-refinement.css'
+import './styles/prevention-antiseptic-v2.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
