@@ -77,12 +77,11 @@
    1. Count + Profession
    2. WHO Moment
    3. Action
-   4. Gloves + Note
-   We intentionally follow DOM order instead of forcing fields around the card.
+   4. Gloves + wide Note
 */
 .prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid{
   display:grid!important;
-  grid-template-columns:minmax(120px,.55fr) minmax(260px,1.45fr)!important;
+  grid-template-columns:minmax(150px,180px) minmax(0,1fr)!important;
   gap:12px 14px!important;
   width:100%!important;
   min-width:0!important;
@@ -164,7 +163,7 @@
   font-size:11px!important;
 }
 
-/* Bottom row: gloves left, note right. */
+/* Bottom row: compact gloves field + note uses all remaining width. */
 .prevention-record-shell .who-record-saved-opportunity .who-readonly-choice{
   grid-column:1!important;
   min-width:0!important;
@@ -207,6 +206,11 @@
 .prevention-record-shell .who-record-saved-opportunity .who-note-field{
   grid-column:2!important;
   min-width:0!important;
+  width:100%!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-note-field input{
+  width:100%!important;
+  max-width:none!important;
 }
 
 /* Summary rail */
