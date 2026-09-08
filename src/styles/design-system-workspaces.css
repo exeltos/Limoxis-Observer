@@ -1,0 +1,91 @@
+/* Canonical application workspace presentation.
+   This is the single contract for create/edit screens that occupy the application canvas
+   while keeping the global sidebar and topbar visible. Module CSS must style content only,
+   not reposition modal backdrops or override application shell geometry. */
+
+:root{
+  --lo-shell-sidebar-width:244px;
+  --lo-shell-topbar-height:64px;
+  --lo-workspace-canvas:#f5f7fa;
+  --lo-workspace-max-width:1500px;
+  --lo-workspace-page-x:30px;
+  --lo-workspace-page-y:18px;
+}
+
+.observer-dialog-backdrop-workspace{
+  position:fixed;
+  left:var(--lo-shell-sidebar-width);
+  top:var(--lo-shell-topbar-height);
+  right:0;
+  bottom:0;
+  z-index:9;
+  display:block;
+  padding:var(--lo-workspace-page-y) var(--lo-workspace-page-x) 24px;
+  overflow:auto;
+  background:var(--lo-workspace-canvas);
+  backdrop-filter:none;
+}
+
+.observer-dialog-presentation-workspace{
+  width:100%;
+  max-width:var(--lo-workspace-max-width);
+  min-height:calc(100vh - var(--lo-shell-topbar-height) - 42px);
+  max-height:none;
+  margin:0 auto;
+  overflow:hidden;
+  border:1px solid var(--lo-color-border);
+  border-radius:var(--lo-radius-card);
+  background:var(--lo-color-surface);
+  box-shadow:none;
+}
+
+.observer-dialog-presentation-workspace>header{
+  position:sticky;
+  top:0;
+  z-index:5;
+  min-height:72px;
+  padding:14px 18px;
+  background:var(--lo-color-surface);
+  border-bottom:1px solid var(--lo-color-border);
+}
+
+.observer-dialog-presentation-workspace>header h3{
+  margin:0;
+  font-size:21px;
+  line-height:1.25;
+}
+
+.observer-dialog-presentation-workspace>header .eyebrow,
+.observer-dialog-presentation-workspace>header p{
+  display:none;
+}
+
+.observer-dialog-presentation-workspace>.observer-dialog-body{
+  max-height:none;
+  overflow:visible;
+}
+
+.observer-dialog-presentation-workspace>footer{
+  position:sticky;
+  bottom:0;
+  z-index:5;
+  background:var(--lo-color-surface);
+  border-top:1px solid var(--lo-color-border);
+}
+
+@media(max-width:1200px){
+  :root{
+    --lo-shell-sidebar-width:220px;
+    --lo-workspace-page-x:22px;
+  }
+}
+
+@media(max-width:760px){
+  :root{
+    --lo-shell-sidebar-width:0px;
+    --lo-workspace-page-x:14px;
+    --lo-workspace-page-y:12px;
+  }
+  .observer-dialog-backdrop-workspace{top:var(--lo-shell-topbar-height)}
+  .observer-dialog-presentation-workspace{min-height:calc(100vh - var(--lo-shell-topbar-height) - 24px)}
+}
