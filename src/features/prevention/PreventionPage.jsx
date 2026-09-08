@@ -21,6 +21,7 @@ import { readRegistryViewState,useRegistryMemory } from '../../core/navigation/u
 import { wasteCategoryTone } from './wasteVisuals'
 
 const tabs=[['handHygiene','handHygiene'],['waste','wasteManagement'],['antiseptics','antisepticConsumption'],['bundles','preventionBundles']]
+const tabCapabilities={handHygiene:CAPABILITIES.RECORD_HAND_HYGIENE,waste:CAPABILITIES.RECORD_WASTE,antiseptics:CAPABILITIES.RECORD_ANTISEPTIC,bundles:CAPABILITIES.RECORD_PREVENTION_BUNDLE}
 const createLabels={
  handHygiene:{el:'Νέα παρατήρηση',en:'New observation'},
  waste:{el:'Νέα καταγραφή',en:'New entry'},
@@ -35,6 +36,9 @@ export function PreventionPage(){
  const {notify,notifyError}=useFeedback()
  const {role,membership,canAccessRecord,tenant}=useTenant()
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
+ const broadPreventionView=can(role,CAPABILITIES.VIEW_PREVENTION,[],custom)
+ const tabAccess=useMemo(()=>Object.fromEntries(tabs.map(([id])=>[id,broadPreventionView||can(role,tabCapabilities[id],addOns,custom)])),[role,broadPreventionView,addOns,custom])
+ const visibleTabs=useMemo(()=>tabs.filter(([id])=>tabAccess[id]),[tabAccess])
  const [tab,setTab]=useState(()=>searchParams.get('tab')||'handHygiene')
  const registry=useRegistryMemory(`prevention-${tab}`)
  const savedView=registry.loadViewState({query:'',department:'all',period:'all',product:'all',method:'all'})
@@ -51,9 +55,8 @@ export function PreventionPage(){
  const [bundleRows,setBundleRows]=useState([]),[bundleSupport,setBundleSupport]=useState({departments:[],templates:[]}),[bundleLoading,setBundleLoading]=useState(false)
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
  const departmentScoped=[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE].includes(role)
- const createCapability=tab==='handHygiene'?CAPABILITIES.RECORD_HAND_HYGIENE:tab==='waste'?CAPABILITIES.RECORD_WASTE:tab==='antiseptics'?CAPABILITIES.RECORD_ANTISEPTIC:CAPABILITIES.RECORD_PREVENTION_BUNDLE
- const canCreateRecord=role!==ROLES.HOSPITAL_ADMIN&&can(role,createCapability,addOns,custom)
- const visibleTabs=tabs.filter(([id])=>can(role,id==='handHygiene'?CAPABILITIES.RECORD_HAND_HYGIENE:id==='waste'?CAPABILITIES.RECORD_WASTE:id==='antiseptics'?CAPABILITIES.RECORD_ANTISEPTIC:CAPABILITIES.RECORD_PREVENTION_BUNDLE,addOns,custom)||can(role,CAPABILITIES.VIEW_PREVENTION,addOns,custom))
+ const createCapability=tabCapabilities[tab]
+ const canCreateRecord=Boolean(createCapability)&&can(role,createCapability,addOns,custom)
  const source=tab==='handHygiene'?handRows:tab==='waste'?wasteRows:tab==='antiseptics'?antisepticRows:bundleRows
  const departments=useMemo(()=>{
   if(tab==='handHygiene')return handDepartments.map(x=>language==='el'?x.el:(x.en||x.el))
@@ -71,25 +74,39 @@ export function PreventionPage(){
   .filter(x=>method==='all'||x.method===method),[source,query,department,period,product,method,language,canAccessRecord])
 
  useEffect(()=>{setPage(1)},[tab,query,department,period,product,method,pageSize])
- useEffect(()=>{if(tenant?.id){void reloadHandHygiene();void reloadWaste();void reloadAntiseptics();void reloadBundles()}},[tenant?.id])
+ useEffect(()=>{
+  if(!visibleTabs.length)return
+  if(visibleTabs.some(([id])=>id===tab))return
+  const nextTab=visibleTabs[0][0]
+  setTab(nextTab)
+  setSearchParams({tab:nextTab},{replace:true})
+ },[tab,visibleTabs,setSearchParams])
+ useEffect(()=>{
+  if(!tenant?.id)return
+  if(tabAccess.handHygiene)void reloadHandHygiene();else{setHandRows([]);setHandDepartments([])}
+  if(tabAccess.waste)void reloadWaste();else{setWasteRows([]);setWasteSupport({departments:[],wasteTypes:[]})}
+  if(tabAccess.antiseptics)void reloadAntiseptics();else{setAntisepticRows([]);setAntisepticSupport({departments:[],products:[]})}
+  if(tabAccess.bundles)void reloadBundles();else{setBundleRows([]);setBundleSupport({departments:[],templates:[]})}
+ },[tenant?.id,tabAccess.handHygiene,tabAccess.waste,tabAccess.antiseptics,tabAccess.bundles])
 
  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
  const avg=handRows.length?handRows.reduce((sum,x)=>sum+x.rate,0)/handRows.length:0
  const fmtDate=v=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'
  const createLabel=createLabels[tab]?.[language==='en'?'en':'el']||(language==='en'?'New record':'Νέα καταγραφή')
 
- async function reloadHandHygiene(){if(!tenant?.id){setHandRows([]);setHandDepartments([]);return}setHandLoading(true);try{const [records,depts]=await Promise.all([loadHandHygieneSessions(tenant.id),loadHandHygieneDepartments(tenant.id)]);setHandRows(records);setHandDepartments(depts)}catch(error){notifyError(error,'load',{operation:'hand_hygiene_load'})}finally{setHandLoading(false)}}
- async function reloadWaste(){if(!tenant?.id){setWasteRows([]);setWasteSupport({departments:[],wasteTypes:[]});return}setWasteLoading(true);try{const [records,support]=await Promise.all([loadWasteMeasurements(tenant.id),loadWasteSupportData(tenant.id)]);setWasteRows(records);setWasteSupport(support)}catch(error){notifyError(error,'load',{operation:'waste_load'})}finally{setWasteLoading(false)}}
- async function reloadAntiseptics(){if(!tenant?.id){setAntisepticRows([]);setAntisepticSupport({departments:[],products:[]});return}setAntisepticLoading(true);try{const [records,support]=await Promise.all([loadAntisepticRecords(tenant.id),loadAntisepticSupportData(tenant.id)]);setAntisepticRows(records);setAntisepticSupport(support)}catch(error){notifyError(error,'load',{operation:'antiseptic_load'})}finally{setAntisepticLoading(false)}}
- async function reloadBundles(){if(!tenant?.id){setBundleRows([]);setBundleSupport({departments:[],templates:[]});return}setBundleLoading(true);try{const [records,support]=await Promise.all([loadBundleAssessments(tenant.id),loadBundleSupportData(tenant.id)]);setBundleRows(records);setBundleSupport(support)}catch(error){notifyError(error,'load',{operation:'bundle_load'})}finally{setBundleLoading(false)}}
+ async function reloadHandHygiene(){if(!tenant?.id||!tabAccess.handHygiene){setHandRows([]);setHandDepartments([]);return}setHandLoading(true);try{const [records,depts]=await Promise.all([loadHandHygieneSessions(tenant.id),loadHandHygieneDepartments(tenant.id)]);setHandRows(records);setHandDepartments(depts)}catch(error){notifyError(error,'load',{operation:'hand_hygiene_load'})}finally{setHandLoading(false)}}
+ async function reloadWaste(){if(!tenant?.id||!tabAccess.waste){setWasteRows([]);setWasteSupport({departments:[],wasteTypes:[]});return}setWasteLoading(true);try{const [records,support]=await Promise.all([loadWasteMeasurements(tenant.id),loadWasteSupportData(tenant.id)]);setWasteRows(records);setWasteSupport(support)}catch(error){notifyError(error,'load',{operation:'waste_load'})}finally{setWasteLoading(false)}}
+ async function reloadAntiseptics(){if(!tenant?.id||!tabAccess.antiseptics){setAntisepticRows([]);setAntisepticSupport({departments:[],products:[]});return}setAntisepticLoading(true);try{const [records,support]=await Promise.all([loadAntisepticRecords(tenant.id),loadAntisepticSupportData(tenant.id)]);setAntisepticRows(records);setAntisepticSupport(support)}catch(error){notifyError(error,'load',{operation:'antiseptic_load'})}finally{setAntisepticLoading(false)}}
+ async function reloadBundles(){if(!tenant?.id||!tabAccess.bundles){setBundleRows([]);setBundleSupport({departments:[],templates:[]});return}setBundleLoading(true);try{const [records,support]=await Promise.all([loadBundleAssessments(tenant.id),loadBundleSupportData(tenant.id)]);setBundleRows(records);setBundleSupport(support)}catch(error){notifyError(error,'load',{operation:'bundle_load'})}finally{setBundleLoading(false)}}
 
  function changeTab(id){
+  if(!tabAccess[id])return
   registry.saveViewState({tab,query,department,period,product,method})
   const next=readRegistryViewState(`prevention-${id}`)
   setTab(id);setQuery(next?.query||'');setDepartment(next?.department||'all');setPeriod(next?.period||'all');setProduct(next?.product||'all');setMethod(next?.method||'all')
   setSearchParams({tab:id},{replace:true})
  }
- function openPreventionRecord(id,type){registry.saveViewState({tab:type,query,department,period,product,method});registry.openRecord(navigate,`/prevention/${type}/${id}?fromTab=${type}`,id,rows.map(x=>x.id),{returnState:{tab:type}})}
+ function openPreventionRecord(id,type){if(!tabAccess[type])return;registry.saveViewState({tab:type,query,department,period,product,method});registry.openRecord(navigate,`/prevention/${type}/${id}?fromTab=${type}`,id,rows.map(x=>x.id),{returnState:{tab:type}})}
  function createRecord(){
   if(!canCreateRecord)return
   if(tab==='handHygiene'||tab==='waste'){navigate(`/prevention/${tab}/new?fromTab=${tab}`);return}
@@ -108,7 +125,7 @@ export function PreventionPage(){
  const loading=tab==='handHygiene'?handLoading:tab==='waste'?wasteLoading:tab==='antiseptics'?antisepticLoading:bundleLoading
 
  return <Page fill className="prevention-registry-page" title={t('preventionCenter')} subtitle={t('preventionSubtitle')} actions={canCreateRecord?<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>:null}>
-  <div className="workspace-summary prevention-summary"><div className="module-summary-strip"><Kpi icon={ShieldCheck} value={`${avg.toFixed(1)}%`} label={t('whoCompliance')}/><Kpi icon={ClipboardCheck} value={bundleRows.length} label={t('activeBundles')}/><Kpi icon={Recycle} value={`${wasteRows.reduce((s,x)=>s+x.weight,0).toFixed(1)} kg`} label={t('wasteRecorded')}/><Kpi icon={Droplets} value={`${antisepticRows.reduce((s,x)=>s+x.litres,0).toFixed(1)} L`} label={t('antisepticRecorded')}/></div></div>
+  <div className="workspace-summary prevention-summary"><div className="module-summary-strip">{tabAccess.handHygiene&&<Kpi icon={ShieldCheck} value={`${avg.toFixed(1)}%`} label={t('whoCompliance')}/>} {tabAccess.bundles&&<Kpi icon={ClipboardCheck} value={bundleRows.length} label={t('activeBundles')}/>} {tabAccess.waste&&<Kpi icon={Recycle} value={`${wasteRows.reduce((s,x)=>s+x.weight,0).toFixed(1)} kg`} label={t('wasteRecorded')}/>} {tabAccess.antiseptics&&<Kpi icon={Droplets} value={`${antisepticRows.reduce((s,x)=>s+x.litres,0).toFixed(1)} L`} label={t('antisepticRecorded')}/>}</div></div>
   <div className="surface registry-workspace prevention-workspace workspace-fill">
    <nav className="tabs prevention-tabs canonical-module-tabs">{visibleTabs.map(([id,key])=><button key={id} className={`tab ${tab===id?'active':''}`} onClick={()=>changeTab(id)}>{t(key)}</button>)}</nav>
    <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPrevention')} onClear={()=>{setQuery('');setDepartment('all');setPeriod('all');setProduct('all');setMethod('all')}} advanced={tab==='antiseptics'?<><FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect><FilterSelect label={t('productFilter')} value={product} onChange={setProduct}><option value="all">{t('allProducts')}</option>{[...new Set(source.map(x=>x.product).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect><FilterSelect label={t('dataSource')} value={method} onChange={setMethod}><option value="all">{t('allDataSources')}</option>{[...new Set(source.map(x=>x.method).filter(Boolean))].map(x=><option key={x} value={x}>{antisepticMethodLabel(x,language)}</option>)}</FilterSelect></>:tab==='bundles'?<FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>:null} activeAdvancedCount={(department!=='all'?1:0)+(period!=='all'?1:0)+(product!=='all'?1:0)+(method!=='all'?1:0)}><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect></FilterBar>
