@@ -96,9 +96,8 @@ export async function saveBundleAssessment(organizationId,record,{existingId=nul
  const complete=elementIds.length>0&&elementIds.every(id=>['yes','no','na'].includes(answers[id]))
  if(!complete)throw new Error('Every bundle element must be answered before completion.')
  const applicable=elementIds.map(id=>answers[id]).filter(x=>x==='yes'||x==='no')
- if(!applicable.length)throw new Error('At least one applicable bundle element is required.')
  const yes=applicable.filter(x=>x==='yes').length
- const score=Math.round((yes/applicable.length)*100)
+ const score=applicable.length?Math.round((yes/applicable.length)*100):null
  const findings=(template.rawElements||[]).filter(item=>answers[item.id]==='no').map(item=>({id:item.id,label:item.labelEl||item.label_en||item.labelEn||item.label_el||item.id,note:answerNotes[item.id]||''}))
  const criteria={answers,answerNotes,shift:record.shift||'',context:record.context||'',patientId:record.patientId||'',patientRef:record.patientRef||'',deviceId:record.deviceId||'',deviceRef:record.deviceRef||'',generalNotes:record.generalNotes||'',owner:record.owner||'',templateSnapshot:template}
  const payload={organization_id:organizationId,department_id:department.id,bundle_key:template.bundleKey,assessment_date:record.date,period_label:record.period||record.date||null,score,criteria,evidence:findings,status:'completed',updated_by:userId,updated_at:new Date().toISOString()}
