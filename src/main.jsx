@@ -47,6 +47,7 @@ import './styles/prevention-waste-refinement.css'
 import './styles/prevention-antiseptic-refinement.css'
 import './styles/prevention-antiseptic-v2.css'
 import './styles/prevention-bundles-workspace.css'
+import './styles/prevention-bundle-page.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
