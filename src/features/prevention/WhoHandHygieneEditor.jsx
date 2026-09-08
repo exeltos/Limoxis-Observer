@@ -22,7 +22,12 @@ export const WHO_PROFESSIONS=[
  ['Φυσικοθεραπευτής','Physiotherapist'],['Τεχνολόγος','Technologist'],['Βοηθητικό προσωπικό','Support staff'],['Άλλο','Other'],
 ]
 
-const blankObservation=()=>({id:'',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'',action:'',gloves:false,notes:''})
+const normalizeMoments=item=>{
+ const values=Array.isArray(item?.moments)?item.moments.filter(Boolean):[]
+ if(values.length)return [...new Set(values)]
+ return item?.moment?[item.moment]:[]
+}
+const blankObservation=()=>({id:'',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:[],action:'',gloves:false,notes:''})
 const observationWeight=item=>Math.max(1,Number(item?.professionalsCount)||1)
 const calculateStats=(list=[])=>{
  const opportunities=list.reduce((sum,item)=>sum+observationWeight(item),0)
@@ -35,6 +40,7 @@ const calculateStats=(list=[])=>{
 }
 
 const actionLabel=(action,en)=>!action?(en?'Select action':'Επιλέξτε ενέργεια'):action==='HR'?(en?'Hand rub':'Αντισηπτικό'):action==='HW'?(en?'Hand wash':'Πλύσιμο'):(en?'Missed':'Δεν έγινε')
+const momentLabels=(moments,en)=>normalizeMoments({moments}).map(id=>WHO_MOMENTS.find(moment=>moment.id===id)).filter(Boolean).map(moment=>en?moment.labelEn:moment.label)
 
 export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initialRecord=null,departments=[]}){
  const {profile,user}=useAuth()
@@ -48,7 +54,7 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
   : {facility:'',department:firstDepartment,date:today,observer:actor.name,startTime:'',endTime:''})
  const [current,setCurrent]=useState(blankObservation())
  const [currentTouched,setCurrentTouched]=useState(false)
- const [items,setItems]=useState(()=>initialRecord?.whoObservations?JSON.parse(JSON.stringify(initialRecord.whoObservations)):[])
+ const [items,setItems]=useState(()=>initialRecord?.whoObservations?JSON.parse(JSON.stringify(initialRecord.whoObservations)).map(item=>({...item,moments:normalizeMoments(item)})):[])
  const [saving,setSaving]=useState(false)
 
  useEffect(()=>{
@@ -59,16 +65,18 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
 
  const setS=(key,value)=>setSession(state=>({...state,[key]:value}))
  const setO=(key,value)=>{setCurrentTouched(true);setCurrent(state=>({...state,[key]:value}))}
- const currentValid=Boolean(Number(current.professionalsCount)>=1&&current.professionalCategory&&current.moment&&current.action)
+ const toggleMoment=id=>{setCurrentTouched(true);setCurrent(state=>{const selected=normalizeMoments(state);return {...state,moments:selected.includes(id)?selected.filter(value=>value!==id):[...selected,id]}})}
+ const currentMoments=normalizeMoments(current)
+ const currentValid=Boolean(Number(current.professionalsCount)>=1&&current.professionalCategory&&currentMoments.length&&current.action)
  const previewItems=useMemo(()=>currentTouched&&currentValid?[...items,current]:items,[items,current,currentTouched,currentValid])
  const stats=useMemo(()=>calculateStats(previewItems),[previewItems])
  const sessionValid=Boolean(session.date?.trim?.()&&session.department?.trim?.()&&session.observer?.trim?.())
  const valid=Boolean(sessionValid&&previewItems.length>0)
- const selectedMoment=WHO_MOMENTS.find(moment=>moment.id===current.moment)
+ const selectedMomentLabels=momentLabels(currentMoments,en)
 
  function add(){
   if(!currentValid)return
-  setItems(list=>[...list,{...current,id:`WHO-OBS-${Date.now()}-${list.length}`}])
+  setItems(list=>[...list,{...current,moments:currentMoments,id:`WHO-OBS-${Date.now()}-${list.length}`}])
   setCurrent(blankObservation())
   setCurrentTouched(false)
  }
@@ -83,12 +91,13 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
  async function save(){
   if(!valid||saving)return
   const finalItems=currentTouched&&currentValid
-   ? [...items,{...current,id:current.id||`WHO-OBS-${Date.now()}-${items.length}`}]
+   ? [...items,{...current,moments:currentMoments,id:current.id||`WHO-OBS-${Date.now()}-${items.length}`}]
    : items
   if(!finalItems.length)return
   const finalStats=calculateStats(finalItems)
   const profession=finalItems[0]?.professionalCategory?.startsWith('Ιατ')?'medical':'nursing'
-  const record={date:session.date,departmentEl:session.department,departmentEn:departments.find(d=>d.el===session.department)?.en||session.department,profession,observations:finalStats.opportunities,compliant:finalStats.compliant,rate:finalStats.compliance,observer:session.observer,session,whoObservations:finalItems,whoStats:finalStats,createdAt:initialRecord?.createdAt||new Date().toISOString(),createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id}
+  const normalizedItems=finalItems.map(item=>({...item,moments:normalizeMoments(item)}))
+  const record={date:session.date,departmentEl:session.department,departmentEn:departments.find(d=>d.el===session.department)?.en||session.department,profession,observations:finalStats.opportunities,compliant:finalStats.compliant,rate:finalStats.compliance,observer:session.observer,session,whoObservations:normalizedItems,whoStats:finalStats,createdAt:initialRecord?.createdAt||new Date().toISOString(),createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id}
   try{setSaving(true);await onSave(record)}finally{setSaving(false)}
  }
 
@@ -107,7 +116,7 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
   <div className="who-smart-layout">
    <div className="who-entry-column">
     <section className="who-opportunity-editor who-opportunity-entry who-smart-builder">
-     <div className="who-section-title"><div><strong>{en?'Record opportunity':'Καταγραφή ευκαιρίας'}</strong><small>{en?'Select the observed professional, WHO moment and action.':'Επιλέξτε επαγγελματία, στιγμή WHO και ενέργεια.'}</small></div><span className="who-step-badge">{en?'Live entry':'Άμεση καταγραφή'}</span></div>
+     <div className="who-section-title"><div><strong>{en?'Record opportunity':'Καταγραφή ευκαιρίας'}</strong><small>{en?'Select the observed professional, WHO indication(s) and action.':'Επιλέξτε επαγγελματία, ένδειξη ή ενδείξεις WHO και ενέργεια.'}</small></div><span className="who-step-badge">{en?'Live entry':'Άμεση καταγραφή'}</span></div>
 
      <div className="who-professional-row">
       <label><span>{en?'Number of professionals':'Αριθμός επαγγελματιών'}</span><input type="number" min="1" step="1" value={current.professionalsCount} onChange={event=>setO('professionalsCount',Math.max(1,Number(event.target.value)||1))}/></label>
@@ -115,9 +124,9 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
      </div>
 
      <div className="who-choice-block">
-      <div className="who-choice-heading"><span>WHO 5 Moments</span><small>{en?'Choose the indication observed':'Επιλέξτε την παρατηρούμενη ένδειξη'}</small></div>
-      <div className="who-moment-picker" role="radiogroup" aria-label="WHO 5 Moments">
-       {WHO_MOMENTS.map(moment=><button key={moment.id} type="button" role="radio" aria-checked={current.moment===moment.id} className={`who-moment-option ${current.moment===moment.id?'selected':''}`} onClick={()=>setO('moment',moment.id)}><span className="who-moment-number">{moment.id.replace('moment','')}</span><span>{en?moment.labelEn.replace(/^\d+\.\s*/,''):moment.label.replace(/^\d+\.\s*/,'')}</span></button>)}
+      <div className="who-choice-heading"><span>WHO 5 Moments</span><small>{en?'Select one or more indications observed in this opportunity':'Επιλέξτε μία ή περισσότερες ενδείξεις που συνυπάρχουν στην ίδια ευκαιρία'}</small></div>
+      <div className="who-moment-picker" role="group" aria-label="WHO 5 Moments">
+       {WHO_MOMENTS.map(moment=>{const selected=currentMoments.includes(moment.id);return <button key={moment.id} type="button" aria-pressed={selected} className={`who-moment-option ${selected?'selected':''}`} onClick={()=>toggleMoment(moment.id)}><span className="who-moment-number">{moment.id.replace('moment','')}</span><span>{en?moment.labelEn.replace(/^\d+\.\s*/,''):moment.label.replace(/^\d+\.\s*/,'')}</span></button>})}
       </div>
      </div>
 
@@ -134,7 +143,7 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
      <label className="who-note-field who-smart-note"><span>{en?'Optional note':'Προαιρετική σημείωση'}</span><input value={current.notes} onChange={event=>setO('notes',event.target.value)} placeholder={en?'Add context only when useful':'Προσθέστε πληροφορία μόνο όταν χρειάζεται'}/></label>
 
      <div className="who-current-preview">
-      <div><small>{en?'Current selection':'Τρέχουσα επιλογή'}</small><strong>{selectedMoment?(en?selectedMoment.labelEn:selectedMoment.label):(en?'Choose a WHO moment':'Επιλέξτε στιγμή WHO')}</strong><span>{actionLabel(current.action,en)} · {current.professionalsCount||1} {en?'professional(s)':'επαγγελματίας/ες'} · {current.gloves?(en?'gloves':'γάντια'):(en?'no gloves':'χωρίς γάντια')}</span></div>
+      <div><small>{en?'Current selection':'Τρέχουσα επιλογή'}</small><strong>{selectedMomentLabels.length?selectedMomentLabels.join(' · '):(en?'Choose at least one WHO indication':'Επιλέξτε τουλάχιστον μία ένδειξη WHO')}</strong><span>{actionLabel(current.action,en)} · {current.professionalsCount||1} {en?'professional(s)':'επαγγελματίας/ες'} · {current.gloves?(en?'gloves':'γάντια'):(en?'no gloves':'χωρίς γάντια')}</span></div>
       <ActionButton label={en?'Add opportunity':'Προσθήκη ευκαιρίας'} tone="primary" disabled={!currentValid} onClick={add}><Plus size={16}/><span>{en?'Add opportunity':'Προσθήκη ευκαιρίας'}</span></ActionButton>
      </div>
     </section>
@@ -157,11 +166,11 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
      <div className="who-panel-heading"><div><strong>{en?'Recorded opportunities':'Καταγεγραμμένες ευκαιρίες'}</strong><small>{en?'Compact review before final save':'Γρήγορος έλεγχος πριν την τελική αποθήκευση'}</small></div><span className="who-count-badge">{items.length}</span></div>
      <div className="who-opportunity-cards">
       {items.map((item,index)=>{
-       const moment=WHO_MOMENTS.find(entry=>entry.id===item.moment)
+       const labels=momentLabels(normalizeMoments(item),en)
        const professionLabel=en?(WHO_PROFESSIONS.find(([el])=>el===item.professionalCategory)?.[1]||item.professionalCategory):item.professionalCategory
        return <article className="who-opportunity-card" key={item.id}>
         <span className="who-opportunity-index">{index+1}</span>
-        <div className="who-opportunity-copy"><strong>{en?moment?.labelEn:moment?.label}</strong><span>{professionLabel} · {item.professionalsCount||1}</span><small><b className={`who-action-mini ${item.action==='MISSED'?'missed':''}`}>{actionLabel(item.action,en)}</b>{item.gloves?` · ${en?'Gloves':'Γάντια'}`:''}{item.notes?` · ${item.notes}`:''}</small></div>
+        <div className="who-opportunity-copy"><strong>{labels.join(' · ')||'—'}</strong><span>{professionLabel} · {item.professionalsCount||1}</span><small><b className={`who-action-mini ${item.action==='MISSED'?'missed':''}`}>{actionLabel(item.action,en)}</b>{item.gloves?` · ${en?'Gloves':'Γάντια'}`:''}{item.notes?` · ${item.notes}`:''}</small></div>
         <ActionButton iconOnly label={en?'Remove opportunity':'Αφαίρεση ευκαιρίας'} tone="danger" onClick={()=>removeObservation(item.id)}><Trash2 size={15}/></ActionButton>
        </article>
       })}
