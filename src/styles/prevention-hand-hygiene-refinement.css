@@ -1,0 +1,265 @@
+/* WHO Hand Hygiene final layout refinement.
+   Loaded after canonical Prevention styles so the smart editor owns its geometry. */
+
+/* Use the full application canvas for Prevention record screens. */
+.page.page-fill:has(.prevention-record-shell){
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+}
+.page.page-fill:has(.prevention-record-shell)>.prevention-record-shell,
+.prevention-record-shell{
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+}
+
+/* Remove the nested white-card feeling around the editor. */
+.prevention-record-shell.record-single-pane-screen>.entity-record-body{
+  position:relative!important;
+  padding:14px 16px 16px!important;
+}
+.prevention-record-shell.record-no-general-actions>.entity-record-body>.prevention-page-editor-card{
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+/* Smart WHO editor is a wide workspace, not a narrow form. */
+.prevention-record-shell .who-smart-editor{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:12px!important;
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  margin:0!important;
+}
+
+/* Session header: compact full-width strip. */
+.prevention-record-shell .who-smart-session{
+  width:100%!important;
+  margin:0!important;
+  padding:12px 14px!important;
+  border:1px solid var(--lo-color-border,#dbe4eb)!important;
+  border-radius:12px!important;
+  background:#fff!important;
+}
+.prevention-record-shell .who-smart-session .who-panel-heading{
+  margin:0 0 10px!important;
+}
+.prevention-record-shell .who-session-strip{
+  display:grid!important;
+  grid-template-columns:minmax(150px,.85fr) minmax(220px,1.2fr) minmax(220px,1.25fr) minmax(130px,.65fr) minmax(130px,.65fr)!important;
+  gap:10px!important;
+  width:100%!important;
+  align-items:end!important;
+}
+
+/* Main canvas: give the builder ~72% and insight rail ~28%. */
+.prevention-record-shell .who-smart-layout{
+  display:grid!important;
+  grid-template-columns:minmax(0,2.55fr) minmax(360px,1fr)!important;
+  gap:14px!important;
+  width:100%!important;
+  min-width:0!important;
+  align-items:start!important;
+}
+.prevention-record-shell .who-entry-column,
+.prevention-record-shell .who-insight-rail{
+  min-width:0!important;
+}
+.prevention-record-shell .who-smart-builder{
+  width:100%!important;
+  margin:0!important;
+  padding:14px 16px!important;
+  border:1px solid var(--lo-color-border,#dbe4eb)!important;
+  border-radius:12px!important;
+  background:#fff!important;
+}
+
+/* Professional details use available horizontal space. */
+.prevention-record-shell .who-professional-row{
+  display:grid!important;
+  grid-template-columns:minmax(170px,.55fr) minmax(320px,1.45fr)!important;
+  gap:12px!important;
+  margin:0 0 13px!important;
+}
+
+/* Five moments: true five-column desktop strip with better text rhythm. */
+.prevention-record-shell .who-moment-picker{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:8px!important;
+  width:100%!important;
+}
+.prevention-record-shell .who-moment-option{
+  min-width:0!important;
+  min-height:88px!important;
+  padding:10px 11px!important;
+  border:1px solid #dfe6ec!important;
+  border-radius:10px!important;
+  background:#fbfcfd!important;
+  color:#42596d!important;
+}
+.prevention-record-shell .who-moment-option.selected{
+  border-color:#6c9bbd!important;
+  background:#eef5fa!important;
+  box-shadow:inset 0 0 0 1px rgba(42,105,153,.16)!important;
+}
+.prevention-record-shell .who-moment-option>span:last-child{
+  font-size:10.7px!important;
+  line-height:1.36!important;
+  font-weight:700!important;
+}
+
+/* Action block: three equal choices, glove control beneath without another card. */
+.prevention-record-shell .who-smart-builder .who-action-section{
+  display:block!important;
+  margin-top:13px!important;
+  padding:13px!important;
+  border:1px solid #dbe5eb!important;
+  border-radius:11px!important;
+  background:#f9fbfc!important;
+}
+.prevention-record-shell .who-smart-actions{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:10px!important;
+  width:100%!important;
+}
+.prevention-record-shell .who-smart-actions .who-action-option{
+  min-height:62px!important;
+  padding:10px 12px!important;
+}
+.prevention-record-shell .who-smart-gloves{
+  display:inline-flex!important;
+  width:auto!important;
+  min-height:30px!important;
+  margin:10px 0 0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+/* Current selection is a compact command row, not another large card. */
+.prevention-record-shell .who-current-preview{
+  width:100%!important;
+  margin:12px 0 0!important;
+  padding:10px 0 0!important;
+  border:0!important;
+  border-top:1px solid #e7edf1!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.prevention-record-shell .who-current-preview .action-button{
+  min-width:170px!important;
+}
+
+/* Insight rail: wider, readable KPI geometry. */
+.prevention-record-shell .who-insight-rail{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:12px!important;
+  position:sticky!important;
+  top:76px!important;
+}
+.prevention-record-shell .who-smart-summary,
+.prevention-record-shell .who-smart-list-panel{
+  width:100%!important;
+  margin:0!important;
+  padding:14px!important;
+  border:1px solid var(--lo-color-border,#dbe4eb)!important;
+  border-radius:12px!important;
+  background:#fff!important;
+}
+.prevention-record-shell .who-smart-summary .who-panel-heading,
+.prevention-record-shell .who-smart-list-panel .who-panel-heading{
+  margin-bottom:10px!important;
+}
+.prevention-record-shell .who-compliance-hero{
+  margin-top:0!important;
+  padding:12px 13px!important;
+}
+.prevention-record-shell .who-smart-kpis{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:7px!important;
+  margin:8px 0 0!important;
+}
+.prevention-record-shell .who-smart-kpis>div{
+  min-width:0!important;
+  min-height:54px!important;
+  padding:8px 7px!important;
+}
+.prevention-record-shell .who-smart-kpis>div:nth-child(4),
+.prevention-record-shell .who-smart-kpis>div:nth-child(5){
+  grid-column:auto!important;
+}
+.prevention-record-shell .who-smart-kpis span{
+  font-size:9px!important;
+  white-space:normal!important;
+  line-height:1.2!important;
+}
+.prevention-record-shell .who-smart-kpis strong{
+  font-size:16px!important;
+}
+
+/* Opportunity list scrolls internally; the workspace itself stays stable. */
+.prevention-record-shell .who-opportunity-cards{
+  max-height:300px!important;
+  overflow:auto!important;
+}
+
+/* No bottom white card. Only a simple action row. */
+.prevention-record-shell .who-smart-footer{
+  position:static!important;
+  width:100%!important;
+  margin:0!important;
+  padding:12px 0 0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:10px!important;
+  border:0!important;
+  border-top:1px solid var(--lo-color-border,#dce4ea)!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.prevention-record-shell .who-smart-footer .who-save-state{
+  margin-right:auto!important;
+}
+
+/* Record header is slightly tighter for this single-pane workflow. */
+.prevention-record-shell>.entity-record-header{
+  min-height:74px!important;
+  padding-top:12px!important;
+  padding-bottom:12px!important;
+}
+
+@media(max-width:1380px){
+  .prevention-record-shell .who-smart-layout{grid-template-columns:minmax(0,2.1fr) minmax(330px,.9fr)!important}
+  .prevention-record-shell .who-session-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:1080px){
+  .prevention-record-shell .who-smart-layout{grid-template-columns:1fr!important}
+  .prevention-record-shell .who-insight-rail{position:static!important}
+  .prevention-record-shell .who-smart-kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+}
+@media(max-width:820px){
+  .prevention-record-shell.record-single-pane-screen>.entity-record-body{padding:10px!important}
+  .prevention-record-shell .who-professional-row{grid-template-columns:1fr!important}
+  .prevention-record-shell .who-moment-picker{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .prevention-record-shell .who-smart-actions{grid-template-columns:1fr!important}
+  .prevention-record-shell .who-session-strip{grid-template-columns:1fr 1fr!important}
+}
