@@ -23,24 +23,17 @@
 .control-record-shell .control-overview-footer{display:flex;align-items:center;justify-content:flex-end;gap:16px;padding-top:2px}
 .control-record-shell .control-schedule-summary{display:none}
 
-/* Execution history is a canonical embedded registry: fill the record body,
-   scroll only the rows and keep pagination attached at the bottom. */
+/* Execution history uses the same embedded-registry geometry as the rest of the app. */
 .control-record-shell.record-secondary-tab-active>.entity-record-body{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important}
-.control-record-shell.record-secondary-tab-active .control-history-section{display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;height:100%!important;min-height:0!important;overflow:hidden!important;padding:0!important;margin:0!important}
-.control-record-shell.record-secondary-tab-active .control-history-workspace{display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:hidden!important}
-.control-record-shell.record-secondary-tab-active .control-history-workspace>.scroll-table{flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:auto!important}
+.control-record-shell.record-secondary-tab-active .control-history-section{display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;max-width:none!important;height:100%!important;min-height:0!important;overflow:hidden!important;padding:0!important;margin:0!important;box-sizing:border-box!important}
+.control-record-shell.record-secondary-tab-active .control-history-workspace{display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;max-width:none!important;height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:hidden!important}
+.control-record-shell.record-secondary-tab-active .control-history-workspace>.scroll-table{width:100%!important;max-width:none!important;flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:auto!important}
+.control-record-shell.record-secondary-tab-active .control-history-table{width:100%!important;min-width:100%!important;max-width:none!important}
 .control-record-shell.record-secondary-tab-active .control-history-workspace>.registry-pagination{flex:0 0 auto!important;margin-top:auto!important}
-
-/* History row actions use the shared IconButton component, with the same
-   compact square affordance as registry actions rather than bare glyphs. */
-.control-record-shell .control-history-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px}
-.control-record-shell .control-history-actions .lo-icon-button{width:32px!important;height:32px!important;min-width:32px!important;border:1px solid var(--lo-border,#dfe7ed)!important;border-radius:9px!important;background:var(--lo-surface,#fff)!important;box-shadow:none!important}
-.control-record-shell .control-history-actions .lo-icon-button-neutral{color:var(--lo-text,#36566d)!important}
-.control-record-shell .control-history-actions .lo-icon-button-edit{color:var(--lo-status-warning-fg)!important}
-.control-record-shell .control-history-actions .lo-icon-button-danger{color:var(--lo-status-danger-fg)!important}
-.control-record-shell .control-history-actions .lo-icon-button-neutral:hover{background:var(--lo-status-info-bg)!important;border-color:color-mix(in srgb,var(--lo-accent,#2b718f) 22%,var(--lo-border,#dfe7ed))!important}
-.control-record-shell .control-history-actions .lo-icon-button-edit:hover{background:var(--lo-status-warning-bg)!important;border-color:color-mix(in srgb,var(--lo-status-warning-fg) 22%,var(--lo-border,#dfe7ed))!important}
-.control-record-shell .control-history-actions .lo-icon-button-danger:hover{background:var(--lo-status-danger-bg)!important;border-color:color-mix(in srgb,var(--lo-status-danger-fg) 22%,var(--lo-border,#dfe7ed))!important}
+.control-record-shell .control-history-menu-col{width:52px!important;min-width:52px!important;max-width:52px!important;text-align:center!important;padding-left:6px!important;padding-right:8px!important}
+.control-record-shell .control-history-menu-col .lo-overflow-menu{display:flex;justify-content:center;align-items:center}
+.control-record-shell .control-history-menu-col .lo-icon-button{width:30px!important;height:30px!important;min-width:30px!important;border:0!important;border-radius:8px!important;background:transparent!important;box-shadow:none!important}
+.control-record-shell .control-history-menu-col .lo-icon-button:hover{background:var(--lo-status-info-bg,#eef7fb)!important}
 
 /* Full-page control execution uses the same record/editor contract as Prevention editors. */
 .control-execution-record-shell .entity-record-body{overflow:auto}
