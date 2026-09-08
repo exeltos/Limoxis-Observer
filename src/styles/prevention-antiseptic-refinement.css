@@ -25,5 +25,49 @@
 .prevention-record-shell .antiseptic-trace-grid strong{color:#314b60;font-size:11.5px;font-weight:750;overflow-wrap:anywhere}
 .prevention-record-shell .record-note-card{padding:16px 18px}
 .prevention-record-shell .record-note-card p{margin:8px 0 0;color:#435d71;font-size:11.5px;line-height:1.55;white-space:pre-wrap}
-@media(max-width:900px){.prevention-record-shell .antiseptic-record-measurements{grid-template-columns:1fr 1fr}.prevention-record-shell .antiseptic-record-indicator{grid-column:1/-1;border-top:1px solid #edf1f4}.prevention-record-shell .antiseptic-record-meta-line,.prevention-record-shell .antiseptic-trace-grid{grid-template-columns:1fr 1fr}.prevention-record-shell .antiseptic-record-meta-line>span:nth-child(3),.prevention-record-shell .antiseptic-trace-grid>div:nth-child(3){grid-column:1/-1;border-top:1px solid #edf1f4}}
-@media(max-width:640px){.prevention-record-shell .antiseptic-record-heading{align-items:flex-start;flex-direction:column}.prevention-record-shell .antiseptic-record-measurements,.prevention-record-shell .antiseptic-record-meta-line,.prevention-record-shell .antiseptic-trace-grid{grid-template-columns:1fr}.prevention-record-shell .antiseptic-record-measurements>div,.prevention-record-shell .antiseptic-record-meta-line>span,.prevention-record-shell .antiseptic-trace-grid>div{border-right:0;border-bottom:1px solid #edf1f4}.prevention-record-shell .antiseptic-record-measurements>div:last-child,.prevention-record-shell .antiseptic-record-meta-line>span:last-child,.prevention-record-shell .antiseptic-trace-grid>div:last-child{border-bottom:0}}
+
+/* Antiseptic consumption editor — compact professional workspace */
+.antiseptic-entry-card .observer-dialog-body{padding:18px 20px!important}
+.antiseptic-entry-card .prevention-entry-body{display:grid!important;grid-template-columns:minmax(0,1fr) 360px!important;grid-template-areas:"actor actor" "consumption indicator" "trace indicator"!important;gap:16px!important;align-items:start!important;min-width:0!important}
+.antiseptic-entry-card .prevention-entry-actor{grid-area:actor!important;margin:0!important;min-height:54px!important;padding:10px 14px!important;border:1px solid #e1e8ed!important;border-radius:11px!important;background:#fafbfd!important;display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;column-gap:14px!important;align-items:center!important}
+.antiseptic-entry-card .prevention-entry-actor>span{grid-row:1 / span 2!important;color:#718696!important;font-size:9.5px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.035em!important}
+.antiseptic-entry-card .prevention-entry-actor strong{color:#29475c!important;font-size:11.5px!important;font-weight:800!important}
+.antiseptic-entry-card .prevention-entry-actor small{color:#8293a1!important;font-size:9.5px!important}
+.antiseptic-entry-card .antiseptic-form-section{margin:0!important;padding:18px 20px!important;border:1px solid var(--lo-color-border,#dce5ec)!important;border-radius:14px!important;background:#fff!important;box-shadow:none!important;min-width:0!important;box-sizing:border-box!important}
+.antiseptic-entry-card .antiseptic-form-section:nth-of-type(1){grid-area:consumption!important}
+.antiseptic-entry-card .antiseptic-form-section:nth-of-type(2){grid-area:indicator!important;position:sticky!important;top:0!important}
+.antiseptic-entry-card .antiseptic-form-section:nth-of-type(3){grid-area:trace!important}
+.antiseptic-entry-card .antiseptic-form-heading{display:grid!important;gap:4px!important;margin:0 0 16px!important;padding:0 0 13px!important;border-bottom:1px solid #edf1f4!important}
+.antiseptic-entry-card .antiseptic-form-heading strong{color:#173650!important;font-size:13.5px!important;font-weight:850!important;line-height:1.25!important}
+.antiseptic-entry-card .antiseptic-form-heading small{color:#7b8e9e!important;font-size:10px!important;line-height:1.45!important;max-width:720px!important}
+.antiseptic-entry-card .entry-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:15px 16px!important;align-items:end!important}
+.antiseptic-entry-card .entry-grid>label{display:grid!important;gap:7px!important;min-width:0!important;margin:0!important}
+.antiseptic-entry-card .entry-grid>label>span{color:#5f7487!important;font-size:9.5px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.025em!important}
+.antiseptic-entry-card .entry-grid input,.antiseptic-entry-card .entry-grid select,.antiseptic-entry-card .entry-grid textarea{width:100%!important;box-sizing:border-box!important;border:1px solid #cfdbe5!important;border-radius:9px!important;background:#fff!important;color:#27455b!important;font-size:11.5px!important}
+.antiseptic-entry-card .entry-grid input,.antiseptic-entry-card .entry-grid select{height:44px!important;min-height:44px!important}
+.antiseptic-entry-card .entry-grid textarea{min-height:88px!important;padding:11px 12px!important;resize:vertical!important;line-height:1.5!important}
+.antiseptic-entry-card .entry-span-2{grid-column:1 / -1!important}
+.antiseptic-entry-card .field-with-unit{position:relative!important;display:block!important}
+.antiseptic-entry-card .field-with-unit input{padding-right:42px!important}
+.antiseptic-entry-card .field-with-unit>span{position:absolute!important;right:13px!important;top:50%!important;transform:translateY(-50%)!important;color:#6f8494!important;font-size:10.5px!important;font-weight:800!important}
+.antiseptic-entry-card .antiseptic-eligibility{margin-top:15px!important;padding:12px 14px!important;border-radius:10px!important;display:grid!important;gap:4px!important}
+.antiseptic-entry-card .antiseptic-eligibility.eligible{border:1px solid #b9dcc8!important;background:#eef8f2!important}
+.antiseptic-entry-card .antiseptic-eligibility.informative{border:1px solid #d9e2e8!important;background:#f7f9fa!important}
+.antiseptic-entry-card .antiseptic-eligibility strong{font-size:10.5px!important;font-weight:850!important;color:#2d6249!important}
+.antiseptic-entry-card .antiseptic-eligibility.informative strong{color:#5e7281!important}
+.antiseptic-entry-card .antiseptic-eligibility span{font-size:9.8px!important;line-height:1.45!important;color:#6f8492!important}
+.antiseptic-entry-card .antiseptic-indicator-grid{grid-template-columns:1fr!important;gap:14px!important}
+.antiseptic-entry-card .antiseptic-patient-days-field{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+.antiseptic-entry-card .antiseptic-patient-days-field button{min-height:36px!important;border:1px solid #d6e1e7!important;border-radius:9px!important;background:#f8fafb!important;color:#365c73!important;font-size:10px!important;font-weight:800!important;cursor:pointer!important}
+.antiseptic-entry-card .antiseptic-patient-days-field button:hover{border-color:#aac4d2!important;background:#f3f8fa!important}
+.antiseptic-entry-card .antiseptic-patient-days-field button.applied{border-color:#b9dcc8!important;background:#eef8f2!important;color:#2b6f4b!important}
+.antiseptic-entry-card .antiseptic-source-note{margin-top:3px!important;color:#758a99!important;font-size:9.5px!important;line-height:1.4!important}
+.antiseptic-entry-card .antiseptic-indicator-card{display:grid!important;align-content:center!important;gap:6px!important;min-height:132px!important;padding:18px!important;border:1px solid #dce6eb!important;border-radius:12px!important;background:#f7f9fa!important;text-align:left!important}
+.antiseptic-entry-card .antiseptic-indicator-card.active{border-color:#d1e5e8!important;background:#f1f8f9!important}
+.antiseptic-entry-card .antiseptic-indicator-card>span{color:#6d8392!important;font-size:9.5px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.035em!important}
+.antiseptic-entry-card .antiseptic-indicator-card strong{color:#176f7e!important;font-size:34px!important;line-height:1!important;font-weight:850!important;letter-spacing:-.035em!important}
+.antiseptic-entry-card .antiseptic-indicator-card small{color:#718896!important;font-size:10px!important;font-weight:750!important}
+
+@media(max-width:1100px){.antiseptic-entry-card .prevention-entry-body{grid-template-columns:minmax(0,1fr) 320px!important}}
+@media(max-width:900px){.prevention-record-shell .antiseptic-record-measurements{grid-template-columns:1fr 1fr}.prevention-record-shell .antiseptic-record-indicator{grid-column:1/-1;border-top:1px solid #edf1f4}.prevention-record-shell .antiseptic-record-meta-line,.prevention-record-shell .antiseptic-trace-grid{grid-template-columns:1fr 1fr}.prevention-record-shell .antiseptic-record-meta-line>span:nth-child(3),.prevention-record-shell .antiseptic-trace-grid>div:nth-child(3){grid-column:1/-1;border-top:1px solid #edf1f4}.antiseptic-entry-card .prevention-entry-body{grid-template-columns:1fr!important;grid-template-areas:"actor" "consumption" "indicator" "trace"!important}.antiseptic-entry-card .antiseptic-form-section:nth-of-type(2){position:static!important}.antiseptic-entry-card .antiseptic-indicator-grid{grid-template-columns:minmax(0,1fr) minmax(220px,.8fr)!important;align-items:stretch!important}}
+@media(max-width:640px){.prevention-record-shell .antiseptic-record-heading{align-items:flex-start;flex-direction:column}.prevention-record-shell .antiseptic-record-measurements,.prevention-record-shell .antiseptic-record-meta-line,.prevention-record-shell .antiseptic-trace-grid{grid-template-columns:1fr}.prevention-record-shell .antiseptic-record-measurements>div,.prevention-record-shell .antiseptic-record-meta-line>span,.prevention-record-shell .antiseptic-trace-grid>div{border-right:0;border-bottom:1px solid #edf1f4}.prevention-record-shell .antiseptic-record-measurements>div:last-child,.prevention-record-shell .antiseptic-record-meta-line>span:last-child,.prevention-record-shell .antiseptic-trace-grid>div:last-child{border-bottom:0}.antiseptic-entry-card .observer-dialog-body{padding:12px!important}.antiseptic-entry-card .entry-grid,.antiseptic-entry-card .antiseptic-indicator-grid{grid-template-columns:1fr!important}.antiseptic-entry-card .entry-span-2{grid-column:1!important}.antiseptic-entry-card .antiseptic-form-section{padding:15px!important}}
