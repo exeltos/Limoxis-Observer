@@ -1,0 +1,153 @@
+/* WHO record view only: saved opportunities are a compact read-only list.
+   Create/edit keep the full clinical entry form. */
+
+.prevention-record-shell .who-record-workspace .who-record-saved-list{
+  display:grid!important;
+  gap:0!important;
+  overflow:hidden!important;
+  border:1px solid var(--lo-color-border,#dbe4eb)!important;
+  border-radius:12px!important;
+  background:#fff!important;
+}
+
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity+ .who-record-saved-opportunity{
+  border-top:1px solid #e4eaee!important;
+}
+
+/* Opportunity number becomes the compact row marker. */
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-section-title{
+  margin:0!important;
+  padding:10px 14px 0!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-section-title strong{
+  font-size:11px!important;
+  color:#6b8293!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-section-title small{
+  display:none!important;
+}
+
+/* Flatten the read-only form into list columns. */
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-opportunity-grid{
+  display:grid!important;
+  grid-template-columns:110px minmax(150px,1.15fr) minmax(250px,1.7fr) minmax(230px,1.5fr) 105px minmax(130px,.8fr)!important;
+  gap:12px!important;
+  align-items:center!important;
+  padding:8px 14px 13px!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-opportunity-grid>*{
+  grid-column:auto!important;
+  min-width:0!important;
+  margin:0!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity label,
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-action-field{
+  display:grid!important;
+  gap:3px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity label>span,
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-action-field>span{
+  color:#8294a2!important;
+  font-size:9.5px!important;
+  font-weight:700!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity input,
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity select{
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#334f63!important;
+  font-size:11.5px!important;
+  font-weight:600!important;
+  opacity:1!important;
+  -webkit-text-fill-color:#334f63!important;
+  appearance:none!important;
+}
+
+/* In view mode show only the recorded action, not three disabled action cards. */
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-action-options{
+  display:flex!important;
+  gap:6px!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-action-option{
+  display:none!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-action-option.selected{
+  display:inline-flex!important;
+  width:auto!important;
+  min-width:0!important;
+  min-height:28px!important;
+  padding:4px 8px!important;
+  border-radius:999px!important;
+  pointer-events:none!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-action-option.selected .who-action-check{
+  display:none!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-action-option.selected strong{
+  font-size:10.5px!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-action-option.selected small{
+  display:none!important;
+}
+
+/* Gloves are a plain yes/no list value, never a card in record view. */
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-readonly-choice{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  width:auto!important;
+  min-height:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-readonly-choice input{
+  width:15px!important;
+  height:15px!important;
+  flex:0 0 15px!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-readonly-choice>span{
+  display:grid!important;
+  gap:1px!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-readonly-choice strong{
+  font-size:10.5px!important;
+}
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-readonly-choice small{
+  font-size:9px!important;
+}
+
+/* Notes stay as the last compact column; blank notes do not create vertical space. */
+.prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-note-field input{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+@media(max-width:1200px){
+  .prevention-record-shell .who-record-workspace .who-record-saved-opportunity .who-opportunity-grid{
+    grid-template-columns:90px minmax(140px,1fr) minmax(220px,1.5fr) minmax(190px,1.25fr) 90px minmax(110px,.8fr)!important;
+    overflow-x:auto!important;
+  }
+}
