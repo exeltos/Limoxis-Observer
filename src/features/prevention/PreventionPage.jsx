@@ -11,13 +11,12 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { PreventionEntryModal } from './PreventionEntryModal'
-import { WasteEntryModal } from './WasteEntryModal'
 import { AntisepticEntryModal,antisepticMethodLabel } from './AntisepticEntryModal'
 import { BundleExecutionModal } from './BundleExecutionModal'
 import { loadHandHygieneDepartments,loadHandHygieneSessions } from './handHygieneCloudService'
 import { findPatientDaysForPeriod,loadAntisepticRecords,loadAntisepticSupportData,saveAntisepticRecord } from './antisepticCloudService'
 import { loadBundleAssessments,loadBundleSupportData,saveBundleAssessment } from './bundleCloudService'
-import { findWastePatientDays,loadWasteMeasurements,loadWasteSupportData,saveWasteMeasurement } from './wasteCloudService'
+import { loadWasteMeasurements,loadWasteSupportData } from './wasteCloudService'
 import { readRegistryViewState,useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { wasteCategoryTone } from './wasteVisuals'
 
@@ -93,16 +92,15 @@ export function PreventionPage(){
  function openPreventionRecord(id,type){registry.saveViewState({tab:type,query,department,period,product,method});registry.openRecord(navigate,`/prevention/${type}/${id}?fromTab=${type}`,id,rows.map(x=>x.id),{returnState:{tab:type}})}
  function createRecord(){
   if(!canCreateRecord)return
-  if(tab==='handHygiene'){navigate('/prevention/handHygiene/new?fromTab=handHygiene');return}
+  if(tab==='handHygiene'||tab==='waste'){navigate(`/prevention/${tab}/new?fromTab=${tab}`);return}
   setEntryOpen(true)
  }
  async function saveEntry(record){
   try{
-   if(tab==='waste')await saveWasteMeasurement(tenant.id,record)
-   else if(tab==='antiseptics')await saveAntisepticRecord(tenant.id,record)
+   if(tab==='antiseptics')await saveAntisepticRecord(tenant.id,record)
    else if(tab==='bundles')await saveBundleAssessment(tenant.id,record)
    else return
-   if(tab==='waste')await reloadWaste();else if(tab==='antiseptics')await reloadAntiseptics();else await reloadBundles()
+   if(tab==='antiseptics')await reloadAntiseptics();else await reloadBundles()
    setEntryOpen(false)
    notify(t('preventionSaved'),'success')
   }catch(error){notifyError(error,'save',{operation:`${tab}_create`})}
@@ -124,7 +122,7 @@ export function PreventionPage(){
    </div>
    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
   </div>
-  {entryOpen&&canCreateRecord&&(tab==='waste'?<WasteEntryModal departments={wasteSupport.departments} wasteTypes={wasteSupport.wasteTypes} findPatientDays={(departmentId,date)=>findWastePatientDays(tenant.id,departmentId,date)} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>:tab==='antiseptics'?<AntisepticEntryModal departments={antisepticSupport.departments} products={antisepticSupport.products} findPatientDays={(departmentId,from,to)=>findPatientDaysForPeriod(tenant.id,departmentId,from,to)} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>:tab==='bundles'?<BundleExecutionModal departments={bundleSupport.departments} templates={bundleSupport.templates} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>:<PreventionEntryModal tab={tab} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>)}
+  {entryOpen&&canCreateRecord&&(tab==='antiseptics'?<AntisepticEntryModal departments={antisepticSupport.departments} products={antisepticSupport.products} findPatientDays={(departmentId,from,to)=>findPatientDaysForPeriod(tenant.id,departmentId,from,to)} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>:tab==='bundles'?<BundleExecutionModal departments={bundleSupport.departments} templates={bundleSupport.templates} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>:<PreventionEntryModal tab={tab} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>)}
  </Page>
 }
 
