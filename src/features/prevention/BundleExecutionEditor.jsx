@@ -59,7 +59,7 @@ export function BundleExecutionEditor({onCancel,onSave,fixedDepartment='',initia
  const applicable=elements.filter(([id])=>['yes','no'].includes(draft.answers[id])).length
  const failures=elements.filter(([id])=>draft.answers[id]==='no')
  const complete=elements.length>0&&answered===elements.length
- const valid=Boolean(template&&draft.templateId&&draft.departmentEl&&draft.date&&complete&&applicable>0)
+ const valid=Boolean(template&&draft.templateId&&draft.departmentEl&&draft.date&&complete)
  const set=(key,value)=>setDraft(current=>({...current,[key]:value}))
  const answer=(id,value)=>setDraft(current=>({...current,answers:{...current.answers,[id]:value}}))
  const note=(id,value)=>setDraft(current=>({...current,answerNotes:{...current.answerNotes,[id]:value}}))
@@ -85,7 +85,7 @@ export function BundleExecutionEditor({onCancel,onSave,fixedDepartment='',initia
   const now=new Date().toISOString()
   const dep=departments.find(x=>x.el===draft.departmentEl)
   const payload={...draft,bundle:template.id,templateName:template.name,templateTitle:en?(template.titleEn||template.title):template.title,templateVersion:template.version,
-   templateSource:template.source,templateSnapshot:JSON.parse(JSON.stringify(template)),departmentEn:dep?.en||draft.departmentEl,score:score??0,allOrNone,
+   templateSource:template.source,templateSnapshot:JSON.parse(JSON.stringify(template)),departmentEn:dep?.en||draft.departmentEl,score:score,allOrNone,
    patientRef:selectedPatient?.label||draft.patientRef||'',deviceRef:selectedDevice?.label||draft.deviceRef||'',
    applicableCount:applicable,failedCount:failures.length,findings:failures.map(([id,label])=>({id,label:elementLabel(id,label),note:draft.answerNotes[id]||''})),
    owner:actor.name,createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,
@@ -113,7 +113,7 @@ export function BundleExecutionEditor({onCancel,onSave,fixedDepartment='',initia
     {value==='no'&&<div className="bundle-page-deviation"><ShieldAlert size={15}/><input value={draft.answerNotes[id]||''} onChange={e=>note(id,e.target.value)} placeholder={en?'Deviation / action required':'Απόκλιση / ενέργεια που απαιτείται'}/></div>}
    </div>})}</div>
   </section>:<div className="inline-empty">{en?'No published bundle templates are available.':'Δεν υπάρχουν διαθέσιμα δημοσιευμένα Bundle templates.'}</div>}
-  <div className="bundle-page-summary"><span><b>{en?'Answered':'Απαντημένα'}</b>{answered}/{elements.length}</span><span><b>{en?'Applicable':'Εφαρμόσιμα'}</b>{applicable}</span><span><b>{en?'Deviations':'Αποκλίσεις'}</b>{failures.length}</span><span><b>{en?'Compliance':'Συμμόρφωση'}</b>{score===null?'—':`${score}%`}</span><span><b>All-or-none</b>{allOrNone?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</span></div>
+  <div className="bundle-page-summary"><span><b>{en?'Answered':'Απαντημένα'}</b>{answered}/{elements.length}</span><span><b>{en?'Applicable':'Εφαρμόσιμα'}</b>{applicable}</span><span><b>{en?'Deviations':'Αποκλίσεις'}</b>{failures.length}</span><span><b>{en?'Compliance':'Συμμόρφωση'}</b>{score===null?'—':`${score}%`}</span><span><b>All-or-none</b>{applicable===0?'—':allOrNone?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</span></div>
   {!complete&&elements.length>0&&<div className="bundle-page-hint">{en?`${elements.length-answered} element(s) still need an answer before completion.`:`Απομένουν ${elements.length-answered} στοιχείο/α χωρίς απάντηση πριν από την ολοκλήρωση.`}</div>}
   <label className="bundle-page-notes"><span>{en?'General notes':'Γενικές σημειώσεις'}</span><textarea rows="3" value={draft.generalNotes||''} onChange={e=>set('generalNotes',e.target.value)} placeholder={en?'Optional execution notes':'Προαιρετικές παρατηρήσεις για την εκτέλεση'}/></label>
   <div className="bundle-page-actions"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton disabled={!valid||saving} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Complete assessment':'Ολοκλήρωση αξιολόγησης')}</SaveButton></div>
