@@ -1,29 +1,399 @@
-/* WHO saved-record view — read-only clinical summary, never a disabled edit form. */
-.prevention-record-shell .who-record-workspace{width:100%!important;min-width:0!important;display:grid!important;grid-template-columns:minmax(0,1fr) 300px!important;grid-template-areas:"session session" "list summary"!important;gap:16px!important;align-items:start!important}
-.prevention-record-shell .who-record-readonly-grid{grid-area:session!important;display:grid!important;grid-template-columns:1.05fr 1.25fr 1.35fr .72fr .72fr!important;gap:12px!important;padding:14px 16px!important;border:1px solid #dce5ec!important;border-radius:14px!important;background:#fff!important}
-.prevention-record-shell .who-record-readonly-grid>label{min-width:0!important;display:grid!important;gap:5px!important;margin:0!important}.prevention-record-shell .who-record-readonly-grid>label>span{color:#607487!important;font-size:10px!important;font-weight:750!important}.prevention-record-shell .who-record-readonly-grid input{width:100%!important;height:38px!important;box-sizing:border-box!important;border:0!important;border-radius:8px!important;background:#f5f8fa!important;padding:0 11px!important;color:#334d61!important;font-size:11px!important}
-.prevention-record-shell .who-record-saved-list{grid-area:list!important;display:grid!important;gap:12px!important;min-width:0!important}
-.prevention-record-shell .who-record-saved-opportunity{width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:0!important;padding:15px 17px 17px!important;border:1px solid #dce5ec!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important}
-.prevention-record-shell .who-record-saved-opportunity .who-section-title{margin:0 0 14px!important;padding:0 0 10px!important;border-bottom:1px solid #edf1f4!important}.prevention-record-shell .who-record-saved-opportunity .who-section-title strong{color:#26394e!important;font-size:13px!important;font-weight:850!important}.prevention-record-shell .who-record-saved-opportunity .who-section-title small{display:none!important}
-.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid{display:grid!important;grid-template-columns:150px minmax(0,1fr)!important;gap:13px 16px!important;width:100%!important;min-width:0!important;align-items:start!important}
-.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>label{min-width:0!important;width:100%!important;display:grid!important;gap:5px!important;margin:0!important;position:static!important}.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>label>span,.prevention-record-shell .who-record-saved-opportunity .who-action-field>span{color:#607487!important;font-size:10px!important;font-weight:750!important;line-height:1.2!important;text-transform:uppercase!important;letter-spacing:.025em!important}
-.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid :is(input,select){width:100%!important;height:40px!important;min-height:40px!important;box-sizing:border-box!important;border:0!important;border-radius:9px!important;background:#f5f8fa!important;padding:0 11px!important;color:#334d61!important;font-size:11px!important;opacity:1!important;-webkit-text-fill-color:#334d61!important}
-.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>label:nth-of-type(1){grid-column:1!important;grid-row:1!important}.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>label:nth-of-type(2){grid-column:2!important;grid-row:1!important}
-/* Indications and action are separate full-width rows. */
-.prevention-record-shell .who-record-saved-opportunity .who-action-field{grid-column:1 / -1!important;width:100%!important;min-width:0!important;display:grid!important;gap:7px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;position:static!important}
+/* WHO saved-record view — rebuilt from scratch as a clinical summary.
+   Read-only records must look like results, never like disabled forms. */
+
+.prevention-record-shell .who-record-workspace{
+  width:100%!important;
+  min-width:0!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 290px!important;
+  grid-template-areas:
+    "session session"
+    "list summary"!important;
+  gap:16px!important;
+  align-items:start!important;
+}
+
+/* Session context */
+.prevention-record-shell .who-record-readonly-grid{
+  grid-area:session!important;
+  display:grid!important;
+  grid-template-columns:1fr 1.25fr 1.3fr .7fr .7fr!important;
+  gap:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid #dce5ec!important;
+  border-radius:14px!important;
+  background:#fff!important;
+  box-shadow:0 1px 2px rgba(28,49,68,.025)!important;
+}
+.prevention-record-shell .who-record-readonly-grid>label{
+  min-width:0!important;
+  display:grid!important;
+  gap:5px!important;
+  margin:0!important;
+  padding:13px 15px!important;
+  border-right:1px solid #edf1f4!important;
+}
+.prevention-record-shell .who-record-readonly-grid>label:last-child{border-right:0!important}
+.prevention-record-shell .who-record-readonly-grid>label>span{
+  color:#7b8d9d!important;
+  font-size:9.5px!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+  text-transform:uppercase!important;
+  letter-spacing:.035em!important;
+}
+.prevention-record-shell .who-record-readonly-grid input{
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#2c465b!important;
+  font-size:12px!important;
+  font-weight:750!important;
+}
+
+/* Result list */
+.prevention-record-shell .who-record-saved-list{
+  grid-area:list!important;
+  display:grid!important;
+  gap:12px!important;
+  min-width:0!important;
+}
+
+.prevention-record-shell .who-record-saved-opportunity{
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid #dce5ec!important;
+  border-radius:14px!important;
+  background:#fff!important;
+  box-shadow:0 1px 2px rgba(28,49,68,.025)!important;
+}
+
+.prevention-record-shell .who-record-saved-opportunity .who-section-title{
+  display:flex!important;
+  align-items:center!important;
+  min-height:46px!important;
+  margin:0!important;
+  padding:0 16px!important;
+  border-bottom:1px solid #edf1f4!important;
+  background:#fbfcfd!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-section-title>div{
+  display:block!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-section-title strong{
+  color:#27445b!important;
+  font-size:12.5px!important;
+  font-weight:850!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-section-title small{display:none!important}
+
+.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid{
+  display:grid!important;
+  grid-template-columns:150px minmax(0,1fr)!important;
+  gap:0!important;
+  width:100%!important;
+  min-width:0!important;
+  align-items:start!important;
+}
+
+/* Top facts: no disabled-field appearance */
+.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>label:nth-of-type(1),
+.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>label:nth-of-type(2){
+  min-width:0!important;
+  display:grid!important;
+  gap:5px!important;
+  margin:0!important;
+  padding:13px 16px!important;
+  border-bottom:1px solid #edf1f4!important;
+  background:#fff!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>label:nth-of-type(1){
+  grid-column:1!important;
+  grid-row:1!important;
+  border-right:1px solid #edf1f4!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>label:nth-of-type(2){
+  grid-column:2!important;
+  grid-row:1!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>label>span,
+.prevention-record-shell .who-record-saved-opportunity .who-action-field>span{
+  color:#7c8e9e!important;
+  font-size:9.5px!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+  text-transform:uppercase!important;
+  letter-spacing:.035em!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid :is(input,select){
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#314b60!important;
+  font-size:12px!important;
+  font-weight:750!important;
+  opacity:1!important;
+  -webkit-text-fill-color:#314b60!important;
+  appearance:none!important;
+}
+
+/* WHO indication row */
+.prevention-record-shell .who-record-saved-opportunity .who-action-field{
+  grid-column:1 / -1!important;
+  width:100%!important;
+  min-width:0!important;
+  display:grid!important;
+  gap:8px!important;
+  margin:0!important;
+  padding:13px 16px!important;
+  border:0!important;
+  border-bottom:1px solid #edf1f4!important;
+  background:#fff!important;
+}
 .prevention-record-shell .who-record-saved-opportunity .who-action-field:has(.who-moment-picker){grid-row:2!important}
 .prevention-record-shell .who-record-saved-opportunity .who-action-field:has(.who-action-options){grid-row:3!important}
-/* Saved record shows only WHO indications that were actually recorded. */
-.prevention-record-shell .who-record-saved-opportunity .who-moment-picker{display:flex!important;flex-wrap:wrap!important;gap:7px!important;width:100%!important;margin:0!important}
+
+.prevention-record-shell .who-record-saved-opportunity .who-moment-picker{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:7px!important;
+  width:100%!important;
+  margin:0!important;
+}
 .prevention-record-shell .who-record-saved-opportunity .who-moment-option{display:none!important}
-.prevention-record-shell .who-record-saved-opportunity .who-moment-option.selected{display:inline-flex!important;flex:0 1 auto!important;min-width:0!important;min-height:38px!important;max-width:100%!important;align-items:center!important;flex-direction:row!important;gap:8px!important;padding:7px 10px!important;border:1px solid #a9cfdb!important;border-radius:9px!important;background:#eef7fa!important;color:#2d5d74!important;box-shadow:none!important;pointer-events:none!important;transform:none!important}
-.prevention-record-shell .who-record-saved-opportunity .who-moment-option.selected .who-moment-number{flex:0 0 22px!important;width:22px!important;height:22px!important;border-radius:6px!important;background:#397d9a!important;color:#fff!important;font-size:10px!important}.prevention-record-shell .who-record-saved-opportunity .who-moment-option.selected>span:last-child{font-size:10.5px!important;font-weight:750!important;line-height:1.3!important}
-/* Saved action is a compact status chip, not a full-width input-like control. */
-.prevention-record-shell .who-record-saved-opportunity .who-action-options{display:flex!important;width:100%!important;min-width:0!important;margin:0!important;padding:0!important}.prevention-record-shell .who-record-saved-opportunity .who-action-option{display:none!important}.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected{display:inline-flex!important;width:auto!important;min-width:180px!important;max-width:100%!important;min-height:38px!important;height:auto!important;align-items:center!important;gap:8px!important;box-sizing:border-box!important;padding:7px 11px!important;border:1px solid #a8d3c0!important;border-radius:9px!important;background:#eef8f3!important;color:#2d674c!important;pointer-events:none!important;margin:0!important;box-shadow:none!important}.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected.danger{border-color:#e4bcbc!important;background:#fff4f4!important;color:#99484d!important}.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected .who-action-check{display:grid!important;place-items:center!important;width:18px!important;height:18px!important;border:0!important;border-radius:5px!important;background:currentColor!important;color:#fff!important;font-size:10px!important}.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected span:last-child{display:block!important}.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected strong{display:block!important;font-size:10.5px!important;color:inherit!important;white-space:normal!important}.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected small{display:none!important}
-/* Bottom metadata: gloves remain compact, notes get their own full-width reading row. */
-.prevention-record-shell .who-record-saved-opportunity label.who-readonly-choice{grid-column:1!important;grid-row:4!important;width:150px!important;display:grid!important;gap:5px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;position:static!important}.prevention-record-shell .who-record-saved-opportunity .who-readonly-choice>input{display:none!important}.prevention-record-shell .who-record-saved-opportunity .who-readonly-choice>span{display:grid!important;gap:5px!important}.prevention-record-shell .who-record-saved-opportunity .who-readonly-choice strong{color:#607487!important;font-size:10px!important;font-weight:750!important;text-transform:uppercase!important}.prevention-record-shell .who-record-saved-opportunity .who-readonly-choice small{height:40px!important;display:flex!important;align-items:center!important;padding:0 11px!important;border:0!important;border-radius:9px!important;background:#f5f8fa!important;color:#647686!important;font-size:11px!important;font-weight:700!important}.prevention-record-shell .who-record-saved-opportunity .who-readonly-choice small.yes{background:#eef8f2!important;color:#2d704d!important}
-.prevention-record-shell .who-record-saved-opportunity label.who-note-field{grid-column:1 / -1!important;grid-row:5!important;width:100%!important;min-width:0!important;max-width:none!important;display:grid!important;gap:6px!important;margin:0!important;padding:0!important;position:static!important;justify-self:stretch!important;align-self:stretch!important}.prevention-record-shell .who-record-saved-opportunity label.who-note-field>span{color:#607487!important;font-size:10px!important;font-weight:750!important;text-transform:uppercase!important;letter-spacing:.025em!important}.prevention-record-shell .who-record-saved-opportunity label.who-note-field input{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;height:48px!important;min-height:48px!important;margin:0!important;padding:0 13px!important;border:1px solid #e0e7ec!important;border-radius:10px!important;background:#f8fafb!important;color:#465d70!important;font-size:11px!important;box-sizing:border-box!important;justify-self:stretch!important}.prevention-record-shell .who-record-saved-opportunity label.who-note-field input::placeholder{color:#96a4b0!important}
-/* Right summary rail. */
-.prevention-record-shell .who-record-workspace>.who-live-summary{grid-area:summary!important;position:sticky!important;top:12px!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;min-width:0!important;margin:0!important;padding:13px!important;border:1px solid #dce5ec!important;border-radius:14px!important;background:#fff!important;box-sizing:border-box!important}.prevention-record-shell .who-record-workspace>.who-live-summary>div{min-height:56px!important;display:grid!important;align-content:center!important;gap:3px!important;padding:8px 10px!important;border:1px solid #e5ebf0!important;border-radius:9px!important;background:#fff!important}.prevention-record-shell .who-record-workspace>.who-live-summary span{color:#7e8d9b!important;font-size:9px!important}.prevention-record-shell .who-record-workspace>.who-live-summary strong{color:#334b61!important;font-size:17px!important;font-weight:800!important}.prevention-record-shell .who-record-workspace>.who-live-summary .who-compliance{grid-column:1 / -1!important;background:#f0f7f9!important;border-color:#d5e8ed!important}.prevention-record-shell .who-record-workspace>.who-live-summary .who-compliance strong{color:#245f78!important;font-size:27px!important}
-@media(max-width:1080px){.prevention-record-shell .who-record-workspace{grid-template-columns:1fr!important;grid-template-areas:"session" "summary" "list"!important}.prevention-record-shell .who-record-workspace>.who-live-summary{position:static!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}.prevention-record-shell .who-record-workspace>.who-live-summary .who-compliance{grid-column:auto!important}.prevention-record-shell .who-record-readonly-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
-@media(max-width:760px){.prevention-record-shell .who-record-readonly-grid,.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid{grid-template-columns:1fr!important}.prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>*{grid-column:1!important;grid-row:auto!important}.prevention-record-shell .who-record-saved-opportunity label.who-readonly-choice,.prevention-record-shell .who-record-saved-opportunity label.who-note-field{width:100%!important;max-width:none!important}.prevention-record-shell .who-record-workspace>.who-live-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+.prevention-record-shell .who-record-saved-opportunity .who-moment-option.selected{
+  display:inline-flex!important;
+  flex:0 1 auto!important;
+  min-width:0!important;
+  max-width:100%!important;
+  min-height:34px!important;
+  align-items:center!important;
+  flex-direction:row!important;
+  gap:8px!important;
+  padding:6px 10px!important;
+  border:1px solid #b8d5df!important;
+  border-radius:8px!important;
+  background:#f0f7f9!important;
+  color:#315d73!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+  transform:none!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-moment-option.selected .who-moment-number{
+  flex:0 0 22px!important;
+  width:22px!important;
+  height:22px!important;
+  border-radius:6px!important;
+  background:#3f829b!important;
+  color:#fff!important;
+  font-size:10px!important;
+  font-weight:850!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-moment-option.selected>span:last-child{
+  font-size:10.5px!important;
+  font-weight:750!important;
+  line-height:1.3!important;
+}
+
+/* Action reads as status */
+.prevention-record-shell .who-record-saved-opportunity .who-action-options{
+  display:flex!important;
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-action-option{display:none!important}
+.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected{
+  display:inline-flex!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:100%!important;
+  min-height:32px!important;
+  align-items:center!important;
+  gap:7px!important;
+  margin:0!important;
+  padding:6px 10px!important;
+  border:1px solid #bbd9ca!important;
+  border-radius:8px!important;
+  background:#f0f8f4!important;
+  color:#2f6b50!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected.danger{
+  border-color:#eccaca!important;
+  background:#fff5f5!important;
+  color:#a24b50!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected .who-action-check{
+  display:none!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected span:last-child{display:block!important}
+.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected strong{
+  display:block!important;
+  color:inherit!important;
+  font-size:10.5px!important;
+  font-weight:800!important;
+  white-space:normal!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-action-option.selected small{display:none!important}
+
+/* Footer facts: gloves + note in one calm information strip */
+.prevention-record-shell .who-record-saved-opportunity label.who-readonly-choice,
+.prevention-record-shell .who-record-saved-opportunity label.who-note-field{
+  min-width:0!important;
+  margin:0!important;
+  padding:12px 16px 14px!important;
+  background:#fafcfd!important;
+}
+.prevention-record-shell .who-record-saved-opportunity label.who-readonly-choice{
+  grid-column:1!important;
+  grid-row:4!important;
+  width:auto!important;
+  border-right:1px solid #edf1f4!important;
+}
+.prevention-record-shell .who-record-saved-opportunity label.who-note-field{
+  grid-column:2!important;
+  grid-row:4!important;
+  width:auto!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-readonly-choice>input{display:none!important}
+.prevention-record-shell .who-record-saved-opportunity .who-readonly-choice>span{
+  display:grid!important;
+  gap:5px!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-readonly-choice strong,
+.prevention-record-shell .who-record-saved-opportunity label.who-note-field>span{
+  color:#7c8e9e!important;
+  font-size:9.5px!important;
+  font-weight:800!important;
+  text-transform:uppercase!important;
+  letter-spacing:.035em!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-readonly-choice small{
+  display:block!important;
+  height:auto!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:#566c7d!important;
+  font-size:11px!important;
+  font-weight:750!important;
+}
+.prevention-record-shell .who-record-saved-opportunity .who-readonly-choice small.yes{color:#2f7654!important}
+.prevention-record-shell .who-record-saved-opportunity label.who-note-field input{
+  display:block!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:#566c7d!important;
+  font-size:11px!important;
+  font-weight:650!important;
+  white-space:normal!important;
+  text-overflow:ellipsis!important;
+}
+
+/* Summary rail */
+.prevention-record-shell .who-record-workspace>.who-live-summary{
+  grid-area:summary!important;
+  position:sticky!important;
+  top:12px!important;
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:0!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid #dce5ec!important;
+  border-radius:14px!important;
+  background:#fff!important;
+  box-sizing:border-box!important;
+  box-shadow:0 1px 2px rgba(28,49,68,.025)!important;
+}
+.prevention-record-shell .who-record-workspace>.who-live-summary>div{
+  min-height:68px!important;
+  display:grid!important;
+  align-content:center!important;
+  gap:4px!important;
+  padding:11px 13px!important;
+  border:0!important;
+  border-right:1px solid #edf1f4!important;
+  border-bottom:1px solid #edf1f4!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+.prevention-record-shell .who-record-workspace>.who-live-summary>div:nth-child(even){border-right:0!important}
+.prevention-record-shell .who-record-workspace>.who-live-summary span{
+  color:#8091a0!important;
+  font-size:9.5px!important;
+  font-weight:750!important;
+}
+.prevention-record-shell .who-record-workspace>.who-live-summary strong{
+  color:#2b465b!important;
+  font-size:19px!important;
+  font-weight:850!important;
+}
+.prevention-record-shell .who-record-workspace>.who-live-summary .who-compliance{
+  grid-column:1 / -1!important;
+  min-height:82px!important;
+  border-right:0!important;
+  border-bottom:0!important;
+  background:#f1f8fa!important;
+}
+.prevention-record-shell .who-record-workspace>.who-live-summary .who-compliance strong{
+  color:#216b83!important;
+  font-size:30px!important;
+  letter-spacing:-.02em!important;
+}
+
+@media(max-width:1080px){
+  .prevention-record-shell .who-record-workspace{
+    grid-template-columns:1fr!important;
+    grid-template-areas:"session" "summary" "list"!important;
+  }
+  .prevention-record-shell .who-record-workspace>.who-live-summary{
+    position:static!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+  .prevention-record-shell .who-record-workspace>.who-live-summary>div,
+  .prevention-record-shell .who-record-workspace>.who-live-summary>div:nth-child(even){border-right:1px solid #edf1f4!important}
+  .prevention-record-shell .who-record-workspace>.who-live-summary>div:nth-child(3n){border-right:0!important}
+  .prevention-record-shell .who-record-workspace>.who-live-summary .who-compliance{grid-column:auto!important;border-right:0!important}
+  .prevention-record-shell .who-record-readonly-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+
+@media(max-width:760px){
+  .prevention-record-shell .who-record-readonly-grid{grid-template-columns:1fr 1fr!important}
+  .prevention-record-shell .who-record-readonly-grid>label{border-bottom:1px solid #edf1f4!important}
+  .prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid{grid-template-columns:1fr!important}
+  .prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>*{grid-column:1!important;grid-row:auto!important}
+  .prevention-record-shell .who-record-saved-opportunity .who-opportunity-grid>label:nth-of-type(1){border-right:0!important}
+  .prevention-record-shell .who-record-saved-opportunity label.who-readonly-choice{border-right:0!important;border-bottom:1px solid #edf1f4!important}
+  .prevention-record-shell .who-record-workspace>.who-live-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .prevention-record-shell .who-record-workspace>.who-live-summary>div:nth-child(3n){border-right:1px solid #edf1f4!important}
+  .prevention-record-shell .who-record-workspace>.who-live-summary>div:nth-child(even){border-right:0!important}
+  .prevention-record-shell .who-record-workspace>.who-live-summary .who-compliance{grid-column:1 / -1!important}
+}
