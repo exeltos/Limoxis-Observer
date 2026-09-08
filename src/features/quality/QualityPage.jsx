@@ -1,16 +1,15 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3 } from 'lucide-react'
+import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
+import { ActionButton } from '../../design-system/ActionButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { can,CAPABILITIES } from '../../core/permissions/roles'
+import { can,CAPABILITIES,ROLES } from '../../core/permissions/roles'
 import { readRegistryViewState,useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
-import { RecordActions } from '../../design-system/RecordActions'
-import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { MetricCard } from '../../design-system/MetricCard'
 import { readSessionValue,writeSessionValue } from '../../core/storage/browserStorage'
 import { loadQualityRecords } from './qualityService'
@@ -22,9 +21,16 @@ const sections=[
   {id:'audits',label:'qualityAudits'},
 ]
 
+const createLabels={
+  incidents:{el:'Νέο συμβάν',en:'New incident'},
+  findings:{el:'Νέο εύρημα',en:'New finding'},
+  capas:{el:'Νέα CAPA',en:'New CAPA'},
+  audits:{el:'Νέο audit',en:'New audit'},
+}
+
 export function QualityPage(){
   const {t,language,locale}=useLanguage()
-  const {role,membership,tenant}=useTenant()
+  const {role,membership,tenant,actualRole,isRolePreview}=useTenant()
   const navigate=useNavigate()
   const {goTo}=useContextualNavigation('/quality')
   const savedSection=readSessionValue('limoxis.quality.section','incidents')
@@ -40,9 +46,11 @@ export function QualityPage(){
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(15)
   const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
-  const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
-  const canReportIncident=can(role,CAPABILITIES.REPORT_INCIDENT,addOns,custom)
+  const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER
+  const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
+  const canReportIncident=ownerFullAccess||can(role,CAPABILITIES.REPORT_INCIDENT,addOns,custom)
   const canCreate=canManage||(section==='incidents'&&canReportIncident)
+  const createLabel=createLabels[section]?.[language==='en'?'en':'el']||(language==='en'?'Create':'Δημιουργία')
 
   useEffect(()=>{let active=true;setLoading(true);loadQualityRecords(section,tenant?.id).then(data=>{if(active)setRows(data)}).catch(()=>{if(active)setRows([])}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[section,tenant?.id])
   const departments=useMemo(()=>[...new Set(rows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[rows,language])
@@ -56,7 +64,7 @@ export function QualityPage(){
   function createRecord(){if(!canCreate)return;writeSessionValue('limoxis.quality.section',section);registry.saveViewState({query,status,department});goTo(`/quality/${section}/new`,{registry:`quality.${section}`})}
   function changeSection(id){registry.saveViewState({query,status,department});writeSessionValue('limoxis.quality.section',id);setSection(id);const next=readRegistryViewState(`quality.${id}`);setQuery(next?.query||'');setStatus(next?.status||'all');setDepartment(next?.department||'all')}
 
-  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={t('qualityRecords.qualitySubtitle')} actions={canCreate?<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={action=>action===UI_ACTIONS.CREATE&&createRecord()}/>:null}>
+  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={t('qualityRecords.qualitySubtitle')} actions={canCreate?<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>:null}>
     <div className="workspace-summary quality-summary"><div className="module-summary-strip">
       <SummaryMetric icon={ClipboardCheck} label={language==='en'?'Total':'Σύνολο'} value={rows.length}/>
       <SummaryMetric icon={Clock3} label={language==='en'?'Open / active':'Ανοικτά / ενεργά'} value={openCount}/>
