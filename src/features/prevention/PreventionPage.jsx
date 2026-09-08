@@ -10,7 +10,6 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
-import { downloadCsv } from '../../core/export/csvExport'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { PreventionEntryModal } from './PreventionEntryModal'
 import { AntisepticEntryModal,antisepticMethodLabel } from './AntisepticEntryModal'
@@ -114,29 +113,7 @@ export function PreventionPage(){
   if(tab==='handHygiene'||tab==='waste'){navigate(`/prevention/${tab}/new?fromTab=${tab}`);return}
   setEntryOpen(true)
  }
- function exportCurrentView(){
-  let headers=[];let exportRows=[]
-  if(tab==='handHygiene'){
-   headers=[t('date'),t('department'),t('professionalCategory'),t('observations'),t('compliant'),t('compliance'),t('observer')]
-   exportRows=rows.map(x=>[fmtDate(x.date),language==='el'?x.departmentEl:x.departmentEn,t(x.profession),x.observations,x.compliant,`${x.rate}%`,x.observer])
-  }else if(tab==='waste'){
-   headers=[t('date'),t('department'),t('exportCategory'),t('weight'),t('containers'),t('indicator'),t('documentNumber')]
-   exportRows=rows.map(x=>[fmtDate(x.date),language==='el'?x.departmentEl:x.departmentEn,language==='el'?(x.wasteType||x.type):(x.typeEn||x.wasteType||x.type),x.weight,x.containers,x.indicator??'',x.documentNumber||''])
-  }else if(tab==='antiseptics'){
-   headers=[t('period'),t('department'),t('product'),t('consumptionLitres'),t('patientDays'),`${t('indicator')} ABHR`,t('dataSourceShort')]
-   exportRows=rows.map(x=>[x.period,language==='el'?x.departmentEl:x.departmentEn,language==='el'?x.product:(x.productEn||x.product),x.litres,x.patientDays||'',x.indicator??'',antisepticMethodLabel(x.method,language)])
-  }else{
-   headers=[t('date'),t('bundle'),t('department'),t('context'),t('score'),t('allOrNone'),t('deviations')]
-   exportRows=rows.map(x=>[x.date||x.period,x.templateName||x.bundle,language==='el'?x.departmentEl:x.departmentEn,x.shift||'',x.score==null?'':`${x.score}%`,x.allOrNone?t('yes'):t('no'),x.failedCount??x.findings?.length??0])
-  }
-  downloadCsv(`limoxis-prevention-${tab}.csv`,headers,exportRows)
-  notify(t('currentListExported'),'success')
- }
- function pageAction(action){
-  if(action===UI_ACTIONS.CREATE){createRecord();return}
-  if(action===UI_ACTIONS.PRINT){window.print();return}
-  if(action===UI_ACTIONS.EXPORT)exportCurrentView()
- }
+ function pageAction(action){if(action===UI_ACTIONS.CREATE)createRecord()}
  async function saveEntry(record){
   try{
    if(tab==='antiseptics')await saveAntisepticRecord(tenant.id,record)
@@ -148,24 +125,20 @@ export function PreventionPage(){
   }catch(error){notifyError(error,'save',{operation:`${tab}_create`})}
  }
  const loading=tab==='handHygiene'?handLoading:tab==='waste'?wasteLoading:tab==='antiseptics'?antisepticLoading:bundleLoading
- const pageActions=[...(canCreateRecord?[UI_ACTIONS.CREATE]:[]),UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]
- const actionCapabilities={
-  [UI_ACTIONS.CREATE]:createCapability,
-  [UI_ACTIONS.PRINT]:CAPABILITIES.VIEW_PREVENTION,
-  [UI_ACTIONS.EXPORT]:CAPABILITIES.VIEW_PREVENTION,
- }
+ const pageActions=canCreateRecord?[UI_ACTIONS.CREATE]:[]
+ const actionCapabilities={[UI_ACTIONS.CREATE]:createCapability}
 
- return <Page fill className="prevention-registry-page" title={t('preventionCenter')} subtitle={t('preventionSubtitle')} actions={<RecordActions actions={pageActions} actionCapabilities={actionCapabilities} actionLabels={{[UI_ACTIONS.CREATE]:createLabel}} onAction={pageAction}/>}>
+ return <Page fill className="prevention-registry-page" title={t('preventionCenter')} subtitle={t('preventionSubtitle')} actions={pageActions.length?<RecordActions actions={pageActions} actionCapabilities={actionCapabilities} actionLabels={{[UI_ACTIONS.CREATE]:createLabel}} onAction={pageAction}/>:null}>
   <div className="workspace-summary prevention-summary"><div className="module-summary-strip">{tabAccess.handHygiene&&<Kpi icon={ShieldCheck} value={`${avg.toFixed(1)}%`} label={t('whoCompliance')}/>} {tabAccess.bundles&&<Kpi icon={ClipboardCheck} value={bundleRows.length} label={t('activeBundles')}/>} {tabAccess.waste&&<Kpi icon={Recycle} value={`${wasteRows.reduce((s,x)=>s+x.weight,0).toFixed(1)} kg`} label={t('wasteRecorded')}/>} {tabAccess.antiseptics&&<Kpi icon={Droplets} value={`${antisepticRows.reduce((s,x)=>s+x.litres,0).toFixed(1)} L`} label={t('antisepticRecorded')}/>}</div></div>
   <div className="surface registry-workspace prevention-workspace workspace-fill">
    <nav className="tabs prevention-tabs canonical-module-tabs">{visibleTabs.map(([id,key])=><button key={id} className={`tab ${tab===id?'active':''}`} onClick={()=>changeTab(id)}>{t(key)}</button>)}</nav>
    <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPrevention')} onClear={()=>{setQuery('');setDepartment('all');setPeriod('all');setProduct('all');setMethod('all')}} advanced={tab==='antiseptics'?<><FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect><FilterSelect label={t('productFilter')} value={product} onChange={setProduct}><option value="all">{t('allProducts')}</option>{[...new Set(source.map(x=>x.product).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect><FilterSelect label={t('dataSource')} value={method} onChange={setMethod}><option value="all">{t('allDataSources')}</option>{[...new Set(source.map(x=>x.method).filter(Boolean))].map(x=><option key={x} value={x}>{antisepticMethodLabel(x,language)}</option>)}</FilterSelect></>:tab==='bundles'?<FilterSelect label={t('period')} value={period} onChange={setPeriod}><option value="all">{t('all')}</option>{[...new Set(source.map(x=>x.period).filter(Boolean))].map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>:null} activeAdvancedCount={(department!=='all'?1:0)+(period!=='all'?1:0)+(product!=='all'?1:0)+(method!=='all'?1:0)}><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect></FilterBar>
    <div className="scroll-table" ref={registry.scrollRef}>
     {loading&&<div className="registry-empty-state"><strong>{language==='en'?'Loading records…':'Φόρτωση καταγραφών…'}</strong></div>}
-    {tab==='handHygiene'&&!loading&&<HandTable rows={pagedRows} t={t} language={language} fmtDate={fmtDate} onOpen={id=>openPreventionRecord(id,'handHygiene')} registry={registry}/>} 
-    {tab==='waste'&&!loading&&<WasteTable rows={pagedRows} t={t} language={language} fmtDate={fmtDate} onOpen={id=>openPreventionRecord(id,'waste')} registry={registry}/>} 
-    {tab==='antiseptics'&&!loading&&<AntisepticTable rows={pagedRows} t={t} language={language} onOpen={id=>openPreventionRecord(id,'antiseptics')} registry={registry}/>} 
-    {tab==='bundles'&&!loading&&<BundleTable rows={pagedRows} t={t} language={language} onOpen={id=>openPreventionRecord(id,'bundles')} registry={registry}/>} 
+    {tab==='handHygiene'&&!loading&&<HandTable rows={pagedRows} t={t} language={language} fmtDate={fmtDate} onOpen={id=>openPreventionRecord(id,'handHygiene')} registry={registry}/>}
+    {tab==='waste'&&!loading&&<WasteTable rows={pagedRows} t={t} language={language} fmtDate={fmtDate} onOpen={id=>openPreventionRecord(id,'waste')} registry={registry}/>}
+    {tab==='antiseptics'&&!loading&&<AntisepticTable rows={pagedRows} t={t} language={language} onOpen={id=>openPreventionRecord(id,'antiseptics')} registry={registry}/>}
+    {tab==='bundles'&&!loading&&<BundleTable rows={pagedRows} t={t} language={language} onOpen={id=>openPreventionRecord(id,'bundles')} registry={registry}/>}
     {!loading&&!rows.length&&<PreventionEmpty language={language} tab={tab}/>} 
    </div>
    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
