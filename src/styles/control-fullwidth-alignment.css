@@ -1,0 +1,61 @@
+/* Controls: use the same full-width record/editor geometry as the rest of Limoxis Observer. */
+.control-create-shell>.entity-record-body,
+.control-record-shell>.entity-record-body{
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+
+/* New/Edit control: two balanced columns instead of leaving an unused third column. */
+.control-create-shell .control-create-form,
+.control-create-shell .control-form-block,
+.control-create-shell .control-form-split{
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+.control-create-shell .control-entry-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  width:100%!important;
+  max-width:none!important;
+}
+.control-create-shell .control-entry-grid>.entry-span-2{
+  grid-column:1 / -1!important;
+}
+.control-create-shell .control-form-split{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+
+/* Control details: the information sheet and primary action use the entire record width. */
+.control-record-shell .control-details-overview,
+.control-record-shell .control-overview-heading,
+.control-record-shell .control-overview-grid,
+.control-record-shell .control-overview-description,
+.control-record-shell .control-overview-footer{
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+.control-record-shell .control-details-overview{
+  align-self:stretch!important;
+  justify-self:stretch!important;
+}
+.control-record-shell .control-overview-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+
+@media(max-width:1000px){
+  .control-create-shell .control-form-split,
+  .control-create-shell .control-entry-grid,
+  .control-record-shell .control-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:680px){
+  .control-create-shell .control-form-split,
+  .control-create-shell .control-entry-grid,
+  .control-record-shell .control-overview-grid{grid-template-columns:1fr!important}
+  .control-create-shell .control-entry-grid>.entry-span-2{grid-column:auto!important}
+}
