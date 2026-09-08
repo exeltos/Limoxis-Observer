@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EmptyState } from '../../design-system/EmptyState'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { PatientClinicalRecordPage } from './PatientClinicalRecordPage'
 import { clinicalCases } from './clinicalDemoData'
-import { loadClinicalCases } from './clinicalCloudService'
+import { loadClinicalCases, loadClinicalCasesForPatient } from './clinicalCloudService'
+import { loadPatients } from '../patients/patientsService'
 
 const demoClinicalSeed=JSON.parse(JSON.stringify(clinicalCases))
 
@@ -63,6 +65,7 @@ function replaceClinicalStore(rows){
 export function PatientClinicalRecordRoute({patientMode=false}){
   const {isDemo,tenant}=useTenant()
   const {t}=useLanguage()
+  const {patientId}=useParams()
   const [loading,setLoading]=useState(!isDemo)
   const [error,setError]=useState('')
   const tenantId=tenant?.id
@@ -72,7 +75,8 @@ export function PatientClinicalRecordRoute({patientMode=false}){
   useEffect(()=>{
     let alive=true
     if(isDemo){
-      replaceClinicalStore(demoRows.map(row=>JSON.parse(JSON.stringify(row))))
+      const rows=patientMode&&patientId?demoRows.filter(row=>String(row.patientId)===String(patientId)):demoRows
+      replaceClinicalStore(rows.map(row=>JSON.parse(JSON.stringify(row))))
       setLoading(false)
       setError('')
       return ()=>{alive=false}
@@ -82,17 +86,28 @@ export function PatientClinicalRecordRoute({patientMode=false}){
       setError(t('actionFailed'))
       return ()=>{alive=false}
     }
+
     setLoading(true)
     setError('')
-    loadClinicalCases(tenantId)
+
+    const request=patientMode&&patientId
+      ? loadPatients(tenantId,{isDemo:false}).then(patientRows=>{
+          const patient=patientRows.find(row=>String(row.id)===String(patientId))
+          if(!patient?.recordId)return []
+          return loadClinicalCasesForPatient(tenantId,patient.recordId)
+        })
+      : loadClinicalCases(tenantId)
+
+    request
       .then(rows=>{
         if(!alive)return
         replaceClinicalStore((rows||[]).map(normalizeCloudCase))
       })
       .catch(err=>{if(alive)setError(err?.message||t('actionFailed'))})
       .finally(()=>{if(alive)setLoading(false)})
+
     return ()=>{alive=false}
-  },[isDemo,tenantId,demoRows,t])
+  },[isDemo,tenantId,demoRows,t,patientMode,patientId])
 
   if(loading)return <Page title={t('clinicalRecords.patientRecord')}><div className="surface clinical-surface"><p>{t('loading')}</p></div></Page>
   if(error)return <Page title={t('clinicalRecords.patientRecord')}><EmptyState title={t('actionFailed')} description={error}/></Page>
