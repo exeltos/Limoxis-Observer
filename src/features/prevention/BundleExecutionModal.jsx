@@ -1,9 +1,10 @@
 import { useMemo,useState } from 'react'
-import { ClipboardCheck,ShieldAlert } from 'lucide-react'
+import { ShieldAlert } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
 
 function scoreFor(answers={}){
  const applicable=Object.values(answers).filter(x=>x==='yes'||x==='no')
@@ -46,8 +47,16 @@ export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialR
    updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized'})
  }
 
- return <div className="modal-backdrop"><div className="entry-card bundle-execution-card">
-  <header><div className="prevention-entry-title"><ClipboardCheck size={20}/><div><span className="eyebrow">BUNDLE EXECUTION</span><h3>{initialRecord?(en?'Edit bundle execution':'Επεξεργασία εκτέλεσης'):(en?'New Bundle execution':'Νέα εκτέλεση Bundle')}</h3><p>{en?'Element-by-element assessment, documented deviations and all-or-none compliance.':'Αξιολόγηση ανά στοιχείο, τεκμηρίωση αποκλίσεων και all-or-none συμμόρφωση.'}</p></div></div><button className="icon-close" onClick={onClose}>×</button></header>
+ return <ObserverDialog
+  eyebrow="BUNDLE EXECUTION"
+  title={initialRecord?(en?'Edit bundle execution':'Επεξεργασία εκτέλεσης'):(en?'New Bundle execution':'Νέα εκτέλεση Bundle')}
+  subtitle={en?'Element-by-element assessment, documented deviations and all-or-none compliance.':'Αξιολόγηση ανά στοιχείο, τεκμηρίωση αποκλίσεων και all-or-none συμμόρφωση.'}
+  width="workspace"
+  presentation="workspace"
+  className="bundle-execution-card"
+  onClose={onClose}
+  footer={<DialogActions showCancel onCancel={onClose} onSave={submit} disabled={!valid} saveLabel={initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Complete execution':'Ολοκλήρωση εκτέλεσης')}/>}
+ >
   <div className="bundle-execution-body">
    <div className="prevention-entry-actor"><span>{en?'Recorded by':'Καταχώρηση από'}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
    <section className="bundle-context-card">
@@ -63,7 +72,7 @@ export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialR
    </section>
 
    {template?<section className="bundle-elements-card">
-    <div className="bundle-section-title"><div><strong>{en?'Bundle elements':'Στοιχεία Bundle'}</strong><small>{en?'Yes / No / Not applicable. Every No creates a finding in this execution.':'Ναι / Όχι / Μη εφαρμόσιμο. Κάθε «Όχι» δημιουργεί εύρημα στην εκτέλεση.'}</small></div><div className="bundle-score-live"><span>Score</span><strong>{score===null?'—':`${score}%`}</strong><small>{allOrNone?'All-or-none ✓':'All-or-none —'}</small></div></div>
+    <div className="bundle-section-title"><div><strong>{en?'Bundle elements':'Στοιχεία Bundle'}</strong><small>{en?'Yes / No / Not applicable. Every No is retained as a documented deviation.':'Ναι / Όχι / Μη εφαρμόσιμο. Κάθε «Όχι» διατηρείται ως τεκμηριωμένη απόκλιση.'}</small></div><div className="bundle-score-live"><span>Score</span><strong>{score===null?'—':`${score}%`}</strong><small>{allOrNone?'All-or-none ✓':'All-or-none —'}</small></div></div>
     <div className="bundle-element-list">{elements.map(([id,label],i)=><div className={`bundle-element-row ${draft.answers[id]==='no'?'failed':draft.answers[id]==='yes'?'passed':''}`} key={id}>
      <div className="bundle-element-label"><span>{i+1}</span><strong>{label}</strong></div>
      <div className="bundle-answer-group">{[['yes',en?'Yes':'Ναι'],['no',en?'No':'Όχι'],['na',en?'N/A':'Μ/Ε']].map(([value,text])=><button type="button" key={value} className={draft.answers[id]===value?'active':''} onClick={()=>answer(id,value)}>{text}</button>)}</div>
@@ -74,6 +83,5 @@ export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialR
    <section className="bundle-summary-card"><div><span>{en?'Applicable':'Εφαρμόσιμα'}</span><strong>{applicable}</strong></div><div><span>{en?'Deviations':'Αποκλίσεις'}</span><strong>{failures.length}</strong></div><div><span>{en?'Compliance':'Συμμόρφωση'}</span><strong>{score===null?'—':`${score}%`}</strong></div><div><span>All-or-none</span><strong>{allOrNone?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</strong></div></section>
    <label className="bundle-general-notes"><span>{en?'General notes':'Γενικές σημειώσεις'}</span><textarea rows="3" value={draft.generalNotes||''} onChange={e=>set('generalNotes',e.target.value)} placeholder={en?'Optional execution notes':'Προαιρετικές παρατηρήσεις για την εκτέλεση'}/></label>
   </div>
-  <footer><button className="button" onClick={onClose}>{en?'Cancel':'Ακύρωση'}</button><button className="button button-primary" disabled={!valid} onClick={submit}>{initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Complete execution':'Ολοκλήρωση εκτέλεσης')}</button></footer>
- </div></div>
+ </ObserverDialog>
 }
