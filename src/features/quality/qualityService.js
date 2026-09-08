@@ -1,4 +1,5 @@
 import { supabase } from '../../core/supabase/client'
+import { qualityCollections } from './qualityDemoData'
 
 const sectionConfig={
   incidents:{table:'quality_incidents',date:'occurred_at'},
@@ -78,6 +79,12 @@ function mapRow(section,row){
   }
 }
 
+function cacheQualityRecords(section,records){
+  const collection=qualityCollections[section]
+  if(!Array.isArray(collection)) return
+  collection.splice(0,collection.length,...records.map(record=>({...record})))
+}
+
 export async function loadQualityRecords(section,organizationId){
   assertReady(organizationId)
   const config=sectionConfig[section]
@@ -88,7 +95,9 @@ export async function loadQualityRecords(section,organizationId){
     .eq('organization_id',organizationId)
     .order(config.date,{ascending:false,nullsFirst:false})
   if(error) throw error
-  return (data||[]).map(row=>mapRow(section,row))
+  const records=(data||[]).map(row=>mapRow(section,row))
+  cacheQualityRecords(section,records)
+  return records
 }
 
 export async function loadQualityRecord(section,organizationId,code){
@@ -102,7 +111,15 @@ export async function loadQualityRecord(section,organizationId,code){
     .eq('code',code)
     .maybeSingle()
   if(error) throw error
-  return data?mapRow(section,data):null
+  if(!data) return null
+  const record=mapRow(section,data)
+  const collection=qualityCollections[section]
+  if(Array.isArray(collection)){
+    const index=collection.findIndex(item=>item.id===record.id)
+    if(index>=0) collection[index]={...record}
+    else collection.push({...record})
+  }
+  return record
 }
 
 function codeFor(section){
