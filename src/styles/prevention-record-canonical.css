@@ -1,36 +1,46 @@
 /* Canonical Prevention record/editor presentation.
-   Keeps Prevention create/view/edit screens on one visual hierarchy without page-specific modal overrides. */
+   This file contains only Prevention content styling. Shell/action geometry stays owned
+   by the central EntityRecordShell contract. */
 
-/* Prevention records are single-canvas screens; no redundant one-item/detail-history tab rail. */
-.prevention-record-shell>.entity-record-tabs{display:none!important}
-
-/* Keep a visible strip of page canvas above the record content. The action menu then sits
-   clearly inside the white record surface instead of touching the upper edge. */
-.prevention-record-shell>.entity-record-body{
-  padding-top:30px!important;
+/* Prevention is a true single-pane record. EntityRecordShell now omits an empty tab rail,
+   so there is no CSS-generated second navigation layer. */
+.prevention-record-shell.record-single-pane-screen>.entity-record-body{
+  padding-top:22px!important;
 }
-.prevention-record-shell .entity-record-general-actions{
-  position:relative!important;
-  inset:auto!important;
+
+/* Resolve the previous competing action rules explicitly against the central selector.
+   The ellipsis is a plain ghost icon, positioned inside a dedicated white breathing area. */
+.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions{
+  position:absolute!important;
+  top:28px!important;
+  right:28px!important;
+  inset-block-end:auto!important;
+  inset-inline-start:auto!important;
   display:flex!important;
   align-items:center!important;
   justify-content:flex-end!important;
-  width:100%!important;
+  width:auto!important;
+  min-width:34px!important;
   min-height:34px!important;
-  margin:0 0 12px!important;
-  padding:0 10px!important;
-  background:#fff!important;
-  z-index:2!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  z-index:5!important;
 }
-
-/* Prevention overflow trigger follows the clean record pattern used elsewhere:
-   plain three dots, no visible button frame or filled box. */
-.prevention-record-shell .entity-record-general-actions .lo-overflow-trigger-wrap{
+.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions .lo-overflow-menu,
+.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions .lo-overflow-trigger-wrap{
   display:inline-flex!important;
   align-items:center!important;
   justify-content:center!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
 }
-.prevention-record-shell .entity-record-general-actions .lo-icon-button{
+.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions .lo-icon-button{
   width:34px!important;
   min-width:34px!important;
   height:34px!important;
@@ -42,33 +52,31 @@
   box-shadow:none!important;
   color:#49657d!important;
 }
-.prevention-record-shell .entity-record-general-actions .lo-icon-button:hover,
-.prevention-record-shell .entity-record-general-actions .lo-icon-button:focus-visible{
-  border:0!important;
+.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions .lo-icon-button:hover{
   background:#f4f7f9!important;
-  box-shadow:none!important;
-  outline:none!important;
+  transform:none!important;
+}
+.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions .lo-icon-button:focus-visible{
+  background:#f4f7f9!important;
+  outline:2px solid color-mix(in srgb,var(--lo-color-primary) 32%,transparent)!important;
+  outline-offset:2px!important;
 }
 
-/* The first Prevention card also keeps a small internal top inset so its content and
-   overflow menu never visually collide with the card border. */
-.prevention-record-shell .prevention-record-card{
-  padding-top:18px!important;
+/* Reserve a real top band in the opened record so the ellipsis never sits on top of fields.
+   This is spacing in the content itself, not another visual wrapper/card. */
+.prevention-record-shell>.entity-record-body>.prevention-record-card{
+  padding-top:64px!important;
 }
 
-/* Keep list rows clean: actions belong inside the opened record, not in the registry. */
-.prevention-registry-page .prevention-row-action{display:none!important}
-.prevention-registry-page .data-table th:last-child:empty{display:none!important}
-
-/* WHO create/edit footer follows the common form hierarchy: actions bottom-right, separated and spaced. */
+/* WHO create/edit footer: bottom-right and separated from the form. */
 .prevention-record-shell .who-editor-page-actions{
   display:flex!important;
   align-items:center!important;
   justify-content:flex-end!important;
   gap:14px!important;
   width:100%!important;
-  margin:22px 0 0!important;
-  padding:18px 10px 6px!important;
+  margin:24px 0 0!important;
+  padding:18px 10px 8px!important;
   border-top:1px solid var(--lo-color-border,#dde5ec)!important;
   background:transparent!important;
 }
@@ -77,17 +85,18 @@
   min-height:42px!important;
 }
 
-/* Glove use remains visually distinct without becoming larger than the action choices. */
+/* Gloves use is visually identifiable but has the same control geometry as the three
+   hand-hygiene action choices; it must never look like a larger fourth panel. */
 .prevention-record-shell .who-gloves-card,
 .prevention-record-shell .who-readonly-choice{
-  align-self:end!important;
-  min-height:0!important;
+  align-self:stretch!important;
+  min-height:64px!important;
   height:64px!important;
   padding:10px 14px!important;
-  border:1px solid #cbdde9!important;
+  border:1px solid #d6e1e9!important;
   border-radius:11px!important;
-  background:#f3f8fc!important;
-  box-shadow:inset 3px 0 0 #7aa9c7!important;
+  background:#f7fafc!important;
+  box-shadow:none!important;
 }
 .prevention-record-shell .who-gloves-card>span,
 .prevention-record-shell .who-readonly-choice>span{
@@ -98,16 +107,18 @@
 }
 .prevention-record-shell .who-gloves-card strong,
 .prevention-record-shell .who-readonly-choice strong{
-  color:#244d69!important;
+  color:#31566f!important;
   font-weight:800!important;
 }
 .prevention-record-shell .who-gloves-card small,
 .prevention-record-shell .who-readonly-choice small{color:#72899a!important}
 
 @media(max-width:900px){
-  .prevention-record-shell>.entity-record-body{padding-top:22px!important}
+  .prevention-record-shell.record-single-pane-screen>.entity-record-body{padding-top:18px!important}
+  .canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions{top:22px!important;right:20px!important}
+  .prevention-record-shell>.entity-record-body>.prevention-record-card{padding-top:56px!important}
   .prevention-record-shell .who-editor-page-actions{padding-inline:0!important}
   .prevention-record-shell .who-editor-page-actions .button{min-width:120px!important}
   .prevention-record-shell .who-gloves-card,
-  .prevention-record-shell .who-readonly-choice{height:auto!important;min-height:58px!important}
+  .prevention-record-shell .who-readonly-choice{height:64px!important;min-height:64px!important}
 }
