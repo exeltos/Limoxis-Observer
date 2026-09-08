@@ -13,12 +13,13 @@ async function currentUserId(){
  return id
 }
 
+function observationWeight(item){return Math.max(1,Number(item?.professionalsCount)||1)}
 function statsFromObservations(items=[]){
- const professionals=items.reduce((sum,x)=>sum+(Number(x.professionalsCount)||1),0)
- const opportunities=items.length
- const handRub=items.filter(x=>x.action==='HR').length
- const handWash=items.filter(x=>x.action==='HW').length
- const missed=items.filter(x=>x.action==='MISSED').length
+ const opportunities=items.reduce((sum,item)=>sum+observationWeight(item),0)
+ const professionals=opportunities
+ const handRub=items.reduce((sum,item)=>sum+(item.action==='HR'?observationWeight(item):0),0)
+ const handWash=items.reduce((sum,item)=>sum+(item.action==='HW'?observationWeight(item):0),0)
+ const missed=items.reduce((sum,item)=>sum+(item.action==='MISSED'?observationWeight(item):0),0)
  const compliant=handRub+handWash
  return {opportunities,handRub,handWash,missed,professionals,compliant,compliance:opportunities?Number(((compliant/opportunities)*100).toFixed(1)):0}
 }
@@ -84,7 +85,7 @@ export async function saveHandHygieneSession(organizationId,record,{existingId=n
  const department=await resolveDepartment(organizationId,record.departmentEl||record.session?.department||'')
  const items=record.whoObservations||[]
  if(!items.length)throw new Error('At least one WHO observation is required.')
- const stats=record.whoStats||statsFromObservations(items)
+ const stats=statsFromObservations(items)
  const payload={organization_id:organizationId,department_id:department.id,observation_date:record.date||record.session?.date,professional_category:items[0]?.professionalCategory||null,observations:stats.opportunities,compliant_observations:stats.compliant,observer_id:userId,observer_name:record.observer||record.session?.observer||'',source_standard:'WHO',source_version:'WHO 5 Moments',status:'completed',start_time:record.session?.startTime||null,end_time:record.session?.endTime||null,updated_by:userId,updated_at:new Date().toISOString()}
  let session
  if(existingId){
@@ -98,7 +99,7 @@ export async function saveHandHygieneSession(organizationId,record,{existingId=n
   if(error)throw error
   session=data
  }
- const observationRows=items.map((item,index)=>({session_id:session.id,organization_id:organizationId,professional_category:item.professionalCategory||'Άλλο',professionals_count:Math.max(1,Number(item.professionalsCount)||1),who_moment:item.moment,action:item.action,gloves:Boolean(item.gloves),notes:item.notes||null,sort_order:index}))
+ const observationRows=items.map((item,index)=>({session_id:session.id,organization_id:organizationId,professional_category:item.professionalCategory||'Άλλο',professionals_count:observationWeight(item),who_moment:item.moment,action:item.action,gloves:Boolean(item.gloves),notes:item.notes||null,sort_order:index}))
  const {error:observationsError}=await supabase.from('hand_hygiene_observations').insert(observationRows)
  if(observationsError)throw observationsError
  const rows=await loadHandHygieneSessions(organizationId)
