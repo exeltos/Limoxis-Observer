@@ -11,39 +11,45 @@ import { loadPatients } from '../patients/patientsService'
 
 const demoClinicalSeed=JSON.parse(JSON.stringify(clinicalCases))
 
-function normalizeCloudCase(row){
-  const latestResult=(row.samples||[]).flatMap(sample=>(sample.microbiologyResults||[]).map(result=>({sample,result}))).find(item=>item.result)||null
+function normalizeClinicalCase(row={}){
+  const samples=Array.isArray(row.samples)?row.samples:[]
+  const therapy=Array.isArray(row.therapy)?row.therapy:[]
+  const reassessments=Array.isArray(row.reassessments)?row.reassessments:[]
+  const timeline=Array.isArray(row.timeline)?row.timeline:[]
+  const devices=Array.isArray(row.devices)?row.devices:[]
+  const latestResult=samples.flatMap(sample=>(sample.microbiologyResults||[]).map(result=>({sample,result}))).find(item=>item.result)||null
+  const assessment=row.assessment?{
+    ...row.assessment,
+    type:row.assessment.assessmentType||row.assessment.type,
+    symptoms:Array.isArray(row.assessment.signsSymptoms)?row.assessment.signsSymptoms:Array.isArray(row.assessment.symptoms)?row.assessment.symptoms:[],
+    symptomsEn:Array.isArray(row.assessment.symptomsEn)?row.assessment.symptomsEn:Array.isArray(row.assessment.signsSymptoms)?row.assessment.signsSymptoms:[],
+    riskFactors:Array.isArray(row.assessment.riskFactors)?row.assessment.riskFactors:[],
+    riskFactorsEn:Array.isArray(row.assessment.riskFactorsEn)?row.assessment.riskFactorsEn:Array.isArray(row.assessment.riskFactors)?row.assessment.riskFactors:[],
+    assessedBy:row.assessment.byId||row.assessment.assessedBy||'',
+  }:null
   return {
     ...row,
-    source:row.samples?.[0]?.source||'',
-    sourceEn:row.samples?.[0]?.source||'',
-    organism:latestResult?.result?.organism||row.samples?.[0]?.organism||'',
-    resistance:latestResult?.result?.amr?.classification||latestResult?.result?.resistanceClass||row.samples?.[0]?.resistance||null,
-    assessment:row.assessment?{
-      ...row.assessment,
-      type:row.assessment.assessmentType||row.assessment.type,
-      symptoms:row.assessment.signsSymptoms||row.assessment.symptoms||[],
-      symptomsEn:row.assessment.signsSymptoms||row.assessment.symptomsEn||[],
-      riskFactors:row.assessment.riskFactors||[],
-      riskFactorsEn:row.assessment.riskFactors||[],
-      assessedBy:row.assessment.byId||row.assessment.assessedBy||'',
-    }:null,
-    samples:(row.samples||[]).map(sample=>{
+    source:samples[0]?.source||'',
+    sourceEn:samples[0]?.sourceEn||samples[0]?.source||'',
+    organism:latestResult?.result?.organism||samples[0]?.organism||row.organism||'',
+    resistance:latestResult?.result?.amr?.classification||latestResult?.result?.resistanceClass||samples[0]?.resistance||row.resistance||null,
+    assessment,
+    samples:samples.map(sample=>{
       const result=(sample.microbiologyResults||[]).find(item=>item.validationStatus==='validated')||(sample.microbiologyResults||[])[0]||null
       const communication=result?.communications?.[0]||null
       return {
         ...sample,
-        collectedAt:sample.collectedAt,
-        resultedAt:result?.resultedAt||null,
+        collectedAt:sample.collectedAt||null,
+        resultedAt:sample.resultedAt||result?.resultedAt||null,
         result:sample.result||result?.status||null,
         organism:sample.organism||result?.organism||null,
         resistance:sample.resistance||result?.amr?.classification||result?.resistanceClass||null,
-        susceptibility:result?.susceptibilitySummary||'',
+        susceptibility:sample.susceptibility||result?.susceptibilitySummary||'',
         critical:Boolean(sample.critical||result?.critical),
-        communicatedAt:communication?.at||null,
+        communicatedAt:sample.communicatedAt||communication?.at||null,
       }
     }),
-    therapy:(row.therapy||[]).map(item=>({
+    therapy:therapy.map(item=>({
       ...item,
       plannedEnd:item.plannedEnd||item.plannedEndAt||null,
       approved:item.approved??item.approvalStatus==='approved',
@@ -52,8 +58,9 @@ function normalizeCloudCase(row){
       ...row.isolation,
       nextReview:row.isolation.nextReview||row.isolation.reviewDue||null,
     }:null,
-    reassessments:(row.reassessments||[]).map(item=>({...item,by:item.by||item.byId||''})),
-    timeline:(row.timeline||[]).map(item=>({...item,actor:item.actor||item.actorId||''})),
+    reassessments:reassessments.map(item=>({...item,by:item.by||item.byId||''})),
+    timeline:timeline.map(item=>({...item,actor:item.actor||item.actorId||''})),
+    devices,
   }
 }
 
@@ -76,7 +83,7 @@ export function PatientClinicalRecordRoute({patientMode=false}){
     let alive=true
     if(isDemo){
       const rows=patientMode&&patientId?demoRows.filter(row=>String(row.patientId)===String(patientId)):demoRows
-      replaceClinicalStore(rows.map(row=>JSON.parse(JSON.stringify(row))))
+      replaceClinicalStore(rows.map(row=>normalizeClinicalCase(JSON.parse(JSON.stringify(row)))))
       setLoading(false)
       setError('')
       return ()=>{alive=false}
@@ -101,7 +108,7 @@ export function PatientClinicalRecordRoute({patientMode=false}){
     request
       .then(rows=>{
         if(!alive)return
-        replaceClinicalStore((rows||[]).map(normalizeCloudCase))
+        replaceClinicalStore((rows||[]).map(normalizeClinicalCase))
       })
       .catch(err=>{if(alive)setError(err?.message||t('actionFailed'))})
       .finally(()=>{if(alive)setLoading(false)})
