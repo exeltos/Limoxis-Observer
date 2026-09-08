@@ -1,4 +1,4 @@
-import { useMemo,useState } from 'react'
+import { useEffect,useMemo,useState } from 'react'
 import { ShieldAlert } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
@@ -6,6 +6,8 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { loadBundleClinicalOptions } from './bundleCloudService'
 
 function scoreFor(answers={}){
  const applicable=Object.values(answers).filter(x=>x==='yes'||x==='no')
@@ -19,14 +21,36 @@ function allOrNoneFor(answers={}){
 
 export function BundleExecutionEditor({onCancel,onSave,fixedDepartment='',initialRecord=null,departments=[],templates=[]}){
  const {profile,user}=useAuth()
+ const {tenant}=useTenant()
  const {language}=useLanguage();const en=language==='en'
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
  const firstTemplate=templates[0]
  const [saving,setSaving]=useState(false)
+ const [clinicalLoading,setClinicalLoading]=useState(false)
+ const [clinicalOptions,setClinicalOptions]=useState({patients:[],devices:[]})
  const [draft,setDraft]=useState(()=>initialRecord?JSON.parse(JSON.stringify(initialRecord)):{
-  templateId:firstTemplate?.id||'',departmentEl:fixedDepartment||departments[0]?.el||'',date:new Date().toISOString().slice(0,10),
-  shift:'Πρωινή',context:'',patientRef:'',deviceRef:'',answers:{},answerNotes:{},generalNotes:'',status:'completed'
+  templateId:'',departmentEl:fixedDepartment||'',date:new Date().toISOString().slice(0,10),
+  shift:'Πρωινή',context:'',patientId:'',patientRef:'',deviceId:'',deviceRef:'',answers:{},answerNotes:{},generalNotes:'',status:'completed'
  })
+
+ useEffect(()=>{
+  if(initialRecord)return
+  if(!draft.templateId&&firstTemplate?.id)setDraft(current=>({...current,templateId:firstTemplate.id}))
+ },[firstTemplate?.id,initialRecord,draft.templateId])
+ useEffect(()=>{
+  if(!initialRecord&&fixedDepartment&&draft.departmentEl!==fixedDepartment)setDraft(current=>({...current,departmentEl:fixedDepartment}))
+ },[fixedDepartment,initialRecord,draft.departmentEl])
+ useEffect(()=>{
+  if(!tenant?.id)return
+  let active=true
+  setClinicalLoading(true)
+  loadBundleClinicalOptions(tenant.id)
+   .then(data=>{if(active)setClinicalOptions(data)})
+   .catch(()=>{if(active)setClinicalOptions({patients:[],devices:[]})})
+   .finally(()=>{if(active)setClinicalLoading(false)})
+  return()=>{active=false}
+ },[tenant?.id])
+
  const template=templates.find(x=>x.id===draft.templateId||x.bundleKey===draft.templateId)||firstTemplate
  const elements=template?.elements||[]
  const score=scoreFor(draft.answers)
@@ -44,12 +68,25 @@ export function BundleExecutionEditor({onCancel,onSave,fixedDepartment='',initia
   if(!raw)return fallback
   return en?(raw.labelEn||raw.label_en||raw.labelEl||raw.label_el||fallback):(raw.labelEl||raw.label_el||raw.label||fallback)
  }
+ const patients=clinicalOptions.patients||[]
+ const selectedPatient=patients.find(item=>item.id===draft.patientId)||null
+ const devices=(clinicalOptions.devices||[]).filter(item=>!draft.patientId||item.patientId===draft.patientId)
+ const selectedDevice=devices.find(item=>item.id===draft.deviceId)||null
+ const choosePatient=value=>{
+  const patient=patients.find(item=>item.id===value)
+  setDraft(current=>({...current,patientId:value,patientRef:patient?.label||'',deviceId:'',deviceRef:''}))
+ }
+ const chooseDevice=value=>{
+  const device=devices.find(item=>item.id===value)
+  setDraft(current=>({...current,deviceId:value,deviceRef:device?.label||''}))
+ }
  async function submit(){
   if(!valid||saving)return
   const now=new Date().toISOString()
   const dep=departments.find(x=>x.el===draft.departmentEl)
   const payload={...draft,bundle:template.id,templateName:template.name,templateTitle:en?(template.titleEn||template.title):template.title,templateVersion:template.version,
    templateSource:template.source,templateSnapshot:JSON.parse(JSON.stringify(template)),departmentEn:dep?.en||draft.departmentEl,score:score??0,allOrNone,
+   patientRef:selectedPatient?.label||draft.patientRef||'',deviceRef:selectedDevice?.label||draft.deviceRef||'',
    applicableCount:applicable,failedCount:failures.length,findings:failures.map(([id,label])=>({id,label:elementLabel(id,label),note:draft.answerNotes[id]||''})),
    owner:actor.name,createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,
    updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized'}
@@ -60,12 +97,12 @@ export function BundleExecutionEditor({onCancel,onSave,fixedDepartment='',initia
   <div className="bundle-page-actor"><span>{en?'Recorded by':'Καταχώρηση από'}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
   <section className="bundle-page-context">
    <div className="bundle-page-grid">
-    <label><span>Bundle *</span><select value={draft.templateId} onChange={e=>setDraft(current=>({...current,templateId:e.target.value,answers:{},answerNotes:{}}))}>{templates.map(item=><option key={item.id} value={item.id}>{item.name} — {en?(item.titleEn||item.title):item.title}</option>)}</select></label>
-    <label><span>{en?'Department *':'Τμήμα *'}</span><select value={draft.departmentEl} disabled={Boolean(fixedDepartment)} onChange={e=>set('departmentEl',e.target.value)}>{departments.map(item=><option key={item.id||item.el} value={item.el}>{en?(item.en||item.el):item.el}</option>)}</select></label>
+    <label><span>Bundle *</span><select value={draft.templateId} onChange={e=>setDraft(current=>({...current,templateId:e.target.value,answers:{},answerNotes:{}}))}><option value="">{en?'Select Bundle':'Επιλέξτε Bundle'}</option>{templates.map(item=><option key={item.id} value={item.id}>{item.name} — {en?(item.titleEn||item.title):item.title}</option>)}</select></label>
+    <label><span>{en?'Department *':'Τμήμα *'}</span><select value={draft.departmentEl} disabled={Boolean(fixedDepartment)} onChange={e=>set('departmentEl',e.target.value)}><option value="">{en?'Select department':'Επιλέξτε τμήμα'}</option>{departments.map(item=><option key={item.id||item.el} value={item.el}>{en?(item.en||item.el):item.el}</option>)}</select></label>
     <ManualDateField label={en?'Date *':'Ημερομηνία *'} value={draft.date} onChange={value=>set('date',value)}/>
     <label><span>{en?'Shift / context':'Βάρδια / πλαίσιο'}</span><select value={draft.shift} onChange={e=>set('shift',e.target.value)}><option value="Πρωινή">{en?'Morning':'Πρωινή'}</option><option value="Απογευματινή">{en?'Afternoon':'Απογευματινή'}</option><option value="Νυχτερινή">{en?'Night':'Νυχτερινή'}</option><option value="Άλλο">{en?'Other':'Άλλο'}</option></select></label>
-    <label><span>{en?'Patient reference':'Αναφορά ασθενή'}</span><input value={draft.patientRef||''} onChange={e=>set('patientRef',e.target.value)} placeholder={en?'Optional ID / code':'Προαιρετικό ID / κωδικός'}/></label>
-    <label><span>{en?'Device reference':'Αναφορά συσκευής'}</span><input value={draft.deviceRef||''} onChange={e=>set('deviceRef',e.target.value)} placeholder={en?'e.g. CVC / UC / ventilator':'π.χ. CVC / UC / αναπνευστήρας'}/></label>
+    <label><span>{en?'Patient':'Ασθενής'}</span><select value={draft.patientId||''} onChange={e=>choosePatient(e.target.value)} disabled={clinicalLoading}><option value="">{clinicalLoading?(en?'Loading patients…':'Φόρτωση ασθενών…'):(en?'Select patient (optional)':'Επιλέξτε ασθενή (προαιρετικό)')}</option>{patients.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+    <label><span>{en?'Device':'Συσκευή'}</span><select value={draft.deviceId||''} onChange={e=>chooseDevice(e.target.value)} disabled={clinicalLoading||!draft.patientId}><option value="">{!draft.patientId?(en?'Select patient first':'Επιλέξτε πρώτα ασθενή'):(clinicalLoading?(en?'Loading devices…':'Φόρτωση συσκευών…'):(en?'Select device (optional)':'Επιλέξτε συσκευή (προαιρετικό)'))}</option>{devices.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
    </div>
    {template&&<div className="bundle-page-template-meta"><span><b>{template.name}</b> · v{template.version}</span><span>{template.source}</span></div>}
   </section>
