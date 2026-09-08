@@ -6,6 +6,7 @@ import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { AttachmentField } from '../../design-system/AttachmentField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -49,16 +50,14 @@ export function QualityRecordPage(){
   return <Page fill><EntityRecordShell
     className="quality-record-shell workspace-fill"
     avatar={<Icon size={19}/>}
-    eyebrow={record.id}
     title={title}
-    subtitle={`${language==='el'?record.department:record.departmentEn||'—'} · ${t(record.status)}`}
     status={<span className={`status-badge ${['closed','completed'].includes(record.status)?'active':''}`}>{t(record.status)}</span>}
     recordNavigation={recordNavigation}
-    headerActions={<PrintExportActions showPrint={canPrint} onExport={()=>downloadRecordJson(record,{filename:record.id})}/>}
+    headerActions={<PrintExportActions showPrint={canPrint} onExport={()=>downloadRecordJson(record,{filename:record.displayId||record.id})}/>}
     tabs={tabs} activeTab={tab} onTabChange={setTab}>
       {tab==='details'&&<QualityDetails recordType={recordType} record={record} setRecord={setRecord} t={t} language={language} locale={locale} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack}/>}
       {tab==='links'&&<QualityLinks recordType={recordType} record={record} t={t} language={language}/>}
-      {tab==='documents'&&<div className="record-section"><AttachmentField disabled={finalized||(!canAttach&&!canManage)} value={record.attachments||[]} onChange={attachments=>setRecord(r=>({...r,attachments}))}/></div>}
+      {tab==='documents'&&<QualityDocuments record={record} setRecord={setRecord} t={t} finalized={finalized} canAttach={canAttach} canManage={canManage}/>} 
       {tab==='history'&&<QualityHistory record={record} t={t} locale={locale}/>}
   </EntityRecordShell></Page>
 }
@@ -98,10 +97,14 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
       persist(next);setGovernedAction(null);notify(en?'Record voided and retained in the audit trail.':'Η εγγραφή ακυρώθηκε και διατηρήθηκε στο audit trail.','success');onDeleted?.()
     }
   }
+  const actionItems=canManage&&!editing?[
+    {id:'edit',label:finalized?(en?'Correct record':'Διόρθωση εγγραφής'):t('edit'),icon:finalized?RotateCcw:Pencil,onClick:beginEdit},
+    {id:'void',label:en?'Void record':'Ακύρωση εγγραφής',icon:Trash2,tone:'danger',separatorBefore:true,onClick:requestVoid},
+  ]:[]
   return <div className="record-section">
-    <div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('details')}</h3></div>{canManage&&!editing&&<div className="record-inline-actions"><button className="edit" onClick={beginEdit} title={finalized?(en?'Correct finalized record':'Διόρθωση ολοκληρωμένης εγγραφής'):t('edit')}>{finalized?<RotateCcw size={16}/>:<Pencil size={16}/>}</button><button className="danger" onClick={requestVoid} title={en?'Void record':'Ακύρωση εγγραφής'}><Trash2 size={16}/></button></div>}</div>
+    <div className="record-section-header"><h3>{t('details')}</h3>{actionItems.length>0&&<OverflowMenu items={actionItems}/>}</div>
     <div className={`detail-grid quality-detail-grid ${editing?'employee-inline-edit':''}`}>
-      <Field label={t('code')} value={draft.id}/>
+      <Field label={t('code')} value={draft.displayId||draft.id}/>
       <EditField editing={editing} label={t('title')} value={language==='el'?draft.title:draft.titleEn} onChange={v=>set(language==='el'?'title':'titleEn',v)}/>
       <EditField editing={editing} label={t('department')} value={language==='el'?draft.department:draft.departmentEn} onChange={v=>set(language==='el'?'department':'departmentEn',v)}/>
       <EditSelect editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(x=>[x,t(x)])}/>
@@ -115,6 +118,7 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
     <GovernedReasonDialog open={Boolean(governedAction)} title={governedAction==='correct'?(en?'Correct finalized record':'Διόρθωση ολοκληρωμένης εγγραφής'):(en?'Void record':'Ακύρωση εγγραφής')} description={governedAction==='correct'?(en?'The original record remains in history. Enter the reason for the correction.':'Η αρχική εγγραφή παραμένει στο ιστορικό. Καταγράψτε τον λόγο της διόρθωσης.'):(en?'The record will not be physically deleted. It will be marked as voided and retained in the audit trail.':'Η εγγραφή δεν θα διαγραφεί φυσικά. Θα χαρακτηριστεί ως ακυρωμένη και θα παραμείνει στο audit trail.')} confirmLabel={governedAction==='correct'?(en?'Start correction':'Έναρξη διόρθωσης'):(en?'Void record':'Ακύρωση εγγραφής')} danger={governedAction==='void'} onCancel={()=>setGovernedAction(null)} onConfirm={governedConfirm}/>
   </div>
 }
+
 function QualityLinks({recordType,record,t,language}){
   const {goTo}=useContextualNavigation('/quality')
   const links=[]
@@ -123,8 +127,13 @@ function QualityLinks({recordType,record,t,language}){
   if(record.sourceId)links.push([t('source'),record.sourceId])
   if(record.findingIds?.length)record.findingIds.forEach(id=>links.push([t('qualityRecords.finding'),id]))
   const related=recordType==='incidents'?qualityCollections.capas.filter(x=>x.sourceId===record.id):recordType==='findings'?qualityCollections.capas.filter(x=>x.sourceId===record.id):[]
-  return <div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('qualityRecords.linkedRecords')}</h3></div></div><div className="quality-link-list">{links.map(([label,id])=><button key={`${label}-${id}`} onClick={()=>goTo(linkPath(label,id,t),{tab:'links'})}><span>{label}</span><strong>{id}</strong></button>)}{related.map(x=><button key={x.id} onClick={()=>goTo(`/quality/capas/${x.id}`,{tab:'links'})}><span>{t('qualityRecords.capa')}</span><strong>{x.id} · {language==='el'?x.title:x.titleEn}</strong></button>)}{!links.length&&!related.length&&<div className="inline-empty">{t('qualityRecords.noLinkedRecords')}</div>}</div></div>
+  return <div className="record-section"><div className="record-section-header"><h3>{t('qualityRecords.linkedRecords')}</h3></div><div className="quality-link-list">{links.map(([label,id])=><button key={`${label}-${id}`} onClick={()=>goTo(linkPath(label,id,t),{tab:'links'})}><span>{label}</span><strong>{id}</strong></button>)}{related.map(x=><button key={x.id} onClick={()=>goTo(`/quality/capas/${x.id}`,{tab:'links'})}><span>{t('qualityRecords.capa')}</span><strong>{x.displayId||x.id} · {language==='el'?x.title:x.titleEn}</strong></button>)}{!links.length&&!related.length&&<div className="inline-empty">{t('qualityRecords.noLinkedRecords')}</div>}</div></div>
 }
+
+function QualityDocuments({record,setRecord,t,finalized,canAttach,canManage}){
+  return <div className="record-section"><div className="record-section-header"><h3>{t('documents')}</h3></div><AttachmentField disabled={finalized||(!canAttach&&!canManage)} value={record.attachments||[]} onChange={attachments=>setRecord(r=>({...r,attachments}))}/></div>
+}
+
 function linkPath(label,id,t){
   if(label===t('patient'))return `/patients/${id}`
   if(label===t('surveillance'))return `/surveillance/${id}`
@@ -136,11 +145,10 @@ function linkPath(label,id,t){
   if(label===t('qualityRecords.finding'))return `/quality/findings/${id}`
   return '/quality'
 }
-function QualityHistory({record,t,locale}){const rows=useMemo(()=>[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)),[record.history]);return <div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('quality')}</span><h3>{t('history')}</h3></div></div><div className="lab-history-list">{rows.map((x,i)=><div className="lab-history-row" key={`${x.at}-${i}`}><time>{new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(x.at))}</time><strong>{t(x.action)}</strong><span>{x.actor}</span></div>)}</div></div>}
+function QualityHistory({record,t,locale}){const rows=useMemo(()=>[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)),[record.history]);return <div className="record-section"><div className="record-section-header"><h3>{t('history')}</h3></div><div className="lab-history-list">{rows.map((x,i)=><div className="lab-history-row" key={`${x.at}-${i}`}><time>{new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(x.at))}</time><strong>{t(x.action)}</strong><span>{x.actor}</span></div>)}</div></div>}
 function statusOptions(type){return type==='incidents'?['reported','underReview','closed']:type==='findings'?['open','inProgress','closed']:type==='capas'?['open','inProgress','verification','closed']:['planned','inProgress','completed','cancelled']}
 function fmt(v,locale){return v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—'}
 function Field({label,value}){return <div className="detail-item"><span>{label}</span><strong>{value||'—'}</strong></div>}
-
 function EditDateField({editing,label,value,onChange,locale}){return editing?<ManualDateField label={label} value={value||''} onChange={onChange}/>:<Field label={label} value={fmt(value,locale)}/>} 
 function EditField({editing,label,value,onChange,type='text'}){if(editing&&type==='date')return <ManualDateField className="detail-item editable" label={label} value={value||''} onChange={onChange}/>;return <div className={`detail-item ${editing?'editable':''}`}><span>{label}</span>{editing?<input type={type} value={value||''} onChange={e=>onChange(e.target.value)}/>:<strong>{value||'—'}</strong>}</div>}
 function EditSelect({editing,label,value,onChange,options}){return <div className={`detail-item ${editing?'editable':''}`}><span>{label}</span>{editing?<select value={value||''} onChange={e=>onChange(e.target.value)}>{options.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>:<strong>{options.find(x=>x[0]===value)?.[1]||value||'—'}</strong>}</div>}
