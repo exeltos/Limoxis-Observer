@@ -22,7 +22,7 @@ export const WHO_PROFESSIONS=[
  ['Φυσικοθεραπευτής','Physiotherapist'],['Τεχνολόγος','Technologist'],['Βοηθητικό προσωπικό','Support staff'],['Άλλο','Other'],
 ]
 
-const blankObservation=()=>({id:'',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment1',action:'HR',gloves:false,notes:''})
+const blankObservation=()=>({id:'',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'',action:'',gloves:false,notes:''})
 const calculateStats=(list=[])=>{
  const opportunities=list.length
  const professionals=list.reduce((sum,item)=>sum+(Number(item.professionalsCount)||1),0)
@@ -33,7 +33,7 @@ const calculateStats=(list=[])=>{
  return {opportunities,handRub,handWash,missed,professionals,compliant,compliance:opportunities?Number(((compliant/opportunities)*100).toFixed(1)):0}
 }
 
-const actionLabel=(action,en)=>action==='HR'?(en?'Hand rub':'Αντισηπτικό'):action==='HW'?(en?'Hand wash':'Πλύσιμο'):(en?'Missed':'Δεν έγινε')
+const actionLabel=(action,en)=>!action?(en?'Select action':'Επιλέξτε ενέργεια'):action==='HR'?(en?'Hand rub':'Αντισηπτικό'):action==='HW'?(en?'Hand wash':'Πλύσιμο'):(en?'Missed':'Δεν έγινε')
 
 export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initialRecord=null,departments=[]}){
  const {profile,user}=useAuth()
@@ -133,7 +133,7 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
      <label className="who-note-field who-smart-note"><span>{en?'Optional note':'Προαιρετική σημείωση'}</span><input value={current.notes} onChange={event=>setO('notes',event.target.value)} placeholder={en?'Add context only when useful':'Προσθέστε πληροφορία μόνο όταν χρειάζεται'}/></label>
 
      <div className="who-current-preview">
-      <div><small>{en?'Current selection':'Τρέχουσα επιλογή'}</small><strong>{en?selectedMoment?.labelEn:selectedMoment?.label}</strong><span>{actionLabel(current.action,en)} · {current.professionalsCount||1} {en?'professional(s)':'επαγγελματίας/ες'} · {current.gloves?(en?'gloves':'γάντια'):(en?'no gloves':'χωρίς γάντια')}</span></div>
+      <div><small>{en?'Current selection':'Τρέχουσα επιλογή'}</small><strong>{selectedMoment?(en?selectedMoment.labelEn:selectedMoment.label):(en?'Choose a WHO moment':'Επιλέξτε στιγμή WHO')}</strong><span>{actionLabel(current.action,en)} · {current.professionalsCount||1} {en?'professional(s)':'επαγγελματίας/ες'} · {current.gloves?(en?'gloves':'γάντια'):(en?'no gloves':'χωρίς γάντια')}</span></div>
       <ActionButton label={en?'Add opportunity':'Προσθήκη ευκαιρίας'} tone="primary" disabled={!currentValid} onClick={add}><Plus size={16}/><span>{en?'Add opportunity':'Προσθήκη ευκαιρίας'}</span></ActionButton>
      </div>
     </section>
