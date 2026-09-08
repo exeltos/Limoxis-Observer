@@ -24,15 +24,22 @@ export function useRegistryMemory(registry){
   },[registry])
 
   function openRecord(navigate,path,id,orderedIds=[],options={}){
+    const {returnState,...navigateOptions}=options
     writeSessionValue(registryStorageKey(registry,'selected'),id)
     writeSessionValue(registryStorageKey(registry,'scroll'),scrollRef.current?.scrollTop||0)
     if(Array.isArray(orderedIds)&&orderedIds.length)writeSessionJson(registryStorageKey(registry,'sequence'),orderedIds)
     setHighlightId(id)
     navigate(path,{
-      ...options,
+      ...navigateOptions,
       state:{
-        ...(options.state||{}),
-        limoxisFrom:{pathname:location.pathname,search:location.search,hash:location.hash,state:location.state??null,registry}
+        ...(navigateOptions.state||{}),
+        limoxisFrom:{
+          pathname:location.pathname,
+          search:location.search,
+          hash:location.hash,
+          state:{...(location.state||{}),...(returnState||{})},
+          registry,
+        }
       }
     })
   }
