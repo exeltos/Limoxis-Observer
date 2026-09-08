@@ -34,8 +34,10 @@ export async function loadWasteSupportData(organizationId){
  return {departments:(departmentsResult.data||[]).map(x=>({id:x.id,el:x.name,en:x.name})),wasteTypes:(typesResult.data||[]).map(x=>({id:x.id,code:x.code,el:x.name_el,en:x.name_en||x.name_el}))}
 }
 
-export async function findWastePatientDays(organizationId,departmentId,periodStart,periodEnd){
+export async function findWastePatientDays(organizationId,departmentId,periodStartOrRange,periodEndArg){
  assertCloud(organizationId)
+ const periodStart=typeof periodStartOrRange==='object'?periodStartOrRange?.periodStart:periodStartOrRange
+ const periodEnd=typeof periodStartOrRange==='object'?periodStartOrRange?.periodEnd:periodEndArg
  if(!departmentId||!periodStart||!periodEnd)return null
  const {data,error}=await supabase.from('patient_day_periods').select('patient_days,period_start,period_end,source,review_status').eq('organization_id',organizationId).eq('department_id',departmentId).eq('period_start',periodStart).eq('period_end',periodEnd).eq('review_status','approved').order('updated_at',{ascending:false}).limit(1).maybeSingle()
  if(error)throw error
