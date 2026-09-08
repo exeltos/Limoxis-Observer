@@ -22,6 +22,15 @@ export const WHO_PROFESSIONS=[
 ]
 
 const blankObservation=()=>({id:'',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment1',action:'HR',gloves:false,notes:''})
+const calculateStats=(list=[])=>{
+ const opportunities=list.length
+ const professionals=list.reduce((sum,item)=>sum+(Number(item.professionalsCount)||1),0)
+ const handRub=list.filter(item=>item.action==='HR').length
+ const handWash=list.filter(item=>item.action==='HW').length
+ const missed=list.filter(item=>item.action==='MISSED').length
+ const compliant=handRub+handWash
+ return {opportunities,handRub,handWash,missed,professionals,compliant,compliance:opportunities?Number(((compliant/opportunities)*100).toFixed(1)):0}
+}
 
 export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initialRecord=null,departments=[]}){
  const {profile,user}=useAuth()
@@ -34,6 +43,7 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
   ? {...initialRecord.session,department:initialRecord.departmentEl||initialRecord.session.department||firstDepartment,date:initialRecord.date||initialRecord.session.date||today,observer:initialRecord.observer||initialRecord.session.observer||actor.name}
   : {facility:'',department:firstDepartment,date:today,observer:actor.name,startTime:'',endTime:''})
  const [current,setCurrent]=useState(blankObservation())
+ const [currentTouched,setCurrentTouched]=useState(false)
  const [items,setItems]=useState(()=>initialRecord?.whoObservations?JSON.parse(JSON.stringify(initialRecord.whoObservations)):[])
  const [saving,setSaving]=useState(false)
 
@@ -44,21 +54,17 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
  },[departments,fixedDepartment,initialRecord?.departmentEl,session.department])
 
  const setS=(key,value)=>setSession(state=>({...state,[key]:value}))
- const setO=(key,value)=>setCurrent(state=>({...state,[key]:value}))
- const stats=useMemo(()=>{
-  const opportunities=items.length
-  const professionals=items.reduce((sum,item)=>sum+(Number(item.professionalsCount)||1),0)
-  const handRub=items.filter(item=>item.action==='HR').length
-  const handWash=items.filter(item=>item.action==='HW').length
-  const missed=items.filter(item=>item.action==='MISSED').length
-  const compliant=handRub+handWash
-  return {opportunities,handRub,handWash,missed,professionals,compliant,compliance:opportunities?Number(((compliant/opportunities)*100).toFixed(1)):0}
- },[items])
+ const setO=(key,value)=>{setCurrentTouched(true);setCurrent(state=>({...state,[key]:value}))}
+ const stats=useMemo(()=>calculateStats(items),[items])
+ const currentValid=Boolean(Number(current.professionalsCount)>=1&&current.professionalCategory&&current.moment&&current.action)
+ const sessionValid=Boolean(session.date?.trim?.()&&session.department?.trim?.()&&session.observer?.trim?.())
+ const valid=Boolean(sessionValid&&(items.length>0||(currentTouched&&currentValid)))
 
  function add(){
-  if(Number(current.professionalsCount)<1)return
+  if(!currentValid)return
   setItems(list=>[...list,{...current,id:`WHO-OBS-${Date.now()}-${list.length}`}])
   setCurrent(blankObservation())
+  setCurrentTouched(false)
  }
 
  async function removeObservation(id){
@@ -68,11 +74,12 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
   notify(en?'Observation removed.':'Η παρατήρηση αφαιρέθηκε.','success')
  }
 
- const valid=Boolean(session.date?.trim?.()&&session.department?.trim?.()&&session.observer?.trim?.()&&items.length>0)
  async function save(){
   if(!valid||saving)return
-  const profession=items[0]?.professionalCategory?.startsWith('Ιατ')?'medical':'nursing'
-  const record={date:session.date,departmentEl:session.department,departmentEn:departments.find(d=>d.el===session.department)?.en||session.department,profession,observations:stats.opportunities,compliant:stats.compliant,rate:stats.compliance,observer:session.observer,session,whoObservations:items,whoStats:stats,createdAt:initialRecord?.createdAt||new Date().toISOString(),createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id}
+  const finalItems=items.length>0?items:[{...current,id:`WHO-OBS-${Date.now()}-0`}]
+  const finalStats=calculateStats(finalItems)
+  const profession=finalItems[0]?.professionalCategory?.startsWith('Ιατ')?'medical':'nursing'
+  const record={date:session.date,departmentEl:session.department,departmentEn:departments.find(d=>d.el===session.department)?.en||session.department,profession,observations:finalStats.opportunities,compliant:finalStats.compliant,rate:finalStats.compliance,observer:session.observer,session,whoObservations:finalItems,whoStats:finalStats,createdAt:initialRecord?.createdAt||new Date().toISOString(),createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id}
   try{setSaving(true);await onSave(record)}finally{setSaving(false)}
  }
 
@@ -105,7 +112,7 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
     </div>
     <label className="who-full-row who-note-field"><span>{en?'Note':'Σημείωση'}</span><input value={current.notes} onChange={event=>setO('notes',event.target.value)} placeholder={en?'Optional note':'Προαιρετική σημείωση'}/></label>
    </div>
-   <div className="who-add-row"><ActionButton label={en?'Add opportunity':'Προσθήκη ευκαιρίας'} tone="neutral" disabled={Number(current.professionalsCount)<1} onClick={add}><Plus size={16}/><span>{en?'Add opportunity':'Προσθήκη ευκαιρίας'}</span></ActionButton></div>
+   <div className="who-add-row"><ActionButton label={en?'Add opportunity':'Προσθήκη ευκαιρίας'} tone="neutral" disabled={!currentValid} onClick={add}><Plus size={16}/><span>{en?'Add opportunity':'Προσθήκη ευκαιρίας'}</span></ActionButton></div>
   </section>
 
   <section className="who-summary-panel">
