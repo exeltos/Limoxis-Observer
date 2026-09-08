@@ -1,0 +1,71 @@
+/* Canonical Prevention record/editor presentation.
+   Keeps Prevention create/view/edit screens on one visual hierarchy without page-specific modal overrides. */
+
+/* Prevention records are single-canvas screens; no redundant one-item/detail-history tab rail. */
+.prevention-record-shell>.entity-record-tabs{display:none!important}
+
+/* Give the record action menu its own clean white breathing room at the top-right. */
+.prevention-record-shell>.entity-record-body{padding-top:14px!important}
+.prevention-record-shell .entity-record-general-actions{
+  position:relative!important;
+  inset:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  width:100%!important;
+  min-height:36px!important;
+  margin:0 0 6px!important;
+  padding:2px 8px 4px!important;
+  background:#fff!important;
+  z-index:2!important;
+}
+
+/* Keep list rows clean: actions belong inside the opened record, not in the registry. */
+.prevention-registry-page .prevention-row-action{display:none!important}
+.prevention-registry-page .data-table th:last-child:empty{display:none!important}
+
+/* WHO create/edit footer follows the common form hierarchy: actions bottom-right, separated and spaced. */
+.prevention-record-shell .who-editor-page-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:12px!important;
+  width:100%!important;
+  margin:20px 0 0!important;
+  padding:18px 8px 6px!important;
+  border-top:1px solid var(--lo-color-border,#dde5ec)!important;
+  background:transparent!important;
+}
+.prevention-record-shell .who-editor-page-actions .button{
+  min-width:132px!important;
+  min-height:42px!important;
+}
+
+/* Glove use is a clinically distinct secondary choice and should read as such. */
+.prevention-record-shell .who-gloves-card,
+.prevention-record-shell .who-readonly-choice{
+  min-height:72px!important;
+  padding:14px 16px!important;
+  border:1px solid #cbdde9!important;
+  border-radius:11px!important;
+  background:#f3f8fc!important;
+  box-shadow:inset 3px 0 0 #7aa9c7!important;
+}
+.prevention-record-shell .who-gloves-card>span,
+.prevention-record-shell .who-readonly-choice>span{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:3px!important;
+}
+.prevention-record-shell .who-gloves-card strong,
+.prevention-record-shell .who-readonly-choice strong{
+  color:#244d69!important;
+  font-weight:800!important;
+}
+.prevention-record-shell .who-gloves-card small,
+.prevention-record-shell .who-readonly-choice small{color:#72899a!important}
+
+@media(max-width:900px){
+  .prevention-record-shell .who-editor-page-actions{padding-inline:0!important}
+  .prevention-record-shell .who-editor-page-actions .button{min-width:120px!important}
+}
