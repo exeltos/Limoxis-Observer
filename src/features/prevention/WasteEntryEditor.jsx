@@ -32,7 +32,7 @@ export function WasteEntryEditor({onCancel,onSave,fixedDepartment='',initialReco
   let active=true
   async function load(){
    if(!findPatientDays||!departmentInfo?.id||!validPeriod){setSuggestedPatientDays(null);return}
-   try{const value=await findPatientDays(departmentInfo.id,draft.periodStart,draft.periodEnd);if(active)setSuggestedPatientDays(value||null)}
+   try{const value=await findPatientDays(departmentInfo.id,{periodStart:draft.periodStart,periodEnd:draft.periodEnd});if(active)setSuggestedPatientDays(value||null)}
    catch{if(active)setSuggestedPatientDays(null)}
   }
   void load()
