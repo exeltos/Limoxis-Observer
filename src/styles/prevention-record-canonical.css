@@ -4,8 +4,11 @@
 /* Prevention records are single-canvas screens; no redundant one-item/detail-history tab rail. */
 .prevention-record-shell>.entity-record-tabs{display:none!important}
 
-/* Give the record action menu its own clean white breathing room at the top-right. */
-.prevention-record-shell>.entity-record-body{padding-top:14px!important}
+/* Keep a visible strip of page canvas above the record content. The action menu then sits
+   clearly inside the white record surface instead of touching the upper edge. */
+.prevention-record-shell>.entity-record-body{
+  padding-top:26px!important;
+}
 .prevention-record-shell .entity-record-general-actions{
   position:relative!important;
   inset:auto!important;
@@ -13,11 +16,17 @@
   align-items:center!important;
   justify-content:flex-end!important;
   width:100%!important;
-  min-height:36px!important;
-  margin:0 0 6px!important;
-  padding:2px 8px 4px!important;
+  min-height:40px!important;
+  margin:0 0 10px!important;
+  padding:5px 10px 5px!important;
   background:#fff!important;
   z-index:2!important;
+}
+
+/* The first Prevention card also keeps a small internal top inset so its content and
+   overflow menu never visually collide with the card border. */
+.prevention-record-shell .prevention-record-card{
+  padding-top:18px!important;
 }
 
 /* Keep list rows clean: actions belong inside the opened record, not in the registry. */
@@ -66,6 +75,7 @@
 .prevention-record-shell .who-readonly-choice small{color:#72899a!important}
 
 @media(max-width:900px){
+  .prevention-record-shell>.entity-record-body{padding-top:20px!important}
   .prevention-record-shell .who-editor-page-actions{padding-inline:0!important}
   .prevention-record-shell .who-editor-page-actions .button{min-width:120px!important}
 }
