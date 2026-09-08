@@ -23,12 +23,13 @@ export const WHO_PROFESSIONS=[
 ]
 
 const blankObservation=()=>({id:'',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'',action:'',gloves:false,notes:''})
+const observationWeight=item=>Math.max(1,Number(item?.professionalsCount)||1)
 const calculateStats=(list=[])=>{
- const opportunities=list.length
- const professionals=list.reduce((sum,item)=>sum+(Number(item.professionalsCount)||1),0)
- const handRub=list.filter(item=>item.action==='HR').length
- const handWash=list.filter(item=>item.action==='HW').length
- const missed=list.filter(item=>item.action==='MISSED').length
+ const opportunities=list.reduce((sum,item)=>sum+observationWeight(item),0)
+ const professionals=opportunities
+ const handRub=list.reduce((sum,item)=>sum+(item.action==='HR'?observationWeight(item):0),0)
+ const handWash=list.reduce((sum,item)=>sum+(item.action==='HW'?observationWeight(item):0),0)
+ const missed=list.reduce((sum,item)=>sum+(item.action==='MISSED'?observationWeight(item):0),0)
  const compliant=handRub+handWash
  return {opportunities,handRub,handWash,missed,professionals,compliant,compliance:opportunities?Number(((compliant/opportunities)*100).toFixed(1)):0}
 }
