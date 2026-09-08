@@ -2,7 +2,6 @@ import { useEffect,useMemo,useState } from 'react'
 import { Save,X } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
-import { wasteCategoryTone } from './wasteVisuals'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ActionButton } from '../../design-system/ActionButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -68,7 +67,7 @@ export function WasteEntryEditor({onCancel,onSave,fixedDepartment='',initialReco
      <div className="entry-grid waste-smart-measurement-grid">
       <ManualDateField label={en?'Date *':'Ημερομηνία *'} value={draft.date} disabled={readOnly} onChange={value=>set('date',value)}/>
       <DepartmentField value={draft.departmentEl} onChange={value=>set('departmentEl',value)} departments={departments} fixed={readOnly||Boolean(fixedDepartment)}/>
-      <label className="entry-span-2 waste-category-row"><span>{en?'Waste category *':'Κατηγορία αποβλήτου *'}</span><div className="waste-category-field"><select value={draft.wasteTypeId||typeInfo?.id||''} disabled={readOnly} onChange={event=>changeWasteType(event.target.value)}>{wasteTypes.map(item=><option key={item.id} value={item.id}>{en?(item.en||item.el):item.el}</option>)}</select><span className={`waste-category-badge ${wasteCategoryTone(draft.wasteType)}`}>{en?(typeInfo?.en||draft.typeEn||draft.wasteType):draft.wasteType}</span></div></label>
+      <label className="entry-span-2 waste-category-row"><span>{en?'Waste category *':'Κατηγορία αποβλήτου *'}</span><select className="waste-category-select" value={draft.wasteTypeId||typeInfo?.id||''} disabled={readOnly} onChange={event=>changeWasteType(event.target.value)}>{wasteTypes.map(item=><option key={item.id} value={item.id}>{en?(item.en||item.el):item.el}</option>)}</select></label>
       <label><span>{en?'Weight (kg) *':'Βάρος (kg) *'}</span><input type="number" min="0" step="0.1" value={draft.weight} readOnly={readOnly} onChange={event=>set('weight',event.target.value)} placeholder="0,0"/></label>
       <label><span>{en?'Containers':'Περιέκτες'}</span><input type="number" min="0" step="1" value={draft.containers} readOnly={readOnly} onChange={event=>set('containers',event.target.value)} placeholder="0"/></label>
      </div>
