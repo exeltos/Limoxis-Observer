@@ -47,13 +47,7 @@ function mapSession(row){
   compliant:Number(row.compliant_observations||stats.compliant||0),
   rate:Number(row.observations)>0?Number(((Number(row.compliant_observations||0)/Number(row.observations))*100).toFixed(1)):stats.compliance,
   observer:row.observer_name||'',
-  session:{
-   department,
-   date:row.observation_date,
-   observer:row.observer_name||'',
-   startTime:row.start_time||'',
-   endTime:row.end_time||'',
-  },
+  session:{department,date:row.observation_date,observer:row.observer_name||'',startTime:row.start_time||'',endTime:row.end_time||''},
   whoObservations:items,
   whoStats:stats,
   lifecycleStatus:row.status==='cancelled'?'voided':'active',
@@ -73,12 +67,7 @@ export async function loadHandHygieneDepartments(organizationId){
 
 export async function loadHandHygieneSessions(organizationId){
  assertCloud(organizationId)
- const {data,error}=await supabase
-  .from('hand_hygiene_sessions')
-  .select('*,department:departments(id,name),observations_detail:hand_hygiene_observations(*)')
-  .eq('organization_id',organizationId)
-  .order('observation_date',{ascending:false})
-  .order('created_at',{ascending:false})
+ const {data,error}=await supabase.from('hand_hygiene_sessions').select('*,department:departments(id,name),observations_detail:hand_hygiene_observations(*)').eq('organization_id',organizationId).order('observation_date',{ascending:false}).order('created_at',{ascending:false})
  if(error)throw error
  return (data||[]).map(mapSession)
 }
@@ -97,23 +86,7 @@ export async function saveHandHygieneSession(organizationId,record,{existingId=n
  const items=record.whoObservations||[]
  if(!items.length)throw new Error('At least one WHO observation is required.')
  const stats=record.whoStats||statsFromObservations(items)
- const payload={
-  organization_id:organizationId,
-  department_id:department.id,
-  observation_date:record.date||record.session?.date,
-  professional_category:items[0]?.professionalCategory||null,
-  observations:stats.opportunities,
-  compliant_observations:stats.compliant,
-  observer_id:userId,
-  observer_name:record.observer||record.session?.observer||'',
-  source_standard:'WHO',
-  source_version:'WHO 5 Moments',
-  status:'completed',
-  start_time:record.session?.startTime||null,
-  end_time:record.session?.endTime||null,
-  updated_by:userId,
-  updated_at:new Date().toISOString(),
- }
+ const payload={organization_id:organizationId,department_id:department.id,observation_date:record.date||record.session?.date,professional_category:items[0]?.professionalCategory||null,observations:stats.opportunities,compliant_observations:stats.compliant,observer_id:userId,observer_name:record.observer||record.session?.observer||'',source_standard:'WHO',source_version:'WHO 5 Moments',status:'completed',start_time:record.session?.startTime||null,end_time:record.session?.endTime||null,updated_by:userId,updated_at:new Date().toISOString()}
  let session
  if(existingId){
   const {data,error}=await supabase.from('hand_hygiene_sessions').update(payload).eq('organization_id',organizationId).eq('id',existingId).select('*').single()
@@ -126,19 +99,18 @@ export async function saveHandHygieneSession(organizationId,record,{existingId=n
   if(error)throw error
   session=data
  }
- const observationRows=items.map((item,index)=>({
-  session_id:session.id,
-  organization_id:organizationId,
-  professional_category:item.professionalCategory||'Άλλο',
-  professionals_count:Math.max(1,Number(item.professionalsCount)||1),
-  who_moment:item.moment,
-  action:item.action,
-  gloves:Boolean(item.gloves),
-  notes:item.notes||null,
-  sort_order:index,
- }))
+ const observationRows=items.map((item,index)=>({session_id:session.id,organization_id:organizationId,professional_category:item.professionalCategory||'Άλλο',professionals_count:Math.max(1,Number(item.professionalsCount)||1),who_moment:item.moment,action:item.action,gloves:Boolean(item.gloves),notes:item.notes||null,sort_order:index}))
  const {error:observationsError}=await supabase.from('hand_hygiene_observations').insert(observationRows)
  if(observationsError)throw observationsError
  const rows=await loadHandHygieneSessions(organizationId)
  return rows.find(x=>x.id===session.id)||null
+}
+
+export async function deleteHandHygieneSession(organizationId,id){
+ assertCloud(organizationId)
+ if(!id)return
+ const {error:childError}=await supabase.from('hand_hygiene_observations').delete().eq('organization_id',organizationId).eq('session_id',id)
+ if(childError)throw childError
+ const {error}=await supabase.from('hand_hygiene_sessions').delete().eq('organization_id',organizationId).eq('id',id)
+ if(error)throw error
 }
