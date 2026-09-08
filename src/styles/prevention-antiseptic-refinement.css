@@ -1,0 +1,29 @@
+.prevention-record-shell .antiseptic-record-view{display:grid;gap:16px;width:100%;min-width:0}
+.prevention-record-shell .antiseptic-record-primary,.prevention-record-shell .antiseptic-record-trace,.prevention-record-shell .record-note-card{border:1px solid var(--lo-color-border,#dce5ec);border-radius:14px;background:#fff;box-sizing:border-box;overflow:hidden}
+.prevention-record-shell .antiseptic-record-primary{padding:0}
+.prevention-record-shell .antiseptic-record-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 18px;border-bottom:1px solid #edf1f4;background:#fbfcfd}
+.prevention-record-shell .antiseptic-record-heading strong{color:#173650;font-size:13px;font-weight:850}
+.prevention-record-shell .antiseptic-abhr-badge{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap}
+.prevention-record-shell .antiseptic-abhr-badge.active{border:1px solid #b9dcc8;background:#eef8f2;color:#2b6f4b}
+.prevention-record-shell .antiseptic-abhr-badge.informative{border:1px solid #d9e2e8;background:#f6f8fa;color:#627786}
+.prevention-record-shell .antiseptic-record-measurements{display:grid;grid-template-columns:1fr 1fr 1.25fr;border-bottom:1px solid #edf1f4}
+.prevention-record-shell .antiseptic-record-measurements>div{display:grid;gap:5px;align-content:center;min-height:110px;padding:18px;border-right:1px solid #edf1f4}
+.prevention-record-shell .antiseptic-record-measurements>div:last-child{border-right:0}
+.prevention-record-shell .antiseptic-record-measurements span,.prevention-record-shell .antiseptic-record-meta-line b,.prevention-record-shell .antiseptic-trace-grid span,.prevention-record-shell .record-note-card>span{color:#7b8e9e;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.035em}
+.prevention-record-shell .antiseptic-record-measurements strong{color:#27455b;font-size:24px;font-weight:850;letter-spacing:-.02em}
+.prevention-record-shell .antiseptic-record-measurements strong small{font-size:11px;font-weight:750;color:#6d8291}
+.prevention-record-shell .antiseptic-record-indicator{background:#f2f8f9}
+.prevention-record-shell .antiseptic-record-indicator strong{color:#176f7e;font-size:31px}
+.prevention-record-shell .antiseptic-record-indicator small{color:#6e8792;font-size:10px;font-weight:750}
+.prevention-record-shell .antiseptic-record-meta-line{display:grid;grid-template-columns:1fr 1fr 1.5fr}
+.prevention-record-shell .antiseptic-record-meta-line>span{display:grid;gap:6px;padding:14px 18px;border-right:1px solid #edf1f4;color:#314b60;font-size:11.5px;font-weight:750;min-width:0}
+.prevention-record-shell .antiseptic-record-meta-line>span:last-child{border-right:0}
+.prevention-record-shell .antiseptic-record-trace{padding:0}
+.prevention-record-shell .antiseptic-trace-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr}
+.prevention-record-shell .antiseptic-trace-grid>div{display:grid;gap:6px;padding:16px 18px;border-right:1px solid #edf1f4;min-width:0}
+.prevention-record-shell .antiseptic-trace-grid>div:last-child{border-right:0}
+.prevention-record-shell .antiseptic-trace-grid strong{color:#314b60;font-size:11.5px;font-weight:750;overflow-wrap:anywhere}
+.prevention-record-shell .record-note-card{padding:16px 18px}
+.prevention-record-shell .record-note-card p{margin:8px 0 0;color:#435d71;font-size:11.5px;line-height:1.55;white-space:pre-wrap}
+@media(max-width:900px){.prevention-record-shell .antiseptic-record-measurements{grid-template-columns:1fr 1fr}.prevention-record-shell .antiseptic-record-indicator{grid-column:1/-1;border-top:1px solid #edf1f4}.prevention-record-shell .antiseptic-record-meta-line,.prevention-record-shell .antiseptic-trace-grid{grid-template-columns:1fr 1fr}.prevention-record-shell .antiseptic-record-meta-line>span:nth-child(3),.prevention-record-shell .antiseptic-trace-grid>div:nth-child(3){grid-column:1/-1;border-top:1px solid #edf1f4}}
+@media(max-width:640px){.prevention-record-shell .antiseptic-record-heading{align-items:flex-start;flex-direction:column}.prevention-record-shell .antiseptic-record-measurements,.prevention-record-shell .antiseptic-record-meta-line,.prevention-record-shell .antiseptic-trace-grid{grid-template-columns:1fr}.prevention-record-shell .antiseptic-record-measurements>div,.prevention-record-shell .antiseptic-record-meta-line>span,.prevention-record-shell .antiseptic-trace-grid>div{border-right:0;border-bottom:1px solid #edf1f4}.prevention-record-shell .antiseptic-record-measurements>div:last-child,.prevention-record-shell .antiseptic-record-meta-line>span:last-child,.prevention-record-shell .antiseptic-trace-grid>div:last-child{border-bottom:0}}
