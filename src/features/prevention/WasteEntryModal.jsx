@@ -54,6 +54,7 @@ export function WasteEntryModal({onClose,onSave,fixedDepartment='',initialRecord
   title={initialRecord?(en?'Edit waste measurement':'Επεξεργασία μέτρησης αποβλήτων'):(en?'New waste measurement':'Νέα μέτρηση αποβλήτων')}
   subtitle={en?'Record weight, containers and indicator per 1,000 patient-days.':'Καταγραφή βάρους, περιεκτών και δείκτη ανά 1.000 νοσηλευτικές ημέρες.'}
   width="workspace"
+  presentation="workspace"
   className="prevention-entry-card waste-entry-card"
   onClose={onClose}
   footer={<DialogActions showCancel onCancel={onClose} onSave={submit} disabled={!valid||!departments.length||!wasteTypes.length} saveLabel={initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Save measurement':'Αποθήκευση μέτρησης')}/>}
