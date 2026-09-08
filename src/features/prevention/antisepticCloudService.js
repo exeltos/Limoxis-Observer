@@ -14,26 +14,26 @@ async function currentUserId(){
 }
 
 const monthLabel=(from,to)=>{if(!from)return '';const start=String(from).slice(0,7);const end=String(to||from).slice(0,7);return start===end?start:`${start} – ${end}`}
-const isAbhrName=(value='')=>{const normalized=String(value).toLowerCase();return normalized.includes('αλκοολ')||normalized.includes('alcohol')}
+const isAbhrItem=item=>Boolean(item&&(item.metadata?.is_abhr===true||item.code==='ANT-ABHR'))
 
 function mapRow(row){
  const productEl=row.antiseptic_item?.name_el||''
  const productEn=row.antiseptic_item?.name_en||productEl
  const patientDays=Number(row.patient_days)||0
  const litres=Number(row.litres)||0
- const eligible=isAbhrName(`${productEl} ${productEn}`)
- return {id:row.id,period:monthLabel(row.period_start,row.period_end),periodStart:row.period_start,periodEnd:row.period_end,departmentEl:row.department?.name||'',departmentEn:row.department?.name||'',product:productEl,productEn,antisepticItemId:row.antiseptic_item_id,litres,patientDays:patientDays||null,patientDaysSource:row.patient_days_source||'',indicator:eligible&&patientDays>0?Number((litres/patientDays*1000).toFixed(2)):null,indicatorEligible:eligible,method:row.source||'manual',referenceNumber:row.source_reference||'',responsible:row.responsible_name||'',notes:row.notes||'',lifecycleStatus:'active',createdAt:row.created_at,createdById:row.created_by,updatedAt:row.updated_at,updatedById:row.updated_by}
+ const eligible=isAbhrItem(row.antiseptic_item)
+ return {id:row.id,period:monthLabel(row.period_start,row.period_end),periodStart:row.period_start,periodEnd:row.period_end,departmentEl:row.department?.name||'',departmentEn:row.department?.name||'',product:productEl,productEn,antisepticItemId:row.antiseptic_item_id,productCode:row.antiseptic_item?.code||'',litres,patientDays:patientDays||null,patientDaysSource:row.patient_days_source||'',indicator:eligible&&patientDays>0?Number((litres/patientDays*1000).toFixed(2)):null,indicatorEligible:eligible,method:row.source||'manual',referenceNumber:row.source_reference||'',responsible:row.responsible_name||'',notes:row.notes||'',lifecycleStatus:'active',createdAt:row.created_at,createdById:row.created_by,updatedAt:row.updated_at,updatedById:row.updated_by}
 }
 
 export async function loadAntisepticSupportData(organizationId){
  assertCloud(organizationId)
  const [departmentsResult,productsResult]=await Promise.all([
   supabase.from('departments').select('id,name').eq('organization_id',organizationId).eq('is_active',true).order('name'),
-  supabase.from('master_library_items').select('id,name_el,name_en,code').eq('organization_id',organizationId).eq('library_key','antiseptics').eq('is_active',true).order('name_el'),
+  supabase.from('master_library_items').select('id,name_el,name_en,code,metadata').eq('organization_id',organizationId).eq('library_key','antiseptics').eq('is_active',true).order('name_el'),
  ])
  if(departmentsResult.error)throw departmentsResult.error
  if(productsResult.error)throw productsResult.error
- return {departments:(departmentsResult.data||[]).map(x=>({id:x.id,el:x.name,en:x.name})),products:(productsResult.data||[]).map(x=>({id:x.id,el:x.name_el,en:x.name_en||x.name_el,code:x.code}))}
+ return {departments:(departmentsResult.data||[]).map(x=>({id:x.id,el:x.name,en:x.name})),products:(productsResult.data||[]).map(x=>({id:x.id,el:x.name_el,en:x.name_en||x.name_el,code:x.code,metadata:x.metadata||{},indicatorEligible:isAbhrItem(x)}))}
 }
 
 export async function findPatientDaysForPeriod(organizationId,departmentId,from,to){
@@ -46,7 +46,7 @@ export async function findPatientDaysForPeriod(organizationId,departmentId,from,
 
 export async function loadAntisepticRecords(organizationId){
  assertCloud(organizationId)
- const {data,error}=await supabase.from('antiseptic_consumption_periods').select('*,department:departments(id,name),antiseptic_item:master_library_items(id,name_el,name_en,code)').eq('organization_id',organizationId).order('period_start',{ascending:false}).order('created_at',{ascending:false})
+ const {data,error}=await supabase.from('antiseptic_consumption_periods').select('*,department:departments(id,name),antiseptic_item:master_library_items(id,name_el,name_en,code,metadata)').eq('organization_id',organizationId).order('period_start',{ascending:false}).order('created_at',{ascending:false})
  if(error)throw error
  return (data||[]).map(mapRow)
 }
