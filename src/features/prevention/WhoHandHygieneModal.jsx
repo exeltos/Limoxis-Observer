@@ -1,105 +1,17 @@
-import { useMemo,useState } from 'react'
-import { Plus,Trash2 } from 'lucide-react'
-import { useAuth } from '../../core/auth/AuthContext'
-import { controlActorFromAuth } from '../controls/controlActor'
-import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { ManualDateField } from '../../design-system/ManualDateField'
-import { TimeField } from '../../design-system/TimeField'
-import { useLanguage } from '../../core/i18n/LanguageContext'
-import { ActionButton } from '../../design-system/ActionButton'
-import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
-export const WHO_MOMENTS=[
- {id:'moment1',label:'1. Πριν την επαφή με τον ασθενή',labelEn:'1. Before touching a patient'},
- {id:'moment2',label:'2. Πριν από καθαρό / άσηπτο χειρισμό',labelEn:'2. Before clean / aseptic procedure'},
- {id:'moment3',label:'3. Μετά από κίνδυνο έκθεσης σε σωματικά υγρά',labelEn:'3. After body fluid exposure risk'},
- {id:'moment4',label:'4. Μετά την επαφή με τον ασθενή',labelEn:'4. After touching a patient'},
- {id:'moment5',label:'5. Μετά την επαφή με το περιβάλλον του ασθενούς',labelEn:'5. After touching patient surroundings'},
-]
-export const WHO_PROFESSIONS=[['Ιατρός','Physician'],['Νοσηλευτής / Νοσηλεύτρια','Nurse'],['Βοηθός Νοσηλευτή','Nursing assistant'],['Φυσικοθεραπευτής','Physiotherapist'],['Τεχνολόγος','Technologist'],['Βοηθητικό προσωπικό','Support staff'],['Άλλο','Other']]
+export { WHO_MOMENTS,WHO_PROFESSIONS } from './WhoHandHygieneEditor'
 
-const blankObservation=()=>({id:'',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moment:'moment1',action:'HR',gloves:false,notes:''})
-
-export function WhoHandHygieneModal({onClose,onSave,fixedDepartment='',initialRecord=null,departments=[]}) {
- const {profile,user}=useAuth()
- const {language}=useLanguage(); const en=language==='en'
- const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
- const {confirm,notify}=useFeedback()
- const today=new Date().toISOString().slice(0,10)
- const firstDepartment=fixedDepartment||departments[0]?.el||''
- const [session,setSession]=useState(()=>initialRecord?.session
-   ? {...initialRecord.session,department:initialRecord.departmentEl||initialRecord.session.department||firstDepartment,date:initialRecord.date||initialRecord.session.date||today,observer:initialRecord.observer||initialRecord.session.observer||actor.name}
-   : {facility:'',department:firstDepartment,date:today,observer:actor.name,startTime:'',endTime:''})
- const [current,setCurrent]=useState(blankObservation())
- const [items,setItems]=useState(()=>initialRecord?.whoObservations?JSON.parse(JSON.stringify(initialRecord.whoObservations)):[])
-
- const setS=(k,v)=>setSession(s=>({...s,[k]:v}))
- const setO=(k,v)=>setCurrent(o=>({...o,[k]:v}))
- const stats=useMemo(()=>{
-   const total=(filter)=>items.filter(filter).reduce((sum,x)=>sum+(Number(x.professionalsCount)||1),0)
-   const professionals=items.reduce((sum,x)=>sum+(Number(x.professionalsCount)||1),0)
-   const opportunities=items.length
-   const handRub=items.filter(x=>x.action==='HR').length
-   const handWash=items.filter(x=>x.action==='HW').length
-   const missed=items.filter(x=>x.action==='MISSED').length
-   const compliant=handRub+handWash
-   return {opportunities,handRub,handWash,missed,professionals,compliant,compliance:opportunities?Number(((compliant/opportunities)*100).toFixed(1)):0}
- },[items])
-
- function add(){
-   if(Number(current.professionalsCount)<1)return
-   setItems(list=>[...list,{...current,id:`WHO-OBS-${Date.now()}-${list.length}`}])
-   setCurrent(blankObservation())
- }
- async function removeObservation(id){
-   const ok=await confirm({title:en?'Remove observation':'Αφαίρεση παρατήρησης',message:en?'This observation will be removed from the session. Continue?':'Η συγκεκριμένη παρατήρηση θα αφαιρεθεί από τη συνεδρία. Θέλετε να συνεχίσετε;',confirmLabel:en?'Remove':'Αφαίρεση',danger:true})
-   if(!ok)return
-   setItems(list=>list.filter(y=>y.id!==id))
-   notify(en?'Observation removed.':'Η παρατήρηση αφαιρέθηκε.','success')
- }
- function save(){
-   if(!session.date||!session.department||!session.observer||!items.length)return
-   const profession=items[0]?.professionalCategory?.startsWith('Ιατ')?'medical':'nursing'
-   onSave({date:session.date,departmentEl:session.department,departmentEn:departments.find(d=>d.el===session.department)?.en||session.department,profession,observations:stats.opportunities,compliant:stats.compliant,rate:stats.compliance,observer:session.observer,session,whoObservations:items,whoStats:stats,createdAt:initialRecord?.createdAt||new Date().toISOString(),createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id})
- }
-
- const valid=session.date&&session.department&&session.observer&&items.length>0
- return <ObserverDialog
-  eyebrow="WHO HAND HYGIENE"
-  title={initialRecord?(en?'Edit session':'Επεξεργασία συνεδρίας'):(en?'New observation session':'Νέα συνεδρία παρατήρησης')}
-  subtitle={en?'Record opportunities according to the WHO 5 Moments.':'Καταγραφή ευκαιριών σύμφωνα με τα 5 Moments του WHO.'}
-  width="workspace"
-  presentation="workspace"
-  className="who-observation-card who-workspace-card"
-  onClose={onClose}
-  footer={<DialogActions showCancel onCancel={onClose} onSave={save} disabled={!valid} saveLabel={initialRecord?(en?'Save changes':'Αποθήκευση αλλαγών'):(en?'Save session':'Αποθήκευση συνεδρίας')}/>}
- >
-  <div className="who-observation-body">
-   <section className="who-session-grid">
-    <ManualDateField label={en?'Date *':'Ημερομηνία *'} value={session.date} onChange={v=>setS('date',v)}/>
-    <label><span>{en?'Department *':'Τμήμα *'}</span><select value={session.department} disabled={Boolean(fixedDepartment)} onChange={e=>setS('department',e.target.value)}>{departments.map(d=><option key={d.id||d.el} value={d.el}>{en?(d.en||d.el):d.el}</option>)}</select></label>
-    <label><span>{en?'Observer':'Παρατηρητής'}</span><input value={session.observer} readOnly/></label>
-    <TimeField label={en?'Start':'Έναρξη'} value={session.startTime} onChange={v=>setS('startTime',v)}/>
-    <TimeField label={en?'End':'Λήξη'} value={session.endTime} onChange={v=>setS('endTime',v)}/>
-   </section>
-   <section className="who-opportunity-editor">
-    <div className="who-section-title"><div><strong>{en?'New opportunity':'Νέα ευκαιρία'}</strong><small>{en?'Each saved row is one observed hand-hygiene opportunity.':'Κάθε αποθηκευμένη γραμμή είναι μία παρατηρούμενη ευκαιρία υγιεινής χεριών.'}</small></div></div>
-    <div className="who-opportunity-grid">
-     <label><span>{en?'Professionals observed':'Παρατηρούμενοι επαγγελματίες'}</span><input type="number" min="1" step="1" value={current.professionalsCount} onChange={e=>setO('professionalsCount',Math.max(1,Number(e.target.value)||1))}/></label>
-     <label><span>{en?'Professional category':'Επαγγελματική κατηγορία'}</span><select value={current.professionalCategory} onChange={e=>setO('professionalCategory',e.target.value)}>{WHO_PROFESSIONS.map(([el,enLabel])=><option key={el} value={el}>{en?enLabel:el}</option>)}</select></label>
-     <label className="who-span-2"><span>WHO Moment</span><select value={current.moment} onChange={e=>setO('moment',e.target.value)}>{WHO_MOMENTS.map(x=><option key={x.id} value={x.id}>{en?x.labelEn:x.label}</option>)}</select></label>
-     <div className="who-span-2 who-action-field"><span>{en?'Action *':'Ενέργεια *'}</span><div className="who-action-options" role="radiogroup" aria-label={en?'Hand hygiene action':'Ενέργεια υγιεινής χεριών'}>
-      <button type="button" className={`who-action-option ${current.action==='HR'?'selected':''}`} onClick={()=>setO('action','HR')} role="radio" aria-checked={current.action==='HR'}><span className="who-action-check">{current.action==='HR'?'✓':''}</span><span><strong>{en?'Alcohol-based hand rub':'Αλκοολούχο αντισηπτικό'}</strong><small>Hand Rub (HR)</small></span></button>
-      <button type="button" className={`who-action-option ${current.action==='HW'?'selected':''}`} onClick={()=>setO('action','HW')} role="radio" aria-checked={current.action==='HW'}><span className="who-action-check">{current.action==='HW'?'✓':''}</span><span><strong>{en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'}</strong><small>Hand Wash (HW)</small></span></button>
-      <button type="button" className={`who-action-option ${current.action==='MISSED'?'selected danger':''}`} onClick={()=>setO('action','MISSED')} role="radio" aria-checked={current.action==='MISSED'}><span className="who-action-check">{current.action==='MISSED'?'✓':''}</span><span><strong>{en?'Not performed':'Δεν πραγματοποιήθηκε'}</strong><small>Missed</small></span></button>
-     </div></div>
-     <label className="who-gloves-card"><input type="checkbox" checked={current.gloves} onChange={e=>setO('gloves',e.target.checked)}/><span><strong>{en?'Glove use':'Χρήση γαντιών'}</strong><small>Gloves</small></span></label>
-     <label className="who-note-field"><span>{en?'Note':'Σημείωση'}</span><input value={current.notes} onChange={e=>setO('notes',e.target.value)} placeholder={en?'Optional':'Προαιρετικά'}/></label>
-    </div>
-    <div className="who-add-row"><ActionButton label={en?'Add opportunity':'Προσθήκη ευκαιρίας'} tone="neutral" disabled={Number(current.professionalsCount)<1} onClick={add}><Plus size={16}/><span>{en?'Add opportunity':'Προσθήκη ευκαιρίας'}</span></ActionButton></div>
-   </section>
-   <section className="who-live-summary"><div><span>{en?'Opportunities':'Ευκαιρίες'}</span><strong>{stats.opportunities}</strong></div><div><span>{en?'Professionals observed':'Παρατηρούμενοι επαγγελματίες'}</span><strong>{stats.professionals}</strong></div><div><span>HR</span><strong>{stats.handRub}</strong></div><div><span>HW</span><strong>{stats.handWash}</strong></div><div><span>Missed</span><strong>{stats.missed}</strong></div><div className="who-compliance"><span>{en?'Compliance':'Συμμόρφωση'}</span><strong>{stats.compliance}%</strong></div></section>
-   <section className="who-opportunity-list"><table className="who-opportunity-table"><thead><tr><th>#</th><th>{en?'Professionals':'Επαγγελματίες'}</th><th>{en?'Category':'Κατηγορία'}</th><th>WHO Moment</th><th>{en?'Action':'Ενέργεια'}</th><th>{en?'Gloves':'Γάντια'}</th><th></th></tr></thead><tbody>{items.map((x,i)=><tr key={x.id}><td>{i+1}</td><td><strong>{x.professionalsCount||1}</strong></td><td>{x.professionalCategory}</td><td>{(en?WHO_MOMENTS.find(m=>m.id===x.moment)?.labelEn:WHO_MOMENTS.find(m=>m.id===x.moment)?.label)}</td><td><span className={`status-badge ${x.action==='MISSED'?'danger':'active'}`}>{x.action}</span></td><td>{x.gloves?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</td><td><ActionButton iconOnly label={en?'Remove opportunity':'Αφαίρεση ευκαιρίας'} tone="danger" onClick={()=>removeObservation(x.id)}><Trash2 size={15}/></ActionButton></td></tr>)}</tbody></table></section>
-  </div>
- </ObserverDialog>
+// Compatibility bridge for legacy callers in PreventionPage.
+// Hand-hygiene create/edit is now a canonical routed screen, not a dialog/card.
+export function WhoHandHygieneModal({initialRecord=null}){
+ const navigate=useNavigate()
+ useEffect(()=>{
+  const target=initialRecord?.id
+   ? `/prevention/handHygiene/${encodeURIComponent(initialRecord.id)}?edit=1`
+   : '/prevention/handHygiene/new'
+  navigate(target,{replace:false})
+ },[initialRecord?.id,navigate])
+ return null
 }
