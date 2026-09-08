@@ -164,10 +164,12 @@
   min-width:0!important;
 }
 
-/* Action section: 3 mutually-exclusive WHO actions + compact glove toggle in the heading. */
+/* Action section: only the 3 mutually-exclusive WHO actions are card choices.
+   Glove use is deliberately a lightweight secondary fact underneath them. */
 .prevention-record-shell .who-action-section,
 .prevention-record-shell .who-action-field{
   display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
   gap:9px!important;
   padding:13px 14px 14px!important;
   border:1px solid #dbe5eb!important;
@@ -175,19 +177,17 @@
   background:#f9fbfc!important;
 }
 .prevention-record-shell .who-action-section-head{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:space-between!important;
-  gap:14px!important;
-  min-height:34px!important;
+  display:contents!important;
 }
 .prevention-record-shell .who-action-section-head>span,
 .prevention-record-shell .who-action-field>span{
+  grid-row:1!important;
   color:#506a7e!important;
   font-size:11px!important;
   font-weight:800!important;
 }
 .prevention-record-shell .who-action-options{
+  grid-row:2!important;
   display:grid!important;
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
   gap:10px!important;
@@ -256,30 +256,31 @@
   font-size:10.5px!important;
 }
 
+/* Plain, borderless glove control below the action cards. */
 .prevention-record-shell .who-gloves-toggle{
+  grid-row:3!important;
+  justify-self:start!important;
   display:inline-flex!important;
   align-items:center!important;
   gap:8px!important;
-  min-height:32px!important;
-  margin:0!important;
-  padding:5px 9px!important;
-  border:1px solid #d3dfe7!important;
-  border-radius:9px!important;
-  background:#fff!important;
+  min-height:28px!important;
+  margin:2px 0 0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
   cursor:pointer!important;
   white-space:nowrap!important;
 }
-.prevention-record-shell .who-gloves-toggle:hover{
-  border-color:#b5cbd8!important;
-  background:#f6fafc!important;
-}
+.prevention-record-shell .who-gloves-toggle:hover,
 .prevention-record-shell .who-gloves-toggle.selected{
-  border-color:#7aaec0!important;
-  background:#eef7fa!important;
+  border:0!important;
+  background:transparent!important;
 }
 .prevention-record-shell .who-gloves-toggle>input{
-  width:16px!important;
-  height:16px!important;
+  width:17px!important;
+  height:17px!important;
   margin:0!important;
   accent-color:var(--lo-color-primary,#237fa0)!important;
 }
@@ -377,7 +378,7 @@
   font-size:11.5px!important;
 }
 
-/* View mode: same hierarchy, slightly quieter controls. */
+/* View mode: same hierarchy, with gloves as a plain line below the 3 action cards. */
 .prevention-record-shell .who-record-saved-list{
   display:grid!important;
   gap:12px!important;
@@ -395,13 +396,13 @@
   display:inline-flex!important;
   align-items:center!important;
   gap:8px!important;
-  min-height:32px!important;
+  min-height:26px!important;
   width:auto!important;
   margin:-2px 0 0!important;
-  padding:5px 10px!important;
-  border:1px solid #d3dfe7!important;
-  border-radius:9px!important;
-  background:#f8fafb!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
   box-shadow:none!important;
 }
 .prevention-record-shell .who-record-saved-opportunity .who-readonly-choice>input{
@@ -451,7 +452,6 @@
   .canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions{top:14px!important;right:14px!important}
   .prevention-record-shell .who-opportunity-grid{grid-template-columns:1fr!important}
   .prevention-record-shell .who-opportunity-grid>*{grid-column:1!important}
-  .prevention-record-shell .who-action-section-head{align-items:flex-start!important;flex-direction:column!important}
   .prevention-record-shell .who-action-options{grid-template-columns:1fr!important}
   .prevention-record-shell .who-live-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .prevention-record-shell .who-session-panel,
