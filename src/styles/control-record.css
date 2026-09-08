@@ -20,11 +20,16 @@
 .control-record-shell .control-overview-description{display:grid;gap:7px;padding:2px 0 14px;border-bottom:1px solid var(--lo-border,#e3eaf0)}
 .control-record-shell .control-overview-description>span{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.025em;color:var(--lo-text-muted,#718696)}
 .control-record-shell .control-overview-description p{margin:0;color:var(--lo-text,#36566d);font-size:11.5px;line-height:1.55}
-.control-record-shell .control-overview-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:2px}
-.control-record-shell .control-schedule-summary{display:grid;gap:4px;min-width:0}
-.control-record-shell .control-schedule-summary span{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.025em;color:var(--lo-text-muted,#718696)}
-.control-record-shell .control-schedule-summary strong{font-size:12px;color:var(--lo-text-strong,#173650)}
+.control-record-shell .control-overview-footer{display:flex;align-items:center;justify-content:flex-end;gap:16px;padding-top:2px}
+.control-record-shell .control-schedule-summary{display:none}
 .control-record-shell .control-history-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px}
+
+/* History follows the shared registry pattern, but does not stretch into an empty full-page canvas.
+   It grows naturally and becomes internally scrollable only when rows actually need the space. */
+.control-record-shell.record-secondary-tab-active .record-section.workspace-fill{flex:0 1 auto!important;min-height:0!important;height:auto!important}
+.control-record-shell.record-secondary-tab-active .record-section.workspace-fill>.registry-workspace{flex:0 1 auto!important;min-height:0!important;height:auto!important;align-self:stretch}
+.control-record-shell.record-secondary-tab-active .record-section.workspace-fill>.registry-workspace>.scroll-table{flex:0 1 auto!important;min-height:150px!important;max-height:56vh!important;overflow:auto!important}
+.control-record-shell.record-secondary-tab-active .record-section.workspace-fill>.registry-workspace>.registry-pagination{flex:0 0 auto}
 
 @media(max-width:1000px){
  .control-record-shell .control-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -39,4 +44,5 @@
  .control-record-shell .control-overview-item:last-child{border-bottom:0!important}
  .control-record-shell .control-overview-footer{align-items:stretch;flex-direction:column}
  .control-record-shell .control-overview-footer .lo-action-button{width:100%;justify-content:center}
+ .control-record-shell.record-secondary-tab-active .record-section.workspace-fill>.registry-workspace>.scroll-table{max-height:62vh!important}
 }
