@@ -15,7 +15,7 @@ const config={
  complete:{icon:CheckCircle2,key:'complete',tone:'success'},
  approve:{icon:CheckCircle2,key:'approval',tone:'success'},
 }
-export function RecordActions({actions=[],resourceCapability,actionCapabilities={},locked=false,onAction=()=>{},iconOnly=false}){
+export function RecordActions({actions=[],resourceCapability,actionCapabilities={},actionLabels={},locked=false,onAction=()=>{},iconOnly=false}){
  const {t}=useLanguage()
  const {role,actualRole,membership}=useTenant()
  const {confirm}=useFeedback()
@@ -29,5 +29,5 @@ export function RecordActions({actions=[],resourceCapability,actionCapabilities=
   }
   onAction(action)
  }
- return <div className="record-actions">{actions.filter(action=>canPerform({role:permissionRole,addOns,customCapabilities,action,resourceCapability:actionCapabilities[action]??resourceCapability,locked})).map(action=>{const item=config[action];if(!item)return null;const Icon=item.icon;const compact=iconOnly||action===UI_ACTIONS.PRINT||action===UI_ACTIONS.EXPORT;return <ActionButton key={action} label={t(item.key)} tone={item.tone} iconOnly={compact} onClick={()=>dispatch(action)}><Icon size={15}/>{!compact&&<span>{t(item.key)}</span>}</ActionButton>})}</div>
+ return <div className="record-actions">{actions.filter(action=>canPerform({role:permissionRole,addOns,customCapabilities,action,resourceCapability:actionCapabilities[action]??resourceCapability,locked})).map(action=>{const item=config[action];if(!item)return null;const Icon=item.icon;const compact=iconOnly||action===UI_ACTIONS.PRINT||action===UI_ACTIONS.EXPORT;const label=actionLabels[action]||t(item.key);return <ActionButton key={action} label={label} tone={item.tone} iconOnly={compact} onClick={()=>dispatch(action)}><Icon size={15}/>{!compact&&<span>{label}</span>}</ActionButton>})}</div>
 }
