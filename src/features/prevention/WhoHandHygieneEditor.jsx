@@ -1,4 +1,4 @@
-import { useMemo,useState } from 'react'
+import { useEffect,useMemo,useState } from 'react'
 import { Plus,Save,Trash2,X } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
@@ -37,6 +37,12 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
  const [items,setItems]=useState(()=>initialRecord?.whoObservations?JSON.parse(JSON.stringify(initialRecord.whoObservations)):[])
  const [saving,setSaving]=useState(false)
 
+ useEffect(()=>{
+  if(session.department)return
+  const nextDepartment=fixedDepartment||initialRecord?.departmentEl||departments[0]?.el||''
+  if(nextDepartment)setSession(state=>state.department?state:{...state,department:nextDepartment})
+ },[departments,fixedDepartment,initialRecord?.departmentEl,session.department])
+
  const setS=(key,value)=>setSession(state=>({...state,[key]:value}))
  const setO=(key,value)=>setCurrent(state=>({...state,[key]:value}))
  const stats=useMemo(()=>{
@@ -62,7 +68,7 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
   notify(en?'Observation removed.':'Η παρατήρηση αφαιρέθηκε.','success')
  }
 
- const valid=Boolean(session.date&&session.department&&session.observer&&items.length)
+ const valid=Boolean(session.date?.trim?.()&&session.department?.trim?.()&&session.observer?.trim?.()&&items.length>0)
  async function save(){
   if(!valid||saving)return
   const profession=items[0]?.professionalCategory?.startsWith('Ιατ')?'medical':'nursing'
@@ -89,12 +95,13 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
     <label><span>{en?'Professional category':'Επαγγελματική κατηγορία'}</span><select value={current.professionalCategory} onChange={event=>setO('professionalCategory',event.target.value)}>{WHO_PROFESSIONS.map(([el,enLabel])=><option key={el} value={el}>{en?enLabel:el}</option>)}</select></label>
     <label className="who-full-row"><span>WHO Moment</span><select value={current.moment} onChange={event=>setO('moment',event.target.value)}>{WHO_MOMENTS.map(moment=><option key={moment.id} value={moment.id}>{en?moment.labelEn:moment.label}</option>)}</select></label>
     <div className="who-full-row who-action-section">
-     <div className="who-action-section-head"><span>{en?'Action *':'Ενέργεια *'}</span><label className={`who-gloves-toggle ${current.gloves?'selected':''}`}><input type="checkbox" checked={current.gloves} onChange={event=>setO('gloves',event.target.checked)}/><span><strong>{en?'Gloves used':'Χρήση γαντιών'}</strong><small>{current.gloves?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</small></span></label></div>
+     <div className="who-action-section-head"><span>{en?'Action *':'Ενέργεια *'}</span></div>
      <div className="who-action-options" role="radiogroup" aria-label={en?'Hand hygiene action':'Ενέργεια υγιεινής χεριών'}>
       <button type="button" className={`who-action-option ${current.action==='HR'?'selected':''}`} onClick={()=>setO('action','HR')} role="radio" aria-checked={current.action==='HR'}><span className="who-action-check">{current.action==='HR'?'✓':''}</span><span><strong>{en?'Alcohol-based hand rub':'Αλκοολούχο αντισηπτικό'}</strong><small>Hand Rub (HR)</small></span></button>
       <button type="button" className={`who-action-option ${current.action==='HW'?'selected':''}`} onClick={()=>setO('action','HW')} role="radio" aria-checked={current.action==='HW'}><span className="who-action-check">{current.action==='HW'?'✓':''}</span><span><strong>{en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'}</strong><small>Hand Wash (HW)</small></span></button>
       <button type="button" className={`who-action-option ${current.action==='MISSED'?'selected danger':''}`} onClick={()=>setO('action','MISSED')} role="radio" aria-checked={current.action==='MISSED'}><span className="who-action-check">{current.action==='MISSED'?'✓':''}</span><span><strong>{en?'Not performed':'Δεν πραγματοποιήθηκε'}</strong><small>Missed</small></span></button>
      </div>
+     <label className="who-gloves-row"><input type="checkbox" checked={current.gloves} onChange={event=>setO('gloves',event.target.checked)}/><span><strong>{en?'Glove use':'Χρήση γαντιών'}</strong><small>{current.gloves?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</small></span></label>
     </div>
     <label className="who-full-row who-note-field"><span>{en?'Note':'Σημείωση'}</span><input value={current.notes} onChange={event=>setO('notes',event.target.value)} placeholder={en?'Optional note':'Προαιρετική σημείωση'}/></label>
    </div>
