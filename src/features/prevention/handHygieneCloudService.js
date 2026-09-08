@@ -14,6 +14,11 @@ async function currentUserId(){
 }
 
 function observationWeight(item){return Math.max(1,Number(item?.professionalsCount)||1)}
+function normalizeMoments(item){
+ const values=Array.isArray(item?.moments)?item.moments.filter(Boolean):[]
+ if(values.length)return [...new Set(values)]
+ return item?.moment?[item.moment]:[]
+}
 function statsFromObservations(items=[]){
  const opportunities=items.reduce((sum,item)=>sum+observationWeight(item),0)
  const professionals=opportunities
@@ -30,6 +35,7 @@ function mapSession(row){
   professionalsCount:x.professionals_count,
   professionalCategory:x.professional_category,
   moment:x.who_moment,
+  moments:Array.isArray(x.who_moments)&&x.who_moments.length?x.who_moments:[x.who_moment].filter(Boolean),
   action:x.action,
   gloves:Boolean(x.gloves),
   notes:x.notes||'',
@@ -85,6 +91,7 @@ export async function saveHandHygieneSession(organizationId,record,{existingId=n
  const department=await resolveDepartment(organizationId,record.departmentEl||record.session?.department||'')
  const items=record.whoObservations||[]
  if(!items.length)throw new Error('At least one WHO observation is required.')
+ if(items.some(item=>!normalizeMoments(item).length))throw new Error('Each WHO opportunity requires at least one indication.')
  const stats=statsFromObservations(items)
  const payload={organization_id:organizationId,department_id:department.id,observation_date:record.date||record.session?.date,professional_category:items[0]?.professionalCategory||null,observations:stats.opportunities,compliant_observations:stats.compliant,observer_id:userId,observer_name:record.observer||record.session?.observer||'',source_standard:'WHO',source_version:'WHO 5 Moments',status:'completed',start_time:record.session?.startTime||null,end_time:record.session?.endTime||null,updated_by:userId,updated_at:new Date().toISOString()}
  let session
@@ -99,7 +106,10 @@ export async function saveHandHygieneSession(organizationId,record,{existingId=n
   if(error)throw error
   session=data
  }
- const observationRows=items.map((item,index)=>({session_id:session.id,organization_id:organizationId,professional_category:item.professionalCategory||'Άλλο',professionals_count:observationWeight(item),who_moment:item.moment,action:item.action,gloves:Boolean(item.gloves),notes:item.notes||null,sort_order:index}))
+ const observationRows=items.map((item,index)=>{
+  const moments=normalizeMoments(item)
+  return {session_id:session.id,organization_id:organizationId,professional_category:item.professionalCategory||'Άλλο',professionals_count:observationWeight(item),who_moment:moments[0],who_moments:moments,action:item.action,gloves:Boolean(item.gloves),notes:item.notes||null,sort_order:index}
+ })
  const {error:observationsError}=await supabase.from('hand_hygiene_observations').insert(observationRows)
  if(observationsError)throw observationsError
  const rows=await loadHandHygieneSessions(organizationId)
