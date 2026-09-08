@@ -39,7 +39,7 @@ export async function loadAntisepticSupportData(organizationId){
 export async function findPatientDaysForPeriod(organizationId,departmentId,from,to){
  assertCloud(organizationId)
  if(!departmentId||!from||!to)return null
- const {data,error}=await supabase.from('patient_day_periods').select('patient_days,period_start,period_end').eq('organization_id',organizationId).eq('department_id',departmentId).lte('period_start',from).gte('period_end',to).order('period_start',{ascending:false}).limit(1).maybeSingle()
+ const {data,error}=await supabase.from('patient_day_periods').select('patient_days,period_start,period_end,review_status').eq('organization_id',organizationId).eq('department_id',departmentId).eq('period_start',from).eq('period_end',to).eq('review_status','approved').limit(1).maybeSingle()
  if(error)throw error
  return data?Number(data.patient_days)||0:null
 }
