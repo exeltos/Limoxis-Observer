@@ -7,7 +7,7 @@
 /* Keep a visible strip of page canvas above the record content. The action menu then sits
    clearly inside the white record surface instead of touching the upper edge. */
 .prevention-record-shell>.entity-record-body{
-  padding-top:26px!important;
+  padding-top:30px!important;
 }
 .prevention-record-shell .entity-record-general-actions{
   position:relative!important;
@@ -16,11 +16,38 @@
   align-items:center!important;
   justify-content:flex-end!important;
   width:100%!important;
-  min-height:40px!important;
-  margin:0 0 10px!important;
-  padding:5px 10px 5px!important;
+  min-height:34px!important;
+  margin:0 0 12px!important;
+  padding:0 10px!important;
   background:#fff!important;
   z-index:2!important;
+}
+
+/* Prevention overflow trigger follows the clean record pattern used elsewhere:
+   plain three dots, no visible button frame or filled box. */
+.prevention-record-shell .entity-record-general-actions .lo-overflow-trigger-wrap{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.prevention-record-shell .entity-record-general-actions .lo-icon-button{
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  min-height:34px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#49657d!important;
+}
+.prevention-record-shell .entity-record-general-actions .lo-icon-button:hover,
+.prevention-record-shell .entity-record-general-actions .lo-icon-button:focus-visible{
+  border:0!important;
+  background:#f4f7f9!important;
+  box-shadow:none!important;
+  outline:none!important;
 }
 
 /* The first Prevention card also keeps a small internal top inset so its content and
@@ -38,10 +65,10 @@
   display:flex!important;
   align-items:center!important;
   justify-content:flex-end!important;
-  gap:12px!important;
+  gap:14px!important;
   width:100%!important;
-  margin:20px 0 0!important;
-  padding:18px 8px 6px!important;
+  margin:22px 0 0!important;
+  padding:18px 10px 6px!important;
   border-top:1px solid var(--lo-color-border,#dde5ec)!important;
   background:transparent!important;
 }
@@ -50,11 +77,13 @@
   min-height:42px!important;
 }
 
-/* Glove use is a clinically distinct secondary choice and should read as such. */
+/* Glove use remains visually distinct without becoming larger than the action choices. */
 .prevention-record-shell .who-gloves-card,
 .prevention-record-shell .who-readonly-choice{
-  min-height:72px!important;
-  padding:14px 16px!important;
+  align-self:end!important;
+  min-height:0!important;
+  height:64px!important;
+  padding:10px 14px!important;
   border:1px solid #cbdde9!important;
   border-radius:11px!important;
   background:#f3f8fc!important;
@@ -64,7 +93,8 @@
 .prevention-record-shell .who-readonly-choice>span{
   display:flex!important;
   flex-direction:column!important;
-  gap:3px!important;
+  justify-content:center!important;
+  gap:2px!important;
 }
 .prevention-record-shell .who-gloves-card strong,
 .prevention-record-shell .who-readonly-choice strong{
@@ -75,7 +105,9 @@
 .prevention-record-shell .who-readonly-choice small{color:#72899a!important}
 
 @media(max-width:900px){
-  .prevention-record-shell>.entity-record-body{padding-top:20px!important}
+  .prevention-record-shell>.entity-record-body{padding-top:22px!important}
   .prevention-record-shell .who-editor-page-actions{padding-inline:0!important}
   .prevention-record-shell .who-editor-page-actions .button{min-width:120px!important}
+  .prevention-record-shell .who-gloves-card,
+  .prevention-record-shell .who-readonly-choice{height:auto!important;min-height:58px!important}
 }
