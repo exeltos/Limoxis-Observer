@@ -1,13 +1,13 @@
-import { useEffect,useState } from 'react'
-import { ClipboardCheck,Droplets,History,Recycle,ShieldCheck,Trash2 } from 'lucide-react'
+import { useEffect,useMemo,useState } from 'react'
+import { ClipboardCheck,Droplets,History,Pencil,Recycle,ShieldCheck,Trash2 } from 'lucide-react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { ActionButton } from '../../design-system/ActionButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { WHO_MOMENTS,WHO_PROFESSIONS } from './WhoHandHygieneModal'
-import { deleteHandHygieneSession,loadHandHygieneSessions } from './handHygieneCloudService'
+import { WhoHandHygieneModal,WHO_MOMENTS,WHO_PROFESSIONS } from './WhoHandHygieneModal'
+import { deleteHandHygieneSession,loadHandHygieneDepartments,loadHandHygieneSessions,saveHandHygieneSession } from './handHygieneCloudService'
 import { deleteWasteMeasurement,loadWasteMeasurements } from './wasteCloudService'
 import { deleteAntisepticRecord,loadAntisepticRecords } from './antisepticCloudService'
 import { deleteBundleAssessment,loadBundleAssessments } from './bundleCloudService'
@@ -17,6 +17,7 @@ import { wasteCategoryTone } from './wasteVisuals'
 import { antisepticMethodLabel,isAbhrProduct } from './AntisepticEntryModal'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { downloadRecordJson } from '../../core/export/recordExport'
+import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 
 const icons={handHygiene:ShieldCheck,waste:Recycle,antiseptics:Droplets,bundles:ClipboardCheck}
 const loaders={handHygiene:loadHandHygieneSessions,waste:loadWasteMeasurements,antiseptics:loadAntisepticRecords,bundles:loadBundleAssessments}
@@ -28,11 +29,27 @@ export function PreventionRecordPage(){
  const {locale,language}=useLanguage()
  const en=language==='en'
  const {notifyError,notify,confirm}=useFeedback()
- const {canAccessRecord,tenant}=useTenant()
+ const {canAccessRecord,tenant,role,membership}=useTenant()
  const [record,setRecord]=useState(null)
  const [loading,setLoading]=useState(true)
  const [activeTab,setActiveTab]=useState('details')
+ const [editing,setEditing]=useState(false)
+ const [handDepartments,setHandDepartments]=useState([])
  const recordNavigation=useRecordSequenceNavigation({registry:`prevention-${recordType}`,currentId:recordId,pathForId:id=>`/prevention/${recordType}/${id}?fromTab=${recordType}`})
+ const addOns=membership?.capabilities??[]
+ const custom=membership?.customCapabilities??[]
+ const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
+ const departmentScoped=[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE].includes(role)
+ const canEditHandHygiene=recordType==='handHygiene'&&role!==ROLES.HOSPITAL_ADMIN&&can(role,CAPABILITIES.RECORD_HAND_HYGIENE,addOns,custom)
+
+ async function reloadRecord(){
+  const loader=loaders[recordType]
+  if(!loader||!tenant?.id){setRecord(null);return null}
+  const rows=await loader(tenant.id)
+  const next=rows.find(x=>x.id===recordId)||null
+  setRecord(next)
+  return next
+ }
 
  useEffect(()=>{
   const loader=loaders[recordType]
@@ -46,6 +63,15 @@ export function PreventionRecordPage(){
   return()=>{active=false}
  },[recordType,recordId,tenant?.id])
 
+ useEffect(()=>{
+  if(recordType!=='handHygiene'||!tenant?.id)return
+  let active=true
+  loadHandHygieneDepartments(tenant.id)
+   .then(rows=>{if(active)setHandDepartments(rows)})
+   .catch(error=>notifyError(error,'load',{operation:'hand_hygiene_departments_load'}))
+  return()=>{active=false}
+ },[recordType,tenant?.id])
+
  const recordInScope=!record||canAccessRecord({...record,department:record.departmentEl||record.department})
  if(loading)return <Page title={en?'Prevention Center':'Κέντρο Πρόληψης'}><div className="inline-empty">{en?'Loading record…':'Φόρτωση εγγραφής…'}</div></Page>
  if(!record)return <Page title={en?'Prevention Center':'Κέντρο Πρόληψης'}><div className="inline-empty">{en?'Record not found.':'Δεν βρέθηκε η εγγραφή.'}</div></Page>
@@ -57,6 +83,19 @@ export function PreventionRecordPage(){
  const recordTitle=recordType==='handHygiene'?`${en?'WHO hand hygiene observation':'Παρατήρηση Υγιεινής Χεριών WHO'} · ${fmtDate(record.date)}`:recordType==='waste'?`${en?'Waste measurement':'Μέτρηση αποβλήτων'} · ${fmtDate(record.date)}`:recordType==='antiseptics'?`${en?'Antiseptic consumption':'Κατανάλωση αντισηπτικού'} · ${record.period||''}`:`${record.templateName||record.bundle} · ${record.date||record.period||''}`
  const recordStatus=recordType==='waste'?<span className={`waste-category-badge ${wasteCategoryTone(wasteCategory)}`}>{en?(record.typeEn||wasteCategory):wasteCategory}</span>:recordType==='antiseptics'?<span className={`antiseptic-abhr-badge ${record.indicatorEligible!==false&&isAbhrProduct(`${record.product} ${record.productEn||''}`)?'active':'informative'}`}>{record.indicatorEligible!==false&&isAbhrProduct(`${record.product} ${record.productEn||''}`)?(en?'ABHR · included in indicator':'ABHR · στον δείκτη'):(en?'Outside ABHR indicator':'Εκτός δείκτη ABHR')}</span>:recordType==='bundles'?<span className={`bundle-all-badge ${record.allOrNone?'passed':'failed'}`}>{record.allOrNone?'All-or-none ✓':'All-or-none ✕'}</span>:null
  const tabs=[{id:'details',label:en?'Details':'Στοιχεία',icon:Icon},{id:'history',label:en?'History':'Ιστορικό',icon:History}]
+ const menuItems=[
+  canEditHandHygiene?{id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,onClick:()=>setEditing(true)}:null,
+  {id:'delete',label:en?'Delete':'Διαγραφή',icon:Trash2,tone:'danger',separatorBefore:true,onClick:deleteCurrent},
+ ].filter(Boolean)
+
+ async function saveHandHygieneEdit(updated){
+  try{
+   await saveHandHygieneSession(tenant.id,updated,{existingId:record.id})
+   await reloadRecord()
+   setEditing(false)
+   notify(en?'Changes saved.':'Οι αλλαγές αποθηκεύτηκαν.','success')
+  }catch(error){notifyError(error,'save',{operation:'hand_hygiene_record_update'})}
+ }
 
  async function deleteCurrent(){
   const ok=await confirm({title:en?'Delete record':'Διαγραφή εγγραφής',message:en?'The record will be permanently deleted. Continue?':'Η εγγραφή θα διαγραφεί οριστικά. Θέλετε να συνεχίσετε;',confirmLabel:en?'Delete':'Διαγραφή',danger:true})
@@ -68,9 +107,12 @@ export function PreventionRecordPage(){
   }catch(error){notifyError(error,'delete',{operation:`${recordType}_record_delete`})}
  }
 
- return <Page fill><EntityRecordShell className="prevention-record-shell workspace-fill" avatar={<Icon size={19}/>} title={recordTitle} status={recordStatus} recordNavigation={recordNavigation} headerActions={<><PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record.id})}/><ActionButton label={en?'Delete':'Διαγραφή'} tone="danger" onClick={deleteCurrent}><Trash2 size={16}/><span>{en?'Delete':'Διαγραφή'}</span></ActionButton></>} tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
+ return <Page fill>
+  <EntityRecordShell className="prevention-record-shell workspace-fill" avatar={<Icon size={19}/>} title={recordTitle} status={recordStatus} recordNavigation={recordNavigation} headerActions={<><PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record.id})}/><OverflowMenu items={menuItems}/></>} tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
    {activeTab==='details'?<div className="record-section prevention-record-card">{recordType==='handHygiene'?<HandHygieneDetails record={record} language={language}/>:recordType==='waste'?<WasteDetails record={record} fmtDate={fmtDate} language={language} locale={locale}/>:recordType==='antiseptics'?<AntisepticDetails record={record} language={language} locale={locale}/>:<BundleDetails record={record} language={language}/>}</div>:<RecordHistory record={record} language={language} locale={locale}/>} 
-  </EntityRecordShell></Page>
+  </EntityRecordShell>
+  {editing&&canEditHandHygiene&&<WhoHandHygieneModal departments={handDepartments} initialRecord={record} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEditing(false)} onSave={saveHandHygieneEdit}/>} 
+ </Page>
 }
 
 function RecordHistory({record,language,locale}){
