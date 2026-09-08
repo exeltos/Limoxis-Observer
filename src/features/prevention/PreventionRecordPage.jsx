@@ -6,7 +6,7 @@ import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ActionButton } from '../../design-system/ActionButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { WHO_MOMENTS } from './WhoHandHygieneModal'
+import { WHO_MOMENTS,WHO_PROFESSIONS } from './WhoHandHygieneModal'
 import { deleteHandHygieneSession,loadHandHygieneSessions } from './handHygieneCloudService'
 import { deleteWasteMeasurement,loadWasteMeasurements } from './wasteCloudService'
 import { deleteAntisepticRecord,loadAntisepticRecords } from './antisepticCloudService'
@@ -69,7 +69,7 @@ export function PreventionRecordPage(){
  }
 
  return <Page fill><EntityRecordShell className="prevention-record-shell workspace-fill" avatar={<Icon size={19}/>} title={recordTitle} status={recordStatus} recordNavigation={recordNavigation} headerActions={<><PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record.id})}/><ActionButton label={en?'Delete':'Διαγραφή'} tone="danger" onClick={deleteCurrent}><Trash2 size={16}/><span>{en?'Delete':'Διαγραφή'}</span></ActionButton></>} tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
-   {activeTab==='details'?<div className="record-section prevention-record-card">{recordType==='handHygiene'?<HandHygieneDetails record={record} fmtDate={fmtDate} language={language}/>:recordType==='waste'?<WasteDetails record={record} fmtDate={fmtDate} language={language} locale={locale}/>:recordType==='antiseptics'?<AntisepticDetails record={record} language={language} locale={locale}/>:<BundleDetails record={record} language={language}/>}</div>:<RecordHistory record={record} language={language} locale={locale}/>} 
+   {activeTab==='details'?<div className="record-section prevention-record-card">{recordType==='handHygiene'?<HandHygieneDetails record={record} language={language}/>:recordType==='waste'?<WasteDetails record={record} fmtDate={fmtDate} language={language} locale={locale}/>:recordType==='antiseptics'?<AntisepticDetails record={record} language={language} locale={locale}/>:<BundleDetails record={record} language={language}/>}</div>:<RecordHistory record={record} language={language} locale={locale}/>} 
   </EntityRecordShell></Page>
 }
 
@@ -79,42 +79,47 @@ function RecordHistory({record,language,locale}){
  return <div className="record-section"><h3>{en?'History':'Ιστορικό'}</h3><div className="detail-grid quality-detail-grid"><D l={en?'Created':'Δημιουργήθηκε'} v={fmt(record.createdAt)}/><D l={en?'Last updated':'Τελευταία ενημέρωση'} v={fmt(record.updatedAt)}/><D l={en?'Department':'Τμήμα'} v={record.departmentEl||'—'}/><D l={en?'Record type':'Τύπος εγγραφής'} v={en?'Prevention record':'Καταγραφή πρόληψης'}/></div></div>
 }
 
-function HandHygieneDetails({record,fmtDate,language}){
+function HandHygieneDetails({record,language}){
  const en=language==='en'
  const items=record.whoObservations||[]
- const stats=record.whoStats||{opportunities:record.observations||0,compliant:record.compliant||0,compliance:record.rate||0,handRub:items.filter(x=>x.action==='HR').length,handWash:items.filter(x=>x.action==='HW').length,missed:items.filter(x=>x.action==='MISSED').length,professionals:items.reduce((sum,x)=>sum+(Number(x.professionalsCount)||1),0)}
- const actionLabel=value=>value==='HR'?(en?'Alcohol-based hand rub':'Αλκοολούχο αντισηπτικό'):value==='HW'?(en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'):(en?'Not performed':'Δεν πραγματοποιήθηκε')
- return <div className="who-record-workspace">
-  <section className="record-info-card who-record-session-card">
-   <h3>{en?'Session details':'Στοιχεία συνεδρίας'}</h3>
-   <div className="who-record-field-grid">
-    <ReadField label={en?'Date':'Ημερομηνία'} value={fmtDate(record.date)}/>
-    <ReadField label={en?'Department':'Τμήμα'} value={record.departmentEl||'—'}/>
-    <ReadField label={en?'Observer':'Παρατηρητής'} value={record.observer||'—'}/>
-    <ReadField label={en?'Start':'Έναρξη'} value={record.session?.startTime||'—'}/>
-    <ReadField label={en?'End':'Λήξη'} value={record.session?.endTime||'—'}/>
-   </div>
+ const stats=record.whoStats||{opportunities:record.observations||0,compliant:record.compliant||0,compliance:record.rate||0,handRub:items.filter(x=>x.action==='HR').reduce((s,x)=>s+(Number(x.professionalsCount)||1),0),handWash:items.filter(x=>x.action==='HW').reduce((s,x)=>s+(Number(x.professionalsCount)||1),0),missed:items.filter(x=>x.action==='MISSED').reduce((s,x)=>s+(Number(x.professionalsCount)||1),0),professionals:items.reduce((sum,x)=>sum+(Number(x.professionalsCount)||1),0)}
+ const session=record.session||{}
+ return <div className="who-record-workspace who-record-mirrors-entry">
+  <section className="who-session-grid who-record-readonly-grid">
+   <label><span>{en?'Date':'Ημερομηνία'}</span><input value={record.date||session.date||''} readOnly/></label>
+   <label><span>{en?'Department':'Τμήμα'}</span><input value={record.departmentEl||session.department||'—'} readOnly/></label>
+   <label><span>{en?'Observer':'Παρατηρητής'}</span><input value={record.observer||session.observer||'—'} readOnly/></label>
+   <label><span>{en?'Start':'Έναρξη'}</span><input value={session.startTime||'—'} readOnly/></label>
+   <label><span>{en?'End':'Λήξη'}</span><input value={session.endTime||'—'} readOnly/></label>
   </section>
-  <section className="record-info-card">
-   <h3>{en?'Compliance summary':'Σύνοψη συμμόρφωσης'}</h3>
-   <div className="who-live-summary record-who-summary"><div><span>{en?'Opportunities':'Ευκαιρίες'}</span><strong>{stats.opportunities}</strong></div><div><span>{en?'Professionals':'Επαγγελματίες'}</span><strong>{stats.professionals||'—'}</strong></div><div><span>HR</span><strong>{stats.handRub||0}</strong></div><div><span>HW</span><strong>{stats.handWash||0}</strong></div><div><span>Missed</span><strong>{stats.missed||0}</strong></div><div className="who-compliance"><span>{en?'Compliance':'Συμμόρφωση'}</span><strong>{stats.compliance}%</strong></div></div>
+
+  <section className="who-live-summary">
+   <div><span>{en?'Opportunities':'Ευκαιρίες'}</span><strong>{stats.opportunities}</strong></div>
+   <div><span>{en?'Professionals':'Επαγγελματίες'}</span><strong>{stats.professionals}</strong></div>
+   <div><span>HR</span><strong>{stats.handRub||0}</strong></div>
+   <div><span>HW</span><strong>{stats.handWash||0}</strong></div>
+   <div><span>Missed</span><strong>{stats.missed||0}</strong></div>
+   <div className="who-compliance"><span>{en?'Compliance':'Συμμόρφωση'}</span><strong>{stats.compliance}%</strong></div>
   </section>
-  <section className="record-info-card who-record-observations-card">
-   <h3>{en?'Observed opportunities':'Καταγεγραμμένες ευκαιρίες'}</h3>
-   <div className="who-record-observation-list">{items.map((x,i)=>{
-    const moment=en?WHO_MOMENTS.find(m=>m.id===x.moment)?.labelEn:WHO_MOMENTS.find(m=>m.id===x.moment)?.label
-    return <article className="who-record-observation" key={x.id||i}>
-      <div className="who-record-observation-head"><strong>{en?`Opportunity ${i+1}`:`Ευκαιρία ${i+1}`}</strong><span className={`status-badge ${x.action==='MISSED'?'danger':'active'}`}>{x.action}</span></div>
-      <div className="who-record-field-grid who-record-observation-grid">
-       <ReadField label={en?'Number of professionals':'Αριθμός επαγγελματιών'} value={x.professionalsCount||1}/>
-       <ReadField label={en?'Professional category':'Επαγγελματική κατηγορία'} value={x.professionalCategory||'—'}/>
-       <ReadField label="WHO Moment" value={moment||x.moment||'—'} wide/>
-       <ReadField label={en?'Action':'Ενέργεια'} value={actionLabel(x.action)} />
-       <ReadField label={en?'Glove use':'Χρήση γαντιών'} value={x.gloves?(en?'Yes':'Ναι'):(en?'No':'Όχι')}/>
-       <ReadField label={en?'Note':'Σημείωση'} value={x.notes||'—'} wide/>
-      </div>
-     </article>})}</div>
-  </section>
+
+  <div className="who-record-saved-list">{items.map((x,i)=>{
+   const moment=WHO_MOMENTS.find(m=>m.id===x.moment)
+   return <section className="who-opportunity-editor who-record-saved-opportunity" key={x.id||i}>
+    <div className="who-section-title"><div><strong>{en?`Opportunity ${i+1}`:`Ευκαιρία ${i+1}`}</strong><small>{en?'Recorded hand-hygiene opportunity':'Καταγεγραμμένη ευκαιρία υγιεινής χεριών'}</small></div></div>
+    <div className="who-opportunity-grid">
+     <label><span>{en?'Number of professionals':'Αριθμός επαγγελματιών'}</span><input value={x.professionalsCount||1} readOnly/></label>
+     <label><span>{en?'Professional category':'Επαγγελματική κατηγορία'}</span><select value={x.professionalCategory||''} disabled>{WHO_PROFESSIONS.map(([el,enLabel])=><option key={el} value={el}>{en?enLabel:el}</option>)}</select></label>
+     <label className="who-span-2"><span>WHO Moment</span><select value={x.moment||''} disabled>{WHO_MOMENTS.map(m=><option key={m.id} value={m.id}>{en?m.labelEn:m.label}</option>)}</select></label>
+     <div className="who-span-2 who-action-field"><span>{en?'Action':'Ενέργεια'}</span><div className="who-action-options" aria-readonly="true">
+      <button type="button" tabIndex={-1} className={`who-action-option ${x.action==='HR'?'selected':''}`}><span className="who-action-check">{x.action==='HR'?'✓':''}</span><span><strong>{en?'Alcohol-based hand rub':'Αλκοολούχο αντισηπτικό'}</strong><small>Hand Rub (HR)</small></span></button>
+      <button type="button" tabIndex={-1} className={`who-action-option ${x.action==='HW'?'selected':''}`}><span className="who-action-check">{x.action==='HW'?'✓':''}</span><span><strong>{en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'}</strong><small>Hand Wash (HW)</small></span></button>
+      <button type="button" tabIndex={-1} className={`who-action-option ${x.action==='MISSED'?'selected danger':''}`}><span className="who-action-check">{x.action==='MISSED'?'✓':''}</span><span><strong>{en?'Not performed':'Δεν πραγματοποιήθηκε'}</strong><small>Missed</small></span></button>
+     </div></div>
+     <label className="who-gloves-card who-readonly-choice"><input type="checkbox" checked={Boolean(x.gloves)} readOnly/><span><strong>{en?'Glove use':'Χρήση γαντιών'}</strong><small>Gloves</small></span></label>
+     <label className="who-note-field"><span>{en?'Note':'Σημείωση'}</span><input value={x.notes||''} placeholder={en?'No note':'Χωρίς σημείωση'} readOnly/></label>
+    </div>
+   </section>
+  })}</div>
  </div>
 }
 
@@ -133,5 +138,4 @@ function BundleDetails({record,language}){
  return <div className="bundle-record-view"><section className="bundle-record-summary"><div className="bundle-record-heading"><div><strong>{record.templateName||template.name||record.bundle} · {record.templateTitle||template.title||''}</strong><small>{record.templateSource||template.source||''} · v{record.templateVersion||template.version||'1.0'}</small></div><span className={`bundle-all-badge ${record.allOrNone?'passed':'failed'}`}>{record.allOrNone?'All-or-none ✓':'All-or-none ✕'}</span></div><div className="bundle-record-kpis"><div><span>Score</span><strong>{record.score==null?'—':`${record.score}%`}</strong></div><div><span>{en?'Applicable':'Εφαρμόσιμα'}</span><strong>{record.applicableCount??'—'}</strong></div><div><span>{en?'Deviations':'Αποκλίσεις'}</span><strong>{record.failedCount??findings.length}</strong></div><div><span>{en?'Date':'Ημερομηνία'}</span><strong>{record.date||record.period||'—'}</strong></div></div><div className="bundle-record-meta"><span><b>{en?'Department':'Τμήμα'}</b>{record.departmentEl||'—'}</span><span><b>{en?'Shift':'Βάρδια'}</b>{record.shift||'—'}</span><span><b>{en?'Patient':'Ασθενής'}</b>{record.patientRef||'—'}</span><span><b>{en?'Device':'Συσκευή'}</b>{record.deviceRef||'—'}</span><span><b>{en?'Responsible':'Υπεύθυνος'}</b>{record.owner||'—'}</span></div></section><section className="bundle-record-elements"><div className="bundle-record-heading"><div><strong>{en?'Bundle results':'Αποτελέσματα Bundle'}</strong></div></div><div className="bundle-detail-list">{elements.map(([id,label],i)=>{const value=record.answers?.[id];return <div className={`bundle-detail-row ${value==='no'?'failed':value==='yes'?'passed':'na'}`} key={id}><span className="bundle-detail-index">{i+1}</span><strong>{label}</strong><span className="bundle-detail-answer">{value==='yes'?(en?'Yes':'Ναι'):value==='no'?(en?'No':'Όχι'):value==='na'?(en?'N/A':'Μ/Ε'):'—'}</span>{value==='no'&&record.answerNotes?.[id]&&<small>{record.answerNotes[id]}</small>}</div>})}</div></section>{findings.length>0&&<section className="bundle-record-findings"><div className="bundle-record-heading"><div><strong>{en?'Items for follow-up':'Σημεία για follow-up'}</strong></div></div>{findings.map(x=><div className="bundle-record-finding" key={x.id}><strong>{x.label}</strong><span>{x.note||(en?'Investigation / corrective action required.':'Απαιτείται διερεύνηση / διορθωτική ενέργεια.')}</span></div>)}</section>}{record.generalNotes&&<div className="record-note-card"><span>{en?'Notes':'Σημειώσεις'}</span><p>{record.generalNotes}</p></div>}</div>
 }
 
-function ReadField({label,value,wide=false}){return <div className={`who-record-read-field ${wide?'wide':''}`.trim()}><span>{label}</span><strong>{value}</strong></div>}
 function D({l,v}){return <div className="detail-item"><span>{l}</span><strong>{v}</strong></div>}
