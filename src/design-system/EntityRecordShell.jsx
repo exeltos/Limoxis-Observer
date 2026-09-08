@@ -79,9 +79,11 @@ export function EntityRecordShell({
   const { goBack }=useContextualNavigation('/')
   const navigate=useNavigate();const location=useLocation()
   const handleBack=onBack||goBack
-  const primaryTabId=tabs[0]?.id||null
+  const hasTabs=Array.isArray(tabs)&&tabs.length>0
+  const primaryTabId=hasTabs?tabs[0]?.id:null
   const primaryTabActive=!primaryTabId||!activeTab||activeTab===primaryTabId
   const recordTabClass=primaryTabActive?'record-general-tab-active':'record-secondary-tab-active'
+  const paneClass=hasTabs?'record-tabbed-screen':'record-single-pane-screen'
   const isPlatformOwnerRecord=String(className||'').includes('platform-owner-record-shell')
 
   const sourceRegistry=typeof location.state?.limoxisFrom?.registry==='string'?location.state.limoxisFrom.registry:null
@@ -113,7 +115,7 @@ export function EntityRecordShell({
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   const secondaryBodyStyle=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
 
-  return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${className}`.trim()}>
+  return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${paneClass} ${className}`.trim()}>
     <header className="entity-record-header surface">
       <BackButton className="entity-record-back-left" onClick={handleBack} label={backLabel||t('back')}/>
       <div className="entity-record-avatar">{avatar}</div>
@@ -132,9 +134,9 @@ export function EntityRecordShell({
         {ownerHeaderActions}
       </div>
     </header>
-    <nav className="entity-record-tabs surface" role="tablist">
-      {tabs.map(({id,label,icon:Icon,disabled=false,lockedLabel})=><button key={id} role="tab" aria-selected={activeTab===id} aria-disabled={disabled} disabled={disabled} title={disabled?(lockedLabel||t('locked')):undefined} className={`${activeTab===id?'active':''} ${disabled?'locked':''}`.trim()} onClick={()=>!disabled&&onTabChange(id)}>{Icon&&<Icon size={16}/>}<span>{label}</span>{disabled&&<small className="tab-lock">🔒</small>}</button>)}
-    </nav>
+    {hasTabs&&<nav className="entity-record-tabs surface" role="tablist">
+      {tabs.map(({id,label,icon:Icon,disabled=false,lockedLabel})=><button key={id} role="tab" aria-selected={activeTab===id} aria-disabled={disabled} disabled={disabled} title={disabled?(lockedLabel||t('locked')):undefined} className={`${activeTab===id?'active':''} ${disabled?'locked':''}`.trim()} onClick={()=>!disabled&&onTabChange?.(id)}>{Icon&&<Icon size={16}/>}<span>{label}</span>{disabled&&<small className="tab-lock">🔒</small>}</button>)}
+    </nav>}
     <section className="entity-record-body surface" style={secondaryBodyStyle}>
       {primaryTabActive&&generalMenuItems.length>0&&<div className="entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}><OverflowMenu label={en?'Record actions':'Ενέργειες εγγραφής'} items={generalMenuItems}/></div>}
       {children}
