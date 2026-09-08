@@ -11,11 +11,10 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { PreventionEntryModal } from './PreventionEntryModal'
-import { AntisepticEntryModal,antisepticMethodLabel } from './AntisepticEntryModal'
+import { antisepticMethodLabel } from './AntisepticEntryModal'
 import { BundleExecutionModal } from './BundleExecutionModal'
 import { loadHandHygieneDepartments,loadHandHygieneSessions } from './handHygieneCloudService'
-import { findPatientDaysForPeriod,loadAntisepticRecords,loadAntisepticSupportData,saveAntisepticRecord } from './antisepticCloudService'
+import { loadAntisepticRecords,loadAntisepticSupportData } from './antisepticCloudService'
 import { loadBundleAssessments,loadBundleSupportData,saveBundleAssessment } from './bundleCloudService'
 import { loadWasteMeasurements,loadWasteSupportData } from './wasteCloudService'
 import { readRegistryViewState,useRegistryMemory } from '../../core/navigation/useRegistryMemory'
@@ -110,19 +109,18 @@ export function PreventionPage(){
  function openPreventionRecord(id,type){if(!tabAccess[type])return;registry.saveViewState({tab:type,query,department,period,product,method});registry.openRecord(navigate,`/prevention/${type}/${id}?fromTab=${type}`,id,rows.map(x=>x.id),{returnState:{tab:type}})}
  function createRecord(){
   if(!canCreateRecord)return
-  if(tab==='handHygiene'||tab==='waste'){navigate(`/prevention/${tab}/new?fromTab=${tab}`);return}
+  if(['handHygiene','waste','antiseptics'].includes(tab)){navigate(`/prevention/${tab}/new?fromTab=${tab}`);return}
   setEntryOpen(true)
  }
  function pageAction(action){if(action===UI_ACTIONS.CREATE)createRecord()}
  async function saveEntry(record){
   try{
-   if(tab==='antiseptics')await saveAntisepticRecord(tenant.id,record)
-   else if(tab==='bundles')await saveBundleAssessment(tenant.id,record)
-   else return
-   if(tab==='antiseptics')await reloadAntiseptics();else await reloadBundles()
+   if(tab!=='bundles')return
+   await saveBundleAssessment(tenant.id,record)
+   await reloadBundles()
    setEntryOpen(false)
    notify(t('preventionSaved'),'success')
-  }catch(error){notifyError(error,'save',{operation:`${tab}_create`})}
+  }catch(error){notifyError(error,'save',{operation:'bundles_create'})}
  }
  const loading=tab==='handHygiene'?handLoading:tab==='waste'?wasteLoading:tab==='antiseptics'?antisepticLoading:bundleLoading
  const pageActions=canCreateRecord?[UI_ACTIONS.CREATE]:[]
@@ -143,7 +141,7 @@ export function PreventionPage(){
    </div>
    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
   </div>
-  {entryOpen&&canCreateRecord&&(tab==='antiseptics'?<AntisepticEntryModal departments={antisepticSupport.departments} products={antisepticSupport.products} findPatientDays={(departmentId,from,to)=>findPatientDaysForPeriod(tenant.id,departmentId,from,to)} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>:tab==='bundles'?<BundleExecutionModal departments={bundleSupport.departments} templates={bundleSupport.templates} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>:<PreventionEntryModal tab={tab} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>) }
+  {entryOpen&&canCreateRecord&&tab==='bundles'&&<BundleExecutionModal departments={bundleSupport.departments} templates={bundleSupport.templates} fixedDepartment={departmentScoped?ownDepartment:''} onClose={()=>setEntryOpen(false)} onSave={saveEntry}/>} 
  </Page>
 }
 
