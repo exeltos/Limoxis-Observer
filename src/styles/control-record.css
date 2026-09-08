@@ -24,12 +24,6 @@
 .control-record-shell .control-schedule-summary{display:none}
 .control-record-shell .control-history-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px}
 
-/* History follows the shared registry pattern, but does not stretch into an empty full-page canvas. */
-.control-record-shell.record-secondary-tab-active .record-section.workspace-fill{flex:0 1 auto!important;min-height:0!important;height:auto!important}
-.control-record-shell.record-secondary-tab-active .record-section.workspace-fill>.registry-workspace{flex:0 1 auto!important;min-height:0!important;height:auto!important;align-self:stretch}
-.control-record-shell.record-secondary-tab-active .record-section.workspace-fill>.registry-workspace>.scroll-table{flex:0 1 auto!important;min-height:150px!important;max-height:56vh!important;overflow:auto!important}
-.control-record-shell.record-secondary-tab-active .record-section.workspace-fill>.registry-workspace>.registry-pagination{flex:0 0 auto}
-
 /* Full-page control execution uses the same record/editor contract as Prevention editors. */
 .control-execution-record-shell .entity-record-body{overflow:auto}
 .control-execution-record-shell .control-execution-page-card{padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
@@ -70,7 +64,6 @@
  .control-record-shell .control-overview-item:last-child{border-bottom:0!important}
  .control-record-shell .control-overview-footer{align-items:stretch;flex-direction:column}
  .control-record-shell .control-overview-footer .lo-action-button{width:100%;justify-content:center}
- .control-record-shell.record-secondary-tab-active .record-section.workspace-fill>.registry-workspace>.scroll-table{max-height:62vh!important}
  .control-execution-page-editor{padding:14px}
  .control-execution-page-editor .control-execution-summary{grid-template-columns:1fr}
  .control-execution-page-editor .control-confirm-execution{width:100%;align-items:flex-start}
