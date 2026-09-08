@@ -23,12 +23,18 @@ export function useRegistryMemory(registry){
     return ()=>cancelAnimationFrame(frame)
   },[registry])
 
-  function openRecord(navigate,path,id,orderedIds=[]){
+  function openRecord(navigate,path,id,orderedIds=[],options={}){
     writeSessionValue(registryStorageKey(registry,'selected'),id)
     writeSessionValue(registryStorageKey(registry,'scroll'),scrollRef.current?.scrollTop||0)
     if(Array.isArray(orderedIds)&&orderedIds.length)writeSessionJson(registryStorageKey(registry,'sequence'),orderedIds)
     setHighlightId(id)
-    navigate(path,{state:{limoxisFrom:{pathname:location.pathname,search:location.search,hash:location.hash,state:location.state??null,registry}}})
+    navigate(path,{
+      ...options,
+      state:{
+        ...(options.state||{}),
+        limoxisFrom:{pathname:location.pathname,search:location.search,hash:location.hash,state:location.state??null,registry}
+      }
+    })
   }
 
   function rowProps(id,onOpen){
