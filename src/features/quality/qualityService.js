@@ -47,7 +47,7 @@ export async function loadQualityRecords(section,organizationId){
 
 function codeFor(section){
   const prefix={incidents:'INC',findings:'FND',capas:'CAPA',audits:'AUD'}[section]||'QLT'
-  const stamp=new Date().toISOString().replace(/\D/g,'').slice(2,14)
+  const stamp=new Date().toISOString().replace(/\D/g,'').slice(2,17)
   return `${prefix}-${stamp}`
 }
 
@@ -61,7 +61,12 @@ export async function createQualityRecord(section,organizationId,draft,userId){
   if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null,owner_id:null}
   if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,owner_id:null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending'}
   if(section==='audits') payload={...payload,audit_type:draft.auditType||'internal',scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:null}
-  const {data,error}=await supabase.from(config.table).insert(payload).select('*,department:departments(name)').single()
+
+  // Creation does not request a nested return representation. PostgREST executes
+  // the insert only; the registry reloads the canonical row after navigation.
+  // This avoids rolling back otherwise-valid writes because of relationship
+  // embedding/return-policy issues on a mutation response.
+  const {error}=await supabase.from(config.table).insert(payload)
   if(error) throw error
-  return mapRow(section,data)
+  return {code,...payload}
 }
