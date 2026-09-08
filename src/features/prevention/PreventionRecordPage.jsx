@@ -8,9 +8,10 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { WHO_MOMENTS,WHO_PROFESSIONS,WhoHandHygieneEditor } from './WhoHandHygieneEditor'
 import { WasteEntryEditor } from './WasteEntryEditor'
+import { AntisepticEntryEditor } from './AntisepticEntryEditor'
 import { deleteHandHygieneSession,loadHandHygieneDepartments,loadHandHygieneSessions,saveHandHygieneSession } from './handHygieneCloudService'
 import { deleteWasteMeasurement,findWastePatientDays,loadWasteMeasurements,loadWasteSupportData,saveWasteMeasurement } from './wasteCloudService'
-import { deleteAntisepticRecord,loadAntisepticRecords } from './antisepticCloudService'
+import { deleteAntisepticRecord,findPatientDaysForPeriod,loadAntisepticRecords,loadAntisepticSupportData,saveAntisepticRecord } from './antisepticCloudService'
 import { deleteBundleAssessment,loadBundleAssessments } from './bundleCloudService'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
@@ -37,13 +38,14 @@ export function PreventionRecordPage(){
  const en=language==='en'
  const {notifyError,notify,confirm}=useFeedback()
  const {canAccessRecord,tenant,role,membership}=useTenant()
- const supportsPageEditor=['handHygiene','waste'].includes(recordType)
+ const supportsPageEditor=['handHygiene','waste','antiseptics'].includes(recordType)
  const creating=supportsPageEditor&&recordId==='new'
  const editing=supportsPageEditor&&!creating&&searchParams.get('edit')==='1'
  const [record,setRecord]=useState(null)
  const [loading,setLoading]=useState(!creating)
  const [handDepartments,setHandDepartments]=useState([])
  const [wasteSupport,setWasteSupport]=useState({departments:[],wasteTypes:[]})
+ const [antisepticSupport,setAntisepticSupport]=useState({departments:[],products:[]})
  const recordNavigation=useRecordSequenceNavigation({registry:`prevention-${recordType}`,currentId:recordId,pathForId:id=>`/prevention/${recordType}/${id}?fromTab=${recordType}`})
  const addOns=membership?.capabilities??[]
  const custom=membership?.customCapabilities??[]
@@ -77,6 +79,9 @@ export function PreventionRecordPage(){
   if(recordType==='waste'){
    loadWasteSupportData(tenant.id).then(data=>{if(active)setWasteSupport(data)}).catch(error=>notifyError(error,'load',{operation:'waste_support_load'}))
   }
+  if(recordType==='antiseptics'){
+   loadAntisepticSupportData(tenant.id).then(data=>{if(active)setAntisepticSupport(data)}).catch(error=>notifyError(error,'load',{operation:'antiseptic_support_load'}))
+  }
   return()=>{active=false}
  },[recordType,tenant?.id,recordTypeAccess])
 
@@ -91,14 +96,21 @@ export function PreventionRecordPage(){
  const fmtDate=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)):'—'
  const wasteCategory=record?.wasteType||record?.type
  const recordTitle=creating
-  ? recordType==='waste'?(en?'New waste measurement':'Νέα μέτρηση αποβλήτων'):(en?'New WHO hand hygiene observation':'Νέα παρατήρηση Υγιεινής Χεριών WHO')
+  ? recordType==='waste'?(en?'New waste measurement':'Νέα μέτρηση αποβλήτων')
+   :recordType==='antiseptics'?(en?'New antiseptic consumption':'Νέα κατανάλωση αντισηπτικού')
+   :(en?'New WHO hand hygiene observation':'Νέα παρατήρηση Υγιεινής Χεριών WHO')
   : editing
-   ? recordType==='waste'?`${en?'Edit waste measurement':'Επεξεργασία μέτρησης αποβλήτων'} · ${fmtDate(record?.date)}`:`${en?'Edit WHO hand hygiene observation':'Επεξεργασία παρατήρησης Υγιεινής Χεριών WHO'} · ${fmtDate(record?.date)}`
+   ? recordType==='waste'?`${en?'Edit waste measurement':'Επεξεργασία μέτρησης αποβλήτων'} · ${fmtDate(record?.date)}`
+    :recordType==='antiseptics'?`${en?'Edit antiseptic consumption':'Επεξεργασία κατανάλωσης αντισηπτικού'} · ${record?.period||''}`
+    :`${en?'Edit WHO hand hygiene observation':'Επεξεργασία παρατήρησης Υγιεινής Χεριών WHO'} · ${fmtDate(record?.date)}`
    : recordType==='handHygiene'?`${en?'WHO hand hygiene observation':'Παρατήρηση Υγιεινής Χεριών WHO'} · ${fmtDate(record?.date)}`
    : recordType==='waste'?`${en?'Waste measurement':'Μέτρηση αποβλήτων'} · ${fmtDate(record?.date)}`
    : recordType==='antiseptics'?`${en?'Antiseptic consumption':'Κατανάλωση αντισηπτικού'} · ${record?.period||''}`
    : `${record?.templateName||record?.bundle} · ${record?.date||record?.period||''}`
- const subtitle=recordType==='handHygiene'?(en?'WHO 5 Moments · Prevention & Infection Control':'WHO 5 Moments · Πρόληψη & Έλεγχος Λοιμώξεων'):recordType==='waste'?(en?'Waste management · Prevention & Infection Control':'Διαχείριση αποβλήτων · Πρόληψη & Έλεγχος Λοιμώξεων'):undefined
+ const subtitle=recordType==='handHygiene'?(en?'WHO 5 Moments · Prevention & Infection Control':'WHO 5 Moments · Πρόληψη & Έλεγχος Λοιμώξεων')
+  :recordType==='waste'?(en?'Waste management · Prevention & Infection Control':'Διαχείριση αποβλήτων · Πρόληψη & Έλεγχος Λοιμώξεων')
+  :recordType==='antiseptics'?(en?'Monthly antiseptic consumption · Prevention & Infection Control':'Μηνιαία κατανάλωση αντισηπτικών · Πρόληψη & Έλεγχος Λοιμώξεων')
+  :undefined
  const recordStatus=!record?null:recordType==='waste'?<span className={`waste-category-badge ${wasteCategoryTone(wasteCategory)}`}>{en?(record.typeEn||wasteCategory):wasteCategory}</span>:recordType==='antiseptics'?<span className={`antiseptic-abhr-badge ${record.indicatorEligible!==false&&isAbhrProduct(record)?'active':'informative'}`}>{record.indicatorEligible!==false&&isAbhrProduct(record)?(en?'ABHR · included in indicator':'ABHR · στον δείκτη'):(en?'Outside ABHR indicator':'Εκτός δείκτη ABHR')}</span>:recordType==='bundles'?<span className={`bundle-all-badge ${record.allOrNone?'passed':'failed'}`}>{record.allOrNone?'All-or-none ✓':'All-or-none ✕'}</span>:null
 
  async function saveHandHygiene(updated){
@@ -119,6 +131,15 @@ export function PreventionRecordPage(){
    navigate(saved?.id?`/prevention/waste/${saved.id}?fromTab=waste`:'/prevention?tab=waste',{replace:true})
   }catch(error){notifyError(error,'save',{operation:creating?'waste_create':'waste_record_update'});throw error}
  }
+ async function saveAntiseptic(updated){
+  if(!canEditRecord)return
+  try{
+   const saved=await saveAntisepticRecord(tenant.id,updated,{existingId:creating?null:record.id})
+   if(saved)setRecord(saved)
+   notify(creating?(en?'Antiseptic consumption saved.':'Η κατανάλωση αντισηπτικού αποθηκεύτηκε.'):(en?'Changes saved.':'Οι αλλαγές αποθηκεύτηκαν.'),'success')
+   navigate(saved?.id?`/prevention/antiseptics/${saved.id}?fromTab=antiseptics`:'/prevention?tab=antiseptics',{replace:true})
+  }catch(error){notifyError(error,'save',{operation:creating?'antiseptic_create':'antiseptic_record_update'});throw error}
+ }
 
  async function deleteCurrent(){
   if(!canEditRecord)return
@@ -138,6 +159,11 @@ export function PreventionRecordPage(){
  const backToList=()=>navigate(`/prevention?tab=${recordType}`,{replace:true})
  const backToRecord=()=>navigate(`/prevention/${recordType}/${record.id}?fromTab=${recordType}`,{replace:true})
 
+ let editor=null
+ if(recordType==='handHygiene')editor=<WhoHandHygieneEditor departments={handDepartments} initialRecord={editing?record:null} fixedDepartment={departmentScoped?ownDepartment:''} onCancel={creating?backToList:backToRecord} onSave={saveHandHygiene}/>
+ else if(recordType==='waste')editor=<WasteEntryEditor departments={wasteSupport.departments} wasteTypes={wasteSupport.wasteTypes} initialRecord={editing?record:null} fixedDepartment={departmentScoped?ownDepartment:''} findPatientDays={(departmentId,from,to)=>findWastePatientDays(tenant.id,departmentId,from,to)} onCancel={creating?backToList:backToRecord} onSave={saveWaste}/>
+ else if(recordType==='antiseptics')editor=<AntisepticEntryEditor departments={antisepticSupport.departments} products={antisepticSupport.products} initialRecord={editing?record:null} fixedDepartment={departmentScoped?ownDepartment:''} findPatientDays={(departmentId,from,to)=>findPatientDaysForPeriod(tenant.id,departmentId,from,to)} onCancel={creating?backToList:backToRecord} onSave={saveAntiseptic}/>
+
  return <Page fill>
   <EntityRecordShell
    className="prevention-record-shell workspace-fill"
@@ -148,7 +174,7 @@ export function PreventionRecordPage(){
    onBack={creating?backToList:editing?backToRecord:backToList}
   >
    {(creating||editing)
-    ? <div className="record-section prevention-record-card prevention-page-editor-card">{recordType==='handHygiene'?<WhoHandHygieneEditor departments={handDepartments} initialRecord={editing?record:null} fixedDepartment={departmentScoped?ownDepartment:''} onCancel={creating?backToList:backToRecord} onSave={saveHandHygiene}/>:<WasteEntryEditor departments={wasteSupport.departments} wasteTypes={wasteSupport.wasteTypes} initialRecord={editing?record:null} fixedDepartment={departmentScoped?ownDepartment:''} findPatientDays={(departmentId,date)=>findWastePatientDays(tenant.id,departmentId,date)} onCancel={creating?backToList:backToRecord} onSave={saveWaste}/>}</div>
+    ? <div className="record-section prevention-record-card prevention-page-editor-card">{editor}</div>
     : <div className="record-section prevention-record-card">{recordType==='handHygiene'?<HandHygieneDetails record={record} language={language}/>:recordType==='waste'?<WasteEntryEditor readOnly departments={wasteSupport.departments} wasteTypes={wasteSupport.wasteTypes} initialRecord={record}/>:recordType==='antiseptics'?<AntisepticDetails record={record} language={language} locale={locale}/>:<BundleDetails record={record} language={language}/>}</div>
    }
   </EntityRecordShell>
