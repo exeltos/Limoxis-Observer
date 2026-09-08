@@ -113,9 +113,10 @@ export function EntityRecordShell({
   const rawGeneralActions=isPlatformOwnerRecord?[]:flattenActions(headerActions)
   const generalMenuItems=rawGeneralActions.map((action,index)=>toOverflowItem(action,index,en)).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
+  const actionClass=generalMenuItems.length?'record-has-general-actions':'record-no-general-actions'
   const secondaryBodyStyle=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
 
-  return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${paneClass} ${className}`.trim()}>
+  return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${paneClass} ${actionClass} ${className}`.trim()}>
     <header className="entity-record-header surface">
       <BackButton className="entity-record-back-left" onClick={handleBack} label={backLabel||t('back')}/>
       <div className="entity-record-avatar">{avatar}</div>
