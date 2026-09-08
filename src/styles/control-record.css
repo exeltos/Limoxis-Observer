@@ -43,7 +43,11 @@
 .control-execution-main-section{display:grid;gap:14px;padding:18px 0;border-top:1px solid var(--lo-border,#e3eaf0);border-bottom:1px solid var(--lo-border,#e3eaf0)}
 .control-execution-page-editor .control-execution-form{max-width:760px;margin:0}
 .control-execution-page-editor .control-execution-notes{display:grid;gap:7px}
-.control-execution-page-editor .control-confirm-execution{margin:0;padding:14px 16px;border-radius:10px}
+/* Confirmation is an action row, not a large status card. */
+.control-execution-page-editor .control-confirm-execution{display:flex;align-items:center;gap:10px;width:fit-content;max-width:100%;margin:0;padding:8px 2px;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--lo-text,#36566d);font-size:11.5px;font-weight:600;line-height:1.4;cursor:pointer}
+.control-execution-page-editor .control-confirm-execution input{flex:0 0 auto;width:17px;height:17px;margin:0;accent-color:var(--lo-accent,#2b718f);cursor:pointer}
+.control-execution-page-editor .control-confirm-execution svg{display:none}
+.control-execution-page-editor .control-confirm-execution span{display:block}
 .control-execution-page-tools{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding-top:2px}
 .control-execution-page-secondary-actions,.control-execution-page-primary-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .control-execution-page-primary-actions{justify-content:flex-end}
@@ -69,6 +73,7 @@
  .control-record-shell.record-secondary-tab-active .record-section.workspace-fill>.registry-workspace>.scroll-table{max-height:62vh!important}
  .control-execution-page-editor{padding:14px}
  .control-execution-page-editor .control-execution-summary{grid-template-columns:1fr}
+ .control-execution-page-editor .control-confirm-execution{width:100%;align-items:flex-start}
  .control-execution-page-secondary-actions,.control-execution-page-primary-actions{width:100%;flex-direction:column;align-items:stretch}
  .control-execution-page-secondary-actions button,.control-execution-page-primary-actions button{width:100%;justify-content:center}
 }
