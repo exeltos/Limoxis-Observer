@@ -29,12 +29,19 @@ export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialR
  const elements=template?.elements||[]
  const score=scoreFor(draft.answers)
  const allOrNone=allOrNoneFor(draft.answers)
+ const answered=elements.filter(([id])=>['yes','no','na'].includes(draft.answers[id])).length
  const applicable=elements.filter(([id])=>['yes','no'].includes(draft.answers[id])).length
  const failures=elements.filter(([id])=>draft.answers[id]==='no')
+ const complete=elements.length>0&&answered===elements.length
  const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
  const answer=(id,value)=>setDraft(d=>({...d,answers:{...d.answers,[id]:value}}))
  const note=(id,value)=>setDraft(d=>({...d,answerNotes:{...d.answerNotes,[id]:value}}))
- const valid=Boolean(template&&draft.templateId&&draft.departmentEl&&draft.date&&applicable>0)
+ const valid=Boolean(template&&draft.templateId&&draft.departmentEl&&draft.date&&complete&&applicable>0)
+ const elementLabel=(id,fallback)=>{
+  const raw=(template?.rawElements||[]).find(item=>item.id===id)
+  if(!raw)return fallback
+  return en?(raw.labelEn||raw.label_en||raw.labelEl||raw.label_el||fallback):(raw.labelEl||raw.label_el||raw.label||fallback)
+ }
 
  function submit(){
   if(!valid)return
@@ -42,7 +49,7 @@ export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialR
   const dep=departments.find(x=>x.el===draft.departmentEl)
   onSave({...draft,bundle:template.id,templateName:template.name,templateTitle:en?(template.titleEn||template.title):template.title,templateVersion:template.version,
    templateSource:template.source,templateSnapshot:JSON.parse(JSON.stringify(template)),departmentEn:dep?.en||draft.departmentEl,score:score??0,allOrNone,
-   applicableCount:applicable,failedCount:failures.length,findings:failures.map(([id,label])=>({id,label,note:draft.answerNotes[id]||''})),
+   applicableCount:applicable,failedCount:failures.length,findings:failures.map(([id,label])=>({id,label:elementLabel(id,label),note:draft.answerNotes[id]||''})),
    owner:actor.name,createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,
    updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized'})
  }
@@ -72,15 +79,16 @@ export function BundleExecutionModal({onClose,onSave,fixedDepartment='',initialR
    </section>
 
    {template?<section className="bundle-elements-card">
-    <div className="bundle-section-title"><div><strong>{en?'Bundle elements':'Στοιχεία Bundle'}</strong><small>{en?'Yes / No / Not applicable. Every No is retained as a documented deviation.':'Ναι / Όχι / Μη εφαρμόσιμο. Κάθε «Όχι» διατηρείται ως τεκμηριωμένη απόκλιση.'}</small></div><div className="bundle-score-live"><span>Score</span><strong>{score===null?'—':`${score}%`}</strong><small>{allOrNone?'All-or-none ✓':'All-or-none —'}</small></div></div>
-    <div className="bundle-element-list">{elements.map(([id,label],i)=><div className={`bundle-element-row ${draft.answers[id]==='no'?'failed':draft.answers[id]==='yes'?'passed':''}`} key={id}>
-     <div className="bundle-element-label"><span>{i+1}</span><strong>{label}</strong></div>
+    <div className="bundle-section-title"><div><strong>{en?'Bundle elements':'Στοιχεία Bundle'}</strong><small>{en?'Every element must be answered Yes / No / Not applicable before completion. Every No is retained as a documented deviation.':'Κάθε στοιχείο πρέπει να απαντηθεί Ναι / Όχι / Μη εφαρμόσιμο πριν από την ολοκλήρωση. Κάθε «Όχι» διατηρείται ως τεκμηριωμένη απόκλιση.'}</small></div><div className="bundle-score-live"><span>{en?'Answered':'Απαντημένα'} {answered}/{elements.length}</span><strong>{score===null?'—':`${score}%`}</strong><small>{allOrNone?'All-or-none ✓':'All-or-none —'}</small></div></div>
+    <div className="bundle-element-list">{elements.map(([id,label],i)=>{const displayLabel=elementLabel(id,label);return <div className={`bundle-element-row ${draft.answers[id]==='no'?'failed':draft.answers[id]==='yes'?'passed':draft.answers[id]==='na'?'na':''}`} key={id}>
+     <div className="bundle-element-label"><span>{i+1}</span><strong>{displayLabel}</strong></div>
      <div className="bundle-answer-group">{[['yes',en?'Yes':'Ναι'],['no',en?'No':'Όχι'],['na',en?'N/A':'Μ/Ε']].map(([value,text])=><button type="button" key={value} className={draft.answers[id]===value?'active':''} onClick={()=>answer(id,value)}>{text}</button>)}</div>
      {draft.answers[id]==='no'&&<div className="bundle-finding-note"><ShieldAlert size={14}/><input value={draft.answerNotes[id]||''} onChange={e=>note(id,e.target.value)} placeholder={en?'Deviation / action required':'Απόκλιση / ενέργεια που απαιτείται'}/></div>}
-    </div>)}</div>
+    </div>})}</div>
    </section>:<div className="inline-empty">{en?'No published bundle templates are available.':'Δεν υπάρχουν διαθέσιμα δημοσιευμένα Bundle templates.'}</div>}
 
-   <section className="bundle-summary-card"><div><span>{en?'Applicable':'Εφαρμόσιμα'}</span><strong>{applicable}</strong></div><div><span>{en?'Deviations':'Αποκλίσεις'}</span><strong>{failures.length}</strong></div><div><span>{en?'Compliance':'Συμμόρφωση'}</span><strong>{score===null?'—':`${score}%`}</strong></div><div><span>All-or-none</span><strong>{allOrNone?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</strong></div></section>
+   <section className="bundle-summary-card"><div><span>{en?'Answered':'Απαντημένα'}</span><strong>{answered}/{elements.length}</strong></div><div><span>{en?'Applicable':'Εφαρμόσιμα'}</span><strong>{applicable}</strong></div><div><span>{en?'Deviations':'Αποκλίσεις'}</span><strong>{failures.length}</strong></div><div><span>{en?'Compliance':'Συμμόρφωση'}</span><strong>{score===null?'—':`${score}%`}</strong></div><div><span>All-or-none</span><strong>{allOrNone?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</strong></div></section>
+   {!complete&&elements.length>0&&<div className="bundle-completion-hint">{en?`${elements.length-answered} element(s) still need an answer before completion.`:`Απομένουν ${elements.length-answered} στοιχείο/α χωρίς απάντηση πριν από την ολοκλήρωση.`}</div>}
    <label className="bundle-general-notes"><span>{en?'General notes':'Γενικές σημειώσεις'}</span><textarea rows="3" value={draft.generalNotes||''} onChange={e=>set('generalNotes',e.target.value)} placeholder={en?'Optional execution notes':'Προαιρετικές παρατηρήσεις για την εκτέλεση'}/></label>
   </div>
  </ObserverDialog>
