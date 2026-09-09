@@ -62,11 +62,18 @@ describe('role + scope access foundation', () => {
     expect(can(ROLES.OCCUPATIONAL_PHYSICIAN, CAPABILITIES.MANAGE_STAFF_ADMIN)).toBe(false)
   })
 
-  it('keeps sensitive occupational health restricted while Hospital Admin can operate Laboratory', () => {
-    expect(can(ROLES.PLATFORM_OWNER, CAPABILITIES.VIEW_PATIENTS)).toBe(true)
-    expect(can(ROLES.PLATFORM_OWNER, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(true)
-    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(false)
+  it('gives Hospital Admin full hospital-domain access while keeping platform administration reserved', () => {
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_PHARMACY)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.MANAGE_PHARMACY)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.RECORD_HAND_HYGIENE)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.RECORD_WASTE)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.RECORD_ANTISEPTIC)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.RECORD_PREVENTION_BUNDLE)).toBe(true)
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VALIDATE_LAB_RESULTS)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_PLATFORM)).toBe(false)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.MANAGE_PLATFORM)).toBe(false)
   })
 
   it('keeps the isolated demo role broad enough to demonstrate hospital workflows', () => {
@@ -129,8 +136,8 @@ describe('role + scope access foundation', () => {
     }
   })
 
-  it('requires both a sensitive capability and an allowed role family', () => {
-    expect(canSeeSensitiveEmployeeHealth(ROLES.HOSPITAL_ADMIN)).toBe(false)
+  it('allows Hospital Admin to see sensitive employee health inside the hospital', () => {
+    expect(canSeeSensitiveEmployeeHealth(ROLES.HOSPITAL_ADMIN)).toBe(true)
     expect(canSeeSensitiveEmployeeHealth(ROLES.LABORATORY,[],[CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH])).toBe(false)
     expect(canSeeSensitiveEmployeeHealth(ROLES.PLATFORM_OWNER)).toBe(true)
     expect(canSeeSensitiveEmployeeHealth(ROLES.OCCUPATIONAL_PHYSICIAN)).toBe(true)
