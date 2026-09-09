@@ -12,19 +12,19 @@ describe('Hospital Admin production Surveillance alignment',()=>{
     expect(scopeFor(CAPABILITIES.VIEW_SURVEILLANCE,{role:ROLES.HOSPITAL_ADMIN})).toBe(DATA_SCOPES.ORGANIZATION)
   })
 
-  it('adds Hospital Admin to the canonical patient/surveillance read boundary',()=>{
+  it('keeps the historical read migration intact',()=>{
     expect(migration).toContain("array['hospital_admin','infection_control_lead','infection_control_member']::public.app_role[]")
     expect(migration).toContain('create or replace function public.can_view_surveillance_record(target_org uuid,target_department uuid)')
     expect(migration).toContain('create policy patients_clinical_read on public.patients')
   })
 
-  it('does not widen clinical mutation or sensitive employee-health authority',()=>{
-    expect(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.CREATE_SURVEILLANCE)).toBe(false)
-    expect(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.EDIT_SURVEILLANCE)).toBe(false)
-    expect(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.REASSESS_SURVEILLANCE)).toBe(false)
-    expect(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(false)
-    expect(canSeeSensitiveEmployeeHealth(ROLES.HOSPITAL_ADMIN)).toBe(false)
-    expect(migration).not.toContain('create policy surveillance_insert')
-    expect(migration).not.toContain('create policy surveillance_update')
+  it('now grants Hospital Admin full hospital clinical and employee-health authority',()=>{
+    expect(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.CREATE_SURVEILLANCE)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.EDIT_SURVEILLANCE)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.REASSESS_SURVEILLANCE)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(true)
+    expect(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)).toBe(true)
+    expect(canSeeSensitiveEmployeeHealth(ROLES.HOSPITAL_ADMIN)).toBe(true)
+    expect(scopeFor(CAPABILITIES.EDIT_SURVEILLANCE,{role:ROLES.HOSPITAL_ADMIN})).toBe(DATA_SCOPES.ORGANIZATION)
   })
 })
