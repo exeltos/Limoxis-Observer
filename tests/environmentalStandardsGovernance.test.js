@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 
-const migration=fs.readFileSync('supabase/migrations/20260902114500_environmental_standards_governance_hardening.sql','utf8')
+const migration=fs.readFileSync('supabase/migrations/20260902114129_environmental_standards_governance_hardening.sql','utf8')
 const panel=fs.readFileSync('src/features/management/EnvironmentalStandardsPanel.jsx','utf8')
 
 describe('environmental standards governance',()=>{

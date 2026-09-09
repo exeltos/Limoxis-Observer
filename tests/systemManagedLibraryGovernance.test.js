@@ -5,8 +5,8 @@ const bundles=fs.readFileSync('src/features/management/BundleLibraryPanel.jsx','
 const libraries=fs.readFileSync('src/features/management/LibrariesPanel.jsx','utf8')
 const management=fs.readFileSync('src/features/management/ManagementPage.jsx','utf8')
 const service=fs.readFileSync('src/features/management/managementCloudService.js','utf8')
-const referenceMigration=fs.readFileSync('supabase/migrations/202609020103_platform_owner_system_reference_governance.sql','utf8')
-const libraryMigration=fs.readFileSync('supabase/migrations/202609020104_platform_owner_system_library_governance.sql','utf8')
+const referenceMigration=fs.readFileSync('supabase/migrations/20260902101726_platform_owner_system_reference_governance.sql','utf8')
+const libraryMigration=fs.readFileSync('supabase/migrations/20260902101828_platform_owner_system_library_governance.sql','utf8')
 
 describe('Platform Owner-only system library governance',()=>{
   it('restricts system Bundles to the Platform Owner',()=>{

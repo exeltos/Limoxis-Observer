@@ -5,7 +5,7 @@ const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 describe('committee approval deep-link route',()=>{
   it('builds email links with committee code, meeting key and approval id',()=>{
-    const sql=read('supabase/migrations/202609010038_v0308_committee_minutes_approval_deep_link.sql')
+    const sql=read('supabase/migrations/20260901203626_v0308_committee_minutes_approval_deep_link.sql')
     expect(sql).toContain('c.code')
     expect(sql).toContain('m.client_key')
     expect(sql).toContain("'?meeting='")

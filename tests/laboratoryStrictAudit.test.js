@@ -3,8 +3,8 @@ import fs from 'node:fs'
 
 const record=fs.readFileSync('src/features/laboratory/LaboratorySampleCloudRecordPage.jsx','utf8')
 const registry=fs.readFileSync('src/features/laboratory/LaboratoryCloudPage.jsx','utf8')
-const rejectionMigration=fs.readFileSync('supabase/migrations/20260902200000_laboratory_sample_rejection_state.sql','utf8')
-const indexMigration=fs.readFileSync('supabase/migrations/20260902195000_laboratory_operational_indexes.sql','utf8')
+const rejectionMigration=fs.readFileSync('supabase/migrations/20260902132937_laboratory_sample_rejection_state.sql','utf8')
+const indexMigration=fs.readFileSync('supabase/migrations/20260902132633_laboratory_operational_indexes.sql','utf8')
 
 describe('Laboratory strict production audit',()=>{
   it('models specimen rejection as a first-class state with mandatory reason',()=>{

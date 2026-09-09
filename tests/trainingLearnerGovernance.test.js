@@ -4,10 +4,10 @@ import fs from 'node:fs'
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 describe('training learner governance',()=>{
-  const learner=read('supabase/migrations/202609020004_v0318_training_authenticated_learner_actions.sql')
-  const hardened=read('supabase/migrations/202609020005_v0319_training_learner_rpc_execution_context.sql')
-  const feedback=read('supabase/migrations/202609020006_v0320_training_completion_feedback_projection.sql')
-  const identity=read('supabase/migrations/202609020007_v0321_training_assignment_identity_projection.sql')
+  const learner=read('supabase/migrations/20260901212538_v0318_training_authenticated_learner_actions.sql')
+  const hardened=read('supabase/migrations/20260901212547_v0319_training_learner_rpc_execution_context.sql')
+  const feedback=read('supabase/migrations/20260901212652_v0320_training_completion_feedback_projection.sql')
+  const identity=read('supabase/migrations/20260901212744_v0321_training_assignment_identity_projection.sql')
 
   it('binds check-in and completion to auth identity and assigned records',()=>{
     expect(learner).toContain('auth.uid()')

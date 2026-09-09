@@ -3,7 +3,7 @@ import fs from 'node:fs'
 
 const panel=fs.readFileSync('src/features/management/BedDaysPanel.jsx','utf8')
 const service=fs.readFileSync('src/features/management/patientDayPeriodsCloudService.js','utf8')
-const migration=fs.readFileSync('supabase/migrations/202609020102_patient_day_periods_governance.sql','utf8')
+const migration=fs.readFileSync('supabase/migrations/20260902101057_patient_day_periods_governance.sql','utf8')
 
 describe('Management Center patient days persistence',()=>{
   it('keeps demo patient-day data isolated from production loading',()=>{

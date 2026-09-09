@@ -4,7 +4,7 @@ import fs from 'node:fs'
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 describe('committee minutes revision cycle',()=>{
-  const sql=read('supabase/migrations/202609010040_v0310_committee_minutes_revision_cycle.sql')
+  const sql=read('supabase/migrations/20260901204314_v0310_committee_minutes_revision_cycle.sql')
 
   it('archives the previous approver decision before a new cycle starts',()=>{
     expect(sql).toContain('committee_minutes_approval_history')

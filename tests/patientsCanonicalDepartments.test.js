@@ -3,7 +3,7 @@ import fs from 'node:fs'
 
 const page=fs.readFileSync('src/features/patients/PatientsPage.jsx','utf8')
 const service=fs.readFileSync('src/features/patients/patientsService.js','utf8')
-const migration=fs.readFileSync('supabase/migrations/202609021245_clinical_core_rls_authenticated_scope.sql','utf8')
+const migration=fs.readFileSync('supabase/migrations/20260902115625_clinical_core_rls_authenticated_scope.sql','utf8')
 
 describe('patient registry governance',()=>{
   it('loads production department options from the hospital library',()=>{

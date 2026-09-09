@@ -2,8 +2,8 @@ import { describe,expect,it } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const governanceSql=fs.readFileSync(path.resolve('supabase/migrations/202609012245_v0304_committee_meeting_cancellation_governance.sql'),'utf8')
-const rpcSql=fs.readFileSync(path.resolve('supabase/migrations/202609012255_v0305_committee_meeting_cancel_rpc.sql'),'utf8')
+const governanceSql=fs.readFileSync(path.resolve('supabase/migrations/20260901200112_v0304_committee_meeting_cancellation_governance.sql'),'utf8')
+const rpcSql=fs.readFileSync(path.resolve('supabase/migrations/20260901200154_v0305_committee_meeting_cancel_rpc.sql'),'utf8')
 const service=fs.readFileSync(path.resolve('src/features/committees/committeeMeetingLifecycleService.js'),'utf8')
 const feedback=fs.readFileSync(path.resolve('src/core/feedback/userFacingError.js'),'utf8')
 

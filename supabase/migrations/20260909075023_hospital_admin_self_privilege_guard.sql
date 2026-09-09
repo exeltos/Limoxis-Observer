@@ -6,7 +6,7 @@ create or replace function public.prevent_self_membership_privilege_change()
 returns trigger
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = pg_catalog, pg_temp
 as $$
 begin
   if auth.uid() is not null and old.user_id = auth.uid() then
@@ -20,8 +20,9 @@ begin
 end;
 $$;
 
-revoke all on function public.prevent_self_membership_privilege_change() from public;
-grant execute on function public.prevent_self_membership_privilege_change() to authenticated;
+-- Trigger functions are invoked by the trigger manager regardless of EXECUTE
+-- grants, so no role needs direct call privileges on this function.
+revoke all on function public.prevent_self_membership_privilege_change() from public, authenticated;
 
 drop trigger if exists organization_members_self_privilege_guard on public.organization_members;
 create trigger organization_members_self_privilege_guard
@@ -32,7 +33,7 @@ create or replace function public.prevent_self_member_capability_change()
 returns trigger
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = pg_catalog, pg_temp
 as $$
 declare
   target_membership_id uuid;
@@ -52,8 +53,7 @@ begin
 end;
 $$;
 
-revoke all on function public.prevent_self_member_capability_change() from public;
-grant execute on function public.prevent_self_member_capability_change() to authenticated;
+revoke all on function public.prevent_self_member_capability_change() from public, authenticated;
 
 drop trigger if exists organization_member_capabilities_self_guard on public.organization_member_capabilities;
 create trigger organization_member_capabilities_self_guard
