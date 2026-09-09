@@ -31,7 +31,7 @@ describe('production indicator calculation',()=>{
   expect(service).not.toContain("onConflict:'organization_id,indicator_key,department_id,period_start,period_end'")
  })
  it('mirrors department-scoped snapshot RLS in migrations',()=>{
-  const migration=fs.readFileSync('supabase/migrations/20260902201000_indicator_snapshot_department_scope.sql','utf8')
+  const migration=fs.readFileSync('supabase/migrations/20260902142308_indicator_snapshot_department_scope.sql','utf8')
   expect(migration).toContain('current_user_has_department_scope')
   expect(migration).toContain("current_user_has_capability(organization_id, 'view_indicators')")
   expect(migration).toContain("current_user_has_capability(organization_id, 'manage_indicators')")

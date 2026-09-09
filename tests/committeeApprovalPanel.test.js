@@ -22,7 +22,7 @@ describe('committee minutes approval panel',()=>{
   })
 
   it('keeps decisions immutable at the database boundary',()=>{
-    const sql=read('supabase/migrations/202609010037_v0307_committee_minutes_rejection_comment_guard.sql')
+    const sql=read('supabase/migrations/20260901202943_v0307_committee_minutes_rejection_comment_guard.sql')
     expect(sql).toContain('COMMITTEE_APPROVAL_REJECTION_COMMENT_REQUIRED')
     expect(sql).toContain('COMMITTEE_APPROVAL_ALREADY_DECIDED')
   })

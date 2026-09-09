@@ -5,7 +5,7 @@ import { userFacingError } from '../src/core/feedback/userFacingError.js'
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 describe('committee member account resolution',()=>{
-  const sql=read('supabase/migrations/202609010045_v0315_committee_member_account_resolution.sql')
+  const sql=read('supabase/migrations/20260901210722_v0315_committee_member_account_resolution.sql')
 
   it('resolves only one active organization account by exact employee email',()=>{
     expect(sql).toContain("om.status='active'")

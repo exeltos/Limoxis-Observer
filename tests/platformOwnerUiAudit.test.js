@@ -103,7 +103,7 @@ describe('Platform Owner UI audit',()=>{
   })
 
   it('mirrors the Indicator private-schema usage fix without granting anon execution',()=>{
-    const source=read('supabase/migrations/20260903090000_indicator_private_schema_usage_grant.sql')
+    const source=read('supabase/migrations/20260903063445_indicator_private_schema_usage_grant.sql')
     expect(source).toContain('grant usage on schema private to authenticated')
     expect(source).toContain('revoke all on function private.indicator_metric_snapshot')
     expect(source).toContain('from public, anon')

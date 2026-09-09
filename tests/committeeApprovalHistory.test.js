@@ -5,7 +5,7 @@ const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 describe('committee approval audit history',()=>{
   it('allows authorized committee viewers to read archived approval cycles',()=>{
-    const sql=read('supabase/migrations/202609010044_v0314_committee_approval_history_visibility.sql')
+    const sql=read('supabase/migrations/20260901205447_v0314_committee_approval_history_visibility.sql')
     expect(sql).toContain('current_user_can_view_committee')
     expect(sql).toContain('grant select')
   })

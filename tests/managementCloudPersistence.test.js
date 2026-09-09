@@ -3,7 +3,7 @@ import fs from 'node:fs'
 
 const service=fs.readFileSync('src/features/management/managementCloudService.js','utf8')
 const page=fs.readFileSync('src/features/management/ManagementPage.jsx','utf8')
-const migration=fs.readFileSync('supabase/migrations/202609020101_management_center_cloud_governance.sql','utf8')
+const migration=fs.readFileSync('supabase/migrations/20260902095722_management_center_cloud_governance.sql','utf8')
 
 describe('Management Center production persistence',()=>{
   it('provides tenant scoped custom role persistence',()=>{

@@ -4,7 +4,7 @@ import { HOSPITAL_MANAGED_LIBRARY_KEYS,SYSTEM_BASELINE_LIBRARY_KEYS } from '../s
 
 const libraries=fs.readFileSync('src/features/management/LibrariesPanel.jsx','utf8')
 const service=fs.readFileSync('src/features/management/managementCloudService.js','utf8')
-const rls=fs.readFileSync('supabase/migrations/202609020104_platform_owner_system_library_governance.sql','utf8')
+const rls=fs.readFileSync('supabase/migrations/20260902101828_platform_owner_system_library_governance.sql','utf8')
 
 describe('canonical library governance classification',()=>{
  it('keeps hospital departments hospital-managed',()=>{
