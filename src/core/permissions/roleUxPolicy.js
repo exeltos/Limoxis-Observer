@@ -5,7 +5,7 @@ import { SCOPES } from './accessModel'
 // same boundaries so the UI never advertises records/actions a role cannot use.
 export const ROLE_UX_POLICY = Object.freeze({
   [ROLES.PLATFORM_OWNER]: { scope: SCOPES.PLATFORM, sensitiveEmployeeHealth: true, label: 'Platform Owner' },
-  [ROLES.HOSPITAL_ADMIN]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Hospital Admin' },
+  [ROLES.HOSPITAL_ADMIN]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Hospital Admin' },
   [ROLES.INFECTION_CONTROL_LEAD]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Infection Control Lead' },
   [ROLES.INFECTION_CONTROL_MEMBER]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Infection Control Member' },
   [ROLES.LINK_NURSE]: { scope: SCOPES.DEPARTMENT, sensitiveEmployeeHealth: false, label: 'Link Nurse' },
