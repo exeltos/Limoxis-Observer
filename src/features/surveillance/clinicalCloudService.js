@@ -357,19 +357,19 @@ export async function completeClinicalCase(organizationId,caseRecordId,patientRe
   const occurredAt=iso(draft.date||new Date())
   const {data:outcome,error:outcomeError}=await supabase.from('surveillance_outcomes').insert({organization_id:organizationId,surveillance_case_id:caseRecordId,patient_id:patientRecordId,outcome:draft.status,occurred_at:occurredAt,notes:draft.notes||null,created_by:actorId}).select('*').single()
   if(outcomeError)throw outcomeError
-  const {error:caseError}=await supabase.rpc('close_surveillance_case',{p_case_id:caseRecordId,p_reason:draft.notes||draft.status||null})
+  const {error:caseError}=await supabase.from('surveillance_cases').update({status:'closed',closed_at:occurredAt,close_reason:draft.notes||draft.status||null,closed_by:actorId}).eq('organization_id',organizationId).eq('id',caseRecordId)
   if(caseError)throw caseError
   return mapOutcome(outcome)
 }
 
 export async function voidClinicalCase(organizationId,caseRecordId,reason){
   assertCloud()
-  const {error}=await supabase.rpc('void_surveillance_case',{p_case_id:caseRecordId,p_reason:reason})
+  const {error}=await supabase.from('surveillance_cases').update({status:'cancelled',void_reason:reason}).eq('organization_id',organizationId).eq('id',caseRecordId)
   if(error)throw error
 }
 
 export async function reopenClinicalCase(organizationId,caseRecordId,reason){
   assertCloud()
-  const {error}=await supabase.rpc('reopen_surveillance_case',{p_case_id:caseRecordId,p_reason:reason})
+  const {error}=await supabase.from('surveillance_cases').update({status:'active',reopen_reason:reason}).eq('organization_id',organizationId).eq('id',caseRecordId)
   if(error)throw error
 }
