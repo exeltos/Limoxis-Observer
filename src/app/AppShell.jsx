@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Activity, ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, Home, Layers3, LogOut, Settings, ShieldCheck, UserRound, X } from 'lucide-react'
+import { ArrowLeft, Bell, BookOpen, ChevronDown, Eye, Home, Layers3, LogOut, UserRound, X } from 'lucide-react'
 import { navigationFor } from './navigation'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'

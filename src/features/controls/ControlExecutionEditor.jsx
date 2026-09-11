@@ -52,7 +52,7 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
    onDraftSaved?.(draft)
    notify(en?'Draft saved.':'Η προσωρινή καταχώρηση αποθηκεύτηκε.','success')
    return draft
-  }catch(error){notify(en?'The draft could not be saved.':'Δεν ήταν δυνατή η προσωρινή αποθήκευση.','error');return null}
+  }catch{notify(en?'The draft could not be saved.':'Δεν ήταν δυνατή η προσωρινή αποθήκευση.','error');return null}
   finally{setDraftSaving(false)}
  }
  async function submit(){
