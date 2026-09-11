@@ -10,11 +10,11 @@ const protectedRoute=fs.readFileSync(new URL('../src/core/auth/ProtectedRoute.js
 
 describe('route authorization alignment',()=>{
  it('protects Platform Center with VIEW_PLATFORM',()=>{
-  expect(app).toContain('gate(CAPABILITIES.VIEW_PLATFORM, <PlatformCenterPage />)')
+  expect(app).toContain('gate(CAPABILITIES.VIEW_PLATFORM,<PlatformCenterPage/>)')
  })
  it('protects self profile with VIEW_MY_PROFILE rather than VIEW_STAFF',()=>{
-  expect(app).toContain('gate(CAPABILITIES.VIEW_MY_PROFILE, <EmployeeRecordPage selfMode />)')
-  expect(app).not.toContain('gate(CAPABILITIES.VIEW_STAFF, <EmployeeRecordPage selfMode />)')
+  expect(app).toContain('gate(CAPABILITIES.VIEW_MY_PROFILE,<EmployeeRecordPage selfMode/>)')
+  expect(app).not.toContain('gate(CAPABILITIES.VIEW_STAFF,<EmployeeRecordPage selfMode/>)')
  })
  it('prevents incident reporters from creating non-incident quality records by direct URL',()=>{
   expect(qualityCreate).toContain("const canCreate=canManage||(recordType==='incidents'&&canReportIncident)")
@@ -22,19 +22,19 @@ describe('route authorization alignment',()=>{
   expect(qualityCreate).toContain('if(!canCreate)return')
  })
  it('keeps committee approval deep links usable without granting general committee access',()=>{
-  expect(app).toContain('<CommitteeRecordPageRoute />')
+  expect(app).toContain('<CommitteeRecordPageRoute/>')
   expect(committeeRoute).toContain('if(!canViewCommittee&&!approvalId)return <Navigate to="/" replace/>')
   expect(committeeRoute).toContain('loadCommitteeApprovalDeepLinkAsync')
  })
  it('exposes active membership state used by the tenant-aware HomeRoute',()=>{
-  expect(app).toContain('const { activeMembershipId, isDemo, loading } = useTenant()')
+  expect(app).toContain('const {activeMembershipId,isDemo,loading}=useTenant()')
   expect(tenantContext).toContain('activeMembershipId,')
  })
  it('guards organization analysis with its dedicated capability',()=>{
-  expect(app).toContain('gate(CAPABILITIES.VIEW_ANALYSIS, <AnalysisPage />)')
+  expect(app).toContain('gate(CAPABILITIES.VIEW_ANALYSIS,<AnalysisPage/>)')
  })
  it('waits for tenant resolution and uses a stable denied destination',()=>{
-  expect(capabilityGuard).toContain('if (loading) return <RouteLoading />')
+  expect(capabilityGuard).toContain('if (unresolvedTenantContext({ role, membership, loading })) return <RouteLoading />')
   expect(capabilityGuard).toContain('to="/access-denied"')
   expect(app).toContain('path="access-denied"')
  })

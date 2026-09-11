@@ -347,7 +347,6 @@
   .platform-info-sections,.platform-demo-info-sections{grid-template-columns:1fr}
   .platform-form-grid,.platform-demo-edit-grid,.platform-form-grid:has(>.manual-date-field){grid-template-columns:1fr}
   .platform-form-grid .field-wide{grid-column:auto}
-  .platform-org-analysis-link{align-items:flex-start;flex-direction:column}
   .platform-demo-row{align-items:flex-start;flex-direction:column}
   .platform-demo-progress{width:100%;min-width:0;text-align:left}
   .platform-analysis-page .analysis-filters label{width:100%;max-width:none}

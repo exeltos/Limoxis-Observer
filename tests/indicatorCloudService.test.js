@@ -21,7 +21,7 @@ describe('production indicator calculation',()=>{
   expect(wrapper).toContain('isDemo?<IndicatorsDemoPage/>:<IndicatorsCloudPage/>')
   expect(page).toContain('departmentScoped')
   expect(page).toContain('effectiveDepartment')
-  expect(page).toContain('trendFor')
+  expect(page).toContain('loadIndicatorSnapshots')
   expect(page).toContain('CAPABILITIES.MANAGE_INDICATORS')
  })
  it('updates an existing snapshot explicitly instead of relying on expression-index onConflict',()=>{

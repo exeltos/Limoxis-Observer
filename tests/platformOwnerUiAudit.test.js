@@ -15,7 +15,7 @@ describe('Platform Owner UI audit',()=>{
   it('keeps synthetic operational tasks out of production notifications',()=>{
     const source=read('src/core/notifications/NotificationContext.jsx')
     expect(source).toContain('demoOperationalText')
-    expect(source).toContain('if(!isDemo)return []')
+    expect(source).toContain('if(!isDemo)return liveOperational')
   })
 
   it('uses the canonical record shell for organization and demo records',()=>{
@@ -32,10 +32,11 @@ describe('Platform Owner UI audit',()=>{
 
   it('keeps root owner registries on the canonical Page, FilterBar and data-table pattern',()=>{
     const source=read('src/features/workspaces/PlatformCenterPage.jsx')
-    expect(source).toContain('className="platform-registry-shell"')
-    expect(source).toContain('<FilterBar')
-    expect(source).toContain('className="data-table sticky-table"')
-    expect(source).toContain('platform-owner-clickable-row')
+    const registry=read('src/features/platform/PlatformOrganizationsRegistry.jsx')
+    expect(registry).toContain('className="platform-registry-shell"')
+    expect(registry).toContain('<FilterBar')
+    expect(registry).toContain('className="data-table sticky-table"')
+    expect(registry).toContain('platform-owner-clickable-row')
     expect(source).not.toContain('className="platform-back-button"')
   })
 
@@ -43,9 +44,9 @@ describe('Platform Owner UI audit',()=>{
     const source=read('src/features/workspaces/PlatformCenterPage.jsx')
     expect(source).toContain('parsePlatformHash')
     expect(source).toContain('organization=${org.id}&tab=details')
-    expect(source).toContain('state: location.state')
+    expect(source).toContain('state:location.state')
     expect(source).toContain('location.state?.returnTo')
-    expect(source).toContain('organization=${selectedOrg.id}&tab=analysis')
+    expect(source).toContain('organization=${selectedOrg.id}&tab=${tab}')
   })
 
   it('uses shared record actions and localized role management in the Platform Owner workspace',()=>{
@@ -53,10 +54,11 @@ describe('Platform Owner UI audit',()=>{
     expect(source).toContain('<EntityRecordShell')
     expect(source).toContain('className="platform-org-actions"')
     expect(source).toContain('roleLabel(user.role,language)')
-    expect(source).toContain("tx('Λειτουργία & συμβάντα','Activity & events')")
+    expect(source).toContain("tx('Λειτουργία & Συμβάντα','Activity & Events')")
     expect(source).toContain('platform-form-shell')
     expect(source).toContain("role:'hospital_admin'")
-    expect(source).toContain("action:'update',role")
+    expect(source).toContain("action:'update'")
+    expect(source).toContain('role:userDraft.role||selectedUser.role')
   })
 
   it('renders Platform reports through the exact same Analysis workspace with platform scope only',()=>{

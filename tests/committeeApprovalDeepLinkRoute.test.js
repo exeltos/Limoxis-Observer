@@ -17,8 +17,8 @@ describe('committee approval deep-link route',()=>{
     const app=read('src/app/App.jsx')
     expect(route).toContain('if(!canViewCommittee&&!approvalId)return <Navigate')
     expect(route).toContain('loadCommitteeApprovalDeepLinkAsync')
-    expect(app).toContain('<CommitteeRecordPageRoute />')
-    expect(app).not.toContain('gate(CAPABILITIES.VIEW_COMMITTEES, <CommitteeRecordPageRoute />)')
+    expect(app).toContain('<CommitteeRecordPageRoute/>')
+    expect(app).not.toContain('gate(CAPABILITIES.VIEW_COMMITTEES,<CommitteeRecordPageRoute/>)')
   })
 
   it('verifies the approval belongs to the current user before loading it',()=>{
