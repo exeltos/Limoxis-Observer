@@ -71,8 +71,16 @@ export function PatientClinicalRecordPage({patientMode=false}){
   const canLab=Boolean(record)&&(has(CAPABILITIES.VIEW_LAB)||has(CAPABILITIES.VIEW_SURVEILLANCE))
   const canTherapy=Boolean(record)&&(has(CAPABILITIES.VIEW_PHARMACY)||has(CAPABILITIES.VIEW_SURVEILLANCE))
   const canClinical=canSurveillance||canLab||canTherapy
-  const canReopenSurveillance=has(CAPABILITIES.REOPEN_SURVEILLANCE)
-  const canDeleteSurveillance=has(CAPABILITIES.DELETE_SURVEILLANCE)
+  // TODO(clinical-cloud-persistence): creating/editing/deleting a surveillance
+  // episode here only mutates the in-memory record - none of it reaches
+  // Supabase outside demo mode. Editing is paused in production until the
+  // clinicalCloudService calls (createClinicalCase, saveClinicalAssessment,
+  // saveHaiClassification, startIsolation, addAntimicrobialTherapy,
+  // addClinicalReassessment, completeClinicalCase, and a real delete/void
+  // path) are wired in.
+  const canEditClinicalDocs=isDemo
+  const canReopenSurveillance=has(CAPABILITIES.REOPEN_SURVEILLANCE)&&canEditClinicalDocs
+  const canDeleteSurveillance=has(CAPABILITIES.DELETE_SURVEILLANCE)&&canEditClinicalDocs
   const tabDefinitions=[
     {id:'summary',label:t('summary'),icon:UserRound,show:true},
     {id:'admissions',label:t('clinicalRecords.admissions'),icon:BedDouble,show:patientMode&&Boolean(patient)},
@@ -138,12 +146,13 @@ export function PatientClinicalRecordPage({patientMode=false}){
       selectedEpisodeId={record?.id||''}
       onSelect={setSelectedEpisodeId}
       onNewSurveillance={()=>setNewSurveillanceOpen(true)}
-      canCreateSurveillance={has(CAPABILITIES.CREATE_SURVEILLANCE)}
+      canCreateSurveillance={has(CAPABILITIES.CREATE_SURVEILLANCE)&&canEditClinicalDocs}
       t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime}
       canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy}
       patientName={patientName} patientCode={patientCode} department={department}
       organizationName={tenant?.name||membership?.organization?.name||t('clinicalRecords.hospital')}
       canReopenSurveillance={canReopenSurveillance}
+      canEditClinicalDocs={canEditClinicalDocs}
       actor={actor}
       canDeleteSurveillance={canDeleteSurveillance}
       onDeleteSurveillance={(episodeId,reason)=>{
@@ -235,7 +244,7 @@ function NewAdmissionCard({t,language,onClose,onSave}){
 }
 
 
-function SurveillanceWorkspace({episodes,onSelect,onNewSurveillance,canCreateSurveillance,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,actor,canDeleteSurveillance,onDeleteSurveillance}){
+function SurveillanceWorkspace({episodes,onSelect,onNewSurveillance,canCreateSurveillance,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,canEditClinicalDocs,actor,canDeleteSurveillance,onDeleteSurveillance}){
   const [episodeRows,setEpisodeRows]=useState(episodes)
   useEffect(()=>setEpisodeRows(episodes),[episodes])
   const active=episodeRows.filter(x=>x.status==='active')
@@ -262,6 +271,7 @@ function SurveillanceWorkspace({episodes,onSelect,onNewSurveillance,canCreateSur
       patientName={patientName} patientCode={patientCode} department={department}
       organizationName={organizationName}
       canReopenSurveillance={canReopenSurveillance}
+      canEditClinicalDocs={canEditClinicalDocs}
       actor={actor}
       canDeleteSurveillance={canDeleteSurveillance}
       onDeleteSurveillance={onDeleteSurveillance}
@@ -306,7 +316,7 @@ function EpisodeList({title,tone,episodes,onOpen,t,fmtDate}){
     </div>
   </section>
 }
-function EpisodeDetailOverlay({record,onClose,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,onReopen,canDeleteSurveillance,onDeleteSurveillance}){
+function EpisodeDetailOverlay({record,onClose,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,canEditClinicalDocs,onReopen,canDeleteSurveillance,onDeleteSurveillance}){
   const completed=record.status!=='active'
   const [reopenOpen,setReopenOpen]=useState(false)
   const [reopenReason,setReopenReason]=useState('')
@@ -333,7 +343,7 @@ function EpisodeDetailOverlay({record,onClose,t,language,fmtDate,fmtDateTime,can
       <div className="episode-detail-scroll">
         {completed
           ? <CompletedSurveillanceReport record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName}/>
-          : <ActiveSurveillanceReport record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName}/>}
+          : <ActiveSurveillanceReport record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy} canEditClinicalDocs={canEditClinicalDocs} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName}/>}
       </div>
       {deleteOpen&&<div className="reopen-confirm-backdrop"><div className="reopen-confirm-card delete-surveillance-confirm"><span className="eyebrow">{t('clinicalRecords.restrictedAction')}</span><h3>{t('clinicalRecords.deleteSurveillance')}</h3><p>{t('clinicalRecords.deleteSurveillanceWarning')}</p><label><span>{t('reasonRequired')}</span><textarea value={deleteReason} onChange={e=>setDeleteReason(e.target.value)} rows={4} autoFocus placeholder={t('clinicalRecords.deleteSurveillanceReasonPlaceholder')}/></label><div><Button variant="secondary" onClick={()=>{setDeleteOpen(false);setDeleteReason('')}}>{t('cancel')}</Button><Button variant="danger" disabled={!deleteReason.trim()} onClick={removeEpisode}>{t('delete')}</Button></div></div></div>}
       {reopenOpen&&<div className="reopen-confirm-backdrop"><div className="reopen-confirm-card"><span className="eyebrow">{t('clinicalRecords.restrictedAction')}</span><h3>{t('clinicalRecords.reopenSurveillance')}</h3><p>{t('clinicalRecords.reopenSurveillanceWarning')}</p><label><span>{t('reasonRequired')}</span><textarea value={reopenReason} onChange={e=>setReopenReason(e.target.value)} rows={4} autoFocus/></label><div><Button variant="secondary" onClick={()=>{setReopenOpen(false);setReopenReason('')}}>{t('cancel')}</Button><Button disabled={!reopenReason.trim()} onClick={reopen}>{t('clinicalRecords.restoreToActive')}</Button></div></div></div>}
@@ -407,17 +417,21 @@ function CompletedSurveillanceReport({record,t,language,fmtDate,fmtDateTime,pati
 }
 function NarrativeSection({number,title,text}){return <section className="final-report-narrative"><div className="final-report-section-heading"><span>{number}</span><h3>{title}</h3></div><p>{text}</p></section>}
 
-function ActiveSurveillanceReport({record,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName}){
+function ActiveSurveillanceReport({record,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,canEditClinicalDocs,patientName,patientCode,department,organizationName}){
   return <div className="episode-report active-report">
     <ReportIdentity record={record} t={t} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName} fmtDate={fmtDate} language={language}/>
-    <SurveillanceJourney record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy}/>
+    <SurveillanceJourney record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy} canEditClinicalDocs={canEditClinicalDocs}/>
   </div>
 }
 
-function SurveillanceJourney({record,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy}){
+function SurveillanceJourney({record,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,canEditClinicalDocs}){
   const linkedLab=laboratorySamples.filter(x=>x.surveillanceCase===record.id)
-  const validatedLab=linkedLab.filter(x=>x.resultStatus==='validated'&&x.organism)
   const effectiveSamples=linkedLab.length?linkedLab:record.samples
+  // A sample only carries an organism once a microbiology result has been
+  // validated (see mapSample in clinicalCloudService), so this holds for
+  // both the demo laboratory shape (resultStatus/organism) and the cloud
+  // shape (result/organism) without needing to know which one we're on.
+  const validatedLab=effectiveSamples.filter(x=>Boolean(x.organism))
   const unlocked={
     assessment:true,
     samples:Boolean(record.assessment),
@@ -429,20 +443,21 @@ function SurveillanceJourney({record,t,language,fmtDate,fmtDateTime,canSurveilla
   }
   const nodes=[
     {id:'assessment',label:t('clinicalAssessment'),icon:ShieldCheck,show:canSurveillance,status:record.assessment?'complete':'pending',meta:record.assessment?fmtDate(record.assessment.date):t('pending')},
-    {id:'samples',label:t('sampleAndLaboratory'),icon:Microscope,show:canLab,status:linkedLab.length?'complete':'pending',meta:linkedLab.length?(validatedLab.length?`${linkedLab.length} · ${validatedLab.length} ${t('clinicalRecords.validated').toLowerCase()}`:`${linkedLab.length} · ${t('waitingForLaboratory')}`):t('clinicalRecords.notStarted')},
+    {id:'samples',label:t('sampleAndLaboratory'),icon:Microscope,show:canLab,status:effectiveSamples.length?'complete':'pending',meta:effectiveSamples.length?(validatedLab.length?`${effectiveSamples.length} · ${validatedLab.length} ${t('clinicalRecords.validated').toLowerCase()}`:`${effectiveSamples.length} · ${t('waitingForLaboratory')}`):t('clinicalRecords.notStarted')},
     {id:'hai',label:t('haiAmr'),icon:AlertTriangle,show:canSurveillance,status:record.haiClassification?'complete':'pending',meta:record.resistance||t(record.haiClassification?.status||'pending')},
     {id:'isolation',label:t('isolation'),icon:BedDouble,show:canSurveillance,status:(record.isolation||record.isolationDecision?.required===false)?'complete':'pending',meta:record.isolation?t(record.isolation.status):(record.isolationDecision?.required===false?t('notRequired'):t('clinicalRecords.notStarted'))},
     {id:'therapy',label:t('therapy'),icon:Pill,show:canTherapy,status:record.therapy.length?'complete':'pending',meta:record.therapy[0]?.antimicrobial||t('clinicalRecords.notStarted')},
     {id:'reassessment',label:t('reassessment'),icon:RefreshCcw,show:canSurveillance,status:record.reassessments.length?'complete':'due',meta:record.reassessments[0]?fmtDate(record.reassessments[0].date):(record.reviewDue?fmtDate(record.reviewDue):t('notScheduled'))},
     {id:'outcome',label:t('outcome'),icon:CircleCheckBig,show:canSurveillance,status:record.outcome?'complete':'pending',meta:record.outcome?t(record.outcome.status):t('pending')},
-  ].filter(x=>x.show).map(x=>({...x,locked:!unlocked[x.id]}))
+  ].filter(x=>x.show).map(x=>({...x,locked:!unlocked[x.id]||(x.id!=='samples'&&!canEditClinicalDocs)}))
   const {notify,confirm}=useFeedback()
   const [section,setSection]=useState(null)
   return <div className="surveillance-journey">
     <div className="journey-heading"><div><span className="eyebrow">{t('activeSurveillance')}</span><h3>{t('surveillanceJourney')}</h3><p>{t('clinicalRecords.strictActiveJourneyHelp')}</p></div><span className="journey-case-id">{record.id}</span></div>
-    <JourneyGuidance record={{...record,samples:effectiveSamples}} t={t} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy} onSelect={id=>{if(unlocked[id])setSection(id)}}/>
+    {!canEditClinicalDocs&&<div className="governance-banner warning"><AlertTriangle size={16}/><span>{t('clinicalRecords.editingPausedPendingCloudSync')}</span></div>}
+    <JourneyGuidance record={{...record,samples:effectiveSamples}} t={t} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy} onSelect={id=>{if(unlocked[id]&&(id==='samples'||canEditClinicalDocs))setSection(id)}}/>
     <div className="journey-map strict-journey-map">
-      <button className={`journey-start journey-start-button ${section==='start'?'active':''}`} onClick={()=>canSurveillance&&setSection('start')}><CheckCircle2 size={16}/><span>{t('surveillanceStarted')}</span><strong>{fmtDate(record.startedAt)}</strong></button>
+      <button className={`journey-start journey-start-button ${section==='start'?'active':''}`} disabled={!canEditClinicalDocs} onClick={()=>canSurveillance&&canEditClinicalDocs&&setSection('start')}><CheckCircle2 size={16}/><span>{t('surveillanceStarted')}</span><strong>{fmtDate(record.startedAt)}</strong></button>
       <div className="journey-connector vertical"/>
       <div className="journey-nodes strict-nodes">{nodes.slice(0,5).map(node=><JourneyNode key={node.id} node={node} active={section===node.id} onClick={()=>!node.locked&&setSection(node.id)}/>)}</div>
       {nodes.some(x=>x.id==='reassessment')&&<><div className="journey-connector vertical"/><div className="journey-final-row">{nodes.filter(x=>x.id==='reassessment'||x.id==='outcome').map(node=><JourneyNode key={node.id} node={node} active={section===node.id} onClick={()=>!node.locked&&setSection(node.id)}/>)}</div></>}
