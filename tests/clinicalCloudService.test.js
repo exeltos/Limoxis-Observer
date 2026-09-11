@@ -34,14 +34,15 @@ describe('clinical cloud service',()=>{
   it('supports reassessment and completion persistence',()=>{
     expect(service).toContain('export async function addClinicalReassessment')
     expect(service).toContain('export async function completeClinicalCase')
-    expect(service).toContain("rpc('close_surveillance_case'")
+    expect(service).toContain("status:'closed'")
+    expect(service).toContain('closed_by:actorId')
   })
 
   it('supports voiding and reopening a surveillance case with a mandatory reason',()=>{
     expect(service).toContain('export async function voidClinicalCase')
     expect(service).toContain('export async function reopenClinicalCase')
-    expect(service).toContain("rpc('void_surveillance_case'")
-    expect(service).toContain("rpc('reopen_surveillance_case'")
+    expect(service).toContain("status:'cancelled',void_reason:reason")
+    expect(service).toContain("status:'active',reopen_reason:reason")
   })
 
   it('validates canonical department scope before clinical case creation',()=>{
