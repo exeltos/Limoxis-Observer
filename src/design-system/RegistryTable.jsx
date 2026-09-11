@@ -27,7 +27,11 @@ export function RegistryTable({
       return <tr key={rowKey(row,index)} {...supplied}>{rendered}</tr>
     })}</tbody>
   </table>
-  const emptyState=(!hasRows||empty)&&<div className="inline-empty" role="status"><strong>{emptyTitle}</strong>{emptyText&&<span>{emptyText}</span>}</div>
+  // Only render the built-in empty state when the caller opted in with
+  // emptyTitle - otherwise a caller managing its own empty-state UI
+  // (a sibling registry-empty-state, a different tab's placeholder, etc.)
+  // would end up with an extra, textless box whenever rows is empty.
+  const emptyState=Boolean(emptyTitle)&&(!hasRows||empty)&&<div className="inline-empty" role="status"><strong>{emptyTitle}</strong>{emptyText&&<span>{emptyText}</span>}</div>
   // bare: caller already owns the scroll wrapper (e.g. one shared wrapper
   // around several conditionally-rendered tables) - render just the table.
   if(bare)return <>{table}{emptyState}</>
