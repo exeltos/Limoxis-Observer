@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, BedDouble, FileClock, ListTree, Microscope, ShieldCheck, Syringe, UserRound } from 'lucide-react'
+import { Activity, AlertTriangle, BedDouble, FileClock, ListTree, Microscope, RefreshCcw, ShieldCheck, Syringe, Trash2, UserRound } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -27,11 +27,13 @@ import {
   loadClinicalCases,
   loadClinicalCasesForPatient,
   removeSurveillanceDevice,
+  reopenClinicalCase,
   requestLaboratorySample,
   saveAmrClassification,
   saveClinicalAssessment,
   saveHaiClassification,
   startIsolation,
+  voidClinicalCase,
 } from './clinicalCloudService'
 
 export function PatientClinicalCloudRecordPage({patientMode=false}){
@@ -115,7 +117,7 @@ export function PatientClinicalCloudRecordPage({patientMode=false}){
       {activeTab==='summary'&&<CloudSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate}/>} 
       {activeTab==='admissions'&&<CloudAdmissions rows={admissions} t={t} fmtDate={fmtDate}/>} 
       {activeTab==='surveillance'&&<CloudSurveillanceList episodes={episodes} selectedId={record?.id} onSelect={id=>{setSelectedEpisodeId(id);setTab('clinical')}} canCreate={patientMode&&has(CAPABILITIES.CREATE_SURVEILLANCE)} onCreate={()=>setCreateOpen(true)} t={t} fmtDate={fmtDate}/>} 
-      {activeTab==='clinical'&&record&&<CloudClinicalJourney record={record} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canAssess={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} canEdit={has(CAPABILITIES.EDIT_SURVEILLANCE)} canClassifyResistance={has(CAPABILITIES.CLASSIFY_RESISTANCE)} canIsolation={has(CAPABILITIES.MANAGE_ISOLATION)} canTherapy={has(CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)} canReassess={has(CAPABILITIES.REASSESS_SURVEILLANCE)} canOutcome={has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE)} onSaved={()=>reloadCases(record.id)} tenantId={tenant?.id}/>} 
+      {activeTab==='clinical'&&record&&<CloudClinicalJourney record={record} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canAssess={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} canEdit={has(CAPABILITIES.EDIT_SURVEILLANCE)} canClassifyResistance={has(CAPABILITIES.CLASSIFY_RESISTANCE)} canIsolation={has(CAPABILITIES.MANAGE_ISOLATION)} canTherapy={has(CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)} canReassess={has(CAPABILITIES.REASSESS_SURVEILLANCE)} canOutcome={has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE)} canDelete={has(CAPABILITIES.DELETE_SURVEILLANCE)} canReopen={has(CAPABILITIES.REOPEN_SURVEILLANCE)} onSaved={()=>reloadCases(record.id)} tenantId={tenant?.id}/>}
       {activeTab==='history'&&record&&<CloudTimeline record={record} t={t} fmtDateTime={fmtDateTime}/>} 
       {createOpen&&patient&&<CreateCloudSurveillance patient={patient} tenantId={tenant?.id} t={t} language={language} onClose={()=>setCreateOpen(false)} onCreated={async created=>{setCreateOpen(false);await reloadCases(created.id);setTab('clinical');notify(t('surveillanceCreated'),'success')}}/>}
     </EntityRecordShell>
@@ -129,16 +131,38 @@ function CloudSummary({patient,record,t,language,fmtDate}){
 function CloudAdmissions({rows,t,fmtDate}){return <section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.admissions')}</h3></div></div>{rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('admissionDate')}</th><th>{t('department')}</th><th>{t('clinicalRecords.dischargeDate')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td>{fmtDate(row.admissionDate)}</td><td>{row.department||'—'}</td><td>{fmtDate(row.dischargeDate)}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></td></tr>)}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noAdmissions')}</div>}</section>}
 function CloudSurveillanceList({episodes,selectedId,onSelect,canCreate,onCreate,t,fmtDate}){return <section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('surveillance')}</span><h3>{t('clinicalRecords.surveillanceEpisodes')}</h3></div>{canCreate&&<Button onClick={onCreate}>+ {t('newSurveillance')}</Button>}</div>{episodes.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>ID</th><th>{t('period')}</th><th>{t('status')}</th><th>{t('nextReview')}</th></tr></thead><tbody>{episodes.map(row=><tr key={row.id} className={row.id===selectedId?'is-selected':''} tabIndex={0} onClick={()=>onSelect(row.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelect(row.id)}}}><td><strong>{row.id}</strong></td><td>{fmtDate(row.startedAt)}{row.completedAt?` → ${fmtDate(row.completedAt)}`:''}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></td><td>{fmtDate(row.reviewDue)}</td></tr>)}</tbody></table></div>:<EmptyState title={t('clinicalRecords.noActiveSurveillance')} description={t('clinicalRecords.noClinicalData')}/>}</section>}
 
-function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,canClassifyResistance,canIsolation,canTherapy,canReassess,canOutcome,onSaved,tenantId}){
+function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,canClassifyResistance,canIsolation,canTherapy,canReassess,canOutcome,canDelete,canReopen,onSaved,tenantId}){
   const {notify}=useFeedback()
   const [dialog,setDialog]=useState(null)
+  const [deleteOpen,setDeleteOpen]=useState(false)
+  const [deleteReason,setDeleteReason]=useState('')
+  const [reopenOpen,setReopenOpen]=useState(false)
+  const [reopenReason,setReopenReason]=useState('')
+  const isActive=record.status==='active'
   const activeIsolation=record.isolations?.find(row=>row.status==='active')
   const activeTherapies=(record.therapy||[]).filter(row=>row.status==='active'||row.status==='planned')
   const activeDevices=(record.devices||[]).filter(row=>row.status==='active')
   const microbiology=(record.samples||[]).flatMap(sample=>(sample.microbiologyResults||[]).map(result=>({...result,sampleCode:sample.id})))
   const unclassifiedResult=microbiology.find(result=>!result.amr&&result.organism)
   const saveAndClose=async(work,message)=>{await work();setDialog(null);await onSaved();notify(message,'success')}
-  return <div className="clinical-data-hub"><div className="clinical-data-heading"><span className="eyebrow">{t('surveillance')}</span><h3>{t('surveillanceJourney')}</h3></div><div className="clinical-data-grid">
+  async function voidCase(){
+    if(!deleteReason.trim())return
+    try{await voidClinicalCase(tenantId,record.recordId,deleteReason.trim());setDeleteOpen(false);setDeleteReason('');await onSaved();notify(t('clinicalRecords.surveillanceDeleted'),'success')}
+    catch(error){notify(error?.message||t('actionFailed'),'error')}
+  }
+  async function reopenCase(){
+    if(!reopenReason.trim())return
+    try{await reopenClinicalCase(tenantId,record.recordId,reopenReason.trim());setReopenOpen(false);setReopenReason('');await onSaved();notify(t('clinicalRecords.surveillanceUpdated'),'success')}
+    catch(error){notify(error?.message||t('actionFailed'),'error')}
+  }
+  return <div className="clinical-data-hub"><div className="clinical-data-heading"><div><span className="eyebrow">{t('surveillance')}</span><h3>{t('surveillanceJourney')}</h3></div><div className="episode-detail-actions">
+    {isActive&&canDelete&&<button className="delete-surveillance-button" title={t('clinicalRecords.deleteSurveillance')} aria-label={t('clinicalRecords.deleteSurveillance')} onClick={()=>setDeleteOpen(true)}><Trash2 size={16}/></button>}
+    {!isActive&&canReopen&&<button className="reopen-surveillance-button" title={t('clinicalRecords.reopenSurveillance')} aria-label={t('clinicalRecords.reopenSurveillance')} onClick={()=>setReopenOpen(true)}><RefreshCcw size={16}/></button>}
+  </div></div>
+  {deleteOpen&&<div className="reopen-confirm-backdrop"><div className="reopen-confirm-card delete-surveillance-confirm"><span className="eyebrow">{t('clinicalRecords.restrictedAction')}</span><h3>{t('clinicalRecords.deleteSurveillance')}</h3><p>{t('clinicalRecords.deleteSurveillanceWarning')}</p><label><span>{t('reasonRequired')}</span><textarea value={deleteReason} onChange={e=>setDeleteReason(e.target.value)} rows={4} autoFocus placeholder={t('clinicalRecords.deleteSurveillanceReasonPlaceholder')}/></label><div><Button variant="secondary" onClick={()=>{setDeleteOpen(false);setDeleteReason('')}}>{t('cancel')}</Button><Button variant="danger" disabled={!deleteReason.trim()} onClick={voidCase}>{t('delete')}</Button></div></div></div>}
+  {reopenOpen&&<div className="reopen-confirm-backdrop"><div className="reopen-confirm-card"><span className="eyebrow">{t('clinicalRecords.restrictedAction')}</span><h3>{t('clinicalRecords.reopenSurveillance')}</h3><p>{t('clinicalRecords.reopenSurveillanceWarning')}</p><label><span>{t('reasonRequired')}</span><textarea value={reopenReason} onChange={e=>setReopenReason(e.target.value)} rows={4} autoFocus/></label><div><Button variant="secondary" onClick={()=>{setReopenOpen(false);setReopenReason('')}}>{t('cancel')}</Button><Button disabled={!reopenReason.trim()} onClick={reopenCase}>{t('clinicalRecords.restoreToActive')}</Button></div></div></div>}
+  {!isActive&&<div className="governance-banner"><AlertTriangle size={16}/><span>{t('clinicalRecords.completedRecordReadOnly')}</span></div>}
+  <div className="clinical-data-grid">
     <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('clinicalAssessment')}</strong><small>{record.assessment?fmtDate(record.assessment.date||record.startedAt):t('pending')}</small></div>{canAssess&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('assessment')}>{record.assessment?t('clinicalRecords.addReassessment'):t('clinicalRecords.add')}</Button>}</div>{record.assessment?<div className="evidence-box"><strong>{t(record.assessment.classification||'undetermined')}</strong><span>{record.assessment.summary||'—'}</span></div>:<div className="inline-empty">{t('clinicalRecords.assessmentPending')}</div>}</section>
 
     <section className="clinical-panel full-panel"><div className="record-section-header"><div><ShieldCheck size={17}/><strong>{t('haiClassification')}</strong></div>{canAssess&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('hai')}>+ {t('classification')}</Button>}</div>{record.haiClassification?<div className="evidence-box"><strong>{record.haiClassification.type} · {t(record.haiClassification.status)}</strong><span>{record.haiClassification.rationale||record.haiClassification.definitionSet}</span></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
