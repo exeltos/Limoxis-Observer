@@ -45,6 +45,7 @@ vi.mock('../src/core/supabase/client', () => ({
                 }),
               }),
             }),
+            in: (_idCol, departmentIds) => Promise.resolve({ data: [...departmentRows.values()].flat().filter(d=>departmentIds.includes(d.id)), error: null }),
           }),
         }
       }

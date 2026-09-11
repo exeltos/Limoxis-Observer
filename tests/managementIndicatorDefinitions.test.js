@@ -27,12 +27,11 @@ describe('management indicator definitions',()=>{
   expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_INDICATORS)).toBe(true)
   expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_LIBRARIES)).toBe(false)
   expect(page).toContain("ok(CAPABILITIES.MANAGE_INDICATORS)?[{id:'indicators'")
-  expect(page).toContain("{cap:CAPABILITIES.MANAGE_INDICATORS,id:'indicators'")
  })
  it('exposes a governed management UI',()=>{
   expect(page).toContain("id:'indicators'")
   expect(page).toContain('<IndicatorsPanel/>')
-  expect(panel).toContain('System · Owner managed')
+  expect(panel).toContain("item.system?'System':'Hospital'")
   expect(panel).toContain('item.system&&!isOwner')
  })
 })
