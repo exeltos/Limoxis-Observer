@@ -2,12 +2,9 @@ import { useEffect,useMemo,useState } from 'react'
 import { Activity,AlertTriangle,Clock3,Microscope } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
-import { Button } from '../../design-system/Button'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
-import { SaveButton } from '../../design-system/SaveButton'
-import { ManualDateField } from '../../design-system/ManualDateField'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -17,17 +14,16 @@ import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { createPatient,loadPatients } from '../patients/patientsService'
-import { NewPatientCard } from '../patients/PatientsPage'
+import { loadPatients } from '../patients/patientsService'
 import { loadDepartments } from '../management/departmentsService'
 import { createLaboratorySample,getEnvironmentalKpis,loadLaboratorySamples } from '../laboratory/laboratoryCloudService'
-import { createClinicalCase,loadClinicalCases } from './clinicalCloudService'
+import { createClinicalCase,loadClinicalCases,requestLaboratorySample,saveClinicalAssessment,saveClinicalEvent,startIsolation } from './clinicalCloudService'
 import { loadEmployeeSurveillanceBatches,loadEmployeeSurveillanceRecords,getEmployeeSurveillanceKpis } from './employeeSurveillanceCloudService'
 import { EnvironmentalRegistry,EnvironmentalSurveillanceFlow } from './EnvironmentalSurveillanceFlow'
 import { ProductionEmployeeSurveillanceFlow } from './ProductionEmployeeSurveillanceFlow'
 import { EmployeeSurveillanceRecordDialog } from './EmployeeSurveillanceRecordDialog'
+import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 
-const today=()=>new Date().toISOString().slice(0,10)
 const reviewState=row=>row.status!=='active'?'completed':row.reviewDue&&new Date(`${row.reviewDue}T23:59:59`)<new Date()?'overdue':'inProgress'
 const latestOrganism=row=>row.samples?.find(sample=>sample.organism)?.organism||null
 const latestResistance=row=>row.samples?.find(sample=>sample.resistance)?.resistance||null
@@ -47,8 +43,7 @@ export function ProductionSurveillancePage(){
   const [query,setQuery]=useState(restored.query||''),[department,setDepartment]=useState(restored.department||'all'),[resistance,setResistance]=useState(restored.resistance||'all'),[review,setReview]=useState(restored.review||'all')
   const [environmentQuery,setEnvironmentQuery]=useState(restored.environmentQuery||''),[environmentType,setEnvironmentType]=useState(restored.environmentType||'all'),[environmentDepartment,setEnvironmentDepartment]=useState(restored.environmentDepartment||'all'),[environmentStatus,setEnvironmentStatus]=useState(restored.environmentStatus||'all')
   const [employeeQuery,setEmployeeQuery]=useState(restored.employeeQuery||''),[employeeDepartment,setEmployeeDepartment]=useState(restored.employeeDepartment||'all'),[employeeStatus,setEmployeeStatus]=useState(restored.employeeStatus||'all')
-  const [registryMode,setRegistryMode]=useState(restored.registryMode||'patients'),[page,setPage]=useState(restored.page||1),[pageSize,setPageSize]=useState(restored.pageSize||15),[creationMode,setCreationMode]=useState(null),[saving,setSaving]=useState(false),[newPatientOpen,setNewPatientOpen]=useState(false)
-  const [draft,setDraft]=useState({patientId:'',startedAt:today(),reviewDue:'',room:'',reason:''})
+  const [registryMode,setRegistryMode]=useState(restored.registryMode||'patients'),[page,setPage]=useState(restored.page||1),[pageSize,setPageSize]=useState(restored.pageSize||15),[creationMode,setCreationMode]=useState(null)
   const registry=useRegistryMemory(`surveillance-${registryMode}`)
   const environmentalDepartmentOptions=useMemo(()=>departmentOptions.map(item=>({value:item.id,label:item.name,labelEn:item.nameEn||item.name})),[departmentOptions])
 
@@ -104,16 +99,18 @@ export function ProductionSurveillancePage(){
   const surveillanceView=()=>({registryMode,page:safePage,pageSize,query,department,resistance,review,environmentQuery,environmentType,environmentDepartment,environmentStatus,employeeQuery,employeeDepartment,employeeStatus})
   const openLinkedRecord=(path,id,orderedIds=[],state={})=>registry.openRecord(navigate,path,id,orderedIds,{state,returnState:{surveillanceView:surveillanceView()}})
 
-  async function createPatientRecord(){
-    const patient=patients.find(item=>item.id===draft.patientId);if(!patient||!draft.startedAt||!draft.reason.trim()||saving)return
-    setSaving(true)
-    try{
-      const created=await createClinicalCase(tenant.id,patient.recordId,{startedAt:draft.startedAt,reviewDue:draft.reviewDue||null,room:draft.room.trim(),reason:draft.reason.trim(),departmentId:patient.departmentId||null})
-      setRecords(current=>[created,...current]);setCreationMode(null);setDraft({patientId:'',startedAt:today(),reviewDue:'',room:'',reason:''});notify(t('surveillanceCreated'),'success')
-      navigate(`/surveillance/${created.recordId||created.id}`,{state:{returnTo:'/surveillance',surveillanceView:{...surveillanceView(),registryMode:'patients'}}})
-    }catch(error){notifyError(error,'save',{operation:'surveillance_create'})}finally{setSaving(false)}
+  async function createPatientSurveillance(startDraft,patient){
+    const created=await createClinicalCase(tenant.id,patient.recordId,startDraft)
+    setRecords(current=>[created,...current])
+    notify(t('surveillanceCreated'),'success')
+    return created
   }
-  async function createInlinePatient(patientDraft){try{const {record:patient,list}=await createPatient(tenant?.id,patients,patientDraft,{isDemo:false});setPatients(list);setDraft(current=>({...current,patientId:patient.id,startedAt:current.startedAt||patient.admissionDate||today()}));setNewPatientOpen(false);notify(t('patientCreated'),'success')}catch(error){notify(error?.duplicateCode?t('patientCodeDuplicate'):(error?.message||t('patientSaveFailed')),'danger')}}
+  async function savePatientAssessment(record,assessment){return saveClinicalAssessment(tenant.id,record,assessment)}
+  async function requestPatientSample(record,sample){return requestLaboratorySample(tenant.id,record,sample)}
+  async function savePatientIsolation(record,isolation){
+    if(isolation.required===false){await saveClinicalEvent(tenant.id,record.recordId,'isolation_not_required',{required:false,detail:'no'});return null}
+    return startIsolation(tenant.id,record,isolation)
+  }
   async function createEnvironmentalSample({patientRecordId,draft:sampleDraft}){
     const created=await createLaboratorySample(tenant?.id,patientRecordId,sampleDraft)
     setLabSamples(current=>[created,...current])
@@ -156,9 +153,8 @@ export function ProductionSurveillancePage(){
       </div>
     </div>
     {creationMode==='chooser'&&<SubjectChooser language={language} canEmployee={canSeeEmployeeSurveillance} canEnvironmental={canSeeEnvironmental} onClose={()=>setCreationMode(null)} onPatient={()=>setCreationMode('patient')} onEmployee={()=>setCreationMode('employee')} onEnvironmental={()=>setCreationMode('environmental')}/>} 
-    {creationMode==='patient'&&<ObserverDialog width="wide" eyebrow={language==='en'?'Patient surveillance':'Επιτήρηση ασθενούς'} title={language==='en'?'Start surveillance':'Έναρξη επιτήρησης'} subtitle={language==='en'?'Select an existing patient or create a new patient without leaving this workflow.':'Επιλέξτε υπάρχοντα ασθενή ή δημιουργήστε νέο χωρίς να φύγετε από τη ροή.'} onClose={()=>!saving&&setCreationMode(null)} footer={<SaveButton loading={saving} disabled={!draft.patientId||!draft.startedAt||!draft.reason.trim()} onClick={createPatientRecord}>{language==='en'?'Create surveillance':'Δημιουργία επιτήρησης'}</SaveButton>}><div className="entry-grid compact"><label className="field entry-span-2"><span>{t('patient')} *</span><select value={draft.patientId} onChange={event=>setDraft(current=>({...current,patientId:event.target.value}))}><option value="">{language==='en'?'Select patient…':'Επιλογή ασθενούς…'}</option>{patients.map(patient=><option key={patient.id} value={patient.id}>{patient.id} · {patient.name} · {patient.department||'—'}</option>)}</select></label><div className="entry-span-2"><Button variant="secondary" onClick={()=>setNewPatientOpen(true)}>{language==='en'?'+ New patient':'+ Νέος ασθενής'}</Button></div><ManualDateField label={`${language==='en'?'Start date':'Ημερομηνία έναρξης'} *`} value={draft.startedAt} onChange={value=>setDraft(current=>({...current,startedAt:value}))}/><ManualDateField label={language==='en'?'Review due':'Επανεκτίμηση έως'} value={draft.reviewDue} onChange={value=>setDraft(current=>({...current,reviewDue:value}))}/><label className="field"><span>{language==='en'?'Room':'Θάλαμος'}</span><input value={draft.room} onChange={event=>setDraft(current=>({...current,room:event.target.value}))}/></label><label className="field"><span>{language==='en'?'Reason / indication':'Αιτία / ένδειξη'} *</span><input value={draft.reason} onChange={event=>setDraft(current=>({...current,reason:event.target.value}))}/></label></div></ObserverDialog>}
+    {creationMode==='patient'&&<NewSurveillanceFlow patients={patients} departments={departmentOptions} onPatientsChange={setPatients} onClose={async()=>{setCreationMode(null);await load()}} onCreate={createPatientSurveillance} onSaveAssessment={savePatientAssessment} onRequestSample={requestPatientSample} onSaveIsolation={savePatientIsolation} onRecordChange={updated=>setRecords(current=>current.map(row=>row.id===updated.id?updated:row))}/>}
     {creationMode==='environmental'&&<EnvironmentalSurveillanceFlow departmentOptions={environmentalDepartmentOptions} createSample={createEnvironmentalSample} onClose={()=>setCreationMode(null)} onCreated={()=>setRegistryMode('environmental')}/>}
-    {newPatientOpen&&<NewPatientCard t={t} language={language} departments={departmentOptions} onClose={()=>setNewPatientOpen(false)} onSave={createInlinePatient}/>}
     {creationMode==='employee'&&canSeeEmployeeSurveillance&&<ProductionEmployeeSurveillanceFlow onClose={()=>setCreationMode(null)} onCreated={async()=>{await load();setRegistryMode('employees')}}/>}
     {openEmployeeRecord&&<EmployeeSurveillanceRecordDialog organizationId={tenant?.id} record={openEmployeeRecord} samples={employeeLabByRecord.get(openEmployeeRecord.recordId)||[]} canManage={canManageEmployeeFollowup} t={t} language={language} fmt={fmt} onClose={()=>setOpenEmployeeRecord(null)} onUpdated={updated=>{setEmployeeRecords(current=>current.map(row=>row.recordId===updated.recordId?updated:row));setOpenEmployeeRecord(updated)}}/>}
     {openEmployeeBatch&&<EmployeeBatchDialog language={language} fmt={fmt} batch={openEmployeeBatch} onClose={()=>setOpenEmployeeBatch(null)} onOpenRecord={record=>{setOpenEmployeeBatch(null);setOpenEmployeeRecord(record)}}/>}
