@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Eye, FileText, Paperclip, Trash2, Upload } from 'lucide-react'
-import { Button } from '../../design-system/Button'
-import { ConfirmDialog } from '../../design-system/ConfirmDialog'
-import { EmptyState } from '../../design-system/EmptyState'
-import { OverflowMenu } from '../../design-system/OverflowMenu'
-import { deleteAttachment, getAttachmentUrl, loadAttachments, uploadAttachment } from '../../core/attachments/attachmentService'
+import { Button } from './Button'
+import { ConfirmDialog } from './ConfirmDialog'
+import { EmptyState } from './EmptyState'
+import { OverflowMenu } from './OverflowMenu'
+import { deleteAttachment, getAttachmentUrl, loadAttachments, uploadAttachment } from '../core/attachments/attachmentService'
 
 const MAX_FILE_SIZE=25*1024*1024
 
-export function LaboratoryAttachmentsPanel({organizationId,sampleRecordId,canManage,t,notify}){
+export function EntityAttachmentsPanel({organizationId,entityType,entityRecordId,category='other',canManage,t,notify}){
   const [rows,setRows]=useState([])
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
@@ -17,18 +17,18 @@ export function LaboratoryAttachmentsPanel({organizationId,sampleRecordId,canMan
 
   async function reload(){
     setLoading(true)
-    try{setRows(await loadAttachments(organizationId,'laboratory_sample',sampleRecordId))}
+    try{setRows(await loadAttachments(organizationId,entityType,entityRecordId))}
     catch(error){notify(error?.message||t('actionFailed'),'error')}
     finally{setLoading(false)}
   }
-  useEffect(()=>{reload()},[organizationId,sampleRecordId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{reload()},[organizationId,entityType,entityRecordId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function upload(file){
     if(!file)return
     if(file.size>MAX_FILE_SIZE){notify(t('fileTooLarge'),'error');return}
     setBusy(true)
     try{
-      await uploadAttachment(organizationId,'laboratory_sample',sampleRecordId,file,{category:'laboratory_evidence'})
+      await uploadAttachment(organizationId,entityType,entityRecordId,file,{category})
       await reload();notify(t('saved'),'success')
     }catch(error){notify(error?.message||t('actionFailed'),'error')}
     finally{setBusy(false);if(inputRef.current)inputRef.current.value=''}
@@ -52,7 +52,7 @@ export function LaboratoryAttachmentsPanel({organizationId,sampleRecordId,canMan
       {loading?<div className="inline-empty">{t('loading')}</div>:rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('document')}</th><th>{t('type')}</th><th>{t('size')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><strong><FileText size={14}/> {row.name}</strong></td><td>{row.type||'—'}</td><td>{size(row.size)}</td><td><OverflowMenu items={[
     {id:'view',label:t('view'),icon:Eye,onClick:()=>view(row)},
     {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>setPendingDelete(row),hidden:!canManage},
-  ]}/></td></tr>)}</tbody></table></div>:<EmptyState title={t('noData')} description={t('attachments')}/>} 
+  ]}/></td></tr>)}</tbody></table></div>:<EmptyState title={t('noData')} description={t('attachments')}/>}
     </section>
     <ConfirmDialog
       open={Boolean(pendingDelete)}

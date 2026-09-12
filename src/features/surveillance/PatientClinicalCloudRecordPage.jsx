@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, BedDouble, FileClock, ListTree, Microscope, Pencil, RefreshCcw, ShieldCheck, Syringe, Trash2, UserRound } from 'lucide-react'
+import { Activity, AlertTriangle, BedDouble, FileClock, FolderOpen, ListTree, Microscope, Pencil, RefreshCcw, ShieldCheck, Syringe, Trash2, UserRound } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -9,6 +9,7 @@ import { SaveButton } from '../../design-system/SaveButton'
 import { EmptyState } from '../../design-system/EmptyState'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { EntityAttachmentsPanel } from '../../design-system/EntityAttachmentsPanel'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -115,7 +116,7 @@ export function PatientClinicalCloudRecordPage({patientMode=false}){
     {id:'summary',label:t('summary'),icon:UserRound},
     ...(patientMode?[{id:'admissions',label:t('clinicalRecords.admissions'),icon:BedDouble}]:[]),
     {id:'surveillance',label:t('surveillance'),icon:ListTree},
-    ...(record?[{id:'clinical',label:t('clinicalRecords.clinicalData'),icon:Activity},{id:'history',label:t('history'),icon:FileClock}]:[]),
+    ...(record?[{id:'clinical',label:t('clinicalRecords.clinicalData'),icon:Activity},{id:'documents',label:t('documents'),icon:FolderOpen},{id:'history',label:t('history'),icon:FileClock}]:[]),
   ]
   const activeTab=tabs.some(item=>item.id===tab)?tab:'summary'
 
@@ -124,8 +125,9 @@ export function PatientClinicalCloudRecordPage({patientMode=false}){
       {activeTab==='summary'&&<CloudSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} departmentOptions={departmentOptions} tenantId={tenant?.id} canEdit={Boolean(patient)&&has(CAPABILITIES.EDIT_PATIENT)} canDelete={Boolean(patient)&&has(CAPABILITIES.DELETE_PATIENT)} onUpdated={onPatientUpdated} onDeleted={onPatientDeleted}/>}
       {activeTab==='admissions'&&<CloudAdmissions rows={admissions} t={t} fmtDate={fmtDate}/>} 
       {activeTab==='surveillance'&&<CloudSurveillanceList episodes={episodes} selectedId={record?.id} onSelect={id=>{setSelectedEpisodeId(id);setTab('clinical')}} canCreate={patientMode&&has(CAPABILITIES.CREATE_SURVEILLANCE)} onCreate={()=>setCreateOpen(true)} t={t} fmtDate={fmtDate}/>} 
-      {activeTab==='clinical'&&record&&<CloudClinicalJourney record={record} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canAssess={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} canEdit={has(CAPABILITIES.EDIT_SURVEILLANCE)} canClassifyResistance={has(CAPABILITIES.CLASSIFY_RESISTANCE)} canIsolation={has(CAPABILITIES.MANAGE_ISOLATION)} canTherapy={has(CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)} canReassess={has(CAPABILITIES.REASSESS_SURVEILLANCE)} canOutcome={has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE)} canDelete={has(CAPABILITIES.DELETE_SURVEILLANCE)} canReopen={has(CAPABILITIES.REOPEN_SURVEILLANCE)} onSaved={()=>reloadCases(record.id)} tenantId={tenant?.id}/>}
-      {activeTab==='history'&&record&&<CloudTimeline record={record} t={t} fmtDateTime={fmtDateTime}/>} 
+      {activeTab==='clinical'&&record&&<CloudClinicalJourney record={record} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canAssess={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} canEdit={has(CAPABILITIES.EDIT_SURVEILLANCE)} canClassifyResistance={has(CAPABILITIES.CLASSIFY_RESISTANCE)} canIsolation={has(CAPABILITIES.MANAGE_ISOLATION)} canTherapy={has(CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)} canOpenPharmacy={has(CAPABILITIES.VIEW_PHARMACY)} canReassess={has(CAPABILITIES.REASSESS_SURVEILLANCE)} canOutcome={has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE)} canDelete={has(CAPABILITIES.DELETE_SURVEILLANCE)} canReopen={has(CAPABILITIES.REOPEN_SURVEILLANCE)} onSaved={()=>reloadCases(record.id)} tenantId={tenant?.id}/>}
+      {activeTab==='documents'&&record&&<EntityAttachmentsPanel organizationId={tenant?.id} entityType="clinical_case" entityRecordId={record.recordId} category="clinical_documentation" canManage={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} t={t} notify={notify}/>}
+      {activeTab==='history'&&record&&<CloudTimeline record={record} t={t} fmtDateTime={fmtDateTime}/>}
       {createOpen&&patient&&<CreateCloudSurveillance patient={patient} tenantId={tenant?.id} t={t} language={language} onClose={()=>setCreateOpen(false)} onCreated={async created=>{setCreateOpen(false);await reloadCases(created.id);setTab('clinical');notify(t('surveillanceCreated'),'success')}}/>}
     </EntityRecordShell>
   </Page>
@@ -199,8 +201,9 @@ function SurveillanceStartGuide({t}){
   </section>
 }
 
-function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,canClassifyResistance,canIsolation,canTherapy,canReassess,canOutcome,canDelete,canReopen,onSaved,tenantId}){
+function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,canClassifyResistance,canIsolation,canTherapy,canOpenPharmacy,canReassess,canOutcome,canDelete,canReopen,onSaved,tenantId}){
   const {notify}=useFeedback()
+  const navigate=useNavigate()
   const [dialog,setDialog]=useState(null)
   const [deleteOpen,setDeleteOpen]=useState(false)
   const [deleteReason,setDeleteReason]=useState('')
@@ -239,9 +242,9 @@ function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,ca
 
     <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('isolation')}</strong><small>{activeIsolation?t('active'):t('clinicalRecords.notDocumented')}</small></div>{canIsolation&&record.status==='active'&&(activeIsolation?<Button variant="secondary" onClick={()=>setDialog({type:'endIsolation',row:activeIsolation})}>{t('endIsolation')}</Button>:<Button variant="secondary" onClick={()=>setDialog('isolation')}>+ {t('isolation')}</Button>)}</div>{activeIsolation?<div className="evidence-box"><strong>{(activeIsolation.precautions||[]).join(', ')||t('isolation')}</strong><span>{activeIsolation.room||'—'} · {activeIsolation.reason}</span></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
 
-    <section className="clinical-panel full-panel"><div className="record-section-header"><div><Syringe size={17}/><strong>{t('antimicrobialTherapy')}</strong><small>{activeTherapies.length}</small></div>{canTherapy&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('therapy')}>+ {t('therapy')}</Button>}</div>{(record.therapy||[]).length?(record.therapy||[]).map(row=><article className="evidence-box" key={row.id}><strong>{row.antimicrobial} · {t(row.status)}</strong><span>{[row.dose,row.route,row.indication].filter(Boolean).join(' · ')||'—'}</span>{canTherapy&&row.status==='active'&&<Button variant="secondary" onClick={()=>setDialog({type:'endTherapy',row})}>{t('complete')}</Button>}</article>):<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
+    <section className="clinical-panel full-panel"><div className="record-section-header"><div><Syringe size={17}/><strong>{t('antimicrobialTherapy')}</strong><small>{activeTherapies.length}</small></div><div className="record-section-actions">{canOpenPharmacy&&<Button variant="secondary" onClick={()=>navigate('/pharmacy')}>{t('clinicalRecords.openInPharmacy')}</Button>}{canTherapy&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('therapy')}>+ {t('therapy')}</Button>}</div></div>{(record.therapy||[]).length?(record.therapy||[]).map(row=><article className="evidence-box" key={row.id}><header><strong>{row.antimicrobial}</strong><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></header><div className="detail-grid four"><Detail label={t('dose')} value={row.dose}/><Detail label={t('clinicalRecords.route')} value={row.route}/><Detail label={t('clinicalRecords.startedOn')} value={fmtDate(row.startedAt)}/><Detail label={t('clinicalRecords.plannedEnd')} value={fmtDate(row.plannedEndAt)}/></div><Detail label={t('indication')} value={row.indication}/>{canTherapy&&row.status==='active'&&<div className="record-section-actions"><Button variant="secondary" onClick={()=>setDialog({type:'endTherapy',row})}>{t('complete')}</Button></div>}</article>):<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
 
-    <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('devices')}</strong><small>{activeDevices.length}</small></div>{(canEdit||canAssess)&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('device')}>+ {t('device')}</Button>}</div>{(record.devices||[]).length?(record.devices||[]).map(row=><article className="evidence-box" key={row.id}><strong>{row.name} · {t(row.status)}</strong><span>{[row.site,row.indication,fmtDateTime(row.insertedAt)].filter(Boolean).join(' · ')}</span>{(canEdit||canAssess)&&row.status==='active'&&<Button variant="secondary" onClick={()=>setDialog({type:'removeDevice',row})}>{t('remove')}</Button>}</article>):<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
+    <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('devices')}</strong><small>{activeDevices.length}</small></div>{(canEdit||canAssess)&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('device')}>+ {t('device')}</Button>}</div>{(record.devices||[]).length?(record.devices||[]).map(row=><article className="evidence-box" key={row.id}><header><strong>{row.name}</strong><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></header><div className="detail-grid four"><Detail label={t('clinicalRecords.insertedOn')} value={fmtDateTime(row.insertedAt)}/><Detail label={t('clinicalRecords.deviceSite')} value={row.site}/><Detail label={t('clinicalRecords.reviewDue')} value={fmtDate(row.reviewDue)}/><Detail label={t('clinicalRecords.deviceIndication')} value={row.indication}/></div>{(canEdit||canAssess)&&row.status==='active'&&<div className="record-section-actions"><Button variant="secondary" onClick={()=>setDialog({type:'removeDevice',row})}>{t('remove')}</Button></div>}</article>):<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
 
     <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('reassessment')}</strong><small>{record.reassessments.length}</small></div>{canReassess&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('reassessment')}>+ {t('reassessment')}</Button>}</div>{record.reassessments.length?record.reassessments.map(row=><article className="evidence-box" key={row.id}><strong>{fmtDate(row.date)} · {t(row.status)}</strong><span>{row.notes||row.decision||'—'}</span></article>):<div className="inline-empty">{t('clinicalRecords.noReassessmentRecorded')}</div>}</section>
 
