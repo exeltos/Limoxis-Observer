@@ -12,7 +12,6 @@ const TABLES=Object.freeze({
   employee_certificates:{storageKey:'limoxis.employeeCertificates.v1',kind:'rows',cloud:false},
   training_records:{storageKey:'limoxis.training.v3',legacyKeys:['limoxis.training.v2'],kind:'training'},
   environmental_standards:{storageKey:'limoxis.environmentalStandards.v1',kind:'rows'},
-  control_drafts:{storageKey:'limoxis.controlDrafts.v1',legacyPrefix:'limoxis.control.execution.',kind:'rows'},
   organization_settings:{storageKey:'limoxis.organizationSettings.v1',kind:'document',cloud:false},
   bundle_library:{storageKey:'limoxis.bundleLibrary.v1',kind:'rows',cloud:false},
   management_libraries:{storageKey:'limoxis.managementLibraries.v2',kind:'document',cloud:false},
@@ -33,6 +32,10 @@ const TABLES=Object.freeze({
   prevention_waste:{storageKey:'limoxis.preventionWaste.v1',kind:'rows',cloud:false},
   prevention_antiseptic:{storageKey:'limoxis.preventionAntiseptic.v1',kind:'rows',cloud:false},
   prevention_bundles:{storageKey:'limoxis.preventionBundles.v1',kind:'rows',cloud:false},
+  control_local_definitions:{storageKey:'limoxis.controlLocalDefinitions.v1',kind:'rows',cloud:false},
+  control_local_assignments:{storageKey:'limoxis.controlLocalAssignments.v1',kind:'rows',cloud:false},
+  control_local_executions:{storageKey:'limoxis.controlLocalExecutions.v1',kind:'rows',cloud:false},
+  control_local_drafts:{storageKey:'limoxis.controlLocalDrafts.v1',kind:'rows',cloud:false},
 })
 
 export class DataAccessError extends Error{

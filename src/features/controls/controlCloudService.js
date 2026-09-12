@@ -1,5 +1,10 @@
 import { supabase } from '../../core/supabase/client'
 import { calculateNextDue } from './controlScheduling'
+import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { loadControlDefinitionsLocal,saveControlDefinitionsLocal,loadControlAssignmentsLocal,saveControlAssignmentsLocal,loadControlExecutionsLocal,saveControlExecutionsLocal,loadControlDraftsLocal,saveControlDraftsLocal } from './controlStore'
+
+const demoId=prefix=>`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`
+const demoResolveDepartments=(names=[])=>(names||[]).filter(Boolean).map(name=>({id:name,name}))
 
 const assertCloud=organizationId=>{
  if(!supabase)throw new Error('Supabase is not configured.')
@@ -93,6 +98,13 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[]){
 }
 
 export async function loadControlProgramme(organizationId){
+ if(isDemoDataEnvironment()){
+  const definitions=loadControlDefinitionsLocal()
+  const assignments=loadControlAssignmentsLocal()
+  const executions=loadControlExecutionsLocal()
+  const drafts=loadControlDraftsLocal()
+  return definitions.map(row=>mapDefinition(row,assignments,executions,drafts))
+ }
  assertCloud(organizationId)
  const [definitionsResult,assignmentsResult,executionsResult,draftsResult]=await Promise.all([
   supabase.from('control_definitions').select('*').eq('organization_id',organizationId).neq('status','archived').order('created_at',{ascending:false}),
@@ -139,6 +151,60 @@ function responsePayload(draft,meta={}){
 }
 
 export async function saveControlDefinition(organizationId,draft,{actorName='',createdByScope,createdForDepartment}={}){
+ if(isDemoDataEnvironment()){
+  const userId=''
+  const departments=demoResolveDepartments(draft.departments||[])
+  if(!departments.length)throw new Error('At least one department is required.')
+  const definitions=loadControlDefinitionsLocal()
+  const assignments=loadControlAssignmentsLocal()
+  const now=new Date()
+  let definition
+  if(draft.dbId){
+   definition=definitions.find(x=>x.id===draft.dbId)
+   if(!definition)throw new Error('Control not found.')
+   Object.assign(definition,{
+    title:draft.title.trim(),
+    category:draft.category.trim(),
+    description:draft.description||null,
+    response_config:responsePayload(draft,{actorName,createdByScope,createdForDepartment}),
+    frequency_config:{...(draft.frequency||{}),times:(draft.frequency?.times||[]).filter(Boolean)},
+    status:draft.status||'active',
+    updated_by:userId,
+    updated_at:now.toISOString(),
+   })
+  }else{
+   definition={
+    id:demoId('ctrl-def'),
+    organization_id:organizationId,
+    code:draft.id||controlCode(),
+    title:draft.title.trim(),
+    category:draft.category.trim(),
+    description:draft.description||null,
+    owner_id:null,
+    response_config:responsePayload(draft,{actorName,createdByScope,createdForDepartment}),
+    frequency_config:{...(draft.frequency||{}),times:(draft.frequency?.times||[]).filter(Boolean)},
+    status:draft.status||'active',
+    created_by:userId,
+    updated_by:userId,
+    created_at:now.toISOString(),
+    updated_at:now.toISOString(),
+   }
+   definitions.unshift(definition)
+  }
+  const wantedNames=new Set(departments.map(x=>x.name))
+  for(const assignment of assignments.filter(a=>a.control_id===definition.id)){
+   if(!wantedNames.has(assignment.department?.name)&&assignment.status!=='paused')assignment.status='paused'
+  }
+  const nextDue=calculateNextDue(draft.frequency||{},now)
+  for(const department of departments){
+   const existingAssignment=assignments.find(a=>a.control_id===definition.id&&a.department_id===department.id)
+   if(existingAssignment)existingAssignment.status='scheduled'
+   else assignments.push({id:demoId('ctrl-asg'),control_id:definition.id,organization_id:organizationId,department_id:department.id,department:{id:department.id,name:department.name},status:'scheduled',next_due_at:nextDue,last_completed_at:null})
+  }
+  saveControlDefinitionsLocal(definitions)
+  saveControlAssignmentsLocal(assignments)
+  return loadControlByCode(organizationId,definition.code)
+ }
  assertCloud(organizationId)
  const userId=await currentUserId()
  const departments=await resolveDepartments(organizationId,draft.departments||[])
@@ -185,6 +251,12 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
 }
 
 export async function deleteControlDefinition(organizationId,record){
+ if(isDemoDataEnvironment()){
+  saveControlDefinitionsLocal(loadControlDefinitionsLocal().filter(x=>x.id!==record.dbId))
+  saveControlAssignmentsLocal(loadControlAssignmentsLocal().filter(x=>x.control_id!==record.dbId))
+  saveControlExecutionsLocal(loadControlExecutionsLocal().filter(x=>x.control_id!==record.dbId))
+  return true
+ }
  assertCloud(organizationId)
  const {error}=await supabase.from('control_definitions').delete().eq('organization_id',organizationId).eq('id',record.dbId)
  if(error)throw error
@@ -192,10 +264,29 @@ export async function deleteControlDefinition(organizationId,record){
 }
 
 export async function completeControlExecution(organizationId,record,department,payload={}){
- assertCloud(organizationId)
- const userId=await currentUserId()
  const assignment=record.assignments?.[department]
  if(!assignment?.dbId||!assignment?.departmentId)throw new Error('Control assignment is required.')
+ if(isDemoDataEnvironment()){
+  const userId=payload.actor?.id||''
+  const now=new Date()
+  const responseData={structuredData:payload.structuredData||null,actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
+  const execution={id:demoId('ctrl-exec'),assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}
+  const executions=loadControlExecutionsLocal()
+  executions.unshift(execution)
+  saveControlExecutionsLocal(executions)
+  const assignments=loadControlAssignmentsLocal()
+  const stored=assignments.find(x=>x.id===assignment.dbId)
+  if(stored){
+   stored.last_completed_at=now.toISOString()
+   stored.next_due_at=calculateNextDue(record.frequency||{},now)
+   stored.status='scheduled'
+  }
+  saveControlAssignmentsLocal(assignments)
+  await removeControlDraft(organizationId,record,department)
+  return mapExecution(execution)
+ }
+ assertCloud(organizationId)
+ const userId=await currentUserId()
  const now=new Date()
  const responseData={structuredData:payload.structuredData||null,actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
  const {data,error}=await supabase.from('control_executions').insert({assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}).select('*').single()
@@ -207,9 +298,25 @@ export async function completeControlExecution(organizationId,record,department,
 }
 
 export async function updateControlExecution(organizationId,record,department,execution,payload={}){
- assertCloud(organizationId)
  const assignment=record.assignments?.[department]
  if(!assignment?.dbId)throw new Error('Control assignment is required.')
+ if(isDemoDataEnvironment()){
+  const executions=loadControlExecutionsLocal()
+  const current=executions.find(x=>x.id===execution.id)
+  if(!current)throw new Error('Execution not found.')
+  current.response_data={
+   ...(current.response_data||{}),
+   structuredData:payload.structuredData||null,
+   editedByName:payload.actor?.name||'',
+   editReason:(payload.reason||'Correction after completion').trim(),
+  }
+  current.value_text=payload.value||null
+  current.notes=payload.notes||null
+  current.has_finding=Boolean(payload.hasFinding)
+  saveControlExecutionsLocal(executions)
+  return mapExecution(current)
+ }
+ assertCloud(organizationId)
  const {data:current,error:currentError}=await supabase.from('control_executions').select('id,response_data').eq('organization_id',organizationId).eq('id',execution.id).single()
  if(currentError)throw currentError
  const responseData={
@@ -230,8 +337,32 @@ export async function updateControlExecution(organizationId,record,department,ex
 }
 
 export async function voidControlExecution(organizationId,record,department,execution,{reason='',actor}={}){
- assertCloud(organizationId)
  if(!reason.trim())throw new Error('A cancellation reason is required.')
+ if(isDemoDataEnvironment()){
+  const userId=actor?.id||''
+  const executions=loadControlExecutionsLocal()
+  const current=executions.find(x=>x.id===execution.id)
+  if(!current)throw new Error('Execution not found.')
+  current.status='cancelled'
+  current.cancelled_at=new Date().toISOString()
+  current.cancelled_by=userId
+  current.cancellation_reason=reason.trim()
+  current.response_data={...(current.response_data||{}),cancelledByName:actor?.name||''}
+  saveControlExecutionsLocal(executions)
+  const assignment=record.assignments?.[department]
+  if(assignment?.dbId&&execution.previousNextDueAt){
+   const assignments=loadControlAssignmentsLocal()
+   const stored=assignments.find(x=>x.id===assignment.dbId)
+   if(stored){
+    stored.last_completed_at=execution.previousLastCompletedAt||null
+    stored.next_due_at=execution.previousNextDueAt
+    stored.status='scheduled'
+   }
+   saveControlAssignmentsLocal(assignments)
+  }
+  return mapExecution(current)
+ }
+ assertCloud(organizationId)
  const userId=await currentUserId()
  const responseData={...(execution.responseData||{}),cancelledByName:actor?.name||''}
  const cancelledAt=new Date().toISOString()
@@ -246,10 +377,27 @@ export async function voidControlExecution(organizationId,record,department,exec
 }
 
 export async function saveControlDraft(organizationId,record,department,payload){
- assertCloud(organizationId)
- const userId=await currentUserId()
  const assignment=record.assignments?.[department]
  if(!assignment?.departmentId)throw new Error('Control assignment is required.')
+ if(isDemoDataEnvironment()){
+  const userId='demo-user'
+  const recordKey=`${record.id}.${assignment.departmentId}.${userId}`
+  const drafts=loadControlDraftsLocal()
+  const now=new Date().toISOString()
+  let row=drafts.find(x=>x.organization_id===organizationId&&x.record_key===recordKey)
+  if(row){
+   row.payload=payload
+   row.updated_at=now
+   row.saved_at=now
+  }else{
+   row={id:demoId('ctrl-draft'),organization_id:organizationId,record_key:recordKey,control_id:record.id,department_id:assignment.departmentId,created_by:userId,payload,saved_at:now,updated_at:now}
+   drafts.push(row)
+  }
+  saveControlDraftsLocal(drafts)
+  return {...payload,id:row.id,savedAt:row.saved_at,recordKey:row.record_key}
+ }
+ assertCloud(organizationId)
+ const userId=await currentUserId()
  const recordKey=`${record.id}.${assignment.departmentId}.${userId}`
  const row={organization_id:organizationId,record_key:recordKey,control_id:record.id,department_id:assignment.departmentId,created_by:userId,payload,saved_at:new Date().toISOString(),updated_at:new Date().toISOString()}
  const {data,error}=await supabase.from('control_drafts').upsert(row,{onConflict:'organization_id,record_key'}).select('*').single()
@@ -258,10 +406,16 @@ export async function saveControlDraft(organizationId,record,department,payload)
 }
 
 export async function removeControlDraft(organizationId,record,department){
- assertCloud(organizationId)
- const userId=await currentUserId()
  const assignment=record.assignments?.[department]
  if(!assignment?.departmentId)return
+ if(isDemoDataEnvironment()){
+  const userId='demo-user'
+  const drafts=loadControlDraftsLocal().filter(x=>!(x.organization_id===organizationId&&x.control_id===record.id&&x.department_id===assignment.departmentId&&x.created_by===userId))
+  saveControlDraftsLocal(drafts)
+  return
+ }
+ assertCloud(organizationId)
+ const userId=await currentUserId()
  const {error}=await supabase.from('control_drafts').delete().eq('organization_id',organizationId).eq('control_id',record.id).eq('department_id',assignment.departmentId).eq('created_by',userId)
  if(error)throw error
 }

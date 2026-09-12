@@ -10,6 +10,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { loadSnapshot } from '../../core/data/repository'
 import { loadDepartments } from '../management/departmentsService'
 import { createManagementLibraryItem } from '../management/managementCloudService'
+import { demoLibrarySeed } from '../management/managementData'
 
 const CATEGORY_PRESETS={
   'Θερμοκρασίες':{mode:'numeric',label:'Θερμοκρασία',unit:'°C',min:'',max:''},
@@ -27,7 +28,7 @@ function legacyDepartmentNames(){
 
 export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixedDepartment=''}){
  const {language}=useLanguage();const en=language==='en'
- const {tenant}=useTenant()
+ const {tenant,isDemo}=useTenant()
  const organizationId=tenant?.id||''
  const [departmentRows,setDepartmentRows]=useState([])
  const [departmentsLoading,setDepartmentsLoading]=useState(false)
@@ -37,6 +38,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const [deptQuery,setDeptQuery]=useState('')
  const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify(initial)):{title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',description:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
  async function refreshDepartments(){
+  if(isDemo){setDepartmentRows(demoLibrarySeed.departments.map(([name,nameEn])=>({id:name,name,nameEn})));setLegacyDepartments([]);return}
   if(!organizationId)return
   setDepartmentsLoading(true);setDepartmentsError('')
   try{
@@ -47,7 +49,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
   }catch(error){setDepartmentRows([]);setDepartmentsError(error?.message||(en?'Departments could not be loaded.':'Δεν ήταν δυνατή η φόρτωση των τμημάτων.'))}
   finally{setDepartmentsLoading(false)}
  }
- useEffect(()=>{let active=true;if(departmentOnly&&fixedDepartment){setDepartmentRows([{name:fixedDepartment}]);setDepartmentsError('');setLegacyDepartments([]);setDepartmentsLoading(false);return()=>{active=false}};if(!organizationId){setDepartmentRows([]);setDepartmentsError(en?'No active organization is selected.':'Δεν έχει επιλεγεί ενεργός οργανισμός.');return()=>{active=false}};(async()=>{setDepartmentsLoading(true);setDepartmentsError('');try{const rows=await loadDepartments(organizationId);if(active){const current=(rows||[]).filter(x=>x.is_active!==false);setDepartmentRows(current);setLegacyDepartments(current.length?[]:legacyDepartmentNames())}}catch(error){if(active){setDepartmentRows([]);setDepartmentsError(error?.message||(en?'Departments could not be loaded.':'Δεν ήταν δυνατή η φόρτωση των τμημάτων.'))}}finally{if(active)setDepartmentsLoading(false)}})();return()=>{active=false}},[organizationId,departmentOnly,fixedDepartment,en])
+ useEffect(()=>{let active=true;if(departmentOnly&&fixedDepartment){setDepartmentRows([{name:fixedDepartment}]);setDepartmentsError('');setLegacyDepartments([]);setDepartmentsLoading(false);return()=>{active=false}};if(isDemo){setDepartmentRows(demoLibrarySeed.departments.map(([name,nameEn])=>({id:name,name,nameEn})));setDepartmentsError('');setLegacyDepartments([]);setDepartmentsLoading(false);return()=>{active=false}};if(!organizationId){setDepartmentRows([]);setDepartmentsError(en?'No active organization is selected.':'Δεν έχει επιλεγεί ενεργός οργανισμός.');return()=>{active=false}};(async()=>{setDepartmentsLoading(true);setDepartmentsError('');try{const rows=await loadDepartments(organizationId);if(active){const current=(rows||[]).filter(x=>x.is_active!==false);setDepartmentRows(current);setLegacyDepartments(current.length?[]:legacyDepartmentNames())}}catch(error){if(active){setDepartmentRows([]);setDepartmentsError(error?.message||(en?'Departments could not be loaded.':'Δεν ήταν δυνατή η φόρτωση των τμημάτων.'))}}finally{if(active)setDepartmentsLoading(false)}})();return()=>{active=false}},[organizationId,departmentOnly,fixedDepartment,en,isDemo])
  const departments=useMemo(()=>departmentRows.map(x=>x.name).filter(Boolean),[departmentRows])
  const set=(k,v)=>setDraft(d=>({...d,[k]:v})),setF=(k,v)=>setDraft(d=>({...d,frequency:{...d.frequency,[k]:v}})),setR=(k,v)=>setDraft(d=>({...d,responseConfig:{...(d.responseConfig||{mode:'text',label:'Αποτέλεσμα'}),[k]:v}}))
  const toggleDept=d=>set('departments',draft.departments.includes(d)?draft.departments.filter(x=>x!==d):[...draft.departments,d])
