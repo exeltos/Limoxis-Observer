@@ -104,16 +104,15 @@ export function PatientsPage(){
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
         renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></>}
-      />{!rows.length&&<PatientRegistryEmpty language={language}/>}
+      />{!rows.length&&<PatientRegistryEmpty t={t}/>}
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </div>
     {newOpen&&<NewPatientCard t={t} language={language} departments={departmentOptions} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
   </Page>
 }
 
-function PatientRegistryEmpty({language}){
-  const en=language==='en'
-  return <div className="registry-empty-state"><strong>{en?'No patient records':'Δεν υπάρχουν καταγραφές ασθενών'}</strong><span>{en?'No patients have been recorded for this organization yet.':'Δεν έχουν καταχωριστεί ακόμη ασθενείς για τον συγκεκριμένο οργανισμό.'}</span></div>
+function PatientRegistryEmpty({t}){
+  return <div className="registry-empty-state"><strong>{t('patientRegistryEmptyTitle')}</strong><span>{t('patientRegistryEmptyDescription')}</span></div>
 }
 
 function PatientSummaryMetric({icon,label,value,kind=''}){return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'}/>}
