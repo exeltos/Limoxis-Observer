@@ -1,0 +1,32 @@
+[
+  {
+    "file": "features/surveillance/SurveillanceRoutePage.jsx",
+    "owner": "frontend",
+    "reason": "Legacy registry split; migration tracked in the frontend parity plan.",
+    "expiresOn": "2026-12-31"
+  },
+  {
+    "file": "features/surveillance/PatientClinicalRecordRoute.jsx",
+    "owner": "clinical-frontend",
+    "reason": "Legacy clinical record split; migration tracked in the frontend parity plan.",
+    "expiresOn": "2026-12-31"
+  },
+  {
+    "file": "features/laboratory/LaboratoryPage.jsx",
+    "owner": "laboratory-frontend",
+    "reason": "Restored while the Demo UI is ported safely onto production repositories.",
+    "expiresOn": "2026-10-31"
+  },
+  {
+    "file": "features/laboratory/LaboratorySampleRecordPage.jsx",
+    "owner": "laboratory-frontend",
+    "reason": "Restored while the Demo record workflow is ported safely onto production repositories.",
+    "expiresOn": "2026-10-31"
+  },
+  {
+    "file": "features/indicators/IndicatorsPage.jsx",
+    "owner": "analytics-frontend",
+    "reason": "Legacy indicators workspace split; migration tracked in the frontend parity plan.",
+    "expiresOn": "2026-12-31"
+  }
+]
