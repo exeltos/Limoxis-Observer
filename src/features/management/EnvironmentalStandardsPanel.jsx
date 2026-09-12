@@ -8,6 +8,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { ROLES } from '../../core/permissions/roles'
+import { environmentalMethodLabel, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { demoLibrarySeed } from './managementData'
 import { loadSnapshot } from '../../core/data/repository'
 import { useRepositoryData } from '../../core/data/useRepositoryData'
@@ -60,7 +61,7 @@ export function EnvironmentalStandardsPanel({embedded=false}){
       columns={[{key:'code',label:t('environmentalStandards.protocolCode')},{key:'category',label:t('environmentalStandards.samplingCategory')},{key:'method',label:t('samplingMethod')},{key:'unit',label:t('environmentalStandards.measurementUnit')},{key:'limit',label:t('environmentalStandards.acceptableLimit')},{key:'status',label:t('status')},{key:'actions',label:t('actions')}]}
       rows={filtered}
       rowKey={item=>item.id}
-      renderRow={item=>{const systemLocked=item.system&&!isPlatformOwner;return <><td><strong>{item.protocolCode}</strong>{item.system&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{t(item.subjectType)}</td><td>{t(item.sourceCode)}</td><td>{item.unit}</td><td><strong>{item.limitCfu??t('notConfigured')}</strong></td><td><span className={`status-badge ${item.active?'active':''}`}>{item.active?t('active'):t('environmentalStandards.protocolInactive')}</span></td><td><OverflowMenu items={[
+      renderRow={item=>{const systemLocked=item.system&&!isPlatformOwner;return <><td><strong>{item.protocolCode}</strong>{item.system&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{sampleTypeLabel(item.subjectType,t)}</td><td>{environmentalMethodLabel(item.sourceCode,t)}</td><td>{item.unit}</td><td><strong>{item.limitCfu??t('notConfigured')}</strong></td><td><span className={`status-badge ${item.active?'active':''}`}>{item.active?t('active'):t('environmentalStandards.protocolInactive')}</span></td><td><OverflowMenu items={[
         {id:'edit',label:systemLocked?(language==='en'?'View system protocol':'Προβολή πρωτοκόλλου συστήματος'):t('edit'),icon:systemLocked?LockKeyhole:Pencil,onClick:()=>setDraft({...item,limitCfu:item.limitCfu??''})},
         {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(item),hidden:item.system&&!isPlatformOwner},
       ]}/></td></>}}
