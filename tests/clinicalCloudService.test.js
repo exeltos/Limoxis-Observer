@@ -34,8 +34,15 @@ describe('clinical cloud service',()=>{
   it('supports reassessment and completion persistence',()=>{
     expect(service).toContain('export async function addClinicalReassessment')
     expect(service).toContain('export async function completeClinicalCase')
-    expect(service).toContain("status:'completed'")
+    expect(service).toContain("status:'closed'")
     expect(service).toContain('closed_by:actorId')
+  })
+
+  it('supports voiding and reopening a surveillance case with a mandatory reason',()=>{
+    expect(service).toContain('export async function voidClinicalCase')
+    expect(service).toContain('export async function reopenClinicalCase')
+    expect(service).toContain("status:'cancelled',void_reason:reason")
+    expect(service).toContain("status:'active',reopen_reason:reason")
   })
 
   it('validates canonical department scope before clinical case creation',()=>{
@@ -51,5 +58,14 @@ describe('clinical cloud service',()=>{
     expect(page).toContain('CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY')
     expect(page).toContain('CAPABILITIES.REASSESS_SURVEILLANCE')
     expect(page).toContain('CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME')
+    expect(page).toContain('CAPABILITIES.DELETE_SURVEILLANCE')
+    expect(page).toContain('CAPABILITIES.REOPEN_SURVEILLANCE')
+  })
+
+  it('requires a reason before voiding or reopening a case in production',()=>{
+    expect(page).toContain('voidClinicalCase')
+    expect(page).toContain('reopenClinicalCase')
+    expect(page).toContain('disabled={!deleteReason.trim()}')
+    expect(page).toContain('disabled={!reopenReason.trim()}')
   })
 })

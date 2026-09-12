@@ -1,7 +1,11 @@
 {
   "name": "limoxis-observer",
   "private": true,
+<<<<<<< HEAD
   "version": "0.48.0",
+=======
+  "version": "0.47.4",
+>>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,13 +13,14 @@
     "preview": "vite preview",
     "test": "vitest run",
     "lint": "eslint src tests",
-    "check": "npm run audit:clinical-i18n && npm run audit:lab-i18n && npm run audit:product-i18n && npm run audit:english-parity && npm run audit:help-coverage && npm run audit:product-permissions && npm run audit:navigation && npm run audit:hooks && npm run audit:observer-ui && npm run lint && npm run test && npm run build",
+    "check": "npm run audit:clinical-i18n && npm run audit:lab-i18n && npm run audit:product-i18n && npm run audit:english-parity && npm run audit:help-coverage && npm run audit:product-permissions && npm run audit:navigation && npm run audit:hooks && npm run audit:frontend-parity && npm run audit:observer-ui && npm run lint && npm run test && npm run build",
     "audit:clinical-i18n": "node tools/check-clinical-i18n.mjs",
     "audit:lab-i18n": "node tools/check-lab-i18n.mjs",
     "audit:product-i18n": "node tools/check-product-i18n.mjs",
     "audit:product-permissions": "node tools/check-product-permissions.mjs",
     "audit:navigation": "node tools/check-navigation-smoke.mjs",
     "audit:hooks": "node tools/check-react-hooks-smoke.mjs",
+    "audit:frontend-parity": "node tools/check-frontend-parity.mjs",
     "audit:observer-ui": "node tools/check-observer-ui-patterns.mjs",
     "audit:english-parity": "node tools/check-english-parity.mjs",
     "audit:help-coverage": "node tools/check-help-manual-coverage.mjs",

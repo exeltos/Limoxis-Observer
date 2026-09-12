@@ -20,7 +20,7 @@ describe('Platform Owner-only system library governance',()=>{
     expect(libraries).toContain('role===ROLES.PLATFORM_OWNER')
     expect(libraries).toContain("mode:system&&!isPlatformOwner?'view':'edit'")
     expect(libraries).toContain('meta.system&&!isPlatformOwner')
-    expect(libraries).toContain("(!meta.system||isPlatformOwner)")
+    expect(libraries).toContain("hidden:meta.system&&!isPlatformOwner")
   })
 
   it('hides global reference mutation actions from hospital users',()=>{

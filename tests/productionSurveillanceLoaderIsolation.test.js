@@ -8,7 +8,9 @@ describe('Production Surveillance registry loading',()=>{
     expect(source).toContain('Promise.allSettled([')
     expect(source).toContain("operation:'surveillance_cases_load'")
     expect(source).toContain("operation:'surveillance_patients_load'")
-    expect(source).toContain("operation:'surveillance_environment_load'")
+    // Environmental samples are derived client-side from the same laboratory-samples
+    // fetch (see isEnvironmentalSample), so its failures are isolated by this operation.
+    expect(source).toContain("operation:'surveillance_laboratory_load'")
   })
 
   it('keeps employee surveillance behind the sensitive-health gate',()=>{

@@ -357,15 +357,32 @@ export async function completeClinicalCase(organizationId,caseRecordId,patientRe
   const occurredAt=iso(draft.date||new Date())
   const {data:outcome,error:outcomeError}=await supabase.from('surveillance_outcomes').insert({organization_id:organizationId,surveillance_case_id:caseRecordId,patient_id:patientRecordId,outcome:draft.status,occurred_at:occurredAt,notes:draft.notes||null,created_by:actorId}).select('*').single()
   if(outcomeError)throw outcomeError
+<<<<<<< HEAD
   const {error:caseError}=await supabase.from('surveillance_cases').update({status:'closed',closed_at:occurredAt,close_reason:draft.status,closed_by:actorId}).eq('organization_id',organizationId).eq('id',caseRecordId)
+=======
+  const {error:caseError}=await supabase.from('surveillance_cases').update({status:'closed',closed_at:occurredAt,close_reason:draft.notes||draft.status||null,closed_by:actorId}).eq('organization_id',organizationId).eq('id',caseRecordId)
+>>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
   if(caseError)throw caseError
   return mapOutcome(outcome)
 }
 
+<<<<<<< HEAD
 export async function deleteClinicalCaseForTesting(organizationId, caseRecordId){
   assertCloud()
   if(!organizationId||!caseRecordId)throw new Error('Organization and surveillance case are required.')
   const {data,error}=await supabase.rpc('delete_surveillance_case_for_testing',{p_organization_id:organizationId,p_case_id:caseRecordId})
   if(error)throw error
   return Boolean(data)
+=======
+export async function voidClinicalCase(organizationId,caseRecordId,reason){
+  assertCloud()
+  const {error}=await supabase.from('surveillance_cases').update({status:'cancelled',void_reason:reason}).eq('organization_id',organizationId).eq('id',caseRecordId)
+  if(error)throw error
+}
+
+export async function reopenClinicalCase(organizationId,caseRecordId,reason){
+  assertCloud()
+  const {error}=await supabase.from('surveillance_cases').update({status:'active',reopen_reason:reason}).eq('organization_id',organizationId).eq('id',caseRecordId)
+  if(error)throw error
+>>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
 }

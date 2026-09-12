@@ -17,6 +17,7 @@ import { demoLibrarySeed } from '../management/managementData'
 import { loadDepartments } from '../management/departmentsService'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MetricCard } from '../../design-system/MetricCard'
+import { RegistryTable } from '../../design-system/RegistryTable'
 
 export function PatientsPage(){
   const {t,language,locale}=useLanguage()
@@ -90,6 +91,7 @@ export function PatientsPage(){
       <PatientSummaryMetric icon={LogOut} label={t('discharged')} value={patientSummary.discharged}/>
       <PatientSummaryMetric icon={ArrowRightLeft} label={t('transferred')} value={patientSummary.transferred}/>
     </div>
+<<<<<<< HEAD
     <PaginatedRegistry
       language={language}
       toolbar={<FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}}><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect><FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option></FilterSelect></FilterBar>}
@@ -102,10 +104,34 @@ export function PatientsPage(){
     >
       <table className="data-table"><thead><tr><th>{t('patientId')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('admissionDate')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(patient=><tr key={patient.id} {...registry.rowProps(patient.id)} onClick={()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))}}}><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></tr>)}</tbody></table>
     </PaginatedRegistry>
+=======
+    <div className="surface clinical-surface workspace-fill patient-registry-shell">
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}}>
+        <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
+        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option></FilterSelect>
+      </FilterBar>
+      <RegistryTable
+        wrapperClassName="scroll-table"
+        wrapperRef={registry.scrollRef}
+        columns={[{key:'id',label:t('patientId')},{key:'name',label:t('name')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')}]}
+        rows={pagedRows}
+        rowKey={patient=>patient.id}
+        rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
+        renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></>}
+      />{!rows.length&&<PatientRegistryEmpty t={t}/>}
+      <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
+    </div>
+>>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
     {newOpen&&<NewPatientCard t={t} language={language} departments={departmentOptions} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
   </Page>
 }
 
+<<<<<<< HEAD
+=======
+function PatientRegistryEmpty({t}){
+  return <div className="registry-empty-state"><strong>{t('patientRegistryEmptyTitle')}</strong><span>{t('patientRegistryEmptyDescription')}</span></div>
+}
+>>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
 
 function PatientSummaryMetric({icon,label,value,kind=''}){return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'}/>}
 

@@ -133,7 +133,11 @@ export function PatientClinicalRecordPage({patientMode=false}){
       backLabel={patientMode?t('clinicalRecords.backToPatients'):t('clinicalRecords.backToSurveillance')}
     >
 
+<<<<<<< HEAD
     {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm} onDeletePatient={async()=>{const patientRecordId=patient?.recordId||record?.patientRecordId;if(!patientRecordId)return false;try{const removed=await deletePatientForTesting(tenant?.id,patientRecordId,{isDemo});if(!removed)return false;notify(t('clinicalRecords.patientDeletedForTesting'),'success');navigate('/patients',{replace:true});return true}catch(error){notify(error?.message||t('clinicalRecords.deleteFailed'),'danger');return false}}}/>}
+=======
+    {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm} onPatientsChange={setPatients} onDeleted={goBack}/>}
+>>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
     {activeTab==='admissions'&&patient&&<PatientAdmissions patient={patient} t={t} language={language} fmtDate={fmtDate} notify={notify} tenant={tenant} isDemo={isDemo} canEdit={has(CAPABILITIES.EDIT_PATIENT)}/>}
         {activeTab==='surveillanceJourney'&&<SurveillanceWorkspace
       episodes={patientMode?patientEpisodes:(record?[record]:[])}
@@ -174,11 +178,20 @@ export function PatientClinicalRecordPage({patientMode=false}){
 }
 
 
+<<<<<<< HEAD
 function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confirm,onDeletePatient}){
   const latestSample=record?.samples?.find(x=>x.organism)||record?.samples?.[0]
   return <div className="patient-summary-layout clean-patient-summary">
     <PatientDetails patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} age={age} has={has} notify={notify} confirm={confirm} onDeletePatient={onDeletePatient}/>
     {record&&<section className="patient-summary-strip clinical-snapshot-strip">
+=======
+function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confirm,onPatientsChange,onDeleted}){
+  const latestSample=record?.samples?.[0]
+  return <div className="patient-summary-layout">
+    <PatientDetails patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} age={age} has={has} notify={notify} confirm={confirm} onPatientsChange={onPatientsChange} onDeleted={onDeleted}/>
+    {record&&<section className="patient-summary-strip">
+      <SummaryItem label={t('surveillance')} value={`${record.id} · ${t(record.status)}`} tone="info"/>
+>>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
       <SummaryItem label={t('clinicalRecords.haiClassification')} value={record.haiClassification?t(record.haiClassification.status):'—'} tone={record.haiClassification?.status==='confirmed'?'warning':'neutral'}/>
       <SummaryItem label={t('clinicalRecords.latestFinding')} value={latestSample?.organism||t(latestSample?.result||'pending')} tone={latestSample?.result==='positive'?'warning':'neutral'}/>
       <SummaryItem label={t('isolation')} value={record.isolation?t(record.isolation.status):t('no')} tone={record.isolation?'info':'neutral'}/>
@@ -370,8 +383,12 @@ function ActiveSurveillanceReport({record,t,language,fmtDate,fmtDateTime,canSurv
 
 function SurveillanceJourney({record,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy}){
   const linkedLab=laboratorySamples.filter(x=>x.surveillanceCase===record.id)
-  const validatedLab=linkedLab.filter(x=>x.resultStatus==='validated'&&x.organism)
   const effectiveSamples=linkedLab.length?linkedLab:record.samples
+  // A sample only carries an organism once a microbiology result has been
+  // validated (see mapSample in clinicalCloudService), so this holds for
+  // both the demo laboratory shape (resultStatus/organism) and the cloud
+  // shape (result/organism) without needing to know which one we're on.
+  const validatedLab=effectiveSamples.filter(x=>Boolean(x.organism))
   const unlocked={
     assessment:true,
     samples:Boolean(record.assessment),
@@ -383,7 +400,7 @@ function SurveillanceJourney({record,t,language,fmtDate,fmtDateTime,canSurveilla
   }
   const nodes=[
     {id:'assessment',label:t('clinicalAssessment'),icon:ShieldCheck,show:canSurveillance,status:record.assessment?'complete':'pending',meta:record.assessment?fmtDate(record.assessment.date):t('pending')},
-    {id:'samples',label:t('sampleAndLaboratory'),icon:Microscope,show:canLab,status:linkedLab.length?'complete':'pending',meta:linkedLab.length?(validatedLab.length?`${linkedLab.length} · ${validatedLab.length} ${t('clinicalRecords.validated').toLowerCase()}`:`${linkedLab.length} · ${t('waitingForLaboratory')}`):t('clinicalRecords.notStarted')},
+    {id:'samples',label:t('sampleAndLaboratory'),icon:Microscope,show:canLab,status:effectiveSamples.length?'complete':'pending',meta:effectiveSamples.length?(validatedLab.length?`${effectiveSamples.length} · ${validatedLab.length} ${t('clinicalRecords.validated').toLowerCase()}`:`${effectiveSamples.length} · ${t('waitingForLaboratory')}`):t('clinicalRecords.notStarted')},
     {id:'hai',label:t('haiAmr'),icon:AlertTriangle,show:canSurveillance,status:record.haiClassification?'complete':'pending',meta:record.resistance||t(record.haiClassification?.status||'pending')},
     {id:'isolation',label:t('isolation'),icon:BedDouble,show:canSurveillance,status:(record.isolation||record.isolationDecision?.required===false)?'complete':'pending',meta:record.isolation?t(record.isolation.status):(record.isolationDecision?.required===false?t('notRequired'):t('clinicalRecords.notStarted'))},
     {id:'therapy',label:t('therapy'),icon:Pill,show:canTherapy,status:record.therapy.length?'complete':'pending',meta:record.therapy[0]?.antimicrobial||t('clinicalRecords.notStarted')},
@@ -502,7 +519,10 @@ function ActiveTherapyEditor({record,t,language,onSaved}){
 
     {suggestions.length>0&&<div className="therapy-suggestions"><span className="eyebrow">{t('clinicalRecords.laboratorySuggestions')}</span><p>{t('clinicalRecords.laboratorySuggestionsHelp')}</p><div>{suggestions.map((item,index)=><button key={`${item.antimicrobial}-${index}`} onClick={()=>applySuggestion(item)}><strong>{item.antimicrobial}</strong>{item.organism&&<small>{item.organism}</small>}</button>)}</div></div>}
 
-    {rows.length>0&&<div className="record-table-wrap"><table className="record-table therapy-record-table"><thead><tr>{organisms.length>1&&<th>{t('organism')}</th>}<th>{t('antimicrobial')}</th><th>{t('dose')}</th><th>{t('clinicalRecords.route')}</th><th>{t('clinicalRecords.startedOn')}</th><th>{t('clinicalRecords.plannedEnd')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}>{organisms.length>1&&<td>{row.organism||'—'}</td>}<td><strong>{row.antimicrobial}</strong>{row.advancedAntibiotic&&<span className="advanced-mini">{t('clinicalRecords.advancedAntibiotic')}</span>}</td><td>{row.dose||'—'}</td><td>{row.route||'—'}</td><td>{row.startedAt||'—'}</td><td>{row.plannedEnd||'—'}</td><td><div className="row-icon-actions"><button title={t('edit')} onClick={()=>edit(row)}><Pencil size={14}/></button><button className="danger" title={t('delete')} onClick={()=>remove(row.id)}><Trash2 size={14}/></button></div></td></tr>)}</tbody></table></div>}
+    {rows.length>0&&<div className="record-table-wrap"><table className="record-table therapy-record-table"><thead><tr>{organisms.length>1&&<th>{t('organism')}</th>}<th>{t('antimicrobial')}</th><th>{t('dose')}</th><th>{t('clinicalRecords.route')}</th><th>{t('clinicalRecords.startedOn')}</th><th>{t('clinicalRecords.plannedEnd')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}>{organisms.length>1&&<td>{row.organism||'—'}</td>}<td><strong>{row.antimicrobial}</strong>{row.advancedAntibiotic&&<span className="advanced-mini">{t('clinicalRecords.advancedAntibiotic')}</span>}</td><td>{row.dose||'—'}</td><td>{row.route||'—'}</td><td>{row.startedAt||'—'}</td><td>{row.plannedEnd||'—'}</td><td><OverflowMenu items={[
+      {id:'edit',label:t('edit'),icon:Pencil,onClick:()=>edit(row)},
+      {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(row.id)},
+    ]}/></td></tr>)}</tbody></table></div>}
 
     <div className="entry-grid therapy-entry-grid">
       {organisms.length>1&&<label><span>{t('organism')}</span><select value={draft.organism} onChange={e=>set('organism',e.target.value)}><option value="">{t('all')}</option>{organisms.map(name=><option key={name}>{name}</option>)}</select></label>}
@@ -611,17 +631,42 @@ function PatientDocuments({t,record}){
 }
 
 
+<<<<<<< HEAD
 function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confirm,onDeletePatient}){
+=======
+function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confirm,onPatientsChange,onDeleted}){
+>>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
   const [editing,setEditing]=useState(false)
   const source=patient||{id:record?.patientId,name:record?.patient,nameEn:record?.patientEn,department:record?.department,departmentEn:record?.departmentEn,admissionDate:record?.admissionDate,status:record?.status}
   const [draft,setDraft]=useState({...source})
-  const canEdit=has(CAPABILITIES.EDIT_PATIENT)
-  const canDelete=has(CAPABILITIES.DELETE_PATIENT)
+  const canEdit=Boolean(patient)&&has(CAPABILITIES.EDIT_PATIENT)
+  const canDelete=Boolean(patient)&&has(CAPABILITIES.DELETE_PATIENT)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
+<<<<<<< HEAD
   async function remove(){const ok=await confirm({title:t('clinicalRecords.deletePatient'),message:t('clinicalRecords.deletePatientTestingWarning'),danger:true,confirmLabel:t('delete')});if(!ok)return;await onDeletePatient?.()}
   const patientActions=[canEdit&&{id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setEditing(true)},canDelete&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:canEdit,onClick:remove}].filter(Boolean)
   return <section className="patient-details-panel clean-patient-details">
     <div className="record-section-header"><div><h3>{t('clinicalRecords.patientDetails')}</h3></div>{!editing&&patientActions.length>0&&<OverflowMenu label={t('actions')} items={patientActions}/>}</div>
+=======
+  function save(){
+    onPatientsChange?.(current=>current.map(item=>item.id===patient.id?{...item,...draft}:item))
+    setEditing(false)
+    notify(t('actionCompleted'),'success')
+  }
+  async function remove(){
+    const ok=await confirm({title:t('confirmAction'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')})
+    if(!ok)return
+    onPatientsChange?.(current=>current.filter(item=>item.id!==patient.id))
+    notify(t('actionCompleted'),'warning')
+    onDeleted?.()
+  }
+  const patientActions=[
+    canEdit&&{id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setEditing(true)},
+    canDelete&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:canEdit,onClick:remove},
+  ].filter(Boolean)
+  return <section className="clinical-panel full-panel patient-details-panel">
+    <div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.patientDetails')}</h3></div>{!editing&&patientActions.length>0&&<OverflowMenu label={t('actions')} items={patientActions}/>}</div>
+>>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
     <div className={`detail-grid patient-detail-grid ${editing?'employee-inline-edit':''}`}>
       <PatientInline editing={editing} l={t('department')} v={language==='el'?(draft.department||record?.department):(draft.departmentEn||record?.departmentEn)} onChange={v=>set(language==='el'?'department':'departmentEn',v)}/>
       <PatientInline l={t('clinicalRecords.age')} v={age??'—'}/>
@@ -629,7 +674,7 @@ function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confir
       <PatientInline l={t('admissionDate')} v={fmtDate(draft.admissionDate||record?.admissionDate)}/>
     </div>
     {!record&&<div className="patient-no-surveillance"><strong>{t('clinicalRecords.noActiveSurveillance')}</strong><span>{t('clinicalRecords.noClinicalData')}</span></div>}
-    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...source});setEditing(false)}}>{t('cancel')}</Button><SaveButton onClick={()=>{setEditing(false);notify(t('actionCompleted'),'success')}}>{t('save')}</SaveButton></div>}
+    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...source});setEditing(false)}}>{t('cancel')}</Button><SaveButton onClick={save}>{t('save')}</SaveButton></div>}
   </section>
 }
 function PatientInline({editing=false,l,v,onChange}){return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<input value={v||''} onChange={e=>onChange?.(e.target.value)}/>:<strong>{v||'—'}</strong>}</div>}

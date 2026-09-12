@@ -2,6 +2,8 @@ import { useEffect,useState } from 'react'
 import { ArrowDown,ArrowUp,ClipboardCheck,ListChecks,Pencil,Plus,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { RegistryTable } from '../../design-system/RegistryTable'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -24,7 +26,19 @@ export function TrainingFeedbackTemplatePanel(){
  return <div className="workspace-column workspace-fill training-feedback-template-panel">
   <div className="section-toolbar training-template-toolbar"><div><h2>{en?'Training evaluation questions':'Ερωτήσεις αξιολόγησης εκπαίδευσης'}</h2><p>{en?'These questions are copied into every new training program. Existing evaluations remain unchanged.':'Οι ερωτήσεις αυτές αντιγράφονται σε κάθε νέο πρόγραμμα εκπαίδευσης. Οι υπάρχουσες αξιολογήσεις δεν αλλάζουν.'}</p></div><Button onClick={addQuestion}><Plus size={15}/>{en?'New question':'Νέα ερώτηση'}</Button></div>
   {loading?<div className="inline-empty">{en?'Loading template...':'Φόρτωση προτύπου...'}</div>:<><div className="training-template-summary"><div><span className="training-template-summary-icon"><ListChecks size={17}/></span><span><strong>{value.questions.length}</strong><small>{en?'questions':'ερωτήσεις'}</small></span></div><div><span><strong>1–5</strong><small>{en?'rating scale':'κλίμακα αξιολόγησης'}</small></span></div><div><span><strong>{en?'Free comment':'Ελεύθερο σχόλιο'}</strong><small>{en?'included automatically':'περιλαμβάνεται αυτόματα'}</small></span></div></div>
-  <div className="scroll-table training-feedback-table-wrap"><table className="data-table sticky-table training-feedback-table"><thead><tr><th>#</th><th>{en?'Question (EL)':'Ερώτηση (EL)'}</th><th>{en?'Question (EN)':'Ερώτηση (EN)'}</th><th>{en?'Scale':'Κλίμακα'}</th><th>{en?'Actions':'Ενέργειες'}</th></tr></thead><tbody>{value.questions.map((q,index)=><tr key={q.id}><td className="training-index-cell">{index+1}</td><td><strong>{q.labelEl||'—'}</strong></td><td>{q.labelEn||'—'}</td><td><span className="training-scale-badge">1–5</span></td><td className="open-record-cell"><div className="record-actions"><button className="lo-icon-button lo-icon-button-sm" disabled={index===0} onClick={()=>move(index,-1)} aria-label={en?'Move up':'Μετακίνηση πάνω'}><ArrowUp size={14}/></button><button className="lo-icon-button lo-icon-button-sm" disabled={index===value.questions.length-1} onClick={()=>move(index,1)} aria-label={en?'Move down':'Μετακίνηση κάτω'}><ArrowDown size={14}/></button><button className="lo-icon-button lo-icon-button-edit lo-icon-button-sm" onClick={()=>editQuestion(q)} aria-label={en?'Edit':'Επεξεργασία'}><Pencil size={14}/></button><button className="lo-icon-button lo-icon-button-danger lo-icon-button-sm" disabled={value.questions.length<=1} onClick={()=>removeQuestion(q.id)} aria-label={en?'Delete':'Διαγραφή'}><Trash2 size={14}/></button></div></td></tr>)}</tbody></table></div>
+  <RegistryTable
+    wrapperClassName="scroll-table training-feedback-table-wrap"
+    className="training-feedback-table"
+    columns={[{key:'index',label:'#'},{key:'labelEl',label:en?'Question (EL)':'Ερώτηση (EL)'},{key:'labelEn',label:en?'Question (EN)':'Ερώτηση (EN)'},{key:'scale',label:en?'Scale':'Κλίμακα'},{key:'actions',label:en?'Actions':'Ενέργειες'}]}
+    rows={value.questions}
+    rowKey={q=>q.id}
+    renderRow={(q,index)=><><td className="training-index-cell">{index+1}</td><td><strong>{q.labelEl||'—'}</strong></td><td>{q.labelEn||'—'}</td><td><span className="training-scale-badge">1–5</span></td><td className="open-record-cell"><OverflowMenu items={[
+      {id:'up',label:en?'Move up':'Μετακίνηση πάνω',icon:ArrowUp,disabled:index===0,onClick:()=>move(index,-1)},
+      {id:'down',label:en?'Move down':'Μετακίνηση κάτω',icon:ArrowDown,disabled:index===value.questions.length-1,onClick:()=>move(index,1)},
+      {id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,onClick:()=>editQuestion(q)},
+      {id:'delete',label:en?'Delete':'Διαγραφή',icon:Trash2,tone:'danger',disabled:value.questions.length<=1,separatorBefore:true,onClick:()=>removeQuestion(q.id)},
+    ]}/></td></>}
+  />
   <div className="inline-edit-footer training-template-footer"><div className="source-truth-note"><ClipboardCheck size={15}/><span>{en?'Changes apply only to new training programs after saving.':'Οι αλλαγές εφαρμόζονται μόνο στα νέα προγράμματα εκπαίδευσης μετά την αποθήκευση.'}</span></div><SaveButton loading={saving} disabled={saving||!value.questions.length||value.questions.some(q=>!q.labelEl.trim())} onClick={save}>{en?'Save questions':'Αποθήκευση ερωτήσεων'}</SaveButton></div></>}
   {editor&&<FeedbackQuestionDialog en={en} value={editor.question} onClose={()=>setEditor(null)} onSave={saveQuestion}/>} 
  </div>

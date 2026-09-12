@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { LockKeyhole, Pencil, Plus, ShieldCheck, Trash2, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterBar } from '../../design-system/FilterBar'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -53,7 +55,16 @@ export function EnvironmentalStandardsPanel({embedded=false}){
     <FilterBar compact query={query} onQueryChange={setQuery} placeholder={t('environmentalStandards.searchEnvironmentalProtocols')} onClear={()=>setQuery('')}/>
     {loading&&<div className="inline-data-state">{language==='en'?'Loading data…':'Φόρτωση δεδομένων…'}</div>}
     {error&&<div className="inline-data-state error"><span>{language==='en'?'Unable to load data.':'Η φόρτωση δεδομένων απέτυχε.'}</span><Button variant="secondary" onClick={()=>reload().catch(()=>{})}>{language==='en'?'Retry':'Επανάληψη'}</Button></div>}
-    <div className="table-wrap scroll-table"><table className="data-table sticky-table"><thead><tr><th>{t('environmentalStandards.protocolCode')}</th><th>{t('environmentalStandards.samplingCategory')}</th><th>{t('samplingMethod')}</th><th>{t('environmentalStandards.measurementUnit')}</th><th>{t('environmentalStandards.acceptableLimit')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead><tbody>{filtered.map(item=>{const systemLocked=item.system&&!isPlatformOwner;return <tr key={item.id}><td><strong>{item.protocolCode}</strong>{item.system&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{t(item.subjectType)}</td><td>{t(item.sourceCode)}</td><td>{item.unit}</td><td><strong>{item.limitCfu??t('notConfigured')}</strong></td><td><span className={`status-badge ${item.active?'active':''}`}>{item.active?t('active'):t('environmentalStandards.protocolInactive')}</span></td><td><div className="record-inline-actions"><button className={systemLocked?'lo-icon-button lo-icon-button-view':'lo-icon-button lo-icon-button-edit'} title={systemLocked?(language==='en'?'View system protocol':'Προβολή πρωτοκόλλου συστήματος'):t('edit')} aria-label={systemLocked?(language==='en'?'View system protocol':'Προβολή πρωτοκόλλου συστήματος'):t('edit')} onClick={()=>setDraft({...item,limitCfu:item.limitCfu??''})}>{systemLocked?<LockKeyhole size={15}/>:<Pencil size={15}/>}</button>{(!item.system||isPlatformOwner)&&<button className="lo-icon-button lo-icon-button-danger" title={t('delete')} aria-label={t('delete')} onClick={()=>remove(item)}><Trash2 size={15}/></button>}</div></td></tr>})}</tbody></table>{!loading&&filtered.length===0&&<div className="inline-empty">{t('noData')}</div>}</div>
+    <RegistryTable
+      wrapperClassName="table-wrap scroll-table"
+      columns={[{key:'code',label:t('environmentalStandards.protocolCode')},{key:'category',label:t('environmentalStandards.samplingCategory')},{key:'method',label:t('samplingMethod')},{key:'unit',label:t('environmentalStandards.measurementUnit')},{key:'limit',label:t('environmentalStandards.acceptableLimit')},{key:'status',label:t('status')},{key:'actions',label:t('actions')}]}
+      rows={filtered}
+      rowKey={item=>item.id}
+      renderRow={item=>{const systemLocked=item.system&&!isPlatformOwner;return <><td><strong>{item.protocolCode}</strong>{item.system&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{t(item.subjectType)}</td><td>{t(item.sourceCode)}</td><td>{item.unit}</td><td><strong>{item.limitCfu??t('notConfigured')}</strong></td><td><span className={`status-badge ${item.active?'active':''}`}>{item.active?t('active'):t('environmentalStandards.protocolInactive')}</span></td><td><OverflowMenu items={[
+        {id:'edit',label:systemLocked?(language==='en'?'View system protocol':'Προβολή πρωτοκόλλου συστήματος'):t('edit'),icon:systemLocked?LockKeyhole:Pencil,onClick:()=>setDraft({...item,limitCfu:item.limitCfu??''})},
+        {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(item),hidden:item.system&&!isPlatformOwner},
+      ]}/></td></>}}
+    />{!loading&&filtered.length===0&&<div className="inline-empty">{t('noData')}</div>}
     {draft&&<div className="modal-backdrop"><div className="role-editor environmental-standard-editor" role="dialog" aria-modal="true"><header><div><h3>{draft.id?t('environmentalStandards.editEnvironmentalProtocol'):t('environmentalStandards.newEnvironmentalProtocol')}</h3><p>{draft.system?(language==='en'?'Centrally governed Limoxis system protocol.':'Κεντρικά διαχειριζόμενο πρωτόκολλο συστήματος Limoxis.'):t('environmentalStandards.environmentalProtocolEditorHelp')}</p></div><button className="icon-button" onClick={()=>setDraft(null)}><X size={17}/></button></header>
       <div className="form-grid two-col">
         <label className="field"><span>{t('environmentalStandards.protocolCode')}</span><input value={draft.protocolCode} readOnly={Boolean(draft.id)||readOnlySystem} disabled={readOnlySystem} onChange={e=>setDraft({...draft,protocolCode:e.target.value})}/><small>{draft.id?t('environmentalStandards.protocolCodeLockedHelp'):t('environmentalStandards.protocolCodeHelp')}</small></label>

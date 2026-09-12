@@ -24,19 +24,4 @@ export function updateLabSample(id,updater){
   return next
 }
 
-export const sampleSourceCatalog={
-  peripheral:{label:'peripheralBlood',el:'Περιφερική αιμοληψία',en:'Peripheral draw'},
-  centralLine:{label:'centralLine',el:'Κεντρική φλεβική γραμμή',en:'Central line'},
-  arterialLine:{label:'arterialLine',el:'Αρτηριακή γραμμή',en:'Arterial line'},
-  midstream:{label:'midstreamUrine',el:'Μέσο ρεύμα ούρων',en:'Midstream urine'},
-  urinaryCatheter:{label:'urinaryCatheter',el:'Ουροκαθετήρας',en:'Urinary catheter'},
-  nephrostomy:{label:'nephrostomy',el:'Νεφροστομία',en:'Nephrostomy'},
-  suprapubicCatheter:{label:'suprapubicCatheter',el:'Υπερηβικός καθετήρας',en:'Suprapubic catheter'},
-  sputum:{label:'sputum',el:'Πτύελα',en:'Sputum'},
-  trachealAspirate:{label:'trachealAspirate',el:'Τραχειακό αναρρόφημα',en:'Tracheal aspirate'},
-  bal:{label:'bal',el:'BAL',en:'BAL'},
-  woundSwab:{label:'woundSwab',el:'Επίχρισμα τραύματος',en:'Wound swab'},
-  deepTissue:{label:'deepTissue',el:'Βαθύς ιστός',en:'Deep tissue'},
-  drainage:{label:'drainage',el:'Παροχέτευση / έκκριμα',en:'Drainage'},
-  other:{label:'other',el:'Άλλο',en:'Other'},
-}
+export { sampleSourceCatalog } from './laboratoryReferenceData'

@@ -2,8 +2,8 @@ import fs from 'node:fs'
 const checks=[
  ['src/features/documents/DocumentRecordPage.jsx','publishedById:actor.id'],
  ['src/features/documents/DocumentRecordPage.jsx','archivedById:actor.id'],
- ['src/features/controls/controlsDemoData.js','cancelledById=actorSafe.id'],
- ['src/features/controls/controlsDemoData.js','editedById:actorSafe.id'],
+ ['src/features/controls/controlCloudService.js','cancelled_by:userId'],
+ ['src/features/controls/controlCloudService.js','editReason:(payload.reason'],
  ['QA/GOVERNANCE_LIFECYCLE_CLASSIFICATION_v0.26.81.md','Draft → Published → Archived'],
  ['QA/GOVERNANCE_LIFECYCLE_CLASSIFICATION_v0.26.81.md','formal revision/supersede workflow'],
 ]

@@ -14,8 +14,8 @@ describe('clinical cloud route isolation',()=>{
 
   it('routes patient and surveillance records through the environment switch',()=>{
     expect(app).toContain("import('../features/surveillance/PatientClinicalRecordRoute')")
-    expect(app).toContain('<PatientClinicalRecordRoute />')
-    expect(app).toContain('<PatientClinicalRecordRoute patientMode />')
+    expect(app).toContain('<PatientClinicalRecordRoute/>')
+    expect(app).toContain('<PatientClinicalRecordRoute patientMode/>')
   })
 
   it('does not import demo clinical or laboratory arrays in the production record page',()=>{

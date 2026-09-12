@@ -1,11 +1,15 @@
-import { useTenant } from '../../core/tenant/TenantContext'
-import { LaboratoryPage as LaboratoryDemoPage } from './LaboratoryDemoPage'
-import { LaboratoryCloudPage } from './LaboratoryCloudPage'
+import { LaboratoryWorkspace } from './LaboratoryWorkspace'
 import { LaboratoryStatus } from './LaboratoryStatus'
 
 export function LaboratoryPage(){
-  const {isDemo}=useTenant()
-  return isDemo?<LaboratoryDemoPage/>:<LaboratoryCloudPage/>
+  return <LaboratoryWorkspace/>
 }
 
-export { LaboratoryStatus as Status }
+function LabKpi({icon:Icon,label,value,danger}){return <MetricCard icon={Icon} value={value} label={label} tone={danger?'danger':'neutral'}/>}
+
+function LaboratorySampleDialog({t,language,patients,departments,onClose,onSave}){
+  const activePatients=patients.filter(item=>item.status==='active');const first=activePatients[0];const now=new Date();const [draft,setDraft]=useState({patientId:first?.id||'',departmentId:first?.departmentId||'',type:'bloodCulture',source:'',collectedDate:now.toISOString().slice(0,10),collectedTime:now.toTimeString().slice(0,5),priority:'routine'});const set=(key,value)=>setDraft(current=>({...current,[key]:value}));function choosePatient(id){const patient=patients.find(item=>item.id===id);setDraft(current=>({...current,patientId:id,departmentId:patient?.departmentId||current.departmentId}))}function submit(){const {collectedDate,collectedTime,...values}=draft;onSave({...values,collectedAt:collectedDate?`${collectedDate}T${collectedTime||'00:00'}`:''})}
+  return <ObserverDialog width="wide" eyebrow={t('laboratoryRecords.newSample')} title={t('sampleDetails')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={submit} disabled={!draft.patientId||!draft.type}/>}><div className="entry-grid"><label className="field entry-span-2"><span>{t('patient')}</span><select value={draft.patientId} onChange={event=>choosePatient(event.target.value)}><option value="">{t('select')}</option>{activePatients.map(patient=><option key={patient.id} value={patient.id}>{language==='el'?patient.name:(patient.nameEn||patient.name)} · {patient.id}</option>)}</select></label><label className="field"><span>{t('department')}</span><select value={draft.departmentId} onChange={event=>set('departmentId',event.target.value)}><option value="">{t('select')}</option>{departments.map(row=><option key={row.id} value={row.id}>{language==='en'?(row.nameEn||row.name):row.name}</option>)}</select></label><label className="field"><span>{t('sampleType')}</span><select value={draft.type} onChange={event=>set('type',event.target.value)}><option value="bloodCulture">{t('bloodCulture')}</option><option value="urineCulture">{t('urineCulture')}</option><option value="respiratorySample">{t('respiratorySample')}</option><option value="woundCulture">{t('woundCulture')}</option></select></label><label className="field"><span>{t('clinicalSource')}</span><input value={draft.source} onChange={event=>set('source',event.target.value)}/></label><label className="field"><span>{t('priority')}</span><select value={draft.priority} onChange={event=>set('priority',event.target.value)}><option value="routine">{t('routine')}</option><option value="urgent">{t('urgent')}</option><option value="critical">{t('critical')}</option></select></label><ManualDateField className="field" label={t('collectedLabel')} value={draft.collectedDate} onChange={value=>set('collectedDate',value)}/><TimeField className="field" label={t('time')} value={draft.collectedTime} onChange={value=>set('collectedTime',value)}/></div></ObserverDialog>
+}
+
+export { LaboratoryStatus as Status } from './LaboratoryStatus'

@@ -3,6 +3,7 @@ import { Eye, FileText, Paperclip, Trash2, Upload } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ConfirmDialog } from '../../design-system/ConfirmDialog'
 import { EmptyState } from '../../design-system/EmptyState'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { deleteAttachment, getAttachmentUrl, loadAttachments, uploadAttachment } from '../../core/attachments/attachmentService'
 
 const MAX_FILE_SIZE=25*1024*1024
@@ -48,7 +49,10 @@ export function LaboratoryAttachmentsPanel({organizationId,sampleRecordId,canMan
   return <>
     <section className="clinical-panel full-panel">
       <div className="record-section-header"><div><Paperclip size={17}/><strong>{t('attachments')}</strong><small>{rows.length}</small></div>{canManage&&<><input ref={inputRef} type="file" hidden onChange={event=>upload(event.target.files?.[0])}/><Button variant="secondary" disabled={busy} onClick={()=>inputRef.current?.click()}><Upload size={15}/> {t('upload')}</Button></>}</div>
-      {loading?<div className="inline-empty">{t('loading')}</div>:rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('document')}</th><th>{t('type')}</th><th>{t('size')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><strong><FileText size={14}/> {row.name}</strong></td><td>{row.type||'—'}</td><td>{size(row.size)}</td><td><div className="record-section-actions"><Button variant="secondary" onClick={()=>view(row)}><Eye size={14}/> {t('view')}</Button>{canManage&&<Button variant="secondary" disabled={busy} onClick={()=>setPendingDelete(row)}><Trash2 size={14}/> {t('delete')}</Button>}</div></td></tr>)}</tbody></table></div>:<EmptyState title={t('noData')} description={t('attachments')}/>} 
+      {loading?<div className="inline-empty">{t('loading')}</div>:rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('document')}</th><th>{t('type')}</th><th>{t('size')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><strong><FileText size={14}/> {row.name}</strong></td><td>{row.type||'—'}</td><td>{size(row.size)}</td><td><OverflowMenu items={[
+    {id:'view',label:t('view'),icon:Eye,onClick:()=>view(row)},
+    {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>setPendingDelete(row),hidden:!canManage},
+  ]}/></td></tr>)}</tbody></table></div>:<EmptyState title={t('noData')} description={t('attachments')}/>} 
     </section>
     <ConfirmDialog
       open={Boolean(pendingDelete)}

@@ -19,9 +19,11 @@ describe('controls production cloud boundary',()=>{
 
  it('uses the Supabase control persistence tables',()=>{
   const source=read('src/features/controls/controlCloudService.js')
-  for(const table of ['control_definitions','control_assignments','control_executions','control_execution_revisions','control_drafts']){
+  for(const table of ['control_definitions','control_assignments','control_executions','control_drafts']){
    expect(source).toContain(`'${table}'`)
   }
+  // control_execution_revisions is written by the trg_control_execution_revision
+  // database trigger (capture_control_execution_revision), not by client code.
   expect(source).toContain("from '../../core/supabase/client'")
  })
 
