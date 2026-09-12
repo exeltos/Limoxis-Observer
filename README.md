@@ -11,7 +11,7 @@
 
 The Education/Training placeholder is now a functional, role-aware Training & Competence workspace. It follows the Observer UI contract and uses a competence-first model: programme → assignment → participation → assessment when required → competence outcome → validity/renewal → evidence.
 
-Key additions: management and employee self-service views, programme registry, due/overdue assignments, assessment thresholds, retraining signals, competence validity and certificate evidence. See `QA/QA_TRAINING_COMPETENCE_v0.26.7.md`.
+Key additions: management and employee self-service views, programme registry, due/overdue assignments, assessment thresholds, retraining signals, competence validity and certificate evidence.
 
 ---
 
@@ -19,7 +19,7 @@ Key additions: management and employee self-service views, programme registry, d
 
 This release consolidates the new Limoxis Observer UI contract across the application. It does not copy the legacy Limoxis/Healthcare Suite design. Print/Export are canonical icon-only utilities, record export actions are functional, feature date/time controls use shared Observer fields, existing dialogs inherit one common visual form language, and automated guardrails prevent these patterns from drifting again.
 
-See `docs/OBSERVER_UI_CONTRACT.md` and `QA/observer-ui-audit-v0.25.17.md`.
+See `docs/OBSERVER_UI_CONTRACT.md`.
 
 ---
 
@@ -815,4 +815,4 @@ Two things reported together: (1) committee meetings/decisions/plan-items/attend
 Full pipeline verified clean: `lint` (0/0), `test` (93/93 across 13 files), `build` clean.
 
 ## v0.40.0 Full Refactor Baseline
-This branch is the unified refactor baseline derived from the supplied mature Limoxis Observer project. Existing functional modules, permissions, routing and data flows are preserved while the visual architecture is consolidated into four central CSS layers. See `REFACTOR_BASELINE.md`.
+This branch is the unified refactor baseline derived from the supplied mature Limoxis Observer project. Existing functional modules, permissions, routing and data flows are preserved while the visual architecture is consolidated into four central CSS layers.

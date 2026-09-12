@@ -1,7 +1,0 @@
-export const v050Traceability = Object.freeze([
-  { requirement:'Single source of truth for microbiology', controls:['laboratory_samples is canonical','microbiology_results references sample','surveillance reads laboratory records without copying'], references:['Limoxis Observer product architecture','WHO IPC surveillance design alignment'] },
-  { requirement:'Structured clinical surveillance lifecycle', controls:['clinical assessments','canonical samples/results','therapy','isolation episodes','reassessments','outcomes'], references:['WHO IPC/HAI surveillance design alignment','ISO 7101 risk and documented-process principles'] },
-  { requirement:'Least-privilege clinical access', controls:['role-aware RLS','department scope for department managers','laboratory/pharmacy domain-specific writes','UI capabilities mirror backend intent'], references:['JCI patient-information governance design alignment','Limoxis Observer access model'] },
-  { requirement:'Clinical traceability without unnecessary PHI duplication', controls:['metadata-only clinical_audit_log','actor ID','timestamp','table and record reference'], references:['ISO 7101 documented information design alignment','data minimization principle'] },
-  { requirement:'Bilingual clinical operation', controls:['central EL/EN dictionary','el-GR/en-GB date formatting','clinical terminology translated in one layer'], references:['Limoxis Observer product requirement'] },
-])
