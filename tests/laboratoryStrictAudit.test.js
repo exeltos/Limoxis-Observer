@@ -18,7 +18,7 @@ describe('Laboratory strict production audit',()=>{
 
   it('does not offer AST mutation after microbiology finalization',()=>{
     expect(record).toContain("const resultIsDraft=!result||result.resultStatus==='draft'")
-    expect(record).toContain('canManage&&result&&resultIsDraft')
+    expect(record).toContain('canManageActive&&result&&resultIsDraft')
     expect(record).toContain('finalizedAstNotice')
   })
 
