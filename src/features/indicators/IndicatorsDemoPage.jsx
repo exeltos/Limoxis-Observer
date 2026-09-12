@@ -2,6 +2,7 @@ import { useMemo,useState } from 'react'
 import { Activity,Calculator,CheckCircle2,Database,Pencil,Plus,Target,Trash2,TrendingUp } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
@@ -90,7 +91,10 @@ function formatTarget(x){if(x.target==null)return '—';return `${x.direction===
 function IndicatorDialog({item,greek,canManage,t,onClose,onEdit,onDelete}){
  const metricLabel=key=>indicatorMetricCatalog.find(x=>x.key===key)?.label||key||'—'
  return <ObserverDialog eyebrow={t('indicatorsRecords.tableIndicator')} title={greek?item.titleEl:item.titleEn} subtitle={t('indicatorsRecords.dialogSubtitle')} width="wide" onClose={onClose} footer={<>
-   {canManage&&<div className="record-inline-actions indicator-dialog-icon-actions"><button type="button" className="edit" onClick={onEdit} title={t('indicatorsRecords.editIndicator')} aria-label={t('indicatorsRecords.editIndicator')}><Pencil size={16}/></button><button type="button" className="danger" onClick={onDelete} title={t('indicatorsRecords.deleteIndicatorTitle')} aria-label={t('indicatorsRecords.deleteIndicatorTitle')}><Trash2 size={16}/></button></div>}
+   {canManage&&<OverflowMenu items={[
+     {id:'edit',label:t('indicatorsRecords.editIndicator'),icon:Pencil,onClick:onEdit},
+     {id:'delete',label:t('indicatorsRecords.deleteIndicatorTitle'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:onDelete},
+   ]}/>}
    
    <Button onClick={onClose}>{t('close')}</Button>
   </>}>

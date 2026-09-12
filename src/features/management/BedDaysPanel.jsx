@@ -6,6 +6,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { IconButton } from '../../design-system/IconButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterBar, FilterDate, FilterSelect } from '../../design-system/FilterBar'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -42,7 +43,10 @@ export function BedDaysPanel(){
   rows={filteredRows}
   rowKey={row=>row.id}
   rowProps={row=>({className:'clickable-row',onClick:()=>setSelectedId(row.id)})}
-  renderRow={row=><><td>{fmt(row.from)} – {fmt(row.to)}</td><td>{row.scope==='hospital'?t('wholeHospital'):(language==='el'?row.departmentEl:row.departmentEn)}</td><td><strong>{Number(row.value).toLocaleString(locale)}</strong></td><td>{t(row.source)}</td><td onClick={e=>e.stopPropagation()}><div className="bed-days-row-actions"><IconButton tone="edit" size="sm" onClick={()=>openEdit(row)} label={t('edit')}><Pencil size={15}/></IconButton><IconButton tone="danger" size="sm" onClick={()=>remove(row.id)} label={t('delete')}><Trash2 size={15}/></IconButton></div></td></>}
+  renderRow={row=><><td>{fmt(row.from)} – {fmt(row.to)}</td><td>{row.scope==='hospital'?t('wholeHospital'):(language==='el'?row.departmentEl:row.departmentEn)}</td><td><strong>{Number(row.value).toLocaleString(locale)}</strong></td><td>{t(row.source)}</td><td onClick={e=>e.stopPropagation()}><OverflowMenu items={[
+    {id:'edit',label:t('edit'),icon:Pencil,onClick:()=>openEdit(row)},
+    {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(row.id)},
+  ]}/></td></>}
 />{!loading&&filteredRows.length===0&&<div className="inline-empty">{t('noPatientDaysFound')}</div>}{editor&&<EntryEditor t={t} language={language} departments={departments} draft={draft} setDraft={setDraft} mode={editor.mode} onClose={closeEditor} onSave={save}/>}</div></section>
 }
 

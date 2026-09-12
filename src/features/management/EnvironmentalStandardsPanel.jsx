@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { LockKeyhole, Pencil, Plus, ShieldCheck, Trash2, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { IconButton } from '../../design-system/IconButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterBar } from '../../design-system/FilterBar'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -62,7 +62,10 @@ export function EnvironmentalStandardsPanel({embedded=false}){
       columns={[{key:'code',label:t('environmentalStandards.protocolCode')},{key:'category',label:t('environmentalStandards.samplingCategory')},{key:'method',label:t('samplingMethod')},{key:'unit',label:t('environmentalStandards.measurementUnit')},{key:'limit',label:t('environmentalStandards.acceptableLimit')},{key:'status',label:t('status')},{key:'actions',label:t('actions')}]}
       rows={filtered}
       rowKey={item=>item.id}
-      renderRow={item=>{const systemLocked=item.system&&!isPlatformOwner;return <><td><strong>{item.protocolCode}</strong>{item.system&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{t(item.subjectType)}</td><td>{t(item.sourceCode)}</td><td>{item.unit}</td><td><strong>{item.limitCfu??t('notConfigured')}</strong></td><td><span className={`status-badge ${item.active?'active':''}`}>{item.active?t('active'):t('environmentalStandards.protocolInactive')}</span></td><td><div className="record-inline-actions"><IconButton tone={systemLocked?'view':'edit'} label={systemLocked?(language==='en'?'View system protocol':'Προβολή πρωτοκόλλου συστήματος'):t('edit')} onClick={()=>setDraft({...item,limitCfu:item.limitCfu??''})}>{systemLocked?<LockKeyhole size={15}/>:<Pencil size={15}/>}</IconButton>{(!item.system||isPlatformOwner)&&<IconButton tone="danger" label={t('delete')} onClick={()=>remove(item)}><Trash2 size={15}/></IconButton>}</div></td></>}}
+      renderRow={item=>{const systemLocked=item.system&&!isPlatformOwner;return <><td><strong>{item.protocolCode}</strong>{item.system&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{t(item.subjectType)}</td><td>{t(item.sourceCode)}</td><td>{item.unit}</td><td><strong>{item.limitCfu??t('notConfigured')}</strong></td><td><span className={`status-badge ${item.active?'active':''}`}>{item.active?t('active'):t('environmentalStandards.protocolInactive')}</span></td><td><OverflowMenu items={[
+        {id:'edit',label:systemLocked?(language==='en'?'View system protocol':'Προβολή πρωτοκόλλου συστήματος'):t('edit'),icon:systemLocked?LockKeyhole:Pencil,onClick:()=>setDraft({...item,limitCfu:item.limitCfu??''})},
+        {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(item),hidden:item.system&&!isPlatformOwner},
+      ]}/></td></>}}
     />{!loading&&filtered.length===0&&<div className="inline-empty">{t('noData')}</div>}
     {draft&&<div className="modal-backdrop"><div className="role-editor environmental-standard-editor" role="dialog" aria-modal="true"><header><div><h3>{draft.id?t('environmentalStandards.editEnvironmentalProtocol'):t('environmentalStandards.newEnvironmentalProtocol')}</h3><p>{draft.system?(language==='en'?'Centrally governed Limoxis system protocol.':'Κεντρικά διαχειριζόμενο πρωτόκολλο συστήματος Limoxis.'):t('environmentalStandards.environmentalProtocolEditorHelp')}</p></div><button className="icon-button" onClick={()=>setDraft(null)}><X size={17}/></button></header>
       <div className="form-grid two-col">
