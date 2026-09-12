@@ -12,12 +12,6 @@
     "expiresOn": "2026-12-31"
   },
   {
-    "file": "features/laboratory/LaboratoryPage.jsx",
-    "owner": "laboratory-frontend",
-    "reason": "Restored while the Demo UI is ported safely onto production repositories.",
-    "expiresOn": "2026-10-31"
-  },
-  {
     "file": "features/laboratory/LaboratorySampleRecordPage.jsx",
     "owner": "laboratory-frontend",
     "reason": "Restored while the Demo record workflow is ported safely onto production repositories.",

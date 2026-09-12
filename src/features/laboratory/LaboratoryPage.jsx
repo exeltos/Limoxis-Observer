@@ -1,53 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Clock3, FlaskConical, Microscope, ShieldAlert } from 'lucide-react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Page } from '../../design-system/Page'
-import { RecordActions } from '../../design-system/RecordActions'
-import { Button } from '../../design-system/Button'
-import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
-import { MetricCard } from '../../design-system/MetricCard'
-import { RegistryPagination } from '../../design-system/RegistryPagination'
-import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
-import { ManualDateField } from '../../design-system/ManualDateField'
-import { TimeField } from '../../design-system/TimeField'
-import { ReadinessState, RepositoryErrorState } from '../../design-system/ReadinessState'
-import { useLanguage } from '../../core/i18n/LanguageContext'
-import { UI_ACTIONS } from '../../core/actions/actionPolicy'
-import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { useTenant } from '../../core/tenant/TenantContext'
-import { CAPABILITIES, ROLES } from '../../core/permissions/roles'
-import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
-import { loadPatients } from '../patients/patientsService'
-import { loadDepartments } from '../management/departmentsService'
-import { demoLibrarySeed } from '../management/managementData'
-import { getLaboratoryKpis, sampleTypeLabel } from './laboratoryCloudService'
-import { LaboratoryStatus as Status } from './LaboratoryStatus'
-import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
+import { LaboratoryWorkspace } from './LaboratoryWorkspace'
+import { LaboratoryStatus } from './LaboratoryStatus'
 
 export function LaboratoryPage(){
-  const {t,language,locale}=useLanguage();const {notify}=useFeedback();const {tenant,role,canAccessRecord,isDemo}=useTenant();const navigate=useNavigate();const location=useLocation();const registry=useRegistryMemory('laboratory')
-  const {rows,loading,error,readiness,reload,createSample}=useLaboratoryRegistry()
-  const batchFilter=location.state?.surveillanceBatchId||null
-  const statusLabel=value=>value==='rejected'?t('rejected'):t(value)
-  const saved=registry.loadViewState({query:'',status:'all',result:'all',department:'all'});const [query,setQuery]=useState(saved.query);const [status,setStatus]=useState(saved.status);const [result,setResult]=useState(saved.result);const [department,setDepartment]=useState(saved.department)
-  const [patients,setPatients]=useState([]);const [departments,setDepartments]=useState([]);const [newOpen,setNewOpen]=useState(false);const [page,setPage]=useState(1);const [pageSize,setPageSize]=useState(15)
-  const canCreateSample=role!==ROLES.HOSPITAL_ADMIN
-  useEffect(()=>{let alive=true;async function loadReferences(){try{const patientRows=await loadPatients(tenant?.id,{isDemo});const departmentRows=isDemo?demoLibrarySeed.departments.map(([name,nameEn])=>({id:name,name,nameEn,is_active:true})):await loadDepartments(tenant?.id);if(alive){setPatients(patientRows);setDepartments((departmentRows||[]).filter(row=>row.is_active!==false))}}catch(loadError){if(alive)notify(loadError?.message||t('actionFailed'),'error')}}void loadReferences();return()=>{alive=false}},[tenant?.id,isDemo,notify,t])
-  useEffect(()=>{setPage(1)},[query,status,result,department,pageSize,batchFilter])
-  const filtered=useMemo(()=>rows.filter(row=>canAccessRecord(row)).filter(row=>!batchFilter||row.employeeSurveillanceBatchId===batchFilter).filter(row=>`${row.id} ${row.subjectName||''} ${row.subjectNameEn||''} ${row.subjectCode||''} ${row.source||''} ${row.organism||''} ${row.surveillanceCase||''}`.toLowerCase().includes(query.toLowerCase())).filter(row=>status==='all'||row.status===status).filter(row=>result==='all'||(result==='critical'?row.critical:row.result===result)).filter(row=>department==='all'||row.departmentId===department),[rows,query,status,result,department,canAccessRecord,batchFilter])
-  const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=filtered.slice((safePage-1)*pageSize,safePage*pageSize)
-  const k=getLaboratoryKpis(rows);const fmt=value=>value?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(value)):'—'
-  function openSample(sample){registry.saveViewState({query,status,result,department});registry.openRecord(navigate,`/laboratory/${sample.id}`,sample.id,filtered.map(item=>item.id))}
-  async function saveSample(draft){if(!canCreateSample)return;const patient=patients.find(item=>item.id===draft.patientId);if(!patient)return;const departmentRow=departments.find(item=>item.id===(draft.departmentId||patient.departmentId));try{await createSample({patientRecordId:patient.recordId,draft:{...draft,departmentId:draft.departmentId||patient.departmentId||patient.department||null,department:departmentRow?.name||patient.department||'',departmentEn:departmentRow?.nameEn||patient.departmentEn||departmentRow?.name||'',subjectType:'patient',subjectName:patient.name,subjectNameEn:patient.nameEn,subjectCode:patient.id,patient:patient.name,patientEn:patient.nameEn,patientId:patient.id}});setNewOpen(false);notify(t('laboratoryRecords.sampleCreated'),'success')}catch(saveError){notify(saveError?.message||t('actionFailed'),'error')}}
-  function pageAction(action){if(action===UI_ACTIONS.CREATE&&canCreateSample)setNewOpen(true)}
-  return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={canCreateSample?<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_LAB_SAMPLES}} onAction={pageAction}/>:null}>
-    <div className="workspace-summary"><div className="module-summary-strip"><LabKpi icon={FlaskConical} label={t('laboratoryRecords.newSamplesToday')} value={k.today}/><LabKpi icon={Clock3} label={t('laboratoryRecords.pendingResults')} value={k.pending}/><LabKpi icon={Microscope} label={t('laboratoryRecords.positiveResults')} value={k.positive}/><LabKpi icon={ShieldAlert} label={t('laboratoryRecords.amrFindings')} value={k.amr}/><LabKpi icon={AlertTriangle} label={t('laboratoryRecords.uncommunicatedCritical')} value={k.critical} danger={k.critical>0}/></div></div>
-    <section className="surface registry-workspace workspace-column workspace-fill">
-      {batchFilter&&<div className="source-truth-note"><FlaskConical size={16}/><div><strong>{t('bulkLaboratoryTitle')}</strong><span>{t('bulkLaboratoryPrefix')} {filtered.length} {t('bulkLaboratorySuffix')}</span></div><Button variant="secondary" onClick={()=>navigate('/laboratory',{replace:true})}>{t('showAll')}</Button></div>}
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)+(result!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setResult('all');setDepartment('all')}}><FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="requested">{t('requested')}</option><option value="collected">{t('collected')}</option><option value="received">{t('received')}</option><option value="processing">{t('processing')}</option><option value="completed">{t('completed')}</option><option value="rejected">{statusLabel('rejected')}</option></FilterSelect><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(row=><option key={row.id} value={row.id}>{language==='en'?(row.nameEn||row.name):row.name}</option>)}</FilterSelect><FilterSelect label={t('result')} value={result} onChange={setResult}><option value="all">{t('all')}</option><option value="positive">{t('positive')}</option><option value="negative">{t('negative')}</option><option value="critical">{t('criticalResult')}</option></FilterSelect></FilterBar>
-      <div className="scroll-table" ref={registry.scrollRef}>{loading?<div className="inline-empty">{t('loading')}</div>:error?<RepositoryErrorState title={t('actionFailed')} description={error.message} retryLabel={t('retry')} onRetry={reload}/>:<><table className="data-table sticky-table"><thead><tr><th>{t('sampleCode')}</th><th>{t('laboratoryRecords.subject')}</th><th>{t('sampleType')}</th><th>{t('clinicalSource')}</th><th>{t('status')}</th><th>{t('result')}</th><th>{t('surveillance')}</th></tr></thead><tbody>{pagedRows.map(sample=>{const subjectName=language==='en'?(sample.subjectNameEn||sample.subjectName):(sample.subjectName||sample.subjectNameEn);const departmentName=language==='en'?(sample.departmentEn||sample.department):(sample.department||sample.departmentEn);const surveillanceRef=sample.surveillanceCase||sample.employeeSurveillanceId||sample.employeeSurveillanceBatchId||null;return <tr key={sample.id} {...registry.rowProps(sample.id)} onClick={()=>openSample(sample)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openSample(sample)}}}><td><strong>{sample.id}</strong><small>{fmt(sample.collectedAt||sample.requestedAt)}</small></td><td><strong>{subjectName||sample.source||'—'}</strong><small>{sample.subjectCode||'—'} · {departmentName||'—'}</small></td><td>{sample.sampleType==='surveillance'?t('surveillance'):sampleTypeLabel(sample.sampleType,t)}</td><td>{language==='en'?(sample.sourceEn||sample.source):(sample.source||sample.sourceEn)||'—'}</td><td><Status text={statusLabel(sample.status)} kind={sample.status}/></td><td><div className="lab-result-cell">{sample.result?<Status text={t(sample.result)} kind={sample.result}/>:<span>—</span>}{sample.resistance&&<b className="amr-chip">{sample.resistance}</b>}{sample.critical&&<span className="critical-mini" title={t('criticalResult')}>!</span>}</div></td><td>{surveillanceRef?<span className="linked-case-chip">{surveillanceRef}</span>:'—'}</td></tr>})}</tbody></table>{readiness!=='ready'&&<ReadinessState state={readiness} title={t('laboratoryEmptyTitle')} description={t('laboratoryEmptyDescription')}/>}</>}</div>
-      {!loading&&!error&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
-    </section>{newOpen&&canCreateSample&&<LaboratorySampleDialog t={t} language={language} patients={patients} departments={departments} onClose={()=>setNewOpen(false)} onSave={saveSample}/>}</Page>
+  return <LaboratoryWorkspace/>
 }
 
 function LabKpi({icon:Icon,label,value,danger}){return <MetricCard icon={Icon} value={value} label={label} tone={danger?'danger':'neutral'}/>}
