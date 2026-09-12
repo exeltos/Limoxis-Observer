@@ -156,9 +156,9 @@ src/features/<feature>/
 - Το audit επιτρέπει μόνο καταγεγραμμένα legacy splits.
 - Κάθε legacy εξαίρεση έχει owner, migration issue και ημερομηνία λήξης.
 
-### Workstream B — Εργαστήριο
+### Workstream B — Εργαστήριο ✅ Ολοκληρώθηκε
 
-Το Εργαστήριο γίνεται πρώτο επειδή έχει τη μεγαλύτερη αναλογία Demo/Production UI και σαφή workflow boundaries.
+Ενοποιήθηκε σε `LaboratoryWorkspace.jsx`/`LaboratorySampleRecordView.jsx`· τα `LaboratoryDemoPage`, `LaboratoryCloudPage` και τα αντίστοιχα demo/cloud record pages έχουν διαγραφεί.
 
 **Σειρά**
 
@@ -208,16 +208,16 @@ src/features/<feature>/
 
 Τα clinical transitions δεν γίνονται optimistic χωρίς επιβεβαίωση backend. Το Demo repository μπορεί να τα προσομοιώνει, αλλά το canonical UI εμφανίζει completion μόνο όταν επιστρέψει επιτυχία το repository.
 
-### Workstream D — Δείκτες και Analytics
+### Workstream D — Δείκτες και Analytics ✅ Ολοκληρώθηκε (12/09/2026)
 
-**Σειρά**
+1. ✅ Κοινό indicator definition/result model (`indicatorCloudService.js`/`indicatorDefinitionService.js`, ίδιες συναρτήσεις για Demo/Production).
+2. ✅ Demo metrics adapter (`collectIndicatorMetrics` σε `indicatorEngine.js`) που επιστρέφει το ίδιο schema με το production RPC.
+3. ✅ Κοινό `IndicatorsPage.jsx` για calculate, save period, review και approve.
+4. Readiness states για definitions, patient days/denominators και departments — δεν έγιναν ξεχωριστά· εκκρεμεί ως μελλοντικό βήμα ποιότητας.
+5. Κοινά charts και explanatory states — δεν υπήρχαν charts σε καμία εκδοχή, δεν χρειάστηκε.
+6. ✅ Διαγραφή των `IndicatorsDemoPage.jsx` και `IndicatorsCloudPage.jsx`.
 
-1. Κοινό indicator definition/result model.
-2. Demo metrics adapter που επιστρέφει το ίδιο schema με τα production metrics.
-3. Κοινό workspace για calculate, save, review και approve.
-4. Readiness states για definitions, patient days/denominators και departments.
-5. Κοινά charts και explanatory states.
-6. Διαγραφή των `IndicatorsDemoPage` και `IndicatorsCloudPage`.
+Γνωστός περιορισμός: στο Demo repository, η επιλογή τμήματος/περιόδου δεν φιλτράρει πραγματικά τους υπολογισμένους αριθμούς (τα demo datasets δεν είναι χρονικά/τμηματικά κατανεμημένα σε αυτό το επίπεδο λεπτομέρειας) — η πλήρης ροή διακυβέρνησης (υπολογισμός → αποθήκευση περιόδου → έγκριση) λειτουργεί όμως κανονικά και σε localStorage.
 
 ### Workstream E — Οριζόντια ποιότητα
 

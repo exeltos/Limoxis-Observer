@@ -2,7 +2,7 @@ import { describe,expect,it } from 'vitest'
 import fs from 'node:fs'
 import { calculateCloudDefinition } from '../src/features/indicators/indicatorCloudService'
 
-const cloud=fs.readFileSync(new URL('../src/features/indicators/IndicatorsCloudPage.jsx',import.meta.url),'utf8')
+const cloud=fs.readFileSync(new URL('../src/features/indicators/IndicatorsPage.jsx',import.meta.url),'utf8')
 const service=fs.readFileSync(new URL('../src/features/indicators/indicatorCloudService.js',import.meta.url),'utf8')
 const panel=fs.readFileSync(new URL('../src/features/management/IndicatorsPanel.jsx',import.meta.url),'utf8')
 const definitionForm=fs.readFileSync(new URL('../src/features/indicators/IndicatorDefinitionForm.jsx',import.meta.url),'utf8')

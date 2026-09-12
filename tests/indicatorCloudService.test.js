@@ -15,10 +15,10 @@ describe('production indicator calculation',()=>{
   const row=calculateCloudDefinition({id:'active',calculation:'auto',numerator:'active_surveillance',denominator:null,multiplier:1,target:null,direction:'context'},{active_surveillance:7})
   expect(row.value).toBe(7);expect(row.numerator).toBe(7)
  })
- it('keeps production indicators on the cloud route with department scoping and history',()=>{
-  const page=fs.readFileSync('src/features/indicators/IndicatorsCloudPage.jsx','utf8')
-  const wrapper=fs.readFileSync('src/features/indicators/IndicatorsPage.jsx','utf8')
-  expect(wrapper).toContain('isDemo?<IndicatorsDemoPage/>:<IndicatorsCloudPage/>')
+ it('keeps a single canonical indicators page with department scoping and history, not a demo/production split',()=>{
+  const page=fs.readFileSync('src/features/indicators/IndicatorsPage.jsx','utf8')
+  expect(page).not.toContain('IndicatorsDemoPage')
+  expect(page).not.toContain('IndicatorsCloudPage')
   expect(page).toContain('departmentScoped')
   expect(page).toContain('effectiveDepartment')
   expect(page).toContain('loadIndicatorSnapshots')
