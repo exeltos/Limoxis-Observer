@@ -26,7 +26,7 @@ export function AttachmentField({
   entityType=null,
   entityId=null,
 }){
-  const {t,language}=useLanguage();const en=language==='en'
+  const {t}=useLanguage()
   const {confirm,notify}=useFeedback()
   const cloudMode = cloudAttachmentsEnabled() && Boolean(organizationId) && Boolean(entityType) && Boolean(entityId)
   const [files,setFiles]=useState(value)
@@ -183,7 +183,7 @@ export function AttachmentField({
           <div><span className="attachment-category">{categoryLabel(file.category)}</span>{file.description&&<small>{file.description}</small>}</div>
         </div>
         <div className="attachment-actions">
-          <OverflowMenu label={en?'Attachment actions':'Ενέργειες συνημμένου'} items={[
+          <OverflowMenu label={t('attachmentActionsLabel')} items={[
             {id:'view',label:t('viewAttachment'),icon:Eye,disabled:busy||!canView(file),onClick:()=>view(file)},
             !disabled&&{id:'edit',label:t('edit'),icon:Pencil,disabled:busy,onClick:()=>beginEdit(file)},
             !disabled&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>remove(file.id)},
