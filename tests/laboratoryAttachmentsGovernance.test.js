@@ -1,21 +1,22 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 
-const panel=fs.readFileSync('src/features/laboratory/LaboratoryAttachmentsPanel.jsx','utf8')
+const panel=fs.readFileSync('src/design-system/EntityAttachmentsPanel.jsx','utf8')
 const record=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordView.jsx','utf8')
 const registry=fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx','utf8')
 
 describe('laboratory attachment governance',()=>{
-  it('uses the shared private attachment service for sample evidence',()=>{
-    expect(panel).toContain("loadAttachments(organizationId,'laboratory_sample',sampleRecordId)")
-    expect(panel).toContain("uploadAttachment(organizationId,'laboratory_sample',sampleRecordId")
+  it('uses the shared private attachment service for entity evidence',()=>{
+    expect(panel).toContain('loadAttachments(organizationId,entityType,entityRecordId)')
+    expect(panel).toContain('uploadAttachment(organizationId,entityType,entityRecordId,file')
     expect(panel).toContain('getAttachmentUrl(row.storagePath)')
     expect(panel).toContain('deleteAttachment(pendingDelete.id)')
     expect(panel).toContain('MAX_FILE_SIZE=25*1024*1024')
   })
   it('exposes attachments as a first-class record tab and keeps delete confirmation',()=>{
     expect(record).toContain("{id:'attachments'")
-    expect(record).toContain('<LaboratoryAttachmentsPanel')
+    expect(record).toContain('<EntityAttachmentsPanel')
+    expect(record).toContain('entityType="laboratory_sample"')
     expect(panel).toContain('<ConfirmDialog')
     expect(panel).toContain('open={Boolean(pendingDelete)}')
   })

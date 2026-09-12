@@ -58,7 +58,7 @@ export function DashboardPage() {
   const { role, tenant, isDemo } = useTenant()
   const {language}=useLanguage()
   const english=language==='en'
-  const workspace=role===ROLES.HOSPITAL_ADMIN?hospitalAdminWorkspace(english):workspaceFor(role,language)
+  const workspace=(role===ROLES.HOSPITAL_ADMIN||role===ROLES.DEMO)?hospitalAdminWorkspace(english):workspaceFor(role,language)
   const nctx=useNotifications()
   const navigate=useNavigate()
   const [metrics,setMetrics]=useState({})
