@@ -1,8 +1,8 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 
-const migration=fs.readFileSync('supabase/migrations/202609020108_organization_profile_management.sql','utf8')
-const privilegeMigration=fs.readFileSync('supabase/migrations/202609021150_organization_profile_privilege_hardening.sql','utf8')
+const migration=fs.readFileSync('supabase/migrations/20260902113718_organization_profile_management.sql','utf8')
+const privilegeMigration=fs.readFileSync('supabase/migrations/20260902114507_organization_profile_privilege_hardening.sql','utf8')
 const panel=fs.readFileSync('src/features/management/OrganizationProfilePanel.jsx','utf8')
 
 describe('organization profile management',()=>{

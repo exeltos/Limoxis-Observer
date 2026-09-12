@@ -4,7 +4,7 @@ export function RegistryPagination({language='el',page,totalPages,totalItems,pag
   const en=language==='en'
   const start=totalItems?((page-1)*pageSize)+1:0
   const end=Math.min(page*pageSize,totalItems)
-  return <div className="registry-pagination">
+  return <div className="registry-pagination" data-registry-pagination="canonical">
     <div>{totalItems?`${start}–${end} ${en?'of':'από'} ${totalItems}`:(en?'0 records':'0 εγγραφές')}</div>
     <div className="registry-pagination-controls">
       <label><span>{en?'Rows':'Γραμμές'}</span><select value={pageSize} onChange={e=>onPageSizeChange(Number(e.target.value))}>{PAGE_SIZE_OPTIONS.map(v=><option key={v} value={v}>{v}</option>)}</select></label>

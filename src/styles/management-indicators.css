@@ -1,9 +1,0 @@
-.indicator-row-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;white-space:nowrap!important}
-.indicator-row-actions>.lo-icon-button{width:30px!important;min-width:30px!important;max-width:30px!important;height:30px!important;min-height:30px!important;max-height:30px!important;display:inline-grid!important;place-items:center!important;padding:0!important;border:0!important;border-radius:8px!important;background:transparent!important;box-shadow:none!important;font-size:0!important;line-height:1!important;cursor:pointer!important}
-.indicator-row-actions>.lo-icon-button-primary{color:var(--lo-color-primary)!important}
-.indicator-row-actions>.lo-icon-button-edit{color:var(--lo-status-warning-fg)!important}
-.indicator-row-actions>.lo-icon-button-danger{color:var(--lo-status-danger-fg)!important}
-.indicator-row-actions>.lo-icon-button-primary:hover:not(:disabled){background:var(--lo-status-info-bg)!important}
-.indicator-row-actions>.lo-icon-button-edit:hover:not(:disabled){background:var(--lo-status-warning-bg)!important}
-.indicator-row-actions>.lo-icon-button-danger:hover:not(:disabled){background:var(--lo-status-danger-bg)!important}
-.indicator-row-actions>.lo-icon-button:disabled{opacity:.4!important;cursor:not-allowed!important}

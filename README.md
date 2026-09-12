@@ -813,3 +813,6 @@ Two things reported together: (1) committee meetings/decisions/plan-items/attend
 **A smaller, related staleness also fixed while here**: right after this migration step, the just-created certificate is added to the on-screen list using the object `createCertificateAsync` returned — which, like every fresh cloud load, reports `attachments: []` regardless of what was just uploaded. Patched the freshly-added row with a placeholder array matching the real migrated count so the attachment-count column doesn't show "0" immediately after files were just successfully attached; confirmed this placeholder is safely, fully replaced the moment the certificate is reopened for editing (`AttachmentField`'s own cloud-mode data-loading effect ignores whatever was passed in via `value` once real `entityId` is present, fetching the authoritative list itself).
 
 Full pipeline verified clean: `lint` (0/0), `test` (93/93 across 13 files), `build` clean.
+
+## v0.40.0 Full Refactor Baseline
+This branch is the unified refactor baseline derived from the supplied mature Limoxis Observer project. Existing functional modules, permissions, routing and data flows are preserved while the visual architecture is consolidated into four central CSS layers. See `REFACTOR_BASELINE.md`.

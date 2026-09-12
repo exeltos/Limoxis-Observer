@@ -7,8 +7,6 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { loadSnapshot,saveSnapshot } from '../../core/data/repository'
 import { DEFAULT_TRAINER_FEEDBACK_TEMPLATE } from '../training/trainingFeedbackTemplate'
-import '../../styles/questionnaires.css'
-
 const STORE='management_questionnaires_v1'
 const types={rating:{el:'Κλίμακα 1–5',en:'Rating 1–5'},yesno:{el:'Ναι / Όχι',en:'Yes / No'},single:{el:'Μία επιλογή',en:'Single choice'},multiple:{el:'Πολλαπλή επιλογή',en:'Multiple choice'},text:{el:'Ελεύθερο κείμενο',en:'Free text'}}
 const id=prefix=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`

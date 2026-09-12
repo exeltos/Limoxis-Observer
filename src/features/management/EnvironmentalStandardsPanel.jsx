@@ -9,8 +9,6 @@ import { ROLES } from '../../core/permissions/roles'
 import { demoLibrarySeed } from './managementData'
 import { loadSnapshot } from '../../core/data/repository'
 import { useRepositoryData } from '../../core/data/useRepositoryData'
-import '../../styles/environmental-standards.css'
-
 const empty={protocolCode:'',subjectType:'surface',sourceCode:'surfaceSwab',unit:'CFU',limitCfu:'',active:true,system:false,locked:false,source:'Hospital',version:'local'}
 const normalizeSystemStandards=rows=>(rows||[]).map(row=>row?.system===undefined?{...row,system:true,locked:true,source:'Limoxis System',version:'core'}:row)
 function mergeCoreWithLocal(core,stored){

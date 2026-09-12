@@ -7,8 +7,6 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ActionButton } from '../../design-system/ActionButton'
-import './WhoHandHygieneEditor.css'
-
 export const WHO_MOMENTS=[
  {id:'moment1',label:'1. Πριν την επαφή με τον ασθενή',labelEn:'1. Before touching a patient'},
  {id:'moment2',label:'2. Πριν από καθαρό / άσηπτο χειρισμό',labelEn:'2. Before clean / aseptic procedure'},
@@ -133,9 +131,9 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
      <div className="who-choice-block who-action-section">
       <div className="who-choice-heading"><span>{en?'Observed action':'Παρατηρούμενη ενέργεια'}</span><small>{en?'One action per opportunity':'Μία ενέργεια ανά ευκαιρία'}</small></div>
       <div className="who-action-options who-smart-actions" role="radiogroup" aria-label={en?'Hand hygiene action':'Ενέργεια υγιεινής χεριών'}>
-       <button type="button" className={`who-action-option ${current.action==='HR'?'selected':''}`} onClick={()=>setO('action','HR')} role="radio" aria-checked={current.action==='HR'}><span className="who-action-check">{current.action==='HR'?'✓':''}</span><span><strong>{en?'Alcohol-based hand rub':'Αλκοολούχο αντισηπτικό'}</strong><small>Hand Rub · HR</small></span></button>
-       <button type="button" className={`who-action-option ${current.action==='HW'?'selected':''}`} onClick={()=>setO('action','HW')} role="radio" aria-checked={current.action==='HW'}><span className="who-action-check">{current.action==='HW'?'✓':''}</span><span><strong>{en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'}</strong><small>Hand Wash · HW</small></span></button>
-       <button type="button" className={`who-action-option ${current.action==='MISSED'?'selected danger':''}`} onClick={()=>setO('action','MISSED')} role="radio" aria-checked={current.action==='MISSED'}><span className="who-action-check">{current.action==='MISSED'?'✓':''}</span><span><strong>{en?'Not performed':'Δεν πραγματοποιήθηκε'}</strong><small>Missed</small></span></button>
+       <button type="button" className={`who-action-option ${current.action==='HR'?'selected':''}`} onClick={()=>setO('action','HR')} role="radio" aria-checked={current.action==='HR'}><span className="who-action-check">{current.action==='HR'?'✓':''}</span><span><strong>{en?'Alcohol-based hand rub':'Αλκοολούχο αντισηπτικό'}</strong><small>{en?'Hand Rub · HR':'Αντισηπτικό · HR'}</small></span></button>
+       <button type="button" className={`who-action-option ${current.action==='HW'?'selected':''}`} onClick={()=>setO('action','HW')} role="radio" aria-checked={current.action==='HW'}><span className="who-action-check">{current.action==='HW'?'✓':''}</span><span><strong>{en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'}</strong><small>{en?'Hand Wash · HW':'Πλύσιμο · HW'}</small></span></button>
+       <button type="button" className={`who-action-option ${current.action==='MISSED'?'selected danger':''}`} onClick={()=>setO('action','MISSED')} role="radio" aria-checked={current.action==='MISSED'}><span className="who-action-check">{current.action==='MISSED'?'✓':''}</span><span><strong>{en?'Not performed':'Δεν πραγματοποιήθηκε'}</strong><small>{en?'Missed':'Παράλειψη'}</small></span></button>
       </div>
       <label className={`who-gloves-toggle who-smart-gloves ${current.gloves?'checked':''}`}><input type="checkbox" checked={current.gloves} onChange={event=>setO('gloves',event.target.checked)}/><span><strong>{en?'Gloves used':'Χρήση γαντιών'}</strong><small>{current.gloves?(en?'Recorded as Yes':'Καταγράφηκε Ναι'):(en?'Recorded as No':'Καταγράφηκε Όχι')}</small></span></label>
      </div>
@@ -156,9 +154,9 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
      <div className="who-live-summary who-smart-kpis">
       <div><span>{en?'Opportunities':'Ευκαιρίες'}</span><strong>{stats.opportunities}</strong></div>
       <div><span>{en?'Professionals':'Επαγγελματίες'}</span><strong>{stats.professionals}</strong></div>
-      <div><span>HR</span><strong>{stats.handRub}</strong></div>
-      <div><span>HW</span><strong>{stats.handWash}</strong></div>
-      <div className={stats.missed?'has-missed':''}><span>Missed</span><strong>{stats.missed}</strong></div>
+      <div><span>{en?'HR':'Αντισηπτικό'}</span><strong>{stats.handRub}</strong></div>
+      <div><span>{en?'HW':'Πλύσιμο'}</span><strong>{stats.handWash}</strong></div>
+      <div className={stats.missed?'has-missed':''}><span>{en?'Missed':'Παραλείψεις'}</span><strong>{stats.missed}</strong></div>
      </div>
     </section>
 

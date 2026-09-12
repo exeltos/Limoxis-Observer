@@ -5,7 +5,7 @@ const service=fs.readFileSync('src/features/management/announcementCloudService.
 const panel=fs.readFileSync('src/features/management/AnnouncementsPanel.jsx','utf8')
 const context=fs.readFileSync('src/core/notifications/NotificationContext.jsx','utf8')
 const center=fs.readFileSync('src/core/notifications/NotificationCenter.jsx','utf8')
-const migration=fs.readFileSync('supabase/migrations/202609020106_management_announcements_governance.sql','utf8')
+const migration=fs.readFileSync('supabase/migrations/20260902111423_management_announcements_governance.sql','utf8')
 
 describe('Management Center announcement persistence',()=>{
  it('persists announcements and acknowledgements in governed cloud tables',()=>{

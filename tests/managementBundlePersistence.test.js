@@ -3,7 +3,7 @@ import fs from 'node:fs'
 
 const service=fs.readFileSync('src/features/management/bundleLibraryCloudService.js','utf8')
 const panel=fs.readFileSync('src/features/management/BundleLibraryPanel.jsx','utf8')
-const migration=fs.readFileSync('supabase/migrations/202609020105_prevention_bundle_template_governance.sql','utf8')
+const migration=fs.readFileSync('supabase/migrations/20260902105001_prevention_bundle_template_governance.sql','utf8')
 
 describe('Management Center bundle template persistence',()=>{
  it('persists bundle templates in the governed cloud table',()=>{

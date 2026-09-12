@@ -8,8 +8,6 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 import { IndicatorDefinitionForm,createEmptyIndicatorDefinition,indicatorDefinitionIsValid } from '../indicators/IndicatorDefinitionForm'
 import { loadIndicatorDefinitions,retireIndicatorDefinition,saveIndicatorDefinition } from '../indicators/indicatorDefinitionService'
-import '../../styles/management-indicators.css'
-
 export function IndicatorsPanel(){
  const {language}=useLanguage();const {tenant,role,isDemo,membership}=useTenant();const {notify,confirm}=useFeedback();const el=language==='el';const isOwner=role===ROLES.PLATFORM_OWNER;const canManage=can(role,CAPABILITIES.MANAGE_INDICATORS,membership?.capabilities||[],membership?.customCapabilities||[])
  const [rows,setRows]=useState([]),[loading,setLoading]=useState(false),[editor,setEditor]=useState(null)

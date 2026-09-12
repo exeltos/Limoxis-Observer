@@ -10,8 +10,6 @@ import { CITY_OPTIONS,COUNTRY_OPTIONS } from '../../core/reference/locationOptio
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { purgePlatformOrganization,resetPlatformDemoPassword,setPlatformDemoStatus } from '../../core/tenant/tenantService'
 import { convertPlatformDemoToOrganization,loadPlatformDemoRecord,savePlatformDemoRecord } from './platformDemoService'
-import './platform-demo-record.css'
-
 const GREEK_REGIONS=['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
 const HEALTH_REGIONS=['1η ΥΠΕ Αττικής','2η ΥΠΕ Πειραιώς και Αιγαίου','3η ΥΠΕ Μακεδονίας','4η ΥΠΕ Μακεδονίας και Θράκης','5η ΥΠΕ Θεσσαλίας και Στερεάς Ελλάδας','6η ΥΠΕ Πελοποννήσου, Ιονίων Νήσων, Ηπείρου και Δυτικής Ελλάδας','7η ΥΠΕ Κρήτης']
 function daysBetween(a,b){return Math.max(0,Math.ceil((new Date(b)-new Date(a))/86400000))}

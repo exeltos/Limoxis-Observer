@@ -2,7 +2,7 @@ import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 import {CAPABILITIES,MANAGEMENT_CAPABILITIES,ROLES,can} from '../src/core/permissions/roles.js'
 
-const migration=fs.readFileSync('supabase/migrations/202609021210_indicator_definitions_management_governance.sql','utf8')
+const migration=fs.readFileSync('supabase/migrations/20260902114838_indicator_definitions_management_governance.sql','utf8')
 const service=fs.readFileSync('src/features/management/managementCloudService.js','utf8')
 const panel=fs.readFileSync('src/features/management/IndicatorsPanel.jsx','utf8')
 const page=fs.readFileSync('src/features/management/ManagementPage.jsx','utf8')

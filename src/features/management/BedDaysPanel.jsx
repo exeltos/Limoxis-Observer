@@ -11,8 +11,6 @@ import { demoLibrarySeed, demoPatientDayPeriods } from './managementData'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { loadDepartments } from './departmentsService'
 import { createPatientDayPeriod, loadPatientDayPeriods, removePatientDayPeriod, updatePatientDayPeriod } from './patientDayPeriodsCloudService'
-import '../../styles/bed-days.css'
-
 const emptyDraft={from:'',to:'',scope:'department',departmentId:'',value:''}
 export function BedDaysPanel(){
   const {language,locale,t}=useLanguage(); const {notify,confirm}=useFeedback(); const {tenant,isDemo}=useTenant();

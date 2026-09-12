@@ -53,8 +53,8 @@ function mapMicrobiologyResult(row,{amrRows=[],astRows=[],communications=[]}={})
     interpretationStandard:row.interpretation_standard,
     interpretationVersion:row.interpretation_version,
     amr:mapAmr(latest(amrRows.filter(item=>item.microbiology_result_id===row.id))),
-    ast:astRows.filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,antimicrobial:item.antimicrobial,method:item.method,micValue:item.mic_value,diskZoneMm:item.disk_zone_mm,interpretation:item.interpretation,breakpointStandard:item.breakpoint_standard,breakpointVersion:item.breakpoint_version,breakpointValue:item.breakpoint_value,testedAt:item.tested_at})),
-    communications:communications.filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,at:item.communicated_at,byId:item.communicated_by,recipient:item.recipient,channel:item.channel,readBackConfirmed:item.read_back_confirmed,notes:item.notes||''})),
+    ast:astRows.filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,antimicrobial:item.antimicrobial_name,method:item.method,micValue:item.mic_value,diskZoneMm:item.zone_diameter_mm,interpretation:item.sir_category,breakpointStandard:item.breakpoint_standard,breakpointVersion:item.breakpoint_version,breakpointValue:null,testedAt:item.created_at})),
+    communications:communications.filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,at:item.communicated_at,byId:item.communicated_by,recipient:item.recipient_name,recipientRole:item.recipient_role,channel:item.communication_method,readBackConfirmed:item.read_back_confirmed,notes:item.notes||''})),
   }
 }
 
@@ -195,7 +195,7 @@ async function hydrateCases(caseRows){
     if(resultIds.length){
       const [amrResult,astResult,communicationResult]=await Promise.all([
         supabase.from('amr_classifications').select('*').in('microbiology_result_id',resultIds).order('classified_at',{ascending:false,nullsFirst:false}),
-        supabase.from('antimicrobial_susceptibility_results').select('*').in('microbiology_result_id',resultIds).order('tested_at',{ascending:false,nullsFirst:false}),
+        supabase.from('antimicrobial_susceptibility_results').select('*').in('microbiology_result_id',resultIds).order('created_at',{ascending:false}),
         supabase.from('critical_result_communications').select('*').in('microbiology_result_id',resultIds).order('communicated_at',{ascending:false}),
       ])
       for(const result of [amrResult,astResult,communicationResult])if(result.error)throw result.error
@@ -306,7 +306,7 @@ export async function endIsolation(organizationId,isolationId,draft={}){
 export async function addAntimicrobialTherapy(organizationId,record,draft){
   assertCloud()
   const actorId=await currentUserId()
-  const {data,error}=await supabase.from('antimicrobial_therapies').insert({organization_id:organizationId,patient_id:record.patientRecordId,surveillance_case_id:record.recordId,antimicrobial:draft.antimicrobial,dose:draft.dose||null,route:draft.route||null,indication:draft.indication||null,started_at:iso(draft.startedAt||new Date()),planned_end_at:iso(draft.plannedEndAt),approval_status:draft.approvalStatus||'not_required',status:'active',created_by:actorId}).select('*').single()
+  const {data,error}=await supabase.from('antimicrobial_therapies').insert({organization_id:organizationId,patient_id:record.patientRecordId,surveillance_case_id:record.recordId,antimicrobial:draft.antimicrobial,dose:draft.dose||null,route:draft.route||null,indication:draft.indication||null,started_at:iso(draft.startedAt||new Date()),planned_end_at:iso(draft.plannedEndAt),approval_status:draft.approvalStatus||'not_required',status:'active',therapy_plan_id:draft.therapyPlanId||crypto.randomUUID(),created_by:actorId}).select('*').single()
   if(error)throw error
   return mapTherapy(data)
 }
@@ -357,7 +357,15 @@ export async function completeClinicalCase(organizationId,caseRecordId,patientRe
   const occurredAt=iso(draft.date||new Date())
   const {data:outcome,error:outcomeError}=await supabase.from('surveillance_outcomes').insert({organization_id:organizationId,surveillance_case_id:caseRecordId,patient_id:patientRecordId,outcome:draft.status,occurred_at:occurredAt,notes:draft.notes||null,created_by:actorId}).select('*').single()
   if(outcomeError)throw outcomeError
-  const {error:caseError}=await supabase.from('surveillance_cases').update({status:'completed',closed_at:occurredAt,close_reason:draft.status,closed_by:actorId}).eq('organization_id',organizationId).eq('id',caseRecordId)
+  const {error:caseError}=await supabase.from('surveillance_cases').update({status:'closed',closed_at:occurredAt,close_reason:draft.status,closed_by:actorId}).eq('organization_id',organizationId).eq('id',caseRecordId)
   if(caseError)throw caseError
   return mapOutcome(outcome)
+}
+
+export async function deleteClinicalCaseForTesting(organizationId, caseRecordId){
+  assertCloud()
+  if(!organizationId||!caseRecordId)throw new Error('Organization and surveillance case are required.')
+  const {data,error}=await supabase.rpc('delete_surveillance_case_for_testing',{p_organization_id:organizationId,p_case_id:caseRecordId})
+  if(error)throw error
+  return Boolean(data)
 }

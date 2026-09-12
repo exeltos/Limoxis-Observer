@@ -15,7 +15,8 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { createClinicalSurveillance, deleteClinicalSurveillance, findCaseByPatient, findCasesByPatient, getClinicalCase } from './clinicalDemoData'
-import { loadPatients, loadAdmissions, createAdmission } from '../patients/patientsService'
+import { deleteClinicalCaseForTesting } from './clinicalCloudService'
+import { loadPatients, loadAdmissions, createAdmission, deletePatientForTesting } from '../patients/patientsService'
 import { createDemoSurveillanceListItem, deleteDemoSurveillanceListItem, syncDemoSurveillanceListItem } from './surveillanceDemoData'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
@@ -27,6 +28,7 @@ import { downloadRecordJson } from '../../core/export/recordExport'
 
 export function PatientClinicalRecordPage({patientMode=false}){
   const actor=useAuditActor()
+  const navigate=useNavigate()
   const { caseId, patientId } = useParams()
   const sequenceId=patientMode?patientId:caseId
   const recordNavigation=useRecordSequenceNavigation({
@@ -54,7 +56,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
   const defaultRecord = patientMode ? findCaseByPatient(patientId) : getClinicalCase(caseId)
   const [selectedEpisodeId,setSelectedEpisodeId]=useState(defaultRecord?.id||'')
   const record = patientMode ? (patientEpisodes.find(x=>x.id===selectedEpisodeId) || defaultRecord) : defaultRecord
-  const fmtDate=(value)=>value ? new Intl.DateTimeFormat(locale).format(new Date(`${value.slice(0,10)}T12:00:00`)) : '—'
+  const fmtDate=(value)=>{if(!value)return '—';const d=new Date(`${String(value).slice(0,10)}T12:00:00`);return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`}
   const fmtDateTime=(value)=>value ? new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(value)) : '—'
   const age=useMemo(()=>record?.dateOfBirth?Math.floor((new Date(record.admissionDate)-new Date(record.dateOfBirth))/(365.2425*24*60*60*1000)):null,[record])
   const scopedSubject=record||patient
@@ -131,7 +133,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
       backLabel={patientMode?t('clinicalRecords.backToPatients'):t('clinicalRecords.backToSurveillance')}
     >
 
-    {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm}/>}
+    {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm} onDeletePatient={async()=>{const patientRecordId=patient?.recordId||record?.patientRecordId;if(!patientRecordId)return false;try{const removed=await deletePatientForTesting(tenant?.id,patientRecordId,{isDemo});if(!removed)return false;notify(t('clinicalRecords.patientDeletedForTesting'),'success');navigate('/patients',{replace:true});return true}catch(error){notify(error?.message||t('clinicalRecords.deleteFailed'),'danger');return false}}}/>}
     {activeTab==='admissions'&&patient&&<PatientAdmissions patient={patient} t={t} language={language} fmtDate={fmtDate} notify={notify} tenant={tenant} isDemo={isDemo} canEdit={has(CAPABILITIES.EDIT_PATIENT)}/>}
         {activeTab==='surveillanceJourney'&&<SurveillanceWorkspace
       episodes={patientMode?patientEpisodes:(record?[record]:[])}
@@ -146,15 +148,21 @@ export function PatientClinicalRecordPage({patientMode=false}){
       canReopenSurveillance={canReopenSurveillance}
       actor={actor}
       canDeleteSurveillance={canDeleteSurveillance}
-      onDeleteSurveillance={(episodeId,reason)=>{
-        const removed=deleteClinicalSurveillance(episodeId,{actor:actor.name,actorId:actor.id,reason})
-        if(removed){
+      onDeleteSurveillance={async(episodeId,reason)=>{
+        try{
+          let removed=true
+          if(!isDemo&&tenant?.id){removed=await deleteClinicalCaseForTesting(tenant.id,episodeId)}
+          if(!removed)return false
+          deleteClinicalSurveillance(episodeId,{actor:actor.name,actorId:actor.id,reason})
           deleteDemoSurveillanceListItem(episodeId)
           setEpisodeVersion(v=>v+1)
           if(selectedEpisodeId===episodeId)setSelectedEpisodeId('')
           notify(t('clinicalRecords.surveillanceDeleted'),'success')
+          return true
+        }catch(error){
+          notify(error?.message||t('clinicalRecords.deleteFailed'),'danger')
+          return false
         }
-        return removed
       }}
     />}
     {activeTab==='clinicalData'&&record&&<ClinicalDataHub record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy}/>}
@@ -166,16 +174,15 @@ export function PatientClinicalRecordPage({patientMode=false}){
 }
 
 
-function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confirm}){
-  const latestSample=record?.samples?.[0]
-  return <div className="patient-summary-layout">
-    <PatientDetails patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} age={age} has={has} notify={notify} confirm={confirm}/>
-    {record&&<section className="patient-summary-strip">
-      <SummaryItem label={t('surveillance')} value={`${record.id} · ${t(record.status)}`} tone="info"/>
+function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confirm,onDeletePatient}){
+  const latestSample=record?.samples?.find(x=>x.organism)||record?.samples?.[0]
+  return <div className="patient-summary-layout clean-patient-summary">
+    <PatientDetails patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} age={age} has={has} notify={notify} confirm={confirm} onDeletePatient={onDeletePatient}/>
+    {record&&<section className="patient-summary-strip clinical-snapshot-strip">
       <SummaryItem label={t('clinicalRecords.haiClassification')} value={record.haiClassification?t(record.haiClassification.status):'—'} tone={record.haiClassification?.status==='confirmed'?'warning':'neutral'}/>
       <SummaryItem label={t('clinicalRecords.latestFinding')} value={latestSample?.organism||t(latestSample?.result||'pending')} tone={latestSample?.result==='positive'?'warning':'neutral'}/>
       <SummaryItem label={t('isolation')} value={record.isolation?t(record.isolation.status):t('no')} tone={record.isolation?'info':'neutral'}/>
-      <SummaryItem label={t('therapy')} value={record.therapy?.length?`${record.therapy.length} · ${record.therapy.map(x=>x.antimicrobial).join(', ')}`:t('clinicalRecords.none')} tone={record.therapy?.length?'info':'neutral'}/>
+      <SummaryItem label={t('therapy')} value={record.therapy?.length?record.therapy.map(x=>x.antimicrobial).join(', '):t('clinicalRecords.none')} tone={record.therapy?.length?'info':'neutral'}/>
       <SummaryItem label={t('nextReview')} value={fmtDate(record.reviewDue)} tone="neutral"/>
     </section>}
   </div>
@@ -238,74 +245,21 @@ function NewAdmissionCard({t,language,onClose,onSave}){
 function SurveillanceWorkspace({episodes,onSelect,onNewSurveillance,canCreateSurveillance,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,actor,canDeleteSurveillance,onDeleteSurveillance}){
   const [episodeRows,setEpisodeRows]=useState(episodes)
   useEffect(()=>setEpisodeRows(episodes),[episodes])
-  const active=episodeRows.filter(x=>x.status==='active')
-  const completed=episodeRows.filter(x=>x.status!=='active')
   const [openEpisodeId,setOpenEpisodeId]=useState(null)
-  const openEpisode=episodeRows.find(x=>x.id===openEpisodeId) || null
+  const openEpisode=episodeRows.find(x=>x.id===openEpisodeId)||null
   const selectAndOpen=(id)=>{onSelect(id);setOpenEpisodeId(id)}
-  return <div className="surveillance-workspace">
+  const latestOrganism=ep=>ep.samples?.find(x=>x.organism)?.organism||ep.organism||'—'
+  const resistance=ep=>ep.resistance||ep.samples?.find(x=>x.resistance)?.resistance||'—'
+  return <div className="surveillance-workspace patient-surveillance-clean">
     <div className="surveillance-workspace-toolbar">
-      <div><span className="eyebrow">{t('surveillance')}</span><h3>{t('clinicalRecords.surveillanceEpisodes')}</h3><p>{t('clinicalRecords.surveillanceEpisodesHelp')}</p></div>
+      <div><h3>{t('clinicalRecords.surveillanceEpisodes')}</h3><p>{t('clinicalRecords.surveillanceEpisodesHelp')}</p></div>
       {canCreateSurveillance&&<Button onClick={onNewSurveillance}>+ {t('newSurveillance')}</Button>}
     </div>
-    <div className="episode-list-columns">
-      <EpisodeList title={t('clinicalRecords.activeSurveillanceEpisodes')} tone="active" episodes={active} onOpen={selectAndOpen} t={t} fmtDate={fmtDate}/>
-      <EpisodeList title={t('clinicalRecords.completedSurveillanceEpisodes')} tone="completed" episodes={completed} onOpen={selectAndOpen} t={t} fmtDate={fmtDate}/>
-    </div>
-    <div className="episode-list-help">{t('clinicalRecords.episodeListHelp')}</div>
-    {!episodes.length&&<SurveillanceStartGuide t={t} canCreateSurveillance={canCreateSurveillance} onNew={onNewSurveillance}/>}
-    {openEpisode&&<EpisodeDetailOverlay
-      record={openEpisode}
-      onClose={()=>setOpenEpisodeId(null)}
-      t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime}
-      canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy}
-      patientName={patientName} patientCode={patientCode} department={department}
-      organizationName={organizationName}
-      canReopenSurveillance={canReopenSurveillance}
-      actor={actor}
-      canDeleteSurveillance={canDeleteSurveillance}
-      onDeleteSurveillance={onDeleteSurveillance}
-      onReopen={(episodeId,reason)=>{const now=new Date().toISOString();setEpisodeRows(rows=>rows.map(ep=>ep.id===episodeId?{...ep,status:'active',lifecycleStatus:'correction',completedAt:null,previousOutcome:ep.outcome?{...ep.outcome}:ep.previousOutcome||null,outcome:null,correctionReason:reason,correctionOpenedAt:now,correctionOpenedBy:actor.name,correctionOpenedById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,timeline:[{at:now,type:'surveillanceReopened',actor:actor.name,actorId:actor.id,detail:reason},...(ep.timeline||[])]}:ep))}}
-    />}
+    {episodeRows.length?<div className="record-table-wrap episode-registry-wrap"><table className="record-table episode-registry"><thead><tr><th>{t('startDate')}</th><th>{t('status')}</th><th>{t('clinicalRecords.haiClassification')}</th><th>{t('organism')}</th><th>AMR</th><th>{t('nextReview')}</th></tr></thead><tbody>{episodeRows.map(ep=><tr key={ep.id} className={ep.id===openEpisodeId?'is-selected':''} tabIndex={0} onClick={()=>selectAndOpen(ep.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectAndOpen(ep.id)}}}><td><strong>{fmtDate(ep.startedAt)}</strong>{ep.completedAt&&<small>{fmtDate(ep.completedAt)}</small>}</td><td><span className={`status-badge ${ep.status==='active'?'active':''}`}>{t(ep.status)}</span></td><td>{ep.haiClassification?.type?t(ep.haiClassification.type):(ep.haiClassification?.status?t(ep.haiClassification.status):'—')}</td><td>{latestOrganism(ep)}</td><td>{resistance(ep)}</td><td>{fmtDate(ep.reviewDue)}</td></tr>)}</tbody></table></div>:<div className="compact-empty-state"><strong>{t('clinicalRecords.noActiveSurveillance')}</strong><span>{t('clinicalRecords.noClinicalData')}</span></div>}
+    {openEpisode&&<EpisodeDetailOverlay record={openEpisode} onClose={()=>setOpenEpisodeId(null)} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canSurveillance={canSurveillance} canLab={canLab} canTherapy={canTherapy} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName} canReopenSurveillance={canReopenSurveillance} actor={actor} canDeleteSurveillance={canDeleteSurveillance} onDeleteSurveillance={onDeleteSurveillance} onReopen={(episodeId,reason)=>{const now=new Date().toISOString();setEpisodeRows(rows=>rows.map(ep=>ep.id===episodeId?{...ep,status:'active',lifecycleStatus:'correction',completedAt:null,previousOutcome:ep.outcome?{...ep.outcome}:ep.previousOutcome||null,outcome:null,correctionReason:reason,correctionOpenedAt:now,correctionOpenedBy:actor.name,correctionOpenedById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id,timeline:[{at:now,type:'surveillanceReopened',actor:actor.name,actorId:actor.id,detail:reason},...(ep.timeline||[])]}:ep))}}/>}
   </div>
 }
 
-function SurveillanceStartGuide({t}){
-  const steps=[
-    [t('clinicalAssessment'),t('clinicalRecords.guideAssessment')],
-    [t('microbiology'),t('clinicalRecords.guideMicrobiology')],
-    [t('haiAmr'),t('clinicalRecords.guideHaiAmr')],
-    [t('isolation'),t('clinicalRecords.guideIsolation')],
-    [t('therapy'),t('clinicalRecords.guideTherapy')],
-    [t('reassessment'),t('clinicalRecords.guideReassessment')],
-    [t('outcome'),t('clinicalRecords.guideOutcome')],
-  ]
-  return <section className="surveillance-start-guide">
-    <div className="start-guide-heading"><div><span className="eyebrow">{t('surveillanceJourney')}</span><h3>{t('clinicalRecords.howSurveillanceWorks')}</h3><p>{t('clinicalRecords.howSurveillanceWorksHelp')}</p></div></div>
-    <div className="start-guide-flow">
-      {steps.map(([label,help],index)=><div key={label} className="start-guide-step">
-        <span className="step-number">{String(index+1).padStart(2,'0')}</span>
-        <div><strong>{label}</strong><small>{help}</small></div>
-        {index<steps.length-1&&<span className="step-arrow">→</span>}
-      </div>)}
-    </div>
-    <div className="start-guide-advice"><AlertTriangle size={16}/><div><strong>{t('clinicalRecords.clinicalGuidance')}</strong><span>{t('clinicalRecords.clinicalGuidanceIntro')}</span></div></div>
-  </section>
-}
-
-function EpisodeList({title,tone,episodes,onOpen,t,fmtDate}){
-  return <section className={`episode-list-panel ${tone}`}>
-    <header><div><span className="episode-dot"/><strong>{title}</strong></div><span className="episode-count">{episodes.length}</span></header>
-    <div className="episode-table-wrap">
-      {episodes.length?<table className="episode-table"><thead><tr><th>{t('clinicalRecords.surveillanceId')}</th><th>{t('period')}</th><th>{t('clinicalRecords.classification')}</th><th>{t('status')}</th></tr></thead><tbody>{episodes.map(ep=><tr key={ep.id} tabIndex={0} onClick={()=>onOpen(ep.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen(ep.id)}}}>
-        <td><strong>{ep.id}</strong>{ep.resistance&&<b className="episode-resistance">{ep.resistance}</b>}</td>
-        <td>{fmtDate(ep.startedAt)}{ep.completedAt?` → ${fmtDate(ep.completedAt)}`:''}</td>
-        <td>{ep.haiClassification?.type?t(ep.haiClassification.type):t('underAssessment')}</td>
-        <td><span className={`status-badge ${ep.status==='active'?'active':''}`}>{t(ep.status)}</span></td>
-      </tr>)}</tbody></table>:<div className="episode-empty">{t('noData')}</div>}
-    </div>
-  </section>
-}
 function EpisodeDetailOverlay({record,onClose,t,language,fmtDate,fmtDateTime,canSurveillance,canLab,canTherapy,patientName,patientCode,department,organizationName,canReopenSurveillance,onReopen,canDeleteSurveillance,onDeleteSurveillance}){
   const completed=record.status!=='active'
   const [reopenOpen,setReopenOpen]=useState(false)
@@ -313,7 +267,7 @@ function EpisodeDetailOverlay({record,onClose,t,language,fmtDate,fmtDateTime,can
   const [deleteOpen,setDeleteOpen]=useState(false)
   const [deleteReason,setDeleteReason]=useState('')
   const reopen=()=>{if(!reopenReason.trim())return;onReopen(record.id,reopenReason.trim());setReopenOpen(false);setReopenReason('');onClose()}
-  const removeEpisode=()=>{if(!deleteReason.trim())return;const removed=onDeleteSurveillance?.(record.id,deleteReason.trim());if(removed){setDeleteOpen(false);setDeleteReason('');onClose()}}
+  const removeEpisode=async()=>{if(!deleteReason.trim())return;const removed=await onDeleteSurveillance?.(record.id,deleteReason.trim());if(removed){setDeleteOpen(false);setDeleteReason('');onClose()}}
   return <div className="episode-overlay" role="dialog" aria-modal="true" aria-label={record.id}>
     <section className="episode-detail-card">
       <header className="episode-detail-header">
@@ -653,33 +607,26 @@ function ClinicalDataHub({record,t,language,fmtDate,fmtDateTime,canSurveillance,
 }
 function PatientDocuments({t,record}){
   const [attachments,setAttachments]=useState(()=>record?.attachments||[])
-  return <div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('documents')}</h3></div></div><AttachmentField value={attachments} onChange={setAttachments}/></div>
+  return <div className="record-section patient-documents-clean"><div className="record-section-header"><div><h3>{t('documents')}</h3></div></div><div className="patient-attachments-surface"><AttachmentField value={attachments} onChange={setAttachments}/></div></div>
 }
 
 
-function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confirm}){
+function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confirm,onDeletePatient}){
   const [editing,setEditing]=useState(false)
   const source=patient||{id:record?.patientId,name:record?.patient,nameEn:record?.patientEn,department:record?.department,departmentEn:record?.departmentEn,admissionDate:record?.admissionDate,status:record?.status}
   const [draft,setDraft]=useState({...source})
   const canEdit=has(CAPABILITIES.EDIT_PATIENT)
   const canDelete=has(CAPABILITIES.DELETE_PATIENT)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
-  async function remove(){const ok=await confirm({title:t('confirmAction'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')});if(ok)notify(t('actionCompleted'),'warning')}
-  const patientActions=[
-    canEdit&&{id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setEditing(true)},
-    canDelete&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:canEdit,onClick:remove},
-  ].filter(Boolean)
-  return <section className="clinical-panel full-panel patient-details-panel">
-    <div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.patientDetails')}</h3></div>{!editing&&patientActions.length>0&&<OverflowMenu label={t('actions')} items={patientActions}/>}</div>
+  async function remove(){const ok=await confirm({title:t('clinicalRecords.deletePatient'),message:t('clinicalRecords.deletePatientTestingWarning'),danger:true,confirmLabel:t('delete')});if(!ok)return;await onDeletePatient?.()}
+  const patientActions=[canEdit&&{id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setEditing(true)},canDelete&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:canEdit,onClick:remove}].filter(Boolean)
+  return <section className="patient-details-panel clean-patient-details">
+    <div className="record-section-header"><div><h3>{t('clinicalRecords.patientDetails')}</h3></div>{!editing&&patientActions.length>0&&<OverflowMenu label={t('actions')} items={patientActions}/>}</div>
     <div className={`detail-grid patient-detail-grid ${editing?'employee-inline-edit':''}`}>
-      <PatientInline l={t('patientId')} v={draft.id||record?.patientId}/>
-      <PatientInline editing={editing} l={t('name')} v={language==='el'?(draft.name||record?.patient):(draft.nameEn||record?.patientEn)} onChange={v=>set(language==='el'?'name':'nameEn',v)}/>
       <PatientInline editing={editing} l={t('department')} v={language==='el'?(draft.department||record?.department):(draft.departmentEn||record?.departmentEn)} onChange={v=>set(language==='el'?'department':'departmentEn',v)}/>
-      <PatientInline l={t('admissionDate')} v={fmtDate(draft.admissionDate||record?.admissionDate)}/>
       <PatientInline l={t('clinicalRecords.age')} v={age??'—'}/>
       <PatientInline l={t('status')} v={t(draft.status||record?.status||'active')}/>
-      {record&&<PatientInline l={t('surveillance')} v={`${record.id} · ${t(record.status)}`}/>}
-      {record&&<PatientInline l={t('isolation')} v={record.isolation?t(record.isolation.status):t('no')}/>}
+      <PatientInline l={t('admissionDate')} v={fmtDate(draft.admissionDate||record?.admissionDate)}/>
     </div>
     {!record&&<div className="patient-no-surveillance"><strong>{t('clinicalRecords.noActiveSurveillance')}</strong><span>{t('clinicalRecords.noClinicalData')}</span></div>}
     {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...source});setEditing(false)}}>{t('cancel')}</Button><SaveButton onClick={()=>{setEditing(false);notify(t('actionCompleted'),'success')}}>{t('save')}</SaveButton></div>}
@@ -738,7 +685,11 @@ function Samples({record,t,fmtDateTime}){
 
 function Therapy({record,t,fmtDate}){return <section className="clinical-panel full-panel"><div className="section-actions"><div><PanelTitle icon={Pill} title={t('therapy')}/><p className="section-note">{t('clinicalRecords.sourceOfTruthPharmacy')}</p></div><ClinicalAction capability={CAPABILITIES.VIEW_PHARMACY}><Button>{t('clinicalRecords.openInPharmacy')}</Button></ClinicalAction></div>{record.therapy.length?<div className="therapy-list">{record.therapy.map(x=><article key={x.id}><header><strong>{x.antimicrobial}</strong><span className="status-badge active">{t('active')}</span></header><div className="detail-grid four"><Detail label={t('dose')} value={x.dose}/><Detail label={t('clinicalRecords.route')} value={x.route}/><Detail label={t('clinicalRecords.startedOn')} value={fmtDate(x.startedAt)}/><Detail label={t('clinicalRecords.plannedEnd')} value={fmtDate(x.plannedEnd)}/></div><Detail label={t('clinicalRecords.indication')} value={x.indication}/></article>)}</div>:<EmptyInline text={t('clinicalRecords.noClinicalData')}/>}</section>}
 
-function Timeline({record,t,language,fmtDateTime}){return <section className="clinical-panel full-panel"><PanelTitle icon={FileClock} title={t('clinicalRecords.timeline')}/><div className="clinical-timeline">{record.timeline.map((item,i)=><article key={`${item.at}-${i}`}><div className="timeline-rail"><span/></div><div><header><strong>{t(item.type)}</strong><time>{fmtDateTime(item.at)}</time></header><p>{t(item.detail)} · {(language==='en'&&item.actorEn)?item.actorEn:item.actor}</p></div></article>)}</div></section>}
+function Timeline({record,t,language,fmtDateTime}){
+  const cleanText=value=>String(value||'').replace(/[0-9a-f]{8}-[0-9a-f-]{27,36}/gi,'').replace(/\s*[·-]\s*$/,'').trim()
+  const eventLabel=type=>{const translated=t(type);if(translated&&translated!==type)return translated;return String(type||'').replace(/_/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/^./,x=>x.toUpperCase())}
+  return <section className="timeline-panel-clean"><div className="record-section-header"><div><h3>{t('clinicalRecords.timeline')}</h3></div></div><div className="clinical-timeline">{record.timeline.map((item,i)=>{const detail=cleanText(t(item.detail)||item.detail);const actor=(language==='en'&&item.actorEn)?item.actorEn:item.actor;return <article key={`${item.at}-${i}`}><div className="timeline-rail"><span/></div><div><header><strong>{eventLabel(item.type)}</strong><time>{fmtDateTime(item.at)}</time></header>{(detail||actor)&&<p>{[detail,actor].filter(Boolean).join(' · ')}</p>}</div></article>})}</div></section>
+}
 
 function PanelTitle({icon:Icon,title}){return <div className="panel-title"><Icon size={17}/><strong>{title}</strong></div>}
 

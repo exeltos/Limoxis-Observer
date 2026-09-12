@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const page=fs.readFileSync(path.resolve('src/features/committees/CommitteeRecordPage.jsx'),'utf8')
-const historySql=fs.readFileSync(path.resolve('supabase/migrations/202609012305_v0306_committee_history_meeting_lifecycle.sql'),'utf8')
+const historySql=fs.readFileSync(path.resolve('supabase/migrations/20260901200512_v0306_committee_history_meeting_lifecycle.sql'),'utf8')
 
 describe('committee record lifecycle UI',()=>{
   it('uses an Observer reason dialog instead of browser prompt for ending membership',()=>{

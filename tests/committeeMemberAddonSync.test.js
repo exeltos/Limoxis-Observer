@@ -4,7 +4,7 @@ import fs from 'node:fs'
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 describe('committee member access synchronization',()=>{
-  const sql=read('supabase/migrations/202609010042_v0312_committee_member_addon_sync.sql')
+  const sql=read('supabase/migrations/20260901204620_v0312_committee_member_addon_sync.sql')
 
   it('grants committee_member access for an active accepted or non-approval membership',()=>{
     expect(sql).toContain("approval_status in ('approved','not_required')")

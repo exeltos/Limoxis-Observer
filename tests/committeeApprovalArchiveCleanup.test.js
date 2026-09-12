@@ -4,7 +4,7 @@ import fs from 'node:fs'
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 describe('committee approval archive cleanup',()=>{
-  const sql=read('supabase/migrations/202609010043_v0313_committee_approval_archive_outbox_cleanup.sql')
+  const sql=read('supabase/migrations/20260901205405_v0313_committee_approval_archive_outbox_cleanup.sql')
 
   it('cancels stale unsent notification work when an approval is replaced',()=>{
     expect(sql).toContain("status in ('pending','failed')")

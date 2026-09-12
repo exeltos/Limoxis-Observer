@@ -1,2 +1,2 @@
-export const APP_VERSION = '0.32.2'
-export const BUILD_ID = '2026-09-03.121'
+export const APP_VERSION = '0.47.6'
+export const BUILD_ID = 'true-unified-registry'

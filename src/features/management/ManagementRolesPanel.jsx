@@ -11,8 +11,6 @@ import { capabilityCatalogue,isCustomRoleEligible } from '../../core/permissions
 import { roleCapabilities,roleCapabilityRule } from '../../core/permissions/systemRoleMatrix'
 import { managementRoleNames } from './managementRoles'
 import { createCustomRole,deactivateCustomRole,loadCustomRoles,updateCustomRole } from './managementCloudService'
-import '../../styles/management-roles.css'
-
 const domainLabels={
  administration:['Διαχείριση','Administration'],platform:['Πλατφόρμα','Platform'],clinical:['Κλινική φροντίδα','Clinical'],laboratory:['Εργαστήριο','Laboratory'],quality:['Ποιότητα','Quality'],committees:['Επιτροπές','Committees'],documents:['Έγγραφα','Documents'],controls:['Έλεγχοι','Controls'],training:['Εκπαίδευση','Training'],workforce:['Προσωπικό','Workforce'],occupational_health:['Ιατρός Εργασίας','Occupational health'],general:['Γενικά','General'],
 }

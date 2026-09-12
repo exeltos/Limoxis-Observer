@@ -2,7 +2,7 @@ import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 const employeeService=fs.readFileSync(new URL('../src/features/employees/employeeService.js',import.meta.url),'utf8')
 const createUser=fs.readFileSync(new URL('../supabase/functions/create-organization-user/index.ts',import.meta.url),'utf8')
-const migration=fs.readFileSync(new URL('../supabase/migrations/20260902121306_link_employees_to_user_accounts.sql',import.meta.url),'utf8')
+const migration=fs.readFileSync(new URL('../supabase/migrations/20260901221306_link_employees_to_user_accounts.sql',import.meta.url),'utf8')
 
 describe('employee to user account linkage',()=>{
   it('projects explicit user_id from employees',()=>{

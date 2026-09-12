@@ -111,3 +111,12 @@ export async function createAdmission(organizationId, patient, draft, {isDemo=fa
   if(error) throw error
   return mapAdmission(data,department?.name||draft.department)
 }
+
+
+export async function deletePatientForTesting(organizationId, patientRecordId, {isDemo=false}={}){
+  if(isDemo || !organizationId || !supabase) return true
+  if(!patientRecordId) throw new Error('Patient record is required.')
+  const {data,error}=await supabase.rpc('delete_patient_for_testing',{p_organization_id:organizationId,p_patient_id:patientRecordId})
+  if(error) throw error
+  return Boolean(data)
+}

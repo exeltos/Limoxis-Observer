@@ -1,0 +1,176 @@
+/* Limoxis Observer — canonical paginated registry v0.47.6
+   SINGLE SOURCE OF TRUTH for top-level paginated lists.
+   Modules provide content only; geometry lives here. */
+
+:root{
+  --lo-registry-radius:12px;
+  --lo-registry-row-h:36px;
+  --lo-registry-head-h:36px;
+  --lo-registry-pagination-h:46px;
+}
+
+.paginated-registry{
+  width:100%;
+  max-width:none;
+  min-width:0;
+  flex:1 1 0;
+  min-height:0;
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr) var(--lo-registry-pagination-h);
+  overflow:hidden;
+  margin:0;
+  padding:0;
+  border:1px solid var(--lo-color-border);
+  border-radius:var(--lo-registry-radius);
+  background:var(--lo-color-surface);
+  box-shadow:none;
+}
+
+.page-fill:has(>.paginated-registry),
+.workspace-fill:has(>.paginated-registry){
+  min-height:0;
+  overflow:hidden;
+}
+
+.paginated-registry__header:empty,
+.paginated-registry__toolbar:empty{display:none}
+
+.paginated-registry__header{
+  min-width:0;
+  border-bottom:1px solid var(--lo-color-border);
+  background:#fff;
+}
+
+.paginated-registry__toolbar{
+  min-width:0;
+  padding:8px 10px;
+  border-bottom:1px solid var(--lo-color-border);
+  background:#fff;
+}
+
+.paginated-registry__toolbar>.filter-system{
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+.paginated-registry .filter-system-row,
+.paginated-registry .filter-primary-row{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.paginated-registry .filter-search{
+  flex:1 1 520px!important;
+  width:auto!important;
+  max-width:760px!important;
+  min-width:220px!important;
+}
+
+.paginated-registry__body{
+  position:relative;
+  width:100%;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+  background:#fff;
+}
+
+.paginated-registry__body>.data-table,
+.paginated-registry__body>.scroll-table>.data-table,
+.paginated-registry__body .data-table{
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  table-layout:fixed!important;
+  border-collapse:separate!important;
+  border-spacing:0!important;
+}
+
+.paginated-registry__body>.scroll-table,
+.paginated-registry__body .scroll-table{
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:hidden!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  scrollbar-width:none!important;
+}
+.paginated-registry__body .scroll-table::-webkit-scrollbar{display:none!important}
+
+.paginated-registry .data-table thead th{
+  position:static!important;
+  height:var(--lo-registry-head-h)!important;
+  padding:7px 10px!important;
+  vertical-align:middle!important;
+  background:#f7f9fb!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+}
+
+.paginated-registry .data-table tbody tr{height:var(--lo-registry-row-h)!important}
+.paginated-registry .data-table tbody td{
+  padding:7px 10px!important;
+  vertical-align:middle!important;
+}
+
+.paginated-registry>.registry-pagination{
+  width:100%!important;
+  height:var(--lo-registry-pagination-h)!important;
+  min-height:var(--lo-registry-pagination-h)!important;
+  margin:0!important;
+  padding:0 12px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  border:0!important;
+  border-top:1px solid var(--lo-color-border)!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+
+.paginated-registry .registry-empty-state{
+  position:absolute;
+  inset:0;
+  width:100%!important;
+  min-height:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:24px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fbfcfd!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+}
+
+.registry-pagination-controls{display:flex!important;align-items:center!important;gap:7px!important;margin-left:auto!important}
+.registry-pagination-controls label{display:flex!important;align-items:center!important;gap:7px!important;margin:0!important}
+.registry-pagination-controls select{height:30px!important;min-height:30px!important;min-width:76px!important;padding:0 26px 0 10px!important;border-radius:8px!important}
+.registry-pagination-controls button{width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border-radius:8px!important}
+
+/* Surveillance uses the same shell; tabs are only a header slot, not another registry. */
+.paginated-registry--surveillance .surveillance-domain-tabs{
+  margin:0!important;
+  padding:4px 8px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+
+@media(max-width:1180px){
+  .paginated-registry .filter-search{max-width:none!important}
+}

@@ -45,3 +45,20 @@
   --lo-metric-icon-fg:#47718d;
   --lo-metric-value:#173b5c;
 }
+
+/* v0.40 unified foundation tokens */
+:root{
+  --lo-space-1:4px;
+  --lo-space-2:8px;
+  --lo-space-3:12px;
+  --lo-space-4:16px;
+  --lo-space-5:20px;
+  --lo-space-6:24px;
+  --lo-text-xs:10px;
+  --lo-text-sm:11.5px;
+  --lo-text-md:13px;
+  --lo-text-lg:16px;
+  --lo-text-xl:20px;
+  --lo-line-compact:1.25;
+  --lo-line-normal:1.45;
+}

@@ -1,0 +1,138 @@
+/* v0.48.0 Classic Rebase
+   Preserve the richer Limoxis visual language while tightening consistency.
+   This file intentionally overrides only shared structural patterns. */
+
+:root{
+  --lo-content-max: 1560px;
+  --lo-control-height: 40px;
+  --lo-radius-sm: 10px;
+  --lo-radius-md: 14px;
+  --lo-radius-lg: 18px;
+  --lo-border-soft: rgba(78,108,130,.18);
+  --lo-shadow-popover: 0 18px 42px rgba(30,54,72,.16);
+}
+
+/* Registry pages: fixed chrome, scrolling content only. */
+.registry-workspace.workspace-fill,
+.prevention-workspace.workspace-fill,
+.committee-registry.workspace-fill,
+.occupational-workspace.workspace-fill{
+  min-height:0;
+  overflow:hidden;
+}
+
+.scroll-table{
+  min-height:0;
+  overscroll-behavior:contain;
+}
+
+/* Keep advanced filters behind one compact button. */
+.filter-primary-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:48px;
+}
+.filter-search{flex:1 1 320px;max-width:520px}
+.filter-trigger{
+  min-height:var(--lo-control-height);
+  border-radius:var(--lo-radius-sm);
+  white-space:nowrap;
+}
+.filter-trigger b{
+  min-width:20px;height:20px;border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.filter-popover{
+  border-radius:var(--lo-radius-md);
+  box-shadow:var(--lo-shadow-popover);
+  border:1px solid var(--lo-border-soft);
+  max-width:min(92vw,620px);
+}
+.filter-popover-fields{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(210px,1fr));
+  gap:12px;
+}
+@media (max-width:760px){.filter-popover-fields{grid-template-columns:1fr}.filter-search{max-width:none}}
+
+/* Shared navigation tabs: compact, clear active state, no oversized pills. */
+.canonical-module-tabs{
+  display:flex;
+  gap:4px;
+  padding:6px;
+  border-bottom:1px solid var(--lo-border-soft);
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.canonical-module-tabs::-webkit-scrollbar{display:none}
+.canonical-module-tabs .tab{
+  min-height:38px;
+  padding:0 14px;
+  border-radius:9px;
+  white-space:nowrap;
+}
+
+/* KPI strips remain supporting information, never dominate the page. */
+.module-summary-strip{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+}
+.module-summary-strip > *{min-height:86px}
+
+/* Dense professional tables with strong hierarchy. */
+.data-table th{
+  font-size:11px;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+}
+.data-table td{vertical-align:middle}
+.data-table tbody tr{min-height:52px}
+.data-table tbody tr.clickable-row:hover,
+.record-table-clickable tbody tr:hover{cursor:pointer}
+
+/* Forms use one visual rhythm across Training, Committees, Documents, Prevention. */
+.entry-form label>span,
+.record-form label>span,
+.form-grid label>span{
+  font-weight:700;
+}
+.entry-form input,
+.entry-form select,
+.entry-form textarea,
+.record-form input,
+.record-form select,
+.record-form textarea{
+  border-radius:var(--lo-radius-sm);
+}
+
+/* Prevent the nested scrollbars that appeared in later rebuilds. */
+.record-section,
+.inline-action-form,
+.embedded-workflow-panel{
+  max-width:100%;
+  overflow-x:hidden;
+}
+
+/* Greek-first microcopy: technical abbreviations are allowed, interface jargon is not. */
+.table-cell-unit{opacity:.72}
+
+@media (max-width:980px){
+  .module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+.prevention-related-strip{
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:12px 14px;border:1px solid var(--lo-border-soft);border-radius:var(--lo-radius-md);
+  background:rgba(240,248,249,.72);
+}
+.prevention-related-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.prevention-related-copy strong{font-size:13px}
+.prevention-related-copy span{font-size:12px;opacity:.72}
+.prevention-related-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.prevention-related-link{
+  display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;
+  border:1px solid var(--lo-border-soft);border-radius:9px;background:#fff;font-weight:700;
+}
+@media (max-width:760px){.prevention-related-strip{align-items:stretch;flex-direction:column}.prevention-related-actions{justify-content:flex-start}}

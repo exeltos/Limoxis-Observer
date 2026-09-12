@@ -108,7 +108,7 @@ export function LaboratoryPage(){
       <div className="governance-banner"><CheckCircle2 size={17}/><span>{t('laboratoryRecords.labGovernanceNote')}</span></div>
     </div>
 
-    <section className="surface workspace-fill lab-registry-shell">
+    <section className="surface workspace-fill registry-workspace canonical-paginated-registry">
       <FilterBar
         query={query}
         onQueryChange={setQuery}

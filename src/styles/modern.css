@@ -1,0 +1,442 @@
+/* Limoxis Observer — unified modern clinical UI
+   This is the only visual override layer after the preserved functional cascade. */
+
+:root{
+  --lo-color-nav:#172b43;
+  --lo-color-nav-dark:#112136;
+  --lo-color-primary:#256b9b;
+  --lo-color-primary-hover:#1f5c87;
+  --lo-color-primary-soft:#edf5fa;
+  --lo-color-bg:#f4f6f8;
+  --lo-color-surface:#ffffff;
+  --lo-color-surface-muted:#f8fafb;
+  --lo-color-border:#dbe2e8;
+  --lo-color-border-strong:#cbd5df;
+  --lo-color-text:#182433;
+  --lo-color-muted:#657487;
+  --lo-color-danger:#a9444c;
+  --lo-color-success:#39785a;
+  --lo-color-warning:#956d23;
+  --lo-radius-control:7px;
+  --lo-radius-card:10px;
+  --lo-control-height:34px;
+  --lo-shell-control-height:34px;
+  --lo-record-tabs-height:42px;
+  --lo-shadow-popover:0 16px 38px rgba(20,38,58,.14);
+  --lo-shadow-soft:0 1px 2px rgba(17,32,49,.04),0 6px 18px rgba(17,32,49,.04);
+  --lo-sidebar-width:224px;
+  --lo-topbar-height:52px;
+  --lo-font:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body,#root{min-height:100%;margin:0}
+body{font-family:var(--lo-font);font-size:13px;color:var(--lo-color-text);background:var(--lo-color-bg);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit}
+button{letter-spacing:0}
+
+/* Shell */
+.app-shell{grid-template-columns:var(--lo-sidebar-width) minmax(0,1fr)!important;background:var(--lo-color-bg)!important}
+.sidebar{width:var(--lo-sidebar-width)!important;background:linear-gradient(180deg,var(--lo-color-nav) 0%,var(--lo-color-nav-dark) 100%)!important;border-right:0!important;box-shadow:none!important}
+.brand{min-height:62px!important;padding:13px 14px!important;border-bottom:1px solid rgba(255,255,255,.09)!important;gap:9px!important}
+.brand-mark{width:30px!important;height:30px!important;border-radius:8px!important;background:rgba(255,255,255,.12)!important;color:#fff!important;font-size:15px!important;box-shadow:none!important}
+.brand strong{font-size:13px!important;font-weight:650!important;color:#fff!important}
+.brand span{font-size:10.5px!important;color:rgba(255,255,255,.62)!important}
+.sidebar nav{padding:10px 8px!important;gap:2px!important}
+.nav-item{min-height:36px!important;padding:7px 10px!important;border-radius:7px!important;color:rgba(240,246,252,.73)!important;font-size:12.5px!important;font-weight:500!important;gap:9px!important;border:0!important;background:transparent!important}
+.nav-item svg{opacity:.82}
+.nav-item:hover{background:rgba(255,255,255,.075)!important;color:#fff!important}
+.nav-item.active,.nav-item.active-group{background:rgba(255,255,255,.12)!important;color:#fff!important;box-shadow:inset 2px 0 0 #6fb2dd!important}
+.nav-item.active svg{opacity:1}
+.nav-item.nested{min-height:32px!important;padding-left:25px!important;font-size:12px!important}
+.sidebar-nav-children{padding:2px 0 5px!important}
+.sidebar-nav-management{margin-top:8px!important;padding-top:8px!important;border-top:1px solid rgba(255,255,255,.08)!important}
+.sidebar-footer{padding:11px 14px 13px!important;border-top:1px solid rgba(255,255,255,.08)!important;color:rgba(255,255,255,.64)!important}
+.sidebar-footer .tenant-name{color:#fff!important;font-size:11.5px!important;font-weight:600!important}
+.sidebar-meta,.app-version-stamp{font-size:10px!important;opacity:.72}
+.demo-pill{font-size:9.5px!important;padding:2px 6px!important}
+.main-column{min-width:0!important;background:var(--lo-color-bg)!important}
+.topbar{min-height:var(--lo-topbar-height)!important;height:var(--lo-topbar-height)!important;padding:0 18px!important;background:rgba(255,255,255,.97)!important;border-bottom:1px solid var(--lo-color-border)!important;box-shadow:none!important}
+.topbar-actions{gap:7px!important}
+.topbar-utility-card{border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;gap:3px!important}
+.icon-button,.language-button,.preview-trigger,.tenant-switch select{min-height:32px!important;height:32px!important;border:1px solid var(--lo-color-border)!important;border-radius:7px!important;background:#fff!important;color:#42566a!important;box-shadow:none!important}
+.icon-button{width:32px!important}
+.language-button{min-width:34px!important;padding:0 8px!important;font-size:11px!important;font-weight:700!important}
+.user-chip{height:34px!important;padding:3px 7px 3px 4px!important;border:0!important;background:transparent!important;box-shadow:none!important}
+.user-chip:hover{background:#f4f7f9!important}
+.user-chip .avatar{width:28px!important;height:28px!important;font-size:10px!important}
+.user-chip strong{font-size:11.5px!important}
+.user-chip span{font-size:9.5px!important}
+.content{padding:16px 18px 18px!important;overflow:hidden!important}
+
+/* Page hierarchy */
+.page{gap:12px!important;max-width:none!important}
+.page-header{min-height:auto!important;padding:0 1px 2px!important;align-items:center!important;gap:12px!important}
+.page-heading-group{gap:8px!important}
+.page-heading-copy h1,.page-header h1{margin:0!important;font-size:20px!important;line-height:1.2!important;font-weight:660!important;letter-spacing:-.02em!important;color:#18293a!important}
+.page-heading-copy p,.page-header p{margin:3px 0 0!important;font-size:11.5px!important;line-height:1.4!important;color:var(--lo-color-muted)!important}
+.eyebrow{font-size:9.5px!important;line-height:1.2!important;letter-spacing:.065em!important;text-transform:uppercase!important;font-weight:700!important;color:#708094!important}
+.page-actions,.record-actions,.section-actions{gap:6px!important}
+.surface,.lo-card,.entry-card{border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-radius-card)!important;background:#fff!important;box-shadow:var(--lo-shadow-soft)!important}
+
+/* Buttons and actions */
+.button,.lo-action-button{min-height:34px!important;height:34px!important;padding:0 11px!important;border-radius:7px!important;font-size:12px!important;font-weight:600!important;gap:6px!important;box-shadow:none!important;border-width:1px!important}
+.button-primary,.lo-action-button-primary{background:var(--lo-color-primary)!important;border-color:var(--lo-color-primary)!important;color:#fff!important}
+.button-primary:hover,.lo-action-button-primary:hover{background:var(--lo-color-primary-hover)!important;border-color:var(--lo-color-primary-hover)!important}
+.button-secondary,.lo-action-button-neutral,.lo-action-button-edit,.lo-action-button-success,.lo-action-button-danger{background:#fff!important;border-color:var(--lo-color-border)!important;color:#41566a!important}
+.lo-action-button-danger{color:var(--lo-color-danger)!important}
+.lo-action-button-success{color:var(--lo-color-success)!important}
+.lo-icon-button{border-radius:7px!important;box-shadow:none!important}
+.record-actions .lo-icon-button,.entity-record-header-actions .lo-icon-button{width:31px!important;height:31px!important}
+
+/* Compact filters */
+.filter-system{margin:0!important}
+.filter-primary-row{gap:7px!important;align-items:center!important}
+.filter-search{height:34px!important;min-height:34px!important;max-width:330px!important;border:1px solid var(--lo-color-border)!important;border-radius:7px!important;background:#fff!important;box-shadow:none!important;padding:0 9px!important}
+.filter-search:focus-within{border-color:#8fb8d4!important;box-shadow:0 0 0 3px rgba(37,107,155,.08)!important}
+.filter-search input{font-size:12px!important}
+.filter-trigger,.filter-clear-button{height:34px!important;min-height:34px!important;border-radius:7px!important;border:1px solid var(--lo-color-border)!important;background:#fff!important;color:#445a6e!important;font-size:11.5px!important;font-weight:600!important;padding:0 10px!important}
+.filter-trigger.active{background:var(--lo-color-primary-soft)!important;border-color:#bcd4e5!important;color:#255e85!important}
+.filter-trigger b{font-size:9.5px!important;min-width:17px!important;height:17px!important}
+.filter-popover{border:1px solid var(--lo-color-border)!important;border-radius:9px!important;box-shadow:var(--lo-shadow-popover)!important;padding:12px!important;background:#fff!important}
+.filter-popover-fields{gap:10px!important}
+.filter-field>span{font-size:10px!important;font-weight:650!important;color:#607184!important}
+
+/* Inputs / forms */
+.field{gap:5px!important}
+.field>span,.field-label{font-size:10.5px!important;font-weight:620!important;color:#536579!important}
+.field input,.field select,.field textarea,.input,.entry-grid input,.entry-grid select,.entry-grid textarea,.platform-form-grid input,.platform-form-grid select,.platform-form-grid textarea{min-height:34px!important;border:1px solid var(--lo-color-border)!important;border-radius:7px!important;background:#fff!important;color:var(--lo-color-text)!important;font-size:12px!important;padding:7px 9px!important;box-shadow:none!important}
+.field textarea,.entry-grid textarea{min-height:72px!important;resize:vertical!important}
+.field input:focus,.field select:focus,.field textarea:focus,.input:focus{outline:0!important;border-color:#8fb8d4!important;box-shadow:0 0 0 3px rgba(37,107,155,.08)!important}
+.field-hint,.field small{font-size:9.5px!important;color:#7a8796!important}
+.entry-grid,.form-grid,.platform-form-grid{gap:10px 12px!important}
+.observer-form-section,.form-section,.platform-form-section,.control-form-block,.waste-form-section,.antiseptic-form-section{border-color:var(--lo-color-border)!important;border-radius:9px!important;background:#fbfcfd!important;padding:12px!important;box-shadow:none!important}
+.observer-form-section h4,.control-form-block-title,.waste-form-section-title,.antiseptic-form-heading{font-size:12.5px!important;color:#203447!important}
+
+/* Dialogs / workspaces */
+.modal-backdrop{background:rgba(13,26,41,.32)!important;backdrop-filter:blur(2px)!important}
+.observer-dialog{border-radius:12px!important;border:1px solid #d7e0e7!important;box-shadow:0 22px 65px rgba(14,29,44,.22)!important;overflow:hidden!important}
+.observer-dialog>header{padding:13px 15px!important;border-bottom:1px solid var(--lo-color-border)!important;background:#fff!important}
+.observer-dialog>header h3{font-size:16px!important;line-height:1.25!important;font-weight:650!important;margin:1px 0!important}
+.observer-dialog>header p{font-size:10.5px!important;margin:2px 0 0!important;color:var(--lo-color-muted)!important}
+.observer-dialog-body{padding:14px 15px!important;background:#f8fafb!important}
+.observer-dialog>footer{padding:10px 15px!important;border-top:1px solid var(--lo-color-border)!important;background:#fff!important;gap:7px!important}
+.observer-dialog-presentation-workspace{border-radius:0!important;box-shadow:none!important;border:0!important}
+
+/* Registries and tables */
+.registry-workspace,.workspace-fill{min-height:0!important}
+.registry-section-heading{padding:12px 14px 8px!important}
+.registry-section-heading h3{font-size:14px!important;margin:1px 0 2px!important}
+.registry-section-heading p{font-size:10.5px!important;margin:0!important;color:var(--lo-color-muted)!important}
+.scroll-table,.table-wrap,.record-table-wrap{border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important;overflow:auto!important}
+.data-table,.record-table{font-size:11.5px!important;border-collapse:separate!important;border-spacing:0!important}
+.data-table th,.record-table th{height:34px!important;padding:7px 10px!important;background:#f7f9fb!important;border-bottom:1px solid var(--lo-color-border)!important;color:#5b6d80!important;font-size:9.5px!important;line-height:1.2!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.035em!important;white-space:nowrap!important}
+.data-table td,.record-table td{padding:8px 10px!important;border-bottom:1px solid #edf1f4!important;line-height:1.25!important;vertical-align:middle!important}
+.data-table tbody tr:last-child td,.record-table tbody tr:last-child td{border-bottom:0!important}
+.data-table tbody tr:hover,.registry-row-clickable:hover,.clickable-row:hover{background:#f7fafc!important}
+.registry-row-clickable,.clickable-row{cursor:pointer!important}
+.registry-row-returned{background:#eef6fb!important;box-shadow:inset 3px 0 0 #6aa3c8!important}
+.data-table td strong{font-weight:620!important;color:#24374a!important}
+.data-table td small{font-size:9.5px!important;color:#7b8795!important}
+.registry-empty-state,.empty-state{padding:28px 18px!important;border:1px dashed #d4dde5!important;border-radius:9px!important;background:#fafbfc!important;color:#6b7989!important}
+
+/* Tabs */
+.tabs,.canonical-module-tabs,.entity-record-tabs{min-height:40px!important;border-bottom:1px solid var(--lo-color-border)!important;background:#fff!important;gap:2px!important;padding:0 4px!important;box-shadow:none!important}
+.tabs .tab,.canonical-module-tabs .tab,.entity-record-tabs button{min-height:40px!important;height:40px!important;padding:0 10px!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;color:#68788a!important;font-size:11.5px!important;font-weight:560!important;gap:5px!important}
+.tabs .tab:hover,.canonical-module-tabs .tab:hover,.entity-record-tabs button:hover{background:#f8fafb!important;color:#33495f!important}
+.tabs .tab.active,.canonical-module-tabs .tab.active,.entity-record-tabs button.active{background:transparent!important;color:#1f5f8a!important;border-bottom-color:#3f87b5!important;font-weight:650!important}
+.tab-count{min-width:18px!important;height:18px!important;padding:0 5px!important;font-size:9px!important;border-radius:10px!important;background:#eef2f5!important;color:#66788b!important}
+
+/* Metrics and clinical summaries */
+.module-summary-strip,.workspace-summary{gap:8px!important}
+.canonical-metric-card,.metric-card,.kpi-card{min-height:72px!important;padding:10px 12px!important;border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important}
+.canonical-metric-icon{width:28px!important;height:28px!important;border-radius:7px!important;background:#eef4f7!important;color:#52768e!important}
+.canonical-metric-icon svg{width:15px!important;height:15px!important}
+.canonical-metric-copy strong{font-size:18px!important;line-height:1.05!important;font-weight:660!important;color:#203b52!important}
+.canonical-metric-copy span{font-size:9.5px!important;color:#6e7d8d!important;line-height:1.25!important}
+.governance-banner,.info-banner,.source-truth-note{border-radius:8px!important;border:1px solid #dce6ed!important;background:#f5f9fb!important;color:#526a7c!important;box-shadow:none!important;font-size:10.5px!important;padding:8px 10px!important}
+
+/* Status */
+.status-badge,.risk-badge,.amr-chip{min-height:20px!important;padding:2px 7px!important;border-radius:10px!important;font-size:9.5px!important;line-height:1.2!important;font-weight:650!important;box-shadow:none!important}
+.status-badge{background:var(--lo-status-neutral-bg)!important;color:var(--lo-status-neutral-fg)!important;border:1px solid var(--lo-status-neutral-border)!important}
+.status-badge.active{background:var(--lo-status-success-bg)!important;color:var(--lo-status-success-fg)!important;border-color:var(--lo-status-success-border)!important}
+.status-badge.warning,.warning .status-badge{background:var(--lo-status-warning-bg)!important;color:var(--lo-status-warning-fg)!important;border-color:var(--lo-status-warning-border)!important}
+.status-badge.danger,.error .status-badge,.risk-badge{background:var(--lo-status-danger-bg)!important;color:var(--lo-status-danger-fg)!important;border-color:var(--lo-status-danger-border)!important}
+
+/* Record pages */
+.entity-record-shell{gap:8px!important;background:transparent!important}
+.entity-record-header{min-height:70px!important;padding:10px 13px!important;border-radius:10px!important;box-shadow:none!important}
+.entity-record-avatar{width:36px!important;height:36px!important;border-radius:9px!important;font-size:14px!important}
+.entity-record-identity h2{font-size:17px!important;font-weight:660!important;letter-spacing:-.015em!important}
+.entity-record-identity p{font-size:10.5px!important;color:var(--lo-color-muted)!important}
+.entity-record-tabs{border:1px solid var(--lo-color-border)!important;border-radius:9px!important;padding:0 6px!important;overflow-x:auto!important}
+.entity-record-body{padding:13px!important;border-radius:10px!important;box-shadow:none!important}
+.record-section,.clinical-panel,.full-panel,.record-subcard{border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important;padding:12px!important}
+.record-section-header{margin-bottom:8px!important;padding-bottom:7px!important;border-bottom:1px solid #eef1f4!important}
+.record-section-header h3,.clinical-panel h3{font-size:13px!important;font-weight:650!important}
+.detail-grid{gap:8px 14px!important}
+.detail-item{padding:7px 0!important}
+.detail-item small{font-size:9.5px!important;color:#748294!important}
+.detail-item strong{font-size:11.5px!important;font-weight:600!important}
+
+/* Surveillance */
+.surveillance-domain-tabs{margin-bottom:0!important}
+.surveillance-workspace,.employee-surveillance-registry{border-top-left-radius:0!important;border-top-right-radius:0!important}
+.surveillance-registry-head{background:#f7f9fb!important;color:#5e6f82!important;font-size:9.5px!important;text-transform:uppercase!important;letter-spacing:.03em!important}
+.surveillance-registry-row{min-height:48px!important;font-size:11.5px!important}
+.surv-main strong,.surv-patient strong{font-size:11.5px!important}
+.surv-main small,.surv-review small{font-size:9px!important}
+
+/* Training, committees, controls, prevention, management */
+.training-workspace,.management-section,.control-record-shell,.prevention-entry-card,.committee-record-shell{box-shadow:none!important}
+.training-workspace-header,.management-section-header,.section-toolbar{padding:10px 12px!important;border-bottom:1px solid var(--lo-color-border)!important}
+.training-workspace h2,.management-section h2{font-size:15px!important}
+.prevention-entry-card,.record-card-list .record-subcard{border-radius:9px!important}
+.who-panel-heading,.bundle-record-heading{font-size:12.5px!important}
+.management-scroll-section{border-radius:9px!important}
+
+/* Dashboard / analytics */
+.analysis-chart-card{border:1px solid var(--lo-color-border)!important;border-radius:9px!important;box-shadow:none!important;background:#fff!important;padding:12px!important}
+.analysis-chart-card h3{font-size:12.5px!important}
+.analysis-chart-grid{gap:10px!important}
+
+/* Auth */
+.login-heading h1{font-size:22px!important}
+
+/* Responsive */
+@media (max-width:1100px){
+  :root{--lo-sidebar-width:204px}
+  .content{padding:13px!important}
+  .user-chip>div:not(.avatar){display:none!important}
+}
+@media (max-width:780px){
+  .app-shell{display:block!important}
+  .sidebar{position:relative!important;width:100%!important;min-height:auto!important}
+  .sidebar nav{display:flex!important;overflow-x:auto!important;padding:7px!important}
+  .sidebar-footer{display:none!important}
+  .nav-item{flex:0 0 auto!important}
+  .content{padding:10px!important}
+  .page-header{align-items:flex-start!important;flex-direction:column!important}
+  .filter-search{max-width:none!important;flex:1!important}
+}
+
+/* v0.40.2 — Platform Owner shell must remain full width. */
+.app-shell.platform-owner-dashboard-shell{grid-template-columns:minmax(0,1fr)!important}
+
+/* v0.45.0 — authoritative registry + shell contract
+   Replaces the accumulated v0.43/v0.44 surveillance patches. */
+
+/* Persistent organization context belongs to the application header. */
+.topbar-spacer{
+  min-width:0!important;
+  flex:1 1 auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+}
+.topbar-organization-context{
+  min-width:0!important;
+  max-width:560px!important;
+  min-height:36px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  padding:4px 8px!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#31506d!important;
+}
+.topbar-organization-context>svg{flex:0 0 auto!important;color:#6e8ba4!important}
+.topbar-organization-copy{min-width:0!important;display:flex!important;flex-direction:column!important;line-height:1.1!important}
+.topbar-organization-copy strong{max-width:250px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:11px!important;color:#183a5a!important}
+.topbar-organization-copy span{max-width:250px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;margin-top:2px!important;font-size:8.75px!important;color:#8795a4!important}
+.topbar-organization-switch{position:relative!important;display:flex!important;align-items:center!important;margin-left:4px!important;padding-left:7px!important;border-left:1px solid #edf1f4!important}
+.topbar-organization-switch select{
+  appearance:none!important;
+  width:165px!important;
+  height:26px!important;
+  padding:0 22px 0 6px!important;
+  border:0!important;
+  outline:0!important;
+  background:transparent!important;
+  color:#31506d!important;
+  font:inherit!important;
+  font-size:9.75px!important;
+  font-weight:700!important;
+  cursor:pointer!important;
+}
+.topbar-organization-switch svg{position:absolute!important;right:4px!important;pointer-events:none!important;color:#7c8c9c!important}
+.sidebar-footer .sidebar-meta{font-weight:650!important;color:rgba(255,255,255,.72)!important}
+
+/* Primary page geometry: header stays fixed; work area consumes the remaining viewport. */
+.content:has(>.page-fill){overflow:hidden!important}
+.page-fill{
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.page-fill>.page-header{flex:0 0 auto!important}
+.page-fill>.registry-workspace,
+.page-fill>.patient-registry-shell{
+  flex:1 1 0!important;
+  min-height:0!important;
+  max-height:none!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+.page-fill>.registry-workspace>.filter-system,
+.page-fill>.patient-registry-shell>.filter-system{flex:0 0 auto!important}
+.page-fill>.registry-workspace>.scroll-table,
+.page-fill>.patient-registry-shell>.scroll-table{
+  flex:1 1 0!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+.page-fill>.registry-workspace>.registry-pagination,
+.page-fill>.patient-registry-shell>.registry-pagination{
+  flex:0 0 46px!important;
+  min-height:46px!important;
+  margin-top:auto!important;
+  border-top:1px solid var(--lo-color-border)!important;
+  background:#fff!important;
+}
+
+/* Surveillance Center: compact clinical page, full-height registry. */
+.production-surveillance-page{
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  gap:8px!important;
+}
+.production-surveillance-page .page-header{
+  min-height:44px!important;
+  padding:4px 2px!important;
+  align-items:center!important;
+}
+.production-surveillance-page .page-header h1{margin:0!important;font-size:17px!important;line-height:1.15!important;letter-spacing:-.015em!important}
+.production-surveillance-page .page-header p{margin:3px 0 0!important;font-size:9.5px!important;line-height:1.25!important;color:#728294!important}
+.production-surveillance-page .page-actions{align-self:center!important}
+.production-surveillance-page .surveillance-page-actions{display:flex!important;align-items:center!important;gap:7px!important}
+
+.production-surveillance-page .surveillance-summary{flex:0 0 auto!important;margin:0!important}
+.production-surveillance-page .module-summary-strip{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
+.production-surveillance-page .module-summary-strip .metric-card{min-height:58px!important;padding:8px 10px!important;border-radius:9px!important}
+.production-surveillance-page .module-summary-strip .metric-icon{width:30px!important;height:30px!important}
+.production-surveillance-page .module-summary-strip .metric-value{font-size:15px!important;line-height:1!important}
+.production-surveillance-page .module-summary-strip .metric-label{font-size:8.5px!important;line-height:1.15!important}
+
+.production-surveillance-page .production-surveillance-frame{
+  flex:1 1 0!important;
+  min-height:0!important;
+  max-height:none!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  border-radius:10px!important;
+}
+.production-surveillance-page .surveillance-domain-tabs{
+  flex:0 0 40px!important;
+  min-height:40px!important;
+  padding:4px 8px!important;
+  gap:4px!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+}
+.production-surveillance-page .surveillance-domain-tabs .tab{min-height:30px!important;padding:0 11px!important;font-size:10px!important;border-radius:8px!important}
+
+.production-surveillance-page .production-surveillance-workspace{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  padding:0!important;
+  gap:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+.production-surveillance-page .production-surveillance-workspace>.filter-system{
+  flex:0 0 auto!important;
+  padding:8px 10px!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+  background:#fff!important;
+}
+.production-surveillance-page .filter-system-row{gap:7px!important}
+.production-surveillance-page .filter-search{max-width:560px!important;min-height:32px!important}
+.production-surveillance-page .filter-search input{height:32px!important;font-size:10px!important}
+.production-surveillance-page .filter-toggle{min-height:32px!important;height:32px!important;font-size:10px!important}
+.production-surveillance-page .filter-popover{width:min(310px,calc(100vw - 32px))!important;padding:10px!important;gap:9px!important}
+.production-surveillance-page .filter-popover .filter-select{gap:4px!important}
+.production-surveillance-page .filter-popover select{min-height:34px!important;height:34px!important;font-size:10px!important}
+
+/* No separate Water / Surface buttons: environmental type exists only inside FilterBar. */
+.production-surveillance-page .environment-subtabs{display:none!important}
+
+.production-surveillance-page .production-surveillance-workspace>.scroll-table{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  width:100%!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+  overflow:auto!important;
+}
+.production-surveillance-page .production-surveillance-workspace .data-table{width:100%!important;min-width:760px!important;table-layout:fixed!important}
+.production-surveillance-page .production-surveillance-workspace .data-table thead th{height:34px!important;padding:6px 10px!important;font-size:9px!important}
+.production-surveillance-page .production-surveillance-workspace .data-table tbody tr{height:46px!important}
+.production-surveillance-page .production-surveillance-workspace .data-table tbody td{padding:7px 10px!important;font-size:10.5px!important;line-height:1.2!important}
+.production-surveillance-page .production-surveillance-workspace .data-table td strong{display:block!important;font-size:10.75px!important;line-height:1.16!important}
+.production-surveillance-page .production-surveillance-workspace .data-table td small{display:block!important;margin-top:2px!important;font-size:8.75px!important;line-height:1.15!important}
+.production-surveillance-page .production-surveillance-workspace .data-table th:nth-child(1){width:20%!important}
+.production-surveillance-page .production-surveillance-workspace .data-table th:nth-child(2){width:12%!important}
+.production-surveillance-page .production-surveillance-workspace .data-table th:nth-child(3){width:11%!important}
+.production-surveillance-page .production-surveillance-workspace .data-table th:nth-child(4){width:20%!important}
+.production-surveillance-page .production-surveillance-workspace .data-table th:nth-child(5){width:20%!important}
+.production-surveillance-page .production-surveillance-workspace .data-table th:nth-child(6){width:17%!important}
+.production-surveillance-page .production-surveillance-workspace .status-badge,
+.production-surveillance-page .production-surveillance-workspace .risk-badge{min-height:19px!important;padding:2px 7px!important;font-size:8.5px!important}
+
+.production-surveillance-page .registry-empty-row{height:100%!important}
+.production-surveillance-page .registry-empty-row>td{height:100%!important;padding:0!important}
+.production-surveillance-page .registry-empty-state{
+  min-height:100%!important;
+  height:100%!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  padding:18px!important;
+  border:0!important;
+  background:#fbfcfd!important;
+  text-align:center!important;
+}
+.production-surveillance-page .registry-empty-state strong{font-size:11.5px!important;color:#30485e!important}
+.production-surveillance-page .registry-empty-state span{max-width:480px!important;font-size:9.75px!important;line-height:1.35!important;color:#7a8795!important}
+
+.production-surveillance-page .production-surveillance-workspace>.registry-pagination{
+  flex:0 0 46px!important;
+  min-height:46px!important;
+  margin-top:auto!important;
+  padding:0 11px!important;
+  border-top:1px solid var(--lo-color-border)!important;
+  background:#fff!important;
+  font-size:9.25px!important;
+}
+.production-surveillance-page .registry-pagination-controls{gap:7px!important}
+.production-surveillance-page .registry-pagination button{width:28px!important;height:28px!important;min-height:28px!important}
+.production-surveillance-page .registry-pagination select{height:28px!important;min-height:28px!important;font-size:9.25px!important}
+
+@media(max-width:1180px){
+  .topbar-organization-copy span{display:none!important}
+  .topbar-organization-switch select{width:135px!important}
+}
+@media(max-width:980px){
+  .production-surveillance-page .module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .production-surveillance-page .filter-search{max-width:none!important;flex:1 1 auto!important}
+}
