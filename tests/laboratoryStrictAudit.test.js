@@ -1,12 +1,8 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 
-const record=fs.readFileSync('src/features/laboratory/LaboratorySampleCloudRecordPage.jsx','utf8')
-<<<<<<< HEAD
-const registry=fs.readFileSync('src/features/laboratory/LaboratoryCloudPage.jsx','utf8')
-=======
+const record=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordView.jsx','utf8')
 const registry=fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx','utf8')
->>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
 const rejectionMigration=fs.readFileSync('supabase/migrations/20260902132937_laboratory_sample_rejection_state.sql','utf8')
 const indexMigration=fs.readFileSync('supabase/migrations/20260902132633_laboratory_operational_indexes.sql','utf8')
 

@@ -3,7 +3,7 @@ import fs from 'node:fs'
 
 const service=fs.readFileSync('src/features/laboratory/laboratoryCloudService.js','utf8')
 const page=fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx','utf8')
-const record=fs.readFileSync('src/features/laboratory/LaboratorySampleCloudRecordPage.jsx','utf8')
+const record=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordView.jsx','utf8')
 const route=fs.readFileSync('src/features/laboratory/LaboratoryPage.jsx','utf8')
 const recordRoute=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordPage.jsx','utf8')
 const migration=fs.readFileSync('supabase/migrations/20260902125721_laboratory_critical_result_workflow_fix.sql','utf8')
@@ -25,7 +25,7 @@ describe('laboratory production persistence',()=>{
 
   it('keeps demo and production runtime paths isolated',()=>{
     expect(route).toContain('return <LaboratoryWorkspace/>')
-    expect(recordRoute).toContain('isDemo?<LaboratorySampleDemoRecordPage/>:<LaboratorySampleCloudRecordPage/>')
+    expect(recordRoute).toContain('return <LaboratorySampleRecordView/>')
     expect(page).not.toContain('laboratoryDemoData')
     expect(record).not.toContain('laboratoryDemoData')
   })
