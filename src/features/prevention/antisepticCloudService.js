@@ -1,4 +1,7 @@
 import { supabase } from '../../core/supabase/client'
+import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { preventionDepartments, antisepticLibrary } from './preventionDemoData'
+import { loadAntisepticLocal, saveAntisepticLocal } from './preventionStore'
 
 const assertCloud=organizationId=>{
  if(!supabase)throw new Error('Supabase is not configured.')
@@ -26,6 +29,7 @@ function mapRow(row){
 }
 
 export async function loadAntisepticSupportData(organizationId){
+ if(isDemoDataEnvironment())return {departments:preventionDepartments.map(({id,el,en})=>({id,el,en})),products:antisepticLibrary.map(item=>({...item,indicatorEligible:isAbhrItem(item)}))}
  assertCloud(organizationId)
  const [departmentsResult,productsResult]=await Promise.all([
   supabase.from('departments').select('id,name').eq('organization_id',organizationId).eq('is_active',true).order('name'),
@@ -37,6 +41,7 @@ export async function loadAntisepticSupportData(organizationId){
 }
 
 export async function findPatientDaysForPeriod(organizationId,departmentId,from,to){
+ if(isDemoDataEnvironment())return null
  assertCloud(organizationId)
  if(!departmentId||!from||!to)return null
  const {data,error}=await supabase.from('patient_day_periods').select('patient_days,period_start,period_end,review_status').eq('organization_id',organizationId).eq('department_id',departmentId).eq('period_start',from).eq('period_end',to).eq('review_status','approved').limit(1).maybeSingle()
@@ -45,6 +50,7 @@ export async function findPatientDaysForPeriod(organizationId,departmentId,from,
 }
 
 export async function loadAntisepticRecords(organizationId){
+ if(isDemoDataEnvironment())return loadAntisepticLocal()
  assertCloud(organizationId)
  const {data,error}=await supabase.from('antiseptic_consumption_periods').select('*,department:departments(id,name),antiseptic_item:master_library_items(id,name_el,name_en,code,metadata)').eq('organization_id',organizationId).order('period_start',{ascending:false}).order('created_at',{ascending:false})
  if(error)throw error
@@ -52,6 +58,14 @@ export async function loadAntisepticRecords(organizationId){
 }
 
 export async function saveAntisepticRecord(organizationId,record,{existingId=null}={}){
+ if(isDemoDataEnvironment()){
+  const rows=loadAntisepticLocal()
+  const id=existingId||`ANT-${Date.now()}`
+  const saved={...record,id,lifecycleStatus:'active'}
+  const next=existingId?rows.map(row=>row.id===existingId?saved:row):[saved,...rows]
+  saveAntisepticLocal(next)
+  return saved
+ }
  assertCloud(organizationId)
  const userId=await currentUserId()
  const support=await loadAntisepticSupportData(organizationId)
@@ -73,6 +87,11 @@ export async function saveAntisepticRecord(organizationId,record,{existingId=nul
 }
 
 export async function deleteAntisepticRecord(organizationId,id){
+ if(isDemoDataEnvironment()){
+  if(!id)return
+  saveAntisepticLocal(loadAntisepticLocal().filter(row=>row.id!==id))
+  return
+ }
  assertCloud(organizationId)
  if(!id)return
  const {error}=await supabase.from('antiseptic_consumption_periods').delete().eq('organization_id',organizationId).eq('id',id)

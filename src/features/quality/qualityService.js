@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase/client'
 import { qualityCollections } from './qualityDemoData'
+import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 
 const sectionConfig={
   incidents:{table:'quality_incidents',date:'occurred_at'},
@@ -98,6 +99,7 @@ function cacheQualityRecords(section,records){
 }
 
 export async function loadQualityRecords(section,organizationId){
+  if(isDemoDataEnvironment())return structuredClone(qualityCollections[section]||[])
   assertReady(organizationId)
   const config=sectionConfig[section]
   if(!config) return []
@@ -113,6 +115,7 @@ export async function loadQualityRecords(section,organizationId){
 }
 
 export async function loadQualityRecord(section,organizationId,code){
+  if(isDemoDataEnvironment())return (qualityCollections[section]||[]).find(item=>item.id===code)??null
   assertReady(organizationId)
   const config=sectionConfig[section]
   if(!config||!code) return null
@@ -141,10 +144,22 @@ function codeFor(section){
 }
 
 export async function createQualityRecord(section,organizationId,draft,userId){
+  const code=codeFor(section)
+  if(isDemoDataEnvironment()){
+    const department=draft.departmentId||''
+    const common={id:code,displayId:compactCode(code),title:draft.title||draft.titleEn||'',titleEn:draft.titleEn||draft.title||'',department,departmentEn:department,owner:'',attachments:draft.attachments||[],history:[]}
+    let record=common
+    if(section==='incidents')record={...common,severity:draft.severity||'medium',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',reportedBy:userId||'',linkedPatient:'',linkedSurveillance:''}
+    if(section==='findings')record={...common,severity:draft.severity||'medium',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'manual',sourceId:draft.sourceId||''}
+    if(section==='capas')record={...common,severity:draft.priority||'medium',priority:draft.priority||'medium',actionType:draft.actionType||'corrective',dueDate:draft.dueDate||'',effectivenessDue:draft.effectivenessDue||'',effectivenessStatus:draft.effectivenessStatus||'pending',status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'other',sourceId:draft.sourceId||''}
+    if(section==='audits')record={...common,auditType:draft.auditType||'internal',plannedDate:draft.plannedDate||'',completedDate:'',status:draft.status||'planned',leadAuditor:'',scope:draft.scope||'',scopeEn:draft.scopeEn||draft.scope||'',findingIds:[]}
+    const collection=qualityCollections[section]
+    if(Array.isArray(collection))collection.unshift(record)
+    return record
+  }
   assertReady(organizationId)
   const config=sectionConfig[section]
   if(!config) throw new Error('Unsupported quality record type.')
-  const code=codeFor(section)
   let payload={organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),department_id:draft.departmentId||null}
   if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,reported_by:userId||null,owner_id:null}
   if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null,owner_id:null}
