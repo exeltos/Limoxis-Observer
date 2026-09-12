@@ -7,7 +7,7 @@ import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { updateEmployeeSurveillanceFollowup } from './employeeSurveillanceCloudService'
 
 const isPositive=row=>['positive','positive_recheck'].includes(row.resultStatus)
-const hasFollowup=row=>Boolean(row.intervention||row.interventionType||row.noIntervention||row.recheckDue||row.noRecheck)
+const hasFollowup=row=>Boolean(row.intervention||row.interventionType||row.interventionStart||row.interventionEnd||row.noIntervention||row.recheckDue||row.noRecheck)
 const hasPositiveHistory=samples=>samples.some(sample=>(sample.finalizedAt||sample.resultStatus==='validated')&&sample.result==='positive')
 
 export function EmployeeSurveillanceRecordDialog({organizationId,record,samples=[],canManage,t,language,fmt,onClose,onUpdated}){
@@ -31,14 +31,15 @@ export function EmployeeSurveillanceRecordDialog({organizationId,record,samples=
   function startEdit(){loadFollowup(selected);setEditMode(true)}
   function cancelEdit(){loadFollowup(selected);setEditMode(false)}
 
-  const existingChanged=hasFollowup(selected)&&((selected.intervention||'')!==intervention.trim()||(selected.interventionType||'')!==interventionType||(selected.interventionStart||'')!==interventionStart||(selected.interventionEnd||'')!==interventionEnd||Boolean(selected.noIntervention)!==noIntervention||(selected.recheckDue||'')!==recheckDate||Boolean(selected.noRecheck)!==noRecheck)
-  const saveDisabled=saving||Boolean(existingChanged&&!correctionReason.trim())
+const fieldsChanged=(selected.intervention||'')!==intervention.trim()||(selected.interventionType||'')!==interventionType||(selected.interventionStart||'')!==interventionStart||(selected.interventionEnd||'')!==interventionEnd||Boolean(selected.noIntervention)!==noIntervention||(selected.recheckDue||'')!==recheckDate||Boolean(selected.noRecheck)!==noRecheck
+  const existingChanged=hasFollowup(selected)&&fieldsChanged
+  const saveDisabled=saving||!fieldsChanged||Boolean(existingChanged&&!correctionReason.trim())
 
   async function saveFollowup(){
     if(saveDisabled)return
     setSaving(true)
     try{
-      const updated=await updateEmployeeSurveillanceFollowup(organizationId,selected,{intervention,interventionType,interventionStart,interventionEnd,noIntervention,recheckDue:recheckDate,noRecheck,correctionReason})
+      const updated=await updateEmployeeSurveillanceFollowup(organizationId,selected,{intervention,interventionType,interventionStart,interventionEnd,noIntervention,recheckDue:recheckDate,noRecheck,correctionReason,language})
       setSelected(updated);setEditMode(false);setCorrectionReason('');onUpdated?.(updated)
       notify(en?'Follow-up saved.':'Η παρακολούθηση αποθηκεύτηκε.','success')
     }catch(error){notifyError(error,'save',{operation:'employee_surveillance_followup_update'})}

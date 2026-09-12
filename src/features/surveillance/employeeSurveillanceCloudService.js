@@ -1,6 +1,30 @@
 import { supabase } from '../../core/supabase/client'
+import { createLaboratorySample } from '../laboratory/laboratoryCloudService'
 
 const assertCloud=()=>{if(!supabase)throw new Error('Supabase is not configured.')}
+
+export const EMPLOYEE_SCREENING_CATALOG=[
+  {id:'handSwab',el:'Επίχρισμα χεριών',en:'Hand swab'},
+  {id:'nasalSwab',el:'Ρινικό επίχρισμα',en:'Nasal swab'},
+  {id:'throatSwab',el:'Φαρυγγικό επίχρισμα',en:'Throat swab'},
+]
+
+async function createScreeningLabSamples(organizationId,{employeeSurveillanceId,employeeSurveillanceBatchId=null,departmentId=null,subjectName,subjectCode,screeningTypes,collectedAt,language='el'}){
+  for(const typeId of screeningTypes||[]){
+    const cfg=EMPLOYEE_SCREENING_CATALOG.find(item=>item.id===typeId)
+    await createLaboratorySample(organizationId,null,{
+      employeeSurveillanceId,
+      employeeSurveillanceBatchId,
+      departmentId,
+      subjectType:'employee',
+      subjectName,
+      subjectCode,
+      type:'employeeScreening',
+      source:cfg?(language==='en'?cfg.en:cfg.el):typeId,
+      collectedAt,
+    })
+  }
+}
 
 async function currentUserId(){
   assertCloud()
@@ -118,6 +142,7 @@ export async function createEmployeeSurveillanceRecord(organizationId,employeeDb
     updated_by:actorId,
   }).select('*').single()
   if(error)throw error
+  await createScreeningLabSamples(organizationId,{employeeSurveillanceId:data.id,departmentId:draft.departmentId||null,subjectName:draft.subjectName,subjectCode:draft.subjectCode,screeningTypes:draft.screeningTypes,collectedAt:draft.startedAt,language:draft.language})
   return (await hydrateRecords([data]))[0]
 }
 
@@ -144,7 +169,14 @@ export async function createEmployeeSurveillanceBatch(organizationId,employees,d
     screening_types:draft.screeningTypes||[],
     status:'active',result_status:'pending',intervention_status:'none',notes:draft.notes||null,created_by:actorId,updated_by:actorId,
   }))
-  if(payload.length){const {error}=await supabase.from('employee_surveillance_records').insert(payload);if(error)throw error}
+  if(payload.length){
+    const {data:insertedRows,error}=await supabase.from('employee_surveillance_records').insert(payload).select('id,employee_id')
+    if(error)throw error
+    for(const row of insertedRows||[]){
+      const employee=employees.find(item=>item.dbId===row.employee_id)
+      await createScreeningLabSamples(organizationId,{employeeSurveillanceId:row.id,employeeSurveillanceBatchId:batch.id,departmentId:draft.departmentId||employee?.departmentId||null,subjectName:employee?draft.language==='en'?`${employee.firstNameEn||employee.firstName} ${employee.lastNameEn||employee.lastName}`:`${employee.lastName} ${employee.firstName}`:'',subjectCode:employee?.id,screeningTypes:draft.screeningTypes,collectedAt:draft.startedAt,language:draft.language})
+    }
+  }
   const records=await loadEmployeeSurveillanceRecords(organizationId)
   return (await loadEmployeeSurveillanceBatches(organizationId,records)).find(item=>item.recordId===batch.id)
 }
@@ -161,7 +193,7 @@ export async function updateEmployeeSurveillanceFollowup(organizationId,record,p
     intervention_start:patch.noIntervention?null:(patch.interventionStart||null),
     intervention_end:patch.noIntervention?null:(patch.interventionEnd||null),
     no_intervention:Boolean(patch.noIntervention),
-    intervention_status:patch.noIntervention?'not_required':((patch.intervention?.trim()||patch.interventionType)?'in_progress':'none'),
+    intervention_status:patch.noIntervention?'none':((patch.intervention?.trim()||patch.interventionType)?'in_progress':'none'),
     recheck_due:patch.noRecheck?null:(patch.recheckDue||null),
     no_recheck:Boolean(patch.noRecheck),
     correction_reason:patch.correctionReason?.trim()||record.correctionReason||null,
@@ -169,6 +201,9 @@ export async function updateEmployeeSurveillanceFollowup(organizationId,record,p
     updated_by:actorId,
   }).eq('organization_id',organizationId).eq('id',record.recordId).select('*').single()
   if(error)throw error
+  if(!patch.noRecheck&&patch.recheckDue&&patch.recheckDue!==record.recheckDue){
+    await createScreeningLabSamples(organizationId,{employeeSurveillanceId:record.recordId,departmentId:record.departmentId||null,subjectName:patch.language==='en'?record.employeeNameEn:record.employeeName,subjectCode:record.employeeId,screeningTypes:record.screeningTypes,collectedAt:patch.recheckDue,language:patch.language})
+  }
   return (await hydrateRecords([data]))[0]
 }
 

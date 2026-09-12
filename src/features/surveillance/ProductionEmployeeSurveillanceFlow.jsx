@@ -7,13 +7,9 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useEmployeesData } from '../employees/useEmployeesData'
-import { createEmployeeSurveillanceBatch,createEmployeeSurveillanceRecord } from './employeeSurveillanceCloudService'
+import { EMPLOYEE_SCREENING_CATALOG,createEmployeeSurveillanceBatch,createEmployeeSurveillanceRecord } from './employeeSurveillanceCloudService'
 
-const screeningCatalog=[
-  {id:'handSwab',el:'Επίχρισμα χεριών',en:'Hand swab'},
-  {id:'nasalSwab',el:'Ρινικό επίχρισμα',en:'Nasal swab'},
-  {id:'throatSwab',el:'Φαρυγγικό επίχρισμα',en:'Throat swab'},
-]
+const screeningCatalog=EMPLOYEE_SCREENING_CATALOG
 
 export function ProductionEmployeeSurveillanceFlow({mode='single',employee=null,onClose,onCreated}){
   const {tenant}=useTenant()
@@ -43,11 +39,11 @@ export function ProductionEmployeeSurveillanceFlow({mode='single',employee=null,
       if(flowMode==='bulk'){
         const employees=activeEmployees.filter(row=>selectedIds.includes(row.id))
         if(!employees.length)return
-        await createEmployeeSurveillanceBatch(tenant.id,employees,{startedAt:date,screeningTypes:types,departmentId:department==='all'?null:(employees[0]?.departmentId||null),notes})
+        await createEmployeeSurveillanceBatch(tenant.id,employees,{startedAt:date,screeningTypes:types,departmentId:department==='all'?null:(employees[0]?.departmentId||null),notes,language})
         notify(language==='en'?'Bulk employee surveillance created.':'Η μαζική επιτήρηση εργαζομένων δημιουργήθηκε.','success')
       }else{
         if(!selected?.dbId)return
-        await createEmployeeSurveillanceRecord(tenant.id,selected.dbId,{startedAt:date,screeningTypes:types,notes})
+        await createEmployeeSurveillanceRecord(tenant.id,selected.dbId,{startedAt:date,screeningTypes:types,notes,departmentId:selected.departmentId||null,subjectName:language==='en'?`${selected.firstNameEn||selected.firstName} ${selected.lastNameEn||selected.lastName}`:`${selected.lastName} ${selected.firstName}`,subjectCode:selected.id,language})
         notify(language==='en'?'Employee surveillance created.':'Η επιτήρηση εργαζομένου δημιουργήθηκε.','success')
       }
       onCreated?.()

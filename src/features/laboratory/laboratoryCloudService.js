@@ -211,8 +211,13 @@ export async function saveMicrobiologyResult(organizationId,sampleRecordId,draft
     data=result.data
   }
   if(['validated','amended'].includes(data.validation_status)){
-    const {error:sampleError}=await supabase.from('laboratory_samples').update({status:'completed',updated_by:actorId,updated_at:now}).eq('organization_id',organizationId).eq('id',sampleRecordId)
+    const {data:sampleRow,error:sampleError}=await supabase.from('laboratory_samples').update({status:'completed',updated_by:actorId,updated_at:now}).eq('organization_id',organizationId).eq('id',sampleRecordId).select('employee_surveillance_id').single()
     if(sampleError)throw sampleError
+    if(sampleRow?.employee_surveillance_id){
+      const employeeResultStatus=data.result_status==='contaminated'?'inconclusive':data.result_status
+      const {error:employeeError}=await supabase.from('employee_surveillance_records').update({result_status:employeeResultStatus,updated_by:actorId,updated_at:now}).eq('organization_id',organizationId).eq('id',sampleRow.employee_surveillance_id)
+      if(employeeError)throw employeeError
+    }
   }
   return data
 }

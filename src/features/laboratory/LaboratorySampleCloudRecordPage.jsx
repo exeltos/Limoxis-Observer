@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, FileClock, FlaskConical, LockKeyhole, Microscope, Paperclip, Pencil, PhoneCall, ShieldAlert, Trash2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -90,14 +90,14 @@ export function LaboratorySampleCloudRecordPage(){
   const tabAccess={
     summary:true,
     result:finalized||['received','collected','processing','completed'].includes(sample?.status),
-    ast:finalized||resultValidated,
+    ast:finalized||Boolean(result),
     communication:finalized||(resultValidated&&astComplete),
     attachments:finalized||(resultValidated&&astComplete&&communicationComplete),
     finalize:finalized||documentsReviewed,
     history:true,
   }
   const workflowOrder=['summary','result',...(isEnvironmental?[]:['ast']),'communication','attachments','finalize']
-  const tabs=useMemo(()=>[
+  const tabs=[
     {id:'summary',label:t('summary'),icon:FlaskConical},
     {id:'result',label:t('laboratoryRecords.microbiologyResult'),icon:Microscope,disabled:!tabAccess.result,lockedLabel},
     ...(isEnvironmental?[]:[{id:'ast',label:t('laboratoryRecords.antimicrobialSusceptibility'),icon:ShieldAlert,disabled:!tabAccess.ast,lockedLabel}]),
@@ -105,7 +105,7 @@ export function LaboratorySampleCloudRecordPage(){
     {id:'attachments',label:t('attachments'),icon:Paperclip,disabled:!tabAccess.attachments,lockedLabel},
     {id:'finalize',label:text('finalize'),icon:CheckCircle2,disabled:!tabAccess.finalize,lockedLabel},
     {id:'history',label:t('history'),icon:FileClock},
-  ],[t,isEnvironmental,language]) // eslint-disable-line react-hooks/exhaustive-deps
+  ]
   const workflowLabels=Object.fromEntries(tabs.map(item=>[item.id,item.label]))
   async function saveAndReload(work,message){try{await work();setDialog(null);await reload();notify(message,'success')}catch(err){notify(err?.message||t('actionFailed'),'error')}}
   async function markDocuments(){await saveAndReload(()=>markDocumentsReviewed(tenant?.id,sample.recordId),text('documentsReviewed'))}
@@ -118,7 +118,7 @@ export function LaboratorySampleCloudRecordPage(){
   if(!sample)return <Page title={t('laboratoryRecords.sample')}><EmptyState title={t('noData')} description={t('laboratoryRecords.sample')}/></Page>
   if(!canAccessRecord(sample))return <Page title={t('laboratoryRecords.sample')}><EmptyState title={t('scopeAccessDeniedTitle')} description={t('scopeAccessDeniedDescription')}/></Page>
 
-  return <Page fill><EntityRecordShell className="laboratory-record-shell workspace-fill" recordNavigation={recordNavigation} avatar={<FlaskConical size={20}/>} eyebrow={sample.id} title={sampleTypeLabel(sample.type,t)} subtitle={`${sample.patient} · ${sample.patientId} · ${sample.department||'—'}`} status={<><Status text={finalized?t('completed'):t(sample.status)} kind={finalized?'completed':sample.status}/>{sample.resistance&&<b className="amr-chip">{sample.resistance}</b>}</>} headerActions={<>{(canManage||canReopen)&&<button className="general-edit-button" title={finalized?text('correction'):text('generalEdit')} onClick={()=>{if(finalized)setDialog('correction');else setTab('result')}}><Pencil size={15}/><span>{finalized?text('correction'):text('generalEdit')}</span></button>}<PrintExportActions onExport={()=>downloadRecordJson(sample,{filename:sample.id})}/></>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack} backLabel={t('backToLaboratory')}>
+  return <Page fill><EntityRecordShell className="laboratory-record-shell workspace-fill" recordNavigation={recordNavigation} avatar={<FlaskConical size={20}/>} eyebrow={sample.id} title={sampleTypeLabel(sample.type,t)} subtitle={`${sample.patient} · ${sample.patientId} · ${sample.department||'—'}`} status={<><Status text={finalized?t('completed'):t(sample.status)} kind={finalized?'completed':sample.status}/>{sample.resistance&&<b className="amr-chip">{sample.resistance}</b>}</>} headerActions={<>{(canManage||canReopen)&&<button className="general-edit-button" title={finalized?text('correction'):text('generalEdit')} onClick={()=>{if(finalized)setDialog('correction');else if(tabAccess.result)setTab('result')}}><Pencil size={15}/><span>{finalized?text('correction'):text('generalEdit')}</span></button>}<PrintExportActions onExport={()=>downloadRecordJson(sample,{filename:sample.id})}/></>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack} backLabel={t('backToLaboratory')}>
     {!canManage&&tab==='summary'&&<div className="permission-info-banner"><AlertTriangle size={16}/><span>{t('laboratoryRecords.laboratoryReadOnlyRole')}</span></div>}
     {finalized&&tab==='summary'&&<div className="validated-result-note"><CheckCircle2 size={16}/><span>{text('finalizedReadOnly')}</span></div>}
     {tab==='summary'&&<section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('sampleDetails')}</strong><small>{sample.id}</small></div><div className="record-section-actions">{canManageActive&&sample.status==='requested'&&<Button onClick={()=>saveAndReload(()=>updateLaboratorySampleStatus(tenant?.id,sample.recordId,'received',{receivedAt:new Date()}),t('laboratoryRecords.sampleReceivedMessage'))}>{t('received')}</Button>}{canManageActive&&['requested','collected','received'].includes(sample.status)&&<Button variant="secondary" onClick={()=>setDialog('reject')}>{text('rejectSample')}</Button>}{canManageActive&&['received','collected'].includes(sample.status)&&<Button onClick={()=>saveAndReload(()=>updateLaboratorySampleStatus(tenant?.id,sample.recordId,'processing'),t('laboratoryRecords.sampleProcessingStartedMessage'))}>{t('processing')}</Button>}</div></div><div className="detail-grid patient-detail-grid"><Detail label={t('patient')} value={sample.patient}/><Detail label={t('department')} value={sample.department}/><Detail label={t('sampleType')} value={sampleTypeLabel(sample.type,t)}/>{isEnvironmental?<Detail label={language==='en'?'Sampling method':'Μέθοδος δειγματοληψίας'} value={environmentalMethodLabel(sample.environmentalMethod,t)}/>:<Detail label={t('clinicalSource')} value={sample.source}/>}<Detail label={t('priority')} value={t(sample.priority)}/><Detail label={t('collectedLabel')} value={fmt(sample.collectedAt)}/><Detail label={t('received')} value={fmt(sample.receivedAt)}/><Detail label={t('surveillance')} value={sample.surveillanceCase||'—'}/>{sample.rejectionReason&&<Detail label={text('rejectionReason')} value={sample.rejectionReason}/>}</div></section>}
