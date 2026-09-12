@@ -8,27 +8,28 @@
 
 ## Συμπέρασμα
 
-Η παρατήρηση ότι «το Demo είναι καλύτερο από το παραγωγικό» είναι βάσιμη. Το βασικό πρόβλημα δεν είναι ένα μεμονωμένο CSS regression ή η έλλειψη production δεδομένων. Σε τρεις κρίσιμες περιοχές το Demo και το Production αποδίδονται από **διαφορετικά page/record components**:
+Η παρατήρηση ότι «το Demo είναι καλύτερο από το παραγωγικό» ήταν βάσιμη. Το βασικό πρόβλημα δεν ήταν ένα μεμονωμένο CSS regression ή η έλλειψη production δεδομένων, αλλά ότι σε ορισμένες κρίσιμες περιοχές το Demo και το Production αποδίδονταν από **διαφορετικά page/record components**.
 
-- Επιτήρηση (`SurveillancePage` / `ProductionSurveillancePage` και δύο διαφορετικά patient record pages).
-- Εργαστήριο (`LaboratoryDemoPage` / `LaboratoryCloudPage` και δύο διαφορετικά sample record pages).
-- Δείκτες (`IndicatorsDemoPage` / `IndicatorsCloudPage`).
+**Ενημέρωση 12/09/2026 (αργότερα την ίδια ημέρα):** Το Εργαστήριο (`LaboratoryDemoPage`/`LaboratoryCloudPage`) και οι Δείκτες (`IndicatorsDemoPage`/`IndicatorsCloudPage`) έχουν πλέον ενοποιηθεί σε ένα canonical page/record ανά περιοχή, με το Demo/Production διαχωρισμό να ζει αποκλειστικά στο service/repository layer (`isDemoDataEnvironment()`). Για τους Δείκτες, το production μοντέλο (περίοδος + τμήμα + snapshot + έγκριση) υιοθετήθηκε ως το ενιαίο, με ένα τοπικό (localStorage) repository που προσομοιώνει την ίδια ροή για το Demo. Το `audit:frontend-parity` allow-list μειώθηκε από 3 σε 2 καταχωρήσεις.
 
-Αυτό έχει δημιουργήσει δύο προϊόντα που εξελίσσονται ανεξάρτητα. Οι διορθώσεις UX στο ένα περιβάλλον δεν φτάνουν αυτόματα στο άλλο και η οπτική/λειτουργική απόκλιση αυξάνεται με κάθε αλλαγή.
+Παραμένει ανοιχτή μία περιοχή:
 
-Το Training δείχνει ήδη τη σωστή κατεύθυνση: χρησιμοποιεί ένα canonical frontend (`TrainingProductionPage`) και μεταφέρει τις διαφορές Demo/Production στο service/data layer.
+- Επιτήρηση (`SurveillancePage` / `ProductionSurveillancePage` και δύο διαφορετικά patient record pages) — το μεγαλύτερο και πιο κρίσιμο (clinical) κομμάτι, εκτιμώμενο σε 5–8 μέρες.
+
+Όσο παραμένει ανοιχτό, οι διορθώσεις UX στο ένα περιβάλλον δεν φτάνουν αυτόματα στο άλλο εκεί, και η οπτική/λειτουργική απόκλιση αυξάνεται με κάθε αλλαγή σε αυτή την περιοχή.
+
+Το Training και πλέον το Εργαστήριο και οι Δείκτες δείχνουν τη σωστή κατεύθυνση: ένα canonical frontend ανά περιοχή, με τις διαφορές Demo/Production στο service/data layer.
 
 ## Ευρήματα
 
 ### P0 — Διπλή υλοποίηση των βασικών οθονών
 
-| Περιοχή | Demo | Production | Γραμμές Demo / Production |
-| --- | --- | --- | ---: |
-| Επιτήρηση registry | `SurveillancePage.jsx` | `ProductionSurveillancePage.jsx` | 220 / 180 |
-| Επιτήρηση record | `PatientClinicalRecordPage.jsx` | `PatientClinicalCloudRecordPage.jsx` | 768 / 286 |
-| Εργαστήριο registry | `LaboratoryDemoPage.jsx` | `LaboratoryCloudPage.jsx` | 228 / 51 |
-| Εργαστήριο record | `LaboratorySampleDemoRecordPage.jsx` | `LaboratorySampleCloudRecordPage.jsx` | 838 / 163 |
-| Δείκτες | `IndicatorsDemoPage.jsx` | `IndicatorsCloudPage.jsx` | 152 / 63 |
+| Περιοχή | Demo | Production | Γραμμές Demo / Production | Κατάσταση |
+| --- | --- | --- | ---: | --- |
+| Επιτήρηση registry | `SurveillancePage.jsx` | `ProductionSurveillancePage.jsx` | 220 / 180 | Εκκρεμεί |
+| Επιτήρηση record | `PatientClinicalRecordPage.jsx` | `PatientClinicalCloudRecordPage.jsx` | 768 / 286 | Εκκρεμεί |
+| Εργαστήριο registry/record | ~~`LaboratoryDemoPage.jsx`~~ | ~~`LaboratoryCloudPage.jsx`~~ | — | ✅ Ενοποιήθηκε (`LaboratoryWorkspace.jsx`) |
+| Δείκτες | ~~`IndicatorsDemoPage.jsx`~~ | ~~`IndicatorsCloudPage.jsx`~~ | — | ✅ Ενοποιήθηκε 12/09/2026 (`IndicatorsPage.jsx`) |
 
 Οι διαφορές μεγέθους δεν αποδεικνύουν μόνες τους χαμηλότερη ποιότητα, δείχνουν όμως ότι το Production δεν χρησιμοποιεί το ίδιο interaction model και το ίδιο component tree με το Demo. Ιδιαίτερα στα record pages, το Demo έχει πολλαπλάσια UI επιφάνεια. Αυτό εξηγεί γιατί μπορεί να φαίνεται πληρέστερο, πιο «δεμένο» και πιο ώριμο.
 
@@ -123,29 +124,24 @@ Route
 3. Καταγραφή readiness matrix ανά production tenant/module.
 4. Διόρθωση των σημερινών failures του `npm run check` πριν ξεκινήσει η ενοποίηση.
 
-### Φάση 2 — Εργαστήριο (3–5 ημέρες)
+### Φάση 2 — Εργαστήριο ✅ Ολοκληρώθηκε
 
-Το Εργαστήριο έχει τη μεγαλύτερη εμφανή απόκλιση και αποτελεί καλό πρώτο vertical slice:
+Ενοποιήθηκε σε `LaboratoryWorkspace.jsx`/`LaboratorySampleRecordView.jsx`, με Demo/Supabase πίσω από το ίδιο interface.
 
-1. Κοινό registry page.
-2. Κοινό sample creation dialog/form.
-3. Κοινό sample record shell και workflow sections.
-4. Demo και Supabase repositories πίσω από το ίδιο interface.
-5. Parity tests για populated, empty, loading, error και read-only states.
-
-### Φάση 3 — Επιτήρηση (5–8 ημέρες)
+### Φάση 3 — Επιτήρηση (5–8 ημέρες) — εκκρεμεί
 
 1. Ενοποίηση registry και create flow.
 2. Ενοποίηση patient clinical record.
 3. Normalization στο repository/view-model boundary, όχι μέσα στο route.
 4. Έλεγχος όλων των role/capability combinations.
 
-### Φάση 4 — Δείκτες και Analytics (3–5 ημέρες)
+### Φάση 4 — Δείκτες και Analytics ✅ Ολοκληρώθηκε (12/09/2026)
 
-1. Κοινό indicator workspace.
-2. Demo metrics ως adapter στο ίδιο result schema.
-3. Production readiness/onboarding για definitions, denominators και approvals.
-4. Ίδια charts και explanatory states και στα δύο περιβάλλοντα.
+1. Κοινό `IndicatorsPage.jsx` (περίοδος, τμήμα, snapshot, έγκριση) — το production μοντέλο υιοθετήθηκε ως το ενιαίο.
+2. Demo metrics (`collectIndicatorMetrics`) ως adapter στο ίδιο αποτέλεσμα-schema με το production RPC.
+3. Τοπικό (localStorage) repository για ορισμούς/snapshots ώστε το Demo να έχει το ίδιο governance workflow (αποθήκευση περιόδου, έγκριση) χωρίς πραγματική Supabase.
+4. Το Κέντρο Διαχείρισης → Ορισμοί δεικτών λειτουργεί πλέον και σε Demo (πριν εμφάνιζε «διαχειρίζονται μόνο σε πραγματικό οργανισμό»).
+5. Γνωστός περιορισμός: στο Demo, η επιλογή τμήματος/περιόδου δεν αλλάζει πραγματικά τους υπολογισμένους αριθμούς (τα demo δεδομένα δεν είναι χρονικά/τμηματικά κατανεμημένα σε αυτό το επίπεδο) — η ίδια η ροή (επιλογή, υπολογισμός, αποθήκευση, έγκριση) όμως λειτουργεί πλήρως.
 
 ## Κριτήρια αποδοχής
 

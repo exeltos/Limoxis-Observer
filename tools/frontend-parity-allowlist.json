@@ -10,11 +10,5 @@
     "owner": "clinical-frontend",
     "reason": "Legacy clinical record split; migration tracked in the frontend parity plan.",
     "expiresOn": "2026-12-31"
-  },
-  {
-    "file": "features/indicators/IndicatorsPage.jsx",
-    "owner": "analytics-frontend",
-    "reason": "Legacy indicators workspace split; migration tracked in the frontend parity plan.",
-    "expiresOn": "2026-12-31"
   }
 ]
