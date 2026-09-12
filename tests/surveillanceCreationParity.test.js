@@ -24,4 +24,12 @@ describe('new surveillance Demo/Production parity',()=>{
     expect(sharedFlow).toContain("!isDemo&&!patientDraft.patientCode.trim()")
     expect(sharedFlow).toContain("patientCode:patientDraft.patientCode.trim()||undefined")
   })
+
+  it('keeps the canonical patient tab structure in production',()=>{
+    for(const tab of ['summary','admissions','surveillanceJourney','clinicalData','documents','history']){
+      expect(productionRecord).toContain(`id:'${tab}'`)
+    }
+    expect(productionRecord).not.toContain("id:'clinical'")
+    expect(productionRecord).not.toContain("id:'surveillance'")
+  })
 })
