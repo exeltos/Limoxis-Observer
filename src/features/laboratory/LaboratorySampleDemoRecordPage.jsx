@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, FileClock, FlaskConical, LockKeyhole, Microscope, Paperclip, Pencil, PhoneCall, PlayCircle, ShieldAlert, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileClock, FlaskConical, LockKeyhole, Microscope, Paperclip, Pencil, PhoneCall, PlayCircle, ShieldAlert, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -27,6 +27,7 @@ import { getLabSample, updateLabSample } from './laboratoryDemoData'
 import { Status } from './LaboratoryPage'
 import { demoLibrarySeed } from '../management/managementData'
 import { readEnvironmentalStandards } from '../management/EnvironmentalStandardsPanel'
+import { LabStepNavigator } from './LabStepNavigator'
 
 export function LaboratorySampleRecordPage(){
   const {sampleId}=useParams()
@@ -800,25 +801,6 @@ function DocumentsPanel({sample,persist,t,canAttach,finalized,notify,actorName,o
 function LabHistory({sample,t,fmt}){
   const rows=useMemo(()=>[...(sample.timeline||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)),[sample.timeline])
   return <div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('laboratoryRecords.sample')}</span><h3>{t('history')}</h3></div></div><div className="lab-history-list">{rows.map((row,index)=><div key={`${row.at}-${index}`} className="lab-history-row"><time>{fmt(row.at)}</time><strong>{t(row.type)}</strong><span>{row.actor||'—'}</span></div>)}</div></div>
-}
-
-function LabStepNavigator({active,order,labels,canOpen,onMove}){
-  const {language}=useLanguage()
-  const current=order.indexOf(active)
-  if(current<0)return null
-  let previous=null,next=null
-  for(let i=current-1;i>=0;i--){if(canOpen(order[i])){previous=order[i];break}}
-  for(let i=current+1;i<order.length;i++){if(canOpen(order[i])){next=order[i];break}}
-  if(!previous&&!next)return null
-  return <div className="lab-workflow-navigator" aria-label={language==='el'?'Πλοήγηση βημάτων εργαστηρίου':'Laboratory workflow navigation'}>
-    <button type="button" className="lab-workflow-nav-button previous" disabled={!previous} onClick={()=>previous&&onMove(previous)}>
-      <ChevronLeft size={16}/><span><small>{language==='el'?'Προηγούμενο βήμα':'Previous step'}</small><strong>{previous?labels[previous]:''}</strong></span>
-    </button>
-    <div className="lab-workflow-progress"><span>{language==='el'?'Βήμα':'Step'} {current+1} {language==='el'?'από':'of'} {order.length}</span></div>
-    <button type="button" className="lab-workflow-nav-button next" disabled={!next} onClick={()=>next&&onMove(next)}>
-      <span><small>{language==='el'?'Επόμενο βήμα':'Next step'}</small><strong>{next?labels[next]:''}</strong></span><ChevronRight size={16}/>
-    </button>
-  </div>
 }
 
 function Detail({l,v}){return <div className="detail-item"><span>{l}</span><strong>{v||'—'}</strong></div>}
