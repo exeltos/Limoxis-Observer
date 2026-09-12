@@ -2,7 +2,6 @@ import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 
 const service=fs.readFileSync('src/features/laboratory/laboratoryCloudService.js','utf8')
-const page=fs.readFileSync('src/features/laboratory/LaboratoryCloudPage.jsx','utf8')
 const record=fs.readFileSync('src/features/laboratory/LaboratorySampleCloudRecordPage.jsx','utf8')
 const route=fs.readFileSync('src/features/laboratory/LaboratoryPage.jsx','utf8')
 const recordRoute=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordPage.jsx','utf8')
@@ -23,10 +22,11 @@ describe('laboratory production persistence',()=>{
     expect(service).toContain('critical_communicated_at')
   })
 
-  it('keeps demo and production runtime paths isolated',()=>{
-    expect(route).toContain('isDemo?<LaboratoryDemoPage/>:<LaboratoryCloudPage/>')
+  it('keeps one canonical registry while isolating record persistence',()=>{
+    expect(route).toContain('useLaboratoryRegistry')
+    expect(route).not.toContain('LaboratoryDemoPage')
+    expect(route).not.toContain('LaboratoryCloudPage')
     expect(recordRoute).toContain('isDemo?<LaboratorySampleDemoRecordPage/>:<LaboratorySampleCloudRecordPage/>')
-    expect(page).not.toContain('laboratoryDemoData')
     expect(record).not.toContain('laboratoryDemoData')
   })
 
