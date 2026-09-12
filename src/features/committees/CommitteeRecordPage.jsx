@@ -3,12 +3,15 @@ import { useNavigate,useParams } from 'react-router-dom'
 import { CalendarDays,CheckCircle2,ClipboardList,FileClock,Paperclip,Pencil,Plus,ShieldCheck,Target,Trash2,Users,XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { downloadRecordJson } from '../../core/export/recordExport'
 import { Button } from '../../design-system/Button'
 import { ActionButton } from '../../design-system/ActionButton'
 import { IconButton } from '../../design-system/IconButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { TimeField } from '../../design-system/TimeField'
 import { AttachmentField } from '../../design-system/AttachmentField'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RouteLoading } from '../../design-system/RouteLoading'
@@ -205,7 +208,7 @@ export function CommitteeRecordPage(){
     saveCommittees(nextRows)
   }
 
-  const headerActions=tab==='overview'?<div className="record-actions">{canFramework&&<IconButton tone="edit" label={en?'Edit committee':'Επεξεργασία επιτροπής'} disabled={busy} onClick={()=>setDialog({type:'details'})}><Pencil size={16}/></IconButton>}{canArchive&&<ActionButton tone="danger" label={en?'Archive committee':'Αρχειοθέτηση επιτροπής'} disabled={busy} onClick={archiveCommittee}><Trash2 size={16}/></ActionButton>}</div>:null
+  const headerActions=<>{tab==='overview'&&<div className="record-actions">{canFramework&&<IconButton tone="edit" label={en?'Edit committee':'Επεξεργασία επιτροπής'} disabled={busy} onClick={()=>setDialog({type:'details'})}><Pencil size={16}/></IconButton>}{canArchive&&<ActionButton tone="danger" label={en?'Archive committee':'Αρχειοθέτηση επιτροπής'} disabled={busy} onClick={archiveCommittee}><Trash2 size={16}/></ActionButton>}</div>}<PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record?.id})}/></>
 
   return <Page fill>
     <EntityRecordShell avatar={<Users size={19}/>} eyebrow={record.id} title={record.name} subtitle={record.shortName||''} status={<span className={`status-badge ${record.status==='active'?'active':''}`}>{record.status==='active'?(en?'Active':'Ενεργή'):(en?'Inactive':'Ανενεργή')}</span>} recordNavigation={recordNavigation} onBack={()=>navigate('/committees')} headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab}>
@@ -322,7 +325,7 @@ function MemberDialog({staff,initial,busy,onClose,onSave,en}){
 function NewMeetingDialog({busy,onClose,onSave,en}){
   const [v,setV]=useState({title:'',meetingType:'regular',date:'',time:'09:00',location:'',topics:[createTopic()]})
   const set=(k,x)=>setV(s=>({...s,[k]:x}))
-  return <ObserverDialog width="wide" eyebrow={en?'Meetings':'Συνεδριάσεις'} title={en?'New meeting':'Νέα συνεδρίαση'} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={busy||!v.title.trim()||!v.date} onSave={()=>onSave(v)} saveLabel={en?'Create & continue':'Δημιουργία & συνέχεια'}/>}><div className="entry-grid compact"><label className="entry-span-2"><span>{en?'Title':'Τίτλος'}</span><input value={v.title} onChange={e=>set('title',e.target.value)}/></label><label><span>{en?'Type':'Τύπος'}</span><select value={v.meetingType} onChange={e=>set('meetingType',e.target.value)}><option value="regular">{en?'Regular':'Τακτική'}</option><option value="extraordinary">{en?'Extraordinary':'Έκτακτη'}</option></select></label><ManualDateField label={en?'Date':'Ημερομηνία'} value={v.date} onChange={x=>set('date',x)}/><label><span>{en?'Time':'Ώρα'}</span><input type="time" value={v.time} onChange={e=>set('time',e.target.value)}/></label><label><span>{en?'Location':'Χώρος'}</span><input value={v.location} onChange={e=>set('location',e.target.value)}/></label></div></ObserverDialog>
+  return <ObserverDialog width="wide" eyebrow={en?'Meetings':'Συνεδριάσεις'} title={en?'New meeting':'Νέα συνεδρίαση'} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={busy||!v.title.trim()||!v.date} onSave={()=>onSave(v)} saveLabel={en?'Create & continue':'Δημιουργία & συνέχεια'}/>}><div className="entry-grid compact"><label className="entry-span-2"><span>{en?'Title':'Τίτλος'}</span><input value={v.title} onChange={e=>set('title',e.target.value)}/></label><label><span>{en?'Type':'Τύπος'}</span><select value={v.meetingType} onChange={e=>set('meetingType',e.target.value)}><option value="regular">{en?'Regular':'Τακτική'}</option><option value="extraordinary">{en?'Extraordinary':'Έκτακτη'}</option></select></label><ManualDateField label={en?'Date':'Ημερομηνία'} value={v.date} onChange={x=>set('date',x)}/><TimeField label={en?'Time':'Ώρα'} value={v.time} onChange={x=>set('time',x)}/><label><span>{en?'Location':'Χώρος'}</span><input value={v.location} onChange={e=>set('location',e.target.value)}/></label></div></ObserverDialog>
 }
 
 function MeetingDialog({meeting,members,actorId,canSave,canFinalize,busy,onClose,onSave,onApproval,en}){
