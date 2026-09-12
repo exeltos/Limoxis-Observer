@@ -2,7 +2,11 @@ import { supabase } from '../../core/supabase/client'
 
 const assertCloud=()=>{if(!supabase)throw new Error('Supabase is not configured.')}
 const iso=value=>value?new Date(value).toISOString():null
-const environmentalTypes=['water','surface','environment','environmental','νερό','επιφάνεια','επιφανεια']
+const environmentalTypes=['water','surface','environment','environmental','room','air','νερό','επιφάνεια','επιφανεια']
+export const ENVIRONMENTAL_CATEGORIES=['surface','room','air','water']
+const environmentalCategories=new Set(ENVIRONMENTAL_CATEGORIES)
+export function sampleTypeLabel(type,t){return environmentalCategories.has(type)?t(`environmentalStandards.${type==='room'?'roomCategory':type}`):t(type)}
+export function environmentalMethodLabel(method,t){return method?t(`environmentalStandards.${method}`):''}
 
 async function currentUserId(){
   assertCloud()
@@ -25,6 +29,9 @@ function mapMicrobiology(row,ast=[],communications=[],amr=[]){
     resistance:classification?.classification||row.resistance_class||null,
     susceptibilitySummary:row.susceptibility_summary||'',
     critical:Boolean(row.is_critical),
+    cfuCount:row.cfu_count,
+    cfuLimit:row.cfu_limit,
+    withinLimit:row.within_limit,
     resultedAt:row.resulted_at,
     validatedAt:row.validated_at,
     validatedBy:row.validated_by,
@@ -64,6 +71,7 @@ function mapSample(row,patient,department,microbiology=[]){
     type:row.sample_type,
     source:row.source_site||'',
     sourceEn:row.source_site||'',
+    environmentalMethod:row.environmental_method||'',
     collectedAt:row.collected_at,
     requestedAt:row.requested_at,
     receivedAt:row.received_at,
@@ -77,7 +85,15 @@ function mapSample(row,patient,department,microbiology=[]){
     organism:result?.organism||null,
     resistance:result?.resistance||null,
     critical:Boolean(result?.critical),
+    cfuCount:result?.cfuCount,
+    cfuLimit:result?.cfuLimit,
+    withinLimit:result?.withinLimit,
     microbiologyResults:microbiology,
+    documentsReviewedAt:row.documents_reviewed_at||null,
+    documentsReviewedBy:row.documents_reviewed_by||null,
+    finalizedAt:row.finalized_at||null,
+    finalizedBy:row.finalized_by||null,
+    correctionReason:row.correction_reason||'',
   }
 }
 
@@ -141,6 +157,7 @@ export async function createLaboratorySample(organizationId,patientRecordId,draf
     sample_code:code,
     sample_type:draft.type,
     source_site:draft.source||null,
+    environmental_method:draft.environmentalMethod||null,
     collected_at:iso(draft.collectedAt),
     requested_at:iso(draft.requestedAt||new Date()),
     requested_by:actorId,
@@ -169,7 +186,7 @@ export async function saveMicrobiologyResult(organizationId,sampleRecordId,draft
   assertCloud()
   const actorId=await currentUserId()
   const now=new Date().toISOString()
-  const base={organization_id:organizationId,sample_id:sampleRecordId,result_status:draft.result||'inconclusive',organism:draft.organism||null,resistance_class:draft.resistance||null,susceptibility_summary:draft.susceptibilitySummary||null,is_critical:Boolean(draft.critical),resulted_at:iso(draft.resultedAt||new Date()),updated_by:actorId,updated_at:now,method:draft.method||null,preliminary:Boolean(draft.preliminary),interpretation_standard:draft.interpretationStandard||null,interpretation_version:draft.interpretationVersion||null}
+  const base={organization_id:organizationId,sample_id:sampleRecordId,result_status:draft.result||'inconclusive',organism:draft.organism||null,resistance_class:draft.resistance||null,susceptibility_summary:draft.susceptibilitySummary||null,is_critical:Boolean(draft.critical),resulted_at:iso(draft.resultedAt||new Date()),updated_by:actorId,updated_at:now,method:draft.method||null,preliminary:Boolean(draft.preliminary),interpretation_standard:draft.interpretationStandard||null,interpretation_version:draft.interpretationVersion||null,cfu_count:draft.cfuCount==null||draft.cfuCount===''?null:Number(draft.cfuCount),cfu_limit:draft.cfuLimit==null||draft.cfuLimit===''?null:Number(draft.cfuLimit),within_limit:draft.withinLimit==null?null:Boolean(draft.withinLimit)}
   let data
   if(draft.id){
     const {data:existing,error:existingError}=await supabase.from('microbiology_results').select('id,validation_status').eq('organization_id',organizationId).eq('id',draft.id).single()
@@ -214,6 +231,44 @@ export async function communicateCriticalResult(organizationId,microbiologyResul
   const {error:updateError}=await supabase.from('microbiology_results').update({critical_communicated_at:communicatedAt,critical_communicated_to:draft.recipientName,updated_by:actorId,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',microbiologyResultId)
   if(updateError)throw updateError
   return data
+}
+
+export async function markDocumentsReviewed(organizationId,sampleRecordId){
+  assertCloud()
+  const actorId=await currentUserId()
+  const {error}=await supabase.from('laboratory_samples').update({documents_reviewed_at:new Date().toISOString(),documents_reviewed_by:actorId,updated_by:actorId,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',sampleRecordId)
+  if(error)throw error
+}
+
+export async function finalizeLaboratorySample(organizationId,sampleRecordId){
+  assertCloud()
+  const actorId=await currentUserId()
+  const now=new Date().toISOString()
+  const {error}=await supabase.from('laboratory_samples').update({finalized_at:now,finalized_by:actorId,status:'completed',updated_by:actorId,updated_at:now}).eq('organization_id',organizationId).eq('id',sampleRecordId)
+  if(error)throw error
+}
+
+export async function reopenLaboratorySample(organizationId,sampleRecordId,reason){
+  assertCloud()
+  const actorId=await currentUserId()
+  const now=new Date().toISOString()
+  const {error}=await supabase.from('laboratory_samples').update({finalized_at:null,finalized_by:null,documents_reviewed_at:null,documents_reviewed_by:null,correction_reason:reason||null,status:'processing',updated_by:actorId,updated_at:now}).eq('organization_id',organizationId).eq('id',sampleRecordId)
+  if(error)throw error
+}
+
+export async function loadEnvironmentalStandards(organizationId){
+  assertCloud()
+  if(!organizationId)return []
+  const {data,error}=await supabase.from('environmental_standards').select('payload').eq('organization_id',organizationId)
+  if(error)throw error
+  return (data||[]).map(row=>row.payload)
+}
+
+export function resolveEnvironmentalStandard(standards,category,method){
+  const list=standards||[]
+  return list.find(item=>item.active&&item.subjectType===category&&item.sourceCode===method)
+    || list.find(item=>item.active&&item.subjectType===category)
+    || null
 }
 
 export function getLaboratoryKpis(rows){
