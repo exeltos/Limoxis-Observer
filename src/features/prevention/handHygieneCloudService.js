@@ -1,4 +1,7 @@
 import { supabase } from '../../core/supabase/client'
+import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { preventionDepartments } from './preventionDemoData'
+import { loadHandHygieneLocal, saveHandHygieneLocal } from './preventionStore'
 
 const assertCloud=organizationId=>{
  if(!supabase)throw new Error('Supabase is not configured.')
@@ -65,6 +68,7 @@ function mapSession(row){
 }
 
 export async function loadHandHygieneDepartments(organizationId){
+ if(isDemoDataEnvironment())return preventionDepartments.map(({id,el,en})=>({id,el,en}))
  assertCloud(organizationId)
  const {data,error}=await supabase.from('departments').select('id,name').eq('organization_id',organizationId).eq('is_active',true).order('name')
  if(error)throw error
@@ -72,6 +76,7 @@ export async function loadHandHygieneDepartments(organizationId){
 }
 
 export async function loadHandHygieneSessions(organizationId){
+ if(isDemoDataEnvironment())return loadHandHygieneLocal()
  assertCloud(organizationId)
  const {data,error}=await supabase.from('hand_hygiene_sessions').select('*,department:departments(id,name),observations_detail:hand_hygiene_observations(*)').eq('organization_id',organizationId).order('observation_date',{ascending:false}).order('created_at',{ascending:false})
  if(error)throw error
@@ -86,6 +91,14 @@ async function resolveDepartment(organizationId,name){
 }
 
 export async function saveHandHygieneSession(organizationId,record,{existingId=null}={}){
+ if(isDemoDataEnvironment()){
+  const rows=loadHandHygieneLocal()
+  const id=existingId||`HH-${Date.now()}`
+  const saved={...record,id,lifecycleStatus:'active'}
+  const next=existingId?rows.map(row=>row.id===existingId?saved:row):[saved,...rows]
+  saveHandHygieneLocal(next)
+  return saved
+ }
  assertCloud(organizationId)
  const userId=await currentUserId()
  const department=await resolveDepartment(organizationId,record.departmentEl||record.session?.department||'')
@@ -117,6 +130,11 @@ export async function saveHandHygieneSession(organizationId,record,{existingId=n
 }
 
 export async function deleteHandHygieneSession(organizationId,id){
+ if(isDemoDataEnvironment()){
+  if(!id)return
+  saveHandHygieneLocal(loadHandHygieneLocal().filter(row=>row.id!==id))
+  return
+ }
  assertCloud(organizationId)
  if(!id)return
  const {error:childError}=await supabase.from('hand_hygiene_observations').delete().eq('organization_id',organizationId).eq('session_id',id)
