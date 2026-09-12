@@ -26,6 +26,7 @@ function mapMicrobiology(row,ast=[],communications=[],amr=[]){
     resultStatus:row.validation_status,
     amendedFrom:row.amended_from||null,
     organism:row.organism,
+    organisms:row.organisms?.length?row.organisms:(row.organism?[{name:row.organism,resistance:classification?.classification||row.resistance_class||''}]:[]),
     resistance:classification?.classification||row.resistance_class||null,
     susceptibilitySummary:row.susceptibility_summary||'',
     critical:Boolean(row.is_critical),
@@ -39,7 +40,7 @@ function mapMicrobiology(row,ast=[],communications=[],amr=[]){
     preliminary:Boolean(row.preliminary),
     interpretationStandard:row.interpretation_standard||'',
     interpretationVersion:row.interpretation_version||'',
-    ast:(ast||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,drug:item.antimicrobial_name,code:item.antimicrobial_code,method:item.method,sir:item.sir_category,mic:item.mic_value,operator:item.mic_operator,zone:item.zone_diameter_mm,standard:item.breakpoint_standard,version:item.breakpoint_version,notes:item.notes||''})),
+    ast:(ast||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,organism:item.organism_name||'',drug:item.antimicrobial_name,code:item.antimicrobial_code,method:item.method,sir:item.sir_category,mic:item.mic_value,operator:item.mic_operator,zone:item.zone_diameter_mm,standard:item.breakpoint_standard,version:item.breakpoint_version,notes:item.notes||''})),
     communications:(communications||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,at:item.communicated_at,to:item.recipient_name,role:item.recipient_role||'',method:item.communication_method,readBack:item.read_back_confirmed,notes:item.notes||''})),
   }
 }
@@ -186,7 +187,9 @@ export async function saveMicrobiologyResult(organizationId,sampleRecordId,draft
   assertCloud()
   const actorId=await currentUserId()
   const now=new Date().toISOString()
-  const base={organization_id:organizationId,sample_id:sampleRecordId,result_status:draft.result||'inconclusive',organism:draft.organism||null,resistance_class:draft.resistance||null,susceptibility_summary:draft.susceptibilitySummary||null,is_critical:Boolean(draft.critical),resulted_at:iso(draft.resultedAt||new Date()),updated_by:actorId,updated_at:now,method:draft.method||null,preliminary:Boolean(draft.preliminary),interpretation_standard:draft.interpretationStandard||null,interpretation_version:draft.interpretationVersion||null,cfu_count:draft.cfuCount==null||draft.cfuCount===''?null:Number(draft.cfuCount),cfu_limit:draft.cfuLimit==null||draft.cfuLimit===''?null:Number(draft.cfuLimit),within_limit:draft.withinLimit==null?null:Boolean(draft.withinLimit)}
+  const organisms=(draft.organisms||[]).filter(row=>row?.name?.trim())
+  const primary=organisms[0]||null
+  const base={organization_id:organizationId,sample_id:sampleRecordId,result_status:draft.result||'inconclusive',organism:primary?.name||draft.organism||null,organisms,resistance_class:primary?.resistance||draft.resistance||null,susceptibility_summary:draft.susceptibilitySummary||null,is_critical:Boolean(draft.critical),resulted_at:iso(draft.resultedAt||new Date()),updated_by:actorId,updated_at:now,method:draft.method||null,preliminary:Boolean(draft.preliminary),interpretation_standard:draft.interpretationStandard||null,interpretation_version:draft.interpretationVersion||null,cfu_count:draft.cfuCount==null||draft.cfuCount===''?null:Number(draft.cfuCount),cfu_limit:draft.cfuLimit==null||draft.cfuLimit===''?null:Number(draft.cfuLimit),within_limit:draft.withinLimit==null?null:Boolean(draft.withinLimit)}
   let data
   if(draft.id){
     const {data:existing,error:existingError}=await supabase.from('microbiology_results').select('id,validation_status').eq('organization_id',organizationId).eq('id',draft.id).single()
@@ -217,9 +220,23 @@ export async function saveMicrobiologyResult(organizationId,sampleRecordId,draft
 export async function addAstResult(organizationId,microbiologyResultId,draft){
   assertCloud()
   const actorId=await currentUserId()
-  const {data,error}=await supabase.from('antimicrobial_susceptibility_results').insert({organization_id:organizationId,microbiology_result_id:microbiologyResultId,antimicrobial_code:draft.code||null,antimicrobial_name:draft.drug,method:draft.method||'MIC',mic_value:draft.mic||null,mic_operator:draft.operator||null,zone_diameter_mm:draft.zone||null,sir_category:draft.sir||'S',breakpoint_standard:draft.standard||'EUCAST',breakpoint_version:draft.version,technical_uncertainty:Boolean(draft.technicalUncertainty),notes:draft.notes||null,created_by:actorId}).select('*').single()
+  const {data,error}=await supabase.from('antimicrobial_susceptibility_results').insert({organization_id:organizationId,microbiology_result_id:microbiologyResultId,organism_name:draft.organism||null,antimicrobial_code:draft.code||null,antimicrobial_name:draft.drug,method:draft.method||'MIC',mic_value:draft.mic||null,mic_operator:draft.operator||null,zone_diameter_mm:draft.zone||null,sir_category:draft.sir||'S',breakpoint_standard:draft.standard||'EUCAST',breakpoint_version:draft.version,technical_uncertainty:Boolean(draft.technicalUncertainty),notes:draft.notes||null,created_by:actorId}).select('*').single()
   if(error)throw error
   return data
+}
+
+export async function updateAstResult(organizationId,astResultId,draft){
+  assertCloud()
+  const actorId=await currentUserId()
+  const {data,error}=await supabase.from('antimicrobial_susceptibility_results').update({organism_name:draft.organism||null,antimicrobial_code:draft.code||null,antimicrobial_name:draft.drug,method:draft.method||'MIC',mic_value:draft.mic||null,mic_operator:draft.operator||null,zone_diameter_mm:draft.zone||null,sir_category:draft.sir||'S',breakpoint_standard:draft.standard||'EUCAST',breakpoint_version:draft.version,technical_uncertainty:Boolean(draft.technicalUncertainty),notes:draft.notes||null,updated_by:actorId,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',astResultId).select('*').single()
+  if(error)throw error
+  return data
+}
+
+export async function deleteAstResult(organizationId,astResultId){
+  assertCloud()
+  const {error}=await supabase.from('antimicrobial_susceptibility_results').delete().eq('organization_id',organizationId).eq('id',astResultId)
+  if(error)throw error
 }
 
 export async function communicateCriticalResult(organizationId,microbiologyResultId,draft){
