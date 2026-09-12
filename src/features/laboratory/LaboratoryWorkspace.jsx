@@ -10,15 +10,16 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { useAuth } from '../../core/auth/AuthContext'
-import { auditActorFromAuth } from '../../core/audit/actor'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { downloadCsv } from '../../core/export/csvExport'
-import { laboratorySamples, createDemoLabSample, getLabKpis, sampleSourceCatalog } from './laboratoryDemoData'
-import { loadPatients } from '../patients/patientsService'
+import { sampleSourceCatalog } from './laboratoryReferenceData'
+import { createPatient, loadPatients } from '../patients/patientsService'
 import { demoLibrarySeed } from '../management/managementData'
+import { loadDepartments } from '../management/departmentsService'
 import { MetricCard } from '../../design-system/MetricCard'
+import { getLaboratoryKpis } from './laboratoryCloudService'
+import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
 
 const sourceOptions={
   bloodCulture:[['peripheral','peripheralBlood'],['centralLine','centralLine'],['arterialLine','arterialLine'],['other','other']],
@@ -26,12 +27,11 @@ const sourceOptions={
   respiratorySample:[['sputum','sputum'],['trachealAspirate','trachealAspirate'],['bal','bal'],['other','other']],
   woundCulture:[['woundSwab','woundSwab'],['deepTissue','deepTissue'],['drainage','drainage'],['other','other']],
 }
-export function LaboratoryPage(){
+export function LaboratoryWorkspace(){
   const {t,language,locale}=useLanguage()
   const {notify}=useFeedback()
-  const {profile,user}=useAuth()
-  const actor=auditActorFromAuth({profile,user})
   const {canAccessRecord,tenant,isDemo}=useTenant()
+  const {rows:repositoryRows,createSample:createRepositorySample}=useLaboratoryRegistry()
   const navigate=useNavigate()
   const registry=useRegistryMemory('laboratory')
   const saved=registry.loadViewState({query:'',status:'all',result:'all',department:'all'})
@@ -40,46 +40,42 @@ export function LaboratoryPage(){
   const [result,setResult]=useState(saved.result)
   const [department,setDepartment]=useState(saved.department)
   const [newOpen,setNewOpen]=useState(false)
-  const [version,setVersion]=useState(0)
   const [patients,setPatients]=useState([])
+  const [departmentOptions,setDepartmentOptions]=useState([])
   useEffect(()=>{
     let alive=true
-    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(()=>{})
+    Promise.all([
+      loadPatients(tenant?.id,{isDemo}),
+      isDemo?Promise.resolve(demoLibrarySeed.departments.map(([name,nameEn])=>({id:name,name,nameEn}))):loadDepartments(tenant?.id),
+    ]).then(([patientRows,departmentRows])=>{if(alive){setPatients(patientRows);setDepartmentOptions(departmentRows)}}).catch(()=>{})
     return ()=>{alive=false}
   },[tenant?.id,isDemo])
-  const k=getLabKpis()
+  const k=getLaboratoryKpis(repositoryRows)
   const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—'
-  const departments=[...new Set(laboratorySamples.map(s=>language==='el'?s.department:s.departmentEn).filter(Boolean))]
+  const departments=[...new Set(repositoryRows.map(s=>language==='el'?s.department:s.departmentEn).filter(Boolean))]
   const rows=useMemo(
-    ()=>laboratorySamples
+    ()=>repositoryRows
       .filter(s=>canAccessRecord(s))
       .filter(s=>`${s.id} ${s.patient} ${s.patientEn} ${s.patientId} ${s.organism??''} ${s.surveillanceCase??''}`.toLowerCase().includes(query.toLowerCase()))
       .filter(s=>status==='all'||s.status===status)
       .filter(s=>result==='all'||(result==='critical'?s.critical:s.result===result))
       .filter(s=>department==='all'||(language==='el'?s.department:s.departmentEn)===department),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- version deliberately forces recompute after mutations to the shared demo array.
-    [query,status,result,department,language,version,canAccessRecord]
+    [query,status,result,department,language,repositoryRows,canAccessRecord]
   )
 
-  function createSample(draft){
-    const id=`LAB-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(laboratorySamples.length+1).padStart(3,'0')}`
-    createDemoLabSample({
-      id,
-      ...draft,
-      status:'requested',
-      result:null,
-      resultStatus:'draft',
-      organism:null,
-      resistance:null,
-      critical:false,
-      ast:[],
-      communications:[],
-      attachments:[],
-      timeline:[{at:new Date().toISOString(),type:'sampleRequested',actor:actor.name}],
-    })
-    setVersion(v=>v+1)
-    setNewOpen(false)
-    notify(t('laboratoryRecords.sampleCreated'),'success')
+  async function createSample(draft){
+    try{
+      let patient=patients.find(item=>item.id===draft.patientId)
+      if(draft.newPatient&&!isDemo){
+        const names=String(draft.patient||draft.patientEn||'').trim().split(/\s+/)
+        const created=await createPatient(tenant?.id,patients,{patientCode:draft.patientId,firstName:names.shift()||'',lastName:names.join(' ')||'',departmentId:draft.departmentId||null,department:draft.department,departmentEn:draft.departmentEn,admissionDate:new Date().toISOString().slice(0,10),status:'active'},{isDemo:false})
+        patient=created.record
+        setPatients(created.list)
+      }
+      await createRepositorySample({patientRecordId:patient?.recordId||null,draft:{...draft,subjectType:'patient',subjectName:draft.patient,subjectNameEn:draft.patientEn,subjectCode:draft.patientId}})
+      setNewOpen(false)
+      notify(t('laboratoryRecords.sampleCreated'),'success')
+    }catch(error){notify(error?.message||t('actionFailed'),'error')}
   }
 
   function openSample(sample){
@@ -122,6 +118,7 @@ export function LaboratoryPage(){
           <option value="received">{t('received')}</option>
           <option value="processing">{t('processing')}</option>
           <option value="completed">{t('completed')}</option>
+          <option value="rejected">{t('rejected')}</option>
         </FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}>
           <option value="all">{t('allDepartments')}</option>
@@ -151,7 +148,7 @@ export function LaboratoryPage(){
       </div>
     </section>
 
-    {newOpen&&<NewSampleCard t={t} language={language} patients={patients} onClose={()=>setNewOpen(false)} onSave={createSample}/>}
+    {newOpen&&<NewSampleCard t={t} language={language} patients={patients} departments={departmentOptions} onClose={()=>setNewOpen(false)} onSave={createSample}/>} 
   </Page>
 }
 
@@ -163,13 +160,16 @@ export function Status({text,kind}){
   return <span className={`lab-status ${kind}`}>{text}</span>
 }
 
-function NewSampleCard({t,language,patients,onClose,onSave}){
+function NewSampleCard({t,language,patients,departments,onClose,onSave}){
   const [patientMode,setPatientMode]=useState('existing')
   const first=patients.find(x=>x.status==='active')||patients[0]
   const [draft,setDraft]=useState({
     patient:first?.name||'',
     patientEn:first?.nameEn||'',
     patientId:first?.id||'',
+    patientRecordId:first?.recordId||null,
+    newPatient:false,
+    departmentId:first?.departmentId||null,
     department:first?.department||'',
     departmentEn:first?.departmentEn||'',
     type:'bloodCulture',
@@ -186,12 +186,12 @@ function NewSampleCard({t,language,patients,onClose,onSave}){
 
   function choosePatient(id){
     const patient=patients.find(x=>x.id===id)
-    if(patient)setDraft(d=>({...d,patient:patient.name,patientEn:patient.nameEn,patientId:patient.id,department:patient.department,departmentEn:patient.departmentEn}))
+    if(patient)setDraft(d=>({...d,patient:patient.name,patientEn:patient.nameEn,patientId:patient.id,patientRecordId:patient.recordId||null,newPatient:false,departmentId:patient.departmentId||null,department:patient.department,departmentEn:patient.departmentEn}))
   }
 
-  function setDepartment(el){
-    const pair=demoLibrarySeed.departments.find(([value])=>value===el)
-    setDraft(d=>({...d,department:el,departmentEn:pair?.[1]||el}))
+  function setDepartment(id){
+    const item=departments.find(value=>value.id===id)
+    setDraft(d=>({...d,departmentId:id,department:item?.name||'',departmentEn:item?.nameEn||item?.name||''}))
   }
 
   function setType(type){
@@ -209,14 +209,14 @@ function NewSampleCard({t,language,patients,onClose,onSave}){
     <header><div><span className="eyebrow">{t('laboratoryRecords.newSample')}</span><h3>{t('sampleDetails')}</h3></div><button className="icon-close" onClick={onClose}>×</button></header>
     <div className="entry-mode-switch">
       <button className={patientMode==='existing'?'active':''} onClick={()=>{setPatientMode('existing');choosePatient(first?.id||'')}}>{t('existingPatient')}</button>
-      <button className={patientMode==='new'?'active':''} onClick={()=>{setPatientMode('new');setDraft(d=>({...d,patient:'',patientEn:'',patientId:'',surveillanceCase:null}))}}>{t('laboratoryRecords.newPatientInline')}</button>
+      <button className={patientMode==='new'?'active':''} onClick={()=>{setPatientMode('new');setDraft(d=>({...d,patient:'',patientEn:'',patientId:'',patientRecordId:null,newPatient:true,surveillanceCase:null}))}}>{t('laboratoryRecords.newPatientInline')}</button>
     </div>
     <div className="entry-grid">
       {patientMode==='existing'
         ?<label className="entry-span-2"><span>{t('patient')}</span><select value={draft.patientId} onChange={e=>choosePatient(e.target.value)}>{patients.filter(x=>x.status==='active').map(patient=><option key={patient.id} value={patient.id}>{language==='el'?patient.name:patient.nameEn} · {patient.id}</option>)}</select></label>
         :<><label><span>{t('patient')}</span><input value={language==='el'?draft.patient:draft.patientEn} onChange={e=>set(language==='el'?'patient':'patientEn',e.target.value)}/></label><label><span>{t('patientId')}</span><input value={draft.patientId} onChange={e=>set('patientId',e.target.value)}/></label></>
       }
-      <label><span>{t('department')}</span><select value={draft.department} onChange={e=>setDepartment(e.target.value)}>{demoLibrarySeed.departments.map(([el,en])=><option key={el} value={el}>{language==='el'?el:en}</option>)}</select></label>
+      <label><span>{t('department')}</span><select value={draft.departmentId||''} onChange={e=>setDepartment(e.target.value)}>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
       <label><span>{t('sampleType')}</span><select value={draft.type} onChange={e=>setType(e.target.value)}><option value="bloodCulture">{t('bloodCulture')}</option><option value="urineCulture">{t('urineCulture')}</option><option value="respiratorySample">{t('respiratorySample')}</option><option value="woundCulture">{t('woundCulture')}</option></select></label>
       <label><span>{t('collectionSource')}</span><select value={draft.sourceCode} onChange={e=>setSource(e.target.value)}>{(sourceOptions[draft.type]||[]).map(([code])=><option key={code} value={code}>{t(sampleSourceCatalog[code]?.label||code)}</option>)}</select></label>
       <label><span>{t('anatomicalSite')}</span><input value={draft.anatomicalSite} onChange={e=>set('anatomicalSite',e.target.value)}/></label>

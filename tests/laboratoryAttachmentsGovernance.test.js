@@ -3,7 +3,7 @@ import fs from 'node:fs'
 
 const panel=fs.readFileSync('src/features/laboratory/LaboratoryAttachmentsPanel.jsx','utf8')
 const record=fs.readFileSync('src/features/laboratory/LaboratorySampleCloudRecordPage.jsx','utf8')
-const cloud=fs.readFileSync('src/features/laboratory/LaboratoryCloudPage.jsx','utf8')
+const registry=fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx','utf8')
 
 describe('laboratory attachment governance',()=>{
   it('uses the shared private attachment service for sample evidence',()=>{
@@ -21,8 +21,8 @@ describe('laboratory attachment governance',()=>{
   })
   it('does not import the route wrapper from production laboratory screens',()=>{
     expect(record).not.toContain("from './LaboratoryPage'")
-    expect(cloud).not.toContain("from './LaboratoryPage'")
+    expect(registry).not.toContain("from './LaboratoryPage'")
     expect(record).toContain("from './LaboratoryStatus'")
-    expect(cloud).toContain("from './LaboratoryStatus'")
+    expect(registry).toContain('export function Status')
   })
 })

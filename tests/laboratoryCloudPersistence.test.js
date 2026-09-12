@@ -2,7 +2,7 @@ import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 
 const service=fs.readFileSync('src/features/laboratory/laboratoryCloudService.js','utf8')
-const page=fs.readFileSync('src/features/laboratory/LaboratoryCloudPage.jsx','utf8')
+const page=fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx','utf8')
 const record=fs.readFileSync('src/features/laboratory/LaboratorySampleCloudRecordPage.jsx','utf8')
 const route=fs.readFileSync('src/features/laboratory/LaboratoryPage.jsx','utf8')
 const recordRoute=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordPage.jsx','utf8')
@@ -24,7 +24,7 @@ describe('laboratory production persistence',()=>{
   })
 
   it('keeps demo and production runtime paths isolated',()=>{
-    expect(route).toContain('isDemo?<LaboratoryDemoPage/>:<LaboratoryCloudPage/>')
+    expect(route).toContain('return <LaboratoryWorkspace/>')
     expect(recordRoute).toContain('isDemo?<LaboratorySampleDemoRecordPage/>:<LaboratorySampleCloudRecordPage/>')
     expect(page).not.toContain('laboratoryDemoData')
     expect(record).not.toContain('laboratoryDemoData')
