@@ -21,7 +21,7 @@ describe('committee attachment isolation',()=>{
   })
 
   it('keeps committee-specific guards in the governance migration',()=>{
-    const sql=read('supabase/migrations/202609010030_v0294_committee_workflow_alignment.sql')
+    const sql=read('supabase/migrations/20260901163341_v0298_committee_membership_approval_and_attachment_guard.sql')
     expect(sql).toContain('attachments_committee_read_guard')
     expect(sql).toContain('attachments_storage_committee_read_guard')
   })

@@ -3,6 +3,8 @@ import { ClipboardCheck,FileClock,LockKeyhole,PlayCircle,Pencil,Printer,RotateCc
 import { useNavigate,useParams,useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { downloadRecordJson } from '../../core/export/recordExport'
 import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -125,10 +127,11 @@ export function ControlRecordPage(){
   </EntityRecordShell></Page>
  }
 
- const headerActions=(canModifyDefinition||canRemoveDefinition)?<>
+ const headerActions=<>
   {canModifyDefinition&&<ActionButton label={en?'Edit control':'Επεξεργασία ελέγχου'} tone="edit" onClick={()=>setEditOpen(true)}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   {canRemoveDefinition&&<ActionButton label={canDeleteDraft?(en?'Delete control':'Διαγραφή ελέγχου'):(en?'Archive control':'Αρχειοθέτηση ελέγχου')} tone="danger" onClick={removeDefinition}><Trash2 size={15}/><span>{canDeleteDraft?(en?'Delete':'Διαγραφή'):(en?'Archive':'Αρχειοθέτηση')}</span></ActionButton>}
- </>:null
+  <PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record?.id})}/>
+ </>
 
  return <Page fill><EntityRecordShell className="control-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={record.id} title={language==='el'?record.title:record.titleEn} subtitle={department} status={<div className="control-status-stack">{hasDraft&&<span className="status-badge temporary">{en?'Draft':'Προσωρινή'}</span>}<span className={`status-badge ${status==='overdue'?'danger':status==='dueSoon'?'warning':'active'}`}>{status==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):status==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</span></div>} headerActions={headerActions} recordNavigation={recordNavigation} tabs={[{id:'details',label:en?'Control details':'Στοιχεία ελέγχου',icon:LockKeyhole},{id:'history',label:en?'Execution history':'Ιστορικό εκτελέσεων',icon:FileClock}]} activeTab={tab} onTabChange={next=>{setTab(next);if(next==='history')setHistoryPage(1)}}>
   {tab==='details'&&<div className="record-section control-details-overview"><div className="control-overview-heading"><span className="eyebrow">{en?'CONTROL DETAILS':'ΣΤΟΙΧΕΙΑ ΕΛΕΓΧΟΥ'}</span><h3>{en?'Basic details':'Βασικά στοιχεία'}</h3></div><div className="control-overview-grid"><D l={en?'Category':'Κατηγορία'} v={record.category}/><D l={en?'Department':'Τμήμα'} v={department}/><D l={en?'Frequency':'Συχνότητα'} v={frequencyLabel(record.frequency,language)}/><D l={en?'Execution times':'Ώρες εκτέλεσης'} v={record.frequency.times?.join(' · ')||'—'}/><D l={en?'Last control':'Τελευταίος έλεγχος'} v={fmt(assignment?.lastCompletedAt)}/><D l={en?'Next control':'Επόμενος έλεγχος'} v={fmt(assignment?.nextDueAt)}/><D l={en?'Responsible':'Υπεύθυνος'} v={record.owner||'—'}/><D l={en?'Creation level':'Επίπεδο δημιουργίας'} v={sourceLabel}/><D l={en?'Created by':'Δημιουργήθηκε από'} v={record.createdBy||sourceLabel}/>{record.updatedBy&&<D l={en?'Last changed by':'Τελευταία αλλαγή από'} v={record.updatedBy}/>}</div>{record.description&&<div className="control-overview-description"><span>{en?'Description / instructions':'Περιγραφή / οδηγίες'}</span><p>{record.description}</p></div>}<div className="control-overview-footer">{canExecute&&<ActionButton label={hasDraft?(en?'Continue draft entry':'Συνέχιση προσωρινής καταχώρησης'):(en?'Record control':'Καταχώρηση ελέγχου')} tone="primary" onClick={()=>navigate(`${recordUrl}&execute=1`)}><PlayCircle size={15}/><span>{hasDraft?(en?'Continue draft':'Συνέχιση προσωρινής'):(en?'Record control':'Καταχώρηση ελέγχου')}</span></ActionButton>}</div></div>}

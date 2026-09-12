@@ -5859,45 +5859,6 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
   gap:12px;
 }
 
-.page-navigation{
-  flex:0 0 auto;
-  padding-top:1px;
-}
-
-.page-heading-copy{
-  min-width:0;
-}
-
-.lo-back-button{
-  width:40px;
-  height:40px;
-  min-width:40px;
-  min-height:40px;
-  padding:0;
-  border:1px solid var(--lo-color-border);
-  border-radius:10px;
-  background:var(--lo-color-surface);
-  color:var(--lo-shell-control-fg);
-  display:inline-grid;
-  place-items:center;
-  box-shadow:none;
-  cursor:pointer;
-}
-
-.lo-back-button:hover{
-  background:var(--lo-shell-control-hover);
-}
-
-.lo-back-button:focus-visible{
-  outline:2px solid color-mix(in srgb,var(--lo-color-primary) 42%,transparent);
-  outline-offset:2px;
-}
-
-.lo-back-button svg{
-  width:16px;
-  height:16px;
-}
-
 /* Platform Owner home affordance: intentionally stronger than utility buttons,
    but visually part of the shell rather than a bordered control. */
 .platform-owner-dashboard-shell .topbar-spacer .icon-button{

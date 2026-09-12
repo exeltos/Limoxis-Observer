@@ -3,6 +3,8 @@ import { ClipboardCheck,Droplets,Pencil,Recycle,ShieldCheck,Trash2 } from 'lucid
 import { useNavigate,useParams,useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { downloadRecordJson } from '../../core/export/recordExport'
 import { ActionButton } from '../../design-system/ActionButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -124,7 +126,7 @@ export function PreventionRecordPage(){
   if(!ok)return
   try{await deleters[recordType]?.(tenant.id,record.id);notify(en?'Record deleted.':'Η εγγραφή διαγράφηκε.','success');navigate(`/prevention?tab=${recordType}`,{replace:true})}catch(error){notifyError(error,'delete',{operation:`${recordType}_record_delete`})}
  }
- const recordActions=!creating&&!editing&&canEditRecord?<>{supportsPageEditor&&<ActionButton label={en?'Edit':'Επεξεργασία'} tone="edit" onClick={()=>navigate(`/prevention/${recordType}/${record.id}?edit=1`,{replace:true})}><Pencil size={16}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}<ActionButton label={en?'Delete':'Διαγραφή'} tone="danger" onClick={deleteCurrent}><Trash2 size={16}/><span>{en?'Delete':'Διαγραφή'}</span></ActionButton></>:null
+ const recordActions=<>{!creating&&!editing&&canEditRecord&&<>{supportsPageEditor&&<ActionButton label={en?'Edit':'Επεξεργασία'} tone="edit" onClick={()=>navigate(`/prevention/${recordType}/${record.id}?edit=1`,{replace:true})}><Pencil size={16}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}<ActionButton label={en?'Delete':'Διαγραφή'} tone="danger" onClick={deleteCurrent}><Trash2 size={16}/><span>{en?'Delete':'Διαγραφή'}</span></ActionButton></>}{!creating&&<PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record?.id})}/>}</>
  const backToList=()=>navigate(`/prevention?tab=${recordType}`,{replace:true})
  const backToRecord=()=>navigate(`/prevention/${recordType}/${record.id}?fromTab=${recordType}`,{replace:true})
  let editor=null

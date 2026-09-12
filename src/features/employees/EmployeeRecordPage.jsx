@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Activity, BriefcaseBusiness, FileCheck2, GraduationCap, HeartPulse, KeyRound, Pencil, ShieldCheck, Syringe, Trash2, UserRound } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { downloadRecordJson } from '../../core/export/recordExport'
 import { Button } from '../../design-system/Button'
 import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -133,7 +135,7 @@ export function EmployeeRecordPage({selfMode=false}){
   async function deleteEmployee(){if(selfReadOnly)return;const ok=await confirm({title:t('employeesRecords.deleteEmployee'),message:t('employeesRecords.confirmEmployeeDelete'),confirmLabel:t('delete'),danger:true});if(ok){notify(t('employeesRecords.employeeDeleted'),'success');navigate('/employees')}}
   async function createAccount(values){if(selfReadOnly)return;setAccountSaving(true);try{await createEmployeeAccountAsync(tenant?.id,employee,values);notify(language==='en'?'User account created and linked to this employee.':'Ο λογαριασμός χρήστη δημιουργήθηκε και συνδέθηκε με τον εργαζόμενο.','success');setAccountOpen(false);await reloadEmployees()}catch(error){notify(error?.message||(language==='en'?'Could not create the account.':'Δεν ήταν δυνατή η δημιουργία του λογαριασμού.'),'error')}finally{setAccountSaving(false)}}
   const departmentOptions=departments.map(row=>[row.name,row.nameEn||row.name])
-  const headerActions=!selfReadOnly&&canSeeSensitiveEmployeeHealth&&canOccupational?<ActionButton tone="primary" label={t('newSurveillance')} onClick={()=>setSurveillanceOpen(true)}><span>+ {t('newSurveillance')}</span></ActionButton>:null
+  const headerActions=<>{!selfReadOnly&&canSeeSensitiveEmployeeHealth&&canOccupational&&<ActionButton tone="primary" label={t('newSurveillance')} onClick={()=>setSurveillanceOpen(true)}><span>+ {t('newSurveillance')}</span></ActionButton>}<PrintExportActions onExport={()=>downloadRecordJson(employee,{filename:employee?.id})}/></>
   return <Page fill title={name} subtitle={t('employeesRecords.employeeFullRecordSubtitle')}>
     <EntityRecordShell className={`employee-record-shell workspace-fill${selfReadOnly?' employee-self-readonly':''}`} avatar={`${employee.firstName?.[0]||''}${employee.lastName?.[0]||''}`} eyebrow={employee.id} title={name} subtitle={`${language==='el'?employee.profession:employee.professionEn} · ${language==='el'?employee.department:employee.departmentEn}`} status={<span className={`status-badge ${employee.employmentStatus==='active'?'active':''}`}>{t(employee.employmentStatus)}</span>} recordNavigation={selfMode?null:recordNavigation} headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={selfMode?()=>navigate('/'):goBack} backLabel={t('back')}>
       {selfReadOnly&&<div className="source-truth-note"><ShieldCheck size={16}/><div><strong>{language==='en'?'Your employee record is read-only':'Η προσωπική σας καρτέλα είναι μόνο για προβολή'}</strong><span>{language==='en'?'You cannot edit, delete or perform administrative actions on your own employee record.':'Δεν μπορείτε να επεξεργαστείτε, να διαγράψετε ή να εκτελέσετε διοικητικές ενέργειες στη δική σας καρτέλα.'}</span></div></div>}

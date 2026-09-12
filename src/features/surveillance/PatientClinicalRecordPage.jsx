@@ -133,11 +133,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
       backLabel={patientMode?t('clinicalRecords.backToPatients'):t('clinicalRecords.backToSurveillance')}
     >
 
-<<<<<<< HEAD
-    {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm} onDeletePatient={async()=>{const patientRecordId=patient?.recordId||record?.patientRecordId;if(!patientRecordId)return false;try{const removed=await deletePatientForTesting(tenant?.id,patientRecordId,{isDemo});if(!removed)return false;notify(t('clinicalRecords.patientDeletedForTesting'),'success');navigate('/patients',{replace:true});return true}catch(error){notify(error?.message||t('clinicalRecords.deleteFailed'),'danger');return false}}}/>}
-=======
-    {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm} onPatientsChange={setPatients} onDeleted={goBack}/>}
->>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
+    {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm} onPatientsChange={setPatients} onDeletePatient={async()=>{const patientRecordId=patient?.recordId||record?.patientRecordId;if(!patientRecordId)return false;try{const removed=await deletePatientForTesting(tenant?.id,patientRecordId,{isDemo});if(!removed)return false;notify(t('clinicalRecords.patientDeletedForTesting'),'success');navigate('/patients',{replace:true});return true}catch(error){notify(error?.message||t('clinicalRecords.deleteFailed'),'danger');return false}}}/>}
     {activeTab==='admissions'&&patient&&<PatientAdmissions patient={patient} t={t} language={language} fmtDate={fmtDate} notify={notify} tenant={tenant} isDemo={isDemo} canEdit={has(CAPABILITIES.EDIT_PATIENT)}/>}
         {activeTab==='surveillanceJourney'&&<SurveillanceWorkspace
       episodes={patientMode?patientEpisodes:(record?[record]:[])}
@@ -178,20 +174,12 @@ export function PatientClinicalRecordPage({patientMode=false}){
 }
 
 
-<<<<<<< HEAD
-function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confirm,onDeletePatient}){
+function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confirm,onPatientsChange,onDeletePatient}){
   const latestSample=record?.samples?.find(x=>x.organism)||record?.samples?.[0]
   return <div className="patient-summary-layout clean-patient-summary">
-    <PatientDetails patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} age={age} has={has} notify={notify} confirm={confirm} onDeletePatient={onDeletePatient}/>
+    <PatientDetails patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} age={age} has={has} notify={notify} confirm={confirm} onPatientsChange={onPatientsChange} onDeletePatient={onDeletePatient}/>
     {record&&<section className="patient-summary-strip clinical-snapshot-strip">
-=======
-function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confirm,onPatientsChange,onDeleted}){
-  const latestSample=record?.samples?.[0]
-  return <div className="patient-summary-layout">
-    <PatientDetails patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} age={age} has={has} notify={notify} confirm={confirm} onPatientsChange={onPatientsChange} onDeleted={onDeleted}/>
-    {record&&<section className="patient-summary-strip">
       <SummaryItem label={t('surveillance')} value={`${record.id} · ${t(record.status)}`} tone="info"/>
->>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
       <SummaryItem label={t('clinicalRecords.haiClassification')} value={record.haiClassification?t(record.haiClassification.status):'—'} tone={record.haiClassification?.status==='confirmed'?'warning':'neutral'}/>
       <SummaryItem label={t('clinicalRecords.latestFinding')} value={latestSample?.organism||t(latestSample?.result||'pending')} tone={latestSample?.result==='positive'?'warning':'neutral'}/>
       <SummaryItem label={t('isolation')} value={record.isolation?t(record.isolation.status):t('no')} tone={record.isolation?'info':'neutral'}/>
@@ -631,42 +619,22 @@ function PatientDocuments({t,record}){
 }
 
 
-<<<<<<< HEAD
-function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confirm,onDeletePatient}){
-=======
-function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confirm,onPatientsChange,onDeleted}){
->>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
+function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confirm,onPatientsChange,onDeletePatient}){
   const [editing,setEditing]=useState(false)
   const source=patient||{id:record?.patientId,name:record?.patient,nameEn:record?.patientEn,department:record?.department,departmentEn:record?.departmentEn,admissionDate:record?.admissionDate,status:record?.status}
   const [draft,setDraft]=useState({...source})
   const canEdit=Boolean(patient)&&has(CAPABILITIES.EDIT_PATIENT)
   const canDelete=Boolean(patient)&&has(CAPABILITIES.DELETE_PATIENT)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
-<<<<<<< HEAD
-  async function remove(){const ok=await confirm({title:t('clinicalRecords.deletePatient'),message:t('clinicalRecords.deletePatientTestingWarning'),danger:true,confirmLabel:t('delete')});if(!ok)return;await onDeletePatient?.()}
-  const patientActions=[canEdit&&{id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setEditing(true)},canDelete&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:canEdit,onClick:remove}].filter(Boolean)
-  return <section className="patient-details-panel clean-patient-details">
-    <div className="record-section-header"><div><h3>{t('clinicalRecords.patientDetails')}</h3></div>{!editing&&patientActions.length>0&&<OverflowMenu label={t('actions')} items={patientActions}/>}</div>
-=======
   function save(){
     onPatientsChange?.(current=>current.map(item=>item.id===patient.id?{...item,...draft}:item))
     setEditing(false)
     notify(t('actionCompleted'),'success')
   }
-  async function remove(){
-    const ok=await confirm({title:t('confirmAction'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')})
-    if(!ok)return
-    onPatientsChange?.(current=>current.filter(item=>item.id!==patient.id))
-    notify(t('actionCompleted'),'warning')
-    onDeleted?.()
-  }
-  const patientActions=[
-    canEdit&&{id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setEditing(true)},
-    canDelete&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:canEdit,onClick:remove},
-  ].filter(Boolean)
-  return <section className="clinical-panel full-panel patient-details-panel">
-    <div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.patientDetails')}</h3></div>{!editing&&patientActions.length>0&&<OverflowMenu label={t('actions')} items={patientActions}/>}</div>
->>>>>>> 68178375023d918b2ac7301446a920a2d79ef2a7
+  async function remove(){const ok=await confirm({title:t('clinicalRecords.deletePatient'),message:t('clinicalRecords.deletePatientTestingWarning'),danger:true,confirmLabel:t('delete')});if(!ok)return;await onDeletePatient?.()}
+  const patientActions=[canEdit&&{id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setEditing(true)},canDelete&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:canEdit,onClick:remove}].filter(Boolean)
+  return <section className="patient-details-panel clean-patient-details">
+    <div className="record-section-header"><div><h3>{t('clinicalRecords.patientDetails')}</h3></div>{!editing&&patientActions.length>0&&<OverflowMenu label={t('actions')} items={patientActions}/>}</div>
     <div className={`detail-grid patient-detail-grid ${editing?'employee-inline-edit':''}`}>
       <PatientInline editing={editing} l={t('department')} v={language==='el'?(draft.department||record?.department):(draft.departmentEn||record?.departmentEn)} onChange={v=>set(language==='el'?'department':'departmentEn',v)}/>
       <PatientInline l={t('clinicalRecords.age')} v={age??'—'}/>
