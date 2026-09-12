@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, BedDouble, FileClock, ListTree, Microscope, RefreshCcw, ShieldCheck, Syringe, Trash2, UserRound } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { Activity, AlertTriangle, BedDouble, FileClock, ListTree, Microscope, Pencil, RefreshCcw, ShieldCheck, Syringe, Trash2, UserRound } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
@@ -8,13 +8,14 @@ import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { EmptyState } from '../../design-system/EmptyState'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { downloadRecordJson } from '../../core/export/recordExport'
-import { loadPatients, loadAdmissions } from '../patients/patientsService'
+import { deletePatientWithHistory, loadPatients, loadAdmissions, updatePatient } from '../patients/patientsService'
 import { loadDepartments } from '../management/departmentsService'
 import {
   addAntimicrobialTherapy,
@@ -40,17 +41,21 @@ export function PatientClinicalCloudRecordPage({patientMode=false}){
   const {caseId,patientId}=useParams()
   const {t,language,locale}=useLanguage()
   const {notify}=useFeedback()
+  const navigate=useNavigate()
   const {role,membership,tenant,canAccessRecord}=useTenant()
   const {goBack}=useContextualNavigation(patientMode?'/patients':'/surveillance')
   const [patients,setPatients]=useState([])
   const [episodes,setEpisodes]=useState([])
   const [admissions,setAdmissions]=useState([])
+  const [departmentOptions,setDepartmentOptions]=useState([])
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
   const [tab,setTab]=useState('summary')
   const [selectedEpisodeId,setSelectedEpisodeId]=useState(caseId||'')
   const [createOpen,setCreateOpen]=useState(false)
   const has=cap=>can(role,cap,membership?.capabilities??[],membership?.customCapabilities??[])
+
+  useEffect(()=>{loadDepartments(tenant?.id).then(rows=>setDepartmentOptions((rows||[]).filter(row=>row.is_active!==false))).catch(()=>setDepartmentOptions([]))},[tenant?.id])
 
   useEffect(()=>{
     let alive=true
@@ -95,6 +100,8 @@ export function PatientClinicalCloudRecordPage({patientMode=false}){
     if(patientMode&&patient?.recordId){const rows=await loadClinicalCasesForPatient(tenant?.id,patient.recordId);setEpisodes(rows);setSelectedEpisodeId(preferredId||rows[0]?.id||'');return}
     const rows=await loadClinicalCases(tenant?.id);const selected=rows.find(item=>item.id===(preferredId||record?.id||caseId));setEpisodes(selected?[selected]:[]);setSelectedEpisodeId(selected?.id||'')
   }
+  function onPatientUpdated(updated){setPatients(current=>current.map(item=>item.recordId===updated.recordId?updated:item))}
+  function onPatientDeleted(){navigate('/patients',{replace:true})}
 
   if(loading)return <Page title={t('clinicalRecords.patientRecord')}><div className="surface clinical-surface"><p>{t('loading')}</p></div></Page>
   if(error)return <Page title={t('clinicalRecords.patientRecord')}><EmptyState title={t('actionFailed')} description={error}/></Page>
@@ -114,7 +121,7 @@ export function PatientClinicalCloudRecordPage({patientMode=false}){
 
   return <Page fill title={patientName} subtitle={record?`${patientCode} · ${record.id}`:patientCode}>
     <EntityRecordShell className="patient-record-shell workspace-fill" avatar={patientName?.split(' ').map(x=>x?.[0]).slice(0,2).join('')} eyebrow={patientCode} title={patientName} subtitle={`${department||'—'} · ${t('clinicalRecords.admission')}: ${fmtDate(patient?.admissionDate||record?.admissionDate)}`} status={<span className={`status-badge ${(record?.status||patient?.status)==='active'?'active':''}`}>{t(record?.status||patient?.status||'active')}</span>} headerActions={<PrintExportActions onExport={()=>downloadRecordJson({patient,record,episodes,admissions},{filename:record?.id||patientCode})}/>} tabs={tabs} activeTab={activeTab} onTabChange={setTab} onBack={goBack} backLabel={patientMode?t('clinicalRecords.backToPatients'):t('clinicalRecords.backToSurveillance')}>
-      {activeTab==='summary'&&<CloudSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate}/>} 
+      {activeTab==='summary'&&<CloudSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} departmentOptions={departmentOptions} tenantId={tenant?.id} canEdit={Boolean(patient)&&has(CAPABILITIES.EDIT_PATIENT)} canDelete={Boolean(patient)&&has(CAPABILITIES.DELETE_PATIENT)} onUpdated={onPatientUpdated} onDeleted={onPatientDeleted}/>}
       {activeTab==='admissions'&&<CloudAdmissions rows={admissions} t={t} fmtDate={fmtDate}/>} 
       {activeTab==='surveillance'&&<CloudSurveillanceList episodes={episodes} selectedId={record?.id} onSelect={id=>{setSelectedEpisodeId(id);setTab('clinical')}} canCreate={patientMode&&has(CAPABILITIES.CREATE_SURVEILLANCE)} onCreate={()=>setCreateOpen(true)} t={t} fmtDate={fmtDate}/>} 
       {activeTab==='clinical'&&record&&<CloudClinicalJourney record={record} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canAssess={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} canEdit={has(CAPABILITIES.EDIT_SURVEILLANCE)} canClassifyResistance={has(CAPABILITIES.CLASSIFY_RESISTANCE)} canIsolation={has(CAPABILITIES.MANAGE_ISOLATION)} canTherapy={has(CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)} canReassess={has(CAPABILITIES.REASSESS_SURVEILLANCE)} canOutcome={has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE)} canDelete={has(CAPABILITIES.DELETE_SURVEILLANCE)} canReopen={has(CAPABILITIES.REOPEN_SURVEILLANCE)} onSaved={()=>reloadCases(record.id)} tenantId={tenant?.id}/>}
@@ -124,9 +131,47 @@ export function PatientClinicalCloudRecordPage({patientMode=false}){
   </Page>
 }
 
-function CloudSummary({patient,record,t,language,fmtDate}){
+function CloudSummary({patient,record,t,language,fmtDate,departmentOptions=[],tenantId,canEdit=false,canDelete=false,onUpdated,onDeleted}){
+  const en=language==='en'
+  const {notify}=useFeedback()
   const name=language==='el'?(patient?.name||record?.patient):(patient?.nameEn||record?.patientEn||patient?.name||record?.patient)
-  return <div className="patient-summary-layout"><section className="clinical-panel full-panel"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.patientDetails')}</h3></div></div><div className="detail-grid patient-detail-grid"><Detail label={t('patientId')} value={patient?.id||record?.patientId}/><Detail label={t('name')} value={name}/><Detail label={t('department')} value={record?.department||patient?.department}/><Detail label={t('admissionDate')} value={fmtDate(patient?.admissionDate||record?.admissionDate)}/><Detail label={t('status')} value={t(patient?.status||record?.status||'active')}/><Detail label={t('surveillance')} value={record?`${record.id} · ${t(record.status)}`:t('clinicalRecords.noActiveSurveillance')}/></div></section></div>
+  const [editing,setEditing]=useState(false)
+  const [saving,setSaving]=useState(false)
+  const [draft,setDraft]=useState(null)
+  const [deleteOpen,setDeleteOpen]=useState(false)
+  const [deleteReason,setDeleteReason]=useState('')
+  const [deleting,setDeleting]=useState(false)
+  function startEdit(){setDraft({firstName:patient?.firstName||'',lastName:patient?.lastName||'',departmentId:patient?.departmentId||'',admissionDate:patient?.admissionDate||'',status:patient?.status||'active'});setEditing(true)}
+  async function saveEdit(){
+    if(!patient||saving)return
+    setSaving(true)
+    try{
+      const updated=await updatePatient(tenantId,patient,draft,{isDemo:false})
+      onUpdated?.(updated)
+      setEditing(false)
+      notify(en?'Patient details saved.':'Τα στοιχεία ασθενούς αποθηκεύτηκαν.','success')
+    }catch(error){notify(error?.message||(en?'Save failed.':'Αποτυχία αποθήκευσης.'),'danger')}
+    finally{setSaving(false)}
+  }
+  async function confirmDelete(){
+    if(!patient||!deleteReason.trim()||deleting)return
+    setDeleting(true)
+    try{
+      await deletePatientWithHistory(tenantId,patient,deleteReason.trim(),{isDemo:false})
+      notify(en?'Patient permanently deleted.':'Ο ασθενής διαγράφηκε οριστικά.','success')
+      onDeleted?.()
+    }catch(error){notify(error?.message||(en?'Delete failed.':'Αποτυχία διαγραφής.'),'danger');setDeleting(false)}
+  }
+  const patientActions=[
+    canEdit&&{id:'edit',label:t('edit'),icon:Pencil,onClick:startEdit},
+    canDelete&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:canEdit,onClick:()=>setDeleteOpen(true)},
+  ].filter(Boolean)
+  return <div className="patient-summary-layout"><section className="clinical-panel full-panel"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.patientDetails')}</h3></div>{!editing&&patientActions.length>0&&<OverflowMenu label={t('actions')} items={patientActions}/>}</div>
+    {editing?<div className="entry-grid patient-entry-grid"><label className="field"><span>{t('firstName')}</span><input autoFocus value={draft.firstName} onChange={e=>setDraft(current=>({...current,firstName:e.target.value}))}/></label><label className="field"><span>{t('lastName')}</span><input value={draft.lastName} onChange={e=>setDraft(current=>({...current,lastName:e.target.value}))}/></label><label className="field"><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDraft(current=>({...current,departmentId:e.target.value}))}><option value="">{en?'Not assigned':'Χωρίς τμήμα'}</option>{departmentOptions.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={value=>setDraft(current=>({...current,admissionDate:value}))}/><label className="field"><span>{t('status')}</span><select value={draft.status} onChange={e=>setDraft(current=>({...current,status:e.target.value}))}><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option></select></label><div className="inline-edit-footer entry-span-2"><Button variant="secondary" onClick={()=>setEditing(false)} disabled={saving}>{t('cancel')}</Button><SaveButton loading={saving} disabled={!draft.firstName.trim()||!draft.lastName.trim()} onClick={saveEdit}>{t('save')}</SaveButton></div></div>
+    :<div className="detail-grid patient-detail-grid"><Detail label={t('patientId')} value={patient?.id||record?.patientId}/><Detail label={t('name')} value={name}/><Detail label={t('department')} value={record?.department||patient?.department}/><Detail label={t('admissionDate')} value={fmtDate(patient?.admissionDate||record?.admissionDate)}/><Detail label={t('status')} value={t(patient?.status||record?.status||'active')}/><Detail label={t('surveillance')} value={record?`${record.id} · ${t(record.status)}`:t('clinicalRecords.noActiveSurveillance')}/></div>}
+  </section>
+  {deleteOpen&&<div className="reopen-confirm-backdrop"><div className="reopen-confirm-card delete-surveillance-confirm"><span className="eyebrow">{t('clinicalRecords.restrictedAction')}</span><h3>{en?'Permanently delete patient':'Οριστική διαγραφή ασθενούς'}</h3><p>{en?'This deletes the patient and all linked clinical history (surveillance, laboratory, isolation, therapy). This cannot be undone.':'Θα διαγραφεί οριστικά ο ασθενής και όλο το συνδεδεμένο κλινικό ιστορικό (επιτήρηση, εργαστήριο, απομόνωση, αγωγή). Η ενέργεια δεν αναστρέφεται.'}</p><label><span>{t('reasonRequired')}</span><textarea value={deleteReason} onChange={e=>setDeleteReason(e.target.value)} rows={4} autoFocus placeholder={en?'e.g. duplicate patient record…':'π.χ. διπλή καταχώρηση ασθενούς…'}/></label><div><Button variant="secondary" onClick={()=>{setDeleteOpen(false);setDeleteReason('')}} disabled={deleting}>{t('cancel')}</Button><Button variant="danger" disabled={!deleteReason.trim()||deleting} onClick={confirmDelete}>{t('delete')}</Button></div></div></div>}
+  </div>
 }
 function CloudAdmissions({rows,t,fmtDate}){return <section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.admissions')}</h3></div></div>{rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('admissionDate')}</th><th>{t('department')}</th><th>{t('clinicalRecords.dischargeDate')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td>{fmtDate(row.admissionDate)}</td><td>{row.department||'—'}</td><td>{fmtDate(row.dischargeDate)}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></td></tr>)}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noAdmissions')}</div>}</section>}
 function CloudSurveillanceList({episodes,selectedId,onSelect,canCreate,onCreate,t,fmtDate}){return <section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('surveillance')}</span><h3>{t('clinicalRecords.surveillanceEpisodes')}</h3></div>{canCreate&&<Button onClick={onCreate}>+ {t('newSurveillance')}</Button>}</div>{episodes.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>ID</th><th>{t('period')}</th><th>{t('status')}</th><th>{t('nextReview')}</th></tr></thead><tbody>{episodes.map(row=><tr key={row.id} className={row.id===selectedId?'is-selected':''} tabIndex={0} onClick={()=>onSelect(row.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelect(row.id)}}}><td><strong>{row.id}</strong></td><td>{fmtDate(row.startedAt)}{row.completedAt?` → ${fmtDate(row.completedAt)}`:''}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></td><td>{fmtDate(row.reviewDue)}</td></tr>)}</tbody></table></div>:<EmptyState title={t('clinicalRecords.noActiveSurveillance')} description={t('clinicalRecords.noClinicalData')}/>}</section>}

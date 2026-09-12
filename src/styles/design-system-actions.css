@@ -194,10 +194,13 @@
 }
 
 .lo-action-button{min-height:var(--lo-control-height);height:var(--lo-control-height);border-radius:var(--lo-radius-control)}
-.lo-action-button-edit{color:var(--lo-status-warning-fg);background:var(--lo-status-warning-bg);border-color:var(--lo-status-warning-border)}
-.lo-action-button-edit:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-warning-bg) 78%,white)}
-.lo-action-button-danger,.button.button-destructive{color:var(--lo-status-danger-fg);background:var(--lo-status-danger-bg);border-color:var(--lo-status-danger-border)}
-.lo-action-button-danger:hover:not(:disabled),.button.button-destructive:hover{background:color-mix(in srgb,var(--lo-status-danger-bg) 72%,white)}
+.lo-action-button-edit{color:var(--lo-color-text);background:var(--lo-color-surface);border-color:var(--lo-color-border)}
+.lo-action-button-edit:hover:not(:disabled){color:var(--lo-color-primary);background:var(--lo-status-info-bg);border-color:color-mix(in srgb,var(--lo-color-primary) 32%,var(--lo-color-border))}
+/* Destructive record actions stay visually quiet until confirmation. Solid danger is reserved for the confirmation dialog. */
+.lo-action-button-danger{color:var(--lo-status-danger-fg);background:var(--lo-color-surface);border-color:var(--lo-status-danger-border)}
+.lo-action-button-danger:hover:not(:disabled){background:var(--lo-status-danger-bg)}
+.button.button-destructive{color:#fff;background:var(--lo-status-danger-fg);border-color:var(--lo-status-danger-fg)}
+.button.button-destructive:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-danger-fg) 86%,black)}
 .lo-action-button-success{color:var(--lo-status-success-fg);background:var(--lo-status-success-bg);border-color:var(--lo-status-success-border)}
 .lo-action-button-success:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-success-bg) 76%,white)}
 .record-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
