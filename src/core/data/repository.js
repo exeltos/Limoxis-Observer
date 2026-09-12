@@ -36,6 +36,10 @@ const TABLES=Object.freeze({
   control_local_assignments:{storageKey:'limoxis.controlLocalAssignments.v1',kind:'rows',cloud:false},
   control_local_executions:{storageKey:'limoxis.controlLocalExecutions.v1',kind:'rows',cloud:false},
   control_local_drafts:{storageKey:'limoxis.controlLocalDrafts.v1',kind:'rows',cloud:false},
+  quality_local_incidents:{storageKey:'limoxis.qualityLocalIncidents.v1',kind:'rows',cloud:false},
+  quality_local_findings:{storageKey:'limoxis.qualityLocalFindings.v1',kind:'rows',cloud:false},
+  quality_local_capas:{storageKey:'limoxis.qualityLocalCapas.v1',kind:'rows',cloud:false},
+  quality_local_audits:{storageKey:'limoxis.qualityLocalAudits.v1',kind:'rows',cloud:false},
 })
 
 export class DataAccessError extends Error{
