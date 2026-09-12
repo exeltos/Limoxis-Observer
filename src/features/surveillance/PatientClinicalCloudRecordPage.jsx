@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, BedDouble, FileClock, FolderOpen, ListTree, Microscope, Pencil, RefreshCcw, ShieldCheck, Syringe, Trash2, UserRound } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Activity, AlertTriangle, BedDouble, ChevronRight, CircleCheckBig, FileClock, FolderOpen, ListTree, Microscope, Pencil, RefreshCcw, ShieldCheck, Syringe, Trash2, UserRound } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -125,7 +125,7 @@ export function PatientClinicalCloudRecordPage({patientMode=false}){
       {activeTab==='summary'&&<CloudSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} departmentOptions={departmentOptions} tenantId={tenant?.id} canEdit={Boolean(patient)&&has(CAPABILITIES.EDIT_PATIENT)} canDelete={Boolean(patient)&&has(CAPABILITIES.DELETE_PATIENT)} onUpdated={onPatientUpdated} onDeleted={onPatientDeleted}/>}
       {activeTab==='admissions'&&<CloudAdmissions rows={admissions} t={t} fmtDate={fmtDate}/>} 
       {activeTab==='surveillance'&&<CloudSurveillanceList episodes={episodes} selectedId={record?.id} onSelect={id=>{setSelectedEpisodeId(id);setTab('clinical')}} canCreate={patientMode&&has(CAPABILITIES.CREATE_SURVEILLANCE)} onCreate={()=>setCreateOpen(true)} t={t} fmtDate={fmtDate}/>} 
-      {activeTab==='clinical'&&record&&<CloudClinicalJourney record={record} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canAssess={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} canEdit={has(CAPABILITIES.EDIT_SURVEILLANCE)} canClassifyResistance={has(CAPABILITIES.CLASSIFY_RESISTANCE)} canIsolation={has(CAPABILITIES.MANAGE_ISOLATION)} canTherapy={has(CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)} canOpenPharmacy={has(CAPABILITIES.VIEW_PHARMACY)} canReassess={has(CAPABILITIES.REASSESS_SURVEILLANCE)} canOutcome={has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE)} canDelete={has(CAPABILITIES.DELETE_SURVEILLANCE)} canReopen={has(CAPABILITIES.REOPEN_SURVEILLANCE)} onSaved={()=>reloadCases(record.id)} tenantId={tenant?.id}/>}
+      {activeTab==='clinical'&&record&&<CloudClinicalJourney record={record} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canAssess={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} canEdit={has(CAPABILITIES.EDIT_SURVEILLANCE)} canClassifyResistance={has(CAPABILITIES.CLASSIFY_RESISTANCE)} canIsolation={has(CAPABILITIES.MANAGE_ISOLATION)} canTherapy={has(CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)} canOpenPharmacy={has(CAPABILITIES.VIEW_PHARMACY)} canReassess={has(CAPABILITIES.REASSESS_SURVEILLANCE)} canOutcome={has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE)} canDelete={has(CAPABILITIES.DELETE_SURVEILLANCE)} canReopen={has(CAPABILITIES.REOPEN_SURVEILLANCE)} onSaved={()=>reloadCases(record.id)} tenantId={tenant?.id} patientName={patientName} patientCode={patientCode} department={department} organizationName={tenant?.name}/>}
       {activeTab==='documents'&&record&&<EntityAttachmentsPanel organizationId={tenant?.id} entityType="clinical_case" entityRecordId={record.recordId} category="clinical_documentation" canManage={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} t={t} notify={notify}/>}
       {activeTab==='history'&&record&&<CloudTimeline record={record} t={t} fmtDateTime={fmtDateTime}/>}
       {createOpen&&patient&&<CreateCloudSurveillance patient={patient} tenantId={tenant?.id} t={t} language={language} onClose={()=>setCreateOpen(false)} onCreated={async created=>{setCreateOpen(false);await reloadCases(created.id);setTab('clinical');notify(t('surveillanceCreated'),'success')}}/>}
@@ -201,7 +201,7 @@ function SurveillanceStartGuide({t}){
   </section>
 }
 
-function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,canClassifyResistance,canIsolation,canTherapy,canOpenPharmacy,canReassess,canOutcome,canDelete,canReopen,onSaved,tenantId}){
+function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,canClassifyResistance,canIsolation,canTherapy,canOpenPharmacy,canReassess,canOutcome,canDelete,canReopen,onSaved,tenantId,patientName,patientCode,department,organizationName}){
   const {notify}=useFeedback()
   const navigate=useNavigate()
   const [dialog,setDialog]=useState(null)
@@ -216,6 +216,27 @@ function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,ca
   const microbiology=(record.samples||[]).flatMap(sample=>(sample.microbiologyResults||[]).map(result=>({...result,sampleCode:sample.id})))
   const unclassifiedResult=microbiology.find(result=>!result.amr&&result.organism)
   const saveAndClose=async(work,message)=>{await work();setDialog(null);await onSaved();notify(message,'success')}
+  const assessmentRef=useRef(null),samplesRef=useRef(null),haiRef=useRef(null),isolationRef=useRef(null),therapyRef=useRef(null),reassessmentRef=useRef(null),outcomeRef=useRef(null)
+  const validatedSamples=(record.samples||[]).some(row=>Boolean(row.organism))
+  const unlocked={
+    assessment:true,
+    samples:Boolean(record.assessment),
+    hai:validatedSamples,
+    isolation:Boolean(record.assessment),
+    therapy:validatedSamples,
+    reassessment:Boolean(record.assessment)&&(Boolean(activeIsolation)||Boolean(record.isolations?.length)||Boolean(record.haiClassification)||validatedSamples),
+    outcome:Boolean(record.reassessments.length),
+  }
+  const journeyNodes=[
+    {id:'assessment',ref:assessmentRef,icon:ShieldCheck,label:t('clinicalAssessment'),status:record.assessment?'complete':'pending',meta:record.assessment?fmtDate(record.assessment.date):t('pending')},
+    {id:'samples',ref:samplesRef,icon:Microscope,label:t('sampleAndLaboratory'),status:record.samples.length?'complete':'pending',meta:record.samples.length?`${record.samples.length} · ${validatedSamples?t('clinicalRecords.validated'):t('waitingForLaboratory')}`:t('clinicalRecords.notStarted')},
+    {id:'hai',ref:haiRef,icon:AlertTriangle,label:t('haiAmr'),status:record.haiClassification?'complete':'pending',meta:record.haiClassification?t(record.haiClassification.status):t('pending')},
+    {id:'isolation',ref:isolationRef,icon:BedDouble,label:t('isolation'),status:(activeIsolation||record.isolations?.length)?'complete':'pending',meta:activeIsolation?t('active'):(record.isolations?.length?t('clinicalRecords.notDocumented'):t('clinicalRecords.notStarted'))},
+    {id:'therapy',ref:therapyRef,icon:Syringe,label:t('therapy'),status:record.therapy.length?'complete':'pending',meta:record.therapy[0]?.antimicrobial||t('clinicalRecords.notStarted')},
+    {id:'reassessment',ref:reassessmentRef,icon:RefreshCcw,label:t('reassessment'),status:record.reassessments.length?'complete':'pending',meta:record.reassessments[0]?fmtDate(record.reassessments[0].date):t('clinicalRecords.notStarted')},
+    {id:'outcome',ref:outcomeRef,icon:CircleCheckBig,label:t('outcome'),status:record.outcome?'complete':'pending',meta:record.outcome?t(record.outcome.status):t('pending')},
+  ].map(node=>({...node,locked:!unlocked[node.id]}))
+  const scrollToNode=node=>{if(node.locked)return;node.ref.current?.scrollIntoView({behavior:'smooth',block:'start'})}
   async function voidCase(){
     if(!deleteReason.trim())return
     try{await voidClinicalCase(tenantId,record.recordId,deleteReason.trim());setDeleteOpen(false);setDeleteReason('');await onSaved();notify(t('clinicalRecords.surveillanceDeleted'),'success')}
@@ -232,31 +253,39 @@ function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,ca
   </div></div>
   {deleteOpen&&<div className="reopen-confirm-backdrop"><div className="reopen-confirm-card delete-surveillance-confirm"><span className="eyebrow">{t('clinicalRecords.restrictedAction')}</span><h3>{t('clinicalRecords.deleteSurveillance')}</h3><p>{t('clinicalRecords.deleteSurveillanceWarning')}</p><label><span>{t('reasonRequired')}</span><textarea value={deleteReason} onChange={e=>setDeleteReason(e.target.value)} rows={4} autoFocus placeholder={t('clinicalRecords.deleteSurveillanceReasonPlaceholder')}/></label><div><Button variant="secondary" onClick={()=>{setDeleteOpen(false);setDeleteReason('')}}>{t('cancel')}</Button><Button variant="danger" disabled={!deleteReason.trim()} onClick={voidCase}>{t('delete')}</Button></div></div></div>}
   {reopenOpen&&<div className="reopen-confirm-backdrop"><div className="reopen-confirm-card"><span className="eyebrow">{t('clinicalRecords.restrictedAction')}</span><h3>{t('clinicalRecords.reopenSurveillance')}</h3><p>{t('clinicalRecords.reopenSurveillanceWarning')}</p><label><span>{t('reasonRequired')}</span><textarea value={reopenReason} onChange={e=>setReopenReason(e.target.value)} rows={4} autoFocus/></label><div><Button variant="secondary" onClick={()=>{setReopenOpen(false);setReopenReason('')}}>{t('cancel')}</Button><Button disabled={!reopenReason.trim()} onClick={reopenCase}>{t('clinicalRecords.restoreToActive')}</Button></div></div></div>}
-  {!isActive&&<div className="governance-banner"><AlertTriangle size={16}/><span>{t('clinicalRecords.completedRecordReadOnly')}</span></div>}
+
+  {isActive?<>
+  <div className="surveillance-journey">
+    <div className="journey-heading"><div><span className="eyebrow">{t('activeSurveillance')}</span><h3>{t('surveillanceJourney')}</h3></div></div>
+    <div className="journey-map">
+      <div className="journey-nodes">{journeyNodes.map(node=><JourneyNode key={node.id} node={node} onClick={()=>scrollToNode(node)}/>)}</div>
+    </div>
+  </div>
   <div className="clinical-data-grid">
-    <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('clinicalAssessment')}</strong><small>{record.assessment?fmtDate(record.assessment.date||record.startedAt):t('pending')}</small></div>{canAssess&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('assessment')}>{record.assessment?t('clinicalRecords.addReassessment'):t('clinicalRecords.add')}</Button>}</div>{record.assessment?<>
+    <section ref={assessmentRef} className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('clinicalAssessment')}</strong><small>{record.assessment?fmtDate(record.assessment.date||record.startedAt):t('pending')}</small></div>{canAssess&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('assessment')}>{record.assessment?t('clinicalRecords.addReassessment'):t('clinicalRecords.add')}</Button>}</div>{record.assessment?<>
       <div className="detail-grid patient-detail-grid"><Detail label={t('assessmentDate')} value={fmtDate(record.assessment.date)}/><Detail label={t('classification')} value={t(record.assessment.classification||'undetermined')}/></div>
       {record.assessment.summary&&<><h4>{t('clinicalSummary')}</h4><p className="clinical-summary">{record.assessment.summary}</p></>}
       {Boolean(record.assessment.signsSymptoms?.length)&&<><h4>{t('signsSymptoms')}</h4><div className="tag-row">{record.assessment.signsSymptoms.map(item=><span className="clinical-tag" key={item}>{item}</span>)}</div></>}
       {Boolean(record.assessment.riskFactors?.length)&&<><h4>{t('riskFactors')}</h4><div className="tag-row">{record.assessment.riskFactors.map(item=><span className="clinical-tag" key={item}>{item}</span>)}</div></>}
     </>:<div className="inline-empty">{t('clinicalRecords.assessmentPending')}</div>}</section>
 
-    <section className="clinical-panel full-panel"><div className="record-section-header"><div><ShieldCheck size={17}/><strong>{t('clinicalRecords.haiClassification')}</strong></div>{canAssess&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('hai')}>+ {t('classification')}</Button>}</div>{record.haiClassification?<div className="evidence-box"><strong>{record.haiClassification.type} · {t(record.haiClassification.status)}</strong><span>{record.haiClassification.rationale||record.haiClassification.definitionSet}</span></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
+    <section ref={haiRef} className="clinical-panel full-panel"><div className="record-section-header"><div><ShieldCheck size={17}/><strong>{t('clinicalRecords.haiClassification')}</strong></div>{canAssess&&record.status==='active'&&(unlocked.hai?<Button variant="secondary" onClick={()=>setDialog('hai')}>+ {t('classification')}</Button>:<small className="section-note">{t('clinicalRecords.lockedStepHint')}</small>)}</div>{record.haiClassification?<div className="evidence-box"><strong>{record.haiClassification.type} · {t(record.haiClassification.status)}</strong><span>{record.haiClassification.rationale||record.haiClassification.definitionSet}</span></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
 
-    <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('samples')}</strong><small>{record.samples.length}</small></div>{canAssess&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('sample')}>+ {t('sample')}</Button>}</div>{record.samples.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('sampleCode')}</th><th>{t('sampleType')}</th><th>{t('clinicalRecords.collectionDate')}</th><th>{t('status')}</th><th>{t('result')}</th><th>{t('exportOrganism')}</th><th>AMR</th><th>{t('criticalResult')}</th></tr></thead><tbody>{record.samples.map(sample=>{const communicatedAt=sample.microbiologyResults?.[0]?.communications?.[0]?.at;return <tr key={sample.recordId||sample.id}><td><Microscope size={15}/> <strong>{sample.id}</strong></td><td>{t(sample.type)}</td><td>{fmtDateTime(sample.collectedAt)}</td><td>{t(sample.status)}</td><td>{sample.result?t(sample.result):'—'}</td><td>{sample.organism||'—'}</td><td>{sample.resistance||'—'}</td><td>{sample.critical?`${t('positive')}${communicatedAt?` · ${fmtDateTime(communicatedAt)}`:''}`:'—'}</td></tr>})}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noSamplesRecorded')}</div>}{record.samples[0]?.microbiologyResults?.[0]?.susceptibilitySummary&&<div className="evidence-box"><strong>{t('clinicalRecords.susceptibility')}</strong><span>{record.samples[0].microbiologyResults[0].susceptibilitySummary}</span></div>}{canClassifyResistance&&unclassifiedResult&&<div className="record-section-actions"><Button variant="secondary" onClick={()=>setDialog({type:'amr',result:unclassifiedResult})}>{t('classifyResistance')} · {unclassifiedResult.sampleCode}</Button></div>}</section>
+    <section ref={samplesRef} className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('samples')}</strong><small>{record.samples.length}</small></div>{canAssess&&record.status==='active'&&(unlocked.samples?<Button variant="secondary" onClick={()=>setDialog('sample')}>+ {t('sample')}</Button>:<small className="section-note">{t('clinicalRecords.lockedStepHint')}</small>)}</div>{record.samples.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('sampleCode')}</th><th>{t('sampleType')}</th><th>{t('clinicalRecords.collectionDate')}</th><th>{t('status')}</th><th>{t('result')}</th><th>{t('exportOrganism')}</th><th>AMR</th><th>{t('criticalResult')}</th></tr></thead><tbody>{record.samples.map(sample=>{const communicatedAt=sample.microbiologyResults?.[0]?.communications?.[0]?.at;return <tr key={sample.recordId||sample.id}><td><Microscope size={15}/> <strong>{sample.id}</strong></td><td>{t(sample.type)}</td><td>{fmtDateTime(sample.collectedAt)}</td><td>{t(sample.status)}</td><td>{sample.result?t(sample.result):'—'}</td><td>{sample.organism||'—'}</td><td>{sample.resistance||'—'}</td><td>{sample.critical?`${t('positive')}${communicatedAt?` · ${fmtDateTime(communicatedAt)}`:''}`:'—'}</td></tr>})}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noSamplesRecorded')}</div>}{record.samples[0]?.microbiologyResults?.[0]?.susceptibilitySummary&&<div className="evidence-box"><strong>{t('clinicalRecords.susceptibility')}</strong><span>{record.samples[0].microbiologyResults[0].susceptibilitySummary}</span></div>}{canClassifyResistance&&unclassifiedResult&&<div className="record-section-actions"><Button variant="secondary" onClick={()=>setDialog({type:'amr',result:unclassifiedResult})}>{t('classifyResistance')} · {unclassifiedResult.sampleCode}</Button></div>}</section>
 
-    <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('isolation')}</strong><small>{activeIsolation?t('active'):t('clinicalRecords.notDocumented')}</small></div>{canIsolation&&record.status==='active'&&(activeIsolation?<Button variant="secondary" onClick={()=>setDialog({type:'endIsolation',row:activeIsolation})}>{t('endIsolation')}</Button>:<Button variant="secondary" onClick={()=>setDialog('isolation')}>+ {t('isolation')}</Button>)}</div>{activeIsolation?<div className="evidence-box"><strong>{(activeIsolation.precautions||[]).join(', ')||t('isolation')}</strong><span>{activeIsolation.room||'—'} · {activeIsolation.reason}</span></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
+    <section ref={isolationRef} className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('isolation')}</strong><small>{activeIsolation?t('active'):t('clinicalRecords.notDocumented')}</small></div>{canIsolation&&record.status==='active'&&(activeIsolation?<Button variant="secondary" onClick={()=>setDialog({type:'endIsolation',row:activeIsolation})}>{t('endIsolation')}</Button>:(unlocked.isolation?<Button variant="secondary" onClick={()=>setDialog('isolation')}>+ {t('isolation')}</Button>:<small className="section-note">{t('clinicalRecords.lockedStepHint')}</small>))}</div>{activeIsolation?<div className="evidence-box"><strong>{(activeIsolation.precautions||[]).join(', ')||t('isolation')}</strong><span>{activeIsolation.room||'—'} · {activeIsolation.reason}</span></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
 
-    <section className="clinical-panel full-panel"><div className="record-section-header"><div><Syringe size={17}/><strong>{t('therapy')}</strong><small>{activeTherapies.length}</small></div><div className="record-section-actions">{canOpenPharmacy&&<Button variant="secondary" onClick={()=>navigate('/pharmacy')}>{t('clinicalRecords.openInPharmacy')}</Button>}{canTherapy&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('therapy')}>+ {t('therapy')}</Button>}</div></div>{(record.therapy||[]).length?(record.therapy||[]).map(row=><article className="evidence-box" key={row.id}><header><strong>{row.antimicrobial}</strong><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></header><div className="detail-grid four"><Detail label={t('dose')} value={row.dose}/><Detail label={t('clinicalRecords.route')} value={row.route}/><Detail label={t('clinicalRecords.startedOn')} value={fmtDate(row.startedAt)}/><Detail label={t('clinicalRecords.plannedEnd')} value={fmtDate(row.plannedEndAt)}/></div><Detail label={t('indication')} value={row.indication}/>{canTherapy&&row.status==='active'&&<div className="record-section-actions"><Button variant="secondary" onClick={()=>setDialog({type:'endTherapy',row})}>{t('complete')}</Button></div>}</article>):<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
+    <section ref={therapyRef} className="clinical-panel full-panel"><div className="record-section-header"><div><Syringe size={17}/><strong>{t('therapy')}</strong><small>{activeTherapies.length}</small></div><div className="record-section-actions">{canOpenPharmacy&&<Button variant="secondary" onClick={()=>navigate('/pharmacy')}>{t('clinicalRecords.openInPharmacy')}</Button>}{canTherapy&&record.status==='active'&&(unlocked.therapy?<Button variant="secondary" onClick={()=>setDialog('therapy')}>+ {t('therapy')}</Button>:<small className="section-note">{t('clinicalRecords.lockedStepHint')}</small>)}</div></div>{(record.therapy||[]).length?(record.therapy||[]).map(row=><article className="evidence-box" key={row.id}><header><strong>{row.antimicrobial}</strong><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></header><div className="detail-grid four"><Detail label={t('dose')} value={row.dose}/><Detail label={t('clinicalRecords.route')} value={row.route}/><Detail label={t('clinicalRecords.startedOn')} value={fmtDate(row.startedAt)}/><Detail label={t('clinicalRecords.plannedEnd')} value={fmtDate(row.plannedEndAt)}/></div><Detail label={t('indication')} value={row.indication}/>{canTherapy&&row.status==='active'&&<div className="record-section-actions"><Button variant="secondary" onClick={()=>setDialog({type:'endTherapy',row})}>{t('complete')}</Button></div>}</article>):<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
 
     <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('clinicalRecords.devicesRisk')}</strong><small>{activeDevices.length}</small></div>{(canEdit||canAssess)&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('device')}>+ {t('device')}</Button>}</div>{(record.devices||[]).length?(record.devices||[]).map(row=><article className="evidence-box" key={row.id}><header><strong>{row.name}</strong><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></header><div className="detail-grid four"><Detail label={t('clinicalRecords.insertedOn')} value={fmtDateTime(row.insertedAt)}/><Detail label={t('clinicalRecords.deviceSite')} value={row.site}/><Detail label={t('clinicalRecords.reviewDue')} value={fmtDate(row.reviewDue)}/><Detail label={t('clinicalRecords.deviceIndication')} value={row.indication}/></div>{(canEdit||canAssess)&&row.status==='active'&&<div className="record-section-actions"><Button variant="secondary" onClick={()=>setDialog({type:'removeDevice',row})}>{t('remove')}</Button></div>}</article>):<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
 
-    <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('reassessment')}</strong><small>{record.reassessments.length}</small></div>{canReassess&&record.status==='active'&&<Button variant="secondary" onClick={()=>setDialog('reassessment')}>+ {t('reassessment')}</Button>}</div>{record.reassessments.length?record.reassessments.map(row=><article className="evidence-box" key={row.id}><strong>{fmtDate(row.date)} · {t(row.status)}</strong><span>{row.notes||row.decision||'—'}</span></article>):<div className="inline-empty">{t('clinicalRecords.noReassessmentRecorded')}</div>}</section>
+    <section ref={reassessmentRef} className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('reassessment')}</strong><small>{record.reassessments.length}</small></div>{canReassess&&record.status==='active'&&(unlocked.reassessment?<Button variant="secondary" onClick={()=>setDialog('reassessment')}>+ {t('reassessment')}</Button>:<small className="section-note">{t('clinicalRecords.lockedStepHint')}</small>)}</div>{record.reassessments.length?record.reassessments.map(row=><article className="evidence-box" key={row.id}><strong>{fmtDate(row.date)} · {t(row.status)}</strong><span>{row.notes||row.decision||'—'}</span></article>):<div className="inline-empty">{t('clinicalRecords.noReassessmentRecorded')}</div>}</section>
 
-    <section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('outcome')}</strong><small>{record.outcome?t(record.outcome.status):t('pending')}</small></div>{canOutcome&&record.status==='active'&&record.reassessments.length>0&&<Button onClick={()=>setDialog('outcome')}>{t('clinicalRecords.completeSurveillance')}</Button>}</div>{record.outcome?<div className="evidence-box"><strong>{t(record.outcome.status)} · {fmtDate(record.outcome.date)}</strong><span>{record.outcome.notes||'—'}</span></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
+    <section ref={outcomeRef} className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('outcome')}</strong><small>{record.outcome?t(record.outcome.status):t('pending')}</small></div>{canOutcome&&record.status==='active'&&(record.reassessments.length>0?<Button onClick={()=>setDialog('outcome')}>{t('clinicalRecords.completeSurveillance')}</Button>:<small className="section-note">{t('clinicalRecords.lockedStepHint')}</small>)}</div>{record.outcome?<div className="evidence-box"><strong>{t(record.outcome.status)} · {fmtDate(record.outcome.date)}</strong><span>{record.outcome.notes||'—'}</span></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>
   </div>
+  </>:<CloudCompletedSurveillanceReport record={record} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} patientName={patientName} patientCode={patientCode} department={department} organizationName={organizationName}/>}
 
-  {dialog==='assessment'&&<AssessmentDialog t={t} record={record} onClose={()=>setDialog(null)} onSave={draft=>saveAndClose(()=>saveClinicalAssessment(tenantId,record,draft),t('clinicalRecords.clinicalAssessmentSaved'))}/>} 
+  {dialog==='assessment'&&<AssessmentDialog t={t} record={record} onClose={()=>setDialog(null)} onSave={draft=>saveAndClose(()=>saveClinicalAssessment(tenantId,record,draft),t('clinicalRecords.clinicalAssessmentSaved'))}/>}
   {dialog==='hai'&&<HaiDialog t={t} onClose={()=>setDialog(null)} onSave={draft=>saveAndClose(()=>saveHaiClassification(tenantId,record,draft),t('saved'))}/>} 
   {dialog==='sample'&&<SampleRequestDialog t={t} onClose={()=>setDialog(null)} onSave={draft=>saveAndClose(()=>requestLaboratorySample(tenantId,record,draft),t('laboratoryRecords.sampleCreated'))}/>} 
   {dialog==='isolation'&&<IsolationDialog t={t} onClose={()=>setDialog(null)} onSave={draft=>saveAndClose(()=>startIsolation(tenantId,record,draft),t('saved'))}/>} 
@@ -272,6 +301,69 @@ function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,ca
 }
 
 function CloudTimeline({record,t,fmtDateTime}){return <section className="clinical-panel full-panel"><div className="record-section-header"><div><FileClock size={17}/><strong>{t('clinicalRecords.timeline')}</strong></div></div><div className="clinical-timeline">{(record.timeline||[]).map((item,index)=><article key={`${item.at}-${item.type}-${index}`}><div className="timeline-rail"><span/></div><div><header><strong>{t(item.type)}</strong><time>{fmtDateTime(item.at)}</time></header><p>{t(item.detail)||item.detail}</p></div></article>)}</div></section>}
+
+function JourneyNode({node,onClick}){
+  const Icon=node.icon
+  return <button type="button" disabled={node.locked} className={`journey-node ${node.status} ${node.locked?'locked':''}`} onClick={onClick} title={node.locked?undefined:node.label}>
+    <span className="journey-node-icon"><Icon size={17}/></span>
+    <span className="journey-node-copy"><strong>{node.label}</strong><small>{node.meta}</small></span>
+    <ChevronRight size={15}/>
+  </button>
+}
+
+function CloudCompletedSurveillanceReport({record,t,fmtDate,fmtDateTime,patientName,patientCode,department,organizationName}){
+  const positiveSamples=(record.samples||[]).filter(x=>x.result==='positive')
+  const assessmentText=record.assessment?.summary||t('clinicalRecords.notDocumented')
+  const haiText=record.haiClassification
+    ? `${t(record.haiClassification.status)}${record.haiClassification.type?` · ${record.haiClassification.type}`:''}. ${record.haiClassification.rationale||''}`
+    : t('clinicalRecords.notDocumented')
+  const microbiologyText=(record.samples||[]).length
+    ? `${record.samples.length} ${t('samples').toLowerCase()}, ${positiveSamples.length} ${t('positive').toLowerCase()}. ${positiveSamples.map(x=>`${x.organism||'—'}${x.resistance?` (${x.resistance})`:''}`).join(' · ')||t('clinicalRecords.noPositiveFindings')}`
+    : t('clinicalRecords.noSamplesRecorded')
+  const therapyText=(record.therapy||[]).length
+    ? record.therapy.map(x=>`${x.antimicrobial} ${x.dose||''} ${x.route||''}, ${fmtDate(x.startedAt)}${x.plannedEndAt?`–${fmtDate(x.plannedEndAt)}`:''}`).join(' · ')
+    : t('clinicalRecords.noTherapyRecorded')
+  const isolationText=(record.isolations||[]).length
+    ? record.isolations.map(x=>`${(x.precautions||[]).join(', ')||t('isolation')}${x.startedAt?` · ${fmtDate(x.startedAt)}`:''}${x.endedAt?`–${fmtDate(x.endedAt)}`:''}`).join(' · ')
+    : t('clinicalRecords.noIsolationRecorded')
+  const reassessmentText=(record.reassessments||[]).length
+    ? record.reassessments.map(x=>`${fmtDate(x.date)}: ${t(x.status)} — ${x.notes||''}`).join(' ')
+    : t('clinicalRecords.noReassessmentRecorded')
+  const outcomeText=record.outcome
+    ? `${t(record.outcome.status)} · ${fmtDate(record.outcome.date)}. ${record.outcome.notes||''}`
+    : t('clinicalRecords.notDocumented')
+  return <article className="surveillance-final-report">
+    <header className="final-report-title">
+      <div><span>{t('clinicalRecords.finalSurveillanceReport')}</span><h2>{patientName}</h2><p>{record.id} · {fmtDate(record.startedAt)} → {fmtDate(record.completedAt||record.outcome?.date)}</p></div>
+      <div className="final-report-hospital"><span>{t('clinicalRecords.hospital')}</span><strong>{organizationName||'—'}</strong></div>
+    </header>
+
+    <section className="final-report-intro">
+      <p><strong>{t('patient')}:</strong> {patientName} ({patientCode}), {t('department').toLowerCase()} {department}. <strong>{t('surveillance')}:</strong> {record.id}. <strong>{t('period')}:</strong> {fmtDate(record.startedAt)} – {fmtDate(record.completedAt||record.outcome?.date)}.</p>
+    </section>
+
+    <NarrativeSection number="01" title={t('clinicalAssessment')} text={assessmentText}/>
+    <NarrativeSection number="02" title={t('haiAmr')} text={haiText}/>
+    <NarrativeSection number="03" title={t('microbiology')} text={microbiologyText}/>
+    <NarrativeSection number="04" title={t('therapy')} text={therapyText}/>
+    <NarrativeSection number="05" title={t('isolation')} text={isolationText}/>
+    <NarrativeSection number="06" title={t('reassessment')} text={reassessmentText}/>
+    <NarrativeSection number="07" title={t('outcome')} text={outcomeText}/>
+
+    <section className="final-report-course">
+      <div className="final-report-section-heading"><span>08</span><h3>{t('clinicalRecords.courseSummary')}</h3></div>
+      <div className="course-timeline">
+        {(record.timeline||[]).map((item,index)=><div key={`${item.at}-${item.type}-${index}`} className="course-event"><time>{fmtDateTime(item.at)}</time><span>{t(item.type)}</span><strong>—</strong><p>{t(item.detail)||item.detail}</p></div>)}
+      </div>
+    </section>
+
+    <footer className="final-report-footer">
+      <span>{t('clinicalRecords.completedRecordReadOnly')}</span>
+      <strong>{record.id}</strong>
+    </footer>
+  </article>
+}
+function NarrativeSection({number,title,text}){return <section className="final-report-narrative"><div className="final-report-section-heading"><span>{number}</span><h3>{title}</h3></div><p>{text}</p></section>}
 
 function CreateCloudSurveillance({patient,tenantId,t,language,onClose,onCreated}){
   const [departments,setDepartments]=useState([])
