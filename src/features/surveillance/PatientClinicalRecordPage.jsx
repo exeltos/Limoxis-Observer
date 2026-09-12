@@ -131,7 +131,7 @@ export function PatientClinicalRecordPage({patientMode=false}){
       backLabel={patientMode?t('clinicalRecords.backToPatients'):t('clinicalRecords.backToSurveillance')}
     >
 
-    {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm}/>}
+    {activeTab==='summary'&&<PatientSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} fmtDateTime={fmtDateTime} age={age} has={has} notify={notify} confirm={confirm} onPatientsChange={setPatients} onDeleted={goBack}/>}
     {activeTab==='admissions'&&patient&&<PatientAdmissions patient={patient} t={t} language={language} fmtDate={fmtDate} notify={notify} tenant={tenant} isDemo={isDemo} canEdit={has(CAPABILITIES.EDIT_PATIENT)}/>}
         {activeTab==='surveillanceJourney'&&<SurveillanceWorkspace
       episodes={patientMode?patientEpisodes:(record?[record]:[])}
@@ -166,10 +166,10 @@ export function PatientClinicalRecordPage({patientMode=false}){
 }
 
 
-function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confirm}){
+function PatientSummary({patient,record,t,language,fmtDate,age,has,notify,confirm,onPatientsChange,onDeleted}){
   const latestSample=record?.samples?.[0]
   return <div className="patient-summary-layout">
-    <PatientDetails patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} age={age} has={has} notify={notify} confirm={confirm}/>
+    <PatientDetails patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} age={age} has={has} notify={notify} confirm={confirm} onPatientsChange={onPatientsChange} onDeleted={onDeleted}/>
     {record&&<section className="patient-summary-strip">
       <SummaryItem label={t('surveillance')} value={`${record.id} · ${t(record.status)}`} tone="info"/>
       <SummaryItem label={t('clinicalRecords.haiClassification')} value={record.haiClassification?t(record.haiClassification.status):'—'} tone={record.haiClassification?.status==='confirmed'?'warning':'neutral'}/>
@@ -664,14 +664,25 @@ function PatientDocuments({t,record}){
 }
 
 
-function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confirm}){
+function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confirm,onPatientsChange,onDeleted}){
   const [editing,setEditing]=useState(false)
   const source=patient||{id:record?.patientId,name:record?.patient,nameEn:record?.patientEn,department:record?.department,departmentEn:record?.departmentEn,admissionDate:record?.admissionDate,status:record?.status}
   const [draft,setDraft]=useState({...source})
-  const canEdit=has(CAPABILITIES.EDIT_PATIENT)
-  const canDelete=has(CAPABILITIES.DELETE_PATIENT)
+  const canEdit=Boolean(patient)&&has(CAPABILITIES.EDIT_PATIENT)
+  const canDelete=Boolean(patient)&&has(CAPABILITIES.DELETE_PATIENT)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
-  async function remove(){const ok=await confirm({title:t('confirmAction'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')});if(ok)notify(t('actionCompleted'),'warning')}
+  function save(){
+    onPatientsChange?.(current=>current.map(item=>item.id===patient.id?{...item,...draft}:item))
+    setEditing(false)
+    notify(t('actionCompleted'),'success')
+  }
+  async function remove(){
+    const ok=await confirm({title:t('confirmAction'),message:t('deleteConfirm'),danger:true,confirmLabel:t('delete')})
+    if(!ok)return
+    onPatientsChange?.(current=>current.filter(item=>item.id!==patient.id))
+    notify(t('actionCompleted'),'warning')
+    onDeleted?.()
+  }
   const patientActions=[
     canEdit&&{id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setEditing(true)},
     canDelete&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:canEdit,onClick:remove},
@@ -689,7 +700,7 @@ function PatientDetails({patient,record,t,language,fmtDate,age,has,notify,confir
       {record&&<PatientInline l={t('isolation')} v={record.isolation?t(record.isolation.status):t('no')}/>}
     </div>
     {!record&&<div className="patient-no-surveillance"><strong>{t('clinicalRecords.noActiveSurveillance')}</strong><span>{t('clinicalRecords.noClinicalData')}</span></div>}
-    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...source});setEditing(false)}}>{t('cancel')}</Button><SaveButton onClick={()=>{setEditing(false);notify(t('actionCompleted'),'success')}}>{t('save')}</SaveButton></div>}
+    {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft({...source});setEditing(false)}}>{t('cancel')}</Button><SaveButton onClick={save}>{t('save')}</SaveButton></div>}
   </section>
 }
 function PatientInline({editing=false,l,v,onChange}){return <div className={`detail-item ${editing?'editable':''}`}><span>{l}</span>{editing?<input value={v||''} onChange={e=>onChange?.(e.target.value)}/>:<strong>{v||'—'}</strong>}</div>}

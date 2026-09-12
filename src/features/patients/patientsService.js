@@ -69,6 +69,30 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
   return {record,list:[record,...existing]}
 }
 
+export async function updatePatient(organizationId, patient, patch, {isDemo=false}={}){
+  if(isDemo || !organizationId || !supabase) return {...patient,...patch}
+  const payload={}
+  if(patch.firstName!==undefined)payload.first_name=patch.firstName||null
+  if(patch.lastName!==undefined)payload.last_name=patch.lastName||null
+  if(patch.admissionDate!==undefined)payload.admission_date=patch.admissionDate
+  if(patch.status!==undefined)payload.status=patch.status
+  let departmentLabel=patient.department
+  if(patch.departmentId!==undefined){
+    const department=await resolveDepartment(organizationId,patch.departmentId)
+    payload.department_id=department?.id||null
+    departmentLabel=department?.name||''
+  }
+  const {data,error}=await supabase.from('patients').update(payload).eq('id',patient.recordId).eq('organization_id',organizationId).select('*, department:departments(name)').single()
+  if(error) throw error
+  return mapRow(data,data.department?.name||departmentLabel)
+}
+
+export async function deletePatientWithHistory(organizationId, patient, reason, {isDemo=false}={}){
+  if(isDemo || !organizationId || !supabase) return
+  const {error}=await supabase.rpc('delete_patient_with_history',{target_org:organizationId,target_patient:patient.recordId,p_reason:reason})
+  if(error) throw error
+}
+
 function mapAdmission(row, departmentLabel){
   return {
     id: row.id,
