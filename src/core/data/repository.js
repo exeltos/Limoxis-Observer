@@ -29,6 +29,10 @@ const TABLES=Object.freeze({
   committees:{storageKey:'limoxis.committees.v1',kind:'rows',cloud:false},
   announcements:{storageKey:'limoxis.announcements.v2',kind:'rows',cloud:false},
   notification_reads:{storageKey:'limoxis.notificationReads.v1',kind:'document',cloud:false},
+  prevention_hand_hygiene:{storageKey:'limoxis.preventionHandHygiene.v1',kind:'rows',cloud:false},
+  prevention_waste:{storageKey:'limoxis.preventionWaste.v1',kind:'rows',cloud:false},
+  prevention_antiseptic:{storageKey:'limoxis.preventionAntiseptic.v1',kind:'rows',cloud:false},
+  prevention_bundles:{storageKey:'limoxis.preventionBundles.v1',kind:'rows',cloud:false},
 })
 
 export class DataAccessError extends Error{

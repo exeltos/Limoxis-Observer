@@ -15,14 +15,15 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { createQualityRecord } from './qualityService'
 import { loadDepartments } from '../management/departmentsService'
+import { demoLibrarySeed } from '../management/managementData'
 
 const config={incidents:{icon:AlertTriangle,title:'newIncident'},findings:{icon:ShieldCheck,title:'newFinding'},capas:{icon:CheckSquare2,title:'newCapa'},audits:{icon:ClipboardCheck,title:'newAudit'}}
 
 export function QualityCreatePage(){
-  const {recordType}=useParams();useLocation();const {goBack}=useContextualNavigation('/quality');const {t,language}=useLanguage();const {notify}=useFeedback();const {user}=useAuth();const {role,membership,tenant,actualRole,isRolePreview}=useTenant();const c=config[recordType]||config.incidents;const Icon=c.icon
+  const {recordType}=useParams();useLocation();const {goBack}=useContextualNavigation('/quality');const {t,language}=useLanguage();const {notify}=useFeedback();const {user}=useAuth();const {role,membership,tenant,actualRole,isRolePreview,isDemo}=useTenant();const c=config[recordType]||config.incidents;const Icon=c.icon
   const [saving,setSaving]=useState(false);const [departments,setDepartments]=useState([])
   const [draft,setDraft]=useState({title:'',titleEn:'',departmentId:'',status:recordType==='incidents'?'reported':recordType==='findings'?'open':recordType==='capas'?'open':'planned',severity:'medium',description:'',descriptionEn:'',date:new Date().toISOString().slice(0,10),source:'manual',sourceId:'',actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',auditType:'internal',plannedDate:'',scope:'',scopeEn:'',attachments:[]})
-  useEffect(()=>{let active=true;loadDepartments(tenant?.id).then(rows=>{if(active)setDepartments(rows.filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[tenant?.id])
+  useEffect(()=>{let active=true;const request=isDemo?Promise.resolve(demoLibrarySeed.departments.map(([name,nameEn])=>({id:name,name,nameEn,is_active:true}))):loadDepartments(tenant?.id);request.then(rows=>{if(active)setDepartments(rows.filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[tenant?.id,isDemo])
   const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[];const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER;const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom);const canReportIncident=ownerFullAccess||can(role,CAPABILITIES.REPORT_INCIDENT,addOns,custom);const canCreate=canManage||(recordType==='incidents'&&canReportIncident)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}));const titleValue=language==='el'?draft.title:draft.titleEn;const descriptionValue=language==='el'?(recordType==='audits'?draft.scope:draft.description):(recordType==='audits'?draft.scopeEn:draft.descriptionEn)
   async function save(){if(!canCreate||!titleValue.trim()||saving)return;setSaving(true);try{await createQualityRecord(recordType,tenant?.id,{...draft,title:draft.title||draft.titleEn,titleEn:draft.titleEn||draft.title},user?.id);notify(t('recordCreated'),'success');goBack()}catch(error){console.error(error);notify(language==='en'?'The quality record could not be saved.':'Δεν ήταν δυνατή η αποθήκευση της εγγραφής ποιότητας.','error')}finally{setSaving(false)}}
