@@ -25,6 +25,8 @@
 5. **Το backend παραμένει το όριο ασφαλείας.** Το frontend δεν υποκαθιστά RLS ή governed RPCs.
 6. **Καμία big-bang αντικατάσταση.** Κάθε module μεταφέρεται πίσω από προσωρινό feature flag και παραδίδεται αυτόνομα.
 7. **Το παλιό component διαγράφεται μετά τη μετάβαση.** Δεν κρατάμε δεύτερη «προσωρινή» υλοποίηση χωρίς ημερομηνία λήξης.
+8. **Το Demo UI είναι το product reference.** Η ενοποίηση μεταφέρει το πλήρες Demo interaction model πάνω στα production repositories· δεν αντικαθιστά το Demo με τη λιγότερο πλήρη production παρουσίαση.
+9. **Καμία αφαίρεση Demo workflow πριν από production parity.** Ένα Demo component διαγράφεται μόνο αφού το canonical replacement καλύπτει τα ίδια tabs, states και actions και στις δύο λειτουργίες.
 
 ## 3. Προτεινόμενη δομή φακέλων
 
