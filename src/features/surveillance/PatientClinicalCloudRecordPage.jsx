@@ -174,7 +174,30 @@ function CloudSummary({patient,record,t,language,fmtDate,departmentOptions=[],te
   </div>
 }
 function CloudAdmissions({rows,t,fmtDate}){return <section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.admissions')}</h3></div></div>{rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('admissionDate')}</th><th>{t('department')}</th><th>{t('clinicalRecords.dischargeDate')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td>{fmtDate(row.admissionDate)}</td><td>{row.department||'—'}</td><td>{fmtDate(row.dischargeDate)}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></td></tr>)}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noAdmissions')}</div>}</section>}
-function CloudSurveillanceList({episodes,selectedId,onSelect,canCreate,onCreate,t,fmtDate}){return <section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('surveillance')}</span><h3>{t('clinicalRecords.surveillanceEpisodes')}</h3></div>{canCreate&&<Button onClick={onCreate}>+ {t('newSurveillance')}</Button>}</div>{episodes.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>ID</th><th>{t('period')}</th><th>{t('status')}</th><th>{t('nextReview')}</th></tr></thead><tbody>{episodes.map(row=><tr key={row.id} className={row.id===selectedId?'is-selected':''} tabIndex={0} onClick={()=>onSelect(row.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelect(row.id)}}}><td><strong>{row.id}</strong></td><td>{fmtDate(row.startedAt)}{row.completedAt?` → ${fmtDate(row.completedAt)}`:''}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></td><td>{fmtDate(row.reviewDue)}</td></tr>)}</tbody></table></div>:<EmptyState title={t('clinicalRecords.noActiveSurveillance')} description={t('clinicalRecords.noClinicalData')}/>}</section>}
+function CloudSurveillanceList({episodes,selectedId,onSelect,canCreate,onCreate,t,fmtDate}){return <section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('surveillance')}</span><h3>{t('clinicalRecords.surveillanceEpisodes')}</h3></div>{canCreate&&<Button onClick={onCreate}>+ {t('newSurveillance')}</Button>}</div>{episodes.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>ID</th><th>{t('period')}</th><th>{t('status')}</th><th>{t('nextReview')}</th></tr></thead><tbody>{episodes.map(row=><tr key={row.id} className={row.id===selectedId?'is-selected':''} tabIndex={0} onClick={()=>onSelect(row.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelect(row.id)}}}><td><strong>{row.id}</strong></td><td>{fmtDate(row.startedAt)}{row.completedAt?` → ${fmtDate(row.completedAt)}`:''}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></td><td>{fmtDate(row.reviewDue)}</td></tr>)}</tbody></table></div>:<SurveillanceStartGuide t={t}/>}</section>}
+
+function SurveillanceStartGuide({t}){
+  const steps=[
+    [t('clinicalAssessment'),t('clinicalRecords.guideAssessment')],
+    [t('microbiology'),t('clinicalRecords.guideMicrobiology')],
+    [t('haiAmr'),t('clinicalRecords.guideHaiAmr')],
+    [t('isolation'),t('clinicalRecords.guideIsolation')],
+    [t('therapy'),t('clinicalRecords.guideTherapy')],
+    [t('reassessment'),t('clinicalRecords.guideReassessment')],
+    [t('outcome'),t('clinicalRecords.guideOutcome')],
+  ]
+  return <section className="surveillance-start-guide">
+    <div className="start-guide-heading"><div><span className="eyebrow">{t('surveillanceJourney')}</span><h3>{t('clinicalRecords.howSurveillanceWorks')}</h3><p>{t('clinicalRecords.howSurveillanceWorksHelp')}</p></div></div>
+    <div className="start-guide-flow">
+      {steps.map(([label,help],index)=><div key={label} className="start-guide-step">
+        <span className="step-number">{String(index+1).padStart(2,'0')}</span>
+        <div><strong>{label}</strong><small>{help}</small></div>
+        {index<steps.length-1&&<span className="step-arrow">→</span>}
+      </div>)}
+    </div>
+    <div className="start-guide-advice"><AlertTriangle size={16}/><div><strong>{t('clinicalRecords.clinicalGuidance')}</strong><span>{t('clinicalRecords.clinicalGuidanceIntro')}</span></div></div>
+  </section>
+}
 
 function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canEdit,canClassifyResistance,canIsolation,canTherapy,canReassess,canOutcome,canDelete,canReopen,onSaved,tenantId}){
   const {notify}=useFeedback()

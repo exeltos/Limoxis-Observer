@@ -30,6 +30,14 @@ function mapRecord(row,employee,department){
     resultStatus:row.result_status,
     interventionStatus:row.intervention_status,
     recheckDue:row.recheck_due||null,
+    intervention:row.intervention||'',
+    interventionType:row.intervention_type||'',
+    interventionStart:row.intervention_start||'',
+    interventionEnd:row.intervention_end||'',
+    noIntervention:Boolean(row.no_intervention),
+    noRecheck:Boolean(row.no_recheck),
+    correctionReason:row.correction_reason||'',
+    timeline:row.timeline||[],
     notes:row.notes||'',
     createdAt:row.created_at,
     updatedAt:row.updated_at,
@@ -139,6 +147,29 @@ export async function createEmployeeSurveillanceBatch(organizationId,employees,d
   if(payload.length){const {error}=await supabase.from('employee_surveillance_records').insert(payload);if(error)throw error}
   const records=await loadEmployeeSurveillanceRecords(organizationId)
   return (await loadEmployeeSurveillanceBatches(organizationId,records)).find(item=>item.recordId===batch.id)
+}
+
+export async function updateEmployeeSurveillanceFollowup(organizationId,record,patch){
+  assertCloud()
+  const actorId=await currentUserId()
+  const now=new Date().toISOString()
+  const hadFollowup=Boolean(record.intervention||record.interventionType||record.noIntervention||record.recheckDue||record.noRecheck)
+  const timelineEntry={at:now,type:hadFollowup?'employeeFollowupCorrected':'employeeFollowupRecorded',actorId,detail:patch.correctionReason?.trim()||null}
+  const {data,error}=await supabase.from('employee_surveillance_records').update({
+    intervention:patch.noIntervention?null:(patch.intervention?.trim()||null),
+    intervention_type:patch.noIntervention?null:(patch.interventionType||null),
+    intervention_start:patch.noIntervention?null:(patch.interventionStart||null),
+    intervention_end:patch.noIntervention?null:(patch.interventionEnd||null),
+    no_intervention:Boolean(patch.noIntervention),
+    intervention_status:patch.noIntervention?'not_required':((patch.intervention?.trim()||patch.interventionType)?'in_progress':'none'),
+    recheck_due:patch.noRecheck?null:(patch.recheckDue||null),
+    no_recheck:Boolean(patch.noRecheck),
+    correction_reason:patch.correctionReason?.trim()||record.correctionReason||null,
+    timeline:[timelineEntry,...(record.timeline||[])],
+    updated_by:actorId,
+  }).eq('organization_id',organizationId).eq('id',record.recordId).select('*').single()
+  if(error)throw error
+  return (await hydrateRecords([data]))[0]
 }
 
 export function getEmployeeSurveillanceKpis(rows){

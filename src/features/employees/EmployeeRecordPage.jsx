@@ -24,6 +24,10 @@ import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequ
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { EmployeeSurveillanceFlow } from '../surveillance/EmployeeSurveillanceFlow'
 import { getEmployeeSurveillanceForEmployee } from '../surveillance/employeeSurveillanceData'
+import { ProductionEmployeeSurveillanceFlow } from '../surveillance/ProductionEmployeeSurveillanceFlow'
+import { EmployeeSurveillanceRecordDialog } from '../surveillance/EmployeeSurveillanceRecordDialog'
+import { loadEmployeeSurveillanceRecords } from '../surveillance/employeeSurveillanceCloudService'
+import { loadLaboratorySamples } from '../laboratory/laboratoryCloudService'
 import { useAuth } from '../../core/auth/AuthContext'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { loadDepartments } from '../management/departmentsService'
@@ -85,6 +89,7 @@ export function EmployeeRecordPage({selfMode=false}){
   const canAdmin=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,addOns,custom)&&!selfReadOnly
   const canManageUsers=can(role,CAPABILITIES.MANAGE_USERS,addOns,custom)&&!selfReadOnly
   const canOccupational=(can(role,CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,addOns,custom)||can(role,CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,addOns,custom))&&canSeeSensitiveEmployeeHealth
+  const canManageEmployeeFollowup=can(role,CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,addOns,custom)&&!selfReadOnly
   const canTraining=can(role,CAPABILITIES.VIEW_TRAINING,addOns,custom)
   const tabs=useMemo(()=>[
     {id:'details',label:t('employeesRecords.employeeDetailsTab'),icon:UserRound,show:true},
@@ -135,13 +140,13 @@ export function EmployeeRecordPage({selfMode=false}){
       {tab==='details'&&<Details employee={employee} t={t} language={language} fmt={fmt} canAdmin={canAdmin} canManageUsers={canManageUsers} onCreateAccount={()=>!selfReadOnly&&setAccountOpen(true)} deleteEmployee={deleteEmployee} notify={notify} organizationId={tenant?.id} departmentOptions={departmentOptions} professionOptions={professionalCategories} reloadEmployees={reloadEmployees} onCodeChanged={newCode=>navigate(`/employees/${encodeURIComponent(newCode)}`,{replace:true})}/>} 
       {tab==='occupational'&&<Occupational employee={employee} t={t} fmt={fmt} organizationId={tenant?.id} readOnly={selfReadOnly}/>} 
       {tab==='vaccinations'&&<Vaccinations employee={employee} t={t} fmt={fmt} organizationId={tenant?.id}/>} 
-      {tab==='surveillance'&&<EmployeeSurveillance employee={employee} t={t} language={language} fmt={fmt} version={surveillanceVersion} readOnly={selfReadOnly} onNew={()=>!selfReadOnly&&setSurveillanceOpen(true)}/>} 
+      {tab==='surveillance'&&<EmployeeSurveillance employee={employee} t={t} language={language} fmt={fmt} version={surveillanceVersion} readOnly={selfReadOnly} isDemo={isDemo} organizationId={tenant?.id} canManageFollowup={canManageEmployeeFollowup} onNew={()=>!selfReadOnly&&setSurveillanceOpen(true)}/>}
       {tab==='training'&&<Training employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id}/>} 
       {tab==='evaluations'&&<Evaluations employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id}/>} 
       {tab==='certificates'&&<Certificates employee={employee} t={t} language={language} selfMode={selfReadOnly} canAdmin={canAdmin} organizationId={tenant?.id}/>} 
       {tab==='history'&&<History employee={employee} t={t} language={language}/>} 
     </EntityRecordShell>
-    {surveillanceOpen&&!selfReadOnly&&<EmployeeSurveillanceFlow employee={employee} onClose={()=>setSurveillanceOpen(false)} onCreated={()=>setSurveillanceVersion(v=>v+1)}/>} 
+    {surveillanceOpen&&!selfReadOnly&&(isDemo?<EmployeeSurveillanceFlow employee={employee} onClose={()=>setSurveillanceOpen(false)} onCreated={()=>setSurveillanceVersion(v=>v+1)}/>:<ProductionEmployeeSurveillanceFlow employee={employee} onClose={()=>setSurveillanceOpen(false)} onCreated={()=>setSurveillanceVersion(v=>v+1)}/>)}
     {accountOpen&&!selfReadOnly&&<EmployeeAccountDialog employee={employee} language={language} saving={accountSaving} onClose={()=>setAccountOpen(false)} onCreate={createAccount}/>} 
   </Page>
 }
@@ -239,15 +244,28 @@ function Evaluations({employee,t,language,fmt,organizationId}){
 
 function Certificates({employee,t,language,selfMode,canAdmin,organizationId}){const [files,setFiles]=useState([]);const canEdit=canAdmin&&!selfMode;return <div className="record-section employee-certificates-attachments"><SectionTitle t={t} title="employeesRecords.certificatesDocuments"/><p className="employee-certificates-hint">{language==='en'?'Upload certificates, attestations or other supporting documents.':'Ανεβάστε πιστοποιήσεις, βεβαιώσεις ή άλλα υποστηρικτικά έγγραφα.'}</p><AttachmentField disabled={!canEdit} value={files} onChange={setFiles} organizationId={organizationId} entityType="employee-certificate" entityId={employee.dbId||employee.id}/></div>}
 
-function EmployeeSurveillance({employee,t,language,fmt,version,onNew,readOnly=false}){
-  void version
-  const rows=getEmployeeSurveillanceForEmployee(employee.id)
+function EmployeeSurveillance({employee,t,language,fmt,version,onNew,readOnly=false,isDemo=false,organizationId=null,canManageFollowup=false}){
+  const demoRows=isDemo?getEmployeeSurveillanceForEmployee(employee.id):[]
+  const [cloudRecords,setCloudRecords]=useState([])
+  const [cloudSamples,setCloudSamples]=useState([])
   const [selected,setSelected]=useState(null)
+  useEffect(()=>{
+    if(isDemo||!organizationId||!employee?.dbId)return
+    let active=true
+    Promise.all([loadEmployeeSurveillanceRecords(organizationId),loadLaboratorySamples(organizationId)]).then(([records,samples])=>{
+      if(!active)return
+      setCloudRecords(records.filter(row=>row.employeeDbId===employee.dbId))
+      setCloudSamples(samples)
+    }).catch(()=>{if(active){setCloudRecords([]);setCloudSamples([])}})
+    return()=>{active=false}
+  },[isDemo,organizationId,employee?.dbId,version])
+  const rows=isDemo?demoRows:cloudRecords
   const value=(label,content)=><div className="detail-item"><span>{label}</span><strong>{content||'—'}</strong></div>
   return <div className="record-section">
     <div className="record-section-header"><SectionTitle t={t} title="surveillance"/>{!readOnly&&<ActionButton tone="primary" label={t('newSurveillance')} onClick={onNew}><span>+ {t('newSurveillance')}</span></ActionButton>}</div>
     <div className="record-card-list">{rows.length?rows.map(x=><article key={x.id} className="record-subcard registry-row-clickable" role="button" tabIndex={0} onClick={()=>setSelected(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(x)}}}><strong>{x.id}</strong><span>{fmt(x.startedAt)}</span><small>{x.screeningTypes?.map(type=>t(type)).join(', ')||t(x.status)}</small></article>):<Empty t={t}/>}</div>
-    {selected&&<ObserverDialog eyebrow={t('employeeSurveillance')} title={language==='en'?selected.employeeNameEn:selected.employeeName} subtitle={`${selected.id} · ${language==='en'?selected.departmentEn:selected.department}`} width="wide" onClose={()=>setSelected(null)}><div className="detail-grid">{value(t('screeningDate'),fmt(selected.startedAt))}{value(t('screeningType'),selected.screeningTypes?.map(type=>t(type)).join(', '))}{value(t('result'),t(selected.resultStatus||'pending'))}{value(t('status'),t(selected.status||'active'))}{value(t('clinicalRecords.intervention'),selected.noIntervention?t('clinicalRecords.noInterventionPlanned'):(selected.interventionType||selected.intervention||'—'))}{value(t('clinicalRecords.recheck'),selected.noRecheck?t('clinicalRecords.noRecheckPlanned'):(selected.recheckDate?fmt(selected.recheckDate):'—'))}</div>{selected.notes&&<div className="source-truth-note"><div><strong>{t('notes')}</strong><span>{selected.notes}</span></div></div>}</ObserverDialog>}
+    {selected&&isDemo&&<ObserverDialog eyebrow={t('employeeSurveillance')} title={language==='en'?selected.employeeNameEn:selected.employeeName} subtitle={`${selected.id} · ${language==='en'?selected.departmentEn:selected.department}`} width="wide" onClose={()=>setSelected(null)}><div className="detail-grid">{value(t('screeningDate'),fmt(selected.startedAt))}{value(t('screeningType'),selected.screeningTypes?.map(type=>t(type)).join(', '))}{value(t('result'),t(selected.resultStatus||'pending'))}{value(t('status'),t(selected.status||'active'))}{value(t('clinicalRecords.intervention'),selected.noIntervention?t('clinicalRecords.noInterventionPlanned'):(selected.interventionType||selected.intervention||'—'))}{value(t('clinicalRecords.recheck'),selected.noRecheck?t('clinicalRecords.noRecheckPlanned'):(selected.recheckDate?fmt(selected.recheckDate):'—'))}</div>{selected.notes&&<div className="source-truth-note"><div><strong>{t('notes')}</strong><span>{selected.notes}</span></div></div>}</ObserverDialog>}
+    {selected&&!isDemo&&<EmployeeSurveillanceRecordDialog organizationId={organizationId} record={selected} samples={cloudSamples.filter(sample=>sample.employeeSurveillanceId===selected.recordId)} canManage={canManageFollowup} t={t} language={language} fmt={fmt} onClose={()=>setSelected(null)} onUpdated={updated=>{setCloudRecords(current=>current.map(row=>row.recordId===updated.recordId?updated:row));setSelected(updated)}}/>}
   </div>
 }
 
