@@ -12,6 +12,3 @@ export const qualityAudits=[
   {id:'AUD-2608-003',title:'Audit κρίσιμων εργαστηριακών επικοινωνιών',titleEn:'Critical laboratory communication audit',department:'ΜΕΘ',departmentEn:'ICU',auditType:'internal',plannedDate:'2026-08-25',completedDate:'2026-08-25',status:'completed',leadAuditor:'Υπεύθυνος Ποιότητας',scope:'Δειγματοληπτικός έλεγχος critical-result communications.',scopeEn:'Sample audit of critical-result communications.',findingIds:['FND-2608-012'],attachments:[],history:[{at:'2026-08-25T13:00:00+03:00',action:'auditCompleted',actor:'Υπεύθυνος Ποιότητας'}]},
   {id:'AUD-2609-001',title:'Audit συμμόρφωσης isolation precautions',titleEn:'Isolation precautions compliance audit',department:'ΜΕΘ',departmentEn:'ICU',auditType:'internal',plannedDate:'2026-09-05',completedDate:null,status:'planned',leadAuditor:'Υπεύθυνος Ποιότητας',scope:'Έλεγχος εφαρμογής isolation precautions σε ενεργές επιτηρήσεις.',scopeEn:'Review of isolation precautions in active surveillance episodes.',findingIds:[],attachments:[],history:[]},
 ]
-
-export const qualityCollections={incidents:qualityIncidents,findings:qualityFindings,capas:qualityCapas,audits:qualityAudits}
-export const getQualityRecord=(type,id)=>qualityCollections[type]?.find(x=>x.id===id)??null
