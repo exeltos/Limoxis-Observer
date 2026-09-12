@@ -31,6 +31,7 @@ import {
 } from './laboratoryCloudService'
 import { LaboratoryStatus as Status } from './LaboratoryStatus'
 import { LaboratoryAttachmentsPanel } from './LaboratoryAttachmentsPanel'
+import { LaboratoryWorkflowNavigator } from './components/LaboratoryWorkflowNavigator'
 
 const localText={
   el:{rejectSample:'Απόρριψη δείγματος',rejectionReason:'Αιτιολογία απόρριψης',sampleRejected:'Το δείγμα απορρίφθηκε και η αιτιολογία καταγράφηκε.',finalizedAstNotice:'Το αντιβιόγραμμα έχει οριστικοποιηθεί. Για αλλαγή δημιουργήστε διορθωμένη έκδοση του αποτελέσματος.',correction:'Διόρθωση',generalEdit:'Γενική επεξεργασία',correctionHelp:'Η εργαστηριακή εγγραφή έχει οριστικοποιηθεί. Για διόρθωση απαιτείται αιτιολογία και η ενέργεια καταγράφεται στο ιστορικό.',correctionPlaceholder:'Περιγράψτε το λάθος ή τον λόγο διόρθωσης…',unlockForCorrection:'Ξεκλείδωμα για διόρθωση',reasonRequired:'Αιτιολογία *',markDocumentsReviewed:'Έλεγχος εγγράφων ολοκληρώθηκε',documentsReviewed:'Τα έγγραφα ελέγχθηκαν και η καταχώρηση προχωρά.',finalize:'Οριστικοποίηση',finalizeRecord:'Οριστικοποίηση εγγραφής',finalized:'Η εργαστηριακή καταχώριση οριστικοποιήθηκε',finalizedReadOnly:'Οριστικοποιημένη εργαστηριακή καταχώριση · μόνο για ανάγνωση',finalizationWarning:'Η οριστικοποίηση είναι μη αναστρέψιμη ενέργεια χωρίς αιτιολογημένο ξεκλείδωμα.',checkResult:'Το μικροβιολογικό αποτέλεσμα έχει επικυρωθεί',checkAst:'Το αντιβιόγραμμα έχει ολοκληρωθεί όπου απαιτείται',checkCommunication:'Η επικοινωνία κρίσιμου αποτελέσματος έχει καταγραφεί όπου απαιτείται',checkDocuments:'Τα έγγραφα έχουν ελεγχθεί',cfu:'CFU',acceptableLimit:'Αποδεκτό όριο',assessment:'Αξιολόγηση',withinLimits:'Εντός ορίων',outsideLimits:'Εκτός ορίων',waitingForCfu:'Αναμονή CFU',noProtocolConfigured:'Δεν βρέθηκε πρωτόκολλο',protocolNote:'Το όριο εφαρμόζεται αυτόματα από το κεντρικά ρυθμισμένο πρωτόκολλο.'},
@@ -77,15 +78,26 @@ export function LaboratorySampleCloudRecordPage(){
   const communicationComplete=!communicationRequired||communications.length>0
   const documentsReviewed=Boolean(sample?.documentsReviewedAt)
   const readyToFinalize=Boolean(resultValidated&&astComplete&&communicationComplete&&documentsReviewed)
+  const tabAccess={
+    summary:true,
+    result:finalized||['received','processing','completed'].includes(sample?.status),
+    ast:finalized||resultValidated,
+    communication:finalized||(resultValidated&&astComplete),
+    documents:finalized||(resultValidated&&astComplete&&communicationComplete),
+    finalize:finalized||documentsReviewed,
+    history:finalized,
+  }
   const tabs=useMemo(()=>[
     {id:'summary',label:t('summary'),icon:FlaskConical},
-    {id:'result',label:t('laboratoryRecords.microbiologyResult'),icon:Microscope},
-    ...(isEnvironmental?[]:[{id:'ast',label:t('laboratoryRecords.antimicrobialSusceptibility'),icon:ShieldAlert}]),
-    {id:'communication',label:t('laboratoryRecords.criticalCommunication'),icon:PhoneCall},
-    {id:'attachments',label:t('attachments'),icon:Paperclip},
-    {id:'finalize',label:text('finalize'),icon:CheckCircle2},
-    {id:'history',label:t('history'),icon:FileClock},
-  ],[t,isEnvironmental,language]) // eslint-disable-line react-hooks/exhaustive-deps
+    {id:'result',label:t('laboratoryRecords.microbiologyResult'),icon:Microscope,disabled:!tabAccess.result,lockedLabel:t('laboratoryRecords.completePreviousStep')},
+    ...(isEnvironmental?[]:[{id:'ast',label:t('laboratoryRecords.antimicrobialSusceptibility'),icon:ShieldAlert,disabled:!tabAccess.ast,lockedLabel:t('laboratoryRecords.completePreviousStep')}]),
+    {id:'communication',label:t('laboratoryRecords.criticalCommunication'),icon:PhoneCall,disabled:!tabAccess.communication,lockedLabel:t('laboratoryRecords.completePreviousStep')},
+    {id:'documents',label:t('documents'),icon:Paperclip,disabled:!tabAccess.documents,lockedLabel:t('laboratoryRecords.completePreviousStep')},
+    {id:'finalize',label:t('laboratoryRecords.finalization'),icon:CheckCircle2,disabled:!tabAccess.finalize,lockedLabel:t('laboratoryRecords.completePreviousStep')},
+    {id:'history',label:t('history'),icon:FileClock,disabled:!tabAccess.history,lockedLabel:t('laboratoryRecords.availableAfterFinalization')},
+  ],[t,isEnvironmental,language,resultValidated,astComplete,communicationComplete,documentsReviewed,finalized,sample?.status]) // eslint-disable-line react-hooks/exhaustive-deps
+  const workflowOrder=['summary','result',...(isEnvironmental?[]:['ast']),'communication','documents','finalize',...(finalized?['history']:[])]
+  const workflowLabels=Object.fromEntries(tabs.map(item=>[item.id,item.label]))
   async function saveAndReload(work,message){try{await work();setDialog(null);await reload();notify(message,'success')}catch(err){notify(err?.message||t('actionFailed'),'error')}}
   async function markDocuments(){await saveAndReload(()=>markDocumentsReviewed(tenant?.id,sample.recordId),text('documentsReviewed'))}
   async function finalize(){if(!readyToFinalize)return;await saveAndReload(()=>finalizeLaboratorySample(tenant?.id,sample.recordId),text('finalized'))}
@@ -103,10 +115,11 @@ export function LaboratorySampleCloudRecordPage(){
     {tab==='result'&&<ResultDialogPanel t={t} text={text} result={result} isEnvironmental={isEnvironmental} standard={standard} canManage={canManageActive} canValidate={canValidate} onSave={draft=>saveAndReload(()=>saveMicrobiologyResult(tenant?.id,sample.recordId,draft),t('saved'))}/>}
     {tab==='ast'&&!isEnvironmental&&<section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('laboratoryRecords.antimicrobialSusceptibility')}</strong><small>{ast.length}</small></div>{canManageActive&&result&&resultIsDraft&&<Button variant="secondary" onClick={()=>setDialog('ast')}>+ {t('clinicalRecords.add')}</Button>}</div>{result&&!resultIsDraft&&<div className="permission-info-banner"><ShieldAlert size={16}/><span>{text('finalizedAstNotice')}</span></div>}{ast.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('antibiotic')}</th><th>S/I/R</th><th>{t('method')}</th><th>{t('version')}</th></tr></thead><tbody>{ast.map(row=><tr key={row.id}><td>{row.drug}</td><td><strong>{row.sir}</strong></td><td>{row.method}</td><td>{row.standard} {row.version}</td></tr>)}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>}
     {tab==='communication'&&<section className="clinical-panel full-panel"><div className="record-section-header"><div><strong>{t('laboratoryRecords.criticalCommunication')}</strong><small>{communications.length}</small></div>{canCommunicate&&!finalized&&result?.critical&&<Button variant="secondary" onClick={()=>setDialog('communication')}>+ {t('clinicalRecords.add')}</Button>}</div>{result?.critical?communications.length?communications.map(row=><article className="evidence-box" key={row.id}><strong>{row.to} · {fmt(row.at)}</strong><span>{t(row.method)}{row.readBack?` · ${t('confirmed')}`:''}</span></article>):<div className="inline-empty">{t('laboratoryRecords.uncommunicatedCritical')}</div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}</section>}
-    {tab==='attachments'&&<LaboratoryAttachmentsPanel organizationId={tenant?.id} sampleRecordId={sample.recordId} canManage={canManageActive} t={t} notify={notify}/>}
-    {tab==='attachments'&&!finalized&&<div className="lab-step-footer"><Button variant="secondary" disabled={documentsReviewed} onClick={markDocuments}>{documentsReviewed?text('checkDocuments'):text('markDocumentsReviewed')}</Button></div>}
+    {tab==='documents'&&<LaboratoryAttachmentsPanel organizationId={tenant?.id} sampleRecordId={sample.recordId} canManage={canManageActive} t={t} notify={notify}/>}
+    {tab==='documents'&&!finalized&&<div className="lab-step-footer"><Button variant="secondary" disabled={documentsReviewed} onClick={markDocuments}>{documentsReviewed?text('checkDocuments'):text('markDocumentsReviewed')}</Button></div>}
     {tab==='finalize'&&<section className="clinical-panel full-panel finalization-panel"><div className="record-section-header"><div><span className="eyebrow">{text('finalize')}</span><h3>{text('finalizeRecord')}</h3></div></div><div className="finalization-checklist"><FinalCheck ok={Boolean(resultValidated)} text={text('checkResult')}/><FinalCheck ok={astComplete} text={text('checkAst')}/><FinalCheck ok={communicationComplete} text={text('checkCommunication')}/><FinalCheck ok={documentsReviewed} text={text('checkDocuments')}/></div>{finalized?<div className="validated-result-note"><CheckCircle2 size={17}/><span>{text('finalized')}</span></div>:<div className="finalization-warning"><LockKeyhole size={17}/><div><strong>{text('finalize')}</strong><span>{text('finalizationWarning')}</span></div></div>}{canValidate&&!finalized&&<div className="lab-step-footer"><Button disabled={!readyToFinalize} onClick={finalize}><CheckCircle2 size={15}/>{text('finalizeRecord')}</Button></div>}</section>}
     {tab==='history'&&<section className="clinical-panel full-panel"><div className="record-section-header"><div><FileClock size={17}/><strong>{t('history')}</strong></div></div><div className="clinical-timeline"><Timeline at={sample.requestedAt} title={t('requested')} fmt={fmt}/>{sample.receivedAt&&<Timeline at={sample.receivedAt} title={t('received')} fmt={fmt}/>} {sample.rejectedAt&&<Timeline at={sample.rejectedAt} title={text('rejectSample')} fmt={fmt}/>} {(sample.microbiologyResults||[]).map((item,index)=><Timeline key={item.id} at={item.resultedAt} title={`${t('laboratoryRecords.microbiologyResult')} · ${t(item.resultStatus)}${index?` · v${sample.microbiologyResults.length-index}`:''}`} fmt={fmt}/>)} {communications.map(row=><Timeline key={row.id} at={row.at} title={t('laboratoryRecords.criticalCommunication')} fmt={fmt}/>)} {sample.documentsReviewedAt&&<Timeline at={sample.documentsReviewedAt} title={text('checkDocuments')} fmt={fmt}/>} {sample.finalizedAt&&<Timeline at={sample.finalizedAt} title={text('finalized')} fmt={fmt}/>}</div></section>}
+    <LaboratoryWorkflowNavigator active={tab} order={workflowOrder} labels={workflowLabels} canOpen={id=>Boolean(tabAccess[id])} onMove={setTab}/>
   </EntityRecordShell>
   {dialog==='ast'&&<AstDialog t={t} onClose={()=>setDialog(null)} onSave={draft=>saveAndReload(()=>addAstResult(tenant?.id,result.id,draft),t('saved'))}/>}
   {dialog==='communication'&&<CommunicationDialog t={t} onClose={()=>setDialog(null)} onSave={draft=>saveAndReload(()=>communicateCriticalResult(tenant?.id,result.id,draft),t('saved'))}/>}
