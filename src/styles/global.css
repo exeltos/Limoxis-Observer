@@ -1776,6 +1776,10 @@
  border-radius:0 0 var(--radius-lg) var(--radius-lg);
  z-index:3;
 }
+.entity-record-shell.record-has-footer{grid-template-rows:auto auto minmax(0,1fr) auto!important}
+.entity-record-footer{min-width:0;border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
+.entity-record-shell.record-has-footer .entity-record-body{border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+.entity-record-footer .lab-workflow-navigator{position:static;margin-top:0}
 .lab-workflow-nav-button{
  min-height:46px;
  border:1px solid #dce5eb;

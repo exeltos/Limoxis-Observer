@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, FileClock, FlaskConical, LockKeyhole, Microscope, Paperclip, Pencil, PhoneCall, PlayCircle, ShieldAlert, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileClock, FlaskConical, LockKeyhole, Microscope, Paperclip, Pencil, PhoneCall, PlayCircle, ShieldAlert, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -27,6 +27,7 @@ import { getLabSample, updateLabSample } from './laboratoryDemoData'
 import { Status } from './LaboratoryPage'
 import { demoLibrarySeed } from '../management/managementData'
 import { readEnvironmentalStandards } from '../management/EnvironmentalStandardsPanel'
+import { LaboratoryWorkflowNavigator } from './components/LaboratoryWorkflowNavigator'
 
 export function LaboratorySampleRecordPage(){
   const {sampleId}=useParams()
@@ -207,6 +208,7 @@ export function LaboratorySampleRecordPage(){
         if(nextIndex>=0&&tabAccess[next]&&(nextIndex<=currentIndex||correctionLocked))setTab(next)
       }}
       backLabel={t('backToLaboratory')}
+      footer={<LaboratoryWorkflowNavigator active={tab} order={workflowOrder} labels={workflowLabels} canOpen={id=>Boolean(tabAccess[id])} onMove={setTab}/>}
     >
       {!canManage&&tab==='summary'&&<div className="permission-info-banner"><AlertTriangle size={16}/><span>{t('laboratoryRecords.laboratoryReadOnlyRole')}</span></div>}
       {tab==='summary'&&<SampleSummary sample={sample} t={t} language={language} fmt={fmt} subjectLabel={subjectLabel} canManage={canManage&&!finalized} finalized={finalized} onReceive={receiveSample} onStartProcessing={startProcessing} onOpenSurveillance={()=>sample.surveillanceCase&&goTo(`/surveillance/${sample.surveillanceCase}`,{state:{openTab:'surveillanceJourney'}})}/>}
@@ -216,7 +218,6 @@ export function LaboratorySampleRecordPage(){
       {tab==='finalize'&&<FinalizationPanel sample={sample} persist={persist} syncValidatedResult={syncValidatedResult} t={t} fmt={fmt} canFinalize={canValidate&&!finalized} notify={notify} actor={actor} actorName={actorName} onFinalized={()=>setTab('summary')}/>}
       {tab==='documents'&&<DocumentsPanel sample={sample} persist={persist} t={t} canAttach={canAttach&&!finalized} finalized={finalized} notify={notify} actorName={actorName} onNext={()=>setTab('finalize')}/>}
       {tab==='history'&&<LabHistory sample={sample} t={t} fmt={fmt}/>}
-      <LabStepNavigator active={tab} order={workflowOrder} labels={workflowLabels} canOpen={id=>Boolean(tabAccess[id])} onMove={setTab}/>
     </EntityRecordShell>
     {correctionOpen&&<div className="modal-backdrop"><div className="entry-card correction-entry-card"><header><div><span className="eyebrow">{t('laboratory')}</span><h3>{t('laboratoryRecords.generalEdit')}</h3><p>{t('laboratoryRecords.generalEditHelp')}</p></div><button className="icon-close" onClick={()=>setCorrectionOpen(false)}>×</button></header><div className="entry-grid"><label className="entry-span-2"><span>{t('reasonRequired')}</span><textarea rows={4} value={correctionReason} onChange={e=>setCorrectionReason(e.target.value)} placeholder={t('laboratoryRecords.generalEditReasonPlaceholder')}/></label></div><footer><Button variant="secondary" onClick={()=>setCorrectionOpen(false)}>{t('cancel')}</Button><Button disabled={!correctionReason.trim()} onClick={()=>{const now=new Date().toISOString();persist(current=>{const governed=openCorrection(current,{actor,reason:correctionReason,historyKey:'timeline',at:now});return {...governed,status:'processing',finalizedAt:null,finalizedBy:null,finalizedById:null,documentsReviewedAt:null,timeline:[{at:now,type:'laboratoryRecordReopened',actor:actorName,actorId:actor.id,detail:correctionReason},...(governed.timeline||[])]}});setCorrectionOpen(false);setCorrectionReason('');setTab('result');notify(t('laboratoryRecords.laboratoryRecordReopenedMessage'),'success')}}>{t('laboratoryRecords.unlockForCorrection')}</Button></footer></div></div>}
   </Page>
@@ -488,7 +489,9 @@ function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canMan
     subtitle={`${language==='el'?sample.patient:sample.patientEn} · ${sample.employeeId||sample.patientId} · ${language==='el'?sample.department:sample.departmentEn}`}
     status={<Status text={finalized?t('completed'):t(sample.status)} kind={sample.status}/>} 
     headerActions={<>{(canManage||canReopen)&&<button className="general-edit-button" title={correctionLocked?(language==='el'?'Διόρθωση εργαστηριακής εγγραφής':'Correct laboratory record'):t('laboratoryRecords.generalEdit')} onClick={openGeneralEdit}><Pencil size={15}/><span>{correctionLocked?(language==='el'?'Διόρθωση':'Correction'):t('laboratoryRecords.generalEdit')}</span></button>}<PrintExportActions showPrint={canPrint} showExport={canExport} onExport={()=>downloadRecordJson(sample,{filename:sample.id})}/></>}
-    tabs={tabs} activeTab={tab} onTabChange={next=>{const reached=finalized?4:documentsDone?3:resultDone?2:['received','processing'].includes(sample.status)?1:0;const ni=workflowOrder.indexOf(next);if(ni>=0&&access[next]&&(ni<=reached||correctionLocked))setTab(next)}} backLabel={t('backToLaboratory')}>
+    tabs={tabs} activeTab={tab} onTabChange={next=>{const reached=finalized?4:documentsDone?3:resultDone?2:['received','processing'].includes(sample.status)?1:0;const ni=workflowOrder.indexOf(next);if(ni>=0&&access[next]&&(ni<=reached||correctionLocked))setTab(next)}} backLabel={t('backToLaboratory')}
+    footer={<LaboratoryWorkflowNavigator active={tab} order={workflowOrder} labels={workflowLabels} canOpen={id=>Boolean(access[id])} onMove={setTab}/>}
+  >
       {tab==='summary'&&<div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('employeeSurveillance')}</span><h3>{t('laboratoryRecords.employeeScreeningSample')}</h3></div></div><div className="detail-grid lab-detail-grid"><Detail l={t('employee')} v={language==='el'?sample.patient:sample.patientEn}/><Detail l={t('employeeCode')} v={sample.employeeId||sample.patientId}/><Detail l={t('department')} v={language==='el'?sample.department:sample.departmentEn}/><Detail l={t('screeningType')} v={t(sample.sourceCode)}/><Detail l={t('samplingDate')} v={fmt(sample.collectedAt)}/><Detail l={t('status')} v={t(sample.status)}/></div>{(sample.interventionType||sample.interventionDetails)&&<div className="source-truth-note"><strong>{t('clinicalRecords.intervention')}:</strong> {sample.interventionType?t(`clinicalRecords.${sample.interventionType}`):''}{sample.interventionDetails?` · ${sample.interventionDetails}`:''}</div>}{canManage&&sample.status==='requested'&&<div className="lab-step-footer"><Button onClick={receive}>{t('laboratoryRecords.receiveSample')}</Button></div>}{canManage&&sample.status==='received'&&<div className="lab-step-footer"><Button onClick={start}>{t('laboratoryRecords.startProcessing')}</Button></div>}</div>}
       {tab==='result'&&<div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('laboratoryRecords.screeningResult')}</span><h3>{t('laboratoryRecords.employeeScreeningAssessment')}</h3><p>{t('laboratoryRecords.employeeScreeningAssessmentHelp')}</p></div></div><div className="form-grid two-col"><label className="field"><span>{t('result')}</span><select value={draft.result} disabled={finalized} onChange={e=>setDraft({...draft,result:e.target.value,organism:e.target.value==='negative'?'':draft.organism})}><option value="">{t('select')}</option><option value="negative">{t('negative')}</option><option value="positive">{t('positive')}</option></select></label>{draft.result==='positive'&&<label className="field"><span>{t('organism')}</span><input disabled={finalized} list="employee-screening-organisms" value={draft.organism} onChange={e=>setDraft({...draft,organism:e.target.value})}/><datalist id="employee-screening-organisms">{demoLibrarySeed.microorganisms.map(([el,en])=><option key={el} value={language==='el'?el:en}/>)}</datalist></label>}</div>
         {draft.result==='positive'&&<div className="record-section employee-screening-intervention-section"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.interventionAndRecheck')}</span><h3>{t('clinicalRecords.intervention')}</h3><p>{t('clinicalRecords.optionalNotes')}</p></div></div><div className="form-grid two-col">
@@ -504,7 +507,6 @@ function EmployeeScreeningLaboratoryRecord({sample,persist,t,language,fmt,canMan
   navigate(`/surveillance?mode=employees&employeeSurveillanceId=${encodeURIComponent(sample.employeeSurveillanceCase||'')}`,{state:{limoxisFrom:from}})
 }}>{t('laboratoryRecords.openEmployeeFollowup')}</Button></div>}</div>}
     {tab==='history'&&<LabHistory sample={sample} t={t} fmt={fmt}/>}
-    <LabStepNavigator active={tab} order={workflowOrder} labels={workflowLabels} canOpen={id=>Boolean(access[id])} onMove={setTab}/>
     {correctionOpen&&<div className="modal-backdrop"><div className="entry-card correction-entry-card"><header><div><span className="eyebrow">{t('laboratory')}</span><h3>{t('laboratoryRecords.generalEdit')}</h3><p>{t('laboratoryRecords.generalEditHelp')}</p></div><button className="icon-close" onClick={()=>setCorrectionOpen(false)}>×</button></header><div className="entry-grid"><label className="entry-span-2"><span>{t('reasonRequired')}</span><textarea rows={4} value={correctionReason} onChange={e=>setCorrectionReason(e.target.value)} placeholder={t('laboratoryRecords.generalEditReasonPlaceholder')}/></label></div><footer><Button variant="secondary" onClick={()=>setCorrectionOpen(false)}>{t('cancel')}</Button><Button disabled={!correctionReason.trim()} onClick={reopenForCorrection}>{t('laboratoryRecords.unlockForCorrection')}</Button></footer></div></div>}
   </EntityRecordShell></Page>
 }
@@ -597,13 +599,13 @@ function EnvironmentalLaboratoryRecord({sample,persist,t,language,fmt,canManage,
         if(ni>=0&&access[next]&&(ni<=reachedStep||correctionLocked))setTab(next)
       }}
       backLabel={t('backToLaboratory')}
+      footer={<LaboratoryWorkflowNavigator active={tab} order={order} labels={workflowLabels} canOpen={id=>Boolean(access[id])} onMove={setTab}/>}
     >
       {tab==='summary'&&<EnvironmentalLabSummary sample={sample} positions={positions} isPlate={isPlate} t={t} language={language} fmt={fmt} canManage={canManage&&!finalized} finalized={finalized} onReceive={receive} onStart={start}/>}
       {tab==='results'&&<EnvironmentalResultsPanel sample={sample} positions={positions} isPlate={isPlate} persist={persist} t={t} language={language} canManage={canManage&&!finalized} notify={notify} actorName={actorName} onNext={()=>setTab('documents')}/>}
       {tab==='documents'&&<DocumentsPanel sample={sample} persist={persist} t={t} canAttach={canAttach&&!finalized} finalized={finalized} notify={notify} actorName={actorName} onNext={()=>setTab('finalize')}/>}
       {tab==='finalize'&&<EnvironmentalFinalization sample={sample} positions={positions} isPlate={isPlate} persist={persist} t={t} fmt={fmt} canFinalize={canValidate&&!finalized} notify={notify} actor={actor} actorName={actorName} onFinalized={()=>setTab('summary')}/>}
       {tab==='history'&&<LabHistory sample={sample} t={t} fmt={fmt}/>}
-      <LabStepNavigator active={tab} order={order} labels={workflowLabels} canOpen={id=>Boolean(access[id])} onMove={setTab}/>
     </EntityRecordShell>
     {correctionOpen&&<div className="modal-backdrop"><div className="entry-card correction-entry-card"><header><div><span className="eyebrow">{t('laboratory')}</span><h3>{t('laboratoryRecords.generalEdit')}</h3><p>{t('laboratoryRecords.generalEditHelp')}</p></div><button className="icon-close" onClick={()=>setCorrectionOpen(false)}>×</button></header><div className="entry-grid"><label className="entry-span-2"><span>{t('reasonRequired')}</span><textarea rows={4} value={reason} onChange={e=>setReason(e.target.value)}/></label></div><footer><Button variant="secondary" onClick={()=>setCorrectionOpen(false)}>{t('cancel')}</Button><Button disabled={!reason.trim()} onClick={reopen}>{t('laboratoryRecords.unlockForCorrection')}</Button></footer></div></div>}
   </Page>
@@ -800,25 +802,6 @@ function DocumentsPanel({sample,persist,t,canAttach,finalized,notify,actorName,o
 function LabHistory({sample,t,fmt}){
   const rows=useMemo(()=>[...(sample.timeline||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)),[sample.timeline])
   return <div className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('laboratoryRecords.sample')}</span><h3>{t('history')}</h3></div></div><div className="lab-history-list">{rows.map((row,index)=><div key={`${row.at}-${index}`} className="lab-history-row"><time>{fmt(row.at)}</time><strong>{t(row.type)}</strong><span>{row.actor||'—'}</span></div>)}</div></div>
-}
-
-function LabStepNavigator({active,order,labels,canOpen,onMove}){
-  const {language}=useLanguage()
-  const current=order.indexOf(active)
-  if(current<0)return null
-  let previous=null,next=null
-  for(let i=current-1;i>=0;i--){if(canOpen(order[i])){previous=order[i];break}}
-  for(let i=current+1;i<order.length;i++){if(canOpen(order[i])){next=order[i];break}}
-  if(!previous&&!next)return null
-  return <div className="lab-workflow-navigator" aria-label={language==='el'?'Πλοήγηση βημάτων εργαστηρίου':'Laboratory workflow navigation'}>
-    <button type="button" className="lab-workflow-nav-button previous" disabled={!previous} onClick={()=>previous&&onMove(previous)}>
-      <ChevronLeft size={16}/><span><small>{language==='el'?'Προηγούμενο βήμα':'Previous step'}</small><strong>{previous?labels[previous]:''}</strong></span>
-    </button>
-    <div className="lab-workflow-progress"><span>{language==='el'?'Βήμα':'Step'} {current+1} {language==='el'?'από':'of'} {order.length}</span></div>
-    <button type="button" className="lab-workflow-nav-button next" disabled={!next} onClick={()=>next&&onMove(next)}>
-      <span><small>{language==='el'?'Επόμενο βήμα':'Next step'}</small><strong>{next?labels[next]:''}</strong></span><ChevronRight size={16}/>
-    </button>
-  </div>
 }
 
 function Detail({l,v}){return <div className="detail-item"><span>{l}</span><strong>{v||'—'}</strong></div>}

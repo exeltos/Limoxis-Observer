@@ -72,6 +72,7 @@ export function EntityRecordShell({
   onTabChange,
   onBack,
   backLabel,
+  footer,
   children,
   className='',
 }) {
@@ -116,7 +117,7 @@ export function EntityRecordShell({
   const actionClass=generalMenuItems.length?'record-has-general-actions':'record-no-general-actions'
   const secondaryBodyStyle=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
 
-  return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${paneClass} ${actionClass} ${className}`.trim()}>
+  return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${paneClass} ${actionClass} ${footer?'record-has-footer':''} ${className}`.trim()}>
     <header className="entity-record-header surface">
       <BackButton className="entity-record-back-left" onClick={handleBack} label={backLabel||t('back')}/>
       <div className="entity-record-avatar">{avatar}</div>
@@ -142,5 +143,6 @@ export function EntityRecordShell({
       {primaryTabActive&&generalMenuItems.length>0&&<div className="entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}><OverflowMenu label={en?'Record actions':'Ενέργειες εγγραφής'} items={generalMenuItems}/></div>}
       {children}
     </section>
+    {footer&&<footer className="entity-record-footer surface">{footer}</footer>}
   </div>
 }
