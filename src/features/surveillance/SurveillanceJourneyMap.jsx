@@ -1,4 +1,4 @@
-import { Activity,AlertTriangle,BedDouble,CheckCircle2,Microscope,RefreshCcw,ShieldCheck,Syringe } from 'lucide-react'
+import { Activity,AlertTriangle,BedDouble,CheckCircle2,ChevronRight,Microscope,RefreshCcw,ShieldCheck,Syringe } from 'lucide-react'
 
 const icons={assessment:ShieldCheck,samples:Microscope,hai:AlertTriangle,isolation:BedDouble,therapy:Syringe,reassessment:RefreshCcw,outcome:Activity}
 
@@ -27,6 +27,19 @@ export function SurveillanceJourneyMap({record,t,fmtDate,activeStage,onSelect}){
     <div className="journey-connector vertical"/>
     <div className="journey-final-row">{stages.slice(5).map(stage=><Stage key={stage.id} stage={stage} active={activeStage===stage.id} onSelect={onSelect}/>)}</div>
   </div>
+}
+
+export function SurveillanceJourneyGuidance({record,t,canAssess,canLab,canIsolation,canTherapy,canReassess,onSelect}){
+  const cues=[],samples=record?.samples||[],pendingSamples=samples.filter(sample=>!sample.organism)
+  if(canAssess&&!record?.assessment)cues.push({id:'assessment',tone:'warning',title:t('clinicalRecords.initialAssessmentRequired'),text:t('clinicalRecords.initialAssessmentRequiredHint')})
+  if(canLab&&pendingSamples.length)cues.push({id:'samples',tone:'info',title:t('clinicalRecords.pendingLaboratoryResult'),text:t('clinicalRecords.pendingLaboratoryResultHint')})
+  if(canAssess&&record?.haiClassification&&!record.haiClassification.criteriaMet)cues.push({id:'hai',tone:'warning',title:t('clinicalRecords.haiCriteriaNeedReview'),text:t('clinicalRecords.haiCriteriaNeedReviewHint')})
+  if(canIsolation&&record?.resistance&&!record?.isolation)cues.push({id:'isolation',tone:'warning',title:t('clinicalRecords.reviewIsolationNeed'),text:t('clinicalRecords.reviewIsolationNeedHint')})
+  if(canTherapy&&samples.some(sample=>sample.result==='positive')&&!record?.therapy?.length)cues.push({id:'therapy',tone:'warning',title:t('clinicalRecords.reviewAntimicrobialTherapy'),text:t('clinicalRecords.reviewAntimicrobialTherapyHint')})
+  if(canReassess&&!record?.reassessments?.length)cues.push({id:'reassessment',tone:'due',title:t('clinicalRecords.reassessmentRequired'),text:t('clinicalRecords.reassessmentRequiredHint')})
+  if(canReassess&&record?.reviewDue)cues.push({id:'reassessment',tone:'neutral',title:t('nextReview'),text:`${t('clinicalRecords.reassessmentPlanned')}: ${record.reviewDue}`})
+  if(!cues.length)return <div className="journey-guidance clear"><CheckCircle2 size={16}/><span>{t('clinicalRecords.noImmediateIntervention')}</span></div>
+  return <div className="journey-guidance"><div className="journey-guidance-title"><AlertTriangle size={15}/><strong>{t('clinicalRecords.attentionNeeded')}</strong><span>{cues.length}</span></div><div className="journey-guidance-items">{cues.map((cue,index)=><button type="button" key={`${cue.id}-${index}`} className={`guidance-cue ${cue.tone}`} onClick={()=>onSelect?.(cue.id)}><strong>{cue.title}</strong><small>{cue.text}</small><ChevronRight size={14}/></button>)}</div></div>
 }
 
 function Stage({stage,active,onSelect}){
