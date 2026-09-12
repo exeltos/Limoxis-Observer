@@ -39,5 +39,29 @@ export function createDemoLaboratoryRepository({ actorName = 'Demo user' } = {})
       const sample = updateLabSample(sampleCode, current => ({ ...current, ...patch }))
       return sample ? normalizeLaboratorySample(sample) : null
     },
+    async updateStatus(sampleCode, status, patch = {}) {
+      return this.update(sampleCode, { ...patch, status })
+    },
+    async saveResult(sampleCode, draft) {
+      const result = { ...draft, id: draft.id || `${sampleCode}-result`, resultStatus: draft.validationStatus || draft.resultStatus || 'draft', ast: draft.ast || [], communications: draft.communications || [] }
+      return this.update(sampleCode, { result: result.result, resultStatus: result.resultStatus, organism: result.organism, resistance: result.resistance, critical: result.critical, resultedAt: result.resultedAt || new Date().toISOString(), microbiologyResults: [result] })
+    },
+    async addAst(sampleCode, draft) {
+      const current = getLabSample(sampleCode)
+      const result = normalizeLaboratorySample(current).microbiologyResults[0]
+      const ast = [...(result?.ast || current?.ast || []), { ...draft, id: draft.id || `AST-${Date.now()}` }]
+      return this.update(sampleCode, { ast, microbiologyResults: result ? [{ ...result, ast }] : [] })
+    },
+    async communicate(sampleCode, draft) {
+      const current = getLabSample(sampleCode)
+      const result = normalizeLaboratorySample(current).microbiologyResults[0]
+      const communication = { ...draft, id: `COMM-${Date.now()}`, at: draft.at || new Date().toISOString(), to: draft.recipientName }
+      const communications = [...(result?.communications || current?.communications || []), communication]
+      return this.update(sampleCode, { communications, microbiologyResults: result ? [{ ...result, communications }] : [] })
+    },
+    async markDocumentsReviewed(sampleCode) { return this.update(sampleCode, { documentsReviewedAt: new Date().toISOString() }) },
+    async finalize(sampleCode) { return this.update(sampleCode, { finalizedAt: new Date().toISOString(), status: 'completed' }) },
+    async reopen(sampleCode, reason) { return this.update(sampleCode, { finalizedAt: null, documentsReviewedAt: null, correctionReason: reason, status: 'processing' }) },
+    async loadStandards() { return [] },
   })
 }

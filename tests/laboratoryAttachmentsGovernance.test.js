@@ -2,7 +2,7 @@ import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 
 const panel=fs.readFileSync('src/features/laboratory/LaboratoryAttachmentsPanel.jsx','utf8')
-const record=fs.readFileSync('src/features/laboratory/LaboratorySampleCloudRecordPage.jsx','utf8')
+const record=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordView.jsx','utf8')
 const registry=fs.readFileSync('src/features/laboratory/LaboratoryPage.jsx','utf8')
 
 describe('laboratory attachment governance',()=>{
