@@ -228,6 +228,10 @@ function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canLab,can
     try{await reopenClinicalCase(tenantId,record.recordId,reopenReason.trim());setReopenOpen(false);setReopenReason('');await onSaved();notify(t('clinicalRecords.surveillanceUpdated'),'success')}
     catch(error){notify(error?.message||t('actionFailed'),'error')}
   }
+  function selectStage(stage){
+    setActiveStage(stage)
+    document.getElementById(`clinical-stage-${stage}`)?.scrollIntoView({behavior:'smooth',block:'start'})
+  }
   return <div className="clinical-data-hub"><div className="clinical-data-heading"><div><span className="eyebrow">{t('surveillance')}</span><h3>{t('surveillanceJourney')}</h3></div><div className="episode-detail-actions">
     {isActive&&canDelete&&<button className="delete-surveillance-button" title={t('clinicalRecords.deleteSurveillance')} aria-label={t('clinicalRecords.deleteSurveillance')} onClick={()=>setDeleteOpen(true)}><Trash2 size={16}/></button>}
     {!isActive&&canReopen&&<button className="reopen-surveillance-button" title={t('clinicalRecords.reopenSurveillance')} aria-label={t('clinicalRecords.reopenSurveillance')} onClick={()=>setReopenOpen(true)}><RefreshCcw size={16}/></button>}
