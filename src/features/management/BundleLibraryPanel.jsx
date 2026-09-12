@@ -3,6 +3,7 @@ import { Check,Copy,Pencil,Plus,RotateCcw,Trash2,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { IconButton } from '../../design-system/IconButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterBar } from '../../design-system/FilterBar'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -88,7 +89,13 @@ export function BundleLibraryPanel(){
     rows={filtered}
     rowKey={item=>item.id||`${item.bundleKey}-${item.version}`}
     rowProps={item=>({className:'clickable-row',onClick:()=>openBundle(item)})}
-    renderRow={item=>{const systemLocked=item.system&&!isPlatformOwner;return <><td><strong>{item.name}</strong>{item.system&&<span className="status-badge active">{en?'System · Owner managed':'System · Μόνο Owner'}</span>}<small>{item.titleEl}</small></td><td><strong>v{item.version}</strong></td><td><span className={`bundle-library-status ${item.status}`}>{statusLabels[item.status]}</span></td><td>{item.elements?.length||0}</td><td><strong>{item.source||'—'}</strong><small>{item.sourceVersion||''}</small></td><td><span className="bundle-library-scope-text">{item.scope||'—'}</span></td><td onClick={e=>e.stopPropagation()}><div className="row-actions">{!systemLocked&&item.status==='draft'&&<IconButton tone="edit" size="sm" label={en?'Edit':'Επεξεργασία'} onClick={()=>openBundle(item)}><Pencil size={14}/></IconButton>}{!systemLocked&&<IconButton size="sm" label={en?'Create new draft version':'Δημιουργία νέας draft έκδοσης'} onClick={()=>duplicate(item)}><Copy size={14}/></IconButton>}{!systemLocked&&<IconButton tone="danger" size="sm" label={en?'Delete':'Διαγραφή'} onClick={()=>removeBundle(item)}><Trash2 size={14}/></IconButton>}{!systemLocked&&item.status==='draft'&&<button className="text-button compact" onClick={()=>publish(item)}><Check size={13}/>{en?'Publish':'Δημοσίευση'}</button>}{!systemLocked&&item.status==='published'&&<button className="text-button compact" onClick={()=>retire(item)}><RotateCcw size={13}/>{en?'Retire':'Απόσυρση'}</button>}</div></td></>}}
+    renderRow={item=>{const systemLocked=item.system&&!isPlatformOwner;return <><td><strong>{item.name}</strong>{item.system&&<span className="status-badge active">{en?'System · Owner managed':'System · Μόνο Owner'}</span>}<small>{item.titleEl}</small></td><td><strong>v{item.version}</strong></td><td><span className={`bundle-library-status ${item.status}`}>{statusLabels[item.status]}</span></td><td>{item.elements?.length||0}</td><td><strong>{item.source||'—'}</strong><small>{item.sourceVersion||''}</small></td><td><span className="bundle-library-scope-text">{item.scope||'—'}</span></td><td onClick={e=>e.stopPropagation()}><OverflowMenu items={[
+      {id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,onClick:()=>openBundle(item),hidden:systemLocked||item.status!=='draft'},
+      {id:'duplicate',label:en?'Create new draft version':'Δημιουργία νέας draft έκδοσης',icon:Copy,onClick:()=>duplicate(item),hidden:systemLocked},
+      {id:'publish',label:en?'Publish':'Δημοσίευση',icon:Check,onClick:()=>publish(item),hidden:systemLocked||item.status!=='draft'},
+      {id:'retire',label:en?'Retire':'Απόσυρση',icon:RotateCcw,onClick:()=>retire(item),hidden:systemLocked||item.status!=='published'},
+      {id:'delete',label:en?'Delete':'Διαγραφή',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>removeBundle(item),hidden:systemLocked},
+    ]}/></td></>}}
   />{!loading&&filtered.length===0&&<div className="inline-empty">{en?'No Bundles found.':'Δεν βρέθηκαν Bundles.'}</div>}
   {selected&&<BundleEditor language={language} draft={selected} isPlatformOwner={isPlatformOwner} onClose={()=>setSelected(null)} onSave={save}/>} 
  </div>

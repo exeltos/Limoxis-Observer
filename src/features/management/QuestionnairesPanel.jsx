@@ -2,6 +2,7 @@ import { useMemo,useState } from 'react'
 import { ArrowDown,ArrowUp,ClipboardList,Eye,Pencil,Plus,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
@@ -46,7 +47,12 @@ export function QuestionnairesPanel(){
       columns={[{key:'index',label:'#'},{key:'question',label:en?'Question':'Ερώτηση'},{key:'type',label:en?'Type':'Τύπος'},{key:'required',label:en?'Required':'Υποχρεωτική'},{key:'actions',label:en?'Actions':'Ενέργειες'}]}
       rows={selected.questions}
       rowKey={q=>q.id}
-      renderRow={(q,index)=><><td>{index+1}</td><td><strong>{q.label}</strong></td><td>{types[q.type]?.[en?'en':'el']||q.type}</td><td>{q.required?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</td><td className="open-record-cell"><div className="record-inline-actions questionnaire-question-actions"><IconButton size="sm" label={en?'Move question up':'Μετακίνηση ερώτησης πάνω'} disabled={index===0} onClick={()=>move(index,-1)}><ArrowUp size={15}/></IconButton><IconButton size="sm" label={en?'Move question down':'Μετακίνηση ερώτησης κάτω'} disabled={index===selected.questions.length-1} onClick={()=>move(index,1)}><ArrowDown size={15}/></IconButton><IconButton tone="edit" size="sm" label={en?'Edit question':'Επεξεργασία ερώτησης'} onClick={()=>editQuestion(q)}><Pencil size={15}/></IconButton><IconButton tone="danger" size="sm" label={en?'Delete question':'Διαγραφή ερώτησης'} onClick={()=>removeQuestion(q)}><Trash2 size={15}/></IconButton></div></td></>}
+      renderRow={(q,index)=><><td>{index+1}</td><td><strong>{q.label}</strong></td><td>{types[q.type]?.[en?'en':'el']||q.type}</td><td>{q.required?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</td><td className="open-record-cell"><OverflowMenu items={[
+        {id:'up',label:en?'Move question up':'Μετακίνηση ερώτησης πάνω',icon:ArrowUp,disabled:index===0,onClick:()=>move(index,-1)},
+        {id:'down',label:en?'Move question down':'Μετακίνηση ερώτησης κάτω',icon:ArrowDown,disabled:index===selected.questions.length-1,onClick:()=>move(index,1)},
+        {id:'edit',label:en?'Edit question':'Επεξεργασία ερώτησης',icon:Pencil,onClick:()=>editQuestion(q)},
+        {id:'delete',label:en?'Delete question':'Διαγραφή ερώτησης',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>removeQuestion(q)},
+      ]}/></td></>}
     />{!selected.questions.length&&<div className="inline-empty">{en?'No questions yet.':'Δεν υπάρχουν ακόμη ερωτήσεις.'}</div>}</div>
    </EntityRecordShell>}
   {editor?.kind==='questionnaire'&&<QuestionnaireDialog en={en} value={editor.draft} onClose={()=>setEditor(null)} onSave={saveQuestionnaire}/>} {editor?.kind==='question'&&<QuestionDialog en={en} value={editor.draft} onClose={()=>setEditor(null)} onSave={saveQuestion}/>} {previewOpen&&selected&&<QuestionnairePreview en={en} questionnaire={selected} onClose={()=>setPreviewOpen(false)}/>} 

@@ -17,7 +17,7 @@ describe('environmental standards governance',()=>{
   expect(panel).toContain('const isPlatformOwner=role===ROLES.PLATFORM_OWNER')
   expect(panel).toContain("System · Read only")
   expect(panel).toContain('systemLocked=item.system&&!isPlatformOwner')
-  expect(panel).toContain("(!item.system||isPlatformOwner)")
+  expect(panel).toContain("hidden:item.system&&!isPlatformOwner")
   expect(panel).toContain('disabled={readOnlySystem}')
  })
 })

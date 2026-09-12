@@ -7,6 +7,7 @@ import { SaveButton } from '../../design-system/SaveButton'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { BedDaysPanel } from './BedDaysPanel'
 import { LibrariesPanel } from './LibrariesPanel'
 import { BundleLibraryPanel } from './BundleLibraryPanel'
@@ -47,7 +48,10 @@ export function ManagementPage(){
    columns={[{key:'source',label:t('officialSource')},{key:'authority',label:t('source')},{key:'scope',label:t('managementPanel.scopeLabel')},{key:'version',label:t('referenceVersion')},{key:'status',label:t('reviewStatusLabel')},{key:'actions',label:''}]}
    rows={references}
    rowKey={item=>item.sourceKey||item.id}
-   renderRow={item=><><td><strong>{item.label||'—'}</strong>{item.isGlobal&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{item.authority}</td><td>{language==='el'?item.scope:(item.scopeEn||item.scope)}</td><td>{language==='el'?item.version:(item.versionEn||item.version)}</td><td><span className="status-badge active">{t(item.status)}</span></td><td>{(!item.isGlobal||isPlatformOwner)&&<div className="record-inline-actions"><button title={t('edit')} onClick={()=>setReferenceEditor({...item})}><Pencil size={15}/></button><button className="danger" title={t('delete')} onClick={()=>deleteReference(item)}><X size={15}/></button></div>}</td></>}
+   renderRow={item=><><td><strong>{item.label||'—'}</strong>{item.isGlobal&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{item.authority}</td><td>{language==='el'?item.scope:(item.scopeEn||item.scope)}</td><td>{language==='el'?item.version:(item.versionEn||item.version)}</td><td><span className="status-badge active">{t(item.status)}</span></td><td>{(!item.isGlobal||isPlatformOwner)&&<OverflowMenu items={[
+     {id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setReferenceEditor({...item})},
+     {id:'delete',label:t('delete'),icon:X,tone:'danger',separatorBefore:true,onClick:()=>deleteReference(item)},
+   ]}/>}</td></>}
  />{!managementLoading&&!references.length&&<div className="inline-empty">{t('noData')}</div>}</section>}
  {referenceEditor&&<ObserverDialog open title={t('externalReferences')} onClose={()=>setReferenceEditor(null)}><div className="entry-form-grid"><label className="field"><span>{t('officialSource')}</span><input value={referenceEditor.label||''} disabled={referenceEditor.isGlobal&&!isPlatformOwner} onChange={e=>setReferenceEditor(v=>({...v,label:e.target.value}))}/></label><label className="field"><span>{t('source')}</span><input value={referenceEditor.authority||''} disabled={referenceEditor.isGlobal&&!isPlatformOwner} onChange={e=>setReferenceEditor(v=>({...v,authority:e.target.value}))}/></label><label className="field"><span>{t('managementPanel.scopeLabel')}</span><input value={referenceEditor.scope||''} disabled={referenceEditor.isGlobal&&!isPlatformOwner} onChange={e=>setReferenceEditor(v=>({...v,scope:e.target.value}))}/></label><label className="field"><span>{t('referenceVersion')}</span><input value={referenceEditor.version||''} disabled={referenceEditor.isGlobal&&!isPlatformOwner} onChange={e=>setReferenceEditor(v=>({...v,version:e.target.value}))}/></label></div><DialogActions><Button variant="secondary" onClick={()=>setReferenceEditor(null)}>{t('cancel')}</Button>{(!referenceEditor.isGlobal||isPlatformOwner)&&<SaveButton onClick={saveReference}>{t('save')}</SaveButton>}</DialogActions></ObserverDialog>}
  </div></Page>

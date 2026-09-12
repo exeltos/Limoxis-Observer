@@ -1,7 +1,7 @@
 import { useEffect,useMemo,useState } from 'react'
 import { LockKeyhole,Pencil,Plus,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { IconButton } from '../../design-system/IconButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -26,6 +26,9 @@ export function IndicatorsPanel(){
   columns={[{key:'indicator',label:el?'Δείκτης':'Indicator'},{key:'type',label:el?'Τύπος':'Type'},{key:'version',label:el?'Έκδοση':'Version'},{key:'target',label:el?'Στόχος':'Target'},{key:'source',label:el?'Πηγή':'Source'},{key:'status',label:el?'Κατάσταση':'Status'},{key:'actions',label:''}]}
   rows={visible}
   rowKey={item=>item.id}
-  renderRow={item=>{const systemLocked=item.system&&!isOwner;return <><td><strong>{item.titleEl}</strong><small>{item.key} · {item.system?'System':'Hospital'}</small></td><td>{item.calculationType}</td><td>{item.version}</td><td>{item.targetValue===''?'—':`${item.direction==='higher'?'≥':item.direction==='lower'?'≤':''} ${item.targetValue}`}</td><td>{item.sourceAuthority||'—'}</td><td><span className={`status-badge ${item.status==='active'?'active':'temporary'}`}>{item.status}</span></td><td><div className="record-inline-actions indicator-row-actions"><IconButton tone={systemLocked?'primary':'edit'} size="sm" label={systemLocked?(el?'Προβολή κλειδωμένου δείκτη':'View locked indicator'):(el?'Επεξεργασία':'Edit')} onClick={()=>open(item)}>{systemLocked?<LockKeyhole size={15}/>:<Pencil size={15}/>}</IconButton>{canManage&&(!item.system||isOwner)&&<IconButton tone="danger" size="sm" label={el?'Απόσυρση':'Retire'} onClick={()=>retire(item)}><Trash2 size={15}/></IconButton>}</div></td></>}}
+  renderRow={item=>{const systemLocked=item.system&&!isOwner;return <><td><strong>{item.titleEl}</strong><small>{item.key} · {item.system?'System':'Hospital'}</small></td><td>{item.calculationType}</td><td>{item.version}</td><td>{item.targetValue===''?'—':`${item.direction==='higher'?'≥':item.direction==='lower'?'≤':''} ${item.targetValue}`}</td><td>{item.sourceAuthority||'—'}</td><td><span className={`status-badge ${item.status==='active'?'active':'temporary'}`}>{item.status}</span></td><td><OverflowMenu items={[
+    {id:'edit',label:systemLocked?(el?'Προβολή κλειδωμένου δείκτη':'View locked indicator'):(el?'Επεξεργασία':'Edit'),icon:systemLocked?LockKeyhole:Pencil,onClick:()=>open(item)},
+    {id:'retire',label:el?'Απόσυρση':'Retire',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>retire(item),hidden:!(canManage&&(!item.system||isOwner))},
+  ]}/></td></>}}
 />{!loading&&!visible.length&&<div className="inline-empty">{el?'Δεν υπάρχουν ακόμη ορισμοί δεικτών.':'No indicator definitions yet.'}</div>}{editor&&<ObserverDialog title={editor.id?(el?'Ορισμός δείκτη':'Indicator definition'):(el?'Νέος δείκτης':'New indicator')} onClose={()=>setEditor(null)} width="wide"><IndicatorDefinitionForm value={editor} onChange={setEditor} language={language} readOnly={editor.readOnly} showSystem={isOwner&&!editor.id} lockKey={Boolean(editor.id)}/>{!editor.readOnly&&<DialogActions><Button onClick={save}>{el?'Αποθήκευση':'Save'}</Button></DialogActions>}</ObserverDialog>}</section>
 }
