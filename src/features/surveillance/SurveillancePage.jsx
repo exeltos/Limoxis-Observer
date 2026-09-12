@@ -22,8 +22,10 @@ import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { BulkEmployeeSurveillanceFlow, EmployeeSurveillanceFlow, SurveillanceSubjectChooser } from './EmployeeSurveillanceFlow'
 import { createEmployeeRecheck, employeeSurveillanceBatches, employeeSurveillanceRecords, getEmployeeSurveillanceKpis, syncEmployeeSurveillanceFromLab, updateEmployeeSurveillanceRecord } from './employeeSurveillanceData'
 import { EnvironmentalRegistry, EnvironmentalSurveillanceFlow } from './EnvironmentalSurveillanceFlow'
-import { environmentalSurveillanceBatches, environmentalSurveillanceRecords, getEnvironmentalKpis, syncEnvironmentalSurveillanceFromLab } from './environmentalSurveillanceData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
+import { getEnvironmentalKpis } from '../laboratory/laboratoryCloudService'
+import { useLaboratoryRegistry } from '../laboratory/hooks/useLaboratoryRegistry'
+import { demoLibrarySeed } from '../management/managementData'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { MetricCard } from '../../design-system/MetricCard'
 
@@ -65,21 +67,22 @@ export function SurveillancePage(){
 
   useEffect(()=>{
     const refresh=()=>setVersion(v=>v+1)
-    window.addEventListener('limoxis:environmental-updated',refresh)
     window.addEventListener('limoxis:employee-surveillance-updated',refresh)
     return ()=>{
-      window.removeEventListener('limoxis:environmental-updated',refresh)
       window.removeEventListener('limoxis:employee-surveillance-updated',refresh)
     }
   },[])
 
+  const laboratoryRegistry=useLaboratoryRegistry()
+  const environmentalRows=useMemo(()=>laboratoryRegistry.rows.filter(x=>x.subjectType==='environment'),[laboratoryRegistry.rows])
+  const departmentOptions=useMemo(()=>demoLibrarySeed.departments.map(([el,en])=>({value:el,label:el,labelEn:en})),[])
+
   syncEmployeeSurveillanceFromLab()
-  syncEnvironmentalSurveillanceFromLab()
   const active = surveillanceDemoData.filter(x=>x.state==='active').length
   const due = surveillanceDemoData.filter(x=>x.domains.reassessment==='overdue').length
   const isolation = surveillanceDemoData.filter(x=>x.isolation).length
   const resistant = surveillanceDemoData.filter(x=>x.resistance).length
-  const environmentalKpis=getEnvironmentalKpis()
+  const environmentalKpis=getEnvironmentalKpis(environmentalRows)
   const employeeKpis=getEmployeeSurveillanceKpis()
   const employeeSurveillanceCount=employeeSurveillanceRecords.length
   const employeeBatchCount=employeeSurveillanceBatches.length
@@ -106,18 +109,18 @@ export function SurveillancePage(){
   return <Page fill title={t('clinicalRecords.surveillanceCenter')} subtitle={t('surveillanceSubtitleV051')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_SURVEILLANCE}} onAction={action=>{
     if(action===UI_ACTIONS.CREATE){setCreationMode('chooser');return}
     if(action===UI_ACTIONS.PRINT){window.print();return}
-    if(action===UI_ACTIONS.EXPORT){const exportRows=registryMode==='employees'?employeeSurveillanceRecords:registryMode==='batches'?employeeSurveillanceBatches:registryMode==='environmental'?environmentalSurveillanceRecords:rows;downloadRecordJson(exportRows,{filename:`surveillance-${registryMode}`});notify(t('currentListExported'),'success');return}
+    if(action===UI_ACTIONS.EXPORT){const exportRows=registryMode==='employees'?employeeSurveillanceRecords:registryMode==='batches'?employeeSurveillanceBatches:registryMode==='environmental'?environmentalRows:rows;downloadRecordJson(exportRows,{filename:`surveillance-${registryMode}`});notify(t('currentListExported'),'success');return}
     notify(t('actionCompleted'),'info')
   }}/> }>
     <div className="workspace-summary surveillance-summary"><div className="module-summary-strip">
-      {registryMode==='employees'||registryMode==='batches'?<><SummaryMetric icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active}/><SummaryMetric icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive}/><SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention}/><SummaryMetric icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck}/></>:registryMode==='environmental'?<><SummaryMetric icon={Activity} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentalKpis.active}/><SummaryMetric icon={Clock3} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentalKpis.pendingLab}/><SummaryMetric icon={Microscope} label={t('clinicalRecords.positiveEnvironmentalPoints')} value={environmentalKpis.positive}/><SummaryMetric icon={AlertTriangle} label={t('pointsOutsideLimits')} value={environmentalKpis.outOfLimits}/></>:<><SummaryMetric icon={Activity} label={t('activeSurveillance')} value={active}/><SummaryMetric icon={Clock3} label={t('clinicalRecords.needsReview')} value={due}/><SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation}/><SummaryMetric icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant}/></>}
+      {registryMode==='employees'||registryMode==='batches'?<><SummaryMetric icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active}/><SummaryMetric icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive}/><SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention}/><SummaryMetric icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck}/></>:registryMode==='environmental'?<><SummaryMetric icon={Activity} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentalKpis.active}/><SummaryMetric icon={Clock3} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentalKpis.pendingLab}/><SummaryMetric icon={Microscope} label={t('clinicalRecords.positiveEnvironmentalPoints')} value={environmentalKpis.positive}/><SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.criticalEnvironmentalFindings')} value={environmentalKpis.critical}/></>:<><SummaryMetric icon={Activity} label={t('activeSurveillance')} value={active}/><SummaryMetric icon={Clock3} label={t('clinicalRecords.needsReview')} value={due}/><SummaryMetric icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation}/><SummaryMetric icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant}/></>}
     </div><div className="governance-banner compact-governance"><ShieldCheck size={16}/><span>{registryMode==='environmental'?t('clinicalRecords.environmentalSurveillanceGovernance'):t('clinicalRecords.parallelSurveillanceNote')}</span></div></div>
 
     <nav className="tabs surveillance-domain-tabs canonical-module-tabs" aria-label={t('surveillanceCategoriesAria')}>
       <button type="button" className={`tab ${registryMode==='patients'?'active':''}`} onClick={()=>setRegistryMode('patients')}><Activity size={14}/>{t('patients')} <span className="tab-count">{surveillanceDemoData.length}</span></button>
       <button type="button" className={`tab ${registryMode==='employees'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?t('sensitiveEmployeeHealthPermissionRequired'):''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('employees')}><Users size={14}/>{t('employees')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeSurveillanceCount}</span>:<LockKeyhole size={12}/>}</button>
       <button type="button" className={`tab ${registryMode==='batches'?'active':''}`} disabled={!canSeeEmployeeSurveillance} title={!canSeeEmployeeSurveillance?t('sensitiveEmployeeHealthPermissionRequired'):''} onClick={()=>canSeeEmployeeSurveillance&&setRegistryMode('batches')}><Users size={14}/>{t('clinicalRecords.bulkSurveillance')} {canSeeEmployeeSurveillance?<span className="tab-count">{employeeBatchCount}</span>:<LockKeyhole size={12}/>}</button>
-      <button type="button" className={`tab ${registryMode==='environmental'?'active':''}`} disabled={!canSeeEnvironmental} onClick={()=>canSeeEnvironmental&&setRegistryMode('environmental')}><Microscope size={14}/>{t('clinicalRecords.environment')} <span className="tab-count">{environmentalSurveillanceRecords.length}</span></button>
+      <button type="button" className={`tab ${registryMode==='environmental'?'active':''}`} disabled={!canSeeEnvironmental} onClick={()=>canSeeEnvironmental&&setRegistryMode('environmental')}><Microscope size={14}/>{t('clinicalRecords.environment')} <span className="tab-count">{environmentalRows.length}</span></button>
     </nav>
 
     {registryMode==='patients'&&<div className="workspace-fill surface surveillance-workspace">
@@ -134,13 +137,13 @@ export function SurveillancePage(){
 
     {registryMode==='employees'&&<EmployeeSurveillanceRegistry t={t} language={language} fmt={fmt} version={version} onChange={()=>setVersion(v=>v+1)} requestedRecordId={requestedEmployeeFromUrl} onRequestedRecordHandled={clearEmployeeRequest} actorName={actor.name} actorId={actor.id}/>}
     {registryMode==='batches'&&<EmployeeBatchRegistry t={t} language={language} fmt={fmt} version={version} onOpenRecord={recordId=>navigate(`/surveillance?mode=employees&employeeSurveillanceId=${encodeURIComponent(recordId)}`)}/>} 
-    {registryMode==='environmental'&&<EnvironmentalRegistry records={environmentalSurveillanceRecords} batches={environmentalSurveillanceBatches} t={t} language={language} fmt={fmt} onOpenSample={sampleId=>navigate(`/laboratory/${sampleId}`,{state:{returnTo:'/surveillance'}})}/>}
+    {registryMode==='environmental'&&<EnvironmentalRegistry rows={environmentalRows} t={t} language={language} fmt={fmt} onOpenSample={sampleId=>navigate(`/laboratory/${sampleId}`,{state:{returnTo:'/surveillance'}})}/>}
 
     {newOpen&&<NewSurveillanceFlow patients={patients} onPatientsChange={setPatients} onClose={()=>setNewOpen(false)} onCreate={createSurveillance} onRecordChange={()=>setVersion(v=>v+1)}/>}
     {creationMode==='chooser'&&<SurveillanceSubjectChooser onClose={()=>setCreationMode(null)} onPatient={()=>{setCreationMode(null);setNewOpen(true)}} onEmployee={()=>setCreationMode('employee')} onBulkEmployee={()=>setCreationMode('bulkEmployee')} onEnvironmental={()=>setCreationMode('environmental')}/>} 
     {creationMode==='employee'&&<EmployeeSurveillanceFlow onClose={()=>setCreationMode(null)} onCreated={()=>{setVersion(v=>v+1);setRegistryMode('employees')}}/>}
     {creationMode==='bulkEmployee'&&<BulkEmployeeSurveillanceFlow onClose={()=>setCreationMode(null)} onCreated={()=>{setVersion(v=>v+1);setRegistryMode('batches')}}/>}
-    {creationMode==='environmental'&&<EnvironmentalSurveillanceFlow onClose={()=>setCreationMode(null)} onCreated={()=>{setVersion(v=>v+1);setRegistryMode('environmental')}}/>}
+    {creationMode==='environmental'&&<EnvironmentalSurveillanceFlow isDemo departmentOptions={departmentOptions} createSample={laboratoryRegistry.createSample} onClose={()=>setCreationMode(null)} onCreated={()=>{setRegistryMode('environmental')}}/>}
   </Page>
 }
 

@@ -72,6 +72,9 @@ function mapSample(row,patient,department,microbiology=[]){
     source:row.source_site||'',
     sourceEn:row.source_site||'',
     environmentalMethod:row.environmental_method||'',
+    location:row.location||'',
+    point:row.point||'',
+    environmentalBatchId:row.environmental_batch_id||null,
     collectedAt:row.collected_at,
     requestedAt:row.requested_at,
     receivedAt:row.received_at,
@@ -158,6 +161,9 @@ export async function createLaboratorySample(organizationId,patientRecordId,draf
     sample_type:draft.type,
     source_site:draft.source||null,
     environmental_method:draft.environmentalMethod||null,
+    location:draft.location||null,
+    point:draft.point||null,
+    environmental_batch_id:draft.environmentalBatchId||null,
     collected_at:iso(draft.collectedAt),
     requested_at:iso(draft.requestedAt||new Date()),
     requested_by:actorId,
@@ -269,6 +275,16 @@ export function resolveEnvironmentalStandard(standards,category,method){
   return list.find(item=>item.active&&item.subjectType===category&&item.sourceCode===method)
     || list.find(item=>item.active&&item.subjectType===category)
     || null
+}
+
+const pendingSampleStatuses=['requested','collected','received','processing']
+export function getEnvironmentalKpis(rows){
+  return {
+    active:(rows||[]).filter(row=>pendingSampleStatuses.includes(row.status)).length,
+    pendingLab:(rows||[]).filter(row=>pendingSampleStatuses.includes(row.status)&&!row.result).length,
+    positive:(rows||[]).filter(row=>row.result==='positive').length,
+    critical:(rows||[]).filter(row=>row.critical).length,
+  }
 }
 
 export function getLaboratoryKpis(rows){
