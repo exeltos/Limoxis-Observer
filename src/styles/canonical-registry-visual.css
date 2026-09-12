@@ -74,19 +74,19 @@
   position:sticky!important;
   top:0!important;
   z-index:3!important;
-  height:56px!important;
-  min-height:56px!important;
-  padding:0 24px!important;
+  height:40px!important;
+  min-height:40px!important;
+  padding:0 18px!important;
   vertical-align:middle!important;
   text-align:left!important;
   background:#f7f9fb!important;
   border:0!important;
   border-bottom:1px solid var(--lo-color-border)!important;
   color:#6c8199!important;
-  font-size:11px!important;
+  font-size:10px!important;
   font-weight:800!important;
   line-height:1.2!important;
-  letter-spacing:.055em!important;
+  letter-spacing:.05em!important;
   text-transform:uppercase!important;
   white-space:nowrap!important;
 }
@@ -97,8 +97,8 @@
 .lab-registry-shell .data-table tbody tr,
 .controls-surface .data-table tbody tr,
 .production-surveillance-workspace .data-table tbody tr{
-  height:66px!important;
-  min-height:66px!important;
+  height:48px!important;
+  min-height:48px!important;
   background:var(--lo-color-surface)!important;
   transition:background .14s ease!important;
 }
@@ -109,14 +109,14 @@
 .lab-registry-shell .data-table tbody td,
 .controls-surface .data-table tbody td,
 .production-surveillance-workspace .data-table tbody td{
-  padding:14px 24px!important;
+  padding:9px 18px!important;
   vertical-align:middle!important;
   border:0!important;
   border-bottom:1px solid #edf1f4!important;
   background:transparent!important;
   color:#314a67!important;
-  font-size:12.5px!important;
-  line-height:1.35!important;
+  font-size:11.5px!important;
+  line-height:1.3!important;
 }
 
 .registry-workspace .data-table tbody tr:last-child td,
@@ -154,9 +154,9 @@
 .lab-registry-shell .data-table td small,
 .controls-surface .data-table td small,
 .production-surveillance-workspace .data-table td small{
-  margin-top:3px!important;
+  margin-top:2px!important;
   color:#7a8998!important;
-  font-size:10.5px!important;
+  font-size:10px!important;
 }
 
 .registry-workspace>.registry-pagination,
@@ -165,21 +165,21 @@
 .lab-registry-shell>.registry-pagination,
 .controls-surface .registry-pagination,
 .production-surveillance-workspace>.registry-pagination{
-  flex:0 0 58px!important;
-  min-height:58px!important;
-  height:58px!important;
+  flex:0 0 44px!important;
+  min-height:44px!important;
+  height:44px!important;
   margin:0!important;
-  padding:0 18px!important;
+  padding:0 14px!important;
   display:flex!important;
   align-items:center!important;
   justify-content:space-between!important;
-  gap:16px!important;
+  gap:14px!important;
   border:0!important;
   border-top:1px solid var(--lo-color-border)!important;
   border-radius:0!important;
   background:var(--lo-color-surface)!important;
   color:#66788d!important;
-  font-size:12px!important;
+  font-size:11.5px!important;
 }
 
 .registry-pagination-controls{
@@ -197,47 +197,48 @@
 .registry-pagination-controls label>span{
   margin:0!important;
   color:#566b82!important;
-  font-size:11.5px!important;
+  font-size:11px!important;
   font-weight:750!important;
   white-space:nowrap!important;
 }
 .registry-pagination-controls select{
   width:auto!important;
-  min-width:86px!important;
-  height:36px!important;
-  min-height:36px!important;
+  min-width:76px!important;
+  height:30px!important;
+  min-height:30px!important;
   margin:0!important;
-  padding:0 30px 0 12px!important;
+  padding:0 26px 0 10px!important;
   border:1px solid var(--lo-color-border)!important;
-  border-radius:10px!important;
+  border-radius:8px!important;
   background:var(--lo-color-surface)!important;
   color:#314a67!important;
+  font-size:11.5px!important;
 }
 .registry-pagination-controls button{
-  width:36px!important;
-  height:36px!important;
-  min-width:36px!important;
-  min-height:36px!important;
+  width:30px!important;
+  height:30px!important;
+  min-width:30px!important;
+  min-height:30px!important;
   margin:0!important;
   padding:0!important;
   border:1px solid var(--lo-color-border)!important;
-  border-radius:10px!important;
+  border-radius:8px!important;
   background:var(--lo-color-surface)!important;
   color:#607a96!important;
   display:grid!important;
   place-items:center!important;
-  font-size:18px!important;
+  font-size:15px!important;
 }
 .registry-pagination-controls button:disabled{opacity:.32!important}
 
 .registry-empty-state{
-  min-height:180px!important;
+  min-height:0!important;
   height:auto!important;
-  padding:28px 20px!important;
+  padding:48px 20px 24px!important;
   display:flex!important;
   flex-direction:column!important;
   align-items:center!important;
-  justify-content:center!important;
+  justify-content:flex-start!important;
   gap:6px!important;
   background:var(--lo-color-surface)!important;
   text-align:center!important;
@@ -261,38 +262,18 @@
 .production-surveillance-page .production-surveillance-workspace>.scroll-table{margin:0!important;max-height:none!important;align-self:stretch!important}
 .production-surveillance-page .production-surveillance-workspace>.registry-pagination{margin:0!important}
 
-/* Empty environmental registry: retain the real table header and a clean blank body,
-   matching the Training/Prevention registry instead of rendering a second fake header. */
-.production-surveillance-workspace .registry-empty-row{
-  height:100%!important;
-  min-height:0!important;
-}
-.production-surveillance-workspace .registry-empty-row>td{
-  height:100%!important;
-  min-height:220px!important;
-  padding:0!important;
-  border:0!important;
-}
-.production-surveillance-workspace .registry-empty-row .registry-empty-state{
-  min-height:220px!important;
-  color:transparent!important;
-}
-.production-surveillance-workspace .registry-empty-row .registry-empty-state>*{
-  visibility:hidden!important;
-}
-
 @media(max-width:900px){
   .registry-workspace .data-table thead th,
   .patient-registry-shell .data-table thead th,
   .platform-registry-shell .data-table thead th,
   .lab-registry-shell .data-table thead th,
   .controls-surface .data-table thead th,
-  .production-surveillance-workspace .data-table thead th{padding:0 14px!important}
+  .production-surveillance-workspace .data-table thead th{padding:0 12px!important}
 
   .registry-workspace .data-table tbody td,
   .patient-registry-shell .data-table tbody td,
   .platform-registry-shell .data-table tbody td,
   .lab-registry-shell .data-table tbody td,
   .controls-surface .data-table tbody td,
-  .production-surveillance-workspace .data-table tbody td{padding:12px 14px!important}
+  .production-surveillance-workspace .data-table tbody td{padding:8px 12px!important}
 }
