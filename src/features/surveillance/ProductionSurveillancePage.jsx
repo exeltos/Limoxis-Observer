@@ -31,6 +31,7 @@ const latestOrganism=row=>row.samples?.find(sample=>sample.organism)?.organism||
 const latestResistance=row=>row.samples?.find(sample=>sample.resistance)?.resistance||null
 const uniqueSorted=values=>[...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'el'))
 const environmentalTypes=['water','surface','environment','environmental','νερό','επιφάνεια','επιφανεια']
+const pendingSampleStatuses=['requested','collected','received','processing']
 const isEnvironmentalSample=row=>row.subjectType==='environment'||environmentalTypes.some(value=>String(row.type||'').toLowerCase().includes(value))
 const patientLabCode=caseId=>`LAB-SUR-${String(caseId||'').replaceAll('-','')}`
 const employeeLabCode=recordId=>`LAB-EMP-${String(recordId||'').replaceAll('-','')}`
@@ -92,7 +93,7 @@ export function ProductionSurveillancePage(){
   const unifiedEmployeeRows=useMemo(()=>[...employeeRows,...batchRows].sort((a,b)=>String(b.startedAt||'').localeCompare(String(a.startedAt||''))),[employeeRows,batchRows])
   const active=records.filter(row=>row.status==='active').length,due=records.filter(row=>reviewState(row)==='overdue').length,isolation=records.filter(row=>row.isolation?.status==='active').length,resistant=records.filter(row=>Boolean(latestResistance(row))).length
   const employeeKpis=getEmployeeSurveillanceKpis(employeeRecords),employeeMode=registryMode==='employees'
-  const environmentalKpis={active:environmental.filter(row=>row.status!=='completed').length,pendingLab:environmental.filter(row=>row.status!=='completed'&&!row.result).length,positive:environmental.filter(row=>row.result==='positive').length,critical:environmental.filter(row=>row.critical).length}
+  const environmentalKpis={active:environmental.filter(row=>pendingSampleStatuses.includes(row.status)).length,pendingLab:environmental.filter(row=>pendingSampleStatuses.includes(row.status)&&!row.result).length,positive:environmental.filter(row=>row.result==='positive').length,critical:environmental.filter(row=>row.critical).length}
   const fmt=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
   const activeRows=registryMode==='environmental'?environmentalRows:registryMode==='employees'?unifiedEmployeeRows:patientRows
   const totalPages=Math.max(1,Math.ceil(activeRows.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=activeRows.slice((safePage-1)*pageSize,safePage*pageSize)
