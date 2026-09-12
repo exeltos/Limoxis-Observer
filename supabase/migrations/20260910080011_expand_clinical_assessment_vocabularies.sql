@@ -1,0 +1,4 @@
+alter table public.clinical_assessments drop constraint if exists clinical_assessments_assessment_type_check;
+alter table public.clinical_assessments add constraint clinical_assessments_assessment_type_check check (assessment_type = any (array['suspected','healthcare_associated','community_associated','other','initial','suspected_infection','confirmed_infection','colonization_review','hai_review','amr_review','exposure_review','follow_up']::text[]));
+alter table public.clinical_assessments drop constraint if exists clinical_assessments_classification_check;
+alter table public.clinical_assessments add constraint clinical_assessments_classification_check check (classification = any (array['infection','colonization','no_infection','undetermined','under_investigation','probable_infection','confirmed_infection','criteria_not_met']::text[]));
