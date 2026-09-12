@@ -1,4 +1,4 @@
-import { useEffect,useLayoutEffect,useRef,useState } from 'react'
+import { useCallback,useEffect,useLayoutEffect,useRef,useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreHorizontal } from 'lucide-react'
 import { IconButton } from './IconButton'
@@ -13,17 +13,18 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm'}
   const popoverRef=useRef(null)
   const visibleItems=items.filter(item=>item&&item.hidden!==true)
 
-  function updatePosition(){
+  const updatePosition=useCallback(()=>{
     const trigger=triggerRef.current
     if(!trigger)return
     const rect=trigger.getBoundingClientRect()
-    const width=220
     const viewportWidth=window.innerWidth||document.documentElement.clientWidth
-    const left=align==='start'?Math.min(rect.left,viewportWidth-width-8):Math.max(8,Math.min(rect.right-width,viewportWidth-width-8))
+    const width=Math.min(220,Math.max(0,viewportWidth-16))
+    const preferredLeft=align==='start'?rect.left:rect.right-width
+    const left=Math.max(8,Math.min(preferredLeft,viewportWidth-width-8))
     setPosition({top:rect.bottom+6,left,width})
-  }
+  },[align])
 
-  useLayoutEffect(()=>{if(open)updatePosition()},[open,align])
+  useLayoutEffect(()=>{if(open)updatePosition()},[open,updatePosition])
 
   useEffect(()=>{
     if(!open)return
@@ -43,7 +44,7 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm'}
       window.removeEventListener('resize',onViewport)
       window.removeEventListener('scroll',onViewport,true)
     }
-  },[open,align])
+  },[open,updatePosition])
 
   if(!visibleItems.length)return null
   const resolvedLabel=label||(en?'More actions':'Περισσότερες ενέργειες')
