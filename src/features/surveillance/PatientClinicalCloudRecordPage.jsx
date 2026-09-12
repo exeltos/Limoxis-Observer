@@ -19,6 +19,7 @@ import { downloadRecordJson } from '../../core/export/recordExport'
 import { deletePatientWithHistory, loadPatients, loadAdmissions, updatePatient } from '../patients/patientsService'
 import { loadDepartments } from '../management/departmentsService'
 import { SurveillanceJourneyGuidance,SurveillanceJourneyMap } from './SurveillanceJourneyMap'
+import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import {
   addAntimicrobialTherapy,
   addClinicalReassessment,
@@ -34,6 +35,7 @@ import {
   requestLaboratorySample,
   saveAmrClassification,
   saveClinicalAssessment,
+  saveClinicalEvent,
   saveHaiClassification,
   startIsolation,
   voidClinicalCase,
@@ -129,7 +131,7 @@ export function PatientClinicalCloudRecordPage({patientMode=false}){
       {activeTab==='clinical'&&record&&<CloudClinicalJourney record={record} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} canAssess={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} canLab={has(CAPABILITIES.VIEW_LAB)} canEdit={has(CAPABILITIES.EDIT_SURVEILLANCE)} canClassifyResistance={has(CAPABILITIES.CLASSIFY_RESISTANCE)} canIsolation={has(CAPABILITIES.MANAGE_ISOLATION)} canTherapy={has(CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)} canOpenPharmacy={has(CAPABILITIES.VIEW_PHARMACY)} canReassess={has(CAPABILITIES.REASSESS_SURVEILLANCE)} canOutcome={has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE)} canDelete={has(CAPABILITIES.DELETE_SURVEILLANCE)} canReopen={has(CAPABILITIES.REOPEN_SURVEILLANCE)} onSaved={()=>reloadCases(record.id)} tenantId={tenant?.id}/>}
       {activeTab==='documents'&&record&&<EntityAttachmentsPanel organizationId={tenant?.id} entityType="clinical_case" entityRecordId={record.recordId} category="clinical_documentation" canManage={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} t={t} notify={notify}/>}
       {activeTab==='history'&&record&&<CloudTimeline record={record} t={t} fmtDateTime={fmtDateTime}/>}
-      {createOpen&&patient&&<CreateCloudSurveillance patient={patient} tenantId={tenant?.id} t={t} language={language} onClose={()=>setCreateOpen(false)} onCreated={async created=>{setCreateOpen(false);await reloadCases(created.id);setTab('clinical');notify(t('surveillanceCreated'),'success')}}/>}
+      {createOpen&&patient&&<NewSurveillanceFlow patient={patient} patients={patients} departments={departmentOptions} onClose={async()=>{setCreateOpen(false);await reloadCases()}} onCreate={(draft,target)=>createClinicalCase(tenant.id,target.recordId,draft)} onSaveAssessment={(caseRecord,draft)=>saveClinicalAssessment(tenant.id,caseRecord,draft)} onRequestSample={(caseRecord,draft)=>requestLaboratorySample(tenant.id,caseRecord,draft)} onSaveIsolation={(caseRecord,draft)=>draft.required===false?saveClinicalEvent(tenant.id,caseRecord.recordId,'isolation_not_required',{required:false,detail:'no'}).then(()=>null):startIsolation(tenant.id,caseRecord,draft)} onRecordChange={updated=>{setEpisodes(current=>current.map(row=>row.id===updated.id?updated:row));setSelectedEpisodeId(updated.id)}}/>}
     </EntityRecordShell>
   </Page>
 }
@@ -280,14 +282,6 @@ function CloudClinicalJourney({record,t,fmtDate,fmtDateTime,canAssess,canLab,can
 
 function CloudTimeline({record,t,fmtDateTime}){return <section className="clinical-panel full-panel"><div className="record-section-header"><div><FileClock size={17}/><strong>{t('clinicalRecords.timeline')}</strong></div></div><div className="clinical-timeline">{(record.timeline||[]).map((item,index)=><article key={`${item.at}-${item.type}-${index}`}><div className="timeline-rail"><span/></div><div><header><strong>{t(item.type)}</strong><time>{fmtDateTime(item.at)}</time></header><p>{t(item.detail)||item.detail}</p></div></article>)}</div></section>}
 
-function CreateCloudSurveillance({patient,tenantId,t,language,onClose,onCreated}){
-  const [departments,setDepartments]=useState([])
-  const [draft,setDraft]=useState({departmentId:patient.departmentId||'',startedAt:new Date().toISOString().slice(0,10),reviewDue:'',room:'',reason:'',reasonEn:'',suspectedSource:''})
-  useEffect(()=>{loadDepartments(tenantId).then(rows=>setDepartments((rows||[]).filter(row=>row.is_active!==false))).catch(()=>setDepartments([]))},[tenantId])
-  const set=(key,value)=>setDraft(current=>({...current,[key]:value}))
-  async function save(){if(!draft.startedAt||!(draft.reason||draft.reasonEn))return;const created=await createClinicalCase(tenantId,patient.recordId,draft);onCreated(created)}
-  return <div className="modal-backdrop"><div className="entry-card"><header><div><span className="eyebrow">{t('surveillance')}</span><h3>{t('newSurveillance')}</h3></div><button className="icon-close" onClick={onClose}>×</button></header><div className="entry-grid"><label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>set('departmentId',e.target.value)}><option value="">{t('select')}</option>{departments.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label><ManualDateField label={t('surveillanceStartDate')} value={draft.startedAt} onChange={value=>set('startedAt',value)}/><ManualDateField label={t('nextReview')} optional value={draft.reviewDue} onChange={value=>set('reviewDue',value)}/><label><span>{t('room')}</span><input value={draft.room} onChange={e=>set('room',e.target.value)}/></label><label className="entry-span-2"><span>{t('surveillanceReason')}</span><textarea rows={3} value={language==='el'?draft.reason:draft.reasonEn} onChange={e=>set(language==='el'?'reason':'reasonEn',e.target.value)}/></label></div><footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={!draft.startedAt||!(draft.reason||draft.reasonEn)} onClick={save}>{t('save')}</SaveButton></footer></div></div>
-}
 function AssessmentDialog({t,record,onClose,onSave}){
   const current=record.assessment||{}
   const [draft,setDraft]=useState({date:String(current.date||new Date().toISOString()).slice(0,10),assessmentType:current.assessmentType||'suspected',classification:current.classification||'undetermined',summary:current.summary||'',signsSymptoms:(current.signsSymptoms||[]).join(', '),riskFactors:(current.riskFactors||[]).join(', ')})
