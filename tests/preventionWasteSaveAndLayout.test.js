@@ -5,7 +5,6 @@ const waste=fs.readFileSync('src/features/prevention/WasteEntryEditor.jsx','utf8
 const css=fs.readFileSync('src/styles/prevention-refinements.css','utf8')
 const prevention=fs.readFileSync('src/features/prevention/PreventionPage.jsx','utf8')
 const occupational=fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.jsx','utf8')
-const vaccinations=fs.readFileSync('src/features/prevention/StaffVaccinationsPage.jsx','utf8')
 
 describe('prevention waste editor refinements',()=>{
   it('hydrates the waste type when support data arrives but leaves department for explicit user selection',()=>{
@@ -34,20 +33,17 @@ describe('prevention waste editor refinements',()=>{
     expect(css).toContain('.who-page-editor .who-current-preview .lo-action-button:disabled span')
   })
 
-  it('removes the related-workflows strip and exposes staff vaccinations from Prevention',()=>{
+  it('renders staff vaccinations as a native Prevention tab',()=>{
     expect(prevention).not.toContain('prevention-related-strip')
     expect(prevention).not.toContain('preventionAntimicrobialStewardshipLabel')
-    expect(prevention).toContain('prevention-vaccinations-tab')
-    expect(prevention).toContain("/occupational-health?tab=vaccinations")
+    expect(prevention).toContain("['vaccinations','vaccinations']")
+    expect(prevention).toContain("tab==='vaccinations'&&!loading&&<VaccinationTable")
+    expect(prevention).toContain("setSearchParams({tab:id},{replace:true})")
+    expect(prevention).not.toContain("/occupational-health?tab=vaccinations")
   })
 
-  it('dispatches the vaccination deep-link to the canonical Prevention registry',()=>{
-    expect(occupational).toContain("searchParams.get('tab')==='vaccinations'?<StaffVaccinationsPage/>")
-    expect(vaccinations).toContain('registry-workspace prevention-workspace')
-    expect(vaccinations).toContain('RegistryTable')
-    expect(vaccinations).toContain('RegistryPagination')
-    expect(vaccinations).toContain('BackButton')
-    expect(vaccinations).not.toContain('UI_ACTIONS.ATTACH')
-    expect(vaccinations).not.toContain('UI_ACTIONS.PRINT')
+  it('keeps Occupational Health focused on physician visits',()=>{
+    expect(occupational).not.toContain('StaffVaccinationsPage')
+    expect(occupational).not.toContain("searchParams.get('tab')==='vaccinations'")
   })
 })
