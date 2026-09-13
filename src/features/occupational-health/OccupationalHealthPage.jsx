@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { useNavigate,useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { CalendarClock,HeartPulse,UserRoundCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
@@ -13,15 +13,9 @@ import { useEmployeesData } from '../employees/useEmployeesData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { downloadCsv } from '../../core/export/csvExport'
 import { MetricCard } from '../../design-system/MetricCard'
-import { StaffVaccinationsPage } from '../prevention/StaffVaccinationsPage'
 import './OccupationalHealthPage.css'
 
 export function OccupationalHealthPage(){
- const [searchParams]=useSearchParams()
- return searchParams.get('tab')==='vaccinations'?<StaffVaccinationsPage/>:<OccupationalVisitsPage/>
-}
-
-function OccupationalVisitsPage(){
  const {t,language,locale}=useLanguage();const {notify}=useFeedback();const navigate=useNavigate();const {canAccessRecord}=useTenant()
  const {data:employeeRows}=useEmployeesData();const occupationalVisits=useMemo(loadOccupationalVisits,[])
  const [query,setQuery]=useState(''),[status,setStatus]=useState('all'),[department,setDepartment]=useState('all')
@@ -37,4 +31,4 @@ function OccupationalVisitsPage(){
  </Page>
 }
 function Kpi({icon:Icon,value,label}){return <MetricCard icon={Icon} value={value} label={label}/>}
-function Visits({rows,employeeMap,name,t,fmt,openEmployee}){return <table className="data-table sticky-table"><thead><tr><th>{t('date')}</th><th>{t('employee')}</th><th>{t('visitType')}</th><th>{t('status')}</th><th>{t('fitnessStatus')}</th><th>{t('followUp')}</th></tr></thead><tbody>{rows.map(x=>{const e=employeeMap[x.employeeId];return <tr key={x.id} className="clickable-row" tabIndex={0} onClick={()=>openEmployee(e.id)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openEmployee(e.id)}}}><td>{fmt(x.date)}</td><td><strong>{name(e)}</strong><small>{e.id}</small></td><td>{t(x.type)}</td><td><span className="status-badge active">{t(x.status)}</span></td><td>{t(x.fitStatus)}</td><td>{fmt(x.followUpDate)}</td></tr>})}</tbody></table>}
+function Visits({rows,employeeMap,name,t,fmt,openEmployee}){return <table className="data-table sticky-table"><thead><tr><th>{t('date')}</th><th>{t('employee')}</th><th>{t('visitType')}</th><th>{t('status')}</th><th>{t('fitnessStatus')}</th><th>{t('followUp')}</th></tr></thead><tbody>{rows.map(x=>{const e=employeeMap[x.employeeId];return <tr key={x.id} className="clickable-row" tabIndex={0} onClick={()=>openEmployee(e.id)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openEmployee(e.id)}}><td>{fmt(x.date)}</td><td><strong>{name(e)}</strong><small>{e.id}</small></td><td>{t(x.type)}</td><td><span className="status-badge active">{t(x.status)}</span></td><td>{t(x.fitStatus)}</td><td>{fmt(x.followUpDate)}</td></tr>})}</tbody></table>}
