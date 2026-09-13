@@ -54,7 +54,9 @@ export function ControlsPage(){
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const canManage=can(role,CAPABILITIES.MANAGE_CONTROLS,addOns,custom)
- const canCreate=canManage
+ const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
+ const isDepartmentManager=role===ROLES.DEPARTMENT_MANAGER
+ const canCreate=canManage||(isDepartmentManager&&Boolean(ownDepartment))
 
  async function reload(){
   if(!tenant?.id){setProgramme([]);setLoading(false);return}
@@ -75,20 +77,21 @@ export function ControlsPage(){
  const dueSoon=scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='dueSoon').length
  const todayKey=new Date().toISOString().slice(0,10)
  const today=scopedControls.reduce((total,{item,departments:deps})=>total+deps.reduce((n,dep)=>n+(getAssignment(item,dep)?.history||[]).filter(h=>h.at?.slice(0,10)===todayKey).length,0),0)
- const createdByScope=role===ROLES.PLATFORM_OWNER?'platform':role===ROLES.HOSPITAL_ADMIN?'hospital_admin':role===ROLES.QUALITY_MANAGER?'quality':'infection_control'
+ const createdByScope=isDepartmentManager?'department':role===ROLES.PLATFORM_OWNER?'platform':role===ROLES.HOSPITAL_ADMIN?'hospital_admin':role===ROLES.QUALITY_MANAGER?'quality':'infection_control'
 
  async function saveNew(draft){
   try{
-   const saved=await saveControlDefinition(tenant.id,{...draft,createdByScope},{actorName:actor.name,createdByScope})
+   const scopedDraft=isDepartmentManager?{...draft,departments:[ownDepartment],createdByScope:'department',createdForDepartment:ownDepartment}:{...draft,createdByScope}
+   const saved=await saveControlDefinition(tenant.id,scopedDraft,{actorName:actor.name,createdByScope:scopedDraft.createdByScope,createdForDepartment:scopedDraft.createdForDepartment})
    setEditorOpen(false);notify(tx.created,'success');await reload()
    registry.openRecord(navigate,`/controls/${saved.id}`,saved.id)
   }catch(error){notifyError(error,'save',{operation:'control_definition_create'})}
  }
  function pageAction(action){if(action===UI_ACTIONS.CREATE&&canCreate)setEditorOpen(true)}
 
- if(editorOpen)return <ControlEditor onCancel={()=>setEditorOpen(false)} onSave={saveNew}/>
+ if(editorOpen)return <ControlEditor departmentOnly={isDepartmentManager} fixedDepartment={isDepartmentManager?ownDepartment:''} onCancel={()=>setEditorOpen(false)} onSave={saveNew}/>
 
- return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage?tx.centralSubtitle:tx.departmentSubtitle} actions={canCreate?<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>:null}>
+ return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={canCreate?<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>:null}>
   <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedControls.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue}/><Kpi icon={CheckCircle2} label={tx.today} value={today}/></div></div>
   <section className="surface registry-workspace workspace-fill workspace-column controls-registry-workspace">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')+(frequency!=='all')} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setFrequency('all')}}>
