@@ -9,8 +9,8 @@ describe('training participant assessment review',()=>{
   const review=read('src/features/training/TrainingResultsReview.jsx')
   expect(page).toContain('<TrainingResultsReview program={program} rows={assignments}')
   expect(review).toContain("Αξιολόγηση συμμετέχοντα")
-  expect(review).toContain("Υποβληθείσες απαντήσεις")
-  expect(review).toContain("Απαντήσεις φόρμας")
+  expect(review).toContain("Απαντήσεις αξιολόγησης γνώσεων")
+  expect(review).toContain("Απαντήσεις συμμετέχοντα")
  })
 
  it('requires an explicit reviewer acknowledgement before saving review evidence',()=>{
