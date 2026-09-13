@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect,useRef,useState } from 'react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
+import { loadLaboratorySamples,sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { updateEmployeeSurveillanceFollowup } from './employeeSurveillanceCloudService'
 
 const isPositive=row=>['positive','positive_recheck'].includes(row.resultStatus)
@@ -13,9 +13,13 @@ const hasPositiveHistory=samples=>samples.some(sample=>(sample.finalizedAt||samp
 export function EmployeeSurveillanceRecordDialog({organizationId,record,samples=[],canManage,t,language,fmt,onClose,onUpdated}){
   const {notify,notifyError}=useFeedback()
   const en=language==='en'
+  const samplesRef=useRef(samples)
+  samplesRef.current=samples
+  const sampleSignature=(samples||[]).map(sample=>sample.id).join('|')
   const [editMode,setEditMode]=useState(false)
   const [saving,setSaving]=useState(false)
   const [selected,setSelected]=useState(record)
+  const [resolvedSamples,setResolvedSamples]=useState(samples)
   const [intervention,setIntervention]=useState(record.intervention||'')
   const [interventionType,setInterventionType]=useState(record.interventionType||'')
   const [interventionStart,setInterventionStart]=useState(record.interventionStart||'')
@@ -25,7 +29,18 @@ export function EmployeeSurveillanceRecordDialog({organizationId,record,samples=
   const [noRecheck,setNoRecheck]=useState(Boolean(record.noRecheck))
   const [correctionReason,setCorrectionReason]=useState('')
 
-  const followupEligible=isPositive(selected)||selected.resultStatus==='cleared'||hasFollowup(selected)||hasPositiveHistory(samples)
+  useEffect(()=>{
+    const supplied=samplesRef.current||[]
+    if(supplied.length){setResolvedSamples(supplied);return}
+    if(!organizationId||!record?.recordId){setResolvedSamples([]);return}
+    let alive=true
+    loadLaboratorySamples(organizationId)
+      .then(rows=>{if(alive)setResolvedSamples((rows||[]).filter(sample=>sample.employeeSurveillanceId===record.recordId))})
+      .catch(error=>{if(alive){setResolvedSamples([]);notifyError(error,'load',{operation:'employee_surveillance_laboratory_load'})}})
+    return ()=>{alive=false}
+  },[organizationId,record?.recordId,sampleSignature,notifyError])
+
+  const followupEligible=isPositive(selected)||selected.resultStatus==='cleared'||hasFollowup(selected)||hasPositiveHistory(resolvedSamples)
 
   function loadFollowup(row){setIntervention(row.intervention||'');setInterventionType(row.interventionType||'');setInterventionStart(row.interventionStart||'');setInterventionEnd(row.interventionEnd||'');setNoIntervention(Boolean(row.noIntervention));setRecheckDate(row.recheckDue||'');setNoRecheck(Boolean(row.noRecheck));setCorrectionReason('')}
   function startEdit(){loadFollowup(selected);setEditMode(true)}
@@ -48,7 +63,7 @@ export function EmployeeSurveillanceRecordDialog({organizationId,record,samples=
   return <ObserverDialog eyebrow={en?'Employee screening record':'Καρτέλα ελέγχου εργαζομένου'} title={en?selected.employeeNameEn:selected.employeeName} subtitle={`${selected.id} · ${en?selected.departmentEn:selected.department}`} width="workspace" className="employee-screening-record-card" onClose={onClose} footer={editMode?<DialogActions onCancel={cancelEdit} onSave={saveFollowup} saveLabel={en?'Save changes':'Αποθήκευση αλλαγών'} disabled={saveDisabled} showCancel/>:(canManage&&followupEligible?<Button variant="secondary" onClick={startEdit}>{hasFollowup(selected)?(en?'Edit':'Επεξεργασία'):(en?'Record follow-up':'Καταγραφή παρακολούθησης')}</Button>:null)}>
     <div className="employee-record-status-strip"><div><small>{en?'Screening type':'Τύπος ελέγχου'}</small><strong>{(selected.screeningTypes||[]).map(type=>t(type)).join(', ')||'—'}</strong></div><div><small>{en?'Result':'Αποτέλεσμα'}</small><strong>{t(selected.resultStatus||'pending')}</strong></div><div><small>{en?'Status':'Κατάσταση'}</small><strong>{t(selected.status||'active')}</strong></div></div>
     {followupEligible&&<div className="employee-screening-flow"><div className="screening-flow-step done"><span>01</span><strong>{en?'Positive result':'Θετικό αποτέλεσμα'}</strong><small>{en?'Completed':'Ολοκληρώθηκε'}</small></div><div className={`screening-flow-step ${hasFollowup(selected)?'done':'current'}`}><span>02</span><strong>{en?'Intervention':'Παρέμβαση'}</strong><small>{en?'Optional':'Προαιρετικό'}</small></div><div className={`screening-flow-step ${selected.recheckDue||selected.noRecheck?'done':''}`}><span>03</span><strong>{en?'Recheck':'Επανέλεγχος'}</strong><small>{en?'Optional':'Προαιρετικό'}</small></div><div className={`screening-flow-step ${selected.resultStatus==='cleared'?'done':''}`}><span>04</span><strong>{en?'Outcome':'Έκβαση'}</strong><small>{selected.resultStatus==='cleared'?(en?'Completed':'Ολοκληρώθηκε'):(en?'Open':'Ανοιχτό')}</small></div></div>}
-    <section className="employee-record-section"><div className="followup-section-title"><strong>{en?'Laboratory results':'Εργαστηριακά αποτελέσματα'}</strong><span>{en?'Laboratory is the source of truth for results.':'Το εργαστήριο αποτελεί την πηγή αλήθειας για τα αποτελέσματα.'}</span></div><div className="employee-sample-list">{samples.length?samples.map(sample=><div key={sample.id} className="employee-sample-row"><div><strong>{sample.id}</strong><span>{sampleTypeLabel(sample.type,t)}</span></div><div><span className={`status-badge ${sample.result==='negative'?'active':''}`}>{sample.result?t(sample.result):t(sample.status)}</span>{sample.organism&&<small>{sample.organism}</small>}</div></div>):<div className="inline-empty">{t('noData')}</div>}</div></section>
+    <section className="employee-record-section"><div className="followup-section-title"><strong>{en?'Laboratory results':'Εργαστηριακά αποτελέσματα'}</strong><span>{en?'Laboratory is the source of truth for results.':'Το εργαστήριο αποτελεί την πηγή αλήθειας για τα αποτελέσματα.'}</span></div><div className="employee-sample-list">{resolvedSamples.length?resolvedSamples.map(sample=><div key={sample.id} className="employee-sample-row"><div><strong>{sample.id}</strong><span>{sampleTypeLabel(sample.type,t)}</span></div><div><span className={`status-badge ${sample.result==='negative'?'active':''}`}>{sample.result?t(sample.result):t(sample.status)}</span>{sample.organism&&<small>{sample.organism}</small>}</div></div>):<div className="inline-empty">{t('noData')}</div>}</div></section>
     {followupEligible&&<section className="employee-record-section followup-highlight"><div className="followup-section-title"><strong>{en?'Intervention & recheck':'Παρέμβαση & επανέλεγχος'}</strong><span>{en?'Recording follow-up is optional and can be corrected with a reason.':'Η καταγραφή παρακολούθησης είναι προαιρετική και μπορεί να διορθωθεί με αιτιολόγηση.'}</span></div>
       {!editMode&&<div className="followup-read-grid"><div><small>{en?'Intervention':'Παρέμβαση'}</small><strong>{selected.noIntervention?(en?'No intervention planned':'Δεν προγραμματίστηκε παρέμβαση'):(selected.interventionType||selected.intervention||(en?'Not recorded':'Δεν έχει καταγραφεί'))}</strong>{selected.intervention&&selected.interventionType&&<span>{selected.intervention}</span>}{selected.interventionStart&&<span>{en?'Start':'Έναρξη'}: {fmt(selected.interventionStart)}</span>}{selected.interventionEnd&&<span>{en?'End':'Λήξη'}: {fmt(selected.interventionEnd)}</span>}</div><div><small>{en?'Recheck':'Επανέλεγχος'}</small><strong>{selected.noRecheck?(en?'No recheck planned':'Δεν προγραμματίστηκε επανέλεγχος'):(selected.recheckDue?fmt(selected.recheckDue):(en?'Not scheduled':'Δεν έχει προγραμματιστεί'))}</strong></div></div>}
       {editMode&&<div className="employee-followup-edit-grid">
