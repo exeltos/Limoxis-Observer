@@ -6,9 +6,12 @@ const record=fs.readFileSync('src/features/controls/ControlRecordPage.jsx','utf8
 const editor=fs.readFileSync('src/features/controls/ControlEditor.jsx','utf8')
 
 describe('controls definition-centric workflow',()=>{
- it('shows one registry row per control definition',()=>{
-  expect(registry).toContain('rowKey={row=>row.item.id}')
-  expect(registry).toContain('registry.openRecord(navigate,`/controls/${row.item.id}`')
+ it('shows one registry row per control definition using the canonical registry layout',()=>{
+  expect(registry).toContain('pagedRows.map(({item,departments:deps})=>')
+  expect(registry).toContain('<tr key={item.id}')
+  expect(registry).toContain('registry.openRecord(navigate,`/controls/${item.id}`')
+  expect(registry).toContain('<div className="scroll-table" ref={registry.scrollRef}>')
+  expect(registry).toContain('<RegistryPagination language={language}')
   expect(registry).not.toContain('rowKey={row=>`${row.item.id}:${row.department}`}')
  })
 
