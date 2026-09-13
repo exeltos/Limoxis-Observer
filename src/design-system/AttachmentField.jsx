@@ -17,6 +17,29 @@ const defaultCategories=[
   ['other','other'],
 ]
 
+const employeeDocumentCategories={
+  el:[
+    ['certification','Πιστοποίηση'],
+    ['employmentCertificate','Βεβαίωση εργασίας'],
+    ['professionalLicense','Άδεια άσκησης επαγγέλματος'],
+    ['degree','Πτυχίο / τίτλος σπουδών'],
+    ['trainingCertificate','Πιστοποιητικό εκπαίδευσης'],
+    ['identityDocument','Έγγραφο ταυτοποίησης'],
+    ['medicalDocument','Ιατρικό έγγραφο'],
+    ['other','Άλλο έγγραφο'],
+  ],
+  en:[
+    ['certification','Certification'],
+    ['employmentCertificate','Employment certificate'],
+    ['professionalLicense','Professional licence'],
+    ['degree','Degree / qualification'],
+    ['trainingCertificate','Training certificate'],
+    ['identityDocument','Identity document'],
+    ['medicalDocument','Medical document'],
+    ['other','Other document'],
+  ],
+}
+
 export function AttachmentField({
   disabled=false,
   value=[],
@@ -27,8 +50,11 @@ export function AttachmentField({
   entityType=null,
   entityId=null,
 }){
-  const {t}=useLanguage()
+  const {t,language}=useLanguage()
   const {confirm,notify}=useFeedback()
+  const employeeDocumentMode=entityType==='employee-certificate'
+  const effectiveCategories=employeeDocumentMode?employeeDocumentCategories[language==='en'?'en':'el']:categories
+  const employeeDocumentTypeLabel=language==='en'?'Document type':'Τύπος εγγράφου'
   const cloudMode = cloudAttachmentsEnabled() && Boolean(organizationId) && Boolean(entityType) && Boolean(entityId)
   const [files,setFiles]=useState(value)
   const [cloudLoading,setCloudLoading]=useState(cloudMode)
@@ -50,7 +76,7 @@ export function AttachmentField({
   },[cloudMode,organizationId,entityType,entityId])
 
   function beginAdd(){
-    setEditor({mode:'add',id:null,file:null,name:'',category:categories[0]?.[0]||'other',description:'',stagedAttachment:null,dataUrl:''})
+    setEditor({mode:'add',id:null,file:null,name:'',category:effectiveCategories[0]?.[0]||'other',description:'',stagedAttachment:null,dataUrl:''})
   }
   function beginEdit(file){
     setEditor({
@@ -58,7 +84,7 @@ export function AttachmentField({
       id:file.id,
       file:null,
       name:file.name||'',
-      category:file.category||categories[0]?.[0]||'other',
+      category:file.category||effectiveCategories[0]?.[0]||'other',
       description:file.description||'',
       stagedAttachment:null,
     })
@@ -72,7 +98,7 @@ export function AttachmentField({
       setBusy(true)
       try{
         const snapshot=editor
-        const added=await uploadAttachment(organizationId,entityType,entityId,file,{category:snapshot?.category||categories[0]?.[0]||'other',description:(snapshot?.description||'').trim()})
+        const added=await uploadAttachment(organizationId,entityType,entityId,file,{category:snapshot?.category||effectiveCategories[0]?.[0]||'other',description:(snapshot?.description||'').trim()})
         setEditor(current=>current?{...current,file:null,id:added.id,name:added.name||file.name,stagedAttachment:added}:current)
       }catch{
         setEditor(current=>current?{...current,file:null,name:'',stagedAttachment:null}:current)
@@ -193,14 +219,15 @@ export function AttachmentField({
     if(file.dataUrl||file.objectUrl||file.url)window.open(file.dataUrl||file.objectUrl||file.url,'_blank','noopener,noreferrer')
   }
   const categoryLabel=code=>{
-    const row=categories.find(([value])=>value===code)
+    const row=effectiveCategories.find(([value])=>value===code)
+    if(employeeDocumentMode)return row?.[1]||code||'—'
     return t(row?.[1]||code||'other')
   }
   const canView=file=>cloudMode?Boolean(file.storagePath):Boolean(file.dataUrl||file.objectUrl||file.url)
   const addReady=editor?.mode==='add'?(cloudMode?Boolean(editor.stagedAttachment):Boolean(editor.file)):true
 
   return <div className="attachment-field attachment-field-v2">
-    <div className="attachment-heading"><Paperclip size={16}/><strong>{t('attachments')}</strong><span>{files.length}</span></div>
+    <div className="attachment-heading"><Paperclip size={16}/><strong>{employeeDocumentMode?(language==='en'?'Documents & certifications':'Έγγραφα & πιστοποιήσεις'):t('attachments')}</strong><span>{files.length}</span></div>
 
     {cloudMode&&cloudLoading&&<div className="inline-empty">{t('loading')||'…'}</div>}
     {cloudMode&&cloudError&&<div className="data-access-state error" role="alert">{t('loadFailed')||'Could not load attachments.'}</div>}
@@ -221,11 +248,11 @@ export function AttachmentField({
       </div>)}
     </div>}
 
-    {!disabled&&!cloudLoading&&<div className="attachment-add-row"><ActionButton tone="neutral" label={t('addAttachment')} disabled={busy} onClick={beginAdd}><FilePlus2 size={15}/><span>{t('addAttachment')}</span></ActionButton></div>}
+    {!disabled&&!cloudLoading&&<div className="attachment-add-row"><ActionButton tone="neutral" label={t('addAttachment')} disabled={busy} onClick={beginAdd}><FilePlus2 size={15}/><span>{employeeDocumentMode?(language==='en'?'Add document':'Προσθήκη εγγράφου'):t('addAttachment')}</span></ActionButton></div>}
 
     {editor&&<ObserverDialog
-      eyebrow={t('attachments')}
-      title={editor.mode==='add'?t('newAttachment'):t('editAttachment')}
+      eyebrow={employeeDocumentMode?(language==='en'?'Employee documents':'Έγγραφα εργαζομένου'):t('attachments')}
+      title={editor.mode==='add'?(employeeDocumentMode?(language==='en'?'New document':'Νέο έγγραφο'):t('newAttachment')):t('editAttachment')}
       onClose={closeEditor}
       width="standard"
       className="attachment-editor-dialog"
@@ -237,8 +264,8 @@ export function AttachmentField({
           <div className={(editor.file||editor.stagedAttachment)?'has-file':''}>{busy?<LoaderCircle className="lo-inline-spinner" size={16}/>:<FilePlus2 size={16}/>}<strong>{editor.name||t('selectFile')}</strong></div>
         </label>}
         {editor.mode==='edit'&&<div className="attachment-current-file"><span>{t('file')}</span><strong>{editor.name}</strong></div>}
-        <label className="field"><span>{t('documentCategory')}</span><select disabled={busy} value={editor.category} onChange={e=>setEditor(x=>({...x,category:e.target.value}))}>{categories.map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}</select></label>
-        <label className="attachment-editor-description field"><span>{t('description')}</span><textarea disabled={busy} rows={3} value={editor.description} onChange={e=>setEditor(x=>({...x,description:e.target.value}))} placeholder={t('attachmentDescriptionPlaceholder')}/></label>
+        <label className="field"><span>{employeeDocumentMode?employeeDocumentTypeLabel:t('documentCategory')}</span><select disabled={busy} value={editor.category} onChange={e=>setEditor(x=>({...x,category:e.target.value}))}>{effectiveCategories.map(([value,label])=><option key={value} value={value}>{employeeDocumentMode?label:t(label)}</option>)}</select></label>
+        <label className="attachment-editor-description field"><span>{t('description')}</span><textarea disabled={busy} rows={3} value={editor.description} onChange={e=>setEditor(x=>({...x,description:e.target.value}))} placeholder={employeeDocumentMode?(language==='en'?'Optional title, issuer or note…':'Προαιρετικός τίτλος, φορέας ή σημείωση…'):t('attachmentDescriptionPlaceholder')}/></label>
         {busy&&<div className="attachment-upload-progress" role="status" aria-live="polite"><LoaderCircle size={22}/><span>{editor.mode==='add'?(t('uploading')||'Μεταφόρτωση…'):(t('saving')||'Αποθήκευση…')}</span></div>}
       </div>
     </ObserverDialog>}
