@@ -34,12 +34,11 @@ describe('indicator calculation integrity and governance links',()=>{
   expect(migration).toContain('MDR/XDR/PDR βακτηριαιμίες')
  })
 
- it('keeps manual entry inside the indicator record while the board remains a read-only registry',()=>{
+ it('keeps the indicator record focused on the governed definition instead of duplicate result entry',()=>{
   expect(page).not.toContain('indicator-manual-value')
-  expect(page).toContain('Καταχώρηση μέσα στον δείκτη')
-  expect(record).toContain('type="number"')
-  expect(record).toContain('Αποθήκευση αποτελέσματος')
-  expect(record).toContain("record.calculationType==='manual'")
+  expect(record).not.toContain('indicator-period-result')
+  expect(record).not.toContain('savePeriodResult')
+  expect(record).not.toContain('Αποθήκευση αποτελέσματος')
  })
 
  it('links committee annual-plan objectives to governed indicator definitions',()=>{
