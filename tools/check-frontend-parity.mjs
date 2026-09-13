@@ -34,8 +34,17 @@ for (const file of candidates) {
   const relative = path.relative(root, file).split(path.sep).join('/')
   const hasEnvironmentPageImports = /import\s+.*(?:DemoPage|CloudPage|ProductionPage|DemoRecordPage|CloudRecordPage)/.test(source)
   const branchesAtPageBoundary = /return\s+(?:isDemo\s*\?|isDemo\s*\)|<Suspense)|if\s*\(\s*!?isDemo\s*\)\s*return\s*</s.test(source)
+  const demoEarlyUiReturn = /if\s*\(\s*isDemo\s*\)\s*return\s*</s.test(source)
+  const environmentComponentTernary = /isDemo\s*\?\s*<[A-Z][\w.]*[\s\S]{0,400}?:\s*<[A-Z][\w.]*/s.test(source)
+
   if (hasEnvironmentPageImports && branchesAtPageBoundary && !allowed.has(relative)) {
     violations.push(`${relative}: page-level Demo/Production branch detected; select a repository instead of JSX`)
+  }
+  if (demoEarlyUiReturn && !allowed.has(relative)) {
+    violations.push(`${relative}: Demo-only early JSX return detected; keep the same component tree and select demo data/repositories instead`)
+  }
+  if (environmentComponentTernary && !allowed.has(relative)) {
+    violations.push(`${relative}: isDemo selects different React components; inject normalized data or a repository into one canonical component instead`)
   }
 }
 
