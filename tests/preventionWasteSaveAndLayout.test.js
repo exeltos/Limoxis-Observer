@@ -19,11 +19,12 @@ describe('prevention waste editor refinements',()=>{
     expect(waste).not.toContain('&&departments.length&&wasteTypes.length')
   })
 
-  it('keeps the two waste dates compact and gives Department most of the first row',()=>{
-    expect(css).toContain('grid-template-columns:repeat(12,minmax(0,1fr))')
+  it('keeps waste dates compact but wide enough for the full date and leaves Department largest',()=>{
+    expect(css).toContain('grid-template-columns:repeat(24,minmax(0,1fr))')
     expect(css).toContain('>.waste-date-field')
-    expect(css).toContain('grid-column:span 2!important')
+    expect(css).toContain('grid-column:span 5!important')
     expect(css).toContain('>.waste-department-field')
+    expect(css).toContain('grid-column:span 14!important')
     expect(css).toContain('grid-column:span 8!important')
   })
 
