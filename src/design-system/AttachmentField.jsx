@@ -50,7 +50,7 @@ export function AttachmentField({
   },[cloudMode,organizationId,entityType,entityId])
 
   function beginAdd(){
-    setEditor({mode:'add',id:null,file:null,name:'',category:categories[0]?.[0]||'other',description:''})
+    setEditor({mode:'add',id:null,file:null,name:'',category:categories[0]?.[0]||'other',description:'',stagedAttachment:null,dataUrl:''})
   }
   function beginEdit(file){
     setEditor({
@@ -60,28 +60,55 @@ export function AttachmentField({
       name:file.name||'',
       category:file.category||categories[0]?.[0]||'other',
       description:file.description||'',
+      stagedAttachment:null,
     })
   }
-  function chooseFile(event){
+  async function chooseFile(event){
     const file=event.target.files?.[0]||null
-    if(!file)return
-    setEditor(current=>({...current,file,name:file.name,dataUrl:''}))
-    if(!cloudMode&&file.size<=4*1024*1024){
+    event.target.value=''
+    if(!file||busy)return
+    setEditor(current=>current?{...current,file,name:file.name,dataUrl:'',stagedAttachment:null}:current)
+    if(cloudMode){
+      setBusy(true)
+      try{
+        const snapshot=editor
+        const added=await uploadAttachment(organizationId,entityType,entityId,file,{category:snapshot?.category||categories[0]?.[0]||'other',description:(snapshot?.description||'').trim()})
+        setEditor(current=>current?{...current,file:null,id:added.id,name:added.name||file.name,stagedAttachment:added}:current)
+      }catch{
+        setEditor(current=>current?{...current,file:null,name:'',stagedAttachment:null}:current)
+        notify(t('actionFailed')||'Upload failed.','danger')
+      }finally{
+        setBusy(false)
+      }
+      return
+    }
+    if(file.size<=4*1024*1024){
+      setBusy(true)
       const reader=new FileReader()
-      reader.onload=()=>setEditor(current=>current?{...current,dataUrl:String(reader.result||'')}:current)
+      reader.onload=()=>{setEditor(current=>current?{...current,dataUrl:String(reader.result||'')}:current);setBusy(false)}
+      reader.onerror=()=>setBusy(false)
       reader.readAsDataURL(file)
     }
-    event.target.value=''
+  }
+  async function closeEditor(){
+    if(busy)return
+    if(cloudMode&&editor?.mode==='add'&&editor?.stagedAttachment?.id){
+      setBusy(true)
+      try{await deleteAttachment(editor.stagedAttachment.id)}catch{}finally{setBusy(false);setEditor(null)}
+      return
+    }
+    setEditor(null)
   }
   async function saveEditor(){
-    if(!editor)return
-    if(editor.mode==='add'&&!editor.file)return
+    if(!editor||busy)return
+    if(editor.mode==='add'&&cloudMode&&!editor.stagedAttachment)return
+    if(editor.mode==='add'&&!cloudMode&&!editor.file)return
     if(cloudMode){
       setBusy(true)
       try{
         if(editor.mode==='add'){
-          const added=await uploadAttachment(organizationId,entityType,entityId,editor.file,{category:editor.category,description:editor.description.trim()})
-          const next=[...files,added]
+          const updated=await updateAttachmentMetadata(editor.stagedAttachment.id,{category:editor.category,description:editor.description.trim()})
+          const next=[...files,updated]
           setFiles(next); onChange(next)
         }else{
           const updated=await updateAttachmentMetadata(editor.id,{category:editor.category,description:editor.description.trim()})
@@ -170,6 +197,7 @@ export function AttachmentField({
     return t(row?.[1]||code||'other')
   }
   const canView=file=>cloudMode?Boolean(file.storagePath):Boolean(file.dataUrl||file.objectUrl||file.url)
+  const addReady=editor?.mode==='add'?(cloudMode?Boolean(editor.stagedAttachment):Boolean(editor.file)):true
 
   return <div className="attachment-field attachment-field-v2">
     <div className="attachment-heading"><Paperclip size={16}/><strong>{t('attachments')}</strong><span>{files.length}</span></div>
@@ -198,19 +226,19 @@ export function AttachmentField({
     {editor&&<ObserverDialog
       eyebrow={t('attachments')}
       title={editor.mode==='add'?t('newAttachment'):t('editAttachment')}
-      onClose={()=>!busy&&setEditor(null)}
+      onClose={closeEditor}
       width="standard"
       className="attachment-editor-dialog"
-      footer={<DialogActions onSave={saveEditor} saveLabel={busy?(t('saving')||'…'):t('save')} disabled={busy||(editor.mode==='add'&&!editor.file)} showCancel onCancel={()=>setEditor(null)} cancelLabel={t('cancel')}/>}>
+      footer={<DialogActions onSave={saveEditor} saveLabel={t('save')} disabled={busy||!addReady} showCancel onCancel={closeEditor} cancelLabel={t('cancel')}/>}>
       <div className="attachment-editor-grid">
         {editor.mode==='add'&&<label className="attachment-file-picker field">
           <span>{t('file')}</span>
-          <input type="file" accept={accept} onChange={chooseFile}/>
-          <div className={editor.file?'has-file':''}><FilePlus2 size={16}/><strong>{editor.file?.name||t('selectFile')}</strong></div>
+          <input type="file" accept={accept} disabled={busy} onChange={chooseFile}/>
+          <div className={(editor.file||editor.stagedAttachment)?'has-file':''}>{busy?<LoaderCircle className="lo-inline-spinner" size={16}/>:<FilePlus2 size={16}/>}<strong>{editor.name||t('selectFile')}</strong></div>
         </label>}
         {editor.mode==='edit'&&<div className="attachment-current-file"><span>{t('file')}</span><strong>{editor.name}</strong></div>}
-        <label className="field"><span>{t('documentCategory')}</span><select value={editor.category} onChange={e=>setEditor(x=>({...x,category:e.target.value}))}>{categories.map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}</select></label>
-        <label className="attachment-editor-description field"><span>{t('description')}</span><textarea rows={3} value={editor.description} onChange={e=>setEditor(x=>({...x,description:e.target.value}))} placeholder={t('attachmentDescriptionPlaceholder')}/></label>
+        <label className="field"><span>{t('documentCategory')}</span><select disabled={busy} value={editor.category} onChange={e=>setEditor(x=>({...x,category:e.target.value}))}>{categories.map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}</select></label>
+        <label className="attachment-editor-description field"><span>{t('description')}</span><textarea disabled={busy} rows={3} value={editor.description} onChange={e=>setEditor(x=>({...x,description:e.target.value}))} placeholder={t('attachmentDescriptionPlaceholder')}/></label>
         {busy&&<div className="attachment-upload-progress" role="status" aria-live="polite"><LoaderCircle size={22}/><span>{editor.mode==='add'?(t('uploading')||'Μεταφόρτωση…'):(t('saving')||'Αποθήκευση…')}</span></div>}
       </div>
     </ObserverDialog>}
