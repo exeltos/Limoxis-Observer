@@ -94,7 +94,7 @@ export function AttachmentField({
     if(busy)return
     if(cloudMode&&editor?.mode==='add'&&editor?.stagedAttachment?.id){
       setBusy(true)
-      try{await deleteAttachment(editor.stagedAttachment.id)}catch{}finally{setBusy(false);setEditor(null)}
+      try{await deleteAttachment(editor.stagedAttachment.id)}catch(error){void error}finally{setBusy(false);setEditor(null)}
       return
     }
     setEditor(null)
