@@ -1,0 +1,13 @@
+/* Explicit UI fixes requested after visual verification. */
+.employee-secondary-registry.employee-vaccinations-registry .scroll-table{overflow:visible!important;max-height:none!important;height:auto!important}
+.employee-secondary-registry.employee-vaccinations-registry .sticky-table thead th{position:static!important}
+
+.vaccination-employee-list{max-height:none!important;overflow:visible!important;padding:0!important;gap:0!important;border-radius:10px!important}
+.vaccination-employee-list label{display:grid!important;grid-template-columns:22px minmax(0,1fr)!important;align-items:center!important;gap:10px!important;padding:10px 12px!important;border-radius:0!important;border-bottom:1px solid var(--lo-color-border)!important}
+.vaccination-employee-list label:last-child{border-bottom:0!important}
+.vaccination-employee-list label input{grid-column:1!important;justify-self:start!important;margin:0!important;width:17px!important;height:17px!important}
+.vaccination-employee-list label span{grid-column:2!important;min-width:0!important;display:flex!important;align-items:baseline!important;gap:14px!important}
+.vaccination-employee-list label strong{min-width:240px!important}
+
+.prevention-record-shell .bundle-followup-meta>.btn{background:var(--lo-color-primary)!important;border-color:var(--lo-color-primary)!important;color:#fff!important;box-shadow:0 1px 2px rgba(20,49,73,.12)!important}
+.prevention-record-shell .bundle-followup-meta>.btn:hover{filter:brightness(.96)!important;color:#fff!important}
