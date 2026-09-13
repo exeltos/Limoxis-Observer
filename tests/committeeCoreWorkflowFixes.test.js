@@ -30,9 +30,13 @@ describe('committee core workflow fixes',()=>{
     expect(recordPage).toContain("value=\"__other\"")
   })
 
-  it('uses the compact shared filter pattern for decisions',()=>{
-    expect(recordPage).toContain('<FilterBar compact query={q}')
-    expect(recordPage).toContain("workflowStatusLabel(x.status,en)")
+  it('keeps decisions simple without a local search or filter bar',()=>{
+    const start=recordPage.indexOf('function Decisions')
+    const end=recordPage.indexOf('function Plan',start)
+    const section=recordPage.slice(start,end)
+    expect(section).not.toContain('FilterBar')
+    expect(section).not.toContain('FilterSelect')
+    expect(section).toContain("workflowStatusLabel(x.status,en)")
   })
 
   it('opens the meeting returned by the create operation',()=>{

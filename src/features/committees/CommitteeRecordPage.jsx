@@ -1,4 +1,4 @@
-import { useMemo,useState } from 'react'
+import { useEffect,useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { CalendarDays,CheckCircle2,ClipboardList,FileClock,Paperclip,Pencil,Plus,ShieldCheck,Target,Trash2,Users,XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -13,7 +13,6 @@ import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
 import { AttachmentField } from '../../design-system/AttachmentField'
-import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { MetricCard } from '../../design-system/MetricCard'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
@@ -23,6 +22,7 @@ import { useAuditActor } from '../../core/audit/useAuditActor'
 import { canForRecord,CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useEmployeesData } from '../employees/useEmployeesData'
+import { loadIndicatorDefinitions } from '../indicators/indicatorDefinitionService'
 import { useCommitteesData } from './useCommitteesData'
 import { saveCommittees } from './committeeData'
 import { CommitteeApprovalPanel } from './CommitteeApprovalPanel'
@@ -293,10 +293,7 @@ function Meetings({rows,canCreate,canCancel,onAdd,onOpen,onCancel,en}){
 }
 
 function Decisions({rows,canManage,onAdd,onEdit,onStatus,en}){
-  const [q,setQ]=useState('')
-  const [status,setStatus]=useState('all')
-  const filtered=rows.filter(x=>(status==='all'||x.status===status)&&`${x.title} ${x.action} ${x.owner}`.toLowerCase().includes(q.toLowerCase()))
-  return <section className="record-section committee-decisions"><Head title={en?'Decisions & actions':'Αποφάσεις & ενέργειες'} action={canManage&&<ActionButton tone="primary" label={en?'New decision':'Νέα απόφαση'} onClick={onAdd}><Plus size={15}/><span>{en?'New decision':'Νέα απόφαση'}</span></ActionButton>}/><FilterBar compact query={q} placeholder={en?'Search decisions or owner…':'Αναζήτηση απόφασης ή υπεύθυνου…'} onQueryChange={setQ} onClear={()=>{setQ('');setStatus('all')}} activeAdvancedCount={status==='all'?0:1}><FilterSelect label={en?'Status':'Κατάσταση'} value={status} onChange={setStatus}><option value="all">{en?'All':'Όλες'}</option><option value="open">{en?'Open':'Ανοιχτή'}</option><option value="in_progress">{en?'In progress':'Σε εξέλιξη'}</option><option value="completed">{en?'Completed':'Ολοκληρωμένη'}</option></FilterSelect></FilterBar><div className="scroll-table"><table className="data-table"><thead><tr><th>{en?'Decision':'Απόφαση'}</th><th>{en?'Owner':'Υπεύθυνος'}</th><th>{en?'Due':'Προθεσμία'}</th><th>{en?'Status':'Κατάσταση'}</th>{canManage&&<th/>}</tr></thead><tbody>{filtered.map(x=><tr key={x.id}><td><strong>{x.title}</strong><small>{x.action||'—'}</small></td><td>{x.owner||'—'}</td><td>{fmtDate(x.dueDate)}</td><td><span className={`status-badge ${workflowStatusClass(x.status)}`}>{workflowStatusLabel(x.status,en)}</span></td>{canManage&&<td><OverflowMenu label={en?'Decision actions':'Ενέργειες απόφασης'} items={[{id:'edit',label:en?'Edit decision':'Επεξεργασία απόφασης',icon:Pencil,onClick:()=>onEdit(x)},x.status!=='completed'&&{id:'complete',label:en?'Mark completed':'Σήμανση ως ολοκληρωμένη',icon:CheckCircle2,onClick:()=>onStatus(x,'completed')}].filter(Boolean)}/></td>}</tr>)}</tbody></table>{!filtered.length&&<div className="inline-empty">{en?'No decisions or actions yet.':'Δεν υπάρχουν ακόμη αποφάσεις ή ενέργειες.'}</div>}</div></section>
+  return <section className="record-section committee-decisions"><Head title={en?'Decisions & actions':'Αποφάσεις & ενέργειες'} action={canManage&&<ActionButton tone="primary" label={en?'New decision':'Νέα απόφαση'} onClick={onAdd}><Plus size={15}/><span>{en?'New decision':'Νέα απόφαση'}</span></ActionButton>}/><div className="scroll-table"><table className="data-table"><thead><tr><th>{en?'Decision':'Απόφαση'}</th><th>{en?'Owner':'Υπεύθυνος'}</th><th>{en?'Due':'Προθεσμία'}</th><th>{en?'Status':'Κατάσταση'}</th>{canManage&&<th/>}</tr></thead><tbody>{rows.map(x=><tr key={x.id}><td><strong>{x.title}</strong><small>{x.action||'—'}</small></td><td>{x.owner||'—'}</td><td>{fmtDate(x.dueDate)}</td><td><span className={`status-badge ${workflowStatusClass(x.status)}`}>{workflowStatusLabel(x.status,en)}</span></td>{canManage&&<td><OverflowMenu label={en?'Decision actions':'Ενέργειες απόφασης'} items={[{id:'edit',label:en?'Edit decision':'Επεξεργασία απόφασης',icon:Pencil,onClick:()=>onEdit(x)},x.status!=='completed'&&{id:'complete',label:en?'Mark completed':'Σήμανση ως ολοκληρωμένη',icon:CheckCircle2,onClick:()=>onStatus(x,'completed')}].filter(Boolean)}/></td>}</tr>)}</tbody></table>{!rows.length&&<div className="inline-empty">{en?'No decisions or actions yet.':'Δεν υπάρχουν ακόμη αποφάσεις ή ενέργειες.'}</div>}</div></section>
 }
 
 function Plan({rows,canManage,onAdd,onEdit,onDelete,en}){
@@ -368,9 +365,14 @@ function DecisionDialog({initial,meetings,busy,onClose,onSave,en}){
 }
 
 function PlanDialog({initial,busy,onClose,onSave,en}){
+  const {tenant}=useTenant()
   const [v,setV]=useState(initial?{...initial,status:initial.status||'open'}:{title:'',indicator:'',baseline:'',target:'',owner:'',dueDate:'',status:'open'})
+  const [indicatorOptions,setIndicatorOptions]=useState([])
   const set=(k,x)=>setV(s=>({...s,[k]:x}))
-  return <ObserverDialog width="wide" title={initial?(en?'Edit objective':'Επεξεργασία στόχου'):(en?'New objective':'Νέος στόχος')} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={busy||!v.title.trim()} onSave={()=>onSave(v)}/>}><div className="entry-grid compact"><label className="entry-span-2"><span>{en?'Objective':'Στόχος'}</span><input value={v.title} onChange={e=>set('title',e.target.value)}/></label><label><span>{en?'Indicator':'Δείκτης'}</span><input value={v.indicator||''} onChange={e=>set('indicator',e.target.value)}/></label><label><span>{en?'Baseline value':'Τιμή βάσης (Baseline)'}</span><input value={v.baseline||''} onChange={e=>set('baseline',e.target.value)}/></label><label><span>{en?'Target value':'Τιμή στόχου'}</span><input value={v.target||''} onChange={e=>set('target',e.target.value)}/></label><label><span>{en?'Owner':'Υπεύθυνος'}</span><input value={v.owner||''} onChange={e=>set('owner',e.target.value)}/></label><label><span>{en?'Status':'Κατάσταση'}</span><select value={v.status||'open'} onChange={e=>set('status',e.target.value)}><option value="open">{en?'Open':'Ανοιχτός'}</option><option value="in_progress">{en?'In progress':'Σε εξέλιξη'}</option><option value="completed">{en?'Completed':'Ολοκληρωμένος'}</option></select></label><ManualDateField label={en?'Due date':'Προθεσμία'} value={v.dueDate||''} onChange={x=>set('dueDate',x)} optional/></div></ObserverDialog>
+  useEffect(()=>{let active=true;if(!tenant?.id){setIndicatorOptions([]);return()=>{active=false}};loadIndicatorDefinitions(tenant.id).then(rows=>{if(active)setIndicatorOptions((rows||[]).filter(x=>x.status==='active'))}).catch(()=>{if(active)setIndicatorOptions([])});return()=>{active=false}},[tenant?.id])
+  const selectedIndicator=indicatorOptions.find(x=>[x.titleEl,x.titleEn,x.key].filter(Boolean).includes(v.indicator))||null
+  const selectIndicator=id=>{const item=indicatorOptions.find(x=>x.id===id);set('indicator',item?(en?(item.titleEn||item.titleEl):item.titleEl):'')}
+  return <ObserverDialog width="wide" title={initial?(en?'Edit objective':'Επεξεργασία στόχου'):(en?'New objective':'Νέος στόχος')} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={busy||!v.title.trim()} onSave={()=>onSave(v)}/>}><div className="entry-grid compact"><label className="entry-span-2"><span>{en?'Objective':'Στόχος'}</span><input value={v.title} onChange={e=>set('title',e.target.value)}/></label><label><span>{en?'Linked indicator':'Συνδεδεμένος δείκτης'}</span><select value={selectedIndicator?.id||''} onChange={e=>selectIndicator(e.target.value)}><option value="">{en?'No indicator':'Χωρίς δείκτη'}</option>{indicatorOptions.map(item=><option key={item.id} value={item.id}>{en?(item.titleEn||item.titleEl):item.titleEl}</option>)}</select>{v.indicator&&!selectedIndicator&&<small>{en?'The previous free-text value is not linked to an active indicator. Select an indicator or choose No indicator.':'Η παλιά ελεύθερη τιμή δεν είναι συνδεδεμένη με ενεργό δείκτη. Επιλέξτε δείκτη ή «Χωρίς δείκτη».'}</small>}</label><label><span>{en?'Baseline value':'Τιμή βάσης (Baseline)'}</span><input value={v.baseline||''} onChange={e=>set('baseline',e.target.value)}/></label><label><span>{en?'Target value':'Τιμή στόχου'}</span><input value={v.target||''} onChange={e=>set('target',e.target.value)}/></label><label><span>{en?'Owner':'Υπεύθυνος'}</span><input value={v.owner||''} onChange={e=>set('owner',e.target.value)}/></label><label><span>{en?'Status':'Κατάσταση'}</span><select value={v.status||'open'} onChange={e=>set('status',e.target.value)}><option value="open">{en?'Open':'Ανοιχτός'}</option><option value="in_progress">{en?'In progress':'Σε εξέλιξη'}</option><option value="completed">{en?'Completed':'Ολοκληρωμένος'}</option></select></label><ManualDateField label={en?'Due date':'Προθεσμία'} value={v.dueDate||''} onChange={x=>set('dueDate',x)} optional/></div></ObserverDialog>
 }
 
 function FrameworkDialog({record,busy,onClose,onSave,en}){
