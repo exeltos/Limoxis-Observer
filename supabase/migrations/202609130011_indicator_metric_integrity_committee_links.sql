@@ -239,6 +239,5 @@ grant execute on function private.indicator_metric_snapshot(uuid,date,date,uuid)
 update public.indicator_definitions
 set title_el='MDR/XDR/PDR βακτηριαιμίες ανά 1.000 ασθενοημέρες',
     title_en='MDR/XDR/PDR bloodstream infections per 1,000 patient-days',
-    source_authority='Εργαστήριο · Επιτήρηση · ΕΟΔΥ',
-    updated_at=now()
+    source_authority='Εργαστήριο · Επιτήρηση · ΕΟΔΥ'
 where organization_id is null and indicator_key='mdro-bsi-rate';
