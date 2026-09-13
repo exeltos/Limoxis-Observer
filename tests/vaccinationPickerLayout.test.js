@@ -1,12 +1,15 @@
 import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
 
+const editor=fs.readFileSync('src/features/prevention/StaffVaccinationEditor.jsx','utf8')
 const css=fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.css','utf8')
 
 describe('vaccination employee picker layout',()=>{
  it('keeps checkbox and employee details on one compact row',()=>{
-  expect(css).toContain('.vaccination-employee-list>label{display:flex!important')
-  expect(css).toContain('>label>input[type="checkbox"]')
-  expect(css).toContain('>label>span{display:flex!important')
+  expect(editor).toContain('vaccination-employee-row')
+  expect(editor).toContain('vaccination-employee-copy')
+  expect(css).toContain('.vaccination-employee-row{display:flex;align-items:center;gap:12px')
+  expect(css).toContain('.vaccination-employee-row>input[type="checkbox"]')
+  expect(css).toContain('.vaccination-employee-copy{display:flex!important')
  })
 })
