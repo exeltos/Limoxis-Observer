@@ -35,17 +35,17 @@ describe('employee record canonical tabs',()=>{
   it('keeps training and evaluations tied to their canonical sources',()=>{
     expect(service).toContain("source:'training_records'")
     expect(service).toContain("source:'employee_evaluations'")
-    expect(tabs).toContain("goTo(`/training/${selected.programId}`,{tab:'training'})")
+    expect(tabs).toContain("returnTo:`/employees/${encodeURIComponent(employee.id)}`")
+    expect(tabs).toContain("returnTab:'training'")
     expect(tabs).toContain("selected.source==='training'")
   })
 
-  it('restores structured certifications while keeping governed files attached to the correct entity',()=>{
-    expect(tabs).toContain('loadCertificatesAsync')
-    expect(tabs).toContain('createCertificateAsync')
-    expect(tabs).toContain('updateCertificateAsync')
-    expect(tabs).toContain('deleteCertificateAsync')
-    expect(tabs).toContain('entityId={selected.id}')
-    expect(service).toContain('export async function deleteCertificateAsync')
+  it('uses one governed employee document attachment workspace',()=>{
+    expect(tabs).toContain('employee-documents-workspace')
+    expect(tabs).toContain('entityType="employee-certificate"')
+    expect(tabs).toContain('entityId={employee.dbId||employee.id}')
+    expect(tabs).not.toContain('loadCertificatesAsync')
+    expect(tabs).not.toContain('createCertificateAsync')
   })
 
   it('keeps surveillance linked to the canonical employee episodes and laboratory samples',()=>{
