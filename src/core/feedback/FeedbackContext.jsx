@@ -15,6 +15,7 @@ function emitDiagnostic(detail){
 export function FeedbackProvider({ children }) {
   const [items, setItems] = useState([])
   const [confirmState, setConfirmState] = useState(null)
+  const [confirmInput,setConfirmInput]=useState('')
   const { t, language } = useLanguage()
   const notify = useCallback((message, tone = 'info', meta={}) => {
     const id = nextId++
@@ -37,17 +38,24 @@ export function FeedbackProvider({ children }) {
     emitDiagnostic({message:safeMessage,severity:'success',operation:'undoable_action',eventType:'ui_feedback',diagnosticCode:null})
     window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), timeout)
   }, [t,language])
-  const confirm = useCallback((options) => new Promise((resolve) => setConfirmState({ ...options, resolve })), [])
+  const confirm = useCallback((options) => new Promise((resolve) => {
+    setConfirmInput(options?.inputDefault||'')
+    setConfirmState({ ...options, resolve })
+  }), [])
   const finishConfirm = (answer) => {
-    confirmState?.resolve(answer)
+    if(!confirmState)return
+    confirmState.resolve(answer?(confirmState.input?confirmInput.trim():true):false)
     setConfirmState(null)
+    setConfirmInput('')
   }
   const value = useMemo(() => ({ notify, notifyError, notifyUndo, confirm }), [notify, notifyError, notifyUndo, confirm])
   const icons = { success: CheckCircle2, warning: TriangleAlert, danger: XCircle, info: Info }
+  const inputRequired=Boolean(confirmState?.input?.required)
+  const inputInvalid=inputRequired&&!confirmInput.trim()
   return <FeedbackContext.Provider value={value}>
     {children}
     <div className="toast-stack" aria-live="polite">{items.map((item) => { const Icon = icons[item.tone] ?? Info; return <div className={`toast ${item.tone}`} key={item.id}><Icon size={18}/><span>{item.message}</span>{item.onAction&&<button className="toast-action" onClick={item.onAction}>{item.actionLabel}</button>}<button onClick={() => setItems((current) => current.filter((x) => x.id !== item.id))}><X size={15}/></button></div> })}</div>
-    {confirmState && <div className="modal-backdrop"><div className="confirm-dialog" role="dialog" aria-modal="true"><h3>{confirmState.title ?? t('confirmAction')}</h3><p>{confirmState.message}</p><div className="dialog-actions"><button className="button secondary" onClick={() => finishConfirm(false)}>{t('cancel')}</button><button className={`button ${confirmState.danger ? 'danger' : 'primary'}`} onClick={() => finishConfirm(true)}>{confirmState.confirmLabel ?? t('confirm')}</button></div></div></div>}
+    {confirmState && <div className="modal-backdrop"><div className="confirm-dialog" role="dialog" aria-modal="true"><h3>{confirmState.title ?? t('confirmAction')}</h3><p>{confirmState.message}</p>{confirmState.input&&<label className="field"><span>{confirmState.input.label}</span><textarea rows={3} autoFocus value={confirmInput} onChange={event=>setConfirmInput(event.target.value)} placeholder={confirmState.input.placeholder||''} maxLength={confirmState.input.maxLength||500}/></label>}<div className="dialog-actions"><button className="button secondary" onClick={() => finishConfirm(false)}>{t('cancel')}</button><button className={`button ${confirmState.danger ? 'danger' : 'primary'}`} disabled={inputInvalid} onClick={() => finishConfirm(true)}>{confirmState.confirmLabel ?? t('confirm')}</button></div></div></div>}
   </FeedbackContext.Provider>
 }
 
