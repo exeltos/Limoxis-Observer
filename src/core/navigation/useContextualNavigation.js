@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { writeSessionJson } from '../storage/browserStorage'
+import { readSessionJson, writeSessionJson } from '../storage/browserStorage'
 
 const CONTEXT_KEY='limoxis.navigation.context'
 export function useContextualNavigation(fallback='/'){
@@ -22,8 +22,9 @@ export function useContextualNavigation(fallback='/'){
   },[location,navigate])
 
   const goBack=useCallback(()=>{
-    const from=location.state?.limoxisFrom
+    const from=location.state?.limoxisFrom||readSessionJson(CONTEXT_KEY,null)
     if(from?.pathname){
+      writeSessionJson(CONTEXT_KEY,null)
       navigate(`${from.pathname}${from.search||''}${from.hash||''}`,{
         replace:true,
         state:{...(from.state||{}),limoxisRestore:{tab:from.tab??null,registry:from.registry??null}}
