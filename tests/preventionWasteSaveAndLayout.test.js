@@ -3,6 +3,8 @@ import {describe,expect,it} from 'vitest'
 
 const waste=fs.readFileSync('src/features/prevention/WasteEntryEditor.jsx','utf8')
 const css=fs.readFileSync('src/styles/prevention-refinements.css','utf8')
+const prevention=fs.readFileSync('src/features/prevention/PreventionPage.jsx','utf8')
+const occupational=fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.jsx','utf8')
 
 describe('prevention waste editor refinements',()=>{
   it('hydrates the waste type when support data arrives but leaves department for explicit user selection',()=>{
@@ -17,13 +19,28 @@ describe('prevention waste editor refinements',()=>{
     expect(waste).not.toContain('&&departments.length&&wasteTypes.length')
   })
 
-  it('gives the department more width than the two date fields',()=>{
-    expect(css).toContain('grid-template-columns:180px 180px minmax(360px,1fr)')
-    expect(css).toContain('.waste-page-editor .waste-smart-measurement-grid')
+  it('keeps the two waste dates compact and gives Department most of the first row',()=>{
+    expect(css).toContain('grid-template-columns:repeat(12,minmax(0,1fr))')
+    expect(css).toContain('>.waste-date-field')
+    expect(css).toContain('grid-column:span 2!important')
+    expect(css).toContain('>.waste-department-field')
+    expect(css).toContain('grid-column:span 8!important')
   })
 
   it('keeps disabled WHO add-opportunity text clearly readable',()=>{
     expect(css).toContain('color:#fff!important')
     expect(css).toContain('.who-page-editor .who-current-preview .lo-action-button:disabled span')
+  })
+
+  it('removes the related-workflows strip and exposes staff vaccinations as a Prevention tab',()=>{
+    expect(prevention).not.toContain('prevention-related-strip')
+    expect(prevention).not.toContain('preventionAntimicrobialStewardshipLabel')
+    expect(prevention).toContain('prevention-vaccinations-tab')
+    expect(prevention).toContain("/occupational-health?tab=vaccinations")
+  })
+
+  it('honors the vaccination deep-link in Occupational Health',()=>{
+    expect(occupational).toContain("searchParams.get('tab')==='vaccinations'?'vaccinations':'visits'")
+    expect(occupational).toContain("setSearchParams({tab:next},{replace:true})")
   })
 })

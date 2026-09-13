@@ -19,7 +19,8 @@ describe('prevention new-record defaults and visible refinements',()=>{
 
   it('targets the actual ActionButton and editor classes for visible styling',()=>{
     expect(css).toContain('.who-page-editor .who-current-preview .lo-action-button:disabled')
-    expect(css).toContain('.waste-page-editor .waste-smart-measurement-grid')
-    expect(css).toContain('grid-template-columns:180px 180px minmax(360px,1fr)')
+    expect(css).toContain('.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid')
+    expect(css).toContain('grid-template-columns:repeat(12,minmax(0,1fr))')
+    expect(css).toContain('grid-column:span 8!important')
   })
 })
