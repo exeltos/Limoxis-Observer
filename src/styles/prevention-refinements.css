@@ -49,6 +49,21 @@
 .prevention-record-shell .waste-page-editor .waste-department-field select{
   width:100%!important;
 }
+
+/* Prevention record editors belong to the main page scroll. Avoid a second
+   nested vertical scrollbar inside EntityRecordShell. */
+.prevention-record-shell.record-single-pane-screen{
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+.prevention-record-shell.record-single-pane-screen>.entity-record-body{
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+  scrollbar-gutter:auto!important;
+}
+
 @media(max-width:900px){
   .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{
     grid-template-columns:repeat(2,minmax(0,1fr))!important;
