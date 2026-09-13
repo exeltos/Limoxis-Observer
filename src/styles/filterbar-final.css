@@ -1,0 +1,49 @@
+/* Final shared FilterBar normalization.
+   The label owns the visible control chrome; the nested input must stay visually transparent. */
+.filter-search{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  height:34px!important;
+  min-height:34px!important;
+  padding:0 9px!important;
+  border:1px solid var(--lo-color-border,#dbe2e8)!important;
+  border-radius:7px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+.filter-search:focus-within{
+  border-color:#8fb8d4!important;
+  box-shadow:0 0 0 3px rgba(37,107,155,.08)!important;
+}
+.filter-search>svg{
+  flex:0 0 auto!important;
+  color:#73869a!important;
+}
+.filter-search>input{
+  flex:1 1 auto!important;
+  width:100%!important;
+  min-width:0!important;
+  height:32px!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  outline:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:var(--lo-color-text,#182433)!important;
+  font-size:12px!important;
+  line-height:32px!important;
+  appearance:none!important;
+}
+.filter-search>input:focus,
+.filter-search>input:focus-visible,
+.filter-search>input:hover{
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
+}
