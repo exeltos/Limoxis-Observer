@@ -1,4 +1,4 @@
-import { useEffect,useState } from 'react'
+import { useEffect,useRef,useState } from 'react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -13,6 +13,9 @@ const hasPositiveHistory=samples=>samples.some(sample=>(sample.finalizedAt||samp
 export function EmployeeSurveillanceRecordDialog({organizationId,record,samples=[],canManage,t,language,fmt,onClose,onUpdated}){
   const {notify,notifyError}=useFeedback()
   const en=language==='en'
+  const samplesRef=useRef(samples)
+  samplesRef.current=samples
+  const sampleSignature=(samples||[]).map(sample=>sample.id).join('|')
   const [editMode,setEditMode]=useState(false)
   const [saving,setSaving]=useState(false)
   const [selected,setSelected]=useState(record)
@@ -27,14 +30,15 @@ export function EmployeeSurveillanceRecordDialog({organizationId,record,samples=
   const [correctionReason,setCorrectionReason]=useState('')
 
   useEffect(()=>{
-    if(samples.length){setResolvedSamples(samples);return}
+    const supplied=samplesRef.current||[]
+    if(supplied.length){setResolvedSamples(supplied);return}
     if(!organizationId||!record?.recordId){setResolvedSamples([]);return}
     let alive=true
     loadLaboratorySamples(organizationId)
       .then(rows=>{if(alive)setResolvedSamples((rows||[]).filter(sample=>sample.employeeSurveillanceId===record.recordId))})
       .catch(error=>{if(alive){setResolvedSamples([]);notifyError(error,'load',{operation:'employee_surveillance_laboratory_load'})}})
     return ()=>{alive=false}
-  },[organizationId,record?.recordId,samples,notifyError])
+  },[organizationId,record?.recordId,sampleSignature,notifyError])
 
   const followupEligible=isPositive(selected)||selected.resultStatus==='cleared'||hasFollowup(selected)||hasPositiveHistory(resolvedSamples)
 
