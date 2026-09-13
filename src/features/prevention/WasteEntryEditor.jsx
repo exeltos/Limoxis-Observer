@@ -10,13 +10,12 @@ export function WasteEntryEditor({onCancel,onSave,fixedDepartment='',initialReco
  const {profile,user}=useAuth()
  const {language,locale}=useLanguage();const en=language==='en'
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
- const today=new Date().toISOString().slice(0,10)
- const initialDepartment=initialRecord?.departmentEl||fixedDepartment||departments[0]?.el||''
+ const initialDepartment=initialRecord?.departmentEl||fixedDepartment||''
  const initialWasteType=initialRecord?.wasteType||initialRecord?.type||wasteTypes[0]?.el||''
- const initialPeriodStart=initialRecord?.periodStart||initialRecord?.date||today
- const initialPeriodEnd=initialRecord?.periodEnd||initialRecord?.date||today
+ const initialPeriodStart=initialRecord?.periodStart||initialRecord?.date||''
+ const initialPeriodEnd=initialRecord?.periodEnd||initialRecord?.date||''
  const [draft,setDraft]=useState(()=>initialRecord?{...JSON.parse(JSON.stringify(initialRecord)),periodStart:initialPeriodStart,periodEnd:initialPeriodEnd}:{
-  date:today,periodStart:today,periodEnd:today,departmentEl:initialDepartment,wasteType:initialWasteType,wasteTypeId:wasteTypes.find(x=>x.el===initialWasteType)?.id||'',weight:'',containers:'',patientDays:'',patientDaysSource:'',responsible:actor.name,documentNumber:'',collectionCompany:'',notes:''
+  date:'',periodStart:'',periodEnd:'',departmentEl:initialDepartment,wasteType:initialWasteType,wasteTypeId:wasteTypes.find(x=>x.el===initialWasteType)?.id||'',weight:'',containers:'',patientDays:'',patientDaysSource:'',responsible:actor.name,documentNumber:'',collectionCompany:'',notes:''
  })
  const [suggestedPatientDays,setSuggestedPatientDays]=useState(null)
  const [saving,setSaving]=useState(false)
@@ -30,14 +29,13 @@ export function WasteEntryEditor({onCancel,onSave,fixedDepartment='',initialReco
  useEffect(()=>{
   if(readOnly||initialRecord)return
   setDraft(state=>{
-   const department=state.departmentEl||fixedDepartment||departments[0]?.el||''
    const selectedType=wasteTypes.find(item=>item.id===state.wasteTypeId||item.el===state.wasteType)||wasteTypes[0]
    const wasteTypeId=selectedType?.id||''
    const wasteType=selectedType?.el||''
-   if(state.departmentEl===department&&state.wasteTypeId===wasteTypeId&&state.wasteType===wasteType)return state
-   return {...state,departmentEl:department,wasteTypeId,wasteType,type:wasteType,typeEn:selectedType?.en||''}
+   if(state.wasteTypeId===wasteTypeId&&state.wasteType===wasteType)return state
+   return {...state,wasteTypeId,wasteType,type:wasteType,typeEn:selectedType?.en||''}
   })
- },[readOnly,initialRecord,fixedDepartment,departments,wasteTypes])
+ },[readOnly,initialRecord,wasteTypes])
 
  useEffect(()=>{
   if(readOnly)return
@@ -80,14 +78,14 @@ export function WasteEntryEditor({onCancel,onSave,fixedDepartment='',initialReco
     <section className="waste-form-section waste-smart-section">
      <div className="waste-form-section-title"><strong>{en?'Measurement':'Μέτρηση'}</strong><small>{en?'Record the total waste quantity for one reporting period. The denominator must cover the same period.':'Καταγράψτε τη συνολική ποσότητα αποβλήτων για μία περίοδο αναφοράς. Ο παρονομαστής πρέπει να αφορά την ίδια περίοδο.'}</small></div>
      <div className="entry-grid waste-smart-measurement-grid">
-      <ManualDateField label={en?'Period start *':'Έναρξη περιόδου *'} value={draft.periodStart} onChange={value=>set('periodStart',value)}/>
-      <ManualDateField label={en?'Period end *':'Λήξη περιόδου *'} value={draft.periodEnd} onChange={value=>set('periodEnd',value)}/>
-      <DepartmentField value={draft.departmentEl} onChange={value=>set('departmentEl',value)} departments={departments} fixed={Boolean(fixedDepartment)}/>
+      <div className="waste-date-field"><ManualDateField label={en?'Period start *':'Έναρξη περιόδου *'} value={draft.periodStart} onChange={value=>set('periodStart',value)}/></div>
+      <div className="waste-date-field"><ManualDateField label={en?'Period end *':'Λήξη περιόδου *'} value={draft.periodEnd} onChange={value=>set('periodEnd',value)}/></div>
+      <div className="waste-department-field"><DepartmentField value={draft.departmentEl} onChange={value=>set('departmentEl',value)} departments={departments} fixed={Boolean(fixedDepartment)}/></div>
       <label><span>{en?'Waste category *':'Κατηγορία αποβλήτου *'}</span><select className="waste-category-select" value={draft.wasteTypeId||typeInfo?.id||''} onChange={event=>changeWasteType(event.target.value)}>{wasteTypes.map(item=><option key={item.id} value={item.id}>{en?(item.en||item.el):item.el}</option>)}</select></label>
       <label><span>{en?'Total weight in period (kg) *':'Συνολικό βάρος περιόδου (kg) *'}</span><input type="number" min="0" step="0.1" value={draft.weight} onChange={event=>set('weight',event.target.value)} placeholder="0,0"/></label>
       <label><span>{en?'Containers':'Περιέκτες'}</span><input type="number" min="0" step="1" value={draft.containers} onChange={event=>set('containers',event.target.value)} placeholder="0"/></label>
      </div>
-     {!validPeriod&&<div className="waste-period-warning">{en?'Period end must be the same as or later than period start.':'Η λήξη της περιόδου πρέπει να είναι ίδια ή μεταγενέστερη της έναρξης.'}</div>}
+     {!validPeriod&&draft.periodStart&&draft.periodEnd&&<div className="waste-period-warning">{en?'Period end must be the same as or later than period start.':'Η λήξη της περιόδου πρέπει να είναι ίδια ή μεταγενέστερη της έναρξης.'}</div>}
     </section>
 
     <section className="waste-form-section waste-smart-section">
@@ -166,4 +164,4 @@ function WasteRecordDetails({record,language,locale}){
  </div>
 }
 
-function DepartmentField({value,onChange,departments,fixed}){const {language}=useLanguage();return <label><span>{language==='en'?'Department *':'Τμήμα *'}</span><select value={value} disabled={fixed} onChange={event=>onChange(event.target.value)}>{departments.map(item=><option key={item.id||item.el} value={item.el}>{language==='en'?(item.en||item.el):item.el}</option>)}</select></label>}
+function DepartmentField({value,onChange,departments,fixed}){const {language}=useLanguage();return <label><span>{language==='en'?'Department *':'Τμήμα *'}</span><select value={value} disabled={fixed} onChange={event=>onChange(event.target.value)}><option value="">{language==='en'?'Select department':'Επιλέξτε τμήμα'}</option>{departments.map(item=><option key={item.id||item.el} value={item.el}>{language==='en'?(item.en||item.el):item.el}</option>)}</select></label>}
