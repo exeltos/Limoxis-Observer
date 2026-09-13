@@ -1,22 +1,24 @@
 import {describe,it,expect} from 'vitest'
 import fs from 'node:fs'
 
-const page=fs.readFileSync('src/features/prevention/StaffVaccinationsPage.jsx','utf8')
+const prevention=fs.readFileSync('src/features/prevention/PreventionPage.jsx','utf8')
+const editor=fs.readFileSync('src/features/prevention/StaffVaccinationEditor.jsx','utf8')
 const service=fs.readFileSync('src/features/occupational-health/vaccinationService.js','utf8')
 const css=fs.readFileSync('src/styles/prevention-refinements.css','utf8')
 
 describe('staff vaccination workflow',()=>{
- it('uses the canonical registry pattern and supports individual and bulk entry',()=>{
-  expect(page).toContain('registry-workspace prevention-workspace')
-  expect(page).toContain('RegistryTable')
-  expect(page).toContain('RegistryPagination')
-  expect(page).toContain('FilterBar')
-  expect(page).toContain('BackButton')
-  expect(page).toContain('vaccination-entry-mode')
-  expect(page).toContain("'bulk'")
-  expect(page).toContain("'individual'")
-  expect(page).toContain('selectedEmployeeIds')
-  expect(page).toContain('createVaccinationsBulkAsync')
+ it('uses the Prevention registry pattern and supports individual and bulk entry',()=>{
+  expect(prevention).toContain('registry-workspace prevention-workspace')
+  expect(prevention).toContain('RegistryTable')
+  expect(prevention).toContain('RegistryPagination')
+  expect(prevention).toContain('FilterBar')
+  expect(prevention).toContain("['vaccinations','vaccinations']")
+  expect(prevention).toContain('loadAllVaccinationsAsync')
+  expect(prevention).toContain('createVaccinationsBulkAsync')
+  expect(editor).toContain('vaccination-entry-mode')
+  expect(editor).toContain("'bulk'")
+  expect(editor).toContain("'individual'")
+  expect(editor).toContain('selectedEmployeeIds')
  })
  it('uses the production employee_vaccinations table',()=>{
   expect(service).toContain("from('employee_vaccinations')")
