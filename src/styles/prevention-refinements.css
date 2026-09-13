@@ -1,36 +1,50 @@
-.prevention-record-shell .who-current-preview .action-button{
+.who-page-editor .who-current-preview .lo-action-button{
   min-width:190px!important;
   justify-content:center!important;
   gap:8px!important;
   font-weight:700!important;
 }
-.prevention-record-shell .who-current-preview .action-button:disabled{
+.who-page-editor .who-current-preview .lo-action-button:disabled{
   background:#8fb6cf!important;
   border-color:#8fb6cf!important;
   color:#fff!important;
   box-shadow:none!important;
-  opacity:.82!important;
+  opacity:1!important;
   cursor:not-allowed!important;
 }
-.prevention-record-shell .who-current-preview .action-button:disabled svg,
-.prevention-record-shell .who-current-preview .action-button:disabled span{
+.who-page-editor .who-current-preview .lo-action-button:disabled svg,
+.who-page-editor .who-current-preview .lo-action-button:disabled span{
   color:#fff!important;
   opacity:1!important;
 }
-.prevention-record-shell .who-current-preview .action-button:not(:disabled){
+.who-page-editor .who-current-preview .lo-action-button:not(:disabled){
   box-shadow:0 1px 2px rgba(20,49,73,.12)!important;
 }
 
-.prevention-record-shell .waste-smart-measurement-grid{
-  grid-template-columns:minmax(150px,.72fr) minmax(150px,.72fr) minmax(300px,1.56fr)!important;
+.waste-page-editor .waste-smart-measurement-grid{
+  grid-template-columns:180px 180px minmax(360px,1fr)!important;
+  column-gap:14px!important;
+}
+.waste-page-editor .waste-date-field,
+.waste-page-editor .waste-department-field{
+  min-width:0!important;
+}
+.waste-page-editor .waste-date-field>label,
+.waste-page-editor .waste-department-field>label{
+  width:100%!important;
+  min-width:0!important;
+}
+.waste-page-editor .waste-date-field input,
+.waste-page-editor .waste-department-field select{
+  width:100%!important;
 }
 @media(max-width:1050px){
-  .prevention-record-shell .waste-smart-measurement-grid{
+  .waste-page-editor .waste-smart-measurement-grid{
     grid-template-columns:repeat(2,minmax(0,1fr))!important;
   }
 }
 @media(max-width:700px){
-  .prevention-record-shell .waste-smart-measurement-grid{
+  .waste-page-editor .waste-smart-measurement-grid{
     grid-template-columns:1fr!important;
   }
 }
