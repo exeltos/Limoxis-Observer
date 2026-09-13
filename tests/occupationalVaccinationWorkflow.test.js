@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest'
 import fs from 'node:fs'
 
 const page=fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.jsx','utf8')
-const service=fs.readFileSync('src/features/employees/employeeSubRecordsService.js','utf8')
+const service=fs.readFileSync('src/features/occupational-health/vaccinationService.js','utf8')
 const css=fs.readFileSync('src/styles/prevention-refinements.css','utf8')
 
 describe('occupational vaccination workflow',()=>{
@@ -18,8 +18,9 @@ describe('occupational vaccination workflow',()=>{
   expect(service).toContain('loadAllVaccinationsAsync')
   expect(service).toContain('createVaccinationsBulkAsync')
  })
- it('keeps bundle follow-up actions visually separated',()=>{
-  expect(css).toContain('.bundle-followup-actions')
+ it('keeps bundle follow-up controls visually separated',()=>{
+  expect(css).toContain('.bundle-followup-meta')
   expect(css).toContain('gap:10px')
+  expect(css).toContain('border-left:1px solid var(--lo-color-border)')
  })
 })
