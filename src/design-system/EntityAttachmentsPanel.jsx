@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { Eye, FileText, Paperclip, Trash2, Upload } from 'lucide-react'
+import { Eye, FileText, LoaderCircle, Paperclip, Trash2, Upload } from 'lucide-react'
 import { Button } from './Button'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EmptyState } from './EmptyState'
 import { OverflowMenu } from './OverflowMenu'
 import { deleteAttachment, getAttachmentUrl, loadAttachments, uploadAttachment } from '../core/attachments/attachmentService'
+import './AttachmentField.css'
 
 const MAX_FILE_SIZE=25*1024*1024
 
@@ -12,6 +13,7 @@ export function EntityAttachmentsPanel({organizationId,entityType,entityRecordId
   const [rows,setRows]=useState([])
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
+  const [uploading,setUploading]=useState(false)
   const [pendingDelete,setPendingDelete]=useState(null)
   const inputRef=useRef(null)
 
@@ -26,12 +28,12 @@ export function EntityAttachmentsPanel({organizationId,entityType,entityRecordId
   async function upload(file){
     if(!file)return
     if(file.size>MAX_FILE_SIZE){notify(t('fileTooLarge'),'error');return}
-    setBusy(true)
+    setBusy(true);setUploading(true)
     try{
       await uploadAttachment(organizationId,entityType,entityRecordId,file,{category})
       await reload();notify(t('saved'),'success')
     }catch(error){notify(error?.message||t('actionFailed'),'error')}
-    finally{setBusy(false);if(inputRef.current)inputRef.current.value=''}
+    finally{setBusy(false);setUploading(false);if(inputRef.current)inputRef.current.value=''}
   }
   async function view(row){
     try{const url=await getAttachmentUrl(row.storagePath);if(url)window.open(url,'_blank','noopener,noreferrer')}
@@ -48,8 +50,9 @@ export function EntityAttachmentsPanel({organizationId,entityType,entityRecordId
 
   return <>
     <section className="clinical-panel full-panel">
-      <div className="record-section-header"><div><Paperclip size={17}/><strong>{t('attachments')}</strong><small>{rows.length}</small></div>{canManage&&<><input ref={inputRef} type="file" hidden onChange={event=>upload(event.target.files?.[0])}/><Button variant="secondary" disabled={busy} onClick={()=>inputRef.current?.click()}><Upload size={15}/> {t('upload')}</Button></>}</div>
-      {loading?<div className="inline-empty">{t('loading')}</div>:rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('document')}</th><th>{t('type')}</th><th>{t('size')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><strong><FileText size={14}/> {row.name}</strong></td><td>{row.type||'—'}</td><td>{size(row.size)}</td><td><OverflowMenu items={[
+      <div className="record-section-header"><div><Paperclip size={17}/><strong>{t('attachments')}</strong><small>{rows.length}</small></div>{canManage&&<><input ref={inputRef} type="file" hidden onChange={event=>upload(event.target.files?.[0])}/><Button variant="secondary" disabled={busy} onClick={()=>inputRef.current?.click()}>{uploading?<LoaderCircle className="lo-inline-spinner" size={15}/>:<Upload size={15}/>} {uploading?(t('uploading')||t('loading')):t('upload')}</Button></>}</div>
+      {uploading&&<div className="attachment-upload-progress attachment-upload-progress-inline" role="status" aria-live="polite"><LoaderCircle size={22}/><span>{t('uploading')||t('loading')}</span></div>}
+      {loading&&!uploading?<div className="inline-empty">{t('loading')}</div>:rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('document')}</th><th>{t('type')}</th><th>{t('size')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><strong><FileText size={14}/> {row.name}</strong></td><td>{row.type||'—'}</td><td>{size(row.size)}</td><td><OverflowMenu items={[
     {id:'view',label:t('view'),icon:Eye,onClick:()=>view(row)},
     {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>setPendingDelete(row),hidden:!canManage},
   ]}/></td></tr>)}</tbody></table></div>:<EmptyState title={t('noData')} description={t('attachments')}/>}
