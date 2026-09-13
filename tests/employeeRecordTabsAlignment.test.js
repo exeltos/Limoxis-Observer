@@ -35,7 +35,7 @@ describe('employee record canonical tabs',()=>{
   it('keeps training and evaluations tied to their canonical sources',()=>{
     expect(service).toContain("source:'training_records'")
     expect(service).toContain("source:'employee_evaluations'")
-    expect(tabs).toContain('navigate(`/training/${selected.programId}`)')
+    expect(tabs).toContain("goTo(`/training/${selected.programId}`,{tab:'training'})")
     expect(tabs).toContain("selected.source==='training'")
   })
 
