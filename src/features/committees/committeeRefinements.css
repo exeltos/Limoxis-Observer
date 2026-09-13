@@ -1,3 +1,7 @@
+.committee-decisions>.filter-system{
+  display:none!important;
+}
+
 .committee-meeting-dialog .observer-dialog-body{
   padding:12px 14px!important;
 }
