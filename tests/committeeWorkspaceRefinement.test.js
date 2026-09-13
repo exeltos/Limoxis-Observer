@@ -25,10 +25,9 @@ describe('committee workspace refinement',()=>{
     expect(css).toContain('grid-template-columns:minmax(220px,.85fr) minmax(320px,1.65fr)')
   })
 
-  it('removes the nested decisions search input chrome',()=>{
+  it('uses the shared FilterBar search styling for decisions',()=>{
     expect(page).toContain('record-section committee-decisions')
-    expect(css).toContain('.committee-decisions .filter-search input')
-    expect(css).toContain('border:0!important')
+    expect(css).not.toContain('.committee-decisions .filter-search')
   })
 
   it('shows a circular loading indicator while attachment upload is running',()=>{
