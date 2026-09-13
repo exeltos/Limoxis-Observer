@@ -23,8 +23,8 @@ import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { createClinicalRepository } from './clinicalRepository'
 import { loadClinicalCases } from './clinicalCloudService'
 import { surveillanceDemoData } from './surveillanceDemoData'
-import { employeeSurveillanceBatches,employeeSurveillanceRecords,getEmployeeSurveillanceKpis } from './employeeSurveillanceData'
-import { loadEmployeeSurveillanceBatches,loadEmployeeSurveillanceRecords } from './employeeSurveillanceCloudService'
+import { employeeSurveillanceBatches,employeeSurveillanceRecords,getEmployeeSurveillanceKpis as getDemoEmployeeSurveillanceKpis } from './employeeSurveillanceData'
+import { getEmployeeSurveillanceKpis as getCloudEmployeeSurveillanceKpis,loadEmployeeSurveillanceBatches,loadEmployeeSurveillanceRecords } from './employeeSurveillanceCloudService'
 import { EmployeeSurveillanceFlow,BulkEmployeeSurveillanceFlow,SurveillanceSubjectChooser } from './EmployeeSurveillanceFlow'
 import { ProductionEmployeeSurveillanceFlow } from './ProductionEmployeeSurveillanceFlow'
 import { EmployeeSurveillanceRecordDialog } from './EmployeeSurveillanceRecordDialog'
@@ -88,7 +88,8 @@ export function SurveillanceCanonicalPage(){
   const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)),safePage=Math.min(page,totalPages),rows=filtered.slice((safePage-1)*pageSize,safePage*pageSize)
   const departmentNames=useMemo(()=>unique(mode==='patients'?cases.map(x=>language==='el'?x.department:x.departmentEn):mode==='employees'?employeeRows.map(x=>language==='el'?x.department:x.departmentEn):mode==='batches'?batchRows.map(x=>language==='el'?x.department:x.departmentEn):environmentRows.map(x=>x.department)),[mode,cases,employeeRows,batchRows,environmentRows,language])
   const active=cases.filter(x=>x.status==='active').length,due=cases.filter(x=>reviewState(x)==='overdue').length,resistant=cases.filter(x=>latestResistance(x)).length,isolation=cases.filter(x=>x.isolation?.status==='active'||x.isolation).length
-  const employeeKpis=getEmployeeSurveillanceKpis(employeeRows),environmentKpis=getEnvironmentalKpis(environmentRows)
+  const employeeKpis=isDemo?getDemoEmployeeSurveillanceKpis():getCloudEmployeeSurveillanceKpis(employeeRows)
+  const environmentKpis=getEnvironmentalKpis(environmentRows)
   const saveView=()=>({mode,page:safePage,pageSize,query,department,status})
   const openCase=item=>registry.openRecord(navigate,`/surveillance/${item.id}`,String(item.id),rows.map(x=>String(x.id)),{returnState:{surveillanceView:saveView()}})
 
