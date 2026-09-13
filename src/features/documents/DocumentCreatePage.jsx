@@ -22,7 +22,7 @@ export function DocumentCreatePage(){
  async function save(){if(!valid||saving)return;setSaving(true);try{const selected=departments.find(x=>x.id===v.departmentId);const record=await createDocumentAsync(tenant.id,{...v,department:selected?.name||'',departmentId:selected?.id||null},actor,existing);notify(en?'Document created. Add files from the Files tab.':'Το έγγραφο δημιουργήθηκε. Τα αρχεία προστίθενται από την καρτέλα «Αρχεία».','success');navigate(`/documents/${record.id}`,{replace:true})}catch{notify(en?'The document could not be saved. No local fallback was used.':'Το έγγραφο δεν αποθηκεύτηκε. Δεν χρησιμοποιήθηκε τοπική εναλλακτική αποθήκευση.','danger')}finally{setSaving(false)}}
  return <Page><EntityRecordShell className="document-create-shell" avatar={<FilePlus2 size={19}/>} eyebrow={en?'Documents':'Έγγραφα'} title={en?'New document':'Νέο έγγραφο'} subtitle={en?'Create controlled document record':'Δημιουργία ελεγχόμενου εγγράφου'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/documents')}>
   <div className="record-section document-create-form">
-   <DocumentForm value={v} onChange={setV} language={language} departments={departments} ownerName={actor?.name||''} showOwner showAttachmentHint autoFocus/>
+   <DocumentForm value={v} onChange={setV} language={language} departments={departments} ownerName={actor?.name||''} showOwner showAttachmentHint autoFocus allowVersionEdit/>
    <div className="inline-edit-footer"><Button variant="secondary" onClick={()=>navigate('/documents')}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
   </div>
  </EntityRecordShell></Page>
