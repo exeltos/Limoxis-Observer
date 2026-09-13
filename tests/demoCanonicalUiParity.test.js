@@ -3,6 +3,7 @@ import { describe,expect,it } from 'vitest'
 
 const users=fs.readFileSync('src/features/management/ManagementUsersPanel.jsx','utf8')
 const employee=fs.readFileSync('src/features/employees/EmployeeRecordPage.jsx','utf8')
+const surveillance=fs.readFileSync('src/features/surveillance/SurveillanceCanonicalPage.jsx','utf8')
 const employeeDialog=fs.readFileSync('src/features/surveillance/EmployeeSurveillanceRecordDialog.jsx','utf8')
 const analysis=fs.readFileSync('src/features/analysis/AnalysisPage.jsx','utf8')
 const parityAudit=fs.readFileSync('tools/check-frontend-parity.mjs','utf8')
@@ -18,11 +19,14 @@ describe('Demo uses canonical product UI',()=>{
     expect(users).toContain("if(isDemo){")
   })
 
-  it('uses one employee-surveillance creation flow and one record dialog',()=>{
+  it('uses one employee-surveillance creation flow and one record dialog from both entry points',()=>{
     expect(employee).not.toContain('ProductionEmployeeSurveillanceFlow')
     expect(employee).toContain('surveillanceOpen&&!selfReadOnly&&<EmployeeSurveillanceFlow')
     expect(employee).toContain('selected&&<EmployeeSurveillanceRecordDialog')
-    expect(employee).not.toContain('selected&&isDemo&&<ObserverDialog')
+    expect(surveillance).not.toContain('ProductionEmployeeSurveillanceFlow')
+    expect(surveillance).toContain("creation==='employee'&&canEmployees&&<EmployeeSurveillanceFlow")
+    expect(surveillance).toContain("creation==='bulk'&&canEmployees&&<BulkEmployeeSurveillanceFlow")
+    expect(surveillance).toContain('openEmployee&&<EmployeeSurveillanceRecordDialog')
     expect(employeeDialog).toContain('onSaveFollowup')
   })
 
