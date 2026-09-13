@@ -28,6 +28,18 @@ export function WasteEntryEditor({onCancel,onSave,fixedDepartment='',initialReco
  const validPeriod=Boolean(draft.periodStart&&draft.periodEnd&&draft.periodEnd>=draft.periodStart)
 
  useEffect(()=>{
+  if(readOnly||initialRecord)return
+  setDraft(state=>{
+   const department=state.departmentEl||fixedDepartment||departments[0]?.el||''
+   const selectedType=wasteTypes.find(item=>item.id===state.wasteTypeId||item.el===state.wasteType)||wasteTypes[0]
+   const wasteTypeId=selectedType?.id||''
+   const wasteType=selectedType?.el||''
+   if(state.departmentEl===department&&state.wasteTypeId===wasteTypeId&&state.wasteType===wasteType)return state
+   return {...state,departmentEl:department,wasteTypeId,wasteType,type:wasteType,typeEn:selectedType?.en||''}
+  })
+ },[readOnly,initialRecord,fixedDepartment,departments,wasteTypes])
+
+ useEffect(()=>{
   if(readOnly)return
   let active=true
   async function load(){
@@ -44,7 +56,7 @@ export function WasteEntryEditor({onCancel,onSave,fixedDepartment='',initialReco
  const usingSuggestedPatientDays=Boolean(suggestedValue)&&Number(draft.patientDays)===suggestedValue&&draft.patientDaysSource==='library'
  const weight=Number(draft.weight)||0
  const indicator=patientDays>0?Number((weight/patientDays*1000).toFixed(2)):(draft.indicator??null)
- const valid=Boolean(validPeriod&&draft.departmentEl&&draft.wasteType&&weight>0&&Number(draft.containers)>=0&&departments.length&&wasteTypes.length)
+ const valid=Boolean(validPeriod&&draft.departmentEl&&draft.wasteType&&weight>0&&Number(draft.containers)>=0)
 
  if(readOnly)return <WasteRecordDetails record={{...draft,indicator}} language={language} locale={locale}/>
 
