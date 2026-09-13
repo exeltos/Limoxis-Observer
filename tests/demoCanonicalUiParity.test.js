@@ -27,11 +27,18 @@ describe('Demo uses canonical product UI',()=>{
   })
 
   it('uses one analytics renderer with normalized Demo microbiology data',()=>{
-    expect(analysis).toContain('DEMO_MICRO')
-    expect(analysis).toContain('<NationalView details={activeMicro}')
+    expect(analysis).toContain('DEMO_MICROBIOLOGY')
+    expect(analysis).toContain("tab==='national'?<NationalSurveillance details={micro}")
     expect(analysis).not.toContain('DemoNationalSurveillance')
     expect(analysis).not.toContain('ProductionNationalSurveillance')
     expect(analysis).not.toMatch(/isDemo\s*\?\s*<[A-Z][\w.]*[\s\S]{0,400}?:\s*<[A-Z][\w.]*/)
+  })
+
+  it('preserves Platform Owner analytics comparison controls',()=>{
+    expect(analysis).toContain("ownerCompareMode==='hospital'")
+    expect(analysis).toContain("ownerCompareMode==='region'")
+    expect(analysis).toContain('compareHospital')
+    expect(analysis).toContain('compareRegion')
   })
 
   it('enforces parity as a blocking CI check',()=>{
