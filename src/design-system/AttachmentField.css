@@ -13,7 +13,8 @@
   font-size:12px;
   font-weight:600;
 }
-.attachment-upload-progress svg{
+.attachment-upload-progress-inline{margin:8px 0}
+.attachment-upload-progress svg,.lo-inline-spinner{
   animation:lo-attachment-spin .9s linear infinite;
 }
 @keyframes lo-attachment-spin{
