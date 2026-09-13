@@ -50,18 +50,48 @@
   width:100%!important;
 }
 
-/* Prevention record editors belong to the main page scroll. Avoid a second
-   nested vertical scrollbar inside EntityRecordShell. */
+/* Prevention detail/editor screens use one controlled scroll viewport: the
+   record body. The page shell stays fixed, while the full form remains
+   readable from top to bottom without a second nested scrollbar. */
 .prevention-record-shell.record-single-pane-screen{
-  height:auto!important;
-  max-height:none!important;
-  overflow:visible!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:100%!important;
+  overflow:hidden!important;
 }
 .prevention-record-shell.record-single-pane-screen>.entity-record-body{
-  height:auto!important;
+  height:100%!important;
+  min-height:0!important;
   max-height:none!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  scrollbar-gutter:stable!important;
+  padding-bottom:18px!important;
+}
+.prevention-record-shell .antiseptic-page-editor,
+.prevention-record-shell .waste-page-editor,
+.prevention-record-shell .bundle-page-editor,
+.prevention-record-shell .who-page-editor{
+  min-height:max-content!important;
   overflow:visible!important;
-  scrollbar-gutter:auto!important;
+}
+.prevention-record-shell .antiseptic-entry-workspace,
+.prevention-record-shell .antiseptic-entry-main,
+.prevention-record-shell .antiseptic-entry-rail{
+  min-height:0!important;
+  overflow:visible!important;
+}
+.prevention-record-shell .antiseptic-entry-rail{
+  align-self:start!important;
+}
+.prevention-record-shell .prevention-editor-page-actions{
+  position:sticky!important;
+  bottom:0!important;
+  z-index:8!important;
+  margin-top:14px!important;
+  padding:12px 0 4px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,0),var(--lo-color-surface) 24%)!important;
 }
 
 @media(max-width:900px){
