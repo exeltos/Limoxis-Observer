@@ -86,7 +86,9 @@ export function EntityRecordShell({
   const paneClass=hasTabs?'record-tabbed-screen':'record-single-pane-screen'
   const isPlatformOwnerRecord=String(className||'').includes('platform-owner-record-shell')
 
-  const sourceRegistry=typeof location.state?.limoxisFrom?.registry==='string'?location.state.limoxisFrom.registry:null
+  const contextualRegistry=typeof location.state?.limoxisFrom?.registry==='string'?location.state.limoxisFrom.registry:null
+  const inferredRegistry=!contextualRegistry&&location.pathname.startsWith('/training/')?'training-programs':null
+  const sourceRegistry=contextualRegistry||inferredRegistry
   const currentRecordId=eyebrow==null?'':String(eyebrow)
   const fallbackIds=sourceRegistry?readSessionJson(registryStorageKey(sourceRegistry,'sequence'),[]):[]
   const fallbackSequence=Array.isArray(fallbackIds)?fallbackIds.map(String):[]
