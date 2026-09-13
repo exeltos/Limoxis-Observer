@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Eye, FilePlus2, Paperclip, Pencil, Trash2 } from 'lucide-react'
+import { Eye, FilePlus2, LoaderCircle, Paperclip, Pencil, Trash2 } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useFeedback } from '../core/feedback/FeedbackContext'
 import { cloudAttachmentsEnabled, loadAttachments, uploadAttachment, updateAttachmentMetadata, deleteAttachment, getAttachmentUrl } from '../core/attachments/attachmentService'
 import { ActionButton } from './ActionButton'
 import { OverflowMenu } from './OverflowMenu'
 import { ObserverDialog, DialogActions } from './ObserverDialog'
+import './AttachmentField.css'
 
 const defaultCategories=[
   ['generalDocument','generalDocument'],
@@ -210,6 +211,7 @@ export function AttachmentField({
         {editor.mode==='edit'&&<div className="attachment-current-file"><span>{t('file')}</span><strong>{editor.name}</strong></div>}
         <label className="field"><span>{t('documentCategory')}</span><select value={editor.category} onChange={e=>setEditor(x=>({...x,category:e.target.value}))}>{categories.map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}</select></label>
         <label className="attachment-editor-description field"><span>{t('description')}</span><textarea rows={3} value={editor.description} onChange={e=>setEditor(x=>({...x,description:e.target.value}))} placeholder={t('attachmentDescriptionPlaceholder')}/></label>
+        {busy&&<div className="attachment-upload-progress" role="status" aria-live="polite"><LoaderCircle size={22}/><span>{editor.mode==='add'?(t('uploading')||'Μεταφόρτωση…'):(t('saving')||'Αποθήκευση…')}</span></div>}
       </div>
     </ObserverDialog>}
   </div>
