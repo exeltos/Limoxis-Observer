@@ -35,12 +35,14 @@ describe('demo / production isolation',()=>{
     expect(canonicalPatientRecord).toContain('createClinicalRepository')
   })
 
-  it('keeps synthetic analytics behind demo and production on one canonical persisted loader',()=>{
+  it('keeps synthetic analytics behind demo and production on one canonical persisted loader and renderer',()=>{
     expect(analysis).toContain('const productionScope=!isDemo&&')
     expect(analysis).toContain('loadAnalysisSnapshot(')
     expect(analysis).toContain("isDemo?(DEMO_KPI[tab]||DEMO_KPI.overview)")
-    expect(analysis).toContain('isDemo?<DemoNationalSurveillance')
-    expect(analysis).toContain('<ProductionNationalSurveillance')
+    expect(analysis).toContain('DEMO_MICROBIOLOGY')
+    expect(analysis).toContain("tab==='national'?<NationalSurveillance details={micro}")
+    expect(analysis).not.toContain('DemoNationalSurveillance')
+    expect(analysis).not.toContain('ProductionNationalSurveillance')
     expect(platformService).toContain('export async function loadAnalysisSnapshot')
     expect(platformService).not.toContain('export async function loadGlobalReportSummary')
     expect(platformService).not.toContain('export async function loadPlatformAnalyticsDetails')
