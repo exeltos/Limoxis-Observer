@@ -2,12 +2,50 @@ import {supabase} from '../../core/supabase/client'
 import {hasSupabaseConfig} from '../../core/config/env'
 import {isDemoDataEnvironment} from '../../core/data/dataEnvironment'
 
+const TRAINING_UPDATES_CHANNEL='limoxis-training-updates'
+const TRAINING_TAB_KEY='limoxis.training.activeTabText'
+
 function cloudRequired(operation){if(isDemoDataEnvironment())return false;if(!hasSupabaseConfig||!supabase)throw new Error(`PRODUCTION_CLOUD_REQUIRED:${operation}`);return true}
 function trainingEmailError(data){const code=data?.code||'TRAINING_EMAIL_SEND_FAILED';const messages={EMAIL_SERVICE_NOT_CONFIGURED:'Η υπηρεσία email δεν είναι ρυθμισμένη στο Supabase. Απαιτούνται SMTP_USER και SMTP_PASS στο Edge Function.',EMAIL_BACKEND_CONFIG_MISSING:'Η υπηρεσία email του Supabase δεν έχει ολοκληρωμένη ρύθμιση.',EMAIL_AUTH_REQUIRED:'Απαιτείται ενεργή σύνδεση για αποστολή email.',EMAIL_INVALID_SESSION:'Η συνεδρία έληξε. Συνδεθείτε ξανά.',EMAIL_NOT_AUTHORIZED:'Δεν έχετε δικαίωμα αποστολής αυτής της φόρμας.'};const err=new Error(messages[code]||data?.error||'Δεν ήταν δυνατή η αποστολή του email.');err.code=code;err.details=data;return err}
+
+function announceTrainingUpdate(payload={}){
+ if(typeof window==='undefined'||typeof BroadcastChannel==='undefined')return
+ const channel=new BroadcastChannel(TRAINING_UPDATES_CHANNEL)
+ channel.postMessage({type:'training-submission-updated',at:Date.now(),...payload})
+ channel.close()
+}
+
+function installTrainingRefreshBridge(){
+ if(typeof window==='undefined'||typeof BroadcastChannel==='undefined')return
+ const restoreTab=()=>{
+  const wanted=sessionStorage.getItem(TRAINING_TAB_KEY)
+  if(!wanted)return
+  let attempts=0
+  const tryRestore=()=>{
+   const buttons=[...document.querySelectorAll('.entity-record-tabs button')]
+   const target=buttons.find(button=>button.textContent?.trim()===wanted)
+   if(target){sessionStorage.removeItem(TRAINING_TAB_KEY);target.click();return}
+   if(attempts++<20)setTimeout(tryRestore,100)
+  }
+  setTimeout(tryRestore,0)
+ }
+ restoreTab()
+ const channel=new BroadcastChannel(TRAINING_UPDATES_CHANNEL)
+ channel.onmessage=event=>{
+  if(event?.data?.type!=='training-submission-updated')return
+  const path=window.location.pathname||''
+  if(!/^\/training\/[^/]+\/?$/.test(path))return
+  if(document.querySelector('.observer-dialog'))return
+  const active=document.querySelector('.entity-record-tabs button.active')
+  if(active?.textContent?.trim())sessionStorage.setItem(TRAINING_TAB_KEY,active.textContent.trim())
+  window.location.reload()
+ }
+}
+installTrainingRefreshBridge()
 
 export async function queueTrainingInvitationAsync(assignmentKey,language='el'){if(!cloudRequired('training.invitation.queue'))return {demo:true,assignmentId:assignmentKey};const {data,error}=await supabase.rpc('queue_training_invitation',{p_assignment_key:assignmentKey,p_language:language});if(error)throw error;return data}
 export async function loadTrainingEmailAccessAsync(token){if(!cloudRequired('training.access'))return null;const {data,error}=await supabase.rpc('training_email_access',{p_token:token});if(error)throw error;return data}
 export async function confirmTrainingAttendanceAsync(token){if(!cloudRequired('training.attendance'))return null;const {data,error}=await supabase.rpc('training_confirm_attendance',{p_token:token});if(error)throw error;return data}
-export async function submitTrainingEvaluationAsync(token,{answers={},feedbackScores={},feedbackComment='',attendanceAttested=false}={}){if(!cloudRequired('training.evaluation'))return null;const {data,error}=await supabase.rpc('training_submit_evaluation',{p_token:token,p_answers:answers,p_feedback_scores:feedbackScores,p_feedback_comment:feedbackComment||null,p_attendance_attested:Boolean(attendanceAttested)});if(error)throw error;return data}
+export async function submitTrainingEvaluationAsync(token,{answers={},feedbackScores={},feedbackComment='',attendanceAttested=false}={}){if(!cloudRequired('training.evaluation'))return null;const {data,error}=await supabase.rpc('training_submit_evaluation',{p_token:token,p_answers:answers,p_feedback_scores:feedbackScores,p_feedback_comment:feedbackComment||null,p_attendance_attested:Boolean(attendanceAttested)});if(error)throw error;announceTrainingUpdate({assignmentId:data?.assignmentId||null,programId:data?.programId||null});return data}
 export async function processTrainingOutboxAsync(organizationId){if(!cloudRequired('training.email.process'))return {demo:true,sent:0,failed:0};const {data,error}=await supabase.functions.invoke('process-notification-outbox',{body:{organizationId}});if(error)throw error;if(data?.ok===false)throw trainingEmailError(data);return data}
 export async function sendTrainingInvitationsAsync(assignmentKeys,language='el',organizationId){const keys=[...new Set((assignmentKeys||[]).filter(Boolean))];if(!keys.length)return {queued:0,processed:null};for(const key of keys)await queueTrainingInvitationAsync(key,language);const processed=await processTrainingOutboxAsync(organizationId);return {queued:keys.length,processed}}

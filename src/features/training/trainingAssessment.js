@@ -11,16 +11,14 @@ const choice=()=>({id:makeId('OPT'),text:'',correct:false})
 export function createTrainingQuestion(type='single_choice'){
  const base={id:makeId('Q'),type,text:'',points:1,required:true,options:[],correctBoolean:true,modelAnswer:'',manualReview:false}
  if(type==='single_choice'||type==='multiple_choice')base.options=[choice(),choice()]
- if(type==='free_text')base.manualReview=true
  return base
 }
 
 export function normalizeTrainingQuestion(question={}){
  const type=TRAINING_ASSESSMENT_TYPES[question.type]?question.type:'single_choice'
- const normalized={...createTrainingQuestion(type),...question,type,points:Math.max(0,Number(question.points)||0),required:question.required!==false}
+ const normalized={...createTrainingQuestion(type),...question,type,points:Math.max(0,Number(question.points)||0),required:question.required!==false,manualReview:Boolean(question.manualReview)}
  if(type==='single_choice'||type==='multiple_choice')normalized.options=(Array.isArray(question.options)?question.options:[]).map(option=>({id:option.id||makeId('OPT'),text:String(option.text||''),correct:Boolean(option.correct)}))
  else normalized.options=[]
- if(type==='free_text')normalized.manualReview=true
  return normalized
 }
 
