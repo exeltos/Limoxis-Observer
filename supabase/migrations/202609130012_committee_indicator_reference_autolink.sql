@@ -56,6 +56,8 @@ begin
 end;
 $$;
 
+revoke all on function public.sync_committee_plan_indicator_reference() from public,anon,authenticated;
+
 drop trigger if exists trg_committee_plan_indicator_reference on public.committee_plan_items;
 create trigger trg_committee_plan_indicator_reference
 before insert or update of indicator,indicator_definition_id
