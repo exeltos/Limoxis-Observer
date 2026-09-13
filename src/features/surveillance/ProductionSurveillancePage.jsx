@@ -30,7 +30,6 @@ const latestResistance=row=>row.samples?.find(sample=>sample.resistance)?.resist
 const uniqueSorted=values=>[...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'el'))
 const environmentalTypes=['water','surface','environment','environmental','room','air','νερό','επιφάνεια','επιφανεια']
 const isEnvironmentalSample=row=>row.subjectType==='environment'||environmentalTypes.some(value=>String(row.type||'').toLowerCase().includes(value))
-const patientLabCode=caseId=>`LAB-SUR-${String(caseId||'').replaceAll('-','')}`
 
 export function ProductionSurveillancePage(){
   const {tenant,role,actualRole,membership,memberships,setTenantByMembership,canAccessRecord,canSeeSensitiveEmployeeHealth}=useTenant()
@@ -153,11 +152,11 @@ export function ProductionSurveillancePage(){
       </div>
     </div>
     {creationMode==='chooser'&&<SubjectChooser language={language} canEmployee={canSeeEmployeeSurveillance} canEnvironmental={canSeeEnvironmental} onClose={()=>setCreationMode(null)} onPatient={()=>setCreationMode('patient')} onEmployee={()=>setCreationMode('employee')} onEnvironmental={()=>setCreationMode('environmental')}/>} 
-    {creationMode==='patient'&&<NewSurveillanceFlow patients={patients} departments={departmentOptions} onPatientsChange={setPatients} onClose={async()=>{setCreationMode(null);await load()}} onCreate={createPatientSurveillance} onSaveAssessment={savePatientAssessment} onRequestSample={requestPatientSample} onSaveIsolation={savePatientIsolation} onRecordChange={updated=>setRecords(current=>current.map(row=>row.id===updated.id?updated:row))}/>}
-    {creationMode==='environmental'&&<EnvironmentalSurveillanceFlow departmentOptions={environmentalDepartmentOptions} createSample={createEnvironmentalSample} onClose={()=>setCreationMode(null)} onCreated={()=>setRegistryMode('environmental')}/>}
-    {creationMode==='employee'&&canSeeEmployeeSurveillance&&<ProductionEmployeeSurveillanceFlow onClose={()=>setCreationMode(null)} onCreated={async()=>{await load();setRegistryMode('employees')}}/>}
-    {openEmployeeRecord&&<EmployeeSurveillanceRecordDialog organizationId={tenant?.id} record={openEmployeeRecord} samples={employeeLabByRecord.get(openEmployeeRecord.recordId)||[]} canManage={canManageEmployeeFollowup} t={t} language={language} fmt={fmt} onClose={()=>setOpenEmployeeRecord(null)} onUpdated={updated=>{setEmployeeRecords(current=>current.map(row=>row.recordId===updated.recordId?updated:row));setOpenEmployeeRecord(updated)}}/>}
-    {openEmployeeBatch&&<EmployeeBatchDialog language={language} fmt={fmt} batch={openEmployeeBatch} onClose={()=>setOpenEmployeeBatch(null)} onOpenRecord={record=>{setOpenEmployeeBatch(null);setOpenEmployeeRecord(record)}}/>}
+    {creationMode==='patient'&&<NewSurveillanceFlow patients={patients} departments={departmentOptions} onPatientsChange={setPatients} onClose={async()=>{setCreationMode(null);await load()}} onCreate={createPatientSurveillance} onSaveAssessment={savePatientAssessment} onRequestSample={requestPatientSample} onSaveIsolation={savePatientIsolation} onRecordChange={updated=>setRecords(current=>current.map(row=>row.id===updated.id?updated:row))}/>} 
+    {creationMode==='environmental'&&<EnvironmentalSurveillanceFlow departmentOptions={environmentalDepartmentOptions} createSample={createEnvironmentalSample} onClose={()=>setCreationMode(null)} onCreated={()=>setRegistryMode('environmental')}/>} 
+    {creationMode==='employee'&&canSeeEmployeeSurveillance&&<ProductionEmployeeSurveillanceFlow onClose={()=>setCreationMode(null)} onCreated={async()=>{await load();setRegistryMode('employees')}}/>} 
+    {openEmployeeRecord&&<EmployeeSurveillanceRecordDialog organizationId={tenant?.id} record={openEmployeeRecord} samples={employeeLabByRecord.get(openEmployeeRecord.recordId)||[]} canManage={canManageEmployeeFollowup} t={t} language={language} fmt={fmt} onClose={()=>setOpenEmployeeRecord(null)} onUpdated={updated=>{setEmployeeRecords(current=>current.map(row=>row.recordId===updated.recordId?updated:row));setOpenEmployeeRecord(updated)}}/>} 
+    {openEmployeeBatch&&<EmployeeBatchDialog language={language} fmt={fmt} batch={openEmployeeBatch} onClose={()=>setOpenEmployeeBatch(null)} onOpenRecord={record=>{setOpenEmployeeBatch(null);setOpenEmployeeRecord(record)}}/>} 
   </Page>
 }
 
@@ -169,7 +168,7 @@ function EmployeeBatchDialog({language,fmt,batch,onClose,onOpenRecord}){
 function SubjectChooser({language,canEmployee,canEnvironmental,onClose,onPatient,onEmployee,onEnvironmental}){const en=language==='en';return <ObserverDialog eyebrow={en?'Surveillance':'Επιτήρηση'} title={en?'New surveillance':'Νέα επιτήρηση'} subtitle={en?'Choose the subject of the surveillance record.':'Επιλέξτε το αντικείμενο της επιτήρησης.'} width="wide" className="surveillance-subject-chooser" onClose={onClose}><div className="subject-choice-grid"><button type="button" onClick={onPatient}><span>01</span><strong>{en?'Patient':'Ασθενής'}</strong><small>{en?'Clinical surveillance episode':'Κλινικό επεισόδιο επιτήρησης'}</small></button>{canEmployee&&<button type="button" onClick={onEmployee}><span>02</span><strong>{en?'Employee':'Εργαζόμενος'}</strong><small>{en?'Individual or bulk employee screening':'Ατομικός ή μαζικός έλεγχος εργαζομένων'}</small></button>}{canEnvironmental&&<button type="button" onClick={onEnvironmental}><span>03</span><strong>{en?'Environment':'Περιβάλλον'}</strong><small>{en?'Water, surfaces or environmental sample':'Νερό, επιφάνειες ή περιβαλλοντικό δείγμα'}</small></button>}</div></ObserverDialog>}
 
 function clickableRowProps(registry,id,onOpen){const rp=registry.rowProps(id,onOpen);return {...rp,className:`${rp.className} clickable-row`}}
-function PatientRegistry({rows,totalRows,t,language,fmt,registry,openLinkedRecord}){const open=item=>openLinkedRecord(`/laboratory/${item._labSample?.id||patientLabCode(item.recordId||item.id)}`,String(item.id),rows.map(row=>String(row.id)));return <div className="scroll-table" ref={registry.scrollRef}>{totalRows?<RegistryTable bare
+function PatientRegistry({rows,totalRows,t,language,fmt,registry,openLinkedRecord}){const open=item=>openLinkedRecord(`/surveillance/${item.id}`,String(item.id),rows.map(row=>String(row.id)));return <div className="scroll-table" ref={registry.scrollRef}>{totalRows?<RegistryTable bare
   columns={[{key:'patient',label:t('patient')},{key:'department',label:t('department')},{key:'started',label:t('clinicalRecords.startedAt')},{key:'microbiology',label:t('microbiology')},{key:'status',label:t('status')},{key:'reassessment',label:t('reassessment')}]}
   rows={rows} rowKey={item=>item.id}
   rowProps={item=>clickableRowProps(registry,String(item.id),()=>open(item))}
