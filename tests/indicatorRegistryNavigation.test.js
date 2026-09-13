@@ -3,15 +3,14 @@ import fs from 'node:fs'
 
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
-describe('indicator registry navigation and result entry',()=>{
- it('keeps manual value editing out of the registry and inside the indicator record',()=>{
+describe('indicator registry navigation and record behavior',()=>{
+ it('keeps result entry controls out of both the registry and indicator record',()=>{
   const list=read('src/features/indicators/IndicatorsPage.jsx')
   const record=read('src/features/indicators/IndicatorRecordPage.jsx')
   expect(list).not.toContain('className="indicator-manual-value"')
-  expect(list).toContain("Καταχώρηση μέσα στον δείκτη")
-  expect(record).toContain("Αποτέλεσμα επιλεγμένης περιόδου")
-  expect(record).toContain('type="number"')
-  expect(record).toContain("Αποθήκευση αποτελέσματος")
+  expect(record).not.toContain('Αποτέλεσμα επιλεγμένης περιόδου')
+  expect(record).not.toContain('Αποθήκευση αποτελέσματος')
+  expect(record).not.toContain('savePeriodResult')
  })
 
  it('uses the shared registry memory so returning highlights the last indicator row',()=>{
