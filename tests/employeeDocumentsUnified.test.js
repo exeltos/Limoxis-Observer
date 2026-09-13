@@ -1,14 +1,16 @@
 import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
 
-const tabsCss=fs.readFileSync('src/features/employees/employeeRecordTabsRefinements.css','utf8')
+const tabs=fs.readFileSync('src/features/employees/EmployeeRecordTabs.jsx','utf8')
 const attachments=fs.readFileSync('src/design-system/AttachmentField.jsx','utf8')
 const navigation=fs.readFileSync('src/core/navigation/useContextualNavigation.js','utf8')
 
 describe('employee documents and contextual return',()=>{
-  it('presents employee certifications and documents as one attachment workspace',()=>{
-    expect(tabsCss).toContain('.employee-certificates-workspace>.employee-certificates-section:first-of-type{display:none}')
-    expect(tabsCss).toContain('.employee-other-documents .employee-certificates-section-header{display:none}')
+  it('renders one real attachment workspace instead of hiding a second certification section with CSS',()=>{
+    expect(tabs).toContain('employee-documents-workspace')
+    expect(tabs).toContain('Όλα τα αρχεία του εργαζομένου τηρούνται σε ένα σημείο')
+    expect(tabs).toContain('entityId={employee.dbId||employee.id}')
+    expect(tabs).not.toContain('employee-certificates-section')
   })
 
   it('uses employee-specific attachment types',()=>{
@@ -17,8 +19,10 @@ describe('employee documents and contextual return',()=>{
     expect(attachments).toContain('employeeDocumentTypeLabel')
   })
 
-  it('falls back to stored navigation context when route state is lost',()=>{
-    expect(navigation).toContain('readSessionJson')
+  it('supports an explicit return target and tab for cross-module navigation',()=>{
+    expect(navigation).toContain('returnTo,returnTab')
+    expect(navigation).toContain('pathname:returnTo||location.pathname')
+    expect(navigation).toContain('tab:returnTab??tab??null')
     expect(navigation).toContain('location.state?.limoxisFrom||readSessionJson(CONTEXT_KEY,null)')
   })
 })
