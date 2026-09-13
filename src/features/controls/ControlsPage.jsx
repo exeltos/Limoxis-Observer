@@ -1,11 +1,10 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,PlayCircle } from 'lucide-react'
+import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
-import { IconButton } from '../../design-system/IconButton'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -17,12 +16,28 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { ControlEditor } from './ControlEditor'
 import { controlActorFromAuth } from './controlActor'
 import { MetricCard } from '../../design-system/MetricCard'
-import { assignmentStatus,frequencyLabel,getAssignment,isControlDue } from './controlScheduling'
+import { assignmentStatus,frequencyLabel,getAssignment } from './controlScheduling'
 import { loadControlProgramme,saveControlDefinition } from './controlCloudService'
 
 const controlsText={
- el:{created:'Ο έλεγχος δημιουργήθηκε.',centralSubtitle:'Κεντρικός προγραμματισμός και παρακολούθηση ελέγχων ανά τμήμα.',departmentSubtitle:'Οι προγραμματισμένοι έλεγχοι που αφορούν το τμήμα σας.',active:'Ενεργές αναθέσεις',dueSoon:'Πλησιάζουν',overdue:'Εκπρόθεσμοι',today:'Καταχωρήσεις σήμερα',search:'Αναζήτηση ελέγχων',department:'Τμήμα',allDepartments:'Όλα τα τμήματα',status:'Κατάσταση',all:'Όλες',temporary:'Προσωρινή',scheduled:'Εντός προγράμματος',frequency:'Συχνότητα',daily:'Ημερήσια',weekly:'Εβδομαδιαία',monthly:'Μηνιαία / ανά μήνες',yearly:'Ετήσια',control:'Έλεγχος',last:'Τελευταίος',next:'Επόμενος',within:'Εντός',continueDraft:'Συνέχιση προσωρινής καταχώρησης',execute:'Καταχώρηση ελέγχου',availableFrom:'Διαθέσιμο από',emptyTitle:'Δεν υπάρχουν καταγραφές ελέγχων',emptyText:'Δεν υπάρχουν έλεγχοι που να αντιστοιχούν στα επιλεγμένα φίλτρα.'},
- en:{created:'Control created.',centralSubtitle:'Central scheduling and monitoring of controls by department.',departmentSubtitle:'Scheduled controls assigned to your department.',active:'Active assignments',dueSoon:'Due soon',overdue:'Overdue',today:'Entries today',search:'Search controls',department:'Department',allDepartments:'All departments',status:'Status',all:'All',temporary:'Draft',scheduled:'On schedule',frequency:'Frequency',daily:'Daily',weekly:'Weekly',monthly:'Monthly / every N months',yearly:'Yearly',control:'Control',last:'Last',next:'Next',within:'On schedule',continueDraft:'Continue draft entry',execute:'Record control',availableFrom:'Available from',emptyTitle:'No control records',emptyText:'No controls match the selected filters.'}
+ el:{created:'Ο έλεγχος δημιουργήθηκε.',centralSubtitle:'Κεντρικός προγραμματισμός και παρακολούθηση ελέγχων ανά τμήμα.',departmentSubtitle:'Οι προγραμματισμένοι έλεγχοι που αφορούν το τμήμα σας.',active:'Ενεργοί έλεγχοι',dueSoon:'Πλησιάζουν',overdue:'Εκπρόθεσμοι',today:'Καταχωρήσεις σήμερα',search:'Αναζήτηση ελέγχων',department:'Τμήμα',departments:'Τμήματα',allDepartments:'Όλα τα τμήματα',status:'Κατάσταση',all:'Όλες',temporary:'Προσωρινή',scheduled:'Εντός προγράμματος',frequency:'Συχνότητα',daily:'Ημερήσια',weekly:'Εβδομαδιαία',monthly:'Μηνιαία / ανά μήνες',yearly:'Ετήσια',control:'Έλεγχος',executions:'Εκτελέσεις',next:'Επόμενος',within:'Εντός',emptyTitle:'Δεν υπάρχουν έλεγχοι',emptyText:'Δεν υπάρχουν έλεγχοι που να αντιστοιχούν στα επιλεγμένα φίλτρα.'},
+ en:{created:'Control created.',centralSubtitle:'Central scheduling and monitoring of controls by department.',departmentSubtitle:'Scheduled controls assigned to your department.',active:'Active controls',dueSoon:'Due soon',overdue:'Overdue',today:'Entries today',search:'Search controls',department:'Department',departments:'Departments',allDepartments:'All departments',status:'Status',all:'All',temporary:'Draft',scheduled:'On schedule',frequency:'Frequency',daily:'Daily',weekly:'Weekly',monthly:'Monthly / every N months',yearly:'Yearly',control:'Control',executions:'Executions',next:'Next',within:'On schedule',emptyTitle:'No controls',emptyText:'No controls match the selected filters.'}
+}
+
+function controlState(item,departments){
+ const states=departments.map(dep=>assignmentStatus(item,dep))
+ if(states.includes('overdue'))return 'overdue'
+ if(states.includes('dueSoon'))return 'dueSoon'
+ return 'scheduled'
+}
+function earliestNext(item,departments){
+ return departments.map(dep=>getAssignment(item,dep)?.nextDueAt).filter(Boolean).sort((a,b)=>new Date(a)-new Date(b))[0]||null
+}
+function executionCount(item,departments){
+ return departments.reduce((n,dep)=>n+(getAssignment(item,dep)?.history?.length||0),0)
+}
+function hasDraft(item,departments){
+ return departments.some(dep=>Boolean(getAssignment(item,dep)?.hasDraft))
 }
 
 export function ControlsPage(){
@@ -40,7 +55,6 @@ export function ControlsPage(){
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const canManage=can(role,CAPABILITIES.MANAGE_CONTROLS,addOns,custom)
  const canCreate=canManage
- const canExecuteRole=can(role,CAPABILITIES.EXECUTE_CONTROL,addOns,custom)
 
  async function reload(){
   if(!tenant?.id){setProgramme([]);setLoading(false);return}
@@ -51,38 +65,31 @@ export function ControlsPage(){
  }
  useEffect(()=>{void reload()},[tenant?.id])
 
- const scopedRows=useMemo(()=>programme.flatMap(item=>item.departments.filter(dep=>canAccessRecord({department:dep})).map(dep=>({item,department:dep,assignment:getAssignment(item,dep)}))),[programme,canAccessRecord])
- const departments=[...new Set(scopedRows.map(x=>x.department))]
- const rows=useMemo(()=>scopedRows.filter(({item})=>`${item.id} ${item.title} ${item.category} ${item.owner}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||x.department===department).filter(({item,department:dep,assignment})=>status==='all'||(status==='temporary'?Boolean(assignment?.hasDraft):assignmentStatus(item,dep)===status)).filter(({item})=>frequency==='all'||item.frequency.kind===frequency),[scopedRows,query,department,status,frequency])
+ const scopedControls=useMemo(()=>programme.map(item=>({item,departments:item.departments.filter(dep=>canAccessRecord({department:dep}))})).filter(row=>row.departments.length>0),[programme,canAccessRecord])
+ const departments=[...new Set(scopedControls.flatMap(x=>x.departments))]
+ const rows=useMemo(()=>scopedControls.filter(({item})=>`${item.id} ${item.title} ${item.category} ${item.owner}`.toLowerCase().includes(query.toLowerCase())).filter(row=>department==='all'||row.departments.includes(department)).filter(({item,departments:deps})=>status==='all'||(status==='temporary'?hasDraft(item,deps):deps.some(dep=>assignmentStatus(item,dep)===status))).filter(({item})=>frequency==='all'||item.frequency.kind===frequency),[scopedControls,query,department,status,frequency])
  useEffect(()=>{setPage(1)},[query,department,status,frequency,pageSize])
  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
  const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short',hour12:false}).format(new Date(v)):'—'
- const overdue=scopedRows.filter(({item,department:dep})=>assignmentStatus(item,dep)==='overdue').length
- const dueSoon=scopedRows.filter(({item,department:dep})=>assignmentStatus(item,dep)==='dueSoon').length
+ const overdue=scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='overdue').length
+ const dueSoon=scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='dueSoon').length
+ const todayKey=new Date().toISOString().slice(0,10)
+ const today=scopedControls.reduce((total,{item,departments:deps})=>total+deps.reduce((n,dep)=>n+(getAssignment(item,dep)?.history||[]).filter(h=>h.at?.slice(0,10)===todayKey).length,0),0)
  const createdByScope=role===ROLES.PLATFORM_OWNER?'platform':role===ROLES.HOSPITAL_ADMIN?'hospital_admin':role===ROLES.QUALITY_MANAGER?'quality':'infection_control'
 
  async function saveNew(draft){
   try{
    const saved=await saveControlDefinition(tenant.id,{...draft,createdByScope},{actorName:actor.name,createdByScope})
    setEditorOpen(false);notify(tx.created,'success');await reload()
-   const dep=saved.departments[0]
-   if(dep)registry.openRecord(navigate,`/controls/${saved.id}?department=${encodeURIComponent(dep)}`,`${saved.id}:${dep}`)
+   registry.openRecord(navigate,`/controls/${saved.id}`,saved.id)
   }catch(error){notifyError(error,'save',{operation:'control_definition_create'})}
- }
- function execute(row,e){
-  e?.stopPropagation()
-  const hasDraft=Boolean(row.assignment?.hasDraft)
-  const allowed=hasDraft||canManage||(canExecuteRole&&isControlDue(row.item,row.department))
-  if(!allowed)return
-  registry.saveViewState({query,department,status,frequency})
-  navigate(`/controls/${row.item.id}?department=${encodeURIComponent(row.department)}&execute=1`)
  }
  function pageAction(action){if(action===UI_ACTIONS.CREATE&&canCreate)setEditorOpen(true)}
 
  if(editorOpen)return <ControlEditor onCancel={()=>setEditorOpen(false)} onSave={saveNew}/>
 
  return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage?tx.centralSubtitle:tx.departmentSubtitle} actions={canCreate?<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>:null}>
-  <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedRows.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue}/><Kpi icon={CheckCircle2} label={tx.today} value={scopedRows.reduce((n,x)=>n+(x.assignment?.history||[]).filter(h=>h.at?.slice(0,10)===new Date().toISOString().slice(0,10)).length,0)}/></div></div>
+  <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedControls.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue}/><Kpi icon={CheckCircle2} label={tx.today} value={today}/></div></div>
   <section className="surface registry-workspace workspace-fill workspace-column controls-registry-workspace">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')+(frequency!=='all')} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setFrequency('all')}}>
     <FilterSelect label={tx.department} value={department} onChange={setDepartment}><option value="all">{tx.allDepartments}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
@@ -93,11 +100,11 @@ export function ControlsPage(){
      wrapperClassName="scroll-table"
      wrapperRef={registry.scrollRef}
      className="controls-table"
-     columns={[{key:'control',label:tx.control},{key:'department',label:tx.department},{key:'frequency',label:tx.frequency},{key:'last',label:tx.last},{key:'next',label:tx.next},{key:'status',label:tx.status},{key:'actions',label:'',className:'control-action-col'}]}
+     columns={[{key:'control',label:tx.control},{key:'departments',label:tx.departments},{key:'frequency',label:tx.frequency},{key:'executions',label:tx.executions},{key:'next',label:tx.next},{key:'status',label:tx.status}]}
      rows={pagedRows}
-     rowKey={row=>`${row.item.id}:${row.department}`}
-     rowProps={row=>registry.rowProps(`${row.item.id}:${row.department}`,()=>{registry.saveViewState({query,department,status,frequency});registry.openRecord(navigate,`/controls/${row.item.id}?department=${encodeURIComponent(row.department)}`,`${row.item.id}:${row.department}`,rows.map(x=>`${x.item.id}:${x.department}`))})}
-     renderRow={row=>{const {item,department:dep,assignment}=row,due=isControlDue(item,dep),state=assignmentStatus(item,dep),hasDraft=Boolean(assignment?.hasDraft),canQuick=hasDraft||canManage||(due&&canExecuteRole);const quickLabel=hasDraft?tx.continueDraft:canQuick?tx.execute:`${tx.availableFrom} ${fmt(assignment?.nextDueAt)}`;return <><td><strong>{language==='el'?item.title:item.titleEn}</strong><small>{item.category}</small></td><td>{dep}</td><td>{frequencyLabel(item.frequency,language)}</td><td>{fmt(assignment?.lastCompletedAt)}</td><td>{fmt(assignment?.nextDueAt)}</td><td><div className="control-status-stack">{hasDraft&&<span className="status-badge temporary">{tx.temporary}</span>}<span className={`status-badge ${state==='overdue'?'danger':state==='dueSoon'?'warning':'active'}`}>{state==='overdue'?tx.overdue:state==='dueSoon'?tx.dueSoon:tx.within}</span></div></td><td className="control-action-col"><IconButton size="sm" tone={canQuick?'primary':'neutral'} className="control-quick-execute" disabled={!canQuick} label={quickLabel} onClick={e=>execute(row,e)}><PlayCircle size={16}/></IconButton></td></>}}
+     rowKey={row=>row.item.id}
+     rowProps={row=>registry.rowProps(row.item.id,()=>{registry.saveViewState({query,department,status,frequency});registry.openRecord(navigate,`/controls/${row.item.id}`,row.item.id,rows.map(x=>x.item.id))})}
+     renderRow={({item,departments:deps})=>{const state=controlState(item,deps),draft=hasDraft(item,deps),depPreview=deps.slice(0,3).join(' · '),more=deps.length>3?' …':'';return <><td><strong>{language==='el'?item.title:item.titleEn}</strong><small>{item.category}</small></td><td>{deps.length===1?deps[0]:<><strong>{deps.length} {language==='en'?'departments':'τμήματα'}</strong><small>{depPreview}{more}</small></>}</td><td>{frequencyLabel(item.frequency,language)}</td><td>{executionCount(item,deps)}</td><td>{fmt(earliestNext(item,deps))}</td><td><div className="control-status-stack">{draft&&<span className="status-badge temporary">{tx.temporary}</span>}<span className={`status-badge ${state==='overdue'?'danger':state==='dueSoon'?'warning':'active'}`}>{state==='overdue'?tx.overdue:state==='dueSoon'?tx.dueSoon:tx.within}</span></div></td></>}}
    />{loading&&<div className="registry-empty-state"><strong>{language==='en'?'Loading controls…':'Φόρτωση ελέγχων…'}</strong></div>}{!loading&&!rows.length&&<div className="registry-empty-state"><strong>{tx.emptyTitle}</strong><span>{tx.emptyText}</span></div>}
    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
   </section>
