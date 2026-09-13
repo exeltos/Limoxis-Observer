@@ -65,7 +65,7 @@ export function EmployeeTrainingTab({employee,t,language,fmt,organizationId,canO
   </section>
 }
 
-export function EmployeeEvaluationsTab({employee,t,language,fmt,organizationId}){
+export function EmployeeEvaluationsTab({employee,t:_t,language,fmt,organizationId}){
   const state=useEmployeeSubRecords(loadEvaluationsAsync,organizationId,employee.dbId,employee.id)
   const [selected,setSelected]=useState(null)
   const paging=usePaged(state.data)
