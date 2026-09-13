@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate,useSearchParams } from 'react-router-dom'
 import { CalendarClock,HeartPulse,UserRoundCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
@@ -13,9 +13,15 @@ import { useEmployeesData } from '../employees/useEmployeesData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { downloadCsv } from '../../core/export/csvExport'
 import { MetricCard } from '../../design-system/MetricCard'
+import { StaffVaccinationsPage } from '../prevention/StaffVaccinationsPage'
 import './OccupationalHealthPage.css'
 
 export function OccupationalHealthPage(){
+ const [searchParams]=useSearchParams()
+ return searchParams.get('tab')==='vaccinations'?<StaffVaccinationsPage/>:<OccupationalVisitsPage/>
+}
+
+function OccupationalVisitsPage(){
  const {t,language,locale}=useLanguage();const {notify}=useFeedback();const navigate=useNavigate();const {canAccessRecord}=useTenant()
  const {data:employeeRows}=useEmployeesData();const occupationalVisits=useMemo(loadOccupationalVisits,[])
  const [query,setQuery]=useState(''),[status,setStatus]=useState('all'),[department,setDepartment]=useState('all')
