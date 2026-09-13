@@ -94,6 +94,104 @@
   background:linear-gradient(180deg,rgba(255,255,255,0),var(--lo-color-surface) 24%)!important;
 }
 
+/* Bundle deviations become auditable follow-up items instead of passive notes. */
+.prevention-record-shell .bundle-record-findings{
+  display:grid!important;
+  gap:9px!important;
+}
+.prevention-record-shell .bundle-record-findings>.bundle-record-heading{
+  margin-bottom:0!important;
+}
+.prevention-record-shell .bundle-record-findings>.bundle-record-heading small{
+  display:block;
+  margin-top:4px;
+  color:var(--lo-color-muted);
+  font-size:10.5px;
+  font-weight:500;
+  line-height:1.45;
+}
+.prevention-record-shell .bundle-record-finding{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:14px!important;
+  padding:11px 13px!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-left:3px solid #d26b6b!important;
+  border-radius:9px!important;
+  background:var(--lo-color-surface)!important;
+}
+.prevention-record-shell .bundle-record-finding.bundle-followup-resolved{
+  border-left-color:#4b956e!important;
+  background:color-mix(in srgb,#eef8f3 72%,var(--lo-color-surface))!important;
+}
+.prevention-record-shell .bundle-record-finding.bundle-followup-not_applicable{
+  border-left-color:#8292a1!important;
+}
+.prevention-record-shell .bundle-record-finding.bundle-followup-open,
+.prevention-record-shell .bundle-record-finding.bundle-followup-pending{
+  border-left-color:#d26b6b!important;
+}
+.bundle-followup-copy{
+  display:grid;
+  gap:4px;
+  min-width:0;
+}
+.bundle-followup-copy>strong{font-size:11.5px;color:var(--lo-color-text)}
+.bundle-followup-copy>span{font-size:10.5px;color:#7a4a45;line-height:1.4}
+.bundle-followup-copy>small{font-size:10px;color:var(--lo-color-muted);line-height:1.4}
+.bundle-followup-meta{
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  flex-direction:column;
+  gap:5px;
+  min-width:160px;
+}
+.bundle-followup-meta>small{font-size:9.5px;color:var(--lo-color-muted);white-space:nowrap}
+.bundle-followup-status{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:25px;
+  padding:4px 9px;
+  border:1px solid var(--lo-color-border);
+  border-radius:999px;
+  background:#f4f6f8;
+  color:#5a6b7b;
+  font-size:9.5px;
+  font-weight:750;
+  white-space:nowrap;
+}
+.bundle-followup-status.resolved{background:#edf7f1;border-color:#cde6d7;color:#28704b}
+.bundle-followup-status.open{background:#fff1ef;border-color:#efcfca;color:#a44a42}
+.bundle-followup-status.not_applicable{background:#f3f5f7;border-color:#dce2e7;color:#637383}
+.bundle-followup-status.pending{background:#fff8e8;border-color:#eadbb7;color:#8a6a22}
+.bundle-followup-form{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:13px 15px;
+}
+.bundle-followup-form>label{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+.bundle-followup-form>label>span{font-size:10.5px;font-weight:700;color:var(--lo-color-muted)}
+.bundle-followup-form select,
+.bundle-followup-form textarea{
+  width:100%;
+  border:1px solid var(--lo-color-border);
+  border-radius:var(--lo-radius-control);
+  background:var(--lo-color-surface);
+  color:var(--lo-color-text);
+  font:inherit;
+}
+.bundle-followup-form select{min-height:40px;padding:0 10px}
+.bundle-followup-form textarea{min-height:90px;padding:10px 11px;resize:vertical}
+.bundle-followup-comment{grid-column:1/-1}
+
 @media(max-width:900px){
   .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{
     grid-template-columns:repeat(2,minmax(0,1fr))!important;
@@ -103,9 +201,13 @@
   .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>label{
     grid-column:span 1!important;
   }
+  .prevention-record-shell .bundle-record-finding{grid-template-columns:1fr!important}
+  .bundle-followup-meta{align-items:flex-start;min-width:0}
 }
 @media(max-width:650px){
   .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{
     grid-template-columns:1fr!important;
   }
+  .bundle-followup-form{grid-template-columns:1fr}
+  .bundle-followup-comment{grid-column:auto}
 }
