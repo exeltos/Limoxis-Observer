@@ -62,14 +62,25 @@ async function loadCanonicalTrainingContext(organizationId,employeeDbId,employee
 
 // --- Occupational health visits ---
 function visitFromRow(row) {
-  return { id: row.id, employeeId: row.employee_id, date: row.visit_date, type: row.visit_type, status: row.status, followUpDate: row.follow_up_date || null, fitStatus: row.fitness_status || '' }
+  return {
+    id:row.id,
+    employeeId:row.employee_id,
+    date:row.visit_date,
+    type:row.visit_type,
+    status:row.status,
+    followUpDate:row.follow_up_date||null,
+    fitStatus:row.fitness_status||'',
+    clinicalNotes:row.clinical_notes||'',
+    createdAt:row.created_at||null,
+    updatedAt:row.updated_at||null,
+  }
 }
 export async function loadOccupationalVisitsAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadVisitsLocal().filter(x => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'occupational_health_visits.load')
   const { data, error } = await supabase
     .from('occupational_health_visits')
-    .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status')
+    .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status,clinical_notes,created_at,updated_at')
     .eq('organization_id', organizationId)
     .eq('employee_id', employeeDbId)
     .order('visit_date', { ascending: false })
@@ -79,14 +90,26 @@ export async function loadOccupationalVisitsAsync(organizationId, employeeDbId, 
 
 // --- Vaccinations ---
 function vaccinationFromRow(row) {
-  return { id: row.id, employeeId: row.employee_id, vaccine: row.vaccine_label_snapshot, dose: row.dose || '', date: row.vaccination_date, validUntil: row.valid_until || null, status: row.status }
+  return {
+    id:row.id,
+    employeeId:row.employee_id,
+    vaccine:row.vaccine_label_snapshot,
+    dose:row.dose||'',
+    date:row.vaccination_date,
+    lotNumber:row.lot_number||'',
+    validUntil:row.valid_until||null,
+    status:row.status,
+    clinicalNotes:row.clinical_notes||'',
+    createdAt:row.created_at||null,
+    updatedAt:row.updated_at||null,
+  }
 }
 export async function loadVaccinationsAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadVaccinationsLocal().filter(x => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'employee_vaccinations.load')
   const { data, error } = await supabase
     .from('employee_vaccinations')
-    .select('id,employee_id,vaccine_label_snapshot,dose,vaccination_date,valid_until,status')
+    .select('id,employee_id,vaccine_label_snapshot,dose,vaccination_date,lot_number,valid_until,status,clinical_notes,created_at,updated_at')
     .eq('organization_id', organizationId)
     .eq('employee_id', employeeDbId)
     .order('vaccination_date', { ascending: false })
@@ -96,9 +119,7 @@ export async function loadVaccinationsAsync(organizationId, employeeDbId, employ
 
 // --- Training summary ---
 // Production training has one source of truth: training_records. The employee tab derives
-// its rows from assignment records and joins the corresponding programme payload. This
-// avoids the stale duplicate employee_training_summary table that was never populated by
-// the production Training workflow.
+// its rows from assignment records and joins the corresponding programme payload.
 export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadTrainingLocal().filter(x => x.employeeId === employeeId)
   const {assignments,programMap}=await loadCanonicalTrainingContext(organizationId,employeeDbId,employeeId)
@@ -112,17 +133,21 @@ export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, em
       titleEl:title,
       titleEn:program.titleEn||title,
       date:assignment.completedDate||program.startDate||assignment.assignedDate||program.dueDate||String(row.updated_at||row.created_at||'').slice(0,10),
+      assignedDate:assignment.assignedDate||'',
+      completedDate:assignment.completedDate||'',
+      dueDate:program.dueDate||assignment.dueDate||'',
       status:assignment.status||'assigned',
       programId:assignment.programId||null,
       score:assignment.score??null,
       competent:assignment.competent??null,
+      source:'training_records',
     }
   })
 }
 
 // --- Evaluations ---
 function evaluationFromRow(row) {
-  return { id: row.id, employeeId: row.employee_id, titleEl: row.title, titleEn: row.title_en || row.title, date: row.evaluation_date, resultEl: row.result || '', resultEn: row.result_en || row.result || '' }
+  return { id: row.id, employeeId: row.employee_id, titleEl: row.title, titleEn: row.title_en || row.title, date: row.evaluation_date, resultEl: row.result || '', resultEn: row.result_en || row.result || '', source:'employee_evaluations' }
 }
 export async function loadEvaluationsAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadEvaluationsLocal().filter(x => x.employeeId === employeeId)
@@ -160,6 +185,9 @@ export async function loadEvaluationsAsync(organizationId, employeeDbId, employe
         date:a.completedDate||String(a.assessmentSubmittedAt||row.updated_at||row.created_at||'').slice(0,10),
         resultEl,
         resultEn,
+        score,
+        competent:a.competent??null,
+        programId:a.programId||null,
         source:'training',
       }
     })
@@ -232,6 +260,18 @@ export async function updateCertificateAsync(organizationId, employeeDbId, id, d
     .single()
   if (error) throw error
   return certificateFromRow(data)
+}
+
+export async function deleteCertificateAsync(organizationId, employeeDbId, id) {
+  ensureProductionContext(organizationId,employeeDbId,'employee_certificates.delete')
+  const { error } = await supabase
+    .from('employee_certificates')
+    .delete()
+    .eq('organization_id',organizationId)
+    .eq('employee_id',employeeDbId)
+    .eq('id',id)
+  if(error)throw error
+  return true
 }
 
 export function saveCertificatesLocalFallback(rows) {
