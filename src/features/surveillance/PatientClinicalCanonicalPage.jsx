@@ -76,7 +76,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
   const fmtDateTime=value=>value?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(value)):'—'
   const canSurveillance=has(CAPABILITIES.VIEW_SURVEILLANCE)
   const canLab=has(CAPABILITIES.VIEW_LAB)||canSurveillance
-  const canTherapy=has(CAPABILITIES.VIEW_PHARMACY)||canSurveillance
+  const canTherapy=has(CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)
   const tabs=[
     {id:'summary',label:t('summary'),icon:UserRound},
     ...(patientMode?[{id:'admissions',label:t('clinicalRecords.admissions'),icon:BedDouble}]:[]),
