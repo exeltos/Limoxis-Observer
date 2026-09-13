@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { CalendarClock,CheckCircle2,FileWarning,Plus,Printer,Save,Trash2,UserRound } from 'lucide-react'
+import { CalendarClock,FileWarning,Plus,Printer,Save,Trash2,UserRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -25,7 +25,6 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
  const [value,setValue]=useState(savedDraft?.value||'')
  const [notes,setNotes]=useState(savedDraft?.notes||'')
  const [rows,setRows]=useState(savedDraft?.rows?.length?savedDraft.rows:[emptyStructuredRow(response.template)])
- const [confirmed,setConfirmed]=useState(false)
  const [draftSaved,setDraftSaved]=useState(Boolean(savedDraft))
  const [draftSaving,setDraftSaving]=useState(false)
  const [saving,setSaving]=useState(false)
@@ -56,7 +55,9 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
   finally{setDraftSaving(false)}
  }
  async function submit(){
-  if(!valid||!confirmed||saving)return
+  if(!valid||saving)return
+  const ok=await confirm({title:en?'Confirm control entry':'Επιβεβαίωση καταχώρησης',message:en?'Confirm that the control was performed and the information entered is accurate.':'Επιβεβαιώστε ότι ο έλεγχος πραγματοποιήθηκε και τα στοιχεία που καταχωρήθηκαν είναι σωστά.',confirmLabel:en?'Save entry':'Αποθήκευση'})
+  if(!ok)return
   const cleanRows=response.mode==='list'?rows.filter(r=>Object.values(r||{}).some(v=>String(v??'').trim())):null
   setSaving(true)
   try{await onSave?.({value,notes,structuredData:response.mode==='list'?{template:response.template,rows:cleanRows}:null,hasFinding,actor})}
@@ -91,8 +92,6 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
 
   {hasFinding&&<div className="governance-banner warning control-finding-banner"><FileWarning size={17}/><span>{en?'This entry contains a finding or an out-of-range value. You can create a related incident report.':'Η καταχώρηση περιλαμβάνει εύρημα ή τιμή εκτός ορίων. Μπορείτε να δημιουργήσετε σχετική αναφορά.'}</span></div>}
 
-  <label className="control-confirm-execution"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/><CheckCircle2 size={17}/><span>{en?'I confirm that the control was performed and the information above is accurate.':'Επιβεβαιώνω ότι ο έλεγχος πραγματοποιήθηκε και τα παραπάνω στοιχεία είναι σωστά.'}</span></label>
-
   <div className="control-execution-page-tools">
    <div className="control-execution-page-secondary-actions">
     <Button variant="quiet" disabled={draftSaving} onClick={persistDraft}><Save size={15}/>{draftSaving?(en?' Saving…':' Αποθήκευση…'):(en?' Save draft':' Αποθήκευση προσωρινά')}</Button>
@@ -100,7 +99,7 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
     <Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>
     {draftSaved&&<span className="control-temp-save-state">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</span>}
    </div>
-   <div className="control-execution-page-primary-actions"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton disabled={!confirmed||!valid||saving} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):(en?'Confirm & save':'Επιβεβαίωση & αποθήκευση')}</SaveButton></div>
+   <div className="control-execution-page-primary-actions"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton disabled={!valid||saving} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save entry':'Αποθήκευση')}</SaveButton></div>
   </div>
  </div>
 }
