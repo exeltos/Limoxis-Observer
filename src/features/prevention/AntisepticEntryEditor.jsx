@@ -6,6 +6,8 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ANTISEPTIC_METHODS,isAbhrProduct } from './AntisepticEntryModal'
 
+export const HOSPITAL_SCOPE='__hospital__'
+
 function monthRange(period){
  if(!period)return null
  const [y,m]=period.split('-').map(Number)
@@ -22,35 +24,42 @@ export function AntisepticEntryEditor({onCancel,onSave,fixedDepartment='',initia
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
  const today=new Date().toISOString().slice(0,10)
  const currentMonth=today.slice(0,7)
- const initialDepartment=initialRecord?.departmentEl||fixedDepartment||departments[0]?.el||''
+ const initialDepartment=initialRecord?.departmentScope==='hospital'?HOSPITAL_SCOPE:(initialRecord?.departmentEl||fixedDepartment||'')
  const initialProduct=initialRecord?.product||products[0]?.el||''
- const [draft,setDraft]=useState(()=>initialRecord?JSON.parse(JSON.stringify(initialRecord)):{period:currentMonth,departmentEl:initialDepartment,product:initialProduct,antisepticItemId:products.find(x=>x.el===initialProduct)?.id||'',litres:'',patientDays:'',patientDaysSource:'',method:'pharmacy_issue',referenceNumber:'',responsible:actor.name,notes:'',status:'completed'})
+ const [draft,setDraft]=useState(()=>initialRecord?JSON.parse(JSON.stringify({...initialRecord,departmentEl:initialDepartment})):{period:currentMonth,departmentEl:initialDepartment,product:initialProduct,antisepticItemId:products.find(x=>x.el===initialProduct)?.id||'',litres:'',patientDays:'',patientDaysSource:'',method:'pharmacy_issue',referenceNumber:'',responsible:actor.name,notes:'',status:'completed'})
  const [suggestedPatientDays,setSuggestedPatientDays]=useState('')
  const [saving,setSaving]=useState(false)
  const set=(key,value)=>setDraft(state=>({...state,[key]:value}))
- const departmentInfo=departments.find(item=>item.el===draft.departmentEl)
+ const hospitalScope=draft.departmentEl===HOSPITAL_SCOPE
+ const departmentInfo=hospitalScope?null:departments.find(item=>item.el===draft.departmentEl)
  const productInfo=products.find(item=>item.id===draft.antisepticItemId||item.el===draft.product)
- const departmentEn=departmentInfo?.en||draft.departmentEl
+ const departmentEn=hospitalScope?'Whole hospital':(departmentInfo?.en||draft.departmentEl)
  const productEn=productInfo?.en||draft.product
  const range=useMemo(()=>monthRange(draft.period),[draft.period])
 
  useEffect(()=>{
+  if(draft.antisepticItemId||draft.product||!products.length)return
+  const first=products[0]
+  setDraft(state=>({...state,antisepticItemId:first.id,product:first.el,productEn:first.en||first.el,productCode:first.code||''}))
+ },[draft.antisepticItemId,draft.product,products])
+
+ useEffect(()=>{
   let active=true
   async function load(){
-   if(!findPatientDays||!departmentInfo?.id||!range){setSuggestedPatientDays('');return}
-   try{const value=await findPatientDays(departmentInfo.id,range.from,range.to);if(active)setSuggestedPatientDays(value||'')}
+   if(!findPatientDays||(!hospitalScope&&!departmentInfo?.id)||!range){setSuggestedPatientDays('');return}
+   try{const value=await findPatientDays(hospitalScope?null:departmentInfo.id,range.from,range.to);if(active)setSuggestedPatientDays(value||'')}
    catch{if(active)setSuggestedPatientDays('')}
   }
   void load()
   return()=>{active=false}
- },[findPatientDays,departmentInfo?.id,range?.from,range?.to])
+ },[findPatientDays,hospitalScope,departmentInfo?.id,range?.from,range?.to])
 
  const patientDays=Number(draft.patientDays)||0
  const litres=Number(draft.litres)||0
  const abhr=isAbhrProduct(productInfo)
  const indicator=abhr&&patientDays>0?Number((litres/patientDays*1000).toFixed(2)):null
  const usingLibraryDays=Boolean(suggestedPatientDays)&&Number(draft.patientDays)===Number(suggestedPatientDays)&&draft.patientDaysSource==='library'
- const valid=Boolean(draft.period&&draft.departmentEl&&draft.product&&Number.isFinite(litres)&&litres>=0&&draft.method&&departments.length&&products.length)
+ const valid=Boolean(draft.period&&draft.departmentEl&&draft.product&&draft.antisepticItemId&&Number.isFinite(litres)&&litres>=0&&draft.method)
 
  function changeProduct(value){
   const selected=products.find(item=>item.id===value)
@@ -60,7 +69,7 @@ export function AntisepticEntryEditor({onCancel,onSave,fixedDepartment='',initia
   if(!valid||saving)return
   const selectedProduct=products.find(item=>item.id===draft.antisepticItemId||item.el===draft.product)
   const now=new Date().toISOString()
-  const record={...draft,antisepticItemId:selectedProduct?.id||draft.antisepticItemId||'',productCode:selectedProduct?.code||'',departmentEn,product:selectedProduct?.el||draft.product,productEn:selectedProduct?.en||productEn,litres,patientDays:patientDays||null,indicator,indicatorEligible:isAbhrProduct(selectedProduct),responsible:draft.responsible||actor.name,createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized'}
+  const record={...draft,departmentScope:hospitalScope?'hospital':'department',departmentEl:hospitalScope?'Όλο το νοσοκομείο':draft.departmentEl,antisepticItemId:selectedProduct?.id||draft.antisepticItemId||'',productCode:selectedProduct?.code||'',departmentEn,product:selectedProduct?.el||draft.product,productEn:selectedProduct?.en||productEn,litres,patientDays:patientDays||null,indicator,indicatorEligible:isAbhrProduct(selectedProduct),responsible:draft.responsible||actor.name,createdAt:initialRecord?.createdAt||now,createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,updatedAt:initialRecord?now:null,updatedBy:initialRecord?actor.name:null,updatedById:initialRecord?actor.id:null,status:'completed',lifecycleStatus:'finalized'}
   try{setSaving(true);await onSave(record)}finally{setSaving(false)}
  }
 
@@ -72,8 +81,8 @@ export function AntisepticEntryEditor({onCancel,onSave,fixedDepartment='',initia
      <div className="antiseptic-form-heading"><strong>{en?'Monthly consumption':'Μηνιαία κατανάλωση'}</strong><small>{en?'Product is selected from the central antiseptic Library.':'Το προϊόν επιλέγεται από την κεντρική Βιβλιοθήκη αντισηπτικών.'}</small></div>
      <div className="entry-grid">
       <label><span>{en?'Reporting month *':'Μήνας αναφοράς *'}</span><input type="month" value={String(draft.period||'').slice(0,7)} onChange={event=>set('period',event.target.value)}/></label>
-      <DepartmentField value={draft.departmentEl} onChange={value=>set('departmentEl',value)} departments={departments} fixed={Boolean(fixedDepartment)}/>
-      <label className="entry-span-2"><span>{en?'Product *':'Προϊόν *'}</span><select value={draft.antisepticItemId||productInfo?.id||''} onChange={event=>changeProduct(event.target.value)}>{products.map(item=><option key={item.id} value={item.id}>{en?(item.en||item.el):item.el}</option>)}</select></label>
+      <DepartmentField value={draft.departmentEl} onChange={value=>setDraft(state=>({...state,departmentEl:value,patientDays:'',patientDaysSource:''}))} departments={departments} fixed={Boolean(fixedDepartment)} en={en}/>
+      <label className="entry-span-2"><span>{en?'Product *':'Προϊόν *'}</span><select value={draft.antisepticItemId||productInfo?.id||''} onChange={event=>changeProduct(event.target.value)}><option value="">{en?'Select product':'Επιλέξτε προϊόν'}</option>{products.map(item=><option key={item.id} value={item.id}>{en?(item.en||item.el):item.el}</option>)}</select></label>
       <label><span>{en?'Consumption *':'Κατανάλωση *'}</span><div className="field-with-unit"><input type="number" min="0" step="0.1" value={draft.litres} onChange={event=>set('litres',event.target.value)} placeholder="0,0"/><span>L</span></div></label>
       <label><span>{en?'Data source / method *':'Πηγή / μέθοδος δεδομένων *'}</span><select value={draft.method} onChange={event=>set('method',event.target.value)}>{ANTISEPTIC_METHODS.map(item=><option key={item.id} value={item.id}>{en?item.labelEn:item.label}</option>)}</select></label>
      </div>
@@ -86,7 +95,7 @@ export function AntisepticEntryEditor({onCancel,onSave,fixedDepartment='',initia
    </main>
    <aside className="antiseptic-entry-rail">
     <section className="antiseptic-form-section antiseptic-indicator-panel">
-     <div className="antiseptic-form-heading"><strong>{en?'Denominator & indicator':'Παρονομαστής & δείκτης'}</strong><small>{en?'Library patient-days are offered only for the exact approved reporting month.':'Οι νοσηλευτικές ημέρες προτείνονται μόνο για τον ίδιο ακριβώς εγκεκριμένο μήνα.'}</small></div>
+     <div className="antiseptic-form-heading"><strong>{en?'Denominator & indicator':'Παρονομαστής & δείκτης'}</strong><small>{hospitalScope?(en?'Hospital-wide patient-days are used for the same approved reporting month.':'Χρησιμοποιούνται οι συνολικές νοσηλευτικές ημέρες του νοσοκομείου για τον ίδιο εγκεκριμένο μήνα.'):(en?'Library patient-days are offered only for the exact approved reporting month.':'Οι νοσηλευτικές ημέρες προτείνονται μόνο για τον ίδιο ακριβώς εγκεκριμένο μήνα.')}</small></div>
      <label><span>{en?'Patient-days for reporting month':'Νοσηλευτικές ημέρες μήνα αναφοράς'}</span><div className="antiseptic-patient-days-field"><input type="number" min="0" value={draft.patientDays||''} onChange={event=>setDraft(state=>({...state,patientDays:event.target.value,patientDaysSource:'manual'}))} placeholder={suggestedPatientDays?String(suggestedPatientDays):(en?'No approved matching month':'Δεν βρέθηκε εγκεκριμένος ίδιος μήνας')}/>{suggestedPatientDays&&<button type="button" className={usingLibraryDays?'applied':''} onClick={()=>setDraft(state=>({...state,patientDays:suggestedPatientDays,patientDaysSource:'library'}))}>{usingLibraryDays?(en?'✓ From Library':'✓ Από Βιβλιοθήκη'):(en?'Use ':'Χρήση ')+suggestedPatientDays}</button>}</div></label>
      <div className={`antiseptic-indicator-card ${abhr?'active':''}`}><span>{en?'ABHR indicator':'Δείκτης ABHR'}</span><strong>{indicator===null?'—':indicator.toLocaleString(locale)}</strong><small>{en?'L / 1,000 patient-days':'L / 1.000 νοσηλευτικές ημέρες'}</small></div>
      {usingLibraryDays&&<small className="antiseptic-source-note">{en?`${suggestedPatientDays} patient-days from the approved matching month are used.`:`Χρησιμοποιούνται ${suggestedPatientDays} νοσηλευτικές ημέρες από τον εγκεκριμένο ίδιο μήνα.`}</small>}
@@ -97,4 +106,4 @@ export function AntisepticEntryEditor({onCancel,onSave,fixedDepartment='',initia
  </div>
 }
 
-function DepartmentField({value,onChange,departments,fixed}){const {language}=useLanguage();return <label><span>{language==='en'?'Department *':'Τμήμα *'}</span><select value={value} disabled={fixed} onChange={event=>onChange(event.target.value)}>{departments.map(item=><option key={item.id||item.el} value={item.el}>{language==='en'?(item.en||item.el):item.el}</option>)}</select></label>}
+function DepartmentField({value,onChange,departments,fixed,en}){return <label><span>{en?'Scope / department *':'Εύρος / Τμήμα *'}</span><select value={value} disabled={fixed} onChange={event=>onChange(event.target.value)}><option value="">{en?'Select scope':'Επιλέξτε εύρος'}</option><option value={HOSPITAL_SCOPE}>{en?'Whole hospital':'Όλο το νοσοκομείο'}</option>{departments.map(item=><option key={item.id||item.el} value={item.el}>{en?(item.en||item.el):item.el}</option>)}</select></label>}
