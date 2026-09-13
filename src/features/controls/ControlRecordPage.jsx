@@ -106,6 +106,9 @@ export function ControlRecordPage(){
  async function saveExecution(payload){
   try{
    await completeControlExecution(tenant.id,record,department,payload)
+   await reload()
+   setTab('history')
+   setHistoryPage(1)
    notify(en?'Control recorded.':'Ο έλεγχος καταχωρήθηκε.','success')
    navigate(recordUrl,{replace:true})
   }catch(error){notifyError(error,'save',{operation:'control_execution_create'});throw error}
@@ -143,6 +146,7 @@ export function ControlRecordPage(){
  }
 
  const headerActions=<>
+  {canExecute&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
   {canModifyDefinition&&<ActionButton label={en?'Edit control':'Επεξεργασία ελέγχου'} tone="edit" onClick={()=>setEditOpen(true)}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   {canRemoveDefinition&&<ActionButton label={canDeleteDraft?(en?'Delete control':'Διαγραφή ελέγχου'):(en?'Archive control':'Αρχειοθέτηση ελέγχου')} tone="danger" onClick={removeDefinition}><Trash2 size={15}/><span>{canDeleteDraft?(en?'Delete':'Διαγραφή'):(en?'Archive':'Αρχειοθέτηση')}</span></ActionButton>}
   <PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record?.id})}/>
