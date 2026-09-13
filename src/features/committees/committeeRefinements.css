@@ -1,18 +1,3 @@
-.committee-decisions .filter-primary-row{align-items:center}
-.committee-decisions .filter-search{padding:0 9px!important;overflow:hidden}
-.committee-decisions .filter-search input{
-  width:100%;
-  min-height:0!important;
-  height:32px!important;
-  padding:0!important;
-  border:0!important;
-  border-radius:0!important;
-  outline:0!important;
-  box-shadow:none!important;
-  background:transparent!important;
-}
-.committee-decisions .filter-search input:focus{border:0!important;box-shadow:none!important;outline:0!important}
-
 .committee-meeting-dialog .observer-dialog-body{
   padding:12px 14px!important;
 }
