@@ -43,6 +43,7 @@ export function ControlRecordPage(){
  const [historyPageSize,setHistoryPageSize]=useState(15)
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
  const executing=searchParams.get('execute')==='1'
+ const recordNavigation=useRecordSequenceNavigation({registry:'controls',currentId:controlId,pathForId:id=>`/controls/${id}`})
 
  async function reload(){
   if(!tenant?.id){setRecord(null);setLoading(false);return}
@@ -59,9 +60,7 @@ export function ControlRecordPage(){
  const visibleDepartments=record.departments.filter(dep=>canAccessRecord({department:dep}))
  const requestedDepartment=searchParams.get('department')||''
  const department=(requestedDepartment&&visibleDepartments.includes(requestedDepartment)?requestedDepartment:'')||(ownDepartment&&visibleDepartments.includes(ownDepartment)?ownDepartment:'')||visibleDepartments[0]||''
- const assignment=getAssignment(record,department)
  const recordUrl=`/controls/${controlId}`
- const recordNavigation=useRecordSequenceNavigation({registry:'controls',currentId:controlId,pathForId:id=>`/controls/${id}`})
  const assignments=visibleDepartments.map(dep=>({department:dep,assignment:getAssignment(record,dep)}))
 
  const addOns=membership?.capabilities??[],customCapabilities=membership?.customCapabilities??[]
