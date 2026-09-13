@@ -40,8 +40,11 @@ describe('prevention waste editor refinements',()=>{
     expect(prevention).toContain("/occupational-health?tab=vaccinations")
   })
 
-  it('honors the vaccination deep-link in Occupational Health',()=>{
-    expect(occupational).toContain("searchParams.get('tab')==='vaccinations'?'vaccinations':'visits'")
+  it('renders the vaccination deep-link as a standalone Prevention workspace',()=>{
+    expect(occupational).toContain("const vaccinationWorkspace=searchParams.get('tab')==='vaccinations'")
+    expect(occupational).toContain("<BackButton onClick={()=>navigate('/prevention?tab=vaccinations')}")
+    expect(occupational).toContain("vaccinationWorkspace?[UI_ACTIONS.CREATE,UI_ACTIONS.EXPORT]")
+    expect(occupational).toContain("!vaccinationWorkspace&&<nav className=\"tabs occupational-tabs canonical-module-tabs\"")
     expect(occupational).toContain("setSearchParams({tab:next},{replace:true})")
   })
 })
