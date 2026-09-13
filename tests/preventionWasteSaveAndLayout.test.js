@@ -5,10 +5,11 @@ const waste=fs.readFileSync('src/features/prevention/WasteEntryEditor.jsx','utf8
 const css=fs.readFileSync('src/styles/prevention-refinements.css','utf8')
 
 describe('prevention waste editor refinements',()=>{
-  it('hydrates department and waste type when support data arrives after first render',()=>{
-    expect(waste).toContain('const department=state.departmentEl||fixedDepartment||departments[0]?.el')
+  it('hydrates the waste type when support data arrives but leaves department for explicit user selection',()=>{
     expect(waste).toContain('||wasteTypes[0]')
     expect(waste).toContain('wasteTypeId,wasteType,type:wasteType')
+    expect(waste).not.toContain('state.departmentEl||fixedDepartment||departments[0]?.el')
+    expect(waste).toContain("<option value=\"\">{language==='en'?'Select department':'Επιλέξτε τμήμα'}</option>")
   })
 
   it('does not keep save disabled just because support arrays were empty on the first render',()=>{
@@ -17,11 +18,12 @@ describe('prevention waste editor refinements',()=>{
   })
 
   it('gives the department more width than the two date fields',()=>{
-    expect(css).toContain('minmax(150px,.72fr) minmax(150px,.72fr) minmax(300px,1.56fr)')
+    expect(css).toContain('grid-template-columns:180px 180px minmax(360px,1fr)')
+    expect(css).toContain('.waste-page-editor .waste-smart-measurement-grid')
   })
 
   it('keeps disabled WHO add-opportunity text clearly readable',()=>{
     expect(css).toContain('color:#fff!important')
-    expect(css).toContain('.who-current-preview .action-button:disabled span')
+    expect(css).toContain('.who-page-editor .who-current-preview .lo-action-button:disabled span')
   })
 })
