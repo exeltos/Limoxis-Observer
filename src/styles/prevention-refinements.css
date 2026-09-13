@@ -5,13 +5,32 @@
   font-weight:700!important;
 }
 .prevention-record-shell .who-current-preview .action-button:disabled{
-  background:#f2f5f8!important;
-  border-color:#d8e1e8!important;
-  color:#93a4b3!important;
+  background:#8fb6cf!important;
+  border-color:#8fb6cf!important;
+  color:#fff!important;
   box-shadow:none!important;
-  opacity:1!important;
+  opacity:.82!important;
   cursor:not-allowed!important;
+}
+.prevention-record-shell .who-current-preview .action-button:disabled svg,
+.prevention-record-shell .who-current-preview .action-button:disabled span{
+  color:#fff!important;
+  opacity:1!important;
 }
 .prevention-record-shell .who-current-preview .action-button:not(:disabled){
   box-shadow:0 1px 2px rgba(20,49,73,.12)!important;
+}
+
+.prevention-record-shell .waste-smart-measurement-grid{
+  grid-template-columns:minmax(150px,.72fr) minmax(150px,.72fr) minmax(300px,1.56fr)!important;
+}
+@media(max-width:1050px){
+  .prevention-record-shell .waste-smart-measurement-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+@media(max-width:700px){
+  .prevention-record-shell .waste-smart-measurement-grid{
+    grid-template-columns:1fr!important;
+  }
 }
