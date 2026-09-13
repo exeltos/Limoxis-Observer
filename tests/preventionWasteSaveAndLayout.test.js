@@ -5,6 +5,7 @@ const waste=fs.readFileSync('src/features/prevention/WasteEntryEditor.jsx','utf8
 const css=fs.readFileSync('src/styles/prevention-refinements.css','utf8')
 const prevention=fs.readFileSync('src/features/prevention/PreventionPage.jsx','utf8')
 const occupational=fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.jsx','utf8')
+const vaccinations=fs.readFileSync('src/features/prevention/StaffVaccinationsPage.jsx','utf8')
 
 describe('prevention waste editor refinements',()=>{
   it('hydrates the waste type when support data arrives but leaves department for explicit user selection',()=>{
@@ -33,18 +34,20 @@ describe('prevention waste editor refinements',()=>{
     expect(css).toContain('.who-page-editor .who-current-preview .lo-action-button:disabled span')
   })
 
-  it('removes the related-workflows strip and exposes staff vaccinations as a Prevention tab',()=>{
+  it('removes the related-workflows strip and exposes staff vaccinations from Prevention',()=>{
     expect(prevention).not.toContain('prevention-related-strip')
     expect(prevention).not.toContain('preventionAntimicrobialStewardshipLabel')
     expect(prevention).toContain('prevention-vaccinations-tab')
     expect(prevention).toContain("/occupational-health?tab=vaccinations")
   })
 
-  it('renders the vaccination deep-link as a standalone Prevention workspace',()=>{
-    expect(occupational).toContain("const vaccinationWorkspace=searchParams.get('tab')==='vaccinations'")
-    expect(occupational).toContain("<BackButton onClick={()=>navigate('/prevention?tab=vaccinations')}")
-    expect(occupational).toContain("vaccinationWorkspace?[UI_ACTIONS.CREATE,UI_ACTIONS.EXPORT]")
-    expect(occupational).toContain("!vaccinationWorkspace&&<nav className=\"tabs occupational-tabs canonical-module-tabs\"")
-    expect(occupational).toContain("setSearchParams({tab:next},{replace:true})")
+  it('dispatches the vaccination deep-link to the canonical Prevention registry',()=>{
+    expect(occupational).toContain("searchParams.get('tab')==='vaccinations'?<StaffVaccinationsPage/>")
+    expect(vaccinations).toContain('registry-workspace prevention-workspace')
+    expect(vaccinations).toContain('RegistryTable')
+    expect(vaccinations).toContain('RegistryPagination')
+    expect(vaccinations).toContain('BackButton')
+    expect(vaccinations).not.toContain('UI_ACTIONS.ATTACH')
+    expect(vaccinations).not.toContain('UI_ACTIONS.PRINT')
   })
 })
