@@ -22,6 +22,7 @@ import './styles/classic-rebase.css'
 import './styles/design-system-actions.css'
 import './styles/platform-owner-polish.css'
 import './styles/canonical-registry-visual.css'
+import './styles/filterbar-final.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
