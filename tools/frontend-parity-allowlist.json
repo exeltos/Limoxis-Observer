@@ -1,14 +1,1 @@
-[
-  {
-    "file": "features/surveillance/SurveillanceRoutePage.jsx",
-    "owner": "frontend",
-    "reason": "Legacy registry split; migration tracked in the frontend parity plan.",
-    "expiresOn": "2026-12-31"
-  },
-  {
-    "file": "features/surveillance/PatientClinicalRecordRoute.jsx",
-    "owner": "clinical-frontend",
-    "reason": "Legacy clinical record split; migration tracked in the frontend parity plan.",
-    "expiresOn": "2026-12-31"
-  }
-]
+[]
