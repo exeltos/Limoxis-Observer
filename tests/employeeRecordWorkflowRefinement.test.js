@@ -7,16 +7,18 @@ const service=fs.readFileSync('src/features/laboratory/laboratoryRequestManageme
 const css=fs.readFileSync('src/features/employees/employeeRecordTabsRefinements.css','utf8')
 
 describe('employee record workflow refinement',()=>{
-  it('returns from Training to the employee training tab through contextual navigation',()=>{
+  it('returns from Training to the same employee training tab through an explicit contextual target',()=>{
     expect(tabs).toContain("useContextualNavigation('/training')")
-    expect(tabs).toContain("goTo(`/training/${selected.programId}`,{tab:'training'})")
+    expect(tabs).toContain("returnTo:`/employees/${encodeURIComponent(employee.id)}`")
+    expect(tabs).toContain("returnTab:'training'")
   })
 
-  it('keeps certifications and general documents visually separated and compact',()=>{
-    expect(tabs).toContain('employee-certificates-workspace')
-    expect(tabs).toContain('employee-certificates-empty')
-    expect(tabs).toContain('employee-other-documents')
-    expect(css).toContain('min-height:0!important')
+  it('keeps employee documents in one compact governed workspace',()=>{
+    expect(tabs).toContain('employee-documents-workspace')
+    expect(tabs).toContain('entityType="employee-certificate"')
+    expect(tabs).not.toContain('employee-certificates-workspace')
+    expect(tabs).not.toContain('employee-other-documents')
+    expect(css).toContain('.employee-documents-workspace')
   })
 
   it('shows compact employee surveillance and laboratory request codes',()=>{

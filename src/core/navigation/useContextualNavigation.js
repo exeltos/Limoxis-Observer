@@ -8,13 +8,13 @@ export function useContextualNavigation(fallback='/'){
   const location=useLocation()
 
   const goTo=useCallback((to,options={})=>{
-    const {tab,registry,...rest}=options
+    const {tab,registry,returnTo,returnTab,...rest}=options
     const from={
-      pathname:location.pathname,
-      search:location.search,
-      hash:location.hash,
-      state:location.state??null,
-      tab:tab??null,
+      pathname:returnTo||location.pathname,
+      search:returnTo?'':location.search,
+      hash:returnTo?'':location.hash,
+      state:returnTo?null:(location.state??null),
+      tab:returnTab??tab??null,
       registry:registry??null,
     }
     writeSessionJson(CONTEXT_KEY,from)
