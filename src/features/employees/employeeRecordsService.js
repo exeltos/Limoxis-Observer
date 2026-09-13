@@ -3,6 +3,7 @@ import { occupationalVisits, employeeVaccinations, employeeTraining, employeeEva
 
 export const loadOccupationalVisits=()=>loadSnapshot('employee_health_visits',occupationalVisits)
 export const loadVaccinations=()=>loadSnapshot('employee_vaccine_records',employeeVaccinations)
+export const saveVaccinations=rows=>saveSnapshot('employee_vaccine_records',rows)
 export const loadEmployeeTraining=()=>loadSnapshot('employee_training_summary',employeeTraining)
 export const loadEvaluations=()=>loadSnapshot('employee_evaluations',employeeEvaluations)
 export const loadCertificates=()=>loadSnapshot('employee_certificates',employeeCertificates)
