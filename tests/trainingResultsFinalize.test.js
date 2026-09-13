@@ -26,7 +26,7 @@ describe('training completion and review behavior',()=>{
  })
 
  it('only requests server-side manual review when the question explicitly opts in',()=>{
-  const migration=read('supabase/migrations/202609130002_training_optional_manual_review.sql')
+  const migration=read('supabase/migrations/202609130003_training_optional_manual_review.sql')
   expect(migration).toContain("if coalesce((v_question->>'manualReview')::boolean,false) then v_manual_review:=true")
   expect(migration).toContain("'assessmentReviewStatus',case when v_manual_review then 'pending' else 'not_required' end")
  })
