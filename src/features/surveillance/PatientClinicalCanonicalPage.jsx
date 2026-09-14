@@ -35,11 +35,23 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
   const {goBack,restored}=useContextualNavigation(patientMode?'/patients':'/surveillance')
   const repository=useMemo(()=>createClinicalRepository({isDemo,organizationId:tenant?.id,actor}),[isDemo,tenant?.id,actor.id,actor.name])
   const [patients,setPatients]=useState([]),[episodes,setEpisodes]=useState([]),[admissions,setAdmissions]=useState([]),[departments,setDepartments]=useState([])
+  const [selectedAdmissionId,setSelectedAdmissionId]=useState(()=>patientMode?(location.state?.admissionId||''):'')
   const [selectedEpisodeId,setSelectedEpisodeId]=useState(caseId||''),[loading,setLoading]=useState(true),[error,setError]=useState(''),[createOpen,setCreateOpen]=useState(false)
   const [tab,setTab]=useState(()=>location.state?.openTab||restored?.tab||'summary')
   const has=cap=>can(role,cap,membership?.capabilities??[],membership?.customCapabilities??[])
   const patient=useMemo(()=>patientMode?patients.find(row=>String(row.id)===String(patientId))||null:patients.find(row=>episodes.some(ep=>ep.patientRecordId===row.recordId||String(ep.patientId)===String(row.id)))||null,[patients,patientMode,patientId,episodes])
-  const record=episodes.find(row=>String(row.id)===String(selectedEpisodeId))||episodes[0]||null
+  const selectedAdmission=patientMode?admissions.find(row=>String(row.id)===String(selectedAdmissionId))||null:null
+  const admissionEpisodes=useMemo(()=>{
+    if(!patientMode||!selectedAdmission)return episodes
+    return episodes.filter(ep=>{
+      if(ep.admissionId)return String(ep.admissionId)===String(selectedAdmission.id)
+      const started=String(ep.startedAt||'').slice(0,10)
+      const inDates=started&&started>=String(selectedAdmission.admissionDate||'')&&(!selectedAdmission.dischargeDate||started<=String(selectedAdmission.dischargeDate))
+      const sameDepartment=!selectedAdmission.departmentId||!ep.departmentId||String(selectedAdmission.departmentId)===String(ep.departmentId)
+      return Boolean(inDates&&sameDepartment)
+    })
+  },[episodes,patientMode,selectedAdmission])
+  const record=(patientMode?(selectedAdmission?(admissionEpisodes.find(row=>String(row.id)===String(selectedEpisodeId))||admissionEpisodes[0]||null):null):(episodes.find(row=>String(row.id)===String(selectedEpisodeId))||episodes[0]||null))
   const sequenceId=patientMode?patientId:caseId
   const recordNavigation=useRecordSequenceNavigation({registry:patientMode?'patients':'surveillance',currentId:sequenceId,pathForId:id=>patientMode?`/patients/${id}`:`/surveillance/${id}`})
 
@@ -54,7 +66,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
       else if(caseId){const one=await repository.loadCase(caseId);rows=one?[one]:[]}
       setEpisodes(rows)
       const current=preferred||selectedEpisodeId||caseId||rows[0]?.id||''
-      setSelectedEpisodeId(rows.some(row=>String(row.id)===String(current))?current:(rows[0]?.id||''))
+      if(!patientMode)setSelectedEpisodeId(rows.some(row=>String(row.id)===String(current))?current:(rows[0]?.id||''))
       const patientForAdmissions=selectedPatient||roster.find(row=>rows.some(ep=>ep.patientRecordId===row.recordId||String(ep.patientId)===String(row.id)))
       if(patientForAdmissions?.recordId)try{setAdmissions(await loadAdmissions(patientForAdmissions.recordId))}catch{setAdmissions([])}
       else setAdmissions([])
@@ -72,30 +84,38 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
 
   const name=language==='el'?(patient?.name||record?.patient):(patient?.nameEn||record?.patientEn||patient?.name||record?.patient)
   const code=patient?.id||record?.patientId
-  const department=language==='el'?(record?.department||patient?.department):(record?.departmentEn||patient?.departmentEn||record?.department||patient?.department)
+  const department=selectedAdmission?.department||(language==='el'?(record?.department||patient?.department):(record?.departmentEn||patient?.departmentEn||record?.department||patient?.department))
   const fmtDate=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
   const fmtDateTime=value=>value?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(value)):'—'
   const canSurveillance=has(CAPABILITIES.VIEW_SURVEILLANCE)
   const canLab=has(CAPABILITIES.VIEW_LAB)||canSurveillance
   const canTherapy=has(CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)
-  const tabs=[
+  const tabs=patientMode&&!selectedAdmission?[]:[
     {id:'summary',label:t('summary'),icon:UserRound},
-    ...(patientMode?[{id:'admissions',label:t('clinicalRecords.admissions'),icon:BedDouble}]:[]),
     {id:'surveillanceJourney',label:t('surveillance'),icon:ListTree},
     ...(record?[{id:'clinicalData',label:t('clinicalRecords.clinicalData'),icon:Activity},{id:'documents',label:t('documents'),icon:FolderOpen},{id:'history',label:t('history'),icon:FileClock}]:[]),
   ]
   const activeTab=tabs.some(item=>item.id===tab)?tab:'summary'
 
+  function openAdmission(row){
+    const scoped=episodes.filter(ep=>String(ep.admissionId||'')===String(row.id))
+    setSelectedAdmissionId(row.id);setSelectedEpisodeId(scoped[0]?.id||'');setTab('summary')
+  }
+  function closeAdmission(){setSelectedAdmissionId('');setSelectedEpisodeId('');setTab('summary')}
+
   async function createEpisode(draft,targetPatient){
-    const created=await repository.createCase(targetPatient||patient,draft)
+    const scopedDraft=selectedAdmission?{...draft,admissionId:selectedAdmission.id,admissionDate:selectedAdmission.admissionDate,departmentId:selectedAdmission.departmentId||draft.departmentId,department:selectedAdmission.department||draft.department,departmentEn:selectedAdmission.department||draft.departmentEn}:draft
+    const created=await repository.createCase(targetPatient||patient,scopedDraft)
     await load(created.id);setSelectedEpisodeId(created.id);setTab('surveillanceJourney');notify(t('surveillanceCreated'),'success');return created
   }
 
-  return <Page fill title={name} subtitle={record?`${code} · ${record.id}`:code}>
-    <EntityRecordShell className="patient-record-shell workspace-fill" avatar={name?.split(' ').map(x=>x?.[0]).slice(0,2).join('')} eyebrow={code} title={name} subtitle={`${department||'—'} · ${t('clinicalRecords.admission')}: ${fmtDate(record?.admissionDate||patient?.admissionDate)}`} status={<><span className={`status-badge ${(record?.status||patient?.status)==='active'?'active':''}`}>{t(record?.status||patient?.status||'active')}</span>{record?.resistance&&<span className="status-badge danger">{record.resistance}</span>}</>} recordNavigation={recordNavigation} headerActions={<PrintExportActions onExport={()=>downloadRecordJson({patient,record,episodes,admissions},{filename:record?.id||code})}/>} tabs={tabs} activeTab={activeTab} onTabChange={setTab} onBack={goBack} backLabel={patientMode?t('clinicalRecords.backToPatients'):t('clinicalRecords.backToSurveillance')}>
-      {activeTab==='summary'&&<CanonicalSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} actions={patientMode&&patient?<PatientSummaryActions patient={patient} departments={departments} onReload={()=>load(record?.id)} onDeleted={goBack}/>:null}/>} 
-      {activeTab==='admissions'&&patient&&<AdmissionsPanel rows={admissions} patient={patient} tenantId={tenant?.id} isDemo={isDemo} departments={departments} canEdit={has(CAPABILITIES.EDIT_PATIENT)} t={t} fmtDate={fmtDate} onAdded={row=>setAdmissions(current=>[row,...current])}/>} 
-      {activeTab==='surveillanceJourney'&&<SurveillanceWorkspace episodes={episodes} selectedId={record?.id} onSelect={setSelectedEpisodeId} onCreate={()=>setCreateOpen(true)} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)} record={record} repository={repository} onReload={()=>load(record?.id)} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} permissions={{canAssess:has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT),canLab,canClassifyResistance:has(CAPABILITIES.CLASSIFY_RESISTANCE),canIsolation:has(CAPABILITIES.MANAGE_ISOLATION),canTherapy,canReassess:has(CAPABILITIES.REASSESS_SURVEILLANCE),canOutcome:has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE),canDelete:has(CAPABILITIES.DELETE_SURVEILLANCE),canReopen:has(CAPABILITIES.REOPEN_SURVEILLANCE)}}/>}
+  const shellSubtitle=selectedAdmission?`${selectedAdmission.department||'—'} · ${t('clinicalRecords.admission')}: ${fmtDate(selectedAdmission.admissionDate)}`:(patientMode?(patient?.hospitalRecordNumber||t('clinicalRecords.patientRecord')):`${department||'—'} · ${t('clinicalRecords.admission')}: ${fmtDate(record?.admissionDate||patient?.admissionDate)}`)
+  const shellStatus=selectedAdmission?.status||record?.status||patient?.status||'active'
+  return <Page fill title={name} subtitle={code}>
+    <EntityRecordShell className="patient-record-shell workspace-fill" avatar={name?.split(' ').map(x=>x?.[0]).slice(0,2).join('')} eyebrow={code} title={name} subtitle={shellSubtitle} status={<><span className={`status-badge ${shellStatus==='active'?'active':''}`}>{t(shellStatus)}</span>{record?.resistance&&<span className="status-badge danger">{record.resistance}</span>}</>} recordNavigation={patientMode&&!selectedAdmission?recordNavigation:null} headerActions={selectedAdmission||!patientMode?<PrintExportActions onExport={()=>downloadRecordJson({patient,admission:selectedAdmission,record,episodes:admissionEpisodes,admissions},{filename:record?.id||code})}/>:null} tabs={tabs} activeTab={activeTab} onTabChange={setTab} onBack={patientMode&&selectedAdmission?closeAdmission:goBack} backLabel={patientMode&&selectedAdmission?(language==='el'?'Πίσω στις νοσηλείες':'Back to admissions'):(patientMode?t('clinicalRecords.backToPatients'):t('clinicalRecords.backToSurveillance'))}>
+      {patientMode&&!selectedAdmission&&<PatientAdmissionsHome patient={patient} rows={admissions} episodes={episodes} tenantId={tenant?.id} isDemo={isDemo} departments={departments} canEdit={has(CAPABILITIES.EDIT_PATIENT)} t={t} language={language} fmtDate={fmtDate} onAdded={row=>setAdmissions(current=>[row,...current])} onSelect={openAdmission} actions={<PatientSummaryActions patient={patient} departments={departments} onReload={()=>load()} onDeleted={goBack}/>}/>} 
+      {(!patientMode||selectedAdmission)&&activeTab==='summary'&&<CanonicalSummary patient={patient} admission={selectedAdmission} record={record} t={t} language={language} fmtDate={fmtDate}/>} 
+      {(!patientMode||selectedAdmission)&&activeTab==='surveillanceJourney'&&<SurveillanceWorkspace episodes={admissionEpisodes} selectedId={record?.id} onSelect={setSelectedEpisodeId} onCreate={()=>setCreateOpen(true)} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)} record={record} repository={repository} onReload={()=>load(record?.id)} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} permissions={{canAssess:has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT),canLab,canClassifyResistance:has(CAPABILITIES.CLASSIFY_RESISTANCE),canIsolation:has(CAPABILITIES.MANAGE_ISOLATION),canTherapy,canReassess:has(CAPABILITIES.REASSESS_SURVEILLANCE),canOutcome:has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE),canDelete:has(CAPABILITIES.DELETE_SURVEILLANCE),canReopen:has(CAPABILITIES.REOPEN_SURVEILLANCE)}}/>}
       {activeTab==='clinicalData'&&record&&<ClinicalSnapshot record={record} t={t} fmtDate={fmtDate}/>} 
       {activeTab==='documents'&&record&&(!isDemo&&record.recordId?<EntityAttachmentsPanel organizationId={tenant?.id} entityType="clinical_case" entityRecordId={record.recordId} category="clinical_documentation" canManage={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} t={t} notify={notify}/>:<div className="inline-empty">{t('clinicalRecords.noAttachments')}</div>)}
       {activeTab==='history'&&record&&<Timeline record={record} t={t} fmtDateTime={fmtDateTime}/>} 
@@ -104,23 +124,39 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
   </Page>
 }
 
-function CanonicalSummary({patient,record,t,language,fmtDate,actions}){
-  const latest=record?.samples?.find(x=>x.organism)||record?.samples?.[0]
+function PatientAdmissionsHome({patient,rows,episodes,tenantId,isDemo,departments,canEdit,t,language,fmtDate,onAdded,onSelect,actions}){
   const details=[
+    [t('patientId'),patient?.id],
+    [t('hospitalRecordNumber'),patient?.hospitalRecordNumber],
+    [t('dateOfBirth'),fmtDate(patient?.dateOfBirth)],
+    [t('sex'),patient?.sex?t(patient.sex):'—'],
+  ]
+  return <div className="patient-home-layout"><section className="patient-home-details"><div className="record-section-header"><div><h3>{language==='el'?'Στοιχεία ασθενούς':'Patient details'}</h3></div>{actions}</div><div className="detail-grid patient-detail-grid">{details.map(([label,value])=><Detail key={label} label={label} value={value}/>)}</div></section><AdmissionsPanel rows={rows} episodes={episodes} patient={patient} tenantId={tenantId} isDemo={isDemo} departments={departments} canEdit={canEdit} t={t} language={language} fmtDate={fmtDate} onAdded={onAdded} onSelect={onSelect}/></div>
+}
+
+function CanonicalSummary({patient,admission,record,t,language,fmtDate}){
+  const latest=record?.samples?.find(x=>x.organism)||record?.samples?.[0]
+  const details=admission?[
+    [t('admissionDate'),fmtDate(admission.admissionDate)],
+    [t('department'),admission.department||'—'],
+    [t('clinicalRecords.dischargeDate'),fmtDate(admission.dischargeDate)],
+    [t('status'),t(admission.status||'active')],
+  ]:[
     [t('patient'),language==='el'?(patient?.name||record?.patient):(patient?.nameEn||record?.patientEn||patient?.name||record?.patient)],
     [t('department'),language==='el'?(record?.department||patient?.department):(record?.departmentEn||patient?.departmentEn||record?.department||patient?.department)],
     [t('admissionDate'),fmtDate(patient?.admissionDate||record?.admissionDate)],
     [t('status'),t(record?.status||patient?.status||'active')],
   ]
-  return <div className="patient-summary-layout clean-patient-summary"><section className="clinical-panel full-panel"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.patientDetails')}</h3></div>{actions}</div><div className="detail-grid patient-detail-grid">{details.map(([label,value])=><Detail key={label} label={label} value={value}/>)}</div></section>{record&&<section className="patient-summary-strip clinical-snapshot-strip"><Summary label={t('surveillance')} value={t(record.status)} tone="info"/><Summary label={t('clinicalRecords.haiClassification')} value={record.haiClassification?t(record.haiClassification.status):'—'} tone={record.haiClassification?.status==='confirmed'?'warning':'neutral'}/><Summary label={t('clinicalRecords.latestFinding')} value={latest?.organism||t(latest?.result||'pending')} tone={latest?.result==='positive'?'warning':'neutral'}/><Summary label={t('therapy')} value={record.therapy?.length?record.therapy.map(x=>x.antimicrobial).join(', '):t('clinicalRecords.none')} tone={record.therapy?.length?'info':'neutral'}/><Summary label={t('isolation')} value={record.isolation?t(record.isolation.status):t('no')} tone={record.isolation?.status==='active'?'warning':'neutral'}/><Summary label={t('nextReview')} value={fmtDate(record.reviewDue)} tone={record.reviewDue?'info':'neutral'}/></section>}</div>
+  return <div className="patient-summary-layout clean-patient-summary"><section className="clinical-panel full-panel"><div className="record-section-header"><div><h3>{admission?(language==='el'?'Σύνοψη νοσηλείας':'Admission summary'):t('clinicalRecords.patientDetails')}</h3></div></div><div className="detail-grid patient-detail-grid">{details.map(([label,value])=><Detail key={label} label={label} value={value}/>)}</div></section>{record&&<section className="patient-summary-strip clinical-snapshot-strip"><Summary label={t('surveillance')} value={t(record.status)} tone="info"/><Summary label={t('clinicalRecords.haiClassification')} value={record.haiClassification?t(record.haiClassification.status):'—'} tone={record.haiClassification?.status==='confirmed'?'warning':'neutral'}/><Summary label={t('clinicalRecords.latestFinding')} value={latest?.organism||t(latest?.result||'pending')} tone={latest?.result==='positive'?'warning':'neutral'}/><Summary label={t('therapy')} value={record.therapy?.length?record.therapy.map(x=>x.antimicrobial).join(', '):t('clinicalRecords.none')} tone={record.therapy?.length?'info':'neutral'}/><Summary label={t('isolation')} value={record.isolation?t(record.isolation.status):t('no')} tone={record.isolation?.status==='active'?'warning':'neutral'}/><Summary label={t('nextReview')} value={fmtDate(record.reviewDue)} tone={record.reviewDue?'info':'neutral'}/></section>}</div>
 }
 function Summary({label,value,tone='neutral'}){return <div className={`patient-summary-item ${tone}`}><span>{label}</span><strong>{value}</strong></div>}
 function Detail({label,value}){return <div className="detail-item"><span>{label}</span><strong>{value||'—'}</strong></div>}
 
-function AdmissionsPanel({rows,patient,tenantId,isDemo,departments,canEdit,t,fmtDate,onAdded}){
-  const [open,setOpen]=useState(false),[draft,setDraft]=useState({departmentId:patient?.departmentId||'',department:patient?.department||'',admissionDate:new Date().toISOString().slice(0,10),dischargeDate:'',status:'active',notes:''})
-  async function save(){if(!draft.admissionDate)return;const dept=departments.find(x=>x.id===draft.departmentId);const row=await createAdmission(tenantId,patient,{...draft,department:dept?.name||draft.department},{isDemo});onAdded(row);setOpen(false)}
-  return <section className="record-section"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.admissions')}</h3></div>{canEdit&&<Button onClick={()=>setOpen(true)}>+ {t('clinicalRecords.newAdmission')}</Button>}</div>{rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('admissionDate')}</th><th>{t('department')}</th><th>{t('clinicalRecords.dischargeDate')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td>{fmtDate(row.admissionDate)}</td><td>{row.department||'—'}</td><td>{fmtDate(row.dischargeDate)}</td><td>{t(row.status)}</td></tr>)}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noAdmissions')}</div>}{open&&<SimpleDialog title={t('clinicalRecords.newAdmission')} t={t} onClose={()=>setOpen(false)} onSave={save}><label><span>{t('department')}</span>{departments.length?<select value={draft.departmentId} onChange={e=>setDraft(d=>({...d,departmentId:e.target.value}))}><option value="">{t('select')}</option>{departments.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>:<input value={draft.department} onChange={e=>setDraft(d=>({...d,department:e.target.value}))}/>}</label><ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>setDraft(d=>({...d,admissionDate:v}))}/><ManualDateField label={t('clinicalRecords.dischargeDate')} optional value={draft.dischargeDate} onChange={v=>setDraft(d=>({...d,dischargeDate:v}))}/></SimpleDialog>}</section>
+function AdmissionsPanel({rows,episodes,patient,tenantId,isDemo,departments,canEdit,t,language,fmtDate,onAdded,onSelect}){
+  const [open,setOpen]=useState(false),[draft,setDraft]=useState({departmentId:'',department:'',admissionDate:'',dischargeDate:'',status:'active',notes:''})
+  async function save(){if(!draft.admissionDate)return;const dept=departments.find(x=>x.id===draft.departmentId);const row=await createAdmission(tenantId,patient,{...draft,department:dept?.name||draft.department},{isDemo});onAdded(row);setOpen(false);setDraft({departmentId:'',department:'',admissionDate:'',dischargeDate:'',status:'active',notes:''})}
+  const countFor=row=>episodes.filter(ep=>ep.admissionId?String(ep.admissionId)===String(row.id):(String(ep.startedAt||'').slice(0,10)>=String(row.admissionDate||'')&&(!row.dischargeDate||String(ep.startedAt||'').slice(0,10)<=String(row.dischargeDate)))).length
+  return <section className="record-section patient-admissions-section"><div className="record-section-header"><div><h3>{t('clinicalRecords.admissions')}</h3><p>{language==='el'?'Επιλέξτε νοσηλεία για να ανοίξετε τα κλινικά δεδομένα που ανήκουν σε αυτή.':'Select an admission to open its clinical data.'}</p></div>{canEdit&&<Button onClick={()=>setOpen(true)}>+ {t('clinicalRecords.newAdmission')}</Button>}</div>{rows.length?<div className="record-table-wrap patient-admissions-table-wrap"><table className="record-table patient-admissions-table"><thead><tr><th>{t('admissionDate')}</th><th>{t('department')}</th><th>{t('clinicalRecords.dischargeDate')}</th><th>{t('status')}</th><th>{t('surveillance')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id} tabIndex={0} className="clickable-row" onClick={()=>onSelect?.(row)} onKeyDown={e=>{if((e.key==='Enter'||e.key===' ')&&onSelect){e.preventDefault();onSelect(row)}}}><td><strong>{fmtDate(row.admissionDate)}</strong></td><td>{row.department||'—'}</td><td>{fmtDate(row.dischargeDate)}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{t(row.status)}</span></td><td>{countFor(row)}</td></tr>)}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noAdmissions')}</div>}{open&&<SimpleDialog title={t('clinicalRecords.newAdmission')} t={t} onClose={()=>setOpen(false)} onSave={save}><label><span>{t('department')}</span>{departments.length?<select value={draft.departmentId} onChange={e=>setDraft(d=>({...d,departmentId:e.target.value}))}><option value="">{t('select')}</option>{departments.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>:<input value={draft.department} onChange={e=>setDraft(d=>({...d,department:e.target.value}))}/>}</label><ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>setDraft(d=>({...d,admissionDate:v}))}/><ManualDateField label={t('clinicalRecords.dischargeDate')} optional value={draft.dischargeDate} onChange={v=>setDraft(d=>({...d,dischargeDate:v}))}/></SimpleDialog>}</section>
 }
 
 function SurveillanceWorkspace({episodes,selectedId,onSelect,onCreate,canCreate,record,repository,onReload,t,fmtDate,fmtDateTime,permissions}){
