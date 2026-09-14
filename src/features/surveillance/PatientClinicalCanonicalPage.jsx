@@ -206,13 +206,18 @@ function AdmissionsPanel({rows,episodes,patient,tenantId,isDemo,departments,canE
 }
 
 function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,canCreate,canCreateSample,record,repository,onReload,t,language,fmtDate,fmtDateTime,permissions}){
-  const [sampleOpen,setSampleOpen]=useState(false),[samplePrompt,setSamplePrompt]=useState(null)
+  const [sampleOpen,setSampleOpen]=useState(false),[samplePrompt,setSamplePrompt]=useState(null),[detailOpen,setDetailOpen]=useState(false)
   async function saveSample(draft){
     if(!onCreateSample)return
     const created=await onCreateSample(draft)
     setSampleOpen(false)
     if(created)setSamplePrompt(created)
   }
+  function openEpisode(id){onSelect?.(id);setDetailOpen(true)}
+  if(detailOpen&&record)return <div className="workspace-column workspace-fill patient-surveillance-clean">
+    <div className="record-section-header"><div><Button variant="secondary" onClick={()=>setDetailOpen(false)}>← {language==='el'?'Πίσω στα επεισόδια επιτήρησης':'Back to surveillance episodes'}</Button></div></div>
+    <CanonicalJourney record={record} repository={repository} onReload={onReload} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} permissions={permissions}/>
+  </div>
   return <div className="workspace-column workspace-fill patient-surveillance-clean">
     <section className="record-section admission-samples-section">
       <div className="record-section-header"><div><h3>{language==='el'?'Δείγματα νοσηλείας':'Admission samples'}</h3><p>{language==='el'?'Καταχωρήστε πρώτα το δείγμα. Η επιτήρηση μπορεί να ξεκινήσει τώρα ή αργότερα, χωρίς να χάνεται το δείγμα.':'Record the sample first. Surveillance can start now or later without losing the sample.'}</p></div>{canCreateSample&&onCreateSample&&<Button onClick={()=>setSampleOpen(true)}>+ {language==='el'?'Νέο δείγμα':'New sample'}</Button>}</div>
@@ -220,9 +225,8 @@ function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate
     </section>
     <section className="record-section surveillance-episodes-section">
       <div className="record-section-header"><div><h3>{t('clinicalRecords.surveillanceEpisodes')}</h3><p>{language==='el'?'Η επιτήρηση δημιουργείται μόνο όταν χρειάζεται κλινική παρακολούθηση. Μπορεί να ξεκινήσει από δείγμα ή ανεξάρτητα από αυτό.':t('clinicalRecords.surveillanceEpisodesHelp')}</p></div>{canCreate&&<Button variant="secondary" onClick={onCreate}>+ {t('newSurveillance')}</Button>}</div>
-      {episodes.length?<div className="record-table-wrap"><table className="record-table episode-registry"><thead><tr><th>{t('startDate')}</th><th>{t('status')}</th><th>{t('clinicalRecords.haiClassification')}</th><th>{t('organism')}</th><th>AMR</th><th>{t('nextReview')}</th></tr></thead><tbody>{episodes.map(ep=><tr key={ep.id} className={ep.id===selectedId?'is-selected':''} tabIndex={0} onClick={()=>onSelect(ep.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelect(ep.id)}}}><td>{fmtDate(ep.startedAt)}</td><td><span className={`status-badge ${ep.status==='active'?'active':''}`}>{t(ep.status)}</span></td><td>{ep.haiClassification?.type||ep.haiClassification?.status||'—'}</td><td>{ep.samples?.find(x=>x.organism)?.organism||ep.organism||'—'}</td><td>{ep.resistance||ep.samples?.find(x=>x.resistance)?.resistance||'—'}</td><td>{fmtDate(ep.reviewDue)}</td></tr>)}</tbody></table></div>:<SurveillanceStartGuide t={t}/>} 
+      {episodes.length?<div className="record-table-wrap"><table className="record-table episode-registry"><thead><tr><th>{t('startDate')}</th><th>{t('status')}</th><th>{t('clinicalRecords.haiClassification')}</th><th>{t('organism')}</th><th>AMR</th><th>{t('nextReview')}</th></tr></thead><tbody>{episodes.map(ep=><tr key={ep.id} className={ep.id===selectedId?'is-selected':''} tabIndex={0} onClick={()=>openEpisode(ep.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEpisode(ep.id)}}}><td>{fmtDate(ep.startedAt)}</td><td><span className={`status-badge ${ep.status==='active'?'active':''}`}>{t(ep.status)}</span></td><td>{ep.haiClassification?.type||ep.haiClassification?.status||'—'}</td><td>{ep.samples?.find(x=>x.organism)?.organism||ep.organism||'—'}</td><td>{ep.resistance||ep.samples?.find(x=>x.resistance)?.resistance||'—'}</td><td>{fmtDate(ep.reviewDue)}</td></tr>)}</tbody></table></div>:<SurveillanceStartGuide t={t}/>} 
     </section>
-    {record&&<CanonicalJourney record={record} repository={repository} onReload={onReload} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} permissions={permissions}/>} 
     {sampleOpen&&<SampleDialog t={t} onClose={()=>setSampleOpen(false)} onSave={saveSample}/>} 
     {samplePrompt&&<ObserverDialog title={language==='el'?'Το δείγμα καταχωρήθηκε':'Sample recorded'} subtitle={language==='el'?'Θέλετε να ξεκινήσει επιτήρηση για αυτό το δείγμα τώρα; Μπορείτε να το κάνετε και αργότερα από τη λίστα.':'Do you want to start surveillance for this sample now? You can also do it later from the list.'} onClose={()=>setSamplePrompt(null)} footer={<div className="dialog-actions"><Button variant="secondary" onClick={()=>setSamplePrompt(null)}>{language==='el'?'Όχι, αργότερα':'Not now'}</Button><Button onClick={()=>{const sample=samplePrompt;setSamplePrompt(null);onCreateFromSample?.(sample)}}>{language==='el'?'Ναι, έναρξη επιτήρησης':'Start surveillance'}</Button></div>}><div className="sample-surveillance-choice"><strong>{t(samplePrompt.type)||samplePrompt.type}</strong><span>{samplePrompt.id} · {fmtDate(samplePrompt.collectedAt||samplePrompt.requestedAt)}</span></div></ObserverDialog>}
   </div>
