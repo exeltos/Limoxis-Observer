@@ -20,6 +20,10 @@ function eventPayload(events,type){
   return row?.payload||null
 }
 
+function eventRow(events,type){
+  return (events||[]).find(item=>item.event_type===type)||null
+}
+
 function mapAssessment(row){
   if(!row)return null
   return {id:row.id,date:dateOnly(row.assessed_at),assessmentType:row.assessment_type,classification:row.classification,signsSymptoms:row.signs_symptoms||[],riskFactors:row.risk_factors||[],summary:row.summary||'',notes:row.summary||'',byId:row.created_by}
@@ -127,6 +131,13 @@ export function mapClinicalCase({caseRow,patient,department,events=[],assessment
   const caseReassessments=reassessments.filter(row=>row.surveillance_case_id===caseRow.id)
   const caseOutcomes=outcomes.filter(row=>row.surveillance_case_id===caseRow.id)
   const caseDevices=devices.filter(row=>row.surveillance_case_id===caseRow.id)
+  const isolationRecord=caseIsolations.find(row=>row.status==='active')||latest(caseIsolations)
+  const noIsolationEvent=eventRow(events,'isolation_not_required')
+  const isolationDecision=isolationRecord
+    ? {required:true,decidedAt:isolationRecord.started_at||isolationRecord.created_at||null,by:isolationRecord.created_by||null}
+    : noIsolationEvent
+      ? {required:false,decidedAt:noIsolationEvent.occurred_at||noIsolationEvent.created_at||null,by:noIsolationEvent.created_by||null}
+      : null
   return {
     id:caseRow.id,
     recordId:caseRow.id,
@@ -144,6 +155,7 @@ export function mapClinicalCase({caseRow,patient,department,events=[],assessment
     room:start.room||'',
     reason:start.reason||'',
     reasonEn:start.reasonEn||start.reason||'',
+    suspectedSource:start.suspectedSource||'',
     status:caseRow.status,
     completedAt:caseRow.closed_at,
     closeReason:caseRow.close_reason,
@@ -151,7 +163,8 @@ export function mapClinicalCase({caseRow,patient,department,events=[],assessment
     assessments:caseAssessments.map(mapAssessment),
     haiClassification:mapHai(latest(caseHai)),
     haiClassifications:caseHai.map(mapHai),
-    isolation:mapIsolation(caseIsolations.find(row=>row.status==='active')||latest(caseIsolations)),
+    isolation:mapIsolation(isolationRecord),
+    isolationDecision,
     isolations:caseIsolations.map(mapIsolation),
     therapy:caseTherapies.map(mapTherapy),
     samples:caseSamples.map(row=>mapSample(row,relatedLab)),
@@ -360,6 +373,18 @@ export async function completeClinicalCase(organizationId,caseRecordId,patientRe
   const {error:caseError}=await supabase.from('surveillance_cases').update({status:'closed',closed_at:occurredAt,close_reason:draft.notes||draft.status||null,closed_by:actorId}).eq('organization_id',organizationId).eq('id',caseRecordId)
   if(caseError)throw caseError
   return mapOutcome(outcome)
+}
+
+export async function updateClinicalCaseBasics(organizationId,record,draft){
+  assertCloud()
+  const actorId=await currentUserId()
+  const startedAt=iso(draft.startedAt||record.startedAt||new Date())
+  const {data:caseRow,error}=await supabase.from('surveillance_cases').update({started_at:startedAt,department_id:draft.departmentId||record.departmentId||null}).eq('organization_id',organizationId).eq('id',record.recordId).select('*').single()
+  if(error)throw error
+  const payload={reviewDue:draft.reviewDue??record.reviewDue??null,room:draft.room??record.room??'',reason:draft.reason??record.reason??'',reasonEn:draft.reasonEn??draft.reason??record.reasonEn??record.reason??'',suspectedSource:draft.suspectedSource??record.suspectedSource??'',detail:'updated'}
+  const {error:eventError}=await supabase.from('surveillance_events').insert({organization_id:organizationId,surveillance_case_id:record.recordId,event_type:'surveillance_start',event_status:'completed',occurred_at:startedAt,payload,created_by:actorId})
+  if(eventError)throw eventError
+  return (await hydrateCases([caseRow]))[0]
 }
 
 export async function deleteClinicalCaseForTesting(organizationId, caseRecordId){
