@@ -135,3 +135,25 @@
   .clinical-checklist>div{grid-template-columns:1fr!important}
   .new-surveillance-flow-card .flow-step-actions{flex-wrap:wrap!important}
 }
+
+
+/* Clinical library compact multi-select */
+.library-clinical-grid{align-items:start}
+.clinical-library-multiselect{position:relative;min-width:0;border:0!important;background:transparent!important;padding:0!important;overflow:visible!important}
+.clinical-library-multiselect>h4{margin:0 0 7px;font-size:14px;color:#163a53}
+.clinical-library-trigger{width:100%;min-height:44px;border:1px solid #cbd9e4;border-radius:9px;background:#fff;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:#173b55;text-align:left;cursor:pointer;font:inherit}
+.clinical-library-trigger:hover,.clinical-library-trigger[aria-expanded="true"]{border-color:#79acd0;box-shadow:0 0 0 2px rgba(34,124,178,.08)}
+.clinical-library-trigger>span:last-child{font-size:20px;line-height:1;transition:transform .15s ease}
+.clinical-library-trigger>span:last-child.open{transform:rotate(180deg)}
+.clinical-library-menu{position:absolute;z-index:80;left:0;right:0;top:70px;background:#fff;border:1px solid #bfd2df;border-radius:10px;box-shadow:0 14px 32px rgba(20,55,75,.18);padding:8px}
+.clinical-library-search{box-sizing:border-box;width:100%;height:38px;border:1px solid #d4e0e8;border-radius:7px;padding:0 10px;margin:0 0 6px!important;background:#fff}
+.clinical-library-options{max-height:250px;overflow:auto;display:flex;flex-direction:column;gap:1px}
+.clinical-library-options label{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;min-height:36px!important;padding:6px 8px!important;border:0!important;border-radius:6px!important;background:#fff!important;cursor:pointer!important;text-align:left!important}
+.clinical-library-options label:hover,.clinical-library-options label.selected{background:#f1f7fa!important}
+.clinical-library-options label input{width:auto!important;height:auto!important;margin:0!important;flex:0 0 auto!important}
+.clinical-library-options label span{display:block!important;text-align:left!important;margin:0!important}
+.clinical-library-empty{padding:12px;color:#708696;font-size:13px}
+.clinical-library-selected{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.clinical-library-selected button{border:0;border-radius:999px;background:#eef5f8;color:#365b70;font-size:11px;padding:4px 8px;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.clinical-library-selected button:hover{background:#e1edf3}
+@media(max-width:900px){.library-clinical-grid{grid-template-columns:1fr}.clinical-library-menu{position:relative;top:auto;margin-top:4px}}
