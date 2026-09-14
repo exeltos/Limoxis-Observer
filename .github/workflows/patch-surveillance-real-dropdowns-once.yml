@@ -107,3 +107,5 @@ function LibraryChecklist({title,rows,selected,onToggle,language}){
           git diff --cached --check
           git commit -m "Fix surveillance clinical library dropdowns"
           git push origin HEAD:fix/surveillance-real-dropdowns
+
+# trigger 2026-09-14
