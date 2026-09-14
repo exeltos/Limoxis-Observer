@@ -190,8 +190,92 @@
 .clinical-snapshot-strip .patient-summary-item.warning{background:#fff9ef!important;border-color:#f0dfbb!important}
 .clinical-snapshot-strip .patient-summary-item>strong{display:block!important;margin:0!important;color:#213c54!important;font-size:12px!important;line-height:1.35!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 
-/* Surveillance tab: one list, one status column, no duplicate Active/Completed cards and no UUID column. */
-.patient-surveillance-clean{display:flex!important;flex-direction:column!important;min-height:0!important}
+/* Surveillance tab: samples -> episodes -> selected surveillance journey. */
+.patient-surveillance-clean{
+  display:flex!important;
+  flex-direction:column!important;
+  min-height:0!important;
+  gap:12px!important;
+  padding:14px 16px 20px!important;
+}
+.patient-surveillance-clean>.record-section{
+  flex:0 0 auto!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid #e1e8ee!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  overflow:hidden!important;
+  box-shadow:none!important;
+}
+.patient-surveillance-clean>.record-section>.record-section-header{
+  align-items:center!important;
+  margin:0!important;
+  padding:10px 12px!important;
+  border-bottom:1px solid #e8edf2!important;
+  background:#fff!important;
+}
+.patient-surveillance-clean>.record-section>.record-section-header h3{
+  font-size:14.5px!important;
+}
+.patient-surveillance-clean>.record-section>.record-section-header p{
+  margin-top:2px!important;
+  max-width:860px!important;
+  font-size:10px!important;
+  color:#8090a0!important;
+}
+.patient-surveillance-clean>.record-section>.record-section-header .btn{
+  min-height:34px!important;
+  padding:6px 11px!important;
+}
+.patient-surveillance-clean .record-table-wrap{
+  max-height:150px!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+.patient-surveillance-clean .record-table{
+  width:100%!important;
+  table-layout:fixed!important;
+  border-collapse:collapse!important;
+}
+.patient-surveillance-clean .record-table th{
+  position:sticky!important;
+  top:0!important;
+  z-index:1!important;
+  height:34px!important;
+  padding:0 10px!important;
+  background:#f7f9fb!important;
+  color:#718397!important;
+  font-size:9px!important;
+  font-weight:800!important;
+  text-transform:uppercase!important;
+  border-bottom:1px solid #e1e8ee!important;
+}
+.patient-surveillance-clean .record-table td{
+  height:46px!important;
+  padding:7px 10px!important;
+  color:#40556a!important;
+  font-size:10.5px!important;
+  border-bottom:1px solid #edf1f4!important;
+  vertical-align:middle!important;
+}
+.patient-surveillance-clean .record-table tbody tr:last-child td{border-bottom:0!important}
+.patient-surveillance-clean .admission-samples-table td strong{display:block!important;color:#18364f!important;font-size:11px!important}
+.patient-surveillance-clean .admission-samples-table td small{display:block!important;margin-top:2px!important;color:#8a98a7!important;font-size:9px!important}
+.patient-surveillance-clean .admission-samples-table td:last-child .btn{min-height:30px!important;padding:4px 9px!important;font-size:10px!important}
+.patient-surveillance-clean .inline-empty{
+  min-height:68px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  color:#7d8d9c!important;
+  font-size:10.5px!important;
+  background:#fbfcfd!important;
+}
 .episode-registry-wrap{border:1px solid #e2e8ee!important;border-radius:11px!important;overflow:auto!important;background:#fff!important}
 .episode-registry{width:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
 .episode-registry th{height:38px!important;padding:0 12px!important;background:#f7f9fb!important;color:#718397!important;font-size:9.5px!important;font-weight:800!important;text-transform:uppercase!important;border-bottom:1px solid #e1e8ee!important}
@@ -203,6 +287,102 @@
 .episode-registry td small{display:block!important;margin-top:2px!important;color:#8a98a7!important;font-size:9.5px!important}
 .compact-empty-state{min-height:132px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;border:1px dashed #d9e2ea!important;border-radius:11px!important;background:#fbfcfd!important;color:#7b8b9a!important}
 .compact-empty-state strong{font-size:12.5px!important;color:#3c5369!important}.compact-empty-state span{font-size:10.5px!important}
+
+/* Selected surveillance: make the clinical journey the visual focus. */
+.patient-surveillance-clean>.clinical-data-hub{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:12px 14px 16px!important;
+  border:1px solid #e1e8ee!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  overflow:visible!important;
+}
+.patient-surveillance-clean .journey-heading{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  margin:0 0 8px!important;
+  padding:0 0 8px!important;
+  border-bottom:1px solid #edf1f4!important;
+}
+.patient-surveillance-clean .journey-heading .eyebrow{
+  display:block!important;
+  margin:0!important;
+  color:#18364f!important;
+  font-size:14px!important;
+  font-weight:800!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+}
+.patient-surveillance-clean .journey-heading h3{
+  display:block!important;
+  max-width:240px!important;
+  margin:3px 0 0!important;
+  color:#91a0ae!important;
+  font-size:9px!important;
+  font-weight:600!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.patient-surveillance-clean .journey-heading p{
+  margin:3px 0 0!important;
+  color:#7d8d9c!important;
+  font-size:10px!important;
+  line-height:1.35!important;
+}
+.patient-surveillance-clean .journey-heading>.btn{
+  min-height:32px!important;
+  padding:5px 10px!important;
+  font-size:10px!important;
+}
+.patient-surveillance-clean .journey-guidance{
+  margin:0 0 10px!important;
+  padding:8px 10px!important;
+  border-radius:9px!important;
+}
+.patient-surveillance-clean .journey-guidance-title{
+  min-height:26px!important;
+}
+.patient-surveillance-clean .journey-guidance-items{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:6px!important;
+}
+.patient-surveillance-clean .guidance-cue{
+  min-height:50px!important;
+  padding:7px 9px!important;
+  border-radius:8px!important;
+}
+.patient-surveillance-clean .guidance-cue strong{
+  font-size:10px!important;
+  line-height:1.25!important;
+}
+.patient-surveillance-clean .guidance-cue small{
+  margin-top:2px!important;
+  font-size:8.75px!important;
+  line-height:1.25!important;
+  display:-webkit-box!important;
+  -webkit-line-clamp:2!important;
+  -webkit-box-orient:vertical!important;
+  overflow:hidden!important;
+}
+.patient-surveillance-clean .journey-map{
+  margin:0 0 10px!important;
+}
+.patient-surveillance-clean .strict-nodes{
+  gap:6px!important;
+}
+.patient-surveillance-clean .journey-node{
+  min-height:54px!important;
+  padding:8px 10px!important;
+}
+.patient-surveillance-clean .journey-node-copy strong{font-size:10.5px!important}
+.patient-surveillance-clean .journey-node-copy small{font-size:8.75px!important}
 
 /* Clinical data: sequential clinical sections; no 2-column mosaic of nested cards. */
 .patient-record-shell .clinical-data-hub{display:flex!important;flex-direction:column!important;min-height:0!important}
@@ -236,6 +416,7 @@
   .patient-home-details .detail-item{border-bottom:1px solid #e8edf2!important}
   .patient-home-details .detail-item:nth-last-child(-n+2){border-bottom:0!important}
   .clinical-snapshot-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .patient-surveillance-clean .journey-guidance-items{grid-template-columns:1fr!important}
 }
 @media(max-width:680px){
   .patient-record-shell{--pr-pad-x:12px;--pr-pad-y:12px}
@@ -244,4 +425,6 @@
   .patient-home-details .detail-item:last-child,.clean-patient-summary .patient-detail-grid>.detail-item:last-child{border-bottom:0!important}
   .patient-admissions-section>.record-section-header{align-items:flex-start!important;flex-wrap:wrap!important}
   .episode-registry{min-width:760px!important}
+  .patient-surveillance-clean{padding:10px!important}
+  .patient-surveillance-clean>.record-section>.record-section-header{align-items:flex-start!important;flex-wrap:wrap!important}
 }
