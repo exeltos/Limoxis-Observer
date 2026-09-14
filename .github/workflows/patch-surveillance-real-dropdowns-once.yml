@@ -1,0 +1,39 @@
+name: Patch surveillance real dropdowns once
+
+on:
+  push:
+    branches:
+      - fix/surveillance-real-dropdowns
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/surveillance-real-dropdowns
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - name: Apply dropdown patch
+        run: python scripts/patch_surveillance_dropdowns.py
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test -- --run
+      - name: Build
+        run: npm run build
+      - name: Commit repaired UI
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-surveillance-real-dropdowns-once.yml scripts/patch_surveillance_dropdowns.py
+          git add src/features/surveillance/NewSurveillanceFlow.jsx src/styles/surveillance-workflow-preview.css
+          git diff --cached --check
+          git commit -m "Fix surveillance clinical library dropdowns"
+          git push origin HEAD:fix/surveillance-real-dropdowns
