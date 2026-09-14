@@ -1,4 +1,5 @@
 import { Activity,AlertTriangle,BedDouble,CheckCircle2,ChevronRight,Microscope,RefreshCcw,ShieldCheck,Syringe } from 'lucide-react'
+import { useLanguage } from '../../core/i18n/LanguageContext'
 
 const icons={assessment:ShieldCheck,samples:Microscope,isolation:BedDouble,therapy:Syringe,hai:AlertTriangle,reassessment:RefreshCcw,outcome:Activity}
 
@@ -22,19 +23,27 @@ export function buildSurveillanceJourneyStages(record,t,fmtDate){
     {id:'isolation',label:t('isolation'),status:isolationDecided?'complete':'pending',meta:record?.isolation?t(record.isolation.status):(isolationDecided?t('notRequired'):t('clinicalRecords.notStarted'))},
     {id:'therapy',label:t('therapy'),status:therapy.length?'complete':'pending',meta:therapy[0]?.antimicrobial||t('clinicalRecords.notStarted')},
     {id:'hai',label:t('haiAmr'),status:record?.haiClassification?'complete':(validatedSamples.length?'pending':'waiting'),meta:record?.resistance||t(record?.haiClassification?.status||'pending')},
-    {id:'reassessment',label:t('reassessment'),status:reassessments.length?'complete':'due',meta:reassessments[0]?fmtDate(reassessments[0].date):(record?.reviewDue?fmtDate(record.reviewDue):t('notScheduled'))},
+    {id:'reassessment',label:t('reassessment'),status:reassessments.length?'complete':(assessed?'due':'pending'),meta:reassessments[0]?fmtDate(reassessments[0].date):(record?.reviewDue?fmtDate(record.reviewDue):t('notScheduled'))},
     {id:'outcome',label:t('outcome'),status:record?.outcome?'complete':'pending',meta:record?.outcome?t(record.outcome.status):t('pending')},
   ].map(stage=>({...stage,locked:!unlocked[stage.id]}))
 }
 
 export function SurveillanceJourneyMap({record,t,fmtDate,activeStage,onSelect}){
+  const {language}=useLanguage()
   const stages=buildSurveillanceJourneyStages(record,t,fmtDate)
-  return <div className="journey-map strict-journey-map" aria-label={t('surveillanceJourney')}>
+  const byId=Object.fromEntries(stages.map(stage=>[stage.id,stage]))
+  const primary=['assessment','samples','reassessment','outcome'].map(id=>byId[id])
+  const conditional=['isolation','therapy','hai'].map(id=>byId[id])
+  return <div className="journey-map strict-journey-map grouped-journey-map" aria-label={t('surveillanceJourney')}>
     <button type="button" className="journey-start journey-start-button" disabled><CheckCircle2 size={16}/><span>{t('surveillanceStarted')}</span><strong>{fmtDate(record.startedAt)}</strong></button>
-    <div className="journey-connector vertical"/>
-    <div className="journey-nodes strict-nodes">{stages.slice(0,5).map(stage=><Stage key={stage.id} stage={stage} active={activeStage===stage.id} onSelect={onSelect}/>)}</div>
-    <div className="journey-connector vertical"/>
-    <div className="journey-final-row">{stages.slice(5).map(stage=><Stage key={stage.id} stage={stage} active={activeStage===stage.id} onSelect={onSelect}/>)}</div>
+    <div className="journey-flow-group journey-primary-group">
+      <div className="journey-flow-label"><strong>{language==='el'?'Κύρια κλινική πορεία':'Primary clinical path'}</strong><span>{language==='el'?'Αξιολόγηση, τεκμηρίωση και επανεκτίμηση έως την έκβαση.':'Assessment, documentation and reassessment through outcome.'}</span></div>
+      <div className="journey-nodes journey-primary-flow">{primary.map(stage=><Stage key={stage.id} stage={stage} active={activeStage===stage.id} onSelect={onSelect}/>)}</div>
+    </div>
+    <div className="journey-flow-group journey-conditional-group">
+      <div className="journey-flow-label"><strong>{language==='el'?'Παράλληλες κλινικές ενέργειες':'Parallel clinical actions'}</strong><span>{language==='el'?'Ενεργοποιούνται όταν χρειάζονται και δεν μπλοκάρουν την κύρια πορεία.':'Used when clinically indicated without blocking the main path.'}</span></div>
+      <div className="journey-nodes journey-conditional-flow">{conditional.map(stage=><Stage key={stage.id} stage={stage} active={activeStage===stage.id} onSelect={onSelect}/>)}</div>
+    </div>
   </div>
 }
 
