@@ -244,8 +244,33 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
   </div>
 }
 
+
 function LibraryChecklist({title,rows,selected,onToggle,language}){
-  const selectedLabels=rows.filter(row=>selected.includes(libraryValue(row))).map(row=>language==='el'?(row[0]||row[1]):(row[1]||row[0]))
-  const summary=selectedLabels.length?`${selectedLabels.length} ${language==='el'?'επιλεγμένα':'selected'}`:(language==='el'?'Επιλέξτε από τη λίστα':'Select from list')
-  return <details className="clinical-checklist library-checklist library-dropdown"><summary><span><strong>{title}</strong><small>{summary}</small></span><span className="library-dropdown-chevron">⌄</span></summary><div className="clinical-library-list library-dropdown-list">{rows.map(row=>{const value=libraryValue(row);return <label key={value} className={selected.includes(value)?'selected':''}><input type="checkbox" checked={selected.includes(value)} onChange={()=>onToggle(value)}/><span>{language==='el'?(row[0]||row[1]):(row[1]||row[0])}</span></label>})}</div>{selectedLabels.length>0&&<div className="library-dropdown-selected">{selectedLabels.map(label=><span key={label}>{label}</span>)}</div>}</details>
+  const [open,setOpen]=useState(false)
+  const [query,setQuery]=useState('')
+  const selectedRows=rows.filter(row=>selected.includes(libraryValue(row)))
+  const normalizedQuery=query.trim().toLocaleLowerCase()
+  const filtered=rows.filter(row=>{
+    const label=language==='el'?(row[0]||row[1]):(row[1]||row[0])
+    return !normalizedQuery||String(label||'').toLocaleLowerCase().includes(normalizedQuery)
+  })
+  const summary=selectedRows.length
+    ? `${selectedRows.length} ${language==='el'?'επιλεγμένα':'selected'}`
+    : (language==='el'?'Επιλέξτε από τη λίστα':'Select from list')
+  return <section className="clinical-checklist library-checklist clinical-library-multiselect">
+    <h4>{title}</h4>
+    <button type="button" className="clinical-library-trigger" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>
+      <span>{summary}</span><span className={open?'open':''} aria-hidden="true">⌄</span>
+    </button>
+    {open&&<div className="clinical-library-menu">
+      <input className="clinical-library-search" value={query} onChange={event=>setQuery(event.target.value)} placeholder={language==='el'?'Αναζήτηση...':'Search...'} autoFocus/>
+      <div className="clinical-library-options">
+        {filtered.map(row=>{const value=libraryValue(row);const label=language==='el'?(row[0]||row[1]):(row[1]||row[0]);return <label key={value} className={selected.includes(value)?'selected':''}><input type="checkbox" checked={selected.includes(value)} onChange={()=>onToggle(value)}/><span>{label}</span></label>})}
+        {!filtered.length&&<div className="clinical-library-empty">{language==='el'?'Δεν βρέθηκαν επιλογές':'No options found'}</div>}
+      </div>
+    </div>}
+    {selectedRows.length>0&&<div className="clinical-library-selected">
+      {selectedRows.map(row=>{const value=libraryValue(row);const label=language==='el'?(row[0]||row[1]):(row[1]||row[0]);return <button type="button" key={value} onClick={()=>onToggle(value)} title={language==='el'?'Αφαίρεση':'Remove'}>{label}<span aria-hidden="true">×</span></button>})}
+    </div>}
+  </section>
 }
