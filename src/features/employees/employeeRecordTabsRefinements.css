@@ -1,8 +1,71 @@
 .employee-documents-workspace{display:grid;gap:14px}.employee-documents-workspace .attachment-field{margin-top:0}.employee-documents-workspace .attachment-heading{padding-top:2px}.employee-secondary-registry .record-section-header>div>p{max-width:760px}
 .employee-code-compact{font-variant-numeric:tabular-nums;letter-spacing:.01em;white-space:nowrap}.employee-sample-row .employee-sample-main{min-width:0}.employee-sample-row .employee-sample-main strong{display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.employee-lab-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.employee-lab-request-editor{display:grid;grid-template-columns:1fr 1fr;gap:12px}.employee-lab-request-editor .entry-span-2{grid-column:1/-1}@media(max-width:760px){.employee-lab-request-editor{grid-template-columns:1fr}.employee-lab-request-editor .entry-span-2{grid-column:auto}}
 
-/* Employee record sub-registries: vertical list scrolling only; columns must fit the card width. */
-.employee-secondary-registry>.scroll-table{overflow-x:hidden!important;overflow-y:auto!important;min-width:0!important}
-.employee-secondary-registry>.scroll-table>.data-table{width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important}
-.employee-secondary-registry>.scroll-table>.data-table th,
-.employee-secondary-registry>.scroll-table>.data-table td{min-width:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Employee record list tabs use the same geometry as top-level registries:
+   one outer surface, a fixed header, a scrolling table body and an attached pagination footer. */
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace){
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr) auto!important;
+  gap:0!important;
+  min-width:0!important;
+  min-height:0!important;
+  width:100%!important;
+  height:100%!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace)>.record-section-header{
+  min-width:0!important;
+  margin:0!important;
+  padding:16px 16px 14px!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+}
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace)>.scroll-table{
+  width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:100%!important;
+  margin:0!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  border:0!important;
+  border-radius:0!important;
+  background:var(--lo-color-surface)!important;
+  box-shadow:none!important;
+}
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace)>.scroll-table>.data-table{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  table-layout:fixed!important;
+  margin:0!important;
+}
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace)>.scroll-table>.data-table th,
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace)>.scroll-table>.data-table td{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace)>.registry-pagination,
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace)>[class*="registry-pagination"]{
+  width:100%!important;
+  min-width:0!important;
+  min-height:44px!important;
+  margin:0!important;
+  padding-left:12px!important;
+  padding-right:12px!important;
+  border:0!important;
+  border-top:1px solid var(--lo-color-border)!important;
+  border-radius:0!important;
+  background:var(--lo-color-surface)!important;
+}
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace)>.registry-empty-state,
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace)>.inline-empty,
+.employee-record-shell .employee-secondary-registry:not(.employee-documents-workspace)>.data-access-state{
+  min-height:0!important;
+  height:100%!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+}
