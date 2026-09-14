@@ -19,8 +19,8 @@ export function PatientSummaryActions({patient,departments,onReload,onDeleted}){
   if(!patient)return null
 
   const items=[
-    has(CAPABILITIES.EDIT_PATIENT)?{label:t('edit'),icon:Pencil,onSelect:()=>setEditing(true)}:null,
-    has(CAPABILITIES.DELETE_PATIENT)?{label:t('delete'),icon:Trash2,danger:true,onSelect:()=>setDeleting(true)}:null,
+    has(CAPABILITIES.EDIT_PATIENT)?{label:language==='el'?'Επεξεργασία ασθενούς':'Edit patient',icon:Pencil,onSelect:()=>setEditing(true)}:null,
+    has(CAPABILITIES.DELETE_PATIENT)?{label:language==='el'?'Διαγραφή ασθενούς':'Delete patient',icon:Trash2,danger:true,onSelect:()=>setDeleting(true)}:null,
   ].filter(Boolean)
   if(!items.length)return null
 
@@ -45,6 +45,6 @@ export function PatientSummaryActions({patient,departments,onReload,onDeleted}){
   return <>
     <OverflowMenu ariaLabel={`${t('actions')}: ${patient.name||patient.id}`} items={items}/>
     {editing&&<PatientFormDialog t={t} language={language} departments={departments} patient={patient} onClose={()=>setEditing(false)} onSave={save}/>} 
-    <GovernedReasonDialog open={deleting} title={t('delete')} description={language==='el'?'Η διαγραφή θα καταγραφεί στο ιστορικό ελέγχου.':'The deletion will be recorded in the audit history.'} confirmLabel={t('delete')} danger onCancel={()=>setDeleting(false)} onConfirm={remove}/>
+    <GovernedReasonDialog open={deleting} title={language==='el'?'Διαγραφή ασθενούς':'Delete patient'} description={language==='el'?'Η διαγραφή θα καταγραφεί στο ιστορικό ελέγχου.':'The deletion will be recorded in the audit history.'} confirmLabel={t('delete')} danger onCancel={()=>setDeleting(false)} onConfirm={remove}/>
   </>
 }
