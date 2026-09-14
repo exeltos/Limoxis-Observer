@@ -12,6 +12,13 @@
   padding:0!important;
   background:var(--lo-color-surface,#fff)!important;
 }
+.patient-record-shell>.entity-record-body:has(>.patient-home-layout){
+  display:flex!important;
+  flex-direction:column!important;
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
 .patient-record-shell>.entity-record-body>:is(.patient-summary-layout,.patient-home-layout,.record-section,.surveillance-workspace,.clinical-data-hub,.timeline-panel-clean){
   width:100%!important;
   max-width:none!important;
@@ -37,7 +44,7 @@
 }
 
 /* Patient root: stable patient identity followed by a normal admission registry. */
-.patient-home-layout{display:flex!important;flex-direction:column!important;gap:14px!important;min-height:0!important;height:100%!important;overflow:hidden!important}
+.patient-home-layout{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;gap:14px!important;min-height:0!important;height:100%!important;overflow:hidden!important}
 .patient-home-details{flex:0 0 auto!important}
 .patient-home-details .patient-detail-grid{
   display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;border:1px solid #e2e9ef!important;border-radius:11px!important;background:#fff!important;overflow:hidden!important;
@@ -47,7 +54,7 @@
 .patient-home-details .detail-item span{display:block!important;margin-bottom:4px!important;color:#7b8b9b!important;font-size:9.5px!important;font-weight:800!important}
 .patient-home-details .detail-item strong{color:#18364f!important;font-size:12.5px!important}
 .patient-admissions-section{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;padding:0!important}
-.patient-admissions-table-wrap{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;border:1px solid #e2e8ee!important;border-radius:11px!important;background:#fff!important}
+.patient-admissions-table-wrap{display:block!important;flex:1 1 auto!important;height:100%!important;min-height:0!important;overflow:auto!important;border:1px solid #e2e8ee!important;border-radius:11px!important;background:#fff!important}
 .patient-admissions-table{width:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
 .patient-admissions-table th{position:sticky!important;top:0!important;z-index:1!important;background:#f7f9fb!important}
 .patient-admissions-table .clickable-row{cursor:pointer!important}
