@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Activity, AlertTriangle, BedDouble, CheckCircle2, CircleCheckBig, FlaskConical, Microscope, Pill, Plus, RefreshCcw, ShieldCheck, X } from 'lucide-react'
+import { Activity, AlertTriangle, BedDouble, CheckCircle2, FlaskConical, Microscope, Plus, ShieldCheck, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -16,11 +16,7 @@ const stepDefs=[
   {id:'start',label:'surveillanceStart',icon:Activity},
   {id:'assessment',label:'clinicalAssessment',icon:ShieldCheck},
   {id:'microbiology',label:'sampleAndLaboratory',icon:Microscope},
-  {id:'hai',label:'haiAmr',icon:AlertTriangle},
   {id:'isolation',label:'isolation',icon:BedDouble},
-  {id:'therapy',label:'therapy',icon:Pill},
-  {id:'reassessment',label:'reassessment',icon:RefreshCcw},
-  {id:'outcome',label:'outcome',icon:CircleCheckBig},
 ]
 
 const screeningQuestions=[
@@ -124,29 +120,21 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
   const validatedMicrobiology=linkedLabSamples.find(x=>x.organism&&(x.resultStatus==='validated'||x.microbiologyResults?.some(result=>result.validationStatus==='validated')))
 
   const completed=useMemo(()=>{
-    const c=new Set()
-    if(record)c.add('start')
-    if(record?.assessment)c.add('assessment')
-    if(linkedLabSamples.length)c.add('microbiology')
-    if(record?.haiClassification)c.add('hai')
-    if(record?.isolation||record?.isolationDecision?.required===false)c.add('isolation')
-    if(record?.therapy?.length)c.add('therapy')
-    if(record?.reassessments?.length)c.add('reassessment')
-    if(record?.outcome)c.add('outcome')
-    return c
-  },[record,linkedLabSamples])
+  const c=new Set()
+  if(record)c.add('start')
+  if(record?.assessment)c.add('assessment')
+  if(linkedLabSamples.length)c.add('microbiology')
+  if(record?.isolation||record?.isolationDecision?.required===false)c.add('isolation')
+  return c
+},[record,linkedLabSamples])
 
   function allowed(step){
-    if(step==='start')return true
-    if(step==='assessment')return Boolean(record)
-    if(step==='microbiology')return Boolean(record?.assessment)
-    if(step==='hai')return Boolean(validatedMicrobiology)
-    if(step==='isolation')return Boolean(record?.assessment)
-    if(step==='therapy')return Boolean(validatedMicrobiology)
-    if(step==='reassessment')return Boolean(record?.assessment)&&(Boolean(record?.isolation)||Boolean(validatedMicrobiology)||Boolean(record?.haiClassification))
-    if(step==='outcome')return Boolean(record?.reassessments?.length)
-    return false
-  }
+  if(step==='start')return true
+  if(step==='assessment')return Boolean(record)
+  if(step==='microbiology')return Boolean(record?.assessment)
+  if(step==='isolation')return Boolean(record?.assessment)
+  return false
+}
 
   async function saveStart(){
     let targetPatient=selectedPatient
@@ -267,19 +255,14 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
           {!validatedMicrobiology&&linkedLabSamples.length>0&&<div className="progressive-lock-note"><Microscope size={16}/><span>{t('clinicalRecords.microbiologyUnlockHint')}</span></div>}
         </section>}
 
-        {activeStep==='hai'&&<LockedDetail title={t('haiAmr')} text={t('clinicalRecords.haiStepReady')} />}
-        {activeStep==='isolation'&&<section className="flow-step-panel isolation-decision-step"><div className="flow-step-heading"><div><span>05</span><h3>{t('isolation')}</h3></div><p>{t('clinicalRecords.preventiveIsolationHelp')}</p></div>
+        {activeStep==='isolation'&&<section className="flow-step-panel isolation-decision-step"><div className="flow-step-heading"><div><span>04</span><h3>{t('isolation')}</h3></div><p>{t('clinicalRecords.preventiveIsolationHelp')}</p></div>
           <div className={`isolation-question ${isolationNeeded===null?'required-decision':''}`}><strong>{t('isIsolationRequired')}</strong><span>{isolationNeeded===null?t('isolationDecisionRequired'):t('isIsolationRequiredHelp')}</span><div><button type="button" className={isolationNeeded===true?'selected yes':''} onClick={()=>setIsolationNeeded(true)}>{t('yes')}</button><button type="button" className={isolationNeeded===false?'selected no':''} onClick={()=>setIsolationNeeded(false)}>{t('no')}</button></div></div>
           {isolationNeeded===true&&<div className="entry-grid isolation-fields"><ManualDateField label={t('isolationStart')} value={isolationDraft.startedAt} onChange={v=>setIsolation('startedAt',v)}/><label><span>{t('precautionType')}</span><select value={isolationDraft.precautionType} onChange={e=>setIsolation('precautionType',e.target.value)}><option value="contact">{t('contactPrecautions')}</option><option value="droplet">{t('dropletPrecautions')}</option><option value="airborne">{t('airbornePrecautions')}</option><option value="protective">{t('protectiveIsolation')}</option><option value="other">{t('other')}</option></select></label><label className="entry-span-2"><span>{t('isolationReason')}</span><textarea rows={3} value={language==='el'?isolationDraft.reason:isolationDraft.reasonEn} onChange={e=>setIsolation(language==='el'?'reason':'reasonEn',e.target.value)}/></label><label className="inline-check entry-span-2"><input type="checkbox" checked={isolationDraft.provisional} onChange={e=>setIsolation('provisional',e.target.checked)}/><span>{t('provisionalIsolation')}</span></label></div>}
           {isolationNeeded===false&&<div className="no-isolation-note"><CheckCircle2 size={16}/><span>{t('noIsolationDecisionHint')}</span></div>}
           <div className="flow-step-actions"><Button variant="secondary" onClick={()=>setActiveStep('microbiology')}>{t('clinicalRecords.previous')}</Button><SaveButton disabled={isolationNeeded===null||(isolationNeeded===true&&!isolationDraft.startedAt)} onClick={saveIsolation}>{t('save')}</SaveButton></div></section>}
-        {activeStep==='therapy'&&<LockedDetail title={t('therapy')} text={t('clinicalRecords.therapyStepReady')} />}
-        {activeStep==='reassessment'&&<LockedDetail title={t('reassessment')} text={t('clinicalRecords.reassessmentStepReady')} />}
-        {activeStep==='outcome'&&<LockedDetail title={t('outcome')} text={t('clinicalRecords.outcomeStepReady')} />}
       </div>
     </section>
   </div>
 }
 
 function ClinicalChecklist({title,items,selected,customItems=[],onToggle,onRemoveCustom,t}){return <section className="clinical-checklist"><h4>{title}</h4><div>{items.map(item=><label key={item} className={selected.includes(item)?'selected':''}><input type="checkbox" checked={selected.includes(item)} onChange={()=>onToggle(item)}/><span>{t(item)}</span></label>)}{customItems.map(item=><label key={`custom-${item}`} className="selected custom-clinical-item"><input type="checkbox" checked readOnly/><span>{item}</span><button type="button" onClick={e=>{e.preventDefault();onRemoveCustom?.(item)}}>×</button></label>)}</div></section>}
-function LockedDetail({title,text}){return <section className="flow-step-panel"><div className="flow-step-heading"><div><h3>{title}</h3></div><p>{text}</p></div></section>}
