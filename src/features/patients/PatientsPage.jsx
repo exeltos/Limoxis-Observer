@@ -118,17 +118,11 @@ function PatientRegistryEmpty({t}){
 function PatientSummaryMetric({icon,label,value,kind=''}){return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'}/>}
 
 export function NewPatientCard({t,language,departments,onClose,onSave}){
-  const firstDepartment=departments?.[0]||null
   const [draft,setDraft]=useState({
     patientCode:'',firstName:'',lastName:'',fatherName:'',hospitalRecordNumber:'',
-    dateOfBirth:'',sex:'',departmentId:firstDepartment?.id||'',department:firstDepartment?.name||'',departmentEn:firstDepartment?.nameEn||firstDepartment?.name||'',
-    admissionDate:new Date().toISOString().slice(0,10),status:'active',notes:''
+    dateOfBirth:'',sex:'',departmentId:'',department:'',departmentEn:'',
+    admissionDate:'',status:'active',notes:''
   })
-  useEffect(()=>{
-    if(draft.departmentId||!departments?.length)return
-    const first=departments[0]
-    setDraft(current=>({...current,departmentId:first.id,department:first.name,departmentEn:first.nameEn||first.name}))
-  },[departments,draft.departmentId])
   const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
   function setDepartment(id){
     const item=departments.find(value=>value.id===id)

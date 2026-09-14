@@ -36,23 +36,26 @@
   margin:4px 0 0!important;color:#748496!important;font-size:11px!important;line-height:1.4!important;
 }
 
-/* Summary: the record header already owns name, patient code and admission context. */
+/* Summary: compact record overview; the shell header already owns identity and admission context. */
 .clean-patient-summary{display:grid!important;gap:12px!important;align-content:start!important}
-.clean-patient-details{border:0!important;background:transparent!important;padding:0!important;margin:0!important;box-shadow:none!important}
-.clean-patient-details .patient-detail-grid{
+.clean-patient-summary>.clinical-panel{
+  min-height:0!important;height:auto!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;
+}
+.clean-patient-summary>.clinical-panel>.record-section-header{margin-bottom:10px!important}
+.clean-patient-summary .patient-detail-grid{
   display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;
   margin:0!important;padding:0!important;border:1px solid #e2e9ef!important;border-radius:11px!important;background:#fff!important;overflow:hidden!important;
 }
-.clean-patient-details .patient-detail-grid>.detail-item{
+.clean-patient-summary .patient-detail-grid>.detail-item{
   min-height:64px!important;padding:11px 16px!important;border:0!important;border-right:1px solid #e8edf2!important;background:transparent!important;
 }
-.clean-patient-details .patient-detail-grid>.detail-item:last-child{border-right:0!important}
-.clean-patient-details .detail-item>span,.clinical-snapshot-strip .patient-summary-item>span{
+.clean-patient-summary .patient-detail-grid>.detail-item:last-child{border-right:0!important}
+.clean-patient-summary .detail-item>span,.clinical-snapshot-strip .patient-summary-item>span{
   display:block!important;margin:0 0 5px!important;color:#7b8b9b!important;font-size:9.5px!important;font-weight:800!important;line-height:1.2!important;
 }
-.clean-patient-details .detail-item>strong{font-size:13px!important;color:#18364f!important;font-weight:700!important}
+.clean-patient-summary .detail-item>strong{font-size:13px!important;color:#18364f!important;font-weight:700!important}
 .clinical-snapshot-strip{
-  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:8px!important;margin:0!important;
+  display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important;margin:0!important;
 }
 .clinical-snapshot-strip .patient-summary-item{
   min-height:62px!important;padding:10px 12px!important;border:1px solid #e3e9ee!important;border-radius:10px!important;background:#fbfcfd!important;
@@ -99,15 +102,17 @@
 .patient-record-shell .episode-report-group:nth-child(3)>strong,
 .patient-record-shell .final-report-footer>strong{display:none!important}
 
+@media(max-width:1180px){
+  .clinical-snapshot-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
 @media(max-width:1050px){
-  .clean-patient-details .patient-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .clean-patient-details .patient-detail-grid>.detail-item:nth-child(2n){border-right:0!important}
-  .clinical-snapshot-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .clean-patient-summary .patient-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .clean-patient-summary .patient-detail-grid>.detail-item:nth-child(2n){border-right:0!important}
 }
 @media(max-width:680px){
   .patient-record-shell{--pr-pad-x:12px;--pr-pad-y:12px}
-  .clean-patient-details .patient-detail-grid,.clinical-snapshot-strip{grid-template-columns:1fr!important}
-  .clean-patient-details .patient-detail-grid>.detail-item{border-right:0!important;border-bottom:1px solid #e8edf2!important}
-  .clean-patient-details .patient-detail-grid>.detail-item:last-child{border-bottom:0!important}
+  .clean-patient-summary .patient-detail-grid,.clinical-snapshot-strip{grid-template-columns:1fr!important}
+  .clean-patient-summary .patient-detail-grid>.detail-item{border-right:0!important;border-bottom:1px solid #e8edf2!important}
+  .clean-patient-summary .patient-detail-grid>.detail-item:last-child{border-bottom:0!important}
   .episode-registry{min-width:760px!important}
 }
