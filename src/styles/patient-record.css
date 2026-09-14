@@ -429,7 +429,6 @@
   .patient-surveillance-clean>.record-section>.record-section-header{align-items:flex-start!important;flex-wrap:wrap!important}
 }
 
-
 /* Guided surveillance episode refinement. */
 .episode-detail-card .episode-detail-header{min-height:72px!important;padding:14px 18px!important;border-bottom:1px solid #e4eaf0!important;background:#fff!important}
 .episode-detail-card .episode-detail-header .eyebrow{color:#8291a1!important;font-size:9.5px!important;font-weight:800!important;letter-spacing:.06em!important}
@@ -455,4 +454,27 @@
 .new-surveillance-flow-card .progressive-step>i{display:none!important}
 .new-surveillance-flow-card .progressive-guidance{margin:0 0 10px!important;padding:8px 10px!important;border-radius:9px!important}
 .new-surveillance-flow-card .flow-step-panel{border:1px solid #e1e8ee!important;border-radius:11px!important;background:#fff!important;padding:14px!important}
+
+/* Primary clinical path + parallel actions: keep the episode readable as a clinical process. */
+.episode-detail-card .grouped-journey-map{display:flex!important;flex-direction:column!important;gap:10px!important}
+.episode-detail-card .grouped-journey-map .journey-start{align-self:center!important;margin:0 0 2px!important}
+.episode-detail-card .journey-flow-group{display:grid!important;grid-template-columns:190px minmax(0,1fr)!important;gap:12px!important;align-items:center!important;padding:10px!important;border:1px solid #e5ebf0!important;border-radius:10px!important;background:#fff!important}
+.episode-detail-card .journey-conditional-group{background:#fafcfd!important;border-style:dashed!important}
+.episode-detail-card .journey-flow-label{display:flex!important;flex-direction:column!important;gap:3px!important}
+.episode-detail-card .journey-flow-label strong{color:#29475f!important;font-size:10.5px!important;font-weight:800!important}
+.episode-detail-card .journey-flow-label span{color:#8191a1!important;font-size:8.75px!important;line-height:1.35!important}
+.episode-detail-card .journey-primary-flow{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important}
+.episode-detail-card .journey-conditional-flow{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+.episode-detail-card .journey-primary-flow .journey-node,.episode-detail-card .journey-conditional-flow .journey-node{width:100%!important;min-width:0!important}
+.episode-detail-card .journey-node.locked{opacity:.48!important}
+.episode-detail-card .journey-node.due:not(.active){border-color:#efcfb8!important;background:#fffaf6!important}
+
+@media(max-width:1050px){
+  .episode-detail-card .journey-flow-group{grid-template-columns:1fr!important;align-items:start!important}
+  .episode-detail-card .journey-primary-flow{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .episode-detail-card .journey-conditional-flow{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:720px){
+  .episode-detail-card .journey-primary-flow,.episode-detail-card .journey-conditional-flow{grid-template-columns:1fr!important}
+}
 @media(max-width:900px){.new-surveillance-flow-card .progressive-journey-rail{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
