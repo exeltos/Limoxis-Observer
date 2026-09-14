@@ -23,6 +23,7 @@ import {
   saveClinicalEvent,
   saveHaiClassification,
   startIsolation,
+  updateClinicalCaseBasics,
   voidClinicalCase,
 } from './clinicalCloudService'
 import { linkSurveillanceCaseToAdmission,loadSurveillanceAdmissionLinks } from './clinicalAdmissionService'
@@ -78,6 +79,12 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
       department:draft.department||patient.department,departmentEn:draft.departmentEn||patient.departmentEn||patient.department,
       admissionId:draft.admissionId||null,admissionDate:draft.admissionDate||patient.admissionDate,...draft,createdBy:actor?.name,createdById:actor?.id,
     }))
+  }
+  async function updateCase(record,draft){
+    if(!isDemo)return updateClinicalCaseBasics(organizationId,record,draft)
+    const target=demoRecord(clinicalCases[record.id])
+    Object.assign(target,{startedAt:draft.startedAt||target.startedAt,reviewDue:draft.reviewDue??target.reviewDue,room:draft.room??target.room,reason:draft.reason??target.reason,reasonEn:draft.reasonEn??draft.reason??target.reasonEn,suspectedSource:draft.suspectedSource??target.suspectedSource})
+    return touch(target,actor,'surveillanceUpdated',draft.reason||target.reason)
   }
   async function saveAssessment(record,draft){
     if(!isDemo)return saveClinicalAssessment(organizationId,record,draft)
@@ -153,5 +160,5 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     if(!isDemo){await voidClinicalCase(organizationId,record.recordId,reason);return true}
     return deleteClinicalSurveillance(record.id,{actor:actor?.name,actorId:actor?.id,reason})
   }
-  return {loadForPatient,loadCase,createCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,addDevice,removeDevice,saveAmr,reassess,complete,reopen,voidCase}
+  return {loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,addDevice,removeDevice,saveAmr,reassess,complete,reopen,voidCase}
 }

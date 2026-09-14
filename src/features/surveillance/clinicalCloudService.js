@@ -155,6 +155,7 @@ export function mapClinicalCase({caseRow,patient,department,events=[],assessment
     room:start.room||'',
     reason:start.reason||'',
     reasonEn:start.reasonEn||start.reason||'',
+    suspectedSource:start.suspectedSource||'',
     status:caseRow.status,
     completedAt:caseRow.closed_at,
     closeReason:caseRow.close_reason,
@@ -372,6 +373,18 @@ export async function completeClinicalCase(organizationId,caseRecordId,patientRe
   const {error:caseError}=await supabase.from('surveillance_cases').update({status:'closed',closed_at:occurredAt,close_reason:draft.notes||draft.status||null,closed_by:actorId}).eq('organization_id',organizationId).eq('id',caseRecordId)
   if(caseError)throw caseError
   return mapOutcome(outcome)
+}
+
+export async function updateClinicalCaseBasics(organizationId,record,draft){
+  assertCloud()
+  const actorId=await currentUserId()
+  const startedAt=iso(draft.startedAt||record.startedAt||new Date())
+  const {data:caseRow,error}=await supabase.from('surveillance_cases').update({started_at:startedAt,department_id:draft.departmentId||record.departmentId||null}).eq('organization_id',organizationId).eq('id',record.recordId).select('*').single()
+  if(error)throw error
+  const payload={reviewDue:draft.reviewDue??record.reviewDue??null,room:draft.room??record.room??'',reason:draft.reason??record.reason??'',reasonEn:draft.reasonEn??draft.reason??record.reasonEn??record.reason??'',suspectedSource:draft.suspectedSource??record.suspectedSource??'',detail:'updated'}
+  const {error:eventError}=await supabase.from('surveillance_events').insert({organization_id:organizationId,surveillance_case_id:record.recordId,event_type:'surveillance_start',event_status:'completed',occurred_at:startedAt,payload,created_by:actorId})
+  if(eventError)throw eventError
+  return (await hydrateCases([caseRow]))[0]
 }
 
 export async function deleteClinicalCaseForTesting(organizationId, caseRecordId){
