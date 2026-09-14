@@ -20,6 +20,10 @@ function eventPayload(events,type){
   return row?.payload||null
 }
 
+function eventRow(events,type){
+  return (events||[]).find(item=>item.event_type===type)||null
+}
+
 function mapAssessment(row){
   if(!row)return null
   return {id:row.id,date:dateOnly(row.assessed_at),assessmentType:row.assessment_type,classification:row.classification,signsSymptoms:row.signs_symptoms||[],riskFactors:row.risk_factors||[],summary:row.summary||'',notes:row.summary||'',byId:row.created_by}
@@ -127,6 +131,13 @@ export function mapClinicalCase({caseRow,patient,department,events=[],assessment
   const caseReassessments=reassessments.filter(row=>row.surveillance_case_id===caseRow.id)
   const caseOutcomes=outcomes.filter(row=>row.surveillance_case_id===caseRow.id)
   const caseDevices=devices.filter(row=>row.surveillance_case_id===caseRow.id)
+  const isolationRecord=caseIsolations.find(row=>row.status==='active')||latest(caseIsolations)
+  const noIsolationEvent=eventRow(events,'isolation_not_required')
+  const isolationDecision=isolationRecord
+    ? {required:true,decidedAt:isolationRecord.started_at||isolationRecord.created_at||null,by:isolationRecord.created_by||null}
+    : noIsolationEvent
+      ? {required:false,decidedAt:noIsolationEvent.occurred_at||noIsolationEvent.created_at||null,by:noIsolationEvent.created_by||null}
+      : null
   return {
     id:caseRow.id,
     recordId:caseRow.id,
@@ -151,7 +162,8 @@ export function mapClinicalCase({caseRow,patient,department,events=[],assessment
     assessments:caseAssessments.map(mapAssessment),
     haiClassification:mapHai(latest(caseHai)),
     haiClassifications:caseHai.map(mapHai),
-    isolation:mapIsolation(caseIsolations.find(row=>row.status==='active')||latest(caseIsolations)),
+    isolation:mapIsolation(isolationRecord),
+    isolationDecision,
     isolations:caseIsolations.map(mapIsolation),
     therapy:caseTherapies.map(mapTherapy),
     samples:caseSamples.map(row=>mapSample(row,relatedLab)),
