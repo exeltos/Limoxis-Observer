@@ -1,0 +1,193 @@
+/* Patient surveillance workflow preview
+   Keeps the existing Limoxis components and data model, while presenting
+   episodes and samples as a clearer clinical workspace. */
+
+.patient-surveillance-clean{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:14px!important;
+  min-height:0!important;
+  align-content:start!important;
+}
+.patient-surveillance-clean .surveillance-episodes-section{order:1!important}
+.patient-surveillance-clean .admission-samples-section{order:2!important}
+.patient-surveillance-clean>.record-section{
+  border:1px solid #dbe7f2!important;
+  border-radius:14px!important;
+  background:#fff!important;
+  box-shadow:0 4px 16px rgba(15,43,72,.055)!important;
+  overflow:hidden!important;
+  min-height:0!important;
+}
+.patient-surveillance-clean>.record-section>.record-section-header{
+  min-height:66px!important;
+  padding:14px 16px!important;
+  border-bottom:1px solid #e8f0f7!important;
+  background:linear-gradient(180deg,#fff 0%,#fbfdff 100%)!important;
+  align-items:center!important;
+}
+.patient-surveillance-clean>.record-section>.record-section-header h3{
+  margin:0!important;
+  font-size:16px!important;
+  font-weight:750!important;
+  color:#173956!important;
+}
+.patient-surveillance-clean>.record-section>.record-section-header p{
+  margin:4px 0 0!important;
+  max-width:820px!important;
+  font-size:12.5px!important;
+  line-height:1.45!important;
+  color:#667f95!important;
+}
+.patient-surveillance-clean .record-table-wrap{
+  max-height:300px!important;
+  overflow:auto!important;
+  border:0!important;
+  border-radius:0!important;
+}
+.patient-surveillance-clean .record-table{
+  margin:0!important;
+  min-width:760px!important;
+}
+.patient-surveillance-clean .record-table thead th{
+  position:sticky!important;
+  top:0!important;
+  z-index:2!important;
+  background:#f7fbff!important;
+  color:#536f87!important;
+  font-size:11.5px!important;
+  text-transform:none!important;
+  letter-spacing:0!important;
+  border-bottom:1px solid #dfeaf4!important;
+}
+.patient-surveillance-clean .record-table tbody tr{
+  transition:background .14s ease,box-shadow .14s ease!important;
+}
+.patient-surveillance-clean .record-table tbody tr.clickable-row:hover{
+  background:#f4f9ff!important;
+}
+.patient-surveillance-clean .record-table tbody tr.is-selected{
+  background:#edf6ff!important;
+  box-shadow:inset 3px 0 0 #2284d6!important;
+}
+.patient-surveillance-clean .record-table td{
+  vertical-align:middle!important;
+  padding-top:10px!important;
+  padding-bottom:10px!important;
+}
+.patient-surveillance-clean .record-table td small{
+  display:block!important;
+  margin-top:2px!important;
+  color:#8296a8!important;
+  font-size:10.5px!important;
+}
+.patient-surveillance-clean .admission-samples-section .record-section-header{
+  background:linear-gradient(180deg,#fbfeff 0%,#f8fbfd 100%)!important;
+}
+.patient-surveillance-clean .admission-samples-section::before,
+.patient-surveillance-clean .surveillance-episodes-section::before{
+  display:block!important;
+  height:3px!important;
+  content:""!important;
+}
+.patient-surveillance-clean .surveillance-episodes-section::before{background:#2c87d3!important}
+.patient-surveillance-clean .admission-samples-section::before{background:#6b9dbe!important}
+
+/* Episode details become a focused clinical workspace rather than a modal-looking wizard. */
+.episode-overlay.new-surveillance-flow-overlay{
+  background:rgba(9,34,56,.28)!important;
+  backdrop-filter:blur(2px)!important;
+  padding:18px!important;
+}
+.episode-detail-card.new-surveillance-flow-card{
+  width:min(1240px,calc(100vw - 36px))!important;
+  max-width:1240px!important;
+  height:min(820px,calc(100vh - 36px))!important;
+  max-height:calc(100vh - 36px)!important;
+  border-radius:16px!important;
+  border:1px solid #d7e5f0!important;
+  box-shadow:0 24px 70px rgba(10,34,55,.22)!important;
+  overflow:hidden!important;
+}
+.episode-detail-header{
+  padding:14px 18px!important;
+  border-bottom:1px solid #dfeaf4!important;
+  background:#fff!important;
+}
+.episode-detail-header h2{
+  margin:2px 0 3px!important;
+  font-size:19px!important;
+  color:#173a57!important;
+}
+.episode-detail-header p{margin:0!important;color:#6a8195!important;font-size:12px!important}
+.episode-detail-scroll.progressive-surveillance-scroll{
+  padding:14px!important;
+  background:#f7fafc!important;
+  overflow:auto!important;
+}
+.patient-surveillance-clean .button-row,
+.episode-detail-actions{
+  gap:8px!important;
+}
+
+/* Stronger evidence/result blocks for ECDC-oriented review without changing logic. */
+.episode-detail-card .evidence-box{
+  border:1px solid #d9e7f2!important;
+  border-left:4px solid #3288cf!important;
+  border-radius:10px!important;
+  background:#f8fbfe!important;
+  padding:12px 14px!important;
+}
+.episode-detail-card .evidence-box strong{
+  color:#173e5d!important;
+}
+.episode-detail-card .clinical-panel{
+  border:1px solid #dde8f1!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+  background:#fff!important;
+}
+.episode-detail-card .clinical-data-heading,
+.episode-detail-card .journey-heading{
+  margin-bottom:10px!important;
+}
+
+/* Keep the patient screen stable; only inner registries scroll. */
+.patient-record-shell .patient-surveillance-clean{
+  overflow:hidden!important;
+}
+.patient-record-shell .patient-surveillance-clean>.record-section{
+  flex:none!important;
+}
+
+@media (min-width:1180px){
+  .patient-surveillance-clean{
+    grid-template-columns:minmax(0,1.35fr) minmax(360px,.65fr)!important;
+  }
+  .patient-surveillance-clean .surveillance-episodes-section{
+    grid-column:1!important;
+    grid-row:1!important;
+  }
+  .patient-surveillance-clean .admission-samples-section{
+    grid-column:2!important;
+    grid-row:1!important;
+  }
+  .patient-surveillance-clean .surveillance-episodes-section .record-table-wrap,
+  .patient-surveillance-clean .admission-samples-section .record-table-wrap{
+    max-height:360px!important;
+  }
+}
+
+@media (max-width:860px){
+  .patient-surveillance-clean>.record-section>.record-section-header{
+    align-items:flex-start!important;
+    gap:10px!important;
+  }
+  .episode-overlay.new-surveillance-flow-overlay{padding:8px!important}
+  .episode-detail-card.new-surveillance-flow-card{
+    width:calc(100vw - 16px)!important;
+    height:calc(100vh - 16px)!important;
+    max-height:calc(100vh - 16px)!important;
+    border-radius:12px!important;
+  }
+}
