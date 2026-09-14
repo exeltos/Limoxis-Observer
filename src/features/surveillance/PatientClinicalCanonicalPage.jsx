@@ -1,10 +1,11 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Activity,AlertTriangle,BedDouble,FileClock,FolderOpen,ListTree,Microscope,Pill,PlayCircle,RefreshCcw,ShieldCheck,UserRound,X } from 'lucide-react'
+import { Activity,AlertTriangle,BedDouble,Download,FileClock,FolderOpen,ListTree,Microscope,Pill,PlayCircle,Printer,RefreshCcw,ShieldCheck,Trash2,UserRound,X } from 'lucide-react'
 import { useLocation,useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { Button } from '../../design-system/Button'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -206,7 +207,9 @@ function AdmissionsPanel({rows,episodes,patient,tenantId,isDemo,departments,canE
 }
 
 function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,canCreate,canCreateSample,repository,onReload,t,language,fmtDate,fmtDateTime,permissions}){
+  const {notify}=useFeedback()
   const [sampleOpen,setSampleOpen]=useState(false),[samplePrompt,setSamplePrompt]=useState(null),[detailId,setDetailId]=useState('')
+  const [deleteOpen,setDeleteOpen]=useState(false),[deleteReason,setDeleteReason]=useState('')
   const detailRecord=episodes.find(ep=>String(ep.id)===String(detailId))||null
   async function saveSample(draft){
     if(!onCreateSample)return
@@ -215,18 +218,36 @@ function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate
     if(created)setSamplePrompt(created)
   }
   function openEpisode(id){onSelect?.(id);setDetailId(id)}
-  if(detailRecord)return <div className="episode-overlay new-surveillance-flow-overlay" role="dialog" aria-modal="true">
-    <section className="episode-detail-card new-surveillance-flow-card">
-      <header className="episode-detail-header">
-        <div><span className="eyebrow">{t('surveillance')}</span><h2>{language==='el'?'Επεισόδιο επιτήρησης':'Surveillance episode'}</h2><p>{detailRecord.id} · {fmtDate(detailRecord.startedAt)}</p></div>
-        <div className="episode-detail-actions"><span className={`status-badge ${detailRecord.status==='active'?'active':''}`}>{t(detailRecord.status)}</span><button title={t('close')} onClick={()=>setDetailId('')}><X size={16}/></button></div>
-      </header>
-      <div className="episode-detail-scroll progressive-surveillance-scroll">
-        <CanonicalJourney record={detailRecord} repository={repository} onReload={()=>onReload(detailRecord.id)} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} permissions={permissions}/>
+async function removeEpisode(){
+  if(!detailRecord||!deleteReason.trim())return
+  try{
+    await repository.voidCase(detailRecord,deleteReason.trim())
+    setDeleteOpen(false);setDeleteReason('');setDetailId('')
+    await onReload()
+    notify(t('clinicalRecords.surveillanceDeleted'),'success')
+  }catch(error){notify(error?.message||t('actionFailed'),'danger')}
+}
+if(detailRecord)return <div className="episode-overlay new-surveillance-flow-overlay" role="dialog" aria-modal="true">
+  <section className="episode-detail-card new-surveillance-flow-card">
+    <header className="episode-detail-header">
+      <div><span className="eyebrow">{t('surveillance')}</span><h2>{language==='el'?'Επεισόδιο επιτήρησης':'Surveillance episode'}</h2><p>{fmtDate(detailRecord.startedAt)} · {language==='el'?'Κλινική παρακολούθηση':'Clinical follow-up'}</p></div>
+      <div className="episode-detail-actions">
+        <span className={`status-badge ${detailRecord.status==='active'?'active':''}`}>{t(detailRecord.status)}</span>
+        <OverflowMenu label={language==='el'?'Ενέργειες επιτήρησης':'Surveillance actions'} items={[
+          {id:'print',label:language==='el'?'Εκτύπωση':'Print',icon:Printer,onClick:()=>window.print()},
+          {id:'download',label:language==='el'?'Λήψη δεδομένων':'Download data',icon:Download,onClick:()=>downloadRecordJson(detailRecord,{filename:`surveillance-${detailRecord.id}`})},
+          permissions.canDelete?{id:'delete',label:language==='el'?'Διαγραφή επιτήρησης':'Delete surveillance',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>{setDeleteReason('');setDeleteOpen(true)}}:null,
+        ].filter(Boolean)}/>
+        <button className="episode-close" title={t('close')} onClick={()=>setDetailId('')}><X size={16}/></button>
       </div>
-    </section>
-  </div>
-  return <div className="workspace-column workspace-fill patient-surveillance-clean">
+    </header>
+    <div className="episode-detail-scroll progressive-surveillance-scroll">
+      <CanonicalJourney record={detailRecord} repository={repository} onReload={()=>onReload(detailRecord.id)} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} permissions={permissions}/>
+    </div>
+  </section>
+  {deleteOpen&&<ReasonDialog title={language==='el'?'Διαγραφή επιτήρησης':'Delete surveillance'} t={t} reason={deleteReason} setReason={setDeleteReason} onClose={()=>{setDeleteOpen(false);setDeleteReason('')}} onSave={removeEpisode}/>} 
+</div>
+return <div className="workspace-column workspace-fill patient-surveillance-clean">
     <section className="record-section admission-samples-section">
       <div className="record-section-header"><div><h3>{language==='el'?'Δείγματα νοσηλείας':'Admission samples'}</h3><p>{language==='el'?'Καταχωρήστε πρώτα το δείγμα. Η επιτήρηση μπορεί να ξεκινήσει τώρα ή αργότερα, χωρίς να χάνεται το δείγμα.':'Record the sample first. Surveillance can start now or later without losing the sample.'}</p></div>{canCreateSample&&onCreateSample&&<Button onClick={()=>setSampleOpen(true)}>+ {language==='el'?'Νέο δείγμα':'New sample'}</Button>}</div>
       {samples.length?<div className="record-table-wrap admission-samples-table-wrap"><table className="record-table admission-samples-table"><thead><tr><th>{language==='el'?'Ημερομηνία':'Date'}</th><th>{t('sampleType')}</th><th>{t('status')}</th><th>{t('organism')}</th><th>AMR</th><th>{t('surveillance')}</th></tr></thead><tbody>{samples.map(sample=><tr key={sample.id}><td>{fmtDate(sample.collectedAt||sample.requestedAt)}</td><td><strong>{t(sample.type)||sample.type}</strong><small>{sample.id}</small></td><td>{t(sample.result||sample.status||'pending')}</td><td>{sample.organism||'—'}</td><td>{sample.resistance||'—'}</td><td>{sample.surveillanceCase?<span className="status-badge active">{language==='el'?'Συνδεδεμένο':'Linked'}</span>:(canCreate?<Button variant="ghost" onClick={()=>onCreateFromSample?.(sample)}><PlayCircle size={15}/>{language==='el'?'Έναρξη επιτήρησης':'Start surveillance'}</Button>:'—')}</td></tr>)}</tbody></table></div>:<div className="inline-empty">{language==='el'?'Δεν υπάρχουν ακόμη δείγματα σε αυτή τη νοσηλεία.':'No samples have been recorded for this admission yet.'}</div>}
@@ -247,8 +268,8 @@ function CanonicalJourney({record,repository,onReload,t,fmtDate,fmtDateTime,perm
   const resultForAmr=microbiology.find(x=>x.organism&&!x.amr)||microbiology.find(x=>x.organism)
   async function run(work,message){try{await work();setDialog(null);setReason('');await onReload();notify(message||t('actionCompleted'),'success')}catch(error){notify(error?.message||t('actionFailed'),'danger')}}
   if(!active)return <div className="clinical-data-hub"><div className="clinical-data-heading"><div><span className="eyebrow">{t('surveillance')}</span><h3>{t('clinicalRecords.completedSurveillance')}</h3></div>{permissions.canReopen&&<Button variant="secondary" onClick={()=>setDialog('reopen')}><RefreshCcw size={15}/>{t('clinicalRecords.reopenSurveillance')}</Button>}</div><CompletedReport record={record} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime}/>{dialog==='reopen'&&<ReasonDialog title={t('clinicalRecords.reopenSurveillance')} t={t} reason={reason} setReason={setReason} onClose={()=>setDialog(null)} onSave={()=>run(()=>repository.reopen(record,reason),t('clinicalRecords.surveillanceUpdated'))}/>}</div>
-  return <div className="clinical-data-hub"><div className="journey-heading"><div><span className="eyebrow">{t('surveillanceJourney')}</span><h3>{record.id}</h3><p>{t('clinicalRecords.strictActiveJourneyHelp')}</p></div>{permissions.canDelete&&<Button variant="danger" onClick={()=>setDialog('void')}>{t('delete')}</Button>}</div><SurveillanceJourneyGuidance record={record} t={t} canAssess={permissions.canAssess} canLab={permissions.canLab} canIsolation={permissions.canIsolation} canTherapy={permissions.canTherapy} canReassess={permissions.canReassess} onSelect={setStage}/><SurveillanceJourneyMap record={record} t={t} fmtDate={fmtDate} activeStage={stage} onSelect={setStage}/><div className="clinical-data-grid">
-    {stage==='assessment'&&<StagePanel icon={ShieldCheck} title={t('clinicalAssessment')} action={permissions.canAssess?<Button variant="secondary" onClick={()=>setDialog('assessment')}>{record.assessment?t('edit'):t('add')}</Button>:null}>{record.assessment?<><div className="detail-grid"><Detail label={t('assessmentDate')} value={fmtDate(record.assessment.date)}/><Detail label={t('classification')} value={t(record.assessment.classification||'undetermined')}/></div><p className="clinical-summary">{record.assessment.summary||record.assessment.notes||'—'}</p><TagList title={t('signsSymptoms')} items={record.assessment.signsSymptoms||record.assessment.symptoms}/><TagList title={t('riskFactors')} items={record.assessment.riskFactors}/></>:<div className="inline-empty">{t('clinicalRecords.assessmentPending')}</div>}</StagePanel>}
+  return <div className="clinical-data-hub"><div className="journey-heading episode-journey-heading"><div><span className="eyebrow">{t('surveillanceJourney')}</span><h3 className="journey-case-id">{record.id}</h3><p>{t('clinicalRecords.strictActiveJourneyHelp')}</p></div></div><SurveillanceJourneyGuidance record={record} t={t} canAssess={permissions.canAssess} canLab={permissions.canLab} canIsolation={permissions.canIsolation} canTherapy={permissions.canTherapy} canReassess={permissions.canReassess} onSelect={setStage}/><SurveillanceJourneyMap record={record} t={t} fmtDate={fmtDate} activeStage={stage} onSelect={setStage}/><div className="clinical-data-grid">
+    {stage==='assessment'&&<StagePanel icon={ShieldCheck} title={t('clinicalAssessment')} action={permissions.canAssess?<Button variant="secondary" onClick={()=>setDialog('assessment')}>{record.assessment?t('edit'):`+ ${t('clinicalAssessment')}`}</Button>:null}>{record.assessment?<><div className="detail-grid"><Detail label={t('assessmentDate')} value={fmtDate(record.assessment.date)}/><Detail label={t('classification')} value={t(record.assessment.classification||'undetermined')}/></div><p className="clinical-summary">{record.assessment.summary||record.assessment.notes||'—'}</p><TagList title={t('signsSymptoms')} items={record.assessment.signsSymptoms||record.assessment.symptoms}/><TagList title={t('riskFactors')} items={record.assessment.riskFactors}/></>:<div className="inline-empty">{t('clinicalRecords.assessmentPending')}</div>}</StagePanel>}
     {stage==='samples'&&<StagePanel icon={Microscope} title={t('samples')} action={permissions.canLab?<Button variant="secondary" onClick={()=>setDialog('sample')}>+ {t('add')}</Button>:null}>{record.samples?.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('sampleType')}</th><th>{t('status')}</th><th>{t('organism')}</th><th>AMR</th></tr></thead><tbody>{record.samples.map(x=><tr key={x.id}><td>{t(x.type)||x.type}</td><td>{t(x.result||x.status||'pending')}</td><td>{x.organism||'—'}</td><td>{x.resistance||'—'}</td></tr>)}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noSamplesRecorded')}</div>}</StagePanel>}
     {stage==='hai'&&<StagePanel icon={AlertTriangle} title={t('haiAmr')} action={<div className="button-row">{permissions.canAssess&&<Button variant="secondary" onClick={()=>setDialog('hai')}>+ HAI</Button>}{permissions.canClassifyResistance&&resultForAmr&&<Button variant="secondary" onClick={()=>setDialog('amr')}>+ AMR</Button>}</div>}>{record.haiClassification?<div className="evidence-box"><strong>{record.haiClassification.type||'—'} · {t(record.haiClassification.status)}</strong><span>{record.haiClassification.rationale||record.haiClassification.definitionSet||'—'}</span></div>:<div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>}{record.resistance&&<div className="evidence-box"><strong>{record.resistance}</strong></div>}</StagePanel>}
     {stage==='therapy'&&<StagePanel icon={Pill} title={t('therapy')} action={permissions.canTherapy?<Button variant="secondary" onClick={()=>setDialog('therapy')}>+ {t('add')}</Button>:null}>{record.therapy?.length?<div className="record-table-wrap"><table className="record-table"><tbody>{record.therapy.map(x=><tr key={x.id}><td><strong>{x.antimicrobial}</strong></td><td>{x.dose||'—'} · {x.route||'—'}</td><td>{fmtDate(x.startedAt)}</td><td>{t(x.status||'active')}</td></tr>)}</tbody></table></div>:<div className="inline-empty">{t('clinicalRecords.noTherapyRecorded')}</div>}</StagePanel>}
@@ -265,7 +286,6 @@ function CanonicalJourney({record,repository,onReload,t,fmtDate,fmtDateTime,perm
   {dialog==='endIsolation'&&<EndDialog title={t('isolation')} t={t} onClose={()=>setDialog(null)} onSave={draft=>run(()=>repository.finishIsolation(record,draft),t('actionCompleted'))}/>} 
   {dialog==='reassessment'&&<ReassessmentDialog t={t} onClose={()=>setDialog(null)} onSave={draft=>run(()=>repository.reassess(record,draft),t('actionCompleted'))}/>} 
   {dialog==='outcome'&&<OutcomeDialog t={t} onClose={()=>setDialog(null)} onSave={draft=>run(()=>repository.complete(record,draft),t('clinicalRecords.outcomeSaved'))}/>} 
-  {dialog==='void'&&<ReasonDialog title={t('clinicalRecords.deleteSurveillance')} t={t} reason={reason} setReason={setReason} onClose={()=>setDialog(null)} onSave={()=>run(()=>repository.voidCase(record,reason),t('clinicalRecords.surveillanceDeleted'))}/>} 
   </div>
 }
 

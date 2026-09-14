@@ -428,3 +428,31 @@
   .patient-surveillance-clean{padding:10px!important}
   .patient-surveillance-clean>.record-section>.record-section-header{align-items:flex-start!important;flex-wrap:wrap!important}
 }
+
+
+/* Guided surveillance episode refinement. */
+.episode-detail-card .episode-detail-header{min-height:72px!important;padding:14px 18px!important;border-bottom:1px solid #e4eaf0!important;background:#fff!important}
+.episode-detail-card .episode-detail-header .eyebrow{color:#8291a1!important;font-size:9.5px!important;font-weight:800!important;letter-spacing:.06em!important}
+.episode-detail-card .episode-detail-header h2{margin:2px 0 0!important;font-size:18px!important;color:#17334c!important}
+.episode-detail-card .episode-detail-header p{margin:3px 0 0!important;color:#7a8a9a!important;font-size:10.5px!important}
+.episode-detail-actions{display:flex!important;align-items:center!important;gap:8px!important}
+.episode-detail-actions .episode-close{width:34px!important;height:34px!important;border:1px solid #dbe4eb!important;border-radius:9px!important;background:#fff!important;color:#50677d!important;display:grid!important;place-items:center!important}
+.episode-detail-card .clinical-data-hub{padding:14px 16px 18px!important;gap:10px!important}
+.episode-detail-card .episode-journey-heading{margin:0!important;padding:0 0 8px!important;border-bottom:1px solid #edf1f4!important}
+.episode-detail-card .journey-guidance{margin:0!important;padding:7px 9px!important;border-radius:9px!important}
+.episode-detail-card .journey-guidance-items{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))!important}
+.episode-detail-card .guidance-cue{min-height:44px!important;padding:7px 9px!important}
+.episode-detail-card .journey-map{margin:0!important;padding:10px!important;border:1px solid #e5ebf0!important;border-radius:11px!important;background:#fbfcfd!important}
+.episode-detail-card .clinical-data-grid>.clinical-panel{padding:12px 14px!important}
+.episode-detail-card .clinical-data-grid>.clinical-panel>.record-section-header{align-items:center!important;margin-bottom:8px!important}
+.episode-detail-card .clinical-data-grid>.clinical-panel>.record-section-header .btn{min-height:32px!important;padding:5px 10px!important;font-size:10px!important}
+.new-surveillance-flow-card .progressive-journey-header{margin:0 0 8px!important}
+.new-surveillance-flow-card .progressive-journey-rail{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin:0 0 10px!important}
+.new-surveillance-flow-card .progressive-step{min-height:62px!important;padding:9px 10px!important;border:1px solid #e1e8ee!important;border-radius:10px!important;background:#fff!important;text-align:left!important}
+.new-surveillance-flow-card .progressive-step.current{border-color:#73b8d7!important;background:#eef8fc!important;box-shadow:inset 0 0 0 1px #c7e4f1!important}
+.new-surveillance-flow-card .progressive-step.complete{background:#f3faf6!important;border-color:#d2e9db!important}
+.new-surveillance-flow-card .progressive-step.locked{opacity:.55!important;background:#fafbfc!important}
+.new-surveillance-flow-card .progressive-step>i{display:none!important}
+.new-surveillance-flow-card .progressive-guidance{margin:0 0 10px!important;padding:8px 10px!important;border-radius:9px!important}
+.new-surveillance-flow-card .flow-step-panel{border:1px solid #e1e8ee!important;border-radius:11px!important;background:#fff!important;padding:14px!important}
+@media(max-width:900px){.new-surveillance-flow-card .progressive-journey-rail{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
