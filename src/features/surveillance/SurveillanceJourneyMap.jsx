@@ -1,4 +1,4 @@
-import { Activity,AlertTriangle,BedDouble,CheckCircle2,ChevronRight,Microscope,RefreshCcw,ShieldCheck,Syringe } from 'lucide-react'
+import { Activity,AlertTriangle,BedDouble,CheckCircle2,Microscope,RefreshCcw,ShieldCheck,Syringe } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 const icons={assessment:ShieldCheck,samples:Microscope,isolation:BedDouble,therapy:Syringe,hai:AlertTriangle,reassessment:RefreshCcw,outcome:Activity}
@@ -8,15 +8,7 @@ export function buildSurveillanceJourneyStages(record,t,fmtDate){
   const reassessments=record?.reassessments||[],therapy=record?.therapy||[]
   const isolationDecided=Boolean(record?.isolation)||(record?.isolationDecision?.required===false)
   const assessed=Boolean(record?.assessment)
-  const unlocked={
-    assessment:true,
-    samples:assessed,
-    isolation:assessed,
-    therapy:assessed,
-    hai:validatedSamples.length>0,
-    reassessment:assessed,
-    outcome:reassessments.length>0,
-  }
+  const unlocked={assessment:true,samples:assessed,isolation:assessed,therapy:assessed,hai:validatedSamples.length>0,reassessment:assessed,outcome:reassessments.length>0}
   return [
     {id:'assessment',label:t('clinicalAssessment'),status:record?.assessment?'complete':'pending',meta:record?.assessment?fmtDate(record.assessment.date||record.startedAt):t('pending')},
     {id:'samples',label:t('sampleAndLaboratory'),status:samples.length?(validatedSamples.length?'complete':'waiting'):'pending',meta:samples.length?(validatedSamples.length?`${samples.length} · ${validatedSamples.length} ${t('clinicalRecords.validated').toLowerCase()}`:`${samples.length} · ${t('waitingForLaboratory')}`):t('clinicalRecords.notStarted')},
@@ -33,34 +25,33 @@ export function SurveillanceJourneyMap({record,t,fmtDate,activeStage,onSelect}){
   const stages=buildSurveillanceJourneyStages(record,t,fmtDate)
   const byId=Object.fromEntries(stages.map(stage=>[stage.id,stage]))
   const primary=['assessment','samples','reassessment','outcome'].map(id=>byId[id])
-  const conditional=['isolation','therapy','hai'].map(id=>byId[id])
-  return <div className="journey-map strict-journey-map grouped-journey-map" aria-label={t('surveillanceJourney')}>
-    <button type="button" className="journey-start journey-start-button" disabled><CheckCircle2 size={16}/><span>{t('surveillanceStarted')}</span><strong>{fmtDate(record.startedAt)}</strong></button>
-    <div className="journey-flow-group journey-primary-group">
-      <div className="journey-flow-label"><strong>{language==='el'?'Κύρια κλινική πορεία':'Primary clinical path'}</strong><span>{language==='el'?'Αξιολόγηση, τεκμηρίωση και επανεκτίμηση έως την έκβαση.':'Assessment, documentation and reassessment through outcome.'}</span></div>
-      <div className="journey-nodes journey-primary-flow">{primary.map(stage=><Stage key={stage.id} stage={stage} active={activeStage===stage.id} onSelect={onSelect}/>)}</div>
-    </div>
-    <div className="journey-flow-group journey-conditional-group">
-      <div className="journey-flow-label"><strong>{language==='el'?'Παράλληλες κλινικές ενέργειες':'Parallel clinical actions'}</strong><span>{language==='el'?'Ενεργοποιούνται όταν χρειάζονται και δεν μπλοκάρουν την κύρια πορεία.':'Used when clinically indicated without blocking the main path.'}</span></div>
-      <div className="journey-nodes journey-conditional-flow">{conditional.map(stage=><Stage key={stage.id} stage={stage} active={activeStage===stage.id} onSelect={onSelect}/>)}</div>
-    </div>
+  const clinicalActions=['isolation','therapy','hai'].map(id=>byId[id])
+  return <div className="journey-map strict-journey-map" aria-label={t('surveillanceJourney')}>
+    <div className="progressive-journey-header"><div><span className="eyebrow">{language==='el'?'Πορεία επεισοδίου':'Episode progress'}</span><p>{language==='el'?'Δουλέψτε το επόμενο απαραίτητο βήμα. Οι κλινικές ενέργειες μπορούν να γίνουν παράλληλα όταν χρειάζεται.':'Work on the next required step. Clinical actions can be recorded in parallel when needed.'}</p></div><span className="journey-start"><CheckCircle2 size={15}/>{fmtDate(record.startedAt)}</span></div>
+    <div className="progressive-journey-rail">{primary.map((stage,index)=><ProgressStage key={stage.id} stage={stage} number={index+1} active={activeStage===stage.id} onSelect={onSelect}/>)}</div>
+    <div className="parallel-actions-strip"><span>{language==='el'?'Κλινικές ενέργειες':'Clinical actions'}</span><div className="button-row">{clinicalActions.map(stage=><ActionStage key={stage.id} stage={stage} active={activeStage===stage.id} onSelect={onSelect}/>)}</div></div>
   </div>
 }
 
 export function SurveillanceJourneyGuidance({record,t,canAssess,canLab,canIsolation,canTherapy,canReassess,onSelect}){
   const cues=[],samples=record?.samples||[],pendingSamples=samples.filter(sample=>!sample.organism)
-  if(canAssess&&!record?.assessment)cues.push({id:'assessment',tone:'warning',title:t('clinicalRecords.initialAssessmentRequired'),text:t('clinicalRecords.initialAssessmentRequiredHint')})
-  if(canLab&&pendingSamples.length)cues.push({id:'samples',tone:'info',title:t('clinicalRecords.pendingLaboratoryResult'),text:t('clinicalRecords.pendingLaboratoryResultHint')})
-  if(canIsolation&&record?.assessment&&!record?.isolation&&!record?.isolationDecision)cues.push({id:'isolation',tone:'neutral',title:t('isolation'),text:t('clinicalRecords.reviewIsolationNeedHint')})
-  if(canTherapy&&record?.assessment&&!record?.therapy?.length)cues.push({id:'therapy',tone:'neutral',title:t('therapy'),text:t('clinicalRecords.reviewAntimicrobialTherapyHint')})
-  if(canAssess&&record?.haiClassification&&!record.haiClassification.criteriaMet)cues.push({id:'hai',tone:'warning',title:t('clinicalRecords.haiCriteriaNeedReview'),text:t('clinicalRecords.haiCriteriaNeedReviewHint')})
-  if(canReassess&&!record?.reassessments?.length)cues.push({id:'reassessment',tone:'due',title:t('clinicalRecords.reassessmentRequired'),text:t('clinicalRecords.reassessmentRequiredHint')})
-  if(canReassess&&record?.reviewDue)cues.push({id:'reassessment',tone:'neutral',title:t('nextReview'),text:`${t('clinicalRecords.reassessmentPlanned')}: ${record.reviewDue}`})
+  if(canAssess&&!record?.assessment)cues.push({id:'assessment',tone:'warning',title:t('clinicalRecords.initialAssessmentRequired')})
+  if(canLab&&pendingSamples.length)cues.push({id:'samples',tone:'info',title:t('clinicalRecords.pendingLaboratoryResult')})
+  if(canIsolation&&record?.assessment&&!record?.isolation&&!record?.isolationDecision)cues.push({id:'isolation',tone:'neutral',title:t('isolation')})
+  if(canTherapy&&record?.assessment&&!record?.therapy?.length)cues.push({id:'therapy',tone:'neutral',title:t('therapy')})
+  if(canAssess&&record?.haiClassification&&!record.haiClassification.criteriaMet)cues.push({id:'hai',tone:'warning',title:t('clinicalRecords.haiCriteriaNeedReview')})
+  if(canReassess&&!record?.reassessments?.length)cues.push({id:'reassessment',tone:'due',title:t('clinicalRecords.reassessmentRequired')})
+  if(canReassess&&record?.reviewDue)cues.push({id:'reassessment',tone:'neutral',title:t('nextReview')})
   if(!cues.length)return <div className="journey-guidance clear"><CheckCircle2 size={16}/><span>{t('clinicalRecords.noImmediateIntervention')}</span></div>
-  return <div className="journey-guidance compact-guidance"><div className="journey-guidance-title"><AlertTriangle size={15}/><strong>{t('clinicalRecords.attentionNeeded')}</strong><span>{cues.length}</span></div><div className="journey-guidance-items">{cues.map((cue,index)=><button type="button" key={`${cue.id}-${index}`} className={`guidance-cue ${cue.tone}`} onClick={()=>onSelect?.(cue.id)}><strong>{cue.title}</strong><small>{cue.text}</small><ChevronRight size={14}/></button>)}</div></div>
+  return <div className="journey-guidance compact-guidance"><div className="journey-guidance-title"><AlertTriangle size={15}/><strong>{t('clinicalRecords.attentionNeeded')}</strong><span>{cues.length}</span></div><div className="journey-guidance-items">{cues.map((cue,index)=><button type="button" key={`${cue.id}-${index}`} className={`guidance-cue ${cue.tone}`} onClick={()=>onSelect?.(cue.id)}><strong>{cue.title}</strong></button>)}</div></div>
 }
 
-function Stage({stage,active,onSelect}){
+function ProgressStage({stage,number,active,onSelect}){
   const Icon=icons[stage.id]||Activity
-  return <button type="button" className={`journey-node ${stage.status} ${active?'active':''} ${stage.locked?'locked':''}`.trim()} disabled={stage.locked} aria-current={active?'step':undefined} onClick={()=>onSelect?.(stage.id)}><span className="journey-node-icon"><Icon size={17}/></span><span className="journey-node-copy"><strong>{stage.label}</strong><small>{stage.meta}</small></span></button>
+  return <button type="button" className={`progressive-step ${active?'current':''} ${stage.status==='complete'?'complete':''} ${stage.locked?'locked':''}`.trim()} disabled={stage.locked} aria-current={active?'step':undefined} onClick={()=>onSelect?.(stage.id)}><i>{number}</i><span className="journey-node-icon"><Icon size={16}/></span><span className="journey-node-copy"><strong>{stage.label}</strong><small>{stage.meta}</small></span></button>
+}
+
+function ActionStage({stage,active,onSelect}){
+  const Icon=icons[stage.id]||Activity
+  return <button type="button" className={`btn btn-secondary ${active?'active':''}`.trim()} disabled={stage.locked} onClick={()=>onSelect?.(stage.id)}><Icon size={15}/><span>{stage.label}</span></button>
 }
