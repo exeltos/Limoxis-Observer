@@ -25,6 +25,7 @@ import {
   startIsolation,
   voidClinicalCase,
 } from './clinicalCloudService'
+import { linkSurveillanceCaseToAdmission,loadSurveillanceAdmissionLinks } from './clinicalAdmissionService'
 
 const now=()=>new Date().toISOString()
 const clone=value=>JSON.parse(JSON.stringify(value))
@@ -47,23 +48,35 @@ function touch(record,actor,type,detail){
 }
 
 export function createClinicalRepository({isDemo,organizationId,actor}){
+  async function withAdmissionLinks(rows){
+    if(isDemo||!rows?.length)return rows||[]
+    const links=await loadSurveillanceAdmissionLinks(organizationId,rows.map(row=>row.recordId||row.id))
+    return rows.map(row=>({...row,admissionId:links.get(row.recordId||row.id)||null}))
+  }
   async function loadForPatient(patient){
     if(isDemo)return clone(findCasesByPatient(patient?.id||patient?.patientId||''))
     if(!organizationId||!patient?.recordId)return []
-    return loadClinicalCasesForPatient(organizationId,patient.recordId)
+    return withAdmissionLinks(await loadClinicalCasesForPatient(organizationId,patient.recordId))
   }
   async function loadCase(caseId){
     if(isDemo)return clone(getClinicalCase(caseId))
     if(!organizationId||!caseId)return null
-    const rows=await loadClinicalCases(organizationId)
+    const rows=await withAdmissionLinks(await loadClinicalCases(organizationId))
     return rows.find(row=>String(row.id)===String(caseId))||null
   }
   async function createCase(patient,draft){
-    if(!isDemo)return createClinicalCase(organizationId,patient.recordId,draft)
+    if(!isDemo){
+      const created=await createClinicalCase(organizationId,patient.recordId,draft)
+      if(draft.admissionId){
+        await linkSurveillanceCaseToAdmission(organizationId,created.recordId||created.id,draft.admissionId)
+        return {...created,admissionId:draft.admissionId,admissionDate:draft.admissionDate||created.admissionDate}
+      }
+      return created
+    }
     return clone(createClinicalSurveillance({
       patientId:patient.id,patient:patient.name,patientEn:patient.nameEn||patient.name,dateOfBirth:patient.dateOfBirth,
       department:draft.department||patient.department,departmentEn:draft.departmentEn||patient.departmentEn||patient.department,
-      admissionDate:patient.admissionDate,...draft,createdBy:actor?.name,createdById:actor?.id,
+      admissionId:draft.admissionId||null,admissionDate:draft.admissionDate||patient.admissionDate,...draft,createdBy:actor?.name,createdById:actor?.id,
     }))
   }
   async function saveAssessment(record,draft){
