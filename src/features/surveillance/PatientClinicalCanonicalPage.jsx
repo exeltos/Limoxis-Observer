@@ -19,6 +19,7 @@ import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequ
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { can,CAPABILITIES } from '../../core/permissions/roles'
 import { createAdmission,loadAdmissions,loadPatients } from '../patients/patientsService'
+import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { loadDepartments } from '../management/departmentsService'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { SurveillanceJourneyGuidance,SurveillanceJourneyMap } from './SurveillanceJourneyMap'
@@ -92,7 +93,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
 
   return <Page fill title={name} subtitle={record?`${code} · ${record.id}`:code}>
     <EntityRecordShell className="patient-record-shell workspace-fill" avatar={name?.split(' ').map(x=>x?.[0]).slice(0,2).join('')} eyebrow={code} title={name} subtitle={`${department||'—'} · ${t('clinicalRecords.admission')}: ${fmtDate(record?.admissionDate||patient?.admissionDate)}`} status={<><span className={`status-badge ${(record?.status||patient?.status)==='active'?'active':''}`}>{t(record?.status||patient?.status||'active')}</span>{record?.resistance&&<span className="status-badge danger">{record.resistance}</span>}</>} recordNavigation={recordNavigation} headerActions={<PrintExportActions onExport={()=>downloadRecordJson({patient,record,episodes,admissions},{filename:record?.id||code})}/>} tabs={tabs} activeTab={activeTab} onTabChange={setTab} onBack={goBack} backLabel={patientMode?t('clinicalRecords.backToPatients'):t('clinicalRecords.backToSurveillance')}>
-      {activeTab==='summary'&&<CanonicalSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate}/>} 
+      {activeTab==='summary'&&<CanonicalSummary patient={patient} record={record} t={t} language={language} fmtDate={fmtDate} actions={patientMode&&patient?<PatientSummaryActions patient={patient} departments={departments} onReload={()=>load(record?.id)} onDeleted={goBack}/>:null}/>} 
       {activeTab==='admissions'&&patient&&<AdmissionsPanel rows={admissions} patient={patient} tenantId={tenant?.id} isDemo={isDemo} departments={departments} canEdit={has(CAPABILITIES.EDIT_PATIENT)} t={t} fmtDate={fmtDate} onAdded={row=>setAdmissions(current=>[row,...current])}/>} 
       {activeTab==='surveillanceJourney'&&<SurveillanceWorkspace episodes={episodes} selectedId={record?.id} onSelect={setSelectedEpisodeId} onCreate={()=>setCreateOpen(true)} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)} record={record} repository={repository} onReload={()=>load(record?.id)} t={t} fmtDate={fmtDate} fmtDateTime={fmtDateTime} permissions={{canAssess:has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT),canLab,canClassifyResistance:has(CAPABILITIES.CLASSIFY_RESISTANCE),canIsolation:has(CAPABILITIES.MANAGE_ISOLATION),canTherapy,canReassess:has(CAPABILITIES.REASSESS_SURVEILLANCE),canOutcome:has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME)||has(CAPABILITIES.CLOSE_SURVEILLANCE),canDelete:has(CAPABILITIES.DELETE_SURVEILLANCE),canReopen:has(CAPABILITIES.REOPEN_SURVEILLANCE)}}/>}
       {activeTab==='clinicalData'&&record&&<ClinicalSnapshot record={record} t={t} fmtDate={fmtDate}/>} 
@@ -103,7 +104,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
   </Page>
 }
 
-function CanonicalSummary({patient,record,t,language,fmtDate}){
+function CanonicalSummary({patient,record,t,language,fmtDate,actions}){
   const latest=record?.samples?.find(x=>x.organism)||record?.samples?.[0]
   const details=[
     [t('patient'),language==='el'?(patient?.name||record?.patient):(patient?.nameEn||record?.patientEn||patient?.name||record?.patient)],
@@ -111,7 +112,7 @@ function CanonicalSummary({patient,record,t,language,fmtDate}){
     [t('admissionDate'),fmtDate(patient?.admissionDate||record?.admissionDate)],
     [t('status'),t(record?.status||patient?.status||'active')],
   ]
-  return <div className="patient-summary-layout clean-patient-summary"><section className="clinical-panel full-panel"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.patientDetails')}</h3></div></div><div className="detail-grid patient-detail-grid">{details.map(([label,value])=><Detail key={label} label={label} value={value}/>)}</div></section>{record&&<section className="patient-summary-strip clinical-snapshot-strip"><Summary label={t('surveillance')} value={`${record.id} · ${t(record.status)}`} tone="info"/><Summary label={t('clinicalRecords.haiClassification')} value={record.haiClassification?t(record.haiClassification.status):'—'} tone={record.haiClassification?.status==='confirmed'?'warning':'neutral'}/><Summary label={t('clinicalRecords.latestFinding')} value={latest?.organism||t(latest?.result||'pending')} tone={latest?.result==='positive'?'warning':'neutral'}/><Summary label={t('therapy')} value={record.therapy?.length?record.therapy.map(x=>x.antimicrobial).join(', '):t('clinicalRecords.none')}/><Summary label={t('isolation')} value={record.isolation?t(record.isolation.status):t('no')}/><Summary label={t('nextReview')} value={fmtDate(record.reviewDue)}/></section>}</div>
+  return <div className="patient-summary-layout clean-patient-summary"><section className="clinical-panel full-panel"><div className="record-section-header"><div><span className="eyebrow">{t('clinicalRecords.patientRecord')}</span><h3>{t('clinicalRecords.patientDetails')}</h3></div>{actions}</div><div className="detail-grid patient-detail-grid">{details.map(([label,value])=><Detail key={label} label={label} value={value}/>)}</div></section>{record&&<section className="patient-summary-strip clinical-snapshot-strip"><Summary label={t('surveillance')} value={t(record.status)} tone="info"/><Summary label={t('clinicalRecords.haiClassification')} value={record.haiClassification?t(record.haiClassification.status):'—'} tone={record.haiClassification?.status==='confirmed'?'warning':'neutral'}/><Summary label={t('clinicalRecords.latestFinding')} value={latest?.organism||t(latest?.result||'pending')} tone={latest?.result==='positive'?'warning':'neutral'}/><Summary label={t('therapy')} value={record.therapy?.length?record.therapy.map(x=>x.antimicrobial).join(', '):t('clinicalRecords.none')} tone={record.therapy?.length?'info':'neutral'}/><Summary label={t('isolation')} value={record.isolation?t(record.isolation.status):t('no')} tone={record.isolation?.status==='active'?'warning':'neutral'}/><Summary label={t('nextReview')} value={fmtDate(record.reviewDue)} tone={record.reviewDue?'info':'neutral'}/></section>}</div>
 }
 function Summary({label,value,tone='neutral'}){return <div className={`patient-summary-item ${tone}`}><span>{label}</span><strong>{value}</strong></div>}
 function Detail({label,value}){return <div className="detail-item"><span>{label}</span><strong>{value||'—'}</strong></div>}

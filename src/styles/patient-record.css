@@ -55,11 +55,13 @@
 }
 .clean-patient-summary .detail-item>strong{font-size:13px!important;color:#18364f!important;font-weight:700!important}
 .clinical-snapshot-strip{
-  display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important;margin:0!important;
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin:0!important;
 }
 .clinical-snapshot-strip .patient-summary-item{
   min-height:62px!important;padding:10px 12px!important;border:1px solid #e3e9ee!important;border-radius:10px!important;background:#fbfcfd!important;
 }
+.clinical-snapshot-strip .patient-summary-item.info{background:#f4f9fc!important;border-color:#dbe8f0!important}
+.clinical-snapshot-strip .patient-summary-item.warning{background:#fff9ef!important;border-color:#f0dfbb!important}
 .clinical-snapshot-strip .patient-summary-item>strong{display:block!important;margin:0!important;color:#213c54!important;font-size:12px!important;line-height:1.35!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 
 /* Surveillance tab: one list, one status column, no duplicate Active/Completed cards and no UUID column. */
@@ -102,12 +104,10 @@
 .patient-record-shell .episode-report-group:nth-child(3)>strong,
 .patient-record-shell .final-report-footer>strong{display:none!important}
 
-@media(max-width:1180px){
-  .clinical-snapshot-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-}
 @media(max-width:1050px){
   .clean-patient-summary .patient-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .clean-patient-summary .patient-detail-grid>.detail-item:nth-child(2n){border-right:0!important}
+  .clinical-snapshot-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 @media(max-width:680px){
   .patient-record-shell{--pr-pad-x:12px;--pr-pad-y:12px}

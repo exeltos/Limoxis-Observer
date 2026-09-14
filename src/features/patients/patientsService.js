@@ -70,12 +70,17 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
 }
 
 export async function updatePatient(organizationId, patient, patch, {isDemo=false}={}){
-  if(isDemo || !organizationId || !supabase) return {...patient,...patch}
+  if(isDemo || !organizationId || !supabase) return {...patient,...patch,name:`${patch.firstName??patient.firstName??''} ${patch.lastName??patient.lastName??''}`.trim()}
   const payload={}
   if(patch.firstName!==undefined)payload.first_name=patch.firstName||null
   if(patch.lastName!==undefined)payload.last_name=patch.lastName||null
+  if(patch.fatherName!==undefined)payload.father_name=patch.fatherName||null
+  if(patch.hospitalRecordNumber!==undefined)payload.hospital_record_number=patch.hospitalRecordNumber||null
+  if(patch.dateOfBirth!==undefined)payload.date_of_birth=patch.dateOfBirth||null
+  if(patch.sex!==undefined)payload.sex=patch.sex||null
   if(patch.admissionDate!==undefined)payload.admission_date=patch.admissionDate
   if(patch.status!==undefined)payload.status=patch.status
+  if(patch.notes!==undefined)payload.notes=patch.notes||null
   let departmentLabel=patient.department
   if(patch.departmentId!==undefined){
     const department=await resolveDepartment(organizationId,patch.departmentId)
@@ -135,7 +140,6 @@ export async function createAdmission(organizationId, patient, draft, {isDemo=fa
   if(error) throw error
   return mapAdmission(data,department?.name||draft.department)
 }
-
 
 export async function deletePatientForTesting(organizationId, patientRecordId, {isDemo=false}={}){
   if(isDemo || !organizationId || !supabase) return true
