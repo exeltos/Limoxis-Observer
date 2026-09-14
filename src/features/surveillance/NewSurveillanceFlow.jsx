@@ -44,7 +44,6 @@ const sampleSourceOptions={
   woundCulture:[['woundSwab','woundSwab'],['deepTissue','deepTissue'],['drainage','drainage'],['other','other']],
 }
 
-
 export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onClose,onCreate,onSaveAssessment,onRequestSample,onSaveIsolation,onRecordChange,onPatientsChange}){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
@@ -61,6 +60,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
   const today=new Date().toISOString().slice(0,10)
   const [record,setRecord]=useState(null)
   const [activeStep,setActiveStep]=useState('start')
+  const [completedSteps,setCompletedSteps]=useState(()=>new Set())
   const [savedDraft,setSavedDraft]=useState(false)
   const [startDraft,setStartDraft]=useState({startedAt:today,reviewDue:'',room:'',reason:'',reasonEn:'',suspectedSource:'',departmentId:selectedPatient?.departmentId||'',department:firstDepartment[0]||'',departmentEn:firstDepartment[1]||''})
   const [assessmentDraft,setAssessmentDraft]=useState({date:today,summary:'',summaryEn:'',screening:Object.fromEntries(screeningQuestions.map(q=>[q.id,'unknown'])),symptoms:[],risks:[],customSymptoms:[],customRisks:[],notes:'',notesEn:''})
@@ -74,6 +74,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
   const setSample=(k,v)=>setSampleDraft(d=>({...d,[k]:v}))
   const setIsolation=(k,v)=>setIsolationDraft(d=>({...d,[k]:v}))
   const setPatientField=(k,v)=>setPatientDraft(d=>({...d,[k]:v}))
+  const markComplete=step=>setCompletedSteps(current=>new Set([...current,step]))
   function chooseExistingPatient(id){
     setSelectedPatientId(id)
     setCreatedPatient(null)
@@ -120,21 +121,20 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
   const validatedMicrobiology=linkedLabSamples.find(x=>x.organism&&(x.resultStatus==='validated'||x.microbiologyResults?.some(result=>result.validationStatus==='validated')))
 
   const completed=useMemo(()=>{
-  const c=new Set()
-  if(record)c.add('start')
-  if(record?.assessment)c.add('assessment')
-  if(linkedLabSamples.length)c.add('microbiology')
-  if(record?.isolation||record?.isolationDecision?.required===false)c.add('isolation')
-  return c
-},[record,linkedLabSamples])
+    const c=new Set(completedSteps)
+    if(record)c.add('start')
+    if(record?.assessment)c.add('assessment')
+    if(linkedLabSamples.length)c.add('microbiology')
+    if(record?.isolation||record?.isolationDecision?.required===false)c.add('isolation')
+    return c
+  },[completedSteps,record,linkedLabSamples])
 
   function allowed(step){
-  if(step==='start')return true
-  if(step==='assessment')return Boolean(record)
-  if(step==='microbiology')return Boolean(record?.assessment)
-  if(step==='isolation')return Boolean(record?.assessment)
-  return false
-}
+    if(step==='start')return true
+    if(step==='assessment')return completed.has('start')||Boolean(record)
+    if(step==='microbiology'||step==='isolation')return completed.has('assessment')||Boolean(record?.assessment)
+    return false
+  }
 
   async function saveStart(){
     let targetPatient=selectedPatient
@@ -144,12 +144,14 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
       const created=await onCreate({...startDraft,departmentId:startDraft.departmentId||targetPatient.departmentId||null},targetPatient)
       if(!created)return
       setRecord(created)
+      markComplete('start')
       setSavedDraft(true)
       setActiveStep('assessment')
     }else{
-      Object.assign(record,startDraft)
-      setRecord({...record})
-      onRecordChange?.(record)
+      const next={...record,...startDraft}
+      setRecord(next)
+      markComplete('start')
+      onRecordChange?.(next)
       setSavedDraft(true)
       setActiveStep('assessment')
     }
@@ -157,9 +159,13 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
   async function saveAssessment(){
     if(!record||!assessmentDraft.date)return
     const assessment={date:assessmentDraft.date||today,assessedBy:actor.name,summary:assessmentDraft.summary||assessmentDraft.summaryEn||'',summaryEn:assessmentDraft.summaryEn||assessmentDraft.summary||'',screening:{...assessmentDraft.screening},symptoms:[...assessmentDraft.symptoms,...assessmentDraft.customSymptoms],symptomsEn:[...assessmentDraft.symptoms,...assessmentDraft.customSymptoms],riskFactors:[...assessmentDraft.risks,...assessmentDraft.customRisks],riskFactorsEn:[...assessmentDraft.risks,...assessmentDraft.customRisks],notes:assessmentDraft.notes,notesEn:assessmentDraft.notesEn}
-    record.assessment=onSaveAssessment?await onSaveAssessment(record,{...assessment,assessmentType:'suspected',classification:'undetermined',signsSymptoms:assessment.symptoms,riskFactors:assessment.riskFactors}):assessment
-    record.timeline=[{at:new Date().toISOString(),type:'clinicalAssessment',actor:actor.name,detail:'completed'},...(record.timeline||[])]
-    setRecord({...record});onRecordChange?.(record)
+    const payload={...assessment,assessmentType:'suspected',classification:'undetermined',signsSymptoms:assessment.symptoms,riskFactors:assessment.riskFactors}
+    const persisted=onSaveAssessment?await onSaveAssessment(record,payload):assessment
+    const savedAssessment=persisted?.assessment||((persisted?.classification||persisted?.assessmentType||persisted?.date)?persisted:null)||payload
+    const next={...record,assessment:savedAssessment,timeline:[{at:new Date().toISOString(),type:'clinicalAssessment',actor:actor.name,detail:'completed'},...(record.timeline||[])]}
+    setRecord(next)
+    markComplete('assessment')
+    onRecordChange?.(next)
     setActiveStep('microbiology')
   }
   async function requestSample(){
@@ -170,13 +176,14 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
     if(!labPatient)return
     const lab={id,patient:labPatient.name,patientEn:labPatient.nameEn||labPatient.name,patientId:labPatient.id,department:startDraft.department||labPatient.department,departmentEn:startDraft.departmentEn||labPatient.departmentEn,type:sampleDraft.type,source:sourceNames.el,sourceEn:sourceNames.en,sourceCode:sampleDraft.source,anatomicalSite:sampleDraft.anatomicalSite,collectedAt:sampleDraft.collectedAt?`${sampleDraft.collectedAt}T12:00:00`:new Date().toISOString(),receivedAt:null,status:'requested',priority:sampleDraft.priority,organism:null,result:null,resultStatus:'draft',resultedAt:null,validatedAt:null,validatedBy:null,resistance:null,critical:false,surveillanceCase:record.id,ast:[],communications:[],attachments:[],timeline:[{at:new Date().toISOString(),type:'sampleRequested',actor:actor.name}],notes:sampleDraft.notes}
     const createdSample=onRequestSample?await onRequestSample(record,{...sampleDraft,source:sourceNames.el}):(createDemoLabSample(lab),lab)
-    record.samples=[...(record.samples||[]),createdSample||{id,status:'requested',type:sampleDraft.type,collectedAt:lab.collectedAt,result:'pending',organism:null,resistance:null}]
-    record.timeline=[{at:new Date().toISOString(),type:'sampleRequested',actor:actor.name,detail:id},...(record.timeline||[])]
-    setRecord({...record})
+    const sample=createdSample||{id,status:'requested',type:sampleDraft.type,collectedAt:lab.collectedAt,result:'pending',organism:null,resistance:null}
+    const next={...record,samples:[...(record.samples||[]),sample],timeline:[{at:new Date().toISOString(),type:'sampleRequested',actor:actor.name,detail:sample.id||id},...(record.timeline||[])]}
+    setRecord(next)
+    markComplete('microbiology')
     setSavedDraft(v=>!v)
-    onRecordChange?.(record)
+    onRecordChange?.(next)
     notify(t('clinicalRecords.sampleRequestSavedContinueIsolation'),'success')
-    setIsolationNeeded(record.isolation?true:(record.isolationDecision?.required===false?false:null))
+    setIsolationNeeded(next.isolation?true:(next.isolationDecision?.required===false?false:null))
     setActiveStep('isolation')
   }
   async function saveIsolation(){
@@ -184,17 +191,16 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
     const now=new Date().toISOString()
     if(isolationNeeded===false){
       if(onSaveIsolation)await onSaveIsolation(record,{required:false,decidedAt:now})
-      record.isolation=null
-      record.isolationDecision={required:false,decidedAt:now,by:actor.name}
-      record.timeline=[{at:now,type:'isolationNotRequired',actor:actor.name,detail:'no'},...(record.timeline||[])]
-      setRecord({...record});onRecordChange?.(record);notify(t('clinicalRecords.isolationDecisionSaved'),'success');onClose();return
+      const next={...record,isolation:null,isolationDecision:{required:false,decidedAt:now,by:actor.name},timeline:[{at:now,type:'isolationNotRequired',actor:actor.name,detail:'no'},...(record.timeline||[])]}
+      setRecord(next);markComplete('isolation');onRecordChange?.(next);notify(t('clinicalRecords.isolationDecisionSaved'),'success');onClose();return
     }
     if(!isolationDraft.startedAt)return
-    record.isolationDecision={required:true,decidedAt:now,by:actor.name}
-    const savedIsolation=onSaveIsolation?await onSaveIsolation(record,{required:true,precautions:[isolationDraft.precautionType],room:startDraft.room||'',reason:isolationDraft.reason||isolationDraft.reasonEn||'',startedAt:isolationDraft.startedAt,reviewDue:startDraft.reviewDue||null}):null
-    record.isolation=savedIsolation||{id:record.isolation?.id||`ISO-${Date.now()}`,status:'active',startedAt:isolationDraft.startedAt,endedAt:null,type:isolationDraft.precautionType,precautions:[isolationDraft.precautionType],room:startDraft.room||'',nextReview:startDraft.reviewDue||null,reason:isolationDraft.reason||isolationDraft.reasonEn||'',reasonEn:isolationDraft.reasonEn||isolationDraft.reason||'',provisional:Boolean(isolationDraft.provisional),by:actor.name}
-    record.timeline=[{at:now,type:record.isolation?.id?'isolationUpdated':'isolationStarted',actor:actor.name,detail:isolationDraft.precautionType},...(record.timeline||[])]
-    setRecord({...record});onRecordChange?.(record);notify(t('isolationSaved'),'success');onClose()
+    const draft={required:true,precautions:[isolationDraft.precautionType],room:startDraft.room||'',reason:isolationDraft.reason||isolationDraft.reasonEn||'',startedAt:isolationDraft.startedAt,reviewDue:startDraft.reviewDue||null}
+    const persisted=onSaveIsolation?await onSaveIsolation(record,draft):null
+    const fallback={id:record.isolation?.id||`ISO-${Date.now()}`,status:'active',startedAt:isolationDraft.startedAt,endedAt:null,type:isolationDraft.precautionType,precautions:[isolationDraft.precautionType],room:startDraft.room||'',nextReview:startDraft.reviewDue||null,reason:isolationDraft.reason||isolationDraft.reasonEn||'',reasonEn:isolationDraft.reasonEn||isolationDraft.reason||'',provisional:Boolean(isolationDraft.provisional),by:actor.name}
+    const savedIsolation=persisted?.isolation||((persisted?.status||persisted?.precautions||persisted?.startedAt)?persisted:null)||fallback
+    const next={...record,isolationDecision:{required:true,decidedAt:now,by:actor.name},isolation:savedIsolation,timeline:[{at:now,type:record.isolation?.id?'isolationUpdated':'isolationStarted',actor:actor.name,detail:isolationDraft.precautionType},...(record.timeline||[])]}
+    setRecord(next);markComplete('isolation');onRecordChange?.(next);notify(t('isolationSaved'),'success');onClose()
   }
   function addCustom(field,value,setter){
     const clean=value.trim();if(!clean)return
