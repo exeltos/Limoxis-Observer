@@ -245,5 +245,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
 }
 
 function LibraryChecklist({title,rows,selected,onToggle,language}){
-  return <section className="clinical-checklist library-checklist"><h4>{title}</h4><div className="clinical-library-list">{rows.map(row=>{const value=libraryValue(row);return <label key={value} className={selected.includes(value)?'selected':''}><input type="checkbox" checked={selected.includes(value)} onChange={()=>onToggle(value)}/><span>{language==='el'?(row[0]||row[1]):(row[1]||row[0])}</span></label>})}</div></section>
+  const selectedLabels=rows.filter(row=>selected.includes(libraryValue(row))).map(row=>language==='el'?(row[0]||row[1]):(row[1]||row[0]))
+  const summary=selectedLabels.length?`${selectedLabels.length} ${language==='el'?'επιλεγμένα':'selected'}`:(language==='el'?'Επιλέξτε από τη λίστα':'Select from list')
+  return <details className="clinical-checklist library-checklist library-dropdown"><summary><span><strong>{title}</strong><small>{summary}</small></span><span className="library-dropdown-chevron">⌄</span></summary><div className="clinical-library-list library-dropdown-list">{rows.map(row=>{const value=libraryValue(row);return <label key={value} className={selected.includes(value)?'selected':''}><input type="checkbox" checked={selected.includes(value)} onChange={()=>onToggle(value)}/><span>{language==='el'?(row[0]||row[1]):(row[1]||row[0])}</span></label>})}</div>{selectedLabels.length>0&&<div className="library-dropdown-selected">{selectedLabels.map(label=><span key={label}>{label}</span>)}</div>}</details>
 }
