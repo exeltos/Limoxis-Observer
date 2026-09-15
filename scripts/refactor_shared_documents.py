@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# One-time migration: both patient and employee records use the same documents workspace.
 patient=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
 s=patient.read_text()
 s=s.replace("import { EntityAttachmentsPanel } from '../../design-system/EntityAttachmentsPanel'", "import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'")
