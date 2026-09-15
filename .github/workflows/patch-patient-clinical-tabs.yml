@@ -19,7 +19,9 @@ jobs:
           node-version: '22'
           cache: npm
       - name: Apply refinement
-        run: python scripts/patch_patient_clinical_tabs.py
+        run: |
+          python scripts/patch_patient_clinical_tabs.py
+          sed -i 's/[[:space:]]\+$//' src/features/surveillance/PatientClinicalCanonicalPage.jsx src/styles/patient-record.css
       - name: Validate
         run: |
           npm ci
@@ -35,4 +37,3 @@ jobs:
           git diff --cached --check
           git commit -m "Refine patient clinical data and history tabs"
           git push origin HEAD:fix/patient-clinical-tabs
-# trigger after patch script creation
