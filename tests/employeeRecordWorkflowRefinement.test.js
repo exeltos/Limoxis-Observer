@@ -4,7 +4,7 @@ import {describe,expect,it} from 'vitest'
 const tabs=fs.readFileSync('src/features/employees/EmployeeRecordTabs.jsx','utf8')
 const dialog=fs.readFileSync('src/features/surveillance/EmployeeSurveillanceRecordDialog.jsx','utf8')
 const service=fs.readFileSync('src/features/laboratory/laboratoryRequestManagementService.js','utf8')
-const css=fs.readFileSync('src/features/employees/employeeRecordTabsRefinements.css','utf8')
+const documents=fs.readFileSync('src/design-system/DocumentsWorkspace.jsx','utf8')
 
 describe('employee record workflow refinement',()=>{
   it('returns from Training to the same employee training tab through an explicit contextual target',()=>{
@@ -13,12 +13,13 @@ describe('employee record workflow refinement',()=>{
     expect(tabs).toContain("returnTab:'training'")
   })
 
-  it('keeps employee documents in one compact governed workspace',()=>{
-    expect(tabs).toContain('employee-documents-workspace')
+  it('keeps employee documents in the canonical shared workspace',()=>{
+    expect(tabs).toContain('DocumentsWorkspace')
+    expect(documents).toContain('AttachmentField')
     expect(tabs).toContain('entityType="employee-certificate"')
+    expect(tabs).not.toContain('employee-documents-workspace')
     expect(tabs).not.toContain('employee-certificates-workspace')
     expect(tabs).not.toContain('employee-other-documents')
-    expect(css).toContain('.employee-documents-workspace')
   })
 
   it('shows compact employee surveillance and laboratory request codes',()=>{
