@@ -1,4 +1,4 @@
-name: Validate unified surveillance patient card
+name: Add demo clinical cleanup
 on:
   push:
     branches:
@@ -18,30 +18,67 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Remove obsolete guide
+      - name: Add demo cleanup
+        shell: python
         run: |
-          python - <<'PY'
           from pathlib import Path
+          # Demo laboratory repository: allow deleting a demo sample.
+          p=Path('src/features/laboratory/repositories/demoLaboratoryRepository.js')
+          s=p.read_text()
+          marker="    async update(sampleCode, patch) {\n"
+          addition="    async remove(sampleCode) {\n      const index = laboratorySamples.findIndex(item => String(item.id) === String(sampleCode))\n      if (index >= 0) laboratorySamples.splice(index, 1)\n      return index >= 0\n    },\n"
+          if addition not in s:
+            if marker not in s: raise SystemExit('laboratory marker missing')
+            s=s.replace(marker,addition+marker,1)
+            p.write_text(s)
+
+          # Patient workspace: demo-only cleanup for the currently selected admission.
           p=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
           s=p.read_text()
-          start=s.find('function SurveillanceStartGuide(')
-          if start>=0:
-            end=s.find('\nfunction SimpleDialog(',start)
-            if end<0: raise SystemExit('SimpleDialog marker missing')
-            s=s[:start]+s[end+1:]
-            p.write_text(s)
-          PY
+          marker="  async function createAdmissionSample(draft){\n"
+          fn="""  async function clearDemoClinicalData(){
+    if(!isDemo||!patient||!selectedAdmission)return
+    const ok=window.confirm(language==='el'?'Να διαγραφούν όλες οι δοκιμαστικές επιτηρήσεις και τα δείγματα αυτής της νοσηλείας; Θα μπορέσετε να ξεκινήσετε από καθαρή καρτέλα.':'Delete all demo surveillance episodes and samples for this admission? You can then start from a clean record.')
+    if(!ok)return
+    try{
+      for(const ep of admissionEpisodes)await repository.voidCase(ep,'demo reset')
+      for(const sample of admissionSamples)await laboratory.repository.remove?.(sample.id||sample.recordId)
+      setSelectedEpisodeId('')
+      setSampleToLink(null)
+      await laboratory.reload()
+      await load()
+      notify(language==='el'?'Τα δοκιμαστικά δεδομένα της νοσηλείας καθαρίστηκαν.':'Demo clinical data cleared.','success')
+    }catch(err){notify(err?.message||t('actionFailed'),'error')}
+  }
+
+"""
+          if fn not in s:
+            if marker not in s: raise SystemExit('page function marker missing')
+            s=s.replace(marker,fn+marker,1)
+          old="<div className=\"button-row\">{canCreateSample&&onCreateSample&&<Button variant=\"secondary\" onClick={()=>setSampleOpen(true)}>+ {language==='el'?'Νέο δείγμα':'New sample'}</Button>}{canCreate&&<Button onClick={onCreate}>+ {language==='el'?'Νέα επιτήρηση':'New surveillance'}</Button>}</div>"
+          new="<div className=\"button-row\">{onClearDemo&&<Button variant=\"ghost\" onClick={onClearDemo}><Trash2 size={15}/>{language==='el'?'Καθαρισμός δοκιμαστικών':'Clear demo data'}</Button>}{canCreateSample&&onCreateSample&&<Button variant=\"secondary\" onClick={()=>setSampleOpen(true)}>+ {language==='el'?'Νέο δείγμα':'New sample'}</Button>}{canCreate&&<Button onClick={onCreate}>+ {language==='el'?'Νέα επιτήρηση':'New surveillance'}</Button>}</div>"
+          if old not in s: raise SystemExit('workspace action marker missing')
+          s=s.replace(old,new,1)
+          old="function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,canCreate,canCreateSample,repository,onReload,t,language,fmtDate,fmtDateTime,permissions})"
+          new="function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,onClearDemo,canCreate,canCreateSample,repository,onReload,t,language,fmtDate,fmtDateTime,permissions})"
+          if old not in s: raise SystemExit('workspace signature marker missing')
+          s=s.replace(old,new,1)
+          old="onCreateSample={patientMode?createAdmissionSample:null} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}"
+          new="onCreateSample={patientMode?createAdmissionSample:null} onClearDemo={patientMode&&isDemo?clearDemoClinicalData:null} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}"
+          if old not in s: raise SystemExit('workspace prop marker missing')
+          s=s.replace(old,new,1)
+          p.write_text(s)
       - name: Validate
         run: |
           npm ci
           npm run lint
           npm test -- --run
           npm run build
-      - name: Commit fix
+      - name: Commit implementation
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx
+          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx src/features/laboratory/repositories/demoLaboratoryRepository.js
           git diff --cached --check
-          git commit -m "Remove obsolete surveillance guide"
+          git commit -m "Add demo clinical data cleanup"
           git push origin HEAD:feat/unified-surveillance-patient-card
