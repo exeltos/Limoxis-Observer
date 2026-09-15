@@ -1,0 +1,32 @@
+name: Patch sample follow-up
+on:
+  push:
+    branches: [feat/unified-surveillance-patient-card]
+    paths: [.github/workflows/patch-sample-followup.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/unified-surveillance-patient-card
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: python scripts/patch_unified_surveillance.py
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test -- --run
+      - run: npm run build
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-sample-followup.yml scripts/patch_unified_surveillance.py
+          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx
+          git diff --cached --check
+          git commit -m "Add nested sample follow-up hierarchy"
+          git push origin HEAD:feat/unified-surveillance-patient-card
