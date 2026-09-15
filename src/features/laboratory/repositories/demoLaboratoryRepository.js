@@ -35,6 +35,11 @@ export function createDemoLaboratoryRepository({ actorName = 'Demo user' } = {})
       })
       return normalizeLaboratorySample(sample)
     },
+    async remove(sampleCode) {
+      const index = laboratorySamples.findIndex(item => String(item.id) === String(sampleCode))
+      if (index >= 0) laboratorySamples.splice(index, 1)
+      return index >= 0
+    },
     async update(sampleCode, patch) {
       const sample = updateLabSample(sampleCode, current => ({ ...current, ...patch }))
       return sample ? normalizeLaboratorySample(sample) : null
