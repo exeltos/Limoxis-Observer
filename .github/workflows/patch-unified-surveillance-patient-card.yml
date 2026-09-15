@@ -1,8 +1,7 @@
 name: Add owner clinical test cleanup
 on:
   push:
-    branches:
-      - feat/unified-surveillance-patient-card
+    branches: [feat/unified-surveillance-patient-card]
 permissions:
   contents: write
 jobs:
@@ -22,10 +21,7 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-          # Cloud laboratory service: controlled hard-delete of a sample and its dependent laboratory records.
-          p=Path('src/features/laboratory/laboratoryCloudService.js')
-          s=p.read_text()
-          marker='export async function updateLaboratorySampleStatus(organizationId,sampleRecordId,status,patch={}){\n'
+          p=Path('src/features/laboratory/laboratoryCloudService.js');s=p.read_text();marker='export async function updateLaboratorySampleStatus(organizationId,sampleRecordId,status,patch={}){\n'
           fn="""export async function deleteLaboratorySample(organizationId,sampleRecordId){
   assertCloud()
   if(!organizationId||!sampleRecordId)throw new Error('Laboratory sample is required.')
@@ -33,96 +29,43 @@ jobs:
   if(microError)throw microError
   const microIds=(micro||[]).map(row=>row.id)
   if(microIds.length){
-    for(const table of ['antimicrobial_susceptibility_results','critical_result_communications','amr_classifications']){
-      const {error}=await supabase.from(table).delete().eq('organization_id',organizationId).in('microbiology_result_id',microIds)
-      if(error)throw error
-    }
-    const {error}=await supabase.from('microbiology_results').delete().eq('organization_id',organizationId).in('id',microIds)
-    if(error)throw error
+    for(const table of ['antimicrobial_susceptibility_results','critical_result_communications','amr_classifications']){const {error}=await supabase.from(table).delete().eq('organization_id',organizationId).in('microbiology_result_id',microIds);if(error)throw error}
+    const {error}=await supabase.from('microbiology_results').delete().eq('organization_id',organizationId).in('id',microIds);if(error)throw error
   }
-  const {error}=await supabase.from('laboratory_samples').delete().eq('organization_id',organizationId).eq('id',sampleRecordId)
-  if(error)throw error
+  const {error}=await supabase.from('laboratory_samples').delete().eq('organization_id',organizationId).eq('id',sampleRecordId);if(error)throw error
   return true
 }
 
 """
           if 'export async function deleteLaboratorySample(' not in s:
             if marker not in s: raise SystemExit('cloud marker missing')
-            s=s.replace(marker,fn+marker,1)
-            p.write_text(s)
-
-          # Supabase laboratory repository exposes remove.
-          p=Path('src/features/laboratory/repositories/supabaseLaboratoryRepository.js')
-          s=p.read_text()
-          s=s.replace('addAstResult, communicateCriticalResult, createLaboratorySample, finalizeLaboratorySample, loadEnvironmentalStandards, loadLaboratorySample, loadLaboratorySamples, markDocumentsReviewed, reopenLaboratorySample, saveMicrobiologyResult, updateLaboratorySampleStatus','addAstResult, communicateCriticalResult, createLaboratorySample, deleteLaboratorySample, finalizeLaboratorySample, loadEnvironmentalStandards, loadLaboratorySample, loadLaboratorySamples, markDocumentsReviewed, reopenLaboratorySample, saveMicrobiologyResult, updateLaboratorySampleStatus')
-          marker='    async update(sampleCode, patch) {\n'
-          addition="    async remove(sampleCode) {\n      const current = await loadLaboratorySample(organizationId, sampleCode)\n      if (!current) return false\n      return deleteLaboratorySample(organizationId, current.recordId)\n    },\n"
+            p.write_text(s.replace(marker,fn+marker,1))
+          p=Path('src/features/laboratory/repositories/supabaseLaboratoryRepository.js');s=p.read_text();s=s.replace('createLaboratorySample, finalizeLaboratorySample','createLaboratorySample, deleteLaboratorySample, finalizeLaboratorySample');marker='    async update(sampleCode, patch) {\n';addition="    async remove(sampleCode) {\n      const current = await loadLaboratorySample(organizationId, sampleCode)\n      if (!current) return false\n      return deleteLaboratorySample(organizationId, current.recordId)\n    },\n"
           if addition not in s:
             if marker not in s: raise SystemExit('repo marker missing')
             s=s.replace(marker,addition+marker,1)
-            p.write_text(s)
-
-          # Demo repo keeps the same interface.
-          p=Path('src/features/laboratory/repositories/demoLaboratoryRepository.js')
-          s=p.read_text()
-          marker='    async update(sampleCode, patch) {\n'
-          addition="    async remove(sampleCode) {\n      const index = laboratorySamples.findIndex(item => String(item.id) === String(sampleCode))\n      if (index >= 0) laboratorySamples.splice(index, 1)\n      return index >= 0\n    },\n"
-          if addition not in s:
-            if marker not in s: raise SystemExit('demo repo marker missing')
-            s=s.replace(marker,addition+marker,1)
-            p.write_text(s)
-
-          # Patient workspace: owner-only reset for test data in current admission, demo or cloud.
-          p=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
-          s=p.read_text()
-          # Replace any earlier demo-only implementation if it was committed.
-          start=s.find('  async function clearDemoClinicalData(){')
-          if start>=0:
-            end=s.find('\n  async function createAdmissionSample',start)
-            if end<0: raise SystemExit('cleanup end marker missing')
-            s=s[:start]+s[end+1:]
-          marker='  async function createAdmissionSample(draft){\n'
-          fn="""  async function clearOwnerClinicalTestData(){
+          p.write_text(s)
+          p=Path('src/features/laboratory/repositories/demoLaboratoryRepository.js');s=p.read_text();marker='    async update(sampleCode, patch) {\n';addition="    async remove(sampleCode) {\n      const index = laboratorySamples.findIndex(item => String(item.id) === String(sampleCode))\n      if (index >= 0) laboratorySamples.splice(index, 1)\n      return index >= 0\n    },\n"
+          if addition not in s:s=s.replace(marker,addition+marker,1)
+          p.write_text(s)
+          p=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx');s=p.read_text();marker='  async function createAdmissionSample(draft){\n';fn="""  async function clearOwnerClinicalTestData(){
     if(role!=='platform_owner'||!patient||!selectedAdmission)return
-    const ok=window.confirm(language==='el'?'ΠΡΟΣΟΧΗ: Θα διαγραφούν οριστικά όλες οι επιτηρήσεις και όλα τα δείγματα που εμφανίζονται σε αυτή τη νοσηλεία. Ο ασθενής και η νοσηλεία θα παραμείνουν. Συνέχεια;':'WARNING: Permanently delete all surveillance episodes and samples shown for this admission? The patient and admission will remain.')
-    if(!ok)return
+    if(!window.confirm(language==='el'?'ΠΡΟΣΟΧΗ: Θα διαγραφούν οριστικά όλες οι επιτηρήσεις και όλα τα δείγματα που εμφανίζονται σε αυτή τη νοσηλεία. Ο ασθενής και η νοσηλεία θα παραμείνουν. Συνέχεια;':'WARNING: Permanently delete all surveillance episodes and samples shown for this admission? The patient and admission will remain.'))return
     try{
       for(const sample of admissionSamples)await laboratory.repository.remove?.(sample.id||sample.recordId)
       for(const ep of admissionEpisodes)await repository.voidCase(ep,'Platform Owner test data reset')
-      setSelectedEpisodeId('');setSampleToLink(null)
-      await laboratory.reload();await load()
+      setSelectedEpisodeId('');setSampleToLink(null);await laboratory.reload();await load()
       notify(language==='el'?'Οι δοκιμαστικές επιτηρήσεις και τα δείγματα της νοσηλείας καθαρίστηκαν.':'Clinical test surveillance and samples cleared.','success')
     }catch(err){notify(err?.message||t('actionFailed'),'error')}
   }
 
 """
-          if 'async function clearOwnerClinicalTestData' not in s:
-            if marker not in s: raise SystemExit('page marker missing')
-            s=s.replace(marker,fn+marker,1)
-          # Add prop to workspace call.
-          old='onCreateSample={patientMode?createAdmissionSample:null} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}'
-          new="onCreateSample={patientMode?createAdmissionSample:null} onClearTestData={patientMode&&role==='platform_owner'?clearOwnerClinicalTestData:null} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}"
-          if old in s:s=s.replace(old,new,1)
-          else:
-            old="onCreateSample={patientMode?createAdmissionSample:null} onClearDemo={patientMode&&isDemo?clearDemoClinicalData:null} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}"
-            if old not in s: raise SystemExit('workspace call marker missing')
-            s=s.replace(old,new,1)
-          # Signature.
-          old='function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,canCreate,canCreateSample,repository,onReload,t,language,fmtDate,fmtDateTime,permissions})'
-          new='function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,onClearTestData,canCreate,canCreateSample,repository,onReload,t,language,fmtDate,fmtDateTime,permissions})'
-          if old in s:s=s.replace(old,new,1)
-          else:
-            old='function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,onClearDemo,canCreate,canCreateSample,repository,onReload,t,language,fmtDate,fmtDateTime,permissions})'
-            if old not in s: raise SystemExit('workspace signature marker missing')
-            s=s.replace(old,new,1)
-          # Action button.
+          if 'async function clearOwnerClinicalTestData' not in s:s=s.replace(marker,fn+marker,1)
+          s=s.replace('onCreateSample={patientMode?createAdmissionSample:null} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}',"onCreateSample={patientMode?createAdmissionSample:null} onClearTestData={patientMode&&role==='platform_owner'?clearOwnerClinicalTestData:null} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}",1)
+          s=s.replace('function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,canCreate,canCreateSample,repository,onReload,t,language,fmtDate,fmtDateTime,permissions})','function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,onClearTestData,canCreate,canCreateSample,repository,onReload,t,language,fmtDate,fmtDateTime,permissions})',1)
           old='<div className="button-row">{canCreateSample&&onCreateSample&&<Button variant="secondary" onClick={()=>setSampleOpen(true)}>+ {language===\'el\'?\'Νέο δείγμα\':\'New sample\'}</Button>}{canCreate&&<Button onClick={onCreate}>+ {language===\'el\'?\'Νέα επιτήρηση\':\'New surveillance\'}</Button>}</div>'
           new='<div className="button-row">{onClearTestData&&<Button variant="ghost" onClick={onClearTestData}><Trash2 size={15}/>{language===\'el\'?\'Καθαρισμός δοκιμαστικών\':\'Clear test data\'}</Button>}{canCreateSample&&onCreateSample&&<Button variant="secondary" onClick={()=>setSampleOpen(true)}>+ {language===\'el\'?\'Νέο δείγμα\':\'New sample\'}</Button>}{canCreate&&<Button onClick={onCreate}>+ {language===\'el\'?\'Νέα επιτήρηση\':\'New surveillance\'}</Button>}</div>'
           if old in s:s=s.replace(old,new,1)
-          else:
-            old='<div className="button-row">{onClearDemo&&<Button variant="ghost" onClick={onClearDemo}><Trash2 size={15}/>{language===\'el\'?\'Καθαρισμός δοκιμαστικών\':\'Clear demo data\'}</Button>}{canCreateSample&&onCreateSample&&<Button variant="secondary" onClick={()=>setSampleOpen(true)}>+ {language===\'el\'?\'Νέο δείγμα\':\'New sample\'}</Button>}{canCreate&&<Button onClick={onCreate}>+ {language===\'el\'?\'Νέα επιτήρηση\':\'New surveillance\'}</Button>}</div>'
-            if old not in s: raise SystemExit('action marker missing')
-            s=s.replace(old,new,1)
           p.write_text(s)
       - name: Validate
         run: |
