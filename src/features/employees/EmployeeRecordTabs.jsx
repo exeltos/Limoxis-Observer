@@ -4,7 +4,7 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
-import { AttachmentField } from '../../design-system/AttachmentField'
+import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useEmployeeSubRecords } from './useEmployeeSubRecords'
 import { loadOccupationalVisitsAsync,loadVaccinationsAsync,loadEmployeeTrainingAsync,loadEvaluationsAsync } from './employeeSubRecordsService'
@@ -77,10 +77,14 @@ export function EmployeeEvaluationsTab({employee,t:_t,language,fmt,organizationI
 }
 
 export function EmployeeCertificatesTab({employee,language,organizationId,canEdit=false}){
-  return <section className="record-section employee-secondary-registry employee-documents-workspace">
-    <SectionTitle title={language==='en'?'Documents & certifications':'Έγγραφα & Πιστοποιήσεις'} subtitle={language==='en'?'All employee files are kept in one place. Each attachment is classified by document type when it is added.':'Όλα τα αρχεία του εργαζομένου τηρούνται σε ένα σημείο. Κάθε επισύναψη χαρακτηρίζεται κατά την προσθήκη με τον τύπο του εγγράφου.'}/>
-    <AttachmentField disabled={!canEdit} value={[]} onChange={()=>{}} organizationId={organizationId} entityType="employee-certificate" entityId={employee.dbId||employee.id}/>
-  </section>
+  return <DocumentsWorkspace
+    title={language==='en'?'Documents & certifications':'Έγγραφα & Πιστοποιήσεις'}
+    subtitle={language==='en'?'All employee files are kept in one place. Each attachment is classified by document type when it is added.':'Όλα τα αρχεία του εργαζομένου τηρούνται σε ένα σημείο. Κάθε επισύναψη χαρακτηρίζεται κατά την προσθήκη με τον τύπο του εγγράφου.'}
+    disabled={!canEdit}
+    organizationId={organizationId}
+    entityType="employee-certificate"
+    entityId={employee.dbId||employee.id}
+  />
 }
 
 export function EmployeeSurveillanceTab({employee,t,language,fmt,version,onNew,readOnly=false,isDemo=false,organizationId=null,canManageFollowup=false}){
