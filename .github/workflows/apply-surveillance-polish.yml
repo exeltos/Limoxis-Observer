@@ -17,7 +17,9 @@ jobs:
           node-version: '22'
           cache: npm
       - name: Apply patch
-        run: python scripts/patch_surveillance_polish.py
+        run: |
+          python scripts/patch_surveillance_polish.py
+          python scripts/fix_surveillance_polish_lint.py
       - name: Validate
         run: |
           npm ci
@@ -28,7 +30,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/apply-surveillance-polish.yml scripts/patch_surveillance_polish.py
+          git rm .github/workflows/apply-surveillance-polish.yml scripts/patch_surveillance_polish.py scripts/fix_surveillance_polish_lint.py
           git add src/features/surveillance/PatientClinicalCanonicalPage.jsx src/styles/patient-record.css
           git diff --cached --check
           git commit -m "Fix surveillance report terminology and actions"
