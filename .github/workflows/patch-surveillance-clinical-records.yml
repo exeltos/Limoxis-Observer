@@ -23,7 +23,11 @@ jobs:
       - name: Validate
         run: |
           npm ci
-          npm run check
+          npm run audit:frontend-parity
+          npm run audit:observer-ui
+          npm run lint
+          npm test -- --run
+          npm run build
       - name: Commit refinement
         run: |
           git config user.name "github-actions[bot]"
