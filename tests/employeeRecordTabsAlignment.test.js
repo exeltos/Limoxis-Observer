@@ -5,12 +5,11 @@ const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 const page=read('src/features/employees/EmployeeRecordPage.jsx')
 const tabs=read('src/features/employees/EmployeeRecordTabs.jsx')
 const service=read('src/features/employees/employeeSubRecordsService.js')
+const documents=read('src/design-system/DocumentsWorkspace.jsx')
 
 describe('employee record canonical tabs',()=>{
   it('routes every employee sub-tab through the canonical tab components',()=>{
-    for(const component of ['EmployeeOccupationalTab','EmployeeVaccinationsTab','EmployeeSurveillanceTab','EmployeeTrainingTab','EmployeeEvaluationsTab','EmployeeCertificatesTab','EmployeeHistoryTab']){
-      expect(page).toContain(component)
-    }
+    for(const component of ['EmployeeOccupationalTab','EmployeeVaccinationsTab','EmployeeSurveillanceTab','EmployeeTrainingTab','EmployeeEvaluationsTab','EmployeeCertificatesTab','EmployeeHistoryTab'])expect(page).toContain(component)
     expect(page).not.toContain('function Occupational(')
     expect(page).not.toContain('function Vaccinations(')
     expect(page).not.toContain('function Certificates(')
@@ -40,8 +39,9 @@ describe('employee record canonical tabs',()=>{
     expect(tabs).toContain("selected.source==='training'")
   })
 
-  it('uses one governed employee document attachment workspace',()=>{
-    expect(tabs).toContain('employee-documents-workspace')
+  it('uses the shared governed document attachment workspace',()=>{
+    expect(tabs).toContain('DocumentsWorkspace')
+    expect(documents).toContain('AttachmentField')
     expect(tabs).toContain('entityType="employee-certificate"')
     expect(tabs).toContain('entityId={employee.dbId||employee.id}')
     expect(tabs).not.toContain('loadCertificatesAsync')
