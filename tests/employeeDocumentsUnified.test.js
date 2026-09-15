@@ -3,14 +3,17 @@ import {describe,expect,it} from 'vitest'
 
 const tabs=fs.readFileSync('src/features/employees/EmployeeRecordTabs.jsx','utf8')
 const attachments=fs.readFileSync('src/design-system/AttachmentField.jsx','utf8')
+const workspace=fs.readFileSync('src/design-system/DocumentsWorkspace.jsx','utf8')
 const navigation=fs.readFileSync('src/core/navigation/useContextualNavigation.js','utf8')
 
 describe('employee documents and contextual return',()=>{
-  it('renders one real attachment workspace instead of hiding a second certification section with CSS',()=>{
-    expect(tabs).toContain('employee-documents-workspace')
+  it('renders the shared governed documents workspace',()=>{
+    expect(tabs).toContain('DocumentsWorkspace')
     expect(tabs).toContain('Όλα τα αρχεία του εργαζομένου τηρούνται σε ένα σημείο')
     expect(tabs).toContain('entityId={employee.dbId||employee.id}')
+    expect(workspace).toContain('<AttachmentField')
     expect(tabs).not.toContain('employee-certificates-section')
+    expect(tabs).not.toContain('employee-documents-workspace')
   })
 
   it('uses employee-specific attachment types',()=>{
