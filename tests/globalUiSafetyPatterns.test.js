@@ -10,20 +10,19 @@ describe('shared UI safety patterns',()=>{
     expect(source).toContain('await confirm(')
   })
 
-  it('keeps both shared attachment delete paths behind confirmation',()=>{
+  it('keeps the unified shared attachment delete path behind confirmation',()=>{
     const field=read('src/design-system/AttachmentField.jsx')
     const panel=read('src/design-system/EntityAttachmentsPanel.jsx')
     expect(field).toContain('await confirm(')
-    expect(panel).toContain('ConfirmDialog')
-    expect(panel).toContain('setPendingDelete(row)')
+    expect(panel).toContain("import { AttachmentField } from './AttachmentField'")
+    expect(panel).toContain('<AttachmentField')
   })
 
-  it('shows a spinner in both shared attachment upload surfaces',()=>{
+  it('shows upload progress through the unified shared attachment field',()=>{
     const field=read('src/design-system/AttachmentField.jsx')
     const panel=read('src/design-system/EntityAttachmentsPanel.jsx')
     expect(field).toContain('LoaderCircle')
     expect(field).toContain('attachment-upload-progress')
-    expect(panel).toContain('LoaderCircle')
-    expect(panel).toContain('attachment-upload-progress-inline')
+    expect(panel).toContain('<AttachmentField')
   })
 })
