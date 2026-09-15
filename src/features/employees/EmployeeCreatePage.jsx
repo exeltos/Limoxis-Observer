@@ -19,7 +19,7 @@ import { loadManagementLibraries } from '../management/managementCloudService'
 export function EmployeeCreatePage(){
  const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const navigate=useNavigate();const {tenant,role,membership}=useTenant();const actor=useAuditActor();const {data:employeeRows}=useEmployeesData()
  const [saving,setSaving]=useState(false);const [departments,setDepartments]=useState([]);const [professionalCategories,setProfessionalCategories]=useState([])
- const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',department:'',profession:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
+ const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',birthDate:'',department:'',profession:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[];const canCreate=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,addOns,custom)
  const set=(k,x)=>setV(s=>({...s,[k]:x}))
  const normalizedCode=v.employeeCode.trim().toLowerCase()
@@ -64,13 +64,14 @@ export function EmployeeCreatePage(){
     <label><span>{en?'First name *':'Όνομα *'}</span><input value={v.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
     <label><span>{en?'Last name *':'Επώνυμο *'}</span><input value={v.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
     <label><span>{en?'Father’s name':'Πατρώνυμο'}</span><input value={v.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
+    <ManualDateField label={en?'Date of birth':'Ημερομηνία γέννησης'} value={v.birthDate} onChange={x=>set('birthDate',x)} optional/>
     <ManualDateField label={en?'Hire date':'Ημερομηνία πρόσληψης'} value={v.hireDate} onChange={x=>set('hireDate',x)} optional/>
-    <label><span>{en?'Department *':'Τμήμα *'}</span><select value={v.department} onChange={e=>set('department',e.target.value)}><option value="">{en?'Select department…':'Επιλέξτε τμήμα…'}</option>{departments.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
+    <label><span>{en?'Department *':'Τμήμα *'}</span><select value={v.department} onChange={e=>set('department',e.target.value)}><option value="">{en?'Select department…':'Επιλέξτε τμήμα…'}</option>{departments.map(row=><option key={row.id} value={row.id}>{en?(row.nameEn||row.name):row.name}</option>)}</select></label>
     <label><span>{en?'Professional category *':'Επαγγελματική κατηγορία *'}</span><select value={v.profession} onChange={e=>set('profession',e.target.value)}><option value="">{en?'Select category…':'Επιλέξτε κατηγορία…'}</option>{professionalCategories.map(row=><option key={row?.[2]?.id||row?.[0]} value={row?.[2]?.id||row?.[0]}>{en?(row?.[1]||row?.[0]):row?.[0]}</option>)}</select></label>
     <label><span>Email</span><input type="email" value={v.email} onChange={e=>set('email',e.target.value)}/></label>
     <label><span>{en?'Phone':'Τηλέφωνο'}</span><input value={v.phone} onChange={e=>set('phone',e.target.value)}/></label>
    </div>
-   <div className="source-truth-note">{en?'One code identifies one employee folder. Training, evaluations, certificates, surveillance and future employment history remain under that single record.':'Ένας κωδικός αντιστοιχεί σε μία καρτέλα εργαζομένου. Εκπαιδεύσεις, αξιολογήσεις, πιστοποιήσεις, επιτήρηση και μελλοντικό ιστορικό παραμένουν κάτω από τον ίδιο φάκελο.'}</div>
+   <div className="source-truth-note">{en?'One code identifies one employee folder. Training, evaluations, certificates, surveillance and employment history remain under that single record.':'Ένας κωδικός αντιστοιχεί σε μία καρτέλα εργαζομένου. Εκπαιδεύσεις, αξιολογήσεις, πιστοποιήσεις, επιτήρηση και ιστορικό παραμένουν κάτω από τον ίδιο φάκελο.'}</div>
    <div className="inline-edit-footer"><Button variant="secondary" onClick={()=>navigate('/employees')}>{t('cancel')}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{t('save')}</SaveButton></div>
   </div>
  </EntityRecordShell></Page>
