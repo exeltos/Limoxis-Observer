@@ -27,6 +27,7 @@ import './styles/filterbar-final.css'
 import './styles/training-refinements.css'
 import './styles/prevention-refinements.css'
 import './styles/surveillance-library-dropdown-fix.css'
+import './styles/surveillance-flow-polish.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
