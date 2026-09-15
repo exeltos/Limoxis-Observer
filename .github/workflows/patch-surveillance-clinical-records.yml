@@ -1,0 +1,35 @@
+name: Patch surveillance clinical records
+on:
+  push:
+    branches: [feat/surveillance-clinical-records]
+    paths: [.github/workflows/patch-surveillance-clinical-records.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/surveillance-clinical-records
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply clinical record refinement
+        run: |
+          python scripts/patch_surveillance_clinical_records.py
+          sed -i 's/[[:space:]]\+$//' src/features/surveillance/PatientClinicalCanonicalPage.jsx src/styles/patient-record.css
+      - name: Validate
+        run: |
+          npm ci
+          npm run check
+      - name: Commit refinement
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-surveillance-clinical-records.yml scripts/patch_surveillance_clinical_records.py
+          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx src/styles/patient-record.css
+          git diff --cached --check
+          git commit -m "Refine surveillance clinical records and PDF report"
+          git push origin HEAD:feat/surveillance-clinical-records
