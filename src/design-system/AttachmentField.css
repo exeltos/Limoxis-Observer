@@ -21,6 +21,12 @@
   to{transform:rotate(360deg)}
 }
 
+/* Canonical documents workspace: same compact pattern used by employee documents. */
+.attachment-documents-workspace{display:grid;gap:14px;align-content:start;min-height:0!important;height:auto!important;overflow:visible!important}
+.attachment-documents-workspace .attachment-field{margin-top:0}
+.attachment-documents-workspace .attachment-heading{padding-top:2px}
+.attachment-documents-workspace .record-section-header>div>p{max-width:760px}
+
 /* Compact dropdown selectors for surveillance clinical libraries */
 .library-clinical-grid{align-items:start}
 .library-dropdown{position:relative;border:1px solid var(--border-color,#d8e2ea);border-radius:12px;background:#fff;overflow:visible}
