@@ -277,3 +277,6 @@
   .controls-surface .data-table tbody td,
   .production-surveillance-workspace .data-table tbody td{padding:8px 12px!important}
 }
+
+/* Independent laboratory sample groups inside Surveillance & Samples. */
+[data-sample-root="true"] { border-top: 3px solid var(--border-strong, #cbd9e6) !important; box-shadow: inset 3px 0 0 var(--accent, #2f80b7); }
