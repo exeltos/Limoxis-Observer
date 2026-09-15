@@ -3,7 +3,6 @@ import { Eye, FileText, LoaderCircle, Paperclip, Trash2, Upload } from 'lucide-r
 import { AttachmentField } from './AttachmentField'
 import { Button } from './Button'
 import { ConfirmDialog } from './ConfirmDialog'
-import { EmptyState } from './EmptyState'
 import { OverflowMenu } from './OverflowMenu'
 import { deleteAttachment, getAttachmentUrl, loadAttachments, uploadAttachment } from '../core/attachments/attachmentService'
 import './AttachmentField.css'
@@ -66,12 +65,12 @@ function PatientClinicalAttachments({organizationId,entityType,entityRecordId,ca
 
   return <>
     <section className="clinical-panel full-panel patient-clinical-attachments">
-      <div className="record-section-header"><div><Paperclip size={17}/><strong>{t('attachments')}</strong><small>{rows.length}</small></div>{canManage&&<><input ref={inputRef} type="file" hidden onChange={event=>upload(event.target.files?.[0])}/><Button variant="secondary" disabled={busy} onClick={()=>inputRef.current?.click()}>{uploading?<LoaderCircle className="lo-inline-spinner" size={15}/>:<Upload size={15}/>} {uploading?(t('uploading')||t('loading')):t('upload')}</Button></>}</div>
+      <div className="record-section-header"><div><Paperclip size={17}/><strong>{t('attachments')}</strong><small>{rows.length}</small></div>{canManage&&<><input ref={inputRef} type="file" hidden onChange={event=>upload(event.target.files?.[0])}/><Button variant="secondary" disabled={busy} onClick={()=>inputRef.current?.click()}>{uploading?<LoaderCircle className="lo-inline-spinner" size={15}/>:<Upload size={15}/>} {uploading?(t('uploading')||t('loading')):t('addAttachment')}</Button></>}</div>
       {uploading&&<div className="attachment-upload-progress attachment-upload-progress-inline" role="status" aria-live="polite"><LoaderCircle size={22}/><span>{t('uploading')||t('loading')}</span></div>}
-      {loading&&!uploading?<div className="inline-empty">{t('loading')}</div>:rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('document')}</th><th>{t('type')}</th><th>{t('size')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><strong><FileText size={14}/> {row.name}</strong></td><td>{row.type||'—'}</td><td>{size(row.size)}</td><td><OverflowMenu items={[
+      {loading&&!uploading?<div className="patient-attachments-empty">{t('loading')}</div>:rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('document')}</th><th>{t('type')}</th><th>{t('size')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><strong><FileText size={14}/> {row.name}</strong></td><td>{row.type||'—'}</td><td>{size(row.size)}</td><td><OverflowMenu items={[
         {id:'view',label:t('view'),icon:Eye,onClick:()=>view(row)},
         {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>setPendingDelete(row),hidden:!canManage},
-      ]}/></td></tr>)}</tbody></table></div>:<EmptyState title={t('noData')} description={t('attachments')}/>}
+      ]}/></td></tr>)}</tbody></table></div>:<div className="patient-attachments-empty"><FileText size={18}/><span>{t('noData')}</span></div>}
     </section>
     <ConfirmDialog open={Boolean(pendingDelete)} title={t('delete')} description={pendingDelete?`${t('delete')} · ${pendingDelete.name}?`:''} confirmLabel={t('delete')} cancelLabel={t('cancel')} onConfirm={remove} onClose={()=>setPendingDelete(null)} busy={busy} tone="danger"/>
   </>
