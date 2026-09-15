@@ -64,5 +64,12 @@
 .bundle-followup-form textarea{min-height:90px;padding:10px 11px;resize:vertical}
 .bundle-followup-comment{grid-column:1/-1}
 
+/* Prevention uses the same underline tab language as every canonical workspace. */
+.prevention-workspace>.prevention-tabs{min-height:40px!important;height:40px!important;display:flex!important;align-items:stretch!important;gap:2px!important;padding:0 8px!important;border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;background:var(--lo-color-surface)!important;box-shadow:none!important}
+.prevention-workspace>.prevention-tabs>.tab{position:relative!important;min-height:40px!important;height:40px!important;padding:0 11px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--lo-color-muted)!important;font-weight:600!important}
+.prevention-workspace>.prevention-tabs>.tab:hover{background:transparent!important;color:var(--lo-color-text)!important}
+.prevention-workspace>.prevention-tabs>.tab.active{background:transparent!important;color:var(--lo-color-primary)!important;font-weight:750!important}
+.prevention-workspace>.prevention-tabs>.tab.active:after{content:'';position:absolute;left:8px;right:8px;bottom:-1px;height:2px;border-radius:2px 2px 0 0;background:var(--lo-color-primary)}
+
 @media(max-width:900px){.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-date-field,.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-department-field,.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>label{grid-column:span 1!important}.prevention-record-shell .bundle-record-finding{grid-template-columns:1fr!important}.bundle-followup-meta{align-items:flex-start;min-width:0;padding-left:0;padding-top:10px;border-left:0;border-top:1px solid var(--lo-color-border)}}
 @media(max-width:650px){.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{grid-template-columns:1fr!important}.bundle-followup-form{grid-template-columns:1fr}.bundle-followup-comment{grid-column:auto}}
