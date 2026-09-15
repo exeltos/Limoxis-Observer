@@ -2,8 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const files = [
-  'src/features/surveillance/PatientClinicalRecordPage.jsx',
-  'src/features/surveillance/SurveillancePage.jsx',
+  'src/features/surveillance/PatientClinicalCanonicalPage.jsx',
+  'src/features/surveillance/SurveillanceCanonicalPage.jsx',
   'src/features/patients/PatientsPage.jsx',
 ]
 const greek = /[Α-Ωα-ωΆ-ώ]/

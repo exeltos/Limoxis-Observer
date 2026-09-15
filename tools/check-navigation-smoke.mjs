@@ -2,8 +2,8 @@ import fs from 'node:fs'
 const read=p=>fs.readFileSync(new URL(`../${p}`,import.meta.url),'utf8')
 const employeeList=read('src/features/employees/EmployeesPage.jsx')
 const employeeRecord=read('src/features/employees/EmployeeRecordPage.jsx')
-const patientRecord=read('src/features/surveillance/PatientClinicalRecordPage.jsx')
-const surveillanceList=read('src/features/surveillance/SurveillancePage.jsx')
+const patientRecord=read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
+const surveillanceList=read('src/features/surveillance/SurveillanceCanonicalPage.jsx')
 const controls=read('src/features/controls/ControlsPage.jsx')
 const checks=[
   ['patients route',read('src/app/App.jsx').includes('patients/:patientId')],
@@ -18,7 +18,7 @@ const checks=[
   ['employees registry variable',employeeList.includes("const registry=useRegistryMemory('employees')")],
   ['employees row navigation',employeeList.includes('registry.openRecord')],
   ['laboratory registry hook',read('src/features/laboratory/LaboratoryWorkspace.jsx').includes("useRegistryMemory('laboratory')")],
-  ['surveillance registry hook',read('src/features/surveillance/SurveillancePage.jsx').includes("useRegistryMemory('surveillance')")],
+  ['surveillance registry hook',/useRegistryMemory\(`surveillance-/.test(read('src/features/surveillance/SurveillanceCanonicalPage.jsx'))],
   ['patient contextual back',patientRecord.includes('const {goBack,restored}=useContextualNavigation')],
   ['employee contextual back',employeeRecord.includes('const {goBack,restored}=useContextualNavigation')],
   ['surveillance row navigation',surveillanceList.includes('registry.openRecord')],

@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 const files=[
   'src/app/AppShell.jsx','src/features/management/ManagementPage.jsx','src/features/management/LibrariesPanel.jsx','src/features/management/BedDaysPanel.jsx','src/features/indicators/IndicatorsPage.jsx',
-  'src/features/patients/PatientsPage.jsx','src/features/surveillance/SurveillancePage.jsx','src/design-system/RecordActions.jsx','src/design-system/AttachmentField.jsx','src/core/feedback/FeedbackContext.jsx','src/design-system/FilterBar.jsx','src/features/prevention/PreventionPage.jsx','src/features/employees/EmployeesPage.jsx','src/features/occupational-health/OccupationalHealthPage.jsx'
+  'src/features/patients/PatientsPage.jsx','src/features/surveillance/SurveillanceCanonicalPage.jsx','src/design-system/RecordActions.jsx','src/design-system/AttachmentField.jsx','src/core/feedback/FeedbackContext.jsx','src/design-system/FilterBar.jsx','src/features/prevention/PreventionPage.jsx','src/features/employees/EmployeesPage.jsx','src/features/occupational-health/OccupationalHealthPage.jsx'
 ]
 const greek=/[Α-Ωα-ωΆ-ώ]/u
 const violations=[]

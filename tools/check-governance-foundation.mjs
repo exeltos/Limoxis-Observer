@@ -7,7 +7,7 @@ const checks=[
  ['src/features/prevention/WasteEntryModal.jsx',"lifecycleStatus:'finalized'"],
  ['src/features/prevention/WasteEntryModal.jsx','finalizedById:initialRecord?.finalizedById||actor.id'],
  ['src/features/prevention/AntisepticEntryModal.jsx',"lifecycleStatus:'finalized'"],
- ['src/features/prevention/BundleExecutionModal.jsx',"lifecycleStatus:'finalized'"],
+ ['src/features/prevention/BundleExecutionEditor.jsx',"lifecycleStatus:complete?'finalized':'draft'"],
 ]
 let failed=0
 for(const [file,needle] of checks){const text=fs.readFileSync(file,'utf8');if(!text.includes(needle)){console.error(`Missing ${needle} in ${file}`);failed++}}
