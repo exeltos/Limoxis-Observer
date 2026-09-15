@@ -278,5 +278,15 @@
   .production-surveillance-workspace .data-table tbody td{padding:8px 12px!important}
 }
 
-/* Independent laboratory sample groups inside Surveillance & Samples. */
-[data-sample-root="true"] { border-top: 3px solid var(--border-strong, #cbd9e6) !important; box-shadow: inset 3px 0 0 var(--accent, #2f80b7); }
+
+/* Surveillance grouping: one divider before independent samples; follow-ups stay nested. */
+.surveillance-independent-samples{border-top:3px solid var(--lo-color-border-strong,#b9ccdc)}
+.surveillance-independent-samples>[data-sample-root]:first-child>.surveillance-tree-sample:first-child{border-top:0!important}
+.surveillance-tree-sample:not(.is-followup)>span:first-child{padding-left:18px}
+.surveillance-sample-actions{display:flex;gap:8px;align-items:center;justify-content:flex-start;overflow:visible;min-width:286px}
+.surveillance-sample-actions>em{min-width:72px;text-align:center}
+.surveillance-sample-actions .btn{white-space:nowrap}
+.sample-followup-action{min-width:118px;justify-content:center}
+.sample-start-action{min-width:145px;justify-content:center}
+.clinical-stage-action{font-weight:700!important;border-color:var(--lo-color-primary,#2176a9)!important;color:var(--lo-color-primary,#17658f)!important;background:var(--lo-color-primary-soft,#eef7fc)!important;box-shadow:0 1px 2px rgba(15,56,82,.08)}
+.clinical-stage-action:hover{background:var(--lo-color-primary-soft-hover,#e2f2fa)!important}
