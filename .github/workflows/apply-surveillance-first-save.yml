@@ -16,7 +16,7 @@ jobs:
           ref: fix/surveillance-flow-first-save-visual
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.22.2
           cache: npm
       - run: python scripts/refine_surveillance_first_save.py
       - run: npm ci
