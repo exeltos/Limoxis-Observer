@@ -20,6 +20,7 @@ jobs:
         run: |
           python scripts/patch_surveillance_clinical_records.py
           sed -i 's/[[:space:]]\+$//' src/features/surveillance/PatientClinicalCanonicalPage.jsx src/styles/patient-record.css
+          nl -ba src/features/surveillance/PatientClinicalCanonicalPage.jsx | sed -n '184p'
       - name: Validate
         run: |
           npm ci
