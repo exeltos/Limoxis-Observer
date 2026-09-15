@@ -486,3 +486,9 @@
 
 /* Surveillance clinical record interaction */
 .clickable-entry{cursor:pointer;border-radius:8px}.clickable-entry:hover,.clickable-entry:focus-visible{background:var(--surface-subtle,#f7fafc);outline:none}.clinical-entry-detail-grid{margin:8px 0 4px}.entry-detail-note{max-width:520px;color:var(--text-muted,#66788a);font-size:.82rem;line-height:1.45;margin-right:auto}.record-table .clickable-row{cursor:pointer}.record-table .clickable-row:hover{background:var(--surface-subtle,#f7fafc)}
+
+/* Clinical action hierarchy: creation/edit actions must read as intentional actions. */
+.patient-record-shell .clinical-primary-action,
+.patient-record-shell .surveillance-workspace-toolbar .btn-primary{display:inline-flex!important;align-items:center!important;gap:7px!important;min-height:36px!important;padding:8px 13px!important;border-radius:9px!important;font-weight:750!important;box-shadow:0 1px 2px rgba(17,73,112,.12)!important}
+.patient-record-shell .clinical-panel .record-section-header .btn{display:inline-flex!important;align-items:center!important;gap:7px!important;min-height:34px!important;padding:7px 12px!important;border-radius:9px!important;font-weight:700!important}
+.patient-record-shell .tag-list span{font-size:12px!important;font-weight:650!important;letter-spacing:0!important;text-transform:none!important}
