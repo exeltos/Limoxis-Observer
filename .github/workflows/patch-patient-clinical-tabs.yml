@@ -35,3 +35,4 @@ jobs:
           git diff --cached --check
           git commit -m "Refine patient clinical data and history tabs"
           git push origin HEAD:fix/patient-clinical-tabs
+# trigger after patch script creation
