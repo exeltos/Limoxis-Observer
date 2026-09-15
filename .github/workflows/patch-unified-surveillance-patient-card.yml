@@ -1,4 +1,4 @@
-name: Patch unified surveillance patient card
+name: Validate unified surveillance patient card
 on:
   push:
     branches:
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 jobs:
-  patch:
+  fix-and-validate:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -18,28 +18,30 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Fix patch locator and apply
+      - name: Remove obsolete guide
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('scripts/patch_unified_surveillance.py')
+          p=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
           s=p.read_text()
-          old="nr=block.rfind('return <div className=\"patient-surveillance-clean\"')"
-          new="nr=block.index('return <div className=\"workspace-column workspace-fill patient-surveillance-clean\"')"
-          s=s.replace(old,new)
-          p.write_text(s)
+          start=s.find('function SurveillanceStartGuide(')
+          if start>=0:
+            end=s.find('\nfunction SimpleDialog(',start)
+            if end<0: raise SystemExit('SimpleDialog marker missing')
+            s=s[:start]+s[end+1:]
+            p.write_text(s)
           PY
-          python scripts/patch_unified_surveillance.py
-      - name: Test and build
+      - name: Validate
         run: |
           npm ci
+          npm run lint
           npm test -- --run
           npm run build
-      - name: Commit implementation
+      - name: Commit fix
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx src/styles/patient-record.css
+          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx
           git diff --cached --check
-          git commit -m "Unify surveillance samples and expand patient details"
+          git commit -m "Remove obsolete surveillance guide"
           git push origin HEAD:feat/unified-surveillance-patient-card
