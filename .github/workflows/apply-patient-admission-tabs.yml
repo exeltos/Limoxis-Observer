@@ -14,7 +14,7 @@ jobs:
           ref: fix/patient-admission-tabs-cleanup
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.22.2
           cache: npm
       - run: python scripts/fix_patient_admission_tabs.py
       - run: npm ci
