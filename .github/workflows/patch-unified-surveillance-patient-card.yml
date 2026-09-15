@@ -1,12 +1,13 @@
 name: Patch unified surveillance patient card
 on:
   push:
-    branches: [feat/unified-surveillance-patient-card]
-    paths: [.github/workflows/patch-unified-surveillance-patient-card.yml]
+    branches:
+      - feat/unified-surveillance-patient-card
 permissions:
   contents: write
 jobs:
   patch:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,86 +16,10 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.22.2
+          node-version: '22'
           cache: npm
-      - name: Patch patient card and surveillance tree
-        shell: python
-        run: |
-          from pathlib import Path
-          p=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
-          s=p.read_text()
-          old="{id:'surveillanceJourney',label:t('surveillance'),icon:ListTree},"
-          new="{id:'surveillanceJourney',label:language==='el'?'Επιτήρηση & Δείγματα':'Surveillance & Samples',icon:ListTree},"
-          if old not in s: raise SystemExit('tab marker missing')
-          s=s.replace(old,new,1)
-          start=s.index('function PatientAdmissionsHome(')
-          end=s.index('\nfunction CanonicalSummary',start)
-          patient_home=r'''function PatientAdmissionsHome({patient,rows,episodes,tenantId,isDemo,departments,canEdit,t,language,fmtDate,onAdded,onSelect,actions}){
-  const age=patient?.dateOfBirth?Math.max(0,Math.floor((Date.now()-new Date(`${patient.dateOfBirth}T12:00:00`).getTime())/31557600000)):null
-  const details=[
-    [language==='el'?'Κωδικός ασθενούς':'Patient code',patient?.id],
-    [language==='el'?'Αριθμός φακέλου νοσοκομείου':'Hospital record number',patient?.hospitalRecordNumber],
-    [language==='el'?'Όνομα':'First name',patient?.firstName],
-    [language==='el'?'Επώνυμο':'Last name',patient?.lastName],
-    [language==='el'?'Πατρώνυμο':'Father name',patient?.fatherName],
-    [language==='el'?'Ημερομηνία γέννησης':'Date of birth',fmtDate(patient?.dateOfBirth)],
-    [language==='el'?'Ηλικία':'Age',age==null?'—':`${age}`],
-    [language==='el'?'Φύλο':'Sex',patient?.sex?t(patient.sex):'—'],
-    [language==='el'?'Τρέχον τμήμα':'Current department',patient?.department||'—'],
-    [language==='el'?'Κατάσταση':'Status',t(patient?.status||'active')],
-    [language==='el'?'Αρχική εισαγωγή':'Initial admission',fmtDate(patient?.admissionDate)],
-    [language==='el'?'Αρχικό εξιτήριο':'Initial discharge',fmtDate(patient?.dischargeDate)],
-    [language==='el'?'Σημειώσεις':'Notes',patient?.notes||'—'],
-  ]
-  return <div className="patient-home-layout"><section className="patient-home-details patient-full-demographics"><div className="record-section-header"><div><h3>{language==='el'?'Στοιχεία ασθενούς':'Patient details'}</h3><p>{language==='el'?'Πλήρης δημογραφική και διοικητική εικόνα του ασθενούς.':'Complete demographic and administrative patient profile.'}</p></div>{actions}</div><div className="detail-grid patient-detail-grid patient-full-detail-grid">{details.map(([label,value])=><Detail key={label} label={label} value={value}/>)}</div></section><AdmissionsPanel rows={rows} episodes={episodes} patient={patient} tenantId={tenantId} isDemo={isDemo} departments={departments} canEdit={canEdit} t={t} language={language} fmtDate={fmtDate} onAdded={onAdded} onSelect={onSelect}/></div>
-}'''
-          s=s[:start]+patient_home+s[end:]
-          start=s.index('function SurveillanceWorkspace(')
-          end=s.index('\nfunction CanonicalJourney',start)
-          oldblock=s[start:end]
-          # Preserve existing detail overlay logic by extracting everything through the first normal-workspace return.
-          marker='if(detailRecord)return '
-          m=oldblock.index(marker)
-          # Find the normal return after the detail overlay by locating the last occurrence of 'return <div className="patient-surveillance-clean"'
-          nr=oldblock.rfind('return <div className="patient-surveillance-clean"')
-          if nr<0: raise SystemExit('normal workspace return missing')
-          prefix=oldblock[:nr]
-          # Replace only normal workspace return, keeping dialogs/state/detail overlay unchanged.
-          newreturn=r'''return <div className="patient-surveillance-clean unified-surveillance-workspace"><section className="record-section surveillance-tree-section"><div className="record-section-header"><div><h3>{language==='el'?'Επιτήρηση & Δείγματα':'Surveillance & Samples'}</h3><p>{language==='el'?'Ενιαία κλινική ροή: κάθε επιτήρηση εμφανίζει ακριβώς από κάτω τα συνδεδεμένα δείγματά της. Τα ασύνδετα δείγματα παραμένουν ορατά και μπορούν να ξεκινήσουν νέα επιτήρηση.':'Unified clinical flow: each surveillance episode shows its linked samples directly below. Unlinked samples remain visible and can start surveillance.'}</p></div><div className="button-row">{canCreateSample&&onCreateSample&&<Button variant="secondary" onClick={()=>setSampleOpen(true)}>+ {language==='el'?'Νέο δείγμα':'New sample'}</Button>}{canCreate&&<Button onClick={onCreate}>+ {language==='el'?'Νέα επιτήρηση':'New surveillance'}</Button>}</div></div><div className="surveillance-tree-head"><span>{language==='el'?'Ημερομηνία / τύπος':'Date / type'}</span><span>{language==='el'?'Κατάσταση':'Status'}</span><span>{language==='el'?'Εύρημα / μικροοργανισμός':'Finding / organism'}</span><span>AMR</span><span>{language==='el'?'Επόμενη ενέργεια':'Next action'}</span></div><div className="surveillance-tree-body">{episodes.map(ep=>{const linked=samples.filter(sample=>String(sample.surveillanceCase||sample.surveillanceCaseId||sample.surveillance_case_id||'')===String(ep.id)||String(sample.surveillanceCase||'')===String(ep.recordId||''));return <div className="surveillance-tree-group" key={ep.id}><button type="button" className={`surveillance-tree-episode ${String(selectedId)===String(ep.id)?'is-selected':''}`} onClick={()=>openEpisode(ep.id)}><span><strong>{fmtDate(ep.startedAt)}</strong><small>{language==='el'?'Επιτήρηση':'Surveillance'} · {ep.suspectedSource||ep.reason||'—'}</small></span><span><b className={`status-badge ${ep.status==='active'?'active':''}`}>{t(ep.status)}</b></span><span>{ep.samples?.find(x=>x.organism)?.organism||'—'}</span><span>{ep.resistance||'—'}</span><span>{ep.reviewDue?`${language==='el'?'Επανεκτίμηση':'Review'} ${fmtDate(ep.reviewDue)}`:'—'}</span></button>{linked.map(sample=><SampleTreeRow key={sample.recordId||sample.id} sample={sample} linked onCreateFromSample={onCreateFromSample} canCreate={canCreate} t={t} language={language} fmtDate={fmtDate}/>)}</div>})}{samples.filter(sample=>!episodes.some(ep=>String(sample.surveillanceCase||sample.surveillanceCaseId||sample.surveillance_case_id||'')===String(ep.id)||String(sample.surveillanceCase||'')===String(ep.recordId||''))).map(sample=><SampleTreeRow key={sample.recordId||sample.id} sample={sample} linked={false} onCreateFromSample={onCreateFromSample} canCreate={canCreate} t={t} language={language} fmtDate={fmtDate}/>)}{!episodes.length&&!samples.length&&<div className="inline-empty">{language==='el'?'Δεν υπάρχουν ακόμη επιτηρήσεις ή δείγματα για αυτή τη νοσηλεία.':'No surveillance episodes or samples for this admission yet.'}</div>}</div></section>{sampleOpen&&<SampleDialog t={t} onClose={()=>setSampleOpen(false)} onSave={saveSample}/>} {samplePrompt&&<ObserverDialog title={language==='el'?'Το δείγμα καταχωρήθηκε':'Sample recorded'} onClose={()=>setSamplePrompt(null)}><p>{language==='el'?'Θέλετε να ξεκινήσετε επιτήρηση από αυτό το δείγμα;':'Start surveillance from this sample?'}</p><div className="dialog-actions"><Button variant="secondary" onClick={()=>setSamplePrompt(null)}>{language==='el'?'Αργότερα':'Later'}</Button>{canCreate&&<Button onClick={()=>{const sample=samplePrompt;setSamplePrompt(null);onCreateFromSample?.(sample)}}>{language==='el'?'Έναρξη επιτήρησης':'Start surveillance'}</Button>}</div></ObserverDialog>}</div>}
-function SampleTreeRow({sample,linked,onCreateFromSample,canCreate,t,language,fmtDate}){const type=t(sample.sampleType||sample.type)||(sample.sampleType||sample.type||'—');const status=t(sample.result||sample.status||'pending');const organism=sample.organism||sample.microorganism||sample.microbiologyResults?.find(x=>x.organism)?.organism||'—';const amr=sample.resistance||sample.amr||sample.microbiologyResults?.find(x=>x.amr)?.amr||'—';return <div className={`surveillance-tree-sample ${linked?'is-linked':'is-unlinked'}`}><span><i aria-hidden="true">↳</i><span><strong>{fmtDate(sample.collectedAt||sample.requestedAt)}</strong><small>{type}{sample.id?` · ${sample.id}`:''}</small></span></span><span>{status}</span><span>{organism}</span><span>{amr}</span><span>{linked?<em>{language==='el'?'Συνδεδεμένο':'Linked'}</em>:(canCreate?<Button variant="ghost" onClick={()=>onCreateFromSample?.(sample)}><PlayCircle size={14}/>{language==='el'?'Έναρξη επιτήρησης':'Start surveillance'}</Button>:'—')}</span></div>}
-'''
-          s=s[:start]+prefix+newreturn+s[end:]
-          p.write_text(s)
-
-          css=Path('src/styles/patient-record.css')
-          c=css.read_text()
-          rules=r'''
-
-/* Unified surveillance + samples clinical flow */
-.patient-full-detail-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-.patient-full-detail-grid .detail-item:last-child{grid-column:span 2}
-.unified-surveillance-workspace{display:block!important;overflow:auto!important}
-.surveillance-tree-section{overflow:hidden!important}
-.surveillance-tree-head,.surveillance-tree-episode,.surveillance-tree-sample{display:grid;grid-template-columns:1.25fr .72fr 1.2fr .55fr 1.05fr;gap:12px;align-items:center}
-.surveillance-tree-head{padding:9px 14px;background:#f4f8fb;border-top:1px solid #e1eaf1;border-bottom:1px solid #d9e5ee;color:#5d7487;font-size:11px;font-weight:750}
-.surveillance-tree-body{max-height:520px;overflow:auto;background:#fff}
-.surveillance-tree-group{border-bottom:1px solid #e4edf3}
-.surveillance-tree-episode{width:100%;padding:12px 14px;border:0;background:#fff;text-align:left;color:#173a55;cursor:pointer;font:inherit}
-.surveillance-tree-episode:hover,.surveillance-tree-episode.is-selected{background:#edf6fd}
-.surveillance-tree-episode.is-selected{box-shadow:inset 3px 0 0 #2588d4}
-.surveillance-tree-episode>span,.surveillance-tree-sample>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.surveillance-tree-episode strong,.surveillance-tree-sample strong{display:block;font-size:12px}
-.surveillance-tree-episode small,.surveillance-tree-sample small{display:block;margin-top:2px;color:#74899a;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.surveillance-tree-sample{padding:9px 14px 9px 32px;background:#fbfdff;border-top:1px solid #edf2f6;color:#405f74;font-size:11.5px}
-.surveillance-tree-sample.is-linked{border-left:3px solid #b7d5e8}
-.surveillance-tree-sample.is-unlinked{background:#fffdf8;border-left:3px solid #e2b85c}
-.surveillance-tree-sample>span:first-child{display:flex;align-items:center;gap:8px}
-.surveillance-tree-sample i{font-style:normal;color:#7fa4bd;font-size:17px;flex:none}
-.surveillance-tree-sample em{font-style:normal;color:#55798f;background:#edf4f8;border-radius:999px;padding:3px 7px;font-size:10px}
-@media(max-width:1050px){.patient-full-detail-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.surveillance-tree-head,.surveillance-tree-episode,.surveillance-tree-sample{grid-template-columns:1.3fr .8fr 1.2fr .7fr}.surveillance-tree-head>span:nth-child(5),.surveillance-tree-episode>span:nth-child(5),.surveillance-tree-sample>span:nth-child(5){display:none}}
-@media(max-width:760px){.patient-full-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.patient-full-detail-grid .detail-item:last-child{grid-column:1/-1}.surveillance-tree-head,.surveillance-tree-episode,.surveillance-tree-sample{grid-template-columns:1.35fr .75fr 1fr}.surveillance-tree-head>span:nth-child(4),.surveillance-tree-episode>span:nth-child(4),.surveillance-tree-sample>span:nth-child(4){display:none}}
-'''
-          if '/* Unified surveillance + samples clinical flow */' not in c: css.write_text(c+rules)
+      - name: Apply patch
+        run: python scripts/patch_unified_surveillance.py
       - name: Test and build
         run: |
           npm ci
