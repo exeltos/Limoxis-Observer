@@ -492,3 +492,10 @@
 .patient-record-shell .surveillance-workspace-toolbar .btn-primary{display:inline-flex!important;align-items:center!important;gap:7px!important;min-height:36px!important;padding:8px 13px!important;border-radius:9px!important;font-weight:750!important;box-shadow:0 1px 2px rgba(17,73,112,.12)!important}
 .patient-record-shell .clinical-panel .record-section-header .btn{display:inline-flex!important;align-items:center!important;gap:7px!important;min-height:34px!important;padding:7px 12px!important;border-radius:9px!important;font-weight:700!important}
 .patient-record-shell .tag-list span{font-size:12px!important;font-weight:650!important;letter-spacing:0!important;text-transform:none!important}
+
+/* Clinical action hierarchy */
+.clinical-add-action,.clinical-edit-action,.clinical-primary-action{display:inline-flex!important;align-items:center!important;gap:.45rem!important;font-weight:650!important;min-height:36px!important;border-radius:9px!important;box-shadow:0 1px 2px rgba(15,45,70,.08)!important}
+.clinical-add-action{border-color:#9fc8e8!important;background:#f2f8fd!important;color:#145d91!important}
+.clinical-add-action:hover{background:#e5f2fc!important;border-color:#72add8!important}
+.clinical-edit-action{border-color:#c6d6e3!important;background:#fff!important;color:#284d69!important}
+.clinical-primary-action{box-shadow:0 2px 5px rgba(20,93,145,.16)!important}
