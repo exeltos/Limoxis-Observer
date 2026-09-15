@@ -1,9 +1,9 @@
-name: Patch surveillance library dropdowns
+name: Patch owner clinical cleanup
 
 on:
   push:
     branches:
-      - fix/surveillance-library-dropdowns
+      - main
     paths:
       - .github/workflows/patch-surveillance-library-dropdowns.yml
 
@@ -16,48 +16,72 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/surveillance-library-dropdowns
+          ref: feat/unified-surveillance-patient-card
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22.22.2
           cache: npm
-      - name: Convert clinical library cards to compact dropdown lists
-        shell: python
+      - name: Patch Platform Owner cleanup
         run: |
+          python3 - <<'PY'
           from pathlib import Path
+          p=Path('src/features/laboratory/laboratoryCloudService.js');s=p.read_text();marker='export async function updateLaboratorySampleStatus(organizationId,sampleRecordId,status,patch={}){\n'
+          fn="""export async function deleteLaboratorySample(organizationId,sampleRecordId){
+            assertCloud()
+            if(!organizationId||!sampleRecordId)throw new Error('Laboratory sample is required.')
+            const {data:micro,error:microError}=await supabase.from('microbiology_results').select('id').eq('organization_id',organizationId).eq('sample_id',sampleRecordId)
+            if(microError)throw microError
+            const microIds=(micro||[]).map(row=>row.id)
+            if(microIds.length){
+              for(const table of ['antimicrobial_susceptibility_results','critical_result_communications','amr_classifications']){const {error}=await supabase.from(table).delete().eq('organization_id',organizationId).in('microbiology_result_id',microIds);if(error)throw error}
+              const {error}=await supabase.from('microbiology_results').delete().eq('organization_id',organizationId).in('id',microIds);if(error)throw error
+            }
+            const {error}=await supabase.from('laboratory_samples').delete().eq('organization_id',organizationId).eq('id',sampleRecordId);if(error)throw error
+            return true
+          }
 
-          path=Path('src/features/surveillance/NewSurveillanceFlow.jsx')
-          text=path.read_text()
-          old='''function LibraryChecklist({title,rows,selected,onToggle,language}){\n  return <section className="clinical-checklist library-checklist"><h4>{title}</h4><div className="clinical-library-list">{rows.map(row=>{const value=libraryValue(row);return <label key={value} className={selected.includes(value)?'selected':''}><input type="checkbox" checked={selected.includes(value)} onChange={()=>onToggle(value)}/><span>{language==='el'?(row[0]||row[1]):(row[1]||row[0])}</span></label>})}</div></section>\n}'''
-          new='''function LibraryChecklist({title,rows,selected,onToggle,language}){\n  const selectedLabels=rows.filter(row=>selected.includes(libraryValue(row))).map(row=>language==='el'?(row[0]||row[1]):(row[1]||row[0]))\n  const summary=selectedLabels.length?`${selectedLabels.length} ${language==='el'?'επιλεγμένα':'selected'}`:(language==='el'?'Επιλέξτε από τη λίστα':'Select from list')\n  return <details className="clinical-checklist library-checklist library-dropdown"><summary><span><strong>{title}</strong><small>{summary}</small></span><span className="library-dropdown-chevron">⌄</span></summary><div className="clinical-library-list library-dropdown-list">{rows.map(row=>{const value=libraryValue(row);return <label key={value} className={selected.includes(value)?'selected':''}><input type="checkbox" checked={selected.includes(value)} onChange={()=>onToggle(value)}/><span>{language==='el'?(row[0]||row[1]):(row[1]||row[0])}</span></label>})}</div>{selectedLabels.length>0&&<div className="library-dropdown-selected">{selectedLabels.map(label=><span key={label}>{label}</span>)}</div>}</details>\n}'''
-          if old not in text:
-              raise SystemExit('LibraryChecklist anchor not found')
-          path.write_text(text.replace(old,new,1))
+          """
+          if 'export async function deleteLaboratorySample(' not in s:
+            if marker not in s: raise SystemExit('cloud marker missing')
+            p.write_text(s.replace(marker,fn+marker,1))
+          p=Path('src/features/laboratory/repositories/supabaseLaboratoryRepository.js');s=p.read_text();s=s.replace('createLaboratorySample, finalizeLaboratorySample','createLaboratorySample, deleteLaboratorySample, finalizeLaboratorySample');marker='    async update(sampleCode, patch) {\n';addition="    async remove(sampleCode) {\n      const current = await loadLaboratorySample(organizationId, sampleCode)\n      if (!current) return false\n      return deleteLaboratorySample(organizationId, current.recordId)\n    },\n"
+          if addition not in s:s=s.replace(marker,addition+marker,1)
+          p.write_text(s)
+          p=Path('src/features/laboratory/repositories/demoLaboratoryRepository.js');s=p.read_text();marker='    async update(sampleCode, patch) {\n';addition="    async remove(sampleCode) {\n      const index = laboratorySamples.findIndex(item => String(item.id) === String(sampleCode))\n      if (index >= 0) laboratorySamples.splice(index, 1)\n      return index >= 0\n    },\n"
+          if addition not in s:s=s.replace(marker,addition+marker,1)
+          p.write_text(s)
+          p=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx');s=p.read_text();marker='  async function createAdmissionSample(draft){\n';fn="""  async function clearOwnerClinicalTestData(){
+            if(role!=='platform_owner'||!patient||!selectedAdmission)return
+            if(!window.confirm(language==='el'?'ΠΡΟΣΟΧΗ: Θα διαγραφούν οριστικά όλες οι επιτηρήσεις και όλα τα δείγματα που εμφανίζονται σε αυτή τη νοσηλεία. Ο ασθενής και η νοσηλεία θα παραμείνουν. Συνέχεια;':'WARNING: Permanently delete all surveillance episodes and samples shown for this admission? The patient and admission will remain.'))return
+            try{
+              for(const sample of admissionSamples)await laboratory.repository.remove?.(sample.id||sample.recordId)
+              for(const ep of admissionEpisodes)await repository.voidCase(ep,'Platform Owner test data reset')
+              setSelectedEpisodeId('');setSampleToLink(null);await laboratory.reload();await load()
+              notify(language==='el'?'Οι δοκιμαστικές επιτηρήσεις και τα δείγματα της νοσηλείας καθαρίστηκαν.':'Clinical test surveillance and samples cleared.','success')
+            }catch(err){notify(err?.message||t('actionFailed'),'error')}
+          }
 
-          css_rule='''\n/* Compact dropdown selectors for surveillance clinical libraries */\n.library-clinical-grid{align-items:start}\n.library-dropdown{position:relative;border:1px solid var(--border-color,#d8e2ea);border-radius:12px;background:#fff;overflow:visible}\n.library-dropdown>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:10px 14px}\n.library-dropdown>summary::-webkit-details-marker{display:none}\n.library-dropdown>summary>span:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}\n.library-dropdown>summary strong{font-size:14px}\n.library-dropdown>summary small{font-size:12px;font-weight:500;color:var(--text-muted,#6b7f91)}\n.library-dropdown-chevron{font-size:20px;line-height:1;transition:transform .15s ease}\n.library-dropdown[open] .library-dropdown-chevron{transform:rotate(180deg)}\n.library-dropdown-list{max-height:270px;overflow:auto;border-top:1px solid var(--border-color,#e2e8ee);padding:6px;background:#fff;display:flex;flex-direction:column;gap:0}\n.library-dropdown-list label{display:flex;align-items:center;gap:10px;min-height:38px;padding:7px 9px;border-radius:7px;cursor:pointer}\n.library-dropdown-list label:hover{background:var(--surface-subtle,#f5f8fa)}\n.library-dropdown-list label input{flex:0 0 auto;margin:0}\n.library-dropdown-list label span{text-align:left}\n.library-dropdown-selected{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border-top:1px solid var(--border-color,#e2e8ee)}\n.library-dropdown-selected span{font-size:11px;padding:3px 7px;border-radius:999px;background:var(--surface-subtle,#eef5f8);color:var(--text-secondary,#526779)}\n@media (max-width:900px){.library-clinical-grid{grid-template-columns:1fr}.library-dropdown-list{max-height:220px}}\n'''
-          css_files=list(Path('src').rglob('*.css'))
-          target=None
-          for p in css_files:
-              s=p.read_text(errors='ignore')
-              if '.clinical-library-list' in s or '.library-clinical-grid' in s:
-                  target=p;break
-          if target is None:
-              target=Path('src/index.css') if Path('src/index.css').exists() else css_files[0]
-          css=target.read_text()
-          if 'Compact dropdown selectors for surveillance clinical libraries' not in css:
-              target.write_text(css+css_rule)
-          print(f'Patched JSX and CSS: {target}')
-      - name: Test and build
+          """
+          if 'async function clearOwnerClinicalTestData' not in s:s=s.replace(marker,fn+marker,1)
+          s=s.replace('onCreateSample={patientMode?createAdmissionSample:null} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}',"onCreateSample={patientMode?createAdmissionSample:null} onClearTestData={patientMode&&role==='platform_owner'?clearOwnerClinicalTestData:null} canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}",1)
+          s=s.replace('function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,canCreate,canCreateSample,repository,onReload,t,language,fmtDate,fmtDateTime,permissions})','function SurveillanceWorkspace({samples=[],episodes,selectedId,onSelect,onCreate,onCreateFromSample,onCreateSample,onClearTestData,canCreate,canCreateSample,repository,onReload,t,language,fmtDate,fmtDateTime,permissions})',1)
+          old='<div className="button-row">{canCreateSample&&onCreateSample&&<Button variant="secondary" onClick={()=>setSampleOpen(true)}>+ {language===\'el\'?\'Νέο δείγμα\':\'New sample\'}</Button>}{canCreate&&<Button onClick={onCreate}>+ {language===\'el\'?\'Νέα επιτήρηση\':\'New surveillance\'}</Button>}</div>'
+          new='<div className="button-row">{onClearTestData&&<Button variant="ghost" onClick={onClearTestData}><Trash2 size={15}/>{language===\'el\'?\'Καθαρισμός δοκιμαστικών\':\'Clear test data\'}</Button>}{canCreateSample&&onCreateSample&&<Button variant="secondary" onClick={()=>setSampleOpen(true)}>+ {language===\'el\'?\'Νέο δείγμα\':\'New sample\'}</Button>}{canCreate&&<Button onClick={onCreate}>+ {language===\'el\'?\'Νέα επιτήρηση\':\'New surveillance\'}</Button>}</div>'
+          if old in s:s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Validate
         run: |
           npm ci
+          npm run lint
           npm test -- --run
           npm run build
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/features/surveillance/NewSurveillanceFlow.jsx src/**/*.css
+          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx src/features/laboratory/laboratoryCloudService.js src/features/laboratory/repositories/supabaseLaboratoryRepository.js src/features/laboratory/repositories/demoLaboratoryRepository.js
           git diff --cached --check
-          git commit -m "Use compact library dropdowns in surveillance assessment"
-          git push origin HEAD:fix/surveillance-library-dropdowns
+          git commit -m "Allow Platform Owner to clear admission test data"
+          git push origin HEAD:feat/unified-surveillance-patient-card
