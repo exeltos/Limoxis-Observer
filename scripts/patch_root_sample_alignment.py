@@ -2,7 +2,7 @@ from pathlib import Path
 p=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
 s=p.read_text()
 old="style={{paddingLeft:`${32+depth*28}px`}}"
-new="style={{paddingLeft:`${linked?32:(depth>0?depth*28:0)}px`}}"
+new="style={{paddingLeft:`${linked?32:depth*28}px`}}"
 assert old in s
 s=s.replace(old,new,1)
 p.write_text(s)
