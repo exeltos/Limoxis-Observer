@@ -14,7 +14,6 @@ import { createDemoLabSample, laboratorySamples } from '../laboratory/laboratory
 import { createPatient } from '../patients/patientsService'
 
 const FLOW_RECOVERY_KEY='limoxis-new-surveillance-flow'
-const FLOW_CREATED_EVENT='limoxis-surveillance-flow-created'
 
 const stepDefs=[
   {id:'start',label:'surveillanceStart',icon:Activity},
@@ -110,17 +109,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
   },[isDemo,tenant?.id])
 
   useEffect(()=>{
-    function restoreCreated(event){
-      const created=event?.detail?.record
-      if(!created)return
-      setRecord(created)
-      setCompletedSteps(current=>new Set([...current,'start']))
-      setSavedDraft(true)
-      setActiveStep('assessment')
-    }
-    window.addEventListener(FLOW_CREATED_EVENT,restoreCreated)
-    try{const saved=JSON.parse(sessionStorage.getItem(FLOW_RECOVERY_KEY)||'null');if(saved?.record&&Date.now()-(saved.at||0)<120000)restoreCreated({detail:{record:saved.record}})}catch{/* noop */}
-    return()=>window.removeEventListener(FLOW_CREATED_EVENT,restoreCreated)
+    try{sessionStorage.removeItem(FLOW_RECOVERY_KEY)}catch{/* noop */}
   },[])
 
   function chooseExistingPatient(id){
@@ -172,7 +161,6 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
         const created=await onCreate({...startDraft,departmentId:startDraft.departmentId||targetPatient.departmentId||null},targetPatient)
         if(!created)throw new Error(language==='el'?'Δεν δημιουργήθηκε το επεισόδιο επιτήρησης.':'The surveillance episode was not created.')
         try{sessionStorage.setItem(FLOW_RECOVERY_KEY,JSON.stringify({record:created,at:Date.now()}))}catch{/* noop */}
-        window.dispatchEvent(new CustomEvent(FLOW_CREATED_EVENT,{detail:{record:created}}))
         setRecord(created);markComplete('start');setSavedDraft(true);setActiveStep('assessment')
       }else{const next={...record,...startDraft};setRecord(next);markComplete('start');onRecordChange?.(next);setSavedDraft(true);setActiveStep('assessment')}
     }catch(error){notify(error?.message||t('actionFailed'),'danger')}finally{setBusy(false)}
