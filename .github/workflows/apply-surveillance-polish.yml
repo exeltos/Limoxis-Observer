@@ -1,0 +1,35 @@
+name: Apply surveillance polish
+on:
+  push:
+    branches: [fix/surveillance-report-terminology-actions]
+    paths: [.github/workflows/apply-surveillance-polish.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/surveillance-report-terminology-actions
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply patch
+        run: python scripts/patch_surveillance_polish.py
+      - name: Validate
+        run: |
+          npm ci
+          npm run lint
+          npm test -- --run
+          npm run build
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-surveillance-polish.yml scripts/patch_surveillance_polish.py
+          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx src/styles/patient-record.css
+          git diff --cached --check
+          git commit -m "Fix surveillance report terminology and actions"
+          git push origin HEAD:fix/surveillance-report-terminology-actions
