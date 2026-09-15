@@ -31,7 +31,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm .github/workflows/patch-patient-tabs-language.yml scripts/patch_patient_tab_language.py
-          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx src/design-system/EntityAttachmentsPanel.jsx
+          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx src/design-system/EntityAttachmentsPanel.jsx tests/globalUiSafetyPatterns.test.js tests/laboratoryAttachmentsGovernance.test.js
           git diff --cached --check
           git commit -m "Polish patient terminology and attachments"
           git push origin HEAD:fix/patient-tabs-language-attachments
+# validation rerun 2
