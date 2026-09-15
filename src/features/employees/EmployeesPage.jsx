@@ -18,31 +18,43 @@ export function EmployeesPage(){
   const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord}=useTenant()
   const {data:employeeRows,loading,error,reload}=useEmployeesData()
   const registry=useRegistryMemory('employees')
-  const saved=registry.loadViewState({query:'',department:'all',profession:'all',status:'all'})
-  const [query,setQuery]=useState(saved.query); const [department,setDepartment]=useState(saved.department); const [profession,setProfession]=useState(saved.profession||'all'); const [status,setStatus]=useState(saved.status)
+  const saved=registry.loadViewState({query:'',department:'all',status:'all'})
+  const [query,setQuery]=useState(saved.query); const [department,setDepartment]=useState(saved.department); const [status,setStatus]=useState(saved.status)
   const [page,setPage]=useState(1); const [pageSize,setPageSize]=useState(15)
   const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[employeeRows,language])
-  const professions=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.profession:x.professionEn).filter(Boolean))].sort((a,b)=>a.localeCompare(b,language==='el'?'el':'en')),[employeeRows,language])
-  const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>profession==='all'||(language==='el'?x.profession:x.professionEn)===profession).filter(x=>status==='all'||x.employmentStatus===status),[employeeRows,query,department,profession,status,language,canAccessRecord])
-  useEffect(()=>setPage(1),[query,department,profession,status,pageSize])
+  const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>status==='all'||x.employmentStatus===status),[employeeRows,query,department,status,language,canAccessRecord])
+  useEffect(()=>setPage(1),[query,department,status,pageSize])
   if(loading)return <RouteLoading/>
   if(error)return <div className="data-access-state error" role="alert"><span>{t('employeesLoadFailed')}</span><button type="button" onClick={reload}>{t('retry')}</button></div>
   const displayName=x=>language==='el'?`${x.lastName} ${x.firstName}`:`${x.firstNameEn} ${x.lastNameEn}`
   const scopedEmployees=employeeRows.filter(x=>canAccessRecord(x))
-  const employeeSummary={total:scopedEmployees.length,active:scopedEmployees.filter(x=>x.employmentStatus==='active').length,inactive:scopedEmployees.filter(x=>x.employmentStatus==='inactive').length,departments:new Set(scopedEmployees.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean)).size}
+  const employeeSummary={
+    total:scopedEmployees.length,
+    active:scopedEmployees.filter(x=>x.employmentStatus==='active').length,
+    inactive:scopedEmployees.filter(x=>x.employmentStatus==='inactive').length,
+    departments:new Set(scopedEmployees.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean)).size,
+  }
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)); const safePage=Math.min(page,totalPages); const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
-  function saveView(){registry.saveViewState({query,department,profession,status})}
-  function openEmployee(row){saveView();registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
-  function action(a){if(a===UI_ACTIONS.CREATE){saveView();navigate('/employees/new')}}
+  function openEmployee(row){registry.saveViewState({query,department,status});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
+  function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});navigate('/employees/new')}}
   return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t('employeesRecords.employeesRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/> }>
-    <div className="workspace-summary employee-registry-summary"><div className="employee-kpis"><Kpi icon={Users} value={employeeSummary.total} label={t('all')}/><Kpi icon={Users} value={employeeSummary.active} label={t('employeesRecords.activeEmployees')} kind="active"/><Kpi icon={Users} value={employeeSummary.inactive} label={t('inactive')}/><Kpi icon={Users} value={employeeSummary.departments} label={t('employeesRecords.departments')}/></div></div>
+    <div className="workspace-summary employee-registry-summary">
+      <div className="employee-kpis">
+        <Kpi icon={Users} value={employeeSummary.total} label={t('all')}/>
+        <Kpi icon={Users} value={employeeSummary.active} label={t('employeesRecords.activeEmployees')} kind="active"/>
+        <Kpi icon={Users} value={employeeSummary.inactive} label={t('inactive')}/>
+        <Kpi icon={Users} value={employeeSummary.departments} label={t('employeesRecords.departments')}/>
+      </div>
+    </div>
     <section className="surface registry-workspace workspace-column workspace-fill employee-registry-shell">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(profession!=='all'?1:0)+(status!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setProfession('all');setStatus('all')}}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(status!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
-        <FilterSelect label={t('professionalCategory')} value={profession} onChange={setProfession}><option value="all">{language==='en'?'All professional categories':'Όλες οι επαγγελματικές κατηγορίες'}</option>{professions.map(x=><option key={x}>{x}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option></FilterSelect>
       </FilterBar>
-      <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table"><thead><tr><th>{t('employeeCode')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><strong>{x.id}</strong></td><td>{displayName(x)}<small>{x.email}</small></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>{!rows.length&&<div className="registry-empty-state"><strong>{t('employeesEmptyTitle')}</strong><span>{t('employeesEmptyDescription')}</span></div>}</div>
+      <div className="scroll-table" ref={registry.scrollRef}>
+        <table className="data-table sticky-table"><thead><tr><th>{t('employeeCode')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><strong>{x.id}</strong></td><td>{displayName(x)}<small>{x.email}</small></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
+        {!rows.length&&<div className="registry-empty-state"><strong>{t('employeesEmptyTitle')}</strong><span>{t('employeesEmptyDescription')}</span></div>}
+      </div>
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </section>
   </Page>
