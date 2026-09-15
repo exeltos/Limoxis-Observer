@@ -176,6 +176,20 @@ export async function createLaboratorySample(organizationId,patientRecordId,draf
   return (await hydrateSamples([data]))[0]
 }
 
+export async function deleteLaboratorySample(organizationId,sampleRecordId){
+  assertCloud()
+  if(!organizationId||!sampleRecordId)throw new Error('Laboratory sample is required.')
+  const {data:micro,error:microError}=await supabase.from('microbiology_results').select('id').eq('organization_id',organizationId).eq('sample_id',sampleRecordId)
+  if(microError)throw microError
+  const microIds=(micro||[]).map(row=>row.id)
+  if(microIds.length){
+    for(const table of ['antimicrobial_susceptibility_results','critical_result_communications','amr_classifications']){const {error}=await supabase.from(table).delete().eq('organization_id',organizationId).in('microbiology_result_id',microIds);if(error)throw error}
+    const {error}=await supabase.from('microbiology_results').delete().eq('organization_id',organizationId).in('id',microIds);if(error)throw error
+  }
+  const {error}=await supabase.from('laboratory_samples').delete().eq('organization_id',organizationId).eq('id',sampleRecordId);if(error)throw error
+  return true
+}
+
 export async function updateLaboratorySampleStatus(organizationId,sampleRecordId,status,patch={}){
   assertCloud()
   const actorId=await currentUserId()

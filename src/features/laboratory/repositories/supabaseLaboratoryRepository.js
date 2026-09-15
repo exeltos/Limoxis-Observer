@@ -1,5 +1,5 @@
 import { repositoryResult } from '../../../core/data/repositoryResult'
-import { addAstResult, communicateCriticalResult, createLaboratorySample, finalizeLaboratorySample, loadEnvironmentalStandards, loadLaboratorySample, loadLaboratorySamples, markDocumentsReviewed, reopenLaboratorySample, saveMicrobiologyResult, updateLaboratorySampleStatus } from '../laboratoryCloudService'
+import { addAstResult, communicateCriticalResult, createLaboratorySample, deleteLaboratorySample, finalizeLaboratorySample, loadEnvironmentalStandards, loadLaboratorySample, loadLaboratorySamples, markDocumentsReviewed, reopenLaboratorySample, saveMicrobiologyResult, updateLaboratorySampleStatus } from '../laboratoryCloudService'
 import { normalizeLaboratorySample, normalizeLaboratorySamples } from '../model/laboratoryModel'
 import { defineLaboratoryRepository } from './laboratoryRepository'
 
@@ -17,6 +17,11 @@ export function createSupabaseLaboratoryRepository({ organizationId } = {}) {
     async create({ patientRecordId, draft }) {
       const sample = await createLaboratorySample(organizationId, patientRecordId, draft)
       return normalizeLaboratorySample(sample)
+    },
+    async remove(sampleCode) {
+      const current = await loadLaboratorySample(organizationId, sampleCode)
+      if (!current) return false
+      return deleteLaboratorySample(organizationId, current.recordId)
     },
     async update(sampleCode, patch) {
       const current = await loadLaboratorySample(organizationId, sampleCode)
