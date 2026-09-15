@@ -33,12 +33,11 @@ jobs:
             start=s.index('function SampleTree(');end=s.find('\nfunction ',start+20)
             if end<0:end=len(s)
             part=s[start:end]
-            marker='<div'
-            if marker not in part: raise SystemExit('SampleTree row container not found')
-            part=part.replace(marker,"<div data-sample-root={depth===0?'true':undefined}",1)
+            if '<div' not in part: raise SystemExit('SampleTree row container not found')
+            part=part.replace('<div',"<div data-sample-root={depth===0?'true':undefined}",1)
             s=s[:start]+part+s[end:]
           p.write_text(s)
-          css=Path('src/styles/surveillance-dropdown-fix.css');c=css.read_text();block='''\n/* Independent laboratory sample groups inside Surveillance & Samples. */\n[data-sample-root="true"] { border-top: 3px solid var(--border-strong, #cbd9e6) !important; box-shadow: inset 3px 0 0 var(--accent, #2f80b7); }\n'''
+          css=Path('src/styles/canonical-registry-visual.css');c=css.read_text();block='''\n/* Independent laboratory sample groups inside Surveillance & Samples. */\n[data-sample-root="true"] { border-top: 3px solid var(--border-strong, #cbd9e6) !important; box-shadow: inset 3px 0 0 var(--accent, #2f80b7); }\n'''
           if 'Independent laboratory sample groups' not in c: css.write_text(c+block)
           PY
       - name: Validate
@@ -51,7 +50,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx src/styles/surveillance-dropdown-fix.css
+          git add src/features/surveillance/PatientClinicalCanonicalPage.jsx src/styles/canonical-registry-visual.css
           git diff --cached --check
           git commit -m "Group independent surveillance samples and refine actions"
           git push origin HEAD:fix/surveillance-grouping-action-buttons
