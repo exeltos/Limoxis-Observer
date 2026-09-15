@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Eye, FileText, LoaderCircle, Paperclip, Trash2, Upload } from 'lucide-react'
+import { AttachmentField } from './AttachmentField'
 import { Button } from './Button'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EmptyState } from './EmptyState'
@@ -10,6 +11,21 @@ import './AttachmentField.css'
 const MAX_FILE_SIZE=25*1024*1024
 
 export function EntityAttachmentsPanel({organizationId,entityType,entityRecordId,category='other',canManage,t,notify}){
+  const categories=[
+    ['generalDocument','generalDocument'],
+    ['medicalReport','medicalReport'],
+    ['laboratoryDocument','laboratoryDocument'],
+    ['correspondence','correspondence'],
+    ['photo','photo'],
+    [category,'other'],
+  ].filter((row,index,all)=>all.findIndex(item=>item[0]===row[0])===index)
+
+  if(entityType!=='clinical_case')return <section className="clinical-panel full-panel"><AttachmentField disabled={!canManage} organizationId={organizationId} entityType={entityType} entityId={entityRecordId} categories={categories}/></section>
+
+  return <PatientClinicalAttachments organizationId={organizationId} entityType={entityType} entityRecordId={entityRecordId} category={category} canManage={canManage} t={t} notify={notify}/>
+}
+
+function PatientClinicalAttachments({organizationId,entityType,entityRecordId,category,canManage,t,notify}){
   const [rows,setRows]=useState([])
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
@@ -49,24 +65,14 @@ export function EntityAttachmentsPanel({organizationId,entityType,entityRecordId
   const size=value=>value>=1048576?`${(value/1048576).toFixed(1)} MB`:`${Math.max(1,Math.round(value/1024))} KB`
 
   return <>
-    <section className="clinical-panel full-panel">
+    <section className="clinical-panel full-panel patient-clinical-attachments">
       <div className="record-section-header"><div><Paperclip size={17}/><strong>{t('attachments')}</strong><small>{rows.length}</small></div>{canManage&&<><input ref={inputRef} type="file" hidden onChange={event=>upload(event.target.files?.[0])}/><Button variant="secondary" disabled={busy} onClick={()=>inputRef.current?.click()}>{uploading?<LoaderCircle className="lo-inline-spinner" size={15}/>:<Upload size={15}/>} {uploading?(t('uploading')||t('loading')):t('upload')}</Button></>}</div>
       {uploading&&<div className="attachment-upload-progress attachment-upload-progress-inline" role="status" aria-live="polite"><LoaderCircle size={22}/><span>{t('uploading')||t('loading')}</span></div>}
       {loading&&!uploading?<div className="inline-empty">{t('loading')}</div>:rows.length?<div className="record-table-wrap"><table className="record-table"><thead><tr><th>{t('document')}</th><th>{t('type')}</th><th>{t('size')}</th><th>{t('actions')}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><strong><FileText size={14}/> {row.name}</strong></td><td>{row.type||'—'}</td><td>{size(row.size)}</td><td><OverflowMenu items={[
-    {id:'view',label:t('view'),icon:Eye,onClick:()=>view(row)},
-    {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>setPendingDelete(row),hidden:!canManage},
-  ]}/></td></tr>)}</tbody></table></div>:<EmptyState title={t('noData')} description={t('attachments')}/>}
+        {id:'view',label:t('view'),icon:Eye,onClick:()=>view(row)},
+        {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>setPendingDelete(row),hidden:!canManage},
+      ]}/></td></tr>)}</tbody></table></div>:<EmptyState title={t('noData')} description={t('attachments')}/>}
     </section>
-    <ConfirmDialog
-      open={Boolean(pendingDelete)}
-      title={t('delete')}
-      description={pendingDelete?`${t('delete')} · ${pendingDelete.name}?`:''}
-      confirmLabel={t('delete')}
-      cancelLabel={t('cancel')}
-      onConfirm={remove}
-      onClose={()=>setPendingDelete(null)}
-      busy={busy}
-      tone="danger"
-    />
+    <ConfirmDialog open={Boolean(pendingDelete)} title={t('delete')} description={pendingDelete?`${t('delete')} · ${pendingDelete.name}?`:''} confirmLabel={t('delete')} cancelLabel={t('cancel')} onConfirm={remove} onClose={()=>setPendingDelete(null)} busy={busy} tone="danger"/>
   </>
 }
