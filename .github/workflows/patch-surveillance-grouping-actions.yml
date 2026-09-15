@@ -24,18 +24,21 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
           p=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx');s=p.read_text()
           for a,b in {
             "language==='el'?'Νέα αγωγή':'New therapy'":"language==='el'?'Νέα αντιμικροβιακή αγωγή':'New antimicrobial therapy'",
             "language==='el'?'Νέα απομόνωση':'New isolation'":"language==='el'?'Νέα καταχώρηση απομόνωσης':'New isolation record'",
           }.items(): s=s.replace(a,b)
-          if 'sample-root-group' not in s:
-            s2,n=re.subn(r'<tr\s+key=\{sample\.id\}',"<tr key={sample.id} className={depth===0?'sample-root-group':''}",s,count=1)
-            if not n: raise SystemExit('SampleTree row marker not found')
-            s=s2
+          if 'data-sample-root' not in s:
+            start=s.index('function SampleTree(')
+            end=s.find('\nfunction ',start+20)
+            if end<0:end=len(s)
+            part=s[start:end]
+            if '<tr' not in part: raise SystemExit('SampleTree tr marker not found')
+            part=part.replace('<tr',"<tr data-sample-root={depth===0?'true':undefined}",1)
+            s=s[:start]+part+s[end:]
           p.write_text(s)
-          css=Path('src/styles/surveillance-dropdown-fix.css');c=css.read_text();block='''\n/* Independent laboratory sample groups inside Surveillance & Samples. */\n.surveillance-workspace .sample-root-group > td { border-top: 3px solid var(--border-strong, #cbd9e6); }\n.surveillance-workspace .sample-root-group > td:first-child { box-shadow: inset 3px 0 0 var(--accent, #2f80b7); }\n'''
+          css=Path('src/styles/surveillance-dropdown-fix.css');c=css.read_text();block='''\n/* Independent laboratory sample groups inside Surveillance & Samples. */\ntr[data-sample-root="true"] > td { border-top: 3px solid var(--border-strong, #cbd9e6) !important; }\ntr[data-sample-root="true"] > td:first-child { box-shadow: inset 3px 0 0 var(--accent, #2f80b7); }\n'''
           if 'Independent laboratory sample groups' not in c: css.write_text(c+block)
           PY
       - name: Validate
