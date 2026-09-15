@@ -26,6 +26,7 @@ import './styles/canonical-registry-visual.css'
 import './styles/filterbar-final.css'
 import './styles/training-refinements.css'
 import './styles/prevention-refinements.css'
+import './styles/surveillance-library-dropdown-fix.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
