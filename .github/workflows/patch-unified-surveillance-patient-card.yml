@@ -24,7 +24,9 @@ jobs:
           from pathlib import Path
           p=Path('scripts/patch_unified_surveillance.py')
           s=p.read_text()
-          s=s.replace("nr=block.rfind('return <div className=\"patient-surveillance-clean\"')","nr=block.rfind('return <')")
+          old="nr=block.rfind('return <div className=\"patient-surveillance-clean\"')"
+          new="nr=block.index('return <div className=\"workspace-column workspace-fill patient-surveillance-clean\"')"
+          s=s.replace(old,new)
           p.write_text(s)
           PY
           python scripts/patch_unified_surveillance.py
