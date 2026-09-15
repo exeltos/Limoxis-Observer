@@ -47,3 +47,15 @@
   box-shadow:none!important;
   background:transparent!important;
 }
+
+/* Shared advanced-filter pattern: one field per row.
+   Keep the popover compact instead of stretching a two-column form across the registry. */
+.filter-popover{
+  width:min(420px,calc(100vw - 24px))!important;
+  min-width:min(360px,calc(100vw - 24px))!important;
+}
+.filter-popover-fields{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:12px!important;
+}
