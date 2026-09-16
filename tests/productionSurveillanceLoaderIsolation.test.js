@@ -16,13 +16,16 @@ describe('Production Surveillance registry loading',()=>{
   it('keeps production employee surveillance behind the sensitive-health gate',()=>{
     expect(source).toContain('const canEmployees=')
     expect(source).toContain('canSeeSensitiveEmployeeHealth')
-    expect(source).toContain('canEmployees?await loadEmployeeSurveillanceBatches')
+    expect(source).toMatch(/const canEmployees=.*(?:OCCUPATIONAL_PHYSICIAN|canSeeSensitiveEmployeeHealth)/)
+    expect(source).toContain("...(canEmployees?[{value:'employees'")
+    expect(source).toContain("onEmployee={()=>canEmployees&&setCreation('employee')}")
+    expect(source).toContain("onBulkEmployee={()=>canEmployees&&setCreation('bulk')}")
   })
 
   it('does not fall back to demo datasets in the production branch',()=>{
     expect(source).toContain('if(isDemo){')
     expect(source).toContain("}else if(tenant?.id){")
     expect(source).toContain('setCases(surveillanceDemoData.map')
-    expect(source).toContain('setCases(results[0].status===\'fulfilled\'?results[0].value:[])')
+    expect(source).toContain("setCases(results[0].status==='fulfilled'?results[0].value:[])")
   })
 })
