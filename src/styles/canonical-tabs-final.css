@@ -1,12 +1,12 @@
 /* Limoxis Observer — canonical tabs
-   Single visual contract. Employee record tabs are the reference. */
+   Single compact visual contract across module and record tabs. */
 .canonical-tabs{
   display:flex;
   align-items:stretch;
-  min-height:60px;
-  height:60px;
+  min-height:46px;
+  height:46px;
   gap:0;
-  padding:0 10px;
+  padding:0 8px;
   margin:0;
   overflow-x:auto;
   overflow-y:hidden;
@@ -21,31 +21,30 @@
   flex:0 0 auto;
   align-items:center;
   justify-content:center;
-  height:60px;
-  padding:0 18px;
-  gap:8px;
+  height:46px;
+  padding:0 13px;
+  gap:6px;
   border:0;
   border-bottom:2px solid transparent;
   border-radius:0;
   background:transparent;
   box-shadow:none;
   color:#65788d;
-  font-size:16px;
+  font-size:14px;
   line-height:1;
   font-weight:600;
   white-space:nowrap;
   cursor:pointer;
 }
-.canonical-tab svg{width:20px;height:20px;flex:0 0 auto;color:currentColor;stroke-width:1.7}
+.canonical-tab svg{width:17px;height:17px;flex:0 0 auto;color:currentColor;stroke-width:1.7}
 .canonical-tab:hover{background:transparent;color:#244b6a}
 .canonical-tab.active,.canonical-tab[aria-selected="true"]{border-bottom-color:#2582bd;background:transparent;color:#0b6097;font-weight:700;box-shadow:none}
 .canonical-tab:focus-visible{outline:2px solid rgba(37,130,189,.24);outline-offset:-4px}
 
-/* Existing record shells keep the same canonical appearance while they are
-   migrated to CanonicalTabs. */
-.entity-record-tabs{display:flex!important;align-items:stretch!important;min-height:60px!important;height:60px!important;gap:0!important;padding:0 10px!important;margin:0!important;overflow-x:auto!important;overflow-y:hidden!important;border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
-.entity-record-tabs>button{display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;height:60px!important;padding:0 18px!important;gap:8px!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#65788d!important;font-size:16px!important;line-height:1!important;font-weight:600!important;white-space:nowrap!important}
-.entity-record-tabs>button svg{width:20px!important;height:20px!important;color:currentColor!important;stroke-width:1.7!important}
+/* Existing record shells use the same compact canonical dimensions. */
+.entity-record-tabs{display:flex!important;align-items:stretch!important;min-height:46px!important;height:46px!important;gap:0!important;padding:0 8px!important;margin:0!important;overflow-x:auto!important;overflow-y:hidden!important;border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
+.entity-record-tabs>button{display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;height:46px!important;padding:0 13px!important;gap:6px!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#65788d!important;font-size:14px!important;line-height:1!important;font-weight:600!important;white-space:nowrap!important}
+.entity-record-tabs>button svg{width:17px!important;height:17px!important;color:currentColor!important;stroke-width:1.7!important}
 .entity-record-tabs>button.active,.entity-record-tabs>button[aria-selected="true"]{border-bottom-color:#2582bd!important;background:transparent!important;color:#0b6097!important;font-weight:700!important}
 .entity-record-tabs.surface{border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important;box-shadow:none!important}
 
