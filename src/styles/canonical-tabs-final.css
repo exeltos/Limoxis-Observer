@@ -1,7 +1,7 @@
 /* Limoxis Observer — canonical tabs
-   Final visual contract. Employee record tabs are the reference pattern.
-   This file is intentionally loaded last: legacy tab declarations may still exist
-   in older module styles, but must not be able to change the canonical appearance. */
+   One visual contract for every module/record tab bar.
+   Employee record tabs are the reference: icon + label, white bar,
+   blue active text and a thin blue underline. No pills. */
 
 .tabs,
 .canonical-module-tabs,
@@ -9,10 +9,10 @@
 .surveillance-domain-tabs{
   display:flex!important;
   align-items:stretch!important;
-  min-height:42px!important;
-  height:auto!important;
+  min-height:60px!important;
+  height:60px!important;
   gap:0!important;
-  padding:0 8px!important;
+  padding:0 10px!important;
   margin:0!important;
   overflow-x:auto!important;
   overflow-y:hidden!important;
@@ -33,19 +33,19 @@
   flex:0 0 auto!important;
   align-items:center!important;
   justify-content:center!important;
-  min-height:42px!important;
-  height:42px!important;
-  padding:0 12px!important;
-  gap:6px!important;
+  min-height:60px!important;
+  height:60px!important;
+  padding:0 18px!important;
+  gap:8px!important;
   border:0!important;
   border-bottom:2px solid transparent!important;
   border-radius:0!important;
   background:transparent!important;
   box-shadow:none!important;
-  color:#68788a!important;
-  font-size:11.5px!important;
+  color:#65788d!important;
+  font-size:16px!important;
   line-height:1!important;
-  font-weight:560!important;
+  font-weight:600!important;
   white-space:nowrap!important;
   cursor:pointer!important;
 }
@@ -54,19 +54,19 @@
 .canonical-module-tabs>.tab svg,
 .entity-record-tabs>button svg,
 .surveillance-domain-tabs>.tab svg{
-  width:16px!important;
-  height:16px!important;
+  width:20px!important;
+  height:20px!important;
   flex:0 0 auto!important;
   color:currentColor!important;
-  stroke-width:1.8!important;
+  stroke-width:1.7!important;
 }
 
 .tabs>.tab:hover:not(:disabled),
 .canonical-module-tabs>.tab:hover:not(:disabled),
 .entity-record-tabs>button:hover:not(:disabled),
 .surveillance-domain-tabs>.tab:hover:not(:disabled){
-  background:#f8fafb!important;
-  color:#33495f!important;
+  background:transparent!important;
+  color:#244b6a!important;
 }
 
 .tabs>.tab.active,
@@ -74,11 +74,11 @@
 .entity-record-tabs>button.active,
 .entity-record-tabs>button[aria-selected="true"],
 .surveillance-domain-tabs>.tab.active{
-  border-bottom-color:var(--lo-color-primary)!important;
+  border-bottom-color:#2582bd!important;
   border-radius:0!important;
   background:transparent!important;
-  color:var(--lo-color-primary)!important;
-  font-weight:650!important;
+  color:#0b6097!important;
+  font-weight:700!important;
   box-shadow:none!important;
 }
 
@@ -86,41 +86,20 @@
 .canonical-module-tabs>.tab:focus-visible,
 .entity-record-tabs>button:focus-visible,
 .surveillance-domain-tabs>.tab:focus-visible{
-  outline:2px solid rgba(37,107,155,.28)!important;
-  outline-offset:-3px!important;
+  outline:2px solid rgba(37,130,189,.24)!important;
+  outline-offset:-4px!important;
 }
 
 .tabs>.tab:disabled,
 .canonical-module-tabs>.tab:disabled,
 .entity-record-tabs>button:disabled,
-.surveillance-domain-tabs>.tab:disabled{
-  opacity:.48!important;
-  cursor:not-allowed!important;
-}
+.surveillance-domain-tabs>.tab:disabled{opacity:.48!important;cursor:not-allowed!important;}
 
-.entity-record-tabs.surface{
-  border-left:0!important;
-  border-right:0!important;
-  border-top:0!important;
-  border-radius:0!important;
-  box-shadow:none!important;
-}
+.entity-record-tabs.surface{border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important;box-shadow:none!important;}
 
-/* Surveillance categories are module tabs, not pills. */
-.surveillance-domain-tabs.canonical-module-tabs{
-  padding:0 8px!important;
-  background:#fff!important;
-}
-.surveillance-domain-tabs.canonical-module-tabs>.tab.active{
-  background:transparent!important;
-  border-radius:0!important;
-  box-shadow:none!important;
-}
-
-/* Environmental surveillance lives inside the same registry workspace as
-   Patients / Employees / Bulk surveillance. Remove the nested-card treatment
-   while preserving its useful heading, summary and table content. */
-.registry-workspace>.environmental-registry.surface{
+/* Surveillance is a single registry workspace. Environmental mode must not
+   introduce its own nested card/header/KPI dashboard. */
+.registry-workspace>.environmental-registry{
   min-height:0!important;
   height:100%!important;
   margin:0!important;
@@ -131,31 +110,5 @@
   box-shadow:none!important;
   overflow:hidden!important;
 }
-.registry-workspace>.environmental-registry .registry-section-heading{
-  margin:0!important;
-  padding:10px 12px!important;
-  border-bottom:1px solid var(--lo-color-border)!important;
-  background:#fff!important;
-}
-.registry-workspace>.environmental-registry .environmental-summary-strip{
-  margin:0!important;
-  padding:8px 12px!important;
-  border:0!important;
-  border-bottom:1px solid var(--lo-color-border)!important;
-  border-radius:0!important;
-  background:var(--lo-color-surface-muted)!important;
-  box-shadow:none!important;
-}
-.registry-workspace>.environmental-registry .scroll-table{
-  min-height:0!important;
-  margin:0!important;
-  border:0!important;
-  border-radius:0!important;
-  box-shadow:none!important;
-  overflow:auto!important;
-}
-.registry-workspace>.environmental-registry .data-table{
-  margin:0!important;
-  border:0!important;
-  border-radius:0!important;
-}
+.registry-workspace>.environmental-registry .scroll-table{height:100%!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:auto!important;}
+.registry-workspace>.environmental-registry .data-table{margin:0!important;border:0!important;border-radius:0!important;}
