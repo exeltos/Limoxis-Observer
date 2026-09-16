@@ -1,0 +1,67 @@
+/* Limoxis Observer — canonical tabs
+   Single final visual contract for module and record tabs. */
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs,.surveillance-domain-tabs){
+  display:flex!important;
+  align-items:stretch!important;
+  min-height:42px!important;
+  height:auto!important;
+  gap:0!important;
+  padding:0 6px!important;
+  margin:0!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scrollbar-width:thin;
+  border:0!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs,.surveillance-domain-tabs) :where(.tab,button){
+  position:relative!important;
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:42px!important;
+  height:42px!important;
+  padding:0 12px!important;
+  gap:6px!important;
+  border:0!important;
+  border-bottom:2px solid transparent!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#68788a!important;
+  font-size:11.5px!important;
+  line-height:1!important;
+  font-weight:560!important;
+  white-space:nowrap!important;
+  cursor:pointer;
+}
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs,.surveillance-domain-tabs) :where(.tab,button) svg{
+  width:16px!important;
+  height:16px!important;
+  flex:0 0 auto!important;
+  color:currentColor!important;
+  stroke-width:1.8!important;
+}
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs,.surveillance-domain-tabs) :where(.tab,button):hover:not(:disabled){
+  background:#f8fafb!important;
+  color:#33495f!important;
+}
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs,.surveillance-domain-tabs) :where(.tab.active,.active,button[aria-selected="true"]){
+  border-bottom-color:var(--lo-color-primary)!important;
+  background:transparent!important;
+  color:var(--lo-color-primary)!important;
+  font-weight:650!important;
+}
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs,.surveillance-domain-tabs) :where(.tab,button):focus-visible{
+  outline:2px solid rgba(37,107,155,.28)!important;
+  outline-offset:-3px!important;
+}
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs,.surveillance-domain-tabs) :where(.tab,button):disabled{
+  opacity:.48!important;
+  cursor:not-allowed!important;
+}
+.entity-record-tabs.surface{border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important;box-shadow:none!important;}
