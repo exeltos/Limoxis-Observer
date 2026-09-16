@@ -27,10 +27,11 @@ function mapRow(row, departmentLabel){
   }
 }
 
-async function patientCacheKey(organizationId){
-  const {data}=await supabase.auth.getSession()
-  const userId=data?.session?.user?.id
-  return userId?`${organizationId}:${userId}`:null
+async function authenticatedUserId(){
+  if(!supabase?.auth?.getSession)return null
+  const {data,error}=await supabase.auth.getSession()
+  if(error)throw error
+  return data?.session?.user?.id||null
 }
 
 function invalidatePatientCache(organizationId){
@@ -40,7 +41,8 @@ function invalidatePatientCache(organizationId){
 
 export async function loadPatients(organizationId, {isDemo=false}={}){
   if(isDemo || !organizationId || !supabase) return structuredClone(patientDemoData)
-  const cacheKey=await patientCacheKey(organizationId)
+  const userId=await authenticatedUserId()
+  const cacheKey=userId?`${organizationId}:${userId}`:null
   const cached=cacheKey?patientRosterCache.get(cacheKey):null
   if(cached?.promise)return cached.promise
   if(cached?.rows&&Date.now()-cached.loadedAt<PATIENT_CACHE_TTL_MS)return cached.rows
@@ -48,7 +50,11 @@ export async function loadPatients(organizationId, {isDemo=false}={}){
     const {data,error}=await supabase.from('patients').select('*, department:departments(name)').eq('organization_id',organizationId).order('admission_date',{ascending:false})
     if(error) throw error
     const rows=(data??[]).map(row=>mapRow(row,row.department?.name))
-    if(cacheKey)patientRosterCache.set(cacheKey,{rows,loadedAt:Date.now()})
+    if(cacheKey){
+      const currentUserId=await authenticatedUserId()
+      if(currentUserId===userId)patientRosterCache.set(cacheKey,{rows,loadedAt:Date.now()})
+      else patientRosterCache.delete(cacheKey)
+    }
     return rows
   })()
   if(cacheKey)patientRosterCache.set(cacheKey,{promise,loadedAt:Date.now()})
