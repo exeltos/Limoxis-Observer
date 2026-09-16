@@ -14,6 +14,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { loadPatients, createPatient, loadAdmissions } from './patientsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { loadDepartments } from '../management/departmentsService'
+import { createClinicalRepository } from '../surveillance/clinicalRepository'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -37,6 +38,7 @@ export function PatientsPage(){
   const [pageSize,setPageSize]=useState(15)
   const [newOpen,setNewOpen]=useState(false)
   const [openingPatientId,setOpeningPatientId]=useState('')
+  const clinicalRepository=useMemo(()=>createClinicalRepository({isDemo,organizationId:tenant?.id,actor:{id:'patient-prefetch',name:'Patient prefetch'}}),[isDemo,tenant?.id])
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive)notify(error?.message||t('patientsLoadFailed'),'danger')})
@@ -54,9 +56,14 @@ export function PatientsPage(){
     if(openingPatientId)return
     setOpeningPatientId(patient.id)
     try{
-      const [,admissions]=await Promise.all([preloadPatientClinicalRoute(),patient.recordId&&!isDemo?loadAdmissions(patient.recordId):Promise.resolve([])])
+      const [,admissions,episodes,departmentsForRecord]=await Promise.all([
+        preloadPatientClinicalRoute(),
+        patient.recordId&&!isDemo?loadAdmissions(patient.recordId):Promise.resolve([]),
+        clinicalRepository.loadForPatient(patient),
+        !isDemo&&tenant?.id?loadDepartments(tenant.id):Promise.resolve(departmentOptions),
+      ])
       registry.saveViewState(viewState)
-      registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id),{state:{prefetchedPatient:patient,prefetchedAdmissions:admissions}})
+      registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id),{state:{prefetchedPatient:patient,prefetchedAdmissions:admissions,prefetchedEpisodes:episodes,prefetchedDepartments:(departmentsForRecord||[]).filter(row=>row.is_active!==false),patientPrefetchComplete:true}})
     }catch(error){notify(error?.message||t('actionFailed'),'danger');setOpeningPatientId('')}
   }
   async function savePatient(draft){try{const {record:patient,list}=await createPatient(tenant?.id,patients,draft,{isDemo});setPatients(list);setNewOpen(false);setQuery('');setDepartment('all');setStatus('all');notify(t('patientCreated'),'success');requestAnimationFrame(()=>{void openPatient(patient,{query:'',department:'all',status:'all'})})}catch(error){notify(error?.duplicateCode?t('patientCodeDuplicate'):(error?.message||t('patientSaveFailed')),'danger')}}
