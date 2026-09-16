@@ -1,0 +1,60 @@
+name: Apply patient prefetch fix
+on:
+  push:
+    branches: [fix/patient-complete-prefetch]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/patient-complete-prefetch
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - name: Apply focused source changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p=Path('src/features/patients/PatientsPage.jsx')
+          s=p.read_text()
+          old="{state:{prefetchedPatient:patient,prefetchedAdmissions:admissions,prefetchedEpisodes:episodes,prefetchedDepartments:(departmentsForRecord||[]).filter(row=>row.is_active!==false),patientPrefetchComplete:true}}"
+          new="{state:{prefetchedPatient:patient,prefetchedPatients:patients,prefetchedAdmissions:admissions,prefetchedEpisodes:episodes,prefetchedDepartments:(departmentsForRecord||[]).filter(row=>row.is_active!==false),patientPrefetchComplete:true}}"
+          assert old in s
+          p.write_text(s.replace(old,new,1))
+
+          p=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
+          s=p.read_text()
+          old="""  const laboratory=useLaboratoryRegistry()\n  const [patients,setPatients]=useState([]),[episodes,setEpisodes]=useState([]),[admissions,setAdmissions]=useState([]),[departments,setDepartments]=useState([])\n  const [selectedAdmissionId,setSelectedAdmissionId]=useState(()=>patientMode?(location.state?.admissionId||''):'')\n  const [selectedEpisodeId,setSelectedEpisodeId]=useState(caseId||''),[loading,setLoading]=useState(true),[error,setError]=useState(''),[createOpen,setCreateOpen]=useState(false)"""
+          new="""  const laboratory=useLaboratoryRegistry()\n  const initialPrefetch=patientMode&&location.state?.patientPrefetchComplete&&String(location.state?.prefetchedPatient?.id)===String(patientId)?location.state:null\n  const [patients,setPatients]=useState(()=>initialPrefetch?.prefetchedPatients||[]),[episodes,setEpisodes]=useState(()=>initialPrefetch?.prefetchedEpisodes||[]),[admissions,setAdmissions]=useState(()=>initialPrefetch?.prefetchedAdmissions||[]),[departments,setDepartments]=useState(()=>initialPrefetch?.prefetchedDepartments||[])\n  const [selectedAdmissionId,setSelectedAdmissionId]=useState(()=>patientMode?(location.state?.admissionId||''):'')\n  const [selectedEpisodeId,setSelectedEpisodeId]=useState(caseId||''),[loading,setLoading]=useState(()=>!initialPrefetch),[error,setError]=useState(''),[createOpen,setCreateOpen]=useState(false)"""
+          assert old in s
+          s=s.replace(old,new,1)
+          old="  useEffect(()=>{void load()},[tenant?.id,isDemo,patientMode,patientId,caseId])"
+          new="  useEffect(()=>{if(initialPrefetch)return;void load()},[tenant?.id,isDemo,patientMode,patientId,caseId])"
+          assert old in s
+          p.write_text(s.replace(old,new,1))
+
+          p=Path('src/features/patients/patientsService.js')
+          s=p.read_text()
+          old="if(error){if(error.code==='23505')error.duplicateCode=true;throw error}patientRosterCache.delete(organizationId);const record=mapRow(data,department?.name||draft.department);return {record,list:[record,...existing]}"
+          new="if(error){if(error.code==='23505')error.duplicateCode=true;throw error}patientRosterCache.delete(organizationId);admissionCache.delete(data.id);const record=mapRow(data,department?.name||draft.department);return {record,list:[record,...existing]}"
+          assert old in s
+          p.write_text(s.replace(old,new,1))
+      - name: Test
+        run: npm run test
+      - name: Build
+        run: npm run build
+      - name: Commit verified fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-patient-prefetch-fix.yml
+          git add src/features/patients/PatientsPage.jsx src/features/patients/patientsService.js src/features/surveillance/PatientClinicalCanonicalPage.jsx
+          git commit -m "fix: open prefetched patient record without loading flash"
+          git push origin HEAD:fix/patient-complete-prefetch
