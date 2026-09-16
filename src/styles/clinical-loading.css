@@ -74,53 +74,8 @@
 
 .lo-loading-inline .lo-loading-spinner{width:18px;height:18px;flex-basis:18px;border-width:2px}
 
-/* Surveillance domains — three clear primary destinations.
-   Bulk employee surveillance is an action inside Employees, not a fourth domain. */
-.surveillance-domain-tabs{
-  display:flex!important;
-  align-items:center!important;
-  gap:6px!important;
-  min-height:46px!important;
-  padding:5px!important;
-  margin:0!important;
-  border:1px solid var(--lo-color-border,#dbe2e8)!important;
-  border-radius:10px!important;
-  background:#f7f9fb!important;
-  box-shadow:none!important;
-}
-.surveillance-domain-tabs .tab{
-  flex:0 1 auto!important;
-  min-width:118px!important;
-  height:34px!important;
-  min-height:34px!important;
-  padding:0 13px!important;
-  display:inline-flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  gap:7px!important;
-  border:1px solid transparent!important;
-  border-radius:7px!important;
-  background:transparent!important;
-  color:#5f7184!important;
-  font-size:11.5px!important;
-  font-weight:620!important;
-  transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease!important;
-}
-.surveillance-domain-tabs .tab svg{width:15px!important;height:15px!important;opacity:.78!important}
-.surveillance-domain-tabs .tab:hover{
-  background:#fff!important;
-  border-color:#e0e7ed!important;
-  color:#304b63!important;
-}
-.surveillance-domain-tabs .tab.active{
-  background:#fff!important;
-  border-color:#cbdce8!important;
-  color:var(--lo-color-primary,#256b9b)!important;
-  font-weight:680!important;
-  box-shadow:0 1px 2px rgba(17,32,49,.05),inset 0 -2px 0 var(--lo-color-primary,#256b9b)!important;
-}
-.surveillance-domain-tabs .tab.active svg{opacity:1!important}
-/* With employee access the third legacy tab is Bulk surveillance; hide it from the primary navigation. */
+/* Surveillance uses the same shared tab language as record pages.
+   Bulk employee surveillance is a workflow inside Employees, not a primary tab. */
 .surveillance-domain-tabs .tab:nth-of-type(3){display:none!important}
 
 @keyframes loSpinnerRotate{to{transform:rotate(360deg)}}
@@ -128,5 +83,4 @@
 @media (prefers-reduced-motion:reduce){
   .route-loading-spinner,
   .lo-loading-spinner{animation-duration:1.6s}
-  .surveillance-domain-tabs .tab{transition:none!important}
 }
