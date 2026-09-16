@@ -1,49 +1,86 @@
-/* Patient clinical record loading state.
-   Keeps the page geometry stable while data is fetched, instead of showing
-   a large blank surface with a small loading label. */
+/* Unified Limoxis Observer loading language.
+   Keep the surrounding page/surface stable and show a quiet circular progress
+   indicator only where data is being resolved. */
+
 .clinical-surface:not(.workspace-fill){
   position:relative;
   min-height:354px;
   overflow:hidden;
-  padding:0;
-  background:
-    linear-gradient(90deg,rgba(229,235,240,.78) 25%,rgba(246,248,250,.96) 37%,rgba(229,235,240,.78) 63%) 24px 28px/180px 14px no-repeat,
-    linear-gradient(90deg,rgba(229,235,240,.78) 25%,rgba(246,248,250,.96) 37%,rgba(229,235,240,.78) 63%) 24px 58px/300px 24px no-repeat,
-    linear-gradient(90deg,rgba(229,235,240,.78) 25%,rgba(246,248,250,.96) 37%,rgba(229,235,240,.78) 63%) 24px 96px/230px 12px no-repeat,
-    var(--surface,#fff);
+  background:var(--surface,#fff);
 }
+
 .clinical-surface:not(.workspace-fill)>p{
   position:absolute;
-  width:1px;height:1px;
-  padding:0;margin:-1px;
-  overflow:hidden;clip:rect(0,0,0,0);
-  white-space:nowrap;border:0;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin:0;
+  color:var(--lo-color-muted,#667b8c);
+  font-size:12px;
+  font-weight:650;
 }
-.clinical-surface:not(.workspace-fill)::before{
+
+.clinical-surface:not(.workspace-fill)>p::before,
+.route-loading-spinner,
+.lo-loading-spinner{
   content:'';
-  position:absolute;
-  left:24px;right:24px;top:132px;
-  height:48px;
-  border-top:1px solid var(--border,#dce4ea);
-  border-bottom:1px solid var(--border,#dce4ea);
-  background:
-    linear-gradient(#e7edf1,#e7edf1) 0 16px/88px 14px no-repeat,
-    linear-gradient(#e7edf1,#e7edf1) 120px 16px/118px 14px no-repeat,
-    linear-gradient(#e7edf1,#e7edf1) 270px 16px/102px 14px no-repeat,
-    linear-gradient(#e7edf1,#e7edf1) 404px 16px/92px 14px no-repeat;
+  display:inline-block;
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  border:3px solid color-mix(in srgb,var(--lo-color-primary,#1685b8) 18%,transparent);
+  border-top-color:var(--lo-color-primary,#1685b8);
+  border-radius:50%;
+  animation:loSpinnerRotate .72s linear infinite;
 }
-.clinical-surface:not(.workspace-fill)::after{
-  content:'';
-  position:absolute;
-  left:24px;right:24px;top:206px;height:112px;
-  border:1px solid var(--border,#dce4ea);
-  border-radius:10px;
-  background:
-    linear-gradient(#e7edf1,#e7edf1) 18px 18px/150px 15px no-repeat,
-    linear-gradient(#edf1f4,#edf1f4) 18px 52px/calc(33% - 30px) 42px no-repeat,
-    linear-gradient(#edf1f4,#edf1f4) 34% 52px/calc(33% - 30px) 42px no-repeat,
-    linear-gradient(#edf1f4,#edf1f4) 67% 52px/calc(33% - 30px) 42px no-repeat;
-  animation:clinicalSkeletonPulse 1.35s ease-in-out infinite alternate;
+
+.route-loading{
+  min-height:120px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  background:transparent;
 }
-@keyframes clinicalSkeletonPulse{from{opacity:.58}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){.clinical-surface:not(.workspace-fill)::after{animation:none}}
+
+.lo-loading-region{
+  position:relative;
+  min-height:72px;
+}
+
+.lo-loading-overlay{
+  position:absolute;
+  inset:0;
+  z-index:3;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  background:color-mix(in srgb,var(--surface,#fff) 86%,transparent);
+  color:var(--lo-color-muted,#667b8c);
+  font-size:12px;
+  font-weight:650;
+  border-radius:inherit;
+}
+
+.lo-loading-inline{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:34px;
+  color:var(--lo-color-muted,#667b8c);
+  font-size:12px;
+}
+
+.lo-loading-inline .lo-loading-spinner{width:18px;height:18px;flex-basis:18px;border-width:2px}
+
+@keyframes loSpinnerRotate{to{transform:rotate(360deg)}}
+
+@media (prefers-reduced-motion:reduce){
+  .clinical-surface:not(.workspace-fill)>p::before,
+  .route-loading-spinner,
+  .lo-loading-spinner{animation-duration:1.6s}
+}
