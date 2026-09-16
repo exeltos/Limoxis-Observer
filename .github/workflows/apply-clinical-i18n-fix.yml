@@ -1,38 +1,49 @@
 name: Apply clinical bilingual display fix
-on: push
+on:
+  push:
+    branches: [fix/clinical-el-en-display]
 permissions:
   contents: write
 jobs:
   patch:
-    if: github.event.head_commit.message == 'chore: apply clinical bilingual display fix'
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fix/clinical-el-en-display
-      - name: Patch clinical display translations
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - name: Apply focused source changes
+        shell: python
         run: |
-          python - <<'PY'
           from pathlib import Path
           p=Path('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
           s=p.read_text()
           old="<Detail label={t('classification')} value={t(record.assessment.classification||'undetermined')}/>"
           new="<Detail label={language==='el'?'Κλινική ταξινόμηση':'Clinical classification'} value={clinicalTerm(record.assessment.classification||'undetermined',language)}/>"
-          assert old in s, 'classification fragment not found'
+          assert old in s
           s=s.replace(old,new,1)
           old="FEVER:'Πυρετός',CHILLS:'Ρίγος',RIGORS:'Έντονο ρίγος',ICU_STAY:"
           new="FEVER:'Πυρετός',CHILLS:'Ρίγος',RIGORS:'Έντονο ρίγος',COUGH:'Βήχας',SPUTUM:'Απόχρεμψη',ICU_STAY:"
-          assert old in s, 'EL clinical term fragment not found'
+          assert old in s
           s=s.replace(old,new,1)
           old="FEVER:'Fever',CHILLS:'Chills',RIGORS:'Rigors',ICU_STAY:"
           new="FEVER:'Fever',CHILLS:'Chills',RIGORS:'Rigors',COUGH:'Cough',SPUTUM:'Sputum production',ICU_STAY:"
-          assert old in s, 'EN clinical term fragment not found'
-          s=s.replace(old,new,1)
-          p.write_text(s)
-          PY
+          assert old in s
+          p.write_text(s.replace(old,new,1))
+      - name: Test
+        run: npm run test
+      - name: Build
+        run: npm run build
+      - name: Commit verified fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm .github/workflows/apply-clinical-i18n-fix.yml
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git add src/features/surveillance/PatientClinicalCanonicalPage.jsx
           git commit -m "fix: localize clinical assessment display"
           git push origin HEAD:fix/clinical-el-en-display
