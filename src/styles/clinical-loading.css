@@ -1,0 +1,28 @@
+/* Stable in-place loading state for clinical workspaces. */
+.clinical-page-loading{
+  min-height:calc(100dvh - var(--lo-topbar-height) - 92px);
+  display:grid;
+  place-items:center;
+}
+.clinical-loading-state{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-height:44px;
+  padding:10px 14px;
+  color:var(--lo-color-muted);
+  font-size:12px;
+  font-weight:560;
+}
+.clinical-loading-spinner{
+  width:20px;
+  height:20px;
+  flex:0 0 20px;
+  border:2px solid #d8e3eb;
+  border-top-color:var(--lo-color-primary);
+  border-radius:50%;
+  animation:lo-clinical-spin .72s linear infinite;
+}
+@keyframes lo-clinical-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.clinical-loading-spinner{animation-duration:1.5s}}
