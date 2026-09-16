@@ -29,7 +29,7 @@ export function GlobalTextareaExpander(){
       button.style.right=`${Math.max(5,parentRect.right-rect.right+6)}px`
     }
     const enhance=(textarea)=>{
-      if(!(textarea instanceof HTMLTextAreaElement)||textarea.dataset.limoxisExpandable==='true'||textarea.closest('.global-textarea-editor'))return
+      if(!(textarea instanceof HTMLTextAreaElement)||textarea.dataset.limoxisExpandable==='true'||textarea.dataset.limoxisNoExpand==='true'||textarea.closest('.global-textarea-editor'))return
       const parent=textarea.parentElement
       if(!parent)return
       textarea.dataset.limoxisExpandable='true'
