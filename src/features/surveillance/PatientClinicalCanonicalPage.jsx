@@ -38,9 +38,10 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
   const {goBack,restored}=useContextualNavigation(patientMode?'/patients':'/surveillance')
   const repository=useMemo(()=>createClinicalRepository({isDemo,organizationId:tenant?.id,actor}),[isDemo,tenant?.id,actor.id,actor.name])
   const laboratory=useLaboratoryRegistry()
-  const [patients,setPatients]=useState([]),[episodes,setEpisodes]=useState([]),[admissions,setAdmissions]=useState([]),[departments,setDepartments]=useState([])
+  const initialPrefetch=patientMode&&location.state?.patientPrefetchComplete&&String(location.state?.prefetchedPatient?.id)===String(patientId)?location.state:null
+  const [patients,setPatients]=useState(()=>initialPrefetch?.prefetchedPatients||[]),[episodes,setEpisodes]=useState(()=>initialPrefetch?.prefetchedEpisodes||[]),[admissions,setAdmissions]=useState(()=>initialPrefetch?.prefetchedAdmissions||[]),[departments,setDepartments]=useState(()=>initialPrefetch?.prefetchedDepartments||[])
   const [selectedAdmissionId,setSelectedAdmissionId]=useState(()=>patientMode?(location.state?.admissionId||''):'')
-  const [selectedEpisodeId,setSelectedEpisodeId]=useState(caseId||''),[loading,setLoading]=useState(true),[error,setError]=useState(''),[createOpen,setCreateOpen]=useState(false)
+  const [selectedEpisodeId,setSelectedEpisodeId]=useState(caseId||''),[loading,setLoading]=useState(()=>!initialPrefetch),[error,setError]=useState(''),[createOpen,setCreateOpen]=useState(false)
   const [sampleToLink,setSampleToLink]=useState(null)
   const [tab,setTab]=useState(()=>location.state?.openTab||restored?.tab||'summary')
   const has=cap=>can(role,cap,membership?.capabilities??[],membership?.customCapabilities??[])
@@ -91,7 +92,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
     }catch(err){setError(err?.message||t('actionFailed'))}
     finally{setLoading(false)}
   }
-  useEffect(()=>{void load()},[tenant?.id,isDemo,patientMode,patientId,caseId])
+  useEffect(()=>{if(initialPrefetch)return;void load()},[tenant?.id,isDemo,patientMode,patientId,caseId])
 
   if(loading)return <Page title={t('clinicalRecords.patientRecord')}><div className="surface clinical-surface"><p>{t('loading')}</p></div></Page>
   if(error)return <Page title={t('clinicalRecords.patientRecord')}><EmptyState title={t('actionFailed')} description={error}/></Page>

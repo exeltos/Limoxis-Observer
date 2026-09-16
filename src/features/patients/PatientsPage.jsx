@@ -63,7 +63,7 @@ export function PatientsPage(){
         !isDemo&&tenant?.id?loadDepartments(tenant.id):Promise.resolve(departmentOptions),
       ])
       registry.saveViewState(viewState)
-      registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id),{state:{prefetchedPatient:patient,prefetchedAdmissions:admissions,prefetchedEpisodes:episodes,prefetchedDepartments:(departmentsForRecord||[]).filter(row=>row.is_active!==false),patientPrefetchComplete:true}})
+      registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id),{state:{prefetchedPatient:patient,prefetchedPatients:patients,prefetchedAdmissions:admissions,prefetchedEpisodes:episodes,prefetchedDepartments:(departmentsForRecord||[]).filter(row=>row.is_active!==false),patientPrefetchComplete:true}})
     }catch(error){notify(error?.message||t('actionFailed'),'danger');setOpeningPatientId('')}
   }
   async function savePatient(draft){try{const {record:patient,list}=await createPatient(tenant?.id,patients,draft,{isDemo});setPatients(list);setNewOpen(false);setQuery('');setDepartment('all');setStatus('all');notify(t('patientCreated'),'success');requestAnimationFrame(()=>{void openPatient(patient,{query:'',department:'all',status:'all'})})}catch(error){notify(error?.duplicateCode?t('patientCodeDuplicate'):(error?.message||t('patientSaveFailed')),'danger')}}
