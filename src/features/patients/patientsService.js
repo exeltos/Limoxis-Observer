@@ -1,6 +1,9 @@
 import { supabase } from '../../core/supabase/client'
 import { patientDemoData } from './patientDemoData'
 
+const PATIENT_CACHE_TTL_MS=15000
+const patientRosterCache=new Map()
+
 function mapRow(row, departmentLabel){
   const name=`${row.first_name||''} ${row.last_name||''}`.trim()
   return {
@@ -26,9 +29,18 @@ function mapRow(row, departmentLabel){
 
 export async function loadPatients(organizationId, {isDemo=false}={}){
   if(isDemo || !organizationId || !supabase) return structuredClone(patientDemoData)
-  const {data,error}=await supabase.from('patients').select('*, department:departments(name)').eq('organization_id',organizationId).order('admission_date',{ascending:false})
-  if(error) throw error
-  return (data??[]).map(row=>mapRow(row,row.department?.name))
+  const cached=patientRosterCache.get(organizationId)
+  if(cached&&Date.now()-cached.loadedAt<PATIENT_CACHE_TTL_MS)return cached.rows
+  if(cached?.promise)return cached.promise
+  const promise=(async()=>{
+    const {data,error}=await supabase.from('patients').select('*, department:departments(name)').eq('organization_id',organizationId).order('admission_date',{ascending:false})
+    if(error) throw error
+    const rows=(data??[]).map(row=>mapRow(row,row.department?.name))
+    patientRosterCache.set(organizationId,{rows,loadedAt:Date.now()})
+    return rows
+  })()
+  patientRosterCache.set(organizationId,{promise,loadedAt:Date.now()})
+  try{return await promise}catch(error){patientRosterCache.delete(organizationId);throw error}
 }
 
 async function resolveDepartment(organizationId, departmentId){
@@ -40,11 +52,11 @@ async function resolveDepartment(organizationId, departmentId){
 }
 
 export async function createPatient(organizationId, existing, draft, {isDemo=false}={}){
-  const patientCode=draft.patientCode
   if(isDemo || !organizationId || !supabase){
-    const record={id:patientCode,status:'active',...draft}
+    const record={id:draft.patientCode,status:'active',...draft}
     return {record,list:[record,...existing]}
   }
+  const patientCode=draft.patientCode
   const department=await resolveDepartment(organizationId,draft.departmentId)
   const {data,error}=await supabase.from('patients').insert({
     organization_id:organizationId,
@@ -65,6 +77,7 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     if(error.code==='23505')error.duplicateCode=true
     throw error
   }
+  patientRosterCache.delete(organizationId)
   const record=mapRow(data,department?.name||draft.department)
   return {record,list:[record,...existing]}
 }
@@ -89,6 +102,7 @@ export async function updatePatient(organizationId, patient, patch, {isDemo=fals
   }
   const {data,error}=await supabase.from('patients').update(payload).eq('id',patient.recordId).eq('organization_id',organizationId).select('*, department:departments(name)').single()
   if(error) throw error
+  patientRosterCache.delete(organizationId)
   return mapRow(data,data.department?.name||departmentLabel)
 }
 
@@ -96,6 +110,7 @@ export async function deletePatientWithHistory(organizationId, patient, reason, 
   if(isDemo || !organizationId || !supabase) return
   const {error}=await supabase.rpc('delete_patient_with_history',{target_org:organizationId,target_patient:patient.recordId,p_reason:reason})
   if(error) throw error
+  patientRosterCache.delete(organizationId)
 }
 
 function mapAdmission(row, departmentLabel){
@@ -146,5 +161,6 @@ export async function deletePatientForTesting(organizationId, patientRecordId, {
   if(!patientRecordId) throw new Error('Patient record is required.')
   const {data,error}=await supabase.rpc('delete_patient_for_testing',{p_organization_id:organizationId,p_patient_id:patientRecordId})
   if(error) throw error
+  patientRosterCache.delete(organizationId)
   return Boolean(data)
 }
