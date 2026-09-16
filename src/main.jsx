@@ -29,6 +29,7 @@ import './styles/prevention-refinements.css'
 import './styles/surveillance-library-dropdown-fix.css'
 import './styles/surveillance-flow-polish.css'
 import './styles/patient-workspace-polish.css'
+import './styles/clinical-loading.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
