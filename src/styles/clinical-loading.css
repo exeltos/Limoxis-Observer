@@ -1,6 +1,7 @@
 /* Unified Limoxis Observer loading language.
-   Keep the surrounding page/surface stable and show a quiet circular progress
-   indicator only where data is being resolved. */
+   Loading during record navigation is shown on the source registry screen.
+   Legacy destination loading text remains available for direct/deep links,
+   but it no longer renders a second circular spinner. */
 
 .clinical-surface:not(.workspace-fill){
   position:relative;
@@ -22,7 +23,6 @@
   font-weight:650;
 }
 
-.clinical-surface:not(.workspace-fill)>p::before,
 .route-loading-spinner,
 .lo-loading-spinner{
   content:'';
@@ -80,7 +80,6 @@
 @keyframes loSpinnerRotate{to{transform:rotate(360deg)}}
 
 @media (prefers-reduced-motion:reduce){
-  .clinical-surface:not(.workspace-fill)>p::before,
   .route-loading-spinner,
   .lo-loading-spinner{animation-duration:1.6s}
 }
