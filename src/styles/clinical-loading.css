@@ -1,0 +1,49 @@
+/* Patient clinical record loading state.
+   Keeps the page geometry stable while data is fetched, instead of showing
+   a large blank surface with a small loading label. */
+.clinical-surface:not(.workspace-fill){
+  position:relative;
+  min-height:354px;
+  overflow:hidden;
+  padding:0;
+  background:
+    linear-gradient(90deg,rgba(229,235,240,.78) 25%,rgba(246,248,250,.96) 37%,rgba(229,235,240,.78) 63%) 24px 28px/180px 14px no-repeat,
+    linear-gradient(90deg,rgba(229,235,240,.78) 25%,rgba(246,248,250,.96) 37%,rgba(229,235,240,.78) 63%) 24px 58px/300px 24px no-repeat,
+    linear-gradient(90deg,rgba(229,235,240,.78) 25%,rgba(246,248,250,.96) 37%,rgba(229,235,240,.78) 63%) 24px 96px/230px 12px no-repeat,
+    var(--surface,#fff);
+}
+.clinical-surface:not(.workspace-fill)>p{
+  position:absolute;
+  width:1px;height:1px;
+  padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);
+  white-space:nowrap;border:0;
+}
+.clinical-surface:not(.workspace-fill)::before{
+  content:'';
+  position:absolute;
+  left:24px;right:24px;top:132px;
+  height:48px;
+  border-top:1px solid var(--border,#dce4ea);
+  border-bottom:1px solid var(--border,#dce4ea);
+  background:
+    linear-gradient(#e7edf1,#e7edf1) 0 16px/88px 14px no-repeat,
+    linear-gradient(#e7edf1,#e7edf1) 120px 16px/118px 14px no-repeat,
+    linear-gradient(#e7edf1,#e7edf1) 270px 16px/102px 14px no-repeat,
+    linear-gradient(#e7edf1,#e7edf1) 404px 16px/92px 14px no-repeat;
+}
+.clinical-surface:not(.workspace-fill)::after{
+  content:'';
+  position:absolute;
+  left:24px;right:24px;top:206px;height:112px;
+  border:1px solid var(--border,#dce4ea);
+  border-radius:10px;
+  background:
+    linear-gradient(#e7edf1,#e7edf1) 18px 18px/150px 15px no-repeat,
+    linear-gradient(#edf1f4,#edf1f4) 18px 52px/calc(33% - 30px) 42px no-repeat,
+    linear-gradient(#edf1f4,#edf1f4) 34% 52px/calc(33% - 30px) 42px no-repeat,
+    linear-gradient(#edf1f4,#edf1f4) 67% 52px/calc(33% - 30px) 42px no-repeat;
+  animation:clinicalSkeletonPulse 1.35s ease-in-out infinite alternate;
+}
+@keyframes clinicalSkeletonPulse{from{opacity:.58}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.clinical-surface:not(.workspace-fill)::after{animation:none}}
