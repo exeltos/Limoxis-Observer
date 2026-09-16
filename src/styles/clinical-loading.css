@@ -3,132 +3,34 @@
    Legacy destination loading text remains available for direct/deep links,
    but it no longer renders a second circular spinner. */
 
-.clinical-surface:not(.workspace-fill){
-  position:relative;
-  min-height:354px;
-  overflow:hidden;
-  background:var(--surface,#fff);
-}
-
-.clinical-surface:not(.workspace-fill)>p{
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  margin:0;
-  color:var(--lo-color-muted,#667b8c);
-  font-size:12px;
-  font-weight:650;
-}
-
-.route-loading-spinner,
-.lo-loading-spinner{
-  content:'';
-  display:inline-block;
-  width:24px;
-  height:24px;
-  flex:0 0 24px;
-  border:3px solid color-mix(in srgb,var(--lo-color-primary,#1685b8) 18%,transparent);
-  border-top-color:var(--lo-color-primary,#1685b8);
-  border-radius:50%;
-  animation:loSpinnerRotate .72s linear infinite;
-}
-
-.route-loading{
-  min-height:120px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  background:transparent;
-}
-
+.clinical-surface:not(.workspace-fill){position:relative;min-height:354px;overflow:hidden;background:var(--surface,#fff)}
+.clinical-surface:not(.workspace-fill)>p{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;margin:0;color:var(--lo-color-muted,#667b8c);font-size:12px;font-weight:650}
+.route-loading-spinner,.lo-loading-spinner{content:'';display:inline-block;width:24px;height:24px;flex:0 0 24px;border:3px solid color-mix(in srgb,var(--lo-color-primary,#1685b8) 18%,transparent);border-top-color:var(--lo-color-primary,#1685b8);border-radius:50%;animation:loSpinnerRotate .72s linear infinite}
+.route-loading{min-height:120px;display:flex;align-items:center;justify-content:center;gap:10px;background:transparent}
 .lo-loading-region{position:relative;min-height:72px}
-
-.lo-loading-overlay{
-  position:absolute;
-  inset:0;
-  z-index:3;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  background:color-mix(in srgb,var(--surface,#fff) 86%,transparent);
-  color:var(--lo-color-muted,#667b8c);
-  font-size:12px;
-  font-weight:650;
-  border-radius:inherit;
-}
-
-.lo-loading-inline{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  min-height:34px;
-  color:var(--lo-color-muted,#667b8c);
-  font-size:12px;
-}
-
+.lo-loading-overlay{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:10px;background:color-mix(in srgb,var(--surface,#fff) 86%,transparent);color:var(--lo-color-muted,#667b8c);font-size:12px;font-weight:650;border-radius:inherit}
+.lo-loading-inline{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:34px;color:var(--lo-color-muted,#667b8c);font-size:12px}
 .lo-loading-inline .lo-loading-spinner{width:18px;height:18px;flex-basis:18px;border-width:2px}
 
-/* Surveillance domain navigation follows the canonical record-tab pattern.
-   Bulk employee surveillance lives inside Employees; the three visible domains
-   are Patients, Employees and Environment. */
-.surveillance-domain-tabs{
-  display:flex!important;
-  align-items:stretch!important;
-  min-height:40px!important;
-  margin:0!important;
-  padding:0 6px!important;
-  gap:2px!important;
-  overflow-x:auto!important;
-  border:1px solid var(--lo-color-border,#dbe2e8)!important;
-  border-radius:9px!important;
-  background:#fff!important;
-  box-shadow:none!important;
+/* Module tabs intentionally mirror EntityRecordShell / Employee record tabs. */
+.surveillance-domain-tabs,.prevention-tabs{
+  display:flex!important;align-items:stretch!important;min-height:40px!important;margin:0!important;padding:0 6px!important;gap:2px!important;overflow-x:auto!important;
+  border:1px solid var(--lo-color-border,#dbe2e8)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important
 }
-.surveillance-domain-tabs .tab{
-  display:inline-flex!important;
-  flex:0 0 auto!important;
-  align-items:center!important;
-  justify-content:center!important;
-  gap:5px!important;
-  min-width:0!important;
-  min-height:40px!important;
-  height:40px!important;
-  padding:0 10px!important;
-  border:0!important;
-  border-bottom:2px solid transparent!important;
-  border-radius:0!important;
-  background:transparent!important;
-  color:#68788a!important;
-  font-size:11.5px!important;
-  font-weight:560!important;
-  box-shadow:none!important;
+.surveillance-domain-tabs .tab,.prevention-tabs .tab{
+  display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;gap:5px!important;min-width:0!important;min-height:40px!important;height:40px!important;padding:0 10px!important;
+  border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;color:#68788a!important;font-size:11.5px!important;font-weight:560!important;box-shadow:none!important
 }
-.surveillance-domain-tabs .tab svg{
-  display:block!important;
-  width:14px!important;
-  height:14px!important;
-  flex:0 0 14px!important;
-}
-.surveillance-domain-tabs .tab:hover{
-  background:#f8fafb!important;
-  color:#33495f!important;
-}
-.surveillance-domain-tabs .tab.active{
-  background:transparent!important;
-  color:#1f5f8a!important;
-  border-bottom-color:#3f87b5!important;
-  font-weight:650!important;
-}
+.surveillance-domain-tabs .tab:hover,.prevention-tabs .tab:hover{background:#f8fafb!important;color:#33495f!important}
+.surveillance-domain-tabs .tab.active,.prevention-tabs .tab.active{background:transparent!important;color:#1f5f8a!important;border-bottom-color:#3f87b5!important;font-weight:650!important}
+.surveillance-domain-tabs .tab svg,.prevention-tabs .tab svg{width:14px!important;height:14px!important;flex:0 0 14px!important}
+
+/* Prevention uses the same compact registry geometry as Employees. */
+.prevention-workspace{padding:0!important;overflow:hidden!important;border:1px solid var(--lo-color-border,#dbe2e8)!important;border-radius:10px!important;background:#fff!important;box-shadow:none!important}
+.prevention-workspace>.prevention-tabs{border-width:0 0 1px 0!important;border-radius:0!important}
+.prevention-workspace>.filter-system{margin:0!important;padding:8px 10px!important;border:0!important;border-bottom:1px solid var(--lo-color-border,#dbe2e8)!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
+.prevention-workspace>.scroll-table{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+.prevention-workspace>.registry-pagination{margin:0!important;border-width:1px 0 0!important;border-radius:0!important;box-shadow:none!important}
 
 @keyframes loSpinnerRotate{to{transform:rotate(360deg)}}
-
-@media (prefers-reduced-motion:reduce){
-  .route-loading-spinner,
-  .lo-loading-spinner{animation-duration:1.6s}
-}
+@media (prefers-reduced-motion:reduce){.route-loading-spinner,.lo-loading-spinner{animation-duration:1.6s}}
