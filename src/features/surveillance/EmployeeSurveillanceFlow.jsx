@@ -1,7 +1,21 @@
 import { useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { Button } from '../../design-system/Button'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { EmployeeSurveillanceCanonicalFlow } from './EmployeeSurveillanceCanonicalFlow'
+
+const employeeModeLayout={
+  width:'min(100%,720px)',
+  margin:'0 auto',
+  gridTemplateColumns:'repeat(2,minmax(0,1fr))',
+}
+const employeeModeActions={
+  width:'min(100%,720px)',
+  margin:'18px auto 0',
+  display:'flex',
+  justifyContent:'flex-start',
+}
 
 export function EmployeeSurveillanceFlow(props){
   return <EmployeeSurveillanceCanonicalFlow mode="single" {...props}/>
@@ -15,12 +29,12 @@ export function SurveillanceSubjectChooser({onClose,onPatient,onEmployee,onBulkE
   const {t,language}=useLanguage()
   const [employeeChoice,setEmployeeChoice]=useState(false)
 
-  if(employeeChoice)return <ObserverDialog eyebrow={t('surveillance')} title={t('employee')} subtitle={language==='el'?'Επιλέξτε αν η επιτήρηση αφορά έναν εργαζόμενο ή ομάδα εργαζομένων.':'Choose whether the surveillance concerns one employee or a group of employees.'} width="medium" className="surveillance-subject-chooser" onClose={onClose}>
-    <div className="subject-choice-grid subject-choice-grid--two">
+  if(employeeChoice)return <ObserverDialog eyebrow={t('surveillance')} title={t('employee')} subtitle={language==='el'?'Επιλέξτε αν η επιτήρηση αφορά έναν εργαζόμενο ή ομάδα εργαζομένων.':'Choose whether the surveillance concerns one employee or a group of employees.'} width="medium" className="surveillance-subject-chooser employee-surveillance-mode-chooser" onClose={onClose}>
+    <div className="subject-choice-grid" style={employeeModeLayout}>
       <button type="button" onClick={onEmployee}><span>01</span><strong>{language==='el'?'Ατομική επιτήρηση':'Individual surveillance'}</strong><small>{language==='el'?'Screening και παρακολούθηση ενός εργαζομένου.':'Screening and follow-up for one employee.'}</small></button>
       <button type="button" onClick={onBulkEmployee}><span>02</span><strong>{t('clinicalRecords.bulkEmployeeSurveillance')}</strong><small>{t('clinicalRecords.bulkEmployeeChoiceHelp')}</small></button>
     </div>
-    <div className="dialog-inline-actions"><button type="button" className="btn secondary" onClick={()=>setEmployeeChoice(false)}>{language==='el'?'Πίσω':'Back'}</button></div>
+    <div style={employeeModeActions}><Button variant="secondary" onClick={()=>setEmployeeChoice(false)}><ArrowLeft size={16}/>{language==='el'?'Πίσω':'Back'}</Button></div>
   </ObserverDialog>
 
   return <ObserverDialog eyebrow={t('surveillance')} title={t('newSurveillance')} subtitle={t('clinicalRecords.chooseSurveillanceSubject')} width="wide" className="surveillance-subject-chooser" onClose={onClose}>
