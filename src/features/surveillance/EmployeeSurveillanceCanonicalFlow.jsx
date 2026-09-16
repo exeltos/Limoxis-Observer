@@ -9,6 +9,7 @@ import { useAuditActor } from '../../core/audit/useAuditActor'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { createEmployeeSurveillance,createEmployeeSurveillanceBatch } from './employeeSurveillanceData'
 import { createEmployeeSurveillanceBatch as createCloudBatch,createEmployeeSurveillanceRecord } from './employeeSurveillanceCloudService'
+import './surveillanceEntryCard.css'
 
 const screeningCatalog=[{id:'handSwab',el:'Επίχρισμα χεριών',en:'Hand swab'},{id:'nasalSwab',el:'Ρινικό επίχρισμα',en:'Nasal swab'},{id:'throatSwab',el:'Φαρυγγικό επίχρισμα',en:'Throat swab'}]
 
