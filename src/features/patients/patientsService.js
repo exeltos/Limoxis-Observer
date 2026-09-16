@@ -27,20 +27,32 @@ function mapRow(row, departmentLabel){
   }
 }
 
+async function patientCacheKey(organizationId){
+  const {data}=await supabase.auth.getSession()
+  const userId=data?.session?.user?.id
+  return userId?`${organizationId}:${userId}`:null
+}
+
+function invalidatePatientCache(organizationId){
+  const prefix=`${organizationId}:`
+  for(const key of patientRosterCache.keys())if(key.startsWith(prefix))patientRosterCache.delete(key)
+}
+
 export async function loadPatients(organizationId, {isDemo=false}={}){
   if(isDemo || !organizationId || !supabase) return structuredClone(patientDemoData)
-  const cached=patientRosterCache.get(organizationId)
-  if(cached&&Date.now()-cached.loadedAt<PATIENT_CACHE_TTL_MS)return cached.rows
+  const cacheKey=await patientCacheKey(organizationId)
+  const cached=cacheKey?patientRosterCache.get(cacheKey):null
   if(cached?.promise)return cached.promise
+  if(cached?.rows&&Date.now()-cached.loadedAt<PATIENT_CACHE_TTL_MS)return cached.rows
   const promise=(async()=>{
     const {data,error}=await supabase.from('patients').select('*, department:departments(name)').eq('organization_id',organizationId).order('admission_date',{ascending:false})
     if(error) throw error
     const rows=(data??[]).map(row=>mapRow(row,row.department?.name))
-    patientRosterCache.set(organizationId,{rows,loadedAt:Date.now()})
+    if(cacheKey)patientRosterCache.set(cacheKey,{rows,loadedAt:Date.now()})
     return rows
   })()
-  patientRosterCache.set(organizationId,{promise,loadedAt:Date.now()})
-  try{return await promise}catch(error){patientRosterCache.delete(organizationId);throw error}
+  if(cacheKey)patientRosterCache.set(cacheKey,{promise,loadedAt:Date.now()})
+  try{return await promise}catch(error){if(cacheKey)patientRosterCache.delete(cacheKey);throw error}
 }
 
 async function resolveDepartment(organizationId, departmentId){
@@ -77,7 +89,7 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     if(error.code==='23505')error.duplicateCode=true
     throw error
   }
-  patientRosterCache.delete(organizationId)
+  invalidatePatientCache(organizationId)
   const record=mapRow(data,department?.name||draft.department)
   return {record,list:[record,...existing]}
 }
@@ -102,7 +114,7 @@ export async function updatePatient(organizationId, patient, patch, {isDemo=fals
   }
   const {data,error}=await supabase.from('patients').update(payload).eq('id',patient.recordId).eq('organization_id',organizationId).select('*, department:departments(name)').single()
   if(error) throw error
-  patientRosterCache.delete(organizationId)
+  invalidatePatientCache(organizationId)
   return mapRow(data,data.department?.name||departmentLabel)
 }
 
@@ -110,7 +122,7 @@ export async function deletePatientWithHistory(organizationId, patient, reason, 
   if(isDemo || !organizationId || !supabase) return
   const {error}=await supabase.rpc('delete_patient_with_history',{target_org:organizationId,target_patient:patient.recordId,p_reason:reason})
   if(error) throw error
-  patientRosterCache.delete(organizationId)
+  invalidatePatientCache(organizationId)
 }
 
 function mapAdmission(row, departmentLabel){
@@ -161,6 +173,6 @@ export async function deletePatientForTesting(organizationId, patientRecordId, {
   if(!patientRecordId) throw new Error('Patient record is required.')
   const {data,error}=await supabase.rpc('delete_patient_for_testing',{p_organization_id:organizationId,p_patient_id:patientRecordId})
   if(error) throw error
-  patientRosterCache.delete(organizationId)
+  invalidatePatientCache(organizationId)
   return Boolean(data)
 }
