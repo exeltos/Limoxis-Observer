@@ -22,7 +22,7 @@ export async function createPatient(organizationId,existing,draft,{isDemo=false}
   if(isDemo||!organizationId||!supabase){const record={id:draft.patientCode,status:'active',...draft};return {record,list:[record,...existing]}}
   const patientCode=draft.patientCode,department=await resolveDepartment(organizationId,draft.departmentId)
   const {data,error}=await supabase.from('patients').insert({organization_id:organizationId,patient_code:patientCode,first_name:draft.firstName||null,last_name:draft.lastName||null,father_name:draft.fatherName||draft.patronymic||null,hospital_record_number:draft.hospitalRecordNumber||null,date_of_birth:draft.dateOfBirth||null,sex:draft.sex||null,department_id:department?.id||null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null}).select().single()
-  if(error){if(error.code==='23505')error.duplicateCode=true;throw error}patientRosterCache.delete(organizationId);const record=mapRow(data,department?.name||draft.department);return {record,list:[record,...existing]}
+  if(error){if(error.code==='23505')error.duplicateCode=true;throw error}patientRosterCache.delete(organizationId);admissionCache.delete(data.id);const record=mapRow(data,department?.name||draft.department);return {record,list:[record,...existing]}
 }
 export async function updatePatient(organizationId,patient,patch,{isDemo=false}={}){
   if(isDemo||!organizationId||!supabase)return {...patient,...patch,name:`${patch.firstName??patient.firstName??''} ${patch.lastName??patient.lastName??''}`.trim()}
