@@ -1,0 +1,93 @@
+/* Final canonical tab contract.
+   Loaded last so feature-specific CSS cannot drift tabs away from the shared Limoxis pattern. */
+
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs){
+  display:flex!important;
+  align-items:stretch!important;
+  min-height:42px!important;
+  height:42px!important;
+  margin:0!important;
+  padding:0 6px!important;
+  gap:2px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:10px 10px 0 0!important;
+  background:var(--lo-color-surface)!important;
+  box-shadow:none!important;
+}
+
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs) :where(.tab,button){
+  position:relative!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 auto!important;
+  min-height:41px!important;
+  height:41px!important;
+  margin:0!important;
+  padding:0 11px!important;
+  gap:6px!important;
+  border:0!important;
+  border-bottom:2px solid transparent!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#66788b!important;
+  box-shadow:none!important;
+  font-size:11.5px!important;
+  font-weight:560!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs) :where(.tab,button):hover:not(:disabled){
+  background:#f8fafb!important;
+  color:#33495f!important;
+}
+
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs) :where(.tab.active,button.active,[aria-selected="true"]){
+  background:transparent!important;
+  color:#1f5f8a!important;
+  border-bottom-color:#3f87b5!important;
+  font-weight:650!important;
+}
+
+:where(.tabs,.canonical-module-tabs,.entity-record-tabs) svg{
+  width:15px!important;
+  height:15px!important;
+  flex:0 0 auto!important;
+}
+
+/* Module tabs use the same visual language as record tabs. */
+.surveillance-domain-tabs{
+  border-radius:10px 10px 0 0!important;
+  margin-bottom:0!important;
+}
+
+.surveillance-domain-tabs + .registry-workspace{
+  border-top-left-radius:0!important;
+  border-top-right-radius:0!important;
+  border-top:0!important;
+  margin-top:0!important;
+}
+
+/* Environmental surveillance is a registry, not a second visual subsystem. */
+.environmental-registry{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  flex:1 1 auto;
+}
+
+.environmental-registry.scroll-table{
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:9px!important;
+  background:var(--lo-color-surface)!important;
+  box-shadow:none!important;
+}
+
+/* Keep tab icons/text aligned consistently at narrower widths. */
+@media (max-width:900px){
+  :where(.tabs,.canonical-module-tabs,.entity-record-tabs){padding-inline:4px!important}
+  :where(.tabs,.canonical-module-tabs,.entity-record-tabs) :where(.tab,button){padding-inline:9px!important}
+}
