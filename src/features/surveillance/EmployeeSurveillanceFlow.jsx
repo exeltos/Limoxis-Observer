@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { EmployeeSurveillanceCanonicalFlow } from './EmployeeSurveillanceCanonicalFlow'
+import { EmployeeSurveillanceModeChooser } from './EmployeeSurveillanceModeChooser'
 
 export function EmployeeSurveillanceFlow(props){
-  return <EmployeeSurveillanceCanonicalFlow mode="single" {...props}/>
+  const [mode,setMode]=useState(null)
+  if(!mode)return <EmployeeSurveillanceModeChooser onClose={props.onClose} onSingle={()=>setMode('single')} onBulk={()=>setMode('bulk')}/>
+  return <EmployeeSurveillanceCanonicalFlow mode={mode} {...props}/>
 }
 
 export function BulkEmployeeSurveillanceFlow(props){
