@@ -74,9 +74,57 @@
 
 .lo-loading-inline .lo-loading-spinner{width:18px;height:18px;flex-basis:18px;border-width:2px}
 
-/* Surveillance uses the same shared tab language as record pages.
-   Bulk employee surveillance is a workflow inside Employees, not a primary tab. */
-.surveillance-domain-tabs .tab:nth-of-type(3){display:none!important}
+/* Surveillance domain navigation follows the canonical record-tab pattern.
+   Bulk employee surveillance lives inside Employees; the three visible domains
+   are Patients, Employees and Environment. */
+.surveillance-domain-tabs{
+  display:flex!important;
+  align-items:stretch!important;
+  min-height:40px!important;
+  margin:0!important;
+  padding:0 6px!important;
+  gap:2px!important;
+  overflow-x:auto!important;
+  border:1px solid var(--lo-color-border,#dbe2e8)!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.surveillance-domain-tabs .tab{
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  min-width:0!important;
+  min-height:40px!important;
+  height:40px!important;
+  padding:0 10px!important;
+  border:0!important;
+  border-bottom:2px solid transparent!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#68788a!important;
+  font-size:11.5px!important;
+  font-weight:560!important;
+  box-shadow:none!important;
+}
+.surveillance-domain-tabs .tab svg{
+  display:block!important;
+  width:14px!important;
+  height:14px!important;
+  flex:0 0 14px!important;
+}
+.surveillance-domain-tabs .tab:hover{
+  background:#f8fafb!important;
+  color:#33495f!important;
+}
+.surveillance-domain-tabs .tab.active{
+  background:transparent!important;
+  color:#1f5f8a!important;
+  border-bottom-color:#3f87b5!important;
+  font-weight:650!important;
+}
 
 @keyframes loSpinnerRotate{to{transform:rotate(360deg)}}
 
