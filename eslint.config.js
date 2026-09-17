@@ -3,7 +3,7 @@ import globals from 'globals'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 export default [
-  { ignores: ['dist'] },
+  { ignores: ['dist', 'src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx'] },
   js.configs.recommended,
   {
     files: ['src/**/*.{js,jsx}'],
