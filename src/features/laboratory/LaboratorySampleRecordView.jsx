@@ -1,4 +1,5 @@
 import { LaboratorySampleRecordFunctionalView } from './LaboratorySampleRecordFunctionalView'
+import './LaboratorySampleRecord.css'
 
 export function LaboratorySampleRecordView(){
   return <LaboratorySampleRecordFunctionalView/>
