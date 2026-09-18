@@ -133,7 +133,6 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
         else await linkLaboratorySampleToSurveillance(tenant?.id,sampleToLink.recordId,created.id)
         await laboratory.reload()
       }catch(linkError){notify(linkError?.message||(language==='el'?'Η επιτήρηση δημιουργήθηκε, αλλά δεν συνδέθηκε το δείγμα.':'Surveillance was created, but the sample could not be linked.'),'error')}
-      setSampleToLink(null)
     }
     setEpisodes(current=>[...current.filter(row=>String(row.id)!==String(created.id)),created]);setSelectedEpisodeId(created.id);notify(t('surveillanceCreated'),'success');return created
   }
