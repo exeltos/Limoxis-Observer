@@ -132,10 +132,10 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
   function save(){
     const first=draft.firstName.trim()
     const last=draft.lastName.trim()
-    if(!draft.patientCode.trim()||!first||!last||!draft.admissionDate)return
+    if(!draft.patientCode.trim()||!first||!last||(!editing&&!draft.admissionDate))return
     onSave({...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim()})
   }
-  const disabled=!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||!draft.admissionDate
+  const disabled=!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)
   return <ObserverDialog width="wide" eyebrow={t('patients')} title={editing?t('edit'):t('newPatient')} subtitle={editing?t('patientRegistrySubtitle'):t('newPatientHelp')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={save} disabled={disabled}/> }>
     <div className="entry-grid patient-entry-grid">
       <label><span>{t('patientId')}</span><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)}/></label>
@@ -145,8 +145,8 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
       <label><span>{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
       <ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>
       <label><span>{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
-      <label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
-      <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/>
+      {!editing&&<><label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
+      <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/></>}
       <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
     </div>
   </ObserverDialog>

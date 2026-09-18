@@ -26,7 +26,7 @@ function mapRow(row, departmentLabel){
 
 export async function loadPatients(organizationId, {isDemo=false}={}){
   if(isDemo || !organizationId || !supabase) return structuredClone(patientDemoData)
-  const {data,error}=await supabase.from('patients').select('*, department:departments(name)').eq('organization_id',organizationId).order('admission_date',{ascending:false})
+  const {data,error}=await supabase.from('patients').select('*, department:departments(name)').eq('organization_id',organizationId).is('archived_at',null).order('admission_date',{ascending:false})
   if(error) throw error
   return (data??[]).map(row=>mapRow(row,row.department?.name))
 }
@@ -78,23 +78,16 @@ export async function updatePatient(organizationId, patient, patch, {isDemo=fals
   if(patch.hospitalRecordNumber!==undefined)payload.hospital_record_number=patch.hospitalRecordNumber||null
   if(patch.dateOfBirth!==undefined)payload.date_of_birth=patch.dateOfBirth||null
   if(patch.sex!==undefined)payload.sex=patch.sex||null
-  if(patch.admissionDate!==undefined)payload.admission_date=patch.admissionDate
-  if(patch.status!==undefined)payload.status=patch.status
   if(patch.notes!==undefined)payload.notes=patch.notes||null
-  let departmentLabel=patient.department
-  if(patch.departmentId!==undefined){
-    const department=await resolveDepartment(organizationId,patch.departmentId)
-    payload.department_id=department?.id||null
-    departmentLabel=department?.name||''
-  }
+  const departmentLabel=patient.department
   const {data,error}=await supabase.from('patients').update(payload).eq('id',patient.recordId).eq('organization_id',organizationId).select('*, department:departments(name)').single()
   if(error) throw error
   return mapRow(data,data.department?.name||departmentLabel)
 }
 
-export async function deletePatientWithHistory(organizationId, patient, reason, {isDemo=false}={}){
+export async function archivePatient(organizationId, patient, reason, {isDemo=false}={}){
   if(isDemo || !organizationId || !supabase) return
-  const {error}=await supabase.rpc('delete_patient_with_history',{target_org:organizationId,target_patient:patient.recordId,p_reason:reason})
+  const {error}=await supabase.rpc('archive_patient',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_reason:reason})
   if(error) throw error
 }
 
@@ -137,6 +130,21 @@ export async function createAdmission(organizationId, patient, draft, {isDemo=fa
     p_status:draft.status||'active',
     p_notes:draft.notes||null,
   })
+  if(error) throw error
+  return mapAdmission(data,department?.name||draft.department)
+}
+
+export async function dischargeAdmission(organizationId,patient,admission,draft,{isDemo=false}={}){
+  if(isDemo || !supabase) return {...admission,status:'discharged',dischargeDate:draft.date,notes:draft.reason||admission.notes}
+  const {data,error}=await supabase.rpc('close_patient_admission',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_admission_id:admission.id,p_discharge_date:draft.date,p_reason:draft.reason||null})
+  if(error) throw error
+  return mapAdmission(data,admission.department)
+}
+
+export async function transferAdmission(organizationId,patient,admission,draft,{isDemo=false}={}){
+  if(isDemo || !supabase) return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId,admission_date:draft.date,discharge_date:null,status:'active',notes:draft.reason||null},draft.department)
+  const department=await resolveDepartment(organizationId,draft.departmentId)
+  const {data,error}=await supabase.rpc('transfer_patient_admission',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_admission_id:admission.id,p_to_department_id:draft.departmentId,p_transfer_date:draft.date,p_reason:draft.reason||null})
   if(error) throw error
   return mapAdmission(data,department?.name||draft.department)
 }

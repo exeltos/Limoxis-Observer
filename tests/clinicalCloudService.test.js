@@ -19,7 +19,7 @@ describe('clinical cloud service',()=>{
   })
 
   it('persists canonical journey actions through the repository adapter',()=>{
-    for(const fn of ['saveClinicalAssessment','saveHaiClassification','requestLaboratorySample','startIsolation','endIsolation','addAntimicrobialTherapy','endAntimicrobialTherapy','addSurveillanceDevice','removeSurveillanceDevice','saveAmrClassification']){
+    for(const fn of ['saveClinicalAssessment','saveHaiClassification','requestLaboratorySample','startIsolation','endIsolation','addAntimicrobialTherapy','endAntimicrobialTherapy','addSurveillanceDevice','removeSurveillanceDevice']){
       expect(service).toContain(`export async function ${fn}`)
     }
     expect(repository).toContain('saveClinicalAssessment(organizationId,record,draft)')
@@ -61,7 +61,7 @@ describe('clinical cloud service',()=>{
 
   it('gates sensitive actions by capabilities in the shared record page',()=>{
     expect(page).toContain('CAPABILITIES.RECORD_CLINICAL_ASSESSMENT')
-    expect(page).toContain('CAPABILITIES.CLASSIFY_RESISTANCE')
+    expect(page).not.toContain("setDialog('amr')")
     expect(page).toContain('CAPABILITIES.MANAGE_ISOLATION')
     expect(page).toContain('CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY')
     expect(page).toContain('CAPABILITIES.REASSESS_SURVEILLANCE')

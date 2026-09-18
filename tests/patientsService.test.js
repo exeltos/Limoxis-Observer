@@ -70,7 +70,7 @@ vi.mock('../src/core/supabase/client', () => ({
       return {
         select: () => ({
           eq: (_col, organizationId) => ({
-            order: () => Promise.resolve({ data: patientsFor(organizationId), error: null }),
+            is: () => ({ order: () => Promise.resolve({ data: patientsFor(organizationId).filter(row=>!row.archived_at), error: null }) }),
           }),
         }),
         insert: payload => ({
