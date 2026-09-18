@@ -348,14 +348,6 @@ export async function removeSurveillanceDevice(organizationId,deviceId,draft={})
   return mapDevice(data)
 }
 
-export async function saveAmrClassification(organizationId,microbiologyResultId,draft){
-  assertCloud()
-  const actorId=await currentUserId()
-  const {data,error}=await supabase.from('amr_classifications').insert({organization_id:organizationId,microbiology_result_id:microbiologyResultId,classification:draft.classification||null,definition_source:draft.definitionSource,definition_version:draft.definitionVersion,calculation_snapshot:draft.calculationSnapshot||{},status:draft.status||'proposed',rationale:draft.rationale||null,classified_by:actorId,classified_at:iso(draft.classifiedAt||new Date())}).select('*').single()
-  if(error)throw error
-  return mapAmr(data)
-}
-
 export async function addClinicalReassessment(organizationId,caseRecordId,patientRecordId,draft){
   assertCloud()
   const actorId=await currentUserId()
