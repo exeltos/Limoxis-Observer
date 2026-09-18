@@ -23,7 +23,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $patient_capability$
   select
     public.current_user_is_platform_owner()
     or (
@@ -33,7 +33,7 @@ as $
         array['infection_control_lead']::public.app_role[]
       )
     );
-$;
+$patient_capability$;
 
 revoke all on function public.current_user_can_patient_capability(uuid,uuid,text) from public;
 grant execute on function public.current_user_can_patient_capability(uuid,uuid,text) to authenticated;
