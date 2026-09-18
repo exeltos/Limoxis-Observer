@@ -435,3 +435,20 @@
 .clinical-add-action:hover{background:#e5f2fc!important;border-color:#72add8!important}
 .clinical-edit-action{border-color:#c6d6e3!important;background:#fff!important;color:#284d69!important}
 .clinical-primary-action{box-shadow:0 2px 5px rgba(20,93,145,.16)!important}
+
+/* Surveillance flow refinement: calmer form rhythm and one consistent action hierarchy. */
+.new-surveillance-flow-card .episode-detail-header{min-height:64px!important;padding:12px 16px!important}
+.new-surveillance-flow-card .episode-detail-actions{gap:8px!important;align-items:center!important}
+.new-surveillance-flow-card .episode-detail-actions>.btn{min-height:34px!important;padding:6px 12px!important}
+.new-surveillance-flow-card .progressive-surveillance-scroll{padding:12px!important}
+.new-surveillance-flow-card .flow-step-panel{padding:16px!important}
+.new-surveillance-flow-card .flow-step-heading{margin-bottom:14px!important;align-items:flex-start!important}
+.new-surveillance-flow-card .entry-grid{gap:12px!important}
+.new-surveillance-flow-card label>span,.new-surveillance-flow-card .manual-date-field>span{margin-bottom:6px!important;font-size:10.5px!important;font-weight:750!important;color:#526d82!important}
+.new-surveillance-flow-card input,.new-surveillance-flow-card select,.new-surveillance-flow-card textarea{min-height:42px!important}
+.new-surveillance-flow-card textarea{min-height:82px!important}
+.new-surveillance-flow-card .flow-step-actions{position:sticky!important;bottom:0!important;z-index:4!important;display:flex!important;justify-content:flex-end!important;align-items:center!important;gap:8px!important;margin:16px -16px -16px!important;padding:11px 16px!important;border-top:1px solid #e5edf3!important;background:rgba(255,255,255,.97)!important}
+.new-surveillance-flow-card .flow-step-actions .btn{min-height:36px!important;padding:7px 13px!important}
+.new-surveillance-flow-card .flow-step-actions .btn:first-child{margin-right:auto!important}
+.new-surveillance-flow-card .clinical-library-multiselect{min-width:0!important}
+.new-surveillance-flow-card .selected-library-values{margin-top:7px!important}
