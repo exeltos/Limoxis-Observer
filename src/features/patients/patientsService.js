@@ -26,7 +26,7 @@ function mapRow(row, departmentLabel){
 
 export async function loadPatients(organizationId, {isDemo=false}={}){
   if(isDemo || !organizationId || !supabase) return structuredClone(patientDemoData)
-  const {data,error}=await supabase.from('patients').select('*, department:departments(name)').eq('organization_id',organizationId).order('admission_date',{ascending:false})
+  const {data,error}=await supabase.from('patients').select('*, department:departments(name)').eq('organization_id',organizationId).is('archived_at',null).order('admission_date',{ascending:false})
   if(error) throw error
   return (data??[]).map(row=>mapRow(row,row.department?.name))
 }
@@ -92,9 +92,9 @@ export async function updatePatient(organizationId, patient, patch, {isDemo=fals
   return mapRow(data,data.department?.name||departmentLabel)
 }
 
-export async function deletePatientWithHistory(organizationId, patient, reason, {isDemo=false}={}){
+export async function archivePatient(organizationId, patient, reason, {isDemo=false}={}){
   if(isDemo || !organizationId || !supabase) return
-  const {error}=await supabase.rpc('delete_patient_with_history',{target_org:organizationId,target_patient:patient.recordId,p_reason:reason})
+  const {error}=await supabase.rpc('archive_patient',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_reason:reason})
   if(error) throw error
 }
 
