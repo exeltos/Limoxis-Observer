@@ -74,6 +74,18 @@ export const demoLibrarySeed = {
     ['Κεφταζιδίμη/Αβιμπακτάμη','Ceftazidime/avibactam',SYS('WHO AWaRe / Reserve','2022')],
     ['Κεφτολοζάνη/Ταζομπακτάμη','Ceftolozane/tazobactam',SYS('WHO AWaRe / Reserve','2022')],
   ],
+  deviceTypes:[
+    ['Κεντρικός φλεβικός καθετήρας (CVC)','Central venous catheter (CVC)',SYS('Limoxis IPC device core')],
+    ['Ουροκαθετήρας','Urinary catheter',SYS('Limoxis IPC device core')],
+    ['Μηχανικός αερισμός','Mechanical ventilation',SYS('Limoxis IPC device core')],
+    ['Περιφερικός φλεβικός καθετήρας','Peripheral venous catheter',SYS('Limoxis IPC device core')],
+  ],
+  surveillanceDefinitions:[
+    ['CLABSI – Λοίμωξη αιματικής ροής σχετιζόμενη με κεντρικό φλεβικό καθετήρα','CLABSI – Central line-associated bloodstream infection',SYS('ECDC surveillance definitions')],
+    ['CAUTI – Ουρολοίμωξη σχετιζόμενη με ουροκαθετήρα','CAUTI – Catheter-associated urinary tract infection',SYS('ECDC surveillance definitions')],
+    ['VAP – Πνευμονία σχετιζόμενη με μηχανικό αερισμό','VAP – Ventilator-associated pneumonia',SYS('ECDC surveillance definitions')],
+    ['SSI – Λοίμωξη χειρουργικού πεδίου','SSI – Surgical site infection',SYS('ECDC surveillance definitions')],
+  ],
   advancedAntibiotics:[
     ['Μεροπενέμη','Meropenem',SYS('Hospital stewardship core')],
     ['Ιμιπενέμη','Imipenem',SYS('Hospital stewardship core')],
