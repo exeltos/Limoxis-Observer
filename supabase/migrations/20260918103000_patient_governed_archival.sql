@@ -11,6 +11,33 @@ create index if not exists patients_org_active_idx
   on public.patients(organization_id, admission_date desc)
   where archived_at is null;
 
+-- Keep the authorization helper with the active migration set. An older copy existed
+-- only in migrations_archive and therefore cannot be assumed on a fresh database.
+create or replace function public.current_user_can_patient_capability(
+  target_org uuid,
+  target_department uuid,
+  target_capability text
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select
+    public.current_user_is_platform_owner()
+    or (
+      public.current_user_has_capability(target_org,target_capability)
+      and public.current_user_has_org_role(
+        target_org,
+        array['infection_control_lead']::public.app_role[]
+      )
+    );
+$;
+
+revoke all on function public.current_user_can_patient_capability(uuid,uuid,text) from public;
+grant execute on function public.current_user_can_patient_capability(uuid,uuid,text) to authenticated;
+
 create or replace function public.archive_patient(
   p_organization_id uuid,
   p_patient_id uuid,
@@ -19,7 +46,7 @@ create or replace function public.archive_patient(
 returns public.patients
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_actor uuid := auth.uid();
