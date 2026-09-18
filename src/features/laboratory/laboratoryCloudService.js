@@ -27,6 +27,7 @@ function mapMicrobiology(row,ast=[],communications=[],amr=[]){
     amendedFrom:row.amended_from||null,
     organism:row.organism,
     resistance:classification?.classification||row.resistance_class||null,
+    amr:(amr||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,classification:item.classification,definitionSource:item.definition_source,definitionVersion:item.definition_version,status:item.status,rationale:item.rationale||'',classifiedAt:item.classified_at,calculationSnapshot:item.calculation_snapshot||{}})),
     susceptibilitySummary:row.susceptibility_summary||'',
     critical:Boolean(row.is_critical),
     cfuCount:row.cfu_count,
