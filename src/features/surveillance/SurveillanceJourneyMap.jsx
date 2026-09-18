@@ -12,7 +12,7 @@ export function buildSurveillanceJourneyStages(record,t,fmtDate){
   return [
     {id:'assessment',label:t('clinicalAssessment'),status:record?.assessment?'complete':'pending',meta:record?.assessment?fmtDate(record.assessment.date||record.startedAt):t('pending')},
     {id:'samples',label:t('sampleAndLaboratory'),status:samples.length?(validatedSamples.length?'complete':'waiting'):'pending',meta:samples.length?(validatedSamples.length?`${samples.length} · ${validatedSamples.length} ${t('clinicalRecords.validated').toLowerCase()}`:`${samples.length} · ${t('waitingForLaboratory')}`):t('clinicalRecords.notStarted')},
-    {id:'hai',label:t('haiAmr'),status:record?.haiClassification?'complete':'pending',meta:record?.resistance||t(record?.haiClassification?.status||'pending')},
+    {id:'hai',label:(t('haiAmr')),status:record?.haiClassification?'complete':'pending',meta:record?.resistance||t(record?.haiClassification?.status||'pending')},
     {id:'isolation',label:t('isolation'),status:isolationDecided?'complete':'pending',meta:record?.isolation?t(record.isolation.status):(isolationDecided?t('notRequired'):t('clinicalRecords.notStarted'))},
     {id:'therapy',label:t('therapy'),status:therapy.length?'complete':'pending',meta:therapy[0]?.antimicrobial||t('clinicalRecords.notStarted')},
     {id:'reassessment',label:t('reassessment'),status:reassessments.length?'complete':(assessed?'due':'pending'),meta:reassessments[0]?fmtDate(reassessments[0].date):(record?.reviewDue?fmtDate(record.reviewDue):t('notScheduled'))},
