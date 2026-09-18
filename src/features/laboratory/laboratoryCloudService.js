@@ -27,7 +27,7 @@ function mapMicrobiology(row,ast=[],communications=[],amr=[]){
     amendedFrom:row.amended_from||null,
     organism:row.organism,
     resistance:classification?.classification||row.resistance_class||null,
-    amr:(amr||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,classification:item.classification,definitionSource:item.definition_source,definitionVersion:item.definition_version,status:item.status,rationale:item.rationale||'',classifiedAt:item.classified_at,calculationSnapshot:item.calculation_snapshot||{}})),
+    amr:(amr||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,organism:item.organism||'',classification:item.classification,definitionSource:item.definition_source,definitionVersion:item.definition_version,status:item.status,rationale:item.rationale||'',classifiedAt:item.classified_at,calculationSnapshot:item.calculation_snapshot||{}})),
     susceptibilitySummary:row.susceptibility_summary||'',
     critical:Boolean(row.is_critical),
     cfuCount:row.cfu_count,
@@ -40,7 +40,7 @@ function mapMicrobiology(row,ast=[],communications=[],amr=[]){
     preliminary:Boolean(row.preliminary),
     interpretationStandard:row.interpretation_standard||'',
     interpretationVersion:row.interpretation_version||'',
-    ast:(ast||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,drug:item.antimicrobial_name,code:item.antimicrobial_code,method:item.method,sir:item.sir_category,mic:item.mic_value,operator:item.mic_operator,zone:item.zone_diameter_mm,standard:item.breakpoint_standard,version:item.breakpoint_version,notes:item.notes||''})),
+    ast:(ast||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,organism:item.organism||'',drug:item.antimicrobial_name,code:item.antimicrobial_code,method:item.method,sir:item.sir_category,mic:item.mic_value,operator:item.mic_operator,zone:item.zone_diameter_mm,standard:item.breakpoint_standard,version:item.breakpoint_version,notes:item.notes||''})),
     communications:(communications||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,at:item.communicated_at,to:item.recipient_name,role:item.recipient_role||'',method:item.communication_method,readBack:item.read_back_confirmed,notes:item.notes||''})),
   }
 }
@@ -238,7 +238,7 @@ export async function saveMicrobiologyResult(organizationId,sampleRecordId,draft
 export async function addAstResult(organizationId,microbiologyResultId,draft){
   assertCloud()
   const actorId=await currentUserId()
-  const {data,error}=await supabase.from('antimicrobial_susceptibility_results').insert({organization_id:organizationId,microbiology_result_id:microbiologyResultId,antimicrobial_code:draft.code||null,antimicrobial_name:draft.drug,method:draft.method||'MIC',mic_value:draft.mic||null,mic_operator:draft.operator||null,zone_diameter_mm:draft.zone||null,sir_category:draft.sir||'S',breakpoint_standard:draft.standard||'EUCAST',breakpoint_version:draft.version,technical_uncertainty:Boolean(draft.technicalUncertainty),notes:draft.notes||null,created_by:actorId}).select('*').single()
+  const {data,error}=await supabase.from('antimicrobial_susceptibility_results').insert({organization_id:organizationId,microbiology_result_id:microbiologyResultId,organism:draft.organism||null,antimicrobial_code:draft.code||null,antimicrobial_name:draft.drug,method:draft.method||'MIC',mic_value:draft.mic||null,mic_operator:draft.operator||null,zone_diameter_mm:draft.zone||null,sir_category:draft.sir||'S',breakpoint_standard:draft.standard||'EUCAST',breakpoint_version:draft.version,technical_uncertainty:Boolean(draft.technicalUncertainty),notes:draft.notes||null,created_by:actorId}).select('*').single()
   if(error)throw error
   return data
 }
@@ -248,11 +248,9 @@ export async function saveAmrClassification(organizationId,microbiologyResultId,
   const actorId=await currentUserId()
   const now=new Date().toISOString()
   const classification=draft.classification||null
-  const payload={organization_id:organizationId,microbiology_result_id:microbiologyResultId,classification,definition_source:draft.definitionSource||'Magiorakos et al.',definition_version:draft.definitionVersion||'2012',calculation_snapshot:draft.calculationSnapshot||{},status:draft.status||'confirmed',rationale:draft.rationale||null,classified_by:actorId,classified_at:now}
+  const payload={organization_id:organizationId,microbiology_result_id:microbiologyResultId,organism:draft.organism||null,classification,definition_source:draft.definitionSource||'Magiorakos et al.',definition_version:draft.definitionVersion||'2012',calculation_snapshot:draft.calculationSnapshot||{},status:draft.status||'confirmed',rationale:draft.rationale||null,classified_by:actorId,classified_at:now}
   const {data,error}=await supabase.from('amr_classifications').insert(payload).select('*').single()
   if(error)throw error
-  const {error:updateError}=await supabase.from('microbiology_results').update({resistance_class:classification,updated_by:actorId,updated_at:now}).eq('organization_id',organizationId).eq('id',microbiologyResultId)
-  if(updateError)throw updateError
   return data
 }
 
