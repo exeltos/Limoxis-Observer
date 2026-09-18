@@ -6,6 +6,8 @@ const patientForm=fs.readFileSync('src/features/patients/PatientsPage.jsx','utf8
 const record=fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx','utf8')
 const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
 const cloud=fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')
+const labRecord=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx','utf8')
+const labCloud=fs.readFileSync('src/features/laboratory/laboratoryCloudService.js','utf8')
 const archive=fs.readFileSync('supabase/migrations/20260918103000_patient_governed_archival.sql','utf8')
 const admissions=fs.readFileSync('supabase/migrations/20260918104000_patient_admission_lifecycle.sql','utf8')
 
@@ -38,6 +40,8 @@ describe('patient clinical core hardening',()=>{
     expect(repository).not.toContain('saveAmr(')
     expect(cloud).not.toContain('saveAmrClassification')
     expect(record).toContain('Derived from validated microbiology/AST evidence.')
+    expect(labRecord).not.toContain('<option value="MDR">MDR</option>')
+    expect(labCloud).not.toContain('resistance_class:draft.resistance')
   })
 
   it('uses canonical date and time fields for sample collection',()=>{
