@@ -484,3 +484,12 @@
 .new-surveillance-flow-card .flow-cancel-link{padding:7px 10px!important;border:1px solid #dbe5ec!important;border-radius:8px!important;background:#fff!important;text-decoration:none!important}
 .new-surveillance-flow-card .flow-cancel-link:hover{background:#f7fafc!important;text-decoration:none!important}
 @media(max-width:900px){.new-surveillance-flow-card .entry-grid{grid-template-columns:1fr!important}.new-surveillance-flow-card .entry-span-2{grid-column:auto!important}}
+
+/* Surveillance header actions: fixed, readable hierarchy at every viewport. */
+.new-surveillance-flow-card .episode-detail-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;overflow:visible!important}
+.new-surveillance-flow-card .episode-detail-header>div:first-child{min-width:0!important;flex:1 1 auto!important}
+.new-surveillance-flow-card .episode-detail-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:10px!important;flex:0 0 auto!important;white-space:nowrap!important;overflow:visible!important}
+.new-surveillance-flow-card .episode-detail-actions .status-badge{flex:0 0 auto!important;margin:0!important}
+.new-surveillance-flow-card .flow-cancel-link{box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:74px!important;min-height:34px!important;padding:7px 12px!important;line-height:1.2!important;white-space:nowrap!important;overflow:visible!important}
+.new-surveillance-flow-card .flow-close-button{box-sizing:border-box!important;flex:0 0 34px!important;min-width:34px!important;min-height:34px!important;margin:0!important;padding:0!important}
+@media(max-width:700px){.new-surveillance-flow-card .episode-detail-header{align-items:flex-start!important}.new-surveillance-flow-card .episode-detail-actions{gap:6px!important}.new-surveillance-flow-card .flow-cancel-link{min-width:auto!important;padding:7px 9px!important}}
