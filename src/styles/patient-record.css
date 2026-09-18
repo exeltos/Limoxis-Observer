@@ -463,3 +463,24 @@
 .new-surveillance-flow-card .flow-cancel-dialog label{display:block!important}
 .new-surveillance-flow-card .flow-cancel-dialog textarea{width:100%!important;margin-top:6px!important}
 .new-surveillance-flow-card .flow-cancel-actions{display:flex!important;justify-content:flex-end!important;gap:8px!important;margin-top:14px!important}
+
+/* Clinical flow v2: spacious form, admission context is read-only, actions are unambiguous. */
+.new-surveillance-flow-card{max-width:1320px!important}
+.new-surveillance-flow-card .flow-step-panel{padding:20px 22px!important}
+.new-surveillance-flow-card .flow-step-heading{margin-bottom:18px!important;padding-bottom:12px!important;border-bottom:1px solid #edf2f6!important}
+.new-surveillance-flow-card .entry-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px 18px!important}
+.new-surveillance-flow-card .entry-span-2{grid-column:1/-1!important}
+.new-surveillance-flow-card input,.new-surveillance-flow-card select{min-height:46px!important;padding:9px 12px!important}
+.new-surveillance-flow-card textarea{min-height:96px!important;padding:11px 12px!important}
+.new-surveillance-flow-card .flow-context-field{min-height:46px!important;padding:7px 12px!important;border:1px solid #dce6ed!important;border-radius:9px!important;background:#f5f8fa!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
+.new-surveillance-flow-card .flow-context-field>span{font-size:10.5px!important;font-weight:750!important;color:#526d82!important}
+.new-surveillance-flow-card .flow-context-field>strong{font-size:12px!important;color:#173a55!important;margin-top:2px!important}
+.new-surveillance-flow-card .flow-context-field>small{font-size:9.5px!important;color:#7b91a2!important;margin-top:2px!important}
+.new-surveillance-flow-card .clinical-check-grid{gap:18px!important;margin-top:16px!important}
+.new-surveillance-flow-card .custom-clinical-add{gap:18px!important;margin-top:14px!important}
+.new-surveillance-flow-card .assessment-summary{margin-top:14px!important}
+.new-surveillance-flow-card .sample-request-card{padding:18px!important}
+.new-surveillance-flow-card .episode-detail-actions{padding-left:12px!important}
+.new-surveillance-flow-card .flow-cancel-link{padding:7px 10px!important;border:1px solid #dbe5ec!important;border-radius:8px!important;background:#fff!important;text-decoration:none!important}
+.new-surveillance-flow-card .flow-cancel-link:hover{background:#f7fafc!important;text-decoration:none!important}
+@media(max-width:900px){.new-surveillance-flow-card .entry-grid{grid-template-columns:1fr!important}.new-surveillance-flow-card .entry-span-2{grid-column:auto!important}}
