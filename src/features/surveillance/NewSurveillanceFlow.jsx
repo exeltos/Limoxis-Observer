@@ -64,7 +64,7 @@ function normalizeLibrary(rows=[]){
   return rows.filter(row=>{const key=libraryValue(row);if(!key||seen.has(key))return false;seen.add(key);return true})
 }
 
-export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onClose,onCreate,onSaveAssessment,onRequestSample,onSaveIsolation,onRecordChange,onPatientsChange}){
+export function NewSurveillanceFlow({patient=null,patients=[],departments=[],initialSample=null,onClose,onCreate,onSaveAssessment,onRequestSample,onSaveIsolation,onRecordChange,onPatientsChange}){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const {profile,user}=useAuth()
@@ -133,7 +133,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],onC
   }
 
   const linkedLabSamples=useMemo(()=>record?(onRequestSample?(record.samples||[]):laboratorySamples.filter(x=>x.surveillanceCase===record.id)):[],[record,savedDraft,activeStep,onRequestSample])
-  const surveillanceStartedFromSample=Boolean(record?.sourceSampleId||record?.sampleId||record?.triggerSampleId||record?.samples?.some(sample=>sample?.id&&String(sample.id)===String(record?.sourceSampleId||record?.sampleId||record?.triggerSampleId)))
+  const surveillanceStartedFromSample=Boolean(initialSample)
   const alreadyHasSample=linkedLabSamples.length>0||surveillanceStartedFromSample
   const completed=useMemo(()=>{const c=new Set(completedSteps);if(record)c.add('start');if(record?.assessment)c.add('assessment');if(linkedLabSamples.length)c.add('microbiology');if(record?.isolation||record?.isolationDecision?.required===false)c.add('isolation');return c},[completedSteps,record,linkedLabSamples])
   function allowed(step){if(step==='start')return true;if(step==='assessment')return completed.has('start')||Boolean(record);if(step==='microbiology'||step==='isolation')return completed.has('assessment')||Boolean(record?.assessment);return false}
