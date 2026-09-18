@@ -440,3 +440,17 @@ button{letter-spacing:0}
   .production-surveillance-page .module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .production-surveillance-page .filter-search{max-width:none!important;flex:1 1 auto!important}
 }
+
+
+/* Laboratory isolate editor — one compact clinical row per recovered microorganism. */
+.laboratory-isolate-list{display:grid!important;gap:7px!important;margin-top:9px!important;width:100%!important}
+.laboratory-isolate-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;min-height:46px!important;padding:7px 9px 7px 12px!important;border:1px solid var(--lo-color-border)!important;border-radius:10px!important;background:#fff!important;box-shadow:0 1px 2px rgba(22,57,95,.035)!important}
+.laboratory-isolate-name{min-width:0!important;display:flex!important;align-items:center!important;gap:9px!important;color:#173650!important}
+.laboratory-isolate-name strong{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:12px!important;font-weight:750!important}
+.laboratory-isolate-dot{width:7px!important;height:7px!important;flex:0 0 7px!important;border-radius:50%!important;background:#2b789f!important;box-shadow:0 0 0 3px #e8f3f7!important}
+.laboratory-isolate-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:7px!important;flex:0 0 auto!important}
+.laboratory-isolate-actions .status-badge{min-width:108px!important;justify-content:center!important;white-space:nowrap!important}
+.laboratory-isolate-actions .btn,.laboratory-isolate-actions button:not(.laboratory-isolate-remove){min-height:30px!important;height:30px!important;padding:0 10px!important;font-size:10px!important}
+.laboratory-isolate-remove{width:30px!important;height:30px!important;display:grid!important;place-items:center!important;padding:0!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#71869a!important;cursor:pointer!important}
+.laboratory-isolate-remove:hover{background:#f7ecec!important;color:#a44747!important}
+@media(max-width:900px){.laboratory-isolate-row{align-items:flex-start!important;flex-direction:column!important}.laboratory-isolate-actions{width:100%!important;justify-content:flex-start!important;flex-wrap:wrap!important}}
