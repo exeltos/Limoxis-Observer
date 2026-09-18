@@ -454,3 +454,6 @@ button{letter-spacing:0}
 .laboratory-isolate-remove{width:30px!important;height:30px!important;display:grid!important;place-items:center!important;padding:0!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#71869a!important;cursor:pointer!important}
 .laboratory-isolate-remove:hover{background:#f7ecec!important;color:#a44747!important}
 @media(max-width:900px){.laboratory-isolate-row{align-items:flex-start!important;flex-direction:column!important}.laboratory-isolate-actions{width:100%!important;justify-content:flex-start!important;flex-wrap:wrap!important}}
+
+.laboratory-amr-inline-select{height:32px!important;min-width:205px!important;max-width:245px!important;padding:0 30px 0 10px!important;border:1px solid var(--lo-color-border)!important;border-radius:8px!important;background:#f8fafc!important;color:#28465f!important;font-size:10.5px!important;font-weight:700!important;cursor:pointer!important}
+.laboratory-amr-inline-select:focus{outline:2px solid rgba(37,107,155,.16)!important;border-color:var(--lo-color-primary)!important}
