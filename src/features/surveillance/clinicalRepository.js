@@ -18,7 +18,6 @@ import {
   removeSurveillanceDevice,
   reopenClinicalCase,
   requestLaboratorySample,
-  saveAmrClassification,
   saveClinicalAssessment,
   saveClinicalEvent,
   saveHaiClassification,
@@ -136,11 +135,6 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     const target=demoRecord(clinicalCases[record.id]);target.devices=target.devices.map(item=>item.id===deviceId?{...item,status:'removed',removedAt:draft.removedAt||now()}:item)
     return touch(target,actor,'deviceRemoved',deviceId)
   }
-  async function saveAmr(record,resultId,draft){
-    if(!isDemo)return saveAmrClassification(organizationId,resultId,draft)
-    const target=demoRecord(clinicalCases[record.id]);target.resistance=draft.classification||null
-    return touch(target,actor,'amrClassification',draft.classification)
-  }
   async function reassess(record,draft){
     if(!isDemo)return addClinicalReassessment(organizationId,record.recordId,record.patientRecordId,draft)
     const target=demoRecord(clinicalCases[record.id]);const row={id:id('REV'),...draft,by:actor?.name||'Demo user'};target.reassessments.unshift(row);if(draft.nextReviewDue)target.reviewDue=draft.nextReviewDue
@@ -160,5 +154,5 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     if(!isDemo){await voidClinicalCase(organizationId,record.recordId,reason);return true}
     return deleteClinicalSurveillance(record.id,{actor:actor?.name,actorId:actor?.id,reason})
   }
-  return {loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,addDevice,removeDevice,saveAmr,reassess,complete,reopen,voidCase}
+  return {loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,addDevice,removeDevice,reassess,complete,reopen,voidCase}
 }
