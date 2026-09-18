@@ -8,11 +8,11 @@ export function buildSurveillanceJourneyStages(record,t,fmtDate){
   const reassessments=record?.reassessments||[],therapy=record?.therapy||[]
   const isolationDecided=Boolean(record?.isolation)||(record?.isolationDecision?.required===false)
   const assessed=Boolean(record?.assessment)
-  const unlocked={assessment:true,samples:assessed,isolation:assessed,therapy:assessed,hai:assessed,reassessment:assessed,outcome:reassessments.length>0}
+  const unlocked={assessment:true,samples:true,isolation:true,therapy:true,hai:true,reassessment:true,outcome:true}
   return [
     {id:'assessment',label:t('clinicalAssessment'),status:record?.assessment?'complete':'pending',meta:record?.assessment?fmtDate(record.assessment.date||record.startedAt):t('pending')},
     {id:'samples',label:t('sampleAndLaboratory'),status:samples.length?(validatedSamples.length?'complete':'waiting'):'pending',meta:samples.length?(validatedSamples.length?`${samples.length} · ${validatedSamples.length} ${t('clinicalRecords.validated').toLowerCase()}`:`${samples.length} · ${t('waitingForLaboratory')}`):t('clinicalRecords.notStarted')},
-    {id:'hai',label:t('haiAmr'),status:record?.haiClassification?'complete':(assessed?'pending':'waiting'),meta:record?.resistance||t(record?.haiClassification?.status||'pending')},
+    {id:'hai',label:t('haiAmr'),status:record?.haiClassification?'complete':'pending',meta:record?.resistance||t(record?.haiClassification?.status||'pending')},
     {id:'isolation',label:t('isolation'),status:isolationDecided?'complete':'pending',meta:record?.isolation?t(record.isolation.status):(isolationDecided?t('notRequired'):t('clinicalRecords.notStarted'))},
     {id:'therapy',label:t('therapy'),status:therapy.length?'complete':'pending',meta:therapy[0]?.antimicrobial||t('clinicalRecords.notStarted')},
     {id:'reassessment',label:t('reassessment'),status:reassessments.length?'complete':(assessed?'due':'pending'),meta:reassessments[0]?fmtDate(reassessments[0].date):(record?.reviewDue?fmtDate(record.reviewDue):t('notScheduled'))},
@@ -66,8 +66,8 @@ export function SurveillanceJourneyGuidance({record,t,canAssess,canLab,canIsolat
   const cues=[],samples=record?.samples||[],pendingSamples=samples.filter(sample=>!sample.organism)
   if(canAssess&&!record?.assessment)cues.push({id:'assessment',tone:'warning',title:t('clinicalRecords.initialAssessmentRequired')})
   if(canLab&&pendingSamples.length)cues.push({id:'samples',tone:'info',title:t('clinicalRecords.pendingLaboratoryResult')})
-  if(canIsolation&&record?.assessment&&!record?.isolation&&!record?.isolationDecision)cues.push({id:'isolation',tone:'neutral',title:t('isolation')})
-  if(canTherapy&&record?.assessment&&!record?.therapy?.length)cues.push({id:'therapy',tone:'neutral',title:t('therapy')})
+  if(canIsolation&&!record?.isolation&&!record?.isolationDecision)cues.push({id:'isolation',tone:'neutral',title:t('isolation')})
+  if(canTherapy&&!record?.therapy?.length)cues.push({id:'therapy',tone:'neutral',title:t('therapy')})
   if(canAssess&&record?.haiClassification&&!record.haiClassification.criteriaMet)cues.push({id:'hai',tone:'warning',title:t('clinicalRecords.haiCriteriaNeedReview')})
   if(canReassess&&!record?.reassessments?.length)cues.push({id:'reassessment',tone:'due',title:t('clinicalRecords.reassessmentRequired')})
   if(canReassess&&record?.reviewDue)cues.push({id:'reassessment',tone:'neutral',title:t('nextReview')})
