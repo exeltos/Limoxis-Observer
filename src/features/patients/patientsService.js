@@ -134,6 +134,21 @@ export async function createAdmission(organizationId, patient, draft, {isDemo=fa
   return mapAdmission(data,department?.name||draft.department)
 }
 
+export async function dischargeAdmission(organizationId,patient,admission,draft,{isDemo=false}={}){
+  if(isDemo || !supabase) return {...admission,status:'discharged',dischargeDate:draft.date,notes:draft.reason||admission.notes}
+  const {data,error}=await supabase.rpc('close_patient_admission',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_admission_id:admission.id,p_discharge_date:draft.date,p_reason:draft.reason||null})
+  if(error) throw error
+  return mapAdmission(data,admission.department)
+}
+
+export async function transferAdmission(organizationId,patient,admission,draft,{isDemo=false}={}){
+  const department=await resolveDepartment(organizationId,draft.departmentId)
+  if(isDemo || !supabase) return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId,admission_date:draft.date,discharge_date:null,status:'active',notes:draft.reason||null},department?.name||draft.department)
+  const {data,error}=await supabase.rpc('transfer_patient_admission',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_admission_id:admission.id,p_to_department_id:draft.departmentId,p_transfer_date:draft.date,p_reason:draft.reason||null})
+  if(error) throw error
+  return mapAdmission(data,department?.name||draft.department)
+}
+
 export async function deletePatientForTesting(organizationId, patientRecordId, {isDemo=false}={}){
   if(isDemo || !organizationId || !supabase) return true
   if(!patientRecordId) throw new Error('Patient record is required.')
