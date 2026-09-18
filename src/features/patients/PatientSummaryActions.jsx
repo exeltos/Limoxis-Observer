@@ -9,7 +9,7 @@ import { PatientFormDialog } from './PatientsPage'
 import { archivePatient, updatePatient } from './patientsService'
 import { useState } from 'react'
 
-export function PatientSummaryActions({patient,departments,onReload,onDeleted}){
+export function PatientSummaryActions({patient,departments,onReload,onDeleted,extraItems=[]}){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const {tenant,isDemo,role,membership}=useTenant()
@@ -21,6 +21,7 @@ export function PatientSummaryActions({patient,departments,onReload,onDeleted}){
   const items=[
     has(CAPABILITIES.EDIT_PATIENT)?{id:'edit',label:language==='el'?'Επεξεργασία ασθενούς':'Edit patient',icon:Pencil,onClick:()=>setEditing(true)}:null,
     has(CAPABILITIES.DELETE_PATIENT)?{id:'archive',label:language==='el'?'Αρχειοθέτηση ασθενούς':'Archive patient',icon:Archive,tone:'danger',separatorBefore:true,onClick:()=>setDeleting(true)}:null,
+    ...extraItems,
   ].filter(Boolean)
   if(!items.length)return null
 
