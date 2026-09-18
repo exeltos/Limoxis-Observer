@@ -242,6 +242,19 @@ export async function addAstResult(organizationId,microbiologyResultId,draft){
   return data
 }
 
+export async function saveAmrClassification(organizationId,microbiologyResultId,draft){
+  assertCloud()
+  const actorId=await currentUserId()
+  const now=new Date().toISOString()
+  const classification=draft.classification||null
+  const payload={organization_id:organizationId,microbiology_result_id:microbiologyResultId,classification,definition_source:draft.definitionSource||'Magiorakos et al.',definition_version:draft.definitionVersion||'2012',calculation_snapshot:draft.calculationSnapshot||{},status:draft.status||'confirmed',rationale:draft.rationale||null,classified_by:actorId,classified_at:now}
+  const {data,error}=await supabase.from('amr_classifications').insert(payload).select('*').single()
+  if(error)throw error
+  const {error:updateError}=await supabase.from('microbiology_results').update({resistance_class:classification,updated_by:actorId,updated_at:now}).eq('organization_id',organizationId).eq('id',microbiologyResultId)
+  if(updateError)throw updateError
+  return data
+}
+
 export async function communicateCriticalResult(organizationId,microbiologyResultId,draft){
   assertCloud()
   const actorId=await currentUserId()
