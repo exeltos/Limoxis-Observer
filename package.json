@@ -45,5 +45,5 @@
   "engines": {
     "node": ">=22.22.2 <23"
   },
-  "buildStamp": "2026-09-18-lab-amr-isolate-ui"
+  "buildStamp": "2026-09-18-lab-isolate-polish"
 }
