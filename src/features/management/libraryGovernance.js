@@ -14,6 +14,8 @@ export const SYSTEM_BASELINE_LIBRARY_KEYS=Object.freeze([
   'isolationTypes',
   'controlTypes',
   'documentCategories',
+  'deviceTypes',
+  'surveillanceDefinitions',
 ])
 
 export const SPECIAL_GOVERNANCE_LIBRARY_KEYS=Object.freeze([
