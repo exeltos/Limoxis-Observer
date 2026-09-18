@@ -78,15 +78,8 @@ export async function updatePatient(organizationId, patient, patch, {isDemo=fals
   if(patch.hospitalRecordNumber!==undefined)payload.hospital_record_number=patch.hospitalRecordNumber||null
   if(patch.dateOfBirth!==undefined)payload.date_of_birth=patch.dateOfBirth||null
   if(patch.sex!==undefined)payload.sex=patch.sex||null
-  if(patch.admissionDate!==undefined)payload.admission_date=patch.admissionDate
-  if(patch.status!==undefined)payload.status=patch.status
   if(patch.notes!==undefined)payload.notes=patch.notes||null
-  let departmentLabel=patient.department
-  if(patch.departmentId!==undefined){
-    const department=await resolveDepartment(organizationId,patch.departmentId)
-    payload.department_id=department?.id||null
-    departmentLabel=department?.name||''
-  }
+  const departmentLabel=patient.department
   const {data,error}=await supabase.from('patients').update(payload).eq('id',patient.recordId).eq('organization_id',organizationId).select('*, department:departments(name)').single()
   if(error) throw error
   return mapRow(data,data.department?.name||departmentLabel)
