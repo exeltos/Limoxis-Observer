@@ -148,11 +148,15 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
   }catch(err){notify(err?.message||t('actionFailed'),'error')}
 }
 
+  let creatingAdmissionSample=false
   async function createAdmissionSample(draft){
-    if(!patient||!selectedAdmission)return null
-    const created=await laboratory.createSample({patientRecordId:patient.recordId||null,draft:{...draft,patient:patient.name,patientEn:patient.nameEn||patient.name,patientId:patient.id,departmentId:selectedAdmission.departmentId||null,department:selectedAdmission.department||patient.department||'',departmentEn:selectedAdmission.department||patient.departmentEn||patient.department||'',subjectType:'patient',subjectName:patient.name,subjectNameEn:patient.nameEn||patient.name,subjectCode:patient.id}})
-    notify(language==='el'?'Το δείγμα καταχωρήθηκε.':'Sample recorded.','success')
-    return created
+    if(!patient||!selectedAdmission||creatingAdmissionSample)return null
+    creatingAdmissionSample=true
+    try{
+      const created=await laboratory.createSample({patientRecordId:patient.recordId||null,draft:{...draft,patient:patient.name,patientEn:patient.nameEn||patient.name,patientId:patient.id,departmentId:selectedAdmission.departmentId||null,department:selectedAdmission.department||patient.department||'',departmentEn:selectedAdmission.department||patient.departmentEn||patient.department||'',subjectType:'patient',subjectName:patient.name,subjectNameEn:patient.nameEn||patient.name,subjectCode:patient.id}})
+      notify(language==='el'?'Το δείγμα καταχωρήθηκε.':'Sample recorded.','success')
+      return created
+    }finally{creatingAdmissionSample=false}
   }
 
   const shellSubtitle=selectedAdmission?`${selectedAdmission.department||'—'} · ${t('clinicalRecords.admission')}: ${fmtDate(selectedAdmission.admissionDate)}`:(patientMode?(patient?.hospitalRecordNumber||t('clinicalRecords.patientRecord')):`${department||'—'} · ${t('clinicalRecords.admission')}: ${fmtDate(record?.admissionDate||patient?.admissionDate)}`)
