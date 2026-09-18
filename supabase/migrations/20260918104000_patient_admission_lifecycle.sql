@@ -41,3 +41,30 @@ revoke all on function public.close_patient_admission(uuid,uuid,uuid,date,text) 
 revoke all on function public.transfer_patient_admission(uuid,uuid,uuid,uuid,date,text) from public;
 grant execute on function public.close_patient_admission(uuid,uuid,uuid,date,text) to authenticated;
 grant execute on function public.transfer_patient_admission(uuid,uuid,uuid,uuid,date,text) to authenticated;
+
+
+create or replace function public.create_patient_admission(
+  p_organization_id uuid,p_patient_id uuid,p_department_id uuid,p_admission_date date,
+  p_discharge_date date default null,p_status text default 'active',p_notes text default null
+)
+returns public.patient_admissions language plpgsql security definer set search_path = '' as $$
+declare v_actor uuid:=auth.uid(); v_created public.patient_admissions%rowtype;
+begin
+ if v_actor is null then raise exception 'authentication required'; end if;
+ if p_organization_id is null or p_patient_id is null or p_admission_date is null then raise exception 'organization, patient, and admission date are required'; end if;
+ if p_status not in ('active','discharged') then raise exception 'invalid admission status'; end if;
+ if p_discharge_date is not null and p_discharge_date<p_admission_date then raise exception 'discharge date cannot precede admission date'; end if;
+ if not exists(select 1 from public.patients where id=p_patient_id and organization_id=p_organization_id and archived_at is null) then raise exception 'active patient not found in organization'; end if;
+ if p_department_id is not null and not exists(select 1 from public.departments where id=p_department_id and organization_id=p_organization_id and is_active=true) then raise exception 'department is not active in this organization'; end if;
+ if not public.current_user_can_patient_capability(p_organization_id,p_department_id,'edit_patient') then raise exception 'not authorized to create admission'; end if;
+ if p_status='active' and exists(select 1 from public.patient_admissions where organization_id=p_organization_id and patient_id=p_patient_id and status='active') then raise exception 'patient already has an active admission'; end if;
+ insert into public.patient_admissions(organization_id,patient_id,department_id,admission_date,discharge_date,status,notes,created_by)
+ values(p_organization_id,p_patient_id,p_department_id,p_admission_date,p_discharge_date,p_status,p_notes,v_actor) returning * into v_created;
+ update public.patients set department_id=p_department_id,admission_date=p_admission_date,discharge_date=p_discharge_date,status=p_status,updated_at=now() where id=p_patient_id and organization_id=p_organization_id;
+ insert into public.system_audit_log(actor_user_id,event_type,entity_type,entity_id,metadata)
+ values(v_actor,'patient.admission_created','patient_admission',v_created.id::text,jsonb_build_object('organization_id',p_organization_id,'patient_id',p_patient_id,'department_id',p_department_id,'admission_date',p_admission_date));
+ return v_created;
+end $$;
+
+revoke all on function public.create_patient_admission(uuid,uuid,uuid,date,date,text,text) from public;
+grant execute on function public.create_patient_admission(uuid,uuid,uuid,date,date,text,text) to authenticated;
