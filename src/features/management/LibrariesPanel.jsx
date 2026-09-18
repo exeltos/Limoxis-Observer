@@ -15,7 +15,7 @@ import { createManagementLibraryItem,loadManagementLibraries,removeManagementLib
 import { isHospitalManagedLibraryKey } from './libraryGovernance'
 const categories=[
  ['departments','libraryDepartments',Building2,'blue'],['microorganisms','libraryMicroorganisms',Biohazard,'red'],
- ['antibiotics','libraryAntibiotics',Tablets,'purple'],['notifiableDiseases','libraryNotifiableDiseases',ClipboardCheck,'orange'],
+ ['antibiotics','libraryAntibiotics',Tablets,'purple'],['deviceTypes','libraryDeviceTypes',ShieldCheck,'teal'],['surveillanceDefinitions','librarySurveillanceDefinitions',ClipboardCheck,'blue'],['notifiableDiseases','libraryNotifiableDiseases',ClipboardCheck,'orange'],
  ['clinicalSymptoms','signsSymptoms',ClipboardCheck,'blue'],['clinicalRiskFactors','riskFactors',ShieldCheck,'amber'],
  ['sampleTypes','librarySampleTypes',FlaskConical,'teal'],['professionalCategories','libraryProfessionalCategories',UsersRound,'indigo'],
  ['vaccines','libraryVaccines',Syringe,'green'],['wasteTypes','libraryWasteTypes',PackageOpen,'amber'],
