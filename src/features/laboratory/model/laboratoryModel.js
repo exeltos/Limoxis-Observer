@@ -16,6 +16,7 @@ export function normalizeLaboratorySample(row = {}) {
     resultedAt: row.resultedAt ?? null,
     method: row.method ?? '',
     ast: row.ast ?? [],
+    amr: row.amr ?? [],
     communications: row.communications ?? [],
   }] : [])
   const sampleType = row.sampleType ?? row.sample_type ?? row.type ?? 'other'
