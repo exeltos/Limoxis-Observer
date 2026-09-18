@@ -1,5 +1,5 @@
 import { repositoryResult } from '../../../core/data/repositoryResult'
-import { addAstResult, communicateCriticalResult, createLaboratorySample, deleteLaboratorySample, finalizeLaboratorySample, loadEnvironmentalStandards, loadLaboratorySample, loadLaboratorySamples, markDocumentsReviewed, reopenLaboratorySample, saveMicrobiologyResult, updateLaboratorySampleStatus } from '../laboratoryCloudService'
+import { addAstResult, communicateCriticalResult, createLaboratorySample, deleteLaboratorySample, finalizeLaboratorySample, loadEnvironmentalStandards, loadLaboratorySample, loadLaboratorySamples, markDocumentsReviewed, reopenLaboratorySample, saveMicrobiologyResult, saveAmrClassification, updateLaboratorySampleStatus } from '../laboratoryCloudService'
 import { normalizeLaboratorySample, normalizeLaboratorySamples } from '../model/laboratoryModel'
 import { defineLaboratoryRepository } from './laboratoryRepository'
 
@@ -44,6 +44,7 @@ export function createSupabaseLaboratoryRepository({ organizationId } = {}) {
       return this.get(sampleCode)
     },
     async addAst(sampleCode, resultId, draft) { await addAstResult(organizationId, resultId, draft);return this.get(sampleCode) },
+    async saveAmr(sampleCode, resultId, draft) { await saveAmrClassification(organizationId, resultId, draft);return this.get(sampleCode) },
     async communicate(sampleCode, resultId, draft) { await communicateCriticalResult(organizationId, resultId, draft);return this.get(sampleCode) },
     async markDocumentsReviewed(sampleCode) { const current=await loadLaboratorySample(organizationId,sampleCode);if(!current)return null;await markDocumentsReviewed(organizationId,current.recordId);return this.get(sampleCode) },
     async finalize(sampleCode) { const current=await loadLaboratorySample(organizationId,sampleCode);if(!current)return null;await finalizeLaboratorySample(organizationId,current.recordId);return this.get(sampleCode) },
