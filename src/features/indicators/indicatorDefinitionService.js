@@ -9,6 +9,7 @@ export const INDICATOR_METRICS=Object.freeze([
  'bacteremia_total','bacteremia_ecoli','bacteremia_proteus','bacteremia_acinetobacter','bacteremia_klebsiella','bacteremia_enterobacter','bacteremia_pseudomonas','bacteremia_saureus','bacteremia_enterococcus',
  'amr_tested_ecoli','amr_resistant_ecoli','amr_tested_proteus','amr_resistant_proteus','amr_tested_acinetobacter','amr_resistant_acinetobacter','amr_tested_klebsiella','amr_resistant_klebsiella','amr_tested_enterobacter','amr_resistant_enterobacter','amr_tested_pseudomonas','amr_resistant_pseudomonas','amr_tested_saureus','amr_resistant_saureus','amr_tested_enterococcus','amr_resistant_enterococcus',
  'antibiotic_ddd_total',
+ 'mdr_isolation_total','mdr_isolation_ecoli','mdr_isolation_proteus','mdr_isolation_acinetobacter','mdr_isolation_klebsiella','mdr_isolation_enterobacter','mdr_isolation_pseudomonas','mdr_isolation_saureus','mdr_isolation_enterococcus',
 ])
 
 export const INDICATOR_RATIO_RULES=Object.freeze({
