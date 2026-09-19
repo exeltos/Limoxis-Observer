@@ -1,8 +1,22 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
+import path from 'node:path'
 
-const migrationFull = fs.readFileSync('supabase/migrations/20260919270000_fix_indicator_snapshot_jsonb_build_object_arg_limit.sql', 'utf8')
-// Strip comment lines so the sample calls mentioned in the header comment
+// Every prior indicator addition redefines the whole function via
+// `create or replace function private.indicator_metric_snapshot(...)`
+// (Postgres has no partial-function-body syntax). Reading one fixed
+// migration file would stop covering reality the moment a later migration
+// redefines the function again — so find whichever migration currently
+// holds the LATEST definition (migrations are timestamp-prefixed, so a
+// lexicographic sort of filenames is a chronological sort) and check that.
+const migrationsDir = 'supabase/migrations'
+const definingMigrations = fs.readdirSync(migrationsDir)
+  .filter(name => name.endsWith('.sql'))
+  .filter(name => fs.readFileSync(path.join(migrationsDir, name), 'utf8').includes('function private.indicator_metric_snapshot'))
+  .sort()
+const latestMigrationFile = definingMigrations.at(-1)
+const migrationFull = fs.readFileSync(path.join(migrationsDir, latestMigrationFile), 'utf8')
+// Strip comment lines so sample calls mentioned in header comments
 // (e.g. "jsonb_build_object(...)") aren't picked up as real SQL.
 const migration = migrationFull.split('\n').filter(line => !line.trim().startsWith('--')).join('\n')
 
@@ -14,6 +28,11 @@ function topLevelArgCount(body) {
 }
 
 describe('indicator_metric_snapshot jsonb_build_object PostgreSQL argument limit (PG hard-caps any function call at 100 args)', () => {
+  it('found at least one migration defining the function, and is checking the latest one', () => {
+    expect(definingMigrations.length).toBeGreaterThan(0)
+    expect(latestMigrationFile).toBeTruthy()
+  })
+
   it('never lets a single jsonb_build_object(...) call exceed the 100-argument limit', () => {
     const calls = [...migration.matchAll(/jsonb_build_object\(([^)]*)\)/g)].map(match => match[1])
     expect(calls.length).toBeGreaterThan(0)
