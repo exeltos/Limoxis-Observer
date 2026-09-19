@@ -60,6 +60,9 @@ export function collectIndicatorMetrics(){
   const ddd=dddReferenceLibrary[row.productCode]
   return ddd?sum+Number(row.quantityGrams||0)/ddd:sum
  },0)
+ const mdrIsolations=surveillanceDemoData.filter(x=>x.isolation&&['MDR','XDR','PDR'].includes(x.resistance))
+ const mdrIsolationByPathogen=Object.fromEntries(Object.entries(REFERENCE_PATHOGEN_PATTERNS).map(([key,pattern])=>[`mdr_isolation_${key}`,mdrIsolations.filter(x=>String(x.organism||'').toLowerCase().includes(pattern)).length]))
+ const mdrIsolationTotal=mdrIsolations.filter(x=>Object.values(REFERENCE_PATHOGEN_PATTERNS).some(pattern=>String(x.organism||'').toLowerCase().includes(pattern))).length
  return {
   active_surveillance:active.length,
   resistant_active_surveillance:resistant.length,
@@ -79,5 +82,7 @@ export function collectIndicatorMetrics(){
   ...bacteremiaByPathogen,
   ...amrByPathogen,
   antibiotic_ddd_total:round(antibioticDddTotal,2),
+  mdr_isolation_total:mdrIsolationTotal,
+  ...mdrIsolationByPathogen,
  }
 }
