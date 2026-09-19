@@ -64,7 +64,7 @@ export function AntisepticEntryModal({onClose,onSave,fixedDepartment='',initialR
   }
   void load()
   return ()=>{active=false}
- },[findPatientDays,departmentInfo?.id,range?.from,range?.to])
+ },[findPatientDays,departmentInfo?.id,range])
 
  const patientDays=Number(draft.patientDays)||0
  const litres=Number(draft.litres)||0

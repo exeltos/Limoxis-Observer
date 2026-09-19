@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useState } from 'react'
+import { useCallback,useEffect,useMemo,useState } from 'react'
 import { ClipboardCheck,FileClock,LockKeyhole,PlayCircle,Pencil,Printer,RotateCcw,Trash2 } from 'lucide-react'
 import { useNavigate,useParams,useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -46,14 +46,14 @@ export function ControlRecordPage(){
  const executing=searchParams.get('execute')==='1'
  const recordNavigation=useRecordSequenceNavigation({registry:'controls',currentId:controlId,pathForId:id=>`/controls/${id}`})
 
- async function reload(){
+ const reload=useCallback(async()=>{
   if(!tenant?.id){setRecord(null);setLoading(false);return}
   setLoading(true)
   try{setRecord(await loadControlByCode(tenant.id,controlId))}
   catch(error){setRecord(null);notifyError(error,'load',{operation:'control_record_load'})}
   finally{setLoading(false)}
- }
- useEffect(()=>{void reload()},[tenant?.id,controlId])
+ },[tenant?.id,controlId,notifyError])
+ useEffect(()=>{void reload()},[reload])
 
  if(loading)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'Loading control…':'Φόρτωση ελέγχου…'}</div></Page>
  if(!record)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'Control not found.':'Δεν βρέθηκε ο έλεγχος.'}</div></Page>

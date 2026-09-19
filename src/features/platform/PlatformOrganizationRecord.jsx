@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useState } from 'react'
+import { useCallback,useEffect,useMemo,useState } from 'react'
 import { Activity,Building2,KeyRound,LogIn,PauseCircle,Pencil,PlayCircle,Save,Send,Trash2,UserPlus,Users,X } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { Button } from '../../design-system/Button'
@@ -57,9 +57,9 @@ export function PlatformOrganizationRecord({organization,language='el',initialTa
   const [createUserDraft,setCreateUserDraft]=useState({fullName:'',email:'',role:'department_user'})
 
   useEffect(()=>{setRecord(organization);setDraft(toDraft(organization));setEditing(false)},[organization])
-  useEffect(()=>{loadUsers()},[organization.id])
 
-  async function loadUsers(){setLoadingUsers(true);try{const [rows,employeeRows]=await Promise.all([listOrganizationMembersDetailed(organization.id),loadEmployeesAsync(organization.id)]);setUsers(rows);setEmployees(employeeRows);setEmployeeLinkDrafts(Object.fromEntries(rows.map(user=>[user.userId,employeeRows.find(employee=>employee.userId===user.userId)?.dbId||''])));setSelectedUserId(current=>current&&rows.some(user=>user.userId===current)?current:'');return rows}catch(error){notifyError(error,'load',{operation:'platform_organization_users_load'});return []}finally{setLoadingUsers(false)}}
+  const loadUsers=useCallback(async()=>{setLoadingUsers(true);try{const [rows,employeeRows]=await Promise.all([listOrganizationMembersDetailed(organization.id),loadEmployeesAsync(organization.id)]);setUsers(rows);setEmployees(employeeRows);setEmployeeLinkDrafts(Object.fromEntries(rows.map(user=>[user.userId,employeeRows.find(employee=>employee.userId===user.userId)?.dbId||''])));setSelectedUserId(current=>current&&rows.some(user=>user.userId===current)?current:'');return rows}catch(error){notifyError(error,'load',{operation:'platform_organization_users_load'});return []}finally{setLoadingUsers(false)}},[organization.id,notifyError])
+  useEffect(()=>{loadUsers()},[loadUsers])
   const admins=useMemo(()=>users.filter(user=>user.role==='hospital_admin'),[users])
   const selectedUser=useMemo(()=>users.find(user=>user.userId===selectedUserId)||null,[users,selectedUserId])
   const selectedEmployee=useMemo(()=>selectedUser?employees.find(employee=>employee.userId===selectedUser.userId)||null:null,[employees,selectedUser])
@@ -75,7 +75,7 @@ export function PlatformOrganizationRecord({organization,language='el',initialTa
     if(!selectedUser){setUserEditing(false);return}
     setUserDraft({fullName:selectedUser.name||'',email:selectedUser.email||'',phone:selectedUser.phone||'',jobTitle:selectedUser.jobTitle||'',role:selectedUser.role||''})
     setUserEditing(false)
-  },[selectedUserId,selectedUser?.name,selectedUser?.email,selectedUser?.phone,selectedUser?.jobTitle,selectedUser?.role])
+  },[selectedUser])
 
   async function saveOrganization(){if(!canSave||saving)return;setSaving(true);try{const next=await updatePlatformOrganization(record.id,draft);setRecord(next);setDraft(toDraft(next));onChanged?.(next);setEditing(false);notify(tx('Τα στοιχεία του οργανισμού ενημερώθηκαν.','Organization details updated.'),'success',{operation:'platform_organization_update'})}catch(error){notifyError(error,'save',{operation:'platform_organization_update'})}finally{setSaving(false)}}
   async function togglePause(){if(working)return;const next=record.status==='suspended'?'active':'suspended';const ok=await confirm({title:next==='suspended'?tx('Παύση οργανισμού','Suspend organization'):tx('Ενεργοποίηση οργανισμού','Reactivate organization'),message:next==='suspended'?tx('Οι χρήστες του οργανισμού δεν θα μπορούν να λειτουργούν κανονικά μέχρι την επανενεργοποίηση.','Organization access will be suspended until reactivation.'):tx('Να ενεργοποιηθεί ξανά ο οργανισμός;','Reactivate this organization?'),confirmLabel:next==='suspended'?tx('Παύση','Suspend'):tx('Ενεργοποίηση','Reactivate')});if(!ok)return;setWorking(true);try{const updated=await setPlatformOrganizationStatus(record.id,next);setRecord(updated);setDraft(toDraft(updated));onChanged?.(updated);notify(next==='suspended'?tx('Ο οργανισμός τέθηκε σε παύση.','Organization suspended.'):tx('Ο οργανισμός ενεργοποιήθηκε.','Organization reactivated.'),'success',{operation:'platform_organization_status'})}catch(error){notifyError(error,'action',{operation:'platform_organization_status'})}finally{setWorking(false)}}

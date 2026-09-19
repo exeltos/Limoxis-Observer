@@ -22,6 +22,9 @@ export function PlatformSettingsPage(){
   const [draft,setDraft]=useState({supportEmail:'',defaultDemoDurationDays:30,maintenanceNoticeEnabled:false,maintenanceNoticeEl:'',maintenanceNoticeEn:''})
   const [baseline,setBaseline]=useState(null)
 
+  // Fetch once on mount only, using whatever `en` is at that moment — re-running this on
+  // every language toggle would re-fetch and reset `draft`/`baseline`, discarding
+  // in-progress edits to the settings form.
   useEffect(()=>{
     let active=true
     ;(async()=>{
@@ -37,6 +40,7 @@ export function PlatformSettingsPage(){
       }catch(err){if(active)setError(err)}finally{if(active)setLoading(false)}
     })()
     return ()=>{active=false}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   },[])
 
   const dirty=useMemo(()=>baseline?JSON.stringify({supportEmail:draft.supportEmail,defaultDemoDurationDays:Number(draft.defaultDemoDurationDays),maintenanceNoticeEnabled:Boolean(draft.maintenanceNoticeEnabled),maintenanceNoticeEl:draft.maintenanceNoticeEl,maintenanceNoticeEn:draft.maintenanceNoticeEn})!==JSON.stringify({supportEmail:baseline.supportEmail,defaultDemoDurationDays:Number(baseline.defaultDemoDurationDays),maintenanceNoticeEnabled:Boolean(baseline.maintenanceNoticeEnabled),maintenanceNoticeEl:baseline.maintenanceNoticeEl,maintenanceNoticeEn:baseline.maintenanceNoticeEn}):false,[draft,baseline])

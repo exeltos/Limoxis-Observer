@@ -22,7 +22,7 @@ export function TrainingResultsReview({program,rows,state,onPersist,busy=false,e
  const [selected,setSelected]=useState(null)
  const [reviewed,setReviewed]=useState(false)
  const questions=Array.isArray(program?.assessmentQuestions)?program.assessmentQuestions:[]
- const feedbackQuestions=Array.isArray(program?.trainerFeedbackTemplate?.questions)?program.trainerFeedbackTemplate.questions:[]
+ const feedbackQuestions=useMemo(()=>Array.isArray(program?.trainerFeedbackTemplate?.questions)?program.trainerFeedbackTemplate.questions:[],[program?.trainerFeedbackTemplate?.questions])
  const feedbackLabelById=useMemo(()=>new Map(feedbackQuestions.map(question=>[question.id,en?(question.labelEn||question.labelEl||question.id):(question.labelEl||question.labelEn||question.id)])),[feedbackQuestions,en])
  const completed=rows.filter(x=>x.status==='completed').length
  const scored=rows.filter(x=>x.score!=null)
