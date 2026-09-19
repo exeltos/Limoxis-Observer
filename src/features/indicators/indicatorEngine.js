@@ -1,6 +1,7 @@
 import { surveillanceDemoData } from '../surveillance/surveillanceDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { handHygieneRows,bundleRows,antisepticRows } from '../prevention/preventionDemoData'
+import { antibioticDispensingRows,dddReferenceLibrary } from '../pharmacy/pharmacyDemoData'
 import { qualityIncidents } from '../quality/qualityDemoData'
 import { loadEmployees } from '../employees/employeeStore'
 import { loadVaccinations } from '../employees/employeeRecordsService'
@@ -55,6 +56,10 @@ export function collectIndicatorMetrics(){
   amrByPathogen[`amr_tested_${key}`]=tested.length
   amrByPathogen[`amr_resistant_${key}`]=tested.filter(row=>row.sir==='R').length
  }
+ const antibioticDddTotal=antibioticDispensingRows.reduce((sum,row)=>{
+  const ddd=dddReferenceLibrary[row.productCode]
+  return ddd?sum+Number(row.quantityGrams||0)/ddd:sum
+ },0)
  return {
   active_surveillance:active.length,
   resistant_active_surveillance:resistant.length,
@@ -73,5 +78,6 @@ export function collectIndicatorMetrics(){
   bacteremia_total:bacteremiaTotal,
   ...bacteremiaByPathogen,
   ...amrByPathogen,
+  antibiotic_ddd_total:round(antibioticDddTotal,2),
  }
 }

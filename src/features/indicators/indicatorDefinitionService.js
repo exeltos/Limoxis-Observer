@@ -8,6 +8,7 @@ export const INDICATOR_METRICS=Object.freeze([
  'patient_days','active_surveillance','resistant_active_surveillance','hh_compliant_actions','hh_opportunities','bundle_all_or_none_pass','bundle_executions','abhr_litres','active_staff','active_staff_with_vaccination','training_completed','training_assignments','open_high_incidents','mdro_bsi',
  'bacteremia_total','bacteremia_ecoli','bacteremia_proteus','bacteremia_acinetobacter','bacteremia_klebsiella','bacteremia_enterobacter','bacteremia_pseudomonas','bacteremia_saureus','bacteremia_enterococcus',
  'amr_tested_ecoli','amr_resistant_ecoli','amr_tested_proteus','amr_resistant_proteus','amr_tested_acinetobacter','amr_resistant_acinetobacter','amr_tested_klebsiella','amr_resistant_klebsiella','amr_tested_enterobacter','amr_resistant_enterobacter','amr_tested_pseudomonas','amr_resistant_pseudomonas','amr_tested_saureus','amr_resistant_saureus','amr_tested_enterococcus','amr_resistant_enterococcus',
+ 'antibiotic_ddd_total',
 ])
 
 export const INDICATOR_RATIO_RULES=Object.freeze({
@@ -35,6 +36,7 @@ export const INDICATOR_RATIO_RULES=Object.freeze({
  amr_resistant_pseudomonas:{amr_tested_pseudomonas:{multiplier:100,unit:'%'}},
  amr_resistant_saureus:{amr_tested_saureus:{multiplier:100,unit:'%'}},
  amr_resistant_enterococcus:{amr_tested_enterococcus:{multiplier:100,unit:'%'}},
+ antibiotic_ddd_total:{patient_days:{multiplier:100,unit:'DDD/100 patient-days'}},
 })
 
 export function allowedIndicatorDenominators(numerator){return numerator?Object.keys(INDICATOR_RATIO_RULES[numerator]||{}):[]}
