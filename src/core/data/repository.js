@@ -58,6 +58,30 @@ function clone(v){return v==null?v:structuredClone(v)}
 function memoryKey(table){return `${dataPartitionKey()}:${table}`}
 function localKey(cfg){return `${dataPartitionKey()}:${cfg.storageKey}`}
 
+function toRecords(cfg,rows,organizationId){
+  if(cfg.kind==='training'){
+    const typed=(type,list=[])=>list.map((row,index)=>({
+      organization_id:organizationId,
+      record_key:`${type}:${row.id??row.recordKey??index}`,
+      record_type:type,
+      department_id:row.departmentId??null,
+      employee_user_id:row.employeeUserId??null,
+      payload:row,
+    }))
+    return [
+      ...typed('program',rows?.programs),
+      ...typed('assignment',rows?.assignments),
+      ...typed('certificate',rows?.certificates),
+      ...typed('email_outbox',rows?.emailOutbox),
+      ...typed('history',rows?.history),
+    ]
+  }
+  return (rows||[]).map((row,index)=>({organization_id:organizationId,record_key:String(row.id??row.recordKey??index),payload:row}))
+}
+function recordSetFingerprint(records){
+  return records.map(r=>`${r.record_key}:${JSON.stringify(r.payload)}`).sort().join('\n')
+}
+
 function readLocal(table,fallback){
   const cfg=config(table)
   try{
@@ -169,32 +193,21 @@ export async function save(table,rows,{organizationId=null}={}){
     }
     if(!organizationId)throw new DataAccessError('Organization is required for cloud data.',{table,operation:'save'})
     const cfg=config(table)
-    let records
-    if(cfg.kind==='training'){
-      const typed=(type,list=[])=>list.map((row,index)=>({
-        organization_id:organizationId,
-        record_key:`${type}:${row.id??row.recordKey??index}`,
-        record_type:type,
-        department_id:row.departmentId??null,
-        employee_user_id:row.employeeUserId??null,
-        payload:row,
-      }))
-      records=[
-        ...typed('program',rows?.programs),
-        ...typed('assignment',rows?.assignments),
-        ...typed('certificate',rows?.certificates),
-        ...typed('email_outbox',rows?.emailOutbox),
-        ...typed('history',rows?.history),
-      ]
-    }else{
-      records=(rows||[]).map((row,index)=>({organization_id:organizationId,record_key:String(row.id??row.recordKey??index),payload:row}))
+    const records=toRecords(cfg,rows,organizationId)
+    const {data:existing,error:listError}=await supabase.from(table).select('record_key,payload').eq('organization_id',organizationId)
+    if(listError)throw listError
+    const basis=memory.get(memoryKey(table))
+    if(basis!==undefined){
+      const expected=recordSetFingerprint(toRecords(cfg,basis,organizationId))
+      const actual=recordSetFingerprint((existing??[]).map(row=>({record_key:row.record_key,payload:row.payload})))
+      if(expected!==actual){
+        throw new DataAccessError('Someone else already changed this data. Reload before saving again.',{table,operation:'save',code:'CONFLICT'})
+      }
     }
     if(records.length){
       const {error}=await supabase.from(table).upsert(records,{onConflict:'organization_id,record_key'})
       if(error)throw error
     }
-    const {data:existing,error:listError}=await supabase.from(table).select('record_key').eq('organization_id',organizationId)
-    if(listError)throw listError
     const keep=new Set(records.map(row=>row.record_key))
     for(const row of existing??[]){
       if(keep.has(row.record_key))continue
