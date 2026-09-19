@@ -62,9 +62,9 @@ describe('role + scope access foundation', () => {
     expect(can(ROLES.OCCUPATIONAL_PHYSICIAN, CAPABILITIES.MANAGE_STAFF_ADMIN)).toBe(false)
   })
 
-  it('gives Hospital Admin full hospital-domain access while keeping platform administration reserved', () => {
-    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(true)
-    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)).toBe(true)
+  it('gives Hospital Admin full hospital-domain access while keeping platform administration and occupational health reserved', () => {
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(false)
+    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)).toBe(false)
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_PHARMACY)).toBe(true)
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.MANAGE_PHARMACY)).toBe(true)
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.RECORD_HAND_HYGIENE)).toBe(true)
@@ -136,8 +136,8 @@ describe('role + scope access foundation', () => {
     }
   })
 
-  it('allows Hospital Admin to see sensitive employee health inside the hospital', () => {
-    expect(canSeeSensitiveEmployeeHealth(ROLES.HOSPITAL_ADMIN)).toBe(true)
+  it('keeps sensitive employee health reserved for occupational health authority, not Hospital Admin', () => {
+    expect(canSeeSensitiveEmployeeHealth(ROLES.HOSPITAL_ADMIN)).toBe(false)
     expect(canSeeSensitiveEmployeeHealth(ROLES.LABORATORY,[],[CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH])).toBe(false)
     expect(canSeeSensitiveEmployeeHealth(ROLES.PLATFORM_OWNER)).toBe(true)
     expect(canSeeSensitiveEmployeeHealth(ROLES.OCCUPATIONAL_PHYSICIAN)).toBe(true)

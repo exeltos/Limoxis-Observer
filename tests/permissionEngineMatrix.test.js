@@ -89,9 +89,10 @@ describe('system-only capabilities never leak into custom roles or add-ons', () 
     }
   })
 
-  it('grants hospital_admin every non-platform capability at organization scope', () => {
+  it('grants hospital_admin every non-platform, non-occupational-health capability at organization scope', () => {
+    const hospitalAdminReserved = [CAPABILITIES.VIEW_PLATFORM, CAPABILITIES.MANAGE_PLATFORM, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH]
     for (const capability of allCapabilityIds) {
-      if ([CAPABILITIES.VIEW_PLATFORM, CAPABILITIES.MANAGE_PLATFORM].includes(capability)) {
+      if (hospitalAdminReserved.includes(capability)) {
         expect(can(ROLES.HOSPITAL_ADMIN, capability)).toBe(false)
         continue
       }
@@ -123,21 +124,25 @@ describe('sensitive domain isolation', () => {
   })
 
   it('allows hospital_admin sensitive hospital capabilities while platform_owner keeps platform scope', () => {
+    // Occupational health is the one sensitive domain Hospital Admin does NOT
+    // get automatically — see the dedicated test below.
+    const occupationalHealthCapabilities = new Set([CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH])
     for (const capability of sensitiveCapabilities) {
+      if (occupationalHealthCapabilities.has(capability)) continue
       expect(can(ROLES.HOSPITAL_ADMIN, capability)).toBe(true)
       expect(can(ROLES.PLATFORM_OWNER, capability)).toBe(true)
       expect(scopeFor(capability, { role: ROLES.HOSPITAL_ADMIN })).toBe(DATA_SCOPES.ORGANIZATION)
     }
   })
 
-  it('keeps occupational health limited to explicitly authorized system roles', () => {
+  it('keeps occupational health limited to explicitly authorized system roles, excluding Hospital Admin', () => {
     for (const role of allRoleIds) {
-      if ([ROLES.PLATFORM_OWNER, ROLES.HOSPITAL_ADMIN, ROLES.OCCUPATIONAL_PHYSICIAN, ROLES.DEMO].includes(role)) continue
+      if ([ROLES.PLATFORM_OWNER, ROLES.OCCUPATIONAL_PHYSICIAN, ROLES.DEMO].includes(role)) continue
       expect(can(role, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(false)
       expect(can(role, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)).toBe(false)
     }
-    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(true)
-    expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)).toBe(true)
+    expect(can(ROLES.PLATFORM_OWNER, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(true)
+    expect(can(ROLES.OCCUPATIONAL_PHYSICIAN, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH)).toBe(true)
   })
 })
 
@@ -158,8 +163,8 @@ describe('canForRecord: cross-tenant isolation', () => {
 
   it('keeps Hospital Admin inside its own organization', () => {
     const context = { role: ROLES.HOSPITAL_ADMIN, organizationId: 'org-1' }
-    expect(canForRecord(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH, { organizationId: 'org-1' }, context)).toBe(true)
-    expect(canForRecord(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH, { organizationId: 'org-2' }, context)).toBe(false)
+    expect(canForRecord(CAPABILITIES.MANAGE_QUALITY, { organizationId: 'org-1' }, context)).toBe(true)
+    expect(canForRecord(CAPABILITIES.MANAGE_QUALITY, { organizationId: 'org-2' }, context)).toBe(false)
   })
 })
 

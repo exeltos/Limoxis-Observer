@@ -38,10 +38,16 @@ const commonEmployee=[CAPABILITIES.VIEW_DASHBOARD,CAPABILITIES.VIEW_MY_DEPARTMEN
 const hospitalWide=[CAPABILITIES.VIEW_DASHBOARD,CAPABILITIES.VIEW_SURVEILLANCE,CAPABILITIES.VIEW_LAB,CAPABILITIES.VIEW_PREVENTION,CAPABILITIES.VIEW_RECORDS,CAPABILITIES.VIEW_QUALITY,CAPABILITIES.VIEW_CONTROLS,CAPABILITIES.VIEW_TRAINING,CAPABILITIES.VIEW_COMMITTEES,CAPABILITIES.VIEW_DOCUMENTS,CAPABILITIES.VIEW_PATIENTS,CAPABILITIES.VIEW_STAFF,CAPABILITIES.VIEW_LIRA,CAPABILITIES.VIEW_INDICATORS,CAPABILITIES.VIEW_ANALYSIS,CAPABILITIES.PRINT_RECORDS,CAPABILITIES.EXPORT_RECORDS]
 const allCapabilities=Object.values(CAPABILITIES)
 // Hospital Admin is the full-control administrator inside one organization.
-// Platform-wide capabilities remain reserved for Platform Owner.
+// Platform-wide capabilities remain reserved for Platform Owner. Occupational
+// health (medical visits + vaccinations) is the one clinical domain Hospital
+// Admin does NOT get automatically — it's restricted to the occupational
+// physician role (and Platform Owner), matching the RLS policies on
+// occupational_health_visits/employee_vaccinations.
 const hospitalAdminExcluded=new Set([
   CAPABILITIES.VIEW_PLATFORM,
   CAPABILITIES.MANAGE_PLATFORM,
+  CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,
+  CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,
 ])
 const hospitalAdminCapabilities=allCapabilities.filter(cap=>!hospitalAdminExcluded.has(cap))
 const demoCapabilities=allCapabilities.filter(cap=>![CAPABILITIES.VIEW_PLATFORM,CAPABILITIES.MANAGE_PLATFORM].includes(cap))
