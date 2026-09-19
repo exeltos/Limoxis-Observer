@@ -57,6 +57,7 @@ export const demoLibrarySeed = {
     ['Κεφοταξίμη','Cefotaxime',SYS('WHO AWaRe','2022')],
     ['Κεφταζιδίμη','Ceftazidime',SYS('WHO AWaRe','2022')],
     ['Κεφεπίμη','Cefepime',SYS('WHO AWaRe','2022')],
+    ['Οξακιλλίνη','Oxacillin',SYS('ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014','2014')],
     ['Πιπερακιλλίνη/Ταζομπακτάμη','Piperacillin/Tazobactam',SYS('WHO AWaRe','2022')],
     ['Ερταπενέμη','Ertapenem',SYS('WHO AWaRe','2022')],
     ['Ιμιπενέμη','Imipenem',SYS('WHO AWaRe','2022')],
