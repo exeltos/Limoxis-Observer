@@ -26,3 +26,19 @@ describe('Analysis KPI rows show "—", not a fabricated 0, for department-scope
     expect(page).toContain('summary.documents??0')
   })
 })
+
+// Follow-up (flagged by an automated PR review on this same change): once a
+// KPI row's value can be the '—' sentinel instead of a number, its two other
+// consumers — the distribution chart and the year/hospital comparison table
+// — must not silently coerce it back into 0 via numberValue(), which would
+// draw a fabricated zero-height bar and fabricated negative differences
+// against a real hospital-wide value.
+describe('Chart and comparison views never coerce the "—" sentinel back into a numeric 0', () => {
+  it('MetricBars excludes a "—" row before any numberValue() conversion', () => {
+    expect(page).toContain("rows.filter(([,value])=>value!=='—').map(([label,value])=>[label,numberValue(value)])")
+  })
+
+  it('ScopeComparison reports the difference as "—" (not a numeric diff) when either side is unavailable', () => {
+    expect(page).toContain("current==='—'||previous==='—'?'—':numberValue(current)-numberValue(previous)")
+  })
+})
