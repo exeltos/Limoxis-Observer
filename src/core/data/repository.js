@@ -16,6 +16,8 @@ const TABLES=Object.freeze({
   bundle_library:{storageKey:'limoxis.bundleLibrary.v1',kind:'rows',cloud:false},
   management_libraries:{storageKey:'limoxis.managementLibraries.v2',kind:'document',cloud:false},
   management_questionnaires_v1:{storageKey:'limoxis.managementQuestionnaires.v1',kind:'rows',cloud:false},
+  management_hospital_structure:{storageKey:'limoxis.managementHospitalStructure.v1',kind:'rows',cloud:false},
+  management_prevalence_survey:{storageKey:'limoxis.managementPrevalenceSurvey.v1',kind:'rows',cloud:false},
   documents:{storageKey:'limoxis.documents.v1',kind:'rows',cloud:false},
   employees:{storageKey:'limoxis.employees.v1',kind:'rows',cloud:false},
   indicator_local_definitions:{storageKey:'limoxis.indicatorLocalDefinitions.v1',kind:'rows',cloud:false},
