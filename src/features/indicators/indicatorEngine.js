@@ -33,6 +33,11 @@ const AMR_REFERENCE_ANTIBIOTIC={
  saureus:'oxacillin',
  enterococcus:'vancomycin',
 }
+// ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014: staff vaccination coverage is specifically the seasonal
+// influenza vaccine, not any vaccination on file. The editor's fixed dropdown value is
+// 'Εποχική γρίπη' (src/features/prevention/StaffVaccinationEditor.jsx); match broader
+// γρίπη/influenza/flu variants too for older or English-language records.
+const FLU_VACCINE_PATTERNS=['γρίπ','influenza','flu']
 
 export function collectIndicatorMetrics(){
  const active=surveillanceDemoData.filter(x=>x.state==='active')
@@ -42,7 +47,7 @@ export function collectIndicatorMetrics(){
  const abhrEligible=antisepticRows.filter(x=>x.indicatorEligible)
  const training=loadTrainingState(); const assignments=training.assignments||[]
  const employees=loadEmployees(); const activeStaff=employees.filter(x=>x.employmentStatus==='active')
- const vaccinated=new Set(loadVaccinations().map(x=>x.employeeId))
+ const vaccinated=new Set(loadVaccinations().filter(x=>FLU_VACCINE_PATTERNS.some(pattern=>String(x.vaccine||'').toLowerCase().includes(pattern))).map(x=>x.employeeId))
  const mdroBsi=laboratorySamples.filter(x=>x.result==='positive'&&x.organism&&x.resistance&&String(x.source||x.type||'').toLowerCase().includes('blood')).length
  const patientDays=abhrEligible.reduce((s,x)=>s+Number(x.patientDays||0),0)
  const bacteremias=laboratorySamples.filter(x=>x.type==='bloodCulture'&&x.result==='positive'&&x.organism&&['validated','amended'].includes(x.resultStatus))
