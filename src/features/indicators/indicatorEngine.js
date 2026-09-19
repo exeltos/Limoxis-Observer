@@ -9,15 +9,27 @@ import { loadTrainingState } from '../training/trainingData'
 const round=(n,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
 
 // The 8 ΕΟΔΥ reference pathogens for bacteremia/resistance reporting (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014).
-const BACTEREMIA_PATHOGEN_PATTERNS={
- bacteremia_ecoli:'escherichia coli',
- bacteremia_proteus:'proteus',
- bacteremia_acinetobacter:'acinetobacter',
- bacteremia_klebsiella:'klebsiella',
- bacteremia_enterobacter:'enterobacter',
- bacteremia_pseudomonas:'pseudomonas',
- bacteremia_saureus:'staphylococcus aureus',
- bacteremia_enterococcus:'enterococcus',
+const REFERENCE_PATHOGEN_PATTERNS={
+ ecoli:'escherichia coli',
+ proteus:'proteus',
+ acinetobacter:'acinetobacter',
+ klebsiella:'klebsiella',
+ enterobacter:'enterobacter',
+ pseudomonas:'pseudomonas',
+ saureus:'staphylococcus aureus',
+ enterococcus:'enterococcus',
+}
+const BACTEREMIA_PATHOGEN_PATTERNS=Object.fromEntries(Object.entries(REFERENCE_PATHOGEN_PATTERNS).map(([key,pattern])=>[`bacteremia_${key}`,pattern]))
+// One EARS-Net-style reference antibiotic per pathogen, used as the resistance indicator antibiotic (3rd-gen cephalosporin or carbapenem for Enterobacterales/non-fermenters, oxacillin for MRSA, vancomycin for VRE).
+const AMR_REFERENCE_ANTIBIOTIC={
+ ecoli:'ceftriaxone',
+ proteus:'ceftriaxone',
+ enterobacter:'ceftriaxone',
+ klebsiella:'meropenem',
+ acinetobacter:'meropenem',
+ pseudomonas:'meropenem',
+ saureus:'oxacillin',
+ enterococcus:'vancomycin',
 }
 
 export function collectIndicatorMetrics(){
@@ -34,6 +46,15 @@ export function collectIndicatorMetrics(){
  const bacteremias=laboratorySamples.filter(x=>x.type==='bloodCulture'&&x.result==='positive'&&x.organism&&['validated','amended'].includes(x.resultStatus))
  const bacteremiaByPathogen=Object.fromEntries(Object.entries(BACTEREMIA_PATHOGEN_PATTERNS).map(([key,pattern])=>[key,bacteremias.filter(x=>String(x.organism).toLowerCase().includes(pattern)).length]))
  const bacteremiaTotal=bacteremias.filter(x=>Object.values(BACTEREMIA_PATHOGEN_PATTERNS).some(pattern=>String(x.organism).toLowerCase().includes(pattern))).length
+ const validatedIsolates=laboratorySamples.filter(x=>x.organism&&['validated','amended'].includes(x.resultStatus))
+ const amrByPathogen={}
+ for(const [key,organismPattern] of Object.entries(REFERENCE_PATHOGEN_PATTERNS)){
+  const antibioticPattern=AMR_REFERENCE_ANTIBIOTIC[key]
+  const isolates=validatedIsolates.filter(x=>String(x.organism).toLowerCase().includes(organismPattern))
+  const tested=isolates.flatMap(x=>x.ast||[]).filter(row=>String(row.drug||'').toLowerCase().includes(antibioticPattern))
+  amrByPathogen[`amr_tested_${key}`]=tested.length
+  amrByPathogen[`amr_resistant_${key}`]=tested.filter(row=>row.sir==='R').length
+ }
  return {
   active_surveillance:active.length,
   resistant_active_surveillance:resistant.length,
@@ -51,5 +72,6 @@ export function collectIndicatorMetrics(){
   patient_days:patientDays,
   bacteremia_total:bacteremiaTotal,
   ...bacteremiaByPathogen,
+  ...amrByPathogen,
  }
 }
