@@ -160,9 +160,10 @@ export async function load(table,{fallback=null,organizationId=null}={}){
       emit({table,operation:'load',status:'success'}); return clone(value)
     }
     if(!organizationId)throw new DataAccessError('Organization is required for cloud data.',{table,operation:'load'})
-    const {data,error}=await supabase.from(table).select('record_key,record_type,department_id,employee_user_id,payload').eq('organization_id',organizationId).order('record_key')
-    if(error)throw error
     const cfg=config(table)
+    const columns=cfg.kind==='training'?'record_key,record_type,department_id,employee_user_id,payload':'record_key,payload'
+    const {data,error}=await supabase.from(table).select(columns).eq('organization_id',organizationId).order('record_key')
+    if(error)throw error
     let value
     if(cfg.kind==='training'){
       value={programs:[],assignments:[],certificates:[],emailOutbox:[],history:[]}
