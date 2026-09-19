@@ -47,6 +47,6 @@ describe('patient clinical core hardening',()=>{
   it('uses canonical date and time fields for sample collection',()=>{
     expect(record).not.toContain('type="datetime-local"')
     expect(record).toContain('<ManualDateField label={t(\'collectedLabel\')}')
-    expect(record).toContain('<TimeField label={t(\'time\')}')
+    expect(record).toContain('<TimeField label={language===\'el\'?\'Ώρα λήψης\':\'Collection time\'}')
   })
 })
