@@ -52,7 +52,7 @@ export function AntisepticEntryEditor({onCancel,onSave,fixedDepartment='',initia
   }
   void load()
   return()=>{active=false}
- },[findPatientDays,hospitalScope,departmentInfo?.id,range?.from,range?.to])
+ },[findPatientDays,hospitalScope,departmentInfo?.id,range])
 
  const patientDays=Number(draft.patientDays)||0
  const litres=Number(draft.litres)||0

@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useState } from 'react'
+import { useCallback,useEffect,useMemo,useState } from 'react'
 import { Activity,AlertTriangle,Clock3,Microscope,Users } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -47,14 +47,14 @@ export function SurveillanceCanonicalPage(){
   const [mode,setMode]=useState(restoredMode||'patients'),[query,setQuery]=useState(restored.query||''),[department,setDepartment]=useState(restored.department||'all'),[status,setStatus]=useState(restored.status||'all'),[page,setPage]=useState(restored.page||1),[pageSize,setPageSize]=useState(restored.pageSize||15),[creation,setCreation]=useState(null)
   const [openEmployee,setOpenEmployee]=useState(null)
   const registry=useRegistryMemory(`surveillance-${mode}`),laboratoryRegistry=useLaboratoryRegistry()
-  const clinical=useMemo(()=>createClinicalRepository({isDemo,organizationId:tenant?.id,actor}),[isDemo,tenant?.id,actor.id,actor.name])
+  const clinical=useMemo(()=>createClinicalRepository({isDemo,organizationId:tenant?.id,actor}),[isDemo,tenant?.id,actor])
   const platformOwnerNoTenant=!isDemo&&actualRole===ROLES.PLATFORM_OWNER&&!tenant?.id
   const productionOrganizations=(memberships||[]).filter(item=>item?.organization?.id&&!item.organization.is_demo)
   const canEmployees=actualRole===ROLES.PLATFORM_OWNER||isDemo||[ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD,ROLES.INFECTION_CONTROL_MEMBER,ROLES.OCCUPATIONAL_PHYSICIAN].includes(role)||Boolean(canSeeSensitiveEmployeeHealth)
   const canEnvironment=![ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.DOCTOR_REVIEWER].includes(role)
   const canManageEmployeeFollowup=isDemo||can(role,CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,membership?.capabilities,membership?.customCapabilities)
 
-  async function load(){
+  const load=useCallback(async()=>{
     setLoading(true)
     try{
       const roster=await loadPatients(tenant?.id,{isDemo});setPatients(roster)
@@ -72,8 +72,8 @@ export function SurveillanceCanonicalPage(){
         results.filter(x=>x.status==='rejected').forEach(x=>notifyError(x.reason,'load',{operation:'surveillance_canonical_load'}))
       }else{setCases([]);setEmployeeRows([]);setEnvironmentRows([]);setDepartments([])}
     }finally{setLoading(false)}
-  }
-  useEffect(()=>{void load()},[tenant?.id,isDemo,canEmployees,language])
+  },[tenant?.id,isDemo,language,laboratoryRegistry.rows,notifyError])
+  useEffect(()=>{void load()},[load,canEmployees])
   useEffect(()=>{setPage(1)},[mode,query,department,status,pageSize])
 
   const fmt=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'

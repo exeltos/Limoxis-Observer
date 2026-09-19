@@ -75,7 +75,7 @@ export function PreventionRecordPage(){
    .catch(error=>{if(active){setRecord(null);notifyError(error,'load',{operation:`${recordType}_record_load`})}})
    .finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
- },[creating,editing,recordType,recordId,tenant?.id,recordTypeAccess])
+ },[creating,editing,recordType,recordId,tenant?.id,recordTypeAccess,notifyError])
 
  useEffect(()=>{
   if(!tenant?.id||!recordTypeAccess)return
@@ -85,7 +85,7 @@ export function PreventionRecordPage(){
   if(recordType==='antiseptics')loadAntisepticSupportData(tenant.id).then(data=>{if(active)setAntisepticSupport(data)}).catch(error=>notifyError(error,'load',{operation:'antiseptic_support_load'}))
   if(recordType==='bundles')loadBundleSupportData(tenant.id).then(data=>{if(active)setBundleSupport(data)}).catch(error=>notifyError(error,'load',{operation:'bundle_support_load'}))
   return()=>{active=false}
- },[recordType,tenant?.id,recordTypeAccess])
+ },[recordType,tenant?.id,recordTypeAccess,notifyError])
 
  if(!recordTypeAccess)return <Page title={en?'Prevention Center':'Κέντρο Πρόληψης'}><div className="inline-empty">{en?'You do not have access to this Prevention area.':'Δεν έχετε πρόσβαση σε αυτή την ενότητα της Πρόληψης.'}</div></Page>
  if(creating&&!canEditRecord)return <Page title={en?'Prevention Center':'Κέντρο Πρόληψης'}><div className="inline-empty">{en?'You do not have permission to create this record.':'Δεν έχετε δικαίωμα δημιουργίας αυτής της εγγραφής.'}</div></Page>

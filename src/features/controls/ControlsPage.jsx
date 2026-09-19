@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useState } from 'react'
+import { useCallback,useEffect,useMemo,useState } from 'react'
 import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,PlayCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -70,14 +70,14 @@ export function ControlsPage(){
  const isDepartmentManager=role===ROLES.DEPARTMENT_MANAGER
  const canCreate=canManage||(isDepartmentManager&&Boolean(ownDepartment))
 
- async function reload(){
+ const reload=useCallback(async()=>{
   if(!tenant?.id){setProgramme([]);setLoading(false);return}
   setLoading(true)
   try{setProgramme(await loadControlProgramme(tenant.id))}
   catch(error){setProgramme([]);notifyError(error,'load',{operation:'controls_programme_load'})}
   finally{setLoading(false)}
- }
- useEffect(()=>{void reload()},[tenant?.id])
+ },[tenant?.id,notifyError])
+ useEffect(()=>{void reload()},[reload])
 
  const scopedControls=useMemo(()=>programme.map(item=>({item,departments:item.departments.filter(dep=>canAccessRecord({department:dep}))})).filter(row=>row.departments.length>0),[programme,canAccessRecord])
  const departments=[...new Set(scopedControls.flatMap(x=>x.departments))]

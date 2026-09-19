@@ -60,8 +60,8 @@ function RolePermissionTable({role,en}){const rows=(role.capabilities||[]).map(i
 
 function RoleEditor({en,value,permissions,onChange,onClose,onSave}){
  const [query,setQuery]=useState('');const [mode,setMode]=useState('all');
- const selected=new Set(value.capabilities||[])
- const filtered=useMemo(()=>{const q=query.trim().toLowerCase();return permissions.filter(item=>{if(mode==='selected'&&!selected.has(item.id))return false;const text=`${capabilityLabel(item.id,en?'en':'el')} ${item.id} ${groupLabel(item.domain,en)} ${actionLabel(item,en)}`.toLowerCase();return !q||text.includes(q)})},[permissions,query,mode,en,value.capabilities])
+ const selected=useMemo(()=>new Set(value.capabilities||[]),[value.capabilities])
+ const filtered=useMemo(()=>{const q=query.trim().toLowerCase();return permissions.filter(item=>{if(mode==='selected'&&!selected.has(item.id))return false;const text=`${capabilityLabel(item.id,en?'en':'el')} ${item.id} ${groupLabel(item.domain,en)} ${actionLabel(item,en)}`.toLowerCase();return !q||text.includes(q)})},[permissions,query,mode,en,selected])
  const grouped=useMemo(()=>filtered.reduce((acc,item)=>{(acc[item.domain]??=[]).push(item);return acc},{}),[filtered])
  const toggle=id=>{if(!isCustomRoleEligible(id))return;onChange(v=>({...v,capabilities:selected.has(id)?v.capabilities.filter(x=>x!==id):[...v.capabilities,id]}))}
  const title=value.mode==='edit'?(en?'Edit role':'Επεξεργασία ρόλου'):(en?'New role':'Νέος ρόλος')

@@ -8,7 +8,8 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { TRAINING_ASSESSMENT_TYPES,addTrainingQuestionOption,createTrainingQuestion,normalizeTrainingQuestion,removeTrainingQuestionOption,trainingAssessmentMaxScore,trainingAssessmentTypeLabel,trainingQuestionIsValid } from './trainingAssessment'
 
 export function TrainingAssessmentEditor({program,state,onPersist,busy=false,en=false,language='el'}){
- const questions=Array.isArray(program.assessmentQuestions)?program.assessmentQuestions:[],[dialog,setDialog]=useState(null),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
+ const questions=useMemo(()=>Array.isArray(program.assessmentQuestions)?program.assessmentQuestions:[],[program.assessmentQuestions])
+ const [dialog,setDialog]=useState(null),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
  const scored=useMemo(()=>questions.filter(q=>TRAINING_ASSESSMENT_TYPES[q.type]?.scored).length,[questions]),maxScore=trainingAssessmentMaxScore(questions)
  const totalPages=Math.max(1,Math.ceil(questions.length/pageSize)),safePage=Math.min(page,totalPages),pagedQuestions=questions.slice((safePage-1)*pageSize,safePage*pageSize)
  useEffect(()=>{if(page>totalPages)setPage(totalPages)},[page,totalPages]);useEffect(()=>setPage(1),[pageSize])

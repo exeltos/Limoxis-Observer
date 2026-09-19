@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { readSessionJson, readSessionValue, writeSessionJson, writeSessionValue } from '../storage/browserStorage'
 
@@ -23,7 +23,7 @@ export function useRegistryMemory(registry){
     return ()=>cancelAnimationFrame(frame)
   },[registry])
 
-  function openRecord(navigate,path,id,orderedIds=[],options={}){
+  const openRecord=useCallback((navigate,path,id,orderedIds=[],options={})=>{
     const {returnState,...navigateOptions}=options
     writeSessionValue(registryStorageKey(registry,'selected'),id)
     writeSessionValue(registryStorageKey(registry,'scroll'),scrollRef.current?.scrollTop||0)
@@ -42,28 +42,26 @@ export function useRegistryMemory(registry){
         }
       }
     })
-  }
+  },[registry,location.pathname,location.search,location.hash,location.state])
 
-  function rowProps(id,onOpen){
-    return {
-      'data-record-id':id,
-      className:`registry-row-clickable ${highlightId===id?'registry-row-returned':''}`.trim(),
-      tabIndex:0,
-      ...(onOpen?{
-        onClick:onOpen,
-        onKeyDown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen(e)}},
-      }:null),
-    }
-  }
+  const rowProps=useCallback((id,onOpen)=>({
+    'data-record-id':id,
+    className:`registry-row-clickable ${highlightId===id?'registry-row-returned':''}`.trim(),
+    tabIndex:0,
+    ...(onOpen?{
+      onClick:onOpen,
+      onKeyDown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen(e)}},
+    }:null),
+  }),[highlightId])
 
-  function saveViewState(state){
+  const saveViewState=useCallback(state=>{
     writeSessionJson(registryStorageKey(registry,'view'),state||{})
-  }
-  function loadViewState(fallback={}){
+  },[registry])
+  const loadViewState=useCallback((fallback={})=>{
     const stored=readSessionJson(registryStorageKey(registry,'view'),{})
     return stored&&typeof stored==='object'&&!Array.isArray(stored)?{...fallback,...stored}:fallback
-  }
-  return {scrollRef,highlightId,openRecord,rowProps,saveViewState,loadViewState}
+  },[registry])
+  return useMemo(()=>({scrollRef,highlightId,openRecord,rowProps,saveViewState,loadViewState}),[highlightId,openRecord,rowProps,saveViewState,loadViewState])
 }
 
 export function readRegistryViewState(registry){

@@ -79,7 +79,6 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],ini
   const [record,setRecord]=useState(null)
   const [activeStep,setActiveStep]=useState('start')
   const [completedSteps,setCompletedSteps]=useState(()=>new Set())
-  const [savedDraft,setSavedDraft]=useState(false)
   const [busy,setBusy]=useState(false)
   const [cancelOpen,setCancelOpen]=useState(false)
   const [cancelReason,setCancelReason]=useState('')
@@ -132,7 +131,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],ini
     return created
   }
 
-  const linkedLabSamples=useMemo(()=>record?(onRequestSample?(record.samples||[]):laboratorySamples.filter(x=>x.surveillanceCase===record.id)):[],[record,savedDraft,activeStep,onRequestSample])
+  const linkedLabSamples=useMemo(()=>record?(onRequestSample?(record.samples||[]):laboratorySamples.filter(x=>x.surveillanceCase===record.id)):[],[record,onRequestSample])
   const surveillanceStartedFromSample=Boolean(initialSample)
   const alreadyHasSample=linkedLabSamples.length>0||surveillanceStartedFromSample
   const contextDepartment=patient?.department||startDraft.department||''
@@ -164,8 +163,8 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],ini
         const created=await onCreate({...startDraft,departmentId:startDraft.departmentId||targetPatient.departmentId||null},targetPatient)
         if(!created)throw new Error(language==='el'?'Δεν δημιουργήθηκε το επεισόδιο επιτήρησης.':'The surveillance episode was not created.')
         try{sessionStorage.setItem(FLOW_RECOVERY_KEY,JSON.stringify({record:created,at:Date.now()}))}catch{/* noop */}
-        setRecord(created);markComplete('start');setSavedDraft(true);try{sessionStorage.removeItem(FLOW_RECOVERY_KEY)}catch{/* noop */};onClose()
-      }else{const next={...record,...startDraft};setRecord(next);markComplete('start');onRecordChange?.(next);setSavedDraft(true);try{sessionStorage.removeItem(FLOW_RECOVERY_KEY)}catch{/* noop */};onClose()}
+        setRecord(created);markComplete('start');try{sessionStorage.removeItem(FLOW_RECOVERY_KEY)}catch{/* noop */};onClose()
+      }else{const next={...record,...startDraft};setRecord(next);markComplete('start');onRecordChange?.(next);try{sessionStorage.removeItem(FLOW_RECOVERY_KEY)}catch{/* noop */};onClose()}
     }catch(error){notify(error?.message||t('actionFailed'),'danger')}finally{setBusy(false)}
   }
 
@@ -191,7 +190,7 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],ini
       const createdSample=onRequestSample?await onRequestSample(record,{...sampleDraft,source:sourceNames.el}):(createDemoLabSample(lab),lab)
       const sample=createdSample||{id,status:'requested',type:sampleDraft.type,collectedAt:lab.collectedAt,result:'pending',organism:null,resistance:null}
       const next={...record,samples:[...(record.samples||[]),sample],timeline:[{at:new Date().toISOString(),type:'sampleRequested',actor:actor.name,detail:sample.id||id},...(record.timeline||[])]}
-      setRecord(next);markComplete('microbiology');setSavedDraft(v=>!v);onRecordChange?.(next);setIsolationNeeded(next.isolation?true:(next.isolationDecision?.required===false?false:null));setActiveStep('isolation');notify(t('clinicalRecords.sampleRequestSavedContinueIsolation'),'success')
+      setRecord(next);markComplete('microbiology');onRecordChange?.(next);setIsolationNeeded(next.isolation?true:(next.isolationDecision?.required===false?false:null));setActiveStep('isolation');notify(t('clinicalRecords.sampleRequestSavedContinueIsolation'),'success')
     }catch(error){notify(error?.message||t('actionFailed'),'danger')}finally{setBusy(false)}
   }
   function continueWithoutSample(){markComplete('microbiology');setIsolationNeeded(record?.isolation?true:(record?.isolationDecision?.required===false?false:null));setActiveStep('isolation')}

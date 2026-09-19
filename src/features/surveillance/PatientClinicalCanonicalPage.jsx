@@ -39,7 +39,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
   const {notify}=useFeedback()
   const {tenant,isDemo,role,membership,canAccessRecord}=useTenant()
   const {goBack,restored}=useContextualNavigation(patientMode?'/patients':'/surveillance')
-  const repository=useMemo(()=>createClinicalRepository({isDemo,organizationId:tenant?.id,actor}),[isDemo,tenant?.id,actor.id,actor.name])
+  const repository=useMemo(()=>createClinicalRepository({isDemo,organizationId:tenant?.id,actor}),[isDemo,tenant?.id,actor])
   const laboratory=useLaboratoryRegistry()
   const [patients,setPatients]=useState([]),[episodes,setEpisodes]=useState([]),[admissions,setAdmissions]=useState([]),[departments,setDepartments]=useState([]),[clinicalLibraries,setClinicalLibraries]=useState(demoLibrarySeed)
   const [selectedAdmissionId,setSelectedAdmissionId]=useState(()=>patientMode?(location.state?.admissionId||''):'')
@@ -96,6 +96,10 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
     }catch(err){setError(err?.message||t('actionFailed'))}
     finally{setLoading(false)}
   }
+  // `load` reads `selectedEpisodeId`/`repository` to decide what to reselect after fetching,
+  // and calling it updates that same state — depending on `load` here would refire it on
+  // every completed load, an infinite loop. Re-run only when the identity being viewed changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(()=>{void load()},[tenant?.id,isDemo,patientMode,patientId,caseId])
 
   if(loading)return <Page title={t('clinicalRecords.patientRecord')}><div className="surface clinical-surface"><p>{t('loading')}</p></div></Page>
