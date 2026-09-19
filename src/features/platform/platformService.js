@@ -63,31 +63,21 @@ function mergeMonthly(snapshots){const merged={};for(const snapshot of snapshots
 function mergeNationalRows(snapshots){const grouped=new Map();for(const snapshot of snapshots){for(const [organism,resistanceClass,department,source,count,lastDate] of snapshot?.microbiology?.nationalRows||[]){const key=[organism,resistanceClass,department,source].join('|||');const current=grouped.get(key)||{organism,resistanceClass,department,source,count:0,lastDate:''};current.count+=Number(count)||0;if(lastDate>current.lastDate)current.lastDate=lastDate;grouped.set(key,current)}}return [...grouped.values()].sort((a,b)=>b.count-a.count||b.lastDate.localeCompare(a.lastDate)).slice(0,80).map(row=>[row.organism,row.resistanceClass,row.department,row.source,row.count,row.lastDate])}
 
 async function loadMicrobiologyAnalytics({organizationId='',from='',to='',departmentId=''}){
-  let query=supabase.from('microbiology_results').select('organization_id,sample_id,result_status,organism,resistance_class,is_critical,resulted_at').order('resulted_at',{ascending:true}).limit(5000)
-  if(organizationId)query=query.eq('organization_id',organizationId)
-  if(from)query=query.gte('resulted_at',`${from}T00:00:00`)
-  if(to)query=query.lte('resulted_at',`${to}T23:59:59.999`)
-  const {data,error}=await query
+  // Delegates to analysis_microbiology_findings, the same validated/amended,
+  // non-superseded, amr_classifications-aware finding definition used by
+  // every microbiology aggregate in private.indicator_metric_snapshot —
+  // rather than an independent, less strict re-implementation.
+  const {data,error}=await supabase.rpc('analysis_microbiology_findings',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})
   if(error)throw error
-  const positive=(data||[]).filter(row=>row.result_status==='positive')
-  const sampleIds=[...new Set(positive.map(row=>row.sample_id).filter(Boolean))]
-  const samples=[]
-  for(let i=0;i<sampleIds.length;i+=200){
-    const {data:batch,error:sampleError}=await supabase.from('laboratory_samples').select('id,organization_id,department_id,sample_type,source_site,collected_at').in('id',sampleIds.slice(i,i+200))
-    if(sampleError)throw sampleError
-    samples.push(...(batch||[]))
-  }
   let departmentQuery=supabase.from('departments').select('id,organization_id,name').eq('is_active',true).order('name')
   if(organizationId)departmentQuery=departmentQuery.eq('organization_id',organizationId)
   const {data:departmentRows,error:departmentError}=await departmentQuery
   if(departmentError)throw departmentError
   const departments=departmentRows||[]
-  const sampleMap=new Map(samples.map(row=>[row.id,row]))
-  const departmentMap=new Map(departments.map(row=>[row.id,row.name]))
-  const enriched=positive.map(row=>{const sample=sampleMap.get(row.sample_id)||{};return {...row,departmentId:sample.department_id||'',department:departmentMap.get(sample.department_id)||'—',source:(sample.source_site||sample.sample_type||'—').trim?.()||sample.source_site||sample.sample_type||'—',sampleType:sample.sample_type||'—',eventDate:String(row.resulted_at||sample.collected_at||'').slice(0,10)}}).filter(row=>!departmentId||row.departmentId===departmentId)
+  const enriched=(data||[]).map(row=>({organization_id:row.organization_id,organism:row.organism,resistance_class:row.resistance_class,is_critical:row.is_critical,departmentId:row.department_id||'',department:row.department_name||'—',source:row.source||'—',sampleType:row.sample_type||'—',eventDate:String(row.event_date||'').slice(0,10)}))
   const microorganisms=sortedEntries(countBy(enriched,row=>row.organism?.trim()),12)
   const resistance=sortedEntries(countBy(enriched,row=>row.resistance_class),5)
-  const monthly=Object.entries(countBy(enriched,row=>monthKey(row.resulted_at))).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12)
+  const monthly=Object.entries(countBy(enriched,row=>monthKey(row.eventDate))).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12)
   const byDepartment=sortedEntries(countBy(enriched,row=>row.department),12)
   const bySource=sortedEntries(countBy(enriched,row=>row.source),12)
   const grouped=new Map()
