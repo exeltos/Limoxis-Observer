@@ -7,6 +7,9 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   const lower=raw.toLowerCase()
   const en=language==='en'
 
+  if(error?.code==='CONFLICT'){
+    return en?'Someone else already changed this data. Reload the page and re-apply your changes.':'Κάποιος άλλος έχει ήδη αλλάξει αυτά τα δεδομένα. Ανανεώστε τη σελίδα και επαναλάβετε τις αλλαγές σας.'
+  }
   if(lower.includes('training_access_not_available'))return en?'This training link is no longer available. Ask the training coordinator for the current QR.':'Ο σύνδεσμος εκπαίδευσης δεν είναι πλέον διαθέσιμος. Ζητήστε από τον υπεύθυνο εκπαίδευσης το τρέχον QR.'
   if(lower.includes('training_assignment_not_found'))return en?'Your account is not assigned to this training. Contact the training coordinator if you believe this is incorrect.':'Ο λογαριασμός σας δεν έχει ανατεθεί σε αυτή την εκπαίδευση. Επικοινωνήστε με τον υπεύθυνο εκπαίδευσης αν θεωρείτε ότι αυτό δεν είναι σωστό.'
   if(lower.includes('training_already_completed'))return en?'This training completion has already been recorded.':'Η ολοκλήρωση αυτής της εκπαίδευσης έχει ήδη καταγραφεί.'
