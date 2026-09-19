@@ -6,6 +6,7 @@ import { qualityIncidents } from '../quality/qualityDemoData'
 import { loadEmployees } from '../employees/employeeStore'
 import { loadVaccinations } from '../employees/employeeRecordsService'
 import { loadTrainingState } from '../training/trainingData'
+import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
 
 const round=(n,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
 
@@ -63,6 +64,10 @@ export function collectIndicatorMetrics(){
  const mdrIsolations=surveillanceDemoData.filter(x=>x.isolation&&['MDR','XDR','PDR'].includes(x.resistance))
  const mdrIsolationByPathogen=Object.fromEntries(Object.entries(REFERENCE_PATHOGEN_PATTERNS).map(([key,pattern])=>[`mdr_isolation_${key}`,mdrIsolations.filter(x=>String(x.organism||'').toLowerCase().includes(pattern)).length]))
  const mdrIsolationTotal=mdrIsolations.filter(x=>Object.values(REFERENCE_PATHOGEN_PATTERNS).some(pattern=>String(x.organism||'').toLowerCase().includes(pattern))).length
+ const prevalenceSurveys=loadPrevalenceSurveyLocal()
+ const ppsPatientsTotal=prevalenceSurveys.reduce((s,x)=>s+Number(x.patientsTotal||0),0)
+ const ppsPatientsWithHai=prevalenceSurveys.reduce((s,x)=>s+Number(x.patientsWithHai||0),0)
+ const ppsPatientsOnAntibiotics=prevalenceSurveys.reduce((s,x)=>s+Number(x.patientsOnAntibiotics||0),0)
  return {
   active_surveillance:active.length,
   resistant_active_surveillance:resistant.length,
@@ -84,5 +89,8 @@ export function collectIndicatorMetrics(){
   antibiotic_ddd_total:round(antibioticDddTotal,2),
   mdr_isolation_total:mdrIsolationTotal,
   ...mdrIsolationByPathogen,
+  pps_patients_total:ppsPatientsTotal,
+  pps_patients_with_hai:ppsPatientsWithHai,
+  pps_patients_on_antibiotics:ppsPatientsOnAntibiotics,
  }
 }
