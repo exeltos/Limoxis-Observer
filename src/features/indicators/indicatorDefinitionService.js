@@ -6,6 +6,7 @@ const demoId=()=>`ind-def-${Date.now().toString(36)}-${Math.random().toString(36
 
 export const INDICATOR_METRICS=Object.freeze([
  'patient_days','active_surveillance','resistant_active_surveillance','hh_compliant_actions','hh_opportunities','bundle_all_or_none_pass','bundle_executions','abhr_litres','active_staff','active_staff_with_vaccination','training_completed','training_assignments','open_high_incidents','mdro_bsi',
+ 'bacteremia_total','bacteremia_ecoli','bacteremia_proteus','bacteremia_acinetobacter','bacteremia_klebsiella','bacteremia_enterobacter','bacteremia_pseudomonas','bacteremia_saureus','bacteremia_enterococcus',
 ])
 
 export const INDICATOR_RATIO_RULES=Object.freeze({
@@ -16,6 +17,15 @@ export const INDICATOR_RATIO_RULES=Object.freeze({
  training_completed:{training_assignments:{multiplier:100,unit:'%'}},
  mdro_bsi:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
  abhr_litres:{patient_days:{multiplier:1000,unit:'L/1.000 patient-days'}},
+ bacteremia_total:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
+ bacteremia_ecoli:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
+ bacteremia_proteus:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
+ bacteremia_acinetobacter:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
+ bacteremia_klebsiella:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
+ bacteremia_enterobacter:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
+ bacteremia_pseudomonas:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
+ bacteremia_saureus:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
+ bacteremia_enterococcus:{patient_days:{multiplier:1000,unit:'/1.000 patient-days'}},
 })
 
 export function allowedIndicatorDenominators(numerator){return numerator?Object.keys(INDICATOR_RATIO_RULES[numerator]||{}):[]}
