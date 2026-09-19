@@ -8,6 +8,18 @@ import { loadTrainingState } from '../training/trainingData'
 
 const round=(n,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
 
+// The 8 ΕΟΔΥ reference pathogens for bacteremia/resistance reporting (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014).
+const BACTEREMIA_PATHOGEN_PATTERNS={
+ bacteremia_ecoli:'escherichia coli',
+ bacteremia_proteus:'proteus',
+ bacteremia_acinetobacter:'acinetobacter',
+ bacteremia_klebsiella:'klebsiella',
+ bacteremia_enterobacter:'enterobacter',
+ bacteremia_pseudomonas:'pseudomonas',
+ bacteremia_saureus:'staphylococcus aureus',
+ bacteremia_enterococcus:'enterococcus',
+}
+
 export function collectIndicatorMetrics(){
  const active=surveillanceDemoData.filter(x=>x.state==='active')
  const resistant=active.filter(x=>x.resistance)
@@ -19,6 +31,9 @@ export function collectIndicatorMetrics(){
  const vaccinated=new Set(loadVaccinations().map(x=>x.employeeId))
  const mdroBsi=laboratorySamples.filter(x=>x.result==='positive'&&x.organism&&x.resistance&&String(x.source||x.type||'').toLowerCase().includes('blood')).length
  const patientDays=abhrEligible.reduce((s,x)=>s+Number(x.patientDays||0),0)
+ const bacteremias=laboratorySamples.filter(x=>x.type==='bloodCulture'&&x.result==='positive'&&x.organism&&['validated','amended'].includes(x.resultStatus))
+ const bacteremiaByPathogen=Object.fromEntries(Object.entries(BACTEREMIA_PATHOGEN_PATTERNS).map(([key,pattern])=>[key,bacteremias.filter(x=>String(x.organism).toLowerCase().includes(pattern)).length]))
+ const bacteremiaTotal=bacteremias.filter(x=>Object.values(BACTEREMIA_PATHOGEN_PATTERNS).some(pattern=>String(x.organism).toLowerCase().includes(pattern))).length
  return {
   active_surveillance:active.length,
   resistant_active_surveillance:resistant.length,
@@ -34,5 +49,7 @@ export function collectIndicatorMetrics(){
   open_high_incidents:qualityIncidents.filter(x=>x.severity==='high'&&x.status!=='closed').length,
   mdro_bsi:mdroBsi,
   patient_days:patientDays,
+  bacteremia_total:bacteremiaTotal,
+  ...bacteremiaByPathogen,
  }
 }
