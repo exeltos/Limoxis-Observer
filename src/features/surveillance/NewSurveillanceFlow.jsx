@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, BedDouble, CheckCircle2, FlaskConical, Microscope, Plus, ShieldCheck, X } from 'lucide-react'
+import { Activity, AlertTriangle, CheckCircle2, FlaskConical, Plus, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -135,7 +135,6 @@ export function NewSurveillanceFlow({patient=null,patients=[],departments=[],ini
   const linkedLabSamples=useMemo(()=>record?(onRequestSample?(record.samples||[]):laboratorySamples.filter(x=>x.surveillanceCase===record.id)):[],[record,savedDraft,activeStep,onRequestSample])
   const surveillanceStartedFromSample=Boolean(initialSample)
   const alreadyHasSample=linkedLabSamples.length>0||surveillanceStartedFromSample
-  const patientContextLocked=Boolean(patient)
   const contextDepartment=patient?.department||startDraft.department||''
   const completed=useMemo(()=>{const c=new Set(completedSteps);if(record)c.add('start');if(record?.assessment)c.add('assessment');if(linkedLabSamples.length)c.add('microbiology');if(record?.isolation||record?.isolationDecision?.required===false)c.add('isolation');return c},[completedSteps,record,linkedLabSamples])
   function allowed(step){if(step==='start')return true;if(step==='assessment')return completed.has('start')||Boolean(record);if(step==='microbiology'||step==='isolation')return completed.has('assessment')||Boolean(record?.assessment);return false}
