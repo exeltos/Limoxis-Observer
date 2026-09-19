@@ -30,6 +30,7 @@ export const demoLibrarySeed = {
     ['Acinetobacter baumannii','Acinetobacter baumannii',SYS('WHO BPPL 2024','2024')],
     ['Escherichia coli','Escherichia coli',SYS('WHO BPPL 2024','2024')],
     ['Klebsiella pneumoniae','Klebsiella pneumoniae',SYS('WHO BPPL 2024','2024')],
+    ['Proteus mirabilis','Proteus mirabilis',SYS('ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014','2014')],
     ['Enterobacter cloacae complex','Enterobacter cloacae complex',SYS('WHO BPPL 2024','2024')],
     ['Pseudomonas aeruginosa','Pseudomonas aeruginosa',SYS('WHO BPPL 2024','2024')],
     ['Staphylococcus aureus','Staphylococcus aureus',SYS('WHO BPPL 2024','2024')],

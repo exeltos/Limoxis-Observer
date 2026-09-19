@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { collectIndicatorMetrics } from '../src/features/indicators/indicatorEngine'
 import { INDICATOR_METRICS, INDICATOR_RATIO_RULES } from '../src/features/indicators/indicatorDefinitionService'
+import { laboratorySamples } from '../src/features/laboratory/laboratoryDemoData'
 
 function storage() {
   const values = new Map()
@@ -15,7 +16,9 @@ function storage() {
 }
 
 describe('bacteremia incidence metrics (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014)', () => {
+  const originalLength = laboratorySamples.length
   beforeEach(() => vi.stubGlobal('localStorage', storage()))
+  afterEach(() => laboratorySamples.splice(0, laboratorySamples.length - originalLength))
 
   it('registers total and per-reference-pathogen metrics against patient_days', () => {
     const keys = ['bacteremia_total', 'bacteremia_ecoli', 'bacteremia_proteus', 'bacteremia_acinetobacter', 'bacteremia_klebsiella', 'bacteremia_enterobacter', 'bacteremia_pseudomonas', 'bacteremia_saureus', 'bacteremia_enterococcus']
@@ -40,5 +43,18 @@ describe('bacteremia incidence metrics (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014
     expect(metrics.bacteremia_pseudomonas).toBe(0)
     expect(metrics.bacteremia_saureus).toBe(0)
     expect(metrics.bacteremia_enterococcus).toBe(0)
+  })
+
+  it('excludes unvalidated draft results from the total', () => {
+    laboratorySamples.unshift({ id: 'LAB-TEST-DRAFT', type: 'bloodCulture', result: 'positive', organism: 'Escherichia coli', resultStatus: 'draft' })
+    const metrics = collectIndicatorMetrics()
+    expect(metrics.bacteremia_total).toBe(1)
+    expect(metrics.bacteremia_ecoli).toBe(0)
+  })
+
+  it('excludes non-reference-pathogen organisms (e.g. Candida spp.) from the total', () => {
+    laboratorySamples.unshift({ id: 'LAB-TEST-CANDIDA', type: 'bloodCulture', result: 'positive', organism: 'Candida auris', resultStatus: 'validated' })
+    const metrics = collectIndicatorMetrics()
+    expect(metrics.bacteremia_total).toBe(1)
   })
 })
