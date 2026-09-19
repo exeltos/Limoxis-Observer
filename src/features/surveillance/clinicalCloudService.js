@@ -90,8 +90,12 @@ function mapIsolation(row){
   return {id:row.id,precautions:row.precautions||[],room:row.room||'',reason:row.reason||'',startedAt:row.started_at,reviewDue:row.review_due_at,endedAt:row.ended_at,endReason:row.end_reason||'',status:row.status,createdBy:row.created_by,endedBy:row.ended_by}
 }
 
-function mapTherapy(row){
-  return {id:row.id,antimicrobial:row.antimicrobial,dose:row.dose||'',route:row.route||'',indication:row.indication||'',startedAt:row.started_at,plannedEndAt:row.planned_end_at,endedAt:row.ended_at,approvalStatus:row.approval_status,status:row.status,createdBy:row.created_by}
+function mapAdministration(row){
+  return {id:row.id,therapyId:row.therapy_id,administeredAt:row.administered_at,dose:row.dose||'',route:row.route||'',status:row.status,withheldReason:row.withheld_reason||'',administeredBy:row.administered_by,notes:row.notes||'',createdBy:row.created_by,createdAt:row.created_at}
+}
+
+function mapTherapy(row,administrations=[]){
+  return {id:row.id,antimicrobial:row.antimicrobial,dose:row.dose||'',route:row.route||'',indication:row.indication||'',startedAt:row.started_at,plannedEndAt:row.planned_end_at,endedAt:row.ended_at,approvalStatus:row.approval_status,status:row.status,createdBy:row.created_by,administrations:administrations.filter(a=>a.therapy_id===row.id).map(mapAdministration)}
 }
 
 function mapDevice(row){
@@ -121,7 +125,7 @@ function clinicalTimeline({events=[],assessments=[],hai=[],samples=[],therapies=
   ].filter(item=>item.at).sort((a,b)=>new Date(b.at)-new Date(a.at))
 }
 
-export function mapClinicalCase({caseRow,patient,department,events=[],assessments=[],hai=[],samples=[],relatedLab={},therapies=[],isolations=[],reassessments=[],outcomes=[],devices=[]}){
+export function mapClinicalCase({caseRow,patient,department,events=[],assessments=[],hai=[],samples=[],relatedLab={},therapies=[],therapyAdministrations=[],isolations=[],reassessments=[],outcomes=[],devices=[]}){
   const start=eventPayload(events,'surveillance_start')||{}
   const caseAssessments=assessments.filter(row=>row.surveillance_case_id===caseRow.id)
   const caseHai=hai.filter(row=>row.surveillance_case_id===caseRow.id)
@@ -166,7 +170,7 @@ export function mapClinicalCase({caseRow,patient,department,events=[],assessment
     isolation:mapIsolation(isolationRecord),
     isolationDecision,
     isolations:caseIsolations.map(mapIsolation),
-    therapy:caseTherapies.map(mapTherapy),
+    therapy:caseTherapies.map(row=>mapTherapy(row,therapyAdministrations)),
     samples:caseSamples.map(row=>mapSample(row,relatedLab)),
     reassessments:caseReassessments.map(mapReassessment),
     outcome:mapOutcome(latest(caseOutcomes)),
@@ -216,6 +220,14 @@ async function hydrateCases(caseRows){
     }
   }
 
+  const therapyIds=(therapiesResult.data||[]).map(row=>row.id)
+  let therapyAdministrations=[]
+  if(therapyIds.length){
+    const administrationsResult=await supabase.from('antimicrobial_therapy_administrations').select('*').in('therapy_id',therapyIds).order('administered_at',{ascending:false})
+    if(administrationsResult.error)throw administrationsResult.error
+    therapyAdministrations=administrationsResult.data||[]
+  }
+
   return caseRows.map(caseRow=>mapClinicalCase({
     caseRow,
     patient:(patientsResult.data||[]).find(row=>row.id===caseRow.patient_id),
@@ -226,6 +238,7 @@ async function hydrateCases(caseRows){
     samples:samplesResult.data||[],
     relatedLab,
     therapies:therapiesResult.data||[],
+    therapyAdministrations,
     isolations:isolationsResult.data||[],
     reassessments:reassessmentsResult.data||[],
     outcomes:outcomesResult.data||[],
@@ -319,7 +332,8 @@ export async function endIsolation(organizationId,isolationId,draft={}){
 export async function addAntimicrobialTherapy(organizationId,record,draft){
   assertCloud()
   const actorId=await currentUserId()
-  const {data,error}=await supabase.from('antimicrobial_therapies').insert({organization_id:organizationId,patient_id:record.patientRecordId,surveillance_case_id:record.recordId,antimicrobial:draft.antimicrobial,dose:draft.dose||null,route:draft.route||null,indication:draft.indication||null,started_at:iso(draft.startedAt||new Date()),planned_end_at:iso(draft.plannedEndAt),approval_status:draft.approvalStatus||'not_required',status:'active',therapy_plan_id:draft.therapyPlanId||crypto.randomUUID(),created_by:actorId}).select('*').single()
+  const approvalStatus=draft.isAdvancedAntibiotic?'pending':(draft.approvalStatus||'not_required')
+  const {data,error}=await supabase.from('antimicrobial_therapies').insert({organization_id:organizationId,patient_id:record.patientRecordId,surveillance_case_id:record.recordId,antimicrobial:draft.antimicrobial,dose:draft.dose||null,route:draft.route||null,indication:draft.indication||null,started_at:iso(draft.startedAt||new Date()),planned_end_at:iso(draft.plannedEndAt),approval_status:approvalStatus,status:'active',therapy_plan_id:draft.therapyPlanId||crypto.randomUUID(),created_by:actorId}).select('*').single()
   if(error)throw error
   return mapTherapy(data)
 }
@@ -330,6 +344,22 @@ export async function endAntimicrobialTherapy(organizationId,therapyId,draft={})
   const {data,error}=await supabase.from('antimicrobial_therapies').update({status:draft.status||'completed',ended_at:iso(draft.endedAt||new Date()),updated_by:actorId,updated_at:iso(new Date())}).eq('organization_id',organizationId).eq('id',therapyId).select('*').single()
   if(error)throw error
   return mapTherapy(data)
+}
+
+export async function setTherapyApproval(organizationId,therapyId,approvalStatus){
+  assertCloud()
+  const actorId=await currentUserId()
+  const {data,error}=await supabase.from('antimicrobial_therapies').update({approval_status:approvalStatus,updated_by:actorId,updated_at:iso(new Date())}).eq('organization_id',organizationId).eq('id',therapyId).select('*').single()
+  if(error)throw error
+  return mapTherapy(data)
+}
+
+export async function recordTherapyAdministration(organizationId,therapyId,draft={}){
+  assertCloud()
+  const actorId=await currentUserId()
+  const {data,error}=await supabase.from('antimicrobial_therapy_administrations').insert({organization_id:organizationId,therapy_id:therapyId,administered_at:iso(draft.administeredAt||new Date()),dose:draft.dose||null,route:draft.route||null,status:draft.status||'administered',withheld_reason:draft.withheldReason||null,administered_by:actorId,notes:draft.notes||null,created_by:actorId}).select('*').single()
+  if(error)throw error
+  return mapAdministration(data)
 }
 
 export async function addSurveillanceDevice(organizationId,record,draft){

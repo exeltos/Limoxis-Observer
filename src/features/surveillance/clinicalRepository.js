@@ -15,12 +15,14 @@ import {
   endIsolation,
   loadClinicalCases,
   loadClinicalCasesForPatient,
+  recordTherapyAdministration,
   removeSurveillanceDevice,
   reopenClinicalCase,
   requestLaboratorySample,
   saveClinicalAssessment,
   saveClinicalEvent,
   saveHaiClassification,
+  setTherapyApproval,
   startIsolation,
   updateClinicalCaseBasics,
   voidClinicalCase,
@@ -117,13 +119,25 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
   }
   async function addTherapy(record,draft){
     if(!isDemo)return addAntimicrobialTherapy(organizationId,record,draft)
-    const target=demoRecord(clinicalCases[record.id]);const therapy={id:id('TX'),status:'active',...draft,startedAt:draft.startedAt||new Date().toISOString().slice(0,10),plannedEnd:draft.plannedEndAt||draft.plannedEnd||null}
+    const target=demoRecord(clinicalCases[record.id]);const therapy={id:id('TX'),status:'active',...draft,approvalStatus:draft.isAdvancedAntibiotic?'pending':(draft.approvalStatus||'not_required'),startedAt:draft.startedAt||new Date().toISOString().slice(0,10),plannedEnd:draft.plannedEndAt||draft.plannedEnd||null,administrations:[]}
     target.therapy.unshift(therapy);return touch(target,actor,'therapy',therapy.antimicrobial)
   }
   async function finishTherapy(record,therapyId,draft){
     if(!isDemo)return endAntimicrobialTherapy(organizationId,therapyId,draft)
     const target=demoRecord(clinicalCases[record.id]);target.therapy=target.therapy.map(item=>item.id===therapyId?{...item,status:'completed',endedAt:draft.endedAt||now()}:item)
     return touch(target,actor,'therapyEnded',therapyId)
+  }
+  async function updateTherapyApproval(record,therapyId,approvalStatus){
+    if(!isDemo)return setTherapyApproval(organizationId,therapyId,approvalStatus)
+    const target=demoRecord(clinicalCases[record.id]);target.therapy=target.therapy.map(item=>item.id===therapyId?{...item,approvalStatus}:item)
+    return touch(target,actor,'therapyApproval',approvalStatus)
+  }
+  async function recordAdministration(record,therapyId,draft){
+    if(!isDemo)return recordTherapyAdministration(organizationId,therapyId,draft)
+    const target=demoRecord(clinicalCases[record.id])
+    const administration={id:id('ADM'),therapyId,administeredAt:draft.administeredAt||now(),dose:draft.dose||'',route:draft.route||'',status:draft.status||'administered',withheldReason:draft.withheldReason||'',administeredBy:actor?.id||'demo',notes:draft.notes||'',createdBy:actor?.id||'demo',createdAt:now()}
+    target.therapy=target.therapy.map(item=>item.id===therapyId?{...item,administrations:[administration,...(item.administrations||[])]}:item)
+    touch(target,actor,'therapyAdministered',therapyId);return administration
   }
   async function addDevice(record,draft){
     if(!isDemo)return addSurveillanceDevice(organizationId,record,draft)
@@ -154,5 +168,5 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     if(!isDemo){await voidClinicalCase(organizationId,record.recordId,reason);return true}
     return deleteClinicalSurveillance(record.id,{actor:actor?.name,actorId:actor?.id,reason})
   }
-  return {loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,addDevice,removeDevice,reassess,complete,reopen,voidCase}
+  return {loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,updateTherapyApproval,recordAdministration,addDevice,removeDevice,reassess,complete,reopen,voidCase}
 }
