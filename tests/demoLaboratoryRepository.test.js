@@ -26,7 +26,7 @@ describe('Demo laboratory repository adapter', () => {
     await repository.updateStatus('LAB-PARITY-002', 'received', { receivedAt: '2026-09-12T11:00:00Z' })
     await repository.saveResult('LAB-PARITY-002', { result: 'positive', organism: 'Organism', validationStatus: 'draft', critical: true })
     await repository.addAst('LAB-PARITY-002', { drug: 'Drug', sir: 'S' })
-    await repository.communicate('LAB-PARITY-002', { recipientName: 'Clinician', method: 'phone' })
+    await repository.communicate('LAB-PARITY-002', 'result-id', { recipientName: 'Clinician', method: 'phone' })
     await repository.markDocumentsReviewed('LAB-PARITY-002')
     await repository.finalize('LAB-PARITY-002')
     const sample = await repository.get('LAB-PARITY-002')
