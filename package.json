@@ -11,6 +11,7 @@
     "lint": "eslint src tests",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"tools/**/*.mjs\" \"tests/**/*.{js,jsx}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"tools/**/*.mjs\" \"tests/**/*.{js,jsx}\"",
+    "typecheck": "tsc --noEmit",
     "check": "npm run audit:clinical-i18n && npm run audit:lab-i18n && npm run audit:product-i18n && npm run audit:english-parity && npm run audit:help-coverage && npm run audit:product-permissions && npm run audit:navigation && npm run audit:hooks && npm run audit:frontend-parity && npm run audit:observer-ui && npm run lint && npm run test && npm run build",
     "audit:clinical-i18n": "node tools/check-clinical-i18n.mjs",
     "audit:lab-i18n": "node tools/check-lab-i18n.mjs",
@@ -42,6 +43,7 @@
     "globals": "^17.11.0",
     "jsdom": "^30.0.1",
     "prettier": "^3.9.8",
+    "typescript": "^5.9.3",
     "vite": "^6.0.5",
     "vitest": "^4.1.11"
   },
