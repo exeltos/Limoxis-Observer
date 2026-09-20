@@ -10,7 +10,7 @@ import { userFacingError } from '../../core/feedback/userFacingError'
 import { APP_VERSION } from '../../core/version'
 
 export function LoginPage() {
-  const { isAuthenticated, loading:authLoading, login, loginDemo, hasSupabaseConfig } = useAuth()
+  const { isAuthenticated, loading:authLoading, login, hasSupabaseConfig } = useAuth()
   const { loading:tenantLoading } = useTenant()
   const { language, setLanguage } = useLanguage()
   const location = useLocation()
@@ -26,10 +26,6 @@ export function LoginPage() {
   if (isAuthenticated) return <Navigate to={returnTo} replace />
 
   const greek=language==='el'
-  function handleDemo(){
-    setError('')
-    try{ loginDemo() }catch(nextError){ setError(userFacingError(nextError,{language,context:'login'})) }
-  }
   async function handleSubmit(event){
     event.preventDefault()
     setError('')
@@ -99,7 +95,6 @@ export function LoginPage() {
           <Button type="submit" disabled={submitting||!hasSupabaseConfig}>
             {submitting?(greek?'Σύνδεση…':'Signing in…'):(greek?'Σύνδεση':'Sign in')}
           </Button>
-          {<div className="login-demo-entry"><span>{greek?'ή δοκιμάστε την πλήρη πλατφόρμα':'or explore the full platform'}</span><Button type="button" variant="secondary" onClick={handleDemo}>{greek?'Είσοδος Demo':'Enter Demo'}</Button><small>{greek?'Πλήρη συνθετικά δεδομένα · οι αλλαγές επανέρχονται με ανανέωση της σελίδας':'Full synthetic dataset · changes reset when the page is refreshed'}</small></div>}
           {!hasSupabaseConfig&&<div className="setup-note">{greek?'Η υπηρεσία σύνδεσης δεν είναι διαθέσιμη σε αυτό το περιβάλλον.':'The sign-in service is not available in this environment.'}</div>}
         </form>
       </section>
