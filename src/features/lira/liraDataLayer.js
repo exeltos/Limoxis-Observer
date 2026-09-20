@@ -38,7 +38,11 @@ function bundleSignals(criteria,score){
 }
 
 export async function loadLiraData({isDemo=false,organizationId=null}={}){
-  if(isDemo)return {surveillance:surveillanceDemoData,laboratory:laboratorySamples,handHygiene:handHygieneRows,bundles:bundleRows,qualityIncidents,qualityCapas,patientDays:[],haiClassifications:[],devices:[],generatedAt:new Date().toISOString(),source:'demo'}
+  // surveillanceDemoData's own field is `status` (matching the real
+  // surveillance_cases.status column and SurveillancePage's expectations).
+  // LIRA's production mapping below normalizes that into its own `state`
+  // field; do the same for demo so LIRA's consumers keep working.
+  if(isDemo)return {surveillance:surveillanceDemoData.map(row=>({...row,state:row.status})),laboratory:laboratorySamples,handHygiene:handHygieneRows,bundles:bundleRows,qualityIncidents,qualityCapas,patientDays:[],haiClassifications:[],devices:[],generatedAt:new Date().toISOString(),source:'demo'}
   if(!supabase||!organizationId) throw new Error('LIRA_CONTEXT_NOT_AVAILABLE')
 
   const q=(table,columns)=>supabase.from(table).select(columns).eq('organization_id',organizationId).limit(500)

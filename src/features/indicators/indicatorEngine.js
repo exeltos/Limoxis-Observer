@@ -40,7 +40,7 @@ const AMR_REFERENCE_ANTIBIOTIC={
 const FLU_VACCINE_PATTERNS=['γρίπ','influenza','flu']
 
 export function collectIndicatorMetrics(){
- const active=surveillanceDemoData.filter(x=>x.state==='active')
+ const active=surveillanceDemoData.filter(x=>x.status==='active')
  const resistant=active.filter(x=>x.resistance)
  const hhOpp=handHygieneRows.reduce((s,x)=>s+Number(x.observations||0),0)
  const hhOk=handHygieneRows.reduce((s,x)=>s+Number(x.compliant||0),0)
