@@ -58,6 +58,9 @@ button{letter-spacing:0}
 .main-column{min-width:0!important;background:var(--lo-color-bg)!important}
 .topbar{min-height:var(--lo-topbar-height)!important;height:var(--lo-topbar-height)!important;padding:0 18px!important;background:rgba(255,255,255,.97)!important;border-bottom:1px solid var(--lo-color-border)!important;box-shadow:none!important}
 .topbar-actions{gap:7px!important}
+.topbar-demo-badge{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:1px solid color-mix(in srgb,#d9822b 35%,var(--lo-color-border));border-radius:7px;background:color-mix(in srgb,#d9822b 12%,#fff);color:#8a4d0f;font-size:11px;font-weight:750;letter-spacing:.03em;cursor:pointer}
+.topbar-demo-badge:hover{background:color-mix(in srgb,#d9822b 20%,#fff)}
+.topbar-demo-badge svg:last-child{opacity:.7}
 .topbar-utility-card{border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;gap:3px!important}
 .icon-button,.language-button,.preview-trigger,.tenant-switch select{min-height:32px!important;height:32px!important;border:1px solid var(--lo-color-border)!important;border-radius:7px!important;background:#fff!important;color:#42566a!important;box-shadow:none!important}
 .icon-button{width:32px!important}

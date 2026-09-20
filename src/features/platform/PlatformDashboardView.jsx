@@ -8,16 +8,17 @@ function WorkspaceLink({icon,title,description,meta,onClick}){
   return <button type="button" className="platform-workspace-link" onClick={onClick}><span className="platform-workspace-link-icon">{icon}</span><span className="platform-workspace-link-copy"><strong>{title}</strong><small>{description}</small>{meta?<b>{meta}</b>:null}</span><ArrowRight size={16}/></button>
 }
 
-export function PlatformDashboardView({tx,organizations,activeOrganizations,activeDemos,expiringDemos=[],loadingStats,onNavigate,onEnterDemo}) {
+export function PlatformDashboardView({tx,organizations,activeOrganizations,activeDemos,expiringDemos=[],loadingStats,onNavigate,demoPreview,onEnterDemoPreview,onExitDemoPreview,onEnterDemoOrganization}) {
   const inactive=Math.max(0,organizations.length-activeOrganizations)
   return <Page title={tx('Κέντρο Πλατφόρμας','Platform Center')} subtitle={tx('Επισκόπηση λειτουργίας, οργανισμών και διακυβέρνησης Limoxis Observer.','Operational, organization and governance overview for Limoxis Observer.')}>
     <div className="platform-dashboard">
       <section className="platform-dashboard-overview">
-        <div className="platform-dashboard-overview-heading"><div><span className="platform-eyebrow">PLATFORM OWNER</span><h2>{tx('Επισκόπηση πλατφόρμας','Platform overview')}</h2><p>{tx('Η συνολική διοικητική εικόνα χωρίς είσοδο σε οργανισμό.','The administrative overview without entering an organization.')}</p></div><div className="platform-dashboard-overview-actions"><button type="button" className="button button-secondary platform-enter-demo" onClick={onEnterDemo}><FlaskConical size={16}/>{tx('Είσοδος Demo','Enter Demo')}</button><span className="platform-live-pill"><i/>{tx('Πλατφόρμα ενεργή','Platform active')}</span></div></div>
+        <div className="platform-dashboard-overview-heading"><div><span className="platform-eyebrow">PLATFORM OWNER</span><h2>{tx('Επισκόπηση πλατφόρμας','Platform overview')}</h2><p>{tx('Η συνολική διοικητική εικόνα χωρίς είσοδο σε οργανισμό.','The administrative overview without entering an organization.')}</p></div><div className="platform-dashboard-overview-actions">{demoPreview?<button type="button" className="button platform-enter-demo active" onClick={onExitDemoPreview}><FlaskConical size={16}/>{tx('Έξοδος από Demo','Exit Demo')}</button>:<button type="button" className="button button-secondary platform-enter-demo" onClick={onEnterDemoPreview}><FlaskConical size={16}/>{tx('Είσοδος Demo','Enter Demo')}</button>}<span className="platform-live-pill"><i/>{tx('Πλατφόρμα ενεργή','Platform active')}</span></div></div>
+        {demoPreview&&<button type="button" className="platform-demo-preview-card" onClick={onEnterDemoOrganization}><span className="platform-org-mark demo"><FlaskConical size={15}/></span><span><strong>Demo Hospital</strong><small>{tx('Πλήρες synthetic σύνολο δεδομένων — ασθενείς, επιτήρηση, ανάλυση, δείκτες.','Full synthetic dataset — patients, surveillance, analysis, indicators.')}</small></span><span className="status-badge temporary">DEMO</span><ArrowRight size={14}/></button>}
         <div className="platform-dashboard-metrics">
           <Metric label={tx('Οργανισμοί','Organizations')} value={organizations.length} detail={`${activeOrganizations} ${tx('ενεργοί','active')}`} />
           <Metric label={tx('Ανενεργοί','Inactive')} value={inactive} detail={tx('οργανισμοί','organizations')} tone={inactive?'warning':'default'} />
-          <Metric label="Demo" value={loadingStats?'—':activeDemos.length} detail={tx('ενεργές προσβάσεις','active access')} />
+          <Metric label="Demo" value={loadingStats?'—':activeDemos.length+(demoPreview?1:0)} detail={tx('ενεργές προσβάσεις','active access')} />
           <Metric label={tx('Demo που λήγουν','Demo expiring')} value={loadingStats?'—':expiringDemos.length} detail={tx('εντός 14 ημερών','within 14 days')} tone={expiringDemos.length?'warning':'default'} />
         </div>
       </section>
