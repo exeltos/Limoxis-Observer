@@ -87,6 +87,9 @@ function recordSetFingerprint(records){
 function readLocal(table,fallback){
   const cfg=config(table)
   try{
+    // Demo is ephemeral by design: refresh restores the canonical seed.
+    // Mutations remain available only in the in-memory repository cache.
+    if(isDemoDataEnvironment())return clone(fallback)
     const scopedKey=localKey(cfg)
     const keys=[scopedKey,...(isDemoDataEnvironment()?[cfg.storageKey,...(cfg.legacyKeys||[])]:[])]
     const raw=keys.map(k=>localStorage.getItem(k)).find(Boolean)
@@ -113,7 +116,7 @@ function readLocal(table,fallback){
 function writeLocal(table,rows){
   const cfg=config(table)
   try{
-    localStorage.setItem(localKey(cfg),JSON.stringify(rows))
+    if(!isDemoDataEnvironment())localStorage.setItem(localKey(cfg),JSON.stringify(rows))
     memory.set(memoryKey(table),clone(rows))
     return clone(rows)
   }catch(cause){
