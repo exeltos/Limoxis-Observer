@@ -11,10 +11,14 @@ const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
 // "0 Committees" whenever a department filter was applied, indistinguishable
 // from an honest zero. Fixed the same way as occupationalHealth in the P0
 // PR: fall back to '—' instead of 0.
+//
+// summary.antimicrobial itself was later restructured (P2 alignment PR) from
+// a bare count into a {total,pending,administrations} object when present,
+// still null when department-scoped — see
+// tests/analysisAntimicrobialAmrAlignment.test.js for the current shape.
 describe('Analysis KPI rows show "—", not a fabricated 0, for department-scoped-null fields', () => {
-  it('the Antimicrobials tab falls back to "—" for a department-scoped summary.antimicrobial', () => {
-    expect(page).toContain("summary.antimicrobial??'—'")
-    expect(page).not.toContain('summary.antimicrobial??0')
+  it('the Antimicrobials tab falls back to a single "—" row for a department-scoped (null) summary.antimicrobial', () => {
+    expect(page).toContain("[tx('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),'—','—','up']")
   })
 
   it('the Governance tab falls back to "—" for a department-scoped summary.committees', () => {
