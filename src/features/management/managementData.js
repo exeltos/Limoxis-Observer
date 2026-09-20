@@ -163,10 +163,31 @@ export const demoLibrarySeed = {
 export function newLocalLibraryItem(el,en=el){return [el,en,LOCAL()]}
 
 export const demoPatientDayPeriods = [
- {id:'pd1',from:'2026-08-01',to:'2026-08-31',scope:'department',departmentEl:'ΜΕΘ',departmentEn:'ICU',value:372,source:'manual'},
- {id:'pd2',from:'2026-08-01',to:'2026-08-31',scope:'department',departmentEl:'Χειρουργική',departmentEn:'Surgery',value:318,source:'manual'},
- {id:'pd3',from:'2026-08-01',to:'2026-08-31',scope:'department',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',value:441,source:'manual'},
- {id:'pd4',from:'2026-07-01',to:'2026-07-31',scope:'hospital',departmentEl:'',departmentEn:'',value:5214,source:'manual'},
+ {id:'pd1',from:'2026-01-01',to:'2026-01-31',scope:'department',departmentEl:'ΜΕΘ',departmentEn:'ICU',value:590,source:'manual'},
+ {id:'pd2',from:'2026-01-01',to:'2026-01-31',scope:'department',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',value:470,source:'manual'},
+ {id:'pd3',from:'2026-01-01',to:'2026-01-31',scope:'department',departmentEl:'Χειρουργική',departmentEn:'Surgery',value:350,source:'manual'},
+ {id:'pd4',from:'2026-02-01',to:'2026-02-28',scope:'department',departmentEl:'ΜΕΘ',departmentEn:'ICU',value:552,source:'manual'},
+ {id:'pd5',from:'2026-02-01',to:'2026-02-28',scope:'department',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',value:455,source:'manual'},
+ {id:'pd6',from:'2026-02-01',to:'2026-02-28',scope:'department',departmentEl:'Χειρουργική',departmentEn:'Surgery',value:342,source:'manual'},
+ {id:'pd7',from:'2026-03-01',to:'2026-03-31',scope:'department',departmentEl:'ΜΕΘ',departmentEn:'ICU',value:610,source:'manual'},
+ {id:'pd8',from:'2026-03-01',to:'2026-03-31',scope:'department',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',value:488,source:'manual'},
+ {id:'pd9',from:'2026-03-01',to:'2026-03-31',scope:'department',departmentEl:'Χειρουργική',departmentEn:'Surgery',value:365,source:'manual'},
+ {id:'pd10',from:'2026-04-01',to:'2026-04-30',scope:'department',departmentEl:'ΜΕΘ',departmentEn:'ICU',value:598,source:'manual'},
+ {id:'pd11',from:'2026-04-01',to:'2026-04-30',scope:'department',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',value:495,source:'manual'},
+ {id:'pd12',from:'2026-04-01',to:'2026-04-30',scope:'department',departmentEl:'Χειρουργική',departmentEn:'Surgery',value:372,source:'manual'},
+ {id:'pd13',from:'2026-05-01',to:'2026-05-31',scope:'department',departmentEl:'ΜΕΘ',departmentEn:'ICU',value:620,source:'manual'},
+ {id:'pd14',from:'2026-05-01',to:'2026-05-31',scope:'department',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',value:505,source:'manual'},
+ {id:'pd15',from:'2026-05-01',to:'2026-05-31',scope:'department',departmentEl:'Χειρουργική',departmentEn:'Surgery',value:390,source:'manual'},
+ {id:'pd16',from:'2026-06-01',to:'2026-06-30',scope:'department',departmentEl:'ΜΕΘ',departmentEn:'ICU',value:605,source:'manual'},
+ {id:'pd17',from:'2026-06-01',to:'2026-06-30',scope:'department',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',value:510,source:'manual'},
+ {id:'pd18',from:'2026-06-01',to:'2026-06-30',scope:'department',departmentEl:'Χειρουργική',departmentEn:'Surgery',value:401,source:'manual'},
+ {id:'pd19',from:'2026-07-01',to:'2026-07-31',scope:'department',departmentEl:'ΜΕΘ',departmentEn:'ICU',value:618,source:'manual'},
+ {id:'pd20',from:'2026-07-01',to:'2026-07-31',scope:'department',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',value:498,source:'manual'},
+ {id:'pd21',from:'2026-07-01',to:'2026-07-31',scope:'department',departmentEl:'Χειρουργική',departmentEn:'Surgery',value:395,source:'manual'},
+ {id:'pd22',from:'2026-08-01',to:'2026-08-31',scope:'department',departmentEl:'ΜΕΘ',departmentEn:'ICU',value:620,source:'manual'},
+ {id:'pd23',from:'2026-08-01',to:'2026-08-31',scope:'department',departmentEl:'Παθολογική',departmentEn:'Internal Medicine',value:512,source:'manual'},
+ {id:'pd24',from:'2026-08-01',to:'2026-08-31',scope:'department',departmentEl:'Χειρουργική',departmentEn:'Surgery',value:410,source:'manual'},
+ {id:'pd25',from:'2026-01-01',to:'2026-08-31',scope:'hospital',departmentEl:'',departmentEn:'',value:42180,source:'manual'}
 ]
 export const externalSources=[
   {id:'eody',label:'ΕΟΔΥ — Επιτήρηση λοιμωδών νοσημάτων',authority:'ΕΟΔΥ',version:'Εθνική επιτήρηση και υποχρεωτική δήλωση',versionEn:'National surveillance and mandatory notification',status:'approved',scope:'Δηλούμενα νοσήματα, επιδημιολογική επιτήρηση και εθνικές οδηγίες',scopeEn:'Notifiable diseases, epidemiological surveillance and national guidance'},
