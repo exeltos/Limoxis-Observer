@@ -190,3 +190,29 @@
 .platform-analysis-page .analysis-workspace>.analysis-tabs.entity-record-tabs>button span{
  display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
 }
+
+
+/* Actual Platform Owner analytics root: AnalysisPage owns both classes. */
+.analysis-workspace.platform-analysis-page{
+ display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-sticky{
+ display:block!important;position:relative!important;flex:0 0 auto!important;
+ height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs{
+ display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:20!important;
+ flex:0 0 50px!important;width:100%!important;height:50px!important;min-height:50px!important;max-height:50px!important;
+ margin:8px 0!important;padding:0!important;overflow-x:auto!important;overflow-y:hidden!important;
+ border:1px solid var(--lo-color-border)!important;border-radius:10px!important;background:var(--lo-color-surface)!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs>button{
+ display:flex!important;visibility:visible!important;flex:1 0 132px!important;align-items:center!important;justify-content:center!important;gap:6px!important;
+ height:48px!important;min-height:48px!important;padding:0 9px!important;border:0!important;border-right:1px solid var(--lo-color-border)!important;
+ background:transparent!important;color:var(--lo-color-muted)!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs>button:last-child{border-right:0!important}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs>button.active{
+ color:var(--lo-color-primary)!important;background:color-mix(in srgb,var(--lo-color-primary) 8%,var(--lo-color-surface))!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-scroll{flex:1 1 auto!important;min-height:0!important}
