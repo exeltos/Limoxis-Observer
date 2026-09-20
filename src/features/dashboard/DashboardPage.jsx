@@ -9,6 +9,7 @@ import { workspaceFor } from '../workspaces/workspaceConfig'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { loadDashboardMetrics } from './dashboardCloudService'
+import { collectAnalysisDemoSnapshot } from '../analysis/analysisDemoSnapshot'
 
 function hospitalAdminWorkspace(english){
   return english?{
@@ -68,8 +69,10 @@ export function DashboardPage() {
     loadDashboardMetrics(tenant.id).then(data=>{if(active)setMetrics(data)}).catch(()=>{if(active)setMetrics({})})
     return()=>{active=false}
   },[tenant?.id,isDemo])
+  const demoSnapshot=useMemo(()=>isDemo?collectAnalysisDemoSnapshot():null,[isDemo])
+  const demoKpis=useMemo(()=>{if(!isDemo)return[];const m=demoSnapshot?.summary||{};const tr=(el,en)=>english?en:el;return [[tr('Επιτηρήσεις','Surveillance'),m.surveillance??0],[tr('Εργαστήριο','Laboratory'),m.laboratory??0],[tr('Πρόληψη','Prevention'),m.prevention??0],[tr('Ποιότητα','Quality'),m.quality??0]]},[isDemo,demoSnapshot,english])
   const liveKpis=useMemo(()=>isDemo?[]:roleKpis(role,metrics,english,nctx.unreadCount),[role,metrics,english,nctx.unreadCount,isDemo])
-  const kpis=liveKpis.length?liveKpis:workspace.kpis.map(([label])=>[label,'—'])
+  const kpis=demoKpis.length?demoKpis:(liveKpis.length?liveKpis:workspace.kpis.map(([label])=>[label,'—']))
   const tasks=nctx.operational.length?nctx.operational:workspace.tasks.map((title,index)=>({id:`workspace-${index}`,title,count:null,to:null,fallback:true}))
   const announcements=nctx.visibleAnnouncements.slice(0,4)
 
