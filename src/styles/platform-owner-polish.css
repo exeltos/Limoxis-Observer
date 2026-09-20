@@ -458,3 +458,47 @@
   .analysis-chart-grid{break-inside:auto}
   .analysis-line-wrap svg{max-height:220px}
 }
+
+
+/* Analytics tabs — same full-width segmented language as record tabs */
+.platform-analysis-page .analysis-tabs{
+  display:grid!important;
+  grid-template-columns:repeat(13,minmax(0,1fr));
+  align-items:stretch!important;
+  gap:0!important;
+  width:100%;
+  margin-top:10px!important;
+  padding:0!important;
+  overflow:visible!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:9px!important;
+  background:var(--lo-color-surface)!important;
+}
+.platform-analysis-page .analysis-tabs button{
+  display:flex;align-items:center;justify-content:center;
+  min-width:0!important;min-height:42px!important;height:auto!important;
+  padding:7px 6px!important;
+  border:0!important;border-right:1px solid var(--lo-color-border)!important;border-radius:0!important;
+  background:transparent!important;color:var(--lo-color-muted)!important;
+  font-size:8.75px!important;font-weight:700!important;line-height:1.2;text-align:center;
+  white-space:normal!important;box-shadow:none!important;cursor:pointer;
+}
+.platform-analysis-page .analysis-tabs button:first-child{border-radius:8px 0 0 8px!important}
+.platform-analysis-page .analysis-tabs button:last-child{border-right:0!important;border-radius:0 8px 8px 0!important}
+.platform-analysis-page .analysis-tabs button:hover{background:var(--lo-shell-control-hover)!important;color:var(--lo-color-text)!important}
+.platform-analysis-page .analysis-tabs button.active{
+  position:relative;
+  background:color-mix(in srgb,var(--lo-color-primary) 9%,var(--lo-color-surface))!important;
+  color:var(--lo-color-primary)!important;font-weight:800!important;
+}
+.platform-analysis-page .analysis-tabs button.active:after{
+  content:"";position:absolute;left:14%;right:14%;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:var(--lo-color-primary);
+}
+@media(max-width:1350px){
+  .platform-analysis-page .analysis-tabs{grid-template-columns:repeat(7,minmax(0,1fr))}
+  .platform-analysis-page .analysis-tabs button{border-bottom:1px solid var(--lo-color-border)!important}
+}
+@media(max-width:760px){
+  .platform-analysis-page .analysis-tabs{display:flex!important;overflow-x:auto!important}
+  .platform-analysis-page .analysis-tabs button{flex:0 0 132px;white-space:normal!important}
+}
