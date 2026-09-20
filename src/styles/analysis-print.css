@@ -49,3 +49,21 @@
   }
   .platform-analysis-page svg{max-width:100%!important}
 }
+
+/* Analytics tab rail: keep one clean row on desktop; horizontal rail when labels cannot fit. */
+.platform-analysis-page .analysis-sticky{overflow:visible!important}
+.platform-analysis-page .analysis-tabs.entity-record-tabs{
+  display:flex!important;flex-wrap:nowrap!important;align-items:stretch!important;
+  width:100%!important;min-width:0!important;overflow-x:auto!important;overflow-y:hidden!important;
+  scrollbar-width:thin;
+}
+.platform-analysis-page .analysis-tabs.entity-record-tabs>button{
+  flex:1 0 auto!important;width:auto!important;min-width:max-content!important;
+  padding:0 14px!important;min-height:44px!important;white-space:nowrap!important;
+}
+.platform-analysis-page .analysis-tabs.entity-record-tabs>button svg{flex:0 0 auto}
+.platform-analysis-page .analysis-tabs.entity-record-tabs>button span{white-space:nowrap!important}
+@media(min-width:1700px){
+ .platform-analysis-page .analysis-tabs.entity-record-tabs>button{flex:1 1 0!important;min-width:0!important;padding:0 8px!important}
+ .platform-analysis-page .analysis-tabs.entity-record-tabs>button span{white-space:normal!important}
+}
