@@ -69,6 +69,7 @@ describe('loadMicrobiologyAnalytics (via loadAnalysisSnapshot)', () => {
           calls.push([name, payload])
           if (name === 'analysis_microbiology_findings') return Promise.resolve({ data: findings, error: null })
           if (name === 'platform_report_summary') return Promise.resolve({ data: {}, error: null })
+          if (name === 'analysis_amr_susceptibility') return Promise.resolve({ data: [], error: null })
           return Promise.reject(new Error(`unexpected rpc ${name}`))
         },
         from: table => {
