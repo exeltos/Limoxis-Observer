@@ -502,3 +502,63 @@
   .platform-analysis-page .analysis-tabs{display:flex!important;overflow-x:auto!important}
   .platform-analysis-page .analysis-tabs button{flex:0 0 132px;white-space:normal!important}
 }
+
+
+/* Analytics tabs: fill the complete row, matching the application's tab language. */
+.platform-analysis-page .analysis-tabs{
+  display:flex!important;
+  width:100%!important;
+  max-width:none!important;
+  align-items:stretch!important;
+  overflow:visible!important;
+}
+.platform-analysis-page .analysis-tabs button{
+  flex:1 1 0!important;
+  width:auto!important;
+  min-width:0!important;
+  justify-content:center!important;
+}
+@media(max-width:1180px){
+  .platform-analysis-page .analysis-tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+}
+@media(max-width:760px){
+  .platform-analysis-page .analysis-tabs{display:flex!important;overflow-x:auto!important}
+  .platform-analysis-page .analysis-tabs button{flex:0 0 150px!important}
+}
+
+/* Reliable printable Analytics document. The application shell uses fixed-height/overflow
+   workspaces on screen; print must explicitly release every ancestor constraint. */
+@media print{
+  @page{size:A4 landscape;margin:12mm}
+  html,body,#root{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
+  .app-shell,.platform-owner-dashboard-shell,.main-column,.content,
+  .platform-analysis-page,.platform-analysis-page.page,.platform-analysis-page.page-fill,
+  .platform-analysis-page .analysis-workspace,.platform-analysis-page .analysis-scroll{
+    display:block!important;
+    position:static!important;
+    width:100%!important;
+    max-width:none!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    transform:none!important;
+    background:#fff!important;
+  }
+  .topbar,.sidebar,.preview-banner,.platform-analysis-page>.page-header,
+  .platform-analysis-page .analysis-sticky,.analysis-actions,.analysis-print-popover{display:none!important}
+  .platform-analysis-page .analysis-report{
+    display:block!important;visibility:visible!important;opacity:1!important;
+    width:100%!important;max-width:none!important;height:auto!important;overflow:visible!important;
+    margin:0!important;padding:0!important;color:#111827!important;background:#fff!important;
+  }
+  .platform-analysis-page .analysis-report *{visibility:visible!important}
+  .platform-analysis-page .analysis-section-title{display:block!important}
+  .platform-analysis-page .analysis-kpis{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+  .platform-analysis-page .analysis-chart-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  .platform-analysis-page .analysis-chart-card,.platform-analysis-page .analysis-kpis article{
+    display:block!important;break-inside:avoid!important;page-break-inside:avoid!important;
+    border:1px solid #d9e0e7!important;background:#fff!important;box-shadow:none!important;
+  }
+  .platform-analysis-page svg{display:block!important;max-width:100%!important}
+}
