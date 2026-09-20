@@ -214,3 +214,38 @@
   .platform-analysis-page .analysis-filters label{width:100%;max-width:none}
 }
 @media(max-width:520px){.diagnostics-summary-strip,.platform-summary-strip,.platform-organization-summary-strip{grid-template-columns:1fr}}
+
+
+/* 2026-09 Platform Owner screen redesign */
+.page:has(.platform-dashboard){background:var(--lo-color-bg)}
+.platform-dashboard{display:flex;flex:1 1 auto;min-height:0;flex-direction:column;gap:12px;overflow:auto;padding-bottom:4px}
+.platform-dashboard-overview{flex:0 0 auto;padding:16px 18px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);box-shadow:0 1px 2px rgba(15,23,42,.03)}
+.platform-dashboard-overview-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px}
+.platform-dashboard-overview-heading h2{margin:3px 0 2px;font-size:15px;letter-spacing:-.015em}.platform-dashboard-overview-heading p{margin:0;color:var(--lo-color-muted);font-size:10px}
+.platform-eyebrow{color:var(--lo-color-primary);font-size:8.5px;font-weight:800;letter-spacing:.1em}
+.platform-live-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--lo-color-border);border-radius:999px;color:var(--lo-color-muted);font-size:9px;font-weight:700}.platform-live-pill i{width:6px;height:6px;border-radius:50%;background:var(--lo-status-success-fg)}
+.platform-dashboard-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--lo-color-border)}
+.platform-dashboard-metric{display:grid;gap:2px;padding:12px 14px 2px;border-right:1px solid var(--lo-color-border)}.platform-dashboard-metric:first-child{padding-left:0}.platform-dashboard-metric:last-child{border-right:0}
+.platform-dashboard-metric span{font-size:9px;font-weight:700;color:var(--lo-color-muted);text-transform:uppercase;letter-spacing:.035em}.platform-dashboard-metric strong{font-size:22px;line-height:1.1;letter-spacing:-.025em}.platform-dashboard-metric small{font-size:9.5px;color:var(--lo-color-muted)}.platform-dashboard-metric.tone-warning strong{color:var(--lo-status-warning-fg)}
+.platform-dashboard-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:0 0 auto}
+.platform-dashboard-panel,.platform-dashboard-organizations{overflow:hidden;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);box-shadow:0 1px 2px rgba(15,23,42,.025)}
+.platform-dashboard-panel>header,.platform-dashboard-organizations>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid var(--lo-color-border)}
+.platform-dashboard-panel h3,.platform-dashboard-organizations h3{margin:0;font-size:11.5px}.platform-dashboard-panel header p,.platform-dashboard-organizations header p{margin:2px 0 0;color:var(--lo-color-muted);font-size:9.25px}
+.platform-workspace-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.platform-workspace-list.compact{grid-template-columns:1fr}
+.platform-workspace-link{appearance:none;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:9px;min-height:104px;padding:12px;border:0;border-right:1px solid var(--lo-color-border);background:transparent;color:inherit;text-align:left;cursor:pointer}.platform-workspace-list .platform-workspace-link:last-child{border-right:0}.platform-workspace-list.compact .platform-workspace-link{min-height:68px;border-right:0;border-bottom:1px solid var(--lo-color-border)}.platform-workspace-list.compact .platform-workspace-link:last-child{border-bottom:0}
+.platform-workspace-link:hover{background:color-mix(in srgb,var(--lo-color-primary) 3%,var(--lo-color-surface))}.platform-workspace-link>svg{margin-top:3px;color:var(--lo-color-muted)}
+.platform-workspace-link-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--lo-color-primary) 7%,var(--lo-color-surface));color:var(--lo-color-primary)}
+.platform-workspace-link-copy{display:grid;gap:3px;min-width:0}.platform-workspace-link-copy strong{font-size:10.75px}.platform-workspace-link-copy small{font-size:9.25px;line-height:1.4;color:var(--lo-color-muted)}.platform-workspace-link-copy b{margin-top:3px;color:var(--lo-color-primary);font-size:9px}
+.platform-dashboard-organizations{flex:1 1 auto;min-height:170px}.platform-dashboard-organizations>header button{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--lo-color-primary);font-size:9.5px;font-weight:750;cursor:pointer}
+.platform-dashboard-org-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.platform-dashboard-org-list>button{appearance:none;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:9px;min-height:57px;padding:8px 13px;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent;color:inherit;text-align:left;cursor:pointer}.platform-dashboard-org-list>button:nth-child(odd){border-right:1px solid var(--lo-color-border)}.platform-dashboard-org-list>button:hover{background:color-mix(in srgb,var(--lo-color-primary) 2.5%,var(--lo-color-surface))}
+.platform-org-mark{display:grid;place-items:center;width:29px;height:29px;border:1px solid var(--lo-color-border);border-radius:7px;color:var(--lo-color-primary)}.platform-dashboard-org-list strong{display:block;font-size:10.5px}.platform-dashboard-org-list small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:8.75px}
+
+/* Registry screens are workspaces: tools stay fixed, only result areas scroll. */
+.page:has(.platform-registry-shell){overflow:hidden}.page:has(.platform-registry-shell)>.page-content{min-height:0;overflow:hidden}
+.platform-registry-shell{height:100%;overflow:hidden}.platform-registry-shell>.platform-registry-card,.platform-registry-shell>.diagnostics-table-wrap{flex:1 1 auto;min-height:0}
+.platform-registry-shell>.diagnostics-table-wrap{overflow:auto}
+.platform-settings-page{height:auto;overflow:auto;align-self:flex-start;width:100%}
+.platform-settings-page .platform-form-section{padding:14px 16px}.platform-settings-page .platform-governance{margin-top:2px}
+@media(max-width:1100px){.platform-dashboard-columns{grid-template-columns:1fr}.platform-dashboard-metrics{grid-template-columns:repeat(2,1fr)}.platform-dashboard-metric:nth-child(2){border-right:0}.platform-workspace-list{grid-template-columns:1fr}.platform-workspace-list .platform-workspace-link{min-height:68px;border-right:0;border-bottom:1px solid var(--lo-color-border)}}
+@media(max-width:700px){.platform-dashboard-metrics,.platform-dashboard-org-list{grid-template-columns:1fr}.platform-dashboard-metric{border-right:0;border-bottom:1px solid var(--lo-color-border);padding-left:0}.platform-dashboard-org-list>button:nth-child(odd){border-right:0}.platform-dashboard-overview-heading{display:grid}.platform-live-pill{justify-self:start}}
