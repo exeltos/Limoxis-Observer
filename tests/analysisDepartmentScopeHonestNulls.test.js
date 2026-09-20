@@ -46,3 +46,13 @@ describe('Chart and comparison views never coerce the "—" sentinel back into a
     expect(page).toContain("current==='—'||previous==='—'?'—':numberValue(current)-numberValue(previous)")
   })
 })
+
+// Regression flagged by an automated PR review on the demo-data-alignment PR:
+// once an AMR row's value became a "resistant/tested" ratio string (e.g.
+// '3/12'), numberValue()'s blanket non-digit strip turned it into a single
+// concatenated number (numberValue('1/1') -> 11) instead of a real count.
+describe('numberValue() takes the resistant count from a ratio string instead of concatenating both numbers', () => {
+  it("splits on '/' before stripping non-numeric characters", () => {
+    expect(page).toContain("raw.includes('/')?raw.split('/')[0]:raw")
+  })
+})

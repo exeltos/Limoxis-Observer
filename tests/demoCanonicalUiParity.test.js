@@ -34,7 +34,7 @@ describe('Demo uses canonical product UI',()=>{
   })
 
   it('uses one analytics renderer with normalized Demo microbiology data',()=>{
-    expect(analysis).toContain('DEMO_MICROBIOLOGY')
+    expect(analysis).toContain('buildProductionRows(tab,isDemo?demoSnapshot:snapshot,tx)')
     expect(analysis).toContain("tab==='national'?<NationalSurveillance details={micro}")
     expect(analysis).not.toContain('DemoNationalSurveillance')
     expect(analysis).not.toContain('ProductionNationalSurveillance')

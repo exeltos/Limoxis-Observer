@@ -38,8 +38,8 @@ describe('demo / production isolation',()=>{
   it('keeps synthetic analytics behind demo and production on one canonical persisted loader and renderer',()=>{
     expect(analysis).toContain('const productionScope=!isDemo&&')
     expect(analysis).toContain('loadAnalysisSnapshot(')
-    expect(analysis).toContain("isDemo?(DEMO_KPI[tab]||DEMO_KPI.overview)")
-    expect(analysis).toContain('DEMO_MICROBIOLOGY')
+    expect(analysis).toContain('collectAnalysisDemoSnapshot')
+    expect(analysis).toContain('buildProductionRows(tab,isDemo?demoSnapshot:snapshot,tx)')
     expect(analysis).toContain("tab==='national'?<NationalSurveillance details={micro}")
     expect(analysis).not.toContain('DemoNationalSurveillance')
     expect(analysis).not.toContain('ProductionNationalSurveillance')
