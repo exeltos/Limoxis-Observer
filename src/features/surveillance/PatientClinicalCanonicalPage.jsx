@@ -92,7 +92,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
       const patientForAdmissions=selectedPatient||roster.find(row=>rows.some(ep=>ep.patientRecordId===row.recordId||String(ep.patientId)===String(row.id)))
       if(patientForAdmissions?.recordId)try{setAdmissions(await loadAdmissions(patientForAdmissions.recordId))}catch{setAdmissions([])}
       else setAdmissions([])
-      if(!isDemo&&tenant?.id)try{setDepartments((await loadDepartments(tenant.id)).filter(row=>row.is_active!==false));setClinicalLibraries(await loadManagementLibraries(tenant.id))}catch{setDepartments([])} else {setClinicalLibraries(demoLibrarySeed);setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})))}
+      if(!isDemo&&tenant?.id)try{setDepartments((await loadDepartments(tenant.id)).filter(row=>row.is_active!==false));setClinicalLibraries(await loadManagementLibraries(tenant.id))}catch{setDepartments([])} else {setClinicalLibraries(demoLibrarySeed);setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:language==='el'?elName:(enName||elName),nameEn:enName})))}
     }catch(err){setError(err?.message||t('actionFailed'))}
     finally{setLoading(false)}
   }

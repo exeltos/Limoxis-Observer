@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
+import { demoLibrarySeed } from '../src/features/management/managementData'
 
 // Live production bug found via Supabase edge_logs while the user was
 // populating demo data for a presentation: demo mode's tenant.id is the
@@ -41,8 +42,20 @@ describe('every loadDepartments/loadManagementLibraries call site checks isDemo 
     }
   })
 
-  it('PatientClinicalCanonicalPage populates its own departments state from demoLibrarySeed in demo mode too (previously stayed permanently empty)', () => {
+  // Automated review finding on this PR: demoLibrarySeed had no
+  // professionalCategories property at all, so the line above always
+  // installed an empty array, leaving the required "Professional category"
+  // select with no options and new-employee creation impossible in demo
+  // mode. Seeded with the same six categories the
+  // system_master_library_baseline_seed_v2 migration seeds for every real
+  // organization.
+  it('demoLibrarySeed actually defines professionalCategories (not silently empty)', () => {
+    expect(demoLibrarySeed.professionalCategories.length).toBeGreaterThan(0)
+    expect(demoLibrarySeed.professionalCategories.map(row => row[0])).toContain('Ιατρός')
+  })
+
+  it('PatientClinicalCanonicalPage populates its own departments state from demoLibrarySeed in demo mode too (previously stayed permanently empty), with the option label following the active language', () => {
     const source = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
-    expect(source).toContain('setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})))')
+    expect(source).toContain("setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:language==='el'?elName:(enName||elName),nameEn:enName})))")
   })
 })

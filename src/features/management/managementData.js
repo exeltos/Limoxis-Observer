@@ -26,6 +26,17 @@ export const demoLibrarySeed = {
     ['Ακτινοδιαγνωστικό','Radiology',SYS('Limoxis core hospital structure')],
     ['Κεντρική Αποστείρωση','Central Sterile Services',SYS('Limoxis core hospital structure')],
   ],
+  // Same six categories as the system_master_library_baseline_seed_v2
+  // migration seeds for every real organization, so demo mode's Employee
+  // create/edit "Professional category" select is never left empty.
+  professionalCategories:[
+    ['Ιατρός','Physician',SYS('Limoxis workforce core')],
+    ['Νοσηλευτής/τρια','Nurse',SYS('Limoxis workforce core')],
+    ['Μαία/Μαιευτής','Midwife',SYS('Limoxis workforce core')],
+    ['Βοηθός Νοσηλευτή','Nursing Assistant',SYS('Limoxis workforce core')],
+    ['Επαγγελματίας Εργαστηρίου','Laboratory Professional',SYS('Limoxis workforce core')],
+    ['Λοιπό προσωπικό','Other Staff',SYS('Limoxis workforce core')],
+  ],
   microorganisms:[
     ['Acinetobacter baumannii','Acinetobacter baumannii',SYS('WHO BPPL 2024','2024')],
     ['Escherichia coli','Escherichia coli',SYS('WHO BPPL 2024','2024')],
