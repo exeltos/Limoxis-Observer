@@ -147,3 +147,24 @@
  flex:1 0 132px!important;height:46px!important;min-height:46px!important;padding:0 9px!important;
 }
 .platform-analysis-page .analysis-tabs-spacer{display:none!important}
+
+/* Definitive sticky layout: filter row + tabs row. */
+.platform-analysis-page .analysis-sticky{
+ display:grid!important;grid-template-rows:auto 50px!important;row-gap:8px!important;
+ height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
+}
+.platform-analysis-page .analysis-sticky>.analysis-filter-toolbar{grid-row:1!important;min-height:0!important}
+.platform-analysis-page .analysis-sticky>.analysis-tabs.entity-record-tabs{
+ grid-row:2!important;display:flex!important;position:relative!important;inset:auto!important;
+ width:100%!important;height:50px!important;min-height:50px!important;max-height:50px!important;
+ margin:0!important;padding:0!important;overflow-x:auto!important;overflow-y:hidden!important;
+ border:1px solid var(--lo-color-border)!important;border-radius:10px!important;background:var(--lo-color-surface)!important;
+}
+.platform-analysis-page .analysis-sticky>.analysis-tabs.entity-record-tabs>button{
+ display:flex!important;flex:1 0 132px!important;align-items:center!important;justify-content:center!important;gap:6px!important;
+ height:48px!important;min-height:48px!important;margin:0!important;padding:0 9px!important;overflow:hidden!important;
+ border:0!important;border-right:1px solid var(--lo-color-border)!important;background:transparent!important;
+}
+.platform-analysis-page .analysis-sticky>.analysis-tabs.entity-record-tabs>button:last-child{border-right:0!important}
+.platform-analysis-page .analysis-sticky>.analysis-tabs.entity-record-tabs>button span{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.platform-analysis-page .analysis-sticky>.analysis-tabs.entity-record-tabs>button.active{background:color-mix(in srgb,var(--lo-color-primary) 8%,#fff)!important;color:var(--lo-color-primary)!important}
