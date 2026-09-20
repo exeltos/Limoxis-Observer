@@ -38,20 +38,20 @@ button{letter-spacing:0}
 /* Shell */
 .app-shell{grid-template-columns:var(--lo-sidebar-width) minmax(0,1fr)!important;background:var(--lo-color-bg)!important}
 .sidebar{width:var(--lo-sidebar-width)!important;background:linear-gradient(180deg,var(--lo-color-nav) 0%,var(--lo-color-nav-dark) 100%)!important;border-right:0!important;box-shadow:none!important}
-.brand{min-height:62px!important;padding:13px 14px!important;border-bottom:1px solid rgba(255,255,255,.09)!important;gap:9px!important}
+.brand{min-height:44px!important;padding:7px 14px!important;border-bottom:1px solid rgba(255,255,255,.09)!important;gap:9px!important}
 .brand-mark{width:30px!important;height:30px!important;border-radius:8px!important;background:rgba(255,255,255,.12)!important;color:#fff!important;font-size:15px!important;box-shadow:none!important}
 .brand strong{font-size:13px!important;font-weight:650!important;color:#fff!important}
 .brand span{font-size:10.5px!important;color:rgba(255,255,255,.62)!important}
-.sidebar nav{padding:10px 8px!important;gap:2px!important}
-.nav-item{min-height:36px!important;padding:7px 10px!important;border-radius:7px!important;color:rgba(240,246,252,.73)!important;font-size:12.5px!important;font-weight:500!important;gap:9px!important;border:0!important;background:transparent!important}
+.sidebar nav{padding:7px 8px!important;gap:1px!important}
+.nav-item{min-height:27px!important;padding:4px 10px!important;border-radius:7px!important;color:rgba(240,246,252,.73)!important;font-size:12.5px!important;font-weight:500!important;gap:9px!important;border:0!important;background:transparent!important}
 .nav-item svg{opacity:.82}
 .nav-item:hover{background:rgba(255,255,255,.075)!important;color:#fff!important}
 .nav-item.active,.nav-item.active-group{background:rgba(255,255,255,.12)!important;color:#fff!important;box-shadow:inset 2px 0 0 #6fb2dd!important}
 .nav-item.active svg{opacity:1}
-.nav-item.nested{min-height:32px!important;padding-left:25px!important;font-size:12px!important}
-.sidebar-nav-children{padding:2px 0 5px!important}
-.sidebar-nav-management{margin-top:8px!important;padding-top:8px!important;border-top:1px solid rgba(255,255,255,.08)!important}
-.sidebar-footer{padding:11px 14px 13px!important;border-top:1px solid rgba(255,255,255,.08)!important;color:rgba(255,255,255,.64)!important}
+.nav-item.nested{min-height:22px!important;padding-left:25px!important;font-size:12px!important}
+.sidebar-nav-children{padding:1px 0 3px!important}
+.sidebar-nav-management{margin-top:3px!important;padding-top:3px!important;border-top:1px solid rgba(255,255,255,.08)!important}
+.sidebar-footer{padding:6px 14px 6px!important;border-top:1px solid rgba(255,255,255,.08)!important;color:rgba(255,255,255,.64)!important}
 .sidebar-footer .tenant-name{color:#fff!important;font-size:11.5px!important;font-weight:600!important}
 .sidebar-meta,.app-version-stamp{font-size:10px!important;opacity:.72}
 .demo-pill{font-size:9.5px!important;padding:2px 6px!important}
