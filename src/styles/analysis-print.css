@@ -67,3 +67,17 @@
  .platform-analysis-page .analysis-tabs.entity-record-tabs>button{flex:1 1 0!important;min-width:0!important;padding:0 8px!important}
  .platform-analysis-page .analysis-tabs.entity-record-tabs>button span{white-space:normal!important}
 }
+
+/* Final Analytics navigation geometry */
+.platform-analysis-page .analysis-sticky{
+  height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
+}
+.platform-analysis-page .analysis-filter-toolbar{position:relative!important;z-index:2}
+.platform-analysis-page .analysis-tabs.entity-record-tabs{
+  position:relative!important;z-index:1;margin-top:8px!important;min-height:46px!important;
+}
+.platform-analysis-page .analysis-tabs.entity-record-tabs>button{
+  min-height:46px!important;line-height:1.15!important;
+}
+.analysis-print-frame{width:1120px!important;max-width:1120px!important;margin:0!important;padding:0!important;background:#fff!important}
+.analysis-print-frame .analysis-report{width:1120px!important;max-width:1120px!important;overflow:visible!important}
