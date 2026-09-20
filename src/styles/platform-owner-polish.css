@@ -336,3 +336,74 @@
   .page:has(.platform-registry-shell)>.page-header>.page-actions,
   .page:has(.platform-registry-shell)>.page-header>div:last-child:not(:first-child){justify-self:stretch;justify-content:flex-start;flex-wrap:wrap}
 }
+
+
+/* Platform organization record — unified action toolbar */
+.platform-owner-record-shell .entity-record-header-actions{display:flex;align-items:center;gap:8px}
+.platform-org-actions{
+  display:flex;align-items:center;gap:4px;flex-wrap:nowrap;padding-left:8px;margin-left:2px;
+  border-left:1px solid var(--lo-color-border);
+}
+.platform-org-action-item{display:block;min-width:0}
+.platform-org-action-item>span{display:none}
+.platform-org-action-item .lo-icon-button{
+  width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;
+}
+.platform-org-action-item .lo-icon-button:hover:not(:disabled){background:var(--lo-shell-control-hover);border-color:var(--lo-color-border)}
+.platform-org-action-item .lo-icon-button-primary{color:var(--lo-color-primary);background:color-mix(in srgb,var(--lo-color-primary) 6%,var(--lo-color-surface))}
+.platform-org-action-item .lo-icon-button-success{color:#16723a;background:color-mix(in srgb,#16a34a 6%,var(--lo-color-surface))}
+.platform-org-action-item .lo-icon-button-danger{color:#b42318}
+.platform-org-action-item .lo-icon-button-danger:hover:not(:disabled){color:#b42318;background:color-mix(in srgb,#dc2626 7%,var(--lo-color-surface));border-color:color-mix(in srgb,#dc2626 18%,var(--lo-color-border))}
+.platform-org-action-item .lo-icon-button:disabled{opacity:.42}
+
+/* Platform search/filter toolbar — one canonical alignment */
+.platform-owner-record-shell .filter-system,
+.platform-diagnostics-registry .filter-system{
+  width:100%;max-width:none;margin:0;padding:10px 12px;
+  border:0;border-bottom:1px solid var(--lo-color-border);background:var(--lo-color-surface);
+}
+.platform-owner-record-shell .filter-primary-row,
+.platform-diagnostics-registry .filter-primary-row{
+  display:flex;align-items:center;gap:8px;width:100%;min-height:36px;
+}
+.platform-owner-record-shell .filter-search,
+.platform-diagnostics-registry .filter-search{
+  position:relative;display:flex;align-items:center;flex:0 1 620px;min-width:260px;height:36px;margin:0;
+  border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);overflow:hidden;
+}
+.platform-owner-record-shell .filter-search>svg,
+.platform-diagnostics-registry .filter-search>svg{
+  position:absolute!important;left:11px!important;top:50%!important;transform:translateY(-50%)!important;
+  width:16px!important;height:16px!important;margin:0!important;color:var(--lo-color-muted);pointer-events:none;z-index:1;
+}
+.platform-owner-record-shell .filter-search>input,
+.platform-diagnostics-registry .filter-search>input{
+  width:100%;height:100%;min-height:0;margin:0;padding:0 11px 0 36px!important;
+  border:0!important;border-radius:0!important;outline:0!important;background:transparent!important;
+  color:var(--lo-color-text);font:inherit;font-size:10.75px;box-shadow:none!important;
+}
+.platform-owner-record-shell .filter-search:focus-within,
+.platform-diagnostics-registry .filter-search:focus-within{
+  border-color:color-mix(in srgb,var(--lo-color-primary) 48%,var(--lo-color-border));
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--lo-color-primary) 10%,transparent);
+}
+.platform-owner-record-shell .filter-trigger,
+.platform-diagnostics-registry .filter-trigger{
+  flex:0 0 auto;height:36px;min-height:36px;margin:0;padding:0 11px;
+  display:inline-flex;align-items:center;gap:6px;border:1px solid var(--lo-color-border);border-radius:8px;
+  background:var(--lo-color-surface);color:var(--lo-color-text);font-size:10.5px;font-weight:700;
+}
+.platform-owner-record-shell .filter-trigger:hover,
+.platform-diagnostics-registry .filter-trigger:hover{background:var(--lo-shell-control-hover)}
+.platform-owner-record-shell .filter-trigger.active,
+.platform-diagnostics-registry .filter-trigger.active{border-color:color-mix(in srgb,var(--lo-color-primary) 30%,var(--lo-color-border));color:var(--lo-color-primary);background:color-mix(in srgb,var(--lo-color-primary) 5%,var(--lo-color-surface))}
+.platform-owner-users>.filter-bar,.platform-owner-users>.filter-system{width:100%!important;max-width:none!important;margin:0!important}
+.platform-diagnostics-registry{overflow:hidden}
+.platform-diagnostics-registry>.filter-system{flex:0 0 auto}
+
+@media(max-width:760px){
+  .platform-org-actions{gap:2px;padding-left:5px}
+  .platform-org-action-item .lo-icon-button{width:32px;height:32px}
+  .platform-owner-record-shell .filter-primary-row,.platform-diagnostics-registry .filter-primary-row{flex-wrap:wrap}
+  .platform-owner-record-shell .filter-search,.platform-diagnostics-registry .filter-search{flex:1 1 100%;min-width:0}
+}
