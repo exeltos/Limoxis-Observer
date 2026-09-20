@@ -9,12 +9,13 @@
 import { surveillanceDemoData } from '../surveillance/surveillanceDemoData'
 import { clinicalCases } from '../surveillance/clinicalDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
-import { handHygieneRows, bundleRows, wasteRows } from '../prevention/preventionDemoData'
-import { qualityIncidents, qualityFindings, qualityCapas } from '../quality/qualityDemoData'
-import { controlExecutionRows } from '../controls/controlDemoData'
+import { preventionDepartments } from '../prevention/preventionDemoData'
+import { loadHandHygieneLocal, loadWasteLocal, loadBundlesLocal } from '../prevention/preventionStore'
+import { loadQualityLocal } from '../quality/qualityStore'
+import { loadControlExecutionsLocal } from '../controls/controlStore'
 import { loadDocuments } from '../documents/documentStore'
 import { loadCommittees } from '../committees/committeeData'
-import { occupationalVisits } from '../employees/employeeDemoData'
+import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { loadTrainingState } from '../training/trainingData'
 
 // Same eight ΕΟΔΥ reference pathogens and reference antibiotics as
@@ -57,9 +58,14 @@ function collectAmrSusceptibility() {
 }
 
 // Same validated/amended + positive predicate as analysis_microbiology_findings.
+// The department filter's option list comes from the department catalogue
+// (preventionDepartments, the same fixture Prevention/Controls use), not
+// from which departments happen to have a positive culture — production's
+// analysis_microbiology_findings similarly draws its department list from
+// the departments table, never from the findings themselves.
 function collectMicrobiology() {
   const positive = laboratorySamples.filter(x => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus))
-  const departments = [...new Set(positive.map(x => x.department).filter(Boolean))].map(name => ({ id: name, name }))
+  const departments = preventionDepartments.map(d => ({ id: d.id, name: d.el }))
   return {
     microorganisms: sortedEntries(countBy(positive, x => x.organism?.trim()), 12),
     resistance: sortedEntries(countBy(positive, x => x.resistance), 5),
@@ -75,31 +81,39 @@ function collectMicrobiology() {
   }
 }
 
-// clinicalCases (the demo Surveillance & Samples fixture) is the only demo
-// data modelling antimicrobial therapy at all — one therapy "plan" per case,
-// with an `approved` boolean rather than platform_report_summary's
-// approval_status text. There is no demo fixture for per-dose
-// administrations, so that count is honestly 0 rather than invented.
+// clinicalCases is the same live demo record store clinicalRepository.js's
+// addTherapy/recordAdministration mutate in place (demoRecord() returns the
+// same reference, never a clone), so reading it here already reflects
+// anything added through the Surveillance UI — as long as the right fields
+// are read: addTherapy sets `approvalStatus` ('pending'/'not_required'/
+// 'approved'/'rejected'), and the original seed's few rows instead use a
+// legacy `approved` boolean. recordAdministration appends into each
+// therapy's own `administrations` array with a `status`, matching
+// platform_report_summary's own `status='administered'` filter.
 function collectAntimicrobialSummary() {
   const therapies = Object.values(clinicalCases).flatMap(record => record.therapy || [])
-  return { total: therapies.length, pending: therapies.filter(x => x.approved === false).length, administrations: 0 }
+  const pending = therapies.filter(x => x.approvalStatus === 'pending' || x.approved === false).length
+  const administrations = therapies.flatMap(x => x.administrations || []).filter(a => a.status === 'administered').length
+  return { total: therapies.length, pending, administrations }
 }
 
 export function collectAnalysisDemoSnapshot() {
   const training = loadTrainingState()
+  const handHygieneRows = loadHandHygieneLocal()
+  const wasteRows = loadWasteLocal()
   const summary = {
     surveillance: surveillanceDemoData.length,
     laboratory: laboratorySamples.length,
-    prevention: handHygieneRows.length + wasteRows.length + bundleRows.length,
-    controls: controlExecutionRows.length,
-    quality: qualityIncidents.length + qualityFindings.length + qualityCapas.length,
+    prevention: handHygieneRows.length + wasteRows.length + loadBundlesLocal().length,
+    controls: loadControlExecutionsLocal().length,
+    quality: loadQualityLocal('incidents').length + loadQualityLocal('findings').length + loadQualityLocal('capas').length,
     training: (training.assignments || []).length,
     documents: loadDocuments().length,
     committees: loadCommittees().length,
     handHygiene: handHygieneRows.length,
     waste: wasteRows.length,
     antimicrobial: collectAntimicrobialSummary(),
-    occupationalHealth: occupationalVisits.length,
+    occupationalHealth: loadOccupationalVisits().length,
   }
   return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility() }
 }
