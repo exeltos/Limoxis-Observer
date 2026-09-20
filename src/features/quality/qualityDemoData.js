@@ -12,3 +12,18 @@ export const qualityAudits=[
   {id:'AUD-2608-003',title:'Audit κρίσιμων εργαστηριακών επικοινωνιών',titleEn:'Critical laboratory communication audit',department:'ΜΕΘ',departmentEn:'ICU',auditType:'internal',plannedDate:'2026-08-25',completedDate:'2026-08-25',status:'completed',leadAuditor:'Υπεύθυνος Ποιότητας',scope:'Δειγματοληπτικός έλεγχος critical-result communications.',scopeEn:'Sample audit of critical-result communications.',findingIds:['FND-2608-012'],attachments:[],history:[{at:'2026-08-25T13:00:00+03:00',action:'auditCompleted',actor:'Υπεύθυνος Ποιότητας'}]},
   {id:'AUD-2609-001',title:'Audit συμμόρφωσης isolation precautions',titleEn:'Isolation precautions compliance audit',department:'ΜΕΘ',departmentEn:'ICU',auditType:'internal',plannedDate:'2026-09-05',completedDate:null,status:'planned',leadAuditor:'Υπεύθυνος Ποιότητας',scope:'Έλεγχος εφαρμογής isolation precautions σε ενεργές επιτηρήσεις.',scopeEn:'Review of isolation precautions in active surveillance episodes.',findingIds:[],attachments:[],history:[]},
 ]
+
+
+qualityIncidents.push(
+ {id:'INC-260612-003',title:'Παράλειψη υγιεινής χεριών πριν άσηπτη πράξη',titleEn:'Missed hand hygiene before aseptic task',department:'Παθολογική',departmentEn:'Internal Medicine',date:'2026-06-12',severity:'medium',status:'closed',reportedBy:'Demo Link Nurse',owner:'Υπεύθυνος Ποιότητας',description:'Παρατήρηση στο πλαίσιο ενεργού επιτήρησης συμμόρφωσης.',descriptionEn:'Observation during active compliance surveillance.',attachments:[],history:[]},
+ {id:'INC-260403-002',title:'Απόκλιση θερμοκρασίας ψυγείου φαρμάκων',titleEn:'Medication refrigerator temperature deviation',department:'ΜΕΘ',departmentEn:'ICU',date:'2026-04-03',severity:'high',status:'closed',reportedBy:'Demo ICU Nurse',owner:'Υπεύθυνος ΜΕΘ',description:'Καταγράφηκε θερμοκρασία εκτός ορίων και ενεργοποιήθηκε διορθωτική ενέργεια.',descriptionEn:'Out-of-range temperature triggered corrective action.',attachments:[],history:[]}
+)
+qualityFindings.push(
+ {id:'FND-2606-008',title:'Χαμηλή συμμόρφωση WHO Moment 2',titleEn:'Low compliance with WHO Moment 2',source:'audit',sourceId:'AUD-2606-002',department:'Παθολογική',departmentEn:'Internal Medicine',date:'2026-06-15',severity:'medium',status:'closed',owner:'Προϊστάμενος Παθολογικής',description:'Η συμμόρφωση πριν από άσηπτη πράξη ήταν κάτω από τον εσωτερικό στόχο.',descriptionEn:'Compliance before aseptic tasks was below the internal target.',attachments:[],history:[]}
+)
+qualityCapas.push(
+ {id:'CAPA-2606-004',title:'Στοχευμένη επανεκπαίδευση WHO 5 Moments',titleEn:'Targeted WHO 5 Moments retraining',sourceType:'finding',sourceId:'FND-2606-008',department:'Παθολογική',departmentEn:'Internal Medicine',owner:'Link Nurse Παθολογικής',dueDate:'2026-07-05',status:'completed',priority:'medium',actionType:'corrective',description:'Μικροεκπαίδευση και επαναληπτικές παρατηρήσεις.',descriptionEn:'Micro-training and repeat observations.',effectivenessDue:'2026-08-05',effectivenessStatus:'effective',attachments:[],history:[]}
+)
+qualityAudits.push(
+ {id:'AUD-2606-002',title:'Audit Υγιεινής Χεριών',titleEn:'Hand Hygiene Audit',department:'Παθολογική',departmentEn:'Internal Medicine',auditType:'internal',plannedDate:'2026-06-15',completedDate:'2026-06-15',status:'completed',leadAuditor:'Υπεύθυνος Ποιότητας',scope:'WHO 5 Moments και διαθεσιμότητα ABHR.',scopeEn:'WHO 5 Moments and ABHR availability.',findingIds:['FND-2606-008'],attachments:[],history:[]}
+)

@@ -27,6 +27,11 @@ function dispensingRow({id,periodStart,periodEnd,department,product,quantityGram
 }
 
 export const antibioticDispensingRows=[
+  dispensingRow({id:'ABXD-2603',periodStart:'2026-07-01',periodEnd:'2026-07-31',department:pharmacyDepartments[0],product:antibioticLibrary[1],quantityGrams:760,method:'manual',referenceNumber:'ΦΑ-207',responsible:'Φαρμακείο'}),
+  dispensingRow({id:'ABXD-2604',periodStart:'2026-06-01',periodEnd:'2026-06-30',department:pharmacyDepartments[1],product:antibioticLibrary[0],quantityGrams:980,method:'manual',referenceNumber:'ΦΑ-196',responsible:'Φαρμακείο'}),
+  dispensingRow({id:'ABXD-2605',periodStart:'2026-05-01',periodEnd:'2026-05-31',department:null,product:antibioticLibrary[2],quantityGrams:540,method:'manual',referenceNumber:'ΦΑ-181',responsible:'Φαρμακείο'}),
+  dispensingRow({id:'ABXD-2606',periodStart:'2026-04-01',periodEnd:'2026-04-30',department:pharmacyDepartments[0],product:antibioticLibrary[1],quantityGrams:920,method:'manual',referenceNumber:'ΦΑ-170',responsible:'Φαρμακείο'}),
+  dispensingRow({id:'ABXD-2607',periodStart:'2026-03-01',periodEnd:'2026-03-31',department:pharmacyDepartments[2],product:antibioticLibrary[0],quantityGrams:830,method:'manual',referenceNumber:'ΦΑ-158',responsible:'Φαρμακείο'}),
   dispensingRow({id:'ABXD-2601',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:pharmacyDepartments[0],product:antibioticLibrary[1],quantityGrams:840,method:'manual',referenceNumber:'ΦΑ-220',responsible:'Φαρμακείο'}),
   dispensingRow({id:'ABXD-2602',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:null,product:antibioticLibrary[0],quantityGrams:1200,method:'manual',referenceNumber:'ΦΑ-221',responsible:'Φαρμακείο'}),
 ]

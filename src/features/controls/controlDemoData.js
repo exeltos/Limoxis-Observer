@@ -40,7 +40,8 @@ const definition2={
  updated_at:iso(-24*6),
 }
 
-export const controlDefinitionRows=[definition1,definition2]
+const definition3={...definition2,id:'ctrl-def-expiry',code:'CTRL-DEMO-0003',title:'Έλεγχος λήξεων φαρμάκων και υλικών',category:'Λήξεις',description:'Περιοδικός έλεγχος λήξεων φαρμάκων και αναλωσίμων.',response_config:{mode:'choice',options:['Χωρίς εύρημα','Κοντόληκτο','Ληγμένο'],label:'Εύρημα',__meta:{titleEn:'Medication and supply expiry check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control'}},frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
+export const controlDefinitionRows=[definition1,definition2,definition3]
 
 const assignment1={
  id:'ctrl-asg-fridge-icu',
@@ -75,7 +76,9 @@ const assignment3={
  next_due_at:iso(24*4),
 }
 
-export const controlAssignmentRows=[assignment1,assignment2,assignment3]
+const assignment4={id:'ctrl-asg-expiry-internal',control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',department:departmentRow('Παθολογική'),status:'scheduled',last_completed_at:iso(-24*25),next_due_at:iso(24*5)}
+const assignment5={id:'ctrl-asg-disinfect-ed',control_id:definition2.id,organization_id:'demo-hospital',department_id:'ΤΕΠ',department:departmentRow('ΤΕΠ'),status:'scheduled',last_completed_at:iso(-24*9),next_due_at:iso(-24*2)}
+export const controlAssignmentRows=[assignment1,assignment2,assignment3,assignment4,assignment5]
 
 export const controlExecutionRows=[
  {
@@ -156,4 +159,4 @@ export const controlExecutionRows=[
  },
 ]
 
-export const controlDraftRows=[]
+export const controlDraftRows=[{id:'ctrl-draft-expiry-1',assignment_id:assignment4.id,control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',status:'draft',value_text:'Κοντόληκτο',response_data:{structuredData:{items:[{name:'Adrenaline 1mg/ml',quantity:6,expiry:'2026-10-15',finding:'Κοντόληκτο'}]},actorName:'Demo User'},notes:'Σε εξέλιξη ο έλεγχος ραφιού.',has_finding:true,performed_at:null}]

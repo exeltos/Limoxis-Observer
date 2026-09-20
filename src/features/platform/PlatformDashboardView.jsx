@@ -1,95 +1,51 @@
 import { Activity, ArrowRight, BarChart3, Building2, FlaskConical, Settings, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 
-function DashboardAction({ icon, title, description, meta, onClick }) {
-  return (
-    <button
-      type="button"
-      className="platform-control-card platform-owner-clickable-row"
-      onClick={onClick}
-      style={{
-        minHeight:154,
-        padding:'20px 21px',
-        gridTemplateColumns:'auto minmax(0,1fr) auto',
-        alignItems:'start',
-        border:'1px solid color-mix(in srgb,var(--lo-color-primary) 12%,var(--lo-color-border))',
-        background:'linear-gradient(180deg,var(--lo-color-surface) 0%,color-mix(in srgb,var(--lo-color-primary) 2.5%,var(--lo-color-surface)) 100%)',
-        boxShadow:'0 8px 22px rgba(31,52,73,.07)'
-      }}
-    >
-      <span
-        className="platform-control-card-icon"
-        style={{
-          width:44,
-          height:44,
-          borderRadius:11,
-          background:'color-mix(in srgb,var(--lo-color-primary) 10%,var(--lo-color-surface))',
-          border:'1px solid color-mix(in srgb,var(--lo-color-primary) 13%,var(--lo-color-border))'
-        }}
-      >{icon}</span>
-      <span className="platform-control-card-copy" style={{gap:7,paddingTop:1}}>
-        <strong style={{fontSize:15,lineHeight:1.25,color:'var(--lo-color-text)'}}>{title}</strong>
-        <small style={{fontSize:11.25,lineHeight:1.52,maxWidth:330}}>{description}</small>
-        {meta ? <span className="platform-control-card-meta" style={{marginTop:5,fontSize:10.75}}>{meta}</span> : null}
-      </span>
-      <span
-        className="platform-control-card-arrow"
-        aria-hidden="true"
-        style={{display:'grid',placeItems:'center',width:30,height:30,borderRadius:8,color:'var(--lo-color-primary)',background:'color-mix(in srgb,var(--lo-color-primary) 7%,transparent)'}}
-      ><ArrowRight size={17}/></span>
-    </button>
-  )
+function Metric({label,value,detail,tone='default'}){
+  return <div className={`platform-dashboard-metric tone-${tone}`}><span>{label}</span><strong>{value}</strong><small>{detail}</small></div>
+}
+function WorkspaceLink({icon,title,description,meta,onClick}){
+  return <button type="button" className="platform-workspace-link" onClick={onClick}><span className="platform-workspace-link-icon">{icon}</span><span className="platform-workspace-link-copy"><strong>{title}</strong><small>{description}</small>{meta?<b>{meta}</b>:null}</span><ArrowRight size={16}/></button>
 }
 
-export function PlatformDashboardView({tx,organizations,activeOrganizations,activeDemos,loadingStats,onNavigate}) {
-  return (
-    <Page
-      title={tx('Dashboard Πλατφόρμας', 'Platform Dashboard')}
-      subtitle={tx(
-        'Κεντρικός έλεγχος οργανισμών, πρόσβασης, analytics και λειτουργικής κατάστασης.',
-        'Central control of organizations, access, analytics and operational status.'
-      )}
-    >
-      <section className="platform-control-plane">
-        <div className="platform-control-grid" style={{gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:14}}>
-          <DashboardAction
-            icon={<Building2 size={21}/>} title={tx('Οργανισμοί','Organizations')}
-            description={tx('Registry, χρήστες, πρόσβαση και ρυθμίσεις οργανισμού.','Registry, users, access and organization settings.')}
-            meta={`${activeOrganizations}/${organizations.length} ${tx('ενεργοί','active')}`}
-            onClick={()=>onNavigate('/platform#organizations')}
-          />
-          <DashboardAction
-            icon={<BarChart3 size={21}/>} title={tx('Ανάλυση','Analytics')}
-            description={tx('Canonical analytics για όλη την πλατφόρμα ή επιλεγμένο οργανισμό.','Canonical analytics for the whole platform or a selected organization.')}
-            meta={tx('Συγκεντρωτική εικόνα','Platform overview')}
-            onClick={()=>onNavigate('/platform#reports')}
-          />
-          <DashboardAction
-            icon={<FlaskConical size={21}/>} title="Demo"
-            description={tx('Διαχείριση demo πρόσβασης, διάρκειας και lifecycle.','Manage demo access, duration and lifecycle.')}
-            meta={loadingStats?'—':`${activeDemos.length} ${tx('ενεργά','active')}`}
-            onClick={()=>onNavigate('/platform#demo')}
-          />
-          <DashboardAction
-            icon={<Activity size={21}/>} title={tx('Υγεία Πλατφόρμας','Platform Health')}
-            description={tx('Συγκεντρωτική λειτουργική εικόνα, αποτυχίες και προειδοποιήσεις όλων των οργανισμών.','Aggregated operational health, failures and warnings across organizations.')}
-            meta={tx('Ζωντανή εικόνα','Live view')}
-            onClick={()=>onNavigate('/platform/health')}
-          />
-          <DashboardAction
-            icon={<ShieldCheck size={21}/>} title={tx('Audit & Ασφάλεια','Audit & Security')}
-            description={tx('Ιχνηλασιμότητα ενεργειών Platform Owner, αλλαγών πρόσβασης και κρίσιμων διοικητικών ενεργειών.','Trace Platform Owner actions, access changes and critical administrative operations.')}
-            meta={tx('Μόνο ανάγνωση','Read only')}
-            onClick={()=>onNavigate('/platform/audit')}
-          />
-          <DashboardAction
-            icon={<Settings size={21}/>} title={tx('Ρυθμίσεις Πλατφόρμας','Platform Settings')}
-            description={tx('Καθολικές λειτουργικές προεπιλογές και ανακοινώσεις πλατφόρμας.','Global operational defaults and platform notices.')}
-            meta={tx('Διαχείριση','Manage')}
-            onClick={()=>onNavigate('/platform/settings')}
-          />
+export function PlatformDashboardView({tx,organizations,activeOrganizations,activeDemos,expiringDemos=[],loadingStats,onNavigate,onEnterDemo}) {
+  const inactive=Math.max(0,organizations.length-activeOrganizations)
+  return <Page title={tx('Κέντρο Πλατφόρμας','Platform Center')} subtitle={tx('Επισκόπηση λειτουργίας, οργανισμών και διακυβέρνησης Limoxis Observer.','Operational, organization and governance overview for Limoxis Observer.')}>
+    <div className="platform-dashboard">
+      <section className="platform-dashboard-overview">
+        <div className="platform-dashboard-overview-heading"><div><span className="platform-eyebrow">PLATFORM OWNER</span><h2>{tx('Επισκόπηση πλατφόρμας','Platform overview')}</h2><p>{tx('Η συνολική διοικητική εικόνα χωρίς είσοδο σε οργανισμό.','The administrative overview without entering an organization.')}</p></div><div className="platform-dashboard-overview-actions"><button type="button" className="button button-secondary platform-enter-demo" onClick={onEnterDemo}><FlaskConical size={16}/>{tx('Είσοδος Demo','Enter Demo')}</button><span className="platform-live-pill"><i/>{tx('Πλατφόρμα ενεργή','Platform active')}</span></div></div>
+        <div className="platform-dashboard-metrics">
+          <Metric label={tx('Οργανισμοί','Organizations')} value={organizations.length} detail={`${activeOrganizations} ${tx('ενεργοί','active')}`} />
+          <Metric label={tx('Ανενεργοί','Inactive')} value={inactive} detail={tx('οργανισμοί','organizations')} tone={inactive?'warning':'default'} />
+          <Metric label="Demo" value={loadingStats?'—':activeDemos.length} detail={tx('ενεργές προσβάσεις','active access')} />
+          <Metric label={tx('Demo που λήγουν','Demo expiring')} value={loadingStats?'—':expiringDemos.length} detail={tx('εντός 14 ημερών','within 14 days')} tone={expiringDemos.length?'warning':'default'} />
         </div>
       </section>
-    </Page>
-  )
+
+      <div className="platform-dashboard-columns">
+        <section className="platform-dashboard-panel platform-dashboard-primary">
+          <header><div><h3>{tx('Διαχείριση','Management')}</h3><p>{tx('Οι βασικοί χώροι εργασίας του Platform Owner.','Primary Platform Owner workspaces.')}</p></div></header>
+          <div className="platform-workspace-list">
+            <WorkspaceLink icon={<Building2 size={18}/>} title={tx('Οργανισμοί','Organizations')} description={tx('Νοσοκομεία, χρήστες, ρόλοι και πρόσβαση.','Hospitals, users, roles and access.')} meta={`${activeOrganizations}/${organizations.length} ${tx('ενεργοί','active')}`} onClick={()=>onNavigate('/platform#organizations')}/>
+            <WorkspaceLink icon={<FlaskConical size={18}/>} title="Demo" description={tx('Προσβάσεις επίδειξης και διάρκεια ισχύος.','Demo access and validity periods.')} meta={loadingStats?'—':`${activeDemos.length} ${tx('ενεργά','active')}`} onClick={()=>onNavigate('/platform#demo')}/>
+            <WorkspaceLink icon={<BarChart3 size={18}/>} title={tx('Ανάλυση','Analytics')} description={tx('Συγκεντρωτικά δεδομένα σε επίπεδο πλατφόρμας.','Aggregated platform-level data.')} onClick={()=>onNavigate('/platform#reports')}/>
+          </div>
+        </section>
+
+        <section className="platform-dashboard-panel">
+          <header><div><h3>{tx('Διακυβέρνηση & λειτουργία','Governance & operations')}</h3><p>{tx('Έλεγχος λειτουργίας, ασφάλειας και καθολικών ρυθμίσεων.','Operations, security and global settings.')}</p></div></header>
+          <div className="platform-workspace-list compact">
+            <WorkspaceLink icon={<Activity size={18}/>} title={tx('Υγεία Πλατφόρμας','Platform Health')} description={tx('Σφάλματα, προειδοποιήσεις και λειτουργικά συμβάντα.','Failures, warnings and operational events.')} meta={tx('Ζωντανή εικόνα','Live view')} onClick={()=>onNavigate('/platform/health')}/>
+            <WorkspaceLink icon={<ShieldCheck size={18}/>} title={tx('Audit & Ασφάλεια','Audit & Security')} description={tx('Ενέργειες, αλλαγές πρόσβασης και ιχνηλασιμότητα.','Actions, access changes and traceability.')} meta={tx('Μόνο ανάγνωση','Read only')} onClick={()=>onNavigate('/platform/audit')}/>
+            <WorkspaceLink icon={<Settings size={18}/>} title={tx('Ρυθμίσεις Πλατφόρμας','Platform Settings')} description={tx('Καθολικές προεπιλογές και ανακοινώσεις.','Global defaults and notices.')} onClick={()=>onNavigate('/platform/settings')}/>
+          </div>
+        </section>
+      </div>
+
+      <section className="platform-dashboard-organizations">
+        <header><div><h3>{tx('Οργανισμοί','Organizations')}</h3><p>{tx('Άμεση πρόσβαση στους οργανισμούς της πλατφόρμας.','Quick access to platform organizations.')}</p></div><button type="button" onClick={()=>onNavigate('/platform#organizations')}>{tx('Προβολή όλων','View all')} <ArrowRight size={14}/></button></header>
+        {organizations.length?<div className="platform-dashboard-org-list">{organizations.slice(0,6).map(org=><button key={org.id} type="button" onClick={()=>onNavigate(`/platform#organizations?organization=${org.id}&tab=details`)}><span className="platform-org-mark"><Building2 size={15}/></span><span><strong>{org.name||org.code}</strong><small>{[org.code,org.city].filter(Boolean).join(' · ')||'—'}</small></span><span className={`status-badge ${org.status==='active'?'active':'temporary'}`}>{org.status==='active'?tx('Ενεργός','Active'):tx('Ανενεργός','Inactive')}</span><ArrowRight size={14}/></button>)}</div>:<div className="inline-empty">{tx('Δεν υπάρχουν οργανισμοί.','No organizations found.')}</div>}
+      </section>
+    </div>
+  </Page>
 }

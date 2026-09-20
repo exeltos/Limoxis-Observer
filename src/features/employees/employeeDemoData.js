@@ -28,3 +28,30 @@ export const employeeEvaluations = [
 export const employeeCertificates = [
   {id:'CERT-01', employeeId:'EMP-001', titleEl:'BLS', titleEn:'BLS', issuer:'ERC', issueDate:'2025-04-01', validUntil:'2027-03-31', certificateNumber:'BLS-2025-001', attachments:[]},
 ]
+
+
+// Full-demo enrichment: broad role and department coverage.
+employeeRows.push(
+ {id:'EMP-005',firstName:'Ανδρέας',firstNameEn:'Andreas',lastName:'Μάρκου',lastNameEn:'Markou',department:'ΤΕΠ',departmentEn:'ED',profession:'Ιατρικό προσωπικό',professionEn:'Medical staff',employmentStatus:'active',email:'a.markou@example.org',hireDate:'2020-02-10'},
+ {id:'EMP-006',firstName:'Σοφία',firstNameEn:'Sofia',lastName:'Οικονόμου',lastNameEn:'Oikonomou',department:'Καρδιολογική',departmentEn:'Cardiology',profession:'Νοσηλευτικό προσωπικό',professionEn:'Nursing staff',employmentStatus:'active',email:'s.oikonomou@example.org',hireDate:'2018-11-05'},
+ {id:'EMP-007',firstName:'Χρήστος',firstNameEn:'Christos',lastName:'Βασιλείου',lastNameEn:'Vasileiou',department:'Αποστείρωση',departmentEn:'CSSD',profession:'Νοσηλευτικό προσωπικό',professionEn:'Nursing staff',employmentStatus:'active',email:'c.vasileiou@example.org',hireDate:'2016-04-14'},
+ {id:'EMP-008',firstName:'Δήμητρα',firstNameEn:'Dimitra',lastName:'Σταθάτου',lastNameEn:'Stathatou',department:'Ποιότητα',departmentEn:'Quality',profession:'Διοικητικό προσωπικό',professionEn:'Administrative staff',employmentStatus:'active',email:'d.stathatou@example.org',hireDate:'2022-01-17'}
+)
+occupationalVisits.push(
+ {id:'OHV-004',employeeId:'EMP-005',date:'2026-07-12',type:'periodic',status:'completed',followUpDate:'2027-07-12',fitStatus:'fit'},
+ {id:'OHV-005',employeeId:'EMP-006',date:'2026-09-25',type:'periodic',status:'scheduled',followUpDate:null,fitStatus:'pending'}
+)
+employeeVaccinations.push(
+ {id:'VAC-004',employeeId:'EMP-005',vaccine:'Hepatitis B',dose:'3',date:'2024-05-20',validUntil:null,status:'complete'},
+ {id:'VAC-005',employeeId:'EMP-006',vaccine:'Influenza',dose:'2025/26',date:'2025-10-28',validUntil:'2026-10-01',status:'renewSoon'},
+ {id:'VAC-006',employeeId:'EMP-007',vaccine:'Tdap',dose:'booster',date:'2022-03-11',validUntil:'2032-03-11',status:'complete'}
+)
+employeeTraining.push(
+ {id:'TR-04',employeeId:'EMP-005',titleEl:'Ορθή χρήση ΜΑΠ',titleEn:'Correct PPE use',date:'2026-04-22',status:'completed'},
+ {id:'TR-05',employeeId:'EMP-006',titleEl:'Υγιεινή Χεριών',titleEn:'Hand Hygiene',date:'2026-05-12',status:'completed'},
+ {id:'TR-06',employeeId:'EMP-007',titleEl:'Πρόληψη λοιμώξεων',titleEn:'Infection Prevention',date:'2026-03-09',status:'completed'}
+)
+employeeCertificates.push(
+ {id:'CERT-02',employeeId:'EMP-005',titleEl:'ALS',titleEn:'ALS',issuer:'ERC',issueDate:'2025-09-01',validUntil:'2027-08-31',certificateNumber:'ALS-2025-018',attachments:[]},
+ {id:'CERT-03',employeeId:'EMP-007',titleEl:'Εκπαίδευση Αποστείρωσης',titleEn:'Sterilization Training',issuer:'Demo Hospital',issueDate:'2026-02-15',validUntil:'2028-02-14',certificateNumber:'CSSD-2026-007',attachments:[]}
+)

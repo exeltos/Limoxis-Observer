@@ -10,12 +10,13 @@ import { surveillanceDemoData } from '../surveillance/surveillanceDemoData'
 import { clinicalCases } from '../surveillance/clinicalDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { preventionDepartments } from '../prevention/preventionDemoData'
-import { loadHandHygieneLocal, loadWasteLocal, loadBundlesLocal } from '../prevention/preventionStore'
+import { loadHandHygieneLocal, loadWasteLocal, loadBundlesLocal, loadAntisepticLocal } from '../prevention/preventionStore'
 import { loadQualityLocal } from '../quality/qualityStore'
-import { loadControlExecutionsLocal } from '../controls/controlStore'
+import { loadControlExecutionsLocal, loadControlAssignmentsLocal } from '../controls/controlStore'
 import { loadDocuments } from '../documents/documentStore'
 import { loadCommittees } from '../committees/committeeData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
+import { employeeRows } from '../employees/employeeDemoData'
 import { loadTrainingState } from '../training/trainingData'
 
 // Same eight ΕΟΔΥ reference pathogens and reference antibiotics as
@@ -122,8 +123,8 @@ export function collectAnalysisDemoSnapshot() {
   const summary = {
     surveillance: surveillanceDemoData.length,
     laboratory: laboratorySamples.length,
-    prevention: handHygieneRows.length + wasteRows.length + loadBundlesLocal().length,
-    controls: loadControlExecutionsLocal().length,
+    prevention: handHygieneRows.length + wasteRows.length + loadBundlesLocal().length + loadAntisepticLocal().length,
+    controls: loadControlExecutionsLocal().length + loadControlAssignmentsLocal().length,
     quality: loadQualityLocal('incidents').length + loadQualityLocal('findings').length + loadQualityLocal('capas').length,
     training: (training.assignments || []).length,
     documents: loadDocuments().length,
@@ -132,6 +133,9 @@ export function collectAnalysisDemoSnapshot() {
     waste: wasteRows.length,
     antimicrobial: collectAntimicrobialSummary(),
     occupationalHealth: loadOccupationalVisits().length,
+    employees: employeeRows.length,
+    antiseptic: loadAntisepticLocal().length,
+    bundles: loadBundlesLocal().length,
   }
   return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility() }
 }

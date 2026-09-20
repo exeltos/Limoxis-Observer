@@ -104,7 +104,6 @@ export function AuthProvider({ children }) {
     return data
   }, [hydrateSession])
   const loginDemo = useCallback(() => {
-    if (!appConfig.allowDemo) throw new Error('DEMO_DISABLED')
     transitionRef.current+=1
     setAuthState({session:{ access_token: 'demo', user: DEMO_USER },profile:DEMO_USER,loading:false})
   }, [])

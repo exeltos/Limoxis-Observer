@@ -2,6 +2,8 @@ export const preventionDepartments=[
   {id:'dep-icu',el:'ΜΕΘ',en:'ICU'},
   {id:'dep-internal',el:'Παθολογική',en:'Internal Medicine'},
   {id:'dep-surgery',el:'Χειρουργική',en:'Surgery'},
+  {id:'dep-ed',el:'ΤΕΠ',en:'ED'},
+  {id:'dep-cardio',el:'Καρδιολογική',en:'Cardiology'},
 ]
 
 export const wasteTypeLibrary=[
@@ -76,6 +78,9 @@ export const handHygieneRows=[
     {id:'o1',professionalsCount:1,professionalCategory:'Νοσηλευτικό',moments:['before_aseptic'],action:'HW',gloves:true,notes:''},
     {id:'o2',professionalsCount:1,professionalCategory:'Νοσηλευτικό',moments:['after_body_fluid'],action:'HW',gloves:true,notes:''},
   ]}),
+  handHygieneRow({id:'HH-2604',date:'2026-07-15',department:preventionDepartments[2],profession:'nursing',observer:'Ελένη Κωνσταντίνου',startTime:'10:00',endTime:'10:35',items:[{id:'o1',professionalsCount:2,professionalCategory:'Νοσηλευτικό',moments:['before_patient'],action:'HR',gloves:false,notes:''},{id:'o2',professionalsCount:1,professionalCategory:'Νοσηλευτικό',moments:['before_aseptic'],action:'MISSED',gloves:true,notes:''},{id:'o3',professionalsCount:2,professionalCategory:'Νοσηλευτικό',moments:['after_patient'],action:'HR',gloves:false,notes:''}]}),
+  handHygieneRow({id:'HH-2605',date:'2026-06-18',department:preventionDepartments[3],profession:'medical',observer:'Μαρία Κωνσταντίνου',startTime:'12:00',endTime:'12:30',items:[{id:'o1',professionalsCount:2,professionalCategory:'Ιατρικό',moments:['before_patient'],action:'HR',gloves:false,notes:''},{id:'o2',professionalsCount:1,professionalCategory:'Ιατρικό',moments:['after_body_fluid'],action:'HW',gloves:true,notes:''},{id:'o3',professionalsCount:1,professionalCategory:'Ιατρικό',moments:['after_surroundings'],action:'MISSED',gloves:false,notes:''}]}),
+  handHygieneRow({id:'HH-2606',date:'2026-05-20',department:preventionDepartments[4],profession:'nursing',observer:'Ελένη Παπαδοπούλου',startTime:'09:20',endTime:'09:50',items:[{id:'o1',professionalsCount:2,professionalCategory:'Νοσηλευτικό',moments:['before_patient'],action:'HR',gloves:false,notes:''},{id:'o2',professionalsCount:2,professionalCategory:'Νοσηλευτικό',moments:['after_patient'],action:'HR',gloves:false,notes:''}]})
 ]
 
 function wasteRow({id,periodStart,periodEnd,department,type,weight,containers,patientDays,responsible,documentNumber,collectionCompany}){
