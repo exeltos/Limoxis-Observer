@@ -135,3 +135,15 @@
  }
  .platform-analysis-page .analysis-tabs.entity-record-tabs>button{flex:0 0 142px!important;width:142px!important}
 }
+
+/* Tabs are now a sibling of the filter surface: no parent can clip them. */
+.platform-analysis-page>.analysis-tabs.entity-record-tabs{
+ display:flex!important;position:relative!important;z-index:2!important;flex:0 0 48px!important;
+ width:100%!important;height:48px!important;min-height:48px!important;margin:8px 0 0!important;padding:0!important;
+ overflow-x:auto!important;overflow-y:hidden!important;border:1px solid var(--lo-color-border)!important;border-radius:10px!important;
+ background:var(--lo-color-surface)!important;
+}
+.platform-analysis-page>.analysis-tabs.entity-record-tabs>button{
+ flex:1 0 132px!important;height:46px!important;min-height:46px!important;padding:0 9px!important;
+}
+.platform-analysis-page .analysis-tabs-spacer{display:none!important}
