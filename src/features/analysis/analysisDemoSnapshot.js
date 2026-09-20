@@ -63,6 +63,24 @@ function collectAmrSusceptibility() {
 // from which departments happen to have a positive culture — production's
 // analysis_microbiology_findings similarly draws its department list from
 // the departments table, never from the findings themselves.
+// One line per distinct (organism, resistance, department, source)
+// combination — the same grouping platformService.js's loadMicrobiologyAnalytics
+// computes for production's nationalRows, which is the actual "which microbe,
+// in which department, from which specimen" line list the National
+// surveillance tab is meant to show.
+function collectNationalRows(positive) {
+  const grouped = new Map()
+  for (const row of positive) {
+    const key = [row.organism?.trim() || '—', row.resistance || '—', row.department, row.source].join('|||')
+    const current = grouped.get(key) || { organism: row.organism?.trim() || '—', resistanceClass: row.resistance || '—', department: row.department, source: row.source, count: 0, lastDate: '' }
+    current.count += 1
+    const eventDate = String(row.resultedAt || '').slice(0, 10)
+    if (eventDate > current.lastDate) current.lastDate = eventDate
+    grouped.set(key, current)
+  }
+  return [...grouped.values()].sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate)).slice(0, 80).map(row => [row.organism, row.resistanceClass, row.department, row.source, row.count, row.lastDate])
+}
+
 function collectMicrobiology() {
   const positive = laboratorySamples.filter(x => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus))
   const departments = preventionDepartments.map(d => ({ id: d.id, name: d.el }))
@@ -73,7 +91,7 @@ function collectMicrobiology() {
     byDepartment: sortedEntries(countBy(positive, x => x.department), 12),
     bySource: sortedEntries(countBy(positive, x => x.source), 12),
     byOrganization: [],
-    nationalRows: [],
+    nationalRows: collectNationalRows(positive),
     totalPositive: positive.length,
     totalCritical: positive.filter(x => x.critical).length,
     departmentCount: departments.length,
