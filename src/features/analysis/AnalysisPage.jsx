@@ -89,7 +89,7 @@ export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS})
    const report=reportRef.current
    const frame=document.createElement('iframe')
    frame.setAttribute('aria-hidden','true')
-   frame.style.position='fixed';frame.style.right='0';frame.style.bottom='0';frame.style.width='0';frame.style.height='0';frame.style.border='0'
+   frame.style.position='fixed';frame.style.left='-10000px';frame.style.top='0';frame.style.width='1200px';frame.style.height='900px';frame.style.border='0';frame.style.visibility='hidden'
    document.body.appendChild(frame)
    const doc=frame.contentDocument
    const styleLinks=[...document.querySelectorAll('link[rel="stylesheet"]')].map(link=>'<link rel="stylesheet" href="'+link.href+'">').join('')
@@ -98,8 +98,8 @@ export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS})
    doc.write('<!doctype html><html><head><meta charset="utf-8"><title>'+tx('Αναφορά Limoxis Observer','Limoxis Observer Report')+'</title>'+styleLinks+inlineStyles+'<style>@page{size:A4 landscape;margin:10mm}html,body{height:auto!important;overflow:visible!important;background:#fff!important}body{margin:0!important;padding:0!important}.analysis-report{display:block!important;position:static!important;width:100%!important;max-width:none!important;height:auto!important;overflow:visible!important;margin:0!important;padding:0!important;background:#fff!important}.analysis-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}.analysis-chart-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.analysis-chart-card,.analysis-kpis article{break-inside:avoid!important;page-break-inside:avoid!important}</style></head><body><main class="platform-analysis-page analysis-print-frame">'+report.outerHTML+'</main></body></html>')
    doc.close()
    const printFrame=()=>{try{frame.contentWindow.focus();frame.contentWindow.print()}finally{window.setTimeout(()=>frame.remove(),1500);setPrintTarget('')}}
-   if(frame.contentWindow.document.readyState==='complete')window.setTimeout(printFrame,500)
-   else frame.onload=()=>window.setTimeout(printFrame,500)
+   const waitForPrintAssets=async()=>{const links=[...doc.querySelectorAll('link[rel="stylesheet"]')];await Promise.all(links.map(link=>link.sheet?Promise.resolve():new Promise(resolve=>{link.onload=resolve;link.onerror=resolve})));if(doc.fonts?.ready)await doc.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));printFrame()}
+   window.setTimeout(waitForPrintAssets,120)
   },250)
   return()=>window.clearTimeout(timer)
  },[printTarget,tab,loading,snapshot,yearSnapshot,ownerSnapshot])
