@@ -20,3 +20,9 @@
 .login-recovery-links{display:flex;justify-content:flex-end;margin-top:-4px}.login-recovery-links a{font-size:11px;font-weight:700;color:#356f9d;text-decoration:none}.login-recovery-links a:hover{text-decoration:underline}
 .login-card .button{width:100%;height:42px;margin-top:2px;border-radius:9px}.login-card .form-error,.login-card .setup-note{margin:0}
 @media(max-width:980px){.auth-layout{grid-template-columns:1fr}.auth-brand-panel{display:none}.auth-form-panel{min-height:100vh;padding:28px 20px}.auth-language{top:18px;right:18px}.login-card{padding:26px 24px}}
+
+
+.login-demo-entry{display:grid;gap:8px;margin-top:4px;padding-top:16px;border-top:1px solid var(--lo-color-border,#dfe7ee);text-align:center}
+.login-demo-entry>span{font-size:12px;font-weight:700;color:var(--lo-color-muted,#66788a)}
+.login-demo-entry>.button,.login-demo-entry>button{width:100%;justify-content:center}
+.login-demo-entry>small{font-size:11px;line-height:1.4;color:var(--lo-color-muted,#738496)}
