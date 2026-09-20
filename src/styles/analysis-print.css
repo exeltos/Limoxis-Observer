@@ -216,3 +216,61 @@
  color:var(--lo-color-primary)!important;background:color-mix(in srgb,var(--lo-color-primary) 8%,var(--lo-color-surface))!important;
 }
 .analysis-workspace.platform-analysis-page>.analysis-scroll{flex:1 1 auto!important;min-height:0!important}
+
+
+/* Platform Owner analytics — canonical platform tabs and a stable control rail. */
+.analysis-workspace.platform-analysis-page{
+ --platform-analysis-header-h:72px;
+ --platform-analysis-tabs-h:40px;
+}
+.analysis-workspace.platform-analysis-page>.analysis-header{
+ flex:0 0 var(--platform-analysis-header-h)!important;height:var(--platform-analysis-header-h)!important;min-height:var(--platform-analysis-header-h)!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-sticky{
+ flex:0 0 120px!important;height:120px!important;min-height:120px!important;max-height:120px!important;
+ margin:0!important;padding:14px 16px!important;overflow:hidden!important;
+ border:1px solid var(--lo-color-border)!important;border-radius:12px!important;background:var(--lo-color-surface)!important;
+}
+.analysis-workspace.platform-analysis-page .analysis-filter-toolbar{
+ height:90px!important;min-height:90px!important;max-height:90px!important;align-items:stretch!important;
+}
+.analysis-workspace.platform-analysis-page .analysis-filter-group{height:90px!important}
+.analysis-workspace.platform-analysis-page .analysis-filter-group-placeholder{visibility:hidden!important}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs{
+ display:grid!important;grid-template-columns:repeat(13,minmax(0,1fr))!important;align-items:stretch!important;
+ flex:0 0 var(--platform-analysis-tabs-h)!important;width:100%!important;height:var(--platform-analysis-tabs-h)!important;
+ min-height:var(--platform-analysis-tabs-h)!important;max-height:var(--platform-analysis-tabs-h)!important;
+ margin:8px 0 0!important;padding:0 6px!important;overflow:hidden!important;
+ border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;
+ background:var(--lo-color-surface)!important;box-shadow:none!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs>button{
+ display:inline-flex!important;position:relative!important;min-width:0!important;width:100%!important;
+ height:var(--platform-analysis-tabs-h)!important;min-height:var(--platform-analysis-tabs-h)!important;
+ padding:0 6px!important;gap:5px!important;overflow:hidden!important;
+ border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;
+ background:transparent!important;box-shadow:none!important;color:#65788d!important;
+ font-size:10.5px!important;line-height:1!important;font-weight:600!important;white-space:nowrap!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs>button svg{
+ flex:0 0 15px!important;width:15px!important;height:15px!important;stroke-width:1.7!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs>button span{
+ display:block!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs>button:hover{
+ background:#f8fafb!important;color:#33495f!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs>button.active{
+ border-bottom-color:#2582bd!important;background:transparent!important;color:#0b6097!important;font-weight:700!important;box-shadow:none!important;
+}
+.analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs>button.active:after{display:none!important}
+.analysis-workspace.platform-analysis-page>.analysis-scroll{
+ flex:1 1 auto!important;min-height:0!important;overflow:auto!important;padding-top:12px!important;
+}
+@media(max-width:1500px){
+ .analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs{
+  display:flex!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin!important;
+ }
+ .analysis-workspace.platform-analysis-page>.analysis-tabs.entity-record-tabs>button{flex:0 0 132px!important;width:132px!important}
+}
