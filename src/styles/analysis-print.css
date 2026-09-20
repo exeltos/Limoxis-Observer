@@ -1,0 +1,49 @@
+/* Final Analytics presentation overrides. Loaded last on purpose. */
+.platform-analysis-page .analysis-tabs.entity-record-tabs{
+  display:flex!important;width:100%!important;max-width:none!important;gap:0!important;
+  padding:0!important;overflow:visible!important;border:1px solid var(--lo-color-border)!important;
+  border-radius:var(--lo-radius-card)!important;background:var(--lo-color-surface)!important;
+}
+.platform-analysis-page .analysis-tabs.entity-record-tabs>button{
+  flex:1 1 0!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  min-width:0!important;min-height:42px!important;height:auto!important;padding:7px 6px!important;
+  border:0!important;border-right:1px solid var(--lo-color-border)!important;border-radius:0!important;
+  background:transparent!important;color:var(--lo-color-muted)!important;white-space:normal!important;
+  text-align:center!important;font-size:9px!important;font-weight:700!important;line-height:1.2!important;
+}
+.platform-analysis-page .analysis-tabs.entity-record-tabs>button:last-child{border-right:0!important}
+.platform-analysis-page .analysis-tabs.entity-record-tabs>button:hover{background:var(--lo-shell-control-hover)!important;color:var(--lo-color-text)!important}
+.platform-analysis-page .analysis-tabs.entity-record-tabs>button.active{
+  position:relative;background:color-mix(in srgb,var(--lo-color-primary) 9%,var(--lo-color-surface))!important;
+  color:var(--lo-color-primary)!important;font-weight:800!important;
+}
+.platform-analysis-page .analysis-tabs.entity-record-tabs>button.active:after{
+  content:"";position:absolute;left:12%;right:12%;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--lo-color-primary);
+}
+@media(max-width:1180px){.platform-analysis-page .analysis-tabs.entity-record-tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media(max-width:760px){.platform-analysis-page .analysis-tabs.entity-record-tabs{display:flex!important;overflow-x:auto!important}.platform-analysis-page .analysis-tabs.entity-record-tabs>button{flex:0 0 150px!important}}
+
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  html,body,#root{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
+  body *{visibility:hidden!important}
+  .platform-analysis-page .analysis-report,
+  .platform-analysis-page .analysis-report *{visibility:visible!important}
+  .app-shell,.main-column,.content,.platform-analysis-page,.analysis-workspace,.analysis-scroll{
+    display:block!important;position:static!important;width:100%!important;max-width:none!important;
+    height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
+    margin:0!important;padding:0!important;transform:none!important;
+  }
+  .platform-analysis-page .analysis-report{
+    position:absolute!important;left:0!important;top:0!important;width:100%!important;max-width:none!important;
+    height:auto!important;margin:0!important;padding:0!important;overflow:visible!important;background:#fff!important;
+    color:#111827!important;
+  }
+  .platform-analysis-page .analysis-section-title{display:flex!important;margin:0 0 10px!important;padding:0 0 8px!important;border-bottom:1px solid #d9e0e7!important}
+  .platform-analysis-page .analysis-kpis{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+  .platform-analysis-page .analysis-chart-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  .platform-analysis-page .analysis-kpis article,.platform-analysis-page .analysis-chart-card{
+    break-inside:avoid!important;page-break-inside:avoid!important;background:#fff!important;box-shadow:none!important;
+  }
+  .platform-analysis-page svg{max-width:100%!important}
+}
