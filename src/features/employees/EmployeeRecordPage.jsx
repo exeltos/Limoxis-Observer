@@ -24,6 +24,7 @@ import { createEmployeeAccountAsync,updateEmployeeAsync } from './employeeServic
 import { useEmployeesData } from './useEmployeesData'
 import { loadDepartments } from '../management/departmentsService'
 import { loadManagementLibraries } from '../management/managementCloudService'
+import { demoLibrarySeed } from '../management/managementData'
 import { EmployeeSurveillanceFlow } from '../surveillance/EmployeeSurveillanceFlow'
 import {
   EmployeeOccupationalTab,
@@ -53,6 +54,16 @@ export function EmployeeRecordPage({selfMode=false}){
 
   useEffect(()=>{
     let active=true
+    // Demo mode's tenant.id is the literal string 'demo-hospital', not a real
+    // UUID — calling the live loadDepartments/loadManagementLibraries cloud
+    // services with it fails with a Postgres invalid-UUID 400. Use the same
+    // demoLibrarySeed fixture NewSurveillanceFlow/PatientClinicalCanonicalPage
+    // already use for demo departments/libraries instead.
+    if(isDemo){
+      setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})))
+      setProfessionalCategories(demoLibrarySeed.professionalCategories||[])
+      return()=>{active=false}
+    }
     if(!tenant?.id){setDepartments([]);setProfessionalCategories([]);return()=>{active=false}}
     Promise.all([loadDepartments(tenant.id),loadManagementLibraries(tenant.id)]).then(([departmentRows,libraries])=>{
       if(!active)return
@@ -60,7 +71,7 @@ export function EmployeeRecordPage({selfMode=false}){
       setProfessionalCategories(libraries?.professionalCategories||[])
     }).catch(()=>{if(active){setDepartments([]);setProfessionalCategories([])}})
     return()=>{active=false}
-  },[tenant?.id])
+  },[isDemo,tenant?.id])
 
   const selfEmployee=useMemo(()=>{
     if(!selfMode)return null

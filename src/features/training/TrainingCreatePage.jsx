@@ -10,12 +10,15 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { loadDepartments } from '../management/departmentsService'
+import { demoLibrarySeed } from '../management/managementData'
 import { createTrainingProgramAsync } from './trainingService'
 import { TrainingProgramForm,TRAINING_PROGRAM_DEFAULTS,trainingProgramIsValid } from './TrainingProgramForm'
 
 export function TrainingCreatePage(){
- const navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant}=useTenant(),{notify,notifyError}=useFeedback(),{data:employees}=useEmployeesData();const [saving,setSaving]=useState(false),[departments,setDepartments]=useState([]),[v,setV]=useState({...TRAINING_PROGRAM_DEFAULTS})
- useEffect(()=>{let active=true;if(!tenant?.id)return;loadDepartments(tenant.id).then(rows=>{if(active)setDepartments((rows||[]).filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[tenant?.id])
+ const navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant,isDemo}=useTenant(),{notify,notifyError}=useFeedback(),{data:employees}=useEmployeesData();const [saving,setSaving]=useState(false),[departments,setDepartments]=useState([]),[v,setV]=useState({...TRAINING_PROGRAM_DEFAULTS})
+ // loadDepartments is a plain cloud call with no demo awareness — calling it
+ // with tenant.id='demo-hospital' (not a real UUID) fails with a Postgres 400.
+ useEffect(()=>{let active=true;if(isDemo){setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})));return()=>{active=false}}if(!tenant?.id)return;loadDepartments(tenant.id).then(rows=>{if(active)setDepartments((rows||[]).filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[isDemo,tenant?.id])
  const valid=trainingProgramIsValid(v)
  async function save(){if(!valid||saving)return;setSaving(true);try{const program=await createTrainingProgramAsync(tenant.id,v);notify(en?'Training program created.':'Το πρόγραμμα εκπαίδευσης δημιουργήθηκε.','success');navigate(`/training/${program.id}`,{replace:true})}catch(error){notifyError(error,'save',{operation:'training_create'})}finally{setSaving(false)}}
  return <Page><EntityRecordShell className="training-create-shell" avatar={<GraduationCap size={19}/>} eyebrow={en?'Training':'Εκπαίδευση'} title={en?'New training program':'Νέο πρόγραμμα εκπαίδευσης'} subtitle={en?'Create training program':'Δημιουργία προγράμματος εκπαίδευσης'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/training')}>

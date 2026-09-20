@@ -19,6 +19,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { loadDepartments } from '../management/departmentsService'
+import { demoLibrarySeed } from '../management/managementData'
 import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 import { computedAssignmentStatus } from './trainingData'
 import { deleteTrainingRecordAsync,loadTrainingStateAsync,saveManagedTrainingStateAsync } from './trainingService'
@@ -34,12 +35,14 @@ const blankState={programs:[],assignments:[],certificates:[],emailOutbox:[],hist
 const isActiveEmployee=employee=>!employee?.employmentStatus||String(employee.employmentStatus).toLowerCase()==='active'
 
 export function TrainingProductionPage(){
- const {programId}=useParams(),navigate=useNavigate(),registry=useRegistryMemory('training-programs'),{language}=useLanguage(),en=language==='en',{tenant,role,membership}=useTenant(),{notify,notifyError,confirm}=useFeedback(),{data:employees}=useEmployeesData()
+ const {programId}=useParams(),navigate=useNavigate(),registry=useRegistryMemory('training-programs'),{language}=useLanguage(),en=language==='en',{tenant,role,membership,isDemo}=useTenant(),{notify,notifyError,confirm}=useFeedback(),{data:employees}=useEmployeesData()
  const [state,setState]=useState(blankState),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[query,setQuery]=useState(''),[status,setStatus]=useState('all'),[category,setCategory]=useState('all'),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(15),[departments,setDepartments]=useState([])
  const canManage=can(role,CAPABILITIES.MANAGE_TRAINING,membership?.capabilities??[],membership?.customCapabilities??[]),managerView=role===ROLES.DEPARTMENT_MANAGER&&!canManage,employeeView=!canManage&&!managerView
  const reload=useCallback(async()=>{if(!tenant?.id)return;setLoading(true);try{setState(await loadTrainingStateAsync(tenant.id))}catch(error){notifyError(error,'load',{operation:'training_load'})}finally{setLoading(false)}},[tenant?.id,notifyError])
  useEffect(()=>{void reload()},[reload])
- useEffect(()=>{let active=true;if(!tenant?.id)return;loadDepartments(tenant.id).then(rows=>{if(active)setDepartments((rows||[]).filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[tenant?.id])
+ // loadDepartments is a plain cloud call with no demo awareness — calling it
+ // with tenant.id='demo-hospital' (not a real UUID) fails with a Postgres 400.
+ useEffect(()=>{let active=true;if(isDemo){setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})));return()=>{active=false}}if(!tenant?.id)return;loadDepartments(tenant.id).then(rows=>{if(active)setDepartments((rows||[]).filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[isDemo,tenant?.id])
  async function persist(next,success){if(!canManage)return false;setBusy(true);try{const saved=await saveManagedTrainingStateAsync(tenant.id,next);setState(saved);if(success)notify(success,'success');return true}catch(error){notifyError(error,'save',{operation:'training_save'});return false}finally{setBusy(false)}}
  const assignments=useMemo(()=>state.assignments.map(x=>({...x,computedStatus:computedAssignmentStatus(x)})),[state.assignments])
  const programs=state.programs.filter(x=>(status==='all'||x.status===status)&&(category==='all'||x.category===category)&&`${x.id} ${x.title} ${x.owner} ${x.trainer} ${x.audience}`.toLowerCase().includes(query.toLowerCase())),categories=[...new Set(state.programs.map(x=>x.category).filter(Boolean))]
