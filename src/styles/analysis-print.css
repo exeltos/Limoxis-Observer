@@ -61,3 +61,37 @@
  .analysis-print-frame,.analysis-print-frame .analysis-report{width:100%!important;max-width:none!important}
  .analysis-print-frame .analysis-kpis article,.analysis-print-frame .analysis-chart-card,.analysis-print-frame table{break-inside:avoid!important;page-break-inside:avoid!important}
 }
+
+/* KPI cards — same full-width visual language as the rest of Limoxis cards. */
+.platform-analysis-page .analysis-kpis{
+ display:grid!important;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))!important;
+ width:100%!important;gap:10px!important;margin:0 0 16px!important;
+}
+.platform-analysis-page .analysis-kpis>article{
+ position:relative!important;display:grid!important;grid-template-rows:auto auto 1fr!important;align-content:start!important;
+ min-width:0!important;min-height:112px!important;padding:14px 16px 13px 18px!important;
+ overflow:hidden!important;border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-radius-card)!important;
+ background:var(--lo-color-surface)!important;box-shadow:none!important;
+}
+.platform-analysis-page .analysis-kpis>article:before{
+ content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--kpi-accent,var(--lo-color-primary));
+}
+.platform-analysis-page .analysis-kpis>article>span{
+ display:block!important;min-width:0!important;margin:0 0 8px!important;color:var(--lo-color-muted)!important;
+ font-size:10.5px!important;font-weight:650!important;line-height:1.3!important;white-space:normal!important;
+}
+.platform-analysis-page .analysis-kpis>article>strong{
+ display:block!important;margin:0 0 9px!important;color:var(--lo-color-text)!important;
+ font-size:25px!important;font-weight:800!important;line-height:1!important;letter-spacing:-.025em!important;
+}
+.platform-analysis-page .analysis-kpis>article>small{
+ display:flex!important;align-items:center!important;align-self:end!important;gap:5px!important;min-width:0!important;
+ color:#27845d!important;font-size:9.5px!important;font-weight:700!important;line-height:1.25!important;
+}
+.platform-analysis-page .analysis-kpis>article>small em{
+ min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+ color:var(--lo-color-muted)!important;font-style:normal!important;font-weight:500!important;
+}
+.platform-analysis-page .analysis-kpis>article>small svg{flex:0 0 auto!important}
+@media(max-width:1000px){.platform-analysis-page .analysis-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:620px){.platform-analysis-page .analysis-kpis{grid-template-columns:1fr!important}}
