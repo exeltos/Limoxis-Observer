@@ -6,9 +6,9 @@ import { surveillanceDemoData } from '../src/features/surveillance/surveillanceD
 import { clinicalCases } from '../src/features/surveillance/clinicalDemoData'
 import { laboratorySamples } from '../src/features/laboratory/laboratoryDemoData'
 import { preventionDepartments } from '../src/features/prevention/preventionDemoData'
-import { loadHandHygieneLocal, loadWasteLocal, loadBundlesLocal, saveHandHygieneLocal } from '../src/features/prevention/preventionStore'
+import { loadHandHygieneLocal, loadWasteLocal, loadBundlesLocal, loadAntisepticLocal, saveHandHygieneLocal } from '../src/features/prevention/preventionStore'
 import { loadQualityLocal } from '../src/features/quality/qualityStore'
-import { loadControlExecutionsLocal } from '../src/features/controls/controlStore'
+import { loadControlExecutionsLocal, loadControlAssignmentsLocal } from '../src/features/controls/controlStore'
 import { loadOccupationalVisits } from '../src/features/employees/employeeRecordsService'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 
@@ -41,8 +41,8 @@ describe('collectAnalysisDemoSnapshot computes from the same demo fixtures every
     expect(snapshot.summary.laboratory).toBe(laboratorySamples.length)
     expect(snapshot.summary.handHygiene).toBe(loadHandHygieneLocal().length)
     expect(snapshot.summary.waste).toBe(loadWasteLocal().length)
-    expect(snapshot.summary.prevention).toBe(loadHandHygieneLocal().length + loadWasteLocal().length + loadBundlesLocal().length)
-    expect(snapshot.summary.controls).toBe(loadControlExecutionsLocal().length)
+    expect(snapshot.summary.prevention).toBe(loadHandHygieneLocal().length + loadWasteLocal().length + loadBundlesLocal().length + loadAntisepticLocal().length)
+    expect(snapshot.summary.controls).toBe(loadControlExecutionsLocal().length + loadControlAssignmentsLocal().length)
     expect(snapshot.summary.quality).toBe(loadQualityLocal('incidents').length + loadQualityLocal('findings').length + loadQualityLocal('capas').length)
     expect(snapshot.summary.occupationalHealth).toBe(loadOccupationalVisits().length)
   })
@@ -129,8 +129,8 @@ describe('collectAnalysisDemoSnapshot computes from the same demo fixtures every
 // demo — see the previousDemoRows removal). Hiding the whole comparison
 // filter group in demo mode is the honest alternative to a no-op control.
 describe('the year/hospital comparison filter group is hidden in demo mode', () => {
-  it('wraps the comparison filter section in a !isDemo check', () => {
+  it('wraps the comparison filter section content in a !isDemo check', () => {
     const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
-    expect(page).toContain('{!isDemo&&<section className="analysis-filter-group analysis-filter-compare">')
+    expect(page).toContain('className={`analysis-filter-group analysis-filter-compare${isDemo?\' analysis-filter-group-placeholder\':\'\'}`}>{!isDemo&&<>')
   })
 })

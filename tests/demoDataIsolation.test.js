@@ -28,9 +28,14 @@ describe('demo data isolation',()=>{
   it('does not expose demo writes to a production organization',()=>{
     configureDataEnvironment({mode:'demo',organizationId:'demo-hospital',demoAccountId:'demo-user-1'})
     saveSnapshot('documents',[{id:'demo-only'}])
+    // Demo is ephemeral by design (repository.js's writeLocal): a demo save
+    // only updates the in-memory cache, never localStorage, so a refresh
+    // always restores the canonical seed. Confirm that intentional
+    // ephemerality itself, plus that switching to a real organization never
+    // inherits the demo write from either the in-memory cache or storage.
+    expect([...globalThis.localStorage.values.keys()]).not.toContain('demo.demo-user-1:limoxis.documents.v1')
     configureDataEnvironment({mode:'production',organizationId:'hospital-1'})
     expect(loadSnapshot('documents',[])).toEqual([])
-    expect([...globalThis.localStorage.values.keys()]).toContain('demo.demo-user-1:limoxis.documents.v1')
     expect([...globalThis.localStorage.values.keys()]).not.toContain('org.hospital-1:limoxis.documents.v1')
   })
 

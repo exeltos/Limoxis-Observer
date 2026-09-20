@@ -27,13 +27,14 @@ describe('antibiotic consumption (DDD) metric (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 3
 
   it('sums quantity_grams / ddd_grams across all recorded dispensing periods', () => {
     const metrics = collectIndicatorMetrics()
-    // Demo seed: 840g meropenem (DDD 3g) = 280, 1200g ceftriaxone (DDD 2g) = 600 -> 880
-    expect(metrics.antibiotic_ddd_total).toBe(880)
+    // Demo seed (full-year history): 760g+920g+840g meropenem (DDD 3g) +
+    // 980g+830g+1200g ceftriaxone (DDD 2g) + 540g vancomycin (DDD 2g) -> 2615
+    expect(metrics.antibiotic_ddd_total).toBe(2615)
   })
 
   it('excludes a dispensing row for an antibiotic with no DDD reference value', () => {
     antibioticDispensingRows.unshift({ id: 'ABXD-TEST', productCode: 'ABX-UNKNOWN', quantityGrams: 500 })
     const metrics = collectIndicatorMetrics()
-    expect(metrics.antibiotic_ddd_total).toBe(880)
+    expect(metrics.antibiotic_ddd_total).toBe(2615)
   })
 })

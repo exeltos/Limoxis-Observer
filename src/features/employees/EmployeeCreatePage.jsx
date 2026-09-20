@@ -15,9 +15,10 @@ import { createEmployeeAsync } from './employeeService'
 import { useEmployeesData } from './useEmployeesData'
 import { loadDepartments } from '../management/departmentsService'
 import { loadManagementLibraries } from '../management/managementCloudService'
+import { demoLibrarySeed } from '../management/managementData'
 
 export function EmployeeCreatePage(){
- const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const navigate=useNavigate();const {tenant,role,membership}=useTenant();const actor=useAuditActor();const {data:employeeRows}=useEmployeesData()
+ const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const navigate=useNavigate();const {tenant,role,membership,isDemo}=useTenant();const actor=useAuditActor();const {data:employeeRows}=useEmployeesData()
  const [saving,setSaving]=useState(false);const [departments,setDepartments]=useState([]);const [professionalCategories,setProfessionalCategories]=useState([])
  const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',department:'',profession:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[];const canCreate=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,addOns,custom)
@@ -28,6 +29,16 @@ export function EmployeeCreatePage(){
 
  useEffect(()=>{
   let active=true
+  // Demo mode's tenant.id is the literal string 'demo-hospital', not a real
+  // UUID — calling the live loadDepartments/loadManagementLibraries cloud
+  // services with it fails with a Postgres invalid-UUID 400. Use the same
+  // demoLibrarySeed fixture NewSurveillanceFlow/PatientClinicalCanonicalPage
+  // already use for demo departments/libraries instead.
+  if(isDemo){
+   setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})))
+   setProfessionalCategories(demoLibrarySeed.professionalCategories||[])
+   return()=>{active=false}
+  }
   if(!tenant?.id){setDepartments([]);setProfessionalCategories([]);return()=>{active=false}}
   Promise.all([loadDepartments(tenant.id),loadManagementLibraries(tenant.id)]).then(([departmentRows,libraries])=>{
    if(!active)return
@@ -35,7 +46,7 @@ export function EmployeeCreatePage(){
    setProfessionalCategories(libraries?.professionalCategories||[])
   }).catch(()=>{if(active){setDepartments([]);setProfessionalCategories([])}})
   return()=>{active=false}
- },[tenant?.id])
+ },[isDemo,tenant?.id])
 
  const selectedDepartment=useMemo(()=>departments.find(row=>row.id===v.department||row.name===v.department),[departments,v.department])
  const selectedProfession=useMemo(()=>professionalCategories.find(row=>row?.[2]?.id===v.profession||row?.[0]===v.profession),[professionalCategories,v.profession])

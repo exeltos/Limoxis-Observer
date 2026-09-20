@@ -34,7 +34,8 @@ describe('MDR/XDR/PDR isolation event metrics (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 3
   it('attributes the demo Klebsiella and Acinetobacter MDR/XDR isolations to their own pathogen counters', () => {
     const metrics = collectIndicatorMetrics()
     expect(metrics.mdr_isolation_klebsiella).toBe(1)
-    expect(metrics.mdr_isolation_acinetobacter).toBe(1)
+    // Demo seed's full-year history has two Acinetobacter XDR isolation cases.
+    expect(metrics.mdr_isolation_acinetobacter).toBe(2)
     expect(metrics.mdr_isolation_ecoli).toBe(0)
   })
 })
