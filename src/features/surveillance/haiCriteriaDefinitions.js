@@ -1,7 +1,12 @@
 // Simplified, indicative checklists inspired by CDC/NHSN surveillance definitions for the
-// four HAI types already offered in the classification dialog. They are a decision-support
-// aid, not a substitute for the full NHSN protocol or clinical judgement — the free-text
-// rationale field remains available for anything the checklist does not capture.
+// HAI types offered in the classification dialog. They are a decision-support aid, not a
+// substitute for the full NHSN protocol or clinical judgement — the free-text rationale
+// field remains available for anything the checklist does not capture.
+//
+// This is now also the demo-mode/offline-fallback content: in production, the same sets are
+// centrally governed as master_library_items rows (library_key 'hai_criteria', see
+// haiCriteriaLibraryService.js) so a Platform Owner can edit/version them without a deploy,
+// exactly like the antibiotics/microorganisms libraries.
 export const HAI_CRITERIA_SETS = {
   clabsi: {
     labelEl: 'CLABSI – Λοίμωξη αιματικής ροής σχετιζόμενη με κεντρικό φλεβικό καθετήρα',
@@ -134,8 +139,8 @@ export const HAI_CRITERIA_SETS = {
   },
 }
 
-export function haiCriteriaSetForType(typeKey) {
-  return HAI_CRITERIA_SETS[typeKey] || null
+export function haiCriteriaSetForType(typeKey, sets = HAI_CRITERIA_SETS) {
+  return sets[typeKey] || null
 }
 
 function groupSatisfied(group, selectedIds) {
@@ -145,8 +150,8 @@ function groupSatisfied(group, selectedIds) {
   return metCount > 0
 }
 
-export function evaluateHaiCriteria(typeKey, selectedIds = []) {
-  const set = haiCriteriaSetForType(typeKey)
+export function evaluateHaiCriteria(typeKey, selectedIds = [], sets = HAI_CRITERIA_SETS) {
+  const set = haiCriteriaSetForType(typeKey, sets)
   if (!set) return null
   const selected = new Set(selectedIds)
   return set.groups.every(group => groupSatisfied(group, selected))
