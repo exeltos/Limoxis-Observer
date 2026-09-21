@@ -19,7 +19,7 @@ export function calculateDeviceDays(devices,type,{window=null,department='all',t
  const rule=HAI_DEVICE_RULES[type];if(!rule)return 0
  const windowStart=window?rangeDay(window.start):null;const windowEnd=window?rangeDay(window.end):rangeDay(today);let total=0
  for(const row of devices||[]){if(department!=='all'&&row.department!==department)continue;if(!matchesDevice(row.deviceType,type))continue
-  const inserted=utcDay(row.insertedAt);if(!inserted)continue;const removed=utcDay(row.removedAt)||rangeDay(today);const start=windowStart&&inserted<windowStart?windowStart:inserted;const end=windowEnd&&removed>windowEnd?windowEnd:removed;if(end<start)continue
+  const inserted=utcDay(row.insertedAt);if(!inserted)continue;const removed=row.removedAt?utcDay(row.removedAt):rangeDay(today);const start=windowStart&&inserted<windowStart?windowStart:inserted;const end=windowEnd&&removed>windowEnd?windowEnd:removed;if(end<start)continue
   total+=Math.floor((end-start)/dayMs)+1
  }
  return total

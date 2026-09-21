@@ -7,6 +7,8 @@ import { loadEmployees } from '../employees/employeeStore'
 import { loadVaccinations } from '../employees/employeeRecordsService'
 import { loadTrainingState } from '../training/trainingData'
 import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
+import { collectDeviceDaySources } from '../surveillance/deviceDayIndicators'
+import { calculateHaiRate } from '../lira/liraHaiMetrics'
 
 const round=(n,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
 
@@ -73,6 +75,10 @@ export function collectIndicatorMetrics(){
  const ppsPatientsTotal=prevalenceSurveys.reduce((s,x)=>s+Number(x.patientsTotal||0),0)
  const ppsPatientsWithHai=prevalenceSurveys.reduce((s,x)=>s+Number(x.patientsWithHai||0),0)
  const ppsPatientsOnAntibiotics=prevalenceSurveys.reduce((s,x)=>s+Number(x.patientsOnAntibiotics||0),0)
+ const deviceDaySources=collectDeviceDaySources()
+ const clabsi=calculateHaiRate(deviceDaySources,'clabsi',{})
+ const cauti=calculateHaiRate(deviceDaySources,'cauti',{})
+ const vap=calculateHaiRate(deviceDaySources,'vap',{})
  return {
   active_surveillance:active.length,
   resistant_active_surveillance:resistant.length,
@@ -97,5 +103,11 @@ export function collectIndicatorMetrics(){
   pps_patients_total:ppsPatientsTotal,
   pps_patients_with_hai:ppsPatientsWithHai,
   pps_patients_on_antibiotics:ppsPatientsOnAntibiotics,
+  clabsi_events:clabsi.events,
+  central_line_days:clabsi.deviceDays,
+  cauti_events:cauti.events,
+  urinary_catheter_days:cauti.deviceDays,
+  vap_events:vap.events,
+  ventilator_days:vap.deviceDays,
  }
 }
