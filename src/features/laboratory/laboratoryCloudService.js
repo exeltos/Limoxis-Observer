@@ -1,4 +1,5 @@
 import { supabase } from '../../core/supabase/client'
+import { computeTurnaroundHours } from './model/laboratoryModel'
 
 const assertCloud=()=>{if(!supabase)throw new Error('Supabase is not configured.')}
 const iso=value=>value?new Date(value).toISOString():null
@@ -315,11 +316,13 @@ export function getEnvironmentalKpis(rows){
 
 export function getLaboratoryKpis(rows){
   const today=new Date().toISOString().slice(0,10)
+  const turnaroundHours=(rows||[]).map(computeTurnaroundHours).filter(hours=>hours!=null)
   return {
     today:(rows||[]).filter(row=>String(row.requestedAt||row.collectedAt||'').slice(0,10)===today).length,
     pending:(rows||[]).filter(row=>['requested','collected','received','processing'].includes(row.status)).length,
     positive:(rows||[]).filter(row=>row.result==='positive').length,
     amr:(rows||[]).filter(row=>Boolean(row.resistance)).length,
     critical:(rows||[]).filter(row=>row.critical&&!(row.microbiologyResults||[]).some(result=>result.communications?.length)).length,
+    avgTatHours:turnaroundHours.length?turnaroundHours.reduce((sum,hours)=>sum+hours,0)/turnaroundHours.length:null,
   }
 }
