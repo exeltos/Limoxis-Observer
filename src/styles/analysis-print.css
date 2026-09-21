@@ -224,7 +224,7 @@
  --platform-analysis-tabs-h:40px;
 }
 .analysis-workspace>.analysis-header{
- flex:0 0 var(--platform-analysis-header-h)!important;height:var(--platform-analysis-header-h)!important;min-height:var(--platform-analysis-header-h)!important;
+ flex:0 0 auto!important;height:auto!important;min-height:var(--platform-analysis-header-h)!important;
 }
 .analysis-workspace>.analysis-sticky{
  flex:0 0 auto!important;height:auto!important;min-height:0!important;max-height:none!important;
