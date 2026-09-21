@@ -27,6 +27,7 @@ export function TenantProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [hydratedKey, setHydratedKey] = useState(null)
   const [platformDemoMode, setPlatformDemoMode] = useState(false)
+  const [platformDemoPreview, setPlatformDemoPreview] = useState(false)
   const hydrationRef=useRef(0)
   const [rolePreview, setRolePreview] = useState(()=>{
     if(typeof window==='undefined')return null
@@ -113,6 +114,7 @@ export function TenantProvider({ children }) {
     if (!memberships.some((item) => item.id === membershipId)) return false
     flushSync(() => {
       setPlatformDemoMode(false)
+      setPlatformDemoPreview(false)
       setActiveMembershipId(membershipId)
       setRolePreview(null)
     })
@@ -120,10 +122,13 @@ export function TenantProvider({ children }) {
   }, [memberships])
 
   const enterPlatformDemo = useCallback(() => {
-    if (profile?.isPlatformOwner) { setPlatformDemoMode(true); setActiveMembershipId(null); setRolePreview(null) }
+    if (profile?.isPlatformOwner) { setPlatformDemoMode(true); setPlatformDemoPreview(false); setActiveMembershipId(null); setRolePreview(null) }
   }, [profile?.isPlatformOwner])
   const returnToPlatform = useCallback(() => {
-    if (profile?.isPlatformOwner) { setPlatformDemoMode(false); setActiveMembershipId(null); setRolePreview(null) }
+    if (profile?.isPlatformOwner) { setPlatformDemoMode(false); setPlatformDemoPreview(false); setActiveMembershipId(null); setRolePreview(null) }
+  }, [profile?.isPlatformOwner])
+  const togglePlatformDemoPreview = useCallback(() => {
+    if (profile?.isPlatformOwner) setPlatformDemoPreview((value) => !value)
   }, [profile?.isPlatformOwner])
 
   const tenantLoading = Boolean(authLoading || loading || hydratedKey !== membershipContextKey)
@@ -136,9 +141,11 @@ export function TenantProvider({ children }) {
     role,
     loading: tenantLoading,
     isDemo: Boolean(isDemoSession || platformDemoMode || tenant?.mode === 'demo'),
+    platformDemoPreview,
     setTenantByMembership,
     enterPlatformDemo,
     returnToPlatform,
+    togglePlatformDemoPreview,
     reloadMemberships,
     actualRole,
     rolePreview,
@@ -154,7 +161,7 @@ export function TenantProvider({ children }) {
     uxPolicy: uxPolicyFor(role),
     canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
     canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role,membership?.capabilities,membership?.customCapabilities),
-  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, tenantLoading, canRolePreview, setTenantByMembership, enterPlatformDemo, returnToPlatform, reloadMemberships, user?.id, isDemoSession, platformDemoMode])
+  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, tenantLoading, canRolePreview, setTenantByMembership, enterPlatformDemo, returnToPlatform, togglePlatformDemoPreview, reloadMemberships, user?.id, isDemoSession, platformDemoMode, platformDemoPreview])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
 }

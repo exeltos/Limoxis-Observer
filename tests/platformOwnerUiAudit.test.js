@@ -64,8 +64,8 @@ describe('Platform Owner UI audit',()=>{
   it('renders Platform reports through the exact same Analysis workspace with platform scope only',()=>{
     const owner=read('src/features/workspaces/PlatformCenterPage.jsx')
     const analysis=read('src/features/analysis/AnalysisPage.jsx')
-    expect(owner).toMatch(/<AnalysisPage\s+platform\s+organizations=\{organizations\}\s*\/>/)
-    expect(analysis).toContain('export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS})')
+    expect(owner).toMatch(/<AnalysisPage\s+platform\s+organizations=\{organizations\}\s+forceDemo=\{platformDemoPreview\}\s*\/>/)
+    expect(analysis).toContain('export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS,forceDemo=false})')
     expect(analysis).toContain('analysis-workspace')
     expect(analysis).toContain('className="analysis-filter-toolbar"')
     expect(analysis).toContain('className="analysis-filter-group analysis-filter-time"')

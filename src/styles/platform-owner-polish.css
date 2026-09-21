@@ -240,11 +240,8 @@
 .platform-dashboard-org-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 .platform-dashboard-org-list>button{appearance:none;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:9px;min-height:57px;padding:8px 13px;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent;color:inherit;text-align:left;cursor:pointer}.platform-dashboard-org-list>button:nth-child(odd){border-right:1px solid var(--lo-color-border)}.platform-dashboard-org-list>button:hover{background:color-mix(in srgb,var(--lo-color-primary) 2.5%,var(--lo-color-surface))}
 .platform-org-mark{display:grid;place-items:center;width:29px;height:29px;border:1px solid var(--lo-color-border);border-radius:7px;color:var(--lo-color-primary)}.platform-dashboard-org-list strong{display:block;font-size:10.5px}.platform-dashboard-org-list small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:8.75px}
-.platform-enter-demo.active{background:color-mix(in srgb,#d9822b 14%,#fff);border-color:color-mix(in srgb,#d9822b 40%,var(--lo-color-border));color:#8a4d0f}
-.platform-demo-preview-card{appearance:none;width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:9px;margin-top:12px;padding:10px 13px;border:1px dashed color-mix(in srgb,#d9822b 40%,var(--lo-color-border));border-radius:10px;background:color-mix(in srgb,#d9822b 5%,var(--lo-color-surface));color:inherit;text-align:left;cursor:pointer}
-.platform-demo-preview-card:hover{background:color-mix(in srgb,#d9822b 9%,var(--lo-color-surface))}
 .platform-org-mark.demo{border-color:color-mix(in srgb,#d9822b 45%,var(--lo-color-border));color:#8a4d0f}
-.platform-demo-preview-card strong{display:block;font-size:10.5px}.platform-demo-preview-card small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:8.75px}
+.platform-dashboard-overview.demo-preview{border-color:color-mix(in srgb,#d9822b 40%,var(--lo-color-border))}
 
 /* Registry screens are workspaces: tools stay fixed, only result areas scroll. */
 .page:has(.platform-registry-shell){overflow:hidden}.page:has(.platform-registry-shell)>.page-content{min-height:0;overflow:hidden}
