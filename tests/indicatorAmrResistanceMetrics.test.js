@@ -29,10 +29,13 @@ describe('AMR resistance-per-pathogen metrics (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 3
     }
   })
 
-  it('counts the demo Klebsiella isolate as meropenem-resistant (matching its recorded AST)', () => {
+  it('counts the demo Klebsiella isolates as meropenem-resistant (matching their recorded AST)', () => {
+    // Demo seed: three Klebsiella pneumoniae isolates (the seeded ICU
+    // cluster used by outbreakClusterService's tests), each tested against
+    // meropenem and resistant.
     const metrics = collectIndicatorMetrics()
-    expect(metrics.amr_tested_klebsiella).toBe(1)
-    expect(metrics.amr_resistant_klebsiella).toBe(1)
+    expect(metrics.amr_tested_klebsiella).toBe(3)
+    expect(metrics.amr_resistant_klebsiella).toBe(3)
   })
 
   it('does not test the demo Pseudomonas isolate against meropenem (not in its recorded AST panel)', () => {
