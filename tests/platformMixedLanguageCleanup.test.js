@@ -1,0 +1,56 @@
+import { describe, expect, it } from 'vitest'
+import fs from 'node:fs'
+
+const analysisPage = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
+const helpExtras = fs.readFileSync('src/core/help/helpExtras.js', 'utf8')
+const helpManual = fs.readFileSync('src/core/help/helpManual.js', 'utf8')
+
+describe('mixed Greek/English string cleanup (platform review §2, item 10)', () => {
+  it('replaces the untranslated "scope" leaks in AnalysisPage with πεδίο', () => {
+    expect(analysisPage).not.toContain('ενεργό scope')
+    expect(analysisPage).not.toContain('ενεργού scope')
+    expect(analysisPage).not.toContain("tx('Scope','Scope')")
+    expect(analysisPage).not.toContain('ημερολογιακού scope')
+    expect(analysisPage).not.toContain('ίδιο scope')
+    expect(analysisPage).not.toContain('Synthetic δεδομένα')
+    expect(analysisPage).toContain("tx('Πεδίο','Scope')")
+  })
+
+  it('removes leaked English jargon from the contextual help checklists (helpExtras)', () => {
+    expect(helpExtras).not.toContain('δικό σας scope')
+    expect(helpExtras).not.toContain('άλλο scope')
+    expect(helpExtras).not.toContain('έκδοση bundle')
+    expect(helpExtras).not.toContain('βαρύ workflow')
+    expect(helpExtras).not.toContain('owner, προθεσμία και status')
+    expect(helpExtras).not.toContain('effectiveness πριν')
+    expect(helpExtras).not.toContain('συμμετέχοντες και attendance')
+    expect(helpExtras).not.toContain('Ολοκληρώστε assessment')
+    expect(helpExtras).not.toContain('owner και deadline')
+    expect(helpExtras).not.toContain('σιωπηλά published περιεχόμενο')
+    expect(helpExtras).not.toContain('Ελέγξτε scope/κοινοποίηση')
+    expect(helpExtras).not.toContain('περίοδο, scope και denominator')
+    expect(helpExtras).not.toContain('οργανισμό και scope πριν')
+    expect(helpExtras).not.toContain('για core περιεχόμενο')
+    expect(helpExtras).not.toContain('permissions συμφωνούν')
+    expect(helpExtras).not.toContain('Stewardship σημαίνει')
+    expect(helpExtras).not.toContain('τα underlying records πριν')
+  })
+
+  it('removes leaked English jargon from the full help manual (helpManual)', () => {
+    expect(helpManual).not.toContain('το scope,')
+    expect(helpManual).not.toContain('δικό σας scope')
+    expect(helpManual).not.toContain('permission set')
+    expect(helpManual).not.toContain('ρόλο και capability')
+    expect(helpManual).not.toContain('bundles χρησιμοποιούν versioned')
+    expect(helpManual).not.toContain('στο scope σας')
+    expect(helpManual).not.toContain('ενός scope')
+    expect(helpManual).not.toContain('owners και deadlines')
+    expect(helpManual).not.toContain('περίοδο και scope')
+    expect(helpManual).not.toContain('completion και competence')
+    expect(helpManual).not.toContain('action με owner και deadline')
+    expect(helpManual).not.toContain('Published περιεχόμενο')
+    expect(helpManual).not.toContain('core definitions')
+    expect(helpManual).not.toContain('baseline πηγής')
+    expect(helpManual).not.toContain('Ελέγξτε scope και επίπτωση')
+  })
+})
