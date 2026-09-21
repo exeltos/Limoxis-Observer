@@ -30,7 +30,7 @@ describe('Management Center bundle template persistence',()=>{
  it('keeps system templates owner-only and published hospital versions immutable',()=>{
   expect(panel).toContain('item.system&&!isPlatformOwner')
   expect(panel).toContain("const immutable=!item.system&&(item.status==='published'||item.status==='retired')")
-  expect(panel).toContain("System · Μόνο Owner")
+  expect(panel).toContain("Σύστημα · Μόνο ιδιοκτήτης")
   expect(panel).toContain('Create new draft version')
  })
 

@@ -15,7 +15,7 @@ describe('environmental standards governance',()=>{
  })
  it('keeps system protocols read only for hospital users in the UI',()=>{
   expect(panel).toContain('const isPlatformOwner=role===ROLES.PLATFORM_OWNER')
-  expect(panel).toContain("System · Read only")
+  expect(panel).toContain("t('librariesPanel.systemReadOnlyBadge')")
   expect(panel).toContain('systemLocked=item.system&&!isPlatformOwner')
   expect(panel).toContain("hidden:item.system&&!isPlatformOwner")
   expect(panel).toContain('disabled={readOnlySystem}')
