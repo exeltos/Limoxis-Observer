@@ -1,5 +1,5 @@
 import { supabase } from '../../core/supabase/client'
-import { patientDemoData } from './patientDemoData'
+import { patientDemoData, demoAdmissionsForPatient } from './patientDemoData'
 
 function mapRow(row, departmentLabel){
   const name=`${row.first_name||''} ${row.last_name||''}`.trim()
@@ -113,7 +113,9 @@ function mapAdmission(row, departmentLabel){
   }
 }
 
-export async function loadAdmissions(patientRecordId){
+export async function loadAdmissions(patientOrRecordId, {isDemo=false}={}){
+  if(isDemo) return demoAdmissionsForPatient(patientOrRecordId)
+  const patientRecordId=patientOrRecordId
   if(!patientRecordId || !supabase) return []
   const {data,error}=await supabase.from('patient_admissions').select('*').eq('patient_id',patientRecordId).order('admission_date',{ascending:false})
   if(error) throw error

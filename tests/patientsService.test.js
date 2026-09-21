@@ -118,6 +118,19 @@ describe('patientsService', () => {
     expect(record.admissionId).toBeTruthy()
   })
 
+  it('derives the demo roster admissions from each seed patient instead of hitting Supabase', async () => {
+    const seedPatient = patientDemoData[0]
+    const admissions = await loadAdmissions(seedPatient, { isDemo: true })
+    expect(admissions).toHaveLength(1)
+    expect(admissions[0]).toMatchObject({ admissionDate: seedPatient.admissionDate, status: seedPatient.status, department: seedPatient.department })
+  })
+
+  it('surfaces the admission created for a brand new demo patient when its admissions are loaded', async () => {
+    const { record } = await createPatient('hospital-new', [], { patientCode: 'DEMO-2', firstName: 'Demo', lastName: 'Two', departmentId: 'dept-demo', department: 'ICU', admissionDate: '2026-08-31' }, { isDemo: true })
+    const admissions = await loadAdmissions(record, { isDemo: true })
+    expect(admissions).toEqual([{ id: record.admissionId, departmentId: 'dept-demo', department: 'ICU', admissionDate: '2026-08-31', dischargeDate: null, status: 'active', notes: null }])
+  })
+
   it('keeps patients created in one organization out of another', async () => {
     const department=seedDepartment('hospital-a')
     const { record, list } = await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'Real', lastName: 'Patient', departmentId:department.id, department:department.name, admissionDate: '2026-08-31' })

@@ -13,6 +13,19 @@ export const patientDemoData = [
 
 ]
 
+export function demoAdmissionsForPatient(patient){
+  if(!patient?.admissionDate)return []
+  return [{
+    id: patient.admissionId||`ADM-${patient.id}`,
+    departmentId: patient.departmentId||null,
+    department: patient.department||patient.departmentEn||'',
+    admissionDate: patient.admissionDate,
+    dischargeDate: patient.dischargeDate||null,
+    status: patient.status||'active',
+    notes: patient.notes||null,
+  }]
+}
+
 export function createDemoPatient(data){
   const maxNumber=patientDemoData.reduce((max,item)=>{
     const number=Number(String(item.id||'').replace(/\D/g,''))
