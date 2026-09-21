@@ -14,6 +14,11 @@ describe('Analysis workspace layout and organization summary strip polish',()=>{
     expect(analysisPrint).not.toContain('.analysis-workspace.platform-analysis-page')
   })
 
+  it('never hard-caps the analytics header height, so the eyebrow/title/subtitle never hide behind the filter card below it', () => {
+    expect(analysisPrint).not.toContain('flex:0 0 var(--platform-analysis-header-h)!important;height:var(--platform-analysis-header-h)!important;min-height:var(--platform-analysis-header-h)!important')
+    expect(analysisPrint).toContain('flex:0 0 auto!important;height:auto!important;min-height:var(--platform-analysis-header-h)!important;')
+  })
+
   it('keeps breathing room between the organization KPI summary strip and the elements around it', () => {
     expect(ownerPolish).toContain('display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px;')
   })
