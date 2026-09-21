@@ -2,6 +2,7 @@ import { surveillanceDemoData } from '../surveillance/surveillanceDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { handHygieneRows,bundleRows,antisepticRows } from '../prevention/preventionDemoData'
 import { antibioticDispensingRows,dddReferenceLibrary } from '../pharmacy/pharmacyDemoData'
+import { awareCategoryFor } from '../pharmacy/whoAwareClassification'
 import { qualityIncidents } from '../quality/qualityDemoData'
 import { loadEmployees } from '../employees/employeeStore'
 import { loadVaccinations } from '../employees/employeeRecordsService'
@@ -68,6 +69,10 @@ export function collectIndicatorMetrics(){
   const ddd=dddReferenceLibrary[row.productCode]
   return ddd?sum+Number(row.quantityGrams||0)/ddd:sum
  },0)
+ const awareAccessDddTotal=antibioticDispensingRows.reduce((sum,row)=>{
+  const ddd=dddReferenceLibrary[row.productCode]
+  return ddd&&awareCategoryFor(row.productEn||row.product)==='access'?sum+Number(row.quantityGrams||0)/ddd:sum
+ },0)
  const mdrIsolations=surveillanceDemoData.filter(x=>x.isolation&&['MDR','XDR','PDR'].includes(x.resistance))
  const mdrIsolationByPathogen=Object.fromEntries(Object.entries(REFERENCE_PATHOGEN_PATTERNS).map(([key,pattern])=>[`mdr_isolation_${key}`,mdrIsolations.filter(x=>String(x.organism||'').toLowerCase().includes(pattern)).length]))
  const mdrIsolationTotal=mdrIsolations.filter(x=>Object.values(REFERENCE_PATHOGEN_PATTERNS).some(pattern=>String(x.organism||'').toLowerCase().includes(pattern))).length
@@ -98,6 +103,7 @@ export function collectIndicatorMetrics(){
   ...bacteremiaByPathogen,
   ...amrByPathogen,
   antibiotic_ddd_total:round(antibioticDddTotal,2),
+  aware_access_ddd_total:round(awareAccessDddTotal,2),
   mdr_isolation_total:mdrIsolationTotal,
   ...mdrIsolationByPathogen,
   pps_patients_total:ppsPatientsTotal,
