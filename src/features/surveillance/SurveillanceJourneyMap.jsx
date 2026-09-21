@@ -11,7 +11,7 @@ export function buildSurveillanceJourneyStages(record,t,fmtDate){
   const unlocked={assessment:true,devices:true,samples:true,isolation:true,therapy:true,hai:true,reassessment:true,outcome:true}
   return [
     {id:'assessment',label:t('clinicalAssessment'),status:record?.assessment?'complete':'pending',meta:record?.assessment?fmtDate(record.assessment.date||record.startedAt):t('pending')},
-    {id:'devices',label:(t('devices')==='devices'?'Devices / risk factors':t('devices')),status:devices.length?'complete':'pending',meta:devices.length?String(devices.length):t('clinicalRecords.notStarted')},
+    {id:'devices',label:t('clinicalRecords.devicesRisk'),status:devices.length?'complete':'pending',meta:devices.length?String(devices.length):t('clinicalRecords.notStarted')},
     {id:'samples',label:t('sampleAndLaboratory'),status:samples.length?(validatedSamples.length?'complete':'waiting'):'pending',meta:samples.length?(validatedSamples.length?`${samples.length} · ${validatedSamples.length} ${t('clinicalRecords.validated').toLowerCase()}`:`${samples.length} · ${t('waitingForLaboratory')}`):t('clinicalRecords.notStarted')},
     {id:'hai',label:(t('haiAmr')),status:record?.haiClassification?'complete':'pending',meta:record?.resistance||t(record?.haiClassification?.status||'pending')},
     {id:'isolation',label:t('isolation'),status:isolationDecided?'complete':'pending',meta:record?.isolation?t(record.isolation.status):(isolationDecided?t('notRequired'):t('clinicalRecords.notStarted'))},
