@@ -13,7 +13,27 @@ import { DEFAULT_TRAINER_FEEDBACK_TEMPLATE } from '../training/trainingFeedbackT
 const STORE='management_questionnaires_v1'
 const types={rating:{el:'Κλίμακα 1–5',en:'Rating 1–5'},yesno:{el:'Ναι / Όχι',en:'Yes / No'},single:{el:'Μία επιλογή',en:'Single choice'},multiple:{el:'Πολλαπλή επιλογή',en:'Multiple choice'},text:{el:'Ελεύθερο κείμενο',en:'Free text'}}
 const id=prefix=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`
-const seed=()=>[{id:'trainer-evaluation',title:'Αξιολόγηση εκπαιδευτή',category:'training',status:'active',questions:(DEFAULT_TRAINER_FEEDBACK_TEMPLATE.questions||[]).map(q=>({id:q.id,label:q.labelEl,type:'rating',required:true,options:[]}))}]
+const seed=()=>[
+ {id:'trainer-evaluation',title:'Αξιολόγηση εκπαιδευτή',category:'training',status:'active',questions:(DEFAULT_TRAINER_FEEDBACK_TEMPLATE.questions||[]).map(q=>({id:q.id,label:q.labelEl,type:'rating',required:true,options:[]}))},
+ {id:'hand-hygiene-audit',title:'Audit ελέγχου υγιεινής χεριών',category:'audit',status:'active',questions:[
+  {id:'hha-q1',label:'Είναι διαθέσιμο αλκοολούχο αντισηπτικό σε κάθε σημείο φροντίδας;',type:'yesno',required:true,options:[]},
+  {id:'hha-q2',label:'Το προσωπικό εφαρμόζει τις 5 στιγμές υγιεινής χεριών του ΠΟΥ;',type:'yesno',required:true,options:[]},
+  {id:'hha-q3',label:'Βαθμολογήστε τη γενική συμμόρφωση του τμήματος',type:'rating',required:true,options:[]},
+  {id:'hha-q4',label:'Παρατηρήσεις / διορθωτικές ενέργειες',type:'text',required:false,options:[]},
+ ]},
+ {id:'quality-incident-review',title:'Ανασκόπηση συμβάντος ποιότητας',category:'quality',status:'active',questions:[
+  {id:'qir-q1',label:'Τύπος συμβάντος',type:'single',required:true,options:['Κλινικό','Διοικητικό','Υποδομών','Άλλο']},
+  {id:'qir-q2',label:'Το συμβάν οδήγησε σε βλάβη ασθενούς;',type:'yesno',required:true,options:[]},
+  {id:'qir-q3',label:'Βαθμολογήστε τη σοβαρότητα του συμβάντος',type:'rating',required:true,options:[]},
+  {id:'qir-q4',label:'Ποιες διορθωτικές/προληπτικές ενέργειες προτείνονται;',type:'text',required:true,options:[]},
+ ]},
+ {id:'staff-satisfaction',title:'Έρευνα ικανοποίησης προσωπικού',category:'general',status:'active',questions:[
+  {id:'ss-q1',label:'Πόσο ικανοποιημένοι είστε από το εργασιακό περιβάλλον;',type:'rating',required:true,options:[]},
+  {id:'ss-q2',label:'Έχετε λάβει επαρκή εκπαίδευση για τον ρόλο σας;',type:'yesno',required:true,options:[]},
+  {id:'ss-q3',label:'Ποιοι τομείς χρειάζονται βελτίωση;',type:'multiple',required:false,options:['Επικοινωνία','Εξοπλισμός','Στελέχωση','Εκπαίδευση','Άλλο']},
+  {id:'ss-q4',label:'Σχόλια / προτάσεις',type:'text',required:false,options:[]},
+ ]},
+]
 function normalizeRow(row){return {...row,title:row.title||row.titleEl||row.titleEn||'',questions:(row.questions||[]).map(q=>({...q,label:q.label||q.labelEl||q.labelEn||'',options:Array.isArray(q.options)?q.options:[]}))}}
 function load(){const rows=loadSnapshot(STORE,null);return Array.isArray(rows)&&rows.length?rows.map(normalizeRow):seed()}
 function categoryLabel(value,en){if(value==='training')return en?'Training':'Εκπαίδευση';if(value==='audit')return 'Audit';if(value==='quality')return en?'Quality':'Ποιότητα';return en?'General':'Γενικό'}
