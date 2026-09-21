@@ -31,7 +31,12 @@ describe('Platform Owner global (all-hospitals) Central Management',()=>{
   it('adds a Central Management entry point reachable without entering a hospital', () => {
     expect(dashboard).toContain("onNavigate('/platform#management')")
     expect(center).toContain("if(activeKey==='management')return <PlatformGlobalManagement")
-    expect(globalManagement).toContain('<ManagementPage global/>')
+    expect(globalManagement).toContain('<ManagementPage global onBack={onBack}/>')
+  })
+
+  it('renders Page as the outermost element of the global Management view, so its fill/height layout matches every other Platform Center screen', () => {
+    expect(managementPage).toMatch(/return <Page fill/)
+    expect(globalManagement).not.toContain('platform-registry-shell')
   })
 
   it('removes the redundant Enter Demo button from the Demo entitlements registry', () => {
