@@ -100,7 +100,7 @@ vi.mock('../src/core/supabase/client', () => ({
   },
 }))
 
-const { loadPatients, createPatient, loadAdmissions, createAdmission } = await import('../src/features/patients/patientsService')
+const { loadPatients, createPatient, loadAdmissions, createAdmission, updatePatient } = await import('../src/features/patients/patientsService')
 
 describe('patientsService', () => {
   beforeEach(() => { patientRows.clear(); admissionRows.clear(); departmentRows.clear(); failAdmissionTransaction=false })
@@ -166,6 +166,18 @@ describe('patientsService', () => {
     await createAdmission('hospital-a', record, { departmentId:department.id, department:department.name, admissionDate: '2026-08-31' })
     const admissions = await loadAdmissions(record.recordId)
     expect(admissions).toHaveLength(2)
+  })
+
+  it('stores and returns a neonate\'s birth weight and gestational age', async () => {
+    const department=seedDepartment('hospital-a','NICU')
+    const { record } = await createPatient('hospital-a', [], { patientCode: 'HOSP-3001', firstName: 'Neonate', lastName: 'Patient', departmentId:department.id, department:department.name, admissionDate: '2026-08-20', birthWeightGrams: 980, gestationalAgeWeeks: 27 })
+    expect(record.birthWeightGrams).toBe(980)
+    expect(record.gestationalAgeWeeks).toBe(27)
+  })
+
+  it('carries a demo patient\'s birth weight/gestational age through an update patch', async () => {
+    const updated = await updatePatient('hospital-new', { id: 'PT-DEMO', birthWeightGrams: 900 }, { birthWeightGrams: 1050 }, { isDemo: true })
+    expect(updated.birthWeightGrams).toBe(1050)
   })
 
   it('does not create a partial admission when the atomic operation fails', async () => {

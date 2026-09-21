@@ -4,6 +4,7 @@ export const preventionDepartments=[
   {id:'dep-surgery',el:'Χειρουργική',en:'Surgery'},
   {id:'dep-ed',el:'ΤΕΠ',en:'ED'},
   {id:'dep-cardio',el:'Καρδιολογική',en:'Cardiology'},
+  {id:'dep-nicu',el:'Νεογνολογική / ΜΕΝΝ',en:'Neonatal / NICU'},
 ]
 
 export const wasteTypeLibrary=[

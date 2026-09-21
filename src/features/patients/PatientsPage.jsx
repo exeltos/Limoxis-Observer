@@ -121,7 +121,7 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
   const editing=Boolean(patient)
   const [draft,setDraft]=useState(()=>({
     patientCode:patient?.id||'',firstName:patient?.firstName||'',lastName:patient?.lastName||'',fatherName:patient?.fatherName||'',hospitalRecordNumber:patient?.hospitalRecordNumber||'',
-    dateOfBirth:patient?.dateOfBirth||'',sex:patient?.sex||'',departmentId:patient?.departmentId||'',department:patient?.department||'',departmentEn:patient?.departmentEn||patient?.department||'',
+    dateOfBirth:patient?.dateOfBirth||'',birthWeightGrams:patient?.birthWeightGrams||'',gestationalAgeWeeks:patient?.gestationalAgeWeeks||'',sex:patient?.sex||'',departmentId:patient?.departmentId||'',department:patient?.department||'',departmentEn:patient?.departmentEn||patient?.department||'',
     admissionDate:patient?.admissionDate||'',status:patient?.status||'active',notes:patient?.notes||''
   }))
   const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
@@ -133,7 +133,7 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
     const first=draft.firstName.trim()
     const last=draft.lastName.trim()
     if(!draft.patientCode.trim()||!first||!last||(!editing&&!draft.admissionDate))return
-    onSave({...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim()})
+    onSave({...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim(),birthWeightGrams:draft.birthWeightGrams?Number(draft.birthWeightGrams):null,gestationalAgeWeeks:draft.gestationalAgeWeeks?Number(draft.gestationalAgeWeeks):null})
   }
   const disabled=!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)
   return <ObserverDialog width="wide" eyebrow={t('patients')} title={editing?t('edit'):t('newPatient')} subtitle={editing?t('patientRegistrySubtitle'):t('newPatientHelp')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={save} disabled={disabled}/> }>
@@ -145,6 +145,8 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
       <label><span>{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
       <ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>
       <label><span>{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
+      <label><span>{language==='el'?'Βάρος γέννησης (g)':'Birth weight (g)'}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={language==='el'?'Προαιρετικό — για νεογνά':'Optional — for neonates'}/></label>
+      <label><span>{language==='el'?'Ηλικία κύησης (εβδ.)':'Gestational age (weeks)'}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={language==='el'?'Προαιρετικό — για νεογνά':'Optional — for neonates'}/></label>
       {!editing&&<><label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
       <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/></>}
       <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>

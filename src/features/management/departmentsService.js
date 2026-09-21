@@ -2,7 +2,7 @@ import { supabase } from '../../core/supabase/client'
 
 export async function loadDepartments(organizationId){
   if(!organizationId || !supabase) return []
-  const {data,error}=await supabase.from('departments').select('id,name,code,is_active').eq('organization_id',organizationId).order('name')
+  const {data,error}=await supabase.from('departments').select('id,name,code,is_active,department_type').eq('organization_id',organizationId).order('name')
   if(error) throw error
   return data??[]
 }
