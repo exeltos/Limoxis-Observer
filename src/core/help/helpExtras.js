@@ -5,7 +5,7 @@ export const helpExtras={
   related:['/surveillance','/controls','/training']
  },
  '/my-department':{
-  checks:{el:['Ελέγξτε ότι εργάζεστε στο σωστό τμήμα/πεδίο.','Μην ολοκληρώνετε εργασία που έχει ανατεθεί σε άλλο πεδίο.'],en:['Confirm that you are working in the correct department/scope.','Do not complete work assigned to another scope.']},
+  checks:{el:['Ελέγξτε ότι εργάζεστε στο σωστό τμήμα/εύρος.','Μην ολοκληρώνετε εργασία που έχει ανατεθεί σε άλλο εύρος.'],en:['Confirm that you are working in the correct department/scope.','Do not complete work assigned to another scope.']},
   tip:{el:'Η τμηματική εικόνα πρέπει να απαντά «τι χρειάζεται να κάνουμε τώρα;» χωρίς να εκθέτει πληροφορίες άλλων τμημάτων.',en:'The department view should answer “what do we need to do now?” without exposing information from other departments.'},
   related:['/controls','/training','/documents']
  },
@@ -35,7 +35,7 @@ export const helpExtras={
   related:['/indicators','/controls','/training']
  },
  '/controls':{
-  checks:{el:['Ελέγξτε ότι ο έλεγχος αφορά το δικό σας πεδίο.','Συμπληρώστε όλα τα υποχρεωτικά κριτήρια.','Προσθέστε τεκμηρίωση όπου ζητείται πριν την ολοκλήρωση.'],en:['Confirm that the control belongs to your scope.','Complete all mandatory criteria.','Attach required evidence before completing the control.']},
+  checks:{el:['Ελέγξτε ότι ο έλεγχος αφορά το δικό σας εύρος.','Συμπληρώστε όλα τα υποχρεωτικά κριτήρια.','Προσθέστε τεκμηρίωση όπου ζητείται πριν την ολοκλήρωση.'],en:['Confirm that the control belongs to your scope.','Complete all mandatory criteria.','Attach required evidence before completing the control.']},
   tip:{el:'Η ολοκλήρωση ενός τμήματος δεν πρέπει να κλείνει τις εκκρεμότητες άλλων τμημάτων.',en:'Completion by one department must not close outstanding work for other departments.'},
   related:['/quality','/my-department']
  },
@@ -45,7 +45,7 @@ export const helpExtras={
   related:['/controls','/indicators','/documents']
  },
  '/indicators':{
-  checks:{el:['Ελέγξτε περίοδο, πεδίο και παρονομαστή.','Επιβεβαιώστε την πηγή του αριθμητή και του παρονομαστή.','Χρησιμοποιήστε drill-down πριν ερμηνεύσετε ασυνήθιστη τιμή.'],en:['Check period, scope and denominator.','Verify the numerator and denominator data sources.','Use drill-down before interpreting an unusual value.']},
+  checks:{el:['Ελέγξτε περίοδο, εύρος και παρονομαστή.','Επιβεβαιώστε την πηγή του αριθμητή και του παρονομαστή.','Χρησιμοποιήστε drill-down πριν ερμηνεύσετε ασυνήθιστη τιμή.'],en:['Check period, scope and denominator.','Verify the numerator and denominator data sources.','Use drill-down before interpreting an unusual value.']},
   tip:{el:'Ένας δείκτης πρέπει να είναι αναπαραγώγιμος: η ίδια πηγή και μέθοδος να δίνουν το ίδιο αποτέλεσμα.',en:'An indicator should be reproducible: the same source and method should produce the same result.'},
   related:['/prevention','/quality','/laboratory']
  },
@@ -60,7 +60,7 @@ export const helpExtras={
   related:['/documents','/quality']
  },
  '/documents':{
-  checks:{el:['Ανοίξτε την τρέχουσα δημοσιευμένη έκδοση.','Μην αλλάζετε σιωπηλά δημοσιευμένο περιεχόμενο.','Ελέγξτε πεδίο/κοινοποίηση πριν τη δημοσίευση.'],en:['Open the current published version.','Do not silently overwrite published content.','Review scope/sharing before publication.']},
+  checks:{el:['Ανοίξτε την τρέχουσα δημοσιευμένη έκδοση.','Μην αλλάζετε σιωπηλά δημοσιευμένο περιεχόμενο.','Ελέγξτε εύρος/κοινοποίηση πριν τη δημοσίευση.'],en:['Open the current published version.','Do not silently overwrite published content.','Review scope/sharing before publication.']},
   tip:{el:'Η διαχείριση εγγράφων πρέπει να διαχωρίζει πρόχειρο, δημοσιευμένο και αρχειοθετημένο περιεχόμενο.',en:'Document control should clearly separate draft, published and archived content.'},
   related:['/quality','/committees','/training']
  },
@@ -85,7 +85,7 @@ export const helpExtras={
   related:['/surveillance','/quality','/indicators']
  },
  '/management':{
-  checks:{el:['Ελέγξτε οργανισμό και πεδίο πριν από αλλαγή.','Για βασικό (core) περιεχόμενο χρησιμοποιήστε παράκαμψη/απόκρυψη όπου προβλέπεται.','Επιβεβαιώστε ότι ρόλοι και δικαιώματα συμφωνούν με την πραγματική λειτουργία.'],en:['Verify organization and scope before making a change.','Use override/hide patterns for core content where applicable.','Confirm roles and permissions match the intended operational workflow.']},
+  checks:{el:['Ελέγξτε οργανισμό και εύρος πριν από αλλαγή.','Για βασικό (core) περιεχόμενο χρησιμοποιήστε παράκαμψη/απόκρυψη όπου προβλέπεται.','Επιβεβαιώστε ότι ρόλοι και δικαιώματα συμφωνούν με την πραγματική λειτουργία.'],en:['Verify organization and scope before making a change.','Use override/hide patterns for core content where applicable.','Confirm roles and permissions match the intended operational workflow.']},
   tip:{el:'Οι κεντρικές ρυθμίσεις πρέπει να μειώνουν τις ασυνέπειες στην εφαρμογή, όχι να δημιουργούν διαφορετικούς κανόνες ανά οθόνη.',en:'Central configuration should reduce inconsistency across the application, not create different rules for each screen.'},
   related:['/employees','/documents','/indicators']
  }

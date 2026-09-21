@@ -13,7 +13,7 @@ describe('mixed Greek/English string cleanup (platform review §2, item 10)', ()
     expect(analysisPage).not.toContain('ημερολογιακού scope')
     expect(analysisPage).not.toContain('ίδιο scope')
     expect(analysisPage).not.toContain('Synthetic δεδομένα')
-    expect(analysisPage).toContain("tx('Πεδίο','Scope')")
+    expect(analysisPage).toContain("tx('Εύρος','Scope')")
   })
 
   it('removes leaked English jargon from the contextual help checklists (helpExtras)', () => {
