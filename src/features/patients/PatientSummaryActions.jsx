@@ -38,7 +38,7 @@ export function PatientSummaryActions({patient,departments,onReload,onDeleted,ex
     try{
       await archivePatient(tenant?.id,patient,reason,{isDemo})
       setDeleting(false)
-      notify(t('deleted'),'success')
+      notify(t('archived'),'success')
       onDeleted?.()
     }catch(error){notify(error?.message||t('actionFailed'),'danger')}
   }
