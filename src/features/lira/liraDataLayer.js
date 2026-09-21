@@ -3,6 +3,7 @@ import { surveillanceDemoData } from '../surveillance/surveillanceDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { handHygieneRows,bundleRows } from '../prevention/preventionDemoData'
 import { qualityIncidents,qualityCapas } from '../quality/qualityDemoData'
+import { collectDeviceDaySources } from '../surveillance/deviceDayIndicators'
 
 /**
  * LIRA data access contract.
@@ -42,7 +43,7 @@ export async function loadLiraData({isDemo=false,organizationId=null}={}){
   // surveillance_cases.status column and SurveillancePage's expectations).
   // LIRA's production mapping below normalizes that into its own `state`
   // field; do the same for demo so LIRA's consumers keep working.
-  if(isDemo)return {surveillance:surveillanceDemoData.map(row=>({...row,state:row.status})),laboratory:laboratorySamples,handHygiene:handHygieneRows,bundles:bundleRows,qualityIncidents,qualityCapas,patientDays:[],haiClassifications:[],devices:[],generatedAt:new Date().toISOString(),source:'demo'}
+  if(isDemo){const {devices,haiClassifications}=collectDeviceDaySources();return {surveillance:surveillanceDemoData.map(row=>({...row,state:row.status})),laboratory:laboratorySamples,handHygiene:handHygieneRows,bundles:bundleRows,qualityIncidents,qualityCapas,patientDays:[],haiClassifications,devices,generatedAt:new Date().toISOString(),source:'demo'}}
   if(!supabase||!organizationId) throw new Error('LIRA_CONTEXT_NOT_AVAILABLE')
 
   const q=(table,columns)=>supabase.from(table).select(columns).eq('organization_id',organizationId).limit(500)

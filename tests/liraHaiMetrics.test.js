@@ -37,6 +37,12 @@ describe('LIRA device-associated HAI metrics',()=>{
   expect(metric.deviceDays).toBe(5)
  })
 
+ it('counts days up to today for a device that is still in place (no removedAt)',()=>{
+  const stillInPlace=[{id:'d4',department:'ΜΕΘ',deviceType:'central line',insertedAt:'2026-09-01',removedAt:null}]
+  const days=calculateDeviceDays(stillInPlace,'clabsi',{department:'ΜΕΘ',today:'2026-09-10'})
+  expect(days).toBe(10)
+ })
+
  it('compares device-associated rates across periods',()=>{
   const answer=compareHaiRates(data,'clabsi',{start:'2026-09-01',end:'2026-09-10',label:'September'},{start:'2026-08-01',end:'2026-08-10',label:'August'},{department:'ΜΕΘ',today:'2026-09-10',language:'en'})
   expect(answer.points[0]).toContain('September: 100 / 1,000 central-line days')

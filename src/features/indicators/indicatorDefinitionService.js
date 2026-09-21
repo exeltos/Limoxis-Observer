@@ -11,6 +11,7 @@ export const INDICATOR_METRICS=Object.freeze([
  'antibiotic_ddd_total',
  'mdr_isolation_total','mdr_isolation_ecoli','mdr_isolation_proteus','mdr_isolation_acinetobacter','mdr_isolation_klebsiella','mdr_isolation_enterobacter','mdr_isolation_pseudomonas','mdr_isolation_saureus','mdr_isolation_enterococcus',
  'pps_patients_total','pps_patients_with_hai','pps_patients_on_antibiotics',
+ 'clabsi_events','central_line_days','cauti_events','urinary_catheter_days','vap_events','ventilator_days',
 ])
 
 export const INDICATOR_RATIO_RULES=Object.freeze({
@@ -41,6 +42,9 @@ export const INDICATOR_RATIO_RULES=Object.freeze({
  antibiotic_ddd_total:{patient_days:{multiplier:100,unit:'DDD/100 patient-days'}},
  pps_patients_with_hai:{pps_patients_total:{multiplier:100,unit:'%'}},
  pps_patients_on_antibiotics:{pps_patients_total:{multiplier:100,unit:'%'}},
+ clabsi_events:{central_line_days:{multiplier:1000,unit:'/1.000 ημέρες κεντρικού καθετήρα'}},
+ cauti_events:{urinary_catheter_days:{multiplier:1000,unit:'/1.000 ημέρες ουροκαθετήρα'}},
+ vap_events:{ventilator_days:{multiplier:1000,unit:'/1.000 ημέρες αναπνευστήρα'}},
 })
 
 export function allowedIndicatorDenominators(numerator){return numerator?Object.keys(INDICATOR_RATIO_RULES[numerator]||{}):[]}
