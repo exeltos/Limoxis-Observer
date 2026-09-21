@@ -4609,6 +4609,9 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
 .hai-criteria-result{padding:7px 10px;border-radius:8px;font-size:11.5px;font-weight:600}
 .hai-criteria-result.is-met{background:#e5f6ec;color:#1a9c62}
 .hai-criteria-result.is-pending{background:#eef1f4;color:#5b6b7c}
+.hai-criteria-group-editor{border:1px solid #e3e9ee;border-radius:9px;padding:10px;margin-bottom:10px;background:#fafbfc}
+.hai-criteria-group-editor-head{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:8px}
+.bundle-library-editor .hai-criteria-item-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px!important}
 
 .status-badge.aware-access{background:#e5f6ec;color:#1a9c62}
 .status-badge.aware-watch{background:#fbf0dd;color:#8a6521}
