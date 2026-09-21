@@ -7,6 +7,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { loadAntibioticDispensingRecords, loadPharmacySupportData, saveAntibioticDispensingRecord } from './pharmacyCloudService'
+import { awareCategoryFor, awareCategoryLabel } from './whoAwareClassification'
 
 const monthNow = () => new Date().toISOString().slice(0, 7)
 
@@ -66,8 +67,8 @@ export function PharmacyPage() {
           {!loading && Boolean(rows.length) && (
             <div className="record-table-wrap">
               <table className="record-table">
-                <thead><tr><th>{en ? 'Period' : 'Περίοδος'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'Quantity' : 'Ποσότητα'}</th><th>{en ? 'Responsible' : 'Υπεύθυνος'}</th></tr></thead>
-                <tbody>{rows.map(row => <tr key={row.id}><td>{row.period}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></tr>)}</tbody>
+                <thead><tr><th>{en ? 'Period' : 'Περίοδος'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'WHO AWaRe' : 'WHO AWaRe'}</th><th>{en ? 'Quantity' : 'Ποσότητα'}</th><th>{en ? 'Responsible' : 'Υπεύθυνος'}</th></tr></thead>
+                <tbody>{rows.map(row => { const category = awareCategoryFor(row.productEn || row.product); return <tr key={row.id}><td>{row.period}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{category ? <span className={`status-badge aware-${category}`}>{awareCategoryLabel(category, language)}</span> : '—'}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></tr> })}</tbody>
               </table>
             </div>
           )}
