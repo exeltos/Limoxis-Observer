@@ -35,9 +35,9 @@ describe('Point prevalence survey (PPS) indicator metrics (ΥΑ Υ1.Γ.Π.114971
 
   it('sums the demo survey rows for each metric', () => {
     const metrics = collectIndicatorMetrics()
-    expect(metrics.pps_patients_total).toBe(180)
-    expect(metrics.pps_patients_with_hai).toBe(9)
-    expect(metrics.pps_patients_on_antibiotics).toBe(46)
+    expect(metrics.pps_patients_total).toBe(1245)
+    expect(metrics.pps_patients_with_hai).toBe(84)
+    expect(metrics.pps_patients_on_antibiotics).toBe(338)
   })
 
   it('ships the two system indicator definitions wired to the auto-calculated metrics', () => {
