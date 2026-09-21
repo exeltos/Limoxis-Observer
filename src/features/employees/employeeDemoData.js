@@ -38,6 +38,9 @@ employeeEvaluations.push(...employeeEvaluationsAdditional)
 export const employeeCertificates = [
   {id:'CERT-01', employeeId:'EMP-001', titleEl:'BLS', titleEn:'BLS', issuer:'ERC', issueDate:'2025-04-01', validUntil:'2027-03-31', certificateNumber:'BLS-2025-001', attachments:[]},
 ]
+export const employeeExposureIncidents = [
+  {id:'EXP-01', employeeId:'EMP-001', incidentDate:'2026-06-14', exposureType:'needlestick', deviceOrSource:'Βελόνα ενδοφλέβιας γραμμής', bodySite:'Αριστερός δείκτης', sourcePatientStatus:'negative', reportedAt:'2026-06-14T09:20:00', pepAdministered:false, pepDetails:'', followUpStatus:'completed', followUpDueAt:'2026-12-14', notes:'Πηγή ασθενής αρνητική σε ορολογικό έλεγχο.', status:'closed'},
+]
 
 
 // Full-demo enrichment: broad role and department coverage.
