@@ -25,6 +25,16 @@ export const employeeTraining = [
 export const employeeEvaluations = [
   {id:'EV-01', employeeId:'EMP-001', titleEl:'Ετήσια αξιολόγηση', titleEn:'Annual evaluation', date:'2026-02-20', resultEl:'Ολοκληρωμένη', resultEn:'Completed'},
 ]
+export const employeeEvaluationsAdditional = [
+  {id:'EV-02', employeeId:'EMP-002', titleEl:'Ετήσια αξιολόγηση', titleEn:'Annual evaluation', date:'2026-03-05', resultEl:'Ολοκληρωμένη', resultEn:'Completed'},
+  {id:'EV-03', employeeId:'EMP-003', titleEl:'Ετήσια αξιολόγηση', titleEn:'Annual evaluation', date:'2026-01-18', resultEl:'Ολοκληρωμένη', resultEn:'Completed'},
+  {id:'EV-04', employeeId:'EMP-004', titleEl:'Ετήσια αξιολόγηση', titleEn:'Annual evaluation', date:'2025-11-30', resultEl:'Ολοκληρωμένη', resultEn:'Completed'},
+  {id:'EV-05', employeeId:'EMP-005', titleEl:'Ετήσια αξιολόγηση', titleEn:'Annual evaluation', date:'2026-04-14', resultEl:'Ολοκληρωμένη', resultEn:'Completed'},
+  {id:'EV-06', employeeId:'EMP-006', titleEl:'Ετήσια αξιολόγηση', titleEn:'Annual evaluation', date:'2026-02-27', resultEl:'Ολοκληρωμένη', resultEn:'Completed'},
+  {id:'EV-07', employeeId:'EMP-007', titleEl:'Ετήσια αξιολόγηση', titleEn:'Annual evaluation', date:'2026-05-09', resultEl:'Απαιτείται παρακολούθηση', resultEn:'Follow-up required'},
+  {id:'EV-08', employeeId:'EMP-008', titleEl:'Ετήσια αξιολόγηση', titleEn:'Annual evaluation', date:'2026-03-21', resultEl:'Ολοκληρωμένη', resultEn:'Completed'},
+]
+employeeEvaluations.push(...employeeEvaluationsAdditional)
 export const employeeCertificates = [
   {id:'CERT-01', employeeId:'EMP-001', titleEl:'BLS', titleEn:'BLS', issuer:'ERC', issueDate:'2025-04-01', validUntil:'2027-03-31', certificateNumber:'BLS-2025-001', attachments:[]},
 ]
