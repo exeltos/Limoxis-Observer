@@ -13,7 +13,7 @@ describe('Platform Owner-only system library governance',()=>{
     expect(bundles).toContain('ROLES.PLATFORM_OWNER')
     expect(bundles).toContain('item.system&&!isPlatformOwner')
     expect(bundles).toContain("System · Owner managed")
-    expect(bundles).toContain("System · Μόνο Owner")
+    expect(bundles).toContain("Σύστημα · Μόνο ιδιοκτήτης")
   })
 
   it('renders system library records read-only for hospital users',()=>{
