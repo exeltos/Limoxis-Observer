@@ -1,4 +1,4 @@
-import { Activity, ArrowRight, BarChart3, Building2, FlaskConical, Settings, ShieldCheck } from 'lucide-react'
+import { Activity, ArrowRight, BarChart3, Building2, Database, FlaskConical, Settings, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 
 function Metric({label,value,detail,tone='default'}){
@@ -29,6 +29,7 @@ export function PlatformDashboardView({tx,organizations,activeOrganizations,acti
             <WorkspaceLink icon={<Building2 size={18}/>} title={tx('Οργανισμοί','Organizations')} description={tx('Νοσοκομεία, χρήστες, ρόλοι και πρόσβαση.','Hospitals, users, roles and access.')} meta={`${activeOrganizations}/${organizations.length} ${tx('ενεργοί','active')}`} onClick={()=>onNavigate('/platform#organizations')}/>
             <WorkspaceLink icon={<FlaskConical size={18}/>} title="Demo" description={tx('Προσβάσεις επίδειξης και διάρκεια ισχύος.','Demo access and validity periods.')} meta={loadingStats?'—':`${activeDemos.length} ${tx('ενεργά','active')}`} onClick={()=>onNavigate('/platform#demo')}/>
             <WorkspaceLink icon={<BarChart3 size={18}/>} title={tx('Ανάλυση','Analytics')} description={tx('Συγκεντρωτικά δεδομένα σε επίπεδο πλατφόρμας.','Aggregated platform-level data.')} onClick={()=>onNavigate('/platform#reports')}/>
+            <WorkspaceLink icon={<Database size={18}/>} title={tx('Κεντρική Διαχείριση','Central Management')} description={tx('Βιβλιοθήκες, δείκτες, δέσμες μέτρων και πηγές — κοινά σε όλα τα νοσοκομεία.','Libraries, indicators, bundles and references — shared across every hospital.')} onClick={()=>onNavigate('/platform#management')}/>
           </div>
         </section>
 

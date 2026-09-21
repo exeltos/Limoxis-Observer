@@ -39,10 +39,19 @@ async function resolveDepartment(organizationId, departmentId){
   return data
 }
 
+async function createInitialAdmission(organizationId,record,draft,{isDemo=false}={}){
+  if(!draft.admissionDate)return record
+  // Best-effort: the patient is already saved, so an admission failure here must not fail the whole creation.
+  const admission=await createAdmission(organizationId,record,draft,{isDemo}).catch(()=>null)
+  return admission?{...record,admissionId:admission.id}:record
+}
+
 export async function createPatient(organizationId, existing, draft, {isDemo=false}={}){
   const patientCode=draft.patientCode
   if(isDemo || !organizationId || !supabase){
-    const record={id:patientCode,status:'active',...draft}
+    // No real "patients" row is inserted here, so the patients_create_initial_admission
+    // DB trigger never runs — mirror it locally so the patient isn't left without an admission.
+    const record=await createInitialAdmission(organizationId,{id:patientCode,status:'active',...draft},draft,{isDemo})
     return {record,list:[record,...existing]}
   }
   const department=await resolveDepartment(organizationId,draft.departmentId)
@@ -65,6 +74,7 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     if(error.code==='23505')error.duplicateCode=true
     throw error
   }
+  // The patients_create_initial_admission DB trigger already inserted the admission row.
   const record=mapRow(data,department?.name||draft.department)
   return {record,list:[record,...existing]}
 }

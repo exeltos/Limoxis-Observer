@@ -1,7 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 
 function requireCloud(){if(!supabase) throw new Error('Supabase is not configured')}
-function requireOrganization(organizationId){if(!organizationId) throw new Error('Organization is required')}
+function requireOrganization(organizationId,{system=false}={}){if(!organizationId&&!system) throw new Error('Organization is required')}
 
 const mapRow=row=>({
  id:row.id,
@@ -33,11 +33,10 @@ async function actorId(){
 }
 
 export async function loadBundleTemplates(organizationId){
- requireCloud();requireOrganization(organizationId)
- const {data,error}=await supabase.from('prevention_bundle_templates')
-  .select('*')
-  .or(`organization_id.eq.${organizationId},organization_id.is.null`)
-  .eq('hidden',false)
+ requireCloud();requireOrganization(organizationId,{system:!organizationId})
+ let query=supabase.from('prevention_bundle_templates').select('*').eq('hidden',false)
+ query=organizationId?query.or(`organization_id.eq.${organizationId},organization_id.is.null`):query.is('organization_id',null)
+ const {data,error}=await query
   .order('is_system',{ascending:false})
   .order('name',{ascending:true})
   .order('created_at',{ascending:false})
@@ -66,7 +65,7 @@ function payload(item,organizationId,userId){return {
 }}
 
 export async function createBundleTemplate(organizationId,item){
- requireCloud();requireOrganization(organizationId)
+ requireCloud();requireOrganization(organizationId,{system:item.system})
  const userId=await actorId()
  const row={...payload(item,organizationId,userId),created_by:userId}
  const {data,error}=await supabase.from('prevention_bundle_templates').insert(row).select('*').single()
@@ -75,7 +74,7 @@ export async function createBundleTemplate(organizationId,item){
 }
 
 export async function updateBundleTemplate(organizationId,item){
- requireCloud();requireOrganization(organizationId)
+ requireCloud();requireOrganization(organizationId,{system:item.system})
  if(!item?.id) throw new Error('Bundle template id is required')
  const userId=await actorId()
  let query=supabase.from('prevention_bundle_templates').update(payload(item,organizationId,userId)).eq('id',item.id)
@@ -86,7 +85,7 @@ export async function updateBundleTemplate(organizationId,item){
 }
 
 export async function publishBundleTemplate(organizationId,item){
- requireCloud();requireOrganization(organizationId)
+ requireCloud();requireOrganization(organizationId,{system:item.system})
  const userId=await actorId()
  let query=supabase.from('prevention_bundle_templates').update({status:'published',published_by:userId,published_at:new Date().toISOString(),updated_by:userId,updated_at:new Date().toISOString()}).eq('id',item.id)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
@@ -96,7 +95,7 @@ export async function publishBundleTemplate(organizationId,item){
 }
 
 export async function retireBundleTemplate(organizationId,item){
- requireCloud();requireOrganization(organizationId)
+ requireCloud();requireOrganization(organizationId,{system:item.system})
  const userId=await actorId()
  let query=supabase.from('prevention_bundle_templates').update({status:'retired',retired_by:userId,retired_at:new Date().toISOString(),updated_by:userId,updated_at:new Date().toISOString()}).eq('id',item.id)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
@@ -106,7 +105,7 @@ export async function retireBundleTemplate(organizationId,item){
 }
 
 export async function removeBundleTemplate(organizationId,item){
- requireCloud();requireOrganization(organizationId)
+ requireCloud();requireOrganization(organizationId,{system:item.system})
  let query=supabase.from('prevention_bundle_templates').delete().eq('id',item.id)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
  const {error}=await query
