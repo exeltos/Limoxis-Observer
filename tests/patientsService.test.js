@@ -113,6 +113,11 @@ describe('patientsService', () => {
     expect(await loadPatients('hospital-new', { isDemo: true })).toEqual(patientDemoData)
   })
 
+  it('creates the first admission locally alongside a demo patient, since no DB trigger runs for it', async () => {
+    const { record } = await createPatient('hospital-new', [], { patientCode: 'DEMO-1', firstName: 'Demo', lastName: 'Patient', departmentId: 'dept-demo', department: 'ICU', admissionDate: '2026-08-31' }, { isDemo: true })
+    expect(record.admissionId).toBeTruthy()
+  })
+
   it('keeps patients created in one organization out of another', async () => {
     const department=seedDepartment('hospital-a')
     const { record, list } = await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'Real', lastName: 'Patient', departmentId:department.id, department:department.name, admissionDate: '2026-08-31' })
@@ -134,6 +139,12 @@ describe('patientsService', () => {
     await createPatient('hospital-a', [], { patientCode: 'HOSP-1001', firstName: 'A', lastName: 'One', departmentId:department.id, department:department.name, admissionDate: '2026-08-31' })
     await createPatient('hospital-a', [], { patientCode: 'HOSP-1002', firstName: 'B', lastName: 'Two', departmentId:department.id, department:department.name, admissionDate: '2026-08-31' })
     expect(departmentsFor('hospital-a')).toHaveLength(1)
+  })
+
+  it('does not double-create an admission for a real patient, since the DB trigger already inserts it', async () => {
+    const department=seedDepartment('hospital-a')
+    const { record } = await createPatient('hospital-a', [], { patientCode: 'HOSP-2001', firstName: 'Single', lastName: 'Admission', departmentId:department.id, department:department.name, admissionDate: '2026-01-10' })
+    expect(await loadAdmissions(record.recordId)).toHaveLength(1)
   })
 
   it('lets a patient have more than one admission over time', async () => {

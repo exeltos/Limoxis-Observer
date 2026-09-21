@@ -69,6 +69,63 @@ export async function removeManagementLibraryItem(organizationId,libraryKey,row)
   const {error}=await supabase.from(table).update({is_active:false}).eq('organization_id',organizationId).eq('id',id);if(error)throw error
 }
 
+const requireCloud=()=>{if(!supabase)throw new Error('Supabase is not configured.')}
+
+// Global (organization_id is null) master library rows: edits here fan out to
+// every organization's linked copy via the master_library_items_propagate trigger.
+export async function loadGlobalLibraryItems(){
+  requireCloud()
+  const {data,error}=await supabase.from('master_library_items').select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version,is_active').is('organization_id',null).eq('is_active',true).order('name_el')
+  if(error) throw error
+  const result={}
+  for(const row of data||[]){if(!result[row.library_key])result[row.library_key]=[];result[row.library_key].push(toLibraryTuple(row))}
+  return result
+}
+
+export async function createGlobalLibraryItem(libraryKey,{nameEl,nameEn}){
+  requireCloud()
+  const {data,error}=await supabase.from('master_library_items').insert({organization_id:null,library_key:libraryKey,name_el:nameEl,name_en:nameEn||nameEl,metadata:{system:true,locked:true},source_authority:'Limoxis System',source_version:'current'}).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
+  if(error) throw error
+  return toLibraryTuple(data)
+}
+
+export async function updateGlobalLibraryItem(row,{nameEl,nameEn}){
+  requireCloud();const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
+  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl}).is('organization_id',null).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
+  if(error) throw error
+  return toLibraryTuple(data)
+}
+
+export async function removeGlobalLibraryItem(row){
+  requireCloud();const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
+  const {error}=await supabase.from('master_library_items').update({is_active:false}).is('organization_id',null).eq('id',id)
+  if(error) throw error
+}
+
+export async function loadGlobalExternalReferences(){
+  requireCloud()
+  const {data,error}=await supabase.from('external_reference_versions').select('id,organization_id,source_key,authority,title,source_url,version_label,checked_at,status,metadata').is('organization_id',null).order('authority')
+  if(error) throw error
+  return (data||[]).map(toExternalReference)
+}
+
+export async function saveGlobalExternalReference(item){
+  requireCloud()
+  const payload={organization_id:null,source_key:item.sourceKey||item.id,authority:item.authority,title:item.label||item.authority,source_url:item.url||null,version_label:item.version||null,checked_at:new Date().toISOString(),status:item.status||'approved',metadata:{scope:item.scope||'',scope_en:item.scopeEn||item.scope||'',version_en:item.versionEn||item.version||''}}
+  const existingId=isUuid(item.id)?item.id:null
+  const query=existingId?supabase.from('external_reference_versions').update(payload).is('organization_id',null).eq('id',existingId):supabase.from('external_reference_versions').insert(payload)
+  const {data,error}=await query.select('id,organization_id,source_key,authority,title,source_url,version_label,checked_at,status,metadata').single()
+  if(error) throw error
+  return toExternalReference(data)
+}
+
+export async function removeGlobalExternalReference(item){
+  requireCloud()
+  if(!isUuid(item?.id))return
+  const {error}=await supabase.from('external_reference_versions').delete().is('organization_id',null).eq('id',item.id)
+  if(error) throw error
+}
+
 export async function loadCustomRoles(organizationId){
   assertCloud(organizationId)
   const {data:roles,error}=await supabase.from('custom_roles').select('id,name,description,is_active').eq('organization_id',organizationId).eq('is_active',true).order('name');if(error)throw error

@@ -19,12 +19,12 @@ describe('Management Center bundle template persistence',()=>{
 
  it('uses local bundle storage only in demo and cloud persistence in production',()=>{
   expect(panel).toContain('isDemo?loadBundleLibrary().map(normalize):[]')
-  expect(panel).toContain('loadBundleTemplates(tenant.id)')
-  expect(panel).toContain('await createBundleTemplate(tenant.id,cleaned)')
-  expect(panel).toContain('await updateBundleTemplate(tenant.id,cleaned)')
-  expect(panel).toContain('await publishBundleTemplate(tenant.id,item)')
-  expect(panel).toContain('await retireBundleTemplate(tenant.id,item)')
-  expect(panel).toContain('await removeBundleTemplate(tenant.id,item)')
+  expect(panel).toContain('loadBundleTemplates(global?null:tenant.id)')
+  expect(panel).toContain('await createBundleTemplate(global?null:tenant.id,cleaned)')
+  expect(panel).toContain('await updateBundleTemplate(global?null:tenant.id,cleaned)')
+  expect(panel).toContain('await publishBundleTemplate(global?null:tenant.id,item)')
+  expect(panel).toContain('await retireBundleTemplate(global?null:tenant.id,item)')
+  expect(panel).toContain('await removeBundleTemplate(global?null:tenant.id,item)')
  })
 
  it('keeps system templates owner-only and published hospital versions immutable',()=>{

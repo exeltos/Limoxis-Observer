@@ -50,14 +50,17 @@ export function indicatorMetricCombinationIsValid(numerator,denominator){return 
 export const indicatorMetricPairIsValid=indicatorMetricCombinationIsValid
 export function normalizeIndicatorDefinition(item){const next={...item};if(next.calculationType!=='auto')return next;const rule=indicatorRatioRule(next.numeratorMetric,next.denominatorMetric);if(rule){next.multiplier=rule.multiplier;next.unit=rule.unit}return next}
 
-const assertCloud=organizationId=>{if(!supabase)throw new Error('Supabase is not configured.');if(!organizationId)throw new Error('Organization is required.')}
+const assertCloud=(organizationId,{system=false}={})=>{if(!supabase)throw new Error('Supabase is not configured.');if(!organizationId&&!system)throw new Error('Organization is required.')}
 const isUuid=value=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''))
 const select='id,organization_id,indicator_key,version,title_el,title_en,category,numerator_definition,denominator_definition,numerator_metric,denominator_metric,multiplier,unit,unit_en,source_authority,effective_from,effective_to,status,calculation_type,target_value,direction,approved_at'
 const toDefinition=row=>({id:row.id,organizationId:row.organization_id||null,system:row.organization_id==null,key:row.indicator_key,version:row.version,titleEl:row.title_el,category:row.category,numeratorDefinition:row.numerator_definition||{},denominatorDefinition:row.denominator_definition||{},numeratorMetric:row.numerator_metric||'',denominatorMetric:row.denominator_metric||'',multiplier:Number(row.multiplier||1),unit:row.unit||'',sourceAuthority:row.source_authority||'',effectiveFrom:row.effective_from||'',effectiveTo:row.effective_to||'',status:row.status||'draft',calculationType:row.calculation_type||'auto',targetValue:row.target_value==null?'':String(row.target_value),direction:row.direction||'context',approvedAt:row.approved_at||null})
 
 export async function loadIndicatorDefinitions(organizationId){
  if(isDemoDataEnvironment())return loadIndicatorDefinitionsLocal().map(toDefinition)
- assertCloud(organizationId);const {data,error}=await supabase.from('indicator_definitions').select(select).or(`organization_id.eq.${organizationId},organization_id.is.null`).order('category').order('title_el');if(error)throw error;return (data||[]).map(toDefinition)
+ assertCloud(organizationId,{system:!organizationId})
+ const query=supabase.from('indicator_definitions').select(select)
+ const {data,error}=await(organizationId?query.or(`organization_id.eq.${organizationId},organization_id.is.null`):query.is('organization_id',null)).order('category').order('title_el')
+ if(error)throw error;return (data||[]).map(toDefinition)
 }
 export async function loadIndicatorDefinition(organizationId,id){
  if(isDemoDataEnvironment()){
@@ -88,7 +91,7 @@ export async function saveIndicatorDefinition(organizationId,item){
   saveIndicatorDefinitionsLocal(rows)
   return toDefinition(saved)
  }
- assertCloud(organizationId)
+ assertCloud(organizationId,{system:normalized.system})
  const {data:{user}}=await supabase.auth.getUser();const actor=user?.id||null
  const cloudPayload={...payload,approved_by:activating?actor:null,approved_at:activating?new Date().toISOString():null}
  if(!isUuid(normalized.id))cloudPayload.created_by=actor
@@ -102,7 +105,7 @@ export async function deleteIndicatorDefinition(organizationId,item){
   saveIndicatorDefinitionsLocal(loadIndicatorDefinitionsLocal().filter(row=>row.id!==item?.id))
   return
  }
- assertCloud(organizationId)
+ assertCloud(organizationId,{system:item?.system})
  if(!isUuid(item?.id))throw new Error('Indicator definition is required.')
  let query=supabase.from('indicator_definitions').delete().eq('id',item.id)
  query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId)
@@ -115,5 +118,5 @@ export async function retireIndicatorDefinition(organizationId,item){
   if(row){row.status='retired';saveIndicatorDefinitionsLocal(rows)}
   return
  }
- assertCloud(organizationId);if(!isUuid(item?.id))return;let query=supabase.from('indicator_definitions').update({status:'retired'}).eq('id',item.id);query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId);const {error}=await query;if(error)throw error
+ assertCloud(organizationId,{system:item?.system});if(!isUuid(item?.id))return;let query=supabase.from('indicator_definitions').update({status:'retired'}).eq('id',item.id);query=item.system?query.is('organization_id',null):query.eq('organization_id',organizationId);const {error}=await query;if(error)throw error
 }

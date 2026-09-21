@@ -24,7 +24,7 @@ describe('Platform Owner-only system library governance',()=>{
   })
 
   it('hides global reference mutation actions from hospital users',()=>{
-    expect(management).toContain('const isPlatformOwner=role===ROLES.PLATFORM_OWNER')
+    expect(management).toContain('const isPlatformOwner=global||role===ROLES.PLATFORM_OWNER')
     expect(management).toContain('(!item.isGlobal||isPlatformOwner)')
     expect(management).toContain('referenceEditor?.isGlobal&&!isPlatformOwner')
     expect(management).toContain('item?.isGlobal&&!isPlatformOwner')
