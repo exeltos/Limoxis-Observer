@@ -8,17 +8,16 @@ function WorkspaceLink({icon,title,description,meta,onClick}){
   return <button type="button" className="platform-workspace-link" onClick={onClick}><span className="platform-workspace-link-icon">{icon}</span><span className="platform-workspace-link-copy"><strong>{title}</strong><small>{description}</small>{meta?<b>{meta}</b>:null}</span><ArrowRight size={16}/></button>
 }
 
-export function PlatformDashboardView({tx,organizations,activeOrganizations,activeDemos,expiringDemos=[],loadingStats,onNavigate,demoPreview,onEnterDemoPreview,onExitDemoPreview,onEnterDemoOrganization}) {
+export function PlatformDashboardView({tx,organizations,activeOrganizations,activeDemos,expiringDemos=[],loadingStats,onNavigate,demoPreview}) {
   const inactive=Math.max(0,organizations.length-activeOrganizations)
   return <Page title={tx('Κέντρο Πλατφόρμας','Platform Center')} subtitle={tx('Επισκόπηση λειτουργίας, οργανισμών και διακυβέρνησης Limoxis Observer.','Operational, organization and governance overview for Limoxis Observer.')}>
     <div className="platform-dashboard">
-      <section className="platform-dashboard-overview">
-        <div className="platform-dashboard-overview-heading"><div><span className="platform-eyebrow">PLATFORM OWNER</span><h2>{tx('Επισκόπηση πλατφόρμας','Platform overview')}</h2><p>{tx('Η συνολική διοικητική εικόνα χωρίς είσοδο σε οργανισμό.','The administrative overview without entering an organization.')}</p></div><div className="platform-dashboard-overview-actions">{demoPreview?<button type="button" className="button platform-enter-demo active" onClick={onExitDemoPreview}><FlaskConical size={16}/>{tx('Έξοδος από Demo','Exit Demo')}</button>:<button type="button" className="button button-secondary platform-enter-demo" onClick={onEnterDemoPreview}><FlaskConical size={16}/>{tx('Είσοδος Demo','Enter Demo')}</button>}<span className="platform-live-pill"><i/>{tx('Πλατφόρμα ενεργή','Platform active')}</span></div></div>
-        {demoPreview&&<button type="button" className="platform-demo-preview-card" onClick={onEnterDemoOrganization}><span className="platform-org-mark demo"><FlaskConical size={15}/></span><span><strong>Demo Hospital</strong><small>{tx('Πλήρες synthetic σύνολο δεδομένων — ασθενείς, επιτήρηση, ανάλυση, δείκτες.','Full synthetic dataset — patients, surveillance, analysis, indicators.')}</small></span><span className="status-badge temporary">DEMO</span><ArrowRight size={14}/></button>}
+      <section className={`platform-dashboard-overview${demoPreview?' demo-preview':''}`}>
+        <div className="platform-dashboard-overview-heading"><div><span className="platform-eyebrow">PLATFORM OWNER</span><h2>{tx('Επισκόπηση πλατφόρμας','Platform overview')}</h2><p>{demoPreview?tx('Προεπισκόπηση με synthetic demo δεδομένα.','Preview with synthetic demo data.'):tx('Η συνολική διοικητική εικόνα χωρίς είσοδο σε οργανισμό.','The administrative overview without entering an organization.')}</p></div><div className="platform-dashboard-overview-actions">{demoPreview?<span className="status-badge temporary">DEMO</span>:<span className="platform-live-pill"><i/>{tx('Πλατφόρμα ενεργή','Platform active')}</span>}</div></div>
         <div className="platform-dashboard-metrics">
           <Metric label={tx('Οργανισμοί','Organizations')} value={organizations.length} detail={`${activeOrganizations} ${tx('ενεργοί','active')}`} />
           <Metric label={tx('Ανενεργοί','Inactive')} value={inactive} detail={tx('οργανισμοί','organizations')} tone={inactive?'warning':'default'} />
-          <Metric label="Demo" value={loadingStats?'—':activeDemos.length+(demoPreview?1:0)} detail={tx('ενεργές προσβάσεις','active access')} />
+          <Metric label="Demo" value={loadingStats?'—':activeDemos.length} detail={tx('ενεργές προσβάσεις','active access')} />
           <Metric label={tx('Demo που λήγουν','Demo expiring')} value={loadingStats?'—':expiringDemos.length} detail={tx('εντός 14 ημερών','within 14 days')} tone={expiringDemos.length?'warning':'default'} />
         </div>
       </section>
@@ -44,8 +43,8 @@ export function PlatformDashboardView({tx,organizations,activeOrganizations,acti
       </div>
 
       <section className="platform-dashboard-organizations">
-        <header><div><h3>{tx('Οργανισμοί','Organizations')}</h3><p>{tx('Άμεση πρόσβαση στους οργανισμούς της πλατφόρμας.','Quick access to platform organizations.')}</p></div><button type="button" onClick={()=>onNavigate('/platform#organizations')}>{tx('Προβολή όλων','View all')} <ArrowRight size={14}/></button></header>
-        {organizations.length?<div className="platform-dashboard-org-list">{organizations.slice(0,6).map(org=><button key={org.id} type="button" onClick={()=>onNavigate(`/platform#organizations?organization=${org.id}&tab=details`)}><span className="platform-org-mark"><Building2 size={15}/></span><span><strong>{org.name||org.code}</strong><small>{[org.code,org.city].filter(Boolean).join(' · ')||'—'}</small></span><span className={`status-badge ${org.status==='active'?'active':'temporary'}`}>{org.status==='active'?tx('Ενεργός','Active'):tx('Ανενεργός','Inactive')}</span><ArrowRight size={14}/></button>)}</div>:<div className="inline-empty">{tx('Δεν υπάρχουν οργανισμοί.','No organizations found.')}</div>}
+        <header><div><h3>{tx('Οργανισμοί','Organizations')}</h3><p>{demoPreview?tx('Demo νοσοκομεία — synthetic δεδομένα.','Demo hospitals — synthetic data.'):tx('Άμεση πρόσβαση στους οργανισμούς της πλατφόρμας.','Quick access to platform organizations.')}</p></div><button type="button" onClick={()=>onNavigate('/platform#organizations')}>{tx('Προβολή όλων','View all')} <ArrowRight size={14}/></button></header>
+        {organizations.length?<div className="platform-dashboard-org-list">{organizations.slice(0,6).map(org=><button key={org.id} type="button" onClick={()=>onNavigate(`/platform#organizations?organization=${org.id}&tab=details`)}><span className={`platform-org-mark${demoPreview?' demo':''}`}><Building2 size={15}/></span><span><strong>{org.name||org.code}</strong><small>{[org.code,org.city].filter(Boolean).join(' · ')||'—'}</small></span><span className={`status-badge ${demoPreview?'temporary':org.status==='active'?'active':'temporary'}`}>{demoPreview?'DEMO':org.status==='active'?tx('Ενεργός','Active'):tx('Ανενεργός','Inactive')}</span><ArrowRight size={14}/></button>)}</div>:<div className="inline-empty">{tx('Δεν υπάρχουν οργανισμοί.','No organizations found.')}</div>}
       </section>
     </div>
   </Page>

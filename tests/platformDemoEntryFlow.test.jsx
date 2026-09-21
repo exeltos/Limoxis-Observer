@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
-// User request: pressing "Είσοδος Demo" on the Platform Center overview
-// should NOT navigate away — it should stay on that same screen showing a
-// demo preview (Demo Hospital card, demo stats), and only actually enter
-// the demo hospital's full dashboard when that card is clicked. Once in
-// demo mode anywhere in the app, a permanent DEMO badge should appear in
-// the topbar (not the old sidebar-footer pill), letting the owner exit
-// demo from any screen.
+// User request (revised twice): the "Είσοδος Demo" button moves to the
+// topbar, next to the other Platform Owner actions. Pressing it only
+// toggles TenantContext's platformDemoPreview — it must never call
+// enterPlatformDemo()/navigate on its own. While previewing, the real
+// organizations disappear entirely from the Platform Center's
+// "Οργανισμοί" list, replaced by the single synthetic "Demo Hospital"
+// entry; clicking that entry opens a read-only PlatformDemoOrganizationRecord
+// (not the real, backend-backed PlatformOrganizationRecord), and only its
+// own "Είσοδος" action actually calls enterPlatformDemo() and enters the
+// full working demo hospital.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { fireEvent, cleanup, render, screen, waitFor } from '@testing-library/react'
@@ -37,38 +40,26 @@ const baseProps = {
   onNavigate: () => {},
 }
 
-describe('Platform Center demo preview (PlatformDashboardView)', () => {
-  it('shows "Enter Demo" and no preview card by default', () => {
-    render(<PlatformDashboardView {...baseProps} demoPreview={false} onEnterDemoPreview={() => {}} onExitDemoPreview={() => {}} onEnterDemoOrganization={() => {}}/>)
-    expect(screen.getByText('Είσοδος Demo')).toBeInTheDocument()
+describe('PlatformDashboardView demo preview display (no entry button of its own anymore)', () => {
+  it('shows the live-platform pill and real organizations by default', () => {
+    render(<PlatformDashboardView {...baseProps} demoPreview={false}/>)
+    expect(screen.getByText('Πλατφόρμα ενεργή')).toBeInTheDocument()
+    expect(screen.getByText('Lena Hospital')).toBeInTheDocument()
     expect(screen.queryByText('Demo Hospital')).not.toBeInTheDocument()
   })
 
-  it('clicking "Enter Demo" only triggers the preview callback, not navigation into the org', () => {
-    const onEnterDemoPreview = vi.fn()
-    const onEnterDemoOrganization = vi.fn()
-    render(<PlatformDashboardView {...baseProps} demoPreview={false} onEnterDemoPreview={onEnterDemoPreview} onExitDemoPreview={() => {}} onEnterDemoOrganization={onEnterDemoOrganization}/>)
-    fireEvent.click(screen.getByText('Είσοδος Demo'))
-    expect(onEnterDemoPreview).toHaveBeenCalledTimes(1)
-    expect(onEnterDemoOrganization).not.toHaveBeenCalled()
-  })
-
-  it('while previewing, shows the Demo Hospital card and an "Exit Demo" button, and clicking the card enters the demo organization', () => {
-    const onEnterDemoOrganization = vi.fn()
-    const onExitDemoPreview = vi.fn()
-    render(<PlatformDashboardView {...baseProps} demoPreview onEnterDemoPreview={() => {}} onExitDemoPreview={onExitDemoPreview} onEnterDemoOrganization={onEnterDemoOrganization}/>)
-    expect(screen.getByText('Έξοδος από Demo')).toBeInTheDocument()
-    const card = screen.getByText('Demo Hospital').closest('button')
-    fireEvent.click(card)
-    expect(onEnterDemoOrganization).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByText('Έξοδος από Demo'))
-    expect(onExitDemoPreview).toHaveBeenCalledTimes(1)
+  it('shows a DEMO badge instead of the live pill when the caller marks it as previewing (organizations swap happens upstream)', () => {
+    const demoOrgProps = { ...baseProps, organizations: [{ id: 'demo-hospital', name: 'Demo Hospital', code: 'DEMO', status: 'active' }], activeOrganizations: 1 }
+    render(<PlatformDashboardView {...demoOrgProps} demoPreview/>)
+    expect(screen.getAllByText('DEMO').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Πλατφόρμα ενεργή')).not.toBeInTheDocument()
+    expect(screen.getByText('Demo Hospital')).toBeInTheDocument()
+    expect(screen.queryByText('Lena Hospital')).not.toBeInTheDocument()
   })
 })
 
-describe('AppShell topbar DEMO badge', () => {
-  it('shows a clickable DEMO badge in the topbar once the Platform Owner enters the demo organization, and clicking it returns to /platform', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+describe('AppShell topbar demo controls', () => {
+  async function renderShell() {
     const { LanguageProvider } = await import('../src/core/i18n/LanguageContext')
     const { FeedbackProvider } = await import('../src/core/feedback/FeedbackContext')
     const { NotificationProvider } = await import('../src/core/notifications/NotificationContext')
@@ -98,13 +89,39 @@ describe('AppShell topbar DEMO badge', () => {
         </LanguageProvider>
       </MemoryRouter>,
     )
-
     await waitFor(() => expect(tenantApi?.enterPlatformDemo).toBeTypeOf('function'))
-    // Before entering demo: no DEMO badge, sidebar-less Platform Center shell.
+    return { get tenantApi() { return tenantApi }, get navigateFn() { return navigateFn } }
+  }
+
+  it('toggling the topbar "Είσοδος Demo" button only flips platformDemoPreview — it never enters demo or navigates', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const ctx = await renderShell()
+
+    expect(screen.getByText('platform-center-stub')).toBeInTheDocument()
+    const toggle = screen.getByText('Είσοδος Demo')
+    expect(ctx.tenantApi.platformDemoPreview).toBe(false)
+
+    fireEvent.click(toggle)
+    await waitFor(() => expect(ctx.tenantApi.platformDemoPreview).toBe(true))
+    expect(ctx.tenantApi.isDemo).toBe(false)
+    expect(ctx.tenantApi.tenant).toBeNull()
+    expect(screen.getByText('Έξοδος από Demo')).toBeInTheDocument()
+    // Still on the Platform Center screen — toggling preview never navigates.
+    expect(screen.getByText('platform-center-stub')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Έξοδος από Demo'))
+    await waitFor(() => expect(ctx.tenantApi.platformDemoPreview).toBe(false))
+    expect(screen.getByText('Είσοδος Demo')).toBeInTheDocument()
+  })
+
+  it('shows a clickable DEMO badge in the topbar once the Platform Owner actually enters the demo organization, and clicking it returns to /platform', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const ctx = await renderShell()
+
     expect(screen.queryByText('DEMO')).not.toBeInTheDocument()
 
-    // Mirrors onEnterDemoOrganization: enterPlatformDemo() then navigate('/').
-    act(() => { tenantApi.enterPlatformDemo(); navigateFn('/') })
+    // Mirrors PlatformDemoOrganizationRecord's onEnter: enterPlatformDemo() then navigate('/').
+    act(() => { ctx.tenantApi.enterPlatformDemo(); ctx.navigateFn('/') })
 
     await waitFor(() => expect(screen.getByText('dashboard-stub')).toBeInTheDocument())
     const badge = await waitFor(() => {
@@ -116,6 +133,9 @@ describe('AppShell topbar DEMO badge', () => {
 
     fireEvent.click(badge)
     await waitFor(() => expect(screen.getByText('platform-center-stub')).toBeInTheDocument())
-    expect(document.querySelector('.topbar-demo-badge')).not.toBeInTheDocument()
+    // Back on /platform: the badge that remains is the preview toggle in its
+    // "off" state ("Είσοδος Demo"), not the active-demo exit badge ("DEMO").
+    expect(screen.getByText('Είσοδος Demo')).toBeInTheDocument()
+    expect(ctx.tenantApi.isDemo).toBe(false)
   })
 })
