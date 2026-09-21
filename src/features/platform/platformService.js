@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
+import { loadActiveClustersAsync } from '../surveillance/outbreakClusterService'
 
 const localKey='limoxis.platform.center.v1'
 const NO_EXPIRATION_DATE='9999-12-31'
@@ -105,13 +106,14 @@ function mergeAmrRows(snapshots){
 }
 
 async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',departmentId=''}){
-  const [summaryResult,microbiology,amrSusceptibility]=await withTimeout(Promise.all([
+  const [summaryResult,microbiology,amrSusceptibility,clusters]=await withTimeout(Promise.all([
     supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}),
     loadMicrobiologyAnalytics({organizationId,from,to,departmentId}),
     loadAmrSusceptibility({organizationId,from,to,departmentId}),
+    organizationId?loadActiveClustersAsync(organizationId).catch(()=>[]):Promise.resolve([]),
   ]))
   if(summaryResult.error)throw summaryResult.error
-  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility}
+  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters}
 }
 
 function mergeAnalysisSnapshots(snapshots){
@@ -119,7 +121,7 @@ function mergeAnalysisSnapshots(snapshots){
   for(const snapshot of snapshots){for(const item of snapshot?.microbiology?.departments||[]){if(seenDepartments.has(item.id))continue;seenDepartments.add(item.id);departments.push(item)}for(const row of snapshot?.microbiology?.byOrganization||[])byOrganization.push(row)}
   const totalPositive=snapshots.reduce((sum,item)=>sum+(Number(item?.microbiology?.totalPositive)||0),0)
   const totalCritical=snapshots.reduce((sum,item)=>sum+(Number(item?.microbiology?.totalCritical)||0),0)
-  return {source:'production',summary:sumSummary(snapshots),microbiology:{microorganisms:mergeEntryRows(snapshots,'microorganisms'),resistance:mergeEntryRows(snapshots,'resistance',5),monthly:mergeMonthly(snapshots),byOrganization:byOrganization.sort((a,b)=>Number(b[1]||0)-Number(a[1]||0)),byDepartment:mergeEntryRows(snapshots,'byDepartment'),bySource:mergeEntryRows(snapshots,'bySource'),nationalRows:mergeNationalRows(snapshots),totalPositive,totalCritical,departmentCount:new Set(snapshots.flatMap(item=>(item?.microbiology?.byDepartment||[]).map(([name])=>name))).size,departments},amrSusceptibility:mergeAmrRows(snapshots)}
+  return {source:'production',summary:sumSummary(snapshots),microbiology:{microorganisms:mergeEntryRows(snapshots,'microorganisms'),resistance:mergeEntryRows(snapshots,'resistance',5),monthly:mergeMonthly(snapshots),byOrganization:byOrganization.sort((a,b)=>Number(b[1]||0)-Number(a[1]||0)),byDepartment:mergeEntryRows(snapshots,'byDepartment'),bySource:mergeEntryRows(snapshots,'bySource'),nationalRows:mergeNationalRows(snapshots),totalPositive,totalCritical,departmentCount:new Set(snapshots.flatMap(item=>(item?.microbiology?.byDepartment||[]).map(([name])=>name))).size,departments},amrSusceptibility:mergeAmrRows(snapshots),clusters:snapshots.flatMap(item=>item?.clusters||[]).sort((a,b)=>b.count-a.count||String(b.lastDate).localeCompare(String(a.lastDate)))}
 }
 
 export async function loadAnalysisSnapshot({organizationId='',organizationIds=[],from='',to='',departmentId=''}={}){

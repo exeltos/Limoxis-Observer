@@ -18,6 +18,7 @@ import { loadCommittees } from '../committees/committeeData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { employeeRows } from '../employees/employeeDemoData'
 import { loadTrainingState } from '../training/trainingData'
+import { collectDemoOrganismClusters } from '../surveillance/outbreakClusterService'
 
 // Same eight ΕΟΔΥ reference pathogens and reference antibiotics as
 // indicatorEngine.js's REFERENCE_PATHOGEN_PATTERNS/AMR_REFERENCE_ANTIBIOTIC.
@@ -137,5 +138,5 @@ export function collectAnalysisDemoSnapshot() {
     antiseptic: loadAntisepticLocal().length,
     bundles: loadBundlesLocal().length,
   }
-  return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility() }
+  return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility(), clusters: collectDemoOrganismClusters() }
 }
