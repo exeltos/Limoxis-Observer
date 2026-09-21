@@ -87,6 +87,28 @@ export const HAI_CRITERIA_SETS = {
       },
     ],
   },
+  clabsi_neonatal: {
+    labelEl: 'CLABSI (νεογνική/βρεφική) – Λοίμωξη αιματικής ροής σχετιζόμενη με κεντρικό καθετήρα σε ασθενή ≤1 έτους',
+    labelEn: 'CLABSI (neonatal/infant) – Central line-associated bloodstream infection in a patient ≤1 year',
+    source: 'CDC/NHSN (simplified, age ≤1 year LCBI criteria)',
+    groups: [
+      {
+        id: 'device',
+        rule: 'all',
+        items: [
+          { id: 'centralLine48h', textEl: 'Κεντρικός φλεβικός καθετήρας in situ για >2 ημερολογιακές ημέρες πριν την ημερομηνία έναρξης', textEn: 'Central line in place for >2 calendar days before the date of event' },
+        ],
+      },
+      {
+        id: 'micro',
+        rule: 'any',
+        items: [
+          { id: 'recognizedPathogen', textEl: 'Αναγνωρισμένο παθογόνο σε ≥1 καλλιέργεια αίματος, χωρίς σχέση με λοίμωξη άλλης εντόπισης', textEn: 'A recognized pathogen from ≥1 blood culture, unrelated to infection at another site' },
+          { id: 'commonCommensalTwiceInfant', textEl: 'Κοινός δερματικός κομμενσαλιστής σε ≥2 καλλιέργειες αίματος σε διαφορετικές λήψεις + ένα από: πυρετός (>38°C), υποθερμία (<36°C πυρήνα), άπνοια ή βραδυκαρδία', textEn: 'A common skin commensal from ≥2 separate blood cultures + one of: fever (>38°C core), hypothermia (<36°C core), apnea, or bradycardia' },
+        ],
+      },
+    ],
+  },
   ssi: {
     labelEl: 'SSI – Λοίμωξη χειρουργικού πεδίου',
     labelEn: 'SSI – Surgical site infection',

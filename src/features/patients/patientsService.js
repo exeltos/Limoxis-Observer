@@ -13,6 +13,8 @@ function mapRow(row, departmentLabel){
     nameEn: name,
     hospitalRecordNumber: row.hospital_record_number,
     dateOfBirth: row.date_of_birth,
+    birthWeightGrams: row.birth_weight_grams,
+    gestationalAgeWeeks: row.gestational_age_weeks,
     sex: row.sex,
     departmentId: row.department_id,
     department: departmentLabel||'',
@@ -63,6 +65,8 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     father_name:draft.fatherName||draft.patronymic||null,
     hospital_record_number:draft.hospitalRecordNumber||null,
     date_of_birth:draft.dateOfBirth||null,
+    birth_weight_grams:draft.birthWeightGrams||null,
+    gestational_age_weeks:draft.gestationalAgeWeeks||null,
     sex:draft.sex||null,
     department_id:department?.id||null,
     admission_date:draft.admissionDate,
@@ -87,6 +91,8 @@ export async function updatePatient(organizationId, patient, patch, {isDemo=fals
   if(patch.fatherName!==undefined)payload.father_name=patch.fatherName||null
   if(patch.hospitalRecordNumber!==undefined)payload.hospital_record_number=patch.hospitalRecordNumber||null
   if(patch.dateOfBirth!==undefined)payload.date_of_birth=patch.dateOfBirth||null
+  if(patch.birthWeightGrams!==undefined)payload.birth_weight_grams=patch.birthWeightGrams||null
+  if(patch.gestationalAgeWeeks!==undefined)payload.gestational_age_weeks=patch.gestationalAgeWeeks||null
   if(patch.sex!==undefined)payload.sex=patch.sex||null
   if(patch.notes!==undefined)payload.notes=patch.notes||null
   const departmentLabel=patient.department

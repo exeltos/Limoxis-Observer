@@ -8,7 +8,7 @@ import { loadEmployees } from '../employees/employeeStore'
 import { loadVaccinations } from '../employees/employeeRecordsService'
 import { loadTrainingState } from '../training/trainingData'
 import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
-import { collectDeviceDaySources } from '../surveillance/deviceDayIndicators'
+import { collectDeviceDaySources, collectNeonatalDeviceDaySourcesByBand, BIRTH_WEIGHT_BANDS } from '../surveillance/deviceDayIndicators'
 import { calculateHaiRate } from '../lira/liraHaiMetrics'
 
 const round=(n,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
@@ -84,6 +84,13 @@ export function collectIndicatorMetrics(){
  const clabsi=calculateHaiRate(deviceDaySources,'clabsi',{})
  const cauti=calculateHaiRate(deviceDaySources,'cauti',{})
  const vap=calculateHaiRate(deviceDaySources,'vap',{})
+ const neonatalDeviceDaysByBand=collectNeonatalDeviceDaySourcesByBand()
+ const neonatalClabsiByBand={}
+ for(const band of BIRTH_WEIGHT_BANDS){
+  const rate=calculateHaiRate(neonatalDeviceDaysByBand[band.id],'clabsi',{})
+  neonatalClabsiByBand[`clabsi_events_${band.id}`]=rate.events
+  neonatalClabsiByBand[`central_line_days_${band.id}`]=rate.deviceDays
+ }
  return {
   active_surveillance:active.length,
   resistant_active_surveillance:resistant.length,
@@ -115,5 +122,6 @@ export function collectIndicatorMetrics(){
   urinary_catheter_days:cauti.deviceDays,
   vap_events:vap.events,
   ventilator_days:vap.deviceDays,
+  ...neonatalClabsiByBand,
  }
 }
