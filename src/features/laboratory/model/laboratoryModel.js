@@ -73,6 +73,24 @@ export function normalizeLaboratorySamples(rows) {
   return rows.map(normalizeLaboratorySample)
 }
 
+export function computeTurnaroundHours(sample) {
+  const start = sample?.requestedAt ?? sample?.collectedAt ?? null
+  const end = sample?.resultedAt ?? null
+  if (!start || !end) return null
+  const startMs = new Date(start).getTime()
+  const endMs = new Date(end).getTime()
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null
+  return (endMs - startMs) / 3600000
+}
+
+export function formatTurnaround(hours, language = 'el') {
+  if (hours == null) return '—'
+  if (hours < 24) return `${Math.round(hours)}${language === 'en' ? 'h' : 'ω'}`
+  const days = Math.floor(hours / 24)
+  const remainingHours = Math.round(hours % 24)
+  return language === 'en' ? `${days}d ${remainingHours}h` : `${days}η ${remainingHours}ω`
+}
+
 export function validateLaboratorySample(sample) {
   const errors = []
   if (!sample?.code) errors.push('code')
