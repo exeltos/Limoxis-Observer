@@ -2271,6 +2271,48 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
 .indicator-record-method,.indicator-record-source{padding:11px 12px;border:1px solid var(--line);border-radius:9px}.indicator-record-method header{display:flex;gap:7px;align-items:center}.indicator-record-method header strong{font-size:10px}.indicator-formula-line{display:flex;gap:7px;align-items:center;margin:9px 0 5px}.indicator-formula-line code{padding:5px 7px;border-radius:6px;background:#f4f6f8;font:inherit;font-size:10px}.indicator-record-method p{font-size:8.5px;color:var(--muted);margin:0}.indicator-record-source{display:flex;gap:8px;align-items:flex-start;background:#fbfcfd}.indicator-record-source>div{display:grid;gap:2px}.indicator-record-source strong{font-size:10px}.indicator-record-source span{font-size:8.5px;color:var(--muted);line-height:1.4}
 .indicator-create-form{display:grid;gap:12px}.indicator-create-form label{display:grid;gap:5px}.indicator-create-form label>span{font-size:9px;font-weight:700}.indicator-create-form input,.indicator-create-form select{font:inherit;font-size:11px}.indicator-create-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.indicator-create-mode{display:grid;grid-template-columns:1fr 1fr;gap:8px}.indicator-create-mode button{display:flex;gap:8px;text-align:left;border:1px solid var(--line);border-radius:9px;background:#fff;padding:10px;font:inherit;cursor:pointer}.indicator-create-mode button.active{background:#eef4f8;border-color:#b9cfdf}.indicator-create-mode button div{display:grid;gap:2px}.indicator-create-mode strong{font-size:10px}.indicator-create-mode span{font-size:8.5px;color:var(--muted)}.indicator-create-preview{display:grid;gap:5px;align-content:end;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd}.indicator-create-preview span{font-size:8.5px;color:var(--muted)}.indicator-create-preview strong{font-size:10px;overflow-wrap:anywhere}.indicator-create-note{display:flex;gap:8px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd}.indicator-create-note span{font-size:8.5px;line-height:1.45;color:var(--muted)}
 @media(max-width:760px){.indicator-create-grid,.indicator-create-mode,.indicator-record-meta{grid-template-columns:1fr}.indicator-record-meta>div{border-right:0;border-bottom:1px solid var(--line)}}
+/* Indicator definition form: pack the many single-value fields into 3 columns
+   instead of 2, and trim control/text sizing, so a definition fits with less
+   scrolling. Full-width fields (title, numerator/denominator definitions,
+   validation notes) still span the whole row via .entry-span-2. */
+.indicator-create-form .entry-grid,
+.indicator-record-form .entry-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:10px 14px!important;
+  padding:0!important;
+}
+.indicator-create-form .entry-grid .entry-span-2,
+.indicator-record-form .entry-grid .entry-span-2{
+  grid-column:1 / -1!important;
+}
+.indicator-create-form .entry-grid label>span,
+.indicator-record-form .entry-grid label>span{
+  font-size:9.5px!important;
+}
+.indicator-create-form .entry-grid :is(input,select),
+.indicator-record-form .entry-grid :is(input,select){
+  height:36px!important;
+  font-size:11.5px!important;
+}
+.indicator-create-form .entry-grid textarea,
+.indicator-record-form .entry-grid textarea{
+  min-height:58px!important;
+  font-size:11.5px!important;
+}
+.indicator-create-form .entry-grid .manual-date-field,
+.indicator-record-form .entry-grid .manual-date-field{
+  gap:5px!important;
+}
+@media(max-width:980px){
+  .indicator-create-form .entry-grid,
+  .indicator-record-form .entry-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:640px){
+  .indicator-create-form .entry-grid,
+  .indicator-record-form .entry-grid{grid-template-columns:1fr!important}
+  .indicator-create-form .entry-grid .entry-span-2,
+  .indicator-record-form .entry-grid .entry-span-2{grid-column:1!important}
+}
 
 /* v0.26.28 Indicators */
 .indicator-click-table tbody tr{cursor:pointer}
