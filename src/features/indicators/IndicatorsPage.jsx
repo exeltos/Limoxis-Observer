@@ -1,6 +1,6 @@
-import { useCallback,useEffect,useMemo,useState } from 'react'
+import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Activity,CheckCircle2,ClipboardCheck,Database,Plus,RefreshCcw,Target,TrendingUp } from 'lucide-react'
+import { Activity,CheckCircle2,ClipboardCheck,Database,Download,Plus,RefreshCcw,Target,TrendingUp } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
@@ -15,6 +15,7 @@ import { CAPABILITIES,can,scopeFor } from '../../core/permissions/roles'
 import { DATA_SCOPES } from '../../core/permissions/scopeTypes'
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
+import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { approveIndicatorSnapshot,collectCloudIndicatorMetrics,calculateCloudDefinition,loadOperationalIndicatorDefinitions,loadIndicatorSnapshots } from './indicatorCloudService'
 
 const today=()=>new Date().toISOString().slice(0,10)
@@ -23,7 +24,8 @@ const categoryLabel=(category,t)=>({surveillance:t('surveillance'),prevention:t(
 const statusText=(status,t)=>status==='onTarget'?t('indicatorsRecords.onTargetStatus'):status==='attention'?t('indicatorsRecords.attentionStatus'):t('indicatorsRecords.contextStatus')
 
 export function IndicatorsPage(){
- const navigate=useNavigate();const registry=useRegistryMemory('indicators');const {tenant,membership,role,isDemo}=useTenant();const {t,language}=useLanguage();const {notify}=useFeedback();const el=language==='el'
+ const navigate=useNavigate();const registry=useRegistryMemory('indicators');const {tenant,membership,role,isDemo}=useTenant();const {t,language}=useLanguage();const {notify,notifyError}=useFeedback();const el=language==='el'
+ const reportRef=useRef(null);const [exporting,setExporting]=useState(false)
  const addOns=membership?.capabilities||[],customCapabilities=membership?.customCapabilities||[];const canManage=can(role,CAPABILITIES.MANAGE_INDICATORS,addOns,customCapabilities)
  const indicatorScope=scopeFor(CAPABILITIES.VIEW_INDICATORS,{role,scopeOverrides:membership?.scopeOverrides||{}})
  const scopedDepartmentIds=useMemo(()=>membership?.previewDepartment?[membership.previewDepartment]:(membership?.departmentIds||[]),[membership?.previewDepartment,membership?.departmentIds])
@@ -44,7 +46,16 @@ export function IndicatorsPage(){
  const activeFilterCount=(category!=='all'?1:0)+(!departmentScoped&&department?1:0)+(from!==defaultFrom?1:0)+(to!==defaultTo?1:0)
  function clearFilters(){setQuery('');setCategory('all');if(!departmentScoped)setDepartment('');setFrom(defaultFrom);setTo(defaultTo);setPage(1)}
  function openIndicator(row){if(!row.definitionId)return;registry.openRecord(navigate,`/indicators/${row.definitionId}`,row.definitionId,sequenceIds,{state:{indicatorPeriod:{from,to,departmentId:effectiveDepartment||null}}})}
- return <Page fill title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={<div className="row-actions"><Button variant="secondary" onClick={calculate} disabled={loading}><RefreshCcw size={15}/>{t('recalculate')}</Button>{canManage&&<Button onClick={()=>navigate('/indicators/new')}><Plus size={16}/>{t('indicatorsRecords.newIndicatorTitle')}</Button>}</div>}>
+ const departmentLabel=effectiveDepartment?(allowedDepartments.find(d=>d.id===effectiveDepartment)?.name||effectiveDepartment):t('indicatorsRecords.wholeHospital')
+ async function exportPdf(){
+  if(exporting||!reportRef.current)return
+  setExporting(true)
+  try{
+   await exportElementAsPdf({element:reportRef.current,filename:`${tenant?.name||'Indicators'}_${from}_${to}${effectiveDepartment?`_${departmentLabel}`:''}`})
+  }catch(error){notifyError(error,'export',{operation:'indicators_pdf_export'})}
+  finally{setExporting(false)}
+ }
+ return <Page fill title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={<div className="row-actions"><IconButton label={t('indicatorsRecords.exportPdfReport')} disabled={exporting||!filtered.length} onClick={exportPdf}><Download size={16}/></IconButton><Button variant="secondary" onClick={calculate} disabled={loading}><RefreshCcw size={15}/>{t('recalculate')}</Button>{canManage&&<Button onClick={()=>navigate('/indicators/new')}><Plus size={16}/>{t('indicatorsRecords.newIndicatorTitle')}</Button>}</div>}>
   <div className="indicator-summary-strip module-summary-strip"><MetricCard icon={Activity} value={definitions.length} label={t('indicatorsRecords.activeDefinitions')}/><MetricCard icon={CheckCircle2} value={onTarget} label={t('indicatorsRecords.onTargetStatus')} tone="active"/><MetricCard icon={Target} value={attention} label={t('indicatorsRecords.needAttentionLabel')} tone={attention?'warning':'neutral'}/><MetricCard icon={TrendingUp} value={snapshots.filter(s=>s.status==='approved').length} label={t('indicatorsRecords.approvedResults')}/></div>
   {departmentScoped&&<div className="governance-banner"><Database size={16}/><span>{t('indicatorsRecords.departmentScopedBanner')}</span></div>}
   <section className="surface registry-workspace workspace-column workspace-fill indicator-registry">
@@ -62,5 +73,14 @@ export function IndicatorsPage(){
   })()}</td></tr>})}</tbody></table>{!loading&&!filtered.length&&<div className="registry-empty-state"><strong>{t('indicatorsRecords.noActiveIndicators')}</strong><span>{t('indicatorsRecords.noIndicatorsMatchFilters')}</span></div>}</div>
    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
   </section>
+  <div style={{position:'fixed',top:0,left:'-10000px',width:'1200px'}} aria-hidden="true"><IndicatorsPdfReport reportRef={reportRef} t={t} el={el} tenant={tenant} from={from} to={to} departmentLabel={effectiveDepartment?departmentLabel:null} category={category!=='all'?categoryLabel(category,t):null} query={query} rows={filtered}/></div>
  </Page>
+}
+function IndicatorsPdfReport({reportRef,t,el,tenant,from,to,departmentLabel,category,query,rows}){
+ const filters=[[t('indicatorsRecords.reportPeriodLabel'),`${from} – ${to}`],departmentLabel?[t('indicatorsRecords.reportDepartmentLabel'),departmentLabel]:null,category?[t('indicatorsRecords.reportCategoryLabel'),category]:null,query.trim()?[t('indicatorsRecords.reportSearchLabel'),query.trim()]:null].filter(Boolean)
+ return <div ref={reportRef} className="indicators-pdf-report">
+  <header><h1>{tenant?.name||t('indicators')}</h1><h2>{t('indicators')}</h2><span>{t('indicatorsRecords.reportGeneratedAt')} {new Intl.DateTimeFormat(el?'el-GR':'en-GB',{dateStyle:'medium',timeStyle:'short'}).format(new Date())}</span></header>
+  <section className="indicators-pdf-filters"><strong>{t('indicatorsRecords.reportActiveFilters')}</strong><div>{filters.map(([label,value])=><span key={label}>{label}: <b>{value}</b></span>)}</div></section>
+  <table><thead><tr><th>{t('indicatorsRecords.tableIndicator')}</th><th>{t('category')}</th><th>{t('indicatorsRecords.tableResult')}</th><th>{t('indicatorsRecords.sourceVersionLabel')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(r=><tr key={r.definitionId||r.id}><td>{el?r.titleEl:r.titleEn}</td><td>{categoryLabel(r.category,t)}</td><td>{r.value??'—'} {r.calculation!=='manual'?(el?r.unit:(r.unitEn||r.unit)):''}</td><td>{r.source}</td><td>{statusText(r.status,t)}</td></tr>)}</tbody></table>
+ </div>
 }
