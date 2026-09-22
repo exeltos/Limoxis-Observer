@@ -48,14 +48,14 @@ export function IndicatorsPage(){
  function openIndicator(row){if(!row.definitionId)return;registry.openRecord(navigate,`/indicators/${row.definitionId}`,row.definitionId,sequenceIds,{state:{indicatorPeriod:{from,to,departmentId:effectiveDepartment||null}}})}
  const departmentLabel=effectiveDepartment?(allowedDepartments.find(d=>d.id===effectiveDepartment)?.name||effectiveDepartment):t('indicatorsRecords.wholeHospital')
  async function exportPdf(){
-  if(exporting||!reportRef.current)return
+  if(exporting||loading||to<from||!reportRef.current)return
   setExporting(true)
   try{
    await exportElementAsPdf({element:reportRef.current,filename:`${tenant?.name||'Indicators'}_${from}_${to}${effectiveDepartment?`_${departmentLabel}`:''}`})
   }catch(error){notifyError(error,'export',{operation:'indicators_pdf_export'})}
   finally{setExporting(false)}
  }
- return <Page fill title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={<div className="row-actions"><IconButton label={t('indicatorsRecords.exportPdfReport')} disabled={exporting||!filtered.length} onClick={exportPdf}><Download size={16}/></IconButton><Button variant="secondary" onClick={calculate} disabled={loading}><RefreshCcw size={15}/>{t('recalculate')}</Button>{canManage&&<Button onClick={()=>navigate('/indicators/new')}><Plus size={16}/>{t('indicatorsRecords.newIndicatorTitle')}</Button>}</div>}>
+ return <Page fill title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={<div className="row-actions"><IconButton label={t('indicatorsRecords.exportPdfReport')} disabled={exporting||loading||to<from||!filtered.length} onClick={exportPdf}><Download size={16}/></IconButton><Button variant="secondary" onClick={calculate} disabled={loading}><RefreshCcw size={15}/>{t('recalculate')}</Button>{canManage&&<Button onClick={()=>navigate('/indicators/new')}><Plus size={16}/>{t('indicatorsRecords.newIndicatorTitle')}</Button>}</div>}>
   <div className="indicator-summary-strip module-summary-strip"><MetricCard icon={Activity} value={definitions.length} label={t('indicatorsRecords.activeDefinitions')}/><MetricCard icon={CheckCircle2} value={onTarget} label={t('indicatorsRecords.onTargetStatus')} tone="active"/><MetricCard icon={Target} value={attention} label={t('indicatorsRecords.needAttentionLabel')} tone={attention?'warning':'neutral'}/><MetricCard icon={TrendingUp} value={snapshots.filter(s=>s.status==='approved').length} label={t('indicatorsRecords.approvedResults')}/></div>
   {departmentScoped&&<div className="governance-banner"><Database size={16}/><span>{t('indicatorsRecords.departmentScopedBanner')}</span></div>}
   <section className="surface registry-workspace workspace-column workspace-fill indicator-registry">
