@@ -1,0 +1,4 @@
+import {describe,expect,it} from 'vitest'
+import fs from 'node:fs'
+const sql=fs.readFileSync('supabase/migrations/20260923114500_lira_outbreak_workspace.sql','utf8')
+describe('LIRA outbreak workspace persistence',()=>{it('uses tenant-scoped RLS',()=>{expect(sql).toContain('enable row level security');expect(sql).toContain('current_user_has_org_role');expect(sql).toContain('organization_id')});it('requires paired case-definition id and version',()=>{expect(sql).toContain('definition_id is null and definition_version is null');expect(sql).toContain('definition_id is not null and definition_version is not null')});it('keeps append-only evidence events separate',()=>{expect(sql).toContain('lira_outbreak_investigation_events');expect(sql).toContain("event_type in ('snapshot','hypothesis','decision','status','case_review')");expect(sql).not.toMatch(/grant select,insert,update on table public\.lira_outbreak_investigation_events/)})})
