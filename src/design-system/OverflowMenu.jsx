@@ -18,7 +18,7 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm'}
     if(!trigger)return
     const rect=trigger.getBoundingClientRect()
     const viewportWidth=window.innerWidth||document.documentElement.clientWidth
-    const width=Math.min(220,Math.max(0,viewportWidth-16))
+    const width=Math.min(260,Math.max(0,viewportWidth-16))
     const preferredLeft=align==='start'?rect.left:rect.right-width
     const left=Math.max(8,Math.min(preferredLeft,viewportWidth-width-8))
     setPosition({top:rect.bottom+6,left,width})

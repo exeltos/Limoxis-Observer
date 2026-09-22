@@ -7186,6 +7186,7 @@ button:disabled,
   cursor:pointer;
 }
 .lo-overflow-item svg{flex:0 0 auto;color:var(--lo-color-primary)}
+.lo-overflow-item span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .lo-overflow-item:hover:not(:disabled),.lo-overflow-item:focus-visible:not(:disabled){background:var(--lo-shell-control-hover);outline:none}
 .lo-overflow-item:disabled{opacity:.45;cursor:not-allowed}
 .lo-overflow-separated{margin-top:5px;padding-top:5px;border-top:1px solid var(--lo-color-border)}
