@@ -1,0 +1,4 @@
+import {describe,expect,it} from 'vitest'
+import fs from 'node:fs'
+const sql=fs.readFileSync('supabase/migrations/20260923123000_lira_outbreak_case_reviews.sql','utf8'),ui=fs.readFileSync('src/features/management/LiraOutbreakInvestigationsPanel.jsx','utf8')
+describe('LIRA human outbreak case review',()=>{it('is append-only and reviewer attributed',()=>{expect(sql).toContain('reviewer_id uuid not null default auth.uid()');expect(sql).toContain('supersedes_review_id');expect(sql).toContain('grant select,insert');expect(sql).not.toMatch(/grant select,insert,update/)});it('restricts classification to governed values and rationale',()=>{expect(sql).toContain("'suspected','probable','confirmed','excluded'");expect(sql).toContain('length(btrim(rationale))>0')});it('offers human review in line list',()=>{expect(ui).toContain('createOutbreakCaseReview');expect(ui).toContain('Human case review');expect(ui).toContain('δεν μεταβάλλει την αρχική κλινική εγγραφή')})})
