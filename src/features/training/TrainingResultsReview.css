@@ -1,39 +1,81 @@
 .training-review-dialog .observer-dialog-body{
-  padding:14px 16px 12px!important;
+  padding:12px 14px 10px!important;
+}
+.training-review-dialog>header{
+  padding:12px 14px 10px!important;
+}
+.training-review-dialog>header h3{
+  font-size:15px!important;
 }
 .training-review-content{
-  gap:12px!important;
+  gap:8px!important;
 }
 .training-review-summary{
   margin:0!important;
 }
+.training-review-certificate-row{
+  display:flex!important;
+  justify-content:flex-end!important;
+}
+.training-review-certificate-row .button{
+  min-height:30px!important;
+  padding:0 12px!important;
+  font-size:11px!important;
+}
+.training-review-summary .canonical-metric-card{
+  height:52px!important;
+  min-height:52px!important;
+  padding:7px 9px!important;
+  gap:8px!important;
+}
+.training-review-summary .canonical-metric-icon{
+  width:24px!important;
+  height:24px!important;
+  min-width:24px!important;
+  flex:0 0 24px!important;
+  border-radius:6px!important;
+}
+.training-review-summary .canonical-metric-icon>svg{
+  width:12px!important;
+  height:12px!important;
+}
+.training-review-summary .canonical-metric-copy>strong{
+  font-size:13.5px!important;
+}
+.training-review-summary .canonical-metric-copy>span{
+  font-size:8px!important;
+}
 .training-review-section{
   margin:0!important;
-  padding:14px 16px!important;
+  padding:10px 12px!important;
 }
 .training-review-section .record-section-header{
-  margin-bottom:10px!important;
+  margin-bottom:7px!important;
+}
+.training-review-section .eyebrow{
+  font-size:9px!important;
 }
 .training-review-section .record-section-header h3{
-  margin-top:2px!important;
+  margin-top:1px!important;
+  font-size:13px!important;
 }
 .training-answer-list{
   display:grid;
-  gap:9px;
+  gap:6px;
 }
 .training-answer-card{
   display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(140px,.5fr);
+  grid-template-columns:minmax(0,1fr) minmax(120px,.5fr);
   align-items:center;
-  gap:14px;
+  gap:10px;
   border:1px solid var(--lo-color-border,#dbe2e8);
-  border-radius:10px;
+  border-radius:9px;
   background:var(--lo-color-surface-subtle,#f8fafc);
-  padding:11px 13px;
+  padding:7px 10px;
 }
 .training-answer-question{
   display:flex;
-  gap:10px;
+  gap:8px;
   min-width:0;
   align-items:flex-start;
 }
@@ -43,77 +85,84 @@
 .training-answer-question strong{
   display:block;
   color:var(--lo-color-text,#17324d);
-  line-height:1.35;
+  line-height:1.3;
+  font-size:11.5px;
 }
 .training-answer-question small{
   display:block;
-  margin-top:3px;
+  margin-top:2px;
   color:var(--lo-color-text-muted,#66788a);
+  font-size:9.5px;
 }
 .training-answer-index{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  flex:0 0 27px;
-  width:27px;
-  height:27px;
+  flex:0 0 20px;
+  width:20px;
+  height:20px;
   border-radius:50%;
   background:var(--lo-color-primary-soft,#edf6fb);
   color:var(--lo-color-primary,#176998);
-  font-size:12px;
+  font-size:10px;
   font-weight:750;
 }
 .training-answer-value{
   justify-self:stretch;
   border-left:1px solid var(--lo-color-border,#dbe2e8);
-  padding-left:14px;
+  padding-left:10px;
   font-weight:650;
+  font-size:11.5px;
   color:var(--lo-color-text,#17324d);
   overflow-wrap:anywhere;
 }
 .training-feedback-layout{
   display:grid;
-  grid-template-columns:minmax(0,1.35fr) minmax(220px,.65fr);
-  gap:14px;
+  grid-template-columns:minmax(0,1.35fr) minmax(200px,.65fr);
+  gap:10px;
   align-items:start;
 }
 .training-feedback-scores,
 .training-feedback-comment{
   border:1px solid var(--lo-color-border,#dbe2e8);
-  border-radius:10px;
+  border-radius:9px;
   background:var(--lo-color-surface-subtle,#f8fafc);
-  padding:12px 13px;
+  padding:9px 10px;
 }
 .training-feedback-scores>strong,
 .training-feedback-comment>strong{
   display:block;
-  margin-bottom:8px;
+  margin-bottom:5px;
+  font-size:10.5px;
   color:var(--lo-color-text,#17324d);
 }
 .training-feedback-grid{
   display:grid;
-  gap:6px;
+  gap:3px;
 }
 .training-feedback-row{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:12px;
-  padding:5px 0;
+  gap:10px;
+  padding:3px 0;
   border-bottom:1px solid var(--lo-color-border-subtle,#e9eef2);
 }
 .training-feedback-row:last-child{
   border-bottom:0;
 }
 .training-feedback-row span{
+  font-size:10.5px;
   color:var(--lo-color-text-secondary,#40566d);
 }
 .training-feedback-row strong{
   white-space:nowrap;
+  font-size:11px;
   color:var(--lo-color-text,#17324d);
 }
 .training-feedback-comment p{
   margin:0;
+  font-size:10.5px;
   color:var(--lo-color-text-secondary,#40566d);
   white-space:pre-wrap;
 }
@@ -122,25 +171,26 @@
   flex-direction:row!important;
   align-items:flex-start!important;
   justify-content:flex-start!important;
-  gap:10px!important;
+  gap:8px!important;
   width:100%;
   margin:0;
-  padding:12px 14px;
+  padding:8px 11px;
   border:1px solid var(--lo-color-border,#dbe2e8);
-  border-radius:10px;
+  border-radius:9px;
   background:var(--lo-color-surface-subtle,#f8fafc);
   cursor:pointer;
 }
 .training-review-check input[type='checkbox']{
   flex:0 0 auto;
-  width:18px!important;
-  height:18px!important;
+  width:16px!important;
+  height:16px!important;
   margin:1px 0 0!important;
 }
 .training-review-check span{
   display:block;
   min-width:0;
-  line-height:1.45;
+  line-height:1.35;
+  font-size:10.5px;
   font-weight:650;
   color:var(--lo-color-text,#17324d);
 }
