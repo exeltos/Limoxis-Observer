@@ -28,7 +28,7 @@ const topicRules=[
 const intentFrom=text=>{
  if(has(text,['γιατι','why','εξηγησε','explain','τι σημαινει','πως προκυπτ']))return LIRA_INTENTS.EXPLANATION
  if(has(text,['συρρο','εξαρσ','outbreak','cluster','συσσωρευση']))return LIRA_INTENTS.CLUSTER
- if(has(text,['σε σχεση','συγκρι','compare','versus',' vs ','προηγουμεν','last month compared','τι αλλαξε','what changed']))return LIRA_INTENTS.COMPARISON
+ if(has(text,['σε σχεση','συγκρι','compare','versus',' vs ','προηγουμεν','last month compared','τι αλλαξε','πως αλλαξε','what changed','how changed']))return LIRA_INTENTS.COMPARISON
  if(has(text,['αυξη','μειω','ταση','trend','increas','decreas','μεταβολ']))return LIRA_INTENTS.TREND
  if(has(text,['ποιο τμημα','ποια μοναδα','χειροτερ','καλυτερ','περισσοτερ','λιγοτερ','ranking','rank','τι χειροτερεψε','τι βελτιωθηκε','what worsened','what improved','changed most','αλλαξε περισσοτερο']))return LIRA_INTENTS.RANKING
  if(has(text,['εκπροθεσ','εκκρεμ','overdue','pending','καθυστερ']))return LIRA_INTENTS.OVERDUE
