@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Archive, BookOpenCheck, Download, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
+import { Archive, BookOpenCheck, Check, Download, FileClock, Paperclip, Pencil, RotateCcw, Search, Send, Trash2 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -467,6 +467,19 @@ function DocumentDistributionPanel({ record, organizationId, isDemo, departments
   const [acknowledgers, setAcknowledgers] = useState([])
   const [loadingAcknowledgers, setLoadingAcknowledgers] = useState(false)
   const [sending, setSending] = useState(false)
+  const [audienceMode, setAudienceMode] = useState(record.departmentId ? 'department' : 'all')
+  const [selectedDepartments, setSelectedDepartments] = useState(record.departmentId ? [record.departmentId] : [])
+  const [deptQuery, setDeptQuery] = useState('')
+
+  useEffect(() => {
+    setAudienceMode(record.departmentId ? 'department' : 'all')
+    setSelectedDepartments(record.departmentId ? [record.departmentId] : [])
+    setDeptQuery('')
+  }, [record.id, record.departmentId])
+
+  function toggleDepartment(id) {
+    setSelectedDepartments((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]))
+  }
 
   useEffect(() => {
     if (isDemo) {
@@ -497,14 +510,16 @@ function DocumentDistributionPanel({ record, organizationId, isDemo, departments
 
   async function send() {
     if (sending) return
+    if (audienceMode === 'department' && selectedDepartments.length === 0) return
     setSending(true)
-    const departmentName = record.departmentId ? (departments.find((d) => d.id === record.departmentId)?.name || '') : ''
-    const audienceType = record.departmentId ? 'department' : 'all'
-    const audienceValues = record.departmentId ? [record.departmentId] : []
+    const departmentNames = selectedDepartments.map((id) => departments.find((d) => d.id === id)?.name).filter(Boolean)
+    const scopeLabel = audienceMode === 'department' ? departmentNames.join(', ') : ''
+    const audienceType = audienceMode
+    const audienceValues = audienceMode === 'department' ? selectedDepartments : []
     const title = en ? `Published document: ${record.title}` : `Δημοσιευμένο έγγραφο: ${record.title}`
     const message = en
-      ? `"${record.title}" (${record.id} · v${record.version || '—'}) has been published${departmentName ? ` for ${departmentName}` : ''} and requires read acknowledgement.`
-      : `Το έγγραφο «${record.title}» (${record.id} · v${record.version || '—'}) δημοσιεύτηκε${departmentName ? ` για το τμήμα ${departmentName}` : ''} και απαιτεί επιβεβαίωση ανάγνωσης.`
+      ? `"${record.title}" (${record.id} · v${record.version || '—'}) has been published${scopeLabel ? ` for ${scopeLabel}` : ''} and requires read acknowledgement.`
+      : `Το έγγραφο «${record.title}» (${record.id} · v${record.version || '—'}) δημοσιεύτηκε${scopeLabel ? ` για ${scopeLabel}` : ''} και απαιτεί επιβεβαίωση ανάγνωσης.`
     const payload = { title, message, priority: 'normal', audienceType, audienceValues, requiresAck: true, linkPath }
     try {
       if (isDemo) {
@@ -523,8 +538,9 @@ function DocumentDistributionPanel({ record, organizationId, isDemo, departments
   }
 
   const audienceLabel = (item) => item?.audienceType === 'department'
-    ? (departments.find((d) => d.id === item.audienceValues?.[0])?.name || (en ? 'Department' : 'Τμήμα'))
+    ? ((item.audienceValues || []).map((id) => departments.find((d) => d.id === id)?.name).filter(Boolean).join(', ') || (en ? 'Department(s)' : 'Τμήματα'))
     : (en ? 'Whole hospital' : 'Όλο το νοσοκομείο')
+  const filteredDepartments = departments.filter((d) => d.name.toLowerCase().includes(deptQuery.toLowerCase()))
 
   return <section className="record-section">
     <div className="record-section-header"><div>
@@ -551,7 +567,18 @@ function DocumentDistributionPanel({ record, organizationId, isDemo, departments
                 </>}
           </div>
         : canSend
-          ? <div className="record-actions"><ActionButton tone="primary" label={en ? 'Send distribution notice' : 'Αποστολή κοινοποίησης'} onClick={send} disabled={sending}><Send size={15} />{en ? 'Send distribution notice' : 'Αποστολή κοινοποίησης'}</ActionButton></div>
+          ? <div className="document-distribution-composer">
+              <label className="field"><span>{en ? 'Audience' : 'Κοινό'}</span><select value={audienceMode} onChange={(e) => setAudienceMode(e.target.value)}>
+                <option value="all">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>
+                <option value="department">{en ? 'Specific department(s)' : 'Συγκεκριμένα τμήματα'}</option>
+              </select></label>
+              {audienceMode === 'department' && <div className="recipient-picker">
+                <label className="recipient-search"><Search size={15} /><input value={deptQuery} onChange={(e) => setDeptQuery(e.target.value)} placeholder={en ? 'Search department...' : 'Αναζήτηση τμήματος...'} /></label>
+                <div className="recipient-options">{filteredDepartments.map((d) => <button type="button" key={d.id} className={selectedDepartments.includes(d.id) ? 'selected' : ''} onClick={() => toggleDepartment(d.id)}><span className="recipient-check">{selectedDepartments.includes(d.id) && <Check size={13} />}</span><span><strong>{d.name}</strong></span></button>)}</div>
+                <div className="recipient-summary">{selectedDepartments.length} {en ? 'selected' : 'επιλεγμένα'}</div>
+              </div>}
+              <div className="record-actions"><ActionButton tone="primary" label={en ? 'Send distribution notice' : 'Αποστολή κοινοποίησης'} onClick={send} disabled={sending || (audienceMode === 'department' && selectedDepartments.length === 0)}><Send size={15} />{en ? 'Send distribution notice' : 'Αποστολή κοινοποίησης'}</ActionButton></div>
+            </div>
           : <div className="inline-empty">{en ? 'This document has not been distributed yet.' : 'Το έγγραφο δεν έχει κοινοποιηθεί ακόμη.'}</div>)}
   </section>
 }
