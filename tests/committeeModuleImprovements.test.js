@@ -71,7 +71,9 @@ describe('committee create page: field layout', () => {
     expect(roleTextareaIndex).toBeGreaterThan(termStartIndex)
   })
 
-  it('gives each long-text field its own full-width row instead of a lopsided 2-of-3 row', () => {
-    expect(modulesCss).toContain('.committee-create-grid .committee-manual-wide,\n.committee-create-grid .committee-notes-field{\n  grid-column:1 / -1!important;\n}')
+  it('pairs the two long-text fields on one full-width row instead of stacking them as separate rows', () => {
+    expect(createPage).toContain('committee-manual-textarea-row')
+    expect(modulesCss).toContain('.committee-create-grid .committee-manual-textarea-row,\n.committee-create-grid .committee-notes-field{\n  grid-column:1 / -1!important;\n}')
+    expect(modulesCss).toContain('.committee-create-grid .committee-manual-textarea-row{\n  display:flex!important;')
   })
 })
