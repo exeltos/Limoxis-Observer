@@ -47,7 +47,5 @@ export function DocumentsPage(){
  </Page>
 }
 function Metric({icon:Icon,label,value,tone,onClick,active}){
- const card=<MetricCard icon={Icon} value={value} label={label} tone={tone}/>
- if(!onClick)return card
- return <button type="button" className="metric-card-reset" aria-pressed={active} onClick={onClick} style={{all:'unset',cursor:'pointer',display:'block'}}>{card}</button>
+ return <MetricCard icon={Icon} value={value} label={label} tone={tone} onClick={onClick} active={active}/>
 }

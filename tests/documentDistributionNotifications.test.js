@@ -8,6 +8,7 @@ const announcementService = read('src/features/management/announcementCloudServi
 const notificationContext = read('src/core/notifications/NotificationContext.jsx')
 const recordPage = read('src/features/documents/DocumentRecordPage.jsx')
 const listPage = read('src/features/documents/DocumentsPage.jsx')
+const metricCard = read('src/design-system/MetricCard.jsx')
 
 describe('controlled document distribution & acknowledgement', () => {
   it('lets a distribution notice deep-link back to its document', () => {
@@ -37,9 +38,12 @@ describe('controlled document distribution & acknowledgement', () => {
     expect(recordPage).toContain("linkPath = `/documents/${record.id}`")
   })
 
-  it('derives distribution audience from the document department, not a new picker', () => {
-    expect(recordPage).toContain("record.departmentId ? 'department' : 'all'")
-    expect(recordPage).toContain('audienceValues = record.departmentId ? [record.departmentId] : []')
+  it('defaults distribution audience to the document department but lets managers pick more', () => {
+    expect(recordPage).toContain("useState(record.departmentId ? 'department' : 'all')")
+    expect(recordPage).toContain("useState(record.departmentId ? [record.departmentId] : [])")
+    expect(recordPage).toContain('toggleDepartment')
+    expect(recordPage).toContain('recipient-options')
+    expect(recordPage).toContain("audienceValues = audienceMode === 'department' ? selectedDepartments : []")
   })
 
   it('keeps demo mode local while production persists through the cloud service', () => {
@@ -70,5 +74,12 @@ describe('documents list: review-due filter and sortable columns', () => {
     expect(listPage).toContain('sortIndicator')
     expect(listPage).toContain("sort.key==='version'")
     expect(listPage).toContain('compareDocumentVersions(a.current,b.current)')
+  })
+
+  it('makes the metric card itself clickable instead of wrapping it, so it stays the direct grid child the KPI-strip CSS sizes equally', () => {
+    expect(metricCard).toContain('onClick={onClick}')
+    expect(metricCard).not.toContain('<button')
+    expect(listPage).not.toContain('<button')
+    expect(listPage).not.toContain("style={{all:'unset'")
   })
 })
