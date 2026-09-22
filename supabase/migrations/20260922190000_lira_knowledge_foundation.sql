@@ -186,7 +186,7 @@ as $$
   select
     c.id,c.source_id,s.title,s.authority,s.source_version,s.source_url,
     c.heading,c.content,c.citation_label,
-    (1 - (c.embedding <=> query_embedding))::double precision as similarity
+    (1 - (c.embedding OPERATOR(extensions.<=>) query_embedding))::double precision as similarity
   from public.lira_knowledge_chunks c
   join public.lira_knowledge_sources s on s.id = c.source_id
   where c.embedding is not null
@@ -200,8 +200,8 @@ as $$
         and public.is_org_member(s.organization_id)
       )
     )
-    and (1 - (c.embedding <=> query_embedding)) >= match_threshold
-  order by c.embedding <=> query_embedding
+    and (1 - (c.embedding OPERATOR(extensions.<=>) query_embedding)) >= match_threshold
+  order by c.embedding OPERATOR(extensions.<=>) query_embedding
   limit greatest(1,least(match_count,20));
 $$;
 
