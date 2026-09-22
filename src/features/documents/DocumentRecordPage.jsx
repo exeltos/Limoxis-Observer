@@ -573,7 +573,7 @@ function DocumentDistributionPanel({ record, organizationId, isDemo, departments
                 <option value="department">{en ? 'Specific department(s)' : 'Συγκεκριμένα τμήματα'}</option>
               </select></label>
               {audienceMode === 'department' && <div className="recipient-picker">
-                <label className="recipient-search"><Search size={15} /><input value={deptQuery} onChange={(e) => setDeptQuery(e.target.value)} placeholder={en ? 'Search department...' : 'Αναζήτηση τμήματος...'} /></label>
+                <label className="filter-search"><Search size={16} /><input value={deptQuery} onChange={(e) => setDeptQuery(e.target.value)} placeholder={en ? 'Search department...' : 'Αναζήτηση τμήματος...'} /></label>
                 <div className="recipient-options">{filteredDepartments.map((d) => <button type="button" key={d.id} className={selectedDepartments.includes(d.id) ? 'selected' : ''} onClick={() => toggleDepartment(d.id)}><span className="recipient-check">{selectedDepartments.includes(d.id) && <Check size={13} />}</span><span><strong>{d.name}</strong></span></button>)}</div>
                 <div className="recipient-summary">{selectedDepartments.length} {en ? 'selected' : 'επιλεγμένα'}</div>
               </div>}
