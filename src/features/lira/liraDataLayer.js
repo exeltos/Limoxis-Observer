@@ -43,7 +43,7 @@ export async function loadLiraData({isDemo=false,organizationId=null}={}){
   // surveillance_cases.status column and SurveillancePage's expectations).
   // LIRA's production mapping below normalizes that into its own `state`
   // field; do the same for demo so LIRA's consumers keep working.
-  if(isDemo){const {devices,haiClassifications}=collectDeviceDaySources();return {surveillance:surveillanceDemoData.map(row=>({...row,state:row.status})),laboratory:laboratorySamples,handHygiene:handHygieneRows,bundles:bundleRows,qualityIncidents,qualityCapas,patientDays:[],haiClassifications,devices,isolations:isolationRows,generatedAt:new Date().toISOString(),source:'demo',provenance:{mode:'demo',surveillance:'surveillanceDemoData',laboratory:'laboratoryDemoData',prevention:'preventionDemoData',quality:'qualityDemoData',haiClassifications:'demo device-day sources',devices:'demo device-day sources'}}}
+  if(isDemo){const {devices,haiClassifications}=collectDeviceDaySources();return {surveillance:surveillanceDemoData.map(row=>({...row,state:row.status})),laboratory:laboratorySamples,handHygiene:handHygieneRows,bundles:bundleRows,qualityIncidents,qualityCapas,patientDays:[],haiClassifications,devices,isolations:[],generatedAt:new Date().toISOString(),source:'demo',provenance:{mode:'demo',surveillance:'surveillanceDemoData',laboratory:'laboratoryDemoData',prevention:'preventionDemoData',quality:'qualityDemoData',haiClassifications:'demo device-day sources',devices:'demo device-day sources'}}}
   if(!supabase||!organizationId) throw new Error('LIRA_CONTEXT_NOT_AVAILABLE')
 
   const q=(table,columns)=>supabase.from(table).select(columns).eq('organization_id',organizationId).limit(500)
