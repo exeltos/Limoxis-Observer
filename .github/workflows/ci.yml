@@ -5,11 +5,13 @@ on:
     branches:
       - main
   pull_request:
+    branches:
+      - main
 
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,21 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Frontend parity
-        id: parity
-        run: npm run audit:frontend-parity
-
-      - name: Lint
-        id: lint
-        run: npm run lint
-
-      - name: Test
-        id: test
-        run: npm run test
-
-      - name: Build
-        id: build
-        run: npm run build
+      - name: Full quality gate
+        id: quality
+        run: npm run check
 
       - name: Quality summary
         if: always()
@@ -46,7 +36,6 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Check | Result |" >> "$GITHUB_STEP_SUMMARY"
           echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Frontend parity | ${{ steps.parity.outcome }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Lint | ${{ steps.lint.outcome }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Tests | ${{ steps.test.outcome }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Build | ${{ steps.build.outcome }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Full npm run check gate | ${{ steps.quality.outcome }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "The CI gate intentionally executes the same npm run check command used for the full local quality pipeline." >> "$GITHUB_STEP_SUMMARY"
