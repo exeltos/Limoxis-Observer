@@ -3643,6 +3643,23 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
   color:#728493;
   border-color:#dfe6eb;
 }
+.document-owner-value{
+  display:flex;
+  align-items:center;
+  min-height:var(--lo-field-height);
+  padding:0 10px;
+  border:1px solid var(--lo-field-border);
+  border-radius:var(--lo-field-radius);
+  background:#f4f7f9;
+  color:#334b61;
+  font-size:12px;
+}
+.document-owner-field small{
+  margin-top:2px;
+  font-size:9.5px;
+  line-height:1.35;
+  color:#80909c;
+}
 .field-error,.committee-validation,.form-error{font-size:10.5px;line-height:1.4}
 .inline-empty{
   min-height:92px;
