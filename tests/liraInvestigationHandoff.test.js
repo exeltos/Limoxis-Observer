@@ -1,0 +1,4 @@
+import {describe,expect,it} from 'vitest'
+import {buildInvestigationHandoff} from '../src/features/lira/liraInvestigationHandoff'
+import fs from 'node:fs'
+describe('LIRA signal investigation handoff',()=>{it('prefills scope without declaring outbreak',()=>{const x=buildInvestigationHandoff({organism:'K. pneumoniae',department:'ICU',from:'2026-09-01',to:'2026-09-22',evidence:[{id:'1'}]});expect(x.organism).toBe('K. pneumoniae');expect(x.department).toBe('ICU');expect(x.source.guardrails).toEqual({outbreakDeclared:false,transmissionInferred:false,humanInitiationRequired:true})});it('removes legacy arbitrary ICU cluster threshold',()=>{const src=fs.readFileSync('src/features/lira/liraAnalysis.js','utf8');expect(src).not.toContain('icuAmr.length>=2');expect(src).toContain('no cluster threshold is inferred')})})
