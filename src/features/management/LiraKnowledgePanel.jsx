@@ -8,6 +8,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { supabase } from '../../core/supabase/client'
 export function LiraKnowledgePanel(){
  const {language}=useLanguage(),en=language==='en';const {tenant}=useTenant();const {notify}=useFeedback();const [rows,setRows]=useState([]);const [loading,setLoading]=useState(true);const [selected,setSelected]=useState(null);const [chunks,setChunks]=useState([]);const [edit,setEdit]=useState(null);const [version,setVersion]=useState('')
+ // Governance controls intentionally keep approved source content immutable; changes require a new review version.
  async function load(){setLoading(true);const {data,error}=await supabase.from('lira_knowledge_sources').select('id,title,authority,source_version,source_url,status,ingestion_status,effective_from,effective_to,approved_at,review_notes').order('authority');if(error)notify(error.message,'error');else setRows(data||[]);setLoading(false)}
  useEffect(()=>{load()},[tenant?.id])
  async function open(row){setSelected(row);const {data}=await supabase.from('lira_knowledge_chunks').select('id,chunk_index,heading,content,citation_label,page_start,page_end').eq('source_id',row.id).order('chunk_index');setChunks(data||[])}
