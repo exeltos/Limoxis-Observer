@@ -8,7 +8,7 @@ with seed(authority,title,heading,content,citation_label) as (
  ('WHO','WHO hand hygiene in health care resources','WHO Five Moments for Hand Hygiene','WHO identifies five key moments for hand hygiene in patient care: before touching a patient; before a clean or aseptic procedure; after body-fluid exposure risk; after touching a patient; and after touching patient surroundings. Hand-hygiene compliance interpretation should preserve the observed opportunity/action context and should not treat glove use as a substitute for indicated hand hygiene.','WHO Five Moments for Hand Hygiene')
 )
 insert into public.lira_knowledge_chunks(source_id,chunk_index,heading,content,citation_label,token_count,content_hash,metadata,embedding_status)
-select s.id,0,x.heading,x.content,x.citation_label,ceil(length(x.content)/4.0)::integer,encode(extensions.digest(x.content,'sha256'),'hex'),jsonb_build_object('curation','official-source-summary','review_required',true),'not_required'
+select s.id,0,x.heading,x.content,x.citation_label,ceil(length(x.content)/4.0)::integer,md5(x.content),jsonb_build_object('curation','official-source-summary','review_required',true),'not_required'
 from seed x join public.lira_knowledge_sources s on s.authority=x.authority and s.title=x.title
 where s.status='review'
 on conflict(source_id,chunk_index) do update set heading=excluded.heading,content=excluded.content,citation_label=excluded.citation_label,token_count=excluded.token_count,content_hash=excluded.content_hash,metadata=excluded.metadata,embedding_status=excluded.embedding_status;
