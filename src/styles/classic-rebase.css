@@ -99,22 +99,10 @@
   .filter-search{max-width:none}
 }
 
-/* Shared navigation tabs: compact, clear active state, no oversized pills. */
-.canonical-module-tabs{
-  display:flex;
-  gap:4px;
-  padding:6px;
-  border-bottom:1px solid var(--lo-border-soft);
-  overflow-x:auto;
-  scrollbar-width:none;
-}
+/* Shared navigation tabs: scrollbar polish only — geometry lives in core.css's
+   single .canonical-module-tabs.tabs rule (search "single source of truth"). */
+.canonical-module-tabs{scrollbar-width:none}
 .canonical-module-tabs::-webkit-scrollbar{display:none}
-.canonical-module-tabs .tab{
-  min-height:38px;
-  padding:0 14px;
-  border-radius:9px;
-  white-space:nowrap;
-}
 
 /* KPI strips remain supporting information, never dominate the page. */
 .module-summary-strip{
