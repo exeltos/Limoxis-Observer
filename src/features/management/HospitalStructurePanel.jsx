@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { IconButton } from '../../design-system/IconButton'
+import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -92,7 +93,7 @@ function StructureDialog({ en, draft, setDraft, onClose, onSave }) {
       <div className="entry-card">
         <header><h3>{en ? 'New structural entry' : 'Νέα δομική καταχώριση'}</h3><button className="icon-close" onClick={onClose}>×</button></header>
         <div className="entry-grid">
-          <label><span>{en ? 'Effective date' : 'Ημερομηνία ισχύος'}</span><input type="date" value={draft.effectiveDate} onChange={e => setDraft(d => ({ ...d, effectiveDate: e.target.value }))} /></label>
+          <ManualDateField label={en ? 'Effective date' : 'Ημερομηνία ισχύος'} value={draft.effectiveDate} onChange={value => setDraft(d => ({ ...d, effectiveDate: value }))} />
           {field('totalBeds', en ? 'Total beds' : 'Σύνολο κλινών')}
           {field('icuBeds', en ? 'ICU beds' : 'Κλίνες ΜΕΘ')}
           {field('singleRooms', en ? 'Single rooms' : 'Μονόκλινα δωμάτια')}
