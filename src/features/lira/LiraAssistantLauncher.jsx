@@ -53,6 +53,17 @@ function answerCompact(question,data,language,previousContext={}) {
  const evidenceFromSignals=signals=>signals.flatMap(x=>x.evidence||[]).filter((item,index,all)=>all.findIndex(other=>other.source===item.source&&other.id===item.id)===index).slice(0,8)
  const signalPoints=(predicate=()=>true)=>analysis.signals.filter(predicate).slice(0,6).map(x=>`${severityLabel(x.severity,language)} — ${x.title}: ${x.summary}`)
  const haiType=inferHaiType(question)
+ const qn=String(question||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+ const asksDepartments=/ποια?\s+τμημ|σε\s+ποια?\s+τμημ|which\s+depart/.test(qn)
+ const asksOrganisms=/ποια?\s+μικροβ|ποιοι?\s+μικροοργαν|which\s+organism/.test(qn)
+ if(plan.followUp&&(asksDepartments||asksOrganisms)){
+  const priorTopic=previousContext?.plan?.topic
+  const rows=priorTopic===LIRA_TOPICS.AMR?[...(scoped.laboratory||[]).filter(x=>x.resistance),...(scoped.surveillance||[]).filter(x=>x.resistance)]:priorTopic===LIRA_TOPICS.INFECTIONS||priorTopic===LIRA_TOPICS.LABORATORY?[...(scoped.laboratory||[]),...(scoped.surveillance||[])]:[]
+  if(rows.length){
+   if(asksDepartments){const counts=new Map();for(const row of rows){const d=row.department||row.departmentEl||row.departmentEn;if(d&&d!=='—')counts.set(d,(counts.get(d)||0)+1)}const points=[...counts].sort((a,b)=>b[1]-a[1]).map(([d,n])=>en?`${d}: ${n} matching record(s).`:`${d}: ${n} σχετικές εγγραφές.`);return {title:en?'Departments in the previous result':'Τμήματα του προηγούμενου ευρήματος',subtitle:en?'Follow-up on the previous LIRA context.':'Συνέχεια στο προηγούμενο πλαίσιο της LIRA.',points:points.length?points:[en?'No department is recorded for the matching records.':'Δεν υπάρχει καταγεγραμμένο τμήμα στις σχετικές εγγραφές.'],context,provenance:[{source:priorTopic===LIRA_TOPICS.AMR?'AMR authorized records':'authorized infection/laboratory records'}]}}
+   const counts=new Map();for(const row of rows){const o=row.organism;if(o)counts.set(o,(counts.get(o)||0)+1)}const points=[...counts].sort((a,b)=>b[1]-a[1]).map(([o,n])=>en?`${o}: ${n} matching record(s).`:`${o}: ${n} σχετικές εγγραφές.`);return {title:en?'Organisms in the previous result':'Μικροοργανισμοί του προηγούμενου ευρήματος',subtitle:en?'Follow-up on the previous LIRA context.':'Συνέχεια στο προηγούμενο πλαίσιο της LIRA.',points:points.length?points:[en?'No organism is recorded for the matching records.':'Δεν υπάρχει καταγεγραμμένος μικροοργανισμός στις σχετικές εγγραφές.'],context,provenance:[{source:priorTopic===LIRA_TOPICS.AMR?'AMR authorized records':'authorized infection/laboratory records'}]}
+  }
+ }
 
  if(haiType){
   if(plan.comparison||plan.operationalChange){
