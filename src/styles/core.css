@@ -3643,7 +3643,10 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
   color:#728493;
   border-color:#dfe6eb;
 }
-.document-distribution-composer{display:flex;flex-direction:column;gap:14px;max-width:420px}
+.document-distribution-composer{display:flex;flex-direction:column;gap:14px;max-width:720px}
+.document-distribution-composer .field{max-width:340px}
+.document-distribution-composer .recipient-picker{padding:12px 14px}
+.document-distribution-composer .recipient-options{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));max-height:320px}
 .document-owner-value{
   display:flex;
   align-items:center;
