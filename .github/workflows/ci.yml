@@ -25,6 +25,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: LIRA regression and safety gate
+        id: lira
+        run: npm run test:lira
+
       - name: Full quality gate
         id: quality
         run: npm run check
@@ -36,6 +40,7 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Check | Result |" >> "$GITHUB_STEP_SUMMARY"
           echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| LIRA regression/safety | ${{ steps.lira.outcome }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Full npm run check gate | ${{ steps.quality.outcome }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "The CI gate intentionally executes the same npm run check command used for the full local quality pipeline." >> "$GITHUB_STEP_SUMMARY"
