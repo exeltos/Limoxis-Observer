@@ -475,7 +475,7 @@
 }
 .analysis-filter-field{
   display:flex;
-  width:150px;
+  width:190px;
   min-width:0;
   flex-direction:column;
   gap:5px;

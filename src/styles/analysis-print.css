@@ -273,7 +273,7 @@
 }
 @media(max-width:1500px){
  .analysis-workspace>.analysis-tabs.entity-record-tabs{
-  display:flex!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin!important;
+  display:flex!important;flex-wrap:wrap!important;overflow:visible!important;
  }
  .analysis-workspace>.analysis-tabs.entity-record-tabs>button{flex:0 0 132px!important;width:132px!important}
 }
@@ -293,11 +293,14 @@
 
 /* Analytics tabs, final word: 13 sections forced into equal-width grid
    columns squeezed every label — even short ones like "Μικροβιολογία" —
-   down to an illegible ellipsis. Natural width + horizontal scroll lets
-   each tab keep its full label; the row scrolls instead of truncating. */
+   down to an illegible ellipsis. A horizontal scrollbar traded that
+   truncation for hidden tabs, which read as broken, not tidy. Natural
+   width tabs that wrap onto a second row instead keep every label fully
+   readable and every tab visible at once, without any scrolling. */
 .analysis-workspace>.analysis-tabs.entity-record-tabs{
- display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;
- scrollbar-width:thin!important;
+ display:flex!important;flex-wrap:wrap!important;overflow:visible!important;
+ flex:0 0 auto!important;width:100%!important;height:auto!important;
+ min-height:var(--platform-analysis-tabs-h)!important;max-height:none!important;
 }
 .analysis-workspace>.analysis-tabs.entity-record-tabs>button{
  flex:0 0 auto!important;width:auto!important;min-width:0!important;padding:0 13px!important;
