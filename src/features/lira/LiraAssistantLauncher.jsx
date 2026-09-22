@@ -10,6 +10,7 @@ import { interpretLiraQuestion,LIRA_INTENTS,LIRA_TOPICS } from './liraQuestionMo
 import { buildMatchedComparisonSpec,resolveLiraTimeScope } from './liraScope'
 import { buildOperationalOverview,compareOperationalOverview,explainOperationalChange } from './liraOperationalOverview'
 import { calculateHaiRate,compareHaiRates,inferHaiType } from './liraHaiMetrics'
+import { callLiraGateway } from './liraGateway'
 
 export function LiraAssistantLauncher(){
  const {language}=useLanguage();const en=language==='en';const {tenant,isDemo,role,membership}=useTenant();const [open,setOpen]=useState(false);const [expanded,setExpanded]=useState(false);const [question,setQuestion]=useState('');const [messages,setMessages]=useState([]);const [data,setData]=useState(null);const [loading,setLoading]=useState(false);const [error,setError]=useState('');const [conversationContext,setConversationContext]=useState({plan:null,timeWindow:null})
@@ -17,7 +18,7 @@ export function LiraAssistantLauncher(){
  useEffect(()=>{if(!open||data||!allowed)return;let cancelled=false;setLoading(true);setError('');loadLiraData({isDemo,organizationId:tenant?.id}).then(next=>{if(!cancelled)setData(next)}).catch(err=>{if(!cancelled)setError(String(err?.message||err))}).finally(()=>{if(!cancelled)setLoading(false)});return()=>{cancelled=true}},[open,data,allowed,isDemo,tenant?.id])
  useEffect(()=>{if(!open)setExpanded(false)},[open])
  if(!allowed)return null
- function ask(){const q=question.trim();if(!q||!data||loading||error)return;const answer=answerCompact(q,data,language,conversationContext);const stamp=Date.now();setMessages(items=>[...items,{id:`q-${stamp}`,kind:'question',text:q},{id:`a-${stamp}`,kind:'answer',...answer}]);setConversationContext(answer.context);setQuestion('')}
+ async function ask(){const q=question.trim();if(!q||!data||loading||error)return;const deterministic=answerCompact(q,data,language,conversationContext);const stamp=Date.now();setMessages(items=>[...items,{id:`q-${stamp}`,kind:'question',text:q}]);setConversationContext(deterministic.context);setQuestion('');setLoading(true);try{const ai=await callLiraGateway({organizationId:tenant.id,question:q,language,context:deterministic.context,deterministicAnswer:{title:deterministic.title,subtitle:deterministic.subtitle,points:deterministic.points,provenance:deterministic.provenance},aggregateContext:{source:data.source,generatedAt:data.generatedAt}});const answer=ai.mode==='generative'?{...deterministic,title:en?'LIRA AI':'LIRA AI',subtitle:deterministic.title,points:[ai.answer],ai:{provider:ai.provider,model:ai.model}}:deterministic;setMessages(items=>[...items,{id:`a-${stamp}`,kind:'answer',...answer}])}catch{setMessages(items=>[...items,{id:`a-${stamp}`,kind:'answer',...deterministic}])}finally{setLoading(false)}}
  return <>
   <button type="button" className={`lira-assistant-fab ${open?'active':''}`} aria-label={en?'Open LIRA assistant':'Άνοιγμα βοηθού LIRA'} title={en?'Ask LIRA':'Ρώτησε τη LIRA'} onClick={()=>setOpen(v=>!v)}>
    <span className="lira-assistant-fab-glow"/><span className="lira-assistant-orbit lira-assistant-orbit-question"><HelpCircle size={13}/></span><span className="lira-assistant-orbit lira-assistant-orbit-bulb"><Lightbulb size={13}/></span><BrainCircuit size={24}/><Sparkles className="lira-assistant-fab-spark" size={12}/>
