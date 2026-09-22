@@ -1,0 +1,4 @@
+import {describe,expect,it} from 'vitest'
+import fs from 'node:fs'
+const report=fs.readFileSync('src/features/lira/LiraOutbreakReport.jsx','utf8'),ui=fs.readFileSync('src/features/management/LiraOutbreakInvestigationsPanel.jsx','utf8')
+describe('LIRA outbreak investigation report',()=>{it('contains governed report sections',()=>{for(const x of ['Governance & scope','Case classifications','Person–place–time timeline','IPC / CAPA actions','Evidence & decisions','Closure'])expect(report).toContain(x)});it('includes closure rationale and safety statement',()=>{expect(report).toContain("action==='closure_review'");expect(report).toContain('does not independently establish causality or transmission')});it('supports platform print and PDF export',()=>{expect(ui).toContain('PrintExportActions');expect(ui).toContain('exportElementAsPdf');expect(ui).toContain('reportRef')})})
