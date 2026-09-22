@@ -22,7 +22,7 @@ const topicRules=[
  [LIRA_TOPICS.DOCUMENTS,['εγγραφ','document','διαδικασ','πολιτικη']],
  [LIRA_TOPICS.COMMITTEES,['επιτροπ','committee','πρακτικ']],
  [LIRA_TOPICS.INDICATORS,['δεικτ','indicator','1000 patient','patient-days','patient days']],
- [LIRA_TOPICS.INFECTIONS,['λοιμωξ','infection','μικροοργαν','organism','klebsiella','acinetobacter','pseudomonas','enterococcus','staphylococcus']],
+ [LIRA_TOPICS.INFECTIONS,['λοιμωξ','infection','μικροβ','microbe','μικροοργαν','organism','klebsiella','acinetobacter','pseudomonas','enterococcus','staphylococcus']],
 ]
 
 const intentFrom=text=>{
