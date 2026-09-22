@@ -435,15 +435,20 @@
 
 
 /* ===== SOURCE: analysis-toolbar.css ===== */
+/* Groups size to their own field count instead of splitting the row into
+   equal thirds — a 1-field group (Scope/Comparison in the non-platform
+   view) no longer stretches to the same width as the 3-field Time-period
+   group, which looked lopsided (a huge empty box around one dropdown). */
 .analysis-filter-toolbar{
-  display:grid;
-  grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr);
-  gap:0;
+  display:flex;
+  flex-wrap:wrap;
   align-items:stretch;
+  gap:0;
   margin:0;
   padding:0;
 }
 .analysis-filter-group{
+  flex:0 0 auto;
   min-width:0;
   padding:0 14px;
   border-left:1px solid var(--lo-color-border);
@@ -463,13 +468,14 @@
   text-transform:uppercase;
 }
 .analysis-filter-group-fields{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  display:flex;
+  flex-wrap:wrap;
   gap:8px;
   align-items:end;
 }
 .analysis-filter-field{
   display:flex;
+  width:150px;
   min-width:0;
   flex-direction:column;
   gap:5px;
@@ -507,18 +513,18 @@
 }
 .analysis-filter-compare.analysis-filter-group:first-child{padding-left:14px}
 @media(max-width:1280px){
-  .analysis-filter-toolbar{grid-template-columns:1fr 1fr}
-  .analysis-filter-compare{grid-column:1/-1;border-left:0;border-top:1px solid var(--lo-color-border);padding:10px 0 0;margin-top:10px;background:transparent;border-radius:0}
+  .analysis-filter-toolbar{gap:12px 0}
+  .analysis-filter-compare{flex-basis:100%;border-left:0;border-top:1px solid var(--lo-color-border);padding:10px 0 0;margin-top:2px;background:transparent;border-radius:0}
 }
 @media(max-width:820px){
-  .analysis-filter-toolbar{grid-template-columns:1fr}
+  .analysis-filter-toolbar{flex-direction:column}
   .analysis-filter-group{padding:10px 0;border-left:0;border-top:1px solid var(--lo-color-border)}
   .analysis-filter-group:first-child{padding-top:0;border-top:0}
-  .analysis-filter-group-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .analysis-filter-field{width:auto;flex:1 1 130px}
   .analysis-filter-compare.analysis-filter-group:first-child{padding-left:0}
 }
 @media(max-width:520px){
-  .analysis-filter-group-fields{grid-template-columns:1fr}
+  .analysis-filter-field{flex-basis:100%}
 }
 
 

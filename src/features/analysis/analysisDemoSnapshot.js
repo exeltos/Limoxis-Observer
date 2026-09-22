@@ -73,14 +73,14 @@ function collectAmrSusceptibility() {
 function collectNationalRows(positive) {
   const grouped = new Map()
   for (const row of positive) {
-    const key = [row.organism?.trim() || '—', row.resistance || '—', row.department, row.source].join('|||')
-    const current = grouped.get(key) || { organism: row.organism?.trim() || '—', resistanceClass: row.resistance || '—', department: row.department, source: row.source, count: 0, lastDate: '' }
+    const key = [row.organism?.trim() || '—', row.resistance || '—', row.department, row.source, row.type].join('|||')
+    const current = grouped.get(key) || { organism: row.organism?.trim() || '—', resistanceClass: row.resistance || '—', department: row.department, source: row.source, sampleType: row.type, count: 0, lastDate: '' }
     current.count += 1
     const eventDate = String(row.resultedAt || '').slice(0, 10)
     if (eventDate > current.lastDate) current.lastDate = eventDate
     grouped.set(key, current)
   }
-  return [...grouped.values()].sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate)).slice(0, 80).map(row => [row.organism, row.resistanceClass, row.department, row.source, row.count, row.lastDate])
+  return [...grouped.values()].sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate)).slice(0, 80).map(row => [row.organism, row.resistanceClass, row.department, row.source, row.count, row.lastDate, row.sampleType])
 }
 
 function collectMicrobiology() {
@@ -92,6 +92,7 @@ function collectMicrobiology() {
     monthly: Object.entries(countBy(positive, x => monthKey(x.resultedAt))).sort((a, b) => a[0].localeCompare(b[0])).slice(-12),
     byDepartment: sortedEntries(countBy(positive, x => x.department), 12),
     bySource: sortedEntries(countBy(positive, x => x.source), 12),
+    bySite: sortedEntries(countBy(positive, x => x.type), 12),
     byOrganization: [],
     nationalRows: collectNationalRows(positive),
     totalPositive: positive.length,

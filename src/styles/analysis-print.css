@@ -290,3 +290,18 @@
 .indicators-pdf-report table{width:100%;border-collapse:collapse;font-size:10px}
 .indicators-pdf-report th,.indicators-pdf-report td{padding:7px 8px;border-bottom:1px solid #e5eaf0;text-align:left}
 .indicators-pdf-report th{color:#64748b;font-weight:700}
+
+/* Analytics tabs, final word: 13 sections forced into equal-width grid
+   columns squeezed every label — even short ones like "Μικροβιολογία" —
+   down to an illegible ellipsis. Natural width + horizontal scroll lets
+   each tab keep its full label; the row scrolls instead of truncating. */
+.analysis-workspace>.analysis-tabs.entity-record-tabs{
+ display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;
+ scrollbar-width:thin!important;
+}
+.analysis-workspace>.analysis-tabs.entity-record-tabs>button{
+ flex:0 0 auto!important;width:auto!important;min-width:0!important;padding:0 13px!important;
+}
+.analysis-workspace>.analysis-tabs.entity-record-tabs>button span{
+ white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;
+}
