@@ -1,5 +1,4 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Building2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { BackButton } from '../../design-system/BackButton'
 import { FilterBar } from '../../design-system/FilterBar'
@@ -104,8 +103,7 @@ export function PlatformOrganizationsRegistry({
               <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={organizations.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
             </>
           ) : (
-            <div className="empty-state platform-empty">
-              <Building2 size={22} />
+            <div className="registry-empty-state">
               <strong>{tx('Δεν υπάρχουν οργανισμοί', 'No organizations')}</strong>
               <span>{tx('Δεν βρέθηκαν οργανισμοί για τα επιλεγμένα φίλτρα.', 'No organizations match the selected filters.')}</span>
             </div>

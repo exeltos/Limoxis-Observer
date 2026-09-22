@@ -148,7 +148,7 @@ export function HelpCenter({open,onClose}){
       <p className="manual-summary">{current.summary}</p>
       <div className="manual-audience"><ShieldCheck size={15}/><span><b>{tx.forRole}:</b> {current.audience}</span></div>
 
-      <div className="manual-chapter-tabs">{current.chapters.map((c,i)=><button className={chapter===i?'active':''} key={c[0]} onClick={()=>setChapter(i)}><span>{i+1}</span>{c[0]}</button>)}</div>
+      <div className="manual-chapter-tabs" role="tablist" aria-label={current.title}>{current.chapters.map((c,i)=><button role="tab" aria-selected={chapter===i} className={chapter===i?'active':''} key={c[0]} onClick={()=>setChapter(i)}><span>{i+1}</span>{c[0]}</button>)}</div>
 
       <article className="manual-copy manual-copy-v2">
        <span className="manual-step-label">{tx.chapter} {chapter+1} / {current.chapters.length}</span>

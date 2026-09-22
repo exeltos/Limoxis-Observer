@@ -24,6 +24,9 @@
 @media(min-width:1900px){.platform-analysis-page .analysis-tabs.entity-record-tabs>button{flex:1 1 0!important;min-width:0!important;padding:0 8px!important}}
 
 .analysis-print-option-label{display:flex;align-items:center;gap:8px;min-width:0}
+.analysis-print-option-row{display:flex;align-items:center;gap:4px}
+.analysis-print-option-row>button:first-child{flex:1 1 auto;min-width:0}
+.analysis-print-option-pdf{flex:0 0 auto!important;width:30px!important;min-width:30px!important;justify-content:center!important}
 
 /* Isolated print document: all visual rules are scoped to the frame itself. */
 .analysis-print-frame{width:1120px!important;max-width:1120px!important;margin:0!important;padding:0!important;background:#fff!important;color:#10233b!important;font-family:Arial,sans-serif!important}
@@ -274,3 +277,16 @@
  }
  .analysis-workspace>.analysis-tabs.entity-record-tabs>button{flex:0 0 132px!important;width:132px!important}
 }
+
+/* Off-screen PDF report snapshot (Indicators export) — self-contained, plain print styling. */
+.indicators-pdf-report{width:1120px;padding:28px;background:#fff;color:#10233b;font-family:Arial,sans-serif}
+.indicators-pdf-report header{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #d9e2ec}
+.indicators-pdf-report header h1{margin:0 0 2px;font-size:18px}
+.indicators-pdf-report header h2{margin:0 0 6px;font-size:13px;color:#3a5674;font-weight:600}
+.indicators-pdf-report header span{font-size:10px;color:#64748b}
+.indicators-pdf-report .indicators-pdf-filters{margin-bottom:16px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc}
+.indicators-pdf-report .indicators-pdf-filters strong{display:block;margin-bottom:6px;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
+.indicators-pdf-report .indicators-pdf-filters div{display:flex;flex-wrap:wrap;gap:14px;font-size:11px}
+.indicators-pdf-report table{width:100%;border-collapse:collapse;font-size:10px}
+.indicators-pdf-report th,.indicators-pdf-report td{padding:7px 8px;border-bottom:1px solid #e5eaf0;text-align:left}
+.indicators-pdf-report th{color:#64748b;font-weight:700}

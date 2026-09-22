@@ -29,6 +29,7 @@ export function ManualDateField({label,value,onChange,optional=false,disabled=fa
     if(!next.trim()){onChange('');return}
     const iso=displayToIso(next)
     if(iso){onChange(iso);setText(isoToDisplay(iso))}
+    else setText(isoToDisplay(value))
   }
   function openPicker(){
     if(disabled)return

@@ -17,6 +17,10 @@ export default defineConfig({
           if (id.includes('@supabase')) return 'supabase'
           if (id.includes('lucide-react')) return 'icons'
           if (id.includes('react')) return 'react-vendor'
+          // jspdf/html2canvas are only ever loaded via dynamic import() from
+          // the PDF export utility — keep them out of the eager "vendor"
+          // chunk so they don't add ~800kB to every page's initial load.
+          if (id.includes('jspdf') || id.includes('html2canvas')) return undefined
           return 'vendor'
         },
       },

@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { IconButton } from '../../design-system/IconButton'
+import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -113,7 +114,7 @@ function SurveyDialog({ en, draft, setDraft, departments, language, onClose, onS
       <div className="entry-card">
         <header><h3>{en ? 'New prevalence survey' : 'Νέα επισκόπηση επιπολασμού'}</h3><button className="icon-close" onClick={onClose}>×</button></header>
         <div className="entry-grid">
-          <label><span>{en ? 'Survey date' : 'Ημερομηνία επισκόπησης'}</span><input type="date" value={draft.surveyDate} onChange={e => setDraft(d => ({ ...d, surveyDate: e.target.value }))} /></label>
+          <ManualDateField label={en ? 'Survey date' : 'Ημερομηνία επισκόπησης'} value={draft.surveyDate} onChange={value => setDraft(d => ({ ...d, surveyDate: value }))} />
           <label><span>{en ? 'Scope / department' : 'Εύρος / Τμήμα'}</span><select value={draft.departmentId} onChange={e => setDraft(d => ({ ...d, departmentId: e.target.value }))}><option value="">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>{departments.map(item => <option key={item.id} value={item.id}>{language === 'el' ? item.name : (item.nameEn || item.name)}</option>)}</select></label>
           {countField('patientsTotal', en ? 'Patients present' : 'Νοσηλευόμενοι ασθενείς')}
           {countField('patientsWithHai', en ? 'Patients with active HAI' : 'Ασθενείς με ενεργή ΝΝΛ')}
