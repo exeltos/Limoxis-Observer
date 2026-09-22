@@ -2,6 +2,7 @@
    The label owns the visible control chrome; the nested input must stay visually transparent. */
 .filter-search{
   display:flex!important;
+  flex-direction:row!important;
   align-items:center!important;
   gap:8px!important;
   height:34px!important;
