@@ -2,8 +2,11 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import fs from 'node:fs'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 import { OverflowMenu } from '../src/design-system/OverflowMenu'
+
+const coreCss = fs.readFileSync('src/styles/core.css', 'utf8')
 
 function renderMenu(props={}){
   return render(<LanguageProvider><OverflowMenu label="Actions" items={[{id:'edit',label:'Edit',onClick:vi.fn()}]} {...props}/></LanguageProvider>)
@@ -30,10 +33,17 @@ describe('OverflowMenu',()=>{
 
     renderMenu()
     fireEvent.click(screen.getByRole('button',{name:'Actions'}))
-    expect(screen.getByRole('menu')).toHaveStyle({left:'262px'})
+    expect(screen.getByRole('menu')).toHaveStyle({left:'222px'})
 
     viewportWidth=300
     fireEvent(window,new Event('resize'))
-    expect(screen.getByRole('menu')).toHaveStyle({left:'72px'})
+    expect(screen.getByRole('menu')).toHaveStyle({left:'32px'})
+  })
+
+  it('never lets a long item label spill outside the popover, at any width', () => {
+    // white-space:nowrap with no text-overflow handling would let long Greek
+    // labels (e.g. a committee's "Επεξεργασία θεσμικού πλαισίου") overflow the
+    // fixed-width popover instead of wrapping or truncating.
+    expect(coreCss).toContain('.lo-overflow-item span{min-width:0;overflow:hidden;text-overflow:ellipsis}')
   })
 })

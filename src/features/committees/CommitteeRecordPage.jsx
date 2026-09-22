@@ -21,6 +21,8 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { canForRecord,CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useNotifications } from '../../core/notifications/NotificationContext'
+import { createAnnouncement } from '../management/announcementCloudService'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { loadIndicatorDefinitions } from '../indicators/indicatorDefinitionService'
 import { useCommitteesData } from './useCommitteesData'
@@ -65,6 +67,7 @@ export function CommitteeRecordPage(){
   const {language}=useLanguage()
   const en=language==='en'
   const {notify,notifyError,confirm}=useFeedback()
+  const n=useNotifications()
   const {data:rows,setData:setRows,loading,error,reload}=useCommitteesData()
   const {data:employeeRows}=useEmployeesData()
   const [tab,setTab]=useState('overview')
@@ -156,11 +159,25 @@ export function CommitteeRecordPage(){
     if(!member)return
     await execute({operation:()=>endCommitteeMemberAsync(organizationId,record,member,reason),local:()=>({...record,memberRefs:record.memberRefs.map(x=>x.id===member.id?{...x,active:false,endedAt:new Date().toISOString(),endReason:reason}:x)}),success:en?'Membership ended.':'Η συμμετοχή έληξε.'})
   }
+  async function notifyUpcomingMeeting(meeting){
+    const recipients=activeMembers.map(m=>m.userId).filter(Boolean).filter(id=>id!==actor.id)
+    if(!recipients.length)return
+    const linkPath=`/committees/${record.id}`
+    const title=en?`New meeting scheduled: ${meeting.title}`:`Νέα συνεδρίαση: ${meeting.title}`
+    const message=en
+      ?`"${record.name}" has scheduled a meeting for ${fmtDate(meeting.date)}${meeting.location?` at ${meeting.location}`:''}.`
+      :`Η επιτροπή «${record.name}» προγραμμάτισε συνεδρίαση για ${fmtDate(meeting.date)}${meeting.location?` στον χώρο ${meeting.location}`:''}.`
+    const payload={title,message,priority:'normal',audienceType:'user',audienceValues:recipients,requiresAck:false,linkPath}
+    try{
+      if(isDemo)n.addAnnouncement(payload)
+      else{await createAnnouncement(organizationId,payload);await n.reloadAnnouncements()}
+    }catch{/* the meeting itself is already saved; a failed notice is not worth surfacing as an error */}
+  }
   async function addMeeting(draft){
     const id=`MTG-${Date.now()}`
     const next={...draft,id,status:'planned',topics:draft.topics?.length?draft.topics:[createTopic()],attendanceRecords:attendanceFor(activeMembers),quorum:null,minutesNo:'',generalNotes:'',approvalState:'not_started'}
     const result=await execute({operation:()=>createCommitteeMeetingAsync(organizationId,record,next),local:()=>({...record,meetings:[next,...(record.meetings||[])]}),success:en?'Meeting created.':'Η συνεδρίαση δημιουργήθηκε.'})
-    if(result)setDialog({type:'meeting',id:result.id||id})
+    if(result){setDialog({type:'meeting',id:result.id||id});await notifyUpcomingMeeting(next)}
   }
   async function saveMeeting(draft,finalize=false){
     const voting=draft.attendanceRecords.filter(x=>x.voting)
@@ -190,11 +207,25 @@ export function CommitteeRecordPage(){
     }
     await execute({operation:()=>answerCommitteeMinutesApprovalAsync(id,status,comment),local:()=>record,success:status==='approved'?(en?'Minutes approved.':'Τα πρακτικά εγκρίθηκαν.'):(en?'Changes requested.':'Το αίτημα διορθώσεων καταχωρήθηκε.'),close:false})
   }
+  async function notifyDecisionOwner(decision){
+    if(!decision.ownerId)return
+    const linkPath=`/committees/${record.id}`
+    const title=en?`New committee action: ${decision.title}`:`Νέα ενέργεια επιτροπής: ${decision.title}`
+    const message=en
+      ?`You were assigned an action in "${record.name}"${decision.dueDate?` — due ${fmtDate(decision.dueDate)}`:''}.`
+      :`Σας ανατέθηκε ενέργεια στην επιτροπή «${record.name}»${decision.dueDate?` — προθεσμία ${fmtDate(decision.dueDate)}`:''}.`
+    const payload={title,message,priority:['high','critical'].includes(decision.priority)?'high':'normal',audienceType:'user',audienceValues:[decision.ownerId],requiresAck:false,linkPath}
+    try{
+      if(isDemo)n.addAnnouncement(payload)
+      else{await createAnnouncement(organizationId,payload);await n.reloadAnnouncements()}
+    }catch{/* the decision itself is already saved; a failed notice is not worth surfacing as an error */}
+  }
   async function saveDecision(draft){
     const editing=Boolean(draft.id)
     const existing=editing?record.decisions.find(x=>x.id===draft.id):null
     const next=editing?draft:{...draft,id:`DEC-${Date.now()}`,status:'open'}
-    await execute({operation:()=>editing?updateCommitteeDecisionAsync(organizationId,record,existing,draft):createCommitteeDecisionAsync(organizationId,record,next),local:()=>({...record,decisions:editing?record.decisions.map(x=>x.id===draft.id?{...x,...draft}:x):[next,...(record.decisions||[])]}),success:editing?(en?'Decision updated.':'Η απόφαση ενημερώθηκε.'):(en?'Decision created.':'Η απόφαση καταχωρήθηκε.')})
+    const result=await execute({operation:()=>editing?updateCommitteeDecisionAsync(organizationId,record,existing,draft):createCommitteeDecisionAsync(organizationId,record,next),local:()=>({...record,decisions:editing?record.decisions.map(x=>x.id===draft.id?{...x,...draft}:x):[next,...(record.decisions||[])]}),success:editing?(en?'Decision updated.':'Η απόφαση ενημερώθηκε.'):(en?'Decision created.':'Η απόφαση καταχωρήθηκε.')})
+    if(result&&draft.ownerId&&draft.ownerId!==(existing?.ownerId||null))await notifyDecisionOwner(draft)
   }
   async function decisionStatus(item,status){
     await execute({operation:()=>updateCommitteeDecisionAsync(organizationId,record,item,{status}),local:()=>({...record,decisions:record.decisions.map(x=>x.id===item.id?{...x,status}:x)}),success:en?'Status updated.':'Η κατάσταση ενημερώθηκε.',close:false})
@@ -240,7 +271,7 @@ export function CommitteeRecordPage(){
     {dialog?.type==='newMeeting'&&<NewMeetingDialog busy={busy} onClose={()=>setDialog(null)} onSave={addMeeting} en={en}/>} 
     {dialog?.type==='meeting'&&<MeetingDialog key={dialog.id} meeting={(record.meetings||[]).find(x=>x.id===dialog.id)} members={activeMembers} actorId={actor.id} canSave={canMinutes&&!busy} canFinalize={canFinalize&&!busy} busy={busy} onClose={()=>setDialog(null)} onSave={saveMeeting} onApproval={answerApproval} en={en}/>} 
     {dialog?.type==='cancelMeeting'&&<ReasonDialog busy={busy} title={en?'Cancel meeting':'Ακύρωση συνεδρίασης'} description={en?'Cancellation is permanent and will be recorded in the committee history.':'Η ακύρωση είναι οριστική και θα καταγραφεί στο ιστορικό της επιτροπής.'} label={en?'Cancellation reason':'Αιτιολογία ακύρωσης'} confirmLabel={en?'Cancel meeting':'Ακύρωση συνεδρίασης'} danger onClose={()=>setDialog(null)} onSave={confirmCancelMeeting} en={en}/>} 
-    {dialog?.type==='decision'&&<DecisionDialog initial={dialog.value} meetings={record.meetings||[]} busy={busy} onClose={()=>setDialog(null)} onSave={saveDecision} en={en}/>} 
+    {dialog?.type==='decision'&&<DecisionDialog initial={dialog.value} meetings={record.meetings||[]} members={activeMembers} busy={busy} onClose={()=>setDialog(null)} onSave={saveDecision} en={en}/>}
     {dialog?.type==='plan'&&<PlanDialog initial={dialog.value} busy={busy} onClose={()=>setDialog(null)} onSave={savePlan} en={en}/>} 
     {dialog?.type==='framework'&&<FrameworkDialog record={record} busy={busy} onClose={()=>setDialog(null)} onSave={saveFramework} en={en}/>} 
   </Page>
@@ -358,10 +389,18 @@ function MeetingDialog({meeting,members,actorId,canSave,canFinalize,busy,onClose
   return <ObserverDialog className="committee-meeting-dialog" width="workspace" eyebrow={en?'Meeting minutes':'Πρακτικά συνεδρίασης'} title={meeting.title} subtitle={`${fmtDate(meeting.date)} · ${statusLabel(meeting.status,en)}`} onClose={onClose} footer={<>{canSave&&!locked&&<Button variant="secondary" disabled={busy} onClick={()=>onSave(v,false)}>{en?'Save':'Αποθήκευση'}</Button>}{canFinalize&&!locked&&<Button disabled={busy} onClick={()=>onSave(v,true)}>{en?'Submit / finalize minutes':'Υποβολή / οριστικοποίηση'}</Button>}</>}><div className="observer-form-section committee-meeting-meta"><div className="entry-grid compact"><label><span>{en?'Minutes number':'Αρ. πρακτικού'}</span><input disabled={!canSave||locked} value={v.minutesNo||''} onChange={e=>set('minutesNo',e.target.value)}/></label><label><span>{en?'Location':'Χώρος'}</span><input disabled={!canSave||locked} value={v.location||''} onChange={e=>set('location',e.target.value)}/></label></div></div><div className="observer-form-section committee-attendance-section"><Head title={en?'Attendance':'Παρουσίες'}/><div className="scroll-table committee-attendance-wrap"><table className="data-table committee-attendance-table"><thead><tr><th>{en?'Member':'Μέλος'}</th><th>{en?'Status':'Κατάσταση'}</th></tr></thead><tbody>{v.attendanceRecords.map(x=><tr key={x.memberId}><td>{x.name}</td><td><select disabled={!canSave||locked} value={x.status} onChange={e=>attendance(x.memberId,e.target.value)}><option value="not_recorded">—</option><option value="present">{en?'Present':'Παρόν'}</option><option value="absent">{en?'Absent':'Απόν'}</option><option value="excused">{en?'Excused':'Δικαιολογημένο'}</option></select></td></tr>)}</tbody></table></div></div><div className="observer-form-section committee-topics-section"><Head title={en?'Agenda & conclusions':'Θέματα & συμπεράσματα'} action={canSave&&!locked&&<Button variant="secondary" onClick={()=>setV(s=>({...s,topics:[...s.topics,createTopic()]}))}><Plus size={14}/>{en?' Topic':' Θέμα'}</Button>}/>{v.topics.map((t,i)=><div className="committee-topic-card committee-topic-card-compact" key={t.id}><div className="committee-topic-card-head"><strong>{en?'Topic':'Θέμα'} {i+1}</strong>{canSave&&!locked&&<IconButton tone="danger" label={en?'Delete topic':'Διαγραφή θέματος'} onClick={()=>removeTopic(t.id)}><Trash2 size={15}/></IconButton>}</div><div className="committee-topic-fields"><label><span>{en?'Subject':'Θέμα'}</span><input disabled={!canSave||locked} value={t.subject||''} onChange={e=>topic(t.id,'subject',e.target.value)}/></label><label><span>{en?'Decision / conclusion':'Απόφαση / συμπέρασμα'}</span><textarea disabled={!canSave||locked} rows="2" value={t.decision||''} onChange={e=>topic(t.id,'decision',e.target.value)}/></label></div></div>)}{!v.topics.length&&<div className="inline-empty committee-topics-empty">{en?'No topics. Add one only when needed.':'Δεν υπάρχουν θέματα. Προσθέστε μόνο όσα χρειάζονται.'}</div>}</div><label className="field committee-general-notes"><span>{en?'General notes':'Γενικές σημειώσεις'}</span><textarea disabled={!canSave||locked} rows="3" value={v.generalNotes||''} onChange={e=>set('generalNotes',e.target.value)}/></label>{meeting.status==='cancelled'&&meeting.cancellationReason&&<div className="source-truth-note"><strong>{en?'Meeting cancelled':'Η συνεδρίαση ακυρώθηκε'}</strong><p>{meeting.cancellationReason}</p></div>}{meeting.status==='draft'&&latestChangeRequest&&<div className="source-truth-note"><strong>{en?'Changes requested':'Ζητήθηκαν διορθώσεις στα πρακτικά'}</strong><p>{latestChangeRequest.comment||(en?'Review the requested corrections before resubmitting.':'Ελέγξτε τις ζητούμενες διορθώσεις πριν από την επανυποβολή.')}</p></div>}{meeting.status==='approval_pending'&&<><div className="source-truth-note"><strong>{en?'Minutes awaiting approval':'Τα πρακτικά βρίσκονται σε έγκριση'}</strong><p>{en?'They will be finalized automatically when every required approver accepts.':'Θα οριστικοποιηθούν αυτόματα όταν εγκρίνουν όλοι οι απαιτούμενοι χρήστες.'}</p></div><CommitteeApprovalPanel approvals={meeting.approvals||[]} actorId={actorId} busy={busy} onApprove={id=>onApproval(id,'approved','')} onRequestChanges={(id,comment)=>onApproval(id,'rejected',comment)} en={en}/></>}</ObserverDialog>
 }
 
-function DecisionDialog({initial,meetings,busy,onClose,onSave,en}){
-  const [v,setV]=useState(initial||{title:'',action:'',owner:'',dueDate:'',priority:'medium',meetingId:''})
+function DecisionDialog({initial,meetings,members=[],busy,onClose,onSave,en}){
+  const matchedMember=initial?.ownerId?members.find(m=>m.userId===initial.ownerId):null
+  const [v,setV]=useState(()=>({title:'',action:'',owner:'',ownerId:null,dueDate:'',priority:'medium',meetingId:'',...initial}))
+  const [ownerMode,setOwnerMode]=useState(matchedMember?'member':(initial?.owner?'manual':'member'))
+  const [ownerMemberId,setOwnerMemberId]=useState(matchedMember?.id||'')
   const set=(k,x)=>setV(s=>({...s,[k]:x}))
-  return <ObserverDialog width="wide" title={initial?(en?'Edit decision':'Επεξεργασία απόφασης'):(en?'New decision':'Νέα απόφαση')} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={busy||!v.title.trim()} onSave={()=>onSave(v)}/>}><div className="entry-grid compact"><label className="entry-span-2"><span>{en?'Title':'Τίτλος'}</span><input value={v.title} onChange={e=>set('title',e.target.value)}/></label><label className="entry-span-2"><span>{en?'Action':'Ενέργεια'}</span><textarea rows="3" value={v.action||''} onChange={e=>set('action',e.target.value)}/></label><label><span>{en?'Owner':'Υπεύθυνος'}</span><input value={v.owner||''} onChange={e=>set('owner',e.target.value)}/></label><ManualDateField label={en?'Due date':'Προθεσμία'} value={v.dueDate||''} onChange={x=>set('dueDate',x)} optional/><label><span>{en?'Priority':'Προτεραιότητα'}</span><select value={v.priority||'medium'} onChange={e=>set('priority',e.target.value)}><option value="low">{en?'Low':'Χαμηλή'}</option><option value="medium">{en?'Medium':'Μεσαία'}</option><option value="high">{en?'High':'Υψηλή'}</option><option value="critical">{en?'Critical':'Κρίσιμη'}</option></select></label>{!initial&&<label><span>{en?'Meeting':'Συνεδρίαση'}</span><select value={v.meetingId||''} onChange={e=>set('meetingId',e.target.value)}><option value="">—</option>{meetings.map(x=><option key={x.id} value={x.id}>{fmtDate(x.date)} · {x.title}</option>)}</select></label>}</div></ObserverDialog>
+  function chooseOwnerMember(memberId){
+    setOwnerMemberId(memberId)
+    const member=members.find(m=>m.id===memberId)
+    setV(s=>({...s,ownerId:member?.userId||null,owner:member?.name||''}))
+  }
+  return <ObserverDialog width="wide" title={initial?(en?'Edit decision':'Επεξεργασία απόφασης'):(en?'New decision':'Νέα απόφαση')} onClose={onClose} footer={<DialogActions onCancel={onClose} disabled={busy||!v.title.trim()} onSave={()=>onSave(v)}/>}><div className="entry-grid compact"><label className="entry-span-2"><span>{en?'Title':'Τίτλος'}</span><input value={v.title} onChange={e=>set('title',e.target.value)}/></label><label className="entry-span-2"><span>{en?'Action':'Ενέργεια'}</span><textarea rows="3" value={v.action||''} onChange={e=>set('action',e.target.value)}/></label><label><span>{en?'Owner':'Υπεύθυνος'}</span><select value={ownerMode==='member'?ownerMemberId:'__manual'} onChange={e=>{if(e.target.value==='__manual'){setOwnerMode('manual');setOwnerMemberId('');set('ownerId',null)}else{setOwnerMode('member');chooseOwnerMember(e.target.value)}}}><option value="">{en?'Select member...':'Επιλέξτε μέλος...'}</option>{members.map(m=><option key={m.id} value={m.id}>{m.name}{m.committeeTitle?` · ${m.committeeTitle}`:''}</option>)}<option value="__manual">{en?'Other (free text)':'Άλλο (ελεύθερο κείμενο)'}</option></select>{ownerMode==='manual'&&<input value={v.owner||''} onChange={e=>set('owner',e.target.value)} placeholder={en?'Owner name':'Όνομα υπευθύνου'}/>}{ownerMode==='member'&&ownerMemberId&&!v.ownerId&&<small>{en?'This member has no portal account, so they cannot be notified automatically.':'Αυτό το μέλος δεν έχει λογαριασμό στην πλατφόρμα, οπότε δεν μπορεί να ειδοποιηθεί αυτόματα.'}</small>}</label><ManualDateField label={en?'Due date':'Προθεσμία'} value={v.dueDate||''} onChange={x=>set('dueDate',x)} optional/><label><span>{en?'Priority':'Προτεραιότητα'}</span><select value={v.priority||'medium'} onChange={e=>set('priority',e.target.value)}><option value="low">{en?'Low':'Χαμηλή'}</option><option value="medium">{en?'Medium':'Μεσαία'}</option><option value="high">{en?'High':'Υψηλή'}</option><option value="critical">{en?'Critical':'Κρίσιμη'}</option></select></label>{!initial&&<label><span>{en?'Meeting':'Συνεδρίαση'}</span><select value={v.meetingId||''} onChange={e=>set('meetingId',e.target.value)}><option value="">—</option>{meetings.map(x=><option key={x.id} value={x.id}>{fmtDate(x.date)} · {x.title}</option>)}</select></label>}</div></ObserverDialog>
 }
 
 function PlanDialog({initial,busy,onClose,onSave,en}){

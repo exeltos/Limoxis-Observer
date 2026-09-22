@@ -1548,10 +1548,12 @@
 .committee-create-grid .committee-type-field{
   grid-column:span 2!important;
 }
-.committee-create-grid .committee-name-field,
+.committee-create-grid .committee-name-field{
+  grid-column:span 2!important;
+}
 .committee-create-grid .committee-manual-wide,
 .committee-create-grid .committee-notes-field{
-  grid-column:span 2!important;
+  grid-column:1 / -1!important;
 }
 .committee-create-grid :is(input,select){
   min-height:46px!important;
