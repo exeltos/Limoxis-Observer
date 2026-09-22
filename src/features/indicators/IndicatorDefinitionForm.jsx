@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { INDICATOR_METRICS,allowedIndicatorDenominators,indicatorMetricCombinationIsValid,indicatorMetricRule } from './indicatorDefinitionService'
 
@@ -18,12 +19,14 @@ export const metricLabels={patient_days:['Νοσηλευτικές ημέρες'
 }
 export const indicatorMetricLabel=(key,language='el')=>metricLabels[key]?.[language==='en'?1:0]||key
 
-export const createEmptyIndicatorDefinition=()=>({id:null,system:false,key:'',version:'1.0',titleEl:'',category:'surveillance',calculationType:'auto',numeratorMetric:'',denominatorMetric:'',numeratorDefinition:{description:''},denominatorDefinition:{description:''},multiplier:1,unit:'',targetValue:'',direction:'context',sourceAuthority:'',effectiveFrom:new Date().toISOString().slice(0,10),effectiveTo:'',status:'draft'})
+export const createEmptyIndicatorDefinition=()=>({id:null,system:false,key:'',version:'1.0',titleEl:'',category:'surveillance',calculationType:'auto',numeratorMetric:'',denominatorMetric:'',numeratorDefinition:{description:''},denominatorDefinition:{description:''},multiplier:1,unit:'',targetValue:'',direction:'context',sourceAuthority:'',effectiveFrom:new Date().toISOString().slice(0,10),effectiveTo:'',status:'draft',visibleDepartmentIds:[]})
 
 export function indicatorDefinitionIsValid(v){return Boolean(v?.key?.trim()&&v?.titleEl?.trim()&&v?.version?.trim()&&(v.calculationType!=='auto'||(v?.numeratorMetric?.trim()&&indicatorMetricCombinationIsValid(v.numeratorMetric,v.denominatorMetric||'')))&&(!v?.effectiveFrom||!v?.effectiveTo||v.effectiveTo>=v.effectiveFrom))}
 
-export function IndicatorDefinitionForm({value,onChange,language='el',readOnly=false,showSystem=false,lockKey=false}){
+export function IndicatorDefinitionForm({value,onChange,language='el',readOnly=false,showSystem=false,lockKey=false,departments=[]}){
  const el=language==='el',v=value||createEmptyIndicatorDefinition(),set=(key,next)=>onChange({...v,[key]:next}),automatic=v.calculationType==='auto'
+ const visibleDepartmentIds=v.visibleDepartmentIds||[]
+ const toggleDepartment=id=>set('visibleDepartmentIds',visibleDepartmentIds.includes(id)?visibleDepartmentIds.filter(x=>x!==id):[...visibleDepartmentIds,id])
  const denominatorOptions=automatic?allowedIndicatorDenominators(v.numeratorMetric):[]
  const ratioRule=automatic&&v.denominatorMetric?indicatorMetricRule(v.numeratorMetric):null
  const ratioLocked=Boolean(ratioRule&&ratioRule.denominator===v.denominatorMetric)
@@ -51,6 +54,13 @@ export function IndicatorDefinitionForm({value,onChange,language='el',readOnly=f
   <ManualDateField label={el?'Ισχύει από':'Effective from'} value={v.effectiveFrom||''} onChange={x=>set('effectiveFrom',x)} optional/>
   <ManualDateField label={el?'Ισχύει έως':'Effective to'} value={v.effectiveTo||''} onChange={x=>set('effectiveTo',x)} optional/>
   {showSystem&&<label className="check-option"><input type="checkbox" checked={Boolean(v.system)} disabled={readOnly} onChange={e=>set('system',e.target.checked)}/><span>{el?'System definition · διαχείριση Platform Owner':'System definition · Platform Owner managed'}</span></label>}
+  {departments.length>0&&<label className="entry-span-2"><span>{el?'Ορατότητα ανά τμήμα':'Visibility by department'}</span>
+   {!readOnly&&<div className="recipient-picker">
+    <div className="recipient-options">{departments.map(d=><button type="button" key={d.id} className={visibleDepartmentIds.includes(d.id)?'selected':''} onClick={()=>toggleDepartment(d.id)}><span className="recipient-check">{visibleDepartmentIds.includes(d.id)&&<Check size={13}/>}</span><span><strong>{d.name}</strong></span></button>)}</div>
+    <div className="recipient-summary">{visibleDepartmentIds.length?`${visibleDepartmentIds.length} ${el?'επιλεγμένα':'selected'}`:(el?'Ορατό σε όλα τα τμήματα':'Visible to every department')}</div>
+   </div>}
+   {readOnly&&<div className="recipient-summary">{visibleDepartmentIds.length?departments.filter(d=>visibleDepartmentIds.includes(d.id)).map(d=>d.name).join(', ')||(el?`${visibleDepartmentIds.length} τμήματα`:`${visibleDepartmentIds.length} departments`):(el?'Ορατό σε όλα τα τμήματα':'Visible to every department')}</div>}
+  </label>}
   {automatic&&v.numeratorMetric&&denominatorOptions.length>0&&!v.denominatorMetric&&<div className="source-truth-note entry-span-2">{el?`Για αναλογικό δείκτη, ο συμβατός παρονομαστής είναι «${indicatorMetricLabel(denominatorOptions[0],language)}». Χωρίς παρονομαστή ο δείκτης αποθηκεύεται ως απλή μέτρηση.`:`For a ratio indicator, the compatible denominator is “${indicatorMetricLabel(denominatorOptions[0],language)}”. Without a denominator the indicator is stored as a raw measure.`}</div>}
   {!combinationValid&&<div className="source-truth-note entry-span-2">{el?'Ο επιλεγμένος αριθμητής και παρονομαστής δεν αποτελούν υποστηριζόμενο συνδυασμό.':'The selected numerator and denominator are not a supported combination.'}</div>}
   {v.effectiveFrom&&v.effectiveTo&&v.effectiveTo<v.effectiveFrom&&<div className="source-truth-note entry-span-2">{el?'Η ημερομηνία λήξης δεν μπορεί να προηγείται της έναρξης.':'Effective-to cannot be before effective-from.'}</div>}

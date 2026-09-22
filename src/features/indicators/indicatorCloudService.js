@@ -16,7 +16,7 @@ export async function collectCloudIndicatorMetrics(organizationId,{from,to,depar
 }
 
 function mapOperationalDefinition(r){
- return {definitionId:r.id,id:r.indicator_key,version:r.version,titleEl:r.title_el,titleEn:r.title_en,category:r.category,numerator:r.numerator_metric,denominator:r.denominator_metric,multiplier:Number(r.multiplier||1),unit:r.unit||'',unitEn:r.unit_en||r.unit||'',source:r.source_authority||'',calculation:r.calculation_type||'auto',target:r.target_value==null?null:Number(r.target_value),direction:r.direction||'context',numeratorDefinition:r.numerator_definition||{},denominatorDefinition:r.denominator_definition||{}}
+ return {definitionId:r.id,id:r.indicator_key,version:r.version,titleEl:r.title_el,titleEn:r.title_en,category:r.category,numerator:r.numerator_metric,denominator:r.denominator_metric,multiplier:Number(r.multiplier||1),unit:r.unit||'',unitEn:r.unit_en||r.unit||'',source:r.source_authority||'',calculation:r.calculation_type||'auto',target:r.target_value==null?null:Number(r.target_value),direction:r.direction||'context',numeratorDefinition:r.numerator_definition||{},denominatorDefinition:r.denominator_definition||{},visibleDepartmentIds:Array.isArray(r.visible_department_ids)?r.visible_department_ids:[]}
 }
 
 export async function loadOperationalIndicatorDefinitions(organizationId,{from,to}={}){
@@ -28,12 +28,22 @@ export async function loadOperationalIndicatorDefinitions(organizationId,{from,t
    .map(mapOperationalDefinition)
  }
  assertCloud(organizationId)
- let query=supabase.from('indicator_definitions').select('id,organization_id,indicator_key,version,title_el,title_en,category,numerator_definition,denominator_definition,multiplier,unit,unit_en,source_authority,effective_from,effective_to,status,calculation_type,numerator_metric,denominator_metric,target_value,direction').or(`organization_id.eq.${organizationId},organization_id.is.null`).eq('status','active').order('category').order('title_el')
+ let query=supabase.from('indicator_definitions').select('id,organization_id,indicator_key,version,title_el,title_en,category,numerator_definition,denominator_definition,multiplier,unit,unit_en,source_authority,effective_from,effective_to,status,calculation_type,numerator_metric,denominator_metric,target_value,direction,visible_department_ids').or(`organization_id.eq.${organizationId},organization_id.is.null`).eq('status','active').order('category').order('title_el')
  if(from)query=query.or(`effective_to.is.null,effective_to.gte.${from}`)
  if(to)query=query.or(`effective_from.is.null,effective_from.lte.${to}`)
  const {data,error}=await query;if(error)throw error
  const rows=data||[],localKeys=new Set(rows.filter(r=>r.organization_id).map(r=>r.indicator_key))
  return rows.filter(r=>r.organization_id||!localKeys.has(r.indicator_key)).map(mapOperationalDefinition)
+}
+
+// An indicator with a non-empty visibleDepartmentIds is only relevant to
+// those departments. An org-wide "whole hospital" view (no department
+// selected) still sees everything, since that view is for admins/overseers;
+// the restriction only applies once a specific department is being viewed
+// (either because the viewer is department-scoped, or an org admin picked
+// a department filter), so it mirrors what that department would see.
+export function visibleForDepartment(def,departmentId){
+ return !def.visibleDepartmentIds?.length||!departmentId||def.visibleDepartmentIds.includes(departmentId)
 }
 
 const metricValue=(metrics,key)=>key?metrics[key]:null
