@@ -30,7 +30,7 @@ const intentFrom=text=>{
  if(has(text,['συρρο','εξαρσ','outbreak','cluster','συσσωρευση']))return LIRA_INTENTS.CLUSTER
  if(has(text,['σε σχεση','συγκρι','compare','versus',' vs ','προηγουμεν','last month compared','τι αλλαξε','πως αλλαξε','what changed','how changed']))return LIRA_INTENTS.COMPARISON
  if(has(text,['αυξη','μειω','ταση','trend','increas','decreas','μεταβολ']))return LIRA_INTENTS.TREND
- if(has(text,['ποιο τμημα','ποια μοναδα','χειροτερ','καλυτερ','περισσοτερ','λιγοτερ','ranking','rank','τι χειροτερεψε','τι βελτιωθηκε','what worsened','what improved','changed most','αλλαξε περισσοτερο']))return LIRA_INTENTS.RANKING
+ if(has(text,['ποιο τμημα','ποια τμηματα','σε ποιο τμημα','σε ποια τμηματα','which department','which departments','ποια μοναδα','χειροτερ','καλυτερ','περισσοτερ','λιγοτερ','ranking','rank','τι χειροτερεψε','τι βελτιωθηκε','what worsened','what improved','changed most','αλλαξε περισσοτερο']))return LIRA_INTENTS.RANKING
  if(has(text,['εκπροθεσ','εκκρεμ','overdue','pending','καθυστερ']))return LIRA_INTENTS.OVERDUE
  if(has(text,['ποσοι','ποσες','ποσα','how many','count']))return LIRA_INTENTS.COUNT
  if(has(text,['κατασταση','status','ενεργ','active','ανοικτ','open']))return LIRA_INTENTS.STATUS
@@ -55,10 +55,11 @@ export function interpretLiraQuestion(question,{scope={},previousPlan=null}={}){
  const entity=entityFrom(text)
  const antimicrobial=antimicrobialFrom(text)||previousPlan?.antimicrobial||null
  const specimen=specimenFrom(text)||previousPlan?.specimen||null
- const followUp=intent===LIRA_INTENTS.FOLLOW_UP||(!entity&&topic===LIRA_TOPICS.GENERAL&&Boolean(previousPlan))
+ const contextualDetail=Boolean(previousPlan)&&has(text,['ποιο τμημα','ποια τμηματα','σε ποιο τμημα','σε ποια τμηματα','which department','which departments','ποιο μικροβ','ποια μικροβ','which organism','which organisms','δειξε μου','show me','περισσοτερα','more details'])
+ const followUp=intent===LIRA_INTENTS.FOLLOW_UP||contextualDetail||(!entity&&topic===LIRA_TOPICS.GENERAL&&Boolean(previousPlan))
  const operationalChange=has(text,['τι αλλαξε','τι χειροτερεψε','τι βελτιωθηκε','what changed','what worsened','what improved','αλλαξε περισσοτερο','changed most'])
  return {
-  intent:followUp&&previousPlan?.intent?previousPlan.intent:intent,
+  intent:contextualDetail?LIRA_INTENTS.FOLLOW_UP:(followUp&&previousPlan?.intent?previousPlan.intent:intent),
   topic:operationalChange?LIRA_TOPICS.GENERAL:(topic===LIRA_TOPICS.GENERAL&&previousPlan?.topic?previousPlan.topic:topic),
   entity:operationalChange?null:(entity||previousPlan?.entity||null),
   department:scope.department&&scope.department!=='all'?scope.department:(followUp?previousPlan?.department||'all':'all'),
