@@ -9,7 +9,7 @@ export const LIRA_TOPICS=Object.freeze({
 })
 
 const topicRules=[
- [LIRA_TOPICS.AMR,['mdr','xdr','pdr','amr','ανθεκ','αντοχ']],
+ [LIRA_TOPICS.AMR,['mdr','xdr','pdr','amr','ανθεκ','αντοχ','antibiogram','αντιβιογραμμα']],
  [LIRA_TOPICS.HAND_HYGIENE,['υγιεινη χεριων','hand hygiene','αλκοολουχο','συμμορφωση χεριων']],
  [LIRA_TOPICS.BUNDLES,['bundle','bundles','δεσμη μετρων']],
  [LIRA_TOPICS.LABORATORY,['εργαστηρ','καλλιεργ','δειγμα','microbiology','laboratory','critical result','κρισιμο αποτελεσμα']],
@@ -28,7 +28,7 @@ const topicRules=[
 const intentFrom=text=>{
  if(has(text,['γιατι','why','εξηγησε','explain','τι σημαινει','πως προκυπτ']))return LIRA_INTENTS.EXPLANATION
  if(has(text,['συρρο','εξαρσ','outbreak','cluster','συσσωρευση']))return LIRA_INTENTS.CLUSTER
- if(has(text,['σε σχεση','συγκρι','compare','versus',' vs ','προηγουμεν','last month compared','τι αλλαξε','what changed']))return LIRA_INTENTS.COMPARISON
+ if(has(text,['σε σχεση','συγκρι','compare','versus',' vs ','προηγουμεν','last month compared','τι αλλαξε','πως αλλαξε','what changed','how changed']))return LIRA_INTENTS.COMPARISON
  if(has(text,['αυξη','μειω','ταση','trend','increas','decreas','μεταβολ']))return LIRA_INTENTS.TREND
  if(has(text,['ποιο τμημα','ποια μοναδα','χειροτερ','καλυτερ','περισσοτερ','λιγοτερ','ranking','rank','τι χειροτερεψε','τι βελτιωθηκε','what worsened','what improved','changed most','αλλαξε περισσοτερο']))return LIRA_INTENTS.RANKING
  if(has(text,['εκπροθεσ','εκκρεμ','overdue','pending','καθυστερ']))return LIRA_INTENTS.OVERDUE
@@ -39,6 +39,8 @@ const intentFrom=text=>{
 }
 
 const topicFrom=text=>topicRules.find(([,terms])=>has(text,terms))?.[0]||LIRA_TOPICS.GENERAL
+const antimicrobialFrom=text=>{const terms=[['meropenem','meropenem'],['μεροπενεμ','meropenem'],['ceftriaxone','ceftriaxone'],['κεφτριαξον','ceftriaxone'],['vancomycin','vancomycin'],['βανκομυκιν','vancomycin'],['oxacillin','oxacillin'],['οξακιλλιν','oxacillin']];return terms.find(([label])=>text.includes(label))?.[1]||null}
+const specimenFrom=text=>{const terms=[['αιμα','blood'],['blood','blood'],['ουρ','urine'],['urine','urine'],['αναπνευσ','respiratory'],['respiratory','respiratory'],['τραυμα','wound'],['wound','wound']];return terms.find(([label])=>text.includes(label))?.[1]||null}
 const entityFrom=text=>{
  const organisms=['klebsiella','acinetobacter','pseudomonas','enterococcus','staphylococcus','candida','clostridioides','e. coli','escherichia coli','enterobacter']
  const found=organisms.find(x=>text.includes(x));if(found)return found
@@ -51,6 +53,8 @@ export function interpretLiraQuestion(question,{scope={},previousPlan=null}={}){
  const intent=intentFrom(text)
  const topic=topicFrom(text)
  const entity=entityFrom(text)
+ const antimicrobial=antimicrobialFrom(text)||previousPlan?.antimicrobial||null
+ const specimen=specimenFrom(text)||previousPlan?.specimen||null
  const followUp=intent===LIRA_INTENTS.FOLLOW_UP||(!entity&&topic===LIRA_TOPICS.GENERAL&&Boolean(previousPlan))
  const operationalChange=has(text,['τι αλλαξε','τι χειροτερεψε','τι βελτιωθηκε','what changed','what worsened','what improved','αλλαξε περισσοτερο','changed most'])
  return {
@@ -61,6 +65,8 @@ export function interpretLiraQuestion(question,{scope={},previousPlan=null}={}){
   periodDays:scope.periodDays||((followUp&&previousPlan?.periodDays)?previousPlan.periodDays:0),
   comparison: intent===LIRA_INTENTS.COMPARISON||Boolean(previousPlan?.comparison&&followUp),
   operationalChange,
+  antimicrobial,
+  specimen,
   followUp,
   rawQuestion:question,
  }
