@@ -14,7 +14,7 @@ describe('LIRA phase-1 core contracts',()=>{
   const source=fs.readFileSync('src/features/lira/LiraAssistantLauncher.jsx','utf8')
   expect(source).toContain('previousPlan:previousContext?.plan||null')
   expect(source).toContain('previousTimeWindow:previousContext?.timeWindow||null')
-  expect(source).toContain('setConversationContext(answer.context)')
+  expect(source).toContain('setConversationContext(deterministic.context)')
  })
 
  it('wires deterministic HAI and operational comparison engines into answers',()=>{
