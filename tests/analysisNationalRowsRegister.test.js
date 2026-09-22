@@ -48,23 +48,24 @@ describe('the National and AMR tabs render the organism/department/source line l
 })
 
 describe('collectAnalysisDemoSnapshot computes nationalRows (was previously hardcoded to [])', () => {
-  it('produces one row per distinct organism/resistance/department/source combination actually present in the demo fixture', () => {
+  it('produces one row per distinct organism/resistance/department/source/infection-site combination actually present in the demo fixture', () => {
     const snapshot = collectAnalysisDemoSnapshot()
     expect(snapshot.microbiology.nationalRows.length).toBeGreaterThan(0)
     const validPositive = laboratorySamples.filter(x => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus))
-    const distinctCombinations = new Set(validPositive.map(x => [x.organism?.trim() || '—', x.resistance || '—', x.department, x.source].join('|||')))
+    const distinctCombinations = new Set(validPositive.map(x => [x.organism?.trim() || '—', x.resistance || '—', x.department, x.source, x.type].join('|||')))
     expect(snapshot.microbiology.nationalRows).toHaveLength(distinctCombinations.size)
   })
 
-  it('each row carries organism, resistance, department, source, a count and a last-recorded date', () => {
+  it('each row carries organism, resistance, department, source, a count, a last-recorded date and an infection site (sample type)', () => {
     const snapshot = collectAnalysisDemoSnapshot()
-    for (const [organism, resistanceClass, department, source, count, lastDate] of snapshot.microbiology.nationalRows) {
+    for (const [organism, resistanceClass, department, source, count, lastDate, sampleType] of snapshot.microbiology.nationalRows) {
       expect(typeof organism).toBe('string')
       expect(typeof resistanceClass).toBe('string')
       expect(typeof department).toBe('string')
       expect(typeof source).toBe('string')
       expect(count).toBeGreaterThan(0)
       expect(lastDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(['bloodCulture', 'urineCulture', 'respiratorySample', 'woundCulture']).toContain(sampleType)
     }
   })
 
