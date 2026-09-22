@@ -1543,7 +1543,7 @@
 /* Committee creation: larger controls without wasting a full row per field. */
 .committee-create-grid{
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:16px 18px!important;
+  gap:14px 18px!important;
 }
 .committee-create-grid .committee-type-field{
   grid-column:span 2!important;
@@ -1551,15 +1551,26 @@
 .committee-create-grid .committee-name-field{
   grid-column:span 2!important;
 }
-.committee-create-grid .committee-manual-wide,
+.committee-create-grid .committee-manual-textarea-row,
 .committee-create-grid .committee-notes-field{
   grid-column:1 / -1!important;
 }
+.committee-create-grid .committee-manual-textarea-row{
+  display:flex!important;
+  gap:14px 18px!important;
+}
+.committee-create-grid .committee-manual-textarea-row>label{
+  flex:1 1 0!important;
+  min-width:0!important;
+}
 .committee-create-grid :is(input,select){
-  min-height:46px!important;
+  min-height:44px!important;
 }
 .committee-create-grid textarea{
-  min-height:104px!important;
+  min-height:76px!important;
+}
+.committee-create-grid .committee-notes-field textarea{
+  min-height:54px!important;
 }
 
 .committee-member-actions{
@@ -1624,7 +1635,7 @@
   .committee-create-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .committee-create-grid .committee-type-field,
   .committee-create-grid .committee-name-field,
-  .committee-create-grid .committee-manual-wide,
+  .committee-create-grid .committee-manual-textarea-row,
   .committee-create-grid .committee-notes-field{grid-column:1 / -1!important}
 }
 
@@ -1633,6 +1644,7 @@
   .committee-member-options-row{grid-template-columns:1fr}
   .committee-create-grid{grid-template-columns:1fr!important}
   .committee-create-grid>*{grid-column:1!important}
+  .committee-create-grid .committee-manual-textarea-row{flex-direction:column!important}
 }
 
 

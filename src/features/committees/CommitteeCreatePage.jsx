@@ -46,10 +46,9 @@ export function CommitteeCreatePage(){
     {manual&&<label><span>{en?'Institutional basis':'Θεσμική βάση'}</span><input value={draft.legalBasis} onChange={e=>set('legalBasis',e.target.value)}/></label>}
     <ManualDateField label={en?'Term start *':'Έναρξη θητείας *'} value={draft.termStart} onChange={v=>set('termStart',v)}/>
     <ManualDateField label={en?'Term end *':'Λήξη θητείας *'} value={draft.termEnd} onChange={v=>set('termEnd',v)}/>
-    {manual&&<label className="committee-manual-wide"><span>{en?'Committee role *':'Ρόλος επιτροπής *'}</span><textarea rows="2" value={draft.committeeRole} onChange={e=>set('committeeRole',e.target.value)}/></label>}
-    {manual&&<label className="committee-manual-wide"><span>{en?'Responsibilities *':'Αρμοδιότητες *'}</span><textarea rows="3" value={draft.mandate} onChange={e=>set('mandate',e.target.value)}/></label>}
     <label><span>{en?'Meeting frequency':'Συχνότητα συνεδριάσεων'}</span><select value={draft.meetingFrequency} onChange={e=>set('meetingFrequency',e.target.value)}>{frequencies.map(([v,l,lEn])=><option key={v} value={v}>{en?lEn:l}</option>)}</select></label>
     <label><span>{en?'Quorum':'Απαρτία'}</span><select value={draft.quorumRule} onChange={e=>set('quorumRule',e.target.value)}><option value="simple_majority">{en?'Simple majority':'Απλή πλειοψηφία ενεργών μελών'}</option><option value="two_thirds">2/3</option><option value="custom">{en?'According to regulations':'Σύμφωνα με τον κανονισμό'}</option></select></label>
+    {manual&&<div className="committee-manual-textarea-row"><label><span>{en?'Committee role *':'Ρόλος επιτροπής *'}</span><textarea rows="2" value={draft.committeeRole} onChange={e=>set('committeeRole',e.target.value)}/></label><label><span>{en?'Responsibilities *':'Αρμοδιότητες *'}</span><textarea rows="2" value={draft.mandate} onChange={e=>set('mandate',e.target.value)}/></label></div>}
     <label className="committee-notes-field"><span>{en?'Notes':'Σημειώσεις'}</span><textarea rows="2" value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
    </div>
    {!datesValid&&<div className="source-truth-note">{en?'Term end must be after term start.':'Η λήξη θητείας πρέπει να είναι μετά την έναρξη.'}</div>}
