@@ -3,6 +3,7 @@ import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,Plus } from 'lucide-re
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
+import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -72,7 +73,7 @@ export function QualityPage(){
       <SummaryMetric icon={AlertTriangle} label={language==='en'?'High priority':'Υψηλής προτεραιότητας'} value={highCount}/>
     </div></div>
     <div className="surface registry-workspace workspace-column workspace-fill quality-workspace">
-      <nav className="tabs quality-tabs canonical-module-tabs">{sections.map(({id,label})=><button key={id} className={`tab ${section===id?'active':''}`} onClick={()=>changeSection(id)}>{t(label)}</button>)}</nav>
+      <ModuleTabs className="quality-tabs" ariaLabel={t('quality')} tabs={sections.map(({id,label})=>({id,label:t(label)}))} activeId={section} onChange={changeSection}/>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status).filter(Boolean))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
