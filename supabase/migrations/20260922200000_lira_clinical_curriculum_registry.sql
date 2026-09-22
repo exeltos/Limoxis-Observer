@@ -4,7 +4,7 @@
 
 insert into public.lira_knowledge_sources
   (organization_id,source_type,title,authority,source_url,source_version,language,status,effective_from,metadata)
-select null,v.source_type,v.title,v.authority,v.source_url,v.source_version,v.language,'review',v.effective_from,v.metadata::jsonb
+select null,v.source_type,v.title,v.authority,v.source_url,v.source_version,v.language,'review',v.effective_from::date,v.metadata::jsonb
 from (values
  ('surveillance_protocol','2026 NHSN Patient Safety Component Manual','CDC/NHSN','https://www.cdc.gov/nhsn/','2026','en','2026-01-01','{"curriculum":["HAI","CLABSI","CAUTI","VAE","SSI","MDRO"],"jurisdiction":"US","priority":10}'),
  ('surveillance_protocol','HAI-Net ICU protocol','ECDC','https://www.ecdc.europa.eu/en/publications-data/protocol-surveillance-healthcare-associated-infections-and-prevention-indicators','2.3','en','2025-03-18','{"curriculum":["HAI","ICU","prevention_indicators"],"jurisdiction":"EU","priority":10}'),
