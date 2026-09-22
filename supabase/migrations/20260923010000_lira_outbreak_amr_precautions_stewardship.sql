@@ -1,9 +1,9 @@
 -- Phase 4C: governed summaries for outbreak response, AMR, precautions and stewardship. REVIEW only.
-insert into public.lira_knowledge_sources(authority,title,source_type,source_version,status,ingestion_status,curriculum_category,source_url,safety_flags,metadata)
+insert into public.lira_knowledge_sources(authority,title,source_type,source_version,status,ingestion_status,source_url,metadata)
 values
-('WHO','IPC outbreak preparedness, readiness and response toolkit','guideline','2022','review','pending','outbreak-response','https://www.who.int/publications/i/item/9789240051027',array['assistive_only','no_autonomous_outbreak_declaration'],jsonb_build_object('scope','global','official',true)),
-('CDC','Transmission-Based Precautions','guideline','2024','review','pending','isolation-precautions','https://www.cdc.gov/infection-control/hcp/basics/transmission-based-precautions.html',array['assistive_only'],jsonb_build_object('scope','healthcare','official',true)),
-('CDC','Core Elements of Hospital Antibiotic Stewardship Programs','guideline','2025-web','review','pending','antimicrobial-stewardship','https://www.cdc.gov/antibiotic-use/hcp/core-elements/hospital.html',array['assistive_only','no_prescribing'],jsonb_build_object('scope','hospital','official',true))
+('WHO','IPC outbreak preparedness, readiness and response toolkit','guideline','2022','review','pending','https://www.who.int/publications/i/item/9789240051027',jsonb_build_object('scope','global','official',true,'curriculum_category','outbreak-response','safety_flags',jsonb_build_array('assistive_only','no_autonomous_outbreak_declaration'))),
+('CDC','Transmission-Based Precautions','guideline','2024','review','pending','https://www.cdc.gov/infection-control/hcp/basics/transmission-based-precautions.html',jsonb_build_object('scope','healthcare','official',true,'curriculum_category','isolation-precautions','safety_flags',jsonb_build_array('assistive_only'))),
+('CDC','Core Elements of Hospital Antibiotic Stewardship Programs','guideline','2025-web','review','pending','https://www.cdc.gov/antibiotic-use/hcp/core-elements/hospital.html',jsonb_build_object('scope','hospital','official',true,'curriculum_category','antimicrobial-stewardship','safety_flags',jsonb_build_array('assistive_only','no_prescribing')))
 on conflict do nothing;
 
 with chunks(authority,title,chunk_index,heading,content,citation_label) as (values
