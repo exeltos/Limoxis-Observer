@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Archive, BookOpenCheck, FileClock, Paperclip, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Archive, BookOpenCheck, Download, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { downloadRecordJson } from '../../core/export/recordExport'
+import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { Button } from '../../design-system/Button'
 import { ActionButton } from '../../design-system/ActionButton'
 import { IconButton } from '../../design-system/IconButton'
@@ -16,6 +17,8 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
+import { useNotifications } from '../../core/notifications/NotificationContext'
+import { createAnnouncement, loadAnnouncementByLinkPath, loadAnnouncementAcknowledgers } from '../management/announcementCloudService'
 import { useDocumentsData } from './useDocumentsData'
 import {
   updateDocumentAsync,
@@ -116,6 +119,8 @@ export function DocumentRecordPage() {
   const [busy, setBusy] = useState(false)
   const [departments, setDepartments] = useState([])
   const [ownerName, setOwnerName] = useState('')
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const reportRef = useRef(null)
 
   const record = useMemo(() => rows.find((x) => x.id === documentId) || null, [rows, documentId])
   const family = useMemo(() => getDocumentFamily(rows, record), [rows, record])
@@ -323,9 +328,22 @@ export function DocumentRecordPage() {
     setEditing(false)
   }
 
+  async function exportPdf() {
+    if (exportingPdf || !reportRef.current) return
+    setExportingPdf(true)
+    try {
+      await exportElementAsPdf({ element: reportRef.current, filename: `${record.id}_${record.title}_v${record.version || '—'}`, orientation: 'portrait' })
+    } catch (error) {
+      notify(error?.message || (en ? 'Could not export the PDF.' : 'Δεν ήταν δυνατή η εξαγωγή του PDF.'), 'danger')
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
   const tabs = [
     { id: 'overview', label: en ? 'Overview' : 'Σύνοψη', icon: BookOpenCheck },
     { id: 'files', label: en ? 'Files' : 'Αρχεία', icon: Paperclip },
+    { id: 'distribution', label: en ? 'Distribution' : 'Κοινοποίηση', icon: Send },
     { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: FileClock },
   ]
 
@@ -334,6 +352,7 @@ export function DocumentRecordPage() {
       <IconButton tone="edit" onClick={() => setEditing(true)} label={en ? 'Edit' : 'Επεξεργασία'}><Pencil size={16} /></IconButton>
       <ActionButton tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={removeDraft} disabled={busy}><Trash2 size={16} /></ActionButton>
     </>}
+    <IconButton onClick={exportPdf} disabled={exportingPdf} label={en ? 'Export PDF' : 'Εξαγωγή PDF'}><Download size={16} /></IconButton>
     <PrintExportActions onExport={() => downloadRecordJson(record, { filename: record?.id })} />
   </>
 
@@ -350,7 +369,7 @@ export function DocumentRecordPage() {
     activeTab={tab}
     onTabChange={setTab}
   >
-    {tab === 'overview' && <div className="document-record-workspace">
+    {tab === 'overview' && <div className="document-record-workspace" ref={reportRef}>
       <section className="record-section">
         <div className="record-section-header"><div>
           <span className="eyebrow">{en ? 'Document' : 'Έγγραφο'}</span>
@@ -404,7 +423,7 @@ export function DocumentRecordPage() {
       </section>}
     </div>}
 
-    {tab === 'files' && <section className="record-section">
+    {tab === 'files' && <section className="record-section" ref={reportRef}>
       <div className="record-section-header"><div>
         <span className="eyebrow">{en ? 'Documents' : 'Έγγραφα'}</span>
         <h3>{en ? 'Files & attachments' : 'Αρχεία & συνημμένα'}</h3>
@@ -415,7 +434,9 @@ export function DocumentRecordPage() {
       <AttachmentField disabled={!canManage || record.status !== 'draft'} value={record.attachments || []} onChange={attachments} organizationId={organizationId} entityType="controlled_document" entityId={record.dbId || record.id} />
     </section>}
 
-    {tab === 'history' && <section className="record-section">
+    {tab === 'distribution' && <div ref={reportRef}><DocumentDistributionPanel record={record} organizationId={organizationId} isDemo={isDemo} departments={departments} canManage={canManage} canPublish={canPublish} en={en} /></div>}
+
+    {tab === 'history' && <section className="record-section" ref={reportRef}>
       <div className="record-section-header"><div>
         <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
         <h3>{en ? 'Version & lifecycle history' : 'Ιστορικό εκδόσεων & κύκλου ζωής'}</h3>
@@ -434,4 +455,103 @@ export function DocumentRecordPage() {
         </details>)}</div>}
     </section>}
   </EntityRecordShell></Page>
+}
+
+function DocumentDistributionPanel({ record, organizationId, isDemo, departments, canManage, canPublish, en }) {
+  const n = useNotifications()
+  const { notify } = useFeedback()
+  const linkPath = `/documents/${record.id}`
+  const canSend = canManage || canPublish
+  const [distribution, setDistribution] = useState(null)
+  const [loadingDistribution, setLoadingDistribution] = useState(!isDemo)
+  const [acknowledgers, setAcknowledgers] = useState([])
+  const [loadingAcknowledgers, setLoadingAcknowledgers] = useState(false)
+  const [sending, setSending] = useState(false)
+
+  useEffect(() => {
+    if (isDemo) {
+      setDistribution(n.announcements.find((a) => a.linkPath === linkPath) || null)
+      setLoadingDistribution(false)
+      return undefined
+    }
+    if (!organizationId) return undefined
+    let active = true
+    setLoadingDistribution(true)
+    loadAnnouncementByLinkPath(organizationId, linkPath)
+      .then((row) => { if (active) setDistribution(row) })
+      .catch(() => { if (active) setDistribution(null) })
+      .finally(() => { if (active) setLoadingDistribution(false) })
+    return () => { active = false }
+  }, [isDemo, n.announcements, organizationId, linkPath])
+
+  useEffect(() => {
+    if (isDemo || !distribution?.id || !canSend) { setAcknowledgers([]); return undefined }
+    let active = true
+    setLoadingAcknowledgers(true)
+    loadAnnouncementAcknowledgers(organizationId, distribution.id)
+      .then((rows) => { if (active) setAcknowledgers(rows) })
+      .catch(() => { if (active) setAcknowledgers([]) })
+      .finally(() => { if (active) setLoadingAcknowledgers(false) })
+    return () => { active = false }
+  }, [isDemo, distribution?.id, organizationId, canSend])
+
+  async function send() {
+    if (sending) return
+    setSending(true)
+    const departmentName = record.departmentId ? (departments.find((d) => d.id === record.departmentId)?.name || '') : ''
+    const audienceType = record.departmentId ? 'department' : 'all'
+    const audienceValues = record.departmentId ? [record.departmentId] : []
+    const title = en ? `Published document: ${record.title}` : `Δημοσιευμένο έγγραφο: ${record.title}`
+    const message = en
+      ? `"${record.title}" (${record.id} · v${record.version || '—'}) has been published${departmentName ? ` for ${departmentName}` : ''} and requires read acknowledgement.`
+      : `Το έγγραφο «${record.title}» (${record.id} · v${record.version || '—'}) δημοσιεύτηκε${departmentName ? ` για το τμήμα ${departmentName}` : ''} και απαιτεί επιβεβαίωση ανάγνωσης.`
+    const payload = { title, message, priority: 'normal', audienceType, audienceValues, requiresAck: true, linkPath }
+    try {
+      if (isDemo) {
+        n.addAnnouncement(payload)
+      } else {
+        const created = await createAnnouncement(organizationId, payload)
+        setDistribution(created)
+        await n.reloadAnnouncements()
+      }
+      notify(en ? 'Distribution notice sent.' : 'Η κοινοποίηση εστάλη.', 'success')
+    } catch (error) {
+      notify(error?.message || (en ? 'Could not send the distribution notice.' : 'Δεν ήταν δυνατή η αποστολή της κοινοποίησης.'), 'danger')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const audienceLabel = (item) => item?.audienceType === 'department'
+    ? (departments.find((d) => d.id === item.audienceValues?.[0])?.name || (en ? 'Department' : 'Τμήμα'))
+    : (en ? 'Whole hospital' : 'Όλο το νοσοκομείο')
+
+  return <section className="record-section">
+    <div className="record-section-header"><div>
+      <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
+      <h3>{en ? 'Distribution & acknowledgement' : 'Κοινοποίηση & επιβεβαίωση ανάγνωσης'}</h3>
+      <p>{en ? 'Notify the relevant staff that this version is published and track who has confirmed reading it.' : 'Ενημερώστε το αρμόδιο προσωπικό ότι δημοσιεύτηκε αυτή η έκδοση και παρακολουθήστε ποιοι έχουν επιβεβαιώσει ότι το διάβασαν.'}</p>
+    </div></div>
+    {record.status !== 'published' && <div className="inline-empty">{en ? 'Distribution is available once the document is published.' : 'Η κοινοποίηση είναι διαθέσιμη μόλις δημοσιευτεί το έγγραφο.'}</div>}
+    {record.status === 'published' && (loadingDistribution
+      ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>
+      : distribution
+        ? <div className="document-version-history-events">
+            <div className="timeline-line"><strong>{en ? 'Sent' : 'Απεστάλη'}</strong><span>{formatDateTime(distribution.createdAt, en)}</span></div>
+            <div className="timeline-line"><strong>{en ? 'Audience' : 'Κοινό'}</strong><span>{audienceLabel(distribution)}</span></div>
+            {isDemo
+              ? <div className="timeline-line"><strong>{en ? 'Your acknowledgement' : 'Η δική σας επιβεβαίωση'}</strong><span>{n.visibleAnnouncements.find((a) => a.id === distribution.id)?.acknowledged ? (en ? 'Confirmed' : 'Επιβεβαιώθηκε') : (en ? 'Pending' : 'Εκκρεμεί')}</span></div>
+              : canSend && <>
+                  <div className="timeline-line"><strong>{en ? 'Acknowledged by' : 'Επιβεβαίωσαν ανάγνωση'}</strong><span>{acknowledgers.length}</span></div>
+                  {loadingAcknowledgers
+                    ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>
+                    : acknowledgers.length === 0
+                      ? <div className="inline-empty">{en ? 'No acknowledgements yet.' : 'Δεν υπάρχουν ακόμη επιβεβαιώσεις.'}</div>
+                      : acknowledgers.map((row) => <div key={row.userId} className="timeline-line"><strong>{row.name}</strong><span>{formatDateTime(row.acknowledgedAt, en)}</span></div>)}
+                </>}
+          </div>
+        : canSend
+          ? <div className="record-actions"><ActionButton tone="primary" label={en ? 'Send distribution notice' : 'Αποστολή κοινοποίησης'} onClick={send} disabled={sending}><Send size={15} />{en ? 'Send distribution notice' : 'Αποστολή κοινοποίησης'}</ActionButton></div>
+          : <div className="inline-empty">{en ? 'This document has not been distributed yet.' : 'Το έγγραφο δεν έχει κοινοποιηθεί ακόμη.'}</div>)}
+  </section>
 }
