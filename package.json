@@ -24,7 +24,7 @@
     "audit:english-parity": "node tools/check-english-parity.mjs",
     "audit:help-coverage": "node tools/check-help-manual-coverage.mjs",
     "report:english-ui": "node tools/report-english-ui-risk.mjs",
-    "test:lira": "vitest run tests/liraQuestionModel.test.js tests/liraHaiMetrics.test.js tests/liraOperationalOverview.test.js tests/liraPhase1Core.test.js tests/liraKnowledgeFoundation.test.js tests/liraClinicalCurriculum.test.js"
+    "test:lira": "vitest run tests/liraQuestionModel.test.js tests/liraHaiMetrics.test.js tests/liraOperationalOverview.test.js tests/liraPhase1Core.test.js tests/liraKnowledgeFoundation.test.js tests/liraClinicalCurriculum.test.js tests/liraDemoReadiness.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
