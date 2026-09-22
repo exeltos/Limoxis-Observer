@@ -22,7 +22,7 @@ const topicRules=[
  [LIRA_TOPICS.DOCUMENTS,['εγγραφ','document','διαδικασ','πολιτικη']],
  [LIRA_TOPICS.COMMITTEES,['επιτροπ','committee','πρακτικ']],
  [LIRA_TOPICS.INDICATORS,['δεικτ','indicator','1000 patient','patient-days','patient days']],
- [LIRA_TOPICS.INFECTIONS,['λοιμωξ','infection','μικροοργαν','organism','klebsiella','acinetobacter','pseudomonas','enterococcus','staphylococcus']],
+ [LIRA_TOPICS.INFECTIONS,['λοιμωξ','infection','μικροβ','microbe','μικροοργαν','organism','klebsiella','acinetobacter','pseudomonas','enterococcus','staphylococcus']],
 ]
 
 const intentFrom=text=>{
@@ -60,7 +60,7 @@ export function interpretLiraQuestion(question,{scope={},previousPlan=null}={}){
  const operationalChange=has(text,['τι αλλαξε','τι χειροτερεψε','τι βελτιωθηκε','what changed','what worsened','what improved','αλλαξε περισσοτερο','changed most'])
  return {
   intent:contextualDetail?LIRA_INTENTS.FOLLOW_UP:(followUp&&previousPlan?.intent?previousPlan.intent:intent),
-  topic:operationalChange?LIRA_TOPICS.GENERAL:(topic===LIRA_TOPICS.GENERAL&&previousPlan?.topic?previousPlan.topic:topic),
+  topic:operationalChange?LIRA_TOPICS.GENERAL:(contextualDetail&&previousPlan?.topic?previousPlan.topic:(topic===LIRA_TOPICS.GENERAL&&previousPlan?.topic?previousPlan.topic:topic)),
   entity:operationalChange?null:(entity||previousPlan?.entity||null),
   department:scope.department&&scope.department!=='all'?scope.department:(followUp?previousPlan?.department||'all':'all'),
   periodDays:scope.periodDays||((followUp&&previousPlan?.periodDays)?previousPlan.periodDays:0),
