@@ -1,0 +1,4 @@
+import {describe,expect,it} from 'vitest'
+import fs from 'node:fs'
+const ui=fs.readFileSync('src/features/management/LiraOutbreakInvestigationsPanel.jsx','utf8'),management=fs.readFileSync('src/features/management/ManagementPage.jsx','utf8')
+describe('LIRA outbreak investigation UI',()=>{it('exposes registry and workspace',()=>{expect(management).toContain("id:'liraOutbreaks'");expect(ui).toContain('listOutbreakInvestigations');expect(ui).toContain('presentation="workspace"')});it('supports governed lifecycle and evidence actions',()=>{expect(ui).toContain("changeStatus('active')");expect(ui).toContain("changeStatus('closed')");expect(ui).toContain("addEvidence('hypothesis')");expect(ui).toContain("addEvidence('decision')")});it('pairs case definition id and version on create',()=>{expect(ui).toContain('form.definitionId&&form.definitionVersion')})})
