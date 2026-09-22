@@ -3,6 +3,7 @@ import { Pencil,Plus,Trash2,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { IconButton } from '../../design-system/IconButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -54,7 +55,7 @@ export function HaiCriteriaLibraryPanel({global=false}={}){
     rows={rows}
     rowKey={item=>item.id}
     rowProps={item=>({className:'clickable-row',onClick:()=>openItem(item)})}
-    renderRow={item=><><td><strong>{en?item.labelEn:item.labelEl}</strong>{item.system&&<span className="status-badge active">{en?'System · Owner managed':'Σύστημα · Μόνο ιδιοκτήτης'}</span>}</td><td>{item.source||'—'}</td><td>{item.groups?.length||0}</td><td>{item.groups?.reduce((sum,group)=>sum+(group.items?.length||0),0)||0}</td><td onClick={e=>e.stopPropagation()}>{isPlatformOwner&&<IconButton tone="edit" label={en?'Edit':'Επεξεργασία'} onClick={()=>openItem(item)}><Pencil size={16}/></IconButton>}</td></>}
+    renderRow={item=><><td><strong>{en?item.labelEn:item.labelEl}</strong>{item.system&&<span className="status-badge active">{en?'System · Owner managed':'Σύστημα · Μόνο ιδιοκτήτης'}</span>}</td><td>{item.source||'—'}</td><td>{item.groups?.length||0}</td><td>{item.groups?.reduce((sum,group)=>sum+(group.items?.length||0),0)||0}</td><td onClick={e=>e.stopPropagation()}><OverflowMenu items={[{id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,hidden:!isPlatformOwner,onClick:()=>openItem(item)}]}/></td></>}
   />{!loading&&!rows.length&&<div className="inline-empty">{en?'No criteria sets found.':'Δεν βρέθηκαν σετ κριτηρίων.'}</div>}
   {selected&&<HaiCriteriaEditor language={language} draft={selected} ruleLabels={ruleLabels} onClose={()=>setSelected(null)} onSave={save}/>}
  </div>

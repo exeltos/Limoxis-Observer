@@ -5,7 +5,6 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
-import { IconButton } from '../../design-system/IconButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterBar, FilterDate, FilterSelect } from '../../design-system/FilterBar'
@@ -31,7 +30,10 @@ export function BedDaysPanel(){
   const advancedCount=(filters.from?1:0)+(filters.to?1:0)+(filters.scope!=='all'?1:0)+(filters.department!=='all'?1:0)
 
   if(selected)return <section className="management-section management-scroll-section"><EntityRecordShell className="bed-days-record-shell workspace-fill" avatar={<CalendarDays size={19}/>} eyebrow={t('patientDays')} title={`${fmt(selected.from)} – ${fmt(selected.to)}`} subtitle={selected.scope==='hospital'?t('wholeHospital'):(language==='el'?selected.departmentEl:selected.departmentEn)} onBack={()=>setSelectedId(null)} backLabel={t('patientDays')}>
-    <section className="record-section bed-days-record-section"><div className="record-section-header"><div><span className="eyebrow">{t('details')}</span><h3>{t('patientDays')}</h3></div><div className="bed-days-record-actions"><IconButton tone="edit" label={t('edit')} onClick={()=>openEdit(selected)}><Pencil size={16}/></IconButton><IconButton tone="danger" label={t('delete')} onClick={()=>remove(selected.id)}><Trash2 size={16}/></IconButton></div></div><div className="bed-days-details-grid"><div className="bed-days-detail"><span>{t('period')}</span><strong>{fmt(selected.from)} – {fmt(selected.to)}</strong></div><div className="bed-days-detail"><span>{t('scope')}</span><strong>{selected.scope==='hospital'?t('wholeHospital'):t('perDepartment')}</strong></div><div className="bed-days-detail"><span>{t('department')}</span><strong>{selected.scope==='hospital'?'—':(language==='el'?selected.departmentEl:selected.departmentEn)}</strong></div><div className="bed-days-detail"><span>{t('patientDays')}</span><strong>{Number(selected.value).toLocaleString(locale)}</strong></div><div className="bed-days-detail"><span>{t('source')}</span><strong>{t(selected.source)}</strong></div></div></section>
+    <section className="record-section bed-days-record-section"><div className="record-section-header"><div><span className="eyebrow">{t('details')}</span><h3>{t('patientDays')}</h3></div><div className="bed-days-record-actions"><OverflowMenu items={[
+    {id:'edit',label:t('edit'),icon:Pencil,onClick:()=>openEdit(selected)},
+    {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(selected.id)},
+  ]}/></div></div><div className="bed-days-details-grid"><div className="bed-days-detail"><span>{t('period')}</span><strong>{fmt(selected.from)} – {fmt(selected.to)}</strong></div><div className="bed-days-detail"><span>{t('scope')}</span><strong>{selected.scope==='hospital'?t('wholeHospital'):t('perDepartment')}</strong></div><div className="bed-days-detail"><span>{t('department')}</span><strong>{selected.scope==='hospital'?'—':(language==='el'?selected.departmentEl:selected.departmentEn)}</strong></div><div className="bed-days-detail"><span>{t('patientDays')}</span><strong>{Number(selected.value).toLocaleString(locale)}</strong></div><div className="bed-days-detail"><span>{t('source')}</span><strong>{t(selected.source)}</strong></div></div></section>
     {editor&&<EntryEditor t={t} language={language} departments={departments} draft={draft} setDraft={setDraft} mode={editor.mode} onClose={closeEditor} onSave={save}/>} 
   </EntityRecordShell></section>
 

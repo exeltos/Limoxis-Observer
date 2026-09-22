@@ -3,7 +3,7 @@ import { LockKeyhole,Pencil,Plus,Search,ShieldCheck,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { SaveButton } from '../../design-system/SaveButton'
-import { IconButton } from '../../design-system/IconButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -40,7 +40,10 @@ export function ManagementRolesPanel(){
  if(editor)return <RoleEditor en={en} value={editor} permissions={customPermissions} onChange={setEditor} onClose={closeEditor} onSave={save}/>
 
  if(selectedRole)return <section className="management-section management-scroll-section"><EntityRecordShell className="management-role-record workspace-fill" avatar={<ShieldCheck size={19}/>} eyebrow={selectedRole.system?(en?'SYSTEM ROLE':'ΡΟΛΟΣ ΣΥΣΤΗΜΑΤΟΣ'):(en?'CUSTOM ROLE':'ΠΡΟΣΑΡΜΟΣΜΕΝΟΣ ΡΟΛΟΣ')} title={selectedRole.name} subtitle={`${selectedRole.capabilities.length} ${en?'permissions':'δικαιώματα'}`} status={<span className="status-badge active">{selectedRole.system?'System':'Custom'}</span>} onBack={()=>setSelected(null)} backLabel={en?'Back to roles':'Επιστροφή στους ρόλους'}>
-   <section className="record-section management-role-detail"><div className="record-section-header"><div><span className="eyebrow">{en?'ACCESS':'ΠΡΟΣΒΑΣΗ'}</span><h3>{en?'Permissions and scope':'Δικαιώματα και εύρος πρόσβασης'}</h3><p>{selectedRole.system?(en?'System roles are defined centrally and cannot be modified here.':'Οι ρόλοι συστήματος ορίζονται κεντρικά και δεν τροποποιούνται από εδώ.'):(en?'These permissions are saved on the custom role and applied by the authorization layer.':'Τα δικαιώματα αποθηκεύονται στον προσαρμοσμένο ρόλο και εφαρμόζονται από το σύστημα εξουσιοδότησης.')}</p></div><div className="management-role-record-actions">{selectedRole.system?<span className="management-role-lock"><LockKeyhole size={15}/>{en?'Read only':'Μόνο προβολή'}</span>:<><IconButton tone="edit" label={t('edit')} onClick={()=>openEdit(selectedRole)}><Pencil size={16}/></IconButton><IconButton tone="danger" label={t('delete')} onClick={()=>remove(selectedRole)}><Trash2 size={16}/></IconButton></>}</div></div>
+   <section className="record-section management-role-detail"><div className="record-section-header"><div><span className="eyebrow">{en?'ACCESS':'ΠΡΟΣΒΑΣΗ'}</span><h3>{en?'Permissions and scope':'Δικαιώματα και εύρος πρόσβασης'}</h3><p>{selectedRole.system?(en?'System roles are defined centrally and cannot be modified here.':'Οι ρόλοι συστήματος ορίζονται κεντρικά και δεν τροποποιούνται από εδώ.'):(en?'These permissions are saved on the custom role and applied by the authorization layer.':'Τα δικαιώματα αποθηκεύονται στον προσαρμοσμένο ρόλο και εφαρμόζονται από το σύστημα εξουσιοδότησης.')}</p></div><div className="management-role-record-actions">{selectedRole.system?<span className="management-role-lock"><LockKeyhole size={15}/>{en?'Read only':'Μόνο προβολή'}</span>:<OverflowMenu items={[
+    {id:'edit',label:t('edit'),icon:Pencil,onClick:()=>openEdit(selectedRole)},
+    {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(selectedRole)},
+  ]}/>}</div></div>
     <RolePermissionTable role={selectedRole} en={en}/>
    </section>
   </EntityRecordShell></section>
