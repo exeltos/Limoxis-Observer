@@ -113,7 +113,7 @@ export function EmployeeRecordPage({selfMode=false}){
     {id:'exposureIncidents',label:language==='en'?'Exposure incidents':'Περιστατικά έκθεσης',icon:ShieldAlert,show:canOccupational||selfMode},
     {id:'surveillance',label:t('surveillance'),icon:Activity,show:canSeeSensitiveEmployeeHealth&&(canOccupational||selfMode)},
     {id:'training',label:t('training'),icon:GraduationCap,show:canTraining||selfMode},
-    {id:'evaluations',label:t('evaluations'),icon:FileCheck2,show:canAdmin||selfMode},
+    {id:'evaluations',label:t('evaluations'),icon:FileCheck2,show:canAdmin||selfMode||role==='department_manager'||role==='hr_office'},
     {id:'certificates',label:t('employeesRecords.certificatesDocuments'),icon:BriefcaseBusiness,show:true},
     {id:'history',label:t('history'),icon:ShieldCheck,show:canOccupational||canAdmin},
   ].filter(item=>item.show),[t,canAdmin,canOccupational,canTraining,canSeeSensitiveEmployeeHealth,selfMode,language])
