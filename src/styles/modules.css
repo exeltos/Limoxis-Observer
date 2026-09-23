@@ -4061,3 +4061,23 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 
 /* ===== FEATURE SOURCE: src/features/platform/platform-demo-record.css ===== */
 .platform-demo-record-form{padding:12px 14px 18px;overflow:auto}.platform-demo-record-form .platform-form-shell{max-width:none}.platform-demo-access-grid{display:grid;grid-template-columns:minmax(230px,1.25fr) minmax(300px,1.55fr) minmax(160px,.8fr) minmax(160px,.8fr);gap:11px 13px;align-items:start}.platform-demo-access-grid>.field,.platform-demo-access-grid>.manual-date-field{min-width:0}.platform-demo-access-grid .field>span{font-size:10px}.platform-demo-access-grid .field input{width:100%;min-height:38px;height:38px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);padding:0 10px;background:var(--lo-color-surface);font:inherit;font-size:11.5px;color:var(--lo-color-text)}@media(max-width:1180px){.platform-demo-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.platform-demo-access-grid{grid-template-columns:1fr}}
+
+
+/* Clinical scales — compact patient-tab registry */
+.clinical-scales-panel{gap:12px!important;min-height:0!important}
+.clinical-scales-overview{padding:16px!important;border:1px solid #dfe7ed!important;border-radius:12px!important;background:#fff!important}
+.clinical-scale-kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;margin:12px 0 14px!important}
+.clinical-scale-kpi{display:flex!important;align-items:baseline!important;gap:7px!important;min-height:48px!important;padding:11px 12px!important;border:1px solid #e3e9ee!important;border-radius:9px!important;background:#f8fafb!important}
+.clinical-scale-kpi strong{font-size:18px!important;line-height:1!important;color:#173b55!important}
+.clinical-scale-kpi span{font-size:10.5px!important;color:#667d90!important}
+.clinical-scale-list,.clinical-scale-picker-list{display:flex!important;flex-direction:column!important;gap:7px!important}
+.clinical-scale-row,.clinical-scale-picker-row{width:100%!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;padding:11px 13px!important;border:1px solid #e0e7ed!important;border-radius:9px!important;background:#fff!important;color:#213d54!important;text-align:left!important;font:inherit!important;cursor:pointer!important}
+.clinical-scale-row:hover,.clinical-scale-picker-row:hover{border-color:#bfd1de!important;background:#f8fbfd!important}
+.clinical-scale-row-main{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
+.clinical-scale-row-main strong{font-size:12px!important;line-height:1.3!important}
+.clinical-scale-row small,.clinical-scale-picker-row small{font-size:10.5px!important;color:#738798!important;white-space:nowrap!important}
+.clinical-scale-badges{display:inline-flex!important;gap:5px!important;flex-wrap:wrap!important}
+.clinical-scale-badges>span{display:inline-flex!important;align-items:center!important;height:22px!important;padding:0 8px!important;border-radius:999px!important;background:#eef4f7!important;color:#47667d!important;font-size:9.5px!important;font-weight:700!important}
+.clinical-scale-picker-list{padding-top:4px!important}
+.clinical-scale-picker-row{min-height:52px!important}
+@media(max-width:1000px){.clinical-scale-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}.clinical-scale-row,.clinical-scale-picker-row{align-items:flex-start!important;flex-direction:column!important}.clinical-scale-row small,.clinical-scale-picker-row small{white-space:normal!important}}
