@@ -1,53 +1,10 @@
 const AVAILABILITY_ORDER={required:0,recommended:1,available:2}
-
-export function patientAgeYears(dateOfBirth,now=new Date()){
- if(!dateOfBirth)return null
- const birth=new Date(dateOfBirth)
- if(Number.isNaN(birth.getTime()))return null
- let age=now.getFullYear()-birth.getFullYear()
- const beforeBirthday=now.getMonth()<birth.getMonth()||(now.getMonth()===birth.getMonth()&&now.getDate()<birth.getDate())
- if(beforeBirthday)age-=1
- return Math.max(0,age)
-}
-
 const normalized=x=>String(x||'').trim().toLowerCase()
+export function patientAgeYears(dateOfBirth,now=new Date()){if(!dateOfBirth)return null;const birth=new Date(dateOfBirth);if(Number.isNaN(birth.getTime()))return null;let age=now.getFullYear()-birth.getFullYear();if(now.getMonth()<birth.getMonth()||(now.getMonth()===birth.getMonth()&&now.getDate()<birth.getDate()))age-=1;return Math.max(0,age)}
 const populationForAge=age=>age==null?null:age<1?'neonatal':age<18?'pediatric':'adult'
-const settingAliases={
- icu:['icu','intensive care','μεθ'],
- ward:['ward','acute_care','general','clinic','general ward','κλινικη','κλινική','γενικη','γενική'],
- ed:['ed','emergency','τεπ'],
- pediatric_ward:['pediatric_ward','pediatric ward','pediatric','paediatric','picu','παιδιατρικη','παιδιατρική'],
- pediatric_ed:['pediatric_ed','pediatric emergency','παιδιατρικο τεπ','παιδιατρικό τεπ'],
- maternity:['maternity','μαιευτικη','μαιευτική'],
- postnatal:['postnatal','λοχεια','λοχεία'],
- neonatal:['neonatal','nicu','μενν']
-}
-const matchesSetting=(definition,admission)=>{
- const settings=(definition.settings||[]).map(normalized).filter(Boolean)
- if(!settings.length)return true
- const values=[admission?.care_setting,admission?.setting,admission?.department_type,admission?.department_name,admission?.department?.name,admission?.department?.type].map(normalized).filter(Boolean)
- return !values.length||settings.some(setting=>{const aliases=settingAliases[setting]||[setting];return aliases.some(alias=>values.includes(alias))})
-}
-
-export function isClinicalScaleEligible(definition,{age,admission}={}){
- if(!definition||definition.status==='retired')return false
- if(definition.orgSetting?.enabled===false||definition.orgSetting?.availability==='disabled')return false
- const population=populationForAge(age)
- if(population&&(definition.population||[]).length&&!definition.population.map(normalized).includes(population))return false
- if(age!=null&&definition.min_age_years!=null&&age<Number(definition.min_age_years))return false
- if(age!=null&&definition.max_age_years!=null&&age>Number(definition.max_age_years))return false
- return matchesSetting(definition,admission)
-}
-
-export function buildClinicalScaleContext(definitions=[],assessments=[],context={},now=new Date()){
- return definitions.filter(definition=>isClinicalScaleEligible(definition,context)).map(definition=>{
-  const history=assessments.filter(row=>row.scale_definition_id===definition.id).sort((a,b)=>new Date(b.assessed_at)-new Date(a.assessed_at))
-  const latest=history[0]||null,previous=history[1]||null
-  const hours=Number(definition.orgSetting?.reassessment_hours)||null
-  const dueAt=latest&&hours?new Date(new Date(latest.assessed_at).getTime()+hours*3600000):null
-  const availability=definition.orgSetting?.availability||'available'
-  const state=!latest?(availability==='required'?'due':'not-recorded'):(dueAt&&dueAt<=now?'overdue':dueAt?'current':'completed')
-  const delta=latest&&previous?Number(latest.score)-Number(previous.score):null
-  return {...definition,availability,latest,previous,dueAt:dueAt?.toISOString()||null,state,delta:Number.isFinite(delta)?delta:null}
- }).sort((a,b)=>(AVAILABILITY_ORDER[a.availability]??9)-(AVAILABILITY_ORDER[b.availability]??9)||(a.state==='overdue'?-1:0)-(b.state==='overdue'?-1:0)||(a.name_el||'').localeCompare(b.name_el||'','el'))
-}
+const settingAliases={icu:['icu','intensive care','μεθ'],picu:['picu','pediatric intensive care','paediatric intensive care','παιδιατρικη μεθ','παιδιατρική μεθ'],nicu:['nicu','neonatal intensive care','μενν'],ward:['ward','acute_care','general','clinic','general ward','κλινικη','κλινική','γενικη','γενική'],ed:['ed','emergency','τεπ'],pediatric_ward:['pediatric_ward','pediatric ward','pediatric','paediatric','παιδιατρικη','παιδιατρική'],pediatric_ed:['pediatric_ed','pediatric emergency','παιδιατρικο τεπ','παιδιατρικό τεπ'],maternity:['maternity','μαιευτικη','μαιευτική'],postnatal:['postnatal','λοχεια','λοχεία'],neonatal:['neonatal','nicu','μενν']}
+const admissionValues=a=>[a?.care_setting,a?.setting,a?.department_type,a?.department_name,a?.department?.name,a?.department?.type].map(normalized).filter(Boolean)
+const matchesSetting=(d,a)=>{const settings=(d.settings||[]).map(normalized).filter(Boolean);if(!settings.length)return true;const values=admissionValues(a);return !values.length||settings.some(s=>(settingAliases[s]||[s]).some(alias=>values.includes(alias)))}
+export function isClinicalScaleEligible(d,{age,admission}={}){if(!d||d.status==='retired'||d.status==='draft')return false;if(d.orgSetting?.enabled===false||d.orgSetting?.availability==='disabled')return false;const population=populationForAge(age);if(population&&(d.population||[]).length&&!d.population.map(normalized).includes(population))return false;if(age!=null&&d.min_age_years!=null&&age<Number(d.min_age_years))return false;if(age!=null&&d.max_age_years!=null&&age>Number(d.max_age_years))return false;return matchesSetting(d,admission)}
+const recommendation=(d,{age,admission}={})=>{const values=admissionValues(admission),pop=populationForAge(age),settings=(d.settings||[]).map(normalized);const exact=settings.some(s=>(settingAliases[s]||[s]).some(a=>values.includes(a)));const recommended=d.orgSetting?.availability==='recommended'||d.orgSetting?.availability==='required'||exact;return {recommended,reason:recommended?(pop==='neonatal'?'age_neonatal':pop==='pediatric'?'age_pediatric':exact?'care_setting':'hospital_policy'):null}}
+export function buildClinicalScaleContext(definitions=[],assessments=[],context={},now=new Date()){return definitions.filter(d=>isClinicalScaleEligible(d,context)).map(d=>{const history=assessments.filter(r=>r.scale_definition_id===d.id).sort((a,b)=>new Date(b.assessed_at)-new Date(a.assessed_at));const latest=history[0]||null,previous=history[1]||null,hours=Number(d.orgSetting?.reassessment_hours)||null,dueAt=latest&&hours?new Date(new Date(latest.assessed_at).getTime()+hours*3600000):null,availability=d.orgSetting?.availability||'available',state=!latest?(availability==='required'?'due':'not-recorded'):(dueAt&&dueAt<=now?'overdue':dueAt?'current':'completed'),delta=latest&&previous?Number(latest.score)-Number(previous.score):null,rec=recommendation(d,context);return {...d,...rec,availability,latest,previous,dueAt:dueAt?.toISOString()||null,state,delta:Number.isFinite(delta)?delta:null}}).sort((a,b)=>(b.recommended?1:0)-(a.recommended?1:0)-(AVAILABILITY_ORDER[a.availability]??9)+(AVAILABILITY_ORDER[b.availability]??9)||(a.name_el||'').localeCompare(b.name_el||'','el'))}
