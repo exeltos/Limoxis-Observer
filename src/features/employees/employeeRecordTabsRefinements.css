@@ -91,3 +91,21 @@
   min-height:0!important;
   height:100%!important;
 }
+
+/* Keep pagination visible at the bottom while only the table body grows/scrolls. */
+.entity-record-shell.record-secondary-tab-active .record-secondary-registry{
+  grid-template-rows:auto auto minmax(0,1fr) auto!important;
+}
+.entity-record-shell.record-secondary-tab-active .record-secondary-registry>.scroll-table{
+  grid-row:3!important;
+  overflow-y:auto!important;
+}
+.entity-record-shell.record-secondary-tab-active .record-secondary-registry>.registry-pagination,
+.entity-record-shell.record-secondary-tab-active .record-secondary-registry>[data-registry-pagination="canonical"]{
+  grid-row:4!important;
+  position:relative!important;
+  z-index:2!important;
+  align-self:end!important;
+  flex:0 0 auto!important;
+  background:var(--lo-color-surface)!important;
+}
