@@ -9,6 +9,6 @@ describe('clinical scales registry pattern',()=>{
   expect(source).toContain('<RegistryPagination')
   expect(source).toContain('<span className="eyebrow">Limoxis Observer</span>')
   const page=fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx','utf8')
-  expect(page).toContain("activeTab==='clinicalScales'?' record-secondary-tab-active':'')")
+  expect(page).toContain("activeTab==='clinicalScales'?\' record-secondary-tab-active\':\'\'")
  })
 })
