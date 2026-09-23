@@ -137,3 +137,7 @@
 .evaluation-rating button{width:34px;height:34px;border:1px solid var(--border-color,#dbe4ec);border-radius:9px;background:var(--surface,#fff);font-weight:700;cursor:pointer}
 .evaluation-rating button.is-selected{background:var(--primary,#245f86);border-color:var(--primary,#245f86);color:#fff}
 @media(max-width:900px){.evaluation-scale-grid{grid-template-columns:1fr}.evaluation-criteria-edit{grid-template-columns:1fr}}
+
+.evaluation-acknowledgement{display:grid;gap:12px}.evaluation-acknowledgement>p{margin:0 0 4px;color:var(--text-muted,#5f7182)}
+.evaluation-ack-choice{display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border-color,#dbe4ec);border-radius:12px;background:var(--surface,#fff);cursor:pointer}
+.evaluation-ack-choice input{margin-top:3px}.evaluation-ack-choice span{display:grid;gap:3px}.evaluation-ack-choice small{color:var(--text-muted,#5f7182)}
