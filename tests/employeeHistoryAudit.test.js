@@ -10,7 +10,7 @@ describe('employee administrative history',()=>{
     expect(tabs).toContain('loadEmployeeHistoryAsync')
     expect(tabs).toContain("language==='en'?'Changes':'Μεταβολές'")
     expect(tabs).toContain("language==='en'?'User':'Χρήστης'")
-    expect(tabs).toContain('<Pager paging={paging} total={rows.length} language={language}/>')
+    expect(tabs).toContain('<Pager paging={paging} total={registry.filtered.length} language={language}/>')
     expect(tabs).toContain('className="scroll-table"')
   })
 
