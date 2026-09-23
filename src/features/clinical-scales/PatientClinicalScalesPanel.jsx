@@ -8,7 +8,7 @@ import {RegistryPagination} from '../../design-system/RegistryPagination'
 import {OverflowMenu} from '../../design-system/OverflowMenu'
 import {loadClinicalScales} from '../management/clinicalScalesService'
 import {calculateClinicalScale} from './clinicalScaleEngine'
-import {buildClinicalScaleContext,patientAgeYears} from './clinicalScaleContext'
+import {buildClinicalScaleContext,patientAgeYears,patientAgeLabel} from './clinicalScaleContext'
 import {clinicalScalePrefill,mergeClinicalScalePrefill} from './clinicalScalePrefill'
 import {createPatientScaleAssessment,deletePatientScaleAssessment,loadPatientScaleAssessments,updatePatientScaleAssessment} from './patientClinicalScalesService'
 
@@ -32,6 +32,7 @@ export function PatientClinicalScalesPanel({organizationId,patient,admission,cli
  async function load(){if(!patient?.recordId)return;const [d,r]=await Promise.all([isDemo?Promise.resolve([]):loadClinicalScales(organizationId),loadPatientScaleAssessments(organizationId,patient.recordId,admission?.id,{isDemo})]);setDefs(d);setRows(r)}
  useEffect(()=>{void load()},[organizationId,patient?.recordId,admission?.id,isDemo])
  const age=patientAgeYears(patient?.dateOfBirth)
+ const ageDisplay=patientAgeLabel(patient?.dateOfBirth,language)
  const scaleContext=useMemo(()=>buildClinicalScaleContext(defs,rows,{age,admission}),[defs,rows,age,admission])
  const available=useMemo(()=>scaleContext,[scaleContext])
  const recommended=useMemo(()=>available.filter(x=>x.recommended),[available])
@@ -49,7 +50,7 @@ export function PatientClinicalScalesPanel({organizationId,patient,admission,cli
  const fields=selected?FIELD_DEFINITIONS[selected.scale_key]||[]:[]
  return <>
   <section className="surface registry-workspace workspace-column workspace-fill clinical-assessment-registry">
-   <div className="section-toolbar"><div><h3>{en?'Clinical assessments':'Κλινικές αξιολογήσεις'}</h3>{recommended.length>0&&<small className="entry-detail-note">{en?`${recommended.length} recommended for this patient`:`${recommended.length} προτεινόμενες για τον συγκεκριμένο ασθενή`} · {recommended.filter(x=>x.state==='overdue'||x.state==='due').length>0&&(en?`${recommended.filter(x=>x.state==='overdue'||x.state==='due').length} need attention`:`${recommended.filter(x=>x.state==='overdue'||x.state==='due').length} χρειάζονται ενέργεια`)}</small>}</div>{canRecord&&available.length>0&&<Button onClick={()=>setPickerOpen(true)}><Plus size={15}/>{en?'New assessment':'Νέα αξιολόγηση'}</Button>}</div>
+   <div className="section-toolbar"><div><h3>{en?'Clinical assessments':'Κλινικές αξιολογήσεις'}</h3>{ageDisplay&&<small className="entry-detail-note">{en?'Patient age: ':'Ηλικία ασθενούς: '}{ageDisplay}</small>}{recommended.length>0&&<small className="entry-detail-note">{en?`${recommended.length} recommended for this patient`:`${recommended.length} προτεινόμενες για τον συγκεκριμένο ασθενή`} · {recommended.filter(x=>x.state==='overdue'||x.state==='due').length>0&&(en?`${recommended.filter(x=>x.state==='overdue'||x.state==='due').length} need attention`:`${recommended.filter(x=>x.state==='overdue'||x.state==='due').length} χρειάζονται ενέργεια`)}</small>}</div>{canRecord&&available.length>0&&<Button onClick={()=>setPickerOpen(true)}><Plus size={15}/>{en?'New assessment':'Νέα αξιολόγηση'}</Button>}</div>
     <div className="scroll-table"><RegistryTable bare columns={[{key:'date',label:en?'Date / time':'Ημερομηνία / ώρα'},{key:'scale',label:en?'Assessment tool':'Εργαλείο αξιολόγησης'},{key:'score',label:en?'Score':'Βαθμολογία'},{key:'result',label:en?'Result':'Ένδειξη'},{key:'version',label:en?'Version':'Έκδοση'},{key:'actions',label:''}]} rows={pagedRows} rowKey={r=>r.id} emptyTitle={en?'No clinical assessments':'Δεν υπάρχουν κλινικές αξιολογήσεις'} emptyText={en?'Create the first assessment for this admission.':'Δημιουργήστε την πρώτη αξιολόγηση για τη συγκεκριμένη νοσηλεία.'} renderRow={r=><><td>{formatDate(r.assessed_at,en)}</td><td><strong>{scaleName(r,en)}</strong></td><td><strong>{r.score}</strong>{contextByDefinition.get(r.scale_definition_id)?.latest?.id===r.id&&contextByDefinition.get(r.scale_definition_id)?.delta!=null&&<small className="entry-detail-note">{trendLabel(contextByDefinition.get(r.scale_definition_id),en)}</small>}</td><td>{assessmentSignal(r,en)?<span className={'status-badge '+assessmentSignal(r,en).tone}>{assessmentSignal(r,en).label}</span>:'—'}</td><td>{r.scale_version}</td><td className="open-record-cell"><OverflowMenu label={en?'Assessment actions':'Ενέργειες αξιολόγησης'} items={[{id:'report',label:en?'Full report':'Πλήρης αναφορά',icon:FileText,onClick:()=>setReport(r)},{id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,onClick:()=>edit(r)},{id:'delete',label:en?'Delete':'Διαγραφή',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(r)}]}/></td></>}/></div>
     <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
   </section>
