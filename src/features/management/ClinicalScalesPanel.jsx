@@ -1,6 +1,5 @@
 import {useEffect,useMemo,useState} from 'react'
 import {Activity,BookOpen,Settings2} from 'lucide-react'
-import {Button} from '../../design-system/Button'
 import {RegistryTable} from '../../design-system/RegistryTable'
 import {ObserverDialog,DialogActions} from '../../design-system/ObserverDialog'
 import {useLanguage} from '../../core/i18n/LanguageContext'
