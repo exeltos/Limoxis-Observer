@@ -149,7 +149,29 @@ export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, em
 const EVALUATION_COLUMNS='id,employee_id,title,title_en,evaluation_date,result,result_en,notes,evaluation_period,status,evaluator_user_id,criteria,overall_score,employee_comment,employee_acknowledged_at,employee_acknowledged_by,hr_approved_at,hr_approved_by,admin_approved_at,admin_approved_by,finalized_at'
 
 function evaluationFromRow(row) {
-  return { id: row.id, employeeId: row.employee_id, titleEl: row.title, titleEn: row.title_en || row.title, date: row.evaluation_date, resultEl: row.result || '', resultEn: row.result_en || row.result || '', source:'employee_evaluations' }
+  return { id:row.id,employeeId:row.employee_id,titleEl:row.title,titleEn:row.title_en||row.title,date:row.evaluation_date,resultEl:row.result||'',resultEn:row.result_en||row.result||'',period:row.evaluation_period||'',status:row.status||'draft',evaluatorUserId:row.evaluator_user_id||null,criteria:Array.isArray(row.criteria)?row.criteria:[],overallScore:row.overall_score==null?null:Number(row.overall_score),notes:row.notes||'',employeeComment:row.employee_comment||'',employeeAcknowledgedAt:row.employee_acknowledged_at||null,hrApprovedAt:row.hr_approved_at||null,adminApprovedAt:row.admin_approved_at||null,finalizedAt:row.finalized_at||null,source:'employee_evaluations' }
+}
+
+function evaluationScore(criteria=[]){const valid=criteria.filter(x=>Number(x.score)>=1&&Number(x.score)<=5);if(!valid.length)return null;const totalWeight=valid.reduce((n,x)=>n+(Number(x.weight)||1),0);return Number((valid.reduce((n,x)=>n+Number(x.score)*(Number(x.weight)||1),0)/totalWeight).toFixed(2))}
+
+export async function createEmployeeEvaluationAsync(organizationId,employeeDbId,draft){
+  ensureProductionContext(organizationId,employeeDbId,'employee_evaluations.create')
+  const {data:userData}=await supabase.auth.getUser();const userId=userData?.user?.id||null
+  const score=evaluationScore(draft.criteria)
+  const {data,error}=await supabase.from('employee_evaluations').insert({organization_id:organizationId,employee_id:employeeDbId,title:'Αξιολόγηση απόδοσης',title_en:'Performance evaluation',evaluation_date:draft.date,evaluation_period:draft.period,status:'draft',evaluator_user_id:userId,created_by:userId,criteria:draft.criteria||[],overall_score:score,notes:draft.notes||'',result:score==null?'':`${score} / 5`,result_en:score==null?'':`${score} / 5`}).select(EVALUATION_COLUMNS).single()
+  if(error)throw error;return evaluationFromRow(data)
+}
+
+export async function updateEmployeeEvaluationWorkflowAsync(organizationId,employeeDbId,evaluationId,{action,comment=''}){
+  ensureProductionContext(organizationId,employeeDbId,'employee_evaluations.workflow')
+  const {data:userData,error:userError}=await supabase.auth.getUser();if(userError)throw userError;const userId=userData?.user?.id;if(!userId)throw new Error('Authentication required')
+  const now=new Date().toISOString();let patch
+  if(action==='submit')patch={status:'submitted'}
+  else if(action==='acknowledge')patch={status:'employee_acknowledged',employee_comment:comment||null,employee_acknowledged_at:now,employee_acknowledged_by:userId}
+  else if(action==='hrApprove')patch={status:'hr_approved',hr_approved_at:now,hr_approved_by:userId}
+  else if(action==='finalize')patch={status:'finalized',admin_approved_at:now,admin_approved_by:userId,finalized_at:now}
+  else throw new Error('Unsupported evaluation workflow action')
+  const {data,error}=await supabase.from('employee_evaluations').update(patch).eq('organization_id',organizationId).eq('employee_id',employeeDbId).eq('id',evaluationId).select(EVALUATION_COLUMNS).single();if(error)throw error;return evaluationFromRow(data)
 }
 export async function loadEvaluationsAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadEvaluationsLocal().filter(x => x.employeeId === employeeId)
