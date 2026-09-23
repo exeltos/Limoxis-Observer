@@ -1367,50 +1367,50 @@
   display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;
   min-width:0!important;min-height:0!important;width:100%!important;height:100%!important;margin:0!important;overflow:hidden!important;
 }
-.entity-record-shell .record-secondary-registry > .employee-section-title,
-.entity-record-shell .record-secondary-registry > .record-section-header{min-width:0!important}
+.employee-record-shell .employee-secondary-registry > .employee-section-title,
+.employee-record-shell .employee-secondary-registry > .record-section-header{min-width:0!important}
 
 /* EXACT canonical bottom geometry used by top-level registries:
    scroll region and pagination behave as one attached surface. */
-.entity-record-shell .record-secondary-registry > .scroll-table{
+.employee-record-shell .employee-secondary-registry > .scroll-table{
   width:100%!important;min-width:0!important;min-height:0!important;height:100%!important;
   margin:12px 0 0!important;overflow:auto!important;background:#fff!important;box-shadow:none!important;
   border:1px solid #e1e8ee!important;border-bottom:0!important;border-radius:11px 11px 0 0!important;
 }
-.entity-record-shell .record-secondary-registry > .registry-pagination,
-.entity-record-shell .record-secondary-registry > [class*="registry-pagination"]{
+.employee-record-shell .employee-secondary-registry > .registry-pagination,
+.employee-record-shell .employee-secondary-registry > [class*="registry-pagination"]{
   align-self:end!important;width:100%!important;min-height:44px!important;margin:0!important;
   padding-left:12px!important;padding-right:12px!important;
   border:1px solid #e1e8ee!important;border-top:1px solid var(--line)!important;
   border-radius:0 0 11px 11px!important;background:#fff!important;
 }
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table{
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table{
   width:100%!important;margin:0!important;border:0!important;border-collapse:separate!important;border-spacing:0!important;table-layout:fixed!important;background:#fff!important;
 }
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table thead th{
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table thead th{
   height:42px!important;padding:0 16px!important;border:0!important;border-bottom:1px solid #dfe7ed!important;background:#f7f9fb!important;
   color:#6f8294!important;font-size:9.5px!important;font-weight:750!important;line-height:1.2!important;letter-spacing:.045em!important;
   text-align:left!important;text-transform:uppercase!important;vertical-align:middle!important;
 }
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table tbody td{
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table tbody td{
   height:52px!important;padding:10px 16px!important;border:0!important;border-bottom:1px solid #e7edf2!important;background:#fff!important;
   color:#486177!important;font-size:12px!important;font-weight:500!important;line-height:1.4!important;vertical-align:middle!important;
 }
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table tbody tr:last-child td{border-bottom:0!important}
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table tbody tr:hover td{background:#fbfcfd!important}
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td strong{display:block!important;color:#173650!important;font-size:12.5px!important;font-weight:650!important;line-height:1.35!important}
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td small{display:block!important;margin-top:3px!important;color:#7d8f9f!important;font-size:10.5px!important}
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table .status-badge{min-height:24px!important;padding:3px 9px!important;border-radius:999px!important;font-size:10.5px!important;font-weight:650!important}
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table tbody tr:last-child td{border-bottom:0!important}
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table tbody tr:hover td{background:#fbfcfd!important}
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td strong{display:block!important;color:#173650!important;font-size:12.5px!important;font-weight:650!important;line-height:1.35!important}
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td small{display:block!important;margin-top:3px!important;color:#7d8f9f!important;font-size:10.5px!important}
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table .status-badge{min-height:24px!important;padding:3px 9px!important;border-radius:999px!important;font-size:10.5px!important;font-weight:650!important}
 
 /* Training columns. */
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table th:nth-child(1),
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td:nth-child(1){width:48%!important}
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table th:nth-child(2),
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td:nth-child(2){width:24%!important}
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table th:nth-child(3),
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td:nth-child(3){width:28%!important}
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table th:nth-child(4),
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td:nth-child(4){width:22%!important}
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table th:nth-child(1),
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td:nth-child(1){width:48%!important}
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table th:nth-child(2),
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td:nth-child(2){width:24%!important}
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table th:nth-child(3),
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td:nth-child(3){width:28%!important}
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table th:nth-child(4),
+.employee-record-shell .employee-secondary-registry > .scroll-table > .data-table td:nth-child(4){width:22%!important}
 
 /* Empty/loading states fill the registry body. */
 .employee-record-shell .employee-registry-empty,
@@ -1439,9 +1439,9 @@
 }
 
 @media(max-width:760px){
-  .entity-record-shell .record-secondary-registry > .scroll-table,
+  .employee-record-shell .employee-secondary-registry > .scroll-table,
   .employee-record-shell .record-section > .record-table-wrap{overflow-x:auto!important}
-  .entity-record-shell .record-secondary-registry > .scroll-table > .data-table,
+  .employee-record-shell .employee-secondary-registry > .scroll-table > .data-table,
   .employee-record-shell .record-section > .record-table-wrap > .record-table{min-width:620px!important;table-layout:auto!important}
 }
 
