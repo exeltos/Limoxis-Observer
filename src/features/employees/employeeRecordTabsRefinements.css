@@ -109,3 +109,20 @@
   flex:0 0 auto!important;
   background:var(--lo-color-surface)!important;
 }
+
+.entity-record-shell.record-secondary-tab-active .record-secondary-registry>.employee-registry-pagination-slot{
+  grid-row:4!important;
+  min-width:0!important;
+  width:100%!important;
+  align-self:end!important;
+  background:var(--lo-color-surface)!important;
+  border-top:1px solid var(--lo-color-border)!important;
+  z-index:3!important;
+}
+.entity-record-shell.record-secondary-tab-active .employee-registry-pagination-slot>.registry-pagination{
+  width:100%!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
