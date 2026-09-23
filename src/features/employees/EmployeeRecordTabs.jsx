@@ -110,6 +110,7 @@ export function EmployeeEvaluationsTab({employee,language,fmt,organizationId,can
       <label className="entry-field"><span>{en?'Manager comments':'Σχόλια προϊσταμένου'}</span><textarea value={draft.notes} onChange={e=>setDraft(v=>({...v,notes:e.target.value}))}/></label>
     </ObserverDialog>}
     {selected&&<ObserverDialog width="wide" eyebrow={en?'Employee evaluation':'Αξιολόγηση εργαζομένου'} title={en?selected.titleEn:selected.titleEl} subtitle={`${selected.period||''} · ${fmt(selected.date)}`} onClose={()=>setSelected(null)}>
+      {selected.source==='training'&&<div className="source-truth-note"><div><strong>{en?'Source':'Πηγή'}</strong><span>{en?'Training knowledge assessment':'Αξιολόγηση γνώσεων εκπαίδευσης'}</span></div></div>}
       {selected.overallScore!=null&&<div className="evaluation-score-hero"><strong>{selected.overallScore.toFixed(2)} / 5</strong><span>{statusLabel(selected.status)}</span></div>}
       <div className="evaluation-criteria">{(selected.criteria||[]).map(item=><div className="evaluation-criterion" key={item.id||item.name}><strong>{item.name}</strong><span className="status-badge">{item.score} / 5</span></div>)}</div>
       {selected.notes&&<div className="source-truth-note"><div><strong>{en?'Manager comments':'Σχόλια προϊσταμένου'}</strong><span>{selected.notes}</span></div></div>}
