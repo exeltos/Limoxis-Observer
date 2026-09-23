@@ -103,7 +103,7 @@ export function PatientsPage(){
       <RegistryTable
         wrapperClassName="scroll-table"
         wrapperRef={registry.scrollRef}
-        columns={[{key:'id',label:t('patientId')},{key:'name',label:t('name')},{key:'alerts',label:language==='el'?'Σημάνσεις':'Alerts'},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')}]}
+        columns={[{key:'id',label:t('patientId')},{key:'name',label:t('name')},{key:'alerts',label:t('clinicalAlerts')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')}]}
         rows={pagedRows}
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
