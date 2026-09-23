@@ -174,3 +174,6 @@
 @media(max-width:1180px){
   .paginated-registry .filter-search{max-width:none!important}
 }
+
+/* Employee registry: make the primary identity clearly stronger than secondary email metadata. */
+.employees-registry-page .employee-registry-name{display:block;font-weight:700;color:var(--text-strong,#17283d);line-height:1.25}
