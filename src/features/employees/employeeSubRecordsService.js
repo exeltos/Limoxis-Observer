@@ -146,6 +146,8 @@ export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, em
 }
 
 // --- Evaluations ---
+const EVALUATION_COLUMNS='id,employee_id,title,title_en,evaluation_date,result,result_en,notes,evaluation_period,status,evaluator_user_id,criteria,overall_score,employee_comment,employee_acknowledged_at,employee_acknowledged_by,hr_approved_at,hr_approved_by,admin_approved_at,admin_approved_by,finalized_at'
+
 function evaluationFromRow(row) {
   return { id: row.id, employeeId: row.employee_id, titleEl: row.title, titleEn: row.title_en || row.title, date: row.evaluation_date, resultEl: row.result || '', resultEn: row.result_en || row.result || '', source:'employee_evaluations' }
 }
