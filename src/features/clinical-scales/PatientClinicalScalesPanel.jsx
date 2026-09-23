@@ -32,6 +32,7 @@ export function PatientClinicalScalesPanel({organizationId,patient,admission,cli
  async function load(){if(!patient?.recordId)return;const [d,r]=await Promise.all([isDemo?Promise.resolve([]):loadClinicalScales(organizationId),loadPatientScaleAssessments(organizationId,patient.recordId,admission?.id,{isDemo})]);setDefs(d);setRows(r)}
  useEffect(()=>{void load()},[organizationId,patient?.recordId,admission?.id,isDemo])
  const age=patientAgeYears(patient?.dateOfBirth)
+ const ageDisplay=patientAgeLabel(patient?.dateOfBirth,language)
  const scaleContext=useMemo(()=>buildClinicalScaleContext(defs,rows,{age,admission}),[defs,rows,age,admission])
  const available=useMemo(()=>scaleContext,[scaleContext])
  const recommended=useMemo(()=>available.filter(x=>x.recommended),[available])
