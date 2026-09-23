@@ -7,6 +7,7 @@ import {OverflowMenu} from '../../design-system/OverflowMenu'
 import {loadClinicalScales} from '../management/clinicalScalesService'
 import {calculateClinicalScale} from './clinicalScaleEngine'
 import {buildClinicalScaleContext,patientAgeYears} from './clinicalScaleContext'
+import {clinicalScalePrefill,mergeClinicalScalePrefill} from './clinicalScalePrefill'
 import {createPatientScaleAssessment,deletePatientScaleAssessment,loadPatientScaleAssessments,updatePatientScaleAssessment} from './patientClinicalScalesService'
 
 const FIELD_DEFINITIONS={
@@ -17,7 +18,7 @@ const FIELD_DEFINITIONS={
 }
 const formatDate=(value,en)=>new Intl.DateTimeFormat(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value))
 const scaleName=(row,en)=>en?(row.scale?.name_en||row.name_en||row.scale_key):(row.scale?.name_el||row.name_el||row.scale_key)
-export function PatientClinicalScalesPanel({organizationId,patient,admission,isDemo=false,language='el',canRecord=true}){const en=language==='en',[defs,setDefs]=useState([]),[rows,setRows]=useState([]),[selected,setSelected]=useState(null),[answers,setAnswers]=useState({}),[error,setError]=useState('')
+export function PatientClinicalScalesPanel({organizationId,patient,admission,clinicalData=null,latestLabs=null,latestVitals=null,isDemo=false,language='el',canRecord=true}){const en=language==='en',[defs,setDefs]=useState([]),[rows,setRows]=useState([]),[selected,setSelected]=useState(null),[answers,setAnswers]=useState({}),[error,setError]=useState('')
  async function load(){if(!patient?.recordId)return;const [d,r]=await Promise.all([isDemo?Promise.resolve([]):loadClinicalScales(organizationId),loadPatientScaleAssessments(organizationId,patient.recordId,admission?.id,{isDemo})]);setDefs(d);setRows(r)}
  useEffect(()=>{void load()},[organizationId,patient?.recordId,admission?.id,isDemo])
  const age=patientAgeYears(patient?.dateOfBirth)
@@ -27,7 +28,7 @@ export function PatientClinicalScalesPanel({organizationId,patient,admission,isD
  const overdueCount=scaleContext.filter(x=>x.state==='overdue').length
  const recommendedCount=scaleContext.filter(x=>x.availability==='recommended'&&!x.latest).length
  const [pickerOpen,setPickerOpen]=useState(false)
- function open(definition,row=null){setSelected({...definition,_assessmentId:row?.id||null});setError('');setAnswers(row?.answers||((definition.scale_key==='apache-ii')?{age:age??'',chronicHealthPoints:0}:{}))}
+ function open(definition,row=null){setSelected({...definition,_assessmentId:row?.id||null});setError('');const base=row?.answers||((definition.scale_key==='apache-ii')?{age:age??'',chronicHealthPoints:0}:{});const prefill=row?{}:clinicalScalePrefill(definition.scale_key,{patient,admission,clinicalData,latestLabs,latestVitals});setAnswers(mergeClinicalScalePrefill(base,prefill))}
  function edit(row){const definition=defs.find(d=>d.id===row.scale_definition_id);if(definition)open(definition,row)}
  async function remove(row){try{const deleted=await deletePatientScaleAssessment(row.id,organizationId,{isDemo});if(deleted!==false)setRows(x=>x.filter(r=>r.id!==row.id))}catch(e){setError(e.message)}}
  async function save(){try{const result=calculateClinicalScale(selected.scale_key,answers);if(!result.complete||result.score==null){setError(en?'Complete all required parameters before calculation.':'Συμπληρώστε όλες τις απαιτούμενες παραμέτρους πριν από τον υπολογισμό.');return}const row=selected._assessmentId?await updatePatientScaleAssessment(selected._assessmentId,organizationId,selected,result,answers,{isDemo}):await createPatientScaleAssessment(organizationId,patient.recordId,admission?.id,selected,result,answers,{isDemo});setRows(x=>selected._assessmentId?x.map(r=>r.id===selected._assessmentId?row:r):[row,...x]);setSelected(null)}catch(e){setError(e.message)}}
