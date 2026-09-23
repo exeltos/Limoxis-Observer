@@ -1,0 +1,2 @@
+import {supabase} from '../../core/supabase/client'
+export async function loadLatestPatientRiskFlags(organizationId,{isDemo=false}={}){if(isDemo||!supabase||!organizationId)return {};const {data,error}=await supabase.from('patient_clinical_scale_assessments').select('patient_id,scale_key,score,interpretation,assessed_at').eq('organization_id',organizationId).eq('status','final').order('assessed_at',{ascending:false});if(error)throw error;const out={};for(const row of data||[])(out[row.patient_id]??=[]).push(row);return out}
