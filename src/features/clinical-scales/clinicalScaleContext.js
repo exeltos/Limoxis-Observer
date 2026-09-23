@@ -11,16 +11,29 @@ export function patientAgeYears(dateOfBirth,now=new Date()){
 }
 
 const normalized=x=>String(x||'').trim().toLowerCase()
+const populationForAge=age=>age==null?null:age<1?'neonatal':age<18?'pediatric':'adult'
+const settingAliases={
+ icu:['icu','intensive care','μεθ'],
+ ward:['ward','clinic','κλινικη','κλινική'],
+ ed:['ed','emergency','τεπ'],
+ pediatric_ward:['pediatric_ward','pediatric ward','παιδιατρικη','παιδιατρική'],
+ pediatric_ed:['pediatric_ed','pediatric emergency','παιδιατρικο τεπ','παιδιατρικό τεπ'],
+ maternity:['maternity','μαιευτικη','μαιευτική'],
+ postnatal:['postnatal','λοχεια','λοχεία'],
+ neonatal:['neonatal','nicu','μενν']
+}
 const matchesSetting=(definition,admission)=>{
  const settings=(definition.settings||[]).map(normalized).filter(Boolean)
  if(!settings.length)return true
  const values=[admission?.care_setting,admission?.setting,admission?.department_type,admission?.department_name,admission?.department?.name,admission?.department?.type].map(normalized).filter(Boolean)
- return !values.length||settings.some(setting=>values.some(value=>value===setting||value.includes(setting)||setting.includes(value)))
+ return !values.length||settings.some(setting=>{const aliases=settingAliases[setting]||[setting];return aliases.some(alias=>values.includes(alias))})
 }
 
 export function isClinicalScaleEligible(definition,{age,admission}={}){
  if(!definition||definition.status==='retired')return false
  if(definition.orgSetting?.enabled===false||definition.orgSetting?.availability==='disabled')return false
+ const population=populationForAge(age)
+ if(population&&(definition.population||[]).length&&!definition.population.map(normalized).includes(population))return false
  if(age!=null&&definition.min_age_years!=null&&age<Number(definition.min_age_years))return false
  if(age!=null&&definition.max_age_years!=null&&age>Number(definition.max_age_years))return false
  return matchesSetting(definition,admission)
