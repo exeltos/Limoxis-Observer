@@ -14,9 +14,9 @@ const normalized=x=>String(x||'').trim().toLowerCase()
 const populationForAge=age=>age==null?null:age<1?'neonatal':age<18?'pediatric':'adult'
 const settingAliases={
  icu:['icu','intensive care','μεθ'],
- ward:['ward','clinic','κλινικη','κλινική'],
+ ward:['ward','acute_care','general','clinic','general ward','κλινικη','κλινική','γενικη','γενική'],
  ed:['ed','emergency','τεπ'],
- pediatric_ward:['pediatric_ward','pediatric ward','παιδιατρικη','παιδιατρική'],
+ pediatric_ward:['pediatric_ward','pediatric ward','pediatric','paediatric','picu','παιδιατρικη','παιδιατρική'],
  pediatric_ed:['pediatric_ed','pediatric emergency','παιδιατρικο τεπ','παιδιατρικό τεπ'],
  maternity:['maternity','μαιευτικη','μαιευτική'],
  postnatal:['postnatal','λοχεια','λοχεία'],
