@@ -25,12 +25,6 @@ export function PatientClinicalScalesPanel({organizationId,patient,admission,cli
  const age=patientAgeYears(patient?.dateOfBirth)
  const scaleContext=useMemo(()=>buildClinicalScaleContext(defs,rows,{age,admission}),[defs,rows,age,admission])
  const available=useMemo(()=>scaleContext,[scaleContext])
- const latestCount=scaleContext.filter(x=>x.latest).length
- const stateLabel=x=>x.state==='overdue'?(en?'Overdue':'Εκπρόθεσμη'):x.state==='due'?(en?'Due':'Σε εκκρεμότητα'):x.latest?(en?'Recorded':'Καταγεγραμμένη'):(en?'Not recorded':'Χωρίς καταγραφή')
- const availabilityLabel=x=>x.availability==='required'?(en?'Required':'Υποχρεωτική'):x.availability==='recommended'?(en?'Recommended':'Προτεινόμενη'):(en?'Available':'Διαθέσιμη')
- const requiredCount=scaleContext.filter(x=>x.availability==='required'&&(x.state==='due'||x.state==='overdue')).length
- const overdueCount=scaleContext.filter(x=>x.state==='overdue').length
- const recommendedCount=scaleContext.filter(x=>x.availability==='recommended'&&!x.latest).length
  const contextByDefinition=useMemo(()=>new Map(scaleContext.map(x=>[x.id,x])),[scaleContext])
  const [pickerOpen,setPickerOpen]=useState(false)
  function open(definition,row=null){setSelected({...definition,_assessmentId:row?.id||null});setError('');const base=row?.answers||((definition.scale_key==='apache-ii')?{age:age??'',chronicHealthPoints:0}:{});const prefill=row?{}:clinicalScalePrefill(definition.scale_key,{patient,admission,clinicalData,latestLabs,latestVitals});setAnswers(mergeClinicalScalePrefill(base,prefill))}
@@ -40,19 +34,6 @@ export function PatientClinicalScalesPanel({organizationId,patient,admission,cli
  const fields=selected?FIELD_DEFINITIONS[selected.scale_key]||[]:[]
  return <div className="workspace-column workspace-fill clinical-scales-panel">
   <div className="record-section-header"><div><h3>{en?'Clinical assessments':'Κλινικές αξιολογήσεις'}</h3><p>{en?'Validated clinical assessments for this admission.':'Επικυρωμένες κλινικές αξιολογήσεις για τη συγκεκριμένη νοσηλεία.'}</p></div>{canRecord&&available.length>0&&<Button onClick={()=>setPickerOpen(true)}><Plus size={15}/>{en?'New assessment':'Νέα αξιολόγηση'}</Button>}</div>
-  {scaleContext.length>0&&<div className="record-section clinical-scales-overview">
-   <div className="record-section-header"><div><h4>{en?'Assessment overview':'Εικόνα αξιολογήσεων'}</h4><p>{en?'Current status for the tools applicable to this patient and admission.':'Τρέχουσα κατάσταση των εργαλείων που αντιστοιχούν στον ασθενή και στη νοσηλεία.'}</p></div></div>
-   <div className="clinical-scale-kpis">
-    <div className="clinical-scale-kpi"><strong>{requiredCount}</strong><span>{en?'Required due':'Υποχρεωτικές σε εκκρεμότητα'}</span></div>
-    <div className="clinical-scale-kpi"><strong>{overdueCount}</strong><span>{en?'Overdue':'Εκπρόθεσμες'}</span></div>
-    <div className="clinical-scale-kpi"><strong>{recommendedCount}</strong><span>{en?'Recommended pending':'Προτεινόμενες σε αναμονή'}</span></div>
-    <div className="clinical-scale-kpi"><strong>{latestCount}</strong><span>{en?'Recorded':'Καταγεγραμμένες'}</span></div>
-   </div>
-   <div className="clinical-scale-list">{scaleContext.map(x=><button type="button" className="clinical-scale-row" key={x.id} onClick={()=>canRecord&&open(x)}>
-    <span className="clinical-scale-row-main"><strong>{scaleName(x,en)}</strong><span className="clinical-scale-badges"><span>{availabilityLabel(x)}</span><span>{stateLabel(x)}</span></span></span>
-    <small>{x.latest?(en?'Last score: ':'Τελευταίο score: ')+x.latest.score+(x.previous?(en?' · Previous: ':' · Προηγούμενο: ')+x.previous.score:'')+(x.delta!=null?' · '+trendLabel(x,en):'')+(x.dueAt?(en?' · Next: ':' · Επόμενη: ')+formatDate(x.dueAt,en):''):(en?'No assessment has been recorded yet.':'Δεν έχει καταγραφεί ακόμη αξιολόγηση.')}</small>
-   </button>)}</div>
-  </div>}
   <RegistryTable columns={[{key:'date',label:en?'Date / time':'Ημερομηνία / ώρα'},{key:'scale',label:en?'Assessment tool':'Εργαλείο αξιολόγησης'},{key:'score',label:'Score'},{key:'version',label:en?'Version':'Έκδοση'},{key:'actions',label:''}]} rows={rows} rowKey={r=>r.id} wrapperClassName="table-wrap scroll-table" emptyTitle={en?'No clinical assessments':'Δεν υπάρχουν κλινικές αξιολογήσεις'} emptyText={en?'Create the first assessment for this admission.':'Δημιουργήστε την πρώτη αξιολόγηση για τη συγκεκριμένη νοσηλεία.'} renderRow={r=><><td>{formatDate(r.assessed_at,en)}</td><td><strong>{scaleName(r,en)}</strong></td><td><strong>{r.score}</strong>{contextByDefinition.get(r.scale_definition_id)?.latest?.id===r.id&&contextByDefinition.get(r.scale_definition_id)?.delta!=null&&<small className="entry-detail-note">{trendLabel(contextByDefinition.get(r.scale_definition_id),en)}</small>}</td><td>{r.scale_version}</td><td className="open-record-cell"><OverflowMenu label={en?'Assessment actions':'Ενέργειες αξιολόγησης'} items={[{id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,onClick:()=>edit(r)},{id:'delete',label:en?'Delete':'Διαγραφή',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(r)}]}/></td></>}/>
   {pickerOpen&&<ObserverDialog width="standard" title={en?'Choose assessment':'Επιλογή αξιολόγησης'} subtitle={en?'Only tools applicable to this patient and admission are shown.':'Εμφανίζονται μόνο τα εργαλεία που αντιστοιχούν στον ασθενή και στη συγκεκριμένη νοσηλεία.'} onClose={()=>setPickerOpen(false)}><div className="clinical-scale-picker-list">{available.map(x=><button type="button" className="clinical-scale-picker-row" key={x.id} onClick={()=>{setPickerOpen(false);open(x)}}><strong>{scaleName(x,en)}</strong><small>{x.availability==='required'?(en?'Required':'Υποχρεωτική'):x.availability==='recommended'?(en?'Recommended':'Προτεινόμενη'):(en?'Available':'Διαθέσιμη')} · {x.state==='overdue'?(en?'Overdue':'Εκπρόθεσμη'):x.state==='due'?(en?'Due':'Σε εκκρεμότητα'):x.latest?(en?'Last score: ':'Τελευταίο score: ')+x.latest.score:(en?'Not recorded':'Δεν έχει καταγραφεί')}</small></button>)}</div></ObserverDialog>}
   {selected&&<ObserverDialog width="large" title={scaleName(selected,en)} subtitle={selected.source_reference||selected.version} onClose={()=>setSelected(null)} footer={<DialogActions onCancel={()=>setSelected(null)} onSave={save} saveLabel={en?'Calculate & save':'Υπολογισμός & αποθήκευση'}/>}>
