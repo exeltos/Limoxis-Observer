@@ -57,7 +57,10 @@ async function loadCanonicalTrainingContext(organizationId,employeeDbId,employee
     if(programError)throw programError
     programMap=new Map((programRows||[]).map(row=>[row.record_key,row.payload||{}]))
   }
-  return {assignments,programMap}
+  let certificateMap=new Map()
+  const certificateIds=[...new Set(assignments.map(row=>row.payload?.certificateId).filter(Boolean))]
+  if(certificateIds.length){const {data:certificateRows,error:certificateError}=await supabase.from('training_records').select('record_key,payload').eq('organization_id',organizationId).eq('record_type','certificate').in('record_key',certificateIds);if(certificateError)throw certificateError;certificateMap=new Map((certificateRows||[]).map(row=>[row.record_key,row.payload||{}]))}
+  return {assignments,programMap,certificateMap}
 }
 
 // --- Occupational health visits ---
@@ -215,7 +218,7 @@ export async function loadEvaluationsAsync(organizationId, employeeDbId, employe
         assessmentAnswers:a.assessmentAnswers||{},
         assessmentQuestions:Array.isArray(program.assessmentQuestions)?program.assessmentQuestions:[],
         certificateId:a.certificateId||null,
-        certificate:a.certificate||null,
+        certificate:trainingContext.certificateMap?.get(a.certificateId)||a.certificate||null,
         program:{title, titleEn:program.titleEn||title},
         source:'training',
       }
