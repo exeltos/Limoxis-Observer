@@ -142,8 +142,11 @@ export function EmployeeSurveillanceTab({employee,t,language,fmt,version,onNew,r
   const [cloudSamples,setCloudSamples]=useState([])
   const [selected,setSelected]=useState(null)
   const [loading,setLoading]=useState(!isDemo)
-  useEffect(()=>{if(isDemo||!organizationId||!employee?.dbId){setLoading(false);return}let active=true;setLoading(true);Promise.all([loadEmployeeSurveillanceRecords(organizationId),loadLaboratorySamples(organizationId)]).then(([records,samples])=>{if(!active)return;setCloudRecords(records.filter(row=>row.employeeDbId===employee.dbId));setCloudSamples(samples)}).catch(()=>{if(active){setCloudRecords([]);setCloudSamples([])}}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[isDemo,organizationId,employee?.dbId,version])
+  const [loadError,setLoadError]=useState(null)
+  const [reloadToken,setReloadToken]=useState(0)
+  useEffect(()=>{if(isDemo||!organizationId||!employee?.dbId){setLoading(false);setLoadError(null);return}let active=true;setLoading(true);setLoadError(null);Promise.all([loadEmployeeSurveillanceRecords(organizationId),loadLaboratorySamples(organizationId)]).then(([records,samples])=>{if(!active)return;setCloudRecords(records.filter(row=>row.employeeDbId===employee.dbId));setCloudSamples(samples)}).catch(error=>{if(active){setCloudRecords([]);setCloudSamples([]);setLoadError(error)}}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[isDemo,organizationId,employee?.dbId,version,reloadToken])
   const rows=isDemo?demoRows:cloudRecords
+  if(loadError)return <section className="record-section record-secondary-registry"><SectionTitle title={language==='en'?'Surveillance':'Επιτήρηση'} subtitle={language==='en'?'Employee screening episodes and their linked laboratory samples.':'Επεισόδια επιτήρησης εργαζομένου και τα συνδεδεμένα εργαστηριακά δείγματα.'}/><div className="data-access-state error"><span>{language==='en'?'Could not load employee surveillance data.':'Δεν ήταν δυνατή η φόρτωση των δεδομένων επιτήρησης του εργαζομένου.'}</span><Button variant="secondary" onClick={()=>setReloadToken(value=>value+1)}>{language==='en'?'Retry':'Επανάληψη'}</Button></div></section>
   const registry=useRegistryRows(rows)
   const paging=registry.paging
   const selectedSamples=selected?(isDemo?demoLaboratorySamples.filter(sample=>sample.employeeSurveillanceCase===selected.id):cloudSamples.filter(sample=>sample.employeeSurveillanceId===selected.recordId)):[]
