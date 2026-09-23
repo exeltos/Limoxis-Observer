@@ -294,3 +294,51 @@
 .surveillance-independent-samples .surveillance-tree-sample.is-unlinked:not(.is-followup)>span:first-child{padding-left:14px}
 .surveillance-tree-sample>span:last-child{justify-self:stretch}
 .surveillance-sample-actions .sample-followup-action{margin-left:auto}
+
+
+/* Record tabs may host the canonical registry directly.
+   Keep the same surface/table/footer contract; only the record header sits above it. */
+.entity-record-body>.registry-workspace{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:100%!important;
+  margin:0!important;
+  padding:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:14px!important;
+  background:var(--lo-color-surface)!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+.entity-record-body>.registry-workspace>.record-section-header{
+  flex:0 0 auto!important;
+  margin:0!important;
+  padding:14px 16px!important;
+  border:0!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+}
+.entity-record-body>.registry-workspace>.scroll-table{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:auto!important;
+  border:0!important;
+  border-radius:0!important;
+  background:var(--lo-color-surface)!important;
+}
+.entity-record-body>.registry-workspace>.registry-pagination{
+  flex:0 0 44px!important;
+  min-height:44px!important;
+  height:44px!important;
+  margin:0!important;
+  padding:0 14px!important;
+  border:0!important;
+  border-top:1px solid var(--lo-color-border)!important;
+  border-radius:0!important;
+  background:var(--lo-color-surface)!important;
+}
