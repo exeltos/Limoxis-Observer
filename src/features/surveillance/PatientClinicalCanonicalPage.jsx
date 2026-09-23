@@ -125,7 +125,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
     {id:'summary',label:t('summary'),icon:UserRound},
     {id:'surveillanceJourney',label:language==='el'?'Επιτήρηση & Δείγματα':'Surveillance & Samples',icon:ListTree},
     {id:'clinicalData',label:t('clinicalRecords.clinicalData'),icon:Activity},
-    ...(patientMode&&selectedAdmission?[{id:'clinicalScales',label:language==='el'?'Κλινικές αξιολογήσεις':'Clinical assessments',icon:Stethoscope}]:[]),
+    ...(patientMode&&selectedAdmission?[{id:'clinicalScales',label:t('clinicalRecords.clinicalAssessments'),icon:Stethoscope}]:[]),
     {id:'documents',label:t('documents'),icon:FolderOpen},
     {id:'history',label:t('history'),icon:FileClock},
   ]
