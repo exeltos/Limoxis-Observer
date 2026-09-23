@@ -75,3 +75,19 @@
   border:0!important;
   border-radius:0!important;
 }
+
+/* Secondary employee tabs must consume the full record-body height. */
+.entity-record-shell.record-secondary-tab-active .entity-record-body{
+  min-height:0!important;
+  height:100%!important;
+  overflow:hidden!important;
+}
+.entity-record-shell.record-secondary-tab-active .entity-record-body>.record-secondary-registry{
+  min-height:0!important;
+  height:100%!important;
+  flex:1 1 0!important;
+}
+.entity-record-shell.record-secondary-tab-active .record-secondary-registry>.scroll-table{
+  min-height:0!important;
+  height:100%!important;
+}
