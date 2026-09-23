@@ -212,6 +212,11 @@ export async function loadEvaluationsAsync(organizationId, employeeDbId, employe
         score,
         competent:a.competent??null,
         programId:a.programId||null,
+        assessmentAnswers:a.assessmentAnswers||{},
+        assessmentQuestions:Array.isArray(program.assessmentQuestions)?program.assessmentQuestions:[],
+        certificateId:a.certificateId||null,
+        certificate:a.certificate||null,
+        program:{title, titleEn:program.titleEn||title},
         source:'training',
       }
     })
