@@ -134,7 +134,8 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
   const birthInvalid=Boolean(birthDate&&(Number.isNaN(birthDate.getTime())||birthDate>today||birthDate.getFullYear()<1900))
   const birthWeightInvalid=Boolean(draft.birthWeightGrams&&(Number(draft.birthWeightGrams)<300||Number(draft.birthWeightGrams)>7000))
   const gestationInvalid=Boolean(draft.gestationalAgeWeeks&&(Number(draft.gestationalAgeWeeks)<20||Number(draft.gestationalAgeWeeks)>45))
-  const ageYears=birthDate&&!birthInvalid?Math.max(0,Math.floor((Date.now()-birthDate.getTime())/31557600000)):null
+  const ageDays=birthDate&&!birthInvalid?Math.max(0,Math.floor((Date.now()-birthDate.getTime())/86400000)):null
+  const ageYears=ageDays==null?null:Math.floor(ageDays/365.2425)
   function save(){
     const first=draft.firstName.trim()
     const last=draft.lastName.trim()
@@ -149,7 +150,7 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
       <label><span>{t('lastName')}</span><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
       <label><span>{t('fatherName')}</span><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
       <label><span>{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
-      <div><ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>{birthInvalid&&<small className="field-error">{t('invalidDateOfBirth')}</small>}{ageYears!=null&&!birthInvalid&&<small className="entry-detail-note">{t('calculatedAge').replace('{age}',String(ageYears))}</small>}</div>
+      <div><ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>{birthInvalid&&<small className="field-error">{t('invalidDateOfBirth')}</small>}{ageYears!=null&&!birthInvalid&&<small className="entry-detail-note">{ageDays<28?t('calculatedAgeDays').replace('{age}',String(ageDays)):ageDays<730?t('calculatedAgeMonthsDays').replace('{months}',String(Math.floor(ageDays/30.4375))).replace('{days}',String(Math.floor(ageDays%30.4375))):t('calculatedAge').replace('{age}',String(ageYears))}</small>}</div>
       <label><span>{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
       <label><span>{language==='el'?'Βάρος γέννησης (g)':'Birth weight (g)'}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={language==='el'?'Προαιρετικό — για νεογνά':'Optional — for neonates'}/>{birthWeightInvalid&&<small className="field-error">{t('invalidBirthWeight')}</small>}</label>
       <label><span>{language==='el'?'Ηλικία κύησης (εβδ.)':'Gestational age (weeks)'}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={language==='el'?'Προαιρετικό — για νεογνά':'Optional — for neonates'}/>{gestationInvalid&&<small className="field-error">{t('invalidGestationalAge')}</small>}</label>
