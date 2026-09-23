@@ -4112,3 +4112,18 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .who-record-action strong{width:max-content;max-width:100%;padding:5px 8px;border-radius:8px;background:#edf8f2;color:#27734f}.who-record-action strong.missed{background:#fbefef;color:#9d4b4b}
 @media(max-width:1100px){.who-record-kpis{grid-template-columns:repeat(3,1fr)}.who-record-kpis>div{border-bottom:1px solid var(--border-color,#e5ebf0)}.who-record-opportunity-row{grid-template-columns:42px 1fr 1.5fr 1fr}.who-record-gloves,.who-record-note{grid-column:auto}}
 @media(max-width:760px){.who-record-session-bar{grid-template-columns:1fr 1fr}.who-record-session-bar>div{border-bottom:1px solid var(--border-color,#e5ebf0)}.who-record-kpis{grid-template-columns:1fr 1fr}.who-record-opportunity-row{grid-template-columns:36px 1fr}.who-record-moments,.who-record-action,.who-record-gloves,.who-record-note{grid-column:2}}
+
+/* WHO record detail — wide balanced layout refinement */
+.prevention-record-shell .who-record-compact{width:100%;max-width:none!important}
+.prevention-record-shell .who-record-session-bar{grid-template-columns:.72fr 1.55fr 1.12fr .78fr}
+.prevention-record-shell .who-record-kpis{grid-template-columns:1.45fr repeat(5,minmax(92px,.72fr))}
+.prevention-record-shell .who-record-opportunities{width:100%;max-width:none!important}
+.prevention-record-shell .who-record-opportunity-row{grid-template-columns:44px minmax(180px,1.05fr) minmax(270px,1.55fr) minmax(220px,1.2fr) minmax(80px,.48fr) minmax(150px,.8fr);gap:18px;padding:15px 20px}
+.prevention-record-shell .who-record-opportunity-row>div{align-self:center}
+.prevention-record-shell .who-record-profession strong,.prevention-record-shell .who-record-action strong,.prevention-record-shell .who-record-gloves strong,.prevention-record-shell .who-record-note strong{line-height:1.35}
+.prevention-record-shell .who-record-list-heading{padding:15px 20px}
+@media(min-width:1280px){
+ .prevention-record-shell .prevention-record-card{padding-left:16px!important;padding-right:16px!important}
+ .prevention-record-shell .who-record-workspace{display:grid!important;grid-template-columns:minmax(0,1fr)!important}
+ .prevention-record-shell .who-record-session-bar,.prevention-record-shell .who-record-kpis,.prevention-record-shell .who-record-opportunities{grid-column:1/-1;width:100%!important}
+}
