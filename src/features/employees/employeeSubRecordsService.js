@@ -156,7 +156,7 @@ export async function loadEvaluationsAsync(organizationId, employeeDbId, employe
   const [{data:formalRows,error:formalError},trainingContext]=await Promise.all([
     supabase
       .from('employee_evaluations')
-      .select('id,employee_id,title,title_en,evaluation_date,result,result_en')
+      .select(EVALUATION_COLUMNS)
       .eq('organization_id', organizationId)
       .eq('employee_id', employeeDbId)
       .order('evaluation_date', { ascending: false }),
