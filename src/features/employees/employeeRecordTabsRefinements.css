@@ -2,7 +2,7 @@
 
 /* Employee record list tabs use the same geometry as top-level registries:
    one outer surface, a fixed header, a scrolling table body and an attached pagination footer. */
-.employee-record-shell .employee-secondary-registry{
+.entity-record-shell .record-secondary-registry{
   display:grid!important;
   grid-template-rows:auto minmax(0,1fr) auto!important;
   gap:0!important;
@@ -13,13 +13,13 @@
   padding:0!important;
   overflow:hidden!important;
 }
-.employee-record-shell .employee-secondary-registry>.record-section-header{
+.entity-record-shell .record-secondary-registry>.record-section-header{
   min-width:0!important;
   margin:0!important;
   padding:16px 16px 14px!important;
   border-bottom:1px solid var(--lo-color-border)!important;
 }
-.employee-record-shell .employee-secondary-registry>.scroll-table{
+.entity-record-shell .record-secondary-registry>.scroll-table{
   width:100%!important;
   min-width:0!important;
   min-height:0!important;
@@ -32,22 +32,22 @@
   background:var(--lo-color-surface)!important;
   box-shadow:none!important;
 }
-.employee-record-shell .employee-secondary-registry>.scroll-table>.data-table{
+.entity-record-shell .record-secondary-registry>.scroll-table>.data-table{
   width:100%!important;
   min-width:0!important;
   max-width:100%!important;
   table-layout:fixed!important;
   margin:0!important;
 }
-.employee-record-shell .employee-secondary-registry>.scroll-table>.data-table th,
-.employee-record-shell .employee-secondary-registry>.scroll-table>.data-table td{
+.entity-record-shell .record-secondary-registry>.scroll-table>.data-table th,
+.entity-record-shell .record-secondary-registry>.scroll-table>.data-table td{
   min-width:0!important;
   overflow:hidden!important;
   text-overflow:ellipsis!important;
   white-space:nowrap!important;
 }
-.employee-record-shell .employee-secondary-registry>.registry-pagination,
-.employee-record-shell .employee-secondary-registry>[class*="registry-pagination"]{
+.entity-record-shell .record-secondary-registry>.registry-pagination,
+.entity-record-shell .record-secondary-registry>[class*="registry-pagination"]{
   width:100%!important;
   min-width:0!important;
   min-height:44px!important;
@@ -59,9 +59,9 @@
   border-radius:0!important;
   background:var(--lo-color-surface)!important;
 }
-.employee-record-shell .employee-secondary-registry>.registry-empty-state,
-.employee-record-shell .employee-secondary-registry>.inline-empty,
-.employee-record-shell .employee-secondary-registry>.data-access-state{
+.entity-record-shell .record-secondary-registry>.registry-empty-state,
+.entity-record-shell .record-secondary-registry>.inline-empty,
+.entity-record-shell .record-secondary-registry>.data-access-state{
   min-height:0!important;
   height:100%!important;
   margin:0!important;
