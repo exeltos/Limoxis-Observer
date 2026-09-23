@@ -1,10 +1,11 @@
 import {describe,expect,it} from 'vitest'
-import {buildClinicalScaleContext,isClinicalScaleEligible,patientAgeYears} from '../src/features/clinical-scales/clinicalScaleContext'
+import {buildClinicalScaleContext,isClinicalScaleEligible,patientAgeExactYears,patientAgeYears} from '../src/features/clinical-scales/clinicalScaleContext'
 
 const def=(extra={})=>({id:'scale-1',name_el:'SOFA',status:'active',settings:[],orgSetting:{enabled:true,availability:'required',reassessment_hours:24},...extra})
 
 describe('clinical scale patient context',()=>{
  it('calculates age without rounding before the birthday',()=>expect(patientAgeYears('2008-12-01',new Date('2026-09-23T12:00:00Z'))).toBe(17))
+ it('keeps infant age precise for population eligibility',()=>{expect(patientAgeExactYears('2026-03-23',new Date('2026-09-23T12:00:00Z'))).toBeGreaterThan(.49);expect(patientAgeExactYears('2026-03-23',new Date('2026-09-23T12:00:00Z'))).toBeLessThan(.51)})
  it('filters definitions by governed age limits',()=>{
   expect(isClinicalScaleEligible(def({min_age_years:18}),{age:17})).toBe(false)
   expect(isClinicalScaleEligible(def({min_age_years:18}),{age:18})).toBe(true)
