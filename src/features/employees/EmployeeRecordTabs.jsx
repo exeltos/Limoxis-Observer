@@ -1,5 +1,8 @@
 import { useEffect,useState } from 'react'
 import { normalizeTrainingQuestion } from '../training/trainingAssessment'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { loadSnapshot } from '../../core/data/repository'
+import { PERFORMANCE_EVALUATION_QUESTIONNAIRE } from '../management/QuestionnairesPanel'
 import { Download,Plus } from 'lucide-react'
 import { downloadCertificatePdf } from '../training/trainingCertificate'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -95,12 +98,13 @@ function trainingAnswerText(question,answer,en){const q=normalizeTrainingQuestio
 
 export function EmployeeEvaluationsTab({employee,language,fmt,organizationId,canCreate=false,canHrApprove=false,canAdminApprove=false,selfReadOnly=false}){
   const state=useEmployeeSubRecords(loadEvaluationsAsync,organizationId,employee.dbId,employee.id)
-  const [selected,setSelected]=useState(null),[creating,setCreating]=useState(false),[saving,setSaving]=useState(false),[ackOpen,setAckOpen]=useState(false),[ackAgreement,setAckAgreement]=useState(''),[ackComment,setAckComment]=useState('')
+  const {notify,notifyError}=useFeedback();const [selected,setSelected]=useState(null),[creating,setCreating]=useState(false),[saving,setSaving]=useState(false),[ackOpen,setAckOpen]=useState(false),[ackAgreement,setAckAgreement]=useState(''),[ackComment,setAckComment]=useState('')
   const registry=useRegistryRows(state.data),paging=registry.paging,en=language==='en'
-  const criteriaLabels=en?['Professional competence','Quality & accuracy','Procedures & protocols','Patient safety & infection prevention','Teamwork','Communication','Responsibility & consistency','Professional development']:['Επαγγελματική επάρκεια','Ποιότητα & ακρίβεια εργασίας','Τήρηση διαδικασιών / πρωτοκόλλων','Ασφάλεια ασθενών & πρόληψη λοιμώξεων','Συνεργασία / ομαδικότητα','Επικοινωνία','Υπευθυνότητα / συνέπεια','Επαγγελματική ανάπτυξη']
-  const [draft,setDraft]=useState({period:'',date:new Date().toISOString().slice(0,10),notes:'',criteria:criteriaLabels.map((name,index)=>({id:String(index+1),name,score:3,weight:1}))})
+  const managedQuestionnaires=loadSnapshot('management_questionnaires_v1',null);const performanceTemplate=(Array.isArray(managedQuestionnaires)?managedQuestionnaires.find(x=>x.id==='employee-performance-evaluation'):null)||PERFORMANCE_EVALUATION_QUESTIONNAIRE
+  const criteriaLabels=performanceTemplate.questions.map(q=>q.label||q.labelEl||q.labelEn).filter(Boolean)
+  const [draft,setDraft]=useState({period:'',date:new Date().toISOString().slice(0,10),notes:'',criteria:performanceTemplate.questions.map((q,index)=>({id:q.id||String(index+1),name:q.label||q.labelEl||q.labelEn,score:3,weight:1}))})
   const statusLabel=v=>({draft:en?'Draft':'Πρόχειρη',submitted:en?'Submitted':'Υποβλήθηκε',employee_acknowledged:en?'Employee acknowledged':'Έλαβε γνώση',hr_approved:en?'HR approved':'Εγκρίθηκε από HR',finalized:en?'Finalized':'Οριστικοποιημένη'}[v]||v||'—')
-  async function create(){setSaving(true);try{await createEmployeeEvaluationAsync(organizationId,employee.dbId,draft);setCreating(false);await state.reload()}finally{setSaving(false)}}
+  async function create(){setSaving(true);try{await createEmployeeEvaluationAsync(organizationId,employee.dbId,draft);notify(en?'Evaluation saved.':'Η αξιολόγηση αποθηκεύτηκε.','success');setCreating(false);await state.reload()}catch(error){notifyError(error,en?'Could not save evaluation.':'Δεν ήταν δυνατή η αποθήκευση της αξιολόγησης.')}finally{setSaving(false)}}
   async function action(name,comment,agreement=''){setSaving(true);try{const updated=await updateEmployeeEvaluationWorkflowAsync(organizationId,employee.dbId,selected.id,{action:name,comment,agreement});setSelected(updated);await state.reload()}finally{setSaving(false)}}
   return <section className="record-section record-secondary-registry">
     <SectionTitle title={en?'Evaluations':'Αξιολογήσεις'} subtitle={en?'Performance evaluations and training knowledge assessments.':'Αξιολογήσεις απόδοσης και αξιολογήσεις γνώσεων από την Εκπαίδευση.'} action={canCreate&&<ActionButton tone="primary" label={en?'New evaluation':'Νέα αξιολόγηση'} onClick={()=>setCreating(true)}><Plus size={16}/><span>{en?'New evaluation':'Νέα αξιολόγηση'}</span></ActionButton>}/>
