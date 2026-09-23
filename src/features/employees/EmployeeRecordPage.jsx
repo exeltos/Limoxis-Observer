@@ -161,7 +161,7 @@ export function EmployeeRecordPage({selfMode=false}){
       {tab==='exposureIncidents'&&<EmployeeExposureIncidentsTab employee={employee} language={language} fmt={fmt} organizationId={tenant?.id}/>}
       {tab==='surveillance'&&<EmployeeSurveillanceTab employee={employee} t={t} language={language} fmt={fmt} version={surveillanceVersion} readOnly={selfReadOnly} isDemo={isDemo} organizationId={tenant?.id} canManageFollowup={canManageEmployeeFollowup} onNew={()=>setSurveillanceOpen(true)}/>} 
       {tab==='training'&&<EmployeeTrainingTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} canOpenProgram={canTraining}/>} 
-      {tab==='evaluations'&&<EmployeeEvaluationsTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id}/>} 
+      {tab==='evaluations'&&<EmployeeEvaluationsTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} canCreate={!selfReadOnly&&(role==='department_manager'||canAdmin)} canHrApprove={!selfReadOnly&&(role==='hr_office'||canAdmin)} canAdminApprove={!selfReadOnly&&canAdmin} selfReadOnly={selfReadOnly}/>} 
       {tab==='certificates'&&<EmployeeCertificatesTab employee={employee} language={language} fmt={fmt} organizationId={tenant?.id} canEdit={canAdmin} isDemo={isDemo}/>} 
       {tab==='history'&&<EmployeeHistoryTab employee={employee} language={language}/>} 
     </EntityRecordShell>
