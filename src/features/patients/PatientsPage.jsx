@@ -129,13 +129,19 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
     const item=departments.find(value=>value.id===id)
     setDraft(d=>({...d,departmentId:id,department:item?.name||'',departmentEn:item?.nameEn||item?.name||''}))
   }
+  const today=new Date();today.setHours(23,59,59,999)
+  const birthDate=draft.dateOfBirth?new Date(`${draft.dateOfBirth}T12:00:00`):null
+  const birthInvalid=Boolean(birthDate&&(Number.isNaN(birthDate.getTime())||birthDate>today||birthDate.getFullYear()<1900))
+  const birthWeightInvalid=Boolean(draft.birthWeightGrams&&(Number(draft.birthWeightGrams)<300||Number(draft.birthWeightGrams)>7000))
+  const gestationInvalid=Boolean(draft.gestationalAgeWeeks&&(Number(draft.gestationalAgeWeeks)<20||Number(draft.gestationalAgeWeeks)>45))
+  const ageYears=birthDate&&!birthInvalid?Math.max(0,Math.floor((Date.now()-birthDate.getTime())/31557600000)):null
   function save(){
     const first=draft.firstName.trim()
     const last=draft.lastName.trim()
-    if(!draft.patientCode.trim()||!first||!last||(!editing&&!draft.admissionDate))return
+    if(!draft.patientCode.trim()||!first||!last||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid)return
     onSave({...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim(),birthWeightGrams:draft.birthWeightGrams?Number(draft.birthWeightGrams):null,gestationalAgeWeeks:draft.gestationalAgeWeeks?Number(draft.gestationalAgeWeeks):null})
   }
-  const disabled=!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)
+  const disabled=!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid
   return <ObserverDialog width="wide" eyebrow={t('patients')} title={editing?t('edit'):t('newPatient')} subtitle={editing?t('patientRegistrySubtitle'):t('newPatientHelp')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={save} disabled={disabled}/> }>
     <div className="entry-grid patient-entry-grid">
       <label><span>{t('patientId')}</span><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)}/></label>
@@ -143,10 +149,10 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
       <label><span>{t('lastName')}</span><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
       <label><span>{t('fatherName')}</span><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
       <label><span>{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
-      <ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>
+      <div><ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>{birthInvalid&&<small className="field-error">{t('invalidDateOfBirth')}</small>}{ageYears!=null&&!birthInvalid&&<small className="entry-detail-note">{t('calculatedAge').replace('{age}',String(ageYears))}</small>}</div>
       <label><span>{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
-      <label><span>{language==='el'?'Βάρος γέννησης (g)':'Birth weight (g)'}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={language==='el'?'Προαιρετικό — για νεογνά':'Optional — for neonates'}/></label>
-      <label><span>{language==='el'?'Ηλικία κύησης (εβδ.)':'Gestational age (weeks)'}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={language==='el'?'Προαιρετικό — για νεογνά':'Optional — for neonates'}/></label>
+      <label><span>{language==='el'?'Βάρος γέννησης (g)':'Birth weight (g)'}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={language==='el'?'Προαιρετικό — για νεογνά':'Optional — for neonates'}/>{birthWeightInvalid&&<small className="field-error">{t('invalidBirthWeight')}</small>}</label>
+      <label><span>{language==='el'?'Ηλικία κύησης (εβδ.)':'Gestational age (weeks)'}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={language==='el'?'Προαιρετικό — για νεογνά':'Optional — for neonates'}/>{gestationInvalid&&<small className="field-error">{t('invalidGestationalAge')}</small>}</label>
       {!editing&&<><label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
       <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/></>}
       <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
