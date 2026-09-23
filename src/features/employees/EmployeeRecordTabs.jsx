@@ -8,7 +8,7 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useEmployeeSubRecords } from './useEmployeeSubRecords'
-import { loadOccupationalVisitsAsync,loadVaccinationsAsync,loadEmployeeTrainingAsync,loadEvaluationsAsync,loadExposureIncidentsAsync } from './employeeSubRecordsService'
+import { loadOccupationalVisitsAsync,loadVaccinationsAsync,loadEmployeeTrainingAsync,loadEvaluationsAsync,loadExposureIncidentsAsync,createEmployeeEvaluationAsync,updateEmployeeEvaluationWorkflowAsync } from './employeeSubRecordsService'
 import { loadEmployeeHistoryAsync } from './employeeHistoryService'
 import { getEmployeeSurveillanceForEmployee,updateEmployeeSurveillanceRecord } from '../surveillance/employeeSurveillanceData'
 import { EmployeeSurveillanceRecordDialog } from '../surveillance/EmployeeSurveillanceRecordDialog'
@@ -88,65 +88,33 @@ export function EmployeeTrainingTab({employee,t,language,fmt,organizationId,canO
   </section>
 }
 
-export function EmployeeEvaluationsTab({employee,t:_t,language,fmt,organizationId}){
+export function EmployeeEvaluationsTab({employee,t,language,fmt,organizationId,canCreate=false,canHrApprove=false,canAdminApprove=false,selfReadOnly=false}){
   const state=useEmployeeSubRecords(loadEvaluationsAsync,organizationId,employee.dbId,employee.id)
-  const [selected,setSelected]=useState(null)
-  const registry=useRegistryRows(state.data)
-  const paging=registry.paging
-  const titleOf=x=>language==='el'?(x.titleEl||x.titleEn):(x.titleEn||x.titleEl)
-  const resultOf=x=>language==='el'?(x.resultEl||x.resultEn):(x.resultEn||x.resultEl)
+  const [selected,setSelected]=useState(null),[creating,setCreating]=useState(false),[saving,setSaving]=useState(false)
+  const registry=useRegistryRows(state.data),paging=registry.paging,en=language==='en'
+  const criteriaLabels=en?['Professional competence','Quality & accuracy','Procedures & protocols','Patient safety & infection prevention','Teamwork','Communication','Responsibility & consistency','Professional development']:['Επαγγελματική επάρκεια','Ποιότητα & ακρίβεια εργασίας','Τήρηση διαδικασιών / πρωτοκόλλων','Ασφάλεια ασθενών & πρόληψη λοιμώξεων','Συνεργασία / ομαδικότητα','Επικοινωνία','Υπευθυνότητα / συνέπεια','Επαγγελματική ανάπτυξη']
+  const [draft,setDraft]=useState({period:'',date:new Date().toISOString().slice(0,10),notes:'',criteria:criteriaLabels.map((name,index)=>({id:String(index+1),name,score:3,weight:1}))})
+  const statusLabel=v=>({draft:en?'Draft':'Πρόχειρη',submitted:en?'Submitted':'Υποβλήθηκε',employee_acknowledged:en?'Employee acknowledged':'Έλαβε γνώση',hr_approved:en?'HR approved':'Εγκρίθηκε από HR',finalized:en?'Finalized':'Οριστικοποιημένη'}[v]||v||'—')
+  async function create(){setSaving(true);try{await createEmployeeEvaluationAsync(organizationId,employee.dbId,draft);setCreating(false);await state.reload()}finally{setSaving(false)}}
+  async function action(name,comment){setSaving(true);try{const updated=await updateEmployeeEvaluationWorkflowAsync(organizationId,employee.dbId,selected.id,{action:name,comment});setSelected(updated);await state.reload()}finally{setSaving(false)}}
   return <section className="record-section record-secondary-registry">
-    <SectionTitle title={language==='en'?'Evaluations':'Αξιολογήσεις'} subtitle={language==='en'?'Formal employee evaluations and training knowledge assessments are shown together, without duplicating data.':'Εμφανίζονται μαζί οι επίσημες αξιολογήσεις εργαζομένου και οι αξιολογήσεις γνώσεων από την Εκπαίδευση, χωρίς διπλά δεδομένα.'}/>
+    <SectionTitle title={en?'Evaluations':'Αξιολογήσεις'} subtitle={en?'Performance evaluations and training knowledge assessments.':'Αξιολογήσεις απόδοσης και αξιολογήσεις γνώσεων από την Εκπαίδευση.'} action={canCreate&&<ActionButton tone="primary" label={en?'New evaluation':'Νέα αξιολόγηση'} onClick={()=>setCreating(true)}><Plus size={16}/><span>{en?'New evaluation':'Νέα αξιολόγηση'}</span></ActionButton>}/>
     <State {...state} language={language} onRetry={state.reload}/>
     {!state.loading&&!state.error&&<RegistryFilter query={registry.query} setQuery={registry.setQuery} language={language} count={registry.filtered.length}/>}
-    {!state.loading&&!state.error&&(registry.filtered.length?<><div className="scroll-table"><table className="data-table sticky-table record-table-clickable"><thead><tr><th>{language==='en'?'Evaluation':'Αξιολόγηση'}</th><th>{language==='en'?'Date':'Ημερομηνία'}</th><th>{language==='en'?'Result':'Αποτέλεσμα'}</th><th>{language==='en'?'Source':'Πηγή'}</th></tr></thead><tbody>{paging.paged.map(row=><tr key={row.id} tabIndex={0} onClick={()=>setSelected(row)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(row)}}}><td><strong>{titleOf(row)||'—'}</strong></td><td>{fmt(row.date)}</td><td>{resultOf(row)||'—'}</td><td>{row.source==='training'?(language==='en'?'Training':'Εκπαίδευση'):(language==='en'?'Employee evaluation':'Αξιολόγηση εργαζομένου')}</td></tr>)}</tbody></table></div><Pager paging={paging} total={registry.filtered.length} language={language}/></>:<Empty language={language} title={language==='en'?'No evaluations':'Δεν υπάρχουν αξιολογήσεις'}/>) }
-    {selected&&<ObserverDialog width="wide" eyebrow={language==='en'?'Employee evaluation':'Αξιολόγηση εργαζομένου'} title={titleOf(selected)||'—'} subtitle={fmt(selected.date)} onClose={()=>setSelected(null)}><div className="detail-grid"><div className="detail-item"><span>{language==='en'?'Result':'Αποτέλεσμα'}</span><strong>{resultOf(selected)||'—'}</strong></div><div className="detail-item"><span>{language==='en'?'Source':'Πηγή'}</span><strong>{selected.source==='training'?(language==='en'?'Training knowledge assessment':'Αξιολόγηση γνώσεων εκπαίδευσης'):(language==='en'?'Employee evaluation':'Αξιολόγηση εργαζομένου')}</strong></div>{selected.score!=null&&<div className="detail-item"><span>{language==='en'?'Score':'Βαθμολογία'}</span><strong>{selected.score}%</strong></div>}</div></ObserverDialog>}
+    {!state.loading&&!state.error&&(registry.filtered.length?<><div className="scroll-table"><table className="data-table sticky-table record-table-clickable"><thead><tr><th>{en?'Evaluation':'Αξιολόγηση'}</th><th>{en?'Period':'Περίοδος'}</th><th>{en?'Date':'Ημερομηνία'}</th><th>{en?'Score':'Βαθμολογία'}</th><th>{en?'Status':'Κατάσταση'}</th></tr></thead><tbody>{paging.paged.map(row=><tr key={row.id} tabIndex={0} onClick={()=>setSelected(row)}><td><strong>{en?row.titleEn:row.titleEl}</strong></td><td>{row.period||'—'}</td><td>{fmt(row.date)}</td><td>{row.overallScore!=null?`${row.overallScore.toFixed(2)} / 5`:(en?row.resultEn:row.resultEl)||'—'}</td><td><span className={`status-badge ${statusClass(row.status)}`}>{statusLabel(row.status)}</span></td></tr>)}</tbody></table></div><Pager paging={paging} total={registry.filtered.length} language={language}/></>:<Empty language={language}/>)}
+    {creating&&<ObserverDialog width="wide" eyebrow={en?'Performance evaluation':'Αξιολόγηση απόδοσης'} title={en?'New employee evaluation':'Νέα αξιολόγηση εργαζομένου'} onClose={()=>setCreating(false)} footer={<DialogActions onCancel={()=>setCreating(false)} onSave={create} disabled={saving||!draft.period}/>}>
+      <div className="entry-grid"><label><span>{en?'Evaluation period':'Περίοδος αξιολόγησης'} *</span><input value={draft.period} onChange={e=>setDraft(v=>({...v,period:e.target.value}))} placeholder="2026"/></label><label><span>{en?'Evaluation date':'Ημερομηνία αξιολόγησης'}</span><input type="date" value={draft.date} onChange={e=>setDraft(v=>({...v,date:e.target.value}))}/></label></div>
+      <div className="evaluation-scale-note">{en?'Scale: 1 Unsatisfactory · 2 Needs improvement · 3 Meets requirements · 4 Exceeds requirements · 5 Outstanding':'Κλίμακα: 1 Ανεπαρκής · 2 Χρειάζεται βελτίωση · 3 Πλήρως επαρκής · 4 Υπερβαίνει τις απαιτήσεις · 5 Εξαιρετική επίδοση'}</div>
+      <div className="evaluation-criteria">{draft.criteria.map((item,index)=><div className="evaluation-criterion" key={item.id}><strong>{item.name}</strong><select value={item.score} onChange={e=>setDraft(v=>({...v,criteria:v.criteria.map((x,i)=>i===index?{...x,score:Number(e.target.value)}:x)}))}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}</select></div>)}</div>
+      <label className="entry-field"><span>{en?'Manager comments':'Σχόλια προϊσταμένου'}</span><textarea value={draft.notes} onChange={e=>setDraft(v=>({...v,notes:e.target.value}))}/></label>
+    </ObserverDialog>}
+    {selected&&<ObserverDialog width="wide" eyebrow={en?'Employee evaluation':'Αξιολόγηση εργαζομένου'} title={en?selected.titleEn:selected.titleEl} subtitle={`${selected.period||''} · ${fmt(selected.date)}`} onClose={()=>setSelected(null)}>
+      {selected.overallScore!=null&&<div className="evaluation-score-hero"><strong>{selected.overallScore.toFixed(2)} / 5</strong><span>{statusLabel(selected.status)}</span></div>}
+      <div className="evaluation-criteria">{(selected.criteria||[]).map(item=><div className="evaluation-criterion" key={item.id||item.name}><strong>{item.name}</strong><span className="status-badge">{item.score} / 5</span></div>)}</div>
+      {selected.notes&&<div className="source-truth-note"><div><strong>{en?'Manager comments':'Σχόλια προϊσταμένου'}</strong><span>{selected.notes}</span></div></div>}
+      {selected.employeeComment&&<div className="source-truth-note"><div><strong>{en?'Employee comment':'Σχόλιο εργαζομένου'}</strong><span>{selected.employeeComment}</span></div></div>}
+      <div className="dialog-actions">{selected.source==='employee_evaluations'&&selected.status==='draft'&&canCreate&&<Button onClick={()=>action('submit')} disabled={saving}>{en?'Submit to employee':'Υποβολή στον εργαζόμενο'}</Button>}{selected.status==='submitted'&&selfReadOnly&&<Button onClick={()=>action('acknowledge','')} disabled={saving}>{en?'Acknowledge receipt':'Έλαβα γνώση'}</Button>}{selected.status==='employee_acknowledged'&&canHrApprove&&<Button onClick={()=>action('hrApprove')} disabled={saving}>{en?'HR approval':'Έγκριση HR'}</Button>}{selected.status==='hr_approved'&&canAdminApprove&&<Button onClick={()=>action('finalize')} disabled={saving}>{en?'Final approval':'Τελική έγκριση'}</Button>}</div>
+    </ObserverDialog>}
   </section>
 }
 
-export function EmployeeCertificatesTab({employee,language,organizationId,canEdit=false}){
-  return <DocumentsWorkspace
-    title={language==='en'?'Documents & certifications':'Έγγραφα & Πιστοποιήσεις'}
-    subtitle={language==='en'?'All employee files are kept in one place. Each attachment is classified by document type when it is added.':'Όλα τα αρχεία του εργαζομένου τηρούνται σε ένα σημείο. Κάθε επισύναψη χαρακτηρίζεται κατά την προσθήκη με τον τύπο του εγγράφου.'}
-    disabled={!canEdit}
-    organizationId={organizationId}
-    entityType="employee-certificate"
-    entityId={employee.dbId||employee.id}
-  />
-}
-
-export function EmployeeSurveillanceTab({employee,t,language,fmt,version,onNew,readOnly=false,isDemo=false,organizationId=null,canManageFollowup=false}){
-  const demoRows=isDemo?getEmployeeSurveillanceForEmployee(employee.id):[]
-  const [cloudRecords,setCloudRecords]=useState([])
-  const [cloudSamples,setCloudSamples]=useState([])
-  const [selected,setSelected]=useState(null)
-  const [loading,setLoading]=useState(!isDemo)
-  useEffect(()=>{if(isDemo||!organizationId||!employee?.dbId){setLoading(false);return}let active=true;setLoading(true);Promise.all([loadEmployeeSurveillanceRecords(organizationId),loadLaboratorySamples(organizationId)]).then(([records,samples])=>{if(!active)return;setCloudRecords(records.filter(row=>row.employeeDbId===employee.dbId));setCloudSamples(samples)}).catch(()=>{if(active){setCloudRecords([]);setCloudSamples([])}}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[isDemo,organizationId,employee?.dbId,version])
-  const rows=isDemo?demoRows:cloudRecords
-  const registry=useRegistryRows(rows)
-  const paging=registry.paging
-  const selectedSamples=selected?(isDemo?demoLaboratorySamples.filter(sample=>sample.employeeSurveillanceCase===selected.id):cloudSamples.filter(sample=>sample.employeeSurveillanceId===selected.recordId)):[]
-  const saveDemoFollowup=(record,patch)=>Promise.resolve(updateEmployeeSurveillanceRecord(record.id,{...patch,updatedAt:new Date().toISOString()}))
-  return <section className="record-section record-secondary-registry"><SectionTitle title={language==='en'?'Surveillance':'Επιτήρηση'} subtitle={language==='en'?'Employee screening episodes and their linked laboratory samples.':'Επεισόδια επιτήρησης εργαζομένου και τα συνδεδεμένα εργαστηριακά δείγματα.'} action={!readOnly&&<ActionButton tone="primary" label={t('newSurveillance')} onClick={onNew}><Plus size={15}/><span>{t('newSurveillance')}</span></ActionButton>}/>{!loading&&<RegistryFilter query={registry.query} setQuery={registry.setQuery} language={language} count={registry.filtered.length}/>} {loading?<div className="inline-empty">{language==='en'?'Loading…':'Φόρτωση…'}</div>:registry.filtered.length?<><div className="scroll-table"><table className="data-table sticky-table record-table-clickable"><thead><tr><th>{language==='en'?'Episode':'Επεισόδιο'}</th><th>{language==='en'?'Start date':'Έναρξη'}</th><th>{language==='en'?'Screening':'Έλεγχος'}</th><th>{language==='en'?'Status':'Κατάσταση'}</th></tr></thead><tbody>{paging.paged.map(row=><tr key={row.id} tabIndex={0} onClick={()=>setSelected(row)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(row)}}}><td><strong className="employee-code-compact" title={row.id}>{compactEpisodeCode(row.id)}</strong></td><td>{fmt(row.startedAt)}</td><td>{row.screeningTypes?.map(type=>label(type,t)).join(', ')||'—'}</td><td><span className={`status-badge ${statusClass(row.status)}`}>{label(row.status,t)}</span></td></tr>)}</tbody></table></div><Pager paging={paging} total={registry.filtered.length} language={language}/></>:<Empty language={language} title={language==='en'?'No surveillance episodes':'Δεν υπάρχουν επεισόδια επιτήρησης'}/>} {selected&&<EmployeeSurveillanceRecordDialog organizationId={organizationId} record={selected} samples={selectedSamples} canManage={canManageFollowup} t={t} language={language} fmt={fmt} onClose={()=>setSelected(null)} onSaveFollowup={isDemo?saveDemoFollowup:undefined} onUpdated={updated=>{if(!isDemo)setCloudRecords(current=>current.map(row=>row.recordId===updated.recordId?updated:row));setSelected(updated)}}/>}</section>
-}
-
-export function EmployeeHistoryTab({employee,language}){
-  const state=useEmployeeSubRecords(loadEmployeeHistoryAsync,employee.organizationId,employee.dbId,employee.id)
-  const fallback=[]
-  if(employee.createdAt)fallback.push({id:'legacy-created',action:'insert',at:employee.createdAt,actorName:'',actorRole:'',changedFields:[]})
-  if(employee.updatedAt&&employee.updatedAt!==employee.createdAt)fallback.push({id:'legacy-updated',action:'update',at:employee.updatedAt,actorName:'',actorRole:'',changedFields:[]})
-  const rows=(state.data.length?state.data:fallback).slice().sort((a,b)=>new Date(b.at||0)-new Date(a.at||0))
-  const registry=useRegistryRows(rows)
-  const paging=registry.paging
-  const format=value=>{if(!value)return '—';const d=new Date(value);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat(language==='en'?'en-GB':'el-GR',{dateStyle:'medium',timeStyle:'short'}).format(d)}
-  const eventLabel=action=>action==='insert'?(language==='en'?'Employee record created':'Δημιουργία καρτέλας εργαζομένου'):action==='delete'?(language==='en'?'Employee record deleted':'Διαγραφή καρτέλας εργαζομένου'):(language==='en'?'Employee record updated':'Ενημέρωση καρτέλας εργαζομένου')
-  const fieldLabels={employee_code:['Κωδικός εργαζομένου','Employee code'],department_id:['Τμήμα','Department'],department_name:['Τμήμα','Department'],department_name_en:['Τμήμα (EN)','Department (EN)'],first_name:['Όνομα','First name'],first_name_en:['Όνομα (EN)','First name (EN)'],last_name:['Επώνυμο','Last name'],last_name_en:['Επώνυμο (EN)','Last name (EN)'],father_name:['Πατρώνυμο','Father name'],profession_name:['Ιδιότητα','Profession'],profession_name_en:['Ιδιότητα (EN)','Profession (EN)'],employment_status:['Κατάσταση εργασίας','Employment status'],email:['Email','Email'],phone:['Τηλέφωνο','Phone'],hire_date:['Ημερομηνία πρόσληψης','Hire date'],birth_date:['Ημερομηνία γέννησης','Birth date'],user_id:['Σύνδεση λογαριασμού','Account link']}
-  const changedLabel=fields=>fields?.length?fields.map(key=>fieldLabels[key]?.[language==='en'?1:0]||key).join(' · '):'—'
-  const actorLabel=row=>row.actorName?`${row.actorName}${row.actorRole?` · ${row.actorRole.replaceAll('_',' ')}`:''}`:'—'
-  return <section className="record-section record-secondary-registry">
-    <SectionTitle title={language==='en'?'History':'Ιστορικό'} subtitle={language==='en'?'Administrative lifecycle of the employee record. Clinical events remain in their own governed tabs.':'Διοικητικό ιστορικό της καρτέλας εργαζομένου. Τα κλινικά συμβάντα παραμένουν στις αντίστοιχες ελεγχόμενες καρτέλες.'}/>
-    <State {...state} language={language} onRetry={state.reload}/>
-    {!state.loading&&!state.error&&<RegistryFilter query={registry.query} setQuery={registry.setQuery} language={language} count={registry.filtered.length}/>}
-    {!state.loading&&!state.error&&(registry.filtered.length?<><div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>{language==='en'?'Event':'Ενέργεια'}</th><th>{language==='en'?'Changes':'Μεταβολές'}</th><th>{language==='en'?'User':'Χρήστης'}</th><th>{language==='en'?'Date / time':'Ημερομηνία / ώρα'}</th></tr></thead><tbody>{paging.paged.map(row=><tr key={row.id}><td><strong>{eventLabel(row.action)}</strong></td><td>{row.action==='update'?changedLabel(row.changedFields):'—'}</td><td>{actorLabel(row)}</td><td>{format(row.at)}</td></tr>)}</tbody></table></div><Pager paging={paging} total={registry.filtered.length} language={language}/></>:<Empty language={language} title={language==='en'?'No lifecycle history is available':'Δεν υπάρχει διαθέσιμο ιστορικό καρτέλας'}/>) }
-  </section>
-}
