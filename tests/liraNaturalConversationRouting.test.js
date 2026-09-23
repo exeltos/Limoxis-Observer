@@ -1,0 +1,4 @@
+import {describe,expect,it} from 'vitest'
+import fs from 'node:fs'
+const ui=fs.readFileSync('src/features/lira/LiraAssistantLauncher.jsx','utf8')
+describe('LIRA natural conversation routing',()=>{it('routes specific organism questions',()=>{expect(ui).toContain('asksSpecificOrganism');expect(ui).toContain('Συγκεκριμένοι μικροοργανισμοί')});it('routes patient questions with department context',()=>{expect(ui).toContain('asksPatient');expect(ui).toContain('namedDepartment');expect(ui).toContain('Ασθενείς στο ζητούμενο εύρος')});it('routes committee briefing questions',()=>{expect(ui).toContain('asksCommittee');expect(ui).toContain('Ενημέρωση Επιτροπής Λοιμώξεων');expect(ui).toContain('οι αριθμοί αυτοί μόνοι τους δεν αποδεικνύουν μετάδοση ή έξαρση')});it('routes these before generic signal assessment',()=>{expect(ui.indexOf('if(asksSpecificOrganism||asksPatient||asksCommittee)')).toBeLessThan(ui.indexOf("if(plan.topic===LIRA_TOPICS.GENERAL)"))})})
