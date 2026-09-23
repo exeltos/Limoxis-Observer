@@ -4088,3 +4088,27 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .platform-update-history-section .table-wrap{min-height:0!important;height:100%!important;overflow:auto!important;border:1px solid var(--border-subtle)!important;border-radius:10px!important}
 .platform-update-history-section .data-table{width:100%!important}
 @media(max-width:900px){.platform-update-center-dialog{width:96vw!important;height:92vh!important}.platform-update-center-dialog .observer-dialog-body{grid-template-rows:auto minmax(0,1fr)!important;padding:14px!important}.platform-update-history-heading{align-items:flex-start!important;flex-direction:column!important}}
+
+/* WHO record detail — compact clinical review pattern */
+.who-record-compact{display:grid;gap:14px}
+.who-record-session-bar{display:grid;grid-template-columns:.75fr 1.6fr 1.15fr .8fr;border:1px solid var(--border-color,#dbe4ec);border-radius:14px;background:var(--surface,#fff);overflow:hidden}
+.who-record-session-bar>div{display:grid;gap:4px;padding:13px 16px;border-right:1px solid var(--border-color,#e5ebf0)}
+.who-record-session-bar>div:last-child{border-right:0}
+.who-record-session-bar span,.who-record-kpis span,.who-record-opportunity-row>div>span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.035em;color:var(--text-muted,#718399)}
+.who-record-kpis{display:grid;grid-template-columns:1.65fr repeat(5,1fr);border:1px solid var(--border-color,#dbe4ec);border-radius:14px;background:var(--surface,#fff);overflow:hidden}
+.who-record-kpis>div{display:grid;align-content:center;justify-items:center;gap:4px;min-height:88px;padding:12px;border-right:1px solid var(--border-color,#e5ebf0)}
+.who-record-kpis>div:last-child{border-right:0}.who-record-kpis strong{font-size:22px}.who-record-kpis small{color:var(--text-muted,#718399);font-size:11px}
+.who-record-kpis .who-record-compliance{justify-items:start;padding-left:18px;background:var(--surface-subtle,#f4f9fc)}
+.who-record-kpis .who-record-compliance strong{font-size:34px;line-height:1;color:var(--primary,#21739b)}
+.who-record-kpis .who-record-missed strong{color:#9d4b4b}
+.who-record-opportunities{border:1px solid var(--border-color,#dbe4ec);border-radius:14px;background:var(--surface,#fff);overflow:hidden}
+.who-record-list-heading{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border-color,#e5ebf0)}
+.who-record-list-heading h3{margin:3px 0 0}.who-record-list-heading>strong{display:grid;place-items:center;min-width:34px;height:30px;border-radius:9px;background:var(--surface-subtle,#f3f7fa)}
+.who-record-opportunity-row{display:grid;grid-template-columns:42px minmax(150px,.95fr) minmax(220px,1.5fr) minmax(175px,1fr) 80px minmax(120px,.8fr);align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border-color,#e5ebf0)}
+.who-record-opportunity-row:last-child{border-bottom:0}.who-record-opportunity-row>div:not(.who-record-opportunity-index){display:grid;gap:5px;min-width:0}
+.who-record-opportunity-index span{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--surface-subtle,#edf5f9);color:var(--primary,#21739b);font-weight:800}
+.who-record-moments>div{display:flex;flex-wrap:wrap;gap:5px}.who-record-moments b{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #cfe2ec;border-radius:8px;background:#f1f8fb;font-size:12px}
+.who-record-moments b i{display:grid;place-items:center;width:19px;height:19px;border-radius:6px;background:var(--primary,#21739b);color:#fff;font-style:normal;font-size:11px}
+.who-record-action strong{width:max-content;max-width:100%;padding:5px 8px;border-radius:8px;background:#edf8f2;color:#27734f}.who-record-action strong.missed{background:#fbefef;color:#9d4b4b}
+@media(max-width:1100px){.who-record-kpis{grid-template-columns:repeat(3,1fr)}.who-record-kpis>div{border-bottom:1px solid var(--border-color,#e5ebf0)}.who-record-opportunity-row{grid-template-columns:42px 1fr 1.5fr 1fr}.who-record-gloves,.who-record-note{grid-column:auto}}
+@media(max-width:760px){.who-record-session-bar{grid-template-columns:1fr 1fr}.who-record-session-bar>div{border-bottom:1px solid var(--border-color,#e5ebf0)}.who-record-kpis{grid-template-columns:1fr 1fr}.who-record-opportunity-row{grid-template-columns:36px 1fr}.who-record-moments,.who-record-action,.who-record-gloves,.who-record-note{grid-column:2}}
