@@ -4063,49 +4063,58 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .platform-demo-record-form{padding:12px 14px 18px;overflow:auto}.platform-demo-record-form .platform-form-shell{max-width:none}.platform-demo-access-grid{display:grid;grid-template-columns:minmax(230px,1.25fr) minmax(300px,1.55fr) minmax(160px,.8fr) minmax(160px,.8fr);gap:11px 13px;align-items:start}.platform-demo-access-grid>.field,.platform-demo-access-grid>.manual-date-field{min-width:0}.platform-demo-access-grid .field>span{font-size:10px}.platform-demo-access-grid .field input{width:100%;min-height:38px;height:38px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);padding:0 10px;background:var(--lo-color-surface);font:inherit;font-size:11.5px;color:var(--lo-color-text)}@media(max-width:1180px){.platform-demo-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.platform-demo-access-grid{grid-template-columns:1fr}}
 
 
-/* Clinical scales — compact patient-tab registry */
-.clinical-scales-panel{gap:12px!important;min-height:0!important}
-.clinical-scales-overview{padding:16px!important;border:1px solid #dfe7ed!important;border-radius:12px!important;background:#fff!important}
-.clinical-scale-kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;margin:12px 0 14px!important}
-.clinical-scale-kpi{display:flex!important;align-items:baseline!important;gap:7px!important;min-height:48px!important;padding:11px 12px!important;border:1px solid #e3e9ee!important;border-radius:9px!important;background:#f8fafb!important}
-.clinical-scale-kpi strong{font-size:18px!important;line-height:1!important;color:#173b55!important}
-.clinical-scale-kpi span{font-size:10.5px!important;color:#667d90!important}
-.clinical-scale-list,.clinical-scale-picker-list{display:flex!important;flex-direction:column!important;gap:7px!important}
-.clinical-scale-row,.clinical-scale-picker-row{width:100%!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;padding:11px 13px!important;border:1px solid #e0e7ed!important;border-radius:9px!important;background:#fff!important;color:#213d54!important;text-align:left!important;font:inherit!important;cursor:pointer!important}
-.clinical-scale-row:hover,.clinical-scale-picker-row:hover{border-color:#bfd1de!important;background:#f8fbfd!important}
-.clinical-scale-row-main{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
-.clinical-scale-row-main strong{font-size:12px!important;line-height:1.3!important}
-.clinical-scale-row small,.clinical-scale-picker-row small{font-size:10.5px!important;color:#738798!important;white-space:nowrap!important}
-.clinical-scale-badges{display:inline-flex!important;gap:5px!important;flex-wrap:wrap!important}
-.clinical-scale-badges>span{display:inline-flex!important;align-items:center!important;height:22px!important;padding:0 8px!important;border-radius:999px!important;background:#eef4f7!important;color:#47667d!important;font-size:9.5px!important;font-weight:700!important}
-.clinical-scale-picker-list{padding-top:4px!important}
-.clinical-scale-picker-row{min-height:52px!important}
-@media(max-width:1000px){.clinical-scale-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}.clinical-scale-row,.clinical-scale-picker-row{align-items:flex-start!important;flex-direction:column!important}.clinical-scale-row small,.clinical-scale-picker-row small{white-space:normal!important}}
+/* Clinical scales: only picker-specific styling lives here.
+   The patient registry itself uses the same canonical record geometry as employee registries. */
+.clinical-scale-picker-list{display:flex!important;flex-direction:column!important;gap:7px!important;padding-top:4px!important}
+.clinical-scale-picker-row{width:100%!important;min-height:52px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;padding:11px 13px!important;border:1px solid #e0e7ed!important;border-radius:9px!important;background:#fff!important;color:#213d54!important;text-align:left!important;font:inherit!important;cursor:pointer!important}
+.clinical-scale-picker-row:hover{border-color:#bfd1de!important;background:#f8fbfd!important}
+.clinical-scale-picker-row small{font-size:10.5px!important;color:#738798!important;white-space:nowrap!important}
+@media(max-width:1000px){.clinical-scale-picker-row{align-items:flex-start!important;flex-direction:column!important}.clinical-scale-picker-row small{white-space:normal!important}}
 
+/* Patient secondary registry: same title -> flexible results viewport -> attached pagination pattern. */
+.patient-record-shell.record-secondary-tab-active > .entity-record-body{
+ display:grid!important;grid-template-rows:minmax(0,1fr)!important;min-height:0!important;height:100%!important;overflow:hidden!important;
+}
+.patient-record-shell.record-secondary-tab-active > .entity-record-body > .patient-secondary-registry{
+ display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;
+ min-width:0!important;min-height:0!important;width:100%!important;height:100%!important;margin:0!important;overflow:hidden!important;
+}
+.patient-record-shell .patient-secondary-registry > .record-section-header{min-width:0!important}
+.patient-record-shell .patient-secondary-registry > .scroll-table{
+ width:100%!important;min-width:0!important;min-height:0!important;height:100%!important;
+ margin:12px 0 0!important;overflow:auto!important;background:#fff!important;box-shadow:none!important;
+ border:1px solid #e1e8ee!important;border-bottom:0!important;border-radius:11px 11px 0 0!important;
+}
+.patient-record-shell .patient-secondary-registry > .registry-pagination{
+ align-self:end!important;width:100%!important;min-height:44px!important;margin:0!important;
+ padding-left:12px!important;padding-right:12px!important;
+ border:1px solid #e1e8ee!important;border-top:1px solid var(--line)!important;
+ border-radius:0 0 11px 11px!important;background:#fff!important;
+}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table{
+ width:100%!important;margin:0!important;border:0!important;border-collapse:separate!important;border-spacing:0!important;table-layout:fixed!important;background:#fff!important;
+}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table thead th{
+ height:42px!important;padding:0 16px!important;border:0!important;border-bottom:1px solid #dfe7ed!important;background:#f7f9fb!important;
+ color:#6f8294!important;font-size:9.5px!important;font-weight:750!important;line-height:1.2!important;letter-spacing:.045em!important;
+ text-align:left!important;text-transform:uppercase!important;vertical-align:middle!important;
+}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table tbody td{
+ height:52px!important;padding:10px 16px!important;border:0!important;border-bottom:1px solid #e7edf2!important;background:#fff!important;
+ color:#486177!important;font-size:12px!important;font-weight:500!important;line-height:1.4!important;vertical-align:middle!important;
+}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table tbody tr:last-child td{border-bottom:0!important}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table tbody tr:hover td{background:#fbfcfd!important}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table td strong{display:block!important;color:#173650!important;font-size:12.5px!important;font-weight:650!important;line-height:1.35!important}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table td small{display:block!important;margin-top:3px!important;color:#7d8f9f!important;font-size:10.5px!important}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table th:nth-child(1),
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table td:nth-child(1){width:20%!important}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table th:nth-child(2),
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table td:nth-child(2){width:38%!important}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table th:nth-child(3),
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table td:nth-child(3){width:20%!important}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table th:nth-child(4),
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table td:nth-child(4){width:17%!important}
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table th:nth-child(5),
+.patient-record-shell .patient-secondary-registry > .scroll-table > .data-table td:nth-child(5){width:5%!important}
 
-/* Canonical secondary-record registry geometry: shared by patient record tabs. */
-.record-secondary-registry{
- display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;gap:0!important;
- min-width:0!important;min-height:0!important;width:100%!important;height:100%!important;
- padding:0!important;overflow:hidden!important;
-}
-.record-secondary-registry>.record-section-header{
- min-width:0!important;margin:0!important;padding:16px 16px 14px!important;
- border-bottom:1px solid var(--lo-color-border)!important;
-}
-.record-secondary-registry>.scroll-table{
- width:100%!important;min-width:0!important;min-height:0!important;height:100%!important;margin:0!important;
- overflow-x:hidden!important;overflow-y:auto!important;border:0!important;border-radius:0!important;
- background:var(--lo-color-surface)!important;box-shadow:none!important;
-}
-.record-secondary-registry>.scroll-table>.data-table{
- width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;margin:0!important;
-}
-.record-secondary-registry>.scroll-table>.data-table th,
-.record-secondary-registry>.scroll-table>.data-table td{
- min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
-}
-.record-secondary-registry>.registry-pagination{
- width:100%!important;min-width:0!important;min-height:44px!important;margin:0!important;padding-left:12px!important;padding-right:12px!important;
- border:0!important;border-top:1px solid var(--lo-color-border)!important;border-radius:0!important;background:var(--lo-color-surface)!important;
-}
