@@ -20,7 +20,7 @@ import { useContextualNavigation } from '../../core/navigation/useContextualNavi
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { useAuth } from '../../core/auth/AuthContext'
 import { roleLabel } from '../../core/permissions/roleLabels'
-import { createEmployeeAccountAsync,updateEmployeeAsync } from './employeeService'
+import { createEmployeeAccountAsync,deleteEmployeeAsync,updateEmployeeAsync } from './employeeService'
 import { useEmployeesData } from './useEmployeesData'
 import { loadDepartments } from '../management/departmentsService'
 import { loadManagementLibraries } from '../management/managementCloudService'
@@ -147,7 +147,7 @@ export function EmployeeRecordPage({selfMode=false}){
   if(!(selfMode||canAccessRecord({...employee,department:employee.department})))return <Page title={t('employees')}><div className="inline-empty">{language==='en'?'You do not have access to this record.':'Δεν έχετε πρόσβαση σε αυτή την εγγραφή.'}</div></Page>
   const name=language==='el'?`${employee.lastName} ${employee.firstName}`:`${employee.firstNameEn||employee.firstName} ${employee.lastNameEn||employee.lastName}`
   const fmt=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
-  async function deleteEmployee(){if(selfReadOnly)return;const ok=await confirm({title:t('employeesRecords.deleteEmployee'),message:t('employeesRecords.confirmEmployeeDelete'),confirmLabel:t('delete'),danger:true});if(ok){notify(t('employeesRecords.employeeDeleted'),'success');navigate('/employees')}}
+  async function deleteEmployee(){if(selfReadOnly||!canAdmin)return;const ok=await confirm({title:t('employeesRecords.deleteEmployee'),message:t('employeesRecords.confirmEmployeeDelete'),confirmLabel:t('delete'),danger:true});if(!ok)return;try{await deleteEmployeeAsync(tenant?.id,employee.dbId,employee.id);notify(t('employeesRecords.employeeDeleted'),'success');navigate('/employees',{replace:true})}catch(error){notify(error?.message||(language==='en'?'Could not delete the employee.':'Δεν ήταν δυνατή η διαγραφή του εργαζομένου.'),'error')}}
   async function createAccount(values){if(selfReadOnly)return;setAccountSaving(true);try{await createEmployeeAccountAsync(tenant?.id,employee,values);notify(language==='en'?'User account created and linked to this employee.':'Ο λογαριασμός χρήστη δημιουργήθηκε και συνδέθηκε με τον εργαζόμενο.','success');setAccountOpen(false);await reloadEmployees()}catch(error){notify(error?.message||(language==='en'?'Could not create the account.':'Δεν ήταν δυνατή η δημιουργία του λογαριασμού.'),'error')}finally{setAccountSaving(false)}}
   const departmentOptions=departments.map(row=>[row.name,row.nameEn||row.name])
   const headerActions=<>{!selfReadOnly&&canOccupational&&<ActionButton tone="primary" label={t('newSurveillance')} onClick={()=>setSurveillanceOpen(true)}><span>+ {t('newSurveillance')}</span></ActionButton>}<PrintExportActions onExport={()=>downloadRecordJson(employee,{filename:employee?.id})}/></>
