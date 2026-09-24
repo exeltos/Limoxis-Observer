@@ -4201,3 +4201,7 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .quality-readonly-text:not(:has(textarea)){position:relative}
 .quality-readonly-text:not(:has(textarea)) .textarea-expand-trigger{display:none!important}
 @media (max-width:900px){.quality-record-shell .entity-record-body{overflow:auto}}
+
+.quality-owner-input{display:flex;gap:6px}.quality-owner-input input{flex:1;min-width:0}.quality-owner-input button{width:36px;height:36px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface);font-weight:700}
+.quality-owner-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}.quality-owner-chips>span{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface-subtle);font-size:10px}.quality-owner-chips button{border:0;background:transparent;padding:0;line-height:1}
+.quality-record-shell{min-height:0}.quality-record-shell>.entity-record-body{min-height:0;overflow:hidden!important}.quality-record-shell .record-section{min-height:0}.quality-record-shell .quality-description{padding:8px 10px}.quality-record-shell .quality-description p{margin:4px 0 0}.quality-record-shell .quality-investigation-card{padding:8px 10px}.quality-record-shell .quality-investigation-grid .quality-description{min-height:54px}
