@@ -26,7 +26,7 @@ const createLabels={
   incidents:{el:'Νέο συμβάν',en:'New incident'},
   findings:{el:'Νέο εύρημα',en:'New finding'},
   capas:{el:'Νέα CAPA',en:'New CAPA'},
-  audits:{el:'Νέο audit',en:'New audit'},
+  audits:{el:'Νέος έλεγχος',en:'New audit'},
 }
 
 export function QualityPage(){
