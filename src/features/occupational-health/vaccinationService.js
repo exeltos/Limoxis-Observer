@@ -81,3 +81,26 @@ export async function createVaccinationsBulkAsync(organizationId,employees,draft
   if(error)throw error
   return (data||[]).map(fromRow)
 }
+
+
+export async function updateVaccinationAsync(organizationId,id,draft){
+  if(!id)throw new Error('VACCINATION_ID_REQUIRED')
+  if(!draft?.vaccine?.trim())throw new Error('VACCINATION_VACCINE_REQUIRED')
+  if(!draft?.date)throw new Error('VACCINATION_DATE_REQUIRED')
+  if(isDemoDataEnvironment()){
+    const rows=loadVaccinations();const next=rows.map(row=>row.id===id?{...row,...draft,id,employeeId:row.employeeId}:row);saveVaccinations(next);return next.find(row=>row.id===id)
+  }
+  ensureCloud(organizationId,'employee_vaccinations.update')
+  const payload={vaccine_label_snapshot:draft.vaccine.trim(),dose:String(draft.dose||'').trim()||null,vaccination_date:draft.date,lot_number:String(draft.lotNumber||'').trim()||null,valid_until:draft.validUntil||null,status:draft.status||'complete',clinical_notes:String(draft.clinicalNotes||'').trim()||null}
+  const {data,error}=await supabase.from('employee_vaccinations').update(payload).eq('organization_id',organizationId).eq('id',id).select(COLUMNS).single()
+  if(error)throw error
+  return fromRow(data)
+}
+
+export async function deleteVaccinationAsync(organizationId,id){
+  if(!id)throw new Error('VACCINATION_ID_REQUIRED')
+  if(isDemoDataEnvironment()){const rows=loadVaccinations();saveVaccinations(rows.filter(row=>row.id!==id));return}
+  ensureCloud(organizationId,'employee_vaccinations.delete')
+  const {error}=await supabase.from('employee_vaccinations').delete().eq('organization_id',organizationId).eq('id',id)
+  if(error)throw error
+}
