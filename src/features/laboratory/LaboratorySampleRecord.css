@@ -51,7 +51,8 @@
 .laboratory-record-shell .lab-record-card .detail-item{padding:12px 0;border-bottom:1px solid var(--lo-color-border)}
 .laboratory-record-shell .lab-record-card .detail-item>span{display:block;margin-bottom:5px}
 .laboratory-record-shell .lab-record-card .detail-item>strong{font-size:14px}
-.laboratory-record-shell .laboratory-result-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px}
+.laboratory-record-shell .laboratory-result-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:0 24px}
+.laboratory-record-shell .laboratory-result-grid>.detail-item:has(.laboratory-library-picker){grid-column:1/-1}
 .laboratory-record-shell .laboratory-library-picker{padding-top:2px}
 .laboratory-record-shell .laboratory-isolate-row{min-height:46px;padding:8px 10px;border-radius:7px;box-shadow:none}
 .laboratory-record-shell .lab-isolate-card{border:0;border-radius:0;background:transparent}
