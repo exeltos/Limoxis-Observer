@@ -45,6 +45,7 @@ function mapRow(section,row){
     departmentId:row.department_id||null,
     status:uiStatus(row.status),
     owner:row.owner_label||'',
+    owners:Array.isArray(row.owner_labels)?row.owner_labels:(row.owner_label?[row.owner_label]:[]),
     ownerId:row.owner_id||null,
     lifecycleStatus:row.lifecycle_status||'active',
     voidReason:row.void_reason||'',
@@ -155,7 +156,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
     const department=draft.departmentId||''
     const common={id:code,displayId:compactCode(code),title:draft.title||draft.titleEn||'',titleEn:draft.titleEn||draft.title||'',department,departmentEn:department,owner:'',lifecycleStatus:'active',attachments:[],history:[]}
     let record=common
-    if(section==='incidents')record={...common,owner:draft.owner||'',severity:draft.severity||'medium',incidentClass:draft.incidentClass||'nearMiss',reachedPatient:Boolean(draft.reachedPatient),harmOccurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',eventTime:draft.eventTime||'',impact:draft.impact||'none',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',immediateActions:draft.immediateActions||draft.immediateActionsEn||'',rootCause:draft.rootCause||'',contributingFactors:draft.contributingFactors||'',reportedBy:userId||'',linkedPatient:'',linkedSurveillance:''}
+    if(section==='incidents')record={...common,owner:(draft.owners?.[0]||draft.owner||''),owners:draft.owners?.length?draft.owners:(draft.owner?[draft.owner]:[]),severity:draft.severity||'medium',incidentClass:draft.incidentClass||'nearMiss',reachedPatient:Boolean(draft.reachedPatient),harmOccurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',eventTime:draft.eventTime||'',impact:draft.impact||'none',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',immediateActions:draft.immediateActions||draft.immediateActionsEn||'',rootCause:draft.rootCause||'',contributingFactors:draft.contributingFactors||'',reportedBy:userId||'',linkedPatient:'',linkedSurveillance:''}
     if(section==='findings')record={...common,severity:draft.severity||'medium',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'manual',sourceId:draft.sourceId||''}
     if(section==='capas')record={...common,severity:draft.priority||'medium',priority:draft.priority||'medium',actionType:draft.actionType||'corrective',dueDate:draft.dueDate||'',effectivenessDue:draft.effectivenessDue||'',effectivenessStatus:draft.effectivenessStatus||'pending',status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'other',sourceId:draft.sourceId||''}
     if(section==='audits')record={...common,auditType:draft.auditType||'internal',plannedDate:draft.plannedDate||'',completedDate:'',status:draft.status||'planned',leadAuditor:'',scope:draft.scope||'',scopeEn:draft.scopeEn||draft.scope||'',findingIds:[]}
@@ -168,7 +169,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
   const config=sectionConfig[section]
   if(!config) throw new Error('Unsupported quality record type.')
   let payload={organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),department_id:draft.departmentId||null}
-  if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,incident_class:draft.incidentClass||'nearMiss',reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',impact:draft.impact||'none',severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:userId||null,owner_id:null,owner_label:draft.owner||null}
+  if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,incident_class:draft.incidentClass||'nearMiss',reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',impact:draft.impact||'none',severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:userId||null,owner_id:null,owner_label:(draft.owners?.[0]||draft.owner||null),owner_labels:draft.owners?.length?draft.owners:(draft.owner?[draft.owner]:[])}
   if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null,owner_id:null}
   if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,owner_id:null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending'}
   if(section==='audits') payload={...payload,audit_type:draft.auditType||'internal',scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:null}
@@ -183,7 +184,8 @@ function buildPersistPayload(section,record){
     title:(record.title||record.titleEn||'').trim(),
     department_id:record.departmentId||null,
     status:dbStatus(record.status),
-    owner_label:record.owner||null,
+    owner_label:(record.owners?.[0]||record.owner||null),
+    owner_labels:record.owners?.length?record.owners:(record.owner?[record.owner]:[]),
     lifecycle_status:record.lifecycleStatus||'active',
     void_reason:record.voidReason||null,
     voided_at:record.voidedAt||null,
