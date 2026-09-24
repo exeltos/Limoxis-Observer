@@ -4332,3 +4332,31 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 @media (max-width:620px){
   .quality-record-shell .quality-detail-grid{grid-template-columns:1fr}
 }
+
+
+/* Quality incident — narrative fit refinement */
+.quality-record-shell .quality-incident-narrative{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(0,.65fr);
+  gap:8px;
+  margin-top:8px;
+}
+.quality-record-shell .quality-incident-narrative .quality-description{
+  min-width:0;
+  margin-top:0;
+  min-height:58px;
+}
+.quality-record-shell .quality-incident-narrative textarea{
+  min-height:54px;
+  resize:vertical;
+}
+.quality-record-shell .quality-investigation-grid .quality-description{
+  min-height:58px;
+}
+.quality-record-shell .quality-investigation-grid textarea{
+  min-height:54px;
+  resize:vertical;
+}
+@media (max-width:980px){
+  .quality-record-shell .quality-incident-narrative{grid-template-columns:1fr}
+}
