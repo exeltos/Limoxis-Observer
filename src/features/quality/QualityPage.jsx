@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,Plus } from 'lucide-react'
+import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,Plus,ShieldCheck,CheckSquare2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -16,10 +16,10 @@ import { readSessionValue,writeSessionValue } from '../../core/storage/browserSt
 import { loadQualityRecords } from './qualityService'
 
 const sections=[
-  {id:'incidents',label:'qualityIncidents'},
-  {id:'findings',label:'qualityFindings'},
-  {id:'capas',label:'qualityCapas'},
-  {id:'audits',label:'qualityAudits'},
+  {id:'incidents',label:'qualityIncidents',icon:AlertTriangle},
+  {id:'findings',label:'qualityFindings',icon:ShieldCheck},
+  {id:'capas',label:'qualityCapas',icon:CheckSquare2},
+  {id:'audits',label:'qualityAudits',icon:ClipboardCheck},
 ]
 
 const createLabels={
@@ -73,7 +73,7 @@ export function QualityPage(){
       <SummaryMetric icon={AlertTriangle} label={language==='en'?'High priority':'Υψηλής προτεραιότητας'} value={highCount}/>
     </div></div>
     <div className="surface registry-workspace workspace-column workspace-fill quality-workspace">
-      <ModuleTabs className="quality-tabs" ariaLabel={t('quality')} tabs={sections.map(({id,label})=>({id,label:t(label)}))} activeId={section} onChange={changeSection}/>
+      <ModuleTabs className="quality-tabs" ariaLabel={t('quality')} tabs={sections.map(({id,label,icon})=>({id,label:id==='audits'?(language==='en'?'Audits':'Έλεγχοι'):t(label),icon}))} activeId={section} onChange={changeSection}/>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status).filter(Boolean))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
