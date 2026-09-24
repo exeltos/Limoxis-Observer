@@ -4395,3 +4395,30 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 @media (max-height:759px),(max-width:980px){
   .quality-record-shell.workspace-fill>.entity-record-body{overflow:auto}
 }
+
+
+/* Quality records — editing must always reach footer actions */
+.quality-record-shell.workspace-fill>.entity-record-body:has(.quality-record-details.is-editing){
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  scrollbar-gutter:stable!important;
+}
+.quality-record-shell .quality-record-details.is-editing{
+  height:auto!important;
+  min-height:100%;
+  overflow:visible!important;
+  padding-bottom:8px;
+}
+.quality-record-shell .quality-record-details.is-editing .inline-edit-footer{
+  position:sticky;
+  bottom:0;
+  z-index:6;
+  margin:8px -12px -10px;
+  padding:10px 12px;
+  border-top:1px solid var(--lo-color-border);
+  background:var(--lo-color-surface);
+  box-shadow:0 -8px 18px rgba(24,49,68,.06);
+}
+.quality-record-shell .quality-record-details.is-viewing .quality-subsection-heading{
+  padding-right:0;
+}
