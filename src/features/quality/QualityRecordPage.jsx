@@ -151,8 +151,13 @@ function QualityLinks({recordType,record,t,language,organizationId}){
   const [sourceRecord,setSourceRecord]=useState(null)
   useEffect(()=>{
     let active=true
-    if(recordType!=='incidents'&&recordType!=='findings'){setRelated([]);return}
-    loadQualityRecords('capas',organizationId).then(rows=>{if(active)setRelated(rows.filter(x=>x.sourceId===record.id))}).catch(()=>{if(active)setRelated([])})
+    if(recordType==='incidents'||recordType==='findings'){
+      loadQualityRecords('capas',organizationId).then(rows=>{if(active)setRelated(rows.filter(x=>x.sourceId===record.id).map(x=>({...x,kind:'capas'})))}).catch(()=>{if(active)setRelated([])})
+    }else if(recordType==='audits'){
+      loadQualityRecords('findings',organizationId).then(rows=>{if(active)setRelated(rows.filter(x=>x.sourceId===record.id).map(x=>({...x,kind:'findings'})))}).catch(()=>{if(active)setRelated([])})
+    }else{
+      setRelated([])
+    }
     return()=>{active=false}
   },[recordType,record.id,organizationId])
   useEffect(()=>{
@@ -174,7 +179,7 @@ function QualityLinks({recordType,record,t,language,organizationId}){
   const openSource=id=>goTo(linkPath(t('source'),id,t),navigationOptions)
   return <div className="record-section"><div className="record-section-header"><h3>{t('qualityRecords.linkedRecords')}</h3></div><div className="quality-link-list">
     {links.map(link=><button type="button" key={`${link.label}-${link.id}`} onClick={()=>link.source?openSource(link.id):openLinked(link.path)}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong>{link.title&&<small>{link.title}</small>}</span><ChevronRight size={16}/></button>)}
-    {related.map(x=><button type="button" key={x.id} onClick={()=>goTo(`/quality/capas/${x.id}`,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span className="quality-link-kind">{t('qualityRecords.capa')}</span><span className="quality-link-main"><strong>{x.displayId||x.id}</strong><small>{language==='el'?x.title:x.titleEn}</small></span><ChevronRight size={16}/></button>)}
+    {related.map(x=><button type="button" key={x.id} onClick={()=>goTo(`/quality/${x.kind}/${x.id}`,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span className="quality-link-kind">{t(x.kind==='findings'?'qualityRecords.finding':'qualityRecords.capa')}</span><span className="quality-link-main"><strong>{x.displayId||x.id}</strong><small>{language==='el'?x.title:x.titleEn}</small></span><ChevronRight size={16}/></button>)}
     {!links.length&&!related.length&&<div className="inline-empty">{t('qualityRecords.noLinkedRecords')}</div>}
   </div></div>
 }

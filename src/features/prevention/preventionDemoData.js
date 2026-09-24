@@ -65,23 +65,23 @@ function handHygieneRow({id,date,department,profession,observer,startTime,endTim
 
 export const handHygieneRows=[
   handHygieneRow({id:'HH-2601',date:'2026-08-20',department:preventionDepartments[0],profession:'nursing',observer:'Ελένη Παπαδοπούλου',startTime:'09:00',endTime:'09:40',items:[
-    {id:'o1',professionalsCount:1,professionalCategory:'Νοσηλευτικό',moments:['before_patient'],action:'HR',gloves:false,notes:''},
-    {id:'o2',professionalsCount:1,professionalCategory:'Νοσηλευτικό',moments:['after_patient'],action:'HR',gloves:true,notes:''},
-    {id:'o3',professionalsCount:1,professionalCategory:'Νοσηλευτικό',moments:['before_aseptic'],action:'HW',gloves:false,notes:''},
-    {id:'o4',professionalsCount:1,professionalCategory:'Νοσηλευτικό',moments:['after_body_fluid'],action:'MISSED',gloves:false,notes:'Διακοπή λόγω επείγοντος'},
+    {id:'o1',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment1'],action:'HR',gloves:false,notes:''},
+    {id:'o2',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment4'],action:'HR',gloves:true,notes:''},
+    {id:'o3',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment2'],action:'HW',gloves:false,notes:''},
+    {id:'o4',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment3'],action:'MISSED',gloves:false,notes:'Διακοπή λόγω επείγοντος'},
   ]}),
   handHygieneRow({id:'HH-2602',date:'2026-08-25',department:preventionDepartments[1],profession:'medical',observer:'Νικόλαος Δημητρίου',startTime:'11:15',endTime:'11:45',items:[
-    {id:'o1',professionalsCount:1,professionalCategory:'Ιατρικό',moments:['before_patient'],action:'HR',gloves:false,notes:''},
-    {id:'o2',professionalsCount:1,professionalCategory:'Ιατρικό',moments:['after_patient'],action:'HR',gloves:false,notes:''},
-    {id:'o3',professionalsCount:1,professionalCategory:'Ιατρικό',moments:['after_surroundings'],action:'HR',gloves:false,notes:''},
+    {id:'o1',professionalsCount:1,professionalCategory:'Ιατρός',moments:['moment1'],action:'HR',gloves:false,notes:''},
+    {id:'o2',professionalsCount:1,professionalCategory:'Ιατρός',moments:['moment4'],action:'HR',gloves:false,notes:''},
+    {id:'o3',professionalsCount:1,professionalCategory:'Ιατρός',moments:['moment5'],action:'HR',gloves:false,notes:''},
   ]}),
   handHygieneRow({id:'HH-2603',date:'2026-09-02',department:preventionDepartments[0],profession:'nursing',observer:'Ελένη Παπαδοπούλου',startTime:'14:00',endTime:'14:30',items:[
-    {id:'o1',professionalsCount:1,professionalCategory:'Νοσηλευτικό',moments:['before_aseptic'],action:'HW',gloves:true,notes:''},
-    {id:'o2',professionalsCount:1,professionalCategory:'Νοσηλευτικό',moments:['after_body_fluid'],action:'HW',gloves:true,notes:''},
+    {id:'o1',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment2'],action:'HW',gloves:true,notes:''},
+    {id:'o2',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment3'],action:'HW',gloves:true,notes:''},
   ]}),
-  handHygieneRow({id:'HH-2604',date:'2026-07-15',department:preventionDepartments[2],profession:'nursing',observer:'Ελένη Κωνσταντίνου',startTime:'10:00',endTime:'10:35',items:[{id:'o1',professionalsCount:2,professionalCategory:'Νοσηλευτικό',moments:['before_patient'],action:'HR',gloves:false,notes:''},{id:'o2',professionalsCount:1,professionalCategory:'Νοσηλευτικό',moments:['before_aseptic'],action:'MISSED',gloves:true,notes:''},{id:'o3',professionalsCount:2,professionalCategory:'Νοσηλευτικό',moments:['after_patient'],action:'HR',gloves:false,notes:''}]}),
-  handHygieneRow({id:'HH-2605',date:'2026-06-18',department:preventionDepartments[3],profession:'medical',observer:'Μαρία Κωνσταντίνου',startTime:'12:00',endTime:'12:30',items:[{id:'o1',professionalsCount:2,professionalCategory:'Ιατρικό',moments:['before_patient'],action:'HR',gloves:false,notes:''},{id:'o2',professionalsCount:1,professionalCategory:'Ιατρικό',moments:['after_body_fluid'],action:'HW',gloves:true,notes:''},{id:'o3',professionalsCount:1,professionalCategory:'Ιατρικό',moments:['after_surroundings'],action:'MISSED',gloves:false,notes:''}]}),
-  handHygieneRow({id:'HH-2606',date:'2026-05-20',department:preventionDepartments[4],profession:'nursing',observer:'Ελένη Παπαδοπούλου',startTime:'09:20',endTime:'09:50',items:[{id:'o1',professionalsCount:2,professionalCategory:'Νοσηλευτικό',moments:['before_patient'],action:'HR',gloves:false,notes:''},{id:'o2',professionalsCount:2,professionalCategory:'Νοσηλευτικό',moments:['after_patient'],action:'HR',gloves:false,notes:''}]})
+  handHygieneRow({id:'HH-2604',date:'2026-07-15',department:preventionDepartments[2],profession:'nursing',observer:'Ελένη Κωνσταντίνου',startTime:'10:00',endTime:'10:35',items:[{id:'o1',professionalsCount:2,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment1'],action:'HR',gloves:false,notes:''},{id:'o2',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment2'],action:'MISSED',gloves:true,notes:''},{id:'o3',professionalsCount:2,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment4'],action:'HR',gloves:false,notes:''}]}),
+  handHygieneRow({id:'HH-2605',date:'2026-06-18',department:preventionDepartments[3],profession:'medical',observer:'Μαρία Κωνσταντίνου',startTime:'12:00',endTime:'12:30',items:[{id:'o1',professionalsCount:2,professionalCategory:'Ιατρός',moments:['moment1'],action:'HR',gloves:false,notes:''},{id:'o2',professionalsCount:1,professionalCategory:'Ιατρός',moments:['moment3'],action:'HW',gloves:true,notes:''},{id:'o3',professionalsCount:1,professionalCategory:'Ιατρός',moments:['moment5'],action:'MISSED',gloves:false,notes:''}]}),
+  handHygieneRow({id:'HH-2606',date:'2026-05-20',department:preventionDepartments[4],profession:'nursing',observer:'Ελένη Παπαδοπούλου',startTime:'09:20',endTime:'09:50',items:[{id:'o1',professionalsCount:2,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment1'],action:'HR',gloves:false,notes:''},{id:'o2',professionalsCount:2,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment4'],action:'HR',gloves:false,notes:''}]})
 ]
 
 function wasteRow({id,periodStart,periodEnd,department,type,weight,containers,patientDays,responsible,documentNumber,collectionCompany}){
@@ -115,9 +115,9 @@ function antisepticRow({id,periodStart,periodEnd,department,product,litres,patie
 }
 
 export const antisepticRows=[
-  antisepticRow({id:'ANT-2601',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:preventionDepartments[0],product:antisepticLibrary[0],litres:41.2,patientDays:620,method:'manual',referenceNumber:'ΔΤ-330',responsible:'Ελένη Παπαδοπούλου'}),
-  antisepticRow({id:'ANT-2602',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:preventionDepartments[1],product:antisepticLibrary[0],litres:18.6,patientDays:505,method:'manual',referenceNumber:'ΔΤ-331',responsible:'Νικόλαος Δημητρίου'}),
-  antisepticRow({id:'ANT-2603',periodStart:'2026-09-01',periodEnd:'2026-09-10',department:preventionDepartments[2],product:antisepticLibrary[1],litres:6.4,patientDays:null,method:'manual',referenceNumber:'ΔΤ-340',responsible:'Ελένη Κωνσταντίνου'}),
+  antisepticRow({id:'ANT-2601',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:preventionDepartments[0],product:antisepticLibrary[0],litres:41.2,patientDays:620,method:'direct_measurement',referenceNumber:'ΔΤ-330',responsible:'Ελένη Παπαδοπούλου'}),
+  antisepticRow({id:'ANT-2602',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:preventionDepartments[1],product:antisepticLibrary[0],litres:18.6,patientDays:505,method:'direct_measurement',referenceNumber:'ΔΤ-331',responsible:'Νικόλαος Δημητρίου'}),
+  antisepticRow({id:'ANT-2603',periodStart:'2026-09-01',periodEnd:'2026-09-10',department:preventionDepartments[2],product:antisepticLibrary[1],litres:6.4,patientDays:null,method:'direct_measurement',referenceNumber:'ΔΤ-340',responsible:'Ελένη Κωνσταντίνου'}),
 ]
 
 function bundleAssessmentRow({id,template,department,date,answers,shift,context,owner}){

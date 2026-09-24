@@ -6,6 +6,7 @@ export const loadVaccinations=()=>loadSnapshot('employee_vaccine_records',employ
 export const saveVaccinations=rows=>saveSnapshot('employee_vaccine_records',rows)
 export const loadEmployeeTraining=()=>loadSnapshot('employee_training_summary',employeeTraining)
 export const loadEvaluations=()=>loadSnapshot('employee_evaluations',employeeEvaluations)
+export const saveEvaluations=rows=>saveSnapshot('employee_evaluations',rows)
 export const loadCertificates=()=>loadSnapshot('employee_certificates',employeeCertificates)
 export const saveCertificates=rows=>saveSnapshot('employee_certificates',rows)
 export const loadExposureIncidents=()=>loadSnapshot('occupational_exposure_incidents',employeeExposureIncidents)

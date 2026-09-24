@@ -1,5 +1,5 @@
 const SAMPLE_SUBJECT_TYPES = new Set(['patient', 'employee', 'environment'])
-const SAMPLE_STATUSES = new Set(['requested', 'collected', 'received', 'processing', 'completed', 'rejected'])
+const SAMPLE_STATUSES = new Set(['requested', 'collected', 'received', 'processing', 'completed', 'rejected', 'cancelled'])
 
 export function normalizeLaboratorySample(row = {}) {
   const recordId = row.recordId ?? row.record_id ?? row.uuid ?? row.id ?? null

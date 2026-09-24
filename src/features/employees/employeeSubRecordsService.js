@@ -1,7 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { loadOccupationalVisits as loadVisitsLocal, loadVaccinations as loadVaccinationsLocal, loadEmployeeTraining as loadTrainingLocal, loadEvaluations as loadEvaluationsLocal, loadCertificates as loadCertificatesLocal, saveCertificates as saveCertificatesLocal, loadExposureIncidents as loadExposureIncidentsLocal, saveExposureIncidents as saveExposureIncidentsLocal } from './employeeRecordsService'
+import { loadOccupationalVisits as loadVisitsLocal, loadVaccinations as loadVaccinationsLocal, loadEmployeeTraining as loadTrainingLocal, loadEvaluations as loadEvaluationsLocal, saveEvaluations as saveEvaluationsLocal, loadCertificates as loadCertificatesLocal, saveCertificates as saveCertificatesLocal, loadExposureIncidents as loadExposureIncidentsLocal, saveExposureIncidents as saveExposureIncidentsLocal } from './employeeRecordsService'
 
 function ensureProductionContext(organizationId,employeeDbId,operation){
   if(isDemoDataEnvironment())return false
@@ -157,7 +157,38 @@ function evaluationFromRow(row) {
 
 function evaluationScore(criteria=[]){const valid=criteria.filter(x=>Number(x.score)>=1&&Number(x.score)<=5);if(!valid.length)return null;const totalWeight=valid.reduce((n,x)=>n+(Number(x.weight)||1),0);return Number((valid.reduce((n,x)=>n+Number(x.score)*(Number(x.weight)||1),0)/totalWeight).toFixed(2))}
 
+// Demo mirrors of createEmployeeEvaluationAsync/updateEmployeeEvaluationWorkflowAsync,
+// matching the shape evaluationFromRow produces so the workflow (submit ->
+// employee acknowledgement -> HR approval -> final approval) is exercisable
+// in demo the same way it is in production.
+function createEvaluationLocal(employeeDbId,draft){
+  const rows=loadEvaluationsLocal()
+  const score=evaluationScore(draft.criteria)
+  const row={id:`EV-${Date.now()}`,employeeId:employeeDbId,titleEl:'Αξιολόγηση απόδοσης',titleEn:'Performance evaluation',date:draft.date,period:draft.period,status:'draft',evaluatorUserId:null,evaluatorName:'Demo user',criteria:draft.criteria||[],overallScore:score,notes:draft.notes||'',resultEl:score==null?'':`${score} / 5`,resultEn:score==null?'':`${score} / 5`,employeeComment:'',employeeAgreement:'',employeeAcknowledgedAt:null,hrApprovedAt:null,adminApprovedAt:null,finalizedAt:null,source:'employee_evaluations'}
+  saveEvaluationsLocal([row,...rows])
+  return row
+}
+function updateEvaluationWorkflowLocal(evaluationId,{action,comment='',agreement=''}){
+  const rows=loadEvaluationsLocal()
+  const now=new Date().toISOString()
+  let updatedRow=null
+  const next=rows.map(row=>{
+    if(row.id!==evaluationId)return row
+    let patch={}
+    if(action==='submit')patch={status:'submitted'}
+    else if(action==='acknowledge')patch={status:'employee_acknowledged',employeeComment:comment||'',employeeAgreement:agreement||'',employeeAcknowledgedAt:now}
+    else if(action==='hrApprove')patch={status:'hr_approved',hrApprovedAt:now}
+    else if(action==='finalize')patch={status:'finalized',adminApprovedAt:now,finalizedAt:now}
+    else throw new Error('Unsupported evaluation workflow action')
+    updatedRow={...row,...patch}
+    return updatedRow
+  })
+  saveEvaluationsLocal(next)
+  return updatedRow
+}
+
 export async function createEmployeeEvaluationAsync(organizationId,employeeDbId,draft){
+  if(isDemoDataEnvironment())return createEvaluationLocal(employeeDbId,draft)
   ensureProductionContext(organizationId,employeeDbId,'employee_evaluations.create')
   const {data:userData}=await supabase.auth.getUser();const userId=userData?.user?.id||null
   const score=evaluationScore(draft.criteria)
@@ -166,6 +197,7 @@ export async function createEmployeeEvaluationAsync(organizationId,employeeDbId,
 }
 
 export async function updateEmployeeEvaluationWorkflowAsync(organizationId,employeeDbId,evaluationId,{action,comment='',agreement=''}){
+  if(isDemoDataEnvironment())return updateEvaluationWorkflowLocal(evaluationId,{action,comment,agreement})
   ensureProductionContext(organizationId,employeeDbId,'employee_evaluations.workflow')
   const {data:userData,error:userError}=await supabase.auth.getUser();if(userError)throw userError;const userId=userData?.user?.id;if(!userId)throw new Error('Authentication required')
   const now=new Date().toISOString();let patch
