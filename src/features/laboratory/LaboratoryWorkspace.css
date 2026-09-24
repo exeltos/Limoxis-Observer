@@ -1,12 +1,17 @@
 .lab-create-flow{width:min(780px,calc(100vw - 32px));max-height:min(760px,calc(100vh - 32px));display:flex;flex-direction:column;overflow:hidden}.lab-create-flow>header{flex:0 0 auto}.lab-flow-body{padding:4px 20px 18px;overflow:auto}.lab-flow-section{padding:18px 0;border-bottom:1px solid var(--lo-color-border)}.lab-flow-section:last-child{border-bottom:0}.lab-flow-heading{display:flex;align-items:flex-start;gap:11px;margin-bottom:14px}.lab-flow-heading>span{width:25px;height:25px;flex:0 0 25px;border-radius:50%;display:grid;place-items:center;background:var(--lo-color-primary-soft,#eaf4fb);color:var(--lo-color-primary,#176b9a);font-size:12px;font-weight:800}.lab-flow-heading>div{display:flex;flex-direction:column;gap:2px}.lab-flow-heading strong{font-size:13px;color:var(--lo-color-text)}.lab-flow-heading small{font-size:11px;color:var(--lo-color-text-muted)}.lab-subject-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.lab-subject-card{min-height:78px;border:1px solid var(--lo-color-border);border-radius:10px;background:#fff;padding:13px;text-align:left;display:flex;align-items:flex-start;gap:10px;color:var(--lo-color-text);cursor:pointer;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}.lab-subject-card:hover{border-color:var(--lo-color-primary,#176b9a)}.lab-subject-card.active{border-color:var(--lo-color-primary,#176b9a);background:var(--lo-color-primary-soft,#f1f8fc);box-shadow:0 0 0 1px var(--lo-color-primary,#176b9a) inset}.lab-subject-card>svg{margin-top:2px;color:var(--lo-color-primary,#176b9a)}.lab-subject-card>span{display:flex;flex-direction:column;gap:4px}.lab-subject-card strong{font-size:13px}.lab-subject-card small{font-size:11px;line-height:1.35;color:var(--lo-color-text-muted)}.lab-choice-row{display:flex;gap:8px}.lab-choice-row button{border:1px solid var(--lo-color-border);border-radius:8px;background:#fff;padding:9px 13px;font-size:12px;font-weight:650;cursor:pointer}.lab-choice-row button.active{border-color:var(--lo-color-primary,#176b9a);background:var(--lo-color-primary-soft,#f1f8fc);color:var(--lo-color-primary,#176b9a)}.lab-flow-grid{padding:0!important}.lab-flow-reveal{animation:labFlowReveal .16s ease-out}@keyframes labFlowReveal{from{opacity:.35;transform:translateY(-3px)}to{opacity:1;transform:none}}.lab-create-flow>footer{flex:0 0 auto;border-top:1px solid var(--lo-color-border);background:#fff}@media(max-width:720px){.lab-subject-cards{grid-template-columns:1fr}.lab-create-flow{width:calc(100vw - 20px)}.lab-flow-body{padding-inline:14px}}
 
-/* Laboratory registry — compact operational workspace */
-.lab-workspace-summary{display:flex;flex-direction:column;gap:8px;min-height:0}
-.lab-workspace-summary .lab-kpis{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important}
-.lab-workspace-summary .metric-card{min-width:0!important}
-.lab-governance-note{min-height:30px!important;padding:6px 10px!important;margin:0!important;font-size:11px!important}
+
+/* Laboratory registry */
+.lab-kpis{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:10px!important;margin:0!important;flex:0 0 auto!important}
+.lab-kpis>*{min-width:0!important;width:auto!important;margin:0!important}
+.lab-kpis .metric-card{min-height:64px!important;padding:10px 12px!important}
+.registry-workspace.canonical-paginated-registry{min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+.registry-workspace.canonical-paginated-registry>.scroll-table{flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+.lab-table{table-layout:fixed;width:100%}
+.lab-table th:nth-child(1){width:21%}.lab-table th:nth-child(2){width:20%}.lab-table th:nth-child(3){width:12%}.lab-table th:nth-child(4){width:12%}.lab-table th:nth-child(5){width:9%}.lab-table th:nth-child(6){width:8%}.lab-table th:nth-child(7){width:9%}.lab-table th:nth-child(8){width:12%}
 .lab-table td,.lab-table th{vertical-align:middle}
+.lab-table td{overflow:hidden;text-overflow:ellipsis}
 .lab-table td small{display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lab-table .linked-case-chip{display:inline-flex;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:1400px){.lab-workspace-summary .lab-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
-@media(max-width:800px){.lab-workspace-summary .lab-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+.lab-table .linked-case-chip{display:inline-flex;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:1200px){.lab-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}.lab-table{min-width:1120px}}
+@media(max-width:720px){.lab-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
