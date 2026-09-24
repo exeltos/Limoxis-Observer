@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Clock3, FlaskConical, Microscope, ShieldAlert, UserRound, UsersRound, Building2 } from 'lucide-react'
+import { AlertTriangle, Clock3, FlaskConical, Microscope, UserRound, UsersRound, Building2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
