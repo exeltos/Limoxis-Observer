@@ -95,3 +95,21 @@
   margin:0;
   flex:0 0 auto;
 }
+
+/* Microbiology result / AST visual hierarchy — uses existing laboratory data only. */
+.laboratory-record-shell .lab-isolate-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:2px 0 14px;border-bottom:1px solid var(--lo-color-border)}
+.laboratory-record-shell .lab-isolate-identity{display:flex;align-items:center;gap:12px;min-width:0}
+.laboratory-record-shell .lab-isolate-icon{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--lo-color-danger,#dc2626) 10%,var(--lo-color-surface,#fff));color:var(--lo-color-danger,#b91c1c)}
+.laboratory-record-shell .lab-isolate-identity .eyebrow{display:block;margin-bottom:3px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--lo-color-muted)}
+.laboratory-record-shell .lab-isolate-identity h3{margin:0;font-size:18px;line-height:1.25}
+.laboratory-record-shell .lab-amr-strip{display:flex;align-items:flex-start;gap:10px;margin:12px 0 0;padding:10px 12px;border:1px solid color-mix(in srgb,var(--lo-color-warning,#d97706) 28%,var(--lo-color-border));border-radius:9px;background:color-mix(in srgb,var(--lo-color-warning,#d97706) 6%,var(--lo-color-surface,#fff))}
+.laboratory-record-shell .lab-amr-strip>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.laboratory-record-shell .lab-amr-strip span,.laboratory-record-shell .lab-amr-strip small{font-size:11px;color:var(--lo-color-muted)}
+.laboratory-record-shell .lab-amr-strip strong{font-size:13px}
+.laboratory-record-shell .lab-ast-table th:nth-child(2),.laboratory-record-shell .lab-ast-table td:nth-child(2){white-space:nowrap}
+.laboratory-record-shell .lab-sir-badge{display:inline-grid;place-items:center;min-width:34px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:800}
+.laboratory-record-shell .lab-sir-badge.sir-s{background:color-mix(in srgb,#16a34a 14%,white);color:#166534}
+.laboratory-record-shell .lab-sir-badge.sir-i{background:color-mix(in srgb,#d97706 16%,white);color:#92400e}
+.laboratory-record-shell .lab-sir-badge.sir-r{background:color-mix(in srgb,#dc2626 13%,white);color:#991b1b}
+.laboratory-record-shell .lab-ast-card .record-table-wrap{overflow-x:auto}
+@media(max-width:720px){.laboratory-record-shell .lab-isolate-summary{align-items:flex-start}.laboratory-record-shell .lab-isolate-icon{width:36px;height:36px;flex-basis:36px}.laboratory-record-shell .lab-ast-table{min-width:720px}}
