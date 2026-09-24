@@ -167,11 +167,13 @@ function QualityLinks({recordType,record,t,language,organizationId}){
   const links=[]
   if(record.linkedPatient)links.push({label:t('patient'),id:record.linkedPatient,path:`/patients/${record.linkedPatient}`})
   if(record.linkedSurveillance)links.push({label:t('surveillance'),id:record.linkedSurveillance,path:`/surveillance/${record.linkedSurveillance}`})
-  if(record.sourceId)links.push({label:sourceLabel,id:record.sourceId,path:linkPath(t('source'),record.sourceId,t),title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
+  if(record.sourceId)links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
   if(record.findingIds?.length)record.findingIds.forEach(id=>links.push({label:t('qualityRecords.finding'),id,path:`/quality/findings/${id}`}))
-  const openLinked=path=>goTo(path,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})
+  const navigationOptions={returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'}
+  const openLinked=path=>goTo(path,navigationOptions)
+  const openSource=id=>goTo(linkPath(t('source'),id,t),navigationOptions)
   return <div className="record-section"><div className="record-section-header"><h3>{t('qualityRecords.linkedRecords')}</h3></div><div className="quality-link-list">
-    {links.map(link=><button type="button" key={`${link.label}-${link.id}`} onClick={()=>openLinked(link.path)}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong>{link.title&&<small>{link.title}</small>}</span><ChevronRight size={16}/></button>)}
+    {links.map(link=><button type="button" key={`${link.label}-${link.id}`} onClick={()=>link.source?openSource(link.id):openLinked(link.path)}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong>{link.title&&<small>{link.title}</small>}</span><ChevronRight size={16}/></button>)}
     {related.map(x=><button type="button" key={x.id} onClick={()=>goTo(`/quality/capas/${x.id}`,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span className="quality-link-kind">{t('qualityRecords.capa')}</span><span className="quality-link-main"><strong>{x.displayId||x.id}</strong><small>{language==='el'?x.title:x.titleEn}</small></span><ChevronRight size={16}/></button>)}
     {!links.length&&!related.length&&<div className="inline-empty">{t('qualityRecords.noLinkedRecords')}</div>}
   </div></div>
