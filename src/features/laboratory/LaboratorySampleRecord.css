@@ -47,3 +47,20 @@
 .laboratory-record-shell .record-section-actions .status-badge{margin:0!important}
 @media(max-width:1050px){.laboratory-record-shell .lab-record-card .patient-detail-grid>.detail-item:nth-child(3n){border-right:1px solid var(--border,#d8e0e8)!important}.laboratory-record-shell .lab-record-card .patient-detail-grid>.detail-item:nth-child(2n){border-right:0!important}}
 @media(max-width:720px){.laboratory-record-shell .lab-record-card{padding:10px!important}.laboratory-record-shell .lab-record-card .patient-detail-grid>.detail-item{border-right:0!important}.laboratory-record-shell .lab-action-footer{position:static!important;flex-wrap:wrap!important}.laboratory-record-shell .lab-action-footer button{flex:1 1 auto!important}}
+
+
+/* Remaining Laboratory tabs follow the same record-card language */
+.laboratory-record-shell .lab-communication-row{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:58px;padding:10px 12px;border:1px solid var(--border,#d8e0e8);border-radius:9px;background:var(--surface,#fff)}
+.laboratory-record-shell .lab-communication-row+.lab-communication-row{margin-top:8px}
+.laboratory-record-shell .lab-communication-row>div{display:flex;align-items:center;gap:10px;min-width:0}
+.laboratory-record-shell .lab-communication-row>div:first-child{flex-direction:column;align-items:flex-start;gap:2px}
+.laboratory-record-shell .lab-communication-row span{font-size:12px;color:var(--text-muted,#64748b)}
+.laboratory-record-shell .finalization-checklist{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin:0 0 12px!important}
+.laboratory-record-shell .final-check{min-height:52px!important;padding:10px 12px!important;border:1px solid var(--border,#d8e0e8)!important;border-radius:9px!important;background:var(--surface,#fff)!important}
+.laboratory-record-shell .finalization-warning,.laboratory-record-shell .validated-result-note{margin:10px 0 0!important}
+.laboratory-record-shell .clinical-timeline{margin:0!important;padding:4px 0!important}
+.laboratory-record-shell .clinical-timeline article{min-height:52px!important}
+.laboratory-record-shell .lab-attachments-card>.record-section{margin:0!important;padding:14px!important;border:1px solid var(--border,#d8e0e8)!important;border-radius:12px!important;background:var(--surface,#fff)!important;box-shadow:none!important}
+.laboratory-record-shell .lab-attachments-card>.record-section>.record-section-header{min-height:44px!important;margin:0 0 12px!important;padding:0 0 10px!important;border-bottom:1px solid var(--border,#d8e0e8)!important}
+.laboratory-record-shell>.lab-action-footer{margin:10px 0 0!important;padding:10px 0 0!important}
+@media(max-width:720px){.laboratory-record-shell .finalization-checklist{grid-template-columns:1fr!important}.laboratory-record-shell .lab-communication-row{align-items:flex-start;flex-direction:column}}
