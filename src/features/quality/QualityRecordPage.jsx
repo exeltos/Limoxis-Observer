@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, CheckSquare2, ClipboardCheck, FileClock, Link2, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckSquare2, ChevronRight, ClipboardCheck, FileClock, Link2, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -148,18 +148,35 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
 function QualityLinks({recordType,record,t,language,organizationId}){
   const {goTo}=useContextualNavigation('/quality')
   const [related,setRelated]=useState([])
+  const [sourceRecord,setSourceRecord]=useState(null)
   useEffect(()=>{
     let active=true
     if(recordType!=='incidents'&&recordType!=='findings'){setRelated([]);return}
     loadQualityRecords('capas',organizationId).then(rows=>{if(active)setRelated(rows.filter(x=>x.sourceId===record.id))}).catch(()=>{if(active)setRelated([])})
     return()=>{active=false}
   },[recordType,record.id,organizationId])
+  useEffect(()=>{
+    let active=true
+    setSourceRecord(null)
+    if(!record.sourceId)return()=>{active=false}
+    const section=record.sourceId.startsWith('INC-')?'incidents':record.sourceId.startsWith('FND-')?'findings':record.sourceId.startsWith('AUD-')?'audits':null
+    if(section)loadQualityRecords(section,organizationId).then(rows=>{if(active)setSourceRecord(rows.find(x=>x.id===record.sourceId)||null)}).catch(()=>{if(active)setSourceRecord(null)})
+    return()=>{active=false}
+  },[record.sourceId,organizationId])
+  const sourceLabel=record.sourceId?.startsWith('INC-')?t('incident'):record.sourceId?.startsWith('FND-')?t('qualityRecords.finding'):record.sourceId?.startsWith('AUD-')?t('audit'):t('source')
   const links=[]
-  if(record.linkedPatient)links.push([t('patient'),record.linkedPatient])
-  if(record.linkedSurveillance)links.push([t('surveillance'),record.linkedSurveillance])
-  if(record.sourceId)links.push([t('source'),record.sourceId])
-  if(record.findingIds?.length)record.findingIds.forEach(id=>links.push([t('qualityRecords.finding'),id]))
-  return <div className="record-section"><div className="record-section-header"><h3>{t('qualityRecords.linkedRecords')}</h3></div><div className="quality-link-list">{links.map(([label,id])=><button type="button" key={`${label}-${id}`} onClick={()=>goTo(linkPath(label,id,t),{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span>{label}</span><strong>{id}</strong></button>)}{related.map(x=><button type="button" key={x.id} onClick={()=>goTo(`/quality/capas/${x.id}`,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span>{t('qualityRecords.capa')}</span><strong>{x.displayId||x.id} · {language==='el'?x.title:x.titleEn}</strong></button>)}{!links.length&&!related.length&&<div className="inline-empty">{t('qualityRecords.noLinkedRecords')}</div>}</div></div>
+  if(record.linkedPatient)links.push({label:t('patient'),id:record.linkedPatient,path:`/patients/${record.linkedPatient}`})
+  if(record.linkedSurveillance)links.push({label:t('surveillance'),id:record.linkedSurveillance,path:`/surveillance/${record.linkedSurveillance}`})
+  if(record.sourceId)links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
+  if(record.findingIds?.length)record.findingIds.forEach(id=>links.push({label:t('qualityRecords.finding'),id,path:`/quality/findings/${id}`}))
+  const navigationOptions={returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'}
+  const openLinked=path=>goTo(path,navigationOptions)
+  const openSource=id=>goTo(linkPath(t('source'),id,t),navigationOptions)
+  return <div className="record-section"><div className="record-section-header"><h3>{t('qualityRecords.linkedRecords')}</h3></div><div className="quality-link-list">
+    {links.map(link=><button type="button" key={`${link.label}-${link.id}`} onClick={()=>link.source?openSource(link.id):openLinked(link.path)}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong>{link.title&&<small>{link.title}</small>}</span><ChevronRight size={16}/></button>)}
+    {related.map(x=><button type="button" key={x.id} onClick={()=>goTo(`/quality/capas/${x.id}`,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span className="quality-link-kind">{t('qualityRecords.capa')}</span><span className="quality-link-main"><strong>{x.displayId||x.id}</strong><small>{language==='el'?x.title:x.titleEn}</small></span><ChevronRight size={16}/></button>)}
+    {!links.length&&!related.length&&<div className="inline-empty">{t('qualityRecords.noLinkedRecords')}</div>}
+  </div></div>
 }
 
 function QualityDocuments({record,recordType,setRecord,t,finalized,canAttach,canManage,organizationId}){
