@@ -4134,3 +4134,30 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
  .prevention-record-shell .waste-record-kpis{grid-column:1!important;grid-row:auto!important}
 }
 @media(max-width:900px){.prevention-record-shell .waste-record-columns{grid-template-columns:1fr!important}}
+
+/* Prevention record viewport: keep shell/header fixed and scroll only the record content. */
+.prevention-record-shell.workspace-fill{height:100%!important;min-height:0!important;overflow:hidden!important}
+.prevention-record-shell.workspace-fill>.entity-record-body{min-height:0!important;overflow:hidden!important}
+.prevention-record-shell.workspace-fill>.entity-record-body>.prevention-record-card{height:100%!important;min-height:0!important;overflow:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important}
+
+/* Antiseptic detail — compact full-width summary, matching the WHO/Waste record rhythm. */
+.prevention-record-shell .antiseptic-record-view{grid-template-columns:minmax(0,1fr)!important;gap:14px!important}
+.prevention-record-shell .antiseptic-record-primary{display:grid!important;grid-template-columns:minmax(0,1.55fr) minmax(390px,.8fr)!important;border:1px solid var(--lo-color-border,#dce5ec)!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important}
+.prevention-record-shell .antiseptic-record-primary>.antiseptic-record-heading{grid-column:1 / -1!important;grid-row:1!important;border:0!important;border-bottom:1px solid #edf1f4!important;border-radius:0!important;background:#fbfcfd!important}
+.prevention-record-shell .antiseptic-record-measurements{grid-column:1 / -1!important;grid-row:2!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.prevention-record-shell .antiseptic-record-measurements>div:nth-child(1),
+.prevention-record-shell .antiseptic-record-measurements>div:nth-child(2),
+.prevention-record-shell .antiseptic-record-measurements>.antiseptic-record-indicator{grid-column:auto!important;grid-row:auto!important;min-height:100px!important;padding:15px 18px!important;border:0!important;border-right:1px solid #edf1f4!important;border-radius:0!important;background:#fff!important;text-align:left!important;align-content:center!important}
+.prevention-record-shell .antiseptic-record-measurements>.antiseptic-record-indicator{border-right:0!important;background:#f1f8f9!important}
+.prevention-record-shell .antiseptic-record-indicator strong{font-size:28px!important}
+.prevention-record-shell .antiseptic-record-meta-line{grid-column:1 / -1!important;grid-row:3!important;border:0!important;border-top:1px solid #edf1f4!important;border-radius:0!important}
+.prevention-record-shell .antiseptic-record-trace{grid-column:1!important;grid-row:auto!important}
+.prevention-record-shell .record-note-card{grid-column:1!important;grid-row:auto!important}
+@media(max-width:980px){
+ .prevention-record-shell .antiseptic-record-primary{grid-template-columns:1fr!important}
+ .prevention-record-shell .antiseptic-record-measurements{grid-template-columns:1fr!important}
+ .prevention-record-shell .antiseptic-record-measurements>div:nth-child(1),
+ .prevention-record-shell .antiseptic-record-measurements>div:nth-child(2),
+ .prevention-record-shell .antiseptic-record-measurements>.antiseptic-record-indicator{border-right:0!important;border-bottom:1px solid #edf1f4!important}
+ .prevention-record-shell .antiseptic-record-meta-line,.prevention-record-shell .antiseptic-trace-grid{grid-template-columns:1fr!important}
+}
