@@ -90,10 +90,10 @@ export function PatientsPage(){
   }
   return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction}/>}>
     <div className="workspace-summary patient-summary-strip" aria-label={t('patientRegistry')}>
-      <PatientSummaryMetric icon={UsersRound} label={t('all')} value={patientSummary.total}/>
-      <PatientSummaryMetric icon={Activity} label={t('active')} value={patientSummary.active} kind="active"/>
-      <PatientSummaryMetric icon={LogOut} label={t('discharged')} value={patientSummary.discharged}/>
-      <PatientSummaryMetric icon={ArrowRightLeft} label={t('transferred')} value={patientSummary.transferred}/>
+      <PatientSummaryMetric icon={UsersRound} label={t('patientsCountAll')} value={patientSummary.total}/>
+      <PatientSummaryMetric icon={Activity} label={t('patientsCountActive')} value={patientSummary.active} kind="active"/>
+      <PatientSummaryMetric icon={LogOut} label={t('patientsCountDischarged')} value={patientSummary.discharged}/>
+      <PatientSummaryMetric icon={ArrowRightLeft} label={t('patientsCountTransferred')} value={patientSummary.transferred}/>
     </div>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}}>
