@@ -4449,3 +4449,32 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .quality-link-main small{font-size:12px;font-weight:400;color:var(--text-muted,#64748b);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .quality-link-list>button>svg{color:var(--text-muted,#64748b)}
 @media(max-width:700px){.quality-link-list>button{grid-template-columns:1fr auto}.quality-link-kind{grid-column:1}.quality-link-main{grid-column:1}.quality-link-list>button>svg{grid-column:2;grid-row:1/3}}
+
+/* User-reported: the incident record needed a scrollbar on an ordinary
+   laptop window (~1500×815) even though its content is short. Fit it on one
+   screen: 12 incident fields as 4 columns × 3 rows instead of the shared
+   3-column sheet (4 rows), with slightly shorter info rows. The body keeps
+   overflow:auto so a long, fully populated record still scrolls (see the
+   note above: never clip content). */
+.canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid){
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  margin-top:6px!important;
+  padding:0!important;
+}
+.canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid)>:is(.detail-item,.detail-field){
+  min-height:54px!important;
+  padding:9px 16px!important;
+}
+.canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid)>:is(.detail-item,.detail-field):nth-child(3n){border-right:1px solid #e9eef2!important}
+.canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid)>:is(.detail-item,.detail-field):nth-child(4n){border-right:0!important}
+@media (max-width:1100px){
+  .canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid)>:is(.detail-item,.detail-field):nth-child(n){border-right:1px solid #e9eef2!important}
+  .canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-detail-grid:not(.employee-inline-edit):not(.editable-grid)>:is(.detail-item,.detail-field):nth-child(2n){border-right:0!important}
+}
+.canonical-detail-screen.record-general-tab-active.quality-record-shell .quality-record-details>.record-section-header{margin-bottom:10px!important}
+.canonical-detail-screen.record-general-tab-active.quality-record-shell :is(.quality-incident-narrative,.quality-investigation-grid) .quality-description{
+  margin-top:0!important;
+  min-height:50px!important;
+  padding:9px 14px!important;
+}
