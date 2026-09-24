@@ -4205,3 +4205,85 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .quality-owner-input{display:flex;align-items:center;gap:6px}.quality-owner-input input{flex:1;min-width:0}.quality-owner-input button{flex:0 0 30px;width:30px;height:30px;min-width:30px;min-height:30px;padding:0;display:inline-grid;place-items:center;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);font-size:14px;font-weight:700;line-height:1;cursor:pointer}
 .quality-owner-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}.quality-owner-chips>span{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface-subtle);font-size:10px}.quality-owner-chips button{border:0;background:transparent;padding:0;line-height:1}
 .quality-record-shell{min-height:0}.quality-record-shell>.entity-record-body{min-height:0;overflow:auto}.quality-record-shell .record-section{min-height:0}.quality-record-shell .quality-description{padding:8px 10px}.quality-record-shell .quality-description p{margin:4px 0 0}.quality-record-shell .quality-investigation-card{padding:8px 10px}.quality-record-shell .quality-investigation-grid .quality-description{min-height:54px}
+
+
+/* Quality Center — viewport-owned registry and record geometry */
+.quality-registry-page.page-fill{
+  display:flex;
+  min-height:0;
+  flex-direction:column;
+  overflow:hidden;
+}
+.quality-registry-page>.page-header,
+.quality-registry-page>.quality-summary{
+  flex:0 0 auto;
+}
+.quality-registry-page>.quality-summary{
+  margin-bottom:10px;
+}
+.quality-registry-page>.quality-workspace{
+  display:grid;
+  grid-template-rows:auto auto minmax(180px,1fr) auto;
+  flex:1 1 auto;
+  min-height:0;
+  gap:10px;
+  overflow:hidden;
+}
+.quality-registry-page .quality-tabs,
+.quality-registry-page .filter-bar,
+.quality-registry-page .registry-pagination{
+  min-height:0;
+  margin:0;
+}
+.quality-registry-page .quality-tabs{
+  overflow-x:auto;
+  overflow-y:hidden;
+}
+.quality-registry-page .scroll-table{
+  min-height:180px;
+  height:100%;
+  max-height:none;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+.quality-registry-page .quality-table{
+  width:100%;
+  table-layout:fixed;
+}
+.quality-registry-page .quality-table th,
+.quality-registry-page .quality-table td{
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.quality-record-shell.workspace-fill{
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+}
+.quality-record-shell.workspace-fill>.entity-record-header,
+.quality-record-shell.workspace-fill>.entity-record-tabs{
+  flex:0 0 auto;
+}
+.quality-record-shell.workspace-fill>.entity-record-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+.quality-record-shell .record-section{
+  box-sizing:border-box;
+  width:100%;
+}
+@media (max-height:760px){
+  .quality-registry-page>.quality-summary{margin-bottom:7px}
+  .quality-registry-page>.quality-workspace{gap:7px;grid-template-rows:auto auto minmax(140px,1fr) auto}
+}
+@media (max-width:720px){
+  .quality-registry-page.page-fill{overflow:auto}
+  .quality-registry-page>.quality-workspace{display:flex;flex-direction:column;overflow:visible}
+  .quality-registry-page .scroll-table{max-height:58dvh}
+  .quality-record-shell.workspace-fill{height:auto;overflow:visible}
+  .quality-record-shell.workspace-fill>.entity-record-body{overflow:visible}
+}
