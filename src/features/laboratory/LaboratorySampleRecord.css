@@ -23,3 +23,27 @@
 .laboratory-record-shell .info-banner,.laboratory-record-shell .source-truth-note{margin:0 0 10px!important}
 @media(max-width:1050px){.laboratory-record-shell .patient-detail-grid,.laboratory-record-shell .employee-inline-edit{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:720px){.laboratory-record-shell .patient-detail-grid,.laboratory-record-shell .employee-inline-edit{grid-template-columns:1fr!important}.laboratory-record-shell .laboratory-library-picker>div:first-child{grid-template-columns:1fr!important}}
+
+
+/* Laboratory record cards — shared platform pattern */
+.laboratory-record-shell .lab-record-card{margin:0!important;padding:14px!important;border:1px solid var(--border,#d8e0e8)!important;border-radius:12px!important;background:var(--surface,#fff)!important;box-shadow:none!important}
+.laboratory-record-shell .lab-record-card+.lab-record-card{margin-top:10px!important}
+.laboratory-record-shell .lab-record-card>.record-section-header{min-height:44px!important;margin:0 0 12px!important;padding:0 0 10px!important;border-bottom:1px solid var(--border,#d8e0e8)!important}
+.laboratory-record-shell .lab-record-card>.record-section-header h3{margin:2px 0 0!important;font-size:16px!important}
+.laboratory-record-shell .lab-record-card>.record-section-header .eyebrow{font-size:10px!important}
+.laboratory-record-shell .lab-record-card .patient-detail-grid{gap:0!important;border:1px solid var(--border,#d8e0e8)!important;border-radius:10px!important;overflow:hidden!important;background:var(--surface,#fff)!important}
+.laboratory-record-shell .lab-record-card .patient-detail-grid>.detail-item{min-height:68px!important;padding:10px 12px!important;border:0!important;border-right:1px solid var(--border,#d8e0e8)!important;border-bottom:1px solid var(--border,#d8e0e8)!important;border-radius:0!important;background:transparent!important}
+.laboratory-record-shell .lab-record-card .patient-detail-grid>.detail-item:nth-child(3n){border-right:0!important}
+.laboratory-record-shell .lab-action-footer{display:flex!important;justify-content:flex-end!important;gap:8px!important;margin:12px 0 0!important;padding:12px 0 0!important;border-top:1px solid var(--border,#d8e0e8)!important}
+.laboratory-record-shell .lab-action-footer button{min-width:118px!important}
+.laboratory-record-shell .lab-ast-card{margin-top:10px!important}
+.laboratory-record-shell .lab-isolate-card{margin:0!important;border:1px solid var(--border,#d8e0e8)!important;border-radius:10px!important;background:var(--surface,#fff)!important;overflow:hidden!important}
+.laboratory-record-shell .lab-isolate-card+.lab-isolate-card{margin-top:10px!important}
+.laboratory-record-shell .lab-isolate-card>.record-section-header{margin:0!important;padding:10px 12px!important;border-bottom:1px solid var(--border,#d8e0e8)!important;background:var(--surface-subtle,#f8fafc)!important}
+.laboratory-record-shell .lab-isolate-card .permission-info-banner{margin:10px 12px 0!important}
+.laboratory-record-shell .lab-isolate-card .record-table-wrap{margin:10px 12px 12px!important;border:1px solid var(--border,#d8e0e8)!important;border-radius:8px!important;overflow:hidden!important}
+.laboratory-record-shell .lab-isolate-card .record-table{margin:0!important}
+.laboratory-record-shell .record-section-actions{display:flex!important;align-items:center!important;gap:8px!important}
+.laboratory-record-shell .record-section-actions .status-badge{margin:0!important}
+@media(max-width:1050px){.laboratory-record-shell .lab-record-card .patient-detail-grid>.detail-item:nth-child(3n){border-right:1px solid var(--border,#d8e0e8)!important}.laboratory-record-shell .lab-record-card .patient-detail-grid>.detail-item:nth-child(2n){border-right:0!important}}
+@media(max-width:720px){.laboratory-record-shell .lab-record-card{padding:10px!important}.laboratory-record-shell .lab-record-card .patient-detail-grid>.detail-item{border-right:0!important}.laboratory-record-shell .lab-action-footer{position:static!important;flex-wrap:wrap!important}.laboratory-record-shell .lab-action-footer button{flex:1 1 auto!important}}
