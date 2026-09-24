@@ -51,7 +51,14 @@ export function GlobalTextareaExpander(){
       positionButton(textarea,button)
       listeners.set(textarea,{button,open})
     }
-    const scan=()=>document.querySelectorAll('textarea').forEach(enhance)
+    const prune=()=>{
+      listeners.forEach(({button},textarea)=>{
+        if(document.body.contains(textarea))return
+        button.remove()
+        listeners.delete(textarea)
+      })
+    }
+    const scan=()=>{document.querySelectorAll('textarea').forEach(enhance);prune()}
     scan()
     const observer=new MutationObserver(scan)
     observer.observe(document.body,{childList:true,subtree:true})
