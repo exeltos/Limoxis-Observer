@@ -40,4 +40,31 @@ describe('Patients category fixes', () => {
     expect(canonical).not.toContain("'Ονοματεπώνυμο':'Full name'")
     expect(canonical).toContain("[language==='el'?'Επώνυμο':'Last name'")
   })
+
+  it('admission summary: no duplicate status, surveillance as an info sheet instead of tinted tiles', () => {
+    expect(canonical).toContain("[t('clinicalRecords.lengthOfStay'),daysLabel]")
+    expect(canonical).toContain("{t('clinicalRecords.currentSurveillance')}")
+    expect(canonical).not.toContain('function Summary(')
+  })
+
+  it('new surveillance form has no leftover one-step rail or duplicate cancel button', () => {
+    const flow = fs.readFileSync('src/features/surveillance/NewSurveillanceFlow.jsx', 'utf8')
+    expect(flow).not.toContain('progressive-journey-rail')
+    expect(flow).not.toContain('flow-cancel-link')
+    expect(flow).toContain('new-surveillance-start-card')
+  })
+
+  it('demo documents tab offers the same documents area (kept in memory)', () => {
+    expect(canonical).toContain('value={demoDocuments[record.id]||[]}')
+  })
+
+  it('admission rows explain surveillance counts and offer transfer/discharge in a ⋯ menu', () => {
+    expect(canonical).toContain('{surveillanceLabel(row)}')
+    expect(canonical).toContain('<AdmissionLifecycleActions patient={patient} admission={row}')
+  })
+
+  it('patient list count cards use plural labels', () => {
+    const page = fs.readFileSync('src/features/patients/PatientsPage.jsx', 'utf8')
+    expect(page).toContain("label={t('patientsCountTransferred')}")
+  })
 })
