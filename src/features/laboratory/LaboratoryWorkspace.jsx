@@ -151,7 +151,7 @@ export function LaboratoryWorkspace() {
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample.type,t)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}</td>
         <td>{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
-        <td>{sample.result ? <Status text={t(sample.result)} kind={sample.result}/> : <span>—</span>}{sample.critical && <small className="lab-critical-note">{language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}</small>}</td>
+        <td>{sample.result ? <ResultBadge text={t(sample.result)} result={sample.result}/> : <span>—</span>}{sample.critical && <small className="lab-critical-note">{language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}</small>}</td>
         <td><Status text={t(sample.status)} kind={sample.status}/></td>
       </>}/>
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
@@ -161,6 +161,7 @@ export function LaboratoryWorkspace() {
 }
 
 function LabKpi({ icon: Icon, label, value, danger }) { return <MetricCard icon={Icon} value={value} label={label} tone={danger ? 'danger' : 'neutral'}/> }
+function ResultBadge({ text, result }) { return <span className={`status-badge ${result === 'positive' ? 'danger' : result === 'negative' ? 'active' : ''}`}>{text}</span> }
 export function Status({ text, kind }) { const active=['completed','negative'].includes(kind); const warning=['processing','requested','received','positive'].includes(kind); return <span className={`status-badge ${active ? 'active' : warning ? 'temporary' : ''} ${kind === 'critical' || kind === 'rejected' ? 'danger' : ''}`}>{text}</span> }
 
 function NewSampleCard({ t, language, patients, employees, departments, onClose, onSave }) {

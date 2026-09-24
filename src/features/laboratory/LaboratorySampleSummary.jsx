@@ -1,4 +1,5 @@
-import { Clock3, FlaskConical, Link2 } from 'lucide-react'
+import { Check, FlaskConical, Minus, Route } from 'lucide-react'
+import { Button } from '../../design-system/Button'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { ENVIRONMENTAL_CATEGORIES, environmentalMethodLabel, sampleTypeLabel } from './laboratoryCloudService'
 import { computeTurnaroundHours, formatTurnaround } from './model/laboratoryModel'
@@ -9,45 +10,56 @@ function subjectLabel(subjectType, language) {
   return language === 'en' ? 'Patient' : 'Ασθενής'
 }
 
-// The sample/result/organism/AMR fields used to be duplicated here and on
-// the "Microbiology result" tab. User-reported: the two screens felt
-// redundant and the summary was a single flat wall of 11 small fields with
-// no grouping. Summary now owns only the sample's own identity/logistics —
-// who/what it is, when it moved through the lab, and what it's linked to —
-// grouped into purposeful cards; the clinical result lives exclusively on
-// the Microbiology result tab.
-export function LaboratorySampleSummary({ sample, t, language, fmt, action, banners }) {
+// One card for the sample's own identity and logistics. The clinical result,
+// organisms and AMR live exclusively on the Result tab so the two never
+// duplicate each other. Actions sit behind the card's ⋯ menu, matching the
+// record cards in Prevention, Quality and Controls.
+export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banners }) {
   const en = language === 'en'
   const isEnvironmental = sample.subjectType === 'environment' || ENVIRONMENTAL_CATEGORIES.includes(sample.type)
   const rawSurveillance = sample.surveillanceCase || sample.employeeSurveillanceId || sample.environmentalBatchId || ''
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(rawSurveillance))
   const surveillance = !rawSurveillance ? '' : isUuid ? (en ? 'Linked record' : 'Συνδεδεμένη εγγραφή') : rawSurveillance
 
-  const identityFields = [
-    { id: 'subject', label: subjectLabel(sample.subjectType, language), value: sample.subjectName || sample.patient },
-    { id: 'department', label: t('department'), value: sample.department },
+  const fields = [
+    { id: 'subject', label: subjectLabel(sample.subjectType, language), value: (en ? sample.subjectNameEn : sample.subjectName) || sample.patient, meta: sample.subjectCode || sample.patientId || '' },
+    { id: 'department', label: t('department'), value: (en ? sample.departmentEn : sample.department) || sample.department },
     { id: 'sampleType', label: t('sampleType'), value: sampleTypeLabel(sample.type, t) },
     isEnvironmental
       ? { id: 'method', label: en ? 'Sampling method' : 'Μέθοδος δειγματοληψίας', value: environmentalMethodLabel(sample.environmentalMethod, t) || sample.source }
-      : { id: 'source', label: t('clinicalSource'), value: sample.source },
-  ]
-  const timelineFields = [
+      : { id: 'source', label: t('clinicalSource'), value: (en ? sample.sourceEn : sample.source) || sample.source },
     { id: 'priority', label: t('priority'), value: sample.priority ? t(sample.priority) : '—' },
     { id: 'collected', label: t('collectedLabel'), value: fmt(sample.collectedAt) },
     { id: 'received', label: t('received'), value: fmt(sample.receivedAt) },
     { id: 'turnaround', label: t('laboratoryRecords.turnaroundTime'), value: formatTurnaround(computeTurnaroundHours(sample), language) },
+    { id: 'surveillance', label: t('laboratoryRecords.linkedSurveillance'), value: surveillance, hidden: !surveillance },
   ]
 
-  return <>
-    <section className="clinical-panel full-panel lab-record-card lab-summary-card">
-      <div className="record-section-header"><div><span className="eyebrow">{en ? 'Sample' : 'Δείγμα'}</span><h3><FlaskConical size={15}/> {en ? 'Sample & origin' : 'Δείγμα & προέλευση'}</h3></div>{action}</div>
-      {banners}
-      <RecordDetailsGrid fields={identityFields} className="laboratory-summary-grid"/>
-    </section>
-    <section className="clinical-panel full-panel lab-record-card lab-summary-card">
-      <div className="record-section-header"><div><span className="eyebrow">{en ? 'Timeline' : 'Χρονοδιάγραμμα'}</span><h3><Clock3 size={15}/> {en ? 'Timeline & priority' : 'Χρονοδιάγραμμα & προτεραιότητα'}</h3></div></div>
-      <RecordDetailsGrid fields={timelineFields} className="laboratory-summary-grid"/>
-      {surveillance && <div className="lab-summary-linked-row"><Link2 size={14}/><span>{t('surveillance')}</span><strong>{surveillance}</strong></div>}
-    </section>
-  </>
+  return <section className="lab-record-card lab-summary-card">
+    <div className="record-section-header"><div><span className="eyebrow">{en ? 'Sample' : 'Δείγμα'}</span><h3><FlaskConical size={15}/> {en ? 'Sample details' : 'Στοιχεία δείγματος'}</h3></div>{menu}</div>
+    {banners}
+    <RecordDetailsGrid fields={fields} className="laboratory-summary-grid"/>
+  </section>
+}
+
+// Guided flow: every step of the laboratory lifecycle in order, with the
+// single next action surfaced as a primary button so the user never has to
+// hunt through tabs to find what is left to do.
+export function LaboratoryWorkflow({ steps, language, closedNote }) {
+  const en = language === 'en'
+  const applicable = steps.filter(step => step.state !== 'na')
+  const done = applicable.filter(step => step.state === 'done').length
+  const next = steps.find(step => step.state === 'next')
+  return <section className="lab-record-card lab-workflow-card">
+    <div className="record-section-header"><div><span className="eyebrow">{en ? 'Workflow' : 'Ροή εργασίας'}</span><h3><Route size={15}/> {en ? 'Sample progress' : 'Πρόοδος δείγματος'}</h3></div><span className="lab-workflow-count">{done}/{applicable.length}</span></div>
+    <ol className="lab-workflow-steps">
+      {steps.map((step, index) => <li key={step.id} className={`lab-workflow-step is-${step.state}`}>
+        <span className="lab-workflow-marker">{step.state === 'done' ? <Check size={14}/> : step.state === 'na' ? <Minus size={14}/> : index + 1}</span>
+        <div><strong>{step.label}</strong><small>{step.meta || (step.state === 'na' ? (en ? 'Not required' : 'Δεν απαιτείται') : step.state === 'done' ? (en ? 'Completed' : 'Ολοκληρώθηκε') : (en ? 'Pending' : 'Εκκρεμεί'))}</small></div>
+      </li>)}
+    </ol>
+    {closedNote ? <div className="lab-workflow-next is-closed">{closedNote}</div>
+      : next ? <div className="lab-workflow-next"><div><span>{en ? 'Next step' : 'Επόμενο βήμα'}</span><strong>{next.hint || next.label}</strong></div>{next.action && <Button onClick={next.action.onClick}>{next.action.icon && <next.action.icon size={15}/>}{next.action.label}</Button>}</div>
+        : null}
+  </section>
 }
