@@ -3,7 +3,6 @@ import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,Plus,ShieldCheck,Check
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
-import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -72,8 +71,8 @@ export function QualityPage(){
       <SummaryMetric icon={CheckCircle2} label={language==='en'?'Completed':'Ολοκληρωμένα'} value={closedCount}/>
       <SummaryMetric icon={AlertTriangle} label={language==='en'?'High priority':'Υψηλής προτεραιότητας'} value={highCount}/>
     </div></div>
-    <ModuleTabs className="quality-tabs" ariaLabel={t('quality')} tabs={sections.map(({id,label,icon})=>({id,label:id==='audits'?(language==='en'?'Audits':'Έλεγχοι'):t(label),icon}))} activeId={section} onChange={changeSection}/>
     <div className="surface registry-workspace workspace-column workspace-fill quality-workspace">
+      <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{sections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{id==='audits'?(language==='en'?'Audits':'Έλεγχοι'):t(label)}</span></button>)}</nav>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status).filter(Boolean))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
