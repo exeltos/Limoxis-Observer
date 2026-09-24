@@ -75,3 +75,47 @@
 .modal-backdrop .entry-card>.entry-grid{overflow:auto;padding-top:4px}
 .modal-backdrop .entry-card>footer{flex:0 0 auto;position:sticky;bottom:0;background:var(--lo-color-surface,#fff)}
 @media(max-width:900px){.laboratory-record-shell .entity-record-body{padding:16px}.laboratory-record-shell .laboratory-result-grid{grid-template-columns:1fr}.laboratory-record-shell .lab-action-footer{bottom:-16px;margin:18px -16px -16px;padding:12px 16px}}
+
+
+/* Laboratory tabs/cards aligned exactly to the shared Quality record pattern. */
+.laboratory-record-shell .entity-record-body{padding:0;background:transparent}
+.laboratory-record-shell .lab-record-card,
+.laboratory-record-shell .lab-attachments-card>.record-section{
+  width:100%;margin:0;padding:20px 22px;
+  border:1px solid var(--lo-color-border);
+  border-radius:var(--lo-radius-card,12px);
+  background:var(--lo-color-surface,#fff);
+  box-shadow:var(--lo-shadow-card,0 1px 2px rgba(15,23,42,.04));
+}
+.laboratory-record-shell .lab-record-card+.lab-record-card,
+.laboratory-record-shell .lab-ast-card{margin-top:14px}
+.laboratory-record-shell .lab-record-card>.record-section-header,
+.laboratory-record-shell .lab-isolate-card>.record-section-header{
+  min-height:38px;margin:0 0 16px;padding:0 0 12px;
+  border-bottom:1px solid var(--lo-color-border);background:transparent;
+}
+.laboratory-record-shell .lab-record-card>.record-section-header h3{margin:0;font-size:16px}
+.laboratory-record-shell .lab-record-card>.record-section-header .eyebrow{display:none}
+.laboratory-record-shell .lab-record-card .detail-item{padding:10px 0;border:0}
+.laboratory-record-shell .lab-record-card .patient-detail-grid{gap:12px 24px}
+.laboratory-record-shell .lab-isolate-card{
+  margin:0;padding:14px 16px;border:1px solid var(--lo-color-border);
+  border-radius:var(--lo-radius-card,12px);background:var(--lo-color-surface,#fff);
+}
+.laboratory-record-shell .lab-isolate-card+.lab-isolate-card{margin-top:12px;padding-top:14px}
+.laboratory-record-shell .lab-isolate-card .record-table-wrap{margin:10px 0 0}
+.laboratory-record-shell .lab-action-footer{
+  position:static;margin:18px -22px -20px;padding:12px 22px;
+  border-top:1px solid var(--lo-color-border);
+  background:var(--lo-color-surface-subtle,#f8fafc);backdrop-filter:none;
+  border-radius:0 0 var(--lo-radius-card,12px) var(--lo-radius-card,12px);
+}
+.laboratory-record-shell .lab-communication-row{padding:11px 0;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent}
+.laboratory-record-shell .finalization-checklist{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.laboratory-record-shell .final-check{padding:11px 12px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface-subtle,#f8fafc)}
+.laboratory-record-shell .clinical-timeline{max-width:none}
+@media(max-width:900px){
+ .laboratory-record-shell .lab-record-card,.laboratory-record-shell .lab-attachments-card>.record-section{padding:16px}
+ .laboratory-record-shell .lab-action-footer{margin:16px -16px -16px;padding:12px 16px}
+ .laboratory-record-shell .finalization-checklist{grid-template-columns:1fr}
+}
