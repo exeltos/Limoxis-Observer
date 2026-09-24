@@ -1,179 +1,117 @@
-/* Laboratory record — module-only styles.
-   Shared shell, tabs, typography, buttons and form controls come from the design system. */
+/* Laboratory sample record — card layout aligned with Prevention / Quality records:
+   bordered cards, ⋯ menu in each card header, one guided workflow card. */
+
 .laboratory-record-shell.workspace-fill{height:100%;min-height:0;overflow:hidden}
-.laboratory-record-shell.workspace-fill>.entity-record-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:16px 18px 20px}
-.laboratory-record-shell .lab-record-card{width:100%;box-sizing:border-box;margin:0;padding:18px 20px;border:0;border-radius:0;background:transparent;box-shadow:none}
-.laboratory-record-shell .lab-record-card+.lab-record-card,.laboratory-record-shell .lab-ast-card{margin-top:12px}
-.laboratory-record-shell .lab-record-card>.record-section-header{min-height:0;margin:0 0 18px;padding:0 0 12px;border-bottom:1px solid var(--lo-color-border)}
-.laboratory-record-shell .lab-record-card>.record-section-header h3{margin:2px 0 0;font-size:15px}
-.laboratory-record-shell .lab-record-card>.record-section-header .eyebrow{font-size:10px}
-.laboratory-record-shell .lab-record-card .patient-detail-grid,.laboratory-record-shell .lab-record-card .employee-inline-edit{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:0;border:0;background:transparent}
-.laboratory-record-shell .laboratory-result-grid>.field{min-width:0}
-.laboratory-record-shell .lab-record-card .detail-item{min-width:0;padding:10px 0;border:0;background:transparent}
-.laboratory-record-shell .laboratory-library-picker{display:flex;flex-direction:column;gap:10px}
-.laboratory-record-shell .laboratory-library-picker>div:first-child{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
-.laboratory-record-shell .laboratory-isolate-list{display:flex;flex-direction:column;gap:7px}
-.laboratory-record-shell .laboratory-isolate-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding:6px 9px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface,#fff)}
-.laboratory-record-shell .laboratory-isolate-actions{display:flex;align-items:center;gap:6px;min-width:0}
-.laboratory-record-shell .laboratory-isolate-remove{border:0;background:transparent;color:var(--lo-color-muted);display:grid;place-items:center}
-.laboratory-record-shell .smart-protocol-strip{margin:0 0 10px;padding:8px 10px;min-height:36px;border-radius:8px}
-.laboratory-record-shell .lab-action-footer{display:flex;justify-content:flex-end;gap:8px;margin:18px -20px -18px;padding:12px 20px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface-subtle,#f8fafc)}
-.laboratory-record-shell .lab-isolate-card{margin:0;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface,#fff);overflow:hidden}
-.laboratory-record-shell .lab-isolate-card+.lab-isolate-card{margin-top:10px}
-.laboratory-record-shell .lab-isolate-card>.record-section-header{margin:0;padding:9px 10px;border-bottom:1px solid var(--lo-color-border);background:var(--lo-color-surface-subtle,#f8fafc)}
-.laboratory-record-shell .lab-isolate-card .permission-info-banner{margin:10px 12px 0}
-.laboratory-record-shell .lab-isolate-card .record-table-wrap{margin:10px 12px 12px;border:1px solid var(--lo-color-border);border-radius:8px;overflow:hidden}
-.laboratory-record-shell .record-section-actions{display:flex;align-items:center;gap:6px}
-.laboratory-record-shell .record-section-actions>.status-badge{order:-1}
-.laboratory-record-shell .lab-communication-row{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:58px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface,#fff)}
-.laboratory-record-shell .lab-communication-row+.lab-communication-row{margin-top:8px}
-.laboratory-record-shell .lab-communication-row>div{display:flex;align-items:center;gap:10px;min-width:0}
+.laboratory-record-shell.workspace-fill>.entity-record-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:16px 18px 20px;background:var(--lo-color-surface,#fff)}
+
+.laboratory-record-shell .lab-record-stack{display:flex;flex-direction:column;gap:14px}
+.laboratory-record-shell .lab-record-card{box-sizing:border-box;width:100%;margin:0;padding:16px 18px 18px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface,#fff)}
+.laboratory-record-shell .lab-record-card>.record-section-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-height:0;margin:0 0 14px;padding:0 0 12px;border-bottom:1px solid var(--lo-color-border)}
+.laboratory-record-shell .lab-record-card>.record-section-header .eyebrow{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--lo-color-muted)}
+.laboratory-record-shell .lab-record-card>.record-section-header h3{display:flex;align-items:center;gap:7px;margin:3px 0 0;font-size:16px;line-height:1.3;color:var(--lo-color-text)}
+.laboratory-record-shell .lab-record-card>.record-section-header h3 svg{color:var(--lo-color-primary,#1f5f8b)}
+
+/* Sample details */
+.laboratory-record-shell .laboratory-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 24px;padding:0;border:0;background:transparent}
+.laboratory-record-shell .laboratory-summary-grid .detail-item{min-width:0;padding:11px 0;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent}
+.laboratory-record-shell .laboratory-summary-grid .detail-item>span{display:block;margin-bottom:4px;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
+.laboratory-record-shell .laboratory-summary-grid .detail-item>strong{font-size:14px}
+.laboratory-record-shell .laboratory-summary-grid .detail-item>small{display:block;margin-top:2px;font-size:11.5px;color:var(--lo-color-muted)}
+
+/* Workflow */
+.laboratory-record-shell .lab-workflow-count{padding:4px 10px;border-radius:999px;background:var(--lo-color-surface-subtle,#f1f5f9);font-size:12px;font-weight:800;color:var(--lo-color-text)}
+.laboratory-record-shell .lab-workflow-steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.laboratory-record-shell .lab-workflow-step{position:relative;display:flex;align-items:flex-start;gap:9px;min-width:0;padding:10px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface,#fff)}
+.laboratory-record-shell .lab-workflow-step>div{min-width:0}
+.laboratory-record-shell .lab-workflow-step strong{display:block;font-size:12.5px;line-height:1.3;color:var(--lo-color-text)}
+.laboratory-record-shell .lab-workflow-step small{display:block;margin-top:2px;font-size:11px;line-height:1.35;color:var(--lo-color-muted);overflow-wrap:anywhere}
+.laboratory-record-shell .lab-workflow-marker{flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;border:1.5px solid #cbd5e1;background:#fff;font-size:11.5px;font-weight:800;color:#64748b}
+.laboratory-record-shell .lab-workflow-step.is-done{background:color-mix(in srgb,#16a34a 5%,white);border-color:color-mix(in srgb,#16a34a 22%,white)}
+.laboratory-record-shell .lab-workflow-step.is-done .lab-workflow-marker{border-color:#16a34a;background:#16a34a;color:#fff}
+.laboratory-record-shell .lab-workflow-step.is-next{border-color:var(--lo-color-primary,#1f5f8b);box-shadow:0 0 0 1px var(--lo-color-primary,#1f5f8b) inset}
+.laboratory-record-shell .lab-workflow-step.is-next .lab-workflow-marker{border-color:var(--lo-color-primary,#1f5f8b);color:var(--lo-color-primary,#1f5f8b)}
+.laboratory-record-shell .lab-workflow-step.is-na{opacity:.6;background:var(--lo-color-surface-subtle,#f8fafc)}
+.laboratory-record-shell .lab-workflow-next{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--lo-color-surface-subtle,#f1f6fa)}
+.laboratory-record-shell .lab-workflow-next>div{min-width:0}
+.laboratory-record-shell .lab-workflow-next span{display:block;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-muted)}
+.laboratory-record-shell .lab-workflow-next strong{display:block;margin-top:2px;font-size:13.5px;color:var(--lo-color-text)}
+.laboratory-record-shell .lab-workflow-next .button{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px}
+.laboratory-record-shell .lab-workflow-next.is-closed{justify-content:flex-start;gap:9px;font-size:13px;font-weight:700;color:var(--lo-color-text)}
+.laboratory-record-shell .lab-workflow-next.is-closed span{display:inline;font-size:13px;letter-spacing:0;text-transform:none;color:inherit}
+
+/* Result */
+.laboratory-record-shell .lab-result-band{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr) repeat(2,minmax(0,1fr));border:1px solid var(--lo-color-border);border-radius:10px;overflow:hidden}
+.laboratory-record-shell .lab-result-band>div{min-width:0;padding:13px 16px;border-left:1px solid var(--lo-color-border)}
+.laboratory-record-shell .lab-result-band>div:first-child{border-left:0}
+.laboratory-record-shell .lab-result-band span{display:block;margin-bottom:5px;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
+.laboratory-record-shell .lab-result-band strong{display:block;font-size:14.5px;color:var(--lo-color-text);overflow-wrap:anywhere}
+.laboratory-record-shell .lab-result-band strong .status-badge{display:inline-flex}
+.laboratory-record-shell .lab-result-primary.is-positive{background:color-mix(in srgb,#dc2626 6%,white)}
+.laboratory-record-shell .lab-result-primary.is-positive strong{color:#b42318}
+.laboratory-record-shell .lab-result-primary.is-negative{background:color-mix(in srgb,#16a34a 6%,white)}
+.laboratory-record-shell .lab-result-primary.is-negative strong{color:#166534}
+.laboratory-record-shell .lab-result-primary small{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:2px 8px;border-radius:999px;background:#fee4e2;color:#b42318;font-size:11px;font-weight:800}
+.laboratory-record-shell .lab-table-empty{color:var(--lo-color-muted);font-size:12.5px}
+.laboratory-record-shell .lab-result-empty{padding:18px;border:1px dashed var(--lo-color-border);border-radius:10px;text-align:center}
+.laboratory-record-shell .smart-protocol-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding:10px 12px;border-radius:10px;background:var(--lo-color-surface-subtle,#f8fafc);font-size:12.5px}
+
+/* Organisms / AST */
+.laboratory-record-shell .lab-isolate-card{padding:12px 0 0}
+.laboratory-record-shell .lab-isolate-card+.lab-isolate-card{margin-top:14px;padding-top:16px;border-top:1px solid var(--lo-color-border)}
+.laboratory-record-shell .lab-isolate-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.laboratory-record-shell .lab-isolate-identity{display:flex;align-items:center;gap:11px;min-width:0}
+.laboratory-record-shell .lab-isolate-identity h3{margin:1px 0 0;font-size:14.5px;font-style:italic;color:var(--lo-color-text)}
+.laboratory-record-shell .lab-isolate-identity .eyebrow{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--lo-color-muted)}
+.laboratory-record-shell .lab-isolate-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:color-mix(in srgb,#dc2626 8%,white);color:#b42318}
+.laboratory-record-shell .record-section-actions{display:flex;align-items:center;gap:8px}
+.laboratory-record-shell .lab-amr-strip{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding:10px 12px;border:1px solid color-mix(in srgb,#dc2626 18%,white);border-radius:10px;background:color-mix(in srgb,#dc2626 4%,white);color:#b42318}
+.laboratory-record-shell .lab-amr-strip span{display:block;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
+.laboratory-record-shell .lab-amr-strip strong{display:block;font-size:13px;color:var(--lo-color-text)}
+.laboratory-record-shell .lab-amr-strip small{display:block;margin-top:3px;font-size:12px;color:var(--lo-color-muted)}
+.laboratory-record-shell .lab-ast-table{width:100%}
+.laboratory-record-shell .record-table-wrap{border:1px solid var(--lo-color-border);border-radius:10px;overflow:auto}
+.laboratory-record-shell .lab-sir-badge,.lab-sir-toggle button{display:inline-grid;place-items:center;min-width:34px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:800}
+.laboratory-record-shell .lab-sir-badge.sir-s,.lab-sir-toggle button.sir-s.is-selected{background:color-mix(in srgb,#16a34a 14%,white);color:#166534}
+.laboratory-record-shell .lab-sir-badge.sir-i,.lab-sir-toggle button.sir-i.is-selected{background:color-mix(in srgb,#d97706 16%,white);color:#92400e}
+.laboratory-record-shell .lab-sir-badge.sir-r,.lab-sir-toggle button.sir-r.is-selected{background:color-mix(in srgb,#dc2626 13%,white);color:#991b1b}
+
+/* Critical communication */
+.laboratory-record-shell .lab-communication-list{display:flex;flex-direction:column}
+.laboratory-record-shell .lab-communication-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--lo-color-border)}
+.laboratory-record-shell .lab-communication-row:last-child{border-bottom:0}
+.laboratory-record-shell .lab-communication-row>div{display:flex;align-items:center;gap:12px;min-width:0}
 .laboratory-record-shell .lab-communication-row>div:first-child{flex-direction:column;align-items:flex-start;gap:2px}
-.laboratory-record-shell .finalization-checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
-.laboratory-record-shell .lab-attachments-card>.record-section{margin:0;padding:16px 18px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface,#fff);box-shadow:none}
-@media(max-width:1250px){.laboratory-record-shell .lab-record-card .patient-detail-grid,.laboratory-record-shell .lab-record-card .employee-inline-edit{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:720px){.laboratory-record-shell.workspace-fill{height:auto;overflow:visible}.laboratory-record-shell.workspace-fill>.entity-record-body{overflow:visible}.laboratory-record-shell .lab-record-card .patient-detail-grid,.laboratory-record-shell .lab-record-card .employee-inline-edit{grid-template-columns:1fr}.laboratory-record-shell .laboratory-library-picker>div:first-child{grid-template-columns:1fr}.laboratory-record-shell .lab-communication-row{align-items:flex-start;flex-direction:column}.laboratory-record-shell .finalization-checklist{grid-template-columns:1fr}.laboratory-record-shell .lab-action-footer{flex-wrap:wrap}}
+.laboratory-record-shell .lab-communication-row strong{font-size:13.5px;color:var(--lo-color-text)}
+.laboratory-record-shell .lab-communication-row span{font-size:12.5px;color:var(--lo-color-muted)}
+.laboratory-record-shell .lab-inline-warning{display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:10px;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700}
 
-/* Final canonical polish: one workspace surface, sections separated by rhythm rather than nested cards. */
-.laboratory-record-shell .entity-record-body{background:var(--lo-color-surface,#fff)}
-.laboratory-record-shell .clinical-panel.full-panel{max-width:none;min-height:0}
-.laboratory-record-shell .lab-communication-row,.laboratory-record-shell .final-check{box-shadow:none}
-.laboratory-record-shell .lab-attachments-card>.record-section{border:0;border-radius:0;box-shadow:none;background:transparent;padding:18px 20px}
+/* Attachments & history */
+.laboratory-record-shell .lab-inline-action{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface-subtle,#f1f6fa)}
+.laboratory-record-shell .lab-inline-action strong{display:block;font-size:13.5px}
+.laboratory-record-shell .lab-inline-action span{display:block;margin-top:2px;font-size:12.5px;color:var(--lo-color-muted)}
+.laboratory-record-shell .lab-inline-action .button{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto}
+.laboratory-record-shell .lab-history-row{grid-template-columns:150px minmax(220px,360px) minmax(0,1fr);padding:9px 0;font-size:12.5px}
 
+/* Dialogs (rendered outside the shell) */
+.lab-dialog-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px}
+.lab-dialog-form>label,.lab-dialog-form>.lab-dialog-span{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lab-dialog-form>label>span,.lab-dialog-label{font-size:11px;font-weight:700;color:var(--lo-color-muted)}
+.lab-dialog-form .lab-dialog-span{grid-column:1/-1}
+.lab-dialog-form input:not([type=checkbox]),.lab-dialog-form select,.lab-dialog-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control,8px);background:var(--lo-color-surface,#fff);color:var(--lo-color-text);font:inherit}
+.lab-dialog-form input:not([type=checkbox]),.lab-dialog-form select{min-height:40px;padding:0 10px}
+.lab-dialog-form textarea{min-height:84px;padding:10px 11px;resize:vertical}
+.lab-dialog-form>label.lab-dialog-check{flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:9px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;cursor:pointer;text-align:left}
+.lab-dialog-form>label.lab-dialog-check>span{font-size:13px;font-weight:700;color:var(--lo-color-text)}
+.lab-dialog-form>label.lab-dialog-check input{width:16px;height:16px;margin:0}
+.lab-organism-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.lab-organism-chips{display:flex;flex-wrap:wrap;gap:6px}
+.lab-organism-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 11px;border-radius:999px;background:color-mix(in srgb,#dc2626 7%,white);color:#912018;font-size:12.5px;font-weight:700;font-style:italic}
+.lab-organism-chip button{display:grid;place-items:center;width:20px;height:20px;padding:0;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer}
+.lab-organism-chip button:hover{background:rgba(0,0,0,.07)}
+.lab-dialog-hint{font-size:11.5px;color:#b54708}
+.lab-sir-toggle{display:flex;gap:8px}
+.lab-sir-toggle button{min-width:56px;height:34px;border:1px solid var(--lo-color-border);background:var(--lo-color-surface,#fff);color:var(--lo-color-text);cursor:pointer}
+.lab-sir-toggle button.is-selected{border-color:transparent}
 
-/* Full laboratory workflow redesign */
-.laboratory-record-shell .entity-record-body{padding:20px 24px 28px}
-.laboratory-record-shell .lab-record-card{padding:0}
-.laboratory-record-shell .lab-record-card>.record-section-header{padding:0 0 14px;margin-bottom:20px}
-.laboratory-record-shell .lab-record-card>.record-section-header h3{font-size:17px;line-height:1.3}
-.laboratory-record-shell .lab-record-card>.record-section-header .eyebrow{letter-spacing:.06em;text-transform:uppercase}
-.laboratory-record-shell .lab-record-card .patient-detail-grid{gap:0 28px}
-.laboratory-record-shell .lab-record-card .detail-item{padding:12px 0;border-bottom:1px solid var(--lo-color-border)}
-.laboratory-record-shell .lab-record-card .detail-item>span{display:block;margin-bottom:5px}
-.laboratory-record-shell .lab-record-card .detail-item>strong{font-size:14px}
-.laboratory-record-shell .laboratory-result-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:0 24px}
-.laboratory-record-shell .laboratory-result-grid>.detail-item:has(.laboratory-library-picker){grid-column:1/-1}
-.laboratory-record-shell .laboratory-library-picker{padding-top:2px}
-.laboratory-record-shell .laboratory-isolate-row{min-height:46px;padding:8px 10px;border-radius:7px;box-shadow:none}
-.laboratory-record-shell .lab-isolate-card{border:0;border-radius:0;background:transparent}
-.laboratory-record-shell .lab-isolate-card+.lab-isolate-card{margin-top:24px;padding-top:20px;border-top:1px solid var(--lo-color-border)}
-.laboratory-record-shell .lab-isolate-card>.record-section-header{padding:0 0 10px;background:transparent}
-.laboratory-record-shell .lab-isolate-card .record-table-wrap{margin:12px 0 0;border-radius:7px}
-.laboratory-record-shell .lab-communication-row{padding:12px 0;border:0;border-bottom:1px solid var(--lo-color-border);border-radius:0;background:transparent}
-.laboratory-record-shell .lab-communication-row+.lab-communication-row{margin-top:0}
-.laboratory-record-shell .finalization-checklist{gap:0;grid-template-columns:1fr}
-.laboratory-record-shell .final-check{min-height:48px;padding:11px 0;border:0;border-bottom:1px solid var(--lo-color-border);border-radius:0;background:transparent}
-.laboratory-record-shell .final-check>span{display:inline-grid;place-items:center;width:24px;height:24px;margin-right:10px;border-radius:50%;background:var(--lo-color-surface-subtle,#f8fafc)}
-.laboratory-record-shell .final-check.ok>span{font-weight:700}
-.laboratory-record-shell .clinical-timeline{max-width:900px}
-.laboratory-record-shell .lab-action-footer{position:sticky;bottom:-20px;z-index:3;margin:22px -24px -28px;padding:13px 24px;border-top:1px solid var(--lo-color-border);background:color-mix(in srgb,var(--lo-color-surface,#fff) 94%,transparent);backdrop-filter:blur(8px)}
-.laboratory-record-shell .lab-attachments-card>.record-section{padding:0}
-.laboratory-record-shell .smart-protocol-strip{margin-bottom:18px}
-.modal-backdrop .entry-card{width:min(720px,calc(100vw - 32px));max-height:min(760px,calc(100vh - 40px));overflow:hidden;display:flex;flex-direction:column}
-.modal-backdrop .entry-card>header{flex:0 0 auto}
-.modal-backdrop .entry-card>.entry-grid{overflow:auto;padding-top:4px}
-.modal-backdrop .entry-card>footer{flex:0 0 auto;position:sticky;bottom:0;background:var(--lo-color-surface,#fff)}
-@media(max-width:900px){.laboratory-record-shell .entity-record-body{padding:16px}.laboratory-record-shell .laboratory-result-grid{grid-template-columns:1fr}.laboratory-record-shell .lab-action-footer{bottom:-16px;margin:18px -16px -16px;padding:12px 16px}}
-
-/* Read-back confirmation checkbox — .clinical-choice had no styling of its
-   own, so it fell back to core.css's shared field-column rule
-   (:where(.entry-grid,...) label:not(.observer-check):not(.check-option)
-   :not(.bundle-required-toggle):not(.who-action-option){flex-direction:
-   column}), meant for text fields (label text above the control). That
-   selector's four :not() clauses outweigh a plain two-class override, so
-   this needs !important to actually win — the checkbox ended up on its
-   own line above its label instead of beside it. */
-.entry-grid label.clinical-choice{
-  display:flex!important;
-  flex-direction:row!important;
-  align-items:center!important;
-  gap:9px!important;
-}
-.entry-grid label.clinical-choice input[type="checkbox"]{
-  width:16px;
-  height:16px;
-  margin:0;
-  flex:0 0 auto;
-}
-
-/* Sample summary — split from one flat 11-field grid (which duplicated
-   the microbiology-result tab's own Result/Organism/AMR fields) into two
-   purposeful cards: the sample's own identity/origin, and its timeline
-   and priority. Each card's RecordDetailsGrid already picks up the
-   existing 4-column .patient-detail-grid layout from this file, so no
-   grid CSS is needed here — just the header icon and the linked-record
-   footer row. The icon-in-header treatment also carries over to the
-   Microbiology result and AST/AMR cards so both tabs read as one
-   consistent, current design rather than two different eras of it. */
-.laboratory-record-shell .lab-record-card>.record-section-header h3{
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
-}
-.laboratory-record-shell .lab-record-card>.record-section-header h3 svg{
-  color:var(--lo-color-primary,#2b6999);
-  flex:0 0 auto;
-}
-.laboratory-record-shell .lab-summary-linked-row{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-top:14px;
-  padding-top:14px;
-  border-top:1px solid var(--lo-color-border);
-  font-size:12px;
-  color:var(--lo-color-muted);
-}
-.laboratory-record-shell .lab-summary-linked-row svg{
-  color:var(--lo-color-primary,#2b6999);
-  flex:0 0 auto;
-}
-.laboratory-record-shell .lab-summary-linked-row span{
-  font-weight:700;
-}
-.laboratory-record-shell .lab-summary-linked-row strong{
-  margin-left:auto;
-  color:var(--lo-color-text);
-  font-size:12.5px;
-  font-weight:700;
-}
-
-/* Microbiology result / AST visual hierarchy — uses existing laboratory data only. */
-.laboratory-record-shell .lab-isolate-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:2px 0 14px;border-bottom:1px solid var(--lo-color-border)}
-.laboratory-record-shell .lab-isolate-identity{display:flex;align-items:center;gap:12px;min-width:0}
-.laboratory-record-shell .lab-isolate-icon{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--lo-color-danger,#dc2626) 10%,var(--lo-color-surface,#fff));color:var(--lo-color-danger,#b91c1c)}
-.laboratory-record-shell .lab-isolate-identity .eyebrow{display:block;margin-bottom:3px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--lo-color-muted)}
-.laboratory-record-shell .lab-isolate-identity h3{margin:0;font-size:18px;line-height:1.25}
-.laboratory-record-shell .lab-amr-strip{display:flex;align-items:flex-start;gap:10px;margin:12px 0 0;padding:10px 12px;border:1px solid color-mix(in srgb,var(--lo-color-warning,#d97706) 28%,var(--lo-color-border));border-radius:9px;background:color-mix(in srgb,var(--lo-color-warning,#d97706) 6%,var(--lo-color-surface,#fff))}
-.laboratory-record-shell .lab-amr-strip>div{display:flex;flex-direction:column;gap:2px;min-width:0}
-.laboratory-record-shell .lab-amr-strip span,.laboratory-record-shell .lab-amr-strip small{font-size:11px;color:var(--lo-color-muted)}
-.laboratory-record-shell .lab-amr-strip strong{font-size:13px}
-.laboratory-record-shell .lab-ast-table th:nth-child(2),.laboratory-record-shell .lab-ast-table td:nth-child(2){white-space:nowrap}
-.laboratory-record-shell .lab-sir-badge{display:inline-grid;place-items:center;min-width:34px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:800}
-.laboratory-record-shell .lab-sir-badge.sir-s{background:color-mix(in srgb,#16a34a 14%,white);color:#166534}
-.laboratory-record-shell .lab-sir-badge.sir-i{background:color-mix(in srgb,#d97706 16%,white);color:#92400e}
-.laboratory-record-shell .lab-sir-badge.sir-r{background:color-mix(in srgb,#dc2626 13%,white);color:#991b1b}
-.laboratory-record-shell .lab-ast-card .record-table-wrap{overflow-x:auto}
-@media(max-width:720px){.laboratory-record-shell .lab-isolate-summary{align-items:flex-start}.laboratory-record-shell .lab-isolate-icon{width:36px;height:36px;flex-basis:36px}.laboratory-record-shell .lab-ast-table{min-width:720px}}
-
-
-/* Replacement microbiology result workspace: no legacy detail cards. */
-.laboratory-record-shell .lab-result-workspace{padding:18px 20px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface,#fff)}
-.laboratory-record-shell .lab-result-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid var(--lo-color-border)}
-.laboratory-record-shell .lab-result-hero .eyebrow{display:block;margin-bottom:3px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--lo-color-muted)}
-.laboratory-record-shell .lab-result-hero h2{margin:0;font-size:20px;line-height:1.25}
-.laboratory-record-shell .lab-result-summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;margin-top:14px;border:1px solid var(--lo-color-border);border-radius:10px;overflow:hidden}
-.laboratory-record-shell .lab-result-summary-grid>div{min-height:76px;padding:14px 16px;border-right:1px solid var(--lo-color-border);background:var(--lo-color-surface,#fff)}
-.laboratory-record-shell .lab-result-summary-grid>div:last-child{border-right:0}
-.laboratory-record-shell .lab-result-summary-grid span{display:block;margin-bottom:7px;font-size:11px;font-weight:650;color:var(--lo-color-muted)}
-.laboratory-record-shell .lab-result-summary-grid strong{font-size:14px;line-height:1.35}
-.laboratory-record-shell .lab-result-summary-grid .lab-result-primary.is-positive{background:color-mix(in srgb,var(--lo-color-danger,#dc2626) 5%,var(--lo-color-surface,#fff))}
-.laboratory-record-shell .lab-result-summary-grid .lab-result-primary.is-positive strong{color:var(--lo-color-danger,#b91c1c)}
-.laboratory-record-shell .lab-result-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
-.laboratory-record-shell .lab-result-edit-grid .laboratory-library-picker{width:100%}
-.laboratory-record-shell .lab-result-workspace+.lab-ast-card{margin-top:12px}
-.laboratory-record-shell .lab-ast-card{padding:18px 20px}
-.laboratory-record-shell .lab-ast-card>.record-section-header{padding-bottom:13px;border-bottom:1px solid var(--lo-color-border)}
-.laboratory-record-shell .lab-isolate-card{margin-top:0;padding:14px 0 0;border:0;border-radius:0;box-shadow:none}
-@media(max-width:1100px){.laboratory-record-shell .lab-result-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.laboratory-record-shell .lab-result-summary-grid>div{border-bottom:1px solid var(--lo-color-border)}}
-@media(max-width:720px){.laboratory-record-shell .lab-result-summary-grid,.laboratory-record-shell .lab-result-edit-grid{grid-template-columns:1fr}.laboratory-record-shell .lab-result-summary-grid>div{border-right:0}}
+@media(max-width:1250px){.laboratory-record-shell .lab-workflow-steps{grid-template-columns:repeat(3,minmax(0,1fr))}.laboratory-record-shell .laboratory-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.laboratory-record-shell .lab-result-band{grid-template-columns:repeat(2,minmax(0,1fr))}.laboratory-record-shell .lab-result-band>div:nth-child(odd){border-left:0}.laboratory-record-shell .lab-result-band>div:nth-child(n+3){border-top:1px solid var(--lo-color-border)}}
+@media(max-width:720px){.laboratory-record-shell.workspace-fill{height:auto;overflow:visible}.laboratory-record-shell.workspace-fill>.entity-record-body{overflow:visible;padding:12px}.laboratory-record-shell .lab-workflow-steps,.laboratory-record-shell .laboratory-summary-grid,.laboratory-record-shell .lab-result-band{grid-template-columns:1fr}.laboratory-record-shell .lab-result-band>div{border-left:0;border-top:1px solid var(--lo-color-border)}.laboratory-record-shell .lab-result-band>div:first-child{border-top:0}.laboratory-record-shell .lab-workflow-next,.laboratory-record-shell .lab-inline-action,.laboratory-record-shell .lab-communication-row{flex-direction:column;align-items:stretch}.lab-dialog-form{grid-template-columns:1fr}}

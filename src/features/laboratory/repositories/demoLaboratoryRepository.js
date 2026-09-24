@@ -48,8 +48,10 @@ export function createDemoLaboratoryRepository({ actorName = 'Demo user' } = {})
       return this.update(sampleCode, { ...patch, status })
     },
     async saveResult(sampleCode, draft) {
-      const result = { ...draft, id: draft.id || `${sampleCode}-result`, resultStatus: draft.validationStatus || draft.resultStatus || 'draft', ast: draft.ast || [], communications: draft.communications || [] }
-      const patch = { result: result.result, resultStatus: result.resultStatus, organism: result.organism, resistance: result.resistance, critical: result.critical, resultedAt: result.resultedAt || new Date().toISOString(), microbiologyResults: [result] }
+      const current = getLabSample(sampleCode)
+      const previous = current ? normalizeLaboratorySample(current).microbiologyResults[0] : null
+      const result = { ...draft, id: draft.id || previous?.id || `${sampleCode}-result`, resultStatus: draft.validationStatus || draft.resultStatus || 'draft', ast: draft.ast || previous?.ast || [], amr: draft.amr || previous?.amr || [], communications: draft.communications || previous?.communications || [] }
+      const patch = { result: result.result, resultStatus: result.resultStatus, organism: result.organism, resistance: result.resistance ?? previous?.resistance ?? null, method: result.method, ast: result.ast, communications: result.communications, critical: result.critical, resultedAt: result.resultedAt || new Date().toISOString(), microbiologyResults: [result] }
       if (['validated', 'amended'].includes(result.resultStatus)) patch.status = 'completed'
       return this.update(sampleCode, patch)
     },
