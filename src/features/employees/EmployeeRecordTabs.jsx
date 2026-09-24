@@ -146,7 +146,6 @@ export function EmployeeEvaluationsTab({employee,language,fmt,organizationId,can
 export function EmployeeCertificatesTab({employee,language,organizationId,canEdit=false}){
   return <DocumentsWorkspace
     title={language==='en'?'Documents & certifications':'Έγγραφα & Πιστοποιήσεις'}
-    subtitle={language==='en'?'All employee files are kept in one place. Each attachment is classified by document type when it is added.':'Όλα τα αρχεία του εργαζομένου τηρούνται σε ένα σημείο. Κάθε επισύναψη χαρακτηρίζεται κατά την προσθήκη με τον τύπο του εγγράφου.'}
     disabled={!canEdit}
     organizationId={organizationId}
     entityType="employee-certificate"

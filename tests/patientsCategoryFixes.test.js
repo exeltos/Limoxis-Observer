@@ -68,3 +68,23 @@ describe('Patients category fixes', () => {
     expect(page).toContain("label={t('patientsCountTransferred')}")
   })
 })
+
+describe('surveillance review', () => {
+  const canonical = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
+  it('matches a surveillance episode to its patient only on real ids', () => {
+    expect(canonical).toContain('function episodeBelongsToPatient(ep,row)')
+    expect(canonical).not.toContain('ep.patientRecordId===row.recordId')
+  })
+  it('new surveillance chooser uses the same numbered icon cards as a new laboratory sample', () => {
+    const chooser = fs.readFileSync('src/features/surveillance/EmployeeSurveillanceFlow.jsx', 'utf8')
+    const lab = fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx', 'utf8')
+    expect(chooser).toContain('<SubjectChoiceStep')
+    expect(lab).toContain('<SubjectChoiceStep')
+  })
+  it('documents tabs open the same way: record-section card + shared attachment box', () => {
+    const workspace = fs.readFileSync('src/design-system/DocumentsWorkspace.jsx', 'utf8')
+    const panel = fs.readFileSync('src/design-system/EntityAttachmentsPanel.jsx', 'utf8')
+    expect(workspace).toContain('className="record-section documents-workspace"')
+    expect(panel).not.toContain('LIMOXIS OBSERVER')
+  })
+})

@@ -12,7 +12,8 @@ export const employeeSurveillanceRecords=[
     startedAt:'2026-08-20',
     screeningTypes:['nasalSwab'],
     batchId:null,
-    status:'completed',
+    // Awaiting the laboratory result (LAB-EMP-001 has none yet), so still active.
+    status:'active',
     sampleIds:['LAB-EMP-001'],
     timeline:[],
   },

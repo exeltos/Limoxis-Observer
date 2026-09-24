@@ -57,7 +57,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
   const creatingAdmissionSampleRef=useMemo(()=>({current:false}),[])
   const [tab,setTab]=useState(()=>location.state?.openTab||restored?.tab||'summary')
   const has=cap=>can(role,cap,membership?.capabilities??[],membership?.customCapabilities??[])
-  const patient=useMemo(()=>patientMode?patients.find(row=>String(row.id)===String(patientId))||null:patients.find(row=>episodes.some(ep=>ep.patientRecordId===row.recordId||String(ep.patientId)===String(row.id)))||null,[patients,patientMode,patientId,episodes])
+  const patient=useMemo(()=>patientMode?patients.find(row=>String(row.id)===String(patientId))||null:patients.find(row=>episodes.some(ep=>episodeBelongsToPatient(ep,row)))||null,[patients,patientMode,patientId,episodes])
   const selectedAdmission=patientMode?admissions.find(row=>String(row.id)===String(selectedAdmissionId))||null:null
   const admissionEpisodes=useMemo(()=>{
     const visible=episodes.filter(ep=>ep.status!=='cancelled')
@@ -97,7 +97,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
       setEpisodes(rows)
       const current=preferred||selectedEpisodeId||caseId||rows[0]?.id||''
       if(!patientMode)setSelectedEpisodeId(rows.some(row=>String(row.id)===String(current))?current:(rows[0]?.id||''))
-      const patientForAdmissions=selectedPatient||roster.find(row=>rows.some(ep=>ep.patientRecordId===row.recordId||String(ep.patientId)===String(row.id)))
+      const patientForAdmissions=selectedPatient||roster.find(row=>rows.some(ep=>episodeBelongsToPatient(ep,row)))
       if(isDemo)setAdmissions(patientForAdmissions?await loadAdmissions(patientForAdmissions,{isDemo:true}):[])
       else if(patientForAdmissions?.recordId)try{setAdmissions(await loadAdmissions(patientForAdmissions.recordId))}catch{setAdmissions([])}
       else setAdmissions([])
@@ -186,7 +186,7 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
     {activeTab==='clinicalData'&&record&&<ClinicalSnapshot record={record} t={t} language={language} fmtDate={fmtDate}/>}
     {activeTab==='clinicalScales'&&patient&&selectedAdmission&&<PatientClinicalScalesPanel organizationId={tenant?.id} patient={patient} admission={selectedAdmission} isDemo={isDemo} language={language} canRecord={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}/>}
     {activeTab==='clinicalData'&&!record&&<EmptyState title={language==='el'?'Δεν υπάρχει ακόμη κλινική καταγραφή':'No clinical record yet'} description={language==='el'?'Η νοσηλεία δεν έχει ακόμη ενεργή επιτήρηση. Δημιουργήστε επιτήρηση από την καρτέλα «Επιτήρηση & Δείγματα».':'This admission has no active surveillance yet. Create one from Surveillance & Samples.'}/>}
-    {activeTab==='documents'&&record&&(!isDemo&&record.recordId?<DocumentsWorkspace title={language==='en'?'Documents':'Έγγραφα'} subtitle={language==='en'?'All patient clinical documents are kept in one place.':'Όλα τα κλινικά έγγραφα του ασθενούς τηρούνται σε ένα σημείο.'} disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} organizationId={tenant?.id} entityType="clinical_case" entityId={record.recordId}/>:isDemo?<DocumentsWorkspace title={language==='en'?'Documents':'Έγγραφα'} subtitle={language==='en'?'All patient clinical documents are kept in one place.':'Όλα τα κλινικά έγγραφα του ασθενούς τηρούνται σε ένα σημείο.'} disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} value={demoDocuments[record.id]||[]} onChange={files=>setDemoDocuments(current=>({...current,[record.id]:files}))}/>:<div className="inline-empty">{t('clinicalRecords.noAttachments')}</div>)}
+    {activeTab==='documents'&&record&&(!isDemo&&record.recordId?<DocumentsWorkspace title={language==='en'?'Documents':'Έγγραφα'} disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} organizationId={tenant?.id} entityType="clinical_case" entityId={record.recordId}/>:isDemo?<DocumentsWorkspace title={language==='en'?'Documents':'Έγγραφα'} disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)} value={demoDocuments[record.id]||[]} onChange={files=>setDemoDocuments(current=>({...current,[record.id]:files}))}/>:<div className="inline-empty">{t('clinicalRecords.noAttachments')}</div>)}
     {activeTab==='documents'&&!record&&<EmptyState title={language==='el'?'Δεν υπάρχουν ακόμη έγγραφα':'No documents yet'} description={language==='el'?'Τα έγγραφα της επιτήρησης θα εμφανιστούν εδώ μόλις δημιουργηθεί επιτήρηση για τη νοσηλεία.':'Surveillance documents will appear here after surveillance is created for this admission.'}/>}
     {activeTab==='history'&&record&&<Timeline record={record} t={t} language={language} fmtDateTime={fmtDateTime}/>}
     {activeTab==='history'&&!record&&<EmptyState title={language==='el'?'Δεν υπάρχει ακόμη ιστορικό επιτήρησης':'No surveillance history yet'} description={language==='el'?'Το ιστορικό ενεργειών θα εμφανιστεί εδώ μόλις δημιουργηθεί επιτήρηση για τη νοσηλεία.':'The activity history will appear here after surveillance is created for this admission.'}/>}
@@ -221,6 +221,10 @@ function PatientAdmissionsHome({patient,rows,episodes,tenantId,isDemo,department
 // header already shows it) and one for the current surveillance episode,
 // in the same info-sheet style as the rest of the record instead of six
 // differently tinted tiles. Emphasis uses status badges only.
+// Both ids must be present to match: two missing record ids (every demo
+// patient) used to compare equal, so the first patient in the roster was shown
+// on every surveillance record.
+function episodeBelongsToPatient(ep,row){if(!ep||!row)return false;if(ep.patientRecordId&&row.recordId)return String(ep.patientRecordId)===String(row.recordId);return Boolean(ep.patientId&&row.id)&&String(ep.patientId)===String(row.id)}
 function stayDays(from,to){if(!from)return null;const a=new Date(`${String(from).slice(0,10)}T12:00:00`),b=to?new Date(`${String(to).slice(0,10)}T12:00:00`):new Date();const d=Math.round((b-a)/86400000);return Number.isFinite(d)&&d>=0?d+1:null}
 function CanonicalSummary({patient,admission,record,tenantId,isDemo,departments,canEdit,showPatientActions,onDeleted,onChanged,t,language,fmtDate}){
  const en=language==='en'

@@ -20,6 +20,7 @@ import { useEmployeesData } from '../employees/useEmployeesData'
 import { demoLibrarySeed } from '../management/managementData'
 import { loadDepartments } from '../management/departmentsService'
 import { MetricCard } from '../../design-system/MetricCard'
+import { SubjectChoiceStep } from '../../design-system/SubjectChoiceStep'
 import { getLaboratoryKpis, sampleTypeLabel } from './laboratoryCloudService'
 import { computeTurnaroundHours, formatTurnaround } from './model/laboratoryModel'
 import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
@@ -189,7 +190,7 @@ function NewSampleCard({ t, language, patients, employees, departments, onClose,
 
   return <div className="modal-backdrop"><div className="entry-card lab-entry-card lab-create-flow"><header><div><span className="eyebrow">{en ? 'NEW LABORATORY SAMPLE' : 'ΝΕΟ ΕΡΓΑΣΤΗΡΙΑΚΟ ΔΕΙΓΜΑ'}</span><h3>{en ? 'Sample registration' : 'Καταχώρηση δείγματος'}</h3></div><button className="icon-close" onClick={onClose}>×</button></header>
     <div className="lab-flow-body">
-      <section className="lab-flow-section"><div className="lab-flow-heading"><span>1</span><div><strong>{en ? 'Where does the sample come from?' : 'Από πού προέρχεται το δείγμα;'}</strong><small>{en ? 'Choose one category to continue.' : 'Επιλέξτε μία κατηγορία για να συνεχίσετε.'}</small></div></div><div className="lab-subject-cards">{subjectChoices.map(([id, Icon, title, text]) => <button key={id} type="button" className={`lab-subject-card ${subjectType === id ? 'active' : ''}`} onClick={() => switchSubject(id)}><Icon size={20}/><span><strong>{title}</strong><small>{text}</small></span></button>)}</div></section>
+      <section className="lab-flow-section"><SubjectChoiceStep step={1} title={en ? 'Where does the sample come from?' : 'Από πού προέρχεται το δείγμα;'} hint={en ? 'Choose one category to continue.' : 'Επιλέξτε μία κατηγορία για να συνεχίσετε.'} choices={subjectChoices} value={subjectType} onChoose={switchSubject}/></section>
 
       {subjectType === 'patient' && <section className="lab-flow-section lab-flow-reveal"><div className="lab-flow-heading"><span>2</span><div><strong>{en ? 'Patient' : 'Ασθενής'}</strong><small>{en ? 'Choose an existing patient or register a new one.' : 'Επιλέξτε υπάρχοντα ασθενή ή καταχωρήστε νέο.'}</small></div></div><div className="lab-choice-row"><button type="button" className={patientMode === 'existing' ? 'active' : ''} onClick={() => { setPatientMode('existing'); setDraft(current => ({ ...emptyDraft('patient'), collectedAt: current.collectedAt, priority: current.priority })) }}>{t('existingPatient')}</button><button type="button" className={patientMode === 'new' ? 'active' : ''} onClick={() => { setPatientMode('new'); setDraft(current => ({ ...emptyDraft('patient'), newPatient: true, collectedAt: current.collectedAt, priority: current.priority })) }}>{t('laboratoryRecords.newPatientInline')}</button></div></section>}
 
