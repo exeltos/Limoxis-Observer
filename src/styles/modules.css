@@ -4287,3 +4287,48 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
   .quality-record-shell.workspace-fill{height:auto;overflow:visible}
   .quality-record-shell.workspace-fill>.entity-record-body{overflow:visible}
 }
+
+
+/* Quality incident — compact details and shared owner editing */
+.quality-record-shell .quality-detail-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:0;
+}
+.quality-record-shell .quality-detail-grid>div,
+.quality-record-shell .quality-detail-grid>label{
+  min-width:0;
+}
+.quality-record-shell .quality-detail-owner{
+  padding:10px 14px;
+  border-right:1px solid var(--lo-color-border);
+  border-bottom:1px solid var(--lo-color-border);
+}
+.quality-record-shell .quality-detail-owner>span{
+  display:block;
+  margin-bottom:5px;
+  font-size:9.5px;
+  font-weight:750;
+  color:var(--lo-color-muted);
+}
+.quality-record-shell .quality-description{
+  margin-top:8px;
+  padding:9px 12px;
+}
+.quality-record-shell .quality-description>span{
+  margin-bottom:4px;
+}
+.quality-record-shell .quality-description p{
+  margin:2px 0 0;
+}
+.quality-record-shell .quality-investigation-card{
+  margin-top:8px;
+}
+@media (max-width:1250px){
+  .quality-record-shell .quality-detail-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  .quality-record-shell .quality-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:620px){
+  .quality-record-shell .quality-detail-grid{grid-template-columns:1fr}
+}
