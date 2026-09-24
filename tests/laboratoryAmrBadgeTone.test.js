@@ -10,11 +10,17 @@ import fs from 'node:fs'
 // badge in the app uses "status-badge danger" for a real classification
 // and no colored badge at all for none (AnalysisPage.jsx:
 // resistanceClass&&resistanceClass!=='—'?<span className="status-badge danger">
-// ...:'—'). Aligned the AST panel's badge with that convention.
+// ...:'—'). Aligned the AST panel's badge with that convention. A later
+// redesign (the isolate-card visual hierarchy pass) restated the same
+// fix as a plain conditional — no badge at all when there is no
+// classification, rather than a neutral placeholder badge — which still
+// satisfies the original bug report: the badge is never the green
+// "active" tone for an AMR classification.
 describe('the laboratory AST/AMR panel badge uses a tone that matches its meaning', () => {
-  it('uses the danger (red) tone only when there is a real AMR classification, and a neutral badge otherwise', () => {
+  it('uses the danger (red) tone only when there is a real AMR classification, and renders nothing otherwise', () => {
     const source = fs.readFileSync('src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx', 'utf8')
-    expect(source).toContain("<span className={current?'status-badge danger':'status-badge'}>{current?.classification||")
+    expect(source).toContain('{current&&<span className="status-badge danger">{current.classification}</span>}')
     expect(source).not.toContain('<span className="status-badge active">{current?.classification')
+    expect(source).not.toMatch(/status-badge active[^"]*>\{current/)
   })
 })

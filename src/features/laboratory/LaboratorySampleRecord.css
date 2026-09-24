@@ -96,6 +96,48 @@
   flex:0 0 auto;
 }
 
+/* Sample summary — split from one flat 11-field grid (which duplicated
+   the microbiology-result tab's own Result/Organism/AMR fields) into two
+   purposeful cards: the sample's own identity/origin, and its timeline
+   and priority. Each card's RecordDetailsGrid already picks up the
+   existing 4-column .patient-detail-grid layout from this file, so no
+   grid CSS is needed here — just the header icon and the linked-record
+   footer row. The icon-in-header treatment also carries over to the
+   Microbiology result and AST/AMR cards so both tabs read as one
+   consistent, current design rather than two different eras of it. */
+.laboratory-record-shell .lab-record-card>.record-section-header h3{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+.laboratory-record-shell .lab-record-card>.record-section-header h3 svg{
+  color:var(--lo-color-primary,#2b6999);
+  flex:0 0 auto;
+}
+.laboratory-record-shell .lab-summary-linked-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--lo-color-border);
+  font-size:12px;
+  color:var(--lo-color-muted);
+}
+.laboratory-record-shell .lab-summary-linked-row svg{
+  color:var(--lo-color-primary,#2b6999);
+  flex:0 0 auto;
+}
+.laboratory-record-shell .lab-summary-linked-row span{
+  font-weight:700;
+}
+.laboratory-record-shell .lab-summary-linked-row strong{
+  margin-left:auto;
+  color:var(--lo-color-text);
+  font-size:12.5px;
+  font-weight:700;
+}
+
 /* Microbiology result / AST visual hierarchy — uses existing laboratory data only. */
 .laboratory-record-shell .lab-isolate-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:2px 0 14px;border-bottom:1px solid var(--lo-color-border)}
 .laboratory-record-shell .lab-isolate-identity{display:flex;align-items:center;gap:12px;min-width:0}
