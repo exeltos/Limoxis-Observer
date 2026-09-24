@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Box,CalendarRange,FileText,Recycle,Save,Scale,Truck,UserRound,X } from 'lucide-react'
+import { Box,Building2,CalendarRange,FileText,Recycle,Save,Scale,Truck,UserRound,X } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -128,7 +128,7 @@ function WasteRecordDetails({record,language,locale}){
   <section className="waste-record-primary">
    <div className="waste-record-context">
     <div><CalendarRange size={16}/><span><small>{en?'Reporting period':'Περίοδος αναφοράς'}</small><strong>{period}</strong></span></div>
-    <div><span className="waste-record-context-icon">Τ</span><span><small>{en?'Department':'Τμήμα'}</small><strong>{record.departmentEl||'—'}</strong></span></div>
+    <div><Building2 size={16}/><span><small>{en?'Department':'Τμήμα'}</small><strong>{record.departmentEl||'—'}</strong></span></div>
     <div className="waste-record-category"><Recycle size={16}/><span><small>{en?'Waste category':'Κατηγορία αποβλήτου'}</small><strong>{en?(record.typeEn||record.wasteType||record.type):(record.wasteType||record.type)||'—'}</strong></span></div>
    </div>
    <div className="waste-record-kpis">
