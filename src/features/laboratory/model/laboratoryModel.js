@@ -22,7 +22,11 @@ export function normalizeLaboratorySample(row = {}) {
   const sampleType = row.sampleType ?? row.sample_type ?? row.type ?? 'other'
   const subjectName = row.subjectName ?? row.subject_name ?? row.patient ?? ''
   const subjectNameEn = row.subjectNameEn ?? row.subject_name_en ?? row.patientEn ?? row.patient ?? ''
-  const subjectCode = row.subjectCode ?? row.subject_code ?? row.patientCode ?? row.patient_code ?? ''
+  // Demo rows carry the patient code as `patientId` (e.g. PT-260184); cloud
+  // rows use patient_code and a UUID patient_id. Without this fallback the
+  // code was lost, so demo samples never linked to their patient.
+  const legacyPatientCode = typeof row.patientId === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(row.patientId) ? row.patientId : ''
+  const subjectCode = row.subjectCode ?? row.subject_code ?? row.patientCode ?? row.patient_code ?? legacyPatientCode
   return {
     recordId,
     id: code,
