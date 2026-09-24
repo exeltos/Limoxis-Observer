@@ -1,16 +1,16 @@
 /* Laboratory record — module-only styles.
    Shared shell, tabs, typography, buttons and form controls come from the design system. */
 .laboratory-record-shell.workspace-fill{height:100%;min-height:0;overflow:hidden}
-.laboratory-record-shell.workspace-fill>.entity-record-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:12px}
-.laboratory-record-shell .lab-record-card{width:100%;box-sizing:border-box;margin:0;padding:16px 18px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface,#fff);box-shadow:none}
-.laboratory-record-shell .lab-record-card+.lab-record-card,.laboratory-record-shell .lab-ast-card{margin-top:10px}
-.laboratory-record-shell .lab-record-card>.record-section-header{min-height:0;margin:0 0 14px;padding:0 0 10px;border-bottom:1px solid var(--lo-color-border)}
+.laboratory-record-shell.workspace-fill>.entity-record-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:16px 18px 20px}
+.laboratory-record-shell .lab-record-card{width:100%;box-sizing:border-box;margin:0;padding:18px 20px;border:0;border-radius:0;background:transparent;box-shadow:none}
+.laboratory-record-shell .lab-record-card+.lab-record-card,.laboratory-record-shell .lab-ast-card{margin-top:12px}
+.laboratory-record-shell .lab-record-card>.record-section-header{min-height:0;margin:0 0 18px;padding:0 0 12px;border-bottom:1px solid var(--lo-color-border)}
 .laboratory-record-shell .lab-record-card>.record-section-header h3{margin:2px 0 0;font-size:15px}
 .laboratory-record-shell .lab-record-card>.record-section-header .eyebrow{font-size:10px}
 .laboratory-record-shell .lab-record-card .patient-detail-grid,.laboratory-record-shell .lab-record-card .employee-inline-edit{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:0;border:0;background:transparent}
 .laboratory-record-shell .laboratory-result-grid{grid-template-columns:minmax(180px,.85fr) minmax(320px,1.55fr) minmax(220px,1fr) minmax(180px,.85fr)}
 .laboratory-record-shell .laboratory-result-grid>.field{min-width:0}
-.laboratory-record-shell .lab-record-card .detail-item{min-width:0;padding:0;border:0;background:transparent}
+.laboratory-record-shell .lab-record-card .detail-item{min-width:0;padding:10px 0;border:0;background:transparent}
 .laboratory-record-shell .laboratory-library-picker{display:flex;flex-direction:column;gap:10px}
 .laboratory-record-shell .laboratory-library-picker>div:first-child{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
 .laboratory-record-shell .laboratory-isolate-list{display:flex;flex-direction:column;gap:7px}
@@ -18,7 +18,7 @@
 .laboratory-record-shell .laboratory-isolate-actions{display:flex;align-items:center;gap:6px;min-width:0}
 .laboratory-record-shell .laboratory-isolate-remove{border:0;background:transparent;color:var(--lo-color-muted);display:grid;place-items:center}
 .laboratory-record-shell .smart-protocol-strip{margin:0 0 10px;padding:8px 10px;min-height:36px;border-radius:8px}
-.laboratory-record-shell .lab-action-footer{display:flex;justify-content:flex-end;gap:8px;margin:14px -18px -16px;padding:10px 18px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface,#fff)}
+.laboratory-record-shell .lab-action-footer{display:flex;justify-content:flex-end;gap:8px;margin:18px -20px -18px;padding:12px 20px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface-subtle,#f8fafc)}
 .laboratory-record-shell .lab-isolate-card{margin:0;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface,#fff);overflow:hidden}
 .laboratory-record-shell .lab-isolate-card+.lab-isolate-card{margin-top:10px}
 .laboratory-record-shell .lab-isolate-card>.record-section-header{margin:0;padding:9px 10px;border-bottom:1px solid var(--lo-color-border);background:var(--lo-color-surface-subtle,#f8fafc)}
@@ -35,3 +35,9 @@
 .laboratory-record-shell .lab-attachments-card>.record-section{margin:0;padding:16px 18px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface,#fff);box-shadow:none}
 @media(max-width:1250px){.laboratory-record-shell .lab-record-card .patient-detail-grid,.laboratory-record-shell .lab-record-card .employee-inline-edit{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.laboratory-record-shell.workspace-fill{height:auto;overflow:visible}.laboratory-record-shell.workspace-fill>.entity-record-body{overflow:visible}.laboratory-record-shell .lab-record-card .patient-detail-grid,.laboratory-record-shell .lab-record-card .employee-inline-edit{grid-template-columns:1fr}.laboratory-record-shell .laboratory-library-picker>div:first-child{grid-template-columns:1fr}.laboratory-record-shell .lab-communication-row{align-items:flex-start;flex-direction:column}.laboratory-record-shell .finalization-checklist{grid-template-columns:1fr}.laboratory-record-shell .lab-action-footer{flex-wrap:wrap}}
+
+/* Final canonical polish: one workspace surface, sections separated by rhythm rather than nested cards. */
+.laboratory-record-shell .entity-record-body{background:var(--lo-color-surface,#fff)}
+.laboratory-record-shell .clinical-panel.full-panel{max-width:none}
+.laboratory-record-shell .lab-communication-row,.laboratory-record-shell .final-check{box-shadow:none}
+.laboratory-record-shell .lab-attachments-card>.record-section{border:0;border-radius:0;box-shadow:none;background:transparent;padding:18px 20px}
