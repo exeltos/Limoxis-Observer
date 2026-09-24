@@ -4284,9 +4284,29 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
   .quality-registry-page.page-fill{overflow:auto}
   .quality-registry-page>.quality-workspace{display:flex;flex-direction:column;overflow:visible}
   .quality-registry-page .scroll-table{max-height:58dvh}
-  .quality-record-shell.workspace-fill{height:auto;overflow:visible}
-  .quality-record-shell.workspace-fill>.entity-record-body{overflow:visible}
 }
+
+/* User-reported: content below the fold on a long incident (root cause,
+   contributing factors, the "create linked CAPA" action) was unreachable
+   — no scrollbar, wheel scroll did nothing.
+   True root cause: modern.css forces .content:has(>.page-fill){overflow:
+   hidden!important} app-wide — the outer scroll container NEVER scrolls
+   for any <Page fill> page, by design (every workspace-fill page is
+   expected to scroll internally). An earlier attempt here tried to grow
+   this shell to full content height and let the outer .content take
+   over — that can't work, .content is permanently overflow:hidden for
+   this page shape. The actual bug was simpler and entirely local: the
+   "Quality records — no-scroll desktop fit" media query (removed below)
+   forced .entity-record-body (and its .record-section) to overflow:
+   hidden at ordinary desktop sizes (min-width:981px, min-height:760px —
+   i.e. virtually any real desktop window), assuming a record's content
+   always fit one screen. It doesn't for a fully-populated incident.
+   With that rule gone, .entity-record-body falls back to its normal,
+   unconditional overflow:auto (core.css) inside the shell's grid row
+   (minmax(0,1fr)) — the same internal-scroll pattern every other record
+   page already relies on, and the one this page's own "is-editing"
+   footer-visibility rule below already assumed was in effect.
+*/
 
 
 /* Quality incident — compact details and shared owner editing */
@@ -4362,25 +4382,15 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 }
 
 
-/* Quality records — no-scroll desktop fit */
-@media (min-width:981px) and (min-height:760px){
-  .quality-record-shell.workspace-fill>.entity-record-body{
-    overflow:hidden;
-    scrollbar-gutter:auto;
-  }
-  .quality-record-shell.workspace-fill>.entity-record-body>.record-section{
-    height:100%;
-    display:flex;
-    flex-direction:column;
-    overflow:hidden;
-  }
-  .quality-record-shell .record-section-header{flex:0 0 auto}
-  .quality-record-shell .quality-detail-grid{flex:0 0 auto}
-  .quality-record-shell .quality-record-narrative,
-  .quality-record-shell .quality-incident-narrative{flex:0 0 auto}
-  .quality-record-shell .quality-investigation-card{flex:0 0 auto}
-  .quality-record-shell .inline-edit-footer{flex:0 0 auto}
-}
+/* The old "no-scroll desktop fit" rule forced .entity-record-body and its
+   .record-section to overflow:hidden at typical desktop sizes, assuming
+   content would always fit — for a fully-populated incident (root cause,
+   contributing factors, the linked-CAPA action) it doesn't, and the
+   excess was silently clipped with no scrollbar. Superseded by the
+   overflow:visible!important rule above, which lets the record grow and
+   the outer page scroll instead. Removed here rather than layering
+   another override on top of it.
+*/
 @media (min-width:1400px) and (min-height:800px){
   .quality-record-shell .record-section{padding:8px 10px}
   .quality-record-shell .record-section-header{min-height:32px}
