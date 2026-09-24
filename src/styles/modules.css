@@ -4160,3 +4160,10 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .vaccination-record-notes p{margin:7px 0 0;color:#435d71;font-size:12px;line-height:1.5}
 @media(max-width:900px){.vaccination-record-grid{grid-template-columns:1fr 1fr}.vaccination-record-grid>div{border-bottom:1px solid #edf1f4}}
 @media(max-width:600px){.vaccination-record-person{align-items:flex-start;flex-direction:column}.vaccination-record-grid{grid-template-columns:1fr}.vaccination-record-grid>div{border-right:0}}
+
+.vaccination-record-actions{position:absolute;top:14px;right:56px;z-index:4}
+.vaccination-record-actions>.lo-icon-button{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important}
+.vaccination-record-menu{position:absolute;top:38px;right:0;display:grid;min-width:150px;padding:5px;border:1px solid var(--lo-color-border,#dce5ec);border-radius:10px;background:#fff;box-shadow:0 12px 28px rgba(24,49,68,.14)}
+.vaccination-record-menu button{border:0;border-radius:7px;background:transparent;padding:9px 11px;text-align:left;color:#29475c;font-size:11px;font-weight:750;cursor:pointer}
+.vaccination-record-menu button:hover{background:#f3f7f9}
+.vaccination-record-menu button.danger{color:#b3483d}
