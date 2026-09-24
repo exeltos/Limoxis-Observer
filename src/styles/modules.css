@@ -4141,3 +4141,12 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .prevention-record-shell .who-record-list-heading{flex:0 0 auto!important;width:100%!important;background:var(--surface,#fff)!important}
 .prevention-record-shell .who-record-saved-list{display:block!important;flex:1 1 auto!important;width:100%!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important}
 .prevention-record-shell .who-record-opportunity-row{width:100%!important;margin:0!important;box-sizing:border-box!important}
+
+/* Bundle saved record — summary fixed, results/follow-up are the only scroll region. */
+.prevention-record-shell .prevention-record-card:has(.bundle-record-view){display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important}
+.prevention-record-shell .bundle-record-view{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;gap:0!important;min-height:0!important;overflow:hidden!important}
+.prevention-record-shell .bundle-record-summary{flex:0 0 auto!important}
+.prevention-record-shell .bundle-record-elements{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important}
+.prevention-record-shell .bundle-record-elements>.bundle-record-heading{flex:0 0 auto!important;padding-top:16px!important}
+.prevention-record-shell .bundle-detail-list{display:block!important;flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important}
+.prevention-record-shell .bundle-record-findings{flex:0 0 auto!important;max-height:34%!important;overflow-y:auto!important}
