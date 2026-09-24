@@ -74,3 +74,24 @@
 .modal-backdrop .entry-card>.entry-grid{overflow:auto;padding-top:4px}
 .modal-backdrop .entry-card>footer{flex:0 0 auto;position:sticky;bottom:0;background:var(--lo-color-surface,#fff)}
 @media(max-width:900px){.laboratory-record-shell .entity-record-body{padding:16px}.laboratory-record-shell .laboratory-result-grid{grid-template-columns:1fr}.laboratory-record-shell .lab-action-footer{bottom:-16px;margin:18px -16px -16px;padding:12px 16px}}
+
+/* Read-back confirmation checkbox — .clinical-choice had no styling of its
+   own, so it fell back to core.css's shared field-column rule
+   (:where(.entry-grid,...) label:not(.observer-check):not(.check-option)
+   :not(.bundle-required-toggle):not(.who-action-option){flex-direction:
+   column}), meant for text fields (label text above the control). That
+   selector's four :not() clauses outweigh a plain two-class override, so
+   this needs !important to actually win — the checkbox ended up on its
+   own line above its label instead of beside it. */
+.entry-grid label.clinical-choice{
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  gap:9px!important;
+}
+.entry-grid label.clinical-choice input[type="checkbox"]{
+  width:16px;
+  height:16px;
+  margin:0;
+  flex:0 0 auto;
+}
