@@ -8,6 +8,8 @@
 .laboratory-record-shell .lab-record-card>.record-section-header h3{margin:2px 0 0;font-size:15px}
 .laboratory-record-shell .lab-record-card>.record-section-header .eyebrow{font-size:10px}
 .laboratory-record-shell .lab-record-card .patient-detail-grid,.laboratory-record-shell .lab-record-card .employee-inline-edit{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:0;border:0;background:transparent}
+.laboratory-record-shell .laboratory-result-grid{grid-template-columns:minmax(180px,.85fr) minmax(320px,1.55fr) minmax(220px,1fr) minmax(180px,.85fr)}
+.laboratory-record-shell .laboratory-result-grid>.field{min-width:0}
 .laboratory-record-shell .lab-record-card .detail-item{min-width:0;padding:0;border:0;background:transparent}
 .laboratory-record-shell .laboratory-library-picker{display:flex;flex-direction:column;gap:10px}
 .laboratory-record-shell .laboratory-library-picker>div:first-child{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
