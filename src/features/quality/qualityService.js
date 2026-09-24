@@ -55,7 +55,7 @@ function mapRow(section,row){
     correctionOpenedAt:row.correction_opened_at||null,
     correctionOpenedById:row.correction_opened_by||null,
     attachments:[],
-    history:row.history||[],
+    history:Array.isArray(row.history)?row.history:[],
   }
   if(section==='incidents') return {
     ...common,
