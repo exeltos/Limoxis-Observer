@@ -8,7 +8,6 @@
 .laboratory-record-shell .lab-record-card>.record-section-header h3{margin:2px 0 0;font-size:15px}
 .laboratory-record-shell .lab-record-card>.record-section-header .eyebrow{font-size:10px}
 .laboratory-record-shell .lab-record-card .patient-detail-grid,.laboratory-record-shell .lab-record-card .employee-inline-edit{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:0;border:0;background:transparent}
-.laboratory-record-shell .laboratory-result-grid{grid-template-columns:minmax(180px,.85fr) minmax(320px,1.55fr) minmax(220px,1fr) minmax(180px,.85fr)}
 .laboratory-record-shell .laboratory-result-grid>.field{min-width:0}
 .laboratory-record-shell .lab-record-card .detail-item{min-width:0;padding:10px 0;border:0;background:transparent}
 .laboratory-record-shell .laboratory-library-picker{display:flex;flex-direction:column;gap:10px}
@@ -31,7 +30,6 @@
 .laboratory-record-shell .lab-communication-row>div{display:flex;align-items:center;gap:10px;min-width:0}
 .laboratory-record-shell .lab-communication-row>div:first-child{flex-direction:column;align-items:flex-start;gap:2px}
 .laboratory-record-shell .finalization-checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
-.laboratory-record-shell .final-check{min-height:52px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface,#fff)}
 .laboratory-record-shell .lab-attachments-card>.record-section{margin:0;padding:16px 18px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface,#fff);box-shadow:none}
 @media(max-width:1250px){.laboratory-record-shell .lab-record-card .patient-detail-grid,.laboratory-record-shell .lab-record-card .employee-inline-edit{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.laboratory-record-shell.workspace-fill{height:auto;overflow:visible}.laboratory-record-shell.workspace-fill>.entity-record-body{overflow:visible}.laboratory-record-shell .lab-record-card .patient-detail-grid,.laboratory-record-shell .lab-record-card .employee-inline-edit{grid-template-columns:1fr}.laboratory-record-shell .laboratory-library-picker>div:first-child{grid-template-columns:1fr}.laboratory-record-shell .lab-communication-row{align-items:flex-start;flex-direction:column}.laboratory-record-shell .finalization-checklist{grid-template-columns:1fr}.laboratory-record-shell .lab-action-footer{flex-wrap:wrap}}

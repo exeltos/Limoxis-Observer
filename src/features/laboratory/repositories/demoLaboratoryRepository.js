@@ -49,18 +49,20 @@ export function createDemoLaboratoryRepository({ actorName = 'Demo user' } = {})
     },
     async saveResult(sampleCode, draft) {
       const result = { ...draft, id: draft.id || `${sampleCode}-result`, resultStatus: draft.validationStatus || draft.resultStatus || 'draft', ast: draft.ast || [], communications: draft.communications || [] }
-      return this.update(sampleCode, { result: result.result, resultStatus: result.resultStatus, organism: result.organism, resistance: result.resistance, critical: result.critical, resultedAt: result.resultedAt || new Date().toISOString(), microbiologyResults: [result] })
+      const patch = { result: result.result, resultStatus: result.resultStatus, organism: result.organism, resistance: result.resistance, critical: result.critical, resultedAt: result.resultedAt || new Date().toISOString(), microbiologyResults: [result] }
+      if (['validated', 'amended'].includes(result.resultStatus)) patch.status = 'completed'
+      return this.update(sampleCode, patch)
     },
-    async addAst(sampleCode, draft) {
+    async addAst(sampleCode, resultId, draft) {
       const current = getLabSample(sampleCode)
-      const result = normalizeLaboratorySample(current).microbiologyResults[0]
+      const result = current ? normalizeLaboratorySample(current).microbiologyResults[0] : null
       const ast = [...(result?.ast || current?.ast || []), { ...draft, id: draft.id || `AST-${Date.now()}` }]
       return this.update(sampleCode, { ast, microbiologyResults: result ? [{ ...result, ast }] : [] })
     },
     async saveAmr(sampleCode, resultId, draft) { const current=await this.get(sampleCode);if(!current)return null;const result=(current.microbiologyResults||[]).find(x=>x.id===resultId)||(current.microbiologyResults||[])[0];if(!result)return current;const amr=[...(result.amr||[]),{...draft,id:'AMR-'+Date.now(),classifiedAt:new Date().toISOString()}];return this.update(sampleCode,{microbiologyResults:(current.microbiologyResults||[]).map(x=>x.id===result.id?{...x,amr,resistance:draft.classification}:x),resistance:draft.classification}) },
     async communicate(sampleCode, resultId, draft) {
       const current = getLabSample(sampleCode)
-      const result = normalizeLaboratorySample(current).microbiologyResults[0]
+      const result = current ? normalizeLaboratorySample(current).microbiologyResults[0] : null
       const communication = { ...draft, id: `COMM-${Date.now()}`, at: draft.at || new Date().toISOString(), to: draft.recipientName }
       const communications = [...(result?.communications || current?.communications || []), communication]
       return this.update(sampleCode, { communications, microbiologyResults: result ? [{ ...result, communications }] : [] })

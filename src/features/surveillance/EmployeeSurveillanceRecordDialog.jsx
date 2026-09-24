@@ -23,9 +23,9 @@ const compactCode=value=>{
 
 export function EmployeeSurveillanceRecordDialog({organizationId,record,samples=[],canManage,t,language,fmt,onClose,onUpdated,onSaveFollowup}){
   const {notify,notifyError,confirm}=useFeedback()
-  const {role,membership}=useTenant()
+  const {role,membership,isDemo}=useTenant()
   const en=language==='en'
-  const canManageLab=can(role,CAPABILITIES.MANAGE_LAB_SAMPLES,membership?.capabilities??[],membership?.customCapabilities??[])
+  const canManageLab=!isDemo&&can(role,CAPABILITIES.MANAGE_LAB_SAMPLES,membership?.capabilities??[],membership?.customCapabilities??[])
   const samplesRef=useRef(samples)
   samplesRef.current=samples
   const sampleSignature=(samples||[]).map(sample=>sample.id).join('|')

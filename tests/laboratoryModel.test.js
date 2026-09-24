@@ -12,6 +12,14 @@ describe('canonical laboratory model', () => {
   it('does not accept a non-collection as a registry response', () => {
     expect(() => normalizeLaboratorySamples(null)).toThrow('INVALID_LABORATORY_SAMPLE_COLLECTION')
   })
+
+  // A cancelled request is a real, DB-allowed terminal status (see the
+  // laboratory_samples check constraint) — without it in SAMPLE_STATUSES,
+  // normalizeLaboratorySample silently coerced it back to 'requested', so a
+  // cancelled request reappeared as pending forever.
+  it('keeps a cancelled status as cancelled instead of coercing it back to requested', () => {
+    expect(normalizeLaboratorySample({ id: 'LAB-1', status: 'cancelled' }).status).toBe('cancelled')
+  })
 })
 
 describe('turnaround-time tracking', () => {
