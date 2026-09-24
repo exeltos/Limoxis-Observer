@@ -4119,3 +4119,18 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
  .prevention-record-shell .who-record-workspace{display:grid!important;grid-template-columns:minmax(0,1fr)!important}
  .prevention-record-shell .who-record-session-bar,.prevention-record-shell .who-record-kpis,.prevention-record-shell .who-record-opportunities{grid-column:1/-1;width:100%!important}
 }
+
+/* Saved waste record — align with compact Prevention record pattern */
+.prevention-record-shell .waste-record-primary{display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(520px,1fr)!important;align-items:stretch!important}
+.prevention-record-shell .waste-record-context{grid-column:1!important;grid-row:1!important;border-bottom:0!important;border-right:1px solid #edf1f4!important}
+.prevention-record-shell .waste-record-kpis{grid-column:2!important;grid-row:1!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.prevention-record-shell .waste-record-kpis>div{min-height:102px!important;padding:13px 14px!important}
+.prevention-record-shell .waste-record-kpis strong{font-size:21px!important}
+.prevention-record-shell .waste-record-context>div{padding:14px 16px!important}
+.prevention-record-shell .waste-record-columns{grid-template-columns:minmax(0,1.65fr) minmax(300px,.72fr)!important}
+@media(max-width:1380px){
+ .prevention-record-shell .waste-record-primary{grid-template-columns:1fr!important}
+ .prevention-record-shell .waste-record-context{grid-column:1!important;grid-row:auto!important;border-right:0!important;border-bottom:1px solid #edf1f4!important}
+ .prevention-record-shell .waste-record-kpis{grid-column:1!important;grid-row:auto!important}
+}
+@media(max-width:900px){.prevention-record-shell .waste-record-columns{grid-template-columns:1fr!important}}
