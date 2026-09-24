@@ -180,7 +180,31 @@ function HandHygieneDetails({record,language}){
 
 function AntisepticDetails({record,language,locale}){
  const en=language==='en';const eligible=record.indicatorEligible!==false&&isAbhrProduct(record)
- return <div className="antiseptic-record-view"><section className="antiseptic-record-primary"><div className="antiseptic-record-heading"><div><strong>{en?'Period details':'Στοιχεία περιόδου'}</strong></div><span className={`antiseptic-abhr-badge ${eligible?'active':'informative'}`}>{eligible?(en?'ABHR · Indicator active':'ABHR · Δείκτης ενεργός'):(en?'Outside ABHR indicator':'Εκτός δείκτη ABHR')}</span></div><div className="antiseptic-record-measurements"><div><span>{en?'Consumption':'Κατανάλωση'}</span><strong>{Number(record.litres).toLocaleString(locale)} <small>L</small></strong></div><div><span>{en?'Patient-days':'Νοσηλευτικές ημέρες'}</span><strong>{record.patientDays||'—'}</strong></div><div className="antiseptic-record-indicator"><span>{en?'ABHR indicator':'Δείκτης ABHR'}</span><strong>{record.indicator!=null?Number(record.indicator).toLocaleString(locale):'—'}</strong><small>{en?'L / 1,000 patient-days':'L / 1.000 νοσηλευτικές ημέρες'}</small></div></div><div className="antiseptic-record-meta-line"><span><b>{en?'Period':'Περίοδος'}</b>{record.period||'—'}</span><span><b>{en?'Department':'Τμήμα'}</b>{record.departmentEl||'—'}</span><span><b>{en?'Product':'Προϊόν'}</b>{en?(record.productEn||record.product):record.product}</span></div></section><section className="antiseptic-record-trace"><div className="antiseptic-record-heading"><div><strong>{en?'Data source & traceability':'Πηγή δεδομένων & ιχνηλασιμότητα'}</strong></div></div><div className="antiseptic-trace-grid"><div><span>{en?'Source / method':'Πηγή / μέθοδος'}</span><strong>{antisepticMethodLabel(record.method,language)}</strong></div><div><span>{en?'Reference / document':'Αναφορά / παραστατικό'}</span><strong>{record.referenceNumber||'—'}</strong></div><div><span>{en?'Responsible':'Υπεύθυνος'}</span><strong>{record.responsible||'—'}</strong></div></div></section>{record.notes&&<div className="record-note-card"><span>{en?'Notes':'Σημειώσεις'}</span><p>{record.notes}</p></div>}</div>
+ const period=String(record.period||'—').replace(/^(\d{4})-(\d{2})$/,'$2/$1')
+ return <div className="antiseptic-detail">
+  <section className="antiseptic-detail-summary">
+   <div className="antiseptic-detail-context">
+    <div><span>{en?'Period':'Περίοδος'}</span><strong>{period}</strong></div>
+    <div><span>{en?'Department':'Τμήμα'}</span><strong>{record.departmentEl||'—'}</strong></div>
+    <div className="antiseptic-detail-product"><span>{en?'Product':'Προϊόν'}</span><strong>{en?(record.productEn||record.product):record.product}</strong></div>
+    <span className={`antiseptic-detail-badge ${eligible?'active':'informative'}`}>{eligible?(en?'ABHR · Indicator active':'ABHR · Δείκτης ενεργός'):(en?'Outside ABHR indicator':'Εκτός δείκτη ABHR')}</span>
+   </div>
+   <div className="antiseptic-detail-kpis">
+    <div><span>{en?'Consumption':'Κατανάλωση'}</span><strong>{Number(record.litres).toLocaleString(locale)} <small>L</small></strong></div>
+    <div><span>{en?'Patient-days':'Νοσηλευτικές ημέρες'}</span><strong>{record.patientDays||'—'}</strong></div>
+    <div className="primary"><span>{en?'ABHR indicator':'Δείκτης ABHR'}</span><strong>{record.indicator!=null?Number(record.indicator).toLocaleString(locale):'—'}</strong><small>{en?'L / 1,000 patient-days':'L / 1.000 νοσηλευτικές ημέρες'}</small></div>
+   </div>
+  </section>
+  <section className="antiseptic-detail-trace">
+   <header><strong>{en?'Data source & traceability':'Πηγή δεδομένων & ιχνηλασιμότητα'}</strong></header>
+   <div>
+    <section><span>{en?'Source / method':'Πηγή / μέθοδος'}</span><strong>{antisepticMethodLabel(record.method,language)}</strong></section>
+    <section><span>{en?'Reference / document':'Αναφορά / παραστατικό'}</span><strong>{record.referenceNumber||'—'}</strong></section>
+    <section><span>{en?'Responsible':'Υπεύθυνος'}</span><strong>{record.responsible||'—'}</strong></section>
+   </div>
+  </section>
+  {record.notes&&<div className="record-note-card"><span>{en?'Notes':'Σημειώσεις'}</span><p>{record.notes}</p></div>}
+ </div>
 }
 
 function BundleDetails({record,language,canEdit,onFollowUp}){
