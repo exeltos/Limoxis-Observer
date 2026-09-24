@@ -4386,22 +4386,27 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
    .record-section to overflow:hidden at typical desktop sizes, assuming
    content would always fit — for a fully-populated incident (root cause,
    contributing factors, the linked-CAPA action) it doesn't, and the
-   excess was silently clipped with no scrollbar. Superseded by the
-   overflow:visible!important rule above, which lets the record grow and
-   the outer page scroll instead. Removed here rather than layering
-   another override on top of it.
+   excess was silently clipped with no scrollbar. Removed; the shell now
+   falls back to its normal, unconditional overflow:auto (core.css) so
+   the record body scrolls internally when it genuinely needs to.
 */
-@media (min-width:1400px) and (min-height:800px){
-  .quality-record-shell .record-section{padding:8px 10px}
-  .quality-record-shell .record-section-header{min-height:32px}
-  .quality-record-shell .detail-item{min-height:58px;padding:9px 12px}
-  .quality-record-shell .quality-detail-owner{padding:8px 12px}
-  .quality-record-shell .quality-description{padding:7px 10px}
-  .quality-record-shell .quality-investigation-card{padding:7px 10px}
-  .quality-record-shell .quality-subsection-heading{padding-bottom:6px}
-  .quality-record-shell .quality-investigation-grid{margin-top:7px}
-  .quality-record-shell .quality-workflow-actions{margin-top:6px;padding-top:6px}
-}
+/* User-reported: even a short record left a lot of unused vertical
+   whitespace before this compaction kicked in, since it previously only
+   applied at min-width:1400px and min-height:800px — a narrower or
+   shorter (but still perfectly ordinary) desktop window got the roomier
+   spacing instead. Made unconditional so records are compact — and more
+   likely to need no scrolling at all — on any normal desktop size, not
+   just very large windows.
+*/
+.quality-record-shell .record-section{padding:8px 10px}
+.quality-record-shell .record-section-header{min-height:32px}
+.quality-record-shell .detail-item{min-height:58px;padding:9px 12px}
+.quality-record-shell .quality-detail-owner{padding:8px 12px}
+.quality-record-shell .quality-description{padding:7px 10px}
+.quality-record-shell .quality-investigation-card{padding:7px 10px}
+.quality-record-shell .quality-subsection-heading{padding-bottom:6px}
+.quality-record-shell .quality-investigation-grid{margin-top:7px}
+.quality-record-shell .quality-workflow-actions{margin-top:6px;padding-top:6px}
 @media (max-height:759px),(max-width:980px){
   .quality-record-shell.workspace-fill>.entity-record-body{overflow:auto}
 }
