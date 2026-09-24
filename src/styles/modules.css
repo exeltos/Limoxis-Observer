@@ -4178,7 +4178,7 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 @media (max-width:900px){.quality-investigation-grid{grid-template-columns:1fr}.quality-subsection-heading{align-items:flex-start;flex-direction:column}}
 
 /* Quality Center — compact canonical create card */
-.quality-record-shell:has(.quality-create-compact)>.entity-record-body{overflow:hidden}
+.quality-record-shell:has(.quality-create-compact)>.entity-record-body{overflow:auto}
 .quality-create-compact{height:100%;min-height:0;display:flex;flex-direction:column;padding:12px 14px}
 .quality-create-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px 12px;align-content:start}
 .quality-create-grid .entry-span-3{grid-column:1/-1}
@@ -4192,7 +4192,7 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 @media (max-width:720px){.quality-record-shell:has(.quality-create-compact)>.entity-record-body{overflow:auto}.quality-create-grid{grid-template-columns:1fr}.quality-create-grid .entry-span-3,.quality-create-grid .entry-span-2{grid-column:auto}}
 
 /* Quality record — desktop fit and read-only presentation */
-.quality-record-shell .entity-record-body{overflow:hidden}
+.quality-record-shell .entity-record-body{overflow:auto}
 .quality-record-shell .record-section{padding:10px 12px}
 .quality-record-shell .quality-investigation-card{margin-top:8px;padding:10px 12px}
 .quality-record-shell .quality-subsection-heading{padding-bottom:8px}
@@ -4202,6 +4202,6 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .quality-readonly-text:not(:has(textarea)) .textarea-expand-trigger{display:none!important}
 @media (max-width:900px){.quality-record-shell .entity-record-body{overflow:auto}}
 
-.quality-owner-input{display:flex;gap:6px}.quality-owner-input input{flex:1;min-width:0}.quality-owner-input button{width:36px;height:36px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface);font-weight:700}
+.quality-owner-input{display:flex;align-items:center;gap:6px}.quality-owner-input input{flex:1;min-width:0}.quality-owner-input button{flex:0 0 30px;width:30px;height:30px;min-width:30px;min-height:30px;padding:0;display:inline-grid;place-items:center;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);font-size:14px;font-weight:700;line-height:1;cursor:pointer}
 .quality-owner-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}.quality-owner-chips>span{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface-subtle);font-size:10px}.quality-owner-chips button{border:0;background:transparent;padding:0;line-height:1}
-.quality-record-shell{min-height:0}.quality-record-shell>.entity-record-body{min-height:0;overflow:hidden!important}.quality-record-shell .record-section{min-height:0}.quality-record-shell .quality-description{padding:8px 10px}.quality-record-shell .quality-description p{margin:4px 0 0}.quality-record-shell .quality-investigation-card{padding:8px 10px}.quality-record-shell .quality-investigation-grid .quality-description{min-height:54px}
+.quality-record-shell{min-height:0}.quality-record-shell>.entity-record-body{min-height:0;overflow:auto}.quality-record-shell .record-section{min-height:0}.quality-record-shell .quality-description{padding:8px 10px}.quality-record-shell .quality-description p{margin:4px 0 0}.quality-record-shell .quality-investigation-card{padding:8px 10px}.quality-record-shell .quality-investigation-grid .quality-description{min-height:54px}
