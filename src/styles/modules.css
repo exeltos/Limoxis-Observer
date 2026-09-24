@@ -4144,3 +4144,19 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 
 /* WHO is the only Prevention saved record with its own list scroller. */
 .prevention-record-shell.workspace-fill>.entity-record-body>.prevention-record-card:has(.who-record-compact){overflow:hidden!important}
+
+/* Vaccination saved record — viewer only; creation controls stay in the new-entry flow. */
+.vaccination-record-view{display:grid;gap:14px}
+.vaccination-record-person{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px;border:1px solid var(--lo-color-border,#dce5ec);border-radius:14px;background:#fff}
+.vaccination-record-person>div{display:grid;gap:5px;min-width:0}
+.vaccination-record-view span{color:#748797;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.035em}
+.vaccination-record-person strong{color:#173650;font-size:15px}
+.vaccination-record-person small{color:#657d8f;font-size:10.5px}
+.vaccination-record-grid{display:grid;grid-template-columns:1.4fr .7fr 1fr .8fr 1fr;border:1px solid var(--lo-color-border,#dce5ec);border-radius:14px;background:#fff;overflow:hidden}
+.vaccination-record-grid>div{display:grid;gap:7px;min-height:82px;padding:16px 18px;align-content:center;border-right:1px solid #edf1f4}
+.vaccination-record-grid>div:last-child{border-right:0}
+.vaccination-record-grid strong{color:#29475c;font-size:13px}
+.vaccination-record-notes{padding:16px 18px;border:1px solid var(--lo-color-border,#dce5ec);border-radius:14px;background:#fff}
+.vaccination-record-notes p{margin:7px 0 0;color:#435d71;font-size:12px;line-height:1.5}
+@media(max-width:900px){.vaccination-record-grid{grid-template-columns:1fr 1fr}.vaccination-record-grid>div{border-bottom:1px solid #edf1f4}}
+@media(max-width:600px){.vaccination-record-person{align-items:flex-start;flex-direction:column}.vaccination-record-grid{grid-template-columns:1fr}.vaccination-record-grid>div{border-right:0}}
