@@ -4190,3 +4190,14 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .quality-create-compact>.inline-edit-footer{margin-top:auto;padding-top:10px}
 @media (max-width:1050px){.quality-create-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.quality-create-grid .entry-span-3,.quality-create-grid .entry-span-2{grid-column:1/-1}}
 @media (max-width:720px){.quality-record-shell:has(.quality-create-compact)>.entity-record-body{overflow:auto}.quality-create-grid{grid-template-columns:1fr}.quality-create-grid .entry-span-3,.quality-create-grid .entry-span-2{grid-column:auto}}
+
+/* Quality record — desktop fit and read-only presentation */
+.quality-record-shell .entity-record-body{overflow:hidden}
+.quality-record-shell .record-section{padding:10px 12px}
+.quality-record-shell .quality-investigation-card{margin-top:8px;padding:10px 12px}
+.quality-record-shell .quality-subsection-heading{padding-bottom:8px}
+.quality-record-shell .quality-investigation-grid{gap:10px;margin-top:9px}
+.quality-record-shell .quality-workflow-actions{margin-top:8px;padding-top:8px}
+.quality-readonly-text:not(:has(textarea)){position:relative}
+.quality-readonly-text:not(:has(textarea)) .textarea-expand-trigger{display:none!important}
+@media (max-width:900px){.quality-record-shell .entity-record-body{overflow:auto}}
