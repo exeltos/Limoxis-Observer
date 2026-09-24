@@ -115,7 +115,7 @@ export function WasteEntryEditor({onCancel,onSave,fixedDepartment='',initialReco
 
 function WasteRecordDetails({record,language,locale}){
  const en=language==='en'
- const fmtDate=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)):'—'
+ const fmtDate=value=>{if(!value)return '—';const [year,month,day]=String(value).slice(0,10).split('-');return year&&month&&day?`${day}/${month}/${year}`:value}
  const fmtNumber=(value,digits=1)=>Number(value||0).toLocaleString(locale,{maximumFractionDigits:digits,minimumFractionDigits:0})
  const start=record.periodStart||record.date
  const end=record.periodEnd||record.date
@@ -126,7 +126,6 @@ function WasteRecordDetails({record,language,locale}){
  const source=record.patientDaysSource==='library'?(en?'Bed-days Library':'Βιβλιοθήκη νοσηλευτικών ημερών'):record.patientDaysSource==='manual'?(en?'Manual entry':'Χειροκίνητη καταχώριση'):'—'
  return <div className="waste-record-view">
   <section className="waste-record-primary">
-   <div className="waste-record-heading"><div><Recycle size={18}/><span><strong>{en?'Waste measurement':'Καταγραφή αποβλήτων'}</strong><small>{period}</small></span></div><span className="waste-record-status">{en?'Completed':'Ολοκληρωμένη'}</span></div>
    <div className="waste-record-context">
     <div><CalendarRange size={16}/><span><small>{en?'Reporting period':'Περίοδος αναφοράς'}</small><strong>{period}</strong></span></div>
     <div><span className="waste-record-context-icon">Τ</span><span><small>{en?'Department':'Τμήμα'}</small><strong>{record.departmentEl||'—'}</strong></span></div>
