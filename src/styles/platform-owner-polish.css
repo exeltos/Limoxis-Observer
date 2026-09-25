@@ -564,3 +564,7 @@
   }
   .platform-analysis-page svg{display:block!important;max-width:100%!important}
 }
+/* Demo duration: one bordered control with the unit inside, not a narrow input in a wide frame. */
+.platform-settings-page .platform-settings-duration-control{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;max-width:260px}
+.platform-settings-page .platform-settings-duration-control input{max-width:none!important;width:100%;border:0!important;border-radius:0!important;box-shadow:none!important;outline:0}
+.platform-settings-page .platform-settings-duration-control:focus-within{border-color:#2582bd!important;box-shadow:0 0 0 3px rgba(37,130,189,.15)}

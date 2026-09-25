@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useEffect,useMemo,useState } from 'react'
 import { Page } from '../../design-system/Page'
 import { BackButton } from '../../design-system/BackButton'
@@ -29,14 +30,14 @@ export function PlatformOrganizationsRegistry({
     <Page
       title={tx('Οργανισμοί', 'Organizations')}
       subtitle={tx(
-        'Ένα registry για οργανισμούς, χρήστες, πρόσβαση και λειτουργική διαχείριση.',
+        'Μητρώο οργανισμών, χρηστών, πρόσβασης και λειτουργικής διαχείρισης.',
         'One registry for organizations, users, access and operational management.'
       )}
-      actions={<Button onClick={onCreate}>+ {tx('Νέος οργανισμός', 'New organization')}</Button>}
+      actions={<Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button>}
     >
       <div className="platform-registry-shell">
         <div className="platform-registry-navigation">
-          <BackButton onClick={onBack} label={tx('Dashboard', 'Dashboard')} />
+          <BackButton onClick={onBack} label={tx('Κέντρο Πλατφόρμας', 'Platform Center')} />
         </div>
         <FilterBar
           query={query}
@@ -54,7 +55,7 @@ export function PlatformOrganizationsRegistry({
                       <th>{tx('Κωδικός', 'Code')}</th>
                       <th>{tx('Πόλη / Περιφέρεια', 'City / Region')}</th>
                       <th>{tx('Χρήστες', 'Users')}</th>
-                      <th>Hospital Admin</th>
+                      <th>{tx('Διαχειριστής', 'Hospital admin')}</th>
                       <th>{tx('Κατάσταση', 'Status')}</th>
                     </tr>
                   </thead>
@@ -74,7 +75,7 @@ export function PlatformOrganizationsRegistry({
                       >
                         <td>
                           <strong>{org.name}</strong>
-                          <small>{org.type || 'hospital'}</small>
+                          <small>{({hospital:tx('Νοσοκομείο','Hospital'),clinic:tx('Κλινική','Clinic'),rehab:tx('Κέντρο αποκατάστασης','Rehabilitation center')})[org.type||'hospital']||org.type}</small>
                         </td>
                         <td>{org.code}</td>
                         <td>{org.city || '—'} · {org.region || '—'}</td>

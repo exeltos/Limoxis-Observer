@@ -1,0 +1,6 @@
+/* Platform Center: 2x2 management links and a charts row. */
+.platform-dashboard .platform-dashboard-primary .platform-workspace-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+.platform-dashboard .platform-dashboard-primary .platform-workspace-link{border-bottom:1px solid var(--lo-color-border,#e3e9ef)}
+.platform-dashboard-charts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin:14px 0}
+.platform-dashboard-charts .platform-dashboard-chart-body{padding:14px 16px}
+@media(max-width:1100px){.platform-dashboard-charts{grid-template-columns:1fr}}

@@ -1,7 +1,7 @@
 import { useEffect,useState } from 'react'
-import { Pencil,Plus,Trash2,X } from 'lucide-react'
+import { Pencil,Plus,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { SaveButton } from '../../design-system/SaveButton'
+import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { IconButton } from '../../design-system/IconButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -60,6 +60,8 @@ export function HaiCriteriaLibraryPanel({global=false}={}){
  </div>
 }
 
+const rowsFor=text=>Math.min(5,Math.max(2,Math.ceil(String(text||'').length/52)))
+
 function HaiCriteriaEditor({draft,onClose,onSave,language,ruleLabels}){
  const en=language==='en'
  const [value,setValue]=useState({...draft,groups:(draft.groups||[]).map(group=>({...group,items:(group.items||[]).map(item=>({...item}))}))})
@@ -72,30 +74,31 @@ function HaiCriteriaEditor({draft,onClose,onSave,language,ruleLabels}){
  function addGroup(){setValue(x=>({...x,groups:[...x.groups,{id:`group_${Date.now()}`,rule:'any',items:[]}]}))}
  function removeGroup(gi){setValue(x=>({...x,groups:x.groups.filter((_,i)=>i!==gi)}))}
  function submit(){onSave(value)}
- return <div className="modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&onClose()}><div className="entry-card bundle-library-editor hai-criteria-editor" role="dialog" aria-modal="true">
-  <header><div><span className="eyebrow">HAI CRITERIA LIBRARY</span><h3>{locked?(en?'Read-only criteria set':'Προβολή σετ κριτηρίων'):(en?'Edit criteria set':'Επεξεργασία σετ κριτηρίων')}</h3><p>{locked?(en?'Only the Platform Owner can edit a system-governed criteria set.':'Μόνο η διαχείριση της πλατφόρμας μπορεί να επεξεργαστεί ένα σετ κριτηρίων συστήματος.'):(en?'Changes apply immediately to every hospital using this criteria set.':'Οι αλλαγές ισχύουν αμέσως για κάθε νοσοκομείο που χρησιμοποιεί αυτό το σετ κριτηρίων.')}</p></div><button className="icon-close" onClick={onClose}><X size={16}/></button></header>
-  <div className="bundle-library-editor-body">
-   <section className="bundle-editor-meta"><div className="entry-grid">
-    <label><span>{en?'Label (EL) *':'Ετικέτα (EL) *'}</span><input disabled={locked} value={value.labelEl||''} onChange={e=>set('labelEl',e.target.value)}/></label>
-    <label><span>{en?'Label (EN)':'Ετικέτα (EN)'}</span><input disabled={locked} value={value.labelEn||''} onChange={e=>set('labelEn',e.target.value)}/></label>
-    <label><span>{en?'Source':'Πηγή'}</span><input disabled={locked} value={value.source||''} onChange={e=>set('source',e.target.value)}/></label>
-   </div></section>
-   <section className="bundle-editor-elements"><div className="section-toolbar compact"><div><h4>{en?'Criteria groups':'Ομάδες κριτηρίων'}</h4><p>{en?'A group is satisfied per its rule; the checklist is met only when every group is satisfied.':'Μια ομάδα ικανοποιείται βάσει του κανόνα της· το checklist πληρείται μόνο όταν ικανοποιούνται όλες οι ομάδες.'}</p></div>{!locked&&<Button variant="secondary" onClick={addGroup}><Plus size={14}/>{en?'Add group':'Νέα ομάδα'}</Button>}</div>
-   {(value.groups||[]).map((group,gi)=><div className="hai-criteria-group-editor" key={group.id||gi}>
-     <div className="hai-criteria-group-editor-head">
-      <label><span>{en?'Group id':'Κωδικός ομάδας'}</span><input disabled={locked} value={group.id||''} onChange={e=>groupChange(gi,'id',e.target.value)}/></label>
-      <label><span>{en?'Rule':'Κανόνας'}</span><select disabled={locked} value={group.rule||'any'} onChange={e=>groupChange(gi,'rule',e.target.value)}><option value="all">{ruleLabels.all}</option><option value="any">{ruleLabels.any}</option><option value="atLeastTwo">{ruleLabels.atLeastTwo}</option></select></label>
-      {!locked&&<IconButton tone="danger" size="sm" onClick={()=>removeGroup(gi)} label={en?'Remove group':'Αφαίρεση ομάδας'}><Trash2 size={14}/></IconButton>}
-     </div>
-     <div className="bundle-elements-list">{(group.items||[]).map((item,ii)=><div className="bundle-element-row hai-criteria-item-row" key={item.id||ii}>
-       <input disabled={locked} value={item.textEl||''} placeholder={en?'Criterion (EL)':'Κριτήριο (EL)'} onChange={e=>itemChange(gi,ii,'textEl',e.target.value)}/>
-       <input disabled={locked} value={item.textEn||''} placeholder={en?'Criterion (EN)':'Κριτήριο (EN)'} onChange={e=>itemChange(gi,ii,'textEn',e.target.value)}/>
-       {!locked&&<IconButton tone="danger" size="sm" onClick={()=>removeItem(gi,ii)} label={en?'Remove':'Αφαίρεση'}><Trash2 size={14}/></IconButton>}
-     </div>)}</div>
-     {!locked&&<Button variant="ghost" onClick={()=>addItem(gi)}><Plus size={13}/>{en?'Add criterion':'Νέο κριτήριο'}</Button>}
+ return <ObserverDialog width="wide" className="hai-criteria-dialog" eyebrow={en?'HAI CRITERIA':'ΚΡΙΤΗΡΙΑ HAI'} title={locked?(en?'Read-only criteria set':'Προβολή σετ κριτηρίων'):(en?'Edit criteria set':'Επεξεργασία σετ κριτηρίων')} subtitle={locked?(en?'Only platform administration can edit a system criteria set.':'Μόνο η διαχείριση της πλατφόρμας μπορεί να επεξεργαστεί ένα σετ κριτηρίων συστήματος.'):(en?'Changes apply immediately to every hospital using this criteria set.':'Οι αλλαγές ισχύουν αμέσως για κάθε νοσοκομείο που χρησιμοποιεί αυτό το σετ κριτηρίων.')} onClose={onClose} footer={<DialogActions showCancel cancelLabel={locked?(en?'Close':'Κλείσιμο'):undefined} onCancel={onClose} onSave={locked?undefined:submit}/>}>
+  <section className="record-section hai-editor-meta"><div className="record-section-header"><div><span className="eyebrow">{en?'IDENTITY':'ΣΤΟΙΧΕΙΑ'}</span><h3>{en?'Criteria set':'Σετ κριτηρίων'}</h3></div></div><div className="entry-grid hai-editor-meta-grid">
+   <label><span>{en?'Label (EL) *':'Ετικέτα (EL) *'}</span><input disabled={locked} value={value.labelEl||''} onChange={e=>set('labelEl',e.target.value)}/></label>
+   <label><span>{en?'Label (EN)':'Ετικέτα (EN)'}</span><input disabled={locked} value={value.labelEn||''} onChange={e=>set('labelEn',e.target.value)}/></label>
+   <label className="entry-span-2"><span>{en?'Source':'Πηγή'}</span><input disabled={locked} value={value.source||''} onChange={e=>set('source',e.target.value)}/></label>
+  </div></section>
+  <section className="record-section hai-editor-groups"><div className="record-section-header"><div><span className="eyebrow">{en?'LOGIC':'ΛΟΓΙΚΗ'}</span><h3>{en?'Criteria groups':'Ομάδες κριτηρίων'}</h3><p>{en?'Each group is satisfied according to its rule; the checklist is met only when every group is satisfied.':'Κάθε ομάδα ικανοποιείται σύμφωνα με τον κανόνα της· η λίστα ελέγχου πληρείται μόνο όταν ικανοποιούνται όλες οι ομάδες.'}</p></div>{!locked&&<Button variant="secondary" onClick={addGroup}><Plus size={14}/>{en?'Add group':'Νέα ομάδα'}</Button>}</div>
+   {(value.groups||[]).map((group,gi)=><div className={`hai-group-card ${locked?'is-locked':''}`} key={gi}>
+    <div className="hai-group-head">
+     <span className="hai-group-index">{gi+1}</span>
+     <label><span>{en?'Group code':'Κωδικός ομάδας'}</span><input disabled={locked} value={group.id||''} onChange={e=>groupChange(gi,'id',e.target.value)}/></label>
+     <label><span>{en?'Rule':'Κανόνας'}</span><select disabled={locked} value={group.rule||'any'} onChange={e=>groupChange(gi,'rule',e.target.value)}><option value="all">{ruleLabels.all}</option><option value="any">{ruleLabels.any}</option><option value="atLeastTwo">{ruleLabels.atLeastTwo}</option></select></label>
+     {!locked&&<IconButton tone="danger" size="sm" onClick={()=>removeGroup(gi)} label={en?'Remove group':'Αφαίρεση ομάδας'}><Trash2 size={15}/></IconButton>}
+    </div>
+    <div className="hai-item-table">
+     <div className="hai-item-row hai-item-head"><span>{en?'Criterion (EL)':'Κριτήριο (EL)'}</span><span>{en?'Criterion (EN)':'Κριτήριο (EN)'}</span>{!locked&&<span/>}</div>
+     {(group.items||[]).map((item,ii)=><div className="hai-item-row" key={item.id||ii}>
+      <textarea rows={rowsFor(item.textEl)} disabled={locked} value={item.textEl||''} aria-label={en?'Criterion (EL)':'Κριτήριο (EL)'} onChange={e=>itemChange(gi,ii,'textEl',e.target.value)}/>
+      <textarea rows={rowsFor(item.textEn)} disabled={locked} value={item.textEn||''} aria-label={en?'Criterion (EN)':'Κριτήριο (EN)'} onChange={e=>itemChange(gi,ii,'textEn',e.target.value)}/>
+      {!locked&&<IconButton tone="danger" size="sm" onClick={()=>removeItem(gi,ii)} label={en?'Remove':'Αφαίρεση'}><Trash2 size={15}/></IconButton>}
+     </div>)}
+     {!(group.items||[]).length&&<div className="inline-empty">{en?'No criteria yet.':'Δεν υπάρχουν ακόμη κριτήρια.'}</div>}
+    </div>
+    {!locked&&<div className="hai-group-actions"><Button variant="secondary" onClick={()=>addItem(gi)}><Plus size={14}/>{en?'Add criterion':'Νέο κριτήριο'}</Button></div>}
    </div>)}
-   </section>
-  </div>
-  <footer><Button variant="secondary" onClick={onClose}>{en?'Close':'Κλείσιμο'}</Button>{!locked&&<SaveButton onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton>}</footer>
- </div></div>
+  </section>
+ </ObserverDialog>
 }

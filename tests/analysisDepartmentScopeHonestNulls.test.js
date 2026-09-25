@@ -38,8 +38,10 @@ describe('Analysis KPI rows show "—", not a fabricated 0, for department-scope
 // draw a fabricated zero-height bar and fabricated negative differences
 // against a real hospital-wide value.
 describe('Chart and comparison views never coerce the "—" sentinel back into a numeric 0', () => {
-  it('MetricBars excludes a "—" row before any numberValue() conversion', () => {
-    expect(page).toContain("rows.filter(([,value])=>value!=='—').map(([label,value])=>[label,numberValue(value)])")
+  it('MetricBars excludes a "—" row before any numeric conversion (via the shared chart helper)', () => {
+    const charts = fs.readFileSync('src/features/analysis/AnalysisCharts.jsx', 'utf8')
+    expect(page).toContain('function MetricBars({rows,tx}){return <BarList rows={rows}')
+    expect(charts).toContain(".filter(([,value])=>value!=='—'&&value!=null).map(([label,value])=>[String(label),toNumber(value)])")
   })
 
   it('ScopeComparison reports the difference as "—" (not a numeric diff) when either side is unavailable', () => {

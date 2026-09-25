@@ -42,12 +42,12 @@ export function PlatformDemoOrganizationRecord({organization,language='el',initi
         <div><span>{tx('Πόλη','City')}</span><strong>{DEMO_DETAILS.city}</strong></div>
         <div><span>Email</span><strong>{DEMO_DETAILS.contactEmail}</strong></div>
       </div>
-      <div className="inline-empty"><strong>{tx('Synthetic δεδομένα επίδειξης','Synthetic demo data')}</strong><span>{tx('Αυτός ο οργανισμός δεν αντιστοιχεί σε πραγματικό πελάτη και τα στοιχεία του δεν μπορούν να επεξεργαστούν.','This organization does not correspond to a real customer and its details cannot be edited.')}</span></div>
+      <div className="inline-empty"><strong>{tx('Συνθετικά δεδομένα επίδειξης','Synthetic demo data')}</strong><span>{tx('Αυτός ο οργανισμός δεν αντιστοιχεί σε πραγματικό πελάτη και τα στοιχεία του δεν μπορούν να επεξεργαστούν.','This organization does not correspond to a real customer and its details cannot be edited.')}</span></div>
     </div>}
     {tab==='users'&&<div className="workspace-column workspace-fill">
       <div className="section-toolbar"><div><strong>{tx('Χρήστες & Ρόλοι','Users & Roles')}</strong><span>{tx('Demo χρήστες, μόνο για επίδειξη.','Demo users, for demonstration only.')}</span></div></div>
       <section className="surface registry-workspace workspace-column workspace-fill"><div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>{tx('Χρήστης','User')}</th><th>Email</th><th>{tx('Ρόλος','Role')}</th><th>{tx('Κατάσταση','Status')}</th></tr></thead><tbody>{demoUsers.map(user=><tr key={user.id}><td><strong>{user.name}</strong></td><td>{user.email}</td><td>{roleLabel(user.role,language)}</td><td><span className="status-badge active">{tx('Ενεργός','Active')}</span></td></tr>)}</tbody></table></div></section>
     </div>}
-    {tab==='diagnostics'&&<div className="registry-empty-state"><strong>{tx('Δεν υπάρχουν πραγματικά συμβάντα σε demo mode.','No real events in demo mode.')}</strong></div>}
+    {tab==='diagnostics'&&<div className="registry-empty-state"><strong>{tx('Δεν υπάρχουν πραγματικά συμβάντα σε λειτουργία demo.','No real events in demo mode.')}</strong></div>}
   </EntityRecordShell>
 }
