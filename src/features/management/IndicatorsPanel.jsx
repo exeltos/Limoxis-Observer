@@ -10,6 +10,10 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { IndicatorDefinitionForm,createEmptyIndicatorDefinition,indicatorDefinitionIsValid } from '../indicators/IndicatorDefinitionForm'
 import { loadIndicatorDefinitions,retireIndicatorDefinition,saveIndicatorDefinition } from '../indicators/indicatorDefinitionService'
+// Source text is stored in Greek; English readers get the same parts translated.
+const SOURCE_EN=[['ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014','Ministerial Decision Υ1.Γ.Π.114971 (Gazette B 388/2014)'],['Πρόγραμμα Προκρούστης','Procrustes programme'],['Επιτήρηση ΜΕΝΝ','NICU surveillance'],['Επιτήρηση','Surveillance'],['Εργαστήριο','Laboratory'],['Εργαζόμενοι','Employees'],['Φαρμακείο','Pharmacy'],['Πρόληψη','Prevention'],['Αντισηπτικά','Antiseptics'],['Ποιότητα','Quality'],['Εκπαίδευση','Training'],['ΕΝΛ','IPC committee'],['ΕΟΔΥ','EODY']]
+const sourceText=(value,el)=>el||!value?value:SOURCE_EN.reduce((text,[from,to])=>text.split(from).join(to),value)
+
 export function IndicatorsPanel({global=false}={}){
  const {language}=useLanguage();const {tenant,role,membership}=useTenant();const {notify,confirm}=useFeedback();const el=language==='el';const isOwner=global;const canManage=global||can(role,CAPABILITIES.MANAGE_INDICATORS,membership?.capabilities||[],membership?.customCapabilities||[])
  const [rows,setRows]=useState([]),[loading,setLoading]=useState(false),[editor,setEditor]=useState(null)
@@ -23,7 +27,7 @@ export function IndicatorsPanel({global=false}={}){
   columns={[{key:'indicator',label:el?'Δείκτης':'Indicator'},{key:'type',label:el?'Τύπος':'Type'},{key:'version',label:el?'Έκδοση':'Version'},{key:'target',label:el?'Στόχος':'Target'},{key:'source',label:el?'Πηγή':'Source'},{key:'status',label:el?'Κατάσταση':'Status'},{key:'actions',label:''}]}
   rows={visible}
   rowKey={item=>item.id}
-  renderRow={item=>{const systemLocked=item.system&&!isOwner;return <><td><strong>{!el&&item.titleEn?item.titleEn:item.titleEl}</strong><small>{item.key} · {item.system?(el?'Σύστημα':'System'):(el?'Νοσοκομείο':'Hospital')}</small></td><td>{item.calculationType==='auto'?(el?'Αυτόματος':'Automatic'):item.calculationType==='manual'?(el?'Χειροκίνητος':'Manual'):item.calculationType}</td><td>{item.version}</td><td>{item.targetValue===''?'—':`${item.direction==='higher'?'≥':item.direction==='lower'?'≤':''} ${item.targetValue}`}</td><td>{item.sourceAuthority||'—'}</td><td><span className={`status-badge ${item.status==='active'?'active':'temporary'}`}>{({active:el?'Ενεργός':'Active',draft:el?'Προσχέδιο':'Draft',retired:el?'Αποσυρμένος':'Retired'})[item.status]||item.status}</span></td><td><OverflowMenu items={[
+  renderRow={item=>{const systemLocked=item.system&&!isOwner;return <><td><strong>{!el&&item.titleEn?item.titleEn:item.titleEl}</strong><small>{item.key} · {item.system?(el?'Σύστημα':'System'):(el?'Νοσοκομείο':'Hospital')}</small></td><td>{item.calculationType==='auto'?(el?'Αυτόματος':'Automatic'):item.calculationType==='manual'?(el?'Χειροκίνητος':'Manual'):item.calculationType}</td><td>{item.version}</td><td>{item.targetValue===''?'—':`${item.direction==='higher'?'≥':item.direction==='lower'?'≤':''} ${item.targetValue}`}</td><td>{sourceText(item.sourceAuthority,el)||'—'}</td><td><span className={`status-badge ${item.status==='active'?'active':'temporary'}`}>{({active:el?'Ενεργός':'Active',draft:el?'Προσχέδιο':'Draft',retired:el?'Αποσυρμένος':'Retired'})[item.status]||item.status}</span></td><td><OverflowMenu items={[
     {id:'edit',label:systemLocked?(el?'Προβολή κλειδωμένου δείκτη':'View locked indicator'):(el?'Επεξεργασία':'Edit'),icon:systemLocked?LockKeyhole:Pencil,onClick:()=>open(item)},
     {id:'retire',label:el?'Απόσυρση':'Retire',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>retire(item),hidden:!(canManage&&(!item.system||isOwner))},
   ]}/></td></>}}

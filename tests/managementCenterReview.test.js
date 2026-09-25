@@ -58,3 +58,17 @@ describe('Management Center review', () => {
     expect(read('src/design-system/DocumentsWorkspace.css')).toContain('width:100%!important')
   })
 })
+
+describe('Management Center follow-ups', () => {
+  it('the outbreak workspace uses shared sections, registry tables and translated evidence entries', () => {
+    const source = read('src/features/management/LiraOutbreakInvestigationsPanel.jsx')
+    expect(source).not.toContain('className="management-table"')
+    expect(source).toContain('<RecordDetailsGrid')
+    expect(source).toContain('function eventText(')
+    expect(source).not.toContain("b.code.replaceAll('_',' ')")
+  })
+
+  it('indicator sources are translated for English readers', () => {
+    expect(read('src/features/management/IndicatorsPanel.jsx')).toContain('sourceText(item.sourceAuthority,el)')
+  })
+})
