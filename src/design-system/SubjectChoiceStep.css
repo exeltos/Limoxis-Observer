@@ -1,0 +1,16 @@
+/* Shared "who / what is this about?" step: Laboratory new sample and
+   Surveillance new episode use the same numbered heading + icon cards. */
+.subject-choice-step-heading{display:flex;align-items:flex-start;gap:11px;margin-bottom:14px}
+.subject-choice-step-heading>span{width:25px;height:25px;flex:0 0 25px;border-radius:50%;display:grid;place-items:center;background:var(--lo-color-primary-soft,#eaf4fb);color:var(--lo-color-primary,#176b9a);font-size:12px;font-weight:800}
+.subject-choice-step-heading>div{display:flex;flex-direction:column;gap:2px}
+.subject-choice-step-heading strong{font-size:13px;color:var(--lo-color-text)}
+.subject-choice-step-heading small{font-size:11px;color:var(--lo-color-text-muted)}
+.subject-choice-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.subject-choice-card{min-height:78px;border:1px solid var(--lo-color-border);border-radius:10px;background:#fff;padding:13px;text-align:left;display:flex;align-items:flex-start;gap:10px;color:var(--lo-color-text);cursor:pointer;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+.subject-choice-card:hover{border-color:var(--lo-color-primary,#176b9a)}
+.subject-choice-card.active{border-color:var(--lo-color-primary,#176b9a);background:var(--lo-color-primary-soft,#f1f8fc);box-shadow:0 0 0 1px var(--lo-color-primary,#176b9a) inset}
+.subject-choice-card>svg{flex:0 0 auto;margin-top:2px;color:var(--lo-color-primary,#176b9a)}
+.subject-choice-card>span{display:flex;flex-direction:column;gap:4px}
+.subject-choice-card strong{font-size:13px}
+.subject-choice-card small{font-size:11px;line-height:1.35;color:var(--lo-color-text-muted)}
+@media(max-width:720px){.subject-choice-cards{grid-template-columns:1fr}}

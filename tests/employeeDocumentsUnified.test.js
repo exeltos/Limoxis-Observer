@@ -9,7 +9,7 @@ const navigation=fs.readFileSync('src/core/navigation/useContextualNavigation.js
 describe('employee documents and contextual return',()=>{
   it('renders the shared governed documents workspace',()=>{
     expect(tabs).toContain('DocumentsWorkspace')
-    expect(tabs).toContain('Όλα τα αρχεία του εργαζομένου τηρούνται σε ένα σημείο')
+    expect(tabs).toContain("title={language==='en'?'Documents & certifications':'Έγγραφα & Πιστοποιήσεις'}")
     expect(tabs).toContain('entityId={employee.dbId||employee.id}')
     expect(workspace).toContain('<AttachmentField')
     expect(tabs).not.toContain('employee-certificates-section')

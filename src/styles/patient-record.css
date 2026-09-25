@@ -535,3 +535,9 @@ html body button.clinical-risk-flag strong{font-size:11.5px;font-weight:800}
 html body button.clinical-risk-flag.risk-tone-active{border-color:#bfe3cc!important;background:#ecf8f1!important;color:#1f7a45!important}
 html body button.clinical-risk-flag.risk-tone-warning{border-color:#f5d7a8!important;background:#fff4e5!important;color:#9a5b00!important}
 html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!important;background:#fdeceb!important;color:#b42318!important}
+
+/* Documents tab: open exactly like the other records' documents tabs
+   (Quality/Laboratory) instead of the patient shell's edge-to-edge section. */
+.patient-record-shell>.entity-record-body>.record-section.documents-workspace{width:auto!important;margin:13px!important;padding:12px!important;border:1px solid #dbe2e8!important;border-radius:9px!important;background:#fff!important}
+.patient-record-shell .documents-workspace>.record-section-header{padding:0 0 7px!important;margin:0 0 18px!important}
+.patient-record-shell .documents-workspace .attachment-field{padding:12px 13px!important;border:1px dashed #ced9e3!important;border-radius:11px!important;background:#fbfcfd!important}

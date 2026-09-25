@@ -1,6 +1,8 @@
 import { AttachmentField } from './AttachmentField'
 import './DocumentsWorkspace.css'
 
+// Every record's documents tab opens the same way (as in Quality): a
+// record-section card with the title and the shared attachment box.
 export function DocumentsWorkspace({
   title,
   subtitle,
@@ -12,11 +14,8 @@ export function DocumentsWorkspace({
   value=[],
   onChange=()=>{},
 }){
-  return <section className="documents-workspace">
-    {(title||subtitle)&&<header className="documents-workspace-header">
-      {title&&<h3>{title}</h3>}
-      {subtitle&&<p>{subtitle}</p>}
-    </header>}
+  return <div className="record-section documents-workspace">
+    {(title||subtitle)&&<div className="record-section-header"><div>{title&&<h3>{title}</h3>}{subtitle&&<p>{subtitle}</p>}</div></div>}
     <AttachmentField
       disabled={disabled}
       value={value}
@@ -26,5 +25,5 @@ export function DocumentsWorkspace({
       entityType={entityType}
       entityId={entityId}
     />
-  </section>
+  </div>
 }

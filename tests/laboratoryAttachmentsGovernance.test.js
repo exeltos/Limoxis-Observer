@@ -8,7 +8,8 @@ const registry=fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx'
 
 describe('laboratory attachment governance',()=>{
   it('uses the unified shared private attachment field for entity evidence',()=>{
-    expect(panel).toContain("import { AttachmentField } from './AttachmentField'")
+    expect(panel).toContain("import { DocumentsWorkspace } from './DocumentsWorkspace'")
+    expect(fs.readFileSync('src/design-system/DocumentsWorkspace.jsx','utf8')).toContain('entityId={entityId}')
     expect(panel).toContain('organizationId={organizationId}')
     expect(panel).toContain('entityType={entityType}')
     expect(panel).toContain('entityId={entityRecordId}')

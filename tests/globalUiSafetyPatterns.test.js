@@ -14,8 +14,9 @@ describe('shared UI safety patterns',()=>{
     const field=read('src/design-system/AttachmentField.jsx')
     const panel=read('src/design-system/EntityAttachmentsPanel.jsx')
     expect(field).toContain('await confirm(')
-    expect(panel).toContain("import { AttachmentField } from './AttachmentField'")
-    expect(panel).toContain('<AttachmentField')
+    // The panel renders the shared DocumentsWorkspace, which wraps AttachmentField.
+    expect(panel).toContain("import { DocumentsWorkspace } from './DocumentsWorkspace'")
+    expect(read('src/design-system/DocumentsWorkspace.jsx')).toContain('<AttachmentField')
   })
 
   it('shows upload progress through the unified shared attachment field',()=>{
@@ -23,6 +24,6 @@ describe('shared UI safety patterns',()=>{
     const panel=read('src/design-system/EntityAttachmentsPanel.jsx')
     expect(field).toContain('LoaderCircle')
     expect(field).toContain('attachment-upload-progress')
-    expect(panel).toContain('<AttachmentField')
+    expect(panel).toContain('<DocumentsWorkspace')
   })
 })
