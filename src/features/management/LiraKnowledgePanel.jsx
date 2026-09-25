@@ -2,6 +2,7 @@ import { useEffect,useMemo,useState } from 'react'
 import { CheckCircle2,FilePlus2,Pencil,RotateCcw } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { FilterBar } from '../../design-system/FilterBar'
+import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -37,13 +38,26 @@ export function LiraKnowledgePanel(){
    renderRow={x=><><td><strong>{x.authority}</strong></td><td>{x.title}</td><td>{x.source_version||'—'}</td><td><span className={`status-badge ${badgeClass(x.status)}`}>{statusLabel(x.status,en)}</span></td><td><span className={`status-badge ${badgeClass(x.ingestion_status)}`}>{ingestionLabel(x.ingestion_status,en)}</span></td></>}
    emptyTitle={rows.length?(en?'No sources match the filters.':'Δεν βρέθηκαν πηγές με αυτά τα φίλτρα.'):(en?'No knowledge sources yet.':'Δεν υπάρχουν ακόμη πηγές γνώσης.')}
   />}
-  {selected&&<ObserverDialog onClose={()=>setSelected(null)} title={selected?.title||''} width="wide">
-   {selected&&<div className="stack"><div className="detail-summary-grid"><div><span>{en?'Authority':'Φορέας'}</span><strong>{selected.authority}</strong></div><div><span>{en?'Version':'Έκδοση'}</span><strong>{selected.source_version||'—'}</strong></div><div><span>{en?'Approval':'Έγκριση'}</span><strong>{statusLabel(selected.status,en)}</strong></div><div><span>{en?'Knowledge':'Γνώση'}</span><strong>{ingestionLabel(selected.ingestion_status,en)}</strong></div></div>{selected.source_url&&<div><strong>{en?'Official source':'Επίσημη πηγή'}</strong><p className="muted">{selected.source_url}</p></div>}{selected.review_notes&&<div><strong>{en?'Review notes':'Σημειώσεις ελέγχου'}</strong><p>{selected.review_notes}</p></div>}<div><div className="section-toolbar"><div><h3>{en?'Knowledge content':'Περιεχόμενο γνώσης'}</h3><p>{chunks.length} {en?'sections':'ενότητες'}</p></div></div><div className="stack knowledge-chunk-list">{chunks.map(x=><article key={x.id} className="card"><strong>{x.heading||`#${x.chunk_index+1}`}</strong><p>{x.content}</p>{x.citation_label&&<small>{x.citation_label}{x.page_start!=null?` · p. ${x.page_start}${x.page_end&&x.page_end!==x.page_start?`–${x.page_end}`:''}`:''}</small>}</article>)}</div></div></div>}
-   <DialogActions>{selected?.status==='review'&&<><Button variant="secondary" onClick={()=>setEdit({...selected})}><Pencil size={15}/>{en?'Edit metadata':'Επεξεργασία'}</Button><Button onClick={approve}><CheckCircle2 size={15}/>{en?'Approve':'Έγκριση'}</Button></>}{selected?.status==='approved'&&<><input value={version} onChange={e=>setVersion(e.target.value)} placeholder={en?'New version':'Νέα έκδοση'}/><Button variant="secondary" onClick={newVersion}><FilePlus2 size={15}/>{en?'Create version':'Νέα έκδοση'}</Button><Button variant="danger" onClick={retire}><RotateCcw size={15}/>{en?'Retire':'Απόσυρση'}</Button></>}<Button variant="secondary" onClick={()=>setSelected(null)}>{en?'Close':'Κλείσιμο'}</Button></DialogActions>
+  {selected&&<ObserverDialog onClose={()=>setSelected(null)} eyebrow={en?'KNOWLEDGE SOURCE':'ΠΗΓΗ ΓΝΩΣΗΣ'} title={selected.title||''} subtitle={[selected.authority,selected.source_version].filter(Boolean).join(' · ')} width="wide" className="lira-knowledge-dialog" footer={<DialogActions>
+    <Button variant="secondary" onClick={()=>setSelected(null)}>{en?'Close':'Κλείσιμο'}</Button>
+    {selected.status==='review'&&<><Button variant="secondary" onClick={()=>setEdit({...selected})}><Pencil size={15}/>{en?'Edit details':'Επεξεργασία'}</Button><Button onClick={approve}><CheckCircle2 size={15}/>{en?'Approve':'Έγκριση'}</Button></>}
+    {selected.status==='approved'&&<Button variant="danger" onClick={retire}><RotateCcw size={15}/>{en?'Retire':'Απόσυρση'}</Button>}
+   </DialogActions>}>
+   <section className="record-section lira-knowledge-summary"><RecordDetailsGrid fields={[
+    {id:'authority',label:en?'Authority':'Φορέας',value:selected.authority},
+    {id:'version',label:en?'Version':'Έκδοση',value:selected.source_version},
+    {id:'status',label:en?'Approval':'Έγκριση',value:<span className={`status-badge ${badgeClass(selected.status)}`}>{statusLabel(selected.status,en)}</span>},
+    {id:'knowledge',label:en?'Knowledge':'Γνώση',value:<span className={`status-badge ${badgeClass(selected.ingestion_status)}`}>{ingestionLabel(selected.ingestion_status,en)}</span>},
+    {id:'url',label:en?'Official source':'Επίσημη πηγή',value:<a href={selected.source_url} target="_blank" rel="noreferrer">{selected.source_url}</a>,hidden:!selected.source_url,className:'detail-span-full'},
+    {id:'notes',label:en?'Review notes':'Σημειώσεις ελέγχου',value:selected.review_notes,hidden:!selected.review_notes,className:'detail-span-full'},
+   ]}/></section>
+   {selected.status==='approved'&&<section className="lira-knowledge-new-version"><div><strong>{en?'New version for review':'Νέα έκδοση προς έλεγχο'}</strong><small>{en?'Creates a copy in review; the approved version stays active until the new one is approved.':'Δημιουργεί αντίγραφο προς έλεγχο· η εγκεκριμένη έκδοση μένει ενεργή μέχρι να εγκριθεί η νέα.'}</small></div><input className="lira-knowledge-version-input" aria-label={en?'New version':'Νέα έκδοση'} value={version} onChange={e=>setVersion(e.target.value)} placeholder={en?'e.g. 2026-01':'π.χ. 2026-01'}/><Button variant="secondary" disabled={!version.trim()} onClick={newVersion}><FilePlus2 size={15}/>{en?'Create version':'Δημιουργία έκδοσης'}</Button></section>}
+   <section className="lira-knowledge-chunks"><header><h3>{en?'Knowledge content':'Περιεχόμενο γνώσης'}</h3><span className="status-badge">{chunks.length} {en?'sections':'ενότητες'}</span></header>
+    <div className="lira-knowledge-chunk-list">{chunks.map(x=><article key={x.id} className="lira-knowledge-chunk"><strong>{x.heading||`#${x.chunk_index+1}`}</strong><p>{x.content}</p>{x.citation_label&&<small>{x.citation_label}{x.page_start!=null?` · p. ${x.page_start}${x.page_end&&x.page_end!==x.page_start?`–${x.page_end}`:''}`:''}</small>}</article>)}</div>
+   </section>
   </ObserverDialog>}
-  {edit&&<ObserverDialog onClose={()=>setEdit(null)} title={en?'Edit review source':'Επεξεργασία πηγής υπό έλεγχο'} width="wide">
-   {edit&&<div className="form-grid"><label>{en?'Title':'Τίτλος'}<input value={edit.title} onChange={e=>setEdit({...edit,title:e.target.value})}/></label><label>{en?'Version':'Έκδοση'}<input value={edit.source_version||''} onChange={e=>setEdit({...edit,source_version:e.target.value})}/></label><label>{en?'Source URL':'URL πηγής'}<input value={edit.source_url||''} onChange={e=>setEdit({...edit,source_url:e.target.value})}/></label><label>{en?'Review notes':'Σημειώσεις ελέγχου'}<textarea value={edit.review_notes||''} onChange={e=>setEdit({...edit,review_notes:e.target.value})}/></label></div>}
-   <DialogActions><Button variant="secondary" onClick={()=>setEdit(null)}>{en?'Cancel':'Ακύρωση'}</Button><Button onClick={saveEdit}>{en?'Save':'Αποθήκευση'}</Button></DialogActions>
+  {edit&&<ObserverDialog onClose={()=>setEdit(null)} title={en?'Edit source under review':'Επεξεργασία πηγής υπό έλεγχο'} width="standard" footer={<DialogActions showCancel onCancel={()=>setEdit(null)} onSave={saveEdit}/>}>
+   <div className="entry-grid"><label><span>{en?'Title':'Τίτλος'}</span><input value={edit.title} onChange={e=>setEdit({...edit,title:e.target.value})}/></label><label><span>{en?'Version':'Έκδοση'}</span><input value={edit.source_version||''} onChange={e=>setEdit({...edit,source_version:e.target.value})}/></label><label className="entry-span-2"><span>{en?'Source URL':'URL πηγής'}</span><input value={edit.source_url||''} onChange={e=>setEdit({...edit,source_url:e.target.value})}/></label><label className="entry-span-2"><span>{en?'Review notes':'Σημειώσεις ελέγχου'}</span><textarea rows={3} value={edit.review_notes||''} onChange={e=>setEdit({...edit,review_notes:e.target.value})}/></label></div>
   </ObserverDialog>}
  </section>
 }
