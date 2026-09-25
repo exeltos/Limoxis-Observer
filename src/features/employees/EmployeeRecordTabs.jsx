@@ -36,6 +36,20 @@ function statusClass(status){return ['complete','completed','fit','active','appr
 function label(value,t){if(!value)return '—';const translated=t?.(value);return translated&&translated!==value?translated:value}
 function compactEpisodeCode(value){const code=String(value||'');if(code.startsWith('ESUR-')){const parts=code.split('-');if(parts.length>=3)return `ES-${parts[1]}-${parts.at(-1).slice(-4)}`}return code}
 
+// Occupational health, vaccinations and exposure incidents share one tab
+// (same permission) with a sub-navigation, so the record tabs fit one row.
+export function EmployeeHealthTab({employee,t,language,fmt,organizationId,initialSection='visits'}){
+  const [section,setSection]=useState(initialSection)
+  const en=language==='en'
+  const sections=[['visits',en?'Visits':'Επισκέψεις'],['vaccinations',en?'Vaccinations':'Εμβολιασμοί'],['exposures',en?'Exposure incidents':'Περιστατικά έκθεσης']]
+  return <div className="employee-health-tab">
+    <div className="employee-health-subnav" role="tablist" aria-label={en?'Occupational health':'Ιατρός Εργασίας'}>{sections.map(([id,label])=><button type="button" role="tab" key={id} aria-selected={section===id} className={section===id?'is-active':''} onClick={()=>setSection(id)}>{label}</button>)}</div>
+    {section==='visits'&&<EmployeeOccupationalTab employee={employee} t={t} language={language} fmt={fmt} organizationId={organizationId}/>}
+    {section==='vaccinations'&&<EmployeeVaccinationsTab employee={employee} t={t} language={language} fmt={fmt} organizationId={organizationId}/>}
+    {section==='exposures'&&<EmployeeExposureIncidentsTab employee={employee} language={language} fmt={fmt} organizationId={organizationId}/>}
+  </div>
+}
+
 export function EmployeeOccupationalTab({employee,t,language,fmt,organizationId}){
   const state=useEmployeeSubRecords(loadOccupationalVisitsAsync,organizationId,employee.dbId,employee.id)
   const [selected,setSelected]=useState(null)
