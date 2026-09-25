@@ -15,3 +15,21 @@
 .main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
 .main-column:has(>.preview-banner) .laboratory-registry-page,
 .main-column:has(>.preview-banner) .controls-page{min-height:760px!important}
+/* Analysis filters never clip their last group (comparison) when they wrap. */
+.analysis-workspace .analysis-filter-toolbar{height:auto!important;max-height:none!important}
+/* Collapsed filter summary (short screens): one line with the active filters. */
+.analysis-filter-summary{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--lo-color-border,#dfe6ed);border-radius:12px;background:var(--lo-color-surface,#fff)}
+.analysis-filter-chips{display:flex;flex-wrap:wrap;gap:6px;min-width:0;flex:1}
+.analysis-filter-chips span{padding:4px 10px;border-radius:999px;background:#eef3f7;color:#24425c;font-size:12px;font-weight:650;white-space:nowrap}
+.analysis-filter-toggle{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--lo-color-border,#d8e1e9);border-radius:9px;background:#fff;color:#24425c;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;flex:none}
+.analysis-filter-toggle:hover{background:#f4f7fa}
+.analysis-filter-close{align-self:flex-end;margin-left:auto}
+/* Analysis on short screens: compact header and tabs so the results keep
+   most of the height and scroll in their own area. */
+@media (max-height:900px) and (min-width:981px){
+  .analysis-workspace .analysis-header{min-height:0!important;padding-top:2px!important;padding-bottom:6px!important}
+  .analysis-workspace .analysis-header .eyebrow,.analysis-workspace .analysis-header p{display:none!important}
+  .analysis-workspace .analysis-header h1{font-size:21px!important;margin:0!important;line-height:1.2!important}
+  html:not(#lo-short) body .analysis-workspace>.analysis-tabs.entity-record-tabs,html:not(#lo-short) body .analysis-workspace .analysis-tabs.entity-record-tabs{flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin;height:auto!important;max-height:none!important;margin-top:8px!important}
+  html:not(#lo-short) body .analysis-workspace .analysis-tabs.entity-record-tabs>button{flex:0 0 auto!important;width:auto!important;height:40px!important;min-height:40px!important;padding:0 12px!important;white-space:nowrap!important}
+}
