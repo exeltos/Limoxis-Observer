@@ -8,7 +8,8 @@ describe('patient sample follow-up hierarchy', () => {
     expect(page).toContain("'Επανέλεγχος δείγματος'")
     expect(page).toContain('function SampleTree({samples=[]')
     expect(page).toContain('sampleParentCode')
-    expect(page).toContain('linked?32:depth*28')
+    expect(page).toContain('sv-sample-children')
+    expect(page).toContain("'Επανέλεγχος':'Follow-up'} ${depth}")
   })
 
   it('persists follow-up lineage in the sample code and keeps surveillance linkage', () => {

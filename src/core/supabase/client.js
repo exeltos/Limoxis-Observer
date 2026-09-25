@@ -1,13 +1,28 @@
 import { createClient } from '@supabase/supabase-js'
 import { appConfig, hasSupabaseConfig } from '../config/env'
 
+// The Help Center embeds live screens in an iframe on the same origin
+// (?helpPreview=1). That iframe must never reuse the signed-in user's stored
+// session: it gets an isolated, anonymous, non-persisted client so row-level
+// security returns no production data and every screen runs on the demo dataset.
+export const isHelpPreviewFrame = typeof window !== 'undefined'
+  && new URLSearchParams(window.location.search).get('helpPreview') === '1'
+  && window.self !== window.top
+
 export const supabase = hasSupabaseConfig
   ? createClient(appConfig.supabaseUrl, appConfig.supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
+      auth: isHelpPreviewFrame
+        ? {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+            storageKey: 'limoxis-help-preview',
+          }
+        : {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+          },
     })
   : null
 

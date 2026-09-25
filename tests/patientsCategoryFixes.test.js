@@ -27,7 +27,7 @@ describe('Patients category fixes', () => {
   })
 
   it('labels a surveillance episode with its HAI type', () => {
-    expect(canonical).toContain('{episodeTypeLabel(ep,t)}')
+    expect(canonical).toContain('{episodeTypeLabel(ep,t)||')
   })
 
   it('keeps the patient code of demo laboratory samples so they link to the patient', () => {

@@ -34,7 +34,8 @@ describe('Technical guard: a negative laboratory result can never start or conti
   })
 
   it('the Surveillance & Samples UI hides the "Start surveillance" action for a negative-result sample', () => {
-    expect(page).toContain("isNegative=sample.result==='negative'")
+    expect(page).toContain("if(result==='negative')return 'negative'")
+    expect(page).toContain("isNegative=tone==='negative'")
     expect(page).toContain('sample-negative-note')
     expect(page).toContain('A negative result cannot start a surveillance case.')
   })
