@@ -22,7 +22,7 @@ describe('demo / production isolation',()=>{
   it('keeps environment branching in the surveillance data layer',()=>{
     expect(canonicalSurveillance).toContain('isDemo')
     expect(canonicalSurveillance).toContain('loadClinicalCases')
-    expect(canonicalSurveillance).toContain('surveillanceDemoData')
+    expect(canonicalSurveillance).toContain('demoSurveillanceList')
     expect(clinicalRepository).toContain('if(isDemo)')
     expect(clinicalRepository).toContain('loadClinicalCasesForPatient')
     expect(clinicalRepository).toContain('createClinicalCase')
@@ -39,7 +39,8 @@ describe('demo / production isolation',()=>{
     expect(analysis).toContain('const productionScope=!isDemo&&')
     expect(analysis).toContain('loadAnalysisSnapshot(')
     expect(analysis).toContain('collectAnalysisDemoSnapshot')
-    expect(analysis).toContain('buildProductionRows(tab,isDemo?demoSnapshot:snapshot,tx)')
+    expect(analysis).toContain('const activeSnapshot=isDemo?demoSnapshot:snapshot')
+    expect(analysis).toContain('buildProductionRows(tab,activeSnapshot,tx)')
     expect(analysis).toContain("tab==='national'?<NationalSurveillance details={micro}")
     expect(analysis).not.toContain('DemoNationalSurveillance')
     expect(analysis).not.toContain('ProductionNationalSurveillance')

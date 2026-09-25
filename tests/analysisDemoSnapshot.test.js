@@ -1,3 +1,4 @@
+import { demoSurveillanceList } from '../src/features/surveillance/clinicalDemoData'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import fs from 'node:fs'
 import { collectAnalysisDemoSnapshot } from '../src/features/analysis/analysisDemoSnapshot'
@@ -37,7 +38,8 @@ beforeEach(() => {
 describe('collectAnalysisDemoSnapshot computes from the same demo fixtures every other demo screen uses', () => {
   it('sums summary fields from their real demo fixtures instead of hardcoding a number', () => {
     const snapshot = collectAnalysisDemoSnapshot()
-    expect(snapshot.summary.surveillance).toBe(surveillanceDemoData.length)
+    expect(snapshot.summary.surveillance).toBe(demoSurveillanceList().length)
+    expect(snapshot.summary.surveillance).toBeGreaterThanOrEqual(surveillanceDemoData.length)
     expect(snapshot.summary.laboratory).toBe(laboratorySamples.length)
     expect(snapshot.summary.handHygiene).toBe(loadHandHygieneLocal().length)
     expect(snapshot.summary.waste).toBe(loadWasteLocal().length)

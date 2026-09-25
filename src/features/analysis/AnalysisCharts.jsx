@@ -20,14 +20,15 @@ export function ChartCard({title,subtitle,wide=false,children}){
 export function EmptyChart({en}){return <div className="analysis-chart-empty">{en?'No data is available for the active scope.':'Δεν υπάρχουν δεδομένα για το ενεργό εύρος.'}</div>}
 
 // Horizontal magnitude bars: one hue, value right-aligned, hover names the mark.
-export function BarList({rows,en,max:limit=8}){
+// scale fixes the axis (e.g. 100 for percentages); suffix is appended to values.
+export function BarList({rows,en,max:limit=8,scale,suffix=''}){
  const data=numericRows(rows).slice(0,limit)
  if(!data.length)return <EmptyChart en={en}/>
- const max=Math.max(1,...data.map(([,v])=>v))
- return <div className="viz-bars" role="list">{data.map(([label,value])=><div className="viz-bar-row" role="listitem" key={label} title={`${label}: ${fmt(value,en)}`}>
+ const max=scale||Math.max(1,...data.map(([,v])=>v))
+ return <div className="viz-bars" role="list">{data.map(([label,value])=><div className="viz-bar-row" role="listitem" key={label} title={`${label}: ${fmt(value,en)}${suffix}`}>
   <span className="viz-bar-label">{label}</span>
-  <span className="viz-bar-track"><i style={{width:`${Math.max(value>0?2:0,value/max*100)}%`,background:MAGNITUDE}}/></span>
-  <strong className="viz-bar-value">{fmt(value,en)}</strong>
+  <span className="viz-bar-track"><i style={{width:`${Math.min(100,Math.max(value>0?2:0,value/max*100))}%`,background:MAGNITUDE}}/></span>
+  <strong className="viz-bar-value">{fmt(value,en)}{suffix}</strong>
  </div>)}</div>
 }
 

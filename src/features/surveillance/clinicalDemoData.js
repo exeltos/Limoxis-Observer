@@ -1,3 +1,4 @@
+import { surveillanceDemoData } from './surveillanceDemoData'
 export const clinicalCases = {
   'SUR-260041': {
     id:'SUR-260041', patientId:'PT-260184', patient:'Ελένη Παπαδοπούλου', patientEn:'Eleni Papadopoulou', dateOfBirth:'1958-04-11', department:'ΜΕΘ', departmentEn:'ICU', room:'ICU-07', admissionDate:'2026-08-24', startedAt:'2026-08-24', reviewDue:'2026-08-27', status:'active', organism:'Klebsiella pneumoniae', resistance:'MDR', source:'Αίμα', sourceEn:'Blood',
@@ -63,6 +64,38 @@ export const clinicalCases = {
   'SUR-260032': {id:'SUR-260032',patientId:'PT-260148',patient:'Ιωάννα Αντωνίου',patientEn:'Ioanna Antoniou',department:'Ορθοπαιδική',departmentEn:'Orthopedics',room:'OR-112',admissionDate:'2026-07-12',startedAt:'2026-07-14',reviewDue:'2026-07-17',completedAt:'2026-07-19',status:'completed',organism:'Staphylococcus aureus',resistance:'MRSA',source:'Χειρουργικό τραύμα',sourceEn:'Surgical wound',haiClassification:{status:'confirmed',type:'surgicalSiteInfection',criteriaMet:true},devices:[],assessment:{date:'2026-07-14',type:'healthcareAssociated',classification:'infection',assessedBy:'Demo IPC',summary:'Λοίμωξη χειρουργικού πεδίου.',symptoms:['Ερυθρότητα','Έκκριση'],riskFactors:['Πρόσφατη επέμβαση']},samples:[{id:'LAB-260714-006',type:'woundCulture',collectedAt:'2026-07-14T09:10:00',resultedAt:'2026-07-15T08:10:00',result:'positive',organism:'Staphylococcus aureus',resistance:'MRSA',critical:false}],therapy:[{id:'TX-032',antimicrobial:'Vancomycin',dose:'per protocol',route:'IV',startedAt:'2026-07-15',plannedEnd:'2026-07-19',endedAt:'2026-07-19',status:'completed',approved:true}],isolation:{id:'ISO-032',precautions:['contactPrecautions'],startedAt:'2026-07-15',endedAt:'2026-07-19',reason:'MRSA',status:'ended'},reassessments:[],outcome:{status:'resolved',date:'2026-07-19',notes:'Βελτίωση τραύματος.'},timeline:[]},
 
 
+}
+
+// One demo source for surveillance: list-only fixtures (older completed cases)
+// become full records too, so every row in the Surveillance Center opens a
+// record and every record appears in the list.
+for (const row of surveillanceDemoData) {
+  if (clinicalCases[row.id]) continue
+  clinicalCases[row.id] = {
+    id: row.id, patientId: row.patientId, patient: row.patient, patientEn: row.patientEn,
+    department: row.department, departmentEn: row.departmentEn, admissionDate: row.startedAt,
+    startedAt: row.startedAt, reviewDue: row.reviewDue, status: row.status,
+    completedAt: row.status === 'completed' ? row.reviewDue : null,
+    organism: row.organism || null, resistance: row.resistance || null,
+    isolation: row.isolation ? { status: row.status === 'active' ? 'active' : 'ended', startedAt: row.startedAt } : null,
+    samples: [], therapy: [], devices: [], reassessments: [], timeline: [],
+  }
+}
+
+// Registry rows for the Surveillance Center, derived from the live record store.
+export function demoSurveillanceList() {
+  return Object.values(clinicalCases)
+    .filter(item => item.lifecycleStatus !== 'voided')
+    .map(item => ({
+      id: item.id, patientId: item.patientId, patient: item.patient, patientEn: item.patientEn,
+      department: item.department, departmentEn: item.departmentEn, startedAt: item.startedAt,
+      reviewDue: item.reviewDue, status: item.status,
+      organism: item.organism || item.samples?.find(sample => sample.organism)?.organism || null,
+      resistance: item.resistance || null,
+      isolation: item.isolation ? { ...item.isolation } : null,
+      samples: item.samples || [],
+    }))
+    .sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))
 }
 
 export function getClinicalCase(caseId){ return clinicalCases[caseId] ?? null }
