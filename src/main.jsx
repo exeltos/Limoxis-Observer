@@ -33,6 +33,7 @@ import './styles/clinical-loading.css'
 import './styles/canonical-tabs-final.css'
 import './styles/analysis-print.css'
 import './styles/tabs-unified.css'
+import './styles/short-viewport.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>

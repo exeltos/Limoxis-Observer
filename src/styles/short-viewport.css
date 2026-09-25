@@ -1,0 +1,17 @@
+/* Short screens (13" notebooks, zoomed browsers): the workspace scrolls
+   instead of clipping. Full-height registries keep a usable minimum height,
+   so on tall screens nothing changes. Loaded last. */
+.content,.content:has(>.page-fill){overflow-x:hidden!important;overflow-y:auto!important}
+.page-fill{min-height:760px!important}
+.sidebar{min-height:0!important}
+.sidebar nav{overflow-y:auto!important;scrollbar-width:thin}
+.page-fill:has(>.registry-workspace),
+.page-fill:has(>.patient-registry-shell),
+.page:has(>.platform-registry-shell),
+.laboratory-registry-page,
+.controls-page,
+.main-column:has(>.preview-banner) .page-fill:has(>.registry-workspace),
+.main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
+.main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
+.main-column:has(>.preview-banner) .laboratory-registry-page,
+.main-column:has(>.preview-banner) .controls-page{min-height:760px!important}
