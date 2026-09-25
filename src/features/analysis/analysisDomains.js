@@ -5,6 +5,11 @@ import { clinicalCases } from '../surveillance/clinicalDemoData'
 import { loadHandHygieneLocal, loadWasteLocal, loadBundlesLocal } from '../prevention/preventionStore'
 import { loadQualityLocal } from '../quality/qualityStore'
 import { loadControlExecutionsLocal, loadControlAssignmentsLocal } from '../controls/controlStore'
+import { loadTrainingState } from '../training/trainingData'
+import { loadDocuments } from '../documents/documentStore'
+import { loadCommittees } from '../committees/committeeData'
+import { employeeRows, employeeVaccinations } from '../employees/employeeDemoData'
+import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 
 const day = value => String(value || '').slice(0, 10)
 const month = value => String(value || '').slice(0, 7)
@@ -81,6 +86,50 @@ export function collectDemoDomainMetrics(range = {}, en = false) {
       capaOpen: capas.filter(row => !CLOSED_QUALITY.has(row.status)).length,
       capaOverdue: capas.filter(row => !CLOSED_QUALITY.has(row.status) && row.dueDate && row.dueDate < today).length,
     },
+    workforce: (() => {
+      const active = employeeRows.filter(row => (row.employmentStatus || 'active') === 'active')
+      const ids = new Set(active.map(row => row.id))
+      const valid = employeeVaccinations.filter(row => ids.has(row.employeeId) && (!row.validUntil || row.validUntil >= today))
+      const visits = loadOccupationalVisits().filter(row => ids.has(row.employeeId) && inRange(row.date, range))
+      const byVaccine = new Map(); for (const row of valid) { const set = byVaccine.get(row.vaccine) || new Set(); set.add(row.employeeId); byVaccine.set(row.vaccine, set) }
+      return {
+        activeEmployees: active.length,
+        vaccinatedEmployees: new Set(valid.map(row => row.employeeId)).size,
+        byVaccine: [...byVaccine.entries()].map(([key, set]) => [key, set.size]).sort((a, b) => b[1] - a[1]),
+        visits: visits.length,
+        byVisitType: tally(visits, row => row.type || '—'),
+        followUpsDue: loadOccupationalVisits().filter(row => ids.has(row.employeeId) && row.followUpDate && row.followUpDate < today && row.status !== 'cancelled').length,
+        byDepartment: tally(active, row => (en ? row.departmentEn : row.department) || '—'),
+      }
+    })(),
+    training: (() => {
+      const rows = (loadTrainingState().assignments || []).filter(row => inRange(row.assignedDate, range))
+      const status = row => row.computedStatus || row.status
+      const scored = rows.filter(row => row.score != null && row.score !== '')
+      return {
+        assignments: rows.length,
+        completed: rows.filter(row => status(row) === 'completed').length,
+        overdue: rows.filter(row => !['completed', 'cancelled'].includes(status(row)) && row.dueDate && row.dueDate < today).length,
+        averageScore: scored.length ? Math.round(scored.reduce((sum, row) => sum + Number(row.score), 0) / scored.length * 10) / 10 : null,
+        byDepartment: sums(rows, row => row.department || '—', [() => 1, row => (status(row) === 'completed' ? 1 : 0)]),
+      }
+    })(),
+    governance: (() => {
+      const docs = loadDocuments().filter(row => !['archived', 'superseded'].includes(row.status))
+      const committees = loadCommittees()
+      const meetings = committees.flatMap(row => row.meetings || []).filter(row => inRange(row.date, range) && row.status !== 'cancelled')
+      return {
+        documents: docs.length,
+        published: docs.filter(row => ['published', 'approved'].includes(row.status)).length,
+        reviewOverdue: docs.filter(row => ['published', 'approved'].includes(row.status) && row.reviewDate && row.reviewDate < today).length,
+        byType: tally(docs, row => row.type || '—'),
+        byStatus: tally(docs, row => row.status || '—'),
+        committees: committees.filter(row => (row.status || 'active') === 'active').length,
+        meetings: meetings.length,
+        minutesFinalized: meetings.filter(row => row.status === 'finalized').length,
+        minutesPending: meetings.filter(row => row.status !== 'finalized' && row.date && row.date < today).length,
+      }
+    })(),
     antimicrobial: {
       total: therapies.length,
       active: therapies.filter(row => (row.status || 'active') === 'active' && !row.endedAt).length,
@@ -100,6 +149,9 @@ const LABELS = {
   pending: ['Σε αναμονή', 'Pending'], approved: ['Εγκρίθηκε', 'Approved'], rejected: ['Απορρίφθηκε', 'Rejected'], not_required: ['Δεν απαιτείται έγκριση', 'No approval needed'],
   transferred: ['Μεταφορά', 'Transferred'], deceased: ['Θάνατος', 'Deceased'], discharged: ['Έξοδος', 'Discharged'], recovered: ['Ίαση', 'Recovered'],
   bloodstreamInfection: ['Λοίμωξη αιματικής ροής', 'Bloodstream infection'], urinaryTractInfection: ['Λοίμωξη ουροποιητικού', 'Urinary tract infection'], pneumonia: ['Πνευμονία', 'Pneumonia'], surgicalSiteInfection: ['Λοίμωξη χειρουργικού πεδίου', 'Surgical site infection'],
+  periodic: ['Περιοδική', 'Periodic'], followUp: ['Επανέλεγχος', 'Follow-up'], preEmployment: ['Προπρόσληψης', 'Pre-employment'], exposure: ['Μετά από έκθεση', 'Post-exposure'],
+  policy: ['Πολιτική', 'Policy'], instruction: ['Οδηγία', 'Instruction'], procedure: ['Διαδικασία', 'Procedure'], protocol: ['Πρωτόκολλο', 'Protocol'], form: ['Έντυπο', 'Form'],
+  published: ['Δημοσιευμένο', 'Published'], draft: ['Προσχέδιο', 'Draft'], review: ['Υπό αναθεώρηση', 'In review'],
   CLABSI: ['Δέσμη CLABSI', 'CLABSI bundle'], VAE: ['Δέσμη VAE', 'VAE bundle'], CAUTI: ['Δέσμη CAUTI', 'CAUTI bundle'], SSI: ['Δέσμη SSI', 'SSI bundle'],
 }
 const pct = (part, whole) => (whole ? Math.round((part / whole) * 1000) / 10 : null)
@@ -216,6 +268,42 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'bars', title: tx('Κατάσταση συμβάντων', 'Incident status'), subtitle: tx('Πού βρίσκεται η διερεύνηση.', 'Where investigation stands.'), rows: named(q.byStatus) },
       ],
     }
+    case 'occupational': { const wf = d.workforce || {}; const coverage = pct(wf.vaccinatedEmployees, wf.activeEmployees); return {
+      kpis: [
+        [tx('Ενεργοί εργαζόμενοι', 'Active employees'), wf.activeEmployees ?? 0, tx(`${(wf.byDepartment || []).length} τμήματα`, `${(wf.byDepartment || []).length} departments`)],
+        [tx('Εμβολιαστική κάλυψη', 'Vaccination coverage'), wf.vaccinatedEmployees == null ? '—' : fmtPct(coverage), wf.vaccinatedEmployees == null ? tx('Απαιτείται δικαίωμα Ιατρού Εργασίας', 'Occupational health permission required') : tx(`${wf.vaccinatedEmployees} εργαζόμενοι με ισχύον εμβόλιο`, `${wf.vaccinatedEmployees} employees with a valid vaccine`), coverage != null && coverage < 80 ? 'warning' : ''],
+        [tx('Επισκέψεις Ιατρού Εργασίας', 'Occupational health visits'), wf.visits ?? '—', tx('στην περίοδο', 'in the period')],
+        [tx('Εκπρόθεσμοι επανέλεγχοι', 'Overdue follow-ups'), wf.followUpsDue ?? '—', tx('επισκέψεις με παρελθούσα ημερομηνία', 'visits past their follow-up date'), wf.followUpsDue ? 'warning' : ''],
+      ],
+      charts: [
+        { type: 'bars', title: tx('Κάλυψη ανά εμβόλιο', 'Coverage by vaccine'), subtitle: tx('Εργαζόμενοι με ισχύον εμβόλιο.', 'Employees with a valid vaccine.'), rows: wf.byVaccine || [] },
+        { type: 'donut', title: tx('Τύπος επίσκεψης', 'Visit type'), subtitle: tx('Επισκέψεις της περιόδου.', 'Visits in the period.'), rows: named(wf.byVisitType || []), center: tx('επισκέψεις', 'visits') },
+        { type: 'bars', title: tx('Εργαζόμενοι ανά τμήμα', 'Employees by department'), subtitle: tx('Ενεργό προσωπικό.', 'Active staff.'), rows: wf.byDepartment || [] },
+      ],
+    } }
+    case 'training': { const tr = d.training || {}; const rate = pct(tr.completed, tr.assignments); return {
+      kpis: [
+        [tx('Ολοκλήρωση εκπαιδεύσεων', 'Training completion'), fmtPct(rate), tx(`${tr.completed ?? 0} από ${tr.assignments ?? 0} αναθέσεις`, `${tr.completed ?? 0} of ${tr.assignments ?? 0} assignments`), rate != null && rate < 80 ? 'warning' : 'good'],
+        [tx('Εκπρόθεσμες', 'Overdue'), tr.overdue ?? 0, tx('πέρασε η προθεσμία ολοκλήρωσης', 'past the completion due date'), tr.overdue ? 'danger' : ''],
+        [tx('Μέση βαθμολογία', 'Average score'), tr.averageScore == null ? '—' : fmtPct(tr.averageScore), tx('στις αξιολογήσεις', 'in assessments')],
+      ],
+      charts: [
+        { type: 'rate', title: tx('Ολοκλήρωση ανά τμήμα', 'Completion by department'), subtitle: tx('Ποσοστό ολοκληρωμένων αναθέσεων.', 'Share of completed assignments.'), rows: rateRows(tr.byDepartment) },
+        { type: 'bars', title: tx('Αναθέσεις ανά τμήμα', 'Assignments by department'), subtitle: tx('Πλήθος αναθέσεων στην περίοδο.', 'Assignments in the period.'), rows: (tr.byDepartment || []).map(([key, n]) => [key, n]) },
+      ],
+    } }
+    case 'governance': { const g = d.governance || {}; return {
+      kpis: [
+        [tx('Ελεγχόμενα έγγραφα', 'Controlled documents'), g.documents ?? 0, tx(`${g.published ?? 0} σε ισχύ`, `${g.published ?? 0} in force`)],
+        [tx('Προς αναθεώρηση', 'Review overdue'), g.reviewOverdue ?? 0, tx('πέρασε η ημερομηνία επανεξέτασης', 'past the review date'), g.reviewOverdue ? 'warning' : ''],
+        [tx('Συνεδριάσεις επιτροπών', 'Committee meetings'), g.meetings ?? 0, tx(`${g.committees ?? '—'} ενεργές επιτροπές`, `${g.committees ?? '—'} active committees`)],
+        [tx('Εκκρεμή πρακτικά', 'Pending minutes'), g.minutesPending ?? 0, tx(`${g.minutesFinalized ?? 0} οριστικοποιημένα`, `${g.minutesFinalized ?? 0} finalized`), g.minutesPending ? 'warning' : ''],
+      ],
+      charts: [
+        { type: 'donut', title: tx('Έγγραφα ανά τύπο', 'Documents by type'), subtitle: tx('Ελεγχόμενα έγγραφα σε χρήση.', 'Controlled documents in use.'), rows: named(g.byType), center: tx('έγγραφα', 'documents') },
+        { type: 'bars', title: tx('Κατάσταση εγγράφων', 'Document status'), subtitle: tx('Κύκλος ζωής ελεγχόμενων εγγράφων.', 'Controlled document lifecycle.'), rows: named(g.byStatus) },
+      ],
+    } }
     default: return null
   }
 }

@@ -73,3 +73,36 @@ describe('Surveillance screens show names, not ids', () => {
     expect(dialog).toContain('materialLabels(sample.source,en)')
   })
 })
+
+describe('Workforce, training and governance sections', () => {
+  const snap = { microbiology: {}, domains: {
+    workforce: { activeEmployees: 10, vaccinatedEmployees: 8, byVaccine: [['Influenza', 8]], visits: 3, byVisitType: [['periodic', 3]], followUpsDue: 1, byDepartment: [] },
+    training: { assignments: 4, completed: 3, overdue: 1, averageScore: 90, byDepartment: [['ΜΕΘ', 2, 1]] },
+    governance: { documents: 5, published: 3, reviewOverdue: 1, byType: [['policy', 2]], byStatus: [], committees: 2, meetings: 4, minutesFinalized: 2, minutesPending: 1 },
+  } }
+  it('reports vaccination coverage and hides it without health permission', () => {
+    expect(buildSectionModel('occupational', snap, tx).kpis[1][1]).toBe('80%')
+    const restricted = { ...snap, domains: { ...snap.domains, workforce: { ...snap.domains.workforce, vaccinatedEmployees: null } } }
+    expect(buildSectionModel('occupational', restricted, tx).kpis[1][1]).toBe('—')
+  })
+  it('reports training completion and pending minutes', () => {
+    expect(buildSectionModel('training', snap, tx).kpis[0][1]).toBe('75%')
+    expect(buildSectionModel('training', snap, tx).charts[0].rows).toEqual([['ΜΕΘ', 50]])
+    expect(buildSectionModel('governance', snap, tx).kpis[3][1]).toBe(1)
+  })
+  it('keeps occupational health aggregated and permission-gated in the database', () => {
+    const sql = read('supabase/migrations/20260925160000_analysis_people_metrics.sql')
+    expect(sql).toContain("public.current_user_has_capability(p_organization_id,'view_occupational_health')")
+    expect(sql).toContain("'vaccinatedEmployees',case when can_health then")
+  })
+})
+
+describe('Platform Owner inside a hospital and LIRA composer', () => {
+  it('shows the full hospital dashboard to the Platform Owner inside a hospital', () => {
+    const dashboard = read('src/features/dashboard/DashboardPage.jsx')
+    expect(dashboard).toContain('actualRole===ROLES.PLATFORM_OWNER&&tenant')
+  })
+  it('keeps the LIRA chat input free of the generic textarea expander', () => {
+    expect(read('src/features/lira/LiraAssistantLauncher.jsx')).toContain('data-limoxis-no-expand="true"')
+  })
+})

@@ -108,16 +108,17 @@ function mergeAmrRows(snapshots){
 }
 
 async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',departmentId=''}){
-  const [summaryResult,microbiology,amrSusceptibility,clusters,domainsResult]=await withTimeout(Promise.all([
+  const [summaryResult,microbiology,amrSusceptibility,clusters,domainsResult,peopleResult]=await withTimeout(Promise.all([
     supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}),
     loadMicrobiologyAnalytics({organizationId,from,to,departmentId}),
     loadAmrSusceptibility({organizationId,from,to,departmentId}),
     organizationId?loadActiveClustersAsync(organizationId).catch(()=>[]):Promise.resolve([]),
     // Section indicators; a failure here must not hide the rest of the analysis.
     Promise.resolve(supabase.rpc('analysis_domain_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
+    Promise.resolve(supabase.rpc('analysis_people_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
   ]))
   if(summaryResult.error)throw summaryResult.error
-  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters,domains:domainsResult?.error?null:(domainsResult?.data||null)}
+  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters,domains:(domainsResult?.error||!domainsResult?.data)&&(peopleResult?.error||!peopleResult?.data)?null:{...(domainsResult?.error?{}:(domainsResult?.data||{})),...(peopleResult?.error?{}:(peopleResult?.data||{}))}}
 }
 
 function mergeAnalysisSnapshots(snapshots){
