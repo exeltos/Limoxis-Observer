@@ -21,11 +21,13 @@ const sections=[
   {id:'audits',label:'qualityAudits',icon:ClipboardCheck},
 ]
 
+const RETURN_KEY='limoxis.quality.returnSection'
+
 const createLabels={
   incidents:{el:'Νέο συμβάν',en:'New incident'},
   findings:{el:'Νέο εύρημα',en:'New finding'},
   capas:{el:'Νέα CAPA',en:'New CAPA'},
-  audits:{el:'Νέος έλεγχος',en:'New audit'},
+  audits:{el:'Νέα επιθεώρηση',en:'New audit'},
 }
 
 export function QualityPage(){
@@ -33,9 +35,10 @@ export function QualityPage(){
   const {role,membership,tenant,actualRole,isRolePreview}=useTenant()
   const navigate=useNavigate()
   const {goTo}=useContextualNavigation('/quality')
-  const savedSection=readSessionValue('limoxis.quality.section','incidents')
-  const initialSection=sections.some(({id})=>id===savedSection)?savedSection:'incidents'
-  const [section,setSection]=useState(initialSection)
+  // Entering Quality always starts on Incidents; the last tab is restored only
+  // when coming back from a record opened here (the flag is consumed once).
+  const [section,setSection]=useState(()=>{const saved=readSessionValue(RETURN_KEY,'');return sections.some(({id})=>id===saved)?saved:'incidents'})
+  useEffect(()=>{writeSessionValue(RETURN_KEY,'')},[])
   const registry=useRegistryMemory(`quality.${section}`)
   const saved=registry.loadViewState({query:'',status:'all',department:'all'})
   const [query,setQuery]=useState(saved.query)
@@ -57,12 +60,13 @@ export function QualityPage(){
   const filtered=useMemo(()=>rows.filter(row=>`${row.id} ${row.displayId||''} ${row.title} ${row.titleEn} ${row.owner||''}`.toLowerCase().includes(query.toLowerCase())).filter(row=>status==='all'||row.status===status).filter(row=>department==='all'||(language==='el'?row.department:row.departmentEn)===department),[rows,query,status,department,language])
   useEffect(()=>setPage(1),[section,query,status,department,pageSize])
   const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=filtered.slice((safePage-1)*pageSize,safePage*pageSize)
+  const emptyTitle={incidents:{el:'Δεν υπάρχουν συμβάντα',en:'No incidents'},findings:{el:'Δεν υπάρχουν ευρήματα',en:'No findings'},capas:{el:'Δεν υπάρχουν CAPA',en:'No CAPA'},audits:{el:'Δεν υπάρχουν επιθεωρήσεις',en:'No audits'}}[section]?.[language==='en'?'en':'el']
   const openCount=rows.filter(x=>!['closed','completed'].includes(x.status)).length
   const closedCount=rows.filter(x=>['closed','completed'].includes(x.status)).length
   const highCount=rows.filter(x=>['high','critical'].includes(x.severity||x.priority)).length
 
-  function createRecord(){if(!canCreate)return;writeSessionValue('limoxis.quality.section',section);registry.saveViewState({query,status,department});goTo(`/quality/${section}/new`,{registry:`quality.${section}`})}
-  function changeSection(id){registry.saveViewState({query,status,department});writeSessionValue('limoxis.quality.section',id);setSection(id);const next=readRegistryViewState(`quality.${id}`);setQuery(next?.query||'');setStatus(next?.status||'all');setDepartment(next?.department||'all')}
+  function createRecord(){if(!canCreate)return;writeSessionValue(RETURN_KEY,section);registry.saveViewState({query,status,department});goTo(`/quality/${section}/new`,{registry:`quality.${section}`})}
+  function changeSection(id){registry.saveViewState({query,status,department});setSection(id);const next=readRegistryViewState(`quality.${id}`);setQuery(next?.query||'');setStatus(next?.status||'all');setDepartment(next?.department||'all')}
 
   return <Page fill className="quality-registry-page" title={t('quality')} actions={canCreate?<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>:null}>
     <div className="workspace-summary quality-summary"><div className="module-summary-strip">
@@ -72,14 +76,14 @@ export function QualityPage(){
       <SummaryMetric icon={AlertTriangle} label={language==='en'?'High priority':'Υψηλής προτεραιότητας'} value={highCount}/>
     </div></div>
     <div className="surface registry-workspace workspace-column workspace-fill quality-workspace">
-      <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{sections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{id==='audits'?(language==='en'?'Audits':'Έλεγχοι'):t(label)}</span></button>)}</nav>
+      <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{sections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{t(label)}</span></button>)}</nav>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status).filter(Boolean))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
-        <table className="data-table sticky-table quality-table"><thead><tr><th>{t('code')}</th><th>{t('title')}</th><th>{t('department')}</th><th>{t(section==='capas'?'dueDate':'date')}</th><th>{t('owner')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(row=><tr key={row.id} {...registry.rowProps(row.id)} onClick={()=>registry.openRecord(navigate,`/quality/${section}/${row.id}`,row.id,filtered.map(x=>x.id))}><td><strong>{row.displayId||row.id}</strong>{row.severity&&<small>{t(row.severity)}</small>}</td><td>{language==='el'?row.title:row.titleEn}</td><td>{language==='el'?row.department:row.departmentEn||'—'}</td><td>{fmtDate(row.dueDate||row.date||row.plannedDate,locale)}</td><td>{row.owner||row.leadAuditor||'—'}</td><td><span className={`status-badge ${['closed','completed'].includes(row.status)?'active':''}`}>{t(row.status)}</span></td></tr>)}</tbody></table>
-        {!loading&&!filtered.length&&<div className="registry-empty-state"><strong>{language==='en'?'No quality records':'Δεν υπάρχουν καταγραφές ποιότητας'}</strong><span>{language==='en'?'No records have been created for this organization yet.':'Δεν έχουν δημιουργηθεί ακόμη εγγραφές για τον συγκεκριμένο οργανισμό.'}</span></div>}
+        <table className="data-table sticky-table quality-table"><thead><tr><th>{t('code')}</th><th>{t('title')}</th><th>{section==='audits'?t('auditType'):t('department')}</th><th>{section==='audits'?(language==='en'?'Planned date':'Προγραμματισμένη ημερομηνία'):t(section==='capas'?'dueDate':'date')}</th><th>{section==='audits'?t('leadAuditor'):t('owner')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(row=><tr key={row.id} {...registry.rowProps(row.id)} onClick={()=>{writeSessionValue(RETURN_KEY,section);registry.openRecord(navigate,`/quality/${section}/${row.id}`,row.id,filtered.map(x=>x.id))}}><td><strong>{row.displayId||row.id}</strong>{row.severity&&<small>{t(row.severity)}</small>}</td><td>{language==='el'?row.title:row.titleEn}</td><td>{section==='audits'?t(row.auditType||'internal'):(language==='el'?row.department:row.departmentEn)||'—'}</td><td>{fmtDate(row.dueDate||row.date||row.plannedDate,locale)}</td><td>{row.owner||row.leadAuditor||'—'}</td><td><span className={`status-badge ${['closed','completed'].includes(row.status)?'active':''}`}>{t(row.status)}</span></td></tr>)}</tbody></table>
+        {!loading&&!filtered.length&&<div className="registry-empty-state"><strong>{emptyTitle}</strong><span>{language==='en'?'No records have been created for this organization yet.':'Δεν έχουν δημιουργηθεί ακόμη εγγραφές για τον συγκεκριμένο οργανισμό.'}</span></div>}
       </div>
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </div>

@@ -14,7 +14,7 @@ describe('unified "scope" terminology (Εύρος, not Πεδίο)', () => {
     expect(i18n).toContain("departmentScope:'Εύρος τμήματος'")
     expect(i18n).toContain("scopeLabel:'Εύρος'")
     expect(i18n).toContain("usageScopeLabel:'Εύρος χρήσης'")
-    expect(i18n).toContain("auditScope:'Εύρος ελέγχου'")
+    expect(i18n).toContain("auditScope:'Εύρος επιθεώρησης'")
   })
 
   it('does not leave the inconsistent Πεδίο translation for "scope" anywhere', () => {
