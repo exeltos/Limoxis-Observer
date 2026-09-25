@@ -1,3 +1,7 @@
+/* The legacy update-center layout (modules.css) locked the body with
+   overflow:hidden and a two-row grid; the redesigned body simply scrolls. */
+.observer-dialog.platform-update-center-dialog{height:auto!important;max-height:min(880px,92vh)!important}
+.observer-dialog.platform-update-center-dialog .observer-dialog-body{display:block!important;overflow-y:auto!important;overflow-x:hidden!important;min-height:0!important}
 .puc{display:grid;gap:16px}
 .puc-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12.5px;color:#5b7186}
 .puc-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}
