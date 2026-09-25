@@ -30,7 +30,7 @@ export const employeeScreeningCatalog=[
   {id:'handSwab',label:'handSwab',sampleType:'employeeScreening',sourceEl:'Επίχρισμα χεριών',sourceEn:'Hand swab'},
   {id:'nasalSwab',label:'nasalSwab',sampleType:'employeeScreening',sourceEl:'Ρινικό επίχρισμα',sourceEn:'Nasal swab'},
   {id:'throatSwab',label:'throatSwab',sampleType:'employeeScreening',sourceEl:'Φαρυγγικό επίχρισμα',sourceEn:'Throat swab'},
-  {id:'otherEmployeeScreening',label:'otherEmployeeScreening',sampleType:'employeeScreening',sourceEl:'Άλλο screening εργαζομένου',sourceEn:'Other employee screening'},
+  {id:'otherEmployeeScreening',label:'otherEmployeeScreening',sampleType:'employeeScreening',sourceEl:'Άλλος προληπτικός έλεγχος εργαζομένου',sourceEn:'Other employee screening'},
 ]
 
 function nextSurveillanceId(){

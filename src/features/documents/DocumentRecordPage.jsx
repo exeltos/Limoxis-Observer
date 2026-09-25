@@ -440,7 +440,7 @@ export function DocumentRecordPage() {
       <div className="record-section-header"><div>
         <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
         <h3>{en ? 'Version & lifecycle history' : 'Ιστορικό εκδόσεων & κύκλου ζωής'}</h3>
-        <p>{en ? 'Each revision keeps its own canonical audit trail.' : 'Κάθε έκδοση διατηρεί τη δική της πραγματική ροή από το κεντρικό audit trail.'}</p>
+        <p>{en ? 'Each revision keeps its own canonical audit trail.' : 'Κάθε έκδοση διατηρεί το δικό της ιστορικό ενεργειών από το κεντρικό αρχείο καταγραφής.'}</p>
       </div></div>
       {family.length === 0
         ? <div className="inline-empty">{en ? 'No lifecycle audit events are available yet.' : 'Δεν υπάρχουν ακόμη καταγεγραμμένα audit events για τον κύκλο ζωής.'}</div>
