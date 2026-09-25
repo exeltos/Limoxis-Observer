@@ -74,11 +74,14 @@ function domainShare(snapshot,tr){const s=snapshot?.summary||{};return [[tr('Ε�
 // title/subtitle/showKpis let the department home reuse this layout: its
 // counts are organization-wide, so the department view hides them.
 export function DashboardPage({title,subtitle,showKpis=true}={}) {
-  const { role, tenant, isDemo } = useTenant()
+  const { role: actualRole, tenant, isDemo } = useTenant()
+  // Inside a hospital the Platform Owner (and the demo account) see the full
+  // hospital overview, not the platform workspace.
+  const role=actualRole===ROLES.DEMO||(actualRole===ROLES.PLATFORM_OWNER&&tenant)?ROLES.HOSPITAL_ADMIN:actualRole
   const {language}=useLanguage()
   const english=language==='en'
   const tr=(el,en)=>english?en:el
-  const workspace=(role===ROLES.HOSPITAL_ADMIN||role===ROLES.DEMO)?hospitalAdminWorkspace(english):workspaceFor(role,language)
+  const workspace=role===ROLES.HOSPITAL_ADMIN?hospitalAdminWorkspace(english):workspaceFor(role,language)
   const nctx=useNotifications()
   const navigate=useNavigate()
   const [metrics,setMetrics]=useState({})
@@ -99,7 +102,7 @@ export function DashboardPage({title,subtitle,showKpis=true}={}) {
   },[tenant?.id,isDemo,showCharts])
   const snapshot=useMemo(()=>isDemo?collectAnalysisDemoSnapshot():liveSnapshot,[isDemo,liveSnapshot])
   const values=useMemo(()=>isDemo?demoMetrics(snapshot,nctx.operational):metrics,[isDemo,snapshot,nctx.operational,metrics])
-  const roleRows=useMemo(()=>roleKpis(role===ROLES.DEMO?ROLES.HOSPITAL_ADMIN:role,values,english,nctx.unreadCount),[role,values,english,nctx.unreadCount])
+  const roleRows=useMemo(()=>roleKpis(role,values,english,nctx.unreadCount),[role,values,english,nctx.unreadCount])
   const kpis=roleRows.length?roleRows:workspace.kpis.map(([label])=>[label,'—'])
   const tasks=nctx.operational.length?nctx.operational:workspace.tasks.map((title,index)=>({id:`workspace-${index}`,title,count:null,to:null,fallback:true}))
   const announcements=nctx.visibleAnnouncements.slice(0,4)

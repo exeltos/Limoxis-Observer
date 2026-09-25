@@ -5,48 +5,48 @@ const seed=[
     id:'DOC-001',title:'Πολιτική Υγιεινής Χεριών',type:'policy',department:'Όλο το νοσοκομείο',
     audience:'all',status:'published',version:'1.0',owner:'Επιτροπή Νοσοκομειακών Λοιμώξεων',
     effectiveDate:'2026-01-15',reviewDate:'2027-01-15',description:'Βασική πολιτική εφαρμογής υγιεινής χεριών.',
-    attachments:[],createdAt:'2026-01-10T09:00:00.000Z',createdBy:'Demo seed',updatedAt:'2026-01-15T09:00:00.000Z',updatedBy:'Demo seed',
-    history:[{at:'2026-01-15T09:00:00.000Z',actor:'Demo seed',action:'Δημοσίευση εγγράφου',reason:'Έκδοση 1.0'}]
+    attachments:[],createdAt:'2026-01-10T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-01-15T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[{at:'2026-01-15T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημοσίευση εγγράφου',reason:'Έκδοση 1.0'}]
   },
   {
     id:'DOC-002',title:'Οδηγία Διαχείρισης Αποβλήτων',type:'instruction',department:'Νοσηλευτική Υπηρεσία',
     audience:'department',status:'draft',version:'0.1',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
     effectiveDate:'',reviewDate:'',description:'Πρόχειρη έκδοση οδηγίας για εσωτερική επεξεργασία.',
-    attachments:[],createdAt:'2026-08-10T10:30:00.000Z',createdBy:'Demo seed',updatedAt:'2026-08-10T10:30:00.000Z',updatedBy:'Demo seed',
-    history:[{at:'2026-08-10T10:30:00.000Z',actor:'Demo seed',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'}]
+    attachments:[],createdAt:'2026-08-10T10:30:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-08-10T10:30:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[{at:'2026-08-10T10:30:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'}]
   },
   {
     id:'DOC-003',title:'Πρωτόκολλο Απομόνωσης Πολυανθεκτικών Παθογόνων',type:'protocol',department:'Όλο το νοσοκομείο',
     audience:'all',status:'review',version:'1.0',owner:'Επιτροπή Νοσοκομειακών Λοιμώξεων',
     effectiveDate:'',reviewDate:'',description:'Κριτήρια και μέτρα προφύλαξης για ασθενείς με MDR/XDR παθογόνα.',
-    attachments:[],createdAt:'2026-08-20T08:15:00.000Z',createdBy:'Demo seed',updatedAt:'2026-08-28T11:00:00.000Z',updatedBy:'Demo seed',
+    attachments:[],createdAt:'2026-08-20T08:15:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-08-28T11:00:00.000Z',updatedBy:'Διαχειριστής Demo',
     history:[
-      {at:'2026-08-20T08:15:00.000Z',actor:'Demo seed',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
-      {at:'2026-08-28T11:00:00.000Z',actor:'Demo seed',action:'status:draft->review',reason:'DOC-003 · 1.0'}
+      {at:'2026-08-20T08:15:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-08-28T11:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:draft->review',reason:'DOC-003 · 1.0'}
     ]
   },
   {
     id:'DOC-004',title:'Οδηγία Φροντίδας Κεντρικού Φλεβικού Καθετήρα',type:'instruction',department:'ΜΕΘ',
     audience:'department',status:'approved',version:'1.0',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
     effectiveDate:'2026-09-15',reviewDate:'2027-09-15',description:'Δέσμη μέτρων εισαγωγής και συντήρησης για πρόληψη CLABSI.',
-    attachments:[],approvedAt:'2026-09-05T13:45:00.000Z',approvedBy:'Demo seed',
-    createdAt:'2026-08-25T09:00:00.000Z',createdBy:'Demo seed',updatedAt:'2026-09-05T13:45:00.000Z',updatedBy:'Demo seed',
+    attachments:[],approvedAt:'2026-09-05T13:45:00.000Z',approvedBy:'Διαχειριστής Demo',
+    createdAt:'2026-08-25T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-09-05T13:45:00.000Z',updatedBy:'Διαχειριστής Demo',
     history:[
-      {at:'2026-08-25T09:00:00.000Z',actor:'Demo seed',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
-      {at:'2026-08-29T10:00:00.000Z',actor:'Demo seed',action:'status:draft->review',reason:'DOC-004 · 1.0'},
-      {at:'2026-09-05T13:45:00.000Z',actor:'Demo seed',action:'status:review->approved',reason:'DOC-004 · 1.0'}
+      {at:'2026-08-25T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-08-29T10:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:draft->review',reason:'DOC-004 · 1.0'},
+      {at:'2026-09-05T13:45:00.000Z',actor:'Διαχειριστής Demo',action:'status:review->approved',reason:'DOC-004 · 1.0'}
     ]
   },
   {
     id:'DOC-005',title:'Πολιτική Διαχείρισης Βιολογικών Αποβλήτων',type:'policy',department:'Όλο το νοσοκομείο',
     audience:'all',status:'superseded',version:'1.0',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
     effectiveDate:'2025-03-01',reviewDate:'2026-03-01',description:'Αρχική πολιτική διαχείρισης βιολογικών/μολυσματικών αποβλήτων.',
-    attachments:[],publishedAt:'2025-03-01T09:00:00.000Z',publishedBy:'Demo seed',supersededById:'DOC-006',
-    createdAt:'2025-02-10T09:00:00.000Z',createdBy:'Demo seed',updatedAt:'2026-03-10T09:00:00.000Z',updatedBy:'Demo seed',
+    attachments:[],publishedAt:'2025-03-01T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',supersededById:'DOC-006',
+    createdAt:'2025-02-10T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-03-10T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
     history:[
-      {at:'2025-02-10T09:00:00.000Z',actor:'Demo seed',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
-      {at:'2025-03-01T09:00:00.000Z',actor:'Demo seed',action:'status:approved->published',reason:'DOC-005 · 1.0'},
-      {at:'2026-03-10T09:00:00.000Z',actor:'Demo seed',action:'status:published->superseded',reason:'Αντικαταστάθηκε από DOC-006 · 1.1'}
+      {at:'2025-02-10T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-03-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-005 · 1.0'},
+      {at:'2026-03-10T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:published->superseded',reason:'Αντικαταστάθηκε από DOC-006 · 1.1'}
     ]
   },
   {
@@ -54,23 +54,23 @@ const seed=[
     audience:'all',status:'published',version:'1.1',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
     effectiveDate:'2026-03-10',reviewDate:'2027-03-10',description:'Ενημερωμένη πολιτική με νέες κατηγορίες διαχωρισμού αποβλήτων.',
     attachments:[],revisionOfId:'DOC-005',supersedesId:'DOC-005',revisionReason:'Ευθυγράμμιση με νέο ΕΟΔΥ πρωτόκολλο διαχωρισμού αποβλήτων.',
-    approvedAt:'2026-03-08T10:00:00.000Z',approvedBy:'Demo seed',publishedAt:'2026-03-10T09:00:00.000Z',publishedBy:'Demo seed',
-    createdAt:'2026-02-20T09:00:00.000Z',createdBy:'Demo seed',updatedAt:'2026-03-10T09:00:00.000Z',updatedBy:'Demo seed',
+    approvedAt:'2026-03-08T10:00:00.000Z',approvedBy:'Διαχειριστής Demo',publishedAt:'2026-03-10T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-02-20T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-03-10T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
     history:[
-      {at:'2026-02-20T09:00:00.000Z',actor:'Demo seed',action:'Δημιουργία νέας έκδοσης',reason:'Από DOC-005 · 1.0 → 1.1'},
-      {at:'2026-03-08T10:00:00.000Z',actor:'Demo seed',action:'status:review->approved',reason:'DOC-006 · 1.1'},
-      {at:'2026-03-10T09:00:00.000Z',actor:'Demo seed',action:'status:approved->published',reason:'DOC-006 · 1.1'}
+      {at:'2026-02-20T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία νέας έκδοσης',reason:'Από DOC-005 · 1.0 → 1.1'},
+      {at:'2026-03-08T10:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:review->approved',reason:'DOC-006 · 1.1'},
+      {at:'2026-03-10T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-006 · 1.1'}
     ]
   },
   {
     id:'DOC-007',title:'Οδηγία Χρήσης Προσωπικού Προστατευτικού Εξοπλισμού (παλαιά έκδοση)',type:'instruction',department:'Όλο το νοσοκομείο',
     audience:'all',status:'archived',version:'1.0',owner:'Τμήμα Πρόληψης & Ελέγχου Λοιμώξεων',
     effectiveDate:'2024-05-01',reviewDate:'2025-05-01',description:'Αποσυρμένη οδηγία ΜΑΠ, διατηρείται για ιστορικούς/ελεγκτικούς λόγους.',
-    attachments:[],publishedAt:'2024-05-01T09:00:00.000Z',publishedBy:'Demo seed',
-    createdAt:'2024-04-10T09:00:00.000Z',createdBy:'Demo seed',updatedAt:'2026-05-01T09:00:00.000Z',updatedBy:'Demo seed',
+    attachments:[],publishedAt:'2024-05-01T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2024-04-10T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-05-01T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
     history:[
-      {at:'2024-05-01T09:00:00.000Z',actor:'Demo seed',action:'status:approved->published',reason:'DOC-007 · 1.0'},
-      {at:'2026-05-01T09:00:00.000Z',actor:'Demo seed',action:'status:published->archived',reason:'Αντικαταστάθηκε από νεότερες οδηγίες ΕΟΔΥ'}
+      {at:'2024-05-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-007 · 1.0'},
+      {at:'2026-05-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:published->archived',reason:'Αντικαταστάθηκε από νεότερες οδηγίες ΕΟΔΥ'}
     ]
   }
 ]
