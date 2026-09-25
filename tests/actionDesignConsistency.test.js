@@ -8,7 +8,7 @@ const backButton=fs.readFileSync(new URL('../src/design-system/BackButton.jsx',i
 const observerDialog=fs.readFileSync(new URL('../src/design-system/ObserverDialog.jsx',import.meta.url),'utf8')
 const confirmDialog=fs.readFileSync(new URL('../src/design-system/ConfirmDialog.jsx',import.meta.url),'utf8')
 const analysis=fs.readFileSync(new URL('../src/features/analysis/AnalysisPage.jsx',import.meta.url),'utf8')
-const css=fs.readFileSync(new URL('../src/styles/design-system-actions.css',import.meta.url),'utf8')
+const css=fs.readFileSync(new URL('../src/styles/design-system.css',import.meta.url),'utf8')
 
 describe('shared semantic action design',()=>{
   it('provides one semantic wrapper for labelled and icon-only actions',()=>{

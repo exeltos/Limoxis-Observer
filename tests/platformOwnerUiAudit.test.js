@@ -84,8 +84,9 @@ describe('Platform Owner UI audit',()=>{
   })
 
   it('keeps owner layout rules out of shared action and navigation stylesheets',()=>{
-    const navigation=read('src/styles/design-system-navigation.css')
-    const actions=read('src/styles/design-system-actions.css')
+    const section=(file,name)=>read(file).split(`/* ==== ${name} ==== */`)[1].split('/* ==== ')[0]
+    const navigation=section('src/styles/foundation.css','design-system-navigation')
+    const actions=section('src/styles/design-system.css','design-system-actions')
     expect(navigation).toContain('.lo-back-button')
     expect(navigation).not.toContain('.platform-owner-users')
     expect(navigation).not.toContain('.platform-org-list')

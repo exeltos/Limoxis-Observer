@@ -30,7 +30,7 @@ describe('the employee laboratory-request actions are hidden in demo tenants (Su
 // canonical-tabs-final.css pass that every other module now relies on.
 describe('the Laboratory record tabs use the shared canonical tab style, not a module-specific override', () => {
   it('core.css no longer overrides .laboratory-record-shell .entity-record-tabs', () => {
-    const core = fs.readFileSync('src/styles/core.css', 'utf8')
+    const core = fs.readFileSync('src/styles/foundation.css', 'utf8')
     expect(core).not.toContain('.laboratory-record-shell .entity-record-tabs')
   })
 })

@@ -6,7 +6,7 @@ import fs from 'node:fs'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 import { OverflowMenu } from '../src/design-system/OverflowMenu'
 
-const coreCss = fs.readFileSync('src/styles/core.css', 'utf8')
+const coreCss = fs.readFileSync('src/styles/foundation.css', 'utf8')
 
 function renderMenu(props={}){
   return render(<LanguageProvider><OverflowMenu label="Actions" items={[{id:'edit',label:'Edit',onClick:vi.fn()}]} {...props}/></LanguageProvider>)

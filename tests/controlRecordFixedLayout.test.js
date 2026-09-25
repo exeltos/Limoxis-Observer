@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
 
-const css=fs.readFileSync('src/styles/classic-rebase.css','utf8')
+const css=fs.readFileSync('src/styles/design-system.css','utf8')
 const modal=fs.readFileSync('src/features/controls/ControlExecutionModal.jsx','utf8')
 const record=fs.readFileSync('src/features/controls/ControlRecordPage.jsx','utf8')
 

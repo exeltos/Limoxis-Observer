@@ -7,7 +7,7 @@ const recordPage = read('src/features/committees/CommitteeRecordPage.jsx')
 const workflowService = read('src/features/committees/committeeWorkflowService.js')
 const listPage = read('src/features/committees/CommitteesPage.jsx')
 const createPage = read('src/features/committees/CommitteeCreatePage.jsx')
-const modulesCss = read('src/styles/modules.css')
+const modulesCss = read('src/styles/features.css')
 const migration = read('supabase/migrations/20260922110000_committee_secretariat_can_notify.sql')
 
 describe('committee decisions: owner linked to a real account', () => {

@@ -1,3 +1,496 @@
+/* Shared design system: canonical actions, registries and Platform Owner screens.
+   Section order is cascade order: do not reorder sections or move rules between them
+   without checking the computed styles (see docs/CSS_ARCHITECTURE.md). */
+
+/* ==== classic-rebase ==== */
+/* v0.48.0 Classic Rebase
+   Preserve the richer Limoxis visual language while tightening consistency.
+   This file intentionally overrides only shared structural patterns. */
+
+/* Registry pages: fixed chrome, scrolling content only. */
+.registry-workspace.workspace-fill,
+.prevention-workspace.workspace-fill,
+.committee-registry.workspace-fill,
+.occupational-workspace.workspace-fill{
+  min-height:0;
+  overflow:hidden;
+}
+
+.scroll-table{
+  min-height:0;
+  overscroll-behavior:contain;
+}
+
+/* Keep advanced filters behind one compact button. */
+.filter-primary-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:48px;
+}
+.filter-search{flex:1 1 320px;max-width:520px}
+.filter-trigger{
+  min-height:var(--lo-control-height);
+  border-radius:var(--lo-radius-sm);
+  white-space:nowrap;
+}
+.filter-trigger b{
+  min-width:20px;height:20px;border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.filter-popover{
+  max-width:calc(100vw - 24px);
+  border-radius:var(--lo-radius-md);
+  box-shadow:var(--lo-shadow-popover);
+  border:1px solid var(--lo-border-soft);
+  overflow:hidden;
+}
+.filter-popover-fields{
+  width:100%;
+  min-width:0;
+}
+.filter-popover-fields>*{
+  min-width:0!important;
+  width:100%!important;
+  max-width:100%!important;
+}
+.filter-popover .filter-field,
+.filter-popover .manual-date-field{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:100%!important;
+}
+.filter-popover .filter-field>span,
+.filter-popover .manual-date-field>span{
+  display:block;
+  min-width:0;
+  margin-bottom:6px;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.filter-popover .filter-field select,
+.filter-popover .filter-field input,
+.filter-popover .manual-date-field input{
+  display:block;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+.filter-popover-footer{
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid var(--lo-border-soft);
+}
+@media (max-width:760px){
+  .filter-popover{width:calc(100vw - 24px);min-width:0}
+  .filter-popover-fields{grid-template-columns:minmax(0,1fr)}
+  .filter-search{max-width:none}
+}
+
+/* Shared navigation tabs: scrollbar polish only — geometry lives in core.css's
+   single .canonical-module-tabs.tabs rule (search "single source of truth"). */
+.canonical-module-tabs{scrollbar-width:none}
+.canonical-module-tabs::-webkit-scrollbar{display:none}
+
+/* KPI strips remain supporting information, never dominate the page. */
+.module-summary-strip{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+}
+.module-summary-strip > *{min-height:86px}
+
+/* Dense professional tables with strong hierarchy. */
+.data-table th{
+  font-size:11px;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+}
+.data-table td{vertical-align:middle}
+.data-table tbody tr{min-height:52px}
+.data-table tbody tr.clickable-row:hover,
+.record-table-clickable tbody tr:hover{cursor:pointer}
+
+/* Forms use one visual rhythm across Training, Committees, Documents, Prevention. */
+.entry-form label>span,
+.record-form label>span,
+.form-grid label>span{
+  font-weight:700;
+}
+.entry-form input,
+.entry-form select,
+.entry-form textarea,
+.record-form input,
+.record-form select,
+.record-form textarea{
+  border-radius:var(--lo-radius-sm);
+}
+
+/* Prevent the nested scrollbars that appeared in later rebuilds. */
+.record-section,
+.inline-action-form,
+.embedded-workflow-panel{
+  max-width:100%;
+  overflow-x:hidden;
+}
+
+/* Control record: keep the record chrome fixed and let only the department list scroll. */
+.control-record-shell>.entity-record-body:has(>.control-details-overview){
+  min-height:0;
+  overflow:hidden;
+}
+.control-record-shell .control-details-overview{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+.control-record-shell .control-details-overview>.control-history-workspace{
+  flex:1 1 0;
+  min-height:0;
+  overflow:hidden;
+}
+.control-record-shell .control-details-overview>.control-history-workspace>.scroll-table{
+  height:100%;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+
+/* Control confirmation: one compact line, checkbox directly before the confirmation text. */
+.control-confirm-execution{
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:10px!important;
+  width:100%;
+  min-height:44px;
+  margin:0;
+  padding:10px 12px;
+  cursor:pointer;
+}
+.control-confirm-execution input[type="checkbox"]{
+  position:static!important;
+  flex:0 0 auto!important;
+  width:18px!important;
+  height:18px!important;
+  margin:0!important;
+}
+.control-confirm-execution svg{display:none!important}
+.control-confirm-execution span{min-width:0;text-align:left}
+
+/* Greek-first microcopy: technical abbreviations are allowed, interface jargon is not. */
+.table-cell-unit{opacity:.72}
+
+@media (max-width:980px){
+  .module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+.prevention-related-strip{
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:12px 14px;border:1px solid var(--lo-border-soft);border-radius:var(--lo-radius-md);
+  background:rgba(240,248,249,.72);
+}
+.prevention-related-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.prevention-related-copy strong{font-size:13px}
+.prevention-related-copy span{font-size:12px;opacity:.72}
+.prevention-related-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.prevention-related-link{
+  display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;
+  border:1px solid var(--lo-border-soft);border-radius:9px;background:#fff;font-weight:700;
+}
+@media (max-width:760px){.prevention-related-strip{align-items:stretch;flex-direction:column}.prevention-related-actions{justify-content:flex-start}}
+
+/* ==== design-system-actions ==== */
+.lo-icon-button{
+  width:var(--lo-control-height);
+  height:var(--lo-control-height);
+  display:inline-grid;
+  place-items:center;
+  padding:0;
+  border:0;
+  border-radius:var(--lo-radius-control);
+  background:transparent;
+  color:var(--lo-shell-control-fg);
+  cursor:pointer;
+  transition:background .15s ease,color .15s ease,transform .15s ease;
+}
+.lo-icon-button:hover{background:var(--lo-shell-control-hover);transform:translateY(-1px)}
+.lo-icon-button:focus-visible{outline:2px solid color-mix(in srgb,var(--lo-color-primary) 45%,transparent);outline-offset:2px}
+.lo-icon-button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.lo-icon-button-primary{color:var(--lo-color-primary);background:transparent}
+.lo-icon-button-edit{color:var(--lo-status-warning-fg);background:transparent}
+.lo-icon-button-danger{color:var(--lo-status-danger-fg);background:transparent}
+.lo-icon-button-success{color:var(--lo-status-success-fg);background:transparent}
+.lo-icon-button-neutral{background:transparent}
+.lo-icon-button-primary:hover{background:var(--lo-status-info-bg)}
+.lo-icon-button-edit:hover{background:var(--lo-status-warning-bg)}
+.lo-icon-button-danger:hover{background:var(--lo-status-danger-bg)}
+.lo-icon-button-success:hover{background:var(--lo-status-success-bg)}
+.lo-icon-button-sm{width:30px;height:30px;border-radius:8px}
+.lo-icon-button-lg{width:40px;height:40px}
+
+/* Canonical attachment actions: keep each icon's semantic stroke color visible,
+   but no permanent box. Hover/focus adds only the soft semantic surface. */
+.attachment-actions>button{
+  width:32px!important;
+  min-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+  transition:background .15s ease,color .15s ease,transform .15s ease!important;
+}
+.attachment-actions>button:not(.edit):not(.danger){color:var(--lo-color-primary)!important}
+.attachment-actions>button.edit{color:var(--lo-status-warning-fg)!important}
+.attachment-actions>button.danger{color:var(--lo-status-danger-fg)!important}
+.attachment-actions>button:not(.edit):not(.danger):hover:not(:disabled),
+.attachment-actions>button:not(.edit):not(.danger):focus-visible:not(:disabled){background:var(--lo-status-info-bg)!important;transform:translateY(-1px)!important}
+.attachment-actions>button.edit:hover:not(:disabled),
+.attachment-actions>button.edit:focus-visible:not(:disabled){background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)!important}
+.attachment-actions>button.danger:hover:not(:disabled),
+.attachment-actions>button.danger:focus-visible:not(:disabled){background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)!important}
+.attachment-actions>button:disabled{opacity:.4!important;cursor:not-allowed!important;transform:none!important}
+
+/* Control execution history follows the same semantic icon language. */
+.control-history-actions{display:flex;align-items:center;justify-content:flex-end;gap:4px}
+.control-history-actions>.control-history-action{
+  width:30px!important;
+  min-width:30px!important;
+  height:30px!important;
+  min-height:30px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  transition:background .15s ease,color .15s ease,transform .15s ease!important;
+}
+.control-history-actions>.control-history-action-view{color:var(--lo-color-primary)!important}
+.control-history-actions>.control-history-action-edit{color:var(--lo-status-warning-fg)!important}
+.control-history-actions>.control-history-action-danger{color:var(--lo-status-danger-fg)!important}
+.control-history-actions>.control-history-action-view:hover:not(:disabled),
+.control-history-actions>.control-history-action-view:focus-visible:not(:disabled){background:var(--lo-status-info-bg)!important;transform:translateY(-1px)!important}
+.control-history-actions>.control-history-action-edit:hover:not(:disabled),
+.control-history-actions>.control-history-action-edit:focus-visible:not(:disabled){background:var(--lo-status-warning-bg)!important;transform:translateY(-1px)!important}
+.control-history-actions>.control-history-action-danger:hover:not(:disabled),
+.control-history-actions>.control-history-action-danger:focus-visible:not(:disabled){background:var(--lo-status-danger-bg)!important;transform:translateY(-1px)!important}
+
+/* Canonical record-level edit control: same pencil treatment everywhere. */
+.entity-record-header-actions .entity-record-icon-button[aria-label="Επεξεργασία επιτροπής"],
+.entity-record-header-actions .entity-record-icon-button[aria-label="Edit committee"]{
+  width:var(--lo-control-height);
+  height:var(--lo-control-height);
+  display:inline-grid;
+  place-items:center;
+  padding:0;
+  border:0;
+  border-radius:var(--lo-radius-control);
+  background:transparent;
+  color:var(--lo-status-warning-fg);
+  cursor:pointer;
+  transition:background .15s ease,color .15s ease,transform .15s ease;
+}
+.entity-record-header-actions .entity-record-icon-button[aria-label="Επεξεργασία επιτροπής"]:hover,
+.entity-record-header-actions .entity-record-icon-button[aria-label="Edit committee"]:hover{
+  background:var(--lo-status-warning-bg);
+  transform:translateY(-1px);
+}
+
+/* Record-level edit and delete belong together and only on the first/general-details tab.
+   Row/item edit/delete actions inside tab content are intentionally unaffected. */
+.record-secondary-tab-active .entity-record-header-actions .lo-icon-button-edit,
+.record-secondary-tab-active .entity-record-header-actions .lo-icon-button-danger,
+.record-secondary-tab-active .entity-record-header-actions .general-edit-button,
+.record-secondary-tab-active .entity-record-header-actions button.edit,
+.record-secondary-tab-active .entity-record-header-actions .entity-record-icon-button.danger,
+.record-secondary-tab-active .entity-record-header-actions .entity-record-icon-button[aria-label="Επεξεργασία επιτροπής"],
+.record-secondary-tab-active .entity-record-header-actions .entity-record-icon-button[aria-label="Edit committee"]{
+  display:none!important;
+}
+
+/* General-tab record actions are relocated by EntityRecordShell next to the first
+   details-section heading. This is the one canonical position for edit/archive/delete. */
+.canonical-detail-screen>.entity-record-body{position:relative!important}
+.canonical-detail-screen>.entity-record-body>.entity-record-general-actions{
+  position:absolute!important;
+  top:22px!important;
+  right:24px!important;
+  z-index:4!important;
+  width:auto!important;
+  min-height:36px!important;
+  margin:0!important;
+  padding:0!important;
+}
+.canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type>.record-section-header,
+.canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type .record-section-header:first-child{
+  padding-right:88px!important;
+}
+
+/* Employee is the canonical record CRUD appearance. All record-level edit/destructive
+   actions resolve to this exact geometry, color and placement. */
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions,
+.canonical-detail-screen.record-general-tab-active>.entity-record-body>.entity-record-general-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:6px!important;
+}
+.canonical-detail-screen .record-crud-action,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button:is(.edit,.danger),
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.lo-icon-button:is(.lo-icon-button-edit,.lo-icon-button-danger),
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.entity-record-icon-button.danger,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.general-edit-button{
+  width:36px!important;
+  min-width:36px!important;
+  max-width:36px!important;
+  height:36px!important;
+  min-height:36px!important;
+  max-height:36px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  font-size:0!important;
+  line-height:1!important;
+  cursor:pointer!important;
+}
+.canonical-detail-screen .record-crud-action svg,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button:is(.edit,.danger) svg,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.general-edit-button svg{
+  width:16px!important;
+  height:16px!important;
+}
+.canonical-detail-screen .record-crud-edit,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button.edit,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.lo-icon-button-edit,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.general-edit-button{
+  color:var(--lo-status-warning-fg)!important;
+}
+.canonical-detail-screen .record-crud-delete,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button.danger,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.lo-icon-button-danger,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.entity-record-icon-button.danger{
+  color:var(--lo-status-danger-fg)!important;
+}
+.canonical-detail-screen .record-crud-edit:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button.edit:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.lo-icon-button-edit:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.general-edit-button:hover{
+  background:var(--lo-status-warning-bg)!important;
+  transform:translateY(-1px)!important;
+}
+.canonical-detail-screen .record-crud-delete:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button.danger:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.lo-icon-button-danger:hover,
+.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>.entity-record-icon-button.danger:hover{
+  background:var(--lo-status-danger-bg)!important;
+  transform:translateY(-1px)!important;
+}
+
+.lo-action-button{min-height:var(--lo-control-height);height:var(--lo-control-height);border-radius:var(--lo-radius-control)}
+.lo-action-button-edit{color:var(--lo-color-text);background:var(--lo-color-surface);border-color:var(--lo-color-border)}
+.lo-action-button-edit:hover:not(:disabled){color:var(--lo-color-primary);background:var(--lo-status-info-bg);border-color:color-mix(in srgb,var(--lo-color-primary) 32%,var(--lo-color-border))}
+/* Destructive record actions stay visually quiet until confirmation. Solid danger is reserved for the confirmation dialog. */
+.lo-action-button-danger{color:var(--lo-status-danger-fg);background:var(--lo-color-surface);border-color:var(--lo-status-danger-border)}
+.lo-action-button-danger:hover:not(:disabled){background:var(--lo-status-danger-bg)}
+.button.button-destructive{color:#fff;background:var(--lo-status-danger-fg);border-color:var(--lo-status-danger-fg)}
+.button.button-destructive:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-danger-fg) 86%,black)}
+.lo-action-button-success{color:var(--lo-status-success-fg);background:var(--lo-status-success-bg);border-color:var(--lo-status-success-border)}
+.lo-action-button-success:hover:not(:disabled){background:color-mix(in srgb,var(--lo-status-success-bg) 76%,white)}
+.record-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+.icon-button,.section-report-actions button{
+  width:var(--lo-control-height);
+  height:var(--lo-control-height);
+  border-radius:var(--lo-radius-control);
+  border:0;
+  background:transparent;
+  color:var(--lo-shell-control-fg);
+  display:inline-grid;
+  place-items:center;
+  padding:0;
+  cursor:pointer;
+}
+.icon-button:hover,.section-report-actions button:hover{background:var(--lo-shell-control-hover)}
+
+.lo-dialog-icon-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--lo-color-border)}
+.diagnostics-summary-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 14px}
+.platform-summary-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
+.platform-section-tools{margin:-2px 0 4px}
+.diagnostics-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:54px;padding:10px 13px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface)}
+.diagnostics-summary span{color:var(--lo-color-muted);font-size:11px;font-weight:700}
+.diagnostics-summary strong{font-size:18px;color:var(--lo-color-text)}
+.diagnostics-table-wrap{margin-top:12px}
+.diagnostics-table thead th{white-space:nowrap;vertical-align:middle}
+.diagnostics-table tbody td{vertical-align:middle}
+
+.platform-maintenance-banner{position:fixed;z-index:2000;left:50%;top:10px;transform:translateX(-50%);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;width:min(760px,calc(100vw - 32px));padding:10px 12px;border:1px solid var(--lo-status-warning-border);border-radius:var(--lo-radius-control);background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg);box-shadow:0 10px 28px color-mix(in srgb,var(--lo-color-text) 14%,transparent);font-size:11.5px;font-weight:650;line-height:1.45}
+.platform-maintenance-banner>svg{flex:0 0 auto}.platform-maintenance-banner button{width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer}.platform-maintenance-banner button:hover{background:color-mix(in srgb,var(--lo-status-warning-fg) 10%,transparent)}
+
+.analysis-production-empty{min-height:300px;display:grid;place-items:center;align-content:center;gap:9px;text-align:center;padding:36px;border:1px dashed var(--lo-color-border);border-radius:var(--lo-radius-card);background:var(--lo-color-surface)}
+.analysis-production-empty-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:var(--lo-status-info-bg);color:var(--lo-color-primary)}
+.analysis-production-empty strong{font-size:16px;color:var(--lo-color-text)}
+.analysis-production-empty span{max-width:660px;color:var(--lo-color-muted);font-size:12px;line-height:1.6}
+.analysis-production-empty small{margin-top:4px;font-weight:700;color:var(--lo-color-primary)}
+
+.login-briefing-dialog .observer-dialog-body{display:grid;gap:14px}
+.login-briefing-dialog .briefing-summary-v2{display:flex;align-items:center;gap:14px;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-status-info-bg)}
+.login-briefing-dialog .briefing-summary-v2>div{display:flex;align-items:baseline;gap:8px}.login-briefing-dialog .briefing-summary-v2 strong{font-size:20px;color:var(--lo-color-primary)}
+.login-briefing-dialog .briefing-summary-v2>span{font-size:12px;color:var(--lo-color-muted)}
+.login-briefing-dialog .briefing-sections-v2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.login-briefing-dialog .briefing-sections-v2>section{border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-card);overflow:hidden;background:var(--lo-color-surface)}
+.login-briefing-dialog .briefing-sections-v2>section>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--lo-color-border);background:var(--lo-shell-control-hover)}
+.login-briefing-dialog .briefing-sections-v2>section>header div{display:grid;gap:2px}.login-briefing-dialog .briefing-sections-v2>section>header small{color:var(--lo-color-muted);font-size:11px}
+.login-briefing-dialog .briefing-navigation-row{width:100%;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:11px 14px;border:0;border-bottom:1px solid var(--lo-color-border);background:var(--lo-color-surface);text-align:left;color:var(--lo-color-text);cursor:pointer}
+.login-briefing-dialog .briefing-navigation-row:hover{background:var(--lo-shell-control-hover)}
+.login-briefing-dialog .briefing-navigation-row>span{display:grid;gap:2px}.login-briefing-dialog .briefing-navigation-row small{color:var(--lo-color-muted)}
+.login-briefing-dialog .briefing-empty{margin:0;padding:18px 14px;color:var(--lo-color-muted)}
+.login-briefing-dialog .briefing-footer-v2{display:flex;align-items:center;gap:7px;color:var(--lo-color-muted);font-size:11px}
+
+/* Shared overflow action language: visible primary workflow, secondary tools behind a single ellipsis. */
+.lo-overflow-menu{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.lo-overflow-popover{position:absolute;top:calc(100% + 6px);z-index:80;min-width:190px;padding:6px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);box-shadow:0 14px 36px color-mix(in srgb,var(--lo-color-text) 16%,transparent)}
+.lo-overflow-menu-end .lo-overflow-popover{right:0}
+.lo-overflow-menu-start .lo-overflow-popover{left:0}
+.lo-overflow-item{width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:var(--lo-color-text);font:inherit;font-size:12px;font-weight:650;text-align:left;cursor:pointer}
+.lo-overflow-item:hover:not(:disabled),.lo-overflow-item:focus-visible{background:var(--lo-shell-control-hover);outline:none}
+.lo-overflow-item:disabled{opacity:.45;cursor:not-allowed}
+.lo-overflow-separated{margin-top:5px;padding-top:5px;border-top:1px solid var(--lo-color-border)}
+.lo-overflow-item-danger{color:var(--lo-status-danger-fg)}
+.lo-overflow-item-danger:hover:not(:disabled),.lo-overflow-item-danger:focus-visible{background:var(--lo-status-danger-bg)}
+.attachment-file-info>strong.attachment-open-target{cursor:pointer;color:var(--lo-color-text);text-decoration:none}
+.attachment-file-info>strong.attachment-open-target:hover{text-decoration:underline;text-underline-offset:3px;color:var(--lo-color-primary)}
+
+@media (max-width:1100px){
+  .platform-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  .canonical-detail-screen>.entity-record-body>.entity-record-general-actions{top:16px!important;right:16px!important}
+  .canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type>.record-section-header,
+  .canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type .record-section-header:first-child{padding-right:78px!important}
+  .login-briefing-dialog .briefing-sections-v2{grid-template-columns:1fr}
+  .login-briefing-dialog .briefing-summary-v2{align-items:flex-start;flex-direction:column}
+  .diagnostics-summary-strip,.platform-summary-strip{grid-template-columns:1fr}
+  .lo-dialog-icon-actions{justify-content:flex-start}
+  .platform-maintenance-banner{top:8px;width:calc(100vw - 20px);font-size:11px}
+  .lo-overflow-popover{min-width:176px}
+}
+
+/* ==== platform-owner-polish ==== */
 /* Platform Owner — visual redesign
    Presentation only: no routes, data, permissions or business logic are changed. */
 
@@ -214,7 +707,7 @@
 .page:has(.platform-dashboard){background:var(--lo-color-bg)}
 .platform-dashboard{display:flex;flex:1 1 auto;min-height:0;flex-direction:column;gap:12px;overflow:auto;padding-bottom:4px}
 .platform-dashboard-overview{flex:0 0 auto;padding:16px 18px;border:1px solid var(--lo-color-border);border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.03)}
-.platform-dashboard-overview-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px}
+.platform-dashboard-overview-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px;position:relative}
 .platform-dashboard-overview-heading h2{margin:3px 0 2px;font-size:15px;letter-spacing:-.015em}.platform-dashboard-overview-heading p{margin:0;color:var(--lo-color-muted);font-size:10px}
 .platform-eyebrow{color:var(--lo-color-primary);font-size:8.5px;font-weight:800;letter-spacing:.1em}
 .platform-live-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--lo-color-border);border-radius:999px;font-size:9px;font-weight:700}.platform-live-pill i{width:6px;height:6px;border-radius:50%;background:var(--lo-status-success-fg)}
@@ -253,7 +746,6 @@
     linear-gradient(115deg,color-mix(in srgb,var(--lo-color-primary) 7%,var(--lo-color-surface)) 0%,var(--lo-color-surface) 38%,color-mix(in srgb,#14b8a6 4%,var(--lo-color-surface)) 100%);
   border-color:color-mix(in srgb,var(--lo-color-primary) 16%,var(--lo-color-border));
 }
-.platform-dashboard-overview-heading{position:relative}
 .platform-dashboard-overview-heading:before{content:"";position:absolute;left:-18px;top:0;bottom:0;width:3px;border-radius:0 4px 4px 0;background:var(--lo-color-primary)}
 .platform-dashboard-metric:nth-child(1) strong{color:var(--lo-color-primary)}
 .platform-dashboard-metric:nth-child(3) strong{color:#0f766e}
@@ -454,6 +946,7 @@
   border:1px solid var(--lo-color-border)!important;
   border-radius:9px!important;
   background:var(--lo-color-surface)!important;
+  overflow:visible!important;
 }
 .platform-analysis-page .analysis-tabs button{
   display:flex;align-items:center;min-height:42px!important;height:auto!important;
@@ -462,6 +955,7 @@
   background:transparent!important;color:var(--lo-color-muted)!important;
   font-size:8.75px!important;font-weight:700!important;line-height:1.2;text-align:center;
   white-space:normal!important;box-shadow:none!important;cursor:pointer;
+  flex:1 1 0!important;
 }
 .platform-analysis-page .analysis-tabs button:first-child{border-radius:8px 0 0 8px!important}
 .platform-analysis-page .analysis-tabs button:last-child{border-right:0!important;border-radius:0 8px 8px 0!important}
@@ -479,7 +973,7 @@
   .platform-analysis-page .analysis-tabs button{border-bottom:1px solid var(--lo-color-border)!important}
 }
 @media(max-width:760px){
-  .platform-analysis-page .analysis-tabs button{white-space:normal!important}
+  .platform-analysis-page .analysis-tabs button{white-space:normal!important;flex:0 0 150px!important}
 }
 
 
@@ -489,10 +983,8 @@
   width:100%!important;
   max-width:none!important;
   align-items:stretch!important;
-  overflow:visible!important;
 }
 .platform-analysis-page .analysis-tabs button{
-  flex:1 1 0!important;
   width:auto!important;
   min-width:0!important;
   justify-content:center!important;
@@ -502,7 +994,6 @@
 }
 @media(max-width:760px){
   .platform-analysis-page .analysis-tabs{display:flex!important;overflow-x:auto!important}
-  .platform-analysis-page .analysis-tabs button{flex:0 0 150px!important}
 }
 
 /* Reliable printable Analytics document. The application shell uses fixed-height/overflow
@@ -549,3 +1040,301 @@
 /* Owner registries: summary tiles and governance notes sit inside the card with the same inset as the filter bar. */
 .platform-registry-shell>.platform-summary-strip,.platform-registry-shell>.diagnostics-summary-strip{margin:16px 16px 0;width:auto}
 .platform-registry-shell>.platform-governance{margin:14px 16px;width:auto}
+
+/* ==== canonical-registry-visual ==== */
+/* Canonical registry visual language.
+   Reference: the compact Prevention / Training list pattern.
+   This file is intentionally loaded last so feature-specific CSS cannot fragment
+   the primary registry appearance again. */
+
+.page-fill>.registry-workspace,
+.page-fill>.patient-registry-shell,
+.page>.platform-registry-shell,
+.laboratory-registry-page>.lab-registry-shell,
+.controls-page>.controls-surface{
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:14px!important;
+  background:var(--lo-color-surface)!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+
+.page-fill>.registry-workspace>.filter-system,
+.page-fill>.patient-registry-shell>.filter-system,
+.page>.platform-registry-shell .filter-system,
+.laboratory-registry-page>.lab-registry-shell>.filter-system,
+.controls-page>.controls-surface .filter-system,
+.production-surveillance-workspace>.filter-system{
+  flex:0 0 auto!important;
+  margin:0!important;
+  padding:10px 14px!important;
+  border:0!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+  border-radius:0!important;
+  background:var(--lo-color-surface)!important;
+}
+
+.page-fill>.registry-workspace>.scroll-table,
+.page-fill>.patient-registry-shell>.scroll-table,
+.page>.platform-registry-shell .scroll-table,
+.laboratory-registry-page>.lab-registry-shell>.scroll-table,
+.controls-page>.controls-surface .scroll-table,
+.production-surveillance-workspace>.scroll-table{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:auto!important;
+  border:0!important;
+  border-radius:0!important;
+  background:var(--lo-color-surface)!important;
+  scrollbar-gutter:stable!important;
+}
+
+.registry-workspace .data-table,
+.patient-registry-shell .data-table,
+.platform-registry-shell .data-table,
+.lab-registry-shell .data-table,
+.controls-surface .data-table,
+.production-surveillance-workspace .data-table{
+  width:100%!important;
+  min-width:720px!important;
+  margin:0!important;
+  border:0!important;
+  border-collapse:separate!important;
+  border-spacing:0!important;
+  table-layout:auto!important;
+  background:var(--lo-color-surface)!important;
+}
+
+.registry-workspace .data-table thead th,
+.patient-registry-shell .data-table thead th,
+.platform-registry-shell .data-table thead th,
+.lab-registry-shell .data-table thead th,
+.controls-surface .data-table thead th,
+.production-surveillance-workspace .data-table thead th{
+  position:sticky!important;
+  top:0!important;
+  z-index:3!important;
+  height:40px!important;
+  min-height:40px!important;
+  padding:0 18px!important;
+  vertical-align:middle!important;
+  text-align:left!important;
+  background:#f7f9fb!important;
+  border:0!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
+  color:#6c8199!important;
+  font-size:10px!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+  letter-spacing:.05em!important;
+  text-transform:uppercase!important;
+  white-space:nowrap!important;
+}
+
+.registry-workspace .data-table tbody tr,
+.patient-registry-shell .data-table tbody tr,
+.platform-registry-shell .data-table tbody tr,
+.lab-registry-shell .data-table tbody tr,
+.controls-surface .data-table tbody tr,
+.production-surveillance-workspace .data-table tbody tr{
+  height:48px!important;
+  min-height:48px!important;
+  background:var(--lo-color-surface)!important;
+  transition:background .14s ease!important;
+}
+
+.registry-workspace .data-table tbody td,
+.patient-registry-shell .data-table tbody td,
+.platform-registry-shell .data-table tbody td,
+.lab-registry-shell .data-table tbody td,
+.controls-surface .data-table tbody td,
+.production-surveillance-workspace .data-table tbody td{
+  padding:9px 18px!important;
+  vertical-align:middle!important;
+  border:0!important;
+  border-bottom:1px solid #edf1f4!important;
+  background:transparent!important;
+  color:#314a67!important;
+  font-size:11.5px!important;
+  line-height:1.3!important;
+}
+
+.registry-workspace .data-table tbody tr:last-child td,
+.patient-registry-shell .data-table tbody tr:last-child td,
+.platform-registry-shell .data-table tbody tr:last-child td,
+.lab-registry-shell .data-table tbody tr:last-child td,
+.controls-surface .data-table tbody tr:last-child td,
+.production-surveillance-workspace .data-table tbody tr:last-child td{
+  border-bottom:0!important;
+}
+
+.registry-workspace .data-table tbody tr.clickable-row:hover td,
+.registry-workspace .data-table tbody tr.registry-row-clickable:hover td,
+.patient-registry-shell .data-table tbody tr:hover td,
+.platform-registry-shell .data-table tbody tr:hover td,
+.lab-registry-shell .data-table tbody tr:hover td,
+.controls-surface .data-table tbody tr:hover td,
+.production-surveillance-workspace .data-table tbody tr:hover td{
+  background:#f8fafc!important;
+}
+
+.registry-workspace .data-table td strong,
+.patient-registry-shell .data-table td strong,
+.platform-registry-shell .data-table td strong,
+.lab-registry-shell .data-table td strong,
+.controls-surface .data-table td strong,
+.production-surveillance-workspace .data-table td strong{
+  color:#17395c!important;
+  font-weight:750!important;
+}
+
+.registry-workspace .data-table td small,
+.patient-registry-shell .data-table td small,
+.platform-registry-shell .data-table td small,
+.lab-registry-shell .data-table td small,
+.controls-surface .data-table td small,
+.production-surveillance-workspace .data-table td small{
+  margin-top:2px!important;
+  color:#7a8998!important;
+  font-size:10px!important;
+}
+
+.registry-workspace>.registry-pagination,
+.patient-registry-shell>.registry-pagination,
+.platform-registry-shell .registry-pagination,
+.lab-registry-shell>.registry-pagination,
+.controls-surface .registry-pagination,
+.production-surveillance-workspace>.registry-pagination{
+  flex:0 0 44px!important;
+  min-height:44px!important;
+  height:44px!important;
+  margin:0!important;
+  padding:0 14px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  border:0!important;
+  border-top:1px solid var(--lo-color-border)!important;
+  border-radius:0!important;
+  background:var(--lo-color-surface)!important;
+  color:#66788d!important;
+  font-size:11.5px!important;
+}
+
+.registry-pagination-controls{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+.registry-pagination-controls label{
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  gap:8px!important;
+  margin:0!important;
+}
+.registry-pagination-controls label>span{
+  margin:0!important;
+  color:#566b82!important;
+  font-size:11px!important;
+  font-weight:750!important;
+  white-space:nowrap!important;
+}
+.registry-pagination-controls select{
+  width:auto!important;
+  min-width:76px!important;
+  height:30px!important;
+  min-height:30px!important;
+  margin:0!important;
+  padding:0 26px 0 10px!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:8px!important;
+  background:var(--lo-color-surface)!important;
+  color:#314a67!important;
+  font-size:11.5px!important;
+}
+.registry-pagination-controls button{
+  width:30px!important;
+  height:30px!important;
+  min-width:30px!important;
+  min-height:30px!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:8px!important;
+  background:var(--lo-color-surface)!important;
+  color:#607a96!important;
+  display:grid!important;
+  place-items:center!important;
+  font-size:15px!important;
+}
+.registry-pagination-controls button:disabled{opacity:.32!important}
+
+.registry-empty-state{
+  min-height:0!important;
+  height:auto!important;
+  padding:48px 20px 24px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:6px!important;
+  background:var(--lo-color-surface)!important;
+  text-align:center!important;
+}
+
+/* Surveillance uses the same table + attached pagination contract as Prevention/Training. */
+.production-surveillance-frame>.production-surveillance-workspace{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-content:stretch!important;
+  overflow:hidden!important;
+  background:var(--lo-color-surface)!important;
+}
+.production-surveillance-page .production-surveillance-workspace>.filter-system{margin:0!important}
+.production-surveillance-page .production-surveillance-workspace>.scroll-table{margin:0!important;max-height:none!important;align-self:stretch!important}
+.production-surveillance-page .production-surveillance-workspace>.registry-pagination{margin:0!important}
+
+@media(max-width:900px){
+  .registry-workspace .data-table thead th,
+  .patient-registry-shell .data-table thead th,
+  .platform-registry-shell .data-table thead th,
+  .lab-registry-shell .data-table thead th,
+  .controls-surface .data-table thead th,
+  .production-surveillance-workspace .data-table thead th{padding:0 12px!important}
+
+  .registry-workspace .data-table tbody td,
+  .patient-registry-shell .data-table tbody td,
+  .platform-registry-shell .data-table tbody td,
+  .lab-registry-shell .data-table tbody td,
+  .controls-surface .data-table tbody td,
+  .production-surveillance-workspace .data-table tbody td{padding:8px 12px!important}
+}
+
+
+/* Surveillance grouping: one divider before independent samples; follow-ups stay nested. */
+.surveillance-independent-samples{border-top:3px solid var(--lo-color-border-strong,#b9ccdc)}
+.surveillance-independent-samples>[data-sample-root]:first-child>.surveillance-tree-sample:first-child{border-top:0!important}
+.surveillance-sample-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;overflow:visible;min-width:286px;margin-left:auto}
+.surveillance-sample-actions>em{min-width:72px;text-align:center}
+.surveillance-sample-actions .btn{white-space:nowrap}
+.sample-followup-action{min-width:118px;justify-content:center}
+.sample-start-action{min-width:145px;justify-content:center}
+.clinical-stage-action{font-weight:700!important;border-color:var(--lo-color-primary,#2176a9)!important;color:var(--lo-color-primary,#17658f)!important;background:var(--lo-color-primary-soft,#eef7fc)!important;box-shadow:0 1px 2px rgba(15,56,82,.08)}
+.clinical-stage-action:hover{background:var(--lo-color-primary-soft-hover,#e2f2fa)!important}
+
+/* Independent root samples align with surveillance episode rows; only follow-ups indent. */
+.surveillance-independent-samples .surveillance-tree-sample.is-unlinked:not(.is-followup)>span:first-child{padding-left:14px}
+.surveillance-tree-sample>span:last-child{justify-self:stretch}
+.surveillance-sample-actions .sample-followup-action{margin-left:auto}

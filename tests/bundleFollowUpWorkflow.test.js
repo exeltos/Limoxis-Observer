@@ -7,7 +7,7 @@ describe('bundle deviation follow-up workflow',()=>{
  const page=read('src/features/prevention/PreventionRecordPage.jsx')
  const service=read('src/features/prevention/bundleCloudService.js')
  const dialog=read('src/features/prevention/BundleFollowUpDialog.jsx')
- const css=read('src/styles/prevention-refinements.css')
+ const css=read('src/styles/workspaces.css')
 
  it('offers an actionable follow-up for every bundle deviation',()=>{
   expect(page).toContain("en?'Follow-up':'Επανέλεγχος'")

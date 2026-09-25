@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-const theme=fs.readFileSync('src/styles/theme.css','utf8')
+const theme=fs.readFileSync('src/styles/foundation.css','utf8')
 const css=fs.readFileSync('src/styles/global.css','utf8')
 const checks=[
  [theme,'--lo-status-success-bg'],[theme,'--lo-status-warning-bg'],[theme,'--lo-status-danger-bg'],
