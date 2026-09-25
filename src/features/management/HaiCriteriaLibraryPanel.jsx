@@ -8,7 +8,6 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { ROLES } from '../../core/permissions/roles'
 import { HAI_CRITERIA_SETS } from '../surveillance/haiCriteriaDefinitions'
 import { loadHaiCriteriaLibraryItems,loadGlobalHaiCriteriaLibraryItems,updateGlobalHaiCriteriaLibraryItem } from './haiCriteriaLibraryCloudService'
 
@@ -18,7 +17,7 @@ const demoRows=()=>Object.entries(HAI_CRITERIA_SETS).map(([key,set])=>({id:key,c
 
 export function HaiCriteriaLibraryPanel({global=false}={}){
  const {notify}=useFeedback()
- const {tenant,isDemo:tenantIsDemo,role}=useTenant();const isDemo=!global&&tenantIsDemo;const isPlatformOwner=global||role===ROLES.PLATFORM_OWNER
+ const {tenant,isDemo:tenantIsDemo}=useTenant();const isDemo=!global&&tenantIsDemo;const isPlatformOwner=global // system (platform-wide) entries are edited only on the platform screen
  const {language}=useLanguage();const en=language==='en';const ruleLabels=RULE_LABELS[language]||RULE_LABELS.en
  const [rows,setRows]=useState(()=>isDemo?demoRows():[])
  const [loading,setLoading]=useState(!isDemo)

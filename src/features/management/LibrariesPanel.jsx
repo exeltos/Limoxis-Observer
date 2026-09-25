@@ -8,7 +8,6 @@ import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { ROLES } from '../../core/permissions/roles'
 import { demoLibrarySeed,newLocalLibraryItem } from './managementData'
 import { loadSnapshot,saveSnapshot } from '../../core/data/repository'
 import { createGlobalLibraryItem,createManagementLibraryItem,loadGlobalLibraryItems,loadManagementLibraries,removeGlobalLibraryItem,removeManagementLibraryItem,updateGlobalLibraryItem,updateManagementLibraryItem } from './managementCloudService'
@@ -27,7 +26,7 @@ function normalizeGovernance(seed){const next={...seed};for(const key of Object.
 function loadDemoState(){const stored=loadSnapshot('management_libraries',{});return normalizeGovernance({...cloneSeed(),...(stored&&typeof stored==='object'?stored:{})})}
 
 export function LibrariesPanel({global=false}={}){
- const {language,t}=useLanguage();const {notify,confirm}=useFeedback();const {tenant,isDemo:tenantIsDemo,role}=useTenant();const isDemo=!global&&tenantIsDemo;const isPlatformOwner=global||role===ROLES.PLATFORM_OWNER
+ const {language,t}=useLanguage();const {notify,confirm}=useFeedback();const {tenant,isDemo:tenantIsDemo}=useTenant();const isDemo=!global&&tenantIsDemo;const isPlatformOwner=global // system (platform-wide) entries are edited only on the platform screen
  const visibleCategories=useMemo(()=>global?categories.filter(([id])=>id!=='departments'):categories,[global])
  const [active,setActive]=useState(()=>global?visibleCategories[0][0]:'departments');const [query,setQuery]=useState('');const [rows,setRows]=useState(()=>isDemo?loadDemoState():{});const [loading,setLoading]=useState(!isDemo);const [editor,setEditor]=useState(null);const [draft,setDraft]=useState({el:'',en:''})
  useEffect(()=>{if(global){let mounted=true;setLoading(true);loadGlobalLibraryItems().then(data=>{if(mounted)setRows(data)}).catch(error=>{if(mounted)notify(error?.message||t('loadFailed'),'error')}).finally(()=>{if(mounted)setLoading(false)});return()=>{mounted=false}}if(isDemo){setRows(loadDemoState());setLoading(false);return}if(!tenant?.id){setRows({});setLoading(false);return}let mounted=true;setLoading(true);loadManagementLibraries(tenant.id).then(data=>{if(mounted)setRows(data)}).catch(error=>{if(mounted)notify(error?.message||t('loadFailed'),'error')}).finally(()=>{if(mounted)setLoading(false)});return()=>{mounted=false}},[global,isDemo,tenant?.id,notify,t])

@@ -10,7 +10,6 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { loadBundleLibrary,saveBundleLibrary } from './bundleLibraryData'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { ROLES } from '../../core/permissions/roles'
 import { createBundleTemplate,loadBundleTemplates,publishBundleTemplate,removeBundleTemplate,retireBundleTemplate,updateBundleTemplate } from './bundleLibraryCloudService'
 const STATUS_LABELS={el:{draft:'Πρόχειρο',published:'Δημοσιευμένο',retired:'Αποσυρμένο'},en:{draft:'Draft',published:'Published',retired:'Retired'}}
 const clone=value=>JSON.parse(JSON.stringify(value))
@@ -18,7 +17,7 @@ const normalize=item=>({...item,bundleKey:item.bundleKey||item.id})
 
 export function BundleLibraryPanel({global=false}={}){
  const {notify,confirm}=useFeedback()
- const {tenant,isDemo:tenantIsDemo,role}=useTenant();const isDemo=!global&&tenantIsDemo;const isPlatformOwner=global||role===ROLES.PLATFORM_OWNER
+ const {tenant,isDemo:tenantIsDemo}=useTenant();const isDemo=!global&&tenantIsDemo;const isPlatformOwner=global // system (platform-wide) entries are edited only on the platform screen
  const {language}=useLanguage();const en=language==='en';const statusLabels=STATUS_LABELS[language]||STATUS_LABELS.en
  const [rows,setRows]=useState(()=>isDemo?loadBundleLibrary().map(normalize):[])
  const [loading,setLoading]=useState(!isDemo)

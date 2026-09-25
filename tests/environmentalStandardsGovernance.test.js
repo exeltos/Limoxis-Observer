@@ -1,3 +1,6 @@
+// System (platform-wide) entries are editable only on the platform screen
+// (ManagementPage global), which requires VIEW_PLATFORM (Platform Owner only).
+// Inside a hospital the Platform Owner has the Hospital Administrator's view.
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 
@@ -14,7 +17,7 @@ describe('environmental standards governance',()=>{
   expect(migration).toContain('trg_audit_environmental_standards')
  })
  it('keeps system protocols read only for hospital users in the UI',()=>{
-  expect(panel).toContain('const isPlatformOwner=role===ROLES.PLATFORM_OWNER')
+  expect(panel).toContain('const isPlatformOwner=global')
   expect(panel).toContain("t('librariesPanel.systemReadOnlyBadge')")
   expect(panel).toContain('systemLocked=item.system&&!isPlatformOwner')
   expect(panel).toContain("hidden:item.system&&!isPlatformOwner")

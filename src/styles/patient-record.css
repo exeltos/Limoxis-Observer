@@ -508,7 +508,12 @@
 
 /* New surveillance: a single short start form now, so size to content instead
    of the full-height journey overlay (the episode-detail overlay keeps it). */
-.episode-detail-card.new-surveillance-flow-card.new-surveillance-start-card{width:min(1100px,calc(100vw - 32px))!important;height:auto!important;max-height:calc(100vh - 32px)!important;grid-template-rows:auto minmax(0,auto)!important}
+/* Column layout so the body scrolls once the form (e.g. with "New patient")
+   is taller than the screen; the grid version let the body grow and the
+   card clipped the bottom fields and buttons. */
+.episode-detail-card.new-surveillance-flow-card.new-surveillance-start-card{width:min(1100px,calc(100vw - 32px))!important;height:auto!important;max-height:calc(100vh - 32px)!important;display:flex!important;flex-direction:column!important}
+.episode-detail-card.new-surveillance-flow-card.new-surveillance-start-card>.episode-detail-header{flex:0 0 auto!important}
+.episode-detail-card.new-surveillance-flow-card.new-surveillance-start-card>.episode-detail-scroll{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}
 .episode-detail-card.new-surveillance-flow-card.new-surveillance-start-card>.episode-detail-scroll{padding-bottom:16px!important}
 
 /* Patient record small dialogs (discharge, transfer, admission, edit

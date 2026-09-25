@@ -21,7 +21,8 @@ describe('Management Center production persistence',()=>{
 
   it('keeps management authorization and database audit governance present',()=>{
     expect(page).toContain('CAPABILITIES.MANAGE_ROLES')
-    expect(page).toContain('CAPABILITIES.MANAGE_EXTERNAL_REFERENCES')
+    // External references moved to the platform screen (global Management Center).
+    expect(page).toContain("{id:'references',label:t('externalReferences'),icon:Globe2}]")
     expect(migration).toContain('trg_audit_custom_roles')
     expect(migration).toContain('trg_audit_external_reference_versions')
     expect(migration).toContain('revoke all on table public.custom_roles from anon')
