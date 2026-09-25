@@ -34,6 +34,7 @@ import './styles/canonical-tabs-final.css'
 import './styles/analysis-print.css'
 import './styles/tabs-unified.css'
 import './styles/short-viewport.css'
+import './styles/tablet-rail.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
