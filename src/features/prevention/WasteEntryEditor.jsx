@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Box,Building2,CalendarRange,FileText,Recycle,Save,Scale,Truck,UserRound,X } from 'lucide-react'
+import { Box, Building2, CalendarRange, FileText, Recycle, Save, Scale, Truck, UserRound, X, BedDouble, Gauge } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -134,8 +134,8 @@ function WasteRecordDetails({record,language,locale}){
    <div className="waste-record-kpis">
     <div className="primary"><Scale size={18}/><span>{en?'Total weight':'Συνολικό βάρος'}</span><strong>{fmtNumber(weight)} <small>kg</small></strong></div>
     <div><Box size={18}/><span>{en?'Containers':'Περιέκτες'}</span><strong>{record.containers??'—'}</strong></div>
-    <div><span className="waste-kpi-symbol">PD</span><span>{en?'Patient-days':'Νοσηλευτικές ημέρες'}</span><strong>{patientDays||'—'}</strong></div>
-    <div className="indicator"><span className="waste-kpi-symbol">‰</span><span>{en?'Waste indicator':'Δείκτης αποβλήτων'}</span><strong>{indicator==null?'—':fmtNumber(indicator,2)} <small>{en?'kg / 1,000 PD':'kg / 1.000 ΝΗ'}</small></strong></div>
+    <div><BedDouble size={18}/><span>{en?'Patient-days':'Νοσηλευτικές ημέρες'}</span><strong>{patientDays||'—'}</strong></div>
+    <div className="indicator"><Gauge size={18}/><span>{en?'Waste indicator':'Δείκτης αποβλήτων'}</span><strong>{indicator==null?'—':fmtNumber(indicator,2)} <small>{en?'kg / 1,000 patient-days':'kg / 1.000 ημέρες νοσηλείας'}</small></strong></div>
    </div>
   </section>
 

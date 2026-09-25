@@ -111,3 +111,33 @@ html body .surveillance-episode-page .clinical-timeline p{margin:0!important;fon
   .sv-sample{grid-template-columns:30px minmax(0,1fr)}
   .sv-sample-result,.sv-sample-actions{grid-column:2/3;justify-content:flex-start}
 }
+
+/* ===== Final report of a completed episode (full width, card per area) ===== */
+html body .surveillance-final-report.final-report-v2{max-width:none!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;display:grid;gap:14px}
+.final-report-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;padding:18px 20px;border:1px solid #dbe6ef;border-left:4px solid #1baf7a;border-radius:12px;background:linear-gradient(90deg,#f3fbf7,#fff 55%)}
+.final-report-hero h2{margin:4px 0 4px;font-size:20px;color:#173a57}
+.final-report-hero p{margin:0;font-size:13px;color:#5f768a}
+.final-report-hero-facts{display:grid;grid-template-columns:repeat(4,auto);gap:10px 26px}
+.final-report-hero-facts small,.final-report-facts small{display:block;font-size:11.5px;font-weight:650;color:#6b8194;margin-bottom:3px}
+.final-report-hero-facts strong{font-size:14px;color:#1f3a52}
+.final-report-chips{display:flex;gap:6px;flex-wrap:wrap}
+.final-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.final-report-card{padding:16px 18px;border:1px solid #dfe8f0;border-radius:12px;background:#fff;min-width:0}
+.final-report-card.wide{grid-column:1/-1}
+.final-report-card>header{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #e9eff5}
+.final-report-card>header h3{margin:0;font-size:15px;color:#173a57}
+.final-report-card-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#eef5fc;color:var(--lo-color-primary)}
+.final-report-card p{margin:10px 0 0;font-size:13.5px;line-height:1.55;color:#34485e}
+.final-report-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.final-report-facts>div{padding:10px 12px;border:1px solid #e3ebf2;border-radius:10px;background:#fafcfe}
+.final-report-facts strong{font-size:13.5px;color:#1f3a52;overflow-wrap:anywhere}
+.final-report-note{display:block;margin-top:8px;font-size:12px;color:#6b8194}
+.final-report-empty{margin:0!important;color:#6b8194!important;font-size:13px!important}
+.final-report-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.final-report-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 12px;border:1px solid #e3ebf2;border-radius:10px;background:#fafcfe}
+.final-report-list li strong{font-size:13.5px;color:#1f3a52}
+.final-report-list li span{grid-column:1;font-size:12.5px;color:#5f768a}
+.final-report-list li small{grid-column:2;grid-row:1;font-size:12px;color:#6b8194;white-space:nowrap}
+.final-report-card .clinical-data-hub{padding:0}
+@media (max-width:1100px){.final-report-hero{grid-template-columns:minmax(0,1fr)}.final-report-hero-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.final-report-grid{grid-template-columns:minmax(0,1fr)}}
+@media print{.final-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.final-report-card{break-inside:avoid}}

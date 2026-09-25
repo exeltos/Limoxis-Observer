@@ -172,7 +172,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       kpis: [
         [tx('Συμμόρφωση δεσμών μέτρων', 'Bundle compliance'), fmtPct(b.averageScore), tx(`${b.assessments ?? 0} αξιολογήσεις`, `${b.assessments ?? 0} assessments`), b.averageScore != null && b.averageScore < 90 ? 'warning' : 'good'],
         [tx('Συμμόρφωση υγιεινής χεριών', 'Hand hygiene compliance'), fmtPct(hhRate), tx(`${hh.sessions ?? 0} συνεδρίες παρατήρησης`, `${hh.sessions ?? 0} observation sessions`), hhRate != null && hhRate < 80 ? 'warning' : 'good'],
-        [tx('Ιατρικά απόβλητα', 'Healthcare waste'), `${String(w.totalKg ?? 0).replace('.', ',')} kg`, w.patientDays ? tx(`${(w.totalKg / w.patientDays).toFixed(2).replace('.', ',')} kg / ημέρα νοσηλείας`, `${(w.totalKg / w.patientDays).toFixed(2)} kg / patient-day`) : tx(`${w.records ?? 0} καταγραφές`, `${w.records ?? 0} records`)],
+        [tx('Ιατρικά απόβλητα', 'Healthcare waste'), `${String(w.totalKg ?? 0).replace('.', ',')} kg`, w.patientDays ? tx(`${(w.totalKg / w.patientDays * 1000).toFixed(1).replace('.', ',')} kg / 1.000 ημέρες νοσηλείας`, `${(w.totalKg / w.patientDays * 1000).toFixed(1)} kg / 1,000 patient-days`) : tx(`${w.records ?? 0} καταγραφές`, `${w.records ?? 0} records`)],
       ],
       charts: [
         { type: 'rate', title: tx('Συμμόρφωση ανά δέσμη', 'Compliance by bundle'), subtitle: tx('Μέσο ποσοστό κριτηρίων που τηρήθηκαν.', 'Average share of criteria met.'), rows: (b.byBundle || []).filter(([, , score]) => score != null).map(([key, , score]) => [label(key), score]) },
