@@ -43,6 +43,15 @@ function countBy(rows, keyFn) {
 }
 function sortedEntries(map, limit = 10) { return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, limit) }
 function monthKey(value) { return String(value || '').slice(0, 7) }
+// A continuous 12-month axis ending this month: months without positives
+// count as 0 instead of disappearing (which made the trend look flat).
+function lastTwelveMonths(counts, now = new Date()) {
+  return Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - 11 + index, 1)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    return [key, counts[key] || 0]
+  })
+}
 
 // Same predicate as analysis_amr_susceptibility/indicator_metric_snapshot:
 // validated/amended isolates of the eight reference pathogens, tested
@@ -89,7 +98,7 @@ function collectMicrobiology() {
   return {
     microorganisms: sortedEntries(countBy(positive, x => x.organism?.trim()), 12),
     resistance: sortedEntries(countBy(positive, x => x.resistance), 5),
-    monthly: Object.entries(countBy(positive, x => monthKey(x.resultedAt))).sort((a, b) => a[0].localeCompare(b[0])).slice(-12),
+    monthly: lastTwelveMonths(countBy(positive, x => monthKey(x.resultedAt))),
     byDepartment: sortedEntries(countBy(positive, x => x.department), 12),
     bySource: sortedEntries(countBy(positive, x => x.source), 12),
     bySite: sortedEntries(countBy(positive, x => x.type), 12),

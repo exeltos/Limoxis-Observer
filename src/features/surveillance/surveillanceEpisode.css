@@ -55,3 +55,59 @@ html body .surveillance-episode-page .clinical-timeline header{display:flex!impo
 html body .surveillance-episode-page .clinical-timeline header strong{font-size:13.5px!important;white-space:normal!important}
 html body .surveillance-episode-page .clinical-timeline time{font-size:12px!important;color:#6b8194!important;white-space:nowrap!important}
 html body .surveillance-episode-page .clinical-timeline p{margin:0!important;font-size:13px!important;line-height:1.5!important;color:#44576b!important}
+
+/* ===== Surveillance & samples: episode cards with indented sample tree ===== */
+.sv-tree{display:grid;gap:12px;padding:14px 16px 16px}
+.sv-episode{--sv-accent:#2a78d6;border:1px solid #dbe6ef;border-left:4px solid var(--sv-accent);border-radius:12px;background:#fff;overflow:hidden}
+.sv-episode.sv-status-completed,.sv-episode.sv-status-closed{--sv-accent:#1baf7a}
+.sv-episode.sv-status-cancelled{--sv-accent:#9aa8b5}
+.sv-episode.is-selected{box-shadow:0 0 0 3px color-mix(in srgb,var(--sv-accent) 18%,transparent)}
+.sv-episode-head{width:100%;display:grid;grid-template-columns:36px minmax(0,1fr) auto 20px;align-items:center;gap:12px;padding:14px 16px;border:0;background:linear-gradient(90deg,color-mix(in srgb,var(--sv-accent) 6%,#fff),#fff 60%);text-align:left;font:inherit;color:inherit;cursor:pointer}
+.sv-episode-head:hover{background:color-mix(in srgb,var(--sv-accent) 9%,#fff)}
+.sv-episode-head:focus-visible{outline:2px solid color-mix(in srgb,var(--sv-accent) 45%,transparent);outline-offset:-2px}
+.sv-episode-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--sv-accent) 12%,#fff);color:var(--sv-accent)}
+.sv-episode-main{display:grid;gap:4px;min-width:0}
+.sv-episode-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sv-episode-title strong{font-size:15px;color:#173a57}
+.sv-episode-main small{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:12.5px;color:#5f768a}
+.sv-episode-findings{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.sv-sample-count{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;background:#eef3f7;color:#44576b;font-size:12px;font-weight:700}
+.sv-episode-open{color:#8aa0b3}
+.sv-chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:12px;font-style:normal;font-weight:650;white-space:nowrap}
+.sv-chip-organism{background:#eef5fc;color:#1d5f95;font-style:italic}
+.sv-chip-danger{background:#fdecec;color:#b3261e;font-weight:800}
+.sv-chip-muted{background:#f1f4f7;color:#6b7f91}
+
+/* Sample tree: indented under the episode, a connector line shows the hierarchy. */
+.sv-samples{position:relative;display:grid;gap:8px;padding:4px 16px 14px 44px}
+.sv-samples::before{content:"";position:absolute;left:33px;top:0;bottom:22px;width:2px;background:#dbe6ef;border-radius:2px}
+.sv-samples-flat{padding-left:16px}
+.sv-samples-flat::before{display:none}
+.sv-sample-node{position:relative;display:grid;gap:8px}
+.sv-samples:not(.sv-samples-flat)>.sv-sample-node::before{content:"";position:absolute;left:-11px;top:22px;width:11px;height:2px;background:#dbe6ef}
+.sv-sample-children{position:relative;display:grid;gap:8px;padding-left:34px}
+.sv-sample-children::before{content:"";position:absolute;left:17px;top:-8px;bottom:22px;width:2px;background:#e3ebf2;border-radius:2px}
+.sv-sample-children>.sv-sample-node::before{content:"";position:absolute;left:-17px;top:22px;width:17px;height:2px;background:#e3ebf2}
+.sv-sample{--tone:#eda100;display:grid;grid-template-columns:30px minmax(160px,1.1fr) minmax(0,1.6fr) auto;align-items:center;gap:12px;padding:9px 12px;border:1px solid #e3ebf2;border-left:3px solid var(--tone);border-radius:10px;background:#fbfcfe}
+.sv-sample.sv-tone-positive{--tone:#d64545}
+.sv-sample.sv-tone-negative{--tone:#1baf7a}
+.sv-sample.sv-tone-pending{--tone:#eda100}
+.sv-sample-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--tone) 12%,#fff);color:var(--tone)}
+.sv-sample-main{display:grid;gap:2px;min-width:0}
+.sv-sample-main strong{font-size:13px;color:#1f3a52}
+.sv-sample-main small{font-size:12px;color:#6b8194;overflow-wrap:anywhere}
+.sv-sample-result{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.sv-result{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:800;background:color-mix(in srgb,var(--tone) 12%,#fff);color:color-mix(in srgb,var(--tone) 80%,#000)}
+.sv-sample-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.sv-sample-actions .button{min-height:30px;height:30px;padding:0 11px;font-size:12px}
+.sv-sample-actions .sample-negative-note{font-size:12px;color:#5f768a;font-style:normal}
+.sv-unlinked{border:1px dashed #cfdce7;border-radius:12px;background:#fff}
+.sv-unlinked-heading{display:flex;align-items:center;gap:8px;padding:12px 16px 6px;color:#44576b}
+.sv-unlinked-heading strong{font-size:13.5px;color:#1f3a52}
+.sv-unlinked-heading span{padding:1px 8px;border-radius:999px;background:#eef3f7;font-size:12px;font-weight:700}
+@media (max-width:980px){
+  .sv-episode-head{grid-template-columns:36px minmax(0,1fr) 20px}
+  .sv-episode-findings{grid-column:2/3;justify-content:flex-start}
+  .sv-sample{grid-template-columns:30px minmax(0,1fr)}
+  .sv-sample-result,.sv-sample-actions{grid-column:2/3;justify-content:flex-start}
+}

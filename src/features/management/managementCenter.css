@@ -143,3 +143,11 @@
 .outbreak-evidence li{grid-template-columns:150px minmax(0,1fr)!important}
 .outbreak-evidence li>.status-badge{justify-self:start}
 .outbreak-workspace #lira-investigation-capa td:first-child{min-width:220px}
+
+/* Platform update center: one row per detected source change. */
+.platform-update-review-section .platform-update-review-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--lo-color-border)}
+.platform-update-review-section .platform-update-review-row:last-child{border-bottom:0}
+.platform-update-review-section .platform-update-review-row>div:first-child{display:grid;gap:3px;min-width:0}
+.platform-update-review-section .platform-update-review-row strong{font-size:13.5px}
+.platform-update-review-section .platform-update-review-row small{font-size:12px;color:var(--lo-color-muted)}
+.platform-update-review-actions{display:flex;gap:8px;flex:none}

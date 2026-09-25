@@ -6,6 +6,7 @@ import { glossary } from './helpContent'
 import { helpManual } from './helpManual'
 import { helpManualEn } from './helpManualEn'
 import { helpExtras } from './helpExtras'
+import { platformHelp, platformHelpNavigation } from './helpPlatform'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useTenant } from '../tenant/TenantContext'
 import { navigationFor } from '../../app/navigation'
@@ -19,7 +20,7 @@ const netlifyPreviewUrl=(path,role,language)=>{
  if(language)url.searchParams.set('helpLang',language)
  return url.toString()
 }
-const resolveManual=(path,book)=>book[path]||book[Object.keys(book).find(k=>k!=='/'&&path.startsWith(k))]||book['/']
+const resolveManual=(path,book)=>book[path]||book[Object.keys(book).find(k=>k!=='/'&&path.startsWith(k))]||book['/']||Object.values(book)[0]
 
 const uiText={
  el:{
@@ -30,12 +31,12 @@ const uiText={
   currentScreen:'ΤΡΕΧΟΥΣΑ ΟΘΟΝΗ',userGuide:'ΟΔΗΓΟΣ ΧΡΗΣΗΣ',forRole:'Αφορά',
   chapter:'ΚΕΦΑΛΑΙΟ',howTo:'Πώς το χρησιμοποιώ',beforeFinish:'Έλεγχος πριν ολοκληρώσετε',
   goodPractice:'Καλή πρακτική',roleAware:'Προσαρμοσμένο στον λογαριασμό σας',
-  roleAwareBody:'Βλέπετε μόνο κεφάλαια και ενότητες στις οποίες ο πραγματικός ρόλος, το scope ή οι πρόσθετες αρμοδιότητές σας δίνουν πρόσβαση.',
+  roleAwareBody:'Βλέπετε μόνο κεφάλαια και ενότητες στις οποίες ο πραγματικός ρόλος, το εύρος ή οι πρόσθετες αρμοδιότητές σας δίνουν πρόσβαση.',
   previous:'Προηγούμενο',next:'Επόμενο',related:'Σχετικές ενότητες',
-  liveScreen:'ΖΩΝΤΑΝΗ ΟΘΟΝΗ ΑΠΟ NETLIFY',zoom:'Μεγέθυνση',closeZoom:'Κλείσιμο μεγέθυνσης',
-  realScreen:'Πραγματική εικόνα εφαρμογής',liveTitle:'Live από το Netlify',
-  liveBody:'Η μικρογραφία φορτώνει την πραγματική δημοσιευμένη οθόνη του Limoxis Observer.',
-  updatedTitle:'Πάντα ενημερωμένη',updatedBody:'Με κάθε νέο Netlify deploy η προεπισκόπηση ακολουθεί αυτόματα την τρέχουσα έκδοση.',
+  liveScreen:'ΖΩΝΤΑΝΗ ΠΡΟΕΠΙΣΚΟΠΗΣΗ · DEMO',previewLabel:'ΠΡΟΕΠΙΣΚΟΠΗΣΗ',zoom:'Μεγέθυνση',closeZoom:'Κλείσιμο μεγέθυνσης',
+  realScreen:'Πώς λειτουργεί η προεπισκόπηση',liveTitle:'Μόνο δεδομένα demo',previewFrameTitle:'Προεπισκόπηση',platformPreviewTitle:'Χωρίς ζωντανή προεπισκόπηση',platformPreviewBody:'Οι οθόνες πλατφόρμας περιέχουν πραγματικούς οργανισμούς, γι’ αυτό δεν εμφανίζονται σε προεπισκόπηση. Χρησιμοποιήστε τα κεφάλαια και τα βήματα αριστερά.',
+  liveBody:'Η προεπισκόπηση ανοίγει την πραγματική οθόνη με συνθετικά δεδομένα demo. Δεν εμφανίζονται ποτέ στοιχεία ασθενών ή εργαζομένων του οργανισμού σας.',
+  updatedTitle:'Πάντα ενημερωμένη',updatedBody:'Η προεπισκόπηση ακολουθεί πάντα την τρέχουσα έκδοση της εφαρμογής.',
   glossaryEyebrow:'ΟΡΟΛΟΓΙΑ',glossaryTitle:'Κλινικοί & λειτουργικοί όροι',glossaryBody:'Οι όροι που χρησιμοποιούνται μέσα στο Limoxis Observer.',
   aboutTitle:'Σχετικά με την εφαρμογή',currentVersion:'ΤΡΕΧΟΥΣΑ ΕΚΔΟΣΗ',access:'ΠΡΟΣΒΑΣΗ',languages:'ΓΛΩΣΣΕΣ',governance:'ΔΙΑΚΥΒΕΡΝΗΣΗ',
   purpose:'Σκοπός',purposeBody:'Το Limoxis Observer οργανώνει την καθημερινή εργασία πρόληψης και ελέγχου λοιμώξεων σε ένα ενιαίο περιβάλλον. Η εμπειρία προσαρμόζεται στον πραγματικό χρήστη: menu, οθόνες, ενέργειες, ειδοποιήσεις και εγχειρίδιο ακολουθούν τον ίδιο μηχανισμό πρόσβασης.',
@@ -51,10 +52,10 @@ const uiText={
   goodPractice:'Good practice',roleAware:'Tailored to your account',
   roleAwareBody:'You see only chapters and modules available to your actual role, organizational scope and additional capabilities.',
   previous:'Previous',next:'Next',related:'Related sections',
-  liveScreen:'LIVE SCREEN FROM NETLIFY',zoom:'Enlarge',closeZoom:'Close enlarged preview',
-  realScreen:'Real application view',liveTitle:'Live from Netlify',
-  liveBody:'The thumbnail loads the real published Limoxis Observer screen.',
-  updatedTitle:'Always current',updatedBody:'Each new Netlify deployment automatically updates the preview to the current application version.',
+  liveScreen:'LIVE PREVIEW · DEMO',previewLabel:'PREVIEW',zoom:'Enlarge',closeZoom:'Close enlarged preview',
+  realScreen:'How the preview works',liveTitle:'Demo data only',previewFrameTitle:'Preview',platformPreviewTitle:'No live preview',platformPreviewBody:'Platform screens contain real organizations, so they are not shown as a preview. Use the chapters and steps on the left.',
+  liveBody:'The preview opens the real screen with synthetic demo data. Patient or employee records of your organization are never shown.',
+  updatedTitle:'Always current',updatedBody:'The preview always follows the current application version.',
   glossaryEyebrow:'GLOSSARY',glossaryTitle:'Clinical & operational terminology',glossaryBody:'Terms used throughout Limoxis Observer.',
   aboutTitle:'About the application',currentVersion:'CURRENT VERSION',access:'ACCESS',languages:'LANGUAGES',governance:'GOVERNANCE',
   purpose:'Purpose',purposeBody:'Limoxis Observer organizes day-to-day infection prevention and surveillance work in one environment. Menus, screens, actions, notifications and this guide follow the same role-aware access model.',
@@ -63,9 +64,10 @@ const uiText={
 }
 
 export function HelpCenter({open,onClose}){
- const {pathname}=useLocation()
+ const {pathname,hash}=useLocation()
  const {language}=useLanguage()
- const {role,membership}=useTenant()
+ const {role,membership,actualRole,tenant}=useTenant()
+ const platformMode=actualRole==='platform_owner'&&!tenant
  const searchRef=useRef(null)
  const [query,setQuery]=useState('')
  const [selected,setSelected]=useState(pathname)
@@ -73,21 +75,22 @@ export function HelpCenter({open,onClose}){
  const [imageOpen,setImageOpen]=useState(false)
  const [mode,setMode]=useState('manual')
 
- const book=language==='en'?helpManualEn:helpManual
+ const book=platformMode?platformHelp[language==='en'?'en':'el']:(language==='en'?helpManualEn:helpManual)
  const tx=uiText[language==='en'?'en':'el']
  const nav=navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
- const visible=nav.map(x=>({...x,manual:book[x.to]})).filter(x=>x.manual)
+ const visible=(platformMode?platformHelpNavigation:nav).map(x=>({...x,manual:book[x.to]})).filter(x=>x.manual)
  const normalizedQuery=query.trim().toLowerCase()
  const filtered=visible.filter(x=>`${x.manual.title} ${x.manual.summary} ${x.manual.chapters.flat().join(' ')}`.toLowerCase().includes(normalizedQuery))
  const current=resolveManual(selected,book)
- const currentSection=visible.find(x=>pathname===x.to||(x.to!=='/'&&pathname.startsWith(`${x.to}/`)))?.to??'/'
- const extras=helpExtras[selected]||helpExtras['/']
+ const hashKey=hash.replace(/^#/,'').split('?')[0]
+ const currentSection=platformMode?(book[`${pathname}#${hashKey}`]?`${pathname}#${hashKey}`:(book[pathname]?pathname:'/platform')):(visible.find(x=>pathname===x.to||(x.to!=='/'&&pathname.startsWith(`${x.to}/`)))?.to??'/')
+ const extras=platformMode?null:(helpExtras[selected]||helpExtras['/'])
  const checks=extras?.checks?.[language==='en'?'en':'el']||[]
  const tip=extras?.tip?.[language==='en'?'en':'el']||''
  const related=(extras?.related||[]).map(path=>visible.find(x=>x.to===path)).filter(Boolean).slice(0,3)
  const terms=useMemo(()=>glossary.filter(g=>`${g.term} ${g.el} ${g.en}`.toLowerCase().includes(normalizedQuery)),[normalizedQuery])
  const currentChapter=current.chapters[Math.min(chapter,current.chapters.length-1)]||current.chapters[0]
- const isCurrent=resolveManual(pathname,book).title===current.title
+ const isCurrent=selected===currentSection
 
  useEffect(()=>{
    if(open){
@@ -178,15 +181,15 @@ export function HelpCenter({open,onClose}){
     </main>}
 
     {mode==='manual'&&<aside className="manual-preview-pane real-screen-pane">
-      <header><span>{tx.liveScreen}</span><b>{current.title}</b></header>
-      <button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title={tx.zoom}><iframe src={netlifyPreviewUrl(selected,role,language)} title={`Netlify preview ${current.title}`} tabIndex="-1"/><span><Maximize2 size={14}/>{tx.zoom}</span></button>
-      <section className="manual-explain"><h3>{tx.realScreen}</h3><div><b>1</b><p><strong>{tx.liveTitle}</strong><span>{tx.liveBody}</span></p></div><div><b>2</b><p><strong>{tx.updatedTitle}</strong><span>{tx.updatedBody}</span></p></div></section>
+      <header><span>{platformMode?tx.previewLabel:tx.liveScreen}</span><b>{current.title}</b></header>
+      {platformMode?<div className="manual-preview-unavailable"><ShieldCheck size={20}/><strong>{tx.platformPreviewTitle}</strong><span>{tx.platformPreviewBody}</span></div>:<button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title={tx.zoom}><iframe src={netlifyPreviewUrl(selected,role,language)} title={`${tx.previewFrameTitle} ${current.title}`} tabIndex="-1"/><span><Maximize2 size={14}/>{tx.zoom}</span></button>}
+      {!platformMode&&<section className="manual-explain"><h3>{tx.realScreen}</h3><div><b>1</b><p><strong>{tx.liveTitle}</strong><span>{tx.liveBody}</span></p></div><div><b>2</b><p><strong>{tx.updatedTitle}</strong><span>{tx.updatedBody}</span></p></div></section>}
       {related.length>0&&<section className="manual-related"><h3>{tx.related}</h3>{related.map(item=>{const Icon=item.icon||BookOpen;return <button key={item.to} onClick={()=>selectModule(item.to)}><Icon size={14}/><span>{item.manual.title}</span><ChevronRight size={13}/></button>})}</section>}
     </aside>}
 
-    {imageOpen&&<div className="manual-image-lightbox manual-image-lightbox-floating" onMouseDown={e=>e.target===e.currentTarget&&setImageOpen(false)}>
+    {imageOpen&&!platformMode&&<div className="manual-image-lightbox manual-image-lightbox-floating" onMouseDown={e=>e.target===e.currentTarget&&setImageOpen(false)}>
       <div className="manual-preview-floating-card" onMouseDown={e=>e.stopPropagation()}>
-        <div className="manual-live-floating"><iframe src={netlifyPreviewUrl(selected,role,language)} title={`Netlify enlarged ${current.title}`} tabIndex="-1"/></div>
+        <div className="manual-live-floating"><iframe src={netlifyPreviewUrl(selected,role,language)} title={`${tx.previewFrameTitle} ${current.title}`} tabIndex="-1"/></div>
         <button className="manual-lightbox-close" aria-label={tx.closeZoom} title={tx.closeZoom} onClick={()=>setImageOpen(false)}><X size={21}/></button>
       </div>
     </div>}
