@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
-import { Activity,BriefcaseBusiness,FileCheck2,GraduationCap,HeartPulse,KeyRound,Pencil,ShieldAlert,ShieldCheck,Syringe,Trash2,UserRound } from 'lucide-react'
+import { Activity,BriefcaseBusiness,FileCheck2,GraduationCap,HeartPulse,KeyRound,Pencil,ShieldCheck,Trash2,UserRound } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
@@ -27,9 +27,7 @@ import { loadManagementLibraries } from '../management/managementCloudService'
 import { demoLibrarySeed } from '../management/managementData'
 import { EmployeeSurveillanceFlow } from '../surveillance/EmployeeSurveillanceFlow'
 import {
-  EmployeeOccupationalTab,
-  EmployeeVaccinationsTab,
-  EmployeeExposureIncidentsTab,
+  EmployeeHealthTab,
   EmployeeTrainingTab,
   EmployeeEvaluationsTab,
   EmployeeCertificatesTab,
@@ -109,24 +107,22 @@ export function EmployeeRecordPage({selfMode=false}){
   const tabs=useMemo(()=>[
     {id:'details',label:t('employeesRecords.employeeDetailsTab'),icon:UserRound,show:true},
     {id:'occupational',label:t('occupationalHealth'),icon:HeartPulse,show:canOccupational||selfMode},
-    {id:'vaccinations',label:t('vaccinations'),icon:Syringe,show:canOccupational||selfMode},
-    {id:'exposureIncidents',label:language==='en'?'Exposure incidents':'Περιστατικά έκθεσης',icon:ShieldAlert,show:canOccupational||selfMode},
     {id:'surveillance',label:t('surveillance'),icon:Activity,show:canSeeSensitiveEmployeeHealth&&(canOccupational||selfMode)},
     {id:'training',label:t('training'),icon:GraduationCap,show:canTraining||selfMode},
     {id:'evaluations',label:t('evaluations'),icon:FileCheck2,show:canAdmin||selfMode||role==='department_manager'||role==='hr_office'},
-    {id:'certificates',label:t('employeesRecords.certificatesDocuments'),icon:BriefcaseBusiness,show:true},
+    {id:'certificates',label:language==='en'?'Documents':'Έγγραφα',icon:BriefcaseBusiness,show:true},
     {id:'history',label:t('history'),icon:ShieldCheck,show:canOccupational||canAdmin},
   ].filter(item=>item.show),[t,canAdmin,canOccupational,canTraining,canSeeSensitiveEmployeeHealth,selfMode,language])
-  const [tab,setTab]=useState(()=>restored?.tab||'details')
+  // Vaccinations and exposure incidents now live inside the occupational health tab.
+  const [healthSection]=useState(()=>restored?.tab==='vaccinations'?'vaccinations':restored?.tab==='exposureIncidents'?'exposures':'visits')
+  const [tab,setTab]=useState(()=>['vaccinations','exposureIncidents'].includes(restored?.tab)?'occupational':(restored?.tab||'details'))
   const selfProfileTabs=useMemo(()=>[
     {id:'details',label:t('employeesRecords.employeeDetailsTab'),icon:UserRound},
     {id:'occupational',label:t('occupationalHealth'),icon:HeartPulse},
-    {id:'vaccinations',label:t('vaccinations'),icon:Syringe},
-    {id:'exposureIncidents',label:language==='en'?'Exposure incidents':'Περιστατικά έκθεσης',icon:ShieldAlert},
     {id:'surveillance',label:t('surveillance'),icon:Activity},
     {id:'training',label:t('training'),icon:GraduationCap},
     {id:'evaluations',label:t('evaluations'),icon:FileCheck2},
-    {id:'certificates',label:t('employeesRecords.certificatesDocuments'),icon:BriefcaseBusiness},
+    {id:'certificates',label:language==='en'?'Documents':'Έγγραφα',icon:BriefcaseBusiness},
   ],[t,language])
 
   if(employeesLoading)return <RouteLoading/>
@@ -156,9 +152,7 @@ export function EmployeeRecordPage({selfMode=false}){
     <EntityRecordShell className={`employee-record-shell workspace-fill${selfReadOnly?' employee-self-readonly':''}`} avatar={`${employee.firstName?.[0]||''}${employee.lastName?.[0]||''}`} eyebrow={employee.id} title={name} subtitle={`${language==='el'?employee.profession:(employee.professionEn||employee.profession)} · ${language==='el'?employee.department:(employee.departmentEn||employee.department)}`} status={<span className={`status-badge ${employee.employmentStatus==='active'?'active':''}`}>{t(employee.employmentStatus)}</span>} recordNavigation={selfMode?null:recordNavigation} headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={selfMode?()=>navigate('/'):goBack} backLabel={t('back')}>
       {selfReadOnly&&<div className="source-truth-note"><ShieldCheck size={16}/><div><strong>{language==='en'?'Your employee record is read-only':'Η προσωπική σας καρτέλα είναι μόνο για προβολή'}</strong><span>{language==='en'?'You cannot edit, delete or perform administrative actions on your own employee record.':'Δεν μπορείτε να επεξεργαστείτε, να διαγράψετε ή να εκτελέσετε διοικητικές ενέργειες στη δική σας καρτέλα.'}</span></div></div>}
       {tab==='details'&&<Details employee={employee} t={t} language={language} fmt={fmt} canAdmin={canAdmin} canManageUsers={canManageUsers} onCreateAccount={()=>setAccountOpen(true)} deleteEmployee={deleteEmployee} notify={notify} organizationId={tenant?.id} departmentOptions={departmentOptions} professionOptions={professionalCategories} reloadEmployees={reloadEmployees} onCodeChanged={newCode=>navigate(`/employees/${encodeURIComponent(newCode)}`,{replace:true})}/>} 
-      {tab==='occupational'&&<EmployeeOccupationalTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id}/>} 
-      {tab==='vaccinations'&&<EmployeeVaccinationsTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id}/>}
-      {tab==='exposureIncidents'&&<EmployeeExposureIncidentsTab employee={employee} language={language} fmt={fmt} organizationId={tenant?.id}/>}
+      {tab==='occupational'&&<EmployeeHealthTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} initialSection={healthSection}/>} 
       {tab==='surveillance'&&<EmployeeSurveillanceTab employee={employee} t={t} language={language} fmt={fmt} version={surveillanceVersion} readOnly={selfReadOnly} isDemo={isDemo} organizationId={tenant?.id} canManageFollowup={canManageEmployeeFollowup} onNew={()=>setSurveillanceOpen(true)}/>} 
       {tab==='training'&&<EmployeeTrainingTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} canOpenProgram={canTraining}/>} 
       {tab==='evaluations'&&<EmployeeEvaluationsTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} canCreate={!selfReadOnly&&(role==='department_manager'||canAdmin)} canHrApprove={!selfReadOnly&&(role==='hr_office'||canAdmin)} canAdminApprove={!selfReadOnly&&canAdmin} selfReadOnly={selfReadOnly}/>} 

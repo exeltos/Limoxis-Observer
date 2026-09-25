@@ -9,7 +9,9 @@ const documents=read('src/design-system/DocumentsWorkspace.jsx')
 
 describe('employee record canonical tabs',()=>{
   it('routes every employee sub-tab through the canonical tab components',()=>{
-    for(const component of ['EmployeeOccupationalTab','EmployeeVaccinationsTab','EmployeeSurveillanceTab','EmployeeTrainingTab','EmployeeEvaluationsTab','EmployeeCertificatesTab','EmployeeHistoryTab'])expect(page).toContain(component)
+    for(const component of ['EmployeeHealthTab','EmployeeSurveillanceTab','EmployeeTrainingTab','EmployeeEvaluationsTab','EmployeeCertificatesTab','EmployeeHistoryTab'])expect(page).toContain(component)
+    // Visits, vaccinations and exposures share the occupational health tab.
+    for(const component of ['EmployeeOccupationalTab','EmployeeVaccinationsTab','EmployeeExposureIncidentsTab'])expect(tabs).toContain(`<${component} `)
     expect(page).not.toContain('function Occupational(')
     expect(page).not.toContain('function Vaccinations(')
     expect(page).not.toContain('function Certificates(')

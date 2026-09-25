@@ -38,7 +38,9 @@ describe('occupational exposure / needlestick-injury tracking module', () => {
   it('surfaces exposure history read-only on the employee record, gated the same as occupational visits', () => {
     expect(employeeTabs).toContain('EmployeeExposureIncidentsTab')
     expect(employeeTabs).toContain('loadExposureIncidentsAsync')
-    expect(employeeRecordPage).toContain("{id:'exposureIncidents'")
-    expect(employeeRecordPage).toContain('EmployeeExposureIncidentsTab')
+    // Exposures are a section of the occupational health tab, which carries the same gate.
+    expect(employeeRecordPage).toContain("{id:'occupational',label:t('occupationalHealth'),icon:HeartPulse,show:canOccupational||selfMode}")
+    expect(employeeRecordPage).toContain('<EmployeeHealthTab')
+    expect(employeeTabs).toContain("section==='exposures'&&<EmployeeExposureIncidentsTab")
   })
 })

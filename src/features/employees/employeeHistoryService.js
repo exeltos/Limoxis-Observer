@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { employeeHistoryDemo } from './employeeDemoData'
 import {
   loadOccupationalVisitsAsync,
   loadVaccinationsAsync,
@@ -22,7 +23,8 @@ function detailKey(kind,detail){
 }
 
 export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,employeeId){
-  if(isDemoDataEnvironment()||!employeeDbId)return []
+  if(isDemoDataEnvironment())return employeeHistoryDemo.filter(row=>row.employeeId===employeeId)
+  if(!employeeDbId)return []
   if(!hasSupabaseConfig||!supabase)throw new Error('PRODUCTION_CLOUD_REQUIRED:employees.history')
   if(!organizationId)throw new Error('PRODUCTION_ORGANIZATION_REQUIRED:employees.history')
 

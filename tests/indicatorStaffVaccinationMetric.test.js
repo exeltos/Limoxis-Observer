@@ -37,7 +37,9 @@ describe('Staff vaccination coverage indicator counts influenza only (ΥΑ Υ1.�
   })
 
   it('excludes the employee whose only record is a non-influenza vaccine', () => {
-    const hepBOnly = employeeVaccinations.find(x => x.vaccine === 'Hepatitis B')
+    const flu = y => /γρίπ|influenza|flu/i.test(y.vaccine)
+    const hepBOnly = employeeVaccinations.find(x => x.vaccine === 'Ηπατίτιδα Β' && !employeeVaccinations.some(y => y.employeeId === x.employeeId && flu(y)))
+    expect(hepBOnly).toBeTruthy()
     const hasFluToo = employeeVaccinations.some(x => x.employeeId === hepBOnly.employeeId && /γρίπ|influenza|flu/i.test(x.vaccine))
     expect(hasFluToo).toBe(false)
   })
