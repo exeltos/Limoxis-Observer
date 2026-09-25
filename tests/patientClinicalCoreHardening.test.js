@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { describe,expect,it } from 'vitest'
+const i18n=fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')
 
 const patients=fs.readFileSync('src/features/patients/patientsService.js','utf8')
 const patientForm=fs.readFileSync('src/features/patients/PatientsPage.jsx','utf8')
@@ -39,7 +40,8 @@ describe('patient clinical core hardening',()=>{
     expect(record).not.toContain("setDialog('amr')")
     expect(repository).not.toContain('saveAmr(')
     expect(cloud).not.toContain('saveAmrClassification')
-    expect(record).toContain('Derived from validated microbiology/AST evidence.')
+    expect(record).toContain("translate('copy.clinicalRecordCopy.derivedFromValidatedMicrobiologyAstEvidence'")
+    expect(i18n).toContain("derivedFromValidatedMicrobiologyAstEvidence:'Derived from validated microbiology/AST evidence.'")
     expect(labRecord).not.toContain('<option value="MDR">MDR</option>')
     expect(labCloud).not.toContain('resistance_class:draft.resistance')
   })
@@ -47,6 +49,7 @@ describe('patient clinical core hardening',()=>{
   it('uses canonical date and time fields for sample collection',()=>{
     expect(record).not.toContain('type="datetime-local"')
     expect(record).toContain('<ManualDateField label={t(\'collectedLabel\')}')
-    expect(record).toContain('<TimeField label={language===\'el\'?\'Ώρα λήψης\':\'Collection time\'}')
+    expect(record).toContain("<TimeField label={translate('copy.clinicalRecordCopy.collectionTime'")
+    expect(i18n).toContain("collectionTime:'Ώρα λήψης'")
   })
 })

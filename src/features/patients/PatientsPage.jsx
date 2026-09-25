@@ -8,7 +8,7 @@ import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
-import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadPatients, createPatient } from './patientsService'
@@ -160,8 +160,8 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
       <label><span>{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
       <div><ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>{birthInvalid&&<small className="field-error">{t('invalidDateOfBirth')}</small>}{ageYears!=null&&!birthInvalid&&<small className="entry-detail-note">{ageDays<28?t('calculatedAgeDays').replace('{age}',String(ageDays)):ageDays<730?t('calculatedAgeMonthsDays').replace('{months}',String(Math.floor(ageDays/30.4375))).replace('{days}',String(Math.floor(ageDays%30.4375))):t('calculatedAge').replace('{age}',String(ageYears))}</small>}</div>
       <label><span>{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
-      <label><span>{language==='el'?'Βάρος γέννησης (g)':'Birth weight (g)'}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={language==='el'?'Προαιρετικό — για νεογνά':'Optional — for neonates'}/>{birthWeightInvalid&&<small className="field-error">{t('invalidBirthWeight')}</small>}</label>
-      <label><span>{language==='el'?'Ηλικία κύησης (εβδ.)':'Gestational age (weeks)'}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={language==='el'?'Προαιρετικό — για νεογνά':'Optional — for neonates'}/>{gestationInvalid&&<small className="field-error">{t('invalidGestationalAge')}</small>}</label>
+      <label><span>{translate('copy.patientsCopy.birthWeightG',language==='el'?'el':'en')}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{birthWeightInvalid&&<small className="field-error">{t('invalidBirthWeight')}</small>}</label>
+      <label><span>{translate('copy.patientsCopy.gestationalAgeWeeks',language==='el'?'el':'en')}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{gestationInvalid&&<small className="field-error">{t('invalidGestationalAge')}</small>}</label>
       {!editing&&<><label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
       <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/></>}
       <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
