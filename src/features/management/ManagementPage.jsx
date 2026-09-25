@@ -66,7 +66,7 @@ export function ManagementPage({global=false}={}){
    columns={[{key:'source',label:t('officialSource')},{key:'authority',label:t('source')},{key:'scope',label:t('managementPanel.scopeLabel')},{key:'version',label:t('referenceVersion')},{key:'status',label:t('reviewStatusLabel')},{key:'actions',label:''}]}
    rows={references}
    rowKey={item=>item.sourceKey||item.id}
-   renderRow={item=><><td><strong>{item.label||'—'}</strong>{item.isGlobal&&<small>{isPlatformOwner?'System · Owner':'System · Read only'}</small>}</td><td>{item.authority}</td><td>{language==='el'?item.scope:(item.scopeEn||item.scope)}</td><td>{language==='el'?item.version:(item.versionEn||item.version)}</td><td><span className="status-badge active">{t(item.status)}</span></td><td>{(!item.isGlobal||isPlatformOwner)&&<OverflowMenu items={[
+   renderRow={item=><><td><strong>{item.label||'—'}</strong>{item.isGlobal&&<small>{t(isPlatformOwner?'managementPanel.systemOwnerBadge':'managementPanel.systemReadOnlyBadge')}</small>}</td><td>{item.authority}</td><td>{language==='el'?item.scope:(item.scopeEn||item.scope)}</td><td>{language==='el'?item.version:(item.versionEn||item.version)}</td><td><span className="status-badge active">{t(item.status)}</span></td><td>{(!item.isGlobal||isPlatformOwner)&&<OverflowMenu items={[
      {id:'edit',label:t('edit'),icon:Pencil,onClick:()=>setReferenceEditor({...item})},
      {id:'delete',label:t('delete'),icon:X,tone:'danger',separatorBefore:true,onClick:()=>deleteReference(item)},
    ]}/>}</td></>}

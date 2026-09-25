@@ -31,3 +31,13 @@
   html:not(#lo-phone) body .topbar-actions{min-width:0!important;overflow-x:auto!important;scrollbar-width:none}
   html:not(#lo-phone) body .topbar-actions>*{flex:0 0 auto!important}
 }
+
+/* Phones: summary/KPI strips were forced to a single column (core.css), so four
+   short numbers filled the whole first screen. Two compact columns keep the
+   overview above the fold without truncating labels. */
+@media (max-width:620px){
+  html:not(#lo-phone) body :is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  html:not(#lo-phone) body :is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip)>*{min-height:0!important;min-width:0!important}
+  html:not(#lo-phone) body :is(.kpi-card,.module-summary-metric,.employee-kpi,.lab-kpi,.patient-summary-metric){height:auto!important;min-height:0!important;padding:12px!important}
+  html:not(#lo-phone) body .kpi-card strong{margin:4px 0 0!important;font-size:22px!important}
+}
