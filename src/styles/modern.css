@@ -465,3 +465,4 @@ button{letter-spacing:0}
 .platform-breadcrumb button:focus-visible{outline:2px solid color-mix(in srgb,var(--lo-color-primary) 34%,transparent);outline-offset:2px}
 .platform-breadcrumb strong{color:#1f3247;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .app-shell.platform-owner-shell{grid-template-columns:minmax(0,1fr)!important}
+.brand-mark-logo{flex:none;border-radius:8px}

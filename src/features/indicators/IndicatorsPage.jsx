@@ -20,7 +20,7 @@ import { approveIndicatorSnapshot,collectCloudIndicatorMetrics,calculateCloudDef
 
 const today=()=>new Date().toISOString().slice(0,10)
 const monthStart=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
-const categoryLabel=(category,t)=>({surveillance:t('surveillance'),prevention:t('prevention'),workforce:t('workforce'),laboratory:t('laboratory'),quality:t('indicatorsRecords.qualityCategory')}[category]||category)
+const categoryLabel=(category,t)=>({surveillance:t('surveillance'),prevention:t('prevention'),workforce:t('workforce'),laboratory:t('laboratory'),pharmacy:t('pharmacy'),quality:t('indicatorsRecords.qualityCategory')}[category]||category)
 const statusText=(status,t)=>status==='onTarget'?t('indicatorsRecords.onTargetStatus'):status==='attention'?t('indicatorsRecords.attentionStatus'):t('indicatorsRecords.contextStatus')
 
 function fmtIndicatorDay(value){const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${Number(d)}/${Number(m)}/${y}`:(value||'—')}
@@ -83,6 +83,6 @@ function IndicatorsPdfReport({reportRef,t,el,tenant,from,to,departmentLabel,cate
  return <div ref={reportRef} className="indicators-pdf-report">
   <header><h1>{tenant?.name||t('indicators')}</h1><h2>{t('indicators')}</h2><span>{t('indicatorsRecords.reportGeneratedAt')} {new Intl.DateTimeFormat(el?'el-GR':'en-GB',{dateStyle:'medium',timeStyle:'short'}).format(new Date())}</span></header>
   <section className="indicators-pdf-filters"><strong>{t('indicatorsRecords.reportActiveFilters')}</strong><div>{filters.map(([label,value])=><span key={label}>{label}: <b>{value}</b></span>)}</div></section>
-  <table><thead><tr><th>{t('indicatorsRecords.tableIndicator')}</th><th>{t('category')}</th><th>{t('indicatorsRecords.tableResult')}</th><th>{t('indicatorsRecords.sourceVersionLabel')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(r=><tr key={r.definitionId||r.id}><td>{el?r.titleEl:r.titleEn}</td><td>{categoryLabel(r.category,t)}</td><td>{r.value??'—'} {r.calculation!=='manual'?(el?r.unit:(r.unitEn||r.unit)):''}</td><td>{r.source}</td><td>{statusText(r.status,t)}</td></tr>)}</tbody></table>
+  <table><thead><tr><th>{t('indicatorsRecords.tableIndicator')}</th><th>{t('category')}</th><th>{t('indicatorsRecords.tableResult')}</th><th>{t('indicatorsRecords.sourceVersionLabel')}</th><th>{t('status')}</th></tr></thead><tbody>{rows.map(r=><tr key={r.definitionId||r.id}><td>{el?r.titleEl:r.titleEn}</td><td>{categoryLabel(r.category,t)}</td><td>{fmtIndicatorValue(r.value,el)} {r.calculation!=='manual'?(el?r.unit:(r.unitEn||r.unit)):''}</td><td>{r.source}</td><td>{statusText(r.status,t)}</td></tr>)}</tbody></table>
  </div>
 }

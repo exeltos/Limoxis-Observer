@@ -22,7 +22,7 @@ describe('LIRA HAI contextual analysis',()=>{
  it('compares contextual signals without claiming causality',()=>{
   const answer=compareHaiContext(data,'clabsi',{start:'2026-09-01',end:'2026-09-10',label:'September'},{start:'2026-08-01',end:'2026-08-10',label:'August'},{department:'ΜΕΘ',today:'2026-09-10',language:'el'})
   expect(answer.points.join(' ')).toContain('Υγιεινή χεριών')
-  expect(answer.points.join(' ')).toContain('Bundle all-or-none')
+  expect(answer.points.join(' ')).toContain('Πλήρης συμμόρφωση σε δέσμες μέτρων')
   expect(answer.points.join(' ')).toContain('δεν συμπεραίνει')
  })
 })
