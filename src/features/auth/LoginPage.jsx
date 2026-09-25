@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { Building2, CheckCircle2, Eye, EyeOff, Languages, ShieldCheck } from 'lucide-react'
+import { Building2, CheckCircle2, Eye, EyeOff, Info, Languages, Lock, ShieldCheck } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { Field } from '../../design-system/Field'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -8,12 +8,16 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { userFacingError } from '../../core/feedback/userFacingError'
 import { APP_VERSION } from '../../core/version'
+import { BrandMark } from '../../design-system/BrandMark'
+import { loadLoginNotice } from './loginNoticeService'
 
 export function LoginPage() {
   const { isAuthenticated, loading:authLoading, login, hasSupabaseConfig } = useAuth()
   const { loading:tenantLoading } = useTenant()
   const { language, setLanguage } = useLanguage()
   const location = useLocation()
+  const [notice,setNotice]=useState(null)
+  useEffect(()=>{let live=true;loadLoginNotice().then(value=>{if(live)setNotice(value)});return()=>{live=false}},[])
   const [identifier,setIdentifier]=useState(''),[password,setPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[error,setError]=useState(''),[submitting,setSubmitting]=useState(false)
   const requestedReturnTo = typeof location.state?.from === 'string' && location.state.from.startsWith('/') && !location.state.from.startsWith('//')
     ? location.state.from
@@ -21,11 +25,12 @@ export function LoginPage() {
   const returnTo = requestedReturnTo.startsWith('/platform') ? '/platform' : requestedReturnTo
 
   if (authLoading || (isAuthenticated && tenantLoading)) {
-    return <div className="boot-screen" role="status" aria-live="polite"><div className="boot-mark">L+</div><span>Limoxis Observer</span></div>
+    return <div className="boot-screen" role="status" aria-live="polite"><BrandMark size={50}/><span>Limoxis Observer</span></div>
   }
   if (isAuthenticated) return <Navigate to={returnTo} replace />
 
   const greek=language==='el'
+  const maintenance=notice?(greek?(notice.noticeEl||notice.noticeEn):(notice.noticeEn||notice.noticeEl)):null
   async function handleSubmit(event){
     event.preventDefault()
     setError('')
@@ -42,10 +47,10 @@ export function LoginPage() {
     <div className="auth-layout">
       <section className="auth-brand-panel" aria-label="Limoxis Observer">
         <div className="auth-brand">
-          <span className="auth-logo">L</span>
+          <BrandMark size={42} tone="light" className="auth-logo-mark"/>
           <div>
             <strong>Limoxis Observer</strong>
-            <span>Hospital Operations Platform · v{APP_VERSION}</span>
+            <span>{greek?'Πλατφόρμα λειτουργίας νοσοκομείου':'Hospital Operations Platform'} · v{APP_VERSION}</span>
           </div>
         </div>
 
@@ -67,6 +72,9 @@ export function LoginPage() {
           <Languages size={16}/>{greek?'EN':'EL'}
         </button>
 
+        <div className="auth-form-column">
+        <div className="auth-mobile-brand"><BrandMark size={34}/><strong>Limoxis Observer</strong></div>
+        {maintenance&&<div className="login-notice" role="status"><Info size={16}/><div><strong>{greek?'Ανακοίνωση':'Notice'}</strong><p>{maintenance}</p></div></div>}
         <form className="login-card" onSubmit={handleSubmit}>
           <div className="login-heading">
             <span>{greek?'Καλώς ήρθατε':'Welcome back'}</span>
@@ -96,7 +104,13 @@ export function LoginPage() {
             {submitting?(greek?'Σύνδεση…':'Signing in…'):(greek?'Σύνδεση':'Sign in')}
           </Button>
           {!hasSupabaseConfig&&<div className="setup-note">{greek?'Η υπηρεσία σύνδεσης δεν είναι διαθέσιμη σε αυτό το περιβάλλον.':'The sign-in service is not available in this environment.'}</div>}
+          <p className="login-security-note"><Lock size={13}/>{greek?'Πρόσβαση μόνο για εξουσιοδοτημένους χρήστες. Οι συνδέσεις και οι ενέργειες καταγράφονται.':'Authorised users only. Sign-ins and actions are logged.'}</p>
         </form>
+        <footer className="auth-footer">
+          <nav><Link to="/privacy">{greek?'Πολιτική απορρήτου':'Privacy policy'}</Link><Link to="/terms">{greek?'Όροι χρήσης':'Terms of use'}</Link>{notice?.supportEmail&&<a href={`mailto:${notice.supportEmail}`}>{greek?'Υποστήριξη':'Support'}</a>}</nav>
+          <span>© {new Date().getFullYear()} Limoxis Observer · v{APP_VERSION}</span>
+        </footer>
+        </div>
       </section>
     </div>
   )

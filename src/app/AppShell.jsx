@@ -1,3 +1,4 @@
+import { BrandMark } from '../design-system/BrandMark'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Bell, BookOpen, Building2, ChevronDown, ChevronRight, Eye, FlaskConical, LayoutDashboard, Layers3, LogOut, UserRound, X } from 'lucide-react'
@@ -60,7 +61,7 @@ export function AppShell(){
   function handlePreviewRoleChange(nextRole){if(!nextRole)return;const nextNeedsDepartment=departmentScopedPreviewRoles.has(nextRole);startRolePreview(nextRole,nextNeedsDepartment?(rolePreview?.department||''):'')}
   const NavEntry=({item,nested=false,collapseMore=false})=>{const Icon=item.icon;return <NavLink to={item.to} end={item.to==='/'} onClick={()=>collapseMore&&setMoreOpen(false)} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{t(item.key)}</span></NavLink>}
   return <div className={`app-shell ${platformMode?'platform-owner-shell':''} ${helpPreviewMode?'help-preview-mode':''}`} style={platformMode?{gridTemplateColumns:'minmax(0,1fr)'}:undefined}>
-    {!platformMode&&<aside className="sidebar"><div className="brand"><div className="brand-mark">L</div><div><strong>Limoxis Observer</strong><span>{t('brandSubtitle')}</span></div></div><nav>
+    {!platformMode&&<aside className="sidebar"><div className="brand"><BrandMark size={30} tone="light" className="brand-mark-logo"/><div><strong>Limoxis Observer</strong><span>{t('brandSubtitle')}</span></div></div><nav>
       {isPlatformOwner&&tenant&&<button type="button" className="nav-item platform-return-nav" onClick={()=>{returnToPlatform();navigate({pathname:'/platform',search:'',hash:''})}}><ArrowLeft size={18}/><span>{t('backToPlatform')}</span></button>}
       {primaryNavigation.map(item=><NavEntry key={item.to} item={item} collapseMore/>)}
       {moreNavigation.length>0&&<div className={`sidebar-nav-group ${moreExpanded?'open':''}`}><button type="button" className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>setMoreOpen(v=>!v)} aria-expanded={moreExpanded}><Layers3 size={18}/><span>{t('more')}</span><ChevronDown className="nav-group-chevron" size={14}/></button>{moreExpanded&&<div className="sidebar-nav-children">{moreNavigation.map(item=><NavEntry key={item.to} item={item} nested/>)}</div>}</div>}
