@@ -37,3 +37,8 @@
 
 @media(max-width:900px){.analysis-report .analysis-chart-grid{grid-template-columns:1fr!important}.viz-donut{grid-template-columns:1fr;justify-items:center}}
 @media print{.viz-tooltip{display:none}}
+
+/* Mini bar chart inside LIRA answers */
+.lira-assistant-chart{margin:8px 0 6px;padding:10px 12px;border:1px solid #e3e9ef;border-radius:10px;background:#fff;max-width:640px}
+.lira-assistant-chart .viz-bars{gap:6px}
+.lira-assistant-evidence{color:#6b7c8c}
