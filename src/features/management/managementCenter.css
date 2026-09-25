@@ -106,3 +106,40 @@
 .lira-knowledge-dialog .lira-knowledge-new-version small{display:block;margin-top:2px;font-size:11.5px;color:#6b7c8c}
 .lira-knowledge-dialog .lira-knowledge-new-version .lira-knowledge-version-input{min-width:0;width:100%}
 @media(max-width:760px){.lira-knowledge-dialog .lira-knowledge-new-version{grid-template-columns:1fr}}
+
+/* ---------- Outbreak investigation workspace ---------- */
+.outbreak-workspace{display:flex;flex-direction:column;gap:14px}
+.outbreak-workspace>.record-section{margin:0!important;padding:14px 16px!important;border:1px solid #dbe2e8!important;border-radius:12px!important;background:#fff!important}
+.outbreak-workspace .record-section-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.outbreak-workspace .record-section-header h3{display:flex;align-items:center;gap:7px;margin:2px 0 0;font-size:15px;color:#1d3a52}
+.outbreak-workspace .record-section-header p{margin:4px 0 0;font-size:12px;color:#6b7c8c;max-width:760px}
+.outbreak-workspace .outbreak-summary .record-details-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;border:1px solid #eef2f5;border-radius:10px;overflow:hidden;padding:0!important;margin:0!important;background:#fff!important}
+.outbreak-workspace .outbreak-summary .record-details-grid>.detail-item{padding:10px 12px!important;margin:0!important;border:0!important;border-right:1px solid #eef2f5!important;border-radius:0!important;background:#fff!important;display:flex;flex-direction:column;gap:5px}
+.outbreak-workspace .outbreak-summary .detail-item>span{font-size:11px;font-weight:700;color:#6b7c8c}
+.outbreak-workspace .outbreak-summary .detail-item>strong{font-size:13.5px;color:#1d3a52}
+.outbreak-workspace .outbreak-summary .status-badge{display:inline-flex!important;width:auto!important;max-width:max-content}
+.outbreak-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.outbreak-metrics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.outbreak-metric{padding:10px 12px;border:1px solid #e3e9ef;border-radius:10px;background:#fbfcfd}
+.outbreak-metric span{display:block;font-size:11.5px;color:#6b7c8c}
+.outbreak-metric strong{display:block;margin-top:4px;font-size:22px;color:#1d3a52;font-variant-numeric:tabular-nums}
+.outbreak-metric.is-warning{border-color:#f0cf8a;background:#fff8e8}
+.outbreak-metric.is-warning strong{color:#8a5a00}
+.outbreak-blockers{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.outbreak-workspace .table-wrap{border:1px solid #e3e9ef;border-radius:10px;overflow:auto}
+.outbreak-workspace td small{display:block;font-size:11.5px;color:#6b7c8c}
+.outbreak-status-select{height:34px;min-width:150px;padding:0 10px;border:1px solid #cfd9e2;border-radius:8px;background:#fff;font:inherit;font-size:13px}
+.outbreak-timeline,.outbreak-evidence{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid #dbe7f1;display:flex;flex-direction:column;gap:10px}
+.outbreak-timeline li{display:grid;grid-template-columns:100px auto minmax(0,1fr);align-items:center;gap:10px;position:relative;font-size:13px;color:#33495f}
+.outbreak-timeline li::before,.outbreak-evidence li::before{content:'';position:absolute;left:-20px;top:9px;width:10px;height:10px;border-radius:50%;background:#2582bd;box-shadow:0 0 0 3px #fff}
+.outbreak-timeline time{font-weight:700;color:#1d3a52;font-variant-numeric:tabular-nums}
+.outbreak-evidence li{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:10px}
+.outbreak-evidence li strong{display:block;font-size:13px;color:#1d3a52;font-weight:600}
+.outbreak-evidence li time{display:block;margin-top:2px;font-size:11.5px;color:#6b7c8c}
+.outbreak-note{width:100%;padding:10px 12px;border:1px solid #cfd9e2;border-radius:10px;font:inherit;font-size:13px;resize:vertical}
+.outbreak-note-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+@media(max-width:900px){.outbreak-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.outbreak-workspace .outbreak-summary .record-details-grid{grid-template-columns:1fr 1fr!important}}
+.outbreak-workspace .outbreak-status-select{width:170px!important;max-width:170px}
+.outbreak-evidence li{grid-template-columns:150px minmax(0,1fr)!important}
+.outbreak-evidence li>.status-badge{justify-self:start}
+.outbreak-workspace #lira-investigation-capa td:first-child{min-width:220px}
