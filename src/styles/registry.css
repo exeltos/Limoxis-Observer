@@ -157,10 +157,7 @@
   text-align:center!important;
 }
 
-.registry-pagination-controls{display:flex!important;align-items:center!important;gap:7px!important;margin-left:auto!important}
-.registry-pagination-controls label{display:flex!important;align-items:center!important;gap:7px!important;margin:0!important}
-.registry-pagination-controls select{height:30px!important;min-height:30px!important;min-width:76px!important;padding:0 26px 0 10px!important;border-radius:8px!important}
-.registry-pagination-controls button{width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border-radius:8px!important}
+.registry-pagination-controls{margin-left:auto!important}
 
 /* Surveillance uses the same shell; tabs are only a header slot, not another registry. */
 .paginated-registry--surveillance .surveillance-domain-tabs{

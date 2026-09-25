@@ -15,8 +15,6 @@
 .patient-record-shell>.entity-record-body:has(>.patient-home-layout){
   display:flex!important;
   flex-direction:column!important;
-  height:100%!important;
-  min-height:0!important;
   overflow:hidden!important;
 }
 .patient-record-shell>.entity-record-body>:is(.patient-summary-layout,.patient-home-layout,.record-section,.surveillance-workspace,.clinical-data-hub,.timeline-panel-clean){
@@ -46,7 +44,7 @@
 /* Patient root: compact identity overview + admission registry. */
 .patient-home-layout{
   display:flex!important;flex-direction:column!important;flex:1 1 auto!important;
-  gap:14px!important;min-height:0!important;height:100%!important;overflow:hidden!important;
+  gap:14px!important;
 }
 .patient-profile-card{
   flex:0 0 auto!important;margin:0!important;padding:0!important;
@@ -129,54 +127,27 @@
 
 /* Surveillance tab: samples -> episodes -> selected surveillance journey. */
 .patient-surveillance-clean{
-  display:flex!important;
-  flex-direction:column!important;
-  min-height:0!important;
-  gap:12px!important;
   padding:14px 16px 20px!important;
 }
 .patient-surveillance-clean>.record-section{
-  flex:0 0 auto!important;
   margin:0!important;
   padding:0!important;
-  border:1px solid #e1e8ee!important;
-  border-radius:11px!important;
-  background:#fff!important;
-  overflow:hidden!important;
-  box-shadow:none!important;
 }
 .patient-surveillance-clean>.record-section>.record-section-header{
-  align-items:center!important;
   margin:0!important;
-  padding:10px 12px!important;
-  border-bottom:1px solid #e8edf2!important;
-  background:#fff!important;
-}
-.patient-surveillance-clean>.record-section>.record-section-header h3{
-  font-size:14.5px!important;
 }
 .patient-surveillance-clean>.record-section>.record-section-header p{
   margin-top:2px!important;
-  max-width:860px!important;
-  font-size:10px!important;
-  color:#8090a0!important;
 }
 .patient-surveillance-clean>.record-section>.record-section-header .btn{
   min-height:34px!important;
   padding:6px 11px!important;
 }
 .patient-surveillance-clean .record-table-wrap{
-  max-height:150px!important;
   min-height:0!important;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  border:0!important;
-  border-radius:0!important;
   background:#fff!important;
 }
 .patient-surveillance-clean .record-table{
-  width:100%!important;
-  table-layout:fixed!important;
   border-collapse:collapse!important;
 }
 .patient-surveillance-clean .record-table th{
@@ -198,7 +169,6 @@
   color:#40556a!important;
   font-size:10.5px!important;
   border-bottom:1px solid #edf1f4!important;
-  vertical-align:middle!important;
 }
 .patient-surveillance-clean .record-table tbody tr:last-child td{border-bottom:0!important}
 .patient-surveillance-clean .admission-samples-table td strong{display:block!important;color:#18364f!important;font-size:11px!important}
@@ -370,7 +340,7 @@
 .episode-detail-card .episode-detail-header .eyebrow{color:#8291a1!important;font-size:9.5px!important;font-weight:800!important;letter-spacing:.06em!important}
 .episode-detail-card .episode-detail-header h2{margin:2px 0 0!important;font-size:18px!important;color:#17334c!important}
 .episode-detail-card .episode-detail-header p{margin:3px 0 0!important;color:#7a8a9a!important;font-size:10.5px!important}
-.episode-detail-actions{display:flex!important;align-items:center!important;gap:8px!important}
+.episode-detail-actions{display:flex!important;align-items:center!important}
 .episode-detail-actions .episode-close{width:34px!important;height:34px!important;border:1px solid #dbe4eb!important;border-radius:9px!important;background:#fff!important;color:#50677d!important;display:grid!important;place-items:center!important}
 .episode-detail-card .clinical-data-hub{padding:14px 16px 18px!important;gap:10px!important}
 .episode-detail-card .episode-journey-heading{margin:0!important;padding:0 0 8px!important;border-bottom:1px solid #edf1f4!important}
@@ -382,14 +352,10 @@
 .episode-detail-card .clinical-data-grid>.clinical-panel>.record-section-header{align-items:center!important;margin-bottom:8px!important}
 .episode-detail-card .clinical-data-grid>.clinical-panel>.record-section-header .btn{min-height:32px!important;padding:5px 10px!important;font-size:10px!important}
 .new-surveillance-flow-card .progressive-journey-header{margin:0 0 8px!important}
-.new-surveillance-flow-card .progressive-journey-rail{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin:0 0 10px!important}
+.new-surveillance-flow-card .progressive-journey-rail{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
 .new-surveillance-flow-card .progressive-step{min-height:62px!important;padding:9px 10px!important;border:1px solid #e1e8ee!important;border-radius:10px!important;background:#fff!important;text-align:left!important}
-.new-surveillance-flow-card .progressive-step.current{border-color:#73b8d7!important;background:#eef8fc!important;box-shadow:inset 0 0 0 1px #c7e4f1!important}
-.new-surveillance-flow-card .progressive-step.complete{background:#f3faf6!important;border-color:#d2e9db!important}
-.new-surveillance-flow-card .progressive-step.locked{opacity:.55!important;background:#fafbfc!important}
 .new-surveillance-flow-card .progressive-step>i{display:none!important}
-.new-surveillance-flow-card .progressive-guidance{margin:0 0 10px!important;padding:8px 10px!important;border-radius:9px!important}
-.new-surveillance-flow-card .flow-step-panel{border:1px solid #e1e8ee!important;border-radius:11px!important;background:#fff!important;padding:14px!important}
+.new-surveillance-flow-card .progressive-guidance{margin:0 0 10px!important}
 
 /* Primary clinical path + parallel actions: keep the episode readable as a clinical process. */
 .episode-detail-card .grouped-journey-map{display:flex!important;flex-direction:column!important;gap:10px!important}
@@ -438,23 +404,17 @@
 
 /* Surveillance flow refinement: calmer form rhythm and one consistent action hierarchy. */
 .new-surveillance-flow-card .episode-detail-header{min-height:64px!important;padding:12px 16px!important}
-.new-surveillance-flow-card .episode-detail-actions{gap:8px!important;align-items:center!important}
 .new-surveillance-flow-card .episode-detail-actions>.btn{min-height:34px!important;padding:6px 12px!important}
-.new-surveillance-flow-card .progressive-surveillance-scroll{padding:12px!important}
-.new-surveillance-flow-card .flow-step-panel{padding:16px!important}
-.new-surveillance-flow-card .flow-step-heading{margin-bottom:14px!important;align-items:flex-start!important}
-.new-surveillance-flow-card .entry-grid{gap:12px!important}
 .new-surveillance-flow-card label>span,.new-surveillance-flow-card .manual-date-field>span{margin-bottom:6px!important;font-size:10.5px!important;font-weight:750!important;color:#526d82!important}
 .new-surveillance-flow-card input,.new-surveillance-flow-card select,.new-surveillance-flow-card textarea{min-height:42px!important}
-.new-surveillance-flow-card textarea{min-height:82px!important}
-.new-surveillance-flow-card .flow-step-actions{position:sticky!important;bottom:0!important;z-index:4!important;display:flex!important;justify-content:flex-end!important;align-items:center!important;gap:8px!important;margin:16px -16px -16px!important;padding:11px 16px!important;border-top:1px solid #e5edf3!important;background:rgba(255,255,255,.97)!important}
+.new-surveillance-flow-card .flow-step-actions{align-items:center!important}
 .new-surveillance-flow-card .flow-step-actions .btn{min-height:36px!important;padding:7px 13px!important}
 .new-surveillance-flow-card .flow-step-actions .btn:first-child{margin-right:auto!important}
 .new-surveillance-flow-card .clinical-library-multiselect{min-width:0!important}
 .new-surveillance-flow-card .selected-library-values{margin-top:7px!important}
 
-.new-surveillance-flow-card .flow-cancel-link{border:0!important;background:transparent!important;color:#587287!important;font:inherit!important;font-size:11px!important;font-weight:700!important;padding:6px 4px!important;cursor:pointer!important}
-.new-surveillance-flow-card .flow-cancel-link:hover{color:#244d69!important;text-decoration:underline!important}
+.new-surveillance-flow-card .flow-cancel-link{color:#587287!important;font:inherit!important;font-size:11px!important;font-weight:700!important;cursor:pointer!important}
+.new-surveillance-flow-card .flow-cancel-link:hover{color:#244d69!important}
 .new-surveillance-flow-card .flow-close-button{width:34px!important;height:34px!important;border:1px solid #dbe5ec!important;border-radius:8px!important;background:#fff!important;color:#60798c!important;display:grid!important;place-items:center!important;cursor:pointer!important}
 .new-surveillance-flow-card .flow-cancel-backdrop{position:absolute!important;inset:0!important;z-index:20!important;display:grid!important;place-items:center!important;padding:24px!important;background:rgba(20,43,60,.28)!important}
 .new-surveillance-flow-card .flow-cancel-dialog{width:min(460px,100%)!important;padding:18px!important;border:1px solid #dbe5ec!important;border-radius:12px!important;background:#fff!important;box-shadow:0 18px 55px rgba(26,52,70,.18)!important}
@@ -466,8 +426,7 @@
 
 /* Clinical flow v2: spacious form, admission context is read-only, actions are unambiguous. */
 .new-surveillance-flow-card{max-width:1320px!important}
-.new-surveillance-flow-card .flow-step-panel{padding:20px 22px!important}
-.new-surveillance-flow-card .flow-step-heading{margin-bottom:18px!important;padding-bottom:12px!important;border-bottom:1px solid #edf2f6!important}
+.new-surveillance-flow-card .flow-step-heading{padding-bottom:12px!important;border-bottom:1px solid #edf2f6!important}
 .new-surveillance-flow-card .entry-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px 18px!important}
 .new-surveillance-flow-card .entry-span-2{grid-column:1/-1!important}
 .new-surveillance-flow-card input,.new-surveillance-flow-card select{min-height:46px!important;padding:9px 12px!important}
@@ -481,7 +440,7 @@
 .new-surveillance-flow-card .assessment-summary{margin-top:14px!important}
 .new-surveillance-flow-card .sample-request-card{padding:18px!important}
 .new-surveillance-flow-card .episode-detail-actions{padding-left:12px!important}
-.new-surveillance-flow-card .flow-cancel-link{padding:7px 10px!important;border:1px solid #dbe5ec!important;border-radius:8px!important;background:#fff!important;text-decoration:none!important}
+.new-surveillance-flow-card .flow-cancel-link{border:1px solid #dbe5ec!important;border-radius:8px!important;background:#fff!important;text-decoration:none!important}
 .new-surveillance-flow-card .flow-cancel-link:hover{background:#f7fafc!important;text-decoration:none!important}
 @media(max-width:900px){.new-surveillance-flow-card .entry-grid{grid-template-columns:1fr!important}.new-surveillance-flow-card .entry-span-2{grid-column:auto!important}}
 

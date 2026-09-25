@@ -222,7 +222,7 @@
 .lo-dialog-icon-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--lo-color-border)}
 .diagnostics-summary-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 14px}
 .platform-summary-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
-.platform-section-tools{display:flex;justify-content:flex-end;align-items:center;min-height:34px;margin:-2px 0 4px}
+.platform-section-tools{margin:-2px 0 4px}
 .diagnostics-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:54px;padding:10px 13px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface)}
 .diagnostics-summary span{color:var(--lo-color-muted);font-size:11px;font-weight:700}
 .diagnostics-summary strong{font-size:18px;color:var(--lo-color-text)}

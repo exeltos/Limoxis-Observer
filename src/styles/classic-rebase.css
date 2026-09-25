@@ -44,8 +44,6 @@
   display:inline-flex;align-items:center;justify-content:center;
 }
 .filter-popover{
-  width:min(720px,calc(100vw - 24px));
-  min-width:min(520px,calc(100vw - 24px));
   max-width:calc(100vw - 24px);
   border-radius:var(--lo-radius-md);
   box-shadow:var(--lo-shadow-popover);
@@ -53,9 +51,6 @@
   overflow:hidden;
 }
 .filter-popover-fields{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px 14px;
   width:100%;
   min-width:0;
 }
