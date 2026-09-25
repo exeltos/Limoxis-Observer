@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
 
 const waste=fs.readFileSync('src/features/prevention/WasteEntryEditor.jsx','utf8')
-const css=fs.readFileSync('src/styles/prevention-refinements.css','utf8')
+const css=fs.readFileSync('src/styles/workspaces.css','utf8')
 const prevention=fs.readFileSync('src/features/prevention/PreventionPage.jsx','utf8')
 const occupational=fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.jsx','utf8')
 

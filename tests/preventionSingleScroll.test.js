@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
 
-const css=fs.readFileSync('src/styles/prevention-refinements.css','utf8')
+const css=fs.readFileSync('src/styles/workspaces.css','utf8')
 
 describe('prevention record scrolling',()=>{
   it('uses one canonical scroll viewport for the record body',()=>{

@@ -4,7 +4,7 @@ import { INDICATOR_METRICS } from '../src/features/indicators/indicatorDefinitio
 import { indicatorMetricLabel, metricLabels } from '../src/features/indicators/IndicatorDefinitionForm.jsx'
 import { visibleForDepartment } from '../src/features/indicators/indicatorCloudService.js'
 
-const coreCss = fs.readFileSync('src/styles/core.css', 'utf8')
+const coreCss = fs.readFileSync('src/styles/foundation.css', 'utf8')
 const definitionForm = fs.readFileSync('src/features/indicators/IndicatorDefinitionForm.jsx', 'utf8')
 const createPage = fs.readFileSync('src/features/indicators/IndicatorCreatePage.jsx', 'utf8')
 const recordPage = fs.readFileSync('src/features/indicators/IndicatorRecordPage.jsx', 'utf8')

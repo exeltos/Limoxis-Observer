@@ -1,0 +1,427 @@
+/* Workspace refinements: filter bar, training, prevention, surveillance, patient workspace, loading states, tabs.
+   Section order is cascade order: do not reorder sections or move rules between them
+   without checking the computed styles (see docs/CSS_ARCHITECTURE.md). */
+
+/* ==== filterbar-final ==== */
+/* Final shared FilterBar normalization.
+   The label owns the visible control chrome; the nested input must stay visually transparent. */
+.filter-search{
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  gap:8px!important;
+  height:34px!important;
+  min-height:34px!important;
+  padding:0 9px!important;
+  border:1px solid var(--lo-color-border,#dbe2e8)!important;
+  border-radius:7px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+.filter-search:focus-within{
+  border-color:#8fb8d4!important;
+  box-shadow:0 0 0 3px rgba(37,107,155,.08)!important;
+}
+.filter-search>svg{
+  flex:0 0 auto!important;
+  color:#73869a!important;
+}
+.filter-search>input{
+  flex:1 1 auto!important;
+  width:100%!important;
+  min-width:0!important;
+  height:32px!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  outline:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:var(--lo-color-text,#182433)!important;
+  font-size:12px!important;
+  line-height:32px!important;
+  appearance:none!important;
+}
+.filter-search>input:focus,
+.filter-search>input:focus-visible,
+.filter-search>input:hover{
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
+}
+
+/* Shared advanced-filter pattern: one field per row.
+   Keep the popover compact instead of stretching a two-column form across the registry. */
+.filter-popover{
+  width:min(420px,calc(100vw - 24px))!important;
+  min-width:min(360px,calc(100vw - 24px))!important;
+}
+.filter-popover-fields{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:12px!important;
+}
+
+/* ==== training-refinements ==== */
+/* Training participant registry refinements */
+.training-participants-registry>.filter-system{
+  display:none!important;
+}
+
+.training-participants-registry{
+  border:1px solid var(--lo-color-border)!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+
+.training-participants-registry .scroll-table{
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+
+.training-participants-registry .training-participants-table th,
+.training-participants-registry .training-participants-table td{
+  vertical-align:middle!important;
+}
+
+.training-participants-registry .training-participants-table th:first-child,
+.training-participants-registry .training-participants-table td:first-child{
+  width:46px!important;
+  padding-left:12px!important;
+  padding-right:6px!important;
+}
+
+.training-participants-registry .training-participants-table th:nth-child(2){width:26%!important}
+.training-participants-registry .training-participants-table th:nth-child(3){width:18%!important}
+.training-participants-registry .training-participants-table th:nth-child(4){width:24%!important}
+.training-participants-registry .training-participants-table th:nth-child(5){width:14%!important}
+.training-participants-registry .training-participants-table th:nth-child(6){width:14%!important}
+.training-participants-registry .training-participants-table th:last-child{width:46px!important}
+
+.training-participants-registry:has(.training-participants-table tbody:empty){
+  min-height:0!important;
+  height:auto!important;
+  flex:0 0 auto!important;
+}
+.training-participants-registry:has(.training-participants-table tbody:empty) .scroll-table{
+  min-height:150px!important;
+  max-height:220px!important;
+  overflow:hidden!important;
+}
+.training-participants-registry:has(.training-participants-table tbody:empty) .inline-empty{
+  min-height:138px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:20px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+
+@media(max-width:980px){
+  .training-participants-registry .training-participants-table th:nth-child(3),
+  .training-participants-registry .training-participants-table td:nth-child(3){display:none}
+}
+
+/* ==== prevention-refinements ==== */
+.who-page-editor .who-current-preview .lo-action-button{
+  min-width:190px!important;
+  justify-content:center!important;
+  gap:8px!important;
+  font-weight:700!important;
+}
+.who-page-editor .who-current-preview .lo-action-button:disabled{
+  background:#8fb6cf!important;
+  border-color:#8fb6cf!important;
+  color:#fff!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  cursor:not-allowed!important;
+}
+.who-page-editor .who-current-preview .lo-action-button:disabled svg,
+.who-page-editor .who-current-preview .lo-action-button:disabled span{
+  color:#fff!important;
+  opacity:1!important;
+}
+.who-page-editor .who-current-preview .lo-action-button:not(:disabled){
+  box-shadow:0 1px 2px rgba(20,49,73,.12)!important;
+}
+
+.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{display:grid!important;grid-template-columns:repeat(24,minmax(0,1fr))!important;gap:16px 14px!important}
+.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-date-field{grid-column:span 5!important;min-width:0!important}
+.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-department-field{grid-column:span 14!important;min-width:0!important}
+.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>label{grid-column:span 8!important;min-width:0!important}
+.prevention-record-shell .waste-page-editor .waste-date-field>label,.prevention-record-shell .waste-page-editor .waste-department-field>label{width:100%!important;min-width:0!important}
+.prevention-record-shell .waste-page-editor .waste-date-field input,.prevention-record-shell .waste-page-editor .waste-department-field select{width:100%!important}
+
+.prevention-record-shell.record-single-pane-screen{height:100%!important;min-height:0!important;max-height:100%!important;overflow:hidden!important}
+.prevention-record-shell.record-single-pane-screen>.entity-record-body{height:100%!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding-bottom:18px!important}
+.prevention-record-shell .antiseptic-page-editor,.prevention-record-shell .waste-page-editor,.prevention-record-shell .bundle-page-editor,.prevention-record-shell .who-page-editor{min-height:max-content!important;overflow:visible!important}
+.prevention-record-shell .antiseptic-entry-workspace,.prevention-record-shell .antiseptic-entry-main,.prevention-record-shell .antiseptic-entry-rail{min-height:0!important;overflow:visible!important}
+.prevention-record-shell .antiseptic-entry-rail{align-self:start!important}
+.prevention-record-shell .prevention-editor-page-actions{position:sticky!important;bottom:0!important;z-index:8!important;margin-top:14px!important;padding:12px 0 4px!important;background:linear-gradient(180deg,rgba(255,255,255,0),var(--lo-color-surface) 24%)!important}
+
+.prevention-record-shell .bundle-record-findings{display:grid!important;gap:9px!important}
+.prevention-record-shell .bundle-record-findings>.bundle-record-heading{margin-bottom:0!important}
+.prevention-record-shell .bundle-record-findings>.bundle-record-heading small{display:block;margin-top:4px;color:var(--lo-color-muted);font-size:10.5px;font-weight:500;line-height:1.45}
+.prevention-record-shell .bundle-record-finding{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:14px!important;padding:11px 13px!important;border:1px solid var(--lo-color-border)!important;border-left:3px solid #d26b6b!important;border-radius:9px!important;background:var(--lo-color-surface)!important}
+.prevention-record-shell .bundle-record-finding.bundle-followup-resolved{border-left-color:#4b956e!important;background:color-mix(in srgb,#eef8f3 72%,var(--lo-color-surface))!important}
+.prevention-record-shell .bundle-record-finding.bundle-followup-not_applicable{border-left-color:#8292a1!important}
+.prevention-record-shell .bundle-record-finding.bundle-followup-open,.prevention-record-shell .bundle-record-finding.bundle-followup-pending{border-left-color:#d26b6b!important}
+.bundle-followup-copy{display:grid;gap:4px;min-width:0}
+.bundle-followup-copy>strong{font-size:11.5px;color:var(--lo-color-text)}
+.bundle-followup-copy>span{font-size:10.5px;color:#7a4a45;line-height:1.4}
+.bundle-followup-copy>small{font-size:10px;color:var(--lo-color-muted);line-height:1.4}
+.bundle-followup-meta{display:flex;align-items:flex-end;justify-content:center;flex-direction:column;gap:10px;min-width:180px;padding-left:12px;border-left:1px solid var(--lo-color-border)}
+.bundle-followup-meta>small{font-size:9.5px;color:var(--lo-color-muted);white-space:nowrap}
+.bundle-followup-meta>.button{min-width:150px;justify-content:center}
+.bundle-followup-meta>.button:not(:disabled){background:var(--lo-color-primary)!important;border-color:var(--lo-color-primary)!important;color:#fff!important;box-shadow:0 1px 2px rgba(20,49,73,.14)!important}
+.bundle-followup-meta>.button:not(:disabled):hover{background:var(--lo-color-primary-hover)!important;border-color:var(--lo-color-primary-hover)!important;color:#fff!important}
+.bundle-followup-status{display:inline-flex;align-items:center;justify-content:center;min-height:25px;padding:4px 9px;border:1px solid var(--lo-color-border);border-radius:999px;background:#f4f6f8;color:#5a6b7b;font-size:9.5px;font-weight:750;white-space:nowrap}
+.bundle-followup-status.resolved{background:#edf7f1;border-color:#cde6d7;color:#28704b}
+.bundle-followup-status.open{background:#fff1ef;border-color:#efcfca;color:#a44a42}
+.bundle-followup-status.not_applicable{background:#f3f5f7;border-color:#dce2e7;color:#637383}
+.bundle-followup-status.pending{background:#fff8e8;border-color:#eadbb7;color:#8a6a22}
+.bundle-followup-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:13px 15px}
+.bundle-followup-form>label{display:flex;flex-direction:column;gap:6px;min-width:0}
+.bundle-followup-form>label>span{font-size:10.5px;font-weight:700;color:var(--lo-color-muted)}
+.bundle-followup-form select,.bundle-followup-form textarea{width:100%;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit}
+.bundle-followup-form select{min-height:40px;padding:0 10px}
+.bundle-followup-form textarea{min-height:90px;padding:10px 11px;resize:vertical}
+.bundle-followup-comment{grid-column:1/-1}
+
+/* Prevention tabs intentionally use the shared ModuleTabs/canonical-module-tabs design-system rules. */
+
+@media(max-width:900px){.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-date-field,.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-department-field,.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>label{grid-column:span 1!important}.prevention-record-shell .bundle-record-finding{grid-template-columns:1fr!important}.bundle-followup-meta{align-items:flex-start;min-width:0;padding-left:0;padding-top:10px;border-left:0;border-top:1px solid var(--lo-color-border)}}
+@media(max-width:650px){.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{grid-template-columns:1fr!important}.bundle-followup-form{grid-template-columns:1fr}.bundle-followup-comment{grid-column:auto}}
+
+/* ==== surveillance-library-dropdown-fix ==== */
+/* Final cascade repair for surveillance clinical library multi-selects.
+   Loaded after the legacy patient-record and workflow rules. */
+.new-surveillance-flow-card .clinical-library-multiselect > .clinical-library-menu{
+  display:block!important;
+  position:absolute!important;
+  z-index:120!important;
+  left:0!important;
+  right:0!important;
+  top:70px!important;
+  padding:8px!important;
+  background:#fff!important;
+  border:1px solid #bfd2df!important;
+  border-radius:10px!important;
+  box-shadow:0 14px 32px rgba(20,55,75,.18)!important;
+}
+.new-surveillance-flow-card .clinical-library-multiselect .clinical-library-options{
+  display:flex!important;
+  flex-direction:column!important;
+  grid-template-columns:none!important;
+  gap:1px!important;
+  max-height:250px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+.new-surveillance-flow-card .clinical-library-multiselect .clinical-library-options > label{
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  width:100%!important;
+  min-height:36px!important;
+  padding:7px 9px!important;
+  gap:10px!important;
+  border:0!important;
+  border-radius:6px!important;
+  background:#fff!important;
+  box-sizing:border-box!important;
+  text-align:left!important;
+}
+.new-surveillance-flow-card .clinical-library-multiselect .clinical-library-options > label:hover,
+.new-surveillance-flow-card .clinical-library-multiselect .clinical-library-options > label.selected{
+  background:#f1f7fa!important;
+}
+.new-surveillance-flow-card .clinical-library-multiselect .clinical-library-options input[type="checkbox"]{
+  position:static!important;
+  display:block!important;
+  flex:0 0 auto!important;
+  width:16px!important;
+  height:16px!important;
+  min-width:16px!important;
+  margin:0!important;
+  padding:0!important;
+  transform:none!important;
+}
+.new-surveillance-flow-card .clinical-library-multiselect .clinical-library-options label > span{
+  display:block!important;
+  flex:1 1 auto!important;
+  width:auto!important;
+  margin:0!important;
+  padding:0!important;
+  text-align:left!important;
+  line-height:1.3!important;
+  white-space:normal!important;
+}
+.new-surveillance-flow-card .clinical-library-search{
+  display:block!important;
+  width:100%!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+}
+@media(max-width:900px){
+  .new-surveillance-flow-card .clinical-library-multiselect > .clinical-library-menu{
+    position:relative!important;
+    top:auto!important;
+    margin-top:4px!important;
+  }
+}
+
+/* ==== surveillance-flow-polish ==== */
+/* Focused polish for the progressive surveillance creation dialog. */
+.new-surveillance-flow-card{background:#f8fafc!important}
+.new-surveillance-flow-card .episode-detail-header{background:#fff!important;border-bottom:1px solid #e5ebf0!important}
+.new-surveillance-flow-card .progressive-surveillance-scroll{padding:14px 16px 86px!important}
+.new-surveillance-flow-card .flow-patient-context{border:1px solid #dce7ee!important;border-radius:10px!important;background:linear-gradient(180deg,#f8fcfe 0%,#f4f9fc 100%)!important;padding:10px 12px!important}
+.new-surveillance-flow-card .progressive-journey-header{padding:2px 0 0!important}
+.new-surveillance-flow-card .progressive-journey-header h3{font-size:18px!important;letter-spacing:-.01em!important;color:#17344d!important}
+.new-surveillance-flow-card .progressive-journey-header p{max-width:980px!important;color:#718397!important;line-height:1.45!important}
+.new-surveillance-flow-card .progressive-step{border-color:#dfe7ed!important;box-shadow:0 1px 2px rgba(30,55,75,.025)!important;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease!important}
+.new-surveillance-flow-card .progressive-step.current{border-color:#8fcce8!important;background:#f5fbfe!important;box-shadow:0 0 0 1px rgba(58,153,198,.12),0 3px 10px rgba(39,91,119,.06)!important}
+.new-surveillance-flow-card .progressive-step.complete{background:#f6fbf8!important;border-color:#d4eadc!important}
+.new-surveillance-flow-card .progressive-step.locked{background:#fafbfc!important;opacity:.72!important}
+.new-surveillance-flow-card .progressive-guidance{border:1px solid #ecd7ac!important;border-radius:10px!important;background:#fffaf1!important;padding:10px 12px!important}
+.new-surveillance-flow-card .surveillance-flow-step-card{border:1px solid #dfe7ed!important;border-radius:12px!important;background:#fff!important;box-shadow:0 2px 8px rgba(31,55,75,.035)!important;padding:16px!important}
+.new-surveillance-flow-card .surveillance-flow-step-card>header{padding-bottom:10px!important;margin-bottom:12px!important;border-bottom:1px solid #edf1f4!important}
+.new-surveillance-flow-card .surveillance-flow-step-card label>span{color:#38546b!important;font-weight:700!important}
+.new-surveillance-flow-card .surveillance-flow-step-card :is(input,select,textarea){border-color:#cbdbe6!important;background:#fff!important;transition:border-color .15s ease,box-shadow .15s ease!important}
+.new-surveillance-flow-card .surveillance-flow-step-card :is(input,select,textarea):focus{border-color:#65add1!important;box-shadow:0 0 0 3px rgba(48,145,190,.09)!important;outline:none!important}
+.new-surveillance-flow-card .flow-footer{background:rgba(255,255,255,.97)!important;border-top:1px solid #dfe7ed!important;box-shadow:0 -5px 16px rgba(31,55,75,.045)!important;padding:10px 16px!important}
+.new-surveillance-flow-card .flow-footer .btn-primary,.new-surveillance-flow-card .flow-footer button[data-variant="primary"]{min-height:38px!important;font-weight:750!important;box-shadow:0 2px 5px rgba(25,102,148,.14)!important}
+@media(max-width:900px){.new-surveillance-flow-card .progressive-surveillance-scroll{padding-left:10px!important;padding-right:10px!important}.new-surveillance-flow-card .surveillance-flow-step-card{padding:12px!important}}
+
+/* ==== patient-workspace-polish ==== */
+.patient-full-demographics{background:#fff!important}.patient-record-shell>.entity-record-body{overflow-y:auto!important;overflow-x:hidden!important}.patient-record-shell>.entity-record-body:has(>.patient-home-layout){overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;min-height:0!important}.patient-home-layout{height:auto!important;min-height:min-content!important;overflow:visible!important}.patient-detail-sections{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:8px;padding:8px 12px 10px;align-items:start}.patient-detail-group{min-width:0;border:1px solid #e2eaf0;border-radius:9px;background:#fbfcfd;overflow:hidden}.patient-detail-group>h4{margin:0;padding:6px 10px;border-bottom:1px solid #e8eef3;background:#f4f8fa;color:#557086;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}.patient-detail-group .patient-full-detail-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;border:0!important}.patient-detail-group .detail-item{min-height:48px!important;padding:8px 10px!important;background:#fff;border-color:#edf1f4!important}.patient-detail-group .detail-item span{margin-bottom:3px!important;color:#7890a2;font-size:9px!important;font-weight:750}.patient-detail-group .detail-item strong{color:#17344d;font-size:12px!important}.patient-detail-group:nth-child(2) .patient-full-detail-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.patient-detail-group:nth-child(3){grid-column:1/-1}.patient-detail-group:nth-child(3) .patient-full-detail-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}.patient-notes-group{grid-column:1/-1}.patient-notes-group .patient-full-detail-grid{grid-template-columns:1fr!important}.patient-note-item{min-height:40px!important}.patient-record-shell .clinical-panel.full-panel:has(.attachment-field){border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}.patient-record-shell .attachment-field-v2{border:0!important;outline:0!important;background:transparent!important;padding:2px 0 0!important}.patient-record-shell .attachment-heading{padding:8px 0 10px!important;border-bottom:1px solid #e6edf2}.patient-record-shell .attachment-list{margin-top:8px}.patient-record-shell .attachment-row-v2{border:1px solid #e4ebf0!important;border-radius:9px!important;background:#fff!important;margin-bottom:7px}.patient-record-shell .patient-clinical-attachments{min-height:0!important;height:auto!important;padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important}.patient-record-shell .patient-clinical-attachments .record-section-header{min-height:48px!important;padding:8px 12px!important;border:1px solid var(--lo-color-border)!important;border-radius:10px 10px 0 0!important;background:var(--lo-color-surface)!important}.patient-record-shell .patient-clinical-attachments .record-table-wrap{border:1px solid var(--lo-color-border)!important;border-top:0!important;border-radius:0 0 10px 10px!important;overflow:hidden!important}.patient-record-shell .patient-attachments-empty{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-height:74px!important;padding:16px!important;border:1px solid var(--lo-color-border)!important;border-top:0!important;border-radius:0 0 10px 10px!important;background:#fbfcfd!important;color:var(--lo-color-muted)!important;font-size:11px!important}.unified-surveillance-workspace .surveillance-tree-episode{background:#eef7fc!important;border-left:3px solid #3195c9!important}.unified-surveillance-workspace .surveillance-tree-group>.surveillance-sample-row{background:#fff!important}.unified-surveillance-workspace .surveillance-independent-samples{margin-top:6px!important;border-top:2px solid #cbd8e1!important;padding-top:0!important}@media(max-width:1100px){.patient-detail-sections{grid-template-columns:1fr}.patient-detail-group:nth-child(3),.patient-notes-group{grid-column:auto}.patient-detail-group .patient-full-detail-grid,.patient-detail-group:nth-child(2) .patient-full-detail-grid,.patient-detail-group:nth-child(3) .patient-full-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:700px){.patient-detail-group .patient-full-detail-grid,.patient-detail-group:nth-child(2) .patient-full-detail-grid,.patient-detail-group:nth-child(3) .patient-full-detail-grid{grid-template-columns:1fr!important}}
+
+/* ==== clinical-loading ==== */
+/* Stable in-place loading state for clinical workspaces. */
+.clinical-page-loading{
+  min-height:calc(100dvh - var(--lo-topbar-height) - 92px);
+  display:grid;
+  place-items:center;
+}
+.clinical-loading-state{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-height:44px;
+  padding:10px 14px;
+  color:var(--lo-color-muted);
+  font-size:12px;
+  font-weight:560;
+}
+.clinical-loading-spinner{
+  width:20px;
+  height:20px;
+  flex:0 0 20px;
+  border:2px solid #d8e3eb;
+  border-top-color:var(--lo-color-primary);
+  border-radius:50%;
+  animation:lo-clinical-spin .72s linear infinite;
+}
+
+/* Current patient clinical route renders .surface.clinical-surface while data load.
+   Turn that temporary blank card into a quiet centered spinner without changing route geometry. */
+.page > .clinical-surface:has(> p:only-child){
+  min-height:calc(100dvh - var(--lo-topbar-height) - 116px)!important;
+  display:grid!important;
+  place-items:center!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.page > .clinical-surface:has(> p:only-child) > p{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:10px!important;
+  margin:0!important;
+  color:var(--lo-color-muted)!important;
+  font-size:12px!important;
+  font-weight:560!important;
+}
+.page > .clinical-surface:has(> p:only-child) > p::before{
+  content:"";
+  width:20px;
+  height:20px;
+  flex:0 0 20px;
+  border:2px solid #d8e3eb;
+  border-top-color:var(--lo-color-primary);
+  border-radius:50%;
+  animation:lo-clinical-spin .72s linear infinite;
+}
+@keyframes lo-clinical-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+  .clinical-loading-spinner,
+  .page > .clinical-surface:has(> p:only-child) > p::before{animation-duration:1.5s}
+}
+
+/* ==== canonical-tabs-final ==== */
+/* Limoxis Observer — canonical tabs
+   Single compact visual contract across module and record tabs.
+   Restores the original compact proportions while keeping the unified pattern. */
+.canonical-tabs{
+  display:flex;
+  align-items:stretch;
+  min-height:38px;
+  height:38px;
+  gap:0;
+  padding:0 6px;
+  margin:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  border:0;
+  border-bottom:1px solid var(--lo-color-border);
+  border-radius:0;
+  background:#fff;
+  box-shadow:none;
+}
+.canonical-tab{
+  display:inline-flex;
+  flex:0 0 auto;
+  align-items:center;
+  justify-content:center;
+  height:38px;
+  padding:0 10px;
+  gap:5px;
+  border:0;
+  border-bottom:2px solid transparent;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  color:#65788d;
+  font-size:13px;
+  line-height:1;
+  font-weight:600;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.canonical-tab svg{width:16px;height:16px;flex:0 0 auto;color:currentColor;stroke-width:1.7}
+.canonical-tab:hover{background:transparent;color:#244b6a}
+.canonical-tab.active,.canonical-tab[aria-selected="true"]{border-bottom-color:#2582bd;background:transparent;color:#0b6097;font-weight:700;box-shadow:none}
+.canonical-tab:focus-visible{outline:2px solid rgba(37,130,189,.24);outline-offset:-3px}
+
+.entity-record-tabs{display:flex!important;align-items:stretch!important;min-height:38px!important;height:38px!important;gap:0!important;padding:0 6px!important;margin:0!important;overflow-x:auto!important;overflow-y:hidden!important;border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
+.entity-record-tabs>button{display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;height:38px!important;padding:0 10px!important;gap:5px!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#65788d!important;font-size:13px!important;line-height:1!important;font-weight:600!important;white-space:nowrap!important}
+.entity-record-tabs>button svg{width:16px!important;height:16px!important;color:currentColor!important;stroke-width:1.7!important}
+.entity-record-tabs>button.active,.entity-record-tabs>button[aria-selected="true"]{border-bottom-color:#2582bd!important;background:transparent!important;color:#0b6097!important;font-weight:700!important}
+.entity-record-tabs.surface{border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important;box-shadow:none!important}
+
+.registry-workspace>.environmental-registry{min-height:0!important;height:100%!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
+.registry-workspace>.environmental-registry .scroll-table{height:100%!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:auto!important}
+.registry-workspace>.environmental-registry .data-table{margin:0!important;border:0!important;border-radius:0!important}

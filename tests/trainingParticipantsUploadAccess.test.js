@@ -5,7 +5,7 @@ const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 describe('training participants and public access refinements',()=>{
   it('removes the participant registry search bar visually and compacts empty state',()=>{
-    const css=read('src/styles/training-refinements.css')
+    const css=read('src/styles/workspaces.css')
     expect(css).toContain('.training-participants-registry>.filter-system')
     expect(css).toContain('display:none!important')
     expect(css).toContain(':has(.training-participants-table tbody:empty)')

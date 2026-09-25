@@ -51,7 +51,7 @@ describe('Management Center review', () => {
   })
 
   it('management tabs use the record-tab underline style', () => {
-    expect(read('src/styles/tabs-unified.css')).toContain('border-bottom-color:#2582bd')
+    expect(read('src/styles/responsive.css')).toContain('border-bottom-color:#2582bd')
   })
 
   it('the documents card stays full width in record bodies', () => {

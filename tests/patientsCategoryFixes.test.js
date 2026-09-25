@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import { normalizeLaboratorySample } from '../src/features/laboratory/model/laboratoryModel'
 import { demoClinicalScaleDefinitions } from '../src/features/clinical-scales/clinicalScaleDemoDefinitions'
 import { buildClinicalScaleContext } from '../src/features/clinical-scales/clinicalScaleContext'
+const i18n=fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')
 
 // User-reported review of the Patients category.
 const canonical = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
@@ -38,7 +39,8 @@ describe('Patients category fixes', () => {
 
   it('shows surname and first name as separate fields', () => {
     expect(canonical).not.toContain("'Ονοματεπώνυμο':'Full name'")
-    expect(canonical).toContain("[language==='el'?'Επώνυμο':'Last name'")
+    expect(canonical).toContain("[translate('copy.clinicalRecordCopy.lastName'")
+    expect(i18n).toContain("lastName:'Επώνυμο'")
   })
 
   it('admission summary: no duplicate status, surveillance as an info sheet instead of tinted tiles', () => {

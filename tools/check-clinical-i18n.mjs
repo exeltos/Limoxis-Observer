@@ -11,9 +11,9 @@ const files = [
 // the CI gate to hide newly introduced hard-coded Greek in these clinical UIs.
 // Lower this number whenever debt is removed; never raise it to make CI pass.
 const baseline = {
-  'src/features/surveillance/PatientClinicalCanonicalPage.jsx': 66,
-  'src/features/surveillance/SurveillanceCanonicalPage.jsx': 3,
-  'src/features/patients/PatientsPage.jsx': 2,
+  'src/features/surveillance/PatientClinicalCanonicalPage.jsx': 21,
+  'src/features/surveillance/SurveillanceCanonicalPage.jsx': 1,
+  'src/features/patients/PatientsPage.jsx': 0,
 }
 
 const greek = /[Α-Ωα-ωΆ-ώ]/

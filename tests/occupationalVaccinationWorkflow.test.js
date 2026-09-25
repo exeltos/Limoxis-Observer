@@ -4,7 +4,7 @@ import fs from 'node:fs'
 const prevention=fs.readFileSync('src/features/prevention/PreventionPage.jsx','utf8')
 const editor=fs.readFileSync('src/features/prevention/StaffVaccinationEditor.jsx','utf8')
 const service=fs.readFileSync('src/features/occupational-health/vaccinationService.js','utf8')
-const css=fs.readFileSync('src/styles/prevention-refinements.css','utf8')
+const css=fs.readFileSync('src/styles/workspaces.css','utf8')
 
 describe('staff vaccination workflow',()=>{
  it('uses the Prevention registry pattern and supports individual and bulk entry',()=>{

@@ -6,7 +6,8 @@ describe('the bulk vaccination "saved" toast interpolates the count in Greek too
   it('no longer calls t() with a second (unsupported) interpolation argument', () => {
     const page = fs.readFileSync('src/features/prevention/PreventionPage.jsx', 'utf8')
     expect(page).not.toContain("t('vaccinationsSaved',{count:selected.length})")
-    expect(page).toContain('εμβολιασμ${selected.length===1?')
+    expect(page).toContain("'copy.preventionCopy.vaccinationSavedMany').replace('{count}',selected.length)")
+    expect(fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')).toContain("vaccinationSavedMany:'Αποθηκεύτηκαν {count} εμβολιασμοί.'")
   })
 })
 

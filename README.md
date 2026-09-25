@@ -48,6 +48,7 @@ The `audit:*` scripts (see `tools/`) are project-specific regression guardrails 
 - `src/core/auth`, `src/core/tenant`, `src/core/permissions` — session, active organization/membership, and role→capability authorization.
 - `src/core/supabase` — the only module that talks to the Supabase client directly.
 - `src/design-system` — shared UI primitives (the "Observer" UI contract).
+- `src/styles` — five global stylesheets in cascade order; see [`docs/CSS_ARCHITECTURE.md`](./docs/CSS_ARCHITECTURE.md).
 - `src/features/*` — isolated business domains (patients, surveillance, laboratory, prevention, employees, occupational-health, quality, committees, documents, training, controls, platform, ...).
 
 **Security boundary**: UI-level permission checks are a usability layer only. Postgres Row-Level Security (RLS) on Supabase is the authoritative isolation boundary — every table carries `organization_id` and explicit RLS policies.

@@ -45,3 +45,22 @@ export function writeSessionJson(key, value) {
     return false
   }
 }
+
+export function readLocalValue(key, fallback = null) {
+  try {
+    return storageFor('localStorage')?.getItem(key) ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+export function writeLocalValue(key, value) {
+  try {
+    const storage = storageFor('localStorage')
+    if (!storage) return false
+    storage.setItem(key, String(value))
+    return true
+  } catch {
+    return false
+  }
+}

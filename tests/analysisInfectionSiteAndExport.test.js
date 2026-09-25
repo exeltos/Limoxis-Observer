@@ -4,8 +4,8 @@ import fs from 'node:fs'
 const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
 const service = fs.readFileSync('src/features/platform/platformService.js', 'utf8')
 const demoSnapshot = fs.readFileSync('src/features/analysis/analysisDemoSnapshot.js', 'utf8')
-const filterCss = fs.readFileSync('src/styles/modules.css', 'utf8')
-const tabsCss = fs.readFileSync('src/styles/analysis-print.css', 'utf8')
+const filterCss = fs.readFileSync('src/styles/features.css', 'utf8')
+const tabsCss = fs.readFileSync('src/styles/responsive.css', 'utf8')
 
 // User-reported gap: the RPC behind the National/AMR tabs (and its demo
 // mirror) already carried sample_type — the infection-site category

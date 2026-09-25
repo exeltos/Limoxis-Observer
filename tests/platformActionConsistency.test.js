@@ -1,7 +1,7 @@
 import { describe,it,expect } from 'vitest'
 import fs from 'node:fs'
 
-const actions=fs.readFileSync('src/styles/design-system-actions.css','utf8')
+const actions=fs.readFileSync('src/styles/design-system.css','utf8')
 const org=fs.readFileSync('src/features/platform/PlatformOrganizationRecord.jsx','utf8')
 const demo=fs.readFileSync('src/features/platform/PlatformDemoRecord.jsx','utf8')
 

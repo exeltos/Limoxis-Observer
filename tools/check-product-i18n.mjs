@@ -10,19 +10,19 @@ const files=[
 // merely to make CI pass.
 const baseline={
   'src/app/AppShell.jsx':0,
-  'src/features/management/ManagementPage.jsx':1,
+  'src/features/management/ManagementPage.jsx':0,
   'src/features/management/LibrariesPanel.jsx':0,
   'src/features/management/BedDaysPanel.jsx':0,
-  'src/features/indicators/IndicatorsPage.jsx':1,
-  'src/features/patients/PatientsPage.jsx':2,
-  'src/features/surveillance/SurveillanceCanonicalPage.jsx':3,
+  'src/features/indicators/IndicatorsPage.jsx':0,
+  'src/features/patients/PatientsPage.jsx':0,
+  'src/features/surveillance/SurveillanceCanonicalPage.jsx':1,
   'src/design-system/RecordActions.jsx':0,
-  'src/design-system/AttachmentField.jsx':15,
+  'src/design-system/AttachmentField.jsx':8,
   'src/core/feedback/FeedbackContext.jsx':0,
   'src/design-system/FilterBar.jsx':0,
-  'src/features/prevention/PreventionPage.jsx':4,
+  'src/features/prevention/PreventionPage.jsx':0,
   'src/features/employees/EmployeesPage.jsx':0,
-  'src/features/occupational-health/OccupationalHealthPage.jsx':12,
+  'src/features/occupational-health/OccupationalHealthPage.jsx':2,
 }
 
 const greek=/[Α-Ωα-ωΆ-ώ]/u

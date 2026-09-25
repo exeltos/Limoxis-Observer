@@ -6,7 +6,7 @@ import fs from 'node:fs'
 // content is short. Both are compacted to fit one screen, while the record
 // body keeps overflow:auto so longer records still scroll (never clip).
 const lab = fs.readFileSync('src/features/laboratory/LaboratorySampleRecord.css', 'utf8')
-const modules = fs.readFileSync('src/styles/modules.css', 'utf8')
+const modules = fs.readFileSync('src/styles/features.css', 'utf8')
 
 describe('Laboratory and Quality records fit one laptop screen', () => {
   it('lays the 12 incident fields out as 4 columns (3 rows) instead of the shared 3-column sheet', () => {
