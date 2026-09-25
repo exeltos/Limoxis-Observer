@@ -50,6 +50,10 @@ describe('Management Center review', () => {
     expect(read('src/features/management/managementCenter.css')).toContain('.management-update-run{')
   })
 
+  it('management tabs use the record-tab underline style', () => {
+    expect(read('src/features/management/managementCenter.css')).toContain('button.tab.active{color:#0b6097!important;font-weight:700!important;border-bottom-color:#2582bd')
+  })
+
   it('the documents card stays full width in record bodies', () => {
     expect(read('src/design-system/DocumentsWorkspace.css')).toContain('width:100%!important')
   })

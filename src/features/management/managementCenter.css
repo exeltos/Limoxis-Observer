@@ -50,3 +50,10 @@
 .management-lira-ai .management-lira-demo-note+.dialog-actions{margin-top:6px}
 /* modules.css turns every direct child div of the bar into a column. */
 .management-shell>.management-center-update-bar>.management-update-actions{flex-direction:row!important;gap:8px!important}
+
+/* ---------- Tabs: same underline style as record tabs across the app ---------- */
+.management-shell nav.canonical-module-tabs.management-tabs.tabs{display:flex!important;flex-wrap:wrap!important;align-items:flex-end!important;gap:0 2px!important;padding:0 6px!important;margin:0!important;background:#fff!important;border:0!important;border-bottom:1px solid #dbe2e8!important;border-radius:0!important;box-shadow:none!important}
+.management-shell nav.management-tabs.tabs>button.tab{display:inline-flex!important;align-items:center!important;gap:5px!important;height:40px!important;min-height:40px!important;padding:0 10px!important;margin:0 0 -1px!important;background:transparent!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;box-shadow:none!important;font-size:13px!important;font-weight:600!important;color:#65788d!important}
+.management-shell nav.management-tabs.tabs>button.tab svg{width:16px;height:16px;color:currentColor!important}
+.management-shell nav.management-tabs.tabs>button.tab:hover:not(.active){color:#1d3a52!important;background:transparent!important}
+.management-shell nav.management-tabs.tabs>button.tab.active{color:#0b6097!important;font-weight:700!important;border-bottom-color:#2582bd!important;background:transparent!important}
