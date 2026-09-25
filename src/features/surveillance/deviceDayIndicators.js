@@ -34,6 +34,25 @@ function canonicalDeviceType(device) {
   return null
 }
 
+// Device-day denominators cover every inpatient with a device, not only the
+// patients under surveillance. The demo therefore adds a ward census of
+// device episodes without infection (Aug–Sep 2026), so demo rates land in a
+// realistic range instead of being computed over a handful of device-days.
+function censusDevices(count, deviceType, department, days, bandId = null) {
+  return Array.from({ length: count }, (_, index) => {
+    const start = new Date(Date.UTC(2026, 7, 1 + (index % 40)))
+    const end = new Date(start.getTime() + days * 86400000)
+    return { deviceType, insertedAt: start.toISOString().slice(0, 10), removedAt: end.toISOString().slice(0, 10), department, bandId }
+  })
+}
+export const DEMO_DEVICE_CENSUS = [
+  ...censusDevices(40, 'central line', 'ΜΕΘ', 25),
+  ...censusDevices(50, 'urinary catheter', 'Παθολογική', 10),
+  ...censusDevices(20, 'ventilator', 'ΜΕΘ', 10),
+  ...censusDevices(10, 'central line', 'Νεογνολογική / ΜΕΝΝ', 20, 'bw751_1000'),
+  ...censusDevices(8, 'central line', 'Νεογνολογική / ΜΕΝΝ', 15, 'bw1001_1500'),
+]
+
 // Flattens the (richer) per-patient clinicalDemoData case records into the
 // {devices, haiClassifications} shape liraHaiMetrics.calculateHaiRate expects,
 // so device-day rates can be computed as a primary surveillance indicator
@@ -45,7 +64,7 @@ export function collectDeviceDaySources() {
     insertedAt: device.insertedAt,
     removedAt: device.removedAt || null,
     department: item.department,
-  })))
+  }))).concat(DEMO_DEVICE_CENSUS.filter(device => !device.bandId).map(({ bandId: _band, ...device }) => device))
   const haiClassifications = cases
     .filter(item => item.haiClassification)
     .map(item => ({
@@ -73,6 +92,11 @@ export function collectNeonatalDeviceDaySourcesByBand() {
     if (item.haiClassification) {
       byBand[bandId].haiClassifications.push({ haiType: HAI_TYPE_TO_RULE_KEY[item.haiClassification.type] || item.haiClassification.type, criteriaMet: item.haiClassification.criteriaMet, classifiedAt: item.haiClassification.classifiedAt || item.startedAt, department: item.department })
     }
+  }
+  for (const device of DEMO_DEVICE_CENSUS) {
+    if (!device.bandId || !byBand[device.bandId]) continue
+    const { bandId, ...rest } = device
+    byBand[bandId].devices.push(rest)
   }
   return byBand
 }

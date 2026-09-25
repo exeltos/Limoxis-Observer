@@ -57,7 +57,7 @@ occupationalVisits.push(
 employeeVaccinations.push(
  {id:'VAC-004',employeeId:'EMP-005',vaccine:'Hepatitis B',dose:'3',date:'2024-05-20',validUntil:null,status:'complete'},
  {id:'VAC-005',employeeId:'EMP-006',vaccine:'Influenza',dose:'2025/26',date:'2025-10-28',validUntil:'2026-10-01',status:'renewSoon'},
- {id:'VAC-006',employeeId:'EMP-007',vaccine:'Tdap',dose:'booster',date:'2022-03-11',validUntil:'2032-03-11',status:'complete'}
+ {id:'VAC-006',employeeId:'EMP-007',vaccine:'Tdap',dose:'Αναμνηστική',date:'2022-03-11',validUntil:'2032-03-11',status:'complete'}
 )
 employeeTraining.push(
  {id:'TR-04',employeeId:'EMP-005',titleEl:'Ορθή χρήση ΜΑΠ',titleEn:'Correct PPE use',date:'2026-04-22',status:'completed'},
