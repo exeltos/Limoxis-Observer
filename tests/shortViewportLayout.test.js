@@ -5,9 +5,9 @@ const main = fs.readFileSync('src/main.jsx', 'utf8')
 const css = fs.readFileSync('src/styles/short-viewport.css', 'utf8')
 
 describe('short screens (13" notebooks) scroll instead of clipping', () => {
-  it('loads the short-viewport rules after every other stylesheet', () => {
+  it('loads the short-viewport, rail and row-return rules last', () => {
     const imports = [...main.matchAll(/import '\.\/styles\/([^']+)'/g)].map(m => m[1])
-    expect(imports.at(-2)).toBe('short-viewport.css')
+    expect(imports.slice(-3)).toEqual(['short-viewport.css', 'tablet-rail.css', 'row-return-highlight.css'])
   })
   it('lets the workspace scroll and keeps registries at a usable height', () => {
     expect(css).toContain('.content,.content:has(>.page-fill){overflow-x:hidden!important;overflow-y:auto!important}')
@@ -32,8 +32,8 @@ describe('tablets and phones', () => {
     expect(rail).toContain('@media (max-width:780px)')
     expect(rail).toContain('flex-direction:row!important')
   })
-  it('loads the rail rules last', () => {
+  it('loads the rail rules after the short-viewport rules', () => {
     const imports = [...main.matchAll(/import '\.\/styles\/([^']+)'/g)].map(m => m[1])
-    expect(imports.slice(-2)).toEqual(['short-viewport.css', 'tablet-rail.css'])
+    expect(imports.at(-2)).toBe('tablet-rail.css')
   })
 })

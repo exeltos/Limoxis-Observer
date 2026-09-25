@@ -44,8 +44,9 @@ describe('PlatformDashboardView demo preview display (no entry button of its own
   it('shows the live-platform pill and real organizations by default', () => {
     render(<PlatformDashboardView {...baseProps} demoPreview={false}/>)
     expect(screen.getByText('Πλατφόρμα ενεργή')).toBeInTheDocument()
-    expect(screen.getByText('Lena Hospital')).toBeInTheDocument()
-    expect(screen.queryByText('Demo Hospital')).not.toBeInTheDocument()
+    // The organization list moved out of the Platform Center (organizations open from their card).
+    expect(screen.queryByText('Lena Hospital')).not.toBeInTheDocument()
+    expect(screen.getAllByText('Οργανισμοί').length).toBeGreaterThan(0)
   })
 
   it('shows a DEMO badge instead of the live pill when the caller marks it as previewing (organizations swap happens upstream)', () => {
@@ -53,7 +54,6 @@ describe('PlatformDashboardView demo preview display (no entry button of its own
     render(<PlatformDashboardView {...demoOrgProps} demoPreview/>)
     expect(screen.getAllByText('DEMO').length).toBeGreaterThan(0)
     expect(screen.queryByText('Πλατφόρμα ενεργή')).not.toBeInTheDocument()
-    expect(screen.getByText('Demo Hospital')).toBeInTheDocument()
     expect(screen.queryByText('Lena Hospital')).not.toBeInTheDocument()
   })
 })
