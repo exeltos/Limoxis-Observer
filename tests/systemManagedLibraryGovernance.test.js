@@ -1,3 +1,6 @@
+// System (platform-wide) entries are editable only on the platform screen
+// (ManagementPage global), which requires VIEW_PLATFORM (Platform Owner only).
+// Inside a hospital the Platform Owner has the Hospital Administrator's view.
 import { describe,it,expect } from 'vitest'
 import fs from 'node:fs'
 
@@ -10,21 +13,21 @@ const libraryMigration=fs.readFileSync('supabase/migrations/20260902101828_platf
 
 describe('Platform Owner-only system library governance',()=>{
   it('restricts system Bundles to the Platform Owner',()=>{
-    expect(bundles).toContain('ROLES.PLATFORM_OWNER')
+    expect(bundles).toContain('const isPlatformOwner=global')
     expect(bundles).toContain('item.system&&!isPlatformOwner')
     expect(bundles).toContain("System · Owner managed")
     expect(bundles).toContain("Σύστημα · Μόνο ιδιοκτήτης")
   })
 
   it('renders system library records read-only for hospital users',()=>{
-    expect(libraries).toContain('role===ROLES.PLATFORM_OWNER')
+    expect(libraries).toContain('const isPlatformOwner=global')
     expect(libraries).toContain("mode:system&&!isPlatformOwner?'view':'edit'")
     expect(libraries).toContain('meta.system&&!isPlatformOwner')
     expect(libraries).toContain("hidden:meta.system&&!isPlatformOwner")
   })
 
   it('hides global reference mutation actions from hospital users',()=>{
-    expect(management).toContain('const isPlatformOwner=global||role===ROLES.PLATFORM_OWNER')
+    expect(management).toContain(' const isPlatformOwner=global\n')
     expect(management).toContain('(!item.isGlobal||isPlatformOwner)')
     expect(management).toContain('referenceEditor?.isGlobal&&!isPlatformOwner')
     expect(management).toContain('item?.isGlobal&&!isPlatformOwner')

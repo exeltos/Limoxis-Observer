@@ -7,11 +7,11 @@ import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
+import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { IndicatorDefinitionForm,createEmptyIndicatorDefinition,indicatorDefinitionIsValid } from '../indicators/IndicatorDefinitionForm'
 import { loadIndicatorDefinitions,retireIndicatorDefinition,saveIndicatorDefinition } from '../indicators/indicatorDefinitionService'
 export function IndicatorsPanel({global=false}={}){
- const {language}=useLanguage();const {tenant,role,membership}=useTenant();const {notify,confirm}=useFeedback();const el=language==='el';const isOwner=global||role===ROLES.PLATFORM_OWNER;const canManage=global||can(role,CAPABILITIES.MANAGE_INDICATORS,membership?.capabilities||[],membership?.customCapabilities||[])
+ const {language}=useLanguage();const {tenant,role,membership}=useTenant();const {notify,confirm}=useFeedback();const el=language==='el';const isOwner=global;const canManage=global||can(role,CAPABILITIES.MANAGE_INDICATORS,membership?.capabilities||[],membership?.customCapabilities||[])
  const [rows,setRows]=useState([]),[loading,setLoading]=useState(false),[editor,setEditor]=useState(null)
  useEffect(()=>{if(!global&&!tenant?.id){setRows([]);return}let active=true;setLoading(true);loadIndicatorDefinitions(global?null:tenant.id).then(data=>active&&setRows(data)).catch(error=>active&&notify(error?.message||(el?'Αποτυχία φόρτωσης δεικτών.':'Failed to load indicators.'),'error')).finally(()=>active&&setLoading(false));return()=>{active=false}},[global,tenant?.id,notify,el])
  const visible=useMemo(()=>rows.filter(x=>x.status!=='retired'),[rows])

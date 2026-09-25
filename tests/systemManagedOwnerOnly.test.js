@@ -1,3 +1,6 @@
+// System (platform-wide) entries are editable only on the platform screen
+// (ManagementPage global), which requires VIEW_PLATFORM (Platform Owner only).
+// Inside a hospital the Platform Owner has the Hospital Administrator's view.
 import { describe,it,expect } from 'vitest'
 import fs from 'node:fs'
 
@@ -5,7 +8,7 @@ const bundles=fs.readFileSync('src/features/management/BundleLibraryPanel.jsx','
 
 describe('system-managed library governance',()=>{
   it('restricts system Bundle management to Platform Owner',()=>{
-    expect(bundles).toContain("role===ROLES.PLATFORM_OWNER")
+    expect(bundles).toContain("const isPlatformOwner=global")
     expect(bundles).toContain('item.system&&!isPlatformOwner')
     expect(bundles).toContain('Only the Platform Owner can modify this system item.')
   })

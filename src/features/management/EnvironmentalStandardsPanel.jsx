@@ -6,8 +6,6 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterBar } from '../../design-system/FilterBar'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { useTenant } from '../../core/tenant/TenantContext'
-import { ROLES } from '../../core/permissions/roles'
 import { environmentalMethodLabel, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { demoLibrarySeed } from './managementData'
 import { loadSnapshot } from '../../core/data/repository'
@@ -26,8 +24,10 @@ export function readEnvironmentalStandards(){
   const saved=loadSnapshot('environmental_standards',core)
   return Array.isArray(saved)?mergeCoreWithLocal(core,saved):core
 }
-export function EnvironmentalStandardsPanel({embedded=false}){
-  const {t,language}=useLanguage();const {notify,confirm}=useFeedback();const {role}=useTenant();const isPlatformOwner=role===ROLES.PLATFORM_OWNER
+export function EnvironmentalStandardsPanel({embedded=false,global=false}){
+  // System protocols are platform-shipped; inside a hospital everyone (the
+  // Platform Owner included) sees them read-only, like the Hospital Administrator.
+  const {t,language}=useLanguage();const {notify,confirm}=useFeedback();const isPlatformOwner=global
   const fallback=useMemo(()=>normalizeSystemStandards(demoLibrarySeed.environmentalStandards),[])
   const {data:repositoryRows,loading,saving,error,reload,saveData}=useRepositoryData('environmental_standards',{fallback})
   const rows=useMemo(()=>mergeCoreWithLocal(fallback,Array.isArray(repositoryRows)?repositoryRows:[]),[fallback,repositoryRows])
