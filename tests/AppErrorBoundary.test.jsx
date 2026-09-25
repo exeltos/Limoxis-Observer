@@ -43,4 +43,19 @@ describe('AppErrorBoundary', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Παρουσιάστηκε πρόβλημα')
     expect(screen.getByRole('button', { name: 'Επαναφόρτωση εφαρμογής' })).toBeEnabled()
   })
+
+  it('explains blocked browser storage instead of a generic crash', () => {
+    document.documentElement.lang = 'en'
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    function StorageBlocked() {
+      const cause = new Error("Failed to read the 'localStorage' property from 'Window': Access is denied for this document.")
+      cause.name = 'SecurityError'
+      throw Object.assign(new Error('Local data could not be read.'), { cause })
+    }
+
+    render(<AppErrorBoundary><StorageBlocked/></AppErrorBoundary>)
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Browser storage is blocked')
+    expect(screen.getByRole('button', { name: 'Reload application' })).toBeEnabled()
+  })
 })
