@@ -45,7 +45,7 @@ export function HaiCriteriaLibraryPanel({global=false}={}){
  }
 
  return <div className="bundle-library-panel hai-criteria-library-panel">
-  <div className="bundle-library-toolbar"><div><h3>{en?'HAI Surveillance Criteria':'Κριτήρια Επιτήρησης HAI'}</h3><p>{en?'CDC/NHSN-based checklists (CLABSI/CAUTI/VAP/SSI) offered in the HAI classification dialog.':'Checklists βάσει CDC/NHSN (CLABSI/CAUTI/VAP/SSI) που προσφέρονται στον διάλογο ταξινόμησης HAI.'}</p></div></div>
+  <div className="section-toolbar bundle-library-toolbar"><div><h2>{en?'HAI Surveillance Criteria':'Κριτήρια Επιτήρησης HAI'}</h2><p>{en?'CDC/NHSN-based checklists (CLABSI/CAUTI/VAP/SSI) offered in the HAI classification dialog.':'Λίστες ελέγχου βάσει CDC/NHSN (CLABSI/CAUTI/VAP/SSI) που εμφανίζονται στον διάλογο ταξινόμησης HAI.'}</p></div></div>
   {loading&&<div className="inline-empty">{en?'Loading...':'Φόρτωση...'}</div>}
   <RegistryTable
     wrapperClassName="table-wrap scroll-table bundle-library-table-wrap"
@@ -54,7 +54,7 @@ export function HaiCriteriaLibraryPanel({global=false}={}){
     rows={rows}
     rowKey={item=>item.id}
     rowProps={item=>({className:'clickable-row',onClick:()=>openItem(item)})}
-    renderRow={item=><><td><strong>{en?item.labelEn:item.labelEl}</strong>{item.system&&<span className="status-badge active">{en?'System · Owner managed':'Σύστημα · Μόνο ιδιοκτήτης'}</span>}</td><td>{item.source||'—'}</td><td>{item.groups?.length||0}</td><td>{item.groups?.reduce((sum,group)=>sum+(group.items?.length||0),0)||0}</td><td onClick={e=>e.stopPropagation()}><OverflowMenu items={[{id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,hidden:!isPlatformOwner,onClick:()=>openItem(item)}]}/></td></>}
+    renderRow={item=><><td><strong>{en?item.labelEn:item.labelEl}</strong>{item.system&&<span className="status-badge active">{en?'System · Owner managed':'Σύστημα · Μόνο ιδιοκτήτης'}</span>}</td><td>{(en?item.source:String(item.source||'').replace('simplified, age ≤1 year LCBI criteria','απλοποιημένα, κριτήρια LCBI για ηλικία ≤1 έτους').replace('(simplified)','(απλοποιημένα)'))||'—'}</td><td>{item.groups?.length||0}</td><td>{item.groups?.reduce((sum,group)=>sum+(group.items?.length||0),0)||0}</td><td onClick={e=>e.stopPropagation()}><OverflowMenu items={[{id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,hidden:!isPlatformOwner,onClick:()=>openItem(item)}]}/></td></>}
   />{!loading&&!rows.length&&<div className="inline-empty">{en?'No criteria sets found.':'Δεν βρέθηκαν σετ κριτηρίων.'}</div>}
   {selected&&<HaiCriteriaEditor language={language} draft={selected} ruleLabels={ruleLabels} onClose={()=>setSelected(null)} onSave={save}/>}
  </div>
@@ -73,7 +73,7 @@ function HaiCriteriaEditor({draft,onClose,onSave,language,ruleLabels}){
  function removeGroup(gi){setValue(x=>({...x,groups:x.groups.filter((_,i)=>i!==gi)}))}
  function submit(){onSave(value)}
  return <div className="modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&onClose()}><div className="entry-card bundle-library-editor hai-criteria-editor" role="dialog" aria-modal="true">
-  <header><div><span className="eyebrow">HAI CRITERIA LIBRARY</span><h3>{locked?(en?'Read-only criteria set':'Προβολή σετ κριτηρίων'):(en?'Edit criteria set':'Επεξεργασία σετ κριτηρίων')}</h3><p>{locked?(en?'Only the Platform Owner can edit a system-governed criteria set.':'Μόνο ο Platform Owner μπορεί να επεξεργαστεί ένα σετ κριτηρίων συστήματος.'):(en?'Changes apply immediately to every hospital using this criteria set.':'Οι αλλαγές ισχύουν αμέσως για κάθε νοσοκομείο που χρησιμοποιεί αυτό το σετ κριτηρίων.')}</p></div><button className="icon-close" onClick={onClose}><X size={16}/></button></header>
+  <header><div><span className="eyebrow">HAI CRITERIA LIBRARY</span><h3>{locked?(en?'Read-only criteria set':'Προβολή σετ κριτηρίων'):(en?'Edit criteria set':'Επεξεργασία σετ κριτηρίων')}</h3><p>{locked?(en?'Only the Platform Owner can edit a system-governed criteria set.':'Μόνο η διαχείριση της πλατφόρμας μπορεί να επεξεργαστεί ένα σετ κριτηρίων συστήματος.'):(en?'Changes apply immediately to every hospital using this criteria set.':'Οι αλλαγές ισχύουν αμέσως για κάθε νοσοκομείο που χρησιμοποιεί αυτό το σετ κριτηρίων.')}</p></div><button className="icon-close" onClick={onClose}><X size={16}/></button></header>
   <div className="bundle-library-editor-body">
    <section className="bundle-editor-meta"><div className="entry-grid">
     <label><span>{en?'Label (EL) *':'Ετικέτα (EL) *'}</span><input disabled={locked} value={value.labelEl||''} onChange={e=>set('labelEl',e.target.value)}/></label>

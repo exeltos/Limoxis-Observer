@@ -14,10 +14,13 @@ const STORE='management_questionnaires_v1'
 const types={rating:{el:'Κλίμακα 1–5',en:'Rating 1–5'},yesno:{el:'Ναι / Όχι',en:'Yes / No'},single:{el:'Μία επιλογή',en:'Single choice'},multiple:{el:'Πολλαπλή επιλογή',en:'Multiple choice'},text:{el:'Ελεύθερο κείμενο',en:'Free text'}}
 const id=prefix=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`
 export const PERFORMANCE_EVALUATION_QUESTIONNAIRE={id:'employee-performance-evaluation',title:'Αξιολόγηση απόδοσης εργαζομένου',category:'evaluation',status:'active',questions:[{id:'professional-competence',label:'Επαγγελματική επάρκεια',type:'rating',required:true,options:[]},{id:'quality-accuracy',label:'Ποιότητα & ακρίβεια εργασίας',type:'rating',required:true,options:[]},{id:'procedures-protocols',label:'Τήρηση διαδικασιών / πρωτοκόλλων',type:'rating',required:true,options:[]},{id:'patient-safety-ipc',label:'Ασφάλεια ασθενών & πρόληψη λοιμώξεων',type:'rating',required:true,options:[]},{id:'teamwork',label:'Συνεργασία / ομαδικότητα',type:'rating',required:true,options:[]},{id:'communication',label:'Επικοινωνία',type:'rating',required:true,options:[]},{id:'responsibility',label:'Υπευθυνότητα / συνέπεια',type:'rating',required:true,options:[]},{id:'professional-development',label:'Επαγγελματική ανάπτυξη',type:'rating',required:true,options:[]}]}
+const SEED_TITLES_EN={'employee-performance-evaluation':'Employee performance evaluation','trainer-evaluation':'Trainer evaluation','hand-hygiene-audit':'Hand hygiene audit','quality-incident-review':'Quality incident review','staff-satisfaction':'Staff satisfaction survey'}
+const SEED_TITLES_EL={'employee-performance-evaluation':'Αξιολόγηση απόδοσης εργαζομένου','trainer-evaluation':'Αξιολόγηση εκπαιδευτή','hand-hygiene-audit':'Έλεγχος υγιεινής χεριών','quality-incident-review':'Ανασκόπηση συμβάντος ποιότητας','staff-satisfaction':'Έρευνα ικανοποίησης προσωπικού'}
+const displayTitle=(row,en)=>en&&SEED_TITLES_EL[row.id]===row.title?SEED_TITLES_EN[row.id]:row.title
 const seed=()=>[
  PERFORMANCE_EVALUATION_QUESTIONNAIRE,
  {id:'trainer-evaluation',title:'Αξιολόγηση εκπαιδευτή',category:'training',status:'active',questions:(DEFAULT_TRAINER_FEEDBACK_TEMPLATE.questions||[]).map(q=>({id:q.id,label:q.labelEl,type:'rating',required:true,options:[]}))},
- {id:'hand-hygiene-audit',title:'Audit ελέγχου υγιεινής χεριών',category:'audit',status:'active',questions:[
+ {id:'hand-hygiene-audit',title:'Έλεγχος υγιεινής χεριών',category:'audit',status:'active',questions:[
   {id:'hha-q1',label:'Είναι διαθέσιμο αλκοολούχο αντισηπτικό σε κάθε σημείο φροντίδας;',type:'yesno',required:true,options:[]},
   {id:'hha-q2',label:'Το προσωπικό εφαρμόζει τις 5 στιγμές υγιεινής χεριών του ΠΟΥ;',type:'yesno',required:true,options:[]},
   {id:'hha-q3',label:'Βαθμολογήστε τη γενική συμμόρφωση του τμήματος',type:'rating',required:true,options:[]},
@@ -38,7 +41,7 @@ const seed=()=>[
 ]
 function normalizeRow(row){return {...row,title:row.title||row.titleEl||row.titleEn||'',questions:(row.questions||[]).map(q=>({...q,label:q.label||q.labelEl||q.labelEn||'',options:Array.isArray(q.options)?q.options:[]}))}}
 function load(){const rows=loadSnapshot(STORE,null);return Array.isArray(rows)&&rows.length?rows.map(normalizeRow):seed()}
-function categoryLabel(value,en){if(value==='training')return en?'Training':'Εκπαίδευση';if(value==='audit')return 'Audit';if(value==='quality')return en?'Quality':'Ποιότητα';if(value==='evaluation')return en?'Evaluation':'Αξιολόγηση';return en?'General':'Γενικό'}
+function categoryLabel(value,en){if(value==='training')return en?'Training':'Εκπαίδευση';if(value==='audit')return en?'Audit':'Έλεγχος';if(value==='quality')return en?'Quality':'Ποιότητα';if(value==='evaluation')return en?'Evaluation':'Αξιολόγηση';return en?'General':'Γενικό'}
 
 export function QuestionnairesPanel(){
  const {language}=useLanguage(),en=language==='en';const {confirm}=useFeedback();const [rows,setRows]=useState(load);const [selectedId,setSelectedId]=useState(null);const [editor,setEditor]=useState(null);const [previewOpen,setPreviewOpen]=useState(false);const selected=useMemo(()=>rows.find(x=>x.id===selectedId)||null,[rows,selectedId])
@@ -60,7 +63,7 @@ export function QuestionnairesPanel(){
     rows={rows}
     rowKey={row=>row.id}
     rowProps={row=>({className:'clickable-row',onClick:()=>setSelectedId(row.id)})}
-    renderRow={row=><><td><strong>{row.title}</strong></td><td>{categoryLabel(row.category,en)}</td><td>{row.questions.length}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{row.status==='active'?(en?'Active':'Ενεργό'):(en?'Inactive':'Ανενεργό')}</span></td></>}
+    renderRow={row=><><td><strong>{displayTitle(row,en)}</strong></td><td>{categoryLabel(row.category,en)}</td><td>{row.questions.length}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{row.status==='active'?(en?'Active':'Ενεργό'):(en?'Inactive':'Ανενεργό')}</span></td></>}
   /></>:<EntityRecordShell className="questionnaire-record-shell workspace-fill" avatar={<ClipboardList size={19}/>} eyebrow={en?'QUESTIONNAIRE':'ΕΡΩΤΗΜΑΤΟΛΟΓΙΟ'} title={selected.title} subtitle={`${selected.questions.length} ${en?'questions':'ερωτήσεις'} · ${categoryLabel(selected.category,en)}`} status={<span className={`status-badge ${selected.status==='active'?'active':''}`}>{selected.status==='active'?(en?'Active':'Ενεργό'):(en?'Inactive':'Ανενεργό')}</span>} onBack={()=>setSelectedId(null)} backLabel={en?'Back to questionnaires':'Επιστροφή στα ερωτηματολόγια'}>
     <div className="record-section workspace-column workspace-fill questionnaire-questions-section"><div className="record-section-header"><div><span className="eyebrow">{en?'QUESTIONS':'ΕΡΩΤΗΣΕΙΣ'}</span><h3>{en?'Questionnaire questions':'Ερωτήσεις ερωτηματολογίου'}</h3><p>{en?'Select the answer type, required status and order for each question.':'Ορίστε τον τύπο απάντησης, αν είναι υποχρεωτική και τη σειρά κάθε ερώτησης.'}</p></div><div className="questionnaire-record-actions"><Button variant="secondary" onClick={()=>setPreviewOpen(true)}><Eye size={15}/>{en?'Preview':'Προεπισκόπηση'}</Button><Button onClick={newQuestion}><Plus size={15}/>{en?'New question':'Νέα ερώτηση'}</Button><OverflowMenu items={[
     {id:'edit',label:en?'Edit questionnaire':'Επεξεργασία ερωτηματολογίου',icon:Pencil,onClick:editQuestionnaire},

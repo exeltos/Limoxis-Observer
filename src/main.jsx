@@ -32,6 +32,7 @@ import './styles/patient-workspace-polish.css'
 import './styles/clinical-loading.css'
 import './styles/canonical-tabs-final.css'
 import './styles/analysis-print.css'
+import './styles/tabs-unified.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>

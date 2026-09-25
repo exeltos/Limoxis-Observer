@@ -15,6 +15,20 @@ const STATUS_LABELS={el:{draft:'Πρόχειρο',published:'Δημοσιευμ�
 const clone=value=>JSON.parse(JSON.stringify(value))
 const normalize=item=>({...item,bundleKey:item.bundleKey||item.id})
 
+const BUNDLE_TEXT_EL={
+  'CVC insertion / maintenance':'Εισαγωγή / φροντίδα ΚΦΚ',
+  'Urinary catheter insertion / maintenance':'Εισαγωγή / φροντίδα ουροκαθετήρα',
+  'Ventilated patient prevention':'Πρόληψη σε μηχανικά αεριζόμενους ασθενείς',
+  'Perioperative SSI prevention':'Περιεγχειρητική πρόληψη ΛΧΠ',
+  'PIV insertion / maintenance':'Εισαγωγή / φροντίδα περιφερικού φλεβικού καθετήρα',
+  'Hemodialysis catheter / vascular access care':'Φροντίδα καθετήρα / αγγειακής προσπέλασης αιμοκάθαρσης',
+  'reviewed 2026':'αναθεώρηση 2026',
+  '2022 strategy update':'επικαιροποίηση στρατηγικής 2022',
+  'Dialysis infection prevention reviewed 2026':'Πρόληψη λοιμώξεων αιμοκάθαρσης, αναθεώρηση 2026',
+  'Peripheral catheter guideline 2024':'Οδηγία περιφερικών καθετήρων 2024',
+}
+const bundleText=(value,en)=>en?value:(BUNDLE_TEXT_EL[value]||value)
+
 export function BundleLibraryPanel({global=false}={}){
  const {notify,confirm}=useFeedback()
  const {tenant,isDemo:tenantIsDemo}=useTenant();const isDemo=!global&&tenantIsDemo;const isPlatformOwner=global // system (platform-wide) entries are edited only on the platform screen
@@ -76,17 +90,17 @@ export function BundleLibraryPanel({global=false}={}){
  }
 
  return <div className="bundle-library-panel">
-  <div className="bundle-library-toolbar"><div><h3>{en?'Prevention Bundles':'Δέσμες Πρόληψης'}</h3><p>{en?'Versioned templates with controlled system and hospital governance.':'Πρότυπα με ελεγχόμενες εκδόσεις συστήματος και νοσοκομείου.'}</p></div><div className="bundle-library-actions"><span className="bundle-library-count"><b>{publishCount}</b> {en?'published':'δημοσιευμένα'}</span><Button onClick={newBundle}><Plus size={15}/>{en?'New Bundle':'Νέα δέσμη μέτρων'}</Button></div></div>
-  <FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search Bundle...':'Αναζήτηση Bundle...'} onClear={()=>{setQuery('');setStatus('all')}} advanced={<label className="filter-select"><span>{en?'Status':'Κατάσταση'}</span><select value={status} onChange={e=>setStatus(e.target.value)}><option value="all">{en?'All':'Όλες'}</option><option value="published">{statusLabels.published}</option><option value="draft">{statusLabels.draft}</option><option value="retired">{statusLabels.retired}</option></select></label>} activeAdvancedCount={status==='all'?0:1}/>
+  <div className="section-toolbar bundle-library-toolbar"><div><h2>{en?'Prevention Bundles':'Δέσμες Πρόληψης'}</h2><p>{en?'Versioned templates with controlled system and hospital governance.':'Πρότυπα με ελεγχόμενες εκδόσεις συστήματος και νοσοκομείου.'}</p></div><div className="bundle-library-actions"><span className="bundle-library-count"><b>{publishCount}</b> {en?'published':'δημοσιευμένα'}</span><Button onClick={newBundle}><Plus size={15}/>{en?'New Bundle':'Νέα δέσμη μέτρων'}</Button></div></div>
+  <FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search bundles…':'Αναζήτηση δέσμης…'} onClear={()=>{setQuery('');setStatus('all')}} advanced={<label className="filter-select"><span>{en?'Status':'Κατάσταση'}</span><select value={status} onChange={e=>setStatus(e.target.value)}><option value="all">{en?'All':'Όλες'}</option><option value="published">{statusLabels.published}</option><option value="draft">{statusLabels.draft}</option><option value="retired">{statusLabels.retired}</option></select></label>} activeAdvancedCount={status==='all'?0:1}/>
   {loading&&<div className="inline-empty">{en?'Loading...':'Φόρτωση...'}</div>}
   <RegistryTable
     wrapperClassName="table-wrap scroll-table bundle-library-table-wrap"
     className="bundle-library-table"
-    columns={[{key:'bundle',label:'Bundle'},{key:'version',label:en?'Version':'Έκδοση'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'elements',label:en?'Elements':'Στοιχεία'},{key:'source',label:en?'Source / guideline':'Πηγή / guideline'},{key:'scope',label:en?'Scope':'Εύρος'},{key:'actions',label:''}]}
+    columns={[{key:'bundle',label:en?'Bundle':'Δέσμη'},{key:'version',label:en?'Version':'Έκδοση'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'elements',label:en?'Elements':'Στοιχεία'},{key:'source',label:en?'Source / guideline':'Πηγή / οδηγία'},{key:'scope',label:en?'Scope':'Εύρος'},{key:'actions',label:''}]}
     rows={filtered}
     rowKey={item=>item.id||`${item.bundleKey}-${item.version}`}
     rowProps={item=>({className:'clickable-row',onClick:()=>openBundle(item)})}
-    renderRow={item=>{const systemLocked=item.system&&!isPlatformOwner;return <><td><strong>{item.name}</strong>{item.system&&<span className="status-badge active">{en?'System · Owner managed':'Σύστημα · Μόνο ιδιοκτήτης'}</span>}<small>{item.titleEl}</small></td><td><strong>v{item.version}</strong></td><td><span className={`bundle-library-status ${item.status}`}>{statusLabels[item.status]}</span></td><td>{item.elements?.length||0}</td><td><strong>{item.source||'—'}</strong><small>{item.sourceVersion||''}</small></td><td><span className="bundle-library-scope-text">{item.scope||'—'}</span></td><td onClick={e=>e.stopPropagation()}><OverflowMenu items={[
+    renderRow={item=>{const systemLocked=item.system&&!isPlatformOwner;return <><td><strong>{item.name}</strong>{item.system&&<span className="status-badge active">{en?'System · Owner managed':'Σύστημα · Μόνο ιδιοκτήτης'}</span>}<small>{en?(item.titleEn||item.titleEl):item.titleEl}</small></td><td><strong>v{item.version}</strong></td><td><span className={`bundle-library-status ${item.status}`}>{statusLabels[item.status]}</span></td><td>{item.elements?.length||0}</td><td><strong>{item.source||'—'}</strong><small>{bundleText(item.sourceVersion||'',en)}</small></td><td><span className="bundle-library-scope-text">{bundleText(item.scope,en)||'—'}</span></td><td onClick={e=>e.stopPropagation()}><OverflowMenu items={[
       {id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,onClick:()=>openBundle(item),hidden:systemLocked||item.status!=='draft'},
       {id:'duplicate',label:en?'Create new draft version':'Δημιουργία νέας draft έκδοσης',icon:Copy,onClick:()=>duplicate(item),hidden:systemLocked},
       {id:'publish',label:en?'Publish':'Δημοσίευση',icon:Check,onClick:()=>publish(item),hidden:systemLocked||item.status!=='draft'},

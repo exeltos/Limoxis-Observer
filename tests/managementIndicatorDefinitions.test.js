@@ -31,7 +31,7 @@ describe('management indicator definitions',()=>{
  it('exposes a governed management UI',()=>{
   expect(page).toContain("id:'indicators'")
   expect(page).toContain('<IndicatorsPanel global={global}/>')
-  expect(panel).toContain("item.system?'System':'Hospital'")
+  expect(panel).toContain("item.system?(el?'Σύστημα':'System'):(el?'Νοσοκομείο':'Hospital')")
   expect(panel).toContain('item.system&&!isOwner')
  })
 })
