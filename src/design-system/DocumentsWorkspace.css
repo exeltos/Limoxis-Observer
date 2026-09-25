@@ -3,5 +3,8 @@
    restyle generic children. */
 .documents-workspace{width:100%;min-width:0;box-sizing:border-box}
 .documents-workspace>.attachment-field{margin:0}
-.record-section.documents-workspace{align-self:start!important;height:auto!important;min-height:0!important;flex:0 0 auto!important}
+/* align-self:start keeps the card content-high in grid bodies (Employees);
+   the explicit width keeps it full-width in flex-column bodies (Patients),
+   where align-self:start alone would shrink it to its content. */
+.record-section.documents-workspace{align-self:start!important;width:100%!important;height:auto!important;min-height:0!important;flex:0 0 auto!important}
 .record-section.documents-workspace>.record-section-header h3{font-size:18px!important}

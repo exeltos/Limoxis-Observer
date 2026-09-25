@@ -51,7 +51,7 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
     try{await persist(rows.filter(x=>x.id!==item.id));notify(t('environmentalStandards.environmentalProtocolDeleted'),'success')}catch{return}
   }
   return <section className={embedded?"environmental-embedded management-scroll-section":"management-section management-scroll-section"}>
-    <div className="section-toolbar"><div><h2>{t('environmentalProtocols')}</h2><p>{t('environmentalStandards.environmentalProtocolsSubtitle')}</p></div><Button onClick={()=>setDraft({...empty})}><Plus size={15}/>{t('environmentalStandards.newEnvironmentalProtocol')}</Button></div>
+    <div className="section-toolbar"><div><h2>{t('managementEnvironmentTemplatesLabel')}</h2><p>{t('environmentalStandards.environmentalProtocolsSubtitle')}</p></div><Button onClick={()=>setDraft({...empty})}><Plus size={15}/>{t('environmentalStandards.newEnvironmentalProtocol')}</Button></div>
     <div className="governance-banner"><ShieldCheck size={16}/><span>{language==='en'?'Limoxis system protocols are centrally governed and read-only for hospital users. Hospitals may add their own local protocols.':'Τα πρωτόκολλα συστήματος Limoxis διαχειρίζονται κεντρικά και είναι μόνο για προβολή στους χρήστες νοσοκομείου. Το νοσοκομείο μπορεί να προσθέτει δικά του τοπικά πρωτόκολλα.'}</span></div>
     <FilterBar compact query={query} onQueryChange={setQuery} placeholder={t('environmentalStandards.searchEnvironmentalProtocols')} onClear={()=>setQuery('')}/>
     {loading&&<div className="inline-data-state">{language==='en'?'Loading data…':'Φόρτωση δεδομένων…'}</div>}

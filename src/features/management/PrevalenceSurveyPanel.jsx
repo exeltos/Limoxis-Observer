@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { SaveButton } from '../../design-system/SaveButton'
-import { IconButton } from '../../design-system/IconButton'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -21,6 +22,7 @@ export function PrevalenceSurveyPanel() {
   const { notify, notifyError, confirm } = useFeedback()
   const { role, tenant, isDemo } = useTenant()
   const isPlatformOwner = role === ROLES.PLATFORM_OWNER
+  const fmt = value => value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(`${value}T12:00:00`)) : '—'
   const [rows, setRows] = useState([])
   const [departments, setDepartments] = useState([])
   const [loading, setLoading] = useState(false)
@@ -66,6 +68,11 @@ export function PrevalenceSurveyPanel() {
     }
   }
 
+  function departmentName(row) {
+    const match = departments.find(item => item.id === row.departmentId)
+    return en ? (match?.nameEn || row.departmentEl) : (row.departmentEl || match?.name)
+  }
+
   async function remove(id) {
     const ok = await confirm({ message: en ? 'Delete this survey entry?' : 'Διαγραφή αυτής της καταγραφής επιπολασμού;', danger: true, confirmLabel: en ? 'Delete' : 'Διαγραφή' })
     if (!ok) return
@@ -83,23 +90,22 @@ export function PrevalenceSurveyPanel() {
       <div className="section-toolbar">
         <div>
           <h2>{en ? 'Point prevalence survey (PPS)' : 'Σημειακός επιπολασμός λοιμώξεων'}</h2>
-          <p>{en ? 'Snapshot count of inpatients, active HAIs and antibiotic use on a survey day, whole-hospital or per department (ΥΑ 388/2014 §2.2 / ECDC PPS).' : 'Στιγμιαία καταγραφή νοσηλευόμενων, ενεργών ΝΝΛ και χρήσης αντιβιοτικών σε ημέρα επισκόπησης, σε επίπεδο νοσοκομείου ή τμήματος (ΥΑ 388/2014 §2.2 / ECDC PPS).'}</p>
+          <p>{en ? 'Snapshot count of inpatients, active HAIs and antibiotic use on a survey day, whole-hospital or per department (Ministerial Decision 388/2014 §2.2 / ECDC PPS).' : 'Στιγμιαία καταγραφή νοσηλευόμενων, ενεργών ΝΝΛ και χρήσης αντιβιοτικών σε ημέρα επισκόπησης, σε επίπεδο νοσοκομείου ή τμήματος (ΥΑ 388/2014 §2.2 / ECDC PPS).'}</p>
         </div>
-        <Button onClick={() => setEditor(true)}>+ {en ? 'New survey' : 'Νέα επισκόπηση'}</Button>
+        <Button onClick={() => setEditor(true)}><Plus size={15} />{en ? 'New survey' : 'Νέα επισκόπηση'}</Button>
       </div>
       {loading && <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>}
-      {!loading && !rows.length && <div className="inline-empty">{en ? 'No prevalence surveys recorded yet.' : 'Δεν έχουν καταγραφεί επισκοπήσεις επιπολασμού.'}</div>}
-      {!loading && Boolean(rows.length) && (
-        <div className="record-table-wrap">
-          <table className="record-table">
-            <thead><tr><th>{en ? 'Survey date' : 'Ημερομηνία'}</th><th>{en ? 'Scope' : 'Εύρος'}</th><th>{en ? 'Patients' : 'Ασθενείς'}</th><th>{en ? 'With HAI' : 'Με ΝΝΛ'}</th><th>{en ? 'On antibiotics' : 'Υπό αντιβίωση'}</th><th>{en ? 'Responsible' : 'Υπεύθυνος'}</th>{isPlatformOwner && <th/>}</tr></thead>
-            <tbody>{rows.map(row => <tr key={row.id}>
-              <td>{row.surveyDate}</td><td>{row.departmentId ? (row.departmentEl || '—') : (en ? 'Whole hospital' : 'Όλο το νοσοκομείο')}</td><td>{row.patientsTotal}</td><td>{row.patientsWithHai}</td><td>{row.patientsOnAntibiotics}</td><td>{row.responsibleName || '—'}</td>
-              {isPlatformOwner && <td><IconButton tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => remove(row.id)}><Trash2 size={16} /></IconButton></td>}
-            </tr>)}</tbody>
-          </table>
-        </div>
-      )}
+      {!loading && <RegistryTable
+        wrapperClassName="table-wrap scroll-table"
+        columns={[{ key: 'date', label: en ? 'Survey date' : 'Ημερομηνία' }, { key: 'scope', label: en ? 'Scope' : 'Εύρος' }, { key: 'patients', label: en ? 'Patients' : 'Ασθενείς' }, { key: 'hai', label: en ? 'With HAI' : 'Με ΝΝΛ' }, { key: 'abx', label: en ? 'On antibiotics' : 'Υπό αντιβίωση' }, { key: 'responsible', label: en ? 'Responsible' : 'Υπεύθυνος' }, ...(isPlatformOwner ? [{ key: 'actions', label: '' }] : [])]}
+        rows={rows}
+        rowKey={row => row.id}
+        renderRow={row => <>
+          <td><strong>{fmt(row.surveyDate)}</strong></td><td>{row.departmentId ? (departmentName(row) || '—') : (en ? 'Whole hospital' : 'Όλο το νοσοκομείο')}</td><td>{row.patientsTotal}</td><td>{row.patientsWithHai}</td><td>{row.patientsOnAntibiotics}</td><td>{en && row.responsibleName === 'ΕΝΛ' ? 'IPC committee' : (row.responsibleName || '—')}</td>
+          {isPlatformOwner && <td><OverflowMenu items={[{ id: 'delete', label: en ? 'Delete' : 'Διαγραφή', icon: Trash2, tone: 'danger', onClick: () => remove(row.id) }]} /></td>}
+        </>}
+        emptyTitle={en ? 'No prevalence surveys recorded yet.' : 'Δεν έχουν καταγραφεί επισκοπήσεις επιπολασμού.'}
+      />}
       {editor && <SurveyDialog en={en} draft={draft} setDraft={setDraft} departments={departments} language={language} onClose={() => setEditor(false)} onSave={save} />}
     </section>
   )
@@ -110,9 +116,7 @@ function SurveyDialog({ en, draft, setDraft, departments, language, onClose, onS
     <label><span>{label}</span><input type="number" min="0" value={draft[key]} onChange={e => setDraft(d => ({ ...d, [key]: e.target.value }))} /></label>
   )
   return (
-    <div className="modal-backdrop">
-      <div className="entry-card">
-        <header><h3>{en ? 'New prevalence survey' : 'Νέα επισκόπηση επιπολασμού'}</h3><button className="icon-close" onClick={onClose}>×</button></header>
+    <ObserverDialog width="standard" title={en ? 'New prevalence survey' : 'Νέα επισκόπηση επιπολασμού'} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={onSave} disabled={!draft.surveyDate} />}>
         <div className="entry-grid">
           <ManualDateField label={en ? 'Survey date' : 'Ημερομηνία επισκόπησης'} value={draft.surveyDate} onChange={value => setDraft(d => ({ ...d, surveyDate: value }))} />
           <label><span>{en ? 'Scope / department' : 'Εύρος / Τμήμα'}</span><select value={draft.departmentId} onChange={e => setDraft(d => ({ ...d, departmentId: e.target.value }))}><option value="">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>{departments.map(item => <option key={item.id} value={item.id}>{language === 'el' ? item.name : (item.nameEn || item.name)}</option>)}</select></label>
@@ -122,8 +126,6 @@ function SurveyDialog({ en, draft, setDraft, departments, language, onClose, onS
           <label><span>{en ? 'Responsible' : 'Υπεύθυνος'}</span><input type="text" value={draft.responsibleName} onChange={e => setDraft(d => ({ ...d, responsibleName: e.target.value }))} /></label>
           <label className="entry-span-2"><span>{en ? 'Notes' : 'Σημειώσεις'}</span><textarea rows={3} value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} /></label>
         </div>
-        <footer><Button variant="secondary" onClick={onClose}>{en ? 'Cancel' : 'Ακύρωση'}</Button><SaveButton disabled={!draft.surveyDate} onClick={onSave}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></footer>
-      </div>
-    </div>
+    </ObserverDialog>
   )
 }
