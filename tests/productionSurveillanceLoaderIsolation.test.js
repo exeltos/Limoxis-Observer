@@ -25,7 +25,7 @@ describe('Production Surveillance registry loading',()=>{
   it('does not fall back to demo datasets in the production branch',()=>{
     expect(source).toContain('if(isDemo){')
     expect(source).toContain("}else if(tenant?.id){")
-    expect(source).toContain('setCases(surveillanceDemoData.map')
+    expect(source).toContain('setCases(demoSurveillanceList())')
     expect(source).toContain("setCases(results[0].status==='fulfilled'?results[0].value:[])")
   })
 })

@@ -6,8 +6,7 @@
 // hardcoding numbers: it reads the same seed data every other demo-mode
 // screen reads and writes, so a change made in one demo screen (e.g. adding
 // a laboratory sample) is reflected here too.
-import { surveillanceDemoData } from '../surveillance/surveillanceDemoData'
-import { clinicalCases } from '../surveillance/clinicalDemoData'
+import { clinicalCases, demoSurveillanceList } from '../surveillance/clinicalDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { preventionDepartments } from '../prevention/preventionDemoData'
 import { loadHandHygieneLocal, loadWasteLocal, loadBundlesLocal, loadAntisepticLocal } from '../prevention/preventionStore'
@@ -132,7 +131,8 @@ export function collectAnalysisDemoSnapshot() {
   const handHygieneRows = loadHandHygieneLocal()
   const wasteRows = loadWasteLocal()
   const summary = {
-    surveillance: surveillanceDemoData.length,
+    surveillance: demoSurveillanceList().length,
+    activeSurveillance: demoSurveillanceList().filter(item => item.status === 'active').length,
     laboratory: laboratorySamples.length,
     prevention: handHygieneRows.length + wasteRows.length + loadBundlesLocal().length + loadAntisepticLocal().length,
     controls: loadControlExecutionsLocal().length + loadControlAssignmentsLocal().length,
