@@ -1,0 +1,47 @@
+.puc{display:grid;gap:16px}
+.puc-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12.5px;color:#5b7186}
+.puc-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}
+.puc-tile{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid #dfe6ed;border-radius:12px;background:#fff;color:#5b7186}
+.puc-tile>svg{flex:none;color:#4d6b86}
+.puc-tile strong{display:block;white-space:nowrap;font-size:18px;line-height:1.2;color:#16324a}
+.puc-tile span{display:block;font-size:12px;color:#6b7d8f}
+.puc-tile.is-warning{background:#fff8ec;border-color:#f2dcae}.puc-tile.is-warning>svg,.puc-tile.is-warning strong{color:#a15c00}
+.puc-tile.is-ok>svg{color:#2e9d62}
+.puc-tile.is-danger{background:#fdf3f2;border-color:#f1c9c4}.puc-tile.is-danger>svg,.puc-tile.is-danger strong{color:#b3261e}
+.puc-progress{display:grid;gap:6px;padding:10px 14px;border:1px solid #cfe0ef;border-radius:10px;background:#f3f8fd;font-size:13px}
+.puc-progress small{margin-left:8px;color:#5b7186}
+.puc-progress progress{width:100%;height:6px}
+.puc-section{border:1px solid #dfe6ed;border-radius:14px;padding:14px 16px;background:#fff}
+.puc-section>header{margin-bottom:10px}
+.puc-section h4{margin:0;font-size:15px;color:#16324a}
+.puc-section header p{margin:4px 0 0;font-size:12.5px;line-height:1.5;color:#5b7186}
+.puc-changes{display:grid;gap:10px}
+.puc-change{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid #e3eaf0;border-left:4px solid #e0a020;border-radius:10px;background:#fffdf8}
+.puc-change.is-deferred{border-left-color:#8aa0b3;background:#f8fafc}
+.puc-change-main{min-width:0;display:grid;gap:5px}
+.puc-change-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.puc-change-title strong{font-size:14.5px;color:#16324a}
+.puc-change-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12.5px;color:#5b7186}
+.puc-chip{padding:2px 8px;border-radius:999px;background:#eef3f7;color:#34506a;font-weight:650;font-size:11.5px}
+.puc-badge{padding:2px 8px;border-radius:999px;background:#e8edf2;color:#4d6273;font-size:11px;font-weight:700}
+.puc-note{margin:0;font-size:12.5px;color:#34495e}
+.puc-link{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:#356f9d;text-decoration:none;width:max-content}
+.puc-link:hover{text-decoration:underline}
+.puc-change-actions{display:flex;gap:8px;flex:none}
+.puc-empty{display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:#f1faf5;color:#17784a}
+.puc-empty strong{display:block;font-size:14px}
+.puc-empty span{display:block;font-size:12.5px;color:#4d6b5a}
+.puc-history{list-style:none;margin:0;padding:0;display:grid}
+.puc-run-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto 110px;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #eef2f6}
+.puc-run-row:last-child{border-bottom:0}
+.puc-run-icon{color:#2e9d62}.puc-run-row.is-fail .puc-run-icon{color:#c0392b}.puc-run-row.is-run .puc-run-icon{color:#4a8ac4}
+.puc-run-main strong{display:block;font-size:13.5px;color:#1d3a52}
+.puc-run-main span{display:block;font-size:12px;color:#6b7d8f}
+.puc-run-main small{display:block;font-size:12px;color:#a3281e;margin-top:2px}
+.puc-run-counts{display:flex;gap:6px;font-size:12px;color:#5b7186}
+.puc-run-counts span{padding:2px 8px;border-radius:999px;background:#f1f5f8}
+.puc-run-counts .has-changes{background:#fff1dc;color:#8a4a00;font-weight:650}
+.puc-status{justify-self:end;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700;background:#e7f6ee;color:#17784a}
+.puc-status.is-fail{background:#fde4e1;color:#9d2a20}.puc-status.is-run{background:#e6f0fa;color:#285f95}
+.puc-more{margin-top:8px;border:0;background:none;color:#356f9d;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:4px 0}
+@media(max-width:900px){.puc-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.puc-change{flex-direction:column;align-items:stretch}.puc-change-actions{justify-content:flex-end}.puc-run-row{grid-template-columns:22px minmax(0,1fr) auto}.puc-run-counts{grid-column:2}}
