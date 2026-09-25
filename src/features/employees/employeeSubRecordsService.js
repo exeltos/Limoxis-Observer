@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { loadTrainingState } from '../training/trainingData'
 import { loadOccupationalVisits as loadVisitsLocal, loadVaccinations as loadVaccinationsLocal, loadEmployeeTraining as loadTrainingLocal, loadEvaluations as loadEvaluationsLocal, saveEvaluations as saveEvaluationsLocal, loadCertificates as loadCertificatesLocal, saveCertificates as saveCertificatesLocal, loadExposureIncidents as loadExposureIncidentsLocal, saveExposureIncidents as saveExposureIncidentsLocal } from './employeeRecordsService'
 
 function ensureProductionContext(organizationId,employeeDbId,operation){
@@ -61,6 +62,22 @@ async function loadCanonicalTrainingContext(organizationId,employeeDbId,employee
   const certificateIds=[...new Set(assignments.map(row=>row.payload?.certificateId).filter(Boolean))]
   if(certificateIds.length){const {data:certificateRows,error:certificateError}=await supabase.from('training_records').select('record_key,payload').eq('organization_id',organizationId).eq('record_type','certificate').in('record_key',certificateIds);if(certificateError)throw certificateError;certificateMap=new Map((certificateRows||[]).map(row=>[row.record_key,row.payload||{}]))}
   return {assignments,programMap,certificateMap}
+}
+
+
+// Demo: the same Training programmes/assignments the Training module shows.
+function demoTrainingContext(employeeId){
+  const state=loadTrainingState()
+  const programs=new Map(state.programs.map(p=>[p.id,p]))
+  const certificates=new Map(state.certificates.map(c=>[c.id,c]))
+  return state.assignments.filter(a=>a.employeeId===employeeId).map(a=>({a,program:programs.get(a.programId)||{},certificate:certificates.get(a.certificateId)||null}))
+}
+function demoTrainingRows(employeeId){
+  const current=demoTrainingContext(employeeId).map(({a,program})=>({id:a.id,employeeId,titleEl:program.title||a.programId,titleEn:program.titleEn||program.title||a.programId,date:a.completedDate||a.assignedDate||program.startDate||'',assignedDate:a.assignedDate||'',completedDate:a.completedDate||'',dueDate:program.dueDate||a.dueDate||'',status:a.status||'assigned',programId:a.programId,score:a.score??null,competent:a.competent??null,source:'training_records'}))
+  return [...current,...loadTrainingLocal().filter(x=>x.employeeId===employeeId)].sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')))
+}
+function demoTrainingEvaluations(employeeId){
+  return demoTrainingContext(employeeId).filter(({a})=>a.score!=null||a.assessmentSubmittedAt).map(({a,program,certificate})=>{const title=program.title||a.programId;const score=a.score!=null?Number(a.score):null;const competent=a.competent===true;return {id:`training-${a.id}`,employeeId,titleEl:`Αξιολόγηση γνώσεων · ${title}`,titleEn:`Knowledge assessment · ${program.titleEn||title}`,date:a.completedDate||String(a.assessmentSubmittedAt||'').slice(0,10),period:String(a.completedDate||a.assignedDate||'').slice(0,4),status:'finalized',resultEl:score!=null?`Βαθμολογία ${score}%${a.competent!=null?` · ${competent?'Επιτυχής':'Μη επιτυχής'}`:''}`:'Υποβλήθηκε',resultEn:score!=null?`Score ${score}%${a.competent!=null?` · ${competent?'Passed':'Not passed'}`:''}`:'Submitted',score,competent:a.competent??null,programId:a.programId,assessmentAnswers:a.assessmentAnswers||{},assessmentQuestions:Array.isArray(program.assessmentQuestions)?program.assessmentQuestions:[],certificateId:a.certificateId||null,certificate,program:{title,titleEn:program.titleEn||title},source:'training'}})
 }
 
 // --- Occupational health visits ---
@@ -124,7 +141,7 @@ export async function loadVaccinationsAsync(organizationId, employeeDbId, employ
 // Production training has one source of truth: training_records. The employee tab derives
 // its rows from assignment records and joins the corresponding programme payload.
 export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, employeeId) {
-  if(isDemoDataEnvironment())return loadTrainingLocal().filter(x => x.employeeId === employeeId)
+  if(isDemoDataEnvironment())return demoTrainingRows(employeeId)
   const {assignments,programMap}=await loadCanonicalTrainingContext(organizationId,employeeDbId,employeeId)
   return assignments.map(row=>{
     const assignment=row.payload||{}
@@ -209,7 +226,7 @@ export async function updateEmployeeEvaluationWorkflowAsync(organizationId,emplo
   const {data,error}=await supabase.from('employee_evaluations').update(patch).eq('organization_id',organizationId).eq('employee_id',employeeDbId).eq('id',evaluationId).select(EVALUATION_COLUMNS).single();if(error)throw error;return evaluationFromRow(data)
 }
 export async function loadEvaluationsAsync(organizationId, employeeDbId, employeeId) {
-  if(isDemoDataEnvironment())return loadEvaluationsLocal().filter(x => x.employeeId === employeeId)
+  if(isDemoDataEnvironment())return [...loadEvaluationsLocal().filter(x => x.employeeId === employeeId),...demoTrainingEvaluations(employeeId)].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))
   ensureProductionContext(organizationId,employeeDbId,'employee_evaluations.load')
 
   const [{data:formalRows,error:formalError},trainingContext]=await Promise.all([

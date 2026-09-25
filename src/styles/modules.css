@@ -1402,15 +1402,9 @@
 .entity-record-shell .record-secondary-registry > .scroll-table > .data-table td small{display:block!important;margin-top:3px!important;color:#7d8f9f!important;font-size:10.5px!important}
 .entity-record-shell .record-secondary-registry > .scroll-table > .data-table .status-badge{min-height:24px!important;padding:3px 9px!important;border-radius:999px!important;font-size:10.5px!important;font-weight:650!important}
 
-/* Training columns. */
+/* Registry columns: the title column is wider, the rest share the remaining width. */
 .entity-record-shell .record-secondary-registry > .scroll-table > .data-table th:nth-child(1),
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td:nth-child(1){width:48%!important}
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table th:nth-child(2),
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td:nth-child(2){width:24%!important}
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table th:nth-child(3),
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td:nth-child(3){width:28%!important}
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table th:nth-child(4),
-.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td:nth-child(4){width:22%!important}
+.entity-record-shell .record-secondary-registry > .scroll-table > .data-table td:nth-child(1){width:32%!important}
 
 /* Empty/loading states fill the registry body. */
 .employee-record-shell .employee-registry-empty,

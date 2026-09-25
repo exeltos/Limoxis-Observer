@@ -17,6 +17,11 @@ export const employeeSurveillanceRecords=[
     sampleIds:['LAB-EMP-001'],
     timeline:[],
   },
+  {id:'ESUR-260602',subjectType:'employee',employeeId:'EMP-003',employeeName:'Κωνσταντίνου Ελένη',employeeNameEn:'Eleni Konstantinou',department:'Χειρουργική',departmentEn:'Surgery',startedAt:'2026-06-02',screeningTypes:['nasalSwab','throatSwab'],batchId:null,status:'completed',sampleIds:['LAB-EMP-002','LAB-EMP-003'],timeline:[]},
+  {id:'ESUR-260710',subjectType:'employee',employeeId:'EMP-005',employeeName:'Μάρκου Ανδρέας',employeeNameEn:'Andreas Markou',department:'ΤΕΠ',departmentEn:'ED',startedAt:'2026-07-10',screeningTypes:['nasalSwab'],batchId:null,status:'completed',sampleIds:['LAB-EMP-004'],timeline:[]},
+  {id:'ESUR-260905',subjectType:'employee',employeeId:'EMP-006',employeeName:'Οικονόμου Σοφία',employeeNameEn:'Sofia Oikonomou',department:'Καρδιολογική',departmentEn:'Cardiology',startedAt:'2026-09-05',screeningTypes:['handSwab'],batchId:null,status:'active',sampleIds:['LAB-EMP-005'],timeline:[]},
+  {id:'ESUR-260414',subjectType:'employee',employeeId:'EMP-002',employeeName:'Δημητρίου Νικόλαος',employeeNameEn:'Nikolaos Dimitriou',department:'Παθολογική',departmentEn:'Internal Medicine',startedAt:'2026-04-14',screeningTypes:['nasalSwab'],batchId:null,status:'completed',sampleIds:['LAB-EMP-006'],timeline:[]},
+  {id:'ESUR-260521',subjectType:'employee',employeeId:'EMP-007',employeeName:'Βασιλείου Χρήστος',employeeNameEn:'Christos Vasileiou',department:'Αποστείρωση',departmentEn:'CSSD',startedAt:'2026-05-21',screeningTypes:['handSwab'],batchId:null,status:'completed',sampleIds:['LAB-EMP-007'],timeline:[]},
 ]
 
 export const employeeSurveillanceBatches=[]
