@@ -7,6 +7,7 @@ import { useNotifications } from './NotificationContext'
 import { useAuth } from '../auth/AuthContext'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useFeedback } from '../feedback/FeedbackContext'
+import './notificationCenter.css'
 
 const text={
   el:{kicker:'ΣΗΜΕΡΙΝΗ ΕΝΗΜΕΡΩΣΗ',goodMorning:'Καλημέρα',intro:'Μια σύντομη εικόνα των θεμάτων που χρειάζονται την προσοχή σας.',attention:'Θέματα προς προσοχή',scope:'Οι εργασίες προκύπτουν από τον ρόλο και το πεδίο πρόσβασής σας.',pending:'Εκκρεμότητες & αποτελέσματα',pendingHint:'Επιλέξτε μια εργασία για άμεση μετάβαση στη σχετική ροή.',announcements:'Νέες ανακοινώσεις',announcementsHint:'Ενημερώσεις που απευθύνονται σε εσάς.',noPending:'Δεν υπάρχουν νέες εκκρεμότητες για τον ρόλο σας.',noAnnouncements:'Δεν υπάρχουν νέες ανακοινώσεις.',approve:'Αποδοχή',reject:'Απόρριψη',ack:'Έλαβα γνώση',membershipDecision:'Επιβεβαιώστε την επιλογή σας για τη συμμετοχή στην επιτροπή.',membershipAccepted:'Η συμμετοχή στην επιτροπή έγινε αποδεκτή.',membershipRejected:'Η συμμετοχή στην επιτροπή απορρίφθηκε.',acknowledged:'Η γνώση καταγράφηκε.',ackFailed:'Δεν ήταν δυνατή η καταγραφή γνώσης.',minutes:'Πρακτικά επιτροπής — αναμένεται η έγκρισή σας',membership:'Συμμετοχή σε επιτροπή — αναμένεται η απόφασή σας'},

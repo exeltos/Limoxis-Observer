@@ -533,7 +533,7 @@
 @media print{
   @page{size:A4 landscape;margin:12mm}
   html,body,#root{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
-  .app-shell,.platform-owner-dashboard-shell,.main-column,.content,
+  .app-shell,.platform-owner-shell,.main-column,.content,
   .platform-analysis-page,.platform-analysis-page.page,.platform-analysis-page.page-fill,
   .platform-analysis-page .analysis-workspace,.platform-analysis-page .analysis-scroll{
     display:block!important;
@@ -568,3 +568,7 @@
 .platform-settings-page .platform-settings-duration-control{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;max-width:260px}
 .platform-settings-page .platform-settings-duration-control input{max-width:none!important;width:100%;border:0!important;border-radius:0!important;box-shadow:none!important;outline:0}
 .platform-settings-page .platform-settings-duration-control:focus-within{border-color:#2582bd!important;box-shadow:0 0 0 3px rgba(37,130,189,.15)}
+
+/* Owner registries: summary tiles and governance notes sit inside the card with the same inset as the filter bar. */
+.platform-registry-shell>.platform-summary-strip,.platform-registry-shell>.diagnostics-summary-strip{margin:16px 16px 0;width:auto}
+.platform-registry-shell>.platform-governance{margin:14px 16px;width:auto}

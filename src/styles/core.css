@@ -2549,13 +2549,13 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
 }
 .notification-header-v2>div>svg{color:#263b4e!important}
 .notification-header-v2 strong{
-  font-size:11px!important;
+  font-size:14px!important;
   font-weight:800!important;
   color:#1f3040!important;
 }
 .notification-header-v2 span{
   margin-left:1px!important;
-  font-size:7.8px!important;
+  font-size:11.5px!important;
   font-weight:500!important;
   color:#8293a1!important;
 }
@@ -2591,7 +2591,7 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
   border-radius:7px!important;
   background:transparent!important;
   color:#2f6488!important;
-  font-size:8.2px!important;
+  font-size:12px!important;
   font-weight:800!important;
   white-space:nowrap!important;
   cursor:pointer!important;
@@ -2634,13 +2634,13 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
   min-width:0!important;
 }
 .notification-copy-v2 strong{
-  font-size:9.3px!important;
+  font-size:13px!important;
   font-weight:800!important;
   line-height:1.25!important;
   color:#1f3040!important;
 }
 .notification-copy-v2 small{
-  font-size:7.7px!important;
+  font-size:11.5px!important;
   line-height:1.35!important;
   color:#7c8e9d!important;
 }
@@ -5898,29 +5898,6 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
   display:flex;
   align-items:flex-start;
   gap:12px;
-}
-
-/* Platform Owner home affordance: intentionally stronger than utility buttons,
-   but visually part of the shell rather than a bordered control. */
-.platform-owner-dashboard-shell .topbar-spacer .icon-button{
-  width:38px;
-  height:38px;
-  border:0;
-  background:transparent;
-  box-shadow:none;
-  color:var(--lo-color-primary);
-}
-.platform-owner-dashboard-shell .topbar-spacer .icon-button svg{
-  width:21px;
-  height:21px;
-  stroke-width:2.35;
-}
-.platform-owner-dashboard-shell .topbar-spacer .icon-button:hover{
-  background:color-mix(in srgb,var(--lo-color-primary) 8%,transparent);
-}
-.platform-owner-dashboard-shell .topbar-spacer .icon-button:focus-visible{
-  outline:2px solid color-mix(in srgb,var(--lo-color-primary) 34%,transparent);
-  outline-offset:2px;
 }
 
 

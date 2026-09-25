@@ -46,11 +46,6 @@ export function SurveillanceJourneyMap({record,t,fmtDate,activeStage,onSelect}){
 
   return <div className="journey-map strict-journey-map episode-workspace-map" aria-label={t('surveillanceJourney')}>
     <div className="episode-workspace-topline">
-      <div className="episode-progress-copy">
-        <span className="eyebrow">{language==='el'?'Επεισόδιο επιτήρησης':'Surveillance episode'}</span>
-        <strong>{language==='el'?'Κλινική διερεύνηση και τελική κατάταξη':'Clinical investigation and final classification'}</strong>
-        <span>{language==='el'?'Τα δεδομένα ενημερώνονται σταδιακά χωρίς υποχρεωτική σειρά.':'Information can be added progressively without a mandatory sequence.'}</span>
-      </div>
       <div className={`ecdc-review-card ${reviewTone}`}>
         <span>{language==='el'?'Αξιολόγηση ECDC':'ECDC assessment'}</span>
         <strong>{reviewTitle}</strong>

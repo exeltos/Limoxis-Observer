@@ -1,7 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useEffect,useMemo,useState } from 'react'
 import { Page } from '../../design-system/Page'
-import { BackButton } from '../../design-system/BackButton'
 import { FilterBar } from '../../design-system/FilterBar'
 import { Button } from '../../design-system/Button'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -13,7 +12,6 @@ export function PlatformOrganizationsRegistry({
   organizations,
   memberCountByOrg,
   hospitalAdminStatusByOrg,
-  onBack,
   onCreate,
   onOpenOrganization,
 }) {
@@ -36,9 +34,6 @@ export function PlatformOrganizationsRegistry({
       actions={<Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button>}
     >
       <div className="platform-registry-shell">
-        <div className="platform-registry-navigation">
-          <BackButton onClick={onBack} label={tx('Κέντρο Πλατφόρμας', 'Platform Center')} />
-        </div>
         <FilterBar
           query={query}
           onQueryChange={onQueryChange}
