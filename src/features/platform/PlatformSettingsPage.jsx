@@ -79,7 +79,7 @@ export function PlatformSettingsPage(){
               <input type="email" value={draft.supportEmail} onChange={event=>setDraft(current=>({...current,supportEmail:event.target.value}))}/>
               {!emailValid?<small className="field-error">{tx('Μη έγκυρο email.','Invalid email.')}</small>:null}
             </FieldBlock>
-            <FieldBlock label={tx('Προεπιλεγμένη διάρκεια Demo','Default demo duration')} hint={tx('Καθολική προεπιλογή για provisioning νέων Demo.','Global default for new demo provisioning.')}>
+            <FieldBlock label={tx('Προεπιλεγμένη διάρκεια Demo','Default demo duration')} hint={tx('Καθολική προεπιλογή για τη δημιουργία νέων Demo.','Global default for new demo provisioning.')}>
               <div className="platform-settings-duration-control"><input type="number" min="1" max="365" value={draft.defaultDemoDurationDays} onChange={event=>setDraft(current=>({...current,defaultDemoDurationDays:event.target.value}))}/><span>{tx('ημέρες','days')}</span></div>
               {!durationValid?<small className="field-error">{tx('Επιτρέπονται 1–365 ημέρες.','Allowed range is 1–365 days.')}</small>:null}
             </FieldBlock>
@@ -108,7 +108,7 @@ export function PlatformSettingsPage(){
           {draft.maintenanceNoticeEnabled&&!noticeValid?<div className="data-access-state warning"><AlertTriangle size={16}/><span>{tx('Για ενεργή ανακοίνωση απαιτείται μήνυμα σε τουλάχιστον μία γλώσσα.','An enabled notice requires a message in at least one language.')}</span></div>:null}
         </section>
 
-        <div className="platform-governance"><ShieldCheck size={17}/>{tx('Οι ρυθμίσεις αυτές είναι καθολικές, προστατεύονται με Platform Owner RLS και κάθε αλλαγή καταγράφεται στο Audit & Ασφάλεια. Οι ρυθμίσεις νοσοκομείου παραμένουν μέσα στον αντίστοιχο οργανισμό.','These settings are global, protected by Platform Owner RLS, and every change is recorded in Audit & Security. Hospital-specific settings remain inside each organization.')}</div>
+        <div className="platform-governance"><ShieldCheck size={17}/>{tx('Οι ρυθμίσεις αυτές είναι καθολικές, προστατεύονται με κανόνες πρόσβασης του Ιδιοκτήτη Πλατφόρμας και κάθε αλλαγή καταγράφεται στο Ιστορικό & Ασφάλεια. Οι ρυθμίσεις νοσοκομείου παραμένουν μέσα στον αντίστοιχο οργανισμό.','These settings are global, protected by Platform Owner RLS, and every change is recorded in Audit & Security. Hospital-specific settings remain inside each organization.')}</div>
       </>}
     </div>
   </Page>

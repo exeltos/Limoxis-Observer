@@ -83,7 +83,7 @@ export function PlatformHealthView({organizations=[],language='el',onBack}){
 
   return <Page
     title={tx('Υγεία Πλατφόρμας','Platform Health')}
-    subtitle={tx('Συγκεντρωτική λειτουργική εικόνα όλων των production οργανισμών χωρίς πρόσβαση σε κλινικό περιεχόμενο.','Aggregated operational health across production organizations without clinical-record content.')}
+    subtitle={tx('Συγκεντρωτική λειτουργική εικόνα όλων των πραγματικών οργανισμών χωρίς πρόσβαση σε κλινικό περιεχόμενο.','Aggregated operational health across production organizations without clinical-record content.')}
   >
     <div className="platform-registry-shell workspace-column">
       <div className="platform-registry-navigation"><BackButton onClick={onBack} label={tx('Dashboard','Dashboard')}/></div>
