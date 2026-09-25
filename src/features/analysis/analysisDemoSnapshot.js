@@ -138,6 +138,8 @@ export function collectAnalysisDemoSnapshot() {
     employees: employeeRows.length,
     antiseptic: loadAntisepticLocal().length,
     bundles: loadBundlesLocal().length,
+    pendingSamples: laboratorySamples.filter(x => x.status !== 'completed').length,
+    inpatients: Object.keys(clinicalCases).length,
   }
   return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility(), clusters: collectDemoOrganismClusters() }
 }

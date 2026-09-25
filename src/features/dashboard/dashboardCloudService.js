@@ -15,7 +15,7 @@ export async function loadDashboardMetrics(organizationId){
   if(!hasSupabaseConfig||!supabase||!organizationId)return {}
   const now=new Date().toISOString(),today=new Date().toISOString().slice(0,10),monthAgo=addDays(-30),soon=addDays(30)
   const q=(table)=>supabase.from(table).select('id',{count:'exact',head:true}).eq('organization_id',organizationId)
-  const entries=await Promise.all([
+  const pending=[
     ['activeUsers',countOf(q('organization_members').eq('status','active'))],
     ['activeDepartments',countOf(q('departments').eq('is_active',true))],
     ['inpatients',countOf(q('patients').is('discharge_date',null))],
@@ -38,6 +38,8 @@ export async function loadDashboardMetrics(organizationId){
     ['upcomingMeetings',countOf(q('committee_meetings').gte('scheduled_at',now).neq('status','cancelled'))],
     ['pendingMinutes',countOf(q('committee_meetings').lte('scheduled_at',now).is('finalized_at',null).neq('status','cancelled'))],
     ['openDecisions',countOf(q('committee_decisions').not('status','in','("completed","closed","cancelled")'))],
-  ])
+  ]
+  // Each pair holds a promise; await the counts themselves, not the pairs.
+  const entries=await Promise.all(pending.map(async([key,count])=>[key,await count]))
   return Object.fromEntries(entries.filter(([,value])=>value!==null))
 }

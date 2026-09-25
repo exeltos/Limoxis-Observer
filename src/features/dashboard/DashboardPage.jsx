@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
-import { ArrowRight, Bell, Megaphone } from 'lucide-react'
-import { Card } from '../../design-system/Card'
+import { Activity, ArrowRight, Bell, ListChecks, Megaphone, PieChart } from 'lucide-react'
+import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useNotifications } from '../../core/notifications/NotificationContext'
@@ -10,20 +10,19 @@ import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { loadDashboardMetrics } from './dashboardCloudService'
 import { collectAnalysisDemoSnapshot } from '../analysis/analysisDemoSnapshot'
+import { DonutChart, TrendChart } from '../analysis/AnalysisCharts'
+import { loadAnalysisSnapshot } from '../platform/platformService'
+import './dashboard.css'
 
 function hospitalAdminWorkspace(english){
   return english?{
     title:'Hospital Overview', subtitle:'Administrative overview of the organization, users, departments and operational pending work.',
     kpis:[['Active users','—'],['Active departments','—'],['Pending actions','—'],['Critical notifications','—']],
     actionTitle:'Administrative pending work', tasks:['Users requiring activation or access review','Pending organization settings','Audit events requiring administrative review'],
-    focusTitle:'Operational status',
-    statusItems:['Users & access','Organization settings','Records & data','Critical pending work'],
   }:{
     title:'Επισκόπηση Νοσοκομείου', subtitle:'Διοικητική εικόνα του οργανισμού, των χρηστών, των τμημάτων και των λειτουργικών εκκρεμοτήτων.',
     kpis:[['Ενεργοί χρήστες','—'],['Ενεργά τμήματα','—'],['Εκκρεμείς ενέργειες','—'],['Κρίσιμες ειδοποιήσεις','—']],
     actionTitle:'Διοικητικές εκκρεμότητες', tasks:['Χρήστες που χρειάζονται ενεργοποίηση ή έλεγχο πρόσβασης','Εκκρεμείς ρυθμίσεις οργανισμού','Συμβάντα καταγραφής που χρειάζονται διοικητικό έλεγχο'],
-    focusTitle:'Κατάσταση λειτουργίας',
-    statusItems:['Χρήστες & πρόσβαση','Ρυθμίσεις οργανισμού','Καταχωρίσεις & δεδομένα','Κρίσιμες εκκρεμότητες'],
   }
 }
 
@@ -36,9 +35,9 @@ function roleKpis(role,m,english,unread){
       return [[tr('Ενεργοί χρήστες','Active users'),n(m.activeUsers)],[tr('Ενεργά τμήματα','Active departments'),n(m.activeDepartments)],[tr('Εκκρεμείς ενέργειες','Pending actions'),pending],[tr('Μη αναγνωσμένες ειδοποιήσεις','Unread notifications'),n(unread)]]
     }
     case ROLES.INFECTION_CONTROL_LEAD:
-      return [[tr('Νέα MDR/XDR/PDR · 30ημ.','New MDR/XDR/PDR · 30d'),n(m.recentMdro)],[tr('Isolation reviews','Isolation reviews'),n(m.isolationReviewsDue)],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls)],[tr('Κρίσιμα εργαστηρίου','Critical lab alerts'),n(m.criticalUncommunicated)]]
+      return [[tr('Νέα MDR/XDR/PDR · 30ημ.','New MDR/XDR/PDR · 30d'),n(m.recentMdro)],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue)],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls)],[tr('Κρίσιμα εργαστηρίου','Critical lab alerts'),n(m.criticalUncommunicated)]]
     case ROLES.INFECTION_CONTROL_MEMBER:
-      return [[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance)],[tr('Θετικά εργαστηρίου','Positive laboratory results'),n(m.positiveLab)],[tr('Isolation reviews','Isolation reviews'),n(m.isolationReviewsDue)],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls)]]
+      return [[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance)],[tr('Θετικά εργαστηρίου','Positive laboratory results'),n(m.positiveLab)],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue)],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls)]]
     case ROLES.DEPARTMENT_MANAGER:
       return [[tr('Νοσηλευόμενοι','Inpatients'),n(m.inpatients)],[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance)],[tr('Εκκρεμή δείγματα','Pending samples'),n(m.pendingSamples)],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls)]]
     case ROLES.LABORATORY:
@@ -49,44 +48,80 @@ function roleKpis(role,m,english,unread){
       return [[tr('Ενεργοί εργαζόμενοι','Active employees'),n(m.activeEmployees)],[tr('Νέες εγγραφές · 30ημ.','New records · 30d'),n(m.newEmployees30d)]]
     case ROLES.OCCUPATIONAL_PHYSICIAN:
       return [[tr('Επισκέψεις σήμερα','Visits today'),n(m.ohVisitsToday)],[tr('Επανέλεγχοι σε εκκρεμότητα','Follow-ups due'),n(m.ohFollowupsDue)],[tr('Εμβολιασμοί προς ανανέωση','Vaccinations due'),n(m.vaccinationsDue)]]
+    case ROLES.PHARMACY:
+      return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals)],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies)],[tr('Καταγεγραμμένες χορηγήσεις','Administrations recorded'),n(m.administrations)]]
+    case ROLES.DOCTOR_REVIEWER:
+      return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals)],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies)]]
     case ROLES.QUALITY_MANAGER:
       return [[tr('Ανοιχτά συμβάντα','Open incidents'),n(m.openIncidents)],[tr('Σοβαρά ανοικτά','Severe open'),n(m.severeOpenIncidents)],[tr('CAPA εκπρόθεσμα','Overdue CAPA'),n(m.overdueCapa)]]
     default:return []
   }
 }
 
-export function DashboardPage() {
+const CHART_ROLES=new Set([ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.INFECTION_CONTROL_LEAD,ROLES.INFECTION_CONTROL_MEMBER,ROLES.LABORATORY,ROLES.QUALITY_MANAGER])
+
+// Demo mode reads the same fixtures as Analysis so the numbers agree across
+// screens; values the fixtures do not model fall back to the demo task list.
+function demoMetrics(snapshot,operational){
+  const s=snapshot?.summary||{},m=snapshot?.microbiology||{}
+  const taskCount=path=>Number(operational.find(task=>task.to===path)?.count)||0
+  const mdro=(m.resistance||[]).filter(([key])=>['MDR','XDR','PDR'].includes(key)).reduce((sum,[,value])=>sum+(Number(value)||0),0)
+  return {activeUsers:3,activeDepartments:m.departmentCount,activeSurveillance:s.surveillance,positiveLab:m.totalPositive,criticalUncommunicated:m.totalCritical,recentMdro:mdro,pendingSamples:s.pendingSamples,newSamplesToday:0,isolationReviewsDue:taskCount('/surveillance'),overdueControls:taskCount('/controls'),inpatients:s.inpatients,activeEmployees:s.employees,newEmployees30d:0,ohVisitsToday:s.occupationalHealth,ohFollowupsDue:taskCount('/occupational-health'),vaccinationsDue:0,openIncidents:s.quality,severeOpenIncidents:0,overdueCapa:taskCount('/quality'),upcomingMeetings:s.committees,pendingMinutes:0,openDecisions:0,pendingApprovals:s.antimicrobial?.pending,antimicrobialTherapies:s.antimicrobial?.total,administrations:s.antimicrobial?.administrations}
+}
+
+function domainShare(snapshot,tr){const s=snapshot?.summary||{};return [[tr('Επιτήρηση','Surveillance'),s.surveillance],[tr('Εργαστήριο','Laboratory'),s.laboratory],[tr('Πρόληψη','Prevention'),s.prevention],[tr('Έλεγχοι','Controls'),s.controls],[tr('Ποιότητα','Quality'),s.quality],[tr('Εκπαίδευση','Training'),s.training]].filter(([,value])=>Number(value)>0)}
+
+// title/subtitle/showKpis let the department home reuse this layout: its
+// counts are organization-wide, so the department view hides them.
+export function DashboardPage({title,subtitle,showKpis=true}={}) {
   const { role, tenant, isDemo } = useTenant()
   const {language}=useLanguage()
   const english=language==='en'
+  const tr=(el,en)=>english?en:el
   const workspace=(role===ROLES.HOSPITAL_ADMIN||role===ROLES.DEMO)?hospitalAdminWorkspace(english):workspaceFor(role,language)
   const nctx=useNotifications()
   const navigate=useNavigate()
   const [metrics,setMetrics]=useState({})
+  const [liveSnapshot,setLiveSnapshot]=useState(null)
+  const showCharts=showKpis&&CHART_ROLES.has(role)
   useEffect(()=>{
     let active=true
     if(isDemo||!tenant?.id){setMetrics({});return()=>{active=false}}
     loadDashboardMetrics(tenant.id).then(data=>{if(active)setMetrics(data)}).catch(()=>{if(active)setMetrics({})})
     return()=>{active=false}
   },[tenant?.id,isDemo])
-  const demoSnapshot=useMemo(()=>isDemo?collectAnalysisDemoSnapshot():null,[isDemo])
-  const demoKpis=useMemo(()=>{if(!isDemo)return[];const m=demoSnapshot?.summary||{};const tr=(el,en)=>english?en:el;return [[tr('Επιτηρήσεις','Surveillance'),m.surveillance??0],[tr('Εργαστήριο','Laboratory'),m.laboratory??0],[tr('Πρόληψη','Prevention'),m.prevention??0],[tr('Ποιότητα','Quality'),m.quality??0]]},[isDemo,demoSnapshot,english])
-  const liveKpis=useMemo(()=>isDemo?[]:roleKpis(role,metrics,english,nctx.unreadCount),[role,metrics,english,nctx.unreadCount,isDemo])
-  const kpis=demoKpis.length?demoKpis:(liveKpis.length?liveKpis:workspace.kpis.map(([label])=>[label,'—']))
+  useEffect(()=>{
+    let active=true
+    if(isDemo||!tenant?.id||!showCharts){setLiveSnapshot(null);return()=>{active=false}}
+    const to=new Date(),from=new Date(to.getFullYear(),to.getMonth()-11,1)
+    loadAnalysisSnapshot({organizationId:tenant.id,from:from.toISOString().slice(0,10),to:to.toISOString().slice(0,10)}).then(data=>{if(active)setLiveSnapshot(data)}).catch(()=>{if(active)setLiveSnapshot(null)})
+    return()=>{active=false}
+  },[tenant?.id,isDemo,showCharts])
+  const snapshot=useMemo(()=>isDemo?collectAnalysisDemoSnapshot():liveSnapshot,[isDemo,liveSnapshot])
+  const values=useMemo(()=>isDemo?demoMetrics(snapshot,nctx.operational):metrics,[isDemo,snapshot,nctx.operational,metrics])
+  const roleRows=useMemo(()=>roleKpis(role===ROLES.DEMO?ROLES.HOSPITAL_ADMIN:role,values,english,nctx.unreadCount),[role,values,english,nctx.unreadCount])
+  const kpis=roleRows.length?roleRows:workspace.kpis.map(([label])=>[label,'—'])
   const tasks=nctx.operational.length?nctx.operational:workspace.tasks.map((title,index)=>({id:`workspace-${index}`,title,count:null,to:null,fallback:true}))
   const announcements=nctx.visibleAnnouncements.slice(0,4)
+  const monthly=snapshot?.microbiology?.monthly||[]
+  const donut=role===ROLES.LABORATORY?{title:tr('Κατηγορίες αντοχής','Resistance classes'),subtitle:tr('MDR / XDR / PDR στα θετικά αποτελέσματα.','MDR / XDR / PDR among positive results.'),rows:snapshot?.microbiology?.resistance||[],center:tr('στελέχη','isolates')}:{title:tr('Δραστηριότητα ανά ενότητα','Activity by module'),subtitle:tr('Καταγραφές του οργανισμού ανά ενότητα.','Organization records by module.'),rows:domainShare(snapshot,tr),center:tr('σύνολο','total')}
+  const hasCharts=showCharts&&snapshot&&(monthly.length>1||donut.rows.length>1)
 
-  return <Page className="dashboard-page" title={workspace.title} subtitle={workspace.subtitle}>
-    {kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value])=><article className="kpi-card" key={label}><span>{label}</span><strong>{value}</strong></article>)}</div>}
-    <div className="workspace-grid dashboard-workspace">
-      <Card title={workspace.actionTitle??(english?'Priority work':'Εργασίες προτεραιότητας')}>
-        <div className="task-list">{tasks.map((task,index)=><button className="task-row" key={task.id} disabled={!task.to} onClick={()=>{if(!task.to)return;nctx.markRead(task.id);navigate(task.to)}}><span className={`priority ${index===0?'high':'medium'}`}/><span className="task-copy"><strong>{task.title}</strong>{task.count!=null&&<small>{task.count} {english?'pending':'σε εκκρεμότητα'}</small>}</span>{task.to&&<ArrowRight size={17}/>}</button>)}</div>
+  return <Page className="dashboard-page" title={title||workspace.title} subtitle={subtitle||workspace.subtitle}>
+    {showKpis&&kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value])=><article className="kpi-card" key={label}><span>{label}</span><strong>{value}</strong></article>)}</div>}
+    <div className="dashboard-workspace-v2">
+      <Card className="dashboard-card">
+        <CardHeader icon={ListChecks} title={workspace.actionTitle??tr('Εργασίες προτεραιότητας','Priority work')} subtitle={tr('Ό,τι χρειάζεται ενέργεια από εσάς.','What needs your action.')}/>
+        <div className="task-list">{tasks.map((task,index)=><button className="task-row" key={task.id} disabled={!task.to} onClick={()=>{if(!task.to)return;nctx.markRead(task.id);navigate(task.to)}}><span className={`priority ${index===0?'high':'medium'}`}/><span className="task-copy"><strong>{task.title}</strong>{task.count!=null&&<small>{task.count} {tr('σε εκκρεμότητα','pending')}</small>}</span>{task.count!=null&&<b className="task-count">{task.count}</b>}{task.to&&<ArrowRight size={17}/>}</button>)}</div>
       </Card>
-      <Card title={english?'Updates & announcements':'Ενημερώσεις & ανακοινώσεις'}>{announcements.length?<div className="dashboard-announcements">{announcements.map(a=><button key={a.id} onClick={()=>nctx.markRead(a.id)}><span className={`announcement-icon ${a.priority}`}><Megaphone size={15}/></span><span><strong>{a.title}</strong><small>{a.message}</small><em>{a.createdBy}</em></span>{!nctx.notificationItems.find(x=>x.id===a.id)?.read&&<i/>}</button>)}</div>:<div className="context-card"><div><strong>{english?'No new announcements':'Δεν υπάρχουν νέες ανακοινώσεις'}</strong><span>{english?'New organization updates will appear here.':'Οι νέες ενημερώσεις του οργανισμού θα εμφανίζονται εδώ.'}</span></div></div>}</Card>
-      <Card title={workspace.focusTitle??(english?'Today at a glance':'Σήμερα με μια ματιά')}>
-        {workspace.statusItems?<div className="task-list">{workspace.statusItems.map(label=><div className="task-row" key={label}><span className="priority medium"/><span className="task-copy"><strong>{label}</strong><small>{english?'Status is calculated from authorized organization data.':'Η κατάσταση υπολογίζεται από τα εξουσιοδοτημένα δεδομένα του οργανισμού.'}</small></span></div>)}</div>:<div className="context-card"><div><strong>{workspace.focus??workspace.title}</strong><span>{workspace.focusText??workspace.subtitle}</span>{tenant?.name&&<small>{tenant.name}</small>}</div></div>}
+      <Card className="dashboard-card">
+        <CardHeader icon={Megaphone} title={tr('Ενημερώσεις & ανακοινώσεις','Updates & announcements')} subtitle={nctx.unreadCount?`${nctx.unreadCount} ${tr('μη αναγνωσμένες ειδοποιήσεις','unread notifications')}`:tr('Όλα διαβασμένα','All caught up')} actions={nctx.unreadCount>0&&<button type="button" className="text-button" onClick={nctx.markAllRead}><Bell size={14}/>{tr('Σήμανση όλων','Mark all read')}</button>}/>
+        {announcements.length?<div className="dashboard-announcements">{announcements.map(a=><button key={a.id} onClick={()=>nctx.markRead(a.id)}><span className={`announcement-icon ${a.priority}`}><Megaphone size={15}/></span><span><strong>{a.title}</strong><small>{a.message}</small><em>{a.createdBy}</em></span>{!nctx.notificationItems.find(x=>x.id===a.id)?.read&&<i/>}</button>)}</div>:<div className="inline-empty">{tr('Οι νέες ενημερώσεις του οργανισμού θα εμφανίζονται εδώ.','New organization updates will appear here.')}</div>}
       </Card>
-      <Card title={english?'Notifications':'Ειδοποιήσεις'}><div className="dashboard-notification-summary"><Bell size={20}/><strong>{nctx.unreadCount}</strong><span>{english?'unread notifications':'μη αναγνωσμένες ειδοποιήσεις'}</span><button onClick={nctx.markAllRead}>{english?'Mark all as read':'Σήμανση όλων ως αναγνωσμένων'}</button></div></Card>
     </div>
+    {hasCharts&&<div className="dashboard-charts">
+      <Card className="dashboard-card dashboard-chart-wide"><CardHeader icon={Activity} title={tr('Θετικές καλλιέργειες ανά μήνα','Positive cultures by month')} subtitle={tr('Τελευταίοι 12 μήνες · περάστε το ποντίκι για τιμές.','Last 12 months · hover for values.')}/><TrendChart points={monthly} en={english} label={tr('Θετικές καλλιέργειες ανά μήνα','Positive cultures by month')}/></Card>
+      <Card className="dashboard-card"><CardHeader icon={PieChart} title={donut.title} subtitle={donut.subtitle}/><DonutChart rows={donut.rows} en={english} centerLabel={donut.center}/></Card>
+    </div>}
   </Page>
 }
