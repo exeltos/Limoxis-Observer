@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { PlatformHealthView } from './PlatformHealthView'
@@ -13,15 +12,13 @@ function usePlatformOrganizations(){
 export function PlatformHealthPage(){
   const organizations=usePlatformOrganizations()
   const {language}=useLanguage()
-  const navigate=useNavigate()
-  return <PlatformHealthView organizations={organizations} language={language} onBack={()=>navigate('/platform')} />
+  return <PlatformHealthView organizations={organizations} language={language} />
 }
 
 export function PlatformAuditSecurityPage(){
   const organizations=usePlatformOrganizations()
   const {language}=useLanguage()
-  const navigate=useNavigate()
-  return <PlatformAuditSecurityView organizations={organizations} language={language} onBack={()=>navigate('/platform')} />
+  return <PlatformAuditSecurityView organizations={organizations} language={language} />
 }
 
 export function PlatformSettingsPage(){

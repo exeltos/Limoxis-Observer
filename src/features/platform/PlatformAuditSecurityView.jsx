@@ -1,7 +1,6 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { AlertTriangle,RefreshCw,UserRoundCog } from 'lucide-react'
 import { Page } from '../../design-system/Page'
-import { BackButton } from '../../design-system/BackButton'
 import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -36,7 +35,7 @@ function entityLabel(value,en){
   return labels[value]?.[en?'en':'el']||String(value||'—').replaceAll('_',' ')
 }
 
-export function PlatformAuditSecurityView({organizations=[],language='el',onBack}){
+export function PlatformAuditSecurityView({organizations=[],language='el'}){
   const en=language==='en'
   const tx=(elText,enText)=>en?enText:elText
   const [rows,setRows]=useState([])
@@ -76,7 +75,6 @@ export function PlatformAuditSecurityView({organizations=[],language='el',onBack
 
   return <Page title={tx('Ιστορικό & Ασφάλεια','Audit & Security')} subtitle={tx('Ιχνηλασιμότητα ενεργειών Ιδιοκτήτη Πλατφόρμας, αλλαγών πρόσβασης και σημαντικών διοικητικών μεταβολών.','Traceability of Platform Owner actions, access changes and significant administrative changes.')} actions={<IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton>}>
     <div className="platform-registry-shell workspace-column">
-      <div className="platform-registry-navigation"><BackButton onClick={onBack} label={tx('Dashboard','Dashboard')}/></div>
       <div className="diagnostics-summary-strip platform-summary-strip">
         <div className="diagnostics-summary"><span>{tx('Καταγεγραμμένες ενέργειες','Recorded actions')}</span><strong>{rows.length}</strong></div>
         <div className="diagnostics-summary"><span>{tx('Ενέργειες Ιδιοκτήτη Πλατφόρμας','Platform Owner actions')}</span><strong>{ownerActions}</strong></div>

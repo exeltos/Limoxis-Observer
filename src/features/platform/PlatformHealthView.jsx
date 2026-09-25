@@ -1,7 +1,6 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { Activity,AlertTriangle,CheckCircle2,RefreshCw,ShieldAlert,XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
-import { BackButton } from '../../design-system/BackButton'
 import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -27,7 +26,7 @@ function fmtDate(value){
   return `${dd}/${mm}/${yyyy}, ${hh}:${min}`
 }
 
-export function PlatformHealthView({organizations=[],language='el',onBack}){
+export function PlatformHealthView({organizations=[],language='el'}){
   const en=language==='en'
   const tx=(elText,enText)=>en?enText:elText
   const [rows,setRows]=useState([])
@@ -84,12 +83,9 @@ export function PlatformHealthView({organizations=[],language='el',onBack}){
   return <Page
     title={tx('Υγεία Πλατφόρμας','Platform Health')}
     subtitle={tx('Συγκεντρωτική λειτουργική εικόνα όλων των πραγματικών οργανισμών χωρίς πρόσβαση σε κλινικό περιεχόμενο.','Aggregated operational health across production organizations without clinical-record content.')}
+    actions={<IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton>}
   >
     <div className="platform-registry-shell workspace-column">
-      <div className="platform-registry-navigation"><BackButton onClick={onBack} label={tx('Dashboard','Dashboard')}/></div>
-      <div className="platform-section-tools">
-        <IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton>
-      </div>
       <div className="diagnostics-summary-strip platform-summary-strip">
         <div className="diagnostics-summary"><span>{tx('Κατάσταση','Status')}</span><strong>{healthLabel}</strong></div>
         <div className="diagnostics-summary"><span>{tx('Αποτυχίες / αποκλεισμοί','Errors / blocked')}</span><strong>{failures}</strong></div>

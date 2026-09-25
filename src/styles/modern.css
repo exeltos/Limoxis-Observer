@@ -224,8 +224,6 @@ button{letter-spacing:0}
   .filter-search{max-width:none!important;flex:1!important}
 }
 
-/* v0.40.2 — Platform Owner shell must remain full width. */
-.app-shell.platform-owner-dashboard-shell{grid-template-columns:minmax(0,1fr)!important}
 
 /* v0.45.0 — authoritative registry + shell contract
    Replaces the accumulated v0.43/v0.44 surveillance patches. */
@@ -461,3 +459,9 @@ button{letter-spacing:0}
 
 .laboratory-amr-inline-select{height:32px!important;min-width:205px!important;max-width:245px!important;padding:0 30px 0 10px!important;border:1px solid var(--lo-color-border)!important;border-radius:8px!important;background:#f8fafc!important;color:#28465f!important;font-size:10.5px!important;font-weight:700!important;cursor:pointer!important}
 .laboratory-amr-inline-select:focus{outline:2px solid rgba(37,107,155,.16)!important;border-color:var(--lo-color-primary)!important}
+.platform-breadcrumb{display:flex;align-items:center;gap:8px;min-width:0;font-size:13.5px;color:#7a8898}
+.platform-breadcrumb button{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px;border:0;border-radius:9px;background:transparent;color:var(--lo-color-primary);font:inherit;font-weight:650;cursor:pointer}
+.platform-breadcrumb button:hover{background:color-mix(in srgb,var(--lo-color-primary) 8%,transparent)}
+.platform-breadcrumb button:focus-visible{outline:2px solid color-mix(in srgb,var(--lo-color-primary) 34%,transparent);outline-offset:2px}
+.platform-breadcrumb strong{color:#1f3247;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-shell.platform-owner-shell{grid-template-columns:minmax(0,1fr)!important}

@@ -1,0 +1,57 @@
+/* Surveillance episode opens as a full page inside the patient record (not a card floating over it). */
+html body .episode-overlay.surveillance-episode-page{position:static!important;inset:auto!important;z-index:auto!important;display:block!important;padding:0!important;background:transparent!important;backdrop-filter:none!important}
+html body .surveillance-episode-page .episode-detail-card.new-surveillance-flow-card{width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;display:block!important;overflow:visible!important}
+html body .surveillance-episode-page .episode-detail-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:14px 16px!important;margin:0!important;border-bottom:1px solid #dfeaf4!important;background:transparent!important}
+.surveillance-episode-page .episode-detail-title{display:flex;align-items:center;gap:12px;min-width:0}
+.surveillance-episode-page .episode-back{display:grid;place-items:center;flex:none;width:36px;height:36px;border:1px solid var(--lo-color-border);border-radius:9px;background:#fff;color:#1f3a52;cursor:pointer}
+.surveillance-episode-page .episode-back:hover{background:#f2f7fb}
+.surveillance-episode-page .episode-back:focus-visible{outline:2px solid color-mix(in srgb,var(--lo-color-primary) 40%,transparent);outline-offset:2px}
+html body .surveillance-episode-page .episode-detail-header h2{display:block!important;margin:2px 0 2px!important;font-size:18px!important;line-height:1.3!important;color:#173a57!important}
+html body .surveillance-episode-page .episode-detail-header p{font-size:12.5px!important}
+html body .surveillance-episode-page .episode-detail-scroll.progressive-surveillance-scroll{padding:0!important;background:transparent!important;overflow:visible!important}
+html body .surveillance-episode-page .clinical-data-hub{display:flex;flex-direction:column;gap:12px;max-width:none!important}
+
+/* Attention cues: compact chips that open the relevant step. */
+html body .surveillance-episode-page .journey-guidance.compact-guidance{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:10px!important;margin:0!important;padding:10px 12px!important}
+html body .surveillance-episode-page .journey-guidance-title{margin:0!important}
+html body .surveillance-episode-page .journey-guidance-items{display:flex!important;flex-wrap:wrap!important;gap:8px!important;flex:1 1 auto!important}
+html body .surveillance-episode-page .guidance-cue{min-height:32px!important;height:auto!important;padding:6px 12px!important;border-radius:999px!important;display:inline-flex!important;align-items:center!important;width:auto!important;flex:0 0 auto!important;cursor:pointer!important}
+html body .surveillance-episode-page .guidance-cue strong{font-size:12.5px!important;white-space:normal!important}
+
+/* ECDC review uses the full width; stage navigation wraps into two rows so labels are never cut. */
+html body .surveillance-episode-page .episode-workspace-map{margin:0!important}
+html body .surveillance-episode-page .episode-workspace-topline{display:block!important;width:100%!important;align-self:stretch!important}
+html body .surveillance-episode-page .ecdc-review-card{width:100%!important;max-width:none!important;margin:0!important}
+html body .surveillance-episode-page .episode-section-tabs{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+html body .surveillance-episode-page .episode-section-tab strong{font-size:12.5px!important;white-space:normal!important;overflow:visible!important;line-height:1.3!important}
+html body .surveillance-episode-page .episode-section-tab small{font-size:11px!important;white-space:normal!important;overflow:visible!important}
+
+/* Stage panel: header spacing and readable detail tiles. */
+html body .surveillance-episode-page .clinical-panel{padding:16px 18px!important}
+html body .surveillance-episode-page .clinical-panel .record-section-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:0 0 12px!important;margin:0 0 14px!important;border-bottom:1px solid #e6eef5!important}
+html body .surveillance-episode-page .clinical-panel .record-section-header>div{display:flex!important;align-items:center!important;gap:9px!important}
+html body .surveillance-episode-page .clinical-panel .record-section-header>div svg{color:var(--lo-color-primary)}
+html body .surveillance-episode-page .clinical-panel .record-section-header strong{font-size:15px!important}
+html body .surveillance-episode-page .detail-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))!important;gap:10px!important;margin-bottom:12px!important}
+html body .surveillance-episode-page .detail-item{padding:10px 12px!important;border:1px solid #e3ebf2!important;border-radius:10px!important;background:#fafcfe!important;min-width:0!important;min-height:0!important;height:auto!important}
+html body .surveillance-episode-page .detail-item span{display:block!important;margin-bottom:3px!important;font-size:11.5px!important;color:#6b8194!important}
+html body .surveillance-episode-page .detail-item strong{display:block!important;font-size:13.5px!important;overflow-wrap:anywhere!important}
+html body .surveillance-episode-page .clinical-summary{margin:0 0 12px!important;font-size:13.5px!important;line-height:1.55!important}
+
+@media (max-width:860px){
+  html body .surveillance-episode-page .episode-section-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media print{
+  html body .episode-overlay.surveillance-episode-page{position:absolute!important;inset:0!important;background:#fff!important}
+  .surveillance-episode-page .episode-back{display:none}
+}
+
+/* Reassessment timeline: one readable row per entry. */
+html body .surveillance-episode-page .clinical-timeline{display:grid!important;gap:8px!important}
+html body .surveillance-episode-page .clinical-timeline article{display:block!important;padding:12px 14px!important;border:1px solid #e3ebf2!important;border-left:3px solid #6e9fbd!important;border-radius:10px!important;background:#fff!important;cursor:pointer}
+html body .surveillance-episode-page .clinical-timeline article:hover{background:#f7fbfe!important}
+html body .surveillance-episode-page .clinical-timeline article>div{display:block!important;width:100%!important}
+html body .surveillance-episode-page .clinical-timeline header{display:flex!important;align-items:baseline!important;justify-content:space-between!important;gap:12px!important;margin:0 0 4px!important;width:100%!important}
+html body .surveillance-episode-page .clinical-timeline header strong{font-size:13.5px!important;white-space:normal!important}
+html body .surveillance-episode-page .clinical-timeline time{font-size:12px!important;color:#6b8194!important;white-space:nowrap!important}
+html body .surveillance-episode-page .clinical-timeline p{margin:0!important;font-size:13px!important;line-height:1.5!important;color:#44576b!important}

@@ -1,0 +1,24 @@
+/* Platform Settings: two-column workspace (forms + scope aside), full page width. */
+html body .platform-settings-page{max-width:none;width:100%;height:auto;overflow:visible}
+.platform-settings-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:16px;align-items:start}
+.platform-settings-main{display:grid;gap:16px;min-width:0}
+.platform-settings-card{padding:18px 20px;min-width:0}
+.platform-settings-card .lo-card-header{margin-bottom:16px}
+.platform-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 18px}
+.platform-settings-page .platform-settings-message-field{grid-column:1/-1}
+.platform-settings-page .platform-settings-grid .field>span{font-size:12px;font-weight:650;color:#3b4a5a}
+.platform-settings-page .platform-settings-grid .field-hint{font-size:11.5px}
+.platform-settings-page .platform-settings-duration-control{max-width:none!important}
+.platform-settings-preview{margin-top:16px;padding-top:14px;border-top:1px solid var(--lo-color-border);display:grid;gap:8px}
+.platform-settings-preview-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--lo-color-muted)}
+.platform-maintenance-banner.platform-settings-preview-banner{position:static;transform:none;width:100%;box-shadow:none;grid-template-columns:auto minmax(0,1fr);white-space:pre-wrap}
+.platform-settings-preview-empty{padding:12px 14px;border:1px dashed var(--lo-color-border);border-radius:var(--lo-radius-control);color:var(--lo-color-muted);font-size:12.5px}
+.platform-settings-aside{position:sticky;top:12px}
+.platform-settings-facts{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.platform-settings-facts li{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;font-size:12.5px;line-height:1.5;color:#44576b}
+.platform-settings-facts svg{margin-top:2px;color:var(--lo-color-primary)}
+@media(max-width:1100px){.platform-settings-layout{grid-template-columns:minmax(0,1fr)}.platform-settings-aside{position:static}}
+@media(max-width:720px){.platform-settings-grid{grid-template-columns:minmax(0,1fr)}}
+html body .platform-registry-shell.platform-settings-page{border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;border-radius:0!important;overflow:visible!important}
+html body .platform-settings-card{margin:0}
+html body .platform-settings-page .platform-settings-grid .field-hint{font-size:11.5px;line-height:1.45}
