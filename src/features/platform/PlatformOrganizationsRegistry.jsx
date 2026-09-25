@@ -1,3 +1,4 @@
+import { readSessionValue, writeSessionValue } from '../../core/storage/browserStorage'
 import { Plus } from 'lucide-react'
 import { useEffect,useMemo,useState } from 'react'
 import { Page } from '../../design-system/Page'
@@ -23,6 +24,9 @@ export function PlatformOrganizationsRegistry({
   const pagedOrganizations=useMemo(()=>organizations.slice((safePage-1)*pageSize,safePage*pageSize),[organizations,safePage,pageSize])
   useEffect(()=>setPage(1),[query,pageSize])
   useEffect(()=>{if(page>totalPages)setPage(totalPages)},[page,totalPages])
+  // Coming back from an organization record, its row stays highlighted.
+  const [lastOpenedId,setLastOpenedId]=useState(()=>readSessionValue('limoxis.registry.platform-organizations.selected','')||'')
+  const openOrganization=org=>{const id=String(org.id);writeSessionValue('limoxis.registry.platform-organizations.selected',id);setLastOpenedId(id);onOpenOrganization(org)}
 
   return (
     <Page
@@ -59,12 +63,13 @@ export function PlatformOrganizationsRegistry({
                       <tr
                         key={org.id}
                         tabIndex={0}
-                        className="platform-owner-clickable-row"
-                        onClick={() => onOpenOrganization(org)}
+                        data-record-id={org.id}
+                        className={`platform-owner-clickable-row${lastOpenedId === String(org.id) ? ' registry-row-returned' : ''}`}
+                        onClick={() => openOrganization(org)}
                         onKeyDown={event => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
-                            onOpenOrganization(org)
+                            openOrganization(org)
                           }
                         }}
                       >

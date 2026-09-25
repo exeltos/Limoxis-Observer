@@ -1,0 +1,6 @@
+/* Coming back from a record: the row you opened stays clearly highlighted
+   (cell backgrounds used to cover the row colour, leaving only a thin bar). */
+html:not(#lo-return) body tr.registry-row-returned>td{background:#e3f0fa!important;transition:background .6s ease}
+html:not(#lo-return) body tr.registry-row-returned>td:first-child{box-shadow:inset 4px 0 0 #1f6fa9!important}
+html:not(#lo-return) body tr.registry-row-returned:hover>td{background:#d8e9f6!important}
+html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{background:#e3f0fa!important;box-shadow:inset 4px 0 0 #1f6fa9!important}
