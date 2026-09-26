@@ -1,11 +1,12 @@
 // Data-quality checks over laboratory samples and patients: the gaps that make
 // surveillance indicators or EARS-Net/ΕΟΔΥ reporting incomplete or wrong.
 import { earsNetIsolates, firstIsolates } from './earsNet'
+import { currentResults } from './labResults'
 
 const VALIDATED = new Set(['validated', 'amended'])
 const DAY = 86400000
 const time = value => { const t = Date.parse(value || ''); return Number.isNaN(t) ? null : t }
-const resultsOf = sample => (sample.microbiologyResults?.length ? sample.microbiologyResults : (sample.result || sample.resultStatus ? [sample] : []))
+const resultsOf = currentResults
 const sampleItem = (sample, note = '') => ({ id: sample.id, to: `/laboratory/${encodeURIComponent(sample.id)}`, label: sample.id, detail: [sample.patient || sample.subjectName, sample.department, note].filter(Boolean).join(' · '), detailEn: [sample.patientEn || sample.patient || sample.subjectName, sample.departmentEn || sample.department, note].filter(Boolean).join(' · ') })
 const patientItem = (patient, note = '') => ({ id: patient.id, to: `/patients/${encodeURIComponent(patient.id)}`, label: patient.id, detail: [patient.name, patient.department, note].filter(Boolean).join(' · '), detailEn: [patient.nameEn || patient.name, patient.departmentEn || patient.department, note].filter(Boolean).join(' · ') })
 
@@ -20,7 +21,7 @@ export function runDataQualityChecks({ samples = [], patients = [], now = new Da
     'Χωρίς μικροοργανισμό το εύρημα δεν μετράει σε δείκτες, AMR και EARS-Net.', 'Without an organism the finding is missing from indicators, AMR and EARS-Net.')
 
   add('invasive_without_ast', 'high', 'Διεισδυτικό στέλεχος EARS-Net χωρίς αντιβιόγραμμα', 'Invasive EARS-Net isolate without susceptibility tests',
-    firstIsolates(earsNetIsolates(patientSamples)).filter(isolate => !(isolate.result.ast || isolate.sample.ast || []).length).map(isolate => sampleItem(isolate.sample, isolate.result.organism)),
+    firstIsolates(earsNetIsolates(patientSamples)).filter(isolate => !isolate.tests.length).map(isolate => sampleItem(isolate.sample, isolate.organism)),
     'Το πρώτο στέλεχος ανά ασθενή χρειάζεται αντιβιόγραμμα για την αναφορά EARS-Net.', 'The first isolate per patient needs susceptibility results for EARS-Net.')
 
   add('ast_without_standard', 'medium', 'Αντιβιόγραμμα χωρίς πρότυπο ερμηνείας (EUCAST/CLSI)', 'Susceptibility test without an interpretation standard',

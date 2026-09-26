@@ -2,6 +2,7 @@
 // EARS-Net pathogens, de-duplicated to the first isolate per patient, pathogen
 // and year, exported as one row per antimicrobial test in the EARS-Net
 // (TESSy) variable layout.
+import { currentResults, isValidatedPositive, organismsOf, specimenOf, testsForOrganism } from './labResults'
 
 export const EARS_NET_PATHOGENS = [
   ['ESCCOL', /escherichia\s+coli|^e\.\s*coli/i, 'Escherichia coli'],
@@ -14,20 +15,21 @@ export const EARS_NET_PATHOGENS = [
   ['ENCFAI', /enterococcus\s+faecium|\bvre\b/i, 'Enterococcus faecium'],
 ]
 
-// WHONET/EARS-Net antimicrobial codes. Order matters: combinations first.
+// WHONET/EARS-Net antimicrobial codes, matched on English and Greek names.
+// Order matters: combinations first.
 const ANTIBIOTICS = [
-  ['CZA', /ceftazidime.{0,3}avibactam/i], ['TZP', /piperacillin.{0,3}tazobactam/i], ['AMC', /amoxicillin.{0,3}clavulan/i], ['SXT', /trimethoprim.{0,3}sulfamethoxazole|co-?trimoxazole/i], ['MEV', /meropenem.{0,3}vaborbactam/i], ['C_T', /ceftolozane/i],
-  ['AMK', /amikacin/i], ['GEN', /gentamicin/i], ['TOB', /tobramycin/i],
-  ['AMP', /ampicillin/i], ['AMX', /amoxicillin/i], ['PEN', /penicillin/i], ['OXA', /oxacillin/i], ['FOX', /cefoxitin/i],
-  ['CAZ', /ceftazidime/i], ['CRO', /ceftriaxone/i], ['CTX', /cefotaxime/i], ['FEP', /cefepime/i], ['FDC', /cefiderocol/i],
-  ['IPM', /imipenem/i], ['MEM', /meropenem/i], ['ETP', /ertapenem/i],
-  ['CIP', /ciprofloxacin/i], ['LVX', /levofloxacin/i], ['MFX', /moxifloxacin/i], ['OFX', /ofloxacin/i],
-  ['COL', /colistin|polymyxin/i], ['TGC', /tigecycline/i],
-  ['VAN', /vancomycin/i], ['TEC', /teicoplanin/i], ['LNZ', /linezolid/i], ['DAP', /daptomycin/i],
-  ['RIF', /rifampi/i], ['ERY', /erythromycin/i], ['CLI', /clindamycin/i],
+  ['CZA', /ceftazidime.{0,3}avibactam|κεφταζιδίμη.{0,3}αβιβακτάμη/i], ['TZP', /piperacillin.{0,3}tazobactam|πιπερακιλλίνη.{0,3}ταζομπακτάμη/i], ['AMC', /amoxicillin.{0,3}clavulan|αμοξικιλλίνη.{0,3}κλαβουλαν/i], ['SXT', /trimethoprim.{0,3}sulfamethoxazole|co-?trimoxazole|τριμεθοπρίμη/i], ['MEV', /meropenem.{0,3}vaborbactam|μεροπενέμη.{0,3}βαμπορμπακτάμη/i], ['C_T', /ceftolozane|κεφτολοζάνη/i],
+  ['AMK', /amikacin|αμικασίνη/i], ['GEN', /gentamicin|γενταμικίνη/i], ['TOB', /tobramycin|τομπραμυκίνη/i],
+  ['AMP', /ampicillin|αμπικιλλίνη/i], ['AMX', /amoxicillin|αμοξικιλλίνη/i], ['PEN', /penicillin|πενικιλλίνη/i], ['OXA', /oxacillin|οξακιλλίνη/i], ['FOX', /cefoxitin|κεφοξιτίνη/i],
+  ['CAZ', /ceftazidime|κεφταζιδίμη/i], ['CRO', /ceftriaxone|κεφτριαξόνη/i], ['CTX', /cefotaxime|κεφοταξίμη/i], ['FEP', /cefepime|κεφεπίμη/i], ['FDC', /cefiderocol|κεφιδεροκόλη/i],
+  ['IPM', /imipenem|ιμιπενέμη/i], ['MEM', /meropenem|μεροπενέμη/i], ['ETP', /ertapenem|ερταπενέμη/i],
+  ['CIP', /ciprofloxacin|σιπροφλοξασίνη|σιπροφλοξακίνη/i], ['LVX', /levofloxacin|λεβοφλοξασίνη|λεβοφλοξακίνη/i], ['MFX', /moxifloxacin|μοξιφλοξασίνη|μοξιφλοξακίνη/i], ['OFX', /ofloxacin|οφλοξασίνη|οφλοξακίνη/i],
+  ['COL', /colistin|polymyxin|κολιστίνη|πολυμυξίνη/i], ['TGC', /tigecycline|τιγεκυκλίνη/i],
+  ['VAN', /vancomycin|βανκομυκίνη/i], ['TEC', /teicoplanin|τεϊκοπλανίνη|τεικοπλανίνη/i], ['LNZ', /linezolid|λινεζολίδη/i], ['DAP', /daptomycin|δαπτομυκίνη/i],
+  ['RIF', /rifampi|ριφαμπικίνη/i], ['ERY', /erythromycin|ερυθρομυκίνη/i], ['CLI', /clindamycin|κλινδαμυκίνη/i],
 ]
-
-const VALIDATED = new Set(['validated', 'amended'])
+// Library codes that differ from the EARS-Net code.
+const CODE_ALIASES = { PTZ: 'TZP', IMP: 'IPM', ERT: 'ETP', LEV: 'LVX', MOX: 'MFX', TEI: 'TEC', LZD: 'LNZ', CST: 'COL', TIG: 'TGC' }
 
 export function earsNetPathogen(organism) {
   const text = String(organism || '')
@@ -35,19 +37,15 @@ export function earsNetPathogen(organism) {
 }
 
 export function earsNetAntibiotic(test = {}) {
-  const code = String(test.code || '').toUpperCase().replace(/^ABX-/, '')
-  if (/^[A-Z_]{3}$/.test(code) && ANTIBIOTICS.some(([known]) => known === code)) return code
+  const raw = String(test.code || '').toUpperCase().replace(/^ABX-/, '')
+  const code = CODE_ALIASES[raw] || raw
+  if (ANTIBIOTICS.some(([known]) => known === code)) return code
   const name = String(test.drug || test.name || '')
   return ANTIBIOTICS.find(([, pattern]) => pattern.test(name))?.[0] || null
 }
 
 // Blood cultures, and any sample whose type or source names CSF.
-export function earsNetSpecimen(sample = {}) {
-  if (sample.type === 'bloodCulture' || sample.sampleType === 'bloodCulture') return 'BLOOD'
-  const text = `${sample.type || ''} ${sample.source || ''} ${sample.sourceEn || ''}`
-  if (/\bcsf\b|cerebrospinal|εγκεφαλονωτια|(^|[^\p{L}])ε\.?ν\.?υ\.?($|[^\p{L}])/iu.test(text)) return 'CSF'
-  return null
-}
+export const earsNetSpecimen = sample => specimenOf(sample) || null
 
 const dateOf = value => String(value || '').slice(0, 10)
 const patientKey = sample => String(sample.subjectCode || sample.patientId || sample.subjectId || '').trim()
@@ -59,13 +57,16 @@ export function earsNetIsolates(samples = []) {
     if ((sample.subjectType || 'patient') !== 'patient') continue
     const specimen = earsNetSpecimen(sample)
     if (!specimen) continue
-    const results = sample.microbiologyResults?.length ? sample.microbiologyResults : [sample]
-    for (const result of results) {
-      if (result.result !== 'positive' || !VALIDATED.has(result.resultStatus)) continue
-      const pathogen = earsNetPathogen(result.organism)
-      if (!pathogen) continue
-      const date = dateOf(sample.collectedAt || result.resultedAt)
-      isolates.push({ sample, result, specimen, pathogen, patient: patientKey(sample), date, year: date.slice(0, 4) })
+    for (const result of currentResults(sample)) {
+      if (!isValidatedPositive(result)) continue
+      // One isolate per organism of a polymicrobial result, with its own tests.
+      const organisms = organismsOf(result)
+      for (const organism of organisms) {
+        const pathogen = earsNetPathogen(organism)
+        if (!pathogen) continue
+        const date = dateOf(sample.collectedAt || result.resultedAt)
+        isolates.push({ sample, result, organism, tests: testsForOrganism(result, organism, organisms.length), specimen, pathogen, patient: patientKey(sample), date, year: date.slice(0, 4) })
+      }
     }
   }
   return isolates
@@ -119,6 +120,21 @@ function hospitalUnitType(patient, sample) {
 }
 
 const MIC = /^\s*(<=|>=|≤|≥|<|>|=)?\s*([0-9]+(?:[.,][0-9]+)?)\s*$/
+const SIGNS = { '≤': '<=', '≥': '>=', '<=': '<=', '>=': '>=', '<': '<', '>': '>', '=': '=' }
+
+// MIC sign and value: the stored operator wins; otherwise it is read from the value ("≥16").
+export function micOf(test = {}) {
+  const match = MIC.exec(String(test.mic ?? '').replace(',', '.'))
+  if (!match) return { sign: '', value: '' }
+  return { sign: SIGNS[String(test.operator || '').trim()] || SIGNS[match[1]] || '=', value: match[2] }
+}
+
+// Inpatient when the isolate falls within the patient's recorded admission;
+// unknown otherwise (admission is optional, so its absence proves nothing).
+export function patientTypeOf(patient, date) {
+  const from = String(patient?.admissionDate || '').slice(0, 10), to = String(patient?.dischargeDate || '').slice(0, 10)
+  return from && date >= from && (!to || date <= to) ? 'INPAT' : 'UNK'
+}
 
 export const EARS_NET_COLUMNS = ['RecordId', 'ReportingCountry', 'DataSource', 'DateUsedForStatistics', 'Specimen', 'Gender', 'Age', 'PatientType', 'HospitalUnitType', 'HospitalId', 'LaboratoryCode', 'PatientCounter', 'IsolateId', 'Pathogen', 'Antibiotic', 'SIR', 'ResultMICSign', 'ResultMICValue', 'ResultZoneValue', 'ReferenceGuidelinesSIR']
 
@@ -129,16 +145,14 @@ export function buildEarsNetRows(samples, { patients = [], year, hospitalId = ''
   const isolates = firstIsolates(earsNetIsolates(samples)).filter(isolate => !year || isolate.year === String(year))
   const rows = []; const unmapped = new Map(); let withoutAst = 0
   for (const isolate of isolates) {
-    const { sample, result } = isolate
-    const tests = result.ast || sample.ast || []
+    const { sample, result, tests } = isolate
     if (!tests.length) { withoutAst++; continue }
     const patient = byPatient.get(isolate.patient)
-    const isolateId = pseudonym(`${sample.id}|${result.id || ''}`, salt)
+    const isolateId = pseudonym(`${sample.id}|${result.id || ''}|${isolate.pathogen}`, salt)
     for (const test of tests) {
       const antibiotic = earsNetAntibiotic(test)
       if (!antibiotic) { const name = test.drug || test.code || '?'; unmapped.set(name, (unmapped.get(name) || 0) + 1); continue }
-      const mic = MIC.exec(String(test.mic ?? '').replace(',', '.'))
-      const sign = { '≤': '<=', '≥': '>=' }[mic?.[1]] || mic?.[1] || (mic ? '=' : '')
+      const mic = micOf(test)
       rows.push({
         RecordId: `${isolateId}-${antibiotic}`,
         ReportingCountry: 'EL',
@@ -147,7 +161,7 @@ export function buildEarsNetRows(samples, { patients = [], year, hospitalId = ''
         Specimen: isolate.specimen,
         Gender: GENDER[String(patient?.sex || '').toLowerCase()] || 'UNK',
         Age: ageInYears(patient?.dateOfBirth, isolate.date) || 'UNK',
-        PatientType: 'INPAT',
+        PatientType: patientTypeOf(patient, isolate.date),
         HospitalUnitType: hospitalUnitType(patient, sample),
         HospitalId: hospitalId,
         LaboratoryCode: laboratoryCode,
@@ -156,8 +170,8 @@ export function buildEarsNetRows(samples, { patients = [], year, hospitalId = ''
         Pathogen: isolate.pathogen,
         Antibiotic: antibiotic,
         SIR: ['S', 'I', 'R'].includes(String(test.sir || '').toUpperCase()) ? String(test.sir).toUpperCase() : 'UNK',
-        ResultMICSign: mic ? sign : '',
-        ResultMICValue: mic ? mic[2] : '',
+        ResultMICSign: mic.sign,
+        ResultMICValue: mic.value,
         ResultZoneValue: test.zone ?? '',
         ReferenceGuidelinesSIR: test.standard ? `${test.standard}${test.version ? ` ${test.version}` : ''}` : '',
       })

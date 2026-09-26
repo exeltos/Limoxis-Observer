@@ -38,7 +38,7 @@ function QualityChecks({ checks, tx }) {
   </section>
 }
 
-function NotificationRow({ finding, tx, en, onSave }) {
+function NotificationRow({ finding, tx, en, onSave, readOnly }) {
   const [draft, setDraft] = useState({ status: notificationStatus(finding), reference: finding.report?.reference || '', notifiedAt: finding.report?.notifiedAt || '' })
   const [saving, setSaving] = useState(false)
   const dirty = draft.status !== notificationStatus(finding) || draft.reference !== (finding.report?.reference || '') || draft.notifiedAt !== (finding.report?.notifiedAt || '')
@@ -48,10 +48,10 @@ function NotificationRow({ finding, tx, en, onSave }) {
     <td>{fmtDate(finding.date)}</td>
     <td><Link to={`/laboratory/${encodeURIComponent(finding.sample.id)}`}>{finding.sample.id}</Link><small>{en ? finding.sample.patientEn || finding.sample.patient : finding.sample.patient}</small></td>
     <td><strong>{en ? finding.rule.en : finding.rule.el}</strong><small>{finding.result.organism}</small></td>
-    <td><label className="reporting-sr" htmlFor={`${id}-status`}>{tx('Κατάσταση', 'Status')}</label><select id={`${id}-status`} value={draft.status} onChange={event => setDraft(value => ({ ...value, status: event.target.value }))}><option value="pending">{tx('Εκκρεμεί', 'Pending')}</option><option value="notified">{tx('Δηλώθηκε', 'Notified')}</option><option value="not_required">{tx('Δεν απαιτείται', 'Not required')}</option></select></td>
-    <td>{draft.status === 'notified' ? <ManualDateField className="reporting-date" label={tx('Ημερομηνία δήλωσης', 'Notification date')} value={draft.notifiedAt} onChange={notifiedAt => setDraft(value => ({ ...value, notifiedAt }))}/> : '—'}</td>
-    <td><label className="reporting-sr" htmlFor={`${id}-ref`}>{tx('Αριθμός πρωτοκόλλου', 'Reference number')}</label><input id={`${id}-ref`} value={draft.reference} placeholder={tx('Αρ. πρωτοκόλλου', 'Reference')} onChange={event => setDraft(value => ({ ...value, reference: event.target.value }))}/></td>
-    <td><Button variant="secondary" disabled={!dirty} loading={saving} onClick={save}>{tx('Αποθήκευση', 'Save')}</Button></td>
+    <td><label className="reporting-sr" htmlFor={`${id}-status`}>{tx('Κατάσταση', 'Status')}</label><select id={`${id}-status`} disabled={readOnly} value={draft.status} onChange={event => setDraft(value => ({ ...value, status: event.target.value }))}><option value="pending">{tx('Εκκρεμεί', 'Pending')}</option><option value="notified">{tx('Δηλώθηκε', 'Notified')}</option><option value="not_required">{tx('Δεν απαιτείται', 'Not required')}</option></select></td>
+    <td>{draft.status === 'notified' ? <ManualDateField disabled={readOnly} className="reporting-date" label={tx('Ημερομηνία δήλωσης', 'Notification date')} value={draft.notifiedAt} onChange={notifiedAt => setDraft(value => ({ ...value, notifiedAt }))}/> : '—'}</td>
+    <td><label className="reporting-sr" htmlFor={`${id}-ref`}>{tx('Αριθμός πρωτοκόλλου', 'Reference number')}</label><input id={`${id}-ref`} disabled={readOnly} value={draft.reference} placeholder={tx('Αρ. πρωτοκόλλου', 'Reference')} onChange={event => setDraft(value => ({ ...value, reference: event.target.value }))}/></td>
+    <td><Button variant="secondary" disabled={readOnly || !dirty} loading={saving} onClick={save}>{tx('Αποθήκευση', 'Save')}</Button></td>
   </tr>
 }
 
@@ -59,11 +59,11 @@ function Notifications({ findings, tx, en, onSave, unavailable }) {
   const pending = findings.filter(finding => notificationStatus(finding) === 'pending').length
   return <section className="reporting-card">
     <header><Megaphone size={17} aria-hidden="true"/><div><h2>{tx('Υποχρεωτικές δηλώσεις ΕΟΔΥ', 'Mandatory ΕΟΔΥ notifications')}</h2><p>{tx('Επικυρωμένα θετικά αποτελέσματα που αντιστοιχούν σε νόσημα υποχρεωτικής δήλωσης. Καταγράψτε πότε δηλώθηκαν και με ποιον αριθμό πρωτοκόλλου.', 'Validated positive results that match a notifiable disease. Record when they were notified and the reference number.')}</p></div>{pending > 0 && <span className="reporting-badge">{tx(`${pending} εκκρεμούν`, `${pending} pending`)}</span>}</header>
-    {unavailable && <p className="reporting-warning"><AlertTriangle size={15} aria-hidden="true"/>{tx('Η καταγραφή δηλώσεων δεν είναι ακόμη ενεργή στη βάση του οργανισμού· τα ευρήματα εμφανίζονται, η αποθήκευση όχι.', 'Notification tracking is not yet enabled in the organization database; findings are shown but cannot be saved.')}</p>}
+    {unavailable && <p className="reporting-warning"><AlertTriangle size={15} aria-hidden="true"/>{tx('Δεν φορτώθηκαν οι καταγεγραμμένες δηλώσεις. Η επεξεργασία είναι απενεργοποιημένη ώστε να μη γραφτεί πάνω σε υπάρχουσα δήλωση· ανανεώστε τη σελίδα.', 'Saved notifications could not be loaded. Editing is disabled so an existing notification is not overwritten; reload the page.')}</p>}
     {findings.length === 0 ? <p className="reporting-ok"><CheckCircle2 size={15} aria-hidden="true"/>{tx('Δεν υπάρχουν ευρήματα προς δήλωση.', 'No findings to notify.')}</p> :
       <div className="reporting-table-wrap"><table className="reporting-table">
         <thead><tr><th scope="col">{tx('Λήψη', 'Collected')}</th><th scope="col">{tx('Δείγμα', 'Sample')}</th><th scope="col">{tx('Νόσημα', 'Disease')}</th><th scope="col">{tx('Κατάσταση', 'Status')}</th><th scope="col">{tx('Δηλώθηκε', 'Notified on')}</th><th scope="col">{tx('Αρ. πρωτοκόλλου', 'Reference')}</th><th scope="col"><span className="reporting-sr">{tx('Ενέργεια', 'Action')}</span></th></tr></thead>
-        <tbody>{findings.map(finding => <NotificationRow key={`${finding.findingKey}|${finding.report?.updatedAt || ''}`} finding={finding} tx={tx} en={en} onSave={onSave}/>)}</tbody>
+        <tbody>{findings.map(finding => <NotificationRow key={`${finding.findingKey}|${finding.report?.updatedAt || ''}`} finding={finding} tx={tx} en={en} onSave={onSave} readOnly={unavailable}/>)}</tbody>
       </table></div>}
   </section>
 }
@@ -103,8 +103,8 @@ export function ReportingPanel({ tenant, isDemo, year, tx, en }) {
     setState(value => ({ ...value, loading: true, error: '' }))
     try {
       const [listed, patients, reports] = await Promise.all([
-        repository.list(),
-        loadPatients(tenant?.id, { isDemo }).catch(() => []),
+        repository.listAll ? repository.listAll() : repository.list(),
+        loadPatients(tenant?.id, { isDemo, includeArchived: true }).catch(() => []),
         loadNotificationReports(tenant?.id, { isDemo }).then(rows => ({ rows }), () => ({ rows: [], unavailable: true })),
       ])
       const samples = Array.isArray(listed) ? listed : (listed?.data || listed?.rows || [])

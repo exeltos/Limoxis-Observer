@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ageInYears, buildEarsNetRows, earsNetAntibiotic, earsNetIsolates, earsNetPathogen, earsNetSpecimen, firstIsolates, pseudonym, toCsv } from '../src/features/reporting/earsNet'
+import { ageInYears, buildEarsNetRows, earsNetAntibiotic, earsNetIsolates, earsNetPathogen, earsNetSpecimen, firstIsolates, micOf, patientTypeOf, pseudonym, toCsv } from '../src/features/reporting/earsNet'
 import { notifiableFindings, notifiableRuleFor } from '../src/features/reporting/notifiableFindings'
 import { runDataQualityChecks } from '../src/features/reporting/dataQuality'
 import { collectAmrSusceptibility } from '../src/features/analysis/analysisDemoSnapshot'
@@ -120,5 +120,53 @@ describe('AMR susceptibility (demo) counts first isolates only', () => {
       blood('K3', 'P2', 'Klebsiella pneumoniae', '2026-02-01', [mem('R')]),
     ])
     expect(rows).toEqual([['Klebsiella spp.', 2, 1]])
+  })
+})
+
+describe('review fixes', () => {
+  it('maps library codes and Greek names to EARS-Net codes', () => {
+    expect(earsNetAntibiotic({ code: 'ABX-PTZ', drug: 'Πιπερακιλλίνη/Ταζομπακτάμη' })).toBe('TZP')
+    expect(earsNetAntibiotic({ drug: 'Μεροπενέμη' })).toBe('MEM')
+    expect(earsNetAntibiotic({ drug: 'Κεφταζιδίμη/Αβιβακτάμη' })).toBe('CZA')
+  })
+
+  it('keeps the stored MIC operator', () => {
+    expect(micOf({ mic: 16, operator: '>=' })).toEqual({ sign: '>=', value: '16' })
+    expect(micOf({ mic: '≤0.25' })).toEqual({ sign: '<=', value: '0.25' })
+    expect(micOf({ mic: '2' })).toEqual({ sign: '=', value: '2' })
+    expect(micOf({ mic: '' })).toEqual({ sign: '', value: '' })
+  })
+
+  it('reports inpatient only within a recorded admission', () => {
+    expect(patientTypeOf({ admissionDate: '2026-08-01' }, '2026-08-10')).toBe('INPAT')
+    expect(patientTypeOf({ admissionDate: '2026-08-01', dischargeDate: '2026-08-05' }, '2026-08-10')).toBe('UNK')
+    expect(patientTypeOf({}, '2026-08-10')).toBe('UNK')
+  })
+
+  it('splits polymicrobial results into one isolate per organism with its own tests', () => {
+    const samples = normalizeLaboratorySamples([blood('P1', 'PT-1', 'Escherichia coli, Klebsiella pneumoniae', '2026-05-01', [{ organism: 'Escherichia coli', drug: 'Ceftriaxone', sir: 'S' }, { organism: 'Klebsiella pneumoniae', drug: 'Meropenem', sir: 'R' }])])
+    const isolates = earsNetIsolates(samples)
+    expect(isolates.map(isolate => [isolate.pathogen, isolate.tests.map(test => test.drug)])).toEqual([['ESCCOL', ['Ceftriaxone']], ['KLEPNE', ['Meropenem']]])
+    const { rows } = buildEarsNetRows(samples, { year: 2026 })
+    expect(rows.map(row => `${row.Pathogen}:${row.Antibiotic}`)).toEqual(['ESCCOL:CRO', 'KLEPNE:MEM'])
+  })
+
+  it('ignores results superseded by an amendment', () => {
+    const sample = { id: 'A1', patientId: 'PT-1', subjectType: 'patient', type: 'bloodCulture', collectedAt: '2026-05-01', microbiologyResults: [
+      { id: 'r1', result: 'positive', resultStatus: 'validated', organism: 'Neisseria meningitidis', ast: [] },
+      { id: 'r2', amendedFrom: 'r1', result: 'positive', resultStatus: 'amended', organism: 'Neisseria meningitidis', ast: [] },
+    ] }
+    const findings = notifiableFindings([sample])
+    expect(findings).toHaveLength(1)
+    expect(findings[0].result.id).toBe('r2')
+    expect(findings[0].findingKey).toBe('A1|r1|meningococcal')
+    expect(earsNetIsolates([{ ...sample, microbiologyResults: sample.microbiologyResults.map(result => ({ ...result, organism: 'Klebsiella pneumoniae' })) }])).toHaveLength(1)
+  })
+
+  it('limits carbapenem-resistant bacteraemia to blood and recognises codes behind Greek names', () => {
+    const greekMem = { code: 'ABX-MEM', drug: 'Μεροπενέμη', sir: 'R' }
+    expect(notifiableRuleFor({ type: 'bloodCulture' }, { organism: 'Klebsiella pneumoniae', ast: [greekMem] })?.id).toBe('carbapenem_resistant_bacteraemia')
+    expect(notifiableRuleFor({ type: 'other', source: 'ΕΝΥ' }, { organism: 'Klebsiella pneumoniae', ast: [greekMem] })).toBeNull()
+    expect(notifiableRuleFor({ type: 'other', source: 'CSF' }, { organism: 'Streptococcus pneumoniae' })?.id).toBe('invasive_pneumococcal')
   })
 })

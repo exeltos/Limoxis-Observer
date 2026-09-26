@@ -26,11 +26,14 @@ function mapRow(row, departmentLabel){
   }
 }
 
-export async function loadPatients(organizationId, {isDemo=false}={}){
+export async function loadPatients(organizationId, {isDemo=false,includeArchived=false}={}){
   if(isDemo || !organizationId || !supabase) return structuredClone(patientDemoData)
-  const {data,error}=await supabase.from('patients').select('*, department:departments(name)').eq('organization_id',organizationId).is('archived_at',null).order('admission_date',{ascending:false})
+  // Reports need archived patients too: their past isolates still count.
+  let query=supabase.from('patients').select('*, department:departments(name,department_type)').eq('organization_id',organizationId)
+  if(!includeArchived)query=query.is('archived_at',null)
+  const {data,error}=await query.order('admission_date',{ascending:false})
   if(error) throw error
-  return (data??[]).map(row=>mapRow(row,row.department?.name))
+  return (data??[]).map(row=>({...mapRow(row,row.department?.name),departmentType:row.department?.department_type||null}))
 }
 
 async function resolveDepartment(organizationId, departmentId){

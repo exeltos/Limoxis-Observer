@@ -137,6 +137,20 @@ export async function loadLaboratorySamples(organizationId){
   return hydrateSamples(data||[])
 }
 
+// Every sample of the organization, page by page (PostgREST caps a single
+// response), for reports that must see the full history.
+export async function loadAllLaboratorySamples(organizationId,{pageSize=500}={}){
+  assertCloud()
+  if(!organizationId)return []
+  const all=[]
+  for(let from=0;;from+=pageSize){
+    const {data,error}=await supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false}).order('id',{ascending:true}).range(from,from+pageSize-1)
+    if(error)throw error
+    all.push(...await hydrateSamples(data||[]))
+    if(!data||data.length<pageSize)return all
+  }
+}
+
 export async function loadLaboratorySample(organizationId,sampleCode){
   assertCloud()
   const {data,error}=await supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).eq('sample_code',sampleCode).maybeSingle()
