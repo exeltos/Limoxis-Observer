@@ -1,8 +1,8 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest'
-import fs from 'node:fs'
 import { collectAnalysisDemoSnapshot } from '../src/features/analysis/analysisDemoSnapshot'
 import { laboratorySamples } from '../src/features/laboratory/laboratoryDemoData'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
 function storage() {
   const values = new Map()
@@ -29,7 +29,7 @@ beforeEach(() => {
 // can't be cross-referenced, and the AMR tab showed an unrelated generic
 // trend/department chart instead of anything resistance-specific.
 describe('the National and AMR tabs render the organism/department/source line list instead of only one-dimensional summaries', () => {
-  const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
+  const page = readAnalysisPageSource()
 
   it('AnalysisPage defines a NationalRowsTable and renders it on the National tab', () => {
     expect(page).toContain('function NationalRowsTable(')

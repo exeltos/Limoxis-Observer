@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
 
@@ -21,6 +22,8 @@ describe('unified "scope" terminology (Εύρος, not Πεδίο)', () => {
     for (const path of [
       'src/core/i18n/LanguageContext.jsx',
       'src/features/analysis/AnalysisPage.jsx',
+      'src/features/analysis/AnalysisPanels.jsx',
+      'src/features/analysis/analysisPageModel.js',
       'src/features/management/BundleLibraryPanel.jsx',
       'src/core/help/helpExtras.js',
       'src/core/help/helpManual.js',
@@ -35,7 +38,7 @@ describe('unified "scope" terminology (Εύρος, not Πεδίο)', () => {
   })
 
   it('does not leave a hardcoded, untranslated "Scope" label in the Analysis report summary', () => {
-    const analysisPage = read('src/features/analysis/AnalysisPage.jsx')
+    const analysisPage = readAnalysisPageSource()
     expect(analysisPage).not.toContain('<span>Scope</span>')
     expect(analysisPage).toContain("tx('Εύρος','Scope')")
   })

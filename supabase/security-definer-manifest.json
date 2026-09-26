@@ -1,0 +1,236 @@
+{
+  "$comment": "SECURITY DEFINER functions in public that anon or authenticated may execute. Checked by tools/check-security-definer.mjs (npm run audit:security-definer). rls-helper: returns only what the caller may do; rpc: must check the caller itself; public-token: callable before sign-in, guarded by a random access token or exposing no organisation data.",
+  "functions": {
+    "analysis_domain_metrics": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Analytics aggregates; Platform Owner or Hospital Admin / IPC Lead of the organisation."
+    },
+    "analysis_people_metrics": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Staff analytics; Platform Owner or Hospital Admin / IPC Lead; health data gated by view_occupational_health."
+    },
+    "answer_committee_membership": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "The invited member answers their own pending committee membership (user_id = auth.uid())."
+    },
+    "archive_patient": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Archives a patient; requires delete_patient capability in the patient's department."
+    },
+    "can_view_surveillance_record": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "close_patient_admission": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Discharges an admission; requires edit_patient in the department."
+    },
+    "create_patient_admission": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Creates an admission; requires the patient capability in the department."
+    },
+    "current_membership_ids": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_access_control_department": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_manage_committee": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_patient_capability": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_read_antiseptic": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_read_hand_hygiene": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_read_pharmacy_consumption": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_read_prevalence_survey": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_read_prevention_bundle": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_read_waste": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_view_committee": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_write_antiseptic": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_write_hand_hygiene": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_write_pharmacy_consumption": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_write_prevalence_survey": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_write_prevention_bundle": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_can_write_waste": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_has_capability": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_has_department_scope": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_has_governance_capability": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_has_org_role": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_is_platform_owner": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "delete_patient_with_history": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Permanent delete with clinical history; Platform Owner or Hospital Admin, reason required."
+    },
+    "employee_admin_history": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Employee audit trail; HR / occupational health / admin roles or capabilities of the employee's organisation."
+    },
+    "get_platform_maintenance_notice": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Returns the platform maintenance banner shown to every signed-in user; no organisation data.",
+      "noCallerCheck": true
+    },
+    "has_org_role": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "is_org_admin": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "is_org_member": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "platform_purge_organization_tx": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Purges an organisation; Platform Owner only, confirmation code required."
+    },
+    "platform_report_summary": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Report counts; Platform Owner or Hospital Admin / IPC Lead of the organisation."
+    },
+    "public_login_notice": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "noCallerCheck": true,
+      "reason": "Maintenance notice and support e-mail on the login screen, before sign-in; exposes no organisation data."
+    },
+    "queue_training_invitation": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Queues a training invitation e-mail; manage_training or admin roles of the organisation."
+    },
+    "record_runtime_event": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Writes a runtime event for an organisation the caller is an active member of."
+    },
+    "training_confirm_attendance": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Confirms attendance from the e-mailed link, identified by the access token."
+    },
+    "training_email_access": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Opens a training from the e-mailed link; the one-time random access token identifies the assignment; answers are stripped."
+    },
+    "training_submit_evaluation": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Submits the evaluation from the e-mailed link, identified by the access token."
+    },
+    "transfer_patient_admission": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Transfers an admission; requires the patient capability in both departments."
+    },
+    "update_organization_profile": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Edits the organisation profile; Platform Owner or organisation admin."
+    }
+  }
+}

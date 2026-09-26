@@ -1,6 +1,5 @@
 import { demoSurveillanceList } from '../src/features/surveillance/clinicalDemoData'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
-import fs from 'node:fs'
 import { collectAnalysisDemoSnapshot } from '../src/features/analysis/analysisDemoSnapshot'
 import { collectIndicatorMetrics } from '../src/features/indicators/indicatorEngine'
 import { surveillanceDemoData } from '../src/features/surveillance/surveillanceDemoData'
@@ -12,6 +11,7 @@ import { loadQualityLocal } from '../src/features/quality/qualityStore'
 import { loadControlExecutionsLocal, loadControlAssignmentsLocal } from '../src/features/controls/controlStore'
 import { loadOccupationalVisits } from '../src/features/employees/employeeRecordsService'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
 function storage() {
   const values = new Map()
@@ -132,7 +132,7 @@ describe('collectAnalysisDemoSnapshot computes from the same demo fixtures every
 // filter group in demo mode is the honest alternative to a no-op control.
 describe('the year/hospital comparison filter group is hidden in demo mode', () => {
   it('wraps the comparison filter section content in a !isDemo check', () => {
-    const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
+    const page = readAnalysisPageSource()
     expect(page).toContain('className={`analysis-filter-group analysis-filter-compare${isDemo?\' analysis-filter-group-placeholder\':\'\'}`}>{!isDemo&&<>')
   })
 })

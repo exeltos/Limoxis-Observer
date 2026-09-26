@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
-const analysisPage = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
+const analysisPage = readAnalysisPageSource()
 const helpExtras = fs.readFileSync('src/core/help/helpExtras.js', 'utf8')
 const helpManual = fs.readFileSync('src/core/help/helpManual.js', 'utf8')
 

@@ -1,5 +1,6 @@
 import { describe,expect,it } from 'vitest'
 import fs from 'node:fs'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
 const app=fs.readFileSync(new URL('../src/app/App.jsx',import.meta.url),'utf8')
 const route=fs.readFileSync(new URL('../src/features/surveillance/SurveillanceRoutePage.jsx',import.meta.url),'utf8')
@@ -7,7 +8,7 @@ const canonicalSurveillance=fs.readFileSync(new URL('../src/features/surveillanc
 const patientRoute=fs.readFileSync(new URL('../src/features/surveillance/PatientClinicalRecordRoute.jsx',import.meta.url),'utf8')
 const canonicalPatientRecord=fs.readFileSync(new URL('../src/features/surveillance/PatientClinicalCanonicalPage.jsx',import.meta.url),'utf8')
 const clinicalRepository=fs.readFileSync(new URL('../src/features/surveillance/clinicalRepository.js',import.meta.url),'utf8')
-const analysis=fs.readFileSync(new URL('../src/features/analysis/AnalysisPage.jsx',import.meta.url),'utf8')
+const analysis=readAnalysisPageSource()
 const platformService=fs.readFileSync(new URL('../src/features/platform/platformService.js',import.meta.url),'utf8')
 const environment=fs.readFileSync(new URL('../src/core/data/dataEnvironment.js',import.meta.url),'utf8')
 

@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
 const migration = fs.readFileSync('supabase/migrations/20260919320000_align_analysis_antimicrobial_and_amr_tabs.sql', 'utf8')
-const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
+const page = readAnalysisPageSource()
 const service = fs.readFileSync('src/features/platform/platformService.js', 'utf8')
 
 function storage() {
