@@ -54,11 +54,11 @@ jobs:
   visual:
     # Compares the computed style of every element on every main screen between
     # the pull request and its base branch (see tools/visual-regression.mjs).
-    # Intended visual changes: add the `visual-change` label to the PR.
+    # Intended visual changes: add the `visual-change` label to the PR; it
+    # tolerates only the Compare step, never the accessibility check.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    continue-on-error: ${{ contains(github.event.pull_request.labels.*.name, 'visual-change') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -91,10 +91,12 @@ jobs:
           npx vite build --outDir "$GITHUB_WORKSPACE/dist-base"
 
       - name: Compare
+        id: compare
+        continue-on-error: ${{ contains(github.event.pull_request.labels.*.name, 'visual-change') }}
         run: node tools/visual-regression.mjs --base dist-base --head dist --out visual-report
 
       - name: Upload screenshots of changed states
-        if: failure()
+        if: always() && steps.compare.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: visual-report
