@@ -233,7 +233,7 @@
 .entry-mode-switch{display:flex;gap:5px;padding:10px 20px 0}.entry-mode-switch button{border:1px solid var(--line);border-radius:8px;background:#fff;color:#61768a;padding:7px 10px;font-size:10.5px;font-weight:750;cursor:pointer}.entry-mode-switch button.active{background:#eaf4f9;border-color:#a9c9db;color:#1e627f}
 
 /* v0.12.0 Quality / CAPA / Audit workspace */
-.quality-workspace{grid-template-rows:auto minmax(0,1fr);flex-direction:column!important}
+.quality-workspace{grid-template-rows:auto minmax(0,1fr)}
 .quality-tabs{display:flex;align-items:center;gap:5px;overflow-x:auto;flex:0 0 auto!important}.quality-tabs button{border:0;background:transparent;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:6px;color:#566d81;font-size:11px;font-weight:750;cursor:pointer;white-space:nowrap}.quality-tabs button.active{background:#eaf3f8;color:#155d78}.quality-tabs button b{min-width:20px;height:20px;border-radius:10px;background:#edf1f4;display:grid;place-items:center;font-size:9px;color:#718293}.quality-tabs button.active b{background:#d8eaf4;color:#155d78}.quality-table td:first-child small{display:block;margin-top:2px;color:#8b6f5f}
 .quality-record-shell .entity-record-avatar{background:#f0f3f7;color:#47617a}.quality-detail-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.quality-description{margin-top:12px;border:1px solid var(--line);border-radius:10px;background:#fbfcfd;padding:12px}.quality-description>span{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:800;margin-bottom:6px}.quality-description p{margin:0;font-size:12px;line-height:1.65;color:#486074}.quality-description textarea{width:100%;border:1px solid #cbd8e2;border-radius:9px;padding:9px;font:inherit;resize:vertical}.quality-link-list>div{border:1px solid var(--line);border-radius:9px;background:#fbfcfd;padding:10px 11px;display:flex;align-items:center;justify-content:space-between;gap:10px}.quality-link-list span{font-size:10px;color:var(--muted);font-weight:750}.quality-link-list strong{font-size:11.5px;color:#294a63}
 .quality-create-form{max-width:1000px;margin:0 auto}.quality-create-form .attachment-field{margin-top:14px}
@@ -244,10 +244,9 @@
 
 /* v0.12.1 — global compact workspace geometry + contextual navigation */
 .workspace-fill{min-height:0}
-.quality-workspace{display:flex!important;gap:10px!important;overflow:hidden!important}
+.quality-workspace{gap:10px!important;overflow:hidden!important}
 .quality-tabs{min-height:0!important;height:auto!important;background:transparent!important;border:0!important;border-radius:0!important;padding:0 2px 2px!important}
 .entity-record-tabs{flex:0 0 auto!important}
-.entity-record-body{min-height:0!important;overflow:auto!important}
 .workspace-summary,.filter-system,.management-tabs,.record-tabs{flex:0 0 auto!important;height:auto}
 
 /* v0.12.3 functional patient creation */
