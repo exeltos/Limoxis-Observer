@@ -1,7 +1,8 @@
 import { supabase, invokeAuthenticatedFunction } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { loadEmployees as loadEmployeesLocal, saveEmployees as saveEmployeesLocal } from './employeeStore'
+// The demo store (and its seed data) loads only in the demo workspace.
+const localStore = () => import('./employeeStore')
 
 // Frontend historically treats the human-entered employee code as the record's
 // own `id` (used directly in routes like /employees/EMP-001). The real table has
@@ -72,7 +73,7 @@ export function cloudEnabled() {
 }
 
 export async function loadEmployeesAsync(organizationId) {
-  if(isDemoDataEnvironment())return loadEmployeesLocal()
+  if(isDemoDataEnvironment())return (await localStore()).loadEmployees()
   productionContext(organizationId,'employees.load')
   const { data, error } = await supabase
     .from('employees')
@@ -86,6 +87,7 @@ export async function loadEmployeesAsync(organizationId) {
 export async function createEmployeeAsync(organizationId, v) {
   if(isDemoDataEnvironment()){
     const code=String(v.id||v.employeeCode||'').trim()
+    const { loadEmployees: loadEmployeesLocal, saveEmployees: saveEmployeesLocal } = await localStore()
     const rows=loadEmployeesLocal()
     if(rows.some(row=>String(row.id||row.employeeCode||'').trim().toLowerCase()===code.toLowerCase()))throw new Error('DUPLICATE_EMPLOYEE_CODE')
     const next=[{...v,id:code,employeeCode:code},...rows]
@@ -109,6 +111,7 @@ export async function updateEmployeeAsync(organizationId, employeeDbId, v, previ
   const nextCode=String(v.id||v.employeeCode||'').trim()
   if(!nextCode)throw new Error('EMPLOYEE_CODE_REQUIRED')
   if(isDemoDataEnvironment()){
+    const { loadEmployees: loadEmployeesLocal, saveEmployees: saveEmployeesLocal } = await localStore()
     const rows=loadEmployeesLocal()
     const currentCode=String(previousEmployeeCode||v.previousEmployeeCode||v.id||'').trim()
     if(rows.some(row=>String(row.id||row.employeeCode||'').trim().toLowerCase()===nextCode.toLowerCase()&&String(row.id||row.employeeCode||'').trim().toLowerCase()!==currentCode.toLowerCase()))throw new Error('DUPLICATE_EMPLOYEE_CODE')
@@ -154,6 +157,7 @@ export async function createEmployeeAccountAsync(organizationId,employee,{role='
 
 export async function deleteEmployeeAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment()){
+    const { loadEmployees: loadEmployeesLocal, saveEmployees: saveEmployeesLocal } = await localStore()
     const rows=loadEmployeesLocal().filter(row=>row.id!==employeeId)
     saveEmployeesLocal(rows)
     return true

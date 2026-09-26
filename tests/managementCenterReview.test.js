@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
+// Only the declarations matter here, not whether they carry !important.
+const withoutImportant = css => css.replaceAll('!important', '')
+
 
 const read = file => fs.readFileSync(file, 'utf8')
 
@@ -55,7 +58,7 @@ describe('Management Center review', () => {
   })
 
   it('the documents card stays full width in record bodies', () => {
-    expect(read('src/design-system/DocumentsWorkspace.css')).toContain('width:100%!important')
+    expect(withoutImportant(read('src/design-system/DocumentsWorkspace.css'))).toContain('width:100%')
   })
 })
 

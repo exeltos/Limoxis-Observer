@@ -17,7 +17,8 @@ import { loadCommittees } from '../committees/committeeData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { employeeRows } from '../employees/employeeDemoData'
 import { loadTrainingState } from '../training/trainingData'
-import { collectDemoOrganismClusters } from '../surveillance/outbreakClusterService'
+import { CLUSTER_THRESHOLD, CLUSTER_WINDOW_DAYS, demoClusterRecords } from '../surveillance/outbreakClusterService'
+import { detectOrganismClusters } from '../surveillance/clusterDetection'
 
 // Same eight ΕΟΔΥ reference pathogens and reference antibiotics as
 // indicatorEngine.js's REFERENCE_PATHOGEN_PATTERNS/AMR_REFERENCE_ANTIBIOTIC.
@@ -54,13 +55,24 @@ function lastTwelveMonths(counts, now = new Date()) {
 
 // Same predicate as analysis_amr_susceptibility/indicator_metric_snapshot:
 // validated/amended isolates of the eight reference pathogens, tested
-// against their own reference drug.
-function collectAmrSusceptibility() {
-  const validated = laboratorySamples.filter(x => x.organism && ['validated', 'amended'].includes(x.resultStatus))
+// against their own reference drug — and, like analysis_amr_susceptibility,
+// only the first such isolate per patient, organism group and year
+// (ECDC/EARS-Net, CLSI M39).
+export function collectAmrSusceptibility(samples = laboratorySamples) {
+  const validated = samples.filter(x => x.organism && ['validated', 'amended'].includes(x.resultStatus))
+    .sort((a, b) => String(a.collectedAt || '').localeCompare(String(b.collectedAt || '')) || String(a.id).localeCompare(String(b.id)))
   return Object.entries(ORGANISM_PATTERNS)
     .map(([key, pattern]) => {
-      const isolates = validated.filter(x => String(x.organism).toLowerCase().includes(pattern))
-      const tested = isolates.flatMap(x => x.ast || []).filter(row => String(row.drug || '').toLowerCase().includes(REFERENCE_ANTIBIOTIC[key]))
+      const seen = new Set()
+      const tested = []
+      for (const isolate of validated.filter(x => String(x.organism).toLowerCase().includes(pattern))) {
+        const reference = (isolate.ast || []).filter(row => String(row.drug || '').toLowerCase().includes(REFERENCE_ANTIBIOTIC[key]))
+        if (!reference.length) continue
+        const patientKey = `${isolate.patientId || `sample:${isolate.id}`}|${String(isolate.collectedAt || '').slice(0, 4)}`
+        if (seen.has(patientKey)) continue
+        seen.add(patientKey)
+        tested.push(...reference)
+      }
       return [ORGANISM_LABELS[key], tested.length, tested.filter(row => row.sir === 'R').length]
     })
     .filter(([, tested]) => tested > 0)
@@ -150,5 +162,5 @@ export function collectAnalysisDemoSnapshot() {
     pendingSamples: laboratorySamples.filter(x => x.status !== 'completed').length,
     inpatients: Object.keys(clinicalCases).length,
   }
-  return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility(), clusters: collectDemoOrganismClusters() }
+  return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility(), clusters: detectOrganismClusters(demoClusterRecords(laboratorySamples), { windowDays: CLUSTER_WINDOW_DAYS, threshold: CLUSTER_THRESHOLD }) }
 }

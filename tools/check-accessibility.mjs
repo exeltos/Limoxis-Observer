@@ -37,6 +37,7 @@ for (const lang of ['el', 'en']) for (const route of ROUTES) states.push({ lang,
 for (const route of ['/surveillance', '/laboratory', '/quality', '/employees', '/prevention', '/documents', '/committees', '/training', '/occupational-health', '/management']) states.push({ lang: 'el', route, act: 'create' })
 for (const route of ['/surveillance', '/laboratory', '/patients']) states.push({ lang: 'el', route, act: 'filters' })
 states.push({ lang: 'el', route: '/', act: 'notifications' })
+for (const lang of ['el', 'en']) states.push({ lang, route: '/analysis', act: 'reporting' })
 for (let tab = 0; tab < 5; tab++) states.push({ lang: 'el', route: '/surveillance', act: 'record', tab })
 const dismissBriefing = async frame => { const button = frame.locator('.login-briefing-dialog button').first(); if (await button.count()) await button.click({ timeout: 2000 }).catch(() => {}) }
 const violations = []
@@ -51,6 +52,7 @@ for (const { lang, route, act, tab } of states) {
     if (act === 'create') await frame.locator('.page-actions button, .page-header button.primary, button:has-text("Δημιουργία"), button:has-text("Νέ")').first().click({ timeout: 2500 })
     if (act === 'filters') await frame.locator('button:has-text("Φίλτρα")').first().click({ timeout: 2500 })
     if (act === 'notifications') await frame.locator('.notification-button').first().click({ timeout: 2500 })
+    if (act === 'reporting') { await frame.locator('[role=tab]', { hasText: lang === 'el' ? 'Αναφορές' : 'Reporting' }).click({ timeout: 2500 }); await page.waitForTimeout(800); await frame.locator('.reporting-check details').first().evaluate(el => { el.open = true }).catch(() => {}) }
     if (act === 'record') {
       await frame.locator('tbody tr').first().click({ timeout: 3000 }); await page.waitForTimeout(1500); await dismissBriefing(frame)
       const tabs = await frame.locator('[role=tab]').all()

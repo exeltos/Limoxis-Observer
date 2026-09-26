@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
+// Only the declarations matter here, not whether they carry !important.
+const withoutImportant = css => css.replaceAll('!important', '')
+
 
 const read = (path) => fs.readFileSync(path, 'utf8')
 
@@ -73,7 +76,7 @@ describe('committee create page: field layout', () => {
 
   it('pairs the two long-text fields on one full-width row instead of stacking them as separate rows', () => {
     expect(createPage).toContain('committee-manual-textarea-row')
-    expect(modulesCss).toContain('.committee-create-grid .committee-manual-textarea-row,\n.committee-create-grid .committee-notes-field{\n  grid-column:1 / -1!important;\n}')
-    expect(modulesCss).toContain('.committee-create-grid .committee-manual-textarea-row{\n  display:flex!important;')
+    expect(withoutImportant(modulesCss)).toContain('.committee-create-grid .committee-manual-textarea-row,\n.committee-create-grid .committee-notes-field{\n  grid-column:1 / -1;\n}')
+    expect(withoutImportant(modulesCss)).toContain('.committee-create-grid .committee-manual-textarea-row{\n  display:flex;')
   })
 })

@@ -38,7 +38,8 @@ screen (desktop, tablet and phone widths, Greek and English, create dialogs,
 filter panels, notifications, every patient-record tab). Computed styles are
 deterministic, so any difference is a real visual change; the job summary
 lists the changed states and the `visual-report` artifact holds screenshots of
-both builds. For an intended visual change, add the `visual-change` label (it tolerates only
+both builds. For an intended visual change, add the `visual-change` label; adding it re-runs
+the checks (it tolerates only
 the comparison; the accessibility check in the same job always has to pass).
 
 Locally:
@@ -67,3 +68,17 @@ Result: 76 states, 31,666 elements, **0 computed-style differences**. Screenshot
 pixel differences (at most 130 pixels, colour delta ≤ 30/255) were at the same
 noise level as comparing the previous build with itself (up to 712 pixels in
 24 of 76 states), i.e. anti-aliasing noise, not layout or colour changes.
+
+## `!important` reduction of 2026-09-26
+
+833 of 9,292 `!important` flags were dropped (8,460 remain). A flag was dropped
+only when, across 191 screen states (every main screen at three widths, Greek
+and English, create dialogs, filters, notifications and record tabs of twelve
+registries), no element it matched was also matched by a declaration of the
+same property family that would win once the flag is gone, and the property is
+neither animated nor set inline on those elements. The remaining flags either
+compete with another rule or apply to states that were not visited, so they
+stay until checked the same way.
+
+Verified by the computed-style comparison: 76 states, 31,690 elements,
+**0 differences**; accessibility audit: 55 states, 0 violations.

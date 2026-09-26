@@ -1,5 +1,8 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
+// Only the declarations matter here, not whether they carry !important.
+const withoutImportant = css => css.replaceAll('!important', '')
+
 
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
@@ -7,7 +10,7 @@ describe('training participants and public access refinements',()=>{
   it('removes the participant registry search bar visually and compacts empty state',()=>{
     const css=read('src/styles/workspaces.css')
     expect(css).toContain('.training-participants-registry>.filter-system')
-    expect(css).toContain('display:none!important')
+    expect(withoutImportant(css)).toContain('display:none')
     expect(css).toContain(':has(.training-participants-table tbody:empty)')
   })
 

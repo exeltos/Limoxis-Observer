@@ -6,6 +6,8 @@ on:
       - main
       - development
   pull_request:
+    # `labeled` re-runs the checks when the `visual-change` label is added.
+    types: [opened, synchronize, reopened, labeled]
     branches:
       - main
 

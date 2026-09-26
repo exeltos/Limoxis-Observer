@@ -56,8 +56,8 @@
 }
 .filter-popover .filter-field,
 .filter-popover .manual-date-field{
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr)!important;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
   min-width:0!important;
   width:100%!important;
   max-width:100%!important;
@@ -74,7 +74,7 @@
 .filter-popover .filter-field input,
 .filter-popover .manual-date-field input{
   display:block;
-  width:100%!important;
+  width:100%;
   min-width:0!important;
   max-width:100%!important;
 }
@@ -321,16 +321,16 @@
 
 /* General-tab record actions are relocated by EntityRecordShell next to the first
    details-section heading. This is the one canonical position for edit/archive/delete. */
-.canonical-detail-screen>.entity-record-body{position:relative!important}
+.canonical-detail-screen>.entity-record-body{position:relative}
 .canonical-detail-screen>.entity-record-body>.entity-record-general-actions{
-  position:absolute!important;
-  top:22px!important;
+  position:absolute;
+  top:22px;
   right:24px!important;
-  z-index:4!important;
-  width:auto!important;
+  z-index:4;
+  width:auto;
   min-height:36px!important;
-  margin:0!important;
-  padding:0!important;
+  margin:0;
+  padding:0;
 }
 .canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type>.record-section-header,
 .canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type .record-section-header:first-child{
@@ -341,10 +341,10 @@
    actions resolve to this exact geometry, color and placement. */
 .canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions,
 .canonical-detail-screen.record-general-tab-active>.entity-record-body>.entity-record-general-actions{
-  display:flex!important;
+  display:flex;
   align-items:center!important;
   justify-content:flex-end!important;
-  gap:6px!important;
+  gap:6px;
 }
 .canonical-detail-screen .record-crud-action,
 .canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions>button:is(.edit,.danger),
@@ -928,8 +928,8 @@
 @media print{
   .analysis-header .analysis-actions,.analysis-sticky{display:none!important}
   .analysis-workspace,.analysis-scroll{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
-  .analysis-report{max-width:none!important;margin:0!important;padding:0!important}
-  .analysis-section-title{margin-bottom:14px!important;padding-bottom:8px!important;border-bottom:1px solid #d9e0e7!important}
+  .analysis-report{max-width:none!important;margin:0!important;padding:0}
+  .analysis-section-title{margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #d9e0e7}
   .analysis-kpis{grid-template-columns:repeat(3,1fr)!important}
   .analysis-kpis article,.analysis-chart-card{break-inside:avoid;page-break-inside:avoid;box-shadow:none!important}
   .analysis-chart-grid{break-inside:auto}
@@ -1000,12 +1000,12 @@
    workspaces on screen; print must explicitly release every ancestor constraint. */
 @media print{
   @page{size:A4 landscape;margin:12mm}
-  html,body,#root{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
+  html,body,#root{height:auto;min-height:0!important;overflow:visible;background:#fff!important}
   .app-shell,.platform-owner-shell,.main-column,.content,
   .platform-analysis-page,.platform-analysis-page.page,.platform-analysis-page.page-fill,
   .platform-analysis-page .analysis-workspace,.platform-analysis-page .analysis-scroll{
     display:block!important;
-    position:static!important;
+    position:static;
     width:100%!important;
     max-width:none!important;
     height:auto!important;
@@ -1068,7 +1068,7 @@
   flex:0 0 auto!important;
   margin:0!important;
   padding:10px 14px!important;
-  border:0!important;
+  border:0;
   border-bottom:1px solid var(--lo-color-border)!important;
   border-radius:0!important;
   background:var(--lo-color-surface)!important;
@@ -1085,7 +1085,7 @@
   height:auto!important;
   max-height:none!important;
   margin:0!important;
-  padding:0!important;
+  padding:0;
   overflow:auto!important;
   border:0!important;
   border-radius:0!important;
@@ -1099,13 +1099,13 @@
 .lab-registry-shell .data-table,
 .controls-surface .data-table,
 .production-surveillance-workspace .data-table{
-  width:100%!important;
+  width:100%;
   min-width:720px!important;
   margin:0!important;
   border:0!important;
   border-collapse:separate!important;
   border-spacing:0!important;
-  table-layout:auto!important;
+  table-layout:auto;
   background:var(--lo-color-surface)!important;
 }
 
@@ -1115,9 +1115,9 @@
 .lab-registry-shell .data-table thead th,
 .controls-surface .data-table thead th,
 .production-surveillance-workspace .data-table thead th{
-  position:sticky!important;
-  top:0!important;
-  z-index:3!important;
+  position:sticky;
+  top:0;
+  z-index:3;
   height:40px!important;
   min-height:40px!important;
   padding:0 18px!important;
@@ -1141,10 +1141,10 @@
 .lab-registry-shell .data-table tbody tr,
 .controls-surface .data-table tbody tr,
 .production-surveillance-workspace .data-table tbody tr{
-  height:48px!important;
+  height:48px;
   min-height:48px!important;
   background:var(--lo-color-surface)!important;
-  transition:background .14s ease!important;
+  transition:background .14s ease;
 }
 
 .registry-workspace .data-table tbody td,
@@ -1158,7 +1158,7 @@
   border:0!important;
   border-bottom:1px solid #edf1f4!important;
   background:transparent!important;
-  color:#314a67!important;
+  color:#314a67;
   font-size:11.5px!important;
   line-height:1.3!important;
 }
@@ -1209,69 +1209,69 @@
 .lab-registry-shell>.registry-pagination,
 .controls-surface .registry-pagination,
 .production-surveillance-workspace>.registry-pagination{
-  flex:0 0 44px!important;
-  min-height:44px!important;
+  flex:0 0 44px;
+  min-height:44px;
   height:44px!important;
-  margin:0!important;
-  padding:0 14px!important;
-  display:flex!important;
-  align-items:center!important;
+  margin:0;
+  padding:0 14px;
+  display:flex;
+  align-items:center;
   justify-content:space-between!important;
-  gap:14px!important;
-  border:0!important;
+  gap:14px;
+  border:0;
   border-top:1px solid var(--lo-color-border)!important;
   border-radius:0!important;
   background:var(--lo-color-surface)!important;
-  color:#66788d!important;
-  font-size:11.5px!important;
+  color:#66788d;
+  font-size:11.5px;
 }
 
 .registry-pagination-controls{
-  display:flex!important;
-  align-items:center!important;
-  gap:8px!important;
+  display:flex;
+  align-items:center;
+  gap:8px;
 }
 .registry-pagination-controls label{
   display:flex!important;
   flex-direction:row!important;
-  align-items:center!important;
+  align-items:center;
   gap:8px!important;
-  margin:0!important;
+  margin:0;
 }
 .registry-pagination-controls label>span{
-  margin:0!important;
-  color:#566b82!important;
-  font-size:11px!important;
+  margin:0;
+  color:#566b82;
+  font-size:11px;
   font-weight:750!important;
-  white-space:nowrap!important;
+  white-space:nowrap;
 }
 .registry-pagination-controls select{
-  width:auto!important;
+  width:auto;
   min-width:76px!important;
   height:30px!important;
   min-height:30px!important;
-  margin:0!important;
-  padding:0 26px 0 10px!important;
-  border:1px solid var(--lo-color-border)!important;
+  margin:0;
+  padding:0 26px 0 10px;
+  border:1px solid var(--lo-color-border);
   border-radius:8px!important;
   background:var(--lo-color-surface)!important;
-  color:#314a67!important;
-  font-size:11.5px!important;
+  color:#314a67;
+  font-size:11.5px;
 }
 .registry-pagination-controls button{
-  width:30px!important;
+  width:30px;
   height:30px!important;
   min-width:30px!important;
   min-height:30px!important;
-  margin:0!important;
-  padding:0!important;
-  border:1px solid var(--lo-color-border)!important;
+  margin:0;
+  padding:0;
+  border:1px solid var(--lo-color-border);
   border-radius:8px!important;
   background:var(--lo-color-surface)!important;
-  color:#607a96!important;
-  display:grid!important;
-  place-items:center!important;
-  font-size:15px!important;
+  color:#607a96;
+  display:grid;
+  place-items:center;
+  font-size:15px;
 }
 .registry-pagination-controls button:disabled{opacity:.32!important}
 
