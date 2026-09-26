@@ -38,7 +38,8 @@ screen (desktop, tablet and phone widths, Greek and English, create dialogs,
 filter panels, notifications, every patient-record tab). Computed styles are
 deterministic, so any difference is a real visual change; the job summary
 lists the changed states and the `visual-report` artifact holds screenshots of
-both builds. For an intended visual change, add the `visual-change` label.
+both builds. For an intended visual change, add the `visual-change` label (it tolerates only
+the comparison; the accessibility check in the same job always has to pass).
 
 Locally:
 

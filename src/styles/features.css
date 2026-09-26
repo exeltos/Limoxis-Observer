@@ -1270,7 +1270,7 @@
 
 
 /* ===== SOURCE: management-user-create.css ===== */
-.management-create-user-dialog.observer-dialog-wide{max-width:920px!important}.management-create-user-dialog .observer-dialog-body{padding:20px 24px 22px!important}.management-create-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}.management-create-modes>button{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:13px;border:1px solid #dfe7ee;border-radius:11px;background:#fff;color:#557086;cursor:pointer;transition:.15s ease}.management-create-modes>button:hover{background:#f7fafc;border-color:#cbd9e4}.management-create-modes>button.active{border-color:#8fb3cd;background:#f0f7fb;color:#174b70;box-shadow:0 0 0 1px #8fb3cd inset}.management-create-modes svg{flex:0 0 auto;margin-top:1px}.management-create-modes strong{display:block;color:#20384d;font-size:11.5px;line-height:1.3}.management-create-modes small{display:block;margin-top:4px;color:#7b8c9b;font-size:9.8px;line-height:1.35}.management-create-employee-picker{padding:12px 14px;margin-bottom:14px;border:1px solid #e2e9ef;border-radius:10px;background:#f8fafc}.management-create-employee-picker .field{margin:0}.management-create-section{padding:15px 0;border-top:1px solid #e8edf2}.management-create-section-title{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:11px}.management-create-section-title strong{color:#20384d;font-size:12.5px}.management-create-section-title span{color:#82919f;font-size:10px}.management-create-user-dialog .entry-form-grid{gap:11px 14px}.management-create-user-dialog .field{margin:0}.management-create-user-dialog .field>span{font-size:10.5px!important}.management-create-user-dialog input,.management-create-user-dialog select{min-height:42px!important}.management-create-invite-note{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:9px;background:#f2f7fa;color:#60788b;font-size:10.5px;line-height:1.45}.management-create-invite-note svg{flex:0 0 auto;margin-top:1px;color:#2c668c}.management-create-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.management-invite-result{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 4px 4px;gap:7px}.management-invite-result svg{color:#2f7b57}.management-invite-result strong{font-size:15px;color:#20384d}.management-invite-result p{margin:0;color:#708294;font-size:11px;line-height:1.5}.management-invite-result small{color:#60788b;font-size:10.5px}@media(max-width:760px){.management-create-modes{grid-template-columns:1fr}.management-create-section-title{display:block}.management-create-section-title span{display:block;margin-top:3px}}
+.management-create-user-dialog.observer-dialog-wide{max-width:920px!important}.management-create-user-dialog .observer-dialog-body{padding:20px 24px 22px!important}.management-create-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}.management-create-modes>button{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:13px;border:1px solid #dfe7ee;border-radius:11px;background:#fff;color:#557086;cursor:pointer;transition:.15s ease}.management-create-modes>button:hover{background:#f7fafc;border-color:#cbd9e4}.management-create-modes>button.active{border-color:#8fb3cd;background:#f0f7fb;color:#174b70;box-shadow:0 0 0 1px #8fb3cd inset}.management-create-modes svg{flex:0 0 auto;margin-top:1px}.management-create-modes strong{display:block;color:#20384d;font-size:11.5px;line-height:1.3}.management-create-modes small{display:block;margin-top:4px;color:#667481;font-size:9.8px;line-height:1.35}.management-create-employee-picker{padding:12px 14px;margin-bottom:14px;border:1px solid #e2e9ef;border-radius:10px;background:#f8fafc}.management-create-employee-picker .field{margin:0}.management-create-section{padding:15px 0;border-top:1px solid #e8edf2}.management-create-section-title{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:11px}.management-create-section-title strong{color:#20384d;font-size:12.5px}.management-create-section-title span{color:#65717c;font-size:10px}.management-create-user-dialog .entry-form-grid{gap:11px 14px}.management-create-user-dialog .field{margin:0}.management-create-user-dialog .field>span{font-size:10.5px!important}.management-create-user-dialog input,.management-create-user-dialog select{min-height:42px!important}.management-create-invite-note{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:9px;background:#f2f7fa;color:#5a7082;font-size:10.5px;line-height:1.45}.management-create-invite-note svg{flex:0 0 auto;margin-top:1px;color:#2c668c}.management-create-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.management-invite-result{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 4px 4px;gap:7px}.management-invite-result svg{color:#2f7b57}.management-invite-result strong{font-size:15px;color:#20384d}.management-invite-result p{margin:0;color:#708294;font-size:11px;line-height:1.5}.management-invite-result small{color:#5a7082;font-size:10.5px}@media(max-width:760px){.management-create-modes{grid-template-columns:1fr}.management-create-section-title{display:block}.management-create-section-title span{display:block;margin-top:3px}}
 
 /* ===== SOURCE: management-polish.css ===== */
 /* Management Center visual refinements */
@@ -1723,7 +1723,7 @@
   line-height:1.25!important;
 }
 .prevention-record-shell .who-action-option small{
-  color:#7a8f9f!important;
+  color:#637582!important;
   font-size:10.5px!important;
 }
 
@@ -1766,7 +1766,7 @@
   font-weight:800!important;
 }
 .prevention-record-shell .who-gloves-toggle small{
-  color:#7990a1!important;
+  color:#607280!important;
   font-size:10px!important;
 }
 
@@ -1795,7 +1795,7 @@
   background:#fff!important;
 }
 .prevention-record-shell .who-live-summary span{
-  color:#7b8fa0!important;
+  color:#647582!important;
   font-size:10.5px!important;
 }
 .prevention-record-shell .who-live-summary strong{
@@ -3216,7 +3216,7 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .who-panel-heading>div{display:flex;flex-direction:column;gap:3px;min-width:0}
 .who-panel-heading strong{font-size:13px;color:#26394e}
 .who-panel-heading small{font-size:10.5px;line-height:1.45;color:var(--muted)}
-.who-session-ready,.who-step-badge{display:inline-flex;align-items:center;white-space:nowrap;border:1px solid #dce4eb;background:#f5f7fa;color:#6d7c8b;border-radius:999px;padding:5px 8px;font-size:9.5px;font-weight:750}
+.who-session-ready,.who-step-badge{display:inline-flex;align-items:center;white-space:nowrap;border:1px solid #dce4eb;background:#f5f7fa;color:#62707d;border-radius:999px;padding:5px 8px;font-size:9.5px;font-weight:750}
 .who-session-ready.ready{background:#edf7f1;border-color:#d0e9da;color:#28704b}
 .who-session-strip{display:grid;grid-template-columns:1.05fr 1.3fr 1.35fr .72fr .72fr;gap:10px;margin-top:11px;align-items:end}
 .who-session-strip label{display:flex;flex-direction:column;gap:5px;min-width:0}
@@ -3255,7 +3255,7 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .who-insight-rail{display:flex;flex-direction:column;gap:12px;position:sticky;top:78px;min-width:0}
 .who-smart-summary{padding:14px}
 .who-compliance-hero{margin-top:12px;padding:11px 12px;border-radius:11px;background:#f3f7fa;border:1px solid #e3eaf0}
-.who-compliance-hero>strong{display:block;font-size:28px;line-height:1;color:#245a7f;letter-spacing:-.03em}.who-compliance-hero>span{display:block;margin-top:5px;font-size:9.5px;color:#6f8090;font-weight:700}
+.who-compliance-hero>strong{display:block;font-size:28px;line-height:1;color:#245a7f;letter-spacing:-.03em}.who-compliance-hero>span{display:block;margin-top:5px;font-size:9.5px;color:#616f7d;font-weight:700}
 .who-compliance-track{height:5px;border-radius:99px;background:#e1e8ed;overflow:hidden;margin-top:10px}.who-compliance-track i{display:block;height:100%;border-radius:inherit;background:#4e8f73;transition:width .2s ease}
 .who-smart-kpis{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px!important;margin-top:8px!important}
 .who-smart-kpis>div{border:1px solid #e5ebf0;border-radius:9px;background:#fff;padding:8px 6px!important;text-align:center;min-width:0}.who-smart-kpis span{display:block;font-size:8.8px!important;color:#7e8d9b!important;white-space:normal;line-height:1.2}.who-smart-kpis strong{display:block!important;font-size:15px!important;margin-top:3px!important;color:#334b61!important}.who-smart-kpis .has-missed{background:#fff4f4;border-color:#f0d9d9}.who-smart-kpis .has-missed strong{color:#a5484e!important}
@@ -3264,8 +3264,8 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .who-opportunity-cards{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:330px;overflow:auto;padding-right:2px}
 .who-opportunity-card{display:grid;grid-template-columns:25px minmax(0,1fr) auto;align-items:center;gap:8px;border:1px solid #e4eaf0;border-radius:10px;padding:8px;background:#fff}
 .who-opportunity-index{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#f0f4f7;color:#557086;font-size:9.5px;font-weight:850}
-.who-opportunity-copy{display:flex;flex-direction:column;gap:2px;min-width:0}.who-opportunity-copy strong{font-size:9.8px;color:#344c61;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who-opportunity-copy>span{font-size:9.2px;color:#778797;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who-opportunity-copy small{font-size:8.8px;color:#8996a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who-action-mini{font-size:8.6px;background:#edf7f1;color:#2f7352;border-radius:999px;padding:2px 5px}.who-action-mini.missed{background:#fff0f0;color:#a4474d}
-.who-smart-empty{min-height:126px;border:1px dashed #dbe3ea;border-radius:10px;background:#fbfcfd;display:grid;place-items:center;align-content:center;text-align:center;padding:18px}.who-smart-empty strong{font-size:11px;color:#53697e}.who-smart-empty span{margin-top:4px;font-size:9.5px;color:#8996a3;max-width:210px}
+.who-opportunity-copy{display:flex;flex-direction:column;gap:2px;min-width:0}.who-opportunity-copy strong{font-size:9.8px;color:#344c61;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who-opportunity-copy>span{font-size:9.2px;color:#778797;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who-opportunity-copy small{font-size:8.8px;color:#68727c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who-action-mini{font-size:8.6px;background:#edf7f1;color:#2f7352;border-radius:999px;padding:2px 5px}.who-action-mini.missed{background:#fff0f0;color:#a4474d}
+.who-smart-empty{min-height:126px;border:1px dashed #dbe3ea;border-radius:10px;background:#fbfcfd;display:grid;place-items:center;align-content:center;text-align:center;padding:18px}.who-smart-empty strong{font-size:11px;color:#53697e}.who-smart-empty span{margin-top:4px;font-size:9.5px;color:#68727c;max-width:210px}
 .who-smart-footer{position:static!important;margin-top:0!important;border:0!important;border-radius:0!important;background:transparent!important;backdrop-filter:none!important;padding:4px 0 0!important;display:flex!important;align-items:center;justify-content:flex-end;gap:12px;box-shadow:none!important}
 .who-save-state{display:none}
 .who-footer-buttons{display:flex;align-items:center;gap:8px}
@@ -3274,7 +3274,7 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .who-record-workspace{display:flex;flex-direction:column;gap:14px;min-height:0}
 .who-record-readonly-grid{display:grid;grid-template-columns:1fr 1.35fr 1.35fr .7fr .7fr;gap:8px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,#fbfcfd 0%,#f7f9fb 100%)}
 .who-record-readonly-grid label{display:flex;flex-direction:column;gap:4px;min-width:0}
-.who-record-readonly-grid label>span{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.045em;color:#8996a3}
+.who-record-readonly-grid label>span{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.045em;color:#68727c}
 .who-record-readonly-grid input{width:100%;min-width:0;border:0;background:transparent;padding:0;color:#2d4358;font-size:12px;font-weight:750;outline:0}
 .who-record-workspace>.who-live-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:0}
 .who-record-workspace>.who-live-summary>div{min-height:72px;border:1px solid #e2e9ef;border-radius:11px;background:#fff;padding:10px 12px;display:flex;flex-direction:column;justify-content:center;gap:5px}
@@ -3419,7 +3419,7 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .questionnaire-preview>header{padding:0 0 13px;border-bottom:1px solid #e6edf2}
 .questionnaire-preview>header>span{display:block;margin-bottom:5px;color:#7c8d9d;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
 .questionnaire-preview>header h3{margin:0;color:#173650;font-size:20px;line-height:1.25}
-.questionnaire-preview>header p{margin:5px 0 0;color:#7b8c9c;font-size:11px}
+.questionnaire-preview>header p{margin:5px 0 0;color:#667481;font-size:11px}
 .questionnaire-preview-list{display:flex;flex-direction:column;gap:10px}
 .questionnaire-preview-question{padding:14px 16px;border:1px solid #e1e8ee;border-radius:10px;background:#fff}
 .questionnaire-preview-label{display:flex;align-items:flex-start;gap:9px;margin-bottom:11px}
@@ -4114,7 +4114,7 @@ button{letter-spacing:0}
 .page-heading-group{gap:8px!important}
 .page-heading-copy h1,.page-header h1{margin:0!important;font-size:20px!important;line-height:1.2!important;font-weight:660!important;letter-spacing:-.02em!important;color:#18293a!important}
 .page-heading-copy p,.page-header p{margin:3px 0 0!important;font-size:11.5px!important;line-height:1.4!important;color:var(--lo-color-muted)!important}
-.eyebrow{font-size:9.5px!important;line-height:1.2!important;letter-spacing:.065em!important;text-transform:uppercase!important;font-weight:700!important;color:#708094!important}
+.eyebrow{font-size:9.5px!important;line-height:1.2!important;letter-spacing:.065em!important;text-transform:uppercase!important;font-weight:700!important;color:#657486!important}
 .page-actions,.record-actions,.section-actions{gap:6px!important}
 .surface,.lo-card,.entry-card{border:1px solid var(--lo-color-border)!important;border-radius:var(--lo-radius-card)!important;background:#fff!important;box-shadow:var(--lo-shadow-soft)!important}
 
@@ -4145,7 +4145,7 @@ button{letter-spacing:0}
 .field input,.field select,.field textarea,.input,.entry-grid input,.entry-grid select,.entry-grid textarea,.platform-form-grid input,.platform-form-grid select,.platform-form-grid textarea{min-height:34px!important;border:1px solid var(--lo-color-border)!important;border-radius:7px!important;background:#fff!important;color:var(--lo-color-text)!important;font-size:12px!important;padding:7px 9px!important;box-shadow:none!important}
 .field textarea,.entry-grid textarea{min-height:72px!important;resize:vertical!important}
 .field input:focus,.field select:focus,.field textarea:focus,.input:focus{outline:0!important;border-color:#8fb8d4!important;box-shadow:0 0 0 3px rgba(37,107,155,.08)!important}
-.field-hint,.field small{font-size:9.5px!important;color:#7a8796!important}
+.field-hint,.field small{font-size:9.5px!important;color:#697481!important}
 .entry-grid,.form-grid,.platform-form-grid{gap:10px 12px!important}
 .observer-form-section,.form-section,.platform-form-section,.control-form-block,.waste-form-section,.antiseptic-form-section{border-color:var(--lo-color-border)!important;border-radius:9px!important;background:#fbfcfd!important;padding:12px!important;box-shadow:none!important}
 .observer-form-section h4,.control-form-block-title,.waste-form-section-title,.antiseptic-form-heading{font-size:12.5px!important;color:#203447!important}
@@ -4174,7 +4174,7 @@ button{letter-spacing:0}
 .registry-row-clickable,.clickable-row{cursor:pointer!important}
 .registry-row-returned{background:#eef6fb!important;box-shadow:inset 3px 0 0 #6aa3c8!important}
 .data-table td strong{font-weight:620!important;color:#24374a!important}
-.data-table td small{font-size:9.5px!important;color:#7b8795!important}
+.data-table td small{font-size:9.5px!important;color:#626e7b!important}
 .registry-empty-state,.empty-state{padding:28px 18px!important;border:1px dashed #d4dde5!important;border-radius:9px!important;background:#fafbfc!important;color:#6b7989!important}
 
 /* Tabs */
@@ -4190,7 +4190,7 @@ button{letter-spacing:0}
 .canonical-metric-icon{width:28px!important;height:28px!important;border-radius:7px!important;background:#eef4f7!important;color:#52768e!important}
 .canonical-metric-icon svg{width:15px!important;height:15px!important}
 .canonical-metric-copy strong{font-size:18px!important;line-height:1.05!important;font-weight:660!important;color:#203b52!important}
-.canonical-metric-copy span{font-size:9.5px!important;color:#6e7d8d!important;line-height:1.25!important}
+.canonical-metric-copy span{font-size:9.5px!important;color:#616e7c!important;line-height:1.25!important}
 .governance-banner,.info-banner,.source-truth-note{border-radius:8px!important;border:1px solid #dce6ed!important;background:#f5f9fb!important;color:#526a7c!important;box-shadow:none!important;font-size:10.5px!important;padding:8px 10px!important}
 
 /* Status */
@@ -4284,7 +4284,7 @@ button{letter-spacing:0}
 .topbar-organization-context>svg{flex:0 0 auto!important;color:#6e8ba4!important}
 .topbar-organization-copy{min-width:0!important;display:flex!important;flex-direction:column!important;line-height:1.1!important}
 .topbar-organization-copy strong{max-width:250px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:11px!important;color:#183a5a!important}
-.topbar-organization-copy span{max-width:250px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;margin-top:2px!important;font-size:8.75px!important;color:#8795a4!important}
+.topbar-organization-copy span{max-width:250px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;margin-top:2px!important;font-size:8.75px!important;color:#5f6d7d!important}
 .topbar-organization-switch{position:relative!important;display:flex!important;align-items:center!important;margin-left:4px!important;padding-left:7px!important;border-left:1px solid #edf1f4!important}
 .topbar-organization-switch select{
   appearance:none!important;
@@ -4708,7 +4708,7 @@ button{letter-spacing:0}
   margin:0!important;color:#172b40!important;font-size:17px!important;font-weight:800!important;line-height:1.25!important;
 }
 .patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar) p{
-  margin:4px 0 0!important;color:#748496!important;font-size:11px!important;line-height:1.4!important;
+  margin:4px 0 0!important;color:#667484!important;font-size:11px!important;line-height:1.4!important;
 }
 
 /* Patient root: compact identity overview + admission registry. */
@@ -5007,7 +5007,7 @@ button{letter-spacing:0}
 
 /* Guided surveillance episode refinement. */
 .episode-detail-card .episode-detail-header{min-height:72px!important;padding:14px 18px!important;border-bottom:1px solid #e4eaf0!important;background:#fff!important}
-.episode-detail-card .episode-detail-header .eyebrow{color:#8291a1!important;font-size:9.5px!important;font-weight:800!important;letter-spacing:.06em!important}
+.episode-detail-card .episode-detail-header .eyebrow{color:#687481!important;font-size:9.5px!important;font-weight:800!important;letter-spacing:.06em!important}
 .episode-detail-card .episode-detail-header h2{margin:2px 0 0!important;font-size:18px!important;color:#17334c!important}
 .episode-detail-card .episode-detail-header p{margin:3px 0 0!important;color:#7a8a9a!important;font-size:10.5px!important}
 .episode-detail-actions{display:flex!important;align-items:center!important}
@@ -5054,7 +5054,7 @@ button{letter-spacing:0}
 .unified-surveillance-workspace{display:block!important;overflow:auto!important}.surveillance-tree-section{overflow:hidden!important}.surveillance-tree-head,.surveillance-tree-episode,.surveillance-tree-sample{display:grid;grid-template-columns:1.25fr .72fr 1.2fr .55fr 1.05fr;gap:12px;align-items:center}.surveillance-tree-head{padding:9px 14px;background:#f4f8fb;border-top:1px solid #e1eaf1;border-bottom:1px solid #d9e5ee;color:#5d7487;font-size:11px;font-weight:750}.surveillance-tree-body{max-height:520px;overflow:auto;background:#fff}.surveillance-tree-group{border-bottom:1px solid #e4edf3}.surveillance-tree-episode{width:100%;padding:12px 14px;border:0;background:#fff;text-align:left;color:#173a55;cursor:pointer;font:inherit}.surveillance-tree-episode:hover,.surveillance-tree-episode.is-selected{background:#edf6fd}.surveillance-tree-episode.is-selected{box-shadow:inset 3px 0 0 #2588d4}.surveillance-tree-episode>span,.surveillance-tree-sample>span{min-width:0;overflow:hidden;text-overflow:ellipsis}.surveillance-tree-episode strong,.surveillance-tree-sample strong{display:block;font-size:12px}.surveillance-tree-episode small,.surveillance-tree-sample small{display:block;margin-top:2px;color:#74899a;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.surveillance-tree-sample{padding:9px 14px 9px 32px;background:#fbfdff;border-top:1px solid #edf2f6;color:#405f74;font-size:11.5px}.surveillance-tree-sample.is-linked{border-left:3px solid #b7d5e8}.surveillance-tree-sample.is-unlinked{background:#fffdf8;border-left:3px solid #e2b85c}.surveillance-tree-sample>span:first-child{display:flex;align-items:center;gap:8px}.surveillance-tree-sample i{font-style:normal;color:#7fa4bd;font-size:17px;flex:none}.surveillance-tree-sample em{font-style:normal;color:#55798f;background:#edf4f8;border-radius:999px;padding:3px 7px;font-size:10px}@media(max-width:1050px){.patient-full-detail-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.surveillance-tree-head,.surveillance-tree-episode,.surveillance-tree-sample{grid-template-columns:1.3fr .8fr 1.2fr .7fr}.surveillance-tree-head>span:nth-child(5),.surveillance-tree-episode>span:nth-child(5),.surveillance-tree-sample>span:nth-child(5){display:none}}
 
 /* Patient clinical data + history refinement */
-.clinical-data-overview{height:auto!important;overflow:visible!important}.clinical-data-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px 14px 16px}.clinical-data-card{border:1px solid #dbe6ee;border-radius:10px;background:#fff;overflow:hidden;min-height:140px}.clinical-data-card>header{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid #edf2f5;background:#fbfdfe}.clinical-data-card h4{margin:0;color:#173a55;font-size:13px}.clinical-data-card small{display:block;margin-top:2px;color:#718798;font-size:10.5px}.clinical-data-icon{width:30px;height:30px;border-radius:8px;background:#eaf4fa;color:#216e9d;display:grid;place-items:center;flex:none}.clinical-data-card-body{padding:10px 12px}.clinical-datum{display:grid;grid-template-columns:145px minmax(0,1fr);gap:10px;padding:6px 0;border-bottom:1px solid #f0f3f5}.clinical-datum:last-child{border-bottom:0}.clinical-datum span{color:#718697;font-size:11px}.clinical-datum strong{color:#1b405a;font-size:11.5px;font-weight:650}.patient-history-section{height:100%;min-height:0;overflow:hidden!important}.patient-history-list{max-height:560px;overflow:auto;padding:8px 18px 18px}.patient-history-event{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px}.history-rail{position:relative;display:flex;justify-content:center}.history-rail:after{content:"";position:absolute;top:17px;bottom:-8px;width:1px;background:#d9e5ed}.patient-history-event:last-child .history-rail:after{display:none}.history-rail span{width:9px;height:9px;border:2px solid #4a91bc;background:#fff;border-radius:50%;margin-top:14px;z-index:1}.history-event-main{padding:9px 10px 11px;border-bottom:1px solid #edf2f5;min-width:0}.history-event-heading{display:flex;align-items:baseline;justify-content:space-between;gap:15px}.history-event-heading strong{color:#173b55;font-size:12px}.history-event-heading time{color:#718697;font-size:10.5px;white-space:nowrap}.history-event-main p{margin:5px 0 0;color:#49677a;font-size:11px;line-height:1.45;overflow-wrap:anywhere}.history-event-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:5px;color:#8295a3;font-size:10px}@media(max-width:850px){.clinical-data-cards{grid-template-columns:1fr}.clinical-datum{grid-template-columns:120px minmax(0,1fr)}}
+.clinical-data-overview{height:auto!important;overflow:visible!important}.clinical-data-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px 14px 16px}.clinical-data-card{border:1px solid #dbe6ee;border-radius:10px;background:#fff;overflow:hidden;min-height:140px}.clinical-data-card>header{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid #edf2f5;background:#fbfdfe}.clinical-data-card h4{margin:0;color:#173a55;font-size:13px}.clinical-data-card small{display:block;margin-top:2px;color:#617382;font-size:10.5px}.clinical-data-icon{width:30px;height:30px;border-radius:8px;background:#eaf4fa;color:#216e9d;display:grid;place-items:center;flex:none}.clinical-data-card-body{padding:10px 12px}.clinical-datum{display:grid;grid-template-columns:145px minmax(0,1fr);gap:10px;padding:6px 0;border-bottom:1px solid #f0f3f5}.clinical-datum:last-child{border-bottom:0}.clinical-datum span{color:#637584;font-size:11px}.clinical-datum strong{color:#1b405a;font-size:11.5px;font-weight:650}.patient-history-section{height:100%;min-height:0;overflow:hidden!important}.patient-history-list{max-height:560px;overflow:auto;padding:8px 18px 18px}.patient-history-event{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px}.history-rail{position:relative;display:flex;justify-content:center}.history-rail:after{content:"";position:absolute;top:17px;bottom:-8px;width:1px;background:#d9e5ed}.patient-history-event:last-child .history-rail:after{display:none}.history-rail span{width:9px;height:9px;border:2px solid #4a91bc;background:#fff;border-radius:50%;margin-top:14px;z-index:1}.history-event-main{padding:9px 10px 11px;border-bottom:1px solid #edf2f5;min-width:0}.history-event-heading{display:flex;align-items:baseline;justify-content:space-between;gap:15px}.history-event-heading strong{color:#173b55;font-size:12px}.history-event-heading time{color:#637584;font-size:10.5px;white-space:nowrap}.history-event-main p{margin:5px 0 0;color:#49677a;font-size:11px;line-height:1.45;overflow-wrap:anywhere}.history-event-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:5px;color:#667580;font-size:10px}@media(max-width:850px){.clinical-data-cards{grid-template-columns:1fr}.clinical-datum{grid-template-columns:120px minmax(0,1fr)}}
 
 /* Surveillance clinical record interaction */
 .clickable-entry{cursor:pointer;border-radius:8px}.clickable-entry:hover,.clickable-entry:focus-visible{background:var(--surface-subtle,#f7fafc);outline:none}.clinical-entry-detail-grid{margin:8px 0 4px}.entry-detail-note{max-width:520px;color:var(--text-muted,#66788a);font-size:.82rem;line-height:1.45;margin-right:auto}.record-table .clickable-row{cursor:pointer}.record-table .clickable-row:hover{background:var(--surface-subtle,#f7fafc)}
@@ -5274,7 +5274,7 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .episode-workspace-topline{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(320px,420px)!important;gap:12px!important;align-items:stretch!important}
 .episode-progress-copy{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:4px!important;padding:13px 14px!important;border:1px solid #dde8f1!important;border-radius:12px!important;background:#fff!important}
 .episode-progress-copy strong{font-size:14px!important;color:#173956!important}
-.episode-progress-copy>span:last-child{font-size:12px!important;color:#6b8194!important}
+.episode-progress-copy>span:last-child{font-size:12px!important;color:#5c6f7f!important}
 .ecdc-review-card{display:flex!important;flex-direction:column!important;gap:4px!important;padding:12px 14px!important;border:1px solid #d9e6f0!important;border-left:4px solid #6e9fbd!important;border-radius:12px!important;background:#fff!important}
 .ecdc-review-card>span{font-size:10.5px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.04em!important;color:#688096!important}
 .ecdc-review-card strong{font-size:13px!important;color:#173956!important}

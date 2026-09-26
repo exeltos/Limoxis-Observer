@@ -85,18 +85,19 @@ async function capture(page, port, s) {
 }
 
 function compare(before, after) {
-  if (before.length !== after.length) return { count: 1, sample: `element count ${before.length} → ${after.length}` }
-  let count = 0; let sample = ''
+  if (before.length !== after.length) return { count: 1, sample: `element count ${before.length} → ${after.length}`, properties: { 'element count': 1 } }
+  let count = 0; let sample = ''; const properties = {}
   for (let index = 0; index < before.length; index++) {
     const [name, a] = before[index]; const [, b] = after[index]
     const animated = a['animation-name'] !== 'none'
     for (const key of Object.keys(a)) {
       if (a[key] === b[key] || (animated && (key === 'transform' || key === 'opacity'))) continue
       count++
+      properties[key] = (properties[key] || 0) + 1
       if (!sample) sample = `${name.slice(0, 80)} { ${key}: ${a[key]} → ${b[key]} }`
     }
   }
-  return { count, sample }
+  return { count, sample, properties }
 }
 
 let chromium
@@ -122,7 +123,7 @@ for (const [size, [width, height]] of Object.entries(SIZES)) {
       fs.writeFileSync(path.join(outDir, `${name}-base.png`), before.png)
       fs.writeFileSync(path.join(outDir, `${name}-head.png`), after.png)
     }
-    results.push({ name, elements: after.styles.length, differences: diff.count, sample: diff.sample, interactionMissed: !before.interacted || !after.interacted })
+    results.push({ name, elements: after.styles.length, differences: diff.count, properties: diff.properties, sample: diff.sample, interactionMissed: !before.interacted || !after.interacted })
   }
   await basePage.close(); await headPage.close()
 }
@@ -130,11 +131,13 @@ await browser.close(); baseServer.close(); headServer.close()
 
 const changed = results.filter(r => r.differences)
 const elements = results.reduce((sum, r) => sum + r.elements, 0)
+const changedProperties = {}
+for (const r of changed) for (const [key, n] of Object.entries(r.properties || {})) changedProperties[key] = (changedProperties[key] || 0) + n
 const lines = [
   '## Visual regression (computed styles)',
   '',
   `${results.length} screen states, ${elements.toLocaleString('en')} elements compared: **${changed.length ? `${changed.length} state(s) changed` : 'no visual changes'}**.`,
-  ...(changed.length ? ['', '| State | Style differences | First difference |', '|---|---|---|', ...changed.map(r => `| ${r.name} | ${r.differences} | \`${r.sample.replace(/\|/g, '\\|')}\` |`), '', 'Screenshots of both builds for these states are in the `visual-report` artifact. If the change is intended, add the `visual-change` label to the pull request.'] : []),
+  ...(changed.length ? ['', `Changed properties: ${Object.entries(changedProperties).sort((a, b) => b[1] - a[1]).map(([key, n]) => `\`${key}\` ×${n}`).join(', ')}`, '', '| State | Style differences | First difference |', '|---|---|---|', ...changed.map(r => `| ${r.name} | ${r.differences} | \`${r.sample.replace(/\|/g, '\\|')}\` |`), '', 'Screenshots of both builds for these states are in the `visual-report` artifact. If the change is intended, add the `visual-change` label to the pull request.'] : []),
 ]
 const report = lines.join('\n')
 fs.writeFileSync(path.join(outDir, 'report.md'), report + '\n')

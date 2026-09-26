@@ -4,7 +4,7 @@
 .analysis-report .analysis-chart-card{padding:14px 16px!important;border:1px solid #dbe2e8!important;border-radius:12px!important;background:#fff!important;min-width:0}
 .analysis-report .analysis-chart-card>header{margin-bottom:12px}
 .analysis-report .analysis-chart-card>header strong{display:block;font-size:14px;color:#1d3a52}
-.analysis-report .analysis-chart-card>header span{display:block;margin-top:2px;font-size:11.5px;color:#6b7c8c}
+.analysis-report .analysis-chart-card>header span{display:block;margin-top:2px;font-size:11.5px;color:#5f6e7c}
 
 .viz-bars{display:flex;flex-direction:column;gap:9px}
 .viz-bar-row{display:grid;grid-template-columns:minmax(90px,min(38%,260px)) minmax(0,1fr) 44px;align-items:center;gap:10px;padding:2px 4px;border-radius:6px}
@@ -17,14 +17,14 @@
 .viz-donut{display:grid;grid-template-columns:180px minmax(0,1fr);align-items:center;gap:18px}
 .viz-donut svg{width:180px;height:180px;overflow:visible}
 .viz-donut-value{font-size:26px;font-weight:800;fill:#1d3a52}
-.viz-donut-caption{font-size:11px;font-weight:700;fill:#6b7c8c;text-transform:uppercase;letter-spacing:.04em}
+.viz-donut-caption{font-size:11px;font-weight:700;fill:#5f6e7c;text-transform:uppercase;letter-spacing:.04em}
 .viz-legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;min-width:0}
 .viz-legend li{display:grid;grid-template-columns:10px minmax(0,1fr) auto 38px;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:default}
 .viz-legend li.is-active,.viz-legend li:hover{background:#f4f8fb}
 .viz-legend i{width:10px;height:10px;border-radius:3px}
 .viz-legend span{font-size:12.5px;color:#33495f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .viz-legend strong{font-size:12.5px;color:#1d3a52;font-variant-numeric:tabular-nums}
-.viz-legend em{font-style:normal;font-size:11.5px;color:#6b7c8c;text-align:right;font-variant-numeric:tabular-nums}
+.viz-legend em{font-style:normal;font-size:11.5px;color:#5f6e7c;text-align:right;font-variant-numeric:tabular-nums}
 
 .viz-trend{position:relative}
 .viz-trend svg{display:block;width:100%;height:auto}
@@ -32,7 +32,7 @@
 .viz-axis{font-size:11px;fill:#7b8b9a}
 .viz-crosshair{stroke:#9fb3c5;stroke-width:1;stroke-dasharray:3 3}
 .viz-tooltip{position:absolute;top:4px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;padding:6px 10px;border:1px solid #dbe2e8;border-radius:8px;background:#fff;box-shadow:0 6px 16px rgba(22,52,78,.12);pointer-events:none;white-space:nowrap}
-.viz-tooltip span{font-size:11px;color:#6b7c8c}
+.viz-tooltip span{font-size:11px;color:#5f6e7c}
 .viz-tooltip strong{font-size:14px;color:#1d3a52}
 
 @media(max-width:900px){.analysis-report .analysis-chart-grid{grid-template-columns:1fr!important}.viz-donut{grid-template-columns:1fr;justify-items:center}}
@@ -41,7 +41,7 @@
 /* Mini bar chart inside LIRA answers */
 .lira-assistant-chart{margin:8px 0 6px;padding:10px 12px;border:1px solid #e3e9ef;border-radius:10px;background:#fff;max-width:640px}
 .lira-assistant-chart .viz-bars{gap:6px}
-.lira-assistant-evidence{color:#6b7c8c}
+.lira-assistant-evidence{color:#5f6e7c}
 
 /* KPI tiles: label, value, one explanatory line; tone colours the accent bar. */
 html body .analysis-kpis{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))!important;gap:12px!important;margin-bottom:14px!important}
@@ -52,4 +52,4 @@ html body .analysis-kpis article.kpi-warning{--kpi-accent:#eda100}
 html body .analysis-kpis article.kpi-danger{--kpi-accent:#e34948}
 html body .analysis-kpis article>span{font-size:12px!important;font-weight:650!important;color:#5f768a!important}
 html body .analysis-kpis article>strong{font-size:26px!important;line-height:1.15!important;color:#10233b!important}
-html body .analysis-kpis article>small{font-size:12px!important;color:#6b8194!important;line-height:1.4!important}
+html body .analysis-kpis article>small{font-size:12px!important;color:#5c6f7f!important;line-height:1.4!important}

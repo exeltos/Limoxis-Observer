@@ -1126,7 +1126,7 @@
   background:#f7f9fb!important;
   border:0!important;
   border-bottom:1px solid var(--lo-color-border)!important;
-  color:#6c8199!important;
+  color:#5b6e84!important;
   font-size:10px!important;
   font-weight:800!important;
   line-height:1.2!important;
@@ -1199,7 +1199,7 @@
 .controls-surface .data-table td small,
 .production-surveillance-workspace .data-table td small{
   margin-top:2px!important;
-  color:#7a8998!important;
+  color:#606e7c!important;
   font-size:10px!important;
 }
 

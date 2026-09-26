@@ -7,7 +7,7 @@
 .dashboard-card .lo-card-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#e8f1f8;color:#0b6097;flex:0 0 auto}
 .dashboard-card .lo-card-heading{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .dashboard-card .lo-card-heading strong{font-size:14.5px;color:#1d3a52}
-.dashboard-card .lo-card-heading small{font-size:12px;color:#6b7c8c}
+.dashboard-card .lo-card-heading small{font-size:12px;color:#5f6e7c}
 .dashboard-card .lo-card-actions .text-button{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#0b6097;background:none;border:0;cursor:pointer;padding:6px 8px;border-radius:8px}
 .dashboard-card .lo-card-actions .text-button:hover{background:#f2f7fb}
 .dashboard-card .task-row{display:grid!important;grid-template-columns:4px minmax(0,1fr) auto auto;align-items:center;gap:12px}
