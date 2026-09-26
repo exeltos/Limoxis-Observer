@@ -85,7 +85,7 @@ create table if not exists public.notifiable_disease_reports (
   notified_at date,
   reference text,
   notes text,
-  updated_by uuid default (select auth.uid()),
+  updated_by uuid default auth.uid(),
   updated_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   unique (organization_id, finding_key)
