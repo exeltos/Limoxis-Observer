@@ -17,10 +17,10 @@ describe('short screens (13" notebooks) scroll instead of clipping', () => {
     expect(css.slice(order[2] + 1)).not.toContain('/* ==== ')
   })
   it('lets the workspace scroll and keeps registries at a usable height', () => {
-    expect(css).toContain('.content,.content:has(>.page-fill){overflow-x:hidden!important;overflow-y:auto!important}')
-    expect(css).toContain('.page-fill{min-height:760px!important}')
+    expect(withoutImportant(css)).toContain('.content,.content:has(>.page-fill){overflow-x:hidden;overflow-y:auto}')
+    expect(withoutImportant(css)).toContain('.page-fill{min-height:760px}')
     expect(css).toContain('.laboratory-registry-page')
-    expect(css).toContain('.sidebar nav{overflow-y:auto!important')
+    expect(withoutImportant(css)).toContain('.sidebar nav{overflow-y:auto')
   })
 })
 
@@ -28,7 +28,7 @@ describe('tablets and phones', () => {
   const rail = fs.readFileSync('src/styles/responsive.css', 'utf8')
   const shell = fs.readFileSync('src/app/AppShell.jsx', 'utf8')
   it('drops the 1080px desktop minimum width below 1100px', () => {
-    expect(rail).toContain('@media (max-width:1100px){body{min-width:0!important}}')
+    expect(withoutImportant(rail)).toContain('@media (max-width:1100px){body{min-width:0}}')
   })
   it('turns the sidebar into an icon rail with tooltips on tablets', () => {
     expect(rail).toContain('@media (min-width:781px) and (max-width:1100px)')

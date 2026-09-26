@@ -29,6 +29,12 @@ imported by their components and load with them.
   is overridden by a later rule with the identical selector in the same
   context. `npm run css:prune` removes such declarations; the result is
   cascade-identical by construction.
+- `npm run audit:dead-selectors` (after the build, part of `npm run check`)
+  fails when a rule's selectors require a class or id that no code sets — not
+  in the built app or libraries, and not as the stem of a dynamically built
+  name. `node tools/check-dead-selectors.mjs --write` removes such rules.
+- Do not add `!important` to win against another rule; raise specificity or
+  put the rule in the right section instead.
 
 ## Visual regression check
 
@@ -69,16 +75,18 @@ pixel differences (at most 130 pixels, colour delta ≤ 30/255) were at the same
 noise level as comparing the previous build with itself (up to 712 pixels in
 24 of 76 states), i.e. anti-aliasing noise, not layout or colour changes.
 
-## `!important` reduction of 2026-09-26
+## Dead rules, 2026-09-26
 
-833 of 9,292 `!important` flags were dropped (8,460 remain). A flag was dropped
-only when, across 191 screen states (every main screen at three widths, Greek
-and English, create dialogs, filters, notifications and record tabs of twelve
-registries), no element it matched was also matched by a declaration of the
-same property family that would win once the flag is gone, and the property is
-neither animated nor set inline on those elements. The remaining flags either
-compete with another rule or apply to states that were not visited, so they
-stay until checked the same way.
+- **2,519 dead rules (8,244 declarations) removed**: every selector of each
+  rule required a class that no code sets (leftovers of removed components).
+  Built CSS 924 → 664 kB. `npm run audit:dead-selectors` now keeps it
+  that way.
+- An attempt to drop `!important` flags based on the screens the demo can
+  open (PRs #418/#419) was **reverted**: a review found a flag whose competing
+  rule only applies on Platform Owner analytics, which the demo cannot render.
+  Under the strict rule (every competing rule must itself be observed), only
+  6 of 2,017 flags could be proven safe, so all were restored. Reduce
+  `!important` by hand, section by section, checking the screens it styles.
 
-Verified by the computed-style comparison: 76 states, 31,690 elements,
-**0 differences**; accessibility audit: 55 states, 0 violations.
+Verified: computed-style comparison against `main` on 76 states, 0
+differences; accessibility 55 states, 0 violations.

@@ -3,16 +3,16 @@
 /* Employee record list tabs use the same geometry as top-level registries:
    one outer surface, a fixed header, a scrolling table body and an attached pagination footer. */
 .entity-record-shell .record-secondary-registry{
-  display:grid;
-  grid-template-rows:auto auto minmax(0,1fr) auto;
-  gap:0;
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr) auto!important;
+  gap:0!important;
   min-width:0!important;
   min-height:0!important;
   width:100%!important;
   height:auto!important;
   flex:1 1 auto!important;
   padding:0!important;
-  overflow:hidden;
+  overflow:hidden!important;
 }
 .entity-record-shell .record-secondary-registry>.record-section-header{
   min-width:0!important;
@@ -22,8 +22,8 @@
 }
 .entity-record-shell .record-secondary-registry>.filter-system{
   margin:0!important;
-  padding:10px 16px;
-  border-bottom:1px solid var(--lo-color-border);
+  padding:10px 16px!important;
+  border-bottom:1px solid var(--lo-color-border)!important;
   background:var(--lo-color-surface)!important;
 }
 .entity-record-shell .record-secondary-registry>.scroll-table{
@@ -49,7 +49,7 @@
 .entity-record-shell .record-secondary-registry>.scroll-table>.data-table th,
 .entity-record-shell .record-secondary-registry>.scroll-table>.data-table td{
   min-width:0!important;
-  overflow:hidden;
+  overflow:hidden!important;
   text-overflow:ellipsis!important;
   white-space:nowrap!important;
 }
@@ -97,7 +97,7 @@
   grid-template-rows:auto auto minmax(0,1fr) auto!important;
 }
 .entity-record-shell.record-secondary-tab-active .record-secondary-registry>.scroll-table{
-  grid-row:3;
+  grid-row:3!important;
   overflow-y:auto!important;
 }
 .entity-record-shell.record-secondary-tab-active .record-secondary-registry>.registry-pagination,
@@ -111,18 +111,18 @@
 }
 
 .entity-record-shell.record-secondary-tab-active .record-secondary-registry>.employee-registry-pagination-slot{
-  grid-row:4;
+  grid-row:4!important;
   min-width:0!important;
   width:100%!important;
   align-self:end!important;
   background:var(--lo-color-surface)!important;
   border-top:1px solid var(--lo-color-border)!important;
-  z-index:3;
+  z-index:3!important;
 }
 .entity-record-shell.record-secondary-tab-active .employee-registry-pagination-slot>.registry-pagination{
-  width:100%;
-  margin:0;
-  border:0;
+  width:100%!important;
+  margin:0!important;
+  border:0!important;
   border-radius:0!important;
   background:transparent!important;
 }

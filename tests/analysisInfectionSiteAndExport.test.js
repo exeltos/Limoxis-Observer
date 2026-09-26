@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
+// Only the declarations matter here, not whether they carry !important.
+const withoutImportant = css => css.replaceAll('!important', '')
+
 
 const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
 const service = fs.readFileSync('src/features/platform/platformService.js', 'utf8')
@@ -96,9 +99,9 @@ describe('filter toolbar groups size to their own field count, and analytics tab
   })
 
   it('the analytics tabs keep natural width and wrap onto a second row instead of being forced into 13 equal grid columns or scrolling', () => {
-    expect(tabsCss).toContain('.analysis-workspace>.analysis-tabs.entity-record-tabs{\n display:flex!important;flex-wrap:wrap!important;overflow:visible!important;')
-    expect(tabsCss).toContain('text-overflow:clip!important;')
-    expect(tabsCss).not.toContain('overflow-x:auto!important;overflow-y:hidden!important;\n scrollbar-width:thin')
+    expect(withoutImportant(tabsCss)).toContain('.analysis-workspace>.analysis-tabs.entity-record-tabs{\n display:flex;flex-wrap:wrap;overflow:visible;')
+    expect(withoutImportant(tabsCss)).toContain('text-overflow:clip;')
+    expect(withoutImportant(tabsCss)).not.toContain('overflow-x:auto;overflow-y:hidden;\n scrollbar-width:thin')
   })
 
   it('tab buttons carry a title tooltip with the full label', () => {

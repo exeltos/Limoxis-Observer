@@ -2,7 +2,7 @@
 .dashboard-page .role-kpis{margin-bottom:14px}
 .dashboard-workspace-v2,.dashboard-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
 .dashboard-charts{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}
-.dashboard-card{padding:16px;border:1px solid #dbe2e8!important;border-radius:14px!important;background:#fff!important;min-width:0}
+.dashboard-card{padding:16px!important;border:1px solid #dbe2e8!important;border-radius:14px!important;background:#fff!important;min-width:0}
 .dashboard-card .lo-card-header{display:flex;align-items:flex-start;gap:10px;margin:0 0 12px;padding:0 0 12px;border-bottom:1px solid #eef2f5}
 .dashboard-card .lo-card-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#e8f1f8;color:#0b6097;flex:0 0 auto}
 .dashboard-card .lo-card-heading{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -10,11 +10,11 @@
 .dashboard-card .lo-card-heading small{font-size:12px;color:#5f6e7c}
 .dashboard-card .lo-card-actions .text-button{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#0b6097;background:none;border:0;cursor:pointer;padding:6px 8px;border-radius:8px}
 .dashboard-card .lo-card-actions .text-button:hover{background:#f2f7fb}
-.dashboard-card .task-row{display:grid;grid-template-columns:4px minmax(0,1fr) auto auto;align-items:center;gap:12px}
+.dashboard-card .task-row{display:grid!important;grid-template-columns:4px minmax(0,1fr) auto auto;align-items:center;gap:12px}
 .dashboard-card .task-row .task-count{min-width:28px;height:24px;padding:0 8px;border-radius:999px;background:#fff4e0;color:#8a5a00;font-size:12px;display:inline-grid;place-items:center}
 .dashboard-card .task-row:first-child .task-count{background:#fde8e8;color:#a32121}
 .dashboard-card .task-row .task-copy small{display:none}
 @media(max-width:900px){.dashboard-workspace-v2,.dashboard-charts{grid-template-columns:1fr}}
-.dashboard-card .dashboard-announcements strong{font-size:13px}
+.dashboard-card .dashboard-announcements strong{font-size:13px!important}
 .dashboard-card .dashboard-announcements small{font-size:12px!important;line-height:1.4}
-.dashboard-card .dashboard-announcements em{font-size:11px}
+.dashboard-card .dashboard-announcements em{font-size:11px!important}

@@ -13,7 +13,6 @@
   font-size:12px;
   font-weight:600;
 }
-.attachment-upload-progress-inline{margin:8px 0}
 .attachment-upload-progress svg,.lo-inline-spinner{
   animation:lo-attachment-spin .9s linear infinite;
 }
@@ -22,26 +21,7 @@
 }
 
 /* Canonical documents workspace: same compact pattern used by employee documents. */
-.attachment-documents-workspace{display:grid;gap:14px;align-content:start;min-height:0!important;height:auto!important;overflow:visible!important}
-.attachment-documents-workspace .attachment-field{margin-top:0}
-.attachment-documents-workspace .attachment-heading{padding-top:2px}
-.attachment-documents-workspace .record-section-header>div>p{max-width:760px}
 
 /* Compact dropdown selectors for surveillance clinical libraries */
 .library-clinical-grid{align-items:start}
-.library-dropdown{position:relative;border:1px solid var(--border-color,#d8e2ea);border-radius:12px;background:#fff;overflow:visible}
-.library-dropdown>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:10px 14px}
-.library-dropdown>summary::-webkit-details-marker{display:none}
-.library-dropdown>summary>span:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
-.library-dropdown>summary strong{font-size:14px}
-.library-dropdown>summary small{font-size:12px;font-weight:500;color:var(--text-muted,#6b7f91)}
-.library-dropdown-chevron{font-size:20px;line-height:1;transition:transform .15s ease}
-.library-dropdown[open] .library-dropdown-chevron{transform:rotate(180deg)}
-.library-dropdown-list{max-height:270px;overflow:auto;border-top:1px solid var(--border-color,#e2e8ee);padding:6px;background:#fff;display:flex;flex-direction:column;gap:0}
-.library-dropdown-list label{display:flex;align-items:center;gap:10px;min-height:38px;padding:7px 9px;border-radius:7px;cursor:pointer}
-.library-dropdown-list label:hover{background:var(--surface-subtle,#f5f8fa)}
-.library-dropdown-list label input{flex:0 0 auto;margin:0}
-.library-dropdown-list label span{text-align:left}
-.library-dropdown-selected{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border-top:1px solid var(--border-color,#e2e8ee)}
-.library-dropdown-selected span{font-size:11px;padding:3px 7px;border-radius:999px;background:var(--surface-subtle,#eef5f8);color:var(--text-secondary,#526779)}
-@media (max-width:900px){.library-clinical-grid{grid-template-columns:1fr}.library-dropdown-list{max-height:220px}}
+@media (max-width:900px){.library-clinical-grid{grid-template-columns:1fr}}

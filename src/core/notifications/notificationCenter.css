@@ -18,7 +18,7 @@ html body .login-briefing-dialog .briefing-sections-v2>section>header strong{fon
 html body .login-briefing-dialog .briefing-sections-v2>section>header small{font-size:11.5px!important}
 html body .login-briefing-dialog .briefing-empty{font-size:12.5px!important}
 html body .login-briefing-dialog .briefing-footer-v2{font-size:12px!important}
-html body .notification-inline-actions .button{display:inline-flex;width:auto!important;justify-content:center;align-items:center!important;grid-template-columns:none}
+html body .notification-inline-actions .button{display:inline-flex!important;width:auto!important;justify-content:center!important;align-items:center!important;grid-template-columns:none!important}
 html body .notification-inline-actions .button-secondary{border:1px solid var(--lo-color-border)!important;background:#fff!important;color:#1f3a52!important}
 html body .notification-inline-actions .button-secondary:hover{background:#f2f7fb!important}
 html body .login-briefing-dialog .briefing-summary-v2>span,html body .login-briefing-dialog .briefing-footer-v2 span{font-size:12px!important}
