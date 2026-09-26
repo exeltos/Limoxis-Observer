@@ -24,27 +24,27 @@
   margin:0!important;
   padding:10px 16px;
   border-bottom:1px solid var(--lo-color-border);
-  background:var(--lo-color-surface)!important;
+  background:var(--lo-color-surface);
 }
 .entity-record-shell .record-secondary-registry>.scroll-table{
-  width:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  height:100%!important;
-  margin:0!important;
+  width:100%;
+  min-width:0;
+  min-height:0;
+  height:100%;
+  margin:0;
   overflow-x:hidden!important;
   overflow-y:auto!important;
   border:0!important;
   border-radius:0!important;
-  background:var(--lo-color-surface)!important;
-  box-shadow:none!important;
+  background:var(--lo-color-surface);
+  box-shadow:none;
 }
 .entity-record-shell .record-secondary-registry>.scroll-table>.data-table{
-  width:100%!important;
-  min-width:0!important;
-  max-width:100%!important;
-  table-layout:fixed!important;
-  margin:0!important;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  table-layout:fixed;
+  margin:0;
 }
 .entity-record-shell .record-secondary-registry>.scroll-table>.data-table th,
 .entity-record-shell .record-secondary-registry>.scroll-table>.data-table td{
@@ -55,16 +55,16 @@
 }
 .entity-record-shell .record-secondary-registry>.registry-pagination,
 .entity-record-shell .record-secondary-registry>[class*="registry-pagination"]{
-  width:100%!important;
-  min-width:0!important;
-  min-height:44px!important;
-  margin:0!important;
-  padding-left:12px!important;
-  padding-right:12px!important;
-  border:0!important;
-  border-top:1px solid var(--lo-color-border)!important;
-  border-radius:0!important;
-  background:var(--lo-color-surface)!important;
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  margin:0;
+  padding-left:12px;
+  padding-right:12px;
+  border:0;
+  border-top:1px solid var(--lo-color-border);
+  border-radius:0;
+  background:var(--lo-color-surface);
 }
 .entity-record-shell .record-secondary-registry>.registry-empty-state,
 .entity-record-shell .record-secondary-registry>.inline-empty,
@@ -88,13 +88,13 @@
   flex:1 1 0!important;
 }
 .entity-record-shell.record-secondary-tab-active .record-secondary-registry>.scroll-table{
-  min-height:0!important;
-  height:100%!important;
+  min-height:0;
+  height:100%;
 }
 
 /* Keep pagination visible at the bottom while only the table body grows/scrolls. */
 .entity-record-shell.record-secondary-tab-active .record-secondary-registry{
-  grid-template-rows:auto auto minmax(0,1fr) auto!important;
+  grid-template-rows:auto auto minmax(0,1fr) auto;
 }
 .entity-record-shell.record-secondary-tab-active .record-secondary-registry>.scroll-table{
   grid-row:3;
@@ -112,19 +112,19 @@
 
 .entity-record-shell.record-secondary-tab-active .record-secondary-registry>.employee-registry-pagination-slot{
   grid-row:4;
-  min-width:0!important;
-  width:100%!important;
-  align-self:end!important;
-  background:var(--lo-color-surface)!important;
-  border-top:1px solid var(--lo-color-border)!important;
+  min-width:0;
+  width:100%;
+  align-self:end;
+  background:var(--lo-color-surface);
+  border-top:1px solid var(--lo-color-border);
   z-index:3;
 }
 .entity-record-shell.record-secondary-tab-active .employee-registry-pagination-slot>.registry-pagination{
   width:100%;
   margin:0;
   border:0;
-  border-radius:0!important;
-  background:transparent!important;
+  border-radius:0;
+  background:transparent;
 }
 
 .evaluation-scale-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:4px 0 16px}

@@ -1,8 +1,4 @@
 .employee-surveillance-entry .employee-mode-switch{margin-bottom:18px}
-.employee-surveillance-entry .employee-single-fields{display:grid;gap:18px}
-.employee-surveillance-entry .employee-single-controls{align-items:start}
-.employee-surveillance-entry .employee-single-controls .bulk-screening-types{margin:0}
-.employee-surveillance-entry .employee-notes{margin-top:18px}
 .employee-surveillance-entry .bulk-employee-row{min-height:54px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
 .employee-surveillance-entry .bulk-employee-row.selected{background:var(--lo-status-success-bg)}
 .employee-surveillance-entry .bulk-employee-row>label{min-width:0;flex:1;display:flex;align-items:center;gap:10px;cursor:pointer}

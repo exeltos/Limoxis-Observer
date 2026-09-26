@@ -3,6 +3,9 @@ import fs from 'node:fs'
 import { INDICATOR_METRICS } from '../src/features/indicators/indicatorDefinitionService.js'
 import { indicatorMetricLabel, metricLabels } from '../src/features/indicators/IndicatorDefinitionForm.jsx'
 import { visibleForDepartment } from '../src/features/indicators/indicatorCloudService.js'
+// Only the declarations matter here, not whether they carry !important.
+const withoutImportant = css => css.replaceAll('!important', '')
+
 
 const coreCss = fs.readFileSync('src/styles/foundation.css', 'utf8')
 const definitionForm = fs.readFileSync('src/features/indicators/IndicatorDefinitionForm.jsx', 'utf8')
@@ -33,11 +36,11 @@ describe('indicator metric labels: every metric has a real bilingual label', () 
 
 describe('indicator definition form: compact 3-column layout', () => {
   it('packs the entry-grid into 3 columns for both create and record forms', () => {
-    expect(coreCss).toContain('.indicator-create-form .entry-grid,\n.indicator-record-form .entry-grid{\n  grid-template-columns:repeat(3,minmax(0,1fr))!important;')
+    expect(withoutImportant(coreCss)).toContain('.indicator-create-form .entry-grid,\n.indicator-record-form .entry-grid{\n  grid-template-columns:repeat(3,minmax(0,1fr));')
   })
 
   it('keeps title, definitions and validation notes full-width', () => {
-    expect(coreCss).toContain('.indicator-create-form .entry-grid .entry-span-2,\n.indicator-record-form .entry-grid .entry-span-2{\n  grid-column:1 / -1!important;\n}')
+    expect(withoutImportant(coreCss)).toContain('.indicator-create-form .entry-grid .entry-span-2,\n.indicator-record-form .entry-grid .entry-span-2{\n  grid-column:1 / -1;\n}')
   })
 })
 

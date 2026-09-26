@@ -119,5 +119,5 @@
 /* Fit the Sample tab on one laptop screen (~1500×815): the sample details use
    the shared read-only info sheet, made a little shorter here. The body keeps
    overflow:auto, so longer content still scrolls. */
-.canonical-detail-screen.record-general-tab-active.laboratory-record-shell .laboratory-summary-grid:not(.employee-inline-edit):not(.editable-grid){margin-top:0!important;padding:0!important}
-.canonical-detail-screen.record-general-tab-active.laboratory-record-shell .laboratory-summary-grid:not(.employee-inline-edit):not(.editable-grid)>.detail-item{min-height:52px!important;padding:8px 16px!important}
+.canonical-detail-screen.record-general-tab-active.laboratory-record-shell .laboratory-summary-grid:not(.employee-inline-edit):not(.editable-grid){margin-top:0;padding:0}
+.canonical-detail-screen.record-general-tab-active.laboratory-record-shell .laboratory-summary-grid:not(.employee-inline-edit):not(.editable-grid)>.detail-item{min-height:52px;padding:8px 16px!important}

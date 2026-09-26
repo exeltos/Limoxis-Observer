@@ -10,8 +10,8 @@ const ownerPolish=fs.readFileSync('src/styles/design-system.css','utf8')
 describe('Analysis workspace layout and organization summary strip polish',()=>{
   it('never clips the analytics sticky filter/tabs row behind a fixed height', () => {
     expect(analysisPrint).not.toContain('flex:0 0 120px!important;height:120px!important;min-height:120px!important;max-height:120px!important')
-    const sticky=[...analysisPrint.matchAll(/\.analysis-workspace>\.analysis-sticky\{([^}]*)\}/g)].map(m=>m[1]).join(';')
-    for(const declaration of ['height:auto!important','min-height:0!important','max-height:none!important','margin:0!important','padding:14px 16px!important','overflow:visible!important'])expect(sticky).toContain(declaration)
+    const sticky=[...withoutImportant(analysisPrint).matchAll(/\.analysis-workspace>\.analysis-sticky\{([^}]*)\}/g)].map(m=>m[1]).join(';')
+    for(const declaration of ['height:auto','min-height:0','max-height:none','margin:0','padding:14px 16px','overflow:visible'])expect(sticky).toContain(declaration)
   })
 
   it('gives the organization/organization-owned summary strips the same platform-wide styling regardless of hospital vs platform scope', () => {

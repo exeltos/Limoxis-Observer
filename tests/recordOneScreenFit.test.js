@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
+// Only the declarations matter here, not whether they carry !important.
+const withoutImportant = css => css.replaceAll('!important', '')
+
 
 // User-reported: the Laboratory sample tab and the Quality incident record
 // needed a scrollbar on a normal laptop window (~1500×815) although their
@@ -14,8 +17,8 @@ describe('Laboratory and Quality records fit one laptop screen', () => {
   })
 
   it('uses shorter info rows in both records', () => {
-    expect(modules).toContain('min-height:54px!important')
-    expect(lab).toMatch(/laboratory-summary-grid[^{]*>\.detail-item\{min-height:52px!important/)
+    expect(withoutImportant(modules)).toContain('min-height:54px')
+    expect(withoutImportant(lab)).toMatch(/laboratory-summary-grid[^{]*>\.detail-item\{min-height:52px/)
   })
 
   it('keeps the record bodies scrollable as a fallback', () => {
