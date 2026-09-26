@@ -29,6 +29,12 @@ imported by their components and load with them.
   is overridden by a later rule with the identical selector in the same
   context. `npm run css:prune` removes such declarations; the result is
   cascade-identical by construction.
+- `npm run audit:dead-selectors` (after the build, part of `npm run check`)
+  fails when a rule's selectors require a class or id that no code sets — not
+  in the built app or libraries, and not as the stem of a dynamically built
+  name. `node tools/check-dead-selectors.mjs --write` removes such rules.
+- Do not add `!important` to win against another rule; raise specificity or
+  put the rule in the right section instead.
 
 ## Visual regression check
 
@@ -82,3 +88,18 @@ stay until checked the same way.
 
 Verified by the computed-style comparison: 76 states, 31,690 elements,
 **0 differences**; accessibility audit: 55 states, 0 violations.
+
+## Dead rules and more `!important` flags, 2026-09-26 (second pass)
+
+- **2,404 dead rules (7,834 declarations) removed**: every selector of each
+  rule required a class that no code sets (leftovers of removed components).
+  Built CSS 924 → 656 kB (gzip 136 → 101 kB).
+- **1,180 more `!important` flags dropped**, with the same per-element check
+  as above over 228 crawled states (every tab of every page and of its first
+  records, create dialogs, filters, account and platform pages). Two
+  competing flags that are both dropped keep their relative order, so they no
+  longer block each other; animations are checked per element.
+- `!important`: 8,459 → **5,515** (−35%).
+
+Verified: computed-style comparison 76 states / 31,690 elements, **0
+differences**; accessibility 55 states, 0 violations.
