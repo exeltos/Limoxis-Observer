@@ -4174,7 +4174,7 @@ button{letter-spacing:0}
 .registry-row-clickable,.clickable-row{cursor:pointer!important}
 .registry-row-returned{background:#eef6fb!important;box-shadow:inset 3px 0 0 #6aa3c8!important}
 .data-table td strong{font-weight:620!important;color:#24374a!important}
-.data-table td small{font-size:9.5px!important;color:#7b8795!important}
+.data-table td small{font-size:9.5px!important;color:#626e7b!important}
 .registry-empty-state,.empty-state{padding:28px 18px!important;border:1px dashed #d4dde5!important;border-radius:9px!important;background:#fafbfc!important;color:#6b7989!important}
 
 /* Tabs */
@@ -4190,7 +4190,7 @@ button{letter-spacing:0}
 .canonical-metric-icon{width:28px!important;height:28px!important;border-radius:7px!important;background:#eef4f7!important;color:#52768e!important}
 .canonical-metric-icon svg{width:15px!important;height:15px!important}
 .canonical-metric-copy strong{font-size:18px!important;line-height:1.05!important;font-weight:660!important;color:#203b52!important}
-.canonical-metric-copy span{font-size:9.5px!important;color:#6e7d8d!important;line-height:1.25!important}
+.canonical-metric-copy span{font-size:9.5px!important;color:#616e7c!important;line-height:1.25!important}
 .governance-banner,.info-banner,.source-truth-note{border-radius:8px!important;border:1px solid #dce6ed!important;background:#f5f9fb!important;color:#526a7c!important;box-shadow:none!important;font-size:10.5px!important;padding:8px 10px!important}
 
 /* Status */
@@ -4284,7 +4284,7 @@ button{letter-spacing:0}
 .topbar-organization-context>svg{flex:0 0 auto!important;color:#6e8ba4!important}
 .topbar-organization-copy{min-width:0!important;display:flex!important;flex-direction:column!important;line-height:1.1!important}
 .topbar-organization-copy strong{max-width:250px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:11px!important;color:#183a5a!important}
-.topbar-organization-copy span{max-width:250px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;margin-top:2px!important;font-size:8.75px!important;color:#8795a4!important}
+.topbar-organization-copy span{max-width:250px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;margin-top:2px!important;font-size:8.75px!important;color:#5f6d7d!important}
 .topbar-organization-switch{position:relative!important;display:flex!important;align-items:center!important;margin-left:4px!important;padding-left:7px!important;border-left:1px solid #edf1f4!important}
 .topbar-organization-switch select{
   appearance:none!important;
@@ -5274,7 +5274,7 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .episode-workspace-topline{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(320px,420px)!important;gap:12px!important;align-items:stretch!important}
 .episode-progress-copy{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:4px!important;padding:13px 14px!important;border:1px solid #dde8f1!important;border-radius:12px!important;background:#fff!important}
 .episode-progress-copy strong{font-size:14px!important;color:#173956!important}
-.episode-progress-copy>span:last-child{font-size:12px!important;color:#6b8194!important}
+.episode-progress-copy>span:last-child{font-size:12px!important;color:#5c6f7f!important}
 .ecdc-review-card{display:flex!important;flex-direction:column!important;gap:4px!important;padding:12px 14px!important;border:1px solid #d9e6f0!important;border-left:4px solid #6e9fbd!important;border-radius:12px!important;background:#fff!important}
 .ecdc-review-card>span{font-size:10.5px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.04em!important;color:#688096!important}
 .ecdc-review-card strong{font-size:13px!important;color:#173956!important}

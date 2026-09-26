@@ -34,7 +34,7 @@ html body .surveillance-episode-page .clinical-panel .record-section-header>div 
 html body .surveillance-episode-page .clinical-panel .record-section-header strong{font-size:15px!important}
 html body .surveillance-episode-page .detail-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))!important;gap:10px!important;margin-bottom:12px!important}
 html body .surveillance-episode-page .detail-item{padding:10px 12px!important;border:1px solid #e3ebf2!important;border-radius:10px!important;background:#fafcfe!important;min-width:0!important;min-height:0!important;height:auto!important}
-html body .surveillance-episode-page .detail-item span{display:block!important;margin-bottom:3px!important;font-size:11.5px!important;color:#6b8194!important}
+html body .surveillance-episode-page .detail-item span{display:block!important;margin-bottom:3px!important;font-size:11.5px!important;color:#5c6f7f!important}
 html body .surveillance-episode-page .detail-item strong{display:block!important;font-size:13.5px!important;overflow-wrap:anywhere!important}
 html body .surveillance-episode-page .clinical-summary{margin:0 0 12px!important;font-size:13.5px!important;line-height:1.55!important}
 
@@ -53,7 +53,7 @@ html body .surveillance-episode-page .clinical-timeline article:hover{background
 html body .surveillance-episode-page .clinical-timeline article>div{display:block!important;width:100%!important}
 html body .surveillance-episode-page .clinical-timeline header{display:flex!important;align-items:baseline!important;justify-content:space-between!important;gap:12px!important;margin:0 0 4px!important;width:100%!important}
 html body .surveillance-episode-page .clinical-timeline header strong{font-size:13.5px!important;white-space:normal!important}
-html body .surveillance-episode-page .clinical-timeline time{font-size:12px!important;color:#6b8194!important;white-space:nowrap!important}
+html body .surveillance-episode-page .clinical-timeline time{font-size:12px!important;color:#5c6f7f!important;white-space:nowrap!important}
 html body .surveillance-episode-page .clinical-timeline p{margin:0!important;font-size:13px!important;line-height:1.5!important;color:#44576b!important}
 
 /* ===== Surveillance & samples: episode cards with indented sample tree ===== */
@@ -95,7 +95,7 @@ html body .surveillance-episode-page .clinical-timeline p{margin:0!important;fon
 .sv-sample-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--tone) 12%,#fff);color:var(--tone)}
 .sv-sample-main{display:grid;gap:2px;min-width:0}
 .sv-sample-main strong{font-size:13px;color:#1f3a52}
-.sv-sample-main small{font-size:12px;color:#6b8194;overflow-wrap:anywhere}
+.sv-sample-main small{font-size:12px;color:#5c6f7f;overflow-wrap:anywhere}
 .sv-sample-result{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
 .sv-result{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:800;background:color-mix(in srgb,var(--tone) 12%,#fff);color:color-mix(in srgb,var(--tone) 80%,#000)}
 .sv-sample-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
@@ -118,7 +118,7 @@ html body .surveillance-final-report.final-report-v2{max-width:none!important;wi
 .final-report-hero h2{margin:4px 0 4px;font-size:20px;color:#173a57}
 .final-report-hero p{margin:0;font-size:13px;color:#5f768a}
 .final-report-hero-facts{display:grid;grid-template-columns:repeat(4,auto);gap:10px 26px}
-.final-report-hero-facts small,.final-report-facts small{display:block;font-size:11.5px;font-weight:650;color:#6b8194;margin-bottom:3px}
+.final-report-hero-facts small,.final-report-facts small{display:block;font-size:11.5px;font-weight:650;color:#5c6f7f;margin-bottom:3px}
 .final-report-hero-facts strong{font-size:14px;color:#1f3a52}
 .final-report-chips{display:flex;gap:6px;flex-wrap:wrap}
 .final-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -131,13 +131,13 @@ html body .surveillance-final-report.final-report-v2{max-width:none!important;wi
 .final-report-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .final-report-facts>div{padding:10px 12px;border:1px solid #e3ebf2;border-radius:10px;background:#fafcfe}
 .final-report-facts strong{font-size:13.5px;color:#1f3a52;overflow-wrap:anywhere}
-.final-report-note{display:block;margin-top:8px;font-size:12px;color:#6b8194}
-.final-report-empty{margin:0!important;color:#6b8194!important;font-size:13px!important}
+.final-report-note{display:block;margin-top:8px;font-size:12px;color:#5c6f7f}
+.final-report-empty{margin:0!important;color:#5c6f7f!important;font-size:13px!important}
 .final-report-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .final-report-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 12px;border:1px solid #e3ebf2;border-radius:10px;background:#fafcfe}
 .final-report-list li strong{font-size:13.5px;color:#1f3a52}
 .final-report-list li span{grid-column:1;font-size:12.5px;color:#5f768a}
-.final-report-list li small{grid-column:2;grid-row:1;font-size:12px;color:#6b8194;white-space:nowrap}
+.final-report-list li small{grid-column:2;grid-row:1;font-size:12px;color:#5c6f7f;white-space:nowrap}
 .final-report-card .clinical-data-hub{padding:0}
 @media (max-width:1100px){.final-report-hero{grid-template-columns:minmax(0,1fr)}.final-report-hero-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.final-report-grid{grid-template-columns:minmax(0,1fr)}}
 @media print{.final-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.final-report-card{break-inside:avoid}}
