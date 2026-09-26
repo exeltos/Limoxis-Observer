@@ -184,3 +184,30 @@ from tenant records and organization overrides.
 - Keep protected system/reference master data immutable to organization users;
   only Platform Owner may mutate records explicitly designated as
   platform-protected.
+
+## SECURITY DEFINER functions
+
+A SECURITY DEFINER function runs with its owner's rights and bypasses RLS, so
+every one that `anon` or `authenticated` can call through `/rest/v1/rpc` is
+declared in `supabase/security-definer-manifest.json`, with a category and a
+reason:
+
+- **rls-helper**: answers only what the *caller* may do (`current_user_*`,
+  `is_org_*`, `has_org_role`). RLS policies run with the caller's rights, so
+  these helpers must stay executable by `authenticated`.
+- **rpc**: performs an action or returns data; it must check the caller itself
+  (`auth.uid()` or a `current_user_*` / `is_org_*` helper).
+- **public-token**: callable before sign-in (`anon`). It is either guarded by a
+  random one-time access token (training e-mail links) or exposes no
+  organisation data (the login-screen notice).
+
+Trigger functions must not be executable by anyone.
+
+`npm run audit:security-definer` (part of `npm run check`) replays the
+migrations and fails when an exposed function is undeclared, its exposure
+differs from the manifest, an `rpc` has no caller check, `anon` reaches
+anything other than `public-token`, or a trigger function is callable. The
+2026-09-26 audit found all 45 exposed functions guarded. The revokes for 9
+helpers had been applied to production outside the migration history.
+`20260926120000_revoke_anon_on_security_definer_helpers.sql` now records them,
+so a database rebuilt from the migrations matches production.
