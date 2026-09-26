@@ -299,6 +299,11 @@
 
 /* Age/definition mismatch note under the HAI definition picker (infants ≤1 year). */
 .hai-age-warning{display:block;margin-top:5px;color:#8a5a00;font-size:11px;line-height:1.4;font-weight:600}
+/* HAI criteria checklist: checkbox to the left of each criterion, readable text.
+   Needs to outrank the dialog's generic stacked-label and label-caption rules. */
+.patient-simple-dialog .entry-grid .hai-criteria-group>label.hai-criteria-item{flex-direction:row;align-items:center;gap:10px;padding:6px 0;cursor:pointer}
+.patient-simple-dialog .entry-grid .hai-criteria-item>input{flex:0 0 auto;width:16px!important;height:16px!important;min-height:0!important;margin:0!important;cursor:pointer}
+.patient-simple-dialog .entry-grid .hai-criteria-item>span{display:block!important;margin:0!important;font-size:13px!important;font-weight:500!important;line-height:1.45;color:#26394e}
 
 /* ==== patient-workspace-polish ==== */.patient-record-shell>.entity-record-body{overflow-y:auto!important;overflow-x:hidden!important}.patient-record-shell>.entity-record-body:has(>.patient-home-layout){overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;min-height:0!important}.patient-home-layout{height:auto!important;min-height:min-content!important;overflow:visible!important}.patient-record-shell .clinical-panel.full-panel:has(.attachment-field){border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}.patient-record-shell .attachment-field-v2{border:0!important;outline:0!important;background:transparent!important;padding:2px 0 0!important}.patient-record-shell .attachment-heading{padding:8px 0 10px!important;border-bottom:1px solid #e6edf2}.patient-record-shell .attachment-list{margin-top:8px}.patient-record-shell .attachment-row-v2{border:1px solid #e4ebf0!important;border-radius:9px!important;background:#fff!important;margin-bottom:7px}.unified-surveillance-workspace .surveillance-tree-episode{background:#eef7fc!important;border-left:3px solid #3195c9!important}.unified-surveillance-workspace .surveillance-tree-group>.surveillance-sample-row{background:#fff!important}.unified-surveillance-workspace .surveillance-independent-samples{margin-top:6px!important;border-top:2px solid #cbd8e1!important;padding-top:0!important}
 

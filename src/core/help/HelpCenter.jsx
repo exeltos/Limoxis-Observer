@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Info, Maximize2, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Info,  Search, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { APP_VERSION, BUILD_ID } from '../version'
 import { useLocation } from 'react-router-dom'
 import { glossary } from './helpContent'
@@ -182,7 +182,7 @@ export function HelpCenter({open,onClose}){
 
     {mode==='manual'&&<aside className="manual-preview-pane real-screen-pane">
       <header><span>{platformMode?tx.previewLabel:tx.liveScreen}</span><b>{current.title}</b></header>
-      {platformMode?<div className="manual-preview-unavailable"><ShieldCheck size={20}/><strong>{tx.platformPreviewTitle}</strong><span>{tx.platformPreviewBody}</span></div>:<button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title={tx.zoom}><iframe src={netlifyPreviewUrl(selected,role,language)} title={`${tx.previewFrameTitle} ${current.title}`} tabIndex="-1"/><span><Maximize2 size={14}/>{tx.zoom}</span></button>}
+      {platformMode?<div className="manual-preview-unavailable"><ShieldCheck size={20}/><strong>{tx.platformPreviewTitle}</strong><span>{tx.platformPreviewBody}</span></div>:<button className="real-screen-thumb netlify-screen-thumb" onClick={()=>setImageOpen(true)} title={tx.zoom} aria-label={`${tx.zoom}: ${current.title}`}><iframe src={netlifyPreviewUrl(selected,role,language)} title={`${tx.previewFrameTitle} ${current.title}`} tabIndex="-1"/></button>}
       {!platformMode&&<section className="manual-explain"><h3>{tx.realScreen}</h3><div><b>1</b><p><strong>{tx.liveTitle}</strong><span>{tx.liveBody}</span></p></div><div><b>2</b><p><strong>{tx.updatedTitle}</strong><span>{tx.updatedBody}</span></p></div></section>}
       {related.length>0&&<section className="manual-related"><h3>{tx.related}</h3>{related.map(item=>{const Icon=item.icon||BookOpen;return <button key={item.to} onClick={()=>selectModule(item.to)}><Icon size={14}/><span>{item.manual.title}</span><ChevronRight size={13}/></button>})}</section>}
     </aside>}
