@@ -13,49 +13,55 @@ const toLibraryTuple=row=>[
   {id:row.id,system:Boolean(row.metadata?.system),locked:Boolean(row.metadata?.locked),source:row.source_authority||'Hospital',version:row.source_version||'local',code:row.code||null},
 ]
 
+// departments.department_type drives neonatal/paediatric logic (clinical scale
+// recommendations, NICU/PICU context); the check constraint allows these values.
+export const DEPARTMENT_TYPES=Object.freeze(['general','icu','nicu','picu'])
+export const departmentTypeValue=value=>DEPARTMENT_TYPES.includes(value)?value:'general'
+const departmentTuple=row=>[row.name,row.name,{id:row.id,system:false,locked:false,source:'Hospital',version:'local',code:row.code||null,departmentType:departmentTypeValue(row.department_type)}]
+
 export async function loadManagementLibraries(organizationId){
   assertCloud(organizationId)
   const [{data:departments,error:departmentError},{data:items,error:itemError}]=await Promise.all([
-    supabase.from('departments').select('id,name,code,is_active').eq('organization_id',organizationId).eq('is_active',true).order('name'),
+    supabase.from('departments').select('id,name,code,is_active,department_type').eq('organization_id',organizationId).eq('is_active',true).order('name'),
     supabase.from('master_library_items').select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version,is_active').eq('organization_id',organizationId).eq('is_active',true).order('name_el'),
   ])
   if(departmentError) throw departmentError
   if(itemError) throw itemError
-  const result={departments:(departments||[]).map(row=>[row.name,row.name,{id:row.id,system:false,locked:false,source:'Hospital',version:'local',code:row.code||null}])}
+  const result={departments:(departments||[]).map(departmentTuple)}
   for(const row of items||[]){if(!result[row.library_key])result[row.library_key]=[];result[row.library_key].push(toLibraryTuple(row))}
   return result
 }
 
-export async function createManagementLibraryItem(organizationId,libraryKey,{nameEl,nameEn}){
+export async function createManagementLibraryItem(organizationId,libraryKey,{nameEl,nameEn,departmentType}){
   assertCloud(organizationId)
   if(libraryKey==='departments'){
     const cleanName=String(nameEl||'').trim()
     if(!cleanName)throw new Error('Department name is required.')
-    const {data:existing,error:existingError}=await supabase.from('departments').select('id,name,code,is_active').eq('organization_id',organizationId).ilike('name',cleanName).maybeSingle()
+    const {data:existing,error:existingError}=await supabase.from('departments').select('id,name,code,is_active,department_type').eq('organization_id',organizationId).ilike('name',cleanName).maybeSingle()
     if(existingError) throw existingError
     if(existing){
       if(existing.is_active===false){
-        const {data:reactivated,error:reactivateError}=await supabase.from('departments').update({is_active:true,name:cleanName}).eq('organization_id',organizationId).eq('id',existing.id).select('id,name,code').single()
+        const {data:reactivated,error:reactivateError}=await supabase.from('departments').update({is_active:true,name:cleanName,...(departmentType?{department_type:departmentTypeValue(departmentType)}:{})}).eq('organization_id',organizationId).eq('id',existing.id).select('id,name,code,department_type').single()
         if(reactivateError)throw reactivateError
-        return [reactivated.name,reactivated.name,{id:reactivated.id,system:false,locked:false,source:'Hospital',version:'local',code:reactivated.code||null}]
+        return departmentTuple(reactivated)
       }
-      return [existing.name,existing.name,{id:existing.id,system:false,locked:false,source:'Hospital',version:'local',code:existing.code||null}]
+      return departmentTuple(existing)
     }
-    const {data,error}=await supabase.from('departments').insert({organization_id:organizationId,name:cleanName}).select('id,name,code').single()
+    const {data,error}=await supabase.from('departments').insert({organization_id:organizationId,name:cleanName,department_type:departmentTypeValue(departmentType)}).select('id,name,code,department_type').single()
     if(error) throw error
-    return [data.name,data.name,{id:data.id,system:false,locked:false,source:'Hospital',version:'local',code:data.code||null}]
+    return departmentTuple(data)
   }
   const {data,error}=await supabase.from('master_library_items').insert({organization_id:organizationId,library_key:libraryKey,name_el:nameEl,name_en:nameEn||nameEl,metadata:{system:false,locked:false},source_authority:'Hospital',source_version:'local'}).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
   if(error) throw error
   return toLibraryTuple(data)
 }
 
-export async function updateManagementLibraryItem(organizationId,libraryKey,row,{nameEl,nameEn}){
+export async function updateManagementLibraryItem(organizationId,libraryKey,row,{nameEl,nameEn,departmentType}){
   assertCloud(organizationId);const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
   if(libraryKey==='departments'){
-    const {data,error}=await supabase.from('departments').update({name:nameEl}).eq('organization_id',organizationId).eq('id',id).select('id,name,code').single()
+    const {data,error}=await supabase.from('departments').update({name:nameEl,department_type:departmentTypeValue(departmentType??row?.[2]?.departmentType)}).eq('organization_id',organizationId).eq('id',id).select('id,name,code,department_type').single()
     if(error) throw error
-    return [data.name,data.name,{id:data.id,system:false,locked:false,source:'Hospital',version:'local',code:data.code||null}]
+    return departmentTuple(data)
   }
   const system=Boolean(row?.[2]?.system)
   const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl,source_authority:system?'Limoxis System':(row?.[2]?.source||'Hospital'),source_version:system?(row?.[2]?.version||'current'):'local',metadata:{system,locked:system}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()

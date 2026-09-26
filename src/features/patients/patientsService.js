@@ -107,11 +107,13 @@ export async function archivePatient(organizationId, patient, reason, {isDemo=fa
   if(error) throw error
 }
 
-function mapAdmission(row, departmentLabel){
+function mapAdmission(row, departmentLabel, departmentType){
   return {
     id: row.id,
     departmentId: row.department_id,
     department: departmentLabel||'',
+    // read by clinical-scale recommendations (NICU/PICU/ICU context)
+    department_type: departmentType||row.department_type||null,
     admissionDate: row.admission_date,
     dischargeDate: row.discharge_date,
     status: row.status,
@@ -128,10 +130,10 @@ export async function loadAdmissions(patientOrRecordId, {isDemo=false}={}){
   const rows=data??[]
   const departmentIds=[...new Set(rows.map(row=>row.department_id).filter(Boolean))]
   if(!departmentIds.length) return rows.map(row=>mapAdmission(row,''))
-  const {data:departments,error:departmentError}=await supabase.from('departments').select('id,name').in('id',departmentIds)
+  const {data:departments,error:departmentError}=await supabase.from('departments').select('id,name,department_type').in('id',departmentIds)
   if(departmentError) throw departmentError
-  const departmentById=new Map((departments??[]).map(department=>[department.id,department.name]))
-  return rows.map(row=>mapAdmission(row,departmentById.get(row.department_id)||''))
+  const departmentById=new Map((departments??[]).map(department=>[department.id,department]))
+  return rows.map(row=>mapAdmission(row,departmentById.get(row.department_id)?.name||'',departmentById.get(row.department_id)?.department_type))
 }
 
 export async function createAdmission(organizationId, patient, draft, {isDemo=false}={}){

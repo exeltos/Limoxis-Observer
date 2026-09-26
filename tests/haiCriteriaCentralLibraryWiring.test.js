@@ -20,7 +20,7 @@ describe('HAI criteria central library wiring (platform review roadmap, P3)', ()
   it('threads organizationId/isDemo from the surveillance workspace down into the HAI dialog', () => {
     const page = read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
     expect(page).toContain('function CanonicalJourney({record,repository,libraries={},organizationId,isDemo,onLibraryAdded,onReload,t,language,fmtDate,fmtDateTime,permissions})')
-    expect(page).toContain('<HaiDialog t={t} items={libraries.surveillanceDefinitions||[]} organizationId={organizationId} isDemo={isDemo}')
+    expect(page).toContain('<HaiDialog t={t} items={libraries.surveillanceDefinitions||[]} patientAgeDays={patientAgeDays(record.dateOfBirth)} organizationId={organizationId} isDemo={isDemo}')
   })
 
   it('exposes a Platform-Owner-governed HAI criteria library panel wired into Management', () => {
