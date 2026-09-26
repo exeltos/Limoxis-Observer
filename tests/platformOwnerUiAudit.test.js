@@ -1,6 +1,7 @@
 import { describe,expect,it } from 'vitest'
 import fs from 'node:fs'
 import { roleLabel,SYSTEM_ROLE_KEYS } from '../src/core/permissions/roleLabels.js'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
 const read=path=>fs.readFileSync(path,'utf8')
 
@@ -68,7 +69,7 @@ describe('Platform Owner UI audit',()=>{
 
   it('renders Platform reports through the exact same Analysis workspace with platform scope only',()=>{
     const owner=read('src/features/workspaces/PlatformCenterPage.jsx')
-    const analysis=read('src/features/analysis/AnalysisPage.jsx')
+    const analysis=readAnalysisPageSource()
     expect(owner).toMatch(/<AnalysisPage\s+platform\s+organizations=\{organizations\}\s+forceDemo=\{platformDemoPreview\}\s*\/>/)
     expect(analysis).toContain('export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS,forceDemo=false})')
     expect(analysis).toContain('analysis-workspace')

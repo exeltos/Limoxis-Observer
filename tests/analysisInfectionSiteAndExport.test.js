@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 // Only the declarations matter here, not whether they carry !important.
 const withoutImportant = css => css.replaceAll('!important', '')
 
 
-const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
+const page = readAnalysisPageSource()
 const service = fs.readFileSync('src/features/platform/platformService.js', 'utf8')
 const demoSnapshot = fs.readFileSync('src/features/analysis/analysisDemoSnapshot.js', 'utf8')
 const filterCss = fs.readFileSync('src/styles/features.css', 'utf8')

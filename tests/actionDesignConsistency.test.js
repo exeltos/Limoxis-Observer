@@ -1,5 +1,6 @@
 import { describe,expect,it } from 'vitest'
 import fs from 'node:fs'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
 const actionButton=fs.readFileSync(new URL('../src/design-system/ActionButton.jsx',import.meta.url),'utf8')
 const recordActions=fs.readFileSync(new URL('../src/design-system/RecordActions.jsx',import.meta.url),'utf8')
@@ -7,7 +8,7 @@ const saveButton=fs.readFileSync(new URL('../src/design-system/SaveButton.jsx',i
 const backButton=fs.readFileSync(new URL('../src/design-system/BackButton.jsx',import.meta.url),'utf8')
 const observerDialog=fs.readFileSync(new URL('../src/design-system/ObserverDialog.jsx',import.meta.url),'utf8')
 const confirmDialog=fs.readFileSync(new URL('../src/design-system/ConfirmDialog.jsx',import.meta.url),'utf8')
-const analysis=fs.readFileSync(new URL('../src/features/analysis/AnalysisPage.jsx',import.meta.url),'utf8')
+const analysis=readAnalysisPageSource()
 const css=fs.readFileSync(new URL('../src/styles/design-system.css',import.meta.url),'utf8')
 
 describe('shared semantic action design',()=>{

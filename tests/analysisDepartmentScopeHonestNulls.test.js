@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
-const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
+const page = readAnalysisPageSource()
 
 // Analysis-page audit finding (P1): platform_report_summary returns `null`
 // for `antimicrobial` and `committees` when the request is department-scoped

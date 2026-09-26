@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
 const migration = fs.readFileSync('supabase/migrations/20260919300000_gate_analysis_occupational_health_by_capability.sql', 'utf8')
-const page = fs.readFileSync('src/features/analysis/AnalysisPage.jsx', 'utf8')
+const page = readAnalysisPageSource()
 
 // Regression test for an Analysis-page audit finding (P0): 20260919120000
 // deliberately removed hospital_admin's blanket view_occupational_health/

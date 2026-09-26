@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { describe,expect,it } from 'vitest'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
 // Regression guard: Demo may change repositories/data, never the product component tree.
 const users=fs.readFileSync('src/features/management/ManagementUsersPanel.jsx','utf8')
@@ -7,7 +8,7 @@ const employee=fs.readFileSync('src/features/employees/EmployeeRecordPage.jsx','
 const employeeTabs=fs.readFileSync('src/features/employees/EmployeeRecordTabs.jsx','utf8')
 const surveillance=fs.readFileSync('src/features/surveillance/SurveillanceCanonicalPage.jsx','utf8')
 const employeeDialog=fs.readFileSync('src/features/surveillance/EmployeeSurveillanceRecordDialog.jsx','utf8')
-const analysis=fs.readFileSync('src/features/analysis/AnalysisPage.jsx','utf8')
+const analysis=readAnalysisPageSource()
 const parityAudit=fs.readFileSync('tools/check-frontend-parity.mjs','utf8')
 const workflow=fs.readFileSync('.github/workflows/ci.yml','utf8')
 

@@ -1,128 +1,20 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
-import { Activity,BookOpen,BriefcaseMedical,Check,ChevronDown,ChevronUp,SlidersHorizontal,ClipboardCheck,Download,FileWarning,FlaskConical,GraduationCap,Hand,Microscope,Pill,Printer,ShieldAlert,ShieldCheck,Stethoscope,Users } from 'lucide-react'
+import { Check,ChevronDown,ChevronUp,SlidersHorizontal,Download,Printer,ShieldAlert } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { ROLES } from '../../core/permissions/roles'
 import { BackButton } from '../../design-system/BackButton'
-import { IconButton } from '../../design-system/IconButton'
-import { RegistryTable } from '../../design-system/RegistryTable'
 import { loadAnalysisSnapshot } from '../platform/platformService'
 import { collectAnalysisDemoSnapshot } from './analysisDemoSnapshot'
 import { buildSectionModel,collectDemoDomainMetrics } from './analysisDomains'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
-import { downloadCsv } from '../../core/export/csvExport'
-import { BarList,ChartCard,DonutChart,TrendChart,numericRows } from './AnalysisCharts'
 import { ReportingPanel } from '../reporting/ReportingPanel'
+import { COMPACT_QUERY,TABS,REPORTING_TAB,hashOrganization,fmtDate,calendarRange,periodSlotOptions,buildProductionRows } from './analysisPageModel'
+import { AnalysisSelect,KpiStrip,SectionCharts,MicrobiologyDistribution,NationalSurveillance,AmrRegister,DomainView,ScopeComparison } from './AnalysisPanels'
 
 const EMPTY_ORGANIZATIONS=Object.freeze([])
-const COMPACT_QUERY='(max-height: 900px) and (min-width: 981px)'
-const CLINICAL_SITES=['bloodCulture','urineCulture','respiratorySample','woundCulture']
-const SITE_LABELS={bloodCulture:['Αιμοκαλλιέργεια','Blood culture'],urineCulture:['Καλλιέργεια ούρων','Urine culture'],respiratorySample:['Αναπνευστικό δείγμα','Respiratory sample'],woundCulture:['Καλλιέργεια τραύματος','Wound culture'],environmental:['Περιβαλλοντικό δείγμα','Environmental sample'],surveillance:['Επιτήρηση προσωπικού','Staff surveillance'],surface:['Περιβαλλοντικό δείγμα (επιφάνεια)','Environmental sample (surface)'],equipment:['Περιβαλλοντικό δείγμα (εξοπλισμός)','Environmental sample (equipment)'],water:['Περιβαλλοντικό δείγμα (νερό)','Environmental sample (water)'],air:['Περιβαλλοντικό δείγμα (αέρας)','Environmental sample (air)']}
-// A sample_type an infection-control clinician can't place (an unrecognized
-// code, or a non-clinical environmental/surveillance swab that has no real
-// "infection site") must never echo verbatim — that reads as duplicated
-// garbage next to the specimen-detail column, which is exactly what it is.
-function siteLabel(value,tx){const pair=SITE_LABELS[value];return pair?tx(pair[0],pair[1]):tx('Λοιπό δείγμα','Other sample')}
-// Same (organism, resistance, department, source, site) line list every
-// chart on this page summarizes — cross-referencing organism with infection
-// site (blood/urine/respiratory/wound) directly, instead of the two only
-// being joinable by scanning the full line list by eye. Restricted to the
-// four clinical culture types: environmental/surveillance swabs have no
-// clinical "infection site" and would just dilute this breakdown.
-function organismBySiteRows(rows,tx,limit=12){
- const grouped=new Map()
- for(const [organism,,,,count,,sampleType] of rows||[]){
-  if(!CLINICAL_SITES.includes(sampleType))continue
-  const label=`${organism} · ${siteLabel(sampleType,tx)}`
-  grouped.set(label,(grouped.get(label)||0)+(Number(count)||0))
- }
- return [...grouped.entries()].sort((a,b)=>b[1]-a[1]).slice(0,limit)
-}
-const TABS=[['overview','Σύνοψη','Overview',Activity],['national','Εθνική Επιτήρηση','National surveillance',Microscope],['surveillance','Επιτήρηση & HAI','Surveillance & HAI',Stethoscope],['laboratory','Μικροβιολογία','Microbiology',FlaskConical],['amr','AMR / MDR-XDR','AMR / MDR-XDR',ShieldAlert],['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill],['prevention','Πρόληψη','Prevention',ShieldCheck],['hand','Υγιεινή Χεριών','Hand hygiene',Hand],['controls','Έλεγχοι','Controls',ClipboardCheck],['occupational','Εργαζόμενοι','Employees',Users],['quality','Ποιότητα','Quality',BriefcaseMedical],['training','Εκπαίδευση','Training',GraduationCap],['governance','Διακυβέρνηση','Governance',BookOpen]]
-// Organization-level only: data quality, ΕΟΔΥ notifications and EARS-Net export work on sample-level laboratory data.
-const REPORTING_TAB=['reporting','Αναφορές & ποιότητα δεδομένων','Reporting & data quality',FileWarning]
-const MONTHS_EL=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
-const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December']
-
-function hashOrganization(hash=''){const query=hash.includes('?')?hash.split('?')[1]:'';return new URLSearchParams(query).get('organization')||'all'}
-function fmtDate(value){if(!value)return '—';const [y,m,d]=String(value).slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:value}
-// An AMR row's value can be a "resistant/tested" ratio string (e.g. '3/12');
-// stripping the '/' without splitting first would concatenate both numbers
-// into one (numberValue('1/1') -> 11). Take the resistant count (numerator).
-function numberValue(value){const raw=String(value??'');const primary=raw.includes('/')?raw.split('/')[0]:raw;const normalized=primary.replaceAll('.','').replace(',','.').replace(/[^0-9.-]/g,'');const n=Number(normalized);return Number.isFinite(n)?n:0}
-function isoDate(year,month,day){return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`}
-function daysInMonth(year,month){return new Date(Number(year),Number(month),0).getDate()}
-function calendarRange(year,periodType,slot){const y=Number(year);if(periodType==='month'){const m=Number(slot)||1;return {from:isoDate(y,m,1),to:isoDate(y,m,daysInMonth(y,m))}}if(periodType==='quarter'){const q=Number(slot)||1,start=(q-1)*3+1,end=start+2;return {from:isoDate(y,start,1),to:isoDate(y,end,daysInMonth(y,end))}}if(periodType==='half'){const h=Number(slot)||1,start=h===1?1:7,end=h===1?6:12;return {from:isoDate(y,start,1),to:isoDate(y,end,daysInMonth(y,end))}}return {from:isoDate(y,1,1),to:isoDate(y,12,31)}}
-function periodSlotOptions(type,en){if(type==='month')return (en?MONTHS_EN:MONTHS_EL).map((label,index)=>[String(index+1),label]);if(type==='quarter')return [['1','Q1'],['2','Q2'],['3','Q3'],['4','Q4']];if(type==='half')return [['1',en?'1st half':'Α΄ εξάμηνο'],['2',en?'2nd half':'Β΄ εξάμηνο']];return []}
-
-function AnalysisSelect({label,value,onChange,children}){return <label className="analysis-filter-field"><span>{label}</span><select value={value} onChange={onChange}>{children}</select></label>}
-// KPI tile: [label, value, hint, tone] — tone is good / warning / danger.
-const KPI_TONES=new Set(['good','warning','danger'])
-function KpiStrip({rows}){return <div className="analysis-kpis">{rows.map(([label,value,hint,tone])=><article key={label} className={KPI_TONES.has(tone)?`kpi-${tone}`:''}><span>{label}</span><strong>{value}</strong>{hint&&hint!=='—'&&<small>{hint}</small>}</article>)}</div>}
-// Months without records are shown as 0 so the time axis stays evenly spaced.
-function continuousMonths(points=[]){if(points.length<2)return points;const values=new Map(points);const [fy,fm]=points[0][0].split('-').map(Number),[ly,lm]=points[points.length-1][0].split('-').map(Number);const out=[];for(let y=fy,m=fm;y<ly||(y===ly&&m<=lm);m===12?(y++,m=1):m++){const key=`${y}-${String(m).padStart(2,'0')}`;out.push([key,values.get(key)??0])}return out}
-function SectionCharts({charts,en}){return <div className="analysis-chart-grid">{charts.map(chart=><ChartCard key={chart.title} wide={chart.wide} title={chart.title} subtitle={chart.subtitle}>{chart.type==='trend'?<TrendChart points={continuousMonths(chart.points)} en={en} label={chart.title}/>:chart.type==='donut'?<DonutChart rows={chart.rows} en={en} centerLabel={chart.center}/>:chart.type==='rate'?<BarList rows={chart.rows} en={en} scale={100} suffix="%" max={12}/>:<BarList rows={chart.rows} en={en} max={12}/>}</ChartCard>)}</div>}
-const chartLanguage=tx=>tx('el','en')==='en'
-function MetricBars({rows,tx}){return <BarList rows={rows} en={chartLanguage(tx)} max={12}/>}
-function MicrobiologyDistribution({details,tx}){const en=chartLanguage(tx);return <div className="analysis-chart-grid"><ChartCard wide title={tx('Τάση θετικών αποτελεσμάτων','Positive-results trend')} subtitle={tx('Θετικά μικροβιολογικά αποτελέσματα ανά μήνα · περάστε το ποντίκι για τιμές.','Positive microbiology results by month · hover for values.')}><TrendChart points={details?.monthly||[]} en={en} label={tx('Τάση θετικών αποτελεσμάτων','Positive-results trend')}/></ChartCard><ChartCard title={tx('Κατανομή ανά τμήμα','Distribution by department')} subtitle={tx('Θετικά μικροβιολογικά αποτελέσματα','Positive microbiology results')}><BarList rows={details?.byDepartment||[]} en={en}/></ChartCard><ChartCard title={tx('Κατηγορίες αντοχής','Resistance classes')} subtitle={tx('Μερίδιο MDR / XDR / PDR στα θετικά αποτελέσματα.','Share of MDR / XDR / PDR among positive results.')}><DonutChart rows={details?.resistance||[]} en={en} centerLabel={tx('στελέχη','isolates')}/></ChartCard></div>}
-// The detailed line list every other microbiology chart on this page only
-// summarizes: one row per distinct (organism, resistance, department,
-// source, infection site) combination actually seen — this is what answers
-// "which microbe, in which department, from which specimen and infection
-// site" rather than independent one-dimensional breakdowns that can't be
-// cross-referenced.
-function NationalRowsTable({rows,tx,emptyText}){
-  const columns=[
-    {key:'organism',label:tx('Μικροοργανισμός','Organism')},
-    {key:'resistance',label:tx('Ανθεκτικότητα','Resistance')},
-    {key:'department',label:tx('Τμήμα','Department')},
-    {key:'site',label:tx('Σημείο λοίμωξης','Infection site')},
-    {key:'source',label:tx('Λεπτομέρεια δείγματος','Specimen detail')},
-    {key:'count',label:tx('Πλήθος','Count')},
-    {key:'lastDate',label:tx('Τελευταία καταγραφή','Last recorded')},
-  ]
-  return <RegistryTable columns={columns} rows={rows||[]} rowKey={(row,index)=>row.join('|')||index} emptyTitle={emptyText} renderRow={([organism,resistanceClass,department,source,count,lastDate,sampleType])=><>
-    <td>{organism}</td>
-    <td>{resistanceClass&&resistanceClass!=='—'?<span className="status-badge danger">{resistanceClass}</span>:'—'}</td>
-    <td>{department}</td>
-    <td>{siteLabel(sampleType,tx)}</td>
-    <td>{source}</td>
-    <td>{count}</td>
-    <td>{fmtDate(lastDate)}</td>
-  </>}/>
-}
-function exportNationalRowsCsv(rows,tx,filename){
-  const headers=[tx('Μικροοργανισμός','Organism'),tx('Ανθεκτικότητα','Resistance'),tx('Τμήμα','Department'),tx('Σημείο λοίμωξης','Infection site'),tx('Λεπτομέρεια δείγματος','Specimen detail'),tx('Πλήθος','Count'),tx('Τελευταία καταγραφή','Last recorded')]
-  const csvRows=(rows||[]).map(([organism,resistanceClass,department,source,count,lastDate,sampleType])=>[organism,resistanceClass,department,siteLabel(sampleType,tx),source,count,fmtDate(lastDate)])
-  downloadCsv(`${filename}.csv`,headers,csvRows)
-}
-function ExportCsvButton({rows,tx,filename}){return <IconButton size="sm" disabled={!rows?.length} label={tx('Λήψη CSV','Download CSV')} onClick={()=>exportNationalRowsCsv(rows,tx,filename)}><Download size={14}/></IconButton>}
-// Outbreak/cluster early-warning signal (platform review roadmap, P2):
-// same organism, same department, within a rolling window — reuses the
-// analysis-signal-card/analysis-signal-grid styling the load-error card
-// already established for this page, so a cluster reads as an alert
-// rather than another neutral chart.
-function ClusterAlerts({clusters,tx}){
-  if(!clusters?.length)return null
-  return <article className="analysis-signal-card"><header><div><ShieldAlert size={18}/><div><strong>{tx('Πιθανές συρροές λοιμώξεων','Possible infection clusters')}</strong><span>{tx('Ίδιος μικροοργανισμός στο ίδιο τμήμα μέσα σε στενό χρονικό διάστημα — ενδεικτικό σήμα επιτήρησης, δεν αποτελεί επιβεβαιωμένη επιδημική έξαρση.','Same organism in the same department within a short time span — a surveillance signal, not a confirmed outbreak.')}</span></div></div></header><div className="analysis-signal-grid">{clusters.slice(0,6).map((cluster,index)=><div key={index} className={cluster.resistanceLabels?.length?'critical':'warning'}><strong>{cluster.organism}</strong><span>{cluster.department} · {cluster.count} {tx('περιστατικά σε','cases in')} {cluster.windowDays} {tx('ημέρες','days')}{cluster.resistanceLabels?.length?` · ${cluster.resistanceLabels.join(', ')}`:''}</span><small>{fmtDate(cluster.firstDate)} → {fmtDate(cluster.lastDate)}</small></div>)}</div></article>
-}
-function NationalSurveillance({details,clusters,tx}){const nationalRows=details?.nationalRows||[];return <><ClusterAlerts clusters={clusters} tx={tx}/><MicrobiologyDistribution details={details} tx={tx}/><div className="analysis-chart-grid"><article className="analysis-chart-card analysis-wide-card"><header><div><strong>{tx('Μικροοργανισμοί','Microorganisms')}</strong><span>{tx('Συχνότερα θετικά ευρήματα','Most frequent positive findings')}</span></div></header><MetricBars rows={details?.microorganisms||[]} tx={tx}/></article></div><div className="analysis-chart-grid"><article className="analysis-chart-card"><header><div><strong>{tx('Σημείο λοίμωξης','Infection site')}</strong><span>{tx('Κατανομή ανά τύπο δείγματος','Distribution by specimen type')}</span></div></header><DonutChart rows={(details?.bySite||[]).filter(([value])=>CLINICAL_SITES.includes(value)).map(([value,count])=>[siteLabel(value,tx),count])} en={chartLanguage(tx)} centerLabel={tx('δείγματα','samples')}/></article><article className="analysis-chart-card"><header><div><strong>{tx('Λεπτομέρεια δείγματος','Specimen detail')}</strong><span>{tx('Κατανομή των θετικών ευρημάτων','Distribution of positive findings')}</span></div></header><MetricBars rows={details?.bySource||[]} tx={tx}/></article></div><article className="analysis-chart-card analysis-wide-card"><header><div><strong>{tx('Μικροοργανισμοί ανά σημείο λοίμωξης','Organisms by infection site')}</strong><span>{tx('Ποιος μικροοργανισμός εμφανίζεται σε ποιο σημείο λοίμωξης.','Which organism appears at which infection site.')}</span></div></header><MetricBars rows={organismBySiteRows(nationalRows,tx)} tx={tx}/></article><article className="analysis-chart-card analysis-wide-card"><header><div><strong>{tx('Μικροοργανισμοί ανά τμήμα και σημείο λοίμωξης','Organisms by department and infection site')}</strong><span>{tx('Αναλυτική καταγραφή ανά μικροοργανισμό, τμήμα, σημείο λοίμωξης και δείγμα.','Detailed line list by organism, department, infection site and specimen.')}</span></div><ExportCsvButton rows={nationalRows} tx={tx} filename={tx('μικροοργανισμοί_εθνική_επιτήρηση','organisms_national_surveillance')}/></header><NationalRowsTable rows={nationalRows} tx={tx} emptyText={tx('Δεν υπάρχουν καταγραφές για το ενεργό εύρος.','No records for the active scope.')}/></article></>}
-// AMR tab: the resistant subset of the same line list, alongside the
-// per-organism tested/resistant KPI rows already shown above it.
-function AmrRegister({details,tx}){const resistantRows=(details?.nationalRows||[]).filter(([,resistanceClass])=>['MDR','XDR','PDR'].includes(resistanceClass));return <article className="analysis-chart-card analysis-wide-card"><header><div><strong>{tx('Ανθεκτικά ευρήματα ανά τμήμα και σημείο λοίμωξης','Resistant findings by department and infection site')}</strong><span>{tx('MDR/XDR/PDR απομονώματα του ενεργού εύρους.','MDR/XDR/PDR isolates in the active scope.')}</span></div><ExportCsvButton rows={resistantRows} tx={tx} filename={tx('ανθεκτικά_ευρήματα_amr','amr_resistant_findings')}/></header><NationalRowsTable rows={resistantRows} tx={tx} emptyText={tx('Δεν υπάρχουν ανθεκτικά ευρήματα για το ενεργό εύρος.','No resistant findings for the active scope.')}/></article>}
-function DomainView({rows,micro,tab,tx,en}){
- const share=numericRows(rows).filter(([,value])=>value>0)
- const monthly=micro?.monthly||[]
- return <div className="analysis-chart-grid">
-  {tab==='overview'&&monthly.length>1&&<ChartCard wide title={tx('Θετικές καλλιέργειες ανά μήνα','Positive cultures by month')} subtitle={tx('Επικυρωμένα θετικά αποτελέσματα του ενεργού εύρους · περάστε το ποντίκι πάνω από το γράφημα για τιμές.','Validated positive results in the active scope · hover the chart for values.')}><TrendChart points={monthly} en={en} label={tx('Θετικές καλλιέργειες ανά μήνα','Positive cultures by month')}/></ChartCard>}
-  <ChartCard title={tx('Κατανομή τρέχουσας περιόδου','Current-period distribution')} subtitle={tx('Καταγραφές της επιλεγμένης ενότητας.','Records from the selected area.')}><BarList rows={rows} en={en}/></ChartCard>
-  {share.length>1&&<ChartCard title={tx('Μερίδιο επί του συνόλου','Share of total')} subtitle={tx('Πώς μοιράζονται οι καταγραφές της ενότητας.','How the section’s records are split.')}><DonutChart rows={share} en={en} centerLabel={tx('σύνολο','total')}/></ChartCard>}
- </div>}
-function ScopeComparison({title,subtitle,currentRows,compareRows,currentLabel,compareLabel,tx}){if(!compareRows?.length)return null;const comparison=new Map(compareRows.map(row=>[row[0],row[1]]));return <article className="analysis-chart-card analysis-wide-card"><header><div><strong>{title}</strong><span>{subtitle}</span></div></header><div className="analysis-comparison-table"><div className="head"><span>{tx('Δείκτης','Indicator')}</span><span>{currentLabel}</span><span>{compareLabel}</span><span>{tx('Διαφορά','Difference')}</span></div>{currentRows.map(([label,current])=>{const previous=comparison.get(label)??0;const diff=current==='—'||previous==='—'?'—':numberValue(current)-numberValue(previous);return <div key={label}><span>{label}</span><span>{current}</span><span>{previous}</span><span>{typeof diff==='number'&&diff>0?'+':''}{diff}</span></div>})}</div></article>}
-
-function buildProductionRows(tab,snapshot,tx){const summary=snapshot?.summary||{},micro=snapshot?.microbiology||{};const antimicrobial=summary.antimicrobial&&typeof summary.antimicrobial==='object'?summary.antimicrobial:null;const antimicrobialRows=antimicrobial?[[tx('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),antimicrobial.total??0,'—','up'],[tx('Σε αναμονή έγκρισης','Pending approval'),antimicrobial.pending??0,'—','up'],[tx('Χορηγήσεις','Administrations recorded'),antimicrobial.administrations??0,'—','up']]:[[tx('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),'—','—','up']];const amrRows=(snapshot?.amrSusceptibility||[]).length?snapshot.amrSusceptibility.map(([organism,tested,resistant])=>[organism,`${resistant}/${tested}`,'—','down']):[[tx('Δεν υπάρχουν δεδομένα ευαισθησίας','No susceptibility data'),'—','—','up']];const map={overview:[[tx('Επιτήρηση','Surveillance'),summary.surveillance??0,'—','up'],[tx('Εργαστήριο','Laboratory'),summary.laboratory??0,'—','up'],[tx('Πρόληψη','Prevention'),summary.prevention??0,'—','up'],[tx('Έλεγχοι','Controls'),summary.controls??0,'—','up'],[tx('Ποιότητα','Quality'),summary.quality??0,'—','up'],[tx('Εκπαίδευση','Training'),summary.training??0,'—','up']],national:[[tx('Θετικές καλλιέργειες','Positive cultures'),micro.totalPositive??0,'—','up'],['MDR/XDR/PDR',(micro.resistance||[]).reduce((sum,row)=>sum+Number(row[1]||0),0),'—','down'],[tx('Τμήματα με ≥1 εύρημα','Departments with ≥1 finding'),micro.departmentCount??0,'—','up'],[tx('Κρίσιμα αποτελέσματα','Critical results'),micro.totalCritical??0,'—','down']],surveillance:[[tx('Καταγραφές επιτήρησης','Surveillance records'),summary.surveillance??0,'—','up']],laboratory:[[tx('Εργαστηριακές καταγραφές','Laboratory records'),summary.laboratory??0,'—','up'],[tx('Θετικές καλλιέργειες','Positive cultures'),micro.totalPositive??0,'—','up'],[tx('Κρίσιμα αποτελέσματα','Critical results'),micro.totalCritical??0,'—','down']],amr:amrRows,antimicrobials:antimicrobialRows,prevention:[[tx('Πρόληψη','Prevention'),summary.prevention??0,'—','up'],[tx('Υγιεινή χεριών','Hand hygiene'),summary.handHygiene??0,'—','up'],[tx('Απόβλητα','Waste'),summary.waste??0,'—','up']],hand:[[tx('Υγιεινή χεριών','Hand hygiene'),summary.handHygiene??0,'—','up']],controls:[[tx('Έλεγχοι','Controls'),summary.controls??0,'—','up']],occupational:[[tx('Επισκέψεις εργαζομένων','Employee visits'),summary.occupationalHealth??'—','—','up']],quality:[[tx('Ποιότητα','Quality'),summary.quality??0,'—','up']],training:[[tx('Εκπαίδευση','Training'),summary.training??0,'—','up']],governance:[[tx('Έγγραφα','Documents'),summary.documents??0,'—','up'],[tx('Επιτροπές','Committees'),summary.committees??'—','—','up']]};return map[tab]||map.overview}
 
 export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS,forceDemo=false}){
  const {tenant,role,isDemo:contextIsDemo}=useTenant();const isDemo=contextIsDemo||forceDemo;const {language,t}=useLanguage();const {notifyError}=useFeedback();const location=useLocation();const navigate=useNavigate();const en=language==='en';const tx=(elText,enText)=>en?enText:elText

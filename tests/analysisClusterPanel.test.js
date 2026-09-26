@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import fs from 'node:fs'
 import { collectAnalysisDemoSnapshot } from '../src/features/analysis/analysisDemoSnapshot'
 import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
+import { readAnalysisPageSource } from './helpers/analysisPageSource'
 
 function storage() {
   const values = new Map()
@@ -28,7 +29,7 @@ describe('Analysis page cluster panel', () => {
   })
 
   it('renders a ClusterAlerts panel on the National surveillance tab', () => {
-    const page = fs.readFileSync(new URL('../src/features/analysis/AnalysisPage.jsx', import.meta.url), 'utf8')
+    const page = readAnalysisPageSource()
     expect(page).toContain('function ClusterAlerts(')
     expect(page).toContain('<ClusterAlerts clusters={clusters} tx={tx}/>')
     expect(page).toContain('<NationalSurveillance details={micro} clusters={clusters} tx={tx}/>')
