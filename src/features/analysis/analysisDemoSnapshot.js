@@ -55,13 +55,24 @@ function lastTwelveMonths(counts, now = new Date()) {
 
 // Same predicate as analysis_amr_susceptibility/indicator_metric_snapshot:
 // validated/amended isolates of the eight reference pathogens, tested
-// against their own reference drug.
-function collectAmrSusceptibility() {
-  const validated = laboratorySamples.filter(x => x.organism && ['validated', 'amended'].includes(x.resultStatus))
+// against their own reference drug — and, like analysis_amr_susceptibility,
+// only the first such isolate per patient, organism group and year
+// (ECDC/EARS-Net, CLSI M39).
+export function collectAmrSusceptibility(samples = laboratorySamples) {
+  const validated = samples.filter(x => x.organism && ['validated', 'amended'].includes(x.resultStatus))
+    .sort((a, b) => String(a.collectedAt || '').localeCompare(String(b.collectedAt || '')) || String(a.id).localeCompare(String(b.id)))
   return Object.entries(ORGANISM_PATTERNS)
     .map(([key, pattern]) => {
-      const isolates = validated.filter(x => String(x.organism).toLowerCase().includes(pattern))
-      const tested = isolates.flatMap(x => x.ast || []).filter(row => String(row.drug || '').toLowerCase().includes(REFERENCE_ANTIBIOTIC[key]))
+      const seen = new Set()
+      const tested = []
+      for (const isolate of validated.filter(x => String(x.organism).toLowerCase().includes(pattern))) {
+        const reference = (isolate.ast || []).filter(row => String(row.drug || '').toLowerCase().includes(REFERENCE_ANTIBIOTIC[key]))
+        if (!reference.length) continue
+        const patientKey = `${isolate.patientId || `sample:${isolate.id}`}|${String(isolate.collectedAt || '').slice(0, 4)}`
+        if (seen.has(patientKey)) continue
+        seen.add(patientKey)
+        tested.push(...reference)
+      }
       return [ORGANISM_LABELS[key], tested.length, tested.filter(row => row.sir === 'R').length]
     })
     .filter(([, tested]) => tested > 0)
