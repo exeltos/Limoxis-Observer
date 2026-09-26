@@ -75,31 +75,18 @@ pixel differences (at most 130 pixels, colour delta ≤ 30/255) were at the same
 noise level as comparing the previous build with itself (up to 712 pixels in
 24 of 76 states), i.e. anti-aliasing noise, not layout or colour changes.
 
-## `!important` reduction of 2026-09-26
+## Dead rules, 2026-09-26
 
-833 of 9,292 `!important` flags were dropped (8,460 remain). A flag was dropped
-only when, across 191 screen states (every main screen at three widths, Greek
-and English, create dialogs, filters, notifications and record tabs of twelve
-registries), no element it matched was also matched by a declaration of the
-same property family that would win once the flag is gone, and the property is
-neither animated nor set inline on those elements. The remaining flags either
-compete with another rule or apply to states that were not visited, so they
-stay until checked the same way.
-
-Verified by the computed-style comparison: 76 states, 31,690 elements,
-**0 differences**; accessibility audit: 55 states, 0 violations.
-
-## Dead rules and more `!important` flags, 2026-09-26 (second pass)
-
-- **2,404 dead rules (7,834 declarations) removed**: every selector of each
+- **2,519 dead rules (8,244 declarations) removed**: every selector of each
   rule required a class that no code sets (leftovers of removed components).
-  Built CSS 924 → 656 kB (gzip 136 → 101 kB).
-- **1,180 more `!important` flags dropped**, with the same per-element check
-  as above over 228 crawled states (every tab of every page and of its first
-  records, create dialogs, filters, account and platform pages). Two
-  competing flags that are both dropped keep their relative order, so they no
-  longer block each other; animations are checked per element.
-- `!important`: 8,459 → **5,515** (−35%).
+  Built CSS 924 → 664 kB. `npm run audit:dead-selectors` now keeps it
+  that way.
+- An attempt to drop `!important` flags based on the screens the demo can
+  open (PRs #418/#419) was **reverted**: a review found a flag whose competing
+  rule only applies on Platform Owner analytics, which the demo cannot render.
+  Under the strict rule (every competing rule must itself be observed), only
+  6 of 2,017 flags could be proven safe, so all were restored. Reduce
+  `!important` by hand, section by section, checking the screens it styles.
 
-Verified: computed-style comparison 76 states / 31,690 elements, **0
-differences**; accessibility 55 states, 0 violations.
+Verified: computed-style comparison against `main` on 76 states, 0
+differences; accessibility 55 states, 0 violations.

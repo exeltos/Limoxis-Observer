@@ -8,68 +8,68 @@
 .filter-search{
   display:flex!important;
   flex-direction:row!important;
-  align-items:center;
+  align-items:center!important;
   gap:8px!important;
   height:34px!important;
   min-height:34px!important;
-  padding:0 9px;
-  border:1px solid var(--lo-color-border,#dbe2e8);
-  border-radius:7px;
-  background:#fff;
-  box-shadow:none;
-  overflow:hidden;
+  padding:0 9px!important;
+  border:1px solid var(--lo-color-border,#dbe2e8)!important;
+  border-radius:7px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
 }
 .filter-search:focus-within{
-  border-color:#8fb8d4;
-  box-shadow:0 0 0 3px rgba(37,107,155,.08);
+  border-color:#8fb8d4!important;
+  box-shadow:0 0 0 3px rgba(37,107,155,.08)!important;
 }
 .filter-search>svg{
-  flex:0 0 auto;
-  color:#73869a;
+  flex:0 0 auto!important;
+  color:#73869a!important;
 }
 .filter-search>input{
-  flex:1 1 auto;
-  width:100%;
-  min-width:0;
-  height:32px;
-  min-height:0;
-  margin:0;
-  padding:0;
-  border:0;
-  border-radius:0;
-  outline:0;
-  background:transparent;
-  box-shadow:none;
-  color:var(--lo-color-text,#182433);
-  font-size:12px;
-  line-height:32px;
-  appearance:none;
+  flex:1 1 auto!important;
+  width:100%!important;
+  min-width:0!important;
+  height:32px!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  outline:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:var(--lo-color-text,#182433)!important;
+  font-size:12px!important;
+  line-height:32px!important;
+  appearance:none!important;
 }
 .filter-search>input:focus,
 .filter-search>input:focus-visible,
 .filter-search>input:hover{
-  border:0;
-  outline:0;
-  box-shadow:none;
-  background:transparent;
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
 }
 
 /* Shared advanced-filter pattern: one field per row.
    Keep the popover compact instead of stretching a two-column form across the registry. */
 .filter-popover{
-  width:min(420px,calc(100vw - 24px));
-  min-width:min(360px,calc(100vw - 24px));
+  width:min(420px,calc(100vw - 24px))!important;
+  min-width:min(360px,calc(100vw - 24px))!important;
 }
 .filter-popover-fields{
-  display:grid;
-  grid-template-columns:minmax(0,1fr);
-  gap:12px;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:12px!important;
 }
 
 /* ==== training-refinements ==== */
 /* Training participant registry refinements */
 .training-participants-registry>.filter-system{
-  display:none;
+  display:none!important;
 }
 
 .training-participants-registry{
@@ -82,7 +82,7 @@
 .training-participants-registry .scroll-table{
   border:0!important;
   border-radius:0!important;
-  box-shadow:none;
+  box-shadow:none!important;
 }
 
 .training-participants-registry .training-participants-table th,
@@ -133,22 +133,22 @@
 /* ==== prevention-refinements ==== */
 .who-page-editor .who-current-preview .lo-action-button{
   min-width:190px!important;
-  justify-content:center;
+  justify-content:center!important;
   gap:8px!important;
   font-weight:700!important;
 }
 .who-page-editor .who-current-preview .lo-action-button:disabled{
   background:#8fb6cf!important;
   border-color:#8fb6cf!important;
-  color:#fff;
-  box-shadow:none;
-  opacity:1;
-  cursor:not-allowed;
+  color:#fff!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  cursor:not-allowed!important;
 }
 .who-page-editor .who-current-preview .lo-action-button:disabled svg,
 .who-page-editor .who-current-preview .lo-action-button:disabled span{
-  color:#fff;
-  opacity:1;
+  color:#fff!important;
+  opacity:1!important;
 }
 .who-page-editor .who-current-preview .lo-action-button:not(:disabled){
   box-shadow:0 1px 2px rgba(20,49,73,.12)!important;
@@ -161,9 +161,9 @@
 .prevention-record-shell .waste-page-editor .waste-date-field>label,.prevention-record-shell .waste-page-editor .waste-department-field>label{width:100%!important;min-width:0!important}
 .prevention-record-shell .waste-page-editor .waste-date-field input,.prevention-record-shell .waste-page-editor .waste-department-field select{width:100%!important}
 
-.prevention-record-shell.record-single-pane-screen{height:100%!important;min-height:0!important;max-height:100%!important;overflow:hidden}
+.prevention-record-shell.record-single-pane-screen{height:100%!important;min-height:0!important;max-height:100%!important;overflow:hidden!important}
 .prevention-record-shell.record-single-pane-screen>.entity-record-body{height:100%!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding-bottom:18px!important}
-.prevention-record-shell .antiseptic-page-editor,.prevention-record-shell .waste-page-editor,.prevention-record-shell .bundle-page-editor,.prevention-record-shell .who-page-editor{min-height:max-content;overflow:visible}
+.prevention-record-shell .antiseptic-page-editor,.prevention-record-shell .waste-page-editor,.prevention-record-shell .bundle-page-editor,.prevention-record-shell .who-page-editor{min-height:max-content!important;overflow:visible!important}
 .prevention-record-shell .antiseptic-entry-workspace,.prevention-record-shell .antiseptic-entry-main,.prevention-record-shell .antiseptic-entry-rail{min-height:0!important;overflow:visible!important}
 .prevention-record-shell .antiseptic-entry-rail{align-self:start!important}
 .prevention-record-shell .prevention-editor-page-actions{position:sticky!important;bottom:0!important;z-index:8!important;margin-top:14px!important;padding:12px 0 4px!important;background:linear-gradient(180deg,rgba(255,255,255,0),var(--lo-color-surface) 24%)!important}
@@ -300,7 +300,7 @@
 /* Age/definition mismatch note under the HAI definition picker (infants ≤1 year). */
 .hai-age-warning{display:block;margin-top:5px;color:#8a5a00;font-size:11px;line-height:1.4;font-weight:600}
 
-/* ==== patient-workspace-polish ==== */.patient-record-shell>.entity-record-body{overflow-y:auto!important;overflow-x:hidden!important}.patient-record-shell>.entity-record-body:has(>.patient-home-layout){overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;min-height:0!important}.patient-home-layout{height:auto;min-height:min-content;overflow:visible}.patient-record-shell .clinical-panel.full-panel:has(.attachment-field){border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}.patient-record-shell .attachment-field-v2{border:0;outline:0;background:transparent;padding:2px 0 0}.patient-record-shell .attachment-heading{padding:8px 0 10px;border-bottom:1px solid #e6edf2}.patient-record-shell .attachment-list{margin-top:8px}.patient-record-shell .attachment-row-v2{border:1px solid #e4ebf0!important;border-radius:9px!important;background:#fff!important;margin-bottom:7px}.unified-surveillance-workspace .surveillance-tree-episode{background:#eef7fc!important;border-left:3px solid #3195c9!important}.unified-surveillance-workspace .surveillance-tree-group>.surveillance-sample-row{background:#fff!important}.unified-surveillance-workspace .surveillance-independent-samples{margin-top:6px!important;border-top:2px solid #cbd8e1!important;padding-top:0!important}
+/* ==== patient-workspace-polish ==== */.patient-record-shell>.entity-record-body{overflow-y:auto!important;overflow-x:hidden!important}.patient-record-shell>.entity-record-body:has(>.patient-home-layout){overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;min-height:0!important}.patient-home-layout{height:auto!important;min-height:min-content!important;overflow:visible!important}.patient-record-shell .clinical-panel.full-panel:has(.attachment-field){border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}.patient-record-shell .attachment-field-v2{border:0!important;outline:0!important;background:transparent!important;padding:2px 0 0!important}.patient-record-shell .attachment-heading{padding:8px 0 10px!important;border-bottom:1px solid #e6edf2}.patient-record-shell .attachment-list{margin-top:8px}.patient-record-shell .attachment-row-v2{border:1px solid #e4ebf0!important;border-radius:9px!important;background:#fff!important;margin-bottom:7px}.unified-surveillance-workspace .surveillance-tree-episode{background:#eef7fc!important;border-left:3px solid #3195c9!important}.unified-surveillance-workspace .surveillance-tree-group>.surveillance-sample-row{background:#fff!important}.unified-surveillance-workspace .surveillance-independent-samples{margin-top:6px!important;border-top:2px solid #cbd8e1!important;padding-top:0!important}
 
 /* ==== clinical-loading ==== */
 /* Stable in-place loading state for clinical workspaces. */
@@ -386,12 +386,12 @@
 .canonical-tab.active,.canonical-tab[aria-selected="true"]{border-bottom-color:#2582bd;background:transparent;color:#0b6097;font-weight:700;box-shadow:none}
 .canonical-tab:focus-visible{outline:2px solid rgba(37,130,189,.24);outline-offset:-3px}
 
-.entity-record-tabs{display:flex;align-items:stretch;min-height:38px!important;height:38px!important;gap:0;padding:0 6px!important;margin:0!important;overflow-x:auto!important;overflow-y:hidden!important;border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
-.entity-record-tabs>button{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;height:38px;padding:0 10px;gap:5px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent!important;box-shadow:none;color:#65788d!important;font-size:13px;line-height:1;font-weight:600;white-space:nowrap}
-.entity-record-tabs>button svg{width:16px;height:16px;color:currentColor;stroke-width:1.7}
-.entity-record-tabs>button.active,.entity-record-tabs>button[aria-selected="true"]{border-bottom-color:#2582bd;background:transparent!important;color:#0b6097!important;font-weight:700}
+.entity-record-tabs{display:flex!important;align-items:stretch!important;min-height:38px!important;height:38px!important;gap:0!important;padding:0 6px!important;margin:0!important;overflow-x:auto!important;overflow-y:hidden!important;border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
+.entity-record-tabs>button{display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;height:38px!important;padding:0 10px!important;gap:5px!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#65788d!important;font-size:13px!important;line-height:1!important;font-weight:600!important;white-space:nowrap!important}
+.entity-record-tabs>button svg{width:16px!important;height:16px!important;color:currentColor!important;stroke-width:1.7}
+.entity-record-tabs>button.active,.entity-record-tabs>button[aria-selected="true"]{border-bottom-color:#2582bd!important;background:transparent!important;color:#0b6097!important;font-weight:700!important}
 .entity-record-tabs.surface{border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important;box-shadow:none!important}
 
-.registry-workspace>.environmental-registry{min-height:0!important;height:100%!important;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden}
-.registry-workspace>.environmental-registry .scroll-table{height:100%;min-height:0;margin:0;border:0!important;border-radius:0!important;box-shadow:none;overflow:auto!important}
-.registry-workspace>.environmental-registry .data-table{margin:0;border:0;border-radius:0}
+.registry-workspace>.environmental-registry{min-height:0!important;height:100%!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
+.registry-workspace>.environmental-registry .scroll-table{height:100%!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:auto!important}
+.registry-workspace>.environmental-registry .data-table{margin:0!important;border:0!important;border-radius:0!important}

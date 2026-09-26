@@ -18,10 +18,12 @@ const code = walk(dist).filter(f => /\.(js|html)$/.test(f)).map(f => fs.readFile
 // also the source (dynamic names are clearer there) and markdown/help content rendered as HTML
 const src = walk('src').concat(fs.existsSync('public') ? walk('public') : []).filter(f => /\.(jsx?|mjs|html|md|json)$/.test(f)).map(f => fs.readFileSync(f, 'utf8')).join('\n') + fs.readFileSync('index.html', 'utf8')
 const corpus = code + '\n' + src
+const words = new Set(corpus.match(/[\w-]+/g))
 const cache = new Map()
 function tokenUsed(tok) {
   if (cache.has(tok)) return cache.get(tok)
-  let used = corpus.includes(tok)
+  // whole-word match: `analysis-page` is not used just because `platform-analysis-page` is
+  let used = words.has(tok)
   if (!used) {
     // any stem at a '-' or '_' boundary, followed by something that builds a name
     const cuts = [...tok.matchAll(/[-_]/g)].map(m => m.index + 1)

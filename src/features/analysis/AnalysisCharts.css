@@ -1,7 +1,7 @@
 /* Analysis charts: recessive grid/axes, text in ink tokens, thin marks. */
-.analysis-report .analysis-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.analysis-report .analysis-chart-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;margin-bottom:12px!important}
 .analysis-report .analysis-chart-grid>.analysis-wide-card{grid-column:1/-1}
-.analysis-report .analysis-chart-card{padding:14px 16px;border:1px solid #dbe2e8;border-radius:12px;background:#fff;min-width:0}
+.analysis-report .analysis-chart-card{padding:14px 16px!important;border:1px solid #dbe2e8!important;border-radius:12px!important;background:#fff!important;min-width:0}
 .analysis-report .analysis-chart-card>header{margin-bottom:12px}
 .analysis-report .analysis-chart-card>header strong{display:block;font-size:14px;color:#1d3a52}
 .analysis-report .analysis-chart-card>header span{display:block;margin-top:2px;font-size:11.5px;color:#5f6e7c}
@@ -35,7 +35,7 @@
 .viz-tooltip span{font-size:11px;color:#5f6e7c}
 .viz-tooltip strong{font-size:14px;color:#1d3a52}
 
-@media(max-width:900px){.analysis-report .analysis-chart-grid{grid-template-columns:1fr}.viz-donut{grid-template-columns:1fr;justify-items:center}}
+@media(max-width:900px){.analysis-report .analysis-chart-grid{grid-template-columns:1fr!important}.viz-donut{grid-template-columns:1fr;justify-items:center}}
 @media print{.viz-tooltip{display:none}}
 
 /* Mini bar chart inside LIRA answers */
@@ -44,12 +44,12 @@
 .lira-assistant-evidence{color:#5f6e7c}
 
 /* KPI tiles: label, value, one explanatory line; tone colours the accent bar. */
-html body .analysis-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px}
-html body .analysis-kpis article{--kpi-accent:#2a78d6;position:relative;display:grid;gap:4px;align-content:start;min-height:0;padding:14px 16px 14px 18px;border:1px solid #dfe8f0;border-radius:12px;background:#fff;overflow:hidden}
+html body .analysis-kpis{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))!important;gap:12px!important;margin-bottom:14px!important}
+html body .analysis-kpis article{--kpi-accent:#2a78d6;position:relative;display:grid!important;gap:4px!important;align-content:start!important;min-height:0!important;padding:14px 16px 14px 18px!important;border:1px solid #dfe8f0!important;border-radius:12px!important;background:#fff!important;overflow:hidden}
 html body .analysis-kpis article::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--kpi-accent)}
 html body .analysis-kpis article.kpi-good{--kpi-accent:#1baf7a}
 html body .analysis-kpis article.kpi-warning{--kpi-accent:#eda100}
 html body .analysis-kpis article.kpi-danger{--kpi-accent:#e34948}
-html body .analysis-kpis article>span{font-size:12px;font-weight:650;color:#5f768a}
-html body .analysis-kpis article>strong{font-size:26px;line-height:1.15;color:#10233b}
-html body .analysis-kpis article>small{font-size:12px;color:#5c6f7f;line-height:1.4}
+html body .analysis-kpis article>span{font-size:12px!important;font-weight:650!important;color:#5f768a!important}
+html body .analysis-kpis article>strong{font-size:26px!important;line-height:1.15!important;color:#10233b!important}
+html body .analysis-kpis article>small{font-size:12px!important;color:#5c6f7f!important;line-height:1.4!important}
