@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import { describe,expect,it } from 'vitest'
-const i18n=fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')
+const i18n=fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
 
 const patients=fs.readFileSync('src/features/patients/patientsService.js','utf8')
 const patientForm=fs.readFileSync('src/features/patients/PatientsPage.jsx','utf8')

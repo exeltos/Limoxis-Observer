@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { LanguageProvider, useLanguage } from '../src/core/i18n/LanguageContext'
 
@@ -21,13 +21,21 @@ describe('language preference', () => {
     expect(document.documentElement.lang).toBe('el')
   })
 
-  it('remembers the chosen language across reloads', () => {
+  it('remembers the chosen language across reloads', async () => {
     const first = render(<LanguageProvider><Probe /></LanguageProvider>)
     act(() => { screen.getByRole('button').click() })
-    expect(document.documentElement.lang).toBe('en')
+    // English is a lazily-loaded chunk; the switch happens once it has loaded.
+    await waitFor(() => expect(document.documentElement.lang).toBe('en'))
     first.unmount()
 
     render(<LanguageProvider><Probe /></LanguageProvider>)
     expect(screen.getByRole('button').textContent).toBe('en')
+  })
+
+  it('loads English strings on demand and translates with them', async () => {
+    const { loadLanguage, translate } = await import('../src/core/i18n/LanguageContext')
+    await loadLanguage('en')
+    expect(translate('librariesPanel.departmentTypeLabel', 'en')).toBe('Department type')
+    expect(translate('librariesPanel.departmentTypeLabel', 'el')).toBe('Τύπος τμήματος')
   })
 })

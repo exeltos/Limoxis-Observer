@@ -31,6 +31,7 @@ npm run dev
 | `npm run format:check` | Check formatting without writing (CI-friendly) |
 | `npm run typecheck` | `tsc --noEmit` — editor/tooling support only, see [Type checking](#type-checking) |
 | `npm run check` | Full local pipeline: all `audit:*` checks + lint + test + build |
+| `npm run visual:compare` | Compare computed styles of two builds screen by screen (see [`docs/CSS_ARCHITECTURE.md`](./docs/CSS_ARCHITECTURE.md)) |
 
 The `audit:*` scripts (see `tools/`) are project-specific regression guardrails — i18n parity (EL/EN), permission/role consistency, UI pattern consistency, navigation smoke tests, React hooks smoke tests, and frontend/production parity. `npm run check` mirrors what CI (`.github/workflows/ci.yml`) runs.
 

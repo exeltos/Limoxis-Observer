@@ -30,6 +30,24 @@ imported by their components and load with them.
   context. `npm run css:prune` removes such declarations; the result is
   cascade-identical by construction.
 
+## Visual regression check
+
+Every pull request runs the `visual` CI job: it builds the pull request and its
+base branch and compares the computed style of every element on every main
+screen (desktop, tablet and phone widths, Greek and English, create dialogs,
+filter panels, notifications, every patient-record tab). Computed styles are
+deterministic, so any difference is a real visual change; the job summary
+lists the changed states and the `visual-report` artifact holds screenshots of
+both builds. For an intended visual change, add the `visual-change` label.
+
+Locally:
+
+```bash
+npm run build                       # head → dist/
+git worktree add ../base origin/main && (cd ../base && npm ci && npx vite build --outDir "$OLDPWD/dist-base")
+npm run visual:compare -- --base dist-base --head dist   # add --quick true for desktop only
+```
+
 ## Consolidation of 2026-09-25
 
 1. 2,734 overridden declarations and 546 empty rules removed (`css:prune`).

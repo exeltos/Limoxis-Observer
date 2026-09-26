@@ -28,7 +28,7 @@ describe('Management Center review', () => {
   })
 
   it('library categories and the LIRA knowledge tab are translated', () => {
-    const i18n = read('src/core/i18n/LanguageContext.jsx')
+    const i18n = read('src/core/i18n/LanguageContext.jsx') + read('src/core/i18n/stringsEn.js')
     expect(i18n).toContain("libraryDeviceTypes:'Τύποι επεμβατικών συσκευών'")
     expect(i18n).toContain("librarySurveillanceDefinitions:'Surveillance definitions'")
     expect(i18n).toContain("liraKnowledgeLabel:'Γνώση LIRA'")
