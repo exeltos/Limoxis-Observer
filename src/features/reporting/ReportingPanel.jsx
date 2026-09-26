@@ -30,7 +30,7 @@ function QualityChecks({ checks, tx }) {
       <details>
         <summary><span className="reporting-count">{check.items.length}</span><span className="reporting-check-title">{tx(check.el, check.en)}</span><span className="reporting-severity">{tx({ high: 'Υψηλή', medium: 'Μέτρια', low: 'Χαμηλή' }[check.severity], { high: 'High', medium: 'Medium', low: 'Low' }[check.severity])}</span></summary>
         {check.hintEl && <p className="reporting-hint">{tx(check.hintEl, check.hintEn)}</p>}
-        <ul className="reporting-items">{check.items.slice(0, 50).map(item => <li key={`${check.id}-${item.id}`}><Link to={item.to}>{item.label}</Link><span>{item.detail}</span></li>)}</ul>
+        <ul className="reporting-items">{check.items.slice(0, 50).map(item => <li key={`${check.id}-${item.id}`}><Link to={item.to}>{item.label}</Link><span>{tx(item.detail, item.detailEn)}</span></li>)}</ul>
         {check.items.length > 50 && <p className="reporting-hint">{tx(`και ${check.items.length - 50} ακόμη`, `and ${check.items.length - 50} more`)}</p>}
       </details>
     </li>)}</ul>

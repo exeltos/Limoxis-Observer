@@ -6,8 +6,8 @@ const VALIDATED = new Set(['validated', 'amended'])
 const DAY = 86400000
 const time = value => { const t = Date.parse(value || ''); return Number.isNaN(t) ? null : t }
 const resultsOf = sample => (sample.microbiologyResults?.length ? sample.microbiologyResults : (sample.result || sample.resultStatus ? [sample] : []))
-const sampleItem = (sample, note = '') => ({ id: sample.id, to: `/laboratory/${encodeURIComponent(sample.id)}`, label: sample.id, detail: [sample.patient || sample.subjectName, sample.department, note].filter(Boolean).join(' · ') })
-const patientItem = (patient, note = '') => ({ id: patient.id, to: `/patients/${encodeURIComponent(patient.id)}`, label: patient.id, detail: [patient.name, patient.department, note].filter(Boolean).join(' · ') })
+const sampleItem = (sample, note = '') => ({ id: sample.id, to: `/laboratory/${encodeURIComponent(sample.id)}`, label: sample.id, detail: [sample.patient || sample.subjectName, sample.department, note].filter(Boolean).join(' · '), detailEn: [sample.patientEn || sample.patient || sample.subjectName, sample.departmentEn || sample.department, note].filter(Boolean).join(' · ') })
+const patientItem = (patient, note = '') => ({ id: patient.id, to: `/patients/${encodeURIComponent(patient.id)}`, label: patient.id, detail: [patient.name, patient.department, note].filter(Boolean).join(' · '), detailEn: [patient.nameEn || patient.name, patient.departmentEn || patient.department, note].filter(Boolean).join(' · ') })
 
 export function runDataQualityChecks({ samples = [], patients = [], now = new Date() } = {}) {
   const patientSamples = samples.filter(sample => (sample.subjectType || 'patient') === 'patient')
