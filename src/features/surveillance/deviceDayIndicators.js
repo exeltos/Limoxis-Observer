@@ -100,3 +100,19 @@ export function collectNeonatalDeviceDaySourcesByBand() {
   }
   return byBand
 }
+
+// Cases that should be stratified by birth weight (infant ≤1 year at the start
+// of surveillance, with a central line) but cannot be, because no birth weight
+// was recorded. collectNeonatalDeviceDaySourcesByBand() has to skip them, so
+// the count is reported alongside the band indicators instead of silently
+// shrinking the denominators.
+export function countNeonatalCentralLineCasesMissingBirthWeight(cases = Object.values(clinicalCases)) {
+  return cases.filter(item => {
+    if (item.birthWeightGrams || !item.dateOfBirth) return false
+    const start = new Date(`${String(item.startedAt || '').slice(0, 10)}T12:00:00`)
+    const birth = new Date(`${item.dateOfBirth}T12:00:00`)
+    if (Number.isNaN(start.getTime()) || Number.isNaN(birth.getTime())) return false
+    const ageDays = Math.floor((start - birth) / 86400000)
+    return ageDays >= 0 && ageDays <= 365 && (item.devices || []).some(device => canonicalDeviceType(device) === 'central line')
+  }).length
+}

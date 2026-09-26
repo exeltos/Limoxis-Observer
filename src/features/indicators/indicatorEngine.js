@@ -8,7 +8,7 @@ import { loadEmployees } from '../employees/employeeStore'
 import { loadVaccinations } from '../employees/employeeRecordsService'
 import { loadTrainingState } from '../training/trainingData'
 import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
-import { collectDeviceDaySources, collectNeonatalDeviceDaySourcesByBand, BIRTH_WEIGHT_BANDS } from '../surveillance/deviceDayIndicators'
+import { collectDeviceDaySources, collectNeonatalDeviceDaySourcesByBand, BIRTH_WEIGHT_BANDS,countNeonatalCentralLineCasesMissingBirthWeight} from '../surveillance/deviceDayIndicators'
 import { calculateHaiRate } from '../lira/liraHaiMetrics'
 
 const round=(n,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
@@ -123,5 +123,6 @@ export function collectIndicatorMetrics(){
   vap_events:vap.events,
   ventilator_days:vap.deviceDays,
   ...neonatalClabsiByBand,
+  neonatal_central_line_cases_missing_birth_weight:countNeonatalCentralLineCasesMissingBirthWeight(),
  }
 }
