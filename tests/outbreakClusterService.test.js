@@ -20,8 +20,8 @@ describe('outbreak/cluster detection demo data', () => {
     configureDataEnvironment({ mode: 'demo', organizationId: 'demo-hospital', demoAccountId: 'demo-user-1' })
   })
 
-  it('detects the seeded ICU Klebsiella pneumoniae MDR cluster from demo laboratory data', () => {
-    const clusters = collectDemoOrganismClusters()
+  it('detects the seeded ICU Klebsiella pneumoniae MDR cluster from demo laboratory data', async () => {
+    const clusters = await collectDemoOrganismClusters()
     const icuKlebsiella = clusters.find(c => c.department === 'ΜΕΘ' && c.organism.includes('Klebsiella'))
     expect(icuKlebsiella).toBeTruthy()
     expect(icuKlebsiella.count).toBeGreaterThanOrEqual(3)

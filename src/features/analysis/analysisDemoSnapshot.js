@@ -17,7 +17,8 @@ import { loadCommittees } from '../committees/committeeData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { employeeRows } from '../employees/employeeDemoData'
 import { loadTrainingState } from '../training/trainingData'
-import { collectDemoOrganismClusters } from '../surveillance/outbreakClusterService'
+import { CLUSTER_THRESHOLD, CLUSTER_WINDOW_DAYS, demoClusterRecords } from '../surveillance/outbreakClusterService'
+import { detectOrganismClusters } from '../surveillance/clusterDetection'
 
 // Same eight ΕΟΔΥ reference pathogens and reference antibiotics as
 // indicatorEngine.js's REFERENCE_PATHOGEN_PATTERNS/AMR_REFERENCE_ANTIBIOTIC.
@@ -150,5 +151,5 @@ export function collectAnalysisDemoSnapshot() {
     pendingSamples: laboratorySamples.filter(x => x.status !== 'completed').length,
     inpatients: Object.keys(clinicalCases).length,
   }
-  return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility(), clusters: collectDemoOrganismClusters() }
+  return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility(), clusters: detectOrganismClusters(demoClusterRecords(laboratorySamples), { windowDays: CLUSTER_WINDOW_DAYS, threshold: CLUSTER_THRESHOLD }) }
 }

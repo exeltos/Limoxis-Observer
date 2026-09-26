@@ -1,20 +1,21 @@
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { detectOrganismClusters } from './clusterDetection'
 
 export const CLUSTER_WINDOW_DAYS = 14
 export const CLUSTER_THRESHOLD = 3
 
-function demoClusterRecords() {
+export function demoClusterRecords(laboratorySamples) {
   return laboratorySamples
     .filter(x => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus) && x.organism)
     .map(x => ({ organism: x.organism.trim(), department: x.department, resistance: x.resistance || null, date: String(x.resultedAt || '').slice(0, 10) }))
     .filter(x => x.date)
 }
 
-export function collectDemoOrganismClusters({ windowDays = CLUSTER_WINDOW_DAYS, threshold = CLUSTER_THRESHOLD } = {}) {
-  return detectOrganismClusters(demoClusterRecords(), { windowDays, threshold })
+// The demo laboratory samples load only in the demo workspace.
+export async function collectDemoOrganismClusters({ windowDays = CLUSTER_WINDOW_DAYS, threshold = CLUSTER_THRESHOLD } = {}) {
+  const { laboratorySamples } = await import('../laboratory/laboratoryDemoData')
+  return detectOrganismClusters(demoClusterRecords(laboratorySamples), { windowDays, threshold })
 }
 
 function mapCloudCluster(row) {
