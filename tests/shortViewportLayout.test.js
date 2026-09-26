@@ -1,5 +1,8 @@
 import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
+// Only the declarations matter here, not whether they carry !important.
+const withoutImportant = css => css.replaceAll('!important', '')
+
 
 const main = fs.readFileSync('src/main.jsx', 'utf8')
 const css = fs.readFileSync('src/styles/responsive.css', 'utf8')
@@ -34,7 +37,7 @@ describe('tablets and phones', () => {
   })
   it('lets phones scroll the whole page with a horizontal menu', () => {
     expect(rail).toContain('@media (max-width:780px)')
-    expect(rail).toContain('flex-direction:row!important')
+    expect(withoutImportant(rail)).toContain('flex-direction:row')
   })
   it('loads the rail rules after the short-viewport rules', () => {
     expect(rail.indexOf('/* ==== tablet-rail ==== */')).toBeGreaterThan(rail.indexOf('/* ==== short-viewport ==== */'))

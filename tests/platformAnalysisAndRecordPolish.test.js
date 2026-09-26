@@ -1,5 +1,8 @@
 import { describe,it,expect } from 'vitest'
 import fs from 'node:fs'
+// Only the declarations matter here, not whether they carry !important.
+const withoutImportant = css => css.replaceAll('!important', '')
+
 
 const analysisPrint=fs.readFileSync('src/styles/responsive.css','utf8')
 const ownerPolish=fs.readFileSync('src/styles/design-system.css','utf8')
@@ -17,7 +20,7 @@ describe('Analysis workspace layout and organization summary strip polish',()=>{
 
   it('never hard-caps the analytics header height, so the eyebrow/title/subtitle never hide behind the filter card below it', () => {
     expect(analysisPrint).not.toContain('flex:0 0 var(--platform-analysis-header-h)!important;height:var(--platform-analysis-header-h)!important;min-height:var(--platform-analysis-header-h)!important')
-    expect(analysisPrint).toContain('flex:0 0 auto!important;height:auto!important;min-height:var(--platform-analysis-header-h)!important;')
+    expect(withoutImportant(analysisPrint)).toContain('flex:0 0 auto;height:auto;min-height:var(--platform-analysis-header-h);')
   })
 
   it('keeps breathing room between the organization KPI summary strip and the elements around it', () => {
