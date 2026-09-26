@@ -50,3 +50,49 @@ jobs:
           echo "| Full npm run check gate | ${{ steps.quality.outcome }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "The CI gate intentionally executes the same npm run check command used for the full local quality pipeline." >> "$GITHUB_STEP_SUMMARY"
+
+  visual:
+    # Compares the computed style of every element on every main screen between
+    # the pull request and its base branch (see tools/visual-regression.mjs).
+    # Intended visual changes: add the `visual-change` label to the PR.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: ${{ contains(github.event.pull_request.labels.*.name, 'visual-change') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build pull request
+        run: npm run build
+
+      - name: Build base branch
+        run: |
+          git worktree add ../visual-base "origin/${{ github.base_ref }}"
+          cd ../visual-base
+          npm ci
+          npx vite build --outDir "$GITHUB_WORKSPACE/dist-base"
+
+      - name: Compare
+        run: node tools/visual-regression.mjs --base dist-base --head dist --out visual-report
+
+      - name: Upload screenshots of changed states
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-report
+          path: visual-report

@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import vm from 'node:vm'
 
-const source=fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')
+// Greek lives in LanguageContext.jsx; English in its lazily-loaded chunk.
+const source=fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')+'\n'+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
 
 function extractObject(name){
   const marker=`export const ${name} =`
@@ -46,8 +47,8 @@ function compare(name,root){
   const greekInEn=Object.entries(en).filter(([,v])=>typeof v==='string'&&greek.test(v)).map(([k,v])=>[k,v])
   return {name,el,en,missingEn,missingEl,emptyEn,greekInEn}
 }
-const stringsRoot=extractObject('strings')
-const productRoot=extractObject('productStrings')
+const stringsRoot={el:extractObject('strings').el,en:extractObject('stringsEn')}
+const productRoot={el:extractObject('productStrings').el,en:extractObject('productStringsEn')}
 const effective={
  el:{...flatten(stringsRoot.el),...flatten(productRoot.el)},
  en:{...flatten(stringsRoot.en),...flatten(productRoot.en)}

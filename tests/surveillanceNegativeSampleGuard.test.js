@@ -38,6 +38,6 @@ describe('Technical guard: a negative laboratory result can never start or conti
     expect(page).toContain("isNegative=tone==='negative'")
     expect(page).toContain('sample-negative-note')
     expect(page).toContain("translate('copy.clinicalRecordCopy.aNegativeResultCannotStartA'")
-    expect(fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')).toContain("aNegativeResultCannotStartA:'A negative result cannot start a surveillance case.'")
+    expect(fs.readFileSync('src/core/i18n/stringsEn.js','utf8')).toContain("aNegativeResultCannotStartA:'A negative result cannot start a surveillance case.'")
   })
 })
