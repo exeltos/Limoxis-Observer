@@ -5,11 +5,22 @@ import { ROLES, isPreviewableRole } from '../permissions/roles'
 import { uxPolicyFor, recordWithinRoleScope, canSeeSensitiveEmployeeHealth } from '../permissions/roleUxPolicy'
 import { listMemberships, listPlatformOwnerOrganizations } from './tenantService'
 import { configureDataEnvironment } from '../data/dataEnvironment'
+import { readSessionJson, removeSessionValue, writeSessionJson } from '../storage/browserStorage'
 
 const TenantContext = createContext(null)
 const DEMO_TENANT = Object.freeze({ id: 'demo-hospital', name: 'Demo Hospital', code: 'DEMO', type: 'hospital', mode: 'demo' })
 const DEMO_MEMBERSHIP = Object.freeze({ id: 'demo-membership', role: ROLES.DEMO, status: 'active', organization: DEMO_TENANT, departmentIds: [], capabilities: [], customCapabilities: [], assignments: [] })
 const HYDRATION_TIMEOUT_MS=12000
+// The organization, Platform Owner demo mode and role preview chosen in this tab
+// survive a page refresh (sessionStorage: per tab, gone when the tab closes, and
+// cleared on sign-out) so a refresh keeps the user where they were.
+const SELECTION_KEY='limoxis.tenant-selection'
+const helpPreviewFrame=()=>typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('helpPreview')==='1'&&window.self!==window.top
+function savedSelection(userId){
+  if(!userId||helpPreviewFrame())return null
+  const saved=readSessionJson(SELECTION_KEY)
+  return saved&&saved.userId===userId?saved:null
+}
 
 function withTimeout(promise,ms=HYDRATION_TIMEOUT_MS){
   let timer
@@ -29,6 +40,10 @@ export function TenantProvider({ children }) {
   const [platformDemoMode, setPlatformDemoMode] = useState(false)
   const [platformDemoPreview, setPlatformDemoPreview] = useState(false)
   const hydrationRef=useRef(0)
+  const restoredKeyRef=useRef(null)
+  // Key of the last hydration that succeeded; the selection is saved only then,
+  // so a failed or timed-out request never overwrites the saved place.
+  const [persistableKey, setPersistableKey] = useState(null)
   const [rolePreview, setRolePreview] = useState(()=>{
     if(typeof window==='undefined')return null
     const params=new URLSearchParams(window.location.search)
@@ -59,23 +74,37 @@ export function TenantProvider({ children }) {
       }
       if (isDemoSession) {
         if(request!==hydrationRef.current)return [DEMO_MEMBERSHIP]
+        const saved=restoredKeyRef.current===membershipContextKey?null:savedSelection(user?.id)
+        restoredKeyRef.current=membershipContextKey
+        if(saved?.rolePreview?.role&&isPreviewableRole(saved.rolePreview.role))setRolePreview({role:saved.rolePreview.role,department:saved.rolePreview.department||''})
         setMemberships([DEMO_MEMBERSHIP])
         setActiveMembershipId(DEMO_MEMBERSHIP.id)
         setHydratedKey(membershipContextKey)
+        setPersistableKey(membershipContextKey)
         return [DEMO_MEMBERSHIP]
       }
       const fetchMemberships=profile?.isPlatformOwner ? listPlatformOwnerOrganizations() : listMemberships(user?.id)
       const next = await withTimeout(fetchMemberships)
       if(request!==hydrationRef.current)return next
+      // First hydration for this user in this tab: restore the selection saved before a refresh.
+      const saved=restoredKeyRef.current===membershipContextKey?null:savedSelection(user?.id)
+      restoredKeyRef.current=membershipContextKey
       setMemberships(next)
       setActiveMembershipId((current) => {
-        if (profile?.isPlatformOwner) return next.some((item) => item.id === current) ? current : null
-        return next.some((item) => item.id === current) ? current : next[0]?.id ?? null
+        const preferred=current??saved?.membershipId??null
+        if (profile?.isPlatformOwner) return next.some((item) => item.id === preferred) ? preferred : null
+        return next.some((item) => item.id === preferred) ? preferred : next[0]?.id ?? null
       })
+      if(saved&&profile?.isPlatformOwner&&!saved.membershipId){setPlatformDemoMode(Boolean(saved.platformDemo));setPlatformDemoPreview(Boolean(saved.platformDemoPreview))}
+      // A role preview needs the tenant it was started in: a still-valid organization or the demo hospital.
+      const previewTenantRestored=saved?.membershipId?next.some((item)=>item.id===saved.membershipId):Boolean(saved?.platformDemo)
+      if(saved?.rolePreview?.role&&profile?.isPlatformOwner&&previewTenantRestored&&isPreviewableRole(saved.rolePreview.role))setRolePreview({role:saved.rolePreview.role,department:saved.rolePreview.department||''})
       setHydratedKey(membershipContextKey)
+      setPersistableKey(membershipContextKey)
       return next
     } catch(error) {
       if(request===hydrationRef.current){
+        setPersistableKey(null)
         setMemberships([])
         setActiveMembershipId(null)
         setHydratedKey(membershipContextKey)
@@ -91,6 +120,13 @@ export function TenantProvider({ children }) {
       if(!authLoading)setHydratedKey(membershipContextKey)
     })
   }, [reloadMemberships, membershipContextKey, authLoading])
+
+  useEffect(() => {
+    if (authLoading || helpPreviewFrame()) return
+    if (!isAuthenticated) { removeSessionValue(SELECTION_KEY); return }
+    if (hydratedKey !== membershipContextKey || persistableKey !== membershipContextKey || !user?.id) return
+    writeSessionJson(SELECTION_KEY, { userId: user.id, membershipId: activeMembershipId, platformDemo: platformDemoMode, platformDemoPreview, rolePreview: rolePreview?.role ? rolePreview : null })
+  }, [authLoading, isAuthenticated, hydratedKey, persistableKey, membershipContextKey, user?.id, activeMembershipId, platformDemoMode, platformDemoPreview, rolePreview])
 
   const storedMembership = memberships.find((item) => item.id === activeMembershipId) ?? null
   const baseMembership = useMemo(() => (

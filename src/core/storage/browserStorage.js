@@ -27,6 +27,15 @@ export function writeSessionValue(key, value) {
   }
 }
 
+export function removeSessionValue(key) {
+  try {
+    storageFor('sessionStorage')?.removeItem(key)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function readSessionJson(key, fallback = null) {
   const raw = readSessionValue(key)
   if (raw == null) return fallback
