@@ -13,7 +13,11 @@ const orgs = [
   { id: 'm-1', role: 'hospital_admin', status: 'active', organization: { id: 'org-1', name: 'Alpha' } },
   { id: 'm-2', role: 'hospital_admin', status: 'active', organization: { id: 'org-2', name: 'Beta' } },
 ]
-vi.mock('../src/core/tenant/tenantService', () => ({ listMemberships: async () => orgs, listPlatformOwnerOrganizations: async () => orgs }))
+const service = vi.hoisted(() => ({ fail: false, drop: null }))
+vi.mock('../src/core/tenant/tenantService', () => {
+  const list = async () => { if (service.fail) throw new Error('network'); return orgs.filter(item => item.id !== service.drop) }
+  return { listMemberships: list, listPlatformOwnerOrganizations: list }
+})
 const { TenantProvider, useTenant } = await import('../src/core/tenant/TenantContext')
 
 const owner = { user: { id: 'owner-1' }, profile: { id: 'owner-1', isPlatformOwner: true }, isAuthenticated: true, isDemoSession: false, loading: false }
@@ -27,7 +31,7 @@ function mount() {
 }
 const hydrated = ref => waitFor(() => expect(ref.current.loading).toBe(false))
 
-beforeEach(() => { sessionStorage.clear() })
+beforeEach(() => { sessionStorage.clear(); service.fail = false; service.drop = null })
 afterEach(() => cleanup())
 
 describe('tenant selection survives a page refresh', () => {
@@ -94,5 +98,31 @@ describe('tenant selection survives a page refresh', () => {
     auth.value = { user: null, profile: null, isAuthenticated: false, isDemoSession: false, loading: false }
     ref = mount(); await hydrated(ref)
     expect(sessionStorage.getItem('limoxis.tenant-selection')).toBe(null)
+  })
+
+  it('does not restore a role preview whose organization is gone', async () => {
+    auth.value = owner
+    let ref = mount(); await hydrated(ref)
+    act(() => { ref.current.setTenantByMembership('m-2') })
+    act(() => { ref.current.startRolePreview('laboratory') })
+    cleanup()
+    service.drop = 'm-2'
+    ref = mount(); await hydrated(ref)
+    expect(ref.current.tenant).toBe(null)
+    expect(ref.current.role).toBe('platform_owner')
+  })
+
+  it('keeps the saved place when loading the organizations fails', async () => {
+    auth.value = member
+    let ref = mount(); await hydrated(ref)
+    act(() => { ref.current.setTenantByMembership('m-2') })
+    cleanup()
+    service.fail = true
+    ref = mount(); await hydrated(ref)
+    expect(ref.current.activeMembershipId).toBe(null)
+    cleanup()
+    service.fail = false
+    ref = mount(); await hydrated(ref)
+    expect(ref.current.activeMembershipId).toBe('m-2')
   })
 })
