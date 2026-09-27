@@ -62,6 +62,16 @@ describe('tenant selection survives a page refresh', () => {
     expect(ref.current.isDemo).toBe(false)
   })
 
+  it('restores the Platform Owner demo preview toggle on its own', async () => {
+    auth.value = owner
+    let ref = mount(); await hydrated(ref)
+    act(() => { ref.current.togglePlatformDemoPreview() })
+    cleanup()
+    ref = mount(); await hydrated(ref)
+    expect(ref.current.platformDemoPreview).toBe(true)
+    expect(ref.current.tenant).toBe(null)
+  })
+
   it('restores a Platform Owner role preview', async () => {
     auth.value = owner
     let ref = mount(); await hydrated(ref)

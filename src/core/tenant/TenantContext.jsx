@@ -91,7 +91,7 @@ export function TenantProvider({ children }) {
         if (profile?.isPlatformOwner) return next.some((item) => item.id === preferred) ? preferred : null
         return next.some((item) => item.id === preferred) ? preferred : next[0]?.id ?? null
       })
-      if(saved&&profile?.isPlatformOwner&&saved.platformDemo&&!saved.membershipId){setPlatformDemoMode(true);setPlatformDemoPreview(Boolean(saved.platformDemoPreview))}
+      if(saved&&profile?.isPlatformOwner&&!saved.membershipId){setPlatformDemoMode(Boolean(saved.platformDemo));setPlatformDemoPreview(Boolean(saved.platformDemoPreview))}
       if(saved?.rolePreview?.role&&profile?.isPlatformOwner&&isPreviewableRole(saved.rolePreview.role))setRolePreview({role:saved.rolePreview.role,department:saved.rolePreview.department||''})
       setHydratedKey(membershipContextKey)
       return next
