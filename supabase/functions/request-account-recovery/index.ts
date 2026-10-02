@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-const DEFAULT_APP_URL='https://limoxis-observer.netlify.app'
+const DEFAULT_APP_URL='https://www.limoxis.com'
 const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Cache-Control':'no-store'}
 const reply=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 const ok=()=>reply({ok:true})

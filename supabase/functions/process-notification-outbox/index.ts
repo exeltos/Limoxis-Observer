@@ -17,7 +17,7 @@ Deno.serve(async(req)=>{
   const smtpPort=Number(Deno.env.get('SMTP_PORT')||465)
   const smtpUser=Deno.env.get('SMTP_USER')||Deno.env.get('GMAIL_SMTP_USER')
   const smtpPass=Deno.env.get('SMTP_PASS')||Deno.env.get('GMAIL_SMTP_PASS')
-  const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||'https://limoxis-observer.netlify.app').replace(/\/$/,'')
+  const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||'https://www.limoxis.com').replace(/\/$/,'')
   if(!supabaseUrl||!serviceRoleKey||!anonKey)return reply({ok:false,code:'EMAIL_BACKEND_CONFIG_MISSING',error:'Supabase email backend configuration is incomplete'},500)
 
   const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'')

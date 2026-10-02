@@ -1,1 +1,12 @@
+# Τα δευτερεύοντα domain μεταφέρουν στο κύριο https://www.limoxis.com (το limoxis.com το μεταφέρει το Netlify).
+# Το limoxis-observer.netlify.app μένει ως έχει: το χρησιμοποιούν σύνδεσμοι σε email που έχουν ήδη σταλεί και τα deploy previews.
+https://limoxis.eu/*       https://www.limoxis.com/:splat  301!
+http://limoxis.eu/*        https://www.limoxis.com/:splat  301!
+https://www.limoxis.eu/*   https://www.limoxis.com/:splat  301!
+http://www.limoxis.eu/*    https://www.limoxis.com/:splat  301!
+https://limoxis.gr/*       https://www.limoxis.com/:splat  301!
+http://limoxis.gr/*        https://www.limoxis.com/:splat  301!
+https://www.limoxis.gr/*   https://www.limoxis.com/:splat  301!
+http://www.limoxis.gr/*    https://www.limoxis.com/:splat  301!
+
 /*    /index.html   200
