@@ -3,6 +3,6 @@
 The Help Center no longer embeds static screenshots.
 
 Its right-side preview loads the corresponding published Limoxis Observer route directly from:
-`https://limoxis-observer.netlify.app`
+`https://www.limoxis.com`
 
-This keeps the visual manual synchronized with each Netlify deployment.
+This keeps the visual manual synchronized with each deployment.

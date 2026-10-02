@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const DEFAULT_APP_URL='https://limoxis-observer.netlify.app'
+const DEFAULT_APP_URL='https://www.limoxis.com'
 const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 const GREEK:Record<string,string>={α:'A',ά:'A',β:'V',γ:'G',δ:'D',ε:'E',έ:'E',ζ:'Z',η:'I',ή:'I',θ:'T',ι:'I',ί:'I',κ:'K',λ:'L',μ:'M',ν:'N',ξ:'X',ο:'O',ό:'O',π:'P',ρ:'R',σ:'S',ς:'S',τ:'T',υ:'Y',ύ:'Y',φ:'F',χ:'C',ψ:'P',ω:'O',ώ:'O'}

@@ -11,9 +11,10 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { useTenant } from '../tenant/TenantContext'
 import { navigationFor } from '../../app/navigation'
 
-const NETLIFY_ORIGIN='https://limoxis-observer.netlify.app'
+const APP_ORIGIN='https://www.limoxis.com'
+const APP_HOSTS=['www.limoxis.com','limoxis-observer.netlify.app']
 const netlifyPreviewUrl=(path,role,language)=>{
- const base=typeof window!=='undefined'&&window.location.hostname==='limoxis-observer.netlify.app'?window.location.origin:NETLIFY_ORIGIN
+ const base=typeof window!=='undefined'&&APP_HOSTS.includes(window.location.hostname)?window.location.origin:APP_ORIGIN
  const url=new URL(path||'/',base)
  url.searchParams.set('helpPreview','1')
  if(role)url.searchParams.set('helpRole',role)
