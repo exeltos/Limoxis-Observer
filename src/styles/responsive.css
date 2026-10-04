@@ -379,3 +379,39 @@ html:not(#lo-return) body tr.registry-row-returned>td{background:#e3f0fa!importa
 html:not(#lo-return) body tr.registry-row-returned>td:first-child{box-shadow:inset 4px 0 0 #1f6fa9!important}
 html:not(#lo-return) body tr.registry-row-returned:hover>td{background:#d8e9f6!important}
 html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{background:#e3f0fa!important;box-shadow:inset 4px 0 0 #1f6fa9!important}
+
+/* Tablet navigation (641–1100px): the sidebar is an icon rail with a menu
+   button; the button opens the full, labelled menu over the page. It closes on
+   navigation, on the backdrop and with Escape. Phones (≤640px) keep the top bar. */
+.sidebar-toggle,.sidebar-backdrop{display:none}
+@media (min-width:641px) and (max-width:1100px){
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell) .sidebar-toggle{display:flex;align-items:center;justify-content:center;flex:none;width:40px;height:40px;margin:0 auto 8px;padding:0;border:0;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell) .sidebar-toggle:hover{background:rgba(255,255,255,.18)}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell) .sidebar-toggle:focus-visible{outline:2px solid #8cc4ff;outline-offset:2px}
+}
+@media (min-width:641px) and (max-width:780px){
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar{position:fixed!important;top:0!important;left:0!important;bottom:0!important;z-index:900;width:64px!important;height:100vh!important;height:100dvh!important;min-height:0!important;padding:18px 6px!important;display:flex!important;flex-direction:column!important;gap:0!important;overflow-y:auto!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.main-column{margin-left:64px!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .brand{justify-content:center!important;padding:7px 0!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .brand>div{display:none!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar nav{display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;overflow:visible!important;gap:2px!important;padding:8px 0!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .sidebar-nav-management{display:block!important;margin:0!important;padding:0!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .nav-item{width:auto!important;justify-content:center!important;gap:0!important;padding:6px 0!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .nav-item>span,html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .nav-group-chevron{display:none!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .sidebar-nav-management{margin-top:6px!important;padding-top:6px!important;border-top:1px solid rgba(255,255,255,.12)!important}
+}
+@media (min-width:641px) and (max-width:1100px){
+  /* the open menu leaves the grid; keep the page in its own column underneath */
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.main-column{grid-column:2}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open{position:fixed!important;top:0!important;left:0!important;bottom:0!important;z-index:1300!important;width:264px!important;height:100vh!important;height:100dvh!important;padding:18px 14px!important;overflow-y:auto!important;box-shadow:12px 0 32px rgba(8,20,36,.32)}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .sidebar-toggle{margin:0 0 8px auto}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .brand{justify-content:flex-start!important;padding:7px 14px!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .brand>div{display:block!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open nav{display:flex!important;flex-direction:column!important;overflow:visible!important;gap:2px!important;padding:8px!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .nav-item{justify-content:flex-start!important;gap:10px!important;padding:6px 12px!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .nav-item>span{display:block!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .nav-group-chevron{display:block!important;margin-left:auto}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .sidebar-nav-children{padding-left:12px!important;margin-left:8px!important;border-left:1px solid rgba(255,255,255,.14)!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .sidebar-footer{display:block!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar-backdrop{display:block;position:fixed;inset:0;z-index:1250;background:rgba(10,22,38,.45)}
+}
