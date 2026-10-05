@@ -4,7 +4,7 @@ import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useNotifications } from '../../core/notifications/NotificationContext'
-import { ROLES } from '../../core/permissions/roles'
+import { CAPABILITIES, ROLES, isProfileDisabled } from '../../core/permissions/roles'
 import { workspaceFor } from '../workspaces/workspaceConfig'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -28,6 +28,10 @@ function hospitalAdminWorkspace(english){
 
 const n=v=>Number.isFinite(Number(v))?Number(v):'—'
 function roleKpis(role,m,english,unread){
+  return roleKpiRows(role,m,english,unread).filter(([, , capability])=>!capability||!isProfileDisabled(capability))
+}
+// [label, value, capability the tile belongs to] — a tile of a module the operating profile switches off is hidden.
+function roleKpiRows(role,m,english,unread){
   const tr=(el,en)=>english?en:el
   switch(role){
     case ROLES.HOSPITAL_ADMIN:{
@@ -35,25 +39,25 @@ function roleKpis(role,m,english,unread){
       return [[tr('Ενεργοί χρήστες','Active users'),n(m.activeUsers)],[tr('Ενεργά τμήματα','Active departments'),n(m.activeDepartments)],[tr('Εκκρεμείς ενέργειες','Pending actions'),pending],[tr('Μη αναγνωσμένες ειδοποιήσεις','Unread notifications'),n(unread)]]
     }
     case ROLES.INFECTION_CONTROL_LEAD:
-      return [[tr('Νέα MDR/XDR/PDR · 30ημ.','New MDR/XDR/PDR · 30d'),n(m.recentMdro)],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue)],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls)],[tr('Κρίσιμα εργαστηρίου','Critical lab alerts'),n(m.criticalUncommunicated)]]
+      return [[tr('Νέα MDR/XDR/PDR · 30ημ.','New MDR/XDR/PDR · 30d'),n(m.recentMdro)],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue),CAPABILITIES.VIEW_SURVEILLANCE],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS],[tr('Κρίσιμα εργαστηρίου','Critical lab alerts'),n(m.criticalUncommunicated)]]
     case ROLES.INFECTION_CONTROL_MEMBER:
-      return [[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance)],[tr('Θετικά εργαστηρίου','Positive laboratory results'),n(m.positiveLab)],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue)],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls)]]
+      return [[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance),CAPABILITIES.VIEW_SURVEILLANCE],[tr('Θετικά εργαστηρίου','Positive laboratory results'),n(m.positiveLab)],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue),CAPABILITIES.VIEW_SURVEILLANCE],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS]]
     case ROLES.DEPARTMENT_MANAGER:
-      return [[tr('Νοσηλευόμενοι','Inpatients'),n(m.inpatients)],[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance)],[tr('Εκκρεμή δείγματα','Pending samples'),n(m.pendingSamples)],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls)]]
+      return [[tr('Νοσηλευόμενοι','Inpatients'),n(m.inpatients)],[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance),CAPABILITIES.VIEW_SURVEILLANCE],[tr('Εκκρεμή δείγματα','Pending samples'),n(m.pendingSamples)],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS]]
     case ROLES.LABORATORY:
       return [[tr('Νέα δείγματα σήμερα','New samples today'),n(m.newSamplesToday)],[tr('Εκκρεμή δείγματα','Pending samples'),n(m.pendingSamples)],[tr('Θετικά αποτελέσματα','Positive results'),n(m.positiveLab)],[tr('Κρίσιμα μη επικοινωνημένα','Critical uncommunicated'),n(m.criticalUncommunicated)]]
     case ROLES.COMMITTEE_SECRETARIAT:
-      return [[tr('Επόμενες συνεδριάσεις','Upcoming meetings'),n(m.upcomingMeetings)],[tr('Πρακτικά εκκρεμή','Minutes pending'),n(m.pendingMinutes)],[tr('Αποφάσεις ανοικτές','Open decisions'),n(m.openDecisions)]]
+      return [[tr('Επόμενες συνεδριάσεις','Upcoming meetings'),n(m.upcomingMeetings),CAPABILITIES.VIEW_COMMITTEES],[tr('Πρακτικά εκκρεμή','Minutes pending'),n(m.pendingMinutes),CAPABILITIES.VIEW_COMMITTEES],[tr('Αποφάσεις ανοικτές','Open decisions'),n(m.openDecisions),CAPABILITIES.VIEW_COMMITTEES]]
     case ROLES.HR_OFFICE:
       return [[tr('Ενεργοί εργαζόμενοι','Active employees'),n(m.activeEmployees)],[tr('Νέες εγγραφές · 30ημ.','New records · 30d'),n(m.newEmployees30d)]]
     case ROLES.OCCUPATIONAL_PHYSICIAN:
-      return [[tr('Επισκέψεις σήμερα','Visits today'),n(m.ohVisitsToday)],[tr('Επανέλεγχοι σε εκκρεμότητα','Follow-ups due'),n(m.ohFollowupsDue)],[tr('Εμβολιασμοί προς ανανέωση','Vaccinations due'),n(m.vaccinationsDue)]]
+      return [[tr('Επισκέψεις σήμερα','Visits today'),n(m.ohVisitsToday),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH],[tr('Επανέλεγχοι σε εκκρεμότητα','Follow-ups due'),n(m.ohFollowupsDue),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH],[tr('Εμβολιασμοί προς ανανέωση','Vaccinations due'),n(m.vaccinationsDue),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH]]
     case ROLES.PHARMACY:
-      return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals)],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies)],[tr('Καταγεγραμμένες χορηγήσεις','Administrations recorded'),n(m.administrations)]]
+      return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals)],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies),CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY],[tr('Καταγεγραμμένες χορηγήσεις','Administrations recorded'),n(m.administrations),CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY]]
     case ROLES.DOCTOR_REVIEWER:
-      return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals)],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies)]]
+      return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals)],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies),CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY]]
     case ROLES.QUALITY_MANAGER:
-      return [[tr('Ανοιχτά συμβάντα','Open incidents'),n(m.openIncidents)],[tr('Σοβαρά ανοικτά','Severe open'),n(m.severeOpenIncidents)],[tr('CAPA εκπρόθεσμα','Overdue CAPA'),n(m.overdueCapa)]]
+      return [[tr('Ανοιχτά συμβάντα','Open incidents'),n(m.openIncidents),CAPABILITIES.VIEW_QUALITY],[tr('Σοβαρά ανοικτά','Severe open'),n(m.severeOpenIncidents),CAPABILITIES.VIEW_QUALITY],[tr('CAPA εκπρόθεσμα','Overdue CAPA'),n(m.overdueCapa),CAPABILITIES.VIEW_QUALITY]]
     default:return []
   }
 }

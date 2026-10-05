@@ -26,6 +26,8 @@ export function organismBySiteRows(rows,tx,limit=12){
  return [...grouped.entries()].sort((a,b)=>b[1]-a[1]).slice(0,limit)
 }
 export const TABS=[['overview','Σύνοψη','Overview',Activity],['national','Εθνική Επιτήρηση','National surveillance',Microscope],['surveillance','Επιτήρηση & HAI','Surveillance & HAI',Stethoscope],['laboratory','Μικροβιολογία','Microbiology',FlaskConical],['amr','AMR / MDR-XDR','AMR / MDR-XDR',ShieldAlert],['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill],['prevention','Πρόληψη','Prevention',ShieldCheck],['hand','Υγιεινή Χεριών','Hand hygiene',Hand],['controls','Έλεγχοι','Controls',ClipboardCheck],['occupational','Εργαζόμενοι','Employees',Users],['quality','Ποιότητα','Quality',BriefcaseMedical],['training','Εκπαίδευση','Training',GraduationCap],['governance','Διακυβέρνηση','Governance',BookOpen]]
+// Module each tab needs in the organization's operating profile; tabs not listed are always shown.
+export const TAB_MODULES={surveillance:['surveillance'],antimicrobials:['surveillance','pharmacy'],prevention:['programme'],hand:['programme'],controls:['programme'],quality:['programme'],training:['programme'],governance:['programme'],occupational:['occupational_health']}
 // Organization-level only: data quality, ΕΟΔΥ notifications and EARS-Net export work on sample-level laboratory data.
 export const REPORTING_TAB=['reporting','Αναφορές & ποιότητα δεδομένων','Reporting & data quality',FileWarning]
 export const MONTHS_EL=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']

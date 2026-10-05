@@ -1,5 +1,5 @@
 import { Activity, Award, BarChart3, Beaker, BookOpenCheck, Building2, ClipboardCheck, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
-import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny } from '../core/permissions/roles'
+import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 
 const preventionAccessCapabilities=[
   CAPABILITIES.VIEW_PREVENTION,
@@ -144,6 +144,7 @@ export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignmen
   const allowed=navigation.filter(item=>
     item.excludeRoles&&item.excludeRoles.includes(role)?false:
     item.roles&&!item.roles.includes(role)?false:
+    isProfileDisabled(item.capability)?false:
     item.key==='controls'&&hasAssignments?true:
     item.anyCapabilities?canAny(role,item.anyCapabilities,addOns,customCapabilities):
     can(role,item.capability,addOns,customCapabilities)

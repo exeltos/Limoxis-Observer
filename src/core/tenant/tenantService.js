@@ -7,7 +7,7 @@ export async function listMemberships(userId) {
     .select(`
       id, role, status, custom_role_id,
       custom_role:custom_roles(id, name, capabilities:custom_role_capabilities(capability)),
-      organization:organizations(id, name, code, type, status, is_demo),
+      organization:organizations(id, name, code, type, status, is_demo, operating_profile, enabled_addons),
       scopes:organization_member_scopes(department_id),
       add_ons:organization_member_capabilities(capability),
       assignments:work_assignments(id, assignment_type, source_type, source_id, status, due_at, department_id)
@@ -30,7 +30,7 @@ export async function listPlatformOwnerOrganizations() {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo')
+    .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons')
     .eq('is_demo', false)
     .order('name', { ascending: true })
   if (error) throw error
@@ -52,7 +52,7 @@ export async function createPlatformOrganization({ name, code, type = 'hospital'
   const { data, error } = await supabase
     .from('organizations')
     .insert({ name: name.trim(), code: code.trim().toUpperCase(), type, status, region: region || null, health_region: healthRegion || null, city: city || null, country: country || null, contact_email: contactEmail || null, contact_phone: contactPhone || null, bed_capacity: bedCapacity ? Number(bedCapacity) : null, is_demo: false })
-    .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo')
+    .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons')
     .single()
   if (error) throw error
   return data
@@ -144,6 +144,8 @@ export async function updatePlatformOrganization(organizationId, patch) {
     contact_phone: patch.contactPhone ?? patch.contact_phone ?? null, bed_capacity: patch.bedCapacity === '' ? null : Number(patch.bedCapacity ?? patch.bed_capacity ?? 0) || null,
     updated_at: new Date().toISOString(),
   }
+  if (patch.operatingProfile !== undefined) payload.operating_profile = patch.operatingProfile
+  if (patch.enabledAddons !== undefined) payload.enabled_addons = patch.enabledAddons
   const { data, error } = await supabase.from('organizations').update(payload).eq('id', organizationId).eq('is_demo', false).select().single()
   if (error) throw error
   return data
@@ -199,4 +201,14 @@ export async function convertDemoEntitlementToOrganization(demoId, organizationD
   const org = await createPlatformOrganization(organizationDraft)
   if (supabase) await supabase.from('platform_demo_entitlements').update({ status: 'revoked', updated_at: new Date().toISOString() }).eq('id', demoId)
   return org
+}
+// Platform Owner only (RLS): which modules the organization uses.
+export async function setOrganizationOperatingProfile(organizationId, { profile, addons }) {
+  if (!supabase || !organizationId) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const { data, error } = await supabase.from('organizations')
+    .update({ operating_profile: profile, enabled_addons: addons, updated_at: new Date().toISOString() })
+    .eq('id', organizationId).eq('is_demo', false)
+    .select('id, operating_profile, enabled_addons').single()
+  if (error) throw error
+  return data
 }

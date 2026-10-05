@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react'
 import { flushSync } from 'react-dom'
 import { useAuth } from '../auth/AuthContext'
-import { ROLES, isPreviewableRole } from '../permissions/roles'
+import { ROLES, configureProfileAccess, isPreviewableRole } from '../permissions/roles'
+import { disabledCapabilitiesFor, moduleEnabled as organizationModuleEnabled, normalizeProfile } from '../organization/operatingProfile'
 import { uxPolicyFor, recordWithinRoleScope, canSeeSensitiveEmployeeHealth } from '../permissions/roleUxPolicy'
 import { listMemberships, listPlatformOwnerOrganizations } from './tenantService'
 import { configureDataEnvironment } from '../data/dataEnvironment'
@@ -133,6 +134,11 @@ export function TenantProvider({ children }) {
     platformDemoMode && profile?.isPlatformOwner ? {...DEMO_MEMBERSHIP, role: ROLES.PLATFORM_OWNER} : storedMembership
   ), [platformDemoMode, profile?.isPlatformOwner, storedMembership])
   const tenant = baseMembership?.organization ?? null
+  // The organization's operating profile switches modules off for every role in it.
+  // Applied during render, before children evaluate permissions.
+  const profileKey=`${tenant?.id||''}|${tenant?.operating_profile||''}|${(tenant?.enabled_addons||['*']).join(',')}`
+  const profileDisabled=useMemo(()=>disabledCapabilitiesFor(tenant),[profileKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  configureProfileAccess(profileDisabled)
   const demoMode=Boolean(isDemoSession||platformDemoMode)
   const demoAccountId=isDemoSession?(profile?.id||user?.id||null):(platformDemoMode&&profile?.isPlatformOwner?`owner-preview.${profile?.id||user?.id||'owner'}`:null)
   useLayoutEffect(()=>{
@@ -177,6 +183,8 @@ export function TenantProvider({ children }) {
     role,
     loading: tenantLoading,
     isDemo: Boolean(isDemoSession || platformDemoMode || tenant?.mode === 'demo'),
+    operatingProfile: normalizeProfile(tenant),
+    moduleEnabled: (module) => !tenant || organizationModuleEnabled(tenant, module),
     platformDemoPreview,
     setTenantByMembership,
     enterPlatformDemo,
