@@ -8,7 +8,13 @@ export function capabilitiesFor(role,addOns=[],customCapabilities=[]){
  return [...new Set([...base,...supplemental,...customCapabilities])]
 }
 
-export const can=(role,capability,addOns=[],customCapabilities=[])=>capabilitiesFor(role,addOns,customCapabilities).includes(capability)
+// Capabilities the active organization's operating profile switches off
+// (core/organization/operatingProfile.js). Set by TenantContext; empty outside
+// an organization, so the platform workspace and tests are unaffected.
+let profileDisabled=new Set()
+export function configureProfileAccess(disabled){profileDisabled=disabled instanceof Set?disabled:new Set(disabled||[])}
+export const isProfileDisabled=capability=>profileDisabled.has(capability)
+export const can=(role,capability,addOns=[],customCapabilities=[])=>!profileDisabled.has(capability)&&capabilitiesFor(role,addOns,customCapabilities).includes(capability)
 export const canAny=(role,capabilities=[],addOns=[],customCapabilities=[])=>capabilities.some(capability=>can(role,capability,addOns,customCapabilities))
 
 export function scopeFor(capability,{role,scopeOverrides={}}={}){

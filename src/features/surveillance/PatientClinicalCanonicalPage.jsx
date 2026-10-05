@@ -19,7 +19,7 @@ import { useAuditActor } from '../../core/audit/useAuditActor'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { downloadRecordJson } from '../../core/export/recordExport'
-import { can,CAPABILITIES } from '../../core/permissions/roles'
+import { can,CAPABILITIES,isProfileDisabled } from '../../core/permissions/roles'
 import { createAdmission,dischargeAdmission,loadAdmissions,loadPatients,transferAdmission } from '../patients/patientsService'
 import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { loadDepartments } from '../management/departmentsService'
@@ -111,6 +111,8 @@ export function PatientClinicalCanonicalPage({patientMode=false}){
       let rows=[]
       if(patientMode&&selectedPatient)rows=await repository.loadForPatient(selectedPatient)
       else if(caseId){const one=await repository.loadCase(caseId);rows=one?[one]:[]}
+      // Surveillance switched off by the operating profile: its episodes are hidden, not deleted.
+      if(isProfileDisabled(CAPABILITIES.VIEW_SURVEILLANCE))rows=[]
       setEpisodes(rows)
       const current=preferred||selectedEpisodeId||caseId||rows[0]?.id||''
       if(!patientMode)setSelectedEpisodeId(rows.some(row=>String(row.id)===String(current))?current:(rows[0]?.id||''))
