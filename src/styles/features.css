@@ -2778,12 +2778,14 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .management-user-role-row .field>span{font-size:10px!important;text-transform:uppercase;letter-spacing:.035em;color:#7c8b99!important;font-weight:800!important}
 .management-user-role-row select{height:42px!important}
 
-.management-user-actions{display:grid;gap:8px}
-.management-user-action-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:11px 12px;border:1px solid #e4eaf0;border-radius:10px;background:#fff}
-.management-user-action-copy{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.management-user-actions{display:grid;gap:10px}
+/* the account actions are their own section, clear of the role row */
+.management-user-section.management-user-actions-section{margin-top:20px;padding-top:18px;border-top:1px solid #e8edf2}
+.management-user-action-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 14px;border:1px solid #e4eaf0;border-radius:10px;background:#fff}
+.management-user-action-copy{display:flex;align-items:center;gap:10px;min-width:0}
 .management-user-action-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:0 0 30px;background:#f2f6f9;color:#365b78}
 .management-user-action-copy strong{display:block;color:#23384d;font-size:12px;font-weight:800;line-height:1.25}
-.management-user-action-copy span{display:block;margin-top:2px;color:#7c8b99;font-size:10.5px;line-height:1.4}
+.management-user-action-copy div>span{display:block;margin-top:2px;color:#7c8b99;font-size:10.5px;line-height:1.4}
 .management-user-action-row.danger{border-color:#f0d4d4;background:#fffafa}
 .management-user-action-row.danger .management-user-action-icon{background:var(--lo-status-danger-bg,#fdeeee);color:var(--lo-status-danger-fg,#b23b3b)}
 .management-user-action-row .button{min-width:132px}
