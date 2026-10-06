@@ -65,12 +65,9 @@ describe('setup and user guide (shared by the Help Center and the PDF manual)', 
     }
   })
 
-  it('ships the PDF manuals the Help Center links to', () => {
-    for (const file of ['Limoxis-Observer-Odigos-EL.pdf', 'Limoxis-Observer-Guide-EN.pdf']) {
-      const path = new URL(`../public/manual/${file}`, import.meta.url)
-      expect(fs.existsSync(path), file).toBe(true)
-      expect(fs.readFileSync(path).subarray(0, 5).toString()).toBe('%PDF-')
-    }
+  it('keeps the PDF manuals out of the app: no public download, no link in the Help Center', () => {
+    expect(fs.existsSync(new URL('../public/manual', import.meta.url))).toBe(false)
+    expect(fs.readFileSync(new URL('../src/core/help/HelpGuideView.jsx', import.meta.url), 'utf8')).not.toMatch(/\.pdf|\/manual\/|download/)
   })
 })
 

@@ -1,7 +1,7 @@
 // Builds the printable PDF manual (Greek and English) from the same content the in-app
 // Help Center uses (src/core/help/helpGuide.js), so the two never disagree.
 //
-//   npm run manual:pdf                      # writes public/manual/*.pdf (served by the app at /manual/)
+//   npm run manual:pdf                      # writes docs/manual/*.pdf (not served by the app: the PDFs are for the owner only)
 //   node tools/build-manual-pdf.mjs --out some/dir [--lang el|en]
 import fs from 'node:fs'
 import path from 'node:path'
@@ -16,7 +16,7 @@ import { APP_VERSION } from '../src/core/version.js'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const argValue = name => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null }
-const outDir = path.resolve(root, argValue('--out') || 'public/manual')
+const outDir = path.resolve(root, argValue('--out') || 'docs/manual')
 const languages = argValue('--lang') ? [argValue('--lang')] : ['el', 'en']
 
 const esc = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

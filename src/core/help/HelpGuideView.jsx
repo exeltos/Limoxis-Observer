@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react'
-import { Check, Download, Lock } from 'lucide-react'
+import { Check, Lock } from 'lucide-react'
 import { guideContent, pickGuide } from './helpGuide'
 import { ADDONS, ADDON_LABELS, CORE_MODULES, MODULES, OPERATING_PROFILES, OPTIONAL_MODULES, PROFILE_LABELS } from '../organization/operatingProfile'
 import { roleLabel } from '../permissions/roleLabels'
 import './helpGuide.css'
-
-const PDF_FILES = { el: '/manual/Limoxis-Observer-Odigos-EL.pdf', en: '/manual/Limoxis-Observer-Guide-EN.pdf' }
 
 const ui = {
   el: {
@@ -14,7 +12,7 @@ const ui = {
     forWhom: 'Για ποιον', goal: 'Στόχος', steps: 'Βήματα με τη σειρά', firstWeek: 'Έλεγχος πρώτης εβδομάδας', success: 'Πώς καταλαβαίνετε ότι πετύχατε', recipe: 'Συνηθισμένος συνδυασμός',
     what: 'Τι είναι', users: 'Ποιοι την χρησιμοποιούν', needs: 'Χρειάζεται και', analysis: 'Ανάλυση και report', first: 'Πρώτο βήμα',
     current: 'Τρέχον πακέτο του νοσοκομείου', on: 'Ανοιχτή στο νοσοκομείο σας', off: 'Κλειδωμένη στο νοσοκομείο σας', always: 'Πάντα ανοιχτή', addon: 'Πρόσθετο', offHint: 'Αν τη χρειάζεστε, ζητήστε από τον Platform Owner να την ξεκλειδώσει.',
-    included: 'Περιλαμβάνεται από', role: 'Ρόλος', does: 'Τι κάνει', pdfTitle: 'Εγχειρίδιο σε PDF', pdfBody: 'Η ίδια ύλη σε αρχείο για εκτύπωση ή αποστολή.', pdfEl: 'Ελληνικά (PDF)', pdfEn: 'English (PDF)',
+    included: 'Περιλαμβάνεται από', role: 'Ρόλος', does: 'Τι κάνει',
   },
   en: {
     eyebrow: 'GETTING STARTED', tabs: { journey: 'The journey', where: 'Where am I?', packages: 'Packages & steps', modules: 'Modules', roles: 'Roles', faq: 'Common problems' },
@@ -22,7 +20,7 @@ const ui = {
     forWhom: 'Who it is for', goal: 'Goal', steps: 'Steps in order', firstWeek: 'First-week check', success: 'How you know it worked', recipe: 'Common combination',
     what: 'What it is', users: 'Who uses it', needs: 'Also needs', analysis: 'Analysis and report', first: 'First step',
     current: 'Hospital’s current package', on: 'On for your hospital', off: 'Locked for your hospital', always: 'Always on', addon: 'Add-on', offHint: 'If you need it, ask the Platform Owner to unlock it.',
-    included: 'Included from', role: 'Role', does: 'What it does', pdfTitle: 'Manual as PDF', pdfBody: 'The same content as a file to print or send.', pdfEl: 'Ελληνικά (PDF)', pdfEn: 'English (PDF)',
+    included: 'Included from', role: 'Role', does: 'What it does',
   },
 }
 
@@ -35,7 +33,6 @@ export function HelpGuideView({ language = 'el', hospitalMode = false, moduleEna
   const [pkg, setPkg] = useState(OPERATING_PROFILES.includes(currentProfile) ? currentProfile : 'basic')
   const name = id => (MODULES[id] ? MODULES[id][lang] : ADDON_LABELS[id][lang])
   const selected = g.packages.find(item => item.id === pkg) || g.packages[0]
-  const otherLang = lang === 'en' ? 'el' : 'en'
 
   const status = id => {
     if (!hospitalMode) return null
@@ -47,13 +44,6 @@ export function HelpGuideView({ language = 'el', hospitalMode = false, moduleEna
     <span className="manual-step-label">{t.eyebrow}</span>
     <h1>{g.title}</h1>
     <p>{g.subtitle}</p>
-
-    <div className="manual-start-pdf">
-      <Download size={16} />
-      <span><b>{t.pdfTitle}</b> {t.pdfBody}</span>
-      <a href={PDF_FILES[lang]} target="_blank" rel="noopener noreferrer" download>{lang === 'en' ? t.pdfEn : t.pdfEl}</a>
-      <a href={PDF_FILES[otherLang]} target="_blank" rel="noopener noreferrer" download>{otherLang === 'en' ? t.pdfEn : t.pdfEl}</a>
-    </div>
 
     <div className="manual-chapter-tabs" role="tablist" aria-label={g.title}>
       {Object.keys(t.tabs).map((id, i) => <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}><span>{i + 1}</span>{t.tabs[id]}</button>)}
