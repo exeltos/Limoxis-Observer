@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { ADDONS, MODULES, disabledCapabilitiesFor, moduleEnabled, normalizeProfile, profileModules } from '../src/core/organization/operatingProfile'
+import { ADDONS, MODULES, profileFor, disabledCapabilitiesFor, moduleEnabled, normalizeProfile, profileModules } from '../src/core/organization/operatingProfile'
 import { CAPABILITIES, ROLES, can, configureProfileAccess } from '../src/core/permissions/roles'
 import { navigationFor } from '../src/app/navigation'
 
@@ -10,7 +10,7 @@ const navKeys = () => navigationFor({ role: ROLES.HOSPITAL_ADMIN, hasAssignments
 
 describe('operating profile', () => {
   it('keeps everything on for existing organizations and outside an organization', () => {
-    expect(normalizeProfile({ id: 'o1' })).toEqual({ profile: 'full', addons: ['occupational_health', 'pharmacy', 'prevalence_survey', 'lira'] })
+    expect(normalizeProfile({ id: 'o1' })).toEqual({ profile: 'full', addons: ['occupational_health', 'pharmacy', 'prevalence_survey', 'lira'], modules: Object.keys(MODULES) })
     expect(disabledCapabilitiesFor({ id: 'o1' }).size).toBe(0)
     expect(disabledCapabilitiesFor(null).size).toBe(0)
   })
@@ -24,7 +24,7 @@ describe('operating profile', () => {
   it('surveillance profile adds surveillance and indicators, not the programme', () => {
     const o = org('surveillance', ['pharmacy'])
     expect(moduleEnabled(o, 'surveillance')).toBe(true)
-    expect(moduleEnabled(o, 'programme')).toBe(false)
+    expect(moduleEnabled(o, 'controls')).toBe(false)
     expect(moduleEnabled(o, 'pharmacy')).toBe(true)
     expect(moduleEnabled(o, 'occupational_health')).toBe(false)
   })
@@ -56,5 +56,26 @@ describe('operating profile', () => {
   it('gives every add-on its own analysis tab behind its module', async () => {
     const { TAB_MODULES } = await import('../src/features/analysis/analysisPageModel')
     for (const addon of ADDONS) expect(Object.values(TAB_MODULES).some(modules => modules.includes(addon))).toBe(true)
+  })
+
+  it('lets the Platform Owner enable any single module regardless of the preset', () => {
+    const o = { id: 'o1', operating_profile: 'custom', enabled_addons: [], enabled_modules: ['patients', 'laboratory', 'national', 'controls', 'training'] }
+    expect(moduleEnabled(o, 'controls')).toBe(true)
+    expect(moduleEnabled(o, 'training')).toBe(true)
+    expect(moduleEnabled(o, 'surveillance')).toBe(false)
+    expect(normalizeProfile(o).profile).toBe('custom')
+    const off = disabledCapabilitiesFor(o)
+    expect(off.has(CAPABILITIES.VIEW_CONTROLS)).toBe(false)
+    expect(off.has(CAPABILITIES.VIEW_TRAINING)).toBe(false)
+    expect(off.has(CAPABILITIES.VIEW_SURVEILLANCE)).toBe(true)
+    expect(off.has(CAPABILITIES.VIEW_QUALITY)).toBe(true)
+    expect(off.has(CAPABILITIES.VIEW_LAB)).toBe(false)
+  })
+
+  it('always keeps the core modules and recognizes a preset from the module list', () => {
+    const o = { id: 'o1', enabled_modules: ['surveillance'] }
+    expect(normalizeProfile(o).modules).toEqual(expect.arrayContaining(['patients', 'laboratory', 'national', 'surveillance']))
+    expect(profileFor(profileModules('surveillance'))).toBe('surveillance')
+    expect(profileFor(['patients'])).toBe('custom')
   })
 })

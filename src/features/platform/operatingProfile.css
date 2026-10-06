@@ -15,6 +15,10 @@
 .operating-profile-modules li.on{color:var(--lo-color-text)}
 .operating-profile-modules li.on svg{color:#1d6b3a}
 .operating-profile-modules li.off{color:var(--lo-color-muted);opacity:.65}
+.operating-profile .operating-profile-group-title{margin:14px 0 8px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.035em;color:var(--lo-color-muted)}
+.operating-profile-core{display:flex;flex-wrap:wrap;gap:6px 14px}
+.operating-profile-core-item{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--lo-color-text)}
+.operating-profile-core-item svg{color:#1d6b3a}
 .operating-profile-addons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .operating-profile-addon{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);cursor:pointer}
 .operating-profile-addon.selected{border-color:#1d6b3a;background:#f5fbf7}
