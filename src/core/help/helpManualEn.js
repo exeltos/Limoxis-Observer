@@ -92,6 +92,7 @@ export const helpManualEn={
   ['Organization & users','Manage hospital identity, user accounts and activation.'],
   ['Roles & permissions','Permissions define View/Create/Edit/Complete/Approve/Delete/Export/Assign/Manage and must align with backend enforcement.'],
   ['Libraries','Departments, organisms, antimicrobials and other shared values are managed centrally.'],
-  ['Core content','Hospital changes to core definitions use controlled override/hide patterns where required instead of destroying baseline content.']
+  ['Core content','Hospital changes to core definitions use controlled override/hide patterns where required instead of destroying baseline content.'],
+  ['First hospital start','Set up in this order: Libraries › Departments, then Users & Roles, then Patient-days (if you have Indicators or Surveillance). The modules you see depend on the package the Platform Owner has set; anything locked is hidden from everyone. All the steps are in the Getting started guide.']
  ],steps:['Choose the management area.','Find the relevant record.','Review scope and impact before changing it.','Save and verify feedback/audit outcome.'],preview:'management'}
 }
