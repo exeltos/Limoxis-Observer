@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { ADDONS, MODULES, profileFor, disabledCapabilitiesFor, moduleEnabled, normalizeProfile, profileModules } from '../src/core/organization/operatingProfile'
+import { ADDONS, MODULES, missingDependencies, profileFor, disabledCapabilitiesFor, moduleEnabled, normalizeProfile, profileModules } from '../src/core/organization/operatingProfile'
 import { CAPABILITIES, ROLES, can, configureProfileAccess } from '../src/core/permissions/roles'
 import { navigationFor } from '../src/app/navigation'
 
@@ -99,5 +99,15 @@ describe('operating profile', () => {
     expect(TAB_MODULES.laboratory).toEqual(['laboratory'])
     expect(TAB_MODULES.amr).toEqual(['laboratory'])
     expect(TAB_MODULES.national).toEqual(['national'])
+  })
+
+  it('warns, without blocking, when a module is on and its prerequisite is locked', () => {
+    expect(missingDependencies(['patients', 'indicators'])).toEqual([['indicators', ['surveillance']]])
+    expect(missingDependencies(['patients', 'surveillance'])).toEqual([['surveillance', ['laboratory']]])
+    expect(missingDependencies(['patients', 'national'])).toEqual([['national', ['laboratory']]])
+    for (const id of ['basic', 'surveillance', 'full']) expect(missingDependencies(profileModules(id))).toEqual([])
+    // a warning never changes what is enabled
+    const o = { id: 'o1', operating_profile: 'custom', enabled_addons: [], enabled_modules: ['patients', 'indicators'] }
+    expect(moduleEnabled(o, 'indicators')).toBe(true)
   })
 })

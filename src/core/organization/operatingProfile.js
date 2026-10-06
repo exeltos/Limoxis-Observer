@@ -82,6 +82,22 @@ const ADDON_CAPABILITIES = Object.freeze({
   lira: [C.VIEW_LIRA],
 })
 
+// Modules that give little without another one (e.g. indicators are computed from surveillance
+// data). Only used to warn the Platform Owner: nothing is blocked or switched on automatically.
+export const MODULE_DEPENDENCIES = Object.freeze({
+  surveillance: ['laboratory'],
+  indicators: ['surveillance'],
+  national: ['laboratory'],
+})
+// [module, [missing modules]] for every enabled module whose prerequisite is locked.
+export function missingDependencies(modules) {
+  const on = new Set(modules || [])
+  return Object.entries(MODULE_DEPENDENCIES)
+    .filter(([module]) => on.has(module))
+    .map(([module, needs]) => [module, needs.filter(need => !on.has(need))])
+    .filter(([, missing]) => missing.length)
+}
+
 // The preset whose module list equals `modules`, else 'custom'.
 export function profileFor(modules) {
   const set = new Set(modules || [])
