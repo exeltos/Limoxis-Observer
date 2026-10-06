@@ -136,7 +136,7 @@ export function TenantProvider({ children }) {
   const tenant = baseMembership?.organization ?? null
   // The organization's operating profile switches modules off for every role in it.
   // Applied during render, before children evaluate permissions.
-  const profileKey=`${tenant?.id||''}|${tenant?.operating_profile||''}|${(tenant?.enabled_addons||['*']).join(',')}`
+  const profileKey=`${tenant?.id||''}|${tenant?.operating_profile||''}|${(tenant?.enabled_addons||['*']).join(',')}|${(tenant?.enabled_modules||['*']).join(',')}`
   const profileDisabled=useMemo(()=>disabledCapabilitiesFor(tenant),[profileKey]) // eslint-disable-line react-hooks/exhaustive-deps
   configureProfileAccess(profileDisabled)
   const demoMode=Boolean(isDemoSession||platformDemoMode)

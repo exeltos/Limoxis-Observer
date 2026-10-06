@@ -10,6 +10,8 @@ import { loadDocuments } from '../documents/documentStore'
 import { loadCommittees } from '../committees/committeeData'
 import { employeeRows, employeeVaccinations } from '../employees/employeeDemoData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
+import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
+import { buildLiraMetrics, buildPpsMetrics } from './analysisAddonMetrics'
 
 const day = value => String(value || '').slice(0, 10)
 const month = value => String(value || '').slice(0, 7)
@@ -130,6 +132,8 @@ export function collectDemoDomainMetrics(range = {}, en = false) {
         minutesPending: meetings.filter(row => row.status !== 'finalized' && row.date && row.date < today).length,
       }
     })(),
+    pps: buildPpsMetrics(loadPrevalenceSurveyLocal(), range),
+    lira: buildLiraMetrics([], range, 0),
     antimicrobial: {
       total: therapies.length,
       active: therapies.filter(row => (row.status || 'active') === 'active' && !row.endedAt).length,
@@ -151,6 +155,7 @@ const LABELS = {
   bloodstreamInfection: ['Λοίμωξη αιματικής ροής', 'Bloodstream infection'], urinaryTractInfection: ['Λοίμωξη ουροποιητικού', 'Urinary tract infection'], pneumonia: ['Πνευμονία', 'Pneumonia'], surgicalSiteInfection: ['Λοίμωξη χειρουργικού πεδίου', 'Surgical site infection'],
   periodic: ['Περιοδική', 'Periodic'], followUp: ['Επανέλεγχος', 'Follow-up'], preEmployment: ['Προπρόσληψης', 'Pre-employment'], exposure: ['Μετά από έκθεση', 'Post-exposure'],
   policy: ['Πολιτική', 'Policy'], instruction: ['Οδηγία', 'Instruction'], procedure: ['Διαδικασία', 'Procedure'], protocol: ['Πρωτόκολλο', 'Protocol'], form: ['Έντυπο', 'Form'],
+  active: ['Ενεργή', 'Active'],
   published: ['Δημοσιευμένο', 'Published'], draft: ['Προσχέδιο', 'Draft'], review: ['Υπό αναθεώρηση', 'In review'],
   CLABSI: ['Δέσμη CLABSI', 'CLABSI bundle'], VAE: ['Δέσμη VAE', 'VAE bundle'], CAUTI: ['Δέσμη CAUTI', 'CAUTI bundle'], SSI: ['Δέσμη SSI', 'SSI bundle'],
 }
@@ -302,6 +307,35 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       charts: [
         { type: 'donut', title: tx('Έγγραφα ανά τύπο', 'Documents by type'), subtitle: tx('Ελεγχόμενα έγγραφα σε χρήση.', 'Controlled documents in use.'), rows: named(g.byType), center: tx('έγγραφα', 'documents') },
         { type: 'bars', title: tx('Κατάσταση εγγράφων', 'Document status'), subtitle: tx('Κύκλος ζωής ελεγχόμενων εγγράφων.', 'Controlled document lifecycle.'), rows: named(g.byStatus) },
+      ],
+    } }
+    case 'pps': { const p = d.pps || {}; const months = p.byMonth || []; const last = months[months.length - 1], prev = months[months.length - 2]
+      const rate = (row, index) => (row ? pct(row[index], row[1]) : null)
+      const delta = (now, before) => (now == null || before == null ? tx('Χωρίς προηγούμενη μέτρηση', 'No earlier survey') : tx(`${before > now ? '↓' : before < now ? '↑' : '='} από ${fmtPct(before)} στην προηγούμενη`, `${before > now ? '↓' : before < now ? '↑' : '='} from ${fmtPct(before)} in the previous`))
+      const haiNow = rate(last, 2), haiBefore = rate(prev, 2), abxNow = rate(last, 3), abxBefore = rate(prev, 3)
+      return {
+      kpis: [
+        [tx('Επιπολασμός HAI', 'HAI prevalence'), fmtPct(haiNow), delta(haiNow, haiBefore), haiNow != null && haiBefore != null && haiNow > haiBefore ? 'warning' : ''],
+        [tx('Χρήση αντιβιοτικών', 'Antibiotic use'), fmtPct(abxNow), delta(abxNow, abxBefore), abxNow != null && abxBefore != null && abxNow > abxBefore ? 'warning' : ''],
+        [tx('Μελέτες στην περίοδο', 'Surveys in the period'), p.surveys ?? 0, tx(`${p.patients ?? 0} ασθενείς συνολικά`, `${p.patients ?? 0} patients in total`)],
+        [tx('Ασθενείς με HAI', 'Patients with HAI'), p.withHai ?? 0, tx(`${fmtPct(pct(p.withHai, p.patients))} του συνόλου`, `${fmtPct(pct(p.withHai, p.patients))} of the total`)],
+      ],
+      charts: [
+        { type: 'trend', wide: true, title: tx('Επιπολασμός HAI ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με HAI προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
+        { type: 'trend', wide: true, title: tx('Χρήση αντιβιοτικών ανά μέτρηση (%)', 'Antibiotic use by survey (%)'), subtitle: tx('Ασθενείς υπό αντιβιοτικά προς ασθενείς της μέτρησης.', 'Patients on antibiotics over patients surveyed.'), points: months.map(([key, total, , abx]) => [key, pct(abx, total) ?? 0]) },
+        { type: 'bars', title: tx('Ασθενείς που μετρήθηκαν', 'Patients surveyed'), subtitle: tx('Πλήθος ασθενών ανά μέτρηση.', 'Patients per survey.'), rows: months.map(([key, total]) => [key, total]) },
+      ],
+    } }
+    case 'lira': { const l = d.lira || {}; const averageDays = l.closedWithDates ? Math.round(l.closedDaysTotal / l.closedWithDates * 10) / 10 : null; return {
+      kpis: [
+        [tx('Διερευνήσεις συρροών', 'Outbreak investigations'), l.investigations ?? 0, tx(`${l.active ?? 0} ενεργές`, `${l.active ?? 0} active`), l.active ? 'warning' : ''],
+        [tx('Ολοκληρωμένες', 'Closed'), l.closed ?? 0, averageDays == null ? tx('Χωρίς χρόνο ολοκλήρωσης', 'No closing time yet') : tx(`μέσος χρόνος ${String(averageDays).replace('.', ',')} ημέρες`, `average ${averageDays} days to close`)],
+        [tx('Ενεργές συρροές (clusters)', 'Active clusters'), l.clusters ?? 0, tx('ανιχνευμένες από την επιτήρηση', 'detected by surveillance'), l.clusters ? 'danger' : ''],
+      ],
+      charts: [
+        { type: 'trend', wide: true, title: tx('Νέες διερευνήσεις ανά μήνα', 'New investigations by month'), subtitle: tx('Έναρξη διερεύνησης ανά μήνα.', 'Investigations opened per month.'), points: l.monthly || [] },
+        { type: 'bars', title: tx('Ανά μικροοργανισμό', 'By organism'), subtitle: tx('Μικροοργανισμός κάθε διερεύνησης.', 'Organism of each investigation.'), rows: l.byOrganism || [] },
+        { type: 'donut', title: tx('Κατάσταση', 'Status'), subtitle: tx('Πρόχειρες, ενεργές, κλειστές.', 'Draft, active, closed.'), rows: named(l.byStatus), center: tx('διερευνήσεις', 'investigations') },
       ],
     } }
     default: return null

@@ -5,7 +5,7 @@ export function mergeDomainMetrics(list = []) {
   if (!items.length) return null
   if (items.length === 1) return items[0]
   const merged = {}
-  for (const section of ['surveillance', 'handHygiene', 'bundles', 'waste', 'controls', 'quality', 'antimicrobial', 'workforce', 'training', 'governance']) {
+  for (const section of ['surveillance', 'handHygiene', 'bundles', 'waste', 'controls', 'quality', 'antimicrobial', 'workforce', 'training', 'governance', 'pps', 'lira']) {
     const parts = items.map(item => item[section]).filter(Boolean)
     if (!parts.length) continue
     const result = {}
