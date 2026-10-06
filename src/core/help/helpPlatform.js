@@ -26,7 +26,8 @@ export const platformHelp={
   '/platform#organizations':{title:'Οργανισμοί',summary:'Μητρώο νοσοκομείων και κλινικών της πλατφόρμας.',audience:audienceEl,chapters:[
    ['Μητρώο','Κάθε γραμμή δείχνει κωδικό, πόλη/περιφέρεια, πλήθος χρηστών, κατάσταση Διαχειριστή Νοσοκομείου και κατάσταση οργανισμού.'],
    ['Νέος οργανισμός','Με «Νέος οργανισμός» καταχωρίζετε ταυτότητα, τοποθεσία και τον αρχικό Διαχειριστή Νοσοκομείου, στον οποίο αποστέλλεται πρόσκληση.'],
-   ['Καρτέλα οργανισμού','Από την καρτέλα βλέπετε στοιχεία, χρήστες και διαγνωστικά, και μπαίνετε στον οργανισμό όταν χρειάζεται υποστήριξη.']
+   ['Καρτέλα οργανισμού','Από την καρτέλα βλέπετε στοιχεία, χρήστες και διαγνωστικά, και μπαίνετε στον οργανισμό όταν χρειάζεται υποστήριξη.'],
+   ['Προφίλ λειτουργίας','Στην καρτέλα του οργανισμού επιλέγετε πακέτο (Βασική καταγραφή, Εργαστήριο & Επιτήρηση, Πλήρες πρόγραμμα) και μετά πατάτε το κλειδί μιας ενότητας για να την ξεκλειδώσετε ή να την κλειδώσετε. Ό,τι κλειδώνεται κρύβεται από όλους τους χρήστες του νοσοκομείου, χωρίς να διαγράφονται δεδομένα. Η πορτοκαλί προειδοποίηση «Χρειάζεται και…» δείχνει ότι λείπει προαπαιτούμενη ενότητα. Δεν μπλοκάρει την αποθήκευση.']
   ],steps:['Αναζητήστε τον οργανισμό.','Ανοίξτε την καρτέλα του.','Κάντε την αλλαγή ή την είσοδο που χρειάζεται.']},
   '/platform#demo':{title:'Demo',summary:'Χρονικά περιορισμένες προσβάσεις με αποκλειστικά συνθετικά δεδομένα.',audience:audienceEl,chapters:[
    ['Απομόνωση','Τα Demo είναι πλήρως απομονωμένα από τα πραγματικά δεδομένα. Κανένα στοιχείο ασθενούς ή εργαζομένου δεν εμφανίζεται σε αυτά.'],
@@ -63,7 +64,8 @@ export const platformHelp={
   '/platform#organizations':{title:'Organizations',summary:'Registry of the hospitals and clinics on the platform.',audience:audienceEn,chapters:[
    ['Registry','Each row shows code, city/region, user count, Hospital Admin status and organization status.'],
    ['New organization','"New organization" records identity, location and the initial Hospital Admin, who receives an invitation.'],
-   ['Organization record','The record shows details, users and diagnostics, and lets you enter the organization when support is needed.']
+   ['Organization record','The record shows details, users and diagnostics, and lets you enter the organization when support is needed.'],
+   ['Operating profile','In the organization record choose a package (Basic records, Laboratory & surveillance, Full programme), then click a module’s lock to unlock or lock it. Whatever is locked is hidden from every user of the hospital, and no data is deleted. The orange “Also needs…” warning shows that a prerequisite module is missing; it does not block saving.']
   ],steps:['Search for the organization.','Open its record.','Make the change or enter as needed.']},
   '/platform#demo':{title:'Demo',summary:'Time-limited access with synthetic data only.',audience:audienceEn,chapters:[
    ['Isolation','Demos are fully isolated from production data. No patient or employee record is ever shown in them.'],

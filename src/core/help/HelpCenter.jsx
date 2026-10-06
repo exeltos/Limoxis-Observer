@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Info,  Search, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Info, Rocket, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { APP_VERSION, BUILD_ID } from '../version'
 import { useLocation } from 'react-router-dom'
 import { glossary } from './helpContent'
 import { helpManual } from './helpManual'
 import { helpManualEn } from './helpManualEn'
 import { helpExtras } from './helpExtras'
+import { guideContent, pickGuide } from './helpGuide'
+import { HelpGuideView } from './HelpGuideView'
 import { platformHelp, platformHelpNavigation } from './helpPlatform'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useTenant } from '../tenant/TenantContext'
@@ -28,7 +30,7 @@ const uiText={
   center:'Κέντρο Βοήθειας & Πληροφοριών',guide:'Οδηγός χρήσης Limoxis Observer',
   searchGuide:'Αναζήτηση στο εγχειρίδιο...',searchGlossary:'Αναζήτηση ορολογίας...',
   roleGuide:'Εγχειρίδιο προσαρμοσμένο στον ρόλο σας',sectionsForRole:'ΕΝΟΤΗΤΕΣ ΓΙΑ ΤΟΝ ΡΟΛΟ ΣΑΣ',
-  glossary:'Ορολογία',about:'Σχετικά / Έκδοση',version:'Έκδοση',
+  start:'Οδηγός έναρξης',glossary:'Ορολογία',about:'Σχετικά / Έκδοση',version:'Έκδοση',
   currentScreen:'ΤΡΕΧΟΥΣΑ ΟΘΟΝΗ',userGuide:'ΟΔΗΓΟΣ ΧΡΗΣΗΣ',forRole:'Αφορά',
   chapter:'ΚΕΦΑΛΑΙΟ',howTo:'Πώς το χρησιμοποιώ',beforeFinish:'Έλεγχος πριν ολοκληρώσετε',
   goodPractice:'Καλή πρακτική',roleAware:'Προσαρμοσμένο στον λογαριασμό σας',
@@ -47,7 +49,7 @@ const uiText={
   center:'Help & Information Center',guide:'Limoxis Observer User Guide',
   searchGuide:'Search the user guide...',searchGlossary:'Search terminology...',
   roleGuide:'User guide tailored to your role',sectionsForRole:'SECTIONS AVAILABLE TO YOUR ROLE',
-  glossary:'Glossary',about:'About / Version',version:'Version',
+  start:'Getting started',glossary:'Glossary',about:'About / Version',version:'Version',
   currentScreen:'CURRENT SCREEN',userGuide:'USER GUIDE',forRole:'For',
   chapter:'CHAPTER',howTo:'How to use it',beforeFinish:'Check before you finish',
   goodPractice:'Good practice',roleAware:'Tailored to your account',
@@ -67,7 +69,7 @@ const uiText={
 export function HelpCenter({open,onClose}){
  const {pathname,hash}=useLocation()
  const {language}=useLanguage()
- const {role,membership,actualRole,tenant}=useTenant()
+ const {role,membership,actualRole,tenant,moduleEnabled,operatingProfile}=useTenant()
  const platformMode=actualRole==='platform_owner'&&!tenant
  const searchRef=useRef(null)
  const [query,setQuery]=useState('')
@@ -89,7 +91,8 @@ export function HelpCenter({open,onClose}){
  const checks=extras?.checks?.[language==='en'?'en':'el']||[]
  const tip=extras?.tip?.[language==='en'?'en':'el']||''
  const related=(extras?.related||[]).map(path=>visible.find(x=>x.to===path)).filter(Boolean).slice(0,3)
- const terms=useMemo(()=>glossary.filter(g=>`${g.term} ${g.el} ${g.en}`.toLowerCase().includes(normalizedQuery)),[normalizedQuery])
+ const platformTerms=useMemo(()=>pickGuide(guideContent.terms,language==='en'?'en':'el').map(x=>({term:x.term,el:x.def,en:x.def})),[language])
+ const terms=useMemo(()=>[...platformTerms,...glossary].filter(g=>`${g.term} ${g.el} ${g.en}`.toLowerCase().includes(normalizedQuery)),[normalizedQuery,platformTerms])
  const currentChapter=current.chapters[Math.min(chapter,current.chapters.length-1)]||current.chapters[0]
  const isCurrent=selected===currentSection
 
@@ -140,6 +143,7 @@ export function HelpCenter({open,onClose}){
       {filtered.length?filtered.map((x)=>{const Icon=x.icon||BookOpen;return <button key={x.to} className={selected===x.to&&mode==='manual'?'active':''} onClick={()=>selectModule(x.to)}><Icon size={15}/><span>{x.manual.title}</span><ChevronRight size={13}/></button>}):<div className="manual-nav-empty">{tx.noResults}</div>}
      </div>
      <div className="manual-side-bottom">
+      <button className={mode==='start'?'active':''} onClick={()=>{setMode('start');setQuery('')}}><Rocket size={15}/><span>{tx.start}</span></button>
       <button className={mode==='glossary'?'active':''} onClick={()=>{setMode('glossary');setQuery('')}}><BookOpen size={15}/><span>{tx.glossary}</span></button>
       <button className={mode==='about'?'active':''} onClick={()=>{setMode('about');setQuery('')}}><Info size={15}/><span>{tx.about}</span></button>
       <div className="manual-version">{tx.version} v{APP_VERSION}<span>Build {BUILD_ID}</span></div>
@@ -194,6 +198,8 @@ export function HelpCenter({open,onClose}){
         <button className="manual-lightbox-close" aria-label={tx.closeZoom} title={tx.closeZoom} onClick={()=>setImageOpen(false)}><X size={21}/></button>
       </div>
     </div>}
+
+    {mode==='start'&&<HelpGuideView language={language} hospitalMode={Boolean(tenant)&&!platformMode} moduleEnabled={moduleEnabled} currentProfile={operatingProfile?.profile}/>}
 
     {mode==='glossary'&&<main className="manual-special"><span className="manual-step-label">{tx.glossaryEyebrow}</span><h1>{tx.glossaryTitle}</h1><p>{tx.glossaryBody}</p><label className="manual-special-search"><Search size={15}/><input ref={searchRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder={tx.searchGlossary}/></label><div className="manual-glossary">{terms.map(g=><div key={g.term}><strong>{g.term}</strong><span>{language==='el'?g.el:g.en}</span></div>)}</div></main>}
 
