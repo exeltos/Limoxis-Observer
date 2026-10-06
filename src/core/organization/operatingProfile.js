@@ -16,11 +16,31 @@ export const PROFILE_LABELS = Object.freeze({
   full: { el: 'Πλήρες πρόγραμμα Ελέγχου Λοιμώξεων', en: 'Full infection control programme', hintEl: 'Ό,τι η επιτήρηση, μαζί με Πρόληψη, Ελέγχους, Ποιότητα, Εκπαίδευση, Επιτροπές και Έγγραφα.', hintEn: 'Surveillance plus Prevention, Controls, Quality, Training, Committees and Documents.' },
 })
 export const ADDON_LABELS = Object.freeze({
-  occupational_health: { el: 'Υγεία εργαζομένων (Ιατρός Εργασίας)', en: 'Occupational health' },
-  pharmacy: { el: 'Φαρμακείο (κατανάλωση αντιμικροβιακών)', en: 'Pharmacy (antimicrobial consumption)' },
-  prevalence_survey: { el: 'Μελέτη επιπολασμού (PPS)', en: 'Point prevalence survey (PPS)' },
-  lira: { el: 'LIRA & AI', en: 'LIRA & AI' },
+  occupational_health: { el: 'Υγεία εργαζομένων (Ιατρός Εργασίας)', en: 'Occupational health', hintEl: 'Εμβολιασμοί, επισκέψεις Ιατρού Εργασίας και επανέλεγχοι προσωπικού.', hintEn: 'Staff vaccination, occupational physician visits and follow-ups.' },
+  pharmacy: { el: 'Φαρμακείο (κατανάλωση αντιμικροβιακών)', en: 'Pharmacy (antimicrobial consumption)', hintEl: 'Κατανάλωση και χορηγήσεις αντιμικροβιακών από το φαρμακείο.', hintEn: 'Antimicrobial consumption and dispensing from the pharmacy.' },
+  prevalence_survey: { el: 'Μελέτη επιπολασμού (PPS)', en: 'Point prevalence survey (PPS)', hintEl: 'Περιοδικές μετρήσεις επιπολασμού HAI και χρήσης αντιβιοτικών.', hintEn: 'Periodic HAI prevalence and antibiotic use measurements.' },
+  lira: { el: 'LIRA & AI', en: 'LIRA & AI', hintEl: 'Βοηθός LIRA, διερευνήσεις συρροών και σύνδεση παρόχου AI.', hintEn: 'LIRA assistant, outbreak investigations and AI provider connection.' },
 })
+
+// What each operating profile contains, cumulatively: the layout of the profile
+// picker is built from this, so the screen and the rules below cannot drift apart.
+export const MODULES = Object.freeze({
+  patients: { el: 'Ασθενείς', en: 'Patients', from: 'laboratory' },
+  laboratory: { el: 'Εργαστήριο & μικροβιολογία/AMR', en: 'Laboratory & microbiology/AMR', from: 'laboratory' },
+  national: { el: 'Αναφορές ΕΟΔΥ & EARS-Net', en: 'ΕΟΔΥ & EARS-Net reports', from: 'laboratory' },
+  surveillance: { el: 'Επιτήρηση λοιμώξεων (HAI, απομόνωση, αγωγή, έκβαση)', en: 'Infection surveillance (HAI, isolation, therapy, outcome)', from: 'surveillance' },
+  indicators: { el: 'Δείκτες', en: 'Indicators', from: 'surveillance' },
+  prevention: { el: 'Πρόληψη & υγιεινή χεριών', en: 'Prevention & hand hygiene', from: 'full' },
+  controls: { el: 'Έλεγχοι', en: 'Controls', from: 'full' },
+  quality: { el: 'Ποιότητα (συμβάντα, CAPA)', en: 'Quality (incidents, CAPA)', from: 'full' },
+  training: { el: 'Εκπαίδευση', en: 'Training', from: 'full' },
+  governance: { el: 'Επιτροπές & Έγγραφα', en: 'Committees & Documents', from: 'full' },
+})
+const PROFILE_RANK = Object.freeze({ laboratory: 0, surveillance: 1, full: 2 })
+export function profileModules(profile) {
+  const rank = PROFILE_RANK[profile] ?? PROFILE_RANK[DEFAULT_PROFILE]
+  return Object.keys(MODULES).filter(key => PROFILE_RANK[MODULES[key].from] <= rank)
+}
 
 // Capabilities that belong to each switchable part. Everything not listed here
 // (patients, laboratory, employees registry, analytics, management) is always on.

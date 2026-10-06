@@ -106,3 +106,30 @@ describe('Platform Owner inside a hospital and LIRA composer', () => {
     expect(read('src/features/lira/LiraAssistantLauncher.jsx')).toContain('data-limoxis-no-expand="true"')
   })
 })
+
+describe('add-on analysis sections', () => {
+  const tx = (el) => el
+  it('derives PPS prevalence and trend from the surveys', async () => {
+    const { buildPpsMetrics } = await import('../src/features/analysis/analysisAddonMetrics')
+    const { buildSectionModel } = await import('../src/features/analysis/analysisDomains')
+    const pps = buildPpsMetrics([
+      { surveyDate: '2026-03-14', patientsTotal: 100, patientsWithHai: 10, patientsOnAntibiotics: 40 },
+      { surveyDate: '2026-06-13', patientsTotal: 100, patientsWithHai: 8, patientsOnAntibiotics: 38 },
+    ], {})
+    const model = buildSectionModel('pps', { domains: { pps } }, tx, key => key)
+    expect(model.kpis[0][1]).toBe('8%')
+    expect(model.charts[0].points).toEqual([['2026-03', 10], ['2026-06', 8]])
+  })
+  it('summarizes LIRA investigations with average closing time', async () => {
+    const { buildLiraMetrics } = await import('../src/features/analysis/analysisAddonMetrics')
+    const { buildSectionModel } = await import('../src/features/analysis/analysisDomains')
+    const lira = buildLiraMetrics([
+      { status: 'closed', organism: 'KPC', created_at: '2026-05-01T00:00:00Z', closed_at: '2026-05-11T00:00:00Z' },
+      { status: 'active', organism: 'KPC', created_at: '2026-06-01T00:00:00Z' },
+    ], {}, 2)
+    const model = buildSectionModel('lira', { domains: { lira } }, tx, key => key)
+    expect(model.kpis[0].slice(1, 3)).toEqual([2, '1 ενεργές'])
+    expect(model.kpis[1][2]).toContain('10')
+    expect(model.kpis[2][1]).toBe(2)
+  })
+})

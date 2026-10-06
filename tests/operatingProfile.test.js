@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { disabledCapabilitiesFor, moduleEnabled, normalizeProfile } from '../src/core/organization/operatingProfile'
+import { ADDONS, MODULES, disabledCapabilitiesFor, moduleEnabled, normalizeProfile, profileModules } from '../src/core/organization/operatingProfile'
 import { CAPABILITIES, ROLES, can, configureProfileAccess } from '../src/core/permissions/roles'
 import { navigationFor } from '../src/app/navigation'
 
@@ -44,5 +44,17 @@ describe('operating profile', () => {
     const lab = navKeys()
     expect(lab).toEqual(expect.arrayContaining(['laboratory', 'patients']))
     for (const key of ['surveillance', 'prevention', 'controls', 'committees', 'indicators', 'pharmacy', 'occupationalHealth']) expect(lab).not.toContain(key)
+  })
+
+  it('lists each profile cumulatively so the picker matches the rules', () => {
+    expect(profileModules('laboratory')).toEqual(['patients', 'laboratory', 'national'])
+    expect(profileModules('surveillance')).toEqual(expect.arrayContaining(['laboratory', 'surveillance', 'indicators']))
+    expect(profileModules('surveillance')).not.toContain('controls')
+    expect(profileModules('full')).toEqual(Object.keys(MODULES))
+  })
+
+  it('gives every add-on its own analysis tab behind its module', async () => {
+    const { TAB_MODULES } = await import('../src/features/analysis/analysisPageModel')
+    for (const addon of ADDONS) expect(Object.values(TAB_MODULES).some(modules => modules.includes(addon))).toBe(true)
   })
 })

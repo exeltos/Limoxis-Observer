@@ -2,6 +2,7 @@ import { mergeDomainMetrics } from '../analysis/analysisDomainMerge'
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { loadActiveClustersAsync } from '../surveillance/outbreakClusterService'
+import { buildLiraMetrics,buildPpsMetrics } from '../analysis/analysisAddonMetrics'
 
 const localKey='limoxis.platform.center.v1'
 const NO_EXPIRATION_DATE='9999-12-31'
@@ -107,8 +108,21 @@ function mergeAmrRows(snapshots){
   return Object.entries(merged).map(([organism,{tested,resistant}])=>[organism,tested,resistant]).sort((a,b)=>b[1]-a[1])
 }
 
+
+// Add-on modules without an analysis RPC: read their tables (row-level security keeps the scope)
+// and aggregate on the client. A failure only leaves that section empty.
+async function loadAddonDomains({organizationId='',from='',to=''}){
+  const range={from,to}
+  const read=async(table,columns)=>{const query=supabase.from(table).select(columns);const {data,error}=await (organizationId?query.eq('organization_id',organizationId):query);if(error)throw error;return data||[]}
+  const [pps,lira]=await Promise.all([
+    read('point_prevalence_surveys','survey_date,patients_total,patients_with_hai,patients_on_antibiotics').then(rows=>buildPpsMetrics(rows.map(row=>({surveyDate:row.survey_date,patientsTotal:row.patients_total,patientsWithHai:row.patients_with_hai,patientsOnAntibiotics:row.patients_on_antibiotics})),range)).catch(()=>null),
+    read('lira_outbreak_investigations','status,organism,created_at,closed_at').then(rows=>buildLiraMetrics(rows,range)).catch(()=>null),
+  ])
+  return {...(pps?{pps}:{}),...(lira?{lira}:{})}
+}
+
 async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',departmentId=''}){
-  const [summaryResult,microbiology,amrSusceptibility,clusters,domainsResult,peopleResult]=await withTimeout(Promise.all([
+  const [summaryResult,microbiology,amrSusceptibility,clusters,domainsResult,peopleResult,addonDomains]=await withTimeout(Promise.all([
     supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}),
     loadMicrobiologyAnalytics({organizationId,from,to,departmentId}),
     loadAmrSusceptibility({organizationId,from,to,departmentId}),
@@ -116,9 +130,11 @@ async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',depar
     // Section indicators; a failure here must not hide the rest of the analysis.
     Promise.resolve(supabase.rpc('analysis_domain_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
     Promise.resolve(supabase.rpc('analysis_people_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
+    loadAddonDomains({organizationId,from,to}),
   ]))
   if(summaryResult.error)throw summaryResult.error
-  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters,domains:(domainsResult?.error||!domainsResult?.data)&&(peopleResult?.error||!peopleResult?.data)?null:{...(domainsResult?.error?{}:(domainsResult?.data||{})),...(peopleResult?.error?{}:(peopleResult?.data||{}))}}
+  if(addonDomains.lira)addonDomains.lira.clusters=Array.isArray(clusters)?clusters.length:0
+  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters,domains:(domainsResult?.error||!domainsResult?.data)&&(peopleResult?.error||!peopleResult?.data)?null:{...(domainsResult?.error?{}:(domainsResult?.data||{})),...(peopleResult?.error?{}:(peopleResult?.data||{})),...addonDomains}}
 }
 
 function mergeAnalysisSnapshots(snapshots){
