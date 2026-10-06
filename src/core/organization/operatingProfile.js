@@ -7,14 +7,17 @@
 import { CAPABILITIES as C } from '../permissions/capabilityCatalogue.js'
 
 // The three presets fill in the module list; any other combination is stored as 'custom'.
-export const OPERATING_PROFILES = Object.freeze(['laboratory', 'surveillance', 'full'])
+// 'laboratory' is the former first preset: still accepted for organizations saved before
+// the laboratory became an unlockable module, and read as patients + laboratory + EODY/EARS-Net.
+export const OPERATING_PROFILES = Object.freeze(['basic', 'surveillance', 'full'])
+const LEGACY_PROFILE_MODULES = Object.freeze({ laboratory: ['patients', 'laboratory', 'national'] })
 export const CUSTOM_PROFILE = 'custom'
 export const ADDONS = Object.freeze(['occupational_health', 'pharmacy', 'prevalence_survey', 'lira'])
 export const DEFAULT_PROFILE = 'full'
 
 export const PROFILE_LABELS = Object.freeze({
-  laboratory: { el: 'Εργαστηριακή καταγραφή', en: 'Laboratory records', hintEl: 'Ασθενείς, Εργαστήριο, μικροβιολογία/AMR και αναφορές ΕΟΔΥ & EARS-Net. Χωρίς επιτήρηση λοιμώξεων.', hintEn: 'Patients, Laboratory, microbiology/AMR and ΕΟΔΥ & EARS-Net reports. No infection surveillance.' },
-  surveillance: { el: 'Εργαστήριο & Επιτήρηση λοιμώξεων', en: 'Laboratory & infection surveillance', hintEl: 'Ό,τι η εργαστηριακή καταγραφή, μαζί με επιτήρηση (HAI, απομόνωση, αγωγή, έκβαση) και δείκτες.', hintEn: 'Laboratory records plus surveillance (HAI, isolation, therapy, outcome) and indicators.' },
+  basic: { el: 'Βασική καταγραφή', en: 'Basic records', hintEl: 'Μόνο η καταγραφή ασθενών. Το Εργαστήριο και οι αναφορές ΕΟΔΥ & EARS-Net ξεκλειδώνονται όπου χρειάζονται.', hintEn: 'Patient records only. Laboratory and ΕΟΔΥ & EARS-Net reports can be unlocked where needed.' },
+  surveillance: { el: 'Εργαστήριο & Επιτήρηση λοιμώξεων', en: 'Laboratory & infection surveillance', hintEl: 'Εργαστηριακή καταγραφή και αναφορές ΕΟΔΥ & EARS-Net, μαζί με επιτήρηση (HAI, απομόνωση, αγωγή, έκβαση) και δείκτες.', hintEn: 'Laboratory records and ΕΟΔΥ & EARS-Net reports, plus surveillance (HAI, isolation, therapy, outcome) and indicators.' },
   full: { el: 'Πλήρες πρόγραμμα Ελέγχου Λοιμώξεων', en: 'Full infection control programme', hintEl: 'Ό,τι η επιτήρηση, μαζί με Πρόληψη, Ελέγχους, Ποιότητα, Εκπαίδευση, Επιτροπές και Έγγραφα.', hintEn: 'Surveillance plus Prevention, Controls, Quality, Training, Committees and Documents.' },
 })
 export const ADDON_LABELS = Object.freeze({
@@ -27,9 +30,9 @@ export const ADDON_LABELS = Object.freeze({
 // What each operating profile contains, cumulatively: the layout of the profile
 // picker is built from this, so the screen and the rules below cannot drift apart.
 export const MODULES = Object.freeze({
-  patients: { el: 'Ασθενείς', en: 'Patients', from: 'laboratory', analysis: false },
-  laboratory: { el: 'Εργαστήριο & μικροβιολογία/AMR', en: 'Laboratory & microbiology/AMR', from: 'laboratory', analysis: true },
-  national: { el: 'Αναφορές ΕΟΔΥ & EARS-Net', en: 'ΕΟΔΥ & EARS-Net reports', from: 'laboratory', analysis: true },
+  patients: { el: 'Ασθενείς', en: 'Patients', from: 'basic', analysis: false },
+  laboratory: { el: 'Εργαστήριο & μικροβιολογία/AMR', en: 'Laboratory & microbiology/AMR', from: 'surveillance', analysis: true },
+  national: { el: 'Αναφορές ΕΟΔΥ & EARS-Net', en: 'ΕΟΔΥ & EARS-Net reports', from: 'surveillance', analysis: true },
   surveillance: { el: 'Επιτήρηση λοιμώξεων (HAI, απομόνωση, αγωγή, έκβαση)', en: 'Infection surveillance (HAI, isolation, therapy, outcome)', from: 'surveillance', analysis: true },
   indicators: { el: 'Δείκτες', en: 'Indicators', from: 'surveillance', analysis: false },
   prevention: { el: 'Πρόληψη & υγιεινή χεριών', en: 'Prevention & hand hygiene', from: 'full', analysis: true },
@@ -39,17 +42,19 @@ export const MODULES = Object.freeze({
   governance: { el: 'Επιτροπές & Έγγραφα', en: 'Committees & Documents', from: 'full', analysis: true },
 })
 // Always on for every organization; the Platform Owner switches the rest one by one.
-export const CORE_MODULES = Object.freeze(['patients', 'laboratory', 'national'])
+export const CORE_MODULES = Object.freeze(['patients'])
 export const OPTIONAL_MODULES = Object.freeze(Object.keys(MODULES).filter(key => !CORE_MODULES.includes(key)))
-const PROFILE_RANK = Object.freeze({ laboratory: 0, surveillance: 1, full: 2 })
+const PROFILE_RANK = Object.freeze({ basic: 0, surveillance: 1, full: 2 })
 export function profileModules(profile) {
   const rank = PROFILE_RANK[profile] ?? PROFILE_RANK[DEFAULT_PROFILE]
   return Object.keys(MODULES).filter(key => PROFILE_RANK[MODULES[key].from] <= rank)
 }
 
 // Capabilities that belong to each switchable module. Everything not listed here
-// (patients, laboratory, employees registry, analytics, management) is always on.
+// (patients, employees registry, analytics, management) is always on.
 const MODULE_CAPABILITIES = Object.freeze({
+  laboratory: [C.VIEW_LAB, C.MANAGE_LAB_SAMPLES, C.VALIDATE_LAB_RESULTS, C.REOPEN_LAB_RECORD],
+  national: [], // ΕΟΔΥ & EARS-Net reports live in Analysis; gated there
   surveillance: [
     C.VIEW_SURVEILLANCE, C.CREATE_SURVEILLANCE, C.EDIT_SURVEILLANCE, C.DELETE_SURVEILLANCE, C.CLOSE_SURVEILLANCE,
     C.REOPEN_SURVEILLANCE, C.REASSESS_SURVEILLANCE, C.RECORD_SURVEILLANCE_OUTCOME, C.MANAGE_ISOLATION,
@@ -87,11 +92,12 @@ export function profileFor(modules) {
 // Platform Owner module by module) wins; without it the preset decides, so
 // organizations saved before per-module control behave exactly as before.
 export function normalizeProfile(organization) {
-  const stored = OPERATING_PROFILES.includes(organization?.operating_profile) || organization?.operating_profile === CUSTOM_PROFILE ? organization.operating_profile : DEFAULT_PROFILE
+  const stored = OPERATING_PROFILES.includes(organization?.operating_profile) || organization?.operating_profile === CUSTOM_PROFILE || organization?.operating_profile in LEGACY_PROFILE_MODULES ? organization.operating_profile : DEFAULT_PROFILE
   const addons = Array.isArray(organization?.enabled_addons) ? organization.enabled_addons.filter(item => ADDONS.includes(item)) : [...ADDONS]
+  const fromProfile = LEGACY_PROFILE_MODULES[stored] || profileModules(stored === CUSTOM_PROFILE ? DEFAULT_PROFILE : stored)
   const modules = Array.isArray(organization?.enabled_modules)
     ? Object.keys(MODULES).filter(key => CORE_MODULES.includes(key) || organization.enabled_modules.includes(key))
-    : profileModules(stored === CUSTOM_PROFILE ? DEFAULT_PROFILE : stored)
+    : fromProfile
   return { profile: profileFor(modules), addons, modules }
 }
 

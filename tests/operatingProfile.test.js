@@ -47,8 +47,8 @@ describe('operating profile', () => {
   })
 
   it('lists each profile cumulatively so the picker matches the rules', () => {
-    expect(profileModules('laboratory')).toEqual(['patients', 'laboratory', 'national'])
-    expect(profileModules('surveillance')).toEqual(expect.arrayContaining(['laboratory', 'surveillance', 'indicators']))
+    expect(profileModules('basic')).toEqual(['patients'])
+    expect(profileModules('surveillance')).toEqual(expect.arrayContaining(['laboratory', 'national', 'surveillance', 'indicators']))
     expect(profileModules('surveillance')).not.toContain('controls')
     expect(profileModules('full')).toEqual(Object.keys(MODULES))
   })
@@ -74,8 +74,30 @@ describe('operating profile', () => {
 
   it('always keeps the core modules and recognizes a preset from the module list', () => {
     const o = { id: 'o1', enabled_modules: ['surveillance'] }
-    expect(normalizeProfile(o).modules).toEqual(expect.arrayContaining(['patients', 'laboratory', 'national', 'surveillance']))
+    expect(normalizeProfile(o).modules).toEqual(['patients', 'surveillance'])
     expect(profileFor(profileModules('surveillance'))).toBe('surveillance')
-    expect(profileFor(['patients'])).toBe('custom')
+    expect(profileFor(['patients'])).toBe('basic')
+    expect(profileFor(['patients', 'controls'])).toBe('custom')
+  })
+
+  it('basic package has no laboratory until it is unlocked; the former laboratory profile keeps it', () => {
+    const basic = disabledCapabilitiesFor(org('basic', []))
+    for (const cap of [CAPABILITIES.VIEW_LAB, CAPABILITIES.MANAGE_LAB_SAMPLES, CAPABILITIES.VIEW_SURVEILLANCE]) expect(basic.has(cap)).toBe(true)
+    expect(basic.has(CAPABILITIES.VIEW_PATIENTS)).toBe(false)
+    const unlocked = disabledCapabilitiesFor({ id: 'o1', operating_profile: 'custom', enabled_addons: [], enabled_modules: ['patients', 'laboratory'] })
+    expect(unlocked.has(CAPABILITIES.VIEW_LAB)).toBe(false)
+    const legacy = org('laboratory', [])
+    expect(moduleEnabled(legacy, 'laboratory')).toBe(true)
+    expect(moduleEnabled(legacy, 'national')).toBe(true)
+    expect(moduleEnabled(legacy, 'surveillance')).toBe(false)
+    expect(disabledCapabilitiesFor(legacy).has(CAPABILITIES.VIEW_LAB)).toBe(false)
+    expect(normalizeProfile(legacy).profile).toBe('custom')
+  })
+
+  it('hides laboratory and EODY/EARS-Net analysis tabs with their modules', async () => {
+    const { TAB_MODULES } = await import('../src/features/analysis/analysisPageModel')
+    expect(TAB_MODULES.laboratory).toEqual(['laboratory'])
+    expect(TAB_MODULES.amr).toEqual(['laboratory'])
+    expect(TAB_MODULES.national).toEqual(['national'])
   })
 })
