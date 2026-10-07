@@ -1,3 +1,4 @@
+import { formatDay } from '../../core/i18n/formatDay'
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { Award,BookOpenCheck,CalendarClock,CheckCircle2,ClipboardCheck,Clock3,Download,FileText,Mail,Pencil,Plus,Send,Trash2,Users } from 'lucide-react'
@@ -31,7 +32,7 @@ import { TrainingAssessmentEditor } from './TrainingAssessmentEditor'
 import { TrainingResultsReview } from './TrainingResultsReview'
 import { downloadCertificatePdf } from './trainingCertificate'
 
-const fmt=v=>{if(!v)return '—';const d=new Date(`${String(v).slice(0,10)}T12:00:00`);return d.toLocaleDateString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric'})}
+const fmt=v=>formatDay(v)
 const labels={active:['Ενεργό','Active'],planned:['Προγραμματισμένο','Planned'],completed:['Ολοκληρωμένο','Completed'],assigned:['Ανατέθηκε','Assigned'],in_progress:['Σε εξέλιξη','In progress'],overdue:['Εκπρόθεσμο','Overdue'],cancelled:['Ακυρώθηκε','Cancelled']}
 const blankState={programs:[],assignments:[],certificates:[],emailOutbox:[],history:[]}
 const isActiveEmployee=employee=>!employee?.employmentStatus||String(employee.employmentStatus).toLowerCase()==='active'

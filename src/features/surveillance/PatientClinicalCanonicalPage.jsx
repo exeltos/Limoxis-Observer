@@ -1,3 +1,4 @@
+import { DueDate } from '../../design-system/DueDate'
 import { useEffect,useMemo,useState } from 'react'
 import { Activity,AlertTriangle,ArrowLeft,CalendarClock,ChevronRight,BedDouble,Plus,Download,FileClock,FolderOpen,ListTree,Microscope,Pill,PlayCircle,Printer,RefreshCcw,ShieldCheck,Trash2,UserRound,ArrowRightLeft,LogOut,Stethoscope } from 'lucide-react'
 import { useLocation,useParams } from 'react-router-dom'
@@ -276,7 +277,7 @@ function CanonicalSummary({patient,admission,record,tenantId,isDemo,departments,
    <Detail label={t('clinicalRecords.latestFinding')} value={findingValue}/>
    <Detail label={t('therapy')} value={record.therapy?.length?record.therapy.map(x=>x.antimicrobial).join(', '):t('clinicalRecords.none')}/>
    <Detail label={t('isolation')} value={isolationValue}/>
-   <Detail label={t('nextReview')} value={fmtDate(record.reviewDue)}/>
+   <Detail label={t('nextReview')} value={record.status==='active'?<DueDate value={record.reviewDue} format={fmtDate}/>:fmtDate(record.reviewDue)}/>
   </div></section>}
  </div>
 }
