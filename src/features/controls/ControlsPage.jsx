@@ -116,7 +116,7 @@ export function ControlsPage(){
  if(editorOpen)return <ControlEditor departmentOnly={isDepartmentManager} fixedDepartment={isDepartmentManager?ownDepartment:''} onCancel={()=>setEditorOpen(false)} onSave={saveNew}/>
 
  return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={canCreate?<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>:null}>
-  <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedControls.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue}/><Kpi icon={CheckCircle2} label={tx.today} value={today}/></div></div>
+  <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedControls.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon} onClick={()=>setStatus(status==='dueSoon'?'all':'dueSoon')} active={status==='dueSoon'}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue} onClick={()=>setStatus(status==='overdue'?'all':'overdue')} active={status==='overdue'}/><Kpi icon={CheckCircle2} label={tx.today} value={today}/></div></div>
   <section className="surface registry-workspace workspace-column workspace-fill controls-registry-workspace">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')+(frequency!=='all')} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setFrequency('all')}}>
     <FilterSelect label={tx.department} value={department} onChange={setDepartment}><option value="all">{tx.allDepartments}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
@@ -135,4 +135,4 @@ export function ControlsPage(){
   </section>
  </Page>
 }
-function Kpi({icon:Icon,label,value}){return <MetricCard icon={Icon} value={value} label={label}/>}
+function Kpi({icon:Icon,label,value,onClick,active}){return <MetricCard icon={Icon} value={value} label={label} onClick={onClick} active={active}/>}

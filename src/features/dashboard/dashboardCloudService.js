@@ -18,6 +18,7 @@ export async function loadDashboardMetrics(organizationId){
   const pending=[
     ['activeUsers',countOf(q('organization_members').eq('status','active'))],
     ['activeDepartments',countOf(q('departments').eq('is_active',true))],
+    ['patientDayPeriods',countOf(q('patient_day_periods'))],
     ['inpatients',countOf(q('patients').is('discharge_date',null))],
     ['activeSurveillance',countOf(q('surveillance_cases').eq('status','active'))],
     ['isolationReviewsDue',countOf(q('isolation_episodes').eq('status','active').lte('review_due_at',now))],

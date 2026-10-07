@@ -18,3 +18,16 @@
 .dashboard-card .dashboard-announcements strong{font-size:13px!important}
 .dashboard-card .dashboard-announcements small{font-size:12px!important;line-height:1.4}
 .dashboard-card .dashboard-announcements em{font-size:11px!important}
+.first-steps-card{margin-bottom:14px}
+.first-steps-progress{padding:3px 10px;border-radius:999px;background:#fff1dc;color:#9a4a00;font-size:11px;font-weight:800}
+.first-steps-list{display:grid;gap:8px;margin:10px 0 0;padding:0;list-style:none}
+.first-steps-list li{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.first-steps-list li>svg{flex:none;color:var(--lo-color-muted)}
+.first-steps-list li.done>svg{color:#1d6b3a}
+.first-steps-list li>span{display:grid;gap:2px;flex:1;min-width:0}
+.first-steps-list li strong{font-size:13px;color:var(--lo-color-text)}
+.first-steps-list li.done strong{color:var(--lo-color-muted);text-decoration:line-through}
+.first-steps-list li small{font-size:11px;color:var(--lo-color-muted)}
+.first-steps-list li em{font-size:11px;font-style:normal;font-weight:700;color:#1d6b3a}
+.first-steps-list li button{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:0;border-radius:8px;background:var(--lo-color-primary,#1f5f93);color:#fff;font-size:12px;font-weight:700;cursor:pointer}
+.first-steps-guide{margin:10px 0 0;font-size:11px;color:var(--lo-color-muted)}
