@@ -9,6 +9,8 @@ import { workspaceFor } from '../workspaces/workspaceConfig'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { loadDashboardMetrics } from './dashboardCloudService'
+import { FirstStepsCard, firstSteps } from './FirstStepsCard'
+import { demoPatientDayPeriods } from '../management/managementData'
 import { collectAnalysisDemoSnapshot } from '../analysis/analysisDemoSnapshot'
 import { DonutChart, TrendChart } from '../analysis/AnalysisCharts'
 import { loadAnalysisSnapshot } from '../platform/platformService'
@@ -70,7 +72,7 @@ function demoMetrics(snapshot,operational){
   const s=snapshot?.summary||{},m=snapshot?.microbiology||{}
   const taskCount=path=>Number(operational.find(task=>task.to===path)?.count)||0
   const mdro=(m.resistance||[]).filter(([key])=>['MDR','XDR','PDR'].includes(key)).reduce((sum,[,value])=>sum+(Number(value)||0),0)
-  return {pendingActions:operational.reduce((sum,task)=>sum+(Number(task.count)||0),0),activeUsers:3,activeDepartments:m.departmentCount,activeSurveillance:s.activeSurveillance??s.surveillance,positiveLab:m.totalPositive,criticalUncommunicated:m.totalCritical,recentMdro:mdro,pendingSamples:s.pendingSamples,newSamplesToday:0,isolationReviewsDue:taskCount('/surveillance'),overdueControls:taskCount('/controls'),inpatients:s.inpatients,activeEmployees:s.employees,newEmployees30d:0,ohVisitsToday:s.occupationalHealth,ohFollowupsDue:taskCount('/occupational-health'),vaccinationsDue:0,openIncidents:s.quality,severeOpenIncidents:0,overdueCapa:taskCount('/quality'),upcomingMeetings:s.committees,pendingMinutes:0,openDecisions:0,pendingApprovals:s.antimicrobial?.pending,antimicrobialTherapies:s.antimicrobial?.total,administrations:s.antimicrobial?.administrations}
+  return {pendingActions:operational.reduce((sum,task)=>sum+(Number(task.count)||0),0),activeUsers:3,activeDepartments:m.departmentCount,patientDayPeriods:demoPatientDayPeriods.length,activeSurveillance:s.activeSurveillance??s.surveillance,positiveLab:m.totalPositive,criticalUncommunicated:m.totalCritical,recentMdro:mdro,pendingSamples:s.pendingSamples,newSamplesToday:0,isolationReviewsDue:taskCount('/surveillance'),overdueControls:taskCount('/controls'),inpatients:s.inpatients,activeEmployees:s.employees,newEmployees30d:0,ohVisitsToday:s.occupationalHealth,ohFollowupsDue:taskCount('/occupational-health'),vaccinationsDue:0,openIncidents:s.quality,severeOpenIncidents:0,overdueCapa:taskCount('/quality'),upcomingMeetings:s.committees,pendingMinutes:0,openDecisions:0,pendingApprovals:s.antimicrobial?.pending,antimicrobialTherapies:s.antimicrobial?.total,administrations:s.antimicrobial?.administrations}
 }
 
 function domainShare(snapshot,tr){const s=snapshot?.summary||{};return [[tr('Επιτήρηση','Surveillance'),s.surveillance],[tr('Εργαστήριο','Laboratory'),s.laboratory],[tr('Πρόληψη','Prevention'),s.prevention],[tr('Έλεγχοι','Controls'),s.controls],[tr('Ποιότητα','Quality'),s.quality],[tr('Εκπαίδευση','Training'),s.training]].filter(([,value])=>Number(value)>0)}
@@ -78,7 +80,7 @@ function domainShare(snapshot,tr){const s=snapshot?.summary||{};return [[tr('Ε�
 // title/subtitle/showKpis let the department home reuse this layout: its
 // counts are organization-wide, so the department view hides them.
 export function DashboardPage({title,subtitle,showKpis=true}={}) {
-  const { role: actualRole, tenant, isDemo } = useTenant()
+  const { role: actualRole, tenant, isDemo, moduleEnabled } = useTenant()
   // Inside a hospital the Platform Owner (and the demo account) see the full
   // hospital overview, not the platform workspace.
   const role=actualRole===ROLES.DEMO||(actualRole===ROLES.PLATFORM_OWNER&&tenant)?ROLES.HOSPITAL_ADMIN:actualRole
@@ -113,9 +115,11 @@ export function DashboardPage({title,subtitle,showKpis=true}={}) {
   const monthly=snapshot?.microbiology?.monthly||[]
   const donut=role===ROLES.LABORATORY?{title:tr('Κατηγορίες αντοχής','Resistance classes'),subtitle:tr('MDR / XDR / PDR στα θετικά αποτελέσματα.','MDR / XDR / PDR among positive results.'),rows:snapshot?.microbiology?.resistance||[],center:tr('στελέχη','isolates')}:{title:tr('Δραστηριότητα ανά ενότητα','Activity by module'),subtitle:tr('Καταγραφές του οργανισμού ανά ενότητα.','Organization records by module.'),rows:domainShare(snapshot,tr),center:tr('σύνολο','total')}
   const hasCharts=showCharts&&snapshot&&(monthly.length>1||donut.rows.length>1)
+  const setupSteps=role===ROLES.HOSPITAL_ADMIN&&showKpis?firstSteps(values,{needsPatientDays:moduleEnabled('surveillance')||moduleEnabled('indicators')}):null
 
   return <Page className="dashboard-page" title={title||workspace.title} subtitle={subtitle||workspace.subtitle}>
     {showKpis&&kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value])=><article className="kpi-card" key={label}><span>{label}</span><strong>{value}</strong></article>)}</div>}
+    <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate}/>
     <div className="dashboard-workspace-v2">
       <Card className="dashboard-card">
         <CardHeader icon={ListChecks} title={workspace.actionTitle??tr('Εργασίες προτεραιότητας','Priority work')} subtitle={tr('Ό,τι χρειάζεται ενέργεια από εσάς.','What needs your action.')}/>

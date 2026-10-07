@@ -18,7 +18,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
-import {ClinicalRiskFlags} from '../clinical-scales/ClinicalRiskFlags'
+import {ClinicalRiskFlags,ClinicalRiskLegendItems,clinicalRiskKinds} from '../clinical-scales/ClinicalRiskFlags'
 import {PatientInfectionFlags} from './PatientInfectionFlags'
 import {loadPatientInfectionFlags} from './patientInfectionFlagsService'
 import {loadLatestPatientRiskFlags} from '../clinical-scales/patientRiskFlagsService'
@@ -104,6 +104,7 @@ export function PatientsPage(){
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option></FilterSelect>
       </FilterBar>
+      <PatientsLegend t={t} language={language} rows={pagedRows} riskFlags={riskFlags} infectionFlags={infectionFlags}/>
       <RegistryTable
         wrapperClassName="scroll-table"
         wrapperRef={registry.scrollRef}
@@ -115,7 +116,7 @@ export function PatientsPage(){
       />{!rows.length&&<PatientRegistryEmpty t={t}/>}
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </div>
-    {newOpen&&<PatientFormDialog t={t} language={language} departments={departmentOptions} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
+    {newOpen&&<PatientFormDialog t={t} language={language} departments={departmentOptions} existingPatients={patients} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
   </Page>
 }
 
@@ -125,7 +126,7 @@ function PatientRegistryEmpty({t}){
 
 function PatientSummaryMetric({icon,label,value,kind=''}){return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'}/>}
 
-export function PatientFormDialog({t,language,departments,onClose,onSave,patient=null}){
+export function PatientFormDialog({t,language,departments,onClose,onSave,patient=null,existingPatients=[]}){
   const editing=Boolean(patient)
   const [draft,setDraft]=useState(()=>({
     patientCode:patient?.id||'',firstName:patient?.firstName||'',lastName:patient?.lastName||'',fatherName:patient?.fatherName||'',hospitalRecordNumber:patient?.hospitalRecordNumber||'',
@@ -144,29 +145,51 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
   const gestationInvalid=Boolean(draft.gestationalAgeWeeks&&(Number(draft.gestationalAgeWeeks)<20||Number(draft.gestationalAgeWeeks)>45))
   const ageDays=birthDate&&!birthInvalid?Math.max(0,Math.floor((Date.now()-birthDate.getTime())/86400000)):null
   const ageYears=ageDays==null?null:Math.floor(ageDays/365.2425)
+  // Neonatal fields only for a baby under 1 year, or when they already hold a value.
+  const showNeonatal=(ageYears!=null&&ageYears<1)||Boolean(draft.birthWeightGrams||draft.gestationalAgeWeeks)
+  // Warn while typing when the code is already taken, instead of failing on save.
+  const codeKey=draft.patientCode.trim().toLowerCase()
+  const duplicate=!editing&&codeKey?existingPatients.find(item=>String(item.id||item.patientCode||'').trim().toLowerCase()===codeKey):null
   function save(){
     const first=draft.firstName.trim()
     const last=draft.lastName.trim()
     if(!draft.patientCode.trim()||!first||!last||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid)return
     onSave({...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim(),birthWeightGrams:draft.birthWeightGrams?Number(draft.birthWeightGrams):null,gestationalAgeWeeks:draft.gestationalAgeWeeks?Number(draft.gestationalAgeWeeks):null})
   }
-  const disabled=!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid
+  const disabled=Boolean(duplicate)||!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid
   return <ObserverDialog width="wide" eyebrow={t('patients')} title={editing?t('edit'):t('newPatient')} subtitle={editing?t('patientRegistrySubtitle'):t('newPatientHelp')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={save} disabled={disabled}/> }>
     <div className="entry-grid patient-entry-grid">
-      <label><span>{t('patientId')}</span><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)}/></label>
-      <label><span>{t('firstName')}</span><input autoFocus={editing} value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
-      <label><span>{t('lastName')}</span><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
+      <label><span>{t('patientId')} *</span><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/>{duplicate&&<small className="field-error">{t('patientCodeDuplicate')}{duplicate.name?` (${duplicate.name})`:''}</small>}</label>
+      <label><span>{t('firstName')} *</span><input autoFocus={editing} value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
+      <label><span>{t('lastName')} *</span><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
       <label><span>{t('fatherName')}</span><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
       <label><span>{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
       <div><ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>{birthInvalid&&<small className="field-error">{t('invalidDateOfBirth')}</small>}{ageYears!=null&&!birthInvalid&&<small className="entry-detail-note">{ageDays<28?t('calculatedAgeDays').replace('{age}',String(ageDays)):ageDays<730?t('calculatedAgeMonthsDays').replace('{months}',String(Math.floor(ageDays/30.4375))).replace('{days}',String(Math.floor(ageDays%30.4375))):t('calculatedAge').replace('{age}',String(ageYears))}</small>}</div>
       <label><span>{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
+      {showNeonatal&&<>
       <label><span>{translate('copy.patientsCopy.birthWeightG',language==='el'?'el':'en')}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{birthWeightInvalid&&<small className="field-error">{t('invalidBirthWeight')}</small>}</label>
       <label><span>{translate('copy.patientsCopy.gestationalAgeWeeks',language==='el'?'el':'en')}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{gestationInvalid&&<small className="field-error">{t('invalidGestationalAge')}</small>}</label>
+      </>}
       {!editing&&<><label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
-      <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/></>}
+      <ManualDateField label={`${t('admissionDate')} *`} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/></>}
       <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
     </div>
   </ObserverDialog>
 }
 
 export const NewPatientCard=PatientFormDialog
+
+// One-line key for the alert badges shown on the current page of the registry.
+function PatientsLegend({t,language,rows,riskFlags,infectionFlags}){
+  const kinds=[...new Set(rows.flatMap(p=>clinicalRiskKinds(riskFlags[p.recordId]||riskFlags[p.id]||[])))]
+  const infection=rows.map(p=>infectionFlags[p.recordId]||infectionFlags[p.id]).filter(Boolean)
+  const mdr=infection.some(f=>f.resistance),isolation=infection.some(f=>f.isolation)
+  if(!kinds.length&&!mdr&&!isolation)return null
+  return <div className="patient-legend" aria-label={t('patientsLegend')}>
+    <strong>{t('patientsLegend')}:</strong>
+    {mdr&&<span className="patient-legend-item"><span className="status-badge danger">MDR</span>{t('patientsLegendMdr')}</span>}
+    {isolation&&<span className="patient-legend-item"><span className="status-badge temporary patient-isolation-flag">{t('infectionFlags.isolation')}</span></span>}
+    <ClinicalRiskLegendItems kinds={kinds} language={language}/>
+    {kinds.length>0&&<span className="patient-legend-tones"><i className="tone-danger"/>{t('patientsLegendHigh')}<i className="tone-warning"/>{t('patientsLegendModerate')}<i className="tone-active"/>{t('patientsLegendLow')}</span>}
+  </div>
+}
