@@ -291,11 +291,11 @@ html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.can
 html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.canonical-tabs>button.canonical-tab,.entity-record-tabs>button)>span{font-size:inherit!important;font-weight:inherit!important;color:inherit!important;line-height:1!important}
 
 /* ==== short-viewport ==== */
-/* Short screens (13" notebooks, zoomed browsers): the workspace scrolls
-   instead of clipping. Full-height registries keep a usable minimum height,
-   so on tall screens nothing changes. Loaded last. */
+/* Short screens (13" notebooks, tablets, zoomed browsers): full-height pages
+   fit the window and only their own table scrolls. The outer workspace
+   scrolls only below a small floor where a table could no longer fit. */
 .content,.content:has(>.page-fill){overflow-x:hidden!important;overflow-y:auto!important}
-.page-fill{min-height:760px!important}
+.page-fill{min-height:440px!important}
 .sidebar{min-height:0!important}
 .sidebar nav{overflow-y:auto!important;scrollbar-width:thin}
 .page-fill:has(>.registry-workspace),
@@ -307,7 +307,7 @@ html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.can
 .main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
 .main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
 .main-column:has(>.preview-banner) .laboratory-registry-page,
-.main-column:has(>.preview-banner) .controls-page{min-height:760px!important}
+.main-column:has(>.preview-banner) .controls-page{min-height:440px!important}
 /* Analysis filters never clip their last group (comparison) when they wrap. */
 .analysis-workspace .analysis-filter-toolbar{height:auto!important;max-height:none!important}
 /* Collapsed filter summary (short screens): one line with the active filters. */
@@ -326,6 +326,26 @@ html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.can
   /* All module tabs stay visible: two compact rows instead of a hidden horizontal scroll. */
   html:not(#lo-short) body .analysis-workspace>.analysis-tabs.entity-record-tabs,html:not(#lo-short) body .analysis-workspace .analysis-tabs.entity-record-tabs{flex-wrap:wrap!important;overflow:visible!important;height:auto!important;max-height:none!important;margin-top:8px!important}
   html:not(#lo-short) body .analysis-workspace .analysis-tabs.entity-record-tabs>button{flex:0 0 auto!important;width:auto!important;height:34px!important;min-height:34px!important;padding:0 11px!important;white-space:nowrap!important}
+}
+
+/* Low windows (laptops ≤ 800px high, tablets in landscape): the same layout,
+   just denser, so a full-height registry shows more rows without the page
+   itself scrolling. */
+@media (max-height:800px){
+  html body .page-header{margin-bottom:8px!important}
+  html body .page-header h1{font-size:18px!important}
+  html body :is(.kpi-grid,.module-summary-strip,.patient-summary-strip){gap:8px!important;margin-bottom:10px!important}
+  html body :is(.page>.module-summary-strip>.canonical-metric-card,.page>.workspace-summary>.module-summary-strip>.canonical-metric-card,.canonical-metric-card){min-height:0!important;height:auto!important;padding:6px 12px!important}
+  html body .canonical-metric-card .canonical-metric-icon{width:30px!important;height:30px!important;min-width:30px!important}
+  html body :is(.registry-workspace,.patient-registry-shell,.platform-registry-shell,.lab-registry-shell,.controls-surface,.production-surveillance-workspace) .data-table tbody tr{height:38px!important;min-height:38px!important}
+  html body :is(.registry-workspace,.patient-registry-shell,.platform-registry-shell,.lab-registry-shell,.controls-surface,.production-surveillance-workspace) .data-table tbody td{padding-top:5px!important;padding-bottom:5px!important}
+}
+
+/* Tablets: the four summary cards stay on one row and table cells are
+   narrower, so registries fit the width without sideways scrolling. */
+@media (min-width:781px) and (max-width:1100px){
+  html:not(#lo-phone) body :is(.kpi-grid,.module-summary-strip,.patient-summary-strip):has(>:nth-child(4):last-child){grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  html body :is(.registry-workspace,.patient-registry-shell,.platform-registry-shell,.lab-registry-shell,.controls-surface,.production-surveillance-workspace) .data-table :is(th,td){padding-left:9px!important;padding-right:9px!important}
 }
 
 /* ==== tablet-rail ==== */

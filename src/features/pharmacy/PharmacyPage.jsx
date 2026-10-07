@@ -54,7 +54,7 @@ export function PharmacyPage() {
   }
 
   return (
-    <Page title={en ? 'Pharmacy' : 'Φαρμακείο'} subtitle={en ? 'Antimicrobial stewardship, advanced antibiotics, approvals and consumption / DDD.' : 'Αντιμικροβιακή επιτήρηση, προωθημένα αντιβιοτικά, εγκρίσεις και κατανάλωση / DDD.'}
+    <Page fill title={en ? 'Pharmacy' : 'Φαρμακείο'} subtitle={en ? 'Antimicrobial stewardship, advanced antibiotics, approvals and consumption / DDD.' : 'Αντιμικροβιακή επιτήρηση, προωθημένα αντιβιοτικά, εγκρίσεις και κατανάλωση / DDD.'}
       actions={canRecord && <Button onClick={() => setDialog(true)}><Plus size={16} />{en ? 'Dispensing period' : 'Περίοδος χορήγησης'}</Button>}>
       {!canRecord && <div className="surface"><div className="inline-empty">{en ? 'You do not have access to record antibiotic consumption.' : 'Δεν έχετε πρόσβαση καταχώρισης κατανάλωσης αντιβιοτικών.'}</div></div>}
       {canRecord && (
@@ -66,7 +66,7 @@ export function PharmacyPage() {
         </div>
       )}
       {canRecord && (
-        <div className="surface">
+        <div className="surface workspace-fill pharmacy-workspace">
           <div className="inline-empty" style={{ marginBottom: 12 }}>
             {en
               ? 'Records here feed the ΥΑ 388/2014 antibiotic consumption indicator (DDD per 100 patient-days). DDD reference values per antibiotic must be verified by pharmacy staff against the current WHO ATC/DDD Index before this indicator is relied on for ΕΟΔΥ reporting.'
