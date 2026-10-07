@@ -323,8 +323,9 @@ html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.can
   .analysis-workspace .analysis-header{min-height:0!important;padding-top:2px!important;padding-bottom:6px!important}
   .analysis-workspace .analysis-header .eyebrow,.analysis-workspace .analysis-header p{display:none!important}
   .analysis-workspace .analysis-header h1{font-size:21px!important;margin:0!important;line-height:1.2!important}
-  html:not(#lo-short) body .analysis-workspace>.analysis-tabs.entity-record-tabs,html:not(#lo-short) body .analysis-workspace .analysis-tabs.entity-record-tabs{flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin;height:auto!important;max-height:none!important;margin-top:8px!important}
-  html:not(#lo-short) body .analysis-workspace .analysis-tabs.entity-record-tabs>button{flex:0 0 auto!important;width:auto!important;height:40px!important;min-height:40px!important;padding:0 12px!important;white-space:nowrap!important}
+  /* All module tabs stay visible: two compact rows instead of a hidden horizontal scroll. */
+  html:not(#lo-short) body .analysis-workspace>.analysis-tabs.entity-record-tabs,html:not(#lo-short) body .analysis-workspace .analysis-tabs.entity-record-tabs{flex-wrap:wrap!important;overflow:visible!important;height:auto!important;max-height:none!important;margin-top:8px!important}
+  html:not(#lo-short) body .analysis-workspace .analysis-tabs.entity-record-tabs>button{flex:0 0 auto!important;width:auto!important;height:34px!important;min-height:34px!important;padding:0 11px!important;white-space:nowrap!important}
 }
 
 /* ==== tablet-rail ==== */

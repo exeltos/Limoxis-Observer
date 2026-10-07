@@ -71,6 +71,8 @@ export function PreventionPage(){
  const rows=useMemo(()=>{
   if(tab==='vaccinations')return source.filter(x=>Boolean(employeeMap[x.employeeId])).filter(x=>canAccessRecord(employeeMap[x.employeeId])).filter(x=>{const e=employeeMap[x.employeeId];const hay=`${e?.id??''} ${e?.firstName??''} ${e?.firstNameEn??''} ${e?.lastName??''} ${e?.lastNameEn??''} ${x.vaccine??''}`.toLowerCase();return hay.includes(query.toLowerCase())}).filter(x=>department==='all'||(language==='el'?employeeMap[x.employeeId]?.department:employeeMap[x.employeeId]?.departmentEn)===department).filter(x=>status==='all'||x.status===status)
   return source.filter(x=>x.lifecycleStatus!=='voided').filter(x=>canAccessRecord({...x,department:x.departmentEl})).filter(x=>JSON.stringify(x).toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.departmentEl:x.departmentEn)===department).filter(x=>period==='all'||x.period===period).filter(x=>product==='all'||x.product===product).filter(x=>method==='all'||x.method===method)
+   // Newest first, as the database returns them; demo/local rows arrive in seed order.
+   .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))
  },[tab,source,employeeMap,query,department,period,product,method,status,language,canAccessRecord])
 
  const reloadHandHygiene=useCallback(async()=>{if(!tenant?.id||!tabAccess.handHygiene){setHandRows([]);setHandDepartments([]);return}setHandLoading(true);try{const [records,depts]=await Promise.all([loadHandHygieneSessions(tenant.id),loadHandHygieneDepartments(tenant.id)]);setHandRows(records);setHandDepartments(depts)}catch(error){notifyError(error,'load',{operation:'hand_hygiene_load'})}finally{setHandLoading(false)}},[tenant?.id,tabAccess.handHygiene,notifyError])
@@ -116,7 +118,7 @@ function rowPropsWithOpen(registry,id,onOpen){const rp=registry.rowProps(id);ret
 function HandTable({rows,t,language,fmtDate,onOpen,registry}){return <RegistryTable bare
   columns={[{key:'date',label:t('date')},{key:'department',label:t('department')},{key:'profession',label:t('professionalCategory')},{key:'observations',label:t('observations')},{key:'compliant',label:t('compliant')},{key:'compliance',label:t('compliance')},{key:'observer',label:t('observer')}]}
   rows={rows} rowKey={x=>x.id} rowProps={x=>rowPropsWithOpen(registry,x.id,onOpen)}
-  renderRow={x=><><td>{fmtDate(x.date)}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{t(x.profession)}</td><td>{x.observations}</td><td>{x.compliant}</td><td><strong>{x.rate}%</strong></td><td>{x.observer}</td></>}
+  renderRow={x=><><td>{fmtDate(x.date)}</td><td>{language==='el'?x.departmentEl:x.departmentEn}</td><td>{t(x.profession)}</td><td>{x.observations}</td><td>{x.compliant}</td><td><strong className={Number(x.rate)<80?'compliance-below-target':'compliance-on-target'} title={Number(x.rate)<80?t('belowWhoHandHygieneTarget'):undefined}>{x.rate}%</strong></td><td>{x.observer}</td></>}
 />}
 function WasteTable({rows,t,language,fmtDate,onOpen,registry}){return <RegistryTable bare
   columns={[{key:'date',label:t('date')},{key:'department',label:t('department')},{key:'category',label:t('exportCategory')},{key:'weight',label:t('weight')},{key:'containers',label:t('containers')},{key:'indicator',label:t('indicator')},{key:'document',label:t('documentNumber')}]}

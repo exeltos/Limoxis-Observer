@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Page } from '../../design-system/Page'
+import { CalendarRange, Clock3, Building2, Pill, Plus } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import { MetricCard } from '../../design-system/MetricCard'
 import { SaveButton } from '../../design-system/SaveButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -53,8 +55,16 @@ export function PharmacyPage() {
 
   return (
     <Page title={en ? 'Pharmacy' : 'Φαρμακείο'} subtitle={en ? 'Antimicrobial stewardship, advanced antibiotics, approvals and consumption / DDD.' : 'Αντιμικροβιακή επιτήρηση, προωθημένα αντιβιοτικά, εγκρίσεις και κατανάλωση / DDD.'}
-      actions={canRecord && <Button onClick={() => setDialog(true)}>+ {en ? 'Dispensing period' : 'Περίοδος χορήγησης'}</Button>}>
+      actions={canRecord && <Button onClick={() => setDialog(true)}><Plus size={16} />{en ? 'Dispensing period' : 'Περίοδος χορήγησης'}</Button>}>
       {!canRecord && <div className="surface"><div className="inline-empty">{en ? 'You do not have access to record antibiotic consumption.' : 'Δεν έχετε πρόσβαση καταχώρισης κατανάλωσης αντιβιοτικών.'}</div></div>}
+      {canRecord && (
+        <div className="module-summary-strip">
+          <MetricCard icon={CalendarRange} value={rows.length} label={en ? 'Dispensing records' : 'Καταχωρίσεις χορήγησης'} />
+          <MetricCard icon={Pill} value={new Set(rows.map(row => row.productEn || row.product).filter(Boolean)).size} label={en ? 'Antibiotics' : 'Αντιβιοτικά'} />
+          <MetricCard icon={Building2} value={new Set(rows.map(row => row.departmentEl).filter(Boolean)).size} label={en ? 'Departments' : 'Τμήματα'} />
+          <MetricCard icon={Clock3} value={rows.reduce((latest, row) => (row.period > latest ? row.period : latest), '') || '—'} label={en ? 'Latest period' : 'Τελευταία περίοδος'} />
+        </div>
+      )}
       {canRecord && (
         <div className="surface">
           <div className="inline-empty" style={{ marginBottom: 12 }}>
@@ -68,7 +78,7 @@ export function PharmacyPage() {
             <div className="record-table-wrap">
               <table className="record-table">
                 <thead><tr><th>{en ? 'Period' : 'Περίοδος'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'WHO AWaRe' : 'WHO AWaRe'}</th><th>{en ? 'Quantity' : 'Ποσότητα'}</th><th>{en ? 'Responsible' : 'Υπεύθυνος'}</th></tr></thead>
-                <tbody>{rows.map(row => { const category = awareCategoryFor(row.productEn || row.product); return <tr key={row.id}><td>{row.period}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{category ? <span className={`status-badge aware-${category}`}>{awareCategoryLabel(category, language)}</span> : '—'}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></tr> })}</tbody>
+                <tbody>{[...rows].sort((a, b) => String(b.periodStart || b.period || '').localeCompare(String(a.periodStart || a.period || ''))).map(row => { const category = awareCategoryFor(row.productEn || row.product); return <tr key={row.id}><td>{row.period}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{category ? <span className={`status-badge aware-${category}`}>{awareCategoryLabel(category, language)}</span> : '—'}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></tr> })}</tbody>
               </table>
             </div>
           )}

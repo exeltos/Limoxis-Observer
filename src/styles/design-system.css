@@ -1032,7 +1032,7 @@
   min-height:44px!important;
   height:44px!important;
   margin:0!important;
-  padding:0 14px!important;
+  padding:0 56px 0 14px!important; /* right: clear of the LIRA button, which slides out over the corner on hover */
   display:flex!important;
   align-items:center!important;
   justify-content:space-between!important;
@@ -1140,3 +1140,5 @@
 .surveillance-independent-samples .surveillance-tree-sample.is-unlinked:not(.is-followup)>span:first-child{padding-left:14px}
 .surveillance-tree-sample>span:last-child{justify-self:stretch}
 .surveillance-sample-actions .sample-followup-action{margin-left:auto}
+.data-table td.nowrap-cell{white-space:nowrap}
+.data-table td strong.compliance-below-target{color:#b42318!important}.data-table td strong.compliance-on-target{color:#1d6b3a!important}
