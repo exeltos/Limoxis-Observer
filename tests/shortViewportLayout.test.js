@@ -16,9 +16,11 @@ describe('short screens (13" notebooks) scroll instead of clipping', () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order)
     expect(css.slice(order[2] + 1)).not.toContain('/* ==== ')
   })
-  it('lets the workspace scroll and keeps registries at a usable height', () => {
+  it('fits full-height pages to the window, scrolling the workspace only below a small floor', () => {
     expect(withoutImportant(css)).toContain('.content,.content:has(>.page-fill){overflow-x:hidden;overflow-y:auto}')
-    expect(withoutImportant(css)).toContain('.page-fill{min-height:760px}')
+    expect(withoutImportant(css)).toContain('.page-fill{min-height:440px}')
+    expect(css).not.toContain('min-height:760px')
+    expect(css).toContain('@media (max-height:800px)')
     expect(css).toContain('.laboratory-registry-page')
     expect(withoutImportant(css)).toContain('.sidebar nav{overflow-y:auto')
   })
