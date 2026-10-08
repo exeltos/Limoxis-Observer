@@ -65,6 +65,7 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[]){
    dbId:assignment.id,
    departmentId:assignment.department_id,
    department,
+   createdAt:assignment.created_at||null,
    lastCompletedAt:assignment.last_completed_at,
    nextDueAt:assignment.next_due_at,
    status:assignment.status,

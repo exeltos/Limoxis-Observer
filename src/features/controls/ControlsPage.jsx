@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,PlayCircle } from 'lucide-react'
+import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,Gauge,ListChecks,PlayCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -16,12 +16,15 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { ControlEditor } from './ControlEditor'
 import { controlActorFromAuth } from './controlActor'
 import { MetricCard } from '../../design-system/MetricCard'
+import { ModuleTabs } from '../../design-system/ModuleTabs'
+import { ControlAdherencePanel } from './ControlAdherencePanel'
+import { periodRange,programmeAdherence } from './controlAdherence'
 import { assignmentStatus,frequencyLabel,getAssignment,isControlDue } from './controlScheduling'
 import { loadControlProgramme,saveControlDefinition } from './controlCloudService'
 
 const controlsText={
- el:{created:'Ο έλεγχος δημιουργήθηκε.',centralSubtitle:'Κεντρικός προγραμματισμός και παρακολούθηση ελέγχων ανά τμήμα.',departmentSubtitle:'Οι προγραμματισμένοι έλεγχοι που αφορούν το τμήμα σας.',active:'Ενεργοί έλεγχοι',dueSoon:'Πλησιάζουν',overdue:'Εκπρόθεσμοι',today:'Καταχωρήσεις σήμερα',search:'Αναζήτηση ελέγχων',department:'Τμήμα',departments:'Τμήματα',allDepartments:'Όλα τα τμήματα',status:'Κατάσταση',all:'Όλες',temporary:'Προσωρινή',scheduled:'Εντός προγράμματος',frequency:'Συχνότητα',daily:'Ημερήσια',weekly:'Εβδομαδιαία',monthly:'Μηνιαία / ανά μήνες',yearly:'Ετήσια',control:'Έλεγχος',executions:'Εκτελέσεις',next:'Επόμενος',within:'Εντός',execute:'Καταχώρηση ελέγχου',emptyTitle:'Δεν υπάρχουν έλεγχοι',emptyText:'Δεν υπάρχουν έλεγχοι που να αντιστοιχούν στα επιλεγμένα φίλτρα.'},
- en:{created:'Control created.',centralSubtitle:'Central scheduling and monitoring of controls by department.',departmentSubtitle:'Scheduled controls assigned to your department.',active:'Active controls',dueSoon:'Due soon',overdue:'Overdue',today:'Entries today',search:'Search controls',department:'Department',departments:'Departments',allDepartments:'All departments',status:'Status',all:'All',temporary:'Draft',scheduled:'On schedule',frequency:'Frequency',daily:'Daily',weekly:'Weekly',monthly:'Monthly / every N months',yearly:'Yearly',control:'Control',executions:'Executions',next:'Next',within:'On schedule',execute:'Record control',emptyTitle:'No controls',emptyText:'No controls match the selected filters.'}
+ el:{adherence:'Τήρηση προγράμματος',adherenceTab:'Τήρηση',programmeTab:'Πρόγραμμα',period:'Περίοδος',p30d:'Τελευταίες 30 ημέρες',p90d:'Τελευταίες 90 ημέρες',p12m:'Τελευταίοι 12 μήνες',pyear:'Από την αρχή του έτους',expected:'Έπρεπε',performed:'Έγιναν',onTime:'Στην ώρα τους',missed:'Χάθηκαν',adherenceRate:'Τήρηση',adherenceNote:'«Έπρεπε»: πόσες φορές ζητούσε η συχνότητα του ελέγχου μέσα στην περίοδο. «Στην ώρα τους»: όσες έγιναν έως την προθεσμία (ανοχή 2 ώρες για καθημερινούς, 1 ημέρα για τους υπόλοιπους).',noAdherence:'Δεν υπάρχουν προγραμματισμένες εκτελέσεις στην περίοδο.',total:'Σύνολο',created:'Ο έλεγχος δημιουργήθηκε.',centralSubtitle:'Κεντρικός προγραμματισμός και παρακολούθηση ελέγχων ανά τμήμα.',departmentSubtitle:'Οι προγραμματισμένοι έλεγχοι που αφορούν το τμήμα σας.',active:'Ενεργοί έλεγχοι',dueSoon:'Πλησιάζουν',overdue:'Εκπρόθεσμοι',today:'Καταχωρήσεις σήμερα',search:'Αναζήτηση ελέγχων',department:'Τμήμα',departments:'Τμήματα',allDepartments:'Όλα τα τμήματα',status:'Κατάσταση',all:'Όλες',temporary:'Προσωρινή',scheduled:'Εντός προγράμματος',frequency:'Συχνότητα',daily:'Ημερήσια',weekly:'Εβδομαδιαία',monthly:'Μηνιαία / ανά μήνες',yearly:'Ετήσια',control:'Έλεγχος',executions:'Εκτελέσεις',next:'Επόμενος',within:'Εντός',execute:'Καταχώρηση ελέγχου',emptyTitle:'Δεν υπάρχουν έλεγχοι',emptyText:'Δεν υπάρχουν έλεγχοι που να αντιστοιχούν στα επιλεγμένα φίλτρα.'},
+ en:{adherence:'Programme adherence',adherenceTab:'Adherence',programmeTab:'Programme',period:'Period',p30d:'Last 30 days',p90d:'Last 90 days',p12m:'Last 12 months',pyear:'Year to date',expected:'Due',performed:'Done',onTime:'On time',missed:'Missed',adherenceRate:'Adherence',adherenceNote:'“Due”: how many times the control’s frequency called for it in the period. “On time”: done by the due time (2-hour tolerance for daily controls, 1 day for the rest).',noAdherence:'No scheduled executions in this period.',total:'Total',created:'Control created.',centralSubtitle:'Central scheduling and monitoring of controls by department.',departmentSubtitle:'Scheduled controls assigned to your department.',active:'Active controls',dueSoon:'Due soon',overdue:'Overdue',today:'Entries today',search:'Search controls',department:'Department',departments:'Departments',allDepartments:'All departments',status:'Status',all:'All',temporary:'Draft',scheduled:'On schedule',frequency:'Frequency',daily:'Daily',weekly:'Weekly',monthly:'Monthly / every N months',yearly:'Yearly',control:'Control',executions:'Executions',next:'Next',within:'On schedule',execute:'Record control',emptyTitle:'No controls',emptyText:'No controls match the selected filters.'}
 }
 
 function controlState(item,departments){
@@ -58,11 +61,12 @@ export function ControlsPage(){
  const {t,language,locale}=useLanguage();const tx=controlsText[language==='en'?'en':'el']
  const {confirm,notify,notifyError}=useFeedback()
  const navigate=useNavigate(),registry=useRegistryMemory('controls')
- const savedView=registry.loadViewState({query:'',department:'all',status:'all',frequency:'all'})
+ const savedView=registry.loadViewState({query:'',department:'all',status:'all',frequency:'all',view:'programme'})
  const [query,setQuery]=useState(savedView.query),[department,setDepartment]=useState(savedView.department),[status,setStatus]=useState(savedView.status),[frequency,setFrequency]=useState(savedView.frequency)
  const [editorOpen,setEditorOpen]=useState(false)
  const [programme,setProgramme]=useState([]),[loading,setLoading]=useState(true)
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
+ const [view,setView]=useState(savedView.view||'programme')
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const canManage=can(role,CAPABILITIES.MANAGE_CONTROLS,addOns,custom)
  const canExecute=can(role,CAPABILITIES.EXECUTE_CONTROL,addOns,custom)
@@ -89,6 +93,7 @@ export function ControlsPage(){
  const dueSoon=scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='dueSoon').length
  const todayKey=new Date().toISOString().slice(0,10)
  const today=scopedControls.reduce((total,{item,departments:deps})=>total+deps.reduce((n,dep)=>n+(getAssignment(item,dep)?.history||[]).filter(h=>h.at?.slice(0,10)===todayKey).length,0),0)
+ const monthAdherence=useMemo(()=>programmeAdherence(scopedControls,periodRange('30d')).totals,[scopedControls])
  const createdByScope=isDepartmentManager?'department':role===ROLES.PLATFORM_OWNER?'platform':role===ROLES.HOSPITAL_ADMIN?'hospital_admin':role===ROLES.QUALITY_MANAGER?'quality':'infection_control'
 
  async function saveNew(draft){
@@ -107,22 +112,24 @@ export function ControlsPage(){
   if(!allowed)return
   const ok=await confirm({title:tx.execute,message:language==='en'?`Open a new entry for “${item.titleEn||item.title}” in ${dep}? The recorder details will be filled automatically.`:`Να ανοίξει νέα καταχώρηση για «${item.title}» στο ${dep}; Τα στοιχεία του ελεγκτή θα συμπληρωθούν αυτόματα.`,confirmLabel:tx.execute})
   if(!ok)return
-  registry.saveViewState({query,department,status,frequency})
+  registry.saveViewState({query,department,status,frequency,view})
   navigate(`/controls/${item.id}?department=${encodeURIComponent(dep)}&execute=1`)
  }
  function pageAction(action){if(action===UI_ACTIONS.CREATE&&canCreate)setEditorOpen(true)}
- function openControl(item){registry.saveViewState({query,department,status,frequency});registry.openRecord(navigate,`/controls/${item.id}`,item.id,rows.map(x=>x.item.id))}
+ function openControl(item){registry.saveViewState({query,department,status,frequency,view});registry.openRecord(navigate,`/controls/${item.id}`,item.id,rows.map(x=>x.item.id))}
 
  if(editorOpen)return <ControlEditor departmentOnly={isDepartmentManager} fixedDepartment={isDepartmentManager?ownDepartment:''} onCancel={()=>setEditorOpen(false)} onSave={saveNew}/>
 
  return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={canCreate?<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>:null}>
-  <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedControls.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon} onClick={()=>setStatus(status==='dueSoon'?'all':'dueSoon')} active={status==='dueSoon'}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue} onClick={()=>setStatus(status==='overdue'?'all':'overdue')} active={status==='overdue'}/><Kpi icon={CheckCircle2} label={tx.today} value={today}/></div></div>
+  <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedControls.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon} onClick={()=>setStatus(status==='dueSoon'?'all':'dueSoon')} active={status==='dueSoon'}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue} onClick={()=>setStatus(status==='overdue'?'all':'overdue')} active={status==='overdue'}/><Kpi icon={CheckCircle2} label={tx.today} value={today}/><Kpi icon={Gauge} label={`${tx.adherence} · 30 ${language==='en'?'days':'ημ.'}`} value={monthAdherence.rate==null?'—':`${monthAdherence.rate}%`} onClick={()=>setView(view==='adherence'?'programme':'adherence')} active={view==='adherence'}/></div></div>
   <section className="surface registry-workspace workspace-column workspace-fill controls-registry-workspace">
+   <ModuleTabs activeId={view} onChange={setView} ariaLabel={t('controls')} tabs={[{id:'programme',label:tx.programmeTab,icon:ListChecks},{id:'adherence',label:tx.adherenceTab,icon:Gauge}]}/>
    <FilterBar query={query} onQueryChange={setQuery} placeholder={tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')+(frequency!=='all')} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setFrequency('all')}}>
     <FilterSelect label={tx.department} value={department} onChange={setDepartment}><option value="all">{tx.allDepartments}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
     <FilterSelect label={tx.status} value={status} onChange={setStatus}><option value="all">{tx.all}</option><option value="temporary">{tx.temporary}</option><option value="scheduled">{tx.scheduled}</option><option value="dueSoon">{tx.dueSoon}</option><option value="overdue">{tx.overdue}</option></FilterSelect>
     <FilterSelect label={tx.frequency} value={frequency} onChange={setFrequency}><option value="all">{tx.all}</option><option value="daily">{tx.daily}</option><option value="weekly">{tx.weekly}</option><option value="monthly">{tx.monthly}</option><option value="yearly">{tx.yearly}</option></FilterSelect>
    </FilterBar>
+   {view==='adherence'?<ControlAdherencePanel rows={rows} tx={tx} language={language}/>:<>
    <div className="scroll-table" ref={registry.scrollRef}>
     <table className="data-table sticky-table controls-table">
      <thead><tr><th>{tx.control}</th><th>{tx.departments}</th><th>{tx.frequency}</th><th>{tx.executions}</th><th>{tx.next}</th><th>{tx.status}</th><th className="control-action-col"></th></tr></thead>
@@ -132,6 +139,7 @@ export function ControlsPage(){
     {!loading&&!rows.length&&<div className="registry-empty-state"><strong>{tx.emptyTitle}</strong><span>{tx.emptyText}</span></div>}
    </div>
    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
+   </>}
   </section>
  </Page>
 }

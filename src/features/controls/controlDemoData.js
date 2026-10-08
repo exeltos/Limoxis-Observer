@@ -159,4 +159,17 @@ export const controlExecutionRows=[
  },
 ]
 
+// Demo history: a month of routine executions behind the recent ones above, with
+// a few missed and one late slot, so programme adherence has something to show.
+const historyRun=(assignment,definition,department,actorName,days,{missed=[],late={}}={})=>days.filter(day=>!missed.includes(day)).map(day=>{
+ const at=iso(-24*day-3),lateHours=late[day]||0
+ return {id:`ctrl-exec-${assignment.id}-d${day}`,assignment_id:assignment.id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,status:'completed',value_text:definition.response_config?.mode==='numeric'?'4.6':'',response_data:{structuredData:null,actorName,actorEmail:'',previousLastCompletedAt:null,previousNextDueAt:iso(-24*day-3-lateHours)},notes:'',has_finding:false,performed_at:at,performed_by:'',edited_at:null,edited_by:null,cancelled_at:null,cancelled_by:null,cancellation_reason:''}
+})
+const range=(from,to)=>Array.from({length:to-from+1},(_,i)=>from+i)
+controlExecutionRows.push(
+ ...historyRun(assignment1,definition1,'ΜΕΘ','Ελένη Παπαδοπούλου',range(3,29),{missed:[8,17],late:{12:5}}),
+ ...historyRun(assignment2,definition1,'Χειρουργική','Νίκος Δημητρίου',range(1,29),{missed:[5,6,14,22,26]}),
+ ...historyRun(assignment3,definition2,'Χειρουργική','Νίκος Δημητρίου',[10]),
+)
+
 export const controlDraftRows=[{id:'ctrl-draft-expiry-1',assignment_id:assignment4.id,control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',status:'draft',value_text:'Κοντόληκτο',response_data:{structuredData:{items:[{name:'Adrenaline 1mg/ml',quantity:6,expiry:'2026-10-15',finding:'Κοντόληκτο'}]},actorName:'Demo User'},notes:'Σε εξέλιξη ο έλεγχος ραφιού.',has_finding:true,performed_at:null}]
