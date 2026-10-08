@@ -42,7 +42,20 @@ export const previewDemos=()=>[
  {id:'demo-1',label:'Γ.Ν. Λάρισας — αξιολόγηση',contact_name:'Δρ. Αθηνά Κ.',contact_email:'athina@larisa.example',valid_from:day(-20),valid_until:day(10),status:'active',organization_id:'demo-org-1',demo_user_id:'demo-u-1',organization:{id:'demo-org-1',name:'Demo · Γ.Ν. Λάρισας',code:'DEMO-LAR',is_demo:true}},
  {id:'demo-2',label:'Ιδιωτική κλινική Πάτρας',contact_name:'Ιωάννα Μ.',contact_email:'ioanna@patra.example',valid_from:day(-28),valid_until:day(2),status:'active',organization_id:'demo-org-2',demo_user_id:'demo-u-2',organization:{id:'demo-org-2',name:'Demo · Κλινική Πάτρας',code:'DEMO-PAT',is_demo:true}},
  {id:'demo-3',label:'Π.Γ.Ν. Ηρακλείου — ΕΝΛ',contact_name:'Μιχάλης Τ.',contact_email:'michalis@pagni.example',valid_from:day(-40),valid_until:day(-3),status:'expired',organization_id:'demo-org-3',demo_user_id:'demo-u-3',organization:{id:'demo-org-3',name:'Demo · ΠΑΓΝΗ',code:'DEMO-HER',is_demo:true}},
+ {id:'demo-4',label:'ΚΑΤ — Ποιότητα',contact_name:'Ε. Ζαχαρίου',contact_email:'ez@kat.example',valid_from:day(-6),valid_until:day(24),status:'paused',organization_id:'demo-org-4',demo_user_id:'demo-u-4',organization:{id:'demo-org-4',name:'Demo · ΚΑΤ',code:'DEMO-KAT',is_demo:true}},
+ {id:'demo-5',label:'Γ.Ν. Κέρκυρας',contact_name:'Σ. Βλάχου',contact_email:'sv@corfu.example',valid_from:day(-42),valid_until:day(-12),status:'active',organization_id:'demo-org-5',demo_user_id:'demo-u-5',organization:{id:'demo-org-5',name:'Demo · Γ.Ν. Κέρκυρας',code:'DEMO-CFU',is_demo:true}},
 ]
+
+// What deleting the given organizations would remove, for the preview's delete dialog.
+const PREVIEW_IMPACT={'demo-org-3':[1284,96,12,8400000,4,4],'demo-org-5':[0,74,0,0,1,0],'demo-org-1':[642,74,5,2100000,3,3],'demo-org-2':[210,74,1,300000,2,2],'demo-org-4':[388,74,2,900000,2,1]}
+export const previewDeletionImpact=ids=>ids.map(id=>{
+ const organization=ORGANIZATIONS.find(o=>o.id===id)||previewDemos().find(d=>d.organization_id===id)?.organization
+ if(!organization)return null
+ const [records,systemRecords,files,bytes,members,accountsDeleted]=PREVIEW_IMPACT[id]||[3912+6240,74,418,1288490188,(PEOPLE[id]||[]).length,Math.max(0,(PEOPLE[id]||[]).length-1)]
+ const status=organization.status||'active'
+ const blockers=[!organization.is_demo&&status!=='suspended'?'not_suspended':null].filter(Boolean)
+ return {organizationId:id,name:organization.name,code:organization.code,isDemo:Boolean(organization.is_demo),status,records,systemRecords,files,bytes,members,accountsDeleted,accountsKept:Math.max(0,members-accountsDeleted),blockers}
+}).filter(Boolean)
 
 export const previewAuditEvents=()=>[
  ['owner',ORGANIZATIONS[1].id,'platform_owner','update','organization',ORGANIZATIONS[1].id,-0.1],

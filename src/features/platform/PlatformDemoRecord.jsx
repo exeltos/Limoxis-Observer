@@ -2,13 +2,13 @@ import { useEffect,useState } from 'react'
 import { Building2,FlaskConical,KeyRound,LogIn,PauseCircle,Pencil,PlayCircle,Save,Trash2,X } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { IconButton } from '../../design-system/IconButton'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { LocationAutocompleteField } from '../../design-system/LocationAutocompleteField'
 import { CITY_OPTIONS,COUNTRY_OPTIONS } from '../../core/reference/locationOptions'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { purgePlatformOrganization,resetPlatformDemoPassword,setPlatformDemoStatus } from '../../core/tenant/tenantService'
+import { resetPlatformDemoPassword,setPlatformDemoStatus } from '../../core/tenant/tenantService'
+import { OrganizationDeleteDialog } from './OrganizationDeleteDialog'
 import { convertPlatformDemoToOrganization,demoDatesValid,loadPlatformDemoRecord,savePlatformDemoRecord } from './platformDemoService'
 const GREEK_REGIONS=['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
 const HEALTH_REGIONS=['1η ΥΠΕ Αττικής','2η ΥΠΕ Πειραιώς και Αιγαίου','3η ΥΠΕ Μακεδονίας','4η ΥΠΕ Μακεδονίας και Θράκης','5η ΥΠΕ Θεσσαλίας και Στερεάς Ελλάδας','6η ΥΠΕ Πελοποννήσου, Ιονίων Νήσων, Ηπείρου και Δυτικής Ελλάδας','7η ΥΠΕ Κρήτης']
@@ -22,8 +22,6 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
   const [saving,setSaving]=useState(false)
   const [working,setWorking]=useState(false)
   const [deleteOpen,setDeleteOpen]=useState(false)
-  const [deleteConfirm,setDeleteConfirm]=useState('')
-  const [deletePassword,setDeletePassword]=useState('')
   const [editing,setEditing]=useState(false)
   const {notify,notifyError,confirm}=useFeedback()
   const en=language==='en'
@@ -57,8 +55,8 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
   async function togglePause(){if(working)return;const next=record.status==='paused'?'active':'paused';const ok=await confirm({title:next==='paused'?tx('Παύση Demo','Pause Demo'):tx('Ενεργοποίηση Demo','Reactivate Demo'),message:next==='paused'?tx('Η πρόσβαση του Demo χρήστη θα απενεργοποιηθεί μέχρι να την ενεργοποιήσεις ξανά.','The Demo user will lose Demo access until you reactivate it.'):tx('Να ενεργοποιηθεί ξανά η πρόσβαση Demo;','Reactivate Demo access?'),confirmLabel:next==='paused'?tx('Παύση','Pause'):tx('Ενεργοποίηση','Reactivate')});if(!ok)return;setWorking(true);try{const updated=await setPlatformDemoStatus(record.id,next);const full=await loadPlatformDemoRecord(updated.id);setRecord(full);setDraft(toDraft(full));onChanged?.(full);notify(next==='paused'?tx('Το Demo τέθηκε σε παύση.','Demo paused.'):tx('Το Demo ενεργοποιήθηκε.','Demo reactivated.'),'success',{operation:'platform_demo_status'})}catch(error){notifyError(error,'action',{operation:'platform_demo_status'})}finally{setWorking(false)}}
   async function resetPassword(){if(working)return;const target=record.contact_email||tx('το καταχωρημένο email','the registered email address');const ok=await confirm({title:tx('Επαναφορά κωδικού Demo','Reset Demo password'),message:tx(`Θα αποσταλεί email ασφαλούς επαναφοράς κωδικού στο ${target}. Θέλεις να συνεχίσεις;`,`A secure password-reset email will be sent to ${target}. Continue?`),confirmLabel:tx('Αποστολή email','Send reset email')});if(!ok)return;setWorking(true);try{await resetPlatformDemoPassword(record);notify(tx('Στάλθηκε email επαναφοράς κωδικού στον Demo χρήστη.','Password reset email sent to the Demo user.'),'success',{operation:'platform_demo_reset_password'})}catch(error){notifyError(error,'action',{operation:'platform_demo_reset_password'})}finally{setWorking(false)}}
   async function convertToOrganization(){if(working||!record.organization_id)return;const ok=await confirm({title:tx('Μετατροπή Demo σε οργανισμό','Convert Demo to organization'),message:tx('Ο ίδιος Demo οργανισμός θα γίνει κανονικός οργανισμός και η Demo πρόσβαση θα ανακληθεί. Τα στοιχεία της καρτέλας θα διατηρηθούν. Θέλεις να συνεχίσεις;','The same Demo organization will become a production organization and Demo access will be revoked. Record details will be preserved. Continue?'),confirmLabel:tx('Μετατροπή σε οργανισμό','Convert to organization')});if(!ok)return;setWorking(true);try{if(canSave&&editing)await savePlatformDemoRecord(record,draft);const organization=await convertPlatformDemoToOrganization(record,draft);notify(tx('Το Demo μετατράπηκε σε κανονικό οργανισμό.','Demo converted to a production organization.'),'success',{operation:'platform_demo_convert'});if(onConverted)await onConverted(organization);else window.location.assign(`/platform#organizations?organization=${organization.id}&tab=details`)}catch(error){notifyError(error,'action',{operation:'platform_demo_convert'});setWorking(false)}}
-  function requestDelete(){setDeleteConfirm('');setDeletePassword('');setDeleteOpen(true)}
-  async function confirmDelete(){if(working||!record.organization_id||!deleteCode||deleteConfirm.trim().toUpperCase()!==deleteCode.toUpperCase()||!deletePassword)return;setWorking(true);try{await purgePlatformOrganization({organizationId:record.organization_id,password:deletePassword,confirmation:deleteConfirm.trim()});setDeleteOpen(false);notify(tx('Το Demo και όλα τα σχετικά δεδομένα διαγράφηκαν οριστικά.','The Demo and all related data were permanently deleted.'),'success',{operation:'platform_demo_delete'});if(onDeleted)onDeleted(record.id);else onBack?.()}catch(error){notifyError(error,'delete',{operation:'platform_demo_delete'});setWorking(false)}}
+  function requestDelete(){setDeleteOpen(true)}
+  function handleDeleted(){setDeleteOpen(false);if(onDeleted)onDeleted(record.id);else onBack?.()}
 
   const actions=<div className="platform-org-actions" aria-label={tx('Ενέργειες Demo','Demo actions')}>
     <Action icon={<LogIn size={18}/>} tone="primary" label={tx('Είσοδος','Enter')} title={tx('Είσοδος στο Demo','Open Demo')} onClick={onOpenDemo}/>
@@ -86,6 +84,6 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
       </div>
     </EntityRecordShell>
 
-    {deleteOpen&&<ObserverDialog width="wide" eyebrow={tx('Κρίσιμη ενέργεια · Επαναταυτοποίηση','Critical action · Re-authentication')} title={tx('Οριστική διαγραφή Demo','Delete Demo permanently')} subtitle={tx('Η ενέργεια δεν αναιρείται.','This action cannot be undone.')} onClose={()=>!working&&setDeleteOpen(false)} footer={<Button className="button-destructive" loading={working} disabled={!deletePassword||deleteConfirm.trim().toUpperCase()!==deleteCode.toUpperCase()} onClick={confirmDelete}><Trash2 size={15}/>{tx('Οριστική διαγραφή','Delete permanently')}</Button>}><div className="destructive-warning"><Trash2 size={20}/><div><strong>{tx('Θα διαγραφούν το Demo, ο απομονωμένος οργανισμός και όλα τα δεδομένα του.','The Demo, isolated organization, and all related data will be deleted.')}</strong><span>{tx('Η ενέργεια είναι οριστική.','This action is permanent.')}</span></div></div><div className="platform-form-grid"><label className="field"><span>{tx('Πληκτρολόγησε τον κωδικό','Type the code')}: <b>{deleteCode}</b></span><input value={deleteConfirm} onChange={e=>setDeleteConfirm(e.target.value)} autoComplete="off"/></label><label className="field"><span>{tx('Κωδικός Ιδιοκτήτη Πλατφόρμας','Platform Owner password')}</span><input type="password" value={deletePassword} onChange={e=>setDeletePassword(e.target.value)} autoComplete="new-password"/></label></div></ObserverDialog>}
+    {deleteOpen&&<OrganizationDeleteDialog organizations={[{id:record.organization_id,name:org?.name||record.label,code:deleteCode,is_demo:true}]} language={language} onClose={()=>setDeleteOpen(false)} onDeleted={handleDeleted}/>}
   </>
 }

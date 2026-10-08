@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="el"><head><meta charset="utf-8"><title>Demo lifecycle mockups</title>
+<style>
+:root{--primary:#256b9b;--primary-soft:#edf5fa;--nav:#172b43;--bg:#f5f7fa;--border:#dfe6ec;--soft:#f8fafb;--strong:#20384c;--muted:#5f6f7c;--metric:#173b5c;
+--ok-bg:#eaf6ef;--ok-fg:#2d7650;--ok-b:#cfe7d8;--info-bg:#edf5fa;--info-fg:#356982;--info-b:#d5e5ee;--warn-bg:#fff6df;--warn-fg:#8a641d;--warn-b:#f0dfae;--dang-bg:#fff0f0;--dang-fg:#a23f46;--dang-b:#efcfd2;--neu-bg:#f1f4f6;--neu-fg:#5f6f7d;--neu-b:#dfe5e9}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,"Segoe UI",sans-serif;color:#172033;background:#ccd3da;font-size:13px}
+.screen{width:1440px;height:900px;background:var(--bg);position:relative;overflow:hidden;margin:0 0 40px}
+.top{height:64px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px}
+.crumb{color:var(--primary);font-weight:600;font-size:14px;display:flex;gap:8px;align-items:center}.crumb b{color:var(--strong)}.crumb i{color:#9aa8b4;font-style:normal}
+.top .sp{flex:1}.pill{border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-weight:600;color:#40566d;background:#fff}
+.user{display:flex;gap:8px;align-items:center}.av{width:28px;height:28px;border-radius:8px;background:#e6eef5;display:grid;place-items:center;font-weight:700;font-size:11px;color:var(--metric)}
+.user small{display:block;color:var(--muted);font-size:10px}
+.page{padding:20px 30px}
+h1{font-size:20px;margin:0;color:var(--strong)}.sub{color:var(--muted);margin-top:4px}
+.row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}
+.btn{border:1px solid var(--border);background:#fff;border-radius:9px;padding:9px 14px;font-weight:600;color:#40566d;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.btn.p{background:var(--primary);color:#fff;border-color:var(--primary)}.btn.d{background:#b34f55;color:#fff;border-color:#b34f55}.btn.dl{color:var(--dang-fg);border-color:var(--dang-b);background:var(--dang-bg)}.btn.w{color:var(--warn-fg);border-color:var(--warn-b);background:var(--warn-bg)}
+.btn.dis{opacity:.45}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px}
+.badge{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600;border:1px solid}
+.ok{background:var(--ok-bg);color:var(--ok-fg);border-color:var(--ok-b)}.info{background:var(--info-bg);color:var(--info-fg);border-color:var(--info-b)}.warn{background:var(--warn-bg);color:var(--warn-fg);border-color:var(--warn-b)}.dang{background:var(--dang-bg);color:var(--dang-fg);border-color:var(--dang-b)}.neu{background:var(--neu-bg);color:var(--neu-fg);border-color:var(--neu-b)}
+table{width:100%;border-collapse:collapse}th{text-align:left;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:11px 14px;border-bottom:1px solid var(--border);background:var(--soft)}
+td{padding:11px 14px;border-bottom:1px solid #edf1f4;vertical-align:middle}td small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+tr.sel td{background:#f3f8fc}
+.cb{width:15px;height:15px;border:1.5px solid #a9b8c4;border-radius:4px;display:inline-block;vertical-align:middle}.cb.on{background:var(--primary);border-color:var(--primary);position:relative}.cb.on:after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.bar{height:5px;border-radius:9px;background:#edf1f4;width:130px;margin-top:5px;overflow:hidden}.bar>span{display:block;height:100%;background:#8a641d}
+.chips{display:flex;gap:6px}.chip{border:1px solid var(--border);border-radius:999px;padding:5px 11px;background:#fff;color:#40566d;font-weight:600;font-size:12px}.chip.on{background:var(--primary-soft);border-color:#b9d4e5;color:var(--primary)}
+.chip b{font-weight:700;margin-left:4px;color:var(--muted)}
+.search{border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:#94a3b0;width:320px;background:#fff}
+.bulk{background:var(--nav);color:#fff;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px}
+.bulk .btn{border-color:#ffffff33}
+.overlay{position:absolute;inset:64px 0 0 0;background:rgba(23,43,67,.38);display:grid;place-items:center}
+.dialog{background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;display:flex;flex-direction:column;max-height:800px}
+.dh{padding:18px 22px;border-bottom:1px solid var(--border)}.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.eyebrow.r{color:var(--dang-fg)}
+.dh h2{margin:4px 0 2px;font-size:18px;color:var(--strong)}
+.db{padding:18px 22px;overflow:hidden}.df{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;background:var(--soft)}
+.steps{display:flex;gap:0;margin-top:14px}.step{flex:1;display:flex;gap:8px;align-items:center;font-weight:600;color:var(--muted);font-size:12px}.step .n{width:22px;height:22px;border-radius:50%;border:1.5px solid #b8c5cf;display:grid;place-items:center;font-size:11px}
+.step.done .n{background:var(--ok-fg);border-color:var(--ok-fg);color:#fff}.step.cur{color:var(--primary)}.step.cur .n{background:var(--primary);border-color:var(--primary);color:#fff}.step .ln{flex:1;height:1.5px;background:#dfe6ec;margin:0 8px}
+.opt{border:1.5px solid var(--border);border-radius:12px;padding:14px;background:#fff}.opt.on{border-color:var(--primary);background:#f6fafd;box-shadow:0 0 0 3px rgba(37,107,155,.10)}
+.opt h4{margin:0 0 4px;font-size:14px;color:var(--strong)}.opt p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.lbl{font-size:11.5px;font-weight:600;color:#40566d;margin-bottom:5px}.inp{border:1px solid #d5dfe7;border-radius:9px;height:38px;padding:9px 11px;background:#fff;color:#172033}.inp.ph{color:#94a3b0}.inp.focus{border-color:#5f93ad;box-shadow:0 0 0 3px rgba(58,126,157,.12)}
+.tog{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:#fff}
+.sw{flex:none;margin-left:10px;width:30px;height:17px;border-radius:99px;background:#c9d3dc;position:relative}.sw:after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff}.sw.on{background:var(--primary)}.sw.on:after{left:15px}
+.sec{border:1px solid var(--border);border-radius:12px;background:var(--soft);padding:14px}.sec>header{border-left:3px solid var(--primary);padding-left:9px;margin-bottom:12px}.sec>header b{display:block;color:var(--strong)}.sec>header span{color:var(--muted);font-size:11.5px}
+.metric{display:flex;gap:10px;align-items:center;padding:12px 14px}.mi{width:34px;height:34px;border-radius:9px;background:var(--lo,#edf5f9);display:grid;place-items:center;color:#47718d;font-weight:700}.metric b{font-size:17px;color:var(--metric);display:block}.metric span{font-size:11px;color:var(--muted)}
+.rec{margin:16px 18px 0;padding:14px 18px;display:flex;align-items:center;gap:14px}.ricon{width:42px;height:42px;border-radius:10px;background:#e8f0f6;display:grid;place-items:center;font-size:18px}
+.tabs{display:flex;gap:22px;padding:0 24px;margin:6px 18px 0;background:#fff;border-bottom:1px solid var(--border)}.tab{padding:12px 2px;font-weight:600;color:var(--muted)}.tab.on{color:var(--primary);border-bottom:2px solid var(--primary)}
+.ib{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);display:grid;place-items:center;background:#fff;font-size:13px;color:#40566d}
+.note{border-radius:10px;padding:10px 12px;border:1px solid;font-size:12.5px;line-height:1.45}
+ul.imp{margin:0;padding:0;list-style:none}ul.imp li{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #e3e9ee}ul.imp li b{color:var(--strong)}
+.check{display:flex;gap:9px;align-items:flex-start;padding:8px 0}.ck{width:18px;height:18px;border-radius:50%;border:1.5px solid #b8c5cf;flex:none;display:grid;place-items:center;font-size:10px;color:#fff;margin-top:1px}.ck.on{background:var(--ok-fg);border-color:var(--ok-fg)}
+.shell{display:grid;grid-template-columns:244px 1fr;height:836px}.side{background:var(--nav);color:#c9d6e3;padding:16px 12px}.side .it{padding:9px 12px;border-radius:8px;margin-bottom:2px;font-weight:500}.side .it.on{background:#ffffff1a;color:#fff}.side .brand{color:#fff;font-weight:700;font-size:15px;padding:4px 12px 18px}
+.demo-banner{background:linear-gradient(90deg,#fff6df,#fffaf0);border-bottom:1px solid var(--warn-b);padding:9px 24px;display:flex;align-items:center;gap:12px;color:#6d5017;font-size:12.5px}
+.demo-banner .btn{padding:6px 11px;font-size:12px}
+.kpi{padding:14px}.kpi b{font-size:24px;color:var(--metric);display:block}.kpi span{color:var(--muted);font-size:11.5px}
+.wm{position:absolute;right:16px;top:12px;font-size:10px;font-weight:800;letter-spacing:.1em;color:#8a641d;border:1px solid var(--warn-b);background:var(--warn-bg);border-radius:6px;padding:2px 6px}
+.legend{position:absolute;left:0;right:0;bottom:0;background:#172b43;color:#fff;padding:10px 30px;font-size:12.5px;display:flex;gap:16px;align-items:center}
+.legend b{background:#ffd27a;color:#172b43;border-radius:6px;padding:2px 8px;font-size:11px}
+</style></head><body>
+
+<!-- ============ S1 DEMO REGISTRY ============ -->
+<div class="screen" id="s1">
+ <div class="top"><div class="crumb">▦ Κέντρο Πλατφόρμας <i>›</i> <b>Demo</b></div><div class="sp"></div><span class="pill">🔔</span><span class="pill">EN</span><div class="user"><div class="av">PL</div><div><b>Platform Owner</b><small>Platform Owner</small></div></div></div>
+ <div class="page">
+  <div class="row between"><div><h1>Demo</h1><div class="sub">Απομονωμένοι οργανισμοί αξιολόγησης με έτοιμα δεδομένα. Ό,τι γίνεται σε ένα Demo δεν αγγίζει τα πραγματικά νοσοκομεία.</div></div>
+   <div class="row"><span class="btn">⤓ Λήψη</span><span class="btn p">＋ Νέο Demo</span></div></div>
+  <div class="card" style="margin-top:16px;padding:14px">
+   <div class="row between"><div class="row"><div class="search">⌕ Αναζήτηση Demo, υπεύθυνου, email…</div>
+    <div class="chips"><span class="chip on">Όλα<b>6</b></span><span class="chip">Ενεργά<b>3</b></span><span class="chip">Λήγουν ≤ 7 ημ.<b>1</b></span><span class="chip">Έληξαν<b>2</b></span><span class="chip">Σε παύση<b>1</b></span></div></div>
+    <span class="note neu" style="padding:6px 10px">Αυτόματη διαγραφή: <b>14 ημέρες</b> μετά τη λήξη</span></div>
+   <div class="bulk" style="margin-top:12px"><span class="cb on"></span><b>2 επιλεγμένα</b><span style="opacity:.75">· και τα δύο έχουν λήξει</span><div style="flex:1"></div><span class="btn" style="background:transparent;color:#fff">Παράταση…</span><span class="btn" style="background:transparent;color:#fff">Παύση</span><span class="btn d">🗑 Διαγραφή επιλεγμένων (2)</span></div>
+   <table style="margin-top:10px"><tr><th style="width:34px"></th><th>Demo οργανισμός</th><th>Υπεύθυνος</th><th>Δεδομένα</th><th>Χρήστες</th><th>Τελευταία χρήση</th><th>Λήξη / υπόλοιπο</th><th>Κατάσταση</th></tr>
+   <tr><td><span class="cb"></span></td><td><b>Demo · Γ.Ν. Λάρισας</b><small>DEMO-418203 · Νοσοκομείο</small></td><td>Δρ. Αθηνά Κ.<small>athina@larisa.example</small></td><td><span class="badge ok">Πλήρες · v3</span></td><td>3 / 3 ενεργοί</td><td>σήμερα 09:42<small>142 ενέργειες</small></td><td>18/10/2026<div class="bar"><span style="width:33%"></span></div><small>10 ημέρες</small></td><td><span class="badge ok">Ενεργό</span></td></tr>
+   <tr><td><span class="cb"></span></td><td><b>Demo · Κλινική Πάτρας</b><small>DEMO-552910 · Κλινική</small></td><td>Ιωάννα Μ.<small>ioanna@patra.example</small></td><td><span class="badge ok">Επιτήρηση · v3</span></td><td>1 / 2 ενεργοί</td><td>χθες<small>37 ενέργειες</small></td><td>10/10/2026<div class="bar"><span style="width:7%"></span></div><small>2 ημέρες</small></td><td><span class="badge warn">Λήγει σύντομα</span></td></tr>
+   <tr><td><span class="cb"></span></td><td><b>Demo · Γ.Ν. Σερρών</b><small>DEMO-771034 · Νοσοκομείο</small></td><td>Π. Νικολάου<small>pnik@serres.example</small></td><td><span class="badge info">Δημιουργία… 64%</span></td><td>0 / 4 προσκλήθηκαν</td><td>—</td><td>07/11/2026<div class="bar"><span style="width:100%;background:#256b9b"></span></div><small>30 ημέρες</small></td><td><span class="badge info">Σε προετοιμασία</span></td></tr>
+   <tr><td><span class="cb"></span></td><td><b>Demo · ΚΑΤ</b><small>DEMO-108377 · Νοσοκομείο</small></td><td>Ε. Ζαχαρίου<small>ez@kat.example</small></td><td><span class="badge ok">Πλήρες · v2</span></td><td>2 / 2</td><td>πριν 6 ημέρες</td><td>01/11/2026<div class="bar"><span style="width:80%"></span></div><small>24 ημέρες</small></td><td><span class="badge neu">Σε παύση</span></td></tr>
+   <tr class="sel"><td><span class="cb on"></span></td><td><b>Demo · ΠΑΓΝΗ</b><small>DEMO-200145 · Νοσοκομείο</small></td><td>Μιχάλης Τ.<small>michalis@pagni.example</small></td><td><span class="badge ok">Πλήρες · v2</span></td><td>4 / 4</td><td>πριν 9 ημέρες</td><td>05/10/2026<div class="bar"><span style="width:0"></span></div><small>Διαγραφή σε 11 ημέρες</small></td><td><span class="badge dang">Έληξε</span></td></tr>
+   <tr class="sel"><td><span class="cb on"></span></td><td><b>Demo · Γ.Ν. Κέρκυρας</b><small>DEMO-664012 · Νοσοκομείο</small></td><td>Σ. Βλάχου<small>sv@corfu.example</small></td><td><span class="badge ok">Κενό</span></td><td>1 / 1</td><td>ποτέ</td><td>26/09/2026<div class="bar"><span style="width:0"></span></div><small>Διαγραφή σε 2 ημέρες</small></td><td><span class="badge dang">Έληξε</span></td></tr>
+   </table>
+  </div>
+ </div>
+ <div class="legend"><b>ΟΘΟΝΗ 1</b> Μητρώο Demo · νέα: φίλτρα κατάστασης, στήλες Δεδομένα/Χρήστες/Τελευταία χρήση, «Λήγει σύντομα» & «Έληξε» ως υπολογισμένη κατάσταση, μαζική επιλογή & διαγραφή.</div>
+</div>
+
+<!-- ============ S2 WIZARD STEP 2 ============ -->
+<div class="screen" id="s2">
+ <div class="top"><div class="crumb">▦ Κέντρο Πλατφόρμας <i>›</i> <b>Demo</b></div><div class="sp"></div><div class="user"><div class="av">PL</div><div><b>Platform Owner</b><small>Platform Owner</small></div></div></div>
+ <div class="overlay"><div class="dialog" style="width:1040px">
+  <div class="dh"><div class="eyebrow">Platform Owner · Νέο Demo</div><h2>Σενάριο δεδομένων</h2><div class="sub">Τι θα βρει μέσα ο αξιολογητής την πρώτη φορά που θα μπει.</div>
+   <div class="steps"><div class="step done"><span class="n">✓</span>Πελάτης & διάρκεια<span class="ln"></span></div><div class="step cur"><span class="n">2</span>Σενάριο δεδομένων<span class="ln"></span></div><div class="step"><span class="n">3</span>Χρήστες αξιολόγησης<span class="ln"></span></div><div class="step"><span class="n">4</span>Έλεγχος & αποστολή</div></div></div>
+  <div class="db">
+   <div class="lbl">Πακέτο δεδομένων</div>
+   <div class="grid g3">
+    <div class="opt on"><h4>◉ Πλήρες νοσοκομείο</h4><p>8 τμήματα, ~60 ασθενείς, λοιμώξεις HAI/AMR, μικροβιολογικό, υγιεινή χεριών, έλεγχοι, συμβάντα & CAPA, επιτροπές, έγγραφα, εκπαιδεύσεις, προσωπικό.</p><div style="margin-top:8px"><span class="badge info">Συνιστάται</span></div></div>
+    <div class="opt"><h4>○ Μόνο επιτήρηση λοιμώξεων</h4><p>Ασθενείς, επιτήρηση, μικροβιολογικό, δείκτες και ανάλυση. Για ΕΝΛ που αξιολογούν μόνο τον πυρήνα.</p></div>
+    <div class="opt"><h4>○ Κενός οργανισμός</h4><p>Μόνο βιβλιοθήκες συστήματος. Για πελάτη που θέλει να δοκιμάσει με δικά του (μη πραγματικά) δεδομένα.</p></div>
+   </div>
+   <div class="grid g2" style="margin-top:16px;grid-template-columns:1.2fr 1fr">
+    <div class="sec"><header><b>Περιεχόμενα πακέτου</b><span>Απενεργοποίησε ενότητες που δεν αφορούν τον πελάτη.</span></header>
+     <div class="grid g2" style="gap:8px">
+      <div class="tog">Ασθενείς & επιτήρηση <span class="sw on"></span></div><div class="tog">Μικροβιολογικό <span class="sw on"></span></div>
+      <div class="tog">Πρόληψη (υγιεινή χεριών, αντισηπτικά, απόβλητα) <span class="sw on"></span></div><div class="tog">Έλεγχοι & περιβαλλοντικά <span class="sw on"></span></div>
+      <div class="tog">Ποιότητα: συμβάντα, επιθεωρήσεις, CAPA <span class="sw on"></span></div><div class="tog">Επιτροπές & έγγραφα <span class="sw on"></span></div>
+      <div class="tog">Προσωπικό & επαγγελματική υγεία <span class="sw on"></span></div><div class="tog">Εκπαιδεύσεις <span class="sw"></span></div>
+     </div></div>
+    <div class="sec"><header><b>Χρονικό εύρος & προφίλ λειτουργίας</b><span>Οι ημερομηνίες μετατοπίζονται ώστε τα δεδομένα να «τελειώνουν» σήμερα.</span></header>
+     <div class="lbl">Ιστορικό δεδομένων</div><div class="chips" style="margin-bottom:12px"><span class="chip">3 μήνες</span><span class="chip">6 μήνες</span><span class="chip on">12 μήνες</span></div>
+     <div class="lbl">Προφίλ λειτουργίας οργανισμού</div><div class="inp">Πλήρες (full) — όλες οι ενότητες</div>
+     <div class="lbl" style="margin-top:12px">Πρόσθετα</div><div class="chips"><span class="chip on">Επαγγελματική υγεία</span><span class="chip on">Φαρμακείο</span><span class="chip">LIRA AI</span></div>
+     <div class="note warn" style="margin-top:12px">Τα email/ειδοποιήσεις του Demo στέλνονται <b>μόνο</b> στους χρήστες αξιολόγησης· όλα τα πρόσωπα των δεδομένων είναι συνθετικά.</div></div>
+   </div>
+  </div>
+  <div class="df"><span class="btn">← Πίσω</span><span class="btn p">Συνέχεια →</span></div>
+ </div></div>
+ <div class="legend"><b>ΟΘΟΝΗ 2</b> Οδηγός «Νέο Demo», βήμα 2: επιλογή πακέτου δεδομένων που θα γραφτεί στον Demo οργανισμό στο Supabase (όχι πια μόνο στον browser).</div>
+</div>
+
+<!-- ============ S3 WIZARD STEP 3 ============ -->
+<div class="screen" id="s3">
+ <div class="top"><div class="crumb">▦ Κέντρο Πλατφόρμας <i>›</i> <b>Demo</b></div><div class="sp"></div><div class="user"><div class="av">PL</div><div><b>Platform Owner</b><small>Platform Owner</small></div></div></div>
+ <div class="overlay"><div class="dialog" style="width:1040px">
+  <div class="dh"><div class="eyebrow">Platform Owner · Νέο Demo</div><h2>Χρήστες αξιολόγησης</h2><div class="sub">Κάθε χρήστης παίρνει πραγματικό ρόλο, ώστε να δει την εφαρμογή όπως θα τη δει το αντίστοιχο στέλεχος.</div>
+   <div class="steps"><div class="step done"><span class="n">✓</span>Πελάτης & διάρκεια<span class="ln"></span></div><div class="step done"><span class="n">✓</span>Σενάριο δεδομένων<span class="ln"></span></div><div class="step cur"><span class="n">3</span>Χρήστες αξιολόγησης<span class="ln"></span></div><div class="step"><span class="n">4</span>Έλεγχος & αποστολή</div></div></div>
+  <div class="db">
+   <table class="card" style="border:1px solid var(--border);border-radius:12px;overflow:hidden"><tr><th>Ονοματεπώνυμο</th><th>Email πρόσκλησης</th><th>Ρόλος στο Demo</th><th>Τμήμα</th><th></th></tr>
+    <tr><td><div class="inp">Δρ. Αθηνά Κωνσταντίνου</div></td><td><div class="inp">athina@larisa.example</div></td><td><div class="inp">Διαχειριστής Νοσοκομείου ▾</div></td><td><div class="inp ph">Όλα</div></td><td><span class="badge info">Κύριος</span></td></tr>
+    <tr><td><div class="inp">Γιάννης Παππάς</div></td><td><div class="inp">gpappas@larisa.example</div></td><td><div class="inp">Υπεύθυνος Ελέγχου Λοιμώξεων ▾</div></td><td><div class="inp ph">Όλα</div></td><td><span class="ib">✕</span></td></tr>
+    <tr><td><div class="inp">Μαρία Ρήγα</div></td><td><div class="inp">mriga@larisa.example</div></td><td><div class="inp">Προϊστάμενος Τμήματος ▾</div></td><td><div class="inp">ΜΕΘ ▾</div></td><td><span class="ib">✕</span></td></tr>
+   </table>
+   <div class="row" style="margin-top:10px"><span class="btn">＋ Προσθήκη χρήστη</span><span class="sub" style="margin:0">Έως 5 χρήστες ανά Demo (ρύθμιση πλατφόρμας).</span></div>
+   <div class="grid g2" style="margin-top:16px">
+    <div class="sec"><header><b>Τρόπος πρόσβασης</b><span>Πώς θα μπει ο αξιολογητής.</span></header>
+     <div class="check"><span class="ck on">✓</span><div><b>Email πρόσκλησης με όνομα χρήστη</b><div class="sub" style="margin:2px 0 0">Επώνυμο email Limoxis με σύνδεσμο ενεργοποίησης, username και διάρκεια.</div></div></div>
+     <div class="check"><span class="ck"></span><div><b>Προσωρινός κωδικός (χωρίς email)</b><div class="sub" style="margin:2px 0 0">Για παρουσίαση στο γραφείο· τα στοιχεία εμφανίζονται μία φορά στην επόμενη οθόνη.</div></div></div></div>
+    <div class="sec"><header><b>Προεπισκόπηση email</b><span>Θέμα: Η πρόσβασή σας στο Limoxis Observer Demo</span></header>
+     <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;line-height:1.55;color:#40566d">Αγαπητή κα Κωνσταντίνου,<br>σας δημιουργήσαμε ένα <b>Demo νοσοκομείο</b> με συνθετικά δεδομένα 12 μηνών.<br>Όνομα χρήστη: <b>ak48213</b> · Ισχύει έως <b>07/11/2026</b><br><span style="color:var(--primary);font-weight:600">[ Ενεργοποίηση λογαριασμού ]</span></div></div>
+   </div>
+  </div>
+  <div class="df"><span class="btn">← Πίσω</span><span class="btn p">Συνέχεια →</span></div>
+ </div></div>
+ <div class="legend"><b>ΟΘΟΝΗ 3</b> Βήμα 3: πολλοί χρήστες αξιολόγησης με πραγματικούς ρόλους (αντί του ρόλου «demo» που σήμερα δεν έχει δικαιώματα στη βάση) και επώνυμο email.</div>
+</div>
+
+<!-- ============ S4 DEMO RECORD ============ -->
+<div class="screen" id="s4">
+ <div class="top"><div class="crumb">▦ Κέντρο Πλατφόρμας <i>›</i> <b>Demo</b></div><div class="sp"></div><div class="user"><div class="av">PL</div><div><b>Platform Owner</b><small>Platform Owner</small></div></div></div>
+ <div class="card rec"><span style="color:var(--muted)">←</span><div class="ricon">⚗</div><div style="flex:1"><div class="eyebrow">Καρτέλα Demo</div><b style="font-size:17px;color:var(--strong)">Demo · Γ.Ν. Λάρισας</b><div class="sub" style="margin:2px 0 0;font-size:11.5px">DEMO-418203 · Λάρισα · Θεσσαλία</div></div>
+  <span class="badge ok">Ενεργό · 10 ημέρες</span><span class="btn p">⇥ Είσοδος στο Demo</span><span class="btn">⟳ Επαναφορά δεδομένων</span><span class="btn">⏱ Παράταση</span><span class="ib">⏸</span><span class="ib">⇪</span><span class="ib" style="color:#a23f46">🗑</span></div>
+ <div class="tabs"><span class="tab on">Επισκόπηση</span><span class="tab">Στοιχεία & πρόσβαση</span><span class="tab">Χρήστες αξιολόγησης (3)</span><span class="tab">Δραστηριότητα</span></div>
+ <div class="page" style="padding:14px 18px">
+  <div class="grid g4"><div class="card metric"><div class="mi">⏱</div><div><b>10 / 30</b><span>Ημέρες υπόλοιπο</span></div></div><div class="card metric"><div class="mi">👥</div><div><b>3 / 3</b><span>Χρήστες ενεργοί</span></div></div><div class="card metric"><div class="mi">⚡</div><div><b>142</b><span>Ενέργειες αξιολογητών</span></div></div><div class="card metric"><div class="mi">⧉</div><div><b>v3 · Πλήρες</b><span>Πακέτο δεδομένων</span></div></div></div>
+  <div class="grid g2" style="margin-top:12px;grid-template-columns:1.25fr 1fr">
+   <div class="sec"><header><b>Δεδομένα Demo</b><span>Γράφτηκαν στις 18/09/2026 · τελευταία επαναφορά: ποτέ</span></header>
+    <table style="background:#fff;border-radius:10px;overflow:hidden"><tr><th>Ενότητα</th><th>Αρχικά</th><th>Τώρα</th><th>Αλλαγές αξιολογητών</th></tr>
+     <tr><td>Ασθενείς & νοσηλείες</td><td>62</td><td>65</td><td><span class="badge info">+3 νέα</span></td></tr>
+     <tr><td>Περιστατικά επιτήρησης</td><td>41</td><td>44</td><td><span class="badge info">+3 · 5 τροποπ.</span></td></tr>
+     <tr><td>Μικροβιολογικά αποτελέσματα</td><td>118</td><td>118</td><td>—</td></tr>
+     <tr><td>Υγιεινή χεριών (παρατηρήσεις)</td><td>540</td><td>566</td><td><span class="badge info">+26</span></td></tr>
+     <tr><td>Συμβάντα / CAPA</td><td>18 / 9</td><td>19 / 9</td><td><span class="badge info">+1</span></td></tr>
+     <tr><td>Έγγραφα & επιτροπές</td><td>24</td><td>24</td><td>—</td></tr></table>
+    <div class="note info" style="margin-top:10px">«Επαναφορά δεδομένων» σβήνει ό,τι υπάρχει στον Demo οργανισμό και ξαναγράφει το πακέτο με σημερινές ημερομηνίες. Χρήστες και κωδικοί μένουν ίδιοι.</div></div>
+   <div class="sec"><header><b>Οδηγός αξιολόγησης — πρόοδος πελάτη</b><span>Ποια σενάρια έχει δοκιμάσει ο αξιολογητής</span></header>
+    <div class="check"><span class="ck on">✓</span>Νέα εισαγωγή ασθενούς & σήμανση λοίμωξης</div>
+    <div class="check"><span class="ck on">✓</span>Επιτήρηση: καταχώριση CLABSI με κριτήρια ECDC</div>
+    <div class="check"><span class="ck on">✓</span>Μικροβιολογικό → πολυανθεκτικό → ειδοποίηση</div>
+    <div class="check"><span class="ck"></span>Υγιεινή χεριών: παρατήρηση & δείκτης συμμόρφωσης</div>
+    <div class="check"><span class="ck"></span>Συμβάν → διερεύνηση → CAPA</div>
+    <div class="check"><span class="ck"></span>Ανάλυση & εξαγωγή αναφοράς</div>
+    <div class="bar" style="width:100%;height:7px;margin-top:8px"><span style="width:50%;background:var(--ok-fg)"></span></div><div class="sub">3 από 6 σενάρια</div></div>
+  </div>
+ </div>
+ <div class="legend"><b>ΟΘΟΝΗ 4</b> Καρτέλα Demo με καρτέλες· «Είσοδος» ανοίγει τον ΠΡΑΓΜΑΤΙΚΟ Demo οργανισμό (σήμερα ανοίγει το εικονικό demo-hospital), νέα «Επαναφορά» & «Παράταση».</div>
+</div>
+
+<!-- ============ S5 EVALUATOR EXPERIENCE ============ -->
+<div class="screen" id="s5">
+ <div class="top"><div class="crumb"><b>Αρχική</b></div><div class="sp"></div><span class="pill" style="background:var(--warn-bg);border-color:var(--warn-b);color:var(--warn-fg)">⚗ DEMO</span><span class="pill">🔔</span><span class="pill">EN</span><div class="user"><div class="av">ΑΚ</div><div><b>Δρ. Αθηνά Κ.</b><small>Διαχειριστής Νοσοκομείου</small></div></div></div>
+ <div class="shell"><div class="side"><div class="brand">Limoxis Observer</div><div class="it on">Αρχική</div><div class="it">Ασθενείς</div><div class="it">Επιτήρηση</div><div class="it">Μικροβιολογικό</div><div class="it">Πρόληψη</div><div class="it">Έλεγχοι</div><div class="it">Ποιότητα</div><div class="it">Επιτροπές</div><div class="it">Έγγραφα</div><div class="it">Εκπαίδευση</div><div class="it">Προσωπικό</div><div class="it">Ανάλυση</div></div>
+ <div style="position:relative">
+  <div class="demo-banner"><span><b>Demo · Γ.Ν. Λάρισας</b> — συνθετικά δεδομένα. Λήγει σε <b>10 ημέρες</b> (18/10).</span><div style="flex:1"></div><span class="btn">☰ Οδηγός αξιολόγησης</span><span class="btn">⟳ Επαναφορά δεδομένων</span><span class="btn p">Θέλω την εφαρμογή</span></div>
+  <div class="page">
+   <h1>Καλημέρα, Αθηνά</h1><div class="sub">Γ.Ν. Λάρισας (Demo) · Πέμπτη 8 Οκτωβρίου 2026</div>
+   <div class="grid g4" style="margin-top:14px"><div class="card kpi"><b>65</b><span>Νοσηλευόμενοι</span></div><div class="card kpi"><b>7</b><span>Ενεργές HAI</span></div><div class="card kpi"><b>4</b><span>Πολυανθεκτικά (MDRO) 7 ημ.</span></div><div class="card kpi"><b>82%</b><span>Συμμόρφωση υγιεινής χεριών</span></div></div>
+   <div class="grid g2" style="margin-top:12px"><div class="card" style="height:300px;padding:14px;position:relative"><b>Επίπτωση HAI ανά 1000 ημέρες νοσηλείας</b><span class="wm">DEMO</span><svg viewBox="0 0 500 220" style="width:100%;margin-top:14px"><polyline fill="none" stroke="#256b9b" stroke-width="2.5" points="10,150 50,140 90,160 130,120 170,130 210,100 250,110 290,90 330,105 370,80 410,95 450,70 490,78"/><line x1="10" x2="490" y1="200" y2="200" stroke="#dfe6ec"/></svg></div>
+   <div class="card" style="height:300px;padding:14px"><b>Εκκρεμότητες</b><div class="check" style="border-bottom:1px solid #eef2f5">⚠ 2 περιστατικά επιτήρησης προς επικύρωση</div><div class="check" style="border-bottom:1px solid #eef2f5">⏱ CAPA-0007 λήγει σε 3 ημέρες</div><div class="check">📅 Επιτροπή Λοιμώξεων — Τρίτη 13/10</div></div></div>
+  </div>
+  <div class="dialog" style="position:absolute;right:24px;top:58px;width:400px;border:1px solid var(--border)">
+   <div class="dh"><div class="eyebrow">Καλώς ήρθατε στο Demo</div><h2 style="font-size:16px">Οδηγός αξιολόγησης</h2><div class="sub">6 σύντομα σενάρια, ~5 λεπτά το καθένα. Κάθε βήμα σας πηγαίνει στη σωστή οθόνη.</div></div>
+   <div class="db" style="padding:10px 22px">
+    <div class="check"><span class="ck on">✓</span>Νέα εισαγωγή ασθενούς & σήμανση λοίμωξης</div><div class="check"><span class="ck on">✓</span>Καταχώριση CLABSI με κριτήρια ECDC</div><div class="check"><span class="ck on">✓</span>Μικροβιολογικό → MDRO → ειδοποίηση</div><div class="check"><span class="ck"></span><b>Υγιεινή χεριών: παρατήρηση & δείκτης</b></div><div class="check"><span class="ck"></span>Συμβάν → διερεύνηση → CAPA</div><div class="check"><span class="ck"></span>Ανάλυση & εξαγωγή αναφοράς</div></div>
+   <div class="df"><span class="btn">Κλείσιμο</span><span class="btn p">Συνέχεια στο σενάριο 4 →</span></div></div>
+ </div></div>
+ <div class="legend"><b>ΟΘΟΝΗ 5</b> Τι βλέπει ο αξιολογητής: σταθερή μπάρα Demo με λήξη, Οδηγός αξιολόγησης, Επαναφορά δεδομένων, «Θέλω την εφαρμογή»· υδατογράφημα DEMO σε γραφήματα & εξαγωγές.</div>
+</div>
+
+<!-- ============ S6 DELETE DEMO ============ -->
+<div class="screen" id="s6">
+ <div class="top"><div class="crumb">▦ Κέντρο Πλατφόρμας <i>›</i> <b>Demo</b></div><div class="sp"></div><div class="user"><div class="av">PL</div><div><b>Platform Owner</b><small>Platform Owner</small></div></div></div>
+ <div class="overlay"><div class="dialog" style="width:760px">
+  <div class="dh"><div class="eyebrow r">Κρίσιμη ενέργεια</div><h2>Διαγραφή 2 Demo</h2><div class="sub">Τα Demo διαγράφονται αμέσως και οριστικά. Δεν επηρεάζεται κανένα πραγματικό νοσοκομείο.</div></div>
+  <div class="db">
+   <table style="border:1px solid var(--border);border-radius:10px;overflow:hidden"><tr><th>Demo</th><th>Εγγραφές</th><th>Αρχεία</th><th>Λογαριασμοί που διαγράφονται</th></tr>
+    <tr><td><b>Demo · ΠΑΓΝΗ</b><small>DEMO-200145 · έληξε 05/10</small></td><td>1.284</td><td>12 (8,4 MB)</td><td>4 από 4</td></tr>
+    <tr><td><b>Demo · Γ.Ν. Κέρκυρας</b><small>DEMO-664012 · έληξε 26/09</small></td><td>0</td><td>0</td><td>0 από 1 <small>μέλος και σε άλλο οργανισμό — διατηρείται</small></td></tr></table>
+   <div class="note info" style="margin-top:12px">Διαγράφονται: ο Demo οργανισμός, όλα τα δεδομένα του, τα αρχεία του στο storage και οι λογαριασμοί αξιολογητών που δεν ανήκουν αλλού. Μένει μια εγγραφή στο ημερολόγιο ελέγχου πλατφόρμας.</div>
+   <div class="grid g2" style="margin-top:14px"><div><div class="lbl">Πληκτρολόγησε <b>ΔΙΑΓΡΑΦΗ 2</b> για επιβεβαίωση</div><div class="inp focus">ΔΙΑΓΡΑΦΗ 2</div></div><div><div class="lbl">Κωδικός Platform Owner</div><div class="inp">••••••••••</div></div></div>
+  </div>
+  <div class="df"><span class="btn">Ακύρωση</span><span class="btn d">🗑 Οριστική διαγραφή 2 Demo</span></div>
+ </div></div>
+ <div class="legend"><b>ΟΘΟΝΗ 6</b> Διαγραφή Demo (μία ή μαζική): σύνοψη επιπτώσεων, άμεση οριστική διαγραφή μαζί με αρχεία storage & λογαριασμούς.</div>
+</div>
+
+<!-- ============ S7 DELETE REAL HOSPITAL ============ -->
+<div class="screen" id="s7">
+ <div class="top"><div class="crumb">▦ Κέντρο Πλατφόρμας <i>›</i> <b>Οργανισμοί</b></div><div class="sp"></div><div class="user"><div class="av">PL</div><div><b>Platform Owner</b><small>Platform Owner</small></div></div></div>
+ <div class="overlay"><div class="dialog" style="width:1040px">
+  <div class="dh"><div class="eyebrow r">Κρίσιμη ενέργεια · Πραγματικός οργανισμός</div><h2>Διαγραφή «Κλινική Αγία Ειρήνη»</h2><div class="sub">Οι πραγματικοί οργανισμοί δεν σβήνουν αμέσως: μπαίνουν σε προγραμματισμένη διαγραφή με περίοδο χάριτος.</div>
+   <div class="steps"><div class="step done"><span class="n">✓</span>Προϋποθέσεις<span class="ln"></span></div><div class="step done"><span class="n">✓</span>Αντίγραφο δεδομένων<span class="ln"></span></div><div class="step cur"><span class="n">3</span>Επιβεβαίωση</div></div></div>
+  <div class="db">
+   <div class="grid g2" style="grid-template-columns:1fr 1fr">
+    <div class="sec"><header><b>Προϋποθέσεις</b><span>Ελέγχονται και στον server</span></header>
+     <div class="check"><span class="ck on">✓</span>Ο οργανισμός είναι σε παύση από 26/09/2026 (12 ημέρες)</div>
+     <div class="check"><span class="ck on">✓</span>Δεν έχει θυγατρικούς οργανισμούς</div>
+     <div class="check"><span class="ck on">✓</span>Πλήρες αντίγραφο δεδομένων κατέβηκε σήμερα 10:14 <span class="badge neu">ZIP · 214 MB</span></div>
+     <div class="check"><span class="ck on">✓</span>Ενημερώθηκε ο Διαχειριστής Νοσοκομείου</div>
+     <div style="margin-top:8px"><b>Τι θα διαγραφεί</b></div>
+     <ul class="imp"><li>Ασθενείς / επιτήρηση / μικροβιολογικό<b>3.912 εγγραφές</b></li><li>Ποιότητα, έλεγχοι, πρόληψη<b>6.240</b></li><li>Έγγραφα & συνημμένα (storage)<b>418 αρχεία · 1,2 GB</b></li><li>Λογαριασμοί χρηστών<b>11 διαγράφονται · 2 διατηρούνται</b></li></ul></div>
+    <div class="sec"><header><b>Χρόνος διαγραφής</b><span>Μέχρι τότε όλοι οι χρήστες είναι κλειδωμένοι εκτός & μπορείς να ακυρώσεις.</span></header>
+     <div class="opt on" style="margin-bottom:8px"><h4>◉ Προγραμματισμένη σε 30 ημέρες — 07/11/2026</h4><p>Συνιστάται. Επιτρέπει ανάκτηση αν έγινε λάθος.</p></div>
+     <div class="opt" style="margin-bottom:12px"><h4>○ Άμεσα</h4><p>Μόνο για οργανισμούς χωρίς κλινικά δεδομένα ή κατόπιν γραπτού αιτήματος.</p></div>
+     <div class="lbl">Αιτιολογία (καταγράφεται στο ημερολόγιο ελέγχου) *</div><div class="inp">Λήξη σύμβασης — αίτημα πελάτη 20/09/2026</div>
+     <div class="grid g2" style="margin-top:10px"><div><div class="lbl">Πληκτρολόγησε τον κωδικό <b>KL-AGEIR</b></div><div class="inp focus">KL-AGEIR</div></div><div><div class="lbl">Κωδικός Platform Owner</div><div class="inp">••••••••••</div></div></div></div>
+   </div>
+  </div>
+  <div class="df"><span class="btn">Ακύρωση</span><span class="btn d">Προγραμματισμός διαγραφής 07/11/2026</span></div>
+ </div></div>
+ <div class="legend"><b>ΟΘΟΝΗ 7</b> Διαγραφή πραγματικού νοσοκομείου: υποχρεωτική παύση + αντίγραφο, αιτιολογία, περίοδος χάριτος 30 ημερών (ή άμεσα με τεκμηρίωση).</div>
+</div>
+
+<!-- ============ S8 ORG PENDING DELETION ============ -->
+<div class="screen" id="s8">
+ <div class="top"><div class="crumb">▦ Κέντρο Πλατφόρμας <i>›</i> <b>Οργανισμοί</b></div><div class="sp"></div><div class="user"><div class="av">PL</div><div><b>Platform Owner</b><small>Platform Owner</small></div></div></div>
+ <div class="card rec"><span style="color:var(--muted)">←</span><div class="ricon">🏥</div><div style="flex:1"><div class="eyebrow">Καρτέλα οργανισμού</div><b style="font-size:17px;color:var(--strong)">Κλινική Αγία Ειρήνη</b><div class="sub" style="margin:2px 0 0;font-size:11.5px">KL-AGEIR · Αθήνα · Αττική</div></div><span class="badge dang">Διαγραφή 07/11/2026</span><span class="btn w">↺ Ακύρωση διαγραφής</span><span class="btn">⤓ Αντίγραφο</span></div>
+ <div style="margin:12px 18px 0" class="note dang"><b>Προγραμματισμένη διαγραφή σε 30 ημέρες.</b> Από Platform Owner στις 08/10/2026 10:21 — «Λήξη σύμβασης — αίτημα πελάτη 20/09/2026». Οι χρήστες δεν μπορούν να συνδεθούν. Υπενθύμιση θα σταλεί 7 και 1 ημέρα πριν.</div>
+ <div class="tabs"><span class="tab on">Στοιχεία & Ρυθμίσεις</span><span class="tab">Χρήστες & Ρόλοι (13)</span><span class="tab">Λειτουργία & Συμβάντα</span></div>
+ <div class="page" style="padding:14px 18px"><div class="grid g4"><div class="card metric"><div class="mi">🏥</div><div><b>Κλινική</b><span>Τύπος</span></div></div><div class="card metric"><div class="mi">👥</div><div><b>13</b><span>Χρήστες</span></div></div><div class="card metric"><div class="mi">⧉</div><div><b>10.152</b><span>Εγγραφές</span></div></div><div class="card metric"><div class="mi">🗎</div><div><b>1,2 GB</b><span>Αρχεία</span></div></div></div>
+ <div class="card" style="margin-top:14px;padding:14px"><b>Μητρώο Οργανισμών — νέα φίλτρα</b>
+  <div class="chips" style="margin-top:10px"><span class="chip">Όλοι<b>14</b></span><span class="chip">Ενεργοί<b>11</b></span><span class="chip">Σε παύση<b>2</b></span><span class="chip on">Προς διαγραφή<b>1</b></span></div>
+  <table style="margin-top:10px"><tr><th>Οργανισμός</th><th>Κατάσταση</th><th>Χρήστες</th><th>Διαγραφή</th><th></th></tr><tr><td><b>Κλινική Αγία Ειρήνη</b><small>KL-AGEIR</small></td><td><span class="badge dang">Προς διαγραφή</span></td><td>13</td><td>07/11/2026 · σε 30 ημέρες</td><td><span class="btn w">↺ Ακύρωση</span></td></tr></table></div></div>
+ <div class="legend"><b>ΟΘΟΝΗ 8</b> Οργανισμός σε προγραμματισμένη διαγραφή: κόκκινη μπάρα, ακύρωση με ένα κλικ, νέο φίλτρο «Προς διαγραφή» στο μητρώο.</div>
+</div>
+
+<!-- ============ S9 CONVERT DEMO ============ -->
+<div class="screen" id="s9">
+ <div class="top"><div class="crumb">▦ Κέντρο Πλατφόρμας <i>›</i> <b>Demo</b></div><div class="sp"></div><div class="user"><div class="av">PL</div><div><b>Platform Owner</b><small>Platform Owner</small></div></div></div>
+ <div class="overlay"><div class="dialog" style="width:760px">
+  <div class="dh"><div class="eyebrow">Platform Owner</div><h2>Μετατροπή Demo σε πελάτη</h2><div class="sub">Demo · Γ.Ν. Λάρισας → πραγματικός οργανισμός</div></div>
+  <div class="db">
+   <div class="lbl">Τι γίνεται με τα δεδομένα του Demo;</div>
+   <div class="opt on" style="margin-bottom:8px"><h4>◉ Καθαρή εκκίνηση (συνιστάται)</h4><p>Διαγράφονται όλα τα συνθετικά δεδομένα. Μένουν τμήματα, ρυθμίσεις, βιβλιοθήκες και οι χρήστες.</p></div>
+   <div class="opt" style="margin-bottom:14px"><h4>○ Διατήρηση μόνο ρυθμίσεων & τμημάτων που έφτιαξε ο πελάτης</h4><p>Ασθενείς, περιστατικά, μετρήσεις και έγγραφα του πακέτου διαγράφονται πάντα — ποτέ δεν μένουν συνθετικοί ασθενείς σε πραγματικό νοσοκομείο.</p></div>
+   <div class="grid g2"><div><div class="lbl">Νέα επωνυμία</div><div class="inp">Γ.Ν. Λάρισας</div></div><div><div class="lbl">Κωδικός οργανισμού</div><div class="inp">GNL-LAR</div></div></div>
+   <div class="lbl" style="margin-top:12px">Χρήστες</div>
+   <ul class="imp"><li>Δρ. Αθηνά Κωνσταντίνου<b>Διαχειριστής Νοσοκομείου</b></li><li>Γιάννης Παππάς<b>Υπεύθυνος Ελέγχου Λοιμώξεων</b></li><li>Μαρία Ρήγα<b>Προϊστάμενος Τμήματος · ΜΕΘ</b></li></ul>
+  </div>
+  <div class="df"><span class="btn">Ακύρωση</span><span class="btn p">Μετατροπή σε πελάτη</span></div>
+ </div></div>
+ <div class="legend"><b>ΟΘΟΝΗ 9</b> Μετατροπή σε πελάτη σε μία ατομική ενέργεια server-side, με υποχρεωτικό καθαρισμό συνθετικών κλινικών δεδομένων.</div>
+</div>
+</body></html>
