@@ -17,3 +17,13 @@ describe('organization create: library seed is not blocked by the management aud
     expect(sql).toContain('insert into public.system_audit_log')
   })
 })
+
+describe('demo dates', () => {
+  it('requires the end of a Demo to be after its start, as the database does', async () => {
+    const { demoDatesValid } = await import('../src/features/platform/platformDemoService')
+    expect(demoDatesValid('2026-10-22', '2026-11-21')).toBe(true)
+    expect(demoDatesValid('2026-10-22', '2026-10-21')).toBe(false)
+    expect(demoDatesValid('2026-10-22', '2026-10-22')).toBe(false)
+    expect(demoDatesValid('', '2026-10-22')).toBe(false)
+  })
+})

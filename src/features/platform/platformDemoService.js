@@ -13,8 +13,16 @@ export async function loadPlatformDemoRecord(demoId) {
   return data
 }
 
+// The database requires the end of a Demo to be after its start
+// (platform_demo_entitlements_check); checked here first so nothing is half-saved.
+export function demoDatesValid(validFrom, validUntil) {
+  if (!validFrom || !validUntil) return false
+  return String(validUntil).slice(0, 10) > String(validFrom).slice(0, 10)
+}
+
 export async function savePlatformDemoRecord(demo, patch) {
   if (!supabase || !demo?.id || !demo?.organization_id) throw new Error('SUPABASE_NOT_CONFIGURED')
+  if (!demoDatesValid(patch.validFrom, patch.validUntil)) throw new Error('DEMO_DATES_INVALID')
 
   const organizationPayload = {
     name: String(patch.label || '').trim(),
