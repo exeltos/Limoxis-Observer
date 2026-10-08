@@ -197,6 +197,11 @@
       "authenticated": true,
       "reason": "Report counts; Platform Owner or Hospital Admin / IPC Lead of the organisation."
     },
+    "platform_reset_demo_organization": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Clears a Demo organisation's data and writes the Demo data pack again; Platform Owner only, refuses any organisation that is not a Demo."
+    },
     "public_login_notice": {
       "category": "public-token",
       "anon": true,
