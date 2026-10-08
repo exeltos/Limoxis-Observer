@@ -156,6 +156,16 @@
       "authenticated": true,
       "reason": "Permanent delete with clinical history; Platform Owner or Hospital Admin, reason required."
     },
+    "demo_request_application": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Stores an evaluator's \"I want the application\" request, writes it to the audit log and queues an e-mail to every Platform Owner; members of a Demo only, at most three a day."
+    },
+    "demo_set_evaluation_step": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Marks an evaluation-guide step done or not done for the signed-in member of a Demo organization only; refuses anyone who is not an active member of that Demo."
+    },
     "demo_switch_my_role": {
       "category": "rpc",
       "authenticated": true,
