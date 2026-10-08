@@ -182,10 +182,15 @@
       "authenticated": true,
       "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
     },
+    "platform_organization_deletion_impact": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Counts what deleting the given organisations would remove (rows, files, accounts); Platform Owner only."
+    },
     "platform_purge_organization_tx": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Purges an organisation; Platform Owner only, confirmation code required."
+      "reason": "Purges an organisation; Platform Owner only, needs a single-use ticket issued by the platform-delete-organizations Edge Function after a password re-check, plus the organisation code."
     },
     "platform_report_summary": {
       "category": "rpc",

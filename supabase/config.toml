@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.process-notification-outbox]
 verify_jwt = true
+
+[functions.platform-delete-organizations]
+verify_jwt = true

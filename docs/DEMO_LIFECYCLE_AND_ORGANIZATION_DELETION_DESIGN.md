@@ -299,3 +299,24 @@ Mockups: [`docs/design/demo-lifecycle/`](./design/demo-lifecycle/) (PNG ανά �
 3. **Μέγιστος αριθμός χρηστών αξιολόγησης ανά Demo:** προτείνονται 5.
 4. **Επαναφορά δεδομένων από τον ίδιο τον αξιολογητή**, ή μόνο από τον Owner;
 5. **Client-side Demo mode (`demo-hospital`):** διατήρηση μόνο για το Help/preview, ή πλήρης κατάργηση μετά τη Φάση 3;
+
+## 17. Υλοποίηση — Φάση 1 (ασφάλεια διαγραφής)
+
+Υλοποιήθηκε. Screenshots των πραγματικών οθονών (owner preview): [`docs/design/demo-lifecycle/phase1/`](./design/demo-lifecycle/phase1/).
+
+| Τμήμα | Αρχείο |
+|---|---|
+| Migration: tickets μίας χρήσης, `platform_organization_deletion_impact`, νέα `platform_purge_organization_tx(uuid,text,uuid)` (διαγραφή ανά πίνακα σε περάσματα, παράκαμψη του guard των AST, λίστα αρχείων storage), υποχρεωτική παύση για πραγματικούς οργανισμούς, αφαίρεση του DELETE policy/grant στο `organizations` | `supabase/migrations/20261009120000_safe_organization_deletion.sql` |
+| Edge Function (αντικαθιστά την `platform-purge-organization`): επανέλεγχος κωδικού με όριο 5 αποτυχιών / 15′, μία ή πολλές (μόνο Demo) διαγραφές, αρχεία storage, λογαριασμοί, audit `platform.organization.purge_cleanup` | `supabase/functions/platform-delete-organizations/index.ts` |
+| Κοινός διάλογος διαγραφής με σύνοψη επιπτώσεων | `src/features/platform/OrganizationDeleteDialog.jsx` |
+| Μητρώο Demo: φίλτρα κατάστασης, υπολογισμένη κατάσταση («Λήγει σύντομα», «Έληξε»), επιλογή γραμμών, μαζική διαγραφή | `src/features/platform/PlatformDemosRegistry.jsx` |
+| Ιστορικό & Ασφάλεια: ετικέτες διαγραφής, όνομα διαγραμμένου οργανισμού, διόρθωση φίλτρου «Επίπεδο πλατφόρμας» | `src/features/platform/PlatformAuditSecurityView.jsx` |
+
+Επαλήθευση: η νέα purge δοκιμάστηκε σε τοπική Postgres 16 με όλα τα migrations του repo (Demo με ασθενή, επιτήρηση, μικροβιολογικό και **οριστικοποιημένο** αντιβιόγραμμα, μέλη, αρχεία). Ο παλιός τρόπος (`delete from organizations`) αποτυγχάνει στα ίδια δεδομένα· ο νέος τα σβήνει όλα, κρατά τον χρήστη που ανήκει και αλλού και αρνείται: χωρίς ticket, με ticket που ξαναχρησιμοποιείται, και πραγματικό οργανισμό που δεν είναι σε παύση.
+
+**Ανάπτυξη** (με αυτή τη σειρά, μαζί):
+1. Εφαρμογή του migration στο Supabase.
+2. Deploy της Edge Function `platform-delete-organizations` (verify_jwt = true).
+3. Deploy του frontend.
+
+Η παλιά function `platform-purge-organization` μένει deployed αλλά δεν λειτουργεί πια (η παλιά υπογραφή της RPC αφαιρείται)· μπορεί να διαγραφεί από το Supabase Dashboard.

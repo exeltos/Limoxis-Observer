@@ -3,7 +3,7 @@ import { supabase, invokeAuthenticatedFunction } from '../supabase/client'
 // organizations.country is required by the database; an empty field means Greece.
 export const DEFAULT_COUNTRY = 'Ελλάδα'
 export const countryOrDefault = (value) => String(value || '').trim() || DEFAULT_COUNTRY
-import { isOwnerPreview,previewDemos,previewMemberships,previewOrganizationMembers,previewPlatformMembers } from '../preview/ownerPreview'
+import { isOwnerPreview,previewDeletionImpact,previewDemos,previewMemberships,previewOrganizationMembers,previewPlatformMembers } from '../preview/ownerPreview'
 
 export async function listMemberships(userId) {
   if (!supabase || !userId) return []
@@ -64,12 +64,6 @@ export async function createPlatformOrganization({ name, code, type = 'hospital'
   return data
 }
 
-export async function deletePlatformOrganization(organizationId) {
-  if (!supabase || !organizationId) return
-  const { error } = await supabase.from('organizations').delete().eq('id', organizationId)
-  if (error) throw error
-}
-
 export async function createOrganizationUser({ organizationId, fullName, role, email = null }) {
   return invokeAuthenticatedFunction('create-organization-user', { organizationId, fullName: fullName.trim(), role, email })
 }
@@ -119,20 +113,6 @@ export async function setPlatformDemoStatus(demoId, status) {
 export async function resetPlatformDemoPassword(demo) {
   if (!demo?.organization_id || !demo?.demo_user_id) throw new Error('DEMO_ACCOUNT_NOT_LINKED')
   return manageOrganizationUser({ organizationId: demo.organization_id, userId: demo.demo_user_id, action: 'reset_password' })
-}
-
-export async function deletePlatformDemo(demo) {
-  if (!supabase || !demo?.id) throw new Error('SUPABASE_NOT_CONFIGURED')
-  if (demo.organization_id && demo.demo_user_id) {
-    await manageOrganizationUser({ organizationId: demo.organization_id, userId: demo.demo_user_id, action: 'delete' })
-  }
-  if (demo.organization_id) {
-    const { error } = await supabase.from('organizations').delete().eq('id', demo.organization_id).eq('is_demo', true)
-    if (error) throw error
-    return
-  }
-  const { error } = await supabase.from('platform_demo_entitlements').delete().eq('id', demo.id)
-  if (error) throw error
 }
 
 export async function setPlatformOrganizationStatus(organizationId, status) {
@@ -195,9 +175,23 @@ export async function manageOrganizationUser(payload) {
   return invokeAuthenticatedFunction('manage-organization-user', payload)
 }
 
-export async function purgePlatformOrganization({ organizationId, password, confirmation }) {
+// What deleting these organizations would remove (rows, files, accounts) and
+// what blocks it (a real organization that is not suspended, child organizations).
+export async function getOrganizationDeletionImpact(organizationIds) {
+  const ids = [...new Set((organizationIds || []).filter(Boolean))]
+  if (!ids.length) return []
+  if (isOwnerPreview()) return previewDeletionImpact(ids)
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
-  return invokeAuthenticatedFunction('platform-purge-organization', { organizationId, password, confirmation })
+  const { data, error } = await supabase.rpc('platform_organization_deletion_impact', { p_organization_ids: ids })
+  if (error) throw error
+  return Array.isArray(data) ? data : []
+}
+
+// The only delete path: the Edge Function re-checks the owner's password and
+// removes data, files and accounts. Several organizations = Demo only.
+export async function deletePlatformOrganizations({ organizationIds, password, confirmation }) {
+  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
+  return invokeAuthenticatedFunction('platform-delete-organizations', { organizationIds, password, confirmation })
 }
 
 export async function createPlatformDemoEntitlement(payload) {
