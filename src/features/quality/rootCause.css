@@ -1,0 +1,31 @@
+/* CAPA root cause analysis: problem, 5 Whys, conclusion and an Ishikawa diagram. */
+.rca-problem{display:grid;gap:4px;margin-bottom:14px}
+.rca-problem>span,.quality-rca h4{margin:0;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#5b6b78}
+.rca-problem p{margin:0;font-size:13.5px;color:var(--lo-color-text)}
+.quality-rca textarea,.quality-rca input{width:100%;padding:8px 10px;border:1px solid var(--lo-color-border);border-radius:9px;font:inherit;font-size:13px}
+.rca-columns{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;margin-bottom:18px}
+.rca-whys ol{display:grid;gap:6px;margin:8px 0 0;padding:0;list-style:none}
+.rca-whys li{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:8px;padding:6px 10px;border-left:3px solid #7fa7cf;border-radius:0 8px 8px 0;background:#f6f9fc;font-size:13px}
+.rca-whys li.rca-why-empty{border-left-color:#d6e0e8;color:var(--lo-color-muted)}
+.rca-why-label{font-size:11px;font-weight:800;color:#1f5a94}
+.rca-conclusion p{margin:8px 0 0;padding:10px 12px;border-radius:10px;background:#e7f5ec;color:#1d6b3a;font-size:13.5px;font-weight:650}
+.rca-conclusion textarea{margin-top:8px}
+.quality-rca .rca-empty{background:#f4f7f9;color:var(--lo-color-muted);font-weight:400}
+.rca-fishbone-title{margin-bottom:8px!important}
+.rca-fishbone{display:grid;grid-template-columns:minmax(0,1fr) 180px;column-gap:0;padding:12px;border:1px solid var(--lo-color-border);border-radius:12px;background:#fbfcfd}
+.rca-bones{grid-column:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding-right:12px}
+.rca-bone{position:relative;padding:8px 10px;border:1px solid #cfdbe5;border-radius:10px;background:#fff;font-size:12.5px}
+.rca-bones.top .rca-bone::after,.rca-bones.bottom .rca-bone::before{content:"";position:absolute;left:50%;width:2px;height:14px;background:#7fa7cf}
+.rca-bones.top .rca-bone::after{top:100%}
+.rca-bones.bottom .rca-bone::before{bottom:100%}
+.rca-bone strong{display:block;margin-bottom:4px;font-size:11.5px;color:#1f5a94}
+.rca-bone ul{display:grid;gap:3px;margin:0;padding-left:16px}
+.rca-bone li button{margin-left:6px;padding:0;border:0;background:none;color:#b42318;cursor:pointer;vertical-align:-2px}
+.rca-bone li.rca-empty{list-style:none;margin-left:-16px;background:none}
+.rca-add{display:flex;gap:6px;margin-top:6px}
+.rca-add input{padding:5px 8px;font-size:12px}
+.rca-add button{flex:0 0 30px;border:1px solid var(--lo-color-border);border-radius:8px;background:#f6f9fc;color:#1f5a94;cursor:pointer}
+.rca-spine{grid-column:1;height:3px;margin:14px 0;background:#7fa7cf}
+.rca-head{grid-column:2;grid-row:1/4;align-self:center;padding:10px 12px;border-radius:10px;background:#173650;color:#fff;font-size:12.5px;font-weight:700;line-height:1.35}
+.rca-meta{margin:10px 0 0;font-size:11.5px;color:var(--lo-color-muted)}
+@media(max-width:900px){.rca-columns{grid-template-columns:1fr}.rca-fishbone{grid-template-columns:1fr}.rca-bones{grid-template-columns:1fr;padding-right:0}.rca-head{grid-column:1;grid-row:auto}}
