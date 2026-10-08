@@ -209,6 +209,11 @@
       "authenticated": true,
       "reason": "Writes a runtime event for an organisation the caller is an active member of."
     },
+    "set_organization_branding": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Sets the organisation's logo and report header; Platform Owner or organisation admin."
+    },
     "set_organization_idle_lock": {
       "category": "rpc",
       "authenticated": true,
