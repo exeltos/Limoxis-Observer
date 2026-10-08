@@ -130,7 +130,7 @@ function bundleAssessmentRow({id,template,department,date,answers,shift,context,
   return {
     id,bundle:template.bundleKey,templateId:template.bundleKey,templateName:template.name,templateTitle:template.titleEl,
     templateVersion:template.version,templateSource:template.source,templateSnapshot:template,
-    departmentEl:department.el,departmentEn:department.en,date,period:date,score,answers,answerNotes:{},
+    departmentId:department.el,departmentEl:department.el,departmentEn:department.en,date,period:date,score,answers,answerNotes:{},
     shift,context,patientId:'',patientRef:'',deviceId:'',deviceRef:'',generalNotes:'',
     applicableCount:applicable.length,failedCount,allOrNone:applicable.length>0&&failedCount===0,
     findings,owner,status:'completed',lifecycleStatus:'active',

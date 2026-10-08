@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, CheckSquare2, ChevronRight, ClipboardCheck, FileClock, Link2, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckSquare2, ChevronRight, ClipboardCheck, FileClock, Link2, ListChecks, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -22,6 +22,9 @@ import { auditActorFromAuth, auditEvent } from '../../core/audit/actor'
 import { openCorrection, voidRecord as applyGovernedVoid } from '../../core/audit/governedLifecycle'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
+import { QualityCapaSteps } from './QualityCapaSteps'
+import { sourcePath,subActionProgress } from './qualityDeviations'
+import './quality.css'
 
 const iconMap={incidents:AlertTriangle,findings:ShieldCheck,capas:CheckSquare2,audits:ClipboardCheck}
 
@@ -51,7 +54,8 @@ export function QualityRecordPage(){
   if(!recordInScope)return <Page title={t('quality')}><div className="inline-empty">{language==='en'?'You do not have access to this record.':'Δεν έχετε πρόσβαση σε αυτή την εγγραφή.'}</div></Page>
   const Icon=iconMap[recordType]||ShieldCheck
   const title=language==='el'?record.title:record.titleEn
-  const tabs=[{id:'details',label:t('details'),icon:Icon},{id:'links',label:t('qualityRecords.linkedRecords'),icon:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
+  const steps=subActionProgress(record.subActions||[])
+  const tabs=[{id:'details',label:t('details'),icon:Icon},...(recordType==='capas'?[{id:'steps',label:language==='en'?`Steps${steps.total?` ${steps.done}/${steps.total}`:''}`:`Βήματα${steps.total?` ${steps.done}/${steps.total}`:''}`,icon:ListChecks}]:[]),{id:'links',label:t('qualityRecords.linkedRecords'),icon:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
   return <Page fill><EntityRecordShell
     className="quality-record-shell workspace-fill"
     avatar={<Icon size={19}/>}
@@ -61,6 +65,7 @@ export function QualityRecordPage(){
     headerActions={<PrintExportActions showPrint={canPrint} onExport={()=>downloadRecordJson(record,{filename:record.displayId||record.id})}/>}
     tabs={tabs} activeTab={tab} onTabChange={setTab}>
       {tab==='details'&&<QualityDetails recordType={recordType} record={record} setRecord={setRecord} t={t} language={language} locale={locale} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId} navigate={navigate}/>}
+      {tab==='steps'&&recordType==='capas'&&<QualityCapaSteps record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>}
       {tab==='links'&&<QualityLinks recordType={recordType} record={record} t={t} language={language} organizationId={organizationId}/>}
       {tab==='documents'&&<QualityDocuments recordType={recordType} record={record} setRecord={setRecord} t={t} finalized={finalized} canAttach={canAttach} canManage={canManage} organizationId={organizationId}/>}
       {tab==='history'&&<QualityHistory record={record} t={t} locale={locale}/>}
@@ -100,6 +105,11 @@ function QualityDetails({recordType,record,setRecord,t,language,locale,canManage
     setDraft({...record});setEditing(true)
   }
   async function save(){
+    const openSteps=recordType==='capas'?subActionProgress(draft.subActions||[]).open:0
+    if(openSteps>0&&['verification','closed'].includes(draft.status)&&!['verification','closed'].includes(record.status)){
+      notify(en?`${openSteps} step(s) are still open. Complete them in the Steps tab before moving the CAPA to verification or closing it.`:`Υπάρχουν ${openSteps} ανοιχτά βήματα. Ολοκληρώστε τα στην καρτέλα «Βήματα» πριν η CAPA περάσει σε επαλήθευση ή κλείσει.`,'error')
+      return
+    }
     const now=new Date().toISOString()
     const event=auditEvent(finalized?'recordCorrected':'recordUpdated',{actor,reason:correctionReason})
     const next={...draft,lifecycleStatus:'active',updatedAt:now,updatedBy:actor.name,updatedById:actor.id,history:[event,...(draft.history||record.history||[])]}
@@ -172,7 +182,8 @@ function QualityLinks({recordType,record,t,language,organizationId}){
   const links=[]
   if(record.linkedPatient)links.push({label:t('patient'),id:record.linkedPatient,path:`/patients/${record.linkedPatient}`})
   if(record.linkedSurveillance)links.push({label:t('surveillance'),id:record.linkedSurveillance,path:`/surveillance/${record.linkedSurveillance}`})
-  if(record.sourceId)links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
+  if(record.sourceId&&sourcePath(record.sourceId))links.push({label:record.sourceId.startsWith('BND-')?'Bundle':(language==='en'?'Control':'Έλεγχος'),id:record.sourceId.startsWith('BND-')?(language==='en'?'Bundle assessment':'Αξιολόγηση bundle'):record.sourceId.split('#')[0],path:sourcePath(record.sourceId)})
+  else if(record.sourceId)links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
   if(record.findingIds?.length)record.findingIds.forEach(id=>links.push({label:t('qualityRecords.finding'),id,path:`/quality/findings/${id}`}))
   const navigationOptions={returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'}
   const openLinked=path=>goTo(path,navigationOptions)

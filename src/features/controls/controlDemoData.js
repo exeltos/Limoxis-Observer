@@ -14,7 +14,7 @@ const definition1={
  category:'Θερμοκρασίες',
  description:'Καταγραφή θερμοκρασίας ψυγείου φαρμάκων στην αρχή κάθε βάρδιας.',
  owner_id:null,
- response_config:{mode:'numeric',unit:'°C',min:2,max:8,label:'Θερμοκρασία',__meta:{titleEn:'Pharmacy fridge temperature check',ownerLabel:'Υπεύθυνος βάρδιας',createdByScope:'infection_control',createdForDepartment:null,createdByName:'',updatedByName:''}},
+ response_config:{mode:'numeric',unit:'°C',min:2,max:8,label:'Θερμοκρασία',criticality:'high',requiresEvidence:true,deviationActions:'1. Μεταφορά φαρμάκων και εμβολίων στο εφεδρικό ψυγείο.\n2. Ενημέρωση φαρμακείου και προϊσταμένου βάρδιας.\n3. Νέα μέτρηση σε 30 λεπτά και καταγραφή συμβάντος.',__meta:{titleEn:'Pharmacy fridge temperature check',ownerLabel:'Υπεύθυνος βάρδιας',createdByScope:'infection_control',createdForDepartment:null,createdByName:'',updatedByName:''}},
  frequency_config:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1},
  status:'active',
  created_by:'',

@@ -7,6 +7,8 @@ import { getAssignment,frequencyLabel } from './controlScheduling'
 import { controlActorFromAuth } from './controlActor'
 import { emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
 import { saveControlDraft } from './controlCloudService'
+import { deviationActions,requiresEvidence } from './controlCriticality'
+import { ControlDeviationActions,ControlEvidencePicker } from './ControlEvidence'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -28,12 +30,14 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
  const [draftSaved,setDraftSaved]=useState(Boolean(savedDraft))
  const [draftSaving,setDraftSaving]=useState(false)
  const [saving,setSaving]=useState(false)
+ const [evidence,setEvidence]=useState([])
+ const evidenceRequired=requiresEvidence(record)
  const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short',hour12:false}).format(new Date(v)):'—'
  const numeric=Number(String(value).replace(',','.'))
  const outOfRange=response.mode==='numeric'&&String(value).trim()!==''&&Number.isFinite(numeric)&&((response.min!==''&&response.min!=null&&numeric<Number(response.min))||(response.max!==''&&response.max!=null&&numeric>Number(response.max)))
  const choiceFinding=response.mode==='choice'&&(response.reportOn||['Μη συμμόρφωση','Non-compliant']).includes(value)
  const hasFinding=outOfRange||choiceFinding||(response.mode==='list'&&listHasFinding(rows))
- const valid=response.mode==='list'?true:String(value).trim().length>0
+ const valid=(response.mode==='list'?true:String(value).trim().length>0)&&(!evidenceRequired||evidence.length>0)
 
  function setRow(index,key,next){setRows(current=>current.map((r,i)=>i===index?{...r,[key]:next}:r))}
  function addRow(){setRows(current=>[...current,emptyStructuredRow(response.template)])}
@@ -60,7 +64,7 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
   if(!ok)return
   const cleanRows=response.mode==='list'?rows.filter(r=>Object.values(r||{}).some(v=>String(v??'').trim())):null
   setSaving(true)
-  try{await onSave?.({value,notes,structuredData:response.mode==='list'?{template:response.template,rows:cleanRows}:null,hasFinding,actor})}
+  try{await onSave?.({value,notes,structuredData:response.mode==='list'?{template:response.template,rows:cleanRows}:null,hasFinding,actor,evidenceFiles:evidence})}
   finally{setSaving(false)}
  }
  async function report(){
@@ -88,8 +92,10 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
       </div>}
    {response.mode==='list'&&<div className="control-list-optional-hint">{en?'Complete the list only when findings are present. You can finish the control with no rows.':'Η λίστα συμπληρώνεται μόνο αν προκύψουν ευρήματα. Μπορείτε να ολοκληρώσετε τον έλεγχο χωρίς γραμμές.'}</div>}
    <label className="field control-execution-notes"><span>{en?'Notes':'Σημειώσεις'}</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows="3" placeholder={en?'Optional notes...':'Προαιρετικές παρατηρήσεις...'}/></label>
+   <ControlEvidencePicker files={evidence} onChange={setEvidence} required={evidenceRequired} language={language}/>
   </section>
 
+  {hasFinding&&<ControlDeviationActions text={deviationActions(record)} language={language}/>}
   {hasFinding&&<div className="governance-banner warning control-finding-banner"><FileWarning size={17}/><span>{en?'This entry contains a finding or an out-of-range value. You can create a related incident report.':'Η καταχώρηση περιλαμβάνει εύρημα ή τιμή εκτός ορίων. Μπορείτε να δημιουργήσετε σχετική αναφορά.'}</span></div>}
 
   <div className="control-execution-page-tools">
