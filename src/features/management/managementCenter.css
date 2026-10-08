@@ -145,3 +145,5 @@
 .outbreak-workspace #lira-investigation-capa td:first-child{min-width:220px}
 
 /* Platform update center: one row per detected source change. */
+.security-setting{display:grid;gap:6px;max-width:460px;padding:4px 0 8px}
+.security-setting small{font-size:11.5px;line-height:1.5;color:var(--lo-color-muted)}
