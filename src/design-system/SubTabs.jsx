@@ -7,7 +7,7 @@ export function SubTabs({tabs=[],activeId,onChange,className='',ariaLabel}){
     {tabs.map(tab=>{
       const Icon=tab.icon
       const active=tab.id===activeId
-      return <button key={tab.id} type="button" role="tab" aria-selected={active} className={active?'active':''} disabled={tab.disabled} onClick={()=>onChange?.(tab.id)}>
+      return <button key={tab.id} type="button" role="tab" aria-selected={active} title={tab.title} className={active?'active':''} disabled={tab.disabled} onClick={()=>onChange?.(tab.id)}>
         {Icon&&<Icon size={14} aria-hidden="true"/>}
         <span>{tab.label}</span>
         {tab.count!=null&&<span className="lo-subtabs-count">{tab.count}</span>}

@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from 'react'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
 import { downloadCsv } from '../../core/export/csvExport'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -8,7 +7,9 @@ import { ADHERENCE_PERIODS, adherenceTone, periodRange, programmeAdherence } fro
 import './controlAdherence.css'
 
 // Programme adherence: due vs done vs on time per control and department.
-export function ControlAdherencePanel({ rows, tx, language }) {
+// The page owns the report (period + downloads) so its Download button sits
+// in the page header like every other list.
+export function useControlAdherenceReport(rows, tx, language) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const [period, setPeriod] = useState('30d')
@@ -32,6 +33,14 @@ export function ControlAdherencePanel({ rows, tx, language }) {
     finally { setExporting(false) }
   }
 
+  return { period, setPeriod, lines, totals, reportRef, exporting, exportCsv, exportPdf }
+}
+
+export function ControlAdherencePanel({ report, tx, language }) {
+  const en = language === 'en'
+  const { period, setPeriod, lines, totals, reportRef } = report
+  const title = (item) => (en ? item.titleEn || item.title : item.title)
+  const pct = (value) => (value == null ? '—' : `${value}%`)
   return <div className="control-adherence" ref={reportRef}>
     <div className="control-adherence-toolbar">
       <label className="control-adherence-period"><span>{tx.period}</span><select value={period} onChange={(event) => setPeriod(event.target.value)}>{ADHERENCE_PERIODS.map((key) => <option key={key} value={key}>{tx[`p${key}`]}</option>)}</select></label>
@@ -41,7 +50,6 @@ export function ControlAdherencePanel({ rows, tx, language }) {
         <span><strong>{pct(totals.onTimeRate)}</strong>{tx.onTime.toLowerCase()}</span>
         <span><strong className={totals.missed ? 'missed' : ''}>{totals.missed}</strong>{tx.missed.toLowerCase()}</span>
       </div>
-      <DownloadMenu onExcel={exportCsv} onPdf={exportPdf} disabled={!lines.length} pdfBusy={exporting} />
     </div>
     <div className="scroll-table">
       <table className="data-table sticky-table control-adherence-table">

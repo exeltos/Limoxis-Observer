@@ -106,6 +106,6 @@ describe('filter toolbar groups size to their own field count, and analytics tab
   })
 
   it('tab buttons carry a title tooltip with the full label', () => {
-    expect(page).toContain('title={en?enLabel:elLabel}')
+    expect(page).toContain('title:en?enLabel:elLabel')
   })
 })
