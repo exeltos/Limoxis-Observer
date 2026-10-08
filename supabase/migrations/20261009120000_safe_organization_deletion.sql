@@ -178,19 +178,19 @@ language plpgsql
 security definer
 set search_path = ''
 as $function$
+-- Values are assigned with := on purpose: the Supabase SQL editor misreads
+-- the other way of storing a query result as creating a table.
 declare
   v_actor uuid := auth.uid();
-  v_org public.organizations%rowtype;
+  v_org public.organizations;
   v_children integer := 0;
   v_user_ids uuid[] := array[]::uuid[];
   v_objects jsonb := '[]'::jsonb;
   v_table regclass;
-  v_count bigint;
   v_records bigint := 0;
-  v_remaining bigint;
   v_pass integer;
   v_last_error text;
-  v_errors jsonb;
+  v_errors jsonb := '{}'::jsonb;
 begin
   if v_actor is null then
     raise exception 'Authentication required' using errcode = '42501';
@@ -216,16 +216,17 @@ begin
     raise exception 'Deletion ticket invalid or expired' using errcode = '42501';
   end if;
 
-  select * into v_org from public.organizations where id = p_organization_id for update;
+  perform 1 from public.organizations o where o.id = p_organization_id for update;
   if not found then
     raise exception 'Organization not found' using errcode = 'P0002';
   end if;
+  v_org := (select o from public.organizations o where o.id = p_organization_id);
 
   if upper(trim(coalesce(p_confirmation,''))) <> upper(trim(v_org.code)) then
     raise exception 'Confirmation code mismatch' using errcode = '22023';
   end if;
 
-  select count(*) into v_children from public.organizations where parent_id = p_organization_id;
+  v_children := (select count(*) from public.organizations c where c.parent_id = p_organization_id);
   if v_children > 0 then
     raise exception 'Organization has child organizations' using errcode = '23503';
   end if;
@@ -234,21 +235,22 @@ begin
     raise exception 'Organization must be suspended before deletion' using errcode = '55000';
   end if;
 
-  select coalesce(array_agg(distinct om.user_id) filter (where om.user_id is not null), array[]::uuid[])
-    into v_user_ids
-  from public.organization_members om
-  where om.organization_id = p_organization_id;
+  v_user_ids := (
+    select coalesce(array_agg(distinct om.user_id) filter (where om.user_id is not null), array[]::uuid[])
+    from public.organization_members om
+    where om.organization_id = p_organization_id
+  );
 
-  select coalesce(jsonb_agg(jsonb_build_object('bucket', so.bucket_id, 'name', so.name)), '[]'::jsonb)
-    into v_objects
-  from storage.objects so
-  where so.bucket_id in ('attachments','laboratory-attachments')
-    and so.name like p_organization_id::text || '/%';
+  v_objects := (
+    select coalesce(jsonb_agg(jsonb_build_object('bucket', so.bucket_id, 'name', so.name)), '[]'::jsonb)
+    from storage.objects so
+    where so.bucket_id in ('attachments','laboratory-attachments')
+      and so.name like p_organization_id::text || '/%'
+  );
 
-  for v_table in select * from private.organization_data_tables() loop
-    execute format('select count(*) from %s where organization_id = $1', v_table) into v_count using p_organization_id;
-    v_records := v_records + v_count;
-  end loop;
+  -- Data rows (system library rows excluded), counted the same way the
+  -- deletion dialog shows them.
+  v_records := coalesce((public.platform_organization_deletion_impact(array[p_organization_id])->0->>'records')::bigint, 0);
 
   -- Lets the finalized-AST guard step aside for this transaction only.
   perform set_config('limoxis.test_reset', 'on', true);
@@ -269,9 +271,9 @@ begin
 
   -- Delete table by table. A delete that a RESTRICT / NO ACTION key or a
   -- guard trigger refuses is retried in the next pass, once the rows that
-  -- referenced it are gone.
+  -- referenced it are gone. A pass in which every delete succeeds leaves no
+  -- row of the organization behind.
   for v_pass in 1..25 loop
-    v_remaining := 0;
     v_errors := '{}'::jsonb;
     for v_table in select * from private.organization_data_tables() loop
       begin
@@ -281,14 +283,10 @@ begin
         v_errors := v_errors || jsonb_build_object(v_table::text, v_last_error);
       end;
     end loop;
-    for v_table in select * from private.organization_data_tables() loop
-      execute format('select count(*) from %s where organization_id = $1', v_table) into v_count using p_organization_id;
-      v_remaining := v_remaining + v_count;
-    end loop;
-    exit when v_remaining = 0;
+    exit when v_errors = '{}'::jsonb;
   end loop;
 
-  if v_remaining > 0 then
+  if v_errors <> '{}'::jsonb then
     raise exception 'Organization data could not be removed completely: %', v_errors::text using errcode = '55000';
   end if;
 
