@@ -29,6 +29,17 @@ export const demoLibrarySeed = {
   // Same six categories as the system_master_library_baseline_seed_v2
   // migration seeds for every real organization, so demo mode's Employee
   // create/edit "Professional category" select is never left empty.
+  // Job positions are the hospital's own list (Management > Libraries).
+  positions:[
+    ['Προϊστάμενος/η Τμήματος','Head of Department (Nursing)',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Νοσηλευτής/τρια ΜΕΘ','ICU Nurse',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Νοσηλευτής/τρια Θαλάμου','Ward Nurse',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων (ΝΕΛ)','Infection Control Nurse',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Επιμελητής Ιατρός','Consultant Physician',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Ειδικευόμενος Ιατρός','Resident Physician',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Τεχνολόγος Εργαστηρίου','Laboratory Technologist',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Βοηθός Θαλάμου','Ward Assistant',{system:false,locked:false,source:'Hospital',version:'local'}],
+  ],
   professionalCategories:[
     ['Ιατρός','Physician',SYS('Limoxis workforce core')],
     ['Νοσηλευτής/τρια','Nurse',SYS('Limoxis workforce core')],

@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Biohazard,BriefcaseMedical,Building2,Tablets,ClipboardCheck,Pencil,FileText,FlaskConical,LockKeyhole,PackageOpen,Plus,ShieldCheck,Syringe,Trash2,UsersRound } from 'lucide-react'
+import { Biohazard,BriefcaseMedical,Building2,Tablets,ClipboardCheck,Pencil,FileText,FlaskConical,LockKeyhole,PackageOpen,Plus,ShieldCheck,Syringe,Trash2,UsersRound,BriefcaseBusiness } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -16,7 +16,7 @@ const categories=[
  ['departments','libraryDepartments',Building2,'blue'],['microorganisms','libraryMicroorganisms',Biohazard,'red'],
  ['antibiotics','libraryAntibiotics',Tablets,'purple'],['deviceTypes','libraryDeviceTypes',ShieldCheck,'teal'],['surveillanceDefinitions','librarySurveillanceDefinitions',ClipboardCheck,'blue'],['notifiableDiseases','libraryNotifiableDiseases',ClipboardCheck,'orange'],
  ['clinicalSymptoms','signsSymptoms',ClipboardCheck,'blue'],['clinicalRiskFactors','riskFactors',ShieldCheck,'amber'],
- ['sampleTypes','librarySampleTypes',FlaskConical,'teal'],['professionalCategories','libraryProfessionalCategories',UsersRound,'indigo'],
+ ['sampleTypes','librarySampleTypes',FlaskConical,'teal'],['professionalCategories','libraryProfessionalCategories',UsersRound,'indigo'],['positions','libraryPositions',BriefcaseBusiness,'indigo'],
  ['vaccines','libraryVaccines',Syringe,'green'],['wasteTypes','libraryWasteTypes',PackageOpen,'amber'],
  ['antiseptics','libraryAntiseptics',BriefcaseMedical,'cyan'],['isolationTypes','libraryIsolationTypes',ShieldCheck,'rose'],
  ['controlTypes','libraryControlTypes',ClipboardCheck,'slate'],['documentCategories','libraryDocumentCategories',FileText,'violet'],

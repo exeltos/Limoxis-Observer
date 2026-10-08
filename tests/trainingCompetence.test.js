@@ -13,6 +13,9 @@ describe('training competence', () => {
     expect(requirementApplies(clabsi, nurseIcu)).toBe(true)
     expect(requirementApplies(clabsi, doctor)).toBe(false)
     expect(requirementApplies({ ...handHygiene, active: false }, doctor)).toBe(false)
+    const icuNurses = { ...handHygiene, positions: ['Νοσηλευτής/τρια ΜΕΘ'] }
+    expect(requirementApplies(icuNurses, { ...nurseIcu, position: 'Νοσηλευτής/τρια ΜΕΘ' })).toBe(true)
+    expect(requirementApplies(icuNurses, { ...nurseIcu, position: 'Προϊστάμενος/η Τμήματος' })).toBe(false)
   })
 
   it('uses the latest completion of any listed programme, the certificate date first, then renewal months', () => {

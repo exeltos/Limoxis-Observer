@@ -88,6 +88,7 @@ export const trainingDemoState={
  requirements:[
   {id:'REQ-HH',title:'Υγιεινή Χεριών – WHO 5 Moments',programIds:['TRN-001'],professions:['Ιατρικό προσωπικό','Νοσηλευτικό προσωπικό'],departments:[],renewalMonths:12,active:true},
   {id:'REQ-SHARPS',title:'Ασφαλής διαχείριση αιχμηρών',programIds:['TRN-003'],professions:[],departments:[],renewalMonths:24,active:true},
+  {id:'REQ-PPE',title:'Ορθή χρήση ΜΑΠ & απομόνωση',programIds:['TRN-002'],professions:[],positions:['Νοσηλευτής/τρια ΜΕΘ','Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων (ΝΕΛ)'],departments:[],renewalMonths:12,active:true},
   {id:'REQ-CLABSI',title:'Πρόληψη CLABSI',programIds:['TRN-004'],professions:['Νοσηλευτικό προσωπικό'],departments:['ΜΕΘ','Χειρουργική'],renewalMonths:12,active:true},
  ],
  emailOutbox:[],

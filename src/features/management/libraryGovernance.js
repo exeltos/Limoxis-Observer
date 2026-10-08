@@ -1,5 +1,6 @@
 export const HOSPITAL_MANAGED_LIBRARY_KEYS=Object.freeze([
   'departments',
+  'positions',
 ])
 
 export const SYSTEM_BASELINE_LIBRARY_KEYS=Object.freeze([

@@ -3,8 +3,8 @@
 // its programmes; it stays valid for renewalMonths (or until the certificate's
 // validUntil when one was issued), then the person needs retraining.
 //
-// requirement: { id, title, programIds:[], professions:[], departments:[],
-//                renewalMonths, active }  (empty professions/departments = everyone)
+// requirement: { id, title, programIds:[], professions:[], positions:[],
+//                departments:[], renewalMonths, active }  (empty list = everyone)
 
 export const EXPIRING_DAYS=60
 const DAY=24*60*60*1000
@@ -12,16 +12,18 @@ const DAY=24*60*60*1000
 const norm=value=>String(value||'').trim().toLocaleLowerCase('el')
 
 export function newRequirement(){
- return {id:`REQ-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`,title:'',programIds:[],professions:[],departments:[],renewalMonths:12,active:true}
+ return {id:`REQ-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`,title:'',programIds:[],professions:[],positions:[],departments:[],renewalMonths:12,active:true}
 }
 
 export function requirementApplies(requirement,employee){
  if(requirement.active===false)return false
  const professions=(requirement.professions||[]).map(norm)
+ const positions=(requirement.positions||[]).map(norm)
  const departments=(requirement.departments||[]).map(norm)
  const profession=norm(employee.profession)
+ const position=norm(employee.position)
  const department=norm(employee.department)
- return (!professions.length||professions.includes(profession))&&(!departments.length||departments.includes(department))
+ return (!professions.length||professions.includes(profession))&&(!positions.length||positions.includes(position))&&(!departments.length||departments.includes(department))
 }
 
 function addMonths(day,months){

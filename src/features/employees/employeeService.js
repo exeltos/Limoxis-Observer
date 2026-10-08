@@ -9,7 +9,7 @@ const localStore = () => import('./employeeStore')
 // both a proper uuid primary key AND a separate `employee_code` text column with
 // its own per-organization uniqueness constraint — map frontend `id` to
 // `employee_code`, not to the uuid, so every existing consumer keeps working.
-const EMPLOYEE_COLUMNS = 'id,user_id,employee_code,department_id,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,employment_status,email,phone,hire_date,birth_date,created_at,updated_at'
+const EMPLOYEE_COLUMNS = 'id,user_id,employee_code,department_id,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,position_name,position_name_en,employment_status,email,phone,hire_date,birth_date,created_at,updated_at'
 
 function productionContext(organizationId,operation){
   if(isDemoDataEnvironment())return false
@@ -36,6 +36,8 @@ function fromRow(row) {
     departmentEn: row.department_name_en || row.department_name || '',
     profession: row.profession_name || '',
     professionEn: row.profession_name_en || row.profession_name || '',
+    position: row.position_name || '',
+    positionEn: row.position_name_en || row.position_name || '',
     employmentStatus: row.employment_status,
     email: row.email || '',
     phone: row.phone || '',
@@ -60,6 +62,8 @@ function toWriteRow(organizationId, v) {
     department_name_en: v.departmentEn || v.department || null,
     profession_name: v.profession || null,
     profession_name_en: v.professionEn || v.profession || null,
+    position_name: v.position || null,
+    position_name_en: v.positionEn || v.position || null,
     employment_status: v.employmentStatus,
     email: v.email || null,
     phone: v.phone || null,
