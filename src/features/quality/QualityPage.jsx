@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,Plus,ShieldCheck,CheckSquare2 } from 'lucide-react'
+import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,Plus,ShieldCheck,CheckSquare2,FileWarning } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -13,12 +13,16 @@ import { useContextualNavigation } from '../../core/navigation/useContextualNavi
 import { MetricCard } from '../../design-system/MetricCard'
 import { readSessionValue,writeSessionValue } from '../../core/storage/browserStorage'
 import { loadQualityRecords } from './qualityService'
+import { QualityDeviationQueue,useDeviationQueue } from './QualityDeviationQueue'
+import { deviationQueue,subActionProgress } from './qualityDeviations'
+import './quality.css'
 
 const sections=[
   {id:'incidents',label:'qualityIncidents',icon:AlertTriangle},
   {id:'findings',label:'qualityFindings',icon:ShieldCheck},
   {id:'capas',label:'qualityCapas',icon:CheckSquare2},
   {id:'audits',label:'qualityAudits',icon:ClipboardCheck},
+  {id:'deviations',label:'deviations',icon:FileWarning,manageOnly:true},
 ]
 
 const RETURN_KEY='limoxis.quality.returnSection'
@@ -55,10 +59,14 @@ export function QualityPage(){
   const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER
   const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
   const canReportIncident=ownerFullAccess||can(role,CAPABILITIES.REPORT_INCIDENT,addOns,custom)
-  const canCreate=canManage||(section==='incidents'&&canReportIncident)
+  const isQueue=section==='deviations'
+  const canCreate=!isQueue&&(canManage||(section==='incidents'&&canReportIncident))
+  const visibleSections=sections.filter(item=>!item.manageOnly||canManage)
+  const queue=useDeviationQueue(tenant?.id,canManage)
+  const queueCount=useMemo(()=>deviationQueue(queue.sources).length,[queue.sources])
   const createLabel=createLabels[section]?.[language==='en'?'en':'el']||(language==='en'?'Create':'Δημιουργία')
 
-  useEffect(()=>{let active=true;setLoading(true);loadQualityRecords(section,tenant?.id).then(data=>{if(active)setRows(data)}).catch(()=>{if(active)setRows([])}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[section,tenant?.id])
+  useEffect(()=>{let active=true;if(section==='deviations'){setRows([]);setLoading(false);return()=>{active=false}};setLoading(true);loadQualityRecords(section,tenant?.id).then(data=>{if(active)setRows(data)}).catch(()=>{if(active)setRows([])}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[section,tenant?.id])
   const departments=useMemo(()=>[...new Set(rows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[rows,language])
   const filtered=useMemo(()=>rows.filter(row=>`${row.id} ${row.displayId||''} ${row.title} ${row.titleEn} ${row.owner||''}`.toLowerCase().includes(query.toLowerCase())).filter(row=>status==='all'||row.status===status).filter(row=>department==='all'||(language==='el'?row.department:row.departmentEn)===department).filter(row=>!quick||(quick==='open'?!['closed','completed'].includes(row.status):quick==='closed'?['closed','completed'].includes(row.status):['high','critical'].includes(row.severity||row.priority))),[rows,query,status,department,language,quick])
   useEffect(()=>setPage(1),[section,query,status,department,pageSize,quick])
@@ -69,26 +77,29 @@ export function QualityPage(){
   const highCount=rows.filter(x=>['high','critical'].includes(x.severity||x.priority)).length
 
   function createRecord(){if(!canCreate)return;writeSessionValue(RETURN_KEY,section);registry.saveViewState({query,status,department});goTo(`/quality/${section}/new`,{registry:`quality.${section}`})}
+  function createCapaFrom(prefill){writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.capas',state:{qualitySource:prefill}})}
   function changeSection(id){registry.saveViewState({query,status,department});setSection(id);setQuick(null);const next=readRegistryViewState(`quality.${id}`);setQuery(next?.query||'');setStatus(next?.status||'all');setDepartment(next?.department||'all')}
 
   return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA and audits in one controlled, traceable flow.':'Συμβάντα, ευρήματα, CAPA και επιθεωρήσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={canCreate?<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>:null}>
-    <div className="workspace-summary quality-summary"><div className="module-summary-strip">
+    {!isQueue&&<div className="workspace-summary quality-summary"><div className="module-summary-strip">
       <SummaryMetric icon={ClipboardCheck} label={language==='en'?'Total':'Σύνολο'} value={rows.length} onClick={()=>setQuick(null)} active={false}/>
       <SummaryMetric icon={Clock3} label={language==='en'?'Open / active':'Ανοικτά / ενεργά'} value={openCount} onClick={quickToggle('open')} active={quick==='open'}/>
       <SummaryMetric icon={CheckCircle2} label={language==='en'?'Completed':'Ολοκληρωμένα'} value={closedCount} onClick={quickToggle('closed')} active={quick==='closed'}/>
       <SummaryMetric icon={AlertTriangle} label={language==='en'?'High priority':'Υψηλής προτεραιότητας'} value={highCount} onClick={quickToggle('high')} active={quick==='high'}/>
-    </div></div>
+    </div></div>}
     <div className="surface registry-workspace workspace-column workspace-fill quality-workspace">
-      <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{sections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{t(label)}</span></button>)}</nav>
+      <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{visibleSections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{id==='deviations'?(language==='en'?'Deviations without CAPA':'Αποκλίσεις χωρίς CAPA'):t(label)}</span>{id==='deviations'&&queueCount>0&&<span className="quality-tab-count">{queueCount}</span>}</button>)}</nav>
+      {isQueue?<QualityDeviationQueue sources={queue.sources} loading={queue.loading} language={language} locale={locale} t={t} onCreateCapa={createCapaFrom}/>:<>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status).filter(Boolean))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
-        <table className="data-table sticky-table quality-table"><thead><tr><th>{t('code')}</th><th>{t('title')}</th><th>{section==='audits'?t('auditType'):t('department')}</th><th>{section==='audits'?(language==='en'?'Planned date':'Προγραμματισμένη ημερομηνία'):t(section==='capas'?'dueDate':'date')}</th><th>{section==='audits'?t('leadAuditor'):t('owner')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(row=><tr key={row.id} {...registry.rowProps(row.id)} onClick={()=>{writeSessionValue(RETURN_KEY,section);registry.openRecord(navigate,`/quality/${section}/${row.id}`,row.id,filtered.map(x=>x.id))}}><td><strong>{row.displayId||row.id}</strong>{row.severity&&<small>{t(row.severity)}</small>}</td><td>{language==='el'?row.title:row.titleEn}</td><td>{section==='audits'?t(row.auditType||'internal'):(language==='el'?row.department:row.departmentEn)||'—'}</td><td>{fmtDate(row.dueDate||row.date||row.plannedDate,locale)}</td><td>{row.owner||row.leadAuditor||'—'}</td><td><span className={`status-badge ${['closed','completed'].includes(row.status)?'active':''}`}>{t(row.status)}</span></td></tr>)}</tbody></table>
+        <table className="data-table sticky-table quality-table"><thead><tr><th>{t('code')}</th><th>{t('title')}</th><th>{section==='audits'?t('auditType'):t('department')}</th><th>{section==='audits'?(language==='en'?'Planned date':'Προγραμματισμένη ημερομηνία'):t(section==='capas'?'dueDate':'date')}</th><th>{section==='audits'?t('leadAuditor'):t('owner')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(row=><tr key={row.id} {...registry.rowProps(row.id)} onClick={()=>{writeSessionValue(RETURN_KEY,section);registry.openRecord(navigate,`/quality/${section}/${row.id}`,row.id,filtered.map(x=>x.id))}}><td><strong>{row.displayId||row.id}</strong>{row.severity&&<small>{t(row.severity)}</small>}</td><td>{language==='el'?row.title:row.titleEn}{section==='capas'&&row.subActions?.length>0&&<small>{(({done,total})=>language==='en'?`${done}/${total} steps done`:`${done}/${total} βήματα ολοκληρώθηκαν`)(subActionProgress(row.subActions))}</small>}</td><td>{section==='audits'?t(row.auditType||'internal'):(language==='el'?row.department:row.departmentEn)||'—'}</td><td>{fmtDate(row.dueDate||row.date||row.plannedDate,locale)}</td><td>{row.owner||row.leadAuditor||'—'}</td><td><span className={`status-badge ${['closed','completed'].includes(row.status)?'active':''}`}>{t(row.status)}</span></td></tr>)}</tbody></table>
         {!loading&&!filtered.length&&<div className="registry-empty-state"><strong>{emptyTitle}</strong><span>{language==='en'?'No records have been created for this organization yet.':'Δεν έχουν δημιουργηθεί ακόμη εγγραφές για τον συγκεκριμένο οργανισμό.'}</span></div>}
       </div>
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
+      </>}
     </div>
   </Page>
 }
