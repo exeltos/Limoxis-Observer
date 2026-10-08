@@ -117,19 +117,8 @@ Deno.serve(async(req)=>{
     return reply({error:entitlementError?.message||'Demo entitlement creation failed'},500)
   }
 
-  const {error:membershipError}=await admin.from('organization_members').insert({
-    organization_id:organization.id,
-    user_id:userId,
-    role:'demo',
-    status:'invited',
-  })
-  if(membershipError){
-    await admin.from('platform_demo_entitlements').delete().eq('id',entitlement.id)
-    await admin.auth.admin.deleteUser(userId)
-    await admin.from('organizations').delete().eq('id',organization.id)
-    return reply({error:membershipError.message},500)
-  }
-
+  // The profile first: making the evaluator a Hospital Admin creates their
+  // employee record from it (ensure_hospital_admin_employee).
   const {error:profileError}=await admin.from('profiles').update({
     full_name:contactName||label,
     username,
@@ -139,11 +128,32 @@ Deno.serve(async(req)=>{
   }).eq('id',userId)
   if(profileError)return reply({error:profileError.message},500)
 
+  // A real role inside the isolated Demo organization: the evaluator sees the
+  // application as that hospital's administrator would.
+  const {error:membershipError}=await admin.from('organization_members').insert({
+    organization_id:organization.id,
+    user_id:userId,
+    role:'hospital_admin',
+    status:'invited',
+  })
+  if(membershipError){
+    await admin.from('platform_demo_entitlements').delete().eq('id',entitlement.id)
+    await admin.auth.admin.deleteUser(userId)
+    await admin.from('organizations').delete().eq('id',organization.id)
+    return reply({error:membershipError.message},500)
+  }
+
+  // Demo data, written as the Platform Owner so the audit triggers see who
+  // did it. A failure leaves an empty Demo that can be filled later with
+  // "Reset data"; it does not undo the Demo.
+  const {data:seed,error:seedError}=await caller.rpc('platform_reset_demo_organization',{p_organization_id:organization.id})
+
   return reply({
     ok:true,
     entitlement,
     organization,
-    membership:{role:'demo',status:'invited'},
+    membership:{role:'hospital_admin',status:'invited'},
+    seed:seedError?{ok:false,error:seedError.message}:seed,
     username,
     emailSent:true,
     provider:'supabase_auth',
