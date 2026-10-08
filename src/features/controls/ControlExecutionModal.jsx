@@ -7,6 +7,8 @@ import { getAssignment,frequencyLabel } from './controlScheduling'
 import { controlActorFromAuth } from './controlActor'
 import { emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
 import { saveControlDraft } from './controlCloudService'
+import { deviationActions } from './controlCriticality'
+import { ControlDeviationActions,ControlEvidenceLinks } from './ControlEvidence'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
@@ -87,6 +89,8 @@ export function ControlExecutionModal({organizationId,record,department,onClose,
      </div>}
   {response.mode==='list'&&<div className="control-list-optional-hint">{en?'Complete the list only when findings are present. You can finish the control with no rows.':'Η λίστα συμπληρώνεται μόνο αν προκύψουν ευρήματα. Μπορείτε να ολοκληρώσετε τον έλεγχο χωρίς γραμμές.'}</div>}
   <label className="field control-execution-notes"><span>{en?'Notes':'Σημειώσεις'}</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows="3" placeholder={en?'Optional notes...':'Προαιρετικές παρατηρήσεις...'}/></label>
+  {initialExecution?.evidence?.length>0&&<div className="control-evidence-existing"><span>{en?'Evidence':'Τεκμήρια'}</span><ControlEvidenceLinks evidence={initialExecution.evidence} language={language}/></div>}
+  {hasFinding&&<ControlDeviationActions text={deviationActions(record)} language={language}/>}
   {hasFinding&&<div className="governance-banner warning control-finding-banner"><FileWarning size={17}/><span>{en?'This entry contains a finding or an out-of-range value. You can create a related incident report.':'Η καταχώρηση περιλαμβάνει εύρημα ή τιμή εκτός ορίων. Μπορείτε να δημιουργήσετε σχετική αναφορά.'}</span></div>}
   <label className="control-confirm-execution"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/><CheckCircle2 size={17}/><span>{isEditing?(en?'I confirm that the corrections to this entry are accurate.':'Επιβεβαιώνω ότι οι διορθώσεις της καταχώρησης είναι σωστές.'):(en?'I confirm that the control was performed and the information above is accurate.':'Επιβεβαιώνω ότι ο έλεγχος πραγματοποιήθηκε και τα παραπάνω στοιχεία είναι σωστά.')}</span></label>
   <div className="control-execution-tools">
