@@ -1,7 +1,7 @@
 import { formatDay } from '../../core/i18n/formatDay'
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
-import { Award,BookOpenCheck,CalendarRange,CalendarClock,CheckCircle2,ClipboardCheck,Clock3,Download,FileText,Mail,Pencil,Plus,Send,Trash2,Users } from 'lucide-react'
+import { Award,BookOpenCheck,CalendarRange,Target,CalendarClock,CheckCircle2,ClipboardCheck,Clock3,Download,FileText,Mail,Pencil,Plus,Send,Trash2,Users } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { Button } from '../../design-system/Button'
@@ -36,6 +36,7 @@ import { DownloadMenu } from '../../design-system/DownloadMenu'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { TrainingCompetencePanel } from './TrainingCompetencePanel'
 import { TrainingAnnualPlanPanel,planStateText } from './TrainingAnnualPlanPanel'
+import { TrainingEffectivenessPanel } from './TrainingEffectivenessPanel'
 import { annualPlanExport,annualTrainingPlan } from './trainingAnnualPlan'
 
 const fmt=v=>formatDay(v)
@@ -80,9 +81,9 @@ export function TrainingProductionPage(){
 function ProgramRecord({en,language,organizationId,program,assignments,state,employees,departments,busy,notify,notifyError,confirm,reload,onBack,onPersist,onDelete}){
  const [tab,setTab]=useState('overview'),[dialog,setDialog]=useState(null),[mailBusy,setMailBusy]=useState(false),[editing,setEditing]=useState(false),[draft,setDraft]=useState(program)
  useEffect(()=>{setDraft(program);setEditing(false)},[program])
- const tabs=[{id:'overview',label:en?'Overview':'Σύνοψη',icon:CheckCircle2},{id:'participants',label:en?'Participants':'Συμμετέχοντες',icon:Users},{id:'materials',label:en?'Material':'Υλικό',icon:FileText},{id:'assessment',label:en?'Assessment':'Αξιολόγηση',icon:ClipboardCheck},{id:'results',label:en?'Results':'Αποτελέσματα',icon:Award}]
+ const tabs=[{id:'overview',label:en?'Overview':'Σύνοψη',icon:CheckCircle2},{id:'participants',label:en?'Participants':'Συμμετέχοντες',icon:Users},{id:'materials',label:en?'Material':'Υλικό',icon:FileText},{id:'assessment',label:en?'Assessment':'Αξιολόγηση',icon:ClipboardCheck},{id:'results',label:en?'Results':'Αποτελέσματα',icon:Award},{id:'effectiveness',label:en?'Effectiveness':'Αποτελεσματικότητα',icon:Target}]
  async function sendForms(rows){const recipients=rows.filter(row=>row.email&&row.status!=='completed'&&!row.feedbackSubmittedAt);if(!recipients.length){notify(en?'Select at least one participant with an email who has not submitted the form.':'Επιλέξτε τουλάχιστον έναν συμμετέχοντα με email που δεν έχει ήδη υποβάλει τη φόρμα.','warning');return}setMailBusy(true);try{await sendTrainingInvitationsAsync(recipients.map(row=>row.id),language,organizationId);notify(en?`Evaluation form sent to ${recipients.length} participant${recipients.length===1?'':'s'}.`:`Η φόρμα αξιολόγησης στάλθηκε σε ${recipients.length} συμμετέχον${recipients.length===1?'τα':'τες'}.`,'success');await reload()}catch(error){notifyError(error,'send',{operation:'training_invitation_send'})}finally{setMailBusy(false)}}
- async function saveProgram(){if(!trainingProgramIsValid(draft)||busy)return;const next={...draft,id:program.id,dbId:program.dbId,materials:program.materials||[],assessmentQuestions:program.assessmentQuestions||[],trainerFeedbackTemplate:program.trainerFeedbackTemplate,feedbackResponses:program.feedbackResponses||[],createdAt:program.createdAt,updatedAt:new Date().toISOString()};if(await onPersist({...state,programs:state.programs.map(x=>x.id===program.id?next:x)},en?'Training program updated.':'Το πρόγραμμα εκπαίδευσης ενημερώθηκε.'))setEditing(false)}
+ async function saveProgram(){if(!trainingProgramIsValid(draft)||busy)return;const next={...draft,id:program.id,dbId:program.dbId,materials:program.materials||[],assessmentQuestions:program.assessmentQuestions||[],trainerFeedbackTemplate:program.trainerFeedbackTemplate,feedbackResponses:program.feedbackResponses||[],effectiveness:program.effectiveness,createdAt:program.createdAt,updatedAt:new Date().toISOString()};if(await onPersist({...state,programs:state.programs.map(x=>x.id===program.id?next:x)},en?'Training program updated.':'Το πρόγραμμα εκπαίδευσης ενημερώθηκε.'))setEditing(false)}
  async function removeParticipant(row){if(row.status==='completed'){notify(en?'Completed training records are retained for traceability.':'Οι ολοκληρωμένες εκπαιδεύσεις διατηρούνται για ιχνηλασιμότητα.','warning');return}if(!await confirm({title:en?'Remove participant':'Αφαίρεση συμμετέχοντα',message:en?'Remove this participant from the training program?':'Να αφαιρεθεί ο συμμετέχων από το πρόγραμμα εκπαίδευσης;',danger:true}))return;try{await deleteTrainingRecordAsync(organizationId,row.id);notify(en?'Participant removed.':'Ο συμμετέχων αφαιρέθηκε.','success');await reload()}catch(error){notifyError(error,'delete',{operation:'training_participant_delete'})}}
  async function addParticipants({selected,manualEntries}){
   const now=new Date().toISOString(),stamp=Date.now()
@@ -105,6 +106,7 @@ function ProgramRecord({en,language,organizationId,program,assignments,state,emp
      <section hidden={tab!=='materials'} className="record-section training-materials-panel"><div className="record-section-header"><div><span className="eyebrow">{en?'Training material':'Εκπαιδευτικό υλικό'}</span><h3>{en?'Files & attachments':'Αρχεία & συνημμένα'}</h3><p>{en?'Upload presentations, procedures, attendance sheets or supporting material.':'Ανεβάστε παρουσιάσεις, διαδικασίες, παρουσιολόγια ή άλλο υποστηρικτικό υλικό.'}</p></div></div><AttachmentField organizationId={organizationId} entityType="training_program" entityId={program.dbId||program.id} value={[]} onChange={()=>{}}/></section>
      {tab==='assessment'&&<TrainingAssessmentEditor program={program} state={state} onPersist={onPersist} busy={busy} en={en} language={language}/>}
      {tab==='results'&&<TrainingResultsReview program={program} rows={assignments} state={state} onPersist={onPersist} busy={busy} en={en} language={language}/>}
+     {tab==='effectiveness'&&<TrainingEffectivenessPanel program={program} assignments={assignments} state={state} onPersist={onPersist} busy={busy} en={en} canManage/>}
    </EntityRecordShell>
   </Page>
  )

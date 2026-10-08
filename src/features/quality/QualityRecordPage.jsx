@@ -182,7 +182,7 @@ function QualityLinks({recordType,record,t,language,organizationId}){
   const links=[]
   if(record.linkedPatient)links.push({label:t('patient'),id:record.linkedPatient,path:`/patients/${record.linkedPatient}`})
   if(record.linkedSurveillance)links.push({label:t('surveillance'),id:record.linkedSurveillance,path:`/surveillance/${record.linkedSurveillance}`})
-  if(record.sourceId&&sourcePath(record.sourceId))links.push({label:record.sourceId.startsWith('BND-')?'Bundle':(language==='en'?'Control':'Έλεγχος'),id:record.sourceId.startsWith('BND-')?(language==='en'?'Bundle assessment':'Αξιολόγηση bundle'):record.sourceId.split('#')[0],path:sourcePath(record.sourceId)})
+  if(record.sourceId&&sourcePath(record.sourceId))links.push({label:record.sourceId.startsWith('BND-')?'Bundle':record.sourceId.startsWith('TRAINING:')?(language==='en'?'Training':'Εκπαίδευση'):(language==='en'?'Control':'Έλεγχος'),id:record.sourceId.startsWith('BND-')?(language==='en'?'Bundle assessment':'Αξιολόγηση bundle'):record.sourceId.startsWith('TRAINING:')?record.sourceId.slice(9):record.sourceId.split('#')[0],path:sourcePath(record.sourceId)})
   else if(record.sourceId)links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
   if(record.findingIds?.length)record.findingIds.forEach(id=>links.push({label:t('qualityRecords.finding'),id,path:`/quality/findings/${id}`}))
   const navigationOptions={returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'}

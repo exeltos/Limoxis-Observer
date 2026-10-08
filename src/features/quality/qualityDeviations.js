@@ -13,6 +13,7 @@ export function sourcePath(sourceId=''){
  const value=String(sourceId||'')
  if(value.startsWith('CTRL-'))return `/controls/${value.split('#')[0]}`
  if(value.startsWith('BND-'))return `/prevention/bundles/${value.slice(4)}`
+ if(value.startsWith('TRAINING:'))return `/training/${value.slice(9)}`
  return null
 }
 
