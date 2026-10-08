@@ -2,6 +2,7 @@ import { supabase } from '../supabase/client'
 import { hasSupabaseConfig } from '../config/env'
 import { isDemoDataEnvironment } from '../data/dataEnvironment'
 import { APP_VERSION } from '../version'
+import { isOwnerPreview,previewRuntimeEvents } from '../preview/ownerPreview'
 
 const MAX_MESSAGE=500
 const MAX_CODE=120
@@ -45,6 +46,7 @@ export async function recordRuntimeEvent({organizationId,severity='info',eventTy
 }
 
 export async function listRuntimeEvents(organizationId,{limit=300,severity='all'}={}){
+  if(isOwnerPreview())return previewRuntimeEvents(organizationId).filter(row=>severity==='all'||row.severity===severity)
   if(!hasSupabaseConfig||!supabase||!organizationId)return []
   let query=supabase.from('platform_runtime_events')
     .select('id,organization_id,actor_id,role,severity,event_type,module,route,operation,user_message,diagnostic_code,app_version,occurred_at')

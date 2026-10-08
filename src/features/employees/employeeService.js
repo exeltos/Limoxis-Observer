@@ -1,6 +1,7 @@
 import { supabase, invokeAuthenticatedFunction } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { isOwnerPreview } from '../../core/preview/ownerPreview'
 // The demo store (and its seed data) loads only in the demo workspace.
 const localStore = () => import('./employeeStore')
 
@@ -78,6 +79,7 @@ export function cloudEnabled() {
 
 export async function loadEmployeesAsync(organizationId) {
   if(isDemoDataEnvironment())return (await localStore()).loadEmployees()
+  if(isOwnerPreview())return []
   productionContext(organizationId,'employees.load')
   const { data, error } = await supabase
     .from('employees')

@@ -1,4 +1,5 @@
 import { supabase, invokeAuthenticatedFunction } from '../supabase/client'
+import { isOwnerPreview,previewDemos,previewMemberships,previewOrganizationMembers,previewPlatformMembers } from '../preview/ownerPreview'
 
 export async function listMemberships(userId) {
   if (!supabase || !userId) return []
@@ -27,6 +28,7 @@ export async function listMemberships(userId) {
 }
 
 export async function listPlatformOwnerOrganizations() {
+  if (isOwnerPreview()) return previewMemberships()
   if (!supabase) return []
   const { data, error } = await supabase
     .from('organizations')
@@ -69,6 +71,7 @@ export async function createOrganizationUser({ organizationId, fullName, role, e
 }
 
 export async function listPlatformOrganizationMembers() {
+  if (isOwnerPreview()) return previewPlatformMembers()
   if (!supabase) return []
   const { data, error } = await supabase
     .from('organization_members')
@@ -78,6 +81,7 @@ export async function listPlatformOrganizationMembers() {
 }
 
 export async function listPlatformDemos() {
+  if (isOwnerPreview()) return previewDemos()
   if (!supabase) return []
   const { data, error } = await supabase
     .from('platform_demo_entitlements')
@@ -153,6 +157,7 @@ export async function updatePlatformOrganization(organizationId, patch) {
 }
 
 export async function listOrganizationMembersDetailed(organizationId) {
+  if (isOwnerPreview()) return previewOrganizationMembers(organizationId)
   if (!supabase || !organizationId) return []
   const { data: memberRows, error: memberError } = await supabase.from('organization_members')
     .select('id,user_id,role,status,created_at')

@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,RefreshCw,UserRoundCog } from 'lucide-react'
+import { AlertTriangle,History,KeyRound,RefreshCw,UserRoundCog } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
@@ -8,6 +8,7 @@ import { DownloadMenu } from '../../design-system/DownloadMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { listPlatformAuditEvents } from './platformAuditService'
+import { MetricCard } from '../../design-system/MetricCard'
 
 function fmtDate(value){
   if(!value)return '—'
@@ -23,10 +24,10 @@ function fmtDate(value){
 
 function eventLabel(value,en){
   const labels={
-    create:{el:'Δημιουργία',en:'Created'},update:{el:'Ενημέρωση',en:'Updated'},delete:{el:'Διαγραφή',en:'Deleted'},
+    create:{el:'Δημιουργία',en:'Created'},update:{el:'Ενημέρωση',en:'Updated'},delete:{el:'Διαγραφή',en:'Deleted'},suspend:{el:'Παύση',en:'Suspended'},reactivate:{el:'Επανενεργοποίηση',en:'Reactivated'},reset_password:{el:'Επαναφορά κωδικού',en:'Password reset'},invite:{el:'Πρόσκληση',en:'Invited'},
     platform_organization_create:{el:'Δημιουργία οργανισμού',en:'Organization created'},platform_organization_update:{el:'Ενημέρωση οργανισμού',en:'Organization updated'},
     platform_organization_delete:{el:'Διαγραφή οργανισμού',en:'Organization deleted'},platform_organization_status:{el:'Αλλαγή κατάστασης οργανισμού',en:'Organization status changed'},
-    platform_admin_assign:{el:'Ανάθεση Hospital Admin',en:'Hospital Admin assigned'},platform_admin_invite:{el:'Πρόσκληση Hospital Admin',en:'Hospital Admin invited'},
+    platform_admin_assign:{el:'Ανάθεση Διαχειριστή Νοσοκομείου',en:'Hospital Admin assigned'},platform_admin_invite:{el:'Πρόσκληση Διαχειριστή Νοσοκομείου',en:'Hospital Admin invited'},
     platform_settings_update:{el:'Αλλαγή ρυθμίσεων πλατφόρμας',en:'Platform settings changed'},
   }
   return labels[value]?.[en?'en':'el']||String(value||'—').replaceAll('_',' ')
@@ -76,13 +77,13 @@ export function PlatformAuditSecurityView({organizations=[],language='el'}){
   const accessChanges=rows.filter(row=>/member|user|role|admin|invite|access/i.test(`${row.eventType} ${row.entityType}`)).length
 
   return <Page title={tx('Ιστορικό & Ασφάλεια','Audit & Security')} subtitle={tx('Ιχνηλασιμότητα ενεργειών Ιδιοκτήτη Πλατφόρμας, αλλαγών πρόσβασης και σημαντικών διοικητικών μεταβολών.','Traceability of Platform Owner actions, access changes and significant administrative changes.')} actions={<div className="row-actions"><DownloadMenu items={[{id:'audit',label:tx('Excel: ιστορικό ενεργειών','Excel: audit trail'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('istoriko-energeion','audit-trail'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Χρήστης','User'),tx('Ρόλος','Role'),tx('Ενέργεια','Action'),tx('Αντικείμενο','Entity'),'ID'],rows:filtered.map(row=>{const org=organizationMap.get(row.organizationId);return [fmtDate(row.createdAt),org?.name||tx('Επίπεδο πλατφόρμας','Platform level'),row.actorName||'',row.actorRole?roleLabel(row.actorRole,language):'',eventLabel(row.eventType,en),entityLabel(row.entityType,en),row.entityId||'']})})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}>
+    <div className="workspace-summary"><div className="module-summary-strip">
+      <MetricCard icon={History} value={rows.length} label={tx('Καταγεγραμμένες ενέργειες','Recorded actions')}/>
+      <MetricCard icon={UserRoundCog} value={ownerActions} label={tx('Ενέργειες Ιδιοκτήτη Πλατφόρμας','Platform Owner actions')}/>
+      <MetricCard icon={KeyRound} value={accessChanges} label={tx('Αλλαγές πρόσβασης','Access changes')}/>
+      <MetricCard icon={AlertTriangle} value={destructive} label={tx('Κρίσιμες / διαγραφές','Critical / destructive')}/>
+    </div></div>
     <div className="platform-registry-shell workspace-column">
-      <div className="diagnostics-summary-strip platform-summary-strip">
-        <div className="diagnostics-summary"><span>{tx('Καταγεγραμμένες ενέργειες','Recorded actions')}</span><strong>{rows.length}</strong></div>
-        <div className="diagnostics-summary"><span>{tx('Ενέργειες Ιδιοκτήτη Πλατφόρμας','Platform Owner actions')}</span><strong>{ownerActions}</strong></div>
-        <div className="diagnostics-summary"><span>{tx('Αλλαγές πρόσβασης','Access changes')}</span><strong>{accessChanges}</strong></div>
-        <div className="diagnostics-summary"><span>{tx('Κρίσιμες / διαγραφές','Critical / destructive')}</span><strong>{destructive}</strong></div>
-      </div>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση οργανισμού, χρήστη ή ενέργειας…','Search organization, user or action…')} activeAdvancedCount={(organizationId!=='all'?1:0)+(eventType!=='all'?1:0)} onClear={()=>{setQuery('');setOrganizationId('all');setEventType('all')}}>
         <FilterSelect label={tx('Οργανισμός','Organization')} value={organizationId} onChange={setOrganizationId}><option value="all">{tx('Όλοι','All')}</option><option value="platform">{tx('Επίπεδο πλατφόρμας','Platform level')}</option>{organizations.map(org=><option key={org.id} value={org.id}>{org.name||org.code}</option>)}</FilterSelect>
         <FilterSelect label={tx('Ενέργεια','Action')} value={eventType} onChange={setEventType}><option value="all">{tx('Όλες','All')}</option>{eventTypes.map(value=><option key={value} value={value}>{eventLabel(value,en)}</option>)}</FilterSelect>
