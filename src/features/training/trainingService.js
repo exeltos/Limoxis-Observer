@@ -11,7 +11,7 @@ function requireProduction(organizationId,operation){
   return true
 }
 
-function emptyState(){return {programs:[],assignments:[],certificates:[],emailOutbox:[],history:[]}}
+function emptyState(){return {programs:[],assignments:[],certificates:[],requirements:[],emailOutbox:[],history:[]}}
 
 function normalizeRows(rows=[]){
   const state=emptyState()
@@ -20,6 +20,7 @@ function normalizeRows(rows=[]){
     if(row.record_type==='program')state.programs.push(payload)
     else if(row.record_type==='assignment')state.assignments.push(payload)
     else if(row.record_type==='certificate')state.certificates.push(payload)
+    else if(row.record_type==='requirement')state.requirements.push(payload)
     else if(row.record_type==='history_snapshot')state.history=Array.isArray(payload.items)?payload.items:[]
   }
   return state
@@ -102,6 +103,20 @@ export async function saveManagedTrainingStateAsync(organizationId,state){
   }
   for(const certificate of certificates)await upsertRecord(organizationId,'certificate',certificate,{departmentId:certificate.departmentId||null,employeeUserId:certificate.userId||null})
   await upsertRecord(organizationId,'history_snapshot',{id:'training-history',items:state?.history||[]})
+  return loadTrainingStateAsync(organizationId)
+}
+
+// Required-training rules are saved one at a time (not with the whole state).
+export async function saveTrainingRequirementAsync(organizationId,requirement,state){
+  if(isDemoDataEnvironment()){const requirements=state?.requirements||[];const next=requirements.some(r=>r.id===requirement.id)?requirements.map(r=>r.id===requirement.id?requirement:r):[...requirements,requirement];return saveTrainingState({...state,requirements:next})}
+  requireProduction(organizationId,'requirement_save')
+  await upsertRecord(organizationId,'requirement',requirement)
+  return loadTrainingStateAsync(organizationId)
+}
+
+export async function deleteTrainingRequirementAsync(organizationId,requirementId,state){
+  if(isDemoDataEnvironment())return saveTrainingState({...state,requirements:(state?.requirements||[]).filter(r=>r.id!==requirementId)})
+  await deleteTrainingRecordAsync(organizationId,requirementId)
   return loadTrainingStateAsync(organizationId)
 }
 
