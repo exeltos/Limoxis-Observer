@@ -156,6 +156,11 @@
       "authenticated": true,
       "reason": "Permanent delete with clinical history; Platform Owner or Hospital Admin, reason required."
     },
+    "demo_switch_my_role": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Lets a member of a Demo organization switch their own role (and department scope) so the database shows exactly what that role sees; refuses any organization that is not a Demo and any role outside the previewable system roles."
+    },
     "document_acknowledgement_members": {
       "category": "rpc",
       "authenticated": true,

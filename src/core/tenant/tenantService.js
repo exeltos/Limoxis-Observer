@@ -13,7 +13,7 @@ export async function listMemberships(userId) {
       id, role, status, custom_role_id,
       custom_role:custom_roles(id, name, capabilities:custom_role_capabilities(capability)),
       organization:organizations(id, name, code, type, status, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding),
-      scopes:organization_member_scopes(department_id),
+      scopes:organization_member_scopes(department_id, department:departments(name)),
       add_ons:organization_member_capabilities(capability),
       assignments:work_assignments(id, assignment_type, source_type, source_id, status, due_at, department_id)
     `)
@@ -25,6 +25,7 @@ export async function listMemberships(userId) {
     .map((membership) => ({
     ...membership,
     departmentIds: (membership.scopes ?? []).map((item) => item.department_id).filter(Boolean),
+    departmentName: (membership.scopes ?? []).map((item) => item.department?.name).find(Boolean) || '',
     capabilities: (membership.add_ons ?? []).map((item) => item.capability).filter(Boolean),
     customCapabilities: (membership.custom_role?.capabilities ?? []).map((item) => item.capability).filter(Boolean),
     assignments: (membership.assignments ?? []).filter((item) => item.status !== 'completed' && item.status !== 'cancelled'),
@@ -76,6 +77,15 @@ export async function getPlatformOwnerDemoMembership(organizationId) {
 export async function openPlatformOwnerDemo() {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data, error } = await supabase.rpc('platform_open_owner_demo')
+  if (error) throw error
+  return data
+}
+
+// Inside a Demo organization a member switches their own role for real, so the
+// database returns exactly what that role sees (department roles get one department).
+export async function switchDemoRole(organizationId, role, departmentId = null) {
+  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const { data, error } = await supabase.rpc('demo_switch_my_role', { p_organization_id: organizationId, p_role: role, p_department_id: departmentId || null })
   if (error) throw error
   return data
 }

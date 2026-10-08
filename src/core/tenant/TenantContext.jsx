@@ -166,7 +166,13 @@ export function TenantProvider({ children }) {
   const canRolePreview = Boolean(profile?.isPlatformOwner || isDemoSession || realDemoTenant)
   const actualRole = profile?.isPlatformOwner ? ROLES.PLATFORM_OWNER : baseMembership?.role ?? null
   const role = canRolePreview && rolePreview?.role ? rolePreview.role : actualRole
-  const membership = useMemo(() => {
+  // In a Demo organization Hospital Admin also has Occupational Health (as the
+  // database grants it there: every person in a Demo is synthetic).
+  const withDemoAdminHealth = (item) => realDemoTenant && item?.role === ROLES.HOSPITAL_ADMIN
+    ? {...item, customCapabilities: [...new Set([...(item.customCapabilities || []), 'view_occupational_health', 'manage_occupational_health'])]}
+    : item
+  const membership = useMemo(() => withDemoAdminHealth(previewMembership()), [baseMembership, rolePreview, canRolePreview, tenant?.mode, platformDemoMode, realDemoTenant]) // eslint-disable-line react-hooks/exhaustive-deps
+  function previewMembership() {
     if (!(rolePreview?.role && canRolePreview)) return baseMembership
     const preview = {...baseMembership, role: rolePreview.role, capabilities: [], customCapabilities: [], assignments: []}
     // In a real organization the previewed department is a real department:
@@ -174,7 +180,7 @@ export function TenantProvider({ children }) {
     if (tenant?.mode !== 'demo' && !platformDemoMode && rolePreview.department) return {...preview, departmentIds: [rolePreview.department], departmentId: rolePreview.department, departmentName: rolePreview.departmentName || '', previewDepartment: null}
     if (tenant?.mode !== 'demo' && !platformDemoMode) return {...preview, departmentIds: [], previewDepartment: null}
     return {...preview, previewDepartment: rolePreview.department || null}
-  }, [baseMembership, rolePreview, canRolePreview, tenant?.mode, platformDemoMode])
+  }
 
   const setTenantByMembership = useCallback((membershipId) => {
     if (!memberships.some((item) => item.id === membershipId) && !ownerDemoMemberships.some((item) => item.id === membershipId)) return false
