@@ -89,7 +89,7 @@ describe('AppShell topbar demo controls', () => {
         </LanguageProvider>
       </MemoryRouter>,
     )
-    await waitFor(() => expect(tenantApi?.enterPlatformDemo).toBeTypeOf('function'))
+    await waitFor(() => expect(tenantApi?.enterSampleDemo).toBeTypeOf('function'))
     return { get tenantApi() { return tenantApi }, get navigateFn() { return navigateFn } }
   }
 
@@ -120,8 +120,8 @@ describe('AppShell topbar demo controls', () => {
 
     expect(screen.queryByText('DEMO')).not.toBeInTheDocument()
 
-    // Mirrors PlatformDemoOrganizationRecord's onEnter: enterPlatformDemo() then navigate('/').
-    act(() => { ctx.tenantApi.enterPlatformDemo(); ctx.navigateFn('/') })
+    // The browser-only sample hospital (what the Help preview's "Demo" opens), then navigate('/').
+    act(() => { ctx.tenantApi.enterSampleDemo(); ctx.navigateFn('/') })
 
     await waitFor(() => expect(screen.getByText('dashboard-stub')).toBeInTheDocument())
     const badge = await waitFor(() => {

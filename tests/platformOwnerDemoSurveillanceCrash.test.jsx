@@ -51,8 +51,8 @@ describe('Platform Owner "Enter Demo" mode does not crash Surveillance', () => {
       </MemoryRouter>,
     )
 
-    await waitFor(() => expect(tenantApi?.enterPlatformDemo).toBeTypeOf('function'))
-    act(() => { tenantApi.enterPlatformDemo() })
+    await waitFor(() => expect(tenantApi?.enterSampleDemo).toBeTypeOf('function'))
+    act(() => { tenantApi.enterSampleDemo() })
 
     await waitFor(() => {
       expect(tenantApi.isDemo).toBe(true)

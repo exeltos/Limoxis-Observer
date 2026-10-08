@@ -15,16 +15,30 @@ Deno.serve(async(req)=>{
  // existing signed-in user (including Platform Owner) from having their password changed
  // when they open somebody else's invitation link in the same browser.
  const [{data:pendingMembership},{data:profile}]=await Promise.all([
-  admin.from('organization_members').select('id').eq('user_id',cu.user.id).eq('status','invited').limit(1).maybeSingle(),
+  admin.from('organization_members').select('id,organization_id').eq('user_id',cu.user.id).eq('status','invited').limit(1).maybeSingle(),
   admin.from('profiles').select('is_demo,demo_entitlement_id').eq('id',cu.user.id).maybeSingle(),
  ])
+ const today=new Date().toISOString().slice(0,10)
+ const entitlementOpen=(e:any)=>Boolean(e?.status==='active'&&e.valid_from<=today&&e.valid_until>=today)
+ const closedReply=()=>reply({error:'Το Demo έχει λήξει ή είναι σε παύση. Επικοινωνήστε μαζί μας για παράταση ή ενεργοποίηση.',code:'DEMO_CLOSED'},403)
  let validDemo=false
  if(profile?.is_demo&&profile?.demo_entitlement_id){
-  const today=new Date().toISOString().slice(0,10)
   const {data:entitlement}=await admin.from('platform_demo_entitlements').select('status,valid_from,valid_until,demo_user_id').eq('id',profile.demo_entitlement_id).maybeSingle()
-  validDemo=Boolean(entitlement?.status==='active'&&entitlement?.demo_user_id===cu.user.id&&entitlement.valid_from<=today&&entitlement.valid_until>=today)
+  validDemo=Boolean(entitlement?.demo_user_id===cu.user.id&&entitlementOpen(entitlement))
+  if(entitlement?.demo_user_id===cu.user.id&&!validDemo)return closedReply()
  }
  if(!pendingMembership&&!validDemo)return reply({error:'Η πρόσκληση δεν αντιστοιχεί στον συνδεδεμένο λογαριασμό. Αποσυνδεθείτε και ανοίξτε ξανά τον σύνδεσμο πρόσκλησης.'},403)
+
+ // The organization of the invitation must be open: not paused, and for a Demo
+ // its entitlement active and within its dates (the database applies the same rule).
+ if(pendingMembership?.organization_id){
+  const [{data:org},{data:orgEntitlement}]=await Promise.all([
+   admin.from('organizations').select('status,is_demo').eq('id',pendingMembership.organization_id).maybeSingle(),
+   admin.from('platform_demo_entitlements').select('status,valid_from,valid_until').eq('organization_id',pendingMembership.organization_id).limit(1).maybeSingle(),
+  ])
+  if(org?.status!=='active')return reply({error:'Ο οργανισμός είναι σε παύση. Επικοινωνήστε με τον διαχειριστή.',code:'ORGANIZATION_PAUSED'},403)
+  if(org?.is_demo&&orgEntitlement&&!entitlementOpen(orgEntitlement))return closedReply()
+ }
 
  const {error:uerr}=await admin.auth.admin.updateUserById(cu.user.id,{password:body.password});if(uerr){console.error('invitation password update failed',uerr);return reply({error:'Δεν ήταν δυνατή η ενεργοποίηση του λογαριασμού. Δοκιμάστε ξανά ή ζητήστε νέα πρόσκληση.'},500)}
  if(pendingMembership){const {error:memberError}=await admin.from('organization_members').update({status:'active'}).eq('user_id',cu.user.id).eq('status','invited');if(memberError){console.error('invitation membership activation failed',memberError);return reply({error:'Ο λογαριασμός ενεργοποιήθηκε, αλλά δεν ολοκληρώθηκε η πρόσβαση στον οργανισμό. Επικοινωνήστε με τον διαχειριστή.'},500)}}

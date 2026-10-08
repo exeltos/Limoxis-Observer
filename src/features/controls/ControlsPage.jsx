@@ -88,7 +88,7 @@ export function ControlsPage(){
  },[tenant?.id,notifyError])
  useEffect(()=>{void reload()},[reload])
 
- const scopedControls=useMemo(()=>programme.map(item=>({item,departments:item.departments.filter(dep=>canAccessRecord({department:dep}))})).filter(row=>row.departments.length>0),[programme,canAccessRecord])
+ const scopedControls=useMemo(()=>programme.map(item=>({item,departments:item.departments.filter(dep=>canAccessRecord({department:dep,departmentId:item.departmentIdByName?.[dep]||null}))})).filter(row=>row.departments.length>0),[programme,canAccessRecord])
  const departments=[...new Set(scopedControls.flatMap(x=>x.departments))]
  const rows=useMemo(()=>scopedControls.filter(({item})=>`${item.id} ${item.title} ${item.category} ${item.owner}`.toLowerCase().includes(query.toLowerCase())).filter(row=>department==='all'||row.departments.includes(department)).filter(({item,departments:deps})=>status==='all'||(status==='temporary'?hasDraft(item,deps):deps.some(dep=>assignmentStatus(item,dep)===status))).filter(({item})=>frequency==='all'||item.frequency.kind===frequency).map(row=>({...row,state:controlState(row.item,row.departments)})).sort(compareControlPriority),[scopedControls,query,department,status,frequency])
  useEffect(()=>{setPage(1)},[query,department,status,frequency,pageSize])

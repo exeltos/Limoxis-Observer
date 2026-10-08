@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { appConfig, hasSupabaseConfig } from '../config/env'
 import { supabase } from '../supabase/client'
 import { signInWithPassword, signOut as remoteSignOut } from './authService'
+import { loadCurrentDemoAccess } from '../tenant/tenantService'
 import { ROLES } from '../permissions/roles'
 import { OWNER_PREVIEW_USER,isOwnerPreview } from '../preview/ownerPreview'
 
@@ -34,14 +35,15 @@ export function AuthProvider({ children }) {
       .eq('id', user.id)
       .maybeSingle()
     if (error) throw error
-    let demoActive=false
-    if(data?.is_demo&&data?.demo_entitlement_id){
-      const today=new Date().toISOString().slice(0,10)
-      const {data:demo}=await supabase.from('platform_demo_entitlements').select('status,valid_from,valid_until').eq('id',data.demo_entitlement_id).maybeSingle()
-      demoActive=Boolean(demo?.status==='active'&&demo.valid_from<=today&&demo.valid_until>=today)
+    // A Demo evaluator works in their real Demo organization (isDemo is only the
+    // browser-only sample login). Their Demo's dates and state come from
+    // current_demo_access, for the Demo bar and the "Demo ended" screen.
+    let demoAccess=[]
+    if(data&&!data.is_platform_owner){
+      demoAccess=await loadCurrentDemoAccess().catch(()=>[])
     }
     return data
-      ? { id: data.id, email: user.email, fullName: data.full_name, username: data.username, contactEmail: data.contact_email, phone: data.phone, jobTitle: data.job_title, isPlatformOwner: data.is_platform_owner, isDemo: demoActive, demoEntitlementId:data.demo_entitlement_id||null }
+      ? { id: data.id, email: user.email, fullName: data.full_name, username: data.username, contactEmail: data.contact_email, phone: data.phone, jobTitle: data.job_title, isPlatformOwner: data.is_platform_owner, isDemo: false, demoEntitlementId:data.demo_entitlement_id||null, demoAccess }
       : { id: user.id, email: user.email, fullName: user.email, isPlatformOwner: false, isDemo:false }
   }, [])
 

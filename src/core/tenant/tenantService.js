@@ -13,7 +13,7 @@ export async function listMemberships(userId) {
       id, role, status, custom_role_id,
       custom_role:custom_roles(id, name, capabilities:custom_role_capabilities(capability)),
       organization:organizations(id, name, code, type, status, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding),
-      scopes:organization_member_scopes(department_id),
+      scopes:organization_member_scopes(department_id, department:departments(name)),
       add_ons:organization_member_capabilities(capability),
       assignments:work_assignments(id, assignment_type, source_type, source_id, status, due_at, department_id)
     `)
@@ -25,32 +25,77 @@ export async function listMemberships(userId) {
     .map((membership) => ({
     ...membership,
     departmentIds: (membership.scopes ?? []).map((item) => item.department_id).filter(Boolean),
+    departmentName: (membership.scopes ?? []).map((item) => item.department?.name).find(Boolean) || '',
     capabilities: (membership.add_ons ?? []).map((item) => item.capability).filter(Boolean),
     customCapabilities: (membership.custom_role?.capabilities ?? []).map((item) => item.capability).filter(Boolean),
     assignments: (membership.assignments ?? []).filter((item) => item.status !== 'completed' && item.status !== 'cancelled'),
     }))
 }
 
+const OWNER_ORGANIZATION_COLUMNS = 'id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding'
+const platformOwnerMembership = (organization) => ({
+  id: `platform-owner:${organization.id}`,
+  role: 'platform_owner',
+  status: 'active',
+  organization,
+  departmentIds: [],
+  capabilities: [],
+  customCapabilities: [],
+  assignments: [],
+  platformSynthetic: true,
+})
+
 export async function listPlatformOwnerOrganizations() {
   if (isOwnerPreview()) return previewMemberships()
   if (!supabase) return []
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding')
+    .select(OWNER_ORGANIZATION_COLUMNS)
     .eq('is_demo', false)
     .order('name', { ascending: true })
   if (error) throw error
-  return (data ?? []).map((organization) => ({
-    id: `platform-owner:${organization.id}`,
-    role: 'platform_owner',
-    status: 'active',
-    organization,
-    departmentIds: [],
-    capabilities: [],
-    customCapabilities: [],
-    assignments: [],
-    platformSynthetic: true,
-  }))
+  return (data ?? []).map(platformOwnerMembership)
+}
+
+// The Platform Owner enters a Demo organization (theirs or an evaluator's) the
+// same way as a hospital: a synthetic membership. Demos stay out of the
+// organization list above.
+export async function getPlatformOwnerDemoMembership(organizationId) {
+  if (!supabase || !organizationId) return null
+  const { data, error } = await supabase
+    .from('organizations')
+    .select(OWNER_ORGANIZATION_COLUMNS)
+    .eq('id', organizationId)
+    .eq('is_demo', true)
+    .maybeSingle()
+  if (error) throw error
+  return data ? platformOwnerMembership(data) : null
+}
+
+// The Platform Owner's own Demo: a real Demo organization with the same data
+// pack as the evaluators' Demos (created and filled the first time).
+export async function openPlatformOwnerDemo() {
+  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const { data, error } = await supabase.rpc('platform_open_owner_demo')
+  if (error) throw error
+  return data
+}
+
+// Inside a Demo organization a member switches their own role for real, so the
+// database returns exactly what that role sees (department roles get one department).
+export async function switchDemoRole(organizationId, role, departmentId = null) {
+  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const { data, error } = await supabase.rpc('demo_switch_my_role', { p_organization_id: organizationId, p_role: role, p_department_id: departmentId || null })
+  if (error) throw error
+  return data
+}
+
+// What the signed-in evaluator may know about their own Demos (dates, state, open).
+export async function loadCurrentDemoAccess() {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('current_demo_access')
+  if (error) throw error
+  return Array.isArray(data) ? data : []
 }
 
 export async function createPlatformOrganization({ name, code, type = 'hospital', status = 'active', region = null, healthRegion = null, city = null, country = '', contactEmail = null, contactPhone = null, bedCapacity = null }) {

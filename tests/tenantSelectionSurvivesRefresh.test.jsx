@@ -54,7 +54,7 @@ describe('tenant selection survives a page refresh', () => {
     cleanup()
     ref = mount(); await hydrated(ref)
     expect(ref.current.tenant.name).toBe('Beta')
-    act(() => { ref.current.enterPlatformDemo() })
+    act(() => { ref.current.enterSampleDemo() })
     cleanup()
     ref = mount(); await hydrated(ref)
     expect(ref.current.isDemo).toBe(true)

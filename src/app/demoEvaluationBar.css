@@ -1,0 +1,19 @@
+/* Demo organization bar (under the topbar) and the "Demo ended" screen. */
+.demo-evaluation-bar{flex:0 0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 18px;background:#fff8ec;border-bottom:1px solid #f0dcb4;color:#6b4a12;font-size:12px}
+.demo-evaluation-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:#f5b84a;color:#3d2a05;font-size:10.5px;font-weight:800;letter-spacing:.04em}
+.demo-evaluation-text{display:flex;align-items:baseline;gap:8px;min-width:0}
+.demo-evaluation-text strong{font-weight:750;color:#4f3608}
+.demo-evaluation-text small{color:#86622a;font-size:11.5px}
+.demo-evaluation-spacer{flex:1}
+.demo-evaluation-bar button{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border:1px solid #ecd2a2;border-radius:8px;background:#fff;color:#6b4a12;font-size:11.5px;font-weight:700;cursor:pointer}
+.demo-evaluation-bar button:hover{background:#fff3dc}
+.demo-evaluation-bar button.active{background:#f5b84a;border-color:#e3a43a;color:#3d2a05}
+.demo-evaluation-roles{position:relative;z-index:30}
+.demo-evaluation-roles .role-preview-popover{top:36px;color:var(--text,#24384d);font-size:12px}
+@media(max-width:720px){.demo-evaluation-spacer{display:none}.demo-evaluation-text{flex-wrap:wrap}}
+
+.demo-closed-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--lo-surface-page,#f4f7fa)}
+.demo-closed-card{width:min(480px,100%);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:30px 26px;background:#fff;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:16px;box-shadow:0 18px 44px rgba(17,42,63,.1)}
+.demo-closed-card h1{margin:6px 0 0;font-size:21px;color:#1d3247}
+.demo-closed-card p{margin:0;color:var(--lo-text-secondary,#5f6f7c);font-size:13px;line-height:1.55}
+.demo-closed-card button{margin-top:10px}
