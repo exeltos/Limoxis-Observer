@@ -4,6 +4,8 @@ import { Page } from '../../design-system/Page'
 import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { exportRegistry } from '../../core/export/registryExports'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { listPlatformAuditEvents } from './platformAuditService'
 
@@ -73,7 +75,7 @@ export function PlatformAuditSecurityView({organizations=[],language='el'}){
   const destructive=rows.filter(row=>/delete|purge|remove|revoke/i.test(row.eventType)).length
   const accessChanges=rows.filter(row=>/member|user|role|admin|invite|access/i.test(`${row.eventType} ${row.entityType}`)).length
 
-  return <Page title={tx('Ιστορικό & Ασφάλεια','Audit & Security')} subtitle={tx('Ιχνηλασιμότητα ενεργειών Ιδιοκτήτη Πλατφόρμας, αλλαγών πρόσβασης και σημαντικών διοικητικών μεταβολών.','Traceability of Platform Owner actions, access changes and significant administrative changes.')} actions={<IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton>}>
+  return <Page title={tx('Ιστορικό & Ασφάλεια','Audit & Security')} subtitle={tx('Ιχνηλασιμότητα ενεργειών Ιδιοκτήτη Πλατφόρμας, αλλαγών πρόσβασης και σημαντικών διοικητικών μεταβολών.','Traceability of Platform Owner actions, access changes and significant administrative changes.')} actions={<div className="row-actions"><DownloadMenu items={[{id:'audit',label:tx('Excel: ιστορικό ενεργειών','Excel: audit trail'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('istoriko-energeion','audit-trail'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Χρήστης','User'),tx('Ρόλος','Role'),tx('Ενέργεια','Action'),tx('Αντικείμενο','Entity'),'ID'],rows:filtered.map(row=>{const org=organizationMap.get(row.organizationId);return [fmtDate(row.createdAt),org?.name||tx('Επίπεδο πλατφόρμας','Platform level'),row.actorName||'',row.actorRole?roleLabel(row.actorRole,language):'',eventLabel(row.eventType,en),entityLabel(row.entityType,en),row.entityId||'']})})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}>
     <div className="platform-registry-shell workspace-column">
       <div className="diagnostics-summary-strip platform-summary-strip">
         <div className="diagnostics-summary"><span>{tx('Καταγεγραμμένες ενέργειες','Recorded actions')}</span><strong>{rows.length}</strong></div>

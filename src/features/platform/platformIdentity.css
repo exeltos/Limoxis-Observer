@@ -1,0 +1,6 @@
+/* Platform Owner: hospital screen lock and identity on the organization record. */
+.platform-identity-grid .field>span svg{vertical-align:-2px}
+.platform-identity-logo{grid-column:1/-1}
+.platform-identity-logo-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.platform-identity-logo-box{display:grid;place-items:center;width:160px;height:56px;border:1px dashed #b9c9d6;border-radius:10px;background:#f6f9fc;color:#9db4c9}
+.platform-identity-logo-box img{max-width:148px;max-height:46px;object-fit:contain}

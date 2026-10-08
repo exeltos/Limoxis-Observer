@@ -4,6 +4,8 @@ import { Page } from '../../design-system/Page'
 import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { exportRegistry } from '../../core/export/registryExports'
 import { listRuntimeEvents } from '../../core/diagnostics/runtimeDiagnosticsService'
 
 const severityMeta={
@@ -83,7 +85,7 @@ export function PlatformHealthView({organizations=[],language='el'}){
   return <Page
     title={tx('Υγεία Πλατφόρμας','Platform Health')}
     subtitle={tx('Συγκεντρωτική λειτουργική εικόνα όλων των πραγματικών οργανισμών χωρίς πρόσβαση σε κλινικό περιεχόμενο.','Aggregated operational health across production organizations without clinical-record content.')}
-    actions={<IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton>}
+    actions={<div className="row-actions"><DownloadMenu items={[{id:'events',label:tx('Excel: συμβάντα','Excel: events'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('symvanta-leitourgias','platform-events'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Κατάσταση','Status'),tx('Ενότητα','Area'),'Route',tx('Περιγραφή','Description'),tx('Αναφορά','Reference'),tx('Χρήστης','User'),tx('Έκδοση','Version')],rows:filtered.map(row=>[fmtDate(row.occurredAt),organizationMap.get(row.organizationId)?.name||row.organizationName||'',(severityMeta[row.severity]||severityMeta.info)[en?'en':'el'],row.module||'',row.route||'',row.message||'',row.diagnosticCode||'',row.actorName||'',row.appVersion||''])})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}
   >
     <div className="platform-registry-shell workspace-column">
       <div className="diagnostics-summary-strip platform-summary-strip">
