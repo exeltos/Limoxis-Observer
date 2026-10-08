@@ -95,43 +95,40 @@ revoke all on function private.demo_wipe_data(uuid) from public, anon, authentic
 
 -- 3. The Demo data pack ------------------------------------------------------
 -- Synthetic people only (e-mail addresses end in .invalid). Dates are relative
--- to today so the Demo always looks current.
-create or replace function private.demo_seed_data(p_organization_id uuid, p_actor uuid)
-returns jsonb
-language plpgsql
-security definer
-set search_path = ''
-as $function$
-declare
-  v_org uuid := p_organization_id;
-  d0 date := current_date;
-  v_now timestamptz := now();
-  v_depts uuid[];
-  fm text[] := array['Γιώργος','Νίκος','Δημήτρης','Κώστας','Γιάννης','Παναγιώτης','Βασίλης','Χρήστος','Αντώνης','Σπύρος','Μιχάλης','Θανάσης'];
-  ff text[] := array['Μαρία','Ελένη','Κατερίνα','Βασιλική','Σοφία','Αγγελική','Δήμητρα','Ευαγγελία','Ιωάννα','Χριστίνα','Γεωργία','Αναστασία'];
-  lm text[] := array['Παπαδόπουλος','Γεωργίου','Νικολάου','Οικονόμου','Αντωνίου','Δημητρίου','Ιωάννου','Κωνσταντίνου','Παπαδάκης','Βασιλείου','Μαυρίδης','Σταθόπουλος'];
-  lf text[] := array['Παπαδοπούλου','Γεωργίου','Νικολάου','Οικονόμου','Αντωνίου','Δημητρίου','Ιωάννου','Κωνσταντίνου','Παπαδάκη','Βασιλείου','Μαυρίδου','Σταθοπούλου'];
-  orgs text[] := array['Escherichia coli','Klebsiella pneumoniae','Staphylococcus aureus','Pseudomonas aeruginosa','Acinetobacter baumannii','Enterococcus faecium'];
-begin
-  if p_actor is null then
-    raise exception 'Authentication required' using errcode = '42501';
-  end if;
-  if not exists (select 1 from public.organizations o where o.id = v_org and o.is_demo) then
-    raise exception 'Only Demo organizations can be filled with Demo data' using errcode = '42501';
-  end if;
-  perform set_config('limoxis.test_reset', 'on', true);
+-- to today so the Demo always looks current. Written as several functions so
+-- each one fits in a single SQL editor run.
 
+create or replace function private.demo_seed_departments_patients(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+begin
   -- Departments
   insert into public.departments(organization_id, code, name, department_type, is_active)
-  select v_org, d.code, d.name, d.kind, true
+  select p_organization_id, d.code, d.name, d.kind, true
   from (values ('ΜΕΘ','Μονάδα Εντατικής Θεραπείας','icu'),('ΠΑΘ','Παθολογική Κλινική','general'),
                ('ΧΕΙΡ','Χειρουργική Κλινική','general'),('ΚΑΡΔ','Καρδιολογική Κλινική','general'),
                ('ΟΡΘ','Ορθοπαιδική Κλινική','general'),('ΝΕΦ','Νεφρολογική Κλινική','general'),
                ('ΠΑΙΔ','Παιδιατρική Κλινική','general'),('ΜΕΝΝ','Μονάδα Εντατικής Νοσηλείας Νεογνών','nicu')) d(code,name,kind)
   on conflict (organization_id, name) do nothing;
-  v_depts := array(
+  perform private.demo_seed_patients(p_organization_id, p_actor);
+end;
+$function$;
+
+create or replace function private.demo_seed_patients(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
     select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
-    join public.departments dep on dep.organization_id = v_org and dep.code = o.code order by o.ord);
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+  fm text[] := array['Γιώργος','Νίκος','Δημήτρης','Κώστας','Γιάννης','Παναγιώτης','Βασίλης','Χρήστος','Αντώνης','Σπύρος','Μιχάλης','Θανάσης'];
+  ff text[] := array['Μαρία','Ελένη','Κατερίνα','Βασιλική','Σοφία','Αγγελική','Δήμητρα','Ευαγγελία','Ιωάννα','Χριστίνα','Γεωργία','Αναστασία'];
+  lm text[] := array['Παπαδόπουλος','Γεωργίου','Νικολάου','Οικονόμου','Αντωνίου','Δημητρίου','Ιωάννου','Κωνσταντίνου','Παπαδάκης','Βασιλείου','Μαυρίδης','Σταθόπουλος'];
+  lf text[] := array['Παπαδοπούλου','Γεωργίου','Νικολάου','Οικονόμου','Αντωνίου','Δημητρίου','Ιωάννου','Κωνσταντίνου','Παπαδάκη','Βασιλείου','Μαυρίδου','Σταθοπούλου'];
+begin
 
   -- Patients (the admission is created by the patients trigger)
   insert into public.patients(organization_id, patient_code, first_name, last_name, father_name, sex, date_of_birth,
@@ -148,7 +145,20 @@ begin
     case when g % 4 = 0 then 'discharged' else 'active' end,
     p_actor
   from (select g, d0 - (2 + (g * 7) % 55) as adm from generate_series(1, 48) g) s;
+end;
+$function$;
 
+create or replace function private.demo_seed_surveillance(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
+    select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+begin
   -- Surveillance cases with their start event
   with p as (
     select pt.id, pt.department_id, pt.admission_date, row_number() over (order by pt.patient_code) rn
@@ -188,7 +198,21 @@ begin
   join public.surveillance_cases sc on sc.id = k.id
   join public.surveillance_events e on e.surveillance_case_id = sc.id and e.event_type = 'surveillance_start'
   where k.rn <= 8;
+end;
+$function$;
 
+create or replace function private.demo_seed_laboratory(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
+    select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+  orgs text[] := array['Escherichia coli','Klebsiella pneumoniae','Staphylococcus aureus','Pseudomonas aeruginosa','Acinetobacter baumannii','Enterococcus faecium'];
+begin
   -- Laboratory samples: two per surveillance case, screening samples, new requests
   insert into public.laboratory_samples(organization_id, patient_id, surveillance_case_id, department_id, sample_code, sample_type, source_site,
     requested_at, requested_by, collected_at, received_at, status, priority, subject_type, created_by, created_at)
@@ -217,7 +241,21 @@ begin
     from (select pt.*, row_number() over (order by pt.patient_code) g from public.patients pt where pt.organization_id = v_org and pt.status = 'active') pt
     where pt.g between 20 and 22
   ) s;
+end;
+$function$;
 
+create or replace function private.demo_seed_microbiology(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
+    select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+  orgs text[] := array['Escherichia coli','Klebsiella pneumoniae','Staphylococcus aureus','Pseudomonas aeruginosa','Acinetobacter baumannii','Enterococcus faecium'];
+begin
   -- Microbiology results for the completed samples (validated)
   insert into public.microbiology_results(organization_id, sample_id, result_status, organism, resistance_class, susceptibility_summary,
     is_critical, critical_communicated_at, critical_communicated_to, resulted_at, validated_by, validated_at, created_by, method,
@@ -239,7 +277,20 @@ begin
     cross join lateral (select right(ls.sample_code, 3)::int as n) n
     where ls.organization_id = v_org and ls.status = 'completed'
   ) r;
+end;
+$function$;
 
+create or replace function private.demo_seed_susceptibility(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
+    select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+begin
   -- Susceptibility for positive results
   insert into public.antimicrobial_susceptibility_results(organization_id, microbiology_result_id, antimicrobial_code, antimicrobial_name, method,
     mic_value, mic_operator, sir_category, breakpoint_standard, breakpoint_version, created_by, organism_name, organism)
@@ -271,7 +322,24 @@ begin
   join public.surveillance_cases sc on sc.id = ls.surveillance_case_id and sc.status = 'active'
   where mr.organization_id = v_org and mr.resistance_class is not null
   order by sc.id, mr.resulted_at;
+end;
+$function$;
 
+create or replace function private.demo_seed_hand_hygiene_employees(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
+    select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+  fm text[] := array['Γιώργος','Νίκος','Δημήτρης','Κώστας','Γιάννης','Παναγιώτης','Βασίλης','Χρήστος','Αντώνης','Σπύρος','Μιχάλης','Θανάσης'];
+  ff text[] := array['Μαρία','Ελένη','Κατερίνα','Βασιλική','Σοφία','Αγγελική','Δήμητρα','Ευαγγελία','Ιωάννα','Χριστίνα','Γεωργία','Αναστασία'];
+  lm text[] := array['Παπαδόπουλος','Γεωργίου','Νικολάου','Οικονόμου','Αντωνίου','Δημητρίου','Ιωάννου','Κωνσταντίνου','Παπαδάκης','Βασιλείου','Μαυρίδης','Σταθόπουλος'];
+  lf text[] := array['Παπαδοπούλου','Γεωργίου','Νικολάου','Οικονόμου','Αντωνίου','Δημητρίου','Ιωάννου','Κωνσταντίνου','Παπαδάκη','Βασιλείου','Μαυρίδου','Σταθοπούλου'];
+begin
   -- Hand hygiene: WHO observation sessions over the last three months
   insert into public.hand_hygiene_sessions(organization_id, department_id, observation_date, professional_category, observations, compliant_observations,
     observer_id, observer_name, source_standard, source_version, status, start_time, end_time, created_by, updated_by)
@@ -301,7 +369,20 @@ begin
     d0 - (200 + g * 97), 'emp' || lpad(g::text, 3, '0') || '@demo.invalid', p_actor, p_actor
   from generate_series(1, 24) g
   join public.departments dep on dep.id = v_depts[1 + g % 8];
+end;
+$function$;
 
+create or replace function private.demo_seed_patient_days(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
+    select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+begin
   -- Patient days per department and month (last six full months)
   insert into public.patient_day_periods(organization_id, department_id, period_start, period_end, patient_days, source, review_status, notes, created_by, updated_by)
   select v_org, v_depts[dn], m.ms::date, (m.ms + interval '1 month - 1 day')::date,
@@ -309,7 +390,20 @@ begin
     'manual', 'approved', 'Demo', p_actor, p_actor
   from generate_series(1, 6) dn
   cross join lateral (select mi, (date_trunc('month', d0) - mi * interval '1 month') as ms from generate_series(1, 6) mi) m;
+end;
+$function$;
 
+create or replace function private.demo_seed_incidents(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
+    select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+begin
   -- Quality: incidents and corrective / preventive actions
   insert into public.quality_incidents(organization_id, code, title, department_id, occurred_at, severity, status, description, category, impact,
     incident_class, reached_patient, harm_occurred, immediate_actions, owner_label, owner_labels, reported_by_label)
@@ -328,7 +422,20 @@ begin
     (9, 52, 1, 'Αποσύνδεση κεντρικού φλεβικού καθετήρα', 'critical', 'under_review', 'Τυχαία αποσύνδεση ΚΦΚ κατά τη μετακίνηση ασθενούς.', 'clinical', 'moderate', 'harmful'),
     (10, 63, 3, 'Ανεπαρκής διαθεσιμότητα αντισηπτικού', 'low', 'closed', 'Άδειοι διανομείς αντισηπτικού στον διάδρομο.', 'facility', 'none', 'nearMiss')
   ) i(n, ago, dep, title, sev, st, descr, cat, imp, cls);
+end;
+$function$;
 
+create or replace function private.demo_seed_capa(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
+    select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+begin
   insert into public.quality_capa_actions(organization_id, code, title, department_id, source_type, source_id, action_type, priority, status, description,
     due_date, effectiveness_due, effectiveness_status, owner_label, owner_labels)
   select v_org, 'CAPA-' || to_char(d0 - c.ago, 'YYMMDD') || '-' || lpad((90000 + c.n)::text, 6, '0'), c.title, v_depts[c.dep], 'incident',
@@ -342,7 +449,20 @@ begin
     (5, 17, 4, 5, 'Τυποποιημένη σήμανση απομόνωσης', 'corrective', 'low', 'closed', 'Νέες κάρτες προφυλάξεων σε όλα τα τμήματα.', -12),
     (6, 50, 1, 9, 'Πρωτόκολλο στερέωσης ΚΦΚ κατά τη μετακίνηση', 'corrective', 'critical', 'in_progress', 'Έλεγχος στερέωσης πριν από κάθε μετακίνηση.', -2)
   ) c(n, ago, dep, inc, title, kind, pri, st, descr, due);
+end;
+$function$;
 
+create or replace function private.demo_seed_documents(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
+    select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+begin
   -- Controlled documents
   insert into public.controlled_documents(organization_id, code, title, document_type, department_id, audience, status, version, description,
     effective_date, review_date, published_at, published_by, approved_at, approved_by, created_by)
@@ -360,7 +480,20 @@ begin
     (7, 'Πρωτόκολλο καθαρισμού και απολύμανσης χώρων', 'protocol', 'review', '1.1', 'Αναθεώρηση για τα νέα απολυμαντικά.', 0),
     (8, 'Οδηγία διαχείρισης έκθεσης σε αιματογενώς μεταδιδόμενα', 'instruction', 'draft', '0.9', 'Σχέδιο προς σχολιασμό.', 0)
   ) d(n, title, kind, st, ver, descr, ago);
+end;
+$function$;
 
+create or replace function private.demo_seed_committees(p_organization_id uuid, p_actor uuid)
+returns void language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+  d0 date := current_date;
+  v_now timestamptz := now();
+  v_depts uuid[] := array(
+    select dep.id from (values ('ΜΕΘ',1),('ΠΑΘ',2),('ΧΕΙΡ',3),('ΚΑΡΔ',4),('ΟΡΘ',5),('ΝΕΦ',6),('ΠΑΙΔ',7),('ΜΕΝΝ',8)) o(code,ord)
+    join public.departments dep on dep.organization_id = p_organization_id and dep.code = o.code order by o.ord);
+begin
   -- Committees and meetings
   insert into public.committees(organization_id, code, name, short_name, committee_type, status, mandate, meeting_frequency, term_start, term_end, created_by)
   values
@@ -378,7 +511,33 @@ begin
     ('COM-002', 'Τριμηνιαία συνεδρίαση ποιότητας', 14, 'planned', null, '["Συμβάντα τριμήνου","Πορεία CAPA"]')
   ) m(code, title, days, st, num, agenda)
   join public.committees cm on cm.organization_id = v_org and cm.code = m.code;
+end;
+$function$;
 
+create or replace function private.demo_seed_data(p_organization_id uuid, p_actor uuid)
+returns jsonb language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_org uuid := p_organization_id;
+begin
+  if p_actor is null then
+    raise exception 'Authentication required' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.organizations o where o.id = v_org and o.is_demo) then
+    raise exception 'Only Demo organizations can be filled with Demo data' using errcode = '42501';
+  end if;
+  perform set_config('limoxis.test_reset', 'on', true);
+  perform private.demo_seed_departments_patients(v_org, p_actor);
+  perform private.demo_seed_surveillance(v_org, p_actor);
+  perform private.demo_seed_laboratory(v_org, p_actor);
+  perform private.demo_seed_microbiology(v_org, p_actor);
+  perform private.demo_seed_susceptibility(v_org, p_actor);
+  perform private.demo_seed_hand_hygiene_employees(v_org, p_actor);
+  perform private.demo_seed_patient_days(v_org, p_actor);
+  perform private.demo_seed_incidents(v_org, p_actor);
+  perform private.demo_seed_capa(v_org, p_actor);
+  perform private.demo_seed_documents(v_org, p_actor);
+  perform private.demo_seed_committees(v_org, p_actor);
   return jsonb_build_object(
     'ok', true,
     'departments', (select count(*) from public.departments x where x.organization_id = v_org),
@@ -397,6 +556,18 @@ end;
 $function$;
 
 revoke all on function private.demo_seed_data(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_departments_patients(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_patients(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_surveillance(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_laboratory(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_microbiology(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_susceptibility(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_hand_hygiene_employees(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_patient_days(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_incidents(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_capa(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_documents(uuid, uuid) from public, anon, authenticated;
+revoke all on function private.demo_seed_committees(uuid, uuid) from public, anon, authenticated;
 
 -- 4. Reset a Demo organization (Platform Owner) -------------------------------
 create or replace function public.platform_reset_demo_organization(p_organization_id uuid)
