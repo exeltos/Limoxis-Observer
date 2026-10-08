@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, BookOpenCheck, Clock3, Download, FileSpreadsheet, Send, Users } from 'lucide-react'
+import { ArrowLeft, BookOpenCheck, Clock3, Send, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
-import { Button } from '../../design-system/Button'
+import { DownloadMenu } from '../../design-system/DownloadMenu'
 import { IconButton } from '../../design-system/IconButton'
 import { MetricCard } from '../../design-system/MetricCard'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
@@ -131,7 +131,7 @@ export function DocumentAcknowledgementsPage() {
   }
 
   return <Page fill title={title} subtitle={en ? 'Who has read each published protocol and who is still pending: proof for inspections.' : 'Ποιος έχει διαβάσει κάθε δημοσιευμένο πρωτόκολλο και ποιος εκκρεμεί: απόδειξη για επιθεωρήσεις.'}
-    actions={<div className="row-actions">{back}<Button variant="secondary" onClick={exportCsv} disabled={!entries.length}><FileSpreadsheet size={15} />Excel</Button><Button variant="secondary" onClick={exportPdf} disabled={exporting || !entries.length}><Download size={15} />PDF</Button></div>}>
+    actions={<div className="row-actions">{back}<DownloadMenu onExcel={exportCsv} onPdf={exportPdf} disabled={!entries.length} pdfBusy={exporting} /></div>}>
     <div className="module-summary-strip">
       <MetricCard icon={Send} value={totals.distributions} label={en ? 'Distributed documents' : 'Κοινοποιημένα έγγραφα'} />
       <MetricCard icon={BookOpenCheck} value={`${totals.rate}%`} label={en ? 'Overall read rate' : 'Συνολικό ποσοστό ανάγνωσης'} tone={totals.rate >= 90 ? 'active' : totals.rate >= 60 ? 'warning' : 'danger'} />

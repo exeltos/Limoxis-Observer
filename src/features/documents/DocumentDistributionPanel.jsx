@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Check, Clock3, FileSpreadsheet, Search, Send, Users } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, Clock3, Search, Send, Users } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
+import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useNotifications } from '../../core/notifications/NotificationContext'
 import { roleLabel, SYSTEM_ROLE_KEYS } from '../../core/permissions/roleLabels'
@@ -36,6 +38,8 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
   const [audienceMode, setAudienceMode] = useState(record.departmentId ? 'department' : 'all')
   const [selected, setSelected] = useState(record.departmentId ? [record.departmentId] : [])
   const [query, setQuery] = useState('')
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const panelRef = useRef(null)
 
   useEffect(() => {
     setAudienceMode(record.departmentId ? 'department' : 'all')
@@ -148,14 +152,22 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
       rows.map((row) => [row.documentCode, row.documentTitle, row.version, fmtDateTime(row.sentAt, en), row.name, row.position, row.department, row.status === 'acknowledged' ? (en ? 'Read' : 'Διαβάστηκε') : (en ? 'Pending' : 'Εκκρεμεί'), row.acknowledgedAt ? fmtDateTime(row.acknowledgedAt, en) : '']))
   }
 
+  async function exportPdf() {
+    if (exportingPdf || !panelRef.current) return
+    setExportingPdf(true)
+    try { await exportElementAsPdf({ element: panelRef.current, filename: `${record.id}_${en ? 'read-acknowledgements' : 'epivevaioseis-anagnosis'}`, orientation: 'portrait' }) }
+    catch (error) { notify(error?.message || (en ? 'Could not export the PDF.' : 'Δεν ήταν δυνατή η εξαγωγή του PDF.'), 'danger') }
+    finally { setExportingPdf(false) }
+  }
+
   const personName = (member) => (en ? member.nameEn : '') || member.name || '—'
 
-  return <section className="record-section document-ack-panel">
+  return <section className="record-section document-ack-panel" ref={panelRef}>
     <div className="record-section-header"><div>
       <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
       <h3>{en ? 'Distribution & read acknowledgement' : 'Κοινοποίηση & επιβεβαίωση ανάγνωσης'}</h3>
       <p>{en ? 'Notify the relevant staff that this version is published and keep proof of who has read it.' : 'Ενημερώστε το αρμόδιο προσωπικό ότι δημοσιεύτηκε αυτή η έκδοση και κρατήστε απόδειξη για το ποιος την έχει διαβάσει.'}</p>
-    </div>{distribution && canSend && summary && <div className="record-actions"><ActionButton tone="secondary" label={en ? 'Export to Excel' : 'Εξαγωγή σε Excel'} onClick={exportCsv}><FileSpreadsheet size={15} />{en ? 'Excel' : 'Excel'}</ActionButton></div>}</div>
+    </div>{distribution && canSend && summary && <div className="record-actions"><DownloadMenu onExcel={exportCsv} onPdf={exportPdf} pdfBusy={exportingPdf} /></div>}</div>
     {record.status !== 'published' && <div className="inline-empty">{en ? 'Distribution is available once the document is published.' : 'Η κοινοποίηση είναι διαθέσιμη μόλις δημοσιευτεί το έγγραφο.'}</div>}
     {record.status === 'published' && (loadingDistribution
       ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>
