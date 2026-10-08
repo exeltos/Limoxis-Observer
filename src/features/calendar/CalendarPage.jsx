@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CalendarDays,ChevronLeft,ChevronRight,ClipboardCheck,ListChecks } from 'lucide-react'
+import { AlertTriangle,CalendarDays,ChevronLeft,ChevronRight,ClipboardCheck,GraduationCap,ListChecks,Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
@@ -7,6 +7,7 @@ import { IconButton } from '../../design-system/IconButton'
 import { MetricCard } from '../../design-system/MetricCard'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -85,6 +86,14 @@ export function CalendarPage(){
    rows:[...overdue.filter(e=>!e.date.startsWith(monthKey)),...monthEvents].map(e=>[new Intl.DateTimeFormat(locale).format(new Date(`${e.date}T12:00:00`)),e.time||'',calendarKindLabel(e.kind,language),e.title,e.detail||'',e.department||'',stateLabel(e.state,en)])})
  }
 
+ const canManageQuality=can(role,CAPABILITIES.MANAGE_QUALITY,membership?.capabilities??[],membership?.customCapabilities??[])
+ const canManageTraining=can(role,CAPABILITIES.MANAGE_TRAINING,membership?.capabilities??[],membership?.customCapabilities??[])
+ const from={limoxisFrom:{path:'/calendar',label:en?'Calendar':'Ημερολόγιο'}}
+ const addItems=[
+  canManageQuality&&{id:'capa',label:en?'New CAPA (due this day)':'Νέα CAPA (προθεσμία)',icon:ClipboardCheck,onClick:()=>navigate('/quality/capas/new',{state:{...from,qualitySource:{dueDate:selected}}})},
+  canManageQuality&&{id:'audit',label:en?'New audit':'Νέα επιθεώρηση',icon:ListChecks,onClick:()=>navigate('/quality/audits/new',{state:{...from,qualitySource:{plannedDate:selected}}})},
+  canManageTraining&&{id:'training',label:en?'New training':'Νέα εκπαίδευση',icon:GraduationCap,onClick:()=>navigate('/training/new',{state:{...from,calendarDate:selected}})},
+ ].filter(Boolean)
  if(!sources)return <RouteLoading/>
  const selectedEvents=byDay.get(selected)||[]
  return <Page fill className="calendar-page" title={en?'Calendar':'Ημερολόγιο'} subtitle={en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.'} actions={<DownloadMenu disabled={!monthEvents.length&&!overdue.length} onExcel={exportMonth}/>}>
@@ -112,7 +121,7 @@ export function CalendarPage(){
      </div>
     </div>
     <aside className="calendar-day-panel" aria-live="polite">
-     <h4>{fmtDay(selected)}</h4>
+     <div className="calendar-day-panel-head"><h4>{fmtDay(selected)}</h4>{addItems.length>0&&<OverflowMenu label={en?'Add':'Προσθήκη'} trigger={<><Plus size={15} aria-hidden="true"/>{en?'Add':'Προσθήκη'}</>} items={addItems}/>}</div>
      {selectedEvents.length?<ul className="calendar-agenda">{selectedEvents.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path)}/>)}</ul>:<div className="inline-empty">{en?'Nothing scheduled.':'Δεν υπάρχει κάτι προγραμματισμένο.'}</div>}
     </aside>
    </div>:<div className="calendar-list scroll-panel">

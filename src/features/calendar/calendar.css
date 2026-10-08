@@ -49,3 +49,5 @@
 .calendar-list-heading.today{color:#1f6fa9}
 @media(max-width:1100px){.calendar-month-layout{grid-template-columns:1fr}.calendar-day-panel{border-left:0;border-top:1px solid var(--lo-color-border)}}
 @media(max-width:700px){.calendar-day{min-height:54px}.calendar-chip{display:none}.calendar-day:has(.calendar-chip)::after{content:'';width:6px;height:6px;border-radius:50%;background:#1f6fa9}}
+.calendar-day-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.calendar-day-panel-head h4{margin:0}
