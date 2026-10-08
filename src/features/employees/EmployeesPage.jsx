@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Users } from 'lucide-react'
+import { Upload,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
@@ -13,13 +13,18 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { MetricCard } from '../../design-system/MetricCard'
 import { useEmployeesData } from './useEmployeesData'
 import { RouteLoading } from '../../design-system/RouteLoading'
+import { Button } from '../../design-system/Button'
+import { can } from '../../core/permissions/roles'
+import { EmployeeImportDialog } from './EmployeeImportDialog'
 
 export function EmployeesPage(){
-  const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord}=useTenant()
+  const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord,role,membership}=useTenant()
   const {data:employeeRows,loading,error,reload}=useEmployeesData()
   const registry=useRegistryMemory('employees')
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query); const [department,setDepartment]=useState(saved.department); const [status,setStatus]=useState(saved.status)
+  const [importOpen,setImportOpen]=useState(false)
+  const canImport=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,membership?.capabilities??[],membership?.customCapabilities??[])
   const [page,setPage]=useState(1); const [pageSize,setPageSize]=useState(15)
   const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[employeeRows,language])
   const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>status==='all'||x.employmentStatus===status),[employeeRows,query,department,status,language,canAccessRecord])
@@ -37,7 +42,7 @@ export function EmployeesPage(){
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)); const safePage=Math.min(page,totalPages); const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
   function openEmployee(row){registry.saveViewState({query,department,status});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
   function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});navigate('/employees/new')}}
-  return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t('employeesRecords.employeesRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/> }>
+  return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t('employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
     <div className="workspace-summary employee-registry-summary">
       <div className="employee-kpis">
         <Kpi icon={Users} value={employeeSummary.total} label={t('all')}/>
@@ -57,6 +62,7 @@ export function EmployeesPage(){
       </div>
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </section>
+    {importOpen&&<EmployeeImportDialog existing={employeeRows} language={language} onClose={()=>setImportOpen(false)} onImported={reload}/>}
   </Page>
 }
 function Kpi({icon:Icon,value,label,kind=''}){return <MetricCard icon={Icon} value={value} label={label} tone={kind||'neutral'}/>}

@@ -3678,6 +3678,7 @@ button{letter-spacing:0}
   color:#31506d!important;
 }
 .topbar-organization-context>svg{flex:0 0 auto!important;color:#6e8ba4!important}
+.topbar-organization-context>.topbar-organization-logo{flex:0 0 auto;max-width:72px;max-height:28px;object-fit:contain}
 .topbar-organization-copy{min-width:0!important;display:flex!important;flex-direction:column!important;line-height:1.1!important}
 .topbar-organization-copy strong{max-width:250px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:11px!important;color:#183a5a!important}
 .topbar-organization-copy span{max-width:250px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;margin-top:2px!important;font-size:8.75px!important;color:#5f6d7d!important}

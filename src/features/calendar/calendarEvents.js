@@ -93,8 +93,10 @@ function trainingEvents(training,range,today,list,en){
  const programs=training?.programs||[]
  const assignments=training?.assignments||[]
  for(const program of programs){
-  if(['completed','cancelled'].includes(program.status))continue
   const path=`/training/${program.id}`
+  // Effectiveness is evaluated months after the programme, so completed ones count.
+  if(program.status!=='cancelled'&&program.effectiveness?.plannedDate&&!program.effectiveness.result){const day=toDay(program.effectiveness.plannedDate);push(list,{id:`trn-eff:${program.id}`,kind:'training',date:day,title:program.title,detail:en?'Effectiveness evaluation':'Αξιολόγηση αποτελεσματικότητας',department:program.audience||'',path,state:stateOf(day,today)},range)}
+  if(['completed','cancelled'].includes(program.status))continue
   const open=assignments.filter(a=>a.programId===program.id&&a.status!=='completed').length
   if(program.startDate&&toDay(program.startDate)>=today)push(list,{id:`trn-start:${program.id}`,kind:'training',date:toDay(program.startDate),title:program.title,detail:en?'Starts':'Έναρξη',department:program.audience||'',path,state:'planned'},range)
   push(list,{id:`trn-due:${program.id}`,kind:'training',date:toDay(program.dueDate),title:program.title,detail:en?`Completion due · ${open} pending`:`Προθεσμία ολοκλήρωσης · ${open} εκκρεμούν`,department:program.audience||'',path,state:open?stateOf(toDay(program.dueDate),today):'done'},range)

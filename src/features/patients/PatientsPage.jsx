@@ -40,6 +40,7 @@ export function PatientsPage(){
   const [newOpen,setNewOpen]=useState(false)
   const [riskFlags,setRiskFlags]=useState({})
   const [infectionFlags,setInfectionFlags]=useState({})
+  const [flagsReady,setFlagsReady]=useState(false)
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive)notify(error?.message||t('patientsLoadFailed'),'danger')})
@@ -48,8 +49,12 @@ export function PatientsPage(){
     }else{
       loadDepartments(tenant?.id).then(list=>{if(alive)setDepartmentOptions((list||[]).filter(item=>item.is_active!==false).map(item=>({...item,nameEn:item.name})))}).catch(error=>{if(alive)notify(error?.message||t('actionFailed'),'danger')})
     }
-    loadLatestPatientRiskFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setRiskFlags(value)}).catch(()=>{})
-    loadPatientInfectionFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setInfectionFlags(value)}).catch(()=>{})
+    // The legend waits for both flag sets, so it appears once and complete.
+    setFlagsReady(false)
+    Promise.allSettled([
+      loadLatestPatientRiskFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setRiskFlags(value)}),
+      loadPatientInfectionFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setInfectionFlags(value)}),
+    ]).then(()=>{if(alive)setFlagsReady(true)})
     return ()=>{alive=false}
   },[tenant?.id,isDemo,notify,t])
   useEffect(()=>{setPage(1)},[query,department,status,pageSize])
@@ -104,7 +109,7 @@ export function PatientsPage(){
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option></FilterSelect>
       </FilterBar>
-      <PatientsLegend t={t} language={language} rows={pagedRows} riskFlags={riskFlags} infectionFlags={infectionFlags}/>
+      <PatientsLegend t={t} language={language} rows={patients} ready={flagsReady} riskFlags={riskFlags} infectionFlags={infectionFlags}/>
       <RegistryTable
         wrapperClassName="scroll-table"
         wrapperRef={registry.scrollRef}
@@ -179,8 +184,12 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
 
 export const NewPatientCard=PatientFormDialog
 
-// One-line key for the alert badges shown on the current page of the registry.
-function PatientsLegend({t,language,rows,riskFlags,infectionFlags}){
+// One-line key for the alert badges in the registry. Built from all the
+// organization's patients (not the current page or filter) so it stays the
+// same while paging; while the flags load its line is held empty, so the table
+// does not jump when it appears.
+function PatientsLegend({t,language,rows,ready,riskFlags,infectionFlags}){
+  if(!ready)return rows.length?<div className="patient-legend patient-legend-pending" aria-hidden="true"/>:null
   const kinds=[...new Set(rows.flatMap(p=>clinicalRiskKinds(riskFlags[p.recordId]||riskFlags[p.id]||[])))]
   const infection=rows.map(p=>infectionFlags[p.recordId]||infectionFlags[p.id]).filter(Boolean)
   const mdr=infection.some(f=>f.resistance),isolation=infection.some(f=>f.isolation)

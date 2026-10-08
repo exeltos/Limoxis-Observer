@@ -18,6 +18,9 @@ vi.mock('jspdf', () => ({
       internal: { pageSize: { getWidth: () => 297, getHeight: () => 210 } },
       addImage: (...args) => addImageCalls.push(args),
       addPage: vi.fn(),
+      setDrawColor: vi.fn(),
+      setLineWidth: vi.fn(),
+      line: vi.fn(),
       save: (...args) => saveCalls.push(args),
     }
   },
@@ -48,5 +51,33 @@ describe('exportElementAsPdf', () => {
     // 2000x5000 canvas scaled to a 297mm-wide page is far taller than the
     // 210mm page height, so more than one addImage call is expected.
     expect(addImageCalls.length).toBeGreaterThan(1)
+  })
+})
+
+describe('exportElementAsPdf with the hospital header', () => {
+  beforeEach(() => {
+    addImageCalls.length = 0
+    saveCalls.length = 0
+    const context = { drawImage: vi.fn(), scale: vi.fn(), fillText: vi.fn(), set fillStyle(v) {}, set font(v) {}, set textBaseline(v) {} }
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,slice')
+  })
+
+  it('puts the header on every page and the content below it', async () => {
+    const element = document.createElement('div')
+    await exportElementAsPdf({ element, filename: 'r', branding: { name: 'General Hospital', reportHeader: 'IPC committee', logo: '' } })
+    expect(saveCalls).toHaveLength(1)
+    // Content slices sit below the 16mm header band; each page also gets the header text image.
+    const content = addImageCalls.filter(args => args[2] === 0)
+    const header = addImageCalls.filter(args => args[2] !== 0)
+    expect(content.length).toBeGreaterThan(1)
+    expect(content.every(args => args[3] === 16)).toBe(true)
+    expect(header).toHaveLength(content.length)
+  })
+
+  it('leaves the header out when asked (certificates)', async () => {
+    const element = document.createElement('div')
+    await exportElementAsPdf({ element, filename: 'c', header: false, branding: { name: 'General Hospital' } })
+    expect(addImageCalls.every(args => args[3] === 0)).toBe(true)
   })
 })

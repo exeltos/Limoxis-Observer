@@ -102,6 +102,7 @@ function mapRow(section,row){
     source:row.source_type||'other',
     sourceId:row.source_id||'',
     subActions:Array.isArray(row.sub_actions)?row.sub_actions:[],
+    rootCauseAnalysis:row.root_cause_analysis||null,
   }
   return {
     ...common,
@@ -228,6 +229,8 @@ function buildPersistPayload(section,record){
     effectiveness_due:record.effectivenessDue||null,
     effectiveness_status:dbStatus(record.effectivenessStatus)||'pending',
     sub_actions:Array.isArray(record.subActions)?record.subActions:[],
+    // Only once an analysis exists, so CAPAs without one never touch the column.
+    ...(record.rootCauseAnalysis?{root_cause_analysis:record.rootCauseAnalysis}:{}),
   })
   if(section==='audits')Object.assign(payload,{
     audit_type:record.auditType||'internal',
