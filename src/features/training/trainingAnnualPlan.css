@@ -5,8 +5,10 @@
 .training-plan-toolbar strong{font-size:15px;color:var(--lo-color-text)}
 .training-plan-year{display:inline-flex;align-items:center;gap:6px}
 .training-plan-year strong{min-width:44px;text-align:center;font-size:16px}
-.training-plan-toolbar .training-plan-alert{align-items:center;padding:3px 10px;border-radius:999px;background:#fdeceb;color:#b42318;font-weight:700}
+.training-plan-toolbar .training-plan-alert{display:inline-flex;gap:6px;border:0;font:inherit;align-items:center;padding:3px 10px;border-radius:999px;background:#fdeceb;color:#b42318;font-weight:700}
 .training-plan-toolbar .training-plan-alert strong{color:#b42318}
+.training-plan-toolbar button.training-plan-alert{cursor:pointer}
+.training-plan-toolbar button.training-plan-alert:hover{background:#fbdcd9}
 .training-plan .scroll-table{flex:1 1 0;min-height:0;overflow:auto}
 .training-plan-table th:first-child,.training-plan-table td:first-child{min-width:240px}
 /* The registry shell pads every cell with !important; month cells must touch
@@ -25,7 +27,6 @@
 .training-plan-state.done{background:#e7f5ec;color:#1d6b3a}
 .training-plan-state.running{background:#e6f0fa;color:#1f5a94}
 .training-plan-state.overdue{background:#fdeceb;color:#b42318}
-.data-table .training-plan-group th{position:static;padding-top:14px;background:#f6f8fa;text-transform:none;font-size:12px;color:var(--lo-color-text)}
 .training-plan-count{display:inline-block;min-width:24px;padding:2px 6px;border-radius:999px;background:#fff1dc;color:#8a4b00;font-weight:800;font-size:11px}
 .training-plan-need.uncovered td:first-child small{color:#b42318;font-weight:700}
 .training-plan-empty{text-align:center;color:var(--lo-color-muted)}
