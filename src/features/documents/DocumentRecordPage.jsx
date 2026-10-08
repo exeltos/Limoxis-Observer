@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Archive, BookOpenCheck, Check, Download, FileClock, Paperclip, Pencil, RotateCcw, Search, Send, Trash2 } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Archive, BookOpenCheck, Download, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
@@ -17,8 +17,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
-import { useNotifications } from '../../core/notifications/NotificationContext'
-import { createAnnouncement, loadAnnouncementByLinkPath, loadAnnouncementAcknowledgers } from '../management/announcementCloudService'
+import { DocumentDistributionPanel } from './DocumentDistributionPanel'
 import { useDocumentsData } from './useDocumentsData'
 import {
   updateDocumentAsync,
@@ -113,7 +112,8 @@ export function DocumentRecordPage() {
   const statusLabels = labels[language].statuses
 
   const { data: rows, loading, error, reload } = useDocumentsData()
-  const [tab, setTab] = useState('overview')
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState(() => searchParams.get('tab') || 'overview')
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -455,130 +455,4 @@ export function DocumentRecordPage() {
         </details>)}</div>}
     </section>}
   </EntityRecordShell></Page>
-}
-
-function DocumentDistributionPanel({ record, organizationId, isDemo, departments, canManage, canPublish, en }) {
-  const n = useNotifications()
-  const { notify } = useFeedback()
-  const linkPath = `/documents/${record.id}`
-  const canSend = canManage || canPublish
-  const [distribution, setDistribution] = useState(null)
-  const [loadingDistribution, setLoadingDistribution] = useState(!isDemo)
-  const [acknowledgers, setAcknowledgers] = useState([])
-  const [loadingAcknowledgers, setLoadingAcknowledgers] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [audienceMode, setAudienceMode] = useState(record.departmentId ? 'department' : 'all')
-  const [selectedDepartments, setSelectedDepartments] = useState(record.departmentId ? [record.departmentId] : [])
-  const [deptQuery, setDeptQuery] = useState('')
-
-  useEffect(() => {
-    setAudienceMode(record.departmentId ? 'department' : 'all')
-    setSelectedDepartments(record.departmentId ? [record.departmentId] : [])
-    setDeptQuery('')
-  }, [record.id, record.departmentId])
-
-  function toggleDepartment(id) {
-    setSelectedDepartments((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]))
-  }
-
-  useEffect(() => {
-    if (isDemo) {
-      setDistribution(n.announcements.find((a) => a.linkPath === linkPath) || null)
-      setLoadingDistribution(false)
-      return undefined
-    }
-    if (!organizationId) return undefined
-    let active = true
-    setLoadingDistribution(true)
-    loadAnnouncementByLinkPath(organizationId, linkPath)
-      .then((row) => { if (active) setDistribution(row) })
-      .catch(() => { if (active) setDistribution(null) })
-      .finally(() => { if (active) setLoadingDistribution(false) })
-    return () => { active = false }
-  }, [isDemo, n.announcements, organizationId, linkPath])
-
-  useEffect(() => {
-    if (isDemo || !distribution?.id || !canSend) { setAcknowledgers([]); return undefined }
-    let active = true
-    setLoadingAcknowledgers(true)
-    loadAnnouncementAcknowledgers(organizationId, distribution.id)
-      .then((rows) => { if (active) setAcknowledgers(rows) })
-      .catch(() => { if (active) setAcknowledgers([]) })
-      .finally(() => { if (active) setLoadingAcknowledgers(false) })
-    return () => { active = false }
-  }, [isDemo, distribution?.id, organizationId, canSend])
-
-  async function send() {
-    if (sending) return
-    if (audienceMode === 'department' && selectedDepartments.length === 0) return
-    setSending(true)
-    const departmentNames = selectedDepartments.map((id) => departments.find((d) => d.id === id)?.name).filter(Boolean)
-    const scopeLabel = audienceMode === 'department' ? departmentNames.join(', ') : ''
-    const audienceType = audienceMode
-    const audienceValues = audienceMode === 'department' ? selectedDepartments : []
-    const title = en ? `Published document: ${record.title}` : `Δημοσιευμένο έγγραφο: ${record.title}`
-    const message = en
-      ? `"${record.title}" (${record.id} · v${record.version || '—'}) has been published${scopeLabel ? ` for ${scopeLabel}` : ''} and requires read acknowledgement.`
-      : `Το έγγραφο «${record.title}» (${record.id} · v${record.version || '—'}) δημοσιεύτηκε${scopeLabel ? ` για ${scopeLabel}` : ''} και απαιτεί επιβεβαίωση ανάγνωσης.`
-    const payload = { title, message, priority: 'normal', audienceType, audienceValues, requiresAck: true, linkPath }
-    try {
-      if (isDemo) {
-        n.addAnnouncement(payload)
-      } else {
-        const created = await createAnnouncement(organizationId, payload)
-        setDistribution(created)
-        await n.reloadAnnouncements()
-      }
-      notify(en ? 'Distribution notice sent.' : 'Η κοινοποίηση εστάλη.', 'success')
-    } catch (error) {
-      notify(error?.message || (en ? 'Could not send the distribution notice.' : 'Δεν ήταν δυνατή η αποστολή της κοινοποίησης.'), 'danger')
-    } finally {
-      setSending(false)
-    }
-  }
-
-  const audienceLabel = (item) => item?.audienceType === 'department'
-    ? ((item.audienceValues || []).map((id) => departments.find((d) => d.id === id)?.name).filter(Boolean).join(', ') || (en ? 'Department(s)' : 'Τμήματα'))
-    : (en ? 'Whole hospital' : 'Όλο το νοσοκομείο')
-  const filteredDepartments = departments.filter((d) => d.name.toLowerCase().includes(deptQuery.toLowerCase()))
-
-  return <section className="record-section">
-    <div className="record-section-header"><div>
-      <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
-      <h3>{en ? 'Distribution & acknowledgement' : 'Κοινοποίηση & επιβεβαίωση ανάγνωσης'}</h3>
-      <p>{en ? 'Notify the relevant staff that this version is published and track who has confirmed reading it.' : 'Ενημερώστε το αρμόδιο προσωπικό ότι δημοσιεύτηκε αυτή η έκδοση και παρακολουθήστε ποιοι έχουν επιβεβαιώσει ότι το διάβασαν.'}</p>
-    </div></div>
-    {record.status !== 'published' && <div className="inline-empty">{en ? 'Distribution is available once the document is published.' : 'Η κοινοποίηση είναι διαθέσιμη μόλις δημοσιευτεί το έγγραφο.'}</div>}
-    {record.status === 'published' && (loadingDistribution
-      ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>
-      : distribution
-        ? <div className="document-version-history-events">
-            <div className="timeline-line"><strong>{en ? 'Sent' : 'Απεστάλη'}</strong><span>{formatDateTime(distribution.createdAt, en)}</span></div>
-            <div className="timeline-line"><strong>{en ? 'Audience' : 'Κοινό'}</strong><span>{audienceLabel(distribution)}</span></div>
-            {isDemo
-              ? <div className="timeline-line"><strong>{en ? 'Your acknowledgement' : 'Η δική σας επιβεβαίωση'}</strong><span>{n.visibleAnnouncements.find((a) => a.id === distribution.id)?.acknowledged ? (en ? 'Confirmed' : 'Επιβεβαιώθηκε') : (en ? 'Pending' : 'Εκκρεμεί')}</span></div>
-              : canSend && <>
-                  <div className="timeline-line"><strong>{en ? 'Acknowledged by' : 'Επιβεβαίωσαν ανάγνωση'}</strong><span>{acknowledgers.length}</span></div>
-                  {loadingAcknowledgers
-                    ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>
-                    : acknowledgers.length === 0
-                      ? <div className="inline-empty">{en ? 'No acknowledgements yet.' : 'Δεν υπάρχουν ακόμη επιβεβαιώσεις.'}</div>
-                      : acknowledgers.map((row) => <div key={row.userId} className="timeline-line"><strong>{row.name}</strong><span>{formatDateTime(row.acknowledgedAt, en)}</span></div>)}
-                </>}
-          </div>
-        : canSend
-          ? <div className="document-distribution-composer">
-              <label className="field"><span>{en ? 'Audience' : 'Κοινό'}</span><select value={audienceMode} onChange={(e) => setAudienceMode(e.target.value)}>
-                <option value="all">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>
-                <option value="department">{en ? 'Specific department(s)' : 'Συγκεκριμένα τμήματα'}</option>
-              </select></label>
-              {audienceMode === 'department' && <div className="recipient-picker">
-                <label className="filter-search"><Search size={16} /><input value={deptQuery} onChange={(e) => setDeptQuery(e.target.value)} placeholder={en ? 'Search department...' : 'Αναζήτηση τμήματος...'} /></label>
-                <div className="recipient-options">{filteredDepartments.map((d) => <button type="button" key={d.id} className={selectedDepartments.includes(d.id) ? 'selected' : ''} onClick={() => toggleDepartment(d.id)}><span className="recipient-check">{selectedDepartments.includes(d.id) && <Check size={13} />}</span><span><strong>{d.name}</strong></span></button>)}</div>
-                <div className="recipient-summary">{selectedDepartments.length} {en ? 'selected' : 'επιλεγμένα'}</div>
-              </div>}
-              <div className="record-actions"><ActionButton tone="primary" label={en ? 'Send distribution notice' : 'Αποστολή κοινοποίησης'} onClick={send} disabled={sending || (audienceMode === 'department' && selectedDepartments.length === 0)}><Send size={15} />{en ? 'Send distribution notice' : 'Αποστολή κοινοποίησης'}</ActionButton></div>
-            </div>
-          : <div className="inline-empty">{en ? 'This document has not been distributed yet.' : 'Το έγγραφο δεν έχει κοινοποιηθεί ακόμη.'}</div>)}
-  </section>
 }

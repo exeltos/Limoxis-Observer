@@ -1,10 +1,11 @@
 import { useCallback,useEffect,useLayoutEffect,useRef,useState } from 'react'
 import { createPortal } from 'react-dom'
-import { MoreHorizontal } from 'lucide-react'
+import { ChevronDown,MoreHorizontal } from 'lucide-react'
 import { IconButton } from './IconButton'
 import { useLanguage } from '../core/i18n/LanguageContext'
 
-export function OverflowMenu({items=[],label,className='',align='end',size='sm'}){
+// trigger: optional visible content (icon + text) instead of the "…" icon button.
+export function OverflowMenu({items=[],label,className='',align='end',size='sm',trigger=null}){
   const {language}=useLanguage();const en=language==='en'
   const [open,setOpen]=useState(false)
   const [position,setPosition]=useState(null)
@@ -60,7 +61,7 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm'}
   </div>:null
 
   return <div ref={rootRef} className={`lo-overflow-menu lo-overflow-menu-${align} ${className}`.trim()}>
-    <span ref={triggerRef} className="lo-overflow-trigger-wrap"><IconButton size={size} label={resolvedLabel} aria-haspopup="menu" aria-expanded={open} onClick={event=>{event.stopPropagation();setOpen(value=>!value)}}><MoreHorizontal size={18}/></IconButton></span>
+    <span ref={triggerRef} className="lo-overflow-trigger-wrap">{trigger?<button type="button" className="button button-secondary lo-overflow-text-trigger" aria-label={resolvedLabel} aria-haspopup="menu" aria-expanded={open} onClick={event=>{event.stopPropagation();setOpen(value=>!value)}}>{trigger}<ChevronDown size={14} aria-hidden="true"/></button>:<IconButton size={size} label={resolvedLabel} aria-haspopup="menu" aria-expanded={open} onClick={event=>{event.stopPropagation();setOpen(value=>!value)}}><MoreHorizontal size={18}/></IconButton>}</span>
     {popover&&createPortal(popover,document.body)}
   </div>
 }

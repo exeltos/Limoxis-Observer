@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
-import { Activity,BriefcaseBusiness,FileCheck2,GraduationCap,HeartPulse,KeyRound,Pencil,ShieldCheck,Trash2,UserRound } from 'lucide-react'
+import { Activity,BookOpenCheck,BriefcaseBusiness,FileCheck2,GraduationCap,HeartPulse,KeyRound,Pencil,ShieldCheck,Trash2,UserRound } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
@@ -26,6 +26,7 @@ import { loadDepartments } from '../management/departmentsService'
 import { loadManagementLibraries } from '../management/managementCloudService'
 import { demoLibrarySeed } from '../management/managementData'
 import { EmployeeSurveillanceFlow } from '../surveillance/EmployeeSurveillanceFlow'
+import { EmployeeProtocolsTab } from '../documents/EmployeeProtocolsTab'
 import {
   EmployeeHealthTab,
   EmployeeTrainingTab,
@@ -104,6 +105,8 @@ export function EmployeeRecordPage({selfMode=false}){
   const canOccupational=(can(role,CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,addOns,custom)||can(role,CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,addOns,custom))&&canSeeSensitiveEmployeeHealth
   const canManageEmployeeFollowup=(isDemo||can(role,CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,addOns,custom))&&!selfReadOnly
   const canTraining=can(role,CAPABILITIES.VIEW_TRAINING,addOns,custom)
+  const canSeeProtocolsAsManager=can(role,CAPABILITIES.MANAGE_DOCUMENTS,addOns,custom)||can(role,CAPABILITIES.PUBLISH_DOCUMENT,addOns,custom)
+  const canSeeProtocols=can(role,CAPABILITIES.MANAGE_DOCUMENTS,addOns,custom)||can(role,CAPABILITIES.PUBLISH_DOCUMENT,addOns,custom)||isOwnEmployee
   const tabs=useMemo(()=>[
     {id:'details',label:t('employeesRecords.employeeDetailsTab'),icon:UserRound,show:true},
     {id:'occupational',label:t('occupationalHealth'),icon:HeartPulse,show:canOccupational||selfMode},
@@ -111,8 +114,9 @@ export function EmployeeRecordPage({selfMode=false}){
     {id:'training',label:t('training'),icon:GraduationCap,show:canTraining||selfMode},
     {id:'evaluations',label:t('evaluations'),icon:FileCheck2,show:canAdmin||selfMode||role==='department_manager'||role==='hr_office'},
     {id:'certificates',label:language==='en'?'Documents':'Έγγραφα',icon:BriefcaseBusiness,show:true},
+    {id:'protocols',label:language==='en'?'Protocols':'Πρωτόκολλα',icon:BookOpenCheck,show:canSeeProtocols||selfMode},
     {id:'history',label:t('history'),icon:ShieldCheck,show:canOccupational||canAdmin},
-  ].filter(item=>item.show),[t,canAdmin,canOccupational,canTraining,canSeeSensitiveEmployeeHealth,selfMode,language])
+  ].filter(item=>item.show),[t,canAdmin,canOccupational,canTraining,canSeeSensitiveEmployeeHealth,canSeeProtocols,selfMode,language])
   // Vaccinations and exposure incidents now live inside the occupational health tab.
   const [healthSection]=useState(()=>restored?.tab==='vaccinations'?'vaccinations':restored?.tab==='exposureIncidents'?'exposures':'visits')
   const [tab,setTab]=useState(()=>['vaccinations','exposureIncidents'].includes(restored?.tab)?'occupational':(restored?.tab||'details'))
@@ -123,6 +127,7 @@ export function EmployeeRecordPage({selfMode=false}){
     {id:'training',label:t('training'),icon:GraduationCap},
     {id:'evaluations',label:t('evaluations'),icon:FileCheck2},
     {id:'certificates',label:language==='en'?'Documents':'Έγγραφα',icon:BriefcaseBusiness},
+    {id:'protocols',label:language==='en'?'Protocols':'Πρωτόκολλα',icon:BookOpenCheck},
   ],[t,language])
 
   if(employeesLoading)return <RouteLoading/>
@@ -157,6 +162,7 @@ export function EmployeeRecordPage({selfMode=false}){
       {tab==='training'&&<EmployeeTrainingTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} canOpenProgram={canTraining}/>} 
       {tab==='evaluations'&&<EmployeeEvaluationsTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} canCreate={!selfReadOnly&&(role==='department_manager'||canAdmin)} canHrApprove={!selfReadOnly&&(role==='hr_office'||canAdmin)} canAdminApprove={!selfReadOnly&&canAdmin} selfReadOnly={selfReadOnly}/>} 
       {tab==='certificates'&&<EmployeeCertificatesTab employee={employee} language={language} fmt={fmt} organizationId={tenant?.id} canEdit={canAdmin} isDemo={isDemo}/>} 
+      {tab==='protocols'&&<EmployeeProtocolsTab employee={employee} language={language} organizationId={tenant?.id} isDemo={isDemo} selfMode={selfReadOnly&&!canSeeProtocolsAsManager}/>} 
       {tab==='history'&&<EmployeeHistoryTab employee={employee} language={language}/>} 
     </EntityRecordShell>
     {surveillanceOpen&&!selfReadOnly&&<EmployeeSurveillanceFlow employee={employee} onClose={()=>setSurveillanceOpen(false)} onCreated={()=>setSurveillanceVersion(version=>version+1)}/>} 

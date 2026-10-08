@@ -7,6 +7,7 @@ const migration = read('supabase/migrations/20260922090000_document_distribution
 const announcementService = read('src/features/management/announcementCloudService.js')
 const notificationContext = read('src/core/notifications/NotificationContext.jsx')
 const recordPage = read('src/features/documents/DocumentRecordPage.jsx')
+const distributionPanel = read('src/features/documents/DocumentDistributionPanel.jsx')
 const listPage = read('src/features/documents/DocumentsPage.jsx')
 const metricCard = read('src/design-system/MetricCard.jsx')
 
@@ -32,24 +33,24 @@ describe('controlled document distribution & acknowledgement', () => {
   })
 
   it('gates distribution on the published lifecycle state and manage/publish capability', () => {
-    expect(recordPage).toContain("record.status !== 'published'")
-    expect(recordPage).toContain('canManage || canPublish')
-    expect(recordPage).toContain('requiresAck: true')
-    expect(recordPage).toContain("linkPath = `/documents/${record.id}`")
+    expect(recordPage).toContain('<DocumentDistributionPanel record={record}')
+    expect(distributionPanel).toContain("record.status !== 'published'")
+    expect(distributionPanel).toContain('canManage || canPublish')
+    expect(distributionPanel).toContain('requiresAck: true')
+    expect(distributionPanel).toContain('linkPath = `${DOCUMENT_LINK_PREFIX}${record.id}`')
   })
 
   it('defaults distribution audience to the document department but lets managers pick more', () => {
-    expect(recordPage).toContain("useState(record.departmentId ? 'department' : 'all')")
-    expect(recordPage).toContain("useState(record.departmentId ? [record.departmentId] : [])")
-    expect(recordPage).toContain('toggleDepartment')
-    expect(recordPage).toContain('recipient-options')
-    expect(recordPage).toContain("audienceValues = audienceMode === 'department' ? selectedDepartments : []")
+    expect(distributionPanel).toContain("useState(record.departmentId ? 'department' : 'all')")
+    expect(distributionPanel).toContain("useState(record.departmentId ? [record.departmentId] : [])")
+    expect(distributionPanel).toContain('recipient-options')
+    expect(distributionPanel).toContain("audienceMode === 'profession' ? 'user' : audienceMode")
   })
 
   it('keeps demo mode local while production persists through the cloud service', () => {
-    expect(recordPage).toContain('n.addAnnouncement(payload)')
-    expect(recordPage).toContain('createAnnouncement(organizationId, payload)')
-    expect(recordPage).toContain('n.reloadAnnouncements()')
+    expect(distributionPanel).toContain('n.addAnnouncement(payload)')
+    expect(distributionPanel).toContain('createAnnouncement(organizationId, payload)')
+    expect(distributionPanel).toContain('n.reloadAnnouncements()')
   })
 
   it('adds a Distribution tab alongside the existing overview/files/history tabs', () => {

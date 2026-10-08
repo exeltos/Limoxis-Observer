@@ -1156,3 +1156,5 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tabs>button
 .pharmacy-workspace.workspace-fill{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
 .pharmacy-workspace .record-table-wrap{flex:1 1 0;min-height:0;overflow:auto}
 .pharmacy-workspace .record-table thead th{position:sticky;top:0;z-index:1;background:#f5f8fa}
+.lo-overflow-text-trigger{display:inline-flex;align-items:center;gap:7px}
+.lo-overflow-text-trigger>svg:last-child{opacity:.7}

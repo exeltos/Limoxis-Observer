@@ -11,7 +11,8 @@ function safeName(value='report'){
 export async function exportElementAsPdf({element,filename,orientation='landscape'}={}){
   if(!element)throw new Error('PDF_EXPORT_NO_ELEMENT')
   const [{default:html2canvas},{jsPDF}]=await Promise.all([import('html2canvas'),import('jspdf')])
-  const canvas=await html2canvas(element,{scale:2,backgroundColor:'#ffffff',useCORS:true})
+  // Controls marked data-pdf-ignore (e.g. the download menu) stay out of the file.
+  const canvas=await html2canvas(element,{scale:2,backgroundColor:'#ffffff',useCORS:true,ignoreElements:node=>node?.hasAttribute?.('data-pdf-ignore')})
   const pdf=new jsPDF({orientation,unit:'mm',format:'a4'})
   const pageWidth=pdf.internal.pageSize.getWidth()
   const pageHeight=pdf.internal.pageSize.getHeight()

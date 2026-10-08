@@ -151,6 +151,11 @@
       "authenticated": true,
       "reason": "Permanent delete with clinical history; Platform Owner or Hospital Admin, reason required."
     },
+    "document_acknowledgement_members": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Read-acknowledgement audience for controlled documents; returns members only to the Hospital Admin, IPC Lead or Quality Manager of the organisation (the roles that distribute documents and read all acknowledgements)."
+    },
     "employee_admin_history": {
       "category": "rpc",
       "authenticated": true,
