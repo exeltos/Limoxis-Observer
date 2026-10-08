@@ -11,6 +11,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import {
+  DEFAULT_COUNTRY,
   createOrganizationUser,
   createPlatformDemoEntitlement,
   createPlatformOrganization,
@@ -36,10 +37,10 @@ const HEALTH_REGIONS = ['1η ΥΠΕ Αττικής','2η ΥΠΕ Πειραιώς
 // matches DEMO_TENANT ('demo-hospital') so that enterPlatformDemo() lands on
 // the same demo hospital this card represents.
 const DEMO_ORGANIZATION = Object.freeze({id:'demo-hospital',name:'Demo Hospital',code:'DEMO',type:'hospital',status:'active',city:'Θεσσαλονίκη',region:'Κεντρική Μακεδονία'})
-const emptyOrganization={name:'',code:'',type:'hospital',status:'active',region:'',healthRegion:'',city:'',country:'',contactEmail:'',contactPhone:'',bedCapacity:'',adminFullName:'',adminEmail:''}
+const emptyOrganization={name:'',code:'',type:'hospital',status:'active',region:'',healthRegion:'',city:'',country:DEFAULT_COUNTRY,contactEmail:'',contactPhone:'',bedCapacity:'',adminFullName:'',adminEmail:''}
 function daysBetween(a,b){return Math.max(0,Math.ceil((new Date(b)-new Date(a))/86400000))}
 function addDays(isoDate,days){const date=new Date(`${isoDate}T00:00:00Z`);if(Number.isNaN(date.getTime()))return'';date.setUTCDate(date.getUTCDate()+Math.max(1,Number(days)||30));return date.toISOString().slice(0,10)}
-function emptyDemoDraft(days=30){const validFrom=new Date().toISOString().slice(0,10);return{label:'',type:'hospital',region:'',healthRegion:'',city:'',country:'',contactPhone:'',bedCapacity:'',contactName:'',contactEmail:'',validFrom,validUntil:addDays(validFrom,days)}}
+function emptyDemoDraft(days=30){const validFrom=new Date().toISOString().slice(0,10);return{label:'',type:'hospital',region:'',healthRegion:'',city:'',country:DEFAULT_COUNTRY,contactPhone:'',bedCapacity:'',contactName:'',contactEmail:'',validFrom,validUntil:addDays(validFrom,days)}}
 function demoProgress(item){const total=Math.max(1,daysBetween(item.valid_from,item.valid_until));const remaining=daysBetween(new Date().toISOString().slice(0,10),item.valid_until);return{remaining,pct:Math.max(0,Math.min(100,Math.round((remaining/total)*100)))}}
 function parsePlatformHash(hash=''){const raw=hash.replace(/^#/,'');const[key='',query='']=raw.split('?');return{key,params:new URLSearchParams(query)}}
 function generateOrganizationCode(){return `HOSP-${Date.now().toString(36).slice(-6).toUpperCase()}`}

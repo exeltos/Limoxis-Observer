@@ -27,3 +27,15 @@ describe('demo dates', () => {
     expect(demoDatesValid('', '2026-10-22')).toBe(false)
   })
 })
+
+describe('organization country', () => {
+  it('falls back to Greece because organizations.country is required', async () => {
+    const { countryOrDefault, DEFAULT_COUNTRY } = await import('../src/core/tenant/tenantService')
+    expect(DEFAULT_COUNTRY).toBe('Ελλάδα')
+    expect(countryOrDefault('')).toBe('Ελλάδα')
+    expect(countryOrDefault('  ')).toBe('Ελλάδα')
+    expect(countryOrDefault('Κύπρος')).toBe('Κύπρος')
+    const edge = fs.readFileSync('supabase/functions/create-demo-access/index.ts', 'utf8')
+    expect(edge).toContain("const country=String(body.country||'').trim()||'Ελλάδα'")
+  })
+})

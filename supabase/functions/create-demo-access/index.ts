@@ -56,7 +56,8 @@ Deno.serve(async(req)=>{
   const region=String(body.region||'').trim()||null
   const healthRegion=String(body.healthRegion||'').trim()||null
   const city=String(body.city||'').trim()||null
-  const country=String(body.country||'').trim()||null
+  // organizations.country is NOT NULL: an empty field means Greece.
+  const country=String(body.country||'').trim()||'Ελλάδα'
   const contactPhone=String(body.contactPhone||'').trim()||null
   const bedCapacity=body.bedCapacity===''||body.bedCapacity==null?null:Number(body.bedCapacity)
   if(!label||!contactEmail||!validFrom)return reply({error:'Missing demo fields.'},400)
