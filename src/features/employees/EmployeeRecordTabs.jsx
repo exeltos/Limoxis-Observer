@@ -34,7 +34,7 @@ function Pager({paging,total,language}){if(!total)return null;return <div classN
 function RegistryFilter({query,setQuery,language,count}){return <FilterBar query={query} onQueryChange={setQuery} placeholder={language==='en'?'Search records...':'Αναζήτηση εγγραφών...'} activeAdvancedCount={0} onClear={()=>setQuery('')} resultCount={count}/>}
 function useRegistryRows(rows){const [query,setQuery]=useState('');const filtered=query.trim()?rows.filter(row=>JSON.stringify(row).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())):rows;const paging=usePaged(filtered);return {query,setQuery,filtered,paging}}
 function statusClass(status){return ['complete','completed','fit','active','approved'].includes(status)?'active':['renew_soon','pending','scheduled','assigned','in_progress'].includes(status)?'temporary':['overdue','unfit','cancelled','declined'].includes(status)?'danger':''}
-function label(value,t){if(!value)return '—';const translated=t?.(value);return translated&&translated!==value?translated:value}
+function label(value,t){if(!value)return '—';const camel=String(value).replace(/_([a-z])/g,(_,c)=>c.toUpperCase());for(const key of [value,camel]){const translated=t?.(key);if(translated&&translated!==key)return translated}return value}
 function compactEpisodeCode(value){const code=String(value||'');if(code.startsWith('ESUR-')){const parts=code.split('-');if(parts.length>=3)return `ES-${parts[1]}-${parts.at(-1).slice(-4)}`}return code}
 
 // Occupational health, vaccinations and exposure incidents share one tab

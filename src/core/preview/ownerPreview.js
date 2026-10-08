@@ -74,4 +74,4 @@ export const previewRuntimeEvents=organizationId=>[
 export const previewPlatformSettings=()=>({id:'global',supportEmail:'support@limoxis.example',defaultDemoDurationDays:30,maintenanceNoticeEnabled:false,maintenanceNoticeEl:'',maintenanceNoticeEn:'',updatedAt:at(-15)})
 
 // What resetting a Demo returns, for the preview's "Reset data" action.
-export const previewDemoSeedResult=()=>({ok:true,departments:8,patients:48,surveillanceCases:14,laboratorySamples:43,microbiologyResults:38,handHygieneSessions:36,employees:24,incidents:10,capa:6,documents:8,committees:2})
+export const previewDemoSeedResult=()=>({ok:true,departments:8,patients:48,surveillanceCases:14,laboratorySamples:43,microbiologyResults:38,handHygieneSessions:36,employees:24,incidents:10,capa:6,documents:8,committees:2,controls:6,controlExecutions:350,trainingPrograms:5,trainingAssignments:72,antibioticDispensing:360,vaccinations:76,occupationalVisits:29,exposures:4})

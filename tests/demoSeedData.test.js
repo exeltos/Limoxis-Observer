@@ -3,6 +3,7 @@ import fs from 'node:fs'
 
 const read = path => fs.readFileSync(path, 'utf8')
 const migration = read('supabase/migrations/20261010120000_demo_seed_data.sql')
+const moreAreas = read('supabase/migrations/20261011120000_demo_seed_more_areas.sql')
 const demoAccess = read('supabase/functions/create-demo-access/index.ts')
 const demoRecord = read('src/features/platform/PlatformDemoRecord.jsx')
 const center = read('src/features/workspaces/PlatformCenterPage.jsx')
@@ -33,10 +34,20 @@ describe('Demo data pack', () => {
     expect(migration).toContain("'surveillance_start'")
     expect(migration).toContain('@demo.invalid')
   })
+  it('adds controls, training, pharmacy and occupational health to the pack', () => {
+    for (const table of ['control_definitions', 'control_assignments', 'control_executions', 'training_records', 'who_ddd_reference',
+      'antibiotic_dispensing_periods', 'employee_vaccinations', 'occupational_health_visits', 'occupational_exposure_incidents']) expect(moreAreas).toContain(`insert into public.${table}(`)
+    for (const area of ['controls', 'training', 'pharmacy', 'occupational_health']) expect(moreAreas).toContain(`perform private.demo_seed_${area}(v_org, p_actor);`)
+    for (const type of ['program', 'requirement', 'assignment', 'certificate']) expect(moreAreas).toContain(`'${type}'`)
+    // The DDD table survives a reset, so the seed only adds missing codes.
+    expect(moreAreas).toMatch(/not exists \(select 1 from public\.who_ddd_reference w where w\.organization_id = v_org/)
+  })
   it('never stores a query result with SELECT ... INTO, which the Supabase SQL editor rewrites', () => {
-    const body = migration.replace(/--[^\n]*/g, '')
-    expect(body).not.toMatch(/\bselect\b[^;]*\binto\b(?!\s+public\.)/i)
-    expect(body).not.toMatch(/\b(execute|returning)\b[^;]*\binto\b(?!\s+public\.)/i)
+    for (const sql of [migration, moreAreas]) {
+      const body = sql.replace(/--[^\n]*/g, '')
+      expect(body).not.toMatch(/\bselect\b[^;]*\binto\b(?!\s+public\.)/i)
+      expect(body).not.toMatch(/\b(execute|returning)\b[^;]*\binto\b(?!\s+public\.)/i)
+    }
   })
 })
 
