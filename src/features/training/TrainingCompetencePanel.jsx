@@ -3,6 +3,7 @@ import { AlertTriangle,CheckCircle2,Clock3,Pencil,Plus,Trash2,XCircle } from 'lu
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { SubTabs } from '../../design-system/SubTabs'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { exportRegistry } from '../../core/export/registryExports'
 import { competenceMatrix,newRequirement,retrainingPlan } from './trainingCompetence'
@@ -52,9 +53,7 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
     <DownloadMenu items={[{id:'matrix',label:en?'Excel: competence matrix':'Excel: πίνακας επάρκειας',disabled:!matrix.rows.length,onClick:exportMatrix},{id:'plan',label:en?'Excel: retraining plan':'Excel: πλάνο επανεκπαίδευσης',disabled:!plan.length,onClick:exportPlan}]}/>
    </div>
   </div>
-  <div className="training-competence-switch" role="tablist" aria-label={en?'Competence view':'Προβολή επάρκειας'}>
-   {[['matrix',en?'Matrix':'Πίνακας'],['plan',en?`Who needs training (${plan.length})`:`Ποιοι χρειάζονται εκπαίδευση (${plan.length})`],['rules',en?`Requirements (${matrix.requirements.length})`:`Απαιτήσεις (${matrix.requirements.length})`]].map(([id,label])=><button key={id} type="button" role="tab" aria-selected={view===id} className={view===id?'active':''} onClick={()=>setView(id)}>{label}</button>)}
-  </div>
+  <SubTabs activeId={view} onChange={setView} ariaLabel={en?'Competence view':'Προβολή επάρκειας'} tabs={[{id:'matrix',label:en?'Matrix':'Πίνακας'},{id:'plan',label:en?'Who needs training':'Ποιοι χρειάζονται εκπαίδευση',count:plan.length},{id:'rules',label:en?'Requirements':'Απαιτήσεις',count:matrix.requirements.length}]}/>
 
   {view==='matrix'&&<div className="scroll-table">
    {matrix.requirements.length?<table className="data-table sticky-table training-competence-matrix">

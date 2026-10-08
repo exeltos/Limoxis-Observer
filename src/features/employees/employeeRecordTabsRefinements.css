@@ -153,7 +153,3 @@
 /* Occupational health sub-navigation (visits / vaccinations / exposures). */
 .employee-health-tab{display:flex;flex-direction:column;gap:12px;min-height:0;flex:1}
 .employee-health-tab>.record-section{flex:1;min-height:0}
-.employee-health-subnav{display:flex;flex-wrap:wrap;gap:6px;padding:4px;border:1px solid #e0e7ed;border-radius:10px;background:#f6f9fb;align-self:flex-start}
-.employee-health-subnav button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font:inherit;font-size:13px;font-weight:600;color:#4d647a;cursor:pointer}
-.employee-health-subnav button:hover{color:#173650;background:#eef3f7}
-.employee-health-subnav button.is-active{background:#fff;color:#173650;box-shadow:0 1px 2px rgba(16,40,60,.12)}

@@ -24,6 +24,7 @@ import { loadEmployeeSurveillanceRecords } from '../surveillance/employeeSurveil
 import { loadLaboratorySamples } from '../laboratory/laboratoryCloudService'
 import { laboratorySamples as demoLaboratorySamples } from '../laboratory/laboratoryDemoData'
 import './employeeRecordTabsRefinements.css'
+import { SubTabs } from '../../design-system/SubTabs'
 
 function SectionTitle({title,subtitle,action}){return <div className="record-section-header"><div><span className="eyebrow">Limoxis Observer</span><h3>{title}</h3>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>}
 function Empty({language,title}){return <div className="registry-empty-state employee-registry-empty"><strong>{title||(language==='en'?'No records':'Δεν υπάρχουν εγγραφές')}</strong></div>}
@@ -43,7 +44,7 @@ export function EmployeeHealthTab({employee,t,language,fmt,organizationId,initia
   const en=language==='en'
   const sections=[['visits',en?'Visits':'Επισκέψεις'],['vaccinations',en?'Vaccinations':'Εμβολιασμοί'],['exposures',en?'Exposure incidents':'Περιστατικά έκθεσης']]
   return <div className="employee-health-tab">
-    <div className="employee-health-subnav" role="tablist" aria-label={en?'Occupational health':'Ιατρός Εργασίας'}>{sections.map(([id,label])=><button type="button" role="tab" key={id} aria-selected={section===id} className={section===id?'is-active':''} onClick={()=>setSection(id)}>{label}</button>)}</div>
+    <SubTabs activeId={section} onChange={setSection} ariaLabel={en?'Occupational health':'Ιατρός Εργασίας'} tabs={sections.map(([id,label])=>({id,label}))}/>
     {section==='visits'&&<EmployeeOccupationalTab employee={employee} t={t} language={language} fmt={fmt} organizationId={organizationId}/>}
     {section==='vaccinations'&&<EmployeeVaccinationsTab employee={employee} t={t} language={language} fmt={fmt} organizationId={organizationId}/>}
     {section==='exposures'&&<EmployeeExposureIncidentsTab employee={employee} language={language} fmt={fmt} organizationId={organizationId}/>}

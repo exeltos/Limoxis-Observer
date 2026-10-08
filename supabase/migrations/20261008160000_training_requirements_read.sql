@@ -6,8 +6,7 @@
 -- writing stays with manage_training through the existing insert/update/delete
 -- policies. Only the read policy changes: 'requirement' joins 'program'.
 
-drop policy if exists training_records_read on public.training_records;
-create policy training_records_read on public.training_records for select to public
+alter policy training_records_read on public.training_records
   using (
     ((record_type in ('program','requirement')) and is_org_member(organization_id))
     or current_user_has_org_role(organization_id, ARRAY['hospital_admin'::app_role, 'infection_control_lead'::app_role, 'infection_control_member'::app_role, 'hr_office'::app_role])
