@@ -1,4 +1,8 @@
 import { supabase, invokeAuthenticatedFunction } from '../supabase/client'
+
+// organizations.country is required by the database; an empty field means Greece.
+export const DEFAULT_COUNTRY = 'Ελλάδα'
+export const countryOrDefault = (value) => String(value || '').trim() || DEFAULT_COUNTRY
 import { isOwnerPreview,previewDemos,previewMemberships,previewOrganizationMembers,previewPlatformMembers } from '../preview/ownerPreview'
 
 export async function listMemberships(userId) {
@@ -53,7 +57,7 @@ export async function createPlatformOrganization({ name, code, type = 'hospital'
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data, error } = await supabase
     .from('organizations')
-    .insert({ name: name.trim(), code: code.trim().toUpperCase(), type, status, region: region || null, health_region: healthRegion || null, city: city || null, country: country || null, contact_email: contactEmail || null, contact_phone: contactPhone || null, bed_capacity: bedCapacity ? Number(bedCapacity) : null, is_demo: false })
+    .insert({ name: name.trim(), code: code.trim().toUpperCase(), type, status, region: region || null, health_region: healthRegion || null, city: city || null, country: countryOrDefault(country), contact_email: contactEmail || null, contact_phone: contactPhone || null, bed_capacity: bedCapacity ? Number(bedCapacity) : null, is_demo: false })
     .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding')
     .single()
   if (error) throw error
@@ -144,7 +148,7 @@ export async function updatePlatformOrganization(organizationId, patch) {
   const payload = {
     name: patch.name?.trim(), code: patch.code?.trim().toUpperCase(), type: patch.type, status: patch.status,
     region: patch.region || null, health_region: patch.healthRegion || patch.health_region || null, city: patch.city || null,
-    country: patch.country || null, contact_email: patch.contactEmail ?? patch.contact_email ?? null,
+    country: countryOrDefault(patch.country), contact_email: patch.contactEmail ?? patch.contact_email ?? null,
     contact_phone: patch.contactPhone ?? patch.contact_phone ?? null, bed_capacity: patch.bedCapacity === '' ? null : Number(patch.bedCapacity ?? patch.bed_capacity ?? 0) || null,
     updated_at: new Date().toISOString(),
   }
@@ -199,7 +203,7 @@ export async function purgePlatformOrganization({ organizationId, password, conf
 export async function createPlatformDemoEntitlement(payload) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   if (!payload.contactEmail) throw new Error('DEMO_EMAIL_REQUIRED')
-  const data = await invokeAuthenticatedFunction('create-demo-access', payload)
+  const data = await invokeAuthenticatedFunction('create-demo-access', { ...payload, country: countryOrDefault(payload.country) })
   return data.entitlement || data
 }
 

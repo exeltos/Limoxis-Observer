@@ -2,6 +2,70 @@ const technicalTerms=/\b(supabase|postgres|postgresql|rls|row level security|rpc
 
 function text(error){return String(error?.message||error?.error_description||error?.details||error||'').trim()}
 
+// Field names as the user sees them in the forms, for messages that name the
+// field a save failed on. Columns not listed fall back to a readable form of
+// the column name.
+const FIELD_LABELS={
+ country:['Χώρα','Country'],name:['Επωνυμία / Όνομα','Name'],label:['Επωνυμία','Name'],code:['Κωδικός','Code'],title:['Τίτλος','Title'],
+ type:['Τύπος','Type'],status:['Κατάσταση','Status'],city:['Πόλη','City'],region:['Περιφέρεια','Region'],health_region:['Υγειονομική Περιφέρεια','Health region'],
+ contact_email:['Email','Email'],email:['Email','Email'],contact_phone:['Τηλέφωνο','Phone'],phone:['Τηλέφωνο','Phone'],username:['Όνομα χρήστη','Username'],
+ valid_from:['Έναρξη','Start'],valid_until:['Λήξη','End'],starts_at:['Έναρξη','Start'],ends_at:['Λήξη','End'],
+ department_id:['Τμήμα','Department'],department:['Τμήμα','Department'],first_name:['Όνομα','First name'],last_name:['Επώνυμο','Last name'],
+ admission_date:['Ημερομηνία εισαγωγής','Admission date'],birth_date:['Ημερομηνία γέννησης','Date of birth'],date:['Ημερομηνία','Date'],
+ patient_code:['Κωδικός ασθενούς','Patient code'],employee_code:['Κωδικός εργαζομένου','Employee code'],version:['Έκδοση','Version'],
+ bed_capacity:['Δυναμικότητα κλινών','Bed capacity'],message:['Μήνυμα','Message'],description:['Περιγραφή','Description'],
+}
+function fieldLabel(column,en){
+ const known=FIELD_LABELS[column]
+ if(known)return known[en?1:0]
+ return String(column||'').replace(/_id$/,'').replaceAll('_',' ')
+}
+
+// Database rejections that say exactly what is wrong: name the field or the
+// rule instead of a generic "could not be saved".
+function describeRejection(raw,error,en){
+ const lower=raw.toLowerCase()
+ const all=`${raw} ${error?.details||''} ${error?.hint||''}`
+ const notNull=raw.match(/null value in column "([^"]+)"/i)
+ if(notNull){const f=fieldLabel(notNull[1],en);return en?`A required field is missing: “${f}”. Fill it in and try again.`:`Λείπει υποχρεωτικό πεδίο: «${f}». Συμπληρώστε το και δοκιμάστε ξανά.`}
+ if(lower.includes('demo_dates_invalid')||lower.includes('platform_demo_entitlements_check')||lower.includes('invalid demo dates')){
+  return en?'The end date must be after the start date.':'Η λήξη πρέπει να είναι μετά την έναρξη.'
+ }
+ if(lower.includes('demo_email_required')||lower.includes('missing demo fields')){
+  return en?'Fill in the name, the invitation email and the start date.':'Συμπληρώστε επωνυμία, email πρόσκλησης και ημερομηνία έναρξης.'
+ }
+ if(lower.includes('already been registered')||lower.includes('email address is already')||lower.includes('user already registered')){
+  return en?'An account with this email already exists. Use a different email address.':'Υπάρχει ήδη λογαριασμός με αυτό το email. Χρησιμοποιήστε άλλο email.'
+ }
+ if(lower.includes('rate limit')){
+  return en?'Too many emails were sent in a short time. Wait a few minutes and try again.':'Στάλθηκαν πολλά email σε λίγο χρόνο. Περιμένετε λίγα λεπτά και δοκιμάστε ξανά.'
+ }
+ if(lower.includes('authentication required')||lower.includes('auth_session_missing')||lower.includes('unauthorized')){
+  return en?'The action was rejected because no signed-in user was recognised. Sign out, sign in again and retry; if it persists, contact support.':'Η ενέργεια απορρίφθηκε επειδή δεν αναγνωρίστηκε συνδεδεμένος χρήστης. Αποσυνδεθείτε, συνδεθείτε ξανά και δοκιμάστε· αν επιμένει, επικοινωνήστε με την υποστήριξη.'
+ }
+ if(lower.includes('organization membership required')||lower.includes('forbidden')){
+  return en?'Your account is not allowed to make this change in this organization.':'Ο λογαριασμός σας δεν έχει δικαίωμα για αυτή την αλλαγή σε αυτόν τον οργανισμό.'
+ }
+ const duplicate=all.match(/Key \(([^)]+)\)=\(([^)]*)\) already exists/i)
+ if(duplicate){const f=duplicate[1].split(',').map(c=>fieldLabel(c.trim(),en)).join(' + ');return en?`A record with the same “${f}” (${duplicate[2]}) already exists.`:`Υπάρχει ήδη εγγραφή με το ίδιο «${f}» (${duplicate[2]}).`}
+ const check=raw.match(/violates check constraint "([^"]+)"/i)
+ if(check){
+  const name=check[1],column=Object.keys(FIELD_LABELS).sort((a,b)=>b.length-a.length).find(c=>name.includes(`_${c}_`)||name.endsWith(`_${c}_check`))
+  return column
+   ?(en?`The value of “${fieldLabel(column,en)}” is not accepted. Check it and try again.`:`Η τιμή στο πεδίο «${fieldLabel(column,en)}» δεν είναι αποδεκτή. Ελέγξτε την και δοκιμάστε ξανά.`)
+   :(en?'One of the values does not meet the rules for this record (for example dates out of order). Check the fields and try again.':'Μία από τις τιμές δεν τηρεί τους κανόνες της εγγραφής (π.χ. ημερομηνίες σε λάθος σειρά). Ελέγξτε τα πεδία και δοκιμάστε ξανά.')
+ }
+ if(lower.includes('value too long')||lower.includes('22001')){
+  return en?'A field has more characters than allowed. Shorten it and try again.':'Ένα πεδίο έχει περισσότερους χαρακτήρες από όσους επιτρέπονται. Συντομεύστε το και δοκιμάστε ξανά.'
+ }
+ const syntax=raw.match(/invalid input syntax for type (\w+)/i)
+ if(syntax){
+  const kind={date:en?'a date':'μια ημερομηνία',integer:en?'a number':'ένας αριθμός',numeric:en?'a number':'ένας αριθμός',uuid:en?'a selection':'μια επιλογή',timestamp:en?'a date':'μια ημερομηνία'}[syntax[1].toLowerCase()]||(en?'a field':'ένα πεδίο')
+  return en?`The form contains an invalid value (${kind}). Check the fields and try again.`:`Η φόρμα έχει μη έγκυρη τιμή (${kind}). Ελέγξτε τα πεδία και δοκιμάστε ξανά.`
+ }
+ return null
+}
+
 export function userFacingError(error,{language='el',context='generic'}={}){
   const raw=text(error)
   const lower=raw.toLowerCase()
@@ -55,6 +119,8 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   if(lower.includes('committee_membership_approval_status_invalid')||lower.includes('invalid_committee_membership_approval_status')){
     return en?'The participation approval status is not valid.':'Η κατάσταση έγκρισης συμμετοχής δεν είναι έγκυρη.'
   }
+  const rejection=describeRejection(raw,error,en)
+  if(rejection)return rejection
   if(lower.includes('permission')||lower.includes('not authorized')||lower.includes('row-level security')||lower.includes('rls')){
     return en?'You do not have permission to complete this action.':'Δεν έχετε δικαίωμα να ολοκληρώσετε αυτή την ενέργεια.'
   }

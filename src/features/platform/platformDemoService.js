@@ -1,3 +1,4 @@
+import { countryOrDefault } from '../../core/tenant/tenantService'
 import { supabase } from '../../core/supabase/client'
 
 const demoSelect = 'id,label,contact_name,contact_email,valid_from,valid_until,status,organization_id,demo_user_id,organization:organizations(id,name,code,type,status,region,health_region,city,country,contact_email,contact_phone,bed_capacity,is_demo)'
@@ -13,8 +14,16 @@ export async function loadPlatformDemoRecord(demoId) {
   return data
 }
 
+// The database requires the end of a Demo to be after its start
+// (platform_demo_entitlements_check); checked here first so nothing is half-saved.
+export function demoDatesValid(validFrom, validUntil) {
+  if (!validFrom || !validUntil) return false
+  return String(validUntil).slice(0, 10) > String(validFrom).slice(0, 10)
+}
+
 export async function savePlatformDemoRecord(demo, patch) {
   if (!supabase || !demo?.id || !demo?.organization_id) throw new Error('SUPABASE_NOT_CONFIGURED')
+  if (!demoDatesValid(patch.validFrom, patch.validUntil)) throw new Error('DEMO_DATES_INVALID')
 
   const organizationPayload = {
     name: String(patch.label || '').trim(),
@@ -22,7 +31,7 @@ export async function savePlatformDemoRecord(demo, patch) {
     region: patch.region || null,
     health_region: patch.healthRegion || null,
     city: patch.city || null,
-    country: patch.country || null,
+    country: countryOrDefault(patch.country),
     contact_email: String(patch.contactEmail || '').trim().toLowerCase() || null,
     contact_phone: patch.contactPhone || null,
     bed_capacity: patch.bedCapacity === '' || patch.bedCapacity == null ? null : Number(patch.bedCapacity) || null,
@@ -64,7 +73,7 @@ export async function convertPlatformDemoToOrganization(demo, patch) {
     region: patch.region || null,
     health_region: patch.healthRegion || null,
     city: patch.city || null,
-    country: patch.country || null,
+    country: countryOrDefault(patch.country),
     contact_email: String(patch.contactEmail || '').trim().toLowerCase() || null,
     contact_phone: patch.contactPhone || null,
     bed_capacity: patch.bedCapacity === '' || patch.bedCapacity == null ? null : Number(patch.bedCapacity) || null,
