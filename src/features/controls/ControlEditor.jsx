@@ -11,6 +11,7 @@ import { loadSnapshot } from '../../core/data/repository'
 import { loadDepartments } from '../management/departmentsService'
 import { createManagementLibraryItem } from '../management/managementCloudService'
 import { demoLibrarySeed } from '../management/managementData'
+import { CRITICALITY_LEVELS,controlCriticality,criticalityLabel,requiresEvidence } from './controlCriticality'
 
 const CATEGORY_PRESETS={
   'Θερμοκρασίες':{mode:'numeric',label:'Θερμοκρασία',unit:'°C',min:'',max:''},
@@ -19,6 +20,8 @@ const CATEGORY_PRESETS={
   'Εξοπλισμός':{mode:'choice',label:'Κατάσταση',options:['Συμμορφώνεται','Μη συμμόρφωση']},
   'Καθαριότητα / Απολύμανση':{mode:'choice',label:'Κατάσταση',options:['Συμμορφώνεται','Μη συμμόρφωση']},
 }
+
+const pickPolicy=config=>Object.fromEntries(['criticality','requiresEvidence','deviationActions'].filter(key=>config?.[key]!==undefined).map(key=>[key,config[key]]))
 
 function legacyDepartmentNames(){
  const snapshot=loadSnapshot('management_libraries',{})
@@ -59,7 +62,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const selectVisibleDepartments=()=>{if(!departmentOnly)set('departments',[...new Set([...draft.departments,...visibleDepartments])])}
  const clearVisibleDepartments=()=>{if(!departmentOnly)set('departments',draft.departments.filter(d=>!visibleDepartments.includes(d)))}
  const valid=draft.title.trim()&&draft.category.trim()&&draft.departments.length>0&&draft.owner.trim()&&(draft.frequency.kind!=='daily'||times.every(Boolean))
- function changeCategory(value){setDraft(d=>({...d,category:value,responseConfig:CATEGORY_PRESETS[value]?{...CATEGORY_PRESETS[value]}:(d.category===value?d.responseConfig:{mode:'text',label:'Αποτέλεσμα'})}))}
+ function changeCategory(value){setDraft(d=>{const keep=pickPolicy(d.responseConfig);return {...d,category:value,responseConfig:{...(CATEGORY_PRESETS[value]?{...CATEGORY_PRESETS[value]}:(d.category===value?d.responseConfig:{mode:'text',label:'Αποτέλεσμα'})),...keep}}})}
  function submit(){if(!valid)return;onSave({...draft,titleEn:draft.titleEn||draft.title,frequency:{...draft.frequency,timesPerDay:count,times:draft.frequency.kind==='daily'?times:[]}})}
  async function migrateLegacyDepartments(){
   if(!organizationId||!legacyDepartments.length||migratingDepartments)return
@@ -110,6 +113,15 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      <div className="control-dept-search"><Search size={16}/><input value={deptQuery} onChange={e=>setDeptQuery(e.target.value)} placeholder={en?'Search department...':'Αναζήτηση τμήματος...'}/></div>
      {legacyDepartments.length>0&&!departmentsLoading&&<div className="governance-banner warning"><span>{en?`Found ${legacyDepartments.length} departments stored locally from the previous version: ${legacyDepartments.join(', ')}.`:`Βρέθηκαν ${legacyDepartments.length} τμήματα αποθηκευμένα τοπικά από την προηγούμενη έκδοση: ${legacyDepartments.join(', ')}.`}</span><Button variant="secondary" disabled={migratingDepartments} onClick={migrateLegacyDepartments}>{migratingDepartments?(en?'Migrating…':'Μεταφορά…'):(en?'Move to Supabase':'Μεταφορά στη Supabase')}</Button></div>}
      <div className="control-department-picker">{departmentsLoading?<div className="inline-empty">{en?'Loading departments…':'Φόρτωση τμημάτων…'}</div>:departmentsError?<div className="inline-empty">{departmentsError}</div>:visibleDepartments.map(d=><label key={d} className={`check-option ${draft.departments.includes(d)?'selected':''}`}><input type="checkbox" checked={draft.departments.includes(d)} disabled={departmentOnly&&draft.departments.includes(d)} onChange={()=>toggleDept(d)}/><span>{d}</span></label>)}{!departmentsLoading&&!departmentsError&&!visibleDepartments.length&&!legacyDepartments.length&&<div className="inline-empty">{en?'No active departments exist in Supabase for this organization.':'Δεν υπάρχουν ενεργά τμήματα στη Supabase για τον συγκεκριμένο οργανισμό.'}</div>}</div>
+    </div>
+
+    <div className="control-form-block control-policy-block">
+     <div className="control-form-block-title"><strong>{en?'Criticality & deviations':'Κρισιμότητα & αποκλίσεις'}</strong><span>{en?'Priority, proof and what to do when a result is out of range':'Προτεραιότητα, τεκμήριο και τι γίνεται όταν το αποτέλεσμα αποκλίνει'}</span></div>
+     <div className="entry-grid control-entry-grid">
+      <label><span>{en?'Criticality':'Κρισιμότητα'}</span><select value={controlCriticality(draft)} onChange={e=>setR('criticality',e.target.value)}>{CRITICALITY_LEVELS.map(level=><option key={level} value={level}>{criticalityLabel(level,language)}</option>)}</select></label>
+      <label className="check-option control-evidence-option"><input type="checkbox" checked={requiresEvidence(draft)} onChange={e=>setR('requiresEvidence',e.target.checked)}/><span>{en?'Evidence required (photo or file) on every entry':'Απαιτείται τεκμήριο (φωτογραφία ή αρχείο) σε κάθε καταχώρηση'}</span></label>
+      <label className="entry-span-2"><span>{en?'Actions on deviation':'Ενέργειες σε απόκλιση'}</span><textarea rows="3" value={draft.responseConfig?.deviationActions||''} onChange={e=>setR('deviationActions',e.target.value)} placeholder={en?'e.g. Move vaccines to the backup fridge, inform the pharmacy, record the incident.':'π.χ. Μεταφορά εμβολίων στο εφεδρικό ψυγείο, ενημέρωση φαρμακείου, καταγραφή συμβάντος.'}/><small>{en?'Shown to the person recording the control when the result is out of range or non-compliant.':'Εμφανίζεται σε όποιον καταχωρεί τον έλεγχο όταν το αποτέλεσμα είναι εκτός ορίων ή μη συμμόρφωση.'}</small></label>
+     </div>
     </div>
 
     <div className="control-form-block control-guidance-block">

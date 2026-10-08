@@ -1,6 +1,8 @@
 import { supabase } from '../../core/supabase/client'
 import { calculateNextDue } from './controlScheduling'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { deleteAttachment,uploadAttachment } from '../../core/attachments/attachmentService'
+import { evidenceSummary } from './controlCriticality'
 import { loadControlDefinitionsLocal,saveControlDefinitionsLocal,loadControlAssignmentsLocal,saveControlAssignmentsLocal,loadControlExecutionsLocal,saveControlExecutionsLocal,loadControlDraftsLocal,saveControlDraftsLocal } from './controlStore'
 
 const demoId=prefix=>`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`
@@ -34,6 +36,7 @@ function mapExecution(row){
   value:row.value_text||'',
   notes:row.notes||'',
   structuredData:response.structuredData||null,
+  evidence:Array.isArray(response.evidence)?response.evidence:[],
   responseData:response,
   hasFinding:Boolean(row.has_finding),
   status:row.status,
@@ -264,13 +267,29 @@ export async function deleteControlDefinition(organizationId,record){
  return true
 }
 
+// Evidence goes to the shared attachments store under the execution id, which
+// is generated before the insert so the files and the entry point at each other.
+async function uploadExecutionEvidence(organizationId,executionId,files=[]){
+ const uploaded=[]
+ try{
+  for(const file of files||[]){
+   const saved=await uploadAttachment(organizationId,'control_execution',executionId,file,{category:String(file.type||'').startsWith('image/')?'photo':'other'})
+   uploaded.push({...evidenceSummary(file),storagePath:saved.storagePath,attachmentId:saved.id})
+  }
+ }catch(error){await removeExecutionEvidence(uploaded);throw error}
+ return uploaded
+}
+async function removeExecutionEvidence(items=[]){
+ for(const item of items)await deleteAttachment(item.attachmentId).catch(()=>{})
+}
+
 export async function completeControlExecution(organizationId,record,department,payload={}){
  const assignment=record.assignments?.[department]
  if(!assignment?.dbId||!assignment?.departmentId)throw new Error('Control assignment is required.')
  if(isDemoDataEnvironment()){
   const userId=payload.actor?.id||''
   const now=new Date()
-  const responseData={structuredData:payload.structuredData||null,actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
+  const responseData={structuredData:payload.structuredData||null,evidence:(payload.evidenceFiles||[]).map(evidenceSummary),actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
   const execution={id:demoId('ctrl-exec'),assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}
   const executions=loadControlExecutionsLocal()
   executions.unshift(execution)
@@ -289,9 +308,11 @@ export async function completeControlExecution(organizationId,record,department,
  assertCloud(organizationId)
  const userId=await currentUserId()
  const now=new Date()
- const responseData={structuredData:payload.structuredData||null,actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
- const {data,error}=await supabase.from('control_executions').insert({assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}).select('*').single()
- if(error)throw error
+ const executionId=crypto.randomUUID()
+ const evidence=await uploadExecutionEvidence(organizationId,executionId,payload.evidenceFiles)
+ const responseData={structuredData:payload.structuredData||null,evidence:evidence.map(({attachmentId:_attachmentId,...item})=>item),actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
+ const {data,error}=await supabase.from('control_executions').insert({id:executionId,assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}).select('*').single()
+ if(error){await removeExecutionEvidence(evidence);throw error}
  const {error:updateError}=await supabase.from('control_assignments').update({last_completed_at:now.toISOString(),next_due_at:calculateNextDue(record.frequency||{},now),status:'scheduled'}).eq('organization_id',organizationId).eq('id',assignment.dbId)
  if(updateError)throw updateError
  await removeControlDraft(organizationId,record,department)
