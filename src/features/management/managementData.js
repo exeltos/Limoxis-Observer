@@ -29,6 +29,17 @@ export const demoLibrarySeed = {
   // Same six categories as the system_master_library_baseline_seed_v2
   // migration seeds for every real organization, so demo mode's Employee
   // create/edit "Professional category" select is never left empty.
+  // Job positions are the hospital's own list (Management > Libraries).
+  positions:[
+    ['Προϊστάμενος/η Τμήματος','Head of Department (Nursing)',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Νοσηλευτής/τρια ΜΕΘ','ICU Nurse',{system:false,locked:false,source:'Hospital',version:'local',jobDescription:{purpose:'Παροχή εξειδικευμένης νοσηλευτικής φροντίδας σε βαρέως πάσχοντες ασθενείς της ΜΕΘ με ασφάλεια και τήρηση των πρωτοκόλλων πρόληψης λοιμώξεων.',reportsTo:'Προϊστάμενος/η ΜΕΘ',duties:'Παρακολούθηση ζωτικών σημείων και κλινικής κατάστασης\nΦροντίδα κεντρικών φλεβικών καθετήρων κατά το bundle CLABSI\nΤήρηση υγιεινής χεριών (WHO 5 Moments) και μέτρων απομόνωσης\nΚαταγραφή ελέγχων τμήματος (ψυγείο φαρμάκων, απολύμανση)',responsibilities:'Άμεση αναφορά συμβάντων και αποκλίσεων\nΣυμμετοχή σε audits πρόληψης λοιμώξεων',qualifications:'Πτυχίο Νοσηλευτικής και άδεια άσκησης επαγγέλματος\nΕμπειρία σε μονάδα εντατικής θεραπείας (επιθυμητή)',competencies:'BLS/ALS\nΕτήσια εκπαίδευση υγιεινής χεριών και CLABSI',version:1,updatedAt:'2026-09-01T09:00:00Z',updatedBy:'Demo Hospital Admin'}}],
+    ['Νοσηλευτής/τρια Θαλάμου','Ward Nurse',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων (ΝΕΛ)','Infection Control Nurse',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Επιμελητής Ιατρός','Consultant Physician',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Ειδικευόμενος Ιατρός','Resident Physician',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Τεχνολόγος Εργαστηρίου','Laboratory Technologist',{system:false,locked:false,source:'Hospital',version:'local'}],
+    ['Βοηθός Θαλάμου','Ward Assistant',{system:false,locked:false,source:'Hospital',version:'local'}],
+  ],
   professionalCategories:[
     ['Ιατρός','Physician',SYS('Limoxis workforce core')],
     ['Νοσηλευτής/τρια','Nurse',SYS('Limoxis workforce core')],

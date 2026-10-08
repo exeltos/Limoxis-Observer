@@ -1,3 +1,4 @@
+import { EmployeePositionTab } from './JobDescriptionViews'
 import { useEffect,useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { Activity,BookOpenCheck,BriefcaseBusiness,FileCheck2,GraduationCap,HeartPulse,KeyRound,Pencil,ShieldCheck,Trash2,UserRound } from 'lucide-react'
@@ -49,6 +50,7 @@ export function EmployeeRecordPage({selfMode=false}){
   const [accountSaving,setAccountSaving]=useState(false)
   const [departments,setDepartments]=useState([])
   const [professionalCategories,setProfessionalCategories]=useState([])
+  const [positionOptions,setPositionOptions]=useState([])
   const [surveillanceOpen,setSurveillanceOpen]=useState(false)
   const [surveillanceVersion,setSurveillanceVersion]=useState(0)
 
@@ -61,14 +63,14 @@ export function EmployeeRecordPage({selfMode=false}){
     // already use for demo departments/libraries instead.
     if(isDemo){
       setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})))
-      setProfessionalCategories(demoLibrarySeed.professionalCategories||[])
+      setProfessionalCategories(demoLibrarySeed.professionalCategories||[]);setPositionOptions(demoLibrarySeed.positions||[])
       return()=>{active=false}
     }
     if(!tenant?.id){setDepartments([]);setProfessionalCategories([]);return()=>{active=false}}
     Promise.all([loadDepartments(tenant.id),loadManagementLibraries(tenant.id)]).then(([departmentRows,libraries])=>{
       if(!active)return
       setDepartments((departmentRows||[]).filter(row=>row.is_active!==false))
-      setProfessionalCategories(libraries?.professionalCategories||[])
+      setProfessionalCategories(libraries?.professionalCategories||[]);setPositionOptions(libraries?.positions||[])
     }).catch(()=>{if(active){setDepartments([]);setProfessionalCategories([])}})
     return()=>{active=false}
   },[isDemo,tenant?.id])
@@ -109,6 +111,7 @@ export function EmployeeRecordPage({selfMode=false}){
   const canSeeProtocols=can(role,CAPABILITIES.MANAGE_DOCUMENTS,addOns,custom)||can(role,CAPABILITIES.PUBLISH_DOCUMENT,addOns,custom)||isOwnEmployee
   const tabs=useMemo(()=>[
     {id:'details',label:t('employeesRecords.employeeDetailsTab'),icon:UserRound,show:true},
+    {id:'position',label:language==='en'?'Position':'Θέση',icon:BriefcaseBusiness,show:true},
     {id:'occupational',label:t('occupationalHealth'),icon:HeartPulse,show:canOccupational||selfMode},
     {id:'surveillance',label:t('surveillance'),icon:Activity,show:canSeeSensitiveEmployeeHealth&&(canOccupational||selfMode)},
     {id:'training',label:t('training'),icon:GraduationCap,show:canTraining||selfMode},
@@ -122,6 +125,7 @@ export function EmployeeRecordPage({selfMode=false}){
   const [tab,setTab]=useState(()=>['vaccinations','exposureIncidents'].includes(restored?.tab)?'occupational':(restored?.tab||'details'))
   const selfProfileTabs=useMemo(()=>[
     {id:'details',label:t('employeesRecords.employeeDetailsTab'),icon:UserRound},
+    {id:'position',label:language==='en'?'Position':'Θέση',icon:BriefcaseBusiness},
     {id:'occupational',label:t('occupationalHealth'),icon:HeartPulse},
     {id:'surveillance',label:t('surveillance'),icon:Activity},
     {id:'training',label:t('training'),icon:GraduationCap},
@@ -156,7 +160,8 @@ export function EmployeeRecordPage({selfMode=false}){
   return <Page fill title={name} subtitle={t('employeesRecords.employeeFullRecordSubtitle')}>
     <EntityRecordShell className={`employee-record-shell workspace-fill${selfReadOnly?' employee-self-readonly':''}`} avatar={`${employee.firstName?.[0]||''}${employee.lastName?.[0]||''}`} eyebrow={employee.id} title={name} subtitle={`${language==='el'?employee.profession:(employee.professionEn||employee.profession)} · ${language==='el'?employee.department:(employee.departmentEn||employee.department)}`} status={<span className={`status-badge ${employee.employmentStatus==='active'?'active':''}`}>{t(employee.employmentStatus)}</span>} recordNavigation={selfMode?null:recordNavigation} headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={selfMode?()=>navigate('/'):goBack} backLabel={t('back')}>
       {selfReadOnly&&<div className="source-truth-note"><ShieldCheck size={16}/><div><strong>{language==='en'?'Your employee record is read-only':'Η προσωπική σας καρτέλα είναι μόνο για προβολή'}</strong><span>{language==='en'?'You cannot edit, delete or perform administrative actions on your own employee record.':'Δεν μπορείτε να επεξεργαστείτε, να διαγράψετε ή να εκτελέσετε διοικητικές ενέργειες στη δική σας καρτέλα.'}</span></div></div>}
-      {tab==='details'&&<Details employee={employee} t={t} language={language} fmt={fmt} canAdmin={canAdmin} canManageUsers={canManageUsers} onCreateAccount={()=>setAccountOpen(true)} deleteEmployee={deleteEmployee} notify={notify} organizationId={tenant?.id} departmentOptions={departmentOptions} professionOptions={professionalCategories} reloadEmployees={reloadEmployees} onCodeChanged={newCode=>navigate(`/employees/${encodeURIComponent(newCode)}`,{replace:true})}/>} 
+      {tab==='details'&&<Details employee={employee} t={t} language={language} fmt={fmt} canAdmin={canAdmin} canManageUsers={canManageUsers} onCreateAccount={()=>setAccountOpen(true)} deleteEmployee={deleteEmployee} notify={notify} organizationId={tenant?.id} departmentOptions={departmentOptions} professionOptions={professionalCategories} positionOptions={positionOptions} reloadEmployees={reloadEmployees} onCodeChanged={newCode=>navigate(`/employees/${encodeURIComponent(newCode)}`,{replace:true})}/>} 
+      {tab==='position'&&<EmployeePositionTab employee={employee} positions={positionOptions} language={language} organizationId={tenant?.id} canAcknowledge={isOwnEmployee||selfMode||isDemo} actorName={name}/>}
       {tab==='occupational'&&<EmployeeHealthTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} initialSection={healthSection}/>} 
       {tab==='surveillance'&&<EmployeeSurveillanceTab employee={employee} t={t} language={language} fmt={fmt} version={surveillanceVersion} readOnly={selfReadOnly} isDemo={isDemo} organizationId={tenant?.id} canManageFollowup={canManageEmployeeFollowup} onNew={()=>setSurveillanceOpen(true)}/>} 
       {tab==='training'&&<EmployeeTrainingTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} canOpenProgram={canTraining}/>} 
@@ -191,7 +196,7 @@ function SelfAccountSummary({profile,user,role,membership,tenant,language}){
   return <section className="surface my-profile-hero" aria-label={en?'Account details':'Στοιχεία λογαριασμού'}><div className="my-profile-avatar">{initials}</div><div className="my-profile-identity"><span>{isPlatformOwner?(en?'PLATFORM ACCOUNT':'ΛΟΓΑΡΙΑΣΜΟΣ ΠΛΑΤΦΟΡΜΑΣ'):(en?'ACCOUNT':'ΛΟΓΑΡΙΑΣΜΟΣ')}</span><h2>{fullName}</h2><p>{email}</p></div><span className={`status-badge ${active?'active':'danger'}`}>{active?(en?'Active':'Ενεργός'):(en?'Suspended':'Σε παύση')}</span><div className="my-profile-grid my-profile-account-grid"><div className="my-profile-value"><span className="my-profile-value-label">Username</span><strong>{username}</strong></div><div className="my-profile-value"><span className="my-profile-value-label">{en?'Role':'Ρόλος'}</span><strong>{roleLabel(role,language)}</strong></div><div className="my-profile-value"><span className="my-profile-value-label">{en?'Organization':'Οργανισμός'}</span><strong>{organization}</strong></div><div className="my-profile-value"><span className="my-profile-value-label">Email</span><strong>{email}</strong></div></div></section>
 }
 
-function Details({employee,t,language,fmt,canAdmin,canManageUsers,onCreateAccount,deleteEmployee,notify,organizationId,departmentOptions,professionOptions,reloadEmployees,onCodeChanged}){
+function Details({employee,t,language,fmt,canAdmin,canManageUsers,onCreateAccount,deleteEmployee,notify,organizationId,departmentOptions,professionOptions,positionOptions=[],reloadEmployees,onCodeChanged}){
   const [editing,setEditing]=useState(false),[saving,setSaving]=useState(false),[record,setRecord]=useState({...employee})
   useEffect(()=>setRecord({...employee}),[employee])
   const set=(key,value)=>setRecord(current=>({...current,[key]:value}))
@@ -222,6 +227,7 @@ function Details({employee,t,language,fmt,canAdmin,canManageUsers,onCreateAccoun
       <InlineDetail editing={editing} label={t('fatherName')} value={language==='el'?record.fatherName:record.fatherNameEn} onChange={value=>set(language==='el'?'fatherName':'fatherNameEn',value)}/>
       <InlineSelect editing={editing} label={t('department')} value={record.department} display={language==='el'?record.department:record.departmentEn} options={departmentOptions} language={language} onChange={value=>set('department',value)}/>
       <InlineSelect editing={editing} label={t('professionalCategory')} value={record.profession} display={language==='el'?record.profession:record.professionEn} options={professionOptions} language={language} onChange={value=>set('profession',value)}/>
+      <InlineSelect editing={editing} label={language==='en'?'Job position':'Θέση εργασίας'} value={record.position} display={(language==='el'?record.position:record.positionEn)||'—'} options={positionOptions} language={language} onChange={value=>setRecord(current=>({...current,position:value,positionEn:positionOptions.find(row=>row?.[0]===value)?.[1]||value}))}/>
       <InlineDateDetail editing={editing} label={t('employeesRecords.hireDate')} value={record.hireDate} display={fmt(record.hireDate)} onChange={value=>set('hireDate',value)}/>
       <InlineDetail editing={editing} label={t('employeesRecords.email')} value={record.email} onChange={value=>set('email',value)}/>
       <InlineDetail editing={editing} label={t('phone')} value={record.phone} onChange={value=>set('phone',value)}/>

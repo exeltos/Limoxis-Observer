@@ -1510,11 +1510,7 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
 .library-source{font-size:9.5px}.library-system-badge{display:inline-flex;align-items:center;gap:4px;background:#eef3f7;color:#526778}
 
 /* v0.26.32 Management Center normalization */
-.management-tabs{overflow-x:auto;scrollbar-width:thin;flex-wrap:nowrap!important}
-.management-tabs .tab{white-space:nowrap;flex:0 0 auto}
 /* Management Center has too many tabs for one row: wrap instead of horizontal-scrolling. */
-.canonical-module-tabs.management-tabs.tabs{flex-wrap:wrap!important;overflow-x:visible!important;height:auto!important}
-.canonical-module-tabs.management-tabs .tab{flex:0 0 auto}
 
 /* v0.26.33 Management IA: overview cards, bundles top-level, environment in libraries */
 .environmental-embedded{padding:0}

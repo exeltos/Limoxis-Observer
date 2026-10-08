@@ -17,7 +17,7 @@ import { ControlEditor } from './ControlEditor'
 import { controlActorFromAuth } from './controlActor'
 import { MetricCard } from '../../design-system/MetricCard'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
-import { ControlAdherencePanel } from './ControlAdherencePanel'
+import { ControlAdherencePanel,useControlAdherenceReport } from './ControlAdherencePanel'
 import { periodRange,programmeAdherence } from './controlAdherence'
 import { assignmentStatus,frequencyLabel,getAssignment,isControlDue } from './controlScheduling'
 import { loadControlProgramme,saveControlDefinition } from './controlCloudService'
@@ -97,6 +97,7 @@ export function ControlsPage(){
  const dueSoon=scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='dueSoon').length
  const todayKey=new Date().toISOString().slice(0,10)
  const today=scopedControls.reduce((total,{item,departments:deps})=>total+deps.reduce((n,dep)=>n+(getAssignment(item,dep)?.history||[]).filter(h=>h.at?.slice(0,10)===todayKey).length,0),0)
+ const adherenceReport=useControlAdherenceReport(rows,tx,language)
  const monthAdherence=useMemo(()=>programmeAdherence(scopedControls,periodRange('30d')).totals,[scopedControls])
  const createdByScope=isDepartmentManager?'department':role===ROLES.PLATFORM_OWNER?'platform':role===ROLES.HOSPITAL_ADMIN?'hospital_admin':role===ROLES.QUALITY_MANAGER?'quality':'infection_control'
 
@@ -128,7 +129,7 @@ export function ControlsPage(){
 
  if(editorOpen)return <ControlEditor departmentOnly={isDepartmentManager} fixedDepartment={isDepartmentManager?ownDepartment:''} onCancel={()=>setEditorOpen(false)} onSave={saveNew}/>
 
- return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={<div className="row-actions">{view!=='adherence'&&<DownloadMenu disabled={!rows.length} onExcel={exportProgramme}/>}{canCreate&&<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>}</div>}>
+ return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={<div className="row-actions">{view==='adherence'?<DownloadMenu onExcel={adherenceReport.exportCsv} onPdf={adherenceReport.exportPdf} disabled={!adherenceReport.lines.length} pdfBusy={adherenceReport.exporting}/>:<DownloadMenu disabled={!rows.length} onExcel={exportProgramme}/>}{canCreate&&<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>}</div>}>
   <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedControls.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon} onClick={()=>setStatus(status==='dueSoon'?'all':'dueSoon')} active={status==='dueSoon'}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue} onClick={()=>setStatus(status==='overdue'?'all':'overdue')} active={status==='overdue'}/><Kpi icon={CheckCircle2} label={tx.today} value={today}/><Kpi icon={Gauge} label={`${tx.adherence} · 30 ${language==='en'?'days':'ημ.'}`} value={monthAdherence.rate==null?'—':`${monthAdherence.rate}%`} onClick={()=>setView(view==='adherence'?'programme':'adherence')} active={view==='adherence'}/></div></div>
   <section className="surface registry-workspace workspace-column workspace-fill controls-registry-workspace">
    <ModuleTabs activeId={view} onChange={setView} ariaLabel={t('controls')} tabs={[{id:'programme',label:tx.programmeTab,icon:ListChecks},{id:'adherence',label:tx.adherenceTab,icon:Gauge}]}/>
@@ -137,7 +138,7 @@ export function ControlsPage(){
     <FilterSelect label={tx.status} value={status} onChange={setStatus}><option value="all">{tx.all}</option><option value="temporary">{tx.temporary}</option><option value="scheduled">{tx.scheduled}</option><option value="dueSoon">{tx.dueSoon}</option><option value="overdue">{tx.overdue}</option></FilterSelect>
     <FilterSelect label={tx.frequency} value={frequency} onChange={setFrequency}><option value="all">{tx.all}</option><option value="daily">{tx.daily}</option><option value="weekly">{tx.weekly}</option><option value="monthly">{tx.monthly}</option><option value="yearly">{tx.yearly}</option></FilterSelect>
    </FilterBar>
-   {view==='adherence'?<ControlAdherencePanel rows={rows} tx={tx} language={language}/>:<>
+   {view==='adherence'?<ControlAdherencePanel report={adherenceReport} tx={tx} language={language}/>:<>
    <div className="scroll-table" ref={registry.scrollRef}>
     <table className="data-table sticky-table controls-table">
      <thead><tr><th>{tx.control}</th><th>{tx.departments}</th><th>{tx.frequency}</th><th>{tx.executions}</th><th>{tx.next}</th><th>{tx.status}</th><th className="control-action-col"></th></tr></thead>

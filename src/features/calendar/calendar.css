@@ -14,11 +14,11 @@
 .kind-documents{--calendar-color:#a07a12}
 .kind-committees{--calendar-color:#3d6f7a}
 .calendar-month-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;flex:1 1 auto;min-height:0}
-.calendar-month{display:flex;flex-direction:column;min-height:0;padding:10px 14px 14px;overflow:auto}
-.calendar-month-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.calendar-month{display:flex;flex-direction:column;min-height:0;padding:0 14px 14px;overflow:auto}
+.calendar-month-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:8px;height:52px;flex:0 0 auto;background:#fff}
 .calendar-month-head h3{margin:0 8px;min-width:170px;font-size:16px;text-transform:capitalize;color:var(--lo-color-text)}
 .calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;flex:1 1 auto}
-.calendar-weekday{padding:4px 6px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--lo-color-muted)}
+.calendar-weekday{position:sticky;top:52px;z-index:2;background:#fff;padding:4px 6px 6px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--lo-color-muted)}
 .calendar-day{display:flex;flex-direction:column;align-items:stretch;gap:2px;min-height:96px;padding:5px;border:1px solid var(--lo-color-border);border-radius:8px;background:#fff;font:inherit;text-align:left;cursor:pointer;overflow:hidden}
 .calendar-day:hover{border-color:#9bbad3}
 .calendar-day.outside{background:#f7f9fb}
@@ -49,3 +49,5 @@
 .calendar-list-heading.today{color:#1f6fa9}
 @media(max-width:1100px){.calendar-month-layout{grid-template-columns:1fr}.calendar-day-panel{border-left:0;border-top:1px solid var(--lo-color-border)}}
 @media(max-width:700px){.calendar-day{min-height:54px}.calendar-chip{display:none}.calendar-day:has(.calendar-chip)::after{content:'';width:6px;height:6px;border-radius:50%;background:#1f6fa9}}
+.calendar-day-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.calendar-day-panel-head h4{margin:0}

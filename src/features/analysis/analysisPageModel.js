@@ -29,6 +29,24 @@ export const TABS=[['overview','Σύνοψη','Overview',Activity],['national','
 // Module each tab needs in the organization's operating profile; tabs not listed are always shown.
 export const TAB_MODULES={national:['national'],laboratory:['laboratory'],amr:['laboratory'],reporting:['national','laboratory'],surveillance:['surveillance'],antimicrobials:['surveillance','pharmacy'],prevention:['prevention'],hand:['prevention'],controls:['controls'],quality:['quality'],training:['training'],governance:['governance'],occupational:['occupational_health'],pps:['prevalence_survey'],lira:['lira']}
 // Organization-level only: data quality, ΕΟΔΥ notifications and EARS-Net export work on sample-level laboratory data.
+// Top-level sections of Analysis; each tab belongs to one. A section with a
+// single visible tab shows no sub-tabs.
+export const TAB_GROUPS=[
+ ['summary','Σύνοψη','Overview',['overview']],
+ ['clinical','Επιτήρηση & μικροβιολογία','Surveillance & microbiology',['national','surveillance','laboratory','amr','antimicrobials','pps']],
+ ['prevention','Πρόληψη & έλεγχοι','Prevention & controls',['prevention','hand','controls']],
+ ['organisation','Οργανισμός','Organisation',['occupational','quality','training','governance']],
+ ['reports','Αναφορές & AI','Reports & AI',['reporting','lira']],
+]
+export function analysisGroups(visibleTabs){
+ const byId=new Map(visibleTabs.map(tab=>[tab[0],tab]))
+ const groups=TAB_GROUPS.map(([id,el,en,ids])=>({id,el,en,tabs:ids.map(tabId=>byId.get(tabId)).filter(Boolean)})).filter(group=>group.tabs.length)
+ const grouped=new Set(TAB_GROUPS.flatMap(group=>group[3]))
+ const rest=visibleTabs.filter(tab=>!grouped.has(tab[0]))
+ if(rest.length)groups.push({id:'other',el:'Λοιπά',en:'Other',tabs:rest})
+ return groups
+}
+
 export const REPORTING_TAB=['reporting','Αναφορές & ποιότητα δεδομένων','Reporting & data quality',FileWarning]
 export const MONTHS_EL=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
 export const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December']

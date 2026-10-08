@@ -19,8 +19,8 @@ import { demoLibrarySeed } from '../management/managementData'
 
 export function EmployeeCreatePage(){
  const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const navigate=useNavigate();const {tenant,role,membership,isDemo}=useTenant();const actor=useAuditActor();const {data:employeeRows}=useEmployeesData()
- const [saving,setSaving]=useState(false);const [departments,setDepartments]=useState([]);const [professionalCategories,setProfessionalCategories]=useState([])
- const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',department:'',profession:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
+ const [saving,setSaving]=useState(false);const [departments,setDepartments]=useState([]);const [professionalCategories,setProfessionalCategories]=useState([]);const [positions,setPositions]=useState([])
+ const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',department:'',profession:'',position:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[];const canCreate=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,addOns,custom)
  const set=(k,x)=>setV(s=>({...s,[k]:x}))
  const normalizedCode=v.employeeCode.trim().toLowerCase()
@@ -36,14 +36,14 @@ export function EmployeeCreatePage(){
   // already use for demo departments/libraries instead.
   if(isDemo){
    setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})))
-   setProfessionalCategories(demoLibrarySeed.professionalCategories||[])
+   setProfessionalCategories(demoLibrarySeed.professionalCategories||[]);setPositions(demoLibrarySeed.positions||[])
    return()=>{active=false}
   }
   if(!tenant?.id){setDepartments([]);setProfessionalCategories([]);return()=>{active=false}}
   Promise.all([loadDepartments(tenant.id),loadManagementLibraries(tenant.id)]).then(([departmentRows,libraries])=>{
    if(!active)return
    setDepartments((departmentRows||[]).filter(row=>row.is_active!==false))
-   setProfessionalCategories(libraries?.professionalCategories||[])
+   setProfessionalCategories(libraries?.professionalCategories||[]);setPositions(libraries?.positions||[])
   }).catch(()=>{if(active){setDepartments([]);setProfessionalCategories([])}})
   return()=>{active=false}
  },[isDemo,tenant?.id])
@@ -56,7 +56,7 @@ export function EmployeeCreatePage(){
   setSaving(true)
   try{
    const now=new Date().toISOString();const id=v.employeeCode.trim()
-   const row={...v,id,employeeCode:id,department:selectedDepartment?.name||v.department,departmentId:selectedDepartment?.id||null,departmentEn:selectedDepartment?.nameEn||selectedDepartment?.name||v.department,profession:selectedProfession?.[0]||v.profession,professionEn:selectedProfession?.[1]||selectedProfession?.[0]||v.profession,firstNameEn:v.firstName,lastNameEn:v.lastName,fatherNameEn:v.fatherName,createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}
+   const row={...v,id,employeeCode:id,department:selectedDepartment?.name||v.department,departmentId:selectedDepartment?.id||null,departmentEn:selectedDepartment?.nameEn||selectedDepartment?.name||v.department,profession:selectedProfession?.[0]||v.profession,professionEn:selectedProfession?.[1]||selectedProfession?.[0]||v.profession,position:v.position||'',positionEn:positions.find(row=>row?.[0]===v.position)?.[1]||v.position||'',firstNameEn:v.firstName,lastNameEn:v.lastName,fatherNameEn:v.fatherName,createdAt:now,createdBy:actor.name,createdById:actor.id,updatedAt:now,updatedBy:actor.name,updatedById:actor.id}
    const created=await createEmployeeAsync(tenant?.id??null,row)
    notify(t('employeeCreated'),'success')
    navigate(`/employees/${encodeURIComponent(created.id)}`,{replace:true})
@@ -78,6 +78,7 @@ export function EmployeeCreatePage(){
     <ManualDateField label={en?'Hire date':'Ημερομηνία πρόσληψης'} value={v.hireDate} onChange={x=>set('hireDate',x)} optional/>
     <label><span>{en?'Department *':'Τμήμα *'}</span><select value={v.department} onChange={e=>set('department',e.target.value)}><option value="">{en?'Select department…':'Επιλέξτε τμήμα…'}</option>{departments.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
     <label><span>{en?'Professional category *':'Επαγγελματική κατηγορία *'}</span><select value={v.profession} onChange={e=>set('profession',e.target.value)}><option value="">{en?'Select category…':'Επιλέξτε κατηγορία…'}</option>{professionalCategories.map(row=><option key={row?.[2]?.id||row?.[0]} value={row?.[2]?.id||row?.[0]}>{en?(row?.[1]||row?.[0]):row?.[0]}</option>)}</select></label>
+    <label><span>{en?'Job position':'Θέση εργασίας'}</span><select value={v.position} onChange={e=>set('position',e.target.value)}><option value="">{en?'Select position…':'Επιλέξτε θέση…'}</option>{positions.map(row=><option key={row?.[2]?.id||row?.[0]} value={row?.[0]}>{en?(row?.[1]||row?.[0]):row?.[0]}</option>)}</select></label>
     <label><span>Email</span><input type="email" value={v.email} onChange={e=>set('email',e.target.value)}/></label>
     <label><span>{en?'Phone':'Τηλέφωνο'}</span><input value={v.phone} onChange={e=>set('phone',e.target.value)}/></label>
    </div>

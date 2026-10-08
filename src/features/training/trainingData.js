@@ -85,6 +85,12 @@ export const trainingDemoState={
   {id:'CERT-TR-010',assignmentId:'TRA-010',employeeId:'EMP-006',title:'Ασφαλής διαχείριση αιχμηρών',issuedDate:'2026-06-16',validUntil:'2028-06-16',issuer:'Limoxis Observer · Demo Hospital'},
   {id:'CERT-TR-009',assignmentId:'TRA-009',employeeId:'EMP-008',title:'Ασφαλής διαχείριση αιχμηρών',issuedDate:'2026-06-09',validUntil:'2028-06-09',issuer:'Limoxis Observer · Demo Hospital'},
  ],
+ requirements:[
+  {id:'REQ-HH',title:'Υγιεινή Χεριών – WHO 5 Moments',programIds:['TRN-001'],professions:['Ιατρικό προσωπικό','Νοσηλευτικό προσωπικό'],departments:[],renewalMonths:12,active:true},
+  {id:'REQ-SHARPS',title:'Ασφαλής διαχείριση αιχμηρών',programIds:['TRN-003'],professions:[],departments:[],renewalMonths:24,active:true},
+  {id:'REQ-PPE',title:'Ορθή χρήση ΜΑΠ & απομόνωση',programIds:['TRN-002'],professions:[],positions:['Νοσηλευτής/τρια ΜΕΘ','Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων (ΝΕΛ)'],departments:[],renewalMonths:12,active:true},
+  {id:'REQ-CLABSI',title:'Πρόληψη CLABSI',programIds:['TRN-004'],professions:['Νοσηλευτικό προσωπικό'],departments:['ΜΕΘ','Χειρουργική'],renewalMonths:12,active:true},
+ ],
  emailOutbox:[],
  history:[{at:'2026-08-25T09:00:00Z',actor:'Demo Hospital Admin',action:'Δημιουργήθηκε ετήσιος κύκλος εκπαίδευσης Υγιεινής Χεριών'}]
 }

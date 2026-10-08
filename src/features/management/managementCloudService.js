@@ -10,7 +10,7 @@ const isUuid=value=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 const toLibraryTuple=row=>[
   row.name_el,
   row.name_en||row.name_el,
-  {id:row.id,system:Boolean(row.metadata?.system),locked:Boolean(row.metadata?.locked),source:row.source_authority||'Hospital',version:row.source_version||'local',code:row.code||null},
+  {id:row.id,system:Boolean(row.metadata?.system),locked:Boolean(row.metadata?.locked),source:row.source_authority||'Hospital',version:row.source_version||'local',code:row.code||null,...(row.metadata?.jobDescription?{jobDescription:row.metadata.jobDescription}:{})},
 ]
 
 // departments.department_type drives neonatal/paediatric logic (clinical scale
@@ -64,7 +64,17 @@ export async function updateManagementLibraryItem(organizationId,libraryKey,row,
     return departmentTuple(data)
   }
   const system=Boolean(row?.[2]?.system)
-  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl,source_authority:system?'Limoxis System':(row?.[2]?.source||'Hospital'),source_version:system?(row?.[2]?.version||'current'):'local',metadata:{system,locked:system}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
+  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl,source_authority:system?'Limoxis System':(row?.[2]?.source||'Hospital'),source_version:system?(row?.[2]?.version||'current'):'local',metadata:{system,locked:system,...(row?.[2]?.jobDescription?{jobDescription:row[2].jobDescription}:{})}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
+  if(error) throw error
+  return toLibraryTuple(data)
+}
+
+// Job description of a job position, kept in the library item's metadata.
+export async function saveJobDescription(organizationId,row,jobDescription){
+  assertCloud(organizationId);const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
+  const {data:current,error:loadError}=await supabase.from('master_library_items').select('metadata').eq('organization_id',organizationId).eq('id',id).single()
+  if(loadError) throw loadError
+  const {data,error}=await supabase.from('master_library_items').update({metadata:{...(current?.metadata||{}),jobDescription}}).eq('organization_id',organizationId).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
   if(error) throw error
   return toLibraryTuple(data)
 }

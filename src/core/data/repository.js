@@ -22,6 +22,7 @@ const TABLES=Object.freeze({
   pharmacy_antibiotic_dispensing:{storageKey:'limoxis.pharmacyAntibioticDispensing.v1',kind:'rows',cloud:false},
   documents:{storageKey:'limoxis.documents.v1',kind:'rows',cloud:false},
   employees:{storageKey:'limoxis.employees.v1',kind:'rows',cloud:false},
+  employee_position_acknowledgements:{storageKey:'limoxis.employeePositionAcknowledgements.v1',kind:'rows',cloud:false},
   indicator_local_definitions:{storageKey:'limoxis.indicatorLocalDefinitions.v1',kind:'rows',cloud:false},
   indicator_local_snapshots:{storageKey:'limoxis.indicatorLocalSnapshots.v1',kind:'rows',cloud:false},
   committee_approvals:{storageKey:'limoxis.committeeApprovals.v2',kind:'rows',cloud:false},

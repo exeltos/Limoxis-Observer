@@ -1,0 +1,22 @@
+/* Job description: editor (libraries) and employee view with acceptance. */
+.job-description-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.job-description-form .span-2{grid-column:1/-1}
+.job-description-form label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:650;color:var(--lo-color-text)}
+.job-description-form input,.job-description-form textarea{width:100%;padding:8px 10px;border:1px solid var(--lo-color-border);border-radius:9px;font:inherit;font-size:12px;line-height:1.45}
+.job-description-form input{height:38px}
+.job-description-view .record-section-header p{margin:2px 0 0;font-size:11.5px;color:var(--lo-color-muted)}
+.job-description-ack{display:flex;align-items:center;gap:12px;margin:4px 0 14px;padding:12px 14px;border:1px solid var(--lo-color-border);border-left:4px solid #c99a4a;border-radius:10px;background:#fffaf1}
+.job-description-ack>div{display:grid;flex:1;gap:2px}
+.job-description-ack strong{font-size:12.5px;color:var(--lo-color-text)}
+.job-description-ack small{font-size:11px;color:var(--lo-color-muted)}
+.job-description-ack svg{flex:0 0 auto;color:#b4842f}
+.job-description-ack.acknowledged{border-left-color:#2f8a57;background:#f2faf5}
+.job-description-ack.acknowledged svg{color:#2f8a57}
+.job-description-sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+.job-description-sections section{padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:#fff}
+.job-description-sections section>span,.job-description-history>span{display:block;margin-bottom:6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--lo-color-muted)}
+.job-description-sections p{margin:0;font-size:12px;line-height:1.55;color:var(--lo-color-text)}
+.job-description-sections ul,.job-description-history ul{margin:0;padding-left:18px;font-size:12px;line-height:1.6;color:var(--lo-color-text)}
+.job-description-history{margin-top:14px}
+.job-description-history ul{font-size:11.5px;color:var(--lo-color-muted)}
+@media(max-width:800px){.job-description-form{grid-template-columns:1fr}}
