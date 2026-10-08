@@ -16,7 +16,7 @@ import { TrainingProgramForm,TRAINING_PROGRAM_DEFAULTS,trainingProgramIsValid } 
 
 export function TrainingCreatePage(){
  const location=useLocation()
- const navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant,isDemo}=useTenant(),{notify,notifyError}=useFeedback(),{data:employees}=useEmployeesData();const [saving,setSaving]=useState(false),[departments,setDepartments]=useState([]),[v,setV]=useState(()=>({...TRAINING_PROGRAM_DEFAULTS,...(location.state?.calendarDate?{startDate:location.state.calendarDate,dueDate:location.state.calendarDate}:{})}))
+ const navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant,isDemo}=useTenant(),{notify,notifyError}=useFeedback(),{data:employees}=useEmployeesData();const [saving,setSaving]=useState(false),[departments,setDepartments]=useState([]),[v,setV]=useState(()=>({...TRAINING_PROGRAM_DEFAULTS,...(location.state?.trainingDraft||{}),...(location.state?.calendarDate?{startDate:location.state.calendarDate,dueDate:location.state.calendarDate}:{})}))
  // loadDepartments is a plain cloud call with no demo awareness — calling it
  // with tenant.id='demo-hospital' (not a real UUID) fails with a Postgres 400.
  useEffect(()=>{let active=true;if(isDemo){setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})));return()=>{active=false}}if(!tenant?.id)return;loadDepartments(tenant.id).then(rows=>{if(active)setDepartments((rows||[]).filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[isDemo,tenant?.id])
