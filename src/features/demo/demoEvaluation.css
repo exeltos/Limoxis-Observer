@@ -1,0 +1,39 @@
+/* Evaluation guide, "I want the application" and the Owner's evaluation panel. */
+.demo-guide-progress{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.demo-guide-progress strong{font-size:13px;color:#1d3247;white-space:nowrap}
+.demo-guide-progress-track{flex:1;height:8px;border-radius:999px;background:#edf1f5;overflow:hidden}
+.demo-guide-progress-track span{display:block;height:100%;background:#2f8f5b;border-radius:999px;transition:width .2s}
+.demo-guide-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.demo-guide-list li{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:11px;background:#fff}
+.demo-guide-list li.is-done{background:#f3faf6;border-color:#cfe7d9}
+.demo-guide-number{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#edf5fa;color:#256b9b;font-weight:800;font-size:13px}
+.demo-guide-list li.is-done .demo-guide-number{background:#2f8f5b;color:#fff}
+.demo-guide-body strong{display:block;font-size:13.5px;color:#1d3247}
+.demo-guide-body p{margin:3px 0 0;font-size:12px;line-height:1.5;color:var(--lo-text-secondary,#5f6f7c)}
+.demo-guide-actions{display:flex;align-items:center;gap:8px}
+.demo-guide-check{display:inline-flex;align-items:center;justify-content:center;min-width:132px;gap:5px;height:34px;padding:0 10px;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:8px;background:#fff;color:#40566d;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.demo-guide-check.is-done{border-color:#bfe0cc;background:#e6f4ec;color:#226b43}
+@media(max-width:720px){.demo-guide-list li{grid-template-columns:30px minmax(0,1fr)}.demo-guide-actions{grid-column:1 / -1;justify-content:flex-end}}
+
+.demo-application-form{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.demo-application-form .demo-application-wide{grid-column:1 / -1}
+.demo-application-form textarea{width:100%;resize:vertical;font:inherit}
+@media(max-width:720px){.demo-application-form{grid-template-columns:minmax(0,1fr)}}
+.demo-application-error{margin-top:10px;padding:10px 12px;border-radius:9px;background:var(--lo-status-danger-bg,#fff0f0);color:var(--lo-status-danger-fg,#a23f46);font-size:12.5px}
+.demo-application-sent{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:#226b43;padding:8px 0}
+.demo-application-sent p{margin:0;color:#334b61;font-size:13px;line-height:1.55}
+
+.demo-evaluation-panel{display:flex;flex-direction:column;gap:12px}
+.demo-evaluation-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.demo-evaluation-step{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:9px;font-size:12px;color:#40566d;background:#fff}
+.demo-evaluation-step.is-done{background:#f3faf6;border-color:#cfe7d9;color:#226b43}
+.demo-evaluation-step small{display:block;color:var(--lo-text-secondary,#5f6f7c);font-size:10.5px}
+@media(max-width:900px){.demo-evaluation-steps{grid-template-columns:minmax(0,1fr)}}
+.demo-interest-badge{margin-left:8px;vertical-align:middle;display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#fff1d6;color:#7a4e06;border:1px solid #f1d29a;font-size:11px;font-weight:800}
+.demo-request-card{border:1px solid #f1d29a;background:#fffaf0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:#4f3608}
+.demo-request-card header{display:flex;align-items:center;justify-content:flex-start;gap:10px;flex-wrap:wrap}
+.demo-request-card p{margin:0;white-space:pre-wrap;line-height:1.5}
+.demo-request-card select{width:auto;min-width:180px;margin-left:auto;height:30px;border:1px solid #ecd2a2;border-radius:7px;background:#fff;padding:0 8px;font:inherit;font-size:12px}
+.demo-evaluation-evaluator{display:flex;flex-direction:column;gap:8px}
+.demo-evaluation-evaluator-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.demo-evaluation-evaluator-head small{color:var(--lo-text-secondary,#5f6f7c);font-size:11.5px}

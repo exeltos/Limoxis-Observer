@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6.10.1'
 import { committeeMinutesApprovalEmail } from '../_shared/committeeApprovalEmail.ts'
 import { trainingInvitationEmail } from '../_shared/trainingInvitationEmail.ts'
+import { demoApplicationRequestEmail } from '../_shared/demoApplicationRequestEmail.ts'
 
 const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
@@ -38,26 +39,36 @@ Deno.serve(async(req)=>{
   ])
   if(!profile?.is_platform_owner&&!membership?.id)return reply({ok:false,code:'EMAIL_NOT_AUTHORIZED',error:'Not authorized'},403)
 
-  const {data:rows,error:listError}=await admin.from('notification_outbox').select('id,recipient_email,subject,payload,attempts,notification_type').eq('organization_id',organizationId).in('notification_type',['committee_minutes_approval_requested','training_invitation']).in('status',['pending','failed']).lte('available_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(20)
+  const {data:rows,error:listError}=await admin.from('notification_outbox').select('id,recipient_email,subject,payload,attempts,notification_type').eq('organization_id',organizationId).in('notification_type',['committee_minutes_approval_requested','training_invitation','demo_application_request']).in('status',['pending','failed']).lte('available_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(20)
   if(listError)return reply({ok:false,code:'EMAIL_OUTBOX_LOAD_FAILED',error:'Could not load notifications'},500)
   if(!rows?.length)return reply({ok:true,sent:0,failed:0,pending:0})
 
+  // A Demo never e-mails its synthetic people (all @*.invalid): only real
+  // recipients (the evaluators, the Platform Owner) get mail from a Demo.
+  const {data:organization}=await admin.from('organizations').select('is_demo').eq('id',organizationId).maybeSingle()
+  const syntheticIds=organization?.is_demo?rows.filter(row=>/\.invalid$/i.test(String(row.recipient_email||'').trim())).map(row=>row.id):[]
+  if(syntheticIds.length)await admin.from('notification_outbox').update({status:'cancelled',last_error:'DEMO_SYNTHETIC_RECIPIENT',updated_at:new Date().toISOString()}).in('id',syntheticIds)
+  const deliverable=rows.filter(row=>!syntheticIds.includes(row.id))
+  if(!deliverable.length)return reply({ok:true,sent:0,failed:0,pending:0,cancelled:syntheticIds.length})
+
   if(!smtpUser||!smtpPass){
     const now=new Date().toISOString()
-    const ids=rows.map(row=>row.id)
+    const ids=deliverable.map(row=>row.id)
     await admin.from('notification_outbox').update({status:'failed',last_error:'EMAIL_SERVICE_NOT_CONFIGURED',updated_at:now}).in('id',ids)
-    return reply({ok:false,code:'EMAIL_SERVICE_NOT_CONFIGURED',error:'SMTP credentials are not configured for process-notification-outbox',sent:0,failed:rows.length},200)
+    return reply({ok:false,code:'EMAIL_SERVICE_NOT_CONFIGURED',error:'SMTP credentials are not configured for process-notification-outbox',sent:0,failed:deliverable.length},200)
   }
 
   const transport=nodemailer.createTransport({host:smtpHost,port:smtpPort,secure:smtpPort===465,auth:{user:smtpUser,pass:smtpPass}})
   let sent=0,failed=0
-  for(const row of rows){
+  for(const row of deliverable){
     const {data:claimed,error:claimError}=await admin.from('notification_outbox').update({status:'processing',attempts:Number(row.attempts||0)+1,updated_at:new Date().toISOString()}).eq('id',row.id).in('status',['pending','failed']).select('id').maybeSingle()
     if(claimError||!claimed?.id)continue
     try{
       const payload=row.payload||{}
       const actionUrl=`${appUrl}${payload.path||'/'}`
-      const message=row.notification_type==='training_invitation'
+      const message=row.notification_type==='demo_application_request'
+        ?demoApplicationRequestEmail({organizationName:payload.organizationName||'',contactName:payload.contactName||'',contactEmail:payload.contactEmail||'',contactPhone:payload.contactPhone||'',message:payload.message||'',actionUrl,language:payload.language==='en'?'en':'el'})
+        :row.notification_type==='training_invitation'
         ?trainingInvitationEmail({programTitle:payload.programTitle||'',employeeName:payload.employeeName||'',dueDate:payload.dueDate||null,requiresAssessment:Boolean(payload.requiresAssessment),questionCount:Number(payload.questionCount||0),externalAccess:Boolean(payload.externalAccess),actionUrl,language:payload.language==='en'?'en':'el'})
         :committeeMinutesApprovalEmail({committeeName:payload.committeeName||'',meetingTitle:payload.meetingTitle||'',scheduledAt:payload.scheduledAt||null,actionUrl,language:payload.language==='en'?'en':'el'})
       await transport.sendMail({from:`Limoxis Observer <${smtpUser}>`,to:row.recipient_email,subject:message.subject||row.subject,html:message.html,text:message.text})
@@ -70,5 +81,5 @@ Deno.serve(async(req)=>{
       failed++
     }
   }
-  return reply({ok:failed===0,sent,failed,pending:Math.max(0,rows.length-sent-failed)})
+  return reply({ok:failed===0,sent,failed,pending:Math.max(0,deliverable.length-sent-failed),cancelled:syntheticIds.length})
 })

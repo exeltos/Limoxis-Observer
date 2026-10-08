@@ -9,6 +9,7 @@ import { CITY_OPTIONS,COUNTRY_OPTIONS } from '../../core/reference/locationOptio
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { resetPlatformDemoData,resetPlatformDemoPassword,setPlatformDemoStatus } from '../../core/tenant/tenantService'
 import { OrganizationDeleteDialog } from './OrganizationDeleteDialog'
+import { DemoEvaluationPanel } from '../demo/DemoEvaluationPanel'
 import { convertPlatformDemoToOrganization,demoDatesValid,loadPlatformDemoRecord,savePlatformDemoRecord } from './platformDemoService'
 const GREEK_REGIONS=['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
 const HEALTH_REGIONS=['1η ΥΠΕ Αττικής','2η ΥΠΕ Πειραιώς και Αιγαίου','3η ΥΠΕ Μακεδονίας','4η ΥΠΕ Μακεδονίας και Θράκης','5η ΥΠΕ Θεσσαλίας και Στερεάς Ελλάδας','6η ΥΠΕ Πελοποννήσου, Ιονίων Νήσων, Ηπείρου και Δυτικής Ελλάδας','7η ΥΠΕ Κρήτης']
@@ -23,6 +24,7 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
   const [working,setWorking]=useState(false)
   const [deleteOpen,setDeleteOpen]=useState(false)
   const [editing,setEditing]=useState(false)
+  const [interested,setInterested]=useState(false)
   const {notify,notifyError,confirm}=useFeedback()
   const en=language==='en'
   const tx=(elText,enText)=>en?enText:elText
@@ -71,7 +73,7 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
   return <>
     <EntityRecordShell className="platform-owner-record-shell platform-demo-record-workspace" avatar={<FlaskConical size={20}/>} eyebrow={tx('ΚΑΡΤΕΛΑ DEMO','DEMO RECORD')} title={draft.label||org?.name||record.label} subtitle={tx('Πλήρης επεξεργάσιμη καρτέλα Demo με τα ίδια βασικά στοιχεία της δημιουργίας.','Full editable Demo record with the same core fields as creation.')} status={<span className={`status-badge ${active?'active':status==='paused'?'temporary':'danger'}`}>{statusLabel}</span>} headerActions={actions} onBack={onBack} backLabel={tx('Πίσω','Back')}>
       <div className="platform-owner-details platform-demo-record-form">
-        <div className="platform-demo-record-status"><span className="platform-demo-icon"><FlaskConical size={20}/></span><div><strong>{statusLabel}</strong><span>{active?`${remaining} ${tx('ημέρες υπόλοιπο','days remaining')}`:status==='paused'?tx('Η πρόσβαση έχει τεθεί σε παύση.','Access is paused.'):tx('Η πρόσβαση δεν είναι ενεργή.','Access is not active.')}</span></div></div>
+        <div className="platform-demo-record-status"><span className="platform-demo-icon"><FlaskConical size={20}/></span><div><strong>{statusLabel}{interested&&<span className="demo-interest-badge">{tx('Θέλει την εφαρμογή','Wants the application')}</span>}</strong><span>{active?`${remaining} ${tx('ημέρες υπόλοιπο','days remaining')}`:status==='paused'?tx('Η πρόσβαση έχει τεθεί σε παύση.','Access is paused.'):tx('Η πρόσβαση δεν είναι ενεργή.','Access is not active.')}</span></div></div>
         <div className={`platform-record-edit-fieldset ${editing?'is-editing':'is-locked'}`}><div className="platform-form-shell">
           <FormSection title={tx('Ταυτότητα Demo οργανισμού','Demo organization identity')} subtitle={tx('Τα στοιχεία αυτά ανήκουν στον απομονωμένο Demo οργανισμό.','These details belong to the isolated Demo organization.')} actions={editing?<><Button variant="secondary" onClick={()=>{setDraft(toDraft(record));setEditing(false)}} disabled={saving}><X size={15}/>{tx('Ακύρωση','Cancel')}</Button><Button onClick={saveEdit} disabled={!canSave||saving||working}><Save size={15}/>{saving?tx('Αποθήκευση…','Saving…'):tx('Αποθήκευση','Save')}</Button></>:<IconButton tone="edit" label={tx('Επεξεργασία','Edit')} onClick={()=>setEditing(true)}><Pencil size={16}/></IconButton>}>
             <div className="platform-form-grid"><label className="field field-wide"><span>{tx('Επωνυμία οργανισμού / υποψήφιος πελάτης','Organization / Prospect name')} *</span><input value={draft.label} readOnly={!editing} onChange={e=>setDraft(x=>({...x,label:e.target.value}))}/></label><label className="field"><span>{tx('Τύπος','Type')}</span><select value={draft.type} disabled={!editing} onChange={e=>setDraft(x=>({...x,type:e.target.value}))}><option value="hospital">{tx('Νοσοκομείο','Hospital')}</option><option value="clinic">{tx('Κλινική','Clinic')}</option><option value="group">{tx('Όμιλος','Group')}</option><option value="other">{tx('Άλλο','Other')}</option></select></label></div>
@@ -83,6 +85,7 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
             <div className="platform-demo-access-grid"><label className="field field-wide"><span>{tx('Υπεύθυνος επικοινωνίας','Contact person')}</span><input value={draft.contactName} readOnly={!editing} onChange={e=>setDraft(x=>({...x,contactName:e.target.value}))}/></label><label className="field field-wide"><span>{tx('Email πρόσκλησης','Invitation email')} *</span><input type="email" value={draft.contactEmail} readOnly={!editing} onChange={e=>setDraft(x=>({...x,contactEmail:e.target.value}))}/></label><ManualDateField label={tx('Έναρξη','Start')} value={draft.validFrom} onChange={value=>setDraft(x=>({...x,validFrom:value}))} disabled={!editing}/><ManualDateField label={`${tx('Λήξη','End')} *`} value={draft.validUntil} onChange={value=>setDraft(x=>({...x,validUntil:value}))} disabled={!editing}/></div>{editing&&draft.validFrom&&draft.validUntil&&!datesValid&&<p className="field-error platform-demo-dates-error" role="alert">{tx('Η λήξη πρέπει να είναι μετά την έναρξη.','The end date must be after the start date.')}</p>}
           </FormSection>
         </div></div>
+        <DemoEvaluationPanel organizationId={record.organization_id} language={language} onInterestChange={setInterested}/>
       </div>
     </EntityRecordShell>
 

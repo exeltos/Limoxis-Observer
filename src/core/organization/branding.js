@@ -38,8 +38,13 @@ export function useOrganizationBranding(tenant,isDemo){
 // What PDFs print at the top. The app shell keeps it current for the open
 // organization, so every export gets it without passing it around.
 let reportBranding=null
-export function setReportBranding(value){reportBranding=value?{name:String(value.name||''),logo:value.logo||'',reportHeader:value.reportHeader||''}:null}
+export function setReportBranding(value){reportBranding=value?{name:String(value.name||''),logo:value.logo||'',reportHeader:value.reportHeader||'',demo:Boolean(value.demo)}:null}
 export const getReportBranding=()=>reportBranding
+// A Demo organization's reports carry a "DEMO" mark (PDF pages, CSV first row,
+// print), so a file from a Demo is never taken for a real report.
+export const isDemoReport=()=>Boolean(reportBranding?.demo)
+export const DEMO_REPORT_MARK_EL='DEMO · Συνθετικά δεδομένα επίδειξης, όχι πραγματικά στοιχεία'
+export const DEMO_REPORT_MARK_EN='DEMO · Synthetic demonstration data, not real records'
 
 // A logo file as a data URL, scaled down to LOGO_MAX_PX on its longer side
 // (SVG is kept as is). Rejects other types and anything still too large.

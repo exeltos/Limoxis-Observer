@@ -1,4 +1,4 @@
-import { getReportBranding } from '../organization/branding'
+import { DEMO_REPORT_MARK_EL, getReportBranding } from '../organization/branding'
 
 function safeName(value='report'){
   return String(value||'report').trim().replace(/[^\p{L}\p{N}._-]+/gu,'_').replace(/^_+|_+$/g,'')||'report'
@@ -53,7 +53,29 @@ async function drawHeader(pdf,branding,logo,pageWidth){
   pdf.setDrawColor(207,219,229);pdf.setLineWidth(0.3);pdf.line(margin,HEADER_MM-0.5,pageWidth-margin,HEADER_MM-0.5)
 }
 
+// A Demo organization's pages: a light diagonal "DEMO" across the page and a
+// line at the bottom saying the data is synthetic (drawn as an image: Greek is
+// not in jsPDF's standard fonts).
+function drawDemoMark(pdf,pageWidth,pageHeight){
+  try{
+    if(pdf.GState&&pdf.setGState){pdf.saveGraphicsState?.();pdf.setGState(new pdf.GState({opacity:0.08}))}
+    pdf.setTextColor(180,40,40);pdf.setFont('helvetica','bold');pdf.setFontSize(110)
+    pdf.text('DEMO',pageWidth/2,pageHeight/2+20,{align:'center',angle:28})
+    if(pdf.GState&&pdf.setGState)pdf.restoreGraphicsState?.()
+  }catch{/* the bottom line below still marks the page */}
+  const canvas=document.createElement('canvas');const ctx=canvas.getContext?.('2d')
+  if(!ctx)return
+  const widthMm=pageWidth-16,heightMm=6,scale=4*3.78
+  canvas.width=Math.round(widthMm*scale);canvas.height=Math.round(heightMm*scale)
+  ctx.scale(scale,scale);ctx.fillStyle='#fff3e0';ctx.fillRect(0,0,widthMm,heightMm)
+  ctx.fillStyle='#a24d0a';ctx.font='bold 3.2px system-ui, sans-serif';ctx.textBaseline='middle';ctx.textAlign='center'
+  ctx.fillText(DEMO_REPORT_MARK_EL,widthMm/2,heightMm/2)
+  pdf.addImage(canvas.toDataURL('image/png'),'PNG',8,pageHeight-heightMm-3,widthMm,heightMm,'demo-mark','FAST')
+}
+
 export async function exportElementAsPdf({element,filename,orientation='landscape',branding=getReportBranding(),header=true}={}){
+  const demo=Boolean(branding?.demo)
+  if(demo&&!String(filename||'').startsWith('DEMO_'))filename=`DEMO_${filename||'report'}`
   if(!element)throw new Error('PDF_EXPORT_NO_ELEMENT')
   const [{default:html2canvas},{jsPDF}]=await Promise.all([import('html2canvas'),import('jspdf')])
   // Controls marked data-pdf-ignore (e.g. the download menu) stay out of the file.
@@ -72,7 +94,7 @@ export async function exportElementAsPdf({element,filename,orientation='landscap
   if(!canSlice){
     // No 2D canvas (tests, very old browsers): tile the whole image, no header.
     const imgHeight=canvas.height/pxPerMm,imgData=canvas.toDataURL('image/png')
-    for(let offset=0;offset<imgHeight;offset+=pageHeight){if(offset)pdf.addPage();pdf.addImage(imgData,'PNG',0,-offset,pageWidth,imgHeight)}
+    for(let offset=0;offset<imgHeight;offset+=pageHeight){if(offset)pdf.addPage();pdf.addImage(imgData,'PNG',0,-offset,pageWidth,imgHeight);if(demo)drawDemoMark(pdf,pageWidth,pageHeight)}
     pdf.save(`${safeName(filename)}.pdf`)
     return
   }
@@ -84,6 +106,7 @@ export async function exportElementAsPdf({element,filename,orientation='landscap
     // JPEG keeps a page of tables at a few hundred KB instead of megabytes.
     pdf.addImage(slice.toDataURL('image/jpeg',0.92),'JPEG',0,top,pageWidth,height/pxPerMm)
     if(withHeader)await drawHeader(pdf,branding,logo,pageWidth)
+    if(demo)drawDemoMark(pdf,pageWidth,pageHeight)
   }
   pdf.save(`${safeName(filename)}.pdf`)
 }

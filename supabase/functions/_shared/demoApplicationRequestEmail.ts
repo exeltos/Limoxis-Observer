@@ -1,0 +1,15 @@
+function esc(value:unknown){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]||ch))}
+
+// To the Platform Owner: an evaluator pressed "I want the application" in a Demo.
+export function demoApplicationRequestEmail({organizationName='',contactName='',contactEmail='',contactPhone='',message='',actionUrl='',language='el'}:{organizationName?:string,contactName?:string,contactEmail?:string,contactPhone?:string,message?:string,actionUrl:string,language?:'el'|'en'}){
+  const en=language==='en'
+  const title=en?'Application request from a Demo':'Αίτημα για την εφαρμογή από Demo'
+  const intro=en?'An evaluator asked to get Limoxis Observer.':'Ένας αξιολογητής ζήτησε να αποκτήσει το Limoxis Observer.'
+  const rows:[string,string][]=[[en?'Demo':'Demo',organizationName],[en?'Name':'Όνομα',contactName],[en?'Email':'Email',contactEmail],[en?'Phone':'Τηλέφωνο',contactPhone]]
+  const button=en?'Open the Demo':'Άνοιγμα του Demo'
+  const messageLabel=en?'Message':'Μήνυμα'
+  const info=rows.filter(([,value])=>value).map(([label,value])=>`<strong>${esc(label)}:</strong> ${esc(value)}`).join('<br>')
+  const html=`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"></head><body style="margin:0;background:#f4f7fa;font-family:Arial,Helvetica,sans-serif;color:#172033"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;padding:28px 12px;background:#f4f7fa"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:620px;background:#fff;border-radius:14px;border:1px solid #dfe6ee;overflow:hidden"><tr><td style="padding:24px 28px;background:#0f3557;color:#fff"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.82">Limoxis Observer</div><h1 style="margin:8px 0 0;font-size:22px;line-height:1.3">${esc(title)}</h1></td></tr><tr><td style="padding:28px;word-break:break-word"><p style="margin:0 0 20px;line-height:1.6">${esc(intro)}</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f7f9fb;border-radius:10px"><tr><td style="padding:16px 18px;line-height:1.7">${info}</td></tr></table>${message?`<p style="margin:18px 0 6px;font-weight:700">${esc(messageLabel)}</p><p style="margin:0;line-height:1.6;white-space:pre-wrap">${esc(message)}</p>`:''}<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0 0"><tr><td><a href="${esc(actionUrl)}" style="display:inline-block;background:#1565a8;color:#fff;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">${esc(button)}</a></td></tr></table></td></tr></table></td></tr></table></body></html>`
+  const text=[title,intro,...rows.filter(([,value])=>value).map(([label,value])=>`${label}: ${value}`),message?`${messageLabel}: ${message}`:'',`${button}: ${actionUrl}`].filter(Boolean).join('\n')
+  return {subject:`${title}: ${organizationName}`,html,text}
+}
