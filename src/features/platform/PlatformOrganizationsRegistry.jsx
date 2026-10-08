@@ -5,6 +5,8 @@ import { Page } from '../../design-system/Page'
 import { FilterBar } from '../../design-system/FilterBar'
 import { Button } from '../../design-system/Button'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { exportRegistry } from '../../core/export/registryExports'
 
 export function PlatformOrganizationsRegistry({
   tx,
@@ -28,6 +30,13 @@ export function PlatformOrganizationsRegistry({
   const [lastOpenedId,setLastOpenedId]=useState(()=>readSessionValue('limoxis.registry.platform-organizations.selected','')||'')
   const openOrganization=org=>{const id=String(org.id);writeSessionValue('limoxis.registry.platform-organizations.selected',id);setLastOpenedId(id);onOpenOrganization(org)}
 
+  const adminStatus=id=>({active:tx('Ενεργός','Active'),disabled:tx('Σε παύση','Suspended'),invited:tx('Εκκρεμής','Pending')})[hospitalAdminStatusByOrg[id]]||''
+  function exportOrganizations(){
+    exportRegistry({name:tx('organismoi','organizations'),
+      headers:[tx('Οργανισμός','Organization'),tx('Κωδικός','Code'),tx('Πόλη','City'),tx('Περιφέρεια','Region'),tx('Χρήστες','Users'),tx('Διαχειριστής','Hospital admin'),tx('Κατάσταση','Status'),tx('Προφίλ λειτουργίας','Operating profile'),tx('Κλείδωμα οθόνης (λεπτά)','Screen lock (minutes)')],
+      rows:organizations.map(org=>[org.name,org.code,org.city||'',org.region||'',memberCountByOrg[org.id]||0,adminStatus(org.id),org.status==='active'?tx('Ενεργός','Active'):tx('Σε παύση','Suspended'),org.operating_profile||'',org.idle_lock_minutes??''])})
+  }
+
   return (
     <Page
       title={tx('Οργανισμοί', 'Organizations')}
@@ -35,7 +44,7 @@ export function PlatformOrganizationsRegistry({
         'Μητρώο οργανισμών, χρηστών, πρόσβασης και λειτουργικής διαχείρισης.',
         'One registry for organizations, users, access and operational management.'
       )}
-      actions={<Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button>}
+      actions={<div className="row-actions"><DownloadMenu items={[{id:'organizations',label:tx('Excel: οργανισμοί','Excel: organizations'),disabled:!organizations.length,onClick:exportOrganizations}]}/><Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button></div>}
     >
       <div className="platform-registry-shell">
         <FilterBar

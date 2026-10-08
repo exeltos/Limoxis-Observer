@@ -3,6 +3,7 @@ import { appConfig, hasSupabaseConfig } from '../config/env'
 import { supabase } from '../supabase/client'
 import { signInWithPassword, signOut as remoteSignOut } from './authService'
 import { ROLES } from '../permissions/roles'
+import { OWNER_PREVIEW_USER,isOwnerPreview } from '../preview/ownerPreview'
 
 const AuthContext = createContext(null)
 const DEMO_USER = Object.freeze({
@@ -16,7 +17,7 @@ const DEMO_USER = Object.freeze({
 export function AuthProvider({ children }) {
   const helpPreviewMode=typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('helpPreview')==='1'&&window.self!==window.top
   const initial=helpPreviewMode
-    ? {session:{access_token:'help-preview',user:DEMO_USER},profile:DEMO_USER,loading:false}
+    ? (isOwnerPreview()?{session:{access_token:'help-preview',user:OWNER_PREVIEW_USER},profile:OWNER_PREVIEW_USER,loading:false}:{session:{access_token:'help-preview',user:DEMO_USER},profile:DEMO_USER,loading:false})
     : {session:null,profile:null,loading:hasSupabaseConfig}
   const [authState,setAuthState]=useState(initial)
   const stateRef=useRef(initial)

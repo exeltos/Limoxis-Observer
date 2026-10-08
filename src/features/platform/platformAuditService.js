@@ -1,7 +1,9 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
+import { isOwnerPreview,previewAuditEvents } from '../../core/preview/ownerPreview'
 
 export async function listPlatformAuditEvents({limit=500}={}){
+  if(isOwnerPreview())return previewAuditEvents()
   if(!hasSupabaseConfig||!supabase)return []
   const safeLimit=Math.min(Math.max(Number(limit)||500,1),1000)
   const {data,error}=await supabase

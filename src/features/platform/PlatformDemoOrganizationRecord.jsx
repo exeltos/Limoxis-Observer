@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Activity, Building2, LogIn, Users } from 'lucide-react'
+import { Activity, BedDouble, Building2, KeyRound, LogIn, Users } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { IconButton } from '../../design-system/IconButton'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { demoUsers } from '../management/managementData'
+import { MetricCard } from '../../design-system/MetricCard'
 
 // Read-only counterpart to PlatformOrganizationRecord.jsx for the synthetic
 // "Demo Hospital" entry the Platform Owner's demo preview shows in place of
@@ -30,11 +31,11 @@ export function PlatformDemoOrganizationRecord({organization,language='el',initi
 
   return <EntityRecordShell className="platform-owner-record-shell platform-organization-record-workspace" avatar={<Building2 size={20}/>} eyebrow={tx('ΚΑΡΤΕΛΑ ΟΡΓΑΝΙΣΜΟΥ · DEMO','ORGANIZATION RECORD · DEMO')} title={organization.name} subtitle={`${organization.code||'DEMO'} · ${DEMO_DETAILS.city} · ${DEMO_DETAILS.region}`} status={<span className="status-badge temporary">DEMO</span>} headerActions={actions} tabs={tabs} activeTab={tab} onTabChange={changeTab} onBack={onBack} backLabel={tx('Πίσω','Back')}>
     {tab==='details'&&<div className="platform-owner-details platform-organization-record-form">
-      <div className="platform-organization-summary-strip">
-        <div><span>{tx('Τύπος','Type')}</span><strong>{tx('Νοσοκομείο','Hospital')}</strong></div>
-        <div><span>{tx('Χρήστες','Users')}</span><strong>{demoUsers.length}</strong></div>
-        <div><span>Hospital Admin</span><strong>1</strong></div>
-        <div><span>{tx('Κλίνες','Beds')}</span><strong>{DEMO_DETAILS.bedCapacity}</strong></div>
+      <div className="module-summary-strip">
+        <MetricCard icon={Building2} value={tx('Νοσοκομείο','Hospital')} label={tx('Τύπος','Type')}/>
+        <MetricCard icon={Users} value={demoUsers.length} label={tx('Χρήστες','Users')}/>
+        <MetricCard icon={KeyRound} value={1} label={tx('Διαχειριστές Νοσοκομείου','Hospital admins')}/>
+        <MetricCard icon={BedDouble} value={DEMO_DETAILS.bedCapacity} label={tx('Κλίνες','Beds')}/>
       </div>
       <div className="details-grid">
         <div><span>{tx('Περιφέρεια','Region')}</span><strong>{DEMO_DETAILS.region}</strong></div>

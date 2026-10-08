@@ -13,7 +13,7 @@ import { useContextualNavigation } from '../../core/navigation/useContextualNavi
 import { MetricCard } from '../../design-system/MetricCard'
 import { readSessionValue,writeSessionValue } from '../../core/storage/browserStorage'
 import { loadQualityRecords } from './qualityService'
-import { QualityDeviationQueue,useDeviationQueue } from './QualityDeviationQueue'
+import { DeviationSummary,QualityDeviationQueue,deviationsExport,useDeviationQueue,useDeviationView } from './QualityDeviationQueue'
 import { deviationQueue,subActionProgress } from './qualityDeviations'
 import { DownloadMenu } from '../../design-system/DownloadMenu'
 import { exportRegistry,qualityExport } from '../../core/export/registryExports'
@@ -66,6 +66,7 @@ export function QualityPage(){
   const visibleSections=sections.filter(item=>!item.manageOnly||canManage)
   const queue=useDeviationQueue(tenant?.id,canManage)
   const queueCount=useMemo(()=>deviationQueue(queue.sources).length,[queue.sources])
+  const deviationView=useDeviationView(queue.sources)
   const createLabel=createLabels[section]?.[language==='en'?'en':'el']||(language==='en'?'Create':'Δημιουργία')
 
   useEffect(()=>{let active=true;if(section==='deviations'){setRows([]);setLoading(false);return()=>{active=false}};setLoading(true);loadQualityRecords(section,tenant?.id).then(data=>{if(active)setRows(data)}).catch(()=>{if(active)setRows([])}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[section,tenant?.id])
@@ -82,7 +83,8 @@ export function QualityPage(){
   function createCapaFrom(prefill){writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.capas',state:{qualitySource:prefill}})}
   function changeSection(id){registry.saveViewState({query,status,department});setSection(id);setQuick(null);const next=readRegistryViewState(`quality.${id}`);setQuery(next?.query||'');setStatus(next?.status||'all');setDepartment(next?.department||'all')}
 
-  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA and audits in one controlled, traceable flow.':'Συμβάντα, ευρήματα, CAPA και επιθεωρήσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{!isQueue&&<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
+  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA and audits in one controlled, traceable flow.':'Συμβάντα, ευρήματα, CAPA και επιθεωρήσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{isQueue?<DownloadMenu disabled={!deviationView.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviationView.filtered,{en:language==='en',t}))}/>:<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
+    {isQueue&&<DeviationSummary view={deviationView} language={language}/>}
     {!isQueue&&<div className="workspace-summary quality-summary"><div className="module-summary-strip">
       <SummaryMetric icon={ClipboardCheck} label={language==='en'?'Total':'Σύνολο'} value={rows.length} onClick={()=>setQuick(null)} active={false}/>
       <SummaryMetric icon={Clock3} label={language==='en'?'Open / active':'Ανοικτά / ενεργά'} value={openCount} onClick={quickToggle('open')} active={quick==='open'}/>
@@ -91,7 +93,7 @@ export function QualityPage(){
     </div></div>}
     <div className="surface registry-workspace workspace-column workspace-fill quality-workspace">
       <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{visibleSections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{id==='deviations'?(language==='en'?'Deviations without CAPA':'Αποκλίσεις χωρίς CAPA'):t(label)}</span>{id==='deviations'&&queueCount>0&&<span className="quality-tab-count">{queueCount}</span>}</button>)}</nav>
-      {isQueue?<QualityDeviationQueue sources={queue.sources} loading={queue.loading} language={language} locale={locale} t={t} onCreateCapa={createCapaFrom}/>:<>
+      {isQueue?<QualityDeviationQueue view={deviationView} loading={queue.loading} language={language} locale={locale} t={t} onCreateCapa={createCapaFrom}/>:<>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status).filter(Boolean))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>

@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
+import { isOwnerPreview,previewPlatformSettings } from '../../core/preview/ownerPreview'
 
 const fallback={
   id:'global',
@@ -25,6 +26,7 @@ function mapRow(row){
 }
 
 export async function getPlatformSettings(){
+  if(isOwnerPreview())return previewPlatformSettings()
   if(!hasSupabaseConfig||!supabase)return fallback
   const {data,error}=await supabase
     .from('platform_settings')

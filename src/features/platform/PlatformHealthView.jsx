@@ -4,7 +4,11 @@ import { Page } from '../../design-system/Page'
 import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { exportRegistry } from '../../core/export/registryExports'
 import { listRuntimeEvents } from '../../core/diagnostics/runtimeDiagnosticsService'
+import { MetricCard } from '../../design-system/MetricCard'
+import { localModule } from './HospitalDiagnosticsPanel'
 
 const severityMeta={
   error:{el:'Αποτυχία',en:'Error',icon:XCircle},
@@ -83,15 +87,15 @@ export function PlatformHealthView({organizations=[],language='el'}){
   return <Page
     title={tx('Υγεία Πλατφόρμας','Platform Health')}
     subtitle={tx('Συγκεντρωτική λειτουργική εικόνα όλων των πραγματικών οργανισμών χωρίς πρόσβαση σε κλινικό περιεχόμενο.','Aggregated operational health across production organizations without clinical-record content.')}
-    actions={<IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton>}
+    actions={<div className="row-actions"><DownloadMenu items={[{id:'events',label:tx('Excel: συμβάντα','Excel: events'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('symvanta-leitourgias','platform-events'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Κατάσταση','Status'),tx('Ενότητα','Area'),'Route',tx('Περιγραφή','Description'),tx('Αναφορά','Reference'),tx('Χρήστης','User'),tx('Έκδοση','Version')],rows:filtered.map(row=>[fmtDate(row.occurredAt),organizationMap.get(row.organizationId)?.name||row.organizationName||'',(severityMeta[row.severity]||severityMeta.info)[en?'en':'el'],localModule(row.module,language),row.route||'',row.message||'',row.diagnosticCode||'',row.actorName||'',row.appVersion||''])})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}
   >
+    <div className="workspace-summary"><div className="module-summary-strip">
+      <MetricCard icon={failures?ShieldAlert:CheckCircle2} value={healthLabel} label={tx('Κατάσταση','Status')} tone={failures?'danger':warnings?'warning':'neutral'}/>
+      <MetricCard icon={XCircle} value={failures} label={tx('Αποτυχίες / αποκλεισμοί','Errors / blocked')}/>
+      <MetricCard icon={AlertTriangle} value={warnings} label={tx('Προειδοποιήσεις','Warnings')}/>
+      <MetricCard icon={Activity} value={`${affectedOrganizations}/${organizations.length}`} label={tx('Οργανισμοί με συμβάντα','Organizations affected')}/>
+    </div></div>
     <div className="platform-registry-shell workspace-column">
-      <div className="diagnostics-summary-strip platform-summary-strip">
-        <div className="diagnostics-summary"><span>{tx('Κατάσταση','Status')}</span><strong>{healthLabel}</strong></div>
-        <div className="diagnostics-summary"><span>{tx('Αποτυχίες / αποκλεισμοί','Errors / blocked')}</span><strong>{failures}</strong></div>
-        <div className="diagnostics-summary"><span>{tx('Προειδοποιήσεις','Warnings')}</span><strong>{warnings}</strong></div>
-        <div className="diagnostics-summary"><span>{tx('Οργανισμοί με συμβάντα','Organizations affected')}</span><strong>{affectedOrganizations}/{organizations.length}</strong></div>
-      </div>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση οργανισμού, περιγραφής ή ενότητας…','Search organization, description or area…')} activeAdvancedCount={(organizationId!=='all'?1:0)+(severity!=='all'?1:0)} onClear={()=>{setQuery('');setOrganizationId('all');setSeverity('all')}}>
         <FilterSelect label={tx('Οργανισμός','Organization')} value={organizationId} onChange={setOrganizationId}>
           <option value="all">{tx('Όλοι','All')}</option>
@@ -102,7 +106,7 @@ export function PlatformHealthView({organizations=[],language='el'}){
           {Object.entries(severityMeta).map(([value,meta])=><option key={value} value={value}>{meta[en?'en':'el']}</option>)}
         </FilterSelect>
       </FilterBar>
-      {loading?<div className="inline-empty">{tx('Φόρτωση λειτουργικής εικόνας…','Loading platform health…')}</div>:filtered.length?<><div className="table-wrap scroll-table diagnostics-table-wrap"><table className="data-table sticky-table diagnostics-table"><thead><tr><th>{tx('Ημερομηνία / ώρα','Date / time')}</th><th>{tx('Οργανισμός','Organization')}</th><th>{tx('Κατάσταση','Status')}</th><th>{tx('Ενότητα','Area')}</th><th>{tx('Περιγραφή','Description')}</th><th>{tx('Χρήστης','User')}</th><th>{tx('Έκδοση','Version')}</th></tr></thead><tbody>{pagedRows.map(row=>{const meta=severityMeta[row.severity]||severityMeta.info;const Icon=meta.icon;return <tr key={`${row.organizationId}-${row.id}`}><td><strong>{fmtDate(row.occurredAt)}</strong></td><td><strong>{organizationMap.get(row.organizationId)?.name||row.organizationName||'—'}</strong><small>{organizationMap.get(row.organizationId)?.code||'—'}</small></td><td><span className={`status-badge diagnostics-${row.severity}`}><Icon size={13}/>{meta[en?'en':'el']}</span></td><td><strong>{row.module||'—'}</strong><small>{row.route||'—'}</small></td><td><strong>{row.message||'—'}</strong>{row.diagnosticCode&&<small>{tx('Αναφορά','Reference')}: {row.diagnosticCode}</small>}</td><td>{row.actorName||'—'}</td><td>{row.appVersion||'—'}</td></tr>})}</tbody></table></div><RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/></>:<div className="inline-empty">{tx('Δεν υπάρχουν συμβάντα που να αντιστοιχούν στα φίλτρα.','No events match the selected filters.')}</div>}
+      {loading?<div className="inline-empty">{tx('Φόρτωση λειτουργικής εικόνας…','Loading platform health…')}</div>:filtered.length?<><div className="table-wrap scroll-table diagnostics-table-wrap"><table className="data-table sticky-table diagnostics-table"><thead><tr><th>{tx('Ημερομηνία / ώρα','Date / time')}</th><th>{tx('Οργανισμός','Organization')}</th><th>{tx('Κατάσταση','Status')}</th><th>{tx('Ενότητα','Area')}</th><th>{tx('Περιγραφή','Description')}</th><th>{tx('Χρήστης','User')}</th><th>{tx('Έκδοση','Version')}</th></tr></thead><tbody>{pagedRows.map(row=>{const meta=severityMeta[row.severity]||severityMeta.info;const Icon=meta.icon;return <tr key={`${row.organizationId}-${row.id}`}><td><strong>{fmtDate(row.occurredAt)}</strong></td><td><strong>{organizationMap.get(row.organizationId)?.name||row.organizationName||'—'}</strong><small>{organizationMap.get(row.organizationId)?.code||'—'}</small></td><td><span className={`status-badge diagnostics-${row.severity}`}><Icon size={13}/>{meta[en?'en':'el']}</span></td><td><strong>{localModule(row.module,language)}</strong><small>{row.route||'—'}</small></td><td><strong>{row.message||'—'}</strong>{row.diagnosticCode&&<small>{tx('Αναφορά','Reference')}: {row.diagnosticCode}</small>}</td><td>{row.actorName||'—'}</td><td>{row.appVersion||'—'}</td></tr>})}</tbody></table></div><RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/></>:<div className="inline-empty">{tx('Δεν υπάρχουν συμβάντα που να αντιστοιχούν στα φίλτρα.','No events match the selected filters.')}</div>}
       {error&&!loading&&<div className="data-access-state warning" role="status"><span>{tx('Ορισμένοι οργανισμοί δεν επέστρεψαν λειτουργικά συμβάντα. Τα διαθέσιμα δεδομένα εμφανίζονται κανονικά.','Some organizations did not return operational events. Available data is still shown.')}</span></div>}
     </div>
   </Page>

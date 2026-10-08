@@ -24,6 +24,9 @@ describe('Analysis workspace layout and organization summary strip polish',()=>{
   })
 
   it('keeps breathing room between the organization KPI summary strip and the elements around it', () => {
-    expect(ownerPolish).toContain('display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px;')
+    // The organization record uses the shared summary cards (as every other page) with room below them.
+    const record=fs.readFileSync('src/features/platform/PlatformOrganizationRecord.jsx','utf8')
+    expect(record).toContain('<div className="module-summary-strip"><MetricCard')
+    expect(ownerPolish).toContain('.platform-owner-details>.module-summary-strip{margin:0 0 12px}')
   })
 })
