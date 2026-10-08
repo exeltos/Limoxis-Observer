@@ -1,0 +1,27 @@
+/* Control record, details tab: departments with their next entry first, then
+   the control's details and, beside them, instructions and deviation actions. */
+.control-overview{display:flex;flex-direction:column;gap:18px;min-height:0;overflow:auto;padding:2px 2px 8px}
+.control-overview h3{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#5b6b78}
+.control-overview h3 span{padding:1px 8px;border-radius:999px;background:#eef3f7;font-size:11px;color:var(--lo-color-text)}
+.control-ov-department-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.control-ov-department{display:grid;gap:10px;padding:14px;border:1px solid var(--lo-color-border);border-left:4px solid #3d9a62;border-radius:12px;background:#fff}
+.control-ov-department.overdue{border-left-color:#d64545}
+.control-ov-department.dueSoon{border-left-color:#e0a12f}
+.control-ov-department header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.control-ov-department header strong{font-size:15px;color:#173650}
+.control-ov-department dl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}
+.control-ov-department dt{font-size:10.5px;font-weight:700;color:var(--lo-color-muted)}
+.control-ov-department dd{margin:2px 0 0;font-size:13px;font-weight:650;color:var(--lo-color-text)}
+.control-ov-department .lo-action-button,.control-ov-department button{justify-self:start}
+.control-ov-columns{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:start}
+.control-ov-facts{padding:14px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:#fff}
+.control-ov-facts dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin:0}
+.control-ov-facts dt{font-size:10.5px;font-weight:700;color:var(--lo-color-muted)}
+.control-ov-facts dd{margin:2px 0 0;font-size:13px;font-weight:650;color:#173650}
+.control-ov-meta{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--lo-color-border);font-size:11px;color:var(--lo-color-muted)}
+.control-ov-guidance{display:grid;gap:12px}
+.control-ov-guidance section{padding:14px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:#fff}
+.control-ov-guidance p{margin:0;font-size:12.5px;line-height:1.55;color:var(--lo-color-text);white-space:pre-line}
+.control-ov-guidance .control-ov-deviation{border-color:#f0c9a0;background:#fffaf3}
+.control-ov-guidance .control-ov-deviation h3{color:#8a4b00}
+@media(max-width:900px){.control-ov-columns{grid-template-columns:1fr}}

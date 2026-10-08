@@ -6,12 +6,15 @@ const modal=fs.readFileSync('src/features/controls/ControlExecutionModal.jsx','u
 const record=fs.readFileSync('src/features/controls/ControlRecordPage.jsx','utf8')
 
 describe('control record fixed workspace',()=>{
-  it('keeps the department assignment list as the scrolling area',()=>{
-    expect(record).toContain('control-details-overview workspace-fill')
-    expect(record).toContain('control-history-workspace')
-    expect(css).toContain('.control-record-shell .control-details-overview>.control-history-workspace>.scroll-table')
-    expect(css).toContain('overflow-y:auto')
-    expect(css).toContain('overflow-x:hidden')
+  it('puts the departments and their entry first, details and guidance below',()=>{
+    const recordCss=fs.readFileSync('src/features/controls/controlRecord.css','utf8')
+    const departments=record.indexOf('control-ov-departments'),facts=record.indexOf('control-ov-facts'),guidance=record.indexOf('control-ov-guidance')
+    expect(departments).toBeGreaterThan(0)
+    expect(facts).toBeGreaterThan(departments)
+    expect(guidance).toBeGreaterThan(facts)
+    // The tab scrolls as a whole: no inner scrolling list squeezed at the bottom.
+    expect(recordCss).toContain('.control-overview{display:flex;flex-direction:column;gap:18px;min-height:0;overflow:auto')
+    expect(record).not.toContain('control-details-overview')
   })
 
   it('keeps the confirmation checkbox immediately before the text',()=>{
