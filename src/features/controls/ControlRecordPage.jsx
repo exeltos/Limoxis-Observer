@@ -160,11 +160,16 @@ export function ControlRecordPage(){
   {tab==='details'&&<div className="control-overview workspace-fill">
    <section className="control-ov-departments" aria-label={en?'Departments':'Τμήματα'}>
     <h3>{en?'Departments':'Τμήματα'}<span>{assignments.length}</span></h3>
-    <div className="control-ov-department-grid">{assignments.map(({department:dep,assignment:current})=>{const state=assignmentStatus(record,dep),draft=Boolean(current?.hasDraft),allowed=canExecuteDepartment(dep);return <article key={dep} className={`control-ov-department ${state}`}>
-     <header><strong>{dep}</strong><div className="control-status-stack">{draft&&<span className="status-badge temporary">{en?'Draft':'Προσωρινή'}</span>}<span className={`status-badge ${state==='overdue'?'danger':state==='dueSoon'?'warning':'active'}`}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</span></div></header>
-     <dl><div><dt>{en?'Next':'Επόμενη'}</dt><dd>{fmt(current?.nextDueAt)}</dd></div><div><dt>{en?'Last':'Τελευταία'}</dt><dd>{fmt(current?.lastCompletedAt)}</dd></div></dl>
-     {allowed&&<ActionButton label={draft?(en?'Continue draft entry':'Συνέχιση προσωρινής καταχώρησης'):(en?'Record control':'Καταχώρηση ελέγχου')} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(dep)}&execute=1`)}><PlayCircle size={15}/><span>{draft?(en?'Continue':'Συνέχιση'):(en?'Record':'Καταχώρηση')}</span></ActionButton>}
-    </article>})}</div>
+    <table className="data-table control-ov-department-table">
+     <thead><tr><th>{en?'Department':'Τμήμα'}</th><th>{en?'Status':'Κατάσταση'}</th><th>{en?'Next entry':'Επόμενη καταχώρηση'}</th><th>{en?'Last entry':'Τελευταία καταχώρηση'}</th><th className="control-ov-action-col" aria-label={en?'Actions':'Ενέργειες'}/></tr></thead>
+     <tbody>{assignments.map(({department:dep,assignment:current})=>{const state=assignmentStatus(record,dep),draft=Boolean(current?.hasDraft),allowed=canExecuteDepartment(dep);return <tr key={dep} className={`control-ov-department ${state}`}>
+      <td><strong>{dep}</strong></td>
+      <td><div className="control-status-stack">{draft&&<span className="status-badge temporary">{en?'Draft':'Προσωρινή'}</span>}<span className={`status-badge ${state==='overdue'?'danger':state==='dueSoon'?'warning':'active'}`}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</span></div></td>
+      <td className={state==='overdue'?'control-ov-late':''}>{fmt(current?.nextDueAt)}</td>
+      <td>{fmt(current?.lastCompletedAt)}</td>
+      <td className="control-ov-action-col">{allowed&&<ActionButton label={draft?(en?'Continue draft entry':'Συνέχιση προσωρινής καταχώρησης'):(en?'Record control':'Καταχώρηση ελέγχου')} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(dep)}&execute=1`)}><PlayCircle size={15}/><span>{draft?(en?'Continue':'Συνέχιση'):(en?'Record':'Καταχώρηση')}</span></ActionButton>}</td>
+     </tr>})}</tbody>
+    </table>
    </section>
    <div className="control-ov-columns">
     <section className="control-ov-facts" aria-label={en?'Details':'Στοιχεία'}>
