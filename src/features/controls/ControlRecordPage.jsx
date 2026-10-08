@@ -158,8 +158,20 @@ export function ControlRecordPage(){
 
  return <Page fill><EntityRecordShell className="control-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={record.id} title={language==='el'?record.title:record.titleEn} subtitle={subtitle} status={<div className="control-status-stack">{hasDraft&&<span className="status-badge temporary">{en?'Draft':'Προσωρινή'}</span>}<span className={`status-badge ${status==='overdue'?'danger':status==='dueSoon'?'warning':'active'}`}>{status==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):status==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</span></div>} headerActions={headerActions} recordNavigation={recordNavigation} tabs={[{id:'details',label:en?'Control details':'Στοιχεία ελέγχου',icon:LockKeyhole},{id:'history',label:en?'Executions':'Εκτελέσεις',icon:FileClock}]} activeTab={tab} onTabChange={next=>{setTab(next);if(next==='history')setHistoryPage(1)}}>
   {tab==='details'&&<div className="control-overview workspace-fill">
+   <div className="control-ov-heading"><h2>{en?'Control details':'Στοιχεία ελέγχου'}</h2></div>
+   <div className="control-ov-columns">
+    <section className="control-ov-facts" aria-label={en?'Details':'Στοιχεία'}>
+     <dl><D l={en?'Category':'Κατηγορία'} v={record.category}/><D l={en?'Frequency':'Συχνότητα'} v={frequencyLabel(record.frequency,language)}/><D l={en?'Execution times':'Ώρες εκτέλεσης'} v={record.frequency.times?.join(' · ')||'—'}/><D l={en?'Responsible':'Υπεύθυνος'} v={record.owner||'—'}/><D l={en?'Criticality':'Κρισιμότητα'} v={criticalityLabel(controlCriticality(record),language)}/><D l={en?'Evidence':'Τεκμήριο'} v={requiresEvidence(record)?(en?'Required on every entry':'Υποχρεωτικό σε κάθε καταχώρηση'):(en?'Optional':'Προαιρετικό')}/></dl>
+     <p className="control-ov-meta">{sourceLabel} · {en?'created by':'δημιουργία από'} {record.createdBy||sourceLabel}{record.updatedBy?` · ${en?'last changed by':'τελευταία αλλαγή από'} ${record.updatedBy}`:''}</p>
+    </section>
+    <aside className="control-ov-guidance">
+     <section><h3>{en?'Instructions':'Οδηγίες'}</h3><p>{record.description||(en?'No instructions.':'Δεν υπάρχουν οδηγίες.')}</p></section>
+     {deviationActions(record)&&<section className="control-ov-deviation"><h3>{en?'Actions on deviation':'Ενέργειες σε απόκλιση'}</h3><p>{deviationActions(record)}</p></section>}
+    </aside>
+   </div>
    <section className="control-ov-departments" aria-label={en?'Departments':'Τμήματα'}>
     <h3>{en?'Departments':'Τμήματα'}<span>{assignments.length}</span></h3>
+    <div className="control-ov-department-scroll">
     <table className="data-table control-ov-department-table">
      <thead><tr><th>{en?'Department':'Τμήμα'}</th><th>{en?'Status':'Κατάσταση'}</th><th>{en?'Next entry':'Επόμενη καταχώρηση'}</th><th>{en?'Last entry':'Τελευταία καταχώρηση'}</th><th className="control-ov-action-col" aria-label={en?'Actions':'Ενέργειες'}/></tr></thead>
      <tbody>{assignments.map(({department:dep,assignment:current})=>{const state=assignmentStatus(record,dep),draft=Boolean(current?.hasDraft),allowed=canExecuteDepartment(dep);return <tr key={dep} className={`control-ov-department ${state}`}>
@@ -170,18 +182,8 @@ export function ControlRecordPage(){
       <td className="control-ov-action-col">{allowed&&<ActionButton label={draft?(en?'Continue draft entry':'Συνέχιση προσωρινής καταχώρησης'):(en?'Record control':'Καταχώρηση ελέγχου')} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(dep)}&execute=1`)}><PlayCircle size={15}/><span>{draft?(en?'Continue':'Συνέχιση'):(en?'Record':'Καταχώρηση')}</span></ActionButton>}</td>
      </tr>})}</tbody>
     </table>
+    </div>
    </section>
-   <div className="control-ov-columns">
-    <section className="control-ov-facts" aria-label={en?'Details':'Στοιχεία'}>
-     <h3>{en?'Details':'Στοιχεία'}</h3>
-     <dl><D l={en?'Category':'Κατηγορία'} v={record.category}/><D l={en?'Frequency':'Συχνότητα'} v={frequencyLabel(record.frequency,language)}/><D l={en?'Execution times':'Ώρες εκτέλεσης'} v={record.frequency.times?.join(' · ')||'—'}/><D l={en?'Responsible':'Υπεύθυνος'} v={record.owner||'—'}/><D l={en?'Criticality':'Κρισιμότητα'} v={criticalityLabel(controlCriticality(record),language)}/><D l={en?'Evidence':'Τεκμήριο'} v={requiresEvidence(record)?(en?'Required on every entry':'Υποχρεωτικό σε κάθε καταχώρηση'):(en?'Optional':'Προαιρετικό')}/></dl>
-     <p className="control-ov-meta">{sourceLabel} · {en?'created by':'δημιουργία από'} {record.createdBy||sourceLabel}{record.updatedBy?` · ${en?'last changed by':'τελευταία αλλαγή από'} ${record.updatedBy}`:''}</p>
-    </section>
-    <aside className="control-ov-guidance">
-     <section><h3>{en?'Instructions':'Οδηγίες'}</h3><p>{record.description||(en?'No instructions.':'Δεν υπάρχουν οδηγίες.')}</p></section>
-     {deviationActions(record)&&<section className="control-ov-deviation"><h3>{en?'Actions on deviation':'Ενέργειες σε απόκλιση'}</h3><p>{deviationActions(record)}</p></section>}
-    </aside>
-   </div>
   </div>}
   {tab==='history'&&<div className="workspace-column workspace-fill control-history-section"><section className="surface registry-workspace workspace-fill workspace-column control-history-workspace"><RegistryTable
     wrapperClassName="scroll-table"

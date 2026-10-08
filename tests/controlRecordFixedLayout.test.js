@@ -6,14 +6,15 @@ const modal=fs.readFileSync('src/features/controls/ControlExecutionModal.jsx','u
 const record=fs.readFileSync('src/features/controls/ControlRecordPage.jsx','utf8')
 
 describe('control record fixed workspace',()=>{
-  it('puts the departments and their entry first, details and guidance below',()=>{
+  it('shows details and guidance first, then the departments with their entry',()=>{
     const recordCss=fs.readFileSync('src/features/controls/controlRecord.css','utf8')
     const departments=record.indexOf('control-ov-departments'),facts=record.indexOf('control-ov-facts'),guidance=record.indexOf('control-ov-guidance')
-    expect(departments).toBeGreaterThan(0)
-    expect(facts).toBeGreaterThan(departments)
+    expect(facts).toBeGreaterThan(0)
     expect(guidance).toBeGreaterThan(facts)
-    // The tab scrolls as a whole: no inner scrolling list squeezed at the bottom.
-    expect(recordCss).toContain('.control-overview{display:flex;flex-direction:column;gap:18px;min-height:0;overflow:auto')
+    expect(departments).toBeGreaterThan(guidance)
+    // Many departments: only their list scrolls, under a fixed header.
+    expect(recordCss).toContain('.control-ov-department-scroll{flex:1 1 0;min-height:0;overflow:auto}')
+    expect(recordCss).toContain('.control-ov-department-table thead th{position:sticky;top:0')
     expect(record).not.toContain('control-details-overview')
   })
 
