@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, BookOpenCheck, Clock3, Send, Users } from 'lucide-react'
+import { BookOpenCheck, Clock3, Send, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { DownloadMenu } from '../../design-system/DownloadMenu'
-import { IconButton } from '../../design-system/IconButton'
 import { MetricCard } from '../../design-system/MetricCard'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { RouteLoading } from '../../design-system/RouteLoading'
@@ -119,11 +118,10 @@ export function DocumentAcknowledgementsPage() {
 
   if (loadingDocuments) return <RouteLoading />
   const title = en ? 'Read acknowledgements' : 'Επιβεβαιώσεις ανάγνωσης'
-  const back = <IconButton label={en ? 'Back to documents' : 'Πίσω στα έγγραφα'} onClick={() => navigate('/documents')}><ArrowLeft size={16} /></IconButton>
 
   if (!canSeeAll) {
     const mine = n.visibleAnnouncements.filter((a) => a.requiresAck && String(a.linkPath || '').startsWith(DOCUMENT_LINK_PREFIX))
-    return <Page title={en ? 'My protocols to read' : 'Πρωτόκολλα προς ανάγνωση'} subtitle={en ? 'Documents sent to you for read acknowledgement.' : 'Έγγραφα που σας στάλθηκαν για επιβεβαίωση ανάγνωσης.'} actions={back}>
+    return <Page title={en ? 'My protocols to read' : 'Πρωτόκολλα προς ανάγνωση'} subtitle={en ? 'Documents sent to you for read acknowledgement.' : 'Έγγραφα που σας στάλθηκαν για επιβεβαίωση ανάγνωσης.'}>
       <section className="surface record-section"><table className="record-table"><thead><tr><th>{en ? 'Document' : 'Έγγραφο'}</th><th>{en ? 'Sent' : 'Απεστάλη'}</th><th>{en ? 'Status' : 'Κατάσταση'}</th></tr></thead>
         <tbody>{mine.map((a) => <tr key={a.id} className="clickable-row" onClick={() => navigate(a.linkPath)}><td>{a.title}</td><td>{fmtDay(a.createdAt, en)}</td><td><span className={`document-ack-status ${a.acknowledged ? 'acknowledged' : 'pending'}`}>{a.acknowledged ? (en ? 'Read' : 'Διαβάστηκε') : (en ? 'Pending' : 'Εκκρεμεί')}</span></td></tr>)}</tbody></table>
         {!mine.length && <div className="inline-empty">{en ? 'Nothing has been sent to you.' : 'Δεν σας έχει σταλεί κάποιο έγγραφο.'}</div>}</section>
@@ -131,7 +129,7 @@ export function DocumentAcknowledgementsPage() {
   }
 
   return <Page fill title={title} subtitle={en ? 'Who has read each published protocol and who is still pending: proof for inspections.' : 'Ποιος έχει διαβάσει κάθε δημοσιευμένο πρωτόκολλο και ποιος εκκρεμεί: απόδειξη για επιθεωρήσεις.'}
-    actions={<div className="row-actions">{back}<DownloadMenu onExcel={exportCsv} onPdf={exportPdf} disabled={!entries.length} pdfBusy={exporting} /></div>}>
+    actions={<div className="row-actions"><DownloadMenu onExcel={exportCsv} onPdf={exportPdf} disabled={!entries.length} pdfBusy={exporting} /></div>}>
     <div className="module-summary-strip">
       <MetricCard icon={Send} value={totals.distributions} label={en ? 'Distributed documents' : 'Κοινοποιημένα έγγραφα'} />
       <MetricCard icon={BookOpenCheck} value={`${totals.rate}%`} label={en ? 'Overall read rate' : 'Συνολικό ποσοστό ανάγνωσης'} tone={totals.rate >= 90 ? 'active' : totals.rate >= 60 ? 'warning' : 'danger'} />
