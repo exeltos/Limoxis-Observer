@@ -1,3 +1,4 @@
+import { EmployeePositionTab } from './JobDescriptionViews'
 import { useEffect,useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { Activity,BookOpenCheck,BriefcaseBusiness,FileCheck2,GraduationCap,HeartPulse,KeyRound,Pencil,ShieldCheck,Trash2,UserRound } from 'lucide-react'
@@ -110,6 +111,7 @@ export function EmployeeRecordPage({selfMode=false}){
   const canSeeProtocols=can(role,CAPABILITIES.MANAGE_DOCUMENTS,addOns,custom)||can(role,CAPABILITIES.PUBLISH_DOCUMENT,addOns,custom)||isOwnEmployee
   const tabs=useMemo(()=>[
     {id:'details',label:t('employeesRecords.employeeDetailsTab'),icon:UserRound,show:true},
+    {id:'position',label:language==='en'?'Position':'Θέση',icon:BriefcaseBusiness,show:true},
     {id:'occupational',label:t('occupationalHealth'),icon:HeartPulse,show:canOccupational||selfMode},
     {id:'surveillance',label:t('surveillance'),icon:Activity,show:canSeeSensitiveEmployeeHealth&&(canOccupational||selfMode)},
     {id:'training',label:t('training'),icon:GraduationCap,show:canTraining||selfMode},
@@ -123,6 +125,7 @@ export function EmployeeRecordPage({selfMode=false}){
   const [tab,setTab]=useState(()=>['vaccinations','exposureIncidents'].includes(restored?.tab)?'occupational':(restored?.tab||'details'))
   const selfProfileTabs=useMemo(()=>[
     {id:'details',label:t('employeesRecords.employeeDetailsTab'),icon:UserRound},
+    {id:'position',label:language==='en'?'Position':'Θέση',icon:BriefcaseBusiness},
     {id:'occupational',label:t('occupationalHealth'),icon:HeartPulse},
     {id:'surveillance',label:t('surveillance'),icon:Activity},
     {id:'training',label:t('training'),icon:GraduationCap},
@@ -158,6 +161,7 @@ export function EmployeeRecordPage({selfMode=false}){
     <EntityRecordShell className={`employee-record-shell workspace-fill${selfReadOnly?' employee-self-readonly':''}`} avatar={`${employee.firstName?.[0]||''}${employee.lastName?.[0]||''}`} eyebrow={employee.id} title={name} subtitle={`${language==='el'?employee.profession:(employee.professionEn||employee.profession)} · ${language==='el'?employee.department:(employee.departmentEn||employee.department)}`} status={<span className={`status-badge ${employee.employmentStatus==='active'?'active':''}`}>{t(employee.employmentStatus)}</span>} recordNavigation={selfMode?null:recordNavigation} headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={selfMode?()=>navigate('/'):goBack} backLabel={t('back')}>
       {selfReadOnly&&<div className="source-truth-note"><ShieldCheck size={16}/><div><strong>{language==='en'?'Your employee record is read-only':'Η προσωπική σας καρτέλα είναι μόνο για προβολή'}</strong><span>{language==='en'?'You cannot edit, delete or perform administrative actions on your own employee record.':'Δεν μπορείτε να επεξεργαστείτε, να διαγράψετε ή να εκτελέσετε διοικητικές ενέργειες στη δική σας καρτέλα.'}</span></div></div>}
       {tab==='details'&&<Details employee={employee} t={t} language={language} fmt={fmt} canAdmin={canAdmin} canManageUsers={canManageUsers} onCreateAccount={()=>setAccountOpen(true)} deleteEmployee={deleteEmployee} notify={notify} organizationId={tenant?.id} departmentOptions={departmentOptions} professionOptions={professionalCategories} positionOptions={positionOptions} reloadEmployees={reloadEmployees} onCodeChanged={newCode=>navigate(`/employees/${encodeURIComponent(newCode)}`,{replace:true})}/>} 
+      {tab==='position'&&<EmployeePositionTab employee={employee} positions={positionOptions} language={language} organizationId={tenant?.id} canAcknowledge={isOwnEmployee||selfMode||isDemo} actorName={name}/>}
       {tab==='occupational'&&<EmployeeHealthTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} initialSection={healthSection}/>} 
       {tab==='surveillance'&&<EmployeeSurveillanceTab employee={employee} t={t} language={language} fmt={fmt} version={surveillanceVersion} readOnly={selfReadOnly} isDemo={isDemo} organizationId={tenant?.id} canManageFollowup={canManageEmployeeFollowup} onNew={()=>setSurveillanceOpen(true)}/>} 
       {tab==='training'&&<EmployeeTrainingTab employee={employee} t={t} language={language} fmt={fmt} organizationId={tenant?.id} canOpenProgram={canTraining}/>} 
