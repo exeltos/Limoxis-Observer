@@ -23,6 +23,8 @@ import { assignmentStatus,frequencyLabel,getAssignment,isControlDue } from './co
 import { loadControlProgramme,saveControlDefinition } from './controlCloudService'
 import { compareControlPriority,controlCriticality,criticalityLabel } from './controlCriticality'
 import './controlEvidence.css'
+import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { controlsExport,exportRegistry } from '../../core/export/registryExports'
 
 const controlsText={
  el:{adherence:'Τήρηση προγράμματος',adherenceTab:'Τήρηση',programmeTab:'Πρόγραμμα',period:'Περίοδος',p30d:'Τελευταίες 30 ημέρες',p90d:'Τελευταίες 90 ημέρες',p12m:'Τελευταίοι 12 μήνες',pyear:'Από την αρχή του έτους',expected:'Έπρεπε',performed:'Έγιναν',onTime:'Στην ώρα τους',missed:'Χάθηκαν',adherenceRate:'Τήρηση',adherenceNote:'«Έπρεπε»: πόσες φορές ζητούσε η συχνότητα του ελέγχου μέσα στην περίοδο. «Στην ώρα τους»: όσες έγιναν έως την προθεσμία (ανοχή 2 ώρες για καθημερινούς, 1 ημέρα για τους υπόλοιπους).',noAdherence:'Δεν υπάρχουν προγραμματισμένες εκτελέσεις στην περίοδο.',total:'Σύνολο',created:'Ο έλεγχος δημιουργήθηκε.',centralSubtitle:'Κεντρικός προγραμματισμός και παρακολούθηση ελέγχων ανά τμήμα.',departmentSubtitle:'Οι προγραμματισμένοι έλεγχοι που αφορούν το τμήμα σας.',active:'Ενεργοί έλεγχοι',dueSoon:'Πλησιάζουν',overdue:'Εκπρόθεσμοι',today:'Καταχωρήσεις σήμερα',search:'Αναζήτηση ελέγχων',department:'Τμήμα',departments:'Τμήματα',allDepartments:'Όλα τα τμήματα',status:'Κατάσταση',all:'Όλες',temporary:'Προσωρινή',scheduled:'Εντός προγράμματος',frequency:'Συχνότητα',daily:'Ημερήσια',weekly:'Εβδομαδιαία',monthly:'Μηνιαία / ανά μήνες',yearly:'Ετήσια',control:'Έλεγχος',executions:'Εκτελέσεις',next:'Επόμενος',within:'Εντός',execute:'Καταχώρηση ελέγχου',emptyTitle:'Δεν υπάρχουν έλεγχοι',emptyText:'Δεν υπάρχουν έλεγχοι που να αντιστοιχούν στα επιλεγμένα φίλτρα.'},
@@ -117,12 +119,16 @@ export function ControlsPage(){
   registry.saveViewState({query,department,status,frequency,view})
   navigate(`/controls/${item.id}?department=${encodeURIComponent(dep)}&execute=1`)
  }
+ function exportProgramme(){
+  const stateText=assignment=>{if(assignment?.status==='paused')return language==='en'?'Paused':'Σε παύση';const due=assignment?.nextDueAt?new Date(assignment.nextDueAt)-Date.now():null;return due==null?'—':due<=0?tx.overdue:due<=24*60*60*1000?tx.dueSoon:tx.within}
+  exportRegistry(controlsExport(rows,{en:language==='en',frequencyLabel:f=>frequencyLabel(f,language),stateLabel:stateText,criticality:controlCriticality,criticalityLabel:level=>criticalityLabel(level,language)}))
+ }
  function pageAction(action){if(action===UI_ACTIONS.CREATE&&canCreate)setEditorOpen(true)}
  function openControl(item){registry.saveViewState({query,department,status,frequency,view});registry.openRecord(navigate,`/controls/${item.id}`,item.id,rows.map(x=>x.item.id))}
 
  if(editorOpen)return <ControlEditor departmentOnly={isDepartmentManager} fixedDepartment={isDepartmentManager?ownDepartment:''} onCancel={()=>setEditorOpen(false)} onSave={saveNew}/>
 
- return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={canCreate?<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>:null}>
+ return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={<div className="row-actions">{view!=='adherence'&&<DownloadMenu disabled={!rows.length} onExcel={exportProgramme}/>}{canCreate&&<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>}</div>}>
   <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedControls.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon} onClick={()=>setStatus(status==='dueSoon'?'all':'dueSoon')} active={status==='dueSoon'}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue} onClick={()=>setStatus(status==='overdue'?'all':'overdue')} active={status==='overdue'}/><Kpi icon={CheckCircle2} label={tx.today} value={today}/><Kpi icon={Gauge} label={`${tx.adherence} · 30 ${language==='en'?'days':'ημ.'}`} value={monthAdherence.rate==null?'—':`${monthAdherence.rate}%`} onClick={()=>setView(view==='adherence'?'programme':'adherence')} active={view==='adherence'}/></div></div>
   <section className="surface registry-workspace workspace-column workspace-fill controls-registry-workspace">
    <ModuleTabs activeId={view} onChange={setView} ariaLabel={t('controls')} tabs={[{id:'programme',label:tx.programmeTab,icon:ListChecks},{id:'adherence',label:tx.adherenceTab,icon:Gauge}]}/>

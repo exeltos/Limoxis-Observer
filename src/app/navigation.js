@@ -1,4 +1,4 @@
-import { Activity, Award, BarChart3, Beaker, BookOpenCheck, Building2, ClipboardCheck, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
+import { Activity, Award, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ClipboardCheck, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 
 const preventionAccessCapabilities=[
@@ -7,6 +7,14 @@ const preventionAccessCapabilities=[
   CAPABILITIES.RECORD_WASTE,
   CAPABILITIES.RECORD_ANTISEPTIC,
   CAPABILITIES.RECORD_PREVENTION_BUNDLE,
+]
+
+const calendarCapabilities=[
+  CAPABILITIES.VIEW_CONTROLS,
+  CAPABILITIES.VIEW_QUALITY,
+  CAPABILITIES.VIEW_TRAINING,
+  CAPABILITIES.VIEW_DOCUMENTS,
+  CAPABILITIES.VIEW_COMMITTEES,
 ]
 
 // Canonical destinations. Visibility comes from capabilities; sidebar placement
@@ -19,6 +27,7 @@ export const navigation=[
   {to:'/patients',key:'patients',icon:HeartPulse,capability:CAPABILITIES.VIEW_PATIENTS},
   {to:'/laboratory',key:'laboratory',icon:Beaker,capability:CAPABILITIES.VIEW_LAB},
   {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION,anyCapabilities:preventionAccessCapabilities},
+  {to:'/calendar',key:'calendar',icon:CalendarDays,capability:CAPABILITIES.VIEW_DOCUMENTS,anyCapabilities:calendarCapabilities},
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
   {to:'/quality',key:'quality',icon:Award,capability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
@@ -43,72 +52,72 @@ const policy=(primaryOrder=[],moreOrder=[],hidden=[])=>Object.freeze({
 // truth for access; these policies only decide prominence, grouping and order.
 const roleMenuPolicy=Object.freeze({
   [ROLES.PLATFORM_OWNER]:policy(
-    ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees'],
+    ['dashboard','calendar','surveillance','patients','laboratory','prevention','controls','quality','employees'],
     ['platformAnalyticsNav','indicators','training','committees','documents'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.HOSPITAL_ADMIN]:policy(
-    ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','pharmacy','occupationalHealth','platformAnalyticsNav','indicators','training','committees','documents'],
+    ['dashboard','calendar','surveillance','patients','laboratory','prevention','controls','quality','employees','pharmacy','occupationalHealth','platformAnalyticsNav','indicators','training','committees','documents'],
     [],
     [],
   ),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
-    ['dashboard','surveillance','patients','laboratory','prevention','controls','indicators','committees'],
+    ['dashboard','calendar','surveillance','patients','laboratory','prevention','controls','indicators','committees'],
     ['platformAnalyticsNav','quality','employees','training','documents'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.INFECTION_CONTROL_MEMBER]:policy(
-    ['dashboard','surveillance','patients','laboratory','prevention','controls'],
+    ['dashboard','calendar','surveillance','patients','laboratory','prevention','controls'],
     ['indicators','training','documents'],
     ['pharmacy','occupationalHealth','management'],
   ),
   [ROLES.LABORATORY]:policy(
-    ['dashboard','laboratory','employees','controls'],
+    ['dashboard','calendar','laboratory','employees','controls'],
     ['documents'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_MANAGER]:policy(
-    ['myDepartment','employees','controls','surveillance','patients'],
+    ['myDepartment','calendar','employees','controls','surveillance','patients'],
     ['indicators','training','documents'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.LINK_NURSE]:policy(
-    ['myDepartment','surveillance','patients','prevention','controls'],
+    ['myDepartment','calendar','surveillance','patients','prevention','controls'],
     ['employees','indicators','training','documents','laboratory','quality','committees'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_USER]:policy(
-    ['myDepartment','controls'],
+    ['myDepartment','calendar','controls'],
     ['training','documents','laboratory','quality','committees'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.HR_OFFICE]:policy(
-    ['dashboard','employees','training'],
+    ['dashboard','calendar','employees','training'],
     ['documents'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.OCCUPATIONAL_PHYSICIAN]:policy(
-    ['dashboard','occupationalHealth','employees'],
+    ['dashboard','calendar','occupationalHealth','employees'],
     ['documents'],
     ['management','pharmacy'],
   ),
   [ROLES.QUALITY_MANAGER]:policy(
-    ['dashboard','quality','controls','indicators','documents'],
+    ['dashboard','calendar','quality','controls','indicators','documents'],
     ['committees'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.PHARMACY]:policy(
-    ['dashboard','pharmacy','indicators'],
+    ['dashboard','calendar','pharmacy','indicators'],
     ['documents'],
     ['management','occupationalHealth'],
   ),
   [ROLES.DOCTOR_REVIEWER]:policy(
-    ['dashboard','patients','surveillance','laboratory','indicators'],
+    ['dashboard','calendar','patients','surveillance','laboratory','indicators'],
     [],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.COMMITTEE_SECRETARIAT]:policy(
-    ['dashboard','committees','documents'],
+    ['dashboard','calendar','committees','documents'],
     [],
     ['management','pharmacy','occupationalHealth'],
   ),
