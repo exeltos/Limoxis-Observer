@@ -13,6 +13,7 @@ describe('department manager controls scope',()=>{
  })
 
  it('keeps the registry scoped through canAccessRecord',()=>{
-  expect(source).toContain('item.departments.filter(dep=>canAccessRecord({department:dep}))')
+  // Checked by department id, as roleUxPolicy does for department-scoped roles.
+  expect(source).toContain('item.departments.filter(dep=>canAccessRecord({department:dep,departmentId:item.departmentIdByName?.[dep]||null}))')
  })
 })

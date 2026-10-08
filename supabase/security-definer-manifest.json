@@ -36,6 +36,11 @@
       "authenticated": true,
       "reason": "Creates an admission; requires the patient capability in the department."
     },
+    "current_demo_access": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Returns only the signed-in evaluator's own Demo organizations with their dates, state and whether access is open; reads entitlements the evaluator cannot select directly."
+    },
     "current_membership_ids": {
       "category": "rls-helper",
       "authenticated": true,
@@ -181,6 +186,11 @@
       "category": "rls-helper",
       "authenticated": true,
       "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "platform_open_owner_demo": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Creates (once) and fills the Platform Owner's own Demo organization with the Demo data pack; Platform Owner only."
     },
     "platform_organization_deletion_impact": {
       "category": "rpc",

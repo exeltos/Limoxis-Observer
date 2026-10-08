@@ -4,7 +4,8 @@ import { useAuth } from '../auth/AuthContext'
 import { ROLES, configureProfileAccess, isPreviewableRole } from '../permissions/roles'
 import { disabledCapabilitiesFor, moduleEnabled as organizationModuleEnabled, normalizeProfile } from '../organization/operatingProfile'
 import { uxPolicyFor, recordWithinRoleScope, canSeeSensitiveEmployeeHealth } from '../permissions/roleUxPolicy'
-import { listMemberships, listPlatformOwnerOrganizations } from './tenantService'
+import { getPlatformOwnerDemoMembership, listMemberships, listPlatformOwnerOrganizations, openPlatformOwnerDemo } from './tenantService'
+import { isOwnerPreview } from '../preview/ownerPreview'
 import { configureDataEnvironment } from '../data/dataEnvironment'
 import { readSessionJson, removeSessionValue, writeSessionJson } from '../storage/browserStorage'
 
@@ -33,8 +34,11 @@ function withTimeout(promise,ms=HYDRATION_TIMEOUT_MS){
 
 export function TenantProvider({ children }) {
   const { user, profile, isAuthenticated, isDemoSession, loading: authLoading } = useAuth()
-  const canRolePreview = Boolean(profile?.isPlatformOwner || isDemoSession)
   const [memberships, setMemberships] = useState([])
+  // Demo organizations the Platform Owner entered (their own Demo or an
+  // evaluator's); kept apart so the organization registry lists hospitals only.
+  const [ownerDemoMemberships, setOwnerDemoMemberships] = useState([])
+  const ownerDemoIds=useRef(new Set())
   const [activeMembershipId, setActiveMembershipId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [hydratedKey, setHydratedKey] = useState(null)
@@ -90,16 +94,27 @@ export function TenantProvider({ children }) {
       // First hydration for this user in this tab: restore the selection saved before a refresh.
       const saved=restoredKeyRef.current===membershipContextKey?null:savedSelection(user?.id)
       restoredKeyRef.current=membershipContextKey
+      // An Owner who was inside a Demo organization goes back into it.
+      let restoredDemo=null
+      if(profile?.isPlatformOwner&&saved?.membershipId&&!next.some((item)=>item.id===saved.membershipId)&&String(saved.membershipId).startsWith('platform-owner:')){
+        restoredDemo=await getPlatformOwnerDemoMembership(String(saved.membershipId).slice('platform-owner:'.length)).catch(()=>null)
+        if(request!==hydrationRef.current)return next
+      }
+      const reachable=restoredDemo?[...next,restoredDemo]:next
       setMemberships(next)
+      if(restoredDemo)setOwnerDemoMemberships((current)=>[...current.filter((item)=>item.id!==restoredDemo.id),restoredDemo])
       setActiveMembershipId((current) => {
         const preferred=current??saved?.membershipId??null
-        if (profile?.isPlatformOwner) return next.some((item) => item.id === preferred) ? preferred : null
+        if (profile?.isPlatformOwner) return reachable.some((item) => item.id === preferred) || ownerDemoIds.current.has(preferred) ? preferred : null
         return next.some((item) => item.id === preferred) ? preferred : next[0]?.id ?? null
       })
       if(saved&&profile?.isPlatformOwner&&!saved.membershipId){setPlatformDemoMode(Boolean(saved.platformDemo));setPlatformDemoPreview(Boolean(saved.platformDemoPreview))}
       // A role preview needs the tenant it was started in: a still-valid organization or the demo hospital.
-      const previewTenantRestored=saved?.membershipId?next.some((item)=>item.id===saved.membershipId):Boolean(saved?.platformDemo)
-      if(saved?.rolePreview?.role&&profile?.isPlatformOwner&&previewTenantRestored&&isPreviewableRole(saved.rolePreview.role))setRolePreview({role:saved.rolePreview.role,department:saved.rolePreview.department||''})
+      const previewTenantRestored=saved?.membershipId?reachable.some((item)=>item.id===saved.membershipId):Boolean(saved?.platformDemo)
+      // Evaluators may preview roles inside their Demo organization, so theirs is restored too.
+      const restoredMembership=reachable.find((item)=>item.id===saved?.membershipId)
+      const previewAllowed=profile?.isPlatformOwner||Boolean(restoredMembership?.organization?.is_demo)
+      if(saved?.rolePreview?.role&&previewAllowed&&previewTenantRestored&&isPreviewableRole(saved.rolePreview.role))setRolePreview({role:saved.rolePreview.role,department:saved.rolePreview.department||'',departmentName:saved.rolePreview.departmentName||''})
       setHydratedKey(membershipContextKey)
       setPersistableKey(membershipContextKey)
       return next
@@ -129,7 +144,8 @@ export function TenantProvider({ children }) {
     writeSessionJson(SELECTION_KEY, { userId: user.id, membershipId: activeMembershipId, platformDemo: platformDemoMode, platformDemoPreview, rolePreview: rolePreview?.role ? rolePreview : null })
   }, [authLoading, isAuthenticated, hydratedKey, persistableKey, membershipContextKey, user?.id, activeMembershipId, platformDemoMode, platformDemoPreview, rolePreview])
 
-  const storedMembership = memberships.find((item) => item.id === activeMembershipId) ?? null
+  ownerDemoIds.current=new Set(ownerDemoMemberships.map((item)=>item.id))
+  const storedMembership = memberships.find((item) => item.id === activeMembershipId) ?? ownerDemoMemberships.find((item) => item.id === activeMembershipId) ?? null
   const baseMembership = useMemo(() => (
     platformDemoMode && profile?.isPlatformOwner ? {...DEMO_MEMBERSHIP, role: ROLES.PLATFORM_OWNER} : storedMembership
   ), [platformDemoMode, profile?.isPlatformOwner, storedMembership])
@@ -144,16 +160,24 @@ export function TenantProvider({ children }) {
   useLayoutEffect(()=>{
     configureDataEnvironment({mode:demoMode?'demo':'production',organizationId:tenant?.id??(demoMode?DEMO_TENANT.id:null),demoAccountId})
   },[demoMode,tenant?.id,demoAccountId])
+  // A real Demo organization (the Owner's own or an evaluator's) lets its users
+  // look at the application as any role.
+  const realDemoTenant = Boolean(tenant?.is_demo && tenant?.mode !== 'demo')
+  const canRolePreview = Boolean(profile?.isPlatformOwner || isDemoSession || realDemoTenant)
   const actualRole = profile?.isPlatformOwner ? ROLES.PLATFORM_OWNER : baseMembership?.role ?? null
   const role = canRolePreview && rolePreview?.role ? rolePreview.role : actualRole
-  const membership = useMemo(() => (
-    rolePreview?.role && canRolePreview
-      ? {...baseMembership, role: rolePreview.role, capabilities: [], customCapabilities: [], assignments: [], previewDepartment: rolePreview.department || null}
-      : baseMembership
-  ), [baseMembership, rolePreview, canRolePreview])
+  const membership = useMemo(() => {
+    if (!(rolePreview?.role && canRolePreview)) return baseMembership
+    const preview = {...baseMembership, role: rolePreview.role, capabilities: [], customCapabilities: [], assignments: []}
+    // In a real organization the previewed department is a real department:
+    // scope by its id (as a member of that department) and show its name.
+    if (tenant?.mode !== 'demo' && !platformDemoMode && rolePreview.department) return {...preview, departmentIds: [rolePreview.department], departmentId: rolePreview.department, departmentName: rolePreview.departmentName || '', previewDepartment: null}
+    if (tenant?.mode !== 'demo' && !platformDemoMode) return {...preview, departmentIds: [], previewDepartment: null}
+    return {...preview, previewDepartment: rolePreview.department || null}
+  }, [baseMembership, rolePreview, canRolePreview, tenant?.mode, platformDemoMode])
 
   const setTenantByMembership = useCallback((membershipId) => {
-    if (!memberships.some((item) => item.id === membershipId)) return false
+    if (!memberships.some((item) => item.id === membershipId) && !ownerDemoMemberships.some((item) => item.id === membershipId)) return false
     flushSync(() => {
       setPlatformDemoMode(false)
       setPlatformDemoPreview(false)
@@ -161,11 +185,35 @@ export function TenantProvider({ children }) {
       setRolePreview(null)
     })
     return true
-  }, [memberships])
+  }, [memberships, ownerDemoMemberships])
 
-  const enterPlatformDemo = useCallback(() => {
-    if (profile?.isPlatformOwner) { setPlatformDemoMode(true); setPlatformDemoPreview(false); setActiveMembershipId(null); setRolePreview(null) }
+  // The Owner enters a real Demo organization: their own (enterPlatformDemo) or
+  // an evaluator's (enterDemoOrganization).
+  const enterDemoOrganization = useCallback(async (organizationId) => {
+    if (!profile?.isPlatformOwner || !organizationId) return false
+    const demoMembership = await getPlatformOwnerDemoMembership(organizationId)
+    if (!demoMembership) return false
+    flushSync(() => {
+      setOwnerDemoMemberships((current) => [...current.filter((item) => item.id !== demoMembership.id), demoMembership])
+      setPlatformDemoMode(false)
+      setPlatformDemoPreview(false)
+      setActiveMembershipId(demoMembership.id)
+      setRolePreview(null)
+    })
+    return true
   }, [profile?.isPlatformOwner])
+  // The browser-only sample hospital (fixtures). The Help Center's owner preview
+  // has no database, so it is what "Demo" opens there.
+  const enterSampleDemo = useCallback(() => {
+    if (!profile?.isPlatformOwner) return false
+    setPlatformDemoMode(true); setPlatformDemoPreview(false); setActiveMembershipId(null); setRolePreview(null)
+    return true
+  }, [profile?.isPlatformOwner])
+  const enterPlatformDemo = useCallback(async () => {
+    if (!profile?.isPlatformOwner) return false
+    if (isOwnerPreview()) return enterSampleDemo()
+    return enterDemoOrganization(await openPlatformOwnerDemo())
+  }, [profile?.isPlatformOwner, enterDemoOrganization, enterSampleDemo])
   const returnToPlatform = useCallback(() => {
     if (profile?.isPlatformOwner) { setPlatformDemoMode(false); setPlatformDemoPreview(false); setActiveMembershipId(null); setRolePreview(null) }
   }, [profile?.isPlatformOwner])
@@ -188,6 +236,8 @@ export function TenantProvider({ children }) {
     platformDemoPreview,
     setTenantByMembership,
     enterPlatformDemo,
+    enterSampleDemo,
+    enterDemoOrganization,
     returnToPlatform,
     togglePlatformDemoPreview,
     reloadMemberships,
@@ -195,17 +245,17 @@ export function TenantProvider({ children }) {
     rolePreview,
     canRolePreview,
     isRolePreview: Boolean(canRolePreview && rolePreview?.role),
-    startRolePreview: (previewRole, department='') => {
+    startRolePreview: (previewRole, department='', departmentName='') => {
       if (!canRolePreview || !isPreviewableRole(previewRole)) return false
-      setRolePreview({role:previewRole,department})
+      setRolePreview({role:previewRole,department,departmentName})
       return true
     },
-    updateRolePreviewDepartment: (department='') => canRolePreview && setRolePreview(current=>current?{...current,department}:current),
+    updateRolePreviewDepartment: (department='', departmentName='') => canRolePreview && setRolePreview(current=>current?{...current,department,departmentName}:current),
     stopRolePreview: () => setRolePreview(null),
     uxPolicy: uxPolicyFor(role),
     canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
     canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role,membership?.capabilities,membership?.customCapabilities),
-  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, tenantLoading, canRolePreview, setTenantByMembership, enterPlatformDemo, returnToPlatform, togglePlatformDemoPreview, reloadMemberships, user?.id, isDemoSession, platformDemoMode, platformDemoPreview])
+  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, tenantLoading, canRolePreview, setTenantByMembership, enterPlatformDemo, enterSampleDemo, enterDemoOrganization, returnToPlatform, togglePlatformDemoPreview, reloadMemberships, user?.id, isDemoSession, platformDemoMode, platformDemoPreview])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
 }

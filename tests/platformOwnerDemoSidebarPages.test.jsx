@@ -69,9 +69,9 @@ describe.each(pages)('Platform Owner "Enter Demo" mode: %s page', (name, loadPag
       </MemoryRouter>,
     )
 
-    await waitFor(() => expect(tenantApi?.enterPlatformDemo).toBeTypeOf('function'))
+    await waitFor(() => expect(tenantApi?.enterSampleDemo).toBeTypeOf('function'))
 
-    expect(() => act(() => { tenantApi.enterPlatformDemo() })).not.toThrow()
+    expect(() => act(() => { tenantApi.enterSampleDemo() })).not.toThrow()
 
     await waitFor(() => {
       expect(tenantApi.isDemo).toBe(true)

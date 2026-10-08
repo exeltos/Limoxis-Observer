@@ -31,26 +31,61 @@ export async function listMemberships(userId) {
     }))
 }
 
+const OWNER_ORGANIZATION_COLUMNS = 'id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding'
+const platformOwnerMembership = (organization) => ({
+  id: `platform-owner:${organization.id}`,
+  role: 'platform_owner',
+  status: 'active',
+  organization,
+  departmentIds: [],
+  capabilities: [],
+  customCapabilities: [],
+  assignments: [],
+  platformSynthetic: true,
+})
+
 export async function listPlatformOwnerOrganizations() {
   if (isOwnerPreview()) return previewMemberships()
   if (!supabase) return []
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding')
+    .select(OWNER_ORGANIZATION_COLUMNS)
     .eq('is_demo', false)
     .order('name', { ascending: true })
   if (error) throw error
-  return (data ?? []).map((organization) => ({
-    id: `platform-owner:${organization.id}`,
-    role: 'platform_owner',
-    status: 'active',
-    organization,
-    departmentIds: [],
-    capabilities: [],
-    customCapabilities: [],
-    assignments: [],
-    platformSynthetic: true,
-  }))
+  return (data ?? []).map(platformOwnerMembership)
+}
+
+// The Platform Owner enters a Demo organization (theirs or an evaluator's) the
+// same way as a hospital: a synthetic membership. Demos stay out of the
+// organization list above.
+export async function getPlatformOwnerDemoMembership(organizationId) {
+  if (!supabase || !organizationId) return null
+  const { data, error } = await supabase
+    .from('organizations')
+    .select(OWNER_ORGANIZATION_COLUMNS)
+    .eq('id', organizationId)
+    .eq('is_demo', true)
+    .maybeSingle()
+  if (error) throw error
+  return data ? platformOwnerMembership(data) : null
+}
+
+// The Platform Owner's own Demo: a real Demo organization with the same data
+// pack as the evaluators' Demos (created and filled the first time).
+export async function openPlatformOwnerDemo() {
+  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const { data, error } = await supabase.rpc('platform_open_owner_demo')
+  if (error) throw error
+  return data
+}
+
+// What the signed-in evaluator may know about their own Demos (dates, state, open).
+export async function loadCurrentDemoAccess() {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('current_demo_access')
+  if (error) throw error
+  return Array.isArray(data) ? data : []
 }
 
 export async function createPlatformOrganization({ name, code, type = 'hospital', status = 'active', region = null, healthRegion = null, city = null, country = '', contactEmail = null, contactPhone = null, bedCapacity = null }) {

@@ -61,7 +61,7 @@ export function ControlRecordPage(){
  if(loading)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'Loading control…':'Φόρτωση ελέγχου…'}</div></Page>
  if(!record)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'Control not found.':'Δεν βρέθηκε ο έλεγχος.'}</div></Page>
 
- const visibleDepartments=record.departments.filter(dep=>canAccessRecord({department:dep}))
+ const visibleDepartments=record.departments.filter(dep=>canAccessRecord({department:dep,departmentId:record.departmentIdByName?.[dep]||null}))
  const requestedDepartment=searchParams.get('department')||''
  const department=(requestedDepartment&&visibleDepartments.includes(requestedDepartment)?requestedDepartment:'')||(ownDepartment&&visibleDepartments.includes(ownDepartment)?ownDepartment:'')||visibleDepartments[0]||''
  const recordUrl=`/controls/${controlId}`
