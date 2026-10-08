@@ -3,7 +3,7 @@ import { supabase, invokeAuthenticatedFunction } from '../supabase/client'
 // organizations.country is required by the database; an empty field means Greece.
 export const DEFAULT_COUNTRY = 'Ελλάδα'
 export const countryOrDefault = (value) => String(value || '').trim() || DEFAULT_COUNTRY
-import { isOwnerPreview,previewDeletionImpact,previewDemos,previewMemberships,previewOrganizationMembers,previewPlatformMembers } from '../preview/ownerPreview'
+import { isOwnerPreview,previewDeletionImpact,previewDemoSeedResult,previewDemos,previewMemberships,previewOrganizationMembers,previewPlatformMembers } from '../preview/ownerPreview'
 
 export async function listMemberships(userId) {
   if (!supabase || !userId) return []
@@ -185,6 +185,17 @@ export async function getOrganizationDeletionImpact(organizationIds) {
   const { data, error } = await supabase.rpc('platform_organization_deletion_impact', { p_organization_ids: ids })
   if (error) throw error
   return Array.isArray(data) ? data : []
+}
+
+// Clears a Demo organization's data and writes the Demo data pack again
+// (Platform Owner; the database refuses any organization that is not a Demo).
+export async function resetPlatformDemoData(organizationId) {
+  if (!organizationId) throw new Error('DEMO_ORGANIZATION_REQUIRED')
+  if (isOwnerPreview()) return previewDemoSeedResult()
+  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const { data, error } = await supabase.rpc('platform_reset_demo_organization', { p_organization_id: organizationId })
+  if (error) throw error
+  return data
 }
 
 // The only delete path: the Edge Function re-checks the owner's password and
