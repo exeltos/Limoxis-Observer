@@ -4,3 +4,4 @@
 .summary-overdue-banner{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:10px 14px;border:1px solid #f3c4bf;border-left:4px solid #b42318;border-radius:10px;background:#fef3f2;color:#7a271a;font-size:13px;font-weight:600}
 .summary-overdue-banner>svg{flex:none;color:#b42318}
 .summary-overdue-banner>span{flex:1}
+.detail-item .due-date:not(.overdue){display:inline!important;margin:0!important;color:inherit!important;font-size:inherit!important;font-weight:inherit!important}
