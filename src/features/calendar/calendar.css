@@ -49,5 +49,9 @@
 .calendar-list-heading.today{color:#1f6fa9}
 @media(max-width:1100px){.calendar-month-layout{grid-template-columns:1fr}.calendar-day-panel{border-left:0;border-top:1px solid var(--lo-color-border)}}
 @media(max-width:700px){.calendar-day{min-height:54px}.calendar-chip{display:none}.calendar-day:has(.calendar-chip)::after{content:'';width:6px;height:6px;border-radius:50%;background:#1f6fa9}}
+.calendar-next-day{display:inline-flex;align-items:center;gap:4px;max-width:100%;margin-top:10px;padding:6px 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:#fff;font:inherit;font-size:11.5px;color:var(--lo-color-text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.calendar-next-day:hover{border-color:#9bbad3;background:#f7fafc}
+/* Phones: the page scrolls as a whole, so the month and the day list keep their full height. */
+@media(max-width:780px){.calendar-workspace,.calendar-month-layout,.calendar-month,.calendar-day-panel,.calendar-list{flex:none!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}.calendar-month{padding:0 8px 10px}.calendar-month-head h3{min-width:0;font-size:15px}}
 .calendar-day-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
 .calendar-day-panel-head h4{margin:0}

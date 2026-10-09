@@ -1,4 +1,5 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+import { shiftDemoDatesInPlace, shiftDemoMonthsInPlace } from '../../core/data/demoClock'
 const seed=[
  {id:'COM-001',templateId:'enl',name:'Επιτροπή Νοσοκομειακών Λοιμώξεων',shortName:'ΕΝΛ',type:'infection_control',status:'active',chair:'Δρ. Ελένη Παπαδοπούλου',secretary:'Μαρία Κωνσταντίνου',termStart:'2026-01-01',termEnd:'2027-12-31',committeeRole:'Κεντρικό θεσμικό όργανο του νοσοκομείου για την επιτήρηση, πρόληψη και τον έλεγχο των λοιμώξεων που συνδέονται με τη φροντίδα υγείας.',legalBasis:'ΥΑ Υ1.Γ.Π.114971/2014 · ισχύουσα πράξη συγκρότησης φορέα · WHO IPC Core Components',mandate:'Επιτήρηση, πρόληψη και έλεγχος λοιμώξεων, εφαρμογή μέτρων IPC και παρακολούθηση σχετικών δεικτών.',members:['Δρ. Ελένη Παπαδοπούλου','Μαρία Κωνσταντίνου','Γ. Νικολάου','Α. Δημητρίου'],memberRefs:[
   {id:'CM-SEED-1',employeeId:'',name:'Δρ. Ελένη Παπαδοπούλου',department:'Ιατρική Υπηρεσία',profession:'Ιατρός',committeeTitle:'Πρόεδρος',responsibilities:'Συντονισμός της ΕΝΛ, έγκριση ημερήσιας διάταξης και εποπτεία εφαρμογής αποφάσεων.',voting:true,memberType:'regular',approvalRequired:false,approvalStatus:'not_required',active:true,startedAt:'2026-01-01T00:00:00Z'},
@@ -31,6 +32,10 @@ const seed=[
   {id:'OBJ-AMS-002',title:'Μείωση κατανάλωσης καρβαπενεμών',indicator:'DDD καρβαπενεμών / 100 ημέρες νοσηλείας',baseline:'3,1',target:'< 2,0',owner:'ΕΑΕ / Φαρμακείο',dueDate:'2026-12-31',status:'in_progress'}
  ],history:[{at:'2026-07-22T10:00:00Z',actor:'Demo seed',action:'Πρακτικά οριστικοποιήθηκαν',reason:'Εγκεκριμένα από τη συνεδρίαση'}]}
 ]
+// Demo dates follow today (src/core/data/demoClock.js): meetings by whole months,
+// decision deadlines by days.
+shiftDemoMonthsInPlace(seed.map(committee=>committee.meetings))
+shiftDemoDatesInPlace(seed.map(committee=>committee.decisions))
 export function inferTemplate(r){if(r.templateId)return r.templateId;const n=`${r.shortName||''} ${r.name||''}`.toLowerCase();if(n.includes('ενλ')||n.includes('νοσοκομειακών λοιμ'))return'enl';if(n.includes('αντιμικροβ')||n.includes('αντιβιο'))return'oekocha';return'custom'}
 function normalizeMeeting(meeting){
  const topics=Array.isArray(meeting.topics)&&meeting.topics.length?meeting.topics:(meeting.agenda||[]).map((subject,i)=>({id:`LEG-${meeting.id}-${i}`,subject,decision:i===0?(meeting.notes||''):'',followUp:false,action:'',owner:'',dueDate:'',priority:'medium'}))

@@ -77,3 +77,32 @@ export function shiftDemoDatesInPlace(datasets, days = demoOffsetDays()) {
   walk(datasets)
   return datasets
 }
+
+// Monthly meetings ("Regular meeting of August") move by whole months, and the
+// month named in their title moves with them.
+const MONTH_NAMES = [
+  ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'],
+  ['January','February','March','April','May','June','July','August','September','October','November','December'],
+]
+export function shiftDemoMonthsInPlace(datasets, months = Math.round(demoOffsetDays() / 30.4375)) {
+  if (!months) return datasets
+  const seen = new WeakSet()
+  const shiftValue = (key, value) => {
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) return shiftDemoMonth(value.slice(0, 10), months) + value.slice(10)
+    if (/title/i.test(key)) return value.replace(new RegExp(MONTH_NAMES.flat().join('|'), 'g'), name => {
+      const list = MONTH_NAMES.find(names => names.includes(name))
+      return list[(list.indexOf(name) + months % 12 + 12) % 12]
+    })
+    return value
+  }
+  const walk = node => {
+    if (!node || typeof node !== 'object' || seen.has(node)) return
+    seen.add(node)
+    for (const key of Object.keys(node)) {
+      if (typeof node[key] === 'string') node[key] = shiftValue(key, node[key])
+      else walk(node[key])
+    }
+  }
+  walk(datasets)
+  return datasets
+}

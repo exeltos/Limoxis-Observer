@@ -31,3 +31,13 @@ describe('Demo dates follow today', () => {
     expect(demoOffsetDays(new Date(2026, 9, 9))).toBe(0)
   })
 })
+
+describe('Demo meetings', () => {
+  it('move by whole months with the month in their title', async () => {
+    const { shiftDemoMonthsInPlace } = await import('../src/core/data/demoClock.js')
+    const meetings = [[{ date: '2026-08-18', title: 'Τακτική συνεδρίαση Αυγούστου', finalizedAt: '2026-08-19T09:20:00Z', notes: 'Αυγούστου' }, { date: '2026-12-08', title: 'December review' }]]
+    shiftDemoMonthsInPlace(meetings, 1)
+    expect(meetings[0][0]).toEqual({ date: '2026-09-18', title: 'Τακτική συνεδρίαση Σεπτεμβρίου', finalizedAt: '2026-09-19T09:20:00Z', notes: 'Αυγούστου' })
+    expect(meetings[0][1]).toEqual({ date: '2027-01-08', title: 'January review' })
+  })
+})
