@@ -4256,7 +4256,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .auth-layout{min-height:100vh;display:grid;grid-template-columns:minmax(440px,42%) minmax(0,58%);background:#f4f7fa}
 .auth-brand-panel{min-height:100vh;padding:36px 42px 34px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(155deg,#102d4d 0%,#16395f 56%,#1a456c 100%);color:#fff}
 .auth-brand{display:flex;align-items:center;gap:12px}
-.auth-logo{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;background:#fff;color:#16395f;font-size:18px;font-weight:900;box-shadow:0 6px 18px rgba(0,0,0,.12)}
 .auth-brand strong,.auth-brand span{display:block}.auth-brand strong{font-size:15px}.auth-brand div>span{margin-top:3px;font-size:10.5px;color:rgba(255,255,255,.62)}
 .auth-value{max-width:590px;margin:auto 0}
 .auth-value .eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.11em;color:rgba(255,255,255,.56)}

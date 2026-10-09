@@ -18,7 +18,7 @@ export function LoginPage() {
   const location = useLocation()
   const [notice,setNotice]=useState(null)
   useEffect(()=>{let live=true;loadLoginNotice().then(value=>{if(live)setNotice(value)});return()=>{live=false}},[])
-  const [identifier,setIdentifier]=useState(''),[password,setPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[error,setError]=useState(''),[submitting,setSubmitting]=useState(false)
+  const [identifier,setIdentifier]=useState(''),[password,setPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[capsLock,setCapsLock]=useState(false),[error,setError]=useState(''),[submitting,setSubmitting]=useState(false)
   const requestedReturnTo = typeof location.state?.from === 'string' && location.state.from.startsWith('/') && !location.state.from.startsWith('//')
     ? location.state.from
     : '/'
@@ -50,7 +50,7 @@ export function LoginPage() {
           <BrandMark size={42} tone="light" className="auth-logo-mark"/>
           <div>
             <strong>Limoxis Observer</strong>
-            <span>{greek?'Πλατφόρμα λειτουργίας νοσοκομείου':'Hospital Operations Platform'} · v{APP_VERSION}</span>
+            <span>{greek?'Πλατφόρμα λειτουργίας νοσοκομείου':'Hospital Operations Platform'}</span>
           </div>
         </div>
 
@@ -88,11 +88,12 @@ export function LoginPage() {
 
           <Field label={greek?'Κωδικός πρόσβασης':'Password'}>
             <div className="password-input-wrap">
-              <input className="input" type={showPassword?'text':'password'} autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} required />
+              <input className="input" type={showPassword?'text':'password'} autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} onKeyUp={e=>setCapsLock(Boolean(e.getModifierState?.('CapsLock')))} onBlur={()=>setCapsLock(false)} aria-describedby={capsLock?'login-caps-lock':undefined} required />
               <button type="button" className="password-visibility" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?(greek?'Απόκρυψη κωδικού':'Hide password'):(greek?'Εμφάνιση κωδικού':'Show password')}>
                 {showPassword?<EyeOff size={17}/>:<Eye size={17}/>}
               </button>
             </div>
+            {capsLock&&<span id="login-caps-lock" className="caps-lock-hint" role="status">{greek?'Το Caps Lock είναι ενεργό.':'Caps Lock is on.'}</span>}
           </Field>
 
           <div className="login-recovery-links">
