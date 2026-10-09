@@ -75,3 +75,12 @@ trigger, migration v0285 is present while v0286-v0287 are still pending. Apply
 those migrations in order; do not recreate `demo_entitlements`. The corrected
 v0287 is idempotent and preserves the pre-existing patient statuses `deceased`
 and `transferred` from v040.
+
+## Removed one-off files (2026-10-09)
+
+The one-off scripts of the August 2026 rebuild (`supabase/maintenance/02`–`05`:
+legacy schema cleanup, two migration batches, orphaned function drops) and
+`supabase/migrations_archive/` (24 migrations that were never applied live and
+were superseded by `supabase/migrations/`) were removed so they cannot be run
+again by mistake. They remain in git history at commit `cf250a4`. The read-only
+inventory (`00`, `01`) and the deployment verification (`06`) stay.
