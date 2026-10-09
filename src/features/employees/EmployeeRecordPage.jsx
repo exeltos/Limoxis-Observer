@@ -119,7 +119,7 @@ export function EmployeeRecordPage({selfMode=false}){
     {id:'certificates',label:language==='en'?'Documents':'Έγγραφα',icon:BriefcaseBusiness,show:true},
     {id:'protocols',label:language==='en'?'Protocols':'Πρωτόκολλα',icon:BookOpenCheck,show:canSeeProtocols||selfMode},
     {id:'history',label:t('history'),icon:ShieldCheck,show:canOccupational||canAdmin},
-  ].filter(item=>item.show),[t,canAdmin,canOccupational,canTraining,canSeeSensitiveEmployeeHealth,canSeeProtocols,selfMode,language])
+  ].filter(item=>item.show),[t,canAdmin,canOccupational,canTraining,canSeeSensitiveEmployeeHealth,canSeeProtocols,selfMode,language,role])
   // Vaccinations and exposure incidents now live inside the occupational health tab.
   const [healthSection]=useState(()=>restored?.tab==='vaccinations'?'vaccinations':restored?.tab==='exposureIncidents'?'exposures':'visits')
   const [tab,setTab]=useState(()=>['vaccinations','exposureIncidents'].includes(restored?.tab)?'occupational':(restored?.tab||'details'))

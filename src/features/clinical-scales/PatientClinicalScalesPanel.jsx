@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from 'react'
+import {useCallback,useEffect,useMemo,useState} from 'react'
 import {Activity,FileText,Pencil,Plus,Printer,Trash2} from 'lucide-react'
 import {Button} from '../../design-system/Button'
 import {useAuth} from '../../core/auth/AuthContext'
@@ -27,8 +27,8 @@ const assessmentSignal=(r,en)=>{const band=scoreBandLabel(r.scale_key||r.scale?.
 export function PatientClinicalScalesPanel({organizationId,patient,admission,clinicalData=null,latestLabs=null,latestVitals=null,isDemo=false,language='el',canRecord=true}){const {profile,user}=useAuth();const {confirm}=useFeedback();const assessor=profile||user;const en=language==='en',[defs,setDefs]=useState([]),[rows,setRows]=useState([]),[selected,setSelected]=useState(null),[answers,setAnswers]=useState({}),[error,setError]=useState(''),[report,setReport]=useState(null)
  // Demo patients have no cloud recordId; use their code so the tools still load.
  const patientKey=patient?.recordId||(isDemo?patient?.id:null)
- async function load(){if(!patientKey)return;const [d,r]=await Promise.all([isDemo?Promise.resolve(demoClinicalScaleDefinitions):loadClinicalScales(organizationId),loadPatientScaleAssessments(organizationId,patientKey,admission?.id,{isDemo})]);setDefs(d);setRows(r)}
- useEffect(()=>{void load()},[organizationId,patientKey,admission?.id,isDemo])
+ const load=useCallback(async()=>{if(!patientKey)return;const [d,r]=await Promise.all([isDemo?Promise.resolve(demoClinicalScaleDefinitions):loadClinicalScales(organizationId),loadPatientScaleAssessments(organizationId,patientKey,admission?.id,{isDemo})]);setDefs(d);setRows(r)},[organizationId,patientKey,admission?.id,isDemo])
+ useEffect(()=>{void load()},[load])
  const age=patientAgeExactYears(patient?.dateOfBirth)
  const ageDisplay=patientAgeLabel(patient?.dateOfBirth,language)
  const scaleContext=useMemo(()=>buildClinicalScaleContext(defs,rows,{age,admission}),[defs,rows,age,admission])
