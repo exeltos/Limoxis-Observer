@@ -37,3 +37,20 @@
 .demo-evaluation-evaluator{display:flex;flex-direction:column;gap:8px}
 .demo-evaluation-evaluator-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .demo-evaluation-evaluator-head small{color:var(--lo-text-secondary,#5f6f7c);font-size:11.5px}
+
+/* Screen guide: the Help Center excerpt shown the first time a screen opens. */
+.screen-guide{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
+.screen-guide-chapters{display:flex;flex-direction:column;gap:12px}
+.screen-guide-chapters section{padding:12px 14px;border:1px solid var(--lo-color-border,#dfe6ec);border-radius:10px;background:#fff}
+.screen-guide-chapters strong{display:block;font-size:13px;color:#1d3247}
+.screen-guide-chapters p{margin:4px 0 0;font-size:12.5px;line-height:1.55;color:#40566b}
+.screen-guide-steps{padding:14px 16px;border-radius:12px;background:#f0f7fb;border:1px solid #d5e5ee}
+.screen-guide-steps>strong{display:flex;align-items:center;gap:7px;font-size:13px;color:#174b70}
+.screen-guide-steps ol{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:7px;font-size:12.5px;line-height:1.5;color:#2f4659}
+.screen-guide-tip{display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;padding:10px 12px;border-radius:9px;background:#fff8e6;border:1px solid #f1dfae;color:#6b5414;font-size:12px;line-height:1.5}
+.screen-guide-tip svg{flex:0 0 auto;margin-top:1px}
+.screen-guide-note{margin:14px 0 0;font-size:12px;color:var(--lo-color-muted,#5f6f7c)}
+.screen-guide-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;width:100%}
+.screen-guide-stop{display:flex!important;flex-direction:row!important;align-items:center;gap:7px;margin-right:auto;font-size:12px;color:#4f6577;cursor:pointer}
+.screen-guide-stop input{flex:0 0 16px;width:16px!important;height:16px!important;min-height:0!important;margin:0;accent-color:var(--lo-color-primary,#256b9b)}
+@media(max-width:820px){.screen-guide{grid-template-columns:minmax(0,1fr)}.screen-guide-footer{flex-wrap:wrap}}
