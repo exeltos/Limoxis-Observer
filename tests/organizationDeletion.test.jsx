@@ -52,9 +52,13 @@ describe('organization deletion: Edge Function', () => {
   it('re-checks the password, rate-limits failures and removes storage and orphan accounts', () => {
     expect(edge).toContain('signInWithPassword')
     expect(edge).toContain("from('platform_reauth_failures')")
-    expect(edge).toContain('admin.storage.from(bucket).remove(chunk)')
-    expect(edge).toContain('admin.auth.admin.deleteUser(userId)')
-    expect(edge).toContain("event_type:'platform.organization.purge_cleanup'")
+    // The ticketed purge, storage and account cleanup live in one shared module.
+    const shared = fs.readFileSync('supabase/functions/_shared/organizationPurge.ts', 'utf8')
+    expect(edge).toContain("import { purgeOrganization } from '../_shared/organizationPurge.ts'")
+    expect(shared).toContain("caller.rpc('platform_purge_organization_tx'")
+    expect(shared).toContain('admin.storage.from(bucket).remove(chunk)')
+    expect(shared).toContain('admin.auth.admin.deleteUser(userId)')
+    expect(shared).toContain("auditEvent='platform.organization.purge_cleanup'")
   })
   it('allows several organizations at once only when they are all Demo', () => {
     expect(edge).toContain('Μαζική διαγραφή επιτρέπεται μόνο για Demo')

@@ -32,7 +32,7 @@ export async function listMemberships(userId) {
     }))
 }
 
-const OWNER_ORGANIZATION_COLUMNS = 'id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding'
+const OWNER_ORGANIZATION_COLUMNS = 'id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding, deletion_scheduled_at'
 const platformOwnerMembership = (organization) => ({
   id: `platform-owner:${organization.id}`,
   role: 'platform_owner',

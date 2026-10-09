@@ -202,6 +202,26 @@
       "authenticated": true,
       "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
     },
+    "platform_cancel_organization_deletion": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Cancels a scheduled organization deletion and reopens access; Platform Owner only, audited."
+    },
+    "platform_convert_demo_tx": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Turns a Demo into a real organization in one transaction, clearing its synthetic data first; Platform Owner only, audited."
+    },
+    "platform_demo_purge_candidates": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Lists the Demos due for automatic deletion under the platform setting; returns nothing unless the caller is the Platform Owner."
+    },
+    "platform_extend_demo": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Extends a Demo to a new end date (and reopens an expired one); Platform Owner only, audited."
+    },
     "platform_open_owner_demo": {
       "category": "rpc",
       "authenticated": true,
@@ -226,6 +246,11 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Clears a Demo organisation's data and writes the Demo data pack again; Platform Owner only, refuses any organisation that is not a Demo."
+    },
+    "platform_schedule_organization_deletion": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Schedules a real organization's deletion after the grace period and closes its access; needs a recent export or a waiver reason; Platform Owner only, audited."
     },
     "public_login_notice": {
       "category": "public-token",

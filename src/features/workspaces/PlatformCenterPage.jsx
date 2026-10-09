@@ -27,6 +27,8 @@ import { OrganizationDeleteDialog } from '../platform/OrganizationDeleteDialog'
 import { PlatformGlobalManagement } from '../platform/PlatformGlobalManagement'
 import { getPlatformSettings } from '../platform/platformSettingsService'
 import { demoDatesValid } from '../platform/platformDemoService'
+import { runPlatformHousekeeping } from '../platform/platformLifecycleService'
+import { readSessionValue, writeSessionValue } from '../../core/storage/browserStorage'
 
 const GREEK_REGIONS = ['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
 const HEALTH_REGIONS = ['1η ΥΠΕ Αττικής','2η ΥΠΕ Πειραιώς και Αιγαίου','3η ΥΠΕ Μακεδονίας','4η ΥΠΕ Μακεδονίας και Θράκης','5η ΥΠΕ Θεσσαλίας και Στερεάς Ελλάδας','6η ΥΠΕ Πελοποννήσου, Ιονίων Νήσων, Ηπείρου και Δυτικής Ελλάδας','7η ΥΠΕ Κρήτης']
@@ -54,6 +56,9 @@ export function PlatformCenterPage(){
  const memberCountByOrg=useMemo(()=>members.reduce((a,m)=>{a[m.organization_id]=(a[m.organization_id]||0)+1;return a},{}),[members]);const hospitalAdminStatusByOrg=useMemo(()=>members.reduce((a,m)=>{if(m.role==='hospital_admin')a[m.organization_id]=m.status;return a},{}),[members])
  async function refreshPlatformData(){setLoadingStats(true);try{const[nextMembers,nextDemos]=await Promise.all([listPlatformOrganizationMembers(),listPlatformDemos()]);setMembers(nextMembers);setDemos(nextDemos)}catch(e){console.warn(e)}finally{setLoadingStats(false)}}
  useEffect(()=>{void refreshPlatformData()},[memberships.length])
+ // Once per session: Demos that expired more than the configured number of days
+ // ago are deleted (platform setting; 0 = never), through the ticketed path.
+ useEffect(()=>{const key='limoxis.platform.housekeeping';if(readSessionValue(key)==='1')return;writeSessionValue(key,'1');runPlatformHousekeeping().then(result=>{const purged=result?.purged||[];if(purged.length){notify(tx(`Διαγράφηκαν αυτόματα ${purged.length===1?'1 Demo που είχε':`${purged.length} Demo που είχαν`} λήξει: ${purged.map(item=>item.name||item.code).join(', ')}.`,`${purged.length} expired Demo${purged.length===1?' was':'s were'} deleted automatically: ${purged.map(item=>item.name||item.code).join(', ')}.`),'info',{operation:'platform_housekeeping'});void refreshPlatformData()}}).catch(()=>{})},[]) // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{let active=true;(async()=>{try{const settings=await getPlatformSettings();if(!active)return;const days=Math.min(365,Math.max(1,Number(settings?.defaultDemoDurationDays)||30));setDefaultDemoDurationDays(days);setDemoDraft(current=>({...current,validUntil:addDays(current.validFrom,days)}))}catch{/* keep safe 30-day fallback */}})();return()=>{active=false}},[])
  const setField=(k,v)=>setDraft(c=>({...c,[k]:v}));const codeValid=/^[A-Z0-9_-]{2,24}$/.test(draft.code.trim().toUpperCase()),emailValid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.adminEmail.trim()),formValid=Boolean(draft.name.trim()&&codeValid&&draft.region&&draft.healthRegion&&draft.city.trim()&&draft.adminFullName.trim()&&emailValid)
  function openCreate(){setDraft({...emptyOrganization,code:generateOrganizationCode()});setFormError('');setCreateOpen(true)}
