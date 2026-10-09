@@ -2,10 +2,12 @@
 // (responsive.css, table.data-table). Each cell needs its column name for that:
 // copy it from the table header into data-label whenever the content changes.
 const TABLES = '.content table.data-table'
+// Sort arrows belong to the header button, not to the column's name.
+const SORT_MARKS = /[▲▼↑↓⇅]/g
 
 export function labelTableCells(root) {
   for (const table of root.querySelectorAll(TABLES)) {
-    const labels = [...table.querySelectorAll(':scope>thead>tr>th')].map(th => th.textContent.trim())
+    const labels = [...table.querySelectorAll(':scope>thead>tr>th')].map(th => th.textContent.replace(SORT_MARKS, '').trim())
     for (const tr of table.querySelectorAll(':scope>tbody>tr')) {
       let index = 0
       for (const td of tr.children) {

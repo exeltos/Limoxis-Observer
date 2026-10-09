@@ -287,7 +287,7 @@ export function CommitteeRecordPage(){
 }
 
 function Head({title,subtitle,action}){
-  return <div className="record-section-header"><div><span className="eyebrow">Limoxis Observer</span><h3>{title}</h3>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>
+  return <div className="record-section-header"><div><h3>{title}</h3>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>
 }
 
 function Overview({record,members,en}){
