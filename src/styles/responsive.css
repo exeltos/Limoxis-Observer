@@ -491,3 +491,17 @@ html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{backg
   html:not(#lo-phone-record) body .entity-record-header-actions{grid-column:1/-1!important;flex-wrap:wrap!important;justify-content:flex-start!important;gap:6px!important}
   html:not(#lo-phone-record) body .entity-record-sequence{margin-left:auto}
 }
+
+/* Analysis follows the page layout of every other screen: same title size, no
+   eyebrow, and the filter card inside the page gutters instead of edge to edge.
+   On phones the filter groups grow with their stacked fields instead of overlapping. */
+html:not(#lo-analysis-page) body .analysis-workspace>.analysis-header h1{font-size:20px!important;font-weight:660!important;letter-spacing:-.02em!important;margin:0!important}
+html:not(#lo-analysis-page) body .analysis-workspace>.analysis-header .analysis-heading-row .eyebrow{display:none!important}
+html:not(#lo-analysis-page) body .analysis-workspace>.analysis-header{min-height:0!important;padding-bottom:14px!important}
+html:not(#lo-analysis-page) body .analysis-workspace>.analysis-sticky{margin:0 var(--lo-layout-page-x)!important}
+@media (max-width:780px){
+  html:not(#lo-analysis-page) body .analysis-workspace .analysis-filter-toolbar{min-height:0!important}
+  html:not(#lo-analysis-page) body .analysis-workspace .analysis-filter-group{height:auto!important}
+  html:not(#lo-analysis-page) body .analysis-workspace .analysis-filter-group-placeholder{display:none!important}
+  html:not(#lo-analysis-page) body .analysis-workspace>.analysis-sticky{margin:0 12px!important}
+}
