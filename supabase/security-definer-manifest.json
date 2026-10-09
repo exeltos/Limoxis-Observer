@@ -217,6 +217,11 @@
       "authenticated": true,
       "reason": "Lists the Demos due for automatic deletion under the platform setting; returns nothing unless the caller is the Platform Owner."
     },
+    "platform_demo_seed_member": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Gives a new Demo evaluator their own committee membership, minutes approval and document distributions; Platform Owner only, Demo organisations only."
+    },
     "platform_extend_demo": {
       "category": "rpc",
       "authenticated": true,
@@ -306,6 +311,11 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Edits the organisation profile; Platform Owner or organisation admin."
+    },
+    "current_user_is_demo_admin": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller is the Hospital Admin of the given Demo organisation; used by the read-only Demo policies on antimicrobial therapy."
     }
   }
 }

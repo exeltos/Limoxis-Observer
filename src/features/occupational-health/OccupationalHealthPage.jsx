@@ -11,7 +11,7 @@ import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useEmployeesData } from '../employees/useEmployeesData'
-import { loadOccupationalVisits } from '../employees/employeeRecordsService'
+import { loadAllOccupationalVisitsAsync } from '../employees/employeeSubRecordsService'
 import { loadAllExposureIncidentsAsync,createExposureIncidentAsync } from './exposureIncidentService'
 import { ExposureIncidentEditor,EMPTY_EXPOSURE_INCIDENT } from './ExposureIncidentEditor'
 import { downloadCsv } from '../../core/export/csvExport'
@@ -20,9 +20,10 @@ import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import './OccupationalHealthPage.css'
 
 export function OccupationalHealthPage(){
- const {t,language,locale}=useLanguage();const {notify}=useFeedback();const navigate=useNavigate();const registry=useRegistryMemory('occupational-health');const {canAccessRecord,tenant}=useTenant()
- const {data:employeeRows}=useEmployeesData();const occupationalVisits=useMemo(loadOccupationalVisits,[])
+ const {t,language,locale}=useLanguage();const {notify,notifyError}=useFeedback();const navigate=useNavigate();const registry=useRegistryMemory('occupational-health');const {canAccessRecord,tenant}=useTenant()
+ const {data:employeeRows}=useEmployeesData();const [occupationalVisits,setOccupationalVisits]=useState([])
  const en=language==='en'
+ useEffect(()=>{let active=true;loadAllOccupationalVisitsAsync(tenant?.id).then(rows=>{if(active)setOccupationalVisits(rows)}).catch(error=>{if(active)notifyError(error,'load',{operation:'occupational_visits_load'})});return()=>{active=false}},[tenant?.id,notifyError])
  const [section,setSection]=useState('visits')
  const [query,setQuery]=useState(''),[status,setStatus]=useState('all'),[department,setDepartment]=useState('all')
  const [exposureRows,setExposureRows]=useState([]),[exposureLoading,setExposureLoading]=useState(false),[exposureEditor,setExposureEditor]=useState(null)

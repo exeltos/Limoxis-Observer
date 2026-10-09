@@ -14,3 +14,7 @@ export const sampleSourceCatalog={
   drainage:{label:'drainage',el:'Παροχέτευση / έκκριμα',en:'Drainage'},
   other:{label:'other',el:'Άλλο',en:'Other'},
 }
+
+// Screening / environmental source codes stored as raw keys (e.g. "nasalSwab, handSwab").
+const sampleSourceAliases={nasalSwab:{el:'Ρινικό επίχρισμα',en:'Nasal swab'},handSwab:{el:'Επίχρισμα χεριών',en:'Hand swab'},throatSwab:{el:'Φαρυγγικό επίχρισμα',en:'Throat swab'},otherEmployeeScreening:{el:'Άλλος προληπτικός έλεγχος εργαζομένου',en:'Other employee screening'},surface:{el:'Επιφάνεια',en:'Surface'},equipment:{el:'Εξοπλισμός',en:'Equipment'},water:{el:'Νερό',en:'Water'},air:{el:'Αέρας',en:'Air'}}
+export function sampleSourceLabel(value,language='el'){const lang=language==='en'?'en':'el';const parts=String(value||'').split(',').map(item=>item.trim()).filter(Boolean);return parts.length?parts.map(item=>{const row=sampleSourceAliases[item]||sampleSourceCatalog[item];return row?.[lang]||row?.el||item}).join(', '):''}

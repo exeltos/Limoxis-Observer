@@ -24,7 +24,7 @@ describe('committee record lifecycle UI',()=>{
   })
 
   it('persists committee documents in demo while cloud mode remains attachment-service driven',()=>{
-    expect(page).toContain('value={record.documents||[]}')
+    expect(page).toContain('value={(record.documents||[]).filter(x=>!x.documentCode)}')
     expect(page).toContain('onChange={saveDemoDocuments}')
     expect(page).toContain('entityType="committee_document"')
   })

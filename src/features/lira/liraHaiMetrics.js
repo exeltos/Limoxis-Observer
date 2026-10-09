@@ -1,18 +1,20 @@
-const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/ς/g,'σ')
 const dayMs=86400000
 const utcDay=value=>{const date=new Date(value);return Number.isFinite(date.getTime())?new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate())):null}
 const rangeDay=value=>utcDay(`${value}T00:00:00Z`)
 
 export const HAI_DEVICE_RULES=Object.freeze({
- clabsi:{hai:['clabsi','central line-associated bloodstream infection'],device:['central line','central_line','cvc','central venous catheter'],denominator:'central-line days'},
- cauti:{hai:['cauti','catheter-associated urinary tract infection'],device:['urinary catheter','urinary_catheter','foley','indwelling urinary catheter'],denominator:'urinary-catheter days'},
- vap:{hai:['vap','ventilator-associated pneumonia'],device:['ventilator','mechanical ventilation','mechanical_ventilation'],denominator:'ventilator days'},
- vae:{hai:['vae','ventilator-associated event'],device:['ventilator','mechanical ventilation','mechanical_ventilation'],denominator:'ventilator days'},
+ clabsi:{hai:['clabsi','central line-associated bloodstream infection'],device:['central line','central_line','cvc','picc','central venous catheter','κεντρικος φλεβικος καθετηρας','κεντρικη φλεβικη γραμμη','κεντρικη γραμμη','κεντρικος καθετηρας'],denominator:'central-line days'},
+ cauti:{hai:['cauti','catheter-associated urinary tract infection'],device:['urinary catheter','urinary_catheter','foley','indwelling urinary catheter','ουροκαθετηρας','ουρηθρικος καθετηρας','καθετηρας κυστης'],denominator:'urinary-catheter days'},
+ vap:{hai:['vap','ventilator-associated pneumonia'],device:['ventilator','mechanical ventilation','mechanical_ventilation','μηχανικος αερισμος','αναπνευστηρας'],denominator:'ventilator days'},
+ vae:{hai:['vae','ventilator-associated event'],device:['ventilator','mechanical ventilation','mechanical_ventilation','μηχανικος αερισμος','αναπνευστηρας'],denominator:'ventilator days'},
 })
 
 export function inferHaiType(question){const text=normalize(question);for(const [key,rule] of Object.entries(HAI_DEVICE_RULES))if(rule.hai.some(term=>text.includes(normalize(term))))return key;return null}
 const matchesHai=(value,type)=>HAI_DEVICE_RULES[type]?.hai.some(term=>normalize(value).includes(normalize(term)))
 const matchesDevice=(value,type)=>HAI_DEVICE_RULES[type]?.device.some(term=>normalize(value).includes(normalize(term)))
+// Device-day denominator key for a free-text device name (EL or EN), e.g. 'Ουροκαθετήρας (Foley)' -> 'cauti'.
+export function deviceRuleKey(value){for(const type of ['clabsi','cauti','vap'])if(matchesDevice(value,type))return type;return null}
 const inWindow=(value,window)=>{if(!window)return true;const date=utcDay(value);return date&&date>=rangeDay(window.start)&&date<=rangeDay(window.end)}
 
 export function calculateDeviceDays(devices,type,{window=null,department='all',today=new Date().toISOString().slice(0,10)}={}){

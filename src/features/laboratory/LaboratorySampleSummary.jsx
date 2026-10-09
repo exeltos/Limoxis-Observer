@@ -3,6 +3,7 @@ import { Button } from '../../design-system/Button'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { ENVIRONMENTAL_CATEGORIES, environmentalMethodLabel, sampleTypeLabel } from './laboratoryCloudService'
 import { computeTurnaroundHours, formatTurnaround } from './model/laboratoryModel'
+import { sampleSourceLabel } from './laboratoryReferenceData'
 
 function subjectLabel(subjectType, language) {
   if (subjectType === 'employee') return language === 'en' ? 'Employee' : 'Εργαζόμενος'
@@ -27,7 +28,7 @@ export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banner
     { id: 'sampleType', label: t('sampleType'), value: sampleTypeLabel(sample.type, t) },
     isEnvironmental
       ? { id: 'method', label: en ? 'Sampling method' : 'Μέθοδος δειγματοληψίας', value: environmentalMethodLabel(sample.environmentalMethod, t) || sample.source }
-      : { id: 'source', label: t('clinicalSource'), value: (en ? sample.sourceEn : sample.source) || sample.source },
+      : { id: 'source', label: t('clinicalSource'), value: sampleSourceLabel((en ? sample.sourceEn : sample.source) || sample.source, language) },
     { id: 'priority', label: t('priority'), value: sample.priority ? t(sample.priority) : '—' },
     { id: 'collected', label: t('collectedLabel'), value: fmt(sample.collectedAt) },
     { id: 'received', label: t('received'), value: fmt(sample.receivedAt) },

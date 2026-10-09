@@ -14,7 +14,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
-import { sampleSourceCatalog } from './laboratoryReferenceData'
+import { sampleSourceCatalog, sampleSourceLabel } from './laboratoryReferenceData'
 import { createPatient, loadPatients } from '../patients/patientsService'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { demoLibrarySeed } from '../management/managementData'
@@ -79,17 +79,7 @@ export function LaboratoryWorkspace() {
   const sourceLabel = sample => {
     const value = language === 'el' ? sample.source : sample.sourceEn
     if (!value) return '—'
-    const aliases = {
-      nasalSwab: language === 'el' ? 'Ρινικό επίχρισμα' : 'Nasal swab',
-      handSwab: language === 'el' ? 'Επίχρισμα χεριών' : 'Hand swab',
-      throatSwab: language === 'el' ? 'Φαρυγγικό επίχρισμα' : 'Throat swab',
-      surface: language === 'el' ? 'Επιφάνεια' : 'Surface',
-      equipment: language === 'el' ? 'Εξοπλισμός' : 'Equipment',
-      water: language === 'el' ? 'Νερό' : 'Water',
-      air: language === 'el' ? 'Αέρας' : 'Air',
-    }
-    const parts = String(value).split(',').map(item => item.trim()).filter(Boolean)
-    return parts.map(item => aliases[item] || sampleSourceCatalog[item]?.[language] || sampleSourceCatalog[item]?.el || item).join(', ')
+    return sampleSourceLabel(value, language)
   }
   const displaySampleCode = sample => /^LAB-EMP-[0-9a-f-]{20,}$/i.test(sample.id) ? (language === 'el' ? 'Δείγμα εργαζομένου' : 'Employee sample') : sample.id
   const rows = useMemo(() => repositoryRows

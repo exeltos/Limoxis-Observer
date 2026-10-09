@@ -102,8 +102,17 @@ function mapDevice(row){
   return {id:row.id,name:row.device_type,nameEn:row.device_type,site:row.site,siteEn:row.site,indication:row.indication,indicationEn:row.indication,insertedAt:row.inserted_at,reviewDue:row.review_due_at,removedAt:row.removed_at,status:row.status,createdBy:row.created_by}
 }
 
+// UI reassessment vocabulary -> surveillance_reassessments check constraints (clinical_status / *_decision).
+const reassessmentStatusToDb={clinicalImprovement:'improved',improvement:'improved',deterioration:'deteriorated',worsened:'deteriorated'}
+const reassessmentStatusFromDb={improved:'clinicalImprovement',deteriorated:'deterioration'}
+const reassessmentDecisionToDb={continueTreatment:'continue',continueIsolation:'continue',modifyTreatment:'modify',modifyIsolation:'modify',stopTreatment:'stop',discontinueIsolation:'discontinue'}
+const reassessmentStatuses=['improved','stable','deteriorated','resolved','undetermined']
+export const reassessmentStatusDbValue=value=>{const v=reassessmentStatusToDb[value]||value;return reassessmentStatuses.includes(v)?v:'undetermined'}
+export const reassessmentStatusUiValue=value=>reassessmentStatusFromDb[value]||value
+export const reassessmentDecisionDbValue=(value,allowed=['continue','modify','stop','not_applicable'])=>{if(!value)return null;const v=reassessmentDecisionToDb[value]||value;return allowed.includes(v)?v:null}
+
 function mapReassessment(row){
-  return {id:row.id,date:dateOnly(row.reassessed_at),status:row.clinical_status,decision:row.isolation_decision||row.therapy_decision||'',isolationDecision:row.isolation_decision,therapyDecision:row.therapy_decision,notes:row.notes||'',nextReviewDue:dateOnly(row.next_review_due_at),byId:row.created_by}
+  return {id:row.id,date:dateOnly(row.reassessed_at),status:reassessmentStatusUiValue(row.clinical_status),decision:row.isolation_decision||row.therapy_decision||'',isolationDecision:row.isolation_decision,therapyDecision:row.therapy_decision,notes:row.notes||'',nextReviewDue:dateOnly(row.next_review_due_at),byId:row.created_by}
 }
 
 function mapOutcome(row){
@@ -119,7 +128,7 @@ function clinicalTimeline({events=[],assessments=[],hai=[],samples=[],therapies=
     ...samples.map(row=>({at:row.requested_at||row.collected_at||row.created_at,type:'sample_requested',actorId:row.requested_by||row.created_by,detail:row.sample_code})),
     ...therapies.map(row=>({at:row.started_at,type:'therapy_started',actorId:row.created_by,detail:row.antimicrobial})),
     ...isolations.map(row=>({at:row.started_at,type:'isolation_started',actorId:row.created_by,detail:row.reason})),
-    ...reassessments.map(row=>({at:row.reassessed_at,type:'reassessment',actorId:row.created_by,detail:row.clinical_status})),
+    ...reassessments.map(row=>({at:row.reassessed_at,type:'reassessment',actorId:row.created_by,detail:reassessmentStatusUiValue(row.clinical_status)})),
     ...outcomes.map(row=>({at:row.occurred_at,type:'outcome',actorId:row.created_by,detail:row.outcome})),
     ...devices.map(row=>({at:row.inserted_at||row.created_at,type:'device_added',actorId:row.created_by,detail:row.device_type})),
   ].filter(item=>item.at).sort((a,b)=>new Date(b.at)-new Date(a.at))
@@ -381,7 +390,7 @@ export async function removeSurveillanceDevice(organizationId,deviceId,draft={})
 export async function addClinicalReassessment(organizationId,caseRecordId,patientRecordId,draft){
   assertCloud()
   const actorId=await currentUserId()
-  const {data,error}=await supabase.from('surveillance_reassessments').insert({organization_id:organizationId,surveillance_case_id:caseRecordId,patient_id:patientRecordId,clinical_status:draft.status,isolation_decision:draft.isolationDecision||null,therapy_decision:draft.therapyDecision||draft.decision||null,notes:draft.notes||null,reassessed_at:iso(draft.date||new Date()),next_review_due_at:iso(draft.nextReviewDue),created_by:actorId}).select('*').single()
+  const {data,error}=await supabase.from('surveillance_reassessments').insert({organization_id:organizationId,surveillance_case_id:caseRecordId,patient_id:patientRecordId,clinical_status:reassessmentStatusDbValue(draft.status),isolation_decision:reassessmentDecisionDbValue(draft.isolationDecision,['continue','modify','discontinue','not_applicable']),therapy_decision:reassessmentDecisionDbValue(draft.therapyDecision||draft.decision),notes:draft.notes||null,reassessed_at:iso(draft.date||new Date()),next_review_due_at:iso(draft.nextReviewDue),created_by:actorId}).select('*').single()
   if(error)throw error
   return mapReassessment(data)
 }
