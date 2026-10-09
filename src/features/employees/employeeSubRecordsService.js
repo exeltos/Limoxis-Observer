@@ -108,6 +108,21 @@ export async function loadOccupationalVisitsAsync(organizationId, employeeDbId, 
   return (data || []).map(visitFromRow)
 }
 
+// Every employee's visits, for the Occupational Health registry. Rows keep the
+// employee's database id (employeeId), which the page maps back to the employee.
+// Browser storage is used only for the sample demo or without Supabase.
+export async function loadAllOccupationalVisitsAsync(organizationId) {
+  if(!cloudEnabled())return loadVisitsLocal()
+  if(!organizationId)return []
+  const { data, error } = await supabase
+    .from('occupational_health_visits')
+    .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status,clinical_notes,created_at,updated_at')
+    .eq('organization_id', organizationId)
+    .order('visit_date', { ascending: false })
+  if (error) throw error
+  return (data || []).map(visitFromRow)
+}
+
 // --- Vaccinations ---
 function vaccinationFromRow(row) {
   return {
