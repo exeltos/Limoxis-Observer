@@ -2,7 +2,8 @@
 // Help Center uses (src/core/help/helpGuide.js), so the two never disagree.
 //
 //   npm run build && npm run manual:screens   # optional: refresh docs/manual/screens (embedded per module)
-//   npm run manual:pdf                      # writes docs/manual/*.pdf (not served by the app: the PDFs are for the owner only)
+//   npm run manual:pdf                      # writes public/manual/*.pdf (served at /manual/…, offered to the
+//                                           # Platform Owner in the Help Center to download or share; not indexed)
 //   node tools/build-manual-pdf.mjs --out some/dir [--lang el|en]
 import fs from 'node:fs'
 import path from 'node:path'
@@ -17,7 +18,7 @@ import { APP_VERSION } from '../src/core/version.js'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const argValue = name => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null }
-const outDir = path.resolve(root, argValue('--out') || 'docs/manual')
+const outDir = path.resolve(root, argValue('--out') || 'public/manual')
 const screensDir = path.resolve(root, argValue('--screens') || 'docs/manual/screens')
 const languages = argValue('--lang') ? [argValue('--lang')] : ['el', 'en']
 
