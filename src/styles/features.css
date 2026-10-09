@@ -4305,3 +4305,14 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .clinical-assessment-registry>.section-toolbar{align-items:flex-start;padding:16px 20px 12px;margin:0;border-bottom:1px solid #edf1f4}
 .clinical-assessment-registry>.section-toolbar h3{margin:0;font-size:17px;font-weight:800;line-height:1.2}
 .clinical-assessment-registry>.section-toolbar .entry-detail-note{display:block;margin:4px 0 0;font-size:11px;line-height:1.4;color:#64748b}
+
+/* Indicator record: the period result first (value, evidence, target, status). */
+.indicator-result{display:grid;gap:16px}
+.indicator-result-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #e4eaf0;border-radius:11px;background:#fff;overflow:hidden}
+.indicator-result-cards>div{display:grid;align-content:start;gap:6px;padding:14px 16px;border-right:1px solid #edf1f4}
+.indicator-result-cards>div:last-child{border-right:0}
+.indicator-result-cards span{font-size:10.5px;font-weight:700;color:#64748b}
+.indicator-result-cards strong{font-size:15px;color:#172033}
+.indicator-result-cards .indicator-result-value strong{font-size:26px;line-height:1.1;color:#0b6097}
+.indicator-result-cards small{font-size:11px;color:#64748b}
+@media(max-width:780px){.indicator-result-cards{grid-template-columns:1fr 1fr}.indicator-result-cards>div:nth-child(2){border-right:0}.indicator-result-cards>div:nth-child(-n+2){border-bottom:1px solid #edf1f4}}
