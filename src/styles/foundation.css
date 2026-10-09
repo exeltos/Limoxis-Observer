@@ -420,7 +420,7 @@
 .topbar-utility-group .icon-button:hover,.topbar-utility-group .language-button:hover{background:#fff;border-color:#e1e7ed}
 .user-chip{gap:7px}
 .user-chip .avatar{border-radius:8px}
-.preview-trigger{max-width:170px}
+.preview-trigger{max-width:220px}
 .preview-trigger span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .preview-banner{flex:0 0 36px;position:relative;top:auto}
 .main-column:has(.preview-banner) .content{padding-top:20px}

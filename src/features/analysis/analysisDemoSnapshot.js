@@ -15,7 +15,7 @@ import { loadControlExecutionsLocal, loadControlAssignmentsLocal } from '../cont
 import { loadDocuments } from '../documents/documentStore'
 import { loadCommittees } from '../committees/committeeData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
-import { employeeRows } from '../employees/employeeDemoData'
+import { employeeRows, employeeVaccinations } from '../employees/employeeDemoData'
 import { loadTrainingState } from '../training/trainingData'
 import { CLUSTER_THRESHOLD, CLUSTER_WINDOW_DAYS, demoClusterRecords } from '../surveillance/outbreakClusterService'
 import { detectOrganismClusters } from '../surveillance/clusterDetection'
@@ -138,6 +138,22 @@ function collectAntimicrobialSummary() {
   return { total: therapies.length, pending, administrations }
 }
 
+// The dashboard tiles counted the same way as dashboardCloudService.js does for a
+// real hospital: today, the last 30 days and the next 30 days.
+function collectDashboardCounts(now = new Date()) {
+  const day = offset => { const d = new Date(now); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10) }
+  const today = day(0), monthAgo = day(-30), soon = day(30)
+  const openStatus = status => !['closed', 'completed', 'cancelled'].includes(status)
+  return {
+    ohVisitsToday: loadOccupationalVisits().filter(visit => String(visit.date || '').slice(0, 10) === today).length,
+    // a vaccination the Demo already marks for renewal counts too, as the employee record shows it
+    vaccinationsDue: employeeVaccinations.filter(item => item.status === 'renewSoon' || (item.validUntil && item.validUntil >= today && item.validUntil <= soon)).length,
+    newSamplesToday: laboratorySamples.filter(sample => String(sample.requestedAt || sample.collectedAt || '').slice(0, 10) === today).length,
+    newEmployees30d: employeeRows.filter(employee => employee.hireDate && employee.hireDate >= monthAgo).length,
+    severeOpenIncidents: loadQualityLocal('incidents').filter(incident => incident.severity === 'high' && openStatus(incident.status)).length,
+  }
+}
+
 export function collectAnalysisDemoSnapshot() {
   const training = loadTrainingState()
   const handHygieneRows = loadHandHygieneLocal()
@@ -161,6 +177,7 @@ export function collectAnalysisDemoSnapshot() {
     bundles: loadBundlesLocal().length,
     pendingSamples: laboratorySamples.filter(x => x.status !== 'completed').length,
     inpatients: Object.keys(clinicalCases).length,
+    dashboard: collectDashboardCounts(),
   }
   return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility(), clusters: detectOrganismClusters(demoClusterRecords(laboratorySamples), { windowDays: CLUSTER_WINDOW_DAYS, threshold: CLUSTER_THRESHOLD }) }
 }
