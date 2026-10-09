@@ -21,6 +21,8 @@ export function FeedbackProvider({ children }) {
     const id = nextId++
     const safeMessage=sanitizeUserMessage(message,{language})
     setItems((current) => [...current, { id, message:safeMessage, tone }])
+    // A successful save ends the screen's unsaved changes (src/app/UnsavedChangesGuard.jsx).
+    if(tone==='success')window.dispatchEvent(new Event('limoxis:saved'))
     emitDiagnostic({message:safeMessage,severity:tone==='danger'?'error':tone,operation:meta?.operation||null,eventType:meta?.eventType||'ui_feedback',diagnosticCode:meta?.diagnosticCode||null})
     window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), 4200)
   }, [language])
@@ -63,4 +65,9 @@ export function useFeedback() {
   const value = useContext(FeedbackContext)
   if (!value) throw new Error('useFeedback must be used inside FeedbackProvider')
   return value
+}
+
+// For shared components that may also render outside the provider (tests, standalone pages).
+export function useOptionalFeedback() {
+  return useContext(FeedbackContext)
 }

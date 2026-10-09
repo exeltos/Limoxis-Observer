@@ -20,7 +20,7 @@ vi.mock('../src/core/tenant/tenantService', () => ({
   deletePlatformOrganizations: (...args) => deleteOrganizations(...args),
 }))
 const notify = vi.fn()
-vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => ({ notify, notifyError: vi.fn() }) }))
+vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => ({ notify, notifyError: vi.fn() }), useOptionalFeedback: () => null }))
 vi.mock('../src/core/i18n/LanguageContext', () => ({ useLanguage: () => ({ language: 'el' }) }))
 
 const { OrganizationDeleteDialog, deletionPhrase, deletionPhraseMatches } = await import('../src/features/platform/OrganizationDeleteDialog')
