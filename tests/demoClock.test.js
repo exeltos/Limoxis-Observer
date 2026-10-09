@@ -12,10 +12,10 @@ describe('Demo dates follow today', () => {
 
   it('shifts every dataset once, even objects shared between lists', () => {
     const shared = { due: '2026-09-01' }
-    const data = [[shared, { at: '2026-08-20', dateOfBirth: '1980-10-09', nested: { until: '2027-01-31' } }], [shared]]
+    const data = [[shared, { at: '2026-08-20', dateOfBirth: '1980-10-09', nested: { until: '2027-01-31', birthDate: '2026-08-10' } }], [shared]]
     shiftDemoDatesInPlace(data, 10)
     expect(shared.due).toBe('2026-09-11')
-    expect(data[0][1]).toEqual({ at: '2026-08-30', dateOfBirth: '1980-10-09', nested: { until: '2027-02-10' } })
+    expect(data[0][1]).toEqual({ at: '2026-08-30', dateOfBirth: '1980-10-09', nested: { until: '2027-02-10', birthDate: '2026-08-20' } })
   })
 
   it('keeps the fixtures as written while testing', () => {

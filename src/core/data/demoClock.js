@@ -4,6 +4,7 @@
 export const DEMO_AUTHORED_ON = '2026-08-29'
 const DAY_MS = 86_400_000
 const BIRTH_KEY = /birth|dob/i
+const INFANT_SINCE = '2025-08-29' // one year before DEMO_AUTHORED_ON
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
 const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/
 
@@ -37,9 +38,10 @@ export function shiftDemoDatesInPlace(datasets, days = demoOffsetDays()) {
     seen.add(node)
     for (const key of Object.keys(node)) {
       const value = node[key]
-      // A birth date is a fact about the person, not part of the story: shifting it
-      // would move birthdays (and the birthday greeting) to arbitrary days.
-      if (typeof value === 'string') { if (!BIRTH_KEY.test(key)) node[key] = shiftDemoDate(value, days) }
+      // An adult's birth date is a fact about the person, not part of the story:
+      // shifting it would move birthdays (and the birthday greeting) to arbitrary
+      // days. A baby's birth date is part of the story (age at admission), so it moves.
+      if (typeof value === 'string') { if (!BIRTH_KEY.test(key) || value >= INFANT_SINCE) node[key] = shiftDemoDate(value, days) }
       else walk(value)
     }
   }

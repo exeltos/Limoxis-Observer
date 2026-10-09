@@ -83,6 +83,22 @@ for (const row of surveillanceDemoData) {
   }
 }
 
+// Records written without a history get one derived from what they contain, so
+// the History tab of every Demo record tells its story like a live record does.
+const recordHistory = item => [
+  { at: item.startedAt, type: 'surveillance_start', actor: item.assessment?.assessedBy },
+  item.assessment && { at: item.assessment.date, type: 'clinical_assessment', actor: item.assessment.assessedBy, detail: item.assessment.classification },
+  ...(item.samples || []).flatMap(sample => [
+    { at: sample.collectedAt, type: 'sample_collected', sampleId: sample.id },
+    sample.resultedAt && { at: sample.resultedAt, type: 'sample_result', actor: 'Μικροβιολογικό', actorEn: 'Microbiology Laboratory', detail: sample.result, sampleId: sample.id },
+  ]),
+  ...(item.therapy || []).map(therapy => ({ at: therapy.startedAt, type: 'therapy_started', detail: therapy.antimicrobial })),
+  item.isolation?.startedAt && { at: item.isolation.startedAt, type: 'isolation_started' },
+  ...(item.reassessments || []).map(review => ({ at: review.date || review.at, type: 'reassessment', actor: review.by, detail: review.status })),
+  item.completedAt && { at: item.completedAt, type: 'surveillance_closed' },
+].filter(event => event?.at)
+for (const item of Object.values(clinicalCases)) if (!item.timeline?.length) item.timeline = recordHistory(item)
+
 // Registry rows for the Surveillance Center, derived from the live record store.
 export function demoSurveillanceList() {
   return Object.values(clinicalCases)

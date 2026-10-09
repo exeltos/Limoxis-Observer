@@ -480,3 +480,12 @@ html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{backg
   html:not(#lo-phone-lira) body .lira-assistant-fab{right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;width:46px!important;height:46px!important;border-radius:16px!important}
   html:not(#lo-phone-lira) body .content{padding-bottom:76px!important}
 }
+
+/* Phone record header: back, avatar and name share the first row; status badges
+   and the previous/next pager wrap to a second row instead of covering the name. */
+@media (max-width:640px){
+  html:not(#lo-phone-record) body .entity-record-header{grid-template-columns:auto auto minmax(0,1fr)!important;row-gap:8px!important}
+  html:not(#lo-phone-record) body .entity-record-identity h2{overflow-wrap:anywhere}
+  html:not(#lo-phone-record) body .entity-record-header-actions{grid-column:1/-1!important;flex-wrap:wrap!important;justify-content:flex-start!important;gap:6px!important}
+  html:not(#lo-phone-record) body .entity-record-sequence{margin-left:auto}
+}
