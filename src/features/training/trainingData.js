@@ -1,4 +1,5 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 export const trainerFeedbackTemplate=[
  {id:'clarity',label:'Σαφήνεια παρουσίασης'},
  {id:'knowledge',label:'Γνώση και επάρκεια εκπαιδευτή'},
@@ -103,6 +104,8 @@ function normalize(state){
  const source=state&&typeof state==='object'?state:structuredClone(trainingDemoState)
  return {...source,programs:(source.programs||[]).map(p=>{const clean=withoutKeys(p,['checkInToken','completionToken']);return {...clean,trainer:clean.trainer||clean.owner||'',materials:clean.materials||[],assessmentQuestions:clean.assessmentQuestions||[],feedbackResponses:clean.feedbackResponses||[]}}),assignments:(source.assignments||[]).map(a=>{const clean=withoutKeys(a,['checkInAt']);return {...clean,email:clean.email||'',accountLinked:clean.accountLinked!==false,invitationSentAt:clean.invitationSentAt||null,attendanceResponse:clean.attendanceResponse||(clean.attendance?'confirmed':'not_sent'),attendanceConfirmedAt:clean.attendanceConfirmedAt||null,completionConfirmedAt:clean.completionConfirmedAt||null,feedbackSubmittedAt:clean.feedbackSubmittedAt||null,assessmentSubmittedAt:clean.assessmentSubmittedAt||null}}),certificates:source.certificates||[],emailOutbox:source.emailOutbox||[],history:source.history||[]}
 }
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([trainingDemoState])
 export function loadTrainingState(){return normalize(loadSnapshot('training_records',structuredClone(trainingDemoState)))}
 export function saveTrainingState(state){const normalized=normalize(state);saveSnapshot('training_records',normalized);return normalized}
 export function findTrainingAccess(state,token){
