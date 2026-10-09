@@ -84,7 +84,7 @@ export function PlatformOrganizationsRegistry({
                         }}
                       >
                         <td>
-                          <strong>{org.name}{org.deletion_scheduled_at&&<span className="organization-deletion-badge">{tx(`Προς διαγραφή ${new Intl.DateTimeFormat('el-GR').format(new Date(org.deletion_scheduled_at))}`,`To be deleted ${new Intl.DateTimeFormat('en-GB').format(new Date(org.deletion_scheduled_at))}`)}</span>}</strong>
+                          <strong>{org.name}{org.deletion_scheduled_at&&<span className={`organization-deletion-badge${new Date(org.deletion_scheduled_at).getTime()<=Date.now()?' due':''}`}>{new Date(org.deletion_scheduled_at).getTime()<=Date.now()?tx('Έτοιμο για οριστική διαγραφή','Ready for permanent deletion'):tx(`Προς διαγραφή ${new Intl.DateTimeFormat('el-GR').format(new Date(org.deletion_scheduled_at))}`,`To be deleted ${new Intl.DateTimeFormat('en-GB').format(new Date(org.deletion_scheduled_at))}`)}</span>}</strong>
                           <small>{({hospital:tx('Νοσοκομείο','Hospital'),clinic:tx('Κλινική','Clinic'),rehab:tx('Κέντρο αποκατάστασης','Rehabilitation center')})[org.type||'hospital']||org.type}</small>
                         </td>
                         <td>{org.code}</td>

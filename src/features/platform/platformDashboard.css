@@ -4,3 +4,15 @@
 .platform-dashboard-charts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin:14px 0}
 .platform-dashboard-charts .platform-dashboard-chart-body{padding:14px 16px}
 @media(max-width:1100px){.platform-dashboard-charts{grid-template-columns:1fr}}
+
+/* Needs action: Demo endings and organization deletions of the next 7 days */
+.platform-dashboard-actions{margin-bottom:16px}
+.platform-action-list{display:flex;flex-direction:column;gap:8px}
+.platform-action-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-left:4px solid #d97706;border-radius:10px;padding:11px 14px;cursor:pointer;color:inherit;font:inherit}
+.platform-action-item.tone-danger{border-left-color:#d92d20}
+.platform-action-item:hover{background:#f7f9fb}
+.platform-action-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:#fff7ed;color:#b45309;flex:0 0 auto}
+.platform-action-item.tone-danger .platform-action-icon{background:#fef3f2;color:#b42318}
+.platform-action-copy{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.platform-action-copy strong{font-size:13.5px;color:#16273a}
+.platform-action-copy small{font-size:12px;color:var(--muted)}
