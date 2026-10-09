@@ -1,4 +1,5 @@
 import { clinicalCases } from './clinicalDemoData'
+import { deviceRuleKey } from '../lira/liraHaiMetrics'
 
 // clinicalDemoData stores hai classification types as descriptive keys
 // (bloodstreamInfection/urinaryTractInfection/ventilatorAssociatedPneumonia)
@@ -31,7 +32,8 @@ function canonicalDeviceType(device) {
   if (text.includes('central') && (text.includes('venous') || text.includes('line'))) return 'central line'
   if (text.includes('urinary') || text.includes('foley')) return 'urinary catheter'
   if (text.includes('ventil') || text.includes('tracheal')) return 'ventilator'
-  return null
+  // Cloud rows carry only the (often Greek) device_type name in both name fields.
+  return { clabsi: 'central line', cauti: 'urinary catheter', vap: 'ventilator' }[deviceRuleKey(`${device?.name || ''} ${device?.nameEn || ''}`)] || null
 }
 
 // Device-day denominators cover every inpatient with a device, not only the

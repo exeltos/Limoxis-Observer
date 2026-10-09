@@ -167,6 +167,7 @@ Deno.serve(async(req)=>{
     if((count||0)>=maxUsers)return reply({error:`Το Demo επιτρέπει έως ${maxUsers} χρήστες.`,code:'DEMO_USER_LIMIT'},400)
     const result=await createEvaluator(admin,{organization,entitlement,evaluator,app,smtp})
     if(result.error)return reply({error:result.error==='PLATFORM_OWNER_EMAIL'?'Το email ανήκει σε Platform Owner.':result.error},400)
+    if(result.userId)await caller.rpc('platform_demo_seed_member',{p_organization_id:organization.id,p_user_id:result.userId})
     const {userId:_userId,...evaluatorResult}=result
     return reply({ok:true,evaluator:evaluatorResult})
   }
@@ -247,6 +248,9 @@ Deno.serve(async(req)=>{
   for(const evaluator of list)results.push(await createEvaluator(admin,{organization,entitlement,evaluator,app,smtp}))
 
   // The contact person's account is the Demo's main user (password reset, record).
+  // Each evaluator gets their own governance items (committee membership,
+  // minutes to approve, documents to read), written after the data.
+  for(const r of results)if(r.userId)await caller.rpc('platform_demo_seed_member',{p_organization_id:organization.id,p_user_id:r.userId})
   const main=results.find(r=>r.userId&&r.email===contactEmail)||results.find(r=>r.userId)
   if(main?.userId)await admin.from('platform_demo_entitlements').update({demo_user_id:main.userId}).eq('id',entitlement.id)
 

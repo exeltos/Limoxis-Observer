@@ -20,10 +20,10 @@ import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import './OccupationalHealthPage.css'
 
 export function OccupationalHealthPage(){
- const {t,language,locale}=useLanguage();const {notify}=useFeedback();const navigate=useNavigate();const registry=useRegistryMemory('occupational-health');const {canAccessRecord,tenant}=useTenant()
+ const {t,language,locale}=useLanguage();const {notify,notifyError}=useFeedback();const navigate=useNavigate();const registry=useRegistryMemory('occupational-health');const {canAccessRecord,tenant}=useTenant()
  const {data:employeeRows}=useEmployeesData();const [occupationalVisits,setOccupationalVisits]=useState([])
  const en=language==='en'
- useEffect(()=>{let active=true;loadAllOccupationalVisitsAsync(tenant?.id).then(rows=>{if(active)setOccupationalVisits(rows)}).catch(error=>{if(active)notify(error?.message||(en?'Could not load the occupational health visits.':'Δεν ήταν δυνατή η φόρτωση των επισκέψεων ιατρείου εργασίας.'),'error')});return()=>{active=false}},[tenant?.id,notify,en])
+ useEffect(()=>{let active=true;loadAllOccupationalVisitsAsync(tenant?.id).then(rows=>{if(active)setOccupationalVisits(rows)}).catch(error=>{if(active)notifyError(error,'load',{operation:'occupational_visits_load'})});return()=>{active=false}},[tenant?.id,notifyError])
  const [section,setSection]=useState('visits')
  const [query,setQuery]=useState(''),[status,setStatus]=useState('all'),[department,setDepartment]=useState('all')
  const [exposureRows,setExposureRows]=useState([]),[exposureLoading,setExposureLoading]=useState(false),[exposureEditor,setExposureEditor]=useState(null)

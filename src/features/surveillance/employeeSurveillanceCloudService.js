@@ -98,6 +98,12 @@ export async function loadEmployeeSurveillanceBatches(organizationId,records=[])
   return (data||[]).map(row=>mapBatch(row,(departments.data||[]).find(item=>item.id===row.department_id),records))
 }
 
+// employee_surveillance_records.intervention_status check: none|required|in_progress|completed.
+// "No intervention needed" is stored as no_intervention=true with intervention_status 'none'.
+const interventionStatuses=['none','required','in_progress','completed']
+export const interventionStatusDbValue=value=>interventionStatuses.includes(value)?value:value==='recorded'?'in_progress':'none'
+export const followupInterventionStatus=patch=>patch?.noIntervention?'none':((patch?.intervention?.trim()||patch?.interventionType)?'in_progress':'none')
+
 export async function createEmployeeSurveillanceRecord(organizationId,employeeDbId,draft){
   assertCloud()
   const actorId=await currentUserId()
@@ -111,7 +117,7 @@ export async function createEmployeeSurveillanceRecord(organizationId,employeeDb
     screening_types:draft.screeningTypes||[],
     status:draft.status||'active',
     result_status:draft.resultStatus||'pending',
-    intervention_status:draft.interventionStatus||'none',
+    intervention_status:interventionStatusDbValue(draft.interventionStatus),
     recheck_due:draft.recheckDue||null,
     notes:draft.notes||null,
     created_by:actorId,
@@ -161,7 +167,7 @@ export async function updateEmployeeSurveillanceFollowup(organizationId,record,p
     intervention_start:patch.noIntervention?null:(patch.interventionStart||null),
     intervention_end:patch.noIntervention?null:(patch.interventionEnd||null),
     no_intervention:Boolean(patch.noIntervention),
-    intervention_status:patch.noIntervention?'not_required':((patch.intervention?.trim()||patch.interventionType)?'in_progress':'none'),
+    intervention_status:followupInterventionStatus(patch),
     recheck_due:patch.noRecheck?null:(patch.recheckDue||null),
     no_recheck:Boolean(patch.noRecheck),
     correction_reason:patch.correctionReason?.trim()||record.correctionReason||null,

@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { useNavigate,useParams } from 'react-router-dom'
+import { Link,useNavigate,useParams } from 'react-router-dom'
 import { CalendarDays,CheckCircle2,ClipboardList,FileClock,Paperclip,Pencil,Plus,ShieldCheck,Target,Trash2,Users,XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -261,7 +261,7 @@ export function CommitteeRecordPage(){
       {tab==='meetings'&&<Meetings rows={record.meetings||[]} canCreate={canMeeting&&!busy} canCancel={canMeeting&&!busy} onAdd={()=>setDialog({type:'newMeeting'})} onOpen={x=>setDialog({type:'meeting',id:x.id})} onCancel={cancelMeeting} en={en}/>} 
       {tab==='decisions'&&<Decisions rows={record.decisions||[]} canManage={canDecisions&&!busy} onAdd={()=>setDialog({type:'decision'})} onEdit={x=>setDialog({type:'decision',value:x})} onStatus={decisionStatus} en={en}/>} 
       {tab==='framework'&&<Framework record={record} canManage={canFramework&&!busy} onEdit={()=>setDialog({type:'framework'})} en={en}/>} 
-      {tab==='documents'&&<section className="record-section"><Head title={en?'Documents & evidence':'Έγγραφα & τεκμήρια'} subtitle={en?'Files are stored through the governed attachment service.':'Τα αρχεία αποθηκεύονται μέσω της ελεγχόμενης υπηρεσίας συνημμένων.'}/><AttachmentField disabled={!canDocuments} value={record.documents||[]} onChange={saveDemoDocuments} organizationId={organizationId} entityType="committee_document" entityId={record.dbId||record.id}/></section>}
+      {tab==='documents'&&<section className="record-section"><Head title={en?'Documents & evidence':'Έγγραφα & τεκμήρια'} subtitle={en?'Files are stored through the governed attachment service.':'Τα αρχεία αποθηκεύονται μέσω της ελεγχόμενης υπηρεσίας συνημμένων.'}/>{(record.documents||[]).some(x=>x.documentCode)&&<ul className="committee-linked-documents" aria-label={en?'Linked controlled documents':'Συνδεδεμένα ελεγχόμενα έγγραφα'}>{record.documents.filter(x=>x.documentCode).map(x=><li key={x.id}><Link to={`/documents/${x.documentCode}`}><strong>{x.documentCode}</strong><span>{x.documentTitle}</span></Link></li>)}</ul>}<AttachmentField disabled={!canDocuments} value={(record.documents||[]).filter(x=>!x.documentCode)} onChange={saveDemoDocuments} organizationId={organizationId} entityType="committee_document" entityId={record.dbId||record.id}/></section>}
       {tab==='history'&&<History rows={record.history||[]} en={en}/>} 
     </EntityRecordShell>
 
