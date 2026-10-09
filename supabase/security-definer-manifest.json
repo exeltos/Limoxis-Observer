@@ -311,6 +311,11 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Edits the organisation profile; Platform Owner or organisation admin."
+    },
+    "current_user_is_demo_admin": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller is the Hospital Admin of the given Demo organisation; used by the read-only Demo policies on antimicrobial therapy."
     }
   }
 }
