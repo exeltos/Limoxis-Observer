@@ -51,7 +51,7 @@ describe('collectAnalysisDemoSnapshot computes nationalRows (was previously hard
   it('produces one row per distinct organism/resistance/department/source/infection-site combination actually present in the demo fixture', () => {
     const snapshot = collectAnalysisDemoSnapshot()
     expect(snapshot.microbiology.nationalRows.length).toBeGreaterThan(0)
-    const validPositive = laboratorySamples.filter(x => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus))
+    const validPositive = laboratorySamples.filter(x => x.subjectType !== 'environment' && x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus))
     const distinctCombinations = new Set(validPositive.map(x => [x.organism?.trim() || '—', x.resistance || '—', x.department, x.source, x.type].join('|||')))
     expect(snapshot.microbiology.nationalRows).toHaveLength(distinctCombinations.size)
   })
