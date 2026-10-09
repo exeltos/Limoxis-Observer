@@ -22,7 +22,7 @@ describe('committee minutes revision cycle',()=>{
 
   it('resubmits revisions through the governed transactional submission path',()=>{
     const workflow=read('src/features/committees/committeeWorkflowService.js')
-    expect(workflow).toContain("supabase.rpc('submit_committee_minutes_for_approval'")
+    expect(workflow).toContain("supabase.rpc('submit_committee_minutes',")
     expect(workflow).not.toContain('requestMinutesApprovals')
     expect(workflow).toContain("status=submission?.status||'approval_pending'")
   })

@@ -13,7 +13,7 @@ describe('committee approval audit history',()=>{
   it('loads archived approval decisions separately from the active cycle',()=>{
     const service=read('src/features/committees/committeeService.js')
     expect(service).toContain("selectRows('committee_minutes_approval_history'")
-    expect(service).toContain('approvalHistory:h.map(mapApproval)')
-    expect(service).toContain('approvals:p.map(mapApproval)')
+    expect(service).toContain('approvalHistory:[...h.map(mapApproval)')
+    expect(service).toContain('approvals:p.map(x=>x.method?fromExternalRow(x):mapApproval(x))')
   })
 })
