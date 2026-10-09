@@ -103,3 +103,29 @@ jobs:
         with:
           name: visual-report
           path: visual-report
+
+  rls:
+    # Row-level security check against the real database (supabase/tests/rls_tenant_isolation.sql).
+    # The test runs in one transaction that is always rolled back, so it leaves no data behind.
+    # It runs only when the repository has the SUPABASE_DB_URL secret (Supabase → Project
+    # Settings → Database → Connection string, "Session pooler" URI with the password).
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - name: Checkout
+        if: env.SUPABASE_DB_URL != ''
+        uses: actions/checkout@v4
+
+      - name: Tenant and department isolation
+        if: env.SUPABASE_DB_URL != ''
+        run: |
+          sudo apt-get install -y -qq postgresql-client >/dev/null
+          output=$(psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=0 -f supabase/tests/rls_tenant_isolation.sql 2>&1 || true)
+          echo "$output"
+          echo "$output" | grep -q 'RLS_PASS'
+
+      - name: Skipped (no SUPABASE_DB_URL secret)
+        if: env.SUPABASE_DB_URL == ''
+        run: echo "Add the SUPABASE_DB_URL repository secret to run the row-level security check."
