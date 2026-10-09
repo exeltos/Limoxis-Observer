@@ -12,7 +12,7 @@ export const ISHIKAWA_CATEGORIES=[
 ]
 export const WHY_COUNT=5
 
-export function emptyAnalysis(){
+function emptyAnalysis(){
  return {problem:'',whys:Array(WHY_COUNT).fill(''),causes:Object.fromEntries(ISHIKAWA_CATEGORIES.map(([key])=>[key,[]])),rootCause:'',updatedAt:'',updatedBy:''}
 }
 

@@ -6,8 +6,8 @@
 
 import { newSubAction } from '../quality/qualityDeviations'
 
-export const TRAINING_SOURCE_PREFIX='TRAINING:'
-export const EFFECTIVENESS_DELAY_MONTHS=3
+const TRAINING_SOURCE_PREFIX='TRAINING:'
+const EFFECTIVENESS_DELAY_MONTHS=3
 
 export const EFFECTIVENESS_METHODS=[
  ['observation','Παρατήρηση στην πράξη','Observation in practice'],

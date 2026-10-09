@@ -31,7 +31,7 @@ export const TAB_MODULES={national:['national'],laboratory:['laboratory'],amr:['
 // Organization-level only: data quality, ΕΟΔΥ notifications and EARS-Net export work on sample-level laboratory data.
 // Top-level sections of Analysis; each tab belongs to one. A section with a
 // single visible tab shows no sub-tabs.
-export const TAB_GROUPS=[
+const TAB_GROUPS=[
  ['summary','Σύνοψη','Overview',['overview']],
  ['clinical','Επιτήρηση & μικροβιολογία','Surveillance & microbiology',['national','surveillance','laboratory','amr','antimicrobials','pps']],
  ['prevention','Πρόληψη & έλεγχοι','Prevention & controls',['prevention','hand','controls']],
@@ -48,8 +48,8 @@ export function analysisGroups(visibleTabs){
 }
 
 export const REPORTING_TAB=['reporting','Αναφορές & ποιότητα δεδομένων','Reporting & data quality',FileWarning]
-export const MONTHS_EL=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
-export const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December']
+const MONTHS_EL=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
+const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December']
 
 export function hashOrganization(hash=''){const query=hash.includes('?')?hash.split('?')[1]:'';return new URLSearchParams(query).get('organization')||'all'}
 export function fmtDate(value){if(!value)return '—';const [y,m,d]=String(value).slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:value}
@@ -58,7 +58,7 @@ export function fmtDate(value){if(!value)return '—';const [y,m,d]=String(value
 // into one (numberValue('1/1') -> 11). Take the resistant count (numerator).
 export function numberValue(value){const raw=String(value??'');const primary=raw.includes('/')?raw.split('/')[0]:raw;const normalized=primary.replaceAll('.','').replace(',','.').replace(/[^0-9.-]/g,'');const n=Number(normalized);return Number.isFinite(n)?n:0}
 export function isoDate(year,month,day){return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`}
-export function daysInMonth(year,month){return new Date(Number(year),Number(month),0).getDate()}
+function daysInMonth(year,month){return new Date(Number(year),Number(month),0).getDate()}
 export function calendarRange(year,periodType,slot){const y=Number(year);if(periodType==='month'){const m=Number(slot)||1;return {from:isoDate(y,m,1),to:isoDate(y,m,daysInMonth(y,m))}}if(periodType==='quarter'){const q=Number(slot)||1,start=(q-1)*3+1,end=start+2;return {from:isoDate(y,start,1),to:isoDate(y,end,daysInMonth(y,end))}}if(periodType==='half'){const h=Number(slot)||1,start=h===1?1:7,end=h===1?6:12;return {from:isoDate(y,start,1),to:isoDate(y,end,daysInMonth(y,end))}}return {from:isoDate(y,1,1),to:isoDate(y,12,31)}}
 export function periodSlotOptions(type,en){if(type==='month')return (en?MONTHS_EN:MONTHS_EL).map((label,index)=>[String(index+1),label]);if(type==='quarter')return [['1','Q1'],['2','Q2'],['3','Q3'],['4','Q4']];if(type==='half')return [['1',en?'1st half':'Α΄ εξάμηνο'],['2',en?'2nd half':'Β΄ εξάμηνο']];return []}
 // Months without records are shown as 0 so the time axis stays evenly spaced.

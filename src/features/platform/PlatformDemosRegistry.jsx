@@ -17,7 +17,7 @@ function daysBetween(a,b){return Math.max(0,Math.ceil((new Date(b)-new Date(a))/
 const fmtDay=(value,language)=>value?new Intl.DateTimeFormat(language==='en'?'en-GB':'el-GR').format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
 function demoProgress(item){const today=new Date().toISOString().slice(0,10),total=Math.max(1,daysBetween(item.valid_from,item.valid_until)),remaining=daysBetween(today,item.valid_until);return{remaining,pct:Math.max(0,Math.min(100,Math.round((remaining/total)*100)))}}
 // The state a Demo is really in: an "active" entitlement past its end date has expired.
-export const DEMO_EXPIRING_DAYS=7
+const DEMO_EXPIRING_DAYS=7
 export function demoState(item){if(item.status==='paused')return 'paused';if(item.status!=='active')return 'expired';const remaining=demoProgress(item).remaining;if(remaining<=0)return 'expired';return remaining<=DEMO_EXPIRING_DAYS?'expiring':'active'}
 const STATE_BADGE={active:'active',expiring:'warning',paused:'',expired:'danger'}
 

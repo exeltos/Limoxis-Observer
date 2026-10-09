@@ -57,10 +57,10 @@ export const INDICATOR_RATIO_RULES=Object.freeze({
 })
 
 export function allowedIndicatorDenominators(numerator){return numerator?Object.keys(INDICATOR_RATIO_RULES[numerator]||{}):[]}
-export function indicatorRatioRule(numerator,denominator){return numerator&&denominator?INDICATOR_RATIO_RULES[numerator]?.[denominator]||null:null}
+function indicatorRatioRule(numerator,denominator){return numerator&&denominator?INDICATOR_RATIO_RULES[numerator]?.[denominator]||null:null}
 export function indicatorMetricRule(numerator){const denominator=allowedIndicatorDenominators(numerator)[0]||'';const rule=indicatorRatioRule(numerator,denominator);return rule?{denominator,...rule}:null}
 export function indicatorMetricCombinationIsValid(numerator,denominator){return !denominator||Boolean(indicatorRatioRule(numerator,denominator))}
-export function normalizeIndicatorDefinition(item){const next={...item};if(next.calculationType!=='auto')return next;const rule=indicatorRatioRule(next.numeratorMetric,next.denominatorMetric);if(rule){next.multiplier=rule.multiplier;next.unit=rule.unit}return next}
+function normalizeIndicatorDefinition(item){const next={...item};if(next.calculationType!=='auto')return next;const rule=indicatorRatioRule(next.numeratorMetric,next.denominatorMetric);if(rule){next.multiplier=rule.multiplier;next.unit=rule.unit}return next}
 
 const assertCloud=(organizationId,{system=false}={})=>{if(!supabase)throw new Error('Supabase is not configured.');if(!organizationId&&!system)throw new Error('Organization is required.')}
 const isUuid=value=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''))

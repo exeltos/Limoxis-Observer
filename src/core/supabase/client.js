@@ -5,7 +5,7 @@ import { appConfig, hasSupabaseConfig } from '../config/env'
 // (?helpPreview=1). That iframe must never reuse the signed-in user's stored
 // session: it gets an isolated, anonymous, non-persisted client so row-level
 // security returns no production data and every screen runs on the demo dataset.
-export const isHelpPreviewFrame = typeof window !== 'undefined'
+const isHelpPreviewFrame = typeof window !== 'undefined'
   && new URLSearchParams(window.location.search).get('helpPreview') === '1'
   && window.self !== window.top
 

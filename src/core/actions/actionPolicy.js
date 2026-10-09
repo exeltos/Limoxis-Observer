@@ -5,7 +5,7 @@ export const UI_ACTIONS = Object.freeze({
   ATTACH: 'attach', PRINT: 'print', EXPORT: 'export', ASSIGN: 'assign', MANAGE: 'manage',
 })
 
-export const ACTION_CAPABILITY = Object.freeze({
+const ACTION_CAPABILITY = Object.freeze({
   [UI_ACTIONS.CREATE]: CAPABILITIES.CREATE_RECORDS,
   [UI_ACTIONS.EDIT]: CAPABILITIES.EDIT_RECORDS,
   [UI_ACTIONS.DELETE]: CAPABILITIES.DELETE_RECORDS,

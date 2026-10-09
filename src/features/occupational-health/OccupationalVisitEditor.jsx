@@ -3,7 +3,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import '../occupational-health/OccupationalHealthPage.css'
 
 export const EMPTY_OCCUPATIONAL_VISIT={employeeId:'',date:'',type:'periodic',status:'scheduled',fitStatus:'pending',followUpDate:'',clinicalNotes:''}
-export const VISIT_TYPES=[['periodic','Περιοδική εξέταση','Periodic examination'],['followUp','Επανέλεγχος','Follow-up'],['vaccinationReview','Έλεγχος εμβολιασμού','Vaccination review']]
+const VISIT_TYPES=[['periodic','Περιοδική εξέταση','Periodic examination'],['followUp','Επανέλεγχος','Follow-up'],['vaccinationReview','Έλεγχος εμβολιασμού','Vaccination review']]
 export const visitSavedMessage=language=>language==='en'?'Visit saved.':'Η επίσκεψη αποθηκεύτηκε.'
 export const FITNESS=[['fit','Κατάλληλος','Fit'],['fit_with_restrictions','Κατάλληλος με περιορισμούς','Fit with restrictions'],['unfit','Μη κατάλληλος','Unfit'],['pending','Εκκρεμεί','Pending']]
 

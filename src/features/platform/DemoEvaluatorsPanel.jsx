@@ -89,7 +89,7 @@ export function DemoEvaluatorsPanel({organizationId,entitlementId,language,maxUs
   </section>
 }
 
-export function AddEvaluatorDialog({language,working=false,takenEmails=[],onAdd,onClose}){
+function AddEvaluatorDialog({language,working=false,takenEmails=[],onAdd,onClose}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const [draft,setDraft]=useState({fullName:'',email:'',role:'infection_control_lead',departmentCode:'ΜΕΘ',access:'invite'})
   const set=(key,value)=>setDraft(c=>({...c,[key]:value}))

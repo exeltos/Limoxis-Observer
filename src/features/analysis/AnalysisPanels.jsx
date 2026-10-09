@@ -9,7 +9,7 @@ import { CLINICAL_SITES,siteLabel,organismBySiteRows,fmtDate,numberValue,continu
 
 export function AnalysisSelect({label,value,onChange,children}){return <label className="analysis-filter-field"><span>{label}</span><select value={value} onChange={onChange}>{children}</select></label>}
 // KPI tile: [label, value, hint, tone] — tone is good / warning / danger.
-export const KPI_TONES=new Set(['good','warning','danger'])
+const KPI_TONES=new Set(['good','warning','danger'])
 export function KpiStrip({rows}){return <div className="analysis-kpis">{rows.map(([label,value,hint,tone])=><article key={label} className={KPI_TONES.has(tone)?`kpi-${tone}`:''}><span>{label}</span><strong>{value}</strong>{hint&&hint!=='—'&&<small>{hint}</small>}</article>)}</div>}
 export function SectionCharts({charts,en}){return <div className="analysis-chart-grid">{charts.map(chart=><ChartCard key={chart.title} wide={chart.wide} title={chart.title} subtitle={chart.subtitle}>{chart.type==='trend'?<TrendChart points={continuousMonths(chart.points)} en={en} label={chart.title}/>:chart.type==='donut'?<DonutChart rows={chart.rows} en={en} centerLabel={chart.center}/>:chart.type==='rate'?<BarList rows={chart.rows} en={en} scale={100} suffix="%" max={12}/>:<BarList rows={chart.rows} en={en} max={12}/>}</ChartCard>)}</div>}
 export function MetricBars({rows,tx}){return <BarList rows={rows} en={chartLanguage(tx)} max={12}/>}

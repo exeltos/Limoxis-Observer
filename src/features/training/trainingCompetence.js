@@ -6,7 +6,7 @@
 // requirement: { id, title, programIds:[], professions:[], positions:[],
 //                departments:[], renewalMonths, active }  (empty list = everyone)
 
-export const EXPIRING_DAYS=60
+const EXPIRING_DAYS=60
 const DAY=24*60*60*1000
 
 const norm=value=>String(value||'').trim().toLocaleLowerCase('el')

@@ -134,7 +134,7 @@ function clinicalTimeline({events=[],assessments=[],hai=[],samples=[],therapies=
   ].filter(item=>item.at).sort((a,b)=>new Date(b.at)-new Date(a.at))
 }
 
-export function mapClinicalCase({caseRow,patient,department,events=[],assessments=[],hai=[],samples=[],relatedLab={},therapies=[],therapyAdministrations=[],isolations=[],reassessments=[],outcomes=[],devices=[]}){
+function mapClinicalCase({caseRow,patient,department,events=[],assessments=[],hai=[],samples=[],relatedLab={},therapies=[],therapyAdministrations=[],isolations=[],reassessments=[],outcomes=[],devices=[]}){
   const start=eventPayload(events,'surveillance_start')||{}
   const caseAssessments=assessments.filter(row=>row.surveillance_case_id===caseRow.id)
   const caseHai=hai.filter(row=>row.surveillance_case_id===caseRow.id)

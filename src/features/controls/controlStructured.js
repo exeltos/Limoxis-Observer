@@ -11,7 +11,7 @@ export function structuredSummary(execution){
  const findings=rows.filter(r=>r.finding||r.action).length
  return `${rows.length} εγγραφές${findings?` · ${findings} ευρήματα`:''}`
 }
-export function printableControlHtml({record,department,execution,actorName}){
+function printableControlHtml({record,department,execution,actorName}){
  const rows=execution?.structuredData?.rows||[]
  const template=record.responseConfig?.template
  const headers=template==='medication_expiry'

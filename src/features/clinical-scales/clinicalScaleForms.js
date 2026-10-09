@@ -29,7 +29,7 @@ export const CLINICAL_SCALE_REFERENCE={
  'apache-ii':{fields:{temperature:R('36,0–38,4 °C','36.0–38.4 °C'),map:R('70–109 mmHg'),heartRate:R('70–109 /λεπτό','70–109 /min'),respiratoryRate:R('12–24 /λεπτό','12–24 /min'),fio2:R('0,21 (αέρας)','0.21 (room air)'),pao2:R('> 70 mmHg'),aado2:R('< 200 mmHg'),ph:R('7,33–7,49','7.33–7.49'),sodium:R('130–149 mmol/L'),potassium:R('3,5–5,4 mmol/L','3.5–5.4 mmol/L'),creatinine:R('0,6–1,4 mg/dL','0.6–1.4 mg/dL'),hematocrit:R('30–45,9%','30–45.9%'),wbc:R('3–14,9 ×10³/μL','3–14.9 ×10³/μL'),gcs:R('15')},bands:[[0,9,R('0–9 · Χαμηλή βαρύτητα','0–9 · Low severity'),'good'],[10,19,R('10–19 · Μέτρια βαρύτητα','10–19 · Moderate severity'),'warning'],[20,71,R('≥ 20 · Υψηλή βαρύτητα','≥ 20 · High severity'),'danger']]},
 }
 // NEWS2 stores component points under names that differ from the input keys.
-export const SCALE_PART_TO_FIELD={news2:{respiratory:'respiratoryRate',oxygenSaturation:'spo2',supplementalOxygen:'supplementalOxygen',systolicBp:'systolicBp',pulse:'pulse',consciousness:'newConfusion',temperature:'temperature'}}
+const SCALE_PART_TO_FIELD={news2:{respiratory:'respiratoryRate',oxygenSaturation:'spo2',supplementalOxygen:'supplementalOxygen',systolicBp:'systolicBp',pulse:'pulse',consciousness:'newConfusion',temperature:'temperature'}}
 export const scaleReference=key=>CLINICAL_SCALE_REFERENCE[key]||{fields:{},bands:[]}
 export const scoreBand=(key,score)=>{if(score==null||score==='')return null;const n=Number(score);if(!Number.isFinite(n))return null;return scaleReference(key).bands.find(([min,max])=>n>=min&&n<=max)||null}
 
@@ -37,7 +37,7 @@ export const scoreBand=(key,score)=>{if(score==null||score==='')return null;cons
 const O=(v,el,en)=>[v,el,en]
 const yesNo=yes=>[O(0,'Όχι','No'),O(yes,'Ναι','Yes')]
 const GCS_EYE=[O(4,'Αυθόρμητα','Spontaneous'),O(3,'Στη φωνή','To sound'),O(2,'Στην πίεση','To pressure'),O(1,'Καμία','None')]
-export const CLINICAL_SCALE_OPTIONS={
+const CLINICAL_SCALE_OPTIONS={
  morse:{fallHistory:yesNo(25),secondaryDiagnosis:yesNo(15),ivTherapy:yesNo(20),ambulatoryAid:[O(0,'Κανένα / κατάκλιση / βοήθεια νοσηλευτή','None / bed rest / nurse assist'),O(15,'Βακτηρίες / μπαστούνι / περιπατητήρας','Crutches / cane / walker'),O(30,'Στήριξη σε έπιπλα','Furniture')],gait:[O(0,'Φυσιολογική / κατάκλιση / αμαξίδιο','Normal / bed rest / wheelchair'),O(10,'Αδύναμη','Weak'),O(20,'Διαταραγμένη','Impaired')],mentalStatus:[O(0,'Γνωρίζει τις δυνατότητές του','Oriented to own ability'),O(15,'Υπερεκτιμά ή ξεχνά περιορισμούς','Overestimates / forgets limitations')]},
  braden:{sensoryPerception:[O(1,'Πλήρως περιορισμένη','Completely limited'),O(2,'Πολύ περιορισμένη','Very limited'),O(3,'Ελαφρώς περιορισμένη','Slightly limited'),O(4,'Χωρίς διαταραχή','No impairment')],moisture:[O(1,'Συνεχώς υγρό','Constantly moist'),O(2,'Πολύ υγρό','Very moist'),O(3,'Περιστασιακά υγρό','Occasionally moist'),O(4,'Σπάνια υγρό','Rarely moist')],activity:[O(1,'Κατάκλιση','Bedfast'),O(2,'Σε καρέκλα','Chairfast'),O(3,'Περιστασιακή βάδιση','Walks occasionally'),O(4,'Συχνή βάδιση','Walks frequently')],mobility:[O(1,'Πλήρως ακίνητος','Completely immobile'),O(2,'Πολύ περιορισμένη','Very limited'),O(3,'Ελαφρώς περιορισμένη','Slightly limited'),O(4,'Χωρίς περιορισμό','No limitation')],nutrition:[O(1,'Πολύ ανεπαρκής','Very poor'),O(2,'Πιθανώς ανεπαρκής','Probably inadequate'),O(3,'Επαρκής','Adequate'),O(4,'Εξαιρετική','Excellent')],frictionShear:[O(1,'Πρόβλημα','Problem'),O(2,'Δυνητικό πρόβλημα','Potential problem'),O(3,'Χωρίς εμφανές πρόβλημα','No apparent problem')]},
  gcs:{eye:GCS_EYE,verbal:[O(5,'Προσανατολισμένος','Oriented'),O(4,'Συγχυσμένος','Confused'),O(3,'Άσχετες λέξεις','Words'),O(2,'Άναρθροι ήχοι','Sounds'),O(1,'Καμία','None')],motor:[O(6,'Εκτελεί εντολές','Obeys commands'),O(5,'Εντοπίζει τον πόνο','Localising'),O(4,'Φυσιολογική κάμψη','Normal flexion'),O(3,'Παθολογική κάμψη','Abnormal flexion'),O(2,'Έκταση','Extension'),O(1,'Καμία','None')]},
@@ -49,7 +49,7 @@ export const isChoiceScale=scale=>Boolean(CLINICAL_SCALE_OPTIONS[scale])
 
 // Numeric adult normal ranges used to flag an entered value as out of range.
 const INF=Infinity
-export const CLINICAL_SCALE_NORMAL={
+const CLINICAL_SCALE_NORMAL={
  news2:{respiratoryRate:[12,20],spo2:[96,100],systolicBp:[111,219],pulse:[51,90],temperature:[36.1,38]},
  sofa:{pao2Fio2:[400,INF],platelets:[150,INF],bilirubin:[0,1.19],map:[70,INF],gcs:[15,15],creatinine:[0,1.19],urineOutput24h:[500,INF],dopamine:[0,0],epinephrine:[0,0],norepinephrine:[0,0]},
  'apache-ii':{temperature:[36,38.4],map:[70,109],heartRate:[70,109],respiratoryRate:[12,24],pao2:[71,INF],aado2:[0,199],ph:[7.33,7.49],sodium:[130,149],potassium:[3.5,5.4],creatinine:[0.6,1.4],hematocrit:[30,45.9],wbc:[3,14.9],gcs:[15,15]},

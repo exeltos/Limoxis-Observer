@@ -176,7 +176,7 @@ export function createClinicalSurveillance(data){
   return record
 }
 
-export const surveillanceDeletionAudit=[]
+const surveillanceDeletionAudit=[]
 export function deleteClinicalSurveillance(id,{actor='Unknown actor',actorId='unknown',reason='Deleted as erroneous entry'}={}){
   const existing=clinicalCases[id]
   if(!existing||existing.status!=='active')return false

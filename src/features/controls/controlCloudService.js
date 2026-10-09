@@ -429,7 +429,7 @@ export async function saveControlDraft(organizationId,record,department,payload)
  return {...payload,id:data.id,savedAt:data.saved_at,recordKey:data.record_key}
 }
 
-export async function removeControlDraft(organizationId,record,department){
+async function removeControlDraft(organizationId,record,department){
  const assignment=record.assignments?.[department]
  if(!assignment?.departmentId)return
  if(isDemoDataEnvironment()){

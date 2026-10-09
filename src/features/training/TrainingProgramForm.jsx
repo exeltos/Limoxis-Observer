@@ -1,11 +1,11 @@
 import { ManualDateField } from '../../design-system/ManualDateField'
 
 export const TRAINING_PROGRAM_DEFAULTS={title:'',category:'ipc',method:'in_person',owner:'',trainer:'',audience:'',status:'active',startDate:'',dueDate:'',validMonths:'12',requiresAssessment:true,passScore:'80',description:''}
-export const TRAINING_CATEGORY_OPTIONS=[['ipc','Πρόληψη & Έλεγχος Λοιμώξεων','Infection Prevention & Control'],['clinical','Κλινική εκπαίδευση','Clinical training'],['quality','Ποιότητα & Ασφάλεια','Quality & Safety'],['occupational_health','Υγεία & Ασφάλεια Εργαζομένων','Occupational Health & Safety'],['mandatory','Υποχρεωτική / Κανονιστική','Mandatory / Regulatory'],['other','Άλλο','Other']]
-export const TRAINING_METHOD_OPTIONS=[['in_person','Δια ζώσης','In person'],['online','Διαδικτυακά','Online'],['hybrid','Υβριδικά','Hybrid'],['on_the_job','Εκπαίδευση στο χώρο εργασίας','On-the-job'],['self_study','Αυτοεκπαίδευση','Self-study']]
+const TRAINING_CATEGORY_OPTIONS=[['ipc','Πρόληψη & Έλεγχος Λοιμώξεων','Infection Prevention & Control'],['clinical','Κλινική εκπαίδευση','Clinical training'],['quality','Ποιότητα & Ασφάλεια','Quality & Safety'],['occupational_health','Υγεία & Ασφάλεια Εργαζομένων','Occupational Health & Safety'],['mandatory','Υποχρεωτική / Κανονιστική','Mandatory / Regulatory'],['other','Άλλο','Other']]
+const TRAINING_METHOD_OPTIONS=[['in_person','Δια ζώσης','In person'],['online','Διαδικτυακά','Online'],['hybrid','Υβριδικά','Hybrid'],['on_the_job','Εκπαίδευση στο χώρο εργασίας','On-the-job'],['self_study','Αυτοεκπαίδευση','Self-study']]
 export function trainingCategoryLabel(value,language='el'){const row=TRAINING_CATEGORY_OPTIONS.find(x=>x[0]===value);return row?(language==='en'?row[2]:row[1]):value||'—'}
 export function trainingMethodLabel(value,language='el'){const row=TRAINING_METHOD_OPTIONS.find(x=>x[0]===value);return row?(language==='en'?row[2]:row[1]):value||'—'}
-export function normalizeTrainingProgramDraft(value={}){return {...TRAINING_PROGRAM_DEFAULTS,...value}}
+function normalizeTrainingProgramDraft(value={}){return {...TRAINING_PROGRAM_DEFAULTS,...value}}
 export function trainingProgramIsValid(v){return Boolean(v?.title?.trim()&&v?.owner?.trim()&&v?.trainer?.trim()&&v?.audience?.trim()&&v?.dueDate&&(!v.startDate||v.dueDate>=v.startDate)&&(!v.requiresAssessment||Number(v.passScore)>=0&&Number(v.passScore)<=100))}
 function unique(values){return [...new Set(values.map(x=>String(x||'').trim()).filter(Boolean))]}
 

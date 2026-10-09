@@ -98,7 +98,7 @@ function initialLanguage() {
 // Until English has loaded, lookups fall back to Greek, so callers switch the
 // language only after loadLanguage() resolves.
 let englishLoad = null
-export const isLanguageLoaded = language => language !== 'en' || Boolean(strings.en)
+const isLanguageLoaded = language => language !== 'en' || Boolean(strings.en)
 export function loadLanguage(language) {
   if (isLanguageLoaded(language)) return Promise.resolve()
   englishLoad ||= import('./stringsEn.js').then(module => {

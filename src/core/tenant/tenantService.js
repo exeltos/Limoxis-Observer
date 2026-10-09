@@ -135,7 +135,7 @@ export async function listPlatformDemos() {
   return data ?? []
 }
 
-export async function updatePlatformDemoEntitlement(demoId, patch) {
+async function updatePlatformDemoEntitlement(demoId, patch) {
   if (!supabase || !demoId) throw new Error('SUPABASE_NOT_CONFIGURED')
   const payload = {}
   if (patch.label !== undefined) payload.label = String(patch.label || '').trim()

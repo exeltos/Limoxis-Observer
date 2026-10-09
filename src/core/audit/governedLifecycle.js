@@ -1,6 +1,6 @@
 import { auditActorFromAuth } from './actor'
 
-export const LIFECYCLE_STATUS={
+const LIFECYCLE_STATUS={
   ACTIVE:'active',
   FINALIZED:'finalized',
   CORRECTION:'correction',
@@ -11,7 +11,7 @@ function actorSafe(actor){
   return actor?.name?actor:auditActorFromAuth({})
 }
 
-export function lifecycleEvent(action,{actor,reason='',at=new Date().toISOString(),detail=null}={}){
+function lifecycleEvent(action,{actor,reason='',at=new Date().toISOString(),detail=null}={}){
   const a=actorSafe(actor)
   return {at,actor:a.name,actorId:a.id,action,reason,detail}
 }

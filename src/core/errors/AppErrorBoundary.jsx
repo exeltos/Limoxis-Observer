@@ -6,7 +6,7 @@ import { Button } from '../../design-system/Button'
 // embedded third-party frames) makes every localStorage access throw. That is
 // not an application fault, so tell the user how to fix it instead of showing
 // the generic crash card.
-export function isBrowserStorageBlocked(error) {
+function isBrowserStorageBlocked(error) {
   const cause = error?.cause ?? error
   if (cause?.name === 'SecurityError') return true
   return /localStorage|sessionStorage|access is denied for this document/i.test(String(cause?.message || ''))

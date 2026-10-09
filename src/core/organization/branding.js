@@ -5,8 +5,8 @@
 import { useEffect,useState } from 'react'
 import { readLocalValue,writeLocalValue } from '../storage/browserStorage'
 
-export const LOGO_MAX_BYTES=300*1024
-export const LOGO_MAX_PX=480
+const LOGO_MAX_BYTES=300*1024
+const LOGO_MAX_PX=480
 const LOGO_TYPES=['image/png','image/jpeg','image/webp','image/svg+xml']
 const DEMO_KEY='limoxis.demoBranding'
 const CHANGED_EVENT='limoxis:branding-changed'
@@ -17,7 +17,7 @@ export function normalizeBranding(value){
  return {logo,reportHeader:String(source.reportHeader||'').slice(0,200)}
 }
 
-export function brandingFor(tenant,isDemo){
+function brandingFor(tenant,isDemo){
  if(isDemo){try{return normalizeBranding(JSON.parse(readLocalValue(DEMO_KEY,'{}')))}catch{return normalizeBranding(null)}}
  return normalizeBranding(tenant?.branding)
 }

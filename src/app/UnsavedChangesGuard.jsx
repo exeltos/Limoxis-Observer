@@ -6,7 +6,7 @@ import { useFeedback } from '../core/feedback/FeedbackContext'
 // successful save (any "success" notification) or the next screen. While it does,
 // following a link in the app asks first, and closing or reloading the tab warns.
 // Search boxes, filters, pagination and dialogs (which guard themselves) do not count.
-export const SAVED_EVENT = 'limoxis:saved'
+const SAVED_EVENT = 'limoxis:saved'
 const IGNORED = '.filter-primary-row, .filter-popover, .filter-search, .registry-pagination, [role=search], .observer-dialog, .confirm-dialog'
 const isSearchField = el => el?.type === 'search' || /search|αναζήτ/i.test(`${el?.className || ''} ${el?.placeholder || ''}`)
 
