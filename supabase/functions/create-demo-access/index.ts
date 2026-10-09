@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6.10.1'
 import { demoAccessEmail } from '../_shared/emailTemplates.ts'
+import { serveWithCors } from '../_shared/cors.ts'
 
 // New Demo (wizard) and new evaluators of an existing Demo. Platform Owner only.
 //   * create: organization, entitlement, the full data pack
@@ -14,7 +15,7 @@ import { demoAccessEmail } from '../_shared/emailTemplates.ts'
 // is returned once and never stored.
 
 const DEFAULT_APP_URL='https://www.limoxis.com'
-const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
+const cors={'Content-Type':'application/json','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 const GREEK:Record<string,string>={α:'A',ά:'A',β:'V',γ:'G',δ:'D',ε:'E',έ:'E',ζ:'Z',η:'I',ή:'I',θ:'T',ι:'I',ί:'I',κ:'K',λ:'L',μ:'M',ν:'N',ξ:'X',ο:'O',ό:'O',π:'P',ρ:'R',σ:'S',ς:'S',τ:'T',υ:'Y',ύ:'Y',φ:'F',χ:'C',ψ:'P',ω:'O',ώ:'O'}
 const initial=(value='')=>{const c=String(value).trim().charAt(0);return /[A-Za-z]/.test(c)?c.toUpperCase():(GREEK[c.toLowerCase()]||'D')}
@@ -131,7 +132,7 @@ async function createEvaluator(admin:any,{organization,entitlement,evaluator,app
   return {...result,userId,username,reused:Boolean(existing)}
 }
 
-Deno.serve(async(req)=>{
+serveWithCors(async(req)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors})
   if(req.method!=='POST')return reply({error:'Method not allowed'},405)
 

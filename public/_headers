@@ -1,0 +1,16 @@
+# Security and caching headers served by Netlify for every domain of the app.
+# connect-src/img-src name the Supabase project of VITE_SUPABASE_URL: change them together.
+# frame-src/frame-ancestors allow the Help Center preview, which embeds the app inside itself.
+# Scripts come only from this origin: printable documents opened with window.open()
+# inherit this policy, so they must not rely on inline <script>.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://wnnssaicdsdgesysaamv.supabase.co; font-src 'self' data:; connect-src 'self' https://wnnssaicdsdgesysaamv.supabase.co wss://wnnssaicdsdgesysaamv.supabase.co; frame-src 'self' blob: data: https://www.limoxis.com https://wnnssaicdsdgesysaamv.supabase.co; frame-ancestors 'self' https://www.limoxis.com https://limoxis-observer.netlify.app; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+
+# Pages keep Netlify's default (revalidate on every visit). Vite file names carry a
+# content hash, so a file under /assets never changes once published.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
