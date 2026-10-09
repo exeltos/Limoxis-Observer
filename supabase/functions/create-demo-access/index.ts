@@ -3,9 +3,10 @@ import nodemailer from 'npm:nodemailer@6.10.1'
 import { demoAccessEmail } from '../_shared/emailTemplates.ts'
 
 // New Demo (wizard) and new evaluators of an existing Demo. Platform Owner only.
-//   * create: organization, entitlement with its data scenario, the data
-//     (platform_reset_demo_organization), then the evaluators. Invitations
-//     leave only after the data is in, so nobody logs into an empty hospital.
+//   * create: organization, entitlement, the full data pack
+//     (platform_reset_demo_organization), then its Hospital Admin, who adds
+//     the other users inside the Demo. Invitations leave only after the data
+//     is in, so nobody logs into an empty hospital.
 //   * add_evaluator: one more evaluator, within max_demo_users.
 // Each evaluator gets a real role (department roles get a Demo department) and
 // either an email invitation (the Limoxis "Demo access" email when SMTP is
@@ -21,7 +22,6 @@ const addDays=(isoDate:string,days:number)=>{const date=new Date(`${isoDate}T00:
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const ROLES=['hospital_admin','infection_control_lead','infection_control_member','department_manager','link_nurse','department_user','laboratory','pharmacy','quality_manager','occupational_physician','hr_office','committee_secretariat','doctor_reviewer']
 const DEPARTMENT_ROLES=new Set(['department_manager','link_nurse','department_user','laboratory'])
-const PROFILES=['full','surveillance','empty']
 const fmtDay=(value:string)=>{const m=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?`${m[3]}/${m[2]}/${m[1]}`:value}
 
 type Evaluator={fullName:string,email:string,role:string,departmentCode:string|null,access:'invite'|'password'}
@@ -176,7 +176,6 @@ Deno.serve(async(req)=>{
   const contactEmail=String(body.contactEmail||'').trim().toLowerCase()
   const validFrom=String(body.validFrom||'')
   let validUntil=String(body.validUntil||'')
-  const seedProfile=PROFILES.includes(String(body.seedProfile))?String(body.seedProfile):'full'
   const organizationType=String(body.type||'hospital')
   const region=String(body.region||'').trim()||null
   const healthRegion=String(body.healthRegion||'').trim()||null
@@ -233,7 +232,6 @@ Deno.serve(async(req)=>{
     valid_until:validUntil,
     status:'active',
     created_by:currentUser.user.id,
-    seed_profile:seedProfile,
   }).select().single()
   if(entitlementError||!entitlement){
     // Nothing references the new organization yet, so it can go directly.
@@ -255,7 +253,7 @@ Deno.serve(async(req)=>{
   await admin.from('system_audit_log').insert({
     organization_id:organization.id,actor_user_id:currentUser.user.id,actor_role:'platform_owner',event_type:'platform.demo.created',
     entity_type:'platform_demo_entitlement',entity_id:entitlement.id,
-    metadata:{name:label,code:organizationCode,seed_profile:seedProfile,valid_until:validUntil,evaluators:results.map(r=>({role:r.role,access:r.access,ok:!r.error}))},
+    metadata:{name:label,code:organizationCode,valid_until:validUntil,evaluators:results.map(r=>({role:r.role,access:r.access,ok:!r.error}))},
   })
 
   return reply({
