@@ -250,11 +250,13 @@ export async function deletePlatformOrganizations({ organizationIds, password, c
   return invokeAuthenticatedFunction('platform-delete-organizations', { organizationIds, password, confirmation })
 }
 
-export async function createPlatformDemoEntitlement(payload) {
+// New Demo from the wizard: organization, data scenario and evaluators in
+// one call. Returns the entitlement, the organization, the seed counts and
+// each evaluator (username, and a temporary password shown only once).
+export async function createPlatformDemoAccess(payload) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   if (!payload.contactEmail) throw new Error('DEMO_EMAIL_REQUIRED')
-  const data = await invokeAuthenticatedFunction('create-demo-access', { ...payload, country: countryOrDefault(payload.country) })
-  return data.entitlement || data
+  return invokeAuthenticatedFunction('create-demo-access', { ...payload, country: countryOrDefault(payload.country) })
 }
 
 export async function convertDemoEntitlementToOrganization(demoId, organizationDraft) {

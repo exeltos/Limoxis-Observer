@@ -46,7 +46,19 @@ Deno.serve(async(req)=>{
   const {data:profile}=await admin.from('profiles').select('is_platform_owner,full_name').eq('id',callerData.user.id).maybeSingle();let authorized=Boolean(profile?.is_platform_owner)
   if(!authorized){const {data:m}=await admin.from('organization_members').select('role,status').eq('organization_id',organizationId).eq('user_id',callerData.user.id).maybeSingle();authorized=m?.role==='hospital_admin'&&m?.status==='active'}
   if(!authorized)return reply({error:'Not authorized'},403)
-  const {data:org}=await admin.from('organizations').select('id,name').eq('id',organizationId).maybeSingle();if(!org)return reply({error:'Organization not found'},404)
+  const {data:org}=await admin.from('organizations').select('id,name,is_demo').eq('id',organizationId).maybeSingle();if(!org)return reply({error:'Organization not found'},404)
+  // A Demo's own Hospital Admin adds the evaluators, up to the platform limit (max_demo_users).
+  let demoEntitlementId:string|null=null
+  if(org.is_demo){
+    const [{data:settings},{count:memberCount},{data:entitlement}]=await Promise.all([
+      admin.from('platform_settings').select('max_demo_users').eq('id','global').maybeSingle(),
+      admin.from('organization_members').select('id',{count:'exact',head:true}).eq('organization_id',organizationId),
+      admin.from('platform_demo_entitlements').select('id').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+    ])
+    const maxUsers=Math.min(20,Math.max(1,Number(settings?.max_demo_users)||5))
+    if(!profile?.is_platform_owner&&(memberCount||0)>=maxUsers)return reply({error:`Το Demo επιτρέπει έως ${maxUsers} χρήστες.`,code:'DEMO_USER_LIMIT',maxUsers},403)
+    demoEntitlementId=entitlement?.id||null
+  }
   const normalizedEmail=String(email).trim().toLowerCase();const username=await generateUserName(admin,fullName);const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||DEFAULT_APP_URL).replace(/\/$/,'');const redirectTo=`${appUrl}/activate`
   const {data:invited,error:inviteError}=await admin.auth.admin.inviteUserByEmail(normalizedEmail,{redirectTo,data:{full_name:fullName,username,role,role_label:ROLE_LABELS[role]||role,organization_id:organizationId,organization_name:org.name,invited_by:profile?.full_name||'',is_platform_owner:false}})
   let userId:string;let createdMembership=false
@@ -59,7 +71,7 @@ Deno.serve(async(req)=>{
     try{const linkedEmployeeId=await linkOrCreateEmployee(admin,{organizationId,userId,normalizedEmail,phone,jobTitle,employeeDbId,employee});return reply({ok:true,username:existingProfile.username,userId,emailSent:false,reused:true,employeeId:linkedEmployeeId})}catch(error){if(createdMembership)await admin.from('organization_members').delete().eq('organization_id',organizationId).eq('user_id',userId);return reply({error:String(error?.message||error)},409)}
   }
   userId=invited.user.id
-  const {error:profileError}=await admin.from('profiles').update({full_name:fullName,username,contact_email:normalizedEmail,phone:phone||null,job_title:jobTitle||null}).eq('id',userId);if(profileError){await admin.auth.admin.deleteUser(userId);return reply({error:profileError.message},500)}
+  const {error:profileError}=await admin.from('profiles').update({full_name:fullName,username,contact_email:normalizedEmail,phone:phone||null,job_title:jobTitle||null,...(org.is_demo?{is_demo:true,demo_entitlement_id:demoEntitlementId}:{})}).eq('id',userId);if(profileError){await admin.auth.admin.deleteUser(userId);return reply({error:profileError.message},500)}
   const {error:memberError}=await admin.from('organization_members').insert({organization_id:organizationId,user_id:userId,role,status:'invited'});if(memberError){await admin.auth.admin.deleteUser(userId);return reply({error:memberError.message},500)}
   try{const linkedEmployeeId=await linkOrCreateEmployee(admin,{organizationId,userId,normalizedEmail,phone,jobTitle,employeeDbId,employee});return reply({ok:true,username,userId,emailSent:true,provider:'supabase_auth',employeeId:linkedEmployeeId})}catch(error){await admin.from('organization_members').delete().eq('organization_id',organizationId).eq('user_id',userId);await admin.auth.admin.deleteUser(userId);return reply({error:String(error?.message||error)},409)}
 })

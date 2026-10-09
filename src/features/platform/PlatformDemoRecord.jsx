@@ -10,6 +10,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { resetPlatformDemoData,resetPlatformDemoPassword,setPlatformDemoStatus } from '../../core/tenant/tenantService'
 import { OrganizationDeleteDialog } from './OrganizationDeleteDialog'
 import { DemoEvaluationPanel } from '../demo/DemoEvaluationPanel'
+import { DemoEvaluatorsPanel } from './DemoEvaluatorsPanel'
 import { ConvertDemoDialog, DemoExtendControls } from './DemoLifecycleControls'
 import { convertPlatformDemo, extendPlatformDemo } from './platformLifecycleService'
 import { demoDatesValid,loadPlatformDemoRecord,savePlatformDemoRecord } from './platformDemoService'
@@ -19,7 +20,7 @@ function daysBetween(a,b){return Math.max(0,Math.ceil((new Date(b)-new Date(a))/
 function Action({icon,tone,label,title,onClick,disabled=false}){return <div className="platform-org-action-item"><IconButton tone={tone} label={title} disabled={disabled} onClick={onClick}>{icon}</IconButton><span>{label}</span></div>}
 function FormSection({title,subtitle,actions,children}){return <section className="platform-form-section"><header><div><strong>{title}</strong>{subtitle&&<span>{subtitle}</span>}</div>{actions&&<div className="platform-form-section-actions">{actions}</div>}</header>{children}</section>}
 
-export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChanged,onConverted,onDeleted}){
+export function PlatformDemoRecord({demo,language='el',maxUsers=5,onBack,onOpenDemo,onChanged,onConverted,onDeleted}){
   const [record,setRecord]=useState(demo)
   const [draft,setDraft]=useState(null)
   const [saving,setSaving]=useState(false)
@@ -92,6 +93,7 @@ export function PlatformDemoRecord({demo,language='el',onBack,onOpenDemo,onChang
             <div className="platform-demo-access-grid"><label className="field field-wide"><span>{tx('Υπεύθυνος επικοινωνίας','Contact person')}</span><input value={draft.contactName} readOnly={!editing} onChange={e=>setDraft(x=>({...x,contactName:e.target.value}))}/></label><label className="field field-wide"><span>{tx('Email πρόσκλησης','Invitation email')} *</span><input type="email" value={draft.contactEmail} readOnly={!editing} onChange={e=>setDraft(x=>({...x,contactEmail:e.target.value}))}/></label><ManualDateField label={tx('Έναρξη','Start')} value={draft.validFrom} onChange={value=>setDraft(x=>({...x,validFrom:value}))} disabled={!editing}/><ManualDateField label={`${tx('Λήξη','End')} *`} value={draft.validUntil} onChange={value=>setDraft(x=>({...x,validUntil:value}))} disabled={!editing}/></div>{editing&&draft.validFrom&&draft.validUntil&&!datesValid&&<p className="field-error platform-demo-dates-error" role="alert">{tx('Η λήξη πρέπει να είναι μετά την έναρξη.','The end date must be after the start date.')}</p>}
           </FormSection>
         </div></div>
+        <DemoEvaluatorsPanel organizationId={record.organization_id} entitlementId={record.id} language={language} maxUsers={maxUsers} disabled={working}/>
         <DemoEvaluationPanel organizationId={record.organization_id} language={language} onInterestChange={setInterested}/>
       </div>
     </EntityRecordShell>

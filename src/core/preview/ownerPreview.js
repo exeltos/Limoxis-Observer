@@ -71,7 +71,7 @@ export const previewRuntimeEvents=organizationId=>[
  ['info','training','/training','Αποστολή προσκλήσεων εκπαίδευσης (12).','',-2],
 ].map(([severity,module,route,userMessage,diagnosticCode,offset],index)=>({id:`ev-${organizationId?.slice(-1)||'x'}-${index}`,organizationId,actorId:'',actorName:'Ελένη Παπά',actorJobTitle:'Υπεύθυνη Ποιότητας',role:'quality_manager',severity,eventType:'ui_feedback',module,route,operation:'',userMessage,message:userMessage,diagnosticCode,appVersion:'0.47.6',occurredAt:at(offset)}))
 
-export const previewPlatformSettings=()=>({id:'global',supportEmail:'support@limoxis.example',defaultDemoDurationDays:30,demoAutoPurgeAfterDays:14,organizationDeletionGraceDays:30,maintenanceNoticeEnabled:false,maintenanceNoticeEl:'',maintenanceNoticeEn:'',updatedAt:at(-15)})
+export const previewPlatformSettings=()=>({id:'global',supportEmail:'support@limoxis.example',defaultDemoDurationDays:30,demoAutoPurgeAfterDays:14,organizationDeletionGraceDays:30,maxDemoUsers:5,maintenanceNoticeEnabled:false,maintenanceNoticeEl:'',maintenanceNoticeEn:'',updatedAt:at(-15)})
 
 // What resetting a Demo returns, for the preview's "Reset data" action.
 export const previewDemoSeedResult=()=>({ok:true,departments:8,patients:48,surveillanceCases:14,laboratorySamples:43,microbiologyResults:38,handHygieneSessions:36,employees:24,incidents:10,capa:6,documents:8,committees:2,controls:6,controlExecutions:350,trainingPrograms:5,trainingAssignments:72,antibioticDispensing:360,vaccinations:76,occupationalVisits:29,exposures:4})

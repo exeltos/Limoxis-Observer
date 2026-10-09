@@ -3597,8 +3597,8 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
 .platform-record-edit-fieldset:disabled{opacity:1}
 .platform-record-edit-fieldset:disabled input,.platform-record-edit-fieldset:disabled select{background:var(--lo-color-surface-soft,#f6f8fb);color:var(--lo-color-text);cursor:default;opacity:1}
 .platform-demo-access-grid{grid-template-columns:minmax(260px,1.35fr) minmax(300px,1.65fr) minmax(170px,.8fr) minmax(170px,.8fr)!important}
-@media(max-width:1180px){.platform-demo-contact-grid,.platform-demo-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-@media(max-width:760px){.platform-demo-contact-grid,.platform-demo-access-grid{grid-template-columns:1fr!important}}
+@media(max-width:1180px){.platform-demo-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:760px){.platform-demo-access-grid{grid-template-columns:1fr!important}}
 
 
 /* Platform Owner · refined user record geometry */
@@ -3610,11 +3610,7 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
 .platform-form-section-actions{justify-content:flex-end;flex:0 0 auto}
 .platform-form-section-actions .button{min-height:40px}
 .platform-form-section-actions .entity-record-icon-button{flex:0 0 auto}
-.platform-demo-contact-grid{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)!important}
-.platform-demo-contact-grid>.field-wide{grid-column:auto!important}
-.platform-demo-contact-grid>.manual-date-field{min-width:0}
-.platform-demo-contact-grid input{min-width:0;width:100%}
-@media(max-width:760px){.platform-demo-contact-grid{grid-template-columns:1fr!important}.platform-form-section>header{align-items:flex-start}.platform-form-section-actions{flex-wrap:wrap}}
+@media(max-width:760px){.platform-form-section>header{align-items:flex-start}.platform-form-section-actions{flex-wrap:wrap}}
 
 
 /* Platform Owner · functional lock without disabling edit actions */

@@ -8,6 +8,7 @@ const fallback={
   defaultDemoDurationDays:30,
   demoAutoPurgeAfterDays:14,
   organizationDeletionGraceDays:30,
+  maxDemoUsers:5,
   maintenanceNoticeEnabled:false,
   maintenanceNoticeEl:'',
   maintenanceNoticeEn:'',
@@ -22,6 +23,7 @@ function mapRow(row){
     defaultDemoDurationDays:Number(row.default_demo_duration_days)||30,
     demoAutoPurgeAfterDays:row.demo_auto_purge_after_days==null?14:Number(row.demo_auto_purge_after_days),
     organizationDeletionGraceDays:Number(row.organization_deletion_grace_days)||30,
+    maxDemoUsers:Number(row.max_demo_users)||5,
     maintenanceNoticeEnabled:Boolean(row.maintenance_notice_enabled),
     maintenanceNoticeEl:row.maintenance_notice_el||'',
     maintenanceNoticeEn:row.maintenance_notice_en||'',
@@ -34,7 +36,7 @@ export async function getPlatformSettings(){
   if(!hasSupabaseConfig||!supabase)return fallback
   const {data,error}=await supabase
     .from('platform_settings')
-    .select('id,support_email,default_demo_duration_days,demo_auto_purge_after_days,organization_deletion_grace_days,maintenance_notice_enabled,maintenance_notice_el,maintenance_notice_en,updated_at')
+    .select('id,support_email,default_demo_duration_days,demo_auto_purge_after_days,organization_deletion_grace_days,max_demo_users,maintenance_notice_enabled,maintenance_notice_el,maintenance_notice_en,updated_at')
     .eq('id','global')
     .single()
   if(error)throw error
@@ -49,6 +51,7 @@ export async function updatePlatformSettings(values){
     // 0 = expired Demos are never deleted automatically.
     demo_auto_purge_after_days:Math.min(365,Math.max(0,Math.round(Number(values.demoAutoPurgeAfterDays??14)))),
     organization_deletion_grace_days:Math.min(365,Math.max(1,Math.round(Number(values.organizationDeletionGraceDays)||30))),
+    max_demo_users:Math.min(20,Math.max(1,Math.round(Number(values.maxDemoUsers)||5))),
     maintenance_notice_enabled:Boolean(values.maintenanceNoticeEnabled),
     maintenance_notice_el:String(values.maintenanceNoticeEl||'').trim(),
     maintenance_notice_en:String(values.maintenanceNoticeEn||'').trim(),
@@ -57,7 +60,7 @@ export async function updatePlatformSettings(values){
     .from('platform_settings')
     .update(payload)
     .eq('id','global')
-    .select('id,support_email,default_demo_duration_days,demo_auto_purge_after_days,organization_deletion_grace_days,maintenance_notice_enabled,maintenance_notice_el,maintenance_notice_en,updated_at')
+    .select('id,support_email,default_demo_duration_days,demo_auto_purge_after_days,organization_deletion_grace_days,max_demo_users,maintenance_notice_enabled,maintenance_notice_el,maintenance_notice_en,updated_at')
     .single()
   if(error)throw error
   return mapRow(data)
