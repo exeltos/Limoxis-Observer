@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase/client'
 import { patientDemoData, demoAdmissionsForPatient } from './patientDemoData'
+import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 
 function mapRow(row, departmentLabel){
   const name=`${row.first_name||''} ${row.last_name||''}`.trim()
@@ -23,6 +24,7 @@ function mapRow(row, departmentLabel){
     dischargeDate: row.discharge_date,
     status: row.status,
     notes: row.notes,
+    updatedAt: row.updated_at || null,
   }
 }
 
@@ -99,8 +101,8 @@ export async function updatePatient(organizationId, patient, patch, {isDemo=fals
   if(patch.sex!==undefined)payload.sex=patch.sex||null
   if(patch.notes!==undefined)payload.notes=patch.notes||null
   const departmentLabel=patient.department
-  const {data,error}=await supabase.from('patients').update(payload).eq('id',patient.recordId).eq('organization_id',organizationId).select('*, department:departments(name)').single()
-  if(error) throw error
+  // Refused when someone else saved the patient after it was loaded (src/core/data/recordVersion.js).
+  const data=await guardedSingle(expectVersion(supabase.from('patients').update(payload).eq('id',patient.recordId).eq('organization_id',organizationId),patient.updatedAt).select('*, department:departments(name)').single(),{table:'patients',updatedAt:patient.updatedAt})
   return mapRow(data,data.department?.name||departmentLabel)
 }
 

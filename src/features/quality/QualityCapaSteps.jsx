@@ -27,7 +27,7 @@ export function QualityCapaSteps({record,setRecord,canManage,finalized,organizat
   setSaving(true)
   try{
    const event=auditEvent('recordUpdated',{actor})
-   const saved=await saveQualityRecord('capas',organizationId,{...record,subActions:nextSteps,updatedAt:new Date().toISOString(),history:[event,...(record.history||[])]})
+   const saved=await saveQualityRecord('capas',organizationId,{...record,subActions:nextSteps,history:[event,...(record.history||[])]})
    setRecord({...saved})
    if(message)notify(message,'success')
    return true

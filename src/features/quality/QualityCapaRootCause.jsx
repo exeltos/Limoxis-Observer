@@ -36,7 +36,7 @@ export function QualityCapaRootCause({record,setRecord,canManage,finalized,organ
   try{
    const analysis=cleanAnalysis(draft,{actorName:actor?.name||''})
    const event=auditEvent('recordUpdated',{actor,detail:{field:'rootCauseAnalysis'}})
-   const next=await saveQualityRecord('capas',organizationId,{...record,rootCauseAnalysis:analysis,updatedAt:new Date().toISOString(),history:[event,...(record.history||[])]})
+   const next=await saveQualityRecord('capas',organizationId,{...record,rootCauseAnalysis:analysis,history:[event,...(record.history||[])]})
    setRecord({...next})
    setEditing(false)
    notify(en?'Root cause analysis saved.':'Η ανάλυση αιτίων αποθηκεύτηκε.','success')

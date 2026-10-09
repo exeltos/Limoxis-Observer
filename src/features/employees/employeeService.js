@@ -2,6 +2,7 @@ import { supabase, invokeAuthenticatedFunction } from '../../core/supabase/clien
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
+import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 // The demo store (and its seed data) loads only in the demo workspace.
 const localStore = () => import('./employeeStore')
 
@@ -129,18 +130,21 @@ export async function updateEmployeeAsync(organizationId, employeeDbId, v, previ
   if(!employeeDbId)throw new Error('PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:employees.update')
   const payload=toWriteRow(organizationId,{...v,id:nextCode})
   delete payload.organization_id
-  const {data,error}=await supabase
-    .from('employees')
-    .update({...payload,updated_at:new Date().toISOString()})
-    .eq('organization_id',organizationId)
-    .eq('id',employeeDbId)
-    .select(`${EMPLOYEE_COLUMNS},organization_id`)
-    .single()
-  if(error){
-    if(error.code==='23505')throw new Error('DUPLICATE_EMPLOYEE_CODE')
+  // Refused when someone else saved the employee after it was loaded (src/core/data/recordVersion.js).
+  const loadedVersion=v.updatedAt||null
+  try{
+    const data=await guardedSingle(expectVersion(supabase
+      .from('employees')
+      .update({...payload,updated_at:new Date().toISOString()})
+      .eq('organization_id',organizationId)
+      .eq('id',employeeDbId),loadedVersion)
+      .select(`${EMPLOYEE_COLUMNS},organization_id`)
+      .single(),{table:'employees',updatedAt:loadedVersion})
+    return fromRow(data)
+  }catch(error){
+    if(error?.code==='23505')throw new Error('DUPLICATE_EMPLOYEE_CODE')
     throw error
   }
-  return fromRow(data)
 }
 
 export async function createEmployeeAccountAsync(organizationId,employee,{role='staff_user',email,phone,jobTitle}={}){
