@@ -21,17 +21,19 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
   const [sentAt,setSentAt]=useState(null)
   const [requested,setRequested]=useState(false)
   const [error,setError]=useState('')
+  const [loaded,setLoaded]=useState(false)
   // The first visit opens the guide, after the sign-in briefing has closed.
   const [autoOpen,setAutoOpen]=useState(false)
   useEffect(()=>{if(autoOpen&&!holdAutoOpen){setAutoOpen(false);setGuideOpen(true)}},[autoOpen,holdAutoOpen])
 
   useEffect(()=>{let active=true
+    setLoaded(false)
     if(!tracks){setProgress({});setRequested(false);return undefined}
     Promise.all([loadMyDemoProgress(organizationId,userId),loadMyDemoApplicationRequests(organizationId,userId)]).then(([next,requests])=>{
       if(!active)return
-      setProgress(next);setRequested(requests.length>0)
+      setProgress(next);setRequested(requests.length>0);setLoaded(true)
       if(!next.guide_opened){setAutoOpen(true);setDemoEvaluationStep(organizationId,'guide_opened').then(value=>active&&setProgress(value)).catch(()=>{})}
-    }).catch(()=>{})
+    }).catch(()=>{if(active)setLoaded(true)})
     return ()=>{active=false}
   },[tracks,organizationId,userId])
 
@@ -47,6 +49,8 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
     guideDone:demoScenarioDoneCount(progress),
     requested,
     canRequest:tracks,
+    // Something of the evaluation is on screen or about to open (screen guides wait).
+    busy:guideOpen||applicationOpen||autoOpen||(tracks&&!loaded),
     openGuide:()=>setGuideOpen(true),
     openApplication:()=>{setSentAt(null);setError('');setApplicationOpen(true)},
     dialogs,

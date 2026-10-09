@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Info, Rocket, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, GraduationCap, Info, Rocket, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { APP_VERSION, BUILD_ID } from '../version'
 import { useLocation } from 'react-router-dom'
 import { glossary } from './helpContent'
@@ -66,7 +66,7 @@ const uiText={
  }
 }
 
-export function HelpCenter({open,onClose}){
+export function HelpCenter({open,onClose,onResetScreenGuides=null}){
  const {pathname,hash}=useLocation()
  const {language}=useLanguage()
  const {role,membership,actualRole,tenant,moduleEnabled,operatingProfile}=useTenant()
@@ -77,6 +77,7 @@ export function HelpCenter({open,onClose}){
  const [chapter,setChapter]=useState(0)
  const [imageOpen,setImageOpen]=useState(false)
  const [mode,setMode]=useState('manual')
+ const [guidesReset,setGuidesReset]=useState(false)
 
  const book=platformMode?platformHelp[language==='en'?'en':'el']:(language==='en'?helpManualEn:helpManual)
  const tx=uiText[language==='en'?'en':'el']
@@ -146,6 +147,7 @@ export function HelpCenter({open,onClose}){
       <button className={mode==='start'?'active':''} onClick={()=>{setMode('start');setQuery('')}}><Rocket size={15}/><span>{tx.start}</span></button>
       <button className={mode==='glossary'?'active':''} onClick={()=>{setMode('glossary');setQuery('')}}><BookOpen size={15}/><span>{tx.glossary}</span></button>
       <button className={mode==='about'?'active':''} onClick={()=>{setMode('about');setQuery('')}}><Info size={15}/><span>{tx.about}</span></button>
+      {onResetScreenGuides&&<button className="manual-guides-reset" disabled={guidesReset} onClick={async()=>{try{await onResetScreenGuides();setGuidesReset(true)}catch{setGuidesReset(false)}}}><GraduationCap size={15}/><span>{guidesReset?(language==='en'?'Screen guides will show again':'Οι οδηγοί οθόνης θα εμφανιστούν ξανά'):(language==='en'?'Show screen guides again':'Εμφάνιση ξανά των οδηγών οθόνης')}</span></button>}
       <div className="manual-version">{tx.version} v{APP_VERSION}<span>Build {BUILD_ID}</span></div>
      </div>
     </aside>
