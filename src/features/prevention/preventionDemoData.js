@@ -76,7 +76,7 @@ export const handHygieneRows=[
     {id:'o2',professionalsCount:1,professionalCategory:'Ιατρός',moments:['moment4'],action:'HR',gloves:false,notes:''},
     {id:'o3',professionalsCount:1,professionalCategory:'Ιατρός',moments:['moment5'],action:'HR',gloves:false,notes:''},
   ]}),
-  handHygieneRow({id:'HH-2603',date:'2026-09-02',department:preventionDepartments[0],profession:'nursing',observer:'Ελένη Παπαδοπούλου',startTime:'14:00',endTime:'14:30',items:[
+  handHygieneRow({id:'HH-2603',date:'2026-08-28',department:preventionDepartments[0],profession:'nursing',observer:'Ελένη Παπαδοπούλου',startTime:'14:00',endTime:'14:30',items:[
     {id:'o1',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment2'],action:'HW',gloves:true,notes:''},
     {id:'o2',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:['moment3'],action:'HW',gloves:true,notes:''},
   ]}),
@@ -98,9 +98,9 @@ function wasteRow({id,periodStart,periodEnd,department,type,weight,containers,pa
 }
 
 export const wasteRows=[
-  wasteRow({id:'WST-2601',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:preventionDepartments[0],type:wasteTypeLibrary[0],weight:184.5,containers:12,patientDays:620,responsible:'Γεώργιος Αντωνίου',documentNumber:'ΤΠ-1042',collectionCompany:'EcoBio Α.Ε.'}),
-  wasteRow({id:'WST-2602',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:preventionDepartments[2],type:wasteTypeLibrary[1],weight:22.3,containers:4,patientDays:410,responsible:'Γεώργιος Αντωνίου',documentNumber:'ΤΠ-1043',collectionCompany:'EcoBio Α.Ε.'}),
-  wasteRow({id:'WST-2603',periodStart:'2026-09-01',periodEnd:'2026-09-10',department:preventionDepartments[0],type:wasteTypeLibrary[2],weight:9.8,containers:2,patientDays:null,responsible:'Γεώργιος Αντωνίου',documentNumber:'ΤΠ-1055',collectionCompany:'EcoBio Α.Ε.'}),
+  wasteRow({id:'WST-2601',periodStart:'2026-07-01',periodEnd:'2026-07-31',department:preventionDepartments[0],type:wasteTypeLibrary[0],weight:184.5,containers:12,patientDays:620,responsible:'Γεώργιος Αντωνίου',documentNumber:'ΤΠ-1042',collectionCompany:'EcoBio Α.Ε.'}),
+  wasteRow({id:'WST-2602',periodStart:'2026-07-01',periodEnd:'2026-07-31',department:preventionDepartments[2],type:wasteTypeLibrary[1],weight:22.3,containers:4,patientDays:410,responsible:'Γεώργιος Αντωνίου',documentNumber:'ΤΠ-1043',collectionCompany:'EcoBio Α.Ε.'}),
+  wasteRow({id:'WST-2603',periodStart:'2026-08-01',periodEnd:'2026-08-28',department:preventionDepartments[0],type:wasteTypeLibrary[2],weight:9.8,containers:2,patientDays:null,responsible:'Γεώργιος Αντωνίου',documentNumber:'ΤΠ-1055',collectionCompany:'EcoBio Α.Ε.'}),
 ]
 
 function antisepticRow({id,periodStart,periodEnd,department,product,litres,patientDays,method,referenceNumber,responsible}){
@@ -116,9 +116,9 @@ function antisepticRow({id,periodStart,periodEnd,department,product,litres,patie
 }
 
 export const antisepticRows=[
-  antisepticRow({id:'ANT-2601',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:preventionDepartments[0],product:antisepticLibrary[0],litres:41.2,patientDays:620,method:'direct_measurement',referenceNumber:'ΔΤ-330',responsible:'Ελένη Παπαδοπούλου'}),
-  antisepticRow({id:'ANT-2602',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:preventionDepartments[1],product:antisepticLibrary[0],litres:18.6,patientDays:505,method:'direct_measurement',referenceNumber:'ΔΤ-331',responsible:'Νικόλαος Δημητρίου'}),
-  antisepticRow({id:'ANT-2603',periodStart:'2026-09-01',periodEnd:'2026-09-10',department:preventionDepartments[2],product:antisepticLibrary[1],litres:6.4,patientDays:null,method:'direct_measurement',referenceNumber:'ΔΤ-340',responsible:'Ελένη Κωνσταντίνου'}),
+  antisepticRow({id:'ANT-2601',periodStart:'2026-07-01',periodEnd:'2026-07-31',department:preventionDepartments[0],product:antisepticLibrary[0],litres:41.2,patientDays:620,method:'direct_measurement',referenceNumber:'ΔΤ-330',responsible:'Ελένη Παπαδοπούλου'}),
+  antisepticRow({id:'ANT-2602',periodStart:'2026-07-01',periodEnd:'2026-07-31',department:preventionDepartments[1],product:antisepticLibrary[0],litres:18.6,patientDays:505,method:'direct_measurement',referenceNumber:'ΔΤ-331',responsible:'Νικόλαος Δημητρίου'}),
+  antisepticRow({id:'ANT-2603',periodStart:'2026-08-01',periodEnd:'2026-08-28',department:preventionDepartments[2],product:antisepticLibrary[1],litres:6.4,patientDays:null,method:'direct_measurement',referenceNumber:'ΔΤ-340',responsible:'Ελένη Κωνσταντίνου'}),
 ]
 
 function bundleAssessmentRow({id,template,department,date,answers,shift,context,owner}){
@@ -142,7 +142,7 @@ function bundleAssessmentRow({id,template,department,date,answers,shift,context,
 export const bundleRows=[
   bundleAssessmentRow({id:'BND-2601',template:bundleTemplateLibrary[0],department:preventionDepartments[0],date:'2026-08-22',shift:'morning',context:'Κεντρικός φλεβικός καθετήρας',owner:'Ελένη Παπαδοπούλου',answers:{hand_hygiene:'yes',barrier:'yes',skin_prep:'yes',site_review:'yes'}}),
   bundleAssessmentRow({id:'BND-2602',template:bundleTemplateLibrary[1],department:preventionDepartments[0],date:'2026-08-27',shift:'night',context:'Μηχανικός αερισμός',owner:'Νικόλαος Δημητρίου',answers:{head_elevation:'yes',oral_care:'no',sedation_break:'yes'}}),
-  bundleAssessmentRow({id:'BND-2603',template:bundleTemplateLibrary[0],department:preventionDepartments[2],date:'2026-09-05',shift:'morning',context:'Κεντρικός φλεβικός καθετήρας',owner:'Ελένη Κωνσταντίνου',answers:{hand_hygiene:'yes',barrier:'na',skin_prep:'yes',site_review:'yes'}}),
+  bundleAssessmentRow({id:'BND-2603',template:bundleTemplateLibrary[0],department:preventionDepartments[2],date:'2026-08-28',shift:'morning',context:'Κεντρικός φλεβικός καθετήρας',owner:'Ελένη Κωνσταντίνου',answers:{hand_hygiene:'yes',barrier:'na',skin_prep:'yes',site_review:'yes'}}),
 ]
 
 // Dates follow today (src/core/data/demoClock.js).

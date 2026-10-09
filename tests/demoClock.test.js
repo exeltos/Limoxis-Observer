@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEMO_AUTHORED_ON, demoOffsetDays, shiftDemoDate, shiftDemoDatesInPlace } from '../src/core/data/demoClock.js'
+import { DEMO_AUTHORED_ON, demoOffsetDays, shiftDemoDate, shiftDemoDatesInPlace, shiftDemoMonth } from '../src/core/data/demoClock.js'
 
 describe('Demo dates follow today', () => {
   it('shifts dates and timestamps, keeping their form', () => {
@@ -16,6 +16,14 @@ describe('Demo dates follow today', () => {
     shiftDemoDatesInPlace(data, 10)
     expect(shared.due).toBe('2026-09-11')
     expect(data[0][1]).toEqual({ at: '2026-08-30', dateOfBirth: '1980-10-09', nested: { until: '2027-02-10', birthDate: '2026-08-20' } })
+  })
+
+  it('moves monthly period records by whole months', () => {
+    const row = { periodStart: '2026-07-01', periodEnd: '2026-07-31', period: '2026-07', date: '2026-07-31', createdAt: '2026-07-31T08:00:00', checkedAt: '2026-08-20' }
+    shiftDemoDatesInPlace([row], 41)
+    expect(row).toEqual({ periodStart: '2026-08-01', periodEnd: '2026-08-31', period: '2026-08', date: '2026-08-31', createdAt: '2026-08-31T08:00:00', checkedAt: '2026-09-30' })
+    expect(shiftDemoMonth('2026-01-31', 1)).toBe('2026-02-28')
+    expect(shiftDemoMonth('2026-08-28', 1)).toBe('2026-09-28')
   })
 
   it('keeps the fixtures as written while testing', () => {

@@ -29,6 +29,20 @@ export function shiftDemoDate(value, days) {
   return value
 }
 
+// Monthly figures (waste, antiseptics, dispensing) move by whole months, so a
+// July period stays "1–31 of a month" instead of becoming 11 Aug – 10 Sep.
+export function shiftDemoMonth(value, months) {
+  if (!months || typeof value !== 'string' || !/^\d{4}-\d{2}(-\d{2})?$/.test(value)) return value
+  const [year, month, day] = value.split('-').map(Number)
+  const target = new Date(Date.UTC(year, month - 1 + months, 1))
+  const ym = target.toISOString().slice(0, 7)
+  if (!day) return ym
+  const lastDay = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()
+  const wasLast = day === lastDay(new Date(Date.UTC(year, month - 1, 1)))
+  return `${ym}-${String(wasLast ? lastDay(target) : Math.min(day, lastDay(target))).padStart(2, '0')}`
+}
+const PERIOD_KEY = /^period(Start|End)?$/
+
 // Shifts the dates of the Demo datasets in place (shared nested objects once).
 export function shiftDemoDatesInPlace(datasets, days = demoOffsetDays()) {
   if (!days) return datasets
@@ -36,6 +50,7 @@ export function shiftDemoDatesInPlace(datasets, days = demoOffsetDays()) {
   const walk = node => {
     if (!node || typeof node !== 'object' || seen.has(node)) return
     seen.add(node)
+    if (typeof node.periodStart === 'string' || typeof node.periodEnd === 'string') return shiftPeriodRecord(node)
     for (const key of Object.keys(node)) {
       const value = node[key]
       // An adult's birth date is a fact about the person, not part of the story:
@@ -43,6 +58,20 @@ export function shiftDemoDatesInPlace(datasets, days = demoOffsetDays()) {
       // days. A baby's birth date is part of the story (age at admission), so it moves.
       if (typeof value === 'string') { if (!BIRTH_KEY.test(key) || value >= INFANT_SINCE) node[key] = shiftDemoDate(value, days) }
       else walk(value)
+    }
+  }
+  // A period record moves by months; values tied to its period end (the record
+  // date, when it was entered) follow the end, the rest move by days.
+  const months = Math.round(days / 30.4375)
+  const shiftPeriodRecord = node => {
+    const end = node.periodEnd, newEnd = shiftDemoMonth(end, months)
+    for (const key of Object.keys(node)) {
+      const value = node[key]
+      if (typeof value !== 'string') walk(value)
+      else if (PERIOD_KEY.test(key)) node[key] = shiftDemoMonth(value, months)
+      else if (end && value.startsWith(end)) node[key] = newEnd + value.slice(end.length)
+      else if (key === 'period' || / – /.test(value)) node[key] = value.replace(/\d{4}-\d{2}(-\d{2})?/g, part => shiftDemoMonth(part, months))
+      else if (!BIRTH_KEY.test(key)) node[key] = shiftDemoDate(value, days)
     }
   }
   walk(datasets)

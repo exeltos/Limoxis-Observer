@@ -104,12 +104,12 @@ export function PreventionRecordPage(){
    :(en?'New WHO hand hygiene observation':'Νέα παρατήρηση Υγιεινής Χεριών WHO')
   : editing
    ? recordType==='waste'?`${en?'Edit waste measurement':'Επεξεργασία μέτρησης αποβλήτων'} · ${fmtDate(record?.date)}`
-    :recordType==='antiseptics'?`${en?'Edit antiseptic consumption':'Επεξεργασία κατανάλωσης αντισηπτικού'} · ${record?.period||''}`
+    :recordType==='antiseptics'?`${en?'Edit antiseptic consumption':'Επεξεργασία κατανάλωσης αντισηπτικού'} · ${formatMonth(record?.period)}`
     :recordType==='bundles'?`${en?'Edit bundle assessment':'Επεξεργασία αξιολόγησης δέσμης μέτρων'} · ${fmtDate(record?.date||record?.period)}`
     :`${en?'Edit WHO hand hygiene observation':'Επεξεργασία παρατήρησης Υγιεινής Χεριών WHO'} · ${fmtDate(record?.date)}`
    : recordType==='handHygiene'?`${en?'WHO hand hygiene observation':'Παρατήρηση Υγιεινής Χεριών WHO'} · ${fmtDate(record?.date)}`
    : recordType==='waste'?`${en?'Waste measurement':'Μέτρηση αποβλήτων'} · ${fmtDate(record?.date)}`
-   : recordType==='antiseptics'?`${en?'Antiseptic consumption':'Κατανάλωση αντισηπτικού'} · ${record?.period||''}`
+   : recordType==='antiseptics'?`${en?'Antiseptic consumption':'Κατανάλωση αντισηπτικού'} · ${formatMonth(record?.period)}`
    : `${en?(record?.templateName||record?.bundle):(record?.templateTitle||record?.templateName||record?.bundle)} · ${fmtDate(record?.date||record?.period)}`
  const subtitle=recordType==='handHygiene'?(en?'WHO 5 Moments · Prevention & Infection Control':'WHO 5 Moments · Πρόληψη & Έλεγχος Λοιμώξεων')
   :recordType==='waste'?(en?'Waste management · Prevention & Infection Control':'Διαχείριση αποβλήτων · Πρόληψη & Έλεγχος Λοιμώξεων')
@@ -144,6 +144,9 @@ export function PreventionRecordPage(){
  </EntityRecordShell>{bundleFollowUpItem&&<BundleFollowUpDialog item={bundleFollowUpItem} value={record?.followUps?.[bundleFollowUpItem.id]} onClose={()=>setBundleFollowUpItem(null)} onSave={saveBundleFollowUpRecord}/>}</Page>
 }
 
+const formatMonth=value=>/^\d{4}-\d{2}$/.test(String(value||''))?`${value.slice(5,7)}/${value.slice(0,4)}`:(value||'')
+const formatDay=(value,en)=>value?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
+
 function HandHygieneDetails({record,language}){
  const en=language==='en';const items=record.whoObservations||[];const fallbackStats={opportunities:items.reduce((sum,item)=>sum+observationWeight(item),0)||record.observations||0,compliant:items.reduce((sum,item)=>sum+(['HR','HW'].includes(item.action)?observationWeight(item):0),0)||record.compliant||0,handRub:items.reduce((sum,item)=>sum+(item.action==='HR'?observationWeight(item):0),0),handWash:items.reduce((sum,item)=>sum+(item.action==='HW'?observationWeight(item):0),0),missed:items.reduce((sum,item)=>sum+(item.action==='MISSED'?observationWeight(item):0),0),professionals:items.reduce((sum,item)=>sum+observationWeight(item),0)}
  fallbackStats.compliance=fallbackStats.opportunities?Number(((fallbackStats.compliant/fallbackStats.opportunities)*100).toFixed(1)):record.rate||0
@@ -151,7 +154,7 @@ function HandHygieneDetails({record,language}){
  const actionLabel=item=>item.action==='HR'?(en?'Alcohol-based hand rub':'Αλκοολούχο αντισηπτικό'):item.action==='HW'?(en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'):(en?'Not performed':'Δεν πραγματοποιήθηκε')
  return <div className="who-record-workspace who-record-compact">
   <section className="who-record-session-bar">
-   <div><span>{en?'Date':'Ημερομηνία'}</span><strong>{record.date||session.date||'—'}</strong></div>
+   <div><span>{en?'Date':'Ημερομηνία'}</span><strong>{formatDay(record.date||session.date,en)}</strong></div>
    <div><span>{en?'Department':'Τμήμα'}</span><strong>{record.departmentEl||session.department||'—'}</strong></div>
    <div><span>{en?'Observer':'Παρατηρητής'}</span><strong>{record.observer||session.observer||'—'}</strong></div>
    <div><span>{en?'Time':'Ώρα'}</span><strong>{session.startTime||'—'} – {session.endTime||'—'}</strong></div>
