@@ -2,6 +2,7 @@ import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { occupationalVisits, employeeVaccinations, employeeTraining, employeeEvaluations, employeeCertificates, employeeExposureIncidents } from './employeeDemoData'
 
 export const loadOccupationalVisits=()=>loadSnapshot('employee_health_visits',occupationalVisits)
+export const saveOccupationalVisits=rows=>saveSnapshot('employee_health_visits',rows)
 export const loadVaccinations=()=>loadSnapshot('employee_vaccine_records',employeeVaccinations)
 export const saveVaccinations=rows=>saveSnapshot('employee_vaccine_records',rows)
 export const loadEmployeeTraining=()=>loadSnapshot('employee_training_summary',employeeTraining)

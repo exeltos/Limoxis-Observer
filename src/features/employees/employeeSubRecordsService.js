@@ -2,7 +2,7 @@ import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadTrainingState } from '../training/trainingData'
-import { loadOccupationalVisits as loadVisitsLocal, loadVaccinations as loadVaccinationsLocal, loadEmployeeTraining as loadTrainingLocal, loadEvaluations as loadEvaluationsLocal, saveEvaluations as saveEvaluationsLocal, loadCertificates as loadCertificatesLocal, loadExposureIncidents as loadExposureIncidentsLocal } from './employeeRecordsService'
+import { loadOccupationalVisits as loadVisitsLocal, saveOccupationalVisits as saveVisitsLocal, loadVaccinations as loadVaccinationsLocal, loadEmployeeTraining as loadTrainingLocal, loadEvaluations as loadEvaluationsLocal, saveEvaluations as saveEvaluationsLocal, loadCertificates as loadCertificatesLocal, loadExposureIncidents as loadExposureIncidentsLocal } from './employeeRecordsService'
 
 function ensureProductionContext(organizationId,employeeDbId,operation){
   if(isDemoDataEnvironment())return false
@@ -121,6 +121,29 @@ export async function loadAllOccupationalVisitsAsync(organizationId) {
     .order('visit_date', { ascending: false })
   if (error) throw error
   return (data || []).map(visitFromRow)
+}
+
+// Records a visit of the occupational physician (scheduled, or done with its
+// fitness outcome). Demo: browser storage; cloud: RLS allows the occupational
+// physician and holders of manage_occupational_health.
+export async function createOccupationalVisitAsync(organizationId, employee, draft) {
+  if (!employee) throw new Error('OCCUPATIONAL_VISIT_EMPLOYEE_REQUIRED')
+  if (!draft?.date || !draft?.type) throw new Error('OCCUPATIONAL_VISIT_FIELDS_REQUIRED')
+  const done = draft.status === 'completed'
+  const fitStatus = done ? (draft.fitStatus || 'pending') : 'pending'
+  if (isDemoDataEnvironment()) {
+    const added = { id: `OHV-${Date.now()}`, employeeId: employee.id, date: draft.date, type: draft.type, status: draft.status || 'scheduled', followUpDate: done ? draft.followUpDate || null : null, fitStatus, clinicalNotes: String(draft.clinicalNotes || '').trim() }
+    saveVisitsLocal([added, ...loadVisitsLocal()])
+    return added
+  }
+  ensureProductionContext(organizationId, employee.dbId, 'occupational_health_visits.create')
+  const { data, error } = await supabase
+    .from('occupational_health_visits')
+    .insert({ organization_id: organizationId, employee_id: employee.dbId, visit_date: draft.date, visit_type: draft.type, status: draft.status || 'scheduled', fitness_status: fitStatus, follow_up_date: done ? draft.followUpDate || null : null, clinical_notes: String(draft.clinicalNotes || '').trim() || null })
+    .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status,clinical_notes,created_at,updated_at')
+    .single()
+  if (error) throw error
+  return visitFromRow(data)
 }
 
 // --- Vaccinations ---
