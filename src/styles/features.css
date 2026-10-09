@@ -3536,7 +3536,7 @@ button{letter-spacing:0}
 
 /* Metrics and clinical summaries */
 .module-summary-strip,.workspace-summary{gap:8px!important}
-.canonical-metric-card,.metric-card,.kpi-card{min-height:72px!important;padding:10px 12px!important;border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important}
+.canonical-metric-card,.metric-card{min-height:72px!important;padding:10px 12px!important;border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important}
 .canonical-metric-icon{width:28px!important;height:28px!important;border-radius:7px!important;background:#eef4f7!important;color:#52768e!important}
 .canonical-metric-icon svg{width:15px!important;height:15px!important}
 .canonical-metric-copy strong{font-size:18px!important;line-height:1.05!important;font-weight:660!important;color:#203b52!important}

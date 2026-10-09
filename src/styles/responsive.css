@@ -389,8 +389,7 @@ html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.can
 @media (max-width:620px){
   html:not(#lo-phone) body :is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
   html:not(#lo-phone) body :is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip)>*{min-height:0!important;min-width:0!important}
-  html:not(#lo-phone) body :is(.kpi-card,.module-summary-metric,.employee-kpi,.lab-kpi,.patient-summary-metric){height:auto!important;min-height:0!important;padding:12px!important}
-  html:not(#lo-phone) body .kpi-card strong{margin:4px 0 0!important;font-size:22px!important}
+  html:not(#lo-phone) body :is(.module-summary-metric,.employee-kpi,.lab-kpi,.patient-summary-metric){height:auto!important;min-height:0!important;padding:12px!important}
 }
 
 /* ==== row-return-highlight ==== */

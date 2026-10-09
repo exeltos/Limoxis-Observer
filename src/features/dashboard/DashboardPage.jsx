@@ -1,7 +1,9 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Activity, ArrowRight, Bell, ListChecks, Megaphone, PieChart } from 'lucide-react'
+import { Activity, ArrowRight, Award, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, PieChart, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
+import { MetricCard } from '../../design-system/MetricCard'
+import { navigationFor } from '../../app/navigation'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useNotifications } from '../../core/notifications/NotificationContext'
 import { CAPABILITIES, ROLES, isProfileDisabled } from '../../core/permissions/roles'
@@ -32,36 +34,51 @@ const n=v=>Number.isFinite(Number(v))?Number(v):'—'
 function roleKpis(role,m,english,unread){
   return roleKpiRows(role,m,english,unread).filter(([, , capability])=>!capability||!isProfileDisabled(capability))
 }
-// [label, value, capability the tile belongs to] — a tile of a module the operating profile switches off is hidden.
+// [label, value, capability the tile belongs to, metric key] — a tile of a module the operating profile switches off is hidden.
 function roleKpiRows(role,m,english,unread){
   const tr=(el,en)=>english?en:el
   switch(role){
     case ROLES.HOSPITAL_ADMIN:{
       const pending=m.pendingActions??['overdueControls','pendingSamples','openIncidents','overdueCapa'].reduce((sum,key)=>sum+(Number(m[key])||0),0)
-      return [[tr('Ενεργοί χρήστες','Active users'),n(m.activeUsers)],[tr('Ενεργά τμήματα','Active departments'),n(m.activeDepartments)],[tr('Εκκρεμείς ενέργειες','Pending actions'),pending],[tr('Μη αναγνωσμένες ειδοποιήσεις','Unread notifications'),n(unread)]]
+      return [[tr('Ενεργοί χρήστες','Active users'),n(m.activeUsers),undefined,'activeUsers'],[tr('Ενεργά τμήματα','Active departments'),n(m.activeDepartments),undefined,'activeDepartments'],[tr('Εκκρεμείς ενέργειες','Pending actions'),pending,undefined,'pendingActions'],[tr('Μη αναγνωσμένες ειδοποιήσεις','Unread notifications'),n(unread),undefined,'unread']]
     }
     case ROLES.INFECTION_CONTROL_LEAD:
-      return [[tr('Νέα MDR/XDR/PDR · 30ημ.','New MDR/XDR/PDR · 30d'),n(m.recentMdro)],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue),CAPABILITIES.VIEW_SURVEILLANCE],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS],[tr('Κρίσιμα εργαστηρίου','Critical lab alerts'),n(m.criticalUncommunicated)]]
+      return [[tr('Νέα MDR/XDR/PDR · 30ημ.','New MDR/XDR/PDR · 30d'),n(m.recentMdro),undefined,'recentMdro'],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue),CAPABILITIES.VIEW_SURVEILLANCE,'isolationReviewsDue'],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS,'overdueControls'],[tr('Κρίσιμα εργαστηρίου','Critical lab alerts'),n(m.criticalUncommunicated),undefined,'criticalUncommunicated']]
     case ROLES.INFECTION_CONTROL_MEMBER:
-      return [[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance),CAPABILITIES.VIEW_SURVEILLANCE],[tr('Θετικά εργαστηρίου','Positive laboratory results'),n(m.positiveLab)],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue),CAPABILITIES.VIEW_SURVEILLANCE],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS]]
+      return [[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance),CAPABILITIES.VIEW_SURVEILLANCE,'activeSurveillance'],[tr('Θετικά εργαστηρίου','Positive laboratory results'),n(m.positiveLab),undefined,'positiveLab'],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue),CAPABILITIES.VIEW_SURVEILLANCE,'isolationReviewsDue'],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS,'overdueControls']]
     case ROLES.DEPARTMENT_MANAGER:
-      return [[tr('Νοσηλευόμενοι','Inpatients'),n(m.inpatients)],[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance),CAPABILITIES.VIEW_SURVEILLANCE],[tr('Εκκρεμή δείγματα','Pending samples'),n(m.pendingSamples)],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS]]
+      return [[tr('Νοσηλευόμενοι','Inpatients'),n(m.inpatients),undefined,'inpatients'],[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance),CAPABILITIES.VIEW_SURVEILLANCE,'activeSurveillance'],[tr('Εκκρεμή δείγματα','Pending samples'),n(m.pendingSamples),undefined,'pendingSamples'],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS,'overdueControls']]
     case ROLES.LABORATORY:
-      return [[tr('Νέα δείγματα σήμερα','New samples today'),n(m.newSamplesToday)],[tr('Εκκρεμή δείγματα','Pending samples'),n(m.pendingSamples)],[tr('Θετικά αποτελέσματα','Positive results'),n(m.positiveLab)],[tr('Κρίσιμα μη επικοινωνημένα','Critical uncommunicated'),n(m.criticalUncommunicated)]]
+      return [[tr('Νέα δείγματα σήμερα','New samples today'),n(m.newSamplesToday),undefined,'newSamplesToday'],[tr('Εκκρεμή δείγματα','Pending samples'),n(m.pendingSamples),undefined,'pendingSamples'],[tr('Θετικά αποτελέσματα','Positive results'),n(m.positiveLab),undefined,'positiveLab'],[tr('Κρίσιμα μη επικοινωνημένα','Critical uncommunicated'),n(m.criticalUncommunicated),undefined,'criticalUncommunicated']]
     case ROLES.COMMITTEE_SECRETARIAT:
-      return [[tr('Επόμενες συνεδριάσεις','Upcoming meetings'),n(m.upcomingMeetings),CAPABILITIES.VIEW_COMMITTEES],[tr('Πρακτικά εκκρεμή','Minutes pending'),n(m.pendingMinutes),CAPABILITIES.VIEW_COMMITTEES],[tr('Αποφάσεις ανοικτές','Open decisions'),n(m.openDecisions),CAPABILITIES.VIEW_COMMITTEES]]
+      return [[tr('Επόμενες συνεδριάσεις','Upcoming meetings'),n(m.upcomingMeetings),CAPABILITIES.VIEW_COMMITTEES,'upcomingMeetings'],[tr('Πρακτικά εκκρεμή','Minutes pending'),n(m.pendingMinutes),CAPABILITIES.VIEW_COMMITTEES,'pendingMinutes'],[tr('Αποφάσεις ανοικτές','Open decisions'),n(m.openDecisions),CAPABILITIES.VIEW_COMMITTEES,'openDecisions']]
     case ROLES.HR_OFFICE:
-      return [[tr('Ενεργοί εργαζόμενοι','Active employees'),n(m.activeEmployees)],[tr('Νέες εγγραφές · 30ημ.','New records · 30d'),n(m.newEmployees30d)]]
+      return [[tr('Ενεργοί εργαζόμενοι','Active employees'),n(m.activeEmployees),undefined,'activeEmployees'],[tr('Νέες εγγραφές · 30ημ.','New records · 30d'),n(m.newEmployees30d),undefined,'newEmployees30d']]
     case ROLES.OCCUPATIONAL_PHYSICIAN:
-      return [[tr('Επισκέψεις σήμερα','Visits today'),n(m.ohVisitsToday),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH],[tr('Επανέλεγχοι σε εκκρεμότητα','Follow-ups due'),n(m.ohFollowupsDue),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH],[tr('Εμβολιασμοί προς ανανέωση','Vaccinations due'),n(m.vaccinationsDue),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH]]
+      return [[tr('Επισκέψεις σήμερα','Visits today'),n(m.ohVisitsToday),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,'ohVisitsToday'],[tr('Επανέλεγχοι σε εκκρεμότητα','Follow-ups due'),n(m.ohFollowupsDue),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,'ohFollowupsDue'],[tr('Εμβολιασμοί προς ανανέωση','Vaccinations due'),n(m.vaccinationsDue),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,'vaccinationsDue']]
     case ROLES.PHARMACY:
-      return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals)],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies),CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY],[tr('Καταγεγραμμένες χορηγήσεις','Administrations recorded'),n(m.administrations),CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY]]
+      return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals),undefined,'pendingApprovals'],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies),CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY,'antimicrobialTherapies'],[tr('Καταγεγραμμένες χορηγήσεις','Administrations recorded'),n(m.administrations),CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY,'administrations']]
     case ROLES.DOCTOR_REVIEWER:
-      return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals)],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies),CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY]]
+      return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals),undefined,'pendingApprovals'],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies),CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY,'antimicrobialTherapies']]
     case ROLES.QUALITY_MANAGER:
-      return [[tr('Ανοιχτά συμβάντα','Open incidents'),n(m.openIncidents),CAPABILITIES.VIEW_QUALITY],[tr('Σοβαρά ανοικτά','Severe open'),n(m.severeOpenIncidents),CAPABILITIES.VIEW_QUALITY],[tr('CAPA εκπρόθεσμα','Overdue CAPA'),n(m.overdueCapa),CAPABILITIES.VIEW_QUALITY]]
+      return [[tr('Ανοιχτά συμβάντα','Open incidents'),n(m.openIncidents),CAPABILITIES.VIEW_QUALITY,'openIncidents'],[tr('Σοβαρά ανοικτά','Severe open'),n(m.severeOpenIncidents),CAPABILITIES.VIEW_QUALITY,'severeOpenIncidents'],[tr('CAPA εκπρόθεσμα','Overdue CAPA'),n(m.overdueCapa),CAPABILITIES.VIEW_QUALITY,'overdueCapa']]
     default:return []
   }
+}
+
+
+// Icon and destination of each dashboard tile, by metric key. A tile opens its
+// screen only when that screen is in the user's menu.
+const TILES={
+  activeUsers:[Users,'/management'],activeDepartments:[Building2,'/management'],pendingActions:[ListChecks],unread:[Bell],
+  activeSurveillance:[Activity,'/surveillance'],recentMdro:[ShieldAlert,'/surveillance'],isolationReviewsDue:[Clock,'/surveillance'],
+  overdueControls:[ClipboardCheck,'/controls'],positiveLab:[FlaskConical,'/laboratory'],pendingSamples:[Beaker,'/laboratory'],
+  newSamplesToday:[TestTube,'/laboratory'],criticalUncommunicated:[TriangleAlert,'/laboratory'],inpatients:[BedDouble,'/patients'],
+  antimicrobialTherapies:[Pill,'/pharmacy'],administrations:[Pill,'/pharmacy'],pendingApprovals:[CheckCheck,'/pharmacy'],
+  activeEmployees:[Users,'/employees'],newEmployees30d:[UserPlus,'/employees'],ohVisitsToday:[Stethoscope,'/occupational-health'],
+  ohFollowupsDue:[Clock,'/occupational-health'],vaccinationsDue:[Syringe,'/occupational-health'],upcomingMeetings:[CalendarDays,'/committees'],
+  pendingMinutes:[FileText,'/committees'],openDecisions:[ListChecks,'/committees'],openIncidents:[Award,'/quality'],
+  severeOpenIncidents:[TriangleAlert,'/quality'],overdueCapa:[Clock,'/quality'],
 }
 
 const CHART_ROLES=new Set([ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.INFECTION_CONTROL_LEAD,ROLES.INFECTION_CONTROL_MEMBER,ROLES.LABORATORY,ROLES.QUALITY_MANAGER])
@@ -80,7 +97,7 @@ function domainShare(snapshot,tr){const s=snapshot?.summary||{};return [[tr('Ε�
 // title/subtitle/showKpis let the department home reuse this layout: its
 // counts are organization-wide, so the department view hides them.
 export function DashboardPage({title,subtitle,showKpis=true}={}) {
-  const { role: actualRole, tenant, isDemo, moduleEnabled } = useTenant()
+  const { role: actualRole, tenant, isDemo, moduleEnabled, membership } = useTenant()
   // Inside a hospital the Platform Owner (and the demo account) see the full
   // hospital overview, not the platform workspace.
   const role=actualRole===ROLES.DEMO||(actualRole===ROLES.PLATFORM_OWNER&&tenant)?ROLES.HOSPITAL_ADMIN:actualRole
@@ -90,6 +107,7 @@ export function DashboardPage({title,subtitle,showKpis=true}={}) {
   const workspace=role===ROLES.HOSPITAL_ADMIN?hospitalAdminWorkspace(english):workspaceFor(role,language)
   const nctx=useNotifications()
   const navigate=useNavigate()
+  const menuPaths=useMemo(()=>new Set(navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)}).map(item=>item.to)),[role,membership])
   const [metrics,setMetrics]=useState({})
   const [liveSnapshot,setLiveSnapshot]=useState(null)
   const showCharts=showKpis&&CHART_ROLES.has(role)
@@ -118,7 +136,7 @@ export function DashboardPage({title,subtitle,showKpis=true}={}) {
   const setupSteps=role===ROLES.HOSPITAL_ADMIN&&showKpis?firstSteps(values,{needsPatientDays:moduleEnabled('surveillance')||moduleEnabled('indicators')}):null
 
   return <Page className="dashboard-page" title={title||workspace.title} subtitle={subtitle||workspace.subtitle}>
-    {showKpis&&kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value])=><article className="kpi-card" key={label}><span>{label}</span><strong>{value}</strong></article>)}</div>}
+    {showKpis&&kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value,,key])=>{const [Icon=Activity,to]=TILES[key]||[];const open=to&&menuPaths.has(to);return <MetricCard key={label} className="summary-metric" icon={Icon} label={label} value={value} onClick={open?()=>navigate(to):undefined}/>})}</div>}
     <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate}/>
     <div className="dashboard-workspace-v2">
       <Card className="dashboard-card">
