@@ -3,13 +3,16 @@ import { Page } from '../../design-system/Page'
 import { CalendarRange, Clock3, Building2, Pill, Plus } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { MetricCard } from '../../design-system/MetricCard'
-import { SaveButton } from '../../design-system/SaveButton'
+import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { loadAntibioticDispensingRecords, loadPharmacySupportData, saveAntibioticDispensingRecord } from './pharmacyCloudService'
 import { awareCategoryFor, awareCategoryLabel } from './whoAwareClassification'
+
+// '2026-09' → 'Σεπτέμβριος 2026' / 'September 2026'
+const formatPeriod = (period, en, month = 'long') => /^\d{4}-\d{2}$/.test(String(period || '')) ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month, year: 'numeric' }).format(new Date(`${period}-15T12:00:00`)) : (period || '—')
 
 const monthNow = () => new Date().toISOString().slice(0, 7)
 
@@ -62,7 +65,7 @@ export function PharmacyPage() {
           <MetricCard icon={CalendarRange} value={rows.length} label={en ? 'Dispensing records' : 'Καταχωρίσεις χορήγησης'} />
           <MetricCard icon={Pill} value={new Set(rows.map(row => row.productEn || row.product).filter(Boolean)).size} label={en ? 'Antibiotics' : 'Αντιβιοτικά'} />
           <MetricCard icon={Building2} value={new Set(rows.map(row => row.departmentEl).filter(Boolean)).size} label={en ? 'Departments' : 'Τμήματα'} />
-          <MetricCard icon={Clock3} value={rows.reduce((latest, row) => (row.period > latest ? row.period : latest), '') || '—'} label={en ? 'Latest period' : 'Τελευταία περίοδος'} />
+          <MetricCard icon={Clock3} value={formatPeriod(rows.reduce((latest, row) => (row.period > latest ? row.period : latest), ''), en, 'short')} label={en ? 'Latest period' : 'Τελευταία περίοδος'} />
         </div>
       )}
       {canRecord && (
@@ -76,9 +79,9 @@ export function PharmacyPage() {
           {!loading && !rows.length && <div className="inline-empty">{en ? 'No dispensing periods recorded yet.' : 'Δεν έχουν καταχωριστεί περίοδοι χορήγησης.'}</div>}
           {!loading && Boolean(rows.length) && (
             <div className="record-table-wrap">
-              <table className="record-table">
+              <table className="data-table record-table">
                 <thead><tr><th>{en ? 'Period' : 'Περίοδος'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'WHO AWaRe' : 'WHO AWaRe'}</th><th>{en ? 'Quantity' : 'Ποσότητα'}</th><th>{en ? 'Responsible' : 'Υπεύθυνος'}</th></tr></thead>
-                <tbody>{[...rows].sort((a, b) => String(b.periodStart || b.period || '').localeCompare(String(a.periodStart || a.period || ''))).map(row => { const category = awareCategoryFor(row.productEn || row.product); return <tr key={row.id}><td>{row.period}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{category ? <span className={`status-badge aware-${category}`}>{awareCategoryLabel(category, language)}</span> : '—'}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></tr> })}</tbody>
+                <tbody>{[...rows].sort((a, b) => String(b.periodStart || b.period || '').localeCompare(String(a.periodStart || a.period || ''))).map(row => { const category = awareCategoryFor(row.productEn || row.product); return <tr key={row.id}><td>{formatPeriod(row.period, en)}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{category ? <span className={`status-badge aware-${category}`}>{awareCategoryLabel(category, language)}</span> : '—'}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></tr> })}</tbody>
               </table>
             </div>
           )}
@@ -95,9 +98,8 @@ function DispensingDialog({ en, support, onClose, onSave }) {
   const chooseDepartment = value => { if (value === '') { setDraft(d => ({ ...d, departmentScope: 'hospital', departmentEl: '' })); return } setDraft(d => ({ ...d, departmentScope: 'department', departmentEl: value })) }
   const disabled = !draft.period || !draft.antibioticItemId || !draft.quantityGrams
   return (
-    <div className="modal-backdrop">
-      <div className="entry-card">
-        <header><h3>{en ? 'New dispensing period' : 'Νέα περίοδος χορήγησης'}</h3><button className="icon-close" onClick={onClose}>×</button></header>
+    <ObserverDialog width="standard" title={en ? 'New dispensing period' : 'Νέα περίοδος χορήγησης'} subtitle={en ? 'Monthly antibiotic quantity for the consumption indicator (DDD).' : 'Μηνιαία ποσότητα αντιβιοτικού για τον δείκτη κατανάλωσης (DDD).'} onClose={onClose}
+      footer={<DialogActions onCancel={onClose} onSave={() => onSave(draft)} disabled={disabled} showCancel />}>
         <div className="entry-grid">
           <label><span>{en ? 'Month' : 'Μήνας'}</span><input type="month" value={draft.period} onChange={e => setDraft(d => ({ ...d, period: e.target.value }))} /></label>
           <label><span>{en ? 'Department' : 'Τμήμα'}</span><select value={draft.departmentEl} onChange={e => chooseDepartment(e.target.value)}><option value="">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>{support.departments.map(x => <option key={x.id} value={x.el}>{en ? x.en : x.el}</option>)}</select></label>
@@ -107,8 +109,6 @@ function DispensingDialog({ en, support, onClose, onSave }) {
           <label><span>{en ? 'Reference number' : 'Αριθμός αναφοράς'}</span><input value={draft.referenceNumber} onChange={e => setDraft(d => ({ ...d, referenceNumber: e.target.value }))} /></label>
           <label className="entry-span-2"><span>{en ? 'Notes' : 'Σημειώσεις'}</span><textarea rows={3} value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} /></label>
         </div>
-        <footer><Button variant="secondary" onClick={onClose}>{en ? 'Cancel' : 'Ακύρωση'}</Button><SaveButton disabled={disabled} onClick={() => onSave(draft)}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></footer>
-      </div>
-    </div>
+    </ObserverDialog>
   )
 }
