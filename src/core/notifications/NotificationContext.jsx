@@ -11,6 +11,7 @@ import { acknowledgeAnnouncement as acknowledgeAnnouncementCloud,loadAnnouncemen
 import { loadDashboardMetrics } from '../../features/dashboard/dashboardCloudService'
 import { collectDemoOrganismClusters,loadActiveClustersAsync } from '../../features/surveillance/outbreakClusterService'
 import { clusterAlertId } from '../../features/surveillance/clusterDetection'
+import { loadPlatformAttentionItems } from '../../features/platform/platformAttentionService'
 
 const NotificationContext=createContext(null)
 const CLUSTER_ALERT_ROLES=['hospital_admin','infection_control_lead','infection_control_member','laboratory','doctor_reviewer']
@@ -67,7 +68,7 @@ export function NotificationProvider({children}){
  useEffect(()=>{void reloadAnnouncements()},[reloadAnnouncements])
  const reloadCommitteeMemberships=useCallback(async()=>{if(isDemo||!tenant?.id||!user?.id){setCommitteeMemberships([]);return}try{setCommitteeMemberships(await loadMyPendingCommitteeMembershipsAsync(tenant.id,user.id))}catch{setCommitteeMemberships([])}},[isDemo,tenant?.id,user?.id])
  const reloadCommitteeMinutesApprovals=useCallback(async()=>{if(isDemo||!tenant?.id||!user?.id){setCommitteeMinutesApprovals([]);return}try{setCommitteeMinutesApprovals(await loadMyPendingCommitteeMinutesApprovalsAsync(tenant.id,user.id))}catch{setCommitteeMinutesApprovals([])}},[isDemo,tenant?.id,user?.id])
- const reloadLiveOperational=useCallback(async()=>{if(isDemo||!tenant?.id){setLiveOperational([]);return}try{const metrics=await loadDashboardMetrics(tenant.id);setLiveOperational(liveOperationalItems(role,metrics,language))}catch{setLiveOperational([])}},[isDemo,tenant?.id,role,language])
+ const reloadLiveOperational=useCallback(async()=>{if(!isDemo&&!tenant?.id&&profile?.isPlatformOwner){try{setLiveOperational(await loadPlatformAttentionItems(language))}catch{setLiveOperational([])}return}if(isDemo||!tenant?.id){setLiveOperational([]);return}try{const metrics=await loadDashboardMetrics(tenant.id);setLiveOperational(liveOperationalItems(role,metrics,language))}catch{setLiveOperational([])}},[isDemo,tenant?.id,role,language,profile?.isPlatformOwner])
  const reloadClusterAlerts=useCallback(async()=>{if(!CLUSTER_ALERT_ROLES.includes(role)){setClusterAlerts([]);return}if(isDemo){try{setClusterAlerts(await collectDemoOrganismClusters())}catch{setClusterAlerts([])}return}if(!tenant?.id){setClusterAlerts([]);return}try{setClusterAlerts(await loadActiveClustersAsync(tenant.id))}catch{setClusterAlerts([])}},[isDemo,tenant?.id,role])
  useEffect(()=>{void reloadCommitteeMemberships();void reloadCommitteeMinutesApprovals();void reloadLiveOperational();void reloadClusterAlerts();if(!isDemo&&tenant?.id)void processNotificationOutboxAsync(tenant.id).catch(()=>{})},[reloadCommitteeMemberships,reloadCommitteeMinutesApprovals,reloadLiveOperational,reloadClusterAlerts,isDemo,tenant?.id,clock])
  const audience=useMemo(()=>({role,membership,user,profile}),[role,membership,user,profile])
