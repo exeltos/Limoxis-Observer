@@ -1,3 +1,4 @@
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 export const qualityIncidents=[
   {id:'INC-260827-004',title:'Καθυστέρηση εφαρμογής μέτρων απομόνωσης',titleEn:'Delay in applying μέτρων απομόνωσης',department:'ΜΕΘ',departmentEn:'ICU',date:'2026-08-27',severity:'high',status:'underReview',reportedBy:'Ν. Παπαδόπουλος',owner:'Υπεύθυνος Ποιότητας',description:'Καταγράφηκε καθυστέρηση στην εφαρμογή των απαιτούμενων μέτρων μετά από κρίσιμο εργαστηριακό αποτέλεσμα.',descriptionEn:'A delay was recorded in applying required precautions after a critical laboratory result.',linkedPatient:'PT-260184',linkedSurveillance:'SUR-260041',attachments:[],history:[{at:'2026-08-27T06:20:00+03:00',action:'incidentReported',actor:'Ν. Παπαδόπουλος'}]},
   {id:'INC-260826-009',title:'Αστοχία σήμανσης περιέκτη αποβλήτων',titleEn:'Waste container labelling failure',department:'Χειρουργική',departmentEn:'Surgery',date:'2026-08-26',severity:'medium',status:'closed',reportedBy:'Μ. Ιωάννου',owner:'Υπεύθυνος Ποιότητας',description:'Εντοπίστηκε λανθασμένη σήμανση σε περιέκτη αποβλήτων.',descriptionEn:'Incorrect labelling was identified on a waste container.',attachments:[],history:[{at:'2026-08-26T15:40:00+03:00',action:'incidentClosed',actor:'Υπεύθυνος Ποιότητας'}]},
@@ -27,3 +28,6 @@ qualityCapas.push(
 qualityAudits.push(
  {id:'AUD-2606-002',title:'Audit Υγιεινής Χεριών',titleEn:'Hand Hygiene Audit',department:'Παθολογική',departmentEn:'Internal Medicine',auditType:'internal',plannedDate:'2026-06-15',completedDate:'2026-06-15',status:'completed',leadAuditor:'Υπεύθυνος Ποιότητας',scope:'WHO 5 Moments και διαθεσιμότητα ABHR.',scopeEn:'WHO 5 Moments and ABHR availability.',findingIds:['FND-2606-008'],attachments:[],history:[]}
 )
+
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([qualityIncidents,qualityFindings,qualityCapas,qualityAudits])

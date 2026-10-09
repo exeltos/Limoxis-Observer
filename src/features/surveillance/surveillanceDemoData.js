@@ -1,3 +1,4 @@
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 export const surveillanceDemoData = [
   { id:'SUR-260041', patientId:'PT-260184', patient:'Ελένη Παπαδοπούλου', patientEn:'Eleni Papadopoulou', department:'ΜΕΘ', departmentEn:'ICU', startedAt:'2026-08-24', organism:'Klebsiella pneumoniae', resistance:'MDR', isolation:true, reviewDue:'2026-08-27', status:'active', domains:{ assessment:'completed', microbiology:'active', therapy:'active', isolation:'active', reassessment:'overdue' } },
   { id:'SUR-260039', patientId:'PT-260179', patient:'Νικόλαος Γεωργίου', patientEn:'Nikolaos Georgiou', department:'Παθολογική', departmentEn:'Internal Medicine', startedAt:'2026-08-25', organism:'Escherichia coli', resistance:null, isolation:false, reviewDue:'2026-08-29', status:'active', domains:{ assessment:'completed', microbiology:'active', therapy:'notApplicable', isolation:'notApplicable', reassessment:'pending' } },
@@ -10,3 +11,6 @@ export const surveillanceDemoData = [
   { id:'SUR-260008', patientId:'PT-260093', patient:'Παναγιώτης Σταθόπουλος', patientEn:'Panagiotis Stathopoulos', department:'Παθολογική', departmentEn:'Internal Medicine', startedAt:'2026-02-09', organism:'Escherichia coli', resistance:null, isolation:false, reviewDue:'2026-02-12', status:'completed', domains:{assessment:'completed',microbiology:'completed',therapy:'completed',isolation:'notApplicable',reassessment:'completed'} }
 
 ]
+
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([surveillanceDemoData])

@@ -1,3 +1,4 @@
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 export const preventionDepartments=[
   {id:'dep-icu',el:'ΜΕΘ',en:'ICU'},
   {id:'dep-internal',el:'Παθολογική',en:'Internal Medicine'},
@@ -143,3 +144,6 @@ export const bundleRows=[
   bundleAssessmentRow({id:'BND-2602',template:bundleTemplateLibrary[1],department:preventionDepartments[0],date:'2026-08-27',shift:'night',context:'Μηχανικός αερισμός',owner:'Νικόλαος Δημητρίου',answers:{head_elevation:'yes',oral_care:'no',sedation_break:'yes'}}),
   bundleAssessmentRow({id:'BND-2603',template:bundleTemplateLibrary[0],department:preventionDepartments[2],date:'2026-09-05',shift:'morning',context:'Κεντρικός φλεβικός καθετήρας',owner:'Ελένη Κωνσταντίνου',answers:{hand_hygiene:'yes',barrier:'na',skin_prep:'yes',site_review:'yes'}}),
 ]
+
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([handHygieneRows,wasteRows,antisepticRows,bundleRows])

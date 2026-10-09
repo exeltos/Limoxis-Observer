@@ -1,3 +1,4 @@
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 export const patientDemoData = [
   { id:'PT-260190', firstName:'Νεογέννητο', lastName:'Ιωαννίδη', patronymic:'', firstNameEn:'Neonate', lastNameEn:'Ioannidi', patronymicEn:'', name:'Νεογέννητο Ιωαννίδη', nameEn:'Neonate Ioannidi', dateOfBirth:'2026-08-20', birthWeightGrams:980, gestationalAgeWeeks:27, department:'Νεογνολογική / ΜΕΝΝ', departmentEn:'Neonatal / NICU', admissionDate:'2026-08-20', status:'active' },
   { id:'PT-260184', firstName:'Ελένη', lastName:'Παπαδοπούλου', patronymic:'', firstNameEn:'Eleni', lastNameEn:'Papadopoulou', patronymicEn:'', name:'Ελένη Παπαδοπούλου', nameEn:'Eleni Papadopoulou', department:'ΜΕΘ', departmentEn:'ICU', admissionDate:'2026-08-24', status:'active' },
@@ -26,3 +27,6 @@ export function demoAdmissionsForPatient(patient){
     notes: patient.notes||null,
   }]
 }
+
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([patientDemoData])

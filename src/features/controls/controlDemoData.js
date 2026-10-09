@@ -1,3 +1,4 @@
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 const iso=offsetHours=>{
  const d=new Date()
  d.setTime(d.getTime()+offsetHours*60*60*1000)
@@ -173,3 +174,6 @@ controlExecutionRows.push(
 )
 
 export const controlDraftRows=[{id:'ctrl-draft-expiry-1',assignment_id:assignment4.id,control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',status:'draft',value_text:'Κοντόληκτο',response_data:{structuredData:{items:[{name:'Adrenaline 1mg/ml',quantity:6,expiry:'2026-10-15',finding:'Κοντόληκτο'}]},actorName:'Demo User'},notes:'Σε εξέλιξη ο έλεγχος ραφιού.',has_finding:true,performed_at:null}]
+
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([controlDefinitionRows,controlAssignmentRows,controlExecutionRows,controlDraftRows])

@@ -1,3 +1,4 @@
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 export const pharmacyDepartments=[
   {id:'dep-icu',el:'ΜΕΘ',en:'ICU'},
   {id:'dep-internal',el:'Παθολογική',en:'Internal Medicine'},
@@ -36,3 +37,6 @@ export const antibioticDispensingRows=[
   dispensingRow({id:'ABXD-2602',periodStart:'2026-08-01',periodEnd:'2026-08-31',department:null,product:antibioticLibrary[0],quantityGrams:1200,method:'manual',referenceNumber:'ΦΑ-221',responsible:'Φαρμακείο'}),
   dispensingRow({id:'ABXD-2608',periodStart:'2026-07-01',periodEnd:'2026-07-31',department:pharmacyDepartments[2],product:antibioticLibrary[3],quantityGrams:400,method:'manual',referenceNumber:'ΦΑ-210',responsible:'Φαρμακείο'}),
 ]
+
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([antibioticDispensingRows])

@@ -1,4 +1,5 @@
 import { surveillanceDemoData } from './surveillanceDemoData'
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 export const clinicalCases = {
   'SUR-260041': {
     id:'SUR-260041', patientId:'PT-260184', patient:'Ελένη Παπαδοπούλου', patientEn:'Eleni Papadopoulou', dateOfBirth:'1958-04-11', department:'ΜΕΘ', departmentEn:'ICU', room:'ICU-07', admissionDate:'2026-08-24', startedAt:'2026-08-24', reviewDue:'2026-08-27', status:'active', organism:'Klebsiella pneumoniae', resistance:'MDR', source:'Αίμα', sourceEn:'Blood',
@@ -187,3 +188,6 @@ export function deleteClinicalSurveillance(id,{actor='Unknown actor',actorId='un
   }
   return true
 }
+
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([clinicalCases])

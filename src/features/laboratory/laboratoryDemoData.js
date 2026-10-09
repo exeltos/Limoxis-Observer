@@ -1,3 +1,4 @@
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 export const laboratorySamples = [
   {id:'LAB-260827-001',patient:'Ελένη Παπαδοπούλου',patientEn:'Eleni Papadopoulou',patientId:'PT-260184',department:'ΜΕΘ',departmentEn:'ICU',type:'bloodCulture',source:'Περιφερική λήψη',sourceEn:'Peripheral draw',collectedAt:'2026-08-27T00:35:00+03:00',receivedAt:'2026-08-27T00:58:00+03:00',status:'completed',priority:'critical',organism:'Klebsiella pneumoniae',result:'positive',resultStatus:'validated',resultedAt:'2026-08-27T01:48:00+03:00',validatedAt:'2026-08-27T02:00:00+03:00',validatedBy:'Μ. Εργαστηρίου',resistance:'MDR',critical:true,surveillanceCase:'SUR-260041',ast:[{drug:'Meropenem',sir:'R',mic:'≥16',method:'MIC',standard:'EUCAST',version:'16.0'},{drug:'Ceftazidime/avibactam',sir:'S',mic:'2',method:'MIC',standard:'EUCAST',version:'16.0'},{drug:'Amikacin',sir:'I',mic:'16',method:'MIC',standard:'EUCAST',version:'16.0'}],communications:[{id:'COMM-001',at:'2026-08-27T02:04:00+03:00',to:'Ιατρός ΜΕΘ',toEn:'ICU physician',method:'phone',by:'Μ. Εργαστηρίου',readBack:true,notes:'Άμεση ενημέρωση για κρίσιμο θετικό αποτέλεσμα.',notesEn:'Immediate communication of critical positive result.'}],attachments:[],timeline:[{at:'2026-08-27T02:04:00+03:00',type:'criticalCommunicated',actor:'Μ. Εργαστηρίου'},{at:'2026-08-27T02:00:00+03:00',type:'resultValidated',actor:'Μ. Εργαστηρίου'},{at:'2026-08-27T00:58:00+03:00',type:'sampleReceived',actor:'Εργαστήριο'}]},
   {id:'LAB-260827-002',patient:'Νικόλαος Γεωργίου',patientEn:'Nikolaos Georgiou',patientId:'PT-260179',department:'Παθολογική',departmentEn:'Internal Medicine',type:'urineCulture',source:'Μέσο ρεύμα',sourceEn:'Midstream urine',collectedAt:'2026-08-27T01:10:00+03:00',receivedAt:'2026-08-27T01:32:00+03:00',status:'processing',priority:'routine',organism:null,result:null,resultStatus:'draft',resultedAt:null,validatedAt:null,validatedBy:null,resistance:null,critical:false,surveillanceCase:'SUR-260039',ast:[],communications:[],attachments:[],timeline:[{at:'2026-08-27T01:32:00+03:00',type:'sampleReceived',actor:'Εργαστήριο'}]},
@@ -36,3 +37,6 @@ export function updateLabSample(id,updater){
 }
 
 export { sampleSourceCatalog } from './laboratoryReferenceData'
+
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([laboratorySamples])
