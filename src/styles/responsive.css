@@ -436,3 +436,19 @@ html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{backg
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .sidebar-footer{display:block!important}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar-backdrop{display:block;position:fixed;inset:0;z-index:1250;background:rgba(10,22,38,.45)}
 }
+
+/* Phone navigation (≤640px): a slim bar with the logo and a menu button; the
+   button opens the full, labelled menu as a drawer over the page (the same
+   component as the tablet menu: it closes on navigation, the backdrop and Escape). */
+@media (max-width:640px){
+  html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar:not(.sidebar-open){flex-direction:row!important;align-items:center!important;justify-content:space-between!important;padding:8px 12px!important}
+  html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar:not(.sidebar-open) nav{display:none!important}
+  html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar .sidebar-toggle{display:flex;align-items:center;justify-content:center;flex:none;order:2;width:40px;height:40px;margin:0;padding:0;border:0;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer}
+  html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar .sidebar-toggle:focus-visible{outline:2px solid #8cc4ff;outline-offset:2px}
+  html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open{position:fixed!important;top:0!important;left:0!important;bottom:0!important;z-index:1300!important;width:min(86vw,300px)!important;height:100vh!important;height:100dvh!important;padding:14px 12px!important;overflow-y:auto!important;box-shadow:12px 0 32px rgba(8,20,36,.32)}
+  html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .sidebar-toggle{order:0;margin:0 0 8px auto}
+  html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open nav{flex-direction:column!important;overflow:visible!important;gap:2px!important;padding:4px 0!important}
+  html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .sidebar-nav-management{display:block!important;margin-top:6px!important;padding-top:6px!important;border-top:1px solid rgba(255,255,255,.12)!important}
+  html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .nav-item{width:auto!important;padding:9px 12px!important}
+  html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar-backdrop{display:block;position:fixed;inset:0;z-index:1250;background:rgba(10,22,38,.45)}
+}
