@@ -599,7 +599,8 @@ Fixtures are authored as if "today" were a fixed date (`DEMO_AUTHORED_ON`). On l
 - **Chunk recovery**: after a new deploy, an open tab requesting a removed chunk reloads once (guard stored in session storage); a second failure within 30 s shows the error screen instead of looping.
 - **Error boundary per screen**: one failing screen never takes the app down; the menu stays usable, "Try again" re-renders, navigating clears the error.
 - **Storage blocked**: if `localStorage` throws (strict privacy, embedded frames), show a specific explanation instead of a crash; all storage access goes through a safe wrapper.
-- Concurrency: per-row targeted mutations per domain service so concurrent edits on different rows do not clobber each other; any whole-table save must detect a concurrent server change and reject instead of overwriting.
+- Concurrency: per-row targeted mutations per domain service so concurrent edits on different rows do not clobber each other; any whole-table save must detect a concurrent server change and reject instead of overwriting. Single-record updates (patients, employees, documents, quality records) carry the `updated_at` they loaded; a trigger touches `updated_at` on every update, and an update that matches no row is reported as "someone else already changed this record" (`src/core/data/recordVersion.js`).
+- **Nightly backup with restore check** (`.github/workflows/backup.yml`): `pg_dump` of the `public` and `auth` schemas, restored into an empty PostgreSQL 17 every night; the run fails if any table is missing or empty after restore while the live table had rows. The dump is kept 14 days, encrypted (AES-256) with the `BACKUP_PASSPHRASE` secret. Needs the `SUPABASE_DB_URL` and `BACKUP_PASSPHRASE` repository secrets.
 - Maintenance banner from platform settings; runtime diagnostics events to `platform_runtime_events`.
 
 ### 10.2 Versioning and release
