@@ -156,41 +156,6 @@ export function updateEmployeeSurveillanceRecord(id,patch){
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated'))
   return record
 }
-export function createEmployeeRecheck(record,{date,createdBy='Unknown actor',createdById='unknown'}){
-  if(!record||!date)return []
-  const employee={
-    id:record.employeeId,
-    firstName:record.employeeName.split(' ').slice(-1)[0]||record.employeeName,
-    lastName:record.employeeName.split(' ').slice(0,-1).join(' ')||record.employeeName,
-    firstNameEn:record.employeeNameEn.split(' ')[0]||record.employeeNameEn,
-    lastNameEn:record.employeeNameEn.split(' ').slice(1).join(' ')||record.employeeNameEn,
-    department:record.department,
-    departmentEn:record.departmentEn,
-  }
-  const sampleIds=[]
-  record.screeningTypes.forEach(typeId=>{
-    const cfg=employeeScreeningCatalog.find(x=>x.id===typeId)||employeeScreeningCatalog.at(-1)
-    const sampleId=nextLabId()
-    createDemoLabSample({
-      id:sampleId,workflowType:'employee_screening',subjectType:'employee',employeeId:employee.id,patientId:employee.id,
-      patient:record.employeeName,patientEn:record.employeeNameEn,department:record.department,departmentEn:record.departmentEn,
-      type:cfg.sampleType,source:cfg.sourceEl,sourceEn:cfg.sourceEn,sourceCode:cfg.id,anatomicalSite:cfg.sourceEl,
-      collectedAt:`${date}T12:00:00`,receivedAt:null,status:'requested',priority:'routine',result:null,resultStatus:'draft',
-      organism:null,organisms:[],resistance:null,critical:false,employeeSurveillanceCase:record.id,surveillanceCase:null,
-      batchId:record.batchId,ast:[],communications:[],attachments:[],isRecheck:true,
-      timeline:[{at:new Date().toISOString(),type:'employeeRecheckRequested',actor:createdBy}],notes:''
-    })
-    sampleIds.push(sampleId)
-  })
-  record.recheckRequired=true
-  record.recheckDate=date
-  record.recheckSampleIds=[...(record.recheckSampleIds||[]),...sampleIds]
-  record.status='active'
-  record.updatedAt=new Date().toISOString();record.updatedBy=createdBy;record.updatedById=createdById
-  record.timeline=[{at:new Date().toISOString(),type:'employeeRecheckScheduled',actor:createdBy,actorId:createdById,detail:date},...(record.timeline||[])]
-  if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated'))
-  return sampleIds
-}
 export function syncEmployeeSurveillanceFromLab(){
   employeeSurveillanceRecords.forEach(record=>{
     const samples=laboratorySamples.filter(x=>x.employeeSurveillanceCase===record.id)

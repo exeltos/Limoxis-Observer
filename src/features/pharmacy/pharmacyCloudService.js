@@ -75,15 +75,3 @@ export async function saveAntibioticDispensingRecord(organizationId,record,{exis
  const rows=await loadAntibioticDispensingRecords(organizationId)
  return rows.find(x=>x.id===saved.id)||null
 }
-
-export async function deleteAntibioticDispensingRecord(organizationId,id){
- if(isDemoDataEnvironment()){
-  if(!id)return
-  saveAntibioticDispensingLocal(loadAntibioticDispensingLocal().filter(row=>row.id!==id))
-  return
- }
- assertCloud(organizationId)
- if(!id)return
- const {error}=await supabase.from('antibiotic_dispensing_periods').delete().eq('organization_id',organizationId).eq('id',id)
- if(error)throw error
-}

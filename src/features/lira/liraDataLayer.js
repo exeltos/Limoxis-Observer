@@ -14,18 +14,6 @@ import { collectDeviceDaySources } from '../surveillance/deviceDayIndicators'
  * active organization filter defensively and only returns fields required for
  * operational decision support.
  */
-export const LIRA_DATA_DOMAINS = Object.freeze([
-  'surveillance','laboratory','patients','prevention','quality','training','committees','documents','indicators',
-])
-
-export function createLiraContext({actor,scope,domains={}}={}){
-  return {actor:actor||null,scope:scope||null,domains:Object.fromEntries(LIRA_DATA_DOMAINS.map(key=>[key,domains[key]||[]])),generatedAt:new Date().toISOString()}
-}
-
-export function assertLiraScope(context){
-  if(!context?.actor||!context?.scope) return {safe:false,reason:'missing_actor_scope'}
-  return {safe:true,reason:null}
-}
 
 function bundleSignals(criteria,score){
   if(Array.isArray(criteria)){

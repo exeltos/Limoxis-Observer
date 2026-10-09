@@ -72,17 +72,3 @@ export function interpretLiraQuestion(question,{scope={},previousPlan=null}={}){
   rawQuestion:question,
  }
 }
-
-export function describeLiraPlan(plan,language='el'){
- const en=language==='en'
- const parts=[]
- if(plan.department&&plan.department!=='all')parts.push(plan.department)
- if(plan.entity)parts.push(plan.entity)
- if(plan.periodDays===1)parts.push(en?'today':'σήμερα')
- else if(plan.periodDays)parts.push(`${plan.periodDays} ${en?'days':'ημέρες'}`)
- const intentLabel={
-  overview:en?'overview':'γενική εικόνα',count:en?'count':'πλήθος',status:en?'status':'κατάσταση',trend:en?'trend':'τάση',comparison:en?'comparison':'σύγκριση',ranking:en?'ranking':'κατάταξη',cluster:en?'cluster assessment':'αξιολόγηση συρροής',overdue:en?'overdue follow-up':'εκκρεμότητες',explanation:en?'explanation':'επεξήγηση',follow_up:en?'follow-up':'συνέχεια',
- }[plan.intent]
- if(intentLabel)parts.push(intentLabel)
- return parts.join(' · ')
-}

@@ -25,13 +25,6 @@ export const laboratorySamples = [
 
 export const getLabSample=(id)=>laboratorySamples.find(x=>x.id===id)??null
 export const createDemoLabSample=(record)=>{laboratorySamples.unshift(record);return record}
-export const getLabKpis=()=>({
-  today:laboratorySamples.filter(x=>x.collectedAt?.startsWith('2026-08-27')).length,
-  pending:laboratorySamples.filter(x=>['requested','collected','received','processing'].includes(x.status)).length,
-  positive:laboratorySamples.filter(x=>x.result==='positive').length,
-  critical:laboratorySamples.filter(x=>x.critical&&!(x.communications?.length)).length,
-  amr:laboratorySamples.filter(x=>x.resistance).length
-})
 
 export function updateLabSample(id,updater){
   const index=laboratorySamples.findIndex(x=>x.id===id)

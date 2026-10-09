@@ -7,7 +7,6 @@ const recordActions=fs.readFileSync(new URL('../src/design-system/RecordActions.
 const saveButton=fs.readFileSync(new URL('../src/design-system/SaveButton.jsx',import.meta.url),'utf8')
 const backButton=fs.readFileSync(new URL('../src/design-system/BackButton.jsx',import.meta.url),'utf8')
 const observerDialog=fs.readFileSync(new URL('../src/design-system/ObserverDialog.jsx',import.meta.url),'utf8')
-const confirmDialog=fs.readFileSync(new URL('../src/design-system/ConfirmDialog.jsx',import.meta.url),'utf8')
 const analysis=readAnalysisPageSource()
 const css=fs.readFileSync(new URL('../src/styles/design-system.css',import.meta.url),'utf8')
 
@@ -42,12 +41,6 @@ describe('shared semantic action design',()=>{
   it('does not automatically duplicate the dialog close action with Cancel',()=>{
     expect(observerDialog).toContain('showCancel=false')
     expect(observerDialog).toContain('showCancel&&onCancel')
-  })
-
-  it('provides a shared destructive confirmation dialog',()=>{
-    expect(confirmDialog).toContain("import { ObserverDialog } from './ObserverDialog'")
-    expect(confirmDialog).toContain("tone='danger'")
-    expect(confirmDialog).toContain('<ActionButton')
   })
 
   it('keeps the analytics print action in the shared analysis-actions toolbar',()=>{

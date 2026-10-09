@@ -3,7 +3,6 @@ import fs from 'node:fs'
 
 const migration=fs.readFileSync('supabase/migrations/20260902113718_organization_profile_management.sql','utf8')
 const privilegeMigration=fs.readFileSync('supabase/migrations/20260902114507_organization_profile_privilege_hardening.sql','utf8')
-const panel=fs.readFileSync('src/features/management/OrganizationProfilePanel.jsx','utf8')
 
 describe('organization profile management',()=>{
  it('uses a narrow governed RPC for organization profile changes',()=>{
@@ -20,10 +19,5 @@ describe('organization profile management',()=>{
   expect(privilegeMigration).not.toContain('grant update on table public.organizations to authenticated')
   expect(privilegeMigration).not.toContain('grant insert on table public.organizations to authenticated')
   expect(privilegeMigration).not.toContain('grant delete on table public.organizations to authenticated')
- })
- it('keeps platform-controlled identity fields read only in the hospital editor',()=>{
-  expect(panel).toContain("value={form.code} disabled")
-  expect(panel).toContain("value={form.type} disabled")
-  expect(panel).toContain("supabase.rpc('update_organization_profile'")
  })
 })

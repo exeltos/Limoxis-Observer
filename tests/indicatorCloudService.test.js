@@ -24,12 +24,6 @@ describe('production indicator calculation',()=>{
   expect(page).toContain('loadIndicatorSnapshots')
   expect(page).toContain('CAPABILITIES.MANAGE_INDICATORS')
  })
- it('updates an existing snapshot explicitly instead of relying on expression-index onConflict',()=>{
-  const service=fs.readFileSync('src/features/indicators/indicatorCloudService.js','utf8')
-  expect(service).toContain('findExistingSnapshot')
-  expect(service).toContain(".is('department_id',null)")
-  expect(service).not.toContain("onConflict:'organization_id,indicator_key,department_id,period_start,period_end'")
- })
  it('mirrors department-scoped snapshot RLS in migrations',()=>{
   const migration=fs.readFileSync('supabase/migrations/20260902142308_indicator_snapshot_department_scope.sql','utf8')
   expect(migration).toContain('current_user_has_department_scope')

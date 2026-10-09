@@ -5,4 +5,3 @@ export function wasteCategoryTone(value=''){
  if(code==='ΑΕΑ')return 'aea'
  return 'other'
 }
-export function wasteCategoryLabel(value=''){return String(value||'—')}

@@ -25,22 +25,6 @@ export async function loadPlatformSnapshot(){
   return {organizations:orgs.data||[],members:(members.data||[]).map(x=>({...x,full_name:x.user_id,email:''})),entitlements:ents.data||[]}
 }
 
-export async function createOrganization(input){
-  if(hasSupabaseConfig&&supabase&&input.adminEmail){
-    const {data,error}=await supabase.functions.invoke('platform-create-hospital',{body:input})
-    if(error)throw error
-    return data?.organization
-  }
-  if(!hasSupabaseConfig||!supabase){
-    const state=localRead();const row={id:crypto.randomUUID(),status:'active',created_at:new Date().toISOString(),...input}
-    state.organizations=[...state.organizations,row];localWrite(state);return row
-  }
-  const organization={...input};delete organization.adminEmail;delete organization.adminName
-  const {data,error}=await supabase.from('organizations').insert(organization).select().single()
-  if(error)throw error
-  return data
-}
-
 function normalizeDemoEntitlement(input){
   const validFrom=input.valid_from?.trim()
   const validUntil=input.valid_until?.trim()||NO_EXPIRATION_DATE

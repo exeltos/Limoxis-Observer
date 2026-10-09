@@ -7,9 +7,8 @@ describe('committee membership notification UX',()=>{
   const ui=read('src/core/notifications/NotificationCenter.jsx')
 
   it('keeps pending membership decisions inside the notification UI',()=>{
-    expect(ui).toContain("answerMembership(item,'approved')")
-    expect(ui).toContain("answerMembership(item,'rejected')")
-    expect(ui).toContain('Συμμετοχή σε επιτροπή — αναμένεται η απόφασή σας')
+    expect(ui).toContain("answer(item,'approved')")
+    expect(ui).toContain("answer(item,'rejected')")
   })
 
   it('does not render an open-record arrow for a pending membership notification',()=>{

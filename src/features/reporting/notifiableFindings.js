@@ -78,5 +78,4 @@ export function notifiableFindings(samples = [], reports = []) {
   return findings.sort((a, b) => b.date.localeCompare(a.date))
 }
 
-export const NOTIFICATION_STATUSES = ['pending', 'notified', 'not_required']
 export const notificationStatus = finding => finding.report?.status || 'pending'

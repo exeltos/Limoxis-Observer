@@ -259,11 +259,6 @@ export async function createPlatformDemoAccess(payload) {
   return invokeAuthenticatedFunction('create-demo-access', { ...payload, country: countryOrDefault(payload.country) })
 }
 
-export async function convertDemoEntitlementToOrganization(demoId, organizationDraft) {
-  const org = await createPlatformOrganization(organizationDraft)
-  if (supabase) await supabase.from('platform_demo_entitlements').update({ status: 'revoked', updated_at: new Date().toISOString() }).eq('id', demoId)
-  return org
-}
 // Platform Owner only (RLS): which modules the organization uses.
 export async function setOrganizationOperatingProfile(organizationId, { profile, addons, modules }) {
   if (!supabase || !organizationId) throw new Error('SUPABASE_NOT_CONFIGURED')

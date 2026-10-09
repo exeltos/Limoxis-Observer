@@ -58,7 +58,6 @@ export function allowedIndicatorDenominators(numerator){return numerator?Object.
 export function indicatorRatioRule(numerator,denominator){return numerator&&denominator?INDICATOR_RATIO_RULES[numerator]?.[denominator]||null:null}
 export function indicatorMetricRule(numerator){const denominator=allowedIndicatorDenominators(numerator)[0]||'';const rule=indicatorRatioRule(numerator,denominator);return rule?{denominator,...rule}:null}
 export function indicatorMetricCombinationIsValid(numerator,denominator){return !denominator||Boolean(indicatorRatioRule(numerator,denominator))}
-export const indicatorMetricPairIsValid=indicatorMetricCombinationIsValid
 export function normalizeIndicatorDefinition(item){const next={...item};if(next.calculationType!=='auto')return next;const rule=indicatorRatioRule(next.numeratorMetric,next.denominatorMetric);if(rule){next.multiplier=rule.multiplier;next.unit=rule.unit}return next}
 
 const assertCloud=(organizationId,{system=false}={})=>{if(!supabase)throw new Error('Supabase is not configured.');if(!organizationId&&!system)throw new Error('Organization is required.')}

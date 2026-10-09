@@ -25,9 +25,6 @@ const TABLES=Object.freeze({
   employee_position_acknowledgements:{storageKey:'limoxis.employeePositionAcknowledgements.v1',kind:'rows',cloud:false},
   indicator_local_definitions:{storageKey:'limoxis.indicatorLocalDefinitions.v1',kind:'rows',cloud:false},
   indicator_local_snapshots:{storageKey:'limoxis.indicatorLocalSnapshots.v1',kind:'rows',cloud:false},
-  committee_approvals:{storageKey:'limoxis.committeeApprovals.v2',kind:'rows',cloud:false},
-  committee_minutes_approvals:{storageKey:'limoxis.committeeMinutesApprovals.v1',kind:'rows',cloud:false},
-  committee_mail_outbox:{storageKey:'limoxis.committeeMailOutbox.v1',kind:'rows',cloud:false},
   committees:{storageKey:'limoxis.committees.v1',kind:'rows',cloud:false},
   announcements:{storageKey:'limoxis.announcements.v2',kind:'rows',cloud:false},
   notification_reads:{storageKey:'limoxis.notificationReads.v1',kind:'document',cloud:false},
@@ -230,5 +227,3 @@ export async function save(table,rows,{organizationId=null}={}){
     throw error
   }
 }
-
-export const repositoryTables=Object.freeze(Object.keys(TABLES))
