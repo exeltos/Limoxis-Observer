@@ -418,14 +418,6 @@ export async function updateClinicalCaseBasics(organizationId,record,draft){
   return (await hydrateCases([caseRow]))[0]
 }
 
-export async function deleteClinicalCaseForTesting(organizationId, caseRecordId){
-  assertCloud()
-  if(!organizationId||!caseRecordId)throw new Error('Organization and surveillance case are required.')
-  const {data,error}=await supabase.rpc('delete_surveillance_case_for_testing',{p_organization_id:organizationId,p_case_id:caseRecordId})
-  if(error)throw error
-  return Boolean(data)
-}
-
 export async function voidClinicalCase(organizationId,caseRecordId,reason){
   assertCloud()
   const {error}=await supabase.from('surveillance_cases').update({status:'cancelled',void_reason:reason}).eq('organization_id',organizationId).eq('id',caseRecordId)

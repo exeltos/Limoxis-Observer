@@ -8,7 +8,6 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { environmentalMethodLabel, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { demoLibrarySeed } from './managementData'
-import { loadSnapshot } from '../../core/data/repository'
 import { useRepositoryData } from '../../core/data/useRepositoryData'
 const empty={protocolCode:'',subjectType:'surface',sourceCode:'surfaceSwab',unit:'CFU',limitCfu:'',active:true,system:false,locked:false,source:'Hospital',version:'local'}
 const normalizeSystemStandards=rows=>(rows||[]).map(row=>row?.system===undefined?{...row,system:true,locked:true,source:'Limoxis System',version:'core'}:row)
@@ -19,11 +18,6 @@ function mergeCoreWithLocal(core,stored){
   return [...byId.values()]
 }
 
-export function readEnvironmentalStandards(){
-  const core=normalizeSystemStandards(demoLibrarySeed.environmentalStandards)
-  const saved=loadSnapshot('environmental_standards',core)
-  return Array.isArray(saved)?mergeCoreWithLocal(core,saved):core
-}
 export function EnvironmentalStandardsPanel({embedded=false,global=false}){
   // System protocols are platform-shipped; inside a hospital everyone (the
   // Platform Owner included) sees them read-only, like the Hospital Administrator.

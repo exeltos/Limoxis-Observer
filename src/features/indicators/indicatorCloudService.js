@@ -5,7 +5,6 @@ import { loadIndicatorDefinitionsLocal, loadIndicatorSnapshotsLocal, saveIndicat
 
 const assertCloud=organizationId=>{if(!supabase)throw new Error('Supabase is not configured.');if(!organizationId)throw new Error('Organization is required.')}
 const round=(value,digits=1)=>Number.isFinite(Number(value))?Number(Number(value).toFixed(digits)):null
-const demoId=prefix=>`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`
 
 export async function collectCloudIndicatorMetrics(organizationId,{from,to,departmentId=null}={}){
  if(isDemoDataEnvironment())return collectIndicatorMetrics()
@@ -67,22 +66,6 @@ export async function loadIndicatorSnapshots(organizationId,{from,to,departmentI
  assertCloud(organizationId);let query=supabase.from('indicator_snapshots').select('*').eq('organization_id',organizationId).order('period_start',{ascending:true})
  if(from)query=query.gte('period_start',from);if(to)query=query.lte('period_end',to);query=departmentId?query.eq('department_id',departmentId):query.is('department_id',null)
  const {data,error}=await query;if(error)throw error;return data||[]
-}
-async function findExistingSnapshot(organizationId,row,{from,to,departmentId}){let query=supabase.from('indicator_snapshots').select('id,status').eq('organization_id',organizationId).eq('indicator_key',row.id).eq('period_start',from).eq('period_end',to);query=departmentId?query.eq('department_id',departmentId):query.is('department_id',null);const {data,error}=await query.maybeSingle();if(error)throw error;return data||null}
-export async function saveIndicatorSnapshots(organizationId,rows,{from,to,departmentId=null}={}){
- if(isDemoDataEnvironment()){
-  const snapshots=loadIndicatorSnapshotsLocal();const now=new Date().toISOString();const saved=[]
-  for(const row of (rows||[]).filter(item=>item.value!=null)){
-   const existing=snapshots.find(s=>s.indicator_key===row.id&&s.period_start===from&&s.period_end===to&&(departmentId?s.department_id===departmentId:!s.department_id))
-   if(existing?.status==='approved')continue
-   const payload={organization_id:organizationId,indicator_key:row.id,definition_id:row.definitionId||null,department_id:departmentId||null,period_start:from,period_end:to,numerator:row.numerator??null,denominator:row.denominator??null,value:row.value,unit:row.unit||null,target_value:row.target??null,direction:row.direction||'context',calculation_type:row.calculation||'auto',source_snapshot:{source:row.source||'',version:row.version||'',evidence:row.evidence||'',numerator_definition:row.numeratorDefinition||{},denominator_definition:row.denominatorDefinition||{}},status:'calculated',calculated_at:now,calculated_by:'demo-user',reviewed_at:null,reviewed_by:null,updated_at:now}
-   if(existing){Object.assign(existing,payload);saved.push({...existing})}
-   else{const created={id:demoId('ind-snap'),...payload};snapshots.push(created);saved.push({...created})}
-  }
-  saveIndicatorSnapshotsLocal(snapshots)
-  return saved
- }
- assertCloud(organizationId);const {data:{user}}=await supabase.auth.getUser();const now=new Date().toISOString();const saved=[];for(const row of (rows||[]).filter(item=>item.value!=null)){const existing=await findExistingSnapshot(organizationId,row,{from,to,departmentId});if(existing?.status==='approved')continue;const payload={organization_id:organizationId,indicator_key:row.id,definition_id:row.definitionId||null,department_id:departmentId||null,period_start:from,period_end:to,numerator:row.numerator??null,denominator:row.denominator??null,value:row.value,unit:row.unit||null,target_value:row.target??null,direction:row.direction||'context',calculation_type:row.calculation||'auto',source_snapshot:{source:row.source||'',version:row.version||'',evidence:row.evidence||'',numerator_definition:row.numeratorDefinition||{},denominator_definition:row.denominatorDefinition||{}},status:'calculated',calculated_at:now,calculated_by:user?.id||null,reviewed_at:null,reviewed_by:null,updated_at:now};const request=existing?supabase.from('indicator_snapshots').update(payload).eq('id',existing.id):supabase.from('indicator_snapshots').insert(payload);const {data,error}=await request.select('*').single();if(error)throw error;saved.push(data)}return saved
 }
 export async function approveIndicatorSnapshot(organizationId,snapshotId,notes=''){
  if(isDemoDataEnvironment()){

@@ -2,7 +2,7 @@ import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadTrainingState } from '../training/trainingData'
-import { loadOccupationalVisits as loadVisitsLocal, loadVaccinations as loadVaccinationsLocal, loadEmployeeTraining as loadTrainingLocal, loadEvaluations as loadEvaluationsLocal, saveEvaluations as saveEvaluationsLocal, loadCertificates as loadCertificatesLocal, saveCertificates as saveCertificatesLocal, loadExposureIncidents as loadExposureIncidentsLocal, saveExposureIncidents as saveExposureIncidentsLocal } from './employeeRecordsService'
+import { loadOccupationalVisits as loadVisitsLocal, loadVaccinations as loadVaccinationsLocal, loadEmployeeTraining as loadTrainingLocal, loadEvaluations as loadEvaluationsLocal, saveEvaluations as saveEvaluationsLocal, loadCertificates as loadCertificatesLocal, loadExposureIncidents as loadExposureIncidentsLocal } from './employeeRecordsService'
 
 function ensureProductionContext(organizationId,employeeDbId,operation){
   if(isDemoDataEnvironment())return false
@@ -302,11 +302,6 @@ function certificateFromRow(row) {
 }
 const CERTIFICATE_COLUMNS = 'id,employee_id,title,title_en,issuer,issue_date,valid_until,certificate_number'
 
-export function certificatesCloudEnabled(employeeDbId) {
-  if(isDemoDataEnvironment())return false
-  return cloudEnabled() && Boolean(employeeDbId)
-}
-
 export async function loadCertificatesAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadCertificatesLocal().filter(x => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'employee_certificates.load')
@@ -340,45 +335,6 @@ export async function createCertificateAsync(organizationId, employeeDbId, draft
   return certificateFromRow(data)
 }
 
-export async function updateCertificateAsync(organizationId, employeeDbId, id, draft) {
-  ensureProductionContext(organizationId,employeeDbId,'employee_certificates.update')
-  const { data, error } = await supabase
-    .from('employee_certificates')
-    .update({
-      title: draft.titleEl,
-      title_en: draft.titleEn || draft.titleEl,
-      issuer: draft.issuer || null,
-      issue_date: draft.issueDate || null,
-      valid_until: draft.validUntil || null,
-      certificate_number: draft.certificateNumber || null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('organization_id',organizationId)
-    .eq('employee_id',employeeDbId)
-    .eq('id', id)
-    .select(CERTIFICATE_COLUMNS)
-    .single()
-  if (error) throw error
-  return certificateFromRow(data)
-}
-
-export async function deleteCertificateAsync(organizationId, employeeDbId, id) {
-  ensureProductionContext(organizationId,employeeDbId,'employee_certificates.delete')
-  const { error } = await supabase
-    .from('employee_certificates')
-    .delete()
-    .eq('organization_id',organizationId)
-    .eq('employee_id',employeeDbId)
-    .eq('id',id)
-  if(error)throw error
-  return true
-}
-
-export function saveCertificatesLocalFallback(rows) {
-  if(!isDemoDataEnvironment())throw new Error('PRODUCTION_LOCAL_WRITE_BLOCKED:employee_certificates')
-  return saveCertificatesLocal(rows)
-}
-
 // --- Occupational exposure incidents (needlestick/sharps/mucocutaneous) ---
 function exposureIncidentFromRow(row) {
   return {
@@ -389,11 +345,6 @@ function exposureIncidentFromRow(row) {
   }
 }
 const EXPOSURE_INCIDENT_COLUMNS = 'id,employee_id,incident_date,exposure_type,device_or_source,body_site,source_patient_status,reported_at,pep_administered,pep_details,follow_up_status,follow_up_due_at,notes,status'
-
-export function exposureIncidentsCloudEnabled(employeeDbId) {
-  if(isDemoDataEnvironment())return false
-  return cloudEnabled() && Boolean(employeeDbId)
-}
 
 export async function loadExposureIncidentsAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadExposureIncidentsLocal().filter(x => x.employeeId === employeeId)
@@ -431,48 +382,4 @@ export async function createExposureIncidentAsync(organizationId, employeeDbId, 
     .single()
   if (error) throw error
   return exposureIncidentFromRow(data)
-}
-
-export async function updateExposureIncidentAsync(organizationId, employeeDbId, id, draft) {
-  ensureProductionContext(organizationId,employeeDbId,'occupational_exposure_incidents.update')
-  const { data, error } = await supabase
-    .from('occupational_exposure_incidents')
-    .update({
-      incident_date: draft.incidentDate,
-      exposure_type: draft.exposureType,
-      device_or_source: draft.deviceOrSource || null,
-      body_site: draft.bodySite || null,
-      source_patient_status: draft.sourcePatientStatus || null,
-      pep_administered: draft.pepAdministered ?? null,
-      pep_details: draft.pepDetails || null,
-      follow_up_status: draft.followUpStatus || 'pending',
-      follow_up_due_at: draft.followUpDueAt || null,
-      notes: draft.notes || null,
-      status: draft.status || 'open',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('organization_id',organizationId)
-    .eq('employee_id',employeeDbId)
-    .eq('id', id)
-    .select(EXPOSURE_INCIDENT_COLUMNS)
-    .single()
-  if (error) throw error
-  return exposureIncidentFromRow(data)
-}
-
-export async function deleteExposureIncidentAsync(organizationId, employeeDbId, id) {
-  ensureProductionContext(organizationId,employeeDbId,'occupational_exposure_incidents.delete')
-  const { error } = await supabase
-    .from('occupational_exposure_incidents')
-    .delete()
-    .eq('organization_id',organizationId)
-    .eq('employee_id',employeeDbId)
-    .eq('id',id)
-  if(error)throw error
-  return true
-}
-
-export function saveExposureIncidentsLocalFallback(rows) {
-  if(!isDemoDataEnvironment())throw new Error('PRODUCTION_LOCAL_WRITE_BLOCKED:occupational_exposure_incidents')
-  return saveExposureIncidentsLocal(rows)
 }

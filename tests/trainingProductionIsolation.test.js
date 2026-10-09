@@ -13,7 +13,6 @@ describe('training production isolation',()=>{
 
   it('keeps learner writes behind narrow secure-token email-flow RPCs',()=>{
     const service=read('src/features/training/trainingInvitationService.js')
-    expect(service).toContain("supabase.rpc('training_confirm_attendance'")
     expect(service).toContain("supabase.rpc('training_submit_evaluation'")
     expect(service).toContain("supabase.rpc('training_email_access'")
   })

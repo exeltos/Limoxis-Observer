@@ -20,10 +20,3 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut()
   if (error) throw error
 }
-
-export async function requestPasswordReset(email) {
-  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
-  const redirectTo = `${window.location.origin}/reset-password`
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
-  if (error) throw error
-}

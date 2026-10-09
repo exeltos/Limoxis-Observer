@@ -26,14 +26,3 @@ export function demoAdmissionsForPatient(patient){
     notes: patient.notes||null,
   }]
 }
-
-export function createDemoPatient(data){
-  const maxNumber=patientDemoData.reduce((max,item)=>{
-    const number=Number(String(item.id||'').replace(/\D/g,''))
-    return Number.isFinite(number)?Math.max(max,number):max
-  },260000)
-  const id=`PT-${String(maxNumber+1).slice(-6)}`
-  const record={id,status:'active',...data}
-  patientDemoData.unshift(record)
-  return record
-}

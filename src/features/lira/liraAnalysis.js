@@ -1,7 +1,5 @@
 const severityRank={critical:4,high:3,medium:2,low:1}
 
-export const LIRA_PERIODS=Object.freeze({DAYS_7:7,DAYS_30:30,DAYS_90:90,ALL:0})
-
 const dateOf=(row)=>row?.signalDate||row?.resultedAt||row?.collectedAt||row?.date||row?.startedAt||row?.dueDate||null
 const day=(value)=>value?String(value).slice(0,10):null
 const inPeriod=(value,days,today)=>{

@@ -1,7 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { loadTrainingState,saveTrainingState,trainingDemoState } from './trainingData'
+import { loadTrainingState,saveTrainingState } from './trainingData'
 import { DEFAULT_TRAINER_FEEDBACK_TEMPLATE,normalizeTrainerFeedbackTemplate } from './trainingFeedbackTemplate'
 
 function requireProduction(organizationId,operation){
@@ -70,15 +70,6 @@ export async function loadTrainerFeedbackTemplateAsync(organizationId){
   return normalizeTrainerFeedbackTemplate(data?.payload||DEFAULT_TRAINER_FEEDBACK_TEMPLATE)
 }
 
-export async function saveTrainerFeedbackTemplateAsync(organizationId,template){
-  const normalized=normalizeTrainerFeedbackTemplate(template)
-  if(!normalized.questions.length)throw new Error('TRAINER_FEEDBACK_TEMPLATE_REQUIRES_QUESTIONS')
-  if(isDemoDataEnvironment())return normalized
-  requireProduction(organizationId,'feedback_template_save')
-  await upsertRecord(organizationId,'feedback_template',{...normalized,id:'TRAINER-FEEDBACK-DEFAULT',updatedAt:new Date().toISOString()})
-  return normalized
-}
-
 export async function createTrainingProgramAsync(organizationId,draft){
   const now=new Date().toISOString()
   const trainerFeedbackTemplate=isDemoDataEnvironment()?normalizeTrainerFeedbackTemplate(DEFAULT_TRAINER_FEEDBACK_TEMPLATE):await loadTrainerFeedbackTemplateAsync(organizationId)
@@ -127,5 +118,3 @@ export async function deleteTrainingRecordAsync(organizationId,recordKey){
   if(error)throw error
   return true
 }
-
-export function demoTrainingState(){return structuredClone(trainingDemoState)}

@@ -105,7 +105,6 @@ function normalize(state){
 }
 export function loadTrainingState(){return normalize(loadSnapshot('training_records',structuredClone(trainingDemoState)))}
 export function saveTrainingState(state){const normalized=normalize(state);saveSnapshot('training_records',normalized);return normalized}
-export function resetTrainingState(){const next=structuredClone(trainingDemoState);saveSnapshot('training_records',next);return next}
 export function findTrainingAccess(state,token){
  const normalized=normalize(state);const key=String(token||'').trim();if(!key)return null
  const assignment=normalized.assignments.find(x=>x.id===key||x.accessToken===key)

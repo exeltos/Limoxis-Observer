@@ -62,7 +62,6 @@ export const SYSTEM_BUNDLE_LIBRARY=[
 ]
 
 export function cloneBundleLibrary(){return JSON.parse(JSON.stringify(SYSTEM_BUNDLE_LIBRARY))}
-export function publishedBundleTemplates(library=SYSTEM_BUNDLE_LIBRARY){return library.filter(x=>x.status==='published')}
 
 export function loadBundleLibrary(){
  if(typeof window==='undefined')return cloneBundleLibrary()

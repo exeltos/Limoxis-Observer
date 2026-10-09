@@ -104,7 +104,6 @@ export function findCasesByPatient(patientId){
     .filter((item)=>item.patientId===patientId&&item.lifecycleStatus!=='voided')
     .sort((a,b)=>new Date(b.startedAt)-new Date(a.startedAt))
 }
-export function findCaseByPatient(patientId){ return findCasesByPatient(patientId).find((item)=>item.status==='active') ?? findCasesByPatient(patientId)[0] ?? null }
 
 export function createClinicalSurveillance(data){
   const now=new Date().toISOString()

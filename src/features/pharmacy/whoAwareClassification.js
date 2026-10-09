@@ -4,7 +4,6 @@
 // `antibiotics`) and the Pharmacy consumption demo data
 // (src/features/pharmacy/pharmacyDemoData.js `antibioticLibrary`).
 // Source: WHO 2021 AWaRe classification database.
-export const WHO_AWARE_CATEGORIES = Object.freeze(['access', 'watch', 'reserve'])
 
 const CATEGORY_BY_ANTIBIOTIC = {
   amoxicillin: 'access',

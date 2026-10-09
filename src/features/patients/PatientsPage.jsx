@@ -182,8 +182,6 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
   </ObserverDialog>
 }
 
-export const NewPatientCard=PatientFormDialog
-
 // One-line key for the alert badges in the registry. Built from all the
 // organization's patients (not the current page or filter) so it stays the
 // same while paging; while the flags load its line is held empty, so the table

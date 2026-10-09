@@ -173,11 +173,6 @@
       "authenticated": true,
       "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
     },
-    "delete_patient_with_history": {
-      "category": "rpc",
-      "authenticated": true,
-      "reason": "Permanent delete with clinical history; Platform Owner or Hospital Admin, reason required."
-    },
     "demo_request_application": {
       "category": "rpc",
       "authenticated": true,
@@ -310,12 +305,6 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Submits minutes for approval; requires finalize_committee_minutes on the committee; members without an account get an e-mail link or a paper signature."
-    },
-    "training_confirm_attendance": {
-      "category": "public-token",
-      "anon": true,
-      "authenticated": true,
-      "reason": "Confirms attendance from the e-mailed link, identified by the access token."
     },
     "training_email_access": {
       "category": "public-token",

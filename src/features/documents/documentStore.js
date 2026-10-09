@@ -89,21 +89,3 @@ export function nextRevisionVersion(version='1.0'){
  return `${major}.${minor+1}`
 }
 
-export function createDocumentRevision(source,{actor,version}={}){
- const now=new Date().toISOString()
- const nextVersion=version||nextRevisionVersion(source.version)
- return {
-  ...source,
-  id:nextDocumentId(),
-  status:'draft',
-  version:nextVersion,
-  revisionOfId:source.id,
-  supersedesId:source.id,
-  supersededById:null,
-  publishedAt:null,publishedBy:null,publishedById:null,
-  archivedAt:null,archivedBy:null,archivedById:null,
-  createdAt:now,createdBy:actor?.name||'Άγνωστος χρήστης',createdById:actor?.id||'unknown',
-  updatedAt:now,updatedBy:actor?.name||'Άγνωστος χρήστης',updatedById:actor?.id||'unknown',
-  history:[{at:now,actor:actor?.name||'Άγνωστος χρήστης',actorId:actor?.id||'unknown',action:'Δημιουργία νέας έκδοσης',reason:`Από ${source.id} · ${source.version||'—'} → ${nextVersion}`}],
- }
-}
