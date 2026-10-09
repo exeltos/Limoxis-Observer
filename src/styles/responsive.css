@@ -472,6 +472,8 @@ html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{backg
   html:not(#lo-phone-cards) body .content:has(table.data-table){height:auto!important;flex:none!important}
   html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td:not(:first-child):not([colspan]){display:block!important}
   html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td:not(:first-child)::before{float:left;margin-right:12px}
+  /* a selected card is tinted as a whole, not cell by cell (cells sit apart in the card) */
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td{background:transparent!important}
 }
 
 /* Phones: the LIRA button is smaller and sits in the corner, and the page ends

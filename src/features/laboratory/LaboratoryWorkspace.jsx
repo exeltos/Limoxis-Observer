@@ -138,7 +138,7 @@ export function LaboratoryWorkspace() {
       <RegistryTable wrapperRef={registry.scrollRef} className="lab-table" columns={[
         {key:'sample',label:t('sampleCode')},{key:'subject',label:t('laboratoryRecords.subject')},{key:'type',label:t('sampleType')},{key:'source',label:t('clinicalSource')},{key:'result',label:t('result')},{key:'status',label:t('status')}
       ]} rows={pagedRows} rowKey={sample => sample.id} rowProps={sample => ({...registry.rowProps(sample.id),onClick:() => openSample(sample)})} emptyTitle={language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples'} emptyText={language === 'el' ? 'Δεν βρέθηκαν εγγραφές με τα επιλεγμένα φίλτρα.' : 'No records match the selected filters.'} renderRow={sample => <>
-        <td><strong>{displaySampleCode(sample)}</strong><small>{fmt(sample.collectedAt)} · {formatTurnaround(computeTurnaroundHours(sample), language)}</small></td>
+        <td><strong>{displaySampleCode(sample)}</strong><small>{[fmt(sample.collectedAt), computeTurnaroundHours(sample) != null && formatTurnaround(computeTurnaroundHours(sample), language)].filter(Boolean).join(' · ')}</small></td>
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample.type,t)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}</td>
         <td>{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
