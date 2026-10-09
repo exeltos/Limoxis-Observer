@@ -12,7 +12,7 @@ function cleanText(value,max=120){
   return text?text.slice(0,max):null
 }
 
-export function moduleFromRoute(route=''){
+function moduleFromRoute(route=''){
   const first=String(route).split('?')[0].split('#')[0].split('/').filter(Boolean)[0]||'dashboard'
   const known=new Set(['platform','surveillance','laboratory','prevention','controls','quality','indicators','training','committees','documents','patients','employees','pharmacy','occupational-health','lira','management','analysis','account','my-department','my-profile'])
   return known.has(first)?first:'dashboard'

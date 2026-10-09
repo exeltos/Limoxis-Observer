@@ -24,7 +24,8 @@ export const PREVIEWABLE_ROLES = Object.freeze([
   ROLES.COMMITTEE_SECRETARIAT, ROLES.HR_OFFICE, ROLES.PHARMACY, ROLES.OCCUPATIONAL_PHYSICIAN,
   ROLES.DOCTOR_REVIEWER, ROLES.QUALITY_MANAGER,
 ])
-export const isPreviewableRole = (role) => PREVIEWABLE_ROLES.includes(role)
+/** @param {string|null|undefined} role */
+export const isPreviewableRole = (role) => /** @type {readonly unknown[]} */(PREVIEWABLE_ROLES).includes(role)
 
 export const MANAGEMENT_CAPABILITIES = Object.freeze([
   CAPABILITIES.MANAGE_ORGANIZATION, CAPABILITIES.MANAGE_USERS, CAPABILITIES.MANAGE_ROLES,
@@ -49,8 +50,8 @@ const hospitalAdminExcluded=new Set([
   CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,
   CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,
 ])
-const hospitalAdminCapabilities=allCapabilities.filter(cap=>!hospitalAdminExcluded.has(cap))
-const demoCapabilities=allCapabilities.filter(cap=>![CAPABILITIES.VIEW_PLATFORM,CAPABILITIES.MANAGE_PLATFORM].includes(cap))
+const hospitalAdminCapabilities=allCapabilities.filter(cap=>!/** @type {Set<string>} */(hospitalAdminExcluded).has(cap))
+const demoCapabilities=allCapabilities.filter(cap=>!/** @type {string[]} */([CAPABILITIES.VIEW_PLATFORM,CAPABILITIES.MANAGE_PLATFORM]).includes(cap))
 const recordWorker=[CAPABILITIES.CREATE_RECORDS,CAPABILITIES.EDIT_RECORDS,CAPABILITIES.ATTACH_FILES,CAPABILITIES.PRINT_RECORDS]
 const recordManager=[...recordWorker,CAPABILITIES.DELETE_RECORDS,CAPABILITIES.COMPLETE_RECORDS,CAPABILITIES.APPROVE_RECORDS,CAPABILITIES.EXPORT_RECORDS,CAPABILITIES.ASSIGN_RECORDS]
 
@@ -81,9 +82,13 @@ export const addonCapabilityMap=Object.freeze({
   [ADD_ON_CAPABILITIES.QUALITY_ACCESS]:[CAPABILITIES.VIEW_QUALITY],
 })
 
+/** @type {Set<string>} */
 const departmentRoles=new Set([ROLES.LINK_NURSE,ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LABORATORY])
+/** @type {Set<string>} */
 const assignmentRoles=new Set([ROLES.DOCTOR_REVIEWER,ROLES.COMMITTEE_SECRETARIAT])
+/** @type {Set<string>} */
 const laboratoryOrganizationCapabilities=new Set([CAPABILITIES.VIEW_LAB,CAPABILITIES.MANAGE_LAB_SAMPLES,CAPABILITIES.VALIDATE_LAB_RESULTS,CAPABILITIES.COMMUNICATE_CRITICAL_RESULTS,CAPABILITIES.CLASSIFY_RESISTANCE,CAPABILITIES.REOPEN_LAB_RECORD])
+/** @param {string} role @param {string} capability */
 const scopeForSystemRole=(role,capability)=>{
   if(capability===CAPABILITIES.VIEW_MY_PROFILE)return DATA_SCOPES.SELF
   if(role===ROLES.PLATFORM_OWNER&&capability.includes('platform'))return DATA_SCOPES.PLATFORM
@@ -92,4 +97,5 @@ const scopeForSystemRole=(role,capability)=>{
   return DATA_SCOPES.ORGANIZATION
 }
 export const systemRoleMatrix=Object.freeze(Object.entries(roleCapabilities).flatMap(([role,capabilities])=>capabilities.map(capability=>Object.freeze({role,capability,defaultScope:scopeForSystemRole(role,capability),maximumScope:scopeForSystemRole(role,capability),requiresAssignment:assignmentRoles.has(role)}))))
+/** @param {string|null|undefined} role @param {string} capability */
 export const roleCapabilityRule=(role,capability)=>systemRoleMatrix.find(row=>row.role===role&&row.capability===capability)??null

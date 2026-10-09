@@ -87,7 +87,7 @@ export async function loadEmployeeSurveillanceRecords(organizationId){
   return hydrateRecords(data||[])
 }
 
-export async function loadEmployeeSurveillanceBatches(organizationId,records=[]){
+async function loadEmployeeSurveillanceBatches(organizationId,records=[]){
   assertCloud()
   if(!organizationId)return []
   const {data,error}=await supabase.from('employee_surveillance_batches').select('*').eq('organization_id',organizationId).order('started_at',{ascending:false})

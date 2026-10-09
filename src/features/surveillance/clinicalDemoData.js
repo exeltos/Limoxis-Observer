@@ -1,4 +1,5 @@
 import { surveillanceDemoData } from './surveillanceDemoData'
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 export const clinicalCases = {
   'SUR-260041': {
     id:'SUR-260041', patientId:'PT-260184', patient:'Ελένη Παπαδοπούλου', patientEn:'Eleni Papadopoulou', dateOfBirth:'1958-04-11', department:'ΜΕΘ', departmentEn:'ICU', room:'ICU-07', admissionDate:'2026-08-24', startedAt:'2026-08-24', reviewDue:'2026-08-27', status:'active', organism:'Klebsiella pneumoniae', resistance:'MDR', source:'Αίμα', sourceEn:'Blood',
@@ -82,6 +83,22 @@ for (const row of surveillanceDemoData) {
   }
 }
 
+// Records written without a history get one derived from what they contain, so
+// the History tab of every Demo record tells its story like a live record does.
+const recordHistory = item => [
+  { at: item.startedAt, type: 'surveillance_start', actor: item.assessment?.assessedBy },
+  item.assessment && { at: item.assessment.date, type: 'clinical_assessment', actor: item.assessment.assessedBy, detail: item.assessment.classification },
+  ...(item.samples || []).flatMap(sample => [
+    { at: sample.collectedAt, type: 'sample_collected', sampleId: sample.id },
+    sample.resultedAt && { at: sample.resultedAt, type: 'sample_result', actor: 'Μικροβιολογικό', actorEn: 'Microbiology Laboratory', detail: sample.result, sampleId: sample.id },
+  ]),
+  ...(item.therapy || []).map(therapy => ({ at: therapy.startedAt, type: 'therapy_started', detail: therapy.antimicrobial })),
+  item.isolation?.startedAt && { at: item.isolation.startedAt, type: 'isolation_started' },
+  ...(item.reassessments || []).map(review => ({ at: review.date || review.at, type: 'reassessment', actor: review.by, detail: review.status })),
+  item.completedAt && { at: item.completedAt, type: 'surveillance_closed' },
+].filter(event => event?.at)
+for (const item of Object.values(clinicalCases)) if (!item.timeline?.length) item.timeline = recordHistory(item)
+
 // Registry rows for the Surveillance Center, derived from the live record store.
 export function demoSurveillanceList() {
   return Object.values(clinicalCases)
@@ -159,7 +176,7 @@ export function createClinicalSurveillance(data){
   return record
 }
 
-export const surveillanceDeletionAudit=[]
+const surveillanceDeletionAudit=[]
 export function deleteClinicalSurveillance(id,{actor='Unknown actor',actorId='unknown',reason='Deleted as erroneous entry'}={}){
   const existing=clinicalCases[id]
   if(!existing||existing.status!=='active')return false
@@ -187,3 +204,6 @@ export function deleteClinicalSurveillance(id,{actor='Unknown actor',actorId='un
   }
   return true
 }
+
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([clinicalCases])

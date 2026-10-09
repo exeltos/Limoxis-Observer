@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, GraduationCap, Info, Rocket, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { BookOpen, CheckCircle2, FileDown, ChevronLeft, ChevronRight, GraduationCap, Info, Rocket, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { APP_VERSION, BUILD_ID } from '../version'
 import { useLocation } from 'react-router-dom'
 import { glossary } from './helpContent'
@@ -8,6 +8,7 @@ import { helpManualEn } from './helpManualEn'
 import { helpExtras } from './helpExtras'
 import { guideContent, pickGuide } from './helpGuide'
 import { HelpGuideView } from './HelpGuideView'
+import { HelpManualsView } from './HelpManualsView'
 import { platformHelp, platformHelpNavigation } from './helpPlatform'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useTenant } from '../tenant/TenantContext'
@@ -71,6 +72,7 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
  const {language}=useLanguage()
  const {role,membership,actualRole,tenant,moduleEnabled,operatingProfile}=useTenant()
  const platformMode=actualRole==='platform_owner'&&!tenant
+ const isOwner=actualRole==='platform_owner'
  const searchRef=useRef(null)
  const [query,setQuery]=useState('')
  const [selected,setSelected]=useState(pathname)
@@ -147,6 +149,7 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
       <button className={mode==='start'?'active':''} onClick={()=>{setMode('start');setQuery('')}}><Rocket size={15}/><span>{tx.start}</span></button>
       <button className={mode==='glossary'?'active':''} onClick={()=>{setMode('glossary');setQuery('')}}><BookOpen size={15}/><span>{tx.glossary}</span></button>
       <button className={mode==='about'?'active':''} onClick={()=>{setMode('about');setQuery('')}}><Info size={15}/><span>{tx.about}</span></button>
+      {isOwner&&<button className={mode==='manuals'?'active':''} onClick={()=>{setMode('manuals');setQuery('')}}><FileDown size={15}/><span>{language==='en'?'Manuals (PDF)':'Εγχειρίδια (PDF)'}</span></button>}
       {onResetScreenGuides&&<button className="manual-guides-reset" disabled={guidesReset} onClick={async()=>{try{await onResetScreenGuides();setGuidesReset(true)}catch{setGuidesReset(false)}}}><GraduationCap size={15}/><span>{guidesReset?(language==='en'?'Screen guides will show again':'Οι οδηγοί οθόνης θα εμφανιστούν ξανά'):(language==='en'?'Show screen guides again':'Εμφάνιση ξανά των οδηγών οθόνης')}</span></button>}
       <div className="manual-version">{tx.version} v{APP_VERSION}<span>Build {BUILD_ID}</span></div>
      </div>
@@ -200,6 +203,8 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
         <button className="manual-lightbox-close" aria-label={tx.closeZoom} title={tx.closeZoom} onClick={()=>setImageOpen(false)}><X size={21}/></button>
       </div>
     </div>}
+
+    {mode==='manuals'&&isOwner&&<HelpManualsView language={language}/>}
 
     {mode==='start'&&<HelpGuideView language={language} hospitalMode={Boolean(tenant)&&!platformMode} moduleEnabled={moduleEnabled} currentProfile={operatingProfile?.profile}/>}
 

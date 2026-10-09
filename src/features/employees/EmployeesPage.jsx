@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Upload,Users } from 'lucide-react'
+import { Building2,Upload,UserCheck,Users,UserX } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
@@ -45,10 +45,10 @@ export function EmployeesPage(){
   return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t('employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
     <div className="workspace-summary employee-registry-summary">
       <div className="employee-kpis">
-        <Kpi icon={Users} value={employeeSummary.total} label={t('all')}/>
-        <Kpi icon={Users} value={employeeSummary.active} label={t('employeesRecords.activeEmployees')} kind="active"/>
-        <Kpi icon={Users} value={employeeSummary.inactive} label={t('inactive')}/>
-        <Kpi icon={Users} value={employeeSummary.departments} label={t('employeesRecords.departments')}/>
+        <Kpi icon={Users} value={employeeSummary.total} label={t('all')} filter="all" current={status} onFilter={setStatus}/>
+        <Kpi icon={UserCheck} value={employeeSummary.active} label={t('employeesRecords.activeEmployees')} kind="active" filter="active" current={status} onFilter={setStatus}/>
+        <Kpi icon={UserX} value={employeeSummary.inactive} label={t('inactive')} filter="inactive" current={status} onFilter={setStatus}/>
+        <Kpi icon={Building2} value={employeeSummary.departments} label={t('employeesRecords.departments')}/>
       </div>
     </div>
     <section className="surface registry-workspace workspace-column workspace-fill employee-registry-shell">
@@ -65,4 +65,5 @@ export function EmployeesPage(){
     {importOpen&&<EmployeeImportDialog existing={employeeRows} language={language} onClose={()=>setImportOpen(false)} onImported={reload}/>}
   </Page>
 }
-function Kpi({icon:Icon,value,label,kind=''}){return <MetricCard icon={Icon} value={value} label={label} tone={kind||'neutral'}/>}
+// A card with a status filter narrows the registry to it; clicking it again shows everyone.
+function Kpi({icon:Icon,value,label,kind='',filter,current,onFilter}){const active=Boolean(filter)&&filter!=='all'&&current===filter;return <MetricCard icon={Icon} value={value} label={label} tone={kind||'neutral'} active={active} onClick={filter&&onFilter?()=>onFilter(active?'all':filter):undefined}/>}

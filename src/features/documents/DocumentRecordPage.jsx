@@ -34,6 +34,7 @@ import {
 } from './documentService'
 import { DocumentForm, DOCUMENT_TYPES, documentDraftIsValid } from './DocumentForm'
 import { loadDepartments } from '../management/departmentsService'
+import { demoLibrarySeed } from '../management/managementData'
 import { RouteLoading } from '../../design-system/RouteLoading'
 
 const labels = {
@@ -66,6 +67,7 @@ const toDraft = (record) => ({
   type: record?.type || 'policy',
   version: record?.version || '0.1',
   departmentId: record?.departmentId || null,
+  department: record?.department || '',
   audience: record?.audience || 'organization',
   effectiveDate: record?.effectiveDate || '',
   reviewDate: record?.reviewDate || '',
@@ -152,11 +154,13 @@ export function DocumentRecordPage() {
   useEffect(() => {
     let active = true
     if (!organizationId) return undefined
-    loadDepartments(organizationId)
+    // The Demo hospital has no cloud departments (see DocumentCreatePage).
+    const request = isDemo ? Promise.resolve(demoLibrarySeed.departments.map(([name, nameEn]) => ({ id: name, name, nameEn }))) : loadDepartments(organizationId)
+    request
       .then((data) => { if (active) setDepartments((data || []).filter((x) => x.is_active !== false)) })
       .catch(() => { if (active) setDepartments([]) })
     return () => { active = false }
-  }, [organizationId])
+  }, [organizationId, isDemo])
 
   useEffect(() => {
     if (record) {
@@ -167,8 +171,9 @@ export function DocumentRecordPage() {
 
   useEffect(() => {
     let active = true
+    // Without a linked user the owner is the unit written on the document (as in the registry).
     if (!record?.ownerId) {
-      setOwnerName('')
+      setOwnerName(record?.owner || '')
       return () => { active = false }
     }
     if (record.ownerId === actor?.id) {
@@ -179,7 +184,7 @@ export function DocumentRecordPage() {
       .then((profile) => { if (active) setOwnerName(profile?.full_name || profile?.username || '') })
       .catch(() => { if (active) setOwnerName('') })
     return () => { active = false }
-  }, [record?.ownerId, actor?.id, actor?.name])
+  }, [record?.ownerId, record?.owner, actor?.id, actor?.name])
 
   if (loading) return <RouteLoading />
   if (error) {

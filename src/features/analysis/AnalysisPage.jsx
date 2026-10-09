@@ -6,6 +6,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { ROLES } from '../../core/permissions/roles'
 import { BackButton } from '../../design-system/BackButton'
+import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { loadAnalysisSnapshot } from '../platform/platformService'
 import { collectAnalysisDemoSnapshot } from './analysisDemoSnapshot'
 import { buildSectionModel,collectDemoDomainMetrics } from './analysisDomains'
@@ -18,7 +19,8 @@ import { AnalysisSelect,KpiStrip,SectionCharts,MicrobiologyDistribution,National
 const EMPTY_ORGANIZATIONS=Object.freeze([])
 
 export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS,forceDemo=false}){
- const {tenant,role,isDemo:contextIsDemo,moduleEnabled}=useTenant();const isDemo=contextIsDemo||forceDemo;const {language,t}=useLanguage();const {notifyError}=useFeedback();const location=useLocation();const navigate=useNavigate();const en=language==='en';const tx=(elText,enText)=>en?enText:elText
+ const {tenant,role,isDemo:contextIsDemo,moduleEnabled}=useTenant();// The Platform Owner preview (help screenshots) has no live data: it shows the sample analysis.
+ const isDemo=contextIsDemo||forceDemo||isOwnerPreview();const {language,t}=useLanguage();const {notifyError}=useFeedback();const location=useLocation();const navigate=useNavigate();const en=language==='en';const tx=(elText,enText)=>en?enText:elText
  const requestRef=useRef(0);const reportRef=useRef(null);const currentYear=new Date().getFullYear();const yearOptions=useMemo(()=>Array.from({length:7},(_,i)=>currentYear-i),[currentYear])
  const [tab,setTab]=useState('overview'),[printOpen,setPrintOpen]=useState(false),[printTarget,setPrintTarget]=useState(''),[printMode,setPrintMode]=useState('print'),[exportingPdf,setExportingPdf]=useState(false),[year,setYear]=useState(String(currentYear)),[periodType,setPeriodType]=useState('year'),[periodSlot,setPeriodSlot]=useState('1'),[compareYear,setCompareYear]=useState(''),[org,setOrg]=useState(platform?hashOrganization(location.hash):'all'),[region,setRegion]=useState('all'),[department,setDepartment]=useState('all'),[ownerCompareMode,setOwnerCompareMode]=useState('none'),[compareHospital,setCompareHospital]=useState(''),[compareRegion,setCompareRegion]=useState(''),[snapshot,setSnapshot]=useState(null),[yearSnapshot,setYearSnapshot]=useState(null),[ownerSnapshot,setOwnerSnapshot]=useState(null),[loading,setLoading]=useState(false),[loadError,setLoadError]=useState('')
  // Tabs of modules the organization's operating profile switches off are hidden (the platform view shows all).
@@ -50,14 +52,19 @@ export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS,f
   setPrintTarget(sectionId)
   if(sectionId!==tab)setTab(sectionId)
  }
+ const printContext=useRef(null)
+ printContext.current={tx,currentScopeLabel,en,notifyError,range}
  useEffect(()=>{
+  // Read through a ref: these change on every render, and re-running the effect would
+  // restart the print timer before it fires.
+  const print=printContext.current
   if(!printTarget||printTarget!==tab||loading||!reportRef.current)return
   if(printMode==='pdf'){
    const timer=window.setTimeout(()=>{
-    const sectionTitle=TABS.find(x=>x[0]===printTarget)?.[en?2:1]||printTarget
+    const sectionTitle=TABS.find(x=>x[0]===printTarget)?.[print.en?2:1]||printTarget
     setExportingPdf(true)
-    exportElementAsPdf({element:reportRef.current,filename:`${tx('Ανάλυση','Analysis')}_${sectionTitle}_${currentScopeLabel}_${range.from}_${range.to}`})
-     .catch(error=>notifyError(error,'export',{operation:'analysis_pdf_export'}))
+    exportElementAsPdf({element:reportRef.current,filename:`${print.tx('Ανάλυση','Analysis')}_${sectionTitle}_${print.currentScopeLabel}_${print.range.from}_${print.range.to}`})
+     .catch(error=>print.notifyError(error,'export',{operation:'analysis_pdf_export'}))
      .finally(()=>{setExportingPdf(false);setPrintTarget('')})
    },250)
    return()=>window.clearTimeout(timer)
@@ -72,7 +79,7 @@ export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS,f
    const styleLinks=[...document.querySelectorAll('link[rel="stylesheet"]')].map(link=>'<link rel="stylesheet" href="'+link.href+'">').join('')
    const inlineStyles=[...document.querySelectorAll('style')].map(style=>style.outerHTML).join('')
    doc.open()
-   doc.write('<!doctype html><html><head><meta charset="utf-8"><title>'+tx('Αναφορά Limoxis Observer','Limoxis Observer Report')+'</title>'+styleLinks+inlineStyles+'<style>@page{size:A4 landscape;margin:10mm}html,body{height:auto!important;overflow:visible!important;background:#fff!important}body{margin:0!important;padding:0!important}.analysis-report{display:block!important;position:static!important;width:100%!important;max-width:none!important;height:auto!important;overflow:visible!important;margin:0!important;padding:0!important;background:#fff!important}.analysis-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}.analysis-chart-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.analysis-chart-card,.analysis-kpis article{break-inside:avoid!important;page-break-inside:avoid!important}</style></head><body><main class="platform-analysis-page analysis-print-frame">'+report.outerHTML+'</main></body></html>')
+   doc.write('<!doctype html><html><head><meta charset="utf-8"><title>'+print.tx('Αναφορά Limoxis Observer','Limoxis Observer Report')+'</title>'+styleLinks+inlineStyles+'<style>@page{size:A4 landscape;margin:10mm}html,body{height:auto!important;overflow:visible!important;background:#fff!important}body{margin:0!important;padding:0!important}.analysis-report{display:block!important;position:static!important;width:100%!important;max-width:none!important;height:auto!important;overflow:visible!important;margin:0!important;padding:0!important;background:#fff!important}.analysis-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}.analysis-chart-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.analysis-chart-card,.analysis-kpis article{break-inside:avoid!important;page-break-inside:avoid!important}</style></head><body><main class="platform-analysis-page analysis-print-frame">'+report.outerHTML+'</main></body></html>')
    doc.close()
    const printFrame=()=>{try{frame.contentWindow.focus();frame.contentWindow.print()}finally{window.setTimeout(()=>frame.remove(),1500);setPrintTarget('')}}
    const waitForPrintAssets=async()=>{const links=[...doc.querySelectorAll('link[rel="stylesheet"]')];await Promise.all(links.map(link=>link.sheet?Promise.resolve():new Promise(resolve=>{link.onload=resolve;link.onerror=resolve})));if(doc.fonts?.ready)await doc.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));printFrame()}

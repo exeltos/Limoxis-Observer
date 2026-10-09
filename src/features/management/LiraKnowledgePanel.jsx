@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useState } from 'react'
+import { useCallback,useEffect,useMemo,useState } from 'react'
 import { CheckCircle2,FilePlus2,Pencil,RotateCcw } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { FilterBar } from '../../design-system/FilterBar'
@@ -9,6 +9,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { supabase } from '../../core/supabase/client'
+import { isOwnerPreview } from '../../core/preview/ownerPreview'
 
 const statusLabel=(value,en)=>({review:en?'In review':'Προς έλεγχο',approved:en?'Approved':'Εγκεκριμένη',retired:en?'Retired':'Αποσυρμένη'}[value]||value)
 const ingestionLabel=(value,en)=>({ingested:en?'Ready':'Έτοιμη',pending:en?'Pending':'Εκκρεμεί',failed:en?'Failed':'Αποτυχία'}[value]||value)
@@ -17,8 +18,9 @@ const badgeClass=value=>value==='approved'||value==='ingested'?'active':value===
 export function LiraKnowledgePanel(){
  const {language}=useLanguage();const en=language==='en';const {tenant}=useTenant();const {notify}=useFeedback()
  const [rows,setRows]=useState([]);const [loading,setLoading]=useState(true);const [selected,setSelected]=useState(null);const [chunks,setChunks]=useState([]);const [edit,setEdit]=useState(null);const [version,setVersion]=useState('');const [query,setQuery]=useState('');const [authority,setAuthority]=useState('all');const [status,setStatus]=useState('all')
- async function load(){if(!supabase){setRows([]);setLoading(false);return}setLoading(true);const {data,error}=await supabase.from('lira_knowledge_sources').select('id,title,authority,source_version,source_url,status,ingestion_status,effective_from,effective_to,approved_at,review_notes').order('authority').order('title');if(error)notify(error.message,'error');else setRows(data||[]);setLoading(false)}
- useEffect(()=>{load()},[tenant?.id])
+ const load=useCallback(async()=>{if(!supabase||isOwnerPreview()){setRows([]);setLoading(false);return}setLoading(true);const {data,error}=await supabase.from('lira_knowledge_sources').select('id,title,authority,source_version,source_url,status,ingestion_status,effective_from,effective_to,approved_at,review_notes').order('authority').order('title');if(error)notify(error.message,'error');else setRows(data||[]);setLoading(false)},[notify])
+ // Reload when the organization changes (RLS decides which sources it sees).
+ useEffect(()=>{load()},[load,tenant?.id])
  const authorities=useMemo(()=>[...new Set(rows.map(x=>x.authority).filter(Boolean))].sort(),[rows])
  const filtered=useMemo(()=>{const q=query.trim().toLocaleLowerCase();return rows.filter(x=>(authority==='all'||x.authority===authority)&&(status==='all'||x.status===status)&&(!q||[x.authority,x.title,x.source_version].some(v=>String(v||'').toLocaleLowerCase().includes(q))))},[rows,query,authority,status])
  async function open(row){setSelected(row);setVersion('');const {data,error}=await supabase.from('lira_knowledge_chunks').select('id,chunk_index,heading,content,citation_label,page_start,page_end').eq('source_id',row.id).order('chunk_index');if(error)notify(error.message,'error');setChunks(data||[])}

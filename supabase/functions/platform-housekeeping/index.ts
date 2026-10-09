@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { purgeOrganization } from '../_shared/organizationPurge.ts'
+import { serveWithCors } from '../_shared/cors.ts'
 
 // Automatic deletion of long-expired Demos (platform setting
 // demo_auto_purge_after_days; 0 = never). Runs with the Platform Owner's JWT
@@ -11,12 +12,11 @@ import { purgeOrganization } from '../_shared/organizationPurge.ts'
 
 const cors={
   'Content-Type':'application/json',
-  'Access-Control-Allow-Origin':'*',
   'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type',
 }
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 
-Deno.serve(async(req)=>{
+serveWithCors(async(req)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors})
   if(req.method!=='POST')return reply({error:'Method not allowed'},405)
 

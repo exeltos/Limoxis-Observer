@@ -1,5 +1,5 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
-export const SYSTEM_BUNDLE_LIBRARY=[
+const SYSTEM_BUNDLE_LIBRARY=[
  {id:'CLABSI',name:'CLABSI',titleEl:'Κεντρικός φλεβικός καθετήρας',titleEn:'Central venous catheter',version:'1.0',status:'published',scope:'CVC insertion / maintenance',source:'WHO · CDC',sourceVersion:'reviewed 2026',system:true,departments:['ΜΕΘ'],elements:[
   {id:'necessity',labelEl:'Τεκμηριωμένη ένδειξη / καθημερινή ανάγκη για CVC',labelEn:'Documented indication / daily CVC necessity review',required:true},
   {id:'hand_hygiene',labelEl:'Υγιεινή χεριών πριν από χειρισμό',labelEn:'Hand hygiene before manipulation',required:true},
@@ -61,7 +61,7 @@ export const SYSTEM_BUNDLE_LIBRARY=[
  ]},
 ]
 
-export function cloneBundleLibrary(){return JSON.parse(JSON.stringify(SYSTEM_BUNDLE_LIBRARY))}
+function cloneBundleLibrary(){return JSON.parse(JSON.stringify(SYSTEM_BUNDLE_LIBRARY))}
 
 export function loadBundleLibrary(){
  if(typeof window==='undefined')return cloneBundleLibrary()

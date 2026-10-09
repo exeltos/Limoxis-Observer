@@ -62,7 +62,7 @@ async function upsertRecord(organizationId,recordType,payload,{departmentId=null
   return data
 }
 
-export async function loadTrainerFeedbackTemplateAsync(organizationId){
+async function loadTrainerFeedbackTemplateAsync(organizationId){
   if(isDemoDataEnvironment())return normalizeTrainerFeedbackTemplate(DEFAULT_TRAINER_FEEDBACK_TEMPLATE)
   requireProduction(organizationId,'feedback_template_load')
   const {data,error}=await supabase.from('training_records').select('payload').eq('organization_id',organizationId).eq('record_type','feedback_template').eq('record_key','TRAINER-FEEDBACK-DEFAULT').maybeSingle()

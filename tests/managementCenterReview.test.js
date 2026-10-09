@@ -17,7 +17,7 @@ describe('Management Center review', () => {
 
   it('outbreak investigations never query the database in the demo', () => {
     expect(read('src/features/management/LiraOutbreakInvestigationsPanel.jsx')).toContain('if(!tenant?.id||isDemo)return')
-    expect(read('src/features/management/LiraKnowledgePanel.jsx')).toContain('if(!supabase){setRows([])')
+    expect(read('src/features/management/LiraKnowledgePanel.jsx')).toContain('if(!supabase||isOwnerPreview()){setRows([])')
   })
 
   it('structural indicators and PPS use the registry table with a ⋯ menu', () => {

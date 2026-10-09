@@ -4,7 +4,7 @@
 // checked before anything is saved.
 
 // [key, Greek header, English header, other accepted headers]
-export const IMPORT_COLUMNS=[
+const IMPORT_COLUMNS=[
  ['code','Κωδικός','Code',['κωδικός εργαζομένου','κωδικός φακέλου','employee code','id']],
  ['lastName','Επώνυμο','Last name',['surname']],
  ['firstName','Όνομα','First name',['name']],

@@ -17,7 +17,7 @@ export function ChartCard({title,subtitle,wide=false,children}){
  return <article className={`analysis-chart-card analysis-viz-card ${wide?'analysis-wide-card':''}`}><header><div><strong>{title}</strong>{subtitle&&<span>{subtitle}</span>}</div></header>{children}</article>
 }
 
-export function EmptyChart({en}){return <div className="analysis-chart-empty">{en?'No data is available for the active scope.':'Δεν υπάρχουν δεδομένα για το ενεργό εύρος.'}</div>}
+function EmptyChart({en}){return <div className="analysis-chart-empty">{en?'No data is available for the active scope.':'Δεν υπάρχουν δεδομένα για το ενεργό εύρος.'}</div>}
 
 // Horizontal magnitude bars: one hue, value right-aligned, hover names the mark.
 // scale fixes the axis (e.g. 100 for percentages); suffix is appended to values.

@@ -146,7 +146,7 @@ export function createEmployeeSurveillanceBatch({employees,screeningTypes,starte
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated',{detail:{type:'batch-created',batchId:batch.id,count:records.length}}))
   return batch
 }
-export function getEmployeeSurveillanceRecord(id){
+function getEmployeeSurveillanceRecord(id){
   return employeeSurveillanceRecords.find(x=>x.id===id)||null
 }
 export function updateEmployeeSurveillanceRecord(id,patch){
@@ -156,7 +156,7 @@ export function updateEmployeeSurveillanceRecord(id,patch){
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('limoxis:employee-surveillance-updated'))
   return record
 }
-export function syncEmployeeSurveillanceFromLab(){
+function syncEmployeeSurveillanceFromLab(){
   employeeSurveillanceRecords.forEach(record=>{
     const samples=laboratorySamples.filter(x=>x.employeeSurveillanceCase===record.id)
     const validated=samples.filter(x=>x.finalizedAt||x.resultStatus==='validated')

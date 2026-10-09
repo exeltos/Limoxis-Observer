@@ -78,6 +78,7 @@ export function CalendarPage(){
  const fmtShort=key=>new Intl.DateTimeFormat(locale,{day:'numeric',month:'short'}).format(new Date(`${key}T12:00:00`))
 
  function moveMonth(step){setCursor(c=>{const d=new Date(c.year,c.month+step,1);return {year:d.getFullYear(),month:d.getMonth()}})}
+ function openDay(key){setCursor({year:Number(key.slice(0,4)),month:Number(key.slice(5,7))-1});setSelected(key)}
  function goToday(){const d=new Date();setCursor({year:d.getFullYear(),month:d.getMonth()});setSelected(dayKey(d))}
  function toggleKind(kind){setHidden(current=>{const next=new Set(current);if(next.has(kind))next.delete(kind);else next.add(kind);return next})}
  function exportMonth(){
@@ -96,6 +97,8 @@ export function CalendarPage(){
  ].filter(Boolean)
  if(!sources)return <RouteLoading/>
  const selectedEvents=byDay.get(selected)||[]
+ // An empty day points to the next day that has something, so a quiet day is never a dead end.
+ const nextDay=selectedEvents.length?null:[...byDay.keys()].filter(key=>key>selected).sort()[0]||null
  return <Page fill className="calendar-page" title={en?'Calendar':'Ημερολόγιο'} subtitle={en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.'} actions={<DownloadMenu disabled={!monthEvents.length&&!overdue.length} onExcel={exportMonth}/>}>
   <div className="module-summary-strip">
    <MetricCard icon={AlertTriangle} value={overdue.length} label={en?'Overdue':'Εκπρόθεσμα'} tone={overdue.length?'warning':'neutral'} onClick={()=>setView('list')}/>
@@ -115,14 +118,14 @@ export function CalendarPage(){
       {WEEKDAYS[en?'en':'el'].map(d=><div key={d} className="calendar-weekday" role="columnheader">{d}</div>)}
       {weeks.flat().map(key=>{const list=byDay.get(key)||[];const outside=!key.startsWith(monthKey);const late=list.some(e=>e.state==='overdue');return <button key={key} type="button" role="gridcell" className={`calendar-day ${outside?'outside':''} ${key===today?'today':''} ${key===selected?'selected':''} ${late?'has-overdue':''}`} onClick={()=>setSelected(key)} aria-label={`${fmtDay(key)}: ${list.length}`}>
        <span className="calendar-day-number">{Number(key.slice(8))}</span>
-       {list.slice(0,MAX_CHIPS).map(e=><span key={e.id} className={`calendar-chip kind-${e.kind} ${e.state}`}><span className="calendar-dot"/>{e.time&&<b>{e.time}</b>}{e.title}</span>)}
+       {list.slice(0,MAX_CHIPS).map(e=><span key={e.id} className={`calendar-chip kind-${e.kind} ${e.state}`} title={e.title}><span className="calendar-dot"/>{e.time&&<b>{e.time}</b>}{e.title}</span>)}
        {list.length>MAX_CHIPS&&<span className="calendar-more">+{list.length-MAX_CHIPS} {en?'more':'ακόμη'}</span>}
       </button>})}
      </div>
     </div>
     <aside className="calendar-day-panel" aria-live="polite">
      <div className="calendar-day-panel-head"><h4>{fmtDay(selected)}</h4>{addItems.length>0&&<OverflowMenu label={en?'Add':'Προσθήκη'} trigger={<><Plus size={15} aria-hidden="true"/>{en?'Add':'Προσθήκη'}</>} items={addItems}/>}</div>
-     {selectedEvents.length?<ul className="calendar-agenda">{selectedEvents.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path)}/>)}</ul>:<div className="inline-empty">{en?'Nothing scheduled.':'Δεν υπάρχει κάτι προγραμματισμένο.'}</div>}
+     {selectedEvents.length?<ul className="calendar-agenda">{selectedEvents.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path)}/>)}</ul>:<div className="inline-empty">{en?'Nothing scheduled.':'Δεν υπάρχει κάτι προγραμματισμένο.'}{nextDay&&<button type="button" className="calendar-next-day" onClick={()=>openDay(nextDay)}>{en?'Next':'Επόμενο'}: <strong>{fmtShort(nextDay)}</strong> · {byDay.get(nextDay)[0].title}<ChevronRight size={14} aria-hidden="true"/></button>}</div>}
     </aside>
    </div>:<div className="calendar-list scroll-panel">
     {overdue.length>0&&<section><h4 className="calendar-list-heading danger">{en?'Overdue':'Εκπρόθεσμα'} · {overdue.length}</h4><ul className="calendar-agenda">{overdue.map(e=><EventRow key={e.id} event={e} language={language} date={fmtShort(e.date)} onOpen={()=>navigate(e.path)}/>)}</ul></section>}

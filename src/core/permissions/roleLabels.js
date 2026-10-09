@@ -21,8 +21,9 @@ const labels=Object.freeze({
   demo:{el:'Demo',en:'Demo'},
 })
 
+/** @param {string|null|undefined} role @param {string} [language] */
 export function roleLabel(role,language='el'){
   const key=String(role||'').trim()
   if(!key)return '—'
-  return labels[key]?.[language==='en'?'en':'el']||key.replaceAll('_',' ')
+  return /** @type {Record<string, {el:string, en:string}>} */(labels)[key]?.[language==='en'?'en':'el']||key.replaceAll('_',' ')
 }

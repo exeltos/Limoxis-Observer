@@ -18,7 +18,7 @@ export function filterLiraData(data,{department='all',periodDays=0,language='el'
   return {...data,surveillance:filterRows(data.surveillance),laboratory:filterRows(data.laboratory),handHygiene:filterRows(data.handHygiene),bundles:filterRows(data.bundles),qualityIncidents:filterRows(data.qualityIncidents),qualityCapas:filterRows(data.qualityCapas)}
 }
 
-export function liraDepartments(data,language='el'){
+function liraDepartments(data,language='el'){
   const values=new Set()
   for(const key of ['surveillance','laboratory','handHygiene','bundles','qualityIncidents','qualityCapas'])for(const row of data?.[key]||[]){const value=departmentOf(row,language);if(value&&value!=='—')values.add(value)}
   return [...values].sort((a,b)=>a.localeCompare(b,language==='en'?'en':'el'))

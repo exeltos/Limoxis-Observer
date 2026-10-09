@@ -3,11 +3,12 @@ import nodemailer from 'npm:nodemailer@6.10.1'
 import { committeeMinutesApprovalEmail,committeeMinutesExternalApprovalEmail } from '../_shared/committeeApprovalEmail.ts'
 import { trainingInvitationEmail } from '../_shared/trainingInvitationEmail.ts'
 import { demoApplicationRequestEmail } from '../_shared/demoApplicationRequestEmail.ts'
+import { serveWithCors } from '../_shared/cors.ts'
 
-const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
+const cors={'Content-Type':'application/json','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 
-Deno.serve(async(req)=>{
+serveWithCors(async(req)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors})
   if(req.method!=='POST')return reply({error:'Method not allowed'},405)
 

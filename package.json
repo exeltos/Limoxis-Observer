@@ -1,18 +1,18 @@
 {
   "name": "limoxis-observer",
   "private": true,
-  "version": "0.47.4",
+  "version": "0.47.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "lint": "eslint src tests",
+    "lint": "eslint src tests --max-warnings 0",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"tools/**/*.mjs\" \"tests/**/*.{js,jsx}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"tools/**/*.mjs\" \"tests/**/*.{js,jsx}\"",
     "typecheck": "tsc --noEmit",
-    "check": "npm run audit:clinical-i18n && npm run audit:lab-i18n && npm run audit:product-i18n && npm run audit:english-parity && npm run audit:help-coverage && npm run audit:product-permissions && npm run audit:db-roles && npm run audit:security-definer && npm run audit:navigation && npm run audit:hooks && npm run audit:frontend-parity && npm run audit:observer-ui && npm run audit:dead-css && npm run lint && npm run test && npm run build && npm run audit:dead-selectors",
+    "check": "npm run audit:clinical-i18n && npm run audit:lab-i18n && npm run audit:product-i18n && npm run audit:english-parity && npm run audit:help-coverage && npm run audit:product-permissions && npm run audit:db-roles && npm run audit:security-definer && npm run audit:navigation && npm run audit:hooks && npm run audit:frontend-parity && npm run audit:observer-ui && npm run audit:dead-css && npm run typecheck:strict && npm run lint && npm run test && npm run build && npm run audit:dead-selectors",
     "audit:clinical-i18n": "node tools/check-clinical-i18n.mjs",
     "audit:lab-i18n": "node tools/check-lab-i18n.mjs",
     "audit:product-i18n": "node tools/check-product-i18n.mjs",
@@ -32,7 +32,9 @@
     "report:english-ui": "node tools/report-english-ui-risk.mjs",
     "test:lira": "vitest run tests/liraQuestionModel.test.js tests/liraHaiMetrics.test.js tests/liraOperationalOverview.test.js tests/liraPhase1Core.test.js tests/liraKnowledgeFoundation.test.js tests/liraClinicalCurriculum.test.js tests/liraDemoReadiness.test.js tests/liraLauncherLoading.test.js tests/liraKnowledgeWorkflow.test.js tests/liraKnowledgeIngestion.test.js tests/liraGateway.test.js tests/liraProviderSettings.test.js tests/liraProviderRuntime.test.js tests/liraRagRuntime.test.js",
     "audit:dead-selectors": "node tools/check-dead-selectors.mjs",
-    "manual:pdf": "node tools/build-manual-pdf.mjs"
+    "manual:pdf": "node tools/build-manual-pdf.mjs",
+    "typecheck:strict": "tsc -p tsconfig.strict.json",
+    "manual:screens": "node tools/capture-manual-screens.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

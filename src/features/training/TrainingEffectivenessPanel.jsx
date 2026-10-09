@@ -13,7 +13,7 @@ import { loadQualityRecords } from '../quality/qualityService'
 import { EFFECTIVENESS_METHODS,EFFECTIVENESS_RESULTS,capasForProgram,defaultEffectiveness,effectivenessCapaSource,effectivenessLevels,effectivenessState,optionLabel } from './trainingEffectiveness'
 import './trainingEffectiveness.css'
 
-export const effectivenessStateText=(state,en)=>({not_planned:en?'Not planned':'Δεν έχει προγραμματιστεί',planned:en?'Planned':'Προγραμματισμένη',overdue:en?'Overdue':'Εκπρόθεσμη',effective:en?'Effective':'Αποτελεσματική',partial:en?'Partly effective':'Μερικώς αποτελεσματική',not_effective:en?'Not effective':'Μη αποτελεσματική'})[state]||state
+const effectivenessStateText=(state,en)=>({not_planned:en?'Not planned':'Δεν έχει προγραμματιστεί',planned:en?'Planned':'Προγραμματισμένη',overdue:en?'Overdue':'Εκπρόθεσμη',effective:en?'Effective':'Αποτελεσματική',partial:en?'Partly effective':'Μερικώς αποτελεσματική',not_effective:en?'Not effective':'Μη αποτελεσματική'})[state]||state
 
 // Programme tab "Effectiveness": feedback (level 1) and assessment (level 2)
 // from what participants submitted, and the evaluation in practice (level 3)

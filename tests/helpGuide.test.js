@@ -65,9 +65,10 @@ describe('setup and user guide (shared by the Help Center and the PDF manual)', 
     }
   })
 
-  it('keeps the PDF manuals out of the app: no public download, no link in the Help Center', () => {
-    expect(fs.existsSync(new URL('../public/manual', import.meta.url))).toBe(false)
+  it('offers the PDF manuals only in the Platform Owner section, not in the hospital guide', () => {
+    expect(fs.existsSync(new URL('../public/manual/Limoxis-Observer-Odigos-EL.pdf', import.meta.url))).toBe(true)
     expect(fs.readFileSync(new URL('../src/core/help/HelpGuideView.jsx', import.meta.url), 'utf8')).not.toMatch(/\.pdf|\/manual\/|download/)
+    expect(fs.readFileSync(new URL('../src/core/help/HelpCenter.jsx', import.meta.url), 'utf8')).toContain("{mode==='manuals'&&isOwner&&<HelpManualsView")
   })
 })
 

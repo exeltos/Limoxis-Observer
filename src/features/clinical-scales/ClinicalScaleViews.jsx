@@ -2,12 +2,12 @@ import {buildScaleReportRows,clinicalScaleExtraFields,clinicalScaleFields,clinic
 import './clinicalScales.css'
 
 const bandText=(band,en)=>band?(en?band[2].en:band[2].el):''
-export const bandBadgeTone=band=>band?({good:'active',low:'',warning:'warning',danger:'danger'}[band[3]]??''):''
+const bandBadgeTone=band=>band?({good:'active',low:'',warning:'warning',danger:'danger'}[band[3]]??''):''
 export const scoreBandLabel=(scale,score,en)=>{const band=scoreBand(scale,score);return band?{label:bandText(band,en).split(' · ').slice(1).join(' · ')||bandText(band,en),tone:bandBadgeTone(band)}:null}
 const refHeading=(scale,en)=>scale==='gcs'||scale==='pediatric-gcs'?(en?'Normal':'Φυσιολογικό'):isChoiceScale(scale)?(en?'Lowest risk':'Χωρίς κίνδυνο'):(en?'Normal range':'Φυσιολογικά όρια')
 const statusLabel=(status,en)=>status==='high'?(en?'Above range':'Πάνω από τα όρια'):status==='low'?(en?'Below range':'Κάτω από τα όρια'):''
 
-export function ScaleBands({scale,score,en}){const {bands}=scaleReference(scale);const current=scoreBand(scale,score);if(!bands.length)return null;return <ol className="cs-bands">{bands.map(band=><li key={band[0]} className={`cs-band tone-${band[3]}${band===current?' is-current':''}`}><span className="cs-band-dot"/><span>{bandText(band,en)}</span>{band===current&&<strong>{en?'Current':'Τρέχουσα'}</strong>}</li>)}</ol>}
+function ScaleBands({scale,score,en}){const {bands}=scaleReference(scale);const current=scoreBand(scale,score);if(!bands.length)return null;return <ol className="cs-bands">{bands.map(band=><li key={band[0]} className={`cs-band tone-${band[3]}${band===current?' is-current':''}`}><span className="cs-band-dot"/><span>{bandText(band,en)}</span>{band===current&&<strong>{en?'Current':'Τρέχουσα'}</strong>}</li>)}</ol>}
 
 export function ScaleFieldHint({scale,fieldKey,value,en}){const reference=fieldReference(scale,fieldKey,en);const status=valueStatus(scale,fieldKey,value);if(!reference)return null;return <small className={`cs-field-hint${status==='high'||status==='low'?' is-out':''}`}>{refHeading(scale,en)}: {reference}{statusLabel(status,en)&&<b> · {statusLabel(status,en)}</b>}</small>}
 

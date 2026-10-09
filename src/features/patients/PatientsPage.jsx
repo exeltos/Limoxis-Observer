@@ -99,10 +99,10 @@ export function PatientsPage(){
   }
   return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction}/>}>
     <div className="workspace-summary patient-summary-strip" aria-label={t('patientRegistry')}>
-      <PatientSummaryMetric icon={UsersRound} label={t('patientsCountAll')} value={patientSummary.total}/>
-      <PatientSummaryMetric icon={Activity} label={t('patientsCountActive')} value={patientSummary.active} kind="active"/>
-      <PatientSummaryMetric icon={LogOut} label={t('patientsCountDischarged')} value={patientSummary.discharged}/>
-      <PatientSummaryMetric icon={ArrowRightLeft} label={t('patientsCountTransferred')} value={patientSummary.transferred}/>
+      <PatientSummaryMetric icon={UsersRound} label={t('patientsCountAll')} value={patientSummary.total} filter="all" current={status} onFilter={setStatus}/>
+      <PatientSummaryMetric icon={Activity} label={t('patientsCountActive')} value={patientSummary.active} kind="active" filter="active" current={status} onFilter={setStatus}/>
+      <PatientSummaryMetric icon={LogOut} label={t('patientsCountDischarged')} value={patientSummary.discharged} filter="discharged" current={status} onFilter={setStatus}/>
+      <PatientSummaryMetric icon={ArrowRightLeft} label={t('patientsCountTransferred')} value={patientSummary.transferred} filter="transferred" current={status} onFilter={setStatus}/>
     </div>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}}>
@@ -129,7 +129,8 @@ function PatientRegistryEmpty({t}){
   return <div className="registry-empty-state"><strong>{t('patientRegistryEmptyTitle')}</strong><span>{t('patientRegistryEmptyDescription')}</span></div>
 }
 
-function PatientSummaryMetric({icon,label,value,kind=''}){return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'}/>}
+// A summary card filters the registry by its status; clicking it again shows everyone.
+function PatientSummaryMetric({icon,label,value,kind='',filter,current,onFilter}){const active=filter!=='all'&&current===filter;return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'} active={active} onClick={onFilter?()=>onFilter(active?'all':filter):undefined}/>}
 
 export function PatientFormDialog({t,language,departments,onClose,onSave,patient=null,existingPatients=[]}){
   const editing=Boolean(patient)

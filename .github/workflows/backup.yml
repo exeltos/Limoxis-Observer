@@ -1,0 +1,117 @@
+# Nightly database backup with a restore check (the IsoWise pattern): the backup
+# counts only once it has been restored somewhere and its tables hold the data.
+#
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL     Supabase → Project Settings → Database → Connection string,
+#                       "Session pooler" URI with the password
+#   BACKUP_PASSPHRASE   a long random passphrase; the backup is stored encrypted with it
+#                       (AES-256, gpg). Keep it outside GitHub too: without it the
+#                       backup cannot be opened.
+# Without them the job only reports that it was skipped.
+#
+# Restore a backup by hand:
+#   gpg --decrypt limoxis-YYYY-MM-DD.dump.gpg > limoxis.dump
+#   pg_restore --no-owner --no-acl -d "$TARGET_DB_URL" limoxis.dump
+name: Backup
+
+on:
+  schedule:
+    - cron: '17 1 * * *'   # 01:17 UTC every night
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    services:
+      restore:
+        # Same major version and the vector extension of the live database.
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_PASSWORD: restore
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - name: Skipped (secrets missing)
+        if: env.SUPABASE_DB_URL == '' || env.BACKUP_PASSPHRASE == ''
+        run: echo "Add the SUPABASE_DB_URL and BACKUP_PASSPHRASE repository secrets to run the nightly backup."
+
+      - name: PostgreSQL 17 client
+        if: env.SUPABASE_DB_URL != '' && env.BACKUP_PASSPHRASE != ''
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17 >/dev/null
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Dump (application data and accounts)
+        if: env.SUPABASE_DB_URL != '' && env.BACKUP_PASSPHRASE != ''
+        run: |
+          pg_dump "$SUPABASE_DB_URL" --format=custom --compress=9 --no-owner --no-privileges \
+            --schema=public --schema=auth --file=limoxis.dump
+          ls -lh limoxis.dump
+          # Exact row counts right after the dump, for the restore check.
+          psql "$SUPABASE_DB_URL" -X -A -t -F' ' -c "select table_name, (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', table_name), false, true, '')))[1]::text from information_schema.tables where table_schema='public' and table_type='BASE TABLE' order by 1" > live-counts.txt
+
+      - name: Restore into an empty database and check it
+        if: env.SUPABASE_DB_URL != '' && env.BACKUP_PASSPHRASE != ''
+        env:
+          RESTORE_URL: postgresql://postgres:restore@localhost:5432/postgres
+        run: |
+          # What the Supabase schemas expect to exist: roles named in policies and grants,
+          # the extensions schema.
+          psql "$RESTORE_URL" -X -q -v ON_ERROR_STOP=1 <<'SQL'
+          do $$ declare r text; begin
+            foreach r in array array['anon','authenticated','service_role','authenticator','supabase_admin','supabase_auth_admin','supabase_storage_admin','dashboard_user','pgbouncer'] loop
+              if not exists (select 1 from pg_roles where rolname = r) then execute format('create role %I nologin', r); end if;
+            end loop; end $$;
+          create schema if not exists extensions;
+          create extension if not exists pgcrypto with schema extensions;
+          create extension if not exists "uuid-ossp" with schema extensions;
+          create extension if not exists vector with schema extensions;
+          SQL
+          # Objects that need Supabase-only extensions (pg_cron, pg_net, vault) may fail; the data check below decides.
+          pg_restore --no-owner --no-acl -d "$RESTORE_URL" limoxis.dump 2> restore-errors.txt || true
+          echo "restore messages: $(grep -c . restore-errors.txt || true)"
+          missing=0; empty=0; checked=0
+          while read -r table live; do
+            [ -z "$table" ] && continue
+            checked=$((checked+1))
+            restored=$(psql "$RESTORE_URL" -X -A -t -c "select count(*) from public.\"$table\"" 2>/dev/null || echo missing)
+            if [ "$restored" = "missing" ]; then echo "MISSING  $table"; missing=$((missing+1)); continue; fi
+            if [ "$live" -gt 0 ] && [ "$restored" -eq 0 ]; then echo "EMPTY    $table (live $live rows)"; empty=$((empty+1)); fi
+          done < live-counts.txt
+          echo "tables checked: $checked, missing: $missing, empty: $empty"
+          {
+            echo "## Nightly backup"
+            echo "| | |"; echo "|---|---|"
+            echo "| Dump size | $(du -h limoxis.dump | cut -f1) |"
+            echo "| Tables restored and checked | $checked |"
+            echo "| Missing after restore | $missing |"
+            echo "| Empty after restore (live had rows) | $empty |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$missing" -eq 0 ] && [ "$empty" -eq 0 ]
+
+      - name: Encrypt
+        if: env.SUPABASE_DB_URL != '' && env.BACKUP_PASSPHRASE != ''
+        run: |
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+            --symmetric --cipher-algo AES256 --output "limoxis-$(date -u +%F).dump.gpg" limoxis.dump
+          rm limoxis.dump
+
+      - name: Keep the encrypted backup for 14 days
+        if: env.SUPABASE_DB_URL != '' && env.BACKUP_PASSPHRASE != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: limoxis-backup
+          path: limoxis-*.dump.gpg
+          retention-days: 14
+          if-no-files-found: error

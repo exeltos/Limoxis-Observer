@@ -7,7 +7,7 @@ const INVASIVE = new Set(['BLOOD', 'CSF'])
 const CARBAPENEM_NAME = /meropenem|imipenem|ertapenem|doripenem|μεροπενέμη|ιμιπενέμη|ερταπενέμη|δοριπενέμη/i
 const CARBAPENEM_CODE = /^(ABX-)?(MEM|IPM|IMP|ETP|ERT|DOR)$/i
 
-export const NOTIFIABLE_RULES = [
+const NOTIFIABLE_RULES = [
   { id: 'meningococcal', organism: /neisseria\s+meningitidis/i, el: 'Μηνιγγιτιδοκοκκική νόσος', en: 'Meningococcal disease' },
   { id: 'tuberculosis', organism: /mycobacterium\s+(tuberculosis|bovis|africanum)|\bM\.?\s*tuberculosis complex/i, el: 'Φυματίωση', en: 'Tuberculosis' },
   { id: 'legionellosis', organism: /legionella/i, el: 'Λεγιονέλλωση', en: 'Legionnaires’ disease' },

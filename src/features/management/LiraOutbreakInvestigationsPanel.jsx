@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useRef,useState} from 'react'
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react'
 import {BrainCircuit,Plus,Sparkles} from 'lucide-react'
 import {Button} from '../../design-system/Button'
 import {FilterBar} from '../../design-system/FilterBar'
@@ -34,8 +34,8 @@ export function LiraOutbreakInvestigationsPanel(){
  const {language}=useLanguage(),en=language==='en';const {tenant,isDemo}=useTenant();const {notify}=useFeedback()
  const [rows,setRows]=useState([]),[selected,setSelected]=useState(null),[events,setEvents]=useState([]),[query,setQuery]=useState(''),[creating,setCreating]=useState(false),[note,setNote]=useState(''),[lineList,setLineList]=useState(null),[timeline,setTimeline]=useState([]),[caseReview,setCaseReview]=useState(null),[evidenceLoading,setEvidenceLoading]=useState(false),[reviews,setReviews]=useState([]),[reviewing,setReviewing]=useState(null),[reviewForm,setReviewForm]=useState({classification:'suspected',rationale:''}),[actions,setActions]=useState([]),[actionForm,setActionForm]=useState({title:'',owner:'',dueDate:'',priority:'medium',actionType:'corrective',description:''}),[addingAction,setAddingAction]=useState(false),[closing,setClosing]=useState(false),[closureNote,setClosureNote]=useState('')
  const [form,setForm]=useState({title:'',organism:'',from:'',to:'',definitionId:'',definitionVersion:''})
- async function load(){if(!tenant?.id||isDemo)return;try{setRows(await listOutbreakInvestigations(tenant.id))}catch(e){notify(e.message,'error')}}
- useEffect(()=>{load()},[tenant?.id,isDemo])
+ const load=useCallback(async()=>{if(!tenant?.id||isDemo)return;try{setRows(await listOutbreakInvestigations(tenant.id))}catch(e){notify(e.message,'error')}},[tenant?.id,isDemo,notify])
+ useEffect(()=>{load()},[load])
  const closure=useMemo(()=>buildOutbreakClosureReadiness({lineList,caseReviews:reviews,actions,events}),[lineList,reviews,actions,events])
  const copilot=useMemo(()=>buildInvestigationCopilot({investigation:selected,lineList,caseReviews:reviews,actions,events,closure,language}),[selected,lineList,reviews,actions,events,closure,language])
  function runCopilotSuggestion(item){if(item.target==='closure'){setClosing(true);return}const ids={'line-list':'lira-investigation-line-list',capa:'lira-investigation-capa',hypotheses:'lira-investigation-hypotheses',evidence:'lira-investigation-evidence'};document.getElementById(ids[item.target])?.scrollIntoView({behavior:'smooth',block:'start'})}

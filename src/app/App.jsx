@@ -1,5 +1,5 @@
-import { LegalPage } from '../features/legal/LegalPage'
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
+import { lazyPage } from '../core/errors/chunkRecovery'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { ProtectedRoute } from '../core/auth/ProtectedRoute'
@@ -8,14 +8,16 @@ import { useTenant } from '../core/tenant/TenantContext'
 import { RequireCapability, RequireAnyCapability } from '../core/permissions/RequireCapability'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES } from '../core/permissions/roles'
 import { LoginPage } from '../features/auth/LoginPage'
-import { ActivateAccountPage } from '../features/auth/ActivateAccountPage'
-import { ForgotAccessPage } from '../features/auth/ForgotAccessPage'
-import { ResetPasswordPage } from '../features/auth/ResetPasswordPage'
 import { RouteLoading } from '../design-system/RouteLoading'
 import { GlobalTextareaExpander } from '../design-system/GlobalTextareaExpander'
 import { PlatformMaintenanceBanner } from '../features/platform/PlatformMaintenanceBanner'
 
-const lazyNamed = (loader, name) => lazy(() => loader().then(m => ({ default: m[name] })))
+const lazyNamed = (loader, name) => lazyPage(loader, name)
+// Sign-in side pages other than the login screen load on demand.
+const ResetPasswordPage = lazyNamed(() => import('../features/auth/ResetPasswordPage'), 'ResetPasswordPage')
+const ForgotAccessPage = lazyNamed(() => import('../features/auth/ForgotAccessPage'), 'ForgotAccessPage')
+const ActivateAccountPage = lazyNamed(() => import('../features/auth/ActivateAccountPage'), 'ActivateAccountPage')
+const LegalPage = lazyNamed(() => import('../features/legal/LegalPage'), 'LegalPage')
 const PlatformCenterPage = lazyNamed(() => import('../features/workspaces/PlatformCenterPage'), 'PlatformCenterPage')
 const PlatformHealthPage = lazyNamed(() => import('../features/platform/PlatformControlPlaneRoutes'), 'PlatformHealthPage')
 const PlatformAuditSecurityPage = lazyNamed(() => import('../features/platform/PlatformControlPlaneRoutes'), 'PlatformAuditSecurityPage')
@@ -63,7 +65,7 @@ const gate = (capability, element) => <RequireCapability capability={capability}
 const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={capabilities}>{element}</RequireAnyCapability>
 function HomeRoute(){const {profile}=useAuth();const {activeMembershipId,isDemo,loading}=useTenant();if(loading)return <RouteLoading/>;if(profile?.isPlatformOwner&&!activeMembershipId&&!isDemo)return <Navigate to="/platform" replace/>;return gate(CAPABILITIES.VIEW_DASHBOARD,<DashboardPage/>)}
 export function App(){return <><GlobalTextareaExpander/><PlatformMaintenanceBanner/><Routes>
- <Route path="/login" element={<LoginPage/>}/><Route path="/activate" element={<ActivateAccountPage/>}/><Route path="/forgot-access" element={<ForgotAccessPage/>}/><Route path="/privacy" element={<LegalPage kind="privacy"/>}/><Route path="/terms" element={<LegalPage kind="terms"/>}/><Route path="/reset-password" element={<ResetPasswordPage/>}/><Route path="training-access/:token" element={<Suspense fallback={<RouteLoading/>}><TrainingAccessPage/></Suspense>}/><Route path="minutes-approval/:token" element={<Suspense fallback={<RouteLoading/>}><MinutesApprovalPage/></Suspense>}/>
+ <Route path="/login" element={<LoginPage/>}/><Route path="/activate" element={<Suspense fallback={<RouteLoading/>}><ActivateAccountPage/></Suspense>}/><Route path="/forgot-access" element={<Suspense fallback={<RouteLoading/>}><ForgotAccessPage/></Suspense>}/><Route path="/privacy" element={<Suspense fallback={<RouteLoading/>}><LegalPage kind="privacy"/></Suspense>}/><Route path="/terms" element={<Suspense fallback={<RouteLoading/>}><LegalPage kind="terms"/></Suspense>}/><Route path="/reset-password" element={<Suspense fallback={<RouteLoading/>}><ResetPasswordPage/></Suspense>}/><Route path="training-access/:token" element={<Suspense fallback={<RouteLoading/>}><TrainingAccessPage/></Suspense>}/><Route path="minutes-approval/:token" element={<Suspense fallback={<RouteLoading/>}><MinutesApprovalPage/></Suspense>}/>
  <Route element={<ProtectedRoute/>}><Route element={<AppShell/>}>
   <Route path="platform" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM,<PlatformCenterPage/>)}</Suspense>}/><Route path="platform/health" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM,<PlatformHealthPage/>)}</Suspense>}/><Route path="platform/audit" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM,<PlatformAuditSecurityPage/>)}</Suspense>}/><Route path="platform/settings" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_PLATFORM,<PlatformSettingsPage/>)}</Suspense>}/>
   <Route path="about" element={<Suspense fallback={<RouteLoading/>}><AboutPage/></Suspense>}/><Route path="analysis" element={<Suspense fallback={<RouteLoading/>}>{gate(CAPABILITIES.VIEW_ANALYSIS,<AnalysisPage/>)}</Suspense>}/><Route path="account" element={<Suspense fallback={<RouteLoading/>}><AccountPage/></Suspense>}/><Route path="access-denied" element={<Suspense fallback={<RouteLoading/>}><AccessDeniedPage/></Suspense>}/><Route index element={<Suspense fallback={<RouteLoading/>}><HomeRoute/></Suspense>}/>

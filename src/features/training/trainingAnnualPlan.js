@@ -25,7 +25,7 @@ export function programMonths(program,year){
  return months
 }
 
-export function programPlanState(program,openCount,today){
+function programPlanState(program,openCount,today){
  if(program.status==='cancelled')return 'cancelled'
  if(program.status==='completed'||(!openCount&&program.status!=='planned'&&day(program.dueDate)<today))return 'done'
  if(day(program.dueDate)<today)return 'overdue'

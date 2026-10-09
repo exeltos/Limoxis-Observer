@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { strToU8, zipSync } from 'npm:fflate@0.8.2'
+import { serveWithCors } from '../_shared/cors.ts'
 
 // A full copy of one organization for its hand-over before deletion: every
 // organization table as CSV (UTF-8, ";" separated), the organization row as
@@ -9,7 +10,6 @@ import { strToU8, zipSync } from 'npm:fflate@0.8.2'
 
 const cors={
   'Content-Type':'application/json',
-  'Access-Control-Allow-Origin':'*',
   'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type',
 }
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
@@ -42,7 +42,7 @@ async function readTable(admin:any,table:string,organizationId:string){
   return rows
 }
 
-Deno.serve(async(req)=>{
+serveWithCors(async(req)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors})
   if(req.method!=='POST')return reply({error:'Method not allowed'},405)
 

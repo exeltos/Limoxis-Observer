@@ -100,7 +100,8 @@ describe('collectAnalysisDemoSnapshot computes from the same demo fixtures every
     const draftPositive = laboratorySamples.some(x => x.result === 'positive' && x.resultStatus === 'draft')
     // The fixture includes at least one draft/processing sample; assert the
     // computed total only ever counts validated/amended positives.
-    const expectedPositive = laboratorySamples.filter(x => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus)).length
+    // patient microbiology: environmental samples are not counted
+    const expectedPositive = laboratorySamples.filter(x => x.subjectType !== 'environment' && x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus)).length
     expect(snapshot.microbiology.totalPositive).toBe(expectedPositive)
     if (draftPositive) expect(snapshot.microbiology.totalPositive).toBeLessThan(laboratorySamples.filter(x => x.result === 'positive').length)
   })

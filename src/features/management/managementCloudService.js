@@ -1,4 +1,6 @@
 import { supabase } from '../../core/supabase/client'
+import { isOwnerPreview } from '../../core/preview/ownerPreview'
+import { demoLibrarySeed } from './managementData'
 
 const assertCloud=(organizationId)=>{
   if(!supabase) throw new Error('Supabase is not configured.')
@@ -90,6 +92,8 @@ const requireCloud=()=>{if(!supabase)throw new Error('Supabase is not configured
 // Global (organization_id is null) master library rows: edits here fan out to
 // every organization's linked copy via the master_library_items_propagate trigger.
 export async function loadGlobalLibraryItems(){
+  // Platform Owner preview (help screenshots): the shipped catalogues stand in for the global rows.
+  if(isOwnerPreview()){const {departments,...shared}=structuredClone(demoLibrarySeed);void departments;return shared}
   requireCloud()
   const {data,error}=await supabase.from('master_library_items').select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version,is_active').is('organization_id',null).eq('is_active',true).order('name_el')
   if(error) throw error

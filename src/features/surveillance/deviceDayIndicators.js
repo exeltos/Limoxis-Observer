@@ -47,7 +47,7 @@ function censusDevices(count, deviceType, department, days, bandId = null) {
     return { deviceType, insertedAt: start.toISOString().slice(0, 10), removedAt: end.toISOString().slice(0, 10), department, bandId }
   })
 }
-export const DEMO_DEVICE_CENSUS = [
+const DEMO_DEVICE_CENSUS = [
   ...censusDevices(40, 'central line', 'ΜΕΘ', 25),
   ...censusDevices(50, 'urinary catheter', 'Παθολογική', 10),
   ...censusDevices(20, 'ventilator', 'ΜΕΘ', 10),

@@ -1,3 +1,4 @@
+import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 export const employeeRows = [
   {id:'EMP-001',position:'Νοσηλευτής/τρια ΜΕΘ',positionEn:'ICU Nurse',firstName:'Μαρία',firstNameEn:'Maria',lastName:'Παπαδοπούλου',lastNameEn:'Papadopoulou',fatherName:'Ιωάννης',fatherNameEn:'Ioannis',department:'ΜΕΘ',departmentEn:'ICU',profession:'Νοσηλευτικό προσωπικό',professionEn:'Nursing staff',employmentStatus:'active',email:'m.papadopoulou@example.org',phone:'210 555 0101',hireDate:'2019-03-18',birthDate:'1990-08-29'},
   {id:'EMP-002',position:'Επιμελητής Ιατρός',positionEn:'Consultant Physician',firstName:'Νικόλαος',firstNameEn:'Nikolaos',lastName:'Δημητρίου',lastNameEn:'Dimitriou',fatherName:'Αλέξανδρος',fatherNameEn:'Alexandros',department:'Παθολογική',departmentEn:'Internal Medicine',profession:'Ιατρικό προσωπικό',professionEn:'Medical staff',employmentStatus:'active',email:'n.dimitriou@example.org',phone:'210 555 0102',hireDate:'2021-09-01'},
@@ -72,8 +73,8 @@ export const employeeEvaluations = [
   evaluation('EV-06','EMP-006','2025','2026-02-27','Γεωργία Φωτίου',[4,5,4,5,5,4,5,4],'finalized','Ενεργή συμμετοχή ως link nurse της κλινικής.'),
   evaluation('EV-07','EMP-007','2025','2026-05-09','Θεόδωρος Αλεξίου',[3,3,3,4,4,3,3,3],'employee_acknowledged','Απαιτείται επανεκπαίδευση στον έλεγχο βιολογικών δεικτών.'),
   evaluation('EV-08','EMP-008','2025','2026-03-21','Διονύσης Μαυρίδης',[5,4,5,4,5,5,5,5],'finalized','Άριστος συντονισμός των εσωτερικών επιθεωρήσεων.'),
-  evaluation('EV-09','EMP-001','2026 · Α΄ εξάμηνο','2026-09-15','Αικατερίνη Λάμπρου',[5,5,5,5,4,4,5,5],'submitted','Ενδιάμεση αξιολόγηση εξαμήνου.'),
-  evaluation('EV-10','EMP-003','2026 · Α΄ εξάμηνο','2026-09-18','Ιωάννα Σπυροπούλου',[4,4,4,5,4,5,4,4],'draft','Πρόχειρη ενδιάμεση αξιολόγηση.'),
+  evaluation('EV-09','EMP-001','2026 · Α΄ εξάμηνο','2026-08-25','Αικατερίνη Λάμπρου',[5,5,5,5,4,4,5,5],'submitted','Ενδιάμεση αξιολόγηση εξαμήνου.'),
+  evaluation('EV-10','EMP-003','2026 · Α΄ εξάμηνο','2026-08-27','Ιωάννα Σπυροπούλου',[4,4,4,5,4,5,4,4],'draft','Πρόχειρη ενδιάμεση αξιολόγηση.'),
 ]
 
 export const employeeCertificates = [
@@ -94,7 +95,7 @@ export const employeeExposureIncidents = [
   {id:'EXP-05', employeeId:'EMP-002', incidentDate:'2026-02-17', exposureType:'non_intact_skin', deviceOrSource:'Αίμα ασθενούς σε δερματίτιδα χεριού', bodySite:'Ραχιαία επιφάνεια δεξιού χεριού', sourcePatientStatus:'negative', reportedAt:'2026-02-17T12:30:00', pepAdministered:false, pepDetails:'', followUpStatus:'completed', followUpDueAt:'2026-03-17', notes:'Πλύση με νερό και σαπούνι. Πηγή αρνητική· δεν απαιτήθηκε περαιτέρω παρακολούθηση.', status:'closed'},
   {id:'EXP-06', employeeId:'EMP-006', incidentDate:'2026-08-11', exposureType:'needlestick', deviceOrSource:'Βελόνα ινσουλίνης μετά την ένεση', bodySite:'Δεξιός μέσος δάκτυλος', sourcePatientStatus:'positive', reportedAt:'2026-08-11T18:10:00', pepAdministered:false, pepDetails:'Πηγή HCV θετική· δεν υπάρχει PEP. Προγραμματισμένος έλεγχος HCV RNA.', followUpStatus:'scheduled', followUpDueAt:'2026-11-11', notes:'HCV RNA 3 εβδομάδων αρνητικό. Εκκρεμεί αντι-HCV στους 3 μήνες.', status:'open'},
   {id:'EXP-07', employeeId:'EMP-008', incidentDate:'2026-05-28', exposureType:'other', deviceOrSource:'Επαφή με διαρροή περιέκτη βιολογικών αποβλήτων κατά την επιθεώρηση', bodySite:'Ακέραιο δέρμα αντιβραχίου', sourcePatientStatus:'unknown', reportedAt:'2026-05-28T13:00:00', pepAdministered:false, pepDetails:'', followUpStatus:'closed', followUpDueAt:null, notes:'Ακέραιο δέρμα — χωρίς κίνδυνο μετάδοσης. Καταγράφηκε για διορθωτική ενέργεια στη διαχείριση αποβλήτων.', status:'closed'},
-  {id:'EXP-04', employeeId:'EMP-007', incidentDate:'2026-09-03', exposureType:'sharps_object', deviceOrSource:'Νυστέρι σε δίσκο εργαλείων προς αποστείρωση', bodySite:'Αριστερή παλάμη', sourcePatientStatus:'unknown', reportedAt:'2026-09-03T10:15:00', pepAdministered:false, pepDetails:'', followUpStatus:'pending', followUpDueAt:'2026-10-15', notes:'Εργαλείο χωρίς προστασία στο σετ. Ενημερώθηκε το χειρουργείο για διορθωτική ενέργεια.', status:'open'},
+  {id:'EXP-04', employeeId:'EMP-007', incidentDate:'2026-08-26', exposureType:'sharps_object', deviceOrSource:'Νυστέρι σε δίσκο εργαλείων προς αποστείρωση', bodySite:'Αριστερή παλάμη', sourcePatientStatus:'unknown', reportedAt:'2026-09-03T10:15:00', pepAdministered:false, pepDetails:'', followUpStatus:'pending', followUpDueAt:'2026-10-15', notes:'Εργαλείο χωρίς προστασία στο σετ. Ενημερώθηκε το χειρουργείο για διορθωτική ενέργεια.', status:'open'},
 ]
 
 // Administrative lifecycle of each demo employee record (History tab).
@@ -129,3 +130,6 @@ export function demoEmployeeDocuments(employee,trainingCertificates=[],en=false)
   const licenceDoc=licence?[{id:`DOC-LIC-${employee.id}`,name:`${en?licence[1]:licence[0]}.pdf`,category:employee.profession==='Διοικητικό προσωπικό'?'employmentCertificate':'professionalLicense',description:`${en?'On file since':'Στο αρχείο από'} ${fmtDay(employee.hireDate)}`}]:[]
   return [...licenceDoc,...certs,...training]
 }
+
+// Dates follow today (src/core/data/demoClock.js).
+shiftDemoDatesInPlace([employeeRows,occupationalVisits,employeeVaccinations,employeeTraining,employeeEvaluations,employeeCertificates,employeeExposureIncidents,employeeHistoryDemo])

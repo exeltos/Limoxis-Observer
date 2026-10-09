@@ -1,7 +1,9 @@
 // Builds the printable PDF manual (Greek and English) from the same content the in-app
 // Help Center uses (src/core/help/helpGuide.js), so the two never disagree.
 //
-//   npm run manual:pdf                      # writes docs/manual/*.pdf (not served by the app: the PDFs are for the owner only)
+//   npm run build && npm run manual:screens   # optional: refresh docs/manual/screens (embedded per module)
+//   npm run manual:pdf                      # writes public/manual/*.pdf (served at /manual/…, offered to the
+//                                           # Platform Owner in the Help Center to download or share; not indexed)
 //   node tools/build-manual-pdf.mjs --out some/dir [--lang el|en]
 import fs from 'node:fs'
 import path from 'node:path'
@@ -16,7 +18,8 @@ import { APP_VERSION } from '../src/core/version.js'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const argValue = name => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null }
-const outDir = path.resolve(root, argValue('--out') || 'docs/manual')
+const outDir = path.resolve(root, argValue('--out') || 'public/manual')
+const screensDir = path.resolve(root, argValue('--screens') || 'docs/manual/screens')
 const languages = argValue('--lang') ? [argValue('--lang')] : ['el', 'en']
 
 const esc = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -34,6 +37,7 @@ const UI = {
     recipe: 'Συνηθισμένος συνδυασμός', when: 'Πότε',
     what: 'Τι είναι', users: 'Ποιοι την χρησιμοποιούν', needs: 'Χρειάζεται και', analysis: 'Ανάλυση και report', start: 'Πρώτο βήμα', availableFrom: 'Περιλαμβάνεται από', addonKind: 'Πρόσθετο',
     always: 'Πάντα ανοιχτή', role: 'Ρόλος', does: 'Τι κάνει', term: 'Όρος', def: 'Σημασία', platformTerms: 'Όροι της πλατφόρμας', clinicalTerms: 'Κλινικοί όροι',
+    shotCaption: 'Η οθόνη με δεδομένα demo', overviewCaption: 'Κεντρική εικόνα: εργασίες προτεραιότητας, ανακοινώσεις και βασικοί αριθμοί του νοσοκομείου.', platformCaption: 'Κέντρο Πλατφόρμας (Platform Owner): οργανισμοί, Demo, υγεία και ρυθμίσεις της πλατφόρμας.',
     footer: 'Limoxis Observer — Εγχειρίδιο', page: 'Σελίδα', of: 'από', lock: 'κλειδί', tick: 'τικ', noneNeeded: '—',
   },
   en: {
@@ -48,6 +52,7 @@ const UI = {
     recipe: 'Common combination', when: 'When',
     what: 'What it is', users: 'Who uses it', needs: 'Also needs', analysis: 'Analysis and report', start: 'First step', availableFrom: 'Included from', addonKind: 'Add-on',
     always: 'Always on', role: 'Role', does: 'What it does', term: 'Term', def: 'Meaning', platformTerms: 'Platform terms', clinicalTerms: 'Clinical terms',
+    shotCaption: 'The screen with demo data', overviewCaption: 'Dashboard: priority work, announcements and the hospital\'s key numbers.', platformCaption: 'Platform Center (Platform Owner): organizations, demos, health and platform settings.',
     footer: 'Limoxis Observer — Manual', page: 'Page', of: 'of', lock: 'lock', tick: 'tick', noneNeeded: '—',
   },
 }
@@ -56,6 +61,12 @@ function buildHtml(language) {
   const g = pickGuide(guideContent, language)
   const t = UI[language]
   const lang = language === 'en' ? 'en' : 'el'
+  // Screenshots from tools/capture-manual-screens.mjs (npm run manual:screens), embedded when present.
+  const shot = (id, caption) => {
+    const file = path.join(screensDir, lang, `${id}.jpg`)
+    if (!fs.existsSync(file)) return ''
+    return `<figure class="shot"><img src="data:image/jpeg;base64,${fs.readFileSync(file).toString('base64')}" alt="${esc(caption)}"><figcaption>${esc(caption)}</figcaption></figure>`
+  }
   const moduleName = id => (MODULES[id] ? MODULES[id][lang] : ADDON_LABELS[id][lang])
   const packageName = id => PROFILE_LABELS[id][lang]
   const hint = id => PROFILE_LABELS[id][lang === 'en' ? 'hintEn' : 'hintEl']
@@ -104,10 +115,10 @@ function buildHtml(language) {
     const from = MODULES[id] ? (CORE_MODULES.includes(id) ? t.always : `${t.availableFrom}: ${packageName(MODULES[id].from)}`) : t.addonKind
     const needs = m.needs ? m.needs.map(moduleName).join(', ') : t.noneNeeded
     return `<section class="card module"><h3>${esc(moduleName(id))}<span class="tag">${esc(from)}</span></h3>
-      <dl><dt>${t.what}</dt><dd>${esc(m.what)}</dd><dt>${t.users}</dt><dd>${esc(m.users)}</dd><dt>${t.needs}</dt><dd>${esc(needs)}</dd><dt>${t.analysis}</dt><dd>${esc(m.analysis)}</dd><dt>${t.start}</dt><dd>${esc(m.start)}</dd></dl></section>`
+      <dl><dt>${t.what}</dt><dd>${esc(m.what)}</dd><dt>${t.users}</dt><dd>${esc(m.users)}</dd><dt>${t.needs}</dt><dd>${esc(needs)}</dd><dt>${t.analysis}</dt><dd>${esc(m.analysis)}</dd><dt>${t.start}</dt><dd>${esc(m.start)}</dd></dl>${shot(id, `${moduleName(id)} · ${t.shotCaption}`)}</section>`
   }).join('')
 
-  const roles = `<table class="grid"><thead><tr><th>${t.role}</th><th>${t.does}</th></tr></thead><tbody>${g.roles.map(([id, text]) => `<tr><td><b>${esc(roleLabel(id, lang))}</b></td><td>${esc(text)}</td></tr>`).join('')}</tbody></table><p>${esc(g.rolesNote)}</p>`
+  const roles = `<table class="grid"><thead><tr><th>${t.role}</th><th>${t.does}</th></tr></thead><tbody>${g.roles.map(([id, text]) => `<tr><td><b>${esc(roleLabel(id, lang))}</b></td><td>${esc(text)}</td></tr>`).join('')}</tbody></table><p>${esc(g.rolesNote)}</p>${shot('platform', t.platformCaption)}`
 
   const terms = `<h3>${t.platformTerms}</h3><table class="grid"><thead><tr><th>${t.term}</th><th>${t.def}</th></tr></thead><tbody>${g.terms.map(x => `<tr><td><b>${esc(x.term)}</b></td><td>${esc(x.def)}</td></tr>`).join('')}</tbody></table>
     <h3>${t.clinicalTerms}</h3><table class="grid"><thead><tr><th>${t.term}</th><th>${t.def}</th></tr></thead><tbody>${glossary.map(x => `<tr><td><b>${esc(x.term)}</b></td><td>${esc(x[lang])}</td></tr>`).join('')}</tbody></table>`
@@ -158,12 +169,13 @@ function buildHtml(language) {
   .module h3 { justify-content:space-between; } .tag { font-size:8.5pt; font-weight:600; color:var(--brand); background:var(--soft); padding:1mm 3mm; border-radius:99mm; }
   dl { margin:0; } dt { font-size:9pt; font-weight:800; color:var(--brand); text-transform:uppercase; letter-spacing:.03em; margin-top:2mm; } dd { margin:0.5mm 0 0; }
   h3.q { color:var(--warn); }
+  .shot { margin:4mm 0 0; break-inside:avoid; } .shot img { display:block; width:100%; border:1px solid var(--line); border-radius:2mm; } .shot figcaption { color:var(--muted); font-size:8.5pt; margin-top:1.5mm; }
   </style></head><body>
   <section class="cover"><div class="logo">L</div><div class="eyebrow">${t.cover}</div><h1>${esc(g.title)}</h1><div class="sub">${esc(g.subtitle)}</div>
     <div class="info">${t.version}: v${esc(APP_VERSION)}<br>${t.date}: ${esc(today)}</div></section>
   <section class="toc"><h2>${t.toc}</h2><ul class="tocl"><li>${t.intro}</li>${chapters.map((c, i) => `<li><b>${i + 1}.</b> ${esc(c)}</li>`).join('')}</ul></section>
   <section class="chapter"><h2>${t.intro}</h2><h3>${t.purpose}</h3><p>${esc(g.intro.purpose)}</p><h3>${t.audience}</h3><p>${esc(g.intro.audience)}</p><h3>${t.howToRead}</h3><p>${esc(g.intro.howToRead)}</p></section>
-  <section class="chapter"><h2>1. ${esc(t.c1)}</h2>${journey}</section>
+  <section class="chapter"><h2>1. ${esc(t.c1)}</h2>${shot('overview', t.overviewCaption)}${journey}</section>
   <section class="chapter"><h2>2. ${esc(t.c2)}</h2>${whereAmI}</section>
   <section class="chapter"><h2>3. ${esc(t.c3)}</h2>${matrix}</section>
   <section class="chapter"><h2>4. ${esc(t.c4)}</h2>${packages}${recipes}</section>

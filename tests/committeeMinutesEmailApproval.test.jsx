@@ -9,7 +9,7 @@ import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 const calls = []
 let access = null
 vi.mock('../src/core/supabase/client', () => ({ supabase: { rpc: vi.fn(), functions: { invoke: vi.fn(async () => ({})) } } }))
-vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => ({ notifyError: vi.fn(), notify: vi.fn() }) }))
+vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => ({ notifyError: vi.fn(), notify: vi.fn() }), useOptionalFeedback: () => null }))
 vi.mock('../src/features/committees/committeeExternalApprovalService', async (original) => {
   const real = await original()
   return {

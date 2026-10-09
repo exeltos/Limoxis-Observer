@@ -30,6 +30,7 @@ npm run dev
 | `npm run format` | Format `src`, `tools`, and `tests` with Prettier (writes) |
 | `npm run format:check` | Check formatting without writing (CI-friendly) |
 | `npm run typecheck` | `tsc --noEmit` — editor/tooling support only, see [Type checking](#type-checking) |
+| `npm run typecheck:strict` | Strict JSDoc type check of the typed modules (`tsconfig.strict.json`); part of `npm run check` |
 | `npm run check` | Full local pipeline: all `audit:*` checks + lint + test + build |
 | `npm run visual:compare` | Compare computed styles of two builds screen by screen (see [`docs/CSS_ARCHITECTURE.md`](./docs/CSS_ARCHITECTURE.md)) |
 
@@ -41,7 +42,9 @@ The `audit:*` scripts (see `tools/`) are project-specific regression guardrails 
 
 ### Type checking
 
-`tsconfig.json` enables `allowJs` so editors get autocomplete/jump-to-definition on the existing `.js`/`.jsx` files. `checkJs` is off project-wide: there are no JSDoc type annotations anywhere in the codebase, so TypeScript's structural inference across differently-shaped call sites produces mostly noise, not real errors, if turned on globally. To opt a single file into real checking, add `// @ts-check` as its first line.
+`tsconfig.json` enables `allowJs` so editors get autocomplete/jump-to-definition on the existing `.js`/`.jsx` files. `checkJs` is off project-wide: most modules carry no JSDoc types yet, so TypeScript's structural inference across differently-shaped call sites produces mostly noise, not real errors, if turned on globally. To opt a single file into real checking, add `// @ts-check` as its first line.
+
+Typed modules are checked strictly (`strict`, `checkJs`) by `npm run typecheck:strict`, which `npm run check` and CI run. They are listed in `tsconfig.strict.json`; the first is the permission model (`src/core/permissions`, shared types in `types.js`). Add a folder there once its exports carry JSDoc types.
 
 ## Architecture
 

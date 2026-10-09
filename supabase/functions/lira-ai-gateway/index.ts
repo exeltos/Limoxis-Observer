@@ -1,10 +1,11 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
-const cors={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
+import { serveWithCors } from '../_shared/cors.ts'
+const cors={'Content-Type':'application/json','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 const clean=(v:unknown,max=8000)=>String(v??'').trim().slice(0,max)
 const outputText=(payload:any)=>clean(payload?.output_text||payload?.output?.flatMap((x:any)=>x?.content||[]).map((x:any)=>x?.text||'').join('\n'))
-Deno.serve(async req=>{
+serveWithCors(async req=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return reply({ok:false,code:'LIRA_METHOD_NOT_ALLOWED'},405)
  const url=Deno.env.get('SUPABASE_URL'),anon=Deno.env.get('SUPABASE_ANON_KEY'),secret=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
  if(!url||!anon||!secret)return reply({ok:false,code:'LIRA_GATEWAY_CONFIG_MISSING'},500)

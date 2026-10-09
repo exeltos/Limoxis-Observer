@@ -136,7 +136,7 @@ export function patientTypeOf(patient, date) {
   return from && date >= from && (!to || date <= to) ? 'INPAT' : 'UNK'
 }
 
-export const EARS_NET_COLUMNS = ['RecordId', 'ReportingCountry', 'DataSource', 'DateUsedForStatistics', 'Specimen', 'Gender', 'Age', 'PatientType', 'HospitalUnitType', 'HospitalId', 'LaboratoryCode', 'PatientCounter', 'IsolateId', 'Pathogen', 'Antibiotic', 'SIR', 'ResultMICSign', 'ResultMICValue', 'ResultZoneValue', 'ReferenceGuidelinesSIR']
+const EARS_NET_COLUMNS = ['RecordId', 'ReportingCountry', 'DataSource', 'DateUsedForStatistics', 'Specimen', 'Gender', 'Age', 'PatientType', 'HospitalUnitType', 'HospitalId', 'LaboratoryCode', 'PatientCounter', 'IsolateId', 'Pathogen', 'Antibiotic', 'SIR', 'ResultMICSign', 'ResultMICValue', 'ResultZoneValue', 'ReferenceGuidelinesSIR']
 
 // One row per (first isolate × tested antimicrobial). Tests without a known
 // EARS-Net antimicrobial code are reported separately so they can be mapped.

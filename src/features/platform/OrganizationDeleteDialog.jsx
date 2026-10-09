@@ -7,7 +7,7 @@ import { deletePlatformOrganizations,getOrganizationDeletionImpact } from '../..
 import './platformDeletion.css'
 
 const fmtNumber=(value,language)=>new Intl.NumberFormat(language==='en'?'en-GB':'el-GR').format(Number(value)||0)
-export function fmtBytes(bytes,language){const n=Number(bytes)||0;if(n<1024)return `${fmtNumber(n,language)} B`;const units=['KB','MB','GB','TB'];let v=n/1024,i=0;while(v>=1024&&i<units.length-1){v/=1024;i++}return `${new Intl.NumberFormat(language==='en'?'en-GB':'el-GR',{maximumFractionDigits:1}).format(v)} ${units[i]}`}
+function fmtBytes(bytes,language){const n=Number(bytes)||0;if(n<1024)return `${fmtNumber(n,language)} B`;const units=['KB','MB','GB','TB'];let v=n/1024,i=0;while(v>=1024&&i<units.length-1){v/=1024;i++}return `${new Intl.NumberFormat(language==='en'?'en-GB':'el-GR',{maximumFractionDigits:1}).format(v)} ${units[i]}`}
 
 // One organization: type its code. Several (Demo only): type "ΔΙΑΓΡΑΦΗ <count>" / "DELETE <count>".
 export function deletionPhrase(organizations,language){return organizations.length>1?`${language==='en'?'DELETE':'ΔΙΑΓΡΑΦΗ'} ${organizations.length}`:String(organizations[0]?.code||'')}

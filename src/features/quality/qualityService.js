@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadQualityLocal, saveQualityLocal } from './qualityStore'
+import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 
 const sectionConfig={
   incidents:{table:'quality_incidents',date:'occurred_at'},
@@ -48,6 +49,7 @@ function mapRow(section,row){
     owners:Array.isArray(row.owner_labels)?row.owner_labels:(row.owner_label?[row.owner_label]:[]),
     ownerId:row.owner_id||null,
     lifecycleStatus:row.lifecycle_status||'active',
+    updatedAt:row.updated_at||null,
     voidReason:row.void_reason||'',
     voidedAt:row.voided_at||null,
     voidedById:row.voided_by||null,
@@ -196,7 +198,7 @@ function buildPersistPayload(section,record){
     correction_opened_at:record.correctionOpenedAt||null,
     correction_opened_by:isUuid(record.correctionOpenedById)?record.correctionOpenedById:null,
     history:record.history||[],
-    updated_at:record.updatedAt||new Date().toISOString(),
+    updated_at:new Date().toISOString(),
   }
   if(section==='incidents')Object.assign(payload,{
     severity:record.severity||'medium',
@@ -246,16 +248,17 @@ export async function saveQualityRecord(section,organizationId,record){
   if(isDemoDataEnvironment()){
     const rows=loadQualityLocal(section)
     const index=rows.findIndex(x=>x.id===record.id)
-    if(index>=0)rows[index]={...record}
-    else rows.unshift({...record})
+    const saved={...record,updatedAt:new Date().toISOString()}
+    if(index>=0)rows[index]=saved
+    else rows.unshift(saved)
     saveQualityLocal(section,rows)
-    return {...record}
+    return {...saved}
   }
   assertReady(organizationId)
   const config=sectionConfig[section]
   if(!config) throw new Error('Unsupported quality record type.')
   const payload=buildPersistPayload(section,record)
-  const {data,error}=await supabase.from(config.table).update(payload).eq('organization_id',organizationId).eq('code',record.id).select('*,department:departments(name)').single()
-  if(error) throw error
+  // Refused when someone else saved the record after it was loaded (src/core/data/recordVersion.js).
+  const data=await guardedSingle(expectVersion(supabase.from(config.table).update(payload).eq('organization_id',organizationId).eq('code',record.id),record.updatedAt).select('*,department:departments(name)').single(),{table:config.table,updatedAt:record.updatedAt})
   return mapRow(section,data)
 }

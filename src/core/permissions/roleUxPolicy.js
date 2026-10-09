@@ -3,7 +3,7 @@ import { SCOPES } from './accessModel'
 
 // Front-end UX scope. Supabase RLS is the authority; this policy mirrors the
 // same boundaries so the UI never advertises records/actions a role cannot use.
-export const ROLE_UX_POLICY = Object.freeze({
+const ROLE_UX_POLICY = Object.freeze({
   [ROLES.PLATFORM_OWNER]: { scope: SCOPES.PLATFORM, sensitiveEmployeeHealth: true, label: 'Platform Owner' },
   [ROLES.HOSPITAL_ADMIN]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Hospital Admin' },
   [ROLES.INFECTION_CONTROL_LEAD]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Infection Control Lead' },
@@ -21,8 +21,10 @@ export const ROLE_UX_POLICY = Object.freeze({
   [ROLES.DEMO]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: true, label: 'Demo' },
 })
 
-export function uxPolicyFor(role){ return ROLE_UX_POLICY[role] ?? {scope:SCOPES.SELF,sensitiveEmployeeHealth:false,label:'User'} }
+/** @param {string|null|undefined} role @returns {{scope:string, sensitiveEmployeeHealth:boolean, label:string}} */
+export function uxPolicyFor(role){ return /** @type {Record<string, {scope:string, sensitiveEmployeeHealth:boolean, label:string}>} */(ROLE_UX_POLICY)[String(role)] ?? {scope:SCOPES.SELF,sensitiveEmployeeHealth:false,label:'User'} }
 
+/** @param {{role?: string|null, membership?: Record<string, any>|null, userId?: string|null, record?: Record<string, any>|null}} [args] */
 export function recordWithinRoleScope({role, membership, userId, record}={}){
   if(!record) return true
   const policy=uxPolicyFor(role)
@@ -42,6 +44,7 @@ export function recordWithinRoleScope({role, membership, userId, record}={}){
   return !record.userId || record.userId===userId
 }
 
+/** @param {string|null|undefined} role @param {string[]} [addOns] @param {string[]} [customCapabilities] */
 export function canSeeSensitiveEmployeeHealth(role,addOns=[],customCapabilities=[]){
   return Boolean(uxPolicyFor(role).sensitiveEmployeeHealth)&&can(role,CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,addOns,customCapabilities)
 }

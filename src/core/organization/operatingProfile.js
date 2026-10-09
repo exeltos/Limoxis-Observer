@@ -11,9 +11,9 @@ import { CAPABILITIES as C } from '../permissions/capabilityCatalogue.js'
 // the laboratory became an unlockable module, and read as patients + laboratory + EODY/EARS-Net.
 export const OPERATING_PROFILES = Object.freeze(['basic', 'surveillance', 'full'])
 const LEGACY_PROFILE_MODULES = Object.freeze({ laboratory: ['patients', 'laboratory', 'national'] })
-export const CUSTOM_PROFILE = 'custom'
+const CUSTOM_PROFILE = 'custom'
 export const ADDONS = Object.freeze(['occupational_health', 'pharmacy', 'prevalence_survey', 'lira'])
-export const DEFAULT_PROFILE = 'full'
+const DEFAULT_PROFILE = 'full'
 
 export const PROFILE_LABELS = Object.freeze({
   basic: { el: 'Βασική καταγραφή', en: 'Basic records', hintEl: 'Μόνο η καταγραφή ασθενών. Το Εργαστήριο και οι αναφορές ΕΟΔΥ & EARS-Net ξεκλειδώνονται όπου χρειάζονται.', hintEn: 'Patient records only. Laboratory and ΕΟΔΥ & EARS-Net reports can be unlocked where needed.' },

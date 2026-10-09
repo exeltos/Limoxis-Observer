@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "checkJs": true,
+    "strict": true,
+    "noImplicitAny": true
+  },
+  "include": ["src/core/permissions/**/*.js"]
+}

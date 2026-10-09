@@ -169,6 +169,8 @@ export function userFacingError(error,{language='el',context='generic'}={}){
 export function sanitizeUserMessage(message,{language='el'}={}){
   const value=String(message||'').trim()
   if(!value)return userFacingError(null,{language})
+  // A refused save (record changed by someone else, src/core/data/recordVersion.js) reaches here as error.message.
+  if(/someone else already changed/i.test(value))return userFacingError({code:'CONFLICT'},{language})
   if(!technicalTerms.test(value))return value
   technicalTerms.lastIndex=0
   return userFacingError(null,{language})

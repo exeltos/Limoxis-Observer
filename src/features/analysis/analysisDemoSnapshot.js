@@ -7,7 +7,7 @@
 // screen reads and writes, so a change made in one demo screen (e.g. adding
 // a laboratory sample) is reflected here too.
 import { clinicalCases, demoSurveillanceList } from '../surveillance/clinicalDemoData'
-import { laboratorySamples } from '../laboratory/laboratoryDemoData'
+import { laboratorySamples as allLaboratorySamples } from '../laboratory/laboratoryDemoData'
 import { preventionDepartments } from '../prevention/preventionDemoData'
 import { loadHandHygieneLocal, loadWasteLocal, loadBundlesLocal, loadAntisepticLocal } from '../prevention/preventionStore'
 import { loadQualityLocal } from '../quality/qualityStore'
@@ -15,7 +15,7 @@ import { loadControlExecutionsLocal, loadControlAssignmentsLocal } from '../cont
 import { loadDocuments } from '../documents/documentStore'
 import { loadCommittees } from '../committees/committeeData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
-import { employeeRows } from '../employees/employeeDemoData'
+import { employeeRows, employeeVaccinations } from '../employees/employeeDemoData'
 import { loadTrainingState } from '../training/trainingData'
 import { CLUSTER_THRESHOLD, CLUSTER_WINDOW_DAYS, demoClusterRecords } from '../surveillance/outbreakClusterService'
 import { detectOrganismClusters } from '../surveillance/clusterDetection'
@@ -58,6 +58,11 @@ function lastTwelveMonths(counts, now = new Date()) {
 // against their own reference drug — and, like analysis_amr_susceptibility,
 // only the first such isolate per patient, organism group and year
 // (ECDC/EARS-Net, CLSI M39).
+// Patient microbiology only: environmental samples (surfaces, air, water) are not
+// isolates from patients and stay out of resistance and national figures. Laboratory
+// activity (sample counts) still includes them.
+const laboratorySamples = allLaboratorySamples.filter(sample => sample.subjectType !== 'environment')
+
 export function collectAmrSusceptibility(samples = laboratorySamples) {
   const validated = samples.filter(x => x.organism && ['validated', 'amended'].includes(x.resultStatus))
     .sort((a, b) => String(a.collectedAt || '').localeCompare(String(b.collectedAt || '')) || String(a.id).localeCompare(String(b.id)))
@@ -138,6 +143,22 @@ function collectAntimicrobialSummary() {
   return { total: therapies.length, pending, administrations }
 }
 
+// The dashboard tiles counted the same way as dashboardCloudService.js does for a
+// real hospital: today, the last 30 days and the next 30 days.
+function collectDashboardCounts(now = new Date()) {
+  const day = offset => { const d = new Date(now); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10) }
+  const today = day(0), monthAgo = day(-30), soon = day(30)
+  const openStatus = status => !['closed', 'completed', 'cancelled'].includes(status)
+  return {
+    ohVisitsToday: loadOccupationalVisits().filter(visit => String(visit.date || '').slice(0, 10) === today).length,
+    // a vaccination the Demo already marks for renewal counts too, as the employee record shows it
+    vaccinationsDue: employeeVaccinations.filter(item => item.status === 'renewSoon' || (item.validUntil && item.validUntil >= today && item.validUntil <= soon)).length,
+    newSamplesToday: allLaboratorySamples.filter(sample => String(sample.requestedAt || sample.collectedAt || '').slice(0, 10) === today).length,
+    newEmployees30d: employeeRows.filter(employee => employee.hireDate && employee.hireDate >= monthAgo).length,
+    severeOpenIncidents: loadQualityLocal('incidents').filter(incident => incident.severity === 'high' && openStatus(incident.status)).length,
+  }
+}
+
 export function collectAnalysisDemoSnapshot() {
   const training = loadTrainingState()
   const handHygieneRows = loadHandHygieneLocal()
@@ -145,7 +166,7 @@ export function collectAnalysisDemoSnapshot() {
   const summary = {
     surveillance: demoSurveillanceList().length,
     activeSurveillance: demoSurveillanceList().filter(item => item.status === 'active').length,
-    laboratory: laboratorySamples.length,
+    laboratory: allLaboratorySamples.length,
     prevention: handHygieneRows.length + wasteRows.length + loadBundlesLocal().length + loadAntisepticLocal().length,
     controls: loadControlExecutionsLocal().length + loadControlAssignmentsLocal().length,
     quality: loadQualityLocal('incidents').length + loadQualityLocal('findings').length + loadQualityLocal('capas').length,
@@ -159,8 +180,9 @@ export function collectAnalysisDemoSnapshot() {
     employees: employeeRows.length,
     antiseptic: loadAntisepticLocal().length,
     bundles: loadBundlesLocal().length,
-    pendingSamples: laboratorySamples.filter(x => x.status !== 'completed').length,
+    pendingSamples: allLaboratorySamples.filter(x => x.status !== 'completed').length,
     inpatients: Object.keys(clinicalCases).length,
+    dashboard: collectDashboardCounts(),
   }
   return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility(), clusters: detectOrganismClusters(demoClusterRecords(laboratorySamples), { windowDays: CLUSTER_WINDOW_DAYS, threshold: CLUSTER_THRESHOLD }) }
 }

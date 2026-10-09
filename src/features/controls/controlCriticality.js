@@ -11,7 +11,7 @@ export function controlCriticality(record){
 export function criticalityLabel(level,language='el'){
  return (LABELS[language==='en'?'en':'el'])[CRITICALITY_LEVELS.includes(level)?level:'medium']
 }
-export function criticalityRank(record){return RANK[controlCriticality(record)]}
+function criticalityRank(record){return RANK[controlCriticality(record)]}
 export function requiresEvidence(record){return Boolean(record?.responseConfig?.requiresEvidence)}
 export function deviationActions(record){return String(record?.responseConfig?.deviationActions||'').trim()}
 

@@ -1324,7 +1324,11 @@
   padding-top:18px!important;
 }
 .prevention-record-shell.record-has-general-actions>.entity-record-body>.prevention-record-card{
-  padding-top:48px!important;
+  padding-top:18px!important;
+}
+/* the actions menu sits beside the record's first block instead of above it */
+.prevention-record-shell.record-has-general-actions>.entity-record-body>.prevention-record-card>:first-child>:first-child{
+  margin-right:44px;
 }
 
 .canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions{
@@ -1647,7 +1651,6 @@
   .prevention-record-shell .who-live-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 }
 @media(max-width:820px){
-  .prevention-record-shell.record-has-general-actions>.entity-record-body>.prevention-record-card{padding-top:44px!important}
   .canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions{top:14px!important;right:14px!important}
   .prevention-record-shell .who-action-options{grid-template-columns:1fr!important}
   .prevention-record-shell .who-live-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
@@ -2501,8 +2504,8 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .prevention-record-shell .bundle-record-heading>div{display:grid!important;gap:4px!important}
 .prevention-record-shell .bundle-record-heading strong{color:#173650!important;font-size:14px!important;font-weight:850!important}
 .prevention-record-shell .bundle-record-heading small{color:#7b8e9e!important;font-size:10px!important}
-.prevention-record-shell .bundle-record-kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;border-bottom:1px solid #dfe7ed!important}
-.prevention-record-shell .bundle-record-kpis>div{display:grid!important;gap:5px!important;padding:13px 14px!important;border-right:1px solid #edf1f4!important;background:transparent!important}
+.prevention-record-shell .bundle-record-kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;border-bottom:1px solid #dfe7ed!important}
+.prevention-record-shell .bundle-record-kpis>div{display:grid!important;gap:5px!important;padding:13px 14px!important;border:0!important;border-right:1px solid #edf1f4!important;border-radius:0!important;background:transparent!important}
 .prevention-record-shell .bundle-record-kpis>div:last-child{border-right:0!important}
 .prevention-record-shell .bundle-record-kpis span,.prevention-record-shell .bundle-record-meta b{color:#7b8e9e!important;font-size:9px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.035em!important}
 .prevention-record-shell .bundle-record-kpis strong{color:#29475c!important;font-size:18px!important;font-weight:850!important}
@@ -3536,7 +3539,7 @@ button{letter-spacing:0}
 
 /* Metrics and clinical summaries */
 .module-summary-strip,.workspace-summary{gap:8px!important}
-.canonical-metric-card,.metric-card,.kpi-card{min-height:72px!important;padding:10px 12px!important;border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important}
+.canonical-metric-card,.metric-card{min-height:72px!important;padding:10px 12px!important;border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important}
 .canonical-metric-icon{width:28px!important;height:28px!important;border-radius:7px!important;background:#eef4f7!important;color:#52768e!important}
 .canonical-metric-icon svg{width:15px!important;height:15px!important}
 .canonical-metric-copy strong{font-size:18px!important;line-height:1.05!important;font-weight:660!important;color:#203b52!important}
@@ -4256,7 +4259,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .auth-layout{min-height:100vh;display:grid;grid-template-columns:minmax(440px,42%) minmax(0,58%);background:#f4f7fa}
 .auth-brand-panel{min-height:100vh;padding:36px 42px 34px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(155deg,#102d4d 0%,#16395f 56%,#1a456c 100%);color:#fff}
 .auth-brand{display:flex;align-items:center;gap:12px}
-.auth-logo{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;background:#fff;color:#16395f;font-size:18px;font-weight:900;box-shadow:0 6px 18px rgba(0,0,0,.12)}
 .auth-brand strong,.auth-brand span{display:block}.auth-brand strong{font-size:15px}.auth-brand div>span{margin-top:3px;font-size:10.5px;color:rgba(255,255,255,.62)}
 .auth-value{max-width:590px;margin:auto 0}
 .auth-value .eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.11em;color:rgba(255,255,255,.56)}
@@ -4298,3 +4300,19 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .committee-linked-documents{display:flex;flex-direction:column;gap:6px;margin:0 0 14px;padding:0;list-style:none}
 .committee-linked-documents a{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);font-size:12.5px;color:var(--lo-color-text);text-decoration:none}
 .committee-linked-documents a:hover{background:var(--lo-color-surface-subtle,#f5f8fa)}
+
+/* Clinical assessments tab: same header as the other record tabs (title + one-line notes). */
+.clinical-assessment-registry>.section-toolbar{align-items:flex-start;padding:16px 20px 12px;margin:0;border-bottom:1px solid #edf1f4}
+.clinical-assessment-registry>.section-toolbar h3{margin:0;font-size:17px;font-weight:800;line-height:1.2}
+.clinical-assessment-registry>.section-toolbar .entry-detail-note{display:block;margin:4px 0 0;font-size:11px;line-height:1.4;color:#64748b}
+
+/* Indicator record: the period result first (value, evidence, target, status). */
+.indicator-result{display:grid;gap:16px}
+.indicator-result-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #e4eaf0;border-radius:11px;background:#fff;overflow:hidden}
+.indicator-result-cards>div{display:grid;align-content:start;gap:6px;padding:14px 16px;border-right:1px solid #edf1f4}
+.indicator-result-cards>div:last-child{border-right:0}
+.indicator-result-cards span{font-size:10.5px;font-weight:700;color:#64748b}
+.indicator-result-cards strong{font-size:15px;color:#172033}
+.indicator-result-cards .indicator-result-value strong{font-size:26px;line-height:1.1;color:#0b6097}
+.indicator-result-cards small{font-size:11px;color:#64748b}
+@media(max-width:780px){.indicator-result-cards{grid-template-columns:1fr 1fr}.indicator-result-cards>div:nth-child(2){border-right:0}.indicator-result-cards>div:nth-child(-n+2){border-bottom:1px solid #edf1f4}}

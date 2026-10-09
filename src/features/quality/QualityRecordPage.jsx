@@ -30,6 +30,8 @@ import './quality.css'
 
 const iconMap={incidents:AlertTriangle,findings:ShieldCheck,capas:CheckSquare2,audits:ClipboardCheck}
 
+const RECORD_KIND={incidents:['Συμβάν','Incident'],findings:['Εύρημα','Finding'],capas:['CAPA','CAPA'],audits:['Επιθεώρηση','Audit']}
+
 export function QualityRecordPage(){
   const {recordType,recordId}=useParams()
   const navigate=useNavigate()
@@ -61,7 +63,9 @@ export function QualityRecordPage(){
   return <Page fill><EntityRecordShell
     className="quality-record-shell workspace-fill"
     avatar={<Icon size={19}/>}
+    eyebrow={record.displayId||record.code||record.id}
     title={title}
+    subtitle={[RECORD_KIND[recordType]?.[language==='en'?1:0],language==='en'?record.departmentEn||record.department:record.department].filter(Boolean).join(' · ')||undefined}
     status={<span className={`status-badge ${['closed','completed'].includes(record.status)?'active':''}`}>{t(record.status)}</span>}
     recordNavigation={recordNavigation}
     headerActions={<PrintExportActions showPrint={canPrint} onExport={()=>downloadRecordJson(record,{filename:record.displayId||record.id})}/>}
