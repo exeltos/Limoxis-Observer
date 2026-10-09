@@ -33,7 +33,8 @@
     "test:lira": "vitest run tests/liraQuestionModel.test.js tests/liraHaiMetrics.test.js tests/liraOperationalOverview.test.js tests/liraPhase1Core.test.js tests/liraKnowledgeFoundation.test.js tests/liraClinicalCurriculum.test.js tests/liraDemoReadiness.test.js tests/liraLauncherLoading.test.js tests/liraKnowledgeWorkflow.test.js tests/liraKnowledgeIngestion.test.js tests/liraGateway.test.js tests/liraProviderSettings.test.js tests/liraProviderRuntime.test.js tests/liraRagRuntime.test.js",
     "audit:dead-selectors": "node tools/check-dead-selectors.mjs",
     "manual:pdf": "node tools/build-manual-pdf.mjs",
-    "typecheck:strict": "tsc -p tsconfig.strict.json"
+    "typecheck:strict": "tsc -p tsconfig.strict.json",
+    "manual:screens": "node tools/capture-manual-screens.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
