@@ -1,4 +1,6 @@
 import { supabase } from '../../core/supabase/client'
+import { isOwnerPreview } from '../../core/preview/ownerPreview'
+import { indicatorDefinitionRows } from './indicatorDemoData'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadIndicatorDefinitionsLocal, saveIndicatorDefinitionsLocal } from './indicatorStore'
 
@@ -66,6 +68,8 @@ const select='id,organization_id,indicator_key,version,title_el,title_en,categor
 const toDefinition=row=>({id:row.id,organizationId:row.organization_id||null,system:row.organization_id==null,key:row.indicator_key,version:row.version,titleEl:row.title_el,titleEn:row.title_en||'',category:row.category,numeratorDefinition:row.numerator_definition||{},denominatorDefinition:row.denominator_definition||{},numeratorMetric:row.numerator_metric||'',denominatorMetric:row.denominator_metric||'',multiplier:Number(row.multiplier||1),unit:row.unit||'',sourceAuthority:row.source_authority||'',effectiveFrom:row.effective_from||'',effectiveTo:row.effective_to||'',status:row.status||'draft',calculationType:row.calculation_type||'auto',targetValue:row.target_value==null?'':String(row.target_value),direction:row.direction||'context',approvedAt:row.approved_at||null,visibleDepartmentIds:Array.isArray(row.visible_department_ids)?row.visible_department_ids:[]})
 
 export async function loadIndicatorDefinitions(organizationId){
+ // The Platform Owner preview (help screenshots) shows the shipped definitions.
+ if(isOwnerPreview())return structuredClone(indicatorDefinitionRows).map(toDefinition)
  if(isDemoDataEnvironment())return loadIndicatorDefinitionsLocal().map(toDefinition)
  assertCloud(organizationId,{system:!organizationId})
  const query=supabase.from('indicator_definitions').select(select)

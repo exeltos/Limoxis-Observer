@@ -1103,3 +1103,6 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 .pharmacy-workspace .record-table thead th{position:sticky;top:0;z-index:1;background:#f5f8fa}
 .lo-overflow-text-trigger{display:inline-flex;align-items:center;gap:7px}
 .lo-overflow-text-trigger>svg:last-child{opacity:.7}
+
+/* Platform Center home: the brand stands where the breadcrumb is on inner pages. */
+.platform-topbar-brand{display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:750;color:var(--lo-color-text,#172033)}
