@@ -21,7 +21,7 @@ export function PlatformSettingsPage(){
   const [saving,setSaving]=useState(false)
   const [error,setError]=useState(null)
   const [noticeLanguage,setNoticeLanguage]=useState(en?'en':'el')
-  const [draft,setDraft]=useState({supportEmail:'',defaultDemoDurationDays:30,maintenanceNoticeEnabled:false,maintenanceNoticeEl:'',maintenanceNoticeEn:''})
+  const [draft,setDraft]=useState({supportEmail:'',defaultDemoDurationDays:30,demoAutoPurgeAfterDays:14,organizationDeletionGraceDays:30,maintenanceNoticeEnabled:false,maintenanceNoticeEl:'',maintenanceNoticeEn:''})
   const [baseline,setBaseline]=useState(null)
 
   // Fetch once on mount only, using whatever `en` is at that moment — re-running this on
@@ -45,11 +45,13 @@ export function PlatformSettingsPage(){
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[])
 
-  const dirty=useMemo(()=>baseline?JSON.stringify({supportEmail:draft.supportEmail,defaultDemoDurationDays:Number(draft.defaultDemoDurationDays),maintenanceNoticeEnabled:Boolean(draft.maintenanceNoticeEnabled),maintenanceNoticeEl:draft.maintenanceNoticeEl,maintenanceNoticeEn:draft.maintenanceNoticeEn})!==JSON.stringify({supportEmail:baseline.supportEmail,defaultDemoDurationDays:Number(baseline.defaultDemoDurationDays),maintenanceNoticeEnabled:Boolean(baseline.maintenanceNoticeEnabled),maintenanceNoticeEl:baseline.maintenanceNoticeEl,maintenanceNoticeEn:baseline.maintenanceNoticeEn}):false,[draft,baseline])
+  const dirty=useMemo(()=>baseline?JSON.stringify({supportEmail:draft.supportEmail,defaultDemoDurationDays:Number(draft.defaultDemoDurationDays),demoAutoPurgeAfterDays:Number(draft.demoAutoPurgeAfterDays),organizationDeletionGraceDays:Number(draft.organizationDeletionGraceDays),maintenanceNoticeEnabled:Boolean(draft.maintenanceNoticeEnabled),maintenanceNoticeEl:draft.maintenanceNoticeEl,maintenanceNoticeEn:draft.maintenanceNoticeEn})!==JSON.stringify({supportEmail:baseline.supportEmail,defaultDemoDurationDays:Number(baseline.defaultDemoDurationDays),demoAutoPurgeAfterDays:Number(baseline.demoAutoPurgeAfterDays),organizationDeletionGraceDays:Number(baseline.organizationDeletionGraceDays),maintenanceNoticeEnabled:Boolean(baseline.maintenanceNoticeEnabled),maintenanceNoticeEl:baseline.maintenanceNoticeEl,maintenanceNoticeEn:baseline.maintenanceNoticeEn}):false,[draft,baseline])
   const emailValid=!draft.supportEmail||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.supportEmail.trim())
   const durationValid=Number(draft.defaultDemoDurationDays)>=1&&Number(draft.defaultDemoDurationDays)<=365
+  const purgeValid=String(draft.demoAutoPurgeAfterDays)!==''&&Number(draft.demoAutoPurgeAfterDays)>=0&&Number(draft.demoAutoPurgeAfterDays)<=365
+  const graceValid=Number(draft.organizationDeletionGraceDays)>=1&&Number(draft.organizationDeletionGraceDays)<=365
   const noticeValid=!draft.maintenanceNoticeEnabled||Boolean(draft.maintenanceNoticeEl.trim()||draft.maintenanceNoticeEn.trim())
-  const canSave=dirty&&emailValid&&durationValid&&noticeValid&&!saving
+  const canSave=dirty&&emailValid&&durationValid&&purgeValid&&graceValid&&noticeValid&&!saving
   const noticeValue=noticeLanguage==='en'?draft.maintenanceNoticeEn:draft.maintenanceNoticeEl
 
   function setNoticeValue(value){
@@ -85,6 +87,14 @@ export function PlatformSettingsPage(){
               <FieldBlock label={tx('Προεπιλεγμένη διάρκεια Demo','Default demo duration')} hint={tx('Καθολική προεπιλογή για τη δημιουργία νέων Demo.','Global default for new demo provisioning.')}>
                 <div className="platform-settings-duration-control"><input type="number" min="1" max="365" value={draft.defaultDemoDurationDays} onChange={event=>setDraft(current=>({...current,defaultDemoDurationDays:event.target.value}))}/><span>{tx('ημέρες','days')}</span></div>
                 {!durationValid?<small className="field-error">{tx('Επιτρέπονται 1–365 ημέρες.','Allowed range is 1–365 days.')}</small>:null}
+              </FieldBlock>
+              <FieldBlock label={tx('Αυτόματη διαγραφή ληγμένων Demo','Automatic deletion of expired Demos')} hint={tx('Ημέρες μετά τη λήξη. 0 = ποτέ. Δεν διαγράφεται Demo με νέο αίτημα «Θέλω την εφαρμογή».','Days after the end date. 0 = never. A Demo with a new "I want the application" request is never deleted.')}>
+                <div className="platform-settings-duration-control"><input type="number" min="0" max="365" value={draft.demoAutoPurgeAfterDays} onChange={event=>setDraft(current=>({...current,demoAutoPurgeAfterDays:event.target.value}))}/><span>{tx('ημέρες','days')}</span></div>
+                {!purgeValid?<small className="field-error">{tx('Επιτρέπονται 0–365 ημέρες.','Allowed range is 0–365 days.')}</small>:null}
+              </FieldBlock>
+              <FieldBlock label={tx('Περίοδος χάριτος διαγραφής οργανισμού','Organization deletion grace period')} hint={tx('Ημέρες από τον προγραμματισμό έως την οριστική διαγραφή ενός πραγματικού οργανισμού.','Days from scheduling until a real organization is permanently deleted.')}>
+                <div className="platform-settings-duration-control"><input type="number" min="1" max="365" value={draft.organizationDeletionGraceDays} onChange={event=>setDraft(current=>({...current,organizationDeletionGraceDays:event.target.value}))}/><span>{tx('ημέρες','days')}</span></div>
+                {!graceValid?<small className="field-error">{tx('Επιτρέπονται 1–365 ημέρες.','Allowed range is 1–365 days.')}</small>:null}
               </FieldBlock>
             </div>
           </Card>

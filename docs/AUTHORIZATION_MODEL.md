@@ -173,6 +173,35 @@ demo session cannot populate or leak into a production organization. Shared
 system catalogues may remain globally available, but must be clearly separated
 from tenant records and organization overrides.
 
+## Organization lifecycle and offboarding
+
+- **Access follows the organization's state, in the database.** A paused
+  organization, an organization scheduled for deletion, and a Demo whose
+  entitlement expired or was paused put their members on hold (`status =
+  'disabled'`, `access_hold` set). Every RLS helper requires `status =
+  'active'`, so the hold closes access everywhere. Lifting the hold re-enables
+  only the held memberships. A Platform Owner is never held.
+- **Demo organizations are synthetic.** Inside a Demo only:
+  - its Hospital Admin also has the Occupational Health capabilities;
+  - a member may switch their own role with `demo_switch_my_role`.
+  Members never change their own role anywhere else.
+- **Organizations are deleted on one path.** `platform_purge_organization_tx`
+  runs with a single-use ticket and the Platform Owner's JWT, after the
+  password check (`platform-delete-organizations`). Expired Demos are deleted
+  automatically after the configured number of days (`platform-housekeeping`,
+  same ticketed path, Demos only).
+- **A real organization is deleted after a grace period.** It is scheduled
+  (`platform_schedule_organization_deletion`, default 30 days) and closed at
+  once. Scheduling needs an export from the last 30 days, or a waiver reason
+  kept in the audit log. The deletion can be cancelled until the date. The
+  final deletion still needs the owner's password.
+- **A Demo becomes a customer only after its synthetic data is cleared.** This
+  happens in the same transaction (`platform_convert_demo_tx`). A real hospital
+  never keeps Demo data.
+- Rule 7 still holds for a live organization. Deleting an organization removes
+  all of its records, finalized evidence included, only after the export (or
+  its recorded waiver) and the grace period.
+
 ## Remaining migration gaps
 
 - Replace generic record capabilities such as `DELETE_RECORDS`,

@@ -1,11 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { purgeOrganization } from '../_shared/organizationPurge.ts'
 
 // The only way to delete organizations (one Demo, several Demo at once, or one
-// real organization). Re-checks the Platform Owner's password, then for each
-// organization issues a single-use ticket and calls
-// platform_purge_organization_tx with the caller's JWT (so the audit triggers
-// see the owner), removes the organization's files from storage and the
-// accounts that belong nowhere else, and records that cleanup in the audit log.
+// real organization). Re-checks the Platform Owner's password, then deletes
+// each organization through _shared/organizationPurge.ts (single-use ticket,
+// platform_purge_organization_tx with the owner's JWT, storage, accounts, audit).
 
 const cors={
   'Content-Type':'application/json',
@@ -86,49 +85,9 @@ Deno.serve(async(req)=>{
 
   const results=[]
   for(const org of organizations!){
-    const {data:ticket,error:ticketError}=await admin.from('platform_purge_tickets').insert({actor_user_id:actorId,organization_id:org.id}).select('id').single()
-    if(ticketError){results.push({organizationId:org.id,code:org.code,name:org.name,ok:false,error:ticketError.message});continue}
-
-    const {data:purge,error:purgeError}=await caller.rpc('platform_purge_organization_tx',{p_organization_id:org.id,p_confirmation:org.code,p_ticket:ticket.id})
-    if(purgeError){results.push({organizationId:org.id,code:org.code,name:org.name,ok:false,error:purgeErrorMessage(String(purgeError.message||''))});continue}
-
-    // Files: everything under "<organization id>/" in both buckets.
-    const warnings:string[]=[]
-    let storageRemoved=0
-    const objects=Array.isArray(purge?.storageObjects)?purge.storageObjects:[]
-    const byBucket=new Map<string,string[]>()
-    for(const o of objects){if(o?.bucket&&o?.name){const list=byBucket.get(o.bucket)||[];list.push(o.name);byBucket.set(o.bucket,list)}}
-    for(const [bucket,names] of byBucket){
-      for(let i=0;i<names.length;i+=100){
-        const chunk=names.slice(i,i+100)
-        const {data:removed,error}=await admin.storage.from(bucket).remove(chunk)
-        if(error)warnings.push(`storage:${bucket}:${error.message}`)
-        else storageRemoved+=Array.isArray(removed)?removed.length:chunk.length
-      }
-    }
-
-    // Accounts: removed only when they belong to no other organization and are not a Platform Owner.
-    let accountsDeleted=0,accountsKept=0
-    for(const userId of (Array.isArray(purge?.userIds)?purge.userIds:[])){
-      if(!userId||userId===actorId){accountsKept++;continue}
-      const {data:remaining}=await admin.from('organization_members').select('id').eq('user_id',userId).limit(1)
-      const {data:profile}=await admin.from('profiles').select('is_platform_owner').eq('id',userId).maybeSingle()
-      if(remaining?.length||profile?.is_platform_owner){accountsKept++;continue}
-      const {error}=await admin.auth.admin.deleteUser(userId)
-      if(error)warnings.push(`account:${userId}:${error.message}`)
-      else accountsDeleted++
-    }
-
-    await admin.from('system_audit_log').insert({
-      actor_user_id:actorId,
-      actor_role:'platform_owner',
-      event_type:'platform.organization.purge_cleanup',
-      entity_type:'organization',
-      entity_id:org.id,
-      metadata:{organization_name:org.name,organization_code:org.code,is_demo:org.is_demo,files_total:objects.length,files_removed:storageRemoved,accounts_deleted:accountsDeleted,accounts_kept:accountsKept,warnings},
-    })
-
-    results.push({organizationId:org.id,code:org.code,name:org.name,isDemo:org.is_demo,ok:true,records:purge?.records??0,storageRemoved,accountsDeleted,accountsKept,warnings})
+    const result=await purgeOrganization({admin,caller,actorId,org})
+    if(!result.ok){results.push({organizationId:org.id,code:org.code,name:org.name,ok:false,error:purgeErrorMessage(result.error)});continue}
+    results.push({organizationId:org.id,code:org.code,name:org.name,isDemo:org.is_demo,ok:true,records:result.records,storageRemoved:result.storageRemoved,accountsDeleted:result.accountsDeleted,accountsKept:result.accountsKept,warnings:result.warnings})
   }
 
   const deleted=results.filter(r=>r.ok).length

@@ -1,0 +1,27 @@
+/* Demo lifecycle (extend, convert) and organization offboarding. */
+.demo-extend-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:10px;background:#fff;margin:0 0 12px}
+.demo-extend-label{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:750;color:#1d3247;margin-right:4px}
+.demo-extend-controls .demo-extend-date{flex:0 0 170px;min-width:0;margin:0}
+.lifecycle-warning{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;border:1px solid var(--lo-status-danger-border,#efcfd2);background:var(--lo-status-danger-bg,#fff0f0);color:var(--lo-status-danger-fg,#a23f46);margin-bottom:14px}
+.lifecycle-warning svg{flex:0 0 auto;margin-top:2px}
+.lifecycle-warning strong{display:block;font-size:13px}
+.lifecycle-warning span{display:block;font-size:12px;line-height:1.5;margin-top:2px}
+.lifecycle-note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;border:1px solid var(--lo-status-info-border,#d5e5ee);background:var(--lo-status-info-bg,#edf5fa);color:var(--lo-status-info-fg,#356982);font-size:12.5px;line-height:1.5;margin-bottom:12px}
+.lifecycle-note svg{flex:0 0 auto;margin-top:2px}
+.lifecycle-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.lifecycle-form .lifecycle-wide{grid-column:1 / -1}
+.lifecycle-form textarea{width:100%;resize:vertical;font:inherit}
+.lifecycle-check{grid-column:1 / -1;display:flex!important;flex-direction:row!important;align-items:flex-start;gap:8px;font-size:12.5px;color:#334b61;cursor:pointer}
+.lifecycle-check input{flex:0 0 16px;margin:2px 0 0;width:16px!important;height:16px!important;min-height:0!important;accent-color:var(--lo-color-primary,#256b9b)}
+@media(max-width:720px){.lifecycle-form{grid-template-columns:minmax(0,1fr)}}
+
+.offboarding-panel{display:flex;flex-direction:column;gap:12px}
+.offboarding-scheduled{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:10px;border:1px solid var(--lo-status-danger-border,#efcfd2);background:var(--lo-status-danger-bg,#fff0f0);color:var(--lo-status-danger-fg,#a23f46);font-size:12.5px}
+.offboarding-scheduled strong{font-size:13.5px}
+.offboarding-scheduled .offboarding-spacer{flex:1}
+.offboarding-actions{display:flex;gap:8px;flex-wrap:wrap}
+.offboarding-exports{display:flex;flex-direction:column;gap:6px}
+.offboarding-export{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:9px;background:#fff;font-size:12.5px;color:#334b61}
+.offboarding-export small{color:var(--lo-text-secondary,#5f6f7c)}
+.offboarding-export .offboarding-spacer{flex:1}
+.organization-deletion-badge{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--lo-status-danger-bg,#fff0f0);color:var(--lo-status-danger-fg,#a23f46);border:1px solid var(--lo-status-danger-border,#efcfd2);font-size:10.5px;font-weight:800;vertical-align:middle}

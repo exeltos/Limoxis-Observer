@@ -7,6 +7,7 @@ import { Button } from '../../design-system/Button'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { DownloadMenu } from '../../design-system/DownloadMenu'
 import { exportRegistry } from '../../core/export/registryExports'
+import './platformLifecycle.css'
 
 export function PlatformOrganizationsRegistry({
   tx,
@@ -83,7 +84,7 @@ export function PlatformOrganizationsRegistry({
                         }}
                       >
                         <td>
-                          <strong>{org.name}</strong>
+                          <strong>{org.name}{org.deletion_scheduled_at&&<span className="organization-deletion-badge">{tx(`Προς διαγραφή ${new Intl.DateTimeFormat('el-GR').format(new Date(org.deletion_scheduled_at))}`,`To be deleted ${new Intl.DateTimeFormat('en-GB').format(new Date(org.deletion_scheduled_at))}`)}</span>}</strong>
                           <small>{({hospital:tx('Νοσοκομείο','Hospital'),clinic:tx('Κλινική','Clinic'),rehab:tx('Κέντρο αποκατάστασης','Rehabilitation center')})[org.type||'hospital']||org.type}</small>
                         </td>
                         <td>{org.code}</td>

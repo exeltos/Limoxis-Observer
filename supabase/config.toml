@@ -14,3 +14,9 @@ verify_jwt = true
 
 [functions.platform-delete-organizations]
 verify_jwt = true
+
+[functions.platform-housekeeping]
+verify_jwt = true
+
+[functions.platform-export-organization]
+verify_jwt = true
