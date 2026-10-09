@@ -26,7 +26,7 @@ import { laboratorySamples as demoLaboratorySamples } from '../laboratory/labora
 import './employeeRecordTabsRefinements.css'
 import { SubTabs } from '../../design-system/SubTabs'
 
-function SectionTitle({title,subtitle,action}){return <div className="record-section-header"><div><span className="eyebrow">Limoxis Observer</span><h3>{title}</h3>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>}
+function SectionTitle({title,subtitle,action}){return <div className="record-section-header"><div><h3>{title}</h3>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>}
 function Empty({language,title}){return <div className="registry-empty-state employee-registry-empty"><strong>{title||(language==='en'?'No records':'Δεν υπάρχουν εγγραφές')}</strong></div>}
 function State({loading,error,language,onRetry}){if(loading)return <div className="inline-empty">{language==='en'?'Loading…':'Φόρτωση…'}</div>;if(error)return <div className="data-access-state error"><span>{language==='en'?'Could not load this employee data.':'Δεν ήταν δυνατή η φόρτωση των δεδομένων του εργαζομένου.'}</span><Button variant="secondary" onClick={()=>onRetry?.().catch(()=>{})}>{language==='en'?'Retry':'Επανάληψη'}</Button></div>;return null}
 function usePaged(rows){const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15);const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)),safePage=Math.min(page,totalPages),paged=rows.slice((safePage-1)*pageSize,safePage*pageSize);useEffect(()=>{if(page!==safePage)setPage(safePage)},[page,safePage]);return {page:safePage,pageSize,totalPages,paged,setPage,setPageSize}}
@@ -164,6 +164,7 @@ export function EmployeeCertificatesTab({employee,language,organizationId,canEdi
   const [demoFiles,setDemoFiles]=useState(()=>isDemo?demoEmployeeDocuments(employee,loadTrainingState().certificates,language==='en'):[])
   return <DocumentsWorkspace
     title={language==='en'?'Documents & certifications':'Έγγραφα & Πιστοποιήσεις'}
+    subtitle={language==='en'?'Licences, certifications and training certificates of the employee.':'Άδειες, πιστοποιήσεις και πιστοποιητικά εκπαίδευσης του εργαζομένου.'}
     disabled={!canEdit}
     organizationId={isDemo?null:organizationId}
     entityType="employee-certificate"

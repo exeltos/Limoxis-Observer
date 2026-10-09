@@ -4529,8 +4529,11 @@ button:disabled,
 .employee-details-overview .employee-full-grid{
   display:grid!important;
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  margin:10px 0 0!important;
+  margin:0!important;
 }
+/* the section already spaces its blocks (gap), so the header adds no margin of its own */
+html:not(#lo-employee-details) body .employee-details-overview>.record-section-header{margin-bottom:0!important}
+html:not(#lo-employee-details) body .employee-details-overview>.employee-full-grid{margin-top:0!important}
 .employee-details-overview .employee-full-grid:not(.employee-inline-edit){
   grid-template-rows:repeat(4,minmax(58px,auto))!important;
   column-gap:0!important;
