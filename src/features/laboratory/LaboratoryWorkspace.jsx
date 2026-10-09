@@ -128,7 +128,7 @@ export function LaboratoryWorkspace() {
   }
 
   return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: CAPABILITIES.MANAGE_LAB_SAMPLES }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} />}>
-    <div className="module-summary-strip lab-summary"><LabKpi icon={FlaskConical} label={language === 'el' ? 'Δείγματα σήμερα' : 'Samples today'} value={k.today}/><LabKpi icon={Clock3} label={t('laboratoryRecords.pendingResults')} value={k.pending}/><LabKpi icon={Microscope} label={t('laboratoryRecords.positiveResults')} value={k.positive}/><LabKpi icon={AlertTriangle} label={t('laboratoryRecords.uncommunicatedCritical')} value={k.critical} danger={k.critical > 0}/></div>
+    <div className="module-summary-strip lab-summary"><LabKpi icon={FlaskConical} label={language === 'el' ? 'Δείγματα σήμερα' : 'Samples today'} value={k.today}/><LabKpi icon={Clock3} label={t('laboratoryRecords.pendingResults')} value={k.pending}/><LabKpi icon={Microscope} label={t('laboratoryRecords.positiveResults')} value={k.positive} filter="positive" current={result} onFilter={setResult}/><LabKpi icon={AlertTriangle} label={t('laboratoryRecords.uncommunicatedCritical')} value={k.critical} danger={k.critical > 0} filter="critical" current={result} onFilter={setResult}/></div>
     <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setStatus('all'); setResult('all'); setDepartment('all') }}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="requested">{t('requested')}</option><option value="received">{t('received')}</option><option value="processing">{t('processing')}</option><option value="completed">{t('completed')}</option><option value="rejected">{t('rejected')}</option><option value="cancelled">{t('cancelled')}</option></FilterSelect>
@@ -151,7 +151,8 @@ export function LaboratoryWorkspace() {
   </Page>
 }
 
-function LabKpi({ icon: Icon, label, value, danger }) { return <MetricCard icon={Icon} value={value} label={label} tone={danger ? 'danger' : 'neutral'}/> }
+// A card with a result filter narrows the registry to it; clicking it again clears it.
+function LabKpi({ icon: Icon, label, value, danger, filter, current, onFilter }) { const active = Boolean(filter) && current === filter; return <MetricCard icon={Icon} value={value} label={label} tone={danger ? 'danger' : 'neutral'} active={active} onClick={filter && onFilter ? () => onFilter(active ? 'all' : filter) : undefined}/> }
 function ResultBadge({ text, result }) { return <span className={`status-badge ${result === 'positive' ? 'danger' : result === 'negative' ? 'active' : ''}`}>{text}</span> }
 export function Status({ text, kind }) { const active=['completed','negative'].includes(kind); const warning=['processing','requested','received','positive'].includes(kind); return <span className={`status-badge ${active ? 'active' : warning ? 'temporary' : ''} ${kind === 'critical' || kind === 'rejected' ? 'danger' : ''}`}>{text}</span> }
 
