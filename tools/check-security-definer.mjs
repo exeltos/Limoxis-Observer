@@ -30,7 +30,8 @@ const CATEGORIES = new Set(['rls-helper', 'rpc', 'public-token'])
 // consult the caller's identity, a public-token function must compare its
 // token argument with stored data.
 const CALLER_CHECK = /auth\.uid\(\)|current_user_[a-z_]+\(|is_org_(member|admin)\(|has_org_role\(/i
-const TOKEN_CHECK = /(=|<>|!=)\s*p_token\b|\bp_token\s*(=|<>|!=)/i
+// A stored hash of the token counts too: = encode(sha256(convert_to(...p_token...)), ...)
+const TOKEN_CHECK = /(=|<>|!=)\s*p_token\b|\bp_token\s*(=|<>|!=)|=\s*encode\(sha256\(convert_to\([^;]*\bp_token\b/i
 
 export function splitStatements(sql) {
   const out = []

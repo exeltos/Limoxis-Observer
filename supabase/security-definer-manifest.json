@@ -31,6 +31,23 @@
       "authenticated": true,
       "reason": "Discharges an admission; requires edit_patient in the department."
     },
+    "committee_minutes_external_access": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Shows the minutes to a committee member without an account from the e-mailed link; only the SHA-256 of the random single-use token is stored."
+    },
+    "committee_minutes_external_action": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Resend the e-mail link or record a signature on paper; requires finalize_committee_minutes on the committee."
+    },
+    "committee_minutes_external_decide": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Records the approval or the request for changes of a member without an account, identified by the e-mailed single-use token; pending and unexpired only."
+    },
     "create_patient_admission": {
       "category": "rpc",
       "authenticated": true,
@@ -145,6 +162,11 @@
       "category": "rls-helper",
       "authenticated": true,
       "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
+    "current_user_is_demo_admin": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller is the Hospital Admin of the given Demo organisation; used by the read-only Demo policies on antimicrobial therapy."
     },
     "current_user_is_platform_owner": {
       "category": "rls-helper",
@@ -284,6 +306,11 @@
       "authenticated": true,
       "reason": "Sets the organisation's screen lock after inactivity; Platform Owner or organisation admin."
     },
+    "submit_committee_minutes": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Submits minutes for approval; requires finalize_committee_minutes on the committee; members without an account get an e-mail link or a paper signature."
+    },
     "training_confirm_attendance": {
       "category": "public-token",
       "anon": true,
@@ -311,11 +338,6 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Edits the organisation profile; Platform Owner or organisation admin."
-    },
-    "current_user_is_demo_admin": {
-      "category": "rls-helper",
-      "authenticated": true,
-      "reason": "Answers only whether the caller is the Hospital Admin of the given Demo organisation; used by the read-only Demo policies on antimicrobial therapy."
     }
   }
 }

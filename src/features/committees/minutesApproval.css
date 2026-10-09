@@ -1,0 +1,20 @@
+/* Public page of the e-mailed minutes approval link */
+.minutes-approval-card .eyebrow{color:var(--muted)}
+.minutes-approval-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.minutes-approval-head>svg{color:var(--accent);flex:0 0 auto}
+.minutes-approval-head p{margin:6px 0 0;color:var(--muted)}
+.minutes-approval-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;background:#f7f9fb;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px}
+.minutes-approval-facts div{display:flex;flex-direction:column;gap:3px}
+.minutes-approval-facts span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.minutes-approval-facts strong{font-size:13px;color:#16273a}
+.minutes-approval-topics{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:12px}
+.minutes-approval-topics li strong{font-size:13.5px;color:#16273a}
+.minutes-approval-topics li p{margin:4px 0 0;line-height:1.55;color:#34495e;font-size:13px}
+.minutes-approval-topics li small{display:block;margin-top:4px;color:var(--muted)}
+.minutes-approval-notes{border-left:3px solid var(--line);padding:2px 0 2px 12px}
+.minutes-approval-notes span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.minutes-approval-notes p{margin:4px 0 0;font-size:13px;line-height:1.55}
+.minutes-approval-attendees{color:#34495e!important;font-size:13px!important;line-height:1.6}
+.minutes-approval-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.minutes-approval-card .source-truth-note{display:flex;gap:8px;align-items:flex-start}
+@media(max-width:640px){.minutes-approval-actions{flex-direction:column-reverse}.minutes-approval-actions .button{width:100%;justify-content:center}}

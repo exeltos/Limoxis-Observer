@@ -46,6 +46,21 @@ function describeRejection(raw,error,en){
  if(lower.includes('organization membership required')||lower.includes('forbidden')){
   return en?'Your account is not allowed to make this change in this organization.':'Ο λογαριασμός σας δεν έχει δικαίωμα για αυτή την αλλαγή σε αυτόν τον οργανισμό.'
  }
+ if(lower.includes('committee_minutes_approver_account_required')){
+  return en?'Present voting members have no account. Choose an e-mail link or a paper signature for each of them.':'Υπάρχουν παρόντα μέλη με ψήφο χωρίς λογαριασμό. Επιλέξτε για καθένα σύνδεσμο με email ή υπογραφή σε χαρτί.'
+ }
+ if(lower.includes('committee_approval_rejection_comment_required')){
+  return en?'Write what must be corrected.':'Γράψτε τι πρέπει να διορθωθεί.'
+ }
+ if(lower.includes('minutes_already_decided')||lower.includes('committee_minutes_external_not_pending')){
+  return en?'This approval has already been answered.':'Η έγκριση έχει ήδη απαντηθεί.'
+ }
+ if(lower.includes('minutes_access_expired')){
+  return en?'The link has expired. Ask the committee secretariat to send it again.':'Ο σύνδεσμος έληξε. Ζητήστε από τη Γραμματεία της επιτροπής να τον στείλει ξανά.'
+ }
+ if(lower.includes('minutes_access_not_available')){
+  return en?'The link is no longer valid: the minutes may have been resubmitted.':'Ο σύνδεσμος δεν ισχύει πια: τα πρακτικά μπορεί να έχουν υποβληθεί ξανά.'
+ }
  const duplicate=all.match(/Key \(([^)]+)\)=\(([^)]*)\) already exists/i)
  if(duplicate){const f=duplicate[1].split(',').map(c=>fieldLabel(c.trim(),en)).join(' + ');return en?`A record with the same “${f}” (${duplicate[2]}) already exists.`:`Υπάρχει ήδη εγγραφή με το ίδιο «${f}» (${duplicate[2]}).`}
  const check=raw.match(/violates check constraint "([^"]+)"/i)
