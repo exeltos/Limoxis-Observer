@@ -48,6 +48,13 @@ describe('hosting security headers', () => {
   })
 })
 
+describe('dialogs', () => {
+  it('uses the application dialog instead of the browser alert/confirm/prompt', () => {
+    const offenders = sourceFiles(path.join(root, 'src')).filter(file => /\bwindow\.(alert|confirm|prompt)\s*\(/.test(fs.readFileSync(file, 'utf8')))
+    expect(offenders.map(file => path.relative(root, file))).toEqual([])
+  })
+})
+
 describe('edge function CORS', () => {
   it('answers only the app domains', () => {
     expect(allowedOrigin('https://www.limoxis.com')).toBe('https://www.limoxis.com')

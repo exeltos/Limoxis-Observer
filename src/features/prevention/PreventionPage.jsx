@@ -34,7 +34,7 @@ export function PreventionPage(){
  const {t,language,locale}=useLanguage()
  const navigate=useNavigate()
  const [searchParams,setSearchParams]=useSearchParams()
- const {notify,notifyError}=useFeedback()
+ const {notify,notifyError,confirm}=useFeedback()
  const {role,membership,canAccessRecord,tenant}=useTenant()
  const {data:employeeRows}=useEmployeesData()
  const addOns=useMemo(()=>membership?.capabilities??[],[membership?.capabilities])
@@ -97,7 +97,7 @@ export function PreventionPage(){
  function createRecord(){if(!canCreateRecord)return;if(tab==='vaccinations'){setVaccinationEditor({mode:'individual',draft:{...EMPTY_VACCINATION},selectedEmployeeIds:[]});return}navigate(`/prevention/${tab}/new?fromTab=${tab}`)}
  function pageAction(action){if(action===UI_ACTIONS.CREATE)createRecord()}
  async function saveVaccination(payload){try{if(payload.mode==='edit'){await updateVaccinationAsync(tenant.id,payload.draft.id,payload.draft);notify(language==='en'?'Vaccination updated.':t('vaccinationUpdated'),'success')}else{const selected=employeeRows.filter(x=>payload.selectedEmployeeIds.includes(x.id));await createVaccinationsBulkAsync(tenant.id,selected,payload.draft);notify(t(selected.length===1?'copy.preventionCopy.vaccinationSavedOne':'copy.preventionCopy.vaccinationSavedMany').replace('{count}',selected.length),'success')}setVaccinationEditor(null);await reloadVaccinations()}catch(error){notifyError(error,'save',{operation:payload.mode==='edit'?'staff_vaccinations_update':'staff_vaccinations_create'})}}
- async function deleteVaccination(payload){if(!window.confirm(language==='en'?'Delete this vaccination record? This action cannot be undone.':t('vaccinationDeleteConfirm')))return;try{await deleteVaccinationAsync(tenant.id,payload.draft.id);notify(language==='en'?'Vaccination deleted.':t('vaccinationDeleted'),'success');setVaccinationEditor(null);await reloadVaccinations()}catch(error){notifyError(error,'delete',{operation:'staff_vaccinations_delete'})}}
+ async function deleteVaccination(payload){if(!await confirm({title:language==='en'?'Delete vaccination':t('delete'),message:language==='en'?'Delete this vaccination record? This action cannot be undone.':t('vaccinationDeleteConfirm'),confirmLabel:language==='en'?'Delete':t('delete'),danger:true}))return;try{await deleteVaccinationAsync(tenant.id,payload.draft.id);notify(language==='en'?'Vaccination deleted.':t('vaccinationDeleted'),'success');setVaccinationEditor(null);await reloadVaccinations()}catch(error){notifyError(error,'delete',{operation:'staff_vaccinations_delete'})}}
  const loading=tab==='handHygiene'?handLoading:tab==='waste'?wasteLoading:tab==='antiseptics'?antisepticLoading:tab==='bundles'?bundleLoading:vaccinationLoading
  const pageActions=canCreateRecord?[UI_ACTIONS.CREATE]:[]
  const actionCapabilities={[UI_ACTIONS.CREATE]:createCapability}

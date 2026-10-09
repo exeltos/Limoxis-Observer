@@ -56,3 +56,41 @@ export class AppErrorBoundary extends Component {
     </main>
   }
 }
+
+// One screen failing must not take the whole application down: the menu stays usable,
+// "Try again" re-renders the screen, and moving to another screen clears the error.
+export class ScreenErrorBoundary extends Component {
+  state = { error: null, resetKey: this.props.resetKey }
+
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    return props.resetKey === state.resetKey ? null : { error: null, resetKey: props.resetKey }
+  }
+
+  componentDidCatch(error, info) {
+    globalThis.console?.error?.('Limoxis Observer screen failure', error, info)
+  }
+
+  retry = () => this.setState({ error: null })
+
+  render() {
+    if (!this.state.error) return this.props.children
+    if (isBrowserStorageBlocked(this.state.error)) throw this.state.error
+    const english = typeof document !== 'undefined' && document.documentElement.lang === 'en'
+    return <section className="screen-error-boundary" role="alert">
+      <div className="app-error-card">
+        <TriangleAlert aria-hidden="true" size={32}/>
+        <div>
+          <h1>{english ? 'This screen could not be displayed' : 'Η οθόνη δεν μπόρεσε να εμφανιστεί'}</h1>
+          <p>{english
+            ? 'Your stored records have not been changed. Try again, or open another screen from the menu.'
+            : 'Οι αποθηκευμένες εγγραφές σας δεν έχουν τροποποιηθεί. Δοκιμάστε ξανά ή ανοίξτε άλλη οθόνη από το μενού.'}</p>
+        </div>
+        <Button onClick={this.retry}>{english ? 'Try again' : 'Δοκιμή ξανά'}</Button>
+      </div>
+    </section>
+  }
+}

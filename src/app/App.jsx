@@ -1,5 +1,6 @@
 import { LegalPage } from '../features/legal/LegalPage'
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
+import { lazyPage } from '../core/errors/chunkRecovery'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { ProtectedRoute } from '../core/auth/ProtectedRoute'
@@ -15,7 +16,7 @@ import { RouteLoading } from '../design-system/RouteLoading'
 import { GlobalTextareaExpander } from '../design-system/GlobalTextareaExpander'
 import { PlatformMaintenanceBanner } from '../features/platform/PlatformMaintenanceBanner'
 
-const lazyNamed = (loader, name) => lazy(() => loader().then(m => ({ default: m[name] })))
+const lazyNamed = (loader, name) => lazyPage(loader, name)
 const PlatformCenterPage = lazyNamed(() => import('../features/workspaces/PlatformCenterPage'), 'PlatformCenterPage')
 const PlatformHealthPage = lazyNamed(() => import('../features/platform/PlatformControlPlaneRoutes'), 'PlatformHealthPage')
 const PlatformAuditSecurityPage = lazyNamed(() => import('../features/platform/PlatformControlPlaneRoutes'), 'PlatformAuditSecurityPage')
