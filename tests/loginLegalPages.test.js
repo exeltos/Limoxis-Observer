@@ -15,8 +15,8 @@ describe('login page and public legal pages', () => {
     expect(login).toContain('mailto:${notice.supportEmail}')
   })
   it('routes the legal pages publicly', () => {
-    expect(app).toContain('<Route path="/privacy" element={<LegalPage kind="privacy"/>}/>')
-    expect(app).toContain('<Route path="/terms" element={<LegalPage kind="terms"/>}/>')
+    expect(app).toContain('<Route path="/privacy" element={<Suspense fallback={<RouteLoading/>}><LegalPage kind="privacy"/></Suspense>}/>')
+    expect(app).toContain('<Route path="/terms" element={<Suspense fallback={<RouteLoading/>}><LegalPage kind="terms"/></Suspense>}/>')
   })
   it('has Greek and English texts for every legal page', () => {
     for (const kind of ['privacy', 'terms']) for (const lang of ['el', 'en']) {
