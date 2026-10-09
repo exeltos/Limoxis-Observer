@@ -452,3 +452,32 @@ html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{backg
   html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .nav-item{width:auto!important;padding:9px 12px!important}
   html:not(#lo-phone-nav) body .app-shell:not(.platform-owner-shell)>.sidebar-backdrop{display:block;position:fixed;inset:0;z-index:1250;background:rgba(10,22,38,.45)}
 }
+
+/* Phone registries (≤640px): each row of a registry table (table.data-table in the
+   content area) becomes a card. The first cell is the card title; the others show
+   "column: value" using the data-label copied from the header (src/app/phoneTableCards.js).
+   Grids that only make sense as a matrix keep the table layout. */
+@media (max-width:640px){
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table){display:block!important;min-width:0!important;width:100%!important;height:auto!important;border:0!important;table-layout:auto!important}
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>thead{display:none!important}
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody{display:grid!important;gap:10px!important;padding:10px!important}
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr{display:grid!important;gap:4px!important;height:auto!important;min-height:0!important;max-height:none!important;padding:12px 14px!important;border:1px solid var(--color-border,#d8dee8)!important;border-radius:12px!important;background:var(--color-surface,#fff)!important}
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td{display:flex!important;justify-content:space-between!important;align-items:flex-start!important;gap:12px!important;height:auto!important;min-height:0!important;padding:2px 0!important;border:0!important;min-width:0!important;width:auto!important;max-width:none!important;text-align:right!important;white-space:normal!important;overflow:visible!important}
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td::before{content:attr(data-label);flex:none;max-width:45%;color:var(--color-text-muted,#52606d);font-size:12px;font-weight:600;text-align:left}
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td:first-child{display:block!important;text-align:left!important;padding-bottom:6px!important;margin-bottom:2px!important;border-bottom:1px solid var(--color-border,#e4ebf0)!important}
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td:first-child::before,html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td[data-label=""]::before{content:none}
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td[colspan]{display:block!important;text-align:left!important}
+  html:not(#lo-phone-cards) body .content :is(.scroll-table,.sticky-table-wrap,[data-ui="registry-table"]):has(>table.data-table){flex:none!important;height:auto!important;max-height:none!important;overflow:visible!important}
+  /* registry screens fill the window on larger screens; on phones they grow with their cards */
+  html:not(#lo-phone-cards) body .content :is(.page-fill,.workspace-fill):has(table.data-table){flex:none!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+  html:not(#lo-phone-cards) body .content:has(table.data-table){height:auto!important;flex:none!important}
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td:not(:first-child):not([colspan]){display:block!important}
+  html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td:not(:first-child)::before{float:left;margin-right:12px}
+}
+
+/* Phones: the LIRA button is smaller and sits in the corner, and the page ends
+   with room for it, so the last rows and buttons are never covered. */
+@media (max-width:640px){
+  html:not(#lo-phone-lira) body .lira-assistant-fab{right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;width:46px!important;height:46px!important;border-radius:16px!important}
+  html:not(#lo-phone-lira) body .content{padding-bottom:76px!important}
+}

@@ -3,6 +3,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { lazyPage } from '../core/errors/chunkRecovery'
 import { ScreenErrorBoundary } from '../core/errors/AppErrorBoundary'
 import { UnsavedChangesGuard } from './UnsavedChangesGuard'
+import { watchTableCells } from './phoneTableCards'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Bell, BookOpen, Building2, ChevronDown, ChevronRight, Eye, FlaskConical, LayoutDashboard, Layers3, LogOut, Menu, UserRound, X } from 'lucide-react'
 import { navigationFor } from './navigation'
@@ -44,6 +45,7 @@ export function AppShell(){
   const platformMode=isPlatformOwner&&!tenant
   // Tablets (641–1100px) show an icon rail; the toggle opens the full menu over the page.
   const [navOpen,setNavOpen]=useState(false)
+  useEffect(()=>watchTableCells(),[])
   useEffect(()=>{setNavOpen(false)},[location.pathname,location.hash])
   useEffect(()=>{if(!navOpen)return;const onKey=event=>{if(event.key==='Escape')setNavOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[navOpen])
   const platformHashKey=location.hash.replace(/^#/,'').split('?')[0]
