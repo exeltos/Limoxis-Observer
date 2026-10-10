@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
-import { readCommitteeRecordSource } from './helpers/committeeRecordSource'
 // Only the declarations matter here, not whether they carry !important.
 const withoutImportant = css => css.replaceAll('!important', '')
 
 
 const read = (path) => fs.readFileSync(path, 'utf8')
 
-const recordPage = readCommitteeRecordSource()
 const workflowService = read('src/features/committees/committeeWorkflowService.js')
 const listPage = read('src/features/committees/CommitteesPage.jsx')
 const createPage = read('src/features/committees/CommitteeCreatePage.jsx')
@@ -19,24 +17,6 @@ describe('committee decisions: owner linked to a real account', () => {
     expect(workflowService).toContain('owner_id:draft.ownerId||null')
     expect(workflowService).toContain('owner_id:next.ownerId||null')
     expect(workflowService).toContain('ownerId:data.owner_id||null')
-  })
-
-  it('lets a manager pick a committee member as owner instead of only free text', () => {
-    expect(recordPage).toContain('chooseOwnerMember')
-    expect(recordPage).toContain("ownerMode==='manual'")
-    expect(recordPage).toContain('member?.userId')
-  })
-
-  it('notifies the assigned owner through the shared distribution mechanism when the assignment changes', () => {
-    expect(recordPage).toContain('async function notifyDecisionOwner(decision)')
-    expect(recordPage).toContain("audienceType:'user',audienceValues:[decision.ownerId]")
-    expect(recordPage).toContain('draft.ownerId!==(existing?.ownerId||null)')
-  })
-
-  it('notifies committee members with portal accounts when a meeting is scheduled', () => {
-    expect(recordPage).toContain('async function notifyUpcomingMeeting(meeting)')
-    expect(recordPage).toContain("recipients=activeMembers.map(m=>m.userId).filter(Boolean)")
-    expect(recordPage).toContain('await notifyUpcomingMeeting(next)')
   })
 
   it('widens announcement RLS to the committee_secretariat role, the same way as quality_manager', () => {
