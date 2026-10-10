@@ -1,11 +1,12 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
+import { readCommitteeRecordSource } from './helpers/committeeRecordSource'
 
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 describe('indicator committee and training navigation refinements',()=>{
  const indicator=read('src/features/indicators/IndicatorRecordPage.jsx')
- const committee=read('src/features/committees/CommitteeRecordPage.jsx')
+ const committee=readCommitteeRecordSource()
  const shell=read('src/design-system/EntityRecordShell.jsx')
 
  it('removes duplicate period result editing from indicator records',()=>{

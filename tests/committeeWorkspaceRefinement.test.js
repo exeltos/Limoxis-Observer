@@ -1,10 +1,11 @@
 import { describe,expect,it } from 'vitest'
 import fs from 'node:fs'
+import { readCommitteeRecordSource } from './helpers/committeeRecordSource'
 
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 describe('committee workspace refinement',()=>{
-  const page=read('src/features/committees/CommitteeRecordPage.jsx')
+  const page=readCommitteeRecordSource()
   const css=read('src/features/committees/committeeRefinements.css')
   const attachments=read('src/design-system/AttachmentField.jsx')
 

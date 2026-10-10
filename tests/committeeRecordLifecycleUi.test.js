@@ -1,8 +1,9 @@
 import { describe,expect,it } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
+import { readCommitteeRecordSource } from './helpers/committeeRecordSource'
 
-const page=fs.readFileSync(path.resolve('src/features/committees/CommitteeRecordPage.jsx'),'utf8')
+const page=readCommitteeRecordSource()
 const historySql=fs.readFileSync(path.resolve('supabase/migrations/20260901200512_v0306_committee_history_meeting_lifecycle.sql'),'utf8')
 
 describe('committee record lifecycle UI',()=>{

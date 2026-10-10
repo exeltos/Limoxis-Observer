@@ -1,10 +1,11 @@
 import { describe,expect,it } from 'vitest'
 import fs from 'node:fs'
+import { readCommitteeRecordSource } from './helpers/committeeRecordSource'
 
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 
 const migration=read('supabase/migrations/202609130002_committees_core_workflow_fixes.sql')
-const recordPage=read('src/features/committees/CommitteeRecordPage.jsx')
+const recordPage=readCommitteeRecordSource()
 
 describe('committee core workflow fixes',()=>{
   it('keeps the repository audit trigger compatible with tables that do not expose updated_by',()=>{
