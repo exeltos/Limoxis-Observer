@@ -112,6 +112,8 @@ describe('the guide flow for the Laboratory role', () => {
     step('ast') // before the scenario starts: not counted
     act(() => api.openGuide())
     fireEvent.click(await screen.findByRole('button', { name: /Ξεκινήστε/ }))
+    // The scenario starts with its guided tour; ended, the card shows the steps.
+    fireEvent.click(await screen.findByRole('button', { name: 'Τέλος ξενάγησης' }))
     const card = await screen.findByRole('complementary', { name: 'Σενάριο αξιολόγησης' })
     expect(within(card).getByText('Σενάριο 1 από 1')).toBeInTheDocument()
     expect(within(card).getAllByRole('listitem').map(item => item.className)).toEqual(['is-next', '', '', ''])
