@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, CheckCircle2, FileDown, ChevronLeft, ChevronRight, GraduationCap, Info, Rocket, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { BookOpen, CheckCircle2, FileDown, ChevronLeft, ChevronRight, GraduationCap, Info, Rocket, Search, ShieldCheck, Sparkles, Users, X } from 'lucide-react'
 import { APP_VERSION, BUILD_ID } from '../version'
 import { useLocation } from 'react-router-dom'
 import { glossary } from './helpContent'
@@ -9,6 +9,7 @@ import { helpExtras } from './helpExtras'
 import { guideContent, pickGuide } from './helpGuide'
 import { HelpGuideView } from './HelpGuideView'
 import { HelpManualsView } from './HelpManualsView'
+import { HelpRolesView } from './HelpRolesView'
 import { platformHelp, platformHelpNavigation } from './helpPlatform'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useTenant } from '../tenant/TenantContext'
@@ -147,6 +148,7 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
      </div>
      <div className="manual-side-bottom">
       <button className={mode==='start'?'active':''} onClick={()=>{setMode('start');setQuery('')}}><Rocket size={15}/><span>{tx.start}</span></button>
+      <button className={mode==='roles'?'active':''} onClick={()=>{setMode('roles');setQuery('')}}><Users size={15}/><span>{language==='en'?'Who is who':'Ποιος είναι ποιος'}</span></button>
       <button className={mode==='glossary'?'active':''} onClick={()=>{setMode('glossary');setQuery('')}}><BookOpen size={15}/><span>{tx.glossary}</span></button>
       <button className={mode==='about'?'active':''} onClick={()=>{setMode('about');setQuery('')}}><Info size={15}/><span>{tx.about}</span></button>
       {isOwner&&<button className={mode==='manuals'?'active':''} onClick={()=>{setMode('manuals');setQuery('')}}><FileDown size={15}/><span>{language==='en'?'Manuals (PDF)':'Εγχειρίδια (PDF)'}</span></button>}
@@ -208,6 +210,7 @@ export function HelpCenter({open,onClose,onResetScreenGuides=null}){
 
     {mode==='start'&&<HelpGuideView language={language} hospitalMode={Boolean(tenant)&&!platformMode} moduleEnabled={moduleEnabled} currentProfile={operatingProfile?.profile}/>}
 
+    {mode==='roles'&&<HelpRolesView/>}
     {mode==='glossary'&&<main className="manual-special"><span className="manual-step-label">{tx.glossaryEyebrow}</span><h1>{tx.glossaryTitle}</h1><p>{tx.glossaryBody}</p><label className="manual-special-search"><Search size={15}/><input ref={searchRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder={tx.searchGlossary}/></label><div className="manual-glossary">{terms.map(g=><div key={g.term}><strong>{g.term}</strong><span>{language==='el'?g.el:g.en}</span></div>)}</div></main>}
 
     {mode==='about'&&<main className="manual-special manual-about"><span className="manual-step-label">LIMOXIS OBSERVER</span><h1>{tx.aboutTitle}</h1><p>Hospital Infection Prevention, Surveillance & Governance platform.</p><div className="manual-about-grid"><section><small>{tx.currentVersion}</small><strong>v{APP_VERSION}</strong><span>Build {BUILD_ID}</span></section><section><small>{tx.access}</small><strong>Role + Scope</strong><span>Capabilities & assignments</span></section><section><small>{tx.languages}</small><strong>EL / EN</strong><span>{language==='en'?'Unified interface':'Ενιαίο περιβάλλον'}</span></section><section><small>{tx.governance}</small><strong>Traceability</strong><span>Audit-aware workflows</span></section></div><div className="manual-about-text"><h2>{tx.purpose}</h2><p>{tx.purposeBody}</p></div></main>}

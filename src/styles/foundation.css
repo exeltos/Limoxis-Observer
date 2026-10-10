@@ -4884,3 +4884,5 @@ html:not(#lo-employee-details) body .employee-details-overview>.employee-full-gr
   width:16px;
   height:16px;
 }
+.manual-roles-table{display:grid;max-width:1100px;border:1px solid #dde5e9;border-radius:10px;overflow:hidden}.manual-roles-head,.manual-roles-row{display:grid;grid-template-columns:minmax(140px,.9fr) minmax(150px,1fr) minmax(170px,1.2fr) minmax(220px,1.6fr);gap:12px;padding:10px 14px}.manual-roles-head{background:#f0f6f7;color:#396d73;font-size:11.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}.manual-roles-row{border-top:1px solid #e6edf0;line-height:1.45;color:#566d7c}.manual-roles-row b{color:#245f67}.manual-roles-row small{display:block;margin-top:5px;color:#7a8a99}
+@media(max-width:900px){.manual-roles-head{display:none}.manual-roles-row{grid-template-columns:1fr;gap:4px}}

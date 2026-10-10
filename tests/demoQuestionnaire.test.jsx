@@ -94,8 +94,11 @@ describe('questionnaire in the guide', () => {
     let now = 1_000_000
     vi.spyOn(Date, 'now').mockImplementation(() => now)
     render(<MemoryRouter><LanguageProvider><Harness/></LanguageProvider></MemoryRouter>)
-    // The first visit opens the guide by itself.
-    fireEvent.click(await screen.findByRole('button', { name: /Ξεκινήστε/ }))
+    // The first visit opens the welcome; its tour starts the role's first scenario.
+    fireEvent.click(await screen.findByRole('button', { name: /^Ξενάγηση/ }))
+    // The scenario's tour runs over the screen; ended, the scenario card is back.
+    const endTour = screen.queryByRole('button', { name: 'Τέλος ξενάγησης' })
+    if (endTour) fireEvent.click(endTour)
     now += 95_000
     fireEvent.click(await screen.findByRole('button', { name: 'Ολοκλήρωσα' }))
     const ease = await screen.findByRole('radiogroup', { name: 'Ευκολία' })

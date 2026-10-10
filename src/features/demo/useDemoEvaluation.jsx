@@ -5,6 +5,9 @@ import { DemoGuideDialog } from './DemoGuideDialog'
 import { DemoApplicationDialog } from './DemoApplicationDialog'
 import { DemoActiveScenario, DemoScenarioRating } from './DemoScenarioCards'
 import { DemoStepSpotlight } from './DemoStepSpotlight'
+import { DemoGuidedTour } from './DemoGuidedTour'
+import { DemoWelcome } from './DemoWelcome'
+import { demoTourStops, hasDemoTour } from './demoTours'
 import { DEMO_ALL_SCENARIOS, demoScenarioDoneCount, demoScenariosForRole, demoStepsComplete } from './demoScenarios'
 import { DEMO_SCENARIO_EVENT, DEMO_STEP_EVENT, demoScenarioForPath, nextDemoScenario } from './demoScenarioSignals'
 import { hasExtendedDemoSchema, loadMyDemoApplicationRequests, loadMyDemoProgress, loadMyDemoRatings, rateDemoEvaluationStep, requestDemoApplication, setDemoEvaluationStep, submitDemoScenarioFeedback } from './demoEvaluationService'
@@ -12,6 +15,7 @@ import { hasExtendedDemoSchema, loadMyDemoApplicationRequests, loadMyDemoProgres
 const ACTIVE_KEY='lo.demo.activeScenario'
 const STEPS_KEY='lo.demo.scenarioSteps'
 const STARTED_KEY='lo.demo.scenarioStarted' // { scenario: started at (ms) }, for the time it took
+const TOUR_KEY='lo.demo.tour' // the scenario whose guided tour is on
 const OVERALL='guide_opened'
 const scenarioByKey=key=>DEMO_ALL_SCENARIOS.find(scenario=>scenario.key===key)||null
 
@@ -28,7 +32,10 @@ const errorText=(error,en)=>/Too many requests/i.test(String(error?.message||'')
 // asked to rate it there and then, and after the last one to rate the whole.
 // The guide shows the scenarios of the evaluator's current role; a scenario
 // with steps is done once its screens have checked off every step (kept for
-// the session), or with "I'm done".
+// the session), or with "I'm done". The first visit opens a welcome that
+// starts the guided tour of the role's first scenario; a scenario started from
+// the guide runs its tour over the screen too, and can be toured again from its
+// card.
 export function useDemoEvaluation({enabled,organizationId,organizationName,userId,profile,isPlatformOwner,role=null,language,navigate,holdAutoOpen=false}){
   const en=language==='en'
   const flow=Boolean(enabled&&organizationId&&userId)
@@ -36,6 +43,8 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
   const trial=flow&&Boolean(isPlatformOwner)
   const [progress,setProgress]=useState({})
   const [guideOpen,setGuideOpen]=useState(false)
+  const [welcomeOpen,setWelcomeOpen]=useState(false)
+  const [tourKey,setTourKeyState]=useState(()=>readSessionValue(TOUR_KEY,null))
   const [applicationOpen,setApplicationOpen]=useState(false)
   const [working,setWorking]=useState(false)
   const [sentAt,setSentAt]=useState(null)
@@ -52,9 +61,9 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
   const scenarios=useMemo(()=>demoScenariosForRole(role,{extended:extended||trial}),[role,extended,trial])
   const {pathname}=useLocation()
   const state=useRef({progress,ratings,loaded,activeKey,stepsDone,scenarios});state.current={progress,ratings,loaded,activeKey,stepsDone,scenarios}
-  // The first visit opens the guide, after the sign-in briefing has closed.
+  // The first visit opens the welcome, after the sign-in briefing has closed.
   const [autoOpen,setAutoOpen]=useState(false)
-  useEffect(()=>{if(autoOpen&&!holdAutoOpen){setAutoOpen(false);setGuideOpen(true)}},[autoOpen,holdAutoOpen])
+  useEffect(()=>{if(autoOpen&&!holdAutoOpen){setAutoOpen(false);setWelcomeOpen(true)}},[autoOpen,holdAutoOpen])
 
   useEffect(()=>{let active=true
     setLoaded(false)
@@ -72,7 +81,8 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
     if(trial){setProgress(current=>{const next={...current};if(done)next[step]=new Date().toISOString();else delete next[step];return next});if(done&&!state.current.ratings[step])setRatingFor(step);return}
     setWorking(true);try{setProgress(await setDemoEvaluationStep(organizationId,step,done));if(done&&!state.current.ratings[step])setRatingFor(step)}catch{/* the mark stays as it was */}finally{setWorking(false)}},[flow,trial,organizationId])
   const setActive=useCallback(key=>{setActiveKey(key);if(key)writeSessionValue(ACTIVE_KEY,key);else removeSessionValue(ACTIVE_KEY)},[])
-  const openScenario=useCallback((scenario)=>{setGuideOpen(false);setRatingFor(null);if(flow){setActive(scenario.key);const started=readSessionJson(STARTED_KEY,{})||{};if(!started[scenario.key])writeSessionJson(STARTED_KEY,{...started,[scenario.key]:Date.now()})}navigate(scenario.to)},[navigate,flow,setActive])
+  const setTourKey=useCallback(key=>{setTourKeyState(key);if(key)writeSessionValue(TOUR_KEY,key);else removeSessionValue(TOUR_KEY)},[])
+  const openScenario=useCallback((scenario)=>{setGuideOpen(false);setWelcomeOpen(false);setRatingFor(null);if(flow){setActive(scenario.key);setTourKey(hasDemoTour(scenario.key)?scenario.key:null);const started=readSessionJson(STARTED_KEY,{})||{};if(!started[scenario.key])writeSessionJson(STARTED_KEY,{...started,[scenario.key]:Date.now()})}navigate(scenario.to)},[navigate,flow,setActive,setTourKey])
 
   // A scenario is completed: mark it and ask for its rating (once).
   const complete=useCallback(async(key)=>{
@@ -119,13 +129,19 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
   const activeScenario=flow&&activeKey&&!ratingFor&&!progress[activeKey]?scenarioByKey(activeKey):null
   // The next step not yet done is outlined on screen, when the screen marks it.
   const nextStep=activeScenario?.steps?.find(step=>!stepsDone[activeScenario.key]?.[step.id])||null
-  const spotlight=activeScenario&&nextStep?.target&&!guideOpen?`${activeScenario.key}:${nextStep.id}`:null
+  // The guided tour of the active scenario, over the steps not yet done.
+  const tourStops=activeScenario&&tourKey===activeScenario.key?demoTourStops(activeScenario.key,stepsDone[activeScenario.key]||{}):[]
+  const touring=tourStops.length>0&&!guideOpen
+  const tourStepIndex=activeScenario?.steps?.findIndex(step=>step.id===tourStops[0]?.step)??-1
+  const spotlight=activeScenario&&nextStep?.target&&!guideOpen&&!touring?`${activeScenario.key}:${nextStep.id}`:null
   const submitApplication=useCallback(async(values)=>{setWorking(true);setError('');try{const result=await requestDemoApplication(organizationId,values);setSentAt(result?.createdAt||new Date().toISOString());setRequested(true)}catch(caught){setError(errorText(caught,en))}finally{setWorking(false)}},[organizationId,en])
 
   const dialogs=<>
     {guideOpen&&<DemoGuideDialog language={language} scenarios={scenarios} progress={progress} ratings={ratings} onRate={flow?key=>{setGuideOpen(false);setRatingFor(key)}:null} working={working} onOpenScenario={openScenario} onToggle={flow?toggleStep:null} onClose={()=>setGuideOpen(false)}/>}
+    {welcomeOpen&&<DemoWelcome language={language} organizationName={organizationName} scenarios={scenarios} onTour={openScenario} onScenarios={()=>{setWelcomeOpen(false);setGuideOpen(true)}}/>}
     <DemoStepSpotlight target={spotlight}/>
-    {activeScenario&&!guideOpen&&<DemoActiveScenario scenario={activeScenario} scenarios={scenarios} stepsDone={stepsDone[activeScenario.key]||{}} language={language} trial={trial} working={working} onDone={()=>void complete(activeScenario.key)} onClose={()=>setActive(null)}/>}
+    {touring&&<DemoGuidedTour key={`${activeScenario.key}:${tourStops.length}`} scenario={activeScenario} stops={tourStops} stepNumber={tourStepIndex+1} stepTotal={tourStepIndex>=0?activeScenario.steps.length:0} language={language} onClose={()=>setTourKey(null)} onFinish={()=>setTourKey(null)}/>}
+    {activeScenario&&!guideOpen&&!touring&&<DemoActiveScenario scenario={activeScenario} scenarios={scenarios} stepsDone={stepsDone[activeScenario.key]||{}} language={language} trial={trial} working={working} onDone={()=>void complete(activeScenario.key)} onClose={()=>setActive(null)} onTour={hasDemoTour(activeScenario.key)?()=>setTourKey(activeScenario.key):null}/>}
     {flow&&ratingFor&&!guideOpen&&!applicationOpen&&<DemoScenarioRating key={ratingFor} scenario={ratingScenario} next={nextScenario} language={language} trial={trial} working={working} canRequest={tracks&&!requested}
       onSubmit={submitRating} onLater={closeRating} onNext={scenario=>{setRatingFor(null);openScenario(scenario)}} onRequestApplication={()=>{setRatingFor(null);setSentAt(null);setError('');setApplicationOpen(true)}}/>}
     {applicationOpen&&<DemoApplicationDialog language={language} organizationName={organizationName} defaultName={profile?.fullName||''} email={profile?.email||''} working={working} sentAt={sentAt} error={error} onSubmit={submitApplication} onClose={()=>{setApplicationOpen(false);setSentAt(null);setError('')}}/>}
@@ -136,7 +152,7 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
     requested,
     canRequest:tracks,
     // Something of the evaluation is on screen or about to open (screen guides wait).
-    busy:guideOpen||applicationOpen||autoOpen||Boolean(flow&&ratingFor)||(tracks&&!loaded),
+    busy:guideOpen||welcomeOpen||applicationOpen||autoOpen||Boolean(flow&&ratingFor)||(tracks&&!loaded),
     openGuide:()=>setGuideOpen(true),
     openApplication:()=>{setSentAt(null);setError('');setApplicationOpen(true)},
     dialogs,
