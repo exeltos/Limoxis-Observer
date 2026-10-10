@@ -76,3 +76,4 @@
 .demo-evaluation-step q{display:block;margin-top:2px;font-size:11px;color:#40566d;quotes:"«" "»"}
 @media print{.demo-scenario-card{display:none}}
 .demo-evaluation-overall-comment{font-size:12px;color:#40566d;quotes:"«" "»"}
+.demo-scenario-trial{font-size:11px;color:#7a4e06;background:#fff8e6;border:1px solid #f1dfae;border-radius:7px;padding:4px 8px}
