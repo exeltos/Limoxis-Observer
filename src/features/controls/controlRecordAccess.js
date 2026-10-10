@@ -19,7 +19,9 @@ export function controlOverallStatus(record, departments = []) {
   return 'scheduled'
 }
 
-export function controlRecordPermissions({ role, membership, record, actorId }) {
+// allDepartmentsVisible: every department the control is assigned to is one
+// the user can access (a department manager's own departments).
+export function controlRecordPermissions({ role, membership, record, actorId, allDepartmentsVisible = false }) {
   const addOns = membership?.capabilities ?? []
   const custom = membership?.customCapabilities ?? []
   const has = capability => can(role, capability, addOns, custom)
@@ -32,7 +34,10 @@ export function controlRecordPermissions({ role, membership, record, actorId }) 
 
   // The infection control lead may edit the controls the infection control team defined.
   const canEditCentral = canEditDefinition && role === ROLES.INFECTION_CONTROL_LEAD && record.createdByScope === 'infection_control'
-  const canModifyDefinition = canEditDefinition && (canManageControls || canEditCentral)
+  // A department manager maintains the controls defined for their own department,
+  // as long as the control is not assigned to any other department.
+  const canEditOwnDepartment = canEditDefinition && role === ROLES.DEPARTMENT_MANAGER && record.createdByScope === 'department' && allDepartmentsVisible
+  const canModifyDefinition = canEditDefinition && (canManageControls || canEditCentral || canEditOwnDepartment)
   const canDeleteDraft = record.status === 'draft' && has(CAPABILITIES.DELETE_CONTROL_DRAFT)
 
   // A department's control can be executed when it is assigned there and is due,
@@ -49,6 +54,7 @@ export function controlRecordPermissions({ role, membership, record, actorId }) 
 
   return {
     canManageControls,
+    editsOwnDepartmentOnly: canEditOwnDepartment && !canManageControls,
     canModifyDefinition,
     canDeleteDraft,
     canRemoveDefinition: canDeleteDraft || canModifyDefinition,

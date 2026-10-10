@@ -48,10 +48,20 @@ describe('controlRecordPermissions: execution', () => {
 })
 
 describe('controlRecordPermissions: definition', () => {
-  it('control managers modify and remove the definition; a department manager does not', () => {
+  it('control managers modify and remove the definition; a department manager does not touch central controls', () => {
     const record = control({ ICU: {} })
-    expect(permissions(ROLES.QUALITY_MANAGER, record)).toMatchObject({ canModifyDefinition: true, canRemoveDefinition: true, canDeleteDraft: false })
-    expect(permissions(ROLES.DEPARTMENT_MANAGER, record)).toMatchObject({ canModifyDefinition: false, canRemoveDefinition: false })
+    expect(permissions(ROLES.QUALITY_MANAGER, record)).toMatchObject({ canModifyDefinition: true, canRemoveDefinition: true, canDeleteDraft: false, editsOwnDepartmentOnly: false })
+    expect(controlRecordPermissions({ role: ROLES.DEPARTMENT_MANAGER, record, actorId: 'me', allDepartmentsVisible: true })).toMatchObject({ canModifyDefinition: false, canRemoveDefinition: false })
+  })
+
+  it('a department manager edits and archives their own department\'s controls, in their department only', () => {
+    const own = control({ ICU: {} }, { createdByScope: 'department', createdForDepartment: 'ICU' })
+    const manager = visible => controlRecordPermissions({ role: ROLES.DEPARTMENT_MANAGER, record: own, actorId: 'me', allDepartmentsVisible: visible })
+    expect(manager(true)).toMatchObject({ canModifyDefinition: true, canRemoveDefinition: true, editsOwnDepartmentOnly: true, canDeleteDraft: false })
+    // Also assigned to a department the manager cannot see: hands off.
+    expect(manager(false)).toMatchObject({ canModifyDefinition: false, canRemoveDefinition: false, editsOwnDepartmentOnly: false })
+    // A department user of the same department does not edit definitions.
+    expect(controlRecordPermissions({ role: ROLES.DEPARTMENT_USER, record: own, actorId: 'me', allDepartmentsVisible: true }).canModifyDefinition).toBe(false)
   })
 
   it('only a draft can be deleted, by a role allowed to delete drafts', () => {
