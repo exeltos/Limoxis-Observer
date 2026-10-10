@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
+import { sampleTone } from '../src/features/surveillance/patientRecordScope'
 
 const migration = fs.readFileSync('supabase/migrations/20260919280000_block_surveillance_link_from_negative_sample.sql', 'utf8')
 const page = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
@@ -34,7 +35,8 @@ describe('Technical guard: a negative laboratory result can never start or conti
   })
 
   it('the Surveillance & Samples UI hides the "Start surveillance" action for a negative-result sample', () => {
-    expect(page).toContain("if(result==='negative')return 'negative'")
+    expect(sampleTone({ result: 'NEGATIVE' })).toBe('negative')
+    expect(page).toContain('sampleTone(sample)')
     expect(page).toContain("isNegative=tone==='negative'")
     expect(page).toContain('sample-negative-note')
     expect(page).toContain("translate('copy.clinicalRecordCopy.aNegativeResultCannotStartA'")
