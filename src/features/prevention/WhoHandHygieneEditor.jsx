@@ -7,6 +7,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ActionButton } from '../../design-system/ActionButton'
+import { normalizeWhoMoments,whoStatsFromObservations } from './whoHandHygieneStats'
 export const WHO_MOMENTS=[
  {id:'moment1',label:'1. Πριν την επαφή με τον ασθενή',labelEn:'1. Before touching a patient'},
  {id:'moment2',label:'2. Πριν από καθαρό / άσηπτο χειρισμό',labelEn:'2. Before clean / aseptic procedure'},
@@ -20,25 +21,10 @@ export const WHO_PROFESSIONS=[
  ['Φυσικοθεραπευτής','Physiotherapist'],['Τεχνολόγος','Technologist'],['Βοηθητικό προσωπικό','Support staff'],['Άλλο','Other'],
 ]
 
-const normalizeMoments=item=>{
- const values=Array.isArray(item?.moments)?item.moments.filter(Boolean):[]
- if(values.length)return [...new Set(values)]
- return item?.moment?[item.moment]:[]
-}
 const blankObservation=()=>({id:'',professionalsCount:1,professionalCategory:'Νοσηλευτής / Νοσηλεύτρια',moments:[],action:'',gloves:false,notes:''})
-const observationWeight=item=>Math.max(1,Number(item?.professionalsCount)||1)
-const calculateStats=(list=[])=>{
- const opportunities=list.reduce((sum,item)=>sum+observationWeight(item),0)
- const professionals=opportunities
- const handRub=list.reduce((sum,item)=>sum+(item.action==='HR'?observationWeight(item):0),0)
- const handWash=list.reduce((sum,item)=>sum+(item.action==='HW'?observationWeight(item):0),0)
- const missed=list.reduce((sum,item)=>sum+(item.action==='MISSED'?observationWeight(item):0),0)
- const compliant=handRub+handWash
- return {opportunities,handRub,handWash,missed,professionals,compliant,compliance:opportunities?Number(((compliant/opportunities)*100).toFixed(1)):0}
-}
 
 const actionLabel=(action,en)=>!action?(en?'Select action':'Επιλέξτε ενέργεια'):action==='HR'?(en?'Hand rub':'Αντισηπτικό'):action==='HW'?(en?'Hand wash':'Πλύσιμο'):(en?'Missed':'Δεν έγινε')
-const momentLabels=(moments,en)=>normalizeMoments({moments}).map(id=>WHO_MOMENTS.find(moment=>moment.id===id)).filter(Boolean).map(moment=>en?moment.labelEn:moment.label)
+const momentLabels=(moments,en)=>normalizeWhoMoments({moments}).map(id=>WHO_MOMENTS.find(moment=>moment.id===id)).filter(Boolean).map(moment=>en?moment.labelEn:moment.label)
 
 export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initialRecord=null,departments=[]}){
  const {profile,user}=useAuth()
@@ -52,7 +38,7 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
   : {facility:'',department:firstDepartment,date:today,observer:actor.name,startTime:'',endTime:''})
  const [current,setCurrent]=useState(blankObservation())
  const [currentTouched,setCurrentTouched]=useState(false)
- const [items,setItems]=useState(()=>initialRecord?.whoObservations?JSON.parse(JSON.stringify(initialRecord.whoObservations)).map(item=>({...item,moments:normalizeMoments(item)})):[])
+ const [items,setItems]=useState(()=>initialRecord?.whoObservations?JSON.parse(JSON.stringify(initialRecord.whoObservations)).map(item=>({...item,moments:normalizeWhoMoments(item)})):[])
  const [saving,setSaving]=useState(false)
 
  useEffect(()=>{
@@ -63,11 +49,11 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
 
  const setS=(key,value)=>setSession(state=>({...state,[key]:value}))
  const setO=(key,value)=>{setCurrentTouched(true);setCurrent(state=>({...state,[key]:value}))}
- const toggleMoment=id=>{setCurrentTouched(true);setCurrent(state=>{const selected=normalizeMoments(state);return {...state,moments:selected.includes(id)?selected.filter(value=>value!==id):[...selected,id]}})}
- const currentMoments=normalizeMoments(current)
+ const toggleMoment=id=>{setCurrentTouched(true);setCurrent(state=>{const selected=normalizeWhoMoments(state);return {...state,moments:selected.includes(id)?selected.filter(value=>value!==id):[...selected,id]}})}
+ const currentMoments=normalizeWhoMoments(current)
  const currentValid=Boolean(Number(current.professionalsCount)>=1&&current.professionalCategory&&currentMoments.length&&current.action)
  const previewItems=useMemo(()=>currentTouched&&currentValid?[...items,current]:items,[items,current,currentTouched,currentValid])
- const stats=useMemo(()=>calculateStats(previewItems),[previewItems])
+ const stats=useMemo(()=>whoStatsFromObservations(previewItems),[previewItems])
  const sessionValid=Boolean(session.date?.trim?.()&&session.department?.trim?.()&&session.observer?.trim?.())
  const valid=Boolean(sessionValid&&previewItems.length>0)
  const selectedMomentLabels=momentLabels(currentMoments,en)
@@ -92,9 +78,9 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
    ? [...items,{...current,moments:currentMoments,id:current.id||`WHO-OBS-${Date.now()}-${items.length}`}]
    : items
   if(!finalItems.length)return
-  const finalStats=calculateStats(finalItems)
+  const finalStats=whoStatsFromObservations(finalItems)
   const profession=finalItems[0]?.professionalCategory?.startsWith('Ιατ')?'medical':'nursing'
-  const normalizedItems=finalItems.map(item=>({...item,moments:normalizeMoments(item)}))
+  const normalizedItems=finalItems.map(item=>({...item,moments:normalizeWhoMoments(item)}))
   const record={date:session.date,departmentEl:session.department,departmentEn:departments.find(d=>d.el===session.department)?.en||session.department,profession,observations:finalStats.opportunities,compliant:finalStats.compliant,rate:finalStats.compliance,observer:session.observer,session,whoObservations:normalizedItems,whoStats:finalStats,createdAt:initialRecord?.createdAt||new Date().toISOString(),createdBy:initialRecord?.createdBy||actor.name,createdById:initialRecord?.createdById||actor.id,updatedAt:new Date().toISOString(),updatedBy:actor.name,updatedById:actor.id}
   try{setSaving(true);await onSave(record)}finally{setSaving(false)}
  }
@@ -164,7 +150,7 @@ export function WhoHandHygieneEditor({onCancel,onSave,fixedDepartment='',initial
      <div className="who-panel-heading"><div><strong>{en?'Recorded opportunities':'Καταγεγραμμένες ευκαιρίες'}</strong><small>{en?'Compact review before final save':'Γρήγορος έλεγχος πριν την τελική αποθήκευση'}</small></div><span className="who-count-badge">{items.length}</span></div>
      <div className="who-opportunity-cards">
       {items.map((item,index)=>{
-       const labels=momentLabels(normalizeMoments(item),en)
+       const labels=momentLabels(normalizeWhoMoments(item),en)
        const professionLabel=en?(WHO_PROFESSIONS.find(([el])=>el===item.professionalCategory)?.[1]||item.professionalCategory):item.professionalCategory
        return <article className="who-opportunity-card" key={item.id}>
         <span className="who-opportunity-index">{index+1}</span>
