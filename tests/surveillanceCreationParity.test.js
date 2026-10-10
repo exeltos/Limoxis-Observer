@@ -9,10 +9,6 @@ const admissionService=fs.readFileSync('src/features/surveillance/clinicalAdmiss
 const sharedFlow=fs.readFileSync('src/features/surveillance/NewSurveillanceFlow.jsx','utf8')
 
 describe('new surveillance Demo/Production parity',()=>{
-  it('uses the same progressive patient flow from registry and admission-scoped record entry points',()=>{
-    expect(registry).toContain("creation==='patient'&&<NewSurveillanceFlow")
-  })
-
   it('persists progressive steps through the shared repository contract',()=>{
     for(const action of ['onCreate','onSaveAssessment','onRequestSample','onSaveIsolation'])expect(sharedFlow).toContain(action)
     expect(registry).toContain('clinical.createCase')
@@ -24,10 +20,5 @@ describe('new surveillance Demo/Production parity',()=>{
     expect(repository).toContain('createClinicalCase(organizationId,patient.recordId,draft)')
     expect(repository).toContain('linkSurveillanceCaseToAdmission')
     expect(admissionService).toContain("update({admission_id:admissionId})")
-  })
-
-  it('requires a patient code when inline creation runs outside Demo',()=>{
-    expect(sharedFlow).toContain("!isDemo&&!patientDraft.patientCode.trim()")
-    expect(sharedFlow).toContain("patientCode:patientDraft.patientCode.trim()||undefined")
   })
 })

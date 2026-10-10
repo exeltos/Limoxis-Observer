@@ -8,25 +8,338 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { environmentalMethodLabel, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { environmentalSubjectCatalog } from './environmentalSurveillanceData'
 
-const icons={surface:Layers3,room:Building2,air:Wind,water:Droplets}
-const sourceByType={surface:['surfaceSwab','contactPlate','other'],room:['roomSampling','surfaceSwab','contactPlate','other'],air:['activeAir','passiveAir','airSampling','other'],water:['tapWater','showerWater','waterSampling','other']}
-
-export function EnvironmentalSurveillanceFlow({isDemo,departmentOptions=[],createSample,onClose,onCreated}){
-  const {t,language}=useLanguage(),{notify,notifyError,confirm}=useFeedback()
-  const [subjectType,setSubjectType]=useState('surface'),[mode,setMode]=useState('single'),[departmentValue,setDepartmentValue]=useState(''),[location,setLocation]=useState(''),[point,setPoint]=useState(''),[sourceCode,setSourceCode]=useState('surfaceSwab'),[date,setDate]=useState(new Date().toISOString().slice(0,10)),[notes,setNotes]=useState(''),[batchRows,setBatchRows]=useState([{id:1,location:'',point:''}]),[saving,setSaving]=useState(false)
-  function chooseType(type){setSubjectType(type);setSourceCode(environmentalSubjectCatalog.find(x=>x.id===type)?.defaultSource||'other')}
-  function departmentFields(){const dep=departmentOptions.find(x=>x.value===departmentValue);if(!dep)return isDemo?{department:'',departmentEn:''}:{departmentId:null};return isDemo?{department:dep.label,departmentEn:dep.labelEn||dep.label}:{departmentId:dep.value}}
-  function buildDraft(entryLocation,entryPoint,batchId){const subjectName=[entryLocation,entryPoint].filter(Boolean).join(' · ');return {subjectType:'environment',type:subjectType,environmentalMethod:sourceCode,subjectName,subjectNameEn:subjectName,subjectCode:'ENV',location:entryLocation,point:entryPoint,environmentalBatchId:batchId||null,collectedAt:date,priority:'routine',notes,...departmentFields()}}
-  async function save(){if(!date||saving)return;setSaving(true);try{if(mode==='single'){if(!location.trim()&&!point.trim())return;await createSample({patientRecordId:null,draft:buildDraft(location.trim(),point.trim())});notify(t('clinicalRecords.environmentalSurveillanceCreated'),'success');onCreated?.();onClose();return}const items=batchRows.filter(x=>x.location.trim()||x.point.trim());if(!items.length)return;const batchId=items.length>1?`ENVB-${Date.now()}`:null;for(const item of items)await createSample({patientRecordId:null,draft:buildDraft(item.location.trim(),item.point.trim(),batchId)});notify(t('clinicalRecords.environmentalBatchCreated').replace('{count}',String(items.length)),'success');onCreated?.();onClose()}catch(error){notifyError(error,'save',{operation:'environmental_surveillance_create'})}finally{setSaving(false)}}
-  const updateRow=(id,key,value)=>setBatchRows(rows=>rows.map(row=>row.id===id?{...row,[key]:value}:row))
-  const removeRow=async id=>{const ok=await confirm({title:language==='el'?'Αφαίρεση σημείου':'Remove sampling point',message:language==='el'?'Το σημείο δειγματοληψίας θα αφαιρεθεί από την τρέχουσα καταχώρηση. Θέλετε να συνεχίσετε;':'The sampling point will be removed from the current entry. Do you want to continue?',confirmLabel:language==='el'?'Αφαίρεση':'Remove',danger:true});if(ok)setBatchRows(rows=>rows.filter(row=>row.id!==id))}
-  const addRow=()=>setBatchRows(rows=>[...rows,{id:Date.now(),location:'',point:''}]),sources=sourceByType[subjectType]||['other']
-  return <div className="modal-backdrop"><div className="entry-card environmental-surveillance-entry"><header><div><span className="eyebrow">{t('environmentalSurveillance')}</span><h3>{t('clinicalRecords.newEnvironmentalSurveillance')}</h3><p>{t('clinicalRecords.environmentalSurveillanceHelp')}</p></div><button className="icon-close" onClick={onClose}><X size={18}/></button></header><div className="environmental-type-grid">{environmentalSubjectCatalog.map(item=>{const Icon=icons[item.id];return <button type="button" key={item.id} className={subjectType===item.id?'active':''} onClick={()=>chooseType(item.id)}><Icon size={18}/><strong>{sampleTypeLabel(item.id,t)}</strong></button>})}</div><div className="entry-mode-switch environmental-mode-switch"><button className={mode==='single'?'active':''} onClick={()=>setMode('single')}>{t('clinicalRecords.singleSampling')}</button><button className={mode==='batch'?'active':''} onClick={()=>setMode('batch')}>{t('clinicalRecords.bulkSampling')}</button></div><div className="entry-grid"><label><span>{t('department')}</span><select value={departmentValue} onChange={e=>setDepartmentValue(e.target.value)}><option value="">{t('select')}</option>{departmentOptions.map(item=><option key={item.value} value={item.value}>{language==='el'?item.label:(item.labelEn||item.label)}</option>)}</select></label><ManualDateField label={t('samplingDate')} value={date} onChange={setDate}/><label><span>{t('samplingMethod')}</span><select value={sourceCode} onChange={e=>setSourceCode(e.target.value)}>{sources.map(code=><option key={code} value={code}>{environmentalMethodLabel(code,t)}</option>)}</select></label></div>{mode==='single'?<div className="entry-grid environmental-point-fields"><label><span>{t('locationArea')}</span><input value={location} onChange={e=>setLocation(e.target.value)} placeholder={t('clinicalRecords.locationAreaPlaceholder')}/></label><label><span>{t('samplingPoint')}</span><input value={point} onChange={e=>setPoint(e.target.value)} placeholder={t('clinicalRecords.samplingPointPlaceholder')}/></label></div>:<div className="environmental-batch-points"><div className="batch-point-head"><strong>{t('samplingPoints')}</strong><Button variant="secondary" onClick={addRow}><Plus size={14}/>{t('clinicalRecords.addPoint')}</Button></div><div className="batch-point-columns"><span>#</span><span>{t('locationArea')}</span><span>{t('samplingPoint')}</span><span></span></div>{batchRows.map((row,index)=><div className="batch-point-row" key={row.id}><span>{String(index+1).padStart(2,'0')}</span><input value={row.location} onChange={e=>updateRow(row.id,'location',e.target.value)} placeholder={t('locationArea')}/><input value={row.point} onChange={e=>updateRow(row.id,'point',e.target.value)} placeholder={t('samplingPoint')}/>{batchRows.length>1&&<button type="button" className="danger icon-action" aria-label={language==='el'?'Αφαίρεση σημείου':'Remove sampling point'} title={language==='el'?'Αφαίρεση σημείου':'Remove sampling point'} onClick={()=>removeRow(row.id)}><Trash2 size={15}/></button>}</div>)}</div>}<label className="environmental-notes"><span>{t('notes')}</span><textarea rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></label><div className="source-truth-note">{t('clinicalRecords.environmentalCreatesLabRequests')}</div><footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><Button disabled={saving||!date||(mode==='single'&&!location.trim()&&!point.trim())||(mode==='batch'&&!batchRows.some(x=>x.location.trim()||x.point.trim()))} onClick={save}>{t('createSurveillance')}</Button></footer></div></div>
+const icons = { surface: Layers3, room: Building2, air: Wind, water: Droplets }
+const sourceByType = {
+  surface: ['surfaceSwab', 'contactPlate', 'other'],
+  room: ['roomSampling', 'surfaceSwab', 'contactPlate', 'other'],
+  air: ['activeAir', 'passiveAir', 'airSampling', 'other'],
+  water: ['tapWater', 'showerWater', 'waterSampling', 'other'],
 }
 
-export function EnvironmentalRegistry({rows,t,language,fmt,onOpenSample,highlightId=''}){
-  const columns=[{key:'surveillance',label:t('surveillance')},{key:'department',label:t('department')},{key:'point',label:t('samplingPoint')},{key:'date',label:t('samplingDate')},{key:'batch',label:t('batch')},{key:'result',label:t('result')},{key:'status',label:t('status')}]
-  const emptyTitle=language==='el'?'Δεν υπάρχουν καταγραφές περιβαλλοντικής επιτήρησης':'No environmental surveillance records'
-  const emptyDescription=language==='el'?'Δεν έχουν καταχωριστεί ακόμη περιβαλλοντικές δειγματοληψίες για τον συγκεκριμένο οργανισμό.':'No environmental sampling records have been entered yet for this organization.'
-  return <section className="environmental-registry workspace-fill"><RegistryTable columns={columns} rows={rows} rowKey={row=>row.code||row.id} emptyTitle={emptyTitle} emptyDescription={emptyDescription} rowProps={row=>({'data-record-id':String(row.code||row.id),className:`registry-row-clickable${highlightId&&highlightId===String(row.code||row.id)?' registry-row-returned':''}`,tabIndex:0,onClick:()=>onOpenSample?.(row.code||row.id),onKeyDown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpenSample?.(row.code||row.id)}}})} renderRow={row=><><td><strong className="environment-code">{row.code||row.id}</strong><small className="environment-type">{sampleTypeLabel(row.type,t)}</small></td><td>{language==='el'?row.department:row.departmentEn}</td><td>{[row.location,row.point].filter(Boolean).join(' · ')||'—'}</td><td>{fmt(row.collectedAt||row.requestedAt)}</td><td>{row.environmentalBatchId||'—'}</td><td>{row.result?<span className="environment-result-cell"><strong>{t(row.result)}</strong>{row.microbiologyResults?.[0]?.cfuCount!=null&&<small>{row.microbiologyResults[0].cfuCount} CFU</small>}{row.microbiologyResults?.[0]?.withinLimit===true&&<b className="limit-ok">{t('withinLimits')}</b>}{row.microbiologyResults?.[0]?.withinLimit===false&&<b className="limit-bad">{t('outsideLimits')}</b>}</span>:'—'}</td><td><span className={`status-badge ${row.status==='completed'?'':'active'}`}>{t(row.status)}</span></td></>}/></section>
+export function EnvironmentalSurveillanceFlow({
+  isDemo,
+  departmentOptions = [],
+  createSample,
+  onClose,
+  onCreated,
+}) {
+  const { t, language } = useLanguage(),
+    { notify, notifyError, confirm } = useFeedback()
+  const [subjectType, setSubjectType] = useState('surface'),
+    [mode, setMode] = useState('single'),
+    [departmentValue, setDepartmentValue] = useState(''),
+    [location, setLocation] = useState(''),
+    [point, setPoint] = useState(''),
+    [sourceCode, setSourceCode] = useState('surfaceSwab'),
+    [date, setDate] = useState(new Date().toISOString().slice(0, 10)),
+    [notes, setNotes] = useState(''),
+    [batchRows, setBatchRows] = useState([{ id: 1, location: '', point: '' }]),
+    [saving, setSaving] = useState(false)
+  function chooseType(type) {
+    setSubjectType(type)
+    setSourceCode(environmentalSubjectCatalog.find(x => x.id === type)?.defaultSource || 'other')
+  }
+  function departmentFields() {
+    const dep = departmentOptions.find(x => x.value === departmentValue)
+    if (!dep) return isDemo ? { department: '', departmentEn: '' } : { departmentId: null }
+    return isDemo
+      ? { department: dep.label, departmentEn: dep.labelEn || dep.label }
+      : { departmentId: dep.value }
+  }
+  function buildDraft(entryLocation, entryPoint, batchId) {
+    const subjectName = [entryLocation, entryPoint].filter(Boolean).join(' · ')
+    return {
+      subjectType: 'environment',
+      type: subjectType,
+      environmentalMethod: sourceCode,
+      subjectName,
+      subjectNameEn: subjectName,
+      subjectCode: 'ENV',
+      location: entryLocation,
+      point: entryPoint,
+      environmentalBatchId: batchId || null,
+      collectedAt: date,
+      priority: 'routine',
+      notes,
+      ...departmentFields(),
+    }
+  }
+  async function save() {
+    if (!date || saving) return
+    setSaving(true)
+    try {
+      if (mode === 'single') {
+        if (!location.trim() && !point.trim()) return
+        await createSample({
+          patientRecordId: null,
+          draft: buildDraft(location.trim(), point.trim()),
+        })
+        notify(t('clinicalRecords.environmentalSurveillanceCreated'), 'success')
+        onCreated?.()
+        onClose()
+        return
+      }
+      const items = batchRows.filter(x => x.location.trim() || x.point.trim())
+      if (!items.length) return
+      const batchId = items.length > 1 ? `ENVB-${Date.now()}` : null
+      for (const item of items)
+        await createSample({
+          patientRecordId: null,
+          draft: buildDraft(item.location.trim(), item.point.trim(), batchId),
+        })
+      notify(
+        t('clinicalRecords.environmentalBatchCreated').replace('{count}', String(items.length)),
+        'success',
+      )
+      onCreated?.()
+      onClose()
+    } catch (error) {
+      notifyError(error, 'save', { operation: 'environmental_surveillance_create' })
+    } finally {
+      setSaving(false)
+    }
+  }
+  const updateRow = (id, key, value) =>
+    setBatchRows(rows => rows.map(row => (row.id === id ? { ...row, [key]: value } : row)))
+  const removeRow = async id => {
+    const ok = await confirm({
+      title: language === 'el' ? 'Αφαίρεση σημείου' : 'Remove sampling point',
+      message:
+        language === 'el'
+          ? 'Το σημείο δειγματοληψίας θα αφαιρεθεί από την τρέχουσα καταχώρηση. Θέλετε να συνεχίσετε;'
+          : 'The sampling point will be removed from the current entry. Do you want to continue?',
+      confirmLabel: language === 'el' ? 'Αφαίρεση' : 'Remove',
+      danger: true,
+    })
+    if (ok) setBatchRows(rows => rows.filter(row => row.id !== id))
+  }
+  const addRow = () => setBatchRows(rows => [...rows, { id: Date.now(), location: '', point: '' }]),
+    sources = sourceByType[subjectType] || ['other']
+  return (
+    <div className="modal-backdrop">
+      <div className="entry-card environmental-surveillance-entry">
+        <header>
+          <div>
+            <span className="eyebrow">{t('environmentalSurveillance')}</span>
+            <h3>{t('clinicalRecords.newEnvironmentalSurveillance')}</h3>
+            <p>{t('clinicalRecords.environmentalSurveillanceHelp')}</p>
+          </div>
+          <button className="icon-close" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </header>
+        <div className="environmental-type-grid">
+          {environmentalSubjectCatalog.map(item => {
+            const Icon = icons[item.id]
+            return (
+              <button
+                type="button"
+                key={item.id}
+                className={subjectType === item.id ? 'active' : ''}
+                onClick={() => chooseType(item.id)}
+              >
+                <Icon size={18} />
+                <strong>{sampleTypeLabel(item.id, t)}</strong>
+              </button>
+            )
+          })}
+        </div>
+        <div className="entry-mode-switch environmental-mode-switch">
+          <button className={mode === 'single' ? 'active' : ''} onClick={() => setMode('single')}>
+            {t('clinicalRecords.singleSampling')}
+          </button>
+          <button className={mode === 'batch' ? 'active' : ''} onClick={() => setMode('batch')}>
+            {t('clinicalRecords.bulkSampling')}
+          </button>
+        </div>
+        <div className="entry-grid">
+          <label>
+            <span>{t('department')}</span>
+            <select value={departmentValue} onChange={e => setDepartmentValue(e.target.value)}>
+              <option value="">{t('select')}</option>
+              {departmentOptions.map(item => (
+                <option key={item.value} value={item.value}>
+                  {language === 'el' ? item.label : item.labelEn || item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <ManualDateField label={t('samplingDate')} value={date} onChange={setDate} />
+          <label>
+            <span>{t('samplingMethod')}</span>
+            <select value={sourceCode} onChange={e => setSourceCode(e.target.value)}>
+              {sources.map(code => (
+                <option key={code} value={code}>
+                  {environmentalMethodLabel(code, t)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {mode === 'single' ? (
+          <div className="entry-grid environmental-point-fields">
+            <label>
+              <span>{t('locationArea')}</span>
+              <input
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                placeholder={t('clinicalRecords.locationAreaPlaceholder')}
+              />
+            </label>
+            <label>
+              <span>{t('samplingPoint')}</span>
+              <input
+                value={point}
+                onChange={e => setPoint(e.target.value)}
+                placeholder={t('clinicalRecords.samplingPointPlaceholder')}
+              />
+            </label>
+          </div>
+        ) : (
+          <div className="environmental-batch-points">
+            <div className="batch-point-head">
+              <strong>{t('samplingPoints')}</strong>
+              <Button variant="secondary" onClick={addRow}>
+                <Plus size={14} />
+                {t('clinicalRecords.addPoint')}
+              </Button>
+            </div>
+            <div className="batch-point-columns">
+              <span>#</span>
+              <span>{t('locationArea')}</span>
+              <span>{t('samplingPoint')}</span>
+              <span></span>
+            </div>
+            {batchRows.map((row, index) => (
+              <div className="batch-point-row" key={row.id}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <input
+                  value={row.location}
+                  onChange={e => updateRow(row.id, 'location', e.target.value)}
+                  placeholder={t('locationArea')}
+                />
+                <input
+                  value={row.point}
+                  onChange={e => updateRow(row.id, 'point', e.target.value)}
+                  placeholder={t('samplingPoint')}
+                />
+                {batchRows.length > 1 && (
+                  <button
+                    type="button"
+                    className="danger icon-action"
+                    aria-label={language === 'el' ? 'Αφαίρεση σημείου' : 'Remove sampling point'}
+                    title={language === 'el' ? 'Αφαίρεση σημείου' : 'Remove sampling point'}
+                    onClick={() => removeRow(row.id)}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        <label className="environmental-notes">
+          <span>{t('notes')}</span>
+          <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} />
+        </label>
+        <div className="source-truth-note">
+          {t('clinicalRecords.environmentalCreatesLabRequests')}
+        </div>
+        <footer>
+          <Button variant="secondary" onClick={onClose}>
+            {t('cancel')}
+          </Button>
+          <Button
+            disabled={
+              saving ||
+              !date ||
+              (mode === 'single' && !location.trim() && !point.trim()) ||
+              (mode === 'batch' && !batchRows.some(x => x.location.trim() || x.point.trim()))
+            }
+            onClick={save}
+          >
+            {t('createSurveillance')}
+          </Button>
+        </footer>
+      </div>
+    </div>
+  )
+}
+
+export function EnvironmentalRegistry({ rows, t, language, fmt, onOpenSample, highlightId = '' }) {
+  const columns = [
+    { key: 'surveillance', label: t('surveillance') },
+    { key: 'department', label: t('department') },
+    { key: 'point', label: t('samplingPoint') },
+    { key: 'date', label: t('samplingDate') },
+    { key: 'batch', label: t('batch') },
+    { key: 'result', label: t('result') },
+    { key: 'status', label: t('status') },
+  ]
+  const emptyTitle =
+    language === 'el'
+      ? 'Δεν υπάρχουν καταγραφές περιβαλλοντικής επιτήρησης'
+      : 'No environmental surveillance records'
+  const emptyDescription =
+    language === 'el'
+      ? 'Δεν έχουν καταχωριστεί ακόμη περιβαλλοντικές δειγματοληψίες για τον συγκεκριμένο οργανισμό.'
+      : 'No environmental sampling records have been entered yet for this organization.'
+  return (
+    <section className="environmental-registry workspace-fill">
+      <RegistryTable
+        columns={columns}
+        rows={rows}
+        rowKey={row => row.code || row.id}
+        emptyTitle={emptyTitle}
+        emptyDescription={emptyDescription}
+        rowProps={row => ({
+          'data-record-id': String(row.code || row.id),
+          className: `registry-row-clickable${highlightId && highlightId === String(row.code || row.id) ? ' registry-row-returned' : ''}`,
+          tabIndex: 0,
+          onClick: () => onOpenSample?.(row.code || row.id),
+          onKeyDown: e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              onOpenSample?.(row.code || row.id)
+            }
+          },
+        })}
+        renderRow={row => (
+          <>
+            <td>
+              <strong className="environment-code">{row.code || row.id}</strong>
+              <small className="environment-type">{sampleTypeLabel(row.type, t)}</small>
+            </td>
+            <td>{language === 'el' ? row.department : row.departmentEn}</td>
+            <td>{[row.location, row.point].filter(Boolean).join(' · ') || '—'}</td>
+            <td>{fmt(row.collectedAt || row.requestedAt)}</td>
+            <td>{row.environmentalBatchId || '—'}</td>
+            <td>
+              {row.result ? (
+                <span className="environment-result-cell">
+                  <strong>{t(row.result)}</strong>
+                  {row.microbiologyResults?.[0]?.cfuCount != null && (
+                    <small>{row.microbiologyResults[0].cfuCount} CFU</small>
+                  )}
+                  {row.microbiologyResults?.[0]?.withinLimit === true && (
+                    <b className="limit-ok">{t('withinLimits')}</b>
+                  )}
+                  {row.microbiologyResults?.[0]?.withinLimit === false && (
+                    <b className="limit-bad">{t('outsideLimits')}</b>
+                  )}
+                </span>
+              ) : (
+                '—'
+              )}
+            </td>
+            <td>
+              <span className={`status-badge ${row.status === 'completed' ? '' : 'active'}`}>
+                {t(row.status)}
+              </span>
+            </td>
+          </>
+        )}
+      />
+    </section>
+  )
 }

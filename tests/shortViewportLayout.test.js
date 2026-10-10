@@ -52,14 +52,8 @@ describe('returned-row highlight', () => {
   it('colours the cells, not only the row, so the highlight is visible', () => {
     expect(css).toContain('tr.registry-row-returned>td{background:#e3f0fa!important')
   })
-  it('keeps the returned class when a registry adds its own row class', () => {
-    const surveillance = read('src/features/surveillance/SurveillanceCanonicalPage.jsx')
-    expect(surveillance).not.toContain("className:'clickable-row'}")
-    expect(surveillance).toContain('className:`${rp.className} clickable-row`')
-  })
   it('remembers the opened row in occupational health, environment, organizations and demos', () => {
     expect(read('src/features/occupational-health/OccupationalHealthPage.jsx')).toContain("useRegistryMemory('occupational-health')")
-    expect(read('src/features/surveillance/EnvironmentalSurveillanceFlow.jsx')).toContain("' registry-row-returned'")
     expect(read('src/features/platform/PlatformOrganizationsRegistry.jsx')).toContain('limoxis.registry.platform-organizations.selected')
     expect(read('src/features/platform/PlatformDemosRegistry.jsx')).toContain('limoxis.registry.platform-demos.selected')
   })

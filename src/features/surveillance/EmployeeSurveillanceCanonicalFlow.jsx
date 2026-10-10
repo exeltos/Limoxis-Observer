@@ -1,5 +1,5 @@
-import { useMemo,useState } from 'react'
-import { FlaskConical,Trash2,Users,X } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { FlaskConical, Trash2, Users, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -7,28 +7,373 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { useEmployeesData } from '../employees/useEmployeesData'
-import { createEmployeeSurveillance,createEmployeeSurveillanceBatch } from './employeeSurveillanceData'
-import { createEmployeeSurveillanceBatch as createCloudBatch,createEmployeeSurveillanceRecord } from './employeeSurveillanceCloudService'
+import {
+  createEmployeeSurveillance,
+  createEmployeeSurveillanceBatch,
+} from './employeeSurveillanceData'
+import {
+  createEmployeeSurveillanceBatch as createCloudBatch,
+  createEmployeeSurveillanceRecord,
+} from './employeeSurveillanceCloudService'
 import './surveillanceEntryCard.css'
 
-const screeningCatalog=[{id:'handSwab',el:'Επίχρισμα χεριών',en:'Hand swab'},{id:'nasalSwab',el:'Ρινικό επίχρισμα',en:'Nasal swab'},{id:'throatSwab',el:'Φαρυγγικό επίχρισμα',en:'Throat swab'}]
+const screeningCatalog = [
+  { id: 'handSwab', el: 'Επίχρισμα χεριών', en: 'Hand swab' },
+  { id: 'nasalSwab', el: 'Ρινικό επίχρισμα', en: 'Nasal swab' },
+  { id: 'throatSwab', el: 'Φαρυγγικό επίχρισμα', en: 'Throat swab' },
+]
 
-export function EmployeeSurveillanceCanonicalFlow({mode='single',employee=null,onClose,onCreated}){
-  const actor=useAuditActor(),{tenant,isDemo}=useTenant(),{language}=useLanguage(),{notify,notifyError}=useFeedback(),{data:employeeRows=[]}=useEmployeesData()
-  const [flowMode,setFlowMode]=useState(mode==='bulk'?'bulk':'single'),[employeeId,setEmployeeId]=useState(employee?.id||''),[department,setDepartment]=useState('all'),[selectedIds,setSelectedIds]=useState([]),[date,setDate]=useState(new Date().toISOString().slice(0,10)),[types,setTypes]=useState(['nasalSwab']),[notes,setNotes]=useState(''),[saving,setSaving]=useState(false)
-  const activeEmployees=useMemo(()=>employeeRows.filter(row=>row.employmentStatus==='active'),[employeeRows])
-  const departments=useMemo(()=>[...new Set(activeEmployees.map(row=>language==='el'?row.department:row.departmentEn).filter(Boolean))],[activeEmployees,language])
-  const visible=activeEmployees.filter(row=>department==='all'||(language==='el'?row.department:row.departmentEn)===department),selected=employee||activeEmployees.find(row=>row.id===employeeId)
-  const toggleType=id=>setTypes(current=>current.includes(id)?current.filter(item=>item!==id):[...current,id]),toggleEmployee=id=>setSelectedIds(current=>current.includes(id)?current.filter(item=>item!==id):[...current,id])
-  const allVisible=visible.length>0&&visible.every(row=>selectedIds.includes(row.id)),toggleAll=()=>setSelectedIds(current=>allVisible?current.filter(id=>!visible.some(row=>row.id===id)):[...new Set([...current,...visible.map(row=>row.id)])])
-  async function save(){if(saving||!date||!types.length)return;setSaving(true);try{if(flowMode==='bulk'){const employees=activeEmployees.filter(row=>selectedIds.includes(row.id));if(!employees.length)return;if(isDemo){const first=employees[0];createEmployeeSurveillanceBatch({employees,screeningTypes:types,startedAt:date,department:department==='all'?(language==='en'?'Multiple departments':'Πολλαπλά τμήματα'):(language==='el'?first.department:first.departmentEn),departmentEn:department==='all'?'Multiple departments':first.departmentEn,notes,createdBy:actor.name,createdById:actor.id})}else{if(!tenant?.id)throw new Error('Organization is required.');await createCloudBatch(tenant.id,employees,{startedAt:date,screeningTypes:types,departmentId:department==='all'?null:(employees[0]?.departmentId||null),notes})}notify(language==='en'?'Bulk employee surveillance created.':'Η μαζική επιτήρηση εργαζομένων δημιουργήθηκε.','success')}else{if(!selected)return;if(isDemo)createEmployeeSurveillance({employee:selected,screeningTypes:types,startedAt:date,notes,createdBy:actor.name,createdById:actor.id});else{if(!tenant?.id||!selected.dbId)throw new Error('Employee cloud record is required.');await createEmployeeSurveillanceRecord(tenant.id,selected.dbId,{startedAt:date,screeningTypes:types,notes})}notify(language==='en'?'Employee surveillance created.':'Η επιτήρηση εργαζομένου δημιουργήθηκε.','success')}await onCreated?.();onClose()}catch(error){notifyError(error,'save',{operation:flowMode==='bulk'?'employee_surveillance_batch_create':'employee_surveillance_create'})}finally{setSaving(false)}}
-  const en=language==='en',valid=flowMode==='bulk'?selectedIds.length>0:Boolean(selected)
-  return <div className="modal-backdrop"><div className="entry-card environmental-surveillance-entry employee-surveillance-entry"><header><div><span className="eyebrow">{en?'EMPLOYEE SURVEILLANCE':'ΕΠΙΤΗΡΗΣΗ ΕΡΓΑΖΟΜΕΝΩΝ'}</span><h3>{en?'New employee surveillance':'Νέα επιτήρηση εργαζομένων'}</h3><p>{en?'Record individual or bulk employee screening and create the corresponding surveillance record.':'Καταγράψτε ατομικό ή μαζικό έλεγχο εργαζομένων και δημιουργήστε την αντίστοιχη επιτήρηση.'}</p></div><button type="button" className="icon-close" onClick={onClose} aria-label={en?'Close':'Κλείσιμο'}><X size={18}/></button></header>
-    {!employee&&<div className="entry-mode-switch environmental-mode-switch employee-mode-switch"><button type="button" className={flowMode==='single'?'active':''} onClick={()=>setFlowMode('single')}><FlaskConical size={15}/>{en?'Individual surveillance':'Ατομική επιτήρηση'}</button><button type="button" className={flowMode==='bulk'?'active':''} onClick={()=>setFlowMode('bulk')}><Users size={15}/>{en?'Bulk surveillance':'Μαζική επιτήρηση'}</button></div>}
-    <div className="bulk-surveillance-controls"><label className="field"><span>{en?'Department':'Τμήμα'}</span><select value={department} onChange={event=>setDepartment(event.target.value)}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</select></label><ManualDateField label={en?'Screening date':'Ημερομηνία ελέγχου'} value={date} onChange={setDate}/></div>
-    <ScreeningTypes types={types} toggle={toggleType} en={en}/>
-    {flowMode==='bulk'?<div className="bulk-employee-list"><div className="bulk-list-head"><Button variant="secondary" onClick={toggleAll}>{allVisible?(en?'Clear visible':'Καθαρισμός ορατών'):(en?'Select all visible':'Επιλογή όλων')}</Button><strong>{en?'Selected':'Επιλεγμένοι'}: {selectedIds.length}</strong></div>{visible.map(row=>{const checked=selectedIds.includes(row.id);return <div key={row.id} className={`bulk-employee-row ${checked?'selected':''}`}><label><input type="checkbox" checked={checked} onChange={()=>toggleEmployee(row.id)}/><span><strong>{language==='el'?`${row.lastName} ${row.firstName}`:`${row.firstNameEn} ${row.lastNameEn}`}</strong><small>{row.id} · {language==='el'?row.department:row.departmentEn}</small></span></label>{checked&&<button type="button" className="danger icon-action" onClick={()=>toggleEmployee(row.id)} aria-label={en?'Remove employee':'Αφαίρεση εργαζομένου'} title={en?'Remove employee':'Αφαίρεση εργαζομένου'}><Trash2 size={15}/></button>}</div>})}</div>:<div className="bulk-employee-list employee-single-selection"><div className="bulk-list-head"><strong>{en?'Employee selection':'Επιλογή εργαζομένου'}</strong><span>{selected?`${en?'Selected':'Επιλεγμένοι'}: 1`:`${en?'Selected':'Επιλεγμένοι'}: 0`}</span></div>{employee?<div className="bulk-employee-row selected"><label><input type="radio" checked readOnly/><span><strong>{language==='el'?`${employee.lastName} ${employee.firstName}`:`${employee.firstNameEn} ${employee.lastNameEn}`}</strong><small>{employee.id} · {language==='el'?employee.department:employee.departmentEn}</small></span></label></div>:visible.map(row=>{const checked=row.id===employeeId;return <div key={row.id} className={`bulk-employee-row ${checked?'selected':''}`}><label><input type="radio" name="employee-surveillance-single" checked={checked} onChange={()=>setEmployeeId(row.id)}/><span><strong>{language==='el'?`${row.lastName} ${row.firstName}`:`${row.firstNameEn} ${row.lastNameEn}`}</strong><small>{row.id} · {language==='el'?row.department:row.departmentEn}</small></span></label></div>})}</div>}
-    <label className="field bulk-notes"><span>{en?'Notes':'Σημειώσεις'}</span><textarea data-limoxis-no-expand="true" rows={3} value={notes} onChange={event=>setNotes(event.target.value)}/></label><footer><Button variant="secondary" onClick={onClose}>{en?'Cancel':'Ακύρωση'}</Button><Button disabled={saving||!date||!types.length||!valid} onClick={save}>{saving?(en?'Saving…':'Αποθήκευση…'):(en?'Create surveillance':'Δημιουργία επιτήρησης')}</Button></footer>
-  </div></div>
+export function EmployeeSurveillanceCanonicalFlow({
+  mode = 'single',
+  employee = null,
+  onClose,
+  onCreated,
+}) {
+  const actor = useAuditActor(),
+    { tenant, isDemo } = useTenant(),
+    { language } = useLanguage(),
+    { notify, notifyError } = useFeedback(),
+    { data: employeeRows = [] } = useEmployeesData()
+  const [flowMode, setFlowMode] = useState(mode === 'bulk' ? 'bulk' : 'single'),
+    [employeeId, setEmployeeId] = useState(employee?.id || ''),
+    [department, setDepartment] = useState('all'),
+    [selectedIds, setSelectedIds] = useState([]),
+    [date, setDate] = useState(new Date().toISOString().slice(0, 10)),
+    [types, setTypes] = useState(['nasalSwab']),
+    [notes, setNotes] = useState(''),
+    [saving, setSaving] = useState(false)
+  const activeEmployees = useMemo(
+    () => employeeRows.filter(row => row.employmentStatus === 'active'),
+    [employeeRows],
+  )
+  const departments = useMemo(
+    () => [
+      ...new Set(
+        activeEmployees
+          .map(row => (language === 'el' ? row.department : row.departmentEn))
+          .filter(Boolean),
+      ),
+    ],
+    [activeEmployees, language],
+  )
+  const visible = activeEmployees.filter(
+      row =>
+        department === 'all' ||
+        (language === 'el' ? row.department : row.departmentEn) === department,
+    ),
+    selected = employee || activeEmployees.find(row => row.id === employeeId)
+  const toggleType = id =>
+      setTypes(current =>
+        current.includes(id) ? current.filter(item => item !== id) : [...current, id],
+      ),
+    toggleEmployee = id =>
+      setSelectedIds(current =>
+        current.includes(id) ? current.filter(item => item !== id) : [...current, id],
+      )
+  const allVisible = visible.length > 0 && visible.every(row => selectedIds.includes(row.id)),
+    toggleAll = () =>
+      setSelectedIds(current =>
+        allVisible
+          ? current.filter(id => !visible.some(row => row.id === id))
+          : [...new Set([...current, ...visible.map(row => row.id)])],
+      )
+  async function save() {
+    if (saving || !date || !types.length) return
+    setSaving(true)
+    try {
+      if (flowMode === 'bulk') {
+        const employees = activeEmployees.filter(row => selectedIds.includes(row.id))
+        if (!employees.length) return
+        if (isDemo) {
+          const first = employees[0]
+          createEmployeeSurveillanceBatch({
+            employees,
+            screeningTypes: types,
+            startedAt: date,
+            department:
+              department === 'all'
+                ? language === 'en'
+                  ? 'Multiple departments'
+                  : 'Πολλαπλά τμήματα'
+                : language === 'el'
+                  ? first.department
+                  : first.departmentEn,
+            departmentEn: department === 'all' ? 'Multiple departments' : first.departmentEn,
+            notes,
+            createdBy: actor.name,
+            createdById: actor.id,
+          })
+        } else {
+          if (!tenant?.id) throw new Error('Organization is required.')
+          await createCloudBatch(tenant.id, employees, {
+            startedAt: date,
+            screeningTypes: types,
+            departmentId: department === 'all' ? null : employees[0]?.departmentId || null,
+            notes,
+          })
+        }
+        notify(
+          language === 'en'
+            ? 'Bulk employee surveillance created.'
+            : 'Η μαζική επιτήρηση εργαζομένων δημιουργήθηκε.',
+          'success',
+        )
+      } else {
+        if (!selected) return
+        if (isDemo)
+          createEmployeeSurveillance({
+            employee: selected,
+            screeningTypes: types,
+            startedAt: date,
+            notes,
+            createdBy: actor.name,
+            createdById: actor.id,
+          })
+        else {
+          if (!tenant?.id || !selected.dbId) throw new Error('Employee cloud record is required.')
+          await createEmployeeSurveillanceRecord(tenant.id, selected.dbId, {
+            startedAt: date,
+            screeningTypes: types,
+            notes,
+          })
+        }
+        notify(
+          language === 'en'
+            ? 'Employee surveillance created.'
+            : 'Η επιτήρηση εργαζομένου δημιουργήθηκε.',
+          'success',
+        )
+      }
+      await onCreated?.()
+      onClose()
+    } catch (error) {
+      notifyError(error, 'save', {
+        operation:
+          flowMode === 'bulk'
+            ? 'employee_surveillance_batch_create'
+            : 'employee_surveillance_create',
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+  const en = language === 'en',
+    valid = flowMode === 'bulk' ? selectedIds.length > 0 : Boolean(selected)
+  return (
+    <div className="modal-backdrop">
+      <div className="entry-card environmental-surveillance-entry employee-surveillance-entry">
+        <header>
+          <div>
+            <span className="eyebrow">
+              {en ? 'EMPLOYEE SURVEILLANCE' : 'ΕΠΙΤΗΡΗΣΗ ΕΡΓΑΖΟΜΕΝΩΝ'}
+            </span>
+            <h3>{en ? 'New employee surveillance' : 'Νέα επιτήρηση εργαζομένων'}</h3>
+            <p>
+              {en
+                ? 'Record individual or bulk employee screening and create the corresponding surveillance record.'
+                : 'Καταγράψτε ατομικό ή μαζικό έλεγχο εργαζομένων και δημιουργήστε την αντίστοιχη επιτήρηση.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="icon-close"
+            onClick={onClose}
+            aria-label={en ? 'Close' : 'Κλείσιμο'}
+          >
+            <X size={18} />
+          </button>
+        </header>
+        {!employee && (
+          <div className="entry-mode-switch environmental-mode-switch employee-mode-switch">
+            <button
+              type="button"
+              className={flowMode === 'single' ? 'active' : ''}
+              onClick={() => setFlowMode('single')}
+            >
+              <FlaskConical size={15} />
+              {en ? 'Individual surveillance' : 'Ατομική επιτήρηση'}
+            </button>
+            <button
+              type="button"
+              className={flowMode === 'bulk' ? 'active' : ''}
+              onClick={() => setFlowMode('bulk')}
+            >
+              <Users size={15} />
+              {en ? 'Bulk surveillance' : 'Μαζική επιτήρηση'}
+            </button>
+          </div>
+        )}
+        <div className="bulk-surveillance-controls">
+          <label className="field">
+            <span>{en ? 'Department' : 'Τμήμα'}</span>
+            <select value={department} onChange={event => setDepartment(event.target.value)}>
+              <option value="all">{en ? 'All departments' : 'Όλα τα τμήματα'}</option>
+              {departments.map(value => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </label>
+          <ManualDateField
+            label={en ? 'Screening date' : 'Ημερομηνία ελέγχου'}
+            value={date}
+            onChange={setDate}
+          />
+        </div>
+        <ScreeningTypes types={types} toggle={toggleType} en={en} />
+        {flowMode === 'bulk' ? (
+          <div className="bulk-employee-list">
+            <div className="bulk-list-head">
+              <Button variant="secondary" onClick={toggleAll}>
+                {allVisible
+                  ? en
+                    ? 'Clear visible'
+                    : 'Καθαρισμός ορατών'
+                  : en
+                    ? 'Select all visible'
+                    : 'Επιλογή όλων'}
+              </Button>
+              <strong>
+                {en ? 'Selected' : 'Επιλεγμένοι'}: {selectedIds.length}
+              </strong>
+            </div>
+            {visible.map(row => {
+              const checked = selectedIds.includes(row.id)
+              return (
+                <div key={row.id} className={`bulk-employee-row ${checked ? 'selected' : ''}`}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleEmployee(row.id)}
+                    />
+                    <span>
+                      <strong>
+                        {language === 'el'
+                          ? `${row.lastName} ${row.firstName}`
+                          : `${row.firstNameEn} ${row.lastNameEn}`}
+                      </strong>
+                      <small>
+                        {row.id} · {language === 'el' ? row.department : row.departmentEn}
+                      </small>
+                    </span>
+                  </label>
+                  {checked && (
+                    <button
+                      type="button"
+                      className="danger icon-action"
+                      onClick={() => toggleEmployee(row.id)}
+                      aria-label={en ? 'Remove employee' : 'Αφαίρεση εργαζομένου'}
+                      title={en ? 'Remove employee' : 'Αφαίρεση εργαζομένου'}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="bulk-employee-list employee-single-selection">
+            <div className="bulk-list-head">
+              <strong>{en ? 'Employee selection' : 'Επιλογή εργαζομένου'}</strong>
+              <span>
+                {selected
+                  ? `${en ? 'Selected' : 'Επιλεγμένοι'}: 1`
+                  : `${en ? 'Selected' : 'Επιλεγμένοι'}: 0`}
+              </span>
+            </div>
+            {employee ? (
+              <div className="bulk-employee-row selected">
+                <label>
+                  <input type="radio" checked readOnly />
+                  <span>
+                    <strong>
+                      {language === 'el'
+                        ? `${employee.lastName} ${employee.firstName}`
+                        : `${employee.firstNameEn} ${employee.lastNameEn}`}
+                    </strong>
+                    <small>
+                      {employee.id} ·{' '}
+                      {language === 'el' ? employee.department : employee.departmentEn}
+                    </small>
+                  </span>
+                </label>
+              </div>
+            ) : (
+              visible.map(row => {
+                const checked = row.id === employeeId
+                return (
+                  <div key={row.id} className={`bulk-employee-row ${checked ? 'selected' : ''}`}>
+                    <label>
+                      <input
+                        type="radio"
+                        name="employee-surveillance-single"
+                        checked={checked}
+                        onChange={() => setEmployeeId(row.id)}
+                      />
+                      <span>
+                        <strong>
+                          {language === 'el'
+                            ? `${row.lastName} ${row.firstName}`
+                            : `${row.firstNameEn} ${row.lastNameEn}`}
+                        </strong>
+                        <small>
+                          {row.id} · {language === 'el' ? row.department : row.departmentEn}
+                        </small>
+                      </span>
+                    </label>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
+        <label className="field bulk-notes">
+          <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
+          <textarea
+            data-limoxis-no-expand="true"
+            rows={3}
+            value={notes}
+            onChange={event => setNotes(event.target.value)}
+          />
+        </label>
+        <footer>
+          <Button variant="secondary" onClick={onClose}>
+            {en ? 'Cancel' : 'Ακύρωση'}
+          </Button>
+          <Button disabled={saving || !date || !types.length || !valid} onClick={save}>
+            {saving
+              ? en
+                ? 'Saving…'
+                : 'Αποθήκευση…'
+              : en
+                ? 'Create surveillance'
+                : 'Δημιουργία επιτήρησης'}
+          </Button>
+        </footer>
+      </div>
+    </div>
+  )
 }
-function ScreeningTypes({types,toggle,en}){return <div className="bulk-screening-types"><span>{en?'Screening type':'Τύπος ελέγχου'}</span><div className="screening-choice-list">{screeningCatalog.map(item=><Button variant="secondary" key={item.id} className={types.includes(item.id)?'selected':''} aria-pressed={types.includes(item.id)} onClick={()=>toggle(item.id)}>{en?item.en:item.el}</Button>)}</div></div>}
+function ScreeningTypes({ types, toggle, en }) {
+  return (
+    <div className="bulk-screening-types">
+      <span>{en ? 'Screening type' : 'Τύπος ελέγχου'}</span>
+      <div className="screening-choice-list">
+        {screeningCatalog.map(item => (
+          <Button
+            variant="secondary"
+            key={item.id}
+            className={types.includes(item.id) ? 'selected' : ''}
+            aria-pressed={types.includes(item.id)}
+            onClick={() => toggle(item.id)}
+          >
+            {en ? item.en : item.el}
+          </Button>
+        ))}
+      </div>
+    </div>
+  )
+}

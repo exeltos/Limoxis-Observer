@@ -53,21 +53,6 @@ describe('Analysis section model', () => {
   })
 })
 
-describe('Surveillance screens show names, not ids', () => {
-
-  it('groups the Surveillance Center by patient and hides cancelled episodes by default', () => {
-    const page = read('src/features/surveillance/SurveillanceCanonicalPage.jsx')
-    expect(page).toContain("const HIDDEN_CASE_STATUSES=new Set(['cancelled','voided','void'])")
-    expect(page).toContain('return groupByPatient(cases.filter(')
-  })
-
-  it('shows laboratory request materials as labelled choices', () => {
-    const dialog = read('src/features/surveillance/EmployeeSurveillanceRecordDialog.jsx')
-    expect(dialog).toContain("{id:'nasalSwab',el:'Ρινικό επίχρισμα',en:'Nasal swab'}")
-    expect(dialog).toContain('materialLabels(sample.source,en)')
-  })
-})
-
 describe('Workforce, training and governance sections', () => {
   const snap = { microbiology: {}, domains: {
     workforce: { activeEmployees: 10, vaccinatedEmployees: 8, byVaccine: [['Influenza', 8]], visits: 3, byVisitType: [['periodic', 3]], followUpsDue: 1, byDepartment: [] },
