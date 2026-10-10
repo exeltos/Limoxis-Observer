@@ -6,6 +6,7 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { downloadCsv } from '../../core/export/csvExport'
 import { BarList,ChartCard,DonutChart,TrendChart,numericRows } from './AnalysisCharts'
 import { CLINICAL_SITES,siteLabel,organismBySiteRows,fmtDate,numberValue,continuousMonths,chartLanguage } from './analysisPageModel'
+import { signalDemoScenario } from '../demo/demoScenarioSignals'
 
 export function AnalysisSelect({label,value,onChange,children}){return <label className="analysis-filter-field"><span>{label}</span><select value={value} onChange={onChange}>{children}</select></label>}
 // KPI tile: [label, value, hint, tone] — tone is good / warning / danger.
@@ -44,6 +45,7 @@ export function exportNationalRowsCsv(rows,tx,filename){
   const headers=[tx('Μικροοργανισμός','Organism'),tx('Ανθεκτικότητα','Resistance'),tx('Τμήμα','Department'),tx('Σημείο λοίμωξης','Infection site'),tx('Λεπτομέρεια δείγματος','Specimen detail'),tx('Πλήθος','Count'),tx('Τελευταία καταγραφή','Last recorded')]
   const csvRows=(rows||[]).map(([organism,resistanceClass,department,source,count,lastDate,sampleType])=>[organism,resistanceClass,department,siteLabel(sampleType,tx),source,count,fmtDate(lastDate)])
   downloadCsv(`${filename}.csv`,headers,csvRows)
+  signalDemoScenario('analysis_export')
 }
 export function ExportCsvButton({rows,tx,filename}){return <IconButton size="sm" disabled={!rows?.length} label={tx('Λήψη CSV','Download CSV')} onClick={()=>exportNationalRowsCsv(rows,tx,filename)}><Download size={14}/></IconButton>}
 // Outbreak/cluster early-warning signal (platform review roadmap, P2):

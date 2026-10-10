@@ -15,6 +15,7 @@ import { ReportingPanel } from '../reporting/ReportingPanel'
 import { COMPACT_QUERY,TABS,TAB_MODULES,REPORTING_TAB,analysisGroups,hashOrganization,fmtDate,calendarRange,periodSlotOptions,buildProductionRows } from './analysisPageModel'
 import { SubTabs } from '../../design-system/SubTabs'
 import { AnalysisSelect,KpiStrip,SectionCharts,MicrobiologyDistribution,NationalSurveillance,AmrRegister,DomainView,ScopeComparison } from './AnalysisPanels'
+import { signalDemoScenario } from '../demo/demoScenarioSignals'
 
 const EMPTY_ORGANIZATIONS=Object.freeze([])
 
@@ -41,12 +42,14 @@ export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS,f
  useEffect(()=>{if(!productionScope)return;const request=++requestRef.current;setLoading(true);setLoadError('');const args={...mainScope,...range,departmentId:effectiveDepartment};const yearArgs=compareYear?{...mainScope,...comparisonRange,departmentId:effectiveDepartment}:null;const ownerArgs=ownerCompareScope?{...ownerCompareScope,...range,departmentId:''}:null;Promise.all([loadAnalysisSnapshot(args),yearArgs?loadAnalysisSnapshot(yearArgs):Promise.resolve(null),ownerArgs?loadAnalysisSnapshot(ownerArgs):Promise.resolve(null)]).then(([main,yearCompare,ownerCompare])=>{if(request===requestRef.current){setSnapshot(main);setYearSnapshot(yearCompare);setOwnerSnapshot(ownerCompare)}}).catch(error=>{if(request===requestRef.current){setSnapshot(null);setYearSnapshot(null);setOwnerSnapshot(null);setLoadError(error?.message||'ANALYTICS_LOAD_FAILED')}}).finally(()=>{if(request===requestRef.current)setLoading(false)});return()=>{if(request===requestRef.current)requestRef.current+=1}},[productionScope,mainScope,range,comparisonRange,compareYear,effectiveDepartment,ownerCompareScope])
  const activeSnapshot=isDemo?demoSnapshot:snapshot;const model=tab==='national'||tab==='amr'?null:buildSectionModel(tab,activeSnapshot,tx,t);const rowsFor=snap=>{const m=tab==='national'||tab==='amr'?null:buildSectionModel(tab,snap,tx,t);return m?m.kpis:buildProductionRows(tab,snap,tx)};const rows=model?model.kpis:buildProductionRows(tab,activeSnapshot,tx);const yearRows=compareYear&&!isDemo&&yearSnapshot?rowsFor(yearSnapshot):[];const ownerRows=ownerSnapshot?rowsFor(ownerSnapshot):[];const currentTitle=[...TABS,REPORTING_TAB].find(x=>x[0]===tab)?.[en?2:1];const slotOptions=periodSlotOptions(periodType,en);const currentScopeLabel=platform?(org!=='all'?(organizations.find(item=>item.id===org)?.name||tx('Νοσοκομείο','Hospital')):region!=='all'?region:tx('Όλη η πλατφόρμα','Whole platform')):(tenant?.name||tx('Οργανισμός','Organization'))
  function printSection(sectionId){
+  signalDemoScenario('analysis_export')
   setPrintOpen(false)
   setPrintMode('print')
   setPrintTarget(sectionId)
   if(sectionId!==tab)setTab(sectionId)
  }
  function exportSectionPdf(sectionId){
+  signalDemoScenario('analysis_export')
   setPrintOpen(false)
   setPrintMode('pdf')
   setPrintTarget(sectionId)

@@ -21,6 +21,25 @@ export async function setDemoEvaluationStep(organizationId, step, done = true) {
   return data && typeof data === 'object' ? data : {}
 }
 
+// Ratings of the guide's scenarios ('guide_opened' = the guide as a whole):
+// { step: { rating, comment } }.
+const ratingsMap = (rows) => Object.fromEntries((rows || []).filter((row) => row.rating).map((row) => [row.step_key, { rating: row.rating, comment: row.rating_comment || '' }]))
+
+export async function loadMyDemoRatings(organizationId, userId) {
+  if (!supabase || !organizationId || !userId) return {}
+  const { data, error } = await supabase.from('demo_evaluation_progress').select('step_key,rating,rating_comment')
+    .eq('demo_organization_id', organizationId).eq('user_id', userId)
+  if (error) throw error
+  return ratingsMap(data)
+}
+
+export async function rateDemoEvaluationStep(organizationId, step, rating, comment = '') {
+  if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const { data, error } = await supabase.rpc('demo_rate_evaluation_step', { p_organization_id: organizationId, p_step: step, p_rating: rating, p_comment: comment || null })
+  if (error) throw error
+  return data && typeof data === 'object' ? data : {}
+}
+
 export async function requestDemoApplication(organizationId, { contactName, contactPhone = '', message = '' }) {
   if (!supabase) throw new Error('SUPABASE_NOT_CONFIGURED')
   const { data, error } = await supabase.rpc('demo_request_application', {
@@ -45,7 +64,7 @@ export async function loadMyDemoApplicationRequests(organizationId, userId) {
 export async function loadDemoEvaluationOverview(organizationId) {
   if (!supabase || !organizationId) return { progress: [], requests: [] }
   const [progress, requests] = await Promise.all([
-    supabase.from('demo_evaluation_progress').select('user_id,step_key,completed_at,updated_at').eq('demo_organization_id', organizationId),
+    supabase.from('demo_evaluation_progress').select('user_id,step_key,completed_at,updated_at,rating,rating_comment').eq('demo_organization_id', organizationId),
     supabase.from('demo_application_requests').select('id,user_id,contact_name,contact_email,contact_phone,message,status,created_at,handled_at')
       .eq('demo_organization_id', organizationId).order('created_at', { ascending: false }),
   ])
