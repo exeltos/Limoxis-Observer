@@ -4,6 +4,7 @@ import { readSessionJson, readSessionValue, removeSessionValue, writeSessionJson
 import { DemoGuideDialog } from './DemoGuideDialog'
 import { DemoApplicationDialog } from './DemoApplicationDialog'
 import { DemoActiveScenario, DemoScenarioRating } from './DemoScenarioCards'
+import { DemoStepSpotlight } from './DemoStepSpotlight'
 import { DEMO_SCENARIOS, demoScenarioDoneCount, demoScenariosForRole, demoStepsComplete } from './demoScenarios'
 import { DEMO_SCENARIO_EVENT, DEMO_STEP_EVENT, demoScenarioForPath, nextDemoScenario } from './demoScenarioSignals'
 import { loadMyDemoApplicationRequests, loadMyDemoProgress, loadMyDemoRatings, rateDemoEvaluationStep, requestDemoApplication, setDemoEvaluationStep, submitDemoScenarioFeedback } from './demoEvaluationService'
@@ -110,10 +111,14 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
   const ratingScenario=ratingFor&&ratingFor!==OVERALL?scenarioByKey(ratingFor):null
   const nextScenario=ratingScenario?nextDemoScenario(ratingFor,progress,scenarios):null
   const activeScenario=flow&&activeKey&&!ratingFor&&!progress[activeKey]?scenarioByKey(activeKey):null
+  // The next step not yet done is outlined on screen, when the screen marks it.
+  const nextStep=activeScenario?.steps?.find(step=>!stepsDone[activeScenario.key]?.[step.id])||null
+  const spotlight=activeScenario&&nextStep?.target&&!guideOpen?`${activeScenario.key}:${nextStep.id}`:null
   const submitApplication=useCallback(async(values)=>{setWorking(true);setError('');try{const result=await requestDemoApplication(organizationId,values);setSentAt(result?.createdAt||new Date().toISOString());setRequested(true)}catch(caught){setError(errorText(caught,en))}finally{setWorking(false)}},[organizationId,en])
 
   const dialogs=<>
     {guideOpen&&<DemoGuideDialog language={language} scenarios={scenarios} progress={progress} ratings={ratings} onRate={flow?key=>{setGuideOpen(false);setRatingFor(key)}:null} working={working} onOpenScenario={openScenario} onToggle={flow?toggleStep:null} onClose={()=>setGuideOpen(false)}/>}
+    <DemoStepSpotlight target={spotlight}/>
     {activeScenario&&!guideOpen&&<DemoActiveScenario scenario={activeScenario} scenarios={scenarios} stepsDone={stepsDone[activeScenario.key]||{}} language={language} trial={trial} working={working} onDone={()=>void complete(activeScenario.key)} onClose={()=>setActive(null)}/>}
     {flow&&ratingFor&&!guideOpen&&!applicationOpen&&<DemoScenarioRating key={ratingFor} scenario={ratingScenario} next={nextScenario} language={language} trial={trial} working={working} canRequest={tracks&&!requested}
       onSubmit={submitRating} onLater={closeRating} onNext={scenario=>{setRatingFor(null);openScenario(scenario)}} onRequestApplication={()=>{setRatingFor(null);setSentAt(null);setError('');setApplicationOpen(true)}}/>}

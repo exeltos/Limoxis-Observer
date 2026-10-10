@@ -11,6 +11,7 @@ import { DEMO_STEP_EVENT, nextDemoScenario, signalDemoScenario, signalDemoStep }
 import { DemoGuideDialog } from '../src/features/demo/DemoGuideDialog'
 import { DemoActiveScenario } from '../src/features/demo/DemoScenarioCards'
 import { useDemoEvaluation } from '../src/features/demo/useDemoEvaluation'
+import { DemoStepSpotlight } from '../src/features/demo/DemoStepSpotlight'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 
 vi.mock('../src/features/demo/demoEvaluationService', () => ({
@@ -98,7 +99,11 @@ describe('the guide flow for the Laboratory role', () => {
     const navigate = useNavigate()
     goTo = navigate
     api = useDemoEvaluation({ enabled: true, organizationId: 'demo-1', organizationName: 'Demo', userId: 'owner-1', profile: {}, isPlatformOwner: true, role: 'laboratory', language: 'el', navigate })
-    return api.dialogs
+    return <>
+      <button type="button" data-demo-step="microbiology_mdro:ast">AST</button>
+      <article data-demo-step="microbiology_mdro:amr">AMR</article>
+      {api.dialogs}
+    </>
   }
   const step = id => act(() => { signalDemoStep('microbiology_mdro', id) })
 
@@ -114,14 +119,38 @@ describe('the guide flow for the Laboratory role', () => {
 
     act(() => goTo('/laboratory/LAB-260827-001'))
     await waitFor(() => expect(within(card).getAllByRole('listitem')[0]).toHaveClass('is-done'))
-    step('ast'); step('amr')
+    const lit = () => [...document.querySelectorAll('.demo-step-highlight')].map(element => element.textContent)
+    await waitFor(() => expect(lit()).toEqual(['AST']))
+    expect(within(card).getByText('Επισημαίνεται στην οθόνη')).toBeInTheDocument()
+    step('ast')
+    await waitFor(() => expect(lit()).toEqual(['AMR']))
+    step('amr')
     act(() => { signalDemoScenario('hand_hygiene') })
     expect(within(card).getAllByRole('listitem').map(item => item.className)).toEqual(['is-done', 'is-done', 'is-done', 'is-next'])
     expect(api.guideDone).toBe(0)
 
     step('communication')
     expect(await screen.findByText('Ολοκληρώσατε το σενάριο')).toBeInTheDocument()
+    expect(lit()).toEqual([])
     expect(screen.queryByRole('complementary', { name: 'Σενάριο αξιολόγησης' })).not.toBeInTheDocument()
     expect(api.guideDone).toBe(1)
+  })
+})
+
+describe('step spotlight', () => {
+  it('outlines only the target, follows it when it appears later, and clears when done', async () => {
+    const { rerender, unmount } = render(<div><button data-demo-step="microbiology_mdro:ast">ast</button><button data-demo-step="microbiology_mdro:amr">amr</button><DemoStepSpotlight target="microbiology_mdro:ast"/></div>)
+    expect(screen.getByText('ast')).toHaveClass('demo-step-highlight')
+    expect(screen.getByText('amr')).not.toHaveClass('demo-step-highlight')
+    rerender(<div><button data-demo-step="microbiology_mdro:ast">ast</button><button data-demo-step="microbiology_mdro:amr">amr</button><DemoStepSpotlight target="microbiology_mdro:communication"/></div>)
+    expect(screen.getByText('ast')).not.toHaveClass('demo-step-highlight')
+    const late = document.createElement('section')
+    late.dataset.demoStep = 'microbiology_mdro:communication'
+    late.textContent = 'communication'
+    document.body.append(late)
+    await waitFor(() => expect(late).toHaveClass('demo-step-highlight'))
+    unmount()
+    expect(late).not.toHaveClass('demo-step-highlight')
+    late.remove()
   })
 })

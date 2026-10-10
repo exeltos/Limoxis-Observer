@@ -138,6 +138,7 @@ describe('AMR classification badge', () => {
     await openSample()
     openTab('Μικροβιολογικό αποτέλεσμα')
     const isolate = () => body().querySelector('.lab-isolate-card')
+    expect(isolate()).toHaveAttribute('data-demo-step', 'microbiology_mdro:amr')
     expect(isolate().querySelector('.status-badge')).toBeNull()
     fireEvent.click(within(isolate()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Ταξινόμηση AMR' }))

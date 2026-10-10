@@ -35,7 +35,7 @@ export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone=
       <button type="button" className="demo-scenario-close" onClick={onClose} aria-label={tx('Κλείσιμο','Close')}><X size={15}/></button></header>
     <strong>{en?scenario.titleEn:scenario.titleEl}</strong>
     <p>{en?scenario.textEn:scenario.textEl}</p>
-    {steps.length>0&&<ol className="demo-scenario-steps" aria-label={tx('Βήματα','Steps')}>{steps.map(step=>{const done=Boolean(stepsDone[step.id]);return <li key={step.id} className={done?'is-done':step===nextStep?'is-next':''} aria-current={step===nextStep?'step':undefined}>{done?<CheckCircle2 size={14} aria-label={tx('Ολοκληρώθηκε','Done')}/>:<Circle size={14} aria-hidden="true"/>}<span>{en?step.labelEn:step.labelEl}</span></li>})}</ol>}
+    {steps.length>0&&<ol className="demo-scenario-steps" aria-label={tx('Βήματα','Steps')}>{steps.map(step=>{const done=Boolean(stepsDone[step.id]);return <li key={step.id} className={done?'is-done':step===nextStep?'is-next':''} aria-current={step===nextStep?'step':undefined}>{done?<CheckCircle2 size={14} aria-label={tx('Ολοκληρώθηκε','Done')}/>:<Circle size={14} aria-hidden="true"/>}<span>{en?step.labelEn:step.labelEl}{step===nextStep&&step.target&&<small className="demo-step-onscreen">{tx('Επισημαίνεται στην οθόνη','Outlined on screen')}</small>}</span></li>})}</ol>}
     {trial&&<TrialNote en={en}/>}
     <div className="demo-scenario-actions"><Button variant="secondary" disabled={working} onClick={onDone}><CheckCircle2 size={14}/>{tx('Ολοκλήρωσα','I\'m done')}</Button></div>
   </aside>

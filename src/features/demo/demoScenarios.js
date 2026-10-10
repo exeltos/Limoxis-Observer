@@ -1,6 +1,8 @@
 // The evaluation guide: six scenarios, each opening the screen where it starts.
 // A scenario may list steps, each checked off by its screen (see
 // demoScenarioSignals.js); one step can be the scenario's record opening.
+// A step with `target` is outlined on screen (DemoStepSpotlight) where the
+// screen marks it with data-demo-step="scenario:step".
 export const DEMO_SCENARIOS = Object.freeze([
   { key: 'patient_admission', to: '/patients',
     titleEl: 'Εισαγωγή ασθενούς', titleEn: 'Admit a patient',
@@ -12,8 +14,8 @@ export const DEMO_SCENARIOS = Object.freeze([
     textEn: 'Open a surveillance case in the ICU and review the infection classification against the ECDC criteria and its reassessments.',
     steps: [
       { id: 'open', route: true, labelEl: 'Ανοίξτε ένα περιστατικό επιτήρησης', labelEn: 'Open a surveillance case' },
-      { id: 'hai', labelEl: 'Δείτε την ταξινόμηση HAI / AMR', labelEn: 'Review the HAI / AMR classification' },
-      { id: 'reassessment', labelEl: 'Δείτε την πορεία με τις επανεκτιμήσεις', labelEn: 'Review the reassessments' },
+      { id: 'hai', target: true, labelEl: 'Δείτε την ταξινόμηση HAI / AMR', labelEn: 'Review the HAI / AMR classification' },
+      { id: 'reassessment', target: true, labelEl: 'Δείτε την πορεία με τις επανεκτιμήσεις', labelEn: 'Review the reassessments' },
     ] },
   { key: 'microbiology_mdro', to: '/laboratory',
     titleEl: 'Μικροβιολογικό → αντιβιόγραμμα → MDRO', titleEn: 'Microbiology → susceptibility → MDRO',
@@ -21,9 +23,9 @@ export const DEMO_SCENARIOS = Object.freeze([
     textEn: 'In the Laboratory open a positive culture: review the susceptibility test, the MDR/XDR category and the link to the patient\'s isolation.',
     steps: [
       { id: 'open', route: true, labelEl: 'Ανοίξτε μια θετική καλλιέργεια', labelEn: 'Open a positive culture' },
-      { id: 'ast', labelEl: 'Καταχωρίστε αντιβιόγραμμα', labelEn: 'Record a susceptibility test' },
-      { id: 'amr', labelEl: 'Ταξινομήστε το AMR (MDR/XDR/PDR)', labelEn: 'Classify the AMR (MDR/XDR/PDR)' },
-      { id: 'communication', labelEl: 'Καταγράψτε την επικοινωνία του κρίσιμου αποτελέσματος', labelEn: 'Record the critical-result communication' },
+      { id: 'ast', target: true, labelEl: 'Καταχωρίστε αντιβιόγραμμα', labelEn: 'Record a susceptibility test' },
+      { id: 'amr', target: true, labelEl: 'Ταξινομήστε το AMR (MDR/XDR/PDR)', labelEn: 'Classify the AMR (MDR/XDR/PDR)' },
+      { id: 'communication', target: true, labelEl: 'Καταγράψτε την επικοινωνία του κρίσιμου αποτελέσματος', labelEn: 'Record the critical-result communication' },
     ] },
   { key: 'hand_hygiene', to: '/prevention/handHygiene/new?fromTab=handHygiene',
     titleEl: 'Υγιεινή χεριών (WHO)', titleEn: 'Hand hygiene (WHO)',

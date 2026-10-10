@@ -220,6 +220,7 @@ describe('surveillance episode journey', () => {
     const panel = await openStage('HAI / AMR')
     window.removeEventListener(DEMO_STEP_EVENT, listener)
     expect(steps).toContain('clabsi_classification/hai')
+    expect(document.querySelector('[data-demo-step="clabsi_classification:hai"]')).toHaveTextContent(/HAI \/ AMR/)
     expect(within(panel).getByText('Παράγεται από επικυρωμένα μικροβιολογικά/AST δεδομένα.')).toBeInTheDocument()
     expect(within(panel).getAllByRole('button').map(button => button.textContent.trim())).toEqual(['Νέα αξιολόγηση HAI'])
   })

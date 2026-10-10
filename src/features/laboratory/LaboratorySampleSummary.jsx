@@ -60,7 +60,7 @@ export function LaboratoryWorkflow({ steps, language, closedNote }) {
       </li>)}
     </ol>
     {closedNote ? <div className="lab-workflow-next is-closed">{closedNote}</div>
-      : next ? <div className="lab-workflow-next"><div><span>{en ? 'Next step' : 'Επόμενο βήμα'}</span><strong>{next.hint || next.label}</strong></div>{next.action && <Button onClick={next.action.onClick}>{next.action.icon && <next.action.icon size={15}/>}{next.action.label}</Button>}</div>
+      : next ? <div className="lab-workflow-next" data-demo-step={`microbiology_mdro:${next.id}`}><div><span>{en ? 'Next step' : 'Επόμενο βήμα'}</span><strong>{next.hint || next.label}</strong></div>{next.action && <Button onClick={next.action.onClick}>{next.action.icon && <next.action.icon size={15}/>}{next.action.label}</Button>}</div>
         : null}
   </section>
 }

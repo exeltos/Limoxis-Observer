@@ -448,7 +448,7 @@ export function LaboratorySampleRecordFunctionalView() {
                   const tagged = ast.filter(row => row.organism === name)
                   const current = amr.filter(row => row.organism === name).slice(-1)[0] || null
                   return (
-                    <article className="lab-isolate-card" key={name}>
+                    <article className="lab-isolate-card" key={name} data-demo-step="microbiology_mdro:amr">
                       <div className="lab-isolate-summary">
                         <div className="lab-isolate-identity">
                           <span className="lab-isolate-icon">
@@ -550,7 +550,7 @@ export function LaboratorySampleRecordFunctionalView() {
               </section>
             )}
             {communicationRequired && (
-              <section className="lab-record-card lab-communication-card">
+              <section className="lab-record-card lab-communication-card" data-demo-step="microbiology_mdro:communication">
                 <div className="record-section-header">
                   <div>
                     <span className="eyebrow">
