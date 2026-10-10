@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import { sampleParentCode } from '../src/features/surveillance/patientRecordScope'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
 
-const page = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
+const page = readPatientClinicalRecordSource()
 
 describe('patient sample follow-up hierarchy', () => {
   it('supports recursive sample follow-ups with visible nesting', () => {

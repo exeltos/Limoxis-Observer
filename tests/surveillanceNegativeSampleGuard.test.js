@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import { sampleTone } from '../src/features/surveillance/patientRecordScope'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 const migration = fs.readFileSync('supabase/migrations/20260919280000_block_surveillance_link_from_negative_sample.sql', 'utf8')
-const page = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
+const page = readPatientClinicalRecordSource()
 const linkService = fs.readFileSync('src/features/laboratory/laboratoryLinkService.js', 'utf8')
 
 describe('Technical guard: a negative laboratory result can never start or continue a surveillance case', () => {

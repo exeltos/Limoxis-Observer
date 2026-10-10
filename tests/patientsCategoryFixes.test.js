@@ -4,10 +4,11 @@ import { normalizeLaboratorySample } from '../src/features/laboratory/model/labo
 import { demoClinicalScaleDefinitions } from '../src/features/clinical-scales/clinicalScaleDemoDefinitions'
 import { buildClinicalScaleContext } from '../src/features/clinical-scales/clinicalScaleContext'
 import { episodeBelongsToPatient } from '../src/features/surveillance/patientRecordScope'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')
 
 // User-reported review of the Patients category.
-const canonical = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
+const canonical = readPatientClinicalRecordSource()
 const scales = fs.readFileSync('src/features/clinical-scales/PatientClinicalScalesPanel.jsx', 'utf8')
 
 describe('Patients category fixes', () => {
@@ -73,7 +74,7 @@ describe('Patients category fixes', () => {
 })
 
 describe('surveillance review', () => {
-  const canonical = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
+  const canonical = readPatientClinicalRecordSource()
   it('matches a surveillance episode to its patient only on real ids', () => {
     expect(canonical).toContain('episodeBelongsToPatient(ep,row)')
     expect(episodeBelongsToPatient({ patientRecordId: 'R1', patientId: 'P1' }, { recordId: 'R2', id: 'P1' })).toBe(false)

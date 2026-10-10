@@ -1,8 +1,9 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 const service=fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')
-const page=fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx','utf8')
+const page=readPatientClinicalRecordSource()
 const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
 
 describe('clinical cloud service',()=>{

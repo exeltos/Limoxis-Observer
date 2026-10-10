@@ -1,8 +1,15 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+// The patient clinical record page is split across the first seven files.
 const files = [
   'src/features/surveillance/PatientClinicalCanonicalPage.jsx',
+  'src/features/surveillance/ClinicalAdmissions.jsx',
+  'src/features/surveillance/ClinicalSurveillanceWorkspace.jsx',
+  'src/features/surveillance/ClinicalJourney.jsx',
+  'src/features/surveillance/clinicalRecordLabels.js',
+  'src/features/surveillance/ClinicalRecordViews.jsx',
+  'src/features/surveillance/ClinicalRecordDialogs.jsx',
   'src/features/surveillance/SurveillanceCanonicalPage.jsx',
   'src/features/patients/PatientsPage.jsx',
 ]
@@ -11,7 +18,13 @@ const files = [
 // the CI gate to hide newly introduced hard-coded Greek in these clinical UIs.
 // Lower this number whenever debt is removed; never raise it to make CI pass.
 const baseline = {
-  'src/features/surveillance/PatientClinicalCanonicalPage.jsx': 21,
+  'src/features/surveillance/PatientClinicalCanonicalPage.jsx': 0,
+  'src/features/surveillance/ClinicalAdmissions.jsx': 0,
+  'src/features/surveillance/ClinicalSurveillanceWorkspace.jsx': 1,
+  'src/features/surveillance/ClinicalJourney.jsx': 0,
+  'src/features/surveillance/clinicalRecordLabels.js': 14,
+  'src/features/surveillance/ClinicalRecordViews.jsx': 0,
+  'src/features/surveillance/ClinicalRecordDialogs.jsx': 6,
   'src/features/surveillance/SurveillanceCanonicalPage.jsx': 1,
   'src/features/patients/PatientsPage.jsx': 0,
 }

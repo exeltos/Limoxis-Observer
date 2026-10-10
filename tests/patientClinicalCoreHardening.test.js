@@ -1,10 +1,11 @@
 import fs from 'node:fs'
 import { describe,expect,it } from 'vitest'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
 
 const patients=fs.readFileSync('src/features/patients/patientsService.js','utf8')
 const patientForm=fs.readFileSync('src/features/patients/PatientsPage.jsx','utf8')
-const record=fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx','utf8')
+const record=readPatientClinicalRecordSource()
 const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
 const cloud=fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')
 const labRecord=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx','utf8')

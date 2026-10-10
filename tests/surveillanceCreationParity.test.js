@@ -1,8 +1,9 @@
 import fs from 'node:fs'
 import { describe,expect,it } from 'vitest'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 const registry=fs.readFileSync('src/features/surveillance/SurveillanceCanonicalPage.jsx','utf8')
-const record=fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx','utf8')
+const record=readPatientClinicalRecordSource()
 const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
 const admissionService=fs.readFileSync('src/features/surveillance/clinicalAdmissionService.js','utf8')
 const sharedFlow=fs.readFileSync('src/features/surveillance/NewSurveillanceFlow.jsx','utf8')

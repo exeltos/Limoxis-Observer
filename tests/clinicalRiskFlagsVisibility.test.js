@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import { clinicalRiskFlags } from '../src/features/clinical-scales/ClinicalRiskFlags'
 import { createPatientScaleAssessment, loadPatientScaleAssessments } from '../src/features/clinical-scales/patientClinicalScalesService'
 import { loadLatestPatientRiskFlags } from '../src/features/clinical-scales/patientRiskFlagsService'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 // User-reported: clinical-scale risk flags were not visible anywhere.
 describe('clinical-scale risk flags are visible and correctly toned', () => {
@@ -25,7 +26,7 @@ describe('clinical-scale risk flags are visible and correctly toned', () => {
 
   it('counts amended (edited) assessments, shows flags in the record header, and avoids the global button.danger rule', () => {
     expect(fs.readFileSync('src/features/clinical-scales/patientRiskFlagsService.js', 'utf8')).toContain("const CURRENT_STATUSES=['final','amended']")
-    expect(fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')).toContain('<ClinicalRiskFlags rows={riskFlagRows[patient.recordId]||riskFlagRows[patient.id]||[]}')
+    expect(readPatientClinicalRecordSource()).toContain('<ClinicalRiskFlags rows={riskFlagRows[patient.recordId]||riskFlagRows[patient.id]||[]}')
     expect(fs.readFileSync('src/features/clinical-scales/ClinicalRiskFlags.jsx', 'utf8')).toContain('risk-tone-')
   })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
 
@@ -11,14 +12,14 @@ describe('HAI criteria central library wiring (platform review roadmap, P3)', ()
   })
 
   it('loads the centrally-governed criteria sets into the HAI dialog before building its options', () => {
-    const page = read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
+    const page = readPatientClinicalRecordSource()
     expect(page).toContain("import { loadHaiCriteriaSets } from './haiCriteriaLibraryService'")
     expect(page).toContain('loadHaiCriteriaSets(organizationId)')
     expect(page).toContain('criteriaSets?Object.entries(criteriaSets).map(')
   })
 
   it('threads organizationId/isDemo from the surveillance workspace down into the HAI dialog', () => {
-    const page = read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
+    const page = readPatientClinicalRecordSource()
     expect(page).toContain('function CanonicalJourney({record,repository,libraries={},organizationId,isDemo,onLibraryAdded,onReload,t,language,fmtDate,fmtDateTime,permissions,initialStage=null})')
     expect(page).toContain('<HaiDialog t={t} items={libraries.surveillanceDefinitions||[]} patientAgeDays={patientAgeDays(record.dateOfBirth)} organizationId={organizationId} isDemo={isDemo}')
   })

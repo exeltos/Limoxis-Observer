@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 const migration = fs.readFileSync('supabase/migrations/20260919290000_add_antimicrobial_therapy_administrations.sql', 'utf8')
 const service = fs.readFileSync('src/features/surveillance/clinicalCloudService.js', 'utf8')
 const repository = fs.readFileSync('src/features/surveillance/clinicalRepository.js', 'utf8')
-const page = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
+const page = readPatientClinicalRecordSource()
 
 describe('Antimicrobial therapy: "plan" (order) and "administration" are now separate entities', () => {
   it('adds a dedicated, append-only administrations table distinct from the therapy order', () => {

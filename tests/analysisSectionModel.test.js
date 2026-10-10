@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import { buildSectionModel } from '../src/features/analysis/analysisDomains'
 import { mergeDomainMetrics } from '../src/features/analysis/analysisDomainMerge'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 const tx = (el) => el
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
@@ -55,7 +56,7 @@ describe('Analysis section model', () => {
 
 describe('Surveillance screens show names, not ids', () => {
   it('resolves assessment signs and risk factors through the library', () => {
-    const page = read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
+    const page = readPatientClinicalRecordSource()
     expect(page).toContain('function libraryLabel(value,rows=[],language=\'el\',t=null)')
     expect(page).toContain('rows={libraries.clinicalSymptoms||[]}')
     expect(page).toContain("clinicalTerm(record.assessment.classification||'undetermined',language,t)")

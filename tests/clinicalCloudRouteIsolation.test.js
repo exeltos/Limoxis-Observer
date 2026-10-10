@@ -1,8 +1,9 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 const route=fs.readFileSync('src/features/surveillance/PatientClinicalRecordRoute.jsx','utf8')
-const canonical=fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx','utf8')
+const canonical=readPatientClinicalRecordSource()
 const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
 const app=fs.readFileSync('src/app/App.jsx','utf8')
 
