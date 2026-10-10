@@ -67,4 +67,8 @@ describe('Demo scenario rating card', () => {
     fireEvent.click(await screen.findByRole('button', { name: /I want the application/ }))
     expect(onRequestApplication).toHaveBeenCalled()
   })
+  it('marks the Platform Owner\'s trial run as not saved', () => {
+    render(<DemoScenarioRating scenario={scenario} language="el" trial onSubmit={vi.fn()} onLater={() => {}} />)
+    expect(screen.getByText('Δοκιμή ως Platform Owner: δεν αποθηκεύεται.')).toBeTruthy()
+  })
 })
