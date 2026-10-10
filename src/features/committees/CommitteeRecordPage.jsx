@@ -71,6 +71,7 @@ import {
   FrameworkDialog,
 } from './CommitteeRecordDialogs'
 import './committeeRefinements.css'
+import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 export function CommitteeRecordPage() {
   const { committeeId } = useParams()
@@ -338,6 +339,7 @@ export function CommitteeRecordPage() {
     })
     if (result) {
       setDialog({ type: 'meeting', id })
+      signalDemoStep('committee_minutes', 'meeting')
       await notifyUpcomingMeeting(next)
     }
   }
@@ -388,6 +390,7 @@ export function CommitteeRecordPage() {
           : 'Η συνεδρίαση αποθηκεύτηκε.',
       close: finalize,
     })
+    if (result) signalDemoStep('committee_minutes', 'minutes')
     return Boolean(result)
   }
   function cancelMeeting(meeting) {

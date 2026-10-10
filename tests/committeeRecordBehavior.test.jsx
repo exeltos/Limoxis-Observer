@@ -7,6 +7,7 @@ import '@testing-library/jest-dom/vitest'
 import { useState } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
+import { DEMO_STEP_EVENT } from '../src/features/demo/demoScenarioSignals'
 
 const notifications = { addAnnouncement: vi.fn(), reloadAnnouncements: vi.fn() }
 const feedback = { notify: vi.fn(), notifyError: vi.fn(), confirm: vi.fn(async () => true) }
@@ -154,9 +155,16 @@ describe('committee record: meetings', () => {
     const date = within(form).getByPlaceholderText('ηη/μμ/εεεε')
     fireEvent.change(date, { target: { value: '25/10/2026' } })
     fireEvent.blur(date)
+    const steps = []
+    const listener = event => steps.push(event.detail.step)
+    window.addEventListener(DEMO_STEP_EVENT, listener)
     fireEvent.click(within(form).getByRole('button', { name: /Δημιουργία & συνέχεια/ }))
     await waitFor(() => expect(screen.getByRole('dialog')).toHaveTextContent('Πρακτικά συνεδρίασης'))
     expect(dialog()).toHaveTextContent('Έκτακτη συνεδρίαση')
+    // The Demo guide's committee scenario: meeting scheduled, then minutes saved.
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Αποθήκευση' }))
+    await waitFor(() => expect(steps).toEqual(['meeting', 'minutes']))
+    window.removeEventListener(DEMO_STEP_EVENT, listener)
     expect(notifications.addAnnouncement).toHaveBeenCalledWith(expect.objectContaining({ audienceType: 'user', audienceValues: ['u-anna', 'u-vasilis'] }))
   })
 

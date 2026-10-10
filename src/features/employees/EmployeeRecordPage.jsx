@@ -53,6 +53,7 @@ import {
   EmployeeSurveillanceTab,
   EmployeeHistoryTab,
 } from './EmployeeRecordTabs'
+import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 export function EmployeeRecordPage({ selfMode = false }) {
   const { employeeId } = useParams()
@@ -260,6 +261,12 @@ export function EmployeeRecordPage({ selfMode = false }) {
     ],
     [t, language],
   )
+  // Demo evaluation guide: opening these tabs are steps of the HR scenarios.
+  useEffect(() => {
+    if (tab === 'training') signalDemoStep('employee_record', 'training')
+    if (tab === 'certificates') signalDemoStep('employee_record', 'documents')
+    if (tab === 'evaluations') signalDemoStep('performance_evaluation', 'evaluations')
+  }, [tab])
 
   if (employeesLoading) return <RouteLoading />
   if (employeesError)

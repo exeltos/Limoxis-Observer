@@ -12,11 +12,11 @@ alter table public.demo_evaluation_progress add constraint demo_evaluation_progr
   'guide_opened',
   'patient_admission', 'clabsi_classification', 'microbiology_mdro', 'hand_hygiene', 'incident_capa', 'analysis_export',
   'employee_record', 'performance_evaluation',
-  'occupational_visit', 'occupational_vaccination', 'occupational_exposure',
+  'occupational_visit', 'occupational_exposure',
   'quality_audit',
   'antimicrobial_consumption',
   'committee_minutes',
-  'users_roles', 'operating_profile',
+  'users_roles', 'custom_roles',
   'department_overview', 'staff_training'
 ));
 

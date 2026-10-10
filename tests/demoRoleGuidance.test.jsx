@@ -32,9 +32,8 @@ describe('scenarios per role', () => {
     expect(demoScenariosForRole(null)).toBe(DEMO_SCENARIOS)
   })
 
-  it('only uses scenario keys the database accepts', () => {
-    const accepted = new Set(DEMO_SCENARIOS.map(scenario => scenario.key))
-    for (const roleKeys of Object.values(DEMO_ROLE_SCENARIOS)) for (const key of roleKeys) expect(accepted.has(key)).toBe(true)
+  it('keeps a role to the six original keys until the database accepts the others', () => {
+    for (const role of Object.keys(DEMO_ROLE_SCENARIOS)) for (const scenario of demoScenariosForRole(role)) expect(DEMO_SCENARIOS).toContain(scenario)
   })
 
   it('suggests the next scenario within the role', () => {

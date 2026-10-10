@@ -19,6 +19,7 @@ import { downloadCsv } from '../../core/export/csvExport'
 import { MetricCard } from '../../design-system/MetricCard'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import './OccupationalHealthPage.css'
+import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 export function OccupationalHealthPage(){
  const {t,language,locale}=useLanguage();const {notify,notifyError}=useFeedback();const navigate=useNavigate();const registry=useRegistryMemory('occupational-health');const {canAccessRecord,tenant}=useTenant()
@@ -39,9 +40,9 @@ export function OccupationalHealthPage(){
  // Fit for work counts people, not visits: each employee's latest completed visit decides.
  const fitEmployees=useMemo(()=>{const latest=new Map();for(const v of occupationalVisits){if(v.status!=='completed')continue;const prev=latest.get(v.employeeId);if(!prev||String(v.date)>String(prev.date))latest.set(v.employeeId,v)}return [...latest.values()].filter(v=>['fit','fit_with_restrictions'].includes(v.fitStatus)).length},[occupationalVisits])
  const [visitEditor,setVisitEditor]=useState(null)
- async function saveVisit(){try{const employee=employeeRows.find(x=>x.id===visitEditor.employeeId);const created=await createOccupationalVisitAsync(tenant?.id,employee,visitEditor);setOccupationalVisits(rows=>[created,...rows]);notify(visitSavedMessage(language),'success');setVisitEditor(null)}catch(error){notifyError(error,'save',{operation:'occupational_visit_create'})}}
+ async function saveVisit(){try{const employee=employeeRows.find(x=>x.id===visitEditor.employeeId);const created=await createOccupationalVisitAsync(tenant?.id,employee,visitEditor);setOccupationalVisits(rows=>[created,...rows]);signalDemoStep('occupational_visit','visit');notify(visitSavedMessage(language),'success');setVisitEditor(null)}catch(error){notifyError(error,'save',{operation:'occupational_visit_create'})}}
  const openExposures=exposureRows.filter(x=>x.status==='open').length
- async function saveExposureIncident(draft){try{const employee=employeeRows.find(x=>x.id===draft.employeeId);await createExposureIncidentAsync(tenant?.id,employee,draft);notify(translate('copy.occupationalCopy.exposureIncidentSaved',en?'en':'el'),'success');setExposureEditor(null);await reloadExposureIncidents()}catch(error){notify(error?.message||(translate('copy.occupationalCopy.couldNotSaveTheExposureIncident',en?'en':'el')),'error')}}
+ async function saveExposureIncident(draft){try{const employee=employeeRows.find(x=>x.id===draft.employeeId);await createExposureIncidentAsync(tenant?.id,employee,draft);signalDemoStep('occupational_exposure','record');notify(translate('copy.occupationalCopy.exposureIncidentSaved',en?'en':'el'),'success');setExposureEditor(null);await reloadExposureIncidents()}catch(error){notify(error?.message||(translate('copy.occupationalCopy.couldNotSaveTheExposureIncident',en?'en':'el')),'error')}}
  function action(a){
   if(a===UI_ACTIONS.PRINT){window.print();return}
   if(a===UI_ACTIONS.EXPORT){

@@ -1,4 +1,4 @@
-import { DEMO_SCENARIOS } from './demoScenarios'
+import { DEMO_ALL_SCENARIOS, DEMO_SCENARIOS } from './demoScenarios'
 
 // Completion of the Demo evaluation guide's scenarios. A screen calls
 // signalDemoScenario when the scenario's task is done (a patient admitted, an
@@ -18,7 +18,7 @@ export const DEMO_STEP_EVENT = 'lo:demo-step-done'
 
 export function signalDemoStep(key, step) {
   if (typeof window === 'undefined') return
-  const scenario = DEMO_SCENARIOS.find((item) => item.key === key)
+  const scenario = DEMO_ALL_SCENARIOS.find((item) => item.key === key)
   if (!scenario?.steps?.some((item) => item.id === step)) return
   window.dispatchEvent(new CustomEvent(DEMO_STEP_EVENT, { detail: { key, step } }))
 }

@@ -17,6 +17,7 @@ const { FeedbackProvider } = await import('../src/core/feedback/FeedbackContext'
 const { TenantProvider, useTenant } = await import('../src/core/tenant/TenantContext')
 const { NotificationProvider } = await import('../src/core/notifications/NotificationContext')
 const { EmployeeRecordPage } = await import('../src/features/employees/EmployeeRecordPage')
+const { DEMO_STEP_EVENT } = await import('../src/features/demo/demoScenarioSignals')
 
 function TrainingTarget() {
   const location = useLocation()
@@ -54,6 +55,18 @@ beforeEach(() => {
 afterEach(() => { cleanup(); localStorage.clear() })
 
 describe('employee record tabs', () => {
+  it('checks off the Demo guide steps of the HR scenarios as their tabs open', async () => {
+    const steps = []
+    const listener = event => steps.push(`${event.detail.key}/${event.detail.step}`)
+    window.addEventListener(DEMO_STEP_EVENT, listener)
+    await openEmployee()
+    openTab('Εκπαίδευση')
+    openTab('Αξιολογήσεις')
+    openTab('Έγγραφα')
+    window.removeEventListener(DEMO_STEP_EVENT, listener)
+    expect(steps).toEqual(['employee_record/training', 'performance_evaluation/evaluations', 'employee_record/documents'])
+  })
+
   it('groups visits, vaccinations and exposure incidents under the occupational health tab', async () => {
     await openEmployee()
     openTab('Ιατρός Εργασίας')

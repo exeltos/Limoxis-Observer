@@ -25,6 +25,7 @@ import {
   statusClass,
 } from './employeeRecordShared'
 import { trainingAnswerText } from './EmployeeTrainingTab'
+import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 // Performance evaluations tab of the employee record, with its HR approval workflow.
 
@@ -108,6 +109,7 @@ export function EmployeeEvaluationsTab({
     setSaving(true)
     try {
       await createEmployeeEvaluationAsync(organizationId, employee.dbId, draft)
+      signalDemoStep('performance_evaluation', 'create')
       notify(en ? 'Evaluation saved.' : 'Η αξιολόγηση αποθηκεύτηκε.', 'success')
       setCreating(false)
       await state.reload()
