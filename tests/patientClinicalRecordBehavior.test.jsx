@@ -21,6 +21,7 @@ const { PatientClinicalRecordRoute } = await import('../src/features/surveillanc
 const { clinicalCases } = await import('../src/features/surveillance/clinicalDemoData')
 const { patientDemoData } = await import('../src/features/patients/patientDemoData')
 const { laboratorySamples } = await import('../src/features/laboratory/laboratoryDemoData')
+const { DEMO_STEP_EVENT } = await import('../src/features/demo/demoScenarioSignals')
 
 const pristineCases = structuredClone(clinicalCases)
 const pristinePatients = structuredClone(patientDemoData)
@@ -210,10 +211,15 @@ describe('surveillance episode journey', () => {
     for (const label of ['Λοίμωξη', 'Πυρετός >38°C', 'Υπόταση', 'Κεντρικός φλεβικός καθετήρας']) expect(within(panel).getByText(label)).toBeInTheDocument()
   })
 
-  it('derives MDR from validated microbiology instead of offering manual classification', async () => {
+  it('derives MDR from validated microbiology instead of offering manual classification, and tells the Demo guide', async () => {
+    const steps = []
+    const listener = event => steps.push(`${event.detail.key}/${event.detail.step}`)
+    window.addEventListener(DEMO_STEP_EVENT, listener)
     await openSurveillance()
     await openEpisode()
     const panel = await openStage('HAI / AMR')
+    window.removeEventListener(DEMO_STEP_EVENT, listener)
+    expect(steps).toContain('clabsi_classification/hai')
     expect(within(panel).getByText('Παράγεται από επικυρωμένα μικροβιολογικά/AST δεδομένα.')).toBeInTheDocument()
     expect(within(panel).getAllByRole('button').map(button => button.textContent.trim())).toEqual(['Νέα αξιολόγηση HAI'])
   })

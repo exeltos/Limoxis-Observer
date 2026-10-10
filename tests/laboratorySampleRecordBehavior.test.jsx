@@ -19,6 +19,7 @@ const { NotificationProvider } = await import('../src/core/notifications/Notific
 const { LaboratorySampleRecordView } = await import('../src/features/laboratory/LaboratorySampleRecordView')
 const { laboratorySamples } = await import('../src/features/laboratory/laboratoryDemoData')
 const pristineSamples = structuredClone(laboratorySamples)
+const { DEMO_STEP_EVENT } = await import('../src/features/demo/demoScenarioSignals')
 
 async function openSample(id = 'LAB-260827-001') {
   let api
@@ -130,7 +131,10 @@ describe('laboratory record dialogs', () => {
 // MDR/XDR/PDR badge is misleading, so like every other resistance badge in
 // the app it is red for a real classification and absent when there is none.
 describe('AMR classification badge', () => {
-  it('shows no badge without a classification and a red badge once one is recorded', async () => {
+  it('shows no badge without a classification and a red badge once one is recorded, and tells the Demo guide', async () => {
+    const steps = []
+    const listener = event => steps.push(`${event.detail.key}/${event.detail.step}`)
+    window.addEventListener(DEMO_STEP_EVENT, listener)
     await openSample()
     openTab('Μικροβιολογικό αποτέλεσμα')
     const isolate = () => body().querySelector('.lab-isolate-card')
@@ -142,6 +146,8 @@ describe('AMR classification badge', () => {
     fireEvent.change(classification, { target: { value: 'MDR' } })
     fireEvent.click(within(dialog).getAllByRole('button').filter(button => /Αποθήκευση/.test(button.textContent)).at(-1))
     await waitFor(() => expect(isolate().querySelector('.status-badge')).toHaveTextContent('MDR'))
+    expect(steps).toEqual(['microbiology_mdro/amr'])
+    window.removeEventListener(DEMO_STEP_EVENT, listener)
     expect(isolate().querySelector('.status-badge')).toHaveClass('danger')
     expect(isolate().querySelector('.status-badge')).not.toHaveClass('active')
   })

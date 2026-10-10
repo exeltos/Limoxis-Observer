@@ -36,6 +36,7 @@ import {
   ReasonDialog,
 } from './ClinicalRecordDialogs'
 import { StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
+import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 // Surveillance episode journey: stages, clinical entries and their detail view.
 
@@ -59,6 +60,10 @@ export function CanonicalJourney({
   useEffect(() => {
     if (initialStage) setStage(initialStage)
   }, [initialStage])
+  // Demo evaluation guide: reviewing these stages are steps of the CLABSI scenario.
+  useEffect(() => {
+    if (stage === 'hai' || stage === 'reassessment') signalDemoStep('clabsi_classification', stage)
+  }, [stage])
   const [dialog, setDialog] = useState(null),
     [reason, setReason] = useState(''),
     [entryDetail, setEntryDetail] = useState(null)

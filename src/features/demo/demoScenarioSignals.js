@@ -12,6 +12,17 @@ export function signalDemoScenario(key) {
   window.dispatchEvent(new CustomEvent(DEMO_SCENARIO_EVENT, { detail: { key } }))
 }
 
+// A step of a scenario is done (an AST saved, an AMR classified, a stage
+// reviewed). Only the guide's active scenario counts it.
+export const DEMO_STEP_EVENT = 'lo:demo-step-done'
+
+export function signalDemoStep(key, step) {
+  if (typeof window === 'undefined') return
+  const scenario = DEMO_SCENARIOS.find((item) => item.key === key)
+  if (!scenario?.steps?.some((item) => item.id === step)) return
+  window.dispatchEvent(new CustomEvent(DEMO_STEP_EVENT, { detail: { key, step } }))
+}
+
 const RECORD_ROUTES = [
   ['clabsi_classification', /^\/surveillance\/(?!new(?:\/|$))[^/]+\/?$/],
   ['microbiology_mdro', /^\/laboratory\/(?!new(?:\/|$))[^/]+\/?$/],
@@ -22,11 +33,12 @@ export function demoScenarioForPath(pathname) {
   return RECORD_ROUTES.find(([, pattern]) => pattern.test(path))?.[0] || null
 }
 
-// The scenario to suggest after `key`: the next one not done, wrapping round.
-export function nextDemoScenario(key, progress = {}) {
-  const start = DEMO_SCENARIOS.findIndex((scenario) => scenario.key === key)
-  for (let step = 1; step <= DEMO_SCENARIOS.length; step++) {
-    const scenario = DEMO_SCENARIOS[(start + step + DEMO_SCENARIOS.length) % DEMO_SCENARIOS.length]
+// The scenario to suggest after `key` among the role's scenarios: the next
+// one not done, wrapping round.
+export function nextDemoScenario(key, progress = {}, scenarios = DEMO_SCENARIOS) {
+  const start = scenarios.findIndex((scenario) => scenario.key === key)
+  for (let step = 1; step <= scenarios.length; step++) {
+    const scenario = scenarios[(start + step + scenarios.length) % scenarios.length]
     if (scenario.key !== key && !progress[scenario.key]) return scenario
   }
   return null

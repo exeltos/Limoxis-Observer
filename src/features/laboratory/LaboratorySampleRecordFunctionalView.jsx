@@ -45,6 +45,7 @@ import { sampleProgress, workflowStates } from './laboratorySampleProgress'
 import { copy } from './laboratorySampleFormat'
 import { ResultCard, LabHistory } from './LaboratorySampleViews'
 import { ResultDialog, AstDialog, AmrDialog, CommunicationDialog } from './LaboratorySampleDialogs'
+import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 export function LaboratorySampleRecordFunctionalView() {
   const { sampleId } = useParams()
@@ -678,7 +679,12 @@ export function LaboratorySampleRecordFunctionalView() {
           organisms={organisms}
           initialOrganism={String(dialog).slice(4)}
           onClose={() => setDialog(null)}
-          onSave={draft => run(() => repository.addAst(sample.id, result.id, draft), t('saved'))}
+          onSave={draft =>
+            run(async () => {
+              await repository.addAst(sample.id, result.id, draft)
+              signalDemoStep('microbiology_mdro', 'ast')
+            }, t('saved'))
+          }
         />
       )}
       {String(dialog || '').startsWith('amr:') && (
@@ -691,7 +697,12 @@ export function LaboratorySampleRecordFunctionalView() {
               ?.classification || ''
           }
           onClose={() => setDialog(null)}
-          onSave={draft => run(() => repository.saveAmr(sample.id, result.id, draft), t('saved'))}
+          onSave={draft =>
+            run(async () => {
+              await repository.saveAmr(sample.id, result.id, draft)
+              signalDemoStep('microbiology_mdro', 'amr')
+            }, t('saved'))
+          }
         />
       )}
       {dialog === 'communication' && (
@@ -699,7 +710,10 @@ export function LaboratorySampleRecordFunctionalView() {
           tx={tx}
           onClose={() => setDialog(null)}
           onSave={draft =>
-            run(() => repository.communicate(sample.id, result.id, draft), t('saved'))
+            run(async () => {
+              await repository.communicate(sample.id, result.id, draft)
+              signalDemoStep('microbiology_mdro', 'communication')
+            }, t('saved'))
           }
         />
       )}
