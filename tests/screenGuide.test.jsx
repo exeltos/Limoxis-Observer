@@ -48,11 +48,12 @@ describe('Screen guide', () => {
     fireEvent.click(screen.getByText('Κατάλαβα, ξεκινάω'))
     await waitFor(() => expect(marked).toEqual(['/patients', ALL_SCREEN_GUIDES]))
   })
-  it('is stored per user with row-level security, shown in Demo organizations', () => {
+  it('is stored per user with row-level security, shown where the hospital and user settings allow', () => {
     const migration = fs.readFileSync('supabase/migrations/20261017120000_screen_guides.sql', 'utf8')
     expect(migration).toContain('using (user_id = (select auth.uid()))')
     const shell = fs.readFileSync('src/app/AppShell.jsx', 'utf8')
-    expect(shell).toContain('<ScreenGuide enabled={realDemoTenant&&!platformMode&&!helpPreviewMode}')
+    expect(shell).toContain('<ScreenGuide enabled={guidesOn}')
+    expect(shell).toContain('const guidesOn=!platformMode&&!helpPreviewMode&&screenGuidesOn({organization:tenant,membership})')
     expect(shell).toContain('hold={briefingOpen||birthdayOpen||helpOpen||demoEvaluation.busy}')
   })
 })

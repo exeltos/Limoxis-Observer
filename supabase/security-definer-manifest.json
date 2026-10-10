@@ -296,6 +296,11 @@
       "authenticated": true,
       "reason": "Writes a runtime event for an organisation the caller is an active member of."
     },
+    "set_member_screen_guides": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Sets whether one member of an organization sees the screen guides; checks that the caller is the platform owner or that organization's admin and writes the audit log."
+    },
     "set_organization_branding": {
       "category": "rpc",
       "authenticated": true,
@@ -305,6 +310,11 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Sets the organisation's screen lock after inactivity; Platform Owner or organisation admin."
+    },
+    "set_organization_screen_guides": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Turns the screen guides on, off or back to the default for one organization; checks that the caller is the platform owner or that organization's admin and writes the audit log."
     },
     "submit_committee_minutes": {
       "category": "rpc",
