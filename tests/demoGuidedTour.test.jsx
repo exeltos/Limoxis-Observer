@@ -136,6 +136,8 @@ describe('welcome and tour in the guide flow', () => {
     act(() => goTo('/laboratory/LAB-260827-001'))
     expect(await screen.findByText('Αντιβιόγραμμα')).toBeInTheDocument()
     expect(screen.getByText(/βήμα 2\/4/)).toBeInTheDocument()
+    // The count runs over the whole tour, not only this step's stops.
+    expect(screen.getByText('2/4')).toBeInTheDocument()
     act(() => { signalDemoStep('microbiology_mdro', 'ast') })
     expect(await screen.findByText('AMR')).toBeInTheDocument()
     // Ended, the card is back with "Show me" to tour again.

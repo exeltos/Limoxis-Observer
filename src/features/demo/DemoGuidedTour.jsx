@@ -23,7 +23,7 @@ function rectOf(target,language){
 // what it points at (or "Next"), and an element not on screen yet (a dialog
 // still closed) is waited for. `stops` are the stops of the steps not yet done,
 // so the tour moves on by itself when a screen checks a step off.
-export function DemoGuidedTour({scenario,stops,stepNumber,stepTotal,language,onClose,onFinish}){
+export function DemoGuidedTour({scenario,stops,totalStops=stops.length,stepNumber,stepTotal,language,onClose,onFinish}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const [index,setIndex]=useState(0)
   const [rect,setRect]=useState(null)
@@ -66,7 +66,7 @@ export function DemoGuidedTour({scenario,stops,stepNumber,stepTotal,language,onC
       <p>{en?stop.textEn:stop.textEl}</p>
       {waiting&&<small className="demo-tour-wait">{tx('Συνεχίζει μόλις εμφανιστεί στην οθόνη.','It goes on as soon as it is on the screen.')}</small>}
       <div className="demo-tour-actions">
-        <span className="demo-tour-count">{index+1}/{stops.length}</span>
+        <span className="demo-tour-count">{totalStops-stops.length+index+1}/{totalStops}</span>
         {index>0&&<button type="button" onClick={()=>setIndex(value=>value-1)}><ArrowLeft size={14}/>{tx('Πίσω','Back')}</button>}
         <button type="button" className="is-primary" onClick={next}>{last?tx('Τέλος','Done'):stop.advance==='click'?tx('Παράλειψη','Skip'):tx('Επόμενο','Next')}{!last&&<ArrowRight size={14}/>}</button>
       </div>
