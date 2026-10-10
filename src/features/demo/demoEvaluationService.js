@@ -31,11 +31,17 @@ const ratingsMap = (rows) => Object.fromEntries((rows || []).filter((row) => row
 const QUESTIONNAIRE_COLUMNS = 'ease,clarity,duration_seconds'
 export const isMissingSchema = (error) => ['PGRST202', 'PGRST204', '42703', '42883'].includes(error?.code)
 
+// Whether 20261028120000_demo_role_guidance.sql is applied (null until a read
+// tells): the scenarios of the other roles need its step keys.
+let extendedSchema = null
+export const hasExtendedDemoSchema = () => extendedSchema
+
 async function selectProgress(columns, organizationId, userId = null) {
   let query = supabase.from('demo_evaluation_progress').select(`${columns},${QUESTIONNAIRE_COLUMNS}`).eq('demo_organization_id', organizationId)
   if (userId) query = query.eq('user_id', userId)
   let result = await query
-  if (isMissingSchema(result.error)) {
+  extendedSchema = !isMissingSchema(result.error)
+  if (!extendedSchema) {
     query = supabase.from('demo_evaluation_progress').select(columns).eq('demo_organization_id', organizationId)
     if (userId) query = query.eq('user_id', userId)
     result = await query

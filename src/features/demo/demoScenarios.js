@@ -41,6 +41,10 @@ export const DEMO_SCENARIOS = Object.freeze([
     textEn: 'In Analysis choose a period and departments, review the indicators and download the report as PDF or CSV.' },
 ])
 
+// Every scenario the guide knows: the six above and, once the database accepts
+// their keys, the scenarios of the other roles.
+export const DEMO_ALL_SCENARIOS = DEMO_SCENARIOS
+
 // Phase 1 of the per-role guide (docs/ROLE_MENU_AND_DEMO_GUIDANCE_DESIGN.md):
 // each role sees the scenarios of its own daily work, drawn from the six
 // above (their keys are what demo_evaluation_progress accepts). Roles not
@@ -52,9 +56,15 @@ export const DEMO_ROLE_SCENARIOS = Object.freeze({
   laboratory: ['microbiology_mdro'],
 })
 
-export function demoScenariosForRole(role) {
-  const keys = DEMO_ROLE_SCENARIOS[role]
-  return keys ? keys.map((key) => DEMO_SCENARIOS.find((scenario) => scenario.key === key)) : DEMO_SCENARIOS
+// The six scenarios demo_evaluation_progress has always accepted; the others
+// need 20261028120000_demo_role_guidance.sql (`extended`). Without it a role
+// keeps only its original scenarios, or all six when it has none.
+export const ORIGINAL_SCENARIO_KEYS = new Set(['patient_admission', 'clabsi_classification', 'microbiology_mdro', 'hand_hygiene', 'incident_capa', 'analysis_export'])
+
+export function demoScenariosForRole(role, { extended = false } = {}) {
+  const keys = (DEMO_ROLE_SCENARIOS[role] || []).filter((key) => extended || ORIGINAL_SCENARIO_KEYS.has(key))
+  const all = extended ? DEMO_ALL_SCENARIOS : DEMO_SCENARIOS
+  return keys.length ? keys.map((key) => all.find((scenario) => scenario.key === key)).filter(Boolean) : DEMO_SCENARIOS
 }
 
 export const demoScenarioDoneCount = (progress = {}, scenarios = DEMO_SCENARIOS) => scenarios.filter((scenario) => progress[scenario.key]).length

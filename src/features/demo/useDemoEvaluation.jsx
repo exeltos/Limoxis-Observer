@@ -5,15 +5,15 @@ import { DemoGuideDialog } from './DemoGuideDialog'
 import { DemoApplicationDialog } from './DemoApplicationDialog'
 import { DemoActiveScenario, DemoScenarioRating } from './DemoScenarioCards'
 import { DemoStepSpotlight } from './DemoStepSpotlight'
-import { DEMO_SCENARIOS, demoScenarioDoneCount, demoScenariosForRole, demoStepsComplete } from './demoScenarios'
+import { DEMO_ALL_SCENARIOS, demoScenarioDoneCount, demoScenariosForRole, demoStepsComplete } from './demoScenarios'
 import { DEMO_SCENARIO_EVENT, DEMO_STEP_EVENT, demoScenarioForPath, nextDemoScenario } from './demoScenarioSignals'
-import { loadMyDemoApplicationRequests, loadMyDemoProgress, loadMyDemoRatings, rateDemoEvaluationStep, requestDemoApplication, setDemoEvaluationStep, submitDemoScenarioFeedback } from './demoEvaluationService'
+import { hasExtendedDemoSchema, loadMyDemoApplicationRequests, loadMyDemoProgress, loadMyDemoRatings, rateDemoEvaluationStep, requestDemoApplication, setDemoEvaluationStep, submitDemoScenarioFeedback } from './demoEvaluationService'
 
 const ACTIVE_KEY='lo.demo.activeScenario'
 const STEPS_KEY='lo.demo.scenarioSteps'
 const STARTED_KEY='lo.demo.scenarioStarted' // { scenario: started at (ms) }, for the time it took
 const OVERALL='guide_opened'
-const scenarioByKey=key=>DEMO_SCENARIOS.find(scenario=>scenario.key===key)||null
+const scenarioByKey=key=>DEMO_ALL_SCENARIOS.find(scenario=>scenario.key===key)||null
 
 const errorText=(error,en)=>/Too many requests/i.test(String(error?.message||''))
   ?(en?'You have already sent several requests today. We will contact you shortly.':'Έχετε ήδη στείλει αρκετά αιτήματα σήμερα. Θα επικοινωνήσουμε μαζί σας σύντομα.')
@@ -46,7 +46,10 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
   const [activeKey,setActiveKey]=useState(()=>readSessionValue(ACTIVE_KEY,null))
   const [ratingFor,setRatingFor]=useState(null) // scenario key, OVERALL, or null
   const [stepsDone,setStepsDone]=useState(()=>readSessionJson(STEPS_KEY,{})||{}) // { scenario: { step: true } }
-  const scenarios=useMemo(()=>demoScenariosForRole(role),[role])
+  // Every role's scenarios once the database accepts their keys; the Platform
+  // Owner's trial stores nothing, so it always sees them.
+  const [extended,setExtended]=useState(false)
+  const scenarios=useMemo(()=>demoScenariosForRole(role,{extended:extended||trial}),[role,extended,trial])
   const {pathname}=useLocation()
   const state=useRef({progress,ratings,loaded,activeKey,stepsDone,scenarios});state.current={progress,ratings,loaded,activeKey,stepsDone,scenarios}
   // The first visit opens the guide, after the sign-in briefing has closed.
@@ -58,7 +61,7 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
     if(!tracks){setProgress({});setRatings({});setRequested(false);setLoaded(trial);return undefined}
     Promise.all([loadMyDemoProgress(organizationId,userId),loadMyDemoApplicationRequests(organizationId,userId),loadMyDemoRatings(organizationId,userId).catch(()=>({}))]).then(([next,requests,rated])=>{
       if(!active)return
-      setProgress(next);setRequested(requests.length>0);setRatings(rated);setLoaded(true)
+      setProgress(next);setRequested(requests.length>0);setRatings(rated);setExtended(hasExtendedDemoSchema()===true);setLoaded(true)
       if(!next.guide_opened){setAutoOpen(true);setDemoEvaluationStep(organizationId,'guide_opened').then(value=>active&&setProgress(value)).catch(()=>{})}
     }).catch(()=>{if(active)setLoaded(true)})
     return ()=>{active=false}
@@ -94,8 +97,11 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
   // Looking at a record completes its scenario only while that scenario is on;
   // for a scenario with steps it checks off the record step.
   useEffect(()=>{const key=demoScenarioForPath(pathname);if(!key||key!==activeKey||!loaded)return
-    const routeStep=scenarioByKey(key)?.steps?.find(step=>step.route)
+    const routeStep=scenarioByKey(key)?.steps?.find(step=>step.route===true)
     if(routeStep)markStep(key,routeStep.id);else void complete(key)},[pathname,activeKey,loaded,complete,markStep])
+  // Steps that are a screen to open (`route` a pattern) are checked off when it opens.
+  useEffect(()=>{if(!activeKey||!loaded)return
+    for(const step of scenarioByKey(activeKey)?.steps||[])if(step.route instanceof RegExp&&step.route.test(pathname))markStep(activeKey,step.id)},[pathname,activeKey,loaded,markStep])
 
   // The questionnaire: usefulness, ease, clarity, comment, and the seconds since
   // the scenario was started from the guide (none for the overall rating).
