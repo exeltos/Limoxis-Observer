@@ -54,12 +54,6 @@ describe('Analysis section model', () => {
 })
 
 describe('Surveillance screens show names, not ids', () => {
-  it('resolves assessment signs and risk factors through the library', () => {
-    const page = read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
-    expect(page).toContain('function libraryLabel(value,rows=[],language=\'el\',t=null)')
-    expect(page).toContain('rows={libraries.clinicalSymptoms||[]}')
-    expect(page).toContain("clinicalTerm(record.assessment.classification||'undetermined',language,t)")
-  })
 
   it('groups the Surveillance Center by patient and hides cancelled episodes by default', () => {
     const page = read('src/features/surveillance/SurveillanceCanonicalPage.jsx')

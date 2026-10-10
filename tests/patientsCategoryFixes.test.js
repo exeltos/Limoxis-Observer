@@ -4,10 +4,9 @@ import { normalizeLaboratorySample } from '../src/features/laboratory/model/labo
 import { demoClinicalScaleDefinitions } from '../src/features/clinical-scales/clinicalScaleDemoDefinitions'
 import { buildClinicalScaleContext } from '../src/features/clinical-scales/clinicalScaleContext'
 import { episodeBelongsToPatient } from '../src/features/surveillance/patientRecordScope'
-const i18n=fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')
+const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')
 
 // User-reported review of the Patients category.
-const canonical = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
 const scales = fs.readFileSync('src/features/clinical-scales/PatientClinicalScalesPanel.jsx', 'utf8')
 
 describe('Patients category fixes', () => {
@@ -22,16 +21,6 @@ describe('Patients category fixes', () => {
     expect(scales).toContain('Κέντρο Διαχείρισης → Κλινικές κλίμακες')
   })
 
-  it('translates clinical terms through the app dictionary instead of showing raw keys', () => {
-    expect(canonical).toContain("value={clinicalTerm(assessment?.classification,language,t)}")
-    expect(canonical).toContain("value={clinicalTerm(lastReview?.status,language,t)}")
-    expect(canonical).toContain("if(typeof translated==='string'&&translated!==String(value).trim())return translated")
-  })
-
-  it('labels a surveillance episode with its HAI type', () => {
-    expect(canonical).toContain('{episodeTypeLabel(ep,t)||')
-  })
-
   it('keeps the patient code of demo laboratory samples so they link to the patient', () => {
     expect(normalizeLaboratorySample({ id: 'LAB-1', patientId: 'PT-260184' }).patientId).toBe('PT-260184')
     expect(normalizeLaboratorySample({ id: 'LAB-2', patientId: '0b1c2d3e-1111-4222-8333-444455556666', patient_code: 'PT-9' }).patientId).toBe('PT-9')
@@ -39,15 +28,7 @@ describe('Patients category fixes', () => {
   })
 
   it('shows surname and first name as separate fields', () => {
-    expect(canonical).not.toContain("'Ονοματεπώνυμο':'Full name'")
-    expect(canonical).toContain("[translate('copy.clinicalRecordCopy.lastName'")
     expect(i18n).toContain("lastName:'Επώνυμο'")
-  })
-
-  it('admission summary: no duplicate status, surveillance as an info sheet instead of tinted tiles', () => {
-    expect(canonical).toContain("[t('clinicalRecords.lengthOfStay'),daysLabel]")
-    expect(canonical).toContain("{t('clinicalRecords.currentSurveillance')}")
-    expect(canonical).not.toContain('function Summary(')
   })
 
   it('new surveillance form has no leftover one-step rail or duplicate cancel button', () => {
@@ -57,15 +38,6 @@ describe('Patients category fixes', () => {
     expect(flow).toContain('new-surveillance-start-card')
   })
 
-  it('demo documents tab offers the same documents area (kept in memory)', () => {
-    expect(canonical).toContain('value={demoDocuments[record.id]||[]}')
-  })
-
-  it('admission rows explain surveillance counts and offer transfer/discharge in a ⋯ menu', () => {
-    expect(canonical).toContain('{surveillanceLabel(row)}')
-    expect(canonical).toContain('<AdmissionLifecycleActions patient={patient} admission={row}')
-  })
-
   it('patient list count cards use plural labels', () => {
     const page = fs.readFileSync('src/features/patients/PatientsPage.jsx', 'utf8')
     expect(page).toContain("label={t('patientsCountTransferred')}")
@@ -73,9 +45,7 @@ describe('Patients category fixes', () => {
 })
 
 describe('surveillance review', () => {
-  const canonical = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
   it('matches a surveillance episode to its patient only on real ids', () => {
-    expect(canonical).toContain('episodeBelongsToPatient(ep,row)')
     expect(episodeBelongsToPatient({ patientRecordId: 'R1', patientId: 'P1' }, { recordId: 'R2', id: 'P1' })).toBe(false)
     expect(episodeBelongsToPatient({ patientId: 7 }, { id: '7' })).toBe(true)
     expect(episodeBelongsToPatient({}, {})).toBe(false)

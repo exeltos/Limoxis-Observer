@@ -10,6 +10,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { loadAntibioticDispensingRecords, loadPharmacySupportData, saveAntibioticDispensingRecord } from './pharmacyCloudService'
 import { awareCategoryFor, awareCategoryLabel } from './whoAwareClassification'
+import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 // '2026-09' → 'Σεπτέμβριος 2026' / 'September 2026'
 const formatPeriod = (period, en, month = 'long') => /^\d{4}-\d{2}$/.test(String(period || '')) ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month, year: 'numeric' }).format(new Date(`${period}-15T12:00:00`)) : (period || '—')
@@ -48,6 +49,7 @@ export function PharmacyPage() {
   async function save(draft) {
     try {
       await saveAntibioticDispensingRecord(tenant.id, draft)
+      signalDemoStep('antimicrobial_consumption', 'save')
       setDialog(false)
       await reload()
       notify(en ? 'Dispensing period saved.' : 'Η περίοδος χορήγησης αποθηκεύτηκε.', 'success')

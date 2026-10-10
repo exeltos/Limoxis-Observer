@@ -10,7 +10,7 @@ const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'ut
 // in several other files — this fixes that drift back to one term.
 describe('unified "scope" terminology (Εύρος, not Πεδίο)', () => {
   it('keeps the established scope translation in the core dictionary', () => {
-    const i18n = read('src/core/i18n/LanguageContext.jsx')
+    const i18n = read('src/core/i18n/stringsEl.js')
     expect(i18n).toContain("scope:'Εύρος'")
     expect(i18n).toContain("departmentScope:'Εύρος τμήματος'")
     expect(i18n).toContain("scopeLabel:'Εύρος'")
@@ -20,7 +20,7 @@ describe('unified "scope" terminology (Εύρος, not Πεδίο)', () => {
 
   it('does not leave the inconsistent Πεδίο translation for "scope" anywhere', () => {
     for (const path of [
-      'src/core/i18n/LanguageContext.jsx',
+      'src/core/i18n/stringsEl.js',
       'src/features/analysis/AnalysisPage.jsx',
       'src/features/analysis/AnalysisPanels.jsx',
       'src/features/analysis/analysisPageModel.js',

@@ -13,6 +13,7 @@ import { capabilityCatalogue,isCustomRoleEligible } from '../../core/permissions
 import { roleCapabilities,roleCapabilityRule } from '../../core/permissions/systemRoleMatrix'
 import { managementRoleNames } from './managementRoles'
 import { createCustomRole,deactivateCustomRole,loadCustomRoles,updateCustomRole } from './managementCloudService'
+import { signalDemoStep } from '../demo/demoScenarioSignals'
 const domainLabels={
  administration:['Διαχείριση','Administration'],platform:['Πλατφόρμα','Platform'],clinical:['Κλινική φροντίδα','Clinical'],laboratory:['Εργαστήριο','Laboratory'],quality:['Ποιότητα','Quality'],committees:['Επιτροπές','Committees'],documents:['Έγγραφα','Documents'],controls:['Έλεγχοι','Controls'],training:['Εκπαίδευση','Training'],workforce:['Προσωπικό','Workforce'],occupational_health:['Ιατρός Εργασίας','Occupational health'],general:['Γενικά','General'],
 }
@@ -34,7 +35,7 @@ export function ManagementRolesPanel(){
  function openNew(){setSelected(null);setEditor({mode:'new',id:null,name:'',capabilities:[]})}
  function openEdit(role){if(role?.system)return;setEditor({mode:'edit',id:role.id,name:role.name||'',capabilities:[...(role.capabilities||[])]})}
  function closeEditor(){setEditor(null)}
- async function save(){if(!editor?.name.trim()||!editor.capabilities.length)return;try{const payload={name:editor.name.trim(),capabilities:editor.capabilities.filter(isCustomRoleEligible)};const saved=isDemo?{id:editor.id||`custom-${Date.now()}`,...payload}:editor.mode==='edit'?await updateCustomRole(tenant.id,editor.id,payload):await createCustomRole(tenant.id,payload);setCustomRoles(rows=>editor.mode==='edit'?rows.map(r=>r.id===saved.id?saved:r):[...rows,saved]);setSelected({id:saved.id,system:false});setEditor(null);notify(en?'Role saved.':'Ο ρόλος αποθηκεύτηκε.','success')}catch(error){notify(error?.message||(en?'Save failed.':'Αποτυχία αποθήκευσης.'),'error')}}
+ async function save(){if(!editor?.name.trim()||!editor.capabilities.length)return;try{const payload={name:editor.name.trim(),capabilities:editor.capabilities.filter(isCustomRoleEligible)};const saved=isDemo?{id:editor.id||`custom-${Date.now()}`,...payload}:editor.mode==='edit'?await updateCustomRole(tenant.id,editor.id,payload):await createCustomRole(tenant.id,payload);setCustomRoles(rows=>editor.mode==='edit'?rows.map(r=>r.id===saved.id?saved:r):[...rows,saved]);setSelected({id:saved.id,system:false});setEditor(null);signalDemoStep('custom_roles','save');notify(en?'Role saved.':'Ο ρόλος αποθηκεύτηκε.','success')}catch(error){notify(error?.message||(en?'Save failed.':'Αποτυχία αποθήκευσης.'),'error')}}
  async function remove(role){if(!role||role.system)return;const ok=await confirm({title:en?'Delete role':'Διαγραφή ρόλου',message:en?`Delete “${role.name}”?`:`Να διαγραφεί ο ρόλος «${role.name}»;`,confirmLabel:en?'Delete':'Διαγραφή',danger:true});if(!ok)return;try{if(!isDemo)await deactivateCustomRole(tenant.id,role.id);setCustomRoles(rows=>rows.filter(r=>r.id!==role.id));setSelected(null);notify(en?'Role deleted.':'Ο ρόλος διαγράφηκε.','success')}catch(error){notify(error?.message||(en?'Delete failed.':'Αποτυχία διαγραφής.'),'error')}}
 
  if(editor)return <RoleEditor en={en} value={editor} permissions={customPermissions} onChange={setEditor} onClose={closeEditor} onSave={save}/>

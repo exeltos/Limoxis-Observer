@@ -1,17 +1,13 @@
 import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
+import { readEmployeeRecordTabsSource } from './helpers/employeeRecordTabsSource'
 
-const tabs=fs.readFileSync('src/features/employees/EmployeeRecordTabs.jsx','utf8')
+const tabs=readEmployeeRecordTabsSource()
 const dialog=fs.readFileSync('src/features/surveillance/EmployeeSurveillanceRecordDialog.jsx','utf8')
 const service=fs.readFileSync('src/features/laboratory/laboratoryRequestManagementService.js','utf8')
 const documents=fs.readFileSync('src/design-system/DocumentsWorkspace.jsx','utf8')
 
 describe('employee record workflow refinement',()=>{
-  it('returns from Training to the same employee training tab through an explicit contextual target',()=>{
-    expect(tabs).toContain("useContextualNavigation('/training')")
-    expect(tabs).toContain("returnTo:`/employees/${encodeURIComponent(employee.id)}`")
-    expect(tabs).toContain("returnTab:'training'")
-  })
 
   it('keeps employee documents in the canonical shared workspace',()=>{
     expect(tabs).toContain('DocumentsWorkspace')

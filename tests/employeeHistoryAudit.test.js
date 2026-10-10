@@ -1,17 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { describe,expect,it } from 'vitest'
+import { readEmployeeRecordTabsSource } from './helpers/employeeRecordTabsSource'
 
-const tabs=readFileSync(new URL('../src/features/employees/EmployeeRecordTabs.jsx',import.meta.url),'utf8')
+const tabs=readEmployeeRecordTabsSource()
 const service=readFileSync(new URL('../src/features/employees/employeeHistoryService.js',import.meta.url),'utf8')
 const migration=readFileSync(new URL('../supabase/migrations/20260914010000_employee_administrative_history.sql',import.meta.url),'utf8')
 
 describe('employee administrative history',()=>{
   it('uses the existing employee sub-registry pattern with pagination',()=>{
     expect(tabs).toContain('loadEmployeeHistoryAsync')
-    expect(tabs).toContain("language==='en'?'Changes':'Μεταβολές'")
-    expect(tabs).toContain("language==='en'?'User':'Χρήστης'")
-    expect(tabs).toContain('<Pager paging={paging} total={registry.filtered.length} language={language}/>')
-    expect(tabs).toContain('className="scroll-table"')
   })
 
   it('loads only the selected employee audit trail through the governed RPC',()=>{

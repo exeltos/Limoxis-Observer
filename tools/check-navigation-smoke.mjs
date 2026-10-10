@@ -1,5 +1,7 @@
 import fs from 'node:fs'
 const read=p=>fs.readFileSync(new URL(`../${p}`,import.meta.url),'utf8')
+// Whitespace-insensitive, so the check survives reformatting of the file.
+const compact=text=>text.replace(/\s+/g,'')
 const employeeList=read('src/features/employees/EmployeesPage.jsx')
 const employeeRecord=read('src/features/employees/EmployeeRecordPage.jsx')
 const patientRecord=read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
@@ -19,8 +21,8 @@ const checks=[
   ['employees row navigation',employeeList.includes('registry.openRecord')],
   ['laboratory registry hook',read('src/features/laboratory/LaboratoryWorkspace.jsx').includes("useRegistryMemory('laboratory')")],
   ['surveillance registry hook',/useRegistryMemory\(`surveillance-/.test(read('src/features/surveillance/SurveillanceCanonicalPage.jsx'))],
-  ['patient contextual back',patientRecord.includes('const {goBack,restored}=useContextualNavigation')],
-  ['employee contextual back',employeeRecord.includes('const {goBack,restored}=useContextualNavigation')],
+  ['patient contextual back',compact(patientRecord).includes(compact('const {goBack,restored}=useContextualNavigation'))],
+  ['employee contextual back',compact(employeeRecord).includes(compact('const {goBack,restored}=useContextualNavigation'))],
   ['surveillance row navigation',surveillanceList.includes('registry.openRecord')],
   ['controls row navigation',controls.includes('registry.openRecord')],
   ['quality linked contextual navigation',read('src/features/quality/QualityRecordPage.jsx').includes('goTo(linkPath')],

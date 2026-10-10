@@ -7,7 +7,7 @@ describe('the bulk vaccination "saved" toast interpolates the count in Greek too
     const page = fs.readFileSync('src/features/prevention/PreventionPage.jsx', 'utf8')
     expect(page).not.toContain("t('vaccinationsSaved',{count:selected.length})")
     expect(page).toContain("'copy.preventionCopy.vaccinationSavedMany').replace('{count}',selected.length)")
-    expect(fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')).toContain("vaccinationSavedMany:'Αποθηκεύτηκαν {count} εμβολιασμοί.'")
+    expect(fs.readFileSync('src/core/i18n/stringsEl.js','utf8')).toContain("vaccinationSavedMany:'Αποθηκεύτηκαν {count} εμβολιασμοί.'")
   })
 })
 

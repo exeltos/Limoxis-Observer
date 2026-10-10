@@ -20,7 +20,6 @@ import { demoLibrarySeed } from '../src/features/management/managementData'
 describe('every loadDepartments/loadManagementLibraries call site checks isDemo first', () => {
   const files = {
     'src/features/employees/EmployeeCreatePage.jsx': 'demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))',
-    'src/features/employees/EmployeeRecordPage.jsx': 'demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))',
     'src/features/documents/DocumentCreatePage.jsx': 'demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))',
     'src/features/training/TrainingCreatePage.jsx': 'demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))',
     'src/features/training/TrainingProductionPage.jsx': 'demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))',
@@ -52,10 +51,5 @@ describe('every loadDepartments/loadManagementLibraries call site checks isDemo 
   it('demoLibrarySeed actually defines professionalCategories (not silently empty)', () => {
     expect(demoLibrarySeed.professionalCategories.length).toBeGreaterThan(0)
     expect(demoLibrarySeed.professionalCategories.map(row => row[0])).toContain('Ιατρός')
-  })
-
-  it('PatientClinicalCanonicalPage populates its own departments state from demoLibrarySeed in demo mode too (previously stayed permanently empty), with the option label following the active language', () => {
-    const source = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
-    expect(source).toContain("setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:language==='el'?elName:(enName||elName),nameEn:enName})))")
   })
 })

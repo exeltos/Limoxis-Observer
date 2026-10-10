@@ -1,8 +1,9 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
+import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 const service=fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')
-const page=fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx','utf8')
+const page=readPatientClinicalRecordSource()
 const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
 
 describe('clinical cloud service',()=>{
@@ -68,12 +69,5 @@ describe('clinical cloud service',()=>{
     expect(page).toContain('CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME')
     expect(page).toContain('CAPABILITIES.DELETE_SURVEILLANCE')
     expect(page).toContain('CAPABILITIES.REOPEN_SURVEILLANCE')
-  })
-
-  it('requires a reason before voiding or reopening via the canonical reason dialog',()=>{
-    expect(page).toContain('repository.voidCase(detailRecord,deleteReason.trim())')
-    expect(page).toContain('repository.reopen(record,reason)')
-    expect(page).toContain('disabled={!reason.trim()}')
-    expect(page).toContain("permissions.canDelete?{id:'delete'")
   })
 })

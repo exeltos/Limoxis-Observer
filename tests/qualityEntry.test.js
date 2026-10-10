@@ -11,7 +11,7 @@ describe('Quality center entry and audits tab', () => {
   })
 
   it('names the audits tab "Επιθεωρήσεις" and shows audit-specific columns', () => {
-    const i18n = fs.readFileSync('src/core/i18n/LanguageContext.jsx', 'utf8')
+    const i18n = fs.readFileSync('src/core/i18n/stringsEl.js', 'utf8')
     expect(i18n).toContain("qualityAudits:'Επιθεωρήσεις'")
     expect(page).toContain("section==='audits'?t('auditType'):t('department')")
     expect(page).toContain("audits:{el:'Νέα επιθεώρηση'")

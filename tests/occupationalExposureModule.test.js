@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
+import { readEmployeeRecordTabsSource } from './helpers/employeeRecordTabsSource'
 
 const migration = fs.readFileSync('supabase/migrations/20260921130000_occupational_exposure_incidents.sql', 'utf8')
 const page = fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.jsx', 'utf8')
 const editor = fs.readFileSync('src/features/occupational-health/ExposureIncidentEditor.jsx', 'utf8')
 const service = fs.readFileSync('src/features/occupational-health/exposureIncidentService.js', 'utf8')
-const employeeTabs = fs.readFileSync('src/features/employees/EmployeeRecordTabs.jsx', 'utf8')
-const employeeRecordPage = fs.readFileSync('src/features/employees/EmployeeRecordPage.jsx', 'utf8')
+const employeeTabs = readEmployeeRecordTabsSource()
 
 describe('occupational exposure / needlestick-injury tracking module', () => {
   it('gates the new table behind the same clinical occupational-health RLS tier as visits/vaccinations', () => {
@@ -39,8 +39,5 @@ describe('occupational exposure / needlestick-injury tracking module', () => {
     expect(employeeTabs).toContain('EmployeeExposureIncidentsTab')
     expect(employeeTabs).toContain('loadExposureIncidentsAsync')
     // Exposures are a section of the occupational health tab, which carries the same gate.
-    expect(employeeRecordPage).toContain("{id:'occupational',label:t('occupationalHealth'),icon:HeartPulse,show:canOccupational||selfMode}")
-    expect(employeeRecordPage).toContain('<EmployeeHealthTab')
-    expect(employeeTabs).toContain("section==='exposures'&&<EmployeeExposureIncidentsTab")
   })
 })

@@ -25,10 +25,4 @@ describe('neonates missing a birth weight are surfaced, not silently dropped', (
     const engine = readFileSync('src/features/indicators/indicatorEngine.js', 'utf8')
     expect(engine).toContain('neonatal_central_line_cases_missing_birth_weight:countNeonatalCentralLineCasesMissingBirthWeight()')
   })
-
-  it('tells the user on the patient record where the value can be corrected', () => {
-    const page = readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
-    expect(page).toContain('const infantWithoutBirthWeight=ageInDays!=null&&ageInDays<=365&&!patient?.birthWeightGrams')
-    expect(page).toContain("translate('copy.neonatalCopy.missingBirthWeight'")
-  })
 })

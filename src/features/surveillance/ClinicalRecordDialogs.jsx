@@ -1,0 +1,1186 @@
+import { useEffect, useState } from 'react'
+import { advancedAntibioticNames, newTherapyRow, therapiesToSave } from './therapyEntries'
+import { Button } from '../../design-system/Button'
+import { SaveButton } from '../../design-system/SaveButton'
+import { ManualDateField } from '../../design-system/ManualDateField'
+import { TimeField } from '../../design-system/TimeField'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { useLanguage, translate } from '../../core/i18n/LanguageContext'
+import { demoLibrarySeed } from '../management/managementData'
+import { evaluateHaiCriteria, haiCriteriaSetForType } from './haiCriteriaDefinitions'
+import { loadHaiCriteriaSets } from './haiCriteriaLibraryService'
+import {
+  criteriaKeyOf,
+  withCriteriaKeys,
+  orderCriteriaForAge,
+  criteriaAgeWarning,
+  SURVEILLANCE_OUTCOMES,
+} from './clinicalRecordLabels'
+
+// Dialogs of the clinical record: assessment, devices, samples, HAI criteria,
+// therapy, isolation, reassessment, outcome and reasons.
+export function AdministrationDialog({ t, language, onClose, onSave }) {
+  const [d, setD] = useState({
+    administeredAt: new Date().toISOString().slice(0, 10),
+    dose: '',
+    route: '',
+    status: 'administered',
+    withheldReason: '',
+    notes: '',
+  })
+  const valid = d.status === 'administered' || d.withheldReason.trim()
+  return (
+    <SimpleDialog
+      title={translate(
+        'copy.clinicalRecordCopy.recordAdministration',
+        language === 'el' ? 'el' : 'en',
+      )}
+      t={t}
+      onClose={onClose}
+      onSave={() => onSave(d)}
+      disabled={!valid}
+    >
+      <ManualDateField
+        label={translate(
+          'copy.clinicalRecordCopy.administrationDate',
+          language === 'el' ? 'el' : 'en',
+        )}
+        value={d.administeredAt}
+        onChange={v => setD(x => ({ ...x, administeredAt: v }))}
+      />
+      <label>
+        <span>{translate('copy.clinicalRecordCopy.dose', language === 'el' ? 'el' : 'en')}</span>
+        <input value={d.dose} onChange={e => setD(x => ({ ...x, dose: e.target.value }))} />
+      </label>
+      <label>
+        <span>{translate('copy.clinicalRecordCopy.route2', language === 'el' ? 'el' : 'en')}</span>
+        <input value={d.route} onChange={e => setD(x => ({ ...x, route: e.target.value }))} />
+      </label>
+      <label>
+        <span>{translate('copy.clinicalRecordCopy.status', language === 'el' ? 'el' : 'en')}</span>
+        <select
+          value={d.status}
+          onChange={e =>
+            setD(x => ({
+              ...x,
+              status: e.target.value,
+              withheldReason: e.target.value === 'administered' ? '' : x.withheldReason,
+            }))
+          }
+        >
+          <option value="administered">
+            {translate('copy.clinicalRecordCopy.administered', language === 'el' ? 'el' : 'en')}
+          </option>
+          <option value="withheld">
+            {translate('copy.clinicalRecordCopy.withheld', language === 'el' ? 'el' : 'en')}
+          </option>
+          <option value="refused">
+            {translate('copy.clinicalRecordCopy.refusedByPatient', language === 'el' ? 'el' : 'en')}
+          </option>
+        </select>
+      </label>
+      {d.status !== 'administered' && (
+        <label className="entry-span-2">
+          <span>
+            {translate('copy.clinicalRecordCopy.reasonRequired', language === 'el' ? 'el' : 'en')}
+          </span>
+          <textarea
+            value={d.withheldReason}
+            onChange={e => setD(x => ({ ...x, withheldReason: e.target.value }))}
+          />
+        </label>
+      )}
+      <label className="entry-span-2">
+        <span>{translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en')}</span>
+        <textarea value={d.notes} onChange={e => setD(x => ({ ...x, notes: e.target.value }))} />
+      </label>
+    </SimpleDialog>
+  )
+}
+export function SimpleDialog({ title, t, onClose, onSave, children, disabled = false }) {
+  return (
+    <ObserverDialog title={title} width="wide" className="patient-simple-dialog" onClose={onClose}>
+      <div className="entry-grid">{children}</div>
+      <div className="dialog-actions">
+        <Button variant="secondary" onClick={onClose}>
+          {t('cancel')}
+        </Button>
+        <SaveButton disabled={disabled} onClick={onSave}>
+          {t('save')}
+        </SaveButton>
+      </div>
+    </ObserverDialog>
+  )
+}
+export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], onClose, onSave }) {
+  const { language } = useLanguage(),
+    a = record.assessment || {}
+  const symptomOptions = symptomRows.length
+    ? symptomRows
+    : [
+        ['Πυρετός', 'Fever'],
+        ['Ρίγος', 'Chills'],
+        ['Υπόταση', 'Hypotension'],
+        ['Βήχας', 'Cough'],
+        ['Δύσπνοια', 'Dyspnea'],
+        ['Δυσουρία', 'Dysuria'],
+        ['Άλγος', 'Pain'],
+        ['Ερύθημα / εκροή', 'Erythema / drainage'],
+      ]
+  const riskOptions = riskRows.filter(
+    row =>
+      !/(καθετήρ|catheter|device|αερισμ|ventilat|γραμμή|line)/i.test(
+        String(row[0] || '') + ' ' + String(row[1] || ''),
+      ),
+  )
+  const questions = [
+    [
+      'recentSurgery',
+      translate('copy.clinicalRecordCopy.recentSurgery', language === 'el' ? 'el' : 'en'),
+    ],
+    [
+      'currentAntibiotics',
+      translate(
+        'copy.clinicalRecordCopy.currentOrRecentAntimicrobialTherapy',
+        language === 'el' ? 'el' : 'en',
+      ),
+    ],
+    [
+      'recentHospitalization',
+      translate('copy.clinicalRecordCopy.recentHospitalization', language === 'el' ? 'el' : 'en'),
+    ],
+    [
+      'transferFromFacility',
+      translate(
+        'copy.clinicalRecordCopy.transferFromAnotherHealthcareFacility',
+        language === 'el' ? 'el' : 'en',
+      ),
+    ],
+    [
+      'knownMdro',
+      translate(
+        'copy.clinicalRecordCopy.knownMultidrugResistantOrganismMdroHistory',
+        language === 'el' ? 'el' : 'en',
+      ),
+    ],
+    [
+      'immunosuppression',
+      translate('copy.clinicalRecordCopy.immunosuppression', language === 'el' ? 'el' : 'en'),
+    ],
+    [
+      'recentProcedure',
+      translate('copy.clinicalRecordCopy.recentInvasiveProcedure', language === 'el' ? 'el' : 'en'),
+    ],
+  ]
+  const [d, setD] = useState({
+    date: String(a.date || new Date().toISOString()).slice(0, 10),
+    classification: a.classification || 'undetermined',
+    summary: a.summary || '',
+    signsSymptoms: a.signsSymptoms || a.symptoms || [],
+    riskFactors: a.riskFactors || [],
+    screening: {
+      ...Object.fromEntries(questions.map(([id]) => [id, 'unknown'])),
+      ...(a.screening || {}),
+    },
+  })
+  const toggle = (key, value) =>
+    setD(x => ({
+      ...x,
+      [key]: x[key].includes(value) ? x[key].filter(v => v !== value) : [...x[key], value],
+    }))
+  return (
+    <SimpleDialog
+      title={translate(
+        'copy.clinicalRecordCopy.surveillanceClinicalAssessment',
+        language === 'el' ? 'el' : 'en',
+      )}
+      t={t}
+      onClose={onClose}
+      onSave={() => onSave(d)}
+    >
+      <ManualDateField
+        label={translate('copy.clinicalRecordCopy.assessmentDate', language === 'el' ? 'el' : 'en')}
+        value={d.date}
+        onChange={v => setD(x => ({ ...x, date: v }))}
+      />
+      <label>
+        <span>
+          {translate(
+            'copy.clinicalRecordCopy.clinicalClassification',
+            language === 'el' ? 'el' : 'en',
+          )}
+        </span>
+        <select
+          value={d.classification}
+          onChange={e => setD(x => ({ ...x, classification: e.target.value }))}
+        >
+          <option value="infection">
+            {translate('copy.clinicalRecordCopy.infection', language === 'el' ? 'el' : 'en')}
+          </option>
+          <option value="colonization">
+            {translate('copy.clinicalRecordCopy.colonization', language === 'el' ? 'el' : 'en')}
+          </option>
+          <option value="no_infection">
+            {translate(
+              'copy.clinicalRecordCopy.noEvidenceOfInfection',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </option>
+          <option value="undetermined">
+            {translate('copy.clinicalRecordCopy.notYetDetermined', language === 'el' ? 'el' : 'en')}
+          </option>
+        </select>
+      </label>
+      <div className="entry-span-2 clinical-check-grid library-clinical-grid">
+        <LibraryMultiSelect
+          title={translate(
+            'copy.clinicalRecordCopy.signsSymptoms',
+            language === 'el' ? 'el' : 'en',
+          )}
+          rows={symptomOptions}
+          selected={d.signsSymptoms}
+          onToggle={v => toggle('signsSymptoms', v)}
+          language={language}
+        />
+        <LibraryMultiSelect
+          title={translate('copy.clinicalRecordCopy.riskFactors', language === 'el' ? 'el' : 'en')}
+          rows={riskOptions}
+          selected={d.riskFactors}
+          onToggle={v => toggle('riskFactors', v)}
+          language={language}
+        />
+      </div>
+      <section className="entry-span-2 screening-questionnaire">
+        <h4>
+          {translate(
+            'copy.clinicalRecordCopy.initialSurveillanceQuestionnaire',
+            language === 'el' ? 'el' : 'en',
+          )}
+        </h4>
+        <div className="questionnaire-grid">
+          {questions.map(([id, label]) => (
+            <div key={id} className="questionnaire-item">
+              <span>{label}</span>
+              <select
+                value={d.screening[id]}
+                onChange={e =>
+                  setD(x => ({ ...x, screening: { ...x.screening, [id]: e.target.value } }))
+                }
+              >
+                <option value="unknown">
+                  {translate('copy.clinicalRecordCopy.unknown', language === 'el' ? 'el' : 'en')}
+                </option>
+                <option value="yes">
+                  {translate('copy.clinicalRecordCopy.yes', language === 'el' ? 'el' : 'en')}
+                </option>
+                <option value="no">
+                  {translate('copy.clinicalRecordCopy.no', language === 'el' ? 'el' : 'en')}
+                </option>
+              </select>
+            </div>
+          ))}
+        </div>
+      </section>
+      <label className="entry-span-2">
+        <span>
+          {translate('copy.clinicalRecordCopy.clinicalSummary', language === 'el' ? 'el' : 'en')}
+        </span>
+        <textarea
+          rows={4}
+          value={d.summary}
+          onChange={e => setD(x => ({ ...x, summary: e.target.value }))}
+        />
+      </label>
+    </SimpleDialog>
+  )
+}
+function LibraryMultiSelect({ title, rows = [], selected = [], onToggle, language }) {
+  const [open, setOpen] = useState(false),
+    [query, setQuery] = useState('')
+  const valueOf = row => row?.[2]?.id || row?.[2]?.code || row?.[0] || row?.[1] || ''
+  const selectedRows = rows.filter(row => selected.includes(valueOf(row)))
+  const q = query.trim().toLocaleLowerCase()
+  const filtered = rows.filter(
+    row =>
+      !q ||
+      String(language === 'el' ? row[0] || row[1] : row[1] || row[0])
+        .toLocaleLowerCase()
+        .includes(q),
+  )
+  return (
+    <section className="clinical-checklist library-checklist clinical-library-multiselect">
+      <h4>{title}</h4>
+      <button
+        type="button"
+        className="clinical-library-trigger"
+        aria-expanded={open}
+        onClick={() => setOpen(v => !v)}
+      >
+        <span>
+          {selectedRows.length
+            ? language === 'el'
+              ? selectedRows.length + ' επιλεγμένα'
+              : selectedRows.length + ' selected'
+            : translate('copy.clinicalRecordCopy.selectFromList', language === 'el' ? 'el' : 'en')}
+        </span>
+        <span aria-hidden="true">⌄</span>
+      </button>
+      {open && (
+        <div className="clinical-library-menu">
+          <input
+            className="clinical-library-search"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={translate(
+              'copy.clinicalRecordCopy.search',
+              language === 'el' ? 'el' : 'en',
+            )}
+          />
+          <div className="clinical-library-options">
+            {filtered.map(row => {
+              const value = valueOf(row),
+                label = language === 'el' ? row[0] || row[1] : row[1] || row[0]
+              return (
+                <label key={value} className={selected.includes(value) ? 'selected' : ''}>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(value)}
+                    onChange={() => onToggle(value)}
+                  />
+                  <span>{label}</span>
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {selectedRows.length > 0 && (
+        <div className="clinical-library-selected">
+          {selectedRows.map(row => {
+            const value = valueOf(row),
+              label = language === 'el' ? row[0] || row[1] : row[1] || row[0]
+            return (
+              <button type="button" key={value} onClick={() => onToggle(value)}>
+                {label}
+                <span>×</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
+export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave }) {
+  const { language } = useLanguage()
+  const defaults = [
+    ['Κεντρικός φλεβικός καθετήρας (CVC)', 'Central venous catheter (CVC)'],
+    ['Ουροκαθετήρας', 'Urinary catheter'],
+    ['Μηχανικός αερισμός', 'Mechanical ventilation'],
+    ['Περιφερικός φλεβικός καθετήρας', 'Peripheral venous catheter'],
+  ]
+  const options = items.length ? items : defaults
+  const blank = () => ({
+    type: options[0]?.[0] || '',
+    insertedAt: new Date().toISOString().slice(0, 10),
+    site: '',
+    notes: '',
+  })
+  const [rows, setRows] = useState([blank()])
+  const [adding, setAdding] = useState(false),
+    [newName, setNewName] = useState('')
+  async function add() {
+    const name = newName.trim()
+    if (!name) return
+    const row = [name, name, { system: false, locked: false, source: 'Hospital', version: 'local' }]
+    const saved = (await onAddLibraryItem?.(row)) || row
+    setRows(list =>
+      list.map((x, i) =>
+        i === 0 ? { ...x, type: saved[language === 'el' ? 0 : 1] || saved[0] } : x,
+      ),
+    )
+    setNewName('')
+    setAdding(false)
+  }
+  const update = (i, key, value) =>
+    setRows(list => list.map((x, n) => (n === i ? { ...x, [key]: value } : x)))
+  const save = async () => {
+    for (const row of rows.filter(x => x.type)) await onSave(row)
+  }
+  return (
+    <SimpleDialog
+      title={translate(
+        'copy.clinicalRecordCopy.invasiveDevicesRiskFactors',
+        language === 'el' ? 'el' : 'en',
+      )}
+      t={t}
+      onClose={onClose}
+      onSave={save}
+      disabled={!rows.some(x => x.type && x.insertedAt)}
+    >
+      {rows.map((d, i) => (
+        <div className="entry-span-2 therapy-entry-card" key={i}>
+          <div className="entry-grid">
+            <label>
+              <span>
+                {translate('copy.clinicalRecordCopy.deviceType', language === 'el' ? 'el' : 'en')}
+              </span>
+              <select
+                value={d.type}
+                onChange={e => {
+                  if (e.target.value === '__new__') setAdding(true)
+                  else update(i, 'type', e.target.value)
+                }}
+              >
+                {options.map((x, n) => (
+                  <option key={x[2]?.id || n} value={x[language === 'el' ? 0 : 1] || x[0]}>
+                    {x[language === 'el' ? 0 : 1] || x[0]}
+                  </option>
+                ))}
+                <option value="__new__">
+                  {translate(
+                    'copy.clinicalRecordCopy.addToLibrary',
+                    language === 'el' ? 'el' : 'en',
+                  )}
+                </option>
+              </select>
+            </label>
+            <ManualDateField
+              label={translate(
+                'copy.clinicalRecordCopy.insertionStartDate',
+                language === 'el' ? 'el' : 'en',
+              )}
+              value={d.insertedAt}
+              onChange={v => update(i, 'insertedAt', v)}
+            />
+            <label>
+              <span>
+                {translate('copy.clinicalRecordCopy.site', language === 'el' ? 'el' : 'en')}
+              </span>
+              <input value={d.site} onChange={e => update(i, 'site', e.target.value)} />
+            </label>
+          </div>
+          <label>
+            <span>
+              {translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en')}
+            </span>
+            <textarea rows={2} value={d.notes} onChange={e => update(i, 'notes', e.target.value)} />
+          </label>
+          {rows.length > 1 && (
+            <Button variant="ghost" onClick={() => setRows(list => list.filter((_, n) => n !== i))}>
+              {translate('copy.clinicalRecordCopy.remove', language === 'el' ? 'el' : 'en')}
+            </Button>
+          )}
+        </div>
+      ))}
+      {adding && (
+        <div className="entry-span-2 inline-library-add">
+          <label>
+            <span>
+              {translate('copy.clinicalRecordCopy.newDevice', language === 'el' ? 'el' : 'en')}
+            </span>
+            <input autoFocus value={newName} onChange={e => setNewName(e.target.value)} />
+          </label>
+          <Button variant="secondary" onClick={add}>
+            {translate('copy.clinicalRecordCopy.addToLibrary2', language === 'el' ? 'el' : 'en')}
+          </Button>
+        </div>
+      )}
+      <div className="entry-span-2">
+        <Button variant="secondary" onClick={() => setRows(list => [...list, blank()])}>
+          {translate('copy.clinicalRecordCopy.addDevice', language === 'el' ? 'el' : 'en')}
+        </Button>
+      </div>
+    </SimpleDialog>
+  )
+}
+export function SampleDialog({ t, title, initialType = '', onClose, onSave }) {
+  const { language } = useLanguage()
+  const now = new Date(),
+    initialDate = now.toISOString().slice(0, 10),
+    initialTime = now.toTimeString().slice(0, 5)
+  const [d, setD] = useState({
+    type: initialType || 'bloodCulture',
+    source: '',
+    collectionMethod: '',
+    deviceRelated: 'unknown',
+    priority: 'routine',
+    collectedDate: initialDate,
+    collectedTime: initialTime,
+  })
+  const save = () =>
+    onSave({ ...d, collectedAt: `${d.collectedDate}T${d.collectedTime || '00:00'}` })
+  return (
+    <SimpleDialog
+      title={title || t('laboratoryRecords.newSample')}
+      t={t}
+      onClose={onClose}
+      onSave={save}
+      disabled={!d.collectedDate}
+    >
+      <label>
+        <span>{t('sampleType')}</span>
+        <select value={d.type} onChange={e => setD(x => ({ ...x, type: e.target.value }))}>
+          <option value="bloodCulture">{t('bloodCulture')}</option>
+          <option value="urineCulture">{t('urineCulture')}</option>
+          <option value="respiratorySample">{t('respiratorySample')}</option>
+          <option value="woundCulture">{t('woundCulture')}</option>
+          <option value="other">{t('other')}</option>
+        </select>
+      </label>
+      <label>
+        <span>
+          {translate(
+            'copy.clinicalRecordCopy.anatomicalSiteSource',
+            language === 'el' ? 'el' : 'en',
+          )}
+        </span>
+        <input value={d.source} onChange={e => setD(x => ({ ...x, source: e.target.value }))} />
+      </label>
+      <ManualDateField
+        label={t('collectedLabel')}
+        value={d.collectedDate}
+        onChange={v => setD(x => ({ ...x, collectedDate: v }))}
+      />
+      <TimeField
+        label={translate('copy.clinicalRecordCopy.collectionTime', language === 'el' ? 'el' : 'en')}
+        value={d.collectedTime}
+        onChange={v => setD(x => ({ ...x, collectedTime: v }))}
+      />
+      <label>
+        <span>
+          {translate('copy.clinicalRecordCopy.collectionMethod', language === 'el' ? 'el' : 'en')}
+        </span>
+        <input
+          value={d.collectionMethod}
+          onChange={e => setD(x => ({ ...x, collectionMethod: e.target.value }))}
+          placeholder={
+            language === 'el'
+              ? d.type === 'bloodCulture'
+                ? 'π.χ. περιφερική φλέβα / κεντρική γραμμή'
+                : d.type === 'urineCulture'
+                  ? 'π.χ. μέσο ρεύμα / ουροκαθετήρας'
+                  : 'Προαιρετικό'
+              : 'Optional sample-specific metadata'
+          }
+        />
+      </label>
+      <label>
+        <span>
+          {translate('copy.clinicalRecordCopy.deviceRelated', language === 'el' ? 'el' : 'en')}
+        </span>
+        <select
+          value={d.deviceRelated}
+          onChange={e => setD(x => ({ ...x, deviceRelated: e.target.value }))}
+        >
+          <option value="unknown">
+            {translate(
+              'copy.clinicalRecordCopy.unknownNotAssessed',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </option>
+          <option value="yes">
+            {translate('copy.clinicalRecordCopy.yes', language === 'el' ? 'el' : 'en')}
+          </option>
+          <option value="no">
+            {translate('copy.clinicalRecordCopy.no', language === 'el' ? 'el' : 'en')}
+          </option>
+        </select>
+      </label>
+      <label>
+        <span>{t('priority')}</span>
+        <select value={d.priority} onChange={e => setD(x => ({ ...x, priority: e.target.value }))}>
+          <option value="routine">{t('routine')}</option>
+          <option value="urgent">{t('urgent')}</option>
+          <option value="critical">{t('critical')}</option>
+        </select>
+      </label>
+      <div className="entry-span-2 inline-empty">
+        {translate(
+          'copy.clinicalRecordCopy.onlyCollectionMetadataAreRecordedOn',
+          language === 'el' ? 'el' : 'en',
+        )}
+      </div>
+    </SimpleDialog>
+  )
+}
+export function HaiDialog({
+  t,
+  items = [],
+  patientAgeDays: ageDays = null,
+  organizationId,
+  isDemo,
+  onAddLibraryItem,
+  onClose,
+  onSave,
+}) {
+  const { language } = useLanguage()
+  const [criteriaSets, setCriteriaSets] = useState(null)
+  useEffect(() => {
+    let alive = true
+    loadHaiCriteriaSets(organizationId)
+      .then(sets => {
+        if (alive) setCriteriaSets(sets)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [organizationId, isDemo])
+  // Fallback list shown until the centrally-governed criteria sets (master_library_items,
+  // library_key 'hai_criteria') load — kept in sync with the same static baseline used as
+  // the demo/offline fallback, so the dialog is never empty on first render.
+  const staticDefaults = [
+    [
+      'CLABSI – Λοίμωξη αιματικής ροής σχετιζόμενη με κεντρικό φλεβικό καθετήρα',
+      'CLABSI – Central line-associated bloodstream infection',
+      { source: 'ECDC', id: 'clabsi' },
+    ],
+    [
+      'CLABSI (νεογνική/βρεφική ≤1 έτους) – Λοίμωξη αιματικής ροής σχετιζόμενη με κεντρικό καθετήρα',
+      'CLABSI (neonatal/infant ≤1 year) – Central line-associated bloodstream infection',
+      { source: 'CDC/NHSN', id: 'clabsi_neonatal' },
+    ],
+    [
+      'CAUTI – Ουρολοίμωξη σχετιζόμενη με ουροκαθετήρα',
+      'CAUTI – Catheter-associated urinary tract infection',
+      { source: 'ECDC', id: 'cauti' },
+    ],
+    [
+      'VAP – Πνευμονία σχετιζόμενη με μηχανικό αερισμό',
+      'VAP – Ventilator-associated pneumonia',
+      { source: 'ECDC', id: 'vap' },
+    ],
+    [
+      'SSI – Λοίμωξη χειρουργικού πεδίου',
+      'SSI – Surgical site infection',
+      { source: 'ECDC', id: 'ssi' },
+    ],
+  ]
+  const defaults = criteriaSets
+    ? Object.entries(criteriaSets).map(([key, set]) => [
+        set.labelEl,
+        set.labelEn || set.labelEl,
+        { source: set.source || 'CDC/NHSN', id: key },
+      ])
+    : staticDefaults
+  const options = orderCriteriaForAge(withCriteriaKeys(items, defaults), ageDays)
+  const first = options[0]
+  const [d, setD] = useState({
+    status: 'suspected',
+    type: first?.[language === 'el' ? 0 : 1] || first?.[0] || '',
+    definitionSet: first?.[2]?.source || 'ECDC',
+    definitionVersion: first?.[2]?.version || '',
+    criteriaKey: criteriaKeyOf(first),
+    criteriaEvidence: [],
+    rationale: '',
+  })
+  const [adding, setAdding] = useState(false),
+    [newName, setNewName] = useState(''),
+    [customSource, setCustomSource] = useState('Hospital')
+  function select(value) {
+    if (value === '__new__') {
+      setAdding(true)
+      setD(x => ({
+        ...x,
+        type: '',
+        definitionSet: 'Hospital',
+        criteriaKey: null,
+        criteriaEvidence: [],
+      }))
+      return
+    }
+    const row = options.find(x => (x[language === 'el' ? 0 : 1] || x[0]) === value)
+    setD(x => ({
+      ...x,
+      type: value,
+      definitionSet: row?.[2]?.source || 'ECDC',
+      definitionVersion: row?.[2]?.version || '',
+      criteriaKey: criteriaKeyOf(row),
+      criteriaEvidence: [],
+    }))
+  }
+  async function add() {
+    const name = newName.trim()
+    if (!name) return
+    const row = [
+      name,
+      name,
+      { system: false, locked: false, source: customSource || 'Hospital', version: 'local' },
+    ]
+    const saved = (await onAddLibraryItem?.(row)) || row
+    setD(x => ({
+      ...x,
+      type: saved[0],
+      definitionSet: customSource || 'Hospital',
+      criteriaKey: null,
+      criteriaEvidence: [],
+    }))
+    setAdding(false)
+    setNewName('')
+  }
+  function toggleCriterion(itemId) {
+    setD(x => ({
+      ...x,
+      criteriaEvidence: x.criteriaEvidence.includes(itemId)
+        ? x.criteriaEvidence.filter(id => id !== itemId)
+        : [...x.criteriaEvidence, itemId],
+    }))
+  }
+  const criteriaSet = d.criteriaKey
+    ? haiCriteriaSetForType(d.criteriaKey, criteriaSets || undefined)
+    : null
+  function save() {
+    const criteriaMet = criteriaSet
+      ? evaluateHaiCriteria(d.criteriaKey, d.criteriaEvidence, criteriaSets || undefined)
+      : null
+    onSave({ ...d, criteriaMet })
+  }
+  return (
+    <SimpleDialog
+      title={translate(
+        'copy.clinicalRecordCopy.haiHealthcareAssociatedInfection',
+        language === 'el' ? 'el' : 'en',
+      )}
+      t={t}
+      onClose={onClose}
+      onSave={save}
+      disabled={!d.type}
+    >
+      <label>
+        <span>
+          {translate(
+            'copy.clinicalRecordCopy.surveillanceTypeDefinition',
+            language === 'el' ? 'el' : 'en',
+          )}
+        </span>
+        <select value={adding ? '__new__' : d.type} onChange={e => select(e.target.value)}>
+          {options.map((x, i) => (
+            <option key={x[2]?.id || i} value={x[language === 'el' ? 0 : 1] || x[0]}>
+              {x[language === 'el' ? 0 : 1] || x[0]}
+            </option>
+          ))}
+          <option value="__new__">
+            {translate(
+              'copy.clinicalRecordCopy.newSurveillanceDefinition',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </option>
+        </select>
+        {criteriaAgeWarning(d.criteriaKey, ageDays) && (
+          <small className="field-warning hai-age-warning" role="status">
+            {translate(
+              `copy.neonatalCopy.${criteriaAgeWarning(d.criteriaKey, ageDays)}`,
+              language === 'el' ? 'el' : 'en',
+            )}
+          </small>
+        )}
+      </label>
+      <label>
+        <span>{translate('copy.clinicalRecordCopy.status', language === 'el' ? 'el' : 'en')}</span>
+        <select value={d.status} onChange={e => setD(x => ({ ...x, status: e.target.value }))}>
+          <option value="suspected">
+            {translate('copy.clinicalRecordCopy.suspected', language === 'el' ? 'el' : 'en')}
+          </option>
+          <option value="probable">
+            {translate('copy.clinicalRecordCopy.probable', language === 'el' ? 'el' : 'en')}
+          </option>
+          <option value="confirmed">
+            {translate('copy.clinicalRecordCopy.confirmed', language === 'el' ? 'el' : 'en')}
+          </option>
+          <option value="excluded">
+            {translate('copy.clinicalRecordCopy.excluded', language === 'el' ? 'el' : 'en')}
+          </option>
+        </select>
+      </label>
+      <label>
+        <span>
+          {translate('copy.clinicalRecordCopy.definitionSource', language === 'el' ? 'el' : 'en')}
+        </span>
+        <input
+          value={adding ? customSource : d.definitionSet}
+          readOnly={!adding}
+          onChange={e => setCustomSource(e.target.value)}
+        />
+      </label>
+      {adding && (
+        <div className="entry-span-2 inline-library-add">
+          <label>
+            <span>
+              {translate('copy.clinicalRecordCopy.newDefinition', language === 'el' ? 'el' : 'en')}
+            </span>
+            <input autoFocus value={newName} onChange={e => setNewName(e.target.value)} />
+          </label>
+          <Button variant="secondary" onClick={add}>
+            {translate('copy.clinicalRecordCopy.addToLibrary2', language === 'el' ? 'el' : 'en')}
+          </Button>
+        </div>
+      )}
+      {criteriaSet && (
+        <div className="entry-span-2 hai-criteria-checklist">
+          <p className="hai-criteria-note">
+            {language === 'el'
+              ? `Απλοποιημένο checklist βάσει ${criteriaSet.source} — ενδεικτικό εργαλείο υποστήριξης, δεν υποκαθιστά την κλινική κρίση.`
+              : `Simplified checklist based on ${criteriaSet.source} — an indicative decision-support aid, not a substitute for clinical judgement.`}
+          </p>
+          {criteriaSet.groups.map(group => (
+            <fieldset key={group.id} className="hai-criteria-group">
+              {group.items.map(item => (
+                <label key={item.id} className="hai-criteria-item">
+                  <input
+                    type="checkbox"
+                    checked={d.criteriaEvidence.includes(item.id)}
+                    onChange={() => toggleCriterion(item.id)}
+                  />
+                  <span>{language === 'el' ? item.textEl : item.textEn}</span>
+                </label>
+              ))}
+            </fieldset>
+          ))}
+          <div
+            className={`hai-criteria-result ${evaluateHaiCriteria(d.criteriaKey, d.criteriaEvidence, criteriaSets || undefined) ? 'is-met' : 'is-pending'}`}
+          >
+            {evaluateHaiCriteria(d.criteriaKey, d.criteriaEvidence, criteriaSets || undefined)
+              ? translate(
+                  'copy.clinicalRecordCopy.criteriaAreMetBasedOnThe',
+                  language === 'el' ? 'el' : 'en',
+                )
+              : translate(
+                  'copy.clinicalRecordCopy.criteriaAreNotYetMet',
+                  language === 'el' ? 'el' : 'en',
+                )}
+          </div>
+        </div>
+      )}
+      <label className="entry-span-2">
+        <span>
+          {translate('copy.clinicalRecordCopy.criteriaRationale', language === 'el' ? 'el' : 'en')}
+        </span>
+        <textarea
+          rows={3}
+          value={d.rationale}
+          onChange={e => setD(x => ({ ...x, rationale: e.target.value }))}
+        />
+      </label>
+    </SimpleDialog>
+  )
+}
+export function TherapyDialog({ t, antibiotics = [], advancedAntibiotics = [], onClose, onSave }) {
+  const { language } = useLanguage()
+  const options = antibiotics.length ? antibiotics : demoLibrarySeed.antibiotics
+  const advancedNames = advancedAntibioticNames(
+    advancedAntibiotics.length ? advancedAntibiotics : demoLibrarySeed.advancedAntibiotics,
+  )
+  const [rows, setRows] = useState(() => [newTherapyRow()])
+  const update = (i, key, value) =>
+    setRows(list => list.map((x, n) => (n === i ? { ...x, [key]: value } : x)))
+  const save = async () => {
+    for (const therapy of therapiesToSave(rows, advancedNames)) await onSave(therapy)
+  }
+  return (
+    <SimpleDialog
+      title={translate(
+        'copy.clinicalRecordCopy.antimicrobialTherapy',
+        language === 'el' ? 'el' : 'en',
+      )}
+      t={t}
+      onClose={onClose}
+      onSave={save}
+      disabled={!rows.some(x => x.antimicrobial)}
+    >
+      {rows.map((d, i) => (
+        <div className="entry-span-2 therapy-entry-card" key={i}>
+          <div className="entry-grid">
+            <label>
+              <span>
+                {translate(
+                  'copy.clinicalRecordCopy.antimicrobial',
+                  language === 'el' ? 'el' : 'en',
+                )}
+              </span>
+              <select
+                value={d.antimicrobial}
+                onChange={e => update(i, 'antimicrobial', e.target.value)}
+              >
+                <option value="">
+                  {translate(
+                    'copy.clinicalRecordCopy.selectFromLibrary',
+                    language === 'el' ? 'el' : 'en',
+                  )}
+                </option>
+                {options.map((x, n) => (
+                  <option key={x[2]?.id || n} value={x[language === 'el' ? 0 : 1] || x[0]}>
+                    {x[language === 'el' ? 0 : 1] || x[0]}
+                    {advancedNames.has(x[0]) || advancedNames.has(x[1])
+                      ? translate(
+                          'copy.clinicalRecordCopy.restrictedAdvanced',
+                          language === 'el' ? 'el' : 'en',
+                        )
+                      : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>
+                {translate('copy.clinicalRecordCopy.dose', language === 'el' ? 'el' : 'en')}
+              </span>
+              <input value={d.dose} onChange={e => update(i, 'dose', e.target.value)} />
+            </label>
+            <label>
+              <span>
+                {translate('copy.clinicalRecordCopy.route', language === 'el' ? 'el' : 'en')}
+              </span>
+              <select value={d.route} onChange={e => update(i, 'route', e.target.value)}>
+                <option value="IV">
+                  {translate(
+                    'copy.clinicalRecordCopy.intravenousIv',
+                    language === 'el' ? 'el' : 'en',
+                  )}
+                </option>
+                <option value="PO">
+                  {translate('copy.clinicalRecordCopy.oralPo', language === 'el' ? 'el' : 'en')}
+                </option>
+                <option value="IM">
+                  {translate(
+                    'copy.clinicalRecordCopy.intramuscularIm',
+                    language === 'el' ? 'el' : 'en',
+                  )}
+                </option>
+                <option value="other">
+                  {translate('copy.clinicalRecordCopy.other', language === 'el' ? 'el' : 'en')}
+                </option>
+              </select>
+            </label>
+            <label>
+              <span>
+                {translate('copy.clinicalRecordCopy.indication', language === 'el' ? 'el' : 'en')}
+              </span>
+              <input value={d.indication} onChange={e => update(i, 'indication', e.target.value)} />
+            </label>
+            <ManualDateField
+              label={translate(
+                'copy.clinicalRecordCopy.startDate',
+                language === 'el' ? 'el' : 'en',
+              )}
+              value={d.startedAt}
+              onChange={v => update(i, 'startedAt', v)}
+            />
+            <ManualDateField
+              label={translate(
+                'copy.clinicalRecordCopy.plannedEndDate',
+                language === 'el' ? 'el' : 'en',
+              )}
+              optional
+              value={d.plannedEndAt}
+              onChange={v => update(i, 'plannedEndAt', v)}
+            />
+          </div>
+          {advancedNames.has(d.antimicrobial) && (
+            <div className="inline-empty">
+              {translate(
+                'copy.clinicalRecordCopy.advancedRestrictedAntibioticAutomaticallyFlaggedFor',
+                language === 'el' ? 'el' : 'en',
+              )}
+            </div>
+          )}
+          {rows.length > 1 && (
+            <Button variant="ghost" onClick={() => setRows(list => list.filter((_, n) => n !== i))}>
+              {translate('copy.clinicalRecordCopy.remove', language === 'el' ? 'el' : 'en')}
+            </Button>
+          )}
+        </div>
+      ))}
+      <div className="entry-span-2">
+        <Button variant="secondary" onClick={() => setRows(list => [...list, newTherapyRow()])}>
+          {translate('copy.clinicalRecordCopy.addAntimicrobial', language === 'el' ? 'el' : 'en')}
+        </Button>
+      </div>
+    </SimpleDialog>
+  )
+}
+export function IsolationDialog({ t, onClose, onSave }) {
+  const { language } = useLanguage()
+  const [d, setD] = useState({
+    precautions: ['contact'],
+    room: '',
+    reason: '',
+    startedAt: new Date().toISOString().slice(0, 10),
+    reviewDue: '',
+  })
+  return (
+    <SimpleDialog
+      title={translate(
+        'copy.clinicalRecordCopy.isolationTransmissionBasedPrecautions',
+        language === 'el' ? 'el' : 'en',
+      )}
+      t={t}
+      onClose={onClose}
+      onSave={() => onSave(d)}
+      disabled={!d.reason}
+    >
+      <label>
+        <span>
+          {translate('copy.clinicalRecordCopy.precautions', language === 'el' ? 'el' : 'en')}
+        </span>
+        <select
+          value={d.precautions[0]}
+          onChange={e => setD(x => ({ ...x, precautions: [e.target.value] }))}
+        >
+          <option value="contact">
+            {translate(
+              'copy.clinicalRecordCopy.contactPrecautions',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </option>
+          <option value="droplet">
+            {translate(
+              'copy.clinicalRecordCopy.dropletPrecautions',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </option>
+          <option value="airborne">
+            {translate(
+              'copy.clinicalRecordCopy.airbornePrecautions',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </option>
+          <option value="protective">
+            {translate(
+              'copy.clinicalRecordCopy.protectiveIsolation',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </option>
+        </select>
+      </label>
+      <label>
+        <span>{translate('copy.clinicalRecordCopy.roomBed', language === 'el' ? 'el' : 'en')}</span>
+        <input value={d.room} onChange={e => setD(x => ({ ...x, room: e.target.value }))} />
+      </label>
+      <ManualDateField
+        label={translate('copy.clinicalRecordCopy.startDate', language === 'el' ? 'el' : 'en')}
+        value={d.startedAt}
+        onChange={v => setD(x => ({ ...x, startedAt: v }))}
+      />
+      <ManualDateField
+        label={translate('copy.clinicalRecordCopy.nextReview', language === 'el' ? 'el' : 'en')}
+        optional
+        value={d.reviewDue}
+        onChange={v => setD(x => ({ ...x, reviewDue: v }))}
+      />
+      <label className="entry-span-2">
+        <span>{translate('copy.clinicalRecordCopy.reason', language === 'el' ? 'el' : 'en')}</span>
+        <textarea value={d.reason} onChange={e => setD(x => ({ ...x, reason: e.target.value }))} />
+      </label>
+    </SimpleDialog>
+  )
+}
+export function EndDialog({ title, t, onClose, onSave }) {
+  const [d, setD] = useState({ endedAt: new Date().toISOString().slice(0, 10), reason: '' })
+  return (
+    <SimpleDialog title={title} t={t} onClose={onClose} onSave={() => onSave(d)}>
+      <ManualDateField
+        label={t('endDate')}
+        value={d.endedAt}
+        onChange={v => setD(x => ({ ...x, endedAt: v }))}
+      />
+      <label className="entry-span-2">
+        <span>{t('reason')}</span>
+        <textarea value={d.reason} onChange={e => setD(x => ({ ...x, reason: e.target.value }))} />
+      </label>
+    </SimpleDialog>
+  )
+}
+export function ReassessmentDialog({ t, onClose, onSave }) {
+  const { language } = useLanguage()
+  const [d, setD] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    status: 'stable',
+    decision: 'continueTreatment',
+    notes: '',
+    nextReviewDue: '',
+  })
+  return (
+    <SimpleDialog
+      title={translate('copy.clinicalRecordCopy.reassessment', language === 'el' ? 'el' : 'en')}
+      t={t}
+      onClose={onClose}
+      onSave={() => onSave(d)}
+    >
+      <ManualDateField
+        label={translate('copy.clinicalRecordCopy.date', language === 'el' ? 'el' : 'en')}
+        value={d.date}
+        onChange={v => setD(x => ({ ...x, date: v }))}
+      />
+      <label>
+        <span>
+          {translate('copy.clinicalRecordCopy.clinicalStatus', language === 'el' ? 'el' : 'en')}
+        </span>
+        <select value={d.status} onChange={e => setD(x => ({ ...x, status: e.target.value }))}>
+          <option value="clinicalImprovement">
+            {translate(
+              'copy.clinicalRecordCopy.clinicalImprovement',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </option>
+          <option value="stable">
+            {translate('copy.clinicalRecordCopy.stable', language === 'el' ? 'el' : 'en')}
+          </option>
+          <option value="deterioration">
+            {translate('copy.clinicalRecordCopy.deterioration', language === 'el' ? 'el' : 'en')}
+          </option>
+        </select>
+      </label>
+      <ManualDateField
+        label={translate('copy.clinicalRecordCopy.nextReview', language === 'el' ? 'el' : 'en')}
+        optional
+        value={d.nextReviewDue}
+        onChange={v => setD(x => ({ ...x, nextReviewDue: v }))}
+      />
+      <label className="entry-span-2">
+        <span>{translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en')}</span>
+        <textarea value={d.notes} onChange={e => setD(x => ({ ...x, notes: e.target.value }))} />
+      </label>
+    </SimpleDialog>
+  )
+}
+export function OutcomeDialog({ t, onClose, onSave }) {
+  const [d, setD] = useState({
+    status: 'resolved',
+    date: new Date().toISOString().slice(0, 10),
+    notes: '',
+  })
+  return (
+    <SimpleDialog title={t('outcome')} t={t} onClose={onClose} onSave={() => onSave(d)}>
+      <label>
+        <span>{t('status')}</span>
+        <select value={d.status} onChange={e => setD(x => ({ ...x, status: e.target.value }))}>
+          {SURVEILLANCE_OUTCOMES.map(x => (
+            <option key={x} value={x}>
+              {t(x)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <ManualDateField
+        label={t('date')}
+        value={d.date}
+        onChange={v => setD(x => ({ ...x, date: v }))}
+      />
+      <label className="entry-span-2">
+        <span>{t('notes')}</span>
+        <textarea value={d.notes} onChange={e => setD(x => ({ ...x, notes: e.target.value }))} />
+      </label>
+    </SimpleDialog>
+  )
+}
+export function ReasonDialog({ title, t, reason, setReason, onClose, onSave }) {
+  return (
+    <SimpleDialog title={title} t={t} onClose={onClose} onSave={onSave} disabled={!reason.trim()}>
+      <label className="entry-span-2">
+        <span>{t('reasonRequired')}</span>
+        <textarea rows={4} value={reason} onChange={e => setReason(e.target.value)} autoFocus />
+      </label>
+    </SimpleDialog>
+  )
+}

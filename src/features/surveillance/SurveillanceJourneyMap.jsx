@@ -71,9 +71,11 @@ export function SurveillanceJourneyGuidance({record,t,canAssess,canLab,canIsolat
   return <div className="journey-guidance compact-guidance"><div className="journey-guidance-title"><AlertTriangle size={15}/><strong>{t('clinicalRecords.attentionNeeded')}</strong><span>{cues.length}</span></div><div className="journey-guidance-items">{cues.map((cue,index)=><button type="button" key={`${cue.id}-${index}`} className={`guidance-cue ${cue.tone}`} onClick={()=>onSelect?.(cue.id)}><strong>{cue.title}</strong></button>)}</div></div>
 }
 
+// Stages that are steps of the Demo guide's CLABSI scenario (outlined while it runs).
+const DEMO_STEP_STAGES=new Set(['hai','reassessment'])
 function EpisodeTab({stage,active,onSelect}){
   const Icon=icons[stage.id]||Activity
-  return <button type="button" className={`episode-section-tab ${active?'active':''} ${stage.status==='complete'?'complete':''} ${stage.locked?'locked':''}`.trim()} disabled={stage.locked} aria-current={active?'page':undefined} onClick={()=>onSelect?.(stage.id)}>
+  return <button type="button" className={`episode-section-tab ${active?'active':''} ${stage.status==='complete'?'complete':''} ${stage.locked?'locked':''}`.trim()} disabled={stage.locked} aria-current={active?'page':undefined} data-demo-step={DEMO_STEP_STAGES.has(stage.id)?`clabsi_classification:${stage.id}`:undefined} onClick={()=>onSelect?.(stage.id)}>
     <Icon size={16}/>
     <span><strong>{stage.label}</strong><small>{stage.meta}</small></span>
     {stage.status==='complete'&&<CheckCircle2 className="episode-tab-check" size={14}/>} 

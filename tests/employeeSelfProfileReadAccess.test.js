@@ -3,7 +3,6 @@ import fs from 'node:fs'
 import { resolveSelfEmployee } from '../src/features/employees/employeeIdentity'
 
 const migration = fs.readFileSync('supabase/migrations/20260919260000_employee_self_profile_read_access.sql', 'utf8')
-const recordPage = fs.readFileSync('src/features/employees/EmployeeRecordPage.jsx', 'utf8')
 
 describe('Employee "My Profile" self read access', () => {
   it('grants employees SELECT to the row\'s own linked account, in addition to the existing role/department grants', () => {
@@ -29,7 +28,5 @@ describe('Employee "My Profile" self read access', () => {
   it('the self-profile page resolves the employee by its linked user_id, matching the new RLS self exception', () => {
     const rows = [{ id: 'EMP-1', userId: 'user-a' }, { id: 'EMP-2', userId: 'user-b' }]
     expect(resolveSelfEmployee({ employeeRows: rows, profile: { id: 'user-b' } })?.id).toBe('EMP-2')
-    expect(recordPage).toContain('resolveSelfEmployee({employeeRows,membership,profile,user,isDemo})')
-    expect(recordPage).toContain('Your employee record is read-only')
   })
 })

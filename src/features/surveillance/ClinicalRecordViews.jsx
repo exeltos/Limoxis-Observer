@@ -1,0 +1,568 @@
+import { sampleTone } from './patientRecordScope'
+import {
+  Activity,
+  AlertTriangle,
+  BedDouble,
+  FileClock,
+  Microscope,
+  Pill,
+  RefreshCcw,
+  ShieldCheck,
+} from 'lucide-react'
+import { translate } from '../../core/i18n/LanguageContext'
+import {
+  RESISTANCE_ALERT,
+  episodeTypeLabel,
+  clinicalTerm,
+  libraryLabel,
+  clinicalValueLabel,
+  timelineLabel,
+  ISOLATION_STATUS,
+  termLabel,
+} from './clinicalRecordLabels'
+
+// Read-only views of the clinical record: snapshot cards, timeline and the
+// final report of a completed episode.
+
+export function StagePanel({ icon: Icon, title, action, children }) {
+  return (
+    <section className="clinical-panel full-panel">
+      <div className="record-section-header">
+        <div>
+          {Icon && <Icon size={17} />}
+          <strong>{title}</strong>
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+export function TagList({ title, items = [], rows = [], t, language }) {
+  if (!items?.length) return null
+  return (
+    <>
+      <h4>{title}</h4>
+      <div className="tag-row">
+        {items.map(x => (
+          <span className="clinical-tag" key={x}>
+            {libraryLabel(x, rows, language, t)}
+          </span>
+        ))}
+      </div>
+    </>
+  )
+}
+export function ClinicalSnapshot({ record, t, language, fmtDate }) {
+  const latest = record?.samples?.find(x => x.organism) || record?.samples?.[0]
+  const assessment = record?.assessment
+  const therapy = record?.therapy || []
+  const reassessments = record?.reassessments || []
+  const lastReview = reassessments[reassessments.length - 1]
+  return (
+    <section className="record-section clinical-data-overview">
+      <div className="record-section-header">
+        <div>
+          <h3>
+            {translate(
+              'copy.clinicalRecordCopy.surveillanceClinicalData',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </h3>
+          <p>
+            {translate(
+              'copy.clinicalRecordCopy.consolidatedViewOfTheSelectedSurveillance',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </p>
+        </div>
+      </div>
+      <div className="clinical-data-cards">
+        <ClinicalDataCard
+          icon={ShieldCheck}
+          title={translate(
+            'copy.clinicalRecordCopy.clinicalAssessment',
+            language === 'el' ? 'el' : 'en',
+          )}
+          state={
+            assessment
+              ? translate('copy.clinicalRecordCopy.documented', language === 'el' ? 'el' : 'en')
+              : translate('copy.clinicalRecordCopy.notDocumented', language === 'el' ? 'el' : 'en')
+          }
+        >
+          <ClinicalDatum
+            label={translate(
+              'copy.clinicalRecordCopy.classification',
+              language === 'el' ? 'el' : 'en',
+            )}
+            value={clinicalTerm(assessment?.classification, language, t)}
+          />
+          <ClinicalDatum
+            label={translate('copy.clinicalRecordCopy.summary', language === 'el' ? 'el' : 'en')}
+            value={assessment?.summary || '—'}
+          />
+        </ClinicalDataCard>
+        <ClinicalDataCard
+          icon={Microscope}
+          title={translate('copy.clinicalRecordCopy.microbiology', language === 'el' ? 'el' : 'en')}
+          state={
+            record?.samples?.length
+              ? `${record.samples.length} ${translate('copy.clinicalRecordCopy.sampleS', language === 'el' ? 'el' : 'en')}`
+              : translate('copy.clinicalRecordCopy.noSamples', language === 'el' ? 'el' : 'en')
+          }
+        >
+          <ClinicalDatum
+            label={translate(
+              'copy.clinicalRecordCopy.latestFinding',
+              language === 'el' ? 'el' : 'en',
+            )}
+            value={latest?.organism || t(latest?.result || 'pending')}
+          />
+          <ClinicalDatum
+            label={translate(
+              'copy.clinicalRecordCopy.amrAntimicrobialResistance',
+              language === 'el' ? 'el' : 'en',
+            )}
+            value={latest?.resistance || record?.resistance || '—'}
+          />
+        </ClinicalDataCard>
+        <ClinicalDataCard
+          icon={Pill}
+          title={translate(
+            'copy.clinicalRecordCopy.antimicrobialTherapy',
+            language === 'el' ? 'el' : 'en',
+          )}
+          state={
+            therapy.length
+              ? `${therapy.length} ${translate('copy.clinicalRecordCopy.therapyItemS', language === 'el' ? 'el' : 'en')}`
+              : translate('copy.clinicalRecordCopy.notRecorded', language === 'el' ? 'el' : 'en')
+          }
+        >
+          <ClinicalDatum
+            label={translate(
+              'copy.clinicalRecordCopy.currentTherapy',
+              language === 'el' ? 'el' : 'en',
+            )}
+            value={
+              therapy
+                .map(x => x.antimicrobial)
+                .filter(Boolean)
+                .join(', ') || '—'
+            }
+          />
+        </ClinicalDataCard>
+        <ClinicalDataCard
+          icon={RefreshCcw}
+          title={translate('copy.clinicalRecordCopy.reassessment', language === 'el' ? 'el' : 'en')}
+          state={
+            record?.reviewDue
+              ? `${translate('copy.clinicalRecordCopy.next', language === 'el' ? 'el' : 'en')}: ${fmtDate(record.reviewDue)}`
+              : '—'
+          }
+        >
+          <ClinicalDatum
+            label={translate(
+              'copy.clinicalRecordCopy.latestStatus',
+              language === 'el' ? 'el' : 'en',
+            )}
+            value={clinicalTerm(lastReview?.status, language, t)}
+          />
+          <ClinicalDatum
+            label={translate('copy.clinicalRecordCopy.nextReview', language === 'el' ? 'el' : 'en')}
+            value={fmtDate(record?.reviewDue)}
+          />
+        </ClinicalDataCard>
+      </div>
+    </section>
+  )
+}
+function ClinicalDataCard({ icon: Icon, title, state, children }) {
+  return (
+    <article className="clinical-data-card">
+      <header>
+        <span className="clinical-data-icon">
+          <Icon size={17} />
+        </span>
+        <div>
+          <h4>{title}</h4>
+          <small>{state}</small>
+        </div>
+      </header>
+      <div className="clinical-data-card-body">{children}</div>
+    </article>
+  )
+}
+function ClinicalDatum({ label, value }) {
+  return (
+    <div className="clinical-datum">
+      <span>{label}</span>
+      <strong>{value || '—'}</strong>
+    </div>
+  )
+}
+export function Timeline({ record, t, language, fmtDateTime }) {
+  const rows = [...(record?.timeline || [])].sort(
+    (a, b) => new Date(b.at || 0) - new Date(a.at || 0),
+  )
+  return (
+    <section className="record-section patient-history-section">
+      <div className="record-section-header">
+        <div>
+          <h3>
+            {translate(
+              'copy.clinicalRecordCopy.surveillanceHistory',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </h3>
+          <p>
+            {translate(
+              'copy.clinicalRecordCopy.chronologicalAuditTrailOfClinicalActions',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </p>
+        </div>
+      </div>
+      {rows.length ? (
+        <div className="patient-history-list">
+          {rows.map((x, i) => (
+            <article className="patient-history-event" key={`${x.at || 'event'}-${i}`}>
+              <div className="history-rail">
+                <span />
+              </div>
+              <div className="history-event-main">
+                <div className="history-event-heading">
+                  <strong>{timelineLabel(x.type, language, t)}</strong>
+                  <time>{fmtDateTime(x.at)}</time>
+                </div>
+                {x.detail && <p>{clinicalValueLabel(x.detail, language, t)}</p>}
+                <div className="history-event-meta">
+                  {(x.actor || x.actorId) && (
+                    <span>
+                      {translate('copy.clinicalRecordCopy.user', language === 'el' ? 'el' : 'en')}:{' '}
+                      {x.actor || x.actorId}
+                    </span>
+                  )}
+                  {x.sampleId && (
+                    <span>
+                      {translate('copy.clinicalRecordCopy.sample', language === 'el' ? 'el' : 'en')}
+                      : {x.sampleId}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="inline-empty">
+          {translate(
+            'copy.clinicalRecordCopy.noRecordedEventsYet',
+            language === 'el' ? 'el' : 'en',
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+export function CompletedReport({
+  record,
+  t,
+  fmtDate,
+  fmtDateTime,
+  language = 'el',
+  libraries = {},
+}) {
+  const el = language !== 'en'
+  const samples = record.samples || [],
+    positive = samples.filter(x => x.result === 'positive'),
+    therapy = record.therapy || [],
+    reassessments = record.reassessments || []
+  const organism = positive.find(x => x.organism)?.organism || record.organism || '',
+    resistance = record.resistance || positive.find(x => x.resistance)?.resistance || ''
+  const start = record.startedAt,
+    end = record.completedAt || record.outcome?.date
+  const days =
+    start && end
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(String(end).slice(0, 10)) - new Date(String(start).slice(0, 10))) / 86400000,
+          ) + 1,
+        )
+      : null
+  const hai = record.haiClassification,
+    iso = record.isolation
+  const Section = ({ icon: Icon, title, children, wide = false }) => (
+    <section className={`final-report-card${wide ? ' wide' : ''}`}>
+      <header>
+        <span className="final-report-card-icon">
+          <Icon size={16} />
+        </span>
+        <h3>{title}</h3>
+      </header>
+      {children}
+    </section>
+  )
+  const Empty = ({ text }) => <p className="final-report-empty">{text}</p>
+  return (
+    <article className="surveillance-final-report final-report-v2">
+      <header className="final-report-hero">
+        <div>
+          <span className="eyebrow">{t('clinicalRecords.finalSurveillanceReport')}</span>
+          <h2>{episodeTypeLabel(record, t) || record.patient}</h2>
+          <p>
+            {record.patient} · {record.department || '—'} · {record.id}
+          </p>
+        </div>
+        <div className="final-report-hero-facts">
+          <div>
+            <small>{t('finalReport.period')}</small>
+            <strong>
+              {fmtDate(start)} → {fmtDate(end)}
+            </strong>
+          </div>
+          <div>
+            <small>{t('finalReport.duration')}</small>
+            <strong>
+              {days ? `${days} ${t(days === 1 ? 'finalReport.day' : 'finalReport.days')}` : '—'}
+            </strong>
+          </div>
+          <div>
+            <small>{t('outcome')}</small>
+            <strong>{record.outcome ? termLabel(record.outcome.status, t, language) : '—'}</strong>
+          </div>
+          <div>
+            <small>{t('finalReport.finding')}</small>
+            <strong className="final-report-chips">
+              {organism ? <em className="sv-chip sv-chip-organism">{organism}</em> : '—'}
+              {resistance && (
+                <em
+                  className={`sv-chip ${RESISTANCE_ALERT.has(String(resistance).toUpperCase()) ? 'sv-chip-danger' : 'sv-chip-muted'}`}
+                >
+                  {resistance}
+                </em>
+              )}
+            </strong>
+          </div>
+        </div>
+      </header>
+      <div className="final-report-grid">
+        <Section icon={ShieldCheck} title={t('clinicalAssessment')}>
+          {record.assessment ? (
+            <>
+              <div className="final-report-facts">
+                <div>
+                  <small>{t('assessmentDate')}</small>
+                  <strong>{fmtDate(record.assessment.date)}</strong>
+                </div>
+                <div>
+                  <small>{t('classification')}</small>
+                  <strong>
+                    {clinicalTerm(record.assessment.classification || 'undetermined', language, t)}
+                  </strong>
+                </div>
+              </div>
+              {(record.assessment.summary || record.assessment.notes) && (
+                <p>
+                  {el
+                    ? record.assessment.summary || record.assessment.notes
+                    : record.assessment.summaryEn ||
+                      record.assessment.summary ||
+                      record.assessment.notes}
+                </p>
+              )}
+              <TagList
+                title={t('signsSymptoms')}
+                items={record.assessment.signsSymptoms || record.assessment.symptoms}
+                rows={libraries.clinicalSymptoms || []}
+                t={t}
+                language={language}
+              />
+              <TagList
+                title={t('riskFactors')}
+                items={record.assessment.riskFactors}
+                rows={libraries.clinicalRiskFactors || []}
+                t={t}
+                language={language}
+              />
+            </>
+          ) : (
+            <Empty text={t('clinicalRecords.notDocumented')} />
+          )}
+        </Section>
+        <Section icon={AlertTriangle} title={t('haiAmr')}>
+          {hai ? (
+            <>
+              <div className="final-report-facts">
+                <div>
+                  <small>{t('finalReport.infectionType')}</small>
+                  <strong>{termLabel(hai.type, t, language)}</strong>
+                </div>
+                <div>
+                  <small>{t('status')}</small>
+                  <strong>{termLabel(hai.status, t, language)}</strong>
+                </div>
+                <div>
+                  <small>{t('finalReport.criteria')}</small>
+                  <strong>
+                    {hai.criteriaMet
+                      ? t('finalReport.criteriaMet')
+                      : t('finalReport.criteriaNotMet')}
+                  </strong>
+                </div>
+              </div>
+              {hai.definitionSet && (
+                <small className="final-report-note">{hai.definitionSet}</small>
+              )}
+              {(hai.rationale || hai.rationaleEn) && (
+                <p>{el ? hai.rationale : hai.rationaleEn || hai.rationale}</p>
+              )}
+            </>
+          ) : (
+            <Empty text={t('clinicalRecords.notDocumented')} />
+          )}
+        </Section>
+        <Section icon={Microscope} title={t('microbiology')} wide>
+          {samples.length ? (
+            <div className="record-table-wrap">
+              <table className="record-table">
+                <thead>
+                  <tr>
+                    <th>{t('date')}</th>
+                    <th>{t('sampleType')}</th>
+                    <th>{t('finalReport.result')}</th>
+                    <th>{t('organism')}</th>
+                    <th>{t('finalReport.resistance')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {samples.map(x => (
+                    <tr key={x.id}>
+                      <td>{fmtDate(x.collectedAt || x.requestedAt)}</td>
+                      <td>{termLabel(x.type, t, language)}</td>
+                      <td>
+                        <span className={`sv-result sv-result-${sampleTone(x)}`}>
+                          {termLabel(x.result || x.status || 'pending', t, language)}
+                        </span>
+                      </td>
+                      <td>{x.organism || '—'}</td>
+                      <td>{x.resistance || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <Empty text={t('clinicalRecords.noPositiveFindings')} />
+          )}
+        </Section>
+        <Section icon={Pill} title={t('therapy')}>
+          {therapy.length ? (
+            <ul className="final-report-list">
+              {therapy.map(x => (
+                <li key={x.id}>
+                  <strong>{x.antimicrobial}</strong>
+                  <span>{[x.dose, x.route].filter(Boolean).join(' · ') || '—'}</span>
+                  <small>
+                    {fmtDate(x.startedAt)}
+                    {x.plannedEnd || x.endedAt ? ` → ${fmtDate(x.endedAt || x.plannedEnd)}` : ''}
+                  </small>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Empty text={t('clinicalRecords.noTherapyRecorded')} />
+          )}
+        </Section>
+        <Section icon={BedDouble} title={t('isolation')}>
+          {iso ? (
+            <div className="final-report-facts">
+              <div>
+                <small>{t('status')}</small>
+                <strong>
+                  {ISOLATION_STATUS[iso.status]
+                    ? t(ISOLATION_STATUS[iso.status])
+                    : termLabel(iso.status, t, language)}
+                </strong>
+              </div>
+              <div>
+                <small>{t('startDate')}</small>
+                <strong>{fmtDate(iso.startedAt)}</strong>
+              </div>
+              <div>
+                <small>{t('finalReport.end')}</small>
+                <strong>{fmtDate(iso.endedAt)}</strong>
+              </div>
+              {iso.reason && (
+                <div>
+                  <small>{t('reason')}</small>
+                  <strong>{iso.reason}</strong>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Empty
+              text={
+                record.isolationDecision?.required === false
+                  ? t('notRequired')
+                  : t('clinicalRecords.noIsolationRecorded')
+              }
+            />
+          )}
+        </Section>
+        <Section icon={RefreshCcw} title={t('reassessment')}>
+          {reassessments.length ? (
+            <ul className="final-report-list">
+              {reassessments.map(x => (
+                <li key={x.id || x.date}>
+                  <strong>{termLabel(x.status, t, language)}</strong>
+                  <span>{x.notes || '—'}</span>
+                  <small>{fmtDate(x.date)}</small>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Empty text={t('clinicalRecords.noReassessmentRecorded')} />
+          )}
+        </Section>
+        <Section icon={Activity} title={t('outcome')}>
+          {record.outcome ? (
+            <>
+              <div className="final-report-facts">
+                <div>
+                  <small>{t('status')}</small>
+                  <strong>{termLabel(record.outcome.status, t, language)}</strong>
+                </div>
+                <div>
+                  <small>{t('date')}</small>
+                  <strong>{fmtDate(record.outcome.date)}</strong>
+                </div>
+              </div>
+              {record.outcome.notes && (
+                <p>{el ? record.outcome.notes : record.outcome.notesEn || record.outcome.notes}</p>
+              )}
+            </>
+          ) : (
+            <Empty text={t('clinicalRecords.notDocumented')} />
+          )}
+        </Section>
+        <Section icon={FileClock} title={t('clinicalRecords.courseSummary')} wide>
+          {(record.timeline || []).length ? (
+            <div className="course-timeline">
+              {record.timeline.map((x, i) => (
+                <div key={`${x.at}-${i}`} className="course-event">
+                  <time>{fmtDateTime(x.at)}</time>
+                  <span>{termLabel(x.type, t, language)}</span>
+                  <strong>{x.actor || x.actorId || '—'}</strong>
+                  <p>{x.detail || '—'}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty text={t('finalReport.noEvents')} />
+          )}
+        </Section>
+      </div>
+    </article>
+  )
+}

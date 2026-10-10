@@ -9,7 +9,7 @@ const formatDate=(value,language)=>{if(!value)return '';const date=new Date(`${v
 
 // A slim bar above the content of a Demo organization: whose Demo it is, how
 // long it stays open, and the way to look at the application as another role.
-export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previewOpen=false,previewLabel='',rolePicker=null,onPreviewRoles,onExit,guideDone=0,onOpenGuide,canRequestApplication=false,applicationRequested=false,onRequestApplication}){
+export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previewOpen=false,previewLabel='',rolePicker=null,onPreviewRoles,onExit,guideDone=0,guideTotal=DEMO_SCENARIOS.length,onOpenGuide,canRequestApplication=false,applicationRequested=false,onRequestApplication}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const days=Number.isFinite(Number(access?.daysLeft))?Number(access.daysLeft):null
   const remaining=days===null?'':days<=0?tx('λήγει σήμερα','ends today'):days===1?tx('απομένει 1 ημέρα','1 day left'):tx(`απομένουν ${days} ημέρες`,`${days} days left`)
@@ -23,7 +23,7 @@ export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previe
     <span className="demo-evaluation-chip"><FlaskConical size={13}/>DEMO</span>
     <span className="demo-evaluation-text"><strong>{tenant?.name||tx('Demo αξιολόγησης','Evaluation Demo')}</strong>{detail&&<small>{detail}</small>}</span>
     <span className="demo-evaluation-spacer"/>
-    {onOpenGuide&&<button type="button" onClick={onOpenGuide}><BookOpenCheck size={14}/>{tx('Οδηγός αξιολόγησης','Evaluation guide')}{!isPlatformOwner&&<b className="demo-evaluation-count">{guideDone}/{DEMO_SCENARIOS.length}</b>}</button>}
+    {onOpenGuide&&<button type="button" onClick={onOpenGuide}><BookOpenCheck size={14}/>{tx('Οδηγός αξιολόγησης','Evaluation guide')}{!isPlatformOwner&&<b className="demo-evaluation-count">{guideDone}/{guideTotal}</b>}</button>}
     <span className="demo-evaluation-roles role-preview-control">
       <button type="button" className={previewLabel?'active':''} aria-expanded={previewOpen} onClick={onPreviewRoles}><Eye size={14}/>{previewLabel||tx('Δείτε την εφαρμογή ως άλλος ρόλος','See the application as another role')}<ChevronDown size={13}/></button>
       {rolePicker}
