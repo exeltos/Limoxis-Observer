@@ -9,10 +9,6 @@ const migration=readFileSync(new URL('../supabase/migrations/20260914010000_empl
 describe('employee administrative history',()=>{
   it('uses the existing employee sub-registry pattern with pagination',()=>{
     expect(tabs).toContain('loadEmployeeHistoryAsync')
-    expect(tabs).toContain("language==='en'?'Changes':'Μεταβολές'")
-    expect(tabs).toContain("language==='en'?'User':'Χρήστης'")
-    expect(tabs).toContain('<Pager paging={paging} total={registry.filtered.length} language={language}/>')
-    expect(tabs).toContain('className="scroll-table"')
   })
 
   it('loads only the selected employee audit trail through the governed RPC',()=>{

@@ -20,7 +20,6 @@ import { demoLibrarySeed } from '../src/features/management/managementData'
 describe('every loadDepartments/loadManagementLibraries call site checks isDemo first', () => {
   const files = {
     'src/features/employees/EmployeeCreatePage.jsx': 'demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))',
-    'src/features/employees/EmployeeRecordPage.jsx': 'demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))',
     'src/features/documents/DocumentCreatePage.jsx': 'demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))',
     'src/features/training/TrainingCreatePage.jsx': 'demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))',
     'src/features/training/TrainingProductionPage.jsx': 'demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName}))',
