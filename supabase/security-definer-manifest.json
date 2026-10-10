@@ -188,6 +188,11 @@
       "authenticated": true,
       "reason": "Stores an evaluator's \"I want the application\" request, writes it to the audit log and queues an e-mail to every Platform Owner; members of a Demo only, at most three a day."
     },
+    "demo_submit_scenario_feedback": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Stores the signed-in Demo member's own questionnaire (usefulness, ease and clarity 1-5, time taken, comment) for an evaluation-guide scenario or the whole guide; refuses anyone who is not an active member of that Demo."
+    },
     "demo_set_evaluation_step": {
       "category": "rpc",
       "authenticated": true,

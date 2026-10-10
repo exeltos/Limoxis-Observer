@@ -9,6 +9,14 @@ import './demoEvaluation.css'
 
 const fmt=(value,en)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):''
 
+// The questionnaire beside a scenario's rating: ease, clarity and the time it took.
+function QuestionnaireDetails({row,en}){
+  const tx=(el,enText)=>en?enText:el
+  const minutes=row.duration_seconds!=null?Math.max(1,Math.round(row.duration_seconds/60)):null
+  const parts=[row.ease&&`${tx('Ευκολία','Ease')} ${row.ease}/5`,row.clarity&&`${tx('Σαφήνεια','Clarity')} ${row.clarity}/5`,minutes&&tx(`${minutes}′`,`${minutes} min`)].filter(Boolean)
+  return parts.length?<small className="demo-questionnaire-details">{parts.join(' · ')}</small>:null
+}
+
 // Platform Owner, Demo record: what each evaluator went through in the guide,
 // and their "I want the application" requests.
 export function DemoEvaluationPanel({organizationId,language='el',onInterestChange}){
@@ -45,7 +53,7 @@ export function DemoEvaluationPanel({organizationId,language='el',onInterestChan
         return <div key={userId} className="demo-evaluation-evaluator">
           <div className="demo-evaluation-evaluator-head"><strong>{state.names[userId]||tx('Αξιολογητής','Evaluator')}</strong><small>{tx(`${DEMO_SCENARIOS.filter(s=>done[s.key]).length} από ${DEMO_SCENARIOS.length} σενάρια`,`${DEMO_SCENARIOS.filter(s=>done[s.key]).length} of ${DEMO_SCENARIOS.length} scenarios`)}{last?` · ${tx('τελευταία κίνηση','last activity')} ${fmt(last,en)}`:''}</small>{overall&&<span className="demo-rating-value" title={overall.rating_comment||''}><Star size={13}/>{tx('Συνολικά','Overall')} {overall.rating}/5</span>}</div>
           {overall?.rating_comment&&<q className="demo-evaluation-overall-comment">{overall.rating_comment}</q>}
-          <div className="demo-evaluation-steps">{DEMO_SCENARIOS.map(scenario=><div key={scenario.key} className={`demo-evaluation-step ${done[scenario.key]?'is-done':''}`}>{done[scenario.key]?<CheckCircle2 size={15}/>:<Circle size={15}/>}<div>{en?scenario.titleEn:scenario.titleEl}{done[scenario.key]&&<small>{fmt(done[scenario.key],en)}</small>}{rated[scenario.key]&&<span className="demo-rating-value"><Star size={12}/>{rated[scenario.key].rating}/5</span>}{rated[scenario.key]?.rating_comment&&<q>{rated[scenario.key].rating_comment}</q>}</div></div>)}</div>
+          <div className="demo-evaluation-steps">{DEMO_SCENARIOS.map(scenario=><div key={scenario.key} className={`demo-evaluation-step ${done[scenario.key]?'is-done':''}`}>{done[scenario.key]?<CheckCircle2 size={15}/>:<Circle size={15}/>}<div>{en?scenario.titleEn:scenario.titleEl}{done[scenario.key]&&<small>{fmt(done[scenario.key],en)}</small>}{rated[scenario.key]&&<span className="demo-rating-value"><Star size={12}/>{rated[scenario.key].rating}/5</span>}{rated[scenario.key]&&<QuestionnaireDetails row={rated[scenario.key]} en={en}/>}{rated[scenario.key]?.rating_comment&&<q>{rated[scenario.key].rating_comment}</q>}</div></div>)}</div>
         </div>}):<div className="inline-empty">{tx('Ο αξιολογητής δεν έχει ανοίξει ακόμη τον οδηγό αξιολόγησης.','The evaluator has not opened the evaluation guide yet.')}</div>}
     </>}
   </section>

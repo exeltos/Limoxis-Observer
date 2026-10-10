@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { DEMO_SCENARIOS } from '../src/features/demo/demoScenarios'
 import { DEMO_SCENARIO_EVENT, demoScenarioForPath, nextDemoScenario, signalDemoScenario } from '../src/features/demo/demoScenarioSignals'
 import { DemoScenarioRating } from '../src/features/demo/DemoScenarioCards'
@@ -44,9 +44,11 @@ describe('Demo scenario rating card', () => {
     const send = screen.getByRole('button', { name: 'Αποστολή' })
     expect(send.disabled).toBe(true)
     fireEvent.click(screen.getAllByRole('radio')[3])
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Ευκολία' })).getByRole('radio', { name: /^5/ }))
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Σαφήνεια οδηγιών' })).getByRole('radio', { name: /^3/ }))
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Γρήγορο' } })
     fireEvent.click(send)
-    expect(onSubmit).toHaveBeenCalledWith(4, 'Γρήγορο')
+    expect(onSubmit).toHaveBeenCalledWith(4, 'Γρήγορο', { ease: 5, clarity: 3 })
     fireEvent.click(await screen.findByRole('button', { name: /Επόμενο σενάριο/ }))
     expect(onNext).toHaveBeenCalledWith(DEMO_SCENARIOS[1])
   })

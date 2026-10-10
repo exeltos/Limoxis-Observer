@@ -6,10 +6,11 @@ import { DemoApplicationDialog } from './DemoApplicationDialog'
 import { DemoActiveScenario, DemoScenarioRating } from './DemoScenarioCards'
 import { DEMO_SCENARIOS, demoScenarioDoneCount, demoScenariosForRole, demoStepsComplete } from './demoScenarios'
 import { DEMO_SCENARIO_EVENT, DEMO_STEP_EVENT, demoScenarioForPath, nextDemoScenario } from './demoScenarioSignals'
-import { loadMyDemoApplicationRequests, loadMyDemoProgress, loadMyDemoRatings, rateDemoEvaluationStep, requestDemoApplication, setDemoEvaluationStep } from './demoEvaluationService'
+import { loadMyDemoApplicationRequests, loadMyDemoProgress, loadMyDemoRatings, rateDemoEvaluationStep, requestDemoApplication, setDemoEvaluationStep, submitDemoScenarioFeedback } from './demoEvaluationService'
 
 const ACTIVE_KEY='lo.demo.activeScenario'
 const STEPS_KEY='lo.demo.scenarioSteps'
+const STARTED_KEY='lo.demo.scenarioStarted' // { scenario: started at (ms) }, for the time it took
 const OVERALL='guide_opened'
 const scenarioByKey=key=>DEMO_SCENARIOS.find(scenario=>scenario.key===key)||null
 
@@ -67,7 +68,7 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
     if(trial){setProgress(current=>{const next={...current};if(done)next[step]=new Date().toISOString();else delete next[step];return next});if(done&&!state.current.ratings[step])setRatingFor(step);return}
     setWorking(true);try{setProgress(await setDemoEvaluationStep(organizationId,step,done));if(done&&!state.current.ratings[step])setRatingFor(step)}catch{/* the mark stays as it was */}finally{setWorking(false)}},[flow,trial,organizationId])
   const setActive=useCallback(key=>{setActiveKey(key);if(key)writeSessionValue(ACTIVE_KEY,key);else removeSessionValue(ACTIVE_KEY)},[])
-  const openScenario=useCallback((scenario)=>{setGuideOpen(false);setRatingFor(null);if(flow)setActive(scenario.key);navigate(scenario.to)},[navigate,flow,setActive])
+  const openScenario=useCallback((scenario)=>{setGuideOpen(false);setRatingFor(null);if(flow){setActive(scenario.key);const started=readSessionJson(STARTED_KEY,{})||{};if(!started[scenario.key])writeSessionJson(STARTED_KEY,{...started,[scenario.key]:Date.now()})}navigate(scenario.to)},[navigate,flow,setActive])
 
   // A scenario is completed: mark it and ask for its rating (once).
   const complete=useCallback(async(key)=>{
@@ -95,9 +96,14 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
     const routeStep=scenarioByKey(key)?.steps?.find(step=>step.route)
     if(routeStep)markStep(key,routeStep.id);else void complete(key)},[pathname,activeKey,loaded,complete,markStep])
 
-  const submitRating=useCallback(async(rating,comment)=>{if(!ratingFor)return
-    if(trial){setRatings(current=>({...current,[ratingFor]:{rating,comment}}));return}
-    setWorking(true);try{setRatings(await rateDemoEvaluationStep(organizationId,ratingFor,rating,comment))}finally{setWorking(false)}},[organizationId,ratingFor,trial])
+  // The questionnaire: usefulness, ease, clarity, comment, and the seconds since
+  // the scenario was started from the guide (none for the overall rating).
+  const submitRating=useCallback(async(rating,comment,{ease=null,clarity=null}={})=>{if(!ratingFor)return
+    const started=ratingFor!==OVERALL?(readSessionJson(STARTED_KEY,{})||{})[ratingFor]:null
+    const durationSeconds=started?Math.round((Date.now()-started)/1000):null
+    const answer={rating,comment,ease,clarity,durationSeconds}
+    if(trial){setRatings(current=>({...current,[ratingFor]:answer}));return}
+    setWorking(true);try{setRatings(ratingFor===OVERALL?await rateDemoEvaluationStep(organizationId,ratingFor,rating,comment):await submitDemoScenarioFeedback(organizationId,ratingFor,answer))}finally{setWorking(false)}},[organizationId,ratingFor,trial])
   // After a scenario's rating (or "Later"): every scenario done and the guide
   // not yet rated → the overall rating.
   const closeRating=useCallback(()=>{setRatingFor(current=>current&&current!==OVERALL&&demoScenarioDoneCount(state.current.progress,state.current.scenarios)===state.current.scenarios.length&&!state.current.ratings[OVERALL]?OVERALL:null)},[])
