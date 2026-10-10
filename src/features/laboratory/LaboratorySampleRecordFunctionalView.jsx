@@ -1,38 +1,31 @@
-import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Download, FileClock, FileSearch, FlaskConical, LockKeyhole, Microscope, Paperclip, Pencil, PhoneCall, PlayCircle, Printer, RotateCcw, ShieldAlert, X } from 'lucide-react'
+import { useEffect,useMemo,useState } from 'react'
+import { AlertTriangle,CheckCircle2,Download,FileClock,FileSearch,FlaskConical,LockKeyhole,Microscope,Paperclip,Pencil,PhoneCall,PlayCircle,Printer,RotateCcw,ShieldAlert } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
-import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
-import { ManualDateField } from '../../design-system/ManualDateField'
-import { TimeField } from '../../design-system/TimeField'
 import { EmptyState } from '../../design-system/EmptyState'
 import { EntityAttachmentsPanel } from '../../design-system/EntityAttachmentsPanel'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { can, CAPABILITIES } from '../../core/permissions/roles'
+import { can,CAPABILITIES } from '../../core/permissions/roles'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { downloadRecordJson } from '../../core/export/recordExport'
-import { ENVIRONMENTAL_CATEGORIES, resolveEnvironmentalStandard, sampleTypeLabel } from './laboratoryCloudService'
+import { ENVIRONMENTAL_CATEGORIES,resolveEnvironmentalStandard,sampleTypeLabel } from './laboratoryCloudService'
 import { LaboratoryStatus as Status } from './LaboratoryStatus'
-import { LaboratorySampleSummary, LaboratoryWorkflow } from './LaboratorySampleSummary'
+import { LaboratorySampleSummary,LaboratoryWorkflow } from './LaboratorySampleSummary'
 import { useLaboratoryRepository } from './hooks/useLaboratoryRepository'
 import { loadManagementLibraries } from '../management/managementCloudService'
 import { demoLibrarySeed } from '../management/managementData'
-import { organismsOf,resultDraftChecks,resultToSave,sampleProgress,workflowStates } from './laboratorySampleProgress'
+import { sampleProgress,workflowStates } from './laboratorySampleProgress'
+import { copy } from './laboratorySampleFormat'
+import { ResultCard,LabHistory } from './LaboratorySampleViews'
+import { ResultDialog,AstDialog,AmrDialog,CommunicationDialog } from './LaboratorySampleDialogs'
 
-const copy={
- el:{reject:'Απόρριψη δείγματος',rejectReason:'Αιτιολογία απόρριψης',rejectHelp:'Το δείγμα δεν θα διαγραφεί. Θα σημανθεί ως απορριφθέν και η αιτιολογία θα παραμείνει στο ιστορικό.',rejected:'Το δείγμα απορρίφθηκε και η αιτιολογία καταγράφηκε.',process:'Έναρξη επεξεργασίας',processing:'Η επεξεργασία του δείγματος ξεκίνησε.',correction:'Διόρθωση',correctionHelp:'Η εγγραφή είναι οριστικοποιημένη. Η διόρθωση την ξεκλειδώνει και καταγράφεται στο ιστορικό.',finalize:'Οριστικοποίηση',finalizeRecord:'Οριστικοποίηση εγγραφής',finalized:'Η εργαστηριακή καταχώριση οριστικοποιήθηκε',finalizedReadOnly:'Οριστικοποιημένη εργαστηριακή καταχώριση · μόνο για ανάγνωση',rejectedReadOnly:'Απορριφθέν δείγμα · μόνο για ανάγνωση',method:'Μέθοδος',status:'Κατάσταση',draft:'Πρόχειρο',validated:'Επικυρωμένο',amended:'Διορθωμένο',organisms:'Μικροοργανισμοί',organism:'Μικροοργανισμός',chooseOrganism:'Επιλέξτε από τη Βιβλιοθήκη Μικροοργανισμών',antibiotic:'Αντιβιοτικό',chooseAntibiotic:'Επιλέξτε από τη Βιβλιοθήκη Αντιβιοτικών',critical:'Κρίσιμο αποτέλεσμα',cfu:'CFU',assessment:'Αξιολόγηση',within:'Εντός ορίων',outside:'Εκτός ορίων',noLimit:'Δεν υπάρχει ρυθμισμένο όριο',protocol:'Το όριο εφαρμόζεται αυτόματα από το κεντρικά ρυθμισμένο πρωτόκολλο.',noProtocol:'Δεν βρέθηκε πρωτόκολλο',documents:'Ολοκλήρωση ελέγχου εγγράφων',documentsDone:'Τα έγγραφα ελέγχθηκαν.',documentsHint:'Ελέγξτε τα συνημμένα του δείγματος και επιβεβαιώστε ότι είναι πλήρη.',saveDraft:'Αποθήκευση προχείρου',validate:'Επικύρωση αποτελέσματος',enterResult:'Καταχώριση αποτελέσματος',editResult:'Επεξεργασία αποτελέσματος',addAst:'Προσθήκη αντιβιογράμματος',classifyAmr:'Ταξινόμηση AMR',changeAmr:'Αλλαγή ταξινόμησης AMR',addCommunication:'Καταγραφή επικοινωνίας',print:'Εκτύπωση',export:'Εξαγωγή JSON',stepReceive:'Παραλαβή',stepResult:'Αποτέλεσμα',stepAst:'Αντιβιόγραμμα',stepCommunication:'Επικοινωνία κρίσιμου',stepDocuments:'Έλεγχος εγγράφων',stepFinalize:'Οριστικοποίηση',hintReceive:'Παραλάβετε το δείγμα και ξεκινήστε την επεξεργασία',hintResult:'Καταχωρίστε και επικυρώστε το μικροβιολογικό αποτέλεσμα',hintAst:'Καταχωρίστε αντιβιόγραμμα για κάθε μικροοργανισμό',hintCommunication:'Τεκμηριώστε την ενημέρωση του κλινικού αποδέκτη',hintDocuments:'Ελέγξτε τα συνημμένα του δείγματος',hintFinalize:'Όλα τα βήματα ολοκληρώθηκαν — οριστικοποιήστε την εγγραφή',awaitingPermission:'Αναμένεται ενέργεια από χρήστη με το αντίστοιχο δικαίωμα.',organismRequired:'Για επικύρωση θετικού αποτελέσματος απαιτείται τουλάχιστον ένας μικροοργανισμός.',noAst:'Δεν έχει καταχωριστεί αντιβιόγραμμα.',noCommunication:'Δεν έχει καταγραφεί ακόμη επικοινωνία.',noResult:'Δεν έχει καταχωριστεί αποτέλεσμα.',standard:'Πρότυπο',version:'Έκδοση',notes:'Σημειώσεις',recipient:'Παραλήπτης',role:'Ρόλος / ιδιότητα',department:'Τμήμα',channel:'Τρόπος επικοινωνίας',date:'Ημερομηνία επικοινωνίας',time:'Ώρα επικοινωνίας',readBack:'Επιβεβαίωση ορθής επανάληψης (read-back)',classification:'Κατηγορία',definitionSource:'Πηγή ορισμού',definitionVersion:'Έκδοση ορισμού',rationale:'Τεκμηρίωση / αιτιολόγηση',amrTitle:'Ταξινόμηση AMR',astTitle:'Νέο αντιβιόγραμμα',communicationTitle:'Επικοινωνία κρίσιμου αποτελέσματος',resultHelp:'Ο μικροοργανισμός εμφανίζεται μόνο όταν το αποτέλεσμα είναι θετικό.'},
- en:{reject:'Reject sample',rejectReason:'Rejection reason',rejectHelp:'The sample will not be deleted. It will be marked as rejected and the reason kept in history.',rejected:'The sample was rejected and the reason was recorded.',process:'Start processing',processing:'Sample processing has started.',correction:'Correction',correctionHelp:'This record is finalized. A correction unlocks it and is recorded in history.',finalize:'Finalization',finalizeRecord:'Finalize record',finalized:'The laboratory record has been finalized',finalizedReadOnly:'Finalized laboratory record · read only',rejectedReadOnly:'Rejected sample · read only',method:'Method',status:'Status',draft:'Draft',validated:'Validated',amended:'Amended',organisms:'Microorganisms',organism:'Microorganism',chooseOrganism:'Select from the Microorganism Library',antibiotic:'Antibiotic',chooseAntibiotic:'Select from the Antibiotic Library',critical:'Critical result',cfu:'CFU',assessment:'Assessment',within:'Within limits',outside:'Outside limits',noLimit:'No configured limit',protocol:'The limit is applied automatically from the centrally configured protocol.',noProtocol:'No protocol configured',documents:'Complete document review',documentsDone:'Documents have been reviewed.',documentsHint:'Review the sample attachments and confirm they are complete.',saveDraft:'Save draft',validate:'Validate result',enterResult:'Enter result',editResult:'Edit result',addAst:'Add susceptibility test',classifyAmr:'AMR classification',changeAmr:'Change AMR classification',addCommunication:'Record communication',print:'Print',export:'Export JSON',stepReceive:'Receipt',stepResult:'Result',stepAst:'Susceptibility',stepCommunication:'Critical communication',stepDocuments:'Document review',stepFinalize:'Finalization',hintReceive:'Receive the sample and start processing',hintResult:'Enter and validate the microbiology result',hintAst:'Record susceptibility testing for every organism',hintCommunication:'Document notification of the clinical recipient',hintDocuments:'Review the sample attachments',hintFinalize:'All steps are complete — finalize the record',awaitingPermission:'Awaiting action by a user with the required permission.',organismRequired:'A positive result needs at least one organism before validation.',noAst:'No susceptibility testing recorded.',noCommunication:'No communication recorded yet.',noResult:'No result recorded.',standard:'Standard',version:'Version',notes:'Notes',recipient:'Recipient',role:'Role / capacity',department:'Department',channel:'Communication method',date:'Communication date',time:'Communication time',readBack:'Read-back confirmation',classification:'Classification',definitionSource:'Definition source',definitionVersion:'Definition version',rationale:'Rationale',amrTitle:'AMR classification',astTitle:'New susceptibility test',communicationTitle:'Critical result communication',resultHelp:'Organism entry appears only when the result is positive.'}
-}
-const METHODS=[['culture','Καλλιέργεια','Culture'],['automated_culture','Αυτοματοποιημένη καλλιέργεια','Automated culture'],['maldi_tof','MALDI-TOF','MALDI-TOF'],['pcr','PCR','PCR'],['microscopy','Μικροσκόπηση','Microscopy'],['other','Άλλη μέθοδος','Other method']]
-const methodLabel=(value,language)=>{const row=METHODS.find(x=>x[0]===value);return row?row[language==='el'?1:2]:value||'—'}
-const rows=(libraries,key,language)=>(libraries?.[key]||[]).map(row=>({value:row[0],label:row[language==='el'?0:1]||row[0],code:row[2]?.code||''}))
 
 export function LaboratorySampleRecordFunctionalView(){
  const {sampleId}=useParams();const {t,locale,language}=useLanguage();const tx=key=>copy[language]?.[key]||copy.en[key]||key
@@ -116,107 +109,4 @@ export function LaboratorySampleRecordFunctionalView(){
  <GovernedReasonDialog open={dialog==='reject'} danger title={tx('reject')} description={tx('rejectHelp')} label={`${tx('rejectReason')} *`} confirmLabel={tx('reject')} onCancel={()=>setDialog(null)} onConfirm={reject}/>
  <GovernedReasonDialog open={dialog==='correction'} title={tx('correction')} description={tx('correctionHelp')} confirmLabel={tx('correction')} onCancel={()=>setDialog(null)} onConfirm={reason=>run(()=>repository.reopen(sample.id,reason),tx('correction')).then(()=>setTab('result'))}/>
  </Page>
-}
-
-function ResultCard({t,tx,language,result,organisms,isEnvironmental,standard,menu}){
- const hasLimit=standard?.limitCfu!=null&&standard?.limitCfu!==''
- const title=isEnvironmental?t('laboratoryRecords.environmentalResult'):t('laboratoryRecords.resultAndOrganism')
- return <section className="lab-record-card lab-result-card">
-  <div className="record-section-header"><div><span className="eyebrow">{t('laboratoryRecords.microbiologyResult')}</span><h3><Microscope size={15}/> {title}</h3></div>{menu}</div>
-  {isEnvironmental&&<div className={`smart-protocol-strip ${hasLimit?'configured':'missing'}`}><div><strong>{standard?.protocolCode||tx('noProtocol')}</strong>{hasLimit&&<span> · {standard.limitCfu} {standard.unit||'CFU'}</span>}</div><span className="smart-lock-chip">🔒 {tx('protocol')}</span></div>}
-  {result?<div className="lab-result-band">
-   <div className={`lab-result-primary is-${result.result||'none'}`}><span>{t('result')}</span><strong>{result.result?t(result.result):'—'}</strong>{result.critical&&<small><AlertTriangle size={12}/> {tx('critical')}</small>}</div>
-   <div><span>{tx('organisms')}</span><strong>{organisms.length?organisms.join(', '):'—'}</strong></div>
-   <div><span>{tx('method')}</span><strong>{methodLabel(result.method,language)}</strong></div>
-   <div><span>{tx('status')}</span><strong><span className={`status-badge ${result.resultStatus==='draft'?'temporary':'active'}`}>{tx(result.resultStatus)}</span></strong></div>
-   {isEnvironmental&&<><div><span>{tx('cfu')}</span><strong>{result.result==='negative'?'0':result.cfuCount??'—'}</strong></div><div><span>{tx('assessment')}</span><strong>{result.withinLimit===true?tx('within'):result.withinLimit===false?tx('outside'):tx('noLimit')}</strong></div></>}
-  </div>:<div className="lab-table-empty lab-result-empty">{tx('noResult')}</div>}
- </section>
-}
-
-function makeDraft(result){return {id:result?.id||null,result:result?.result||'',organisms:organismsOf(result),critical:Boolean(result?.critical),method:result?.method||'',interpretationStandard:result?.interpretationStandard||'EUCAST',interpretationVersion:result?.interpretationVersion||'',cfuCount:result?.cfuCount??''}}
-
-function ResultDialog({t,tx,language,result,isEnvironmental,standard,libraries,canValidate,onClose,onSave}){
- const [draft,setDraft]=useState(()=>makeDraft(result)),[choice,setChoice]=useState('');const options=rows(libraries,'microorganisms',language),hasLimit=standard?.limitCfu!=null&&standard?.limitCfu!==''
- const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
- const add=()=>{if(choice&&!draft.organisms.includes(choice)){set('organisms',[...draft.organisms,choice]);setChoice('')}}
- const remove=name=>set('organisms',draft.organisms.filter(x=>x!==name))
- const save=status=>onSave(resultToSave(draft,status,{isEnvironmental,standard}))
- const {complete,needsOrganism}=resultDraftChecks(draft,isEnvironmental)
- const title=isEnvironmental?t('laboratoryRecords.environmentalResult'):t('laboratoryRecords.resultAndOrganism')
- return <ObserverDialog width="standard" eyebrow={t('laboratoryRecords.microbiologyResult')} title={title} subtitle={tx('resultHelp')} onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><Button variant="secondary" disabled={!complete} onClick={()=>save('draft')}>{tx('saveDraft')}</Button>{canValidate&&<Button disabled={!complete||needsOrganism} onClick={()=>save('validated')}><CheckCircle2 size={15}/>{tx('validate')}</Button>}</>}>
-  <div className="lab-dialog-form">
-   <label><span>{t('result')} *</span><select value={draft.result} onChange={e=>set('result',e.target.value)}><option value="">{t('select')}</option><option value="negative">{t('negative')}</option><option value="positive">{t('positive')}</option><option value="inconclusive">{t('inconclusive')}</option><option value="contaminated">{t('contaminated')}</option></select></label>
-   <label><span>{tx('method')}</span><select value={draft.method} onChange={e=>set('method',e.target.value)}><option value="">{t('select')}</option>{METHODS.map(([value,el,en])=><option key={value} value={value}>{language==='el'?el:en}</option>)}</select></label>
-   {draft.result==='positive'&&<div className="lab-dialog-span"><span className="lab-dialog-label">{tx('organisms')} *</span><div className="lab-organism-picker"><select value={choice} onChange={e=>setChoice(e.target.value)}><option value="">{tx('chooseOrganism')}</option>{options.filter(x=>!draft.organisms.includes(x.value)).map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select><Button type="button" variant="secondary" disabled={!choice} onClick={add}>+ {t('clinicalRecords.add')}</Button></div>{draft.organisms.length>0&&<div className="lab-organism-chips">{draft.organisms.map(name=><span className="lab-organism-chip" key={name}>{name}<button type="button" onClick={()=>remove(name)} aria-label={t('delete')}><X size={13}/></button></span>)}</div>}{needsOrganism&&<small className="lab-dialog-hint">{tx('organismRequired')}</small>}</div>}
-   {isEnvironmental&&draft.result==='positive'&&<label><span>{tx('cfu')}</span><input inputMode="decimal" value={draft.cfuCount} onChange={e=>set('cfuCount',e.target.value)}/></label>}
-   <label className="lab-dialog-check lab-dialog-span"><input type="checkbox" checked={draft.critical} onChange={e=>set('critical',e.target.checked)}/><span>{tx('critical')}</span></label>
-  </div>
- </ObserverDialog>
-}
-
-function AstDialog({tx,language,libraries,organisms,initialOrganism,onClose,onSave}){
- const options=rows(libraries,'antibiotics',language),[draft,setDraft]=useState({organism:initialOrganism||organisms[0]||'',drug:'',code:'',method:'MIC',sir:'S',standard:'EUCAST',version:'',mic:'',notes:''})
- const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
- const choose=value=>{const item=options.find(x=>x.value===value);setDraft(d=>({...d,drug:value,code:item?.code||''}))}
- return <ObserverDialog width="standard" eyebrow={tx('organism')} title={tx('astTitle')} subtitle={draft.organism} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={()=>onSave(draft)} disabled={!draft.organism||!draft.drug||!draft.version}/>}>
-  <div className="lab-dialog-form">
-   <label><span>{tx('organism')} *</span><select value={draft.organism} onChange={e=>set('organism',e.target.value)}>{organisms.map(x=><option key={x}>{x}</option>)}</select></label>
-   <label><span>{tx('antibiotic')} *</span><select value={draft.drug} onChange={e=>choose(e.target.value)}><option value="">{tx('chooseAntibiotic')}</option>{options.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></label>
-   <div className="lab-dialog-span"><span className="lab-dialog-label">S/I/R *</span><div className="lab-sir-toggle" role="radiogroup">{['S','I','R'].map(value=><button type="button" key={value} role="radio" aria-checked={draft.sir===value} className={`sir-${value.toLowerCase()} ${draft.sir===value?'is-selected':''}`} onClick={()=>set('sir',value)}>{value}</button>)}</div></div>
-   <label><span>MIC</span><input value={draft.mic} onChange={e=>set('mic',e.target.value)}/></label>
-   <label><span>{tx('method')}</span><input value={draft.method} onChange={e=>set('method',e.target.value)}/></label>
-   <label><span>{tx('standard')}</span><input value={draft.standard} onChange={e=>set('standard',e.target.value)}/></label>
-   <label><span>{tx('version')} *</span><input value={draft.version} onChange={e=>set('version',e.target.value)}/></label>
-   <label className="lab-dialog-span"><span>{tx('notes')}</span><input value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
-  </div>
- </ObserverDialog>
-}
-
-function AmrDialog({tx,language,organism,initialClassification='',onClose,onSave}){
- const [draft,setDraft]=useState({classification:initialClassification,definitionSource:'Magiorakos et al.',definitionVersion:'2012',rationale:''})
- const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
- return <ObserverDialog width="standard" eyebrow={tx('organism')} title={tx('amrTitle')} subtitle={organism} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={()=>onSave({...draft,organism})} disabled={!draft.classification||!draft.definitionSource||!draft.definitionVersion}/>}>
-  <div className="lab-dialog-form">
-   <label className="lab-dialog-span"><span>{tx('classification')} *</span><select value={draft.classification} onChange={e=>set('classification',e.target.value)}><option value="">{language==='el'?'Επιλέξτε':'Select'}</option><option value="MDR">MDR – {language==='el'?'Πολυανθεκτικό':'Multidrug-resistant'}</option><option value="XDR">XDR – {language==='el'?'Εκτεταμένα ανθεκτικό':'Extensively drug-resistant'}</option><option value="PDR">PDR – {language==='el'?'Παν-ανθεκτικό':'Pandrug-resistant'}</option></select></label>
-   <label><span>{tx('definitionSource')} *</span><input value={draft.definitionSource} onChange={e=>set('definitionSource',e.target.value)}/></label>
-   <label><span>{tx('definitionVersion')} *</span><input value={draft.definitionVersion} onChange={e=>set('definitionVersion',e.target.value)}/></label>
-   <label className="lab-dialog-span"><span>{tx('rationale')}</span><textarea rows={3} value={draft.rationale} onChange={e=>set('rationale',e.target.value)}/></label>
-  </div>
- </ObserverDialog>
-}
-
-function CommunicationDialog({tx,onClose,onSave}){
- const {language}=useLanguage();const now=new Date(),localDate=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
- const [draft,setDraft]=useState({recipientName:'',recipientRole:'',recipientDepartment:'',method:'phone',readBack:true,communicatedDate:localDate,communicatedTime:now.toTimeString().slice(0,5),notes:''})
- const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
- return <ObserverDialog width="standard" eyebrow={tx('critical')} title={tx('communicationTitle')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={()=>onSave({...draft,at:`${draft.communicatedDate}T${draft.communicatedTime||'00:00'}`})} disabled={!draft.recipientName||!draft.recipientRole||!draft.communicatedDate}/>}>
-  <div className="lab-dialog-form">
-   <label><span>{tx('recipient')} *</span><input value={draft.recipientName} onChange={e=>set('recipientName',e.target.value)}/></label>
-   <label><span>{tx('role')} *</span><input value={draft.recipientRole} onChange={e=>set('recipientRole',e.target.value)}/></label>
-   <label><span>{tx('department')}</span><input value={draft.recipientDepartment} onChange={e=>set('recipientDepartment',e.target.value)}/></label>
-   <label><span>{tx('channel')}</span><select value={draft.method} onChange={e=>set('method',e.target.value)}><option value="phone">{language==='el'?'Τηλεφωνικά':'Phone'}</option><option value="in_person">{language==='el'?'Προφορικά / διά ζώσης':'In person'}</option><option value="secure_message">{language==='el'?'Ασφαλές ηλεκτρονικό μήνυμα':'Secure message'}</option><option value="other">{language==='el'?'Άλλος':'Other'}</option></select></label>
-   <ManualDateField label={`${tx('date')} *`} value={draft.communicatedDate} onChange={v=>set('communicatedDate',v)}/>
-   <TimeField label={tx('time')} value={draft.communicatedTime} onChange={v=>set('communicatedTime',v)}/>
-   <label className="lab-dialog-check lab-dialog-span"><input type="checkbox" checked={draft.readBack} onChange={e=>set('readBack',e.target.checked)}/><span>{tx('readBack')}</span></label>
-   <label className="lab-dialog-span"><span>{tx('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
-  </div>
- </ObserverDialog>
-}
-
-function LabHistory({sample,t,tx,fmt}){
- const events=[
-  sample.requestedAt&&{at:sample.requestedAt,title:t('requested')},
-  sample.collectedAt&&{at:sample.collectedAt,title:t('collectedLabel')},
-  sample.receivedAt&&{at:sample.receivedAt,title:t('received')},
-  ...(sample.microbiologyResults||[]).flatMap(item=>[
-   item.resultedAt&&{at:item.resultedAt,title:`${t('laboratoryRecords.microbiologyResult')} · ${tx(item.resultStatus)}`},
-   ...(item.communications||[]).map(row=>row.at&&{at:row.at,title:tx('communicationTitle'),by:row.to||row.recipientName}),
-  ]),
-  sample.documentsReviewedAt&&{at:sample.documentsReviewedAt,title:tx('documentsDone')},
-  sample.rejectedAt&&{at:sample.rejectedAt,title:`${tx('reject')} · ${sample.rejectionReason||'—'}`},
-  sample.finalizedAt&&{at:sample.finalizedAt,title:tx('finalized')},
- ].filter(Boolean).sort((a,b)=>new Date(b.at)-new Date(a.at))
- if(!events.length)return <div className="inline-empty">{t('noData')}</div>
- return <div className="lab-history-list">{events.map((event,index)=><div className="lab-history-row" key={`${event.at}-${index}`}><time>{fmt(event.at)}</time><strong>{event.title}</strong><span>{event.by||''}</span></div>)}</div>
 }

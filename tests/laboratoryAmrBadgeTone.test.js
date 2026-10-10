@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
+import { readLaboratorySampleRecordSource } from './helpers/laboratorySampleRecordSource'
 
 // User-reported: the AST/AMR card's per-organism badge always used
 // "status-badge active" (the app's green/success tone) — including for
@@ -18,7 +18,7 @@ import fs from 'node:fs'
 // "active" tone for an AMR classification.
 describe('the laboratory AST/AMR panel badge uses a tone that matches its meaning', () => {
   it('uses the danger (red) tone only when there is a real AMR classification, and renders nothing otherwise', () => {
-    const source = fs.readFileSync('src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx', 'utf8')
+    const source = readLaboratorySampleRecordSource()
     expect(source).toContain('{current&&<span className="status-badge danger">{current.classification}</span>}')
     expect(source).not.toContain('<span className="status-badge active">{current?.classification')
     expect(source).not.toMatch(/status-badge active[^"]*>\{current/)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import { resultDraftChecks } from '../src/features/laboratory/laboratorySampleProgress'
+import { readLaboratorySampleRecordSource } from './helpers/laboratorySampleRecordSource'
 
 // User-reported: the Laboratory record did not follow the rest of the app.
 // Prevention, Quality and Controls put each card's actions behind a ⋯ menu
@@ -12,7 +13,7 @@ import { resultDraftChecks } from '../src/features/laboratory/laboratorySamplePr
 // fields in the sample card, modal editing, full-width organism / AMR
 // fields, the read-back checkbox beside its label, and cards that size to
 // their content.
-const jsx = fs.readFileSync('src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx', 'utf8')
+const jsx = readLaboratorySampleRecordSource()
 const summary = fs.readFileSync('src/features/laboratory/LaboratorySampleSummary.jsx', 'utf8')
 const css = fs.readFileSync('src/features/laboratory/LaboratorySampleRecord.css', 'utf8')
 

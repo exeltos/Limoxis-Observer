@@ -1,12 +1,13 @@
 import fs from 'node:fs'
 import { describe,expect,it } from 'vitest'
+import { readLaboratorySampleRecordSource } from './helpers/laboratorySampleRecordSource'
 const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
 
 const patients=fs.readFileSync('src/features/patients/patientsService.js','utf8')
 const patientForm=fs.readFileSync('src/features/patients/PatientsPage.jsx','utf8')
 const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
 const cloud=fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')
-const labRecord=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx','utf8')
+const labRecord=readLaboratorySampleRecordSource()
 const labCloud=fs.readFileSync('src/features/laboratory/laboratoryCloudService.js','utf8')
 const archive=fs.readFileSync('supabase/migrations/20260918103000_patient_governed_archival.sql','utf8')
 const admissions=fs.readFileSync('supabase/migrations/20260918104000_patient_admission_lifecycle.sql','utf8')
