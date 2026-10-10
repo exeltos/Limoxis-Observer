@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
+import { resultDraftChecks } from '../src/features/laboratory/laboratorySampleProgress'
 
 // User-reported: the Laboratory record did not follow the rest of the app.
 // Prevention, Quality and Controls put each card's actions behind a ⋯ menu
@@ -71,7 +72,9 @@ describe('laboratory record follows the app-wide card + ⋯ menu pattern', () =>
   })
 
   it('requires an organism before a positive result can be validated', () => {
-    expect(jsx).toContain("const needsOrganism=!isEnvironmental&&draft.result==='positive'&&!draft.organisms.length")
+    expect(resultDraftChecks({ result: 'positive', organisms: [], cfuCount: '' }, false)).toEqual({ complete: true, needsOrganism: true })
+    expect(resultDraftChecks({ result: 'positive', organisms: ['E. coli'], cfuCount: '' }, false).needsOrganism).toBe(false)
+    expect(resultDraftChecks({ result: 'positive', organisms: [], cfuCount: '' }, true).needsOrganism).toBe(false)
     expect(jsx).toContain('disabled={!complete||needsOrganism}')
   })
 })
