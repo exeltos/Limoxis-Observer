@@ -105,7 +105,8 @@ jobs:
           path: visual-report
 
   rls:
-    # Row-level security check against the real database (supabase/tests/rls_tenant_isolation.sql).
+    # Row-level security check (supabase/tests/rls_tenant_isolation.sql) and PL/pgSQL
+    # function check (supabase/tests/plpgsql_functions_check.sql) against the real database.
     # The test runs in one transaction that is always rolled back, so it leaves no data behind.
     # It runs only when the repository has the SUPABASE_DB_URL secret (Supabase → Project
     # Settings → Database → Connection string, "Session pooler" URI with the password).
@@ -126,6 +127,15 @@ jobs:
           echo "$output"
           echo "$output" | grep -q 'RLS_PASS'
 
+      - name: PL/pgSQL functions compile against the real schema
+        if: env.SUPABASE_DB_URL != ''
+        # plpgsql_check finds what fails only when a function runs (a missing
+        # column, a wrong type). Rolled back, like the isolation check.
+        run: |
+          output=$(psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=0 -f supabase/tests/plpgsql_functions_check.sql 2>&1 || true)
+          echo "$output"
+          echo "$output" | grep -q 'PLPGSQL_CHECK_PASS'
+
       - name: Skipped (no SUPABASE_DB_URL secret)
         if: env.SUPABASE_DB_URL == ''
-        run: echo "Add the SUPABASE_DB_URL repository secret to run the row-level security check."
+        run: echo "Add the SUPABASE_DB_URL repository secret to run the row-level security and PL/pgSQL function checks."
