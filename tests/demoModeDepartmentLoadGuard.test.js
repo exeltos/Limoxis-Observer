@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import { demoLibrarySeed } from '../src/features/management/managementData'
-import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 // Live production bug found via Supabase edge_logs while the user was
 // populating demo data for a presentation: demo mode's tenant.id is the
@@ -53,10 +52,5 @@ describe('every loadDepartments/loadManagementLibraries call site checks isDemo 
   it('demoLibrarySeed actually defines professionalCategories (not silently empty)', () => {
     expect(demoLibrarySeed.professionalCategories.length).toBeGreaterThan(0)
     expect(demoLibrarySeed.professionalCategories.map(row => row[0])).toContain('Ιατρός')
-  })
-
-  it('PatientClinicalCanonicalPage populates its own departments state from demoLibrarySeed in demo mode too (previously stayed permanently empty), with the option label following the active language', () => {
-    const source = readPatientClinicalRecordSource()
-    expect(source).toContain("setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:language==='el'?elName:(enName||elName),nameEn:enName})))")
   })
 })

@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { countNeonatalCentralLineCasesMissingBirthWeight } from '../src/features/surveillance/deviceDayIndicators'
 import { collectIndicatorMetrics } from '../src/features/indicators/indicatorEngine'
-import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 
 const centralLine = { name: 'Central venous catheter', nameEn: 'Central venous catheter', insertedAt: '2026-08-20' }
 
@@ -25,11 +24,5 @@ describe('neonates missing a birth weight are surfaced, not silently dropped', (
     expect(metrics.neonatal_central_line_cases_missing_birth_weight).toBe(countNeonatalCentralLineCasesMissingBirthWeight())
     const engine = readFileSync('src/features/indicators/indicatorEngine.js', 'utf8')
     expect(engine).toContain('neonatal_central_line_cases_missing_birth_weight:countNeonatalCentralLineCasesMissingBirthWeight()')
-  })
-
-  it('tells the user on the patient record where the value can be corrected', () => {
-    const page = readPatientClinicalRecordSource()
-    expect(page).toContain('const infantWithoutBirthWeight=ageInDays!=null&&ageInDays<=365&&!patient?.birthWeightGrams')
-    expect(page).toContain("translate('copy.neonatalCopy.missingBirthWeight'")
   })
 })

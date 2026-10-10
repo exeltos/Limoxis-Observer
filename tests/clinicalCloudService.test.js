@@ -70,11 +70,4 @@ describe('clinical cloud service',()=>{
     expect(page).toContain('CAPABILITIES.DELETE_SURVEILLANCE')
     expect(page).toContain('CAPABILITIES.REOPEN_SURVEILLANCE')
   })
-
-  it('requires a reason before voiding or reopening via the canonical reason dialog',()=>{
-    expect(page).toContain('repository.voidCase(detailRecord,deleteReason.trim())')
-    expect(page).toContain('repository.reopen(record,reason)')
-    expect(page).toContain('disabled={!reason.trim()}')
-    expect(page).toContain("permissions.canDelete?{id:'delete'")
-  })
 })

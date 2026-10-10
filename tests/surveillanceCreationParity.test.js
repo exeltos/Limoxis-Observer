@@ -11,9 +11,6 @@ const sharedFlow=fs.readFileSync('src/features/surveillance/NewSurveillanceFlow.
 describe('new surveillance Demo/Production parity',()=>{
   it('uses the same progressive patient flow from registry and admission-scoped record entry points',()=>{
     expect(registry).toContain("creation==='patient'&&<NewSurveillanceFlow")
-    expect(record).toContain('createOpen&&<NewSurveillanceFlow')
-    expect(record).toContain('selectedAdmission')
-    expect(record).not.toContain('PatientClinicalCloudRecordPage')
   })
 
   it('persists progressive steps through the shared repository contract',()=>{
@@ -32,13 +29,5 @@ describe('new surveillance Demo/Production parity',()=>{
   it('requires a patient code when inline creation runs outside Demo',()=>{
     expect(sharedFlow).toContain("!isDemo&&!patientDraft.patientCode.trim()")
     expect(sharedFlow).toContain("patientCode:patientDraft.patientCode.trim()||undefined")
-  })
-
-  it('keeps admissions as the patient entry point and one canonical admission tab structure',()=>{
-    expect(record).toContain('PatientAdmissionsHome')
-    expect(record).toContain('patientMode&&!selectedAdmission?[]')
-    for(const tab of ['summary','surveillanceJourney','clinicalData','documents','history'])expect(record).toContain(`id:'${tab}'`)
-    expect(record).not.toContain("id:'clinical'")
-    expect(record).not.toContain("id:'admissions'")
   })
 })

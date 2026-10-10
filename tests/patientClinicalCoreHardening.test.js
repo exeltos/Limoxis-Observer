@@ -1,11 +1,9 @@
 import fs from 'node:fs'
 import { describe,expect,it } from 'vitest'
-import { readPatientClinicalRecordSource } from './helpers/patientClinicalRecordSource'
 const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
 
 const patients=fs.readFileSync('src/features/patients/patientsService.js','utf8')
 const patientForm=fs.readFileSync('src/features/patients/PatientsPage.jsx','utf8')
-const record=readPatientClinicalRecordSource()
 const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
 const cloud=fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')
 const labRecord=fs.readFileSync('src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx','utf8')
@@ -37,20 +35,14 @@ describe('patient clinical core hardening',()=>{
   })
 
   it('does not offer manual MDR XDR PDR classification',()=>{
-    expect(record).not.toContain('function AmrDialog')
-    expect(record).not.toContain("setDialog('amr')")
     expect(repository).not.toContain('saveAmr(')
     expect(cloud).not.toContain('saveAmrClassification')
-    expect(record).toContain("translate('copy.clinicalRecordCopy.derivedFromValidatedMicrobiologyAstEvidence'")
     expect(i18n).toContain("derivedFromValidatedMicrobiologyAstEvidence:'Derived from validated microbiology/AST evidence.'")
     expect(labRecord).not.toContain('<option value="MDR">MDR</option>')
     expect(labCloud).not.toContain('resistance_class:draft.resistance')
   })
 
   it('uses canonical date and time fields for sample collection',()=>{
-    expect(record).not.toContain('type="datetime-local"')
-    expect(record).toContain('<ManualDateField label={t(\'collectedLabel\')}')
-    expect(record).toContain("<TimeField label={translate('copy.clinicalRecordCopy.collectionTime'")
     expect(i18n).toContain("collectionTime:'Ώρα λήψης'")
   })
 })

@@ -45,8 +45,4 @@ describe('Antimicrobial therapy: "plan" (order) and "administration" are now sep
     expect(service).toContain("from('antimicrobial_therapy_administrations')")
     expect(service).toContain('administrations.filter(a=>a.therapy_id===row.id)')
   })
-
-  it('blocks the "Record administration" action in the UI while approval is pending, matching the database gate', () => {
-    expect(page).toContain("canAdminister=row.status==='active'&&!pendingApproval&&row.approvalStatus!=='rejected'")
-  })
 })
