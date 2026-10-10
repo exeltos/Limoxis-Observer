@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import { sampleParentCode } from '../src/features/surveillance/patientRecordScope'
-const i18n=fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
+const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
 
 const page = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
 

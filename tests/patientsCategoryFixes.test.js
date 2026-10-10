@@ -4,7 +4,7 @@ import { normalizeLaboratorySample } from '../src/features/laboratory/model/labo
 import { demoClinicalScaleDefinitions } from '../src/features/clinical-scales/clinicalScaleDemoDefinitions'
 import { buildClinicalScaleContext } from '../src/features/clinical-scales/clinicalScaleContext'
 import { episodeBelongsToPatient } from '../src/features/surveillance/patientRecordScope'
-const i18n=fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')
+const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')
 
 // User-reported review of the Patients category.
 const canonical = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
