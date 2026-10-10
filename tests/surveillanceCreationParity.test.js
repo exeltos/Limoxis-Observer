@@ -9,11 +9,12 @@ const admissionService=fs.readFileSync('src/features/surveillance/clinicalAdmiss
 const sharedFlow=fs.readFileSync('src/features/surveillance/NewSurveillanceFlow.jsx','utf8')
 
 describe('new surveillance Demo/Production parity',()=>{
-  it('persists progressive steps through the shared repository contract',()=>{
-    for(const action of ['onCreate','onSaveAssessment','onRequestSample','onSaveIsolation'])expect(sharedFlow).toContain(action)
+  // The new-surveillance flow creates the episode; assessment, samples and
+  // isolation are recorded afterwards in its journey (ClinicalJourney).
+  it('creates through the shared repository contract and records the later steps in the journey',()=>{
+    expect(sharedFlow).toContain('onCreate')
+    for(const step of ['onSaveAssessment','onRequestSample','onSaveIsolation'])expect(sharedFlow).not.toContain(step)
     expect(registry).toContain('clinical.createCase')
-    expect(registry).toContain('clinical.saveAssessment')
-    expect(registry).toContain('clinical.requestSample')
     expect(record).toContain('repository.createCase')
     expect(record).toContain('repository.saveAssessment')
     expect(record).toContain('repository.requestSample')

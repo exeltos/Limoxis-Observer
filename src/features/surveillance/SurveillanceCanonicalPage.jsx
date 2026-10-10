@@ -592,13 +592,6 @@ export function SurveillanceCanonicalPage() {
           onPatientsChange={setPatients}
           onClose={() => setCreation(null)}
           onCreate={createPatient}
-          onSaveAssessment={(record, draft) => clinical.saveAssessment(record, draft)}
-          onRequestSample={(record, draft) => clinical.requestSample(record, draft)}
-          onSaveIsolation={(record, draft) =>
-            draft.required === false
-              ? clinical.setIsolationNotRequired(record)
-              : clinical.beginIsolation(record, draft)
-          }
           onRecordChange={() => {}}
         />
       )}

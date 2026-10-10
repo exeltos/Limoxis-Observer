@@ -1,34 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { auditActorFromAuth } from '../../core/audit/actor'
 import { demoLibrarySeed } from '../management/managementData'
-import {
-  createManagementLibraryItem,
-  loadManagementLibraries,
-} from '../management/managementCloudService'
-import { createDemoLabSample, laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { createPatient } from '../patients/patientsService'
-import {
-  AssessmentStep,
-  IsolationStep,
-  MicrobiologyStep,
-  PatientSelector,
-  StartStep,
-} from './NewSurveillanceSteps'
-import {
-  fallbackRisks,
-  fallbackSymptoms,
-  libraryValue,
-  normalizeLibrary,
-  sampleSourceNames,
-  screeningQuestions,
-} from './newSurveillanceOptions'
+import { PatientSelector, StartStep } from './NewSurveillanceSteps'
 
 const FLOW_RECOVERY_KEY = 'limoxis-new-surveillance-flow'
 
@@ -36,21 +15,15 @@ export function NewSurveillanceFlow({
   patient = null,
   patients = [],
   departments = [],
-  initialSample = null,
   onClose,
   onCreate,
   onCancelCreated,
-  onSaveAssessment,
-  onRequestSample,
-  onSaveIsolation,
   onRecordChange,
   onPatientsChange,
 }) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
-  const { profile, user } = useAuth()
   const { tenant, isDemo } = useTenant()
-  const actor = auditActorFromAuth({ profile, user })
   const [patientMode, setPatientMode] = useState(patient ? 'fixed' : 'existing')
   const [selectedPatientId, setSelectedPatientId] = useState(patient?.id || '')
   const [createdPatient, setCreatedPatient] = useState(null)
@@ -80,7 +53,6 @@ export function NewSurveillanceFlow({
     dateOfBirth: '',
   })
   const [record, setRecord] = useState(null)
-  const [activeStep, setActiveStep] = useState('start')
   const [, setCompletedSteps] = useState(() => new Set())
   const [busy, setBusy] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
@@ -96,82 +68,9 @@ export function NewSurveillanceFlow({
     department: firstDepartment[0] || '',
     departmentEn: firstDepartment[1] || '',
   })
-  const [assessmentDraft, setAssessmentDraft] = useState({
-    date: today,
-    summary: '',
-    summaryEn: '',
-    screening: Object.fromEntries(screeningQuestions.map(q => [q.id, 'unknown'])),
-    symptoms: [],
-    risks: [],
-    notes: '',
-    notesEn: '',
-  })
-  const [sampleDraft, setSampleDraft] = useState({
-    type: 'bloodCulture',
-    source: 'peripheral',
-    sourceEn: 'peripheral',
-    anatomicalSite: '',
-    collectedAt: today,
-    priority: 'routine',
-    notes: '',
-  })
-  const [isolationNeeded, setIsolationNeeded] = useState(null)
-  const [isolationDraft, setIsolationDraft] = useState({
-    startedAt: today,
-    precautionType: 'contact',
-    reason: '',
-    reasonEn: '',
-    provisional: true,
-  })
-  const [clinicalLibraries, setClinicalLibraries] = useState({
-    clinicalSymptoms: fallbackSymptoms,
-    clinicalRiskFactors: fallbackRisks,
-  })
-  const [newSymptom, setNewSymptom] = useState('')
-  const [newRisk, setNewRisk] = useState('')
-
-  const symptomRows = useMemo(
-    () =>
-      normalizeLibrary(
-        clinicalLibraries.clinicalSymptoms?.length
-          ? clinicalLibraries.clinicalSymptoms
-          : fallbackSymptoms,
-      ),
-    [clinicalLibraries],
-  )
-  const riskRows = useMemo(
-    () =>
-      normalizeLibrary(
-        clinicalLibraries.clinicalRiskFactors?.length
-          ? clinicalLibraries.clinicalRiskFactors
-          : fallbackRisks,
-      ),
-    [clinicalLibraries],
-  )
   const setStart = (k, v) => setStartDraft(d => ({ ...d, [k]: v }))
-  const setAssessment = (k, v) => setAssessmentDraft(d => ({ ...d, [k]: v }))
-  const setSample = (k, v) => setSampleDraft(d => ({ ...d, [k]: v }))
-  const setIsolation = (k, v) => setIsolationDraft(d => ({ ...d, [k]: v }))
   const setPatientField = (k, v) => setPatientDraft(d => ({ ...d, [k]: v }))
   const markComplete = step => setCompletedSteps(current => new Set([...current, step]))
-
-  useEffect(() => {
-    if (isDemo || !tenant?.id) return
-    let mounted = true
-    loadManagementLibraries(tenant.id)
-      .then(rows => {
-        if (mounted)
-          setClinicalLibraries(current => ({
-            ...current,
-            clinicalSymptoms: rows.clinicalSymptoms || fallbackSymptoms,
-            clinicalRiskFactors: rows.clinicalRiskFactors || fallbackRisks,
-          }))
-      })
-      .catch(() => {})
-    return () => {
-      mounted = false
-    }
-  }, [isDemo, tenant?.id])
 
   useEffect(() => {
     try {
@@ -253,54 +152,7 @@ export function NewSurveillanceFlow({
     return created
   }
 
-  const linkedLabSamples = useMemo(
-    () =>
-      record
-        ? onRequestSample
-          ? record.samples || []
-          : laboratorySamples.filter(x => x.surveillanceCase === record.id)
-        : [],
-    [record, onRequestSample],
-  )
-  const surveillanceStartedFromSample = Boolean(initialSample)
-  const alreadyHasSample = linkedLabSamples.length > 0 || surveillanceStartedFromSample
   const contextDepartment = patient?.department || startDraft.department || ''
-  const toggle = (field, value) =>
-    setAssessmentDraft(d => ({
-      ...d,
-      [field]: d[field].includes(value) ? d[field].filter(x => x !== value) : [...d[field], value],
-    }))
-  const setScreening = (id, value) =>
-    setAssessmentDraft(d => ({ ...d, screening: { ...d.screening, [id]: value } }))
-
-  async function addLibraryEntry(key, text, setter, field) {
-    const clean = text.trim()
-    if (!clean) return
-    try {
-      let row = [clean, clean, { id: `local-${Date.now()}`, source: 'Hospital', version: 'local' }]
-      if (!isDemo && tenant?.id)
-        row = await createManagementLibraryItem(tenant.id, key, { nameEl: clean, nameEn: clean })
-      setClinicalLibraries(current => ({
-        ...current,
-        [key]: normalizeLibrary([...(current[key] || []), row]),
-      }))
-      const value = libraryValue(row)
-      setAssessmentDraft(d => ({
-        ...d,
-        [field]: d[field].includes(value) ? d[field] : [...d[field], value],
-      }))
-      setter('')
-      notify(
-        language === 'el'
-          ? 'Προστέθηκε στη βιβλιοθήκη και επιλέχθηκε.'
-          : 'Added to the library and selected.',
-        'success',
-      )
-    } catch (error) {
-      notify(error?.message || t('saveFailed'), 'danger')
-    }
-  }
-
   async function saveStart() {
     if (busy) return
     setBusy(true)
@@ -358,227 +210,6 @@ export function NewSurveillanceFlow({
         }
         onClose()
       }
-    } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function saveAssessment() {
-    if (busy || !record || !assessmentDraft.date) return
-    setBusy(true)
-    try {
-      const payload = {
-        date: assessmentDraft.date || today,
-        assessedBy: actor.name,
-        summary: assessmentDraft.summary || assessmentDraft.summaryEn || '',
-        summaryEn: assessmentDraft.summaryEn || assessmentDraft.summary || '',
-        screening: { ...assessmentDraft.screening },
-        symptoms: [...assessmentDraft.symptoms],
-        symptomsEn: [...assessmentDraft.symptoms],
-        riskFactors: [...assessmentDraft.risks],
-        riskFactorsEn: [...assessmentDraft.risks],
-        notes: assessmentDraft.notes,
-        notesEn: assessmentDraft.notesEn,
-        assessmentType: 'suspected',
-        classification: 'undetermined',
-        signsSymptoms: [...assessmentDraft.symptoms],
-      }
-      const persisted = onSaveAssessment ? await onSaveAssessment(record, payload) : payload
-      const savedAssessment =
-        persisted?.assessment ||
-        (persisted?.classification || persisted?.assessmentType || persisted?.date
-          ? persisted
-          : null) ||
-        payload
-      const next = {
-        ...record,
-        assessment: savedAssessment,
-        timeline: [
-          {
-            at: new Date().toISOString(),
-            type: 'clinicalAssessment',
-            actor: actor.name,
-            detail: 'completed',
-          },
-          ...(record.timeline || []),
-        ],
-      }
-      setRecord(next)
-      markComplete('assessment')
-      onRecordChange?.(next)
-      setActiveStep('microbiology')
-    } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function requestSample() {
-    if (busy || !record || !sampleDraft.type) return
-    setBusy(true)
-    try {
-      const id = `LAB-${new Date().toISOString().slice(2, 10).replaceAll('-', '')}-${String(laboratorySamples.length + 1).padStart(3, '0')}`
-      const sourceNames = sampleSourceNames[sampleDraft.source] || {
-        el: sampleDraft.source,
-        en: sampleDraft.source,
-      }
-      const labPatient = selectedPatient || createdPatient || patient
-      if (!labPatient)
-        throw new Error(
-          language === 'el'
-            ? 'Δεν βρέθηκε ο ασθενής του επεισοδίου.'
-            : 'Episode patient was not found.',
-        )
-      const lab = {
-        id,
-        patient: labPatient.name,
-        patientEn: labPatient.nameEn || labPatient.name,
-        patientId: labPatient.id,
-        department: startDraft.department || labPatient.department,
-        departmentEn: startDraft.departmentEn || labPatient.departmentEn,
-        type: sampleDraft.type,
-        source: sourceNames.el,
-        sourceEn: sourceNames.en,
-        sourceCode: sampleDraft.source,
-        anatomicalSite: sampleDraft.anatomicalSite,
-        collectedAt: sampleDraft.collectedAt
-          ? `${sampleDraft.collectedAt}T12:00:00`
-          : new Date().toISOString(),
-        receivedAt: null,
-        status: 'requested',
-        priority: sampleDraft.priority,
-        organism: null,
-        result: null,
-        resultStatus: 'draft',
-        resultedAt: null,
-        validatedAt: null,
-        validatedBy: null,
-        resistance: null,
-        critical: false,
-        surveillanceCase: record.id,
-        ast: [],
-        communications: [],
-        attachments: [],
-        timeline: [{ at: new Date().toISOString(), type: 'sampleRequested', actor: actor.name }],
-        notes: sampleDraft.notes,
-      }
-      const createdSample = onRequestSample
-        ? await onRequestSample(record, { ...sampleDraft, source: sourceNames.el })
-        : (createDemoLabSample(lab), lab)
-      const sample = createdSample || {
-        id,
-        status: 'requested',
-        type: sampleDraft.type,
-        collectedAt: lab.collectedAt,
-        result: 'pending',
-        organism: null,
-        resistance: null,
-      }
-      const next = {
-        ...record,
-        samples: [...(record.samples || []), sample],
-        timeline: [
-          {
-            at: new Date().toISOString(),
-            type: 'sampleRequested',
-            actor: actor.name,
-            detail: sample.id || id,
-          },
-          ...(record.timeline || []),
-        ],
-      }
-      setRecord(next)
-      markComplete('microbiology')
-      onRecordChange?.(next)
-      setIsolationNeeded(
-        next.isolation ? true : next.isolationDecision?.required === false ? false : null,
-      )
-      setActiveStep('isolation')
-      notify(t('clinicalRecords.sampleRequestSavedContinueIsolation'), 'success')
-    } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
-    } finally {
-      setBusy(false)
-    }
-  }
-  function continueWithoutSample() {
-    markComplete('microbiology')
-    setIsolationNeeded(
-      record?.isolation ? true : record?.isolationDecision?.required === false ? false : null,
-    )
-    setActiveStep('isolation')
-  }
-
-  async function saveIsolation() {
-    if (busy || !record || isolationNeeded === null) return
-    setBusy(true)
-    try {
-      const now = new Date().toISOString()
-      if (isolationNeeded === false) {
-        if (onSaveIsolation) await onSaveIsolation(record, { required: false, decidedAt: now })
-        const next = {
-          ...record,
-          isolation: null,
-          isolationDecision: { required: false, decidedAt: now, by: actor.name },
-          timeline: [
-            { at: now, type: 'isolationNotRequired', actor: actor.name, detail: 'no' },
-            ...(record.timeline || []),
-          ],
-        }
-        setRecord(next)
-        markComplete('isolation')
-        onRecordChange?.(next)
-        notify(t('clinicalRecords.isolationDecisionSaved'), 'success')
-        sessionStorage.removeItem(FLOW_RECOVERY_KEY)
-        onClose()
-        return
-      }
-      if (!isolationDraft.startedAt) return
-      const draft = {
-        required: true,
-        precautions: [isolationDraft.precautionType],
-        room: startDraft.room || '',
-        reason: isolationDraft.reason || isolationDraft.reasonEn || '',
-        startedAt: isolationDraft.startedAt,
-        reviewDue: startDraft.reviewDue || null,
-      }
-      const persisted = onSaveIsolation ? await onSaveIsolation(record, draft) : null
-      const savedIsolation = persisted?.isolation ||
-        (persisted?.status || persisted?.precautions || persisted?.startedAt
-          ? persisted
-          : null) || {
-          id: record.isolation?.id || `ISO-${Date.now()}`,
-          status: 'active',
-          startedAt: isolationDraft.startedAt,
-          type: isolationDraft.precautionType,
-          precautions: [isolationDraft.precautionType],
-          room: startDraft.room || '',
-          reason: isolationDraft.reason || isolationDraft.reasonEn || '',
-          by: actor.name,
-        }
-      const next = {
-        ...record,
-        isolationDecision: { required: true, decidedAt: now, by: actor.name },
-        isolation: savedIsolation,
-        timeline: [
-          {
-            at: now,
-            type: 'isolationStarted',
-            actor: actor.name,
-            detail: isolationDraft.precautionType,
-          },
-          ...(record.timeline || []),
-        ],
-      }
-      setRecord(next)
-      markComplete('isolation')
-      onRecordChange?.(next)
-      notify(t('isolationSaved'), 'success')
-      sessionStorage.removeItem(FLOW_RECOVERY_KEY)
-      onClose()
     } catch (error) {
       notify(error?.message || t('actionFailed'), 'danger')
     } finally {
@@ -691,7 +322,7 @@ export function NewSurveillanceFlow({
             </div>
           </div>
 
-          {activeStep === 'start' && (
+          {
             <StartStep
               busy={busy}
               cancelFlow={cancelFlow}
@@ -704,58 +335,7 @@ export function NewSurveillanceFlow({
               startDraft={startDraft}
               t={t}
             />
-          )}
-
-          {activeStep === 'assessment' && (
-            <AssessmentStep
-              addLibraryEntry={addLibraryEntry}
-              assessmentDraft={assessmentDraft}
-              busy={busy}
-              language={language}
-              newRisk={newRisk}
-              newSymptom={newSymptom}
-              riskRows={riskRows}
-              saveAssessment={saveAssessment}
-              setActiveStep={setActiveStep}
-              setAssessment={setAssessment}
-              setNewRisk={setNewRisk}
-              setNewSymptom={setNewSymptom}
-              setScreening={setScreening}
-              symptomRows={symptomRows}
-              t={t}
-              toggle={toggle}
-            />
-          )}
-
-          {activeStep === 'microbiology' && (
-            <MicrobiologyStep
-              alreadyHasSample={alreadyHasSample}
-              busy={busy}
-              continueWithoutSample={continueWithoutSample}
-              language={language}
-              linkedLabSamples={linkedLabSamples}
-              requestSample={requestSample}
-              sampleDraft={sampleDraft}
-              setActiveStep={setActiveStep}
-              setSample={setSample}
-              setSampleDraft={setSampleDraft}
-              t={t}
-            />
-          )}
-
-          {activeStep === 'isolation' && (
-            <IsolationStep
-              busy={busy}
-              isolationDraft={isolationDraft}
-              isolationNeeded={isolationNeeded}
-              language={language}
-              saveIsolation={saveIsolation}
-              setActiveStep={setActiveStep}
-              setIsolation={setIsolation}
-              setIsolationNeeded={setIsolationNeeded}
-              t={t}
-            />
-          )}
+          }
         </div>
         {cancelOpen && (
           <ObserverDialog
