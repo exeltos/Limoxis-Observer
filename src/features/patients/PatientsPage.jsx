@@ -12,6 +12,7 @@ import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadPatients, createPatient } from './patientsService'
+import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { demoLibrarySeed } from '../management/managementData'
 import { loadDepartments } from '../management/departmentsService'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -81,6 +82,7 @@ export function PatientsPage(){
       setDepartment('all')
       setStatus('all')
       notify(t('patientCreated'),'success')
+      signalDemoScenario('patient_admission')
       requestAnimationFrame(()=>{
         registry.saveViewState({query:'',department:'all',status:'all'})
         registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))
