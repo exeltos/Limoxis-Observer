@@ -4,10 +4,13 @@ import { useAuth } from '../auth/AuthContext'
 import { ROLES, configureProfileAccess, isPreviewableRole } from '../permissions/roles'
 import { disabledCapabilitiesFor, moduleEnabled as organizationModuleEnabled, normalizeProfile } from '../organization/operatingProfile'
 import { uxPolicyFor, recordWithinRoleScope, canSeeSensitiveEmployeeHealth } from '../permissions/roleUxPolicy'
+import { SCOPES } from '../permissions/accessModel'
 import { getPlatformOwnerDemoMembership, listMemberships, listPlatformOwnerOrganizations, openPlatformOwnerDemo } from './tenantService'
 import { isOwnerPreview } from '../preview/ownerPreview'
 import { configureDataEnvironment } from '../data/dataEnvironment'
 import { readSessionJson, removeSessionValue, writeSessionJson } from '../storage/browserStorage'
+
+import { SAMPLE_DEFAULT_DEPARTMENT } from './sampleDepartments'
 
 const TenantContext = createContext(null)
 const DEMO_TENANT = Object.freeze({ id: 'demo-hospital', name: 'Demo Hospital', code: 'DEMO', type: 'hospital', mode: 'demo' })
@@ -179,7 +182,9 @@ export function TenantProvider({ children }) {
     // scope by its id (as a member of that department) and show its name.
     if (tenant?.mode !== 'demo' && !platformDemoMode && rolePreview.department) return {...preview, departmentIds: [rolePreview.department], departmentId: rolePreview.department, departmentName: rolePreview.departmentName || '', previewDepartment: null}
     if (tenant?.mode !== 'demo' && !platformDemoMode) return {...preview, departmentIds: [], previewDepartment: null}
-    return {...preview, previewDepartment: rolePreview.department || null}
+    // Sample data: a department-scoped role without a chosen department is in the ICU.
+    const ownDepartment = rolePreview.department || (uxPolicyFor(rolePreview.role).scope === SCOPES.DEPARTMENT ? SAMPLE_DEFAULT_DEPARTMENT : null)
+    return {...preview, previewDepartment: ownDepartment}
   }
 
   const setTenantByMembership = useCallback((membershipId) => {
