@@ -1,4 +1,5 @@
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
+import { whoStatsFromObservations } from './whoHandHygieneStats'
 export const preventionDepartments=[
   {id:'dep-icu',el:'ΜΕΘ',en:'ICU'},
   {id:'dep-internal',el:'Παθολογική',en:'Internal Medicine'},
@@ -43,15 +44,6 @@ export const bundleTemplateLibrary=[
   },
 ].map(template=>({...template,elements:template.rawElements.map(item=>[item.id,item.labelEl])}))
 
-function whoStatsFromObservations(items){
-  const weight=item=>Math.max(1,Number(item.professionalsCount)||1)
-  const opportunities=items.reduce((sum,item)=>sum+weight(item),0)
-  const handRub=items.reduce((sum,item)=>sum+(item.action==='HR'?weight(item):0),0)
-  const handWash=items.reduce((sum,item)=>sum+(item.action==='HW'?weight(item):0),0)
-  const missed=items.reduce((sum,item)=>sum+(item.action==='MISSED'?weight(item):0),0)
-  const compliant=handRub+handWash
-  return {opportunities,handRub,handWash,missed,professionals:opportunities,compliant,compliance:opportunities?Number(((compliant/opportunities)*100).toFixed(1)):0}
-}
 
 function handHygieneRow({id,date,department,profession,observer,startTime,endTime,items}){
   const stats=whoStatsFromObservations(items)

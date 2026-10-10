@@ -13,7 +13,6 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 import { ControlEditor } from './ControlEditor'
 import { ControlExecutionEditor } from './ControlExecutionEditor'
 import { ControlExecutionModal } from './ControlExecutionModal'
@@ -22,7 +21,8 @@ import { controlCriticality,criticalityLabel,deviationActions,requiresEvidence }
 import { ControlCancellationModal } from './ControlCancellationModal'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
-import { assignmentStatus,frequencyLabel,getAssignment,isControlDue } from './controlScheduling'
+import { assignmentStatus,frequencyLabel,getAssignment } from './controlScheduling'
+import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
 import { completeControlExecution,deleteControlDefinition,loadControlByCode,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import './controlRecord.css'
@@ -63,27 +63,16 @@ export function ControlRecordPage(){
 
  const visibleDepartments=record.departments.filter(dep=>canAccessRecord({department:dep,departmentId:record.departmentIdByName?.[dep]||null}))
  const requestedDepartment=searchParams.get('department')||''
- const department=(requestedDepartment&&visibleDepartments.includes(requestedDepartment)?requestedDepartment:'')||(ownDepartment&&visibleDepartments.includes(ownDepartment)?ownDepartment:'')||visibleDepartments[0]||''
+ const department=pickControlDepartment(visibleDepartments,requestedDepartment,ownDepartment)
  const recordUrl=`/controls/${controlId}`
  const assignments=visibleDepartments.map(dep=>({department:dep,assignment:getAssignment(record,dep)}))
 
- const addOns=membership?.capabilities??[],customCapabilities=membership?.customCapabilities??[]
- const canManageControls=can(role,CAPABILITIES.MANAGE_CONTROLS,addOns,customCapabilities)
- const hasExecuteCapability=can(role,CAPABILITIES.EXECUTE_CONTROL,addOns,customCapabilities)
- const canExecuteDepartment=dep=>{const current=getAssignment(record,dep);return Boolean(current)&&hasExecuteCapability&&(Boolean(current.hasDraft)||canManageControls||isControlDue(record,dep))}
+ const {canModifyDefinition,editsOwnDepartmentOnly,canDeleteDraft,canRemoveDefinition,canExecuteDepartment,canCancelHistory,canDeleteHistory,canEditHistory}=controlRecordPermissions({role,membership,record,actorId:actor.id,allDepartmentsVisible:record.departments.length>0&&visibleDepartments.length===record.departments.length})
  const canExecute=Boolean(department)&&canExecuteDepartment(department)
- const canEditCentral=can(role,CAPABILITIES.EDIT_CONTROL_DEFINITION,addOns,customCapabilities)&&role===ROLES.INFECTION_CONTROL_LEAD&&record.createdByScope==='infection_control'
- const canModifyDefinition=can(role,CAPABILITIES.EDIT_CONTROL_DEFINITION,addOns,customCapabilities)&&(canManageControls||canEditCentral)
- const canDeleteDraft=record.status==='draft'&&can(role,CAPABILITIES.DELETE_CONTROL_DRAFT,addOns,customCapabilities)
- const canRemoveDefinition=canDeleteDraft||canModifyDefinition
  const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short',hour12:false}).format(new Date(v)):'—'
- const states=visibleDepartments.map(dep=>assignmentStatus(record,dep))
- const status=states.includes('overdue')?'overdue':states.includes('dueSoon')?'dueSoon':'scheduled'
+ const status=controlOverallStatus(record,visibleDepartments)
  const hasDraft=assignments.some(x=>Boolean(x.assignment?.hasDraft))
  const sourceLabel=record.createdByScope==='platform'?'Platform Owner':record.createdByScope==='hospital_admin'?(en?'Hospital Administrator':'Διαχειριστής Νοσοκομείου'):record.createdByScope==='quality'?(en?'Quality Manager':'Υπεύθυνος Ποιότητας'):(record.createdByScope==='department'?(en?'Department manager':'Προϊστάμενος Τμήματος'):(en?'Infection Control Lead':'Προϊστάμενος Λοιμώξεων'))
- const canCancelHistory=h=>h.status==='completed'&&can(role,CAPABILITIES.VOID_CONTROL_EXECUTION,addOns,customCapabilities)
- const canDeleteHistory=h=>h.status==='completed'&&can(role,CAPABILITIES.VOID_CONTROL_EXECUTION,addOns,customCapabilities)
- const canEditHistory=h=>h.status==='completed'&&can(role,CAPABILITIES.EDIT_CONTROL_EXECUTION,addOns,customCapabilities)&&(canManageControls||h.actorId===actor.id)
  const historyRows=assignments.flatMap(({department:dep,assignment:current})=>(current?.history||[]).map(h=>({...h,department:dep}))).sort((a,b)=>new Date(b.at)-new Date(a.at))
  const historyTotalPages=Math.max(1,Math.ceil(historyRows.length/historyPageSize))
  const historySafePage=Math.min(historyPage,historyTotalPages)
@@ -195,7 +184,7 @@ export function ControlRecordPage(){
     renderRow={h=>{const deleted=isDeletedExecution(h);return <><td><strong>{fmt(h.at)}</strong>{h.editedAt&&<small>{en?'Edited':'Επεξεργάστηκε'} {fmt(h.editedAt)}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')} {fmt(h.cancelledAt)}</small>}</td><td>{h.department}</td><td>{h.status==='cancelled'?<span className="status-badge danger">{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')}</span>:<>{structuredSummary(h)}<ControlEvidenceLinks evidence={h.evidence} language={language}/></>}</td><td><strong>{h.by||'—'}</strong><small>{h.email||''}</small>{h.editedBy&&<small>{en?'Last change':'Τελευταία αλλαγή'}: {h.editedBy}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted by':'Διαγραφή από'):(en?'Voided by':'Αναίρεση')}: {h.cancelledBy||'—'}</small>}</td><td>{h.status==='cancelled'?cancellationText(h):(h.notes||'—')}</td><td className="open-record-cell control-history-menu-col"><OverflowMenu items={historyActions(h)} label={en?'Entry actions':'Ενέργειες καταχώρησης'} align="end"/></td></>}}
   />{!historyRows.length&&<div className="registry-empty-state"><strong>{en?'No executions yet':'Δεν υπάρχουν ακόμη εκτελέσεις'}</strong></div>}{historyRows.length>0&&<RegistryPagination language={language} page={historySafePage} totalPages={historyTotalPages} totalItems={historyRows.length} pageSize={historyPageSize} onPageChange={setHistoryPage} onPageSizeChange={size=>{setHistoryPageSize(size);setHistoryPage(1)}}/>}</section></div>}
  </EntityRecordShell>
- {editOpen&&<ControlEditor initial={record} onCancel={()=>setEditOpen(false)} onSave={saveDefinition}/>} 
+ {editOpen&&<ControlEditor initial={record} departmentOnly={editsOwnDepartmentOnly} fixedDepartment={editsOwnDepartmentOnly?(record.createdForDepartment||visibleDepartments[0]||''):''} onCancel={()=>setEditOpen(false)} onSave={saveDefinition}/>} 
  {editExecution&&<ControlExecutionModal organizationId={tenant.id} record={record} department={editExecution.department||department} initialExecution={editExecution} onClose={()=>setEditExecution(null)} onSave={editExistingExecution}/>} 
  {cancelExecution&&<ControlCancellationModal execution={cancelExecution} onClose={()=>setCancelExecution(null)} onConfirm={voidExecution}/>} 
  {deleteExecution&&<ControlCancellationModal mode="delete" execution={deleteExecution} onClose={()=>setDeleteExecution(null)} onConfirm={deleteExecutionEntry}/>} 

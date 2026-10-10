@@ -28,6 +28,7 @@ import { loadManagementLibraries } from '../management/managementCloudService'
 import { demoLibrarySeed } from '../management/managementData'
 import { EmployeeSurveillanceFlow } from '../surveillance/EmployeeSurveillanceFlow'
 import { EmployeeProtocolsTab } from '../documents/EmployeeProtocolsTab'
+import { isOwnEmployeeRecord, resolveSelfEmployee } from './employeeIdentity'
 import {
   EmployeeHealthTab,
   EmployeeTrainingTab,
@@ -75,30 +76,11 @@ export function EmployeeRecordPage({selfMode=false}){
     return()=>{active=false}
   },[isDemo,tenant?.id])
 
-  const selfEmployee=useMemo(()=>{
-    if(!selfMode)return null
-    const explicitId=membership?.employeeId||membership?.employee_id||membership?.profile?.employeeId||profile?.employeeId||profile?.employee_id
-    if(explicitId){const exact=employeeRows.find(row=>row.id===explicitId);if(exact)return exact}
-    const linkedUserId=profile?.id||user?.id
-    if(linkedUserId){const byUser=employeeRows.find(row=>row.userId===linkedUserId);if(byUser)return byUser}
-    const identityEmail=(profile?.email||user?.email||'').trim().toLowerCase()
-    if(identityEmail){const byEmail=employeeRows.find(row=>(row.email||'').trim().toLowerCase()===identityEmail);if(byEmail)return byEmail}
-    const platformOwner=Boolean(profile?.isPlatformOwner||profile?.is_platform_owner)
-    if(platformOwner){
-      const fullName=profile?.fullName||profile?.full_name||user?.user_metadata?.full_name||user?.email||'Platform Owner'
-      const parts=String(fullName).trim().split(/\s+/).filter(Boolean)
-      const firstName=parts[0]||'Platform',lastName=parts.slice(1).join(' ')||'Owner'
-      return {id:'PLATFORM-OWNER',dbId:null,userId:profile?.id||user?.id||null,firstName,lastName,firstNameEn:firstName,lastNameEn:lastName,email:profile?.contactEmail||profile?.email||user?.email||'',profession:'Platform Owner',professionEn:'Platform Owner',department:'Πλατφόρμα',departmentEn:'Platform',employmentStatus:'active',hireDate:'',employeeCode:'PLATFORM-OWNER'}
-    }
-    if(isDemo)return employeeRows.find(row=>row.id==='EMP-001')||employeeRows[0]||null
-    return null
-  },[selfMode,membership,profile,user?.id,user?.email,user?.user_metadata?.full_name,isDemo,employeeRows])
+  const selfEmployee=useMemo(()=>selfMode?resolveSelfEmployee({employeeRows,membership,profile,user,isDemo}):null,[selfMode,membership,profile,user,isDemo,employeeRows])
 
   const id=selfMode?selfEmployee?.id:(employeeId||null)
   const employee=selfMode?selfEmployee:employeeRows.find(row=>row.id===id)||null
-  const currentUserId=profile?.id||user?.id||null
-  const currentEmail=(profile?.contactEmail||profile?.email||user?.email||'').trim().toLowerCase()
-  const isOwnEmployee=Boolean(employee&&((currentUserId&&employee.userId===currentUserId)||(currentEmail&&String(employee.email||'').trim().toLowerCase()===currentEmail)))
+  const isOwnEmployee=isOwnEmployeeRecord(employee,{profile,user})
   const selfReadOnly=Boolean(selfMode||isOwnEmployee)
   const recordNavigation=useRecordSequenceNavigation({registry:'employees',currentId:id,pathForId:nextId=>`/employees/${nextId}`})
   const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]

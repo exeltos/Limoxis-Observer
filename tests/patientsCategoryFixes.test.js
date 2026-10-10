@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import { normalizeLaboratorySample } from '../src/features/laboratory/model/laboratoryModel'
 import { demoClinicalScaleDefinitions } from '../src/features/clinical-scales/clinicalScaleDemoDefinitions'
 import { buildClinicalScaleContext } from '../src/features/clinical-scales/clinicalScaleContext'
+import { episodeBelongsToPatient } from '../src/features/surveillance/patientRecordScope'
 const i18n=fs.readFileSync('src/core/i18n/LanguageContext.jsx','utf8')
 
 // User-reported review of the Patients category.
@@ -74,8 +75,10 @@ describe('Patients category fixes', () => {
 describe('surveillance review', () => {
   const canonical = fs.readFileSync('src/features/surveillance/PatientClinicalCanonicalPage.jsx', 'utf8')
   it('matches a surveillance episode to its patient only on real ids', () => {
-    expect(canonical).toContain('function episodeBelongsToPatient(ep,row)')
-    expect(canonical).not.toContain('ep.patientRecordId===row.recordId')
+    expect(canonical).toContain('episodeBelongsToPatient(ep,row)')
+    expect(episodeBelongsToPatient({ patientRecordId: 'R1', patientId: 'P1' }, { recordId: 'R2', id: 'P1' })).toBe(false)
+    expect(episodeBelongsToPatient({ patientId: 7 }, { id: '7' })).toBe(true)
+    expect(episodeBelongsToPatient({}, {})).toBe(false)
   })
   it('new surveillance chooser uses the same numbered icon cards as a new laboratory sample', () => {
     const chooser = fs.readFileSync('src/features/surveillance/EmployeeSurveillanceFlow.jsx', 'utf8')

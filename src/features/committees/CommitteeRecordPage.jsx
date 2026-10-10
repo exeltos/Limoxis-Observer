@@ -1,4 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
+import { attendanceFor,finalizationBlocker,meetingQuorum } from './committeeMeetingRules'
 import { Link,useNavigate,useParams } from 'react-router-dom'
 import { CalendarDays,CheckCircle2,ClipboardList,FileClock,Paperclip,Pencil,Plus,ShieldCheck,Target,Trash2,Users,XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -58,8 +59,6 @@ const COMMITTEE_ROLE_OPTIONS=[
   ['Σύμβουλος','Advisor'],
   ['Παρατηρητής','Observer'],
 ]
-function quorumRequired(rule,count){if(!count)return 0;if(rule==='two_thirds')return Math.ceil(count*2/3);if(rule==='custom')return null;return Math.floor(count/2)+1}
-function attendanceFor(members,existing=[]){const old=new Map(existing.map(x=>[x.memberId,x]));return members.map(m=>old.get(m.id)||{id:`ATT-${m.id}`,memberId:m.id,memberDbId:m.dbId||null,employeeDbId:m.employeeDbId||null,name:m.name,voting:m.voting!==false,status:'not_recorded'})}
 
 export function CommitteeRecordPage(){
   const {committeeId}=useParams()
@@ -182,15 +181,17 @@ export function CommitteeRecordPage(){
     if(result){setDialog({type:'meeting',id:result.id||id});await notifyUpcomingMeeting(next)}
   }
   async function saveMeeting(draft,finalize=false,external=[]){
-    const voting=draft.attendanceRecords.filter(x=>x.voting)
-    const presentVoting=voting.filter(x=>x.status==='present').length
-    const required=quorumRequired(record.quorumRule||'simple_majority',voting.length)
-    const quorum=required===null?null:presentVoting>=required
-    const next={...draft,quorum,attendance:draft.attendanceRecords.filter(x=>x.status==='present').length}
-    if(finalize){
-      if(!next.attendance){notify(en?'Record at least one present member.':'Καταγράψτε τουλάχιστον ένα παρόν μέλος.','warning');return false}
-      if(required!==null&&!quorum){notify(en?'Required quorum has not been met.':'Δεν έχει επιτευχθεί η απαιτούμενη απαρτία.','warning');return false}
-      if((next.topics||[]).some(x=>x.subject?.trim()&&!x.decision?.trim())){notify(en?'Every topic needs a conclusion.':'Κάθε θέμα χρειάζεται απόφαση / συμπέρασμα.','warning');return false}
+    const counted=meetingQuorum(draft.attendanceRecords,record.quorumRule)
+    const next={...draft,quorum:counted.quorum,attendance:counted.attendance}
+    const blocker=finalize?finalizationBlocker(next,counted):null
+    if(blocker){
+      const messages={
+        no_attendance:en?'Record at least one present member.':'Καταγράψτε τουλάχιστον ένα παρόν μέλος.',
+        no_voting_members:en?'The committee has no member with a vote, so there can be no quorum. Mark the voting members first.':'Η επιτροπή δεν έχει μέλη με δικαίωμα ψήφου, οπότε δεν μπορεί να υπάρξει απαρτία. Ορίστε πρώτα τα μέλη με ψήφο.',
+        no_quorum:en?'Required quorum has not been met.':'Δεν έχει επιτευχθεί η απαιτούμενη απαρτία.',
+        topic_without_decision:en?'Every topic needs a conclusion.':'Κάθε θέμα χρειάζεται απόφαση / συμπέρασμα.',
+      }
+      notify(messages[blocker],'warning');return false
     }
     const localStatus=finalize?'finalized':next.status
     const result=await execute({operation:()=>saveCommitteeMeetingAsync(organizationId,record,next,{finalize,external}),local:()=>({...record,meetings:record.meetings.map(x=>x.id===next.id?{...next,status:localStatus,finalizedAt:finalize?new Date().toISOString():x.finalizedAt}:x)}),success:finalize?(en?'Minutes submitted/finalized.':'Τα πρακτικά υποβλήθηκαν / οριστικοποιήθηκαν.'):(en?'Meeting saved.':'Η συνεδρίαση αποθηκεύτηκε.'),close:finalize})

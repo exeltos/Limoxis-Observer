@@ -10,9 +10,9 @@ export async function listMemberships(userId) {
   const { data, error } = await supabase
     .from('organization_members')
     .select(`
-      id, role, status, custom_role_id,
+      id, role, status, custom_role_id, screen_guides,
       custom_role:custom_roles(id, name, capabilities:custom_role_capabilities(capability)),
-      organization:organizations(id, name, code, type, status, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding),
+      organization:organizations(id, name, code, type, status, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding, screen_guides_enabled),
       scopes:organization_member_scopes(department_id, department:departments(name)),
       add_ons:organization_member_capabilities(capability),
       assignments:work_assignments(id, assignment_type, source_type, source_id, status, due_at, department_id)
@@ -32,7 +32,7 @@ export async function listMemberships(userId) {
     }))
 }
 
-const OWNER_ORGANIZATION_COLUMNS = 'id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding, deletion_scheduled_at'
+const OWNER_ORGANIZATION_COLUMNS = 'id, name, code, type, status, region, health_region, city, country, contact_email, contact_phone, bed_capacity, paused_at, is_demo, operating_profile, enabled_addons, enabled_modules, idle_lock_minutes, branding, screen_guides_enabled, deletion_scheduled_at'
 const platformOwnerMembership = (organization) => ({
   id: `platform-owner:${organization.id}`,
   role: 'platform_owner',

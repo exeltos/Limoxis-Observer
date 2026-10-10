@@ -23,17 +23,12 @@ import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequ
 import { wasteCategoryTone } from './wasteVisuals'
 import { antisepticMethodLabel,isAbhrProduct } from './AntisepticEntryModal'
 import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
+import { normalizeWhoMoments,sessionHandHygieneStats } from './whoHandHygieneStats'
 
 const icons={handHygiene:ShieldCheck,waste:Recycle,antiseptics:Droplets,bundles:ClipboardCheck}
 const loaders={handHygiene:loadHandHygieneSessions,waste:loadWasteMeasurements,antiseptics:loadAntisepticRecords,bundles:loadBundleAssessments}
 const deleters={handHygiene:deleteHandHygieneSession,waste:deleteWasteMeasurement,antiseptics:deleteAntisepticRecord,bundles:deleteBundleAssessment}
 const editCapabilities={handHygiene:CAPABILITIES.RECORD_HAND_HYGIENE,waste:CAPABILITIES.RECORD_WASTE,antiseptics:CAPABILITIES.RECORD_ANTISEPTIC,bundles:CAPABILITIES.RECORD_PREVENTION_BUNDLE}
-const normalizeWhoMoments=item=>{
- const values=Array.isArray(item?.moments)?item.moments.filter(Boolean):[]
- if(values.length)return [...new Set(values)]
- return item?.moment?[item.moment]:[]
-}
-const observationWeight=item=>Math.max(1,Number(item?.professionalsCount)||1)
 
 export function PreventionRecordPage(){
  const {recordType,recordId}=useParams()
@@ -148,9 +143,7 @@ const formatMonth=value=>/^\d{4}-\d{2}$/.test(String(value||''))?`${value.slice(
 const formatDay=(value,en)=>value?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
 
 function HandHygieneDetails({record,language}){
- const en=language==='en';const items=record.whoObservations||[];const fallbackStats={opportunities:items.reduce((sum,item)=>sum+observationWeight(item),0)||record.observations||0,compliant:items.reduce((sum,item)=>sum+(['HR','HW'].includes(item.action)?observationWeight(item):0),0)||record.compliant||0,handRub:items.reduce((sum,item)=>sum+(item.action==='HR'?observationWeight(item):0),0),handWash:items.reduce((sum,item)=>sum+(item.action==='HW'?observationWeight(item):0),0),missed:items.reduce((sum,item)=>sum+(item.action==='MISSED'?observationWeight(item):0),0),professionals:items.reduce((sum,item)=>sum+observationWeight(item),0)}
- fallbackStats.compliance=fallbackStats.opportunities?Number(((fallbackStats.compliant/fallbackStats.opportunities)*100).toFixed(1)):record.rate||0
- const stats=record.whoStats||fallbackStats;const session=record.session||{}
+ const en=language==='en';const items=record.whoObservations||[];const stats=sessionHandHygieneStats(record);const session=record.session||{}
  const actionLabel=item=>item.action==='HR'?(en?'Alcohol-based hand rub':'Αλκοολούχο αντισηπτικό'):item.action==='HW'?(en?'Hand wash with soap & water':'Πλύσιμο με σαπούνι & νερό'):(en?'Not performed':'Δεν πραγματοποιήθηκε')
  return <div className="who-record-workspace who-record-compact">
   <section className="who-record-session-bar">
