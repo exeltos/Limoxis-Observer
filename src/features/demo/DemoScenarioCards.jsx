@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, CheckCircle2, Circle, Flag, Send, Star, X } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Circle, Compass, Flag, Send, Star, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { DEMO_SCENARIOS } from './demoScenarios'
 import './demoEvaluation.css'
@@ -25,7 +25,7 @@ const TrialNote=({en})=><small className="demo-scenario-trial">{en?'Trial as Pla
 // The scenario the evaluator is working on, beside the screen: what to do, its
 // steps checked off as the screens report them, and "I'm done" for what the
 // application cannot tell is done.
-export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone={},language,trial=false,working=false,onDone,onClose}){
+export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone={},language,trial=false,working=false,onDone,onClose,onTour=null}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const index=scenarios.findIndex(item=>item.key===scenario.key)
   const steps=scenario.steps||[]
@@ -37,7 +37,7 @@ export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone=
     <p>{en?scenario.textEn:scenario.textEl}</p>
     {steps.length>0&&<ol className="demo-scenario-steps" aria-label={tx('Βήματα','Steps')}>{steps.map(step=>{const done=Boolean(stepsDone[step.id]);return <li key={step.id} className={done?'is-done':step===nextStep?'is-next':''} aria-current={step===nextStep?'step':undefined}>{done?<CheckCircle2 size={14} aria-label={tx('Ολοκληρώθηκε','Done')}/>:<Circle size={14} aria-hidden="true"/>}<span>{en?step.labelEn:step.labelEl}{step===nextStep&&step.target&&<small className="demo-step-onscreen">{tx('Επισημαίνεται στην οθόνη','Outlined on screen')}</small>}</span></li>})}</ol>}
     {trial&&<TrialNote en={en}/>}
-    <div className="demo-scenario-actions"><Button variant="secondary" disabled={working} onClick={onDone}><CheckCircle2 size={14}/>{tx('Ολοκλήρωσα','I\'m done')}</Button></div>
+    <div className="demo-scenario-actions">{onTour&&<Button variant="secondary" onClick={onTour}><Compass size={14}/>{tx('Δείξε μου','Show me')}</Button>}<Button variant="secondary" disabled={working} onClick={onDone}><CheckCircle2 size={14}/>{tx('Ολοκλήρωσα','I\'m done')}</Button></div>
   </aside>
 }
 

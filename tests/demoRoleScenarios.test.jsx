@@ -96,6 +96,8 @@ describe('the guide flow for the HR office', () => {
     await waitFor(() => expect(api.guideTotal).toBe(2))
     act(() => api.openGuide())
     fireEvent.click((await screen.findAllByRole('button', { name: /Ξεκινήστε/ }))[0])
+    // The scenario starts with its guided tour; ended, the card shows the steps.
+    fireEvent.click(await screen.findByRole('button', { name: 'Τέλος ξενάγησης' }))
     const card = await screen.findByRole('complementary', { name: 'Σενάριο αξιολόγησης' })
     expect(within(card).getByText('Καρτέλα εργαζομένου')).toBeInTheDocument()
     act(() => goTo('/employees/new'))

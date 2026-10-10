@@ -25,6 +25,7 @@ import { recordRuntimeEvent } from '../core/diagnostics/runtimeDiagnosticsServic
 import { loadDepartments } from '../features/management/departmentsService'
 import { DemoClosedScreen, DemoEvaluationBar } from './DemoEvaluationBar'
 import { switchDemoRole } from '../core/tenant/tenantService'
+import { SAMPLE_PREVIEW_DEPARTMENTS } from '../core/tenant/sampleDepartments'
 import { useDemoEvaluation } from '../features/demo/useDemoEvaluation'
 import { resetScreenGuides } from '../features/demo/screenGuideService'
 import { screenGuidesOn } from '../features/demo/screenGuideSettings'
@@ -79,7 +80,7 @@ export function AppShell(){
   const guidesOn=!platformMode&&!helpPreviewMode&&screenGuidesOn({organization:tenant,membership})
   const [realDepartments,setRealDepartments]=useState([])
   useEffect(()=>{let active=true;if(!realDemoTenant||!tenant?.id||!canRolePreview){setRealDepartments([]);return undefined}loadDepartments(tenant.id).then(rows=>{if(active)setRealDepartments((rows||[]).filter(row=>row.is_active!==false))}).catch(()=>{if(active)setRealDepartments([])});return ()=>{active=false}},[realDemoTenant,tenant?.id,canRolePreview])
-  const previewDepartments=[['','previewAllHospital'],['icu','previewIcu'],['surgery','previewSurgery'],['internal','previewInternalMedicine']]
+  const previewDepartments=SAMPLE_PREVIEW_DEPARTMENTS
   const demoAccess=(profile?.demoAccess||[]).find(item=>item.organizationId===tenant?.id)||null
   // A Demo evaluator switches their own role for real (demo_switch_my_role), so
   // the database returns exactly what that role sees. The Platform Owner keeps
