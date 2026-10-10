@@ -78,6 +78,26 @@ async function open(page, port, s) {
   await page.waitForTimeout(700); await dismissBriefing(frame)
 }
 
+// Chrome reports no longhands for a shorthand whose value uses var(), so these
+// are expanded here; any other pair of related properties (one a prefix of the
+// other, or listed here) that Chrome did not expand counts as a conflict.
+const SIDES = ['top', 'right', 'bottom', 'left']
+const SHORTHANDS = {
+  'border-radius': ['border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius'],
+  margin: SIDES.map(s => `margin-${s}`), padding: SIDES.map(s => `padding-${s}`), inset: SIDES,
+  'border-color': SIDES.map(s => `border-${s}-color`), 'border-width': SIDES.map(s => `border-${s}-width`), 'border-style': SIDES.map(s => `border-${s}-style`),
+  gap: ['row-gap', 'column-gap'], 'grid-gap': ['row-gap', 'column-gap'],
+  overflow: ['overflow-x', 'overflow-y'], 'place-items': ['align-items', 'justify-items'], 'place-content': ['align-content', 'justify-content'], 'place-self': ['align-self', 'justify-self'],
+  font: ['font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'font-variant', 'font-stretch'],
+  flex: ['flex-grow', 'flex-shrink', 'flex-basis'], 'flex-flow': ['flex-direction', 'flex-wrap'],
+  'grid-area': ['grid-row-start', 'grid-column-start', 'grid-row-end', 'grid-column-end'],
+  'grid-row': ['grid-row-start', 'grid-row-end'], 'grid-column': ['grid-column-start', 'grid-column-end'],
+  outline: ['outline-color', 'outline-style', 'outline-width'],
+}
+const RELATED = { ...SHORTHANDS, border: ['border-top-left-radius', 'border-image'], 'grid-template': ['grid-template-rows', 'grid-template-columns', 'grid-template-areas'], grid: ['grid-template-rows', 'grid-template-columns', 'grid-auto-flow'] }
+const related = (a, b) => a === b || a.startsWith(`${b}-`) || b.startsWith(`${a}-`) || Boolean(RELATED[a]?.some(x => x === b || b.startsWith(`${x}-`))) || Boolean(RELATED[b]?.some(x => x === a || a.startsWith(`${x}-`)))
+const relatedEntries = (d, e) => [d.name, ...d.longhands].some(a => [e.name, ...e.longhands].some(b => related(a, b)))
+
 // Declared entries of a style (with their longhands), as Chrome reports them.
 // `ordinal` counts earlier declarations of the same property in the same rule,
 // including ones Chrome does not apply, so it identifies the declaration in the
@@ -94,7 +114,7 @@ function declared(style) {
       name,
       ordinal,
       important: Boolean(p.important),
-      longhands: p.longhandProperties?.length ? p.longhandProperties.map(l => l.name) : [name],
+      longhands: p.longhandProperties?.length ? p.longhandProperties.map(l => l.name) : SHORTHANDS[name] || [name],
       value: p.value.replace(/\s*!important\s*$/i, '').trim(),
     })
   }
@@ -132,6 +152,9 @@ function analyse(rules, inline) {
       const after = winner(candidates, d)
       if (before !== after && before.value !== after.value) s.needed = true
     }
+    // A related declaration that shares no longhand with D (an unexpanded
+    // shorthand): the cascade between them is not computed, so D is kept.
+    if (entries.some(e => e !== d && !e.longhands.some(l => d.longhands.includes(l)) && relatedEntries(d, e))) s.needed = true
     status.set(d.key, s)
   }
 }
@@ -230,6 +253,24 @@ function walk(dir, out = []) { for (const e of fs.readdirSync(dir, { withFileTyp
 const sources = walk('src').map(file => ({ file, ast: postcss.parse(fs.readFileSync(file, 'utf8'), { from: file }) }))
 const sourceCounts = new Map()
 for (const { ast } of sources) ast.walkDecls(decl => { if (decl.important && decl.parent.type === 'rule') sourceCounts.set(declKey(decl), (sourceCounts.get(declKey(decl)) || 0) + 1) })
+
+// Rules for states the screens do not show (hover, focus, …) were never matched,
+// so a flag is kept when such a rule shares a class with D's rule and sets a
+// related property.
+const DYNAMIC = /:(hover|focus|focus-visible|focus-within|active|visited|target)\b/
+const classes = selector => new Set(String(selector).match(/\.[\w-]+/g) || [])
+const dynamicByClass = new Map()
+for (const entry of builtByFile.values()) entry?.ast.walkRules(rule => {
+  if (!DYNAMIC.test(rule.selector)) return
+  const props = rule.nodes.filter(n => n.type === 'decl').map(n => n.prop.toLowerCase())
+  for (const c of classes(rule.selector)) { if (!dynamicByClass.has(c)) dynamicByClass.set(c, new Set()); for (const p of props) dynamicByClass.get(c).add(p) }
+})
+const dynamicRival = decl => [...classes(decl.parent.selector)].some(c => [...(dynamicByClass.get(c) || [])].some(p => related(p, decl.prop.toLowerCase())))
+for (const entry of builtByFile.values()) entry?.ast.walkDecls(decl => {
+  if (!decl.important || decl.parent.type !== 'rule' || DYNAMIC.test(decl.parent.selector)) return
+  const v = builtVerdict.get(declKey(decl))
+  if (v && !v.needed && dynamicRival(decl)) v.needed = true
+})
 
 let removable = 0, needed = 0, ambiguous = 0
 const perFile = {}
