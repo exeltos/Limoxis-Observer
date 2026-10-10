@@ -1,9 +1,10 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
+import { readEmployeeRecordTabsSource } from './helpers/employeeRecordTabsSource'
 
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 const page=read('src/features/employees/EmployeeRecordPage.jsx')
-const tabs=read('src/features/employees/EmployeeRecordTabs.jsx')
+const tabs=readEmployeeRecordTabsSource()
 const service=read('src/features/employees/employeeSubRecordsService.js')
 const documents=read('src/design-system/DocumentsWorkspace.jsx')
 

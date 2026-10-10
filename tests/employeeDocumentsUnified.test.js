@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
+import { readEmployeeRecordTabsSource } from './helpers/employeeRecordTabsSource'
 
-const tabs=fs.readFileSync('src/features/employees/EmployeeRecordTabs.jsx','utf8')
+const tabs=readEmployeeRecordTabsSource()
 const attachments=fs.readFileSync('src/design-system/AttachmentField.jsx','utf8')
 const workspace=fs.readFileSync('src/design-system/DocumentsWorkspace.jsx','utf8')
 const navigation=fs.readFileSync('src/core/navigation/useContextualNavigation.js','utf8')

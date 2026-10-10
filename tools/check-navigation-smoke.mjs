@@ -22,7 +22,7 @@ const checks=[
   ['laboratory registry hook',read('src/features/laboratory/LaboratoryWorkspace.jsx').includes("useRegistryMemory('laboratory')")],
   ['surveillance registry hook',/useRegistryMemory\(`surveillance-/.test(read('src/features/surveillance/SurveillanceCanonicalPage.jsx'))],
   ['patient contextual back',compact(patientRecord).includes(compact('const {goBack,restored}=useContextualNavigation'))],
-  ['employee contextual back',employeeRecord.includes('const {goBack,restored}=useContextualNavigation')],
+  ['employee contextual back',compact(employeeRecord).includes(compact('const {goBack,restored}=useContextualNavigation'))],
   ['surveillance row navigation',surveillanceList.includes('registry.openRecord')],
   ['controls row navigation',controls.includes('registry.openRecord')],
   ['quality linked contextual navigation',read('src/features/quality/QualityRecordPage.jsx').includes('goTo(linkPath')],
