@@ -22,7 +22,7 @@ describe('quorumRequired', () => {
 describe('meetingQuorum', () => {
   it('counts only present voting members towards quorum, and everyone present towards attendance', () => {
     const rows = [present(), present(), absent(), absent(), present(false), present(false)]
-    expect(meetingQuorum(rows, 'simple_majority')).toEqual({ required: 3, presentVoting: 2, quorum: false, attendance: 4 })
+    expect(meetingQuorum(rows, 'simple_majority')).toEqual({ required: 3, votingMembers: 4, presentVoting: 2, quorum: false, attendance: 4 })
     expect(meetingQuorum([...rows, present()], 'simple_majority').quorum).toBe(true)
   })
 
@@ -31,8 +31,9 @@ describe('meetingQuorum', () => {
     expect(meetingQuorum([present(), absent()], 'custom').quorum).toBeNull()
   })
 
-  it('a meeting without voting members counts as quorate', () => {
-    expect(meetingQuorum([present(false)])).toMatchObject({ required: 0, quorum: true, attendance: 1 })
+  it('a meeting without voting members has no quorum', () => {
+    expect(meetingQuorum([present(false)])).toMatchObject({ required: 0, votingMembers: 0, quorum: false, attendance: 1 })
+    expect(meetingQuorum([present(false)], 'custom').quorum).toBe(false)
   })
 })
 
@@ -42,6 +43,11 @@ describe('finalizationBlocker', () => {
     expect(finalizationBlocker({}, { ...quorate, attendance: 0 })).toBe('no_attendance')
     expect(finalizationBlocker({}, { ...quorate, quorum: false })).toBe('no_quorum')
     expect(finalizationBlocker({ topics: [{ subject: 'Budget', decision: ' ' }] }, quorate)).toBe('topic_without_decision')
+  })
+
+  it('a committee without voting members cannot finalize minutes, whatever the rule', () => {
+    expect(finalizationBlocker({}, meetingQuorum([present(false)]))).toBe('no_voting_members')
+    expect(finalizationBlocker({}, meetingQuorum([present(false)], 'custom'))).toBe('no_voting_members')
   })
 
   it('accepts a quorate meeting, a custom rule, and empty topics', () => {

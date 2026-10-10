@@ -26,18 +26,20 @@ export function episodeBelongsToPatient(episode, patient) {
 // Cancelled episodes are never shown. Without an admission, every other episode
 // is. With one, an episode linked to an admission must be linked to this one;
 // an unlinked episode must have started within the admission, in its department.
+// An unlinked episode without a start date is kept (in the admission's
+// department), like a sample without a date, so it is never hidden from every admission.
 export function episodesForAdmission(episodes = [], admission = null) {
   const visible = episodes.filter(episode => episode.status !== 'cancelled')
   if (!admission) return visible
   return visible.filter(episode => {
     if (episode.admissionId) return sameId(episode.admissionId, admission.id)
     const started = day(episode.startedAt)
-    return Boolean(started && withinAdmission(started, admission) && sameDepartment(episode, admission))
+    return (!started || withinAdmission(started, admission)) && sameDepartment(episode, admission)
   })
 }
 
 // The patient's samples taken during the admission, in its department. A sample
-// without a collection or request date is kept (unlike an episode without a start).
+// without a collection or request date is kept.
 export function samplesForAdmission(samples = [], patient, admission) {
   if (!patient || !admission) return []
   return samples.filter(sample => {

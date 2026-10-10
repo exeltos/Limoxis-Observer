@@ -53,10 +53,11 @@ describe('isOwnEmployeeRecord', () => {
     expect(isOwnEmployeeRecord(rows[1], { profile: { id: 'user-2' } })).toBe(true)
   })
 
-  it('compares the contact e-mail first, then the sign-in e-mail', () => {
+  it('matches either the contact or the sign-in e-mail, so an own record is always read-only', () => {
     expect(isOwnEmployeeRecord(rows[2], { profile: { id: 'x', contactEmail: 'third@hospital.gr' } })).toBe(true)
     expect(isOwnEmployeeRecord(rows[0], { profile: { id: 'x' }, user: { email: 'FIRST@hospital.gr' } })).toBe(true)
-    expect(isOwnEmployeeRecord(rows[0], { profile: { id: 'x', contactEmail: 'other@x.gr', email: 'first@hospital.gr' } })).toBe(false)
+    expect(isOwnEmployeeRecord(rows[0], { profile: { id: 'x', contactEmail: 'other@x.gr', email: 'first@hospital.gr' } })).toBe(true)
+    expect(isOwnEmployeeRecord(rows[0], { profile: { id: 'x', contactEmail: 'other@x.gr', email: 'login@x.gr' } })).toBe(false)
   })
 
   it('is false without a record or without anything to compare', () => {

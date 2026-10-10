@@ -187,6 +187,7 @@ export function CommitteeRecordPage(){
     if(blocker){
       const messages={
         no_attendance:en?'Record at least one present member.':'Καταγράψτε τουλάχιστον ένα παρόν μέλος.',
+        no_voting_members:en?'The committee has no member with a vote, so there can be no quorum. Mark the voting members first.':'Η επιτροπή δεν έχει μέλη με δικαίωμα ψήφου, οπότε δεν μπορεί να υπάρξει απαρτία. Ορίστε πρώτα τα μέλη με ψήφο.',
         no_quorum:en?'Required quorum has not been met.':'Δεν έχει επιτευχθεί η απαιτούμενη απαρτία.',
         topic_without_decision:en?'Every topic needs a conclusion.':'Κάθε θέμα χρειάζεται απόφαση / συμπέρασμα.',
       }

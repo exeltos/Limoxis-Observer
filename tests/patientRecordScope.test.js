@@ -21,7 +21,12 @@ describe('episodesForAdmission', () => {
 
   it('keeps linked episodes of this admission, and unlinked ones started within its dates and department', () => {
     // E1: linked, whatever its date. E3: discharge day counts. E6: no department is not excluded.
-    expect(episodesForAdmission(episodes, admission).map(e => e.id)).toEqual(['E1', 'E3', 'E6'])
+    // E7: no start date, so it is kept rather than hidden from every admission.
+    expect(episodesForAdmission(episodes, admission).map(e => e.id)).toEqual(['E1', 'E3', 'E6', 'E7'])
+  })
+
+  it('an undated episode of another department stays out of the admission', () => {
+    expect(episodesForAdmission([{ id: 'E', startedAt: '', departmentId: 'SURGERY' }], admission)).toEqual([])
   })
 
   it('keeps unlinked episodes of an open admission without an end date', () => {

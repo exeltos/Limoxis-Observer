@@ -57,12 +57,15 @@ export function resolveSelfEmployee({ employeeRows = [], membership, profile, us
   return null
 }
 
-// An employee record is the user's own when it is linked to the user's account
-// or carries the user's e-mail (contact e-mail first, then the sign-in e-mail).
+// An employee record is the user's own (and so read-only to them) when it is
+// linked to the user's account or carries either of the user's e-mails, the
+// sign-in one or the contact one. Matching either one errs on the side of
+// read-only: nobody edits their own record because the other e-mail matched.
 export function isOwnEmployeeRecord(employee, { profile, user }) {
   if (!employee) return false
   const currentUserId = profile?.id || user?.id || null
   if (currentUserId && employee.userId === currentUserId) return true
-  const currentEmail = normalizeEmail(profile?.contactEmail || profile?.email || user?.email)
-  return Boolean(currentEmail && normalizeEmail(employee.email) === currentEmail)
+  const recordEmail = normalizeEmail(employee.email)
+  if (!recordEmail) return false
+  return [profile?.contactEmail, profile?.email, user?.email].some(email => normalizeEmail(email) === recordEmail)
 }
