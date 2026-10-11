@@ -114,12 +114,12 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       return day && (!from || day >= from) && day <= to
     }
     const rows = [
-      { type: 'admission', at: selectedAdmission.admissionDate, detail: selectedAdmission.department },
+      { type: 'clinicalRecords.timelineAdmission', at: selectedAdmission.admissionDate, detail: selectedAdmission.department },
     ]
     const scales = patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []
     for (const row of scales)
       if (within(row.assessed_at))
-        rows.push({ type: 'scale_assessment', at: row.assessed_at, detail: `${scaleShortName(row.scale_key)} ${row.score ?? '—'}` })
+        rows.push({ type: 'clinicalRecords.timelineScale', at: row.assessed_at, detail: `${scaleShortName(row.scale_key)} ${row.score ?? '—'}` })
     for (const sample of admissionSamples) {
       const what = [sample.typeLabel || sample.type, sample.source].filter(Boolean).join(' · ')
       if (sample.collectedAt) rows.push({ type: 'sample_collected', at: sample.collectedAt, detail: what })
@@ -127,7 +127,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         rows.push({ type: 'sample_result', at: sample.resultedAt, detail: [sample.organism, sample.resistance].filter(Boolean).join(' · ') || what })
     }
     if (selectedAdmission.dischargeDate)
-      rows.push({ type: 'discharge', at: selectedAdmission.dischargeDate, detail: selectedAdmission.department })
+      rows.push({ type: 'clinicalRecords.timelineDischarge', at: selectedAdmission.dischargeDate, detail: selectedAdmission.department })
     return rows.filter(row => row.at)
   }, [selectedAdmission, patient, riskFlagRows, admissionSamples])
   const record = patientMode
