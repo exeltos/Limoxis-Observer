@@ -58,8 +58,8 @@ const roleMenuPolicy=Object.freeze({
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.HOSPITAL_ADMIN]:policy(
-    ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','pharmacy','occupationalHealth','platformAnalyticsNav','indicators','training','committees','documents','calendar'],
-    [],
+    ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','platformAnalyticsNav','calendar'],
+    ['indicators','training','committees','documents','pharmacy','occupationalHealth'],
     [],
   ),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
