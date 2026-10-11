@@ -3453,6 +3453,10 @@ button{letter-spacing:0}
 .topbar-demo-badge:hover{background:color-mix(in srgb,#d9822b 20%,#fff)}
 .topbar-demo-badge svg:last-child{opacity:.7}
 .topbar-demo-badge.active{background:color-mix(in srgb,#d9822b 24%,#fff);border-color:color-mix(in srgb,#d9822b 55%,var(--lo-color-border))}
+/* Platform Owner: "Enter Demo" is an ordinary secondary action; it turns amber only while the Demo preview is on. */
+.platform-mode .topbar-demo-badge:not(.active){border-color:var(--lo-color-border);background:#fff;color:#1f5f8a}
+.platform-mode .topbar-demo-badge:not(.active):hover{background:#f3f8fc}
+
 .topbar-utility-card{border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;gap:3px!important}
 .icon-button,.language-button,.preview-trigger,.tenant-switch select{min-height:32px!important;height:32px!important;border:1px solid var(--lo-color-border)!important;border-radius:7px!important;background:#fff!important;color:#42566a!important;box-shadow:none!important}
 .icon-button{width:32px!important}
@@ -3700,12 +3704,7 @@ button{letter-spacing:0}
 
 
 /* Laboratory isolate editor — one compact clinical row per recovered microorganism. */
-.platform-breadcrumb{display:flex;align-items:center;gap:8px;min-width:0;font-size:13.5px;color:#7a8898}
-.platform-breadcrumb button{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px;border:0;border-radius:9px;background:transparent;color:var(--lo-color-primary);font:inherit;font-weight:650;cursor:pointer}
-.platform-breadcrumb button:hover{background:color-mix(in srgb,var(--lo-color-primary) 8%,transparent)}
-.platform-breadcrumb button:focus-visible{outline:2px solid color-mix(in srgb,var(--lo-color-primary) 34%,transparent);outline-offset:2px}
-.platform-breadcrumb strong{color:#1f3247;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.app-shell.platform-owner-shell{grid-template-columns:minmax(0,1fr)!important}
+
 .brand-mark-logo{flex:none;border-radius:8px}
 
 /* ==== registry ==== */
