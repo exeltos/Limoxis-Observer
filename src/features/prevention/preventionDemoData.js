@@ -1,4 +1,14 @@
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
+import {
+  DEMO_HISTORY_MONTHS,
+  between,
+  dayInMonth,
+  demoMonthlyPatientDays,
+  lastDayOfMonth,
+  pad2,
+  pick,
+  seededRandom,
+} from '../../core/data/demoSeed'
 import { whoStatsFromObservations } from './whoHandHygieneStats'
 export const preventionDepartments = [
   { id: 'dep-icu', el: 'ΜΕΘ', en: 'ICU' },
@@ -7,6 +17,7 @@ export const preventionDepartments = [
   { id: 'dep-ed', el: 'ΤΕΠ', en: 'ED' },
   { id: 'dep-cardio', el: 'Καρδιολογική', en: 'Cardiology' },
   { id: 'dep-nicu', el: 'Νεογνολογική / ΜΕΝΝ', en: 'Neonatal / NICU' },
+  { id: 'dep-ortho', el: 'Ορθοπαιδική', en: 'Orthopedics' },
 ]
 
 export const wasteTypeLibrary = [
@@ -106,6 +117,92 @@ export const bundleTemplateLibrary = [
         id: 'sedation_break',
         labelEl: 'Ημερήσια διακοπή καταστολής',
         labelEn: 'Daily sedation interruption',
+      },
+    ],
+  },
+  {
+    dbId: 'tmpl-cauti',
+    id: 'CAUTI',
+    bundleKey: 'CAUTI',
+    name: 'CAUTI Bundle',
+    title: 'Δέσμη πρόληψης CAUTI',
+    titleEl: 'Δέσμη πρόληψης CAUTI',
+    titleEn: 'CAUTI Prevention Bundle',
+    version: '1.0',
+    status: 'published',
+    scope: 'ward',
+    source: 'WHO',
+    sourceVersion: '2024',
+    system: true,
+    departments: [],
+    rawElements: [
+      {
+        id: 'indication',
+        labelEl: 'Τεκμηριωμένη ένδειξη ουροκαθετήρα',
+        labelEn: 'Documented catheter indication',
+      },
+      {
+        id: 'aseptic_insertion',
+        labelEl: 'Άσηπτη τεχνική τοποθέτησης',
+        labelEn: 'Aseptic insertion technique',
+      },
+      {
+        id: 'closed_drainage',
+        labelEl: 'Κλειστό σύστημα παροχέτευσης',
+        labelEn: 'Closed drainage system',
+      },
+      {
+        id: 'bag_below_bladder',
+        labelEl: 'Ουροσυλλέκτης κάτω από το επίπεδο της κύστης',
+        labelEn: 'Drainage bag below bladder level',
+      },
+      {
+        id: 'daily_review',
+        labelEl: 'Καθημερινή επανεκτίμηση ανάγκης',
+        labelEn: 'Daily review of need',
+      },
+    ],
+  },
+  {
+    dbId: 'tmpl-ssi',
+    id: 'SSI',
+    bundleKey: 'SSI',
+    name: 'SSI Bundle',
+    title: 'Δέσμη πρόληψης SSI',
+    titleEl: 'Δέσμη πρόληψης SSI',
+    titleEn: 'SSI Prevention Bundle',
+    version: '1.0',
+    status: 'published',
+    scope: 'surgery',
+    source: 'WHO',
+    sourceVersion: '2024',
+    system: true,
+    departments: [],
+    rawElements: [
+      {
+        id: 'preop_shower',
+        labelEl: 'Προεγχειρητικό λουτρό',
+        labelEn: 'Preoperative shower',
+      },
+      {
+        id: 'hair_clipping',
+        labelEl: 'Αποτρίχωση μόνο με κουρευτική μηχανή',
+        labelEn: 'Hair removal by clipping only',
+      },
+      {
+        id: 'prophylaxis_timing',
+        labelEl: 'Προφύλαξη εντός 60 λεπτών πριν την τομή',
+        labelEn: 'Prophylaxis within 60 minutes before incision',
+      },
+      {
+        id: 'skin_antisepsis',
+        labelEl: 'Αντισηψία δέρματος με αλκοολούχο χλωρεξιδίνη',
+        labelEn: 'Alcohol-based chlorhexidine skin antisepsis',
+      },
+      {
+        id: 'normothermia',
+        labelEl: 'Διατήρηση νορμοθερμίας',
+        labelEn: 'Perioperative normothermia',
       },
     ],
   },
@@ -605,6 +702,186 @@ export const bundleRows = [
     answers: { hand_hygiene: 'yes', barrier: 'na', skin_prep: 'yes', site_review: 'yes' },
   }),
 ]
+
+// A year of history behind the recent rows above (authored 2025-09 … 2026-08):
+// observation sessions in every ward with a slowly improving compliance, monthly
+// waste and antiseptic consumption, and bundle audits in the high-risk units.
+const HH_OBSERVERS = [
+  'Ελένη Παπαδοπούλου',
+  'Νικόλαος Δημητρίου',
+  'Ελένη Κωνσταντίνου',
+  'Μαρία Κωνσταντίνου',
+  'Δήμητρα Σταθάτου',
+]
+const WARD_COMPLIANCE = [0.02, -0.04, 0, -0.06, 0.03, 0.05, -0.02]
+const NURSING_CATEGORIES = [
+  'Νοσηλευτής / Νοσηλεύτρια',
+  'Νοσηλευτής / Νοσηλεύτρια',
+  'Νοσηλευτής / Νοσηλεύτρια',
+  'Βοηθός Νοσηλευτή',
+  'Βοηθητικό προσωπικό',
+]
+const MEDICAL_CATEGORIES = ['Ιατρός', 'Ιατρός', 'Ιατρός', 'Φυσικοθεραπευτής', 'Τεχνολόγος']
+const MOMENTS = ['moment1', 'moment1', 'moment2', 'moment3', 'moment4', 'moment4', 'moment5']
+
+DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
+  const sessions = month === '2026-08' ? 1 : 3
+  for (let slot = 0; slot < sessions; slot++) {
+    const rand = seededRandom(`hh|${month}|${slot}`)
+    const wardIndex = (monthIndex * 3 + slot) % preventionDepartments.length
+    const profession = (monthIndex + slot) % 3 === 2 ? 'medical' : 'nursing'
+    const count = between(rand, 8, 14)
+    const rate = Math.min(
+      0.93,
+      Math.max(
+        0.66,
+        0.71 + monthIndex * 0.014 + WARD_COMPLIANCE[wardIndex] + (rand() - 0.5) * 0.06,
+      ),
+    )
+    const compliantCount = Math.round(count * rate)
+    const missedAt = new Set()
+    while (missedAt.size < count - compliantCount) missedAt.add(between(rand, 0, count - 1))
+    const categories = profession === 'medical' ? MEDICAL_CATEGORIES : NURSING_CATEGORIES
+    const items = Array.from({ length: count }, (_, index) => ({
+      id: `o${index + 1}`,
+      professionalsCount: 1,
+      professionalCategory: pick(rand, categories),
+      moments: [pick(rand, MOMENTS)],
+      action: missedAt.has(index) ? 'MISSED' : rand() < 0.82 ? 'HR' : 'HW',
+      gloves: rand() < 0.25,
+      notes: '',
+    }))
+    const hour = between(rand, 8, 13)
+    handHygieneRows.push(
+      handHygieneRow({
+        id: `HH-${month.replace('-', '').slice(2)}-${slot + 1}`,
+        date: dayInMonth(month, 3 + slot * 9 + between(rand, 0, 4)),
+        department: preventionDepartments[wardIndex],
+        profession,
+        observer: HH_OBSERVERS[(monthIndex + slot) % HH_OBSERVERS.length],
+        startTime: `${pad2(hour)}:00`,
+        endTime: `${pad2(hour)}:40`,
+        items,
+      }),
+    )
+  }
+})
+
+const monthPeriod = month => [`${month}-01`, `${month}-${pad2(lastDayOfMonth(month))}`]
+const hasMonthlyRow = (rows, department, key, value, month) =>
+  rows.some(
+    row =>
+      row.departmentEl === department.el && row[key] === value && row.periodStart.startsWith(month),
+  )
+let wasteDocument = 900
+DEMO_HISTORY_MONTHS.forEach(month => {
+  const [periodStart, periodEnd] = monthPeriod(month)
+  preventionDepartments.forEach((department, wardIndex) => {
+    const patientDays = demoMonthlyPatientDays(department.el, month)
+    const types = ['dep-icu', 'dep-surgery', 'dep-ed'].includes(department.id)
+      ? [wasteTypeLibrary[0], wasteTypeLibrary[1]]
+      : [wasteTypeLibrary[0]]
+    for (const type of types) {
+      if (hasMonthlyRow(wasteRows, department, 'wasteTypeId', type.id, month)) continue
+      const rand = seededRandom(`waste|${month}|${department.id}|${type.id}`)
+      const perThousand =
+        type.id === 'wt-sharps'
+          ? 30 + rand() * 18
+          : (department.id === 'dep-icu' ? 290 : 190) + rand() * 60
+      const weight = Number(((perThousand * patientDays) / 1000).toFixed(1))
+      wasteDocument += 1
+      wasteRows.push(
+        wasteRow({
+          id: `WST-${month.replace('-', '').slice(2)}-${wardIndex + 1}${type.id === 'wt-sharps' ? 'S' : 'I'}`,
+          periodStart,
+          periodEnd,
+          department,
+          type,
+          weight,
+          containers: Math.max(1, Math.round(weight / (type.id === 'wt-sharps' ? 5 : 15))),
+          patientDays,
+          responsible: 'Γεώργιος Αντωνίου',
+          documentNumber: `ΤΠ-${wasteDocument}`,
+          collectionCompany: 'EcoBio Α.Ε.',
+        }),
+      )
+    }
+  })
+})
+
+let antisepticReference = 200
+DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
+  const [periodStart, periodEnd] = monthPeriod(month)
+  preventionDepartments.forEach((department, wardIndex) => {
+    const patientDays = demoMonthlyPatientDays(department.el, month)
+    const products = ['dep-surgery', 'dep-ortho'].includes(department.id)
+      ? antisepticLibrary
+      : [antisepticLibrary[0]]
+    for (const product of products) {
+      if (hasMonthlyRow(antisepticRows, department, 'antisepticItemId', product.id, month)) continue
+      const rand = seededRandom(`antiseptic|${month}|${department.id}|${product.id}`)
+      const perThousand = product.metadata?.is_abhr
+        ? (department.id === 'dep-icu' ? 58 : 26) + monthIndex * 0.9 + rand() * 6
+        : 12 + rand() * 6
+      antisepticReference += 1
+      antisepticRows.push(
+        antisepticRow({
+          id: `ANT-${month.replace('-', '').slice(2)}-${wardIndex + 1}${product.metadata?.is_abhr ? 'A' : 'S'}`,
+          periodStart,
+          periodEnd,
+          department,
+          product,
+          litres: Number(((perThousand * patientDays) / 1000).toFixed(1)),
+          patientDays,
+          method: 'direct_measurement',
+          referenceNumber: `ΔΤ-${antisepticReference}`,
+          responsible: HH_OBSERVERS[wardIndex % HH_OBSERVERS.length],
+        }),
+      )
+    }
+  })
+})
+
+const [clabsi, vae, cauti, ssi] = bundleTemplateLibrary
+const ward = id => preventionDepartments.find(department => department.id === id)
+const BUNDLE_PLAN = [
+  [clabsi, 'dep-icu', 'Κεντρικός φλεβικός καθετήρας', 6],
+  [vae, 'dep-icu', 'Μηχανικός αερισμός', 12],
+  [cauti, 'dep-icu', 'Ουροκαθετήρας', 17],
+  [cauti, 'dep-internal', 'Ουροκαθετήρας', 20],
+  [ssi, 'dep-surgery', 'Χειρουργική επέμβαση', 9],
+]
+const BUNDLE_EXTRA = [
+  [clabsi, 'dep-surgery', 'Κεντρικός φλεβικός καθετήρας', 23],
+  [ssi, 'dep-ortho', 'Χειρουργική επέμβαση', 14],
+  [clabsi, 'dep-nicu', 'Κεντρικός φλεβικός καθετήρας', 25],
+]
+DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
+  const plan = [...BUNDLE_PLAN, BUNDLE_EXTRA[monthIndex % BUNDLE_EXTRA.length]]
+  plan.forEach(([template, departmentId, context, day], index) => {
+    if (month === '2026-08' && day > 20) return
+    const rand = seededRandom(`bundle|${month}|${index}`)
+    const reliability = 0.84 + monthIndex * 0.009
+    const answers = Object.fromEntries(
+      template.rawElements.map(item => [
+        item.id,
+        rand() < 0.05 ? 'na' : rand() < reliability ? 'yes' : 'no',
+      ]),
+    )
+    bundleRows.push(
+      bundleAssessmentRow({
+        id: `BND-${month.replace('-', '').slice(2)}-${index + 1}`,
+        template,
+        department: ward(departmentId),
+        date: dayInMonth(month, day),
+        shift: ['morning', 'afternoon', 'night'][(monthIndex + index) % 3],
+        context,
+        owner: HH_OBSERVERS[(monthIndex + index) % HH_OBSERVERS.length],
+        answers,
+      }),
+    )
+  })
+})
 
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([handHygieneRows, wasteRows, antisepticRows, bundleRows])

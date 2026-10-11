@@ -1,4 +1,5 @@
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
+import { DEMO_HISTORY_MONTHS, addDays, dayInMonth } from '../../core/data/demoSeed'
 export const employeeRows = [
   {id:'EMP-001',position:'Νοσηλευτής/τρια ΜΕΘ',positionEn:'ICU Nurse',firstName:'Μαρία',firstNameEn:'Maria',lastName:'Παπαδοπούλου',lastNameEn:'Papadopoulou',fatherName:'Ιωάννης',fatherNameEn:'Ioannis',department:'ΜΕΘ',departmentEn:'ICU',profession:'Νοσηλευτικό προσωπικό',professionEn:'Nursing staff',employmentStatus:'active',email:'m.papadopoulou@example.org',phone:'210 555 0101',hireDate:'2019-03-18',birthDate:'1990-08-29'},
   {id:'EMP-002',position:'Επιμελητής Ιατρός',positionEn:'Consultant Physician',firstName:'Νικόλαος',firstNameEn:'Nikolaos',lastName:'Δημητρίου',lastNameEn:'Dimitriou',fatherName:'Αλέξανδρος',fatherNameEn:'Alexandros',department:'Παθολογική',departmentEn:'Internal Medicine',profession:'Ιατρικό προσωπικό',professionEn:'Medical staff',employmentStatus:'active',email:'n.dimitriou@example.org',phone:'210 555 0102',hireDate:'2021-09-01'},
@@ -118,6 +119,66 @@ employeeRows.push(
  {id:'EMP-007',position:'Νοσηλευτής/τρια Θαλάμου',positionEn:'Ward Nurse',firstName:'Χρήστος',firstNameEn:'Christos',lastName:'Βασιλείου',lastNameEn:'Vasileiou',department:'Αποστείρωση',departmentEn:'CSSD',profession:'Νοσηλευτικό προσωπικό',professionEn:'Nursing staff',employmentStatus:'active',email:'c.vasileiou@example.org',hireDate:'2016-04-14'},
  {id:'EMP-008',position:'Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων (ΝΕΛ)',positionEn:'Infection Control Nurse',firstName:'Δήμητρα',firstNameEn:'Dimitra',lastName:'Σταθάτου',lastNameEn:'Stathatou',department:'Ποιότητα',departmentEn:'Quality',profession:'Διοικητικό προσωπικό',professionEn:'Administrative staff',employmentStatus:'active',email:'d.stathatou@example.org',hireDate:'2022-01-17'}
 )
+
+// The rest of the hospital's staff (about thirty people across the wards), each
+// with a year of occupational-health history: a visit, vaccinations, an exposure
+// report, an evaluation and an administrative trail.
+const NURSE=['Νοσηλευτικό προσωπικό','Nursing staff'],DOCTOR=['Ιατρικό προσωπικό','Medical staff'],LAB=['Εργαστηριακό προσωπικό','Laboratory staff']
+const POSITION={head:['Προϊστάμενος/η Τμήματος','Head of Department (Nursing)',NURSE],icuNurse:['Νοσηλευτής/τρια ΜΕΘ','ICU Nurse',NURSE],nurse:['Νοσηλευτής/τρια Θαλάμου','Ward Nurse',NURSE],assistant:['Βοηθός Θαλάμου','Ward Assistant',NURSE],consultant:['Επιμελητής Ιατρός','Consultant Physician',DOCTOR],resident:['Ειδικευόμενος Ιατρός','Resident Physician',DOCTOR],lab:['Τεχνολόγος Εργαστηρίου','Laboratory Technologist',LAB]}
+const WARD_EN={ΜΕΘ:'ICU',Παθολογική:'Internal Medicine',Χειρουργική:'Surgery',ΤΕΠ:'ED',Καρδιολογική:'Cardiology','Νεογνολογική / ΜΕΝΝ':'Neonatal / NICU',Ορθοπαιδική:'Orthopedics',Εργαστήριο:'Laboratory'}
+const STAFF=[
+ ['Αικατερίνη','Aikaterini','Λάμπρου','Lamprou','ΜΕΘ','head','2012-05-02'],
+ ['Γεώργιος','Georgios','Παππάς','Pappas','ΜΕΘ','consultant','2014-09-15'],
+ ['Ευαγγελία','Evangelia','Τσιρίγου','Tsirigou','ΜΕΘ','icuNurse','2020-01-20'],
+ ['Κωνσταντίνος','Konstantinos','Ραφαηλίδης','Rafailidis','ΜΕΘ','icuNurse','2023-03-06'],
+ ['Βασιλική','Vasiliki','Μανωλάκη','Manolaki','ΜΕΘ','assistant','2018-06-11'],
+ ['Παναγιώτης','Panagiotis','Ρήγας','Rigas','Παθολογική','consultant','2010-02-01'],
+ ['Αναστασία','Anastasia','Χατζή','Chatzi','Παθολογική','nurse','2016-10-03'],
+ ['Μιχαήλ','Michail','Ζερβός','Zervos','Παθολογική','resident','2024-11-04'],
+ ['Ελπίδα','Elpida','Καραγιάννη','Karagianni','Παθολογική','nurse','2021-04-19'],
+ ['Στέφανος','Stefanos','Καλλέργης','Kallergis','Χειρουργική','consultant','2011-07-01'],
+ ['Χαρίκλεια','Chariklia','Μπακάλη','Bakali','Χειρουργική','nurse','2019-02-25'],
+ ['Δημήτριος','Dimitrios','Λιάπης','Liapis','Χειρουργική','resident','2025-03-03'],
+ ['Ευτυχία','Eftychia','Αθανασίου','Athanasiou','ΤΕΠ','nurse','2017-09-18'],
+ ['Άγγελος','Angelos','Σωτηρόπουλος','Sotiropoulos','ΤΕΠ','consultant','2013-01-14'],
+ ['Ηλίας','Ilias','Παπαγεωργίου','Papageorgiou','Καρδιολογική','consultant','2015-05-11'],
+ ['Ζωή','Zoi','Δούκα','Douka','Καρδιολογική','nurse','2022-08-29'],
+ ['Γεωργία','Georgia','Φωτίου','Fotiou','Νεογνολογική / ΜΕΝΝ','head','2009-11-02'],
+ ['Ραλλού','Rallou','Νικολαΐδου','Nikolaidou','Νεογνολογική / ΜΕΝΝ','nurse','2020-07-06'],
+ ['Πέτρος','Petros','Ιωαννίδης','Ioannidis','Νεογνολογική / ΜΕΝΝ','consultant','2016-03-21'],
+ ['Ιωάννα','Ioanna','Σπυροπούλου','Spyropoulou','Ορθοπαιδική','head','2008-04-07'],
+ ['Νικόλαος','Nikolaos','Αργυρίου','Argyriou','Ορθοπαιδική','resident','2026-08-17'],
+ ['Μαρίνα','Marina','Κουτσού','Koutsou','Εργαστήριο','lab','2012-10-01'],
+]
+const EXPOSURES=[
+ ['needlestick','Βελόνα ενδοφλέβιου καθετήρα','Δεξιός δείκτης','negative'],
+ ['mucocutaneous','Εκτίναξη βιολογικού υγρού κατά την αναρρόφηση','Επιπεφυκότας','negative'],
+ ['sharps_object','Λεπίδα νυστεριού κατά την απόρριψη','Αριστερός αντίχειρας','unknown'],
+ ['non_intact_skin','Αίμα σε δερματίτιδα χεριού','Ράχη δεξιού χεριού','negative'],
+ ['other','Διαρροή ούρων σε ακέραιο δέρμα','Αντιβράχιο','negative'],
+]
+const VISIT_NOTES=['Περιοδική εξέταση χωρίς ευρήματα.','Περιοδική εξέταση. Συστάθηκε αντιγριπικός εμβολιασμός.','Περιοδική εξέταση. Ορολογικός έλεγχος anti-HBs επαρκής.']
+STAFF.forEach(([firstName,firstNameEn,lastName,lastNameEn,department,role,hireDate],index)=>{
+ const id=`EMP-${String(index+9).padStart(3,'0')}`,n=index+1,[position,positionEn,[profession,professionEn]]=POSITION[role]
+ // Nothing happens before the employee joined (a recent hire has an onboarding visit).
+ const afterHire=(date,days)=>(date>addDays(hireDate,days)?date:addDays(hireDate,days)),recentHire=hireDate>='2026-01-01'
+ const visitDate=afterHire(dayInMonth(DEMO_HISTORY_MONTHS[index%12],4+(index*7)%22),5)
+ employeeRows.push({id,position,positionEn,firstName,firstNameEn,lastName,lastNameEn,department,departmentEn:WARD_EN[department],profession,professionEn,employmentStatus:'active',email:`${firstNameEn[0].toLowerCase()}.${lastNameEn.toLowerCase()}@example.org`,phone:`210 555 0${String(110+index)}`,hireDate})
+ occupationalVisits.push({id:`OHV-${String(index+9).padStart(3,'0')}`,employeeId:id,date:visitDate,type:recentHire?'vaccinationReview':'periodic',status:'completed',followUpDate:addDays(visitDate,365),fitStatus:index%9===4?'fit_with_restrictions':'fit',clinicalNotes:VISIT_NOTES[index%3]})
+ if(index%3===0)occupationalVisits.push({id:`OHV-${String(index+9).padStart(3,'0')}B`,employeeId:id,date:dayInMonth('2026-09',2+index),type:'followUp',status:'scheduled',followUpDate:null,fitStatus:'pending',clinicalNotes:''})
+ if(index%5===2)occupationalVisits.push({id:`OHV-${String(index+9).padStart(3,'0')}C`,employeeId:id,date:addDays(visitDate,-120),type:'vaccinationReview',status:'completed',followUpDate:null,fitStatus:'fit',clinicalNotes:'Έλεγχος εμβολιαστικής κάλυψης.'})
+ if(index%7!==3)employeeVaccinations.push({id:`VAC-${String(index+9).padStart(3,'0')}`,employeeId:id,vaccine:'Γρίπη εποχική',dose:'2025/26',date:dayInMonth(index%2?'2025-10':'2025-11',5+index),validUntil:'2026-10-01',status:'renewSoon'})
+ employeeVaccinations.push({id:`VAC-${String(index+9).padStart(3,'0')}B`,employeeId:id,vaccine:'Ηπατίτιδα Β',dose:'3η δόση',date:recentHire?visitDate:addDays(hireDate,60),validUntil:null,status:'complete'})
+ if(index%4===1)employeeVaccinations.push({id:`VAC-${String(index+9).padStart(3,'0')}C`,employeeId:id,vaccine:'Τέτανος-διφθερίτιδα-κοκκύτης (Tdap)',dose:'Αναμνηστική',date:'2023-04-12',validUntil:'2033-04-12',status:'complete'})
+ if(index%4===3)employeeVaccinations.push({id:`VAC-${String(index+9).padStart(3,'0')}C`,employeeId:id,vaccine:'Ιλαρά-παρωτίτιδα-ερυθρά (MMR)',dose:'2η δόση',date:addDays(hireDate,30),validUntil:null,status:'complete'})
+ const [exposureType,deviceOrSource,bodySite,sourcePatientStatus]=EXPOSURES[index%EXPOSURES.length],incidentDate=afterHire(dayInMonth(DEMO_HISTORY_MONTHS[(index*5)%12],3+(index*11)%24),7),open=incidentDate>='2026-07-01'
+ employeeExposureIncidents.push({id:`EXP-${String(index+8).padStart(2,'0')}`,employeeId:id,incidentDate,exposureType,deviceOrSource,bodySite,sourcePatientStatus,reportedAt:`${incidentDate}T${String(8+index%10).padStart(2,'0')}:30:00`,pepAdministered:false,pepDetails:'',followUpStatus:open?'scheduled':'completed',followUpDueAt:addDays(incidentDate,open?90:30),notes:sourcePatientStatus==='negative'?'Πηγή αρνητική για HBV, HCV, HIV.':'Άγνωστη πηγή· ορολογικός έλεγχος στις 6 εβδομάδες και στους 6 μήνες.',status:open?'open':'closed'})
+ employeeHistoryDemo.push({id:`EH-${employeeHistoryDemo.length+1}`,employeeId:id,at:`${hireDate}T09:00:00Z`,action:'insert',changedFields:[],actorName:'Γραφείο Προσωπικού',actorRole:''})
+ const scores=CRITERIA.map((_,i)=>3+((n*7+i*3)%5>1?1:0)+((n+i)%6===0?1:0))
+ employeeEvaluations.push(recentHire
+  ?evaluation(`EV-${String(index+11).padStart(2,'0')}`,id,'Δοκιμαστική περίοδος',addDays(hireDate,10),'Γραφείο Ιατρικής Υπηρεσίας',scores,'draft','Αξιολόγηση λήξης δοκιμαστικής περιόδου.')
+  :evaluation(`EV-${String(index+11).padStart(2,'0')}`,id,'2025',dayInMonth(DEMO_HISTORY_MONTHS[4+index%5],5+index),'Γραφείο Νοσηλευτικής / Ιατρικής Υπηρεσίας',scores,index%6===5?'hr_approved':'finalized','Ετήσια αξιολόγηση απόδοσης.'))
+})
 
 // Documents tab (demo): certifications, licences and training certificates.
 const LICENCE={'Νοσηλευτικό προσωπικό':['Άδεια άσκησης νοσηλευτικού επαγγέλματος','Nursing practice licence'],'Ιατρικό προσωπικό':['Άδεια άσκησης ιατρικού επαγγέλματος','Medical practice licence'],'Εργαστηριακό προσωπικό':['Άδεια άσκησης επαγγέλματος τεχνολόγου εργαστηρίων','Laboratory technologist licence'],'Διοικητικό προσωπικό':['Βεβαίωση προϋπηρεσίας','Employment certificate']}

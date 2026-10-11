@@ -30,35 +30,35 @@ describe('bacteremia incidence metrics (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 388/2014
 
   it('counts only positive blood cultures with a recorded organism', () => {
     const metrics = collectIndicatorMetrics()
-    // Demo seed's blood cultures: three Klebsiella pneumoniae (the seeded
-    // ICU cluster), Enterococcus, Acinetobacter and Pseudomonas positives;
-    // the two negative/organism-less blood cultures and the non-blood-
-    // culture positives (wound/urine) are excluded.
-    expect(metrics.bacteremia_total).toBe(6)
+    // Demo seed's year of blood cultures: six Klebsiella pneumoniae (incl.
+    // the seeded ICU cluster), four S. aureus, two E. coli, two Acinetobacter,
+    // one Pseudomonas and one Enterococcus positive; the negative/organism-less
+    // blood cultures and the non-blood-culture positives (wound/urine) are excluded.
+    expect(metrics.bacteremia_total).toBe(16)
   })
 
   it('attributes each demo bacteremia to its own reference pathogen', () => {
     const metrics = collectIndicatorMetrics()
-    expect(metrics.bacteremia_klebsiella).toBe(3)
-    expect(metrics.bacteremia_acinetobacter).toBe(1)
+    expect(metrics.bacteremia_klebsiella).toBe(6)
+    expect(metrics.bacteremia_acinetobacter).toBe(2)
     expect(metrics.bacteremia_pseudomonas).toBe(1)
     expect(metrics.bacteremia_enterococcus).toBe(1)
-    expect(metrics.bacteremia_ecoli).toBe(0)
+    expect(metrics.bacteremia_ecoli).toBe(2)
     expect(metrics.bacteremia_proteus).toBe(0)
     expect(metrics.bacteremia_enterobacter).toBe(0)
-    expect(metrics.bacteremia_saureus).toBe(0)
+    expect(metrics.bacteremia_saureus).toBe(4)
   })
 
   it('excludes unvalidated draft results from the total', () => {
     laboratorySamples.unshift({ id: 'LAB-TEST-DRAFT', type: 'bloodCulture', result: 'positive', organism: 'Escherichia coli', resultStatus: 'draft' })
     const metrics = collectIndicatorMetrics()
-    expect(metrics.bacteremia_total).toBe(6)
-    expect(metrics.bacteremia_ecoli).toBe(0)
+    expect(metrics.bacteremia_total).toBe(16)
+    expect(metrics.bacteremia_ecoli).toBe(2)
   })
 
   it('excludes non-reference-pathogen organisms (e.g. Candida spp.) from the total', () => {
     laboratorySamples.unshift({ id: 'LAB-TEST-CANDIDA', type: 'bloodCulture', result: 'positive', organism: 'Candida auris', resultStatus: 'validated' })
     const metrics = collectIndicatorMetrics()
-    expect(metrics.bacteremia_total).toBe(6)
+    expect(metrics.bacteremia_total).toBe(16)
   })
 })

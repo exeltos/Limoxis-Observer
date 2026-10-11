@@ -1,5 +1,14 @@
 import { surveillanceDemoData } from './surveillanceDemoData'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
+import { addDays } from '../../core/data/demoSeed'
+import {
+  SAMPLE_SITES,
+  deviceFor,
+  haiTextFor,
+  historyCases,
+  needsIsolation,
+  susceptibilitySummary,
+} from './demoInfectionHistory'
 export const clinicalCases = {
   'SUR-260041': {
     id: 'SUR-260041',
@@ -794,6 +803,179 @@ export const clinicalCases = {
     outcome: { status: 'resolved', date: '2026-07-19', notes: 'Βελτίωση τραύματος.' },
     timeline: [],
   },
+}
+
+// The year's other episodes (demoInfectionHistory.js) as full records: assessment,
+// HAI classification, device, culture, treatment with its administrations,
+// precautions, reassessment and outcome.
+const ASSESSORS = ['Α. Νικολάου', 'Δ. Παπαδάκη', 'Ε. Παπαδοπούλου']
+const OUTCOME_NOTES = {
+  resolved: ['Ολοκλήρωση αγωγής με κλινική ίαση.', 'Treatment completed, clinically cured.'],
+  discharged: ['Έξοδος με από του στόματος αγωγή.', 'Discharged on oral treatment.'],
+  transferred: [
+    'Μεταφορά σε άλλο νοσοκομείο για συνέχιση νοσηλείας.',
+    'Transferred to another hospital.',
+  ],
+  deceased: ['Κατέληξε παρά την αγωγή.', 'Died despite treatment.'],
+}
+const LAST_DOSE_DAY = '2026-08-28'
+for (const item of historyCases) {
+  const done = item.status === 'completed'
+  const number = item.id.slice(-3)
+  const assessor = ASSESSORS[Number(number) % ASSESSORS.length]
+  const [deviceName, deviceNameEn] = deviceFor(item.device) || []
+  const [sampleType, , , site, siteEn] = SAMPLE_SITES[item.site]
+  const [summary, summaryEn, symptoms, symptomsEn] = haiTextFor(item.hai, item.organism)
+  const [antimicrobial, dose, route, days, approvalStatus] = item.therapy
+  const resultDay = addDays(item.startedAt, 1)
+  const plannedEnd = addDays(resultDay, days - 1)
+  const lastDose = done ? plannedEnd : LAST_DOSE_DAY
+  const therapyId = `TX-${number}H`
+  const administrations = []
+  for (let day = resultDay; day <= lastDose; day = addDays(day, 1)) {
+    const withheld = administrations.length === 2 && Number(number) % 4 === 0
+    administrations.unshift({
+      id: `ADM-${number}H-${administrations.length + 1}`,
+      therapyId,
+      administeredAt: `${day}T09:00:00`,
+      dose,
+      route,
+      status: withheld ? 'withheld' : 'administered',
+      withheldReason: withheld ? 'Αναμονή επιπέδων φαρμάκου' : '',
+      administeredBy: 'demo',
+      notes: '',
+      createdBy: 'demo',
+      createdAt: `${day}T09:05:00`,
+    })
+  }
+  const therapy = [
+    {
+      id: therapyId,
+      antimicrobial,
+      dose,
+      route,
+      startedAt: resultDay,
+      plannedEnd,
+      ...(done ? { endedAt: plannedEnd, status: 'completed' } : { status: 'active' }),
+      indication: [item.organism, item.resistance].filter(Boolean).join(' '),
+      approvalStatus,
+      administrations,
+    },
+  ]
+  if (!done)
+    therapy.push({
+      id: `${therapyId}2`,
+      antimicrobial: 'Daptomycin',
+      dose: '8 mg/kg',
+      route: 'IV',
+      startedAt: LAST_DOSE_DAY,
+      plannedEnd: addDays(LAST_DOSE_DAY, 13),
+      status: 'active',
+      indication: 'Αποκλιμάκωση από βανκομυκίνη (νεφροτοξικότητα)',
+      approvalStatus: 'pending',
+      administrations: [],
+    })
+  clinicalCases[item.id] = {
+    id: item.id,
+    patientId: item.patientId,
+    patient: item.patient,
+    patientEn: item.patientEn,
+    dateOfBirth: item.dateOfBirth,
+    ...(item.birthWeightGrams
+      ? { birthWeightGrams: item.birthWeightGrams, gestationalAgeWeeks: item.gestationalAgeWeeks }
+      : {}),
+    department: item.department,
+    departmentEn: item.departmentEn,
+    room: item.room,
+    admissionDate: item.admissionDate,
+    startedAt: item.startedAt,
+    reviewDue: done ? addDays(item.startedAt, 3) : LAST_DOSE_DAY,
+    completedAt: item.completedAt,
+    status: item.status,
+    organism: item.organism,
+    resistance: item.resistance,
+    source: site,
+    sourceEn: siteEn,
+    haiClassification: item.hai
+      ? {
+          status: item.hai[0],
+          type: item.hai[1],
+          definitionSet: 'WHO HAI surveillance',
+          criteriaMet: item.hai[0] === 'confirmed',
+        }
+      : null,
+    devices: deviceName
+      ? [
+          {
+            id: `DEV-${number}H`,
+            name: deviceName,
+            nameEn: deviceNameEn,
+            insertedAt: addDays(item.admissionDate, 1),
+            ...(done
+              ? { status: 'removed', removedAt: addDays(item.startedAt, 2) }
+              : { status: 'active', reviewDue: LAST_DOSE_DAY }),
+          },
+        ]
+      : [],
+    assessment: {
+      date: item.startedAt,
+      type: item.hai?.[0] === 'notHai' ? 'communityAcquired' : 'healthcareAssociated',
+      classification: 'infection',
+      assessedBy: assessor,
+      summary,
+      summaryEn,
+      symptoms,
+      symptomsEn,
+      riskFactors: deviceName ? [deviceName] : [],
+      riskFactorsEn: deviceNameEn ? [deviceNameEn] : [],
+    },
+    samples: [
+      {
+        id: item.sampleId,
+        type: sampleType,
+        collectedAt: `${item.startedAt}T08:10:00`,
+        resultedAt: `${resultDay}T11:10:00`,
+        result: 'positive',
+        organism: item.organism,
+        resistance: item.resistance,
+        susceptibility: susceptibilitySummary(item.organism, item.resistance),
+        critical: item.critical,
+        communicatedAt: item.critical && done ? `${resultDay}T11:20:00` : null,
+      },
+    ],
+    therapy,
+    isolation: needsIsolation(item)
+      ? {
+          id: `ISO-${number}H`,
+          precautions: ['contactPrecautions'],
+          room: item.room,
+          startedAt: resultDay,
+          ...(done
+            ? { endedAt: item.completedAt, status: 'ended' }
+            : { nextReview: LAST_DOSE_DAY, status: 'active' }),
+          reason: [item.resistance, item.organism].filter(Boolean).join(' '),
+        }
+      : null,
+    reassessments: [
+      {
+        id: `REV-${number}H`,
+        date: addDays(item.startedAt, 3),
+        status: item.outcome === 'deceased' ? 'deterioration' : 'clinicalImprovement',
+        decision: 'continueTreatment',
+        notes: '',
+        by: assessor,
+      },
+    ],
+    outcome: done
+      ? {
+          status: item.outcome,
+          date: item.completedAt,
+          notes: OUTCOME_NOTES[item.outcome][0],
+          notesEn: OUTCOME_NOTES[item.outcome][1],
+        }
+      : null,
+    timeline: [],
+  }
 }
 
 // One demo source for surveillance: list-only fixtures (older completed cases)

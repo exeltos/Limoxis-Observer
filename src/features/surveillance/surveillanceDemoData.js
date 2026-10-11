@@ -1,4 +1,6 @@
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
+import { addDays } from '../../core/data/demoSeed'
+import { historyCases, needsIsolation } from './demoInfectionHistory'
 export const surveillanceDemoData = [
   {
     id: 'SUR-260041',
@@ -190,6 +192,33 @@ export const surveillanceDemoData = [
     },
   },
 ]
+
+// The year's other episodes (demoInfectionHistory.js), as Surveillance Center rows.
+for (const item of historyCases) {
+  const done = item.status === 'completed'
+  const isolation = needsIsolation(item)
+  surveillanceDemoData.push({
+    id: item.id,
+    patientId: item.patientId,
+    patient: item.patient,
+    patientEn: item.patientEn,
+    department: item.department,
+    departmentEn: item.departmentEn,
+    startedAt: item.startedAt,
+    organism: item.organism,
+    resistance: item.resistance,
+    isolation,
+    reviewDue: addDays(item.startedAt, 3),
+    status: item.status,
+    domains: {
+      assessment: 'completed',
+      microbiology: done ? 'completed' : 'active',
+      therapy: done ? 'completed' : 'active',
+      isolation: isolation ? (done ? 'completed' : 'active') : 'notApplicable',
+      reassessment: done ? 'completed' : 'pending',
+    },
+  })
+}
 
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([surveillanceDemoData])

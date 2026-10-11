@@ -1,4 +1,5 @@
 // Demo dates are written relative to now, so they never need the Demo clock.
+import { seededRandom } from '../../core/data/demoSeed'
 const iso=offsetHours=>{
  const d=new Date()
  d.setTime(d.getTime()+offsetHours*60*60*1000)
@@ -172,6 +173,34 @@ controlExecutionRows.push(
  ...historyRun(assignment2,definition1,'Χειρουργική','Νίκος Δημητρίου',range(1,29),{missed:[5,6,14,22,26]}),
  ...historyRun(assignment3,definition2,'Χειρουργική','Νίκος Δημητρίου',[10]),
 )
+
+// A year of the weekly disinfection and monthly expiry programmes in six wards,
+// with the occasional finding, so the Controls and Analysis screens show trends.
+const newAssignment=(id,definition,department,lastDays,intervalDays)=>({id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,department:departmentRow(department),status:'scheduled',last_completed_at:iso(-24*lastDays-3),next_due_at:iso(24*(intervalDays-lastDays)+6)})
+const programmeAssignments=[
+ [newAssignment('ctrl-asg-disinfect-icu',definition2,'ΜΕΘ',2,7),definition2,'ΜΕΘ','Ελένη Παπαδοπούλου',7],
+ [newAssignment('ctrl-asg-disinfect-internal',definition2,'Παθολογική',4,7),definition2,'Παθολογική','Νίκος Δημητρίου',7],
+ [newAssignment('ctrl-asg-disinfect-cardio',definition2,'Καρδιολογική',1,7),definition2,'Καρδιολογική','Σοφία Οικονόμου',7],
+ [newAssignment('ctrl-asg-disinfect-nicu',definition2,'Νεογνολογική / ΜΕΝΝ',5,7),definition2,'Νεογνολογική / ΜΕΝΝ','Γεωργία Φωτίου',7],
+ [newAssignment('ctrl-asg-expiry-icu',definition3,'ΜΕΘ',12,30),definition3,'ΜΕΘ','Ελένη Παπαδοπούλου',30],
+ [newAssignment('ctrl-asg-expiry-surgery',definition3,'Χειρουργική',8,30),definition3,'Χειρουργική','Νίκος Δημητρίου',30],
+ [newAssignment('ctrl-asg-expiry-ed',definition3,'ΤΕΠ',16,30),definition3,'ΤΕΠ','Ανδρέας Μάρκου',30],
+ [newAssignment('ctrl-asg-expiry-cardio',definition3,'Καρδιολογική',20,30),definition3,'Καρδιολογική','Σοφία Οικονόμου',30],
+ [newAssignment('ctrl-asg-expiry-nicu',definition3,'Νεογνολογική / ΜΕΝΝ',6,30),definition3,'Νεογνολογική / ΜΕΝΝ','Γεωργία Φωτίου',30],
+]
+controlAssignmentRows.push(...programmeAssignments.map(([assignment])=>assignment))
+// Existing assignments get the rest of their year too.
+programmeAssignments.push([assignment3,definition2,'Χειρουργική','Νίκος Δημητρίου',7,17],[assignment5,definition2,'ΤΕΠ','Ανδρέας Μάρκου',7,9],[assignment4,definition3,'Παθολογική','Νίκος Δημητρίου',30,25])
+const FINDING_VALUE={[definition2.id]:['Μη συμμόρφωση','Υπολείμματα σε επιφάνειες υψηλής επαφής.'],[definition3.id]:['Κοντόληκτο','Κοντόληκτα υλικά αποσύρθηκαν και ενημερώθηκε το φαρμακείο.']}
+const OK_VALUE={[definition2.id]:'Συμμορφώνεται',[definition3.id]:'Χωρίς εύρημα'}
+for(const [assignment,definition,department,actorName,interval,firstDay] of programmeAssignments){
+ const rand=seededRandom(`controls|${assignment.id}`)
+ const lastDay=Math.round((Date.now()-new Date(assignment.last_completed_at).getTime())/86_400_000)
+ for(let day=firstDay??lastDay;day<=364;day+=interval){
+  const finding=rand()<(definition.id===definition3.id?0.16:0.09)
+  controlExecutionRows.push({id:`ctrl-exec-${assignment.id}-y${day}`,assignment_id:assignment.id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,status:'completed',value_text:finding?FINDING_VALUE[definition.id][0]:OK_VALUE[definition.id],response_data:{structuredData:null,actorName,actorEmail:'',previousLastCompletedAt:iso(-24*(day+interval)-3),previousNextDueAt:iso(-24*day-3)},notes:finding?FINDING_VALUE[definition.id][1]:'',has_finding:finding,performed_at:iso(-24*day-3),performed_by:'',edited_at:null,edited_by:null,cancelled_at:null,cancelled_by:null,cancellation_reason:''})
+ }
+}
 
 export const controlDraftRows=[{id:'ctrl-draft-expiry-1',assignment_id:assignment4.id,control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',status:'draft',value_text:'Κοντόληκτο',response_data:{structuredData:{items:[{name:'Adrenaline 1mg/ml',quantity:6,expiry:'2026-10-15',finding:'Κοντόληκτο'}]},actorName:'Demo User'},notes:'Σε εξέλιξη ο έλεγχος ραφιού.',has_finding:true,performed_at:null}]
 
