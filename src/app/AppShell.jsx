@@ -4,6 +4,7 @@ import { lazyPage } from '../core/errors/chunkRecovery'
 import { ScreenErrorBoundary } from '../core/errors/AppErrorBoundary'
 import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
+import { watchWheelChaining } from './wheelChaining'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, LogOut, Menu, Settings, ShieldCheck, UserRound, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
@@ -49,6 +50,7 @@ export function AppShell(){
   // Tablets (641–1100px) show an icon rail; the toggle opens the full menu over the page.
   const [navOpen,setNavOpen]=useState(false)
   useEffect(()=>watchTableCells(),[])
+  useEffect(()=>watchWheelChaining(),[])
   useEffect(()=>{setNavOpen(false)},[location.pathname,location.hash])
   useEffect(()=>{if(!navOpen)return;const onKey=event=>{if(event.key==='Escape')setNavOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[navOpen])
   const platformHashKey=location.hash.replace(/^#/,'').split('?')[0]
@@ -102,7 +104,7 @@ navigate('/');await reloadMemberships()}catch(error){notifyError(error,'save',{o
   const previewNeedsDepartment=Boolean(rolePreview?.role&&departmentScopedPreviewRoles.has(rolePreview.role))
   const visibleNavigation=platformMode?[]:navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})
   const managementNavigation=visibleNavigation.filter(item=>item.key==='management')
-  const usesCompactMore=[ROLES.PLATFORM_OWNER,ROLES.INFECTION_CONTROL_LEAD].includes(role)
+  const usesCompactMore=[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD].includes(role)
   const moreNavigation=usesCompactMore?visibleNavigation.filter(item=>item.group==='more'):[]
   const primaryNavigation=usesCompactMore?visibleNavigation.filter(item=>item.key!=='management'&&item.group!=='more'):visibleNavigation.filter(item=>item.key!=='management')
   const moreActive=usesCompactMore&&moreNavigation.some(item=>location.pathname===item.to||location.pathname.startsWith(`${item.to}/`))

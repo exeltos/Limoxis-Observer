@@ -12,6 +12,7 @@ import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { SimpleDialog } from './ClinicalRecordDialogs'
 import { clinicalTerm } from './clinicalRecordLabels'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
+import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
 
 // Admissions of the clinical record: patient admissions home, admission summary
 // and lifecycle actions (admit, transfer, discharge).
@@ -173,6 +174,8 @@ export function PatientAdmissionsHome({
 export function CanonicalSummary({
   onOpenStage,
   samples,
+  scaleRows = [],
+  admissions = [],
   patient,
   admission,
   record,
@@ -188,7 +191,8 @@ export function CanonicalSummary({
   fmtDate,
 }) {
   const en = language === 'en'
-  const latest = record?.samples?.find(x => x.organism) || record?.samples?.[0]
+  const samplePool = samples || record?.samples || []
+  const latest = samplePool.find(x => x.organism) || samplePool[0]
   const admittedAt = admission
     ? admission.admissionDate
     : patient?.admissionDate || record?.admissionDate
@@ -341,6 +345,43 @@ export function CanonicalSummary({
           ))}
         </div>
       </section>
+      {!record && (
+        <section className="clinical-panel patient-summary-card">
+          <div className="record-section-header">
+            <div>
+              <h3>{t('clinicalRecords.clinicalPicture')}</h3>
+            </div>
+          </div>
+          <div className="detail-grid patient-detail-grid">
+            {clinicalRiskFlags(scaleRows).map(({ kind, row, config, tone }) => (
+              <Detail
+                key={kind}
+                label={en ? config.labelEn : config.labelEl}
+                value={
+                  <>
+                    {badge(`${scaleShortName(row.scale_key)} ${row.score ?? '—'}`, tone)}
+                    {row.assessed_at ? <small> {fmtDate(row.assessed_at)}</small> : null}
+                  </>
+                }
+              />
+            ))}
+            {!scaleRows.length && (
+              <Detail label={t('clinicalRecords.clinicalAssessmentLabel')} value={t('clinicalRecords.none')} />
+            )}
+            <Detail
+              label={t('clinicalRecords.samplesLabel')}
+              value={
+                recordSamples.length
+                  ? `${recordSamples.length}${awaitingCount ? ` · ${awaitingCount} ${t('clinicalRecords.awaitingResultShort')}` : ''}`
+                  : t('clinicalRecords.none')
+              }
+            />
+            <Detail label={t('clinicalRecords.latestFinding')} value={findingValue} />
+            <Detail label={t('surveillance')} value={t('clinicalRecords.noSurveillance')} />
+            <Detail label={t('clinicalRecords.admissionsCount')} value={admissions.length || 1} />
+          </div>
+        </section>
+      )}
       {record && (
         <section className="clinical-panel patient-summary-card">
           <div className="record-section-header">
