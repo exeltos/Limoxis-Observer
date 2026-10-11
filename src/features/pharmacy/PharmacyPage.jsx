@@ -18,7 +18,7 @@ const formatPeriod = (period, en, month = 'long') => /^\d{4}-\d{2}$/.test(String
 const monthNow = () => new Date().toISOString().slice(0, 7)
 
 export function PharmacyPage() {
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
   const en = language === 'en'
   const { notify, notifyError } = useFeedback()
   const { role, membership, tenant } = useTenant()
@@ -80,7 +80,7 @@ export function PharmacyPage() {
           {loading && <div className="registry-empty-state"><strong>{en ? 'Loading…' : 'Φόρτωση…'}</strong></div>}
           {!loading && !rows.length && <div className="inline-empty">{en ? 'No dispensing periods recorded yet.' : 'Δεν έχουν καταχωριστεί περίοδοι χορήγησης.'}</div>}
           {!loading && Boolean(rows.length) && (
-            <div className="record-table-wrap">
+            <div className="record-table-wrap" tabIndex={0} role="region" aria-label={t('pharmacy')}>
               <table className="data-table record-table">
                 <thead><tr><th>{en ? 'Period' : 'Περίοδος'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'WHO AWaRe' : 'WHO AWaRe'}</th><th>{en ? 'Quantity' : 'Ποσότητα'}</th><th>{en ? 'Responsible' : 'Υπεύθυνος'}</th></tr></thead>
                 <tbody>{[...rows].sort((a, b) => String(b.periodStart || b.period || '').localeCompare(String(a.periodStart || a.period || ''))).map(row => { const category = awareCategoryFor(row.productEn || row.product); return <tr key={row.id}><td>{formatPeriod(row.period, en)}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{category ? <span className={`status-badge aware-${category}`}>{awareCategoryLabel(category, language)}</span> : '—'}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></tr> })}</tbody>

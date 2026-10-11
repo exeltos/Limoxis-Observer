@@ -1,3 +1,4 @@
+import { binCloudRows, binLocalRow, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { preventionDepartments, bundleTemplateLibrary } from './preventionDemoData'
@@ -314,11 +315,16 @@ export async function saveBundleFollowUp(organizationId, assessmentId, itemId, f
 export async function deleteBundleAssessment(organizationId, id) {
   if (isDemoDataEnvironment()) {
     if (!id) return
-    saveBundlesLocal(loadBundlesLocal().filter(row => row.id !== id))
+    const rows = loadBundlesLocal()
+    const row = rows.find(item => item.id === id)
+    await binLocalRow(organizationId, { module: 'clinical', kind: 'prevention_bundle_assessments', ...describeDeleted('Δέσμη μέτρων', row), table: 'prevention_bundles', row })
+    saveBundlesLocal(rows.filter(item => item.id !== id))
     return
   }
   assertCloud(organizationId)
   if (!id) return
+  const { data: deleted } = await supabase.from('prevention_bundle_assessments').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle()
+  await binCloudRows(organizationId, { module: 'clinical', kind: 'prevention_bundle_assessments', ...describeDeleted('Δέσμη μέτρων', deleted || {}), parts: [{ table: 'prevention_bundle_assessments', match: { id } }] })
   const { error } = await supabase
     .from('prevention_bundle_assessments')
     .delete()

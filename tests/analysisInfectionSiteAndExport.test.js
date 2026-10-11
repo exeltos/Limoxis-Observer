@@ -78,9 +78,9 @@ describe('detailed microbiology line lists can be exported as CSV', () => {
     expect(page).toContain('function exportNationalRowsCsv(')
   })
 
-  it('wires an export button into both the National and AMR detailed tables', () => {
-    expect(page).toContain('<ExportCsvButton rows={nationalRows}')
-    expect(page).toContain('<ExportCsvButton rows={resistantRows}')
+  it('wires an export button into the detailed line list, exporting the resistant subset when it is narrowed', () => {
+    expect(page).toContain('<ExportCsvButton rows={listRows}')
+    expect(page).toContain("resistantOnly?nationalRows.filter(")
   })
 })
 

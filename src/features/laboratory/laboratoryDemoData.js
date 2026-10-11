@@ -1,4 +1,6 @@
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
+import { DEMO_HISTORY_MONTHS, addDays, between, dayInMonth, pad2, pick, seededRandom } from '../../core/data/demoSeed'
+import { SAMPLE_SITES, WARD_EN, astFor, historyCases } from '../surveillance/demoInfectionHistory'
 export const laboratorySamples = [
   {id:'LAB-260829-013',patient:'Νεογέννητο Ιωαννίδη',patientEn:'Neonate Ioannidi',patientId:'PT-260190',department:'Νεογνολογική / ΜΕΝΝ',departmentEn:'Neonatal / NICU',type:'bloodCulture',source:'Κεντρική γραμμή',sourceEn:'Central line',collectedAt:'2026-08-29T07:40:00+03:00',receivedAt:'2026-08-29T08:05:00+03:00',status:'processing',priority:'urgent',organism:null,result:null,resultStatus:'draft',resultedAt:null,validatedAt:null,validatedBy:null,resistance:null,critical:false,surveillanceCase:'SUR-260045',ast:[],communications:[],attachments:[],timeline:[{at:'2026-08-29T08:05:00+03:00',type:'sampleReceived',actor:'Εργαστήριο'}]},
   {id:'LAB-260829-014',patient:'Μαρία Κωνσταντίνου',patientEn:'Maria Konstantinou',patientId:'PT-260161',department:'ΜΕΘ',departmentEn:'ICU',type:'urineCulture',source:'Ουροκαθετήρας',sourceEn:'Urinary catheter',collectedAt:'2026-08-29T09:15:00+03:00',receivedAt:null,status:'collected',priority:'routine',organism:null,result:null,resultStatus:'draft',resultedAt:null,validatedAt:null,validatedBy:null,resistance:null,critical:false,surveillanceCase:null,ast:[],communications:[],attachments:[],timeline:[]},
@@ -30,6 +32,61 @@ export const laboratorySamples = [
   {id:'ENV-260824-003',subjectType:'environment',type:'water',environmentalMethod:'showerWater',subjectName:'Παθολογική · Ντους θαλάμου 12',subjectNameEn:'Internal medicine · Room 12 shower',location:'Παθολογική',point:'Ντους θαλάμου 12',department:'Παθολογική',departmentEn:'Internal medicine',collectedAt:'2026-08-24T09:00:00+03:00',receivedAt:'2026-08-24T10:05:00+03:00',status:'completed',priority:'urgent',organism:'Legionella pneumophila',result:'positive',resultStatus:'validated',resultedAt:'2026-08-27T12:00:00+03:00',validatedAt:'2026-08-27T12:30:00+03:00',validatedBy:'Μ. Εργαστηρίου',microbiologyResults:[{organism:'Legionella pneumophila',cfuCount:1200,withinLimit:false}],ast:[],communications:[],attachments:[],timeline:[{at:'2026-08-27T12:30:00+03:00',type:'resultValidated',actor:'Μ. Εργαστηρίου'},{at:'2026-08-24T10:05:00+03:00',type:'sampleReceived',actor:'Εργαστήριο'}]},
   {id:'ENV-260828-004',subjectType:'environment',type:'surface',environmentalMethod:'surfaceSwab',subjectName:'ΜΕΝΝ · Θερμοκοιτίδα 3',subjectNameEn:'NICU · Incubator 3',location:'ΜΕΝΝ',point:'Θερμοκοιτίδα 3',department:'Νεογνολογική / ΜΕΝΝ',departmentEn:'Neonatology / NICU',collectedAt:'2026-08-28T08:15:00+03:00',receivedAt:'2026-08-28T09:00:00+03:00',status:'processing',priority:'routine',ast:[],communications:[],attachments:[],timeline:[{at:'2026-08-28T09:00:00+03:00',type:'sampleReceived',actor:'Εργαστήριο'}]},
 ]
+
+// A year of microbiology behind the recent samples (authored 2025-09 … 2026-08): the
+// cultures of every surveillance episode (demoInfectionHistory.js), community and
+// colonisation isolates, the negative cultures that make up most of the workload,
+// and a few samples still in progress.
+const tz=date=>(Number(date.slice(5,7))>=4&&Number(date.slice(5,7))<=10?'+03:00':'+02:00')
+const at=(date,hour,minute=0)=>`${date}T${pad2(hour)}:${pad2(minute)}:00${tz(date)}`
+const VALIDATORS=['Κ. Μικροβιολόγος','Μ. Εργαστηρίου','Δρ. Μαρίνα Κουτσού']
+function historySample({id,patient,patientEn,patientId,department,site,date,hour,organism,resistance,critical,communicated=true,surveillanceCase=null,status='completed'}){
+ const [type,source,sourceEn]=SAMPLE_SITES[site],rand=seededRandom(id),validator=pick(rand,VALIDATORS)
+ const collectedAt=at(date,hour,between(rand,0,5)*10),receivedAt=at(date,hour+1,5)
+ const base={id,patient,patientEn,patientId,department,departmentEn:WARD_EN[department],type,source,sourceEn,collectedAt,receivedAt,priority:critical?'critical':type==='bloodCulture'?'urgent':'routine',surveillanceCase,attachments:[]}
+ if(status!=='completed')return {...base,receivedAt:status==='collected'?null:receivedAt,status,organism:null,result:null,resultStatus:'draft',resultedAt:null,validatedAt:null,validatedBy:null,resistance:null,critical:false,ast:[],communications:[],timeline:status==='collected'?[]:[{at:receivedAt,type:'sampleReceived',actor:'Εργαστήριο'}]}
+ const resultDay=addDays(date,type==='bloodCulture'?1:type==='other'?0:between(rand,1,2)),resultedAt=at(resultDay,type==='other'?hour+5:between(rand,9,14),between(rand,0,5)*10),validatedAt=at(resultDay,Number(resultedAt.slice(11,13)),Number(resultedAt.slice(14,16))+5)
+ const communications=critical&&communicated?[{id:`COMM-${id}`,at:at(resultDay,Number(resultedAt.slice(11,13)),Number(resultedAt.slice(14,16))+8),to:`Ιατρός ${department}`,toEn:`${WARD_EN[department]} physician`,method:'phone',by:validator,readBack:true}]:[]
+ return {...base,status:'completed',organism:organism||null,result:organism?'positive':'negative',resultStatus:'validated',resultedAt,validatedAt,validatedBy:validator,resistance:resistance||null,critical:Boolean(critical),ast:organism?astFor(organism,resistance):[],communications,timeline:[...(communications.length?[{at:communications[0].at,type:'criticalCommunicated',actor:validator}]:[]),{at:validatedAt,type:'resultValidated',actor:validator},{at:receivedAt,type:'sampleReceived',actor:'Εργαστήριο'}]}
+}
+// C. difficile toxin tests (stool) are not cultures and stay on the surveillance episode only.
+for(const item of historyCases.filter(item=>item.site!=='stool'))laboratorySamples.push(historySample({id:item.sampleId,patient:item.patient,patientEn:item.patientEn,patientId:item.patientId,department:item.department,site:item.site,date:item.startedAt,hour:7+(Number(item.startedAt.slice(8))%5),organism:item.organism,resistance:item.resistance,critical:item.critical,communicated:item.status==='completed',surveillanceCase:item.id}))
+const PATIENT_POOL=[['Αθανάσιος Καραμανλής','Athanasios Karamanlis'],['Ευφροσύνη Δρακοπούλου','Efrosyni Drakopoulou'],['Στυλιανός Μαυρογιάννης','Stylianos Mavrogiannis'],['Κωνσταντίνα Ρέππα','Konstantina Reppa'],['Μιλτιάδης Χατζηγεωργίου','Miltiadis Chatzigeorgiou'],['Παρασκευή Λιόλιου','Paraskevi Lioliou'],['Ανδρέας Πολυχρόνης','Andreas Polychronis'],['Αικατερίνη Μπούρα','Aikaterini Boura'],['Βασίλειος Σκλαβενίτης','Vasileios Sklavenitis'],['Θεοδώρα Ανδρικοπούλου','Theodora Andrikopoulou'],['Χρήστος Καλογεράκης','Christos Kalogerakis'],['Μαρία Τζαννετάκη','Maria Tzannetaki'],['Νικηφόρος Βαρβέρης','Nikiforos Varveris'],['Σοφία Γκιόκα','Sofia Gkioka'],['Ηρακλής Ζαχαρόπουλος','Iraklis Zacharopoulos'],['Ευγενία Κοντού','Evgenia Kontou'],['Δημοσθένης Ραφτόπουλος','Dimosthenis Raftopoulos'],['Ιφιγένεια Σταματίου','Ifigeneia Stamatiou'],['Περικλής Λαμπράκης','Periklis Lamprakis'],['Αναστασία Τριανταφύλλου','Anastasia Triantafyllou'],['Γρηγόριος Βουλγαράκης','Grigorios Voulgarakis'],['Ελισάβετ Φλώρου','Elisavet Florou'],['Μάρκος Ηλιόπουλος','Markos Iliopoulos'],['Καλλιόπη Νταή','Kalliopi Ntai']]
+let poolIndex=0
+// Names repeat on purpose: the same patients come back for further cultures.
+const nextPatient=()=>{const slot=poolIndex%PATIENT_POOL.length,[patient,patientEn]=PATIENT_POOL[slot];poolIndex+=1;return {patient,patientEn,patientId:`PT-2530${pad2(slot+1)}`}}
+// Community-onset and colonisation isolates (no surveillance episode of their own).
+const LAB_ONLY_POSITIVES=[
+ ['2025-09-15','ΤΕΠ','midstream','Escherichia coli',null],['2025-09-26','Παθολογική','sputum','Pseudomonas aeruginosa',null],
+ ['2025-10-13','Καρδιολογική','midstream','Escherichia coli','ESBL'],['2025-10-27','ΤΕΠ','peripheral','Staphylococcus aureus',null,true],
+ ['2025-11-10','ΜΕΘ','trachealAspirate','Staphylococcus aureus','MRSA'],['2025-11-24','Παθολογική','midstream','Klebsiella pneumoniae','ESBL'],
+ ['2025-12-08','ΤΕΠ','midstream','Proteus mirabilis',null],['2025-12-22','Χειρουργική','drainage','Enterococcus faecalis',null],
+ ['2026-01-15','Παθολογική','peripheral','Escherichia coli','ESBL'],['2026-01-27','ΜΕΘ','urinaryCatheter','Enterococcus faecium','VRE'],
+ ['2026-02-12','ΤΕΠ','midstream','Escherichia coli',null],['2026-02-24','Καρδιολογική','sputum','Klebsiella pneumoniae','ESBL'],
+ ['2026-03-10','Ορθοπαιδική','woundSwab','Staphylococcus aureus','MRSA'],['2026-03-20','Παθολογική','midstream','Enterococcus faecalis',null],
+ ['2026-04-18','ΜΕΘ','trachealAspirate','Acinetobacter baumannii','XDR'],['2026-04-27','ΤΕΠ','midstream','Escherichia coli',null],
+ ['2026-05-12','Παθολογική','midstream','Escherichia coli','ESBL'],['2026-05-22','ΜΕΘ','bal','Pseudomonas aeruginosa','MDR'],
+ ['2026-06-05','ΤΕΠ','peripheral','Escherichia coli',null],['2026-06-24','Χειρουργική','woundSwab','Staphylococcus aureus',null],
+ ['2026-07-08','Παθολογική','midstream','Proteus mirabilis',null],['2026-07-21','ΤΕΠ','midstream','Klebsiella pneumoniae','ESBL'],
+ ['2026-08-05','Ορθοπαιδική','woundSwab','Escherichia coli',null],['2026-08-12','ΜΕΘ','urinaryCatheter','Klebsiella pneumoniae','MDR'],
+]
+LAB_ONLY_POSITIVES.forEach(([date,department,site,organism,resistance,critical],index)=>laboratorySamples.push(historySample({id:`LAB-${date.replace(/-/g,'').slice(2)}-0${pad2(30+index)}`,...nextPatient(),department,site,date,hour:8+index%6,organism,resistance,critical})))
+// Negative cultures: most of the laboratory's daily work.
+const NEGATIVE_SITES=['peripheral','peripheral','centralLine','midstream','urinaryCatheter','sputum','trachealAspirate','woundSwab']
+const NEGATIVE_WARDS=Object.keys(WARD_EN)
+DEMO_HISTORY_MONTHS.forEach((month,monthIndex)=>{
+ const rand=seededRandom(`lab-negatives|${month}`),count=between(rand,4,6)
+ for(let index=0;index<count;index++){
+  const date=dayInMonth(month,2+index*5+between(rand,0,3)),site=pick(rand,NEGATIVE_SITES)
+  laboratorySamples.push(historySample({id:`LAB-${date.replace(/-/g,'').slice(2)}-1${pad2(monthIndex*6+index)}`,...nextPatient(),department:pick(rand,NEGATIVE_WARDS),site,date,hour:between(rand,6,15)}))
+ }
+})
+// Still in the laboratory.
+laboratorySamples.push(
+ historySample({id:'LAB-260828-201',...nextPatient(),department:'Καρδιολογική',site:'peripheral',date:'2026-08-28',hour:6,status:'processing'}),
+ historySample({id:'LAB-260828-202',...nextPatient(),department:'Χειρουργική',site:'woundSwab',date:'2026-08-28',hour:10,status:'received'}),
+ historySample({id:'LAB-260828-203',...nextPatient(),department:'ΤΕΠ',site:'midstream',date:'2026-08-28',hour:12,status:'collected'}),
+)
 
 export const getLabSample=(id)=>laboratorySamples.find(x=>x.id===id)??null
 export const createDemoLabSample=(record)=>{laboratorySamples.unshift(record);return record}

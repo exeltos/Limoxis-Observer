@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Building2, FlaskConical, LayoutDashboard, Settings, ShieldCheck, SlidersHorizontal } from 'lucide-react'
+import { BarChart3, Building2, FlaskConical, LayoutDashboard, Settings, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 
 // User guide for the Platform Owner screens (outside any hospital). Keys match
 // the platform routes: path, or path#hash for the Platform Center sections.
@@ -8,7 +8,6 @@ export const platformHelpNavigation=[
  {to:'/platform#demo',icon:FlaskConical},
  {to:'/platform#reports',icon:BarChart3},
  {to:'/platform#management',icon:SlidersHorizontal},
- {to:'/platform/health',icon:Activity},
  {to:'/platform/audit',icon:ShieldCheck},
  {to:'/platform/settings',icon:Settings},
 ]
@@ -42,14 +41,10 @@ export const platformHelp={
    ['Κοινό περιεχόμενο','Οι αλλαγές εδώ εφαρμόζονται σε όλα τα νοσοκομεία που χρησιμοποιούν το αντίστοιχο κεντρικό στοιχείο.'],
    ['Ενημερώσεις πηγών','Με «Έλεγχος & ενημέρωση πλατφόρμας» ελέγχονται οι κλινικές πηγές. Κάθε αλλαγή εμφανίζεται για έλεγχο: «Ελέγχθηκε» την κλείνει, «Αναβολή» την επαναφέρει σε 7 ημέρες.']
   ],steps:['Επιλέξτε καρτέλα (π.χ. Βιβλιοθήκες).','Κάντε την αλλαγή.','Ελέγξτε τις εκκρεμείς ενημερώσεις πηγών.']},
-  '/platform/health':{title:'Υγεία Πλατφόρμας',summary:'Λειτουργικά συμβάντα όλων των πραγματικών οργανισμών, χωρίς κλινικό περιεχόμενο.',audience:audienceEl,chapters:[
-   ['Κατάσταση','Οι δείκτες δείχνουν αποτυχίες, προειδοποιήσεις και πόσοι οργανισμοί έχουν συμβάντα.'],
-   ['Διερεύνηση','Φιλτράρετε ανά οργανισμό ή σοβαρότητα και ανοίξτε το συμβάν για λεπτομέρειες.']
-  ],steps:['Ελέγξτε την κατάσταση.','Φιλτράρετε τα συμβάντα.','Ανανεώστε μετά από διόρθωση.']},
-  '/platform/audit':{title:'Ιστορικό & Ασφάλεια',summary:'Ιχνηλασιμότητα ενεργειών Ιδιοκτήτη Πλατφόρμας και αλλαγών πρόσβασης.',audience:audienceEl,chapters:[
-   ['Ιστορικό ενεργειών','Κάθε σημαντική διοικητική ενέργεια καταγράφεται με χρήστη, χρόνο και οργανισμό. Το ιστορικό είναι μόνο για ανάγνωση.'],
-   ['Αλλαγές πρόσβασης','Χρησιμοποιήστε τα φίλτρα για αλλαγές ρόλων, προσκλήσεις και διαγραφές.']
-  ],steps:['Αναζητήστε την ενέργεια.','Φιλτράρετε ανά οργανισμό ή τύπο.','Εξετάστε τις λεπτομέρειες.']},
+  '/platform/audit':{title:'Ιστορικό & Ασφάλεια',summary:'Ιχνηλασιμότητα ενεργειών, αλλαγών πρόσβασης και λειτουργικών συμβάντων.',audience:audienceEl,chapters:[
+   ['Ενέργειες & πρόσβαση','Κάθε σημαντική διοικητική ενέργεια καταγράφεται με χρήστη, χρόνο και οργανισμό. Το ιστορικό είναι μόνο για ανάγνωση· τα φίλτρα δείχνουν αλλαγές ρόλων, προσκλήσεις και διαγραφές.'],
+   ['Συμβάντα & σφάλματα','Η δεύτερη καρτέλα δείχνει αποτυχίες, αποκλεισμούς και προειδοποιήσεις όλων των πραγματικών οργανισμών, χωρίς κλινικό περιεχόμενο.']
+  ],steps:['Διαλέξτε καρτέλα.','Φιλτράρετε ανά οργανισμό, ενέργεια ή σοβαρότητα.','Ανανεώστε μετά από διόρθωση.']},
   '/platform/settings':{title:'Ρυθμίσεις Πλατφόρμας',summary:'Καθολικές ρυθμίσεις για όλη την εγκατάσταση.',audience:audienceEl,chapters:[
    ['Λειτουργικές προεπιλογές','Email υποστήριξης και προεπιλεγμένη διάρκεια νέων Demo.'],
    ['Ανακοίνωση συντήρησης','Ενεργοποιήστε ένα μήνυμα προς όλους τους χρήστες. Η προεπισκόπηση δείχνει πώς θα εμφανιστεί.']
@@ -80,14 +75,10 @@ export const platformHelp={
    ['Shared content','Changes here apply to every hospital using the corresponding central item.'],
    ['Source updates','"Check & update platform" checks the clinical sources. Each change is listed for review: "Reviewed" closes it, "Postpone" brings it back in 7 days.']
   ],steps:['Choose a tab (e.g. Libraries).','Make the change.','Review pending source updates.']},
-  '/platform/health':{title:'Platform Health',summary:'Operational events across production organizations, without clinical content.',audience:audienceEn,chapters:[
-   ['Status','The indicators show failures, warnings and how many organizations have events.'],
-   ['Investigation','Filter by organization or severity and open an event for details.']
-  ],steps:['Check the status.','Filter the events.','Refresh after a fix.']},
-  '/platform/audit':{title:'Audit & Security',summary:'Traceability of Platform Owner actions and access changes.',audience:audienceEn,chapters:[
-   ['Action history','Every significant administrative action is recorded with user, time and organization. The history is read-only.'],
-   ['Access changes','Use the filters for role changes, invitations and deletions.']
-  ],steps:['Search for the action.','Filter by organization or type.','Review the details.']},
+  '/platform/audit':{title:'Audit & Security',summary:'Traceability of actions, access changes and operational events.',audience:audienceEn,chapters:[
+   ['Actions & access','Every significant administrative action is recorded with user, time and organization. The history is read-only; the filters show role changes, invitations and deletions.'],
+   ['Events & errors','The second tab shows failures, blocks and warnings across production organizations, without clinical content.']
+  ],steps:['Pick a tab.','Filter by organization, action or severity.','Refresh after a fix.']},
   '/platform/settings':{title:'Platform Settings',summary:'Global settings for the whole installation.',audience:audienceEn,chapters:[
    ['Operational defaults','Support email and default duration of new demos.'],
    ['Maintenance notice','Enable a message to all users. The preview shows how it will appear.']

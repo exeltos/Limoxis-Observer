@@ -32,3 +32,7 @@
 .platform-demo-select-cell{width:36px;text-align:center}
 .platform-demo-select-cell input{width:16px;height:16px;cursor:pointer;accent-color:var(--lo-color-primary,#256b9b)}
 .data-table tr.is-selected td{background:#f3f8fc}
+/* Search and status filters share one row above the Demo list. */
+.platform-demo-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px 10px}
+.platform-registry-shell .platform-demo-toolbar>.filter-system{flex:1 1 280px;margin:0!important;padding:0!important;border:0!important;background:transparent!important}
+.platform-demo-toolbar .platform-demo-status-chips{padding:0;flex:0 1 auto}

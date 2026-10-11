@@ -1,3 +1,4 @@
+import { binCloudRows, binLocalRow, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { preventionDepartments, antisepticLibrary } from './preventionDemoData'
@@ -218,11 +219,16 @@ export async function saveAntisepticRecord(organizationId, record, { existingId 
 export async function deleteAntisepticRecord(organizationId, id) {
   if (isDemoDataEnvironment()) {
     if (!id) return
-    saveAntisepticLocal(loadAntisepticLocal().filter(row => row.id !== id))
+    const rows = loadAntisepticLocal()
+    const row = rows.find(item => item.id === id)
+    await binLocalRow(organizationId, { module: 'clinical', kind: 'antiseptic_consumption_periods', ...describeDeleted('Αντισηπτικά', row), table: 'prevention_antiseptic', row })
+    saveAntisepticLocal(rows.filter(item => item.id !== id))
     return
   }
   assertCloud(organizationId)
   if (!id) return
+  const { data: deleted } = await supabase.from('antiseptic_consumption_periods').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle()
+  await binCloudRows(organizationId, { module: 'clinical', kind: 'antiseptic_consumption_periods', ...describeDeleted('Αντισηπτικά', deleted || {}), parts: [{ table: 'antiseptic_consumption_periods', match: { id } }] })
   const { error } = await supabase
     .from('antiseptic_consumption_periods')
     .delete()

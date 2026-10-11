@@ -43,7 +43,7 @@ describe('demo / production isolation',()=>{
     expect(analysis).toContain('collectAnalysisDemoSnapshot')
     expect(analysis).toContain('const activeSnapshot=isDemo?demoSnapshot:snapshot')
     expect(analysis).toContain('buildProductionRows(tab,activeSnapshot,tx)')
-    expect(analysis).toContain("tab==='national'?<NationalSurveillance details={micro}")
+    expect(analysis).toContain("tab==='laboratory'?<NationalSurveillance details={micro}")
     expect(analysis).not.toContain('DemoNationalSurveillance')
     expect(analysis).not.toContain('ProductionNationalSurveillance')
     expect(platformService).toContain('export async function loadAnalysisSnapshot')

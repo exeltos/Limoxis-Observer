@@ -41,7 +41,8 @@ export function shiftDemoMonth(value, months) {
   const wasLast = day === lastDay(new Date(Date.UTC(year, month - 1, 1)))
   return `${ym}-${String(wasLast ? lastDay(target) : Math.min(day, lastDay(target))).padStart(2, '0')}`
 }
-const PERIOD_KEY = /^period(Start|End)?$/
+// `period` itself is handled below: it may be a month or a "start – end" range.
+const PERIOD_KEY = /^period(Start|End)$/
 
 // Shifts the dates of the Demo datasets in place (shared nested objects once).
 export function shiftDemoDatesInPlace(datasets, days = demoOffsetDays()) {

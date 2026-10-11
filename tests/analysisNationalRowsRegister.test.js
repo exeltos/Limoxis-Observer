@@ -36,10 +36,9 @@ describe('the National and AMR tabs render the organism/department/source line l
     expect(page).toContain('details?.nationalRows')
   })
 
-  it('the AMR tab shows only the resistant (MDR/XDR/PDR) subset of the same line list, not the generic microbiology distribution', () => {
-    expect(page).toContain('function AmrRegister(')
+  it('the Microbiology & AMR line list can narrow to the resistant (MDR/XDR/PDR) subset', () => {
     expect(page).toContain("['MDR','XDR','PDR'].includes(resistanceClass)")
-    expect(page).toContain("tab==='amr'?<AmrRegister")
+    expect(page).toContain("tx('Μόνο MDR/XDR/PDR','MDR/XDR/PDR only')")
   })
 
   it('the Laboratory tab no longer duplicates the National tab distribution chart (routes through the generic DomainView like other domain tabs)', () => {

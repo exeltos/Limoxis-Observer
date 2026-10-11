@@ -1,3 +1,4 @@
+import { binCloudRows,binLocalRow,describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase, invokeAuthenticatedFunction } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
@@ -168,12 +169,15 @@ export async function createEmployeeAccountAsync(organizationId,employee,{role='
 export async function deleteEmployeeAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment()){
     const { loadEmployees: loadEmployeesLocal, saveEmployees: saveEmployeesLocal } = await localStore()
-    const rows=loadEmployeesLocal().filter(row=>row.id!==employeeId)
-    saveEmployeesLocal(rows)
+    const all=loadEmployeesLocal(),row=all.find(item=>item.id===employeeId)
+    await binLocalRow(organizationId,{module:'administration',kind:'employees',...describeDeleted('Εργαζόμενος',{...row,name:[row?.lastName,row?.firstName].filter(Boolean).join(' ')}),table:'employees',row})
+    saveEmployeesLocal(all.filter(item=>item.id!==employeeId))
     return true
   }
   productionContext(organizationId,'employees.delete')
   if(!employeeDbId)throw new Error('PRODUCTION_EMPLOYEE_DB_ID_REQUIRED:employees.delete')
+  const {data:deleted}=await supabase.from('employees').select('*').eq('organization_id',organizationId).eq('id',employeeDbId).maybeSingle()
+  await binCloudRows(organizationId,{module:'administration',kind:'employees',...describeDeleted('Εργαζόμενος',{name:[deleted?.last_name,deleted?.first_name].filter(Boolean).join(' ')}),parts:[{table:'employees',match:{id:employeeDbId}}]})
   const {error}=await supabase.from('employees').delete().eq('organization_id',organizationId).eq('id',employeeDbId)
   if(error)throw error
   return true

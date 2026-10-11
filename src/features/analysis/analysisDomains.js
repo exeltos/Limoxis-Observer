@@ -12,6 +12,7 @@ import { employeeRows, employeeVaccinations } from '../employees/employeeDemoDat
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
 import { buildLiraMetrics, buildPpsMetrics } from './analysisAddonMetrics'
+import { liraDemoInvestigations } from '../lira/liraDemoInvestigations'
 
 const day = value => String(value || '').slice(0, 10)
 const month = value => String(value || '').slice(0, 7)
@@ -20,7 +21,7 @@ function tally(rows, keyFn) { const out = new Map(); for (const row of rows) { c
 function sums(rows, keyFn, valueFns) { const out = new Map(); for (const row of rows) { const key = keyFn(row); if (!key) continue; const current = out.get(key) || valueFns.map(() => 0); valueFns.forEach((fn, index) => { current[index] += Number(fn(row)) || 0 }); out.set(key, current) } return [...out.entries()].map(([key, values]) => [key, ...values]) }
 const CLOSED_QUALITY = new Set(['closed', 'resolved', 'completed', 'verified'])
 
-export function collectDemoDomainMetrics(range = {}, en = false) {
+export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
   const today = new Date().toISOString().slice(0, 10)
   const cases = Object.values(clinicalCases).filter(item => item.lifecycleStatus !== 'voided' && item.status !== 'cancelled' && inRange(item.startedAt, range))
   const dept = item => (en ? item.departmentEn : item.department) || item.department || '—'
@@ -133,7 +134,7 @@ export function collectDemoDomainMetrics(range = {}, en = false) {
       }
     })(),
     pps: buildPpsMetrics(loadPrevalenceSurveyLocal(), range),
-    lira: buildLiraMetrics([], range, 0),
+    lira: buildLiraMetrics(liraDemoInvestigations, range, clusters),
     antimicrobial: {
       total: therapies.length,
       active: therapies.filter(row => (row.status || 'active') === 'active' && !row.endedAt).length,
@@ -156,6 +157,7 @@ const LABELS = {
   periodic: ['Περιοδική', 'Periodic'], followUp: ['Επανέλεγχος', 'Follow-up'], preEmployment: ['Προπρόσληψης', 'Pre-employment'], exposure: ['Μετά από έκθεση', 'Post-exposure'],
   policy: ['Πολιτική', 'Policy'], instruction: ['Οδηγία', 'Instruction'], procedure: ['Διαδικασία', 'Procedure'], protocol: ['Πρωτόκολλο', 'Protocol'], form: ['Έντυπο', 'Form'],
   active: ['Ενεργή', 'Active'],
+  ventilatorAssociatedPneumonia: ['Πνευμονία σχετιζόμενη με αναπνευστήρα (VAP)', 'Ventilator-associated pneumonia (VAP)'], vaccinationReview: ['Έλεγχος εμβολιασμών', 'Vaccination review'],
   published: ['Δημοσιευμένο', 'Published'], draft: ['Προσχέδιο', 'Draft'], review: ['Υπό αναθεώρηση', 'In review'],
   CLABSI: ['Δέσμη CLABSI', 'CLABSI bundle'], VAE: ['Δέσμη VAE', 'VAE bundle'], CAUTI: ['Δέσμη CAUTI', 'CAUTI bundle'], SSI: ['Δέσμη SSI', 'SSI bundle'],
 }
@@ -199,8 +201,6 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       charts: [
         { type: 'trend', wide: true, title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
         { type: 'bars', title: tx('Τύπος λοίμωξης (HAI)', 'Infection type (HAI)'), subtitle: tx('Από την ταξινόμηση HAI κάθε επεισοδίου.', 'From each episode’s HAI classification.'), rows: named(s.byHaiType) },
-        { type: 'donut', title: tx('Κατάσταση ταξινόμησης', 'Classification status'), subtitle: tx('Επιβεβαιωμένες, πιθανές, υπό διερεύνηση.', 'Confirmed, probable, suspected.'), rows: named(s.byCaseStatus), center: tx('επεισόδια', 'episodes') },
-        { type: 'bars', title: tx('Ανά τμήμα', 'By department'), subtitle: tx('Επεισόδια επιτήρησης της περιόδου.', 'Surveillance episodes in the period.'), rows: s.byDepartment },
         { type: 'bars', title: tx('Επεμβατικές συσκευές', 'Invasive devices'), subtitle: tx('Ενεργές συσκευές ανά τύπο.', 'Active devices by type.'), rows: s.byDevice },
         { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
       ],
@@ -228,26 +228,17 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     case 'prevention': return {
       kpis: [
         [tx('Συμμόρφωση δεσμών μέτρων', 'Bundle compliance'), fmtPct(b.averageScore), tx(`${b.assessments ?? 0} αξιολογήσεις`, `${b.assessments ?? 0} assessments`), b.averageScore != null && b.averageScore < 90 ? 'warning' : 'good'],
-        [tx('Συμμόρφωση υγιεινής χεριών', 'Hand hygiene compliance'), fmtPct(hhRate), tx(`${hh.sessions ?? 0} συνεδρίες παρατήρησης`, `${hh.sessions ?? 0} observation sessions`), hhRate != null && hhRate < 80 ? 'warning' : 'good'],
-        [tx('Ιατρικά απόβλητα', 'Healthcare waste'), `${String(w.totalKg ?? 0).replace('.', ',')} kg`, w.patientDays ? tx(`${(w.totalKg / w.patientDays * 1000).toFixed(1).replace('.', ',')} kg / 1.000 ημέρες νοσηλείας`, `${(w.totalKg / w.patientDays * 1000).toFixed(1)} kg / 1,000 patient-days`) : tx(`${w.records ?? 0} καταγραφές`, `${w.records ?? 0} records`)],
+        [tx('Συμμόρφωση υγιεινής χεριών', 'Hand hygiene compliance'), fmtPct(hhRate), tx(`στόχος ≥ 80% · ${hh.sessions ?? 0} συνεδρίες`, `target ≥ 80% · ${hh.sessions ?? 0} sessions`), hhRate != null && hhRate < 80 ? 'warning' : 'good'],
+        [tx('Ευκαιρίες υγιεινής χεριών', 'Hand hygiene opportunities'), hh.observations ?? 0, tx(`${hh.compliant ?? 0} με σωστή υγιεινή`, `${hh.compliant ?? 0} compliant`)],
+        [tx('Ιατρικά απόβλητα', 'Healthcare waste'), `${Number(w.totalKg ?? 0).toLocaleString(en ? 'en-US' : 'el-GR', { maximumFractionDigits: 1 })} kg`, w.patientDays ? tx(`${(w.totalKg / w.patientDays * 1000).toFixed(1).replace('.', ',')} kg / 1.000 ημέρες νοσηλείας`, `${(w.totalKg / w.patientDays * 1000).toFixed(1)} kg / 1,000 patient-days`) : tx(`${w.records ?? 0} καταγραφές`, `${w.records ?? 0} records`)],
       ],
       charts: [
+        { type: 'trend', wide: true, sparse: true, title: tx('Υγιεινή χεριών ανά μήνα (%)', 'Hand hygiene by month (%)'), subtitle: tx('Ποσοστό ευκαιριών με σωστή υγιεινή χεριών.', 'Share of opportunities with correct hand hygiene.'), points: (hh.monthly || []).map(([key, total, part]) => [key, pct(part, total) ?? 0]) },
+        { type: 'rate', title: tx('Υγιεινή χεριών ανά τμήμα', 'Hand hygiene by department'), subtitle: tx('Ποσοστό συμμόρφωσης.', 'Compliance rate.'), rows: rateRows(hh.byDepartment) },
+        { type: 'rate', title: tx('Υγιεινή χεριών ανά επαγγελματική κατηγορία', 'Hand hygiene by professional category'), subtitle: tx('Ποσοστό συμμόρφωσης.', 'Compliance rate.'), rows: rateRows(hh.byCategory) },
         { type: 'rate', title: tx('Συμμόρφωση ανά δέσμη', 'Compliance by bundle'), subtitle: tx('Μέσο ποσοστό κριτηρίων που τηρήθηκαν.', 'Average share of criteria met.'), rows: (b.byBundle || []).filter(([, , score]) => score != null).map(([key, , score]) => [label(key), score]) },
         { type: 'rate', title: tx('Συμμόρφωση δεσμών ανά τμήμα', 'Bundle compliance by department'), subtitle: tx('Μέσο ποσοστό ανά τμήμα.', 'Average per department.'), rows: (b.byDepartment || []).filter(([, , score]) => score != null).map(([key, , score]) => [key, score]) },
         { type: 'bars', title: tx('Απόβλητα ανά τμήμα (kg)', 'Waste by department (kg)'), subtitle: tx('Βάρος στην περίοδο.', 'Weight in the period.'), rows: w.byDepartment },
-      ],
-    }
-    case 'hand': return {
-      kpis: [
-        [tx('Συμμόρφωση', 'Compliance'), fmtPct(hhRate), tx('στόχος ≥ 80% (ΠΟΥ)', 'target ≥ 80% (WHO)'), hhRate != null && hhRate < 80 ? 'warning' : 'good'],
-        [tx('Ευκαιρίες', 'Opportunities'), hh.observations ?? 0, tx('παρατηρήσεις 5 στιγμών', '5 moments observations')],
-        [tx('Συμμορφώσεις', 'Compliant actions'), hh.compliant ?? 0, tx('τρίψιμο ή πλύσιμο χεριών', 'hand rub or hand wash')],
-        [tx('Συνεδρίες', 'Sessions'), hh.sessions ?? 0, tx('παρατήρησης στην περίοδο', 'observation sessions in the period')],
-      ],
-      charts: [
-        { type: 'trend', wide: true, title: tx('Συμμόρφωση ανά μήνα (%)', 'Compliance by month (%)'), subtitle: tx('Ποσοστό ευκαιριών με σωστή υγιεινή χεριών.', 'Share of opportunities with correct hand hygiene.'), points: (hh.monthly || []).map(([key, total, part]) => [key, pct(part, total) ?? 0]) },
-        { type: 'rate', title: tx('Ανά τμήμα', 'By department'), subtitle: tx('Ποσοστό συμμόρφωσης.', 'Compliance rate.'), rows: rateRows(hh.byDepartment) },
-        { type: 'rate', title: tx('Ανά επαγγελματική κατηγορία', 'By professional category'), subtitle: tx('Ποσοστό συμμόρφωσης.', 'Compliance rate.'), rows: rateRows(hh.byCategory) },
       ],
     }
     case 'controls': return {
@@ -321,8 +312,8 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Ασθενείς με HAI', 'Patients with HAI'), p.withHai ?? 0, tx(`${fmtPct(pct(p.withHai, p.patients))} του συνόλου`, `${fmtPct(pct(p.withHai, p.patients))} of the total`)],
       ],
       charts: [
-        { type: 'trend', wide: true, title: tx('Επιπολασμός HAI ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με HAI προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
-        { type: 'trend', wide: true, title: tx('Χρήση αντιβιοτικών ανά μέτρηση (%)', 'Antibiotic use by survey (%)'), subtitle: tx('Ασθενείς υπό αντιβιοτικά προς ασθενείς της μέτρησης.', 'Patients on antibiotics over patients surveyed.'), points: months.map(([key, total, , abx]) => [key, pct(abx, total) ?? 0]) },
+        { type: 'trend', wide: true, sparse: true, title: tx('Επιπολασμός HAI ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με HAI προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
+        { type: 'trend', wide: true, sparse: true, title: tx('Χρήση αντιβιοτικών ανά μέτρηση (%)', 'Antibiotic use by survey (%)'), subtitle: tx('Ασθενείς υπό αντιβιοτικά προς ασθενείς της μέτρησης.', 'Patients on antibiotics over patients surveyed.'), points: months.map(([key, total, , abx]) => [key, pct(abx, total) ?? 0]) },
         { type: 'bars', title: tx('Ασθενείς που μετρήθηκαν', 'Patients surveyed'), subtitle: tx('Πλήθος ασθενών ανά μέτρηση.', 'Patients per survey.'), rows: months.map(([key, total]) => [key, total]) },
       ],
     } }

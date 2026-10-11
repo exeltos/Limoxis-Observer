@@ -30,30 +30,34 @@ describe('AMR resistance-per-pathogen metrics (ΥΑ Υ1.Γ.Π.114971/ΦΕΚ Β 3
   })
 
   it('counts the demo Klebsiella isolates as meropenem-resistant (matching their recorded AST)', () => {
-    // Demo seed: three Klebsiella pneumoniae isolates (the seeded ICU
-    // cluster used by outbreakClusterService's tests), each tested against
-    // meropenem and resistant.
+    // Demo seed: twelve Klebsiella pneumoniae isolates tested against
+    // meropenem; the seven KPC isolates (incl. the seeded ICU cluster used by
+    // outbreakClusterService's tests) are resistant, the ESBL ones susceptible.
     const metrics = collectIndicatorMetrics()
-    expect(metrics.amr_tested_klebsiella).toBe(3)
-    expect(metrics.amr_resistant_klebsiella).toBe(3)
+    expect(metrics.amr_tested_klebsiella).toBe(12)
+    expect(metrics.amr_resistant_klebsiella).toBe(7)
   })
 
   it('does not test the demo Pseudomonas isolate against meropenem (not in its recorded AST panel)', () => {
+    // The seeded ICU isolate (LAB-260826-018) has no meropenem on its panel and is
+    // not counted; the four other Pseudomonas isolates of the year are, two of them resistant.
     const metrics = collectIndicatorMetrics()
-    expect(metrics.amr_tested_pseudomonas).toBe(0)
-    expect(metrics.amr_resistant_pseudomonas).toBe(0)
+    expect(metrics.amr_tested_pseudomonas).toBe(4)
+    expect(metrics.amr_resistant_pseudomonas).toBe(2)
   })
 
   it('excludes unvalidated draft results from AMR counts', () => {
     laboratorySamples.unshift({ id: 'LAB-TEST-AMR-DRAFT', organism: 'Escherichia coli', resultStatus: 'draft', ast: [{ drug: 'Ceftriaxone', sir: 'R' }] })
     const metrics = collectIndicatorMetrics()
-    expect(metrics.amr_tested_ecoli).toBe(0)
+    // Only the twelve validated E. coli isolates of the demo year are counted.
+    expect(metrics.amr_tested_ecoli).toBe(12)
   })
 
   it('counts a susceptible reference-antibiotic result as tested but not resistant', () => {
     laboratorySamples.unshift({ id: 'LAB-TEST-AMR-SUSCEPTIBLE', organism: 'Enterococcus faecium', resultStatus: 'validated', ast: [{ drug: 'Vancomycin', sir: 'S' }] })
     const metrics = collectIndicatorMetrics()
-    expect(metrics.amr_tested_enterococcus).toBe(1)
-    expect(metrics.amr_resistant_enterococcus).toBe(0)
+    // Four Enterococcus isolates of the demo year (one VRE) plus this one.
+    expect(metrics.amr_tested_enterococcus).toBe(5)
+    expect(metrics.amr_resistant_enterococcus).toBe(1)
   })
 })

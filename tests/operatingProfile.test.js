@@ -96,9 +96,10 @@ describe('operating profile', () => {
 
   it('hides laboratory and EODY/EARS-Net analysis tabs with their modules', async () => {
     const { TAB_MODULES } = await import('../src/features/analysis/analysisPageModel')
-    expect(TAB_MODULES.laboratory).toEqual(['laboratory'])
-    expect(TAB_MODULES.amr).toEqual(['laboratory'])
-    expect(TAB_MODULES.national).toEqual(['national'])
+    // Microbiology & AMR shows with either the laboratory or the national module.
+    expect(TAB_MODULES.laboratory).toEqual(['laboratory', 'national'])
+    expect(TAB_MODULES.amr).toBeUndefined()
+    expect(TAB_MODULES.national).toBeUndefined()
   })
 
   it('warns, without blocking, when a module is on and its prerequisite is locked', () => {

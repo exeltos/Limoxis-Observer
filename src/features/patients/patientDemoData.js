@@ -1,4 +1,5 @@
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
+import { historyCases } from '../surveillance/demoInfectionHistory'
 export const patientDemoData = [
   { id:'PT-260190', firstName:'Νεογέννητο', lastName:'Ιωαννίδη', sex:'female', patronymic:'', firstNameEn:'Neonate', lastNameEn:'Ioannidi', patronymicEn:'', name:'Νεογέννητο Ιωαννίδη', nameEn:'Neonate Ioannidi', dateOfBirth:'2026-08-20', birthWeightGrams:980, gestationalAgeWeeks:27, department:'Νεογνολογική / ΜΕΝΝ', departmentEn:'Neonatal / NICU', admissionDate:'2026-08-20', status:'active' },
   { id:'PT-260184', firstName:'Ελένη', lastName:'Παπαδοπούλου', sex:'female', patronymic:'', firstNameEn:'Eleni', lastNameEn:'Papadopoulou', patronymicEn:'', name:'Ελένη Παπαδοπούλου', nameEn:'Eleni Papadopoulou', department:'ΜΕΘ', departmentEn:'ICU', admissionDate:'2026-08-24', status:'active' },
@@ -14,6 +15,12 @@ export const patientDemoData = [
   { id:'PT-260082', firstName:'Ευαγγελία', lastName:'Μάρκου', sex:'female', name:'Ευαγγελία Μάρκου', nameEn:'Evangelia Markou', department:'ΜΕΘ', departmentEn:'ICU', admissionDate:'2026-01-18', dischargeDate:'2026-01-29', status:'discharged' }
 
 ]
+
+// The patients of the year's other surveillance episodes (demoInfectionHistory.js).
+for(const item of historyCases){
+  const [firstName,...rest]=item.patient.split(' '),[firstNameEn,...restEn]=item.patientEn.split(' ')
+  patientDemoData.push({id:item.patientId,firstName,lastName:rest.join(' '),sex:item.sex,patronymic:'',firstNameEn,lastNameEn:restEn.join(' '),patronymicEn:'',name:item.patient,nameEn:item.patientEn,dateOfBirth:item.dateOfBirth,...(item.birthWeightGrams?{birthWeightGrams:item.birthWeightGrams,gestationalAgeWeeks:item.gestationalAgeWeeks}:{}),department:item.department,departmentEn:item.departmentEn,admissionDate:item.admissionDate,...(item.completedAt?{dischargeDate:item.completedAt,status:item.outcome==='transferred'?'transferred':'discharged'}:{status:'active'})})
+}
 
 export function demoAdmissionsForPatient(patient){
   if(!patient?.admissionDate)return []

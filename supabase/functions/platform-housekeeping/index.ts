@@ -46,5 +46,7 @@ serveWithCors(async(req)=>{
     if(result.ok)purged.push({organizationId:org.id,code:org.code,name:org.name,validUntil:candidate.valid_until})
     else failed.push({organizationId:org.id,code:org.code,name:org.name,error:result.error})
   }
-  return reply({ok:failed.length===0,purged,failed})
+  // Recycle-bin entries past their 30 days go for good (all organizations).
+  const {data:binPurged}=await admin.rpc('purge_recycle_bin')
+  return reply({ok:failed.length===0,purged,failed,binPurged:binPurged??0})
 })

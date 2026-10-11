@@ -1,5 +1,7 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
+import { addDays, seededRandom } from '../../core/data/demoSeed'
+import { employeeRows } from '../employees/employeeDemoData'
 export const trainerFeedbackTemplate=[
  {id:'clarity',label:'Σαφήνεια παρουσίασης'},
  {id:'knowledge',label:'Γνώση και επάρκεια εκπαιδευτή'},
@@ -98,6 +100,46 @@ export const trainingDemoState={
 
 // Older demo attempts have already been reviewed by the training owner.
 for(const a of trainingDemoState.assignments)if(['TRA-004','TRA-005','TRA-007','TRA-009'].includes(a.id)){a.assessmentReviewedAt=`${a.completedDate}T14:00:00Z`;a.assessmentReviewedBy='Ελένη Κωνσταντίνου';a.assessmentReviewAcknowledged=true}
+
+// The past year's programmes (authored 2025-09 … 2026-02), assigned to the
+// clinical staff of the wards they target: mostly completed, a few failed
+// assessments and a few still overdue.
+DEMO_QUESTIONS['TRN-005']=DEMO_QUESTIONS['TRN-001']
+DEMO_QUESTIONS['TRN-006']=DEMO_QUESTIONS['TRN-002']
+DEMO_QUESTIONS['TRN-007']=[
+ sc('Q-401','Ποια είναι ένδειξη για τοποθέτηση ουροκαθετήρα;',['Ακράτεια χωρίς άλλη ένδειξη','Οξεία κατακράτηση ούρων ή απόφραξη','Διευκόλυνση της νοσηλείας','Λήψη δείγματος ούρων'],1,3),
+ tf('Q-402','Ο ουροσυλλέκτης τοποθετείται πάντα κάτω από το επίπεδο της κύστης.',true,2),
+ mc('Q-403','Ποια μέτρα μειώνουν τον κίνδυνο CAUTI;',['Καθημερινή επανεκτίμηση ανάγκης','Κλειστό σύστημα παροχέτευσης','Τακτικές πλύσεις κύστης','Άσηπτη τεχνική τοποθέτησης'],[0,1,3],3),
+ tf('Q-404','Η τακτική αλλαγή ουροκαθετήρα κάθε 3 ημέρες προλαμβάνει τη CAUTI.',false,2),
+ sc('Q-405','Ποιος δείκτης μετρά τη συχνότητα CAUTI;',['Επεισόδια ανά 100 εισαγωγές','Επεισόδια ανά 1.000 ημέρες ουροκαθετήρα','Επεισόδια ανά κλίνη','Επεισόδια ανά μήνα'],1,2),
+ ft('Q-406','Πότε αφαιρείτε τον ουροκαθετήρα;','Μόλις δεν υπάρχει πλέον ένδειξη, μετά την καθημερινή επανεκτίμηση.'),
+]
+const pastProgram=(id,title,audience,startDate,dueDate,method,trainer,description)=>({id,title,category:'ipc',method,owner:'Ομάδα Πρόληψης Λοιμώξεων',trainer,audience,startDate,dueDate,validMonths:12,requiresAssessment:true,passScore:80,status:'completed',description,materials:[],assessmentQuestions:DEMO_QUESTIONS[id],feedbackResponses:[]})
+trainingDemoState.programs.push(
+ pastProgram('TRN-005','Υγιεινή Χεριών – ετήσιος κύκλος 2025','Κλινικό προσωπικό','2025-09-08','2025-10-31','hybrid','Δρ. Ελένη Κωνσταντίνου','Ετήσια εκπαίδευση υγιεινής χεριών του προηγούμενου κύκλου.'),
+ pastProgram('TRN-006','Προφυλάξεις επαφής για πολυανθεκτικούς μικροοργανισμούς','ΜΕΘ · Παθολογική · ΤΕΠ · Καρδιολογική','2025-11-10','2025-12-15','in_person','Ν. Παπαδόπουλος','Μέτρα απομόνωσης για KPC, MRSA, VRE και C. difficile.'),
+ pastProgram('TRN-007','Πρόληψη CAUTI','Νοσηλευτικό προσωπικό ΜΕΘ · Παθολογικής · Χειρουργικής · Ορθοπαιδικής','2026-01-12','2026-02-20','in_person','Ομάδα IPC','Ένδειξη, τοποθέτηση, φροντίδα και έγκαιρη αφαίρεση ουροκαθετήρα.'),
+)
+const PAST_PLAN=[
+ ['TRN-005',['ΜΕΘ','Παθολογική','Χειρουργική','ΤΕΠ','Καρδιολογική','Νεογνολογική / ΜΕΝΝ','Ορθοπαιδική'],null,'2025-09-08','2025-10-31','2025-09-15',40],
+ ['TRN-006',['ΜΕΘ','Παθολογική','ΤΕΠ','Καρδιολογική'],null,'2025-11-10','2025-12-15','2025-11-17',30],
+ ['TRN-007',['ΜΕΘ','Παθολογική','Χειρουργική','Ορθοπαιδική'],'Νοσηλευτικό προσωπικό','2026-01-12','2026-02-20','2026-01-19',35],
+]
+let pastIndex=0
+for(const [programId,departments,profession,assignedDate,dueDate,firstDay,spreadDays] of PAST_PLAN){
+ const program=trainingDemoState.programs.find(p=>p.id===programId)
+ const staff=employeeRows.filter(e=>e.employmentStatus==='active'&&departments.includes(e.department)&&(profession?e.profession===profession:['Νοσηλευτικό προσωπικό','Ιατρικό προσωπικό'].includes(e.profession))&&e.hireDate<=assignedDate)
+ staff.forEach((e,i)=>{
+  pastIndex+=1
+  const id=`TRA-${String(100+pastIndex)}`,rand=seededRandom(`training|${id}`),name=`${e.firstName} ${e.lastName}`
+  // Two people in the CAUTI programme never finished it.
+  if(programId==='TRN-007'&&i%7===3){trainingDemoState.assignments.push({id,programId,employeeId:e.id,employeeName:name,department:e.department,email:e.email,accountLinked:true,assignedDate,dueDate,status:i%2?'in_progress':'assigned',invitationSentAt:`${assignedDate}T08:00:00Z`,attendanceResponse:i%2?'confirmed':'not_sent',attendance:i%2?true:null,attendanceConfirmedAt:null,completionConfirmedAt:null,feedbackSubmittedAt:null,assessmentSubmittedAt:null,score:null,completedDate:null,competent:null,certificateId:null});return}
+  const wrongIds=program.assessmentQuestions.filter(q=>q.type!=='free_text'&&rand()<(i%9===4?0.45:0.12)).map(q=>q.id)
+  const day=addDays(firstDay,Math.floor(rand()*spreadDays)),row=done(id,programId,e.id,name,e.department,e.email,day,wrongIds,program.passScore,{clarity:4+(i%2),knowledge:5,usefulness:4+((i+1)%2),organization:4,materials:4},'',`CERT-${id}`)
+  trainingDemoState.assignments.push({...row,assignedDate,dueDate,invitationSentAt:`${assignedDate}T08:00:00Z`,assessmentReviewedAt:`${day}T14:00:00Z`,assessmentReviewedBy:'Ελένη Κωνσταντίνου',assessmentReviewAcknowledged:true})
+  if(row.certificateId)trainingDemoState.certificates.push({id:row.certificateId,assignmentId:id,employeeId:e.id,title:program.title,issuedDate:day,validUntil:addDays(day,365),issuer:'Limoxis Observer · Demo Hospital'})
+ })
+}
 
 function withoutKeys(value,keys){const clean={...value};for(const key of keys)delete clean[key];return clean}
 function normalize(state){

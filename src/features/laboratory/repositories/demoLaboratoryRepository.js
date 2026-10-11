@@ -1,4 +1,5 @@
 import { repositoryResult } from '../../../core/data/repositoryResult'
+import { binMemoryRow, describeDeleted } from '../../../core/recycleBin/recycleBinService'
 import { createDemoLabSample, getLabSample, laboratorySamples, updateLabSample } from '../laboratoryDemoData'
 import { normalizeLaboratorySample, normalizeLaboratorySamples } from '../model/laboratoryModel'
 import { defineLaboratoryRepository } from './laboratoryRepository'
@@ -37,7 +38,11 @@ export function createDemoLaboratoryRepository({ actorName = 'Demo user' } = {})
     },
     async remove(sampleCode) {
       const index = laboratorySamples.findIndex(item => String(item.id) === String(sampleCode))
-      if (index >= 0) laboratorySamples.splice(index, 1)
+      if (index >= 0) {
+        const row = laboratorySamples[index]
+        await binMemoryRow(null, { module: 'clinical', kind: 'laboratory_samples', ...describeDeleted('Δείγμα εργαστηρίου', { ...row, code: row.id }), store: 'laboratory_samples', row })
+        laboratorySamples.splice(index, 1)
+      }
       return index >= 0
     },
     async update(sampleCode, patch) {

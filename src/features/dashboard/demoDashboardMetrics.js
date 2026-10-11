@@ -12,6 +12,7 @@ import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { employeeRows } from '../employees/employeeDemoData'
 import { demoPatientDayPeriods } from '../management/managementData'
 import { pendingActionsOf } from './dashboardTasks'
+import { isCommunicated } from '../surveillance/recordAttention'
 
 const CLOSED = ['completed', 'closed', 'cancelled']
 const isOpen = status => !CLOSED.includes(status)
@@ -62,7 +63,9 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     pendingSamples,
     newSamplesToday: s.dashboard?.newSamplesToday ?? 0,
     positiveLab: m.totalPositive,
-    criticalUncommunicated: m.totalCritical,
+    criticalUncommunicated: laboratorySamples.filter(
+      row => inDepartment(row) && row.critical && row.result === 'positive' && !isCommunicated(row),
+    ).length,
     recentMdro: mdro,
     activeEmployees: s.employees,
     newEmployees30d: s.dashboard?.newEmployees30d ?? 0,

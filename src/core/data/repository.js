@@ -40,6 +40,7 @@ const TABLES=Object.freeze({
   quality_local_findings:{storageKey:'limoxis.qualityLocalFindings.v1',kind:'rows',cloud:false},
   quality_local_capas:{storageKey:'limoxis.qualityLocalCapas.v1',kind:'rows',cloud:false},
   quality_local_audits:{storageKey:'limoxis.qualityLocalAudits.v1',kind:'rows',cloud:false},
+  recycle_bin_local:{storageKey:'limoxis.recycleBin.v1',kind:'rows',cloud:false},
 })
 
 export class DataAccessError extends Error{

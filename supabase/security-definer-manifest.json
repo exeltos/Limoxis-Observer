@@ -108,6 +108,11 @@
       "authenticated": true,
       "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
     },
+    "current_user_can_use_recycle_bin": {
+      "category": "rls-helper",
+      "authenticated": true,
+      "reason": "Answers only whether the caller's role may see recycle-bin entries of the given module; used by the recycle_bin RLS policies, which run with the caller's privileges and so need EXECUTE."
+    },
     "current_user_can_view_committee": {
       "category": "rls-helper",
       "authenticated": true,
