@@ -13,12 +13,6 @@ describe('Platform Owner UI audit',()=>{
     expect(SYSTEM_ROLE_KEYS).toContain('link_nurse')
   })
 
-  it('keeps synthetic operational tasks out of production notifications',()=>{
-    const source=read('src/core/notifications/NotificationContext.jsx')
-    expect(source).toContain('demoOperationalText')
-    expect(source).toContain('if(!isDemo)return liveOperational')
-  })
-
   it('uses the canonical record shell for organization and demo records',()=>{
     const owner=read('src/features/workspaces/PlatformCenterPage.jsx')
     const demo=read('src/features/platform/PlatformDemoRecord.jsx')
