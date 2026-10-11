@@ -514,3 +514,10 @@ html:not(#lo-analysis-page) body .analysis-workspace>.analysis-sticky{margin:0 v
   html:not(#lo-phone-preview) body .preview-banner>button{flex:none!important;white-space:nowrap!important;padding:6px!important;font-size:0!important;line-height:0!important}
   html:not(#lo-phone-preview) body .preview-banner>button svg{width:16px!important;height:16px!important}
 }
+/* Phone: a tab bar stays one line and scrolls sideways instead of wrapping into
+   two or three rows (Analysis keeps its own wrapped layout). */
+@media (max-width:640px){
+  html:not(#lo-unified-tabs):not(#lo-phone-tabs) body :is(nav.canonical-module-tabs,nav.canonical-tabs,.entity-record-tabs):not(.analysis-tabs){flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  html:not(#lo-unified-tabs):not(#lo-phone-tabs) body :is(nav.canonical-module-tabs,nav.canonical-tabs,.entity-record-tabs):not(.analysis-tabs)::-webkit-scrollbar{display:none}
+  html:not(#lo-unified-tabs):not(#lo-phone-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.canonical-tabs>button.canonical-tab,.entity-record-tabs:not(.analysis-tabs)>button){flex:0 0 auto!important;white-space:nowrap!important}
+}

@@ -1,0 +1,93 @@
+/* Type-to-filter select (SearchableSelect.jsx). */
+.searchable-select {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.searchable-select-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.searchable-select .searchable-select-control > input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 34px !important;
+  border: 1px solid #cad6df;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+.searchable-select .searchable-select-chevron,
+.searchable-select .searchable-select-clear {
+  position: absolute;
+  right: 10px;
+  color: #617386;
+}
+.searchable-select .searchable-select-chevron {
+  pointer-events: none;
+}
+.searchable-select .searchable-select-clear {
+  width: 24px;
+  height: 24px;
+  right: 6px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+.searchable-select .searchable-select-clear:hover {
+  background: var(--lo-status-neutral-bg, #f1f4f7);
+}
+.searchable-select .searchable-select-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 260px;
+  margin: 4px 0 0;
+  padding: 4px;
+  overflow: auto;
+  list-style: none;
+  border: 1px solid var(--lo-color-border, #dce4eb);
+  border-radius: 10px;
+  background: var(--lo-color-surface, #fff);
+  box-shadow: 0 12px 30px rgba(17, 42, 63, 0.14);
+}
+.searchable-select .searchable-select-list[hidden] {
+  display: none;
+}
+.searchable-select .searchable-select-option {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.searchable-select .searchable-select-option.active,
+.searchable-select .searchable-select-option:hover {
+  background: var(--lo-status-info-bg, #edf5fa);
+}
+.searchable-select .searchable-select-option[aria-selected='true'] {
+  font-weight: 700;
+}
+.searchable-select .searchable-select-option-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: inherit;
+  color: var(--lo-color-text, #22384c);
+}
+.searchable-select .searchable-select-option-description,
+.searchable-select .searchable-select-empty {
+  font-size: 11px;
+  color: var(--lo-color-text-muted, #617386);
+}
+.searchable-select .searchable-select-empty {
+  padding: 8px 10px;
+}

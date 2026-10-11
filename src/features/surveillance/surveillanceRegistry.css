@@ -1,0 +1,22 @@
+/* Surveillance Center registry: environmental status cell and its re-sampling action. */
+.environmental-registry .status-badge.info {
+  background: var(--lo-status-info-bg) !important;
+  color: var(--lo-status-info-fg) !important;
+  border-color: var(--lo-status-info-border) !important;
+}
+.environment-status-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.environmental-registry .button.environment-resample-action {
+  min-height: 26px !important;
+  height: 26px !important;
+  padding: 0 8px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px !important;
+  font-size: 11px !important;
+  white-space: nowrap;
+}
