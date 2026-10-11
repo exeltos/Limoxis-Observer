@@ -17,7 +17,8 @@ export function normalizeWhoMoments(item) {
 // Compliance = hand rub (HR) or hand wash (HW) opportunities over all
 // opportunities, as a percentage with one decimal.
 export function whoStatsFromObservations(items = []) {
-  const weighted = action => items.reduce((sum, item) => sum + (item.action === action ? observationWeight(item) : 0), 0)
+  const weighted = action =>
+    items.reduce((sum, item) => sum + (item.action === action ? observationWeight(item) : 0), 0)
   const opportunities = items.reduce((sum, item) => sum + observationWeight(item), 0)
   const handRub = weighted('HR')
   const handWash = weighted('HW')
@@ -46,6 +47,8 @@ export function sessionHandHygieneStats(record) {
     ...stats,
     opportunities,
     compliant,
-    compliance: opportunities ? Number(((compliant / opportunities) * 100).toFixed(1)) : record.rate || 0,
+    compliance: opportunities
+      ? Number(((compliant / opportunities) * 100).toFixed(1))
+      : record.rate || 0,
   }
 }
