@@ -73,7 +73,7 @@ export function PlatformSettingsPage(){
   return <Page
     title={tx('Ρυθμίσεις Πλατφόρμας','Platform Settings')}
     subtitle={tx('Μόνο καθολικές ρυθμίσεις που ισχύουν για όλη την εγκατάσταση Limoxis Observer.','Only global settings that apply across the entire Limoxis Observer installation.')}
-    actions={<SaveButton onClick={save} loading={saving} disabled={!canSave}>{tx('Αποθήκευση','Save')}</SaveButton>}
+    actions={dirty||saving?<SaveButton onClick={save} loading={saving} disabled={!canSave}>{tx('Αποθήκευση αλλαγών','Save changes')}</SaveButton>:<span className="platform-settings-saved" role="status">{tx('Χωρίς αλλαγές','No changes')}</span>}
   >
     <div className="platform-registry-shell platform-settings-page">
       {loading?<div className="inline-empty">{tx('Φόρτωση ρυθμίσεων…','Loading settings…')}</div>:error?<div className="data-access-state warning"><AlertTriangle size={16}/><span>{tx('Δεν ήταν δυνατή η φόρτωση των ρυθμίσεων πλατφόρμας.','Platform settings could not be loaded.')}</span></div>:<div className="platform-settings-layout">

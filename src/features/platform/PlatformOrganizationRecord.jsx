@@ -19,7 +19,7 @@ import {
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { Button } from '../../design-system/Button'
 import { ActionButton } from '../../design-system/ActionButton'
-import { IconButton } from '../../design-system/IconButton'
+import { PlatformRecordActions } from './PlatformRecordActions'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
@@ -84,16 +84,6 @@ const ROLES = [
   'staff_user',
 ]
 
-function Action({ icon, tone, label, title, onClick, disabled = false }) {
-  return (
-    <div className="platform-org-action-item">
-      <IconButton tone={tone} label={title} disabled={disabled} onClick={onClick}>
-        {icon}
-      </IconButton>
-      <span>{label}</span>
-    </div>
-  )
-}
 function FormSection({ title, subtitle, actions, children }) {
   return (
     <section className="platform-form-section">
@@ -654,51 +644,56 @@ export function PlatformOrganizationRecord({
     { id: 'offboarding', label: tx('Αντίγραφο & διαγραφή', 'Export & deletion'), icon: Archive },
   ]
   const actions = (
-    <div
-      className="platform-org-actions"
-      aria-label={tx('Ενέργειες οργανισμού', 'Organization actions')}
-    >
-      <Action
-        icon={<LogIn size={18} />}
-        tone="primary"
-        label={tx('Είσοδος', 'Enter')}
-        title={tx('Είσοδος στον οργανισμό', 'Enter organization')}
-        onClick={onEnter}
-      />
-      <Action
-        icon={<KeyRound size={17} />}
-        tone="neutral"
-        label="Hospital Admin"
-        title={tx(
-          'Επαναφορά κωδικού ή πρόσκλησης Διαχειριστή Νοσοκομείου',
-          'Reset Hospital Admin password or invitation',
-        )}
-        disabled={!admins.length || working}
-        onClick={resetAdmin}
-      />
-      <Action
-        icon={record.status === 'suspended' ? <PlayCircle size={17} /> : <PauseCircle size={17} />}
-        tone={record.status === 'suspended' ? 'success' : 'neutral'}
-        label={
-          record.status === 'suspended' ? tx('Ενεργοποίηση', 'Reactivate') : tx('Παύση', 'Suspend')
-        }
-        title={
-          record.status === 'suspended'
-            ? tx('Ενεργοποίηση οργανισμού', 'Reactivate organization')
-            : tx('Παύση οργανισμού', 'Suspend organization')
-        }
-        disabled={working}
-        onClick={togglePause}
-      />
-      <Action
-        icon={<Trash2 size={17} />}
-        tone="danger"
-        label={tx('Διαγραφή', 'Delete')}
-        title={tx('Οριστική διαγραφή οργανισμού', 'Delete organization permanently')}
-        disabled={working}
-        onClick={onDelete}
-      />
-    </div>
+    <PlatformRecordActions
+      label={tx('Ενέργειες οργανισμού', 'Organization actions')}
+      moreLabel={tx('Περισσότερες ενέργειες', 'More actions')}
+      actions={[
+        {
+          id: 'enter',
+          placement: 'primary',
+          icon: <LogIn size={16} />,
+          label: tx('Είσοδος', 'Enter'),
+          title: tx('Είσοδος στον οργανισμό', 'Enter organization'),
+          onClick: onEnter,
+        },
+        {
+          id: 'pause',
+          placement: 'secondary',
+          icon:
+            record.status === 'suspended' ? <PlayCircle size={16} /> : <PauseCircle size={16} />,
+          label:
+            record.status === 'suspended'
+              ? tx('Ενεργοποίηση', 'Reactivate')
+              : tx('Παύση', 'Suspend'),
+          title:
+            record.status === 'suspended'
+              ? tx('Ενεργοποίηση οργανισμού', 'Reactivate organization')
+              : tx('Παύση οργανισμού', 'Suspend organization'),
+          disabled: working,
+          onClick: togglePause,
+        },
+        {
+          id: 'reset-admin',
+          placement: 'menu',
+          icon: <KeyRound size={16} />,
+          title: tx(
+            'Επαναφορά κωδικού ή πρόσκλησης Διαχειριστή Νοσοκομείου',
+            'Reset Hospital Admin password or invitation',
+          ),
+          disabled: !admins.length || working,
+          onClick: resetAdmin,
+        },
+        {
+          id: 'delete',
+          placement: 'menu',
+          danger: true,
+          icon: <Trash2 size={16} />,
+          title: tx('Οριστική διαγραφή οργανισμού', 'Delete organization permanently'),
+          disabled: working,
+          onClick: onDelete,
+        },
+      ]}
+    />
   )
 
   if (initialTab === 'users' && selectedUser) {
@@ -1025,13 +1020,10 @@ export function PlatformOrganizationRecord({
                         </Button>
                       </>
                     ) : (
-                      <IconButton
-                        tone="edit"
-                        label={tx('Επεξεργασία', 'Edit')}
-                        onClick={() => setEditing(true)}
-                      >
-                        <Pencil size={16} />
-                      </IconButton>
+                      <Button variant="secondary" onClick={() => setEditing(true)}>
+                        <Pencil size={15} />
+                        {tx('Επεξεργασία', 'Edit')}
+                      </Button>
                     )
                   }
                 >

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Activity, BedDouble, Building2, KeyRound, LogIn, Users } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { IconButton } from '../../design-system/IconButton'
+import { PlatformRecordActions } from './PlatformRecordActions'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { demoUsers } from '../management/managementData'
 import { MetricCard } from '../../design-system/MetricCard'
@@ -20,14 +20,13 @@ const DEMO_DETAILS = Object.freeze({
   bedCapacity: 120,
 })
 
-function Action({icon,label,title,onClick}){return <div className="platform-org-action-item"><IconButton tone="primary" label={title} onClick={onClick}>{icon}</IconButton><span>{label}</span></div>}
 
 export function PlatformDemoOrganizationRecord({organization,language='el',initialTab='details',onTabChange,onBack,onEnter}){
   const en=language==='en',tx=(elText,enText)=>en?enText:elText
   const [tab,setTab]=useState(['details','users','diagnostics'].includes(initialTab)?initialTab:'details')
   function changeTab(next){setTab(next);onTabChange?.(next)}
   const tabs=[{id:'details',label:tx('Στοιχεία & Ρυθμίσεις','Details & Settings'),icon:Building2},{id:'users',label:`${tx('Χρήστες & Ρόλοι','Users & Roles')} (${demoUsers.length})`,icon:Users},{id:'diagnostics',label:tx('Λειτουργία & Συμβάντα','Activity & Events'),icon:Activity}]
-  const actions=<div className="platform-org-actions" aria-label={tx('Ενέργειες οργανισμού','Organization actions')}><Action icon={<LogIn size={18}/>} label={tx('Είσοδος','Enter')} title={tx('Είσοδος στο demo νοσοκομείο','Enter the demo hospital')} onClick={onEnter}/></div>
+  const actions=<PlatformRecordActions label={tx('Ενέργειες οργανισμού','Organization actions')} actions={[{id:'enter',placement:'primary',icon:<LogIn size={16}/>,label:tx('Είσοδος','Enter'),title:tx('Είσοδος στο demo νοσοκομείο','Enter the demo hospital'),onClick:onEnter}]}/>
 
   return <EntityRecordShell className="platform-owner-record-shell platform-organization-record-workspace" avatar={<Building2 size={20}/>} eyebrow={tx('ΚΑΡΤΕΛΑ ΟΡΓΑΝΙΣΜΟΥ · DEMO','ORGANIZATION RECORD · DEMO')} title={organization.name} subtitle={`${organization.code||'DEMO'} · ${DEMO_DETAILS.city} · ${DEMO_DETAILS.region}`} status={<span className="status-badge temporary">DEMO</span>} headerActions={actions} tabs={tabs} activeTab={tab} onTabChange={changeTab} onBack={onBack} backLabel={tx('Πίσω','Back')}>
     {tab==='details'&&<div className="platform-owner-details platform-organization-record-form">

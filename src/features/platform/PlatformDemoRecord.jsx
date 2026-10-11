@@ -1,7 +1,7 @@
 import { useEffect,useState } from 'react'
 import { Building2,DatabaseZap,FlaskConical,KeyRound,LogIn,PauseCircle,Pencil,PlayCircle,Save,Trash2,X } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { IconButton } from '../../design-system/IconButton'
+import { PlatformRecordActions } from './PlatformRecordActions'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { LocationAutocompleteField } from '../../design-system/LocationAutocompleteField'
@@ -17,7 +17,6 @@ import { demoDatesValid,loadPlatformDemoRecord,savePlatformDemoRecord } from './
 const GREEK_REGIONS=['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
 const HEALTH_REGIONS=['1η ΥΠΕ Αττικής','2η ΥΠΕ Πειραιώς και Αιγαίου','3η ΥΠΕ Μακεδονίας','4η ΥΠΕ Μακεδονίας και Θράκης','5η ΥΠΕ Θεσσαλίας και Στερεάς Ελλάδας','6η ΥΠΕ Πελοποννήσου, Ιονίων Νήσων, Ηπείρου και Δυτικής Ελλάδας','7η ΥΠΕ Κρήτης']
 function daysBetween(a,b){return Math.max(0,Math.ceil((new Date(b)-new Date(a))/86400000))}
-function Action({icon,tone,label,title,onClick,disabled=false}){return <div className="platform-org-action-item"><IconButton tone={tone} label={title} disabled={disabled} onClick={onClick}>{icon}</IconButton><span>{label}</span></div>}
 function FormSection({title,subtitle,actions,children}){return <section className="platform-form-section"><header><div><strong>{title}</strong>{subtitle&&<span>{subtitle}</span>}</div>{actions&&<div className="platform-form-section-actions">{actions}</div>}</header>{children}</section>}
 
 export function PlatformDemoRecord({demo,language='el',maxUsers=5,onBack,onOpenDemo,onChanged,onConverted,onDeleted}){
@@ -68,14 +67,14 @@ export function PlatformDemoRecord({demo,language='el',maxUsers=5,onBack,onOpenD
   function requestDelete(){setDeleteOpen(true)}
   function handleDeleted(){setDeleteOpen(false);if(onDeleted)onDeleted(record.id);else onBack?.()}
 
-  const actions=<div className="platform-org-actions" aria-label={tx('Ενέργειες Demo','Demo actions')}>
-    <Action icon={<LogIn size={18}/>} tone="primary" label={tx('Είσοδος','Enter')} title={tx('Είσοδος στο Demo','Open Demo')} onClick={onOpenDemo}/>
-    <Action icon={<DatabaseZap size={17}/>} tone="neutral" label={tx('Δεδομένα','Data')} title={tx('Επαναφορά δεδομένων Demo','Reset Demo data')} disabled={working||!record.organization_id} onClick={resetData}/>
-    <Action icon={<KeyRound size={17}/>} tone="neutral" label={tx('Κωδικός','Password')} title={tx('Επαναφορά κωδικού Demo χρήστη','Reset Demo user password')} disabled={working||!record.demo_user_id||!record.organization_id} onClick={resetPassword}/>
-    <Action icon={record.status==='paused'?<PlayCircle size={17}/>:<PauseCircle size={17}/>} tone={record.status==='paused'?'success':'neutral'} label={record.status==='paused'?tx('Ενεργοποίηση','Reactivate'):tx('Παύση','Pause')} title={record.status==='paused'?tx('Ενεργοποίηση Demo','Reactivate Demo'):tx('Παύση Demo','Pause Demo')} disabled={working} onClick={togglePause}/>
-    <Action icon={<Building2 size={17}/>} tone="success" label={tx('Σε οργανισμό','Convert')} title={tx('Μετατροπή Demo σε κανονικό οργανισμό','Convert Demo to production organization')} disabled={working||!record.organization_id} onClick={convertToOrganization}/>
-    <Action icon={<Trash2 size={17}/>} tone="danger" label={tx('Διαγραφή','Delete')} title={tx('Οριστική διαγραφή Demo','Delete Demo permanently')} disabled={working||!record.organization_id||!deleteCode} onClick={requestDelete}/>
-  </div>
+  const actions=<PlatformRecordActions label={tx('Ενέργειες Demo','Demo actions')} moreLabel={tx('Περισσότερες ενέργειες','More actions')} actions={[
+    {id:'enter',placement:'primary',icon:<LogIn size={16}/>,label:tx('Είσοδος','Enter'),title:tx('Είσοδος στο Demo','Open Demo'),onClick:onOpenDemo},
+    {id:'pause',placement:'secondary',icon:record.status==='paused'?<PlayCircle size={16}/>:<PauseCircle size={16}/>,label:record.status==='paused'?tx('Ενεργοποίηση','Reactivate'):tx('Παύση','Pause'),title:record.status==='paused'?tx('Ενεργοποίηση Demo','Reactivate Demo'):tx('Παύση Demo','Pause Demo'),disabled:working,onClick:togglePause},
+    {id:'convert',placement:'menu',icon:<Building2 size={16}/>,title:tx('Μετατροπή σε κανονικό οργανισμό','Convert to production organization'),disabled:working||!record.organization_id,onClick:convertToOrganization},
+    {id:'data',placement:'menu',icon:<DatabaseZap size={16}/>,title:tx('Επαναφορά δεδομένων Demo','Reset Demo data'),disabled:working||!record.organization_id,onClick:resetData},
+    {id:'password',placement:'menu',icon:<KeyRound size={16}/>,title:tx('Επαναφορά κωδικού Demo χρήστη','Reset Demo user password'),disabled:working||!record.demo_user_id||!record.organization_id,onClick:resetPassword},
+    {id:'delete',placement:'menu',danger:true,icon:<Trash2 size={16}/>,title:tx('Οριστική διαγραφή Demo','Delete Demo permanently'),disabled:working||!record.organization_id||!deleteCode,onClick:requestDelete},
+  ]}/>
 
   return <>
     <EntityRecordShell className="platform-owner-record-shell platform-demo-record-workspace" avatar={<FlaskConical size={20}/>} eyebrow={tx('ΚΑΡΤΕΛΑ DEMO','DEMO RECORD')} title={draft.label||org?.name||record.label} subtitle={tx('Πλήρης επεξεργάσιμη καρτέλα Demo με τα ίδια βασικά στοιχεία της δημιουργίας.','Full editable Demo record with the same core fields as creation.')} status={<span className={`status-badge ${active?'active':status==='paused'?'temporary':'danger'}`}>{statusLabel}</span>} headerActions={actions} onBack={onBack} backLabel={tx('Πίσω','Back')}>
@@ -83,7 +82,7 @@ export function PlatformDemoRecord({demo,language='el',maxUsers=5,onBack,onOpenD
         <div className="platform-demo-record-status"><span className="platform-demo-icon"><FlaskConical size={20}/></span><div><strong>{statusLabel}{interested&&<span className="demo-interest-badge">{tx('Θέλει την εφαρμογή','Wants the application')}</span>}</strong><span>{active?`${remaining} ${tx('ημέρες υπόλοιπο','days remaining')}`:status==='paused'?tx('Η πρόσβαση έχει τεθεί σε παύση.','Access is paused.'):tx('Η πρόσβαση δεν είναι ενεργή.','Access is not active.')}</span></div></div>
         <DemoExtendControls validUntil={record.valid_until} language={language} working={working} onExtend={extendDemo}/>
         <div className={`platform-record-edit-fieldset ${editing?'is-editing':'is-locked'}`}><div className="platform-form-shell">
-          <FormSection title={tx('Ταυτότητα Demo οργανισμού','Demo organization identity')} subtitle={tx('Τα στοιχεία αυτά ανήκουν στον απομονωμένο Demo οργανισμό.','These details belong to the isolated Demo organization.')} actions={editing?<><Button variant="secondary" onClick={()=>{setDraft(toDraft(record));setEditing(false)}} disabled={saving}><X size={15}/>{tx('Ακύρωση','Cancel')}</Button><Button onClick={saveEdit} disabled={!canSave||saving||working}><Save size={15}/>{saving?tx('Αποθήκευση…','Saving…'):tx('Αποθήκευση','Save')}</Button></>:<IconButton tone="edit" label={tx('Επεξεργασία','Edit')} onClick={()=>setEditing(true)}><Pencil size={16}/></IconButton>}>
+          <FormSection title={tx('Ταυτότητα Demo οργανισμού','Demo organization identity')} subtitle={tx('Τα στοιχεία αυτά ανήκουν στον απομονωμένο Demo οργανισμό.','These details belong to the isolated Demo organization.')} actions={editing?<><Button variant="secondary" onClick={()=>{setDraft(toDraft(record));setEditing(false)}} disabled={saving}><X size={15}/>{tx('Ακύρωση','Cancel')}</Button><Button onClick={saveEdit} disabled={!canSave||saving||working}><Save size={15}/>{saving?tx('Αποθήκευση…','Saving…'):tx('Αποθήκευση','Save')}</Button></>:<Button variant="secondary" onClick={()=>setEditing(true)}><Pencil size={15}/>{tx('Επεξεργασία','Edit')}</Button>}>
             <div className="platform-form-grid"><label className="field field-wide"><span>{tx('Επωνυμία οργανισμού / υποψήφιος πελάτης','Organization / Prospect name')} *</span><input value={draft.label} readOnly={!editing} onChange={e=>setDraft(x=>({...x,label:e.target.value}))}/></label><label className="field"><span>{tx('Τύπος','Type')}</span><select value={draft.type} disabled={!editing} onChange={e=>setDraft(x=>({...x,type:e.target.value}))}><option value="hospital">{tx('Νοσοκομείο','Hospital')}</option><option value="clinic">{tx('Κλινική','Clinic')}</option><option value="group">{tx('Όμιλος','Group')}</option><option value="other">{tx('Άλλο','Other')}</option></select></label></div>
           </FormSection>
           <FormSection title={tx('Τοποθεσία & λειτουργία','Location & operations')}>

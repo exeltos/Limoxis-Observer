@@ -22,3 +22,5 @@ html body .platform-settings-page{max-width:none;width:100%;height:auto;overflow
 html body .platform-registry-shell.platform-settings-page{border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;border-radius:0!important;overflow:visible!important}
 html body .platform-settings-card{margin:0}
 html body .platform-settings-page .platform-settings-grid .field-hint{font-size:11.5px;line-height:1.45}
+/* Until something changes, the header says so instead of showing a disabled Save. */
+.platform-settings-saved{display:inline-flex;align-items:center;height:34px;padding:0 12px;border:1px solid var(--lo-color-border);border-radius:7px;color:#526a7c;font-size:13px;font-weight:600;background:#fff}

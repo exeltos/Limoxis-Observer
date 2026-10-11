@@ -46,7 +46,7 @@ describe('PlatformDashboardView demo preview display (no entry button of its own
     expect(screen.getByText('Πλατφόρμα ενεργή')).toBeInTheDocument()
     // The organization list moved out of the Platform Center (organizations open from their card).
     expect(screen.queryByText('Lena Hospital')).not.toBeInTheDocument()
-    expect(screen.getAllByText('Οργανισμοί').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Οργανισμοί/).length).toBeGreaterThan(0)
   })
 
   it('shows a DEMO badge instead of the live pill when the caller marks it as previewing (organizations swap happens upstream)', () => {

@@ -3,7 +3,7 @@ import fs from 'node:fs'
 
 const migration=fs.readFileSync('supabase/migrations/20260921120000_platform_owner_global_library_propagation.sql','utf8')
 const center=fs.readFileSync('src/features/workspaces/PlatformCenterPage.jsx','utf8')
-const dashboard=fs.readFileSync('src/features/platform/PlatformDashboardView.jsx','utf8')
+const shell=fs.readFileSync('src/app/AppShell.jsx','utf8')
 const demoRegistry=fs.readFileSync('src/features/platform/PlatformDemosRegistry.jsx','utf8')
 const globalManagement=fs.readFileSync('src/features/platform/PlatformGlobalManagement.jsx','utf8')
 const managementPage=fs.readFileSync('src/features/management/ManagementPage.jsx','utf8')
@@ -29,7 +29,8 @@ describe('Platform Owner global (all-hospitals) Central Management',()=>{
   })
 
   it('adds a Central Management entry point reachable without entering a hospital', () => {
-    expect(dashboard).toContain("onNavigate('/platform#management')")
+    // Reached from the Platform Owner's menu.
+    expect(shell).toContain("path:'/platform',hash:'management'")
     expect(center).toContain("if(activeKey==='management')return <PlatformGlobalManagement")
     expect(globalManagement).toContain('<ManagementPage global/>')
   })
