@@ -521,3 +521,10 @@ html:not(#lo-analysis-page) body .analysis-workspace>.analysis-sticky{margin:0 v
   html:not(#lo-unified-tabs):not(#lo-phone-tabs) body :is(nav.canonical-module-tabs,nav.canonical-tabs,.entity-record-tabs):not(.analysis-tabs)::-webkit-scrollbar{display:none}
   html:not(#lo-unified-tabs):not(#lo-phone-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.canonical-tabs>button.canonical-tab,.entity-record-tabs:not(.analysis-tabs)>button){flex:0 0 auto!important;white-space:nowrap!important}
 }
+/* Analysis lines up with every other page: title and subtitle at the usual
+   height, and the section tabs within the page margins instead of edge to edge. */
+@media (min-width:761px){
+  html:not(#lo-analysis-page):not(#lo-analysis-align) body .analysis-workspace>.analysis-header{padding-top:12px!important}
+  html:not(#lo-analysis-page):not(#lo-analysis-align) body .analysis-workspace>.analysis-header .analysis-heading-row p{display:block!important;margin:4px 0 0!important;font-size:13px!important;color:#5b7083!important}
+  html:not(#lo-analysis-page):not(#lo-analysis-align) body .analysis-workspace>.analysis-tabs{margin-left:30px!important;margin-right:30px!important;width:auto!important}
+}
