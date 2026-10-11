@@ -4,16 +4,16 @@
 .demo-guide-progress-track{flex:1;height:8px;border-radius:999px;background:#edf1f5;overflow:hidden}
 .demo-guide-progress-track span{display:block;height:100%;background:#2f8f5b;border-radius:999px;transition:width .2s}
 .demo-guide-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.demo-guide-list li{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:11px;background:#fff}
-.demo-guide-list li.is-done{background:#f3faf6;border-color:#cfe7d9}
+.demo-guide-list>li{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:11px;background:#fff}
+.demo-guide-list>li.is-done{background:#f3faf6;border-color:#cfe7d9}
 .demo-guide-number{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#edf5fa;color:#256b9b;font-weight:800;font-size:13px}
-.demo-guide-list li.is-done .demo-guide-number{background:#2f8f5b;color:#fff}
+.demo-guide-list>li.is-done .demo-guide-number{background:#2f8f5b;color:#fff}
 .demo-guide-body strong{display:block;font-size:13.5px;color:#1d3247}
 .demo-guide-body p{margin:3px 0 0;font-size:12px;line-height:1.5;color:var(--lo-text-secondary,#5f6f7c)}
 .demo-guide-actions{display:flex;align-items:center;gap:8px}
 .demo-guide-check{display:inline-flex;align-items:center;justify-content:center;min-width:132px;gap:5px;height:34px;padding:0 10px;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:8px;background:#fff;color:#40566d;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .demo-guide-check.is-done{border-color:#bfe0cc;background:#e6f4ec;color:#226b43}
-@media(max-width:720px){.demo-guide-list li{grid-template-columns:30px minmax(0,1fr)}.demo-guide-actions{grid-column:1 / -1;justify-content:flex-end}}
+@media(max-width:720px){.demo-guide-list>li{grid-template-columns:30px minmax(0,1fr)}.demo-guide-actions{grid-column:1 / -1;justify-content:flex-end}}
 
 .demo-application-form{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
 .demo-application-form .demo-application-wide{grid-column:1 / -1}

@@ -493,6 +493,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         {(!patientMode || selectedAdmission) && activeTab === 'summary' && (
           <CanonicalSummary
             samples={patientMode ? admissionSamples : recordSamples}
+            scaleRows={patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []}
+            admissions={admissions}
             onOpenStage={stage => {
               setJourneyStage(stage)
               setTab('surveillanceJourney')
