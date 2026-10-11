@@ -223,6 +223,8 @@ serveWithCors(async(req)=>{
     const result=await createEvaluator(admin,{organization,entitlement,evaluator,app,smtp})
     if(result.error)return reply({error:result.error==='PLATFORM_OWNER_EMAIL'?'Το email ανήκει σε Platform Owner.':result.error},400)
     if(result.userId)await caller.rpc('platform_demo_seed_member',{p_organization_id:organization.id,p_user_id:result.userId})
+    // A Demo whose first invitation failed has no main user yet: this one becomes it.
+    if(result.userId)await admin.from('platform_demo_entitlements').update({demo_user_id:result.userId}).eq('id',entitlement.id).is('demo_user_id',null)
     const {userId:_userId,...evaluatorResult}=result
     return reply({ok:true,evaluator:evaluatorResult})
   }
