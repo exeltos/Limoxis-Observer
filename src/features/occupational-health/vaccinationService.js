@@ -1,3 +1,4 @@
+import { binCloudRows,binLocalRow,describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
@@ -99,8 +100,10 @@ export async function updateVaccinationAsync(organizationId,id,draft){
 
 export async function deleteVaccinationAsync(organizationId,id){
   if(!id)throw new Error('VACCINATION_ID_REQUIRED')
-  if(isDemoDataEnvironment()){const rows=loadVaccinations();saveVaccinations(rows.filter(row=>row.id!==id));return}
+  if(isDemoDataEnvironment()){const rows=loadVaccinations(),row=rows.find(item=>item.id===id);await binLocalRow(organizationId,{module:'occupational',kind:'employee_vaccinations',...describeDeleted('Εμβολιασμός',{...row,name:row?.vaccine}),table:'employee_vaccine_records',row});saveVaccinations(rows.filter(item=>item.id!==id));return}
   ensureCloud(organizationId,'employee_vaccinations.delete')
+  const {data:deleted}=await supabase.from('employee_vaccinations').select('*').eq('organization_id',organizationId).eq('id',id).maybeSingle()
+  await binCloudRows(organizationId,{module:'occupational',kind:'employee_vaccinations',...describeDeleted('Εμβολιασμός',{name:deleted?.vaccine_label_snapshot,date:deleted?.vaccination_date}),parts:[{table:'employee_vaccinations',match:{id}}]})
   const {error}=await supabase.from('employee_vaccinations').delete().eq('organization_id',organizationId).eq('id',id)
   if(error)throw error
 }

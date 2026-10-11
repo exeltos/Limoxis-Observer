@@ -1,3 +1,4 @@
+import { binCloudRows,describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { computeTurnaroundHours } from './model/laboratoryModel'
 
@@ -198,6 +199,9 @@ export async function deleteLaboratorySample(organizationId,sampleRecordId){
   const {data:micro,error:microError}=await supabase.from('microbiology_results').select('id').eq('organization_id',organizationId).eq('sample_id',sampleRecordId)
   if(microError)throw microError
   const microIds=(micro||[]).map(row=>row.id)
+  const {data:sample}=await supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).eq('id',sampleRecordId).maybeSingle()
+  const childParts=microIds.length?['antimicrobial_susceptibility_results','critical_result_communications','amr_classifications'].map(table=>({table,match:{microbiology_result_id:microIds}})):[]
+  await binCloudRows(organizationId,{module:'clinical',kind:'laboratory_samples',...describeDeleted('Δείγμα εργαστηρίου',{...(sample||{}),code:sample?.sample_code||sample?.code}),parts:[...childParts,{table:'microbiology_results',match:{sample_id:sampleRecordId}},{table:'laboratory_samples',match:{id:sampleRecordId}}]})
   if(microIds.length){
     for(const table of ['antimicrobial_susceptibility_results','critical_result_communications','amr_classifications']){const {error}=await supabase.from(table).delete().eq('organization_id',organizationId).in('microbiology_result_id',microIds);if(error)throw error}
     const {error}=await supabase.from('microbiology_results').delete().eq('organization_id',organizationId).in('id',microIds);if(error)throw error

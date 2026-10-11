@@ -1,3 +1,4 @@
+import { binCloudRows, binLocalRow, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { preventionDepartments, wasteTypeLibrary } from './preventionDemoData'
@@ -210,11 +211,16 @@ export async function saveWasteMeasurement(organizationId, record, { existingId 
 export async function deleteWasteMeasurement(organizationId, id) {
   if (isDemoDataEnvironment()) {
     if (!id) return
-    saveWasteLocal(loadWasteLocal().filter(row => row.id !== id))
+    const rows = loadWasteLocal()
+    const row = rows.find(item => item.id === id)
+    await binLocalRow(organizationId, { module: 'clinical', kind: 'waste_measurements', ...describeDeleted('Απόβλητα', row), table: 'prevention_waste', row })
+    saveWasteLocal(rows.filter(item => item.id !== id))
     return
   }
   assertCloud(organizationId)
   if (!id) return
+  const { data: deleted } = await supabase.from('waste_measurements').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle()
+  await binCloudRows(organizationId, { module: 'clinical', kind: 'waste_measurements', ...describeDeleted('Απόβλητα', deleted || {}), parts: [{ table: 'waste_measurements', match: { id } }] })
   const { error } = await supabase
     .from('waste_measurements')
     .delete()

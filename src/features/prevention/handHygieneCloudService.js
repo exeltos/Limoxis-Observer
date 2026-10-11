@@ -1,3 +1,4 @@
+import { binCloudRows, binLocalRow, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { preventionDepartments } from './preventionDemoData'
@@ -203,11 +204,16 @@ export async function saveHandHygieneSession(organizationId, record, { existingI
 export async function deleteHandHygieneSession(organizationId, id) {
   if (isDemoDataEnvironment()) {
     if (!id) return
-    saveHandHygieneLocal(loadHandHygieneLocal().filter(row => row.id !== id))
+    const rows = loadHandHygieneLocal()
+    const row = rows.find(item => item.id === id)
+    await binLocalRow(organizationId, { module: 'clinical', kind: 'hand_hygiene_sessions', ...describeDeleted('Υγιεινή χεριών', row), table: 'prevention_hand_hygiene', row })
+    saveHandHygieneLocal(rows.filter(item => item.id !== id))
     return
   }
   assertCloud(organizationId)
   if (!id) return
+  const { data: deleted } = await supabase.from('hand_hygiene_sessions').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle()
+  await binCloudRows(organizationId, { module: 'clinical', kind: 'hand_hygiene_sessions', ...describeDeleted('Υγιεινή χεριών', deleted || {}), parts: [{ table: 'hand_hygiene_observations', match: { session_id: id } }, { table: 'hand_hygiene_sessions', match: { id } }] })
   const { error: childError } = await supabase
     .from('hand_hygiene_observations')
     .delete()
