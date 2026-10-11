@@ -1,6 +1,6 @@
 // Constants and pure helpers for the Analysis page: period ranges, infection-site
 // labels, tab list and the rows each production tab shows.
-import { Activity,BrainCircuit,Gauge,BookOpen,BriefcaseMedical,ClipboardCheck,FileWarning,FlaskConical,GraduationCap,Hand,Microscope,Pill,ShieldAlert,ShieldCheck,Stethoscope,Users } from 'lucide-react'
+import { Activity,BrainCircuit,Gauge,BookOpen,BriefcaseMedical,ClipboardCheck,FileWarning,FlaskConical,GraduationCap,Pill,ShieldCheck,Stethoscope,Users } from 'lucide-react'
 
 export const COMPACT_QUERY='(max-height: 900px) and (min-width: 981px)'
 export const CLINICAL_SITES=['bloodCulture','urineCulture','respiratorySample','woundCulture']
@@ -25,16 +25,16 @@ export function organismBySiteRows(rows,tx,limit=12){
  }
  return [...grouped.entries()].sort((a,b)=>b[1]-a[1]).slice(0,limit)
 }
-export const TABS=[['overview','Σύνοψη','Overview',Activity],['national','Εθνική Επιτήρηση','National surveillance',Microscope],['surveillance','Επιτήρηση & HAI','Surveillance & HAI',Stethoscope],['laboratory','Μικροβιολογία','Microbiology',FlaskConical],['amr','AMR / MDR-XDR','AMR / MDR-XDR',ShieldAlert],['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill],['prevention','Πρόληψη','Prevention',ShieldCheck],['hand','Υγιεινή Χεριών','Hand hygiene',Hand],['controls','Έλεγχοι','Controls',ClipboardCheck],['occupational','Εργαζόμενοι','Employees',Users],['quality','Ποιότητα','Quality',BriefcaseMedical],['training','Εκπαίδευση','Training',GraduationCap],['governance','Διακυβέρνηση','Governance',BookOpen],['pps','Μελέτη επιπολασμού','Prevalence survey',Gauge],['lira','LIRA & AI','LIRA & AI',BrainCircuit]]
+export const TABS=[['overview','Σύνοψη','Overview',Activity],['surveillance','Επιτήρηση & HAI','Surveillance & HAI',Stethoscope],['laboratory','Μικροβιολογία & AMR','Microbiology & AMR',FlaskConical],['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill],['prevention','Πρόληψη','Prevention',ShieldCheck],['controls','Έλεγχοι','Controls',ClipboardCheck],['occupational','Εργαζόμενοι','Employees',Users],['quality','Ποιότητα','Quality',BriefcaseMedical],['training','Εκπαίδευση','Training',GraduationCap],['governance','Διακυβέρνηση','Governance',BookOpen],['pps','Μελέτη επιπολασμού','Prevalence survey',Gauge],['lira','LIRA & AI','LIRA & AI',BrainCircuit]]
 // Module each tab needs in the organization's operating profile; tabs not listed are always shown.
-export const TAB_MODULES={national:['national'],laboratory:['laboratory'],amr:['laboratory'],reporting:['national','laboratory'],surveillance:['surveillance'],antimicrobials:['surveillance','pharmacy'],prevention:['prevention'],hand:['prevention'],controls:['controls'],quality:['quality'],training:['training'],governance:['governance'],occupational:['occupational_health'],pps:['prevalence_survey'],lira:['lira']}
+export const TAB_MODULES={laboratory:['laboratory','national'],reporting:['national','laboratory'],surveillance:['surveillance'],antimicrobials:['surveillance','pharmacy'],prevention:['prevention'],controls:['controls'],quality:['quality'],training:['training'],governance:['governance'],occupational:['occupational_health'],pps:['prevalence_survey'],lira:['lira']}
 // Organization-level only: data quality, ΕΟΔΥ notifications and EARS-Net export work on sample-level laboratory data.
 // Top-level sections of Analysis; each tab belongs to one. A section with a
 // single visible tab shows no sub-tabs.
 const TAB_GROUPS=[
  ['summary','Σύνοψη','Overview',['overview']],
- ['clinical','Επιτήρηση & μικροβιολογία','Surveillance & microbiology',['national','surveillance','laboratory','amr','antimicrobials','pps']],
- ['prevention','Πρόληψη & έλεγχοι','Prevention & controls',['prevention','hand','controls']],
+ ['clinical','Επιτήρηση & μικροβιολογία','Surveillance & microbiology',['surveillance','laboratory','antimicrobials','pps']],
+ ['prevention','Πρόληψη & έλεγχοι','Prevention & controls',['prevention','controls']],
  ['organisation','Οργανισμός','Organisation',['occupational','quality','training','governance']],
  ['reports','Αναφορές & AI','Reports & AI',['reporting','lira']],
 ]

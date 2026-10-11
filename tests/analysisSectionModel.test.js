@@ -20,15 +20,17 @@ const snapshot = {
 
 describe('Analysis section model', () => {
   it('computes hand hygiene compliance as a rate, not a record count', () => {
-    const model = buildSectionModel('hand', snapshot, tx)
-    expect(model.kpis[0]).toEqual(['Συμμόρφωση', '75%', 'στόχος ≥ 80% (ΠΟΥ)', 'warning'])
-    expect(model.charts.find(chart => chart.type === 'rate').rows).toEqual([['ΜΕΘ', 80]])
+    const model = buildSectionModel('prevention', snapshot, tx)
+    expect(model.kpis[1][1]).toBe('75%')
+    expect(model.kpis[1][3]).toBe('warning')
+    expect(model.charts.find(chart => chart.title === 'Υγιεινή χεριών ανά τμήμα').rows).toEqual([['ΜΕΘ', 80]])
   })
 
   it('shows confirmed HAI, isolations and translated classification labels', () => {
     const model = buildSectionModel('surveillance', snapshot, tx)
     expect(model.kpis.map(row => row[1])).toEqual([6, 2, 1, 1])
-    expect(model.charts.find(chart => chart.type === 'donut').rows).toEqual([['Επιβεβαιωμένη', 2], ['Υπό διερεύνηση', 1]])
+    const overview = buildSectionModel('overview', snapshot, tx)
+    expect(overview.charts.find(chart => chart.type === 'donut').rows).toEqual([['Επιβεβαιωμένη', 2], ['Υπό διερεύνηση', 1]])
     expect(model.charts.find(chart => chart.title === 'Τύπος λοίμωξης (HAI)').rows).toEqual([['Λοίμωξη αιματικής ροής', 2]])
   })
 

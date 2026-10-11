@@ -28,11 +28,11 @@ describe('Analysis page cluster panel', () => {
     expect(snapshot.clusters.some(c => c.department === 'ΜΕΘ' && c.organism.includes('Klebsiella'))).toBe(true)
   })
 
-  it('renders a ClusterAlerts panel on the National surveillance tab', () => {
+  it('renders a ClusterAlerts panel on the Microbiology & AMR tab', () => {
     const page = readAnalysisPageSource()
     expect(page).toContain('function ClusterAlerts(')
     expect(page).toContain('<ClusterAlerts clusters={clusters} tx={tx}/>')
-    expect(page).toContain('<NationalSurveillance details={micro} clusters={clusters} tx={tx}/>')
+    expect(page).toContain("tab==='laboratory'?<NationalSurveillance details={micro} clusters={clusters}")
   })
 
   it('plumbs clusters through the production analysis snapshot service', () => {

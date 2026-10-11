@@ -108,13 +108,32 @@ function collectNationalRows(positive) {
   return [...grouped.values()].sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate)).slice(0, 80).map(row => [row.organism, row.resistanceClass, row.department, row.source, row.count, row.lastDate, row.sampleType])
 }
 
-function collectMicrobiology() {
-  const positive = laboratorySamples.filter(x => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus))
+// The months a monthly series covers: the selected range up to the current
+// month, or the last twelve months when no range is given.
+function rangeMonths(counts, range) {
+  if (!range?.from) return lastTwelveMonths(counts)
+  const now = new Date()
+  const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const end = [String(range.to || current).slice(0, 7), current].sort()[0]
+  const out = []
+  for (let [y, m] = String(range.from).slice(0, 7).split('-').map(Number); `${y}-${String(m).padStart(2, '0')}` <= end; m === 12 ? (y++, (m = 1)) : m++) {
+    const key = `${y}-${String(m).padStart(2, '0')}`
+    out.push([key, counts[key] || 0])
+  }
+  return out
+}
+const inSampleRange = (sample, range) => {
+  const date = String(sample.resultedAt || sample.collectedAt || '').slice(0, 10)
+  return !range?.from || !date || (date >= range.from && (!range.to || date <= range.to))
+}
+
+function collectMicrobiology(range) {
+  const positive = laboratorySamples.filter(x => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus) && inSampleRange(x, range))
   const departments = preventionDepartments.map(d => ({ id: d.id, name: d.el }))
   return {
     microorganisms: sortedEntries(countBy(positive, x => x.organism?.trim()), 12),
     resistance: sortedEntries(countBy(positive, x => x.resistance), 5),
-    monthly: lastTwelveMonths(countBy(positive, x => monthKey(x.resultedAt))),
+    monthly: rangeMonths(countBy(positive, x => monthKey(x.resultedAt)), range),
     byDepartment: sortedEntries(countBy(positive, x => x.department), 12),
     bySource: sortedEntries(countBy(positive, x => x.source), 12),
     bySite: sortedEntries(countBy(positive, x => x.type), 12),
@@ -159,7 +178,8 @@ function collectDashboardCounts(now = new Date()) {
   }
 }
 
-export function collectAnalysisDemoSnapshot() {
+// `range` ({from,to}) narrows the microbiology to the Analysis period.
+export function collectAnalysisDemoSnapshot({ range = null } = {}) {
   const training = loadTrainingState()
   const handHygieneRows = loadHandHygieneLocal()
   const wasteRows = loadWasteLocal()
@@ -184,5 +204,5 @@ export function collectAnalysisDemoSnapshot() {
     inpatients: Object.keys(clinicalCases).length,
     dashboard: collectDashboardCounts(),
   }
-  return { source: 'demo', summary, microbiology: collectMicrobiology(), amrSusceptibility: collectAmrSusceptibility(), clusters: detectOrganismClusters(demoClusterRecords(laboratorySamples), { windowDays: CLUSTER_WINDOW_DAYS, threshold: CLUSTER_THRESHOLD }) }
+  return { source: 'demo', summary, microbiology: collectMicrobiology(range), amrSusceptibility: collectAmrSusceptibility(range ? laboratorySamples.filter(x => inSampleRange(x, range)) : laboratorySamples), clusters: detectOrganismClusters(demoClusterRecords(laboratorySamples), { windowDays: CLUSTER_WINDOW_DAYS, threshold: CLUSTER_THRESHOLD }) }
 }
