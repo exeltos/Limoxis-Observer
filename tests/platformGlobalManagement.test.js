@@ -32,7 +32,7 @@ describe('Platform Owner global (all-hospitals) Central Management',()=>{
     // Reached from the Platform Owner's menu.
     expect(shell).toContain("path:'/platform',hash:'management'")
     expect(center).toContain("if(activeKey==='management')return <PlatformGlobalManagement")
-    expect(globalManagement).toContain('<ManagementPage global/>')
+    expect(globalManagement).toContain('<ManagementPage global group={group}/>')
   })
 
   it('renders Page as the outermost element of the global Management view, so its fill/height layout matches every other Platform Center screen', () => {
