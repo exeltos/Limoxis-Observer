@@ -62,6 +62,13 @@ export async function savePlatformDemoRecord(demo, patch) {
   return data
 }
 
+// A fresh link for a Demo user to set a password and sign in (to pass on by hand).
+export async function getPlatformDemoAccessLink({ entitlementId, userId }) {
+  if (!supabase || !entitlementId || !userId) throw new Error('SUPABASE_NOT_CONFIGURED')
+  const result = await invokeAuthenticatedFunction('create-demo-access', { action: 'access_link', entitlementId, userId })
+  return result?.link || ''
+}
+
 // One more evaluator in an existing Demo (same rules as the wizard).
 export async function addPlatformDemoEvaluator({ entitlementId, evaluator }) {
   if (!supabase || !entitlementId) throw new Error('SUPABASE_NOT_CONFIGURED')

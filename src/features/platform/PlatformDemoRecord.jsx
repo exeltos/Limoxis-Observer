@@ -67,7 +67,7 @@ export function PlatformDemoRecord({demo,language='el',maxUsers=5,onBack,onOpenD
   function requestDelete(){setDeleteOpen(true)}
   function handleDeleted(){setDeleteOpen(false);if(onDeleted)onDeleted(record.id);else onBack?.()}
 
-  const actions=<PlatformRecordActions label={tx('Ενέργειες Demo','Demo actions')} moreLabel={tx('Περισσότερες ενέργειες','More actions')} actions={[
+  const actions=<PlatformRecordActions label={tx('Ενέργειες Demo','Demo actions')} moreLabel={tx('Περισσότερες ενέργειες','More actions')} moreText={tx('Περισσότερα','More')} actions={[
     {id:'enter',placement:'primary',icon:<LogIn size={16}/>,label:tx('Είσοδος','Enter'),title:tx('Είσοδος στο Demo','Open Demo'),onClick:onOpenDemo},
     {id:'pause',placement:'secondary',icon:record.status==='paused'?<PlayCircle size={16}/>:<PauseCircle size={16}/>,label:record.status==='paused'?tx('Ενεργοποίηση','Reactivate'):tx('Παύση','Pause'),title:record.status==='paused'?tx('Ενεργοποίηση Demo','Reactivate Demo'):tx('Παύση Demo','Pause Demo'),disabled:working,onClick:togglePause},
     {id:'convert',placement:'menu',icon:<Building2 size={16}/>,title:tx('Μετατροπή σε κανονικό οργανισμό','Convert to production organization'),disabled:working||!record.organization_id,onClick:convertToOrganization},
@@ -92,7 +92,7 @@ export function PlatformDemoRecord({demo,language='el',maxUsers=5,onBack,onOpenD
             <div className="platform-demo-access-grid"><label className="field field-wide"><span>{tx('Υπεύθυνος επικοινωνίας','Contact person')}</span><input value={draft.contactName} readOnly={!editing} onChange={e=>setDraft(x=>({...x,contactName:e.target.value}))}/></label><label className="field field-wide"><span>{tx('Email πρόσκλησης','Invitation email')} *</span><input type="email" value={draft.contactEmail} readOnly={!editing} onChange={e=>setDraft(x=>({...x,contactEmail:e.target.value}))}/></label><ManualDateField label={tx('Έναρξη','Start')} value={draft.validFrom} onChange={value=>setDraft(x=>({...x,validFrom:value}))} disabled={!editing}/><ManualDateField label={`${tx('Λήξη','End')} *`} value={draft.validUntil} onChange={value=>setDraft(x=>({...x,validUntil:value}))} disabled={!editing}/></div>{editing&&draft.validFrom&&draft.validUntil&&!datesValid&&<p className="field-error platform-demo-dates-error" role="alert">{tx('Η λήξη πρέπει να είναι μετά την έναρξη.','The end date must be after the start date.')}</p>}
           </FormSection>
         </div></div>
-        <DemoEvaluatorsPanel organizationId={record.organization_id} entitlementId={record.id} language={language} maxUsers={maxUsers} disabled={working}/>
+        <DemoEvaluatorsPanel organizationId={record.organization_id} entitlementId={record.id} language={language} maxUsers={maxUsers} disabled={working} contactName={record.contact_name} contactEmail={record.contact_email}/>
         <DemoEvaluationPanel organizationId={record.organization_id} language={language} onInterestChange={setInterested}/>
       </div>
     </EntityRecordShell>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, ClipboardCopy, FlaskConical, KeyRound, Mail, Users } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ClipboardCopy, FlaskConical, KeyRound, Link2, Mail, Users } from 'lucide-react'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -7,6 +7,7 @@ import { LocationAutocompleteField } from '../../design-system/LocationAutocompl
 import { CITY_OPTIONS, COUNTRY_OPTIONS } from '../../core/reference/locationOptions'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { demoDatesValid } from './platformDemoService'
+import { AccessLinkDialog } from './DemoAccessLinkDialog'
 import './demoWizard.css'
 
 export const GREEK_REGIONS=['Ανατολική Μακεδονία και Θράκη','Κεντρική Μακεδονία','Δυτική Μακεδονία','Ήπειρος','Θεσσαλία','Ιόνια Νησιά','Δυτική Ελλάδα','Στερεά Ελλάδα','Αττική','Πελοπόννησος','Βόρειο Αιγαίο','Νότιο Αιγαίο','Κρήτη']
@@ -166,17 +167,19 @@ function DemoEmailPreview({language,name,label,validFrom,validUntil}){
 function DemoCreatedDialog({language,result,onClose}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const [copied,setCopied]=useState('')
+  const [linkFor,setLinkFor]=useState(null)
   const users=result?.evaluators||[]
   const copy=async user=>{try{await navigator.clipboard?.writeText(`${user.username} / ${user.temporaryPassword}`);setCopied(user.username)}catch{setCopied('')}}
   return <ObserverDialog width="wide" className="demo-wizard-done" eyebrow={tx('Το Demo είναι έτοιμο','The Demo is ready')} title={result?.organization?.name||tx('Νέο Demo','New Demo')} subtitle={tx('Ο κωδικός εμφανίζεται μόνο τώρα. Δώστε τον στον πελάτη από κοντά.','The password is shown only now. Hand it to the customer in person.')} onClose={onClose} footer={<Button onClick={onClose}><Check size={15}/>{tx('Τέλος','Done')}</Button>}>
     <table className="demo-wizard-review-users">
       <thead><tr><th>{tx('Χρήστης','User')}</th><th>Username</th><th>{tx('Πρόσβαση','Access')}</th></tr></thead>
-      <tbody>{users.map(user=><tr key={user.username}>
+      <tbody>{users.map(user=><tr key={user.username||user.email}>
         <td><strong>{user.fullName}</strong><small>{roleLabel(user.role,language)}</small></td>
-        <td><code>{user.username}</code></td>
-        <td>{user.temporaryPassword?<span className="demo-wizard-password"><code>{user.temporaryPassword}</code><Button variant="secondary" onClick={()=>copy(user)}><ClipboardCopy size={14}/>{copied===user.username?tx('Αντιγράφηκε','Copied'):tx('Αντιγραφή','Copy')}</Button></span>:<span className="demo-wizard-access"><Mail size={13}/>{user.emailSent?tx('Στάλθηκε πρόσκληση','Invitation sent'):tx('Η πρόσκληση δεν στάλθηκε','Invitation not sent')}</span>}</td>
+        <td>{user.username?<code>{user.username}</code>:<small>{user.email}</small>}</td>
+        <td>{user.temporaryPassword?<span className="demo-wizard-password"><code>{user.temporaryPassword}</code><Button variant="secondary" onClick={()=>copy(user)}><ClipboardCopy size={14}/>{copied===user.username?tx('Αντιγράφηκε','Copied'):tx('Αντιγραφή','Copy')}</Button></span>:user.error?<span className="demo-wizard-access is-error" role="alert"><Mail size={13}/>{tx('Ο χρήστης δεν δημιουργήθηκε','The user was not created')}: {user.error}</span>:<span className={`demo-wizard-access${user.emailSent?'':' is-error'}`}><Mail size={13}/>{user.emailSent?tx('Στάλθηκε πρόσκληση','Invitation sent'):tx('Η πρόσκληση δεν στάλθηκε','Invitation not sent')}{!user.emailSent&&user.emailError?`: ${user.emailError}`:''}{user.accessLink&&<Button variant="secondary" onClick={()=>setLinkFor(user)}><Link2 size={14}/>{tx('Σύνδεσμος','Link')}</Button>}</span>}</td>
       </tr>)}</tbody>
     </table>
+    {linkFor&&<AccessLinkDialog language={language} name={linkFor.fullName} email={linkFor.email} link={linkFor.accessLink} emailSent={linkFor.emailSent} onClose={()=>setLinkFor(null)}/>}
     {result?.seed&&<p className="demo-wizard-note"><Users size={14}/>{seedSummary(result.seed,en)}</p>}
   </ObserverDialog>
 }
