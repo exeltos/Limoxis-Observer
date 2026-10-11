@@ -71,9 +71,27 @@ function mailer(){
   return {from:user,transport:nodemailer.createTransport({host:Deno.env.get('SMTP_HOST')||'smtp.gmail.com',port,secure:port===465,auth:{user,pass}})}
 }
 
+// The sign-in account that holds an email, if any: asking for a recovery link
+// reveals it without sending anything (its id, and a link to set a password).
+async function signInAccount(admin:any,email:string,app:string){
+  const {data,error}=await admin.auth.admin.generateLink({type:'recovery',email,options:{redirectTo:`${app}/activate`}})
+  return error||!data?.user?.id?null:{id:data.user.id as string,link:(data.properties?.action_link||'') as string}
+}
+
 async function createEvaluator(admin:any,{organization,entitlement,evaluator,app,smtp}:{organization:any,entitlement:any,evaluator:Evaluator,app:string,smtp:any}){
   const result:any={fullName:evaluator.fullName,email:evaluator.email,role:evaluator.role,access:evaluator.access,emailSent:false}
-  const {data:existing}=await admin.from('profiles').select('id,username,is_platform_owner').ilike('contact_email',evaluator.email).maybeSingle()
+  let {data:existing}=await admin.from('profiles').select('id,username,is_platform_owner').ilike('contact_email',evaluator.email).maybeSingle()
+  // The email may belong to a sign-in account whose profile has another
+  // contact email (then it is that user), or none at all, left behind by an
+  // earlier deletion (an orphan: reused below, since a new invitation fails).
+  let orphan:{id:string,link:string}|null=null
+  if(!existing){
+    const account=await signInAccount(admin,evaluator.email,app)
+    if(account){
+      existing=(await admin.from('profiles').select('id,username,is_platform_owner').eq('id',account.id).maybeSingle()).data
+      if(!existing)orphan=account
+    }
+  }
   if(existing?.is_platform_owner)return {...result,error:'PLATFORM_OWNER_EMAIL'}
 
   let userId:string
@@ -88,7 +106,26 @@ async function createEvaluator(admin:any,{organization,entitlement,evaluator,app
     username=await allocateUsername(admin,evaluator.fullName)
     if(!username)return {...result,error:'USERNAME_ALLOCATION_FAILED'}
     const metadata={full_name:evaluator.fullName,username,is_demo:true,organization_id:organization.id}
-    if(evaluator.access==='password'){
+    if(orphan){
+      // Reuse the account: new metadata, a fresh profile below, and either a
+      // temporary password or the link to set one.
+      userId=orphan.id
+      if(evaluator.access==='password'){
+        const password=temporaryPassword()
+        const {error}=await admin.auth.admin.updateUserById(userId,{password,email_confirm:true,user_metadata:metadata})
+        if(error)return {...result,error:error.message}
+        status='active';result.temporaryPassword=password
+      }else{
+        const {error}=await admin.auth.admin.updateUserById(userId,{user_metadata:metadata})
+        if(error)return {...result,error:error.message}
+        actionLink=orphan.link
+        if(!smtp){
+          const {error:resetError}=await admin.auth.resetPasswordForEmail(evaluator.email,{redirectTo:`${app}/activate`})
+          if(resetError)result.emailError=resetError.message.slice(0,300)
+          else result.emailSent=true
+        }
+      }
+    }else if(evaluator.access==='password'){
       const password=temporaryPassword()
       const {data,error}=await admin.auth.admin.createUser({email:evaluator.email,password,email_confirm:true,user_metadata:metadata})
       if(error||!data?.user)return {...result,error:error?.message||'USER_CREATE_FAILED'}
@@ -102,7 +139,7 @@ async function createEvaluator(admin:any,{organization,entitlement,evaluator,app
       if(error||!data?.user)return {...result,error:error?.message||'INVITE_FAILED'}
       userId=data.user.id;result.emailSent=true
     }
-    created=true
+    created=!orphan
   }
   const undo=async()=>{if(created)await admin.auth.admin.deleteUser(userId)}
 
@@ -110,7 +147,7 @@ async function createEvaluator(admin:any,{organization,entitlement,evaluator,app
   // record from it (ensure_hospital_admin_employee).
   const profilePatch:any=existing?{}:{full_name:evaluator.fullName,username,contact_email:evaluator.email,is_demo:true,demo_entitlement_id:entitlement.id}
   if(Object.keys(profilePatch).length){
-    const {error}=await admin.from('profiles').update(profilePatch).eq('id',userId)
+    const {error}=await admin.from('profiles').upsert({id:userId,...profilePatch},{onConflict:'id'})
     if(error){await undo();return {...result,error:error.message}}
   }
   const {data:membership,error:membershipError}=await admin.from('organization_members').insert({organization_id:organization.id,user_id:userId,role:evaluator.role,status}).select('id').single()
@@ -129,6 +166,8 @@ async function createEvaluator(admin:any,{organization,entitlement,evaluator,app
       result.emailSent=true
     }catch(error){result.emailError=String((error as Error)?.message||error).slice(0,300)}
   }
+  // A link the Platform Owner can pass on by hand when the email does not arrive.
+  if(evaluator.access==='invite')result.accessLink=actionLink||(await signInAccount(admin,evaluator.email,app))?.link||''
   return {...result,userId,username,reused:Boolean(existing)}
 }
 
@@ -156,6 +195,21 @@ serveWithCors(async(req)=>{
   const {data:settings}=await admin.from('platform_settings').select('default_demo_duration_days,max_demo_users').eq('id','global').maybeSingle()
   const maxUsers=Math.min(20,Math.max(1,Number(settings?.max_demo_users)||5))
   const smtp=mailer()
+
+  // A fresh link for a Demo user to set a password and sign in, for the
+  // Platform Owner to pass on when the invitation email does not arrive.
+  if(body.action==='access_link'){
+    const {data:entitlement}=await admin.from('platform_demo_entitlements').select('organization_id').eq('id',String(body.entitlementId||'')).maybeSingle()
+    if(!entitlement)return reply({error:'Το Demo δεν βρέθηκε.'},404)
+    const userId=String(body.userId||'')
+    const {data:member}=await admin.from('organization_members').select('id').eq('organization_id',entitlement.organization_id).eq('user_id',userId).maybeSingle()
+    if(!member)return reply({error:'Ο χρήστης δεν ανήκει σε αυτό το Demo.'},404)
+    const {data:profile}=await admin.from('profiles').select('contact_email').eq('id',userId).maybeSingle()
+    if(!profile?.contact_email)return reply({error:'Ο χρήστης δεν έχει email.'},400)
+    const account=await signInAccount(admin,String(profile.contact_email).toLowerCase(),app)
+    if(!account?.link)return reply({error:'Δεν ήταν δυνατή η δημιουργία συνδέσμου.'},500)
+    return reply({ok:true,link:account.link})
+  }
 
   if(body.action==='add_evaluator'){
     const evaluator=cleanEvaluator(body.evaluator)

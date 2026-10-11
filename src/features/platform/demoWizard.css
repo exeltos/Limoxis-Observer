@@ -38,6 +38,7 @@
 .demo-wizard-review-users td small{display:block;margin-top:2px;color:#6b7b8a;font-size:11.5px}
 .demo-wizard-review-users code{font-size:12.5px;color:#174b70}
 .demo-wizard-access{display:inline-flex;align-items:center;gap:5px}
+.demo-wizard-access.is-error{color:#a3221a;font-weight:650}
 .demo-wizard-password{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
 .demo-wizard-password .button{white-space:nowrap}
 .demo-wizard-password code{padding:4px 8px;border-radius:7px;background:#f2f7fa;letter-spacing:.04em;white-space:nowrap;overflow-wrap:normal}
@@ -60,3 +61,7 @@
 .demo-evaluators-actions-head{text-align:right!important}
 .demo-evaluators-actions{display:flex;justify-content:flex-end;gap:6px}
 .demo-evaluator-form .field input,.demo-evaluator-form .field select{width:100%}
+div.demo-evaluators-empty{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+div.demo-evaluators-empty p{margin:0}
+.demo-access-link{display:flex;align-items:flex-start;gap:8px;margin:0 0 10px;padding:10px 12px;border:1px solid #dfe6ec;border-radius:9px;background:#f7f9fb}
+.demo-access-link code{font-size:11.5px;word-break:break-all;color:#1d3a52}

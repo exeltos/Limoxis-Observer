@@ -647,6 +647,7 @@ export function PlatformOrganizationRecord({
     <PlatformRecordActions
       label={tx('Ενέργειες οργανισμού', 'Organization actions')}
       moreLabel={tx('Περισσότερες ενέργειες', 'More actions')}
+      moreText={tx('Περισσότερα', 'More')}
       actions={[
         {
           id: 'enter',
