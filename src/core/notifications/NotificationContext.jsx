@@ -11,6 +11,9 @@ const membershipService=()=>import('../../features/committees/committeeMembershi
 const minutesInboxService=()=>import('../../features/committees/committeeMinutesApprovalInboxService')
 import { acknowledgeAnnouncement as acknowledgeAnnouncementCloud,loadAnnouncements,loadMyAnnouncementAcknowledgements } from '../../features/management/announcementCloudService'
 import { loadDashboardMetrics } from '../../features/dashboard/dashboardCloudService'
+import { DEPARTMENT_ROLES, dashboardTasks } from '../../features/dashboard/dashboardTasks'
+// The Demo counts read the sample hospital's records: loaded only in the Demo.
+const demoMetricsModule=()=>import('../../features/dashboard/demoDashboardMetrics')
 import { collectDemoOrganismClusters,loadActiveClustersAsync } from '../../features/surveillance/outbreakClusterService'
 import { clusterAlertId } from '../../features/surveillance/clusterDetection'
 import { loadPlatformAttentionItems } from '../../features/platform/platformAttentionService'
@@ -26,38 +29,6 @@ function valuesFor(a){return Array.isArray(a.audienceValues)?a.audienceValues:(a
 function applies(a,{role,membership,user,profile}){const vals=valuesFor(a);if(a.audienceType==='all')return true;if(a.audienceType==='role')return vals.includes(role);if(a.audienceType==='department'){const own=[...(membership?.departmentIds||[]),membership?.previewDepartment].filter(Boolean);return vals.some(v=>own.includes(v))}if(a.audienceType==='user')return vals.some(v=>[user?.id,user?.email,profile?.id,profile?.email].filter(Boolean).includes(v));return false}
 function withinWindow(a,now=Date.now()){const start=a.startAt?new Date(a.startAt).getTime():null,end=a.endAt?new Date(a.endAt).getTime():null;return (!start||Number.isNaN(start)||now>=start)&&(!end||Number.isNaN(end)||now<=end)}
 export const demoAnnouncementText={el:{'ANN-001':{title:'Ενημέρωση Επιτήρησης',message:'Παρακαλούμε να ολοκληρωθούν οι εκκρεμείς επανεκτιμήσεις απομόνωσης.'},'ANN-002':{title:'Υπενθύμιση εκπαίδευσης',message:'Η νέα ενότητα πρόληψης λοιμώξεων είναι διαθέσιμη στο Κέντρο Εκπαίδευσης.'}},en:{'ANN-001':{title:'Surveillance update',message:'Please complete the pending isolation reassessments.'},'ANN-002':{title:'Training reminder',message:'The new infection prevention module is available in the Training Center.'}}}
-const demoOperationalText={el:{infection_control_lead:[['Επανεκτιμήσεις απομόνωσης','4','/surveillance'],['Εκπρόθεσμοι έλεγχοι','3','/controls'],['Εκκρεμείς εγκρίσεις','5','/pharmacy']],infection_control_member:[['Ενεργές επιτηρήσεις','6','/surveillance'],['Νέα εργαστηριακά αποτελέσματα','2','/laboratory']],laboratory:[['Αποτελέσματα προς επικύρωση','3','/laboratory'],['Κρίσιμα αποτελέσματα','1','/laboratory']],department_manager:[['Εκκρεμότητες τμήματος','3','/my-department'],['Εκπαίδευση σε εκκρεμότητα','2','/training']],department_user:[['Ανατεθειμένη εκπαίδευση','1','/training']],occupational_physician:[['Επανέλεγχοι εργαζομένων','2','/occupational-health']],pharmacy:[['Εγκρίσεις αντιβιοτικών','3','/pharmacy']],quality_manager:[['CAPA εκπρόθεσμα','2','/quality']],doctor_reviewer:[['Ιατρικές εγκρίσεις','4','/surveillance']],hospital_admin:[['Χρήστες που χρειάζονται ενεργοποίηση ή έλεγχο πρόσβασης','2','/management'],['Εκκρεμείς ρυθμίσεις οργανισμού','1','/management'],['Συμβάντα καταγραφής που χρειάζονται διοικητικό έλεγχο','2','/management']],platform_owner:[['Ενεργοποιήσεις οργανισμών','2','/platform#organizations']]},en:{infection_control_lead:[['Isolation reassessments','4','/surveillance'],['Overdue controls','3','/controls'],['Pending approvals','5','/pharmacy']],infection_control_member:[['Active surveillance episodes','6','/surveillance'],['New laboratory results','2','/laboratory']],laboratory:[['Results awaiting validation','3','/laboratory'],['Critical results','1','/laboratory']],department_manager:[['Department pending work','3','/my-department'],['Training pending','2','/training']],department_user:[['Assigned training','1','/training']],occupational_physician:[['Employee follow-up','2','/occupational-health']],pharmacy:[['Antimicrobial approvals','3','/pharmacy']],quality_manager:[['Overdue CAPA','2','/quality']],doctor_reviewer:[['Clinical approvals','4','/surveillance']],hospital_admin:[['Users requiring activation or access review','2','/management'],['Pending organization settings','1','/management'],['Audit events requiring administrative review','2','/management']],platform_owner:[['Organization activations','2','/platform#organizations']]}}
-
-function liveOperationalItems(role,metrics={},language='el'){
- const en=language==='en',items=[]
- const push=(key,count,el,enText,to)=>{if(Number(count)>0)items.push({id:`LIVE-${role}-${key}`,title:en?enText:el,count:Number(count),to,type:'task',source:'supabase'})}
- if(role==='infection_control_lead'||role==='infection_control_member'){
-  push('isolation',metrics.isolationReviewsDue,'Επανεκτιμήσεις απομόνωσης','Isolation reassessments','/surveillance')
-  push('controls',metrics.overdueControls,'Εκπρόθεσμοι έλεγχοι','Overdue controls','/controls')
-  push('critical-lab',metrics.criticalUncommunicated,'Κρίσιμα εργαστηριακά αποτελέσματα','Critical laboratory results','/laboratory')
- }
- if(role==='laboratory'){
-  push('samples',metrics.pendingSamples,'Εκκρεμή δείγματα','Pending samples','/laboratory')
-  push('critical-lab',metrics.criticalUncommunicated,'Κρίσιμα αποτελέσματα χωρίς επικοινωνία','Critical results not communicated','/laboratory')
- }
- if(role==='department_manager'||role==='department_user'){
-  push('controls',metrics.overdueControls,'Εκπρόθεσμοι έλεγχοι τμήματος','Overdue department controls','/controls')
-  push('samples',metrics.pendingSamples,'Εκκρεμή δείγματα τμήματος','Pending department samples','/laboratory')
- }
- if(role==='occupational_physician'){
-  push('oh-followup',metrics.ohFollowupsDue,'Επανέλεγχοι εργαζομένων','Employee follow-ups','/occupational-health')
-  push('vaccinations',metrics.vaccinationsDue,'Εμβολιασμοί προς ανανέωση','Vaccinations due','/occupational-health')
- }
- if(role==='quality_manager'){
-  push('capa',metrics.overdueCapa,'CAPA εκπρόθεσμα','Overdue CAPA','/quality')
-  push('incidents',metrics.severeOpenIncidents,'Σοβαρά ανοικτά συμβάντα','Severe open incidents','/quality')
- }
- if(role==='committee_secretariat'){
-  push('minutes',metrics.pendingMinutes,'Πρακτικά προς οριστικοποίηση','Minutes awaiting finalization','/committees')
-  push('decisions',metrics.openDecisions,'Ανοικτές αποφάσεις','Open decisions','/committees')
- }
- return items
-}
 
 export function NotificationProvider({children}){
  const {user,profile}=useAuth(); const {role,membership,tenant,isDemo,reloadMemberships}=useTenant(); const {language}=useLanguage()
@@ -70,14 +41,14 @@ export function NotificationProvider({children}){
  useEffect(()=>{void reloadAnnouncements()},[reloadAnnouncements])
  const reloadCommitteeMemberships=useCallback(async()=>{if(isDemo||!tenant?.id||!user?.id){setCommitteeMemberships([]);return}try{setCommitteeMemberships(await (await membershipService()).loadMyPendingCommitteeMembershipsAsync(tenant.id,user.id))}catch{setCommitteeMemberships([])}},[isDemo,tenant?.id,user?.id])
  const reloadCommitteeMinutesApprovals=useCallback(async()=>{if(isDemo||!tenant?.id||!user?.id){setCommitteeMinutesApprovals([]);return}try{setCommitteeMinutesApprovals(await (await minutesInboxService()).loadMyPendingCommitteeMinutesApprovalsAsync(tenant.id,user.id))}catch{setCommitteeMinutesApprovals([])}},[isDemo,tenant?.id,user?.id])
- const reloadLiveOperational=useCallback(async()=>{if(!isDemo&&!tenant?.id&&profile?.isPlatformOwner){try{setLiveOperational(await loadPlatformAttentionItems(language))}catch{setLiveOperational([])}return}if(isDemo||!tenant?.id){setLiveOperational([]);return}try{const metrics=await loadDashboardMetrics(tenant.id);setLiveOperational(liveOperationalItems(role,metrics,language))}catch{setLiveOperational([])}},[isDemo,tenant?.id,role,language,profile?.isPlatformOwner])
+ const reloadLiveOperational=useCallback(async()=>{if(!isDemo&&!tenant?.id&&profile?.isPlatformOwner){try{setLiveOperational(await loadPlatformAttentionItems(language))}catch{setLiveOperational([])}return}if(isDemo){const demoRole=role==='demo'||role==='platform_owner'?'hospital_admin':role;try{const {metrics}=(await demoMetricsModule()).collectDemoDashboardMetrics({department:DEPARTMENT_ROLES.has(demoRole)?membership?.previewDepartment||null:null});setLiveOperational(dashboardTasks(demoRole,metrics,language))}catch{setLiveOperational([])}return}if(!tenant?.id){setLiveOperational([]);return}try{const metrics=await loadDashboardMetrics(tenant.id,{departmentIds:DEPARTMENT_ROLES.has(role)?membership?.departmentIds:null});setLiveOperational(dashboardTasks(role,metrics,language))}catch{setLiveOperational([])}},[isDemo,tenant?.id,role,language,profile?.isPlatformOwner,membership?.previewDepartment,membership?.departmentIds])
  const reloadClusterAlerts=useCallback(async()=>{if(!CLUSTER_ALERT_ROLES.includes(role)){setClusterAlerts([]);return}if(isDemo){try{setClusterAlerts(await collectDemoOrganismClusters())}catch{setClusterAlerts([])}return}if(!tenant?.id){setClusterAlerts([]);return}try{setClusterAlerts(await loadActiveClustersAsync(tenant.id))}catch{setClusterAlerts([])}},[isDemo,tenant?.id,role])
  useEffect(()=>{void reloadCommitteeMemberships();void reloadCommitteeMinutesApprovals();void reloadLiveOperational();void reloadClusterAlerts();if(!isDemo&&tenant?.id)void processNotificationOutboxAsync(tenant.id).catch(()=>{})},[reloadCommitteeMemberships,reloadCommitteeMinutesApprovals,reloadLiveOperational,reloadClusterAlerts,isDemo,tenant?.id,clock])
  const audience=useMemo(()=>({role,membership,user,profile}),[role,membership,user,profile])
  const visibleAnnouncements=useMemo(()=>announcements.filter(a=>(!isDemo||applies(a,audience))&&withinWindow(a,clock)).map(a=>{const localized=isDemo?demoAnnouncementText[language]?.[a.id]:null;return {...a,...(localized||{}),acknowledged:announcementAcknowledgements.has(a.id)}}).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),[announcements,isDemo,audience,clock,language,announcementAcknowledgements])
  const {data:employeeRows}=useEmployeesData()
  const birthday=useMemo(()=>{const today=new Date(clock),md=`${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;return employeeRows.filter(e=>e.employmentStatus==='active'&&String(e.birthDate||'').slice(5)===md)},[clock,employeeRows])
- const operational=useMemo(()=>{if(!isDemo)return liveOperational;const base=demoOperationalText[language==='en'?'en':'el'];const demoRole=role==='demo'||(role==='platform_owner'&&tenant?.id)?'hospital_admin':role;return (base[demoRole]||[]).map((x,i)=>({id:`TASK-${demoRole}-${i}`,title:x[0],count:x[1],to:x[2],type:'task'}))},[isDemo,role,language,liveOperational,tenant?.id])
+ const operational=liveOperational
  const membershipItems=useMemo(()=>committeeMemberships.map(item=>({...item,title:language==='en'?'Committee membership approval':'Αποδοχή συμμετοχής σε επιτροπή',message:`${item.committeeName}${item.committeeTitle?` · ${item.committeeTitle}`:''}`,to:item.committeeId?`/committees/${item.committeeId}`:'/committees',read:false})),[committeeMemberships,language])
  const minutesApprovalItems=useMemo(()=>committeeMinutesApprovals.map(item=>({...item,title:language==='en'?'Minutes approval required':'Απαιτείται έγκριση πρακτικών',message:`${item.committeeName}${item.meetingTitle?` · ${item.meetingTitle}`:''}`,read:false})),[committeeMinutesApprovals,language])
  const clusterItems=useMemo(()=>{const en=language==='en';return clusterAlerts.map(cluster=>{const id=clusterAlertId(cluster);return {id,type:'cluster',title:en?'Possible infection cluster':'Πιθανό cluster λοίμωξης',message:`${cluster.organism} · ${cluster.department} · ${cluster.count} ${en?'cases in':'περιστατικά σε'} ${cluster.windowDays} ${en?'days':'ημέρες'}${cluster.resistanceLabels?.length?` · ${cluster.resistanceLabels.join(', ')}`:''}`,to:'/laboratory',read:Boolean(reads[id])}})},[clusterAlerts,language,reads])

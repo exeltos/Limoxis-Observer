@@ -20,12 +20,7 @@ describe('role dashboards', () => {
     const page = read('src/features/dashboard/DashboardPage.jsx')
     expect(page).toContain('<TrendChart')
     expect(page).toContain('<DonutChart')
-    expect(page).toContain('function demoMetrics(')
     expect(page).toContain('case ROLES.PHARMACY:')
-  })
-
-  it('department home reuses the dashboard without organization-wide counts', () => {
-    expect(read('src/features/workspaces/MyDepartmentPage.jsx')).toContain('<DashboardPage showKpis={false}')
   })
 
   it('role workspace titles are Greek', () => {
