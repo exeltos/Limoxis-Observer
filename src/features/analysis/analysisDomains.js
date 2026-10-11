@@ -4,11 +4,11 @@
 import { clinicalCases } from '../surveillance/clinicalDemoData'
 import { loadHandHygieneLocal, loadWasteLocal, loadBundlesLocal } from '../prevention/preventionStore'
 import { loadQualityLocal } from '../quality/qualityStore'
-import { loadControlExecutionsLocal, loadControlAssignmentsLocal } from '../controls/controlStore'
+import { loadControlExecutionsLocal, loadControlAssignmentsLocal, loadControlDefinitionsLocal } from '../controls/controlStore'
 import { loadTrainingState } from '../training/trainingData'
 import { loadDocuments } from '../documents/documentStore'
 import { loadCommittees } from '../committees/committeeData'
-import { employeeRows, employeeVaccinations } from '../employees/employeeDemoData'
+import { employeeRows, employeeVaccinations, employeeExposureIncidents } from '../employees/employeeDemoData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
 import { buildLiraMetrics, buildPpsMetrics } from './analysisAddonMetrics'
@@ -20,6 +20,17 @@ const inRange = (value, range) => { const d = day(value); if (!d) return true; r
 function tally(rows, keyFn) { const out = new Map(); for (const row of rows) { const key = keyFn(row); if (key == null || key === '') continue; out.set(key, (out.get(key) || 0) + 1) } return [...out.entries()].sort((a, b) => b[1] - a[1]) }
 function sums(rows, keyFn, valueFns) { const out = new Map(); for (const row of rows) { const key = keyFn(row); if (!key) continue; const current = out.get(key) || valueFns.map(() => 0); valueFns.forEach((fn, index) => { current[index] += Number(fn(row)) || 0 }); out.set(key, current) } return [...out.entries()].map(([key, values]) => [key, ...values]) }
 const CLOSED_QUALITY = new Set(['closed', 'resolved', 'completed', 'verified'])
+// CLABSI / CAUTI / VAP: an HAI of the matching type in a patient with the matching device.
+const DEVICE_HAI = [
+  ['CLABSI', ['bloodstreamInfection'], /central|cvc|picc|κεντρικ/i],
+  ['CAUTI', ['urinaryTractInfection'], /urinary|foley|ουροκαθ/i],
+  ['VAP', ['pneumonia', 'ventilatorAssociatedPneumonia'], /endotracheal|ventilat|tracheost|ενδοτραχ|αναπνευστ|τραχειοστ/i],
+]
+function deviceAssociation(item) {
+  const names = (item.devices || []).map(device => `${device.nameEn || ''} ${device.name || ''} ${device.type || ''}`).join(' ')
+  const match = DEVICE_HAI.find(([, types, pattern]) => types.includes(item.haiClassification?.type) && pattern.test(names))
+  return match ? match[0] : null
+}
 
 export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
   const today = new Date().toISOString().slice(0, 10)
@@ -57,6 +68,10 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       isolationReviewOverdue: cases.filter(item => item.status === 'active' && item.isolation?.status === 'active' && item.reviewDue && day(item.reviewDue) < today).length,
       devicesActive: devices.length,
       byDevice: tally(devices, device => (en ? device.nameEn : device.name) || device.name || device.type || '—'),
+      // Cross-tabulations as [row, column, count] cells.
+      haiByDepartment: hai.map(item => [dept(item), item.haiClassification.type || '—', 1]),
+      organismByHaiType: hai.filter(item => item.organism).map(item => [item.organism, item.haiClassification.type || '—', 1]),
+      deviceAssociated: hai.map(item => [dept(item), deviceAssociation(item)]).filter(([, kind]) => kind).map(([key, kind]) => [key, kind, 1]),
     },
     handHygiene: {
       sessions: hh.length,
@@ -79,6 +94,8 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       withFinding: executions.filter(row => row.has_finding).length,
       overdueAssignments: assignments.filter(row => (row.status || 'active') === 'active' && row.next_due_at && row.next_due_at < new Date().toISOString()).length,
       byDepartment: sums(executions, row => row.department_id || '—', [() => 1, row => (row.has_finding ? 1 : 0)]),
+      monthly: tally(executions, row => month(row.performed_at)).sort((a, b) => a[0].localeCompare(b[0])),
+      findingsByControl: (() => { const titles = new Map(loadControlDefinitionsLocal().map(row => [row.id, (en ? row.titleEn || row.title_en : null) || row.title])); return executions.filter(row => row.has_finding).map(row => [titles.get(row.control_id || row.control_definition_id) || '—', row.department_id || '—', 1]) })(),
     },
     quality: {
       incidents: incidents.length,
@@ -88,6 +105,8 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       byStatus: tally(incidents, row => row.status || '—'),
       capaOpen: capas.filter(row => !CLOSED_QUALITY.has(row.status)).length,
       capaOverdue: capas.filter(row => !CLOSED_QUALITY.has(row.status) && row.dueDate && row.dueDate < today).length,
+      monthly: tally(incidents, row => month(row.date)).sort((a, b) => a[0].localeCompare(b[0])),
+      severityByDepartment: incidents.map(row => [(en ? row.departmentEn : row.department) || row.department || '—', row.severity || '—', 1]),
     },
     workforce: (() => {
       const active = employeeRows.filter(row => (row.employmentStatus || 'active') === 'active')
@@ -103,6 +122,7 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
         byVisitType: tally(visits, row => row.type || '—'),
         followUpsDue: loadOccupationalVisits().filter(row => ids.has(row.employeeId) && row.followUpDate && row.followUpDate < today && row.status !== 'cancelled').length,
         byDepartment: tally(active, row => (en ? row.departmentEn : row.department) || '—'),
+        exposuresByType: tally(employeeExposureIncidents.filter(row => inRange(row.incidentDate, range)), row => row.exposureType || '—'),
       }
     })(),
     training: (() => {
@@ -141,6 +161,8 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       pending: therapies.filter(row => row.approvalStatus === 'pending' || row.approved === false).length,
       byAgent: tally(therapies, row => row.antimicrobial || '—').slice(0, 10),
       byApproval: tally(therapies, row => row.approvalStatus || (row.approved === true ? 'approved' : row.approved === false ? 'pending' : 'not_required')),
+      byAgentDepartment: cases.flatMap(item => (item.therapy || []).map(row => [row.antimicrobial || '—', dept(item), 1])),
+      byAgentOrganism: cases.filter(item => item.organism).flatMap(item => (item.therapy || []).map(row => [row.antimicrobial || '—', item.organism, 1])),
     },
   }
 }
@@ -157,12 +179,29 @@ const LABELS = {
   periodic: ['Περιοδική', 'Periodic'], followUp: ['Επανέλεγχος', 'Follow-up'], preEmployment: ['Προπρόσληψης', 'Pre-employment'], exposure: ['Μετά από έκθεση', 'Post-exposure'],
   policy: ['Πολιτική', 'Policy'], instruction: ['Οδηγία', 'Instruction'], procedure: ['Διαδικασία', 'Procedure'], protocol: ['Πρωτόκολλο', 'Protocol'], form: ['Έντυπο', 'Form'],
   active: ['Ενεργή', 'Active'],
+  needlestick: ['Τρύπημα από βελόνα', 'Needlestick'], mucocutaneous: ['Έκθεση βλεννογόνου', 'Mucocutaneous'], non_intact_skin: ['Μη ακέραιο δέρμα', 'Non-intact skin'], sharps_object: ['Αιχμηρό αντικείμενο', 'Sharps object'], other: ['Άλλο', 'Other'],
   ventilatorAssociatedPneumonia: ['Πνευμονία σχετιζόμενη με αναπνευστήρα (VAP)', 'Ventilator-associated pneumonia (VAP)'], vaccinationReview: ['Έλεγχος εμβολιασμών', 'Vaccination review'],
   published: ['Δημοσιευμένο', 'Published'], draft: ['Προσχέδιο', 'Draft'], review: ['Υπό αναθεώρηση', 'In review'],
   CLABSI: ['Δέσμη CLABSI', 'CLABSI bundle'], VAE: ['Δέσμη VAE', 'VAE bundle'], CAUTI: ['Δέσμη CAUTI', 'CAUTI bundle'], SSI: ['Δέσμη SSI', 'SSI bundle'],
 }
 const pct = (part, whole) => (whole ? Math.round((part / whole) * 1000) / 10 : null)
 const fmtPct = value => (value == null ? '—' : `${String(value).replace('.', ',')}%`)
+
+// One row per department with its surveillance, HAI, cultures, resistant
+// isolates and compliance (hand hygiene, bundles) for the overview.
+function departmentScoreboard(snapshot) {
+  const d = snapshot?.domains || {}, s = d.surveillance || {}, hh = d.handHygiene || {}, b = d.bundles || {}
+  const micro = snapshot?.microbiology || {}
+  const rows = new Map()
+  const at = name => { if (!rows.has(name)) rows.set(name, { name }); return rows.get(name) }
+  for (const [name, n] of s.byDepartment || []) at(name).episodes = n
+  for (const [name, , n] of s.haiByDepartment || []) at(name).hai = (at(name).hai || 0) + n
+  for (const [name, n] of micro.byDepartment || []) at(typeof name === 'object' ? name?.name : name).positives = n
+  for (const [, resistance, name, , n] of micro.nationalRows || []) if (['MDR', 'XDR', 'PDR'].includes(resistance)) at(name).mdro = (at(name).mdro || 0) + (Number(n) || 0)
+  for (const [name, total, part] of hh.byDepartment || []) if (total) at(name).hand = pct(part, total)
+  for (const [name, , score] of b.byDepartment || []) if (score != null) at(name).bundles = score
+  return [...rows.values()].filter(row => row.name && row.name !== '—').sort((a, b) => (b.episodes || 0) + (b.positives || 0) - ((a.episodes || 0) + (a.positives || 0)))
+}
 
 // What each Analysis section shows: KPI tiles and charts built from the metrics.
 export function buildSectionModel(tab, snapshot, tx, t) {
@@ -186,9 +225,22 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Εκπρόθεσμα CAPA', 'Overdue CAPA'), q.capaOverdue ?? 0, tx(`${q.capaOpen ?? 0} ανοιχτά`, `${q.capaOpen ?? 0} open`), q.capaOverdue ? 'danger' : ''],
       ],
       charts: [
-        { type: 'trend', wide: true, title: tx('Θετικές καλλιέργειες ανά μήνα', 'Positive cultures by month'), subtitle: tx('Επικυρωμένα θετικά αποτελέσματα · περάστε το ποντίκι για τιμές.', 'Validated positive results · hover for values.'), points: micro.monthly || [] },
-        { type: 'bars', title: tx('Επιτηρήσεις ανά τμήμα', 'Surveillance by department'), subtitle: tx('Επεισόδια της περιόδου (χωρίς ακυρωμένα).', 'Episodes in the period (cancelled excluded).'), rows: s.byDepartment },
+        { type: 'scoreboard', wide: true, title: tx('Σύγκριση τμημάτων', 'Departments side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε τμήματος για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each department\'s headline figures for the period; shading marks the highest in each column.'), rows: departmentScoreboard(snapshot), columns: [
+          { key: 'episodes', label: tx('Επιτηρήσεις', 'Surveillance') },
+          { key: 'hai', label: tx('HAI', 'HAI'), tone: 'warn' },
+          { key: 'positives', label: tx('Θετικές καλλιέργειες', 'Positive cultures') },
+          { key: 'mdro', label: 'MDR/XDR/PDR', tone: 'danger' },
+          { key: 'hand', label: tx('Υγιεινή χεριών', 'Hand hygiene'), shade: false, format: value => fmtPct(value) },
+          { key: 'bundles', label: tx('Δέσμες μέτρων', 'Bundles'), shade: false, format: value => fmtPct(value) },
+        ] },
         { type: 'donut', title: tx('Ταξινόμηση HAI', 'HAI classification'), subtitle: tx('Τελευταία ταξινόμηση κάθε επεισοδίου.', 'Latest classification per episode.'), rows: named(s.byCaseStatus), center: tx('επεισόδια', 'episodes') },
+        { type: 'bars', title: tx('Τι χρειάζεται ενέργεια', 'What needs action'), subtitle: tx('Εκκρεμότητες όλων των ενοτήτων αυτή τη στιγμή.', 'Open items across all areas right now.'), rows: [
+          [tx('Εκπρόθεσμες επανεκτιμήσεις απομόνωσης', 'Overdue isolation reviews'), s.isolationReviewOverdue ?? 0],
+          [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0],
+          [tx('Εκπρόθεσμα CAPA', 'Overdue CAPA'), q.capaOverdue ?? 0],
+          [tx('Ανοιχτά συμβάντα', 'Open incidents'), q.openIncidents ?? 0],
+          [tx('Αγωγές σε αναμονή έγκρισης', 'Therapies awaiting approval'), a.pending ?? 0],
+        ].filter(([, n]) => n > 0) },
       ],
     }
     case 'surveillance': return {
@@ -200,9 +252,12 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       ],
       charts: [
         { type: 'trend', wide: true, title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
+        { type: 'matrix', wide: true, title: tx('HAI ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
         { type: 'bars', title: tx('Τύπος λοίμωξης (HAI)', 'Infection type (HAI)'), subtitle: tx('Από την ταξινόμηση HAI κάθε επεισοδίου.', 'From each episode’s HAI classification.'), rows: named(s.byHaiType) },
-        { type: 'bars', title: tx('Επεμβατικές συσκευές', 'Invasive devices'), subtitle: tx('Ενεργές συσκευές ανά τύπο.', 'Active devices by type.'), rows: s.byDevice },
         { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
+        { type: 'matrix', title: tx('Λοιμώξεις από συσκευές', 'Device-associated infections'), subtitle: tx('CLABSI, CAUTI και VAP ανά τμήμα.', 'CLABSI, CAUTI and VAP by department.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.deviceAssociated },
+        { type: 'matrix', title: tx('Μικροοργανισμοί ανά τύπο HAI', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
+        { type: 'bars', title: tx('Επεμβατικές συσκευές', 'Invasive devices'), subtitle: tx('Ενεργές συσκευές ανά τύπο.', 'Active devices by type.'), rows: s.byDevice },
       ],
     }
     case 'laboratory': return {
@@ -223,6 +278,8 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       charts: [
         { type: 'bars', title: tx('Συχνότερες ουσίες', 'Most used agents'), subtitle: tx('Αγωγές ανά αντιμικροβιακό.', 'Therapies per antimicrobial.'), rows: a.byAgent },
         { type: 'donut', title: tx('Κατάσταση έγκρισης', 'Approval status'), subtitle: tx('Έγκριση ανά αγωγή.', 'Approval per therapy.'), rows: named(a.byApproval), center: tx('αγωγές', 'therapies') },
+        { type: 'matrix', wide: true, title: tx('Ουσίες ανά τμήμα', 'Agents by department'), subtitle: tx('Πού χορηγείται κάθε αντιμικροβιακό.', 'Where each antimicrobial is given.'), rowLabel: tx('Ουσία', 'Agent'), cells: a.byAgentDepartment },
+        { type: 'matrix', wide: true, title: tx('Ουσίες ανά μικροοργανισμό', 'Agents by organism'), subtitle: tx('Ποια αγωγή δόθηκε για κάθε μικροοργανισμό του επεισοδίου.', 'Which therapy was given for each episode\'s organism.'), rowLabel: tx('Ουσία', 'Agent'), cells: a.byAgentOrganism },
       ],
     }
     case 'prevention': return {
@@ -248,8 +305,10 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0, tx('αναθέσεις με παρελθούσα προθεσμία', 'assignments past due'), c.overdueAssignments ? 'danger' : ''],
       ],
       charts: [
+        { type: 'trend', wide: true, title: tx('Εκτελέσεις ανά μήνα', 'Executions by month'), subtitle: tx('Έλεγχοι που πραγματοποιήθηκαν κάθε μήνα.', 'Controls performed each month.'), points: c.monthly },
+        { type: 'matrix', wide: true, title: tx('Ευρήματα ανά έλεγχο και τμήμα', 'Findings by control and department'), subtitle: tx('Σε ποιον έλεγχο και ποιο τμήμα εντοπίζονται ευρήματα.', 'Which control and which department the findings come from.'), rowLabel: tx('Έλεγχος', 'Control'), cells: c.findingsByControl },
         { type: 'bars', title: tx('Εκτελέσεις ανά τμήμα', 'Executions by department'), subtitle: tx('Ολοκληρωμένοι έλεγχοι στην περίοδο.', 'Controls performed in the period.'), rows: (c.byDepartment || []).map(([key, n]) => [key, n]) },
-        { type: 'bars', title: tx('Ευρήματα ανά τμήμα', 'Findings by department'), subtitle: tx('Εκτελέσεις με εύρημα.', 'Executions with a finding.'), rows: (c.byDepartment || []).map(([key, , f]) => [key, f]).filter(([, f]) => f > 0) },
+        { type: 'rate', title: tx('Ποσοστό ευρημάτων ανά τμήμα', 'Finding rate by department'), subtitle: tx('Εκτελέσεις με εύρημα προς το σύνολο των εκτελέσεων.', 'Executions with a finding over all executions.'), rows: (c.byDepartment || []).map(([key, total, findings]) => [key, pct(findings, total) ?? 0]) },
       ],
     }
     case 'quality': return {
@@ -260,6 +319,8 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Εκπρόθεσμα CAPA', 'Overdue CAPA'), q.capaOverdue ?? 0, tx('πέρασε η προθεσμία', 'past due date'), q.capaOverdue ? 'danger' : ''],
       ],
       charts: [
+        { type: 'trend', wide: true, title: tx('Συμβάντα ανά μήνα', 'Incidents by month'), subtitle: tx('Αναφορές συμβάντων ανά μήνα.', 'Incident reports per month.'), points: q.monthly },
+        { type: 'matrix', wide: true, title: tx('Σοβαρότητα ανά τμήμα', 'Severity by department'), subtitle: tx('Πού συμβαίνουν τα σοβαρότερα συμβάντα.', 'Where the most severe incidents happen.'), rowLabel: tx('Τμήμα', 'Department'), cells: q.severityByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
         { type: 'donut', title: tx('Σοβαρότητα συμβάντων', 'Incident severity'), subtitle: tx('Συμβάντα της περιόδου.', 'Incidents in the period.'), rows: named(q.bySeverity), center: tx('συμβάντα', 'incidents') },
         { type: 'bars', title: tx('Κατάσταση συμβάντων', 'Incident status'), subtitle: tx('Πού βρίσκεται η διερεύνηση.', 'Where investigation stands.'), rows: named(q.byStatus) },
       ],
@@ -275,6 +336,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'bars', title: tx('Κάλυψη ανά εμβόλιο', 'Coverage by vaccine'), subtitle: tx('Εργαζόμενοι με ισχύον εμβόλιο.', 'Employees with a valid vaccine.'), rows: wf.byVaccine || [] },
         { type: 'donut', title: tx('Τύπος επίσκεψης', 'Visit type'), subtitle: tx('Επισκέψεις της περιόδου.', 'Visits in the period.'), rows: named(wf.byVisitType || []), center: tx('επισκέψεις', 'visits') },
         { type: 'bars', title: tx('Εργαζόμενοι ανά τμήμα', 'Employees by department'), subtitle: tx('Ενεργό προσωπικό.', 'Active staff.'), rows: wf.byDepartment || [] },
+        { type: 'bars', title: tx('Εκθέσεις εργαζομένων ανά τύπο', 'Staff exposures by type'), subtitle: tx('Τρυπήματα, βλεννογόνοι και άλλες εκθέσεις της περιόδου.', 'Needlesticks, mucosal and other exposures in the period.'), rows: named(wf.exposuresByType) },
       ],
     } }
     case 'training': { const tr = d.training || {}; const rate = pct(tr.completed, tr.assignments); return {

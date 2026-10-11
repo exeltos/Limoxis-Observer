@@ -54,3 +54,15 @@ html body .analysis-kpis article>span{font-size:12px!important;font-weight:650!i
 html body .analysis-kpis article>strong{font-size:26px!important;line-height:1.15!important;color:#10233b!important}
 html body .analysis-kpis article>small{font-size:12px!important;color:#5c6f7f!important;line-height:1.4!important}
 .analysis-resistant-toggle{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--lo-color-muted,#53697d);cursor:pointer;white-space:nowrap}
+/* Cross-tabulations and the department scoreboard */
+.analysis-matrix-wrap{overflow-x:auto;max-width:100%}
+.analysis-matrix{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;color:#26394d}
+.analysis-matrix th,.analysis-matrix td{padding:7px 9px;border-bottom:1px solid #edf1f4;text-align:center;white-space:nowrap}
+.analysis-matrix thead th{font-size:10.5px;font-weight:800;letter-spacing:.02em;color:#4f6274;background:#f7f9fb;vertical-align:bottom;white-space:normal;min-width:64px}
+.analysis-matrix tbody th,.analysis-matrix tfoot th,.analysis-matrix thead th:first-child{text-align:left;font-weight:700;color:#1d3a52;white-space:normal;min-width:150px}
+.analysis-matrix tbody td{font-weight:700;background:rgba(47,128,190,var(--cell-heat,0));color:#16324a}
+.analysis-matrix tbody td.is-zero{color:#9aa8b4;font-weight:500;background:transparent}
+.analysis-matrix tbody td.tone-warn{background:rgba(230,150,40,var(--cell-heat,0))}
+.analysis-matrix tbody td.tone-danger{background:rgba(220,70,60,var(--cell-heat,0))}
+.analysis-matrix .analysis-matrix-total,.analysis-matrix tfoot td{font-weight:800;background:#f7f9fb;color:#1d3a52}
+.analysis-matrix tfoot th,.analysis-matrix tfoot td{border-bottom:0}

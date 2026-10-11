@@ -87,3 +87,28 @@ export function TrendChart({points,en,label}){
   {hover!=null&&<div className="viz-tooltip" style={{left:`${x(hover)/w*100}%`}}><span>{monthLabel(data[hover][0],en)}</span><strong>{fmt(data[hover][1],en)}</strong></div>}
  </div>
 }
+
+// Cross-tabulation: rows × columns of counts ([rowKey, columnKey, count]),
+// most frequent rows and columns first, each cell shaded by its share of the
+// largest one, with totals. `percent` shows each row's cells as % of its total.
+export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalLabel}){
+  const rowTotals=new Map(),columnTotals=new Map(),values=new Map()
+  for(const [row,column,count] of cells){const n=Number(count)||0;if(!n||row==null||column==null)continue;rowTotals.set(row,(rowTotals.get(row)||0)+n);columnTotals.set(column,(columnTotals.get(column)||0)+n);values.set(`${row}\u0000${column}`,(values.get(`${row}\u0000${column}`)||0)+n)}
+  if(!rowTotals.size)return <div className="analysis-chart-empty">{en?'No data for the selected period.':'Δεν υπάρχουν δεδομένα για την περίοδο.'}</div>
+  const rows=[...rowTotals].sort((a,b)=>b[1]-a[1]).slice(0,maxRows).map(([key])=>key)
+  const columns=[...columnTotals].sort((a,b)=>b[1]-a[1]).slice(0,maxColumns).map(([key])=>key)
+  const peak=Math.max(...[...values.values()])
+  const total=en?'Total':'Σύνολο'
+  return <div className="analysis-matrix-wrap"><table className="analysis-matrix"><thead><tr><th scope="col">{rowLabel}</th>{columns.map(column=><th key={column} scope="col">{column}</th>)}<th scope="col">{totalLabel||total}</th></tr></thead>
+    <tbody>{rows.map(row=><tr key={row}><th scope="row">{row}</th>{columns.map(column=>{const n=values.get(`${row}\u0000${column}`)||0;return <td key={column} className={n?'':'is-zero'} style={n?{'--cell-heat':(0.08+0.34*n/peak).toFixed(2)}:undefined}>{n||'·'}</td>})}<td className="analysis-matrix-total">{rowTotals.get(row)}</td></tr>)}</tbody>
+    <tfoot><tr><th scope="row">{total}</th>{columns.map(column=><td key={column}>{columnTotals.get(column)}</td>)}<td className="analysis-matrix-total">{[...rowTotals.values()].reduce((sum,n)=>sum+n,0)}</td></tr></tfoot></table></div>
+}
+
+// One row per department with the headline figures of every area, so units
+// can be compared side by side; cells are shaded within their column.
+export function Scoreboard({rows=[],columns=[],en}){
+  if(!rows.length)return <div className="analysis-chart-empty">{en?'No data for the selected period.':'Δεν υπάρχουν δεδομένα για την περίοδο.'}</div>
+  const peaks=columns.map(column=>Math.max(0,...rows.map(row=>Number(row[column.key])||0)))
+  return <div className="analysis-matrix-wrap"><table className="analysis-matrix analysis-scoreboard"><thead><tr><th scope="col">{en?'Department':'Τμήμα'}</th>{columns.map(column=><th key={column.key} scope="col">{column.label}</th>)}</tr></thead>
+    <tbody>{rows.map(row=><tr key={row.name}><th scope="row">{row.name}</th>{columns.map((column,index)=>{const value=row[column.key];const n=Number(value);const shade=column.shade!==false&&Number.isFinite(n)&&peaks[index]>0&&n>0;return <td key={column.key} className={`${column.tone?`tone-${column.tone}`:''}${value==null?' is-zero':''}`} style={shade?{'--cell-heat':(0.06+0.3*n/peaks[index]).toFixed(2)}:undefined}>{value==null?'—':column.format?column.format(value):value}</td>})}</tr>)}</tbody></table></div>
+}
