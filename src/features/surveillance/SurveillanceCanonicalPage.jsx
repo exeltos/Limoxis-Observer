@@ -592,7 +592,6 @@ export function SurveillanceCanonicalPage() {
           onPatientsChange={setPatients}
           onClose={() => setCreation(null)}
           onCreate={createPatient}
-          onRecordChange={() => {}}
         />
       )}
       {creation === 'employee' && canEmployees && (

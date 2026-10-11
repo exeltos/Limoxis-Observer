@@ -697,15 +697,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
               void load(selectedEpisodeId)
             }}
             onCreate={createEpisode}
-            onCancelCreated={async (caseRecord, reason) => {
-              await repository.voidCase(caseRecord, reason)
-              setSelectedEpisodeId(null)
-              await load()
-            }}
-            onRecordChange={updated => {
-              setEpisodes(current => current.map(row => (row.id === updated.id ? updated : row)))
-              setSelectedEpisodeId(updated.id)
-            }}
           />
         )}
       </EntityRecordShell>

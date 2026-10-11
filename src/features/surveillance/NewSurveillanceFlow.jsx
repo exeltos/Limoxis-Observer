@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
-import { Button } from '../../design-system/Button'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -9,16 +7,12 @@ import { demoLibrarySeed } from '../management/managementData'
 import { createPatient } from '../patients/patientsService'
 import { PatientSelector, StartStep } from './NewSurveillanceSteps'
 
-const FLOW_RECOVERY_KEY = 'limoxis-new-surveillance-flow'
-
 export function NewSurveillanceFlow({
   patient = null,
   patients = [],
   departments = [],
   onClose,
   onCreate,
-  onCancelCreated,
-  onRecordChange,
   onPatientsChange,
 }) {
   const { t, language } = useLanguage()
@@ -52,11 +46,7 @@ export function NewSurveillanceFlow({
     admissionDate: today,
     dateOfBirth: '',
   })
-  const [record, setRecord] = useState(null)
-  const [, setCompletedSteps] = useState(() => new Set())
   const [busy, setBusy] = useState(false)
-  const [cancelOpen, setCancelOpen] = useState(false)
-  const [cancelReason, setCancelReason] = useState('')
   const [startDraft, setStartDraft] = useState({
     startedAt: today,
     reviewDue: '',
@@ -70,15 +60,6 @@ export function NewSurveillanceFlow({
   })
   const setStart = (k, v) => setStartDraft(d => ({ ...d, [k]: v }))
   const setPatientField = (k, v) => setPatientDraft(d => ({ ...d, [k]: v }))
-  const markComplete = step => setCompletedSteps(current => new Set([...current, step]))
-
-  useEffect(() => {
-    try {
-      sessionStorage.removeItem(FLOW_RECOVERY_KEY)
-    } catch {
-      /* noop */
-    }
-  }, [])
 
   function chooseExistingPatient(id) {
     setSelectedPatientId(id)
@@ -168,84 +149,20 @@ export function NewSurveillanceFlow({
         )
         return
       }
-      if (!record) {
-        const created = await onCreate(
-          {
-            ...startDraft,
-            departmentId: startDraft.departmentId || targetPatient.departmentId || null,
-          },
-          targetPatient,
-        )
-        if (!created)
-          throw new Error(
-            language === 'el'
-              ? 'Δεν δημιουργήθηκε το επεισόδιο επιτήρησης.'
-              : 'The surveillance episode was not created.',
-          )
-        try {
-          sessionStorage.setItem(
-            FLOW_RECOVERY_KEY,
-            JSON.stringify({ record: created, at: Date.now() }),
-          )
-        } catch {
-          /* noop */
-        }
-        setRecord(created)
-        markComplete('start')
-        try {
-          sessionStorage.removeItem(FLOW_RECOVERY_KEY)
-        } catch {
-          /* noop */
-        }
-        onClose()
-      } else {
-        const next = { ...record, ...startDraft }
-        setRecord(next)
-        markComplete('start')
-        onRecordChange?.(next)
-        try {
-          sessionStorage.removeItem(FLOW_RECOVERY_KEY)
-        } catch {
-          /* noop */
-        }
-        onClose()
-      }
-    } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  function closeFlow() {
-    try {
-      sessionStorage.removeItem(FLOW_RECOVERY_KEY)
-    } catch {
-      /* noop */
-    }
-    onClose()
-  }
-  function cancelFlow() {
-    if (record) {
-      setCancelReason('')
-      setCancelOpen(true)
-      return
-    }
-    closeFlow()
-  }
-  async function confirmCancel() {
-    if (!record || !cancelReason.trim() || busy) return
-    try {
-      setBusy(true)
-      await onCancelCreated?.(record, cancelReason.trim())
-      setCancelOpen(false)
-      closeFlow()
-      notify(
-        language === 'el'
-          ? 'Η επιτήρηση ακυρώθηκε με καταγραφή αιτιολογίας.'
-          : 'Surveillance was cancelled with an audit reason.',
-        'success',
+      const created = await onCreate(
+        {
+          ...startDraft,
+          departmentId: startDraft.departmentId || targetPatient.departmentId || null,
+        },
+        targetPatient,
       )
+      if (!created)
+        throw new Error(
+          language === 'el'
+            ? 'Δεν δημιουργήθηκε το επεισόδιο επιτήρησης.'
+            : 'The surveillance episode was not created.',
+        )
+      onClose()
     } catch (error) {
       notify(error?.message || t('actionFailed'), 'danger')
     } finally {
@@ -259,7 +176,7 @@ export function NewSurveillanceFlow({
         <header className="episode-detail-header">
           <div>
             <span className="eyebrow">{t('surveillance')}</span>
-            <h2>{record ? record.id : t('newSurveillance')}</h2>
+            <h2>{t('newSurveillance')}</h2>
             <p>
               {selectedPatient
                 ? `${language === 'el' ? selectedPatient.name : selectedPatient.nameEn || selectedPatient.name} · ${selectedPatient.id}`
@@ -267,14 +184,13 @@ export function NewSurveillanceFlow({
             </p>
           </div>
           <div className="episode-detail-actions">
-            {record && <span className="status-badge active">{t('active')}</span>}
-            <button className="flow-close-button" title={t('close')} onClick={cancelFlow}>
+            <button className="flow-close-button" title={t('close')} onClick={onClose}>
               <X size={16} />
             </button>
           </div>
         </header>
         <div className="episode-detail-scroll progressive-surveillance-scroll">
-          {!patient && !record && (
+          {!patient && (
             <PatientSelector
               chooseExistingPatient={chooseExistingPatient}
               createdPatient={createdPatient}
@@ -325,7 +241,7 @@ export function NewSurveillanceFlow({
           {
             <StartStep
               busy={busy}
-              cancelFlow={cancelFlow}
+              cancelFlow={onClose}
               contextDepartment={contextDepartment}
               language={language}
               patientMode={patientMode}
@@ -337,42 +253,6 @@ export function NewSurveillanceFlow({
             />
           }
         </div>
-        {cancelOpen && (
-          <ObserverDialog
-            title={language === 'el' ? 'Ακύρωση επιτήρησης' : 'Cancel surveillance'}
-            width="medium"
-            onClose={() => setCancelOpen(false)}
-          >
-            <p>
-              {language === 'el'
-                ? 'Η επιτήρηση έχει ήδη δημιουργηθεί. Η ακύρωση καταγράφεται στο ιστορικό και απαιτεί αιτιολογία.'
-                : 'The surveillance has already been created. Cancellation is audited and requires a reason.'}
-            </p>
-            <label>
-              <span>{language === 'el' ? 'Αιτιολογία' : 'Reason'}</span>
-              <textarea
-                rows={3}
-                autoFocus
-                value={cancelReason}
-                onChange={e => setCancelReason(e.target.value)}
-              />
-            </label>
-            <div className="dialog-actions">
-              <Button variant="secondary" onClick={() => setCancelOpen(false)}>
-                {language === 'el' ? 'Επιστροφή' : 'Back'}
-              </Button>
-              <Button disabled={busy || !cancelReason.trim()} onClick={confirmCancel}>
-                {busy
-                  ? language === 'el'
-                    ? 'Ακύρωση…'
-                    : 'Cancelling…'
-                  : language === 'el'
-                    ? 'Επιβεβαίωση ακύρωσης'
-                    : 'Confirm cancellation'}
-              </Button>
-            </div>
-          </ObserverDialog>
-        )}
       </section>
     </div>
   )
