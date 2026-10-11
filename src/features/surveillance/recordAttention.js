@@ -6,7 +6,7 @@ import { sampleTone } from './patientRecordScope'
 export const isAwaitingResult = sample => sampleTone(sample || {}) === 'pending'
 
 // A critical result counts as communicated once the laboratory logged the call.
-const isCommunicated = sample =>
+export const isCommunicated = sample =>
   Boolean(
     sample.communicatedAt ||
     sample.criticalCommunicatedAt ||
