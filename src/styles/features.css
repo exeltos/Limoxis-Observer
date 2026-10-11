@@ -3844,7 +3844,7 @@ button{letter-spacing:0}
   display:block!important;margin:0 0 5px!important;color:#7b8b9b!important;font-size:9.5px!important;font-weight:800!important;line-height:1.2!important;
 }
 .clean-patient-summary .detail-item>strong{font-size:13px!important;color:#18364f!important;font-weight:700!important}
-.clean-patient-summary .summary-detail-note{display:block;margin-top:3px;color:#526a7c;font-size:11.5px;font-weight:500;line-height:1.4}
+.clean-patient-summary .detail-item .summary-detail-note{display:block!important;margin-top:3px!important;color:#4a6274!important;font-size:11.5px!important;font-weight:500!important;line-height:1.4!important}
 
 /* Surveillance tab: samples -> episodes -> selected surveillance journey. */
 .patient-surveillance-clean{
