@@ -5,7 +5,7 @@ import { ScreenErrorBoundary } from '../core/errors/AppErrorBoundary'
 import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Activity, ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, LogOut, Menu, Settings, ShieldCheck, UserRound, X } from 'lucide-react'
+import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, LogOut, Menu, Settings, ShieldCheck, UserRound, X } from 'lucide-react'
 import { navigationFor } from './navigation'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useTenant } from '../core/tenant/TenantContext'
@@ -62,7 +62,6 @@ export function AppShell(){
       {key:'managementGroupData',label:'managementGroupData',path:'/platform',hash:'management?group=data'},
       {key:'managementGroupLira',label:'managementGroupLira',path:'/platform',hash:'management?group=lira'},
     ]},
-    {key:'platformNav.health',label:'platformNav.menuHealth',path:'/platform/health',hash:'',icon:Activity,governance:true},
     {key:'platformNav.audit',label:'platformNav.menuAudit',path:'/platform/audit',hash:'',icon:ShieldCheck,governance:true},
     {key:'platformNav.settings',label:'platformNav.menuSettings',path:'/platform/settings',hash:'',icon:Settings,governance:true},
   ]

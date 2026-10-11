@@ -30,7 +30,7 @@ function fmtDate(value){
   return `${dd}/${mm}/${yyyy}, ${hh}:${min}`
 }
 
-export function PlatformHealthView({organizations=[],language='el'}){
+export function PlatformHealthView({organizations=[],language='el',tabs=null}){
   const en=language==='en'
   const tx=(elText,enText)=>en?enText:elText
   const [rows,setRows]=useState([])
@@ -85,10 +85,11 @@ export function PlatformHealthView({organizations=[],language='el'}){
   const healthLabel=failures>0?tx('Χρειάζεται έλεγχος','Needs review'):warnings>0?tx('Με προειδοποιήσεις','Warnings present'):tx('Ομαλή λειτουργία','Operating normally')
 
   return <Page
-    title={tx('Υγεία Πλατφόρμας','Platform Health')}
-    subtitle={tx('Συγκεντρωτική λειτουργική εικόνα όλων των πραγματικών οργανισμών χωρίς πρόσβαση σε κλινικό περιεχόμενο.','Aggregated operational health across production organizations without clinical-record content.')}
+    title={tx('Ιστορικό & Ασφάλεια','Audit & Security')}
+    subtitle={tx('Ιχνηλασιμότητα ενεργειών, αλλαγών πρόσβασης και λειτουργικών συμβάντων της πλατφόρμας.','Traceability of actions, access changes and operational events across the platform.')}
     actions={<div className="row-actions"><DownloadMenu items={[{id:'events',label:tx('Excel: συμβάντα','Excel: events'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('symvanta-leitourgias','platform-events'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Κατάσταση','Status'),tx('Ενότητα','Area'),'Route',tx('Περιγραφή','Description'),tx('Αναφορά','Reference'),tx('Χρήστης','User'),tx('Έκδοση','Version')],rows:filtered.map(row=>[fmtDate(row.occurredAt),organizationMap.get(row.organizationId)?.name||row.organizationName||'',(severityMeta[row.severity]||severityMeta.info)[en?'en':'el'],localModule(row.module,language),row.route||'',row.message||'',row.diagnosticCode||'',row.actorName||'',row.appVersion||''])})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}
   >
+    {tabs}
     <div className="workspace-summary"><div className="module-summary-strip">
       <MetricCard icon={failures?ShieldAlert:CheckCircle2} value={healthLabel} label={tx('Κατάσταση','Status')} tone={failures?'danger':warnings?'warning':'neutral'}/>
       <MetricCard icon={XCircle} value={failures} label={tx('Αποτυχίες / αποκλεισμοί','Errors / blocked')}/>
