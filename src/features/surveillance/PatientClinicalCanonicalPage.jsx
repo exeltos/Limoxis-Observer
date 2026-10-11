@@ -690,7 +690,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             patient={patient}
             patients={patients}
             departments={departments}
-            initialSample={sampleToLink}
             onPatientsChange={setPatients}
             onClose={() => {
               setCreateOpen(false)
@@ -698,22 +697,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
               void load(selectedEpisodeId)
             }}
             onCreate={createEpisode}
-            onCancelCreated={async (caseRecord, reason) => {
-              await repository.voidCase(caseRecord, reason)
-              setSelectedEpisodeId(null)
-              await load()
-            }}
-            onSaveAssessment={(caseRecord, draft) => repository.saveAssessment(caseRecord, draft)}
-            onRequestSample={(caseRecord, draft) => repository.requestSample(caseRecord, draft)}
-            onSaveIsolation={(caseRecord, draft) =>
-              draft.required === false
-                ? repository.setIsolationNotRequired(caseRecord)
-                : repository.beginIsolation(caseRecord, draft)
-            }
-            onRecordChange={updated => {
-              setEpisodes(current => current.map(row => (row.id === updated.id ? updated : row)))
-              setSelectedEpisodeId(updated.id)
-            }}
           />
         )}
       </EntityRecordShell>

@@ -21,12 +21,10 @@ describe('Demo uses canonical product UI',()=>{
     expect(users).toContain("if(isDemo){")
   })
 
+  // The chooser and the employee dialog are exercised in surveillanceCenter*.test.jsx.
   it('uses one employee-surveillance creation flow and one record dialog from both entry points',()=>{
     expect(employee).not.toContain('ProductionEmployeeSurveillanceFlow')
     expect(surveillance).not.toContain('ProductionEmployeeSurveillanceFlow')
-    expect(surveillance).toContain("creation==='employee'&&canEmployees&&<EmployeeSurveillanceFlow")
-    expect(surveillance).toContain("creation==='bulk'&&canEmployees&&<BulkEmployeeSurveillanceFlow")
-    expect(surveillance).toContain('openEmployee&&<EmployeeSurveillanceRecordDialog')
     expect(employeeDialog).toContain('onSaveFollowup')
   })
 
