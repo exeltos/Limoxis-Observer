@@ -206,7 +206,25 @@ export const clinicalCases = {
         communicatedAt: null,
       },
     ],
-    therapy: [],
+    // Awaiting stewardship: a restricted antibiotic requested for an isolate
+    // susceptible to ceftriaxone, so Pharmacy and the reviewing doctor have a
+    // real approval to decide in the Demo.
+    therapy: [
+      {
+        id: 'TX-260181',
+        antimicrobial: 'Meropenem',
+        dose: '1 g x 3',
+        route: 'IV',
+        startedAt: '2026-08-26',
+        plannedEnd: '2026-09-02',
+        indication: 'Ουρολοίμωξη από E. coli',
+        indicationEn: 'E. coli urinary tract infection',
+        status: 'active',
+        isAdvancedAntibiotic: true,
+        stewardshipLinked: true,
+        approvalStatus: 'pending',
+      },
+    ],
     isolation: null,
     reassessments: [],
     outcome: null,
