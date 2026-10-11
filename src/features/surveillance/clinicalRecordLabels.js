@@ -230,6 +230,9 @@ export function timelineLabel(type, language, t) {
     outcome: ['Έκβαση', 'Outcome'],
     surveillance_close: ['Ολοκλήρωση επιτήρησης', 'Surveillance closed'],
     surveillance_closed: ['Ολοκλήρωση επιτήρησης', 'Surveillance closed'],
+    admission: ['Εισαγωγή', 'Admission'],
+    discharge: ['Έξοδος', 'Discharge'],
+    scale_assessment: ['Κλινική κλίμακα', 'Clinical scale'],
   }
   return (
     labels[type]?.[language === 'el' ? 0 : 1] || t(type) || String(type || '—').replaceAll('_', ' ')

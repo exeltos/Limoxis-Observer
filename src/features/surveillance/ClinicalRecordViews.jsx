@@ -53,7 +53,8 @@ export function TagList({ title, items = [], rows = [], t, language }) {
     </>
   )
 }
-export function Timeline({ record, t, language, fmtDateTime }) {
+// `title`/`subtitle` replace the surveillance heading (an admission without surveillance).
+export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) {
   const rows = [...(record?.timeline || [])].sort(
     (a, b) => new Date(b.at || 0) - new Date(a.at || 0),
   )
@@ -62,16 +63,18 @@ export function Timeline({ record, t, language, fmtDateTime }) {
       <div className="record-section-header">
         <div>
           <h3>
-            {translate(
-              'copy.clinicalRecordCopy.surveillanceHistory',
-              language === 'el' ? 'el' : 'en',
-            )}
+            {title ||
+              translate(
+                'copy.clinicalRecordCopy.surveillanceHistory',
+                language === 'el' ? 'el' : 'en',
+              )}
           </h3>
           <p>
-            {translate(
-              'copy.clinicalRecordCopy.chronologicalAuditTrailOfClinicalActions',
-              language === 'el' ? 'el' : 'en',
-            )}
+            {subtitle ||
+              translate(
+                'copy.clinicalRecordCopy.chronologicalAuditTrailOfClinicalActions',
+                language === 'el' ? 'el' : 'en',
+              )}
           </p>
         </div>
       </div>

@@ -35,7 +35,7 @@ import { linkLaboratorySampleToSurveillance } from '../laboratory/laboratoryLink
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { createClinicalRepository } from './clinicalRepository'
 import { PatientClinicalScalesPanel } from '../clinical-scales/PatientClinicalScalesPanel'
-import { ClinicalRiskFlags } from '../clinical-scales/ClinicalRiskFlags'
+import { ClinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
 import { loadLatestPatientRiskFlags } from '../clinical-scales/patientRiskFlagsService'
 import { PatientAdmissionsHome, CanonicalSummary } from './ClinicalAdmissions'
 import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
@@ -103,6 +103,33 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     () => samplesForAdmission(laboratory.rows || [], patient, selectedAdmission),
     [laboratory.rows, selectedAdmission, patient],
   )
+  // History of an admission without surveillance: admission, clinical scales,
+  // samples and discharge, so the tab is never empty for a hospitalised patient.
+  const admissionTimeline = useMemo(() => {
+    if (!selectedAdmission) return []
+    const from = String(selectedAdmission.admissionDate || '').slice(0, 10)
+    const to = String(selectedAdmission.dischargeDate || '9999-12-31').slice(0, 10)
+    const within = value => {
+      const day = String(value || '').slice(0, 10)
+      return day && (!from || day >= from) && day <= to
+    }
+    const rows = [
+      { type: 'admission', at: selectedAdmission.admissionDate, detail: selectedAdmission.department },
+    ]
+    const scales = patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []
+    for (const row of scales)
+      if (within(row.assessed_at))
+        rows.push({ type: 'scale_assessment', at: row.assessed_at, detail: `${scaleShortName(row.scale_key)} ${row.score ?? '—'}` })
+    for (const sample of admissionSamples) {
+      const what = [sample.typeLabel || sample.type, sample.source].filter(Boolean).join(' · ')
+      if (sample.collectedAt) rows.push({ type: 'sample_collected', at: sample.collectedAt, detail: what })
+      if (sample.resultedAt)
+        rows.push({ type: 'sample_result', at: sample.resultedAt, detail: [sample.organism, sample.resistance].filter(Boolean).join(' · ') || what })
+    }
+    if (selectedAdmission.dischargeDate)
+      rows.push({ type: 'discharge', at: selectedAdmission.dischargeDate, detail: selectedAdmission.department })
+    return rows.filter(row => row.at)
+  }, [selectedAdmission, patient, riskFlagRows, admissionSamples])
   const record = patientMode
     ? selectedAdmission
       ? admissionEpisodes.find(row => String(row.id) === String(selectedEpisodeId)) ||
@@ -636,7 +663,19 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             }
           />
         )}
-        {activeTab === 'history' && !record && (
+        {activeTab === 'history' && !record && selectedAdmission && (
+          <Timeline
+            record={{ timeline: admissionTimeline }}
+            title={t('clinicalRecords.admissionHistory')}
+            subtitle={t('clinicalRecords.admissionHistoryHint')}
+            t={t}
+            language={language}
+            fmtDateTime={value =>
+              /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : fmtDateTime(value)
+            }
+          />
+        )}
+        {activeTab === 'history' && !record && !selectedAdmission && (
           <EmptyState
             title={translate(
               'copy.clinicalRecordCopy.noSurveillanceHistoryYet',
