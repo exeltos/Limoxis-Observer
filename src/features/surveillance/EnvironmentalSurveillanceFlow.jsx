@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Building2, Droplets, Layers3, Plus, Trash2, Wind, X } from 'lucide-react'
+import { Building2, Droplets, Layers3, Plus, RotateCcw, Trash2, Wind, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -7,6 +7,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { environmentalMethodLabel, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import { environmentalSubjectCatalog } from './environmentalSurveillanceData'
+import './surveillanceRegistry.css'
 
 const icons = { surface: Layers3, room: Building2, air: Wind, water: Droplets }
 const sourceByType = {
@@ -15,24 +16,65 @@ const sourceByType = {
   air: ['activeAir', 'passiveAir', 'airSampling', 'other'],
   water: ['tapWater', 'showerWater', 'waterSampling', 'other'],
 }
+const inProgressStatuses = ['requested', 'collected', 'received', 'processing']
+const closedStatuses = ['cancelled', 'rejected', 'voided']
+
+// A result outside the acceptable limits is not "done": the point needs action
+// (remediation and a new sampling), whatever the laboratory status says.
+export const environmentalNeedsAction = row =>
+  !closedStatuses.includes(row?.status) &&
+  (row?.microbiologyResults || []).some(result => result?.withinLimit === false)
+
+// The registry status shown for an environmental sample, with its badge tone.
+export function environmentalStatusDisplay(row, t) {
+  if (environmentalNeedsAction(row))
+    return { label: t('surveillanceList.actionNeeded'), tone: 'warning' }
+  if (inProgressStatuses.includes(row?.status)) return { label: t(row.status), tone: 'info' }
+  return { label: t(row?.status), tone: '' }
+}
+
+// Prefill for a new sampling at the same point as an earlier sample.
+export function environmentalResampleInitial(row, departmentOptions = []) {
+  const department = departmentOptions.find(
+    item =>
+      (row.departmentId && item.value === row.departmentId) ||
+      (row.department && item.label === row.department) ||
+      (row.departmentEn && item.labelEn === row.departmentEn),
+  )
+  const type = environmentalSubjectCatalog.some(item => item.id === row.type) ? row.type : 'surface'
+  const method = (sourceByType[type] || []).includes(row.environmentalMethod)
+    ? row.environmentalMethod
+    : environmentalSubjectCatalog.find(item => item.id === type)?.defaultSource || 'other'
+  return {
+    resampleOf: row.code || row.id,
+    subjectType: type,
+    sourceCode: method,
+    departmentValue: department?.value || '',
+    location: row.location || '',
+    point: row.point || '',
+  }
+}
 
 export function EnvironmentalSurveillanceFlow({
   isDemo,
   departmentOptions = [],
+  initial = null,
   createSample,
   onClose,
   onCreated,
 }) {
   const { t, language } = useLanguage(),
     { notify, notifyError, confirm } = useFeedback()
-  const [subjectType, setSubjectType] = useState('surface'),
+  const [subjectType, setSubjectType] = useState(initial?.subjectType || 'surface'),
     [mode, setMode] = useState('single'),
-    [departmentValue, setDepartmentValue] = useState(''),
-    [location, setLocation] = useState(''),
-    [point, setPoint] = useState(''),
-    [sourceCode, setSourceCode] = useState('surfaceSwab'),
+    [departmentValue, setDepartmentValue] = useState(initial?.departmentValue || ''),
+    [location, setLocation] = useState(initial?.location || ''),
+    [point, setPoint] = useState(initial?.point || ''),
+    [sourceCode, setSourceCode] = useState(initial?.sourceCode || 'surfaceSwab'),
     [date, setDate] = useState(new Date().toISOString().slice(0, 10)),
-    [notes, setNotes] = useState(''),
+    [notes, setNotes] = useState(
+      initial?.resampleOf ? `${t('surveillanceList.resampleOf')} ${initial.resampleOf}` : '',
+    ),
     [batchRows, setBatchRows] = useState([{ id: 1, location: '', point: '' }]),
     [saving, setSaving] = useState(false)
   function chooseType(type) {
@@ -121,8 +163,16 @@ export function EnvironmentalSurveillanceFlow({
         <header>
           <div>
             <span className="eyebrow">{t('environmentalSurveillance')}</span>
-            <h3>{t('clinicalRecords.newEnvironmentalSurveillance')}</h3>
-            <p>{t('clinicalRecords.environmentalSurveillanceHelp')}</p>
+            <h3>
+              {initial?.resampleOf
+                ? t('surveillanceList.resampleTitle')
+                : t('clinicalRecords.newEnvironmentalSurveillance')}
+            </h3>
+            <p>
+              {initial?.resampleOf
+                ? `${t('surveillanceList.resampleOf')} ${initial.resampleOf}`
+                : t('clinicalRecords.environmentalSurveillanceHelp')}
+            </p>
           </div>
           <button className="icon-close" onClick={onClose}>
             <X size={18} />
@@ -266,7 +316,15 @@ export function EnvironmentalSurveillanceFlow({
   )
 }
 
-export function EnvironmentalRegistry({ rows, t, language, fmt, onOpenSample, highlightId = '' }) {
+export function EnvironmentalRegistry({
+  rows,
+  t,
+  language,
+  fmt,
+  onOpenSample,
+  onResample,
+  highlightId = '',
+}) {
   const columns = [
     { key: 'surveillance', label: t('surveillance') },
     { key: 'department', label: t('department') },
@@ -333,13 +391,36 @@ export function EnvironmentalRegistry({ rows, t, language, fmt, onOpenSample, hi
               )}
             </td>
             <td>
-              <span className={`status-badge ${row.status === 'completed' ? '' : 'active'}`}>
-                {t(row.status)}
-              </span>
+              <EnvironmentalStatusCell row={row} t={t} onResample={onResample} />
             </td>
           </>
         )}
       />
     </section>
+  )
+}
+
+function EnvironmentalStatusCell({ row, t, onResample }) {
+  const status = environmentalStatusDisplay(row, t)
+  const needsAction = environmentalNeedsAction(row)
+  return (
+    <span className="environment-status-cell">
+      <span className={`status-badge ${status.tone}`.trim()}>{status.label}</span>
+      {needsAction && onResample && (
+        <Button
+          variant="secondary"
+          className="environment-resample-action"
+          title={t('surveillanceList.resampleHelp')}
+          onClick={event => {
+            event.stopPropagation()
+            onResample(row)
+          }}
+          onKeyDown={event => event.stopPropagation()}
+        >
+          <RotateCcw size={13} aria-hidden="true" />
+          {t('surveillanceList.resample')}
+        </Button>
+      )}
+    </span>
   )
 }

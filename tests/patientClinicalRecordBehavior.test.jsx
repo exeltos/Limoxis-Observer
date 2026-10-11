@@ -133,7 +133,7 @@ describe('admissions', () => {
 
   it('opens one canonical tab structure for an admission, including clinical scales', async () => {
     await openAdmission()
-    expect(screen.getAllByRole('tab').map(tab => tab.textContent.trim())).toEqual(['Σύνοψη', 'Επιτήρηση & Δείγματα', 'Κλινικά δεδομένα', 'Κλινικές αξιολογήσεις', 'Έγγραφα', 'Ιστορικό'])
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent.trim())).toEqual(['Σύνοψη', 'Επιτήρηση & Δείγματα', 'Κλινικές αξιολογήσεις', 'Έγγραφα', 'Ιστορικό'])
     await openTab('Κλινικές αξιολογήσεις')
     expect(within(body()).getByRole('heading', { name: 'Κλινικές αξιολογήσεις' })).toBeInTheDocument()
   })
@@ -296,9 +296,10 @@ describe('surveillance episode journey', () => {
 })
 
 describe('clinical data and documents', () => {
+  // The clinical picture is part of the Summary.
   it('translates clinical terms instead of showing raw keys', async () => {
     await openSurveillance()
-    await openTab('Κλινικά δεδομένα')
+    await openTab('Σύνοψη')
     expect(screen.getAllByText('Λοίμωξη').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Κλινική βελτίωση').length).toBeGreaterThan(0)
     expect(screen.queryByText('infection')).not.toBeInTheDocument()

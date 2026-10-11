@@ -1,4 +1,4 @@
-import { DueDate, daysOverdue } from '../../design-system/DueDate'
+import { DueDate } from '../../design-system/DueDate'
 import { useState } from 'react'
 import { stayDays } from './patientRecordScope'
 import { AlertTriangle, Plus, ArrowRightLeft, LogOut } from 'lucide-react'
@@ -10,6 +10,8 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { createAdmission, dischargeAdmission, transferAdmission } from '../patients/patientsService'
 import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { SimpleDialog } from './ClinicalRecordDialogs'
+import { clinicalTerm } from './clinicalRecordLabels'
+import { isAwaitingResult, summaryAttention } from './recordAttention'
 
 // Admissions of the clinical record: patient admissions home, admission summary
 // and lifecycle actions (admit, transfer, discharge).
@@ -166,8 +168,11 @@ export function PatientAdmissionsHome({
 // Both ids must be present to match: two missing record ids (every demo
 // patient) used to compare equal, so the first patient in the roster was shown
 // on every surveillance record.
+// The record's summary: what needs attention first, then the admission and the
+// current surveillance with its clinical assessment, findings, therapy and review.
 export function CanonicalSummary({
-  onOpenReassessment,
+  onOpenStage,
+  samples,
   patient,
   admission,
   record,
@@ -266,20 +271,59 @@ export function CanonicalSummary({
       onDeleted={onDeleted}
     />
   ) : null
-  const lateDays = record?.status === 'active' ? daysOverdue(record.reviewDue) : 0
+  // The samples shown under the surveillance, laboratory registry rows included.
+  const recordSamples = samples || record?.samples || []
+  const awaitingCount = recordSamples.filter(isAwaitingResult).length
+  const attention = summaryAttention(record, { t, samples: recordSamples })
+  const assessment = record?.assessment
+  const reassessments = record?.reassessments || []
+  const lastReview = reassessments[reassessments.length - 1]
+  const assessmentValue = assessment ? (
+    <>
+      {clinicalTerm(assessment.classification, language, t)}
+      {assessment.summary ? (
+        <small className="summary-detail-note">{assessment.summary}</small>
+      ) : null}
+    </>
+  ) : (
+    t('clinicalRecords.notDocumentedYet')
+  )
+  const pendingTherapy = (record?.therapy || []).filter(x => x.approvalStatus === 'pending')
+  const therapyValue = record?.therapy?.length ? (
+    <>
+      {record.therapy.map(x => x.antimicrobial).join(', ')}
+      {pendingTherapy.length ? (
+        <>
+          {' '}
+          {badge(
+            record.therapy.length > 1
+              ? `${pendingTherapy.map(x => x.antimicrobial).join(', ')}: ${t('clinicalRecords.awaitingApproval')}`
+              : t('clinicalRecords.awaitingApproval'),
+            'warning',
+          )}
+        </>
+      ) : null}
+    </>
+  ) : (
+    t('clinicalRecords.none')
+  )
   return (
     <div className="patient-summary-layout clean-patient-summary">
-      {lateDays > 0 && (
-        <div className="summary-overdue-banner" role="alert">
+      {attention.map(item => (
+        <div
+          key={item.id}
+          className={`summary-overdue-banner${item.tone === 'warning' ? ' is-warning' : ''}`}
+          role={item.tone === 'danger' ? 'alert' : 'status'}
+        >
           <AlertTriangle size={18} aria-hidden="true" />
-          <span>{t('reassessmentOverdueBanner').replace('{days}', String(lateDays))}</span>
-          {onOpenReassessment && (
-            <Button variant="secondary" onClick={onOpenReassessment}>
-              {t('openReassessment')}
+          <span>{item.text}</span>
+          {onOpenStage && (
+            <Button variant="secondary" onClick={() => onOpenStage(item.stage)}>
+              {item.action}
             </Button>
           )}
         </div>
-      )}
+      ))}
       <section className="clinical-panel patient-summary-card">
         <div className="record-section-header">
           <div>
@@ -310,16 +354,26 @@ export function CanonicalSummary({
               value={badge(t(record.status), record.status === 'active' ? 'active' : '')}
             />
             <Detail label={t('clinicalRecords.haiClassification')} value={haiValue} />
+            <Detail label={t('clinicalRecords.clinicalAssessmentLabel')} value={assessmentValue} />
             <Detail label={t('clinicalRecords.latestFinding')} value={findingValue} />
             <Detail
-              label={t('therapy')}
+              label={t('clinicalRecords.samplesLabel')}
               value={
-                record.therapy?.length
-                  ? record.therapy.map(x => x.antimicrobial).join(', ')
+                recordSamples.length
+                  ? `${recordSamples.length}${awaitingCount ? ` · ${awaitingCount} ${t('clinicalRecords.awaitingResultShort')}` : ''}`
                   : t('clinicalRecords.none')
               }
             />
+            <Detail label={t('therapy')} value={therapyValue} />
             <Detail label={t('isolation')} value={isolationValue} />
+            <Detail
+              label={t('clinicalRecords.lastReassessment')}
+              value={
+                lastReview
+                  ? clinicalTerm(lastReview.status, language, t)
+                  : t('clinicalRecords.none')
+              }
+            />
             <Detail
               label={t('nextReview')}
               value={

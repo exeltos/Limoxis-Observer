@@ -5,7 +5,7 @@ import {
   samplesForAdmission,
   samplesForEpisode,
 } from './patientRecordScope'
-import { Activity, FileClock, FolderOpen, ListTree, UserRound, Stethoscope } from 'lucide-react'
+import { FileClock, FolderOpen, ListTree, UserRound, Stethoscope } from 'lucide-react'
 import { useLocation, useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -39,7 +39,7 @@ import { ClinicalRiskFlags } from '../clinical-scales/ClinicalRiskFlags'
 import { loadLatestPatientRiskFlags } from '../clinical-scales/patientRiskFlagsService'
 import { PatientAdmissionsHome, CanonicalSummary } from './ClinicalAdmissions'
 import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
-import { ClinicalSnapshot, Timeline } from './ClinicalRecordViews'
+import { Timeline } from './ClinicalRecordViews'
 import './surveillanceEpisode.css'
 export {
   timelineLabel,
@@ -275,7 +275,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             ),
             icon: ListTree,
           },
-          { id: 'clinicalData', label: t('clinicalRecords.clinicalData'), icon: Activity },
           ...(patientMode && selectedAdmission
             ? [
                 {
@@ -430,6 +429,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                 rows={riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || []}
                 language={language}
                 compact
+                named
               />
             )}
           </>
@@ -492,8 +492,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         )}
         {(!patientMode || selectedAdmission) && activeTab === 'summary' && (
           <CanonicalSummary
-            onOpenReassessment={() => {
-              setJourneyStage('reassessment')
+            samples={patientMode ? admissionSamples : recordSamples}
+            onOpenStage={stage => {
+              setJourneyStage(stage)
               setTab('surveillanceJourney')
             }}
             patient={patient}
@@ -575,9 +576,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             }}
           />
         )}
-        {activeTab === 'clinicalData' && record && (
-          <ClinicalSnapshot record={record} t={t} language={language} fmtDate={fmtDate} />
-        )}
         {activeTab === 'clinicalScales' && patient && selectedAdmission && (
           <PatientClinicalScalesPanel
             organizationId={tenant?.id}
@@ -586,18 +584,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             isDemo={isDemo}
             language={language}
             canRecord={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
-          />
-        )}
-        {activeTab === 'clinicalData' && !record && (
-          <EmptyState
-            title={translate(
-              'copy.clinicalRecordCopy.noClinicalRecordYet',
-              language === 'el' ? 'el' : 'en',
-            )}
-            description={translate(
-              'copy.clinicalRecordCopy.thisAdmissionHasNoActiveSurveillance',
-              language === 'el' ? 'el' : 'en',
-            )}
           />
         )}
         {activeTab === 'documents' &&

@@ -48,6 +48,8 @@ import { EmployeeSurveillanceRecordDialog } from './EmployeeSurveillanceRecordDi
 import {
   EnvironmentalRegistry,
   EnvironmentalSurveillanceFlow,
+  environmentalNeedsAction,
+  environmentalResampleInitial,
 } from './EnvironmentalSurveillanceFlow'
 
 const latestOrganism = row => row.samples?.find(x => x.organism)?.organism || row.organism || null
@@ -112,7 +114,8 @@ export function SurveillanceCanonicalPage() {
     [status, setStatus] = useState(restored.status || 'all'),
     [page, setPage] = useState(restored.page || 1),
     [pageSize, setPageSize] = useState(restored.pageSize || 15),
-    [creation, setCreation] = useState(null)
+    [creation, setCreation] = useState(null),
+    [resample, setResample] = useState(null)
   const [openEmployee, setOpenEmployee] = useState(null)
   const registry = useRegistryMemory(`surveillance-${mode}`),
     laboratoryRegistry = useLaboratoryRegistry()
@@ -239,7 +242,7 @@ export function SurveillanceCanonicalPage() {
             department === 'all' ||
             (language === 'el' ? x.department : x.departmentEn) === department,
         )
-        .filter(x => status === 'all' || x.resultStatus === status)
+        .filter(x => status === 'all' || x.resultStatus === status || x.status === status)
     return environmentRows
       .filter(x =>
         `${x.type || ''} ${x.source || ''} ${x.department || ''} ${x.organism || ''}`
@@ -284,7 +287,16 @@ export function SurveillanceCanonicalPage() {
   const employeeKpis = isDemo
     ? getDemoEmployeeSurveillanceKpis()
     : getCloudEmployeeSurveillanceKpis(employeeRows)
-  const environmentKpis = getEnvironmentalKpis(environmentRows)
+  // Out-of-limit results count as critical findings, as the rows mark them "Action needed".
+  const environmentKpis = {
+    ...getEnvironmentalKpis(environmentRows),
+    critical: environmentRows.filter(x => x.critical || environmentalNeedsAction(x)).length,
+  }
+  const environmentDepartmentOptions = departments.map(x => ({
+    value: x.id,
+    label: x.name,
+    labelEn: x.nameEn || x.name,
+  }))
   const saveView = () => ({ mode, page: safePage, pageSize, query, department, status })
   const openCase = item =>
     registry.openRecord(
@@ -560,6 +572,14 @@ export function SurveillanceCanonicalPage() {
                 state: { returnTo: '/surveillance' },
               })
             }
+            onResample={
+              canEnvironment
+                ? row => {
+                    setResample(environmentalResampleInitial(row, environmentDepartmentOptions))
+                    setCreation('environmental')
+                  }
+                : undefined
+            }
             highlightId={registry.highlightId}
           />
         )}
@@ -582,7 +602,11 @@ export function SurveillanceCanonicalPage() {
           onPatient={() => setCreation('patient')}
           onEmployee={() => canEmployees && setCreation('employee')}
           onBulkEmployee={() => canEmployees && setCreation('bulk')}
-          onEnvironmental={() => canEnvironment && setCreation('environmental')}
+          onEnvironmental={() => {
+            if (!canEnvironment) return
+            setResample(null)
+            setCreation('environmental')
+          }}
         />
       )}
       {creation === 'patient' && (
@@ -603,15 +627,16 @@ export function SurveillanceCanonicalPage() {
       {creation === 'environmental' && canEnvironment && (
         <EnvironmentalSurveillanceFlow
           isDemo={isDemo}
-          departmentOptions={departments.map(x => ({
-            value: x.id,
-            label: x.name,
-            labelEn: x.nameEn || x.name,
-          }))}
+          departmentOptions={environmentDepartmentOptions}
+          initial={resample}
           createSample={createEnvironment}
-          onClose={() => setCreation(null)}
+          onClose={() => {
+            setCreation(null)
+            setResample(null)
+          }}
           onCreated={async () => {
             setCreation(null)
+            setResample(null)
             await load()
             setMode('environmental')
           }}
@@ -765,6 +790,7 @@ function EmployeeRows({ rows, registry, language, fmt, t, onOpen }) {
             key: 'result',
             label: translate('copy.surveillanceCopy.result', language === 'en' ? 'en' : 'el'),
           },
+          { key: 'status', label: t('status') },
         ]}
         rows={rows}
         rowKey={rowId}
@@ -790,10 +816,43 @@ function EmployeeRows({ rows, registry, language, fmt, t, onOpen }) {
                 {t(x.resultStatus || 'pending')}
               </span>
             </td>
+            <td>
+              <EmployeeStatusBadge row={x} t={t} />
+            </td>
           </>
         )}
       />
     </div>
+  )
+}
+// The record's follow-up state, from the same fields as the employee summary counts:
+// a positive screening without a recorded intervention or re-check (or a re-check
+// that is due) still needs follow-up.
+const POSITIVE_EMPLOYEE_RESULTS = ['positive', 'positive_recheck']
+const CLOSED_EMPLOYEE_STATUSES = ['cancelled', 'voided', 'void']
+function employeeFollowupState(row) {
+  if (CLOSED_EMPLOYEE_STATUSES.includes(row.status)) return 'cancelled'
+  const today = new Date().toISOString().slice(0, 10)
+  const positive = POSITIVE_EMPLOYEE_RESULTS.includes(row.resultStatus)
+  const interventionOpen = ['required', 'in_progress'].includes(row.interventionStatus)
+  const interventionMissing =
+    !row.intervention &&
+    !row.noIntervention &&
+    !['completed', 'recorded', 'in_progress'].includes(row.interventionStatus)
+  const recheckMissing = !row.recheckDate && !row.recheckDue && !row.noRecheck
+  const recheckDue =
+    row.status === 'active' && row.recheckDue && String(row.recheckDue).slice(0, 10) <= today
+  if ((positive && (interventionOpen || interventionMissing || recheckMissing)) || recheckDue)
+    return 'needsFollowup'
+  return row.status === 'active' ? 'active' : 'completed'
+}
+const EMPLOYEE_STATE_TONES = { needsFollowup: 'warning', active: 'active' }
+function EmployeeStatusBadge({ row, t }) {
+  const state = employeeFollowupState(row)
+  return (
+    <span className={`status-badge ${EMPLOYEE_STATE_TONES[state] || ''}`.trim()}>
+      {state === 'needsFollowup' ? t('surveillanceList.needsFollowup') : t(state)}
+    </span>
   )
 }
 function SummaryMetric({ icon: Icon, label, value, quickKey, quick, onQuick }) {

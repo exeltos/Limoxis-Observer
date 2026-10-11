@@ -13,6 +13,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import { DueDate } from '../../design-system/DueDate'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -473,7 +474,11 @@ export function SurveillanceWorkspace({
                             'copy.clinicalRecordCopy.review',
                             language === 'el' ? 'el' : 'en',
                           )}{' '}
-                          {fmtDate(ep.reviewDue)}
+                          {ep.status === 'active' ? (
+                            <DueDate value={ep.reviewDue} format={fmtDate} />
+                          ) : (
+                            fmtDate(ep.reviewDue)
+                          )}
                         </>
                       ) : null}
                     </small>
@@ -769,7 +774,8 @@ function SampleTreeRow({
             )}
           </Button>
         ) : null}
-        {canCreateSample && (
+        {/* A follow-up repeats a sample that has its result, never one still awaited. */}
+        {canCreateSample && tone !== 'pending' && (
           <Button
             className="sample-followup-action"
             variant="secondary"

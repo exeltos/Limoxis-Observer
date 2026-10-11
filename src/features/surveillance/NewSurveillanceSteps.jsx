@@ -3,6 +3,7 @@
 // episode's journey (ClinicalJourney).
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 
 export function PatientSelector({
   chooseExistingPatient,
@@ -48,19 +49,22 @@ export function PatientSelector({
         </button>
       </div>
       {patientMode === 'existing' && (
-        <label>
-          <span>{t('patient')}</span>
-          <select value={selectedPatientId} onChange={e => chooseExistingPatient(e.target.value)}>
-            <option value="">{t('clinicalRecords.selectPatient')}</option>
-            {patients
-              .filter(x => x.status === 'active')
-              .map(item => (
-                <option key={item.id} value={item.id}>
-                  {language === 'el' ? item.name : item.nameEn || item.name} · {item.id}
-                </option>
-              ))}
-          </select>
-        </label>
+        <SearchableSelect
+          label={t('patient')}
+          value={selectedPatientId}
+          onChange={chooseExistingPatient}
+          placeholder={t('surveillanceList.patientSearchPlaceholder')}
+          emptyLabel={t('surveillanceList.noPatientsFound')}
+          clearLabel={t('surveillanceList.clearSelection')}
+          options={patients
+            .filter(x => x.status === 'active')
+            .map(item => ({
+              value: item.id,
+              label: `${language === 'el' ? item.name : item.nameEn || item.name} · ${item.id}`,
+              description: language === 'el' ? item.department : item.departmentEn,
+              keywords: [item.name, item.nameEn, item.patientCode].filter(Boolean).join(' '),
+            }))}
+        />
       )}
       {patientMode === 'new' && !createdPatient && (
         <div className="entry-grid inline-patient-create">
