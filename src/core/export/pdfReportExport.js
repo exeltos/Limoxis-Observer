@@ -53,24 +53,18 @@ async function drawHeader(pdf,branding,logo,pageWidth){
   pdf.setDrawColor(207,219,229);pdf.setLineWidth(0.3);pdf.line(margin,HEADER_MM-0.5,pageWidth-margin,HEADER_MM-0.5)
 }
 
-// A Demo organization's pages: a light diagonal "DEMO" across the page and a
-// line at the bottom saying the data is synthetic (drawn as an image: Greek is
-// not in jsPDF's standard fonts).
+// A Demo organization's pages: one quiet grey line at the bottom saying the
+// data is synthetic, so the report itself stays as it is (drawn as an image:
+// Greek is not in jsPDF's standard fonts).
 function drawDemoMark(pdf,pageWidth,pageHeight){
-  try{
-    if(pdf.GState&&pdf.setGState){pdf.saveGraphicsState?.();pdf.setGState(new pdf.GState({opacity:0.08}))}
-    pdf.setTextColor(180,40,40);pdf.setFont('helvetica','bold');pdf.setFontSize(110)
-    pdf.text('DEMO',pageWidth/2,pageHeight/2+20,{align:'center',angle:28})
-    if(pdf.GState&&pdf.setGState)pdf.restoreGraphicsState?.()
-  }catch{/* the bottom line below still marks the page */}
   const canvas=document.createElement('canvas');const ctx=canvas.getContext?.('2d')
   if(!ctx)return
-  const widthMm=pageWidth-16,heightMm=6,scale=4*3.78
+  const widthMm=pageWidth-16,heightMm=4,scale=4*3.78
   canvas.width=Math.round(widthMm*scale);canvas.height=Math.round(heightMm*scale)
-  ctx.scale(scale,scale);ctx.fillStyle='#fff3e0';ctx.fillRect(0,0,widthMm,heightMm)
-  ctx.fillStyle='#a24d0a';ctx.font='bold 3.2px system-ui, sans-serif';ctx.textBaseline='middle';ctx.textAlign='center'
-  ctx.fillText(DEMO_REPORT_MARK_EL,widthMm/2,heightMm/2)
-  pdf.addImage(canvas.toDataURL('image/png'),'PNG',8,pageHeight-heightMm-3,widthMm,heightMm,'demo-mark','FAST')
+  ctx.scale(scale,scale);ctx.fillStyle='#ffffff';ctx.fillRect(0,0,widthMm,heightMm)
+  ctx.fillStyle='#8a96a3';ctx.font='600 2.4px system-ui, sans-serif';ctx.textBaseline='middle';ctx.textAlign='right'
+  ctx.fillText(DEMO_REPORT_MARK_EL,widthMm,heightMm/2)
+  pdf.addImage(canvas.toDataURL('image/png'),'PNG',8,pageHeight-heightMm-2,widthMm,heightMm,'demo-mark','FAST')
 }
 
 export async function exportElementAsPdf({element,filename,orientation='landscape',branding=getReportBranding(),header=true}={}){

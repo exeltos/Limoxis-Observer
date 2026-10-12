@@ -1,20 +1,22 @@
 // @vitest-environment jsdom
-// User request (revised twice): the "Είσοδος Demo" button moves to the
-// topbar, next to the other Platform Owner actions. Pressing it only
-// toggles TenantContext's platformDemoPreview — it must never call
-// enterPlatformDemo()/navigate on its own. While previewing, the real
-// organizations disappear entirely from the Platform Center's
-// "Οργανισμοί" list, replaced by the single synthetic "Demo Hospital"
-// entry; clicking that entry opens a read-only PlatformDemoOrganizationRecord
-// (not the real, backend-backed PlatformOrganizationRecord), and only its
-// own "Είσοδος" action actually calls enterPlatformDemo() and enters the
-// full working demo hospital.
+// The Platform Owner's topbar "Είσοδος Demo" opens their own Demo organization
+// (enterPlatformDemo), as the evaluators see theirs, and lands on its home page.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { fireEvent, cleanup, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import { PlatformDashboardView } from '../src/features/platform/PlatformDashboardView'
+
+vi.mock('../src/core/tenant/tenantService', async (importOriginal) => ({
+  ...(await importOriginal()),
+  openPlatformOwnerDemo: vi.fn(async () => 'owner-demo-org'),
+  getPlatformOwnerDemoMembership: vi.fn(async (organizationId) => ({
+    id: `platform-owner:${organizationId}`,
+    role: 'hospital_admin',
+    organization: { id: organizationId, name: 'ΑΡΗΣ ΤΕΣΤ', is_demo: true, mode: 'production', status: 'active' },
+  })),
+}))
 
 vi.mock('../src/core/auth/AuthContext', () => ({
   useAuth: () => ({
@@ -27,7 +29,7 @@ vi.mock('../src/core/auth/AuthContext', () => ({
   }),
 }))
 
-afterEach(() => cleanup())
+afterEach(() => { cleanup(); sessionStorage.clear(); localStorage.clear() })
 
 const tx = (el) => el
 const baseProps = {
@@ -40,21 +42,12 @@ const baseProps = {
   onNavigate: () => {},
 }
 
-describe('PlatformDashboardView demo preview display (no entry button of its own anymore)', () => {
-  it('shows the live-platform pill and real organizations by default', () => {
-    render(<PlatformDashboardView {...baseProps} demoPreview={false}/>)
+describe('PlatformDashboardView', () => {
+  it('shows the live-platform pill; organizations open from their own card', () => {
+    render(<PlatformDashboardView {...baseProps}/>)
     expect(screen.getByText('Πλατφόρμα ενεργή')).toBeInTheDocument()
-    // The organization list moved out of the Platform Center (organizations open from their card).
     expect(screen.queryByText('Lena Hospital')).not.toBeInTheDocument()
     expect(screen.getAllByText(/Οργανισμοί/).length).toBeGreaterThan(0)
-  })
-
-  it('shows a DEMO badge instead of the live pill when the caller marks it as previewing (organizations swap happens upstream)', () => {
-    const demoOrgProps = { ...baseProps, organizations: [{ id: 'demo-hospital', name: 'Demo Hospital', code: 'DEMO', status: 'active' }], activeOrganizations: 1 }
-    render(<PlatformDashboardView {...demoOrgProps} demoPreview/>)
-    expect(screen.getAllByText('DEMO').length).toBeGreaterThan(0)
-    expect(screen.queryByText('Πλατφόρμα ενεργή')).not.toBeInTheDocument()
-    expect(screen.queryByText('Lena Hospital')).not.toBeInTheDocument()
   })
 })
 
@@ -93,25 +86,14 @@ describe('AppShell topbar demo controls', () => {
     return { get tenantApi() { return tenantApi }, get navigateFn() { return navigateFn } }
   }
 
-  it('toggling the topbar "Είσοδος Demo" button only flips platformDemoPreview — it never enters demo or navigates', async () => {
+  it('the topbar "Είσοδος Demo" opens the Owner\'s own Demo organization on its home page', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const ctx = await renderShell()
 
     expect(screen.getByText('platform-center-stub')).toBeInTheDocument()
-    const toggle = screen.getByText('Είσοδος Demo')
-    expect(ctx.tenantApi.platformDemoPreview).toBe(false)
-
-    fireEvent.click(toggle)
-    await waitFor(() => expect(ctx.tenantApi.platformDemoPreview).toBe(true))
-    expect(ctx.tenantApi.isDemo).toBe(false)
-    expect(ctx.tenantApi.tenant).toBeNull()
-    expect(screen.getByText('Έξοδος από Demo')).toBeInTheDocument()
-    // Still on the Platform Center screen — toggling preview never navigates.
-    expect(screen.getByText('platform-center-stub')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByText('Έξοδος από Demo'))
-    await waitFor(() => expect(ctx.tenantApi.platformDemoPreview).toBe(false))
-    expect(screen.getByText('Είσοδος Demo')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Είσοδος Demo'))
+    await waitFor(() => expect(screen.getByText('dashboard-stub')).toBeInTheDocument())
+    expect(ctx.tenantApi.tenant?.name).toBe('ΑΡΗΣ ΤΕΣΤ')
   })
 
   it('shows a clickable DEMO badge in the topbar once the Platform Owner actually enters the demo organization, and clicking it returns to /platform', async () => {
@@ -133,8 +115,7 @@ describe('AppShell topbar demo controls', () => {
 
     fireEvent.click(badge)
     await waitFor(() => expect(screen.getByText('platform-center-stub')).toBeInTheDocument())
-    // Back on /platform: the badge that remains is the preview toggle in its
-    // "off" state ("Είσοδος Demo"), not the active-demo exit badge ("DEMO").
+    // Back on /platform: the topbar offers the way in again.
     expect(screen.getByText('Είσοδος Demo')).toBeInTheDocument()
     expect(ctx.tenantApi.isDemo).toBe(false)
   })

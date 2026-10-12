@@ -19,9 +19,9 @@ import { signalDemoScenario } from '../demo/demoScenarioSignals'
 
 const EMPTY_ORGANIZATIONS=Object.freeze([])
 
-export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS,forceDemo=false}){
+export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS}){
  const {tenant,role,isDemo:contextIsDemo,moduleEnabled}=useTenant();// The Platform Owner preview (help screenshots) has no live data: it shows the sample analysis.
- const isDemo=contextIsDemo||forceDemo||isOwnerPreview();const {language,t}=useLanguage();const {notifyError}=useFeedback();const location=useLocation();const navigate=useNavigate();const en=language==='en';const tx=(elText,enText)=>en?enText:elText
+ const isDemo=contextIsDemo||isOwnerPreview();const {language,t}=useLanguage();const {notifyError}=useFeedback();const location=useLocation();const navigate=useNavigate();const en=language==='en';const tx=(elText,enText)=>en?enText:elText
  const requestRef=useRef(0);const reportRef=useRef(null);const currentYear=new Date().getFullYear();const yearOptions=useMemo(()=>Array.from({length:7},(_,i)=>currentYear-i),[currentYear])
  const [tab,setTab]=useState('overview'),[printOpen,setPrintOpen]=useState(false),[printTarget,setPrintTarget]=useState(''),[printMode,setPrintMode]=useState('print'),[exportingPdf,setExportingPdf]=useState(false),[year,setYear]=useState(String(currentYear)),[periodType,setPeriodType]=useState('year'),[periodSlot,setPeriodSlot]=useState('1'),[compareYear,setCompareYear]=useState(''),[org,setOrg]=useState(platform?hashOrganization(location.hash):'all'),[region,setRegion]=useState('all'),[department,setDepartment]=useState('all'),[ownerCompareMode,setOwnerCompareMode]=useState('none'),[compareHospital,setCompareHospital]=useState(''),[compareRegion,setCompareRegion]=useState(''),[snapshot,setSnapshot]=useState(null),[yearSnapshot,setYearSnapshot]=useState(null),[ownerSnapshot,setOwnerSnapshot]=useState(null),[loading,setLoading]=useState(false),[loadError,setLoadError]=useState('')
  // Tabs of modules the organization's operating profile switches off are hidden (the platform view shows all).

@@ -46,7 +46,6 @@ export function TenantProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [hydratedKey, setHydratedKey] = useState(null)
   const [platformDemoMode, setPlatformDemoMode] = useState(false)
-  const [platformDemoPreview, setPlatformDemoPreview] = useState(false)
   const hydrationRef=useRef(0)
   const restoredKeyRef=useRef(null)
   // Key of the last hydration that succeeded; the selection is saved only then,
@@ -111,7 +110,7 @@ export function TenantProvider({ children }) {
         if (profile?.isPlatformOwner) return reachable.some((item) => item.id === preferred) || ownerDemoIds.current.has(preferred) ? preferred : null
         return next.some((item) => item.id === preferred) ? preferred : next[0]?.id ?? null
       })
-      if(saved&&profile?.isPlatformOwner&&!saved.membershipId){setPlatformDemoMode(Boolean(saved.platformDemo));setPlatformDemoPreview(Boolean(saved.platformDemoPreview))}
+      if(saved&&profile?.isPlatformOwner&&!saved.membershipId){setPlatformDemoMode(Boolean(saved.platformDemo))}
       // A role preview needs the tenant it was started in: a still-valid organization or the demo hospital.
       const previewTenantRestored=saved?.membershipId?reachable.some((item)=>item.id===saved.membershipId):Boolean(saved?.platformDemo)
       // Evaluators may preview roles inside their Demo organization, so theirs is restored too.
@@ -144,8 +143,8 @@ export function TenantProvider({ children }) {
     if (authLoading || helpPreviewFrame()) return
     if (!isAuthenticated) { removeSessionValue(SELECTION_KEY); return }
     if (hydratedKey !== membershipContextKey || persistableKey !== membershipContextKey || !user?.id) return
-    writeSessionJson(SELECTION_KEY, { userId: user.id, membershipId: activeMembershipId, platformDemo: platformDemoMode, platformDemoPreview, rolePreview: rolePreview?.role ? rolePreview : null })
-  }, [authLoading, isAuthenticated, hydratedKey, persistableKey, membershipContextKey, user?.id, activeMembershipId, platformDemoMode, platformDemoPreview, rolePreview])
+    writeSessionJson(SELECTION_KEY, { userId: user.id, membershipId: activeMembershipId, platformDemo: platformDemoMode, rolePreview: rolePreview?.role ? rolePreview : null })
+  }, [authLoading, isAuthenticated, hydratedKey, persistableKey, membershipContextKey, user?.id, activeMembershipId, platformDemoMode, rolePreview])
 
   ownerDemoIds.current=new Set(ownerDemoMemberships.map((item)=>item.id))
   const storedMembership = memberships.find((item) => item.id === activeMembershipId) ?? ownerDemoMemberships.find((item) => item.id === activeMembershipId) ?? null
@@ -191,7 +190,6 @@ export function TenantProvider({ children }) {
     if (!memberships.some((item) => item.id === membershipId) && !ownerDemoMemberships.some((item) => item.id === membershipId)) return false
     flushSync(() => {
       setPlatformDemoMode(false)
-      setPlatformDemoPreview(false)
       setActiveMembershipId(membershipId)
       setRolePreview(null)
     })
@@ -207,7 +205,6 @@ export function TenantProvider({ children }) {
     flushSync(() => {
       setOwnerDemoMemberships((current) => [...current.filter((item) => item.id !== demoMembership.id), demoMembership])
       setPlatformDemoMode(false)
-      setPlatformDemoPreview(false)
       setActiveMembershipId(demoMembership.id)
       setRolePreview(null)
     })
@@ -217,7 +214,7 @@ export function TenantProvider({ children }) {
   // has no database, so it is what "Demo" opens there.
   const enterSampleDemo = useCallback(() => {
     if (!profile?.isPlatformOwner) return false
-    setPlatformDemoMode(true); setPlatformDemoPreview(false); setActiveMembershipId(null); setRolePreview(null)
+    setPlatformDemoMode(true); setActiveMembershipId(null); setRolePreview(null)
     return true
   }, [profile?.isPlatformOwner])
   const enterPlatformDemo = useCallback(async () => {
@@ -226,10 +223,7 @@ export function TenantProvider({ children }) {
     return enterDemoOrganization(await openPlatformOwnerDemo())
   }, [profile?.isPlatformOwner, enterDemoOrganization, enterSampleDemo])
   const returnToPlatform = useCallback(() => {
-    if (profile?.isPlatformOwner) { setPlatformDemoMode(false); setPlatformDemoPreview(false); setActiveMembershipId(null); setRolePreview(null) }
-  }, [profile?.isPlatformOwner])
-  const togglePlatformDemoPreview = useCallback(() => {
-    if (profile?.isPlatformOwner) setPlatformDemoPreview((value) => !value)
+    if (profile?.isPlatformOwner) { setPlatformDemoMode(false); setActiveMembershipId(null); setRolePreview(null) }
   }, [profile?.isPlatformOwner])
 
   const tenantLoading = Boolean(authLoading || loading || hydratedKey !== membershipContextKey)
@@ -244,13 +238,11 @@ export function TenantProvider({ children }) {
     isDemo: Boolean(isDemoSession || platformDemoMode || tenant?.mode === 'demo'),
     operatingProfile: normalizeProfile(tenant),
     moduleEnabled: (module) => !tenant || organizationModuleEnabled(tenant, module),
-    platformDemoPreview,
     setTenantByMembership,
     enterPlatformDemo,
     enterSampleDemo,
     enterDemoOrganization,
     returnToPlatform,
-    togglePlatformDemoPreview,
     reloadMemberships,
     actualRole,
     rolePreview,
@@ -266,7 +258,7 @@ export function TenantProvider({ children }) {
     uxPolicy: uxPolicyFor(role),
     canAccessRecord: (record) => recordWithinRoleScope({role, membership, userId:user?.id, record}),
     canSeeSensitiveEmployeeHealth: canSeeSensitiveEmployeeHealth(role,membership?.capabilities,membership?.customCapabilities),
-  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, tenantLoading, canRolePreview, setTenantByMembership, enterPlatformDemo, enterSampleDemo, enterDemoOrganization, returnToPlatform, togglePlatformDemoPreview, reloadMemberships, user?.id, isDemoSession, platformDemoMode, platformDemoPreview])
+  }), [tenant, membership, memberships, activeMembershipId, role, actualRole, rolePreview, tenantLoading, canRolePreview, setTenantByMembership, enterPlatformDemo, enterSampleDemo, enterDemoOrganization, returnToPlatform, reloadMemberships, user?.id, isDemoSession, platformDemoMode])
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>
 }
