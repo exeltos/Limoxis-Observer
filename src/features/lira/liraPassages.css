@@ -1,0 +1,9 @@
+.lira-passages{display:grid;gap:8px;margin:2px 0 8px}
+.lira-passage{margin:0;padding:9px 11px;border-left:3px solid #5671ca;border-radius:4px 10px 10px 4px;background:#f6f8fd}
+.lira-passage p{margin:0 0 6px;color:var(--text-soft);font-size:11px;line-height:1.5}
+.lira-passage footer{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:10px}
+.lira-passage footer span{flex:1;min-width:0}
+.lira-passage footer a{color:#3d5bb5;display:inline-grid;place-items:center}
+.lira-assistant-panel.expanded .lira-passage p{font-size:12px}
+.lira-mode-badge{display:inline-block;margin:0 0 7px;padding:2px 8px;border-radius:999px;background:#eef3f6;color:#4d6475;font-size:10px;font-weight:600}
+.lira-mode-badge.ai{background:#efeafc;color:#5b45a8}
