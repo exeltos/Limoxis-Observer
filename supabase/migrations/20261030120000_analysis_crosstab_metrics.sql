@@ -25,7 +25,7 @@ stable
 security definer
 set search_path = public
 as $function$
-declare r jsonb;
+declare v_result jsonb;
 begin
   if public.current_user_is_platform_owner() then
     null;
@@ -138,8 +138,8 @@ begin
         select coalesce(d.name, '—') r, coalesce(qi.severity, '—') c, count(*) n
         from qi left join dept d on d.id = qi.department_id group by 1, 2) x), '[]'::jsonb)
     )
-  ) into r;
-  return r;
+  ) into v_result;
+  return v_result;
 end $function$;
 
 revoke all on function public.analysis_crosstab_metrics(uuid, date, date, uuid) from public, anon;
