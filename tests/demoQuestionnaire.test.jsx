@@ -100,10 +100,11 @@ describe('questionnaire in the guide', () => {
     const endTour = screen.queryByRole('button', { name: 'Τέλος ξενάγησης' })
     if (endTour) fireEvent.click(endTour)
     now += 95_000
-    fireEvent.click(await screen.findByRole('button', { name: 'Ολοκλήρωσα' }))
-    const ease = await screen.findByRole('radiogroup', { name: 'Ευκολία' })
-    fireEvent.click(screen.getAllByRole('radio')[4])
-    fireEvent.click(within(ease).getByRole('radio', { name: /^4/ }))
+    // A scenario the screens did not pick up is marked done from the quiet link.
+    fireEvent.click(await screen.findByRole('button', { name: /Σημειώστε το ως ολοκληρωμένο/ }))
+    fireEvent.click((await screen.findAllByRole('radio'))[4])
+    fireEvent.click(await screen.findByRole('button', { name: /Προσθέστε λεπτομέρειες/ }))
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Ευκολία' })).getByRole('radio', { name: /^4/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Αποστολή' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('demo_submit_scenario_feedback', expect.objectContaining({ p_step: 'microbiology_mdro', p_rating: 5, p_ease: 4, p_clarity: null, p_duration_seconds: 95 })))
     act(() => {})

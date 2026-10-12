@@ -11,12 +11,19 @@
 .demo-guide-body strong{display:block;font-size:13.5px;color:#1d3247}
 .demo-guide-body p{margin:3px 0 0;font-size:12px;line-height:1.5;color:var(--lo-text-secondary,#5f6f7c)}
 .demo-guide-actions{display:flex;align-items:center;gap:8px}
-.demo-guide-check{display:inline-flex;align-items:center;justify-content:center;min-width:132px;gap:5px;height:34px;padding:0 10px;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:8px;background:#fff;color:#40566d;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
-.demo-guide-check.is-done{border-color:#bfe0cc;background:#e6f4ec;color:#226b43;cursor:default}
-.demo-guide-rating{grid-column:1 / -1}
-.demo-guide-list>li>.demo-guide-rating{margin-top:2px}
-.demo-guide-dialog>.demo-guide-rating,.demo-guide-rating:first-child{margin-bottom:10px}
-.demo-scenario-card.is-inline{position:static;width:auto;z-index:auto;box-shadow:none;border-color:#cfe7d9;background:#fbfefc}
+/* Where each scenario stands (set by the application, not ticked). */
+.demo-guide-list>li.is-started{border-color:#bcd6ea;background:#f6fafd}
+.demo-guide-list>li.is-started .demo-guide-number{background:#256b9b;color:#fff}
+.demo-guide-state{display:inline-flex;align-items:center;gap:5px;min-width:128px;font-size:12px;font-weight:700;color:#6a7b8a;white-space:nowrap}
+.demo-guide-state.is-started{color:#1f5f8b}
+.demo-guide-state.is-done{color:#226b43}
+.demo-guide-rate{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;color:#9a6d00;font:inherit;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.demo-guide-steps li{display:flex;align-items:center;gap:5px;list-style:none;margin-left:-18px}
+.demo-guide-steps li.is-done{color:#226b43}
+.demo-scenario-fallback{align-self:flex-start;padding:0;border:0;background:none;color:#5f6f7c;font:inherit;font-size:11.5px;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.demo-scenario-fallback:hover{color:#1d3247}
+.demo-rating-question{font-weight:700;color:#33495e}
+.demo-rating-thanks{display:flex;align-items:center;gap:6px;color:#226b43;font-weight:700}
 @media(max-width:720px){.demo-guide-list>li{grid-template-columns:30px minmax(0,1fr)}.demo-guide-actions{grid-column:1 / -1;justify-content:flex-end}}
 
 .demo-application-form{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
