@@ -25,11 +25,11 @@ function ActionList({tx,demos,organizations,demoProgress,onOpenDemo,onNavigate})
   </section>
 }
 
-export function PlatformDashboardView({tx,organizations,activeOrganizations,activeDemos,expiringDemos=[],loadingStats,demoProgress,onOpenDemo,onNavigate,demoPreview}) {
+export function PlatformDashboardView({tx,organizations,activeOrganizations,activeDemos,expiringDemos=[],loadingStats,demoProgress,onOpenDemo,onNavigate}) {
   const inactive=Math.max(0,organizations.length-activeOrganizations)
   // The overview: the four counts (each opening its registry), what needs action, then the charts.
   // The work areas themselves are in the menu.
-  return <Page title={tx('Επισκόπηση','Overview')} subtitle={demoPreview?tx('Προεπισκόπηση με συνθετικά δεδομένα demo.','Preview with synthetic demo data.'):tx('Οργανισμοί, Demo και ό,τι χρειάζεται ενέργεια στην πλατφόρμα.','Organizations, Demos and what needs action on the platform.')} actions={demoPreview?<span className="status-badge temporary">DEMO</span>:<span className="platform-live-pill"><i/>{tx('Πλατφόρμα ενεργή','Platform active')}</span>}>
+  return <Page title={tx('Επισκόπηση','Overview')} subtitle={tx('Οργανισμοί, Demo και ό,τι χρειάζεται ενέργεια στην πλατφόρμα.','Organizations, Demos and what needs action on the platform.')} actions={<span className="platform-live-pill"><i/>{tx('Πλατφόρμα ενεργή','Platform active')}</span>}>
     <div className="platform-dashboard">
       <div className="kpi-grid platform-dashboard-kpis">
         <MetricCard icon={Building2} label={`${tx('Οργανισμοί','Organizations')} · ${activeOrganizations} ${tx('ενεργοί','active')}`} value={organizations.length} onClick={()=>onNavigate('/platform#organizations')}/>
@@ -38,7 +38,7 @@ export function PlatformDashboardView({tx,organizations,activeOrganizations,acti
         <MetricCard icon={CalendarClock} label={tx('Demo που λήγουν σε 14 ημέρες','Demos ending within 14 days')} value={loadingStats?'—':expiringDemos.length} tone={expiringDemos.length?'warning':'neutral'} onClick={()=>onNavigate('/platform#demo')}/>
       </div>
 
-      {!demoPreview&&<ActionList tx={tx} demos={expiringDemos} organizations={organizations} demoProgress={demoProgress} onOpenDemo={onOpenDemo} onNavigate={onNavigate}/>}
+      <ActionList tx={tx} demos={expiringDemos} organizations={organizations} demoProgress={demoProgress} onOpenDemo={onOpenDemo} onNavigate={onNavigate}/>
 
       <div className="platform-dashboard-charts">
         <section className="platform-dashboard-panel"><header><div><h3>{tx('Κατάσταση οργανισμών','Organization status')}</h3><p>{tx('Ενεργοί, σε παύση και προσβάσεις demo.','Active, suspended and demo access.')}</p></div></header><div className="platform-dashboard-chart-body"><DonutChart en={tx('el','en')==='en'} centerLabel={tx('σύνολο','total')} rows={[[tx('Ενεργοί','Active'),activeOrganizations],[tx('Ανενεργοί / σε παύση','Inactive / suspended'),inactive],['Demo',loadingStats?0:activeDemos.length]]}/></div></section>
