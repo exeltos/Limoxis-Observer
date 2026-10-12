@@ -3,7 +3,7 @@ import {describe,expect,it} from 'vitest'
 import {withPassages} from '../src/features/lira/LiraAssistantLauncher'
 
 describe('LIRA keyless hybrid retrieval',()=>{
- const sql=fs.readFileSync('supabase/migrations/20261031120000_lira_hybrid_retrieval.sql','utf8')
+ const sql=fs.readFileSync('supabase/migrations/20261012192152_lira_hybrid_retrieval.sql','utf8')
  const edge=fs.readFileSync('supabase/functions/lira-ai-gateway/index.ts','utf8')
  it('searches approved knowledge under the caller RLS, by words and by meaning',()=>{
   expect(sql).toContain('function public.search_lira_knowledge_hybrid')
