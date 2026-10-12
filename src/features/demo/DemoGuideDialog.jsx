@@ -11,7 +11,7 @@ export const OVERALL_RATING='guide_opened'
 // screens signal it, see demoScenarioSignals.js), so there is nothing to tick:
 // a scenario is "not started", "in progress" with its steps checked off, or
 // "done" with its rating, or "Rate it" when it has none yet (the rating opens
-// beside the screen, as when the scenario was completed).
+// in front of the screen, as when the scenario was completed).
 export function DemoGuideDialog({language,scenarios=DEMO_SCENARIOS,progress={},ratings={},stepsDone={},activeKey=null,onOpenScenario,onRate,onClose}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const done=demoScenarioDoneCount(progress,scenarios),total=scenarios.length

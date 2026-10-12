@@ -43,7 +43,7 @@ export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone=
 }
 
 // Asked as soon as a scenario is completed (or, with scenario null, after the
-// last one, for the guide as a whole), beside the screen: one click on the
+// last one, for the guide as a whole), in front of the screen: one click on the
 // stars sends the rating. Then "Add details" opens how easy it was, how clear
 // the steps were and a comment, sent over the same rating.
 export function DemoScenarioRating({scenario,next,language,trial=false,working=false,canRequest=false,onSubmit,onLater,onNext,onRequestApplication}){
@@ -60,7 +60,7 @@ export function DemoScenarioRating({scenario,next,language,trial=false,working=f
   async function send(value,extra={}){setFailed(false);try{await onSubmit?.(value,extra.comment??comment,{ease:(extra.ease??ease)||null,clarity:(extra.clarity??clarity)||null});return true}catch{setFailed(true);return false}}
   async function rate(value){setRating(value);if(await send(value))setSent(true)}
   async function sendDetails(){if(await send(rating)){setDetailsSent(true);setDetails(false)}}
-  return <aside className="demo-scenario-card demo-scenario-rating" role="dialog" aria-label={tx('Αξιολόγηση','Rating')}>
+  return <div className="demo-rating-overlay"><aside className="demo-scenario-card demo-scenario-rating" role="dialog" aria-modal="true" aria-label={tx('Αξιολόγηση','Rating')}>
     <span className="demo-scenario-eyebrow is-done"><CheckCircle2 size={13}/>{overall?tx('Ολοκληρώσατε όλα τα σενάρια','You completed every scenario'):tx('Ολοκληρώσατε το σενάριο','Scenario completed')}</span>
     {!overall&&<strong>{en?scenario.titleEn:scenario.titleEl}</strong>}
     <p className="demo-rating-question">{overall?tx('Πώς σας φάνηκε συνολικά η εφαρμογή;','Overall, how did you find the application?'):tx('Πώς σας φάνηκε;','How did you find it?')}</p>
@@ -88,5 +88,5 @@ export function DemoScenarioRating({scenario,next,language,trial=false,working=f
         {overall&&sent&&canRequest&&<Button onClick={onRequestApplication}><Send size={14}/>{tx('Θέλω την εφαρμογή','I want the application')}</Button>}
       </>}
     </div>
-  </aside>
+  </aside></div>
 }

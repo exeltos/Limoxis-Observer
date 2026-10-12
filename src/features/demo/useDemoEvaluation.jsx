@@ -29,7 +29,7 @@ const errorText=(error,en)=>/Too many requests/i.test(String(error?.message||'')
 // as a trial run: nothing is stored, and it ends with the session.
 // A scenario started from the guide stays beside the screen; when it is done
 // (the screen signals it or its record opens; a quiet link covers what a
-// screen could not tell), a card beside the screen asks for its rating there
+// screen could not tell), a card in front of the screen asks for its rating there
 // and then, and after the last one for the whole.
 // The guide shows the scenarios of the evaluator's current role; a scenario
 // with steps is done once its screens have checked off every step (kept for
