@@ -17,6 +17,7 @@ const demoMetricsModule=()=>import('../../features/dashboard/demoDashboardMetric
 import { collectDemoOrganismClusters,loadActiveClustersAsync } from '../../features/surveillance/outbreakClusterService'
 import { clusterAlertId } from '../../features/surveillance/clusterDetection'
 import { loadPlatformAttentionItems } from '../../features/platform/platformAttentionService'
+import { useOptionalFeedback } from '../feedback/FeedbackContext'
 
 const NotificationContext=createContext(null)
 const CLUSTER_ALERT_ROLES=['hospital_admin','infection_control_lead','infection_control_member','laboratory','doctor_reviewer']
@@ -50,6 +51,13 @@ const hospitalRole=role==='platform_owner'?'hospital_admin':role;try{const metri
  const {data:employeeRows}=useEmployeesData()
  const birthday=useMemo(()=>{const today=new Date(clock),md=`${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;return employeeRows.filter(e=>e.employmentStatus==='active'&&String(e.birthDate||'').slice(5)===md)},[clock,employeeRows])
  const operational=liveOperational
+ // What evaluators just did in their Demos (sign-up, evaluation) also pops up
+ // for the Platform Owner, once each: the newest three not seen yet.
+ const feedback=useOptionalFeedback()
+ useEffect(()=>{const fresh=liveOperational.filter(item=>item.popup);if(!fresh.length||!feedback)return
+  const seen=new Set(loadSnapshot('platform_popup_seen',[])||[]);const unseen=fresh.filter(item=>!seen.has(item.id));if(!unseen.length)return
+  unseen.slice(0,3).forEach(item=>feedback.notify(`${item.title} · ${item.message}`,'success',{operation:'platform_demo_activity'}))
+  saveSnapshot('platform_popup_seen',[...seen,...unseen.map(item=>item.id)].slice(-200))},[liveOperational,feedback])
  const membershipItems=useMemo(()=>committeeMemberships.map(item=>({...item,title:language==='en'?'Committee membership approval':'Αποδοχή συμμετοχής σε επιτροπή',message:`${item.committeeName}${item.committeeTitle?` · ${item.committeeTitle}`:''}`,to:item.committeeId?`/committees/${item.committeeId}`:'/committees',read:false})),[committeeMemberships,language])
  const minutesApprovalItems=useMemo(()=>committeeMinutesApprovals.map(item=>({...item,title:language==='en'?'Minutes approval required':'Απαιτείται έγκριση πρακτικών',message:`${item.committeeName}${item.meetingTitle?` · ${item.meetingTitle}`:''}`,read:false})),[committeeMinutesApprovals,language])
  const clusterItems=useMemo(()=>{const en=language==='en';return clusterAlerts.map(cluster=>{const id=clusterAlertId(cluster);return {id,type:'cluster',title:en?'Possible infection cluster':'Πιθανό cluster λοίμωξης',message:`${cluster.organism} · ${cluster.department} · ${cluster.count} ${en?'cases in':'περιστατικά σε'} ${cluster.windowDays} ${en?'days':'ημέρες'}${cluster.resistanceLabels?.length?` · ${cluster.resistanceLabels.join(', ')}`:''}`,to:'/laboratory',read:Boolean(reads[id])}})},[clusterAlerts,language,reads])

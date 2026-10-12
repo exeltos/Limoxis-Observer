@@ -6,7 +6,7 @@ import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { watchWheelChaining } from './wheelChaining'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, LogOut, Menu, Settings, ShieldCheck, UserRound, X } from 'lucide-react'
+import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, LogOut, Menu, Settings, ShieldCheck, UserRound, Users, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
 import { navigationFor } from './navigation'
 import { useLanguage } from '../core/i18n/LanguageContext'
@@ -59,6 +59,7 @@ export function AppShell(){
     {key:'platformNav.overview',label:'platformNav.menuOverview',path:'/platform',hash:'',icon:LayoutDashboard},
     {key:'platformNav.organizations',label:'platformNav.menuOrganizations',path:'/platform',hash:'organizations',icon:Building2},
     {key:'platformNav.demos',label:'platformNav.menuDemos',path:'/platform',hash:'demo',icon:FlaskConical},
+    {key:'platformNav.users',label:'platformNav.menuUsers',path:'/platform',hash:'users',icon:Users},
     {key:'platformNav.analysis',label:'platformNav.menuAnalysis',path:'/platform',hash:'reports',icon:BarChart3},
     {key:'platformNav.management',label:'platformNav.menuManagement',path:'/platform',hash:'management',icon:Database,children:[
       {key:'managementGroupLibraries',label:'managementGroupLibraries',path:'/platform',hash:'management?group=libraries'},

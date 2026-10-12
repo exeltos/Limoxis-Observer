@@ -3,7 +3,7 @@ import { supabase, invokeAuthenticatedFunction } from '../supabase/client'
 // organizations.country is required by the database; an empty field means Greece.
 export const DEFAULT_COUNTRY = 'Ελλάδα'
 export const countryOrDefault = (value) => String(value || '').trim() || DEFAULT_COUNTRY
-import { isOwnerPreview,previewDeletionImpact,previewDemoSeedResult,previewDemos,previewMemberships,previewOrganizationMembers,previewPlatformMembers } from '../preview/ownerPreview'
+import { isOwnerPreview,previewDeletionImpact,previewDemoSeedResult,previewDemos,previewMemberships,previewOrganizationMembers,previewPlatformMembers,previewPlatformUsers } from '../preview/ownerPreview'
 
 export async function listMemberships(userId) {
   if (!supabase || !userId) return []
@@ -123,6 +123,48 @@ export async function listPlatformOrganizationMembers() {
   return (data ?? []).filter((membership) => !membership.organization?.is_demo)
 }
 
+// The latest invitation of each user, per organization: accepted, pending,
+// expired or revoked (null when there was none).
+export const invitationState = invite => !invite ? null : invite.accepted_at ? 'accepted' : invite.revoked_at ? 'revoked' : new Date(invite.expires_at) < new Date() ? 'expired' : 'pending'
+
+// Everyone on the platform, for the Platform Owner's "Users": one row per
+// membership (hospital or Demo) with the person, the role, the organization,
+// the membership status and the latest invitation; people with no
+// organization (the Platform Owner, an account left without one) on their own.
+export async function listPlatformUsers() {
+  if (isOwnerPreview()) return previewPlatformUsers()
+  if (!supabase) return []
+  const [members, profiles, invitations, demos] = await Promise.all([
+    supabase.from('organization_members').select('id,organization_id,user_id,role,status,created_at,organization:organizations(id,name,code,is_demo)'),
+    supabase.from('profiles').select('id,full_name,username,contact_email,is_platform_owner,created_at'),
+    supabase.from('account_invitations').select('user_id,organization_id,expires_at,accepted_at,revoked_at,created_at,delivery_email').order('created_at', { ascending: false }),
+    supabase.from('platform_demo_entitlements').select('id,organization_id').neq('status', 'revoked'),
+  ])
+  for (const result of [members, profiles]) if (result.error) throw result.error
+  const profileById = new Map((profiles.data || []).map(row => [row.id, row]))
+  const latestInvite = new Map()
+  for (const invite of invitations.data || []) { const key = `${invite.organization_id}:${invite.user_id}`; if (!latestInvite.has(key)) latestInvite.set(key, invite) }
+  const demoByOrg = new Map((demos.data || []).map(row => [row.organization_id, row.id]))
+  const withOrganization = new Set()
+  const rows = (members.data || []).map(row => {
+    withOrganization.add(row.user_id)
+    const profile = profileById.get(row.user_id) || {}
+    const invite = latestInvite.get(`${row.organization_id}:${row.user_id}`)
+    return {
+      id: row.id, userId: row.user_id, name: profile.full_name || '—', email: profile.contact_email || invite?.delivery_email || '', username: profile.username || '',
+      role: row.role, status: row.status, invitation: invitationState(invite), organization: row.organization || null,
+      demoId: demoByOrg.get(row.organization_id) || null, kind: row.organization?.is_demo ? 'demo' : 'hospital', createdAt: row.created_at,
+    }
+  })
+  for (const profile of profiles.data || []) {
+    if (withOrganization.has(profile.id)) continue
+    rows.push({ id: `profile:${profile.id}`, userId: profile.id, name: profile.full_name || '—', email: profile.contact_email || '', username: profile.username || '',
+      role: profile.is_platform_owner ? 'platform_owner' : null, status: 'active', invitation: null, organization: null, demoId: null,
+      kind: profile.is_platform_owner ? 'platform' : 'none', createdAt: profile.created_at })
+  }
+  return rows
+}
+
 export async function listPlatformDemos() {
   if (isOwnerPreview()) return previewDemos()
   if (!supabase) return []
@@ -210,7 +252,7 @@ export async function listOrganizationMembersDetailed(organizationId) {
   return (memberRows || []).map(row => {
     const profile = profileById.get(row.user_id) || {}
     const invite = latestInviteByUser.get(row.user_id)
-    const invitationStatus = !invite ? null : invite.accepted_at ? 'accepted' : invite.revoked_at ? 'revoked' : new Date(invite.expires_at) < new Date() ? 'expired' : 'pending'
+    const invitationStatus = invitationState(invite)
     return { id: row.id, userId: row.user_id, role: row.role, status: row.status, username: profile.username || '—', name: profile.full_name || '—', email: profile.contact_email || invite?.delivery_email || '', phone: profile.phone || '', jobTitle: profile.job_title || '', invitationStatus, invitationCreatedAt: invite?.created_at || null, invitationExpiresAt: invite?.expires_at || null }
   })
 }

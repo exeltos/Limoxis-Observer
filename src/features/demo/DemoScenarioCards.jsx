@@ -22,9 +22,9 @@ function StarScale({label,value,onChange,labels,en,large=false}){
 // The Platform Owner's trial run: shown the same, stored nowhere.
 const TrialNote=({en})=><small className="demo-scenario-trial">{en?'Trial as Platform Owner: nothing is saved.':'Δοκιμή ως Platform Owner: δεν αποθηκεύεται.'}</small>
 
-// The scenario the evaluator is working on, beside the screen: what to do, its
-// steps checked off as the screens report them, and "I'm done" for what the
-// application cannot tell is done.
+// The scenario the evaluator is working on, beside the screen: what to do and
+// its steps, checked off as the screens report them. The screens also tell
+// when it is done; a quiet link marks it done when they could not.
 export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone={},language,trial=false,working=false,onDone,onClose,onTour=null}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const index=scenarios.findIndex(item=>item.key===scenario.key)
@@ -37,47 +37,56 @@ export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone=
     <p>{en?scenario.textEn:scenario.textEl}</p>
     {steps.length>0&&<ol className="demo-scenario-steps" aria-label={tx('Βήματα','Steps')}>{steps.map(step=>{const done=Boolean(stepsDone[step.id]);return <li key={step.id} className={done?'is-done':step===nextStep?'is-next':''} aria-current={step===nextStep?'step':undefined}>{done?<CheckCircle2 size={14} aria-label={tx('Ολοκληρώθηκε','Done')}/>:<Circle size={14} aria-hidden="true"/>}<span>{en?step.labelEn:step.labelEl}{step===nextStep&&step.target&&<small className="demo-step-onscreen">{tx('Επισημαίνεται στην οθόνη','Outlined on screen')}</small>}</span></li>})}</ol>}
     {trial&&<TrialNote en={en}/>}
-    <div className="demo-scenario-actions">{onTour&&<Button variant="secondary" onClick={onTour}><Compass size={14}/>{tx('Δείξε μου','Show me')}</Button>}<Button variant="secondary" disabled={working} onClick={onDone}><CheckCircle2 size={14}/>{tx('Ολοκλήρωσα','I\'m done')}</Button></div>
+    <div className="demo-scenario-actions">{onTour&&<Button variant="secondary" onClick={onTour}><Compass size={14}/>{tx('Δείξε μου','Show me')}</Button>}</div>
+    <button type="button" className="demo-scenario-fallback" disabled={working} onClick={onDone}>{tx('Το κάνατε αλλά δεν καταγράφηκε; Σημειώστε το ως ολοκληρωμένο','Done but not picked up? Mark it as completed')}</button>
   </aside>
 }
 
 // Asked as soon as a scenario is completed (or, with scenario null, after the
-// last one, for the guide as a whole): usefulness in 1-5 stars and an optional
-// comment; for a scenario also how easy it was and how clear the steps were.
-// `inline`: inside the guide, under its scenario, instead of beside the screen.
-export function DemoScenarioRating({scenario,next,language,trial=false,working=false,canRequest=false,inline=false,onSubmit,onLater,onNext,onRequestApplication}){
+// last one, for the guide as a whole), in front of the screen: one click on the
+// stars sends the rating. Then "Add details" opens how easy it was, how clear
+// the steps were and a comment, sent over the same rating.
+export function DemoScenarioRating({scenario,next,language,trial=false,working=false,canRequest=false,onSubmit,onLater,onNext,onRequestApplication}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const [rating,setRating]=useState(0)
   const [ease,setEase]=useState(0)
   const [clarity,setClarity]=useState(0)
   const [comment,setComment]=useState('')
-  const [sent,setSent]=useState(false)
+  const [details,setDetails]=useState(false)
+  const [sent,setSent]=useState(false) // the stars are saved
+  const [detailsSent,setDetailsSent]=useState(false)
   const [failed,setFailed]=useState(false)
   const overall=!scenario
-  async function submit(){if(!rating)return;setFailed(false);try{await onSubmit?.(rating,comment,{ease:ease||null,clarity:clarity||null});setSent(true)}catch{setFailed(true)}}
-  const cardClass=`demo-scenario-card demo-scenario-rating${inline?' is-inline':''}`
-  if(sent)return <aside className={`${cardClass} is-sent`} role="status">
-    <strong><CheckCircle2 size={16}/>{tx('Ευχαριστούμε για την αξιολόγηση!','Thank you for your rating!')}</strong>
-    <div className="demo-scenario-actions">
-      {next&&<Button onClick={()=>onNext?.(next)}>{tx('Επόμενο σενάριο','Next scenario')}: {en?next.titleEn:next.titleEl}<ArrowRight size={14}/></Button>}
-      {overall&&canRequest&&<Button onClick={onRequestApplication}><Send size={14}/>{tx('Θέλω την εφαρμογή','I want the application')}</Button>}
-      <Button variant="secondary" onClick={onLater}>{tx('Κλείσιμο','Close')}</Button>
-    </div>
-  </aside>
-  return <aside className={cardClass} role={inline?'group':'dialog'} aria-label={tx('Αξιολόγηση','Rating')}>
+  async function send(value,extra={}){setFailed(false);try{await onSubmit?.(value,extra.comment??comment,{ease:(extra.ease??ease)||null,clarity:(extra.clarity??clarity)||null});return true}catch{setFailed(true);return false}}
+  async function rate(value){setRating(value);if(await send(value))setSent(true)}
+  async function sendDetails(){if(await send(rating)){setDetailsSent(true);setDetails(false)}}
+  return <div className="demo-rating-overlay"><aside className="demo-scenario-card demo-scenario-rating" role="dialog" aria-modal="true" aria-label={tx('Αξιολόγηση','Rating')}>
     <span className="demo-scenario-eyebrow is-done"><CheckCircle2 size={13}/>{overall?tx('Ολοκληρώσατε όλα τα σενάρια','You completed every scenario'):tx('Ολοκληρώσατε το σενάριο','Scenario completed')}</span>
-    <strong>{overall?tx('Πώς σας φάνηκε συνολικά η εφαρμογή;','Overall, how did you find the application?'):<>{en?scenario.titleEn:scenario.titleEl}: {tx('πώς σας φάνηκε;','how did you find it?')}</>}</strong>
-    <StarScale large label={tx('Βαθμολογία','Rating')} value={rating} onChange={setRating} labels={RATING_LABELS} en={en}/>
-    {!overall&&<div className="demo-rating-extra">
-      <StarScale label={tx('Ευκολία','Ease')} value={ease} onChange={setEase} labels={EASE_LABELS} en={en}/>
-      <StarScale label={tx('Σαφήνεια οδηγιών','Clarity of the steps')} value={clarity} onChange={setClarity} labels={CLARITY_LABELS} en={en}/>
-    </div>}
+    {!overall&&<strong>{en?scenario.titleEn:scenario.titleEl}</strong>}
+    <p className="demo-rating-question">{overall?tx('Πώς σας φάνηκε συνολικά η εφαρμογή;','Overall, how did you find the application?'):tx('Πώς σας φάνηκε;','How did you find it?')}</p>
+    <StarScale large label={tx('Βαθμολογία','Rating')} value={rating} onChange={value=>{if(!working)void rate(value)}} labels={RATING_LABELS} en={en}/>
+    {sent&&!details&&<p className="demo-rating-thanks" role="status"><CheckCircle2 size={14}/>{detailsSent?tx('Ευχαριστούμε για τα σχόλιά σας!','Thank you for your feedback!'):tx('Ευχαριστούμε! Η βαθμολογία καταχωρίστηκε.','Thank you! Your rating is saved.')}</p>}
+    {sent&&!overall&&!details&&!detailsSent&&<button type="button" className="demo-scenario-fallback" onClick={()=>setDetails(true)}>{tx('Προσθέστε λεπτομέρειες (ευκολία, σχόλιο)','Add details (ease, comment)')}</button>}
+    {sent&&overall&&!details&&!detailsSent&&<button type="button" className="demo-scenario-fallback" onClick={()=>setDetails(true)}>{tx('Προσθέστε σχόλιο','Add a comment')}</button>}
+    {details&&<>
+      {!overall&&<div className="demo-rating-extra">
+        <StarScale label={tx('Ευκολία','Ease')} value={ease} onChange={setEase} labels={EASE_LABELS} en={en}/>
+        <StarScale label={tx('Σαφήνεια οδηγιών','Clarity of the steps')} value={clarity} onChange={setClarity} labels={CLARITY_LABELS} en={en}/>
+      </div>}
+      {/* Its own box: the textarea expander makes the textarea's parent position:relative. */}
+      <div className="demo-rating-comment"><textarea rows={2} maxLength={1000} value={comment} onChange={event=>setComment(event.target.value)} placeholder={overall?tx('Τι θα θέλατε να βελτιωθεί; (προαιρετικό)','What would you like improved? (optional)'):tx('Τι σας δυσκόλεψε ή τι σας άρεσε; (προαιρετικό)','What was difficult or what did you like? (optional)')}/></div>
+    </>}
     {trial&&<TrialNote en={en}/>}
-    <textarea rows={2} maxLength={1000} value={comment} onChange={event=>setComment(event.target.value)} placeholder={overall?tx('Τι θα θέλατε να βελτιωθεί; (προαιρετικό)','What would you like improved? (optional)'):tx('Τι σας δυσκόλεψε ή τι σας άρεσε; (προαιρετικό)','What was difficult or what did you like? (optional)')}/>
     {failed&&<div className="demo-application-error" role="alert">{tx('Η αξιολόγηση δεν στάλθηκε. Δοκιμάστε ξανά.','The rating was not sent. Please try again.')}</div>}
     <div className="demo-scenario-actions">
-      <Button variant="secondary" disabled={working} onClick={onLater}>{tx('Αργότερα','Later')}</Button>
-      <Button disabled={!rating||working} loading={working} onClick={()=>void submit()}>{tx('Αποστολή','Send')}</Button>
+      {details?<>
+        <Button variant="secondary" disabled={working} onClick={()=>setDetails(false)}>{tx('Άκυρο','Cancel')}</Button>
+        <Button disabled={working} loading={working} onClick={()=>void sendDetails()}>{tx('Αποστολή','Send')}</Button>
+      </>:<>
+        <Button variant="secondary" disabled={working} onClick={onLater}>{sent?tx('Κλείσιμο','Close'):tx('Αργότερα','Later')}</Button>
+        {next&&<Button onClick={()=>onNext?.(next)}>{tx('Επόμενο','Next')}: {en?next.titleEn:next.titleEl}<ArrowRight size={14}/></Button>}
+        {overall&&sent&&canRequest&&<Button onClick={onRequestApplication}><Send size={14}/>{tx('Θέλω την εφαρμογή','I want the application')}</Button>}
+      </>}
     </div>
-  </aside>
+  </aside></div>
 }

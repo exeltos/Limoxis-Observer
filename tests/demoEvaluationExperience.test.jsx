@@ -18,26 +18,31 @@ const wrap = node => <LanguageProvider>{node}</LanguageProvider>
 afterEach(() => { cleanup(); setReportBranding(null) })
 
 describe('Evaluation guide', () => {
-  it('lists six scenarios, each opening its screen, and lets the evaluator mark them', () => {
-    const onOpenScenario = vi.fn(), onToggle = vi.fn()
-    render(wrap(<DemoGuideDialog language="el" progress={{ patient_admission: '2026-10-08T10:00:00Z' }} onOpenScenario={onOpenScenario} onToggle={onToggle} onClose={vi.fn()}/>))
+  it('lists six scenarios with where each stands, and nothing to tick by hand', () => {
+    const onOpenScenario = vi.fn(), onRate = vi.fn()
+    render(wrap(<DemoGuideDialog language="el" progress={{ patient_admission: '2026-10-08T10:00:00Z' }} ratings={{}} stepsDone={{ microbiology_mdro: { open: true, ast: true } }} activeKey="microbiology_mdro" onOpenScenario={onOpenScenario} onRate={onRate} onClose={vi.fn()}/>))
     expect(DEMO_SCENARIOS).toHaveLength(6)
-    expect(screen.getByText('1 από 6 ολοκληρωμένα')).toBeInTheDocument()
-    fireEvent.click(screen.getAllByText('Ξεκινήστε')[1])
-    expect(onOpenScenario).toHaveBeenCalledWith(DEMO_SCENARIOS[1])
-    fireEvent.click(screen.getAllByText('Το έκανα')[0])
-    expect(onToggle).toHaveBeenCalledWith('clabsi_classification', true)
-  })
-  it('keeps a done mark on a second click and shows the rating under its scenario', () => {
-    const onToggle = vi.fn(), onRate = vi.fn()
-    render(wrap(<DemoGuideDialog language="el" progress={{ patient_admission: '2026-10-08T10:00:00Z' }} rating={{ key: 'patient_admission', node: <div>rating-form</div> }} onToggle={onToggle} onRate={onRate} onClose={vi.fn()}/>))
     expect(screen.getByText('Εκπαίδευση εφαρμογής')).toBeInTheDocument()
-    const done = screen.getByText('Ολοκληρώθηκε')
+    expect(screen.getByText('1 από 6 ολοκληρωμένα')).toBeInTheDocument()
+    expect(screen.queryByText('Το έκανα')).toBeNull()
+    // Done (by the application): its state, no button to undo it, and "Rate it".
+    const done = screen.getByText('Ολοκληρώθηκε', { selector: '.demo-guide-state' })
     expect(done.closest('button')).toBeNull()
-    fireEvent.click(done)
-    expect(onToggle).not.toHaveBeenCalled()
-    const row = screen.getByText('rating-form').closest('li')
-    expect(row).toHaveTextContent(DEMO_SCENARIOS[0].titleEl)
+    fireEvent.click(screen.getByRole('button', { name: /Βαθμολογήστε/ }))
+    expect(onRate).toHaveBeenCalledWith('patient_admission')
+    // In progress: its steps counted and "Continue".
+    expect(screen.getByText('Σε εξέλιξη 2/4')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Συνέχεια/ }))
+    expect(onOpenScenario).toHaveBeenCalledWith(DEMO_SCENARIOS[2])
+    // Not started: "Start".
+    expect(screen.getAllByText('Δεν ξεκίνησε')).toHaveLength(4)
+    fireEvent.click(screen.getAllByRole('button', { name: /Ξεκινήστε/ })[0])
+    expect(onOpenScenario).toHaveBeenCalledWith(DEMO_SCENARIOS[1])
+  })
+  it('shows the rating of a rated scenario instead of "Rate it"', () => {
+    render(wrap(<DemoGuideDialog language="el" progress={{ patient_admission: 'x' }} ratings={{ patient_admission: { rating: 4 } }} onRate={vi.fn()} onClose={vi.fn()}/>))
+    expect(screen.getByLabelText('Βαθμολογία 4 από 5')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Βαθμολογήστε/ })).toBeNull()
   })
   it('keeps progress per evaluator in a table that "Reset data" leaves alone', () => {
     expect(migration).toContain('demo_organization_id uuid not null references public.organizations(id) on delete cascade')

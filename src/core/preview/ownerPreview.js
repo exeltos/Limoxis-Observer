@@ -46,6 +46,13 @@ export const previewDemos=()=>[
  {id:'demo-5',label:'Γ.Ν. Κέρκυρας',contact_name:'Σ. Βλάχου',contact_email:'sv@corfu.example',valid_from:day(-42),valid_until:day(-12),status:'active',organization_id:'demo-org-5',demo_user_id:'demo-u-5',organization:{id:'demo-org-5',name:'Demo · Γ.Ν. Κέρκυρας',code:'DEMO-CFU',is_demo:true}},
 ]
 
+// Everyone on the platform, as listPlatformUsers returns them, for the preview.
+export const previewPlatformUsers=()=>[
+ {id:'owner',userId:'owner',name:'Platform Owner',email:'owner@example.org',username:'owner',role:'platform_owner',status:'active',invitation:null,organization:null,kind:'platform',createdAt:day(-400)},
+ ...Object.keys(PEOPLE).flatMap(orgId=>{const organization=ORGANIZATIONS.find(o=>o.id===orgId);return previewOrganizationMembers(orgId).map((m,index)=>({id:m.id,userId:m.userId,name:m.name,email:m.email,username:m.username,role:m.role,status:m.status,invitation:m.status==='invited'?'pending':'accepted',organization:organization&&{id:organization.id,name:organization.name,code:organization.code,is_demo:false},kind:'hospital',createdAt:day(-200+index*9)}))}),
+ ...previewDemos().map((d,index)=>({id:`dm-${d.id}`,userId:d.demo_user_id,name:d.contact_name,email:d.contact_email,username:d.contact_email.split('@')[0],role:'hospital_admin',status:index%2?'invited':'active',invitation:index%2?(index===3?'expired':'pending'):'accepted',organization:d.organization,demoId:d.id,kind:'demo',createdAt:d.valid_from})),
+]
+
 // What deleting the given organizations would remove, for the preview's delete dialog.
 const PREVIEW_IMPACT={'demo-org-3':[1284,96,12,8400000,4,4],'demo-org-5':[0,74,0,0,1,0],'demo-org-1':[642,74,5,2100000,3,3],'demo-org-2':[210,74,1,300000,2,2],'demo-org-4':[388,74,2,900000,2,1]}
 export const previewDeletionImpact=ids=>ids.map(id=>{
