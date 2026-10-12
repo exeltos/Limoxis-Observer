@@ -214,6 +214,8 @@ export function buildSectionModel(tab, snapshot, tx, t) {
   const rateRows = rows => (rows || []).map(([key, total, part]) => [label(key), pct(part, total) ?? 0]).filter(([, value]) => value != null)
   const mdro = (micro.resistance || []).filter(([key]) => ['MDR', 'XDR', 'PDR'].includes(key)).reduce((sum, [, value]) => sum + (Number(value) || 0), 0)
   if (!snapshot?.domains) return null
+  // Several hospitals (the platform's "all hospitals"): compared by hospital, not by department.
+  const byHospital = (snapshot.hospitals || []).length > 1
   switch (tab) {
     case 'overview': return {
       kpis: [
@@ -225,7 +227,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Εκπρόθεσμα CAPA', 'Overdue CAPA'), q.capaOverdue ?? 0, tx(`${q.capaOpen ?? 0} ανοιχτά`, `${q.capaOpen ?? 0} open`), q.capaOverdue ? 'danger' : ''],
       ],
       charts: [
-        { type: 'scoreboard', wide: true, title: tx('Σύγκριση τμημάτων', 'Departments side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε τμήματος για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each department\'s headline figures for the period; shading marks the highest in each column.'), rows: departmentScoreboard(snapshot), columns: [
+        { type: 'scoreboard', wide: true, ...(byHospital ? { title: tx('Σύγκριση νοσοκομείων', 'Hospitals side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε νοσοκομείου για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each hospital\'s headline figures for the period; shading marks the highest in each column.'), rowLabel: tx('Νοσοκομείο', 'Hospital'), rows: (snapshot.hospitals || []).map(row => ({ ...row, key: row.organizationId })).sort((a, b) => b.episodes + b.positives - (a.episodes + a.positives)) } : { title: tx('Σύγκριση τμημάτων', 'Departments side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε τμήματος για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each department\'s headline figures for the period; shading marks the highest in each column.'), rows: departmentScoreboard(snapshot) }), columns: [
           { key: 'episodes', label: tx('Επιτηρήσεις', 'Surveillance') },
           { key: 'hai', label: tx('HAI', 'HAI'), tone: 'warn' },
           { key: 'positives', label: tx('Θετικές καλλιέργειες', 'Positive cultures') },

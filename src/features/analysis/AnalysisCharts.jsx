@@ -104,11 +104,12 @@ export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalL
     <tfoot><tr><th scope="row">{total}</th>{columns.map(column=><td key={column}>{columnTotals.get(column)}</td>)}<td className="analysis-matrix-total">{[...rowTotals.values()].reduce((sum,n)=>sum+n,0)}</td></tr></tfoot></table></div>
 }
 
-// One row per department with the headline figures of every area, so units
-// can be compared side by side; cells are shaded within their column.
-export function Scoreboard({rows=[],columns=[],en}){
+// One row per department (or hospital, `rowLabel`) with the headline figures
+// of every area, so units can be compared side by side; cells are shaded
+// within their column.
+export function Scoreboard({rows=[],columns=[],rowLabel,en}){
   if(!rows.length)return <div className="analysis-chart-empty">{en?'No data for the selected period.':'Δεν υπάρχουν δεδομένα για την περίοδο.'}</div>
   const peaks=columns.map(column=>Math.max(0,...rows.map(row=>Number(row[column.key])||0)))
-  return <div className="analysis-matrix-wrap"><table className="analysis-matrix analysis-scoreboard"><thead><tr><th scope="col">{en?'Department':'Τμήμα'}</th>{columns.map(column=><th key={column.key} scope="col">{column.label}</th>)}</tr></thead>
-    <tbody>{rows.map(row=><tr key={row.name}><th scope="row">{row.name}</th>{columns.map((column,index)=>{const value=row[column.key];const n=Number(value);const shade=column.shade!==false&&Number.isFinite(n)&&peaks[index]>0&&n>0;return <td key={column.key} className={`${column.tone?`tone-${column.tone}`:''}${value==null?' is-zero':''}`} style={shade?{'--cell-heat':(0.06+0.3*n/peaks[index]).toFixed(2)}:undefined}>{value==null?'—':column.format?column.format(value):value}</td>})}</tr>)}</tbody></table></div>
+  return <div className="analysis-matrix-wrap"><table className="analysis-matrix analysis-scoreboard"><thead><tr><th scope="col">{rowLabel||(en?'Department':'Τμήμα')}</th>{columns.map(column=><th key={column.key} scope="col">{column.label}</th>)}</tr></thead>
+    <tbody>{rows.map(row=><tr key={row.key||row.name}><th scope="row">{row.name}</th>{columns.map((column,index)=>{const value=row[column.key];const n=Number(value);const shade=column.shade!==false&&Number.isFinite(n)&&peaks[index]>0&&n>0;return <td key={column.key} className={`${column.tone?`tone-${column.tone}`:''}${value==null?' is-zero':''}`} style={shade?{'--cell-heat':(0.06+0.3*n/peaks[index]).toFixed(2)}:undefined}>{value==null?'—':column.format?column.format(value):value}</td>})}</tr>)}</tbody></table></div>
 }

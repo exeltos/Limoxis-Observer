@@ -105,8 +105,17 @@ async function loadAddonDomains({organizationId='',from='',to=''}){
   return {...(pps?{pps}:{}),...(lira?{lira}:{})}
 }
 
+// Adds the cross-tabulations to the sections the domain metrics returned (a
+// section the scope leaves out, e.g. antimicrobials for one department, stays out).
+function withCrosstabs(domains,crosstabs){
+  if(!domains||!crosstabs||typeof crosstabs!=='object')return domains
+  const out={...domains}
+  for(const [section,values] of Object.entries(crosstabs))if(out[section]&&values&&typeof values==='object')out[section]={...out[section],...values}
+  return out
+}
+
 async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',departmentId=''}){
-  const [summaryResult,microbiology,amrSusceptibility,clusters,domainsResult,peopleResult,addonDomains]=await withTimeout(Promise.all([
+  const [summaryResult,microbiology,amrSusceptibility,clusters,domainsResult,peopleResult,addonDomains,crosstabResult]=await withTimeout(Promise.all([
     supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}),
     loadMicrobiologyAnalytics({organizationId,from,to,departmentId}),
     loadAmrSusceptibility({organizationId,from,to,departmentId}),
@@ -115,10 +124,24 @@ async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',depar
     Promise.resolve(supabase.rpc('analysis_domain_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
     Promise.resolve(supabase.rpc('analysis_people_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
     loadAddonDomains({organizationId,from,to}),
+    // Cross-tabulations (20261030120000_analysis_crosstab_metrics.sql); before that migration the matrices stay hidden.
+    Promise.resolve(supabase.rpc('analysis_crosstab_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
   ]))
   if(summaryResult.error)throw summaryResult.error
   if(addonDomains.lira)addonDomains.lira.clusters=Array.isArray(clusters)?clusters.length:0
-  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters,domains:(domainsResult?.error||!domainsResult?.data)&&(peopleResult?.error||!peopleResult?.data)?null:{...(domainsResult?.error?{}:(domainsResult?.data||{})),...(peopleResult?.error?{}:(peopleResult?.data||{})),...addonDomains}}
+  const domains=(domainsResult?.error||!domainsResult?.data)&&(peopleResult?.error||!peopleResult?.data)?null:{...(domainsResult?.error?{}:(domainsResult?.data||{})),...(peopleResult?.error?{}:(peopleResult?.data||{})),...addonDomains}
+  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters,domains:withCrosstabs(domains,crosstabResult?.error?null:crosstabResult?.data)}
+}
+
+// One row per hospital for the platform's "all hospitals" comparison: the same
+// headline figures the department comparison shows for one hospital.
+function hospitalRows(snapshots,ids,names){
+  return snapshots.map((snapshot,index)=>{
+    const d=snapshot?.domains||{},s=d.surveillance||{},hh=d.handHygiene||{},b=d.bundles||{},micro=snapshot?.microbiology||{}
+    const mdro=(micro.resistance||[]).filter(([key])=>['MDR','XDR','PDR'].includes(key)).reduce((sum,[,n])=>sum+(Number(n)||0),0)
+    const hand=Number(hh.observations)?Math.round(Number(hh.compliant)/Number(hh.observations)*1000)/10:null
+    return {organizationId:ids[index],name:names?.[ids[index]]||ids[index],episodes:Number(s.total)||0,hai:Number(s.haiConfirmed)||0,positives:Number(micro.totalPositive)||0,mdro,hand,bundles:b.averageScore??null}
+  })
 }
 
 function mergeAnalysisSnapshots(snapshots){
@@ -129,11 +152,17 @@ function mergeAnalysisSnapshots(snapshots){
   return {source:'production',summary:sumSummary(snapshots),domains:mergeDomainMetrics(snapshots.map(item=>item?.domains)),microbiology:{microorganisms:mergeEntryRows(snapshots,'microorganisms'),resistance:mergeEntryRows(snapshots,'resistance',5),monthly:mergeMonthly(snapshots),byOrganization:byOrganization.sort((a,b)=>Number(b[1]||0)-Number(a[1]||0)),byDepartment:mergeEntryRows(snapshots,'byDepartment'),bySource:mergeEntryRows(snapshots,'bySource'),bySite:mergeEntryRows(snapshots,'bySite'),nationalRows:mergeNationalRows(snapshots),totalPositive,totalCritical,departmentCount:new Set(snapshots.flatMap(item=>(item?.microbiology?.byDepartment||[]).map(([name])=>name))).size,departments},amrSusceptibility:mergeAmrRows(snapshots),clusters:snapshots.flatMap(item=>item?.clusters||[]).sort((a,b)=>b.count-a.count||String(b.lastDate).localeCompare(String(a.lastDate)))}
 }
 
-export async function loadAnalysisSnapshot({organizationId='',organizationIds=[],from='',to='',departmentId=''}={}){
+// `organizationIds` (a list, possibly empty) scopes the analysis to exactly
+// those hospitals, each read on its own and added up: the platform's "all
+// hospitals" passes the production ones, so Demo organizations never count,
+// and the comparison is by hospital (`hospitals`, named from
+// `organizationNames`). Without a list, one organization (`organizationId`).
+export async function loadAnalysisSnapshot({organizationId='',organizationIds=null,organizationNames=null,from='',to='',departmentId=''}={}){
   if(!hasSupabaseConfig||!supabase)throw new Error('SUPABASE_REQUIRED_FOR_PRODUCTION_ANALYTICS')
-  const scopedIds=[...new Set((organizationIds||[]).filter(Boolean))]
-  if(!scopedIds.length)return loadSingleAnalysisSnapshot({organizationId,from,to,departmentId})
+  if(!Array.isArray(organizationIds))return loadSingleAnalysisSnapshot({organizationId,from,to,departmentId})
+  const scopedIds=[...new Set(organizationIds.filter(Boolean))]
+  if(!scopedIds.length)return {source:'production',summary:{},domains:null,microbiology:{},amrSusceptibility:[],clusters:[]}
   if(scopedIds.length===1)return loadSingleAnalysisSnapshot({organizationId:scopedIds[0],from,to,departmentId})
   const snapshots=await withTimeout(Promise.all(scopedIds.map(id=>loadSingleAnalysisSnapshot({organizationId:id,from,to,departmentId:''}))))
-  return mergeAnalysisSnapshots(snapshots)
+  return {...mergeAnalysisSnapshots(snapshots),hospitals:hospitalRows(snapshots,scopedIds,organizationNames)}
 }

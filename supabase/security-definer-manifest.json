@@ -1,6 +1,11 @@
 {
   "$comment": "SECURITY DEFINER functions in public that anon or authenticated may execute. Checked by tools/check-security-definer.mjs (npm run audit:security-definer). rls-helper: returns only what the caller may do; rpc: must check the caller itself; public-token: callable before sign-in, guarded by a random access token or exposing no organisation data.",
   "functions": {
+    "analysis_crosstab_metrics": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Analytics cross-tabulations (department × HAI type, agent × organism, …); same access as analysis_domain_metrics: Platform Owner or Hospital Admin / IPC Lead of the organisation."
+    },
     "analysis_domain_metrics": {
       "category": "rpc",
       "authenticated": true,
