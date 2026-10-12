@@ -18,6 +18,12 @@ describe('LIRA keyless hybrid retrieval',()=>{
   expect(sql).toContain("'άέήίόύώϊϋΐΰς', 'αεηιουωιυιυσ'")
   expect(sql).toContain("new.embedding_status := 'pending'")
  })
+ it('compares embeddings in the queue trigger without the pgvector = operator',()=>{
+  // Under an empty search_path the operator is not found and every text edit failed.
+  const fix=fs.readFileSync('supabase/migrations/20261012193538_fix_lira_chunk_embedding_queue_compare.sql','utf8')
+  expect(fix).toContain('new.embedding::text is not distinct from old.embedding::text')
+  expect(fix).toContain("set search_path = ''")
+ })
  it('embeds inside the project with the built-in model, never with the provider key',()=>{
   expect(edge).toContain("const EMBEDDING_MODEL='gte-small'")
   expect(edge).toContain('Supabase.ai.Session(EMBEDDING_MODEL)')
