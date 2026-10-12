@@ -1,21 +1,19 @@
-/* Demo organization bar (under the topbar) and the "Demo ended" screen. */
-.demo-evaluation-bar{flex:0 0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 18px;background:#fff8ec;border-bottom:1px solid #f0dcb4;color:#6b4a12;font-size:12px}
-.demo-evaluation-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:#f5b84a;color:#3d2a05;font-size:10.5px;font-weight:800;letter-spacing:.04em}
-.demo-evaluation-text{display:flex;align-items:baseline;gap:8px;min-width:0}
-.demo-evaluation-text strong{font-weight:750;color:#4f3608}
-.demo-evaluation-text small{color:#86622a;font-size:11.5px}
+/* Demo organization line (under the topbar, as in SurgiTrack) and the "Demo ended" screen. */
+.demo-evaluation-bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 18px;background:#eef1f7;border-bottom:1px solid #dde3ee;color:#3d4b5e;font-size:12.5px}
+.demo-evaluation-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;background:#33406b;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.06em}
+.demo-evaluation-text{min-width:0;color:#4a586b}
 .demo-evaluation-spacer{flex:1}
-.demo-evaluation-bar button{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border:1px solid #ecd2a2;border-radius:8px;background:#fff;color:#6b4a12;font-size:11.5px;font-weight:700;cursor:pointer}
-.demo-evaluation-bar button:hover{background:#fff3dc}
-.demo-evaluation-bar button.active{background:#f5b84a;border-color:#e3a43a;color:#3d2a05}
-.demo-evaluation-count{margin-left:2px;padding:1px 6px;border-radius:999px;background:#fff1d6;color:#7a4e06;font-size:10.5px}
-.demo-evaluation-bar button.demo-evaluation-cta{background:#1565a8;border-color:#1565a8;color:#fff}
-.demo-evaluation-bar button.demo-evaluation-cta:hover{background:#0f5590}
-.demo-evaluation-bar.is-ending{background:#fff0e0;border-bottom-color:#f2c48e}
-.demo-evaluation-bar.is-ending .demo-evaluation-text small{color:#a24d0a;font-weight:700}
+.demo-evaluation-bar button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 13px;border:1px solid #33406b;border-radius:999px;background:#fff;color:#22304f;font-size:12px;font-weight:700;cursor:pointer}
+.demo-evaluation-bar button:hover{background:#f3f5fb}
+.demo-evaluation-bar button.active{background:#e3e8f5}
+.demo-evaluation-count{margin-left:2px;padding:1px 7px;border-radius:999px;background:#e3e8f5;color:#22304f;font-size:10.5px}
+.demo-evaluation-bar button.demo-evaluation-cta{background:#17506b;border-color:#17506b;color:#fff}
+.demo-evaluation-bar button.demo-evaluation-cta:hover{background:#113f55}
+.demo-evaluation-bar.is-ending{background:#fdf1e4;border-bottom-color:#f2d2ae}
+.demo-evaluation-bar.is-ending .demo-evaluation-text{color:#9a4508;font-weight:700}
 .demo-evaluation-roles{position:relative;z-index:30}
 .demo-evaluation-roles .role-preview-popover{top:36px;color:var(--text,#24384d);font-size:12px}
-@media(max-width:720px){.demo-evaluation-spacer{display:none}.demo-evaluation-text{flex-wrap:wrap}}
+@media(max-width:720px){.demo-evaluation-spacer{display:none}}
 
 .demo-closed-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--lo-surface-page,#f4f7fa)}
 .demo-closed-card{width:min(480px,100%);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:30px 26px;background:#fff;border:1px solid var(--lo-surface-border,#dfe6ec);border-radius:16px;box-shadow:0 18px 44px rgba(17,42,63,.1)}
@@ -23,12 +21,9 @@
 .demo-closed-card p{margin:0;color:var(--lo-text-secondary,#5f6f7c);font-size:13px;line-height:1.55}
 .demo-closed-card button{margin-top:10px}
 
-/* Demo organization (class set on <body> by the Demo bar): charts carry a small
-   "DEMO" tag and printing shows a banner and a light diagonal mark. */
-body.lo-demo-organization .viz-bars,body.lo-demo-organization .viz-donut,body.lo-demo-organization .viz-trend{position:relative}
-body.lo-demo-organization .viz-bars::after,body.lo-demo-organization .viz-donut::after,body.lo-demo-organization .viz-trend::after{content:'DEMO';position:absolute;top:-2px;right:0;padding:1px 6px;border-radius:999px;background:#fff1d6;color:#7a4e06;font-size:9px;font-weight:800;letter-spacing:.06em;pointer-events:none}
+/* Demo organization (class set on <body> by the Demo line): screens and charts
+   stay as they are; a printout carries one quiet footer line. */
 @media print{
   body.lo-demo-organization .demo-evaluation-bar{display:none!important}
-  body.lo-demo-organization::before{content:'DEMO · Συνθετικά δεδομένα επίδειξης, όχι πραγματικά στοιχεία';display:block;position:fixed;top:0;left:0;right:0;z-index:9999;padding:3px 0;text-align:center;background:#fff3e0;color:#a24d0a;font:700 10px system-ui,sans-serif}
-  body.lo-demo-organization::after{content:'DEMO';position:fixed;top:38%;left:0;right:0;z-index:9999;text-align:center;font:800 150px system-ui,sans-serif;color:rgba(180,40,40,.07);transform:rotate(-28deg);pointer-events:none}
+  body.lo-demo-organization::after{content:'Demo · δοκιμαστικά δεδομένα';position:fixed;bottom:0;right:0;padding:2px 8px;color:#8a96a3;font:600 8.5px system-ui,sans-serif}
 }

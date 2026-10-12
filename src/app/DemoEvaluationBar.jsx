@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BookOpenCheck, ChevronDown, Eye, FlaskConical, LogOut, Send } from 'lucide-react'
+import { ChevronDown, Eye, FlaskConical, ListChecks, LogOut, Send } from 'lucide-react'
 import { DEMO_SCENARIOS } from '../features/demo/demoScenarios'
 import { BrandMark } from '../design-system/BrandMark'
 import './demoEvaluationBar.css'
@@ -7,25 +7,28 @@ import './demoEvaluationBar.css'
 const DEMO_BODY_CLASS='lo-demo-organization'
 const formatDate=(value,language)=>{if(!value)return '';const date=new Date(`${value}T00:00:00`);return Number.isNaN(date.getTime())?value:date.toLocaleDateString(language==='en'?'en-GB':'el-GR')}
 
-// A slim bar above the content of a Demo organization: whose Demo it is, how
-// long it stays open, and the way to look at the application as another role.
+// A slim line above the content of a Demo organization (as in SurgiTrack): how
+// long the Demo stays open, the evaluation guide, the role and the request.
+// The organization's name is already in the topbar, so the line stays short and
+// the page under it keeps its place.
 export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previewOpen=false,previewLabel='',rolePicker=null,onPreviewRoles,onExit,guideDone=0,guideTotal=DEMO_SCENARIOS.length,onOpenGuide,canRequestApplication=false,applicationRequested=false,onRequestApplication}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const days=Number.isFinite(Number(access?.daysLeft))?Number(access.daysLeft):null
-  const remaining=days===null?'':days<=0?tx('λήγει σήμερα','ends today'):days===1?tx('απομένει 1 ημέρα','1 day left'):tx(`απομένουν ${days} ημέρες`,`${days} days left`)
-  const until=access?.validUntil?tx(`έως ${formatDate(access.validUntil,language)}`,`until ${formatDate(access.validUntil,language)}`):''
-  const detail=isPlatformOwner?tx('Τα ίδια δεδομένα με τα Demo των αξιολογητών','The same data as the evaluators\' Demos'):[remaining,until].filter(Boolean).join(' · ')
-  // Charts and printing mark the Demo (demoEvaluationBar.css).
+  const remaining=days===null?'':days<=0?tx('Λήγει σήμερα','Ends today'):days===1?tx('Απομένει 1 ημέρα','1 day left'):tx(`Απομένουν ${days} ημέρες`,`${days} days left`)
+  const until=access?.validUntil?`(${tx('έως','until')} ${formatDate(access.validUntil,language)})`:''
+  const sample=tx('δοκιμαστικά δεδομένα','sample data')
+  const detail=isPlatformOwner?`${tenant?.name||tx('Demo αξιολόγησης','Evaluation Demo')} · ${tx('τα ίδια δεδομένα με τα Demo των αξιολογητών','the same data as the evaluators\' Demos')}`:[[remaining,until].filter(Boolean).join(' '),sample].filter(Boolean).join(' · ')
+  // Printing marks the Demo (demoEvaluationBar.css).
   useEffect(()=>{document.body.classList.add(DEMO_BODY_CLASS);return ()=>document.body.classList.remove(DEMO_BODY_CLASS)},[])
-  // The last three days: the bar turns to a reminder.
+  // The last three days: the line turns to a reminder.
   const ending=!isPlatformOwner&&days!==null&&days<=3
   return <div className={`demo-evaluation-bar${ending?' is-ending':''}`} role="status">
-    <span className="demo-evaluation-chip"><FlaskConical size={13}/>DEMO</span>
-    <span className="demo-evaluation-text"><strong>{tenant?.name||tx('Demo αξιολόγησης','Evaluation Demo')}</strong>{detail&&<small>{detail}</small>}</span>
+    <span className="demo-evaluation-chip"><FlaskConical size={12}/>DEMO</span>
+    <span className="demo-evaluation-text">{detail}</span>
     <span className="demo-evaluation-spacer"/>
-    {onOpenGuide&&<button type="button" onClick={onOpenGuide}><BookOpenCheck size={14}/>{tx('Οδηγός αξιολόγησης','Evaluation guide')}{!isPlatformOwner&&<b className="demo-evaluation-count">{guideDone}/{guideTotal}</b>}</button>}
+    {onOpenGuide&&<button type="button" onClick={onOpenGuide}><ListChecks size={14}/>{tx('Οδηγός αξιολόγησης','Evaluation guide')}{!isPlatformOwner&&<b className="demo-evaluation-count">{guideDone}/{guideTotal}</b>}</button>}
     <span className="demo-evaluation-roles role-preview-control">
-      <button type="button" className={previewLabel?'active':''} aria-expanded={previewOpen} onClick={onPreviewRoles}><Eye size={14}/>{previewLabel||tx('Δείτε την εφαρμογή ως άλλος ρόλος','See the application as another role')}<ChevronDown size={13}/></button>
+      <button type="button" className={previewLabel?'active':''} aria-expanded={previewOpen} onClick={onPreviewRoles}><Eye size={14}/>{previewLabel||tx('Δείτε ως άλλος ρόλος','View as another role')}<ChevronDown size={13}/></button>
       {rolePicker}
     </span>
     {canRequestApplication&&<button type="button" className="demo-evaluation-cta" onClick={onRequestApplication}><Send size={14}/>{applicationRequested?tx('Το αίτημα στάλθηκε','Request sent'):tx('Θέλω την εφαρμογή','I want the application')}</button>}

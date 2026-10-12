@@ -128,7 +128,8 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const monthly=snapshot?.microbiology?.monthly||[]
   const donut=role===ROLES.LABORATORY?{title:tr('Κατηγορίες αντοχής','Resistance classes'),subtitle:tr('MDR / XDR / PDR στα θετικά αποτελέσματα.','MDR / XDR / PDR among positive results.'),rows:snapshot?.microbiology?.resistance||[],center:tr('στελέχη','isolates')}:{title:tr('Δραστηριότητα ανά ενότητα','Activity by module'),subtitle:tr('Καταγραφές του οργανισμού ανά ενότητα.','Organization records by module.'),rows:domainShare(snapshot,tr),center:tr('σύνολο','total')}
   const hasCharts=showCharts&&snapshot&&(monthly.length>1||donut.rows.length>1)
-  const setupSteps=role===ROLES.HOSPITAL_ADMIN&&showKpis?firstSteps(values,{needsPatientDays:moduleEnabled('surveillance')||moduleEnabled('indicators')}):null
+  // A Demo comes set up: its evaluation guide lives in the Demo line instead.
+  const setupSteps=role===ROLES.HOSPITAL_ADMIN&&showKpis&&!tenant?.is_demo?firstSteps(values,{needsPatientDays:moduleEnabled('surveillance')||moduleEnabled('indicators')}):null
 
   return <Page className="dashboard-page" title={title||workspace.title} subtitle={subtitle||workspace.subtitle}>
     {showKpis&&kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value,,key])=>{const [Icon=Activity,to]=TILES[key]||[];const open=to&&menuPaths.has(to);return <MetricCard key={label} className="summary-metric" icon={Icon} label={label} value={value} onClick={open?()=>navigate(to):cardOf[key]?showCard(cardOf[key]):undefined}/>})}</div>}

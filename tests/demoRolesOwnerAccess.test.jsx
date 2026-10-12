@@ -73,10 +73,9 @@ describe('Demo bar and "Demo ended" screen', () => {
   it('shows the days left and opens the role preview', () => {
     const onPreviewRoles = vi.fn()
     render(<DemoEvaluationBar tenant={{ name: 'Γενικό Νοσοκομείο Demo' }} access={{ daysLeft: 9, validUntil: '2026-10-22' }} isPlatformOwner={false} language="el" onPreviewRoles={onPreviewRoles} onExit={vi.fn()}/>)
-    expect(screen.getByText('Γενικό Νοσοκομείο Demo')).toBeInTheDocument()
-    expect(screen.getByText(/απομένουν 9 ημέρες · έως 22\/10\/2026/)).toBeInTheDocument()
+    expect(screen.getByText('Απομένουν 9 ημέρες (έως 22/10/2026) · δοκιμαστικά δεδομένα')).toBeInTheDocument()
     expect(screen.queryByText('Έξοδος από Demo')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByText('Δείτε την εφαρμογή ως άλλος ρόλος'))
+    fireEvent.click(screen.getByText('Δείτε ως άλλος ρόλος'))
     expect(onPreviewRoles).toHaveBeenCalled()
   })
   it('gives the Platform Owner a way out of their Demo', () => {
