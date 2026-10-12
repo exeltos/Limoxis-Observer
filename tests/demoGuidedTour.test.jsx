@@ -150,7 +150,7 @@ describe('welcome and tour in the guide flow', () => {
   it('opens the scenarios list from the welcome', async () => {
     render(<MemoryRouter initialEntries={['/']}><LanguageProvider><Harness/></LanguageProvider></MemoryRouter>)
     fireEvent.click(within(await screen.findByRole('dialog', { name: /Καλώς ήρθατε/ })).getByRole('button', { name: 'Δείτε τα σενάρια' }))
-    expect(await screen.findByRole('dialog', { name: /Οδηγός αξιολόγησης/ })).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: /Εκπαίδευση εφαρμογής/ })).toBeInTheDocument()
   })
 })
 

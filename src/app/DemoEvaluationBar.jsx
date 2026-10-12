@@ -26,7 +26,7 @@ export function DemoEvaluationBar({tenant,access,isPlatformOwner,language,previe
     <span className="demo-evaluation-chip"><FlaskConical size={12}/>DEMO</span>
     <span className="demo-evaluation-text">{detail}</span>
     <span className="demo-evaluation-spacer"/>
-    {onOpenGuide&&<button type="button" onClick={onOpenGuide}><ListChecks size={14}/>{tx('Οδηγός αξιολόγησης','Evaluation guide')}{!isPlatformOwner&&<b className="demo-evaluation-count">{guideDone}/{guideTotal}</b>}</button>}
+    {onOpenGuide&&<button type="button" onClick={onOpenGuide}><ListChecks size={14}/>{tx('Εκπαίδευση εφαρμογής','Application training')}{!isPlatformOwner&&<b className="demo-evaluation-count">{guideDone}/{guideTotal}</b>}</button>}
     <span className="demo-evaluation-roles role-preview-control">
       <button type="button" className={previewLabel?'active':''} aria-expanded={previewOpen} onClick={onPreviewRoles}><Eye size={14}/>{previewLabel||tx('Δείτε ως άλλος ρόλος','View as another role')}<ChevronDown size={13}/></button>
       {rolePicker}
