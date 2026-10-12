@@ -788,6 +788,7 @@ export function CommitteeRecordPage() {
         <MeetingDialog
           key={dialog.id}
           meeting={(record.meetings || []).find(x => x.id === dialog.id)}
+          committeeName={record.name}
           members={activeMembers}
           actorId={actor.id}
           canSave={canMinutes && !busy}

@@ -54,7 +54,7 @@ export function DemoEvaluationPanel({organizationId,language='el',onInterestChan
           <div className="demo-evaluation-evaluator-head"><strong>{state.names[userId]||tx('Αξιολογητής','Evaluator')}</strong><small>{tx(`${scenarios.filter(s=>done[s.key]).length} από ${scenarios.length} σενάρια`,`${scenarios.filter(s=>done[s.key]).length} of ${scenarios.length} scenarios`)}{last?` · ${tx('τελευταία κίνηση','last activity')} ${fmt(last,en)}`:''}</small>{overall&&<span className="demo-rating-value" title={overall.rating_comment||''}><Star size={13}/>{tx('Συνολικά','Overall')} {overall.rating}/5</span>}</div>
           {overall?.rating_comment&&<q className="demo-evaluation-overall-comment">{overall.rating_comment}</q>}
           <div className="demo-evaluation-steps">{scenarios.map(scenario=><div key={scenario.key} className={`demo-evaluation-step ${done[scenario.key]?'is-done':''}`}>{done[scenario.key]?<CheckCircle2 size={15}/>:<Circle size={15}/>}<div>{en?scenario.titleEn:scenario.titleEl}{done[scenario.key]&&<small>{fmt(done[scenario.key],en)}</small>}{rated[scenario.key]&&<span className="demo-rating-value"><Star size={12}/>{rated[scenario.key].rating}/5</span>}{rated[scenario.key]&&<QuestionnaireDetails row={rated[scenario.key]} en={en}/>}{rated[scenario.key]?.rating_comment&&<q>{rated[scenario.key].rating_comment}</q>}</div></div>)}</div>
-        </div>}):<div className="inline-empty">{tx('Ο αξιολογητής δεν έχει ανοίξει ακόμη τον οδηγό αξιολόγησης.','The evaluator has not opened the evaluation guide yet.')}</div>}
+        </div>}):<div className="inline-empty">{tx('Ο αξιολογητής δεν έχει ανοίξει ακόμη την εκπαίδευση εφαρμογής.','The evaluator has not opened the application training yet.')}</div>}
     </>}
   </section>
 }

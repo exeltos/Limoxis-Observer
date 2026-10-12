@@ -44,7 +44,8 @@ export function DemoActiveScenario({scenario,scenarios=DEMO_SCENARIOS,stepsDone=
 // Asked as soon as a scenario is completed (or, with scenario null, after the
 // last one, for the guide as a whole): usefulness in 1-5 stars and an optional
 // comment; for a scenario also how easy it was and how clear the steps were.
-export function DemoScenarioRating({scenario,next,language,trial=false,working=false,canRequest=false,onSubmit,onLater,onNext,onRequestApplication}){
+// `inline`: inside the guide, under its scenario, instead of beside the screen.
+export function DemoScenarioRating({scenario,next,language,trial=false,working=false,canRequest=false,inline=false,onSubmit,onLater,onNext,onRequestApplication}){
   const en=language==='en';const tx=(el,enText)=>en?enText:el
   const [rating,setRating]=useState(0)
   const [ease,setEase]=useState(0)
@@ -54,7 +55,8 @@ export function DemoScenarioRating({scenario,next,language,trial=false,working=f
   const [failed,setFailed]=useState(false)
   const overall=!scenario
   async function submit(){if(!rating)return;setFailed(false);try{await onSubmit?.(rating,comment,{ease:ease||null,clarity:clarity||null});setSent(true)}catch{setFailed(true)}}
-  if(sent)return <aside className="demo-scenario-card demo-scenario-rating is-sent" role="status">
+  const cardClass=`demo-scenario-card demo-scenario-rating${inline?' is-inline':''}`
+  if(sent)return <aside className={`${cardClass} is-sent`} role="status">
     <strong><CheckCircle2 size={16}/>{tx('Ευχαριστούμε για την αξιολόγηση!','Thank you for your rating!')}</strong>
     <div className="demo-scenario-actions">
       {next&&<Button onClick={()=>onNext?.(next)}>{tx('Επόμενο σενάριο','Next scenario')}: {en?next.titleEn:next.titleEl}<ArrowRight size={14}/></Button>}
@@ -62,7 +64,7 @@ export function DemoScenarioRating({scenario,next,language,trial=false,working=f
       <Button variant="secondary" onClick={onLater}>{tx('Κλείσιμο','Close')}</Button>
     </div>
   </aside>
-  return <aside className="demo-scenario-card demo-scenario-rating" role="dialog" aria-label={tx('Αξιολόγηση','Rating')}>
+  return <aside className={cardClass} role={inline?'group':'dialog'} aria-label={tx('Αξιολόγηση','Rating')}>
     <span className="demo-scenario-eyebrow is-done"><CheckCircle2 size={13}/>{overall?tx('Ολοκληρώσατε όλα τα σενάρια','You completed every scenario'):tx('Ολοκληρώσατε το σενάριο','Scenario completed')}</span>
     <strong>{overall?tx('Πώς σας φάνηκε συνολικά η εφαρμογή;','Overall, how did you find the application?'):<>{en?scenario.titleEn:scenario.titleEl}: {tx('πώς σας φάνηκε;','how did you find it?')}</>}</strong>
     <StarScale large label={tx('Βαθμολογία','Rating')} value={rating} onChange={setRating} labels={RATING_LABELS} en={en}/>

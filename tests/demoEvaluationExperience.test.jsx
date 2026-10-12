@@ -28,6 +28,17 @@ describe('Evaluation guide', () => {
     fireEvent.click(screen.getAllByText('Το έκανα')[0])
     expect(onToggle).toHaveBeenCalledWith('clabsi_classification', true)
   })
+  it('keeps a done mark on a second click and shows the rating under its scenario', () => {
+    const onToggle = vi.fn(), onRate = vi.fn()
+    render(wrap(<DemoGuideDialog language="el" progress={{ patient_admission: '2026-10-08T10:00:00Z' }} rating={{ key: 'patient_admission', node: <div>rating-form</div> }} onToggle={onToggle} onRate={onRate} onClose={vi.fn()}/>))
+    expect(screen.getByText('Εκπαίδευση εφαρμογής')).toBeInTheDocument()
+    const done = screen.getByText('Ολοκληρώθηκε')
+    expect(done.closest('button')).toBeNull()
+    fireEvent.click(done)
+    expect(onToggle).not.toHaveBeenCalled()
+    const row = screen.getByText('rating-form').closest('li')
+    expect(row).toHaveTextContent(DEMO_SCENARIOS[0].titleEl)
+  })
   it('keeps progress per evaluator in a table that "Reset data" leaves alone', () => {
     expect(migration).toContain('demo_organization_id uuid not null references public.organizations(id) on delete cascade')
     expect(migration).not.toMatch(/create table if not exists public\.demo_evaluation_progress \([^;]*\borganization_id uuid/)
