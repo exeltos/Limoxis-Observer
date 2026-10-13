@@ -45,7 +45,7 @@ export function RiskAnalysis({summary,en,onCell,onOpen}){
    <div className="risk-heatmaps">
     <RiskHeatMap heat={summary.heat.inherent} en={en} title={L(en,'Εγγενής','Inherent')} caption={L(en,'Χωρίς μέτρα','Before controls')} onCell={c=>onCell({...c,kind:'inherent'})}/>
     <RiskHeatMap heat={summary.heat.residual} en={en} title={L(en,'Υπολειπόμενος','Residual')} caption={L(en,'Με τα υφιστάμενα μέτρα','With existing controls')} onCell={c=>onCell({...c,kind:'residual'})}/>
-    <RiskHeatMap heat={summary.heat.target} en={en} title={L(en,'Στόχος','Target')} caption={L(en,'Μετά τα πρόσθετα μέτρα','After additional measures')} onCell={c=>onCell({...c,kind:'target'})}/>
+    <RiskHeatMap heat={summary.heat.target} en={en} title={L(en,'Στόχος','Target')} caption={L(en,'Μετά τα πρόσθετα μέτρα','After additional measures')} onCell={c=>onCell({...c,kind:'target'})} emptyNote={L(en,'Δεν έχει οριστεί κίνδυνος-στόχος. Ορίστε τον στο μητρώο (L και C μετά τα πρόσθετα μέτρα) και ο χάρτης θα γεμίσει.','No target risk set yet. Set it in the register (L and C after the additional measures) and the map fills in.')}/>
    </div>
    <p className="risk-hint">{L(en,'Επιλέξτε ένα κελί για να δείτε τους κινδύνους του στο μητρώο.','Select a cell to see its risks in the register.')}</p>
   </section>

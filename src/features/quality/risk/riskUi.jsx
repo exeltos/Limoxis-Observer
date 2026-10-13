@@ -14,8 +14,9 @@ export function LevelChip({score,level,en,compact=false,title}){
 
 // Rows: consequence 5 (top) to 1; columns: likelihood 1 to 5. A cell shows how
 // many risks sit there; its colour is the band of L×C.
-export function RiskHeatMap({heat,en,title,caption,onCell,active}){
- return <figure className="risk-heatmap">
+export function RiskHeatMap({heat,en,title,caption,onCell,active,emptyNote=''}){
+ const empty=!(heat||[]).some(row=>row.some(Boolean))
+ return <figure className={`risk-heatmap${empty&&emptyNote?' is-empty':''}`}>
   {title&&<figcaption><strong>{title}</strong>{caption&&<span>{caption}</span>}</figcaption>}
   <div className="risk-heatmap-body">
    <span className="risk-heatmap-axis risk-heatmap-axis-c">{L(en,'Συνέπεια (C)','Consequence (C)')}</span>
@@ -25,6 +26,7 @@ export function RiskHeatMap({heat,en,title,caption,onCell,active}){
     <tr><th aria-hidden="true"/>{[1,2,3,4,5].map(l=><th key={l} scope="col" title={LIKELIHOOD[l-1][en?'en':'el']}>{l}</th>)}</tr>
    </tbody></table>
    <span className="risk-heatmap-axis risk-heatmap-axis-l">{L(en,'Πιθανότητα (L)','Likelihood (L)')}</span>
+   {empty&&emptyNote&&<p className="risk-heatmap-empty">{emptyNote}</p>}
   </div>
  </figure>
 }
