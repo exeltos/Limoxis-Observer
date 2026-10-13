@@ -37,7 +37,7 @@ export const MODULES = Object.freeze({
   indicators: { el: 'Δείκτες', en: 'Indicators', from: 'surveillance', analysis: false },
   prevention: { el: 'Πρόληψη & υγιεινή χεριών', en: 'Prevention & hand hygiene', from: 'full', analysis: true },
   controls: { el: 'Έλεγχοι', en: 'Controls', from: 'full', analysis: true },
-  quality: { el: 'Ποιότητα (συμβάντα, CAPA)', en: 'Quality (incidents, CAPA)', from: 'full', analysis: true },
+  quality: { el: 'Ποιότητα (συμβάντα, διορθωτικές ενέργειες)', en: 'Quality (incidents, CAPA)', from: 'full', analysis: true },
   training: { el: 'Εκπαίδευση', en: 'Training', from: 'full', analysis: true },
   governance: { el: 'Επιτροπές & Έγγραφα', en: 'Committees & Documents', from: 'full', analysis: true },
 })

@@ -33,7 +33,7 @@ export const ROLE_GUIDE=Object.freeze({
   doctor_reviewer:{who:l('Ιατρός που ελέγχει κλινικά τα περιστατικά.','A physician who reviews cases clinically.'),
     does:l('Κλινική αξιολόγηση και επανεκτίμηση περιστατικών επιτήρησης, αντιμικροβιακή θεραπεία και έκβαση.','Clinical assessment and reassessment of surveillance cases, antimicrobial therapy and outcome.')},
   quality_manager:{who:l('Ο Υπεύθυνος Ποιότητας.','The quality manager.'),
-    does:l('Συμβάντα, ευρήματα, διορθωτικές ενέργειες (CAPA), επιθεωρήσεις, έλεγχοι και δείκτες.','Incidents, findings, corrective actions (CAPA), audits, inspections and indicators.')},
+    does:l('Συμβάντα, ευρήματα, διορθωτικές ενέργειες, επιθεωρήσεις, έλεγχοι και δείκτες.','Incidents, findings, corrective actions (CAPA), audits, inspections and indicators.')},
 })
 
 const roleLabelKey=role=>`${role.replace(/_([a-z])/g,(_,c)=>c.toUpperCase())}Role`

@@ -40,7 +40,7 @@ export const helpExtras={
   related:['/quality','/my-department']
  },
  '/quality':{
-  checks:{el:['Ελέγξτε υπεύθυνο, προθεσμία και κατάσταση κάθε CAPA.','Συνδέστε εύρημα και διορθωτική ενέργεια όπου υπάρχει σχέση.','Τεκμηριώστε την αποτελεσματικότητα πριν το τελικό κλείσιμο.'],en:['Review owner, due date and status for every CAPA.','Link findings to corrective actions where relevant.','Document effectiveness before final closure.']},
+  checks:{el:['Ελέγξτε υπεύθυνο, προθεσμία και κατάσταση κάθε διορθωτικής ενέργειας.','Συνδέστε εύρημα και διορθωτική ενέργεια όπου υπάρχει σχέση.','Τεκμηριώστε την αποτελεσματικότητα πριν το τελικό κλείσιμο.'],en:['Review owner, due date and status for every CAPA.','Link findings to corrective actions where relevant.','Document effectiveness before final closure.']},
   tip:{el:'Σε governed records προτιμάται διόρθωση/αρχειοθέτηση/void αντί για φυσική διαγραφή ιστορικού.',en:'For governed records, prefer correction, archiving or voiding rather than physically deleting history.'},
   related:['/controls','/indicators','/documents']
  },

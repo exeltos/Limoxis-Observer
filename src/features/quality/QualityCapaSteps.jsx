@@ -78,7 +78,7 @@ export function QualityCapaSteps({record,setRecord,canManage,finalized,organizat
    <ManualDateField value={draft.dueDate||''} onChange={v=>setDraft(d=>({...d,dueDate:v}))}/>
    <Button disabled={saving||!draft.title.trim()} onClick={add}><Plus size={15}/>{t2(en,' Add step',' Προσθήκη βήματος')}</Button>
   </div>}
-  {finalized&&<div className="inline-empty">{t2(en,'The CAPA is closed; reopen it with a correction to change its steps.','Η CAPA έχει κλείσει· για αλλαγές στα βήματα ανοίξτε την με διόρθωση.')}</div>}
+  {finalized&&<div className="inline-empty">{t2(en,'The CAPA is closed; reopen it with a correction to change its steps.','Η διορθωτική ενέργεια έχει κλείσει· για αλλαγές στα βήματα ανοίξτε την με διόρθωση.')}</div>}
  </div>
 }
 

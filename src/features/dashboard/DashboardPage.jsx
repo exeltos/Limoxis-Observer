@@ -61,7 +61,7 @@ function roleKpiRows(role,m,english,unread){
     case ROLES.DOCTOR_REVIEWER:
       return [[tr('Εγκρίσεις σε αναμονή','Pending approvals'),n(m.pendingApprovals),undefined,'pendingApprovals'],[tr('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),n(m.antimicrobialTherapies),CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY,'antimicrobialTherapies']]
     case ROLES.QUALITY_MANAGER:
-      return [[tr('Ανοιχτά συμβάντα','Open incidents'),n(m.openIncidents),CAPABILITIES.VIEW_QUALITY,'openIncidents'],[tr('Σοβαρά ανοικτά','Severe open'),n(m.severeOpenIncidents),CAPABILITIES.VIEW_QUALITY,'severeOpenIncidents'],[tr('CAPA εκπρόθεσμα','Overdue CAPA'),n(m.overdueCapa),CAPABILITIES.VIEW_QUALITY,'overdueCapa']]
+      return [[tr('Ανοιχτά συμβάντα','Open incidents'),n(m.openIncidents),CAPABILITIES.VIEW_QUALITY,'openIncidents'],[tr('Σοβαρά ανοικτά','Severe open'),n(m.severeOpenIncidents),CAPABILITIES.VIEW_QUALITY,'severeOpenIncidents'],[tr('Εκπρόθεσμες διορθωτικές ενέργειες','Overdue CAPA'),n(m.overdueCapa),CAPABILITIES.VIEW_QUALITY,'overdueCapa']]
     default:return []
   }
 }

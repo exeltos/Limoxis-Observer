@@ -92,6 +92,42 @@ export async function parseXlsx(buffer){
  return rows.filter(cells=>cells.some(value=>String(value).trim()!==''))
 }
 
+// Every sheet of a workbook, in workbook order, as {name, rows}. Rows keep
+// their position (row n of the sheet is rows[n-1]) and numbers stay numbers,
+// for layouts read by position (e.g. the risk assessment form). Parsed with
+// regular expressions rather than DOMParser so it also runs outside a browser.
+const XML_ENTITIES={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"}
+const decodeXml=text=>String(text).replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,(m,e)=>e[0]==='#'?String.fromCodePoint(e[1].toLowerCase()==='x'?parseInt(e.slice(2),16):parseInt(e.slice(1),10)):XML_ENTITIES[e]??m)
+const xmlAttr=(tag,name)=>{const m=tag.match(new RegExp(`\\s${name}="([^"]*)"`));return m?decodeXml(m[1]):null}
+const xmlTexts=part=>[...String(part).matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>decodeXml(m[1])).join('')
+
+export async function readWorkbookSheets(buffer){
+ const read=await unzip(buffer)
+ const workbook=await read('xl/workbook.xml')
+ if(!workbook)throw new Error('SPREADSHEET_NOT_XLSX')
+ const rels=await read('xl/_rels/workbook.xml.rels')||''
+ const targets=Object.fromEntries([...rels.matchAll(/<Relationship\b[^>]*>/g)].map(([tag])=>[xmlAttr(tag,'Id'),xmlAttr(tag,'Target')]))
+ const shared=[...(await read('xl/sharedStrings.xml')||'').matchAll(/<si>([\s\S]*?)<\/si>/g)].map(m=>xmlTexts(m[1]))
+ const sheets=[]
+ for(const [tag] of workbook.matchAll(/<sheet\b[^>]*>/g)){
+  const target=targets[xmlAttr(tag,'r:id')]||''
+  const sheet=await read(target.startsWith('/')?target.slice(1):`xl/${target.replace(/^\.\//,'')}`)
+  if(!sheet)continue
+  const rows=[]
+  for(const [,rowAttrs,body] of sheet.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)){
+   const cells=[]
+   for(const [,cellAttrs,inner] of body.matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)){
+    const type=xmlAttr(cellAttrs,'t'),v=(inner||'').match(/<v>([\s\S]*?)<\/v>/)?.[1]
+    const value=type==='s'?shared[Number(v)]??'':type==='inlineStr'?xmlTexts(inner||''):type==='str'||type==='e'?decodeXml(v??''):type==='b'?v==='1':v==null?null:Number(v)
+    if(value!==null&&value!=='')cells[columnIndex(xmlAttr(cellAttrs,'r'))]=value
+   }
+   rows[Number(xmlAttr(rowAttrs,'r'))-1]=cells
+  }
+  sheets.push({name:xmlAttr(tag,'name')||'',rows:Array.from(rows,row=>row||[])})
+ }
+ return sheets
+}
+
 export async function readSpreadsheet(file){
  const name=String(file?.name||'').toLowerCase()
  if(name.endsWith('.csv')||name.endsWith('.txt'))return parseCsv(await file.text())
