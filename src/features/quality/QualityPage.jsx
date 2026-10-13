@@ -18,6 +18,8 @@ import { deviationQueue,subActionProgress } from './qualityDeviations'
 import { DownloadMenu } from '../../design-system/DownloadMenu'
 import { exportRegistry,qualityExport } from '../../core/export/registryExports'
 import { RiskAssessmentsPanel } from './risk/RiskAssessmentsPanel'
+import { RiskSummaryStrip } from './risk/RiskSummaryStrip'
+import { useRiskAssessmentList } from './risk/useRiskAssessmentList'
 import './quality.css'
 
 const sections=[
@@ -66,6 +68,7 @@ export function QualityPage(){
   const isQueue=section==='deviations'
   // The risk assessments tab has its own list, actions and import.
   const isRisks=section==='risks'
+  const riskList=useRiskAssessmentList(tenant?.id,isRisks)
   const canCreate=!isQueue&&!isRisks&&(canManage||(section==='incidents'&&canReportIncident))
   const visibleSections=sections.filter(item=>!item.manageOnly||canManage)
   const queue=useDeviationQueue(tenant?.id,canManage)
@@ -89,6 +92,7 @@ export function QualityPage(){
 
   return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA and audits in one controlled, traceable flow.':'Συμβάντα, ευρήματα, διορθωτικές ενέργειες και επιθεωρήσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{isRisks?null:isQueue?<DownloadMenu disabled={!deviationView.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviationView.filtered,{en:language==='en',t}))}/>:<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
     {isQueue&&<DeviationSummary view={deviationView} language={language}/>}
+    {isRisks&&<RiskSummaryStrip items={riskList.items} en={language==='en'} locale={locale}/>}
     {!isQueue&&!isRisks&&<div className="workspace-summary quality-summary"><div className="module-summary-strip">
       <SummaryMetric icon={ClipboardCheck} label={language==='en'?'Total':'Σύνολο'} value={rows.length} onClick={()=>setQuick(null)} active={false}/>
       <SummaryMetric icon={Clock3} label={language==='en'?'Open / active':'Ανοικτά / ενεργά'} value={openCount} onClick={quickToggle('open')} active={quick==='open'}/>
@@ -97,7 +101,7 @@ export function QualityPage(){
     </div></div>}
     <div className="surface registry-workspace workspace-column workspace-fill quality-workspace">
       <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{visibleSections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{id==='deviations'?(language==='en'?'Deviations without CAPA':'Αποκλίσεις χωρίς διορθωτική ενέργεια'):t(label)}</span>{id==='deviations'&&queueCount>0&&<span className="quality-tab-count">{queueCount}</span>}</button>)}</nav>
-      {isRisks?<RiskAssessmentsPanel organizationId={tenant?.id} canManage={canManage} en={language==='en'} locale={locale}/>:isQueue?<QualityDeviationQueue view={deviationView} loading={queue.loading} language={language} locale={locale} t={t} onCreateCapa={createCapaFrom}/>:<>
+      {isRisks?<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} canManage={canManage} en={language==='en'} locale={locale}/>:isQueue?<QualityDeviationQueue view={deviationView} loading={queue.loading} language={language} locale={locale} t={t} onCreateCapa={createCapaFrom}/>:<>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status).filter(Boolean))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>

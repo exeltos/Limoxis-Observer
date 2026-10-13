@@ -20,7 +20,6 @@
 .risk-level-high,.risk-cell-high{background:#ffd0ad;color:#923709}
 .risk-level-very_high,.risk-cell-very_high{background:#f5a39a;color:#7c1b14}
 .risk-cell-none{background:transparent}
-.risk-pair{display:inline-flex;align-items:center;gap:6px}
 .risk-swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 
 /* Heat map 5×5 */
@@ -243,3 +242,8 @@
 .risk-link-hazard{display:block;font-size:12px}
 .risk-link-table small{display:block;margin-top:2px;color:var(--lo-color-muted)}
 .risk-link-options{display:flex;flex-direction:column;gap:4px}
+/* Quality Center summary of the latest assessment: change against the one before. */
+.risk-kpi-delta{margin-left:8px;padding:1px 6px;border-radius:999px;font-size:11px;font-weight:750;vertical-align:middle}
+.risk-kpi-delta.up{background:#fdeceb;color:#b42318}
+.risk-kpi-delta.down{background:#e7f5ec;color:#1d6b3a}
+.risk-kpi-delta.same{background:#eef2f5;color:#566775}

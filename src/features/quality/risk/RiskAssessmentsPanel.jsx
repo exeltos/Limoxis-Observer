@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useRef,useState } from 'react'
+import { useMemo,useRef,useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FileSpreadsheet,LibraryBig,Plus } from 'lucide-react'
 import { ActionButton } from '../../../design-system/ActionButton'
@@ -8,16 +8,16 @@ import { useAuth } from '../../../core/auth/AuthContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
-import { createAssessmentSeries,createRiskAssessment,loadRiskAssessments,loadRiskTemplates } from './riskService'
+import { createAssessmentSeries,createRiskAssessment,loadRiskTemplates } from './riskService'
 import { importPlan,importRiskWorkbook } from './riskImport'
-import { levelLabel,riskTrend,summarizeRisks } from './riskModel'
+import { summarizeRisks,levelLabel } from './riskModel'
 import { L,LevelChip,PERIOD_KINDS,fmtDate,statusLabel,statusTone,txt } from './riskUi'
 import './riskAssessment.css'
 
 const FIELD_LABELS={inherentScore:['Εγγενής βαθμός','Inherent score'],residualScore:['Υπολειπόμενος βαθμός','Residual score'],inherentLevel:['Εγγενής κατηγορία','Inherent level'],residualLevel:['Υπολειπόμενη κατηγορία','Residual level'],process:['Διεργασία','Process'],wording:['Λεκτικό','Wording']}
 
 // The assessments of the organization inside the Quality Center.
-export function RiskAssessmentsPanel({organizationId,canManage,en,locale}){
+export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
  const navigate=useNavigate()
  const {profile,user}=useAuth()
  const {notify,confirm}=useFeedback()
@@ -26,15 +26,11 @@ export function RiskAssessmentsPanel({organizationId,canManage,en,locale}){
  const isOwner=Boolean(profile?.isPlatformOwner)&&!isRolePreview
  const [templates,setTemplates]=useState(null)
  const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
- const [items,setItems]=useState([])
- const [loading,setLoading]=useState(true)
  const [creating,setCreating]=useState(false)
  const [preview,setPreview]=useState(null)
- const [reload,setReload]=useState(0)
  const fileRef=useRef(null)
- useEffect(()=>{let active=true;setLoading(true);loadRiskAssessments(organizationId).then(rows=>{if(active)setItems(rows)}).catch(()=>{if(active)setItems([])}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[organizationId,reload])
+ const {items,loading,reload}=list
  const rows=useMemo(()=>items.map(a=>({a,s:summarizeRisks(a.risks||[])})),[items])
- const trend=useMemo(()=>riskTrend(items),[items])
  const open=code=>navigate(`/quality/risks/${code}`)
 
  async function create(draft,carryFrom){
@@ -63,13 +59,13 @@ export function RiskAssessmentsPanel({organizationId,canManage,en,locale}){
   if(!ok)return
   try{
    const created=await createAssessmentSeries(organizationId,template.plan,[auditEvent('riskAssessmentImported',{actor,detail:{template:template.code}})])
-   setTemplates(null);setReload(n=>n+1);notify(L(en,`Φορτώθηκαν ${created.length} εκτιμήσεις.`,`${created.length} assessments loaded.`),'success')
+   setTemplates(null);reload();notify(L(en,`Φορτώθηκαν ${created.length} εκτιμήσεις.`,`${created.length} assessments loaded.`),'success')
   }catch{notify(L(en,'Δεν ήταν δυνατή η φόρτωση του προτύπου.','Could not load the template.'),'error')}
  }
 
  return <div className="risk-assessments">
   <div className="risk-toolbar">
-   <p className="risk-hint">{L(en,'Εκτίμηση επικινδυνότητας κατά τη μήτρα 5×5 (NHS): εγγενής, υπολειπόμενος κίνδυνος και κίνδυνος-στόχος για κάθε κίνδυνο, ανάλυση, σύγκριση περιόδων και αντιστοίχιση με JCI.','Risk assessment on the 5×5 (NHS) matrix: inherent, residual and target risk for every risk, analysis, period comparison and JCI mapping.')}</p>
+   <span/>
    {canManage&&<div className="row-actions">
     <input ref={fileRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={pickFile}/>
     {isOwner&&<button type="button" className="risk-owner-template" title={L(en,'Πρότυπα πλατφόρμας (μόνο για τον ιδιοκτήτη)','Platform templates (owner only)')} aria-label={L(en,'Πρότυπα πλατφόρμας','Platform templates')} onClick={openTemplates}><LibraryBig size={15}/></button>}
@@ -78,12 +74,11 @@ export function RiskAssessmentsPanel({organizationId,canManage,en,locale}){
    </div>}
   </div>
   <div className="scroll-table">
-   <table className="data-table sticky-table risk-table"><thead><tr><th>{L(en,'Περίοδος','Period')}</th><th>{L(en,'Εκτίμηση','Assessment')}</th><th>{L(en,'Ημερομηνία','Date')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Πολύ υψηλοί / υψηλοί (υπολ.)','Very high / high (residual)')}</th><th>{L(en,'Μέσος υπολειπόμενος','Avg. residual')}</th><th>{L(en,'Κατάσταση','Status')}</th></tr></thead><tbody>
-    {rows.map(({a,s})=><tr key={a.id} onClick={()=>open(a.code)}><td><strong>{a.periodLabel}</strong><small>{PERIOD_KINDS[a.periodKind]?.[en?1:0]}</small></td><td>{txt(a,'title',en)}<small>{a.formCode}</small></td><td>{fmtDate(a.assessedOn,locale)}<small>{L(en,'Επόμενη','Next')}: {fmtDate(a.nextReviewOn,locale)}</small></td><td>{s.total}</td><td><span className="risk-pair"><span className="risk-level risk-level-very_high" title={levelLabel('very_high',en)}><strong>{s.levels.residual.very_high}</strong></span><span className="risk-level risk-level-high" title={levelLabel('high',en)}><strong>{s.levels.residual.high}</strong></span></span></td><td>{s.averages.residual!=null?<LevelChip score={Math.round(s.averages.residual)} en={en} title={String(s.averages.residual)}/>:'—'}</td><td><span className={`status-badge ${statusTone(a.status)}`}>{statusLabel(a.status,en)}</span></td></tr>)}
+   <table className="data-table sticky-table risk-table"><thead><tr><th>{L(en,'Περίοδος','Period')}</th><th>{L(en,'Εκτίμηση','Assessment')}</th><th>{L(en,'Ημερομηνία','Date')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Πολύ υψηλοί','Very high')}</th><th>{L(en,'Υψηλοί','High')}</th><th>{L(en,'Μέσος υπολειπόμενος','Avg. residual')}</th><th>{L(en,'Κατάσταση','Status')}</th></tr></thead><tbody>
+    {rows.map(({a,s})=><tr key={a.id} onClick={()=>open(a.code)}><td><strong>{a.periodLabel}</strong><small>{PERIOD_KINDS[a.periodKind]?.[en?1:0]}</small></td><td>{txt(a,'title',en)}<small>{a.formCode}</small></td><td>{fmtDate(a.assessedOn,locale)}<small>{L(en,'Επόμενη','Next')}: {fmtDate(a.nextReviewOn,locale)}</small></td><td>{s.total}</td><td><span className="risk-level risk-level-very_high" title={levelLabel('very_high',en)}><strong>{s.levels.residual.very_high}</strong></span></td><td><span className="risk-level risk-level-high" title={levelLabel('high',en)}><strong>{s.levels.residual.high}</strong></span></td><td>{s.averages.residual!=null?<LevelChip score={Math.round(s.averages.residual)} en={en} title={String(s.averages.residual)}/>:'—'}</td><td><span className={`status-badge ${statusTone(a.status)}`}>{statusLabel(a.status,en)}</span></td></tr>)}
    </tbody></table>
    {!loading&&!rows.length&&<div className="registry-empty-state"><strong>{L(en,'Δεν υπάρχουν εκτιμήσεις κινδύνου','No risk assessments yet')}</strong><span>{L(en,'Δημιουργήστε την πρώτη εκτίμηση ή εισαγάγετε το υπάρχον μητρώο σας από Excel.','Create the first assessment or import your existing register from Excel.')}</span></div>}
   </div>
-  {trend.length>1&&<p className="risk-hint">{L(en,'Μέσος υπολειπόμενος βαθμός ανά περίοδο','Average residual score by period')}: {trend.map(p=>`${p.label} ${p.residualAverage??'—'}`).join(' → ')}</p>}
   {creating&&<AssessmentDetailsDialog en={en} assessments={items} onClose={()=>setCreating(false)} onSave={create}/>}
   {templates&&<ObserverDialog width="standard" title={L(en,'Πρότυπα πλατφόρμας','Platform templates')} onClose={()=>setTemplates(null)} footer={<DialogActions onCancel={()=>setTemplates(null)} showCancel cancelLabel={L(en,'Κλείσιμο','Close')}/>}>
    <p className="risk-hint">{L(en,'Ορατά μόνο σε εσάς. Η φόρτωση δημιουργεί τις εκτιμήσεις του προτύπου στον τρέχοντα οργανισμό.','Visible to you only. Loading creates the template’s assessments in the current organization.')}</p>
