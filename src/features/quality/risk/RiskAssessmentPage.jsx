@@ -149,7 +149,7 @@ export function RiskAssessmentPage(){
    {tab!=='register'&&tab!=='analysis'&&tab!=='comparison'&&<div className="risk-page-bar">{menu}</div>}
    {tab==='register'&&<RiskRegister risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setCell(null)} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues}/>}
    {tab==='analysis'&&<RiskAnalysis actions={menu} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>{setCell(c);setTab('register')}}/>}
-   {tab==='comparison'&&<RiskComparison actions={menu} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={openRisk}/>}
+   {tab==='comparison'&&<RiskComparison actions={menu} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk,from)=>from&&from.id!==assessment.id?navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}}):openRisk(risk)}/>}
    {tab==='opportunities'&&<RiskOpportunities items={assessment.opportunities||[]} en={en} canEdit={canEdit} onSave={saveOneOpportunity} onDelete={removeOpportunity}/>}
    {tab==='methodology'&&<RiskMethodology en={en}/>}
    {tab==='details'&&<AssessmentDetails assessment={assessment} en={en} locale={locale}/>}

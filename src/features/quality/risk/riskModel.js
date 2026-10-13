@@ -176,3 +176,45 @@ export function parseMeasures(text){
   .filter(Boolean)
 }
 export const joinMeasures=items=>items.map(item=>String(item||'').trim()).filter(Boolean).join('\n')
+
+// Periods: an assessment is annual, six-monthly or quarterly. Which year and
+// which semester or quarter it covers is read from its label («Γ' τρίμηνο
+// 2026», «2026-Α», «Q3 2026», «2ο εξάμηνο 2026»), else from its date.
+const GREEK_INDEX={'α':1,'β':2,'γ':3,'δ':4}
+const kindOf=a=>a?.periodKind==='semester'||a?.periodKind==='quarter'?a.periodKind:'annual'
+export {kindOf as periodKindOf}
+export function periodOf(a){
+ const kind=kindOf(a),date=String(a?.assessedOn||''),label=norm(a?.periodLabel)
+ const year=Number((label.match(/(?:19|20)\d\d/)||[])[0])||Number(date.slice(0,4))||null
+ const month=Number(date.slice(5,7))||1,max=kind==='quarter'?4:kind==='semester'?2:1
+ let index=null
+ if(max>1){
+  const rest=label.replace(/(?:19|20)\d\d/g,' ')
+  const m=rest.match(/(?:^|[^a-zα-ω0-9])([1-4])(?:ο|η|st|nd|rd|th)?(?![0-9])/)||rest.match(/[qhs]([1-4])/)
+  const g=rest.match(/(?:^|[^a-zα-ω])([αβγδ])(?:['΄’ʹ]|(?=[^a-zα-ω]|$))/)
+  index=m?Number(m[1]):g?GREEK_INDEX[g[1]]:null
+  if(!index||index>max)index=kind==='quarter'?Math.ceil(month/3):month<=6?1:2
+ }
+ return {kind,year,index}
+}
+export const periodKey=({kind,year,index})=>kind==='annual'?`${year}`:`${year}-${kind==='quarter'?'Q':'S'}${index}`
+// The period to compare with: the same one a year earlier, or the one before.
+export function counterpart(period,mode='lastYear'){
+ const {kind,year,index}=period
+ if(kind==='annual')return {kind,year:year-1,index}
+ if(mode==='lastYear')return {kind,year:year-1,index}
+ const max=kind==='quarter'?4:2
+ return index>1?{kind,year,index:index-1}:{kind,year:year-1,index:max}
+}
+const ORDINAL=['Α','Β','Γ','Δ']
+export function periodName({kind,year,index},en){
+ if(kind==='annual')return String(year)
+ if(en)return `${kind==='quarter'?'Q':'H'}${index} ${year}`
+ return `${ORDINAL[index-1]}' ${kind==='quarter'?'τρίμηνο':'εξάμηνο'} ${year}`
+}
+// A label for a new assessment from its type and date.
+export function suggestPeriodLabel(kind,date,en){
+ const year=Number(String(date||'').slice(0,4))||new Date().getFullYear(),month=Number(String(date||'').slice(5,7))||1
+ const k=kind==='semester'||kind==='quarter'?kind:'annual'
+ return periodName({kind:k,year,index:k==='quarter'?Math.ceil(month/3):month<=6?1:2},en)
+}

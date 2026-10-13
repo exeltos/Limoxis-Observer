@@ -11,7 +11,7 @@ import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
 import { createAssessmentSeries,createRiskAssessment,loadRiskTemplates } from './riskService'
 import { importPlan,importRiskWorkbook } from './riskImport'
-import { summarizeRisks,levelLabel } from './riskModel'
+import { summarizeRisks,levelLabel,suggestPeriodLabel } from './riskModel'
 import { L,LevelChip,PERIOD_KINDS,fmtDate,statusLabel,statusTone,txt } from './riskUi'
 import './riskAssessment.css'
 
@@ -96,8 +96,11 @@ export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSav
  const today=new Date().toISOString().slice(0,10)
  const [draft,setDraft]=useState(()=>({title:L(en,'Εκτίμηση επικινδυνότητας','Risk assessment'),periodLabel:String(new Date().getFullYear()),periodKind:'annual',assessedOn:today,nextReviewOn:'',assessorLabel:'',formCode:'Ε.Δ.QUAL.050-02',scopeNote:'',...initial}))
  const [carryId,setCarryId]=useState(assessments[0]?.id||'')
- const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
  const isNew=!initial?.id
+ // On a new assessment the period label follows the type and the date, until it is typed by hand.
+ const set=(key,value)=>setDraft(d=>{const next={...d,[key]:value}
+  if(isNew&&(key==='periodKind'||key==='assessedOn')&&String(d.periodLabel||'').trim()===suggestPeriodLabel(d.periodKind,d.assessedOn,en))next.periodLabel=suggestPeriodLabel(next.periodKind,next.assessedOn,en)
+  return next})
  const carryFrom=assessments.find(a=>a.id===carryId)||null
  const field=(key,label,props={},wide=false)=><label className={`risk-field${wide?' risk-field-wide':''}`}><span>{label}</span><input value={draft[key]||''} onChange={e=>set(key,e.target.value)} {...props}/></label>
  return <ObserverDialog width="standard" title={isNew?L(en,'Νέα εκτίμηση κινδύνου','New risk assessment'):L(en,'Στοιχεία εκτίμησης','Assessment details')} onClose={onClose}
@@ -105,7 +108,7 @@ export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSav
   <div className="risk-editor-grid">
    {field('title',L(en,'Τίτλος','Title'),{},true)}
    {field('formCode',L(en,'Κωδικός εντύπου','Form code'))}
-   {field('periodLabel',L(en,'Περίοδος (π.χ. 2026, 2026-Α)','Period (e.g. 2026, 2026-H1)'))}
+   {field('periodLabel',L(en,'Περίοδος (π.χ. 2026, Α\' εξάμηνο 2026, Γ\' τρίμηνο 2026)','Period (e.g. 2026, H1 2026, Q3 2026)'))}
    <label className="risk-field"><span>{L(en,'Είδος περιόδου','Period type')}</span><select value={draft.periodKind} onChange={e=>set('periodKind',e.target.value)}>{Object.entries(PERIOD_KINDS).map(([id,[el,enLabel]])=><option key={id} value={id}>{en?enLabel:el}</option>)}</select></label>
    <ManualDateField label={L(en,'Ημερομηνία αξιολόγησης','Assessment date')} value={draft.assessedOn||''} onChange={v=>set('assessedOn',v)}/>
    <ManualDateField label={L(en,'Επόμενη αξιολόγηση','Next assessment')} value={draft.nextReviewOn||''} onChange={v=>set('nextReviewOn',v)} optional/>
