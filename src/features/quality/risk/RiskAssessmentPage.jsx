@@ -1,6 +1,6 @@
-import { useEffect,useMemo,useRef,useState } from 'react'
+import { useEffect,useLayoutEffect,useMemo,useRef,useState } from 'react'
 import { useLocation,useNavigate,useParams,useSearchParams } from 'react-router-dom'
-import { BarChart3,BookOpen,CheckCircle2,ClipboardList,GitCompareArrows,Lightbulb,RotateCcw,Send,ShieldAlert,Archive,Trash2,Info,Pencil,Printer,Download,Gauge } from 'lucide-react'
+import { ArrowLeft,BarChart3,BookOpen,CheckCircle2,ClipboardList,GitCompareArrows,Lightbulb,RotateCcw,Send,ShieldAlert,Archive,Trash2,Info,Pencil,Printer,Download,Gauge } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { OverflowMenu } from '../../../design-system/OverflowMenu'
@@ -32,6 +32,9 @@ import './riskAssessment.css'
 
 const EDITABLE=['draft','under_review']
 
+// The element that scrolls the page (the workspace, else the document).
+const scrollerOf=el=>{for(let node=el?.parentElement;node;node=node.parentElement){const {overflowY}=getComputedStyle(node);if(/(auto|scroll)/.test(overflowY)&&node.scrollHeight>node.clientHeight)return node}return document.scrollingElement}
+
 export function RiskAssessmentPage(){
  const {assessmentCode}=useParams()
  const [search,setSearch]=useSearchParams()
@@ -41,7 +44,7 @@ export function RiskAssessmentPage(){
  const {notify}=useFeedback()
  const {goTo,goBack:goBackTo}=useContextualNavigation('/quality')
  // Back to where the user came from; when that is the Quality Center (or unknown), its risk tab.
- const goBack=()=>{const from=location.state?.limoxisFrom?.pathname;if(!from||from==='/quality')rememberQualitySection('risks');goBackTo()}
+ const goBack=()=>{if(view.riskOrigin){returnToOrigin();return};const from=location.state?.limoxisFrom?.pathname;if(!from||from==='/quality')rememberQualitySection('risks');goBackTo()}
  const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
  const organizationId=tenant?.id
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
@@ -52,10 +55,21 @@ export function RiskAssessmentPage(){
  const location=useLocation()
  const navigate=useNavigate()
  // Back from a risk returns to the tab it was opened from.
- const [tab,setTab]=useState(()=>location.state?.riskTab||'register')
- const [cell,setCell]=useState(null)
- // The method's JCI chapters and FMEA note open the register already filtered.
- const [preset,setPreset]=useState(null)
+ // The tab, a filter the register was opened with, and where a link came
+ // from live in the history state: «Πίσω» and the browser's back button return
+ // to the tab, the spot and the item the user started from.
+ const view=location.state||{}
+ const tab=view.riskTab||'register'
+ const preset=view.riskPreset||null
+ const cell=preset?.cell||null
+ const origin=view.riskOrigin||null
+ const setView=(next,push=false)=>navigate(`${location.pathname}${location.search}`,{replace:!push,state:{...view,riskPreset:null,riskOrigin:null,...next}})
+ const setTab=t=>setView({riskTab:t})
+ const jump=(t,riskPreset,mark)=>setView({riskTab:t,riskPreset,riskOrigin:{tab,mark,scroll:scrollerOf(bodyRef.current)?.scrollTop||0}},true)
+ const pendingScroll=useRef(null)
+ const returnToOrigin=()=>{pendingScroll.current=origin.scroll;setView({riskTab:origin.tab,riskMark:origin.mark||null})}
+ // Back at the origin, once it has rendered: the same spot on the page.
+ useLayoutEffect(()=>{if(pendingScroll.current==null)return;const scroller=scrollerOf(bodyRef.current);if(scroller)scroller.scrollTop=pendingScroll.current;pendingScroll.current=null},[tab])
  const [confirm,setConfirm]=useState(null)
  const [approving,setApproving]=useState(false)
  const [detailsOpen,setDetailsOpen]=useState(false)
@@ -102,7 +116,7 @@ export function RiskAssessmentPage(){
    setLinking(false);notify(L(en,`Συνδέθηκαν δείκτες σε ${saved.length} κινδύνους.`,`Indicators linked to ${saved.length} risks.`),'success')
   }catch{notify(L(en,'Δεν ήταν δυνατή η σύνδεση των δεικτών.','Could not link the indicators.'),'error')}finally{setSaving(false)}
  }
- const openRisk=risk=>{if((risks||[]).some(r=>r.lineageKey===risk.lineageKey)){riskRow.remember(risk.lineageKey);navigate(`/quality/risks/${assessment.code}/${risk.lineageKey}`,{state:{riskTab:tab}})}}
+ const openRisk=risk=>{if((risks||[]).some(r=>r.lineageKey===risk.lineageKey)){riskRow.remember(risk.lineageKey);navigate(`/quality/risks/${assessment.code}/${risk.lineageKey}`,{state:{riskTab:tab,returnState:view}})}}
  async function removeRisk(risk){try{await deleteRisk(organizationId,assessment.id,risk.id);setAssessment(current=>({...current,risks:current.risks.filter(r=>r.id!==risk.id)}));notify(L(en,'Ο κίνδυνος διαγράφηκε.','The risk was deleted.'),'success')}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
  async function removeOpportunity(item){try{await deleteOpportunity(organizationId,assessment.id,item.id);setAssessment(current=>({...current,opportunities:current.opportunities.filter(o=>o.id!==item.id)}))}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
  async function removeAssessment(){try{await deleteRiskAssessment(organizationId,assessment);goBack()}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
@@ -148,16 +162,17 @@ export function RiskAssessmentPage(){
   title={txt(assessment,'title',en)}
   subtitle={[assessment.formCode,assessment.periodLabel,fmtDate(assessment.assessedOn,locale)].filter(Boolean).join(' · ')}
   status={<span className={`status-badge ${statusTone(assessment.status)}`}>{statusLabel(assessment.status,en)}</span>}
-  tabs={tabs} activeTab={tab} onTabChange={t=>{setPreset(null);setTab(t)}} onBack={goBack} backLabel={L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
+  tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack} backLabel={origin?L(en,`Πίσω σε «${tabs.find(t=>t.id===origin.tab)?.label||''}»`,`Back to “${tabs.find(t=>t.id===origin.tab)?.label||''}”`):L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
   <div className="risk-assessment-body" ref={bodyRef}>
    {/* The record shell keeps only edit/delete from headerActions, so the "…" menu sits here: in the register's toolbar, or on its own line in the other tabs. */}
    {!canEdit&&canManage&&<p className="risk-locked">{L(en,`Η εκτίμηση είναι «${statusLabel(assessment.status,en)}» και δεν αλλάζει. Για αλλαγές: «Επαναφορά σε πρόχειρο».`,`The assessment is “${statusLabel(assessment.status,en)}” and locked. To change it: “Back to draft”.`)}</p>}
+   {origin&&<button type="button" className="risk-origin-back" onClick={returnToOrigin}><ArrowLeft size={14}/>{L(en,`Πίσω σε «${tabs.find(t=>t.id===origin.tab)?.label||''}»`,`Back to “${tabs.find(t=>t.id===origin.tab)?.label||''}”`)}</button>}
    {tab==='details'&&<div className="risk-page-bar">{menu}</div>}
-   {tab==='register'&&<RiskRegister key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setCell(null)} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues} returned={riskRow.returned}/>}
-   {tab==='analysis'&&<RiskAnalysis returned={riskRow.returned} actions={menu} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>{setCell(c);setTab('register')}}/>}
+   {tab==='register'&&<RiskRegister key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues} returned={riskRow.returned}/>}
+   {tab==='analysis'&&<RiskAnalysis mark={view.riskMark||''} returned={riskRow.returned} actions={menu} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>jump('register',{cell:c},`${c.kind}:${c.l}:${c.c}`)}/>}
    {tab==='comparison'&&<RiskComparison returned={riskRow.returned} actions={menu} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk,from)=>{if(from&&from.id!==assessment.id){rememberRow(`limoxis.quality.risk.returned.${from.code}`,risk.lineageKey);navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}})}else openRisk(risk)}}/>}
-   {tab==='opportunities'&&<RiskOpportunities returned={opportunityRow.returned} actions={menu} items={assessment.opportunities||[]} en={en} canEdit={canEdit} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`)}} onCreate={()=>navigate(`/quality/risks/${assessment.code}/opportunities/new`)} onDelete={removeOpportunity}/>}
-   {tab==='methodology'&&<RiskMethodology en={en} risks={risks} actions={menu} onJci={jci=>{setPreset({jci});setTab('register')}} onPickFmea={()=>{setPreset({quick:'highOrAbove'});setTab('register')}}/>}
+   {tab==='opportunities'&&<RiskOpportunities returned={opportunityRow.returned} actions={menu} items={assessment.opportunities||[]} en={en} canEdit={canEdit} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}} onCreate={()=>navigate(`/quality/risks/${assessment.code}/opportunities/new`)} onDelete={removeOpportunity}/>}
+   {tab==='methodology'&&<RiskMethodology en={en} risks={risks} actions={menu} returned={view.riskMark||''} onJci={jci=>jump('register',{jci},`jci:${jci}`)} onPickFmea={()=>jump('register',{quick:'highOrAbove'},'fmea')}/>}
    {tab==='details'&&<AssessmentDetails assessment={assessment} en={en} locale={locale}/>}
   </div>
   <div className="risk-print-host" aria-hidden="true"><RiskReport ref={reportRef} assessment={{...assessment,risks}} summary={summary} previous={previous} organizationName={tenant?.name||''} en={en} locale={locale}/></div>

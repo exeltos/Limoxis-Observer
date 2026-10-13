@@ -1,5 +1,5 @@
 import { useEffect,useState } from 'react'
-import { useNavigate,useParams } from 'react-router-dom'
+import { useLocation,useNavigate,useParams } from 'react-router-dom'
 import { Page } from '../../../design-system/Page'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
@@ -17,6 +17,7 @@ const EDITABLE=['draft','under_review']
 export function OpportunityRecordPage(){
  const {assessmentCode,opportunityId}=useParams()
  const navigate=useNavigate()
+ const location=useLocation()
  const {language}=useLanguage();const en=language==='en'
  const {role,membership,tenant,actualRole,isRolePreview}=useTenant()
  const {notify}=useFeedback()
@@ -31,7 +32,7 @@ export function OpportunityRecordPage(){
  const isNew=opportunityId==='new'
  const index=list.findIndex(o=>o.id===opportunityId)
  const item=isNew?{}:list[index]
- const back=()=>navigate(`/quality/risks/${assessmentCode}`,{replace:true,state:{riskTab:'opportunities'}})
+ const back=()=>navigate(`/quality/risks/${assessmentCode}`,{replace:true,state:location.state?.returnState||{riskTab:'opportunities'}})
 
  if(loading)return <Page title={L(en,'Ευκαιρία','Opportunity')}><div className="inline-empty">{L(en,'Φόρτωση…','Loading…')}</div></Page>
  if(!assessment||!item)return <Page title={L(en,'Ευκαιρία','Opportunity')}><div className="inline-empty">{L(en,'Η ευκαιρία δεν βρέθηκε.','The opportunity was not found.')}</div></Page>

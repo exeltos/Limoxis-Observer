@@ -53,11 +53,13 @@ const GROUPS=[['process','Ανά διεργασία','By process'],['jci','Αν�
 
 // Analysis of one assessment: what needs a decision first, then the maps,
 // the indicators and the breakdowns.
-export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null,actions=null,returned=''}){
+export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null,actions=null,returned='',mark=''}){
  const [group,setGroup]=useState('process')
+ // The heat-map cell the user came back from stays marked.
+ const [mk,ml,mc]=String(mark).split(':'),marked=mk&&ml&&mc&&['inherent','residual','target'].includes(mk)?{kind:mk,l:Number(ml),c:Number(mc)}:null
  const high=summary.levels.residual.high+summary.levels.residual.very_high
  const map=(kind,title,caption,extra={})=><div className="risk-heatmap-cell">
-  <RiskHeatMap heat={summary.heat[kind]} en={en} title={title} caption={caption} onCell={c=>onCell({...c,kind})} {...extra}/>
+  <RiskHeatMap heat={summary.heat[kind]} en={en} title={title} caption={caption} onCell={c=>onCell({...c,kind})} active={marked?.kind===kind?marked:null} {...extra}/>
   <LevelCounts counts={summary.levels[kind]} en={en}/>
  </div>
  return <div className="risk-analysis">

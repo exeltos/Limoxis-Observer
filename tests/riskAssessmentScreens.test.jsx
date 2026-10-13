@@ -86,6 +86,11 @@ describe('risk assessment screens', () => {
     fireEvent.click(chapter)
     await screen.findByRole('tab', { name: 'Μητρώο (14)', selected: true })
     expect(document.querySelectorAll('.risk-register tbody tr.risk-row-clickable')).toHaveLength(count)
+    // «Πίσω» returns to the method, with the chapter marked.
+    expect(screen.getAllByRole('button', { name: 'Πίσω σε «Μεθοδολογία»' })).toHaveLength(2)
+    fireEvent.click(document.querySelector('.risk-origin-back'))
+    await screen.findByRole('tab', { name: 'Μεθοδολογία', selected: true })
+    expect(within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button')).toHaveClass('registry-row-returned')
   })
 
   it('edits a risk on its own page and saves it, recomputing its level', async () => {

@@ -36,7 +36,7 @@ export function RiskRecordPage(){
  const isNew=riskKey==='new'
  const risk=isNew?{section:'clinical'}:risks.find(r=>r.lineageKey===riskKey)
  // Back to the assessment, on the tab the risk was opened from.
- const back=()=>navigate(`/quality/risks/${assessmentCode}`,{replace:true,state:{riskTab:location.state?.riskTab||'register'}})
+ const back=()=>navigate(`/quality/risks/${assessmentCode}`,{replace:true,state:location.state?.returnState||{riskTab:location.state?.riskTab||'register'}})
 
  if(loading)return <Page title={L(en,'Κίνδυνος','Risk')}><div className="inline-empty">{L(en,'Φόρτωση…','Loading…')}</div></Page>
  if(!assessment||!risk)return <Page title={L(en,'Κίνδυνος','Risk')}><div className="inline-empty">{L(en,'Ο κίνδυνος δεν βρέθηκε.','The risk was not found.')}</div></Page>

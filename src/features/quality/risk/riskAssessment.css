@@ -373,14 +373,19 @@
 .risk-flow-target{border-top:3px solid #9fd0ad}
 .risk-flow-step{flex:0 0 96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#7d8e9d;text-align:center}
 .risk-flow-step small{font-size:10.5px;line-height:1.25}
-.risk-jci-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;margin:0;padding:0;list-style:none}
-.risk-jci-grid button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:1px solid var(--lo-color-border);border-radius:9px;font-size:12px;cursor:pointer}
+.risk-jci-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:6px;margin:0;padding:0;list-style:none}
+.risk-jci-grid li{display:flex;min-width:0}
+.risk-jci-grid button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:62px minmax(0,1fr) 36px;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 12px;border:1px solid var(--lo-color-border);border-radius:9px;font-size:12px;line-height:1.3;cursor:pointer}
 .risk-jci-grid button:hover:not(:disabled){background:#f1f6fa;border-color:#b9d3e6}
 .risk-jci-grid button.is-empty{opacity:.5;cursor:default}
-.risk-jci-grid strong{min-width:50px}
-.risk-jci-grid span{flex:1 1 auto}
-.risk-jci-grid b{min-width:22px;padding:1px 7px;border-radius:999px;background:#eef3f7;text-align:center;font-size:11px}
+.risk-jci-grid button.registry-row-returned{border-color:#9fc3dd}
+.risk-jci-grid b{justify-self:end;min-width:24px;padding:1px 7px;border-radius:999px;background:#eef3f7;text-align:center;font-size:11px}
+.risk-fmea-note button.is-returned{padding:2px 8px;border-radius:6px;background:#eaf4f8;box-shadow:inset 3px 0 0 #2f86a6}
+@media(max-width:1200px){.risk-jci-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.risk-jci-grid{grid-template-columns:1fr}}
 .risk-fmea-note{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:12px;padding:10px 12px;border-radius:10px;background:#fff7e6;border:1px solid #f3dca8;font-size:12px}
 .risk-fmea-note.is-done{background:#eef8f1;border-color:#bfe0c9}
 .risk-fmea-note button{all:unset;cursor:pointer;font-weight:700;color:#1d5f8f}
 @media(max-width:1100px){.risk-method-matrix{grid-template-columns:1fr}.risk-flow{flex-direction:column}.risk-flow-step{flex:0 0 auto;flex-direction:row}}
+.risk-origin-back{all:unset;box-sizing:border-box;align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #b9d3e6;border-radius:999px;background:#eef6fb;color:#194a74;font-size:12px;font-weight:650;cursor:pointer}
+.risk-origin-back:hover{background:#e2f0f8}

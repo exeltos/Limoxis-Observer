@@ -13,7 +13,7 @@ const FLOW=[
 // The method behind the scores (NHS National Patient Safety Agency, 2008),
 // tied to this assessment: how many of its risks sit at each level and in each
 // JCI chapter, and whether the year's proactive analysis has been chosen.
-export function RiskMethodology({en,risks=[],actions=null,onJci,onPickFmea}){
+export function RiskMethodology({en,risks=[],actions=null,onJci,onPickFmea,returned=''}){
  const residual=risks.map(r=>scored(r).residual.level)
  const perLevel=Object.fromEntries(LEVELS.map(x=>[x.id,residual.filter(l=>l===x.id).length]))
  const perJci=Object.fromEntries(JCI_CHAPTERS.map(x=>[x.id,risks.filter(r=>r.jci===x.id).length]))
@@ -45,11 +45,11 @@ export function RiskMethodology({en,risks=[],actions=null,onJci,onPickFmea}){
     :<li key={id} className="risk-flow-step" aria-label={en?enLabel:el}><ArrowRight size={16}/><small>{en?enLabel:el}</small></li>)}</ol>
   </section>
   <section className="risk-panel"><header><h3>JCI</h3><small>{L(en,'Κεφάλαια και διεθνείς στόχοι ασφάλειας ασθενών (IPSG), με τους κινδύνους αυτής της εκτίμησης. Ο ακριβής κωδικός (ME) καταγράφεται σε κάθε κίνδυνο.','Chapters and International Patient Safety Goals (IPSG), with this assessment’s risks. The exact measurable element (ME) is recorded on each risk.')}</small></header>
-   <ul className="risk-jci-grid">{JCI_CHAPTERS.map(x=>{const n=perJci[x.id];return <li key={x.id}><button type="button" className={n?'':'is-empty'} disabled={!n||!onJci} onClick={()=>onJci?.(x.id)} title={n?L(en,'Προβολή στο μητρώο','Show in the register'):undefined}><strong>{x.id}</strong><span>{en?x.en:x.el}</span><b>{n}</b></button></li>})}</ul>
+   <ul className="risk-jci-grid">{JCI_CHAPTERS.map(x=>{const n=perJci[x.id];return <li key={x.id}><button type="button" className={`${n?'':'is-empty'}${returned===`jci:${x.id}`?' registry-row-returned':''}`.trim()||undefined} disabled={!n||!onJci} onClick={()=>onJci?.(x.id)} title={n?L(en,'Προβολή στο μητρώο','Show in the register'):undefined}><strong>{x.id}</strong><span>{en?x.en:x.el}</span><b>{n}</b></button></li>})}</ul>
    <div className={`risk-fmea-note${fmea?' is-done':''}`}>
     <span>{L(en,'Το JCI ζητά τουλάχιστον μία προληπτική ανάλυση (π.χ. FMEA) ανά έτος σε διαδικασία υψηλού κινδύνου.','JCI expects at least one proactive analysis (e.g. FMEA) a year on a high-risk process.')}</span>
     <strong>{fmea?fmea===1?L(en,'Επιλέχθηκε 1 κίνδυνος για FMEA.','1 risk selected for FMEA.'):L(en,`Επιλέχθηκαν ${fmea} κίνδυνοι για FMEA.`,`${fmea} risks selected for FMEA.`):L(en,'Δεν έχει επιλεγεί ακόμη κίνδυνος για FMEA.','No risk selected for FMEA yet.')}</strong>
-    {onPickFmea&&highCount>0&&<button type="button" onClick={onPickFmea}>{L(en,`Δείτε τους ${highCount} υψηλούς κινδύνους`,`See the ${highCount} high risks`)} →</button>}
+    {onPickFmea&&highCount>0&&<button type="button" className={returned==='fmea'?'is-returned':undefined} onClick={onPickFmea}>{L(en,`Δείτε τους ${highCount} υψηλούς κινδύνους`,`See the ${highCount} high risks`)} →</button>}
    </div>
   </section>
  </div>
