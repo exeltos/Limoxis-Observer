@@ -9,9 +9,9 @@ import { useTenant } from '../../../core/tenant/TenantContext'
 import { rememberQualitySection } from '../qualityReturnSection'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
-import { createAssessmentSeries,createRiskAssessment,loadRiskTemplates } from './riskService'
+import { createAssessmentSeries,createRiskAssessment,loadRiskTemplates,removeTemplateAssessments } from './riskService'
 import { importPlan,importRiskWorkbook } from './riskImport'
-import { summarizeRisks,levelLabel,suggestPeriodLabel } from './riskModel'
+import { summarizeRisks,levelLabel,suggestPeriodLabel,templateCodeOf,templateLoadAllowed } from './riskModel'
 import { L,LevelChip,PERIOD_KINDS,fmtDate,returnedClass,statusLabel,statusTone,txt,usePaged,useReturnedRow } from './riskUi'
 import './riskAssessment.css'
 
@@ -22,7 +22,7 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
  const navigate=useNavigate()
  const {profile,user}=useAuth()
  const {notify,confirm}=useFeedback()
- const {isRolePreview}=useTenant()
+ const {isRolePreview,tenant}=useTenant()
  // Templates are the platform owner's alone: the button shows only to them, never in a role preview.
  const isOwner=Boolean(profile?.isPlatformOwner)&&!isRolePreview
  const [templates,setTemplates]=useState(null)
@@ -58,6 +58,15 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
   try{setTemplates(await loadRiskTemplates())}
   catch{notify(L(en,'Δεν ήταν δυνατή η ανάγνωση των προτύπων.','Could not read the templates.'),'error')}
  }
+ const loadedFrom=template=>items.filter(a=>templateCodeOf(a)===template.code)
+ const canLoadHere=templateLoadAllowed(tenant)
+ async function removeTemplate(template){
+  const loaded=loadedFrom(template)
+  const ok=await confirm({title:L(en,'Αφαίρεση προτύπου','Remove template'),message:L(en,`Θα διαγραφούν από αυτόν τον οργανισμό οι ${loaded.length} εκτιμήσεις του «${template.title}», με τους κινδύνους και τις ευκαιρίες τους. Το πρότυπο μένει στην πλατφόρμα.`,`The ${loaded.length} assessments of “${template.title}” will be deleted from this organization, with their risks and opportunities. The template stays on the platform.`),confirmLabel:L(en,'Αφαίρεση','Remove'),danger:true})
+  if(!ok)return
+  try{await removeTemplateAssessments(organizationId,loaded);setTemplates(null);reload();notify(L(en,'Το πρότυπο αφαιρέθηκε από αυτόν τον οργανισμό.','The template was removed from this organization.'),'success')}
+  catch{notify(L(en,'Δεν ήταν δυνατή η αφαίρεση του προτύπου.','Could not remove the template.'),'error')}
+ }
  async function loadTemplate(template){
   const ok=await confirm({title:L(en,'Φόρτωση προτύπου','Load template'),message:L(en,`Θα δημιουργηθούν ${template.plan.length} εκτιμήσεις με τους κινδύνους του «${template.title}» σε αυτόν τον οργανισμό.`,`${template.plan.length} assessments with the risks of “${template.title}” will be created in this organization.`),confirmLabel:L(en,'Φόρτωση','Load')})
   if(!ok)return
@@ -88,8 +97,11 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
   </div>
   {creating&&<AssessmentDetailsDialog en={en} assessments={items} onClose={()=>setCreating(false)} onSave={create}/>}
   {templates&&<ObserverDialog width="standard" title={L(en,'Πρότυπα πλατφόρμας','Platform templates')} onClose={()=>setTemplates(null)} footer={<DialogActions onCancel={()=>setTemplates(null)} showCancel cancelLabel={L(en,'Κλείσιμο','Close')}/>}>
-   <p className="risk-hint">{L(en,'Ορατά μόνο σε εσάς. Η φόρτωση δημιουργεί τις εκτιμήσεις του προτύπου στον τρέχοντα οργανισμό.','Visible to you only. Loading creates the template’s assessments in the current organization.')}</p>
-   {templates.length?<ul className="risk-template-list">{templates.map(t=><li key={t.id}><div><strong>{t.title}</strong><small>{t.plan.map(p=>`${p.header?.periodLabel} (${(p.risks||[]).length})`).join(' → ')}{t.sourceFile?` · ${t.sourceFile}`:''}</small></div><ActionButton label={L(en,'Φόρτωση','Load')} tone="primary" onClick={()=>loadTemplate(t)}><span>{L(en,'Φόρτωση','Load')}</span></ActionButton></li>)}</ul>:<p className="risk-hint">{L(en,'Δεν υπάρχουν πρότυπα.','No templates.')}</p>}
+   <p className="risk-hint">{L(en,'Ορατά μόνο σε εσάς. Η φόρτωση δημιουργεί τις εκτιμήσεις του προτύπου στον τρέχοντα οργανισμό· όσο είναι φορτωμένο σε Demo, τα δεδομένα Demo του κινδύνου κρύβονται. Η αφαίρεση τα επαναφέρει.','Visible to you only. Loading creates the template’s assessments in the current organization; while it is loaded in a Demo, the Demo risk data is hidden. Removing it brings that data back.')}</p>
+   {!canLoadHere&&<p className="risk-locked">{L(en,'Σε Demo αξιολογητή δεν φορτώνεται πρότυπο. Φορτώνεται στο δικό σας Demo ή σε πραγματικό οργανισμό.','A template is not loaded in an evaluator’s Demo. Load it in your own Demo or in a real organization.')}</p>}
+   {templates.length?<ul className="risk-template-list">{templates.map(t=>{const loaded=loadedFrom(t);return <li key={t.id}><div><strong>{t.title}</strong><small>{t.plan.map(p=>`${p.header?.periodLabel} (${(p.risks||[]).length})`).join(' → ')}{t.sourceFile?` · ${t.sourceFile}`:''}</small>{loaded.length>0&&<small className="risk-template-loaded">{L(en,`Φορτωμένο εδώ: ${loaded.length} εκτιμήσεις`,`Loaded here: ${loaded.length} assessments`)}</small>}</div>
+    {loaded.length?<ActionButton label={L(en,'Αφαίρεση από αυτόν τον οργανισμό','Remove from this organization')} tone="danger" onClick={()=>removeTemplate(t)}><span>{L(en,'Αφαίρεση από αυτόν τον οργανισμό','Remove from this organization')}</span></ActionButton>
+     :<ActionButton label={L(en,'Φόρτωση','Load')} tone="primary" disabled={!canLoadHere} onClick={()=>loadTemplate(t)}><span>{L(en,'Φόρτωση','Load')}</span></ActionButton>}</li>})}</ul>:<p className="risk-hint">{L(en,'Δεν υπάρχουν πρότυπα.','No templates.')}</p>}
   </ObserverDialog>}
   {preview&&<ImportPreviewDialog preview={preview} en={en} onClose={()=>setPreview(null)} onConfirm={confirmImport}/>}
  </div>

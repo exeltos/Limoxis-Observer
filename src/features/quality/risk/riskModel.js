@@ -246,3 +246,16 @@ export function normalizeOpportunity(o){
  return {...o,ratingId:o?.ratingId??ratingOf(o?.rating),effectivenessStatus:e.status,effectiveness:e.note}
 }
 export const ratingLabel=id=>OPPORTUNITY_RATINGS.find(r=>r.id===id)?.el||''
+
+// Assessments loaded from a platform template carry its code in their history.
+export const templateCodeOf=a=>(a?.history||[]).find(h=>h?.action==='riskAssessmentImported'&&h?.detail?.template)?.detail.template||''
+const isSeededDemo=a=>/^RSA-DEMO-/.test(String(a?.code||''))
+// While a template is loaded in a Demo, its assessments stand alone: the
+// seeded Demo assessments are hidden (not deleted) until it is removed.
+export function visibleAssessments(list=[]){
+ return list.some(templateCodeOf)?list.filter(a=>!isSeededDemo(a)):list
+}
+// A platform template is loaded only in a real organization or in the
+// platform owner's own Demo, never in an evaluator's Demo.
+export const OWNER_DEMO_CODE='DEMO-OWNER'
+export const templateLoadAllowed=tenant=>!tenant?.is_demo||tenant?.code===OWNER_DEMO_CODE

@@ -7,6 +7,7 @@ import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { expectVersion, guardedSingle } from '../../../core/data/recordVersion'
 import { riskDemoAssessments } from './riskDemoData'
 import { unpackTemplate } from './riskImport'
+import { visibleAssessments } from './riskModel'
 
 const LOCAL='quality_local_risk_assessments'
 const ASSESSMENT_COLUMNS='id,code,title,period_label,period_kind,assessed_on,next_review_on,assessor_label,form_code,scope_note,status,approved_by_label,approved_on,source_assessment_id,history,updated_at'
@@ -37,7 +38,7 @@ const opportunityPayload=o=>({position:o.position||0,activity:o.activity,opportu
 // Every assessment of the organization with its risks (the list, the
 // comparison and the trend all need them), newest first.
 export async function loadRiskAssessments(organizationId){
- if(demo())return localAll().map(a=>structuredClone(a)).sort((a,b)=>String(b.assessedOn).localeCompare(String(a.assessedOn)))
+ if(demo())return visibleAssessments(localAll().map(a=>structuredClone(a)).sort((a,b)=>String(b.assessedOn).localeCompare(String(a.assessedOn))))
  assertReady(organizationId)
  const [{data:assessments,error},{data:risks,error:riskError}]=await Promise.all([
   supabase.from('quality_risk_assessments').select(ASSESSMENT_COLUMNS).eq('organization_id',organizationId).order('assessed_on',{ascending:false}),
@@ -45,7 +46,7 @@ export async function loadRiskAssessments(organizationId){
  ])
  if(error)throw error;if(riskError)throw riskError
  const byAssessment=new Map();for(const r of risks||[]){const list=byAssessment.get(r.assessment_id)||[];list.push(mapRisk(r));byAssessment.set(r.assessment_id,list)}
- return (assessments||[]).map(row=>({...mapAssessment(row),risks:byAssessment.get(row.id)||[]}))
+ return visibleAssessments((assessments||[]).map(row=>({...mapAssessment(row),risks:byAssessment.get(row.id)||[]})))
 }
 
 export async function loadRiskAssessment(organizationId,code){
@@ -137,6 +138,16 @@ export async function deleteRiskAssessment(organizationId,assessment){
 
 // Assessments created together (an import with a reassessment, a template),
 // oldest first: each one points to the one before it.
+// Removes the assessments a platform template created here (any status), with
+// their risks and opportunities.
+export async function removeTemplateAssessments(organizationId,assessments){
+ const ids=assessments.map(a=>a.id)
+ if(!ids.length)return
+ if(demo()){localSave(localAll().filter(a=>!ids.includes(a.id)));return}
+ assertReady(organizationId)
+ const {error}=await supabase.from('quality_risk_assessments').delete().eq('organization_id',organizationId).in('id',ids);if(error)throw error
+}
+
 export async function createAssessmentSeries(organizationId,plan,history=[]){
  // Codes come from the clock to the second; a second apart each, so two
  // assessments created together never share one.
