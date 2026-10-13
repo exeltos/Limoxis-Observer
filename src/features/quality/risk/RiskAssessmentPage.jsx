@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
-import { useParams,useSearchParams } from 'react-router-dom'
+import { useLocation,useParams,useSearchParams } from 'react-router-dom'
 import { BarChart3,BookOpen,CheckCircle2,ClipboardList,GitCompareArrows,Lightbulb,RotateCcw,Send,ShieldAlert,Archive,Trash2,Info,Pencil,Printer,Download,Gauge } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
@@ -25,6 +25,7 @@ import { RiskOpportunities } from './RiskOpportunities'
 import { RiskMethodology } from './RiskMethodology'
 import { RiskReport } from './RiskReport'
 import { AssessmentDetailsDialog } from './RiskAssessmentsPanel'
+import { rememberQualitySection } from '../qualityReturnSection'
 import { LinkIndicatorsDialog } from './RiskIndicatorsUi'
 import { loadIndicatorValues } from './riskIndicators'
 import { L,PERIOD_KINDS,fmtDate,statusLabel,statusTone,txt } from './riskUi'
@@ -39,7 +40,10 @@ export function RiskAssessmentPage(){
  const {role,membership,tenant,actualRole,isRolePreview}=useTenant()
  const {profile,user}=useAuth()
  const {notify}=useFeedback()
- const {goTo,goBack}=useContextualNavigation('/quality')
+ const {goTo,goBack:goBackTo}=useContextualNavigation('/quality')
+ // Back to where the user came from; when that is the Quality Center (or unknown), its risk tab.
+ const location=useLocation()
+ const goBack=()=>{const from=location.state?.limoxisFrom?.pathname;if(!from||from==='/quality')rememberQualitySection('risks');goBackTo()}
  const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
  const organizationId=tenant?.id
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]

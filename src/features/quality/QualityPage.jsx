@@ -12,6 +12,7 @@ import { readRegistryViewState,useRegistryMemory } from '../../core/navigation/u
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { MetricCard } from '../../design-system/MetricCard'
 import { readSessionValue,writeSessionValue } from '../../core/storage/browserStorage'
+import { QUALITY_RETURN_KEY as RETURN_KEY } from './qualityReturnSection'
 import { loadQualityRecords } from './qualityService'
 import { DeviationSummary,QualityDeviationQueue,deviationsExport,useDeviationQueue,useDeviationView } from './QualityDeviationQueue'
 import { deviationQueue,subActionProgress } from './qualityDeviations'
@@ -31,7 +32,6 @@ const sections=[
   {id:'deviations',label:'deviations',icon:FileWarning,manageOnly:true},
 ]
 
-const RETURN_KEY='limoxis.quality.returnSection'
 
 const createLabels={
   incidents:{el:'Νέο συμβάν',en:'New incident'},

@@ -6,6 +6,7 @@ import { ObserverDialog,DialogActions } from '../../../design-system/ObserverDia
 import { ManualDateField } from '../../../design-system/ManualDateField'
 import { useAuth } from '../../../core/auth/AuthContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
+import { rememberQualitySection } from '../qualityReturnSection'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
 import { createAssessmentSeries,createRiskAssessment,loadRiskTemplates } from './riskService'
@@ -31,7 +32,8 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
  const fileRef=useRef(null)
  const {items,loading,reload}=list
  const rows=useMemo(()=>items.map(a=>({a,s:summarizeRisks(a.risks||[])})),[items])
- const open=code=>navigate(`/quality/risks/${code}`)
+ // Back from an assessment returns to this tab.
+ const open=code=>{rememberQualitySection('risks');navigate(`/quality/risks/${code}`)}
 
  async function create(draft,carryFrom){
   try{const created=await createRiskAssessment(organizationId,{...draft,history:[auditEvent('riskAssessmentCreated',{actor})]},{carryFrom});setCreating(false);open(created.code)}
