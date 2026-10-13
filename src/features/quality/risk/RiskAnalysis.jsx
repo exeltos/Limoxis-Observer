@@ -1,5 +1,6 @@
 import { LEVELS,jciLabel,levelForScore,scored,sectionLabel } from './riskModel'
 import { L,LevelChip,LevelLegend,RiskHeatMap,txt } from './riskUi'
+import { RiskIndicatorTable } from './RiskIndicatorsUi'
 
 const pct=(n,total)=>total?Math.round(n/total*100):0
 
@@ -38,7 +39,7 @@ export function RiskList({risks,en,empty,onOpen}){
  </button></li>})}</ol>
 }
 
-export function RiskAnalysis({summary,en,onCell,onOpen}){
+export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null}){
  return <div className="risk-analysis">
   <RiskKpis summary={summary} en={en}/>
   <section className="risk-panel"><header><h3>{L(en,'Χάρτες κινδύνου','Risk heat maps')}</h3><LevelLegend en={en}/></header>
@@ -50,6 +51,7 @@ export function RiskAnalysis({summary,en,onCell,onOpen}){
    <p className="risk-hint">{L(en,'Επιλέξτε ένα κελί για να δείτε τους κινδύνους του στο μητρώο.','Select a cell to see its risks in the register.')}</p>
   </section>
   <section className="risk-panel"><header><h3>{L(en,'Κατανομή ανά επίπεδο','Distribution by level')}</h3></header><LevelDistribution summary={summary} en={en}/></section>
+  <RiskIndicatorTable risks={risks} values={indicatorValues} en={en} onOpen={onOpen}/>
   <div className="risk-two-columns">
    <section className="risk-panel"><header><h3>{L(en,'Κίνδυνοι προτεραιότητας','Priority risks')}</h3><small>{L(en,'Υψηλός ή πολύ υψηλός υπολειπόμενος κίνδυνος','High or very high residual risk')}</small></header><RiskList risks={summary.priorities.slice(0,12)} en={en} onOpen={onOpen} empty={L(en,'Κανένας υψηλός υπολειπόμενος κίνδυνος.','No high residual risk.')}/></section>
    <section className="risk-panel"><header><h3>{L(en,'Χωρίς σχέδιο δράσης','Without an action plan')}</h3><small>{L(en,'Υψηλοί υπολειπόμενοι χωρίς πρόσθετα μέτρα','High residual risks without additional measures')}</small></header><RiskList risks={summary.withoutPlan} en={en} onOpen={onOpen} empty={L(en,'Όλοι οι υψηλοί κίνδυνοι έχουν σχέδιο δράσης.','Every high risk has an action plan.')}/>

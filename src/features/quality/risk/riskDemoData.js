@@ -1,6 +1,10 @@
 // Demo risk register: the same risks assessed in two consecutive years, so the
 // analysis and the period comparison have something to show. Dates follow the
 // current year (the previous assessment one year ago, the current one last week).
+import { suggestIndicators } from './riskIndicators'
+
+// Indicators of the Demo's Indicators module that the demo risks are measured with.
+const DEMO_INDICATORS=['hai-prevalence-pps','who-hh','clabsi-rate','cauti-rate','vap-rate','mdr-introduction-index','mdro-bsi-per-1000','antibiotic-ddd-per-100-patient-days','open-high-incidents']
 const RISKS=[
  // key, section, process, processEn, scope, scopeEn, hazard, hazardEn, jci, [inherent L,C], previous residual [L,C], current residual [L,C], target [L,C], measures, measuresEn, owner, ownerEn
  ['R001','clinical','ΑΣΦΑΛΕΙΑ ΑΣΘΕΝΩΝ','Patient safety','ΜΕΘ ενηλίκων','Adult ICU','Ενδονοσοκομειακή λοίμωξη / έξαρση λόγω μη τήρησης των πρωτοκόλλων πρόληψης λοιμώξεων','Healthcare-associated infection / outbreak from non-adherence to infection prevention protocols','IPSG.5',[4,5],[4,5],[3,5],[2,5],'Εβδομαδιαίοι έλεγχοι συμμόρφωσης στα bundles, επανεκπαίδευση προσωπικού','Weekly bundle compliance audits, staff retraining','Προϊστάμενος Λοιμώξεων','Infection control nurse lead'],
@@ -28,7 +32,7 @@ function risks(assessmentId,stage,now){
   return {id:`${assessmentId}-${key}`,assessmentId,lineageKey:key,position,section,process,processEn,scope,scopeEn,hazard,hazardEn,
    inherentL:inherent[0],inherentC:inherent[1],existingControls:'Τήρηση διαδικασιών και πρωτοκόλλων, εκπαίδευση προσωπικού, παρακολούθηση συμβάντων',existingControlsEn:'Procedures and protocols, staff training, incident monitoring',
    residualL:residual[0],residualC:residual[1],additionalMeasures:measures,additionalMeasuresEn:measuresEn,owner,ownerEn,dueDate:measures?iso(shift(now,stage==='previous'?-180:120)):null,
-   reviewFrequency:'Μηνιαίος έλεγχος',reviewFrequencyEn:'Monthly review',indicator:'',targetL:stage==='previous'?null:target[0],targetC:stage==='previous'?null:target[1],jci,jciReference:'',prioritized:stage==='current'&&key==='R001',notes:'',consequenceRationale:residual[1]!==inherent[1]?'Τα υφιστάμενα μέτρα περιορίζουν τη σοβαρότητα του συμβάντος.':'',updatedAt:now.toISOString()}
+   reviewFrequency:'Μηνιαίος έλεγχος',reviewFrequencyEn:'Monthly review',indicator:'',targetL:stage==='previous'?null:target[0],targetC:stage==='previous'?null:target[1],jci,jciReference:'',indicatorKeys:suggestIndicators({hazard,process,scope,indicator:'συμβαντ'},DEMO_INDICATORS,2),prioritized:stage==='current'&&key==='R001',notes:'',consequenceRationale:residual[1]!==inherent[1]?'Τα υφιστάμενα μέτρα περιορίζουν τη σοβαρότητα του συμβάντος.':'',updatedAt:now.toISOString()}
  })
 }
 

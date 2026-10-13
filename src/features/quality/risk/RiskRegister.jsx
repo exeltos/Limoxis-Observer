@@ -5,9 +5,10 @@ import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { ActionButton } from '../../../design-system/ActionButton'
 import { JCI_CHAPTERS,LEVELS,SECTIONS,riskWarnings,scored,warningLabel } from './riskModel'
 import { L,LevelChip,txt } from './riskUi'
+import { IndicatorChip } from './RiskIndicatorsUi'
 
 // The register: every risk of the assessment with its three scores.
-export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreateCapa,cell,onClearCell,actions=null}){
+export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreateCapa,cell,onClearCell,actions=null,indicatorValues=null}){
  const [query,setQuery]=useState('')
  const [section,setSection]=useState('all')
  const [process,setProcess]=useState('all')
@@ -52,7 +53,7 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
     {rows.map(({risk,s,warnings})=><tr key={risk.id||risk.lineageKey} onClick={()=>onOpen(risk)}>
      <td><strong>{risk.lineageKey}</strong>{risk.prioritized&&<Star size={13} className="risk-star" aria-label="FMEA"/>}</td>
      <td><span className="risk-process">{txt(risk,'process',en)||'—'}</span><small>{txt(risk,'scope',en)}</small></td>
-     <td className="risk-hazard"><span>{txt(risk,'hazard',en)}</span>{warnings.filter(w=>w.tone!=='info').slice(0,2).map(w=><small key={w.id} className="risk-row-warning"><AlertTriangle size={12}/>{warningLabel(w.id,en)}</small>)}</td>
+     <td className="risk-hazard"><span>{txt(risk,'hazard',en)}</span>{(risk.indicatorKeys||[]).length>0&&<span className="risk-row-indicators">{risk.indicatorKeys.map(key=><IndicatorChip key={key} indicatorKey={key} values={indicatorValues} en={en} compact/>)}</span>}{warnings.filter(w=>w.tone!=='info').slice(0,2).map(w=><small key={w.id} className="risk-row-warning"><AlertTriangle size={12}/>{warningLabel(w.id,en)}</small>)}</td>
      <td><LevelChip score={s.inherent.score} level={s.inherent.level} en={en} compact/></td>
      <td><LevelChip score={s.residual.score} level={s.residual.level} en={en}/></td>
      <td><LevelChip score={s.target.score} level={s.target.level} en={en} compact/></td>

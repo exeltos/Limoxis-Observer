@@ -4,11 +4,12 @@ import { ObserverDialog,DialogActions } from '../../../design-system/ObserverDia
 import { ManualDateField } from '../../../design-system/ManualDateField'
 import { CONSEQUENCE,JCI_CHAPTERS,LIKELIHOOD,SECTIONS,levelInfo,riskWarnings,scored,warningLabel } from './riskModel'
 import { AxisSelect,L,LevelChip,txt } from './riskUi'
+import { IndicatorPicker } from './RiskIndicatorsUi'
 
 const STAGES=[['inherent','Εγγενής κίνδυνος','Inherent risk','Χωρίς κανένα μέτρο','Before any control'],['residual','Υπολειπόμενος κίνδυνος','Residual risk','Με τα μέτρα που ήδη λαμβάνονται','With the controls already in place'],['target','Κίνδυνος-στόχος','Target risk','Μετά τα πρόσθετα μέτρα','After the additional measures']]
 
 // Add or edit one risk. The score, level and warnings update as L and C change.
-export function RiskEditorDialog({risk,processes=[],en,readOnly=false,onClose,onSave,saving=false}){
+export function RiskEditorDialog({risk,processes=[],en,readOnly=false,onClose,onSave,saving=false,indicatorValues=null}){
  const [draft,setDraft]=useState(()=>({section:'clinical',...risk,process:txt(risk,'process',en),scope:txt(risk,'scope',en),hazard:txt(risk,'hazard',en),existingControls:txt(risk,'existingControls',en),additionalMeasures:txt(risk,'additionalMeasures',en),owner:txt(risk,'owner',en),reviewFrequency:txt(risk,'reviewFrequency',en)}))
  const set=(key,value)=>setDraft(current=>({...current,[key]:value}))
  const s=useMemo(()=>scored(draft),[draft])
@@ -53,11 +54,12 @@ export function RiskEditorDialog({risk,processes=[],en,readOnly=false,onClose,on
    </section>
    <section className="risk-editor-block risk-editor-monitoring">
     <h4>{L(en,'Παρακολούθηση','Monitoring')}</h4>
+    <IndicatorPicker risk={draft} values={indicatorValues} en={en} disabled={readOnly} onChange={keys=>set('indicatorKeys',keys)}/>
     <div className="risk-editor-grid risk-editor-grid-monitoring">
      <div className="risk-field-span2">{field('owner',L(en,'Υπεύθυνος υλοποίησης','Owner'))}</div>
      {field('reviewFrequency',L(en,'Συχνότητα ελέγχου','Review frequency'))}
      <ManualDateField label={L(en,'Προθεσμία','Due date')} value={draft.dueDate||''} onChange={v=>set('dueDate',v||null)} optional disabled={readOnly}/>
-     <div className="risk-field-span2">{field('indicator',L(en,'Δείκτης / κωδικός συμβάντος','Indicator / incident code'))}</div>
+     <div className="risk-field-span2">{field('indicator',L(en,'Άλλος δείκτης / κωδικός συμβάντος','Other indicator / incident code'))}</div>
      <label className="observer-check risk-check risk-field-span2"><input type="checkbox" checked={Boolean(draft.prioritized)} disabled={readOnly} onChange={e=>set('prioritized',e.target.checked)}/><span>{L(en,'Επιλογή για προληπτική ανάλυση (FMEA) της περιόδου','Selected for this period’s proactive analysis (FMEA)')}</span></label>
     </div>
     {area('notes',L(en,'Σημειώσεις','Notes'),2)}
