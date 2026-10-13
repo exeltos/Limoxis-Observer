@@ -76,3 +76,28 @@ describe('JCI suggestion',()=>{
   expect(suggestJci('Μαιευτική Αιμορραγία')).toBe('COP')
  })
 })
+
+describe('measures as a list', () => {
+  it('splits numbered measures, also several on one line, and drops the numbers', async () => {
+    const { parseMeasures, joinMeasures } = await import('../src/features/quality/risk/riskModel')
+    expect(parseMeasures('1.Τήρηση πρωτοκόλλων\n2. Εκπαίδευση\n\n3) Έλεγχος')).toEqual(['Τήρηση πρωτοκόλλων', 'Εκπαίδευση', 'Έλεγχος'])
+    expect(parseMeasures('4. Πιστοποιητικό Πυρασφάλειας 5. Ορισμός Ομάδας Πυρασφάλειας')).toEqual(['Πιστοποιητικό Πυρασφάλειας', 'Ορισμός Ομάδας Πυρασφάλειας'])
+    expect(parseMeasures('Υγιεινή χεριών, 2 φορές την ημέρα')).toEqual(['Υγιεινή χεριών, 2 φορές την ημέρα'])
+    expect(parseMeasures('• Πρώτο\n- Δεύτερο')).toEqual(['Πρώτο', 'Δεύτερο'])
+    expect(joinMeasures([' Α ', '', 'Β'])).toBe('Α\nΒ')
+  })
+})
+
+describe('opportunities', () => {
+  it('reads the status from the start of the effectiveness note', async () => {
+    const { readEffectiveness, normalizeOpportunity, ratingLabel } = await import('../src/features/quality/risk/riskModel')
+    expect(readEffectiveness('', 'Προς αξιολόγηση. Ποσοστό προσωπικού που εκπαιδεύτηκε.')).toEqual({ status: 'pending', note: 'Ποσοστό προσωπικού που εκπαιδεύτηκε.' })
+    expect(readEffectiveness('', 'Σε εξέλιξη. Έως 30/11/2026.')).toEqual({ status: 'pending', note: 'Έως 30/11/2026.' })
+    expect(readEffectiveness('', 'Μη αποτελεσματικό')).toEqual({ status: 'ineffective', note: '' })
+    expect(readEffectiveness('', 'Αποτελεσματικό')).toEqual({ status: 'effective', note: '' })
+    expect(readEffectiveness('', 'Επικαιροποίηση Πολιτικής.')).toEqual({ status: '', note: 'Επικαιροποίηση Πολιτικής.' })
+    expect(readEffectiveness('partial', 'Σημείωση')).toEqual({ status: 'partial', note: 'Σημείωση' })
+    expect(normalizeOpportunity({ rating: 'Υψηλή Απόδοση' }).ratingId).toBe('high')
+    expect(ratingLabel('low')).toBe('Χαμηλή απόδοση')
+  })
+})

@@ -21,6 +21,8 @@ const { TenantProvider, useTenant } = await import('../src/core/tenant/TenantCon
 const { NotificationProvider } = await import('../src/core/notifications/NotificationContext')
 const { QualityPage } = await import('../src/features/quality/QualityPage')
 const { RiskAssessmentPage } = await import('../src/features/quality/risk/RiskAssessmentPage')
+const { RiskRecordPage } = await import('../src/features/quality/risk/RiskRecordPage')
+const { OpportunityRecordPage } = await import('../src/features/quality/risk/OpportunityRecordPage')
 
 function Where() { const location = useLocation(); return <pre data-testid="where">{location.pathname}{JSON.stringify(location.state?.qualitySource || null)}</pre> }
 
@@ -31,6 +33,8 @@ async function open(path) {
     <Routes>
       <Route path="/quality" element={<QualityPage/>}/>
       <Route path="/quality/risks/:assessmentCode" element={<RiskAssessmentPage/>}/>
+      <Route path="/quality/risks/:assessmentCode/opportunities/:opportunityId" element={<OpportunityRecordPage/>}/>
+      <Route path="/quality/risks/:assessmentCode/:riskKey" element={<RiskRecordPage/>}/>
       <Route path="*" element={<Where/>}/>
     </Routes>
   </NotificationProvider></TenantProvider></FeedbackProvider></LanguageProvider></MemoryRouter>)
@@ -75,23 +79,67 @@ describe('risk assessment screens', () => {
     expect(screen.getByRole('button', { name: /Βελτιώθηκε/ })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: 'Μεθοδολογία' }))
     expect(await screen.findByText(/A risk matrix for risk managers/)).toBeInTheDocument()
+    // A JCI chapter of the method opens the register on its risks.
+    const chapter = within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button')
+    const count = Number(within(chapter).getByText(/^\d+$/).textContent)
+    expect(count).toBeGreaterThan(0)
+    fireEvent.click(chapter)
+    await screen.findByRole('tab', { name: 'Μητρώο (14)', selected: true })
+    expect(document.querySelectorAll('.risk-register tbody tr.risk-row-clickable')).toHaveLength(count)
+    // «Πίσω» returns to the method, with the chapter marked.
+    expect(screen.getAllByRole('button', { name: 'Πίσω σε «Μεθοδολογία»' })).toHaveLength(2)
+    fireEvent.click(document.querySelector('.risk-origin-back'))
+    await screen.findByRole('tab', { name: 'Μεθοδολογία', selected: true })
+    expect(within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button')).toHaveClass('registry-row-returned')
   })
 
-  it('edits and saves a risk, recomputing its level', async () => {
+  it('shows the details: approval cycle with the next step, next review, the period it came from', async () => {
+    const year = new Date(Date.now() - 7 * 86400000).getFullYear()
+    await open(`/quality/risks/RSA-DEMO-${year}`)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Στοιχεία' }))
+    const steps = [...document.querySelectorAll('.risk-approval li')]
+    expect(steps.map(li => li.querySelector('strong').textContent)).toEqual(['Πρόχειρο', 'Σε έλεγχο', 'Εγκεκριμένη', 'Αρχειοθετημένη'])
+    expect(steps[1]).toHaveClass('is-current')
+    expect(within(document.querySelector('.risk-approval').closest('section')).getByRole('button', { name: /Έγκριση/ })).toBeInTheDocument()
+    expect(document.querySelector('.risk-next-review').textContent).toMatch(/σε \d+ ημέρες/)
+    fireEvent.click(screen.getByText('Μεταφέρθηκε από').closest('button'))
+    expect(await screen.findByText(`RSA-DEMO-${year - 1}`)).toBeInTheDocument()
+  })
+
+  it('edits a risk on its own page and saves it, recomputing its level', async () => {
     const year = new Date(Date.now() - 7 * 86400000).getFullYear()
     await open(`/quality/risks/RSA-DEMO-${year}`)
     await screen.findByRole('tab', { name: 'Μητρώο (14)' })
     const register=()=>within(document.querySelector('.risk-register'))
     fireEvent.click(register().getByText('R007'))
-    const dialog = await screen.findByRole('dialog')
-    const residual = within(dialog).getAllByRole('combobox', { name: /Πιθανότητα \(L\)/ })[1]
+    // The risk opens as a page: the measures are lists, in the order of the assessment.
+    const residual = (await screen.findAllByRole('combobox', { name: /Πιθανότητα \(L\)/ }))[1]
+    expect(screen.getByText('Προληπτικά μέτρα που ήδη λαμβάνονται')).toBeInTheDocument()
     fireEvent.change(residual, { target: { value: '4' } })
     // 4 × 3 = 12: the residual risk becomes High and needs an action plan.
-    expect(within(dialog).getByText('Υψηλός υπολειπόμενος χωρίς πρόσθετα μέτρα')).toBeInTheDocument()
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Αποθήκευση κινδύνου' }))
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByText('Υψηλός υπολειπόμενος χωρίς πρόσθετα μέτρα')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση κινδύνου/ }))
+    await screen.findByRole('tab', { name: 'Μητρώο (14)' })
     const row = register().getByText('R007').closest('tr')
     expect(within(row).getByText('Υψηλός')).toBeInTheDocument()
+    // Back in the register, the risk just edited stays marked.
+    expect(row).toHaveClass('registry-row-returned')
+  })
+
+  it('edits an opportunity on its own page: yield and effectiveness are fixed choices', async () => {
+    const year = new Date(Date.now() - 7 * 86400000).getFullYear()
+    await open(`/quality/risks/RSA-DEMO-${year}`)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Ευκαιρίες' }))
+    const table = () => within(document.querySelector('.risk-opportunities'))
+    expect(table().getByText('Υψηλή απόδοση')).toBeInTheDocument()
+    expect(table().getByText('Αποτελεσματικό')).toBeInTheDocument()
+    fireEvent.click(table().getByText('Ε001'))
+    fireEvent.click(await screen.findByRole('radio', { name: 'Μερικώς αποτελεσματικό' }))
+    fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση ευκαιρίας/ }))
+    await screen.findByRole('tab', { name: 'Ευκαιρίες' })
+    const row = table().getByText('Ε001').closest('tr')
+    expect(within(row).getByText('Μερικώς αποτελεσματικό')).toBeInTheDocument()
+    expect(row).toHaveClass('registry-row-returned')
   })
 })
 

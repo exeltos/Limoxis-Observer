@@ -111,3 +111,30 @@ export function calendarTone(cell) {
   return 'empty'
 }
 
+
+// The year so far for one row: frequent controls as done / due, infrequent
+// ones as done against done + missed; `planned` counts what is still ahead.
+export function calendarYearSummary(months = []) {
+  const active = months.filter((cell) => !cell.inactive)
+  if (active.some((cell) => cell.frequent)) {
+    const done = active.reduce((sum, cell) => sum + (cell.when === 'future' ? 0 : cell.done), 0)
+    const expected = active.reduce((sum, cell) => sum + (cell.expected || 0), 0)
+    const planned = active.reduce((sum, cell) => sum + (cell.planned || 0), 0)
+    return { frequent: true, done, expected, planned, rate: expected ? Math.round((Math.min(done, expected) / expected) * 100) : null }
+  }
+  const done = active.reduce((sum, cell) => sum + cell.done, 0)
+  const missed = active.reduce((sum, cell) => sum + cell.missed.length, 0)
+  const planned = active.reduce((sum, cell) => sum + cell.planned.length, 0)
+  return { frequent: false, done, expected: done + missed, missed, planned, rate: done + missed ? Math.round((done / (done + missed)) * 100) : null }
+}
+
+// Consecutive rows of the same control, so the calendar names it once.
+export function groupCalendarLines(lines = []) {
+  const groups = []
+  for (const line of lines) {
+    const last = groups[groups.length - 1]
+    if (last && last.item.id === line.item.id) last.lines.push(line)
+    else groups.push({ item: line.item, lines: [line] })
+  }
+  return groups
+}

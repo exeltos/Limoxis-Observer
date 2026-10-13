@@ -10,8 +10,8 @@ import { unpackTemplate } from './riskImport'
 
 const LOCAL='quality_local_risk_assessments'
 const ASSESSMENT_COLUMNS='id,code,title,period_label,period_kind,assessed_on,next_review_on,assessor_label,form_code,scope_note,status,approved_by_label,approved_on,source_assessment_id,history,updated_at'
-const RISK_COLUMNS='id,assessment_id,lineage_key,position,section,process,scope,hazard,inherent_l,inherent_c,existing_controls,residual_l,residual_c,consequence_rationale,additional_measures,owner_label,due_date,review_frequency,indicator,target_l,target_c,jci_chapter,jci_reference,prioritized,notes,updated_at'
-const OPPORTUNITY_COLUMNS='id,assessment_id,position,activity,opportunity,rating,action_plan,timeframe,owner_label,effectiveness,updated_at'
+const RISK_COLUMNS='id,assessment_id,lineage_key,position,section,process,scope,hazard,inherent_l,inherent_c,existing_controls,residual_l,residual_c,consequence_rationale,additional_measures,owner_label,due_date,review_frequency,indicator,target_l,target_c,jci_chapter,jci_reference,indicator_keys,prioritized,notes,updated_at'
+const OPPORTUNITY_COLUMNS='id,assessment_id,position,activity,opportunity,rating,action_plan,timeframe,owner_label,effectiveness,effectiveness_status,updated_at'
 
 const demo=()=>isDemoDataEnvironment()||!supabase
 function assertReady(organizationId){if(!organizationId)throw new Error('Organization is required.')}
@@ -27,12 +27,12 @@ export function newAssessmentCode(date=new Date()){const p=n=>String(n).padStart
 export function nextLineageKey(risks=[]){const max=risks.reduce((m,r)=>Math.max(m,Number(String(r.lineageKey||'').replace(/\D/g,''))||0),0);return `R${String(max+1).padStart(3,'0')}`}
 
 const mapAssessment=row=>({id:row.id,code:row.code,title:row.title,periodLabel:row.period_label,periodKind:row.period_kind,assessedOn:row.assessed_on,nextReviewOn:row.next_review_on,assessorLabel:row.assessor_label||'',formCode:row.form_code||'',scopeNote:row.scope_note||'',status:row.status,approvedByLabel:row.approved_by_label||'',approvedOn:row.approved_on,sourceAssessmentId:row.source_assessment_id,history:row.history||[],updatedAt:row.updated_at})
-const mapRisk=row=>({id:row.id,assessmentId:row.assessment_id,lineageKey:row.lineage_key,position:row.position,section:row.section,process:row.process||'',scope:row.scope||'',hazard:row.hazard||'',inherentL:row.inherent_l,inherentC:row.inherent_c,existingControls:row.existing_controls||'',residualL:row.residual_l,residualC:row.residual_c,consequenceRationale:row.consequence_rationale||'',additionalMeasures:row.additional_measures||'',owner:row.owner_label||'',dueDate:row.due_date,reviewFrequency:row.review_frequency||'',indicator:row.indicator||'',targetL:row.target_l,targetC:row.target_c,jci:row.jci_chapter||'',jciReference:row.jci_reference||'',prioritized:Boolean(row.prioritized),notes:row.notes||'',updatedAt:row.updated_at})
-const mapOpportunity=row=>({id:row.id,assessmentId:row.assessment_id,position:row.position,activity:row.activity||'',opportunity:row.opportunity||'',rating:row.rating||'',actionPlan:row.action_plan||'',timeframe:row.timeframe||'',owner:row.owner_label||'',effectiveness:row.effectiveness||'',updatedAt:row.updated_at})
+const mapRisk=row=>({id:row.id,assessmentId:row.assessment_id,lineageKey:row.lineage_key,position:row.position,section:row.section,process:row.process||'',scope:row.scope||'',hazard:row.hazard||'',inherentL:row.inherent_l,inherentC:row.inherent_c,existingControls:row.existing_controls||'',residualL:row.residual_l,residualC:row.residual_c,consequenceRationale:row.consequence_rationale||'',additionalMeasures:row.additional_measures||'',owner:row.owner_label||'',dueDate:row.due_date,reviewFrequency:row.review_frequency||'',indicator:row.indicator||'',targetL:row.target_l,targetC:row.target_c,jci:row.jci_chapter||'',jciReference:row.jci_reference||'',indicatorKeys:Array.isArray(row.indicator_keys)?row.indicator_keys:[],prioritized:Boolean(row.prioritized),notes:row.notes||'',updatedAt:row.updated_at})
+const mapOpportunity=row=>({id:row.id,assessmentId:row.assessment_id,position:row.position,activity:row.activity||'',opportunity:row.opportunity||'',rating:row.rating||'',actionPlan:row.action_plan||'',timeframe:row.timeframe||'',owner:row.owner_label||'',effectiveness:row.effectiveness||'',effectivenessStatus:row.effectiveness_status||'',updatedAt:row.updated_at})
 
 const assessmentPayload=a=>({title:a.title,period_label:a.periodLabel,period_kind:a.periodKind||'annual',assessed_on:a.assessedOn,next_review_on:nullable(a.nextReviewOn),assessor_label:nullable(a.assessorLabel),form_code:nullable(a.formCode),scope_note:nullable(a.scopeNote),status:a.status||'draft',approved_by_label:nullable(a.approvedByLabel),approved_on:nullable(a.approvedOn),history:a.history||[]})
-const riskPayload=r=>({lineage_key:r.lineageKey,position:r.position||0,section:r.section||'clinical',process:nullable(r.process),scope:nullable(r.scope),hazard:r.hazard,inherent_l:axis(r.inherentL),inherent_c:axis(r.inherentC),existing_controls:nullable(r.existingControls),residual_l:axis(r.residualL),residual_c:axis(r.residualC),consequence_rationale:nullable(r.consequenceRationale),additional_measures:nullable(r.additionalMeasures),owner_label:nullable(r.owner),due_date:nullable(r.dueDate),review_frequency:nullable(r.reviewFrequency),indicator:nullable(r.indicator),target_l:axis(r.targetL),target_c:axis(r.targetC),jci_chapter:nullable(r.jci),jci_reference:nullable(r.jciReference),prioritized:Boolean(r.prioritized),notes:nullable(r.notes)})
-const opportunityPayload=o=>({position:o.position||0,activity:o.activity,opportunity:nullable(o.opportunity),rating:nullable(o.rating),action_plan:nullable(o.actionPlan),timeframe:nullable(o.timeframe),owner_label:nullable(o.owner),effectiveness:nullable(o.effectiveness)})
+const riskPayload=r=>({lineage_key:r.lineageKey,position:r.position||0,section:r.section||'clinical',process:nullable(r.process),scope:nullable(r.scope),hazard:r.hazard,inherent_l:axis(r.inherentL),inherent_c:axis(r.inherentC),existing_controls:nullable(r.existingControls),residual_l:axis(r.residualL),residual_c:axis(r.residualC),consequence_rationale:nullable(r.consequenceRationale),additional_measures:nullable(r.additionalMeasures),owner_label:nullable(r.owner),due_date:nullable(r.dueDate),review_frequency:nullable(r.reviewFrequency),indicator:nullable(r.indicator),target_l:axis(r.targetL),target_c:axis(r.targetC),jci_chapter:nullable(r.jci),jci_reference:nullable(r.jciReference),indicator_keys:Array.isArray(r.indicatorKeys)?[...new Set(r.indicatorKeys.filter(Boolean))]:[],prioritized:Boolean(r.prioritized),notes:nullable(r.notes)})
+const opportunityPayload=o=>({position:o.position||0,activity:o.activity,opportunity:nullable(o.opportunity),rating:nullable(o.rating),action_plan:nullable(o.actionPlan),timeframe:nullable(o.timeframe),owner_label:nullable(o.owner),effectiveness:nullable(o.effectiveness),effectiveness_status:o.effectivenessStatus||null})
 
 // Every assessment of the organization with its risks (the list, the
 // comparison and the trend all need them), newest first.
@@ -64,8 +64,8 @@ export async function loadRiskAssessment(organizationId,code){
 // A new assessment, empty or carried forward from an earlier one: the risks
 // keep their lineage keys (that is what the comparison follows) and their
 // scores, ready to be reassessed for the new period.
-export async function createRiskAssessment(organizationId,draft,{carryFrom=null,risks=null,opportunities=null}={}){
- const code=newAssessmentCode()
+export async function createRiskAssessment(organizationId,draft,{carryFrom=null,risks=null,opportunities=null,code:givenCode=null}={}){
+ const code=givenCode||newAssessmentCode()
  const sourceRisks=risks||(carryFrom?.risks||[])
  const sourceOpportunities=opportunities||(carryFrom?.opportunities||[])
  const header={...draft,code,status:'draft',sourceAssessmentId:carryFrom?.id||null}
@@ -138,9 +138,11 @@ export async function deleteRiskAssessment(organizationId,assessment){
 // Assessments created together (an import with a reassessment, a template),
 // oldest first: each one points to the one before it.
 export async function createAssessmentSeries(organizationId,plan,history=[]){
- let previous=null;const created=[]
- for(const item of plan){
-  previous=await createRiskAssessment(organizationId,{...item.header,history},{carryFrom:previous?{id:previous.id}:null,risks:item.risks,opportunities:item.opportunities})
+ // Codes come from the clock to the second; a second apart each, so two
+ // assessments created together never share one.
+ let previous=null;const created=[];const start=Date.now()
+ for(const [i,item] of plan.entries()){
+  previous=await createRiskAssessment(organizationId,{...item.header,history},{carryFrom:previous?{id:previous.id}:null,risks:item.risks,opportunities:item.opportunities,code:newAssessmentCode(new Date(start+i*1000))})
   created.push(previous)
  }
  return created

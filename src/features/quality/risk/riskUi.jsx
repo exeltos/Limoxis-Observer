@@ -1,6 +1,30 @@
 // Shared pieces of the risk assessment screens: level chips, the 5×5 heat map,
 // the L/C pickers and the legend. Colours are the NHS bands (see riskAssessment.css).
+import { useState } from 'react'
+import { RegistryPagination } from '../../../design-system/RegistryPagination'
+import { readSessionValue,writeSessionValue } from '../../../core/storage/browserStorage'
 import { CONSEQUENCE,LEVELS,LIKELIHOOD,levelForScore,levelLabel } from './riskModel'
+
+// The row last opened in a list, kept for the session, so it is highlighted
+// on the way back (the registries' registry-row-returned).
+export const rememberRow=(key,id)=>writeSessionValue(key,String(id))
+export function useReturnedRow(key){
+ const [returned,setReturned]=useState(()=>readSessionValue(key,'')||'')
+ return {returned,remember:id=>{rememberRow(key,id);setReturned(String(id))}}
+}
+// Pages of a table with the registries' pager. A new filter (resetOn) goes back
+// to page 1; on the way back from a record the page holding it is shown.
+export function usePaged(list,{en=false,resetOn='',startIndex=-1}={}){
+ const [pageSize,setPageSize]=useState(15)
+ const [page,setPage]=useState(()=>startIndex>=0?Math.floor(startIndex/15)+1:1)
+ const [seen,setSeen]=useState(resetOn)
+ if(seen!==resetOn){setSeen(resetOn);setPage(1)}
+ const totalPages=Math.max(1,Math.ceil(list.length/pageSize)),safePage=Math.min(page,totalPages)
+ const items=list.slice((safePage-1)*pageSize,safePage*pageSize)
+ const pager=<RegistryPagination language={en?'en':'el'} page={safePage} totalPages={totalPages} totalItems={list.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
+ return {items,pager}
+}
+export const returnedClass=(returned,id)=>returned&&String(id)===returned?' registry-row-returned':''
 
 // Demo records carry English wording in `<field>En`; user records have one language.
 export const txt=(item,field,en)=>(en&&item?.[`${field}En`])||item?.[field]||''
@@ -14,8 +38,9 @@ export function LevelChip({score,level,en,compact=false,title}){
 
 // Rows: consequence 5 (top) to 1; columns: likelihood 1 to 5. A cell shows how
 // many risks sit there; its colour is the band of L×C.
-export function RiskHeatMap({heat,en,title,caption,onCell,active}){
- return <figure className="risk-heatmap">
+export function RiskHeatMap({heat,en,title,caption,onCell,active,emptyNote=''}){
+ const empty=!(heat||[]).some(row=>row.some(Boolean))
+ return <figure className={`risk-heatmap${empty&&emptyNote?' is-empty':''}`}>
   {title&&<figcaption><strong>{title}</strong>{caption&&<span>{caption}</span>}</figcaption>}
   <div className="risk-heatmap-body">
    <span className="risk-heatmap-axis risk-heatmap-axis-c">{L(en,'Συνέπεια (C)','Consequence (C)')}</span>
@@ -25,6 +50,7 @@ export function RiskHeatMap({heat,en,title,caption,onCell,active}){
     <tr><th aria-hidden="true"/>{[1,2,3,4,5].map(l=><th key={l} scope="col" title={LIKELIHOOD[l-1][en?'en':'el']}>{l}</th>)}</tr>
    </tbody></table>
    <span className="risk-heatmap-axis risk-heatmap-axis-l">{L(en,'Πιθανότητα (L)','Likelihood (L)')}</span>
+   {empty&&emptyNote&&<p className="risk-heatmap-empty">{emptyNote}</p>}
   </div>
  </figure>
 }
