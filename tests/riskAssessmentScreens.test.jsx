@@ -93,6 +93,19 @@ describe('risk assessment screens', () => {
     expect(within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button')).toHaveClass('registry-row-returned')
   })
 
+  it('shows the details: approval cycle with the next step, next review, the period it came from', async () => {
+    const year = new Date(Date.now() - 7 * 86400000).getFullYear()
+    await open(`/quality/risks/RSA-DEMO-${year}`)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Στοιχεία' }))
+    const steps = [...document.querySelectorAll('.risk-approval li')]
+    expect(steps.map(li => li.querySelector('strong').textContent)).toEqual(['Πρόχειρο', 'Σε έλεγχο', 'Εγκεκριμένη', 'Αρχειοθετημένη'])
+    expect(steps[1]).toHaveClass('is-current')
+    expect(within(document.querySelector('.risk-approval').closest('section')).getByRole('button', { name: /Έγκριση/ })).toBeInTheDocument()
+    expect(document.querySelector('.risk-next-review').textContent).toMatch(/σε \d+ ημέρες/)
+    fireEvent.click(screen.getByText('Μεταφέρθηκε από').closest('button'))
+    expect(await screen.findByText(`RSA-DEMO-${year - 1}`)).toBeInTheDocument()
+  })
+
   it('edits a risk on its own page and saves it, recomputing its level', async () => {
     const year = new Date(Date.now() - 7 * 86400000).getFullYear()
     await open(`/quality/risks/RSA-DEMO-${year}`)

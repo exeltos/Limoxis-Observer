@@ -15,8 +15,8 @@ import { can,CAPABILITIES,ROLES } from '../../../core/permissions/roles'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
 import { exportRegistry } from '../../../core/export/registryExports'
-import { deleteOpportunity,deleteRisk,deleteRiskAssessment,loadRiskAssessment,loadRiskAssessments,saveRisk,saveRiskAssessment } from './riskService'
-import { levelLabel,scored,summarizeRisks } from './riskModel'
+import { createRiskAssessment,deleteOpportunity,deleteRisk,deleteRiskAssessment,loadRiskAssessment,loadRiskAssessments,saveRisk,saveRiskAssessment } from './riskService'
+import { levelLabel,scored,suggestPeriodLabel,summarizeRisks } from './riskModel'
 import { RiskRegister } from './RiskRegister'
 import { RiskAnalysis } from './RiskAnalysis'
 import { RiskComparison } from './RiskComparison'
@@ -24,10 +24,11 @@ import { RiskOpportunities } from './RiskOpportunities'
 import { RiskMethodology } from './RiskMethodology'
 import { RiskReport } from './RiskReport'
 import { AssessmentDetailsDialog } from './RiskAssessmentsPanel'
+import { RiskAssessmentDetails } from './RiskAssessmentDetails'
 import { rememberQualitySection } from '../qualityReturnSection'
 import { LinkIndicatorsDialog } from './RiskIndicatorsUi'
 import { loadIndicatorValues } from './riskIndicators'
-import { L,PERIOD_KINDS,fmtDate,rememberRow,statusLabel,statusTone,txt,useReturnedRow } from './riskUi'
+import { L,fmtDate,rememberRow,statusLabel,statusTone,txt,useReturnedRow } from './riskUi'
 import './riskAssessment.css'
 
 const EDITABLE=['draft','under_review']
@@ -73,6 +74,7 @@ export function RiskAssessmentPage(){
  const [confirm,setConfirm]=useState(null)
  const [approving,setApproving]=useState(false)
  const [detailsOpen,setDetailsOpen]=useState(false)
+ const [creatingNext,setCreatingNext]=useState(false)
  const [saving,setSaving]=useState(false)
  const [indicatorValues,setIndicatorValues]=useState(null)
  const [linking,setLinking]=useState(false)
@@ -119,6 +121,11 @@ export function RiskAssessmentPage(){
  const openRisk=risk=>{if((risks||[]).some(r=>r.lineageKey===risk.lineageKey)){riskRow.remember(risk.lineageKey);navigate(`/quality/risks/${assessment.code}/${risk.lineageKey}`,{state:{riskTab:tab,returnState:view}})}}
  async function removeRisk(risk){try{await deleteRisk(organizationId,assessment.id,risk.id);setAssessment(current=>({...current,risks:current.risks.filter(r=>r.id!==risk.id)}));notify(L(en,'Ο κίνδυνος διαγράφηκε.','The risk was deleted.'),'success')}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
  async function removeOpportunity(item){try{await deleteOpportunity(organizationId,assessment.id,item.id);setAssessment(current=>({...current,opportunities:current.opportunities.filter(o=>o.id!==item.id)}))}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
+ // The next period, with this assessment's risks carried over to be reassessed.
+ async function createNext(draft,carryFrom){
+  try{const created=await createRiskAssessment(organizationId,{...draft,history:[auditEvent('riskAssessmentCreated',{actor})]},{carryFrom});setCreatingNext(false);navigate(`/quality/risks/${created.code}`)}
+  catch{notify(L(en,'Δεν ήταν δυνατή η δημιουργία της εκτίμησης.','Could not create the assessment.'),'error')}
+ }
  async function removeAssessment(){try{await deleteRiskAssessment(organizationId,assessment);goBack()}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
  function createCapa(risk){
   const s=scored(risk)
@@ -145,6 +152,8 @@ export function RiskAssessmentPage(){
   {id:'export',label:L(en,'Λήψη μητρώου (Excel)','Download the register (Excel)'),icon:Download,onClick:exportCsv},
   ...statusItems.map((item,i)=>i===0?{...item,separatorBefore:true}:item),
  ]
+ // The next step of the approval cycle, offered on the «Στοιχεία» tab.
+ const nextStep=statusItems.find(item=>item.id===(assessment.status==='draft'?'review':assessment.status==='under_review'?'approve':assessment.status==='approved'?'archive':''))||null
  const menu=<OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} items={menuItems}/>
 
  const tabs=[
@@ -167,16 +176,16 @@ export function RiskAssessmentPage(){
    {/* The record shell keeps only edit/delete from headerActions, so the "…" menu sits here: in the register's toolbar, or on its own line in the other tabs. */}
    {!canEdit&&canManage&&<p className="risk-locked">{L(en,`Η εκτίμηση είναι «${statusLabel(assessment.status,en)}» και δεν αλλάζει. Για αλλαγές: «Επαναφορά σε πρόχειρο».`,`The assessment is “${statusLabel(assessment.status,en)}” and locked. To change it: “Back to draft”.`)}</p>}
    {origin&&<button type="button" className="risk-origin-back" onClick={returnToOrigin}><ArrowLeft size={14}/>{L(en,`Πίσω σε «${tabs.find(t=>t.id===origin.tab)?.label||''}»`,`Back to “${tabs.find(t=>t.id===origin.tab)?.label||''}”`)}</button>}
-   {tab==='details'&&<div className="risk-page-bar">{menu}</div>}
    {tab==='register'&&<RiskRegister key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues} returned={riskRow.returned}/>}
    {tab==='analysis'&&<RiskAnalysis mark={view.riskMark||''} returned={riskRow.returned} actions={menu} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>jump('register',{cell:c},`${c.kind}:${c.l}:${c.c}`)}/>}
    {tab==='comparison'&&<RiskComparison returned={riskRow.returned} actions={menu} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk,from)=>{if(from&&from.id!==assessment.id){rememberRow(`limoxis.quality.risk.returned.${from.code}`,risk.lineageKey);navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}})}else openRisk(risk)}}/>}
    {tab==='opportunities'&&<RiskOpportunities returned={opportunityRow.returned} actions={menu} items={assessment.opportunities||[]} en={en} canEdit={canEdit} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}} onCreate={()=>navigate(`/quality/risks/${assessment.code}/opportunities/new`)} onDelete={removeOpportunity}/>}
    {tab==='methodology'&&<RiskMethodology en={en} risks={risks} actions={menu} returned={view.riskMark||''} onJci={jci=>jump('register',{jci},`jci:${jci}`)} onPickFmea={()=>jump('register',{quick:'highOrAbove'},'fmea')}/>}
-   {tab==='details'&&<AssessmentDetails assessment={assessment} en={en} locale={locale}/>}
+   {tab==='details'&&<RiskAssessmentDetails assessment={assessment} assessments={all} en={en} locale={locale} actions={menu} canEdit={canEdit} onEdit={()=>setDetailsOpen(true)} nextStep={nextStep} onOpenAssessment={code=>navigate(`/quality/risks/${code}`)} onCreateNext={canManage?()=>setCreatingNext(true):null}/>}
   </div>
   <div className="risk-print-host" aria-hidden="true"><RiskReport ref={reportRef} assessment={{...assessment,risks}} summary={summary} previous={previous} organizationName={tenant?.name||''} en={en} locale={locale}/></div>
   {linking&&<LinkIndicatorsDialog risks={risks} values={indicatorValues||new Map()} en={en} saving={saving} onClose={()=>setLinking(false)} onSave={linkIndicators}/>}
+  {creatingNext&&<AssessmentDetailsDialog en={en} assessments={[{...assessment,risks}]} initial={{title:assessment.title,formCode:assessment.formCode,periodKind:assessment.periodKind,assessorLabel:assessment.assessorLabel,scopeNote:assessment.scopeNote,periodLabel:suggestPeriodLabel(assessment.periodKind,new Date().toISOString().slice(0,10),en)}} onClose={()=>setCreatingNext(false)} onSave={createNext}/>}
   {detailsOpen&&<AssessmentDetailsDialog initial={assessment} en={en} onClose={()=>setDetailsOpen(false)} onSave={async draft=>{if(await persistAssessment(draft,'riskAssessmentUpdated'))setDetailsOpen(false)}}/>}
   {approving&&<ApproveDialog en={en} onClose={()=>setApproving(false)} onSave={async ({by,on})=>{if(await persistAssessment({status:'approved',approvedByLabel:by,approvedOn:on},'riskAssessmentApproved'))setApproving(false)}}/>}
   {confirm&&<ObserverDialog width="compact" title={confirm.kind==='assessment'?L(en,'Διαγραφή εκτίμησης','Delete assessment'):L(en,'Διαγραφή κινδύνου','Delete risk')} onClose={()=>setConfirm(null)} footer={<DialogActions onCancel={()=>setConfirm(null)} showCancel onSave={async()=>{const c=confirm;setConfirm(null);if(c.kind==='assessment')await removeAssessment();else await removeRisk(c.risk)}} saveLabel={L(en,'Διαγραφή','Delete')}/>}>
@@ -193,11 +202,3 @@ function ApproveDialog({en,onClose,onSave}){
  </ObserverDialog>
 }
 
-function AssessmentDetails({assessment,en,locale}){
- const rows=[[L(en,'Κωδικός εντύπου','Form code'),assessment.formCode],[L(en,'Περίοδος','Period'),`${assessment.periodLabel} · ${PERIOD_KINDS[assessment.periodKind]?.[en?1:0]||''}`],[L(en,'Ημερομηνία αξιολόγησης','Assessment date'),fmtDate(assessment.assessedOn,locale)],[L(en,'Επόμενη αξιολόγηση','Next assessment'),fmtDate(assessment.nextReviewOn,locale)],[L(en,'Υπεύθυνος αξιολόγησης','Assessed by'),assessment.assessorLabel],[L(en,'Έγκριση','Approval'),assessment.approvedByLabel?`${assessment.approvedByLabel} · ${fmtDate(assessment.approvedOn,locale)}`:''],[L(en,'Πεδίο εφαρμογής / σημειώσεις','Scope / notes'),assessment.scopeNote]]
- return <div className="risk-details">
-  <dl className="risk-details-grid">{rows.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v||'—'}</dd></div>)}</dl>
-  <section className="risk-panel"><header><h3>{L(en,'Ιστορικό','History')}</h3></header>{(assessment.history||[]).length?<ol className="risk-history">{[...assessment.history].reverse().map(h=><li key={h.id}><strong>{HISTORY[h.action]?.[en?1:0]||h.action}</strong><span>{h.actor} · {new Date(h.at).toLocaleString(locale)}</span></li>)}</ol>:<p className="risk-empty-note">{L(en,'Δεν υπάρχουν καταγραφές.','No entries.')}</p>}</section>
- </div>
-}
-const HISTORY={riskAssessmentCreated:['Δημιουργία εκτίμησης','Assessment created'],riskAssessmentImported:['Εισαγωγή από Excel','Imported from Excel'],riskAssessmentSubmitted:['Υποβολή για έλεγχο','Submitted for review'],riskAssessmentApproved:['Έγκριση','Approved'],riskAssessmentReopened:['Επαναφορά σε πρόχειρο','Back to draft'],riskAssessmentArchived:['Αρχειοθέτηση','Archived'],riskAssessmentUpdated:['Αλλαγή στοιχείων','Details changed']}
