@@ -111,6 +111,15 @@
 .risk-editor-block{display:flex;flex-direction:column;gap:10px}
 .risk-editor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 12px}
 .risk-editor-grid-single{grid-template-columns:1fr}
+.risk-editor-measures{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.risk-editor-measures>.risk-field-wide{grid-column:auto}
+.risk-editor-measures textarea{min-height:140px;line-height:1.55;resize:vertical}
+.risk-field>span small{margin-left:6px;font-weight:500;color:var(--lo-color-muted)}
+.risk-editor-monitoring{padding:12px;border:1px solid var(--lo-color-border);border-radius:12px;background:#fafcfd}
+.risk-editor-monitoring h4{margin:0;font-size:12.5px;font-weight:750;color:var(--lo-color-text)}
+.risk-editor-grid-monitoring{grid-template-columns:repeat(4,minmax(0,1fr));align-items:end}
+.risk-field-span2{grid-column:span 2;min-width:0}
+.risk-field-span2>.risk-field{width:100%}
 .risk-field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .risk-field-wide{grid-column:1/-1}
 .risk-field>span,.risk-axis-select>span{font-size:11px;font-weight:650;color:#34475c}
@@ -195,8 +204,8 @@
 .risk-report .risk-cell{height:26px;font-size:12px;opacity:1}
 .risk-report .risk-cell button,.risk-report .risk-cell span{line-height:26px}
 
-@media(max-width:1100px){.risk-heatmaps,.risk-two-columns,.risk-editor-stages{grid-template-columns:1fr}.risk-editor-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:620px){.risk-editor-grid{grid-template-columns:1fr}}
+@media(max-width:1100px){.risk-heatmaps,.risk-two-columns,.risk-editor-stages,.risk-editor-measures{grid-template-columns:1fr}.risk-editor-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.risk-editor-grid{grid-template-columns:1fr}.risk-field-span2{grid-column:auto}}
 
 /* The platform owner's templates: a small, quiet button beside the import. */
 .risk-owner-template{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px dashed var(--lo-color-border);border-radius:8px;background:transparent;color:var(--lo-color-muted);cursor:pointer}

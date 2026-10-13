@@ -16,7 +16,10 @@ export function RiskEditorDialog({risk,processes=[],en,readOnly=false,onClose,on
  const residualLevel=levelInfo(s.residual.level)
  const valid=Boolean(String(draft.hazard||'').trim())&&s.inherent.score&&s.residual.score
  const field=(key,label,props={})=><label className="risk-field"><span>{label}</span><input value={draft[key]??''} disabled={readOnly} onChange={e=>set(key,e.target.value)} {...props}/></label>
- const area=(key,label,rows=3)=><label className="risk-field risk-field-wide"><span>{label}</span><textarea rows={rows} value={draft[key]??''} disabled={readOnly} onChange={e=>set(key,e.target.value)}/></label>
+ const area=(key,label,rows=3,hint='')=><label className="risk-field risk-field-wide"><span>{label}{hint&&<small>{hint}</small>}</span><textarea rows={rows} value={draft[key]??''} disabled={readOnly} onChange={e=>set(key,e.target.value)}/></label>
+ // Measure lists grow with their lines (one measure per line), within limits.
+ const listRows=key=>Math.min(14,Math.max(6,String(draft[key]||'').split('\n').length+1))
+ const measureRows=Math.max(listRows('existingControls'),listRows('additionalMeasures'))
  return <ObserverDialog width="wide" eyebrow={draft.lineageKey||L(en,'Νέος κίνδυνος','New risk')} title={L(en,'Κίνδυνος','Risk')} subtitle={draft.process||undefined} onClose={onClose}
   footer={<DialogActions onCancel={onClose} showCancel cancelLabel={readOnly?L(en,'Κλείσιμο','Close'):undefined} onSave={readOnly?undefined:()=>onSave(draft)} disabled={!valid||saving} saveLabel={L(en,'Αποθήκευση κινδύνου','Save risk')}/>}>
   <div className="risk-editor">
@@ -39,20 +42,24 @@ export function RiskEditorDialog({risk,processes=[],en,readOnly=false,onClose,on
       <AxisSelect label={L(en,'Συνέπεια (C)','Consequence (C)')} value={draft[`${kind}C`]} onChange={v=>set(`${kind}C`,v)} scale={CONSEQUENCE} en={en} disabled={readOnly}/>
      </div>
      <LevelChip score={s[kind].score} level={s[kind].level} en={en}/>
-     {kind==='inherent'&&area('existingControls',L(en,'Προληπτικά μέτρα που ήδη λαμβάνονται','Controls already in place'),4)}
      {kind==='residual'&&s.inherent.c&&s.residual.c&&s.inherent.c!==s.residual.c&&area('consequenceRationale',L(en,'Γιατί άλλαξε η συνέπεια;','Why did the consequence change?'),2)}
      {kind==='residual'&&residualLevel&&<p className={`risk-response risk-response-${residualLevel.id}`}>{en?residualLevel.responseEn:residualLevel.responseEl}</p>}
     </div>)}
    </section>
-   <section className="risk-editor-block">
-    {area('additionalMeasures',L(en,'Απαιτούμενα πρόσθετα μέτρα (σχέδιο δράσης)','Additional measures required (action plan)'),3)}
-    <div className="risk-editor-grid">
-     {field('owner',L(en,'Υπεύθυνος υλοποίησης','Owner'))}
-     <ManualDateField label={L(en,'Προθεσμία','Due date')} value={draft.dueDate||''} onChange={v=>set('dueDate',v||null)} optional disabled={readOnly}/>
+   {/* The measures side by side: the controls in place lead to the residual risk, the additional measures to the target. */}
+   <section className="risk-editor-measures">
+    {area('existingControls',L(en,'Προληπτικά μέτρα που ήδη λαμβάνονται','Controls already in place'),measureRows,L(en,'ένα ανά γραμμή','one per line'))}
+    {area('additionalMeasures',L(en,'Απαιτούμενα πρόσθετα μέτρα (σχέδιο δράσης)','Additional measures required (action plan)'),measureRows,L(en,'ένα ανά γραμμή','one per line'))}
+   </section>
+   <section className="risk-editor-block risk-editor-monitoring">
+    <h4>{L(en,'Παρακολούθηση','Monitoring')}</h4>
+    <div className="risk-editor-grid risk-editor-grid-monitoring">
+     <div className="risk-field-span2">{field('owner',L(en,'Υπεύθυνος υλοποίησης','Owner'))}</div>
      {field('reviewFrequency',L(en,'Συχνότητα ελέγχου','Review frequency'))}
-     {field('indicator',L(en,'Δείκτης / κωδικός συμβάντος','Indicator / incident code'))}
+     <ManualDateField label={L(en,'Προθεσμία','Due date')} value={draft.dueDate||''} onChange={v=>set('dueDate',v||null)} optional disabled={readOnly}/>
+     <div className="risk-field-span2">{field('indicator',L(en,'Δείκτης / κωδικός συμβάντος','Indicator / incident code'))}</div>
+     <label className="observer-check risk-check risk-field-span2"><input type="checkbox" checked={Boolean(draft.prioritized)} disabled={readOnly} onChange={e=>set('prioritized',e.target.checked)}/><span>{L(en,'Επιλογή για προληπτική ανάλυση (FMEA) της περιόδου','Selected for this period’s proactive analysis (FMEA)')}</span></label>
     </div>
-    <label className="observer-check risk-check"><input type="checkbox" checked={Boolean(draft.prioritized)} disabled={readOnly} onChange={e=>set('prioritized',e.target.checked)}/><span>{L(en,'Επιλογή για προληπτική ανάλυση (FMEA) της περιόδου','Selected for this period’s proactive analysis (FMEA)')}</span></label>
     {area('notes',L(en,'Σημειώσεις','Notes'),2)}
    </section>
    {warnings.length>0&&<ul className="risk-warnings">{warnings.map(w=><li key={w.id} className={`risk-warning-${w.tone}`}>{w.tone==='info'?<Info size={14}/>:<AlertTriangle size={14}/>}{warningLabel(w.id,en)}</li>)}</ul>}
