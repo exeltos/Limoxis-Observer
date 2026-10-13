@@ -5,7 +5,10 @@ const page = fs.readFileSync('src/features/quality/QualityPage.jsx', 'utf8')
 
 describe('Quality center entry and audits tab', () => {
   it('starts on Incidents and restores a tab only when returning from a record', () => {
-    expect(page).toContain("const RETURN_KEY='limoxis.quality.returnSection'")
+    // The key is shared with the risk assessment page, which returns to its tab.
+    const returnSection = fs.readFileSync('src/features/quality/qualityReturnSection.js', 'utf8')
+    expect(returnSection).toContain("QUALITY_RETURN_KEY = 'limoxis.quality.returnSection'")
+    expect(page).toContain("import { QUALITY_RETURN_KEY as RETURN_KEY } from './qualityReturnSection'")
     expect(page).toContain("useEffect(()=>{writeSessionValue(RETURN_KEY,'')},[])")
     expect(page).not.toContain("writeSessionValue('limoxis.quality.section',id)")
   })
