@@ -9,18 +9,18 @@ import { L,LevelChip,returnedClass,txt } from './riskUi'
 import { IndicatorBadge } from './RiskIndicatorsUi'
 
 // What each KPI card of the register keeps.
-const QUICK={veryHigh:x=>x.s.residual.level==='very_high',high:x=>x.s.residual.level==='high',noPlan:x=>x.warnings.some(w=>w.id==='action_plan_required'),noTarget:x=>!x.s.target.score,noIndicator:x=>!(x.risk.indicatorKeys||[]).length}
+const QUICK={highOrAbove:x=>['high','very_high'].includes(x.s.residual.level),veryHigh:x=>x.s.residual.level==='very_high',high:x=>x.s.residual.level==='high',noPlan:x=>x.warnings.some(w=>w.id==='action_plan_required'),noTarget:x=>!x.s.target.score,noIndicator:x=>!(x.risk.indicatorKeys||[]).length}
 
 // The register: every risk of the assessment with its three scores.
-export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreateCapa,cell,onClearCell,actions=null,indicatorValues=null,returned=''}){
+export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreateCapa,cell,onClearCell,actions=null,indicatorValues=null,returned='',preset=null}){
  const [query,setQuery]=useState('')
  const [section,setSection]=useState('all')
  const [process,setProcess]=useState('all')
  const [level,setLevel]=useState('all')
- const [jci,setJci]=useState('all')
+ const [jci,setJci]=useState(preset?.jci||'all')
  const [flag,setFlag]=useState('all')
  // A KPI card filters the register; a second click clears it.
- const [quick,setQuick]=useState(null)
+ const [quick,setQuick]=useState(preset?.quick||null)
  const toggleQuick=id=>setQuick(current=>current===id?null:id)
  const processes=useMemo(()=>[...new Set(risks.map(r=>txt(r,'process',en)).filter(Boolean))].sort(),[risks,en])
  const all=useMemo(()=>risks.map(risk=>({risk,s:scored(risk),warnings:riskWarnings(risk)})),[risks])

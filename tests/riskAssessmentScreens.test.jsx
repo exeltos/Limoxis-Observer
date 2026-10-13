@@ -79,6 +79,13 @@ describe('risk assessment screens', () => {
     expect(screen.getByRole('button', { name: /Βελτιώθηκε/ })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: 'Μεθοδολογία' }))
     expect(await screen.findByText(/A risk matrix for risk managers/)).toBeInTheDocument()
+    // A JCI chapter of the method opens the register on its risks.
+    const chapter = within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button')
+    const count = Number(within(chapter).getByText(/^\d+$/).textContent)
+    expect(count).toBeGreaterThan(0)
+    fireEvent.click(chapter)
+    await screen.findByRole('tab', { name: 'Μητρώο (14)', selected: true })
+    expect(document.querySelectorAll('.risk-register tbody tr.risk-row-clickable')).toHaveLength(count)
   })
 
   it('edits a risk on its own page and saves it, recomputing its level', async () => {

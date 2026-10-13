@@ -174,14 +174,6 @@
 .risk-warning-info{background:#eef5fa;color:#245a85}
 
 /* Method, details, import */
-.risk-matrix{border-collapse:separate;border-spacing:3px;font-size:11.5px}
-.risk-matrix th{text-align:left;font-weight:650;color:#34475c;padding:4px 6px}
-.risk-matrix td{width:84px;height:34px;text-align:center;border-radius:6px}
-.risk-steps,.risk-jci-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
-.risk-steps li,.risk-jci-list li{display:flex;gap:10px;font-size:12px}
-.risk-steps strong{min-width:110px}
-.risk-jci-list{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
-.risk-jci-list strong{min-width:56px}
 .risk-details-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:0}
 .risk-details-grid div{padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:#fff}
 .risk-details-grid dt{font-size:10.5px;color:var(--lo-color-muted)}
@@ -358,3 +350,37 @@
 .risk-choice button{padding:6px 12px;border:1px solid var(--lo-color-border);border-radius:999px;background:#fff;font:inherit;font-size:12px;font-weight:650;color:#34475c;cursor:pointer}
 .risk-choice button.active{background:var(--lo-color-primary-soft);border-color:#9fc3dd;color:#194a74}
 .risk-choice button:disabled{cursor:default}
+/* Method */
+.risk-panel-actions{margin-left:auto}
+.risk-method-matrix{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:center}
+.risk-matrix-figure{margin:0;display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;gap:4px 6px;align-items:center}
+.risk-matrix{border-collapse:separate;border-spacing:3px;font-size:11.5px}
+.risk-matrix th{font-weight:600;color:#34475c;padding:2px 6px;font-size:10.5px;white-space:nowrap}
+.risk-matrix th[scope=row]{text-align:right}
+.risk-matrix th b{display:inline-block;margin-right:5px;color:var(--lo-color-text)}
+.risk-matrix-l th{text-align:center;white-space:normal;max-width:72px;line-height:1.2}
+.risk-matrix-l th b{display:block;margin:0 0 1px}
+.risk-matrix td{width:62px;height:34px;text-align:center;border-radius:6px}
+.risk-level-table td{vertical-align:middle}
+.risk-level-table td:first-child{white-space:nowrap}
+.risk-level-name{display:inline-flex;align-items:center;gap:7px}
+.risk-scale-number{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#e8f0f6;color:#194a74;font-weight:750;font-size:11.5px}
+.risk-flow{display:flex;align-items:stretch;gap:8px;margin:0;padding:0;list-style:none}
+.risk-flow-card{flex:1 1 0;display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;font-size:12px;line-height:1.45}
+.risk-flow-card strong{font-size:13px}
+.risk-flow-inherent{border-top:3px solid #e8a39b}
+.risk-flow-residual{border-top:3px solid #f2c08b}
+.risk-flow-target{border-top:3px solid #9fd0ad}
+.risk-flow-step{flex:0 0 96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#7d8e9d;text-align:center}
+.risk-flow-step small{font-size:10.5px;line-height:1.25}
+.risk-jci-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.risk-jci-grid button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:1px solid var(--lo-color-border);border-radius:9px;font-size:12px;cursor:pointer}
+.risk-jci-grid button:hover:not(:disabled){background:#f1f6fa;border-color:#b9d3e6}
+.risk-jci-grid button.is-empty{opacity:.5;cursor:default}
+.risk-jci-grid strong{min-width:50px}
+.risk-jci-grid span{flex:1 1 auto}
+.risk-jci-grid b{min-width:22px;padding:1px 7px;border-radius:999px;background:#eef3f7;text-align:center;font-size:11px}
+.risk-fmea-note{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:12px;padding:10px 12px;border-radius:10px;background:#fff7e6;border:1px solid #f3dca8;font-size:12px}
+.risk-fmea-note.is-done{background:#eef8f1;border-color:#bfe0c9}
+.risk-fmea-note button{all:unset;cursor:pointer;font-weight:700;color:#1d5f8f}
+@media(max-width:1100px){.risk-method-matrix{grid-template-columns:1fr}.risk-flow{flex-direction:column}.risk-flow-step{flex:0 0 auto;flex-direction:row}}

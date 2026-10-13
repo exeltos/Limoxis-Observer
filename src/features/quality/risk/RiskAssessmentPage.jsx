@@ -54,6 +54,8 @@ export function RiskAssessmentPage(){
  // Back from a risk returns to the tab it was opened from.
  const [tab,setTab]=useState(()=>location.state?.riskTab||'register')
  const [cell,setCell]=useState(null)
+ // The method's JCI chapters and FMEA note open the register already filtered.
+ const [preset,setPreset]=useState(null)
  const [confirm,setConfirm]=useState(null)
  const [approving,setApproving]=useState(false)
  const [detailsOpen,setDetailsOpen]=useState(false)
@@ -146,16 +148,16 @@ export function RiskAssessmentPage(){
   title={txt(assessment,'title',en)}
   subtitle={[assessment.formCode,assessment.periodLabel,fmtDate(assessment.assessedOn,locale)].filter(Boolean).join(' · ')}
   status={<span className={`status-badge ${statusTone(assessment.status)}`}>{statusLabel(assessment.status,en)}</span>}
-  tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack} backLabel={L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
+  tabs={tabs} activeTab={tab} onTabChange={t=>{setPreset(null);setTab(t)}} onBack={goBack} backLabel={L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
   <div className="risk-assessment-body" ref={bodyRef}>
    {/* The record shell keeps only edit/delete from headerActions, so the "…" menu sits here: in the register's toolbar, or on its own line in the other tabs. */}
    {!canEdit&&canManage&&<p className="risk-locked">{L(en,`Η εκτίμηση είναι «${statusLabel(assessment.status,en)}» και δεν αλλάζει. Για αλλαγές: «Επαναφορά σε πρόχειρο».`,`The assessment is “${statusLabel(assessment.status,en)}” and locked. To change it: “Back to draft”.`)}</p>}
-   {tab!=='register'&&tab!=='analysis'&&tab!=='comparison'&&tab!=='opportunities'&&<div className="risk-page-bar">{menu}</div>}
-   {tab==='register'&&<RiskRegister risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setCell(null)} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues} returned={riskRow.returned}/>}
+   {tab==='details'&&<div className="risk-page-bar">{menu}</div>}
+   {tab==='register'&&<RiskRegister key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setCell(null)} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues} returned={riskRow.returned}/>}
    {tab==='analysis'&&<RiskAnalysis returned={riskRow.returned} actions={menu} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>{setCell(c);setTab('register')}}/>}
    {tab==='comparison'&&<RiskComparison returned={riskRow.returned} actions={menu} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk,from)=>{if(from&&from.id!==assessment.id){rememberRow(`limoxis.quality.risk.returned.${from.code}`,risk.lineageKey);navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}})}else openRisk(risk)}}/>}
    {tab==='opportunities'&&<RiskOpportunities returned={opportunityRow.returned} actions={menu} items={assessment.opportunities||[]} en={en} canEdit={canEdit} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`)}} onCreate={()=>navigate(`/quality/risks/${assessment.code}/opportunities/new`)} onDelete={removeOpportunity}/>}
-   {tab==='methodology'&&<RiskMethodology en={en}/>}
+   {tab==='methodology'&&<RiskMethodology en={en} risks={risks} actions={menu} onJci={jci=>{setPreset({jci});setTab('register')}} onPickFmea={()=>{setPreset({quick:'highOrAbove'});setTab('register')}}/>}
    {tab==='details'&&<AssessmentDetails assessment={assessment} en={en} locale={locale}/>}
   </div>
   <div className="risk-print-host" aria-hidden="true"><RiskReport ref={reportRef} assessment={{...assessment,risks}} summary={summary} previous={previous} organizationName={tenant?.name||''} en={en} locale={locale}/></div>
