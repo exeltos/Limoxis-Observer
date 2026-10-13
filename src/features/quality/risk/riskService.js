@@ -6,6 +6,7 @@ import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { expectVersion, guardedSingle } from '../../../core/data/recordVersion'
 import { riskDemoAssessments } from './riskDemoData'
+import { unpackTemplate } from './riskImport'
 
 const LOCAL='quality_local_risk_assessments'
 const ASSESSMENT_COLUMNS='id,code,title,period_label,period_kind,assessed_on,next_review_on,assessor_label,form_code,scope_note,status,approved_by_label,approved_on,source_assessment_id,history,updated_at'
@@ -132,4 +133,26 @@ export async function deleteRiskAssessment(organizationId,assessment){
  if(demo()){localSave(localAll().filter(a=>a.id!==assessment.id));return}
  assertReady(organizationId)
  const {error}=await supabase.from('quality_risk_assessments').delete().eq('organization_id',organizationId).eq('id',assessment.id).eq('status','draft');if(error)throw error
+}
+
+// Assessments created together (an import with a reassessment, a template),
+// oldest first: each one points to the one before it.
+export async function createAssessmentSeries(organizationId,plan,history=[]){
+ let previous=null;const created=[]
+ for(const item of plan){
+  previous=await createRiskAssessment(organizationId,{...item.header,history},{carryFrom:previous?{id:previous.id}:null,risks:item.risks,opportunities:item.opportunities})
+  created.push(previous)
+ }
+ return created
+}
+
+// Templates of the platform owner (quality_risk_templates): a hospital's
+// register kept in the database, never in the Demo data, and loaded into an
+// organization only on the platform owner's request. Row level security lets
+// only the platform owner read them.
+export async function loadRiskTemplates(){
+ if(!supabase)return []
+ const {data,error}=await supabase.from('quality_risk_templates').select('id,code,title,source_file,payload,updated_at').order('updated_at',{ascending:false})
+ if(error)throw error
+ return (data||[]).map(row=>({id:row.id,code:row.code,title:row.title,sourceFile:row.source_file||'',plan:unpackTemplate(row.payload),updatedAt:row.updated_at}))
 }

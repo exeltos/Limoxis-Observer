@@ -49,6 +49,17 @@ describe('risk assessment screens', () => {
     expect(await screen.findByText(`Εκτίμηση επικινδυνότητας ${year}`)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Εισαγωγή από Excel/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Νέα εκτίμηση/ })).toBeInTheDocument()
+    // The platform owner's templates: a small button, the owner's alone.
+    expect(screen.getByRole('button', { name: 'Πρότυπα πλατφόρμας' })).toBeInTheDocument()
+  })
+
+  it('hides the template button from anyone but the platform owner', async () => {
+    profile = { ...profile, isPlatformOwner: false }
+    await open('/quality')
+    fireEvent.click(await screen.findByRole('tab', { name: /Εκτίμηση κινδύνου/ }))
+    const year = String(new Date(Date.now() - 7 * 86400000).getFullYear())
+    await screen.findByText(`Εκτίμηση επικινδυνότητας ${year}`)
+    expect(screen.queryByRole('button', { name: 'Πρότυπα πλατφόρμας' })).not.toBeInTheDocument()
   })
 
   it('opens an assessment with its register, analysis, comparison and method', async () => {

@@ -195,3 +195,12 @@
 
 @media(max-width:1100px){.risk-heatmaps,.risk-two-columns,.risk-editor-stages{grid-template-columns:1fr}.risk-editor-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.risk-editor-grid{grid-template-columns:1fr}}
+
+/* The platform owner's templates: a small, quiet button beside the import. */
+.risk-owner-template{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px dashed var(--lo-color-border);border-radius:8px;background:transparent;color:var(--lo-color-muted);cursor:pointer}
+.risk-owner-template:hover,.risk-owner-template:focus-visible{color:var(--lo-color-text);border-style:solid}
+.risk-template-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.risk-template-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px}
+.risk-template-list li div{display:grid;gap:2px;min-width:0}
+.risk-template-list small{color:var(--lo-color-muted)}
+.risk-import-words{max-height:140px;overflow:auto}
