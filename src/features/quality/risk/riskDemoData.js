@@ -1,6 +1,8 @@
-// Demo risk register: the same risks assessed in two consecutive years, so the
-// analysis and the period comparison have something to show. Dates follow the
-// current year (the previous assessment one year ago, the current one last week).
+// Demo risk register: the same risks assessed in three consecutive years, so the
+// analysis, the period comparison and its course have something to show. Dates
+// follow the current year (the current assessment last week, the others one and
+// two years before). Generic content: the evaluators' Demo organizations are
+// seeded with the same data (private.demo_seed_quality_risks).
 import { suggestIndicators } from './riskIndicators'
 
 // Indicators of the Demo's Indicators module that the demo risks are measured with.
@@ -26,20 +28,42 @@ const RISKS=[
 const iso=date=>date.toISOString().slice(0,10)
 const shift=(date,days)=>{const d=new Date(date);d.setDate(d.getDate()+days);return d}
 
+// The residual risk two years ago: one step more likely than last year.
+const older=([l,c],[il])=>[Math.min(il,l+1),c]
+
 function risks(assessmentId,stage,now){
  return RISKS.map(([key,section,process,processEn,scope,scopeEn,hazard,hazardEn,jci,inherent,previous,current,target,measures,measuresEn,owner,ownerEn],position)=>{
-  const residual=stage==='previous'?previous:current
+  const residual=stage==='current'?current:stage==='previous'?previous:older(previous,inherent)
+  const done=stage!=='current'
   return {id:`${assessmentId}-${key}`,assessmentId,lineageKey:key,position,section,process,processEn,scope,scopeEn,hazard,hazardEn,
    inherentL:inherent[0],inherentC:inherent[1],existingControls:'Τήρηση διαδικασιών και πρωτοκόλλων, εκπαίδευση προσωπικού, παρακολούθηση συμβάντων',existingControlsEn:'Procedures and protocols, staff training, incident monitoring',
-   residualL:residual[0],residualC:residual[1],additionalMeasures:measures,additionalMeasuresEn:measuresEn,owner,ownerEn,dueDate:measures?iso(shift(now,stage==='previous'?-180:120)):null,
-   reviewFrequency:'Μηνιαίος έλεγχος',reviewFrequencyEn:'Monthly review',indicator:'',targetL:stage==='previous'?null:target[0],targetC:stage==='previous'?null:target[1],jci,jciReference:'',indicatorKeys:suggestIndicators({hazard,process,scope,indicator:'συμβαντ'},DEMO_INDICATORS,2),prioritized:stage==='current'&&key==='R001',notes:'',consequenceRationale:residual[1]!==inherent[1]?'Τα υφιστάμενα μέτρα περιορίζουν τη σοβαρότητα του συμβάντος.':'',updatedAt:now.toISOString()}
+   residualL:residual[0],residualC:residual[1],additionalMeasures:measures,additionalMeasuresEn:measuresEn,owner,ownerEn,dueDate:measures?iso(shift(now,stage==='current'?120:stage==='previous'?-180:-545)):null,
+   reviewFrequency:'Μηνιαίος έλεγχος',reviewFrequencyEn:'Monthly review',indicator:'',targetL:done?null:target[0],targetC:done?null:target[1],jci,jciReference:'',indicatorKeys:suggestIndicators({hazard,process,scope,indicator:'συμβαντ'},DEMO_INDICATORS,2),prioritized:stage==='current'&&key==='R001',notes:'',consequenceRationale:residual[1]!==inherent[1]?'Τα υφιστάμενα μέτρα περιορίζουν τη σοβαρότητα του συμβάντος.':'',updatedAt:now.toISOString()}
  })
 }
 
+// Opportunities, with how effective their action plan has been by then.
+const OPPORTUNITIES=[
+ ['Πιστοποίηση κατά ISO 9001 / ISO 15224','Συμμόρφωση με τη νομοθεσία και φήμη του οργανισμού','Υψηλή απόδοση','Ετήσια επιθεώρηση επιτήρησης από τον φορέα πιστοποίησης\nΕσωτερικές επιθεωρήσεις ανά εξάμηνο','Ετησίως','Διεύθυνση Ποιότητας',{current:['effective','Χωρίς μη συμμορφώσεις στην τελευταία επιθεώρηση.'],previous:['effective',''],older:['partial','Δύο ελάσσονες μη συμμορφώσεις, κλειστές.']}],
+ ['Ηλεκτρονική καταγραφή ελέγχων και δεικτών','Άμεση εικόνα συμμόρφωσης ανά τμήμα και λιγότερος χρόνος καταγραφής','Υψηλή απόδοση','Εφαρμογή σε όλα τα νοσηλευτικά τμήματα\nΕκπαίδευση των υπευθύνων τμημάτων\nΜηνιαία αναφορά στην Επιτροπή Ποιότητας','Έως το τέλος του έτους','Διεύθυνση Νοσηλευτικής Υπηρεσίας',{current:['partial','Εφαρμόζεται σε 6 από 10 τμήματα.'],previous:['pending','Πιλοτική εφαρμογή σε 2 τμήματα.'],older:['','']}],
+ ['Ανατροφοδότηση από ασθενείς και συνοδούς','Βελτίωση της εμπειρίας του ασθενή και εντοπισμός προβλημάτων νωρίς','Χαμηλή απόδοση','Σύντομο ερωτηματολόγιο κατά την έξοδο\nΤριμηνιαία ανάλυση των σχολίων','Ανά τρίμηνο','Γραφείο Προστασίας Δικαιωμάτων Ληπτών Υπηρεσιών Υγείας',{current:['pending','Αξιολόγηση στο τέλος του έτους.'],previous:['',''],older:['','']}],
+]
+function opportunities(assessmentId,stage,now){
+ return OPPORTUNITIES.map(([activity,opportunity,rating,actionPlan,timeframe,owner,effect],position)=>{const [status,note]=effect[stage]
+  return {id:`${assessmentId}-O${position+1}`,assessmentId,position,activity,opportunity,rating,actionPlan,timeframe,owner,effectiveness:note,effectivenessStatus:status,updatedAt:now.toISOString()}})
+}
+
+// The approval trail of an assessment, from creation to its last status.
+const STEPS=[['riskAssessmentCreated',0,'Υπεύθυνος Ποιότητας'],['riskAssessmentSubmitted',3,'Υπεύθυνος Ποιότητας'],['riskAssessmentApproved',14,'Πρόεδρος Επιτροπής Ποιότητας'],['riskAssessmentArchived',380,'Υπεύθυνος Ποιότητας']]
+function history(id,date,status){
+ const last={draft:0,under_review:1,approved:2,archived:3}[status]
+ return STEPS.slice(0,last+1).map(([action,days,actor],i)=>({id:`${id}-H${i+1}`,action,actor,at:`${iso(shift(date,days))}T09:00:00.000Z`}))
+}
+
 export function riskDemoAssessments(today=new Date()){
- const current=shift(today,-7),previous=shift(today,-372)
- const make=(id,date,stage,status)=>({id,code:`RSA-DEMO-${date.getFullYear()}`,title:`Εκτίμηση επικινδυνότητας ${date.getFullYear()}`,titleEn:`Risk assessment ${date.getFullYear()}`,periodLabel:String(date.getFullYear()),periodKind:'annual',assessedOn:iso(date),nextReviewOn:iso(shift(date,365)),assessorLabel:'Διεύθυνση Ποιότητας',formCode:'Ε.Δ.ΔΙΑΧ.090',scopeNote:'',status,approvedByLabel:status==='approved'?'Επιτροπή Ποιότητας':'',approvedOn:status==='approved'?iso(shift(date,14)):null,sourceAssessmentId:stage==='current'?'demo-risk-previous':null,history:[],updatedAt:today.toISOString(),
-  risks:risks(id,stage,today),
-  opportunities:[{id:`${id}-O1`,assessmentId:id,position:0,activity:'Πιστοποίηση κατά ISO 9001 / ISO 15224',opportunity:'Συμμόρφωση με τη νομοθεσία και φήμη του οργανισμού',rating:'Υψηλή απόδοση',actionPlan:'Ετήσια επιθεώρηση επιτήρησης από τον φορέα πιστοποίησης',timeframe:'Ετησίως',owner:'Διεύθυνση Ποιότητας',effectiveness:'Αποτελεσματικό',updatedAt:today.toISOString()}]})
- return [make('demo-risk-current',current,'current','under_review'),make('demo-risk-previous',previous,'previous','approved')]
+ // One calendar year apart, so each assessment has its own year (and code).
+ const current=shift(today,-7),yearsBack=n=>{const d=new Date(current);d.setFullYear(d.getFullYear()-n);return d},previous=yearsBack(1),earlier=yearsBack(2)
+ const make=(id,date,stage,status,sourceId)=>({id,code:`RSA-DEMO-${date.getFullYear()}`,title:`Εκτίμηση επικινδυνότητας ${date.getFullYear()}`,titleEn:`Risk assessment ${date.getFullYear()}`,periodLabel:String(date.getFullYear()),periodKind:'annual',assessedOn:iso(date),nextReviewOn:iso(shift(date,365)),assessorLabel:'Διεύθυνση Ποιότητας',formCode:'ΠΟΙ-ΕΚ-01',scopeNote:'Κλινικοί και μη κλινικοί κίνδυνοι όλων των τμημάτων του νοσοκομείου.',status,approvedByLabel:['approved','archived'].includes(status)?'Επιτροπή Ποιότητας':'',approvedOn:['approved','archived'].includes(status)?iso(shift(date,14)):null,sourceAssessmentId:sourceId,history:history(id,date,status),updatedAt:today.toISOString(),
+  risks:risks(id,stage,today),opportunities:opportunities(id,stage,today)})
+ return [make('demo-risk-current',current,'current','under_review','demo-risk-previous'),make('demo-risk-previous',previous,'previous','approved','demo-risk-older'),make('demo-risk-older',earlier,'older','archived',null)]
 }
