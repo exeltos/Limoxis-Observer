@@ -46,7 +46,8 @@ export const helpManualEn={
  '/quality':{title:'Quality Center',summary:'Incidents, audits, findings and CAPA within controlled workflows.',audience:'Quality Manager and authorized roles',chapters:[
   ['Incidents','An incident progresses through statuses and an audit trail. It should not simply disappear because a user changes their mind.'],
   ['Findings & CAPA','Findings can be linked to corrective/preventive actions with owners, deadlines and effectiveness follow-up.'],
-  ['Audits','Audits and their findings remain linked to follow-up actions and evidence.']
+  ['Audits','Audits and their findings remain linked to follow-up actions and evidence.'],
+  ['Risk assessment','A risk register on the 5×5 (NHS) matrix: inherent, residual and target risk for every risk (likelihood × consequence) with the score and level computed, heat maps, comparison between years or semesters, JCI mapping, CAPA from a risk, import from Excel (the hospital risk assessment form) and a full printout.']
  ],steps:['Open the relevant queue.','Select the incident, audit or finding.','Record the assessment and actions.','Follow CAPA through controlled completion.'],preview:'quality'},
  '/indicators':{title:'Indicators',summary:'Measurable monitoring with explicit numerator, denominator, target and drill-down.',audience:'Infection Control, Quality and authorized management roles',chapters:[
   ['Indicator definition','Every indicator has a definition, unit, numerator, denominator, multiplier, target and direction.'],
