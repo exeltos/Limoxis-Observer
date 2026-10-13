@@ -2,7 +2,7 @@ import { useMemo,useState } from 'react'
 import { AlertOctagon,AlertTriangle,ArrowDownRight,ArrowRight,ArrowUpRight,ChevronRight,ClipboardList,Gauge } from 'lucide-react'
 import { MetricCard } from '../../../design-system/MetricCard'
 import { compareAssessments,levelForScore,periodKindOf,periodName,periodOf,riskTrend,scored } from './riskModel'
-import { L,LevelChip,LevelLegend,RiskHeatMap,fmtDate,returnedClass,txt } from './riskUi'
+import { L,LevelChip,LevelLegend,RiskHeatMap,fmtDate,returnedClass,txt,usePaged } from './riskUi'
 import { LevelCounts,num } from './RiskAnalysis'
 
 const STATUS={improved:['Βελτιώθηκε','Improved','active'],worsened:['Χειροτέρεψε','Worsened','danger'],unchanged:['Αμετάβλητος','Unchanged',''],new:['Νέος','New','warning'],removed:['Αφαιρέθηκε','Removed','']}
@@ -69,6 +69,8 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
  const grouped=new Set(all.map(periodKindOf)).size>1
  const options=exclude=>{const list=all.filter(a=>a.id!==exclude),item=a=><option key={a.id} value={a.id}>{nameOf(a)}</option>
   return grouped?KIND_GROUPS.map(([id,el,enLabel])=>{const items=list.filter(a=>periodKindOf(a)===id);return items.length?<optgroup key={id} label={en?enLabel:el}>{items.map(item)}</optgroup>:null}):list.map(item)}
+ const rows=result?result.rows.filter(r=>show==='all'||r.status===show):[]
+ const {items:pageRows,pager}=usePaged(rows,{en,resetOn:`${current.id}|${other?.id}|${show}`,startIndex:current.id===assessment.id?rows.findIndex(r=>r.risk.lineageKey===returned):-1})
  if(!result)return <div className="risk-comparison">
   {actions&&<div className="risk-page-bar">{actions}</div>}
   <div className="registry-empty-state"><strong>{L(en,'Δεν υπάρχει άλλη περίοδος για σύγκριση','No other period to compare')}</strong><span>{L(en,'Η σύγκριση εμφανίζεται μόλις υπάρξει δεύτερη εκτίμηση (π.χ. άλλης χρονιάς ή εξαμήνου). Δημιουργήστε την από «Νέα εκτίμηση» με μεταφορά των κινδύνων αυτής.','The comparison appears once there is a second assessment (e.g. another year or half-year). Create it with “New assessment”, carrying these risks forward.')}</span></div>
@@ -80,7 +82,6 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   <select aria-label={L(en,'Σύγκριση με','Compare with')} value={other.id} onChange={e=>setOtherId(e.target.value)}>{options(current.id)}</select>
  </div>
  const cur=result.current,prev=result.previous
- const rows=result.rows.filter(r=>show==='all'||r.status===show)
  const kpi=(icon,value,name,delta,lower=true)=><MetricCard icon={icon} label={name} value={<span className="risk-kpi-value">{value}<Delta value={delta} lowerIsBetter={lower} en={en}/></span>}/>
  const avgDelta=cur.averages.residual!=null&&prev.averages.residual!=null?cur.averages.residual-prev.averages.residual:null
  const map=(a,summary)=><div className="risk-heatmap-cell">
@@ -102,7 +103,7 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   <section className="risk-panel"><header><h3>{L(en,'Μεταβολή ανά κίνδυνο','Change per risk')}</h3>
    <div className="risk-status-chips">{['all','improved','worsened','unchanged','new','removed'].map(id=><button key={id} type="button" className={show===id?'active':''} onClick={()=>setShow(id)}>{id==='all'?L(en,'Όλοι','All'):label(id,en)} <b>{id==='all'?result.rows.length:result.counts[id]}</b></button>)}</div></header>
    <div className="scroll-table"><table className="data-table risk-table risk-compare-table"><thead><tr><th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Κίνδυνος','Risk')}</th><th>{nameOf(other)}</th><th>{nameOf(current)}</th><th>{L(en,'Μεταβολή','Change')}</th><th>{L(en,'Τι άλλαξε','What changed')}</th><th>{L(en,'Κατάσταση','Status')}</th><th aria-hidden="true"/></tr></thead><tbody>
-    {rows.map(r=>{const openable=r.status!=='removed'&&onOpen
+    {pageRows.map(r=>{const openable=r.status!=='removed'&&onOpen
      return <tr key={r.key} className={`${openable?'is-openable':''}${current.id===assessment.id?returnedClass(returned,r.risk.lineageKey):''}`} onClick={()=>openable&&onOpen(r.risk,current)} title={openable?L(en,'Άνοιγμα του κινδύνου','Open the risk'):undefined}>
       <td><strong>{r.risk.lineageKey}</strong></td>
       <td className="risk-hazard"><span>{txt(r.risk,'hazard',en)}</span><small>{[txt(r.risk,'process',en),txt(r.risk,'scope',en)].filter(Boolean).join(' · ')}</small></td>
@@ -113,6 +114,7 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
      </tr>})}
     {!rows.length&&<tr><td colSpan={8} className="risk-empty-note">{L(en,'Κανένας κίνδυνος σε αυτή την κατάσταση.','No risk in this state.')}</td></tr>}
    </tbody></table></div>
+   {rows.length>0&&pager}
   </section>
   <section className="risk-panel"><header><h3>{L(en,'Υπολειπόμενος κίνδυνος ανά περίοδο','Residual risk by period')}</h3><LevelLegend en={en}/></header>
    <div className="risk-heatmaps risk-heatmaps-two risk-heatmaps-compact">{map(other,prev)}{map(current,cur)}</div>

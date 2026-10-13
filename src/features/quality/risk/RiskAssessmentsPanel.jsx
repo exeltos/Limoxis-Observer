@@ -12,7 +12,7 @@ import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
 import { createAssessmentSeries,createRiskAssessment,loadRiskTemplates } from './riskService'
 import { importPlan,importRiskWorkbook } from './riskImport'
 import { summarizeRisks,levelLabel,suggestPeriodLabel } from './riskModel'
-import { L,LevelChip,PERIOD_KINDS,fmtDate,returnedClass,statusLabel,statusTone,txt,useReturnedRow } from './riskUi'
+import { L,LevelChip,PERIOD_KINDS,fmtDate,returnedClass,statusLabel,statusTone,txt,usePaged,useReturnedRow } from './riskUi'
 import './riskAssessment.css'
 
 const FIELD_LABELS={inherentScore:['Εγγενής βαθμός','Inherent score'],residualScore:['Υπολειπόμενος βαθμός','Residual score'],inherentLevel:['Εγγενής κατηγορία','Inherent level'],residualLevel:['Υπολειπόμενη κατηγορία','Residual level'],process:['Διεργασία','Process'],wording:['Λεκτικό','Wording']}
@@ -34,6 +34,7 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
  const rows=useMemo(()=>items.map(a=>({a,s:summarizeRisks(a.risks||[])})),[items])
  // Back from an assessment returns to this tab.
  const assessmentRow=useReturnedRow('limoxis.quality.risk.returnedAssessment')
+ const {items:pageRows,pager}=usePaged(rows,{en})
  const open=code=>{rememberQualitySection('risks');assessmentRow.remember(code);navigate(`/quality/risks/${code}`)}
 
  async function create(draft,carryFrom){
@@ -78,10 +79,11 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
   </div>
   <div className="scroll-table">
    <table className="data-table sticky-table risk-table"><thead><tr><th>{L(en,'Περίοδος','Period')}</th><th>{L(en,'Εκτίμηση','Assessment')}</th><th>{L(en,'Ημερομηνία','Date')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Πολύ υψηλοί','Very high')}</th><th>{L(en,'Υψηλοί','High')}</th><th>{L(en,'Μέσος υπολειπόμενος','Avg. residual')}</th><th>{L(en,'Κατάσταση','Status')}</th></tr></thead><tbody>
-    {rows.map(({a,s})=><tr key={a.id} className={`risk-row-clickable${returnedClass(assessmentRow.returned,a.code)}`} onClick={()=>open(a.code)}><td><strong>{a.periodLabel}</strong><small>{PERIOD_KINDS[a.periodKind]?.[en?1:0]}</small></td><td>{txt(a,'title',en)}<small>{a.formCode}</small></td><td>{fmtDate(a.assessedOn,locale)}<small>{L(en,'Επόμενη','Next')}: {fmtDate(a.nextReviewOn,locale)}</small></td><td>{s.total}</td><td><span className="risk-level risk-level-very_high" title={levelLabel('very_high',en)}><strong>{s.levels.residual.very_high}</strong></span></td><td><span className="risk-level risk-level-high" title={levelLabel('high',en)}><strong>{s.levels.residual.high}</strong></span></td><td>{s.averages.residual!=null?<LevelChip score={Math.round(s.averages.residual)} en={en} title={String(s.averages.residual)}/>:'—'}</td><td><span className={`status-badge ${statusTone(a.status)}`}>{statusLabel(a.status,en)}</span></td></tr>)}
+    {pageRows.map(({a,s})=><tr key={a.id} className={`risk-row-clickable${returnedClass(assessmentRow.returned,a.code)}`} onClick={()=>open(a.code)}><td><strong>{a.periodLabel}</strong><small>{PERIOD_KINDS[a.periodKind]?.[en?1:0]}</small></td><td>{txt(a,'title',en)}<small>{a.formCode}</small></td><td>{fmtDate(a.assessedOn,locale)}<small>{L(en,'Επόμενη','Next')}: {fmtDate(a.nextReviewOn,locale)}</small></td><td>{s.total}</td><td><span className="risk-level risk-level-very_high" title={levelLabel('very_high',en)}><strong>{s.levels.residual.very_high}</strong></span></td><td><span className="risk-level risk-level-high" title={levelLabel('high',en)}><strong>{s.levels.residual.high}</strong></span></td><td>{s.averages.residual!=null?<LevelChip score={Math.round(s.averages.residual)} en={en} title={String(s.averages.residual)}/>:'—'}</td><td><span className={`status-badge ${statusTone(a.status)}`}>{statusLabel(a.status,en)}</span></td></tr>)}
    </tbody></table>
    {!loading&&!rows.length&&<div className="registry-empty-state"><strong>{L(en,'Δεν υπάρχουν εκτιμήσεις κινδύνου','No risk assessments yet')}</strong><span>{L(en,'Δημιουργήστε την πρώτη εκτίμηση ή εισαγάγετε το υπάρχον μητρώο σας από Excel.','Create the first assessment or import your existing register from Excel.')}</span></div>}
   </div>
+  {rows.length>0&&pager}
   {creating&&<AssessmentDetailsDialog en={en} assessments={items} onClose={()=>setCreating(false)} onSave={create}/>}
   {templates&&<ObserverDialog width="standard" title={L(en,'Πρότυπα πλατφόρμας','Platform templates')} onClose={()=>setTemplates(null)} footer={<DialogActions onCancel={()=>setTemplates(null)} showCancel cancelLabel={L(en,'Κλείσιμο','Close')}/>}>
    <p className="risk-hint">{L(en,'Ορατά μόνο σε εσάς. Η φόρτωση δημιουργεί τις εκτιμήσεις του προτύπου στον τρέχοντα οργανισμό.','Visible to you only. Loading creates the template’s assessments in the current organization.')}</p>

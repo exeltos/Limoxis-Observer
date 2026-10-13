@@ -2,7 +2,7 @@ import { useMemo,useState } from 'react'
 import { ArrowDownRight,ArrowRight,ArrowUpRight,Gauge,Plus,X } from 'lucide-react'
 import { ObserverDialog,DialogActions } from '../../../design-system/ObserverDialog'
 import { suggestIndicators } from './riskIndicators'
-import { L } from './riskUi'
+import { L,usePaged } from './riskUi'
 
 const CATEGORIES={surveillance:['Επιτήρηση','Surveillance'],laboratory:['Εργαστήριο','Laboratory'],pharmacy:['Φαρμακείο','Pharmacy'],prevention:['Πρόληψη','Prevention'],quality:['Ποιότητα','Quality'],workforce:['Προσωπικό','Workforce']}
 const TREND_ICON={better:ArrowDownRight,worse:ArrowUpRight,steady:ArrowRight}
@@ -60,11 +60,12 @@ export function IndicatorPicker({risk,values,en,disabled,onChange}){
 export function RiskIndicatorTable({risks,values,en,onOpen}){
  const rows=useMemo(()=>{const map=new Map();for(const risk of risks)for(const key of risk.indicatorKeys||[]){const list=map.get(key)||[];list.push(risk);map.set(key,list)};return [...map.entries()].map(([key,list])=>({key,item:values?.get(key),risks:list})).sort((a,b)=>b.risks.length-a.risks.length)},[risks,values])
  const unlinked=risks.filter(r=>!(r.indicatorKeys||[]).length).length
+ const {items:pageRows,pager}=usePaged(rows,{en})
  return <section className="risk-panel">
   <header><h3>{L(en,'Δείκτες παρακολούθησης','Monitoring indicators')}</h3><span className="risk-hint">{L(en,`${unlinked} από ${risks.length} κινδύνους χωρίς δείκτη`,`${unlinked} of ${risks.length} risks without an indicator`)}</span></header>
   {rows.length?<div className="scroll-table"><table className="data-table risk-indicator-table"><thead><tr><th>{L(en,'Δείκτης','Indicator')}</th><th>{L(en,'Τιμή (90 ημ.)','Value (90 d)')}</th><th>{L(en,'Στόχος','Target')}</th><th>{L(en,'Τάση','Trend')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th></tr></thead><tbody>
-   {rows.map(({key,item,risks:list})=><tr key={key}><td><IndicatorChip indicatorKey={key} values={values} en={en}/></td><td><strong>{number(item?.value)}</strong>{item?.unit&&<small> {en?item.unitEn||item.unit:item.unit}</small>}</td><td>{number(item?.target)}</td><td>{item?<span className={`risk-trend-label trend-${item.trend}`}>{item.trend==='better'?L(en,'Βελτίωση','Improving'):item.trend==='worse'?L(en,'Επιδείνωση','Worsening'):L(en,'Σταθερός','Steady')}</span>:'—'}</td><td className="risk-indicator-risks">{list.map(r=><button type="button" key={r.id||r.lineageKey} onClick={()=>onOpen(r)}>{r.lineageKey}</button>)}</td></tr>)}
-  </tbody></table></div>:<p className="risk-hint">{L(en,'Δεν έχουν συνδεθεί δείκτες. Από το «…» → «Αντιστοίχιση δεικτών» ή μέσα σε κάθε κίνδυνο.','No indicators linked yet. Use “…” → “Link indicators”, or open a risk.')}</p>}
+   {pageRows.map(({key,item,risks:list})=><tr key={key}><td><IndicatorChip indicatorKey={key} values={values} en={en}/></td><td><strong>{number(item?.value)}</strong>{item?.unit&&<small> {en?item.unitEn||item.unit:item.unit}</small>}</td><td>{number(item?.target)}</td><td>{item?<span className={`risk-trend-label trend-${item.trend}`}>{item.trend==='better'?L(en,'Βελτίωση','Improving'):item.trend==='worse'?L(en,'Επιδείνωση','Worsening'):L(en,'Σταθερός','Steady')}</span>:'—'}</td><td className="risk-indicator-risks">{list.map(r=><button type="button" key={r.id||r.lineageKey} onClick={()=>onOpen(r)}>{r.lineageKey}</button>)}</td></tr>)}
+  </tbody></table>{rows.length>15&&pager}</div>:<p className="risk-hint">{L(en,'Δεν έχουν συνδεθεί δείκτες. Από το «…» → «Αντιστοίχιση δεικτών» ή μέσα σε κάθε κίνδυνο.','No indicators linked yet. Use “…” → “Link indicators”, or open a risk.')}</p>}
  </section>
 }
 

@@ -50,6 +50,18 @@ describe('RiskComparison', () => {
   })
 })
 
+describe('pages', () => {
+  it('shows 15 risks a page with the registries\' pager, on the page of the risk last opened', () => {
+    const many = (id, year, l) => ({ id, code: id, periodLabel: String(year), periodKind: 'annual', assessedOn: `${year}-10-06`, risks: Array.from({ length: 20 }, (_, i) => ({ ...risk(l, 3), id: `${id}${i}`, lineageKey: `R${String(i + 1).padStart(3, '0')}`, hazard: `Κίνδυνος ${i + 1}` })) })
+    const current = many('b', 2026, 2)
+    render(<RiskComparison assessment={current} assessments={[current, many('a', 2025, 3)]} en={false} locale="el-GR" returned="R018"/>)
+    expect(document.querySelector('[data-registry-pagination="canonical"]').textContent).toContain('16–20 από 20')
+    expect(document.querySelector('.registry-row-returned').textContent).toContain('R018')
+    fireEvent.click(screen.getByRole('button', { name: '‹' }))
+    expect(document.querySelectorAll('.risk-compare-table tbody tr')).toHaveLength(15)
+  })
+})
+
 describe('periods', () => {
   it('reads the period from the label, else from the date', () => {
     expect(periodKey(periodOf({ periodKind: 'quarter', periodLabel: "Γ' τρίμηνο 2026", assessedOn: '2026-10-02' }))).toBe('2026-Q3')

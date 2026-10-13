@@ -1,6 +1,7 @@
 // Shared pieces of the risk assessment screens: level chips, the 5×5 heat map,
 // the L/C pickers and the legend. Colours are the NHS bands (see riskAssessment.css).
 import { useState } from 'react'
+import { RegistryPagination } from '../../../design-system/RegistryPagination'
 import { readSessionValue,writeSessionValue } from '../../../core/storage/browserStorage'
 import { CONSEQUENCE,LEVELS,LIKELIHOOD,levelForScore,levelLabel } from './riskModel'
 
@@ -10,6 +11,18 @@ export const rememberRow=(key,id)=>writeSessionValue(key,String(id))
 export function useReturnedRow(key){
  const [returned,setReturned]=useState(()=>readSessionValue(key,'')||'')
  return {returned,remember:id=>{rememberRow(key,id);setReturned(String(id))}}
+}
+// Pages of a table with the registries' pager. A new filter (resetOn) goes back
+// to page 1; on the way back from a record the page holding it is shown.
+export function usePaged(list,{en=false,resetOn='',startIndex=-1}={}){
+ const [pageSize,setPageSize]=useState(15)
+ const [page,setPage]=useState(()=>startIndex>=0?Math.floor(startIndex/15)+1:1)
+ const [seen,setSeen]=useState(resetOn)
+ if(seen!==resetOn){setSeen(resetOn);setPage(1)}
+ const totalPages=Math.max(1,Math.ceil(list.length/pageSize)),safePage=Math.min(page,totalPages)
+ const items=list.slice((safePage-1)*pageSize,safePage*pageSize)
+ const pager=<RegistryPagination language={en?'en':'el'} page={safePage} totalPages={totalPages} totalItems={list.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
+ return {items,pager}
 }
 export const returnedClass=(returned,id)=>returned&&String(id)===returned?' registry-row-returned':''
 

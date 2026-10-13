@@ -5,7 +5,7 @@ import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { ActionButton } from '../../../design-system/ActionButton'
 import { MetricCard } from '../../../design-system/MetricCard'
 import { JCI_CHAPTERS,LEVELS,SECTIONS,riskWarnings,scored,warningLabel } from './riskModel'
-import { L,LevelChip,returnedClass,txt } from './riskUi'
+import { L,LevelChip,returnedClass,txt,usePaged } from './riskUi'
 import { IndicatorBadge } from './RiskIndicatorsUi'
 
 // What each KPI card of the register keeps.
@@ -38,7 +38,10 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
   return true
  }),[all,quick,en,query,section,process,level,jci,flag,cell])
  // Rows of the two sections, each under its own heading.
- const groups=useMemo(()=>SECTIONS.map(x=>({section:x,rows:rows.filter(r=>(r.risk.section||'clinical')===x.id)})).filter(g=>g.rows.length),[rows])
+ const ordered=useMemo(()=>SECTIONS.flatMap(x=>rows.filter(r=>(r.risk.section||'clinical')===x.id)),[rows])
+ const {items:pageRows,pager}=usePaged(ordered,{en,resetOn:JSON.stringify([query,section,process,level,jci,flag,quick,cell]),startIndex:ordered.findIndex(r=>r.risk.lineageKey===returned)})
+ const sectionTotals=useMemo(()=>Object.fromEntries(SECTIONS.map(x=>[x.id,ordered.filter(r=>(r.risk.section||'clinical')===x.id).length])),[ordered])
+ const groups=SECTIONS.map(x=>({section:x,rows:pageRows.filter(r=>(r.risk.section||'clinical')===x.id)})).filter(g=>g.rows.length)
  const active=(section!=='all')+(process!=='all')+(level!=='all')+(jci!=='all')+(flag!=='all')
  return <div className="risk-register">
   <div className="module-summary-strip risk-kpi-strip risk-register-kpis">
@@ -70,7 +73,7 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
     <th>{L(en,'Δείκτες','Indicators')}</th><th>JCI</th><th>{L(en,'Υπεύθυνος','Owner')}</th><th aria-label={L(en,'Ενέργειες','Actions')}/>
    </tr></thead><tbody>
     {groups.map(({section:g,rows:list})=>[
-     <tr key={`section-${g.id}`} className="risk-section-row"><td colSpan={10}><strong>{en?g.en:g.el}</strong><span>{list.length}</span></td></tr>,
+     <tr key={`section-${g.id}`} className="risk-section-row"><td colSpan={10}><strong>{en?g.en:g.el}</strong><span>{sectionTotals[g.id]}</span></td></tr>,
      ...list.map(({risk,s,warnings})=><tr key={risk.id||risk.lineageKey} className={`risk-row-clickable${returnedClass(returned,risk.lineageKey)}`} onClick={()=>onOpen(risk)}>
      <td><strong>{risk.lineageKey}</strong>{risk.prioritized&&<Star size={13} className="risk-star" aria-label="FMEA"/>}</td>
      <td><span className="risk-process">{txt(risk,'process',en)||'—'}</span><small>{txt(risk,'scope',en)}</small></td>
@@ -91,6 +94,6 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
    </tbody></table>
    {!rows.length&&<div className="registry-empty-state"><strong>{risks.length?L(en,'Κανένας κίνδυνος με αυτά τα φίλτρα','No risk matches these filters'):L(en,'Δεν υπάρχουν κίνδυνοι','No risks yet')}</strong><span>{risks.length?L(en,'Αλλάξτε ή καθαρίστε τα φίλτρα.','Change or clear the filters.'):L(en,'Προσθέστε κινδύνους ή εισαγάγετε το μητρώο από Excel.','Add risks or import the register from Excel.')}</span></div>}
   </div>
-  <p className="risk-count">{L(en,`${rows.length} από ${risks.length} κινδύνους`,`${rows.length} of ${risks.length} risks`)}</p>
+  {rows.length>0&&pager}
  </div>
 }

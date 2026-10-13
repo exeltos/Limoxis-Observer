@@ -5,7 +5,7 @@ import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { ActionButton } from '../../../design-system/ActionButton'
 import { MetricCard } from '../../../design-system/MetricCard'
 import { EFFECTIVENESS,OPPORTUNITY_RATINGS,normalizeOpportunity,opportunityCode,parseMeasures } from './riskModel'
-import { L,returnedClass } from './riskUi'
+import { L,returnedClass,usePaged } from './riskUi'
 
 const pick=(list,id,en)=>{const x=list.find(item=>item.id===id);return x?(en?x.en:x.el):''}
 export function RatingBadge({id,en}){return id?<span className={`status-badge ${id==='high'?'active':''}`}>{pick(OPPORTUNITY_RATINGS,id,en)}</span>:<span className="risk-axis-none">—</span>}
@@ -34,6 +34,7 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,onDelete,act
   return true
  })
  const active=(rating!=='all')+(effect!=='all')+(owner!=='all')
+ const {items:pageRows,pager}=usePaged(rows,{en,resetOn:JSON.stringify([query,rating,effect,owner,quick]),startIndex:rows.findIndex(x=>String(x.item.id)===returned)})
  return <div className="risk-opportunities">
   <div className="module-summary-strip risk-kpi-strip">
    <MetricCard icon={Lightbulb} value={all.length} label={L(en,'Ευκαιρίες','Opportunities')} onClick={()=>setQuick(null)} active={!quick}/>
@@ -55,7 +56,7 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,onDelete,act
   <div className="scroll-table risk-table-wrap"><table className="data-table risk-table risk-opportunity-table"><thead><tr>
    <th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Ευκαιρία','Opportunity')}</th><th>{L(en,'Απόδοση','Yield')}</th><th>{L(en,'Σχέδιο δράσης','Action plan')}</th><th>{L(en,'Αποτελεσματικότητα','Effectiveness')}</th><th aria-label={L(en,'Ενέργειες','Actions')}/>
   </tr></thead><tbody>
-   {rows.map(({item,o,code,plan})=><tr key={item.id} className={`risk-row-clickable${returnedClass(returned,item.id)}`} onClick={()=>onOpen(item)}>
+   {pageRows.map(({item,o,code,plan})=><tr key={item.id} className={`risk-row-clickable${returnedClass(returned,item.id)}`} onClick={()=>onOpen(item)}>
     <td><strong>{code}</strong></td>
     <td className="risk-hazard"><span>{o.activity||'—'}</span>{o.opportunity&&<small className="risk-opportunity-text">{o.opportunity}</small>}</td>
     <td><RatingBadge id={o.ratingId} en={en}/></td>
@@ -65,5 +66,6 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,onDelete,act
    </tr>)}
    {all.length>0&&!rows.length&&<tr><td colSpan={6} className="risk-empty-note">{L(en,'Καμία ευκαιρία με αυτά τα φίλτρα.','No opportunity matches these filters.')}</td></tr>}
   </tbody></table>{!all.length&&<div className="registry-empty-state"><strong>{L(en,'Δεν έχουν καταγραφεί ευκαιρίες','No opportunities recorded')}</strong><span>{L(en,'Καταγράψτε τις ευκαιρίες που μπορεί να αξιοποιήσει ο οργανισμός, με το σχέδιο δράσης και την αποτελεσματικότητά του.','Record the opportunities the organization can seize, with their action plan and its effectiveness.')}</span></div>}</div>
+  {rows.length>0&&pager}
  </div>
 }
