@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
-import { useLocation,useParams,useSearchParams } from 'react-router-dom'
+import { useLocation,useNavigate,useParams,useSearchParams } from 'react-router-dom'
 import { BarChart3,BookOpen,CheckCircle2,ClipboardList,GitCompareArrows,Lightbulb,RotateCcw,Send,ShieldAlert,Archive,Trash2,Info,Pencil,Printer,Download,Gauge } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
@@ -15,10 +15,9 @@ import { can,CAPABILITIES,ROLES } from '../../../core/permissions/roles'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
 import { exportRegistry } from '../../../core/export/registryExports'
-import { deleteOpportunity,deleteRisk,deleteRiskAssessment,loadRiskAssessment,loadRiskAssessments,nextLineageKey,saveOpportunity,saveRisk,saveRiskAssessment } from './riskService'
-import { levelLabel,scored,summarizeRisks,suggestJci } from './riskModel'
+import { deleteOpportunity,deleteRisk,deleteRiskAssessment,loadRiskAssessment,loadRiskAssessments,saveOpportunity,saveRisk,saveRiskAssessment } from './riskService'
+import { levelLabel,scored,summarizeRisks } from './riskModel'
 import { RiskRegister } from './RiskRegister'
-import { RiskEditorDialog } from './RiskEditorDialog'
 import { RiskAnalysis } from './RiskAnalysis'
 import { RiskComparison } from './RiskComparison'
 import { RiskOpportunities } from './RiskOpportunities'
@@ -42,7 +41,6 @@ export function RiskAssessmentPage(){
  const {notify}=useFeedback()
  const {goTo,goBack:goBackTo}=useContextualNavigation('/quality')
  // Back to where the user came from; when that is the Quality Center (or unknown), its risk tab.
- const location=useLocation()
  const goBack=()=>{const from=location.state?.limoxisFrom?.pathname;if(!from||from==='/quality')rememberQualitySection('risks');goBackTo()}
  const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
  const organizationId=tenant?.id
@@ -51,8 +49,10 @@ export function RiskAssessmentPage(){
  const [assessment,setAssessment]=useState(null)
  const [all,setAll]=useState([])
  const [loading,setLoading]=useState(true)
- const [tab,setTab]=useState('register')
- const [editing,setEditing]=useState(null)
+ const location=useLocation()
+ const navigate=useNavigate()
+ // Back from a risk returns to the tab it was opened from.
+ const [tab,setTab]=useState(()=>location.state?.riskTab||'register')
  const [cell,setCell]=useState(null)
  const [confirm,setConfirm]=useState(null)
  const [approving,setApproving]=useState(false)
@@ -69,11 +69,10 @@ export function RiskAssessmentPage(){
  // The indicators of the Indicators module, with their 90-day values; the page works without them.
  useEffect(()=>{let active=true;loadIndicatorValues(organizationId).then(v=>{if(active)setIndicatorValues(v)}).catch(()=>{if(active)setIndicatorValues(new Map())});return()=>{active=false}},[organizationId])
  // A CAPA links back here with ?risk=R001: open that risk.
- useEffect(()=>{const key=search.get('risk');if(!key||!assessment)return;const found=(assessment.risks||[]).find(r=>r.lineageKey===key);if(found)setEditing(found);setSearch(p=>{p.delete('risk');return p},{replace:true})},[assessment,search,setSearch])
+ useEffect(()=>{const key=search.get('risk');if(!key||!assessment)return;if((assessment.risks||[]).some(r=>r.lineageKey===key))navigate(`/quality/risks/${assessment.code}/${key}`,{replace:true});else setSearch(p=>{p.delete('risk');return p},{replace:true})},[assessment,search,setSearch,navigate])
 
  const risks=useMemo(()=>assessment?.risks||[],[assessment])
  const summary=useMemo(()=>summarizeRisks(risks),[risks])
- const processes=useMemo(()=>[...new Set(risks.map(r=>r.process).filter(Boolean))].sort(),[risks])
  const comparable=useMemo(()=>all.map(a=>a.id===assessment?.id?{...a,risks}:a),[all,assessment?.id,risks])
  const previous=useMemo(()=>{if(!assessment)return null;const others=comparable.filter(a=>a.id!==assessment.id);return others.find(a=>a.id===assessment.sourceAssessmentId)||others.filter(a=>String(a.assessedOn)<String(assessment.assessedOn)).sort((a,b)=>String(b.assessedOn).localeCompare(String(a.assessedOn)))[0]||null},[comparable,assessment])
 
@@ -86,11 +85,6 @@ export function RiskAssessmentPage(){
   try{const next={...assessment,...change,history:[...(assessment.history||[]),auditEvent(action,{actor})]};const saved=await saveRiskAssessment(organizationId,next);setAssessment(current=>({...current,...saved,risks:current.risks,opportunities:current.opportunities}));notify(L(en,'Η εκτίμηση ενημερώθηκε.','The assessment was updated.'),'success');return true}
   catch{notify(L(en,'Δεν ήταν δυνατή η αποθήκευση.','Could not save.'),'error');return false}finally{setSaving(false)}
  }
- async function saveOneRisk(draft){
-  setSaving(true)
-  try{const risk={...draft,lineageKey:draft.lineageKey||nextLineageKey(risks),jci:draft.jci||suggestJci(draft.hazard,draft.process)};const saved=await saveRisk(organizationId,assessment.id,risk);setAssessment(current=>{const list=[...(current.risks||[])];const i=list.findIndex(r=>r.id===saved.id);if(i<0)list.push(saved);else list[i]=saved;return {...current,risks:list}});setEditing(null);notify(L(en,'Ο κίνδυνος αποθηκεύτηκε.','The risk was saved.'),'success')}
-  catch{notify(L(en,'Δεν ήταν δυνατή η αποθήκευση του κινδύνου.','Could not save the risk.'),'error')}finally{setSaving(false)}
- }
  // Bulk linking: adds the confirmed indicators to each risk, keeping the ones it had.
  async function linkIndicators(changes){
   setSaving(true)
@@ -101,6 +95,7 @@ export function RiskAssessmentPage(){
    setLinking(false);notify(L(en,`Συνδέθηκαν δείκτες σε ${saved.length} κινδύνους.`,`Indicators linked to ${saved.length} risks.`),'success')
   }catch{notify(L(en,'Δεν ήταν δυνατή η σύνδεση των δεικτών.','Could not link the indicators.'),'error')}finally{setSaving(false)}
  }
+ const openRisk=risk=>{if((risks||[]).some(r=>r.lineageKey===risk.lineageKey))navigate(`/quality/risks/${assessment.code}/${risk.lineageKey}`,{state:{riskTab:tab}})}
  async function removeRisk(risk){try{await deleteRisk(organizationId,assessment.id,risk.id);setAssessment(current=>({...current,risks:current.risks.filter(r=>r.id!==risk.id)}));notify(L(en,'Ο κίνδυνος διαγράφηκε.','The risk was deleted.'),'success')}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
  async function saveOneOpportunity(item){try{const saved=await saveOpportunity(organizationId,assessment.id,item);setAssessment(current=>{const list=[...(current.opportunities||[])];const i=list.findIndex(o=>o.id===saved.id);if(i<0)list.push(saved);else list[i]=saved;return {...current,opportunities:list}})}catch{notify(L(en,'Δεν ήταν δυνατή η αποθήκευση.','Could not save.'),'error')}}
  async function removeOpportunity(item){try{await deleteOpportunity(organizationId,assessment.id,item.id);setAssessment(current=>({...current,opportunities:current.opportunities.filter(o=>o.id!==item.id)}))}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
@@ -152,16 +147,15 @@ export function RiskAssessmentPage(){
    {/* The record shell keeps only edit/delete from headerActions, so the "…" menu sits here: in the register's toolbar, or on its own line in the other tabs. */}
    {!canEdit&&canManage&&<p className="risk-locked">{L(en,`Η εκτίμηση είναι «${statusLabel(assessment.status,en)}» και δεν αλλάζει. Για αλλαγές: «Επαναφορά σε πρόχειρο».`,`The assessment is “${statusLabel(assessment.status,en)}” and locked. To change it: “Back to draft”.`)}</p>}
    {tab!=='register'&&<div className="risk-page-bar">{menu}</div>}
-   {tab==='register'&&<RiskRegister risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setCell(null)} onOpen={setEditing} onCreate={()=>setEditing({section:'clinical'})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues}/>}
-   {tab==='analysis'&&<RiskAnalysis summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={setEditing} onCell={c=>{setCell(c);setTab('register')}}/>}
-   {tab==='comparison'&&<RiskComparison assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={setEditing}/>}
+   {tab==='register'&&<RiskRegister risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setCell(null)} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues}/>}
+   {tab==='analysis'&&<RiskAnalysis summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>{setCell(c);setTab('register')}}/>}
+   {tab==='comparison'&&<RiskComparison assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={openRisk}/>}
    {tab==='opportunities'&&<RiskOpportunities items={assessment.opportunities||[]} en={en} canEdit={canEdit} onSave={saveOneOpportunity} onDelete={removeOpportunity}/>}
    {tab==='methodology'&&<RiskMethodology en={en}/>}
    {tab==='details'&&<AssessmentDetails assessment={assessment} en={en} locale={locale}/>}
   </div>
   <div className="risk-print-host" aria-hidden="true"><RiskReport ref={reportRef} assessment={{...assessment,risks}} summary={summary} previous={previous} organizationName={tenant?.name||''} en={en} locale={locale}/></div>
   {linking&&<LinkIndicatorsDialog risks={risks} values={indicatorValues||new Map()} en={en} saving={saving} onClose={()=>setLinking(false)} onSave={linkIndicators}/>}
-  {editing&&<RiskEditorDialog indicatorValues={indicatorValues} risk={editing} processes={processes} en={en} readOnly={!canEdit} saving={saving} onClose={()=>setEditing(null)} onSave={saveOneRisk}/>}
   {detailsOpen&&<AssessmentDetailsDialog initial={assessment} en={en} onClose={()=>setDetailsOpen(false)} onSave={async draft=>{if(await persistAssessment(draft,'riskAssessmentUpdated'))setDetailsOpen(false)}}/>}
   {approving&&<ApproveDialog en={en} onClose={()=>setApproving(false)} onSave={async ({by,on})=>{if(await persistAssessment({status:'approved',approvedByLabel:by,approvedOn:on},'riskAssessmentApproved'))setApproving(false)}}/>}
   {confirm&&<ObserverDialog width="compact" title={confirm.kind==='assessment'?L(en,'Διαγραφή εκτίμησης','Delete assessment'):L(en,'Διαγραφή κινδύνου','Delete risk')} onClose={()=>setConfirm(null)} footer={<DialogActions onCancel={()=>setConfirm(null)} showCancel onSave={async()=>{const c=confirm;setConfirm(null);if(c.kind==='assessment')await removeAssessment();else await removeRisk(c.risk)}} saveLabel={L(en,'Διαγραφή','Delete')}/>}>

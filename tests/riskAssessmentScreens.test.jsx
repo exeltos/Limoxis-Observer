@@ -21,6 +21,7 @@ const { TenantProvider, useTenant } = await import('../src/core/tenant/TenantCon
 const { NotificationProvider } = await import('../src/core/notifications/NotificationContext')
 const { QualityPage } = await import('../src/features/quality/QualityPage')
 const { RiskAssessmentPage } = await import('../src/features/quality/risk/RiskAssessmentPage')
+const { RiskRecordPage } = await import('../src/features/quality/risk/RiskRecordPage')
 
 function Where() { const location = useLocation(); return <pre data-testid="where">{location.pathname}{JSON.stringify(location.state?.qualitySource || null)}</pre> }
 
@@ -31,6 +32,7 @@ async function open(path) {
     <Routes>
       <Route path="/quality" element={<QualityPage/>}/>
       <Route path="/quality/risks/:assessmentCode" element={<RiskAssessmentPage/>}/>
+      <Route path="/quality/risks/:assessmentCode/:riskKey" element={<RiskRecordPage/>}/>
       <Route path="*" element={<Where/>}/>
     </Routes>
   </NotificationProvider></TenantProvider></FeedbackProvider></LanguageProvider></MemoryRouter>)
@@ -77,19 +79,20 @@ describe('risk assessment screens', () => {
     expect(await screen.findByText(/A risk matrix for risk managers/)).toBeInTheDocument()
   })
 
-  it('edits and saves a risk, recomputing its level', async () => {
+  it('edits a risk on its own page and saves it, recomputing its level', async () => {
     const year = new Date(Date.now() - 7 * 86400000).getFullYear()
     await open(`/quality/risks/RSA-DEMO-${year}`)
     await screen.findByRole('tab', { name: 'Μητρώο (14)' })
     const register=()=>within(document.querySelector('.risk-register'))
     fireEvent.click(register().getByText('R007'))
-    const dialog = await screen.findByRole('dialog')
-    const residual = within(dialog).getAllByRole('combobox', { name: /Πιθανότητα \(L\)/ })[1]
+    // The risk opens as a page: the measures are lists, in the order of the assessment.
+    const residual = (await screen.findAllByRole('combobox', { name: /Πιθανότητα \(L\)/ }))[1]
+    expect(screen.getByText('Προληπτικά μέτρα που ήδη λαμβάνονται')).toBeInTheDocument()
     fireEvent.change(residual, { target: { value: '4' } })
     // 4 × 3 = 12: the residual risk becomes High and needs an action plan.
-    expect(within(dialog).getByText('Υψηλός υπολειπόμενος χωρίς πρόσθετα μέτρα')).toBeInTheDocument()
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Αποθήκευση κινδύνου' }))
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByText('Υψηλός υπολειπόμενος χωρίς πρόσθετα μέτρα')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση κινδύνου/ }))
+    await screen.findByRole('tab', { name: 'Μητρώο (14)' })
     const row = register().getByText('R007').closest('tr')
     expect(within(row).getByText('Υψηλός')).toBeInTheDocument()
   })

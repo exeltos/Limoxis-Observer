@@ -164,3 +164,15 @@ const JCI_RULES=[
  [/εξοπλισμ|πυρκαγ|πλυμμ|πλημμ|ηλεκτροπλ|απαγωγ|κλοπη|βιας|κακοποιησ|fire|flood|equipment/,'FMS'],[/αγωγων|προμηθ|αποθηκευσης|legal/,'GLD'],[/ικανοποιησ|satisfaction/,'PCC'],
 ]
 export function suggestJci(...texts){const text=norm(texts.join(' '));return (JCI_RULES.find(([pattern])=>pattern.test(text))||[null,'COP'])[1]}
+
+// Measures are kept as text, one per line; the editor shows them as a list.
+// Old registers number them («1.Τήρηση… 2.Τήρηση…»), sometimes several on one
+// line: the numbers are dropped and every numbered part becomes its own item.
+export function parseMeasures(text){
+ return String(text||'').replace(/\r/g,'')
+  .split('\n')
+  .flatMap(line=>line.split(/\s+(?=\d{1,2}\s?[.)]\s*\S)/))
+  .map(item=>item.replace(/^\s*(\d{1,2}\s?[.)]|[-•·*])\s*/,'').trim())
+  .filter(Boolean)
+}
+export const joinMeasures=items=>items.map(item=>String(item||'').trim()).filter(Boolean).join('\n')
