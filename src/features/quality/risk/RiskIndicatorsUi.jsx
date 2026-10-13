@@ -23,6 +23,16 @@ export function IndicatorChip({indicatorKey,values,en,onRemove,compact=false}){
  </span>
 }
 
+// The register's column: how many indicators measure the risk; red when one is
+// off target, with every name, value and trend in the tooltip.
+export function IndicatorBadge({keys=[],values,en}){
+ if(!keys.length)return <span className="risk-indicator-badge empty">—</span>
+ const items=keys.map(key=>values?.get(key)).filter(Boolean)
+ const attention=items.some(item=>item.status==='attention'),worse=items.some(item=>item.trend==='worse')
+ const tip=keys.map(key=>{const item=values?.get(key);return item?`${title(item,en)}: ${number(item.value)}${item.unit?` ${en?item.unitEn||item.unit:item.unit}`:''}`:key}).join('\n')
+ return <span className={`risk-indicator-badge${attention?' attention':''}`} title={tip}><Gauge size={12} aria-hidden="true"/>{keys.length}{worse&&<ArrowUpRight size={12} aria-label={L(en,'κάποιος χειροτερεύει','one is worsening')}/>}</span>
+}
+
 // The editor field: linked indicators, the ones proposed from the risk's wording, and a list to add from.
 export function IndicatorPicker({risk,values,en,disabled,onChange}){
  const keys=useMemo(()=>risk.indicatorKeys||[],[risk.indicatorKeys])
