@@ -50,7 +50,7 @@ export function DeviationSummary({view,language}){
  const en=language==='en'
  const toggle=key=>()=>view.setQuick(current=>current===key?null:key)
  return <div className="workspace-summary quality-summary"><div className="module-summary-strip">
-  <MetricCard icon={FileWarning} value={view.counts.total} label={en?'Without CAPA':'Χωρίς CAPA'} onClick={()=>view.setQuick(null)} active={false}/>
+  <MetricCard icon={FileWarning} value={view.counts.total} label={en?'Without CAPA':'Χωρίς διορθωτική ενέργεια'} onClick={()=>view.setQuick(null)} active={false}/>
   <MetricCard icon={ClipboardCheck} value={view.counts.control} label={en?'From controls':'Από ελέγχους'} onClick={toggle('control')} active={view.quick==='control'}/>
   <MetricCard icon={ShieldCheck} value={view.counts.bundle} label={en?'From bundles':'Από bundles'} onClick={toggle('bundle')} active={view.quick==='bundle'}/>
   <MetricCard icon={AlertTriangle} value={view.counts.high} label={en?'High priority':'Υψηλής προτεραιότητας'} onClick={toggle('high')} active={view.quick==='high'}/>
@@ -91,12 +91,12 @@ export function QualityDeviationQueue({view,loading,language,locale,t,onCreateCa
      <td><span className={`status-badge ${item.priority==='high'?'danger':''}`}>{t(item.priority)}</span></td>
      <td className="quality-deviation-actions-col"><div className="row-actions">
       <IconButton size="sm" label={en?'Open source record':'Άνοιγμα εγγραφής προέλευσης'} onClick={()=>goTo(item.path,{returnTo:'/quality'})}><ExternalLink size={15}/></IconButton>
-      <ActionButton tone="primary" label={en?'Create CAPA':'Δημιουργία CAPA'} onClick={()=>onCreateCapa(capaPrefill(item,language))}><Plus size={15}/><span>{en?'Create CAPA':'Δημιουργία CAPA'}</span></ActionButton>
+      <ActionButton tone="primary" label={en?'Create CAPA':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateCapa(capaPrefill(item,language))}><Plus size={15}/><span>{en?'Create CAPA':'Δημιουργία διορθωτικής ενέργειας'}</span></ActionButton>
      </div></td>
     </tr>})}</tbody>
    </table>
    {loading&&<div className="registry-empty-state"><strong>{en?'Loading deviations…':'Φόρτωση αποκλίσεων…'}</strong></div>}
-   {!loading&&!items.length&&<div className="registry-empty-state"><strong>{en?'No deviations without a CAPA':'Δεν υπάρχουν αποκλίσεις χωρίς CAPA'}</strong><span>{en?'Control entries with a finding and failed bundle criteria appear here until a CAPA is created from them.':'Εδώ εμφανίζονται καταχωρήσεις ελέγχων με εύρημα και bundles με κριτήρια που δεν τηρήθηκαν, μέχρι να δημιουργηθεί CAPA από αυτά.'}</span></div>}
+   {!loading&&!items.length&&<div className="registry-empty-state"><strong>{en?'No deviations without a CAPA':'Δεν υπάρχουν αποκλίσεις χωρίς διορθωτική ενέργεια'}</strong><span>{en?'Control entries with a finding and failed bundle criteria appear here until a CAPA is created from them.':'Εδώ εμφανίζονται καταχωρήσεις ελέγχων με εύρημα και bundles με κριτήρια που δεν τηρήθηκαν, μέχρι να δημιουργηθεί διορθωτική ενέργεια από αυτά.'}</span></div>}
   </div>
   <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={items.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
  </>

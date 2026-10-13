@@ -57,7 +57,7 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
      <td>{txt(risk,'owner',en)||'—'}</td>
      <td onClick={e=>e.stopPropagation()}><OverflowMenu label={L(en,'Ενέργειες κινδύνου','Risk actions')} items={[
       {id:'open',label:canEdit?L(en,'Επεξεργασία','Edit'):L(en,'Προβολή','View'),icon:Pencil,onClick:()=>onOpen(risk)},
-      {id:'capa',label:L(en,'Δημιουργία CAPA','Create CAPA'),icon:CheckSquare2,onClick:()=>onCreateCapa(risk)},
+      {id:'capa',label:L(en,'Δημιουργία διορθωτικής ενέργειας','Create CAPA'),icon:CheckSquare2,onClick:()=>onCreateCapa(risk)},
       ...(canEdit?[{id:'delete',label:L(en,'Διαγραφή','Delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>onDelete(risk)}]:[]),
      ]}/></td>
     </tr>)}

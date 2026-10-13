@@ -224,7 +224,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Θετικές καλλιέργειες', 'Positive cultures'), micro.totalPositive ?? 0, tx(`${mdro} MDR/XDR/PDR`, `${mdro} MDR/XDR/PDR`), (mdro ? 'danger' : '')],
         [tx('Συμμόρφωση υγιεινής χεριών', 'Hand hygiene compliance'), fmtPct(hhRate), tx(`${hh.observations ?? 0} ευκαιρίες`, `${hh.observations ?? 0} opportunities`), hhRate != null && hhRate < 80 ? 'warning' : 'good'],
         [tx('Συμμόρφωση δεσμών μέτρων', 'Bundle compliance'), fmtPct(b.averageScore), tx(`${b.assessments ?? 0} αξιολογήσεις`, `${b.assessments ?? 0} assessments`), b.averageScore != null && b.averageScore < 90 ? 'warning' : 'good'],
-        [tx('Εκπρόθεσμα CAPA', 'Overdue CAPA'), q.capaOverdue ?? 0, tx(`${q.capaOpen ?? 0} ανοιχτά`, `${q.capaOpen ?? 0} open`), q.capaOverdue ? 'danger' : ''],
+        [tx('Εκπρόθεσμες διορθωτικές ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx(`${q.capaOpen ?? 0} ανοιχτά`, `${q.capaOpen ?? 0} open`), q.capaOverdue ? 'danger' : ''],
       ],
       charts: [
         { type: 'scoreboard', wide: true, ...(byHospital ? { title: tx('Σύγκριση νοσοκομείων', 'Hospitals side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε νοσοκομείου για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each hospital\'s headline figures for the period; shading marks the highest in each column.'), rowLabel: tx('Νοσοκομείο', 'Hospital'), rows: (snapshot.hospitals || []).map(row => ({ ...row, key: row.organizationId })).sort((a, b) => b.episodes + b.positives - (a.episodes + a.positives)) } : { title: tx('Σύγκριση τμημάτων', 'Departments side by side'), subtitle: tx('Οι βασικοί δείκτες κάθε τμήματος για την περίοδο· η απόχρωση δείχνει το υψηλότερο σε κάθε στήλη.', 'Each department\'s headline figures for the period; shading marks the highest in each column.'), rows: departmentScoreboard(snapshot) }), columns: [
@@ -239,7 +239,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'bars', title: tx('Τι χρειάζεται ενέργεια', 'What needs action'), subtitle: tx('Εκκρεμότητες όλων των ενοτήτων αυτή τη στιγμή.', 'Open items across all areas right now.'), rows: [
           [tx('Εκπρόθεσμες επανεκτιμήσεις απομόνωσης', 'Overdue isolation reviews'), s.isolationReviewOverdue ?? 0],
           [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0],
-          [tx('Εκπρόθεσμα CAPA', 'Overdue CAPA'), q.capaOverdue ?? 0],
+          [tx('Εκπρόθεσμες διορθωτικές ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0],
           [tx('Ανοιχτά συμβάντα', 'Open incidents'), q.openIncidents ?? 0],
           [tx('Αγωγές σε αναμονή έγκρισης', 'Therapies awaiting approval'), a.pending ?? 0],
         ].filter(([, n]) => n > 0) },
@@ -317,8 +317,8 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       kpis: [
         [tx('Συμβάντα', 'Incidents'), q.incidents ?? 0, tx(`${q.openIncidents ?? 0} ανοιχτά`, `${q.openIncidents ?? 0} open`)],
         [tx('Με βλάβη', 'With harm'), q.harm ?? 0, tx('συμβάντα με βλάβη ασθενούς', 'incidents with patient harm'), q.harm ? 'danger' : ''],
-        [tx('Ανοιχτά CAPA', 'Open CAPA'), q.capaOpen ?? 0, tx('διορθωτικές / προληπτικές ενέργειες', 'corrective / preventive actions')],
-        [tx('Εκπρόθεσμα CAPA', 'Overdue CAPA'), q.capaOverdue ?? 0, tx('πέρασε η προθεσμία', 'past due date'), q.capaOverdue ? 'danger' : ''],
+        [tx('Ανοιχτές διορθωτικές ενέργειες', 'Open CAPA'), q.capaOpen ?? 0, tx('διορθωτικές / προληπτικές ενέργειες', 'corrective / preventive actions')],
+        [tx('Εκπρόθεσμες διορθωτικές ενέργειες', 'Overdue CAPA'), q.capaOverdue ?? 0, tx('πέρασε η προθεσμία', 'past due date'), q.capaOverdue ? 'danger' : ''],
       ],
       charts: [
         { type: 'trend', wide: true, title: tx('Συμβάντα ανά μήνα', 'Incidents by month'), subtitle: tx('Αναφορές συμβάντων ανά μήνα.', 'Incident reports per month.'), points: q.monthly },

@@ -91,7 +91,7 @@ export function CalendarPage(){
  const canManageTraining=can(role,CAPABILITIES.MANAGE_TRAINING,membership?.capabilities??[],membership?.customCapabilities??[])
  const from={limoxisFrom:{path:'/calendar',label:en?'Calendar':'Ημερολόγιο'}}
  const addItems=[
-  canManageQuality&&{id:'capa',label:en?'New CAPA (due this day)':'Νέα CAPA (προθεσμία)',icon:ClipboardCheck,onClick:()=>navigate('/quality/capas/new',{state:{...from,qualitySource:{dueDate:selected}}})},
+  canManageQuality&&{id:'capa',label:en?'New CAPA (due this day)':'Νέα διορθωτική ενέργεια (προθεσμία)',icon:ClipboardCheck,onClick:()=>navigate('/quality/capas/new',{state:{...from,qualitySource:{dueDate:selected}}})},
   canManageQuality&&{id:'audit',label:en?'New audit':'Νέα επιθεώρηση',icon:ListChecks,onClick:()=>navigate('/quality/audits/new',{state:{...from,qualitySource:{plannedDate:selected}}})},
   canManageTraining&&{id:'training',label:en?'New training':'Νέα εκπαίδευση',icon:GraduationCap,onClick:()=>navigate('/training/new',{state:{...from,calendarDate:selected}})},
  ].filter(Boolean)

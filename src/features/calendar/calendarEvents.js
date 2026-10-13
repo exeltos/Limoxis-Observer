@@ -6,7 +6,7 @@ import { calculateNextDue } from '../controls/controlScheduling'
 export const CALENDAR_KINDS=['controls','capa','audits','training','documents','committees']
 
 const KIND_LABELS={
- el:{controls:'Έλεγχοι',capa:'CAPA',audits:'Επιθεωρήσεις',training:'Εκπαίδευση',documents:'Έγγραφα',committees:'Επιτροπές'},
+ el:{controls:'Έλεγχοι',capa:'Διορθωτικές ενέργειες',audits:'Επιθεωρήσεις',training:'Εκπαίδευση',documents:'Έγγραφα',committees:'Επιτροπές'},
  en:{controls:'Controls',capa:'CAPA',audits:'Audits',training:'Training',documents:'Documents',committees:'Committees'},
 }
 export const calendarKindLabel=(kind,language='el')=>KIND_LABELS[language==='en'?'en':'el'][kind]||kind
@@ -70,7 +70,7 @@ function capaEvents(capas,range,today,list,en){
   const path=`/quality/capas/${capa.id}`
   const closed=['closed','completed'].includes(capa.status)
   if(!closed){
-   push(list,{id:`capa:${capa.id}`,kind:'capa',date:toDay(capa.dueDate),title,detail:en?'CAPA due':'Προθεσμία CAPA',department,path,state:stateOf(toDay(capa.dueDate),today)},range)
+   push(list,{id:`capa:${capa.id}`,kind:'capa',date:toDay(capa.dueDate),title,detail:en?'CAPA due':'Προθεσμία διορθωτικής ενέργειας',department,path,state:stateOf(toDay(capa.dueDate),today)},range)
    for(const step of capa.subActions||[]){
     if(step.done)continue
     push(list,{id:`capa-step:${capa.id}:${step.id}`,kind:'capa',date:toDay(step.dueDate),title:step.title,detail:`${capa.displayId||capa.id}${step.owner?` · ${step.owner}`:''}`,department,path,state:stateOf(toDay(step.dueDate),today)},range)

@@ -22,7 +22,7 @@ const TASKS = {
     ['overdueControls', 'Εκπρόθεσμοι έλεγχοι', 'Overdue controls', '/controls'],
     ['pendingSamples', 'Εκκρεμή δείγματα', 'Pending samples', '/laboratory'],
     ['openIncidents', 'Ανοιχτά συμβάντα', 'Open incidents', '/quality'],
-    ['overdueCapa', 'CAPA εκπρόθεσμα', 'Overdue CAPA', '/quality'],
+    ['overdueCapa', 'Εκπρόθεσμες διορθωτικές ενέργειες', 'Overdue CAPA', '/quality'],
   ],
   infection_control_lead: [
     [
@@ -57,7 +57,7 @@ const TASKS = {
     ['vaccinationsDue', 'Εμβολιασμοί προς ανανέωση', 'Vaccinations due', '/occupational-health'],
   ],
   quality_manager: [
-    ['overdueCapa', 'CAPA εκπρόθεσμα', 'Overdue CAPA', '/quality'],
+    ['overdueCapa', 'Εκπρόθεσμες διορθωτικές ενέργειες', 'Overdue CAPA', '/quality'],
     ['severeOpenIncidents', 'Σοβαρά ανοικτά συμβάντα', 'Severe open incidents', '/quality'],
   ],
   committee_secretariat: [

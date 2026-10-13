@@ -34,7 +34,7 @@ const RETURN_KEY='limoxis.quality.returnSection'
 const createLabels={
   incidents:{el:'Νέο συμβάν',en:'New incident'},
   findings:{el:'Νέο εύρημα',en:'New finding'},
-  capas:{el:'Νέα CAPA',en:'New CAPA'},
+  capas:{el:'Νέα διορθωτική ενέργεια',en:'New CAPA'},
   audits:{el:'Νέα επιθεώρηση',en:'New audit'},
 }
 
@@ -78,7 +78,7 @@ export function QualityPage(){
   const filtered=useMemo(()=>rows.filter(row=>`${row.id} ${row.displayId||''} ${row.title} ${row.titleEn} ${row.owner||''}`.toLowerCase().includes(query.toLowerCase())).filter(row=>status==='all'||row.status===status).filter(row=>department==='all'||(language==='el'?row.department:row.departmentEn)===department).filter(row=>!quick||(quick==='open'?!['closed','completed'].includes(row.status):quick==='closed'?['closed','completed'].includes(row.status):['high','critical'].includes(row.severity||row.priority))),[rows,query,status,department,language,quick])
   useEffect(()=>setPage(1),[section,query,status,department,pageSize,quick])
   const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=filtered.slice((safePage-1)*pageSize,safePage*pageSize)
-  const emptyTitle={incidents:{el:'Δεν υπάρχουν συμβάντα',en:'No incidents'},findings:{el:'Δεν υπάρχουν ευρήματα',en:'No findings'},capas:{el:'Δεν υπάρχουν CAPA',en:'No CAPA'},audits:{el:'Δεν υπάρχουν επιθεωρήσεις',en:'No audits'}}[section]?.[language==='en'?'en':'el']
+  const emptyTitle={incidents:{el:'Δεν υπάρχουν συμβάντα',en:'No incidents'},findings:{el:'Δεν υπάρχουν ευρήματα',en:'No findings'},capas:{el:'Δεν υπάρχουν διορθωτικές ενέργειες',en:'No CAPA'},audits:{el:'Δεν υπάρχουν επιθεωρήσεις',en:'No audits'}}[section]?.[language==='en'?'en':'el']
   const openCount=rows.filter(x=>!['closed','completed'].includes(x.status)).length
   const closedCount=rows.filter(x=>['closed','completed'].includes(x.status)).length
   const highCount=rows.filter(x=>['high','critical'].includes(x.severity||x.priority)).length
@@ -87,7 +87,7 @@ export function QualityPage(){
   function createCapaFrom(prefill){writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.capas',state:{qualitySource:prefill}})}
   function changeSection(id){registry.saveViewState({query,status,department});setSection(id);setQuick(null);const next=readRegistryViewState(`quality.${id}`);setQuery(next?.query||'');setStatus(next?.status||'all');setDepartment(next?.department||'all')}
 
-  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA and audits in one controlled, traceable flow.':'Συμβάντα, ευρήματα, CAPA και επιθεωρήσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{isRisks?null:isQueue?<DownloadMenu disabled={!deviationView.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviationView.filtered,{en:language==='en',t}))}/>:<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
+  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA and audits in one controlled, traceable flow.':'Συμβάντα, ευρήματα, διορθωτικές ενέργειες και επιθεωρήσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{isRisks?null:isQueue?<DownloadMenu disabled={!deviationView.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviationView.filtered,{en:language==='en',t}))}/>:<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
     {isQueue&&<DeviationSummary view={deviationView} language={language}/>}
     {!isQueue&&!isRisks&&<div className="workspace-summary quality-summary"><div className="module-summary-strip">
       <SummaryMetric icon={ClipboardCheck} label={language==='en'?'Total':'Σύνολο'} value={rows.length} onClick={()=>setQuick(null)} active={false}/>
@@ -96,7 +96,7 @@ export function QualityPage(){
       <SummaryMetric icon={AlertTriangle} label={language==='en'?'High priority':'Υψηλής προτεραιότητας'} value={highCount} onClick={quickToggle('high')} active={quick==='high'}/>
     </div></div>}
     <div className="surface registry-workspace workspace-column workspace-fill quality-workspace">
-      <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{visibleSections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{id==='deviations'?(language==='en'?'Deviations without CAPA':'Αποκλίσεις χωρίς CAPA'):t(label)}</span>{id==='deviations'&&queueCount>0&&<span className="quality-tab-count">{queueCount}</span>}</button>)}</nav>
+      <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{visibleSections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{id==='deviations'?(language==='en'?'Deviations without CAPA':'Αποκλίσεις χωρίς διορθωτική ενέργεια'):t(label)}</span>{id==='deviations'&&queueCount>0&&<span className="quality-tab-count">{queueCount}</span>}</button>)}</nav>
       {isRisks?<RiskAssessmentsPanel organizationId={tenant?.id} canManage={canManage} en={language==='en'} locale={locale}/>:isQueue?<QualityDeviationQueue view={deviationView} loading={queue.loading} language={language} locale={locale} t={t} onCreateCapa={createCapaFrom}/>:<>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{[...new Set(rows.map(x=>x.status).filter(Boolean))].map(x=><option key={x} value={x}>{t(x)}</option>)}</FilterSelect>
