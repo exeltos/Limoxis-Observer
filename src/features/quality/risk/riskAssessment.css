@@ -424,3 +424,4 @@
 .risk-timeline small{font-size:11px;color:var(--lo-color-muted)}
 .risk-timeline-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#eef3f7;color:#34546f}
 @media(max-width:1000px){.risk-details-columns{grid-template-columns:1fr}.risk-identity{grid-template-columns:1fr}}
+.risk-template-list small.risk-template-loaded{display:block;margin-top:3px;color:#1d6438;font-weight:650}
