@@ -698,7 +698,6 @@
    workspaces on screen; print must explicitly release every ancestor constraint. */
 @media print{
   @page{size:A4 landscape;margin:12mm}
-  html,body,#root{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
   .app-shell,.platform-owner-shell,.main-column,.content,
   .platform-analysis-page,.platform-analysis-page.page,.platform-analysis-page.page-fill,
   .platform-analysis-page .analysis-workspace,.platform-analysis-page .analysis-scroll{

@@ -14,6 +14,7 @@ import './styles/foundation.css'
 import './styles/features.css'
 import './styles/design-system.css'
 import './styles/workspaces.css'
+import './styles/print.css'
 import './styles/responsive.css'
 
 // LIRA (assistant panel + analysis engine) is not needed for first paint; load it
