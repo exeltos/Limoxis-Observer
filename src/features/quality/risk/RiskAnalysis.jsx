@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AlertOctagon,AlertTriangle,ClipboardList,Gauge,ShieldAlert,TrendingDown } from 'lucide-react'
 import { MetricCard } from '../../../design-system/MetricCard'
 import { LEVELS,jciLabel,levelForScore,scored,sectionLabel } from './riskModel'
-import { L,LevelChip,LevelLegend,RiskHeatMap,txt } from './riskUi'
+import { L,LevelChip,LevelLegend,RiskHeatMap,returnedClass,txt } from './riskUi'
 import { RiskIndicatorTable } from './RiskIndicatorsUi'
 
 const pct=(n,total)=>total?Math.round(n/total*100):0
@@ -37,9 +37,9 @@ function GroupTable({rows,en,label,labelFor=x=>x}){
  </tbody></table>
 }
 
-export function RiskList({risks,en,empty,onOpen}){
+export function RiskList({risks,en,empty,onOpen,returned=''}){
  if(!risks.length)return <p className="risk-empty-note">{empty}</p>
- return <ol className="risk-list">{risks.map(risk=>{const s=scored(risk);return <li key={risk.id||risk.lineageKey}><button type="button" onClick={()=>onOpen?.(risk)} disabled={!onOpen}>
+ return <ol className="risk-list">{risks.map(risk=>{const s=scored(risk);return <li key={risk.id||risk.lineageKey}><button type="button" className={returnedClass(returned,risk.lineageKey).trim()||undefined} onClick={()=>onOpen?.(risk)} disabled={!onOpen}>
   <LevelChip score={s.residual.score} level={s.residual.level} en={en} compact/><span><strong>{risk.lineageKey} · {txt(risk,'hazard',en)}</strong><small>{[txt(risk,'process',en),txt(risk,'scope',en),txt(risk,'owner',en)].filter(Boolean).join(' · ')}</small></span>
  </button></li>})}</ol>
 }
@@ -53,7 +53,7 @@ const GROUPS=[['process','Ανά διεργασία','By process'],['jci','Αν�
 
 // Analysis of one assessment: what needs a decision first, then the maps,
 // the indicators and the breakdowns.
-export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null,actions=null}){
+export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null,actions=null,returned=''}){
  const [group,setGroup]=useState('process')
  const high=summary.levels.residual.high+summary.levels.residual.very_high
  const map=(kind,title,caption,extra={})=><div className="risk-heatmap-cell">
@@ -74,10 +74,10 @@ export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=
   </div>
   <p className="risk-hint">{L(en,`${high} από ${summary.total} κινδύνους παραμένουν υψηλοί ή πολύ υψηλοί με τα υφιστάμενα μέτρα.`,`${high} of ${summary.total} risks stay high or very high with the existing controls.`)}</p>
   <div className="risk-two-columns risk-analysis-decide">
-   <section className="risk-panel"><header><h3>{L(en,'Κίνδυνοι προτεραιότητας','Priority risks')}</h3><small>{L(en,'Υψηλός ή πολύ υψηλός υπολειπόμενος κίνδυνος','High or very high residual risk')}</small></header><RiskList risks={summary.priorities.slice(0,12)} en={en} onOpen={onOpen} empty={L(en,'Κανένας υψηλός υπολειπόμενος κίνδυνος.','No high residual risk.')}/></section>
+   <section className="risk-panel"><header><h3>{L(en,'Κίνδυνοι προτεραιότητας','Priority risks')}</h3><small>{L(en,'Υψηλός ή πολύ υψηλός υπολειπόμενος κίνδυνος','High or very high residual risk')}</small></header><RiskList risks={summary.priorities.slice(0,12)} en={en} onOpen={onOpen} returned={returned} empty={L(en,'Κανένας υψηλός υπολειπόμενος κίνδυνος.','No high residual risk.')}/></section>
    <div className="risk-analysis-side">
-    <section className="risk-panel"><header><h3>{L(en,'Χωρίς σχέδιο δράσης','Without an action plan')}</h3><small>{L(en,'Υψηλοί υπολειπόμενοι χωρίς πρόσθετα μέτρα','High residual risks without additional measures')}</small></header><RiskList risks={summary.withoutPlan} en={en} onOpen={onOpen} empty={L(en,'Όλοι οι υψηλοί κίνδυνοι έχουν σχέδιο δράσης.','Every high risk has an action plan.')}/></section>
-    <section className="risk-panel"><header><h3>{L(en,'Επιλεγμένοι για FMEA','Selected for FMEA')}</h3><small>{L(en,'Προληπτική ανάλυση της περιόδου','This period’s proactive analysis')}</small></header><RiskList risks={summary.prioritized} en={en} onOpen={onOpen} empty={L(en,'Δεν έχει επιλεγεί κίνδυνος. Επιλέξτε τον μέσα στον κίνδυνο (Παρακολούθηση → FMEA).','No risk selected yet. Select it in the risk (Monitoring → FMEA).')}/></section>
+    <section className="risk-panel"><header><h3>{L(en,'Χωρίς σχέδιο δράσης','Without an action plan')}</h3><small>{L(en,'Υψηλοί υπολειπόμενοι χωρίς πρόσθετα μέτρα','High residual risks without additional measures')}</small></header><RiskList risks={summary.withoutPlan} en={en} onOpen={onOpen} returned={returned} empty={L(en,'Όλοι οι υψηλοί κίνδυνοι έχουν σχέδιο δράσης.','Every high risk has an action plan.')}/></section>
+    <section className="risk-panel"><header><h3>{L(en,'Επιλεγμένοι για FMEA','Selected for FMEA')}</h3><small>{L(en,'Προληπτική ανάλυση της περιόδου','This period’s proactive analysis')}</small></header><RiskList risks={summary.prioritized} en={en} onOpen={onOpen} returned={returned} empty={L(en,'Δεν έχει επιλεγεί κίνδυνος. Επιλέξτε τον μέσα στον κίνδυνο (Παρακολούθηση → FMEA).','No risk selected yet. Select it in the risk (Monitoring → FMEA).')}/></section>
    </div>
   </div>
   <section className="risk-panel"><header><h3>{L(en,'Χάρτες κινδύνου','Risk heat maps')}</h3><LevelLegend en={en}/></header>

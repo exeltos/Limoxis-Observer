@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// The period comparison: what moved on each risk (L or C), and the trend chart
-// once there are three periods or more.
+// The period comparison: any two periods, what moved on each risk (L or C),
+// and the trend chart once there are three periods or more.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
@@ -13,7 +13,6 @@ const period = (id, year, l, c, extra = {}) => ({ id, code: id, periodLabel: Str
 
 afterEach(cleanup)
 const RiskComparison = props => <LanguageProvider><Comparison {...props}/></LanguageProvider>
-const openFilters = () => fireEvent.click(screen.getByRole('button', { name: /Φίλτρα/ }))
 const choose = (label, value) => fireEvent.change(screen.getByLabelText(label), { target: { value } })
 
 describe('RiskComparison', () => {
@@ -26,8 +25,8 @@ describe('RiskComparison', () => {
     expect(document.querySelector('.risk-trend-chart')).toBeNull()
     fireEvent.click(screen.getByText('Πτώση ασθενούς'))
     expect(onOpen).toHaveBeenCalledWith(current.risks[0], current)
-    fireEvent.change(screen.getByPlaceholderText(/Αναζήτηση/), { target: { value: 'καμία' } })
-    expect(screen.getByText('Κανένας κίνδυνος με αυτά τα φίλτρα.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Χειροτέρεψε/ }))
+    expect(screen.getByText('Κανένας κίνδυνος σε αυτή την κατάσταση.')).toBeInTheDocument()
   })
 
   it('draws the trend chart from three periods', () => {
@@ -37,19 +36,17 @@ describe('RiskComparison', () => {
     expect(document.querySelectorAll('.risk-trend-chart .dot-avg')).toHaveLength(3)
   })
 
-  it('compares a half-year with the same one last year, or with the one before', () => {
-    const half = (id, label, date, l) => ({ id, code: id, periodLabel: label, periodKind: 'semester', assessedOn: date, risks: [risk(l, 3)] })
-    const h1 = half('h1', "Α' εξάμηνο 2026", '2026-06-30', 2)
-    const list = [h1, half('h2', "Β' εξάμηνο 2025", '2025-12-20', 3), half('h0', "Α' εξάμηνο 2025", '2025-06-30', 4), period('y', 2025, 3, 3)]
-    render(<RiskComparison assessment={h1} assessments={list} en={false} locale="el-GR"/>)
-    const hint = () => document.querySelector('.risk-compare-summary strong:nth-of-type(2)').textContent
-    expect(hint()).toBe("Α' εξάμηνο 2025")
-    openFilters()
-    choose('Σύγκριση με', 'previous')
-    expect(hint()).toBe("Β' εξάμηνο 2025")
-    expect(screen.getByRole('option', { name: 'Τρίμηνο (0)' })).toBeDisabled()
-    choose('Είδος περιόδου', 'annual')
-    expect(hint()).toBe('2024')
+  it('compares any two periods the user picks, not only consecutive ones', () => {
+    const current = period('c', 2026, 2, 3)
+    render(<RiskComparison assessment={current} assessments={[current, period('b', 2025, 3, 3), period('a', 2024, 4, 4)]} en={false} locale="el-GR"/>)
+    const headers = () => [...document.querySelectorAll('.risk-compare-table thead th')].slice(2, 4).map(th => th.textContent)
+    expect(headers()).toEqual(['2025', '2026'])
+    choose('Σύγκριση με', 'a')
+    expect(headers()).toEqual(['2024', '2026'])
+    expect(document.querySelector('.risk-compare-table .risk-delta').textContent).toBe('-10')
+    // Picking the other side's period swaps the two.
+    choose('Περίοδος', 'a')
+    expect(headers()).toEqual(['2026', '2024'])
   })
 })
 

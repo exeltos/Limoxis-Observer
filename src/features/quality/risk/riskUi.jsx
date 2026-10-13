@@ -1,6 +1,17 @@
 // Shared pieces of the risk assessment screens: level chips, the 5×5 heat map,
 // the L/C pickers and the legend. Colours are the NHS bands (see riskAssessment.css).
+import { useState } from 'react'
+import { readSessionValue,writeSessionValue } from '../../../core/storage/browserStorage'
 import { CONSEQUENCE,LEVELS,LIKELIHOOD,levelForScore,levelLabel } from './riskModel'
+
+// The row last opened in a list, kept for the session, so it is highlighted
+// on the way back (the registries' registry-row-returned).
+export const rememberRow=(key,id)=>writeSessionValue(key,String(id))
+export function useReturnedRow(key){
+ const [returned,setReturned]=useState(()=>readSessionValue(key,'')||'')
+ return {returned,remember:id=>{rememberRow(key,id);setReturned(String(id))}}
+}
+export const returnedClass=(returned,id)=>returned&&String(id)===returned?' registry-row-returned':''
 
 // Demo records carry English wording in `<field>En`; user records have one language.
 export const txt=(item,field,en)=>(en&&item?.[`${field}En`])||item?.[field]||''

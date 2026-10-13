@@ -218,3 +218,31 @@ export function suggestPeriodLabel(kind,date,en){
  const k=kind==='semester'||kind==='quarter'?kind:'annual'
  return periodName({kind:k,year,index:k==='quarter'?Math.ceil(month/3):month<=6?1:2},en)
 }
+
+// Opportunities: a high or low yield, and how effective the action plan was.
+export const OPPORTUNITY_RATINGS=[{id:'high',el:'Υψηλή απόδοση',en:'High yield'},{id:'low',el:'Χαμηλή απόδοση',en:'Low yield'}]
+export const EFFECTIVENESS=[{id:'effective',el:'Αποτελεσματικό',en:'Effective',tone:'active'},{id:'partial',el:'Μερικώς αποτελεσματικό',en:'Partly effective',tone:'warning'},{id:'ineffective',el:'Μη αποτελεσματικό',en:'Not effective',tone:'danger'},{id:'pending',el:'Εκκρεμεί',en:'Pending',tone:''}]
+export function ratingOf(text){const t=norm(text);if(!t)return '';if(/υψηλ|high/.test(t))return 'high';if(/χαμηλ|low/.test(t))return 'low';return ''}
+// A note that starts with a status («Προς αξιολόγηση. Ποσοστό…»): the status,
+// and the note without it.
+const EFFECTIVENESS_RULES=[
+ [/^(μη αποτελεσματικ\S*|αναποτελεσματικ\S*|not effective|ineffective)/,'ineffective'],
+ [/^(μερικως(?: αποτελεσματικ\S*)?|partly(?: effective)?|partially(?: effective)?)/,'partial'],
+ [/^(αποτελεσματικ\S*|effective)/,'effective'],
+ [/^(προς αξιολογηση|εκκρεμει(?: αξιολογηση)?|σε εξελιξη|υπο αξιολογηση|pending|in progress)/,'pending'],
+]
+export function readEffectiveness(status,note){
+ const text=String(note||'').trim()
+ if(status)return {status,note:text}
+ const plain=norm(text)
+ for(const [pattern,id] of EFFECTIVENESS_RULES){const m=plain.match(pattern);if(m){const rest=text.slice(m[0].length).replace(/^[\s.:;,–-]+/,'');return {status:id,note:rest}}}
+ return {status:'',note:text}
+}
+export const opportunityCode=index=>`Ε${String(index+1).padStart(3,'0')}`
+// An opportunity as the screens use it: the yield as an id, the status apart
+// from the note. ratingLabel() turns the id back into the stored wording.
+export function normalizeOpportunity(o){
+ const e=readEffectiveness(o?.effectivenessStatus,o?.effectiveness)
+ return {...o,ratingId:o?.ratingId??ratingOf(o?.rating),effectivenessStatus:e.status,effectiveness:e.note}
+}
+export const ratingLabel=id=>OPPORTUNITY_RATINGS.find(r=>r.id===id)?.el||''

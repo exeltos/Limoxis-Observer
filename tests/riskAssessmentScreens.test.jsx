@@ -22,6 +22,7 @@ const { NotificationProvider } = await import('../src/core/notifications/Notific
 const { QualityPage } = await import('../src/features/quality/QualityPage')
 const { RiskAssessmentPage } = await import('../src/features/quality/risk/RiskAssessmentPage')
 const { RiskRecordPage } = await import('../src/features/quality/risk/RiskRecordPage')
+const { OpportunityRecordPage } = await import('../src/features/quality/risk/OpportunityRecordPage')
 
 function Where() { const location = useLocation(); return <pre data-testid="where">{location.pathname}{JSON.stringify(location.state?.qualitySource || null)}</pre> }
 
@@ -32,6 +33,7 @@ async function open(path) {
     <Routes>
       <Route path="/quality" element={<QualityPage/>}/>
       <Route path="/quality/risks/:assessmentCode" element={<RiskAssessmentPage/>}/>
+      <Route path="/quality/risks/:assessmentCode/opportunities/:opportunityId" element={<OpportunityRecordPage/>}/>
       <Route path="/quality/risks/:assessmentCode/:riskKey" element={<RiskRecordPage/>}/>
       <Route path="*" element={<Where/>}/>
     </Routes>
@@ -74,7 +76,7 @@ describe('risk assessment screens', () => {
     expect(await screen.findByText('Χάρτες κινδύνου')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: 'Σύγκριση περιόδων' }))
     expect(await screen.findByText('Μεταβολή ανά κίνδυνο')).toBeInTheDocument()
-    expect(document.querySelector('.risk-compare-summary').textContent).toMatch(/βελτιώθηκαν/)
+    expect(screen.getByRole('button', { name: /Βελτιώθηκε/ })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: 'Μεθοδολογία' }))
     expect(await screen.findByText(/A risk matrix for risk managers/)).toBeInTheDocument()
   })
@@ -95,6 +97,24 @@ describe('risk assessment screens', () => {
     await screen.findByRole('tab', { name: 'Μητρώο (14)' })
     const row = register().getByText('R007').closest('tr')
     expect(within(row).getByText('Υψηλός')).toBeInTheDocument()
+    // Back in the register, the risk just edited stays marked.
+    expect(row).toHaveClass('registry-row-returned')
+  })
+
+  it('edits an opportunity on its own page: yield and effectiveness are fixed choices', async () => {
+    const year = new Date(Date.now() - 7 * 86400000).getFullYear()
+    await open(`/quality/risks/RSA-DEMO-${year}`)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Ευκαιρίες' }))
+    const table = () => within(document.querySelector('.risk-opportunities'))
+    expect(table().getByText('Υψηλή απόδοση')).toBeInTheDocument()
+    expect(table().getByText('Αποτελεσματικό')).toBeInTheDocument()
+    fireEvent.click(table().getByText('Ε001'))
+    fireEvent.click(await screen.findByRole('radio', { name: 'Μερικώς αποτελεσματικό' }))
+    fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση ευκαιρίας/ }))
+    await screen.findByRole('tab', { name: 'Ευκαιρίες' })
+    const row = table().getByText('Ε001').closest('tr')
+    expect(within(row).getByText('Μερικώς αποτελεσματικό')).toBeInTheDocument()
+    expect(row).toHaveClass('registry-row-returned')
   })
 })
 

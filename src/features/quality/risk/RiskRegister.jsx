@@ -5,14 +5,14 @@ import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { ActionButton } from '../../../design-system/ActionButton'
 import { MetricCard } from '../../../design-system/MetricCard'
 import { JCI_CHAPTERS,LEVELS,SECTIONS,riskWarnings,scored,warningLabel } from './riskModel'
-import { L,LevelChip,txt } from './riskUi'
+import { L,LevelChip,returnedClass,txt } from './riskUi'
 import { IndicatorBadge } from './RiskIndicatorsUi'
 
 // What each KPI card of the register keeps.
 const QUICK={veryHigh:x=>x.s.residual.level==='very_high',high:x=>x.s.residual.level==='high',noPlan:x=>x.warnings.some(w=>w.id==='action_plan_required'),noTarget:x=>!x.s.target.score,noIndicator:x=>!(x.risk.indicatorKeys||[]).length}
 
 // The register: every risk of the assessment with its three scores.
-export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreateCapa,cell,onClearCell,actions=null,indicatorValues=null}){
+export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreateCapa,cell,onClearCell,actions=null,indicatorValues=null,returned=''}){
  const [query,setQuery]=useState('')
  const [section,setSection]=useState('all')
  const [process,setProcess]=useState('all')
@@ -71,7 +71,7 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
    </tr></thead><tbody>
     {groups.map(({section:g,rows:list})=>[
      <tr key={`section-${g.id}`} className="risk-section-row"><td colSpan={10}><strong>{en?g.en:g.el}</strong><span>{list.length}</span></td></tr>,
-     ...list.map(({risk,s,warnings})=><tr key={risk.id||risk.lineageKey} onClick={()=>onOpen(risk)}>
+     ...list.map(({risk,s,warnings})=><tr key={risk.id||risk.lineageKey} className={`risk-row-clickable${returnedClass(returned,risk.lineageKey)}`} onClick={()=>onOpen(risk)}>
      <td><strong>{risk.lineageKey}</strong>{risk.prioritized&&<Star size={13} className="risk-star" aria-label="FMEA"/>}</td>
      <td><span className="risk-process">{txt(risk,'process',en)||'—'}</span><small>{txt(risk,'scope',en)}</small></td>
      <td className="risk-hazard"><span>{txt(risk,'hazard',en)}</span>{warnings.filter(w=>w.tone!=='info').slice(0,2).map(w=><small key={w.id} className="risk-row-warning"><AlertTriangle size={12}/>{warningLabel(w.id,en)}</small>)}</td>

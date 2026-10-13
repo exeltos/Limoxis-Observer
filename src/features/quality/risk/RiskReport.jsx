@@ -1,5 +1,5 @@
 import { forwardRef } from 'react'
-import { LEVELS,compareAssessments,jciLabel,levelForScore,scored,sectionLabel } from './riskModel'
+import { EFFECTIVENESS,LEVELS,OPPORTUNITY_RATINGS,compareAssessments,jciLabel,levelForScore,normalizeOpportunity,scored,sectionLabel } from './riskModel'
 import { L,LevelChip,LevelLegend,RiskHeatMap,fmtDate,statusLabel,txt } from './riskUi'
 import { LevelDistribution,RiskKpis } from './RiskAnalysis'
 
@@ -51,7 +51,7 @@ export const RiskReport=forwardRef(function RiskReport({assessment,summary,previ
    </tbody></table></section>)}
   {(assessment.opportunities||[]).length>0&&<section className="risk-report-section"><h2>{L(en,'Ευκαιρίες','Opportunities')}</h2>
    <table className="risk-report-table"><thead><tr><th>{L(en,'Δραστηριότητα','Activity')}</th><th>{L(en,'Ευκαιρίες','Opportunities')}</th><th>{L(en,'Χαρακτηρισμός','Rating')}</th><th>{L(en,'Σχέδιο δράσης','Action plan')}</th><th>{L(en,'Χρόνος','Timeframe')}</th><th>{L(en,'Υπεύθυνος','Owner')}</th><th>{L(en,'Αποτελεσματικότητα','Effectiveness')}</th></tr></thead><tbody>
-    {assessment.opportunities.map(o=><tr key={o.id}><td>{o.activity}</td><td>{o.opportunity}</td><td>{o.rating}</td><td className="risk-pre">{o.actionPlan}</td><td>{o.timeframe}</td><td>{o.owner}</td><td className="risk-pre">{o.effectiveness}</td></tr>)}
+    {assessment.opportunities.map(normalizeOpportunity).map(o=>{const e=EFFECTIVENESS.find(x=>x.id===o.effectivenessStatus),r=OPPORTUNITY_RATINGS.find(x=>x.id===o.ratingId);return <tr key={o.id}><td>{o.activity}</td><td>{o.opportunity}</td><td>{r?(en?r.en:r.el):o.rating}</td><td className="risk-pre">{o.actionPlan}</td><td>{o.timeframe}</td><td>{o.owner}</td><td className="risk-pre">{[e&&(en?e.en:e.el),o.effectiveness].filter(Boolean).join('. ')}</td></tr>})}
    </tbody></table></section>}
   <section className="risk-report-section risk-report-method"><h2>{L(en,'Μεθοδολογία','Method')}</h2>
    <p>{L(en,'Βαθμός = πιθανότητα (L) × συνέπεια (C), 1–5 η καθεμία (μήτρα NHS National Patient Safety Agency, 2008).','Score = likelihood (L) × consequence (C), 1–5 each (NHS National Patient Safety Agency matrix, 2008).')}</p>

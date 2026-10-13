@@ -88,7 +88,7 @@ function ScoreRow({kind,draft,s,en,readOnly,set}){
 }
 
 // Measures as a numbered list, kept as one line each. Enter adds the next one.
-function MeasureList({title,hint,value,onChange,en,disabled}){
+export function MeasureList({title,hint,value,onChange,en,disabled}){
  const [items,setItems]=useState(()=>{const list=parseMeasures(value);return list.length?list:['']})
  const refs=useRef([])
  // Each item is as tall as its text.
@@ -116,7 +116,7 @@ function MeasureList({title,hint,value,onChange,en,disabled}){
 }
 
 // A numbered part of the editor; the order follows the assessment itself.
-function Step({n,title,aside=null,children}){
+export function Step({n,title,aside=null,children}){
  return <section className="risk-editor-step">
   <header><span className="risk-editor-step-number">{n}</span><h4>{title}</h4>{aside}</header>
   {children}
