@@ -93,17 +93,10 @@
 .risk-group-table td,.risk-group-table th{font-size:11.5px}
 
 /* Comparison */
-.risk-compare-head{display:flex;align-items:stretch;gap:12px}
-.risk-compare-head>.module-summary-strip{flex:1 1 auto;min-width:0}
-.risk-compare-head>:last-child:not(.module-summary-strip){align-self:flex-start}
-.risk-compare-controls{display:flex;flex-direction:column;justify-content:center;gap:8px;flex:0 0 auto}
-.risk-compare-spacer{flex:1 1 auto}
-.risk-compare-sentence{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#34475c;white-space:nowrap}
-.risk-compare-controls .risk-compare-sentence select{height:30px!important;width:auto!important;min-width:0;border:1px solid #d7dee7;border-radius:8px;padding:0 26px 0 9px;font-size:12.5px;font-weight:700;color:var(--lo-color-text);background-color:#fff}
-.risk-compare-sentence strong{font-weight:700;color:var(--lo-color-text)}
-.risk-compare-sentence strong.is-missing{color:#b42318}
-.risk-segmented button b{margin-left:3px;font-weight:700;color:#8696a5}
-.risk-segmented button:disabled{opacity:.45;cursor:not-allowed}
+.risk-compare-summary{margin:0;font-size:12px;color:var(--lo-color-muted)}
+.risk-compare-summary strong{color:var(--lo-color-text)}
+.risk-compare-summary strong.is-missing{color:#b42318}
+.risk-compare-toolbar>.filter-system{flex:0 1 460px!important;min-width:260px}
 .risk-kpi-value{display:inline-flex;align-items:baseline;gap:8px}
 .risk-kpi-value .risk-delta{padding:1px 6px;border-radius:999px;background:#f1f4f7}
 .risk-kpi-value .risk-delta.is-better{background:#e6f4ea}
@@ -138,9 +131,6 @@
 .risk-delta{display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
 .risk-delta.is-better{color:#1d6438}
 .risk-delta.is-worse{color:#b42318}
-.risk-status-chips{display:flex;flex-wrap:wrap;gap:6px}
-.risk-status-chips button{border:1px solid var(--lo-color-border);background:#fff;border-radius:999px;padding:3px 10px;font-size:11px;cursor:pointer}
-.risk-status-chips button.active{background:var(--lo-color-primary-soft);border-color:#b9d3e6;color:#194a74}
 .risk-trend tr.is-current td{background:#f4f9fd}
 
 /* Editor */

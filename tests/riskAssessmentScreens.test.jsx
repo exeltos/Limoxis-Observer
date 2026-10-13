@@ -74,7 +74,7 @@ describe('risk assessment screens', () => {
     expect(await screen.findByText('Χάρτες κινδύνου')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: 'Σύγκριση περιόδων' }))
     expect(await screen.findByText('Μεταβολή ανά κίνδυνο')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Βελτιώθηκε/ })).toBeInTheDocument()
+    expect(document.querySelector('.risk-compare-summary').textContent).toMatch(/βελτιώθηκαν/)
     fireEvent.click(screen.getByRole('tab', { name: 'Μεθοδολογία' }))
     expect(await screen.findByText(/A risk matrix for risk managers/)).toBeInTheDocument()
   })

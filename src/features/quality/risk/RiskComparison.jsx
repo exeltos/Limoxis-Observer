@@ -1,7 +1,8 @@
 import { useMemo,useState } from 'react'
 import { AlertOctagon,AlertTriangle,ArrowDownRight,ArrowRight,ArrowUpRight,ChevronRight,ClipboardList,Gauge } from 'lucide-react'
 import { MetricCard } from '../../../design-system/MetricCard'
-import { compareAssessments,counterpart,levelForScore,periodKey,periodKindOf,periodName,periodOf,riskTrend,scored } from './riskModel'
+import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
+import { SECTIONS,compareAssessments,counterpart,levelForScore,periodKey,periodKindOf,periodName,periodOf,riskTrend,scored } from './riskModel'
 import { L,LevelChip,LevelLegend,RiskHeatMap,fmtDate,txt } from './riskUi'
 import { LevelCounts,num } from './RiskAnalysis'
 
@@ -62,6 +63,8 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
  const [kind,setKind]=useState(()=>periodKindOf(assessment))
  const [mode,setMode]=useState('lastYear')
  const [show,setShow]=useState('all')
+ const [section,setSection]=useState('all')
+ const [query,setQuery]=useState('')
  const ofKind=useMemo(()=>all.filter(a=>periodKindOf(a)===kind),[all,kind])
  const [currentId,setCurrentId]=useState(assessment.id)
  const current=ofKind.find(a=>a.id===currentId)||ofKind[0]
@@ -71,21 +74,27 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
  const trend=useMemo(()=>riskTrend(ofKind),[ofKind])
  const pickKind=id=>{setKind(id);const first=all.find(a=>periodKindOf(a)===id);setCurrentId(periodKindOf(assessment)===id?assessment.id:first?.id)}
  const nameOf=a=>a.periodLabel||periodName(periodOf(a),en)
- const head=<div className="risk-compare-controls">
-  <div className="risk-segmented" role="tablist" aria-label={L(en,'Είδος περιόδου','Period type')}>{KINDS.map(([id,el,enLabel])=><button key={id} type="button" role="tab" aria-selected={kind===id} className={kind===id?'active':''} disabled={!counts[id]} title={counts[id]?undefined:L(en,'Δεν υπάρχουν εκτιμήσεις αυτού του είδους','No assessments of this type')} onClick={()=>pickKind(id)}>{en?enLabel:el} <b>{counts[id]}</b></button>)}</div>
-  {ofKind.length>0&&<div className="risk-compare-sentence">
-   <span>{L(en,'Σύγκριση','Compare')}</span>
-   <select aria-label={L(en,'Περίοδος που συγκρίνεται','Period compared')} title={L(en,'Αλλάξτε για να δείτε άλλη περίοδο','Change to see another period')} value={current?.id||''} onChange={e=>setCurrentId(e.target.value)}>{ofKind.map(a=><option key={a.id} value={a.id}>{nameOf(a)}</option>)}</select>
-   <span>{L(en,'με','with')}</span>
-   <strong className={other?'':'is-missing'}>{other?nameOf(other):periodName(target,en)}</strong>
-  </div>}
-  {kind!=='annual'&&<div className="risk-segmented" role="tablist" aria-label={L(en,'Σύγκριση με','Compare with')}>{[['lastYear','Ίδια περίοδος πέρσι','Same period last year'],['previous','Προηγούμενη περίοδος','Previous period']].map(([id,el,enLabel])=><button key={id} type="button" role="tab" aria-selected={mode===id} className={mode===id?'active':''} onClick={()=>setMode(id)}>{en?enLabel:el}</button>)}</div>}
+ const defaultKind=periodKindOf(assessment)
+ const active=(kind!==defaultKind)+(current&&current.id!==assessment.id&&kind===defaultKind)+(mode!=='lastYear'&&kind!=='annual')+(show!=='all')+(section!=='all')
+ const clear=()=>{setKind(defaultKind);setCurrentId(assessment.id);setMode('lastYear');setShow('all');setSection('all');setQuery('')}
+ const summary=current&&<p className="risk-compare-summary"><strong>{nameOf(current)}</strong> {L(en,'έναντι','versus')} <strong className={other?'':'is-missing'}>{other?nameOf(other):periodName(target,en)}</strong>{result&&<span> · {L(en,`${result.counts.improved} βελτιώθηκαν, ${result.counts.worsened} χειροτέρεψαν, ${result.counts.new} νέοι, ${result.counts.removed} αφαιρέθηκαν`,`${result.counts.improved} improved, ${result.counts.worsened} worsened, ${result.counts.new} new, ${result.counts.removed} removed`)}</span>}</p>
+ const toolbar=<div className="risk-toolbar risk-compare-toolbar">
+  <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση κινδύνου, διεργασίας, τμήματος…','Search risk, process, department…')} activeAdvancedCount={active} onClear={clear}>
+   <FilterSelect label={L(en,'Είδος περιόδου','Period type')} value={kind} onChange={pickKind}>{KINDS.map(([id,el,enLabel])=><option key={id} value={id} disabled={!counts[id]}>{en?enLabel:el} ({counts[id]})</option>)}</FilterSelect>
+   <FilterSelect label={L(en,'Περίοδος','Period')} value={current?.id||''} onChange={setCurrentId}>{ofKind.map(a=><option key={a.id} value={a.id}>{nameOf(a)} · {fmtDate(a.assessedOn,locale)}</option>)}</FilterSelect>
+   {kind!=='annual'&&<FilterSelect label={L(en,'Σύγκριση με','Compare with')} value={mode} onChange={setMode}><option value="lastYear">{L(en,'Ίδια περίοδος πέρσι','Same period last year')}</option><option value="previous">{L(en,'Προηγούμενη περίοδος','Previous period')}</option></FilterSelect>}
+   <FilterSelect label={L(en,'Μεταβολή','Change')} value={show} onChange={setShow}><option value="all">{L(en,'Όλοι','All')}</option>{['improved','worsened','unchanged','new','removed'].map(id=><option key={id} value={id}>{label(id,en)}{result?` (${result.counts[id]})`:''}</option>)}</FilterSelect>
+   <FilterSelect label={L(en,'Ενότητα','Section')} value={section} onChange={setSection}><option value="all">{L(en,'Όλες','All')}</option>{SECTIONS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</FilterSelect>
+  </FilterBar>
+  {summary}
+  {actions&&<div className="risk-toolbar-actions">{actions}</div>}
  </div>
- if(!result)return <div className="risk-comparison"><div className="risk-compare-head">{head}<span className="risk-compare-spacer"/>{actions}</div>
+ if(!result)return <div className="risk-comparison">{toolbar}
   <div className="registry-empty-state"><strong>{current?L(en,`Δεν υπάρχει εκτίμηση για ${periodName(target,en)}`,`There is no assessment for ${periodName(target,en)}`):L(en,'Δεν υπάρχει εκτίμηση αυτού του είδους','No assessment of this type')}</strong><span>{L(en,'Η σύγκριση γίνεται μεταξύ εκτιμήσεων του ίδιου είδους (ετήσιες, εξαμηνιαίες ή τριμηνιαίες). Δημιουργήστε την από «Νέα εκτίμηση», με το είδος περιόδου και μεταφορά των κινδύνων.','Comparisons are between assessments of the same type (annual, six-monthly or quarterly). Create one with “New assessment”, choosing the period type and carrying the risks forward.')}</span></div>
  </div>
  const cur=result.current,prev=result.previous
- const rows=result.rows.filter(r=>show==='all'||r.status===show)
+ const q=query.trim().toLowerCase()
+ const rows=result.rows.filter(r=>(show==='all'||r.status===show)&&(section==='all'||(r.risk.section||'clinical')===section)&&(!q||[r.risk.lineageKey,txt(r.risk,'hazard',en),txt(r.risk,'process',en),txt(r.risk,'scope',en)].join(' ').toLowerCase().includes(q)))
  const kpi=(icon,value,name,delta,lower=true)=><MetricCard icon={icon} label={name} value={<span className="risk-kpi-value">{value}<Delta value={delta} lowerIsBetter={lower} en={en}/></span>}/>
  const avgDelta=cur.averages.residual!=null&&prev.averages.residual!=null?cur.averages.residual-prev.averages.residual:null
  const map=(a,summary)=><div className="risk-heatmap-cell">
@@ -93,19 +102,14 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   <LevelCounts counts={summary.levels.residual} en={en}/>
  </div>
  return <div className="risk-comparison">
-  <div className="risk-compare-head">
-   {head}
-   <div className="module-summary-strip risk-kpi-strip">
-    {kpi(ClipboardList,cur.total,L(en,'Κίνδυνοι','Risks'),cur.total-prev.total,false)}
-    {kpi(AlertOctagon,cur.levels.residual.very_high,L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)'),cur.levels.residual.very_high-prev.levels.residual.very_high)}
-    {kpi(AlertTriangle,cur.levels.residual.high,L(en,'Υψηλοί (υπολ.)','High (residual)'),cur.levels.residual.high-prev.levels.residual.high)}
-    {kpi(Gauge,num(cur.averages.residual,en),L(en,'Μέσος υπολειπόμενος','Average residual'),avgDelta)}
-   </div>
-   {actions}
+  <div className="module-summary-strip risk-kpi-strip">
+   {kpi(ClipboardList,cur.total,L(en,'Κίνδυνοι','Risks'),cur.total-prev.total,false)}
+   {kpi(AlertOctagon,cur.levels.residual.very_high,L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)'),cur.levels.residual.very_high-prev.levels.residual.very_high)}
+   {kpi(AlertTriangle,cur.levels.residual.high,L(en,'Υψηλοί (υπολ.)','High (residual)'),cur.levels.residual.high-prev.levels.residual.high)}
+   {kpi(Gauge,num(cur.averages.residual,en),L(en,'Μέσος υπολειπόμενος','Average residual'),avgDelta)}
   </div>
-  <p className="risk-hint">{L(en,`${result.counts.improved} βελτιώθηκαν, ${result.counts.worsened} χειροτέρεψαν, ${result.counts.new} νέοι, ${result.counts.removed} αφαιρέθηκαν.`,`${result.counts.improved} improved, ${result.counts.worsened} worsened, ${result.counts.new} new, ${result.counts.removed} removed.`)}</p>
-  <section className="risk-panel"><header><h3>{L(en,'Μεταβολή ανά κίνδυνο','Change per risk')}</h3>
-   <div className="risk-status-chips">{['all','improved','worsened','unchanged','new','removed'].map(id=><button key={id} type="button" className={show===id?'active':''} onClick={()=>setShow(id)}>{id==='all'?L(en,'Όλοι','All'):label(id,en)} <b>{id==='all'?result.rows.length:result.counts[id]}</b></button>)}</div></header>
+  {toolbar}
+  <section className="risk-panel"><header><h3>{L(en,'Μεταβολή ανά κίνδυνο','Change per risk')}</h3></header>
    <div className="scroll-table"><table className="data-table risk-table risk-compare-table"><thead><tr><th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Κίνδυνος','Risk')}</th><th>{nameOf(other)}</th><th>{nameOf(current)}</th><th>{L(en,'Μεταβολή','Change')}</th><th>{L(en,'Τι άλλαξε','What changed')}</th><th>{L(en,'Κατάσταση','Status')}</th><th aria-hidden="true"/></tr></thead><tbody>
     {rows.map(r=>{const openable=r.status!=='removed'&&onOpen
      return <tr key={r.key} className={openable?'is-openable':''} onClick={()=>openable&&onOpen(r.risk,current)} title={openable?L(en,'Άνοιγμα του κινδύνου','Open the risk'):undefined}>
@@ -116,7 +120,7 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
       <td><span className={`status-badge ${STATUS[r.status][2]}`}>{label(r.status,en)}</span></td>
       <td className="risk-open-cell">{openable&&<ChevronRight size={15}/>}</td>
      </tr>})}
-    {!rows.length&&<tr><td colSpan={8} className="risk-empty-note">{L(en,'Κανένας κίνδυνος σε αυτή την κατάσταση.','No risk in this state.')}</td></tr>}
+    {!rows.length&&<tr><td colSpan={8} className="risk-empty-note">{L(en,'Κανένας κίνδυνος με αυτά τα φίλτρα.','No risk matches these filters.')}</td></tr>}
    </tbody></table></div>
   </section>
   <section className="risk-panel"><header><h3>{L(en,'Υπολειπόμενος κίνδυνος ανά περίοδο','Residual risk by period')}</h3><LevelLegend en={en}/></header>

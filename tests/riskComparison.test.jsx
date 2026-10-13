@@ -4,13 +4,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import { RiskComparison } from '../src/features/quality/risk/RiskComparison'
+import { RiskComparison as Comparison } from '../src/features/quality/risk/RiskComparison'
+import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 import { counterpart, periodKey, periodOf, suggestPeriodLabel } from '../src/features/quality/risk/riskModel'
 
 const risk = (l, c) => ({ id: `r${l}${c}`, code: 'R001', lineageKey: 'R001', hazard: 'Πτώση ασθενούς', inherentL: 4, inherentC: 4, residualL: l, residualC: c })
 const period = (id, year, l, c, extra = {}) => ({ id, code: id, periodLabel: String(year), periodKind: 'annual', assessedOn: `${year}-10-06`, risks: [risk(l, c)], ...extra })
 
 afterEach(cleanup)
+const RiskComparison = props => <LanguageProvider><Comparison {...props}/></LanguageProvider>
+const openFilters = () => fireEvent.click(screen.getByRole('button', { name: /Φίλτρα/ }))
+const choose = (label, value) => fireEvent.change(screen.getByLabelText(label), { target: { value } })
 
 describe('RiskComparison', () => {
   it('shows the axis that changed and opens the risk', () => {
@@ -22,6 +26,8 @@ describe('RiskComparison', () => {
     expect(document.querySelector('.risk-trend-chart')).toBeNull()
     fireEvent.click(screen.getByText('Πτώση ασθενούς'))
     expect(onOpen).toHaveBeenCalledWith(current.risks[0], current)
+    fireEvent.change(screen.getByPlaceholderText(/Αναζήτηση/), { target: { value: 'καμία' } })
+    expect(screen.getByText('Κανένας κίνδυνος με αυτά τα φίλτρα.')).toBeInTheDocument()
   })
 
   it('draws the trend chart from three periods', () => {
@@ -36,12 +42,14 @@ describe('RiskComparison', () => {
     const h1 = half('h1', "Α' εξάμηνο 2026", '2026-06-30', 2)
     const list = [h1, half('h2', "Β' εξάμηνο 2025", '2025-12-20', 3), half('h0', "Α' εξάμηνο 2025", '2025-06-30', 4), period('y', 2025, 3, 3)]
     render(<RiskComparison assessment={h1} assessments={list} en={false} locale="el-GR"/>)
-    const hint = () => document.querySelector('.risk-compare-sentence strong').textContent
+    const hint = () => document.querySelector('.risk-compare-summary strong:nth-of-type(2)').textContent
     expect(hint()).toBe("Α' εξάμηνο 2025")
-    fireEvent.click(screen.getByRole('tab', { name: 'Προηγούμενη περίοδος' }))
+    openFilters()
+    choose('Σύγκριση με', 'previous')
     expect(hint()).toBe("Β' εξάμηνο 2025")
-    fireEvent.click(screen.getByRole('tab', { name: /Τρίμηνο/ }))
-    expect(screen.getByRole('tab', { name: /Τρίμηνο/ })).toBeDisabled()
+    expect(screen.getByRole('option', { name: 'Τρίμηνο (0)' })).toBeDisabled()
+    choose('Είδος περιόδου', 'annual')
+    expect(hint()).toBe('2024')
   })
 })
 
