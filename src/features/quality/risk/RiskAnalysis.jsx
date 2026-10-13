@@ -1,8 +1,13 @@
+import { useState } from 'react'
+import { AlertOctagon,AlertTriangle,ClipboardList,Gauge,ShieldAlert,TrendingDown } from 'lucide-react'
+import { MetricCard } from '../../../design-system/MetricCard'
 import { LEVELS,jciLabel,levelForScore,scored,sectionLabel } from './riskModel'
 import { L,LevelChip,LevelLegend,RiskHeatMap,txt } from './riskUi'
 import { RiskIndicatorTable } from './RiskIndicatorsUi'
 
 const pct=(n,total)=>total?Math.round(n/total*100):0
+// Greek decimals use a comma.
+const num=(value,en)=>value==null||value===''?'—':en?String(value):String(value).replace('.',',')
 
 // Bars of the four levels for inherent, residual and target, side by side.
 export function LevelDistribution({summary,en,kinds=['inherent','residual','target']}){
@@ -28,7 +33,7 @@ export function RiskKpis({summary,en}){
 
 function GroupTable({rows,en,label,labelFor=x=>x}){
  return <table className="data-table risk-group-table"><thead><tr><th>{label}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Μέσος εγγενής','Avg. inherent')}</th><th>{L(en,'Μέσος υπολειπόμενος','Avg. residual')}</th><th>{L(en,'Μέγιστος υπολειπόμενος','Max. residual')}</th><th>{L(en,'Υψηλοί / πολύ υψηλοί','High / very high')}</th></tr></thead><tbody>
-  {rows.map(g=><tr key={g.key}><td>{labelFor(g.key)}</td><td>{g.count}</td><td>{g.inherentAvg??'—'}</td><td>{g.residualAvg??'—'}</td><td><LevelChip score={g.residualMax} en={en}/></td><td>{g.highOrAbove||'—'}</td></tr>)}
+  {rows.map(g=><tr key={g.key}><td>{labelFor(g.key)}</td><td>{g.count}</td><td>{num(g.inherentAvg,en)}</td><td>{num(g.residualAvg,en)}</td><td><LevelChip score={g.residualMax} en={en}/></td><td>{g.highOrAbove||'—'}</td></tr>)}
  </tbody></table>
 }
 
@@ -39,29 +44,60 @@ export function RiskList({risks,en,empty,onOpen}){
  </button></li>})}</ol>
 }
 
-export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null}){
+// Under each heat map: how many risks fall in each level.
+function LevelCounts({counts,en}){
+ return <ul className="risk-level-counts">{[...LEVELS].reverse().map(level=><li key={level.id}><span className={`risk-swatch risk-cell-${level.id}`}/>{en?level.en:level.el}<strong>{counts?.[level.id]||0}</strong></li>)}</ul>
+}
+
+const GROUPS=[['process','Ανά διεργασία','By process'],['jci','Ανά JCI','By JCI'],['section','Ανά ενότητα','By section']]
+
+// Analysis of one assessment: what needs a decision first, then the maps,
+// the indicators and the breakdowns.
+export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null,actions=null}){
+ const [group,setGroup]=useState('process')
+ const high=summary.levels.residual.high+summary.levels.residual.very_high
+ const map=(kind,title,caption,extra={})=><div className="risk-heatmap-cell">
+  <RiskHeatMap heat={summary.heat[kind]} en={en} title={title} caption={caption} onCell={c=>onCell({...c,kind})} {...extra}/>
+  <LevelCounts counts={summary.levels[kind]} en={en}/>
+ </div>
  return <div className="risk-analysis">
-  <RiskKpis summary={summary} en={en}/>
+  <div className="risk-analysis-head">
+   <div className="module-summary-strip risk-kpi-strip risk-analysis-kpis">
+    <MetricCard icon={ClipboardList} value={summary.total} label={L(en,'Κίνδυνοι','Risks')}/>
+    <MetricCard icon={AlertOctagon} value={summary.levels.residual.very_high} label={L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)')}/>
+    <MetricCard icon={AlertTriangle} value={summary.levels.residual.high} label={L(en,'Υψηλοί (υπολ.)','High (residual)')}/>
+    <MetricCard icon={Gauge} value={num(summary.averages.residual,en)} label={L(en,'Μέσος υπολειπόμενος','Average residual')}/>
+    <MetricCard icon={TrendingDown} value={summary.reduction.percent!=null?`${summary.reduction.percent}%`:'—'} label={L(en,'Μέση μείωση από τον εγγενή','Average reduction')}/>
+    <MetricCard icon={ShieldAlert} value={summary.withoutPlan.length} label={L(en,'Υψηλοί χωρίς σχέδιο δράσης','High without a plan')}/>
+   </div>
+   {actions}
+  </div>
+  <p className="risk-hint">{L(en,`${high} από ${summary.total} κινδύνους παραμένουν υψηλοί ή πολύ υψηλοί με τα υφιστάμενα μέτρα.`,`${high} of ${summary.total} risks stay high or very high with the existing controls.`)}</p>
+  <div className="risk-two-columns risk-analysis-decide">
+   <section className="risk-panel"><header><h3>{L(en,'Κίνδυνοι προτεραιότητας','Priority risks')}</h3><small>{L(en,'Υψηλός ή πολύ υψηλός υπολειπόμενος κίνδυνος','High or very high residual risk')}</small></header><RiskList risks={summary.priorities.slice(0,12)} en={en} onOpen={onOpen} empty={L(en,'Κανένας υψηλός υπολειπόμενος κίνδυνος.','No high residual risk.')}/></section>
+   <div className="risk-analysis-side">
+    <section className="risk-panel"><header><h3>{L(en,'Χωρίς σχέδιο δράσης','Without an action plan')}</h3><small>{L(en,'Υψηλοί υπολειπόμενοι χωρίς πρόσθετα μέτρα','High residual risks without additional measures')}</small></header><RiskList risks={summary.withoutPlan} en={en} onOpen={onOpen} empty={L(en,'Όλοι οι υψηλοί κίνδυνοι έχουν σχέδιο δράσης.','Every high risk has an action plan.')}/></section>
+    <section className="risk-panel"><header><h3>{L(en,'Επιλεγμένοι για FMEA','Selected for FMEA')}</h3><small>{L(en,'Προληπτική ανάλυση της περιόδου','This period’s proactive analysis')}</small></header><RiskList risks={summary.prioritized} en={en} onOpen={onOpen} empty={L(en,'Δεν έχει επιλεγεί κίνδυνος. Επιλέξτε τον μέσα στον κίνδυνο (Παρακολούθηση → FMEA).','No risk selected yet. Select it in the risk (Monitoring → FMEA).')}/></section>
+   </div>
+  </div>
   <section className="risk-panel"><header><h3>{L(en,'Χάρτες κινδύνου','Risk heat maps')}</h3><LevelLegend en={en}/></header>
    <div className="risk-heatmaps">
-    <RiskHeatMap heat={summary.heat.inherent} en={en} title={L(en,'Εγγενής','Inherent')} caption={L(en,'Χωρίς μέτρα','Before controls')} onCell={c=>onCell({...c,kind:'inherent'})}/>
-    <RiskHeatMap heat={summary.heat.residual} en={en} title={L(en,'Υπολειπόμενος','Residual')} caption={L(en,'Με τα υφιστάμενα μέτρα','With existing controls')} onCell={c=>onCell({...c,kind:'residual'})}/>
-    <RiskHeatMap heat={summary.heat.target} en={en} title={L(en,'Στόχος','Target')} caption={L(en,'Μετά τα πρόσθετα μέτρα','After additional measures')} onCell={c=>onCell({...c,kind:'target'})} emptyNote={L(en,'Δεν έχει οριστεί κίνδυνος-στόχος. Ορίστε τον στο μητρώο (L και C μετά τα πρόσθετα μέτρα) και ο χάρτης θα γεμίσει.','No target risk set yet. Set it in the register (L and C after the additional measures) and the map fills in.')}/>
+    {map('inherent',L(en,'Εγγενής','Inherent'),L(en,'Χωρίς μέτρα','Before controls'))}
+    {map('residual',L(en,'Υπολειπόμενος','Residual'),L(en,'Με τα υφιστάμενα μέτρα','With existing controls'))}
+    {map('target',L(en,'Στόχος','Target'),L(en,'Μετά τα πρόσθετα μέτρα','After additional measures'),{emptyNote:L(en,'Δεν έχει οριστεί κίνδυνος-στόχος. Ορίστε τον στο μητρώο (L και C μετά τα πρόσθετα μέτρα) και ο χάρτης θα γεμίσει.','No target risk set yet. Set it in the register (L and C after the additional measures) and the map fills in.')})}
    </div>
    <p className="risk-hint">{L(en,'Επιλέξτε ένα κελί για να δείτε τους κινδύνους του στο μητρώο.','Select a cell to see its risks in the register.')}</p>
   </section>
-  <section className="risk-panel"><header><h3>{L(en,'Κατανομή ανά επίπεδο','Distribution by level')}</h3></header><LevelDistribution summary={summary} en={en}/></section>
   <RiskIndicatorTable risks={risks} values={indicatorValues} en={en} onOpen={onOpen}/>
-  <div className="risk-two-columns">
-   <section className="risk-panel"><header><h3>{L(en,'Κίνδυνοι προτεραιότητας','Priority risks')}</h3><small>{L(en,'Υψηλός ή πολύ υψηλός υπολειπόμενος κίνδυνος','High or very high residual risk')}</small></header><RiskList risks={summary.priorities.slice(0,12)} en={en} onOpen={onOpen} empty={L(en,'Κανένας υψηλός υπολειπόμενος κίνδυνος.','No high residual risk.')}/></section>
-   <section className="risk-panel"><header><h3>{L(en,'Χωρίς σχέδιο δράσης','Without an action plan')}</h3><small>{L(en,'Υψηλοί υπολειπόμενοι χωρίς πρόσθετα μέτρα','High residual risks without additional measures')}</small></header><RiskList risks={summary.withoutPlan} en={en} onOpen={onOpen} empty={L(en,'Όλοι οι υψηλοί κίνδυνοι έχουν σχέδιο δράσης.','Every high risk has an action plan.')}/>
-    {summary.prioritized.length>0&&<><header><h3>{L(en,'Επιλεγμένοι για FMEA','Selected for FMEA')}</h3></header><RiskList risks={summary.prioritized} en={en} onOpen={onOpen} empty=""/></>}
-   </section>
-  </div>
-  <section className="risk-panel"><header><h3>{L(en,'Ανά διεργασία','By process')}</h3></header><div className="scroll-table"><GroupTable rows={summary.byProcess} en={en} label={L(en,'Διεργασία','Process')}/></div></section>
-  <div className="risk-two-columns">
-   <section className="risk-panel"><header><h3>{L(en,'Ανά πρότυπο JCI','By JCI standard')}</h3></header><div className="scroll-table"><GroupTable rows={summary.byJci} en={en} label="JCI" labelFor={id=>id==='—'?'—':`${id} · ${jciLabel(id,en)}`}/></div></section>
-   <section className="risk-panel"><header><h3>{L(en,'Ανά ενότητα','By section')}</h3></header><div className="scroll-table"><GroupTable rows={summary.bySection} en={en} label={L(en,'Ενότητα','Section')} labelFor={id=>sectionLabel(id,en)||id}/></div></section>
-  </div>
+  <section className="risk-panel">
+   <header><h3>{L(en,'Ανάλυση ανά ομάδα','Breakdown')}</h3>
+    <div className="risk-segmented" role="tablist" aria-label={L(en,'Ομαδοποίηση','Group by')}>{GROUPS.map(([id,el,enLabel])=><button key={id} type="button" role="tab" aria-selected={group===id} className={group===id?'active':''} onClick={()=>setGroup(id)}>{en?enLabel:el}</button>)}</div>
+   </header>
+   <div className="scroll-table">
+    {group==='process'&&<GroupTable rows={summary.byProcess} en={en} label={L(en,'Διεργασία','Process')}/>}
+    {group==='jci'&&<GroupTable rows={summary.byJci} en={en} label="JCI" labelFor={id=>id==='—'?'—':`${id} · ${jciLabel(id,en)}`}/>}
+    {group==='section'&&<GroupTable rows={summary.bySection} en={en} label={L(en,'Ενότητα','Section')} labelFor={id=>sectionLabel(id,en)||id}/>}
+   </div>
+  </section>
  </div>
 }

@@ -293,3 +293,17 @@
 /* The risk's page: the form in the record shell, its actions at the foot. */
 .risk-editor-shell .risk-editor{padding:4px 2px 12px}
 .risk-editor-actions{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:8px;padding:12px 2px;margin-top:8px;border-top:1px solid var(--lo-color-border);background:var(--lo-card-bg,#fff)}
+
+/* Analysis: KPI strip with the menu, decisions first, counts under each map, one breakdown table. */
+.risk-analysis-head{display:flex;align-items:flex-start;gap:10px}
+.risk-analysis-head>.module-summary-strip{flex:1 1 auto}
+.risk-analysis .module-summary-strip.risk-analysis-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+.risk-analysis-kpis>*{min-height:64px}
+.risk-analysis-side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.risk-level-counts{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0 22px;padding:0;list-style:none;font-size:11.5px;color:var(--lo-color-muted)}
+.risk-level-counts li{display:inline-flex;align-items:center;gap:5px}
+.risk-level-counts strong{color:var(--lo-color-text)}
+.risk-segmented{display:inline-flex;padding:2px;border:1px solid var(--lo-color-border);border-radius:9px;background:#f6f8fa}
+.risk-segmented button{padding:4px 12px;border:0;border-radius:7px;background:transparent;font:inherit;font-size:12px;font-weight:650;color:var(--lo-color-muted);cursor:pointer}
+.risk-segmented button.active{background:#fff;color:var(--lo-color-text);box-shadow:0 1px 2px rgba(15,40,60,.12)}
+@media(max-width:1100px){.risk-analysis .module-summary-strip.risk-analysis-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}

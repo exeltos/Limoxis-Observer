@@ -146,9 +146,9 @@ export function RiskAssessmentPage(){
   <div className="risk-assessment-body">
    {/* The record shell keeps only edit/delete from headerActions, so the "…" menu sits here: in the register's toolbar, or on its own line in the other tabs. */}
    {!canEdit&&canManage&&<p className="risk-locked">{L(en,`Η εκτίμηση είναι «${statusLabel(assessment.status,en)}» και δεν αλλάζει. Για αλλαγές: «Επαναφορά σε πρόχειρο».`,`The assessment is “${statusLabel(assessment.status,en)}” and locked. To change it: “Back to draft”.`)}</p>}
-   {tab!=='register'&&<div className="risk-page-bar">{menu}</div>}
+   {tab!=='register'&&tab!=='analysis'&&<div className="risk-page-bar">{menu}</div>}
    {tab==='register'&&<RiskRegister risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setCell(null)} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues}/>}
-   {tab==='analysis'&&<RiskAnalysis summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>{setCell(c);setTab('register')}}/>}
+   {tab==='analysis'&&<RiskAnalysis actions={menu} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>{setCell(c);setTab('register')}}/>}
    {tab==='comparison'&&<RiskComparison assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={openRisk}/>}
    {tab==='opportunities'&&<RiskOpportunities items={assessment.opportunities||[]} en={en} canEdit={canEdit} onSave={saveOneOpportunity} onDelete={removeOpportunity}/>}
    {tab==='methodology'&&<RiskMethodology en={en}/>}
