@@ -43,9 +43,9 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
  return <div className="risk-register">
   <div className="module-summary-strip risk-kpi-strip risk-register-kpis">
    <MetricCard icon={ClipboardList} value={all.length} label={L(en,'Κίνδυνοι','Risks')} onClick={()=>setQuick(null)} active={!quick}/>
-   <MetricCard icon={AlertOctagon} tone="danger" value={counts.veryHigh} label={L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)')} onClick={()=>toggleQuick('veryHigh')} active={quick==='veryHigh'}/>
-   <MetricCard icon={AlertTriangle} tone="warning" value={counts.high} label={L(en,'Υψηλοί (υπολ.)','High (residual)')} onClick={()=>toggleQuick('high')} active={quick==='high'}/>
-   <MetricCard icon={ClipboardList} tone={counts.noPlan?'danger':'neutral'} value={counts.noPlan} label={L(en,'Υψηλοί χωρίς σχέδιο δράσης','High without an action plan')} onClick={()=>toggleQuick('noPlan')} active={quick==='noPlan'}/>
+   <MetricCard icon={AlertOctagon} value={counts.veryHigh} label={L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)')} onClick={()=>toggleQuick('veryHigh')} active={quick==='veryHigh'}/>
+   <MetricCard icon={AlertTriangle} value={counts.high} label={L(en,'Υψηλοί (υπολ.)','High (residual)')} onClick={()=>toggleQuick('high')} active={quick==='high'}/>
+   <MetricCard icon={ClipboardList} value={counts.noPlan} label={L(en,'Υψηλοί χωρίς σχέδιο δράσης','High without an action plan')} onClick={()=>toggleQuick('noPlan')} active={quick==='noPlan'}/>
    <MetricCard icon={Target} value={counts.noTarget} label={L(en,'Χωρίς κίνδυνο-στόχο','Without a target')} onClick={()=>toggleQuick('noTarget')} active={quick==='noTarget'}/>
    <MetricCard icon={Gauge} value={counts.noIndicator} label={L(en,'Χωρίς δείκτη','Without an indicator')} onClick={()=>toggleQuick('noIndicator')} active={quick==='noIndicator'}/>
   </div>

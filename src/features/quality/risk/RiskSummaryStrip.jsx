@@ -22,8 +22,8 @@ export function RiskSummaryStrip({items,en,locale}){
  const label=(text)=>`${text} · ${latest.periodLabel}`
  return <div className="workspace-summary quality-summary"><div className="module-summary-strip risk-kpi-strip">
   <MetricCard icon={ShieldAlert} value={<>{now.total}<Delta value={now.total} previous={before?.total}/></>} label={label(L(en,'Κίνδυνοι','Risks'))}/>
-  <MetricCard icon={AlertOctagon} tone="danger" value={<>{now.levels.residual.very_high}<Delta value={now.levels.residual.very_high} previous={before?.levels.residual.very_high}/></>} label={L(en,'Πολύ υψηλοί (υπολειπόμενοι)','Very high (residual)')}/>
-  <MetricCard icon={AlertTriangle} tone="warning" value={<>{now.levels.residual.high}<Delta value={now.levels.residual.high} previous={before?.levels.residual.high}/></>} label={L(en,'Υψηλοί (υπολειπόμενοι)','High (residual)')}/>
+  <MetricCard icon={AlertOctagon} value={<>{now.levels.residual.very_high}<Delta value={now.levels.residual.very_high} previous={before?.levels.residual.very_high}/></>} label={L(en,'Πολύ υψηλοί (υπολειπόμενοι)','Very high (residual)')}/>
+  <MetricCard icon={AlertTriangle} value={<>{now.levels.residual.high}<Delta value={now.levels.residual.high} previous={before?.levels.residual.high}/></>} label={L(en,'Υψηλοί (υπολειπόμενοι)','High (residual)')}/>
   <MetricCard icon={Gauge} value={<>{avg==null?'—':String(avg).replace('.',',')}<Delta value={avg} previous={prevAvg} digits={1}/></>} label={L(en,'Μέσος υπολειπόμενος βαθμός','Average residual score')}/>
   <MetricCard icon={CalendarClock} value={fmtDate(latest.nextReviewOn,locale)||'—'} label={L(en,'Επόμενη αξιολόγηση','Next assessment')}/>
  </div></div>
