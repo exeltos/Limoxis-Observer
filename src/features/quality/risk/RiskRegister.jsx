@@ -66,6 +66,7 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
    </div>
   </div>
   {cell&&<div className="risk-cell-filter"><span>{L(en,'Φίλτρο από τον χάρτη','Filter from the heat map')}: L{cell.l} × C{cell.c}</span><button type="button" onClick={onClearCell}>{L(en,'Καθαρισμός','Clear')}</button></div>}
+  <div className="risk-registry-frame">
   <div className="scroll-table risk-table-wrap">
    <table className="data-table sticky-table risk-table"><thead><tr>
     <th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Διεργασία / τμήμα','Process / department')}</th><th>{L(en,'Κίνδυνος','Risk')}</th>
@@ -95,5 +96,6 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
    {!rows.length&&<div className="registry-empty-state"><strong>{risks.length?L(en,'Κανένας κίνδυνος με αυτά τα φίλτρα','No risk matches these filters'):L(en,'Δεν υπάρχουν κίνδυνοι','No risks yet')}</strong><span>{risks.length?L(en,'Αλλάξτε ή καθαρίστε τα φίλτρα.','Change or clear the filters.'):L(en,'Προσθέστε κινδύνους ή εισαγάγετε το μητρώο από Excel.','Add risks or import the register from Excel.')}</span></div>}
   </div>
   {rows.length>0&&pager}
+  </div>
  </div>
 }

@@ -100,8 +100,15 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
    {actions}
   </div>
   <p className="risk-hint">{L(en,`${result.counts.improved} βελτιώθηκαν, ${result.counts.worsened} χειροτέρεψαν, ${result.counts.new} νέοι, ${result.counts.removed} αφαιρέθηκαν.`,`${result.counts.improved} improved, ${result.counts.worsened} worsened, ${result.counts.new} new, ${result.counts.removed} removed.`)}</p>
+  {trend.length>1&&<section className="risk-panel risk-trend-panel"><header><h3>{L(en,'Πορεία σε όλες τις περιόδους','Course over all periods')}</h3></header>
+   {trend.length>=3&&<TrendChart trend={trend} en={en} currentId={current.id}/>}
+   <div className="scroll-table"><table className="data-table risk-trend"><thead><tr><th>{L(en,'Περίοδος','Period')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Μέσος υπολειπόμενος','Avg. residual')}</th><th>{L(en,'Πολύ υψηλοί','Very high')}</th><th>{L(en,'Υψηλοί','High')}</th><th>{L(en,'Μέτριοι','Moderate')}</th><th>{L(en,'Χαμηλοί','Low')}</th></tr></thead><tbody>
+    {trend.map(p=><tr key={p.id} className={p.id===current.id?'is-current':''}><td><strong>{p.label}</strong><small>{fmtDate(p.assessedOn,locale)}</small></td><td>{p.total}</td><td><div className="risk-bar risk-bar-inline"><i className={`risk-cell-${levelForScore(Math.round(p.residualAverage||0))||'low'}`} style={{width:`${Math.min(100,(p.residualAverage||0)/25*100)}%`}}/></div>{num(p.residualAverage,en)}</td><td>{p.levels.very_high}</td><td>{p.levels.high}</td><td>{p.levels.moderate}</td><td>{p.levels.low}</td></tr>)}
+   </tbody></table></div>
+  </section>}
   <section className="risk-panel"><header><h3>{L(en,'Μεταβολή ανά κίνδυνο','Change per risk')}</h3>
    <div className="risk-status-chips">{['all','improved','worsened','unchanged','new','removed'].map(id=><button key={id} type="button" className={show===id?'active':''} onClick={()=>setShow(id)}>{id==='all'?L(en,'Όλοι','All'):label(id,en)} <b>{id==='all'?result.rows.length:result.counts[id]}</b></button>)}</div></header>
+   <div className="risk-registry-frame">
    <div className="scroll-table"><table className="data-table risk-table risk-compare-table"><thead><tr><th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Κίνδυνος','Risk')}</th><th>{nameOf(other)}</th><th>{nameOf(current)}</th><th>{L(en,'Μεταβολή','Change')}</th><th>{L(en,'Τι άλλαξε','What changed')}</th><th>{L(en,'Κατάσταση','Status')}</th><th aria-hidden="true"/></tr></thead><tbody>
     {pageRows.map(r=>{const openable=r.status!=='removed'&&onOpen
      return <tr key={r.key} className={`${openable?'is-openable':''}${current.id===assessment.id?returnedClass(returned,r.risk.lineageKey):''}`} onClick={()=>openable&&onOpen(r.risk,current)} title={openable?L(en,'Άνοιγμα του κινδύνου','Open the risk'):undefined}>
@@ -115,15 +122,10 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
     {!rows.length&&<tr><td colSpan={8} className="risk-empty-note">{L(en,'Κανένας κίνδυνος σε αυτή την κατάσταση.','No risk in this state.')}</td></tr>}
    </tbody></table></div>
    {rows.length>0&&pager}
+   </div>
   </section>
   <section className="risk-panel"><header><h3>{L(en,'Υπολειπόμενος κίνδυνος ανά περίοδο','Residual risk by period')}</h3><LevelLegend en={en}/></header>
    <div className="risk-heatmaps risk-heatmaps-two risk-heatmaps-compact">{map(other,prev)}{map(current,cur)}</div>
   </section>
-  {trend.length>1&&<section className="risk-panel"><header><h3>{L(en,'Πορεία σε όλες τις περιόδους','Course over all periods')}</h3></header>
-   {trend.length>=3&&<TrendChart trend={trend} en={en} currentId={current.id}/>}
-   <div className="scroll-table"><table className="data-table risk-trend"><thead><tr><th>{L(en,'Περίοδος','Period')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Μέσος υπολειπόμενος','Avg. residual')}</th><th>{L(en,'Πολύ υψηλοί','Very high')}</th><th>{L(en,'Υψηλοί','High')}</th><th>{L(en,'Μέτριοι','Moderate')}</th><th>{L(en,'Χαμηλοί','Low')}</th></tr></thead><tbody>
-    {trend.map(p=><tr key={p.id} className={p.id===current.id?'is-current':''}><td><strong>{p.label}</strong><small>{fmtDate(p.assessedOn,locale)}</small></td><td>{p.total}</td><td><div className="risk-bar risk-bar-inline"><i className={`risk-cell-${levelForScore(Math.round(p.residualAverage||0))||'low'}`} style={{width:`${Math.min(100,(p.residualAverage||0)/25*100)}%`}}/></div>{num(p.residualAverage,en)}</td><td>{p.levels.very_high}</td><td>{p.levels.high}</td><td>{p.levels.moderate}</td><td>{p.levels.low}</td></tr>)}
-   </tbody></table></div>
-  </section>}
  </div>
 }
