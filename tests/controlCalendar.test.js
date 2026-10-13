@@ -62,3 +62,19 @@ describe('annual control calendar', () => {
     expect(lines[0].months).toHaveLength(12)
   })
 })
+
+describe('calendar year summary and grouping', () => {
+  it('sums a frequent row as done / due and an infrequent one against missed', async () => {
+    const { calendarYearSummary } = await import('../src/features/controls/controlCalendar')
+    const frequent = [{ frequent: true, when: 'past', done: 3, expected: 4, planned: 0 }, { frequent: true, when: 'current', done: 1, expected: 1, planned: 3 }, { frequent: true, when: 'future', done: 0, expected: 0, planned: 4 }]
+    expect(calendarYearSummary(frequent)).toEqual({ frequent: true, done: 4, expected: 5, planned: 7, rate: 80 })
+    const monthly = [{ frequent: false, done: 1, missed: [], planned: [] }, { frequent: false, done: 0, missed: [12], planned: [] }, { frequent: false, done: 0, missed: [], planned: [12] }]
+    expect(calendarYearSummary(monthly)).toEqual({ frequent: false, done: 1, expected: 2, missed: 1, planned: 1, rate: 50 })
+  })
+  it('names a control shared by several departments once', async () => {
+    const { groupCalendarLines } = await import('../src/features/controls/controlCalendar')
+    const a = { id: 'a' }, b = { id: 'b' }
+    const groups = groupCalendarLines([{ item: a, department: 'ΜΕΘ' }, { item: a, department: 'Χειρουργική' }, { item: b, department: 'ΜΕΘ' }])
+    expect(groups.map((g) => [g.item.id, g.lines.length])).toEqual([['a', 2], ['b', 1]])
+  })
+})

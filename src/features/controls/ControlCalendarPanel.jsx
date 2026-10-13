@@ -4,7 +4,7 @@ import { downloadCsv } from '../../core/export/csvExport'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { frequencyLabel } from './controlScheduling'
-import { calendarTone, programmeCalendar } from './controlCalendar'
+import { calendarTone, calendarYearSummary, groupCalendarLines, programmeCalendar } from './controlCalendar'
 import './controlCalendar.css'
 
 const MONTHS = {
@@ -56,9 +56,13 @@ export function useControlCalendarReport(rows, tx, language) {
 
 function FrequentCell({ cell }) {
   if (cell.inactive) return null
-  if (cell.when === 'future') return cell.planned ? <span className="control-calendar-count planned">{cell.planned}</span> : null
-  if (!cell.expected && !cell.done) return cell.planned ? <span className="control-calendar-count planned">{cell.planned}</span> : null
-  return <span className={`control-calendar-count ${calendarTone(cell)}`}>{cell.done}<small>/{cell.expected}</small></span>
+  const planned = cell.planned ? <span className="control-calendar-count planned">{cell.planned}</span> : null
+  if (cell.when === 'future' || (!cell.expected && !cell.done)) return planned
+  // done / due with a bar that fills with the share done.
+  return <span className={`control-calendar-count ${calendarTone(cell)}`}>
+    <span>{cell.done}<small>/{cell.expected}</small></span>
+    <i className="control-calendar-bar" aria-hidden="true"><b style={{ width: `${Math.min(100, cell.rate ?? 0)}%` }} /></i>
+  </span>
 }
 
 function InfrequentCell({ cell }) {
@@ -70,11 +74,35 @@ function InfrequentCell({ cell }) {
   </span>
 }
 
+function YearSummary({ summary, tx }) {
+  if (summary.rate == null) return summary.planned ? <span className="control-calendar-year-total planned">{summary.planned}<small> {tx.legendPlanned.toLowerCase()}</small></span> : <span className="control-calendar-year-total empty">—</span>
+  const tone = summary.rate >= 90 ? 'good' : summary.rate >= 75 ? 'fair' : 'low'
+  return <span className={`control-calendar-year-total ${tone}`}><strong>{summary.rate}%</strong><small>{summary.done}/{summary.expected}</small></span>
+}
+
 export function ControlCalendarPanel({ report, language, onOpen }) {
   const en = language === 'en'
   const { year, setYear, lines, months, reportRef, tx } = report
   const now = new Date()
   const title = (item) => (en ? item.titleEn || item.title : item.title)
+  const groups = useMemo(() => groupCalendarLines(lines), [lines])
+  const isCurrent = (month) => year === now.getFullYear() && month === now.getMonth()
+  const row = (line, grouped) => {
+    const summary = calendarYearSummary(line.months)
+    return <tr key={`${line.item.id}-${line.department}`} className={grouped ? 'control-calendar-member' : ''} onClick={() => onOpen?.(line.item)}>
+      <td className="control-calendar-name">{grouped
+        ? <strong className="control-calendar-department">{line.department}</strong>
+        : <><strong>{title(line.item)}</strong><small>{line.department} · {frequencyLabel(line.item.frequency, language)}</small></>}</td>
+      {line.months.map((cell) => {
+        const text = calendarCellText(cell, en)
+        const tone = cell.inactive ? 'inactive' : calendarTone(cell)
+        return <td key={cell.month} className={`control-calendar-cell ${cell.when} tone-${tone}${isCurrent(cell.month) ? ' current' : ''}`} title={text || undefined} aria-label={text ? `${months[cell.month]}: ${text}` : undefined}>
+          {cell.frequent ? <FrequentCell cell={cell} /> : <InfrequentCell cell={cell} />}
+        </td>
+      })}
+      <td className="control-calendar-total"><YearSummary summary={summary} tx={tx} /></td>
+    </tr>
+  }
   return <div className="control-calendar" ref={reportRef}>
     <div className="control-calendar-toolbar">
       <div className="control-calendar-year" role="group" aria-label={tx.calendarYear}>
@@ -87,24 +115,22 @@ export function ControlCalendarPanel({ report, language, onOpen }) {
         <li><span className="control-calendar-mark fair">✓</span>{tx.legendLate}</li>
         <li><span className="control-calendar-mark low">✕</span>{tx.legendMissed}</li>
         <li><span className="control-calendar-mark planned">○</span>{tx.legendPlanned}</li>
-        <li><span className="control-calendar-count good">9<small>/10</small></span>{tx.legendCount}</li>
+        <li><span className="control-calendar-count good legend"><span>9<small>/10</small></span></span>{tx.legendCount}</li>
       </ul>
     </div>
     <div className="scroll-table">
       <table className="data-table sticky-table control-calendar-table">
         <thead><tr>
           <th className="control-calendar-name">{en ? 'Control' : 'Έλεγχος'}</th>
-          {months.map((label, month) => <th key={label} className={year === now.getFullYear() && month === now.getMonth() ? 'current' : ''}>{label}</th>)}
+          {months.map((label, month) => <th key={label} className={isCurrent(month) ? 'current' : ''}>{label}</th>)}
+          <th className="control-calendar-total">{year}</th>
         </tr></thead>
-        <tbody>{lines.map((line) => <tr key={`${line.item.id}-${line.department}`} onClick={() => onOpen?.(line.item)}>
-          <td className="control-calendar-name"><strong>{title(line.item)}</strong><small>{line.department} · {frequencyLabel(line.item.frequency, language)}</small></td>
-          {line.months.map((cell) => {
-            const text = calendarCellText(cell, en)
-            return <td key={cell.month} className={`control-calendar-cell ${cell.when}${year === now.getFullYear() && cell.month === now.getMonth() ? ' current' : ''}`} title={text || undefined} aria-label={text ? `${months[cell.month]}: ${text}` : undefined}>
-              {cell.frequent ? <FrequentCell cell={cell} /> : <InfrequentCell cell={cell} />}
-            </td>
-          })}
-        </tr>)}</tbody>
+        <tbody>{groups.map((group) => group.lines.length === 1 ? row(group.lines[0], false) : [
+          <tr key={`${group.item.id}-group`} className="control-calendar-group" onClick={() => onOpen?.(group.item)}>
+            <td colSpan={14} className="control-calendar-group-title"><strong>{title(group.item)}</strong><small>{frequencyLabel(group.item.frequency, language)} · {en ? `${group.lines.length} departments` : `${group.lines.length} τμήματα`}</small></td>
+          </tr>,
+          ...group.lines.map((line) => row(line, true)),
+        ])}</tbody>
       </table>
       {!lines.length && <div className="registry-empty-state"><strong>{tx.noCalendar}</strong></div>}
     </div>

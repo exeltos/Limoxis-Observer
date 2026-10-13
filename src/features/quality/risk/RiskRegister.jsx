@@ -7,7 +7,7 @@ import { JCI_CHAPTERS,LEVELS,SECTIONS,riskWarnings,scored,warningLabel } from '.
 import { L,LevelChip,txt } from './riskUi'
 
 // The register: every risk of the assessment with its three scores.
-export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreateCapa,cell,onClearCell}){
+export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreateCapa,cell,onClearCell,actions=null}){
  const [query,setQuery]=useState('')
  const [section,setSection]=useState('all')
  const [process,setProcess]=useState('all')
@@ -37,7 +37,10 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
     <FilterSelect label="JCI" value={jci} onChange={setJci}><option value="all">{L(en,'Όλα','All')}</option>{JCI_CHAPTERS.map(x=><option key={x.id} value={x.id}>{x.id} · {en?x.en:x.el}</option>)}</FilterSelect>
     <FilterSelect label={L(en,'Εμφάνιση','Show')} value={flag} onChange={setFlag}><option value="all">{L(en,'Όλους','All')}</option><option value="warnings">{L(en,'Με εκκρεμότητες','With open points')}</option><option value="prioritized">{L(en,'Επιλεγμένους για FMEA','Selected for FMEA')}</option></FilterSelect>
    </FilterBar>
-   {canEdit&&<ActionButton label={L(en,'Νέος κίνδυνος','New risk')} tone="primary" onClick={onCreate}><Plus size={16}/><span>{L(en,'Νέος κίνδυνος','New risk')}</span></ActionButton>}
+   <div className="risk-toolbar-actions">
+    {canEdit&&<ActionButton label={L(en,'Νέος κίνδυνος','New risk')} tone="primary" onClick={onCreate}><Plus size={16}/><span>{L(en,'Νέος κίνδυνος','New risk')}</span></ActionButton>}
+    {actions}
+   </div>
   </div>
   {cell&&<div className="risk-cell-filter"><span>{L(en,'Φίλτρο από τον χάρτη','Filter from the heat map')}: L{cell.l} × C{cell.c}</span><button type="button" onClick={onClearCell}>{L(en,'Καθαρισμός','Clear')}</button></div>}
   <div className="scroll-table risk-table-wrap">

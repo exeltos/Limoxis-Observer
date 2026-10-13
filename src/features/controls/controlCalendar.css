@@ -8,16 +8,19 @@
 .control-calendar-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin:0 0 0 auto;padding:0;list-style:none;font-size:11.5px;color:var(--lo-color-muted)}
 .control-calendar-legend li{display:inline-flex;align-items:center;gap:6px}
 .control-calendar .scroll-table{flex:1 1 0;min-height:0;overflow:auto}
-.control-calendar-table{min-width:980px;table-layout:fixed}
+.control-calendar-table{min-width:1060px;table-layout:fixed;border-collapse:separate;border-spacing:0}
 .control-calendar-table th,.control-calendar-table td{text-align:center}
 .control-calendar-table th.control-calendar-name,.control-calendar-table td.control-calendar-name{width:250px;text-align:left}
 .control-calendar-table td.control-calendar-name{position:sticky;left:0;z-index:1;background:inherit}
 .control-calendar-table tbody tr{cursor:pointer;background:#fff}
 .data-table.control-calendar-table thead th.current{background:#dcebf7!important;color:#0b4a7a!important;box-shadow:inset 0 -2px 0 #1f6fa8}
-.control-calendar-table td.control-calendar-cell{padding:6px 4px!important;vertical-align:middle}
+.control-calendar-table td.control-calendar-cell{vertical-align:middle;border-left:1px solid #eef2f5}
 .data-table.control-calendar-table td.control-calendar-cell.current{background:#eef5fb!important}
 .control-calendar-table td.control-calendar-cell.past{background:#fbfcfd}
-.control-calendar-count{display:inline-block;min-width:40px;padding:2px 6px;border-radius:999px;font-size:11.5px;font-weight:800;background:#eef3f7;color:#566775}
+.control-calendar-count{display:inline-flex;flex-direction:column;align-items:center;gap:3px;min-width:46px;padding:3px 7px 4px;border-radius:8px;font-size:12px;font-weight:800;line-height:1.1;background:#eef3f7;color:#566775}
+.control-calendar-count.legend{min-width:0;padding:1px 6px;border-radius:999px;font-size:11.5px}
+.control-calendar-bar{display:block;width:100%;height:3px;border-radius:2px;background:rgba(0,0,0,.08);overflow:hidden}
+.control-calendar-bar b{display:block;height:100%;border-radius:2px;background:currentColor}
 .control-calendar-count small{display:inline!important;margin:0!important;font-size:10.5px!important;font-weight:700;color:inherit!important;opacity:.8}
 .control-calendar-count.good,.control-calendar-mark.good{background:#e7f5ec;color:#1d6b3a}
 .control-calendar-count.fair,.control-calendar-mark.fair{background:#fff1dc;color:#8a4b00}
@@ -25,3 +28,31 @@
 .control-calendar-count.planned,.control-calendar-mark.planned{background:transparent;color:#566775;box-shadow:inset 0 0 0 1px #c9d5df}
 .control-calendar-marks{display:inline-flex;flex-wrap:wrap;justify-content:center;gap:3px}
 .control-calendar-mark{display:inline-block;padding:1px 6px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+
+/* Rows: a control shared by several departments is named once, its departments below. */
+.control-calendar-table tr.control-calendar-group td{background:#f6f9fb!important;border-top:1px solid #e3eaf0;padding-top:9px!important;padding-bottom:7px!important}
+.control-calendar-table td.control-calendar-group-title{text-align:left!important}
+.control-calendar-group-title strong{font-size:13px}
+.control-calendar-group-title small{display:inline!important;margin-left:10px!important;color:var(--lo-color-muted)}
+.control-calendar-table tr.control-calendar-member td.control-calendar-name{padding-left:26px!important}
+.control-calendar-department{font-weight:600!important;font-size:12.5px;color:var(--lo-color-text)}
+.control-calendar-table tbody tr:not(.control-calendar-group):hover td{background-color:#f3f8fc}
+/* Month cells tinted by how the month went. */
+.data-table.control-calendar-table td.control-calendar-cell.tone-good{background:#f4fbf6}
+.data-table.control-calendar-table td.control-calendar-cell.tone-fair{background:#fffaf1}
+.data-table.control-calendar-table td.control-calendar-cell.tone-low{background:#fff6f5}
+.data-table.control-calendar-table td.control-calendar-cell.future{background:#fff}
+/* The year so far. */
+.control-calendar-table th.control-calendar-total,.control-calendar-table td.control-calendar-total{border-left:2px solid #e3eaf0}
+.control-calendar-year-total{display:inline-flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;color:var(--lo-color-muted)}
+.control-calendar-year-total strong{font-size:13px;font-weight:800}
+.control-calendar-year-total.good strong{color:#1d6b3a}
+.control-calendar-year-total.fair strong{color:#8a4b00}
+.control-calendar-year-total.low strong{color:#b42318}
+.data-table.control-calendar-table th.control-calendar-name,.data-table.control-calendar-table td.control-calendar-name{min-width:210px!important;width:210px}
+.data-table.control-calendar-table td.control-calendar-cell,.data-table.control-calendar-table thead th:not(.control-calendar-name){min-width:56px}
+.data-table.control-calendar-table .control-calendar-total{min-width:80px}
+.data-table.control-calendar-table thead th:not(.control-calendar-name){padding-left:4px!important;padding-right:4px!important}
+.data-table.control-calendar-table td.control-calendar-total{padding-left:4px!important;padding-right:4px!important}
+.data-table.control-calendar-table td.control-calendar-cell{padding:5px 3px!important}
+.data-table.control-calendar-table thead th:not(.control-calendar-name),.data-table.control-calendar-table td.control-calendar-cell,.data-table.control-calendar-table td.control-calendar-total{text-align:center!important}

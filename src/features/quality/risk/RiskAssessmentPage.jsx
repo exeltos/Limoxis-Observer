@@ -1,9 +1,8 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { useParams,useSearchParams } from 'react-router-dom'
-import { BarChart3,BookOpen,CheckCircle2,ClipboardList,GitCompareArrows,Lightbulb,RotateCcw,Send,ShieldAlert,Archive,Trash2,Info,Pencil } from 'lucide-react'
+import { BarChart3,BookOpen,CheckCircle2,ClipboardList,GitCompareArrows,Lightbulb,RotateCcw,Send,ShieldAlert,Archive,Trash2,Info,Pencil,Printer,Download } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../../design-system/PrintExportActions'
 import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { ObserverDialog,DialogActions } from '../../../design-system/ObserverDialog'
 import { ManualDateField } from '../../../design-system/ManualDateField'
@@ -104,6 +103,13 @@ export function RiskAssessmentPage(){
   assessment.status==='approved'&&{id:'archive',label:L(en,'Αρχειοθέτηση','Archive'),icon:Archive,onClick:()=>persistAssessment({status:'archived'},'riskAssessmentArchived')},
   assessment.status==='draft'&&{id:'delete',label:L(en,'Διαγραφή εκτίμησης','Delete assessment'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>setConfirm({kind:'assessment'})},
  ].filter(Boolean):[]
+ // Print, export and the status flow share one "…" menu.
+ const menuItems=[
+  {id:'print',label:L(en,'Εκτύπωση αναφοράς','Print the report'),icon:Printer,onClick:print},
+  {id:'export',label:L(en,'Λήψη μητρώου (Excel)','Download the register (Excel)'),icon:Download,onClick:exportCsv},
+  ...statusItems.map((item,i)=>i===0?{...item,separatorBefore:true}:item),
+ ]
+ const menu=<OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} items={menuItems}/>
 
  const tabs=[
   {id:'register',label:L(en,`Μητρώο (${risks.length})`,`Register (${risks.length})`),icon:ClipboardList},
@@ -122,12 +128,10 @@ export function RiskAssessmentPage(){
   status={<span className={`status-badge ${statusTone(assessment.status)}`}>{statusLabel(assessment.status,en)}</span>}
   tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack} backLabel={L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
   <div className="risk-assessment-body">
-   {/* The record shell keeps only edit/delete from headerActions, so print, export and the status flow sit here. */}
-   <div className="risk-page-bar">
-    {!canEdit&&canManage?<p className="risk-locked">{L(en,`Η εκτίμηση είναι «${statusLabel(assessment.status,en)}» και δεν αλλάζει. Για αλλαγές: «Επαναφορά σε πρόχειρο».`,`The assessment is “${statusLabel(assessment.status,en)}” and locked. To change it: “Back to draft”.`)}</p>:<span/>}
-    <div className="risk-header-actions"><PrintExportActions onPrint={print} onExport={exportCsv}/>{statusItems.length>0&&<OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} items={statusItems}/>}</div>
-   </div>
-   {tab==='register'&&<RiskRegister risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setCell(null)} onOpen={setEditing} onCreate={()=>setEditing({section:'clinical'})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa}/>}
+   {/* The record shell keeps only edit/delete from headerActions, so the "…" menu sits here: in the register's toolbar, or on its own line in the other tabs. */}
+   {!canEdit&&canManage&&<p className="risk-locked">{L(en,`Η εκτίμηση είναι «${statusLabel(assessment.status,en)}» και δεν αλλάζει. Για αλλαγές: «Επαναφορά σε πρόχειρο».`,`The assessment is “${statusLabel(assessment.status,en)}” and locked. To change it: “Back to draft”.`)}</p>}
+   {tab!=='register'&&<div className="risk-page-bar">{menu}</div>}
+   {tab==='register'&&<RiskRegister risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setCell(null)} onOpen={setEditing} onCreate={()=>setEditing({section:'clinical'})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu}/>}
    {tab==='analysis'&&<RiskAnalysis summary={summary} en={en} onOpen={setEditing} onCell={c=>{setCell(c);setTab('register')}}/>}
    {tab==='comparison'&&<RiskComparison assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={setEditing}/>}
    {tab==='opportunities'&&<RiskOpportunities items={assessment.opportunities||[]} en={en} canEdit={canEdit} onSave={saveOneOpportunity} onDelete={removeOpportunity}/>}

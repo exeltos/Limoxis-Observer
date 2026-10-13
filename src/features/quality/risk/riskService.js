@@ -64,8 +64,8 @@ export async function loadRiskAssessment(organizationId,code){
 // A new assessment, empty or carried forward from an earlier one: the risks
 // keep their lineage keys (that is what the comparison follows) and their
 // scores, ready to be reassessed for the new period.
-export async function createRiskAssessment(organizationId,draft,{carryFrom=null,risks=null,opportunities=null}={}){
- const code=newAssessmentCode()
+export async function createRiskAssessment(organizationId,draft,{carryFrom=null,risks=null,opportunities=null,code:givenCode=null}={}){
+ const code=givenCode||newAssessmentCode()
  const sourceRisks=risks||(carryFrom?.risks||[])
  const sourceOpportunities=opportunities||(carryFrom?.opportunities||[])
  const header={...draft,code,status:'draft',sourceAssessmentId:carryFrom?.id||null}
@@ -138,9 +138,11 @@ export async function deleteRiskAssessment(organizationId,assessment){
 // Assessments created together (an import with a reassessment, a template),
 // oldest first: each one points to the one before it.
 export async function createAssessmentSeries(organizationId,plan,history=[]){
- let previous=null;const created=[]
- for(const item of plan){
-  previous=await createRiskAssessment(organizationId,{...item.header,history},{carryFrom:previous?{id:previous.id}:null,risks:item.risks,opportunities:item.opportunities})
+ // Codes come from the clock to the second; a second apart each, so two
+ // assessments created together never share one.
+ let previous=null;const created=[];const start=Date.now()
+ for(const [i,item] of plan.entries()){
+  previous=await createRiskAssessment(organizationId,{...item.header,history},{carryFrom:previous?{id:previous.id}:null,risks:item.risks,opportunities:item.opportunities,code:newAssessmentCode(new Date(start+i*1000))})
   created.push(previous)
  }
  return created
