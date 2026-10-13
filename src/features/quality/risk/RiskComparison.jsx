@@ -73,7 +73,12 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
  const nameOf=a=>a.periodLabel||periodName(periodOf(a),en)
  const head=<div className="risk-compare-controls">
   <div className="risk-segmented" role="tablist" aria-label={L(en,'Είδος περιόδου','Period type')}>{KINDS.map(([id,el,enLabel])=><button key={id} type="button" role="tab" aria-selected={kind===id} className={kind===id?'active':''} disabled={!counts[id]} title={counts[id]?undefined:L(en,'Δεν υπάρχουν εκτιμήσεις αυτού του είδους','No assessments of this type')} onClick={()=>pickKind(id)}>{en?enLabel:el} <b>{counts[id]}</b></button>)}</div>
-  {ofKind.length>0&&<label className="risk-compare-picker"><span>{L(en,'Περίοδος','Period')}</span><select value={current?.id||''} onChange={e=>setCurrentId(e.target.value)}>{ofKind.map(a=><option key={a.id} value={a.id}>{nameOf(a)} · {fmtDate(a.assessedOn,locale)}</option>)}</select></label>}
+  {ofKind.length>0&&<div className="risk-compare-sentence">
+   <span>{L(en,'Σύγκριση','Compare')}</span>
+   <select aria-label={L(en,'Περίοδος που συγκρίνεται','Period compared')} title={L(en,'Αλλάξτε για να δείτε άλλη περίοδο','Change to see another period')} value={current?.id||''} onChange={e=>setCurrentId(e.target.value)}>{ofKind.map(a=><option key={a.id} value={a.id}>{nameOf(a)}</option>)}</select>
+   <span>{L(en,'με','with')}</span>
+   <strong className={other?'':'is-missing'}>{other?nameOf(other):periodName(target,en)}</strong>
+  </div>}
   {kind!=='annual'&&<div className="risk-segmented" role="tablist" aria-label={L(en,'Σύγκριση με','Compare with')}>{[['lastYear','Ίδια περίοδος πέρσι','Same period last year'],['previous','Προηγούμενη περίοδος','Previous period']].map(([id,el,enLabel])=><button key={id} type="button" role="tab" aria-selected={mode===id} className={mode===id?'active':''} onClick={()=>setMode(id)}>{en?enLabel:el}</button>)}</div>}
  </div>
  if(!result)return <div className="risk-comparison"><div className="risk-compare-head">{head}<span className="risk-compare-spacer"/>{actions}</div>
@@ -98,7 +103,7 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
    </div>
    {actions}
   </div>
-  <p className="risk-hint"><strong>{nameOf(current)}</strong> {L(en,'έναντι','versus')} <strong>{nameOf(other)}</strong> · {L(en,`${result.counts.improved} βελτιώθηκαν, ${result.counts.worsened} χειροτέρεψαν, ${result.counts.new} νέοι, ${result.counts.removed} αφαιρέθηκαν.`,`${result.counts.improved} improved, ${result.counts.worsened} worsened, ${result.counts.new} new, ${result.counts.removed} removed.`)}</p>
+  <p className="risk-hint">{L(en,`${result.counts.improved} βελτιώθηκαν, ${result.counts.worsened} χειροτέρεψαν, ${result.counts.new} νέοι, ${result.counts.removed} αφαιρέθηκαν.`,`${result.counts.improved} improved, ${result.counts.worsened} worsened, ${result.counts.new} new, ${result.counts.removed} removed.`)}</p>
   <section className="risk-panel"><header><h3>{L(en,'Μεταβολή ανά κίνδυνο','Change per risk')}</h3>
    <div className="risk-status-chips">{['all','improved','worsened','unchanged','new','removed'].map(id=><button key={id} type="button" className={show===id?'active':''} onClick={()=>setShow(id)}>{id==='all'?L(en,'Όλοι','All'):label(id,en)} <b>{id==='all'?result.rows.length:result.counts[id]}</b></button>)}</div></header>
    <div className="scroll-table"><table className="data-table risk-table risk-compare-table"><thead><tr><th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Κίνδυνος','Risk')}</th><th>{nameOf(other)}</th><th>{nameOf(current)}</th><th>{L(en,'Μεταβολή','Change')}</th><th>{L(en,'Τι άλλαξε','What changed')}</th><th>{L(en,'Κατάσταση','Status')}</th><th aria-hidden="true"/></tr></thead><tbody>

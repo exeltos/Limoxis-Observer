@@ -36,10 +36,10 @@ describe('RiskComparison', () => {
     const h1 = half('h1', "Α' εξάμηνο 2026", '2026-06-30', 2)
     const list = [h1, half('h2', "Β' εξάμηνο 2025", '2025-12-20', 3), half('h0', "Α' εξάμηνο 2025", '2025-06-30', 4), period('y', 2025, 3, 3)]
     render(<RiskComparison assessment={h1} assessments={list} en={false} locale="el-GR"/>)
-    const hint = () => document.querySelector('.risk-hint').textContent
-    expect(hint()).toContain("Α' εξάμηνο 2026 έναντι Α' εξάμηνο 2025")
+    const hint = () => document.querySelector('.risk-compare-sentence strong').textContent
+    expect(hint()).toBe("Α' εξάμηνο 2025")
     fireEvent.click(screen.getByRole('tab', { name: 'Προηγούμενη περίοδος' }))
-    expect(hint()).toContain("Α' εξάμηνο 2026 έναντι Β' εξάμηνο 2025")
+    expect(hint()).toBe("Β' εξάμηνο 2025")
     fireEvent.click(screen.getByRole('tab', { name: /Τρίμηνο/ }))
     expect(screen.getByRole('tab', { name: /Τρίμηνο/ })).toBeDisabled()
   })
