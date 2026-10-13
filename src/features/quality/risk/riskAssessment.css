@@ -93,10 +93,13 @@
 .risk-group-table td,.risk-group-table th{font-size:11.5px}
 
 /* Comparison */
-.risk-compare-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px}
+.risk-compare-head{display:flex;align-items:stretch;gap:12px}
+.risk-compare-head>.module-summary-strip{flex:1 1 auto;min-width:0}
+.risk-compare-head>:last-child:not(.module-summary-strip){align-self:flex-start}
+.risk-compare-controls{display:flex;flex-direction:column;justify-content:center;gap:8px;flex:0 0 auto}
 .risk-compare-spacer{flex:1 1 auto}
-.risk-compare-controls label.risk-compare-picker{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:8px;margin:0;font-size:11.5px;font-weight:650;color:#34475c}
-.risk-compare-controls .risk-compare-picker select{height:32px!important;min-width:220px;width:auto!important;border:1px solid #d7dee7;border-radius:9px;padding:0 10px;font-size:12px;background:#fff}
+.risk-compare-controls label.risk-compare-picker{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;margin:0;font-size:11.5px;font-weight:650;color:#34475c}
+.risk-compare-controls .risk-compare-picker select{height:32px!important;min-width:0;width:100%!important;border:1px solid #d7dee7;border-radius:9px;padding:0 10px;font-size:12px;background:#fff}
 .risk-segmented button b{margin-left:3px;font-weight:700;color:#8696a5}
 .risk-segmented button:disabled{opacity:.45;cursor:not-allowed}
 .risk-kpi-value{display:inline-flex;align-items:baseline;gap:8px}

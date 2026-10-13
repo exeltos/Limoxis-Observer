@@ -75,10 +75,8 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   <div className="risk-segmented" role="tablist" aria-label={L(en,'Είδος περιόδου','Period type')}>{KINDS.map(([id,el,enLabel])=><button key={id} type="button" role="tab" aria-selected={kind===id} className={kind===id?'active':''} disabled={!counts[id]} title={counts[id]?undefined:L(en,'Δεν υπάρχουν εκτιμήσεις αυτού του είδους','No assessments of this type')} onClick={()=>pickKind(id)}>{en?enLabel:el} <b>{counts[id]}</b></button>)}</div>
   {ofKind.length>0&&<label className="risk-compare-picker"><span>{L(en,'Περίοδος','Period')}</span><select value={current?.id||''} onChange={e=>setCurrentId(e.target.value)}>{ofKind.map(a=><option key={a.id} value={a.id}>{nameOf(a)} · {fmtDate(a.assessedOn,locale)}</option>)}</select></label>}
   {kind!=='annual'&&<div className="risk-segmented" role="tablist" aria-label={L(en,'Σύγκριση με','Compare with')}>{[['lastYear','Ίδια περίοδος πέρσι','Same period last year'],['previous','Προηγούμενη περίοδος','Previous period']].map(([id,el,enLabel])=><button key={id} type="button" role="tab" aria-selected={mode===id} className={mode===id?'active':''} onClick={()=>setMode(id)}>{en?enLabel:el}</button>)}</div>}
-  <span className="risk-compare-spacer"/>
-  {actions}
  </div>
- if(!result)return <div className="risk-comparison">{head}
+ if(!result)return <div className="risk-comparison"><div className="risk-compare-head">{head}<span className="risk-compare-spacer"/>{actions}</div>
   <div className="registry-empty-state"><strong>{current?L(en,`Δεν υπάρχει εκτίμηση για ${periodName(target,en)}`,`There is no assessment for ${periodName(target,en)}`):L(en,'Δεν υπάρχει εκτίμηση αυτού του είδους','No assessment of this type')}</strong><span>{L(en,'Η σύγκριση γίνεται μεταξύ εκτιμήσεων του ίδιου είδους (ετήσιες, εξαμηνιαίες ή τριμηνιαίες). Δημιουργήστε την από «Νέα εκτίμηση», με το είδος περιόδου και μεταφορά των κινδύνων.','Comparisons are between assessments of the same type (annual, six-monthly or quarterly). Create one with “New assessment”, choosing the period type and carrying the risks forward.')}</span></div>
  </div>
  const cur=result.current,prev=result.previous
@@ -90,12 +88,15 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   <LevelCounts counts={summary.levels.residual} en={en}/>
  </div>
  return <div className="risk-comparison">
-  {head}
-  <div className="module-summary-strip risk-kpi-strip">
-   {kpi(ClipboardList,cur.total,L(en,'Κίνδυνοι','Risks'),cur.total-prev.total,false)}
-   {kpi(AlertOctagon,cur.levels.residual.very_high,L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)'),cur.levels.residual.very_high-prev.levels.residual.very_high)}
-   {kpi(AlertTriangle,cur.levels.residual.high,L(en,'Υψηλοί (υπολ.)','High (residual)'),cur.levels.residual.high-prev.levels.residual.high)}
-   {kpi(Gauge,num(cur.averages.residual,en),L(en,'Μέσος υπολειπόμενος','Average residual'),avgDelta)}
+  <div className="risk-compare-head">
+   {head}
+   <div className="module-summary-strip risk-kpi-strip">
+    {kpi(ClipboardList,cur.total,L(en,'Κίνδυνοι','Risks'),cur.total-prev.total,false)}
+    {kpi(AlertOctagon,cur.levels.residual.very_high,L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)'),cur.levels.residual.very_high-prev.levels.residual.very_high)}
+    {kpi(AlertTriangle,cur.levels.residual.high,L(en,'Υψηλοί (υπολ.)','High (residual)'),cur.levels.residual.high-prev.levels.residual.high)}
+    {kpi(Gauge,num(cur.averages.residual,en),L(en,'Μέσος υπολειπόμενος','Average residual'),avgDelta)}
+   </div>
+   {actions}
   </div>
   <p className="risk-hint"><strong>{nameOf(current)}</strong> {L(en,'έναντι','versus')} <strong>{nameOf(other)}</strong> · {L(en,`${result.counts.improved} βελτιώθηκαν, ${result.counts.worsened} χειροτέρεψαν, ${result.counts.new} νέοι, ${result.counts.removed} αφαιρέθηκαν.`,`${result.counts.improved} improved, ${result.counts.worsened} worsened, ${result.counts.new} new, ${result.counts.removed} removed.`)}</p>
   <section className="risk-panel"><header><h3>{L(en,'Μεταβολή ανά κίνδυνο','Change per risk')}</h3>
