@@ -93,10 +93,40 @@
 .risk-group-table td,.risk-group-table th{font-size:11.5px}
 
 /* Comparison */
-.risk-compare-picker{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
-.risk-compare-picker label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:650;color:#34475c}
-.risk-compare-picker select{height:36px;min-width:240px;border:1px solid #d7dee7;border-radius:9px;padding:0 10px;font-size:12px}
-.risk-compare-picker p{margin:0 0 8px;font-size:12px;color:var(--lo-color-muted)}
+.risk-compare-picker{display:flex;flex-direction:column;gap:4px;flex:0 0 auto;font-size:11px;font-weight:650;color:#34475c}
+.risk-compare-picker select{height:36px;min-width:220px;border:1px solid #d7dee7;border-radius:9px;padding:0 10px;font-size:12px;background:#fff}
+.risk-compare-head{align-items:center}
+.risk-kpi-value{display:inline-flex;align-items:baseline;gap:8px}
+.risk-kpi-value .risk-delta{padding:1px 6px;border-radius:999px;background:#f1f4f7}
+.risk-kpi-value .risk-delta.is-better{background:#e6f4ea}
+.risk-kpi-value .risk-delta.is-worse{background:#fdecea}
+.canonical-metric-copy strong span.risk-kpi-value{font-size:inherit!important;line-height:inherit!important;color:inherit!important}
+.canonical-metric-copy strong .risk-kpi-value .risk-delta{font-size:11px!important;line-height:1.5!important;color:var(--lo-color-muted)!important}
+.canonical-metric-copy strong .risk-kpi-value .risk-delta.is-better{color:#1d6438!important}
+.canonical-metric-copy strong .risk-kpi-value .risk-delta.is-worse{color:#b42318!important}
+.risk-compare-table tr.is-openable{cursor:pointer}
+.risk-compare-table td.risk-open-cell{width:24px;color:#9fb0bf}
+.risk-axis-change{display:inline-flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px;white-space:nowrap}
+.risk-axis-change .is-better{color:#1d6438}
+.risk-axis-change .is-worse{color:#b42318}
+.risk-axis-none{font-size:11.5px;color:var(--lo-color-muted)}
+.risk-heatmaps-compact{max-width:820px}
+.risk-trend-chart{margin:0 0 12px}
+.risk-trend-chart svg{display:block;width:100%;max-width:760px;height:auto}
+.risk-trend-chart .grid{stroke:#e8edf2}
+.risk-trend-chart text{font-size:10px;fill:#6b7c8d}
+.risk-trend-chart text.value{font-weight:700;fill:#194a74;paint-order:stroke;stroke:#fff;stroke-width:3px}
+.risk-trend-chart text.period{font-size:11px;fill:#34475c}
+.risk-trend-chart .is-current text.period{font-weight:700}
+.risk-trend-chart .line-avg{fill:none;stroke:#2f6fa3;stroke-width:2.5}
+.risk-trend-chart .line-high{fill:none;stroke:#d9822b;stroke-width:2;stroke-dasharray:5 4}
+.risk-trend-chart .dot-avg{fill:#2f6fa3}
+.risk-trend-chart .dot-high{fill:#d9822b}
+.risk-trend-chart figcaption{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:11.5px;color:var(--lo-color-muted)}
+.risk-trend-chart figcaption span{display:inline-flex;align-items:center;gap:6px}
+.risk-trend-chart figcaption i{display:inline-block;width:18px;height:3px;border-radius:2px}
+.risk-trend-chart .key-avg{background:#2f6fa3}
+.risk-trend-chart .key-high{background:repeating-linear-gradient(90deg,#d9822b 0 5px,transparent 5px 8px)}
 .risk-delta{display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
 .risk-delta.is-better{color:#1d6438}
 .risk-delta.is-worse{color:#b42318}

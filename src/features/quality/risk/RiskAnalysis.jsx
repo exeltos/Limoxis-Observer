@@ -7,7 +7,7 @@ import { RiskIndicatorTable } from './RiskIndicatorsUi'
 
 const pct=(n,total)=>total?Math.round(n/total*100):0
 // Greek decimals use a comma.
-const num=(value,en)=>value==null||value===''?'—':en?String(value):String(value).replace('.',',')
+export const num=(value,en)=>value==null||value===''?'—':en?String(value):String(value).replace('.',',')
 
 // Bars of the four levels for inherent, residual and target, side by side.
 export function LevelDistribution({summary,en,kinds=['inherent','residual','target']}){
@@ -45,7 +45,7 @@ export function RiskList({risks,en,empty,onOpen}){
 }
 
 // Under each heat map: how many risks fall in each level.
-function LevelCounts({counts,en}){
+export function LevelCounts({counts,en}){
  return <ul className="risk-level-counts">{[...LEVELS].reverse().map(level=><li key={level.id}><span className={`risk-swatch risk-cell-${level.id}`}/>{en?level.en:level.el}<strong>{counts?.[level.id]||0}</strong></li>)}</ul>
 }
 
