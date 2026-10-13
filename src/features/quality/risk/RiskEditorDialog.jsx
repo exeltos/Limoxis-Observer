@@ -31,23 +31,22 @@ export function RiskEditorDialog({risk,processes=[],en,readOnly=false,onClose,on
   <div className="risk-editor">
    <Step n={1} title={L(en,'Περιγραφή','Description')}>
     <div className="risk-editor-grid risk-editor-grid-description">
-     <label className="risk-field"><span>{L(en,'Ενότητα','Section')}</span><select value={draft.section} disabled={readOnly} onChange={e=>set('section',e.target.value)}>{SECTIONS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</select></label>
-     {field('process',L(en,'Διεργασία','Process'),{list:'risk-process-options'})}
+     <label className="risk-field risk-span-2"><span>{L(en,'Ενότητα','Section')}</span><select value={draft.section} disabled={readOnly} onChange={e=>set('section',e.target.value)}>{SECTIONS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</select></label>
+     <div className="risk-span-2">{field('process',L(en,'Διεργασία','Process'),{list:'risk-process-options'})}</div>
      <datalist id="risk-process-options">{processes.map(p=><option key={p} value={p}/>)}</datalist>
-     {field('scope',L(en,'Τμήμα / αφορά','Department / applies to'))}
-     <label className="risk-field"><span>JCI</span><select value={draft.jci||''} disabled={readOnly} onChange={e=>set('jci',e.target.value)}><option value="">—</option>{JCI_CHAPTERS.map(x=><option key={x.id} value={x.id}>{x.id} · {en?x.en:x.el}</option>)}</select></label>
-     {field('jciReference',L(en,'Πρότυπο / ME','Standard / ME'),{placeholder:L(en,'π.χ. IPSG.5 ME 2','e.g. IPSG.5 ME 2')})}
+     <div className="risk-span-2">{field('scope',L(en,'Τμήμα / αφορά','Department / applies to'))}</div>
+     <label className="risk-field risk-span-4"><span>JCI</span><select value={draft.jci||''} disabled={readOnly} onChange={e=>set('jci',e.target.value)}><option value="">—</option>{JCI_CHAPTERS.map(x=><option key={x.id} value={x.id}>{x.id} · {en?x.en:x.el}</option>)}</select></label>
+     <div className="risk-span-2">{field('jciReference',L(en,'Πρότυπο / ME','Standard / ME'),{placeholder:L(en,'π.χ. IPSG.5 ME 2','e.g. IPSG.5 ME 2')})}</div>
     </div>
     {area('hazard',L(en,'Πιθανό ρίσκο / κίνδυνος','Potential risk / hazard'),2)}
    </Step>
    <Step n={2} title={L(en,'Αξιολόγηση (L × C)','Assessment (L × C)')} aside={<span className="risk-editor-path" title={L(en,'Εγγενής → υπολειπόμενος → στόχος','Inherent → residual → target')}>{path}</span>}>
     <div className="risk-editor-stages">
      {STAGES.map(([kind,el,enLabel,hintEl,hintEn])=><div key={kind} className={`risk-stage risk-stage-${kind}`}>
-      <header><div><strong>{en?enLabel:el}</strong><small>{en?hintEn:hintEl}</small></div><LevelChip score={s[kind].score} level={s[kind].level} en={en}/></header>
-      <div className="risk-stage-axes">
-       <AxisSelect label={L(en,'Πιθανότητα (L)','Likelihood (L)')} value={draft[`${kind}L`]} onChange={v=>set(`${kind}L`,v)} scale={LIKELIHOOD} en={en} disabled={readOnly}/>
-       <AxisSelect label={L(en,'Συνέπεια (C)','Consequence (C)')} value={draft[`${kind}C`]} onChange={v=>set(`${kind}C`,v)} scale={CONSEQUENCE} en={en} disabled={readOnly}/>
-      </div>
+      <header><strong>{en?enLabel:el}</strong><small>{en?hintEn:hintEl}</small></header>
+      <AxisSelect label={L(en,'Πιθανότητα (L)','Likelihood (L)')} value={draft[`${kind}L`]} onChange={v=>set(`${kind}L`,v)} scale={LIKELIHOOD} en={en} disabled={readOnly}/>
+      <AxisSelect label={L(en,'Συνέπεια (C)','Consequence (C)')} value={draft[`${kind}C`]} onChange={v=>set(`${kind}C`,v)} scale={CONSEQUENCE} en={en} disabled={readOnly}/>
+      <div className="risk-stage-level"><LevelChip score={s[kind].score} level={s[kind].level} en={en}/></div>
      </div>)}
     </div>
     {residualLevel&&<p className={`risk-response risk-response-${residualLevel.id}`}><strong>{L(en,'Απαιτούμενη ενέργεια','Required response')}:</strong> {en?residualLevel.responseEn:residualLevel.responseEl}</p>}
