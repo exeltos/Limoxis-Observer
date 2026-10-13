@@ -1,0 +1,11 @@
+/* Printing a page: the record itself, without the app's chrome, flowing over as
+   many pages as it needs (on screen the shell is a fixed-height, scrolling frame).
+   `:not(#print-root)` matches every element; it only lifts these rules above the
+   screen rules (e.g. `.entity-record-shell>.entity-record-body{overflow:auto!important}`). */
+@media print{
+  html,body,#root{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
+  :is(.sidebar,.topbar,.preview-banner,.lira-assistant-fab,.lira-assistant-panel):not(#print-root){display:none!important}
+  :is(.app-shell,.main-column,.content,.page,.page-fill,.workspace-fill,.entity-record-shell,.entity-record-body):not(#print-root){
+    position:static!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
+  }
+}

@@ -210,8 +210,10 @@
 .episode-detail-card{width:min(1380px,96vw);height:min(900px,92vh);background:#f7f9fb;border:1px solid #d7e0e8;border-radius:16px;box-shadow:0 24px 70px rgba(15,35,52,.28);display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
 .episode-detail-header{display:flex;align-items:center;justify-content:space-between}.episode-detail-actions>button{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;color:#506b82;display:grid;place-items:center;cursor:pointer}.episode-detail-actions>button:hover{background:#f2f7fa;color:#155d78}
 .episode-detail-scroll{min-height:0;overflow:auto;padding:14px}
+/* Printing an open surveillance episode prints the episode card alone. The rule
+   applies only while the card is on screen: unscoped, it blanked every other print. */
 @media print{
-  body *{visibility:hidden}
+  body:has(.episode-detail-card) *{visibility:hidden}
   .episode-detail-card,.episode-detail-card *{visibility:visible!important}
   .episode-overlay{position:absolute!important;inset:0!important;background:#fff!important;padding:0!important}
   .episode-detail-card{position:absolute;left:0;top:0;width:100%!important;height:auto!important;max-height:none!important;border:0!important;box-shadow:none!important}
