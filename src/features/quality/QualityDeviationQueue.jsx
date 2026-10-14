@@ -1,10 +1,10 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,ClipboardCheck,ExternalLink,FileWarning,Plus,ShieldCheck } from 'lucide-react'
+import { AlertTriangle,ClipboardCheck,FileWarning,Plus,ShieldCheck } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
-import { IconButton } from '../../design-system/IconButton'
 import { MetricCard } from '../../design-system/MetricCard'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { ListEmptyState } from '../../design-system/ListEmptyState'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { loadBundleAssessments } from '../prevention/bundleCloudService'
@@ -82,22 +82,21 @@ export function QualityDeviationQueue({view,loading,language,locale,t,onCreateCa
   <div className="scroll-table">
    <table className="data-table sticky-table quality-deviation-table">
     <thead><tr><th>{en?'Date':'Ημερομηνία'}</th><th>{en?'Source':'Πηγή'}</th><th>{en?'Deviation':'Απόκλιση'}</th><th>{t('department')}</th><th>{en?'Result':'Αποτέλεσμα'}</th><th>{t('priority')}</th><th className="quality-deviation-actions-col" aria-label={en?'Actions':'Ενέργειες'}/></tr></thead>
-    <tbody>{pagedItems.map(item=>{const Icon=item.kind==='control'?ClipboardCheck:ShieldCheck;return <tr key={item.key}>
+    <tbody>{pagedItems.map(item=>{const Icon=item.kind==='control'?ClipboardCheck:ShieldCheck;const openSource=()=>goTo(item.path,{returnTo:'/quality'});return <tr key={item.key} className="clickable-row" tabIndex={0} title={en?'Open source record':'Άνοιγμα εγγραφής προέλευσης'} onClick={openSource} onKeyDown={e=>{if(e.target===e.currentTarget&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openSource()}}}>
      <td className="nowrap-cell">{fmt(item.at)}</td>
      <td><span className="quality-deviation-kind"><Icon size={14} aria-hidden="true"/>{item.kind==='control'?(en?'Control':'Έλεγχος'):'Bundle'}</span></td>
      <td><strong>{en?item.titleEn:item.title}</strong>{item.notes&&<small>{item.notes}</small>}</td>
      <td>{item.department||'—'}</td>
      <td>{item.kind==='bundle'?(en?`${item.detail} criteria not met`:`${item.detail} κριτήρια δεν τηρήθηκαν`):(item.detail||(en?'Non-compliant':'Μη συμμόρφωση'))}</td>
      <td><span className={`status-badge ${item.priority==='high'?'danger':''}`}>{t(item.priority)}</span></td>
-     <td className="quality-deviation-actions-col"><div className="row-actions">
-      <IconButton size="sm" label={en?'Open source record':'Άνοιγμα εγγραφής προέλευσης'} onClick={()=>goTo(item.path,{returnTo:'/quality'})}><ExternalLink size={15}/></IconButton>
-      <ActionButton tone="primary" label={en?'Create CAPA':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateCapa(capaPrefill(item,language))}><Plus size={15}/><span>{en?'Create CAPA':'Δημιουργία διορθωτικής ενέργειας'}</span></ActionButton>
+     <td className="quality-deviation-actions-col" onClick={e=>e.stopPropagation()}><div className="row-actions">
+      <ActionButton tone="neutral" label={en?'Create CAPA':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateCapa(capaPrefill(item,language))}><Plus size={15}/><span>{en?'Create CAPA':'Δημιουργία διορθωτικής ενέργειας'}</span></ActionButton>
      </div></td>
     </tr>})}</tbody>
    </table>
-   {loading&&<div className="registry-empty-state"><strong>{en?'Loading deviations…':'Φόρτωση αποκλίσεων…'}</strong></div>}
-   {!loading&&!items.length&&<div className="registry-empty-state"><strong>{en?'No deviations without a CAPA':'Δεν υπάρχουν αποκλίσεις χωρίς διορθωτική ενέργεια'}</strong><span>{en?'Control entries with a finding and failed bundle criteria appear here until a CAPA is created from them.':'Εδώ εμφανίζονται καταχωρήσεις ελέγχων με εύρημα και bundles με κριτήρια που δεν τηρήθηκαν, μέχρι να δημιουργηθεί διορθωτική ενέργεια από αυτά.'}</span></div>}
+   {loading&&<div className="inline-empty" role="status"><strong>{en?'Loading deviations…':'Φόρτωση αποκλίσεων…'}</strong></div>}
+   {!loading&&!items.length&&<ListEmptyState filtered={view.all.length>0} title={en?'No deviations without a CAPA':'Δεν υπάρχουν αποκλίσεις χωρίς διορθωτική ενέργεια'} text={en?'Control entries with a finding and failed bundle criteria appear here until a CAPA is created from them.':'Εδώ εμφανίζονται καταχωρήσεις ελέγχων με εύρημα και bundles με κριτήρια που δεν τηρήθηκαν, μέχρι να δημιουργηθεί διορθωτική ενέργεια από αυτά.'}/>}
   </div>
-  <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={items.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
+  {items.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={items.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
  </>
 }

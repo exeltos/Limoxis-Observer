@@ -77,7 +77,7 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
   </div>
   <div className="risk-editor-actions">
    {locked&&!isNew&&onCreateCapa&&<Button variant="secondary" onClick={()=>onCreateCapa(draft)}><CheckSquare2 size={15}/>{L(en,'Δημιουργία διορθωτικής ενέργειας','Create CAPA')}</Button>}
-   <Button variant="secondary" onClick={locked?onClose:cancel}>{locked?L(en,'Πίσω','Back'):L(en,'Ακύρωση','Cancel')}</Button>
+   {!locked&&!isNew&&<Button variant="secondary" onClick={cancel}>{L(en,'Ακύρωση','Cancel')}</Button>}
    {!locked&&<Button onClick={()=>onSave(draft)} disabled={!valid||saving}><Save size={15}/>{L(en,'Αποθήκευση κινδύνου','Save risk')}</Button>}
   </div>
  </EntityRecordShell>

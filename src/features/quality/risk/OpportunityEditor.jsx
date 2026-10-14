@@ -47,7 +47,7 @@ export function OpportunityEditor({item,code,en,readOnly=false,saving=false,asse
    </Step>
   </div>
   <div className="risk-editor-actions">
-   <Button variant="secondary" onClick={locked?onClose:cancel}>{locked?L(en,'Πίσω','Back'):L(en,'Ακύρωση','Cancel')}</Button>
+   {!locked&&!isNew&&<Button variant="secondary" onClick={cancel}>{L(en,'Ακύρωση','Cancel')}</Button>}
    {!locked&&<Button onClick={()=>{const {ratingId,...rest}=draft;onSave({...rest,rating:ratingLabel(ratingId)})}} disabled={!String(draft.activity||'').trim()||saving}><Save size={15}/>{L(en,'Αποθήκευση ευκαιρίας','Save opportunity')}</Button>}
   </div>
  </EntityRecordShell>

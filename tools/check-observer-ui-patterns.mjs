@@ -14,7 +14,6 @@ const SHOW_CANCEL_PENDING=new Set([
   'features/occupational-health/ExposureIncidentEditor.jsx','features/occupational-health/OccupationalVisitEditor.jsx',
   'features/pharmacy/PharmacyPage.jsx',
   'features/platform/InvitationLinkDialog.jsx','features/platform/PlatformOrganizationRecord.jsx',
-  'features/quality/risk/RiskAssessmentPage.jsx','features/quality/risk/RiskAssessmentsPanel.jsx','features/quality/risk/RiskIndicatorsUi.jsx','features/quality/risk/riskUi.jsx',
   'features/surveillance/EmployeeSurveillanceRecordDialog.jsx',
   'features/training/TrainingCompetencePanel.jsx',
 ])

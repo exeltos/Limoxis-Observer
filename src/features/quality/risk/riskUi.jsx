@@ -24,7 +24,7 @@ export function usePaged(list,{en=false,resetOn='',startIndex=-1}={}){
  if(seen!==resetOn){setSeen(resetOn);setPage(1)}
  const totalPages=Math.max(1,Math.ceil(list.length/pageSize)),safePage=Math.min(page,totalPages)
  const items=list.slice((safePage-1)*pageSize,safePage*pageSize)
- const pager=<RegistryPagination language={en?'en':'el'} page={safePage} totalPages={totalPages} totalItems={list.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
+ const pager=list.length>0&&<RegistryPagination language={en?'en':'el'} page={safePage} totalPages={totalPages} totalItems={list.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
  return {items,pager}
 }
 // A tab outside the assessment page (tests, a standalone use) renders its KPIs
@@ -87,5 +87,5 @@ export function recordActions({en,canEdit,editing,isNew,onEdit,onDelete}){
 }
 
 export function DeleteConfirm({en,title,text,onClose,onConfirm}){
- return <ObserverDialog width="compact" title={title} onClose={onClose} footer={<DialogActions onCancel={onClose} showCancel onSave={onConfirm} saveLabel={L(en,'Διαγραφή','Delete')}/>}><p>{text}</p></ObserverDialog>
+ return <ObserverDialog width="compact" title={title} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={onConfirm} saveLabel={L(en,'Διαγραφή','Delete')}/>}><p>{text}</p></ObserverDialog>
 }

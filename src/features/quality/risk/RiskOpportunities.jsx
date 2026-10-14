@@ -64,7 +64,7 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,actions=null
     <td className="risk-open-cell"><button type="button" className="risk-open-button" aria-label={L(en,'Άνοιγμα ευκαιρίας','Open the opportunity')} onClick={e=>{e.stopPropagation();onOpen(item)}}><ChevronRight size={15}/></button></td>
    </tr>)}
    {all.length>0&&!rows.length&&<tr><td colSpan={6} className="risk-empty-note">{L(en,'Καμία ευκαιρία με αυτά τα φίλτρα.','No opportunity matches these filters.')}</td></tr>}
-  </tbody></table>{!all.length&&<div className="registry-empty-state"><strong>{L(en,'Δεν έχουν καταγραφεί ευκαιρίες','No opportunities recorded')}</strong><span>{L(en,'Καταγράψτε τις ευκαιρίες που μπορεί να αξιοποιήσει ο οργανισμός, με το σχέδιο δράσης και την αποτελεσματικότητά του.','Record the opportunities the organization can seize, with their action plan and its effectiveness.')}</span></div>}</div>
+  </tbody></table>{!all.length&&<div className="inline-empty" role="status"><strong>{L(en,'Δεν έχουν καταγραφεί ευκαιρίες','No opportunities recorded')}</strong><span>{L(en,'Καταγράψτε τις ευκαιρίες που μπορεί να αξιοποιήσει ο οργανισμός, με το σχέδιο δράσης και την αποτελεσματικότητά του.','Record the opportunities the organization can seize, with their action plan and its effectiveness.')}</span></div>}</div>
   {rows.length>0&&pager}
  </>,{registry:true,name:'risk-opportunities'})
 }
