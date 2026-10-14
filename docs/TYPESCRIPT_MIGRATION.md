@@ -14,9 +14,19 @@ Limoxis Observer moves from JavaScript to TypeScript **one module at a time**. E
 
 ## Rules for each module
 
-1. **Types only.** No change in behaviour, markup, CSS class names, text or data access. A real bug found by the type checker is fixed in a separate pull request.
+1. **Types only.** No change in behaviour, markup, CSS class names, text or data access. Anything worth changing that the conversion uncovers goes to the findings list below and into its own pull request (see *Improvements along the way*).
 2. **One module per pull request**, so a problem is reverted without touching the others.
 3. **Tests move with the code.** Tests and audits that read a source file by path (`fs.readFileSync('src/…/X.jsx')`) or assert on its exact text are updated in the same pull request. No test is deleted, skipped or weakened; the test count is the same before and after.
+
+## Improvements along the way
+
+Converting a module is also a review of it: the type checker points at likely bugs, and reading every file shows dead code, duplication and rough edges. Those improvements are welcome, but never in the conversion pull request, because the conversion is proven safe by showing that nothing changed. A behaviour change in the same diff would hide a conversion mistake, and the other way round.
+
+1. **Conversion pull request**: types only, verified by "nothing changed" (same tests, no visual differences).
+2. **Improvements pull request** for the same module, right after it, only when the findings list has something worth doing: bugs the type checker found, dead or duplicated code, small fixes. Verified by tests (a fixed bug gets a test that fails before the fix) and a try in Demo mode; its description lists every visible change.
+3. **Shared improvements** that touch several modules (design-system components, data loading, error messages) get their own pull request, so they are reviewed once and apply everywhere.
+
+Every finding is recorded below with the module, what was found and the decision. The product owner decides what is done and when.
 
 ## Checks before merging a module
 
@@ -54,3 +64,9 @@ Limoxis Observer moves from JavaScript to TypeScript **one module at a time**. E
 - **Audits that name files** (`check-clinical-i18n`, `check-product-i18n`, `check-lab-i18n`, `check-navigation-smoke`, `check-observer-ui-patterns`, `check-dead-css` via `src/main.jsx`) fail loudly when a listed file is renamed; update the path in the same pull request.
 - **Tests that read source text**: 111 test and audit files read source files by path (206 distinct files).
 - **Parallel work**: convert a module when no other open pull request is changing it.
+
+## Findings
+
+| Module | Finding | Kind | Decision |
+| --- | --- | --- | --- |
+| Setup (phase 0) | Live table `platform_update_runs` has no `create table` in `supabase/migrations` (only its policies and an index, in `20260925220000_rls_and_index_performance.sql`). Rebuilding the database from migrations would miss it. | Database | Open |
