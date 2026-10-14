@@ -91,8 +91,6 @@
 /* Comparison */
 .risk-compare-head{display:flex;align-items:center;gap:12px}
 .risk-compare-head>.module-summary-strip{flex:1 1 auto;min-width:0}
-.risk-compare-pick{display:flex;align-items:center;gap:7px;flex:0 0 auto;font-size:12.5px;color:#34475c;white-space:nowrap}
-.risk-compare-pick select{height:34px!important;width:auto!important;min-width:0;border:1px solid #d7dee7;border-radius:8px;padding:0 26px 0 9px;font-size:12.5px;font-weight:700;color:var(--lo-color-text);background-color:#fff}
 .risk-status-chips{display:flex;flex-wrap:wrap;gap:6px}
 .risk-status-chips button{border:1px solid var(--lo-color-border);background:#fff;border-radius:999px;padding:3px 10px;font-size:11px;cursor:pointer}
 .risk-status-chips button.active{background:var(--lo-color-primary-soft);border-color:#b9d3e6;color:#194a74}
@@ -442,10 +440,13 @@
 .risk-assessment-shell>.entity-record-header{flex:0 0 auto;align-self:stretch;width:auto!important;max-width:none!important}
 .risk-workspace.surface{padding:0!important;gap:0!important}
 .risk-workspace>.risk-tabs{padding:0 10px!important}
-/* The course over the periods: the chart and its table side by side. */
-.risk-trend-panel .risk-trend-body{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:center}
-.risk-trend-panel .risk-trend-chart{margin:0}
-.risk-trend-panel .risk-trend-chart svg{max-width:560px}
-@media(max-width:1100px){.risk-trend-panel .risk-trend-body{grid-template-columns:1fr}}
+/* The course (chart, table with the two ticked periods) beside the two maps. */
+.risk-compare-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:start}
+.risk-compare-row>.risk-panel{margin:0;min-width:0}
+@media(max-width:1200px){.risk-compare-row{grid-template-columns:1fr}}
+.risk-trend-panel .risk-trend-chart{margin:0 0 8px}
+.risk-trend-panel .risk-trend-chart svg{max-width:100%;max-height:170px}
+.risk-trend-panel .risk-trend tbody tr{cursor:pointer}
+.risk-trend-panel .risk-trend input[type=checkbox]{width:15px;height:15px;margin:0;cursor:pointer;accent-color:var(--lo-color-primary)}
 .risk-trend-panel .risk-trend{min-width:0!important;width:100%;table-layout:auto!important}
 .risk-trend-panel .risk-trend th,.risk-trend-panel .risk-trend td{padding-left:8px!important;padding-right:8px!important;white-space:nowrap}
