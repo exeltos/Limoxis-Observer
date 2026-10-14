@@ -23,7 +23,7 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
  const {profile,user}=useAuth()
  const {notify,confirm}=useFeedback()
  const {isRolePreview,tenant}=useTenant()
- // Templates are the platform owner's alone: the button shows only to them, never in a role preview.
+ // Templates are the platform owner's alone: the button shows only to them, never in a role preview or a Demo.
  const isOwner=Boolean(profile?.isPlatformOwner)&&!isRolePreview
  const [templates,setTemplates]=useState(null)
  const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
@@ -82,7 +82,7 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
    <span/>
    {canManage&&<div className="row-actions">
     <input ref={fileRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={pickFile}/>
-    {isOwner&&<button type="button" className="risk-owner-template" title={L(en,'Πρότυπα πλατφόρμας (μόνο για τον ιδιοκτήτη)','Platform templates (owner only)')} aria-label={L(en,'Πρότυπα πλατφόρμας','Platform templates')} onClick={openTemplates}><LibraryBig size={15}/></button>}
+    {isOwner&&canLoadHere&&<button type="button" className="risk-owner-template" title={L(en,'Πρότυπα πλατφόρμας (μόνο για τον ιδιοκτήτη)','Platform templates (owner only)')} aria-label={L(en,'Πρότυπα πλατφόρμας','Platform templates')} onClick={openTemplates}><LibraryBig size={15}/></button>}
     <ActionButton label={L(en,'Εισαγωγή από Excel','Import from Excel')} onClick={()=>fileRef.current?.click()}><FileSpreadsheet size={16}/><span>{L(en,'Εισαγωγή από Excel','Import from Excel')}</span></ActionButton>
     <ActionButton label={L(en,'Νέα εκτίμηση','New assessment')} tone="primary" onClick={()=>setCreating(true)}><Plus size={16}/><span>{L(en,'Νέα εκτίμηση','New assessment')}</span></ActionButton>
    </div>}
@@ -97,10 +97,10 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
   {creating&&<AssessmentDetailsDialog en={en} assessments={items} onClose={()=>setCreating(false)} onSave={create}/>}
   {templates&&<ObserverDialog width="standard" title={L(en,'Πρότυπα πλατφόρμας','Platform templates')} onClose={()=>setTemplates(null)} footer={<DialogActions onCancel={()=>setTemplates(null)} showCancel cancelLabel={L(en,'Κλείσιμο','Close')}/>}>
    <p className="risk-hint">{L(en,'Ορατά μόνο σε εσάς. Η φόρτωση δημιουργεί τις εκτιμήσεις του προτύπου στον τρέχοντα οργανισμό· όσο είναι φορτωμένο σε Demo, τα δεδομένα Demo του κινδύνου κρύβονται. Η αφαίρεση τα επαναφέρει.','Visible to you only. Loading creates the template’s assessments in the current organization; while it is loaded in a Demo, the Demo risk data is hidden. Removing it brings that data back.')}</p>
-   {!canLoadHere&&<p className="risk-locked">{L(en,'Σε Demo αξιολογητή δεν φορτώνεται πρότυπο. Φορτώνεται στο δικό σας Demo ή σε πραγματικό οργανισμό.','A template is not loaded in an evaluator’s Demo. Load it in your own Demo or in a real organization.')}</p>}
+
    {templates.length?<ul className="risk-template-list">{templates.map(t=>{const loaded=loadedFrom(t);return <li key={t.id}><div><strong>{t.title}</strong><small>{t.plan.map(p=>`${p.header?.periodLabel} (${(p.risks||[]).length})`).join(' → ')}{t.sourceFile?` · ${t.sourceFile}`:''}</small>{loaded.length>0&&<small className="risk-template-loaded">{L(en,`Φορτωμένο εδώ: ${loaded.length} εκτιμήσεις`,`Loaded here: ${loaded.length} assessments`)}</small>}</div>
     {loaded.length?<ActionButton label={L(en,'Αφαίρεση από αυτόν τον οργανισμό','Remove from this organization')} tone="danger" onClick={()=>removeTemplate(t)}><span>{L(en,'Αφαίρεση από αυτόν τον οργανισμό','Remove from this organization')}</span></ActionButton>
-     :<ActionButton label={L(en,'Φόρτωση','Load')} tone="primary" disabled={!canLoadHere} onClick={()=>loadTemplate(t)}><span>{L(en,'Φόρτωση','Load')}</span></ActionButton>}</li>})}</ul>:<p className="risk-hint">{L(en,'Δεν υπάρχουν πρότυπα.','No templates.')}</p>}
+     :<ActionButton label={L(en,'Φόρτωση','Load')} tone="primary" onClick={()=>loadTemplate(t)}><span>{L(en,'Φόρτωση','Load')}</span></ActionButton>}</li>})}</ul>:<p className="risk-hint">{L(en,'Δεν υπάρχουν πρότυπα.','No templates.')}</p>}
   </ObserverDialog>}
   {preview&&<ImportPreviewDialog preview={preview} en={en} onClose={()=>setPreview(null)} onConfirm={confirmImport}/>}
  </>

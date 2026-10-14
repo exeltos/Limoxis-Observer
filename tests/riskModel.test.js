@@ -112,7 +112,7 @@ describe('platform templates', () => {
     expect(templateCodeOf(loaded)).toBe('QUAL-050-02')
     expect(templateCodeOf(seeded[0])).toBe('')
     expect(templateLoadAllowed({ is_demo: false, code: 'IASO' })).toBe(true)
-    expect(templateLoadAllowed({ is_demo: true, code: 'DEMO-OWNER' })).toBe(true)
+    expect(templateLoadAllowed({ is_demo: true, code: 'DEMO-OWNER' })).toBe(false)
     expect(templateLoadAllowed({ is_demo: true, code: 'DEMO-LEVENTIS' })).toBe(false)
   })
 })
