@@ -311,6 +311,8 @@ export function LaboratorySampleRecordFunctionalView() {
     </>
   ) : null
 
+  // Result entry and correction live on the result card (and the next-step
+  // button); the sample card keeps only what concerns the sample itself.
   const sampleMenu = [
     canManageActive &&
       !received && {
@@ -319,26 +321,11 @@ export function LaboratorySampleRecordFunctionalView() {
         icon: PlayCircle,
         onClick: startProcessing,
       },
-    canManageActive &&
-      received && {
-        id: 'result',
-        label: result ? tx('editResult') : tx('enterResult'),
-        icon: Pencil,
-        onClick: openResult,
-      },
-    finalized &&
-      canReopen &&
-      !rejected && {
-        id: 'correct',
-        label: tx('correction'),
-        icon: RotateCcw,
-        onClick: () => setDialog('correction'),
-      },
     {
       id: 'print',
       label: tx('print'),
       icon: Printer,
-      separatorBefore: canManageActive || (finalized && canReopen),
+      separatorBefore: canManageActive && !received,
       onClick: () => window.print(),
     },
     {

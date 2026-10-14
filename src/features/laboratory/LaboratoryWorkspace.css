@@ -12,3 +12,6 @@
 .laboratory-registry .lab-table td:nth-child(5){min-width:125px}
 .laboratory-registry .lab-table td:nth-child(6){min-width:115px}
 .lab-critical-note{color:var(--lo-color-danger,#b42318)!important;font-weight:750}
+
+/* New sample: collection date and time side by side on their own row. */
+.lab-create-flow .lab-collected-row{display:grid;grid-template-columns:1fr 1fr;gap:inherit;column-gap:16px}

@@ -75,7 +75,8 @@ describe('laboratory record layout', () => {
 
   it('keeps sample actions, print and export in the sample card menu, not in the record header', async () => {
     await openSample()
-    expect(openMenu(within(body()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))).toEqual(['Επεξεργασία αποτελέσματος', 'Εκτύπωση', 'Εξαγωγή JSON', 'Απόρριψη δείγματος'])
+    // Result entry lives on the result card and the next-step button, not here.
+    expect(openMenu(within(body()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))).toEqual(['Εκτύπωση', 'Εξαγωγή JSON', 'Απόρριψη δείγματος'])
     closeMenu()
     const header = document.querySelector('.entity-record-header')
     expect(within(header).queryByRole('button', { name: /Εκτύπωση|Εξαγωγή/ })).not.toBeInTheDocument()
@@ -134,8 +135,7 @@ describe('laboratory record dialogs', () => {
 
   it('requires an organism before a positive result can be saved', async () => {
     await openSample('LAB-260829-013')
-    fireEvent.click(within(body()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))
-    fireEvent.click(screen.getAllByRole('menuitem').find(item => /αποτελέσματος/.test(item.textContent)))
+    fireEvent.click(within(body()).getByRole('button', { name: /Επεξεργασία αποτελέσματος|Καταχώριση αποτελέσματος/ }))
     const dialog = await screen.findByRole('dialog')
     const result = within(dialog).getAllByRole('combobox').find(select => within(select).queryByRole('option', { name: 'Θετικό' }))
     fireEvent.change(result, { target: { value: 'positive' } })
