@@ -1,8 +1,6 @@
 /* Risk assessment (Quality Center). Level colours follow the NHS bands:
    low 1–3 green, moderate 4–6 yellow, high 8–12 orange, very high 15–25 red. */
-.risk-assessments,.risk-register,.risk-analysis,.risk-comparison,.risk-opportunities,.risk-methodology,.risk-details{display:flex;flex-direction:column;gap:12px;min-height:0}
-.risk-assessment-body{display:flex;flex-direction:column;gap:12px;padding:2px 0 12px;min-height:0}
-.risk-assessments{padding:12px 14px;overflow:auto}
+.risk-analysis,.risk-comparison,.risk-methodology,.risk-details{display:flex;flex-direction:column;gap:12px;min-height:0}
 .risk-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .risk-toolbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
 .risk-toolbar>.filter-bar,.risk-toolbar>div:first-child{flex:1 1 420px}
@@ -51,7 +49,9 @@
 
 /* Panels and tables */
 .risk-panel{border:1px solid var(--lo-color-border);border-radius:12px;background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.risk-panel>header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.risk-panel>header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-height:28px}
+/* Header buttons do not push the title down: every panel title sits on the same line. */
+.risk-panel>header .risk-panel-actions{margin:-4px 0}
 .risk-panel h3{margin:0;font-size:13px;color:var(--lo-color-text)}
 .risk-panel>header small{font-size:10.5px;color:var(--lo-color-muted)}
 .risk-two-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -83,7 +83,6 @@
 .risk-distribution td span small{color:var(--lo-color-muted)}
 .risk-bar{height:8px;border-radius:999px;background:#eef2f5;overflow:hidden;margin-bottom:3px}
 .risk-bar i{display:block;height:100%;border-radius:999px}
-.risk-bar-inline{display:inline-block;width:90px;margin:0 8px 0 0;vertical-align:middle}
 .risk-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
 .risk-list button{all:unset;box-sizing:border-box;display:flex;align-items:flex-start;gap:8px;width:100%;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:11.5px}
 .risk-list button:hover{background:#f4f7fa}
@@ -94,8 +93,6 @@
 /* Comparison */
 .risk-compare-head{display:flex;align-items:center;gap:12px}
 .risk-compare-head>.module-summary-strip{flex:1 1 auto;min-width:0}
-.risk-compare-pick{display:flex;align-items:center;gap:7px;flex:0 0 auto;font-size:12.5px;color:#34475c;white-space:nowrap}
-.risk-compare-pick select{height:34px!important;width:auto!important;min-width:0;border:1px solid #d7dee7;border-radius:8px;padding:0 26px 0 9px;font-size:12.5px;font-weight:700;color:var(--lo-color-text);background-color:#fff}
 .risk-status-chips{display:flex;flex-wrap:wrap;gap:6px}
 .risk-status-chips button{border:1px solid var(--lo-color-border);background:#fff;border-radius:999px;padding:3px 10px;font-size:11px;cursor:pointer}
 .risk-status-chips button.active{background:var(--lo-color-primary-soft);border-color:#b9d3e6;color:#194a74}
@@ -144,6 +141,8 @@
 .risk-editor-grid-monitoring{grid-template-columns:repeat(4,minmax(0,1fr));align-items:end}
 .risk-field-span2{grid-column:span 2;min-width:0}
 .risk-field-span2>.risk-field{width:100%}
+.risk-assessment-form{align-items:end}
+.risk-assessment-form>.manual-date-field{min-width:0}
 .risk-field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .risk-field-wide{grid-column:1/-1}
 .risk-field>span,.risk-axis-select>span{font-size:11px;font-weight:650;color:#34475c}
@@ -255,12 +254,12 @@
 .risk-kpi-delta.down{background:#e7f5ec;color:#1d6b3a}
 .risk-kpi-delta.same{background:#eef2f5;color:#566775}
 /* Register: KPI cards as filters, section headings, the score path, wide search. */
-.risk-register .module-summary-strip.risk-register-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+.risk-kpi-row .module-summary-strip.risk-register-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}
 .risk-register-kpis>*{min-height:64px}
-@media(max-width:1100px){.risk-register .module-summary-strip.risk-register-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
-.risk-register .risk-toolbar>.filter-system{flex:1 1 420px!important;min-width:0;max-width:none!important}
-.risk-register .filter-primary-row{width:100%}
-.risk-register .filter-system .filter-search{flex:1 1 auto!important;width:auto!important;max-width:620px!important}
+@media(max-width:1100px){.risk-kpi-row .module-summary-strip.risk-register-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+:is(.risk-register,.risk-opportunities) .risk-toolbar>.filter-system{flex:1 1 420px!important;min-width:0;max-width:none!important}
+:is(.risk-register,.risk-opportunities) .filter-primary-row{width:100%}
+:is(.risk-register,.risk-opportunities) .filter-system .filter-search{flex:1 1 auto!important;width:auto!important;max-width:620px!important}
 .risk-table tr.risk-section-row td{background:#f6f9fb!important;border-top:1px solid #e3eaf0;padding-top:9px!important;padding-bottom:7px!important;cursor:default}
 .risk-section-row strong{display:inline!important;font-size:12.5px;color:var(--lo-color-text)}
 .risk-section-row span{margin-left:8px;font-size:11.5px;font-weight:700;color:var(--lo-color-muted)}
@@ -314,7 +313,7 @@
 /* Analysis: KPI strip with the menu, decisions first, counts under each map, one breakdown table. */
 .risk-analysis-head{display:flex;align-items:flex-start;gap:10px}
 .risk-analysis-head>.module-summary-strip{flex:1 1 auto}
-.risk-analysis .module-summary-strip.risk-analysis-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+.risk-kpi-row .module-summary-strip.risk-analysis-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}
 .risk-analysis-kpis>*{min-height:64px}
 .risk-analysis-side{display:flex;flex-direction:column;gap:12px;min-width:0}
 .risk-level-counts{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0 22px;padding:0;list-style:none;font-size:11.5px;color:var(--lo-color-muted)}
@@ -323,10 +322,10 @@
 .risk-segmented{display:inline-flex;padding:2px;border:1px solid var(--lo-color-border);border-radius:9px;background:#f6f8fa}
 .risk-segmented button{padding:4px 12px;border:0;border-radius:7px;background:transparent;font:inherit;font-size:12px;font-weight:650;color:var(--lo-color-muted);cursor:pointer}
 .risk-segmented button.active{background:#fff;color:var(--lo-color-text);box-shadow:0 1px 2px rgba(15,40,60,.12)}
-@media(max-width:1100px){.risk-analysis .module-summary-strip.risk-analysis-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:1100px){.risk-kpi-row .module-summary-strip.risk-analysis-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 /* Tables inside the risk pages are not scroll traps: the wheel over a table
    scrolls the page once the table itself has nothing left to scroll. */
-.risk-assessment-body .scroll-table,.risk-assessments .scroll-table,.risk-editor .scroll-table{overscroll-behavior:auto!important;overscroll-behavior-inline:auto!important}
+.risk-tab-scroll .scroll-table,.risk-editor .scroll-table{overscroll-behavior:auto!important;overscroll-behavior-inline:auto!important}
 /* Rows that open a record react to the pointer; the one last opened stays marked (registry-row-returned). */
 .risk-row-clickable,.risk-compare-table tr.is-openable{cursor:pointer}
 .data-table tbody tr.risk-row-clickable:hover td,.risk-compare-table tbody tr.is-openable:hover td{background:#f1f6fa!important}
@@ -388,10 +387,12 @@
 .risk-registry-frame>.registry-pagination{flex:0 0 44px;min-height:44px!important;margin:0!important;padding:0 12px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;border:1px solid #e1e8ee!important;border-top:1px solid var(--line)!important;border-radius:0 0 11px 11px!important;background:#fff!important;color:#66788d!important;font-size:11.5px!important}
 .risk-trend-panel .risk-trend td{padding-top:7px!important;padding-bottom:7px!important}
 /* Details */
-.risk-details-columns{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:12px;align-items:start}
+.risk-details-columns{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:12px;align-items:stretch}
+.risk-details-side>.risk-panel:last-child{flex:1 1 auto}
 .risk-details-side{display:flex;flex-direction:column;gap:12px}
 .risk-identity{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;margin:0}
-.risk-identity .is-wide{grid-column:1/-1}
+.risk-identity .risk-next-review{display:inline-flex;padding:3px 10px;font-size:12.5px;border-radius:999px}
+.risk-identity .risk-next-review svg{width:14px;height:14px}
 .risk-identity dt{font-size:10.5px;font-weight:650;color:var(--lo-color-muted)}
 .risk-identity dd{margin:3px 0 0;font-size:13px;font-weight:600;color:var(--lo-color-text);white-space:pre-line}
 .risk-panel-actions{display:inline-flex;align-items:center;gap:8px}
@@ -425,3 +426,33 @@
 .risk-timeline-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#eef3f7;color:#34546f}
 @media(max-width:1000px){.risk-details-columns{grid-template-columns:1fr}.risk-identity{grid-template-columns:1fr}}
 .risk-template-list small.risk-template-loaded{display:block;margin-top:3px;color:#1d6438;font-weight:650}
+/* The assessment page laid out like the Quality Center: the tab's KPIs, then
+   one card with the tabs, the toolbar, a table that scrolls inside it and the
+   pager at its foot (or the tab's own scrolling pane). */
+.risk-assessment-page.page-fill{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.risk-assessment-page.page-fill>.page-header{display:none}
+.risk-assessment-shell.workspace-fill{display:flex!important;flex-direction:column!important;flex:1 1 auto;height:auto!important;min-height:0!important;gap:10px;overflow:hidden!important}
+.risk-assessment-shell>.entity-record-body{flex:1 1 auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;gap:10px!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
+.risk-kpi-row{flex:0 0 auto}
+.risk-workspace{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--lo-color-border);border-radius:14px;background:var(--lo-color-surface)}
+.risk-workspace>.risk-tabs{flex:0 0 auto;margin:0!important;border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;box-shadow:none!important;overflow-x:auto;overflow-y:hidden}
+.risk-workspace.is-registry>.risk-notices{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px 0}
+.risk-workspace.is-registry>.risk-toolbar,.risk-assessments-toolbar{flex:0 0 auto;padding:10px 14px;border-bottom:1px solid var(--lo-color-border)}
+.risk-workspace.is-registry>.risk-cell-filter{flex:0 0 auto;margin:8px 14px 0}
+.risk-workspace.is-registry>.scroll-table{flex:1 1 0!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:auto!important;border:0!important;border-radius:0!important;scrollbar-gutter:stable}
+.risk-workspace.is-registry>.registry-pagination{flex:0 0 44px;min-height:44px!important;margin:0!important;padding:0 56px 0 14px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;border:0!important;border-top:1px solid var(--lo-color-border)!important;border-radius:0!important;background:var(--lo-color-surface)!important;color:#66788d!important;font-size:11.5px!important}
+.risk-tab-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px;scrollbar-gutter:stable}
+.risk-tab-scroll .risk-registry-frame>.scroll-table{max-height:560px;overflow:auto}
+.risk-assessment-shell>.entity-record-header{flex:0 0 auto;align-self:stretch;width:auto!important;max-width:none!important}
+.risk-workspace.surface{padding:0!important;gap:0!important}
+.risk-workspace>.risk-tabs{padding:0 10px!important}
+/* The course (chart, table with the two ticked periods) beside the two maps. */
+.risk-compare-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:start}
+.risk-compare-row>.risk-panel{margin:0;min-width:0}
+@media(max-width:1200px){.risk-compare-row{grid-template-columns:1fr}}
+.risk-trend-panel .risk-trend-chart{margin:0 0 8px}
+.risk-trend-panel .risk-trend-chart svg{max-width:100%;max-height:170px}
+.risk-trend-panel .risk-trend tbody tr{cursor:pointer}
+.risk-trend-panel .risk-trend input[type=checkbox]{width:15px;height:15px;margin:0;cursor:pointer;accent-color:var(--lo-color-primary)}
+.risk-trend-panel .risk-trend{min-width:0!important;width:100%;table-layout:auto!important}
+.risk-trend-panel .risk-trend th,.risk-trend-panel .risk-trend td{padding-left:8px!important;padding-right:8px!important;white-space:nowrap}

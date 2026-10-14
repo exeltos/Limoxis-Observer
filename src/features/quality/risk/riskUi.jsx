@@ -24,6 +24,10 @@ export function usePaged(list,{en=false,resetOn='',startIndex=-1}={}){
  const pager=<RegistryPagination language={en?'en':'el'} page={safePage} totalPages={totalPages} totalItems={list.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
  return {items,pager}
 }
+// A tab outside the assessment page (tests, a standalone use) renders its KPIs
+// and content one after the other.
+export const defaultFrame=(kpis,content,{name=''}={})=><>{kpis}{name?<div className={name}>{content}</div>:content}</>
+// The class that marks the row last opened.
 export const returnedClass=(returned,id)=>returned&&String(id)===returned?' registry-row-returned':''
 
 // Demo records carry English wording in `<field>En`; user records have one language.

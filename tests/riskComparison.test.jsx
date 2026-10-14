@@ -13,7 +13,7 @@ const period = (id, year, l, c, extra = {}) => ({ id, code: id, periodLabel: Str
 
 afterEach(cleanup)
 const RiskComparison = props => <LanguageProvider><Comparison {...props}/></LanguageProvider>
-const choose = (label, value) => fireEvent.change(screen.getByLabelText(label), { target: { value } })
+const tick = label => fireEvent.click(screen.getByLabelText(`Επιλογή ${label}`))
 
 describe('RiskComparison', () => {
   it('shows the axis that changed and opens the risk', () => {
@@ -41,12 +41,16 @@ describe('RiskComparison', () => {
     render(<RiskComparison assessment={current} assessments={[current, period('b', 2025, 3, 3), period('a', 2024, 4, 4)]} en={false} locale="el-GR"/>)
     const headers = () => [...document.querySelectorAll('.risk-compare-table thead th')].slice(2, 4).map(th => th.textContent)
     expect(headers()).toEqual(['2025', '2026'])
-    choose('Σύγκριση με', 'a')
+    expect(screen.getByLabelText('Επιλογή 2024')).not.toBeChecked()
+    // Ticking 2024 drops the pick ticked first (2025): 2026 against 2024.
+    tick('2024')
     expect(headers()).toEqual(['2024', '2026'])
     expect(document.querySelector('.risk-compare-table .risk-delta').textContent).toBe('-10')
-    // Picking the other side's period swaps the two.
-    choose('Περίοδος', 'a')
-    expect(headers()).toEqual(['2026', '2024'])
+    expect(screen.getByLabelText('Επιλογή 2025')).not.toBeChecked()
+    // The newer of the two is always compared with the older.
+    tick('2025')
+    expect(headers()).toEqual(['2024', '2025'])
+    expect(screen.getByLabelText('Επιλογή 2026')).not.toBeChecked()
   })
 })
 

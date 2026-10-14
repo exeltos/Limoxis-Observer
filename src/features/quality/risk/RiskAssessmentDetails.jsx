@@ -1,6 +1,6 @@
 import { Archive,ArrowRight,CheckCircle2,Clock3,FilePlus2,FileUp,Pencil,RotateCcw,Send } from 'lucide-react'
 import { ActionButton } from '../../../design-system/ActionButton'
-import { L,PERIOD_KINDS,fmtDate,txt } from './riskUi'
+import { L,PERIOD_KINDS,defaultFrame,fmtDate,txt } from './riskUi'
 
 const FLOW=[
  ['draft','Πρόχειρο','Draft',['riskAssessmentCreated','riskAssessmentImported','riskAssessmentReopened']],
@@ -14,30 +14,29 @@ const daysUntil=date=>date?Math.round((new Date(`${date}T00:00:00`)-new Date(new
 
 // The «Στοιχεία» tab: who and what the assessment is, where it stands in its
 // approval, when it is due again, the periods before and after it, and its history.
-export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actions=null,canEdit=false,onEdit,nextStep=null,onOpenAssessment,onCreateNext}){
+export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actions=null,nextStep=null,onOpenAssessment,onCreateNext,frame=defaultFrame}){
  const history=assessment.history||[]
  const lastOf=ids=>[...history].reverse().find(h=>ids.includes(h.action))
  const at=FLOW.findIndex(([id])=>id===assessment.status)
  const days=daysUntil(assessment.nextReviewOn)
  const previous=assessments.find(a=>a.id===assessment.sourceAssessmentId)
  const following=assessments.filter(a=>a.sourceAssessmentId===assessment.id).sort((a,b)=>String(a.assessedOn).localeCompare(String(b.assessedOn)))
+ // Three rows of two: form and period, the dates (the next one counting down), who and where.
  const fields=[
   [L(en,'Κωδικός εντύπου','Form code'),assessment.formCode],
   [L(en,'Περίοδος','Period'),[assessment.periodLabel,PERIOD_KINDS[assessment.periodKind]?.[en?1:0]].filter(Boolean).join(' · ')],
   [L(en,'Ημερομηνία αξιολόγησης','Assessment date'),fmtDate(assessment.assessedOn,locale)],
+  [L(en,'Επόμενη αξιολόγηση','Next assessment'),assessment.nextReviewOn?<span className={`risk-next-review${days<0?' is-overdue':days<=30?' is-soon':''}`}><Clock3 size={16}/><strong>{fmtDate(assessment.nextReviewOn,locale)}</strong><span>{days<0?L(en,`εκπρόθεσμη κατά ${-days} ημέρες`,`${-days} days overdue`):days===0?L(en,'σήμερα','today'):L(en,`σε ${days} ημέρες`,`in ${days} days`)}</span></span>:<span className="risk-empty-note">{L(en,'Δεν έχει οριστεί ημερομηνία.','No date set.')}</span>],
   [L(en,'Υπεύθυνος αξιολόγησης','Assessed by'),assessment.assessorLabel],
-  [L(en,'Πεδίο εφαρμογής / σημειώσεις','Scope / notes'),assessment.scopeNote,true],
+  [L(en,'Πεδίο εφαρμογής / σημειώσεις','Scope / notes'),assessment.scopeNote],
  ]
  const link=(a,label)=><button type="button" className="risk-lineage-link" onClick={()=>onOpenAssessment?.(a.code)}><small>{label}</small><strong>{txt(a,'title',en)}</strong><span>{a.periodLabel} · {fmtDate(a.assessedOn,locale)}</span><ArrowRight size={14}/></button>
- return <div className="risk-details">
+ return frame(null,<div className="risk-details">
   <div className="risk-details-columns">
-   <section className="risk-panel"><header><h3>{L(en,'Ταυτότητα εκτίμησης','Assessment identity')}</h3><span className="risk-panel-actions">{canEdit&&onEdit&&<ActionButton label={L(en,'Επεξεργασία στοιχείων','Edit details')} tone="neutral" onClick={onEdit}><Pencil size={14}/><span>{L(en,'Επεξεργασία στοιχείων','Edit details')}</span></ActionButton>}{actions}</span></header>
-    <dl className="risk-identity">{fields.map(([k,v,wide])=><div key={k} className={wide?'is-wide':undefined}><dt>{k}</dt><dd>{v||'—'}</dd></div>)}</dl>
+   <section className="risk-panel"><header><h3>{L(en,'Ταυτότητα εκτίμησης','Assessment identity')}</h3><span className="risk-panel-actions">{actions}</span></header>
+    <dl className="risk-identity">{fields.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v||'—'}</dd></div>)}</dl>
    </section>
    <div className="risk-details-side">
-    <section className="risk-panel"><header><h3>{L(en,'Επόμενη αξιολόγηση','Next assessment')}</h3></header>
-     {assessment.nextReviewOn?<p className={`risk-next-review${days<0?' is-overdue':days<=30?' is-soon':''}`}><Clock3 size={16}/><strong>{fmtDate(assessment.nextReviewOn,locale)}</strong><span>{days<0?L(en,`εκπρόθεσμη κατά ${-days} ημέρες`,`${-days} days overdue`):days===0?L(en,'σήμερα','today'):L(en,`σε ${days} ημέρες`,`in ${days} days`)}</span></p>:<p className="risk-empty-note">{L(en,'Δεν έχει οριστεί ημερομηνία.','No date set.')}</p>}
-    </section>
     <section className="risk-panel"><header><h3>{L(en,'Περίοδοι','Periods')}</h3></header>
      <div className="risk-lineage">
       {previous?link(previous,L(en,'Μεταφέρθηκε από','Carried over from')):<p className="risk-empty-note">{L(en,'Πρώτη εκτίμηση της σειράς.','First assessment of the series.')}</p>}
@@ -59,5 +58,5 @@ export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actio
    </ol>
    {!history.length&&<p className="risk-empty-note">{L(en,'Δεν έχουν καταγραφεί ακόμη ενέργειες στην εκτίμηση.','No actions recorded on the assessment yet.')}</p>}
   </section>
- </div>
+ </div>)
 }
