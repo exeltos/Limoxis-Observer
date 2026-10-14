@@ -4113,6 +4113,9 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .patient-record-shell>.entity-record-body>.clinical-assessment-registry>.scroll-table{border:0!important;border-radius:0!important}
 /* A dialog opened from a section header keeps its own eyebrow and field notes. */
 .patient-record-shell .observer-dialog .eyebrow{display:block!important}
+/* Patient details edited in place: the card's own padding, footer at the end. */
+.patient-profile-card>.patient-inline-edit{padding:14px 14px 14px!important}
+.patient-profile-card>.patient-inline-edit>.inline-edit-footer{display:flex!important;justify-content:flex-end!important;gap:8px!important;margin:14px 0 0!important;padding:12px 0 0!important;border-top:1px solid #edf1f4!important}
 .patient-entry-grid .entry-detail-note{display:block;margin-top:4px;font-size:11px!important;color:#64748b!important}
 /* Summary alerts: one compact line each, with a small link-style action. */
 .patient-record-shell .summary-overdue-banner{margin:0!important;padding:7px 10px 7px 12px!important;font-size:12px!important}

@@ -10,6 +10,8 @@ import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { createAdmission, dischargeAdmission, transferAdmission } from '../patients/patientsService'
 import { SimpleDialog } from './ClinicalRecordDialogs'
+import { PatientSummaryActions } from '../patients/PatientSummaryActions'
+import { PatientInlineEdit } from '../patients/PatientForm'
 import { clinicalTerm } from './clinicalRecordLabels'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
 import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
@@ -31,8 +33,9 @@ export function PatientAdmissionsHome({
   onAdded,
   onChanged,
   onSelect,
-  actions,
+  onDeleted,
 }) {
+  const [editingPatient, setEditingPatient] = useState(false)
   // Ages under a year read as "N days" (matching NHSN's ≤1-year pediatric
   // population) rather than the years figure that would round every
   // neonate down to "0" and hide clinically relevant age.
@@ -120,28 +123,48 @@ export function PatientAdmissionsHome({
               )}
             </p>
           </div>
-          {actions}
+          {!editingPatient && (
+            <PatientSummaryActions
+              patient={patient}
+              onEdit={() => setEditingPatient(true)}
+              onDeleted={onDeleted}
+            />
+          )}
         </div>
-        <div className="patient-profile-grid">
-          {profile.map(([label, value]) => (
-            <div key={label} className="patient-profile-item">
-              <span>{label}</span>
-              <strong>{value || '—'}</strong>
+        {editingPatient ? (
+          <PatientInlineEdit
+            patient={patient}
+            departments={departments}
+            onCancel={() => setEditingPatient(false)}
+            onSaved={async () => {
+              setEditingPatient(false)
+              await onChanged?.()
+            }}
+          />
+        ) : (
+          <>
+            <div className="patient-profile-grid">
+              {profile.map(([label, value]) => (
+                <div key={label} className="patient-profile-item">
+                  <span>{label}</span>
+                  <strong>{value || '—'}</strong>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        {infantWithoutBirthWeight && (
-          <p className="field-hint neonatal-missing-weight" role="status">
-            {translate('copy.neonatalCopy.missingBirthWeight', language === 'el' ? 'el' : 'en')}
-          </p>
-        )}
-        {patient?.notes && (
-          <div className="patient-profile-note">
-            <span>
-              {translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en')}
-            </span>
-            <p>{patient.notes}</p>
-          </div>
+            {infantWithoutBirthWeight && (
+              <p className="field-hint neonatal-missing-weight" role="status">
+                {translate('copy.neonatalCopy.missingBirthWeight', language === 'el' ? 'el' : 'en')}
+              </p>
+            )}
+            {patient?.notes && (
+              <div className="patient-profile-note">
+                <span>
+                  {translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en')}
+                </span>
+                <p>{patient.notes}</p>
+              </div>
+            )}
+          </>
         )}
       </section>
       <AdmissionsPanel
@@ -355,7 +378,10 @@ export function CanonicalSummary({
               />
             ))}
             {!scaleRows.length && (
-              <Detail label={t('clinicalRecords.clinicalAssessmentLabel')} value={t('clinicalRecords.none')} />
+              <Detail
+                label={t('clinicalRecords.clinicalAssessmentLabel')}
+                value={t('clinicalRecords.none')}
+              />
             )}
             <Detail
               label={t('clinicalRecords.samplesLabel')}

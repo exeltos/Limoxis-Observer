@@ -1,7 +1,11 @@
 import { useState } from 'react'
-import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
+import { Button } from '../../design-system/Button'
+import { SaveButton } from '../../design-system/SaveButton'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { translate } from '../../core/i18n/LanguageContext'
+import { translate, useLanguage } from '../../core/i18n/LanguageContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { updatePatient } from './patientsService'
 
 // The patient fields, their validation and the saved payload: shared by the
 // New patient page and the Edit patient dialog.
@@ -56,9 +60,27 @@ export function usePatientForm({t,language,departments,patient=null,existingPati
   return {fields,disabled,payload}
 }
 
-export function PatientFormDialog({t,language,departments,onClose,onSave,patient}){
+// Edit patient in place, inside the Patient details card (like the employee
+// record): the fields replace the details until saved or cancelled.
+export function PatientInlineEdit({patient,departments,onCancel,onSaved}){
+  const {t,language}=useLanguage()
+  const {notify}=useFeedback()
+  const {tenant,isDemo}=useTenant()
+  const [saving,setSaving]=useState(false)
   const form=usePatientForm({t,language,departments,patient})
-  return <ObserverDialog width="wide" eyebrow={language==='el'?patient?.name:(patient?.nameEn||patient?.name)} title={language==='el'?'Επεξεργασία ασθενούς':'Edit patient'} onClose={onClose} footer={<DialogActions onSave={()=>{const draft=form.payload();if(draft)onSave(draft)}} disabled={form.disabled}/>}>
+  async function save(){
+    const draft=form.payload()
+    if(!draft||saving)return
+    setSaving(true)
+    try{
+      await updatePatient(tenant?.id,patient,draft,{isDemo})
+      notify(t('saved'),'success')
+      await onSaved?.()
+    }catch(error){notify(error?.message||t('actionFailed'),'danger')}
+    finally{setSaving(false)}
+  }
+  return <div className="patient-inline-edit">
     {form.fields}
-  </ObserverDialog>
+    <div className="inline-edit-footer"><Button variant="secondary" onClick={onCancel}>{t('cancel')}</Button><SaveButton loading={saving} disabled={form.disabled||saving} onClick={save}>{t('save')}</SaveButton></div>
+  </div>
 }

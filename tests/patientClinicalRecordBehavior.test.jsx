@@ -150,6 +150,19 @@ describe('admissions', () => {
     expect(screen.getByRole('menuitem', { name: /Εξιτήριο/ })).toBeInTheDocument()
   })
 
+  it('edits the patient in place in the details card, like the employee record', async () => {
+    await openPatient()
+    fireEvent.click(screen.getByRole('button', { name: 'Ενέργειες ασθενούς' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Επεξεργασία ασθενούς/ }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    const card = document.querySelector('.patient-profile-card')
+    expect(within(card).getByDisplayValue('Ιωαννίδη')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ενέργειες ασθενούς' })).not.toBeInTheDocument()
+    fireEvent.click(within(card).getByRole('button', { name: 'Ακύρωση' }))
+    expect(within(card).queryByDisplayValue('Ιωαννίδη')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ενέργειες ασθενούς' })).toBeInTheDocument()
+  })
+
   it('closes the new-admission dialog with its × alone and marks the required date', async () => {
     await openPatient()
     fireEvent.click(screen.getByRole('button', { name: /Νέα νοσηλεία/ }))
