@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { CONSEQUENCE,JCI_CHAPTERS,LEVELS,LIKELIHOOD,levelForScore,scored } from './riskModel'
-import { L } from './riskUi'
+import { L,defaultFrame } from './riskUi'
 
 const FLOW=[
  ['inherent','Εγγενής','Inherent','Ο κίνδυνος όπως είναι, αν δεν υπήρχε κανένα μέτρο.','The risk as it is, with no control at all.'],
@@ -13,13 +13,13 @@ const FLOW=[
 // The method behind the scores (NHS National Patient Safety Agency, 2008),
 // tied to this assessment: how many of its risks sit at each level and in each
 // JCI chapter, and whether the year's proactive analysis has been chosen.
-export function RiskMethodology({en,risks=[],actions=null,onJci,onPickFmea,returned=''}){
+export function RiskMethodology({en,risks=[],actions=null,onJci,onPickFmea,returned='',frame=defaultFrame}){
  const residual=risks.map(r=>scored(r).residual.level)
  const perLevel=Object.fromEntries(LEVELS.map(x=>[x.id,residual.filter(l=>l===x.id).length]))
  const perJci=Object.fromEntries(JCI_CHAPTERS.map(x=>[x.id,risks.filter(r=>r.jci===x.id).length]))
  const fmea=risks.filter(r=>r.prioritized).length
  const highCount=perLevel.high+perLevel.very_high
- return <div className="risk-methodology">
+ return frame(null,<div className="risk-methodology">
   <section className="risk-panel"><header><h3>{L(en,'Μήτρα κινδύνου 5×5 (βαθμός = L × C)','5×5 risk matrix (score = L × C)')}</h3><small>A risk matrix for risk managers, NHS National Patient Safety Agency, 2008</small>{actions&&<span className="risk-panel-actions">{actions}</span>}</header>
    <div className="risk-method-matrix">
     <figure className="risk-matrix-figure">
@@ -52,5 +52,5 @@ export function RiskMethodology({en,risks=[],actions=null,onJci,onPickFmea,retur
     {onPickFmea&&highCount>0&&<button type="button" className={returned==='fmea'?'is-returned':undefined} onClick={onPickFmea}>{L(en,`Δείτε τους ${highCount} υψηλούς κινδύνους`,`See the ${highCount} high risks`)} →</button>}
    </div>
   </section>
- </div>
+ </div>)
 }

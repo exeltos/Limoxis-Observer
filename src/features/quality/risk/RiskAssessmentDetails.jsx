@@ -1,6 +1,6 @@
 import { Archive,ArrowRight,CheckCircle2,Clock3,FilePlus2,FileUp,Pencil,RotateCcw,Send } from 'lucide-react'
 import { ActionButton } from '../../../design-system/ActionButton'
-import { L,PERIOD_KINDS,fmtDate,txt } from './riskUi'
+import { L,PERIOD_KINDS,defaultFrame,fmtDate,txt } from './riskUi'
 
 const FLOW=[
  ['draft','Πρόχειρο','Draft',['riskAssessmentCreated','riskAssessmentImported','riskAssessmentReopened']],
@@ -14,7 +14,7 @@ const daysUntil=date=>date?Math.round((new Date(`${date}T00:00:00`)-new Date(new
 
 // The «Στοιχεία» tab: who and what the assessment is, where it stands in its
 // approval, when it is due again, the periods before and after it, and its history.
-export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actions=null,canEdit=false,onEdit,nextStep=null,onOpenAssessment,onCreateNext}){
+export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actions=null,canEdit=false,onEdit,nextStep=null,onOpenAssessment,onCreateNext,frame=defaultFrame}){
  const history=assessment.history||[]
  const lastOf=ids=>[...history].reverse().find(h=>ids.includes(h.action))
  const at=FLOW.findIndex(([id])=>id===assessment.status)
@@ -29,7 +29,7 @@ export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actio
   [L(en,'Πεδίο εφαρμογής / σημειώσεις','Scope / notes'),assessment.scopeNote,true],
  ]
  const link=(a,label)=><button type="button" className="risk-lineage-link" onClick={()=>onOpenAssessment?.(a.code)}><small>{label}</small><strong>{txt(a,'title',en)}</strong><span>{a.periodLabel} · {fmtDate(a.assessedOn,locale)}</span><ArrowRight size={14}/></button>
- return <div className="risk-details">
+ return frame(null,<div className="risk-details">
   <div className="risk-details-columns">
    <section className="risk-panel"><header><h3>{L(en,'Ταυτότητα εκτίμησης','Assessment identity')}</h3><span className="risk-panel-actions">{canEdit&&onEdit&&<ActionButton label={L(en,'Επεξεργασία στοιχείων','Edit details')} tone="neutral" onClick={onEdit}><Pencil size={14}/><span>{L(en,'Επεξεργασία στοιχείων','Edit details')}</span></ActionButton>}{actions}</span></header>
     <dl className="risk-identity">{fields.map(([k,v,wide])=><div key={k} className={wide?'is-wide':undefined}><dt>{k}</dt><dd>{v||'—'}</dd></div>)}</dl>
@@ -59,5 +59,5 @@ export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actio
    </ol>
    {!history.length&&<p className="risk-empty-note">{L(en,'Δεν έχουν καταγραφεί ακόμη ενέργειες στην εκτίμηση.','No actions recorded on the assessment yet.')}</p>}
   </section>
- </div>
+ </div>)
 }

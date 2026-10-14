@@ -2,7 +2,7 @@ import { useMemo,useState } from 'react'
 import { AlertOctagon,AlertTriangle,ArrowDownRight,ArrowRight,ArrowUpRight,ChevronRight,ClipboardList,Gauge } from 'lucide-react'
 import { MetricCard } from '../../../design-system/MetricCard'
 import { compareAssessments,levelForScore,periodKindOf,periodName,periodOf,riskTrend,scored } from './riskModel'
-import { L,LevelChip,LevelLegend,RiskHeatMap,fmtDate,returnedClass,txt,usePaged } from './riskUi'
+import { L,LevelChip,LevelLegend,RiskHeatMap,defaultFrame,fmtDate,returnedClass,txt,usePaged } from './riskUi'
 import { LevelCounts,num } from './RiskAnalysis'
 
 const STATUS={improved:['Βελτιώθηκε','Improved','active'],worsened:['Χειροτέρεψε','Worsened','danger'],unchanged:['Αμετάβλητος','Unchanged',''],new:['Νέος','New','warning'],removed:['Αφαιρέθηκε','Removed','']}
@@ -55,7 +55,7 @@ const KIND_GROUPS=[['annual','Ετήσιες','Annual'],['semester','Εξαμη�
 
 // Any two assessments side by side, chosen freely (2026 with 2024, a half-year
 // with another), and the course over every period of the same kind.
-export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=null,returned=''}){
+export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=null,returned='',frame=defaultFrame}){
  const all=useMemo(()=>[...(assessments.some(a=>a.id===assessment.id)?assessments:[assessment,...assessments])].sort(byDateDesc),[assessments,assessment])
  const fallback=all.find(a=>a.id===assessment.sourceAssessmentId)||all.find(a=>a.id!==assessment.id&&String(a.assessedOn)<String(assessment.assessedOn))||all.find(a=>a.id!==assessment.id)
  const [currentId,setCurrentId]=useState(assessment.id)
@@ -71,10 +71,10 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   return grouped?KIND_GROUPS.map(([id,el,enLabel])=>{const items=list.filter(a=>periodKindOf(a)===id);return items.length?<optgroup key={id} label={en?enLabel:el}>{items.map(item)}</optgroup>:null}):list.map(item)}
  const rows=result?result.rows.filter(r=>show==='all'||r.status===show):[]
  const {items:pageRows,pager}=usePaged(rows,{en,resetOn:`${current.id}|${other?.id}|${show}`,startIndex:current.id===assessment.id?rows.findIndex(r=>r.risk.lineageKey===returned):-1})
- if(!result)return <div className="risk-comparison">
+ if(!result)return frame(null,<div className="risk-comparison">
   {actions&&<div className="risk-page-bar">{actions}</div>}
   <div className="registry-empty-state"><strong>{L(en,'Δεν υπάρχει άλλη περίοδος για σύγκριση','No other period to compare')}</strong><span>{L(en,'Η σύγκριση εμφανίζεται μόλις υπάρξει δεύτερη εκτίμηση (π.χ. άλλης χρονιάς ή εξαμήνου). Δημιουργήστε την από «Νέα εκτίμηση» με μεταφορά των κινδύνων αυτής.','The comparison appears once there is a second assessment (e.g. another year or half-year). Create it with “New assessment”, carrying these risks forward.')}</span></div>
- </div>
+ </div>)
  const picker=<div className="risk-compare-pick">
   <span>{L(en,'Σύγκριση','Compare')}</span>
   <select aria-label={L(en,'Περίοδος','Period')} value={current.id} onChange={e=>{const id=e.target.value;if(id===other.id)setOtherId(current.id);setCurrentId(id)}}>{options(null)}</select>
@@ -88,24 +88,29 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   <RiskHeatMap heat={summary.heat.residual} en={en} title={nameOf(a)} caption={fmtDate(a.assessedOn,locale)}/>
   <LevelCounts counts={summary.levels.residual} en={en}/>
  </div>
- return <div className="risk-comparison">
-  <div className="risk-compare-head">
-   {picker}
-   <div className="module-summary-strip risk-kpi-strip">
-    {kpi(ClipboardList,cur.total,L(en,'Κίνδυνοι','Risks'),cur.total-prev.total,false)}
-    {kpi(AlertOctagon,cur.levels.residual.very_high,L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)'),cur.levels.residual.very_high-prev.levels.residual.very_high)}
-    {kpi(AlertTriangle,cur.levels.residual.high,L(en,'Υψηλοί (υπολ.)','High (residual)'),cur.levels.residual.high-prev.levels.residual.high)}
-    {kpi(Gauge,num(cur.averages.residual,en),L(en,'Μέσος υπολειπόμενος','Average residual'),avgDelta)}
-   </div>
-   {actions}
+ const kpis=<div className="risk-compare-head">
+  {picker}
+  <div className="module-summary-strip risk-kpi-strip">
+   {kpi(ClipboardList,cur.total,L(en,'Κίνδυνοι','Risks'),cur.total-prev.total,false)}
+   {kpi(AlertOctagon,cur.levels.residual.very_high,L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)'),cur.levels.residual.very_high-prev.levels.residual.very_high)}
+   {kpi(AlertTriangle,cur.levels.residual.high,L(en,'Υψηλοί (υπολ.)','High (residual)'),cur.levels.residual.high-prev.levels.residual.high)}
+   {kpi(Gauge,num(cur.averages.residual,en),L(en,'Μέσος υπολειπόμενος','Average residual'),avgDelta)}
   </div>
+  {actions}
+ </div>
+ return frame(kpis,<div className="risk-comparison">
   <p className="risk-hint">{L(en,`${result.counts.improved} βελτιώθηκαν, ${result.counts.worsened} χειροτέρεψαν, ${result.counts.new} νέοι, ${result.counts.removed} αφαιρέθηκαν.`,`${result.counts.improved} improved, ${result.counts.worsened} worsened, ${result.counts.new} new, ${result.counts.removed} removed.`)}</p>
   {trend.length>1&&<section className="risk-panel risk-trend-panel"><header><h3>{L(en,'Πορεία σε όλες τις περιόδους','Course over all periods')}</h3></header>
+   <div className="risk-trend-body">
    {trend.length>=3&&<TrendChart trend={trend} en={en} currentId={current.id}/>}
-   <div className="scroll-table"><table className="data-table risk-trend"><thead><tr><th>{L(en,'Περίοδος','Period')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Μέσος υπολειπόμενος','Avg. residual')}</th><th>{L(en,'Πολύ υψηλοί','Very high')}</th><th>{L(en,'Υψηλοί','High')}</th><th>{L(en,'Μέτριοι','Moderate')}</th><th>{L(en,'Χαμηλοί','Low')}</th></tr></thead><tbody>
-    {trend.map(p=><tr key={p.id} className={p.id===current.id?'is-current':''}><td><strong>{p.label}</strong><small>{fmtDate(p.assessedOn,locale)}</small></td><td>{p.total}</td><td><div className="risk-bar risk-bar-inline"><i className={`risk-cell-${levelForScore(Math.round(p.residualAverage||0))||'low'}`} style={{width:`${Math.min(100,(p.residualAverage||0)/25*100)}%`}}/></div>{num(p.residualAverage,en)}</td><td>{p.levels.very_high}</td><td>{p.levels.high}</td><td>{p.levels.moderate}</td><td>{p.levels.low}</td></tr>)}
+   <div className="scroll-table"><table className="data-table risk-trend"><thead><tr><th>{L(en,'Περίοδος','Period')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Μέσος υπολ.','Avg. residual')}</th><th>{L(en,'Πολύ υψ.','Very high')}</th><th>{L(en,'Υψηλοί','High')}</th><th>{L(en,'Μέτριοι','Moderate')}</th><th>{L(en,'Χαμηλοί','Low')}</th></tr></thead><tbody>
+    {trend.map(p=><tr key={p.id} className={p.id===current.id?'is-current':''}><td><strong>{p.label}</strong><small>{fmtDate(p.assessedOn,locale)}</small></td><td>{p.total}</td><td><LevelChip score={Math.round(p.residualAverage||0)||null} level={levelForScore(Math.round(p.residualAverage||0))} en={en} compact title={num(p.residualAverage,en)}/> {num(p.residualAverage,en)}</td><td>{p.levels.very_high}</td><td>{p.levels.high}</td><td>{p.levels.moderate}</td><td>{p.levels.low}</td></tr>)}
    </tbody></table></div>
+   </div>
   </section>}
+  <section className="risk-panel"><header><h3>{L(en,'Υπολειπόμενος κίνδυνος ανά περίοδο','Residual risk by period')}</h3><LevelLegend en={en}/></header>
+   <div className="risk-heatmaps risk-heatmaps-two risk-heatmaps-compact">{map(other,prev)}{map(current,cur)}</div>
+  </section>
   <section className="risk-panel"><header><h3>{L(en,'Μεταβολή ανά κίνδυνο','Change per risk')}</h3>
    <div className="risk-status-chips">{['all','improved','worsened','unchanged','new','removed'].map(id=><button key={id} type="button" className={show===id?'active':''} onClick={()=>setShow(id)}>{id==='all'?L(en,'Όλοι','All'):label(id,en)} <b>{id==='all'?result.rows.length:result.counts[id]}</b></button>)}</div></header>
    <div className="risk-registry-frame">
@@ -124,8 +129,5 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
    {rows.length>0&&pager}
    </div>
   </section>
-  <section className="risk-panel"><header><h3>{L(en,'Υπολειπόμενος κίνδυνος ανά περίοδο','Residual risk by period')}</h3><LevelLegend en={en}/></header>
-   <div className="risk-heatmaps risk-heatmaps-two risk-heatmaps-compact">{map(other,prev)}{map(current,cur)}</div>
-  </section>
- </div>
+ </div>)
 }

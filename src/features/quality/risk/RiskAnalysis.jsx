@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AlertOctagon,AlertTriangle,ClipboardList,Gauge,ShieldAlert,TrendingDown } from 'lucide-react'
 import { MetricCard } from '../../../design-system/MetricCard'
 import { LEVELS,jciLabel,levelForScore,scored,sectionLabel } from './riskModel'
-import { L,LevelChip,LevelLegend,RiskHeatMap,returnedClass,txt } from './riskUi'
+import { L,LevelChip,LevelLegend,RiskHeatMap,defaultFrame,returnedClass,txt } from './riskUi'
 import { RiskIndicatorTable } from './RiskIndicatorsUi'
 
 const pct=(n,total)=>total?Math.round(n/total*100):0
@@ -53,7 +53,7 @@ const GROUPS=[['process','Ανά διεργασία','By process'],['jci','Αν�
 
 // Analysis of one assessment: what needs a decision first, then the maps,
 // the indicators and the breakdowns.
-export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null,actions=null,returned='',mark=''}){
+export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=null,actions=null,returned='',mark='',frame=defaultFrame}){
  const [group,setGroup]=useState('process')
  // The heat-map cell the user came back from stays marked.
  const [mk,ml,mc]=String(mark).split(':'),marked=mk&&ml&&mc&&['inherent','residual','target'].includes(mk)?{kind:mk,l:Number(ml),c:Number(mc)}:null
@@ -62,18 +62,18 @@ export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=
   <RiskHeatMap heat={summary.heat[kind]} en={en} title={title} caption={caption} onCell={c=>onCell({...c,kind})} active={marked?.kind===kind?marked:null} {...extra}/>
   <LevelCounts counts={summary.levels[kind]} en={en}/>
  </div>
- return <div className="risk-analysis">
-  <div className="risk-analysis-head">
-   <div className="module-summary-strip risk-kpi-strip risk-analysis-kpis">
-    <MetricCard icon={ClipboardList} value={summary.total} label={L(en,'Κίνδυνοι','Risks')}/>
-    <MetricCard icon={AlertOctagon} value={summary.levels.residual.very_high} label={L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)')}/>
-    <MetricCard icon={AlertTriangle} value={summary.levels.residual.high} label={L(en,'Υψηλοί (υπολ.)','High (residual)')}/>
-    <MetricCard icon={Gauge} value={num(summary.averages.residual,en)} label={L(en,'Μέσος υπολειπόμενος','Average residual')}/>
-    <MetricCard icon={TrendingDown} value={summary.reduction.percent!=null?`${summary.reduction.percent}%`:'—'} label={L(en,'Μέση μείωση από τον εγγενή','Average reduction')}/>
-    <MetricCard icon={ShieldAlert} value={summary.withoutPlan.length} label={L(en,'Υψηλοί χωρίς σχέδιο δράσης','High without a plan')}/>
-   </div>
-   {actions}
+ const kpis=<div className="risk-analysis-head">
+  <div className="module-summary-strip risk-kpi-strip risk-analysis-kpis">
+   <MetricCard icon={ClipboardList} value={summary.total} label={L(en,'Κίνδυνοι','Risks')}/>
+   <MetricCard icon={AlertOctagon} value={summary.levels.residual.very_high} label={L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)')}/>
+   <MetricCard icon={AlertTriangle} value={summary.levels.residual.high} label={L(en,'Υψηλοί (υπολ.)','High (residual)')}/>
+   <MetricCard icon={Gauge} value={num(summary.averages.residual,en)} label={L(en,'Μέσος υπολειπόμενος','Average residual')}/>
+   <MetricCard icon={TrendingDown} value={summary.reduction.percent!=null?`${summary.reduction.percent}%`:'—'} label={L(en,'Μέση μείωση από τον εγγενή','Average reduction')}/>
+   <MetricCard icon={ShieldAlert} value={summary.withoutPlan.length} label={L(en,'Υψηλοί χωρίς σχέδιο δράσης','High without a plan')}/>
   </div>
+  {actions}
+ </div>
+ return frame(kpis,<div className="risk-analysis">
   <p className="risk-hint">{L(en,`${high} από ${summary.total} κινδύνους παραμένουν υψηλοί ή πολύ υψηλοί με τα υφιστάμενα μέτρα.`,`${high} of ${summary.total} risks stay high or very high with the existing controls.`)}</p>
   <div className="risk-two-columns risk-analysis-decide">
    <section className="risk-panel"><header><h3>{L(en,'Κίνδυνοι προτεραιότητας','Priority risks')}</h3><small>{L(en,'Υψηλός ή πολύ υψηλός υπολειπόμενος κίνδυνος','High or very high residual risk')}</small></header><RiskList risks={summary.priorities.slice(0,12)} en={en} onOpen={onOpen} returned={returned} empty={L(en,'Κανένας υψηλός υπολειπόμενος κίνδυνος.','No high residual risk.')}/></section>
@@ -101,5 +101,5 @@ export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=
     {group==='section'&&<GroupTable rows={summary.bySection} en={en} label={L(en,'Ενότητα','Section')} labelFor={id=>sectionLabel(id,en)||id}/>}
    </div>
   </section>
- </div>
+ </div>)
 }

@@ -33,8 +33,8 @@ import './riskAssessment.css'
 
 const EDITABLE=['draft','under_review']
 
-// The element that scrolls the page (the workspace, else the document).
-const scrollerOf=el=>{for(let node=el?.parentElement;node;node=node.parentElement){const {overflowY}=getComputedStyle(node);if(/(auto|scroll)/.test(overflowY)&&node.scrollHeight>node.clientHeight)return node}return document.scrollingElement}
+// The pane that scrolls inside the tab card: the tab's own pane, else its table.
+const scrollerOf=el=>el?.querySelector('.risk-tab-scroll')||el?.querySelector('.scroll-table')||null
 
 export function RiskAssessmentPage(){
  const {assessmentCode}=useParams()
@@ -164,25 +164,31 @@ export function RiskAssessmentPage(){
   {id:'methodology',label:L(en,'Μεθοδολογία','Method'),icon:BookOpen},
   {id:'details',label:L(en,'Στοιχεία','Details'),icon:Info},
  ]
- return <Page fill><EntityRecordShell
+ // The layout of the Quality Center: each tab's KPIs above one card that holds
+ // the tabs, the tab's toolbar and its table (or its own scrolling pane).
+ const tabNav=<nav className="entity-record-tabs surface risk-tabs" role="tablist" aria-label={L(en,'Εκτίμηση κινδύνου','Risk assessment')}>{tabs.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={tab===id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{Icon&&<Icon size={16}/>}<span>{label}</span></button>)}</nav>
+ const notices=<>
+  {!canEdit&&canManage&&<p className="risk-locked">{L(en,`Η εκτίμηση είναι «${statusLabel(assessment.status,en)}» και δεν αλλάζει. Για αλλαγές: «Επαναφορά σε πρόχειρο».`,`The assessment is “${statusLabel(assessment.status,en)}” and locked. To change it: “Back to draft”.`)}</p>}
+  {origin&&<button type="button" className="risk-origin-back" onClick={returnToOrigin}><ArrowLeft size={14}/>{L(en,`Πίσω σε «${tabs.find(t=>t.id===origin.tab)?.label||''}»`,`Back to “${tabs.find(t=>t.id===origin.tab)?.label||''}”`)}</button>}
+ </>
+ const frame=(kpis,content,{registry=false,name=''}={})=><>
+  {kpis&&<div className="risk-kpi-row">{kpis}</div>}
+  <div className={`surface risk-workspace${registry?' is-registry':''}${name?` ${name}`:''}`} ref={bodyRef}>{tabNav}{registry?<>{(origin||(!canEdit&&canManage))&&<div className="risk-notices">{notices}</div>}{content}</>:<div className="risk-tab-scroll">{notices}{content}</div>}</div>
+ </>
+ return <Page fill className="risk-assessment-page"><EntityRecordShell
   className="quality-record-shell risk-assessment-shell workspace-fill"
   avatar={<ShieldAlert size={19}/>}
   eyebrow={assessment.code}
   title={txt(assessment,'title',en)}
   subtitle={[assessment.formCode,assessment.periodLabel,fmtDate(assessment.assessedOn,locale)].filter(Boolean).join(' · ')}
   status={<span className={`status-badge ${statusTone(assessment.status)}`}>{statusLabel(assessment.status,en)}</span>}
-  tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack} backLabel={origin?L(en,`Πίσω σε «${tabs.find(t=>t.id===origin.tab)?.label||''}»`,`Back to “${tabs.find(t=>t.id===origin.tab)?.label||''}”`):L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
-  <div className="risk-assessment-body" ref={bodyRef}>
-   {/* The record shell keeps only edit/delete from headerActions, so the "…" menu sits here: in the register's toolbar, or on its own line in the other tabs. */}
-   {!canEdit&&canManage&&<p className="risk-locked">{L(en,`Η εκτίμηση είναι «${statusLabel(assessment.status,en)}» και δεν αλλάζει. Για αλλαγές: «Επαναφορά σε πρόχειρο».`,`The assessment is “${statusLabel(assessment.status,en)}” and locked. To change it: “Back to draft”.`)}</p>}
-   {origin&&<button type="button" className="risk-origin-back" onClick={returnToOrigin}><ArrowLeft size={14}/>{L(en,`Πίσω σε «${tabs.find(t=>t.id===origin.tab)?.label||''}»`,`Back to “${tabs.find(t=>t.id===origin.tab)?.label||''}”`)}</button>}
-   {tab==='register'&&<RiskRegister key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues} returned={riskRow.returned}/>}
-   {tab==='analysis'&&<RiskAnalysis mark={view.riskMark||''} returned={riskRow.returned} actions={menu} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>jump('register',{cell:c},`${c.kind}:${c.l}:${c.c}`)}/>}
-   {tab==='comparison'&&<RiskComparison returned={riskRow.returned} actions={menu} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk,from)=>{if(from&&from.id!==assessment.id){rememberRow(`limoxis.quality.risk.returned.${from.code}`,risk.lineageKey);navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}})}else openRisk(risk)}}/>}
-   {tab==='opportunities'&&<RiskOpportunities returned={opportunityRow.returned} actions={menu} items={assessment.opportunities||[]} en={en} canEdit={canEdit} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}} onCreate={()=>navigate(`/quality/risks/${assessment.code}/opportunities/new`)} onDelete={removeOpportunity}/>}
-   {tab==='methodology'&&<RiskMethodology en={en} risks={risks} actions={menu} returned={view.riskMark||''} onJci={jci=>jump('register',{jci},`jci:${jci}`)} onPickFmea={()=>jump('register',{quick:'highOrAbove'},'fmea')}/>}
-   {tab==='details'&&<RiskAssessmentDetails assessment={assessment} assessments={all} en={en} locale={locale} actions={menu} canEdit={canEdit} onEdit={()=>setDetailsOpen(true)} nextStep={nextStep} onOpenAssessment={code=>navigate(`/quality/risks/${code}`)} onCreateNext={canManage?()=>setCreatingNext(true):null}/>}
-  </div>
+  onBack={goBack} backLabel={origin?L(en,`Πίσω σε «${tabs.find(t=>t.id===origin.tab)?.label||''}»`,`Back to “${tabs.find(t=>t.id===origin.tab)?.label||''}”`):L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
+   {tab==='register'&&<RiskRegister frame={frame} key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues} returned={riskRow.returned}/>}
+   {tab==='analysis'&&<RiskAnalysis frame={frame} mark={view.riskMark||''} returned={riskRow.returned} actions={menu} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>jump('register',{cell:c},`${c.kind}:${c.l}:${c.c}`)}/>}
+   {tab==='comparison'&&<RiskComparison frame={frame} returned={riskRow.returned} actions={menu} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk,from)=>{if(from&&from.id!==assessment.id){rememberRow(`limoxis.quality.risk.returned.${from.code}`,risk.lineageKey);navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}})}else openRisk(risk)}}/>}
+   {tab==='opportunities'&&<RiskOpportunities frame={frame} returned={opportunityRow.returned} actions={menu} items={assessment.opportunities||[]} en={en} canEdit={canEdit} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}} onCreate={()=>navigate(`/quality/risks/${assessment.code}/opportunities/new`)} onDelete={removeOpportunity}/>}
+   {tab==='methodology'&&<RiskMethodology frame={frame} en={en} risks={risks} actions={menu} returned={view.riskMark||''} onJci={jci=>jump('register',{jci},`jci:${jci}`)} onPickFmea={()=>jump('register',{quick:'highOrAbove'},'fmea')}/>}
+   {tab==='details'&&<RiskAssessmentDetails frame={frame} assessment={assessment} assessments={all} en={en} locale={locale} actions={menu} canEdit={canEdit} onEdit={()=>setDetailsOpen(true)} nextStep={nextStep} onOpenAssessment={code=>navigate(`/quality/risks/${code}`)} onCreateNext={canManage?()=>setCreatingNext(true):null}/>}
   <div className="risk-print-host" aria-hidden="true"><RiskReport ref={reportRef} assessment={{...assessment,risks}} summary={summary} previous={previous} organizationName={tenant?.name||''} en={en} locale={locale}/></div>
   {linking&&<LinkIndicatorsDialog risks={risks} values={indicatorValues||new Map()} en={en} saving={saving} onClose={()=>setLinking(false)} onSave={linkIndicators}/>}
   {creatingNext&&<AssessmentDetailsDialog en={en} assessments={[{...assessment,risks}]} initial={{title:assessment.title,formCode:assessment.formCode,periodKind:assessment.periodKind,assessorLabel:assessment.assessorLabel,scopeNote:assessment.scopeNote,periodLabel:suggestPeriodLabel(assessment.periodKind,new Date().toISOString().slice(0,10),en)}} onClose={()=>setCreatingNext(false)} onSave={createNext}/>}
