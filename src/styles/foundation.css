@@ -3624,6 +3624,8 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
 .platform-user-record-link-row{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:10px;align-items:center}
 .platform-user-record-link-row .platform-role-select{width:100%;min-height:40px}
 .platform-user-record-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.platform-invitation-link-note{margin:0 0 10px;font-size:12.5px;line-height:1.5;color:var(--lo-color-muted)}
+.platform-invitation-link{width:100%;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--lo-color-text);background:#f4f7fa}
 @media(max-width:760px){.platform-user-record-grid{grid-template-columns:1fr}.platform-user-record-link-row{grid-template-columns:1fr}.platform-user-record-link-row .button{width:100%}.platform-user-record-header-actions{width:100%}.platform-user-record-header-actions .button{flex:1}}
 
 

@@ -5,6 +5,7 @@ import {
   BedDouble,
   Building2,
   KeyRound,
+  Link2,
   LogIn,
   PauseCircle,
   Pencil,
@@ -37,6 +38,7 @@ import {
 import { HospitalDiagnosticsPanel } from './HospitalDiagnosticsPanel'
 import { OrganizationOffboardingPanel } from './OrganizationOffboardingPanel'
 import { OperatingProfileSection } from './OperatingProfileSection'
+import { InvitationLinkDialog } from './InvitationLinkDialog'
 import { OrganizationIdentitySection } from './OrganizationIdentitySection'
 import { loadEmployeesAsync } from '../employees/employeeService'
 import { MetricCard } from '../../design-system/MetricCard'
@@ -145,6 +147,7 @@ export function PlatformOrganizationRecord({
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [saving, setSaving] = useState(false)
   const [working, setWorking] = useState(false)
+  const [invitationLink, setInvitationLink] = useState(null)
   const [employeeLinkDrafts, setEmployeeLinkDrafts] = useState({})
   const [newAdmin, setNewAdmin] = useState({ name: '', email: '' })
   const [selectedUserId, setSelectedUserId] = useState('')
@@ -484,6 +487,19 @@ export function PlatformOrganizationRecord({
       setWorking(false)
     }
   }
+  // The activation link of a pending invitation, for when the email does not arrive.
+  async function showInvitationLink(user) {
+    if (!user || working) return
+    setWorking(true)
+    try {
+      const result = await manageOrganizationUser({ organizationId: record.id, userId: user.userId, action: 'invitation_link' })
+      setInvitationLink({ link: result.link, name: user.name })
+    } catch (error) {
+      notifyError(error, 'action', { operation: 'platform_user_invitation_link' })
+    } finally {
+      setWorking(false)
+    }
+  }
   async function resetUserAccess(user) {
     if (!user || working) return
     const invited = user.status === 'invited'
@@ -707,6 +723,7 @@ export function PlatformOrganizationRecord({
         .join('')
         .toUpperCase() || 'U'
     return (
+      <>
       <EntityRecordShell
         className="platform-owner-record-shell platform-user-record-shell workspace-fill"
         avatar={initials}
@@ -934,6 +951,12 @@ export function PlatformOrganizationRecord({
                   ? tx('Επαναποστολή πρόσκλησης', 'Resend invitation')
                   : tx('Επαναφορά κωδικού', 'Reset password')}
               </Button>
+              {selectedUser.status === 'invited' && (
+                <Button variant="secondary" disabled={working} onClick={() => showInvitationLink(selectedUser)}>
+                  <Link2 size={15} />
+                  {tx('Σύνδεσμος πρόσκλησης', 'Invitation link')}
+                </Button>
+              )}
               <Button variant="secondary" disabled={working} onClick={toggleSelectedUserStatus}>
                 {selectedUser.status === 'disabled' ? (
                   <PlayCircle size={15} />
@@ -948,6 +971,8 @@ export function PlatformOrganizationRecord({
           </section>
         </div>
       </EntityRecordShell>
+      {invitationLink && <InvitationLinkDialog link={invitationLink.link} name={invitationLink.name} onClose={() => setInvitationLink(null)} />}
+      </>
     )
   }
 

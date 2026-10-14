@@ -17,7 +17,7 @@ serveWithCors(async(req)=>{
  const isSelf=userId===cu.user.id
  if(isSelf&&!isOwner){
   if(action==='update'&&b.role)return reply({error:'Δεν μπορείτε να αλλάξετε τον δικό σας ρόλο ή τα δικαιώματα πρόσβασης.'},403)
-  if(['suspend','reactivate','delete','resend_invitation'].includes(action))return reply({error:'Δεν μπορείτε να αλλάξετε την κατάσταση πρόσβασης ή να διαγράψετε τον δικό σας λογαριασμό.'},403)
+  if(['suspend','reactivate','delete','resend_invitation','invitation_link'].includes(action))return reply({error:'Δεν μπορείτε να αλλάξετε την κατάσταση πρόσβασης ή να διαγράψετε τον δικό σας λογαριασμό.'},403)
  }
  if(action==='update'){const profilePatch:any={};if(b.fullName!==undefined)profilePatch.full_name=String(b.fullName||'').trim();if(b.email!==undefined)profilePatch.contact_email=String(b.email||'').trim().toLowerCase()||null;if(b.phone!==undefined)profilePatch.phone=b.phone||null;if(b.jobTitle!==undefined)profilePatch.job_title=b.jobTitle||null;if(Object.keys(profilePatch).length){const {error}=await admin.from('profiles').update(profilePatch).eq('id',userId);if(error)return reply({error:error.message},500)}if(b.email!==undefined){const email=String(b.email||'').trim().toLowerCase();if(email){const {error}=await admin.auth.admin.updateUserById(userId,{email});if(error)return reply({error:error.message},500)}}if(b.role){const {error}=await admin.from('organization_members').update({role:b.role}).eq('organization_id',organizationId).eq('user_id',userId);if(error)return reply({error:'MEMBERSHIP_UPDATE_FAILED'},500)}return reply({ok:true})}
  if(action==='link_employee'){const employeeDbId=String(b.employeeDbId||'').trim();if(!employeeDbId)return reply({error:'employeeDbId is required'},400);const {data:employee,error:employeeError}=await admin.from('employees').select('id,user_id').eq('organization_id',organizationId).eq('id',employeeDbId).maybeSingle();if(employeeError)return reply({error:employeeError.message},500);if(!employee)return reply({error:'EMPLOYEE_NOT_FOUND'},404);if(employee.user_id&&employee.user_id!==userId)return reply({error:'EMPLOYEE_ALREADY_LINKED_TO_ANOTHER_ACCOUNT'},409);const {error:unlinkError}=await admin.from('employees').update({user_id:null,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('user_id',userId).neq('id',employeeDbId);if(unlinkError)return reply({error:unlinkError.message},500);const {error:linkError}=await admin.from('employees').update({user_id:userId,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',employeeDbId);if(linkError)return reply({error:linkError.message},500);return reply({ok:true,employeeId:employeeDbId})}
@@ -51,6 +51,28 @@ serveWithCors(async(req)=>{
   const {error:oldUserError}=await admin.auth.admin.deleteUser(userId)
   if(oldUserError)console.error('resend_invitation: failed to delete stale auth user',oldUserError.message)
   return reply({ok:true,emailSent:true,provider:'supabase_auth',userId:newUserId})
+ }
+ // The activation link of a pending invitation, for when the email does not arrive
+ // (spam filter, wrong address): no email is sent, the admin hands the link over.
+ // Only for an invited member; an active account recovers through password reset.
+ if(action==='invitation_link'){
+  const {data:member}=await admin.from('organization_members').select('status').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
+  if(!member)return reply({error:'Ο χρήστης δεν ανήκει στον οργανισμό.'},404)
+  if(member.status!=='invited')return reply({error:'Ο λογαριασμός είναι ήδη ενεργός. Χρησιμοποίησε επαναφορά κωδικού αν χρειάζεται.'},400)
+  const {data:authUser,error:userError}=await admin.auth.admin.getUserById(userId)
+  const email=authUser?.user?.email
+  if(userError||!email)return reply({error:'Λείπει email πρόσκλησης.'},400)
+  const app=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||DEFAULT_APP_URL).replace(/\/$/,'')
+  const options={redirectTo:`${app}/activate`}
+  let type='invite',{data:link,error}=await admin.auth.admin.generateLink({type:'invite',email,options})
+  // An invitation already opened once confirms the address; a magic link still signs the user in to /activate.
+  if(error||!link?.properties?.hashed_token){type='magiclink';({data:link,error}=await admin.auth.admin.generateLink({type:'magiclink',email,options}))}
+  if(error||!link?.properties?.hashed_token)return reply({error:error?.message||'INVITATION_LINK_FAILED'},500)
+  // Every link handed out is on record (who, for whom, when): no record, no link.
+  const {error:auditError}=await admin.from('system_audit_log').insert({organization_id:organizationId,actor_user_id:cu.user.id,actor_role:isOwner?'platform_owner':'hospital_admin',event_type:'organization.user.invitation_link',entity_type:'user',entity_id:userId,metadata:{link_type:type}})
+  if(auditError)return reply({error:'INVITATION_LINK_AUDIT_FAILED'},500)
+  // The app's own address: /activate verifies the token when the password is set.
+  return reply({ok:true,link:`${app}/activate?token_hash=${encodeURIComponent(link.properties.hashed_token)}&type=${type}`})
  }
  return reply({error:'Unknown action'},400)
 })
