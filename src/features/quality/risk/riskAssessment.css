@@ -202,12 +202,14 @@
 .risk-report-table tr{break-inside:avoid}
 .risk-report-register .risk-report-table td[class^="risk-cell-"]{text-align:center;font-weight:800}
 .risk-report-compact{width:auto;font-size:10.5px}
-.risk-report-method .risk-legend{margin:6px 0}
+.risk-report-method .risk-legend{margin:6px 0 0}
 .risk-report-matrix{display:inline-grid;gap:2px}
 .risk-report-matrix div{display:flex;gap:2px}
 .risk-report-matrix span{width:30px;height:20px;display:grid;place-items:center;font-size:10px;font-weight:700;border-radius:3px}
 .risk-report-signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;break-inside:avoid;margin-top:8px}
-.risk-report-signatures div{display:flex;flex-direction:column;gap:14px;font-size:11px;border-top:1px solid #17324a;padding-top:6px}
+.risk-report-closing{display:flex;flex-direction:column;gap:12px;break-inside:avoid}
+.risk-report-method-body{display:grid;grid-template-columns:auto auto;justify-content:start;gap:36px;align-items:start}
+.risk-report-signatures div{display:flex;flex-direction:column;gap:12px;font-size:11px;border-top:1px solid #17324a;padding-top:6px}
 .risk-report .risk-kpis{grid-template-columns:repeat(6,1fr)}
 .risk-report .risk-kpi strong{font-size:16px}
 .risk-report .risk-cell{height:26px;font-size:12px;opacity:1}
