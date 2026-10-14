@@ -1,7 +1,10 @@
 // Shared pieces of the risk assessment screens: level chips, the 5×5 heat map,
 // the L/C pickers and the legend. Colours are the NHS bands (see riskAssessment.css).
 import { useState } from 'react'
+import { Pencil,Trash2 } from 'lucide-react'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
+import { ActionButton } from '../../../design-system/ActionButton'
+import { ObserverDialog,DialogActions } from '../../../design-system/ObserverDialog'
 import { readSessionValue,writeSessionValue } from '../../../core/storage/browserStorage'
 import { CONSEQUENCE,LEVELS,LIKELIHOOD,levelForScore,levelLabel } from './riskModel'
 
@@ -72,3 +75,17 @@ export const statusLabel=(id,en)=>STATUS_LABELS[id]?.[en?1:0]||id
 export const statusTone=id=>id==='approved'?'active':id==='under_review'?'warning':''
 export const PERIOD_KINDS={annual:['Ετήσια','Annual'],semester:['Εξαμηνιαία','Six-monthly'],quarter:['Τριμηνιαία','Quarterly'],other:['Άλλη','Other']}
 export const fmtDate=(value,locale)=>value?new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
+
+// Edit and delete of a risk or an opportunity: the record shell lists them in
+// its "…" menu. The page opens read-only; «Επεξεργασία» unlocks the fields.
+export function recordActions({en,canEdit,editing,isNew,onEdit,onDelete}){
+ if(!canEdit||editing||isNew)return null
+ return <>
+  <ActionButton label={L(en,'Επεξεργασία','Edit')} tone="edit" onClick={onEdit}><Pencil size={16}/><span>{L(en,'Επεξεργασία','Edit')}</span></ActionButton>
+  {onDelete&&<ActionButton label={L(en,'Διαγραφή','Delete')} tone="danger" onClick={onDelete}><Trash2 size={16}/><span>{L(en,'Διαγραφή','Delete')}</span></ActionButton>}
+ </>
+}
+
+export function DeleteConfirm({en,title,text,onClose,onConfirm}){
+ return <ObserverDialog width="compact" title={title} onClose={onClose} footer={<DialogActions onCancel={onClose} showCancel onSave={onConfirm} saveLabel={L(en,'Διαγραφή','Delete')}/>}><p>{text}</p></ObserverDialog>
+}

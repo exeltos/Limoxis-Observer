@@ -107,6 +107,9 @@
 .canonical-metric-copy strong .risk-kpi-value .risk-delta.is-worse{color:#b42318!important}
 .risk-compare-table tr.is-openable{cursor:pointer}
 .risk-compare-table td.risk-open-cell{width:24px;color:#9fb0bf}
+/* The row opens on click; this button is its keyboard way in. */
+.risk-open-button{display:inline-grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:6px;background:transparent;color:#9fb0bf;cursor:pointer}
+.risk-open-button:hover,.risk-open-button:focus-visible{background:var(--lo-color-primary-soft);color:#194a74}
 .risk-axis-change{display:inline-flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px;white-space:nowrap}
 .risk-axis-change .is-better{color:#1d6438}
 .risk-axis-change .is-worse{color:#b42318}

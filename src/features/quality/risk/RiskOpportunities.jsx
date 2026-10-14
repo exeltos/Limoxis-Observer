@@ -1,7 +1,6 @@
 import { useMemo,useState } from 'react'
-import { ClipboardX,Hourglass,Lightbulb,Pencil,Plus,Trash2,TrendingUp } from 'lucide-react'
+import { ChevronRight,ClipboardX,Hourglass,Lightbulb,Plus,TrendingUp } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
-import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { ActionButton } from '../../../design-system/ActionButton'
 import { MetricCard } from '../../../design-system/MetricCard'
 import { EFFECTIVENESS,OPPORTUNITY_RATINGS,normalizeOpportunity,opportunityCode,parseMeasures } from './riskModel'
@@ -15,7 +14,7 @@ export function EffectivenessBadge({id,en}){const x=EFFECTIVENESS.find(item=>ite
 const QUICK={high:x=>x.o.ratingId==='high',noPlan:x=>!x.plan.length,unassessed:x=>!x.o.effectivenessStatus||x.o.effectivenessStatus==='pending'}
 
 // Opportunities (ISO 9001 §6.1 risks and opportunities) of the assessment.
-export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,onDelete,actions=null,returned='',frame=defaultFrame}){
+export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,actions=null,returned='',frame=defaultFrame}){
  const [query,setQuery]=useState('')
  const [rating,setRating]=useState('all')
  const [effect,setEffect]=useState('all')
@@ -54,7 +53,7 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,onDelete,act
    </div>
   </div>
   <div className="scroll-table risk-table-wrap"><table className="data-table risk-table risk-opportunity-table"><thead><tr>
-   <th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Ευκαιρία','Opportunity')}</th><th>{L(en,'Απόδοση','Yield')}</th><th>{L(en,'Σχέδιο δράσης','Action plan')}</th><th>{L(en,'Αποτελεσματικότητα','Effectiveness')}</th><th aria-label={L(en,'Ενέργειες','Actions')}/>
+   <th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Ευκαιρία','Opportunity')}</th><th>{L(en,'Απόδοση','Yield')}</th><th>{L(en,'Σχέδιο δράσης','Action plan')}</th><th>{L(en,'Αποτελεσματικότητα','Effectiveness')}</th><th aria-hidden="true"/>
   </tr></thead><tbody>
    {pageRows.map(({item,o,code,plan})=><tr key={item.id} className={`risk-row-clickable${returnedClass(returned,item.id)}`} onClick={()=>onOpen(item)}>
     <td><strong>{code}</strong></td>
@@ -62,7 +61,7 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,onDelete,act
     <td><RatingBadge id={o.ratingId} en={en}/></td>
     <td className="risk-opportunity-plan">{plan.length?<ol>{plan.map((step,i)=><li key={i}>{step}</li>)}</ol>:<span className="risk-axis-none">{L(en,'Χωρίς σχέδιο δράσης','No action plan')}</span>}{(o.owner||o.timeframe)&&<small>{[o.owner,o.timeframe].filter(Boolean).join(' · ')}</small>}</td>
     <td className="risk-opportunity-effect"><EffectivenessBadge id={o.effectivenessStatus} en={en}/>{o.effectiveness&&<small>{o.effectiveness}</small>}</td>
-    <td onClick={e=>e.stopPropagation()}><OverflowMenu label={L(en,'Ενέργειες','Actions')} items={[{id:'edit',label:canEdit?L(en,'Επεξεργασία','Edit'):L(en,'Προβολή','View'),icon:Pencil,onClick:()=>onOpen(item)},...(canEdit?[{id:'delete',label:L(en,'Διαγραφή','Delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>onDelete(item)}]:[])]}/></td>
+    <td className="risk-open-cell"><button type="button" className="risk-open-button" aria-label={L(en,'Άνοιγμα ευκαιρίας','Open the opportunity')} onClick={e=>{e.stopPropagation();onOpen(item)}}><ChevronRight size={15}/></button></td>
    </tr>)}
    {all.length>0&&!rows.length&&<tr><td colSpan={6} className="risk-empty-note">{L(en,'Καμία ευκαιρία με αυτά τα φίλτρα.','No opportunity matches these filters.')}</td></tr>}
   </tbody></table>{!all.length&&<div className="registry-empty-state"><strong>{L(en,'Δεν έχουν καταγραφεί ευκαιρίες','No opportunities recorded')}</strong><span>{L(en,'Καταγράψτε τις ευκαιρίες που μπορεί να αξιοποιήσει ο οργανισμός, με το σχέδιο δράσης και την αποτελεσματικότητά του.','Record the opportunities the organization can seize, with their action plan and its effectiveness.')}</span></div>}</div>

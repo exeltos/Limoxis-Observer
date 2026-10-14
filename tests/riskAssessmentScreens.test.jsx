@@ -27,6 +27,11 @@ const { OpportunityRecordPage } = await import('../src/features/quality/risk/Opp
 function Where() { const location = useLocation(); return <pre data-testid="where">{location.pathname}{JSON.stringify(location.state?.qualitySource || null)}</pre> }
 
 let historyBack
+// A record opens read-only; «Επεξεργασία» in its … menu unlocks it.
+async function startEditing() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Ενέργειες εγγραφής' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: /Επεξεργασία/ }))
+}
 async function open(path) {
   let api
   function Capture() { api = useTenant(); const navigate = useNavigate(); historyBack = () => navigate(-1); return null }
@@ -127,7 +132,18 @@ describe('risk assessment screens', () => {
     // The risk opens as a page: the measures are lists, in the order of the assessment.
     const residual = (await screen.findAllByRole('combobox', { name: /Πιθανότητα \(L\)/ }))[1]
     expect(screen.getByText('Προληπτικά μέτρα που ήδη λαμβάνονται')).toBeInTheDocument()
-    fireEvent.change(residual, { target: { value: '4' } })
+    expect(residual).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /Αποθήκευση κινδύνου/ })).toBeNull()
+    await startEditing()
+    expect(residual).toBeEnabled()
+    // «Ακύρωση» drops the edits, the measure lists included.
+    const measure = () => document.querySelector('.risk-measures textarea')
+    const before = measure().value
+    fireEvent.change(measure(), { target: { value: 'Ακυρωμένο μέτρο' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ακύρωση' }))
+    expect(measure().value).toBe(before)
+    await startEditing()
+    fireEvent.change(screen.getAllByRole('combobox', { name: /Πιθανότητα \(L\)/ })[1], { target: { value: '4' } })
     // 4 × 3 = 12: the residual risk becomes High and needs an action plan.
     expect(screen.getByText('Υψηλός υπολειπόμενος χωρίς πρόσθετα μέτρα')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση κινδύνου/ }))
@@ -148,13 +164,32 @@ describe('risk assessment screens', () => {
     expect(within(first).getByText('Αποτελεσματικό')).toBeInTheDocument()
     expect(table().getByText('Μερικώς αποτελεσματικό')).toBeInTheDocument()
     fireEvent.click(table().getByText('Ε001'))
-    fireEvent.click(await screen.findByRole('radio', { name: 'Μερικώς αποτελεσματικό' }))
+    expect(await screen.findByRole('radio', { name: 'Μερικώς αποτελεσματικό' })).toBeDisabled()
+    await startEditing()
+    fireEvent.click(screen.getByRole('radio', { name: 'Μερικώς αποτελεσματικό' }))
     fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση ευκαιρίας/ }))
     await screen.findByRole('tab', { name: 'Ευκαιρίες' })
     const row = table().getByText('Ε001').closest('tr')
     expect(within(row).getByText('Μερικώς αποτελεσματικό')).toBeInTheDocument()
     expect(within(row).queryByText('Αποτελεσματικό')).not.toBeInTheDocument()
     expect(row).toHaveClass('registry-row-returned')
+  })
+
+  it('deletes an opportunity from the … menu of its page, after a confirmation', async () => {
+    const year = new Date(Date.now() - 7 * 86400000).getFullYear()
+    await open(`/quality/risks/RSA-DEMO-${year}`)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Ευκαιρίες' }))
+    const table = () => within(document.querySelector('.risk-opportunities'))
+    expect(table().queryByRole('button', { name: 'Ενέργειες' })).toBeNull()
+    // The row's open button is its keyboard way in.
+    expect(table().getAllByRole('button', { name: 'Άνοιγμα ευκαιρίας' }).length).toBeGreaterThan(0)
+    const count = document.querySelectorAll('.risk-opportunities tbody tr.risk-row-clickable').length
+    fireEvent.click(table().getByText('Ε001'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Ενέργειες εγγραφής' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Διαγραφή/ }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Διαγραφή/ }))
+    await screen.findByRole('tab', { name: 'Ευκαιρίες' })
+    await waitFor(() => expect(document.querySelectorAll('.risk-opportunities tbody tr.risk-row-clickable')).toHaveLength(count - 1))
   })
 })
 
