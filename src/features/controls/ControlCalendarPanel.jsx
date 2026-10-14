@@ -132,7 +132,7 @@ export function ControlCalendarPanel({ report, language, onOpen }) {
           ...group.lines.map((line) => row(line, true)),
         ])}</tbody>
       </table>
-      {!lines.length && <div className="registry-empty-state"><strong>{tx.noCalendar}</strong></div>}
+      {!lines.length && <div className="inline-empty" role="status"><strong>{tx.noCalendar}</strong></div>}
     </div>
     <p className="control-adherence-note">{tx.calendarNote}</p>
   </div>

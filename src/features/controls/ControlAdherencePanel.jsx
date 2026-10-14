@@ -65,7 +65,7 @@ export function ControlAdherencePanel({ report, tx, language }) {
           <td><span className={`control-adherence-rate ${adherenceTone(line.rate)}`}>{pct(line.rate)}</span><span className="control-adherence-bar"><span style={{ width: `${line.rate ?? 0}%` }} /></span></td>
         </tr>)}</tbody>
       </table>
-      {!lines.length && <div className="registry-empty-state"><strong>{tx.noAdherence}</strong></div>}
+      {!lines.length && <div className="inline-empty" role="status"><strong>{tx.noAdherence}</strong></div>}
     </div>
     <p className="control-adherence-note">{tx.adherenceNote}</p>
   </div>

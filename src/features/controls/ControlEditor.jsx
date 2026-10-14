@@ -128,7 +128,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      <div className="control-form-block-title"><strong>{en?'Instructions':'Οδηγίες'}</strong><span>{en?'Optional guidance shown during execution':'Προαιρετικές οδηγίες που εμφανίζονται κατά την εκτέλεση'}</span></div>
      <label className="field"><textarea rows="3" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'Optional instructions…':'Προαιρετικές οδηγίες…'}/></label>
     </div>
-    <div className="inline-edit-footer"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Άκυρο'}</Button><SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
+    <div className="inline-edit-footer"><SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
    </div>
   </EntityRecordShell>
  </Page>

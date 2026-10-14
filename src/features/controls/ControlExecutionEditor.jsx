@@ -15,7 +15,7 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 
-export function ControlExecutionEditor({organizationId,record,department,onCancel,onSave,onDraftSaved}){
+export function ControlExecutionEditor({organizationId,record,department,onSave,onDraftSaved}){
  const {profile,user}=useAuth()
  const {language,locale}=useLanguage(); const en=language==='en'
  const {confirm,notify}=useFeedback()
@@ -105,7 +105,7 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
     <Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>
     {draftSaved&&<span className="control-temp-save-state">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</span>}
    </div>
-   <div className="control-execution-page-primary-actions"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton disabled={!valid||saving} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save entry':'Αποθήκευση')}</SaveButton></div>
+   <div className="control-execution-page-primary-actions"><SaveButton disabled={!valid||saving} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save entry':'Αποθήκευση')}</SaveButton></div>
   </div>
  </div>
 }
