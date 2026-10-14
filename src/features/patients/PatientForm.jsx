@@ -58,7 +58,7 @@ export function usePatientForm({t,language,departments,patient=null,existingPati
 
 export function PatientFormDialog({t,language,departments,onClose,onSave,patient}){
   const form=usePatientForm({t,language,departments,patient})
-  return <ObserverDialog width="wide" eyebrow={t('patients')} title={t('edit')} subtitle={t('patientRegistrySubtitle')} onClose={onClose} footer={<DialogActions onSave={()=>{const draft=form.payload();if(draft)onSave(draft)}} disabled={form.disabled}/>}>
+  return <ObserverDialog width="wide" eyebrow={language==='el'?patient?.name:(patient?.nameEn||patient?.name)} title={language==='el'?'Επεξεργασία ασθενούς':'Edit patient'} onClose={onClose} footer={<DialogActions onSave={()=>{const draft=form.payload();if(draft)onSave(draft)}} disabled={form.disabled}/>}>
     {form.fields}
   </ObserverDialog>
 }

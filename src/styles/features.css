@@ -4108,6 +4108,16 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 /* History and Surveillance & Samples tabs: the same inset card as Documents. */
 .patient-record-shell>.entity-record-body>.record-section.patient-history-section{width:calc(100% - 26px)!important;margin:13px!important;height:auto!important;align-self:start!important}
 .patient-record-shell>.entity-record-body>.patient-surveillance-clean{padding:13px!important}
+/* Clinical assessments: the same inset card as the other admission tabs. */
+.patient-record-shell>.entity-record-body>.clinical-assessment-registry{margin:13px!important;border:1px solid #dbe2e8!important;border-radius:9px!important;overflow:hidden!important;min-height:0!important}
+.patient-record-shell>.entity-record-body>.clinical-assessment-registry>.scroll-table{border:0!important;border-radius:0!important}
+/* A dialog opened from a section header keeps its own eyebrow and field notes. */
+.patient-record-shell .observer-dialog .eyebrow{display:block!important}
+.patient-entry-grid .entry-detail-note{display:block;margin-top:4px;font-size:11px!important;color:#64748b!important}
+/* Summary alerts: one compact line each, with a small link-style action. */
+.patient-record-shell .summary-overdue-banner{margin:0!important;padding:7px 10px 7px 12px!important;font-size:12px!important}
+.patient-record-shell .summary-overdue-banner>svg{width:16px!important;height:16px!important}
+.patient-record-shell .summary-overdue-banner>button{min-height:28px!important;height:28px!important;padding:0 10px!important;font-size:11.5px!important}
 
 /* ==== surveillance-workflow-preview ==== */
 /* Patient surveillance workflow preview v3
