@@ -52,6 +52,13 @@ beforeEach(() => { localStorage.clear(); profile = { id: 'owner-1', isPlatformOw
 afterEach(() => { cleanup(); localStorage.clear() })
 
 describe('risk assessment screens', () => {
+  it('lists incidents newest first, so paging walks back in time', async () => {
+    await open('/quality')
+    await waitFor(() => expect(document.querySelectorAll('.quality-table tbody tr').length).toBeGreaterThan(1))
+    const shown = [...document.querySelectorAll('.quality-table tbody tr td:nth-child(4)')].map(td => td.textContent.split('/').reverse().map(x => x.padStart(2, '0')).join('-'))
+    expect(shown).toEqual([...shown].sort().reverse())
+  })
+
   it('lists the assessments in the Quality Center tab', async () => {
     await open('/quality')
     fireEvent.click(await screen.findByRole('tab', { name: /Εκτίμηση κινδύνου/ }))
