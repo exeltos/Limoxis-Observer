@@ -70,7 +70,9 @@ serveWithCors(async(req)=>{
     return reply({error:'Η επαναταυτοποίηση απέτυχε. Ελέγξτε τον κωδικό πρόσβασης.'},401)
   }
   // The check opened a session of its own; it is not needed beyond this point.
-  await verifier.auth.signOut().catch(()=>{})
+  // Local scope: only this check's session ends. The default (global) would revoke
+  // every session of the owner, signing the browser out right after the deletion.
+  await verifier.auth.signOut({scope:'local'}).catch(()=>{})
 
   const {data:organizations,error:orgError}=await admin.from('organizations').select('id,code,name,is_demo,status').in('id',organizationIds)
   if(orgError)return reply({error:orgError.message},500)
