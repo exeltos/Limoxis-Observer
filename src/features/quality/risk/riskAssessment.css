@@ -176,10 +176,18 @@
 
 /* Method, details, import */
 .risk-import-preview{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--lo-color-border)}
-.risk-import-preview h4{margin:0;font-size:12.5px}
+.risk-import-preview h4,.risk-import-summary h4{margin:0;font-size:12.5px;display:flex;align-items:center;gap:6px}
+.risk-import-summary{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding:10px 12px;border:1px solid #d6e4ef;border-radius:10px;background:#f5f9fc}
+.risk-import-summary .risk-hint{margin:0}
 .risk-import-sheets{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px}
 .risk-import-sheets li{display:flex;gap:6px;padding:4px 10px;border:1px solid var(--lo-color-border);border-radius:999px;font-size:11px}
-.risk-import-fixes{max-height:240px}
+.risk-import-fixes{width:100%}
+.risk-import-fixes td:first-child{width:56px;vertical-align:top}
+.risk-import-fixes ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
+.risk-import-fixes li{font-size:12px}
+.risk-import-fixes li>span{color:var(--lo-color-muted)}
+.risk-import-fixes s{color:#8a99a8}
+.risk-import-fixes li :is(s,strong,span){display:inline!important}
 
 /* Printed report (copied into its own window by printElement) */
 .risk-report{font-family:Arial,sans-serif;color:#17324a;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;display:flex;flex-direction:column;gap:14px}

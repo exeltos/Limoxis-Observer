@@ -108,7 +108,7 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
 
 // Header of an assessment (new, imported or edited). A new one may carry the
 // risks of an earlier assessment forward, to be reassessed for the new period.
-export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSave,saveLabel,children}){
+export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSave,saveLabel,intro=null,children}){
  const today=new Date().toISOString().slice(0,10)
  const [draft,setDraft]=useState(()=>({title:L(en,'Εκτίμηση επικινδυνότητας','Risk assessment'),periodLabel:String(new Date().getFullYear()),periodKind:'annual',assessedOn:today,nextReviewOn:'',assessorLabel:'',formCode:'Ε.Δ.QUAL.050-02',scopeNote:'',...initial}))
  const [carryId,setCarryId]=useState(assessments[0]?.id||'')
@@ -121,6 +121,7 @@ export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSav
  const field=(key,label,props={},wide=false)=><label className={`risk-field${wide===true?' risk-field-wide':wide?` ${wide}`:''}`}><span>{label}</span><input value={draft[key]||''} onChange={e=>set(key,e.target.value)} {...props}/></label>
  return <ObserverDialog width="standard" title={isNew?L(en,'Νέα εκτίμηση κινδύνου','New risk assessment'):L(en,'Στοιχεία εκτίμησης','Assessment details')} onClose={onClose}
   footer={<DialogActions onCancel={onClose} showCancel onSave={()=>onSave(draft,isNew&&!children?carryFrom:null)} disabled={!String(draft.title).trim()||!String(draft.periodLabel).trim()||!draft.assessedOn} saveLabel={saveLabel||(isNew?L(en,'Δημιουργία','Create'):undefined)}/>}>
+  {intro}
   <div className="risk-editor-grid risk-assessment-form">
    {/* Three even rows, one-line labels: title and form; type, period and date; next review and assessor. */}
    {field('title',L(en,'Τίτλος','Title'),{},'risk-field-span2')}
@@ -144,25 +145,33 @@ function ImportPreviewDialog({preview,en,onClose,onConfirm}){
  const earlier=(preview.periods||[]).length>1?preview.periods[0]:null
  const [first,setFirst]=useState(()=>({initialLabel:String(earlier?.year||''),initialOn:earlier?.year?`${earlier.year}${initial.assessedOn.slice(4)}`:''}))
  const fixes=preview.fixes.filter(f=>f.field!=='wording')
+ // One row per risk, all its corrections together.
+ const byRisk=Object.values(fixes.reduce((m,f)=>{(m[f.lineageKey]||=({key:f.lineageKey,items:[]})).items.push(f);return m},{}))
  const words=Object.values(preview.fixes.filter(f=>f.field==='wording').reduce((m,f)=>{const k=`${f.before}→${f.after}`;m[k]||={...f,count:0};m[k].count++;return m},{}))
- const kinds=preview.fixes.reduce((m,f)=>({...m,[f.field]:(m[f.field]||0)+1}),{})
  const count=earlier?earlier.risks.length+preview.risks.length:preview.risks.length
- return <AssessmentDetailsDialog initial={initial} en={en} onClose={onClose} onSave={draft=>onConfirm(draft,first)} saveLabel={earlier?L(en,'Εισαγωγή 2 εκτιμήσεων','Import 2 assessments'):L(en,`Εισαγωγή ${count} κινδύνων`,`Import ${count} risks`)}>
+ const opportunities=(preview.opportunities||[]).length
+ const what=[L(en,`${count} κινδύνων`,`${count} risks`),opportunities&&L(en,`${opportunities} ${opportunities===1?'ευκαιρίας':'ευκαιριών'}`,`${opportunities} ${opportunities===1?'opportunity':'opportunities'}`)].filter(Boolean).join(L(en,' και ',' and '))
+ const after=f=>/Level$/.test(f.field)?levelLabel(f.after,en):String(f.after)
+ // What the file holds comes first; the details of the new assessment follow; the corrections close.
+ const intro=<section className="risk-import-summary">
+  <h4><FileSpreadsheet size={15}/>{preview.file}</h4>
+  <ul className="risk-import-sheets">{preview.sheets.map(s=><li key={s.name}><strong>{s.name}</strong><span>{s.section==='opportunities'?L(en,`${s.count} ευκαιρίες`,`${s.count} opportunities`):L(en,`${s.count} κίνδυνοι`,`${s.count} risks`)}</span></li>)}</ul>
+  {earlier&&<>
+   <p className="risk-hint">{L(en,`Το αρχείο έχει αρχική αξιολόγηση και επαναξιολόγηση. Δημιουργούνται δύο εκτιμήσεις με τους ίδιους κωδικούς κινδύνων, ώστε να συγκρίνονται: η αρχική (${earlier.risks.length} κίνδυνοι) και η επαναξιολόγηση με τα στοιχεία παρακάτω (${preview.risks.length} κίνδυνοι).`,`The file holds an initial assessment and a reassessment. Two assessments are created with the same risk codes, so they can be compared: the initial one (${earlier.risks.length} risks) and the reassessment with the details below (${preview.risks.length} risks).`)}</p>
+   <div className="risk-editor-grid">
+    <label className="risk-field"><span>{L(en,'Περίοδος αρχικής αξιολόγησης','Initial assessment period')}</span><input value={first.initialLabel} onChange={e=>setFirst(f=>({...f,initialLabel:e.target.value}))}/></label>
+    <ManualDateField label={L(en,'Ημερομηνία αρχικής αξιολόγησης','Initial assessment date')} value={first.initialOn} onChange={v=>setFirst(f=>({...f,initialOn:v}))}/>
+   </div>
+  </>}
+ </section>
+ return <AssessmentDetailsDialog initial={initial} en={en} intro={intro} onClose={onClose} onSave={draft=>onConfirm(draft,first)} saveLabel={earlier?L(en,'Εισαγωγή 2 εκτιμήσεων','Import 2 assessments'):L(en,`Εισαγωγή ${what}`,`Import ${what}`)}>
   <section className="risk-import-preview">
-   <h4>{preview.file}</h4>
-   <ul className="risk-import-sheets">{preview.sheets.map(s=><li key={s.name}><strong>{s.name}</strong><span>{s.section==='opportunities'?L(en,`${s.count} ευκαιρίες`,`${s.count} opportunities`):L(en,`${s.count} κίνδυνοι`,`${s.count} risks`)}</span></li>)}</ul>
-   {earlier&&<>
-    <p className="risk-hint">{L(en,`Το αρχείο έχει αρχική αξιολόγηση και επαναξιολόγηση. Δημιουργούνται δύο εκτιμήσεις με τους ίδιους κωδικούς κινδύνων, ώστε να συγκρίνονται: η αρχική (${earlier.risks.length} κίνδυνοι) και η επαναξιολόγηση με τα στοιχεία παραπάνω (${preview.risks.length} κίνδυνοι).`,`The file holds an initial assessment and a reassessment. Two assessments are created with the same risk codes, so they can be compared: the initial one (${earlier.risks.length} risks) and the reassessment with the details above (${preview.risks.length} risks).`)}</p>
-    <div className="risk-editor-grid">
-     <label className="risk-field"><span>{L(en,'Περίοδος αρχικής αξιολόγησης','Initial assessment period')}</span><input value={first.initialLabel} onChange={e=>setFirst(f=>({...f,initialLabel:e.target.value}))}/></label>
-     <ManualDateField label={L(en,'Ημερομηνία αρχικής αξιολόγησης','Initial assessment date')} value={first.initialOn} onChange={v=>setFirst(f=>({...f,initialOn:v}))}/>
-    </div>
-   </>}
+   <h4>{L(en,`Διορθώσεις κατά την εισαγωγή (${preview.fixes.length})`,`Corrections on import (${preview.fixes.length})`)}</h4>
    {preview.fixes.length>0?<>
-    <p className="risk-hint">{L(en,`Ο βαθμός και η κατηγορία υπολογίζονται από L × C με τις ζώνες NHS. Διορθώνονται ${preview.fixes.length} σημεία του αρχείου:`,`Score and level are computed from L × C with the NHS bands. ${preview.fixes.length} points of the file are corrected:`)} {Object.entries(kinds).map(([k,n])=>`${FIELD_LABELS[k]?.[en?1:0]||k} ${n}`).join(' · ')}</p>
-    {fixes.length>0&&<div className="scroll-table risk-import-fixes"><table className="data-table"><thead><tr><th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Πεδίο','Field')}</th><th>{L(en,'Στο αρχείο','In the file')}</th><th>{L(en,'Μετά την εισαγωγή','After import')}</th></tr></thead><tbody>
-     {fixes.map((f,i)=><tr key={i}><td>{f.lineageKey}</td><td>{FIELD_LABELS[f.field]?.[en?1:0]||f.field}</td><td>{String(f.before)}</td><td><strong>{/Level$/.test(f.field)?levelLabel(f.after,en):String(f.after)}</strong></td></tr>)}
-    </tbody></table></div>}
+    <p className="risk-hint">{L(en,'Ο βαθμός και η κατηγορία υπολογίζονται από L × C με τις ζώνες NHS· οι διεργασίες ενοποιούνται και τα λεκτικά διορθώνονται.','Score and level are computed from L × C with the NHS bands; processes are unified and spelling is corrected.')}</p>
+    {byRisk.length>0&&<table className="data-table risk-import-fixes"><thead><tr><th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Τι διορθώνεται','What is corrected')}</th></tr></thead><tbody>
+     {byRisk.map(r=><tr key={r.key}><td><strong>{r.key}</strong></td><td><ul>{r.items.map((f,i)=><li key={i}><span>{FIELD_LABELS[f.field]?.[en?1:0]||f.field}:</span> <s>{String(f.before)}</s> → <strong>{after(f)}</strong></li>)}</ul></td></tr>)}
+    </tbody></table>}
     {words.length>0&&<p className="risk-hint risk-import-words"><strong>{L(en,'Διόρθωση λεκτικών','Spelling corrections')}:</strong> {words.map(w=>`${w.before} → ${w.after}${w.count>1?` (${w.count})`:''}`).join(' · ')}</p>}
    </>:<p className="risk-hint">{L(en,'Όλοι οι βαθμοί και οι κατηγορίες του αρχείου συμφωνούν με τη μήτρα.','Every score and level of the file agrees with the matrix.')}</p>}
    <p className="risk-hint">{L(en,'Το JCI προτείνεται από τη διατύπωση κάθε κινδύνου και διορθώνεται στο μητρώο. Ο κίνδυνος-στόχος συμπληρώνεται μετά την εισαγωγή.','JCI is suggested from each risk’s wording and can be changed in the register. The target risk is filled in after the import.')}</p>
