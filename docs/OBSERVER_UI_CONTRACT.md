@@ -16,6 +16,21 @@ This document is the cross-application UI contract for the new Limoxis Observer.
 - Primary and secondary footer actions use the shared `Button` component/pattern.
 - Long text uses the global textarea expander and remains vertically resizable.
 
+## One way out of a window
+- A dialog closes with its × alone: no «Ακύρωση» / «Κλείσιμο» / «Άκυρο» button beside it. Do not pass `showCancel` to `DialogActions`.
+- A create or edit page inside `EntityRecordShell` returns with its back arrow (to the list when creating, to the record when editing): no separate Cancel at the foot.
+- Editing in place inside a record card (no dialog, no back arrow of its own — e.g. Patient details, Employee details) keeps «Ακύρωση» beside «Αποθήκευση».
+
+## Opening records
+- A new main record (patient, employee) opens as its own page in `EntityRecordShell`, not as a dialog; saving opens the new record.
+- Editing a record's core details happens in place in its details card, like the employee record.
+- An action appears once: not both as a button and in a … menu, and not in two cards' menus. Card menus hold what concerns that card.
+
+## Empty lists
+- An empty list says why, through `listEmptyCopy` / `ListEmptyState` (design-system/ListEmptyState.jsx): «Δεν βρέθηκαν εγγραφές με αυτή την αναζήτηση ή τα φίλτρα» when records exist but none match; otherwise «Δεν υπάρχουν …» with the «Πατήστε Δημιουργία…» hint only for those who can create.
+- The message sits inside the table area (`inline-empty`, or `RegistryTable` `emptyTitle`/`emptyText`), not in a separate dashed box.
+- `RegistryPagination` hides while the list is empty.
+
 ## Date and time
 - Feature UIs must not render raw native date/time inputs.
 - Dates use `ManualDateField` and display dd/mm/yyyy while preserving ISO values internally.
@@ -32,4 +47,5 @@ This document is the cross-application UI contract for the new Limoxis Observer.
 - a feature renders a native date/time input,
 - a record page bypasses `PrintExportActions`,
 - a page has Print without Export in `RecordActions`,
-- committee-specific legacy form shells are reintroduced.
+- committee-specific legacy form shells are reintroduced,
+- a feature dialog passes `showCancel` (files not yet reviewed are listed in the tool and leave the list as each module is aligned).

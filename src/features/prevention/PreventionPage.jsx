@@ -4,6 +4,7 @@ import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { ListEmptyState } from '../../design-system/ListEmptyState'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -736,27 +737,15 @@ const preventionEmptyTitleKeys = {
   antiseptics: 'preventionEmptyAntisepticsTitle',
   bundles: 'preventionEmptyBundlesTitle',
 }
-// An empty list says why, in the same line as every other registry: nothing
-// recorded yet (the «press» hint only for those who can create), or nothing
-// matches the search or filters.
 function PreventionEmpty({ t, tab, filtered, canCreate }) {
-  if (filtered)
-    return (
-      <div className="inline-empty" role="status">
-        <strong>{t('svEmptyFiltered')}</strong>
-        <span>{t('svEmptyFilteredHint')}</span>
-      </div>
-    )
   return (
-    <div className="inline-empty" role="status">
-      <strong>
-        {tab === 'vaccinations' ? t('noVaccinationRecords') : t(preventionEmptyTitleKeys[tab])}
-      </strong>
-      <span>
-        {t('preventionEmptyGenericText')}
-        {canCreate ? ` ${t('preventionEmptyCreateHint')}` : ''}
-      </span>
-    </div>
+    <ListEmptyState
+      filtered={filtered}
+      title={tab === 'vaccinations' ? t('noVaccinationRecords') : t(preventionEmptyTitleKeys[tab])}
+      text={t('preventionEmptyGenericText')}
+      hint={t('preventionEmptyCreateHint')}
+      canCreate={canCreate}
+    />
   )
 }
 function rowPropsWithOpen(registry, id, onOpen) {

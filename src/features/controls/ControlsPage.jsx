@@ -5,6 +5,7 @@ import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { ListEmptyState } from '../../design-system/ListEmptyState'
 import { IconButton } from '../../design-system/IconButton'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -147,7 +148,7 @@ export function ControlsPage(){
      <tbody>{pagedRows.map(({item,departments:deps})=>{const state=controlState(item,deps),draft=hasDraft(item,deps),depPreview=deps.slice(0,3).join(' · '),more=deps.length>3?' …':'',dep=quickDepartment(item,deps),assignment=getAssignment(item,dep),allowed=Boolean(dep&&assignment)&&(Boolean(assignment?.hasDraft)||canManage||(canExecute&&isControlDue(item,dep)));return <tr key={item.id} {...registry.rowProps(item.id)} onClick={()=>openControl(item)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openControl(item)}}}><td><strong>{language==='el'?item.title:item.titleEn}</strong><small>{item.category}{controlCriticality(item)==='high'&&<span className="control-criticality-badge high">{criticalityLabel('high',language)} {language==='en'?'criticality':'κρισιμότητα'}</span>}</small></td><td>{deps.length===1?deps[0]:<><strong>{deps.length} {language==='en'?'departments':'τμήματα'}</strong><small>{depPreview}{more}</small></>}</td><td>{frequencyLabel(item.frequency,language)}</td><td>{executionCount(item,deps)}</td><td>{fmt(earliestNext(item,deps))}</td><td><div className="control-status-stack">{draft&&<span className="status-badge temporary">{tx.temporary}</span>}<span className={`status-badge ${state==='overdue'?'danger':state==='dueSoon'?'warning':'active'}`}>{state==='overdue'?tx.overdue:state==='dueSoon'?tx.dueSoon:tx.within}</span></div></td><td className="control-action-col"><IconButton size="sm" tone={allowed?'primary':'neutral'} disabled={!allowed} label={tx.execute} onClick={e=>quickExecute(item,deps,e)}><PlayCircle size={16}/></IconButton></td></tr>})}</tbody>
     </table>
     {loading&&<div className="inline-empty" role="status"><strong>{language==='en'?'Loading controls…':'Φόρτωση ελέγχων…'}</strong></div>}
-    {!loading&&!rows.length&&(scopedControls.length?<div className="inline-empty" role="status"><strong>{t('svEmptyFiltered')}</strong><span>{t('svEmptyFilteredHint')}</span></div>:<div className="inline-empty" role="status"><strong>{tx.emptyTitle}</strong>{canCreate&&<span>{tx.emptyText}</span>}</div>)}
+    {!loading&&!rows.length&&<ListEmptyState filtered={scopedControls.length>0} title={tx.emptyTitle} hint={tx.emptyText} canCreate={canCreate}/>}
    </div>
    {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>}
    </>}

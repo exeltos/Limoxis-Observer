@@ -6,10 +6,23 @@ const files=[]
 function walk(dir){for(const name of fs.readdirSync(dir)){const p=path.join(dir,name);const stat=fs.statSync(p);if(stat.isDirectory())walk(p);else if(/\.jsx?$/.test(name))files.push(p)}}
 walk(root)
 const violations=[]
+// Dialogs close with their × alone (docs/OBSERVER_UI_CONTRACT.md). Modules not
+// yet aligned are listed here; remove a file once its dialogs drop showCancel.
+const SHOW_CANCEL_PENDING=new Set([
+  'features/employees/EmployeeImportDialog.jsx','features/employees/JobDescriptionViews.jsx',
+  'features/management/HaiCriteriaLibraryPanel.jsx','features/management/HospitalStructurePanel.jsx','features/management/LiraKnowledgePanel.jsx','features/management/LiraOutbreakInvestigationsPanel.jsx','features/management/ManagementPage.jsx','features/management/PrevalenceSurveyPanel.jsx',
+  'features/occupational-health/ExposureIncidentEditor.jsx','features/occupational-health/OccupationalVisitEditor.jsx',
+  'features/pharmacy/PharmacyPage.jsx',
+  'features/platform/InvitationLinkDialog.jsx','features/platform/PlatformOrganizationRecord.jsx',
+  'features/quality/risk/RiskAssessmentPage.jsx','features/quality/risk/RiskAssessmentsPanel.jsx','features/quality/risk/RiskIndicatorsUi.jsx','features/quality/risk/riskUi.jsx',
+  'features/surveillance/EmployeeSurveillanceRecordDialog.jsx',
+  'features/training/TrainingCompetencePanel.jsx',
+])
 for(const file of files){
   const text=fs.readFileSync(file,'utf8')
   const rel=path.relative(root,file)
   if(file.includes(`${path.sep}features${path.sep}`)&&/>\s*(Εκτύπωση|Εξαγωγή|Print|Export)(?:\s+[^<]*)?</i.test(text))violations.push(`${rel}: visible Print/Export action detected; Observer uses icon-only utility actions`)
+  if(file.includes(`${path.sep}features${path.sep}`)&&/\bshowCancel\b/.test(text)&&!SHOW_CANCEL_PENDING.has(rel.split(path.sep).join('/')))violations.push(`${rel}: dialog passes showCancel; dialogs close with their × alone`)
   if(file.includes(`${path.sep}committees${path.sep}`)&&/(committee-dialog|committee-form-grid)/.test(text))violations.push(`${rel}: legacy committee-only form shell detected; use Observer shared form language`)
   if(file.includes(`${path.sep}features${path.sep}`)&&/<input[^>]+type=["'](?:date|time)["']/i.test(text))violations.push(`${rel}: native date/time field detected in feature UI; use ManualDateField / TimeField`)
   if(file.includes(`${path.sep}features${path.sep}`)&&/RecordPage\.jsx$/.test(file)&&text.includes('<EntityRecordShell')&&!text.includes('PrintExportActions'))violations.push(`${rel}: record header does not use shared PrintExportActions`)

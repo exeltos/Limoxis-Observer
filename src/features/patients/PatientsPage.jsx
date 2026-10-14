@@ -14,6 +14,7 @@ import { loadPatients } from './patientsService'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { listEmptyCopy } from '../../design-system/ListEmptyState'
 import {ClinicalRiskFlags,ClinicalRiskLegendItems,clinicalRiskKinds} from '../clinical-scales/ClinicalRiskFlags'
 import {PatientInfectionFlags} from './PatientInfectionFlags'
 import {loadPatientInfectionFlags} from './patientInfectionFlagsService'
@@ -70,6 +71,7 @@ export function PatientsPage(){
     discharged:scopedPatients.filter(p=>p.status==='discharged').length,
     transferred:scopedPatients.filter(p=>p.status==='transferred').length,
   }
+  const empty=listEmptyCopy({t,filtered:scopedPatients.length>0,title:t('patientRegistryEmptyTitle'),text:t('patientRegistryEmptyDescription'),hint:t('patientRegistryEmptyHint'),canCreate})
   return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction}/>}>
     <div className="workspace-summary patient-summary-strip" aria-label={t('patientRegistry')}>
       <PatientSummaryMetric icon={UsersRound} label={t('patientsCountAll')} value={patientSummary.total} filter="all" current={status} onFilter={setStatus}/>
@@ -91,8 +93,8 @@ export function PatientsPage(){
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
         renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskFlags rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} compact/></span></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></>}
-        emptyTitle={scopedPatients.length?t('svEmptyFiltered'):t('patientRegistryEmptyTitle')}
-        emptyText={scopedPatients.length?t('svEmptyFilteredHint'):`${t('patientRegistryEmptyDescription')}${canCreate?` ${t('patientRegistryEmptyHint')}`:''}`}
+        emptyTitle={empty.title}
+        emptyText={empty.text}
       />
       {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
     </div>

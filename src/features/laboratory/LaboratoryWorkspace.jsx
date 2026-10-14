@@ -5,6 +5,7 @@ import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { listEmptyCopy } from '../../design-system/ListEmptyState'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
@@ -96,6 +97,7 @@ export function LaboratoryWorkspace() {
   // Empty list: nothing recorded yet, or nothing matches the search / filters.
   const recorded = repositoryRows.some(sample => canAccessRecord(sample))
   const canCreate = canPerform({ role: role || actualRole, addOns: membership?.capabilities ?? [], customCapabilities: membership?.customCapabilities ?? [], action: UI_ACTIONS.CREATE, resourceCapability: CAPABILITIES.MANAGE_LAB_SAMPLES })
+  const empty = listEmptyCopy({ t, filtered: recorded, title: language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples yet', hint: language === 'el' ? 'Πατήστε «Δημιουργία» για να καταχωρίσετε το πρώτο δείγμα.' : 'Press Create to record the first sample.', canCreate })
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
@@ -142,7 +144,7 @@ export function LaboratoryWorkspace() {
       </FilterBar>
       <RegistryTable wrapperRef={registry.scrollRef} className="lab-table" columns={[
         {key:'sample',label:t('sampleCode')},{key:'subject',label:t('laboratoryRecords.subject')},{key:'type',label:t('sampleType')},{key:'source',label:t('clinicalSource')},{key:'result',label:t('result')},{key:'status',label:t('status')}
-      ]} rows={pagedRows} rowKey={sample => sample.id} rowProps={sample => ({...registry.rowProps(sample.id),onClick:() => openSample(sample)})} emptyTitle={recorded ? t('svEmptyFiltered') : (language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples yet')} emptyText={recorded ? t('svEmptyFilteredHint') : canCreate ? (language === 'el' ? 'Πατήστε «Δημιουργία» για να καταχωρίσετε το πρώτο δείγμα.' : 'Press Create to record the first sample.') : ''} renderRow={sample => <>
+      ]} rows={pagedRows} rowKey={sample => sample.id} rowProps={sample => ({...registry.rowProps(sample.id),onClick:() => openSample(sample)})} emptyTitle={empty.title} emptyText={empty.text} renderRow={sample => <>
         <td><strong>{displaySampleCode(sample)}</strong><small>{[fmt(sample.collectedAt), computeTurnaroundHours(sample) != null && formatTurnaround(computeTurnaroundHours(sample), language)].filter(Boolean).join(' · ')}</small></td>
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample.type,t)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}</td>
