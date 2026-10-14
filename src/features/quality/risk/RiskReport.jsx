@@ -14,7 +14,8 @@ export const RiskReport=forwardRef(function RiskReport({assessment,summary,previ
  // Sections are numbered in print order; the optional ones take no number when absent.
  let n=0;const no=()=>`${++n}. `
  // Every page carries the form and its page number (CSS page margin boxes).
- const css=v=>`"${String(v).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,' ')}"`
+ // A CSS string; «<» is escaped too, so no text (form code, title, period) can close the <style> it sits in.
+ const css=v=>`"${String(v).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/</g,'\\3c ').replace(/[\r\n]/g,' ')}"`
  const pageCss=`@page{size:A4 landscape;margin:9mm 9mm 13mm;@bottom-left{content:${css([assessment.formCode,txt(assessment,'title',en),assessment.periodLabel].filter(Boolean).join(' · '))};font:8px Arial,sans-serif;color:#5d7083}@bottom-right{content:${css(L(en,'Σελίδα ','Page '))} counter(page) " / " counter(pages);font:8px Arial,sans-serif;color:#5d7083}}`
  return <div ref={ref} className="risk-report">
   <style>{pageCss}</style>
