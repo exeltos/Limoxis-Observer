@@ -64,13 +64,14 @@ export function RiskAssessmentPage(){
  const preset=view.riskPreset||null
  const cell=preset?.cell||null
  const origin=view.riskOrigin||null
- const setView=(next,push=false)=>navigate(`${location.pathname}${location.search}`,{replace:!push,state:{...view,riskPreset:null,riskOrigin:null,...next}})
+ const setView=(next,push=false)=>navigate(`${location.pathname}${location.search}`,{replace:!push,state:{...view,riskPreset:null,riskOrigin:null,riskScroll:null,...next}})
  const setTab=t=>setView({riskTab:t})
- const jump=(t,riskPreset,mark)=>setView({riskTab:t,riskPreset,riskOrigin:{tab,mark,scroll:scrollerOf(bodyRef.current)?.scrollTop||0}},true)
+ // The spot is also kept on the entry being left, for the browser's back button.
+ const jump=(t,riskPreset,mark)=>{const scroll=scrollerOf(bodyRef.current)?.scrollTop||0;navigate(`${location.pathname}${location.search}`,{replace:true,state:{...view,riskScroll:scroll}});setView({riskTab:t,riskPreset,riskOrigin:{tab,mark,scroll}},true)}
  const pendingScroll=useRef(null)
  const returnToOrigin=()=>{pendingScroll.current=origin.scroll;setView({riskTab:origin.tab,riskMark:origin.mark||null})}
  // Back at the origin, once it has rendered: the same spot on the page.
- useLayoutEffect(()=>{if(pendingScroll.current==null)return;const scroller=scrollerOf(bodyRef.current);if(scroller)scroller.scrollTop=pendingScroll.current;pendingScroll.current=null},[tab])
+ useLayoutEffect(()=>{const top=pendingScroll.current??view.riskScroll;if(top==null)return;const scroller=scrollerOf(bodyRef.current);if(scroller)scroller.scrollTop=top;pendingScroll.current=null},[tab,location.key,view.riskScroll])
  const [confirm,setConfirm]=useState(null)
  const [approving,setApproving]=useState(false)
  const [detailsOpen,setDetailsOpen]=useState(false)

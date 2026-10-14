@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { sourcePath } from '../src/features/quality/qualityDeviations'
 
 let profile
@@ -26,9 +26,10 @@ const { OpportunityRecordPage } = await import('../src/features/quality/risk/Opp
 
 function Where() { const location = useLocation(); return <pre data-testid="where">{location.pathname}{JSON.stringify(location.state?.qualitySource || null)}</pre> }
 
+let historyBack
 async function open(path) {
   let api
-  function Capture() { api = useTenant(); return null }
+  function Capture() { api = useTenant(); const navigate = useNavigate(); historyBack = () => navigate(-1); return null }
   render(<MemoryRouter initialEntries={[path]}><LanguageProvider><FeedbackProvider><TenantProvider><NotificationProvider><Capture/>
     <Routes>
       <Route path="/quality" element={<QualityPage/>}/>
@@ -85,6 +86,7 @@ describe('risk assessment screens', () => {
     const chapter = within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button')
     const count = Number(within(chapter).getByText(/^\d+$/).textContent)
     expect(count).toBeGreaterThan(0)
+    document.querySelector('.risk-tab-scroll').scrollTop = 240
     fireEvent.click(chapter)
     await screen.findByRole('tab', { name: 'Μητρώο (14)', selected: true })
     expect(document.querySelectorAll('.risk-register tbody tr.risk-row-clickable')).toHaveLength(count)
@@ -93,6 +95,14 @@ describe('risk assessment screens', () => {
     fireEvent.click(document.querySelector('.risk-origin-back'))
     await screen.findByRole('tab', { name: 'Μεθοδολογία', selected: true })
     expect(within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button')).toHaveClass('registry-row-returned')
+    expect(document.querySelector('.risk-tab-scroll').scrollTop).toBe(240)
+    // The browser's back button also returns to the same spot.
+    document.querySelector('.risk-tab-scroll').scrollTop = 120
+    fireEvent.click(within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button'))
+    await screen.findByRole('tab', { name: 'Μητρώο (14)', selected: true })
+    act(() => historyBack())
+    await screen.findByRole('tab', { name: 'Μεθοδολογία', selected: true })
+    expect(document.querySelector('.risk-tab-scroll').scrollTop).toBe(120)
   })
 
   it('shows the details: approval cycle with the next step, next review, the period it came from', async () => {
