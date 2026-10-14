@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Save, Trash2, X } from 'lucide-react'
+import { Plus, Save, Trash2 } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -79,7 +79,6 @@ const momentLabels = (moments, en) =>
     .map(moment => (en ? moment.labelEn : moment.label))
 
 export function WhoHandHygieneEditor({
-  onCancel,
   onSave,
   fixedDepartment = '',
   initialRecord = null,
@@ -608,10 +607,6 @@ export function WhoHandHygieneEditor({
           )}
         </div>
         <div className="who-footer-buttons">
-          <ActionButton label={en ? 'Cancel' : 'Ακύρωση'} tone="neutral" onClick={onCancel}>
-            <X size={16} />
-            <span>{en ? 'Cancel' : 'Ακύρωση'}</span>
-          </ActionButton>
           <ActionButton
             label={
               initialRecord

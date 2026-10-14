@@ -4,7 +4,6 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadBundleClinicalOptions } from './bundleCloudService'
@@ -20,7 +19,6 @@ function allOrNoneFor(answers = {}) {
 }
 
 export function BundleExecutionEditor({
-  onCancel,
   onSave,
   fixedDepartment = '',
   initialRecord = null,
@@ -425,9 +423,6 @@ export function BundleExecutionEditor({
         />
       </label>
       <div className="bundle-page-actions">
-        <Button variant="secondary" onClick={onCancel}>
-          {en ? 'Cancel' : 'Ακύρωση'}
-        </Button>
         <SaveButton disabled={!canSave || saving} onClick={submit}>
           {saving
             ? en

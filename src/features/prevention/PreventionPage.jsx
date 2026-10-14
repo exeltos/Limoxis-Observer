@@ -694,17 +694,21 @@ export function PreventionPage() {
               registry={registry}
             />
           )}{' '}
-          {!loading && !rows.length && <PreventionEmpty t={t} tab={tab} language={language} />}
+          {!loading && !rows.length && (
+            <PreventionEmpty t={t} tab={tab} filtered={source.length > 0} canCreate={canCreateRecord} />
+          )}
         </div>
-        <RegistryPagination
-          language={language}
-          page={safePage}
-          totalPages={totalPages}
-          totalItems={rows.length}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-        />
+        {rows.length > 0 && (
+          <RegistryPagination
+            language={language}
+            page={safePage}
+            totalPages={totalPages}
+            totalItems={rows.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
       </div>
       {vaccinationEditor && (
         <StaffVaccinationEditor
@@ -732,13 +736,26 @@ const preventionEmptyTitleKeys = {
   antiseptics: 'preventionEmptyAntisepticsTitle',
   bundles: 'preventionEmptyBundlesTitle',
 }
-function PreventionEmpty({ t, tab }) {
+// An empty list says why, in the same line as every other registry: nothing
+// recorded yet (the «press» hint only for those who can create), or nothing
+// matches the search or filters.
+function PreventionEmpty({ t, tab, filtered, canCreate }) {
+  if (filtered)
+    return (
+      <div className="inline-empty" role="status">
+        <strong>{t('svEmptyFiltered')}</strong>
+        <span>{t('svEmptyFilteredHint')}</span>
+      </div>
+    )
   return (
-    <div className="registry-empty-state">
+    <div className="inline-empty" role="status">
       <strong>
         {tab === 'vaccinations' ? t('noVaccinationRecords') : t(preventionEmptyTitleKeys[tab])}
       </strong>
-      <span>{t('preventionEmptyGenericText')}</span>
+      <span>
+        {t('preventionEmptyGenericText')}
+        {canCreate ? ` ${t('preventionEmptyCreateHint')}` : ''}
+      </span>
     </div>
   )
 }

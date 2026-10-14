@@ -218,8 +218,6 @@ export function StaffVaccinationEditor({
       onClose={onClose}
       footer={
         <DialogActions
-          showCancel
-          onCancel={onClose}
           onSave={() => onSave(value)}
           disabled={!valid}
           saveLabel={

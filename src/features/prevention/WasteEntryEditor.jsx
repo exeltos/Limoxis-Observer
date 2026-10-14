@@ -9,7 +9,6 @@ import {
   Scale,
   Truck,
   UserRound,
-  X,
   BedDouble,
   Gauge,
 } from 'lucide-react'
@@ -20,7 +19,6 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 export function WasteEntryEditor({
-  onCancel,
   onSave,
   fixedDepartment = '',
   initialRecord = null,
@@ -410,10 +408,6 @@ export function WasteEntryEditor({
       </div>
 
       <div className="who-editor-page-actions prevention-editor-page-actions">
-        <ActionButton label={en ? 'Cancel' : 'Ακύρωση'} tone="neutral" onClick={onCancel}>
-          <X size={16} />
-          <span>{en ? 'Cancel' : 'Ακύρωση'}</span>
-        </ActionButton>
         <ActionButton
           label={
             initialRecord

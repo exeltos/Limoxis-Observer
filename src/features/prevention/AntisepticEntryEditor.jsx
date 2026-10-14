@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Save, X } from 'lucide-react'
+import { Save } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -19,7 +19,6 @@ function monthRange(period) {
 }
 
 export function AntisepticEntryEditor({
-  onCancel,
   onSave,
   fixedDepartment = '',
   initialRecord = null,
@@ -398,10 +397,6 @@ export function AntisepticEntryEditor({
         </aside>
       </div>
       <div className="prevention-editor-page-actions">
-        <ActionButton label={en ? 'Cancel' : 'Ακύρωση'} tone="neutral" onClick={onCancel}>
-          <X size={16} />
-          <span>{en ? 'Cancel' : 'Ακύρωση'}</span>
-        </ActionButton>
         <ActionButton
           label={
             initialRecord

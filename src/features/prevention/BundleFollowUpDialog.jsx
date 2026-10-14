@@ -37,8 +37,6 @@ export function BundleFollowUpDialog({ item, value, onClose, onSave }) {
       onClose={onClose}
       footer={
         <DialogActions
-          showCancel
-          onCancel={onClose}
           onSave={save}
           disabled={!valid}
           saveLabel={en ? 'Save follow-up' : 'Αποθήκευση επανελέγχου'}
