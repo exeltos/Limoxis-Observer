@@ -4,7 +4,7 @@ import { readLaboratorySampleRecordSource } from './helpers/laboratorySampleReco
 const i18n=fs.readFileSync('src/core/i18n/stringsEl.js','utf8')+fs.readFileSync('src/core/i18n/stringsEn.js','utf8')
 
 const patients=fs.readFileSync('src/features/patients/patientsService.js','utf8')
-const patientForm=fs.readFileSync('src/features/patients/PatientsPage.jsx','utf8')
+const patientForm=fs.readFileSync('src/features/patients/PatientForm.jsx','utf8')
 const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.js','utf8')
 const cloud=fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')
 const labRecord=readLaboratorySampleRecordSource()

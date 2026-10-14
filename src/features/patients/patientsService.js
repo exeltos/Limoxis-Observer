@@ -28,8 +28,12 @@ function mapRow(row, departmentLabel){
   }
 }
 
+// Demo patients created in this session, so a new patient's record opens
+// after saving; nothing is stored, a reload brings back the sample roster.
+const demoSessionPatients=[]
+
 export async function loadPatients(organizationId, {isDemo=false,includeArchived=false}={}){
-  if(isDemo || !organizationId || !supabase) return structuredClone(patientDemoData)
+  if(isDemo || !organizationId || !supabase) return [...structuredClone(demoSessionPatients),...structuredClone(patientDemoData)]
   // Reports need archived patients too: their past isolates still count.
   let query=supabase.from('patients').select('*, department:departments(name,department_type)').eq('organization_id',organizationId)
   if(!includeArchived)query=query.is('archived_at',null)
@@ -59,6 +63,7 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     // No real "patients" row is inserted here, so the patients_create_initial_admission
     // DB trigger never runs — mirror it locally so the patient isn't left without an admission.
     const record=await createInitialAdmission(organizationId,{id:patientCode,status:'active',...draft},draft,{isDemo})
+    demoSessionPatients.unshift(record)
     return {record,list:[record,...existing]}
   }
   const department=await resolveDepartment(organizationId,draft.departmentId)

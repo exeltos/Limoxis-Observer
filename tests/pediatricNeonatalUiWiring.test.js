@@ -13,7 +13,7 @@ describe('pediatric/neonatal support UI wiring', () => {
   })
 
   it('collects birth weight and gestational age on the patient intake form', () => {
-    const form = read('src/features/patients/PatientsPage.jsx')
+    const form = read('src/features/patients/PatientForm.jsx')
     expect(form).toContain('birthWeightGrams')
     expect(form).toContain('gestationalAgeWeeks')
   })

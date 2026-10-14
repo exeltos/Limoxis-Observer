@@ -5,7 +5,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
-import { PatientFormDialog } from './PatientsPage'
+import { PatientFormDialog } from './PatientForm'
 import { archivePatient, updatePatient } from './patientsService'
 import { useState } from 'react'
 

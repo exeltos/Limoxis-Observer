@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest'
 import fs from 'node:fs'
 
-const page=fs.readFileSync('src/features/patients/PatientsPage.jsx','utf8')
+const page=fs.readFileSync('src/features/patients/PatientCreatePage.jsx','utf8')
 const service=fs.readFileSync('src/features/patients/patientsService.js','utf8')
 const migration=fs.readFileSync('supabase/migrations/20260902115625_clinical_core_rls_authenticated_scope.sql','utf8')
 
@@ -9,7 +9,7 @@ describe('patient registry governance',()=>{
   it('loads production department options from the hospital library',()=>{
     expect(page).toContain("import { loadDepartments } from '../management/departmentsService'")
     expect(page).toContain('loadDepartments(tenant?.id)')
-    expect(page).toContain('departments={departmentOptions}')
+    expect(page).toContain('usePatientForm({t,language,departments,existingPatients:patients})')
   })
 
   it('persists canonical department ids without creating departments from patient workflows',()=>{
