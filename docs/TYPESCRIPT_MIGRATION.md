@@ -8,7 +8,7 @@ Limoxis Observer moves from JavaScript to TypeScript **one module at a time**. E
 - Imports inside `src` stay extensionless (`from './roles'`), as today; Vite resolves `.js`, `.jsx`, `.ts` and `.tsx` alike.
 - A module that Node runs directly (the `tools/*.mjs` audits import some `src` modules) uses explicit `.ts` extensions in its own imports, and the audit imports it as `.ts`. Node 22 runs `.ts` files natively by stripping the types; `allowImportingTsExtensions` lets the type checker accept those paths.
 - Only type syntax that can be erased (`erasableSyntaxOnly`): no `enum`, `namespace` or constructor parameter properties. Use `as const` objects and union types instead.
-- Every `.ts`/`.tsx` file in `src` is checked by `npm run typecheck:strict` (`strict`, `noImplicitAny`). There is no per-file opt-out.
+- Every `.ts`/`.tsx` file in `src` is checked by `npm run typecheck:strict` (`strict`, `noImplicitAny`) through `tsconfig.typescript.json`. There is no per-file opt-out. That project has `checkJs` off, so an unconverted `.js` file that a `.ts` file imports is read for its exports but not checked: a conversion never fails because of code it did not touch. The JSDoc-typed JavaScript (`src/core/permissions`) keeps its own strict project, `tsconfig.strict.json`.
 - Database rows: `Database['public']['Tables']['<table>']['Row']` from `src/core/supabase/database.types.ts`. Regenerate the file after a schema migration (`supabase gen types typescript`); never edit it by hand.
 - New code is written in TypeScript from the start.
 
