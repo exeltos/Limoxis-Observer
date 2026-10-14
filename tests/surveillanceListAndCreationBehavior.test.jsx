@@ -68,6 +68,7 @@ async function openCenter() {
   await act(async () => {
     await new Promise(resolve => setTimeout(resolve, 200))
   })
+  return api
 }
 const openTab = async name => {
   fireEvent.click(screen.getByRole('tab', { name }))
@@ -317,5 +318,44 @@ describe('English labels', () => {
     const chooser = await screen.findByRole('dialog')
     fireEvent.click(within(chooser).getByRole('button', { name: /^Patient/ }))
     expect(await screen.findByRole('combobox', { name: 'Patient' })).toBeInTheDocument()
+  })
+})
+
+describe('empty surveillance lists', () => {
+  const environmental = () => laboratorySamples.filter(x => x.subjectType === 'environment')
+  let removed = []
+  afterEach(() => {
+    laboratorySamples.push(...removed)
+    removed = []
+  })
+  const emptyEnvironment = () => {
+    removed = environmental()
+    for (const sample of removed) laboratorySamples.splice(laboratorySamples.indexOf(sample), 1)
+  }
+
+  it('says nothing matches when the search hides every record', async () => {
+    await openCenter()
+    fireEvent.change(screen.getByPlaceholderText('Αναζήτηση'), { target: { value: 'zzz-κανένας' } })
+    expect(
+      await screen.findByText('Δεν βρέθηκαν εγγραφές με αυτή την αναζήτηση ή τα φίλτρα'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Δεν υπάρχουν επιτηρήσεις ασθενών')).toBeNull()
+  })
+
+  it('invites the first record only from those who can create one', async () => {
+    emptyEnvironment()
+    const api = await openCenter()
+    await openTab(/Περιβάλλον/)
+    expect(
+      await screen.findByText('Δεν υπάρχουν καταγραφές περιβαλλοντικής επιτήρησης'),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Πατήστε «Δημιουργία»/)).toBeInTheDocument()
+    act(() => {
+      api.startRolePreview('infection_control_member')
+    })
+    await waitFor(() => expect(screen.queryByText(/Πατήστε «Δημιουργία»/)).toBeNull())
+    expect(
+      screen.getByText('Δεν υπάρχουν καταγραφές περιβαλλοντικής επιτήρησης'),
+    ).toBeInTheDocument()
   })
 })

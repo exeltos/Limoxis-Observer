@@ -199,7 +199,9 @@ export function LaboratorySampleRecordFunctionalView() {
         <EmptyState title={t('actionFailed')} description={error || t('noData')} />
       </Page>
     )
-  if (!canAccessRecord(sample))
+  // The surveillance address opens environmental samples only; a patient or
+  // employee sample stays behind the Laboratory's own access.
+  if (!canAccessRecord(sample) || (inSurveillance && !isEnvironmental))
     return (
       <Page title={t('laboratoryRecords.sample')}>
         <EmptyState
@@ -374,7 +376,7 @@ export function LaboratorySampleRecordFunctionalView() {
         activeTab={tab}
         onTabChange={setTab}
         onBack={goBack}
-        backLabel={inSurveillance ? t('backToSurveillance') : t('backToLaboratory')}
+        backLabel={inSurveillance ? t('clinicalRecords.backToSurveillance') : t('backToLaboratory')}
       >
         {tab === 'sample' && (
           <div className="lab-record-stack">

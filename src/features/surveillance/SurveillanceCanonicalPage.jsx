@@ -9,7 +9,7 @@ import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import { UI_ACTIONS } from '../../core/actions/actionPolicy'
+import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -317,10 +317,23 @@ export function SurveillanceCanonicalPage() {
         updatedAt: new Date().toISOString(),
       }),
     )
-  // Empty lists say why: nothing recorded yet, or nothing matches the search.
-  const narrowed =
-    Boolean(query.trim()) || department !== 'all' || status !== 'all' || Boolean(quick)
-  const empty = narrowed
+  // Empty lists say why: nothing recorded yet, or nothing matches the search
+  // or filters (cancelled episodes, hidden by default, count as records). The
+  // «press Create» hint shows only to those who see the Create button.
+  const recorded =
+    {
+      patients: cases.filter(canAccessRecord),
+      employees: employeeRows,
+      environmental: environmentRows,
+    }[mode] || []
+  const canCreate = canPerform({
+    role: role || actualRole,
+    addOns: membership?.capabilities ?? [],
+    customCapabilities: membership?.customCapabilities ?? [],
+    action: UI_ACTIONS.CREATE,
+    resourceCapability: CAPABILITIES.CREATE_SURVEILLANCE,
+  })
+  const empty = recorded.length
     ? { title: t('svEmptyFiltered'), text: t('svEmptyFilteredHint') }
     : {
         title: t(
@@ -330,7 +343,7 @@ export function SurveillanceCanonicalPage() {
             environmental: 'svEmptyEnvironmental',
           }[mode],
         ),
-        text: t('svEmptyHint'),
+        text: canCreate ? t('svEmptyHint') : '',
       }
   const tabItems = [
     { value: 'patients', label: t('patients'), icon: Activity },
