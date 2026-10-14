@@ -46,6 +46,8 @@ The `audit:*` scripts (see `tools/`) are project-specific regression guardrails 
 
 Typed modules are checked strictly (`strict`, `checkJs`) by `npm run typecheck:strict`, which `npm run check` and CI run. They are listed in `tsconfig.strict.json`; the first is the permission model (`src/core/permissions`, shared types in `types.js`). Add a folder there once its exports carry JSDoc types.
 
+**TypeScript migration** — the codebase is moving to TypeScript one module at a time (plan, conventions and the per-module checklist: [`docs/TYPESCRIPT_MIGRATION.md`](./docs/TYPESCRIPT_MIGRATION.md)). `.ts`/`.tsx` files sit beside `.js`/`.jsx` ones; every `.ts`/`.tsx` file under `src` is checked strictly by `npm run typecheck:strict` and linted with `typescript-eslint`. Database row types are generated into `src/core/supabase/database.types.ts`.
+
 ## Architecture
 
 - `src/app` — router, shell, top-level navigation.

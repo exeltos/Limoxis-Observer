@@ -15,9 +15,11 @@ function walk(dir){
  for(const name of fs.readdirSync(dir)){
   const full=path.join(dir,name),stat=fs.statSync(full)
   if(stat.isDirectory())walk(full)
-  else if(/\.(jsx|js)$/.test(name)){
+  else if(/\.[jt]sx?$/.test(name)){
    const rel=full.replaceAll('\\','/')
-   if(migrated.has(rel)||exclude.some(x=>rel.toLowerCase().includes(x)))continue
+   // Lists name .js/.jsx files; a file converted to .ts/.tsx keeps its entry.
+   const key=rel.replace(/\.ts(x?)$/,'.js$1')
+   if(migrated.has(key)||exclude.some(x=>key.toLowerCase().includes(x)))continue
    const lines=fs.readFileSync(full,'utf8').split(/\r?\n/)
    const count=lines.filter(line=>greek.test(line)).length
    if(count)results.push([count,rel])
