@@ -6,6 +6,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { demoLibrarySeed } from '../management/managementData'
 import { createPatient } from '../patients/patientsService'
 import { PatientSelector, StartStep } from './NewSurveillanceSteps'
+import './surveillanceEntryCard.css'
 
 export function NewSurveillanceFlow({
   patient = null,
@@ -175,8 +176,8 @@ export function NewSurveillanceFlow({
       <section className="episode-detail-card new-surveillance-flow-card new-surveillance-start-card">
         <header className="episode-detail-header">
           <div>
-            <span className="eyebrow">{t('surveillance')}</span>
-            <h2>{t('newSurveillance')}</h2>
+            <span className="eyebrow">{t('newSurveillance')}</span>
+            <h2>{t('svPatientSurveillance')}</h2>
             <p>
               {selectedPatient
                 ? `${language === 'el' ? selectedPatient.name : selectedPatient.nameEn || selectedPatient.name} · ${selectedPatient.id}`
@@ -241,7 +242,6 @@ export function NewSurveillanceFlow({
           {
             <StartStep
               busy={busy}
-              cancelFlow={onClose}
               contextDepartment={contextDepartment}
               language={language}
               patientMode={patientMode}

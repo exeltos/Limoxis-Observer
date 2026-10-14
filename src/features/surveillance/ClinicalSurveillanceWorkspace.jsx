@@ -372,7 +372,7 @@ export function SurveillanceWorkspace({
               )}
             </p>
           </div>
-          <div className="button-row">
+          <div className="row-actions">
             {onClearTestData && (
               <Button variant="ghost" onClick={onClearTestData}>
                 <Trash2 size={15} />

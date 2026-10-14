@@ -50,7 +50,7 @@ async function openCenter() {
               <Capture />
               <Routes>
                 <Route path="/surveillance" element={<SurveillanceCanonicalPage />} />
-                <Route path="/laboratory/:id" element={<SampleRecord />} />
+                <Route path="/surveillance/environment/:id" element={<SampleRecord />} />
               </Routes>
             </NotificationProvider>
           </TenantProvider>
@@ -206,7 +206,8 @@ describe('New employee surveillance dialog', () => {
     expect(body).not.toBeNull()
     expect(within(body).getByText('Τύπος ελέγχου')).toBeInTheDocument()
     expect(body.contains(create)).toBe(false)
-    expect(body.contains(screen.getByRole('button', { name: 'Ακύρωση' }))).toBe(false)
+    // The dialog closes with its × alone: no separate «Ακύρωση».
+    expect(screen.queryByRole('button', { name: 'Ακύρωση' })).toBeNull()
   })
 
   it('names the chosen employee in individual mode and counts only in bulk mode', async () => {

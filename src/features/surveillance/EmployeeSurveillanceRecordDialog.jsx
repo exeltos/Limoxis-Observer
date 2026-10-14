@@ -586,17 +586,15 @@ export function EmployeeSurveillanceRecordDialog({
         </section>
       )}
       {!followupEligible && (
-        <section className="employee-record-section">
-          <div className="source-truth-note">
-            {resultKnown
-              ? en
-                ? 'This screening does not require follow-up.'
-                : 'Αυτός ο έλεγχος δεν απαιτεί παρακολούθηση.'
-              : en
-                ? 'Awaiting the laboratory result. Follow-up is decided once the result is validated.'
-                : 'Αναμένεται το εργαστηριακό αποτέλεσμα. Η ανάγκη παρακολούθησης κρίνεται μετά την επικύρωσή του.'}
-          </div>
-        </section>
+        <div className="source-truth-note employee-record-note">
+          {resultKnown
+            ? en
+              ? 'This screening does not require follow-up.'
+              : 'Αυτός ο έλεγχος δεν απαιτεί παρακολούθηση.'
+            : en
+              ? 'Awaiting the laboratory result. Follow-up is decided once the result is validated.'
+              : 'Αναμένεται το εργαστηριακό αποτέλεσμα. Η ανάγκη παρακολούθησης κρίνεται μετά την επικύρωσή του.'}
+        </div>
       )}
       {requestEditor && (
         <ObserverDialog

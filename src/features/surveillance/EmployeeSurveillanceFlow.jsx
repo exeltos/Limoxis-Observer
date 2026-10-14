@@ -1,5 +1,4 @@
 import { Building2, UserRound, UsersRound } from 'lucide-react'
-import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { SubjectChoiceStep } from '../../design-system/SubjectChoiceStep'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -22,7 +21,7 @@ export function SurveillanceSubjectChooser({onClose,onPatient,onEmployee,onEnvir
     ['environment',Building2,t('environmentalSurveillance'),t('clinicalRecords.environmentalSurveillanceChoiceHelp')],
   ]
   const choose=id=>id==='patient'?onPatient?.():id==='employee'?onEmployee?.():onEnvironmental?.()
-  return <ObserverDialog eyebrow={t('surveillance')} title={t('newSurveillance')} width="standard" className="surveillance-subject-chooser" onClose={onClose} footer={<Button variant="secondary" onClick={onClose}>{t('cancel')}</Button>}>
-    <SubjectChoiceStep step={1} title={t('clinicalRecords.surveillanceSubjectQuestion')} hint={t('clinicalRecords.chooseCategoryToContinue')} choices={choices} onChoose={choose}/>
+  return <ObserverDialog eyebrow={t('surveillance')} title={t('newSurveillance')} width="standard" className="surveillance-subject-chooser" onClose={onClose}>
+    <SubjectChoiceStep step={null} title={t('clinicalRecords.surveillanceSubjectQuestion')} hint={t('clinicalRecords.chooseCategoryToContinue')} choices={choices} onChoose={choose}/>
   </ObserverDialog>
 }

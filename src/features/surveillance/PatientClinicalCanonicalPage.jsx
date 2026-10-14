@@ -703,9 +703,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
               )}
             </p>
             <div className="dialog-actions">
-              <Button variant="secondary" onClick={() => setClearTestOpen(false)}>
-                {t('cancel')}
-              </Button>
               <Button onClick={clearOwnerClinicalTestData}>
                 {translate('copy.clinicalRecordCopy.confirmClear', language === 'el' ? 'el' : 'en')}
               </Button>

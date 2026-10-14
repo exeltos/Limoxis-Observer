@@ -16,7 +16,7 @@ import {
   RotateCcw,
   ShieldAlert,
 } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { Button } from '../../design-system/Button'
@@ -54,11 +54,14 @@ export function LaboratorySampleRecordFunctionalView() {
   const { notify } = useFeedback()
   const { role, membership, tenant, isDemo, canAccessRecord } = useTenant()
   const repository = useLaboratoryRepository()
-  const { goBack } = useContextualNavigation('/laboratory')
+  // An environmental sample opened from the Surveillance Center stays there:
+  // its own address, back and previous/next follow the surveillance list.
+  const inSurveillance = useLocation().pathname.startsWith('/surveillance/')
+  const { goBack } = useContextualNavigation(inSurveillance ? '/surveillance' : '/laboratory')
   const recordNavigation = useRecordSequenceNavigation({
-    registry: 'laboratory',
+    registry: inSurveillance ? 'surveillance-environmental' : 'laboratory',
     currentId: sampleId,
-    pathForId: id => `/laboratory/${id}`,
+    pathForId: id => (inSurveillance ? `/surveillance/environment/${id}` : `/laboratory/${id}`),
   })
   const [sample, setSample] = useState(null),
     [loading, setLoading] = useState(true),
@@ -371,7 +374,7 @@ export function LaboratorySampleRecordFunctionalView() {
         activeTab={tab}
         onTabChange={setTab}
         onBack={goBack}
-        backLabel={t('backToLaboratory')}
+        backLabel={inSurveillance ? t('backToSurveillance') : t('backToLaboratory')}
       >
         {tab === 'sample' && (
           <div className="lab-record-stack">
