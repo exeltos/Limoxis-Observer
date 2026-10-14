@@ -68,6 +68,9 @@ serveWithCors(async(req)=>{
   // An invitation already opened once confirms the address; a magic link still signs the user in to /activate.
   if(error||!link?.properties?.hashed_token){type='magiclink';({data:link,error}=await admin.auth.admin.generateLink({type:'magiclink',email,options}))}
   if(error||!link?.properties?.hashed_token)return reply({error:error?.message||'INVITATION_LINK_FAILED'},500)
+  // Every link handed out is on record (who, for whom, when): no record, no link.
+  const {error:auditError}=await admin.from('system_audit_log').insert({organization_id:organizationId,actor_user_id:cu.user.id,actor_role:isOwner?'platform_owner':'hospital_admin',event_type:'organization.user.invitation_link',entity_type:'user',entity_id:userId,metadata:{link_type:type}})
+  if(auditError)return reply({error:'INVITATION_LINK_AUDIT_FAILED'},500)
   // The app's own address: /activate verifies the token when the password is set.
   return reply({ok:true,link:`${app}/activate?token_hash=${encodeURIComponent(link.properties.hashed_token)}&type=${type}`})
  }
