@@ -15,7 +15,7 @@ import { can,CAPABILITIES,ROLES } from '../../../core/permissions/roles'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
 import { exportRegistry } from '../../../core/export/registryExports'
-import { createRiskAssessment,deleteOpportunity,deleteRisk,deleteRiskAssessment,loadRiskAssessment,loadRiskAssessments,saveRisk,saveRiskAssessment } from './riskService'
+import { createRiskAssessment,deleteRiskAssessment,loadRiskAssessment,loadRiskAssessments,saveRisk,saveRiskAssessment } from './riskService'
 import { levelLabel,scored,suggestPeriodLabel,summarizeRisks } from './riskModel'
 import { RiskRegister } from './RiskRegister'
 import { RiskAnalysis } from './RiskAnalysis'
@@ -43,7 +43,7 @@ export function RiskAssessmentPage(){
  const {role,membership,tenant,actualRole,isRolePreview}=useTenant()
  const {profile,user}=useAuth()
  const {notify}=useFeedback()
- const {goTo,goBack:goBackTo}=useContextualNavigation('/quality')
+ const {goBack:goBackTo}=useContextualNavigation('/quality')
  // Back to where the user came from; when that is the Quality Center (or unknown), its risk tab.
  const goBack=()=>{if(view.riskOrigin){returnToOrigin();return};const from=location.state?.limoxisFrom?.pathname;if(!from||from==='/quality')rememberQualitySection('risks');goBackTo()}
  const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
@@ -120,18 +120,12 @@ export function RiskAssessmentPage(){
   }catch{notify(L(en,'Δεν ήταν δυνατή η σύνδεση των δεικτών.','Could not link the indicators.'),'error')}finally{setSaving(false)}
  }
  const openRisk=risk=>{if((risks||[]).some(r=>r.lineageKey===risk.lineageKey)){riskRow.remember(risk.lineageKey);navigate(`/quality/risks/${assessment.code}/${risk.lineageKey}`,{state:{riskTab:tab,returnState:view}})}}
- async function removeRisk(risk){try{await deleteRisk(organizationId,assessment.id,risk.id);setAssessment(current=>({...current,risks:current.risks.filter(r=>r.id!==risk.id)}));notify(L(en,'Ο κίνδυνος διαγράφηκε.','The risk was deleted.'),'success')}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
- async function removeOpportunity(item){try{await deleteOpportunity(organizationId,assessment.id,item.id);setAssessment(current=>({...current,opportunities:current.opportunities.filter(o=>o.id!==item.id)}))}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
  // The next period, with this assessment's risks carried over to be reassessed.
  async function createNext(draft,carryFrom){
   try{const created=await createRiskAssessment(organizationId,{...draft,history:[auditEvent('riskAssessmentCreated',{actor})]},{carryFrom});setCreatingNext(false);navigate(`/quality/risks/${created.code}`)}
   catch{notify(L(en,'Δεν ήταν δυνατή η δημιουργία της εκτίμησης.','Could not create the assessment.'),'error')}
  }
  async function removeAssessment(){try{await deleteRiskAssessment(organizationId,assessment);goBack()}catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}}
- function createCapa(risk){
-  const s=scored(risk)
-  goTo('/quality/capas/new',{registry:'quality.capas',state:{qualitySource:{source:'other',sourceId:`RISK:${assessment.code}:${risk.lineageKey}`,title:L(en,`Μείωση κινδύνου: ${txt(risk,'hazard',en)}`,`Risk reduction: ${txt(risk,'hazard',en)}`),description:[`${assessment.periodLabel} · ${risk.lineageKey} · ${txt(risk,'process',en)}`,`${L(en,'Υπολειπόμενος κίνδυνος','Residual risk')}: ${s.residual.score??'—'} (${levelLabel(s.residual.level,en)})`,txt(risk,'additionalMeasures',en)].filter(Boolean).join('\n'),priority:s.residual.level==='very_high'?'critical':s.residual.level==='high'?'high':'medium',dueDate:risk.dueDate||undefined}}})
- }
  function exportCsv(){
   const headers=en?['Code','Section','Process','Applies to','Risk','Inherent L','Inherent C','Inherent score','Inherent level','Existing controls','Residual L','Residual C','Residual score','Residual level','Additional measures','Owner','Due date','Review frequency','Indicator','Target L','Target C','Target score','Target level','JCI','JCI reference','FMEA']:['Κωδικός','Ενότητα','Διεργασία','Τμήμα / αφορά','Κίνδυνος','Εγγενής L','Εγγενής C','Εγγενής βαθμός','Εγγενής κατηγορία','Προληπτικά μέτρα','Υπολειπόμενος L','Υπολειπόμενος C','Υπολειπόμενος βαθμός','Υπολειπόμενη κατηγορία','Πρόσθετα μέτρα','Υπεύθυνος','Προθεσμία','Συχνότητα ελέγχου','Δείκτης','Στόχος L','Στόχος C','Βαθμός στόχου','Κατηγορία στόχου','JCI','Αναφορά JCI','FMEA']
   exportRegistry({name:`${en?'risk-assessment':'ektimisi-kindynou'}_${assessment.periodLabel}`,headers,rows:risks.map(r=>{const s=scored(r);return [r.lineageKey,r.section,txt(r,'process',en),txt(r,'scope',en),txt(r,'hazard',en),s.inherent.l,s.inherent.c,s.inherent.score,levelLabel(s.inherent.level,en),txt(r,'existingControls',en),s.residual.l,s.residual.c,s.residual.score,levelLabel(s.residual.level,en),txt(r,'additionalMeasures',en),txt(r,'owner',en),r.dueDate||'',txt(r,'reviewFrequency',en),r.indicator,s.target.l,s.target.c,s.target.score,levelLabel(s.target.level,en),r.jci,r.jciReference,r.prioritized?'✓':'']})})
@@ -184,10 +178,10 @@ export function RiskAssessmentPage(){
   subtitle={[assessment.formCode,assessment.periodLabel,fmtDate(assessment.assessedOn,locale)].filter(Boolean).join(' · ')}
   status={<span className={`status-badge ${statusTone(assessment.status)}`}>{statusLabel(assessment.status,en)}</span>}
   onBack={goBack} backLabel={origin?L(en,`Πίσω σε «${tabs.find(t=>t.id===origin.tab)?.label||''}»`,`Back to “${tabs.find(t=>t.id===origin.tab)?.label||''}”`):L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
-   {tab==='register'&&<RiskRegister frame={frame} key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} onDelete={risk=>setConfirm({kind:'risk',risk})} onCreateCapa={createCapa} actions={menu} indicatorValues={indicatorValues} returned={riskRow.returned}/>}
+   {tab==='register'&&<RiskRegister frame={frame} key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} actions={menu} indicatorValues={indicatorValues} returned={riskRow.returned}/>}
    {tab==='analysis'&&<RiskAnalysis frame={frame} mark={view.riskMark||''} returned={riskRow.returned} actions={menu} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>jump('register',{cell:c},`${c.kind}:${c.l}:${c.c}`)}/>}
    {tab==='comparison'&&<RiskComparison frame={frame} returned={riskRow.returned} actions={menu} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk,from)=>{if(from&&from.id!==assessment.id){rememberRow(`limoxis.quality.risk.returned.${from.code}`,risk.lineageKey);navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}})}else openRisk(risk)}}/>}
-   {tab==='opportunities'&&<RiskOpportunities frame={frame} returned={opportunityRow.returned} actions={menu} items={assessment.opportunities||[]} en={en} canEdit={canEdit} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}} onCreate={()=>navigate(`/quality/risks/${assessment.code}/opportunities/new`)} onDelete={removeOpportunity}/>}
+   {tab==='opportunities'&&<RiskOpportunities frame={frame} returned={opportunityRow.returned} actions={menu} items={assessment.opportunities||[]} en={en} canEdit={canEdit} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}} onCreate={()=>navigate(`/quality/risks/${assessment.code}/opportunities/new`)}/>}
    {tab==='methodology'&&<RiskMethodology frame={frame} en={en} risks={risks} actions={menu} returned={view.riskMark||''} onJci={jci=>jump('register',{jci},`jci:${jci}`)} onPickFmea={()=>jump('register',{quick:'highOrAbove'},'fmea')}/>}
    {tab==='details'&&<RiskAssessmentDetails frame={frame} assessment={assessment} assessments={all} en={en} locale={locale} actions={menu} nextStep={nextStep} onOpenAssessment={code=>navigate(`/quality/risks/${code}`)} onCreateNext={canManage?()=>setCreatingNext(true):null}/>}
   <div className="risk-print-host" aria-hidden="true"><RiskReport ref={reportRef} assessment={{...assessment,risks}} summary={summary} previous={previous} organizationName={tenant?.name||''} en={en} locale={locale}/></div>
@@ -195,8 +189,8 @@ export function RiskAssessmentPage(){
   {creatingNext&&<AssessmentDetailsDialog en={en} assessments={[{...assessment,risks}]} initial={{title:assessment.title,formCode:assessment.formCode,periodKind:assessment.periodKind,assessorLabel:assessment.assessorLabel,scopeNote:assessment.scopeNote,periodLabel:suggestPeriodLabel(assessment.periodKind,new Date().toISOString().slice(0,10),en)}} onClose={()=>setCreatingNext(false)} onSave={createNext}/>}
   {detailsOpen&&<AssessmentDetailsDialog initial={assessment} en={en} onClose={()=>setDetailsOpen(false)} onSave={async draft=>{if(await persistAssessment(draft,'riskAssessmentUpdated'))setDetailsOpen(false)}}/>}
   {approving&&<ApproveDialog en={en} onClose={()=>setApproving(false)} onSave={async ({by,on})=>{if(await persistAssessment({status:'approved',approvedByLabel:by,approvedOn:on},'riskAssessmentApproved'))setApproving(false)}}/>}
-  {confirm&&<ObserverDialog width="compact" title={confirm.kind==='assessment'?L(en,'Διαγραφή εκτίμησης','Delete assessment'):L(en,'Διαγραφή κινδύνου','Delete risk')} onClose={()=>setConfirm(null)} footer={<DialogActions onCancel={()=>setConfirm(null)} showCancel onSave={async()=>{const c=confirm;setConfirm(null);if(c.kind==='assessment')await removeAssessment();else await removeRisk(c.risk)}} saveLabel={L(en,'Διαγραφή','Delete')}/>}>
-   <p>{confirm.kind==='assessment'?L(en,`Θα διαγραφεί η εκτίμηση ${assessment.periodLabel} με ${risks.length} κινδύνους.`,`The ${assessment.periodLabel} assessment with ${risks.length} risks will be deleted.`):`${confirm.risk.lineageKey} · ${txt(confirm.risk,'hazard',en)}`}</p>
+  {confirm&&<ObserverDialog width="compact" title={L(en,'Διαγραφή εκτίμησης','Delete assessment')} onClose={()=>setConfirm(null)} footer={<DialogActions onCancel={()=>setConfirm(null)} showCancel onSave={async()=>{setConfirm(null);await removeAssessment()}} saveLabel={L(en,'Διαγραφή','Delete')}/>}>
+   <p>{L(en,`Θα διαγραφεί η εκτίμηση ${assessment.periodLabel} με ${risks.length} κινδύνους.`,`The ${assessment.periodLabel} assessment with ${risks.length} risks will be deleted.`)}</p>
   </ObserverDialog>}
  </EntityRecordShell></Page>
 }

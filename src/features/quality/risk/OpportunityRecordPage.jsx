@@ -5,10 +5,10 @@ import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { can,CAPABILITIES,ROLES } from '../../../core/permissions/roles'
-import { loadRiskAssessment,saveOpportunity } from './riskService'
+import { deleteOpportunity,loadRiskAssessment,saveOpportunity } from './riskService'
 import { opportunityCode } from './riskModel'
 import { OpportunityEditor } from './OpportunityEditor'
-import { L } from './riskUi'
+import { DeleteConfirm,L } from './riskUi'
 import './riskAssessment.css'
 
 const EDITABLE=['draft','under_review']
@@ -27,6 +27,7 @@ export function OpportunityRecordPage(){
  const [assessment,setAssessment]=useState(null)
  const [loading,setLoading]=useState(true)
  const [saving,setSaving]=useState(false)
+ const [confirming,setConfirming]=useState(false)
  useEffect(()=>{let active=true;setLoading(true);loadRiskAssessment(organizationId,assessmentCode).then(a=>{if(active)setAssessment(a)}).catch(()=>{if(active)setAssessment(null)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[organizationId,assessmentCode])
  const list=assessment?.opportunities||[]
  const isNew=opportunityId==='new'
@@ -45,5 +46,13 @@ export function OpportunityRecordPage(){
    notify(L(en,'Η ευκαιρία αποθηκεύτηκε.','The opportunity was saved.'),'success');back()
   }catch{notify(L(en,'Δεν ήταν δυνατή η αποθήκευση της ευκαιρίας.','Could not save the opportunity.'),'error')}finally{setSaving(false)}
  }
- return <Page fill><OpportunityEditor key={opportunityId} item={item} code={isNew?'':opportunityCode(index)} en={en} readOnly={!canEdit} saving={saving} assessmentLabel={assessment.periodLabel} onClose={back} onSave={save}/></Page>
+ async function remove(){
+  setConfirming(false)
+  try{await deleteOpportunity(organizationId,assessment.id,item.id);notify(L(en,'Η ευκαιρία διαγράφηκε.','The opportunity was deleted.'),'success');back()}
+  catch{notify(L(en,'Δεν ήταν δυνατή η διαγραφή.','Could not delete.'),'error')}
+ }
+ return <Page fill>
+  <OpportunityEditor key={opportunityId} item={item} code={isNew?'':opportunityCode(index)} en={en} readOnly={!canEdit} saving={saving} assessmentLabel={assessment.periodLabel} onClose={back} onSave={save} onDelete={()=>setConfirming(true)}/>
+  {confirming&&<DeleteConfirm en={en} title={L(en,'Διαγραφή ευκαιρίας','Delete opportunity')} text={`${opportunityCode(index)} · ${item.activity||''}`} onClose={()=>setConfirming(false)} onConfirm={remove}/>}
+ </Page>
 }

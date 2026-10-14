@@ -1,7 +1,6 @@
 import { useMemo,useState } from 'react'
-import { AlertOctagon,AlertTriangle,CheckSquare2,ClipboardList,Gauge,Pencil,Plus,Star,Target,Trash2 } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,ChevronRight,ClipboardList,Gauge,Plus,Star,Target } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
-import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { ActionButton } from '../../../design-system/ActionButton'
 import { MetricCard } from '../../../design-system/MetricCard'
 import { JCI_CHAPTERS,LEVELS,SECTIONS,riskWarnings,scored,warningLabel } from './riskModel'
@@ -12,7 +11,7 @@ import { IndicatorBadge } from './RiskIndicatorsUi'
 const QUICK={highOrAbove:x=>['high','very_high'].includes(x.s.residual.level),veryHigh:x=>x.s.residual.level==='very_high',high:x=>x.s.residual.level==='high',noPlan:x=>x.warnings.some(w=>w.id==='action_plan_required'),noTarget:x=>!x.s.target.score,noIndicator:x=>!(x.risk.indicatorKeys||[]).length}
 
 // The register: every risk of the assessment with its three scores.
-export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreateCapa,cell,onClearCell,actions=null,indicatorValues=null,returned='',preset=null,frame=defaultFrame}){
+export function RiskRegister({risks,en,canEdit,onOpen,onCreate,cell,onClearCell,actions=null,indicatorValues=null,returned='',preset=null,frame=defaultFrame}){
  const [query,setQuery]=useState('')
  const [section,setSection]=useState('all')
  const [process,setProcess]=useState('all')
@@ -70,7 +69,7 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
    <table className="data-table sticky-table risk-table"><thead><tr>
     <th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Διεργασία / τμήμα','Process / department')}</th><th>{L(en,'Κίνδυνος','Risk')}</th>
     <th>{L(en,'Εγγενής','Inherent')}</th><th className="risk-step">{L(en,'Υπολειπόμενος','Residual')}</th><th className="risk-step">{L(en,'Στόχος','Target')}</th>
-    <th>{L(en,'Δείκτες','Indicators')}</th><th>JCI</th><th>{L(en,'Υπεύθυνος','Owner')}</th><th aria-label={L(en,'Ενέργειες','Actions')}/>
+    <th>{L(en,'Δείκτες','Indicators')}</th><th>JCI</th><th>{L(en,'Υπεύθυνος','Owner')}</th><th aria-hidden="true"/>
    </tr></thead><tbody>
     {groups.map(({section:g,rows:list})=>[
      <tr key={`section-${g.id}`} className="risk-section-row"><td colSpan={10}><strong>{en?g.en:g.el}</strong><span>{sectionTotals[g.id]}</span></td></tr>,
@@ -84,11 +83,7 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,onDelete,onCreate
      <td><IndicatorBadge keys={risk.indicatorKeys||[]} values={indicatorValues} en={en}/></td>
      <td>{risk.jci||'—'}</td>
      <td>{txt(risk,'owner',en)||'—'}</td>
-     <td onClick={e=>e.stopPropagation()}><OverflowMenu label={L(en,'Ενέργειες κινδύνου','Risk actions')} items={[
-      {id:'open',label:canEdit?L(en,'Επεξεργασία','Edit'):L(en,'Προβολή','View'),icon:Pencil,onClick:()=>onOpen(risk)},
-      {id:'capa',label:L(en,'Δημιουργία διορθωτικής ενέργειας','Create CAPA'),icon:CheckSquare2,onClick:()=>onCreateCapa(risk)},
-      ...(canEdit?[{id:'delete',label:L(en,'Διαγραφή','Delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>onDelete(risk)}]:[]),
-     ]}/></td>
+     <td className="risk-open-cell"><ChevronRight size={15}/></td>
     </tr>)
     ])}
    </tbody></table>
