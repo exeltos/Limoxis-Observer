@@ -106,6 +106,7 @@ export function EmployeeTrainingTab({
         ) : (
           <Empty
             language={language}
+            query={registry.query}
             title={language === 'en' ? 'No training records' : 'Δεν υπάρχουν εκπαιδεύσεις'}
           />
         ))}

@@ -67,10 +67,18 @@
   background:var(--lo-color-surface)!important;
 }
 .entity-record-shell .record-secondary-registry>.registry-empty-state,
-.entity-record-shell .record-secondary-registry>.inline-empty,
 .entity-record-shell .record-secondary-registry>.data-access-state{
   min-height:0!important;
   height:100%!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+}
+/* The shared empty-list line sits at the top of the tab, as in every list. */
+.entity-record-shell .record-secondary-registry>.inline-empty{
+  min-height:0!important;
+  height:auto!important;
+  align-self:start!important;
   margin:0!important;
   border:0!important;
   border-radius:0!important;

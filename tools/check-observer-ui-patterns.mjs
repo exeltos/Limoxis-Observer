@@ -9,7 +9,6 @@ const violations=[]
 // Dialogs close with their × alone (docs/OBSERVER_UI_CONTRACT.md). Modules not
 // yet aligned are listed here; remove a file once its dialogs drop showCancel.
 const SHOW_CANCEL_PENDING=new Set([
-  'features/employees/EmployeeImportDialog.jsx','features/employees/JobDescriptionViews.jsx',
   'features/management/HaiCriteriaLibraryPanel.jsx','features/management/HospitalStructurePanel.jsx','features/management/LiraKnowledgePanel.jsx','features/management/LiraOutbreakInvestigationsPanel.jsx','features/management/ManagementPage.jsx','features/management/PrevalenceSurveyPanel.jsx',
   'features/occupational-health/ExposureIncidentEditor.jsx','features/occupational-health/OccupationalVisitEditor.jsx',
   'features/pharmacy/PharmacyPage.jsx',

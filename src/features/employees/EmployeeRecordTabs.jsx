@@ -230,6 +230,7 @@ export function EmployeeSurveillanceTab({
       ) : (
         <Empty
           language={language}
+          query={registry.query}
           title={
             language === 'en' ? 'No surveillance episodes' : 'Δεν υπάρχουν επεισόδια επιτήρησης'
           }
@@ -391,6 +392,7 @@ export function EmployeeHistoryTab({ employee, language }) {
         ) : (
           <Empty
             language={language}
+            query={registry.query}
             title={
               language === 'en'
                 ? 'No lifecycle history is available'

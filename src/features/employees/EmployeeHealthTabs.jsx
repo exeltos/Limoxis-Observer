@@ -154,6 +154,7 @@ export function EmployeeOccupationalTab({ employee, t, language, fmt, organizati
         ) : (
           <Empty
             language={language}
+            query={registry.query}
             title={
               language === 'en'
                 ? 'No occupational-health visits'
@@ -274,6 +275,7 @@ export function EmployeeVaccinationsTab({ employee, t, language, fmt, organizati
         ) : (
           <Empty
             language={language}
+            query={registry.query}
             title={language === 'en' ? 'No vaccination records' : 'Δεν υπάρχουν εμβολιασμοί'}
           />
         ))}
@@ -421,6 +423,7 @@ export function EmployeeExposureIncidentsTab({ employee, language, fmt, organiza
         ) : (
           <Empty
             language={language}
+            query={registry.query}
             title={
               en ? 'No exposure incidents recorded' : 'Δεν έχουν καταγραφεί περιστατικά έκθεσης'
             }

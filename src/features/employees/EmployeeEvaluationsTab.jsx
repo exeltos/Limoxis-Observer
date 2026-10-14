@@ -218,7 +218,7 @@ export function EmployeeEvaluationsTab({
             <Pager paging={paging} total={registry.filtered.length} language={language} />
           </>
         ) : (
-          <Empty language={language} />
+          <Empty language={language} query={registry.query} />
         ))}
       {creating && (
         <ObserverDialog
@@ -228,9 +228,6 @@ export function EmployeeEvaluationsTab({
           onClose={() => setCreating(false)}
           footer={
             <div className="dialog-actions">
-              <Button variant="secondary" onClick={() => setCreating(false)} disabled={saving}>
-                {en ? 'Cancel' : 'Ακύρωση'}
-              </Button>
               <Button onClick={create} disabled={saving || !draft.period}>
                 {en ? 'Save' : 'Αποθήκευση'}
               </Button>
@@ -513,9 +510,6 @@ export function EmployeeEvaluationsTab({
           onClose={() => setAckOpen(false)}
           footer={
             <div className="dialog-actions">
-              <Button variant="secondary" onClick={() => setAckOpen(false)}>
-                {en ? 'Cancel' : 'Ακύρωση'}
-              </Button>
               <Button
                 disabled={saving || !acknowledgementComplete(ackAgreement, ackComment)}
                 onClick={async () => {

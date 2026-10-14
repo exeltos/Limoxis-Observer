@@ -3,7 +3,6 @@ import { Navigate,useNavigate } from 'react-router-dom'
 import { UserPlus } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -83,7 +82,7 @@ export function EmployeeCreatePage(){
     <label><span>{en?'Phone':'Τηλέφωνο'}</span><input value={v.phone} onChange={e=>set('phone',e.target.value)}/></label>
    </div>
    <div className="source-truth-note">{en?'One code identifies one employee folder. Training, evaluations, certificates, surveillance and future employment history remain under that single record.':'Ένας κωδικός αντιστοιχεί σε μία καρτέλα εργαζομένου. Εκπαιδεύσεις, αξιολογήσεις, πιστοποιήσεις, επιτήρηση και μελλοντικό ιστορικό παραμένουν κάτω από τον ίδιο φάκελο.'}</div>
-   <div className="inline-edit-footer"><Button variant="secondary" onClick={()=>navigate('/employees')}>{t('cancel')}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{t('save')}</SaveButton></div>
+   <div className="inline-edit-footer"><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{t('save')}</SaveButton></div>
   </div>
  </EntityRecordShell></Page>
 }

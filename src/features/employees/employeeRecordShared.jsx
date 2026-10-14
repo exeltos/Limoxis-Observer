@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../../design-system/Button'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { ListEmptyState } from '../../design-system/ListEmptyState'
 import { FilterBar } from '../../design-system/FilterBar'
 
 // Building blocks shared by the employee record tabs: section titles, empty and
@@ -16,11 +17,14 @@ export function SectionTitle({ title, subtitle, action }) {
     </div>
   )
 }
-export function Empty({ language, title }) {
+// The shared empty-list line: «nothing matches» while a search is typed,
+// otherwise the tab's own «no records» title.
+export function Empty({ language, title, query = '' }) {
   return (
-    <div className="registry-empty-state employee-registry-empty">
-      <strong>{title || (language === 'en' ? 'No records' : 'Δεν υπάρχουν εγγραφές')}</strong>
-    </div>
+    <ListEmptyState
+      filtered={Boolean(String(query).trim())}
+      title={title || (language === 'en' ? 'No records' : 'Δεν υπάρχουν εγγραφές')}
+    />
   )
 }
 export function State({ loading, error, language, onRetry }) {

@@ -6,6 +6,7 @@ import { Page } from '../../design-system/Page'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { RecordActions } from '../../design-system/RecordActions'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { ListEmptyState } from '../../design-system/ListEmptyState'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -58,9 +59,9 @@ export function EmployeesPage(){
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
         <table className="data-table sticky-table"><thead><tr><th>{t('employeeCode')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><strong>{x.id}</strong></td><td><strong className="employee-registry-name">{displayName(x)}</strong><small>{x.email}</small></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
-        {!rows.length&&<div className="registry-empty-state"><strong>{t('employeesEmptyTitle')}</strong><span>{t('employeesEmptyDescription')}</span></div>}
+        {!rows.length&&<ListEmptyState filtered={scopedEmployees.length>0} title={t('employeesEmptyTitle')} text={t('employeesEmptyDescription')} hint={language==='en'?'Press Create to add the first one.':'Πατήστε «Δημιουργία» για τον πρώτο εργαζόμενο.'} canCreate={canImport}/>}
       </div>
-      <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
+      {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
     </section>
     {importOpen&&<EmployeeImportDialog existing={employeeRows} language={language} onClose={()=>setImportOpen(false)} onImported={reload}/>}
   </Page>
