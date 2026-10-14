@@ -136,7 +136,14 @@ describe('risk assessment screens', () => {
     expect(screen.queryByRole('button', { name: /Αποθήκευση κινδύνου/ })).toBeNull()
     await startEditing()
     expect(residual).toBeEnabled()
-    fireEvent.change(residual, { target: { value: '4' } })
+    // «Ακύρωση» drops the edits, the measure lists included.
+    const measure = () => document.querySelector('.risk-measures textarea')
+    const before = measure().value
+    fireEvent.change(measure(), { target: { value: 'Ακυρωμένο μέτρο' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ακύρωση' }))
+    expect(measure().value).toBe(before)
+    await startEditing()
+    fireEvent.change(screen.getAllByRole('combobox', { name: /Πιθανότητα \(L\)/ })[1], { target: { value: '4' } })
     // 4 × 3 = 12: the residual risk becomes High and needs an action plan.
     expect(screen.getByText('Υψηλός υπολειπόμενος χωρίς πρόσθετα μέτρα')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση κινδύνου/ }))
@@ -174,6 +181,8 @@ describe('risk assessment screens', () => {
     fireEvent.click(await screen.findByRole('tab', { name: 'Ευκαιρίες' }))
     const table = () => within(document.querySelector('.risk-opportunities'))
     expect(table().queryByRole('button', { name: 'Ενέργειες' })).toBeNull()
+    // The row's open button is its keyboard way in.
+    expect(table().getAllByRole('button', { name: 'Άνοιγμα ευκαιρίας' }).length).toBeGreaterThan(0)
     const count = document.querySelectorAll('.risk-opportunities tbody tr.risk-row-clickable').length
     fireEvent.click(table().getByText('Ε001'))
     fireEvent.click(await screen.findByRole('button', { name: 'Ενέργειες εγγραφής' }))

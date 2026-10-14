@@ -83,7 +83,7 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,cell,onClearCell,
      <td><IndicatorBadge keys={risk.indicatorKeys||[]} values={indicatorValues} en={en}/></td>
      <td>{risk.jci||'—'}</td>
      <td>{txt(risk,'owner',en)||'—'}</td>
-     <td className="risk-open-cell"><ChevronRight size={15}/></td>
+     <td className="risk-open-cell"><button type="button" className="risk-open-button" aria-label={L(en,'Άνοιγμα κινδύνου','Open the risk')} onClick={e=>{e.stopPropagation();onOpen(risk)}}><ChevronRight size={15}/></button></td>
     </tr>)
     ])}
    </tbody></table>

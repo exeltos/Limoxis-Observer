@@ -13,7 +13,9 @@ export function OpportunityEditor({item,code,en,readOnly=false,saving=false,asse
  const isNew=!item?.id
  const [editing,setEditing]=useState(isNew&&!readOnly)
  const locked=readOnly||!editing
- const cancel=()=>{if(isNew){onClose();return};setDraft(normalizeOpportunity(item));setEditing(false)}
+ // Cancel remounts the fields, so lists with their own state (the measures) drop the edits too.
+ const [version,setVersion]=useState(0)
+ const cancel=()=>{if(isNew){onClose();return};setDraft(normalizeOpportunity(item));setEditing(false);setVersion(v=>v+1)}
  const set=(key,value)=>setDraft(current=>({...current,[key]:value}))
  const field=(key,label,props={})=><label className="risk-field"><span>{label}</span><input value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)} {...props}/></label>
  const area=(key,label,rows=2,hint='')=><label className="risk-field risk-field-wide"><span>{label}{hint&&<small>{hint}</small>}</span><textarea rows={rows} value={draft[key]??''} disabled={locked} onChange={e=>set(key,e.target.value)}/></label>
@@ -26,7 +28,7 @@ export function OpportunityEditor({item,code,en,readOnly=false,saving=false,asse
   status={<RatingBadge id={draft.ratingId} en={en}/>}
   headerActions={recordActions({en,canEdit:!readOnly,editing,isNew,onEdit:()=>setEditing(true),onDelete})}
   onBack={onClose} backLabel={L(en,'Πίσω στις ευκαιρίες','Back to the opportunities')}>
-  <div className="risk-editor">
+  <div className="risk-editor" key={version}>
    <Step n={1} title={L(en,'Περιγραφή','Description')}>
     {area('activity',L(en,'Δραστηριότητα','Activity'),2)}
     {area('opportunity',L(en,'Ευκαιρία','Opportunity'),2,L(en,'τι κερδίζει ο οργανισμός','what the organization gains'))}

@@ -17,7 +17,9 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
  const [editing,setEditing]=useState(isNew&&!readOnly)
  const locked=readOnly||!editing
  const [initial]=useState(draft)
- const cancel=()=>{if(isNew){onClose();return};setDraft(initial);setEditing(false)}
+ // Cancel remounts the fields, so lists with their own state (the measures) drop the edits too.
+ const [version,setVersion]=useState(0)
+ const cancel=()=>{if(isNew){onClose();return};setDraft(initial);setEditing(false);setVersion(v=>v+1)}
  const s=useMemo(()=>scored(draft),[draft])
  const warnings=useMemo(()=>riskWarnings(draft),[draft])
  const residualLevel=levelInfo(s.residual.level)
@@ -35,7 +37,7 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
   status={<span className="risk-editor-path" title={L(en,'Εγγενής → υπολειπόμενος → στόχος','Inherent → residual → target')}>{path}</span>}
   headerActions={recordActions({en,canEdit:!readOnly,editing,isNew,onEdit:()=>setEditing(true),onDelete})}
   onBack={onClose} backLabel={L(en,'Πίσω στην εκτίμηση','Back to the assessment')}>
-  <div className="risk-editor">
+  <div className="risk-editor" key={version}>
    <Step n={1} title={L(en,'Περιγραφή','Description')}>
     <div className="risk-editor-grid risk-editor-grid-description">
      <label className="risk-field risk-span-2"><span>{L(en,'Ενότητα','Section')}</span><select value={draft.section} disabled={locked} onChange={e=>set('section',e.target.value)}>{SECTIONS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</select></label>
