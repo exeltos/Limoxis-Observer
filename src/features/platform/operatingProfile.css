@@ -2,8 +2,11 @@
 .operating-profile .operating-profile-block{padding:14px 16px;border-left:4px solid var(--lo-color-primary,#1f5f93)}
 .operating-profile .operating-profile-block>header strong{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px}
 .operating-profile .operating-profile-block>header .operating-profile-step{display:inline-grid;place-items:center;flex:none;width:18px;height:18px;margin:0;border-radius:50%;background:var(--lo-color-primary,#1f5f93);color:#fff;font-size:10.5px;font-weight:800}
-.operating-profile-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
-.operating-profile-option{padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);cursor:pointer}
+/* The three packages line up part by part: each card spans four shared rows
+   (head, modules, «Πρόσθετα», add-ons), so a longer description does not push
+   one card's lists below the others; the cards also share one height. */
+.operating-profile-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:12px;row-gap:0;align-items:stretch}
+.operating-profile-option{display:grid;grid-row:span 4;grid-template-rows:subgrid;row-gap:0;align-content:start;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);cursor:pointer}
 .operating-profile-option.selected{border-color:var(--lo-color-primary,#1f5f93);box-shadow:inset 0 0 0 1px var(--lo-color-primary,#1f5f93);background:#f4f9fd;cursor:default}
 .operating-profile-option-head{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .operating-profile-option-head input{flex:none;margin:2px 0 0;width:16px;height:16px;cursor:pointer}
@@ -36,4 +39,4 @@
 .operating-profile .operating-profile-summary .operating-profile-change.off{color:#9a4a00}
 .operating-profile .operating-profile-summary .operating-profile-change.warn{display:flex;align-items:center;gap:5px;color:#9a4a00;font-weight:700}
 .platform-admin-summary-row>div>span{display:block}
-@media (max-width:1100px){.operating-profile-options{grid-template-columns:1fr}}
+@media (max-width:1100px){.operating-profile-options{grid-template-columns:1fr;row-gap:12px}.operating-profile-option{grid-row:auto;grid-template-rows:none}}

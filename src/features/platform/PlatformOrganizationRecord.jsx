@@ -5,6 +5,7 @@ import {
   BedDouble,
   Building2,
   KeyRound,
+  Link2,
   LogIn,
   PauseCircle,
   Pencil,
@@ -145,6 +146,7 @@ export function PlatformOrganizationRecord({
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [saving, setSaving] = useState(false)
   const [working, setWorking] = useState(false)
+  const [invitationLink, setInvitationLink] = useState(null)
   const [employeeLinkDrafts, setEmployeeLinkDrafts] = useState({})
   const [newAdmin, setNewAdmin] = useState({ name: '', email: '' })
   const [selectedUserId, setSelectedUserId] = useState('')
@@ -484,6 +486,27 @@ export function PlatformOrganizationRecord({
       setWorking(false)
     }
   }
+  // The activation link of a pending invitation, for when the email does not arrive.
+  async function showInvitationLink(user) {
+    if (!user || working) return
+    setWorking(true)
+    try {
+      const result = await manageOrganizationUser({ organizationId: record.id, userId: user.userId, action: 'invitation_link' })
+      setInvitationLink({ link: result.link, name: user.name })
+    } catch (error) {
+      notifyError(error, 'action', { operation: 'platform_user_invitation_link' })
+    } finally {
+      setWorking(false)
+    }
+  }
+  async function copyInvitationLink(link) {
+    try {
+      await navigator.clipboard.writeText(link)
+      notify(tx('Ο σύνδεσμος αντιγράφηκε.', 'Link copied.'), 'success')
+    } catch {
+      notify(tx('Η αντιγραφή δεν επιτράπηκε· επιλέξτε τον σύνδεσμο και αντιγράψτε τον με Ctrl+C.', 'Copying was blocked; select the link and copy it with Ctrl+C.'), 'warning')
+    }
+  }
   async function resetUserAccess(user) {
     if (!user || working) return
     const invited = user.status === 'invited'
@@ -707,6 +730,7 @@ export function PlatformOrganizationRecord({
         .join('')
         .toUpperCase() || 'U'
     return (
+      <>
       <EntityRecordShell
         className="platform-owner-record-shell platform-user-record-shell workspace-fill"
         avatar={initials}
@@ -934,6 +958,12 @@ export function PlatformOrganizationRecord({
                   ? tx('Επαναποστολή πρόσκλησης', 'Resend invitation')
                   : tx('Επαναφορά κωδικού', 'Reset password')}
               </Button>
+              {selectedUser.status === 'invited' && (
+                <Button variant="secondary" disabled={working} onClick={() => showInvitationLink(selectedUser)}>
+                  <Link2 size={15} />
+                  {tx('Σύνδεσμος πρόσκλησης', 'Invitation link')}
+                </Button>
+              )}
               <Button variant="secondary" disabled={working} onClick={toggleSelectedUserStatus}>
                 {selectedUser.status === 'disabled' ? (
                   <PlayCircle size={15} />
@@ -948,6 +978,23 @@ export function PlatformOrganizationRecord({
           </section>
         </div>
       </EntityRecordShell>
+      {invitationLink && (
+        <ObserverDialog
+          width="standard"
+          title={tx('Σύνδεσμος πρόσκλησης', 'Invitation link')}
+          onClose={() => setInvitationLink(null)}
+          footer={<DialogActions onCancel={() => setInvitationLink(null)} showCancel cancelLabel={tx('Κλείσιμο', 'Close')} onSave={() => copyInvitationLink(invitationLink.link)} saveLabel={tx('Αντιγραφή', 'Copy')} />}
+        >
+          <p className="platform-invitation-link-note">
+            {tx(
+              `Στείλτε τον σύνδεσμο στον/στην ${invitationLink.name} με δικό σας μέσο (π.χ. Teams ή SMS). Ανοίγει τη σελίδα ενεργοποίησης για να ορίσει κωδικό. Ισχύει για περιορισμένο χρόνο και μόνο μία φορά· μην τον κοινοποιείτε σε άλλους.`,
+              `Send the link to ${invitationLink.name} through your own channel (e.g. Teams or SMS). It opens the activation page to set a password. It is valid for a limited time and once only; do not share it with anyone else.`,
+            )}
+          </p>
+          <input className="platform-invitation-link" readOnly value={invitationLink.link} onFocus={event => event.target.select()} aria-label={tx('Σύνδεσμος πρόσκλησης', 'Invitation link')} />
+        </ObserverDialog>
+      )}
+      </>
     )
   }
 
