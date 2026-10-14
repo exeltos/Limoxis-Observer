@@ -27,8 +27,10 @@ If the email still does not arrive, the Platform Center offers **Σύνδεσμ�
 
 ## Deliverability
 
-Supabase's built-in mailer is meant for testing; mail from it often lands in spam. For production:
-- Set **Authentication → SMTP Settings** to a provider (for example Resend) with a sender on your own domain, such as `no-reply@limoxis.com`.
-- Publish that provider's **SPF**, **DKIM** and **DMARC** DNS records for the domain.
-
-Also verify **Authentication → URL Configuration** contains the production application URL and the activation/recovery redirect URLs.
+The project sends through its own SMTP (Google Workspace, `smtp.gmail.com:465`, sender `info@exeltos.com`, name «Limoxis Observer»). Hospital mail filters check three things:
+- **The sender's domain is authenticated.** `exeltos.com` needs these DNS records:
+  - SPF: `v=spf1 include:_spf.google.com ~all`
+  - DKIM: turned on in Google Admin → Apps → Gmail → Authenticate email, with the `google._domainkey` TXT record published.
+  - DMARC: a `_dmarc` TXT record, for example `v=DMARC1; p=none; rua=mailto:…`
+- **The links match the sender.** The invitation button goes to the app's own domain, as described above.
+- **The provider fits automated mail.** Supabase warns that Gmail is meant for personal mail. A transactional provider is the sturdier choice, for example Resend, as used by SurgiTrack. Ideally its sender is on `limoxis.com`, the same domain as the links.
