@@ -104,15 +104,12 @@ describe('opportunities', () => {
 
 describe('platform templates', () => {
   it('hides the seeded Demo assessments while a template is loaded, and only then', async () => {
-    const { visibleAssessments, templateCodeOf, templateLoadAllowed } = await import('../src/features/quality/risk/riskModel')
+    const { visibleAssessments, templateCodeOf } = await import('../src/features/quality/risk/riskModel')
     const seeded = [{ code: 'RSA-DEMO-2026', history: [] }, { code: 'RSA-DEMO-2025', history: [] }]
     const loaded = { code: 'RSA-261013-124536', history: [{ action: 'riskAssessmentImported', detail: { template: 'QUAL-050-02' } }] }
     expect(visibleAssessments(seeded)).toHaveLength(2)
     expect(visibleAssessments([...seeded, loaded])).toEqual([loaded])
     expect(templateCodeOf(loaded)).toBe('QUAL-050-02')
     expect(templateCodeOf(seeded[0])).toBe('')
-    expect(templateLoadAllowed({ is_demo: false, code: 'IASO' })).toBe(true)
-    expect(templateLoadAllowed({ is_demo: true, code: 'DEMO-OWNER' })).toBe(false)
-    expect(templateLoadAllowed({ is_demo: true, code: 'DEMO-LEVENTIS' })).toBe(false)
   })
 })

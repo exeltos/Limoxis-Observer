@@ -255,6 +255,3 @@ const isSeededDemo=a=>/^RSA-DEMO-/.test(String(a?.code||''))
 export function visibleAssessments(list=[]){
  return list.some(templateCodeOf)?list.filter(a=>!isSeededDemo(a)):list
 }
-// A platform template (a hospital's own register) is loaded only in a real
-// organization, never in a Demo, the platform owner's included.
-export const templateLoadAllowed=tenant=>!tenant?.is_demo

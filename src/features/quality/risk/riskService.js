@@ -6,7 +6,6 @@ import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { expectVersion, guardedSingle } from '../../../core/data/recordVersion'
 import { riskDemoAssessments } from './riskDemoData'
-import { unpackTemplate } from './riskImport'
 import { visibleAssessments } from './riskModel'
 
 const LOCAL='quality_local_risk_assessments'
@@ -136,18 +135,8 @@ export async function deleteRiskAssessment(organizationId,assessment){
  const {error}=await supabase.from('quality_risk_assessments').delete().eq('organization_id',organizationId).eq('id',assessment.id).eq('status','draft');if(error)throw error
 }
 
-// Assessments created together (an import with a reassessment, a template),
+// Assessments created together (an import with a reassessment),
 // oldest first: each one points to the one before it.
-// Removes the assessments a platform template created here (any status), with
-// their risks and opportunities.
-export async function removeTemplateAssessments(organizationId,assessments){
- const ids=assessments.map(a=>a.id)
- if(!ids.length)return
- if(demo()){localSave(localAll().filter(a=>!ids.includes(a.id)));return}
- assertReady(organizationId)
- const {error}=await supabase.from('quality_risk_assessments').delete().eq('organization_id',organizationId).in('id',ids);if(error)throw error
-}
-
 export async function createAssessmentSeries(organizationId,plan,history=[]){
  // Codes come from the clock to the second; a second apart each, so two
  // assessments created together never share one.
@@ -157,15 +146,4 @@ export async function createAssessmentSeries(organizationId,plan,history=[]){
   created.push(previous)
  }
  return created
-}
-
-// Templates of the platform owner (quality_risk_templates): a hospital's
-// register kept in the database, never in the Demo data, and loaded into an
-// organization only on the platform owner's request. Row level security lets
-// only the platform owner read them.
-export async function loadRiskTemplates(){
- if(!supabase)return []
- const {data,error}=await supabase.from('quality_risk_templates').select('id,code,title,source_file,payload,updated_at').order('updated_at',{ascending:false})
- if(error)throw error
- return (data||[]).map(row=>({id:row.id,code:row.code,title:row.title,sourceFile:row.source_file||'',plan:unpackTemplate(row.payload),updatedAt:row.updated_at}))
 }

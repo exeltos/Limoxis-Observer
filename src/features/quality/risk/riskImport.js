@@ -166,19 +166,6 @@ export function importPlan(parsed,header,{initialLabel,initialOn}={}){
  })
 }
 
-// A template keeps the text of every risk once and, per period, only which
-// risks it holds and their scores (the periods share the wording).
-const SCORE_FIELDS=['inherentL','inherentC','residualL','residualC']
-export function packTemplate(plan){
- const risks=new Map()
- for(const item of plan)for(const risk of item.risks)if(!risks.has(risk.lineageKey))risks.set(risk.lineageKey,Object.fromEntries(Object.entries(risk).filter(([k])=>!SCORE_FIELDS.includes(k))))
- return {version:1,risks:[...risks.values()],periods:plan.map(item=>({header:item.header,opportunities:item.opportunities||[],scores:item.risks.map(r=>[r.lineageKey,...SCORE_FIELDS.map(f=>r[f]??null)])}))}
-}
-export function unpackTemplate(payload){
- const byKey=new Map((payload?.risks||[]).map(r=>[r.lineageKey,r]))
- return (payload?.periods||[]).map(period=>({header:period.header,opportunities:period.opportunities||[],risks:period.scores.map(([key,...values])=>({...byKey.get(key),lineageKey:key,...Object.fromEntries(SCORE_FIELDS.map((f,i)=>[f,values[i]]))}))}))
-}
-
 export async function importRiskWorkbook(file){
  const buffer=await (file.arrayBuffer?file.arrayBuffer():new Response(file).arrayBuffer())
  return parseRiskWorkbook(await readWorkbook(buffer))
