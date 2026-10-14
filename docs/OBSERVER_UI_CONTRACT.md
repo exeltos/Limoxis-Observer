@@ -26,6 +26,10 @@ This document is the cross-application UI contract for the new Limoxis Observer.
 - Editing a record's core details happens in place in its details card, like the employee record.
 - An action appears once: not both as a button and in a … menu, and not in two cards' menus. Card menus hold what concerns that card.
 
+## Record tab content
+- Inside `EntityRecordShell`, each tab's content sits in a white bordered card inset 13px from the record body on every side (the right side also keeps the body's scrollbar gutter), so the white body frames it. The patient record uses the same inset (`--pr-pad-x` / `--pr-pad-y`); a tab whose card fills the height (a list with its pager) keeps the inset at the bottom too.
+- A card that must be wider than its content (lists) sets `width:calc(100% - 26px)` with the 13px margin — never `width:100%` plus margin, which pushes the right edge out.
+
 ## Empty lists
 - An empty list says why, through `listEmptyCopy` / `ListEmptyState` (design-system/ListEmptyState.jsx): «Δεν βρέθηκαν εγγραφές με αυτή την αναζήτηση ή τα φίλτρα» when records exist but none match; otherwise «Δεν υπάρχουν …» with the «Πατήστε Δημιουργία…» hint only for those who can create.
 - The message sits inside the table area (`inline-empty`, or `RegistryTable` `emptyTitle`/`emptyText`), not in a separate dashed box.
