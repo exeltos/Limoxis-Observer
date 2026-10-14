@@ -122,7 +122,6 @@ export function PatientSelector({
 
 export function StartStep({
   busy,
-  cancelFlow,
   contextDepartment,
   language,
   patientMode,
@@ -186,9 +185,6 @@ export function StartStep({
         </label>
       </div>
       <div className="flow-step-actions">
-        <Button variant="secondary" onClick={cancelFlow}>
-          {language === 'el' ? 'Ακύρωση' : 'Cancel'}
-        </Button>
         <Button
           disabled={
             busy ||

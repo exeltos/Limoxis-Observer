@@ -18,7 +18,9 @@
   min-width: 0;
   flex: 1;
   display: flex;
-  align-items: center;
+  /* !important: the dialog's generic label rule stacks label contents. */
+  flex-direction: row !important;
+  align-items: center !important;
   gap: 10px;
   cursor: pointer;
 }
@@ -69,4 +71,16 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+/* The three «New surveillance» forms: mode switches line up with the fields
+   below them, and the windows share one width. */
+.environmental-surveillance-entry .entry-mode-switch,
+.new-surveillance-flow-card .entry-mode-switch {
+  padding-left: 0;
+  padding-right: 0;
+}
+.episode-overlay.new-surveillance-flow-overlay .episode-detail-card.new-surveillance-flow-card.new-surveillance-start-card,
+.observer-dialog.environmental-surveillance-entry {
+  width: min(var(--lo-dialog-standard), calc(100vw - 32px)) !important;
+  max-width: none !important;
 }

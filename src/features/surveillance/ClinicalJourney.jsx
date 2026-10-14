@@ -472,7 +472,7 @@ export function CanonicalJourney({
             title={t('isolation')}
             action={
               permissions.canIsolation ? (
-                <div className="button-row">
+                <div className="row-actions">
                   {record.isolation?.status === 'active' ? (
                     <Button
                       className="clinical-stage-action"

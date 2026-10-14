@@ -256,7 +256,7 @@ export function AttachmentField({
       onClose={closeEditor}
       width="standard"
       className="attachment-editor-dialog"
-      footer={<DialogActions onSave={saveEditor} saveLabel={t('save')} disabled={busy||!addReady} showCancel onCancel={closeEditor} cancelLabel={t('cancel')}/>}>
+      footer={<DialogActions onSave={saveEditor} saveLabel={t('save')} disabled={busy||!addReady}/>}>
       <div className="attachment-editor-grid">
         {editor.mode==='add'&&<label className="attachment-file-picker field">
           <span>{t('file')}</span>

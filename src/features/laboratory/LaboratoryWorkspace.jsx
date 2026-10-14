@@ -3,7 +3,6 @@ import { AlertTriangle, Clock3, FlaskConical, Microscope, UserRound, UsersRound,
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
-import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -196,5 +195,5 @@ function NewSampleCard({ t, language, patients, employees, departments, onClose,
         <label><span>{t('collectedLabel')}</span><input type="datetime-local" value={draft.collectedAt} onChange={event => set('collectedAt', event.target.value)}/></label><label><span>{t('priority')}</span><select value={draft.priority} onChange={event => set('priority', event.target.value)}><option value="">{en ? 'Select priority' : 'Επιλέξτε προτεραιότητα'}</option><option value="routine">{t('routine')}</option><option value="urgent">{t('urgent')}</option><option value="critical">{t('critical')}</option></select></label>
       </div></section>}
     </div>
-    <footer><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={!valid} onClick={() => onSave(draft)}>{t('save')}</SaveButton></footer></div></div>
+    <footer><SaveButton disabled={!valid} onClick={() => onSave(draft)}>{t('save')}</SaveButton></footer></div></div>
 }

@@ -9,7 +9,7 @@ import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import { UI_ACTIONS } from '../../core/actions/actionPolicy'
+import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -317,6 +317,34 @@ export function SurveillanceCanonicalPage() {
         updatedAt: new Date().toISOString(),
       }),
     )
+  // Empty lists say why: nothing recorded yet, or nothing matches the search
+  // or filters (cancelled episodes, hidden by default, count as records). The
+  // «press Create» hint shows only to those who see the Create button.
+  const recorded =
+    {
+      patients: cases.filter(canAccessRecord),
+      employees: employeeRows,
+      environmental: environmentRows,
+    }[mode] || []
+  const canCreate = canPerform({
+    role: role || actualRole,
+    addOns: membership?.capabilities ?? [],
+    customCapabilities: membership?.customCapabilities ?? [],
+    action: UI_ACTIONS.CREATE,
+    resourceCapability: CAPABILITIES.CREATE_SURVEILLANCE,
+  })
+  const empty = recorded.length
+    ? { title: t('svEmptyFiltered'), text: t('svEmptyFilteredHint') }
+    : {
+        title: t(
+          {
+            patients: 'svEmptyPatients',
+            employees: 'svEmptyEmployees',
+            environmental: 'svEmptyEnvironmental',
+          }[mode],
+        ),
+        text: canCreate ? t('svEmptyHint') : '',
+      }
   const tabItems = [
     { value: 'patients', label: t('patients'), icon: Activity },
     ...(canEmployees ? [{ value: 'employees', label: t('employees'), icon: Users }] : []),
@@ -545,6 +573,7 @@ export function SurveillanceCanonicalPage() {
         ) : mode === 'patients' ? (
           <PatientRows
             rows={rows}
+            empty={empty}
             registry={registry}
             t={t}
             language={language}
@@ -554,6 +583,7 @@ export function SurveillanceCanonicalPage() {
         ) : mode === 'employees' ? (
           <EmployeeRows
             rows={rows}
+            empty={empty}
             registry={registry}
             language={language}
             fmt={fmt}
@@ -563,14 +593,19 @@ export function SurveillanceCanonicalPage() {
         ) : (
           <EnvironmentalRegistry
             rows={rows}
+            empty={empty}
             summaryRows={filtered}
             t={t}
             language={language}
             fmt={fmt}
             onOpenSample={id =>
-              registry.openRecord(navigate, `/laboratory/${id}`, String(id), [], {
-                state: { returnTo: '/surveillance' },
-              })
+              registry.openRecord(
+                navigate,
+                `/surveillance/environment/${id}`,
+                String(id),
+                filtered.map(x => String(x.code || x.id)),
+                { returnState: { surveillanceView: saveView() } },
+              )
             }
             onResample={
               canEnvironment
@@ -583,18 +618,20 @@ export function SurveillanceCanonicalPage() {
             highlightId={registry.highlightId}
           />
         )}
-        <RegistryPagination
-          language={language}
-          page={safePage}
-          totalPages={totalPages}
-          totalItems={filtered.length}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={size => {
-            setPageSize(size)
-            setPage(1)
-          }}
-        />
+        {filtered.length > 0 && (
+          <RegistryPagination
+            language={language}
+            page={safePage}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={size => {
+              setPageSize(size)
+              setPage(1)
+            }}
+          />
+        )}
       </div>
       {creation === 'chooser' && (
         <SurveillanceSubjectChooser
@@ -707,7 +744,7 @@ function episodeSummary(x, t) {
   const active = x.activeCount ?? (x.status === 'active' ? 1 : 0)
   return `${total} ${t(total === 1 ? 'svEpisodeOne' : 'svEpisodeMany')}${active ? ` · ${active} ${t(active === 1 ? 'svActiveOne' : 'svActiveMany')}` : ''}`
 }
-function PatientRows({ rows, registry, t, language, fmt, onOpen }) {
+function PatientRows({ rows, empty, registry, t, language, fmt, onOpen }) {
   return (
     <div className="scroll-table" ref={registry.scrollRef}>
       <RegistryTable
@@ -721,6 +758,8 @@ function PatientRows({ rows, registry, t, language, fmt, onOpen }) {
           { key: 'review', label: t('reassessment') },
         ]}
         rows={rows}
+        emptyTitle={empty?.title}
+        emptyText={empty?.text}
         rowKey={x => x.id}
         rowProps={x => {
           const rp = registry.rowProps(String(x.id), () => onOpen(x))
@@ -763,7 +802,7 @@ const screeningLabel = (id, language) => {
   const item = employeeScreeningCatalog.find(x => x.id === id)
   return item ? (language === 'en' ? item.sourceEn : item.sourceEl) : id
 }
-function EmployeeRows({ rows, registry, language, fmt, t, onOpen }) {
+function EmployeeRows({ rows, empty, registry, language, fmt, t, onOpen }) {
   const rowId = x => String(x.recordId || x.id)
   return (
     <div className="scroll-table" ref={registry.scrollRef}>
@@ -793,6 +832,8 @@ function EmployeeRows({ rows, registry, language, fmt, t, onOpen }) {
           { key: 'status', label: t('status') },
         ]}
         rows={rows}
+        emptyTitle={empty?.title}
+        emptyText={empty?.text}
         rowKey={rowId}
         rowProps={x => {
           const rp = registry.rowProps(rowId(x), () => onOpen(x))

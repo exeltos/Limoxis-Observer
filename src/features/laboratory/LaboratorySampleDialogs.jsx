@@ -65,9 +65,6 @@ export function ResultDialog({
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
-            {t('cancel')}
-          </Button>
           <Button variant="secondary" disabled={!complete} onClick={() => save('draft')}>
             {tx('saveDraft')}
           </Button>
@@ -193,8 +190,6 @@ export function AstDialog({
       onClose={onClose}
       footer={
         <DialogActions
-          showCancel
-          onCancel={onClose}
           onSave={() => onSave(draft)}
           disabled={!draft.organism || !draft.drug || !draft.version}
         />
@@ -279,8 +274,6 @@ export function AmrDialog({ tx, language, organism, initialClassification = '', 
       onClose={onClose}
       footer={
         <DialogActions
-          showCancel
-          onCancel={onClose}
           onSave={() => onSave({ ...draft, organism })}
           disabled={!draft.classification || !draft.definitionSource || !draft.definitionVersion}
         />
@@ -355,8 +348,6 @@ export function CommunicationDialog({ tx, onClose, onSave }) {
       onClose={onClose}
       footer={
         <DialogActions
-          showCancel
-          onCancel={onClose}
           onSave={() =>
             onSave({
               ...draft,

@@ -102,9 +102,6 @@ export function SimpleDialog({ title, t, onClose, onSave, children, disabled = f
     <ObserverDialog title={title} width="wide" className="patient-simple-dialog" onClose={onClose}>
       <div className="entry-grid">{children}</div>
       <div className="dialog-actions">
-        <Button variant="secondary" onClick={onClose}>
-          {t('cancel')}
-        </Button>
         <SaveButton disabled={disabled} onClick={onSave}>
           {t('save')}
         </SaveButton>

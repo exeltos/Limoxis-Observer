@@ -21,6 +21,15 @@ const { laboratorySamples } = await import('../src/features/laboratory/laborator
 const pristineSamples = structuredClone(laboratorySamples)
 const { DEMO_STEP_EVENT } = await import('../src/features/demo/demoScenarioSignals')
 
+async function openFromSurveillance(id) {
+  let api
+  function Capture() { api = useTenant(); return null }
+  render(<MemoryRouter initialEntries={[`/surveillance/environment/${id}`]}><LanguageProvider><FeedbackProvider><TenantProvider><NotificationProvider><Capture/>
+    <Routes><Route path="/surveillance/environment/:sampleId" element={<LaboratorySampleRecordView/>}/></Routes>
+  </NotificationProvider></TenantProvider></FeedbackProvider></LanguageProvider></MemoryRouter>)
+  await waitFor(() => expect(api?.enterSampleDemo).toBeTypeOf('function'))
+  act(() => { api.enterSampleDemo() })
+}
 async function openSample(id = 'LAB-260827-001') {
   let api
   function Capture() { api = useTenant(); return null }
@@ -42,6 +51,20 @@ afterEach(() => {
   cleanup()
   laboratorySamples.splice(0, laboratorySamples.length, ...structuredClone(pristineSamples))
   localStorage.clear()
+})
+
+describe('environmental sample opened from Surveillance', () => {
+  it('opens an environmental sample at the surveillance address', async () => {
+    await openFromSurveillance('ENV-260826-001')
+    expect(await screen.findByRole('tab', { name: 'Δείγμα' }, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Πίσω στην επιτήρηση' })).toBeInTheDocument()
+  })
+
+  it('refuses a patient sample at the surveillance address', async () => {
+    await openFromSurveillance('LAB-260827-001')
+    expect(await screen.findByText('Μη επιτρεπτή πρόσβαση', {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+  })
 })
 
 describe('laboratory record layout', () => {
