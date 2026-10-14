@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
-import {correctWording,importPlan,packTemplate,unpackTemplate,normalizeProcess,parseRiskWorkbook,readWorkbook} from '../src/features/quality/risk/riskImport'
+import {correctWording,importPlan,normalizeProcess,parseRiskWorkbook,readWorkbook} from '../src/features/quality/risk/riskImport'
 
 // A synthetic workbook in the Ε.Δ.ΔΙΑΧ.090 layout (two risk sheets and one of
 // opportunities), with the kinds of typed mistakes the import must correct.
@@ -81,12 +81,5 @@ describe('risk assessment Excel import with a reassessment',()=>{
   const parsed=parseRiskWorkbook(await load('riskAssessmentReassessment'))
   const plan=importPlan(parsed,{title:'Εκτίμηση',periodLabel:'2026',assessedOn:'2026-04-01',nextReviewOn:'2027-02-01'},{initialOn:'2024-04-01'})
   expect(plan.map(p=>[p.header.periodLabel,p.header.assessedOn,p.header.nextReviewOn,p.risks.length,p.opportunities.length])).toEqual([['2024','2024-04-01','2026-04-01',3,0],['2026','2026-04-01','2027-02-01',3,2]])
- })
- it('keeps a template compact and restores every period exactly',async()=>{
-  const parsed=parseRiskWorkbook(await load('riskAssessmentReassessment'))
-  const plan=importPlan(parsed,{title:'Εκτίμηση',periodLabel:'2026',assessedOn:'2026-04-01'},{initialOn:'2024-04-01'})
-  const packed=JSON.parse(JSON.stringify(packTemplate(plan)))
-  expect(packed.risks).toHaveLength(3)
-  expect(unpackTemplate(packed)).toEqual(plan)
  })
 })

@@ -227,12 +227,6 @@
 @media(max-width:620px){.risk-editor-grid{grid-template-columns:1fr}.risk-field-span2{grid-column:auto}}
 
 /* The platform owner's templates: a small, quiet button beside the import. */
-.risk-owner-template{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px dashed var(--lo-color-border);border-radius:8px;background:transparent;color:var(--lo-color-muted);cursor:pointer}
-.risk-owner-template:hover,.risk-owner-template:focus-visible{color:var(--lo-color-text);border-style:solid}
-.risk-template-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.risk-template-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px}
-.risk-template-list li div{display:grid;gap:2px;min-width:0}
-.risk-template-list small{color:var(--lo-color-muted)}
 .risk-import-words{max-height:140px;overflow:auto}
 
 /* Indicators linked to a risk. */
@@ -438,7 +432,6 @@
 .risk-timeline small{font-size:11px;color:var(--lo-color-muted)}
 .risk-timeline-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#eef3f7;color:#34546f}
 @media(max-width:1000px){.risk-details-columns{grid-template-columns:1fr}.risk-identity{grid-template-columns:1fr}}
-.risk-template-list small.risk-template-loaded{display:block;margin-top:3px;color:#1d6438;font-weight:650}
 /* The assessment page laid out like the Quality Center: the tab's KPIs, then
    one card with the tabs, the toolbar, a table that scrolls inside it and the
    pager at its foot (or the tab's own scrolling pane). */
