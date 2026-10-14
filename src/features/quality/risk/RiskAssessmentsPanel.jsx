@@ -118,17 +118,18 @@ export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSav
   if(isNew&&(key==='periodKind'||key==='assessedOn')&&String(d.periodLabel||'').trim()===suggestPeriodLabel(d.periodKind,d.assessedOn,en))next.periodLabel=suggestPeriodLabel(next.periodKind,next.assessedOn,en)
   return next})
  const carryFrom=assessments.find(a=>a.id===carryId)||null
- const field=(key,label,props={},wide=false)=><label className={`risk-field${wide?' risk-field-wide':''}`}><span>{label}</span><input value={draft[key]||''} onChange={e=>set(key,e.target.value)} {...props}/></label>
+ const field=(key,label,props={},wide=false)=><label className={`risk-field${wide===true?' risk-field-wide':wide?` ${wide}`:''}`}><span>{label}</span><input value={draft[key]||''} onChange={e=>set(key,e.target.value)} {...props}/></label>
  return <ObserverDialog width="standard" title={isNew?L(en,'Νέα εκτίμηση κινδύνου','New risk assessment'):L(en,'Στοιχεία εκτίμησης','Assessment details')} onClose={onClose}
   footer={<DialogActions onCancel={onClose} showCancel onSave={()=>onSave(draft,isNew&&!children?carryFrom:null)} disabled={!String(draft.title).trim()||!String(draft.periodLabel).trim()||!draft.assessedOn} saveLabel={saveLabel||(isNew?L(en,'Δημιουργία','Create'):undefined)}/>}>
-  <div className="risk-editor-grid">
-   {field('title',L(en,'Τίτλος','Title'),{},true)}
+  <div className="risk-editor-grid risk-assessment-form">
+   {/* Three even rows, one-line labels: title and form; type, period and date; next review and assessor. */}
+   {field('title',L(en,'Τίτλος','Title'),{},'risk-field-span2')}
    {field('formCode',L(en,'Κωδικός εντύπου','Form code'))}
-   {field('periodLabel',L(en,'Περίοδος (π.χ. 2026, Α\' εξάμηνο 2026, Γ\' τρίμηνο 2026)','Period (e.g. 2026, H1 2026, Q3 2026)'))}
    <label className="risk-field"><span>{L(en,'Είδος περιόδου','Period type')}</span><select value={draft.periodKind} onChange={e=>set('periodKind',e.target.value)}>{Object.entries(PERIOD_KINDS).map(([id,[el,enLabel]])=><option key={id} value={id}>{en?enLabel:el}</option>)}</select></label>
+   {field('periodLabel',L(en,'Περίοδος','Period'),{placeholder:L(en,'π.χ. 2026, Α\' εξάμηνο 2026','e.g. 2026, H1 2026'),title:L(en,'π.χ. 2026, Α\' εξάμηνο 2026, Γ\' τρίμηνο 2026','e.g. 2026, H1 2026, Q3 2026')})}
    <ManualDateField label={L(en,'Ημερομηνία αξιολόγησης','Assessment date')} value={draft.assessedOn||''} onChange={v=>set('assessedOn',v)}/>
    <ManualDateField label={L(en,'Επόμενη αξιολόγηση','Next assessment')} value={draft.nextReviewOn||''} onChange={v=>set('nextReviewOn',v)} optional/>
-   {field('assessorLabel',L(en,'Υπεύθυνος αξιολόγησης','Assessed by'),{},true)}
+   {field('assessorLabel',L(en,'Υπεύθυνος αξιολόγησης','Assessed by'),{},'risk-field-span2')}
    <label className="risk-field risk-field-wide"><span>{L(en,'Πεδίο εφαρμογής / σημειώσεις','Scope / notes')}</span><textarea rows={2} value={draft.scopeNote||''} onChange={e=>set('scopeNote',e.target.value)}/></label>
    {isNew&&!children&&assessments.length>0&&<label className="risk-field risk-field-wide"><span>{L(en,'Μεταφορά κινδύνων από','Carry risks forward from')}</span><select value={carryId} onChange={e=>setCarryId(e.target.value)}><option value="">{L(en,'Κενή εκτίμηση','Empty assessment')}</option>{assessments.map(a=><option key={a.id} value={a.id}>{a.periodLabel} · {txt(a,'title',en)} ({(a.risks||[]).length})</option>)}</select><small>{L(en,'Οι κίνδυνοι μεταφέρονται με τους ίδιους κωδικούς, ώστε να συγκρίνονται οι περίοδοι.','Risks keep their codes, so the periods can be compared.')}</small></label>}
   </div>

@@ -140,7 +140,7 @@ export function RiskAssessmentPage(){
 
  const statusItems=canManage?[
   canEdit&&{id:'indicators',label:L(en,'Αντιστοίχιση δεικτών','Link indicators'),icon:Gauge,onClick:()=>setLinking(true)},
-  canEdit&&{id:'details',label:L(en,'Στοιχεία εκτίμησης','Assessment details'),icon:Pencil,onClick:()=>setDetailsOpen(true)},
+  canEdit&&{id:'details',label:L(en,'Επεξεργασία στοιχείων','Edit details'),icon:Pencil,onClick:()=>setDetailsOpen(true)},
   assessment.status==='draft'&&{id:'review',label:L(en,'Υποβολή για έλεγχο','Submit for review'),icon:Send,onClick:()=>persistAssessment({status:'under_review'},'riskAssessmentSubmitted')},
   EDITABLE.includes(assessment.status)&&{id:'approve',label:L(en,'Έγκριση','Approve'),icon:CheckCircle2,onClick:()=>setApproving(true)},
   assessment.status!=='draft'&&{id:'reopen',label:L(en,'Επαναφορά σε πρόχειρο','Back to draft'),icon:RotateCcw,onClick:()=>persistAssessment({status:'draft',approvedByLabel:'',approvedOn:null},'riskAssessmentReopened')},
@@ -189,7 +189,7 @@ export function RiskAssessmentPage(){
    {tab==='comparison'&&<RiskComparison frame={frame} returned={riskRow.returned} actions={menu} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk,from)=>{if(from&&from.id!==assessment.id){rememberRow(`limoxis.quality.risk.returned.${from.code}`,risk.lineageKey);navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}})}else openRisk(risk)}}/>}
    {tab==='opportunities'&&<RiskOpportunities frame={frame} returned={opportunityRow.returned} actions={menu} items={assessment.opportunities||[]} en={en} canEdit={canEdit} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}} onCreate={()=>navigate(`/quality/risks/${assessment.code}/opportunities/new`)} onDelete={removeOpportunity}/>}
    {tab==='methodology'&&<RiskMethodology frame={frame} en={en} risks={risks} actions={menu} returned={view.riskMark||''} onJci={jci=>jump('register',{jci},`jci:${jci}`)} onPickFmea={()=>jump('register',{quick:'highOrAbove'},'fmea')}/>}
-   {tab==='details'&&<RiskAssessmentDetails frame={frame} assessment={assessment} assessments={all} en={en} locale={locale} actions={menu} canEdit={canEdit} onEdit={()=>setDetailsOpen(true)} nextStep={nextStep} onOpenAssessment={code=>navigate(`/quality/risks/${code}`)} onCreateNext={canManage?()=>setCreatingNext(true):null}/>}
+   {tab==='details'&&<RiskAssessmentDetails frame={frame} assessment={assessment} assessments={all} en={en} locale={locale} actions={menu} nextStep={nextStep} onOpenAssessment={code=>navigate(`/quality/risks/${code}`)} onCreateNext={canManage?()=>setCreatingNext(true):null}/>}
   <div className="risk-print-host" aria-hidden="true"><RiskReport ref={reportRef} assessment={{...assessment,risks}} summary={summary} previous={previous} organizationName={tenant?.name||''} en={en} locale={locale}/></div>
   {linking&&<LinkIndicatorsDialog risks={risks} values={indicatorValues||new Map()} en={en} saving={saving} onClose={()=>setLinking(false)} onSave={linkIndicators}/>}
   {creatingNext&&<AssessmentDetailsDialog en={en} assessments={[{...assessment,risks}]} initial={{title:assessment.title,formCode:assessment.formCode,periodKind:assessment.periodKind,assessorLabel:assessment.assessorLabel,scopeNote:assessment.scopeNote,periodLabel:suggestPeriodLabel(assessment.periodKind,new Date().toISOString().slice(0,10),en)}} onClose={()=>setCreatingNext(false)} onSave={createNext}/>}
