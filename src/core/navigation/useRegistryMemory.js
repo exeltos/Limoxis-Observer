@@ -44,6 +44,12 @@ export function useRegistryMemory(registry){
     })
   },[registry,location.pathname,location.search,location.hash,location.state])
 
+  // Highlight a row without leaving the list (e.g. a record just created here).
+  const markRecord=useCallback(id=>{
+    writeSessionValue(registryStorageKey(registry,'selected'),id)
+    setHighlightId(id)
+  },[registry])
+
   const rowProps=useCallback((id,onOpen)=>({
     'data-record-id':id,
     className:`registry-row-clickable ${highlightId===id?'registry-row-returned':''}`.trim(),
@@ -61,7 +67,7 @@ export function useRegistryMemory(registry){
     const stored=readSessionJson(registryStorageKey(registry,'view'),{})
     return stored&&typeof stored==='object'&&!Array.isArray(stored)?{...fallback,...stored}:fallback
   },[registry])
-  return useMemo(()=>({scrollRef,highlightId,openRecord,rowProps,saveViewState,loadViewState}),[highlightId,openRecord,rowProps,saveViewState,loadViewState])
+  return useMemo(()=>({scrollRef,highlightId,openRecord,markRecord,rowProps,saveViewState,loadViewState}),[highlightId,openRecord,markRecord,rowProps,saveViewState,loadViewState])
 }
 
 export function readRegistryViewState(registry){

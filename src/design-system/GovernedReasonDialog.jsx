@@ -31,7 +31,7 @@ export function GovernedReasonDialog({
     <div className="governed-reason-dialog" role="dialog" aria-modal="true" aria-labelledby="governed-reason-title">
       <header><div><span className="eyebrow">{en?'GOVERNED CHANGE':'ΕΛΕΓΧΟΜΕΝΗ ΑΛΛΑΓΗ'}</span><h3 id="governed-reason-title">{resolvedTitle}</h3><p>{resolvedDescription}</p></div><button className="icon-button" onClick={cancel} aria-label={en?'Close':'Κλείσιμο'}><X size={16}/></button></header>
       <label><span>{resolvedLabel}</span><textarea autoFocus rows={4} value={reason} onChange={e=>setReason(e.target.value)} placeholder={en?'Enter the reason for this change...':'Καταγράψτε τον λόγο της αλλαγής...'}/></label>
-      <footer><Button variant="secondary" onClick={cancel}>{en?'Cancel':'Ακύρωση'}</Button><Button className={danger?'danger':''} disabled={!reason.trim()} onClick={submit}>{resolvedConfirmLabel}</Button></footer>
+      <footer><Button className={danger?'danger':''} disabled={!reason.trim()} onClick={submit}>{resolvedConfirmLabel}</Button></footer>
     </div>
   </div>
 }

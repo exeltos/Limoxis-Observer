@@ -533,8 +533,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             isDemo={isDemo}
             departments={departments}
             canEdit={patientMode && has(CAPABILITIES.EDIT_PATIENT)}
-            showPatientActions={patientMode}
-            onDeleted={goBack}
             onChanged={() => load()}
             t={t}
             language={language}

@@ -138,6 +138,27 @@ describe('admissions', () => {
     expect(within(body()).getByRole('heading', { name: 'Κλινικές αξιολογήσεις' })).toBeInTheDocument()
   })
 
+  it('keeps patient-level actions on the patient home, admission actions on the admission', async () => {
+    await openPatient()
+    fireEvent.click(screen.getByRole('button', { name: 'Ενέργειες ασθενούς' }))
+    expect(screen.getByRole('menuitem', { name: /Επεξεργασία ασθενούς/ })).toBeInTheDocument()
+    cleanup()
+    await openAdmission()
+    expect(screen.queryByRole('button', { name: 'Ενέργειες ασθενούς' })).not.toBeInTheDocument()
+    fireEvent.click(within(body()).getByRole('button', { name: 'Ενέργειες νοσηλείας' }))
+    expect(screen.queryByRole('menuitem', { name: /Επεξεργασία ασθενούς|Αρχειοθέτηση ασθενούς/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /Εξιτήριο/ })).toBeInTheDocument()
+  })
+
+  it('closes the new-admission dialog with its × alone and marks the required date', async () => {
+    await openPatient()
+    fireEvent.click(screen.getByRole('button', { name: /Νέα νοσηλεία/ }))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).queryByRole('button', { name: 'Ακύρωση' })).not.toBeInTheDocument()
+    expect(within(dialog).getAllByRole('button', { name: 'Κλείσιμο' })).toHaveLength(1)
+    expect(within(dialog).getByText(/Ημερομηνία εισαγωγής \*/)).toBeInTheDocument()
+  })
+
   it('summarises the stay and the current surveillance as info sheets', async () => {
     await openAdmission()
     expect(screen.getByText('Διάρκεια νοσηλείας')).toBeInTheDocument()

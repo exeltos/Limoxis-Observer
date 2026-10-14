@@ -4,11 +4,11 @@ import { stayDays } from './patientRecordScope'
 import { AlertTriangle, Plus, ArrowRightLeft, LogOut } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { RegistryTable } from '../../design-system/RegistryTable'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { createAdmission, dischargeAdmission, transferAdmission } from '../patients/patientsService'
-import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { SimpleDialog } from './ClinicalRecordDialogs'
 import { clinicalTerm } from './clinicalRecordLabels'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
@@ -183,8 +183,6 @@ export function CanonicalSummary({
   isDemo,
   departments,
   canEdit,
-  showPatientActions,
-  onDeleted,
   onChanged,
   t,
   language,
@@ -261,18 +259,9 @@ export function CanonicalSummary({
       isDemo={isDemo}
       departments={departments}
       canEdit={canEdit}
-      showPatientActions={showPatientActions}
-      onDeleted={onDeleted}
       onChanged={onChanged}
       t={t}
       language={language}
-    />
-  ) : showPatientActions ? (
-    <PatientSummaryActions
-      patient={patient}
-      departments={departments}
-      onReload={onChanged}
-      onDeleted={onDeleted}
     />
   ) : null
   // The samples shown under the surveillance, laboratory registry rows included.
@@ -438,8 +427,6 @@ function AdmissionLifecycleActions({
   isDemo,
   departments,
   canEdit,
-  showPatientActions,
-  onDeleted,
   onChanged,
   t,
   language,
@@ -503,15 +490,7 @@ function AdmissionLifecycleActions({
       : []
   return (
     <>
-      {showPatientActions ? (
-        <PatientSummaryActions
-          patient={patient}
-          departments={departments}
-          onReload={onChanged}
-          onDeleted={onDeleted}
-          extraItems={lifecycleItems}
-        />
-      ) : lifecycleItems.length ? (
+      {lifecycleItems.length ? (
         <OverflowMenu
           label={translate(
             'copy.clinicalRecordCopy.admissionActions',
@@ -533,6 +512,7 @@ function AdmissionLifecycleActions({
                   language === 'el' ? 'el' : 'en',
                 )
           }
+          eyebrow={patient?.name}
           t={t}
           onClose={() => setKind(null)}
           onSave={save}
@@ -541,11 +521,11 @@ function AdmissionLifecycleActions({
           <ManualDateField
             label={
               kind === 'transfer'
-                ? translate('copy.clinicalRecordCopy.transferDate', language === 'el' ? 'el' : 'en')
-                : translate(
+                ? `${translate('copy.clinicalRecordCopy.transferDate', language === 'el' ? 'el' : 'en')} *`
+                : `${translate(
                     'copy.clinicalRecordCopy.dischargeDate',
                     language === 'el' ? 'el' : 'en',
-                  )
+                  )} *`
             }
             value={draft.date}
             onChange={v => setDraft(d => ({ ...d, date: v }))}
@@ -556,7 +536,8 @@ function AdmissionLifecycleActions({
                 {translate(
                   'copy.clinicalRecordCopy.newDepartment',
                   language === 'el' ? 'el' : 'en',
-                )}
+                )}{' '}
+                *
               </span>
               <select
                 value={draft.departmentId}
@@ -693,77 +674,68 @@ function AdmissionsPanel({
           </Button>
         )}
       </div>
-      {rows.length ? (
-        <div className="record-table-wrap patient-admissions-table-wrap">
-          <table className="record-table patient-admissions-table">
-            <thead>
-              <tr>
-                <th>{t('admissionDate')}</th>
-                <th>{t('department')}</th>
-                <th>{t('clinicalRecords.dischargeDate')}</th>
-                <th>{t('status')}</th>
-                <th>{t('clinicalRecords.surveillanceColumn')}</th>
-                <th
-                  aria-label={translate(
-                    'copy.clinicalRecordCopy.actions',
-                    language === 'el' ? 'el' : 'en',
-                  )}
-                />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(row => (
-                <tr
-                  key={row.id}
-                  tabIndex={0}
-                  className="clickable-row"
-                  onClick={() => onSelect?.(row)}
-                  onKeyDown={e => {
-                    if ((e.key === 'Enter' || e.key === ' ') && onSelect) {
-                      e.preventDefault()
-                      onSelect(row)
-                    }
-                  }}
-                >
-                  <td>
-                    <strong>{fmtDate(row.admissionDate)}</strong>
-                  </td>
-                  <td>{row.department || '—'}</td>
-                  <td>{fmtDate(row.dischargeDate)}</td>
-                  <td>
-                    <span className={`status-badge ${row.status === 'active' ? 'active' : ''}`}>
-                      {t(row.status)}
-                    </span>
-                  </td>
-                  <td>{surveillanceLabel(row)}</td>
-                  <td
-                    className="open-record-cell"
-                    onClick={e => e.stopPropagation()}
-                    onKeyDown={e => e.stopPropagation()}
-                  >
-                    <AdmissionLifecycleActions
-                      patient={patient}
-                      admission={row}
-                      tenantId={tenantId}
-                      isDemo={isDemo}
-                      departments={departments}
-                      canEdit={canEdit}
-                      showPatientActions={false}
-                      onChanged={onChanged}
-                      t={t}
-                      language={language}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="inline-empty">{t('clinicalRecords.noAdmissions')}</div>
-      )}
+      <RegistryTable
+        wrapperClassName="record-table-wrap patient-admissions-table-wrap"
+        className="patient-admissions-table"
+        columns={[
+          { key: 'admission', label: t('admissionDate') },
+          { key: 'department', label: t('department') },
+          { key: 'discharge', label: t('clinicalRecords.dischargeDate') },
+          { key: 'status', label: t('status') },
+          { key: 'surveillance', label: t('clinicalRecords.surveillanceColumn') },
+          { key: 'actions', label: '' },
+        ]}
+        rows={rows}
+        rowKey={row => row.id}
+        rowProps={row => ({
+          tabIndex: 0,
+          className: 'clickable-row',
+          onClick: () => onSelect?.(row),
+          onKeyDown: e => {
+            if ((e.key === 'Enter' || e.key === ' ') && onSelect) {
+              e.preventDefault()
+              onSelect(row)
+            }
+          },
+        })}
+        emptyTitle={t('clinicalRecords.noAdmissions')}
+        emptyText={canEdit ? t('clinicalRecords.noAdmissionsHint') : ''}
+        renderRow={row => (
+          <>
+            <td>
+              <strong>{fmtDate(row.admissionDate)}</strong>
+            </td>
+            <td>{row.department || '—'}</td>
+            <td>{fmtDate(row.dischargeDate)}</td>
+            <td>
+              <span className={`status-badge ${row.status === 'active' ? 'active' : ''}`}>
+                {t(row.status)}
+              </span>
+            </td>
+            <td>{surveillanceLabel(row)}</td>
+            <td
+              className="open-record-cell"
+              onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
+            >
+              <AdmissionLifecycleActions
+                patient={patient}
+                admission={row}
+                tenantId={tenantId}
+                isDemo={isDemo}
+                departments={departments}
+                canEdit={canEdit}
+                onChanged={onChanged}
+                t={t}
+                language={language}
+              />
+            </td>
+          </>
+        )}
+      />
       {open && (
         <SimpleDialog
+          eyebrow={patient?.name}
           title={t('clinicalRecords.newAdmission')}
           t={t}
           onClose={() => setOpen(false)}
@@ -792,7 +764,7 @@ function AdmissionsPanel({
             )}
           </label>
           <ManualDateField
-            label={t('admissionDate')}
+            label={`${t('admissionDate')} *`}
             value={draft.admissionDate}
             onChange={v => setDraft(d => ({ ...d, admissionDate: v }))}
           />

@@ -6,7 +6,7 @@ import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
-import { UI_ACTIONS } from '../../core/actions/actionPolicy'
+import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -28,7 +28,7 @@ export function PatientsPage(){
   const {t,language,locale}=useLanguage()
   const {notify}=useFeedback()
   const navigate=useNavigate()
-  const {canAccessRecord,tenant,isDemo}=useTenant()
+  const {canAccessRecord,tenant,isDemo,role,actualRole,membership}=useTenant()
   const registry=useRegistryMemory('patients')
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query)
@@ -42,6 +42,7 @@ export function PatientsPage(){
   const [riskFlags,setRiskFlags]=useState({})
   const [infectionFlags,setInfectionFlags]=useState({})
   const [flagsReady,setFlagsReady]=useState(false)
+  const [createdId,setCreatedId]=useState('')
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive)notify(error?.message||t('patientsLoadFailed'),'danger')})
@@ -65,11 +66,22 @@ export function PatientsPage(){
     .filter(p=>`${p.id} ${p.name} ${p.nameEn||''} ${p.hospitalRecordNumber||''}`.toLowerCase().includes(query.toLowerCase()))
     .filter(p=>department==='all'||(language==='el'?p.department:p.departmentEn)===department)
     .filter(p=>status==='all'||p.status===status),[query,patients,department,status,language,canAccessRecord])
+  // A new patient stays in the registry: go to its page and bring its
+  // highlighted row into view, rather than opening the record.
+  useEffect(()=>{
+    if(!createdId)return
+    const index=rows.findIndex(x=>x.id===createdId)
+    if(index<0)return
+    setPage(Math.floor(index/pageSize)+1)
+    setCreatedId('')
+    requestAnimationFrame(()=>registry.scrollRef.current?.querySelector(`[data-record-id="${CSS.escape(createdId)}"]`)?.scrollIntoView({block:'nearest'}))
+  },[createdId,rows,pageSize,registry.scrollRef])
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))
   const safePage=Math.min(page,totalPages)
   const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
   const fmt=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)):'—'
   const pageCaps={[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_PATIENT}
+  const canCreate=canPerform({role:role||actualRole,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],action:UI_ACTIONS.CREATE,resourceCapability:CAPABILITIES.CREATE_PATIENT})
   function pageAction(action){
     if(action===UI_ACTIONS.CREATE)setNewOpen(true)
   }
@@ -83,10 +95,9 @@ export function PatientsPage(){
       setStatus('all')
       notify(t('patientCreated'),'success')
       signalDemoScenario('patient_admission')
-      requestAnimationFrame(()=>{
-        registry.saveViewState({query:'',department:'all',status:'all'})
-        registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))
-      })
+      registry.saveViewState({query:'',department:'all',status:'all'})
+      registry.markRecord(patient.id)
+      setCreatedId(patient.id)
     }catch(error){
       notify(error?.duplicateCode?t('patientCodeDuplicate'):(error?.message||t('patientSaveFailed')),'danger')
     }
@@ -120,15 +131,13 @@ export function PatientsPage(){
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
         renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskFlags rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} compact/></span></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></>}
-      />{!rows.length&&<PatientRegistryEmpty t={t}/>}
-      <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
+        emptyTitle={scopedPatients.length?t('svEmptyFiltered'):t('patientRegistryEmptyTitle')}
+        emptyText={scopedPatients.length?t('svEmptyFilteredHint'):`${t('patientRegistryEmptyDescription')}${canCreate?` ${t('patientRegistryEmptyHint')}`:''}`}
+      />
+      {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
     </div>
     {newOpen&&<PatientFormDialog t={t} language={language} departments={departmentOptions} existingPatients={patients} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
   </Page>
-}
-
-function PatientRegistryEmpty({t}){
-  return <div className="registry-empty-state"><strong>{t('patientRegistryEmptyTitle')}</strong><span>{t('patientRegistryEmptyDescription')}</span></div>
 }
 
 // A summary card filters the registry by its status; clicking it again shows everyone.
@@ -165,7 +174,7 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
     onSave({...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim(),birthWeightGrams:draft.birthWeightGrams?Number(draft.birthWeightGrams):null,gestationalAgeWeeks:draft.gestationalAgeWeeks?Number(draft.gestationalAgeWeeks):null})
   }
   const disabled=Boolean(duplicate)||!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid
-  return <ObserverDialog width="wide" eyebrow={t('patients')} title={editing?t('edit'):t('newPatient')} subtitle={editing?t('patientRegistrySubtitle'):t('newPatientHelp')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={save} disabled={disabled}/> }>
+  return <ObserverDialog width="wide" eyebrow={t('patients')} title={editing?t('edit'):t('newPatient')} subtitle={editing?t('patientRegistrySubtitle'):t('newPatientHelp')} onClose={onClose} footer={<DialogActions onSave={save} disabled={disabled}/>}>
     <div className="entry-grid patient-entry-grid">
       <label><span>{t('patientId')} *</span><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/>{duplicate&&<small className="field-error">{t('patientCodeDuplicate')}{duplicate.name?` (${duplicate.name})`:''}</small>}</label>
       <label><span>{t('firstName')} *</span><input autoFocus={editing} value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
