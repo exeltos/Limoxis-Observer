@@ -60,7 +60,7 @@ export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) 
   )
   return (
     <section className="record-section patient-history-section">
-      <div className="record-section-header">
+      <div className="record-section-header lo-section-header">
         <div>
           <h3>
             {title ||

@@ -4,6 +4,8 @@ import { stayDays } from './patientRecordScope'
 import { AlertTriangle, Plus, ArrowRightLeft, LogOut } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { SectionHeader } from '../../design-system/SectionHeader'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -108,24 +110,21 @@ export function PatientAdmissionsHome({
   return (
     <div className="patient-home-layout">
       <section className="patient-home-details patient-profile-card">
-        <div className="record-section-header">
-          <div>
-            <h3>
-              {translate('copy.clinicalRecordCopy.patientDetails', language === 'el' ? 'el' : 'en')}
-            </h3>
-            <p>
-              {translate(
-                'copy.clinicalRecordCopy.coreIdentityAndCurrentAdmissionInformation',
-                language === 'el' ? 'el' : 'en',
-              )}
-            </p>
-          </div>
-          {actions}
-        </div>
+        <SectionHeader
+          title={translate(
+            'copy.clinicalRecordCopy.patientDetails',
+            language === 'el' ? 'el' : 'en',
+          )}
+          subtitle={translate(
+            'copy.clinicalRecordCopy.coreIdentityAndCurrentAdmissionInformation',
+            language === 'el' ? 'el' : 'en',
+          )}
+          actions={actions}
+        />
         <div className="patient-profile-grid">
           {profile.map(([label, value]) => (
             <div key={label} className="patient-profile-item">
-              <span>{label}</span>
+              <span className="lo-field-label">{label}</span>
               <strong>{value || '—'}</strong>
             </div>
           ))}
@@ -349,16 +348,12 @@ export function CanonicalSummary({
         </div>
       )}
       <section className="clinical-panel patient-summary-card">
-        <div className="record-section-header">
-          <div>
-            <h3>
-              {admission
-                ? t('clinicalRecords.admissionSummary')
-                : t('clinicalRecords.patientDetails')}
-            </h3>
-          </div>
-          {actions}
-        </div>
+        <SectionHeader
+          title={
+            admission ? t('clinicalRecords.admissionSummary') : t('clinicalRecords.patientDetails')
+          }
+          actions={actions}
+        />
         <div className="detail-grid patient-detail-grid">
           {details.map(([label, value]) => (
             <Detail key={label} label={label} value={value} />
@@ -367,11 +362,7 @@ export function CanonicalSummary({
       </section>
       {!record && (
         <section className="clinical-panel patient-summary-card">
-          <div className="record-section-header">
-            <div>
-              <h3>{t('clinicalRecords.clinicalPicture')}</h3>
-            </div>
-          </div>
+          <SectionHeader title={t('clinicalRecords.clinicalPicture')} />
           <div className="detail-grid patient-detail-grid">
             {clinicalRiskFlags(scaleRows).map(({ kind, row, config, tone }) => (
               <Detail
@@ -407,11 +398,7 @@ export function CanonicalSummary({
       )}
       {record && (
         <section className="clinical-panel patient-summary-card">
-          <div className="record-section-header">
-            <div>
-              <h3>{t('clinicalRecords.currentSurveillance')}</h3>
-            </div>
-          </div>
+          <SectionHeader title={t('clinicalRecords.currentSurveillance')} />
           <div className="detail-grid patient-detail-grid">
             <Detail
               label={t('surveillance')}
@@ -699,92 +686,87 @@ function AdmissionsPanel({
   }
   return (
     <section className="record-section patient-admissions-section">
-      <div className="record-section-header">
-        <div>
-          <h3>{t('clinicalRecords.admissions')}</h3>
-          <p>
-            {translate(
-              'copy.clinicalRecordCopy.selectAnAdmissionToOpenIts',
-              language === 'el' ? 'el' : 'en',
-            )}
-          </p>
-        </div>
-        {canEdit && (
-          <Button onClick={() => setOpen(true)}>
-            <Plus size={15} />
-            {t('clinicalRecords.newAdmission')}
-          </Button>
+      <SectionHeader
+        title={t('clinicalRecords.admissions')}
+        subtitle={translate(
+          'copy.clinicalRecordCopy.selectAnAdmissionToOpenIts',
+          language === 'el' ? 'el' : 'en',
         )}
-      </div>
-      {rows.length ? (
-        <div className="record-table-wrap patient-admissions-table-wrap">
-          <table className="record-table patient-admissions-table">
-            <thead>
-              <tr>
-                <th>{t('admissionDate')}</th>
-                <th>{t('department')}</th>
-                <th>{t('clinicalRecords.dischargeDate')}</th>
-                <th>{t('status')}</th>
-                <th>{t('clinicalRecords.surveillanceColumn')}</th>
-                <th
-                  aria-label={translate(
-                    'copy.clinicalRecordCopy.actions',
-                    language === 'el' ? 'el' : 'en',
-                  )}
-                />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(row => (
-                <tr
-                  key={row.id}
-                  tabIndex={0}
-                  className="clickable-row"
-                  onClick={() => onSelect?.(row)}
-                  onKeyDown={e => {
-                    if ((e.key === 'Enter' || e.key === ' ') && onSelect) {
-                      e.preventDefault()
-                      onSelect(row)
-                    }
-                  }}
-                >
-                  <td>
-                    <strong>{fmtDate(row.admissionDate)}</strong>
-                  </td>
-                  <td>{row.department || '—'}</td>
-                  <td>{fmtDate(row.dischargeDate)}</td>
-                  <td>
-                    <span className={`status-badge ${row.status === 'active' ? 'active' : ''}`}>
-                      {t(row.status)}
-                    </span>
-                  </td>
-                  <td>{surveillanceLabel(row)}</td>
-                  <td
-                    className="open-record-cell"
-                    onClick={e => e.stopPropagation()}
-                    onKeyDown={e => e.stopPropagation()}
-                  >
-                    <AdmissionLifecycleActions
-                      patient={patient}
-                      admission={row}
-                      tenantId={tenantId}
-                      isDemo={isDemo}
-                      departments={departments}
-                      canEdit={canEdit}
-                      showPatientActions={false}
-                      onChanged={onChanged}
-                      t={t}
-                      language={language}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="inline-empty">{t('clinicalRecords.noAdmissions')}</div>
-      )}
+        actions={
+          canEdit ? (
+            <Button onClick={() => setOpen(true)}>
+              <Plus size={15} />
+              {t('clinicalRecords.newAdmission')}
+            </Button>
+          ) : null
+        }
+      />
+      <RegistryTable
+        className="patient-admissions-table"
+        wrapperClassName="scroll-table patient-admissions-table-wrap"
+        columns={[
+          { key: 'admission', label: t('admissionDate') },
+          { key: 'department', label: t('department') },
+          { key: 'discharge', label: t('clinicalRecords.dischargeDate') },
+          { key: 'status', label: t('status') },
+          { key: 'surveillance', label: t('clinicalRecords.surveillanceColumn') },
+          {
+            key: 'actions',
+            label: '',
+            ariaLabel: translate(
+              'copy.clinicalRecordCopy.actions',
+              language === 'el' ? 'el' : 'en',
+            ),
+          },
+        ]}
+        rows={rows}
+        rowKey={row => row.id}
+        emptyTitle={t('clinicalRecords.noAdmissions')}
+        rowProps={row => ({
+          className: 'clickable-row',
+          tabIndex: 0,
+          onClick: () => onSelect?.(row),
+          onKeyDown: e => {
+            if ((e.key === 'Enter' || e.key === ' ') && onSelect) {
+              e.preventDefault()
+              onSelect(row)
+            }
+          },
+        })}
+        renderRow={row => (
+          <>
+            <td>
+              <strong>{fmtDate(row.admissionDate)}</strong>
+            </td>
+            <td>{row.department || '—'}</td>
+            <td>{fmtDate(row.dischargeDate)}</td>
+            <td>
+              <span className={`status-badge ${row.status === 'active' ? 'active' : ''}`}>
+                {t(row.status)}
+              </span>
+            </td>
+            <td>{surveillanceLabel(row)}</td>
+            <td
+              className="open-record-cell"
+              onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
+            >
+              <AdmissionLifecycleActions
+                patient={patient}
+                admission={row}
+                tenantId={tenantId}
+                isDemo={isDemo}
+                departments={departments}
+                canEdit={canEdit}
+                showPatientActions={false}
+                onChanged={onChanged}
+                t={t}
+                language={language}
+              />
+            </td>
+          </>
+        )}
+      />
       {open && (
         <SimpleDialog
           title={t('clinicalRecords.newAdmission')}

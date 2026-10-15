@@ -27,6 +27,10 @@ This file is the product-wide interaction contract for new and existing features
 - Registries use `Page`, `FilterBar`, `RecordActions`, and clickable-row affordance where rows open records.
 - Record pages use `EntityRecordShell`.
 - Lists inside a record use `RegistryTable` (same geometry as registries); statuses use `status-badge`, never plain text.
+- Sections inside a record tab start with `SectionHeader` (title, optional subtitle, actions on the right).
+- Field titles, editable or read-only, use the `lo-field-label` style (Field, ManualDateField, TimeField, SearchableSelect, RecordDetailsGrid apply it).
+- Multi-choice fields use `ChoiceChips`, not checkboxes in pills.
+- An empty registry shows the RegistryTable empty state under the column headings and hides pagination.
 - A nested view inside a record (e.g. an episode inside a tab) shows its path with `Breadcrumbs` instead of a second Back button.
 - Status badges, table geometry and row actions must use existing Observer primitives before new CSS is introduced.
 

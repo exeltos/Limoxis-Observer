@@ -355,7 +355,7 @@ export function SurveillanceWorkspace({
   return (
     <div className="patient-surveillance-clean unified-surveillance-workspace">
       <section className="record-section surveillance-tree-section">
-        <div className="record-section-header">
+        <div className="record-section-header lo-section-header">
           <div>
             <h3>
               {translate(

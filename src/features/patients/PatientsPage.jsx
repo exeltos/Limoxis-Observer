@@ -120,15 +120,13 @@ export function PatientsPage(){
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
         renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskFlags rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} compact/></span></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></>}
-      />{!rows.length&&<PatientRegistryEmpty t={t}/>}
-      <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
+        emptyTitle={scopedPatients.length?t('svEmptyFiltered'):t('patientRegistryEmptyTitle')}
+        emptyText={scopedPatients.length?t('svEmptyFilteredHint'):t('patientRegistryEmptyDescription')}
+      />
+      {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
     </div>
     {newOpen&&<PatientFormDialog t={t} language={language} departments={departmentOptions} existingPatients={patients} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
   </Page>
-}
-
-function PatientRegistryEmpty({t}){
-  return <div className="registry-empty-state"><strong>{t('patientRegistryEmptyTitle')}</strong><span>{t('patientRegistryEmptyDescription')}</span></div>
 }
 
 // A summary card filters the registry by its status; clicking it again shows everyone.
@@ -165,7 +163,7 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
     onSave({...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim(),birthWeightGrams:draft.birthWeightGrams?Number(draft.birthWeightGrams):null,gestationalAgeWeeks:draft.gestationalAgeWeeks?Number(draft.gestationalAgeWeeks):null})
   }
   const disabled=Boolean(duplicate)||!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid
-  return <ObserverDialog width="wide" eyebrow={t('patients')} title={editing?t('edit'):t('newPatient')} subtitle={editing?t('patientRegistrySubtitle'):t('newPatientHelp')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={save} disabled={disabled}/> }>
+  return <ObserverDialog width="wide" eyebrow={editing?(language==='el'?patient.name:(patient.nameEn||patient.name)):t('patients')} title={editing?t('editPatient'):t('newPatient')} subtitle={editing?undefined:t('newPatientHelp')} onClose={onClose} footer={<DialogActions onSave={save} disabled={disabled}/> }>
     <div className="entry-grid patient-entry-grid">
       <label><span>{t('patientId')} *</span><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/>{duplicate&&<small className="field-error">{t('patientCodeDuplicate')}{duplicate.name?` (${duplicate.name})`:''}</small>}</label>
       <label><span>{t('firstName')} *</span><input autoFocus={editing} value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
