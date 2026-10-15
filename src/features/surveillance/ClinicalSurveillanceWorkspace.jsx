@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { sampleParentCode, sampleTone } from './patientRecordScope'
 import {
   Activity,
-  ArrowLeft,
   CalendarClock,
   ChevronRight,
   Download,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { DueDate } from '../../design-system/DueDate'
+import { Breadcrumbs } from '../../design-system/Breadcrumbs'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -148,25 +148,23 @@ export function SurveillanceWorkspace({
         <section className="episode-detail-card new-surveillance-flow-card">
           <header className="episode-detail-header">
             <div className="episode-detail-title">
-              <button
-                type="button"
-                className="episode-back"
-                title={translate(
-                  'copy.clinicalRecordCopy.backToSurveillance',
-                  language === 'el' ? 'el' : 'en',
-                )}
-                aria-label={translate(
-                  'copy.clinicalRecordCopy.backToSurveillance',
-                  language === 'el' ? 'el' : 'en',
-                )}
-                onClick={() => setDetailId('')}
-              >
-                <ArrowLeft size={18} />
-              </button>
               <div>
-                <span className="eyebrow">
-                  {t('surveillance')} · {fmtDate(detailRecord.startedAt)}
-                </span>
+                <Breadcrumbs
+                  ariaLabel={translate(
+                    'copy.clinicalRecordCopy.surveillanceEpisode',
+                    language === 'el' ? 'el' : 'en',
+                  )}
+                  items={[
+                    {
+                      label: translate(
+                        'copy.clinicalRecordCopy.surveillanceSamples',
+                        language === 'el' ? 'el' : 'en',
+                      ),
+                      onClick: () => setDetailId(''),
+                    },
+                    { label: `${t('surveillance')} · ${fmtDate(detailRecord.startedAt)}` },
+                  ]}
+                />
                 <h2>
                   {episodeTypeLabel(detailRecord, t) ||
                     translate(
@@ -601,26 +599,17 @@ export function SurveillanceWorkspace({
           }}
           onSave={saveSample}
         />
-      )}{' '}
+      )}
       {samplePrompt && (
         <ObserverDialog
           title={translate(
             'copy.clinicalRecordCopy.sampleRecorded2',
             language === 'el' ? 'el' : 'en',
           )}
+          width="compact"
           onClose={() => setSamplePrompt(null)}
-        >
-          <p>
-            {translate(
-              'copy.clinicalRecordCopy.startSurveillanceFromThisSample',
-              language === 'el' ? 'el' : 'en',
-            )}
-          </p>
-          <div className="dialog-actions">
-            <Button variant="secondary" onClick={() => setSamplePrompt(null)}>
-              {translate('copy.clinicalRecordCopy.later', language === 'el' ? 'el' : 'en')}
-            </Button>
-            {canCreate && (
+          footer={
+            canCreate ? (
               <Button
                 onClick={() => {
                   const sample = samplePrompt
@@ -633,8 +622,15 @@ export function SurveillanceWorkspace({
                   language === 'el' ? 'el' : 'en',
                 )}
               </Button>
+            ) : null
+          }
+        >
+          <p>
+            {translate(
+              'copy.clinicalRecordCopy.startSurveillanceFromThisSample',
+              language === 'el' ? 'el' : 'en',
             )}
-          </div>
+          </p>
         </ObserverDialog>
       )}
     </div>

@@ -99,13 +99,18 @@ export function AdministrationDialog({ t, language, onClose, onSave }) {
 }
 export function SimpleDialog({ title, t, onClose, onSave, children, disabled = false }) {
   return (
-    <ObserverDialog title={title} width="wide" className="patient-simple-dialog" onClose={onClose}>
-      <div className="entry-grid">{children}</div>
-      <div className="dialog-actions">
+    <ObserverDialog
+      title={title}
+      width="wide"
+      className="patient-simple-dialog"
+      onClose={onClose}
+      footer={
         <SaveButton disabled={disabled} onClick={onSave}>
           {t('save')}
         </SaveButton>
-      </div>
+      }
+    >
+      <div className="entry-grid">{children}</div>
     </ObserverDialog>
   )
 }

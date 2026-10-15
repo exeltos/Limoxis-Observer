@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { AlertTriangle, X } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
+import { Button } from '../../design-system/Button'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -171,89 +173,73 @@ export function NewSurveillanceFlow({
     }
   }
 
+  const canStart =
+    !busy &&
+    Boolean(startDraft.startedAt) &&
+    Boolean(startDraft.reason || startDraft.reasonEn) &&
+    (patientMode === 'new' || Boolean(selectedPatient))
   return (
-    <div className="episode-overlay new-surveillance-flow-overlay" role="dialog" aria-modal="true">
-      <section className="episode-detail-card new-surveillance-flow-card new-surveillance-start-card">
-        <header className="episode-detail-header">
-          <div>
-            <span className="eyebrow">{t('newSurveillance')}</span>
-            <h2>{t('svPatientSurveillance')}</h2>
-            <p>
-              {selectedPatient
-                ? `${language === 'el' ? selectedPatient.name : selectedPatient.nameEn || selectedPatient.name} · ${selectedPatient.id}`
-                : t('clinicalRecords.selectPatient')}
-            </p>
-          </div>
-          <div className="episode-detail-actions">
-            <button className="flow-close-button" title={t('close')} onClick={onClose}>
-              <X size={16} />
-            </button>
-          </div>
-        </header>
-        <div className="episode-detail-scroll progressive-surveillance-scroll">
-          {!patient && (
-            <PatientSelector
-              chooseExistingPatient={chooseExistingPatient}
-              createdPatient={createdPatient}
-              departmentPairs={departmentPairs}
-              isDemo={isDemo}
-              language={language}
-              patientDraft={patientDraft}
-              patientMode={patientMode}
-              patients={patients}
-              selectedPatientId={selectedPatientId}
-              setCreatedPatient={setCreatedPatient}
-              setPatientDepartment={setPatientDepartment}
-              setPatientField={setPatientField}
-              setPatientMode={setPatientMode}
-              setSelectedPatientId={setSelectedPatientId}
-              t={t}
-            />
-          )}
-          {selectedPatient && (
-            <div className="flow-patient-context">
-              <div>
-                <strong>
-                  {language === 'el'
-                    ? selectedPatient.name
-                    : selectedPatient.nameEn || selectedPatient.name}
-                </strong>
-                <small>{t('clinicalRecords.patientContextInherited')}</small>
-              </div>
-              <span>
-                {selectedPatient.id} ·{' '}
-                {language === 'el' ? selectedPatient.department : selectedPatient.departmentEn}
-              </span>
-            </div>
-          )}
-
-          <div className="progressive-guidance">
-            <AlertTriangle size={16} />
-            <div>
-              <strong>{language === 'el' ? 'Κλινική αρχή' : 'Clinical principle'}</strong>
-              <span>
-                {language === 'el'
-                  ? 'Η δημιουργία επιτήρησης δεν απαιτεί νέο δείγμα ούτε απόφαση απομόνωσης. Αυτά μπορούν να καταγραφούν οποτεδήποτε χρειαστεί.'
-                  : 'Starting surveillance does not require a new sample or an isolation decision. These can be recorded whenever clinically needed.'}
-              </span>
-            </div>
-          </div>
-
-          {
-            <StartStep
-              busy={busy}
-              contextDepartment={contextDepartment}
-              language={language}
-              patientMode={patientMode}
-              saveStart={saveStart}
-              selectedPatient={selectedPatient}
-              setStart={setStart}
-              startDraft={startDraft}
-              t={t}
-            />
-          }
+    <ObserverDialog
+      width="standard"
+      fixedHeight
+      className="surveillance-entry patient-surveillance-entry"
+      eyebrow={t('newSurveillance')}
+      title={t('svPatientSurveillance')}
+      subtitle={
+        selectedPatient
+          ? `${language === 'el' ? selectedPatient.name : selectedPatient.nameEn || selectedPatient.name} · ${selectedPatient.id}`
+          : t('clinicalRecords.selectPatient')
+      }
+      onClose={onClose}
+      footer={
+        <Button disabled={!canStart} onClick={saveStart}>
+          {busy
+            ? language === 'el'
+              ? 'Αποθήκευση…'
+              : 'Saving…'
+            : language === 'el'
+              ? 'Έναρξη επιτήρησης'
+              : 'Start surveillance'}
+        </Button>
+      }
+    >
+      {!patient && (
+        <PatientSelector
+          chooseExistingPatient={chooseExistingPatient}
+          createdPatient={createdPatient}
+          departmentPairs={departmentPairs}
+          isDemo={isDemo}
+          language={language}
+          patientDraft={patientDraft}
+          patientMode={patientMode}
+          patients={patients}
+          selectedPatientId={selectedPatientId}
+          setCreatedPatient={setCreatedPatient}
+          setPatientDepartment={setPatientDepartment}
+          setPatientField={setPatientField}
+          setPatientMode={setPatientMode}
+          setSelectedPatientId={setSelectedPatientId}
+          t={t}
+        />
+      )}
+      <div className="progressive-guidance">
+        <AlertTriangle size={16} />
+        <div>
+          <strong>{language === 'el' ? 'Κλινική αρχή' : 'Clinical principle'}</strong>
+          <span>
+            {language === 'el'
+              ? 'Η δημιουργία επιτήρησης δεν απαιτεί νέο δείγμα ούτε απόφαση απομόνωσης. Αυτά μπορούν να καταγραφούν οποτεδήποτε χρειαστεί.'
+              : 'Starting surveillance does not require a new sample or an isolation decision. These can be recorded whenever clinically needed.'}
+          </span>
         </div>
-      </section>
-    </div>
+      </div>
+      <StartStep
+        contextDepartment={contextDepartment}
+        language={language}
+        setStart={setStart}
+        startDraft={startDraft}
+        t={t}
+      />
+    </ObserverDialog>
   )
 }

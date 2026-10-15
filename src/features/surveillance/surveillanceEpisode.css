@@ -3,9 +3,6 @@ html body .episode-overlay.surveillance-episode-page{position:static!important;i
 html body .surveillance-episode-page .episode-detail-card.new-surveillance-flow-card{width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;display:block!important;overflow:visible!important}
 html body .surveillance-episode-page .episode-detail-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:14px 16px!important;margin:0!important;border-bottom:1px solid #dfeaf4!important;background:transparent!important}
 .surveillance-episode-page .episode-detail-title{display:flex;align-items:center;gap:12px;min-width:0}
-.surveillance-episode-page .episode-back{display:grid;place-items:center;flex:none;width:36px;height:36px;border:1px solid var(--lo-color-border);border-radius:9px;background:#fff;color:#1f3a52;cursor:pointer}
-.surveillance-episode-page .episode-back:hover{background:#f2f7fb}
-.surveillance-episode-page .episode-back:focus-visible{outline:2px solid color-mix(in srgb,var(--lo-color-primary) 40%,transparent);outline-offset:2px}
 html body .surveillance-episode-page .episode-detail-header h2{display:block!important;margin:2px 0 2px!important;font-size:18px!important;line-height:1.3!important;color:#173a57!important}
 html body .surveillance-episode-page .episode-detail-header p{font-size:12.5px!important}
 html body .surveillance-episode-page .episode-detail-scroll.progressive-surveillance-scroll{padding:0!important;background:transparent!important;overflow:visible!important}
@@ -43,7 +40,6 @@ html body .surveillance-episode-page .clinical-summary{margin:0 0 12px!important
 }
 @media print{
   html body .episode-overlay.surveillance-episode-page{position:absolute!important;inset:0!important;background:#fff!important}
-  .surveillance-episode-page .episode-back{display:none}
 }
 
 /* Reassessment timeline: one readable row per entry. */

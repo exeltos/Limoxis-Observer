@@ -91,7 +91,7 @@ describe('new surveillance: inline patient creation', () => {
   function fillNewPatient({ code } = {}) {
     const onCreate = vi.fn(async () => ({ id: 'SURV-1' }))
     render(<LanguageProvider><NewSurveillanceFlow departments={departments} onClose={() => {}} onCreate={onCreate}/></LanguageProvider>)
-    fireEvent.click(screen.getByRole('button', { name: t('newPatient') }))
+    fireEvent.click(screen.getByRole('radio', { name: t('newPatient') }))
     if (code !== undefined) fireEvent.change(screen.getByLabelText(t('patientId')), { target: { value: code } })
     fireEvent.change(screen.getByLabelText(t('firstName')), { target: { value: 'Γιώργος' } })
     fireEvent.change(screen.getByLabelText(t('lastName')), { target: { value: 'Νικολάου' } })

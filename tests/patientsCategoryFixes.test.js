@@ -31,11 +31,12 @@ describe('Patients category fixes', () => {
     expect(i18n).toContain("lastName:'Επώνυμο'")
   })
 
-  it('new surveillance form has no leftover one-step rail or duplicate cancel button', () => {
+  it('new surveillance form uses the shared dialog, with no leftover rail or duplicate close button', () => {
     const flow = fs.readFileSync('src/features/surveillance/NewSurveillanceFlow.jsx', 'utf8')
     expect(flow).not.toContain('progressive-journey-rail')
     expect(flow).not.toContain('flow-cancel-link')
-    expect(flow).toContain('new-surveillance-start-card')
+    expect(flow).not.toContain('flow-close-button')
+    expect(flow).toContain('<ObserverDialog')
   })
 
   it('patient list count cards use plural labels', () => {

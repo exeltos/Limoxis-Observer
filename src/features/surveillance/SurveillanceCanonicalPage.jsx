@@ -39,11 +39,7 @@ import {
   getEmployeeSurveillanceKpis as getCloudEmployeeSurveillanceKpis,
   loadEmployeeSurveillanceRecords,
 } from './employeeSurveillanceCloudService'
-import {
-  EmployeeSurveillanceFlow,
-  BulkEmployeeSurveillanceFlow,
-  SurveillanceSubjectChooser,
-} from './EmployeeSurveillanceFlow'
+import { EmployeeSurveillanceFlow, SurveillanceSubjectChooser } from './EmployeeSurveillanceFlow'
 import { EmployeeSurveillanceRecordDialog } from './EmployeeSurveillanceRecordDialog'
 import {
   EnvironmentalRegistry,
@@ -638,7 +634,6 @@ export function SurveillanceCanonicalPage() {
           onClose={() => setCreation(null)}
           onPatient={() => setCreation('patient')}
           onEmployee={() => canEmployees && setCreation('employee')}
-          onBulkEmployee={() => canEmployees && setCreation('bulk')}
           onEnvironmental={() => {
             if (!canEnvironment) return
             setResample(null)
@@ -657,9 +652,6 @@ export function SurveillanceCanonicalPage() {
       )}
       {creation === 'employee' && canEmployees && (
         <EmployeeSurveillanceFlow onClose={() => setCreation(null)} onCreated={load} />
-      )}
-      {creation === 'bulk' && canEmployees && (
-        <BulkEmployeeSurveillanceFlow onClose={() => setCreation(null)} onCreated={load} />
       )}
       {creation === 'environmental' && canEnvironment && (
         <EnvironmentalSurveillanceFlow

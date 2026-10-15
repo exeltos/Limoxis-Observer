@@ -1,7 +1,18 @@
 import { useState } from 'react'
-import { Building2, Droplets, Layers3, Plus, RotateCcw, Trash2, Wind } from 'lucide-react'
+import {
+  Building2,
+  Droplets,
+  Layers3,
+  ListChecks,
+  MapPin,
+  Plus,
+  RotateCcw,
+  Trash2,
+  Wind,
+} from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -161,8 +172,9 @@ export function EnvironmentalSurveillanceFlow({
     sources = sourceByType[subjectType] || ['other']
   return (
     <ObserverDialog
-      width="wide"
-      className="environmental-surveillance-entry"
+      width="standard"
+      fixedHeight
+      className="surveillance-entry environmental-surveillance-entry"
       eyebrow={initial?.resampleOf ? t('environmentalSurveillance') : t('newSurveillance')}
       title={
         initial?.resampleOf ? t('surveillanceList.resampleTitle') : t('environmentalSurveillance')
@@ -203,14 +215,15 @@ export function EnvironmentalSurveillanceFlow({
           )
         })}
       </div>
-      <div className="entry-mode-switch environmental-mode-switch">
-        <button className={mode === 'single' ? 'active' : ''} onClick={() => setMode('single')}>
-          {t('clinicalRecords.singleSampling')}
-        </button>
-        <button className={mode === 'batch' ? 'active' : ''} onClick={() => setMode('batch')}>
-          {t('clinicalRecords.bulkSampling')}
-        </button>
-      </div>
+      <ModeSwitch
+        ariaLabel={t('samplingPoints')}
+        value={mode}
+        onChange={setMode}
+        options={[
+          { value: 'single', label: t('clinicalRecords.singleSampling'), icon: MapPin },
+          { value: 'batch', label: t('clinicalRecords.bulkSampling'), icon: ListChecks },
+        ]}
+      />
       <div className="entry-grid">
         <label>
           <span>{t('department')}</span>

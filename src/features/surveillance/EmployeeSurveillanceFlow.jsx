@@ -5,11 +5,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { EmployeeSurveillanceCanonicalFlow } from './EmployeeSurveillanceCanonicalFlow'
 
 export function EmployeeSurveillanceFlow(props){
-  return <EmployeeSurveillanceCanonicalFlow mode="single" {...props}/>
-}
-
-export function BulkEmployeeSurveillanceFlow(props){
-  return <EmployeeSurveillanceCanonicalFlow mode="bulk" {...props}/>
+  return <EmployeeSurveillanceCanonicalFlow {...props}/>
 }
 
 // Same numbered question + icon cards as the Laboratory "new sample" dialog.

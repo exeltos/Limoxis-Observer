@@ -693,8 +693,13 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
               'copy.clinicalRecordCopy.clearClinicalTestData',
               language === 'el' ? 'el' : 'en',
             )}
-            width="medium"
+            width="compact"
             onClose={() => setClearTestOpen(false)}
+            footer={
+              <Button onClick={clearOwnerClinicalTestData}>
+                {translate('copy.clinicalRecordCopy.confirmClear', language === 'el' ? 'el' : 'en')}
+              </Button>
+            }
           >
             <p>
               {translate(
@@ -702,11 +707,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                 language === 'el' ? 'el' : 'en',
               )}
             </p>
-            <div className="dialog-actions">
-              <Button onClick={clearOwnerClinicalTestData}>
-                {translate('copy.clinicalRecordCopy.confirmClear', language === 'el' ? 'el' : 'en')}
-              </Button>
-            </div>
           </ObserverDialog>
         )}
         {createOpen && (

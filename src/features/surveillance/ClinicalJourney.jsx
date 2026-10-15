@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { RegistryTable } from '../../design-system/RegistryTable'
 import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { SurveillanceJourneyGuidance, SurveillanceJourneyMap } from './SurveillanceJourneyMap'
@@ -232,36 +233,35 @@ export function CanonicalJourney({
             }
           >
             {record.devices?.length ? (
-              <div className="record-table-wrap">
-                <table className="record-table">
-                  <thead>
-                    <tr>
-                      <th>
-                        {translate(
-                          'copy.clinicalRecordCopy.device',
-                          language === 'el' ? 'el' : 'en',
-                        )}
-                      </th>
-                      <th>
-                        {translate(
-                          'copy.clinicalRecordCopy.startDate',
-                          language === 'el' ? 'el' : 'en',
-                        )}
-                      </th>
-                      <th>{t('status')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {record.devices.map(x => (
-                      <tr key={x.id}>
-                        <td>{x.name || x.type || '—'}</td>
-                        <td>{fmtDate(x.insertedAt || x.startedAt)}</td>
-                        <td>{t(x.status || 'active')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <StageTable
+                columns={[
+                  {
+                    key: 'device',
+                    label: translate(
+                      'copy.clinicalRecordCopy.device',
+                      language === 'el' ? 'el' : 'en',
+                    ),
+                  },
+                  {
+                    key: 'start',
+                    label: translate(
+                      'copy.clinicalRecordCopy.startDate',
+                      language === 'el' ? 'el' : 'en',
+                    ),
+                  },
+                  { key: 'status', label: t('status') },
+                ]}
+                rows={record.devices}
+                renderRow={x => (
+                  <>
+                    <td>{x.name || x.type || '—'}</td>
+                    <td>{fmtDate(x.insertedAt || x.startedAt)}</td>
+                    <td>
+                      <StatusBadge status={x.status || 'active'} label={t(x.status || 'active')} />
+                    </td>
+                  </>
+                )}
+              />
             ) : (
               <div className="inline-empty">
                 {translate(
@@ -289,44 +289,35 @@ export function CanonicalJourney({
             }
           >
             {record.samples?.length ? (
-              <div className="record-table-wrap">
-                <table className="record-table">
-                  <thead>
-                    <tr>
-                      <th>{t('sampleType')}</th>
-                      <th>{t('status')}</th>
-                      <th>{t('organism')}</th>
-                      <th>
-                        {translate(
-                          'copy.clinicalRecordCopy.amrResistance',
-                          language === 'el' ? 'el' : 'en',
-                        )}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {record.samples.map(x => (
-                      <tr
-                        key={x.id}
-                        className="clickable-row"
-                        tabIndex={0}
-                        onClick={() => setEntryDetail({ kind: 'sample', row: x })}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            setEntryDetail({ kind: 'sample', row: x })
-                          }
-                        }}
-                      >
-                        <td>{t(x.type) || x.type}</td>
-                        <td>{t(x.result || x.status || 'pending')}</td>
-                        <td>{x.organism || '—'}</td>
-                        <td>{x.resistance || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <StageTable
+                columns={[
+                  { key: 'type', label: t('sampleType') },
+                  { key: 'status', label: t('status') },
+                  { key: 'organism', label: t('organism') },
+                  {
+                    key: 'amr',
+                    label: translate(
+                      'copy.clinicalRecordCopy.amrResistance',
+                      language === 'el' ? 'el' : 'en',
+                    ),
+                  },
+                ]}
+                rows={record.samples}
+                onOpen={x => setEntryDetail({ kind: 'sample', row: x })}
+                renderRow={x => (
+                  <>
+                    <td>{t(x.type) || x.type}</td>
+                    <td>
+                      <StatusBadge
+                        status={x.result || x.status || 'pending'}
+                        label={t(x.result || x.status || 'pending')}
+                      />
+                    </td>
+                    <td>{x.organism || '—'}</td>
+                    <td>{x.resistance || '—'}</td>
+                  </>
+                )}
+              />
             ) : (
               <div className="inline-empty">{t('clinicalRecords.noSamplesRecorded')}</div>
             )}
@@ -409,58 +400,48 @@ export function CanonicalJourney({
             }
           >
             {record.therapy?.length ? (
-              <div className="record-table-wrap">
-                <table className="record-table">
-                  <thead>
-                    <tr>
-                      <th>
-                        {translate(
-                          'copy.clinicalRecordCopy.antimicrobial',
-                          language === 'el' ? 'el' : 'en',
-                        )}
-                      </th>
-                      <th>
-                        {translate(
-                          'copy.clinicalRecordCopy.doseRoute',
-                          language === 'el' ? 'el' : 'en',
-                        )}
-                      </th>
-                      <th>
-                        {translate(
-                          'copy.clinicalRecordCopy.start',
-                          language === 'el' ? 'el' : 'en',
-                        )}
-                      </th>
-                      <th>{t('status')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {record.therapy.map(x => (
-                      <tr
-                        key={x.id}
-                        className="clickable-row"
-                        tabIndex={0}
-                        onClick={() => setEntryDetail({ kind: 'therapy', row: x })}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            setEntryDetail({ kind: 'therapy', row: x })
-                          }
-                        }}
-                      >
-                        <td>
-                          <strong>{x.antimicrobial}</strong>
-                        </td>
-                        <td>
-                          {x.dose || '—'} · {x.route || '—'}
-                        </td>
-                        <td>{fmtDate(x.startedAt)}</td>
-                        <td>{t(x.status || 'active')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <StageTable
+                columns={[
+                  {
+                    key: 'drug',
+                    label: translate(
+                      'copy.clinicalRecordCopy.antimicrobial',
+                      language === 'el' ? 'el' : 'en',
+                    ),
+                  },
+                  {
+                    key: 'dose',
+                    label: translate(
+                      'copy.clinicalRecordCopy.doseRoute',
+                      language === 'el' ? 'el' : 'en',
+                    ),
+                  },
+                  {
+                    key: 'start',
+                    label: translate(
+                      'copy.clinicalRecordCopy.start',
+                      language === 'el' ? 'el' : 'en',
+                    ),
+                  },
+                  { key: 'status', label: t('status') },
+                ]}
+                rows={record.therapy}
+                onOpen={x => setEntryDetail({ kind: 'therapy', row: x })}
+                renderRow={x => (
+                  <>
+                    <td>
+                      <strong>{x.antimicrobial}</strong>
+                    </td>
+                    <td>
+                      {x.dose || '—'} · {x.route || '—'}
+                    </td>
+                    <td>{fmtDate(x.startedAt)}</td>
+                    <td>
+                      <StatusBadge status={x.status || 'active'} label={t(x.status || 'active')} />
+                    </td>
+                  </>
+                )}
+              />
             ) : (
               <div className="inline-empty">{t('clinicalRecords.noTherapyRecorded')}</div>
             )}
@@ -846,8 +827,52 @@ function ClinicalEntryDetail({
   const pendingApproval = row.approvalStatus === 'pending'
   const canAdminister =
     row.status === 'active' && !pendingApproval && row.approvalStatus !== 'rejected'
+  const hasFooterActions =
+    (entry.kind === 'therapy' &&
+      Boolean(
+        (pendingApproval && (onRejectTherapy || onApproveTherapy)) ||
+        (canAdminister && onRecordAdministration) ||
+        onFinishTherapy,
+      )) ||
+    (entry.kind === 'reassessment' && canManage)
+  const footerActions = (
+    <>
+      {entry.kind === 'therapy' && pendingApproval && onRejectTherapy && (
+        <Button variant="secondary" onClick={onRejectTherapy}>
+          {translate('copy.clinicalRecordCopy.reject', language === 'el' ? 'el' : 'en')}
+        </Button>
+      )}
+      {entry.kind === 'therapy' && pendingApproval && onApproveTherapy && (
+        <Button variant="secondary" onClick={onApproveTherapy}>
+          {translate('copy.clinicalRecordCopy.approve', language === 'el' ? 'el' : 'en')}
+        </Button>
+      )}
+      {entry.kind === 'therapy' && canAdminister && onRecordAdministration && (
+        <Button variant="secondary" onClick={() => setShowAdminForm(true)}>
+          {translate(
+            'copy.clinicalRecordCopy.recordAdministration',
+            language === 'el' ? 'el' : 'en',
+          )}
+        </Button>
+      )}
+      {entry.kind === 'therapy' && onFinishTherapy && (
+        <Button variant="secondary" onClick={onFinishTherapy}>
+          {translate('copy.clinicalRecordCopy.endTherapy', language === 'el' ? 'el' : 'en')}
+        </Button>
+      )}
+      {entry.kind === 'reassessment' && canManage && (
+        <Button onClick={onEdit}>
+          {translate('copy.clinicalRecordCopy.newReassessment', language === 'el' ? 'el' : 'en')}
+        </Button>
+      )}
+    </>
+  )
   return (
-    <ObserverDialog title={titleMap[entry.kind] || t('details')} onClose={onClose}>
+    <ObserverDialog
+      title={titleMap[entry.kind] || t('details')}
+      onClose={onClose}
+      footer={hasFooterActions ? footerActions : null}
+    >
       <div className="detail-grid clinical-entry-detail-grid">
         {fields.map(([label, value]) => (
           <Detail key={label} label={label} value={value} />
@@ -867,36 +892,37 @@ function ClinicalEntryDetail({
       )}
       {entry.kind === 'therapy' &&
         (row.administrations?.length ? (
-          <div className="record-table-wrap">
-            <table className="record-table">
-              <thead>
-                <tr>
-                  <th>
-                    {translate('copy.clinicalRecordCopy.date', language === 'el' ? 'el' : 'en')}
-                  </th>
-                  <th>
-                    {translate('copy.clinicalRecordCopy.dose', language === 'el' ? 'el' : 'en')}
-                  </th>
-                  <th>
-                    {translate('copy.clinicalRecordCopy.route2', language === 'el' ? 'el' : 'en')}
-                  </th>
-                  <th>{t('status')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {row.administrations.map(a => (
-                  <tr key={a.id}>
-                    <td>
-                      {fmtDateTime ? fmtDateTime(a.administeredAt) : fmtDate(a.administeredAt)}
-                    </td>
-                    <td>{a.dose || '—'}</td>
-                    <td>{a.route || '—'}</td>
-                    <td>{administrationStatusLabel(a.status, language)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <StageTable
+            columns={[
+              {
+                key: 'date',
+                label: translate('copy.clinicalRecordCopy.date', language === 'el' ? 'el' : 'en'),
+              },
+              {
+                key: 'dose',
+                label: translate('copy.clinicalRecordCopy.dose', language === 'el' ? 'el' : 'en'),
+              },
+              {
+                key: 'route',
+                label: translate('copy.clinicalRecordCopy.route2', language === 'el' ? 'el' : 'en'),
+              },
+              { key: 'status', label: t('status') },
+            ]}
+            rows={row.administrations}
+            renderRow={a => (
+              <>
+                <td>{fmtDateTime ? fmtDateTime(a.administeredAt) : fmtDate(a.administeredAt)}</td>
+                <td>{a.dose || '—'}</td>
+                <td>{a.route || '—'}</td>
+                <td>
+                  <StatusBadge
+                    status={a.status}
+                    label={administrationStatusLabel(a.status, language)}
+                  />
+                </td>
+              </>
+            )}
+          />
         ) : (
           <div className="inline-empty">
             {translate(
@@ -913,52 +939,22 @@ function ClinicalEntryDetail({
           )}
         </div>
       )}
-      <div className="dialog-actions">
-        {entry.kind === 'sample' && canManage && (
-          <span className="entry-detail-note">
-            {translate(
-              'copy.clinicalRecordCopy.resultsAndCorrectionsAreManagedBy',
-              language === 'el' ? 'el' : 'en',
-            )}
-          </span>
-        )}
-        {entry.kind === 'reassessment' && canManage && (
-          <span className="entry-detail-note">
-            {translate(
-              'copy.clinicalRecordCopy.reassessmentsRemainHistoricalRecordANew',
-              language === 'el' ? 'el' : 'en',
-            )}
-          </span>
-        )}
-        {entry.kind === 'therapy' && pendingApproval && onRejectTherapy && (
-          <Button variant="secondary" onClick={onRejectTherapy}>
-            {translate('copy.clinicalRecordCopy.reject', language === 'el' ? 'el' : 'en')}
-          </Button>
-        )}
-        {entry.kind === 'therapy' && pendingApproval && onApproveTherapy && (
-          <Button variant="secondary" onClick={onApproveTherapy}>
-            {translate('copy.clinicalRecordCopy.approve', language === 'el' ? 'el' : 'en')}
-          </Button>
-        )}
-        {entry.kind === 'therapy' && canAdminister && onRecordAdministration && (
-          <Button variant="secondary" onClick={() => setShowAdminForm(true)}>
-            {translate(
-              'copy.clinicalRecordCopy.recordAdministration',
-              language === 'el' ? 'el' : 'en',
-            )}
-          </Button>
-        )}
-        {entry.kind === 'therapy' && onFinishTherapy && (
-          <Button variant="secondary" onClick={onFinishTherapy}>
-            {translate('copy.clinicalRecordCopy.endTherapy', language === 'el' ? 'el' : 'en')}
-          </Button>
-        )}
-        {entry.kind === 'reassessment' && canManage && (
-          <Button onClick={onEdit}>
-            {translate('copy.clinicalRecordCopy.newReassessment', language === 'el' ? 'el' : 'en')}
-          </Button>
-        )}
-      </div>
+      {entry.kind === 'sample' && canManage && (
+        <span className="entry-detail-note">
+          {translate(
+            'copy.clinicalRecordCopy.resultsAndCorrectionsAreManagedBy',
+            language === 'el' ? 'el' : 'en',
+          )}
+        </span>
+      )}
+      {entry.kind === 'reassessment' && canManage && (
+        <span className="entry-detail-note">
+          {translate(
+            'copy.clinicalRecordCopy.reassessmentsRemainHistoricalRecordANew',
+            language === 'el' ? 'el' : 'en',
+          )}
+        </span>
+      )}
       {showAdminForm && (
         <AdministrationDialog
           t={t}
@@ -972,4 +968,48 @@ function ClinicalEntryDetail({
       )}
     </ObserverDialog>
   )
+}
+
+// Lists inside an episode use the same table as the registries; rows that open
+// a detail window are clickable and keyboard-reachable.
+function StageTable({ columns, rows, renderRow, onOpen }) {
+  return (
+    <RegistryTable
+      columns={columns}
+      rows={rows}
+      renderRow={renderRow}
+      rowProps={
+        onOpen
+          ? row => ({
+              className: 'clickable-row',
+              tabIndex: 0,
+              onClick: () => onOpen(row),
+              onKeyDown: event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onOpen(row)
+                }
+              },
+            })
+          : undefined
+      }
+    />
+  )
+}
+// The same coloured status labels as the surveillance list.
+const STATUS_TONES = {
+  active: 'active',
+  negative: 'active',
+  administered: 'active',
+  positive: 'danger',
+  critical: 'danger',
+  rejected: 'danger',
+  withheld: 'warning',
+  pending: 'warning',
+  pending_lab: 'warning',
+  received: 'warning',
+  processing: 'warning',
+}
+function StatusBadge({ status, label }) {
+  return <span className={`status-badge ${STATUS_TONES[status] || ''}`.trim()}>{label}</span>
 }
