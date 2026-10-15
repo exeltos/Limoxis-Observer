@@ -23,7 +23,6 @@ import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequ
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { can, CAPABILITIES, isProfileDisabled } from '../../core/permissions/roles'
 import { loadAdmissions, loadPatients } from '../patients/patientsService'
-import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { loadDepartments } from '../management/departmentsService'
 import {
   loadManagementLibraries,
@@ -37,7 +36,12 @@ import { createClinicalRepository } from './clinicalRepository'
 import { PatientClinicalScalesPanel } from '../clinical-scales/PatientClinicalScalesPanel'
 import { ClinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
 import { loadLatestPatientRiskFlags } from '../clinical-scales/patientRiskFlagsService'
-import { PatientAdmissionsHome, CanonicalSummary } from './ClinicalAdmissions'
+import {
+  AdmissionPicker,
+  CanonicalSummary,
+  NewAdmissionDialog,
+  PatientDetailsSection,
+} from './ClinicalAdmissions'
 import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
 import { Timeline } from './ClinicalRecordViews'
 import './surveillanceEpisode.css'
@@ -79,6 +83,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     [createOpen, setCreateOpen] = useState(false)
   const [sampleToLink, setSampleToLink] = useState(null)
   const [clearTestOpen, setClearTestOpen] = useState(false)
+  const [newAdmissionOpen, setNewAdmissionOpen] = useState(false)
   const creatingAdmissionSampleRef = useMemo(() => ({ current: false }), [])
   const [tab, setTab] = useState(() => location.state?.openTab || restored?.tab || 'summary')
   // Stage the surveillance tab opens on, e.g. when the summary sends the user to an overdue reassessment.
@@ -92,8 +97,21 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         : patients.find(row => episodes.some(ep => episodeBelongsToPatient(ep, row))) || null,
     [patients, patientMode, patientId, episodes],
   )
+  // The patient record opens straight on an admission: the chosen one, else the
+  // active one, else the latest. Older admissions are picked in the header.
+  const orderedAdmissions = useMemo(
+    () =>
+      [...admissions].sort(
+        (a, b) =>
+          (b.status === 'active') - (a.status === 'active') ||
+          String(b.admissionDate || '').localeCompare(String(a.admissionDate || '')),
+      ),
+    [admissions],
+  )
   const selectedAdmission = patientMode
-    ? admissions.find(row => String(row.id) === String(selectedAdmissionId)) || null
+    ? admissions.find(row => String(row.id) === String(selectedAdmissionId)) ||
+      orderedAdmissions[0] ||
+      null
     : null
   const admissionEpisodes = useMemo(
     () => episodesForAdmission(episodes, selectedAdmission),
@@ -316,15 +334,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         ]
   const activeTab = tabs.some(item => item.id === tab) ? tab : 'summary'
 
-  function openAdmission(row) {
-    const scoped = episodes.filter(ep => String(ep.admissionId || '') === String(row.id))
-    setSelectedAdmissionId(row.id)
+  function openAdmission(id) {
+    const scoped = episodes.filter(ep => String(ep.admissionId || '') === String(id))
+    setSelectedAdmissionId(id)
     setSelectedEpisodeId(scoped[0]?.id || '')
-    setTab('summary')
-  }
-  function closeAdmission() {
-    setSelectedAdmissionId('')
-    setSelectedEpisodeId('')
     setTab('summary')
   }
 
@@ -432,6 +445,17 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     : patientMode
       ? patient?.hospitalRecordNumber || t('clinicalRecords.patientRecord')
       : `${department || '—'} · ${t('clinicalRecords.admission')}: ${fmtDate(record?.admissionDate || patient?.admissionDate)}`
+  const documentsScope = record
+    ? isDemo || record.recordId
+      ? { key: record.id, entityType: 'clinical_case', entityId: record.recordId }
+      : null
+    : patientMode && selectedAdmission && (isDemo || selectedAdmission.id)
+      ? {
+          key: `admission:${selectedAdmission.id}`,
+          entityType: 'patient_admission',
+          entityId: selectedAdmission.id,
+        }
+      : null
   const shellStatus = selectedAdmission?.status || record?.status || patient?.status || 'active'
   return (
     <Page fill title={name} subtitle={code}>
@@ -444,7 +468,19 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           .join('')}
         eyebrow={code}
         title={name}
-        subtitle={shellSubtitle}
+        subtitle={patientMode && patient ? null : shellSubtitle}
+        context={
+          patientMode && patient ? (
+            <AdmissionPicker
+              admissions={orderedAdmissions}
+              selected={selectedAdmission}
+              onSelect={openAdmission}
+              onNew={has(CAPABILITIES.EDIT_PATIENT) ? () => setNewAdmissionOpen(true) : null}
+              t={t}
+              fmtDate={fmtDate}
+            />
+          ) : null
+        }
         status={
           <>
             <span className={`status-badge ${shellStatus === 'active' ? 'active' : ''}`}>
@@ -461,9 +497,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             )}
           </>
         }
-        recordNavigation={!patientMode || !selectedAdmission ? recordNavigation : null}
+        recordNavigation={recordNavigation}
         headerActions={
           selectedAdmission || !patientMode ? (
+            <>
             <PrintExportActions
               onExport={() =>
                 downloadRecordJson(
@@ -478,50 +515,34 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                 )
               }
             />
+            </>
           ) : null
         }
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={setTab}
-        onBack={patientMode && selectedAdmission ? closeAdmission : goBack}
+        onBack={goBack}
         backLabel={
-          patientMode && selectedAdmission
-            ? translate('copy.clinicalRecordCopy.backToAdmissions', language === 'el' ? 'el' : 'en')
-            : patientMode
-              ? t('clinicalRecords.backToPatients')
-              : t('clinicalRecords.backToSurveillance')
+          patientMode ? t('clinicalRecords.backToPatients') : t('clinicalRecords.backToSurveillance')
         }
       >
-        {patientMode && !selectedAdmission && (
-          <PatientAdmissionsHome
+        {patientMode && !selectedAdmission && patient && (
+          <PatientDetailsSection
             patient={patient}
-            rows={admissions}
-            episodes={episodes}
             tenantId={tenant?.id}
             isDemo={isDemo}
             departments={departments}
-            canEdit={has(CAPABILITIES.EDIT_PATIENT)}
             t={t}
             language={language}
             fmtDate={fmtDate}
-            onAdded={row => setAdmissions(current => [row, ...current])}
             onChanged={() => load()}
-            onSelect={openAdmission}
-            actions={
-              <PatientSummaryActions
-                patient={patient}
-                departments={departments}
-                onReload={() => load()}
-                onDeleted={goBack}
-              />
-            }
+            onDeleted={goBack}
           />
         )}
         {(!patientMode || selectedAdmission) && activeTab === 'summary' && (
           <CanonicalSummary
             samples={patientMode ? admissionSamples : recordSamples}
             scaleRows={patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []}
-            admissions={admissions}
             onOpenStage={stage => {
               setJourneyStage(stage)
               setTab('surveillanceJourney')
@@ -533,9 +554,14 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             isDemo={isDemo}
             departments={departments}
             canEdit={patientMode && has(CAPABILITIES.EDIT_PATIENT)}
+            canDelete={patientMode && has(CAPABILITIES.DELETE_PATIENT) && admissions.length > 1}
             showPatientActions={patientMode}
             onDeleted={goBack}
             onChanged={() => load()}
+            onAdmissionDeleted={() => {
+              setSelectedAdmissionId('')
+              return load()
+            }}
             t={t}
             language={language}
             fmtDate={fmtDate}
@@ -615,33 +641,26 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             canRecord={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
           />
         )}
-        {activeTab === 'documents' &&
-          record &&
-          (!isDemo && record.recordId ? (
-            <DocumentsWorkspace
-              title={translate(
-                'copy.clinicalRecordCopy.documents',
-                language === 'en' ? 'en' : 'el',
-              )}
-              disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
-              organizationId={tenant?.id}
-              entityType="clinical_case"
-              entityId={record.recordId}
-            />
-          ) : isDemo ? (
-            <DocumentsWorkspace
-              title={translate(
-                'copy.clinicalRecordCopy.documents',
-                language === 'en' ? 'en' : 'el',
-              )}
-              disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
-              value={demoDocuments[record.id] || []}
-              onChange={files => setDemoDocuments(current => ({ ...current, [record.id]: files }))}
-            />
-          ) : (
-            <div className="inline-empty">{t('clinicalRecords.noAttachments')}</div>
-          ))}
-        {activeTab === 'documents' && !record && (
+        {/* Documents belong to the surveillance when there is one, else to the
+            admission itself, so they can be added before any surveillance. */}
+        {activeTab === 'documents' && documentsScope && (
+          <DocumentsWorkspace
+            title={translate('copy.clinicalRecordCopy.documents', language === 'en' ? 'en' : 'el')}
+            disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
+            {...(isDemo
+              ? {
+                  value: demoDocuments[documentsScope.key] || [],
+                  onChange: files =>
+                    setDemoDocuments(current => ({ ...current, [documentsScope.key]: files })),
+                }
+              : {
+                  organizationId: tenant?.id,
+                  entityType: documentsScope.entityType,
+                  entityId: documentsScope.entityId,
+                })}
+          />
+        )}
+        {activeTab === 'documents' && !documentsScope && (
           <EmptyState
             title={translate(
               'copy.clinicalRecordCopy.noDocumentsYet',
@@ -693,8 +712,13 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
               'copy.clinicalRecordCopy.clearClinicalTestData',
               language === 'el' ? 'el' : 'en',
             )}
-            width="medium"
+            width="compact"
             onClose={() => setClearTestOpen(false)}
+            footer={
+              <Button onClick={clearOwnerClinicalTestData}>
+                {translate('copy.clinicalRecordCopy.confirmClear', language === 'el' ? 'el' : 'en')}
+              </Button>
+            }
           >
             <p>
               {translate(
@@ -702,11 +726,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                 language === 'el' ? 'el' : 'en',
               )}
             </p>
-            <div className="dialog-actions">
-              <Button onClick={clearOwnerClinicalTestData}>
-                {translate('copy.clinicalRecordCopy.confirmClear', language === 'el' ? 'el' : 'en')}
-              </Button>
-            </div>
           </ObserverDialog>
         )}
         {createOpen && (
@@ -724,6 +743,27 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           />
         )}
       </EntityRecordShell>
+      {newAdmissionOpen && patient && (
+        <NewAdmissionDialog
+          patient={patient}
+          activeAdmission={admissions.find(row => row.status === 'active') || null}
+          tenantId={tenant?.id}
+          isDemo={isDemo}
+          departments={departments}
+          t={t}
+          onClose={() => setNewAdmissionOpen(false)}
+          onAdmitted={async (row, discharged) => {
+            setNewAdmissionOpen(false)
+            if (isDemo)
+              setAdmissions(list => [
+                row,
+                ...list.map(item => (discharged && item.id === discharged.id ? discharged : item)),
+              ])
+            else await load()
+            openAdmission(row.id)
+          }}
+        />
+      )}
     </Page>
   )
 }

@@ -1,0 +1,95 @@
+/* Dropdown with several values (MultiSelect.jsx); builds on SearchableSelect.css. */
+.multi-select .multi-select-button {
+  width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 34px 0 12px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #cad6df;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--lo-color-text, #22384c);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.multi-select .multi-select-button > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.multi-select .multi-select-button.is-placeholder {
+  color: var(--lo-color-text-muted, #8a99a8);
+}
+.multi-select .multi-select-button:disabled {
+  background: var(--lo-status-neutral-bg, #f1f4f7);
+  cursor: default;
+}
+.multi-select .multi-select-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow: hidden;
+}
+.multi-select .multi-select-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--lo-color-border, #dce4eb);
+  border-radius: 7px;
+  color: #617386;
+}
+.multi-select .multi-select-search > input {
+  flex: 1;
+  min-height: 34px;
+  border: 0 !important;
+  outline: 0;
+  padding: 0 !important;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  box-shadow: none !important;
+}
+.multi-select .multi-select-bulk {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 4px;
+}
+.multi-select .multi-select-bulk > button {
+  border: 0;
+  background: transparent;
+  padding: 2px 4px;
+  color: var(--lo-color-primary, #1f6f9f);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.multi-select .multi-select-bulk > button:disabled {
+  color: var(--lo-color-text-muted, #8a99a8);
+  cursor: default;
+}
+.multi-select .multi-select-panel > ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+}
+.multi-select .searchable-select-option.multi-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.multi-select .searchable-select-option.multi-select-option > svg {
+  flex: none;
+  color: var(--lo-color-primary, #1f6f9f);
+}
+.multi-select .multi-select-bulk {
+  gap: 12px;
+  white-space: nowrap;
+}

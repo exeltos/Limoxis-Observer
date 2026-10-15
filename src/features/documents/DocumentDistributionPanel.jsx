@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Clock3, Search, Send, Users } from 'lucide-react'
+import { Check, Clock3, Send, Users } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
 import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useNotifications } from '../../core/notifications/NotificationContext'
@@ -37,14 +38,12 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
   const [sending, setSending] = useState(false)
   const [audienceMode, setAudienceMode] = useState(record.departmentId ? 'department' : 'all')
   const [selected, setSelected] = useState(record.departmentId ? [record.departmentId] : [])
-  const [query, setQuery] = useState('')
   const [exportingPdf, setExportingPdf] = useState(false)
   const panelRef = useRef(null)
 
   useEffect(() => {
     setAudienceMode(record.departmentId ? 'department' : 'all')
     setSelected(record.departmentId ? [record.departmentId] : [])
-    setQuery('')
   }, [record.id, record.departmentId])
 
   // The audience is needed both to send by professional category and to show who is pending.
@@ -101,9 +100,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
       : audienceMode === 'profession'
         ? professionOptions.map((name) => ({ id: name, label: name }))
         : []
-  const filteredOptions = options.filter((option) => option.label.toLowerCase().includes(query.toLowerCase()))
-  const toggle = (id) => setSelected((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]))
-  const changeMode = (mode) => { setAudienceMode(mode); setSelected([]); setQuery('') }
+  const changeMode = (mode) => { setAudienceMode(mode); setSelected([]) }
   const professionUsers = audienceMode === 'profession' ? usersWithProfessions(members, selected) : []
   const cannotSend = sending || (audienceMode !== 'all' && selected.length === 0) || (audienceMode === 'profession' && professionUsers.length === 0)
 
@@ -208,17 +205,27 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
           </div>
         : canSend
           ? <div className="document-distribution-composer">
-              <label className="field"><span>{en ? 'Send to' : 'Αποστολή σε'}</span><select value={audienceMode} onChange={(e) => changeMode(e.target.value)}>
-                <option value="all">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>
-                <option value="department">{en ? 'Specific department(s)' : 'Συγκεκριμένα τμήματα'}</option>
-                <option value="profession" disabled={!professionOptions.length}>{en ? 'Professional category (e.g. nurses)' : 'Επαγγελματική κατηγορία (π.χ. νοσηλευτές)'}</option>
-                <option value="role">{en ? 'User role' : 'Ρόλος χρήστη'}</option>
-              </select></label>
-              {audienceMode !== 'all' && <div className="recipient-picker">
-                <label className="filter-search"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={en ? 'Search…' : 'Αναζήτηση…'} /></label>
-                <div className="recipient-options">{filteredOptions.map((option) => <button type="button" key={option.id} className={selected.includes(option.id) ? 'selected' : ''} onClick={() => toggle(option.id)}><span className="recipient-check">{selected.includes(option.id) && <Check size={13} />}</span><span><strong>{option.label}</strong></span></button>)}</div>
-                <div className="recipient-summary"><Users size={13} />{audienceMode === 'profession' ? (en ? `${professionUsers.length} people` : `${professionUsers.length} άτομα`) : `${selected.length} ${en ? 'selected' : 'επιλεγμένα'}`}</div>
-              </div>}
+              <div className="document-distribution-audience">
+                <label className="field"><span>{en ? 'Send to' : 'Αποστολή σε'}</span><select value={audienceMode} onChange={(e) => changeMode(e.target.value)}>
+                  <option value="all">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>
+                  <option value="department">{en ? 'Specific department(s)' : 'Συγκεκριμένα τμήματα'}</option>
+                  <option value="profession" disabled={!professionOptions.length}>{en ? 'Professional category (e.g. nurses)' : 'Επαγγελματική κατηγορία (π.χ. νοσηλευτές)'}</option>
+                  <option value="role">{en ? 'User role' : 'Ρόλος χρήστη'}</option>
+                </select></label>
+                {audienceMode !== 'all' && <MultiSelect
+                  label={audienceMode === 'department' ? (en ? 'Departments' : 'Τμήματα') : audienceMode === 'role' ? (en ? 'Roles' : 'Ρόλοι') : (en ? 'Professional categories' : 'Επαγγελματικές κατηγορίες')}
+                  options={options.map((option) => ({ value: option.id, label: option.label }))}
+                  selected={selected}
+                  onChange={setSelected}
+                  placeholder={en ? 'Select recipients' : 'Επιλέξτε παραλήπτες'}
+                  searchPlaceholder={en ? 'Search…' : 'Αναζήτηση…'}
+                  emptyLabel={en ? 'No matches' : 'Δεν βρέθηκαν αποτελέσματα'}
+                  selectAllLabel={en ? 'Select all' : 'Επιλογή όλων'}
+                  clearAllLabel={en ? 'Clear all' : 'Αποεπιλογή όλων'}
+                  countLabel={(count) => (en ? `${count} selected` : `${count} επιλεγμένα`)}
+                />}
+              </div>
+              {audienceMode === 'profession' && selected.length > 0 && <div className="document-distribution-reach"><Users size={13} />{en ? `${professionUsers.length} people` : `${professionUsers.length} άτομα`}</div>}
               <div className="record-actions"><ActionButton tone="primary" label={en ? 'Send distribution notice' : 'Αποστολή κοινοποίησης'} onClick={send} disabled={cannotSend}><Send size={15} />{en ? 'Send distribution notice' : 'Αποστολή κοινοποίησης'}</ActionButton></div>
             </div>
           : <div className="inline-empty">{en ? 'This document has not been distributed yet.' : 'Το έγγραφο δεν έχει κοινοποιηθεί ακόμη.'}</div>)}

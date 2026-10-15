@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Info } from 'lucide-react'
+import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { downloadCsv } from '../../core/export/csvExport'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -82,10 +83,15 @@ function YearSummary({ summary, tx }) {
 
 export function ControlCalendarPanel({ report, language, onOpen }) {
   const en = language === 'en'
-  const { year, setYear, lines, months, reportRef, tx } = report
+  const { year, lines, months, reportRef, tx } = report
   const now = new Date()
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const groups = useMemo(() => groupCalendarLines(lines), [lines])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
+  const totalPages = Math.max(1, Math.ceil(groups.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const shownGroups = groups.slice((safePage - 1) * pageSize, safePage * pageSize)
   const isCurrent = (month) => year === now.getFullYear() && month === now.getMonth()
   const row = (line, grouped) => {
     const summary = calendarYearSummary(line.months)
@@ -105,18 +111,14 @@ export function ControlCalendarPanel({ report, language, onOpen }) {
   }
   return <div className="control-calendar" ref={reportRef}>
     <div className="control-calendar-toolbar">
-      <div className="control-calendar-year" role="group" aria-label={tx.calendarYear}>
-        <button type="button" data-pdf-ignore="" onClick={() => setYear(year - 1)} aria-label={tx.previousYear}><ChevronLeft size={16} aria-hidden="true" /></button>
-        <strong>{year}</strong>
-        <button type="button" data-pdf-ignore="" onClick={() => setYear(year + 1)} aria-label={tx.nextYear}><ChevronRight size={16} aria-hidden="true" /></button>
-      </div>
+      <strong className="control-calendar-year-label">{en ? `Year ${year}` : `Έτος ${year}`}</strong>
       <ul className="control-calendar-legend">
         <li><span className="control-calendar-mark good">✓</span>{tx.legendDone}</li>
         <li><span className="control-calendar-mark fair">✓</span>{tx.legendLate}</li>
         <li><span className="control-calendar-mark low">✕</span>{tx.legendMissed}</li>
         <li><span className="control-calendar-mark planned">○</span>{tx.legendPlanned}</li>
-        <li><span className="control-calendar-count good legend"><span>9<small>/10</small></span></span>{tx.legendCount}</li>
       </ul>
+      <span className="control-info-tip" tabIndex={0} title={`${tx.legendCount}: 9/10. ${tx.calendarNote}`} aria-label={tx.calendarNote} data-pdf-ignore=""><Info size={15} aria-hidden="true" /></span>
     </div>
     <div className="scroll-table">
       <table className="data-table sticky-table control-calendar-table">
@@ -125,15 +127,15 @@ export function ControlCalendarPanel({ report, language, onOpen }) {
           {months.map((label, month) => <th key={label} className={isCurrent(month) ? 'current' : ''}>{label}</th>)}
           <th className="control-calendar-total">{year}</th>
         </tr></thead>
-        <tbody>{groups.map((group) => group.lines.length === 1 ? row(group.lines[0], false) : [
+        <tbody>{shownGroups.map((group) => group.lines.length === 1 ? row(group.lines[0], false) : [
           <tr key={`${group.item.id}-group`} className="control-calendar-group" onClick={() => onOpen?.(group.item)}>
             <td colSpan={14} className="control-calendar-group-title"><strong>{title(group.item)}</strong><small>{frequencyLabel(group.item.frequency, language)} · {en ? `${group.lines.length} departments` : `${group.lines.length} τμήματα`}</small></td>
           </tr>,
           ...group.lines.map((line) => row(line, true)),
         ])}</tbody>
       </table>
-      {!lines.length && <div className="registry-empty-state"><strong>{tx.noCalendar}</strong></div>}
+      {!lines.length && <div className="inline-empty" role="status"><strong>{tx.noCalendar}</strong><span>{en ? 'Change the year or the search.' : 'Αλλάξτε το έτος ή την αναζήτηση.'}</span></div>}
     </div>
-    <p className="control-adherence-note">{tx.calendarNote}</p>
+    {groups.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={groups.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1) }} />}
   </div>
 }

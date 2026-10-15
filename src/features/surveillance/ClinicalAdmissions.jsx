@@ -1,14 +1,32 @@
 import { DueDate } from '../../design-system/DueDate'
 import { useState } from 'react'
 import { stayDays } from './patientRecordScope'
-import { AlertTriangle, Plus, ArrowRightLeft, LogOut } from 'lucide-react'
-import { Button } from '../../design-system/Button'
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  CalendarDays,
+  Check,
+  LogOut,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { Button } from '../../design-system/Button'
+import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
+import { SectionHeader } from '../../design-system/SectionHeader'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { createAdmission, dischargeAdmission, transferAdmission } from '../patients/patientsService'
+import {
+  createAdmission,
+  deleteAdmission,
+  dischargeAdmission,
+  transferAdmission,
+  updatePatient,
+} from '../patients/patientsService'
 import { PatientSummaryActions } from '../patients/PatientSummaryActions'
+import { PatientFormFields, usePatientForm } from '../patients/PatientsPage'
+import { SaveButton } from '../../design-system/SaveButton'
 import { SimpleDialog } from './ClinicalRecordDialogs'
 import { clinicalTerm } from './clinicalRecordLabels'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
@@ -17,22 +35,37 @@ import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRi
 // Admissions of the clinical record: patient admissions home, admission summary
 // and lifecycle actions (admit, transfer, discharge).
 
-export function PatientAdmissionsHome({
+// The patient's own details at the top of the record summary: read-only sheet,
+// or the form in place while «Edit patient» is open.
+export function PatientDetailsSection({
   patient,
-  rows,
-  episodes,
   tenantId,
   isDemo,
   departments,
-  canEdit,
   t,
   language,
   fmtDate,
-  onAdded,
   onChanged,
-  onSelect,
-  actions,
+  onDeleted,
+  stayFields = null,
+  leadingActions = null,
+  extraMenuItems = [],
 }) {
+  const { notify } = useFeedback()
+  // «Edit patient» turns the patient details into the form, in place.
+  const [editing, setEditing] = useState(false)
+  const [savingPatient, setSavingPatient] = useState(false)
+  const actions = editing ? null : (
+    <>
+      {leadingActions}
+      <PatientSummaryActions
+        patient={patient}
+        onEdit={() => setEditing(true)}
+        onDeleted={onDeleted}
+        extraItems={extraMenuItems}
+      />
+    </>
+  )
   // Ages under a year read as "N days" (matching NHSN's ≤1-year pediatric
   // population) rather than the years figure that would round every
   // neonate down to "0" and hide clinically relevant age.
@@ -100,66 +133,83 @@ export function PatientAdmissionsHome({
       translate('copy.clinicalRecordCopy.sex', language === 'el' ? 'el' : 'en'),
       patient?.sex ? t(patient.sex) : '—',
     ],
-    [
-      translate('copy.clinicalRecordCopy.currentDepartment', language === 'el' ? 'el' : 'en'),
-      patient?.department || '—',
-    ],
+    // With the admission shown here too, its department replaces «current department».
+    stayFields
+      ? null
+      : [
+          translate('copy.clinicalRecordCopy.currentDepartment', language === 'el' ? 'el' : 'en'),
+          patient?.department || '—',
+        ],
+    ...(stayFields || []),
   ].filter(Boolean)
   return (
-    <div className="patient-home-layout">
-      <section className="patient-home-details patient-profile-card">
-        <div className="record-section-header">
-          <div>
-            <h3>
-              {translate('copy.clinicalRecordCopy.patientDetails', language === 'el' ? 'el' : 'en')}
-            </h3>
-            <p>
-              {translate(
-                'copy.clinicalRecordCopy.coreIdentityAndCurrentAdmissionInformation',
-                language === 'el' ? 'el' : 'en',
-              )}
-            </p>
-          </div>
-          {actions}
-        </div>
-        <div className="patient-profile-grid">
+    <section className="clinical-panel patient-summary-card">
+      {!editing && (
+        <SectionHeader
+          title={
+            stayFields
+              ? t('clinicalRecords.patientAndAdmission')
+              : translate('copy.clinicalRecordCopy.patientDetails', language === 'el' ? 'el' : 'en')
+          }
+          subtitle={
+            stayFields
+              ? null
+              : translate(
+                  'copy.clinicalRecordCopy.coreIdentityAndCurrentAdmissionInformation',
+                  language === 'el' ? 'el' : 'en',
+                )
+          }
+          actions={actions}
+        />
+      )}
+      {editing ? (
+        <PatientDetailsEditor
+          title={
+            stayFields
+              ? t('clinicalRecords.patientAndAdmission')
+              : translate('copy.clinicalRecordCopy.patientDetails', language === 'el' ? 'el' : 'en')
+          }
+          patient={patient}
+          departments={departments}
+          t={t}
+          language={language}
+          saving={savingPatient}
+          onCancel={() => setEditing(false)}
+          onSave={async draft => {
+            setSavingPatient(true)
+            try {
+              await updatePatient(tenantId, patient, draft, { isDemo })
+              setEditing(false)
+              await onChanged?.()
+              notify(t('saved'), 'success')
+            } catch (error) {
+              notify(error?.message || t('actionFailed'), 'danger')
+            } finally {
+              setSavingPatient(false)
+            }
+          }}
+        />
+      ) : (
+        <div className="detail-grid patient-detail-grid patient-detail-grid-wide">
           {profile.map(([label, value]) => (
-            <div key={label} className="patient-profile-item">
-              <span>{label}</span>
-              <strong>{value || '—'}</strong>
-            </div>
+            <Detail key={label} label={label} value={value} />
           ))}
+          {patient?.notes && (
+            <div className="detail-item patient-detail-notes">
+              <span className="lo-field-label">
+                {translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en')}
+              </span>
+              <strong title={patient.notes}>{patient.notes}</strong>
+            </div>
+          )}
         </div>
-        {infantWithoutBirthWeight && (
-          <p className="field-hint neonatal-missing-weight" role="status">
-            {translate('copy.neonatalCopy.missingBirthWeight', language === 'el' ? 'el' : 'en')}
-          </p>
-        )}
-        {patient?.notes && (
-          <div className="patient-profile-note">
-            <span>
-              {translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en')}
-            </span>
-            <p>{patient.notes}</p>
-          </div>
-        )}
-      </section>
-      <AdmissionsPanel
-        rows={rows}
-        episodes={episodes}
-        patient={patient}
-        tenantId={tenantId}
-        isDemo={isDemo}
-        departments={departments}
-        canEdit={canEdit}
-        t={t}
-        language={language}
-        fmtDate={fmtDate}
-        onAdded={onAdded}
-        onChanged={onChanged}
-        onSelect={onSelect}
-      />
-    </div>
+      )}
+      {infantWithoutBirthWeight && (
+        <p className="field-hint neonatal-missing-weight" role="status">
+          {translate('copy.neonatalCopy.missingBirthWeight', language === 'el' ? 'el' : 'en')}
+        </p>
+      )}
+    </section>
   )
 }
 // Admission summary: one info sheet for the stay (no duplicate status — the
@@ -175,7 +225,6 @@ export function CanonicalSummary({
   onOpenStage,
   samples,
   scaleRows = [],
-  admissions = [],
   patient,
   admission,
   record,
@@ -183,13 +232,16 @@ export function CanonicalSummary({
   isDemo,
   departments,
   canEdit,
+  canDelete,
   showPatientActions,
   onDeleted,
   onChanged,
+  onAdmissionDeleted,
   t,
   language,
   fmtDate,
 }) {
+  const [admissionDeleteOpen, setAdmissionDeleteOpen] = useState(false)
   const en = language === 'en'
   const samplePool = samples || record?.samples || []
   const latest = samplePool.find(x => x.organism) || samplePool[0]
@@ -253,27 +305,31 @@ export function CanonicalSummary({
       ? badge(t('clinicalRecords.isolationInPlace'), 'temporary')
       : badge(t(record.isolation.status))
     : t('no')
+  const lifecycle = useAdmissionLifecycle({
+    patient,
+    admission,
+    tenantId,
+    isDemo,
+    departments,
+    canEdit,
+    onChanged,
+    t,
+    language,
+  })
   const actions = admission ? (
-    <AdmissionLifecycleActions
-      patient={patient}
-      admission={admission}
-      tenantId={tenantId}
-      isDemo={isDemo}
-      departments={departments}
-      canEdit={canEdit}
-      showPatientActions={showPatientActions}
-      onDeleted={onDeleted}
-      onChanged={onChanged}
-      t={t}
-      language={language}
-    />
+    <>
+      {lifecycle.items.map(item => {
+        const Icon = item.icon
+        return (
+          <Button key={item.id} variant="secondary" onClick={item.onClick}>
+            <Icon size={15} />
+            {item.label}
+          </Button>
+        )
+      })}
+    </>
   ) : showPatientActions ? (
-    <PatientSummaryActions
-      patient={patient}
-      departments={departments}
-      onReload={onChanged}
-      onDeleted={onDeleted}
-    />
+    <PatientSummaryActions patient={patient} onDeleted={onDeleted} />
   ) : null
   // The samples shown under the surveillance, laboratory registry rows included.
   const recordSamples = samples || record?.samples || []
@@ -286,7 +342,9 @@ export function CanonicalSummary({
     <>
       {clinicalTerm(assessment.classification, language, t)}
       {assessment.summary ? (
-        <small className="summary-detail-note">{assessment.summary}</small>
+        <small className="summary-detail-note" title={assessment.summary}>
+          {assessment.summary}
+        </small>
       ) : null}
     </>
   ) : (
@@ -313,45 +371,105 @@ export function CanonicalSummary({
   )
   return (
     <div className="patient-summary-layout clean-patient-summary">
-      {attention.map(item => (
+      {attention.length > 0 && (
+        // One compact «Needs attention» strip, the same as inside an episode.
         <div
-          key={item.id}
-          className={`summary-overdue-banner${item.tone === 'warning' ? ' is-warning' : ''}`}
-          role={item.tone === 'danger' ? 'alert' : 'status'}
+          className="journey-guidance compact-guidance summary-attention"
+          role={attention.some(item => item.tone === 'danger') ? 'alert' : 'status'}
         >
-          <AlertTriangle size={18} aria-hidden="true" />
-          <span>{item.text}</span>
-          {onOpenStage && (
-            <Button variant="secondary" onClick={() => onOpenStage(item.stage)}>
-              {item.action}
-            </Button>
-          )}
-        </div>
-      ))}
-      <section className="clinical-panel patient-summary-card">
-        <div className="record-section-header">
-          <div>
-            <h3>
-              {admission
-                ? t('clinicalRecords.admissionSummary')
-                : t('clinicalRecords.patientDetails')}
-            </h3>
+          <div className="journey-guidance-title">
+            <AlertTriangle size={15} aria-hidden="true" />
+            <strong>{t('clinicalRecords.attentionNeeded')}</strong>
+            <span>{attention.length}</span>
           </div>
-          {actions}
+          <div className="journey-guidance-items">
+            {attention.map(item =>
+              onOpenStage ? (
+                <button
+                  type="button"
+                  key={item.id}
+                  className={`guidance-cue ${item.tone === 'warning' ? 'warning' : 'due'}`}
+                  title={item.action}
+                  onClick={() => onOpenStage(item.stage)}
+                >
+                  <strong>{item.text}</strong>
+                </button>
+              ) : (
+                <span
+                  key={item.id}
+                  className={`guidance-cue ${item.tone === 'warning' ? 'warning' : 'due'}`}
+                >
+                  <strong>{item.text}</strong>
+                </span>
+              ),
+            )}
+          </div>
         </div>
-        <div className="detail-grid patient-detail-grid">
-          {details.map(([label, value]) => (
-            <Detail key={label} label={label} value={value} />
-          ))}
-        </div>
-      </section>
+      )}
+      {admission && showPatientActions && (
+        // The patient record opens on its admission: one sheet with the patient's
+        // details (editable in place) and the stay, transfer/discharge beside it.
+        <PatientDetailsSection
+          patient={patient}
+          tenantId={tenantId}
+          isDemo={isDemo}
+          departments={departments}
+          t={t}
+          language={language}
+          fmtDate={fmtDate}
+          onChanged={onChanged}
+          onDeleted={onDeleted}
+          stayFields={details}
+          extraMenuItems={[
+            ...lifecycle.items,
+            ...(canDelete
+              ? [
+                  {
+                    id: 'delete-admission',
+                    label: t('clinicalRecords.deleteAdmission'),
+                    icon: Trash2,
+                    tone: 'danger',
+                    separatorBefore: true,
+                    onClick: () => setAdmissionDeleteOpen(true),
+                  },
+                ]
+              : []),
+          ]}
+        />
+      )}
+      {lifecycle.dialog}
+      {admission && showPatientActions && (
+        <AdmissionDeleteDialog
+          open={admissionDeleteOpen}
+          patient={patient}
+          admission={admission}
+          tenantId={tenantId}
+          isDemo={isDemo}
+          t={t}
+          onClose={() => setAdmissionDeleteOpen(false)}
+          onDeleted={onAdmissionDeleted}
+        />
+      )}
+      {!(admission && showPatientActions) && (
+        <section className="clinical-panel patient-summary-card">
+          <SectionHeader
+            title={
+              admission
+                ? t('clinicalRecords.admissionSummary')
+                : t('clinicalRecords.patientDetails')
+            }
+            actions={actions}
+          />
+          <div className="detail-grid patient-detail-grid">
+            {details.map(([label, value]) => (
+              <Detail key={label} label={label} value={value} />
+            ))}
+          </div>
+        </section>
+      )}
       {!record && (
         <section className="clinical-panel patient-summary-card">
-          <div className="record-section-header">
-            <div>
-              <h3>{t('clinicalRecords.clinicalPicture')}</h3>
-            </div>
-          </div>
+          <SectionHeader title={t('clinicalRecords.clinicalPicture')} />
           <div className="detail-grid patient-detail-grid">
             {clinicalRiskFlags(scaleRows).map(({ kind, row, config, tone }) => (
               <Detail
@@ -366,7 +484,10 @@ export function CanonicalSummary({
               />
             ))}
             {!scaleRows.length && (
-              <Detail label={t('clinicalRecords.clinicalAssessmentLabel')} value={t('clinicalRecords.none')} />
+              <Detail
+                label={t('clinicalRecords.clinicalAssessmentLabel')}
+                value={t('clinicalRecords.none')}
+              />
             )}
             <Detail
               label={t('clinicalRecords.samplesLabel')}
@@ -378,17 +499,12 @@ export function CanonicalSummary({
             />
             <Detail label={t('clinicalRecords.latestFinding')} value={findingValue} />
             <Detail label={t('surveillance')} value={t('clinicalRecords.noSurveillance')} />
-            <Detail label={t('clinicalRecords.admissionsCount')} value={admissions.length || 1} />
           </div>
         </section>
       )}
       {record && (
         <section className="clinical-panel patient-summary-card">
-          <div className="record-section-header">
-            <div>
-              <h3>{t('clinicalRecords.currentSurveillance')}</h3>
-            </div>
-          </div>
+          <SectionHeader title={t('clinicalRecords.currentSurveillance')} />
           <div className="detail-grid patient-detail-grid">
             <Detail
               label={t('surveillance')}
@@ -431,15 +547,59 @@ export function CanonicalSummary({
     </div>
   )
 }
-function AdmissionLifecycleActions({
+// The patient form in place of the details; its cancel / save sit in the
+// section header, where the «…» menu was, so they stay in view.
+function PatientDetailsEditor({
+  title,
+  patient,
+  departments,
+  t,
+  language,
+  saving,
+  onCancel,
+  onSave,
+}) {
+  const form = usePatientForm({ patient, departments })
+  return (
+    <>
+      <SectionHeader
+        title={title}
+        actions={
+          <>
+            <Button variant="secondary" onClick={onCancel} disabled={saving}>
+              {t('cancelChanges')}
+            </Button>
+            <SaveButton
+              loading={saving}
+              disabled={form.invalid || saving}
+              onClick={() => onSave(form.payload())}
+            >
+              {t('save')}
+            </SaveButton>
+          </>
+        }
+      />
+      <div className="patient-details-editor">
+        <PatientFormFields
+          form={form}
+          t={t}
+          language={language}
+          departments={departments}
+          className="patient-entry-grid-wide"
+        />
+      </div>
+    </>
+  )
+}
+// Transfer and discharge: the menu items (or buttons) that open them, and the
+// dialog they share.
+function useAdmissionLifecycle({
   patient,
   admission,
   tenantId,
   isDemo,
   departments,
   canEdit,
-  showPatientActions,
-  onDeleted,
   onChanged,
   t,
   language,
@@ -482,7 +642,7 @@ function AdmissionLifecycleActions({
     }
   }
   const lifecycleItems =
-    canEdit && admission.status === 'active'
+    canEdit && admission?.status === 'active'
       ? [
           {
             id: 'transfer',
@@ -501,146 +661,159 @@ function AdmissionLifecycleActions({
           },
         ]
       : []
-  return (
-    <>
-      {showPatientActions ? (
-        <PatientSummaryActions
-          patient={patient}
-          departments={departments}
-          onReload={onChanged}
-          onDeleted={onDeleted}
-          extraItems={lifecycleItems}
-        />
-      ) : lifecycleItems.length ? (
-        <OverflowMenu
-          label={translate(
-            'copy.clinicalRecordCopy.admissionActions',
-            language === 'el' ? 'el' : 'en',
-          )}
-          items={lifecycleItems}
-        />
-      ) : null}
-      {kind && (
-        <SimpleDialog
-          title={
-            kind === 'transfer'
-              ? translate(
-                  'copy.clinicalRecordCopy.transferPatient',
-                  language === 'el' ? 'el' : 'en',
-                )
-              : translate(
-                  'copy.clinicalRecordCopy.dischargePatient',
-                  language === 'el' ? 'el' : 'en',
-                )
-          }
-          t={t}
-          onClose={() => setKind(null)}
-          onSave={save}
-          disabled={busy || !draft.date || (kind === 'transfer' && !draft.departmentId)}
-        >
-          <ManualDateField
-            label={
-              kind === 'transfer'
-                ? translate('copy.clinicalRecordCopy.transferDate', language === 'el' ? 'el' : 'en')
-                : translate(
-                    'copy.clinicalRecordCopy.dischargeDate',
-                    language === 'el' ? 'el' : 'en',
-                  )
-            }
-            value={draft.date}
-            onChange={v => setDraft(d => ({ ...d, date: v }))}
-          />
-          {kind === 'transfer' && (
-            <label>
-              <span>
-                {translate(
-                  'copy.clinicalRecordCopy.newDepartment',
-                  language === 'el' ? 'el' : 'en',
-                )}
-              </span>
-              <select
-                value={draft.departmentId}
-                onChange={e => setDraft(d => ({ ...d, departmentId: e.target.value }))}
-              >
-                <option value="">{t('select')}</option>
-                {departments
-                  .filter(x => x.id !== admission.departmentId)
-                  .map(x => (
-                    <option key={x.id} value={x.id}>
-                      {x.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          )}
-          <label className="entry-span-2">
-            <span>{t('reason')}</span>
-            <textarea
-              rows={3}
-              value={draft.reason}
-              onChange={e => setDraft(d => ({ ...d, reason: e.target.value }))}
-            />
-          </label>
-        </SimpleDialog>
+  const dialog = kind ? (
+    <SimpleDialog
+      title={
+        kind === 'transfer'
+          ? translate('copy.clinicalRecordCopy.transferPatient', language === 'el' ? 'el' : 'en')
+          : translate('copy.clinicalRecordCopy.dischargePatient', language === 'el' ? 'el' : 'en')
+      }
+      t={t}
+      onClose={() => setKind(null)}
+      onSave={save}
+      disabled={
+        busy ||
+        !draft.date ||
+        (kind !== 'discharge' && departments.length > 0 && !draft.departmentId)
+      }
+    >
+      <ManualDateField
+        label={
+          kind === 'transfer'
+            ? translate('copy.clinicalRecordCopy.transferDate', language === 'el' ? 'el' : 'en')
+            : translate('copy.clinicalRecordCopy.dischargeDate', language === 'el' ? 'el' : 'en')
+        }
+        value={draft.date}
+        onChange={v => setDraft(d => ({ ...d, date: v }))}
+      />
+      {kind === 'transfer' && (
+        <label>
+          <span>
+            {translate('copy.clinicalRecordCopy.newDepartment', language === 'el' ? 'el' : 'en')}
+          </span>
+          <select
+            value={draft.departmentId}
+            onChange={e => setDraft(d => ({ ...d, departmentId: e.target.value }))}
+          >
+            <option value="">{t('select')}</option>
+            {departments
+              .filter(x => x.id !== admission.departmentId)
+              .map(x => (
+                <option key={x.id} value={x.id}>
+                  {x.name}
+                </option>
+              ))}
+          </select>
+        </label>
       )}
-    </>
+      <label className="entry-span-2">
+        <span>{t('reason')}</span>
+        <textarea
+          rows={3}
+          value={draft.reason}
+          onChange={e => setDraft(d => ({ ...d, reason: e.target.value }))}
+        />
+      </label>
+    </SimpleDialog>
+  ) : null
+  return { items: lifecycleItems, dialog }
+}
+// Deleting an admission asks for a reason; the database keeps it in the audit
+// log and refuses a patient's last admission or one with surveillance episodes.
+function AdmissionDeleteDialog({
+  open,
+  patient,
+  admission,
+  tenantId,
+  isDemo,
+  t,
+  onClose,
+  onDeleted,
+}) {
+  const { notify } = useFeedback()
+  async function remove(reason) {
+    try {
+      await deleteAdmission(tenantId, patient, admission, reason, { isDemo })
+      onClose()
+      notify(t('clinicalRecords.admissionDeleted'), 'success')
+      await onDeleted?.(admission)
+    } catch (error) {
+      notify(
+        error?.code === 'last_admission'
+          ? t('clinicalRecords.lastAdmissionCannotBeDeleted')
+          : error?.code === 'has_surveillance'
+            ? t('clinicalRecords.admissionHasSurveillance')
+            : error?.message || t('actionFailed'),
+        'danger',
+      )
+    }
+  }
+  return (
+    <GovernedReasonDialog
+      open={open}
+      title={t('clinicalRecords.deleteAdmission')}
+      description={t('clinicalRecords.deleteAdmissionHelp')}
+      confirmLabel={t('delete')}
+      danger
+      onCancel={onClose}
+      onConfirm={remove}
+    />
   )
 }
 export function Detail({ label, value }) {
   return (
     <div className="detail-item">
-      <span>{label}</span>
+      <span className="lo-field-label">{label}</span>
       <strong>{value || '—'}</strong>
     </div>
   )
 }
-function AdmissionsPanel({
-  rows,
-  episodes,
+
+// A new admission for the patient. While another admission is still active the
+// patient is discharged from it first (one active admission at a time).
+export function NewAdmissionDialog({
   patient,
+  activeAdmission,
   tenantId,
   isDemo,
   departments,
-  canEdit,
   t,
-  language,
-  fmtDate,
-  onAdded,
-  onChanged,
-  onSelect,
+  onClose,
+  onAdmitted,
 }) {
   const { notify } = useFeedback()
-  const [open, setOpen] = useState(false),
-    [busy, setBusy] = useState(false)
+  const today = new Date().toISOString().slice(0, 10)
+  const [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState({
+    admissionDate: today,
     departmentId: '',
-    department: '',
-    admissionDate: '',
-    dischargeDate: '',
-    status: 'active',
-    notes: '',
+    dischargeDate: today,
   })
   async function save() {
-    if (!draft.admissionDate) return
     try {
       setBusy(true)
+      const discharged = activeAdmission
+        ? await dischargeAdmission(
+            tenantId,
+            patient,
+            activeAdmission,
+            { date: draft.dischargeDate, reason: '' },
+            { isDemo },
+          )
+        : null
       const dept = departments.find(x => x.id === draft.departmentId)
       const row = await createAdmission(
         tenantId,
         patient,
-        { ...draft, department: dept?.name || draft.department },
+        {
+          departmentId: draft.departmentId,
+          department: dept?.name || '',
+          admissionDate: draft.admissionDate,
+          status: 'active',
+        },
         { isDemo },
       )
-      onAdded(row)
-      setOpen(false)
-      setDraft({
-        departmentId: '',
-        department: '',
-        admissionDate: '',
-        dischargeDate: '',
-        status: 'active',
-        notes: '',
-      })
+      await onAdmitted?.(row, discharged)
       notify(t('saved'), 'success')
     } catch (error) {
       notify(error?.message || t('actionFailed'), 'danger')
@@ -648,156 +821,99 @@ function AdmissionsPanel({
       setBusy(false)
     }
   }
-  const episodesFor = row =>
-    episodes.filter(ep =>
-      ep.admissionId
-        ? String(ep.admissionId) === String(row.id)
-        : String(ep.startedAt || '').slice(0, 10) >= String(row.admissionDate || '') &&
-          (!row.dischargeDate ||
-            String(ep.startedAt || '').slice(0, 10) <= String(row.dischargeDate)),
-    )
-  // "1" alone was unclear: say how many surveillance episodes and how many are active.
-  const surveillanceLabel = row => {
-    const list = episodesFor(row).filter(ep => ep.status !== 'cancelled'),
-      n = list.length,
-      active = list.filter(ep => ep.status === 'active').length
-    if (!n) return '—'
-    return (
-      <>
-        {`${n} ${t(n === 1 ? 'clinicalRecords.surveillanceCountOne' : 'clinicalRecords.surveillanceCountMany')}`}
-        {active > 0 && (
-          <>
-            {' '}
-            <span className="status-badge active">{`${active} ${t(active === 1 ? 'clinicalRecords.activeCountOne' : 'clinicalRecords.activeCountMany')}`}</span>
-          </>
-        )}
-      </>
-    )
-  }
+  const invalid =
+    !draft.admissionDate ||
+    (departments.length > 0 && !draft.departmentId) ||
+    (activeAdmission &&
+      (!draft.dischargeDate ||
+        draft.dischargeDate < String(activeAdmission.admissionDate || '').slice(0, 10) ||
+        draft.dischargeDate > draft.admissionDate))
   return (
-    <section className="record-section patient-admissions-section">
-      <div className="record-section-header">
-        <div>
-          <h3>{t('clinicalRecords.admissions')}</h3>
-          <p>
-            {translate(
-              'copy.clinicalRecordCopy.selectAnAdmissionToOpenIts',
-              language === 'el' ? 'el' : 'en',
-            )}
-          </p>
-        </div>
-        {canEdit && (
-          <Button onClick={() => setOpen(true)}>
-            <Plus size={15} />
-            {t('clinicalRecords.newAdmission')}
-          </Button>
-        )}
-      </div>
-      {rows.length ? (
-        <div className="record-table-wrap patient-admissions-table-wrap">
-          <table className="record-table patient-admissions-table">
-            <thead>
-              <tr>
-                <th>{t('admissionDate')}</th>
-                <th>{t('department')}</th>
-                <th>{t('clinicalRecords.dischargeDate')}</th>
-                <th>{t('status')}</th>
-                <th>{t('clinicalRecords.surveillanceColumn')}</th>
-                <th
-                  aria-label={translate(
-                    'copy.clinicalRecordCopy.actions',
-                    language === 'el' ? 'el' : 'en',
-                  )}
-                />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(row => (
-                <tr
-                  key={row.id}
-                  tabIndex={0}
-                  className="clickable-row"
-                  onClick={() => onSelect?.(row)}
-                  onKeyDown={e => {
-                    if ((e.key === 'Enter' || e.key === ' ') && onSelect) {
-                      e.preventDefault()
-                      onSelect(row)
-                    }
-                  }}
-                >
-                  <td>
-                    <strong>{fmtDate(row.admissionDate)}</strong>
-                  </td>
-                  <td>{row.department || '—'}</td>
-                  <td>{fmtDate(row.dischargeDate)}</td>
-                  <td>
-                    <span className={`status-badge ${row.status === 'active' ? 'active' : ''}`}>
-                      {t(row.status)}
-                    </span>
-                  </td>
-                  <td>{surveillanceLabel(row)}</td>
-                  <td
-                    className="open-record-cell"
-                    onClick={e => e.stopPropagation()}
-                    onKeyDown={e => e.stopPropagation()}
-                  >
-                    <AdmissionLifecycleActions
-                      patient={patient}
-                      admission={row}
-                      tenantId={tenantId}
-                      isDemo={isDemo}
-                      departments={departments}
-                      canEdit={canEdit}
-                      showPatientActions={false}
-                      onChanged={onChanged}
-                      t={t}
-                      language={language}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="inline-empty">{t('clinicalRecords.noAdmissions')}</div>
+    <SimpleDialog
+      title={t('clinicalRecords.newAdmission')}
+      t={t}
+      onClose={onClose}
+      onSave={save}
+      disabled={busy || invalid}
+    >
+      {activeAdmission && (
+        <p className="field-hint entry-span-2">
+          {t('clinicalRecords.newAdmissionDischargesCurrent').replace(
+            '{department}',
+            activeAdmission.department || '—',
+          )}
+        </p>
       )}
-      {open && (
-        <SimpleDialog
-          title={t('clinicalRecords.newAdmission')}
-          t={t}
-          onClose={() => setOpen(false)}
-          onSave={save}
-          disabled={busy || !draft.admissionDate}
+      {activeAdmission && (
+        <ManualDateField
+          label={t('clinicalRecords.currentAdmissionDischargeDate')}
+          value={draft.dischargeDate}
+          onChange={v => setDraft(d => ({ ...d, dischargeDate: v }))}
+        />
+      )}
+      <ManualDateField
+        label={t('admissionDate')}
+        value={draft.admissionDate}
+        onChange={v => setDraft(d => ({ ...d, admissionDate: v }))}
+      />
+      <label>
+        <span>{t('department')}</span>
+        <select
+          value={draft.departmentId}
+          onChange={e => setDraft(d => ({ ...d, departmentId: e.target.value }))}
         >
-          <label>
-            <span>{t('department')}</span>
-            {departments.length ? (
-              <select
-                value={draft.departmentId}
-                onChange={e => setDraft(d => ({ ...d, departmentId: e.target.value }))}
-              >
-                <option value="">{t('select')}</option>
-                {departments.map(x => (
-                  <option key={x.id} value={x.id}>
-                    {x.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                value={draft.department}
-                onChange={e => setDraft(d => ({ ...d, department: e.target.value }))}
-              />
-            )}
-          </label>
-          <ManualDateField
-            label={t('admissionDate')}
-            value={draft.admissionDate}
-            onChange={v => setDraft(d => ({ ...d, admissionDate: v }))}
-          />
-        </SimpleDialog>
-      )}
-    </section>
+          <option value="">{t('select')}</option>
+          {departments.map(x => (
+            <option key={x.id} value={x.id}>
+              {x.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </SimpleDialog>
+  )
+}
+
+// The patient's admissions, always in view under the name: pick the one the
+// record shows, or start a new one.
+export function AdmissionPicker({ admissions, selected, onSelect, onNew, t, fmtDate }) {
+  const items = admissions.map(row => {
+    const days = stayDays(row.admissionDate, row.dischargeDate)
+    return {
+      id: row.id,
+      current: String(row.id) === String(selected?.id),
+      icon: String(row.id) === String(selected?.id) ? Check : CalendarDays,
+      label: `${fmtDate(row.admissionDate)} – ${row.dischargeDate ? fmtDate(row.dischargeDate) : t('clinicalRecords.admissionOngoing')}`,
+      description: `${row.department || '—'} · ${days == null ? '—' : `${days} ${t(days === 1 ? 'clinicalRecords.stayDayOne' : 'clinicalRecords.stayDayMany')}`} · ${t(row.status)}`,
+      onClick: () => onSelect(row.id),
+    }
+  })
+  if (onNew)
+    items.push({
+      id: 'new-admission',
+      label: t('clinicalRecords.newAdmission'),
+      icon: Plus,
+      separatorBefore: true,
+      onClick: onNew,
+    })
+  return (
+    <OverflowMenu
+      className="admission-picker"
+      align="start"
+      width={320}
+      label={t('clinicalRecords.admissionsOfPatient')}
+      items={items}
+      trigger={
+        <>
+          <CalendarDays size={13} aria-hidden="true" />
+          <span>
+            {selected
+              ? `${t('clinicalRecords.admissionSelect')} ${fmtDate(selected.admissionDate)} · ${selected.department || '—'}`
+              : t('clinicalRecords.admissionsOfPatient')}
+          </span>
+          {admissions.length > 1 && <em className="admission-picker-count">{admissions.length}</em>}
+        </>
+      }
+    />
   )
 }

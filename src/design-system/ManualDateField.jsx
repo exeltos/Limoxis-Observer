@@ -37,7 +37,7 @@ export function ManualDateField({label,value,onChange,optional=false,disabled=fa
     if(el?.showPicker)el.showPicker(); else el?.click()
   }
   return <label className={`manual-date-field ${className}`.trim()}>
-    {label&&<span>{label}{optional&&<small> · {t('optional')}</small>}</span>}
+    {label&&<span className="lo-field-label">{label}{optional&&<small> · {t('optional')}</small>}</span>}
     <div className="manual-date-control">
       <input disabled={disabled} inputMode="numeric" placeholder={en?'dd/mm/yyyy':'ηη/μμ/εεεε'} value={text} onChange={e=>setText(e.target.value)} onBlur={()=>commit()} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();commit()}}}/>
       <button type="button" disabled={disabled} onClick={openPicker} aria-label="calendar"><CalendarDays size={16}/></button>

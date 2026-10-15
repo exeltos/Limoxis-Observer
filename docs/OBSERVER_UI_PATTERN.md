@@ -14,6 +14,11 @@ This file is the product-wide interaction contract for new and existing features
 - Fields use the shared Observer input/select/textarea geometry.
 - Dates use `ManualDateField` (`dd/mm/yyyy` + calendar picker).
 - Footer order is consistent: secondary cancel/close, then primary save/complete.
+- Save / submit actions live in the dialog `footer` (fixed under the scrolling body), never inside the body.
+- One way to close: the header × (or Back in workspace dialogs). No extra «Close», «Cancel» or «Later» button that only closes the window; a secondary button must do something else (e.g. cancel an edit in place).
+- Windows do not change size when a choice inside them changes: a form that switches between modes (existing/new, single/batch) passes `fixedHeight` to `ObserverDialog`.
+- Mode choices at the top of a form use `ModeSwitch`.
+- A form has a single scroller: a long list inside a dialog takes the remaining height and is the only part that scrolls.
 - Large editable text is handled by `GlobalTextareaExpander` automatically.
 - Large read-only text uses `ExpandableTextBlock`.
 - Feature-specific workflows may add domain sections, but may not redefine basic controls.
@@ -21,6 +26,16 @@ This file is the product-wide interaction contract for new and existing features
 ## Registries and records
 - Registries use `Page`, `FilterBar`, `RecordActions`, and clickable-row affordance where rows open records.
 - Record pages use `EntityRecordShell`.
+- Lists inside a record use `RegistryTable` (same geometry as registries); statuses use `status-badge`, never plain text.
+- Sections inside a record tab start with `SectionHeader` (title, optional subtitle, actions on the right).
+- A record tab with a list (assessments, surveillance & samples, history) is a `RecordTabPanel`: it fills the record body (no card inside the card), one header row, content that scrolls inside, pagination kept at the bottom — the same look as the registry lists.
+- Documents tabs, and attachments everywhere, use `DocumentsWorkspace` / `AttachmentField`: the titled section with the shared «Attachments» box and «Add attachment».
+- A record's read view is a `record-view-stack`: `SectionHeader`, the context as a `RecordDetailsGrid` sheet, the key figures as a `RecordMetricStrip`, then the record's own list. Dates read dd/mm/yyyy (and HH:MM).
+- In forms every control (text, select, date, time) is 40px high and fields in a row line up; yes/no answers use `YesNoField`, months `MonthField`.
+- Field titles, editable or read-only, use the `lo-field-label` style (Field, ManualDateField, TimeField, SearchableSelect, RecordDetailsGrid apply it).
+- Multi-choice fields use `ChoiceChips`, not checkboxes in pills.
+- An empty registry shows the RegistryTable empty state under the column headings and hides pagination.
+- A nested view inside a record (e.g. an episode inside a tab) shows its path with `Breadcrumbs` instead of a second Back button.
 - Status badges, table geometry and row actions must use existing Observer primitives before new CSS is introduced.
 
 ## Committee-specific rule

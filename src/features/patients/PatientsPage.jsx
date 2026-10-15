@@ -5,16 +5,12 @@ import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
-import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { loadPatients, createPatient } from './patientsService'
-import { signalDemoScenario } from '../demo/demoScenarioSignals'
-import { demoLibrarySeed } from '../management/managementData'
-import { loadDepartments } from '../management/departmentsService'
+import { loadPatients } from './patientsService'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -33,23 +29,16 @@ export function PatientsPage(){
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query)
   const [patients,setPatients]=useState([])
-  const [departmentOptions,setDepartmentOptions]=useState([])
   const [department,setDepartment]=useState(saved.department)
   const [status,setStatus]=useState(saved.status)
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(15)
-  const [newOpen,setNewOpen]=useState(false)
   const [riskFlags,setRiskFlags]=useState({})
   const [infectionFlags,setInfectionFlags]=useState({})
   const [flagsReady,setFlagsReady]=useState(false)
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive)notify(error?.message||t('patientsLoadFailed'),'danger')})
-    if(isDemo){
-      setDepartmentOptions(demoLibrarySeed.departments.map(([el,en],index)=>({id:`demo-department-${index}`,name:el,nameEn:en,is_active:true})))
-    }else{
-      loadDepartments(tenant?.id).then(list=>{if(alive)setDepartmentOptions((list||[]).filter(item=>item.is_active!==false).map(item=>({...item,nameEn:item.name})))}).catch(error=>{if(alive)notify(error?.message||t('actionFailed'),'danger')})
-    }
     // The legend waits for both flag sets, so it appears once and complete.
     setFlagsReady(false)
     Promise.allSettled([
@@ -71,25 +60,7 @@ export function PatientsPage(){
   const fmt=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)):'—'
   const pageCaps={[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_PATIENT}
   function pageAction(action){
-    if(action===UI_ACTIONS.CREATE)setNewOpen(true)
-  }
-  async function savePatient(draft){
-    try{
-      const {record:patient,list}=await createPatient(tenant?.id,patients,draft,{isDemo})
-      setPatients(list)
-      setNewOpen(false)
-      setQuery('')
-      setDepartment('all')
-      setStatus('all')
-      notify(t('patientCreated'),'success')
-      signalDemoScenario('patient_admission')
-      requestAnimationFrame(()=>{
-        registry.saveViewState({query:'',department:'all',status:'all'})
-        registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))
-      })
-    }catch(error){
-      notify(error?.duplicateCode?t('patientCodeDuplicate'):(error?.message||t('patientSaveFailed')),'danger')
-    }
+    if(action===UI_ACTIONS.CREATE)navigate('/patients/new')
   }
   const activeAdvancedCount=(department!=='all'?1:0)+(status!=='all'?1:0)
   const scopedPatients=patients.filter(p=>canAccessRecord(p))
@@ -120,21 +91,20 @@ export function PatientsPage(){
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
         renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskFlags rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} compact/></span></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></>}
-      />{!rows.length&&<PatientRegistryEmpty t={t}/>}
-      <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
+        emptyTitle={scopedPatients.length?t('svEmptyFiltered'):t('patientRegistryEmptyTitle')}
+        emptyText={scopedPatients.length?t('svEmptyFilteredHint'):t('patientRegistryEmptyDescription')}
+      />
+      {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
     </div>
-    {newOpen&&<PatientFormDialog t={t} language={language} departments={departmentOptions} existingPatients={patients} onClose={()=>setNewOpen(false)} onSave={savePatient}/>}
   </Page>
-}
-
-function PatientRegistryEmpty({t}){
-  return <div className="registry-empty-state"><strong>{t('patientRegistryEmptyTitle')}</strong><span>{t('patientRegistryEmptyDescription')}</span></div>
 }
 
 // A summary card filters the registry by its status; clicking it again shows everyone.
 function PatientSummaryMetric({icon,label,value,kind='',filter,current,onFilter}){const active=filter!=='all'&&current===filter;return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'} active={active} onClick={onFilter?()=>onFilter(active?'all':filter):undefined}/>}
 
-export function PatientFormDialog({t,language,departments,onClose,onSave,patient=null,existingPatients=[]}){
+// The patient form's state and checks, shared by the «New patient» page and the
+// in-place edit of the patient record.
+export function usePatientForm({patient=null,departments=[],existingPatients=[]}){
   const editing=Boolean(patient)
   const [draft,setDraft]=useState(()=>({
     patientCode:patient?.id||'',firstName:patient?.firstName||'',lastName:patient?.lastName||'',fatherName:patient?.fatherName||'',hospitalRecordNumber:patient?.hospitalRecordNumber||'',
@@ -158,31 +128,32 @@ export function PatientFormDialog({t,language,departments,onClose,onSave,patient
   // Warn while typing when the code is already taken, instead of failing on save.
   const codeKey=draft.patientCode.trim().toLowerCase()
   const duplicate=!editing&&codeKey?existingPatients.find(item=>String(item.id||item.patientCode||'').trim().toLowerCase()===codeKey):null
-  function save(){
-    const first=draft.firstName.trim()
-    const last=draft.lastName.trim()
-    if(!draft.patientCode.trim()||!first||!last||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid)return
-    onSave({...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim(),birthWeightGrams:draft.birthWeightGrams?Number(draft.birthWeightGrams):null,gestationalAgeWeeks:draft.gestationalAgeWeeks?Number(draft.gestationalAgeWeeks):null})
+  const invalid=Boolean(duplicate)||!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid
+  function payload(){
+    const first=draft.firstName.trim(),last=draft.lastName.trim()
+    return {...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim(),birthWeightGrams:draft.birthWeightGrams?Number(draft.birthWeightGrams):null,gestationalAgeWeeks:draft.gestationalAgeWeeks?Number(draft.gestationalAgeWeeks):null}
   }
-  const disabled=Boolean(duplicate)||!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid
-  return <ObserverDialog width="wide" eyebrow={t('patients')} title={editing?t('edit'):t('newPatient')} subtitle={editing?t('patientRegistrySubtitle'):t('newPatientHelp')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={save} disabled={disabled}/> }>
-    <div className="entry-grid patient-entry-grid">
-      <label><span>{t('patientId')} *</span><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/>{duplicate&&<small className="field-error">{t('patientCodeDuplicate')}{duplicate.name?` (${duplicate.name})`:''}</small>}</label>
-      <label><span>{t('firstName')} *</span><input autoFocus={editing} value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
-      <label><span>{t('lastName')} *</span><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
-      <label><span>{t('fatherName')}</span><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
-      <label><span>{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
+  return {editing,draft,set,setDepartment,birthInvalid,birthWeightInvalid,gestationInvalid,ageDays,ageYears,showNeonatal,duplicate,invalid,payload}
+}
+
+export function PatientFormFields({form,t,language,departments=[],className=''}){
+  const {editing,draft,set,setDepartment,birthInvalid,birthWeightInvalid,gestationInvalid,ageDays,ageYears,showNeonatal,duplicate}=form
+  return <div className={`entry-grid patient-entry-grid ${className}`.trim()}>
+      <label><span className="lo-field-label">{t('patientId')} *</span><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/>{duplicate&&<small className="field-error">{t('patientCodeDuplicate')}{duplicate.name?` (${duplicate.name})`:''}</small>}</label>
+      <label><span className="lo-field-label">{t('firstName')} *</span><input autoFocus={editing} value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
+      <label><span className="lo-field-label">{t('lastName')} *</span><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
+      <label><span className="lo-field-label">{t('fatherName')}</span><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
+      <label><span className="lo-field-label">{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
       <div><ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>{birthInvalid&&<small className="field-error">{t('invalidDateOfBirth')}</small>}{ageYears!=null&&!birthInvalid&&<small className="entry-detail-note">{ageDays<28?t('calculatedAgeDays').replace('{age}',String(ageDays)):ageDays<730?t('calculatedAgeMonthsDays').replace('{months}',String(Math.floor(ageDays/30.4375))).replace('{days}',String(Math.floor(ageDays%30.4375))):t('calculatedAge').replace('{age}',String(ageYears))}</small>}</div>
-      <label><span>{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
+      <label><span className="lo-field-label">{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
       {showNeonatal&&<>
-      <label><span>{translate('copy.patientsCopy.birthWeightG',language==='el'?'el':'en')}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{birthWeightInvalid&&<small className="field-error">{t('invalidBirthWeight')}</small>}</label>
-      <label><span>{translate('copy.patientsCopy.gestationalAgeWeeks',language==='el'?'el':'en')}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{gestationInvalid&&<small className="field-error">{t('invalidGestationalAge')}</small>}</label>
+      <label><span className="lo-field-label">{translate('copy.patientsCopy.birthWeightG',language==='el'?'el':'en')}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{birthWeightInvalid&&<small className="field-error">{t('invalidBirthWeight')}</small>}</label>
+      <label><span className="lo-field-label">{translate('copy.patientsCopy.gestationalAgeWeeks',language==='el'?'el':'en')}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{gestationInvalid&&<small className="field-error">{t('invalidGestationalAge')}</small>}</label>
       </>}
-      {!editing&&<><label><span>{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
+      {!editing&&<><label><span className="lo-field-label">{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
       <ManualDateField label={`${t('admissionDate')} *`} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/></>}
-      <label className="entry-span-2"><span>{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
+      <label className="entry-span-2"><span className="lo-field-label">{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
     </div>
-  </ObserverDialog>
 }
 
 // One-line key for the alert badges in the registry. Built from all the

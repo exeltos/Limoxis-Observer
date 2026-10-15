@@ -16,7 +16,7 @@ export function RegistryTable({
   const tableClass=`data-table sticky-table ${className}`.trim()
   const hasRows=Array.isArray(rows)&&rows.length>0
   const table=<table className={tableClass} {...tableProps}>
-    <thead><tr>{columns.map((column,index)=><th key={column.key??index} className={column.className} style={column.style}>{column.label}</th>)}</tr></thead>
+    <thead><tr>{columns.map((column,index)=><th key={column.key??index} className={column.className} style={column.style} aria-label={column.ariaLabel}>{column.label}</th>)}</tr></thead>
     <tbody>{rows.map((row,index)=>{
       const supplied=typeof rowProps==='function'?(rowProps(row,index)||{}):{}
       const rendered=renderRow?.(row,index)

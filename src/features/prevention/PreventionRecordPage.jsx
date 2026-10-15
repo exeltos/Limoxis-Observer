@@ -1,3 +1,7 @@
+import { SectionHeader } from '../../design-system/SectionHeader'
+import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
+import { RegistryTable } from '../../design-system/RegistryTable'
 import { useEffect, useState } from 'react'
 import { ClipboardCheck, Droplets, Pencil, Recycle, ShieldCheck, Trash2 } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -245,7 +249,7 @@ export function PreventionRecordPage() {
         : recordType === 'bundles'
           ? en
             ? 'New Bundle assessment'
-            : 'Νέα αξιολόγηση Bundle'
+            : 'Νέα αξιολόγηση δέσμης μέτρων'
           : en
             ? 'New WHO hand hygiene observation'
             : 'Νέα παρατήρηση Υγιεινής Χεριών WHO'
@@ -408,7 +412,7 @@ export function PreventionRecordPage() {
         creating
           ? en
             ? 'Bundle assessment saved.'
-            : 'Η αξιολόγηση Bundle αποθηκεύτηκε.'
+            : 'Η αξιολόγηση δέσμης μέτρων αποθηκεύτηκε.'
           : en
             ? 'Changes saved.'
             : 'Οι αλλαγές αποθηκεύτηκαν.',
@@ -492,7 +496,6 @@ export function PreventionRecordPage() {
         departments={handDepartments}
         initialRecord={editing ? record : null}
         fixedDepartment={departmentScoped ? ownDepartment : ''}
-        onCancel={creating ? backToList : backToRecord}
         onSave={saveHandHygiene}
       />
     )
@@ -506,7 +509,6 @@ export function PreventionRecordPage() {
         findPatientDays={(departmentId, from, to) =>
           findWastePatientDays(tenant.id, departmentId, from, to)
         }
-        onCancel={creating ? backToList : backToRecord}
         onSave={saveWaste}
       />
     )
@@ -520,7 +522,6 @@ export function PreventionRecordPage() {
         findPatientDays={(departmentId, from, to) =>
           findPatientDaysForPeriod(tenant.id, departmentId, from, to)
         }
-        onCancel={creating ? backToList : backToRecord}
         onSave={saveAntiseptic}
       />
     )
@@ -531,7 +532,6 @@ export function PreventionRecordPage() {
         templates={bundleSupport.templates}
         initialRecord={editing ? record : null}
         fixedDepartment={departmentScoped ? ownDepartment : ''}
-        onCancel={creating ? backToList : backToRecord}
         onSave={saveBundle}
       />
     )
@@ -595,11 +595,15 @@ const formatMonth = value =>
     : value || ''
 const formatDay = (value, en) =>
   value
-    ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(
-        new Date(`${String(value).slice(0, 10)}T12:00:00`),
-      )
+    ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(new Date(`${String(value).slice(0, 10)}T12:00:00`))
     : '—'
 
+// Prevention records share one layout: the context as a details sheet, the key
+// figures as a metric strip, then the record's own list under a section header.
 function HandHygieneDetails({ record, language }) {
   const en = language === 'en'
   const items = record.whoObservations || []
@@ -617,120 +621,122 @@ function HandHygieneDetails({ record, language }) {
         : en
           ? 'Not performed'
           : 'Δεν πραγματοποιήθηκε'
+  const profession = item => {
+    const p = WHO_PROFESSIONS.find(([el]) => el === item.professionalCategory)
+    return p ? (en ? p[1] : p[0]) : item.professionalCategory || '—'
+  }
   return (
-    <div className="who-record-workspace who-record-compact">
-      <section className="who-record-session-bar">
-        <div>
-          <span>{en ? 'Date' : 'Ημερομηνία'}</span>
-          <strong>{formatDay(record.date || session.date, en)}</strong>
-        </div>
-        <div>
-          <span>{en ? 'Department' : 'Τμήμα'}</span>
-          <strong>{record.departmentEl || session.department || '—'}</strong>
-        </div>
-        <div>
-          <span>{en ? 'Observer' : 'Παρατηρητής'}</span>
-          <strong>{record.observer || session.observer || '—'}</strong>
-        </div>
-        <div>
-          <span>{en ? 'Time' : 'Ώρα'}</span>
-          <strong>
-            {session.startTime || '—'} – {session.endTime || '—'}
-          </strong>
-        </div>
+    <div className="record-view-stack">
+      <section>
+        <SectionHeader title={en ? 'Observation session' : 'Στοιχεία παρατήρησης'} />
+        <RecordDetailsGrid
+          fields={[
+            {
+              id: 'date',
+              label: en ? 'Date' : 'Ημερομηνία',
+              value: formatDay(record.date || session.date, en),
+            },
+            {
+              id: 'department',
+              label: en ? 'Department' : 'Τμήμα',
+              value: record.departmentEl || session.department,
+            },
+            {
+              id: 'observer',
+              label: en ? 'Observer' : 'Παρατηρητής',
+              value: record.observer || session.observer,
+            },
+            {
+              id: 'time',
+              label: en ? 'Time' : 'Ώρα',
+              value: `${session.startTime || '—'} – ${session.endTime || '—'}`,
+            },
+          ]}
+        />
       </section>
-      <section className="who-record-kpis">
-        <div className="who-record-compliance">
-          <span>{en ? 'WHO compliance' : 'Συμμόρφωση WHO'}</span>
-          <strong>{stats.compliance}%</strong>
-          <small>
-            {stats.compliant || 0} / {stats.opportunities || 0}{' '}
-            {en ? 'compliant opportunities' : 'συμμορφούμενες ευκαιρίες'}
-          </small>
-        </div>
-        <div>
-          <span>{en ? 'Opportunities' : 'Ευκαιρίες'}</span>
-          <strong>{stats.opportunities}</strong>
-        </div>
-        <div>
-          <span>{en ? 'Professionals' : 'Επαγγελματίες'}</span>
-          <strong>{stats.professionals}</strong>
-        </div>
-        <div>
-          <span>{en ? 'Hand rub (HR)' : 'Αντισηπτικό (HR)'}</span>
-          <strong>{stats.handRub || 0}</strong>
-        </div>
-        <div>
-          <span>{en ? 'Hand wash (HW)' : 'Πλύσιμο (HW)'}</span>
-          <strong>{stats.handWash || 0}</strong>
-        </div>
-        <div className="who-record-missed">
-          <span>{en ? 'Not performed' : 'Μη συμμορφούμενες'}</span>
-          <strong>{stats.missed || 0}</strong>
-        </div>
-      </section>
-      <section className="who-record-opportunities">
-        <div className="who-record-list-heading">
-          <div>
-            <span className="eyebrow">{en ? 'WHO 5 MOMENTS' : 'WHO 5 ΣΤΙΓΜΕΣ'}</span>
-            <h3>{en ? 'Recorded opportunities' : 'Καταγεγραμμένες ευκαιρίες'}</h3>
-          </div>
-          <strong>{items.length}</strong>
-        </div>
-        <div className="who-record-saved-list">
-          {items.map((item, index) => {
-            const selectedMoments = normalizeWhoMoments(item)
-            return (
-              <article className="who-record-opportunity-row" key={item.id || index}>
-                <div className="who-record-opportunity-index">
-                  <span>{index + 1}</span>
+      <RecordMetricStrip
+        items={[
+          {
+            id: 'compliance',
+            primary: true,
+            label: en ? 'WHO compliance' : 'Συμμόρφωση WHO',
+            value: `${stats.compliance}%`,
+            note: `${stats.compliant || 0} / ${stats.opportunities || 0} ${en ? 'compliant opportunities' : 'συμμορφούμενες ευκαιρίες'}`,
+          },
+          {
+            id: 'opportunities',
+            label: en ? 'Opportunities' : 'Ευκαιρίες',
+            value: stats.opportunities,
+          },
+          {
+            id: 'professionals',
+            label: en ? 'Professionals' : 'Επαγγελματίες',
+            value: stats.professionals,
+          },
+          { id: 'hr', label: en ? 'Hand rub (HR)' : 'Αντισηπτικό (HR)', value: stats.handRub || 0 },
+          { id: 'hw', label: en ? 'Hand wash (HW)' : 'Πλύσιμο (HW)', value: stats.handWash || 0 },
+          {
+            id: 'missed',
+            tone: stats.missed ? 'danger' : undefined,
+            label: en ? 'Not performed' : 'Μη συμμορφούμενες',
+            value: stats.missed || 0,
+          },
+        ]}
+      />
+      <section>
+        <SectionHeader
+          title={en ? 'Recorded opportunities' : 'Καταγεγραμμένες ευκαιρίες'}
+          subtitle={en ? 'WHO 5 Moments' : 'WHO 5 Στιγμές'}
+          actions={<span className="status-badge">{items.length}</span>}
+        />
+        <RegistryTable
+          className="who-record-table"
+          columns={[
+            { key: 'index', label: '#' },
+            { key: 'professional', label: en ? 'Professional' : 'Επαγγελματίας' },
+            { key: 'moments', label: en ? 'WHO indication' : 'Ένδειξη WHO' },
+            { key: 'action', label: en ? 'Action' : 'Ενέργεια' },
+            { key: 'gloves', label: en ? 'Gloves' : 'Γάντια' },
+            { key: 'note', label: en ? 'Note' : 'Σημείωση' },
+          ]}
+          rows={items}
+          rowKey={(item, index) => item.id || index}
+          emptyTitle={en ? 'No opportunities recorded' : 'Δεν καταγράφηκαν ευκαιρίες'}
+          renderRow={(item, index) => (
+            <>
+              <td>{index + 1}</td>
+              <td>
+                <strong>
+                  {item.professionalsCount || 1} × {profession(item)}
+                </strong>
+              </td>
+              <td>
+                <div className="who-record-moments-cell">
+                  {normalizeWhoMoments(item).map(id => {
+                    const m = WHO_MOMENTS.find(x => x.id === id)
+                    return (
+                      <span className="status-badge" key={id}>
+                        {id.replace('moment', '')} ·{' '}
+                        {m
+                          ? en
+                            ? m.labelEn.replace(/^\d+\.\s*/, '')
+                            : m.label.replace(/^\d+\.\s*/, '')
+                          : id}
+                      </span>
+                    )
+                  })}
                 </div>
-                <div className="who-record-profession">
-                  <span>{en ? 'Professional' : 'Επαγγελματίας'}</span>
-                  <strong>
-                    {item.professionalsCount || 1} ×{' '}
-                    {(() => {
-                      const p = WHO_PROFESSIONS.find(([el]) => el === item.professionalCategory)
-                      return p ? (en ? p[1] : p[0]) : item.professionalCategory || '—'
-                    })()}
-                  </strong>
-                </div>
-                <div className="who-record-moments">
-                  <span>{en ? 'WHO indication' : 'Ένδειξη WHO'}</span>
-                  <div>
-                    {selectedMoments.map(id => {
-                      const m = WHO_MOMENTS.find(x => x.id === id)
-                      return (
-                        <b key={id}>
-                          <i>{id.replace('moment', '')}</i>
-                          {m
-                            ? en
-                              ? m.labelEn.replace(/^\d+\.\s*/, '')
-                              : m.label.replace(/^\d+\.\s*/, '')
-                            : id}
-                        </b>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div className="who-record-action">
-                  <span>{en ? 'Action' : 'Ενέργεια'}</span>
-                  <strong className={item.action === 'MISSED' ? 'missed' : 'compliant'}>
-                    {actionLabel(item)}
-                  </strong>
-                </div>
-                <div className="who-record-gloves">
-                  <span>{en ? 'Gloves' : 'Γάντια'}</span>
-                  <strong>{item.gloves ? (en ? 'Yes' : 'Ναι') : en ? 'No' : 'Όχι'}</strong>
-                </div>
-                <div className="who-record-note">
-                  <span>{en ? 'Note' : 'Σημείωση'}</span>
-                  <strong>{item.notes || '—'}</strong>
-                </div>
-              </article>
-            )
-          })}
-        </div>
+              </td>
+              <td>
+                <span className={`status-badge ${item.action === 'MISSED' ? 'danger' : 'active'}`}>
+                  {actionLabel(item)}
+                </span>
+              </td>
+              <td>{item.gloves ? (en ? 'Yes' : 'Ναι') : en ? 'No' : 'Όχι'}</td>
+              <td>{item.notes || '—'}</td>
+            </>
+          )}
+        />
       </section>
     </div>
   )
@@ -739,78 +745,79 @@ function HandHygieneDetails({ record, language }) {
 function AntisepticDetails({ record, language, locale }) {
   const en = language === 'en'
   const eligible = record.indicatorEligible !== false && isAbhrProduct(record)
-  const period = String(record.period || '—').replace(/^(\d{4})-(\d{2})$/, '$2/$1')
   return (
-    <div className="antiseptic-detail">
-      <section className="antiseptic-detail-summary">
-        <div className="antiseptic-detail-context">
-          <div>
-            <span>{en ? 'Period' : 'Περίοδος'}</span>
-            <strong>{period}</strong>
-          </div>
-          <div>
-            <span>{en ? 'Department' : 'Τμήμα'}</span>
-            <strong>{record.departmentEl || '—'}</strong>
-          </div>
-          <div className="antiseptic-detail-product">
-            <span>{en ? 'Product' : 'Προϊόν'}</span>
-            <strong>{en ? record.productEn || record.product : record.product}</strong>
-          </div>
-          <span className={`antiseptic-detail-badge ${eligible ? 'active' : 'informative'}`}>
-            {eligible
-              ? en
-                ? 'ABHR · Indicator active'
-                : 'ABHR · Δείκτης ενεργός'
-              : en
-                ? 'Outside ABHR indicator'
-                : 'Εκτός δείκτη ABHR'}
-          </span>
-        </div>
-        <div className="antiseptic-detail-kpis">
-          <div>
-            <span>{en ? 'Consumption' : 'Κατανάλωση'}</span>
-            <strong>
-              {Number(record.litres).toLocaleString(locale)} <small>L</small>
-            </strong>
-          </div>
-          <div>
-            <span>{en ? 'Patient-days' : 'Νοσηλευτικές ημέρες'}</span>
-            <strong>{record.patientDays || '—'}</strong>
-          </div>
-          <div className="primary">
-            <span>{en ? 'ABHR indicator' : 'Δείκτης ABHR'}</span>
-            <strong>
-              {record.indicator != null ? Number(record.indicator).toLocaleString(locale) : '—'}
-            </strong>
-            <small>{en ? 'L / 1,000 patient-days' : 'L / 1.000 νοσηλευτικές ημέρες'}</small>
-          </div>
-        </div>
+    <div className="record-view-stack">
+      <section>
+        <SectionHeader
+          title={en ? 'Monthly consumption' : 'Μηνιαία κατανάλωση'}
+          actions={
+            <span className={`status-badge ${eligible ? 'active' : ''}`}>
+              {eligible
+                ? en
+                  ? 'ABHR · Indicator active'
+                  : 'ABHR · Δείκτης ενεργός'
+                : en
+                  ? 'Outside ABHR indicator'
+                  : 'Εκτός δείκτη ABHR'}
+            </span>
+          }
+        />
+        <RecordDetailsGrid
+          fields={[
+            { id: 'period', label: en ? 'Period' : 'Περίοδος', value: formatMonth(record.period) },
+            { id: 'department', label: en ? 'Department' : 'Τμήμα', value: record.departmentEl },
+            {
+              id: 'product',
+              label: en ? 'Product' : 'Προϊόν',
+              value: en ? record.productEn || record.product : record.product,
+            },
+            {
+              id: 'method',
+              label: en ? 'Source / method' : 'Πηγή / μέθοδος',
+              value: antisepticMethodLabel(record.method, language),
+            },
+            {
+              id: 'reference',
+              label: en ? 'Reference / document' : 'Αναφορά / παραστατικό',
+              value: record.referenceNumber,
+            },
+            {
+              id: 'responsible',
+              label: en ? 'Responsible' : 'Υπεύθυνος',
+              value: record.responsible,
+            },
+            {
+              id: 'notes',
+              className: 'is-wide',
+              label: en ? 'Notes' : 'Σημειώσεις',
+              value: record.notes,
+              hidden: !record.notes,
+            },
+          ]}
+        />
       </section>
-      <section className="antiseptic-detail-trace">
-        <header>
-          <strong>{en ? 'Data source & traceability' : 'Πηγή δεδομένων & ιχνηλασιμότητα'}</strong>
-        </header>
-        <div>
-          <section>
-            <span>{en ? 'Source / method' : 'Πηγή / μέθοδος'}</span>
-            <strong>{antisepticMethodLabel(record.method, language)}</strong>
-          </section>
-          <section>
-            <span>{en ? 'Reference / document' : 'Αναφορά / παραστατικό'}</span>
-            <strong>{record.referenceNumber || '—'}</strong>
-          </section>
-          <section>
-            <span>{en ? 'Responsible' : 'Υπεύθυνος'}</span>
-            <strong>{record.responsible || '—'}</strong>
-          </section>
-        </div>
-      </section>
-      {record.notes && (
-        <div className="record-note-card">
-          <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
-          <p>{record.notes}</p>
-        </div>
-      )}
+      <RecordMetricStrip
+        items={[
+          {
+            id: 'litres',
+            label: en ? 'Consumption' : 'Κατανάλωση',
+            value: Number(record.litres).toLocaleString(locale),
+            unit: 'L',
+          },
+          {
+            id: 'days',
+            label: en ? 'Patient-days' : 'Νοσηλευτικές ημέρες',
+            value: record.patientDays || '—',
+          },
+          {
+            id: 'indicator',
+            primary: true,
+            label: en ? 'ABHR indicator' : 'Δείκτης ABHR',
+            value: record.indicator != null ? Number(record.indicator).toLocaleString(locale) : '—',
+            note: en ? 'L / 1,000 patient-days' : 'L / 1.000 νοσηλευτικές ημέρες',
+          },
+        ]}
+      />
     </div>
   )
 }
@@ -824,12 +831,6 @@ const SHIFT_LABELS = {
 function shiftLabel(value, en) {
   const pair = SHIFT_LABELS[value]
   return pair ? (en ? pair[1] : pair[0]) : value || '—'
-}
-function fmtDay(value) {
-  const [y, m, d] = String(value || '')
-    .slice(0, 10)
-    .split('-')
-  return y && m && d ? `${Number(d)}/${Number(m)}/${y}` : value || '—'
 }
 function BundleDetails({ record, language, canEdit, onFollowUp }) {
   const en = language === 'en'
@@ -857,76 +858,58 @@ function BundleDetails({ record, language, canEdit, onFollowUp }) {
             ? 'Pending review'
             : 'Προς επανέλεγχο'
   return (
-    <div className="bundle-record-view">
-      <section className="bundle-record-summary">
-        <div className="bundle-record-heading">
-          <div>
-            <strong>
-              {record.templateName || template.name || record.bundle} ·{' '}
-              {record.templateTitle || template.title || ''}
-            </strong>
-            <small>
-              {record.templateSource || template.source || ''} · v
-              {record.templateVersion || template.version || '1.0'}
-            </small>
-          </div>
-          <span className={`bundle-all-badge ${record.allOrNone ? 'passed' : 'failed'}`}>
-            {record.allOrNone
-              ? en
-                ? 'All-or-none ✓'
-                : 'Πλήρης συμμόρφωση ✓'
-              : en
-                ? 'All-or-none ✕'
-                : 'Ελλιπής συμμόρφωση ✕'}
-          </span>
-        </div>
-        <div className="bundle-record-kpis">
-          <div>
-            <span>{en ? 'Score' : 'Βαθμολογία'}</span>
-            <strong>{record.score == null ? '—' : `${record.score}%`}</strong>
-          </div>
-          <div>
-            <span>{en ? 'Applicable' : 'Εφαρμόσιμα'}</span>
-            <strong>{record.applicableCount ?? '—'}</strong>
-          </div>
-          <div>
-            <span>{en ? 'Deviations' : 'Αποκλίσεις'}</span>
-            <strong>{record.failedCount ?? findings.length}</strong>
-          </div>
-          <div>
-            <span>{en ? 'Date' : 'Ημερομηνία'}</span>
-            <strong>{fmtDay(record.date || record.period)}</strong>
-          </div>
-        </div>
-        <div className="bundle-record-meta">
-          <span>
-            <b>{en ? 'Department' : 'Τμήμα'}</b>
-            {record.departmentEl || '—'}
-          </span>
-          <span>
-            <b>{en ? 'Shift' : 'Βάρδια'}</b>
-            {shiftLabel(record.shift, en)}
-          </span>
-          <span>
-            <b>{en ? 'Patient' : 'Ασθενής'}</b>
-            {record.patientRef || '—'}
-          </span>
-          <span>
-            <b>{en ? 'Device' : 'Συσκευή'}</b>
-            {record.deviceRef || '—'}
-          </span>
-          <span>
-            <b>{en ? 'Responsible' : 'Υπεύθυνος'}</b>
-            {record.owner || '—'}
-          </span>
-        </div>
+    <div className="record-view-stack bundle-record-view">
+      <section>
+        <SectionHeader
+          title={`${record.templateName || template.name || record.bundle}${record.templateTitle || template.title ? ` · ${record.templateTitle || template.title}` : ''}`}
+          subtitle={`${record.templateSource || template.source || ''} · v${record.templateVersion || template.version || '1.0'}`}
+        />
+        <RecordDetailsGrid
+          className="record-details-cols-6"
+          fields={[
+            {
+              id: 'date',
+              label: en ? 'Date' : 'Ημερομηνία',
+              value: formatDay(record.date || record.period, en),
+            },
+            { id: 'department', label: en ? 'Department' : 'Τμήμα', value: record.departmentEl },
+            { id: 'shift', label: en ? 'Shift' : 'Βάρδια', value: shiftLabel(record.shift, en) },
+            { id: 'owner', label: en ? 'Responsible' : 'Υπεύθυνος', value: record.owner },
+            { id: 'patient', label: en ? 'Patient' : 'Ασθενής', value: record.patientRef },
+            { id: 'device', label: en ? 'Device' : 'Συσκευή', value: record.deviceRef },
+            {
+              id: 'notes',
+              className: 'is-wide',
+              label: en ? 'Notes' : 'Σημειώσεις',
+              value: record.generalNotes,
+              hidden: !record.generalNotes,
+            },
+          ]}
+        />
       </section>
+      <RecordMetricStrip
+        items={[
+          {
+            id: 'score',
+            primary: true,
+            label: en ? 'Score' : 'Βαθμολογία',
+            value: record.score == null ? '—' : `${record.score}%`,
+          },
+          {
+            id: 'applicable',
+            label: en ? 'Applicable' : 'Εφαρμόσιμα',
+            value: record.applicableCount ?? '—',
+          },
+          {
+            id: 'deviations',
+            tone: (record.failedCount ?? findings.length) ? 'danger' : undefined,
+            label: en ? 'Deviations' : 'Αποκλίσεις',
+            value: record.failedCount ?? findings.length,
+          },
+        ]}
+      />
       <section className="bundle-record-elements">
-        <div className="bundle-record-heading">
-          <div>
-            <strong>{en ? 'Bundle results' : 'Αποτελέσματα δέσμης μέτρων'}</strong>
-          </div>
-        </div>
+        <SectionHeader title={en ? 'Bundle results' : 'Αποτελέσματα δέσμης μέτρων'} />
         <div className="bundle-detail-list">
           {elements.map(([id, label], index) => {
             const value = record.answers?.[id]
@@ -962,16 +945,14 @@ function BundleDetails({ record, language, canEdit, onFollowUp }) {
       </section>
       {findings.length > 0 && (
         <section className="bundle-record-findings">
-          <div className="bundle-record-heading">
-            <div>
-              <strong>{en ? 'Items for follow-up' : 'Σημεία για επανέλεγχο'}</strong>
-              <small>
-                {en
-                  ? 'Review each deviation and record whether it was corrected, remains open or no longer applies.'
-                  : 'Επανελέγξτε κάθε απόκλιση και καταγράψτε αν διορθώθηκε, παραμένει ή δεν εφαρμόζεται πλέον.'}
-              </small>
-            </div>
-          </div>
+          <SectionHeader
+            title={en ? 'Items for follow-up' : 'Σημεία για επανέλεγχο'}
+            subtitle={
+              en
+                ? 'Review each deviation and record whether it was corrected, remains open or no longer applies.'
+                : 'Επανελέγξτε κάθε απόκλιση και καταγράψτε αν διορθώθηκε, παραμένει ή δεν εφαρμόζεται πλέον.'
+            }
+          />
           {findings.map(item => {
             const followUp = record.followUps?.[item.id]
             return (
@@ -995,7 +976,7 @@ function BundleDetails({ record, language, canEdit, onFollowUp }) {
                   </span>
                   {followUp?.date && (
                     <small>
-                      {en ? 'Review date' : 'Ημ. επανελέγχου'}: {followUp.date}
+                      {en ? 'Review date' : 'Ημ. επανελέγχου'}: {formatDay(followUp.date, en)}
                     </small>
                   )}
                   {followUp?.reviewedBy && (
@@ -1019,12 +1000,6 @@ function BundleDetails({ record, language, canEdit, onFollowUp }) {
             )
           })}
         </section>
-      )}
-      {record.generalNotes && (
-        <div className="record-note-card">
-          <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
-          <p>{record.generalNotes}</p>
-        </div>
       )}
     </div>
   )

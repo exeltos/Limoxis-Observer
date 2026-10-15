@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Save, Trash2, X } from 'lucide-react'
+import { Plus, Save, Trash2 } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
+import { YesNoField } from '../../design-system/YesNoField'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -79,7 +80,6 @@ const momentLabels = (moments, en) =>
     .map(moment => (en ? moment.labelEn : moment.label))
 
 export function WhoHandHygieneEditor({
-  onCancel,
   onSave,
   fixedDepartment = '',
   initialRecord = null,
@@ -161,7 +161,6 @@ export function WhoHandHygieneEditor({
     session.date?.trim?.() && session.department?.trim?.() && session.observer?.trim?.(),
   )
   const valid = Boolean(sessionValid && previewItems.length > 0)
-  const selectedMomentLabels = momentLabels(currentMoments, en)
 
   function add() {
     if (!currentValid) return
@@ -239,23 +238,6 @@ export function WhoHandHygieneEditor({
   return (
     <div className="who-observation-body who-page-editor who-smart-editor">
       <section className="who-session-panel who-smart-session">
-        <div className="who-panel-heading">
-          <div>
-            <strong>
-              {en ? 'WHO hand hygiene observation' : 'Παρατήρηση Υγιεινής Χεριών WHO'}
-            </strong>
-            <small>{en ? '5 Moments · session context' : '5 Στιγμές · στοιχεία συνεδρίας'}</small>
-          </div>
-          <span className={`who-session-ready ${sessionValid ? 'ready' : ''}`}>
-            {sessionValid
-              ? en
-                ? 'Ready'
-                : 'Έτοιμη'
-              : en
-                ? 'Complete session details'
-                : 'Συμπληρώστε τα στοιχεία'}
-          </span>
-        </div>
         <div className="who-session-grid who-session-strip">
           <ManualDateField
             label={en ? 'Date *' : 'Ημερομηνία *'}
@@ -305,7 +287,15 @@ export function WhoHandHygieneEditor({
                     : 'Επιλέξτε επαγγελματία, ένδειξη ή ενδείξεις WHO και ενέργεια.'}
                 </small>
               </div>
-              <span className="who-step-badge">{en ? 'Live entry' : 'Άμεση καταγραφή'}</span>
+              <ActionButton
+                label={en ? 'Add opportunity' : 'Προσθήκη ευκαιρίας'}
+                tone="primary"
+                disabled={!currentValid}
+                onClick={add}
+              >
+                <Plus size={16} />
+                <span>{en ? 'Add opportunity' : 'Προσθήκη ευκαιρίας'}</span>
+              </ActionButton>
             </div>
 
             <div className="who-professional-row">
@@ -333,6 +323,16 @@ export function WhoHandHygieneEditor({
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="who-note-field">
+                <span>{en ? 'Optional note' : 'Προαιρετική σημείωση'}</span>
+                <input
+                  value={current.notes}
+                  onChange={event => setO('notes', event.target.value)}
+                  placeholder={
+                    en ? 'Add context only when useful' : 'Προσθέστε πληροφορία μόνο όταν χρειάζεται'
+                  }
+                />
               </label>
             </div>
 
@@ -385,7 +385,6 @@ export function WhoHandHygieneEditor({
                   role="radio"
                   aria-checked={current.action === 'HR'}
                 >
-                  <span className="who-action-check">{current.action === 'HR' ? '✓' : ''}</span>
                   <span>
                     <strong>{en ? 'Alcohol-based hand rub' : 'Αλκοολούχο αντισηπτικό'}</strong>
                     <small>{en ? 'Hand Rub · HR' : 'Αντισηπτικό · HR'}</small>
@@ -398,7 +397,6 @@ export function WhoHandHygieneEditor({
                   role="radio"
                   aria-checked={current.action === 'HW'}
                 >
-                  <span className="who-action-check">{current.action === 'HW' ? '✓' : ''}</span>
                   <span>
                     <strong>
                       {en ? 'Hand wash with soap & water' : 'Πλύσιμο με σαπούνι & νερό'}
@@ -413,73 +411,21 @@ export function WhoHandHygieneEditor({
                   role="radio"
                   aria-checked={current.action === 'MISSED'}
                 >
-                  <span className="who-action-check">{current.action === 'MISSED' ? '✓' : ''}</span>
                   <span>
                     <strong>{en ? 'Not performed' : 'Δεν πραγματοποιήθηκε'}</strong>
                     <small>{en ? 'Missed' : 'Παράλειψη'}</small>
                   </span>
                 </button>
               </div>
-              <label
-                className={`who-gloves-toggle who-smart-gloves ${current.gloves ? 'checked' : ''}`}
-              >
-                <input
-                  type="checkbox"
-                  checked={current.gloves}
-                  onChange={event => setO('gloves', event.target.checked)}
-                />
-                <span>
-                  <strong>{en ? 'Gloves used' : 'Χρήση γαντιών'}</strong>
-                  <small>
-                    {current.gloves
-                      ? en
-                        ? 'Recorded as Yes'
-                        : 'Καταγράφηκε Ναι'
-                      : en
-                        ? 'Recorded as No'
-                        : 'Καταγράφηκε Όχι'}
-                  </small>
-                </span>
-              </label>
-            </div>
-
-            <label className="who-note-field who-smart-note">
-              <span>{en ? 'Optional note' : 'Προαιρετική σημείωση'}</span>
-              <input
-                value={current.notes}
-                onChange={event => setO('notes', event.target.value)}
-                placeholder={
-                  en ? 'Add context only when useful' : 'Προσθέστε πληροφορία μόνο όταν χρειάζεται'
-                }
+              <YesNoField
+                className="who-smart-gloves"
+                label={en ? 'Gloves used' : 'Χρήση γαντιών'}
+                value={current.gloves}
+                onChange={value => setO('gloves', value)}
               />
-            </label>
-
-            <div className="who-current-preview">
-              <div>
-                <small>{en ? 'Current selection' : 'Τρέχουσα επιλογή'}</small>
-                <strong>
-                  {selectedMomentLabels.length
-                    ? selectedMomentLabels.join(' · ')
-                    : en
-                      ? 'Choose at least one WHO indication'
-                      : 'Επιλέξτε τουλάχιστον μία ένδειξη WHO'}
-                </strong>
-                <span>
-                  {actionLabel(current.action, en)} · {current.professionalsCount || 1}{' '}
-                  {en ? 'professional(s)' : 'επαγγελματίας/ες'} ·{' '}
-                  {current.gloves ? (en ? 'gloves' : 'γάντια') : en ? 'no gloves' : 'χωρίς γάντια'}
-                </span>
-              </div>
-              <ActionButton
-                label={en ? 'Add opportunity' : 'Προσθήκη ευκαιρίας'}
-                tone="primary"
-                disabled={!currentValid}
-                onClick={add}
-              >
-                <Plus size={16} />
-                <span>{en ? 'Add opportunity' : 'Προσθήκη ευκαιρίας'}</span>
-              </ActionButton>
             </div>
+
+
           </section>
         </div>
 
@@ -608,10 +554,6 @@ export function WhoHandHygieneEditor({
           )}
         </div>
         <div className="who-footer-buttons">
-          <ActionButton label={en ? 'Cancel' : 'Ακύρωση'} tone="neutral" onClick={onCancel}>
-            <X size={16} />
-            <span>{en ? 'Cancel' : 'Ακύρωση'}</span>
-          </ActionButton>
           <ActionButton
             label={
               initialRecord

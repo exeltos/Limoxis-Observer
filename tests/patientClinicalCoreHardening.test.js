@@ -21,7 +21,7 @@ describe('patient clinical core hardening',()=>{
   })
 
   it('keeps admission lifecycle out of generic identity updates',()=>{
-    expect(patientForm).toContain("{!editing&&<><label><span>{t('department')}")
+    expect(patientForm).toContain("{!editing&&<><label><span className=\"lo-field-label\">{t('department')}")
     expect(patients).not.toContain('payload.admission_date=patch.admissionDate')
     expect(patients).not.toContain('payload.status=patch.status')
   })

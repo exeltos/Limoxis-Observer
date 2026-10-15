@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
 import { Button } from './Button'
+import { ObserverDialog } from './ObserverDialog'
 import { useLanguage } from '../core/i18n/LanguageContext'
 
+// A change that needs a written reason (archive, void…): the shared dialog,
+// closed only by its ×, with the confirm action in the footer.
 export function GovernedReasonDialog({
   open,
   title,
@@ -27,11 +29,7 @@ export function GovernedReasonDialog({
     setReason('')
   }
   const cancel=()=>{setReason('');onCancel?.()}
-  return <div className="modal-backdrop">
-    <div className="governed-reason-dialog" role="dialog" aria-modal="true" aria-labelledby="governed-reason-title">
-      <header><div><span className="eyebrow">{en?'GOVERNED CHANGE':'ΕΛΕΓΧΟΜΕΝΗ ΑΛΛΑΓΗ'}</span><h3 id="governed-reason-title">{resolvedTitle}</h3><p>{resolvedDescription}</p></div><button className="icon-button" onClick={cancel} aria-label={en?'Close':'Κλείσιμο'}><X size={16}/></button></header>
-      <label><span>{resolvedLabel}</span><textarea autoFocus rows={4} value={reason} onChange={e=>setReason(e.target.value)} placeholder={en?'Enter the reason for this change...':'Καταγράψτε τον λόγο της αλλαγής...'}/></label>
-      <footer><Button variant="secondary" onClick={cancel}>{en?'Cancel':'Ακύρωση'}</Button><Button className={danger?'danger':''} disabled={!reason.trim()} onClick={submit}>{resolvedConfirmLabel}</Button></footer>
-    </div>
-  </div>
+  return <ObserverDialog width="compact" className="governed-reason-dialog" eyebrow={en?'Governed change':'Ελεγχόμενη αλλαγή'} title={resolvedTitle} subtitle={resolvedDescription} onClose={cancel} footer={<Button className={danger?'danger':''} disabled={!reason.trim()} onClick={submit}>{resolvedConfirmLabel}</Button>}>
+    <label className="field"><span className="lo-field-label">{resolvedLabel}</span><textarea autoFocus rows={4} value={reason} onChange={e=>setReason(e.target.value)} placeholder={en?'Enter the reason for this change...':'Καταγράψτε τον λόγο της αλλαγής...'}/></label>
+  </ObserverDialog>
 }

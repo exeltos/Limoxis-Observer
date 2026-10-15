@@ -1,0 +1,7 @@
+/* Toggle chips for multi-choice fields. !important: dialog rules restyle every button. */
+.lo-choice-chips{display:flex;flex-direction:column;min-width:0}
+.lo-choice-chips-list{display:flex;flex-wrap:wrap;gap:8px}
+.lo-choice-chips-list>button{display:inline-flex!important;align-items:center;gap:6px;min-height:36px!important;padding:0 13px!important;border:1px solid var(--lo-color-border,#d3dfe7)!important;border-radius:8px!important;background:#fff!important;font:inherit;font-size:12.5px!important;font-weight:600!important;color:#3f566a!important;cursor:pointer}
+.lo-choice-chips-list>button:hover{background:#f4f8fb!important}
+.lo-choice-chips-list>button.selected{border-color:color-mix(in srgb,var(--lo-status-success-fg,#1f7a4d) 32%,var(--lo-color-border,#d3dfe7))!important;background:var(--lo-status-success-bg,#eaf7ef)!important;color:var(--lo-status-success-fg,#1f7a4d)!important}
+.lo-choice-chips-list>button>span{font-size:inherit!important;font-weight:inherit!important;color:inherit!important}

@@ -1,8 +1,11 @@
-import { useState } from 'react'
-import { MoreHorizontal, UserRoundCheck, Users } from 'lucide-react'
+import { SectionHeader } from '../../design-system/SectionHeader'
+import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { Pencil, Trash2, UserRoundCheck, Users } from 'lucide-react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { Button } from '../../design-system/Button'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import '../occupational-health/OccupationalHealthPage.css'
 
 export const EMPTY_VACCINATION = {
@@ -40,7 +43,6 @@ export function StaffVaccinationEditor({
   const en = language === 'en'
   const { mode, draft, selectedEmployeeIds } = value
   const readOnly = Boolean(value.readOnly)
-  const [menuOpen, setMenuOpen] = useState(false)
   const selectedEmployee =
     value.selectedEmployee || employees.find(x => selectedEmployeeIds.includes(x.id))
   const employeeName = !selectedEmployee
@@ -53,44 +55,18 @@ export function StaffVaccinationEditor({
     const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/)
     return m ? `${m[3]}/${m[2]}/${m[1]}` : v
   }
-  const [search, setSearch] = useState('')
-  const [dept, setDept] = useState('all')
-  const departments = [
-    ...new Set(employees.map(x => (en ? x.departmentEn : x.department)).filter(Boolean)),
-  ]
-  const filtered = employees.filter(x => {
-    const label =
-      `${x.id} ${x.firstName} ${x.lastName} ${x.firstNameEn} ${x.lastNameEn}`.toLowerCase()
-    const d = en ? x.departmentEn : x.department
-    return label.includes(search.toLowerCase()) && (dept === 'all' || d === dept)
-  })
+  const personName = e =>
+    en ? `${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}` : `${e.lastName} ${e.firstName}`
+  const employeeOptions = employees.map(e => ({
+    value: e.id,
+    label: [personName(e), en ? e.departmentEn : e.department, en ? e.professionEn : e.profession]
+      .filter(Boolean)
+      .join(' · '),
+  }))
   const valid =
     (mode === 'edit' || selectedEmployeeIds.length > 0) && draft.vaccine.trim() && draft.date
   const patchDraft = patch => onChange({ ...value, draft: { ...draft, ...patch } })
   const setMode = next => onChange({ ...value, mode: next, selectedEmployeeIds: [] })
-  const toggle = id =>
-    onChange({
-      ...value,
-      selectedEmployeeIds: selectedEmployeeIds.includes(id)
-        ? selectedEmployeeIds.filter(x => x !== id)
-        : [...selectedEmployeeIds, id],
-    })
-  const selectVisible = () =>
-    onChange({
-      ...value,
-      selectedEmployeeIds: [...new Set([...selectedEmployeeIds, ...filtered.map(x => x.id)])],
-    })
-  const clearVisible = () =>
-    onChange({
-      ...value,
-      selectedEmployeeIds: selectedEmployeeIds.filter(id => !filtered.some(x => x.id === id)),
-    })
-  const toggleFromKeyboard = (event, id) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      toggle(id)
-    }
-  }
   if (readOnly)
     return (
       <ObserverDialog
@@ -105,101 +81,82 @@ export function StaffVaccinationEditor({
         }
         onClose={onClose}
       >
-        <div className="vaccination-record-toolbar">
-          {canManage && (
-            <div className="vaccination-record-actions">
-              <button
-                type="button"
-                className="lo-icon-button"
-                aria-label={en ? 'More actions' : 'Περισσότερες ενέργειες'}
-                onClick={() => setMenuOpen(x => !x)}
-              >
-                <MoreHorizontal size={18} />
-              </button>
-              {menuOpen && (
-                <div className="vaccination-record-menu">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onChange({ ...value, readOnly: false, mode: 'edit' })
-                    }}
-                  >
-                    {en ? 'Edit' : 'Επεξεργασία'}
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onDelete?.(value)
-                    }}
-                  >
-                    {en ? 'Delete' : 'Διαγραφή'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="vaccination-record-view">
-          <section className="vaccination-record-person">
-            <div>
-              <span>{en ? 'Employee' : 'Εργαζόμενος'}</span>
-              <strong>{employeeName}</strong>
-              <small>
-                {selectedEmployee?.id || '—'} ·{' '}
-                {en
+        <div className="record-view-stack">
+          <section>
+            <SectionHeader
+              title={employeeName}
+              subtitle={[
+                selectedEmployee?.id,
+                en
                   ? selectedEmployee?.departmentEn || selectedEmployee?.department
-                  : selectedEmployee?.department || '—'}{' '}
-                ·{' '}
-                {en
+                  : selectedEmployee?.department,
+                en
                   ? selectedEmployee?.professionEn || selectedEmployee?.profession
-                  : selectedEmployee?.profession || '—'}
-              </small>
-            </div>
-            <span className={`status-badge ${draft.status === 'complete' ? 'active' : ''}`}>
-              {draft.status === 'complete'
-                ? en
-                  ? 'Complete'
-                  : 'Ολοκληρωμένο'
-                : draft.status || '—'}
-            </span>
+                  : selectedEmployee?.profession,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+              actions={
+                <>
+                  <span className={`status-badge ${draft.status === 'complete' ? 'active' : ''}`}>
+                    {draft.status === 'complete'
+                      ? en
+                        ? 'Complete'
+                        : 'Ολοκληρωμένο'
+                      : draft.status || '—'}
+                  </span>
+                  {canManage && (
+                    <OverflowMenu
+                      items={[
+                        {
+                          id: 'edit',
+                          label: en ? 'Edit' : 'Επεξεργασία',
+                          icon: Pencil,
+                          onClick: () => onChange({ ...value, readOnly: false, mode: 'edit' }),
+                        },
+                        {
+                          id: 'delete',
+                          label: en ? 'Delete' : 'Διαγραφή',
+                          icon: Trash2,
+                          tone: 'danger',
+                          separatorBefore: true,
+                          onClick: () => onDelete?.(value),
+                        },
+                      ]}
+                    />
+                  )}
+                </>
+              }
+            />
+            <RecordDetailsGrid
+              className="record-details-cols-5"
+              fields={[
+                { id: 'vaccine', label: en ? 'Vaccine' : 'Εμβόλιο', value: draft.vaccine },
+                { id: 'dose', label: en ? 'Dose' : 'Δόση', value: draft.dose },
+                {
+                  id: 'date',
+                  label: en ? 'Vaccination date' : 'Ημερομηνία εμβολιασμού',
+                  value: fmtDate(draft.date),
+                },
+                { id: 'valid', label: en ? 'Valid until' : 'Ισχύει έως', value: fmtDate(draft.validUntil) },
+                { id: 'lot', label: en ? 'Lot number' : 'Παρτίδα', value: draft.lotNumber },
+                {
+                  id: 'notes',
+                  className: 'is-wide',
+                  label: en ? 'Notes' : 'Σημειώσεις',
+                  value: draft.clinicalNotes,
+                  hidden: !draft.clinicalNotes,
+                },
+              ]}
+            />
           </section>
-          <section className="vaccination-record-grid">
-            <div>
-              <span>{en ? 'Vaccine' : 'Εμβόλιο'}</span>
-              <strong>{draft.vaccine || '—'}</strong>
-            </div>
-            <div>
-              <span>{en ? 'Dose' : 'Δόση'}</span>
-              <strong>{draft.dose || '—'}</strong>
-            </div>
-            <div>
-              <span>{en ? 'Vaccination date' : 'Ημερομηνία εμβολιασμού'}</span>
-              <strong>{fmtDate(draft.date)}</strong>
-            </div>
-            <div>
-              <span>{en ? 'Lot number' : 'Παρτίδα'}</span>
-              <strong>{draft.lotNumber || '—'}</strong>
-            </div>
-            <div>
-              <span>{en ? 'Valid until' : 'Ισχύει έως'}</span>
-              <strong>{fmtDate(draft.validUntil)}</strong>
-            </div>
-          </section>
-          {draft.clinicalNotes && (
-            <section className="vaccination-record-notes">
-              <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
-              <p>{draft.clinicalNotes}</p>
-            </section>
-          )}
         </div>
       </ObserverDialog>
     )
   return (
     <ObserverDialog
       width="workspace"
+      fixedHeight={mode !== 'edit'}
       eyebrow={en ? 'Staff vaccination' : 'Εμβολιασμός προσωπικού'}
       title={
         mode === 'edit'
@@ -218,8 +175,6 @@ export function StaffVaccinationEditor({
       onClose={onClose}
       footer={
         <DialogActions
-          showCancel
-          onCancel={onClose}
           onSave={() => onSave(value)}
           disabled={!valid}
           saveLabel={
@@ -236,26 +191,16 @@ export function StaffVaccinationEditor({
     >
       <div className="vaccination-editor">
         {mode !== 'edit' && (
-          <div
+          <ModeSwitch
             className="vaccination-entry-mode"
-            role="group"
-            aria-label={en ? 'Entry mode' : 'Τρόπος καταχώρησης'}
-          >
-            <Button
-              variant={mode === 'individual' ? 'primary' : 'secondary'}
-              onClick={() => setMode('individual')}
-            >
-              <UserRoundCheck size={17} />
-              {en ? 'Individual' : 'Μεμονωμένα'}
-            </Button>
-            <Button
-              variant={mode === 'bulk' ? 'primary' : 'secondary'}
-              onClick={() => setMode('bulk')}
-            >
-              <Users size={17} />
-              {en ? 'Bulk vaccination' : 'Μαζικός εμβολιασμός'}
-            </Button>
-          </div>
+            ariaLabel={en ? 'Entry mode' : 'Τρόπος καταχώρησης'}
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: 'individual', label: en ? 'Individual' : 'Μεμονωμένα', icon: UserRoundCheck },
+              { value: 'bulk', label: en ? 'Bulk vaccination' : 'Μαζικός εμβολιασμός', icon: Users },
+            ]}
+          />
         )}
         <section className="vaccination-editor-card">
           <h4>{en ? 'Vaccine details' : 'Στοιχεία εμβολίου'}</h4>
@@ -325,16 +270,6 @@ export function StaffVaccinationEditor({
                     : `${selectedEmployeeIds.length} επιλεγμένοι`}
                 </small>
               </div>
-              {mode === 'bulk' && (
-                <div className="vaccination-picker-actions">
-                  <Button variant="secondary" onClick={selectVisible}>
-                    {en ? 'Select visible' : 'Επιλογή εμφανιζόμενων'}
-                  </Button>
-                  <Button variant="secondary" onClick={clearVisible}>
-                    {en ? 'Clear visible' : 'Καθαρισμός εμφανιζόμενων'}
-                  </Button>
-                </div>
-              )}
             </div>
             {mode === 'individual' ? (
               <label>
@@ -360,58 +295,18 @@ export function StaffVaccinationEditor({
                 </select>
               </label>
             ) : (
-              <>
-                <div className="vaccination-picker-filters">
-                  <input
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder={en ? 'Search employees…' : 'Αναζήτηση εργαζομένων…'}
-                  />
-                  <select value={dept} onChange={e => setDept(e.target.value)}>
-                    <option value="all">{en ? 'All departments' : 'Όλα τα τμήματα'}</option>
-                    {departments.map(d => (
-                      <option key={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="vaccination-employee-list">
-                  {filtered.map(e => {
-                    const selected = selectedEmployeeIds.includes(e.id)
-                    return (
-                      <div
-                        key={e.id}
-                        className={`vaccination-employee-row${selected ? ' selected' : ''}`}
-                        tabIndex={0}
-                        onClick={() => toggle(e.id)}
-                        onKeyDown={event => toggleFromKeyboard(event, e.id)}
-                      >
-                        <input
-                          type="checkbox"
-                          aria-label={
-                            en
-                              ? `Select ${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}`
-                              : `Επιλογή ${e.lastName} ${e.firstName}`
-                          }
-                          checked={selected}
-                          onClick={event => event.stopPropagation()}
-                          onChange={() => toggle(e.id)}
-                        />
-                        <div className="vaccination-employee-copy">
-                          <strong>
-                            {en
-                              ? `${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}`
-                              : `${e.lastName} ${e.firstName}`}
-                          </strong>
-                          <small>
-                            {e.id} · {en ? e.departmentEn : e.department} ·{' '}
-                            {en ? e.professionEn : e.profession}
-                          </small>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </>
+              <MultiSelect
+                label={en ? 'Employees' : 'Εργαζόμενοι'}
+                options={employeeOptions}
+                selected={selectedEmployeeIds}
+                onChange={next => onChange({ ...value, selectedEmployeeIds: next })}
+                placeholder={en ? 'Select employees' : 'Επιλέξτε εργαζόμενους'}
+                searchPlaceholder={en ? 'Search name or department…' : 'Αναζήτηση ονόματος ή τμήματος…'}
+                emptyLabel={en ? 'No employee matches' : 'Κανένας εργαζόμενος δεν ταιριάζει'}
+                selectAllLabel={en ? 'Select all' : 'Επιλογή όλων'}
+                clearAllLabel={en ? 'Clear all' : 'Αποεπιλογή όλων'}
+                countLabel={n => (en ? `${n} employees` : `${n} εργαζόμενοι`)}
+              />
             )}
           </section>
         )}

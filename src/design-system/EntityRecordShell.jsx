@@ -64,6 +64,7 @@ export function EntityRecordShell({
   eyebrow,
   title,
   subtitle,
+  context,
   status,
   headerActions,
   recordNavigation,
@@ -126,6 +127,7 @@ export function EntityRecordShell({
         {eyebrow&&<span className="eyebrow">{eyebrow}</span>}
         <h2>{title}</h2>
         {subtitle&&<p>{subtitle}</p>}
+        {context&&<div className="entity-record-context">{context}</div>}
       </div>
       <div className="entity-record-header-actions">
         {status}

@@ -5,7 +5,7 @@ export function RecordDetailsGrid({ fields = [], className = '' }) {
   return <div className={`detail-grid patient-detail-grid record-details-grid ${className}`.trim()}>
     {visible.map(field => <Fragment key={field.id || field.label}>
       <div className={`detail-item ${field.className || ''}`.trim()}>
-        <span>{field.label}</span>
+        <span className="lo-field-label">{field.label}</span>
         <strong>{field.value === 0 ? 0 : (field.value || '—')}</strong>
         {field.meta && <small>{field.meta}</small>}
       </div>

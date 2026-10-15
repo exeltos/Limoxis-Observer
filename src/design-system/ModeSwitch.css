@@ -1,0 +1,8 @@
+/* Single / bulk, existing / new: the mode choice at the top of a form.
+   !important: dialog and legacy form rules restyle every button and span inside. */
+.lo-mode-switch{display:flex;flex-wrap:wrap;align-self:flex-start;gap:6px;margin:0 0 14px}
+.lo-mode-switch>button{display:inline-flex!important;align-items:center;gap:6px;min-height:32px!important;padding:6px 12px!important;border:1px solid var(--lo-color-border,#dbe5ec)!important;border-radius:8px!important;background:var(--lo-color-surface,#fff)!important;font:inherit;font-size:12px!important;font-weight:700!important;color:var(--lo-color-muted,#61768a)!important;cursor:pointer}
+.lo-mode-switch>button>span{font-size:inherit!important;font-weight:inherit!important;color:inherit!important}
+.lo-mode-switch>button:hover{background:#f4f8fb!important}
+.lo-mode-switch>button.active{background:#eaf4f9!important;border-color:#a9c9db!important;color:#1e627f!important}
+.environmental-type-grid+.lo-mode-switch{margin-top:4px}

@@ -43,7 +43,9 @@ describe('controlled document distribution & acknowledgement', () => {
   it('defaults distribution audience to the document department but lets managers pick more', () => {
     expect(distributionPanel).toContain("useState(record.departmentId ? 'department' : 'all')")
     expect(distributionPanel).toContain("useState(record.departmentId ? [record.departmentId] : [])")
-    expect(distributionPanel).toContain('recipient-options')
+    expect(distributionPanel).toContain('<MultiSelect')
+    expect(distributionPanel).toContain('selected={selected}')
+    expect(distributionPanel).not.toContain('recipient-options')
     expect(distributionPanel).toContain("audienceMode === 'profession' ? 'user' : audienceMode")
   })
 

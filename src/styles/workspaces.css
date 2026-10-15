@@ -131,28 +131,6 @@
 }
 
 /* ==== prevention-refinements ==== */
-.who-page-editor .who-current-preview .lo-action-button{
-  min-width:190px!important;
-  justify-content:center!important;
-  gap:8px!important;
-  font-weight:700!important;
-}
-.who-page-editor .who-current-preview .lo-action-button:disabled{
-  background:#8fb6cf!important;
-  border-color:#8fb6cf!important;
-  color:#fff!important;
-  box-shadow:none!important;
-  opacity:1!important;
-  cursor:not-allowed!important;
-}
-.who-page-editor .who-current-preview .lo-action-button:disabled svg,
-.who-page-editor .who-current-preview .lo-action-button:disabled span{
-  color:#fff!important;
-  opacity:1!important;
-}
-.who-page-editor .who-current-preview .lo-action-button:not(:disabled){
-  box-shadow:0 1px 2px rgba(20,49,73,.12)!important;
-}
 
 .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{display:grid!important;grid-template-columns:repeat(24,minmax(0,1fr))!important;gap:16px 14px!important}
 .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-date-field{grid-column:span 5!important;min-width:0!important}
@@ -305,7 +283,7 @@
 .patient-simple-dialog .entry-grid .hai-criteria-item>input{flex:0 0 auto;width:16px!important;height:16px!important;min-height:0!important;margin:0!important;cursor:pointer}
 .patient-simple-dialog .entry-grid .hai-criteria-item>span{display:block!important;margin:0!important;font-size:13px!important;font-weight:500!important;line-height:1.45;color:#26394e}
 
-/* ==== patient-workspace-polish ==== */.patient-record-shell>.entity-record-body{overflow-y:auto!important;overflow-x:hidden!important}.patient-record-shell>.entity-record-body:has(>.patient-home-layout){overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;min-height:0!important}.patient-home-layout{height:auto!important;min-height:min-content!important;overflow:visible!important}.patient-record-shell .clinical-panel.full-panel:has(.attachment-field){border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}.patient-record-shell .attachment-field-v2{border:0!important;outline:0!important;background:transparent!important;padding:2px 0 0!important}.patient-record-shell .attachment-heading{padding:8px 0 10px!important;border-bottom:1px solid #e6edf2}.patient-record-shell .attachment-list{margin-top:8px}.patient-record-shell .attachment-row-v2{border:1px solid #e4ebf0!important;border-radius:9px!important;background:#fff!important;margin-bottom:7px}.unified-surveillance-workspace .surveillance-tree-episode{background:#eef7fc!important;border-left:3px solid #3195c9!important}.unified-surveillance-workspace .surveillance-tree-group>.surveillance-sample-row{background:#fff!important}.unified-surveillance-workspace .surveillance-independent-samples{margin-top:6px!important;border-top:2px solid #cbd8e1!important;padding-top:0!important}
+/* ==== patient-workspace-polish ==== */.patient-record-shell>.entity-record-body{overflow-y:auto!important;overflow-x:hidden!important}.patient-record-shell>.entity-record-body:has(>.patient-home-layout){overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;min-height:0!important}.patient-record-shell .clinical-panel.full-panel:has(.attachment-field){border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}.patient-record-shell .attachment-field-v2{border:0!important;outline:0!important;background:transparent!important;padding:2px 0 0!important}.patient-record-shell .attachment-heading{padding:8px 0 10px!important;border-bottom:1px solid #e6edf2}.patient-record-shell .attachment-list{margin-top:8px}.patient-record-shell .attachment-row-v2{border:1px solid #e4ebf0!important;border-radius:9px!important;background:#fff!important;margin-bottom:7px}.unified-surveillance-workspace .surveillance-tree-episode{background:#eef7fc!important;border-left:3px solid #3195c9!important}.unified-surveillance-workspace .surveillance-tree-group>.surveillance-sample-row{background:#fff!important}.unified-surveillance-workspace .surveillance-independent-samples{margin-top:6px!important;border-top:2px solid #cbd8e1!important;padding-top:0!important}
 
 /* ==== clinical-loading ==== */
 /* Stable in-place loading state for clinical workspaces. */
@@ -400,3 +378,9 @@
 .registry-workspace>.environmental-registry{min-height:0!important;height:100%!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
 .registry-workspace>.environmental-registry .scroll-table{height:100%!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:auto!important}
 .registry-workspace>.environmental-registry .data-table{margin:0!important;border:0!important;border-radius:0!important}
+/* «Add opportunity» sits in the opportunity section header; disabled it keeps
+   readable white text. */
+.who-page-editor .who-section-title .lo-action-button{justify-content:center!important;gap:8px!important;font-weight:700!important}
+.who-page-editor .who-section-title .lo-action-button:disabled{background:#8fb6cf!important;border-color:#8fb6cf!important;color:#fff!important;box-shadow:none!important;opacity:1!important;cursor:not-allowed!important}
+.who-page-editor .who-section-title .lo-action-button:disabled svg,
+.who-page-editor .who-section-title .lo-action-button:disabled span{color:#fff!important;opacity:1!important}

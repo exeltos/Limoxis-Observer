@@ -1,4 +1,7 @@
-import { AlertTriangle, Microscope } from 'lucide-react'
+import { SectionHeader } from '../../design-system/SectionHeader'
+import { HistoryTimeline } from '../../design-system/HistoryTimeline'
+import { AlertTriangle } from 'lucide-react'
+import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { methodLabel } from './laboratorySampleFormat'
 
 // Read-only views of the laboratory sample record: the result card and the history.
@@ -19,15 +22,7 @@ export function ResultCard({
     : t('laboratoryRecords.resultAndOrganism')
   return (
     <section className="lab-record-card lab-result-card">
-      <div className="record-section-header">
-        <div>
-          <span className="eyebrow">{t('laboratoryRecords.microbiologyResult')}</span>
-          <h3>
-            <Microscope size={15} /> {title}
-          </h3>
-        </div>
-        {menu}
-      </div>
+      <SectionHeader title={title} actions={menu} />
       {isEnvironmental && (
         <div className={`smart-protocol-strip ${hasLimit ? 'configured' : 'missing'}`}>
           <div>
@@ -43,53 +38,56 @@ export function ResultCard({
         </div>
       )}
       {result ? (
-        <div className="lab-result-band">
-          <div className={`lab-result-primary is-${result.result || 'none'}`}>
-            <span>{t('result')}</span>
-            <strong>{result.result ? t(result.result) : '—'}</strong>
-            {result.critical && (
-              <small>
-                <AlertTriangle size={12} /> {tx('critical')}
-              </small>
-            )}
-          </div>
-          <div>
-            <span>{tx('organisms')}</span>
-            <strong>{organisms.length ? organisms.join(', ') : '—'}</strong>
-          </div>
-          <div>
-            <span>{tx('method')}</span>
-            <strong>{methodLabel(result.method, language)}</strong>
-          </div>
-          <div>
-            <span>{tx('status')}</span>
-            <strong>
-              <span
-                className={`status-badge ${result.resultStatus === 'draft' ? 'temporary' : 'active'}`}
-              >
-                {tx(result.resultStatus)}
-              </span>
-            </strong>
-          </div>
-          {isEnvironmental && (
-            <>
-              <div>
-                <span>{tx('cfu')}</span>
-                <strong>{result.result === 'negative' ? '0' : (result.cfuCount ?? '—')}</strong>
-              </div>
-              <div>
-                <span>{tx('assessment')}</span>
-                <strong>
-                  {result.withinLimit === true
-                    ? tx('within')
-                    : result.withinLimit === false
-                      ? tx('outside')
-                      : tx('noLimit')}
-                </strong>
-              </div>
-            </>
-          )}
-        </div>
+        <RecordDetailsGrid
+          className="laboratory-summary-grid lab-result-grid"
+          fields={[
+            {
+              id: 'result',
+              label: t('result'),
+              value: result.result ? (
+                <span className={`lab-result-value is-${result.result}`}>{t(result.result)}</span>
+              ) : null,
+              meta: result.critical ? (
+                <span className="lab-result-critical">
+                  <AlertTriangle size={12} /> {tx('critical')}
+                </span>
+              ) : null,
+            },
+            {
+              id: 'organisms',
+              label: tx('organisms'),
+              value: organisms.length ? organisms.join(', ') : null,
+            },
+            { id: 'method', label: tx('method'), value: methodLabel(result.method, language) },
+            {
+              id: 'status',
+              label: tx('status'),
+              value: (
+                <span
+                  className={`status-badge ${(result.resultStatus || 'draft') === 'draft' ? 'temporary' : 'active'}`}
+                >
+                  {tx(result.resultStatus || 'draft')}
+                </span>
+              ),
+            },
+            isEnvironmental && {
+              id: 'cfu',
+              label: tx('cfu'),
+              value:
+                result.result === 'negative' && result.cfuCount == null ? '0' : result.cfuCount,
+            },
+            isEnvironmental && {
+              id: 'assessment',
+              label: tx('assessment'),
+              value:
+                result.withinLimit === true
+                  ? tx('within')
+                  : result.withinLimit === false
+                    ? tx('outside')
+                    : tx('noLimit'),
+            },
+          ].filter(Boolean)}
+        />
       ) : (
         <div className="lab-table-empty lab-result-empty">{tx('noResult')}</div>
       )}
@@ -97,6 +95,7 @@ export function ResultCard({
   )
 }
 
+// The sample's history in the shared timeline (same look as the patient record).
 export function LabHistory({ sample, t, tx, fmt }) {
   const events = [
     sample.requestedAt && { at: sample.requestedAt, title: t('requested') },
@@ -125,16 +124,12 @@ export function LabHistory({ sample, t, tx, fmt }) {
   ]
     .filter(Boolean)
     .sort((a, b) => new Date(b.at) - new Date(a.at))
-  if (!events.length) return <div className="inline-empty">{t('noData')}</div>
   return (
-    <div className="lab-history-list">
-      {events.map((event, index) => (
-        <div className="lab-history-row" key={`${event.at}-${index}`}>
-          <time>{fmt(event.at)}</time>
-          <strong>{event.title}</strong>
-          <span>{event.by || ''}</span>
-        </div>
-      ))}
-    </div>
+    <HistoryTimeline
+      title={t('history')}
+      events={events.map(event => ({ at: event.at, title: event.title, meta: [event.by] }))}
+      when={fmt}
+      emptyText={t('noData')}
+    />
   )
 }

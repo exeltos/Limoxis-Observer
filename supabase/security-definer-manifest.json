@@ -26,6 +26,11 @@
       "authenticated": true,
       "reason": "Archives a patient; requires delete_patient capability in the patient's department."
     },
+    "delete_patient_admission": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Deletes one admission with a written reason (audit log); requires delete_patient capability; refuses the patient's last admission and admissions with surveillance episodes."
+    },
     "can_view_surveillance_record": {
       "category": "rls-helper",
       "authenticated": true,

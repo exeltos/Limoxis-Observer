@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CalendarDays,CheckCircle2,ClipboardCheck,Clock3,Gauge,ListChecks,PlayCircle } from 'lucide-react'
+import { AlertTriangle,CalendarDays,CalendarX2,CheckCircle2,ClipboardCheck,Clock3,Gauge,ListChecks,PlayCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -16,11 +16,15 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { ControlEditor } from './ControlEditor'
 import { controlActorFromAuth } from './controlActor'
 import { MetricCard } from '../../design-system/MetricCard'
-import { ModuleTabs } from '../../design-system/ModuleTabs'
+import { CanonicalTabs } from '../../design-system/CanonicalTabs'
+import { RegistryTable } from '../../design-system/RegistryTable'
 import { ControlAdherencePanel,useControlAdherenceReport } from './ControlAdherencePanel'
 import { periodRange,programmeAdherence } from './controlAdherence'
 import { ControlCalendarPanel,useControlCalendarReport } from './ControlCalendarPanel'
 import { assignmentStatus,frequencyLabel,getAssignment,isControlDue } from './controlScheduling'
+import { expiryCounts,expiryItems,isExpiryControl } from './controlExpiry'
+import { ControlExpiryPanel } from './ControlExpiryPanel'
+import { removeExpiryItem } from './controlExpiryRemoval'
 import { loadControlProgramme,saveControlDefinition } from './controlCloudService'
 import { compareControlPriority,controlCriticality,criticalityLabel } from './controlCriticality'
 import './controlEvidence.css'
@@ -66,8 +70,8 @@ export function ControlsPage(){
  const {t,language,locale}=useLanguage();const tx=controlsText[language==='en'?'en':'el']
  const {confirm,notify,notifyError}=useFeedback()
  const navigate=useNavigate(),registry=useRegistryMemory('controls')
- const savedView=registry.loadViewState({query:'',department:'all',status:'all',frequency:'all',view:'programme'})
- const [query,setQuery]=useState(savedView.query),[department,setDepartment]=useState(savedView.department),[status,setStatus]=useState(savedView.status),[frequency,setFrequency]=useState(savedView.frequency)
+ const savedView=registry.loadViewState({query:'',department:'all',status:'all',frequency:'all',category:'all',view:'programme'})
+ const [query,setQuery]=useState(savedView.query),[department,setDepartment]=useState(savedView.department),[status,setStatus]=useState(savedView.status),[frequency,setFrequency]=useState(savedView.frequency),[category,setCategory]=useState(savedView.category||'all')
  const [editorOpen,setEditorOpen]=useState(false)
  const [programme,setProgramme]=useState([]),[loading,setLoading]=useState(true)
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
@@ -90,10 +94,12 @@ export function ControlsPage(){
 
  const scopedControls=useMemo(()=>programme.map(item=>({item,departments:item.departments.filter(dep=>canAccessRecord({department:dep,departmentId:item.departmentIdByName?.[dep]||null}))})).filter(row=>row.departments.length>0),[programme,canAccessRecord])
  const departments=[...new Set(scopedControls.flatMap(x=>x.departments))]
- const rows=useMemo(()=>scopedControls.filter(({item})=>`${item.id} ${item.title} ${item.category} ${item.owner}`.toLowerCase().includes(query.toLowerCase())).filter(row=>department==='all'||row.departments.includes(department)).filter(({item,departments:deps})=>status==='all'||(status==='temporary'?hasDraft(item,deps):deps.some(dep=>assignmentStatus(item,dep)===status))).filter(({item})=>frequency==='all'||item.frequency.kind===frequency).map(row=>({...row,state:controlState(row.item,row.departments)})).sort(compareControlPriority),[scopedControls,query,department,status,frequency])
- useEffect(()=>{setPage(1)},[query,department,status,frequency,pageSize])
+ const categories=[...new Set(scopedControls.map(({item})=>item.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
+ const expirySources=useMemo(()=>scopedControls.filter(({item})=>isExpiryControl(item)&&(category==='all'||item.category===category)).filter(row=>department==='all'||row.departments.includes(department)).map(({item,departments:deps})=>({record:item,departments:department==='all'?deps:deps.filter(dep=>dep===department)})),[scopedControls,department,category])
+ const rows=useMemo(()=>scopedControls.filter(({item})=>`${item.id} ${item.title} ${item.category} ${item.owner}`.toLowerCase().includes(query.toLowerCase())).filter(({item})=>category==='all'||item.category===category).filter(row=>department==='all'||row.departments.includes(department)).filter(({item,departments:deps})=>status==='all'||(status==='temporary'?hasDraft(item,deps):deps.some(dep=>assignmentStatus(item,dep)===status))).filter(({item})=>frequency==='all'||item.frequency.kind===frequency).map(row=>({...row,state:controlState(row.item,row.departments)})).sort(compareControlPriority),[scopedControls,query,department,status,frequency,category])
+ useEffect(()=>{setPage(1)},[query,department,status,frequency,category,pageSize])
  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
- const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short',hour12:false}).format(new Date(v)):'—'
+ const fmt=v=>v?new Intl.DateTimeFormat(locale,{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(v)):'—'
  const overdue=scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='overdue').length
  const dueSoon=scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='dueSoon').length
  const todayKey=new Date().toISOString().slice(0,10)
@@ -111,15 +117,14 @@ export function ControlsPage(){
    registry.openRecord(navigate,`/controls/${saved.id}`,saved.id)
   }catch(error){notifyError(error,'save',{operation:'control_definition_create'})}
  }
- async function quickExecute(item,deps,e){
+ function quickExecute(item,deps,e){
   e?.stopPropagation()
   const dep=quickDepartment(item,deps)
   const assignment=getAssignment(item,dep)
   const allowed=Boolean(dep&&assignment)&&(Boolean(assignment?.hasDraft)||canManage||(canExecute&&isControlDue(item,dep)))
   if(!allowed)return
-  const ok=await confirm({title:tx.execute,message:language==='en'?`Open a new entry for “${item.titleEn||item.title}” in ${dep}? The recorder details will be filled automatically.`:`Να ανοίξει νέα καταχώρηση για «${item.title}» στο ${dep}; Τα στοιχεία του ελεγκτή θα συμπληρωθούν αυτόματα.`,confirmLabel:tx.execute})
-  if(!ok)return
-  registry.saveViewState({query,department,status,frequency,view})
+  // ▶ opens the entry form straight away (its ← returns here): no extra confirm step.
+  registry.saveViewState({query,department,status,frequency,category,view})
   navigate(`/controls/${item.id}?department=${encodeURIComponent(dep)}&execute=1`)
  }
  function exportProgramme(){
@@ -127,29 +132,24 @@ export function ControlsPage(){
   exportRegistry(controlsExport(rows,{en:language==='en',frequencyLabel:f=>frequencyLabel(f,language),stateLabel:stateText,criticality:controlCriticality,criticalityLabel:level=>criticalityLabel(level,language)}))
  }
  function pageAction(action){if(action===UI_ACTIONS.CREATE&&canCreate)setEditorOpen(true)}
- function openControl(item){registry.saveViewState({query,department,status,frequency,view});registry.openRecord(navigate,`/controls/${item.id}`,item.id,rows.map(x=>x.item.id))}
+ function openControl(item){registry.saveViewState({query,department,status,frequency,category,view});registry.openRecord(navigate,`/controls/${item.id}`,item.id,rows.map(x=>x.item.id))}
 
  if(editorOpen)return <ControlEditor departmentOnly={isDepartmentManager} fixedDepartment={isDepartmentManager?ownDepartment:''} onCancel={()=>setEditorOpen(false)} onSave={saveNew}/>
 
  return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={<div className="row-actions">{view==='adherence'?<DownloadMenu onExcel={adherenceReport.exportCsv} onPdf={adherenceReport.exportPdf} disabled={!adherenceReport.lines.length} pdfBusy={adherenceReport.exporting}/>:view==='calendar'?<DownloadMenu onExcel={calendarReport.exportCsv} onPdf={calendarReport.exportPdf} disabled={!calendarReport.lines.length} pdfBusy={calendarReport.exporting}/>:<DownloadMenu disabled={!rows.length} onExcel={exportProgramme}/>}{canCreate&&<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>}</div>}>
   <div className="workspace-summary"><div className="module-summary-strip"><Kpi icon={ClipboardCheck} label={tx.active} value={scopedControls.length}/><Kpi icon={Clock3} label={tx.dueSoon} value={dueSoon} onClick={()=>setStatus(status==='dueSoon'?'all':'dueSoon')} active={status==='dueSoon'}/><Kpi icon={AlertTriangle} label={tx.overdue} value={overdue} onClick={()=>setStatus(status==='overdue'?'all':'overdue')} active={status==='overdue'}/><Kpi icon={CheckCircle2} label={tx.today} value={today}/><Kpi icon={Gauge} label={`${tx.adherence} · 30 ${language==='en'?'days':'ημ.'}`} value={monthAdherence.rate==null?'—':`${monthAdherence.rate}%`} onClick={()=>setView(view==='adherence'?'programme':'adherence')} active={view==='adherence'}/></div></div>
+  <CanonicalTabs items={[{value:'programme',label:tx.programmeTab,icon:ListChecks},{value:'calendar',label:tx.calendarTab,icon:CalendarDays},{value:'adherence',label:tx.adherenceTab,icon:Gauge},{value:'expiry',label:language==='en'?'Expiry':'Λήξεις',icon:CalendarX2}]} value={view} onChange={setView} ariaLabel={t('controls')}/>
   <section className="surface registry-workspace workspace-column workspace-fill controls-registry-workspace">
-   <ModuleTabs activeId={view} onChange={setView} ariaLabel={t('controls')} tabs={[{id:'programme',label:tx.programmeTab,icon:ListChecks},{id:'calendar',label:tx.calendarTab,icon:CalendarDays},{id:'adherence',label:tx.adherenceTab,icon:Gauge}]}/>
-   <FilterBar query={query} onQueryChange={setQuery} placeholder={tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')+(frequency!=='all')} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setFrequency('all')}}>
+   <FilterBar query={query} onQueryChange={setQuery} placeholder={tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')+(frequency!=='all')+(category!=='all')+(view==='calendar'&&calendarReport.year!==new Date().getFullYear())} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setFrequency('all');setCategory('all');calendarReport.setYear(new Date().getFullYear())}}>
     <FilterSelect label={tx.department} value={department} onChange={setDepartment}><option value="all">{tx.allDepartments}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
     <FilterSelect label={tx.status} value={status} onChange={setStatus}><option value="all">{tx.all}</option><option value="temporary">{tx.temporary}</option><option value="scheduled">{tx.scheduled}</option><option value="dueSoon">{tx.dueSoon}</option><option value="overdue">{tx.overdue}</option></FilterSelect>
     <FilterSelect label={tx.frequency} value={frequency} onChange={setFrequency}><option value="all">{tx.all}</option><option value="daily">{tx.daily}</option><option value="weekly">{tx.weekly}</option><option value="monthly">{tx.monthly}</option><option value="yearly">{tx.yearly}</option></FilterSelect>
+    <FilterSelect label={language==='en'?'Control type':'Είδος ελέγχου'} value={category} onChange={setCategory}><option value="all">{tx.all}</option>{categories.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
+    {view==='calendar'&&<FilterSelect label={language==='en'?'Year':'Έτος'} value={String(calendarReport.year)} onChange={value=>calendarReport.setYear(Number(value))}>{Array.from({length:6},(_,i)=>new Date().getFullYear()+1-i).map(y=><option key={y} value={y}>{y}</option>)}</FilterSelect>}
    </FilterBar>
-   {view==='adherence'?<ControlAdherencePanel report={adherenceReport} tx={tx} language={language}/>:view==='calendar'?<ControlCalendarPanel report={calendarReport} language={language} onOpen={openControl}/>:<>
-   <div className="scroll-table" ref={registry.scrollRef}>
-    <table className="data-table sticky-table controls-table">
-     <thead><tr><th>{tx.control}</th><th>{tx.departments}</th><th>{tx.frequency}</th><th>{tx.executions}</th><th>{tx.next}</th><th>{tx.status}</th><th className="control-action-col"></th></tr></thead>
-     <tbody>{pagedRows.map(({item,departments:deps})=>{const state=controlState(item,deps),draft=hasDraft(item,deps),depPreview=deps.slice(0,3).join(' · '),more=deps.length>3?' …':'',dep=quickDepartment(item,deps),assignment=getAssignment(item,dep),allowed=Boolean(dep&&assignment)&&(Boolean(assignment?.hasDraft)||canManage||(canExecute&&isControlDue(item,dep)));return <tr key={item.id} {...registry.rowProps(item.id)} onClick={()=>openControl(item)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openControl(item)}}}><td><strong>{language==='el'?item.title:item.titleEn}</strong><small>{item.category}{controlCriticality(item)==='high'&&<span className="control-criticality-badge high">{criticalityLabel('high',language)} {language==='en'?'criticality':'κρισιμότητα'}</span>}</small></td><td>{deps.length===1?deps[0]:<><strong>{deps.length} {language==='en'?'departments':'τμήματα'}</strong><small>{depPreview}{more}</small></>}</td><td>{frequencyLabel(item.frequency,language)}</td><td>{executionCount(item,deps)}</td><td>{fmt(earliestNext(item,deps))}</td><td><div className="control-status-stack">{draft&&<span className="status-badge temporary">{tx.temporary}</span>}<span className={`status-badge ${state==='overdue'?'danger':state==='dueSoon'?'warning':'active'}`}>{state==='overdue'?tx.overdue:state==='dueSoon'?tx.dueSoon:tx.within}</span></div></td><td className="control-action-col"><IconButton size="sm" tone={allowed?'primary':'neutral'} disabled={!allowed} label={tx.execute} onClick={e=>quickExecute(item,deps,e)}><PlayCircle size={16}/></IconButton></td></tr>})}</tbody>
-    </table>
-    {loading&&<div className="registry-empty-state"><strong>{language==='en'?'Loading controls…':'Φόρτωση ελέγχων…'}</strong></div>}
-    {!loading&&!rows.length&&<div className="registry-empty-state"><strong>{tx.emptyTitle}</strong><span>{tx.emptyText}</span></div>}
-   </div>
-   <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
+   {view==='expiry'?<ControlExpiryPanel actorName={actor.name} showControl query={query} sources={expirySources} canRemove={()=>canExecute} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} onOpenControl={openControl} language={language} locale={language==='en'?'en-GB':'el-GR'}/>:view==='adherence'?<ControlAdherencePanel report={adherenceReport} tx={tx} language={language} onOpen={openControl}/>:view==='calendar'?<ControlCalendarPanel report={calendarReport} language={language} onOpen={openControl}/>:<>
+   <RegistryTable wrapperRef={registry.scrollRef} className="controls-table" columns={[{key:'control',label:tx.control},{key:'departments',label:tx.departments},{key:'frequency',label:tx.frequency},{key:'executions',label:tx.executions},{key:'next',label:tx.next},{key:'status',label:tx.status},{key:'action',label:'',ariaLabel:tx.execute,className:'control-action-col'}]} rows={loading?[]:pagedRows} rowKey={row=>row.item.id} emptyTitle={loading?(language==='en'?'Loading controls…':'Φόρτωση ελέγχων…'):tx.emptyTitle} emptyText={loading?undefined:tx.emptyText} renderRow={({item,departments:deps})=>{const state=controlState(item,deps),draft=hasDraft(item,deps),depPreview=deps.slice(0,3).join(' · '),more=deps.length>3?' …':'',dep=quickDepartment(item,deps),assignment=getAssignment(item,dep),allowed=Boolean(dep&&assignment)&&(Boolean(assignment?.hasDraft)||canManage||(canExecute&&isControlDue(item,dep))),expiry=isExpiryControl(item)?expiryCounts(expiryItems(item,deps)):null;return <tr key={item.id} {...registry.rowProps(item.id)} onClick={()=>openControl(item)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openControl(item)}}}><td><strong>{language==='el'?item.title:item.titleEn}</strong><small>{item.category}{controlCriticality(item)==='high'&&<span className="control-criticality-badge high">{criticalityLabel('high',language)} {language==='en'?'criticality':'κρισιμότητα'}</span>}{expiry?.expired>0&&<span className="control-criticality-badge high">{expiry.expired} {language==='en'?'expired':(expiry.expired===1?'ληγμένο':'ληγμένα')}</span>}{expiry?.expiring>0&&<span className="control-criticality-badge medium">{expiry.expiring} {language==='en'?'expiring':(expiry.expiring===1?'λήγει':'λήγουν')}</span>}</small></td><td>{deps.length===1?deps[0]:<><strong>{deps.length} {language==='en'?'departments':'τμήματα'}</strong><small>{depPreview}{more}</small></>}</td><td>{frequencyLabel(item.frequency,language)}</td><td>{executionCount(item,deps).toLocaleString(language==='en'?'en-GB':'el-GR')}</td><td>{fmt(earliestNext(item,deps))}</td><td><div className="control-status-stack">{draft&&<span className="status-badge temporary">{tx.temporary}</span>}<span className={`status-badge ${state==='overdue'?'danger':state==='dueSoon'?'warning':'active'}`}>{state==='overdue'?tx.overdue:state==='dueSoon'?tx.dueSoon:tx.within}</span></div></td><td className="control-action-col"><IconButton size="sm" tone={allowed?'primary':'neutral'} disabled={!allowed} label={tx.execute} onClick={e=>quickExecute(item,deps,e)}><PlayCircle size={16}/></IconButton></td></tr>}}/>
+   {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>}
    </>}
   </section>
  </Page>

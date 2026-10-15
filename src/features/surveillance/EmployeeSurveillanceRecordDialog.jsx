@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Pencil, Trash2, XCircle } from 'lucide-react'
+import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -291,7 +292,7 @@ export function EmployeeSurveillanceRecordDialog({
       eyebrow={en ? 'Employee screening record' : 'Καρτέλα ελέγχου εργαζομένου'}
       title={en ? selected.employeeNameEn : selected.employeeName}
       subtitle={`${compactCode(selected.id)} · ${en ? selected.departmentEn : selected.department}`}
-      width="workspace"
+      width="standard"
       className="employee-screening-record-card"
       onClose={onClose}
       footer={
@@ -318,15 +319,15 @@ export function EmployeeSurveillanceRecordDialog({
     >
       <div className="employee-record-status-strip">
         <div>
-          <small>{en ? 'Screening type' : 'Τύπος ελέγχου'}</small>
+          <small className="lo-field-label">{en ? 'Screening type' : 'Τύπος ελέγχου'}</small>
           <strong>{(selected.screeningTypes || []).map(type => t(type)).join(', ') || '—'}</strong>
         </div>
         <div>
-          <small>{en ? 'Result' : 'Αποτέλεσμα'}</small>
+          <small className="lo-field-label">{en ? 'Result' : 'Αποτέλεσμα'}</small>
           <strong>{t(selected.resultStatus || 'pending')}</strong>
         </div>
         <div>
-          <small>{en ? 'Status' : 'Κατάσταση'}</small>
+          <small className="lo-field-label">{en ? 'Status' : 'Κατάσταση'}</small>
           <strong>{t(selected.status || 'active')}</strong>
         </div>
       </div>
@@ -598,7 +599,7 @@ export function EmployeeSurveillanceRecordDialog({
       )}
       {requestEditor && (
         <ObserverDialog
-          width="wide"
+          width="standard"
           eyebrow={en ? 'Laboratory request' : 'Αίτημα εργαστηρίου'}
           title={compactCode(requestEditor.sample.id)}
           subtitle={
@@ -625,30 +626,18 @@ export function EmployeeSurveillanceRecordDialog({
           }
         >
           <div className="employee-lab-request-editor">
-            <fieldset className="field entry-span-2 lab-request-materials">
-              <legend>
-                {en ? 'Requested examination / material' : 'Ζητούμενος έλεγχος / υλικό'}
-              </legend>
-              <div className="lab-request-material-options">
-                {REQUEST_MATERIALS.map(item => {
-                  const selected = splitMaterials(requestEditor.source).includes(item.id)
-                  return (
-                    <label key={item.id} className={selected ? 'selected' : ''}>
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() =>
-                          setRequestEditor(v => ({
-                            ...v,
-                            source: toggleMaterial(v.source, item.id),
-                          }))
-                        }
-                      />
-                      <span>{en ? item.en : item.el}</span>
-                    </label>
-                  )
-                })}
-              </div>
+            <div className="entry-span-2 lab-request-materials">
+              <ChoiceChips
+                label={en ? 'Requested examination / material' : 'Ζητούμενος έλεγχος / υλικό'}
+                options={REQUEST_MATERIALS.map(item => ({
+                  value: item.id,
+                  label: en ? item.en : item.el,
+                }))}
+                selected={splitMaterials(requestEditor.source)}
+                onToggle={id =>
+                  setRequestEditor(v => ({ ...v, source: toggleMaterial(v.source, id) }))
+                }
+              />
               {splitMaterials(requestEditor.source)
                 .filter(code => !REQUEST_MATERIALS.some(item => item.id === code))
                 .map(code => (
@@ -656,9 +645,9 @@ export function EmployeeSurveillanceRecordDialog({
                     {en ? 'Other' : 'Άλλο'}: {code}
                   </small>
                 ))}
-            </fieldset>
+            </div>
             <label className="field">
-              <span>{en ? 'Request type' : 'Τύπος αιτήματος'}</span>
+              <span className="lo-field-label">{en ? 'Request type' : 'Τύπος αιτήματος'}</span>
               <select
                 value={requestEditor.sampleType}
                 onChange={e => setRequestEditor(v => ({ ...v, sampleType: e.target.value }))}
@@ -669,7 +658,7 @@ export function EmployeeSurveillanceRecordDialog({
               </select>
             </label>
             <label className="field">
-              <span>{en ? 'Priority' : 'Προτεραιότητα'}</span>
+              <span className="lo-field-label">{en ? 'Priority' : 'Προτεραιότητα'}</span>
               <select
                 value={requestEditor.priority}
                 onChange={e => setRequestEditor(v => ({ ...v, priority: e.target.value }))}

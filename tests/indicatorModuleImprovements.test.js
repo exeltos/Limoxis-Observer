@@ -56,8 +56,9 @@ describe('indicator visibility by department', () => {
   })
 
   it('lets a manager pick which departments see the indicator from the definition form', () => {
-    expect(definitionForm).toContain('toggleDepartment')
-    expect(definitionForm).toContain('recipient-picker')
+    expect(definitionForm).toContain("import { MultiSelect } from '../../design-system/MultiSelect'")
+    expect(definitionForm).toContain("<MultiSelect className=\"entry-span-2\"")
+    expect(definitionForm).toContain("selected={visibleDepartmentIds} onChange={next=>set('visibleDepartmentIds',next)}")
     expect(createPage).toContain('departments={departments}')
     expect(recordPage).toContain('departments={departments}')
   })

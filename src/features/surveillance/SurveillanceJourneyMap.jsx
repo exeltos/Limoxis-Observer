@@ -249,6 +249,7 @@ function EpisodeTab({ stage, active, onSelect }) {
       type="button"
       className={`episode-section-tab ${active ? 'active' : ''} ${stage.status === 'complete' ? 'complete' : ''} ${stage.locked ? 'locked' : ''}`.trim()}
       disabled={stage.locked}
+      title={[stage.label, stage.meta].filter(Boolean).join(' · ')}
       aria-current={active ? 'page' : undefined}
       data-demo-step={
         DEMO_STEP_STAGES.has(stage.id) ? `clabsi_classification:${stage.id}` : undefined

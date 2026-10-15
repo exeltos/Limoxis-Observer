@@ -18,6 +18,9 @@ export function ObserverDialog({
   footer,
   width='standard',
   presentation='modal',
+  // Forms whose content switches (existing/new, single/batch) keep one height,
+  // so the window does not jump when the choice changes.
+  fixedHeight=false,
   className='',
 }){
   const {language}=useLanguage();const en=language==='en'
@@ -42,7 +45,7 @@ export function ObserverDialog({
     onClose?.()
   }
   return <div className={`modal-backdrop observer-dialog-backdrop observer-dialog-backdrop-${dialogPresentation}`} role="presentation" onMouseDown={e=>{if(!workspace&&e.target===e.currentTarget)requestClose()}}>
-    <section className={`entry-card observer-dialog observer-dialog-${dialogWidth} observer-dialog-presentation-${dialogPresentation} ${className}`.trim()} role="dialog" aria-modal={!workspace} aria-label={title} onChangeCapture={markDirty} onInputCapture={markDirty}>
+    <section className={`entry-card observer-dialog observer-dialog-${dialogWidth} observer-dialog-presentation-${dialogPresentation} ${fixedHeight?'observer-dialog-fixed-height':''} ${className}`.trim()} role="dialog" aria-modal={!workspace} aria-label={title} onChangeCapture={markDirty} onInputCapture={markDirty}>
       <header>
         <div className={workspace?'observer-dialog-workspace-heading':''}>
           {workspace&&<IconButton label={en?'Back':'Πίσω'} tone="neutral" className="entity-record-icon-button" onClick={requestClose}><ArrowLeft size={19}/></IconButton>}

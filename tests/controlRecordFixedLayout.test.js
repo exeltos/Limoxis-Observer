@@ -7,14 +7,12 @@ const record=fs.readFileSync('src/features/controls/ControlRecordPage.jsx','utf8
 
 describe('control record fixed workspace',()=>{
   it('shows details and guidance first, then the departments with their entry',()=>{
-    const recordCss=fs.readFileSync('src/features/controls/controlRecord.css','utf8')
-    const departments=record.indexOf('control-ov-departments'),facts=record.indexOf('control-ov-facts'),guidance=record.indexOf('control-ov-guidance')
-    expect(facts).toBeGreaterThan(0)
-    expect(guidance).toBeGreaterThan(facts)
+    const sheet=record.indexOf("title={en?'Control details':'Στοιχεία ελέγχου'}"),guidance=record.indexOf("id:'instructions'"),departments=record.indexOf('control-record-departments')
+    expect(sheet).toBeGreaterThan(0)
+    expect(guidance).toBeGreaterThan(sheet)
     expect(departments).toBeGreaterThan(guidance)
-    // Many departments: only their list scrolls, under a fixed header.
-    expect(recordCss).toContain('.control-ov-department-scroll{flex:1 1 0;min-height:0;overflow:auto}')
-    expect(recordCss).toContain('.control-ov-department-table thead th{position:sticky;top:0')
+    // Many departments: only their table scrolls, inside the record body.
+    expect(css).toContain('.control-record-shell .control-record-departments>.scroll-table:is(div,#lo-record-sheet){flex:1;min-height:0;overflow:auto')
     expect(record).not.toContain('control-details-overview')
   })
 

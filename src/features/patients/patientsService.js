@@ -173,3 +173,17 @@ export async function transferAdmission(organizationId,patient,admission,draft,{
   if(error) throw error
   return mapAdmission(data,department?.name||draft.department)
 }
+
+// Deletes one admission with a written reason (kept in the audit log). The
+// database refuses a patient's last admission and an admission that still holds
+// surveillance episodes; those errors come back as `code` for a clear message.
+export async function deleteAdmission(organizationId,patient,admission,reason,{isDemo=false}={}){
+  if(!String(reason||'').trim())throw new Error('reason required')
+  if(isDemo || !supabase) return
+  const {error}=await supabase.rpc('delete_patient_admission',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_admission_id:admission.id,p_reason:reason.trim()})
+  if(!error)return
+  const message=String(error.message||'')
+  if(message.includes('only admission'))throw Object.assign(new Error(message),{code:'last_admission'})
+  if(message.includes('surveillance episodes'))throw Object.assign(new Error(message),{code:'has_surveillance'})
+  throw error
+}

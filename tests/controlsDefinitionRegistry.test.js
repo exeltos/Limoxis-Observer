@@ -7,11 +7,11 @@ const editor=fs.readFileSync('src/features/controls/ControlEditor.jsx','utf8')
 
 describe('controls definition-centric workflow',()=>{
  it('shows one registry row per control definition using the canonical registry layout',()=>{
-  expect(registry).toContain('pagedRows.map(({item,departments:deps})=>')
+  expect(registry).toContain('<RegistryTable wrapperRef={registry.scrollRef}')
+  expect(registry).toContain('renderRow={({item,departments:deps})=>')
   expect(registry).toContain('<tr key={item.id}')
   expect(registry).toContain('registry.openRecord(navigate,`/controls/${item.id}`')
-  expect(registry).toContain('<div className="scroll-table" ref={registry.scrollRef}>')
-  expect(registry).toContain('<RegistryPagination language={language}')
+  expect(registry).toContain('{rows.length>0&&<RegistryPagination language={language}')
   expect(registry).not.toContain('rowKey={row=>`${row.item.id}:${row.department}`}')
  })
 
@@ -23,8 +23,7 @@ describe('controls definition-centric workflow',()=>{
  })
 
  it('supports select all and clear all for department assignment',()=>{
-  expect(editor).toContain('selectVisibleDepartments')
-  expect(editor).toContain('clearVisibleDepartments')
+  expect(editor).toContain('<MultiSelect className="control-departments-select"')
   expect(editor).toContain("en?'Select all':'Επιλογή όλων'")
   expect(editor).toContain("en?'Clear all':'Αποεπιλογή όλων'")
  })

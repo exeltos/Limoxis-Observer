@@ -17,7 +17,7 @@ describe('prevention waste editor refinements',()=>{
 
   it('keeps disabled WHO add-opportunity text clearly readable',()=>{
     expect(css).toContain('color:#fff!important')
-    expect(css).toContain('.who-page-editor .who-current-preview .lo-action-button:disabled span')
+    expect(css).toContain('.who-page-editor .who-section-title .lo-action-button:disabled span')
   })
 
   it('keeps Occupational Health focused on physician visits',()=>{

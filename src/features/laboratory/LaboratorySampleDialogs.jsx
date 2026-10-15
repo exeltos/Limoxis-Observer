@@ -4,6 +4,7 @@ import { Button } from '../../design-system/Button'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
+import { YesNoField } from '../../design-system/YesNoField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { organismsOf, resultDraftChecks, resultToSave } from './laboratorySampleProgress'
 import { METHODS, rows } from './laboratorySampleFormat'
@@ -59,6 +60,8 @@ export function ResultDialog({
   return (
     <ObserverDialog
       width="standard"
+      fixedHeight
+      className="lab-result-dialog"
       eyebrow={t('laboratoryRecords.microbiologyResult')}
       title={title}
       subtitle={tx('resultHelp')}
@@ -142,14 +145,12 @@ export function ResultDialog({
             />
           </label>
         )}
-        <label className="lab-dialog-check lab-dialog-span">
-          <input
-            type="checkbox"
-            checked={draft.critical}
-            onChange={e => set('critical', e.target.checked)}
-          />
-          <span>{tx('critical')}</span>
-        </label>
+        <YesNoField
+          label={tx('critical')}
+          value={draft.critical}
+          onChange={value => set('critical', value)}
+          className="lab-dialog-span"
+        />
       </div>
     </ObserverDialog>
   )
@@ -397,14 +398,12 @@ export function CommunicationDialog({ tx, onClose, onSave }) {
           value={draft.communicatedTime}
           onChange={v => set('communicatedTime', v)}
         />
-        <label className="lab-dialog-check lab-dialog-span">
-          <input
-            type="checkbox"
-            checked={draft.readBack}
-            onChange={e => set('readBack', e.target.checked)}
-          />
-          <span>{tx('readBack')}</span>
-        </label>
+        <YesNoField
+          label={tx('readBack')}
+          value={draft.readBack}
+          onChange={value => set('readBack', value)}
+          className="lab-dialog-span"
+        />
         <label className="lab-dialog-span">
           <span>{tx('notes')}</span>
           <textarea rows={3} value={draft.notes} onChange={e => set('notes', e.target.value)} />

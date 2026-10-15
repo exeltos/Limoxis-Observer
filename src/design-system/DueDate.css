@@ -1,12 +1,6 @@
 .due-date.overdue{display:inline-flex;flex-direction:column;gap:1px;color:#b42318;font-weight:700}
 .due-date.overdue small{font-size:10.5px;font-weight:600;color:#b42318}
 .detail-item .due-date.overdue small{font-size:10.5px!important;color:#b42318!important}
-.summary-overdue-banner{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:10px 14px;border:1px solid #f3c4bf;border-left:4px solid #b42318;border-radius:10px;background:#fef3f2;color:#7a271a;font-size:13px;font-weight:600}
-.summary-overdue-banner>svg{flex:none;color:#b42318}
-.summary-overdue-banner>span{flex:1}
 .detail-item .due-date:not(.overdue){display:inline!important;margin:0!important;color:inherit!important;font-size:inherit!important;font-weight:inherit!important}
-.summary-overdue-banner.is-warning{border-color:#f5d9a8;border-left-color:#b54708;background:#fffaeb;color:#7a2e0e}
-.summary-overdue-banner.is-warning>svg{color:#b54708}
 /* Inside a line of text the overdue note follows the date instead of wrapping under it. */
 .sv-episode .due-date.overdue{display:inline-flex;flex-direction:row;align-items:baseline;gap:5px}
-@media (max-width:640px){.summary-overdue-banner{flex-wrap:wrap}.summary-overdue-banner>span{flex:1 1 calc(100% - 28px)}.summary-overdue-banner>button{margin-left:28px}}

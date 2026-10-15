@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { ClipboardCheck,FileClock,LockKeyhole,PlayCircle,Pencil,Printer,RotateCcw,Trash2 } from 'lucide-react'
+import { CalendarX2,ClipboardCheck,FileClock,LockKeyhole,PlayCircle,Pencil,Printer,RotateCcw,Trash2 } from 'lucide-react'
 import { useNavigate,useParams,useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -9,6 +9,9 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { RecordTabPanel } from '../../design-system/RecordTabPanel'
+import { SectionHeader } from '../../design-system/SectionHeader'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -19,6 +22,9 @@ import { ControlExecutionModal } from './ControlExecutionModal'
 import { ControlEvidenceLinks } from './ControlEvidence'
 import { controlCriticality,criticalityLabel,deviationActions,requiresEvidence } from './controlCriticality'
 import { ControlCancellationModal } from './ControlCancellationModal'
+import { ControlExpiryPanel } from './ControlExpiryPanel'
+import { expiryCounts,expiryItems,isExpiryControl } from './controlExpiry'
+import { removeExpiryItem } from './controlExpiryRemoval'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
 import { assignmentStatus,frequencyLabel,getAssignment } from './controlScheduling'
@@ -36,7 +42,10 @@ export function ControlRecordPage(){
  const {role,membership,tenant,canAccessRecord}=useTenant()
  const {profile,user}=useAuth()
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
- const [tab,setTab]=useState('details')
+ const [tab,setTab]=useState(()=>searchParams.get('tab')||'')
+ // Moving to another control (‹ ›) opens it on its details again.
+ const [tabFor,setTabFor]=useState(controlId)
+ if(tabFor!==controlId){setTabFor(controlId);setTab(searchParams.get('tab')||'')}
  const [editOpen,setEditOpen]=useState(false)
  const [cancelExecution,setCancelExecution]=useState(null)
  const [deleteExecution,setDeleteExecution]=useState(null)
@@ -69,7 +78,7 @@ export function ControlRecordPage(){
 
  const {canModifyDefinition,editsOwnDepartmentOnly,canDeleteDraft,canRemoveDefinition,canExecuteDepartment,canCancelHistory,canDeleteHistory,canEditHistory}=controlRecordPermissions({role,membership,record,actorId:actor.id,allDepartmentsVisible:record.departments.length>0&&visibleDepartments.length===record.departments.length})
  const canExecute=Boolean(department)&&canExecuteDepartment(department)
- const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short',hour12:false}).format(new Date(v)):'—'
+ const fmt=v=>v?new Intl.DateTimeFormat(locale,{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(v)):'—'
  const status=controlOverallStatus(record,visibleDepartments)
  const hasDraft=assignments.some(x=>Boolean(x.assignment?.hasDraft))
  const sourceLabel=record.createdByScope==='platform'?'Platform Owner':record.createdByScope==='hospital_admin'?(en?'Hospital Administrator':'Διαχειριστής Νοσοκομείου'):record.createdByScope==='quality'?(en?'Quality Manager':'Υπεύθυνος Ποιότητας'):(record.createdByScope==='department'?(en?'Department manager':'Προϊστάμενος Τμήματος'):(en?'Infection Control Lead':'Προϊστάμενος Λοιμώξεων'))
@@ -77,6 +86,10 @@ export function ControlRecordPage(){
  const historyTotalPages=Math.max(1,Math.ceil(historyRows.length/historyPageSize))
  const historySafePage=Math.min(historyPage,historyTotalPages)
  const pagedHistory=historyRows.slice((historySafePage-1)*historyPageSize,historySafePage*historyPageSize)
+ const expiryControl=isExpiryControl(record)
+ const expiry=expiryControl?expiryCounts(expiryItems(record,visibleDepartments)):{expired:0,expiring:0,alerting:0}
+ // A control opens on its details; links from the expiry lists and alerts ask for ?tab=expiry.
+ const currentTab=tab==='expiry'&&!expiryControl?'details':tab||'details'
  const isDeletedExecution=h=>h.status==='cancelled'&&String(h.cancellationReason||'').startsWith('[DELETE]')
  const cancellationText=h=>String(h.cancellationReason||'').replace(/^\[DELETE\]\s*/,'')
 
@@ -123,7 +136,7 @@ export function ControlRecordPage(){
 
  function historyActions(h){
   return [
-   h.structuredData?.rows?.length>0?{id:'print',label:en?'Print entry':'Εκτύπωση καταχώρησης',icon:Printer,onClick:()=>printControlForm({record,department:h.department,execution:h})}:null,
+   h.structuredData?.rows?.length>0?{id:'print',label:isExpiryControl(record)?(en?'Print change form':'Έντυπο αλλαγών'):(en?'Print entry':'Εκτύπωση καταχώρησης'),icon:Printer,onClick:()=>printControlForm({record,department:h.department,execution:h})}:null,
    canEditHistory(h)?{id:'edit',label:en?'Edit entry':'Επεξεργασία καταχώρησης',icon:Pencil,onClick:()=>setEditExecution(h)}:null,
    canDeleteHistory(h)?{id:'delete',label:en?'Delete entry':'Διαγραφή καταχώρησης',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>setDeleteExecution(h)}:null,
    canCancelHistory(h)?{id:'void',label:en?'Void entry':'Αναίρεση καταχώρησης',icon:RotateCcw,onClick:()=>setCancelExecution(h)}:null,
@@ -133,7 +146,7 @@ export function ControlRecordPage(){
  if(executing){
   if(!canExecute)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'This control is not available for execution right now.':'Ο έλεγχος δεν είναι διαθέσιμος για καταχώρηση αυτή τη στιγμή.'}</div></Page>
   return <Page fill><EntityRecordShell className="control-record-shell control-execution-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={record.id} title={`${en?'Record control':'Καταχώρηση ελέγχου'} · ${language==='el'?record.title:record.titleEn}`} subtitle={`${department} · ${frequencyLabel(record.frequency,language)}`} tabs={[]} onBack={()=>navigate(recordUrl,{replace:true})}>
-   <div className="record-section control-execution-page-card"><ControlExecutionEditor organizationId={tenant.id} record={record} department={department} onCancel={()=>navigate(recordUrl,{replace:true})} onDraftSaved={async()=>{await reload()}} onSave={saveExecution}/></div>
+   <div className="record-section control-execution-page-card"><ControlExecutionEditor organizationId={tenant.id} record={record} department={department} onDraftSaved={async()=>{await reload()}} onSave={saveExecution}/></div>
   </EntityRecordShell></Page>
  }
 
@@ -145,44 +158,53 @@ export function ControlRecordPage(){
  </>
  const subtitle=visibleDepartments.length===1?visibleDepartments[0]:`${visibleDepartments.length} ${en?'departments':'τμήματα'}`
 
- return <Page fill><EntityRecordShell className="control-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={record.id} title={language==='el'?record.title:record.titleEn} subtitle={subtitle} status={<div className="control-status-stack">{hasDraft&&<span className="status-badge temporary">{en?'Draft':'Προσωρινή'}</span>}<span className={`status-badge ${status==='overdue'?'danger':status==='dueSoon'?'warning':'active'}`}>{status==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):status==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</span></div>} headerActions={headerActions} recordNavigation={recordNavigation} tabs={[{id:'details',label:en?'Control details':'Στοιχεία ελέγχου',icon:LockKeyhole},{id:'history',label:en?'Executions':'Εκτελέσεις',icon:FileClock}]} activeTab={tab} onTabChange={next=>{setTab(next);if(next==='history')setHistoryPage(1)}}>
-  {tab==='details'&&<div className="control-overview workspace-fill">
-   <div className="control-ov-heading"><h2>{en?'Control details':'Στοιχεία ελέγχου'}</h2></div>
-   <div className="control-ov-columns">
-    <section className="control-ov-facts" aria-label={en?'Details':'Στοιχεία'}>
-     <dl><D l={en?'Category':'Κατηγορία'} v={record.category}/><D l={en?'Frequency':'Συχνότητα'} v={frequencyLabel(record.frequency,language)}/><D l={en?'Execution times':'Ώρες εκτέλεσης'} v={record.frequency.times?.join(' · ')||'—'}/><D l={en?'Responsible':'Υπεύθυνος'} v={record.owner||'—'}/><D l={en?'Criticality':'Κρισιμότητα'} v={criticalityLabel(controlCriticality(record),language)}/><D l={en?'Evidence':'Τεκμήριο'} v={requiresEvidence(record)?(en?'Required on every entry':'Υποχρεωτικό σε κάθε καταχώρηση'):(en?'Optional':'Προαιρετικό')}/></dl>
-     <p className="control-ov-meta">{sourceLabel} · {en?'created by':'δημιουργία από'} {record.createdBy||sourceLabel}{record.updatedBy?` · ${en?'last changed by':'τελευταία αλλαγή από'} ${record.updatedBy}`:''}</p>
-    </section>
-    <aside className="control-ov-guidance">
-     <section><h3>{en?'Instructions':'Οδηγίες'}</h3><p>{record.description||(en?'No instructions.':'Δεν υπάρχουν οδηγίες.')}</p></section>
-     {deviationActions(record)&&<section className="control-ov-deviation"><h3>{en?'Actions on deviation':'Ενέργειες σε απόκλιση'}</h3><p>{deviationActions(record)}</p></section>}
-    </aside>
-   </div>
-   <section className="control-ov-departments" aria-label={en?'Departments':'Τμήματα'}>
-    <h3>{en?'Departments':'Τμήματα'}<span>{assignments.length}</span></h3>
-    <div className="control-ov-department-scroll">
-    <table className="data-table control-ov-department-table">
-     <thead><tr><th>{en?'Department':'Τμήμα'}</th><th>{en?'Status':'Κατάσταση'}</th><th>{en?'Next entry':'Επόμενη καταχώρηση'}</th><th>{en?'Last entry':'Τελευταία καταχώρηση'}</th><th className="control-ov-action-col" aria-label={en?'Actions':'Ενέργειες'}/></tr></thead>
-     <tbody>{assignments.map(({department:dep,assignment:current})=>{const state=assignmentStatus(record,dep),draft=Boolean(current?.hasDraft),allowed=canExecuteDepartment(dep);return <tr key={dep} className={`control-ov-department ${state}`}>
+ return <Page fill><EntityRecordShell className="control-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={record.id} title={language==='el'?record.title:record.titleEn} subtitle={subtitle} status={<div className="control-status-stack">{expiry.expired>0&&<span className="status-badge danger">{expiry.expired} {en?'expired':(expiry.expired===1?'ληγμένο':'ληγμένα')}</span>}{expiry.expiring>0&&<span className="status-badge warning">{expiry.expiring} {en?'expiring':(expiry.expiring===1?'λήγει':'λήγουν')}</span>}{hasDraft&&<span className="status-badge temporary">{en?'Draft':'Προσωρινή'}</span>}<span className={`status-badge ${status==='overdue'?'danger':status==='dueSoon'?'warning':'active'}`}>{status==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):status==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</span></div>} headerActions={headerActions} recordNavigation={recordNavigation} tabs={[{id:'details',label:en?'Control details':'Στοιχεία ελέγχου',icon:LockKeyhole},expiryControl&&{id:'expiry',label:en?'Items & expiry':'Υλικά & λήξεις',icon:CalendarX2},{id:'history',label:en?'Executions':'Εκτελέσεις',icon:FileClock}].filter(Boolean)} activeTab={currentTab} onTabChange={next=>{setTab(next);if(next==='history')setHistoryPage(1)}}>
+  {currentTab==='details'&&<div className="record-view-stack control-record-view workspace-fill">
+   <section>
+    <SectionHeader title={en?'Control details':'Στοιχεία ελέγχου'}/>
+    <RecordDetailsGrid fields={[
+     {id:'category',label:en?'Category':'Κατηγορία',value:record.category},
+     {id:'frequency',label:en?'Frequency':'Συχνότητα',value:frequencyLabel(record.frequency,language)},
+     {id:'times',label:en?'Execution times':'Ώρες εκτέλεσης',value:record.frequency.times?.join(' · ')},
+     {id:'owner',label:en?'Responsible':'Υπεύθυνος',value:record.owner},
+     {id:'criticality',label:en?'Criticality':'Κρισιμότητα',value:criticalityLabel(controlCriticality(record),language)},
+     {id:'evidence',label:en?'Evidence':'Τεκμήριο',value:requiresEvidence(record)?(en?'Required on every entry':'Υποχρεωτικό σε κάθε καταχώρηση'):(en?'Optional':'Προαιρετικό')},
+     {id:'source',label:en?'Created by':'Δημιουργία από',value:record.createdBy||sourceLabel,meta:record.createdBy?sourceLabel:''},
+     {id:'updated',label:en?'Last changed by':'Τελευταία αλλαγή από',value:record.updatedBy},
+     {id:'instructions',label:en?'Instructions':'Οδηγίες',value:record.description||(en?'No instructions.':'Δεν υπάρχουν οδηγίες.'),className:'is-wide'},
+     {id:'deviation',label:en?'Actions on deviation':'Ενέργειες σε απόκλιση',value:deviationActions(record),className:'is-wide',hidden:!deviationActions(record)},
+    ]}/>
+   </section>
+   <section className="control-record-departments">
+    <SectionHeader title={en?'Departments':'Τμήματα'} subtitle={`${assignments.length} ${en?(assignments.length===1?'department':'departments'):(assignments.length===1?'τμήμα':'τμήματα')}`}/>
+    <RegistryTable
+     className="control-ov-department-table"
+     columns={[{key:'department',label:en?'Department':'Τμήμα'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'next',label:en?'Next entry':'Επόμενη καταχώρηση'},{key:'last',label:en?'Last entry':'Τελευταία καταχώρηση'},{key:'action',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-ov-action-col'}]}
+     rows={assignments}
+     rowKey={row=>row.department}
+     emptyTitle={en?'No departments':'Δεν υπάρχουν τμήματα'}
+     renderRow={({department:dep,assignment:current})=>{const state=assignmentStatus(record,dep),draft=Boolean(current?.hasDraft),allowed=canExecuteDepartment(dep);return <tr className={`control-ov-department ${state}`}>
       <td><strong>{dep}</strong></td>
       <td><div className="control-status-stack">{draft&&<span className="status-badge temporary">{en?'Draft':'Προσωρινή'}</span>}<span className={`status-badge ${state==='overdue'?'danger':state==='dueSoon'?'warning':'active'}`}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</span></div></td>
       <td className={state==='overdue'?'control-ov-late':''}>{fmt(current?.nextDueAt)}</td>
       <td>{fmt(current?.lastCompletedAt)}</td>
       <td className="control-ov-action-col">{allowed&&<ActionButton label={draft?(en?'Continue draft entry':'Συνέχιση προσωρινής καταχώρησης'):(en?'Record control':'Καταχώρηση ελέγχου')} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(dep)}&execute=1`)}><PlayCircle size={15}/><span>{draft?(en?'Continue':'Συνέχιση'):(en?'Record':'Καταχώρηση')}</span></ActionButton>}</td>
-     </tr>})}</tbody>
-    </table>
-    </div>
+     </tr>}}
+    />
    </section>
   </div>}
-  {tab==='history'&&<div className="workspace-column workspace-fill control-history-section"><section className="surface registry-workspace workspace-fill workspace-column control-history-workspace"><RegistryTable
+  {currentTab==='expiry'&&expiryControl&&<ControlExpiryPanel actorName={actor.name} sources={[{record,departments:visibleDepartments}]} canRemove={(_,dep)=>canExecuteDepartment(dep)} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} language={language} locale={locale}/>}
+  {currentTab==='history'&&<RecordTabPanel className="control-history-panel workspace-fill" title={en?'Executions':'Εκτελέσεις'} subtitle={historyRows.length?`${historyRows.length.toLocaleString(locale)} ${en?(historyRows.length===1?'entry':'entries'):(historyRows.length===1?'καταχώρηση':'καταχωρήσεις')}`:''} footer={historyRows.length>0&&<RegistryPagination language={language} page={historySafePage} totalPages={historyTotalPages} totalItems={historyRows.length} pageSize={historyPageSize} onPageChange={setHistoryPage} onPageSizeChange={size=>{setHistoryPageSize(size);setHistoryPage(1)}}/>}><RegistryTable
     wrapperClassName="scroll-table"
     className="control-history-table"
     columns={[{key:'at',label:en?'Date / time':'Ημερομηνία / ώρα'},{key:'department',label:en?'Department':'Τμήμα'},{key:'result',label:en?'Result':'Αποτέλεσμα'},{key:'by',label:en?'Recorded by':'Καταχώρησε'},{key:'notes',label:en?'Notes':'Σημειώσεις'},{key:'actions',label:'',className:'control-history-menu-col'}]}
     rows={pagedHistory}
     rowKey={h=>h.id}
+    emptyTitle={en?'No executions yet':'Δεν υπάρχουν ακόμη εκτελέσεις'}
+    emptyText={en?'Entries appear here once the control is recorded.':'Οι καταχωρήσεις εμφανίζονται εδώ μόλις καταχωρηθεί ο έλεγχος.'}
     rowProps={h=>({className:h.status==='cancelled'?'control-history-cancelled':''})}
     renderRow={h=>{const deleted=isDeletedExecution(h);return <><td><strong>{fmt(h.at)}</strong>{h.editedAt&&<small>{en?'Edited':'Επεξεργάστηκε'} {fmt(h.editedAt)}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')} {fmt(h.cancelledAt)}</small>}</td><td>{h.department}</td><td>{h.status==='cancelled'?<span className="status-badge danger">{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')}</span>:<>{structuredSummary(h)}<ControlEvidenceLinks evidence={h.evidence} language={language}/></>}</td><td><strong>{h.by||'—'}</strong><small>{h.email||''}</small>{h.editedBy&&<small>{en?'Last change':'Τελευταία αλλαγή'}: {h.editedBy}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted by':'Διαγραφή από'):(en?'Voided by':'Αναίρεση')}: {h.cancelledBy||'—'}</small>}</td><td>{h.status==='cancelled'?cancellationText(h):(h.notes||'—')}</td><td className="open-record-cell control-history-menu-col"><OverflowMenu items={historyActions(h)} label={en?'Entry actions':'Ενέργειες καταχώρησης'} align="end"/></td></>}}
-  />{!historyRows.length&&<div className="registry-empty-state"><strong>{en?'No executions yet':'Δεν υπάρχουν ακόμη εκτελέσεις'}</strong></div>}{historyRows.length>0&&<RegistryPagination language={language} page={historySafePage} totalPages={historyTotalPages} totalItems={historyRows.length} pageSize={historyPageSize} onPageChange={setHistoryPage} onPageSizeChange={size=>{setHistoryPageSize(size);setHistoryPage(1)}}/>}</section></div>}
+  /></RecordTabPanel>}
  </EntityRecordShell>
  {editOpen&&<ControlEditor initial={record} departmentOnly={editsOwnDepartmentOnly} fixedDepartment={editsOwnDepartmentOnly?(record.createdForDepartment||visibleDepartments[0]||''):''} onCancel={()=>setEditOpen(false)} onSave={saveDefinition}/>} 
  {editExecution&&<ControlExecutionModal organizationId={tenant.id} record={record} department={editExecution.department||department} initialExecution={editExecution} onClose={()=>setEditExecution(null)} onSave={editExistingExecution}/>} 
@@ -191,4 +213,3 @@ export function ControlRecordPage(){
  </Page>
 }
 
-function D({l,v}){return <div><dt>{l}</dt><dd>{v}</dd></div>}

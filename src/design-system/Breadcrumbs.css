@@ -1,0 +1,6 @@
+/* Path of a nested view inside a record (Section › Item). */
+.lo-breadcrumbs ol{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:0;padding:0;list-style:none}
+.lo-breadcrumbs li{display:inline-flex;align-items:center;gap:4px;min-width:0;color:var(--lo-color-muted,#6f8294);font-size:10.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase}
+.lo-breadcrumbs button{padding:0;border:0;background:none;font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--lo-color-primary,#1e627f);cursor:pointer}
+.lo-breadcrumbs button:hover{text-decoration:underline}
+.lo-breadcrumbs button:focus-visible{outline:2px solid color-mix(in srgb,var(--lo-color-primary,#1e627f) 40%,transparent);outline-offset:2px;border-radius:3px}

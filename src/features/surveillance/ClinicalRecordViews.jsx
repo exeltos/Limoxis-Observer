@@ -1,3 +1,4 @@
+import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { sampleTone } from './patientRecordScope'
 import {
   Activity,
@@ -42,7 +43,7 @@ export function TagList({ title, items = [], rows = [], t, language }) {
   if (!items?.length) return null
   return (
     <>
-      <h4>{title}</h4>
+      <span className="lo-field-label tag-list-label">{title}</span>
       <div className="tag-row">
         {items.map(x => (
           <span className="clinical-tag" key={x}>
@@ -55,69 +56,26 @@ export function TagList({ title, items = [], rows = [], t, language }) {
 }
 // `title`/`subtitle` replace the surveillance heading (an admission without surveillance).
 export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) {
-  const rows = [...(record?.timeline || [])].sort(
-    (a, b) => new Date(b.at || 0) - new Date(a.at || 0),
-  )
+  const tr = key => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
+  const events = [...(record?.timeline || [])]
+    .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
+    .map(x => ({
+      at: x.at,
+      title: timelineLabel(x.type, language, t),
+      detail: x.detail ? clinicalValueLabel(x.detail, language, t) : null,
+      meta: [
+        (x.actor || x.actorId) && `${tr('user')}: ${x.actor || x.actorId}`,
+        x.sampleId && `${tr('sample')}: ${x.sampleId}`,
+      ],
+    }))
   return (
-    <section className="record-section patient-history-section">
-      <div className="record-section-header">
-        <div>
-          <h3>
-            {title ||
-              translate(
-                'copy.clinicalRecordCopy.surveillanceHistory',
-                language === 'el' ? 'el' : 'en',
-              )}
-          </h3>
-          <p>
-            {subtitle ||
-              translate(
-                'copy.clinicalRecordCopy.chronologicalAuditTrailOfClinicalActions',
-                language === 'el' ? 'el' : 'en',
-              )}
-          </p>
-        </div>
-      </div>
-      {rows.length ? (
-        <div className="patient-history-list">
-          {rows.map((x, i) => (
-            <article className="patient-history-event" key={`${x.at || 'event'}-${i}`}>
-              <div className="history-rail">
-                <span />
-              </div>
-              <div className="history-event-main">
-                <div className="history-event-heading">
-                  <strong>{timelineLabel(x.type, language, t)}</strong>
-                  <time>{fmtDateTime(x.at)}</time>
-                </div>
-                {x.detail && <p>{clinicalValueLabel(x.detail, language, t)}</p>}
-                <div className="history-event-meta">
-                  {(x.actor || x.actorId) && (
-                    <span>
-                      {translate('copy.clinicalRecordCopy.user', language === 'el' ? 'el' : 'en')}:{' '}
-                      {x.actor || x.actorId}
-                    </span>
-                  )}
-                  {x.sampleId && (
-                    <span>
-                      {translate('copy.clinicalRecordCopy.sample', language === 'el' ? 'el' : 'en')}
-                      : {x.sampleId}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="inline-empty">
-          {translate(
-            'copy.clinicalRecordCopy.noRecordedEventsYet',
-            language === 'el' ? 'el' : 'en',
-          )}
-        </div>
-      )}
-    </section>
+    <HistoryTimeline
+      title={title || tr('surveillanceHistory')}
+      subtitle={subtitle || tr('chronologicalAuditTrailOfClinicalActions')}
+      events={events}
+      when={fmtDateTime}
+      emptyText={tr('noRecordedEventsYet')}
+    />
   )
 }
 export function CompletedReport({

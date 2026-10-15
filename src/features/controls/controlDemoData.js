@@ -42,7 +42,14 @@ const definition2={
  updated_at:iso(-24*6),
 }
 
-const definition3={...definition2,id:'ctrl-def-expiry',code:'CTRL-DEMO-0003',title:'Έλεγχος λήξεων φαρμάκων και υλικών',category:'Λήξεις',description:'Περιοδικός έλεγχος λήξεων φαρμάκων και αναλωσίμων.',response_config:{mode:'choice',options:['Χωρίς εύρημα','Κοντόληκτο','Ληγμένο'],label:'Εύρημα',__meta:{titleEn:'Medication and supply expiry check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control'}},frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
+// The ten items the demo expiry check goes through, with expiry dates around
+// today so the list shows items that expire soon and a couple already expired.
+function demoExpiryCatalogue(){
+ const on=days=>{const d=new Date();d.setDate(d.getDate()+days);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+ return [['Adrenaline 1mg/ml',10,'ampoule',-6,''],['Atropine 0.5mg/ml',6,'ampoule',12,''],['Amiodarone 150mg/3ml',4,'ampoule',75,''],['Φυσιολογικός ορός 0,9% 500ml',24,'bottle',160,''],['Ηπαρίνη 5.000 IU/ml',8,'vial',25,'Στο ψυγείο'],['Midazolam 5mg/ml',5,'ampoule',-2,'Ελεγχόμενο'],['Παρακεταμόλη 500mg',40,'tablet',210,''],['Σύριγγες 10ml',120,'piece',400,''],['Χλωρεξιδίνη 2% διάλυμα',12,'flacon',48,''],['Naloxone 0.4mg/ml',3,'ampoule',19,'Τροχήλατο ανάνηψης']]
+  .map(([item,quantity,form,days,note],index)=>({id:`cat-demo-${index+1}`,item,quantity:String(quantity),form,expiry:on(days),note,departments:[]}))
+}
+const definition3={...definition2,id:'ctrl-def-expiry',code:'CTRL-DEMO-0003',title:'Έλεγχος λήξεων φαρμάκων και υλικών',category:'Λήξεις',description:'Περιοδικός έλεγχος λήξεων φαρμάκων και αναλωσίμων.',response_config:{mode:'list',template:'medication_expiry',label:'Ευρήματα',expiryBeforeDays:30,expiryAfterDays:7,expiryCatalogue:demoExpiryCatalogue(),__meta:{titleEn:'Medication and supply expiry check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control'}},frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
 export const controlDefinitionRows=[definition1,definition2,definition3]
 
 const assignment1={
@@ -193,14 +200,25 @@ controlAssignmentRows.push(...programmeAssignments.map(([assignment])=>assignmen
 programmeAssignments.push([assignment3,definition2,'Χειρουργική','Νίκος Δημητρίου',7,17],[assignment5,definition2,'ΤΕΠ','Ανδρέας Μάρκου',7,9],[assignment4,definition3,'Παθολογική','Νίκος Δημητρίου',30,25])
 const FINDING_VALUE={[definition2.id]:['Μη συμμόρφωση','Υπολείμματα σε επιφάνειες υψηλής επαφής.'],[definition3.id]:['Κοντόληκτο','Κοντόληκτα υλικά αποσύρθηκαν και ενημερώθηκε το φαρμακείο.']}
 const OK_VALUE={[definition2.id]:'Συμμορφώνεται',[definition3.id]:'Χωρίς εύρημα'}
+// The medicines and supplies each ward listed at its latest expiry check:
+// dates relative to today, so some expire soon and a few have already expired.
+const dayFromNow=days=>{const d=new Date();d.setDate(d.getDate()+days);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+const EXPIRY_STOCK=[['Adrenaline 1mg/ml',10,'AD2291'],['Atropine 0.5mg/ml',6,'AT1170'],['Amiodarone 150mg/3ml',4,'AM8812'],['Φυσιολογικός ορός 0,9% 500ml',24,'NS4410'],['Ηπαρίνη 5.000 IU/ml',8,'HP3307'],['Midazolam 5mg/ml',5,'MZ6620'],['Σύριγγες 10ml',120,'SY0912'],['Ουροκαθετήρας Foley 14Fr',15,'FL1402'],['Χλωρεξιδίνη 2% διάλυμα',12,'CH2205'],['Naloxone 0.4mg/ml',3,'NX0418']]
+const expiryRows=seed=>{
+ const rand=seededRandom(`expiry|${seed}`)
+ const offsets=[-12,-3,5,11,19,26,48,95,160,240]
+ return EXPIRY_STOCK.map(([item,quantity,lot],index)=>({item,quantity:String(quantity),lot,expiry:dayFromNow(offsets[(index+Math.floor(rand()*offsets.length))%offsets.length]),finding:'',findingOther:''}))
+  .slice(0,5+Math.floor(rand()*4))
+}
 for(const [assignment,definition,department,actorName,interval,firstDay] of programmeAssignments){
  const rand=seededRandom(`controls|${assignment.id}`)
  const lastDay=Math.round((Date.now()-new Date(assignment.last_completed_at).getTime())/86_400_000)
  for(let day=firstDay??lastDay;day<=364;day+=interval){
   const finding=rand()<(definition.id===definition3.id?0.16:0.09)
-  controlExecutionRows.push({id:`ctrl-exec-${assignment.id}-y${day}`,assignment_id:assignment.id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,status:'completed',value_text:finding?FINDING_VALUE[definition.id][0]:OK_VALUE[definition.id],response_data:{structuredData:null,actorName,actorEmail:'',previousLastCompletedAt:iso(-24*(day+interval)-3),previousNextDueAt:iso(-24*day-3)},notes:finding?FINDING_VALUE[definition.id][1]:'',has_finding:finding,performed_at:iso(-24*day-3),performed_by:'',edited_at:null,edited_by:null,cancelled_at:null,cancelled_by:null,cancellation_reason:''})
+  const stock=definition.id===definition3.id&&day===(firstDay??lastDay)?{rows:expiryRows(assignment.id)}:null
+  controlExecutionRows.push({id:`ctrl-exec-${assignment.id}-y${day}`,assignment_id:assignment.id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,status:'completed',value_text:finding?FINDING_VALUE[definition.id][0]:OK_VALUE[definition.id],response_data:{structuredData:stock,actorName,actorEmail:'',previousLastCompletedAt:iso(-24*(day+interval)-3),previousNextDueAt:iso(-24*day-3)},notes:finding?FINDING_VALUE[definition.id][1]:'',has_finding:finding,performed_at:iso(-24*day-3),performed_by:'',edited_at:null,edited_by:null,cancelled_at:null,cancelled_by:null,cancellation_reason:''})
  }
 }
 
-export const controlDraftRows=[{id:'ctrl-draft-expiry-1',assignment_id:assignment4.id,control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',status:'draft',value_text:'Κοντόληκτο',response_data:{structuredData:{items:[{name:'Adrenaline 1mg/ml',quantity:6,expiry:'2026-10-15',finding:'Κοντόληκτο'}]},actorName:'Demo User'},notes:'Σε εξέλιξη ο έλεγχος ραφιού.',has_finding:true,performed_at:null}]
+export const controlDraftRows=[{id:'ctrl-draft-expiry-1',assignment_id:assignment4.id,control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',status:'draft',value_text:'Κοντόληκτο',response_data:{structuredData:{rows:[{item:'Adrenaline 1mg/ml',quantity:'6',lot:'AD2291',expiry:'2026-10-15',finding:'Κοντόληκτο',findingOther:''}]},actorName:'Demo User'},notes:'Σε εξέλιξη ο έλεγχος ραφιού.',has_finding:true,performed_at:null}]
 

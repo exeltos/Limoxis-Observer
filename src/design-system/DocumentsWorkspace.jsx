@@ -15,7 +15,7 @@ export function DocumentsWorkspace({
   onChange=()=>{},
 }){
   return <div className="record-section documents-workspace">
-    {(title||subtitle)&&<div className="record-section-header"><div>{title&&<h3>{title}</h3>}{subtitle&&<p>{subtitle}</p>}</div></div>}
+    {(title||subtitle)&&<div className="record-section-header lo-section-header"><div>{title&&<h3>{title}</h3>}{subtitle&&<p>{subtitle}</p>}</div></div>}
     <AttachmentField
       disabled={disabled}
       value={value}

@@ -173,7 +173,7 @@
 /* ===== SOURCE: my-profile.css ===== */.my-profile-hero{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:20px}.my-profile-avatar,.my-profile-employee-icon,.my-profile-unlinked-icon{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:44px;height:44px;border-radius:14px;background:var(--lo-color-surface-soft,#f6f8fb);color:var(--lo-color-primary)}.my-profile-avatar{font-size:13px;font-weight:800;letter-spacing:.04em}.my-profile-identity{min-width:0}.my-profile-identity>span{display:block;margin-bottom:4px;color:var(--lo-color-muted);font-size:10px;font-weight:800;letter-spacing:.08em}.my-profile-identity h2{margin:0;font-size:20px;line-height:1.25}.my-profile-identity p{margin:4px 0 0;color:var(--lo-color-text-muted);font-size:12px;overflow-wrap:anywhere}.my-profile-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.my-profile-hero .my-profile-grid{grid-column:1/-1;width:100%;margin-top:8px}.my-profile-account-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.my-profile-value{min-width:0;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}.my-profile-value-label{display:flex;align-items:center;gap:7px;margin-bottom:6px;color:var(--lo-color-muted);font-size:10px;font-weight:800;letter-spacing:.025em;text-transform:uppercase}.my-profile-value strong{display:block;min-width:0;color:var(--lo-color-text);font-size:13px;line-height:1.4;overflow-wrap:anywhere}.my-profile-unlinked,.my-profile-tab-state{display:flex;align-items:flex-start;gap:14px;padding:16px;border:1px solid var(--lo-color-border);border-radius:14px;background:var(--lo-color-surface-soft,#f6f8fb)}.my-profile-unlinked-icon{width:40px;height:40px;font-size:11px;font-weight:800}@media(max-width:1050px){.my-profile-summary-grid,.my-profile-account-grid,.my-profile-employee-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.my-profile-hero{grid-template-columns:auto 1fr;padding:15px}.my-profile-hero>.status-badge{grid-column:2;justify-self:start}.my-profile-account-grid,.my-profile-summary-grid,.my-profile-employee-facts{grid-template-columns:1fr}}
 
 /* ===== SOURCE: control-editor-fullscreen.css ===== */
-.control-editor-page{max-width:none!important;width:100%!important}.control-create-shell{min-height:0}.control-create-form{display:flex;flex-direction:column;gap:0;padding:0!important;overflow:auto}.control-form-block{padding:16px 18px;border-bottom:1px solid #e6ebf0;background:#fff}.control-form-block-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}.control-form-block-title strong{font-size:13px;color:#26394e}.control-form-block-title span{font-size:10.5px;color:#8794a3}.control-entry-grid{gap:10px 12px}.control-form-split{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #e6ebf0}.control-form-split>.control-form-block{border-bottom:0}.control-form-split>.control-form-block:first-child{border-right:1px solid #e6ebf0}.control-create-form label{display:flex;flex-direction:column;gap:5px}.control-create-form label>span{font-size:11px;font-weight:650;color:#34475c}.control-create-form input,.control-create-form select,.control-create-form textarea,.control-dept-search input{width:100%;border:1px solid #d7dee7;border-radius:9px;background:#fff;color:#33495f;outline:0}.control-create-form input,.control-create-form select{height:38px;padding:0 10px;font-size:12px}.control-create-form textarea{padding:9px 10px;resize:vertical;min-height:74px;font-size:12px;line-height:1.45}.control-create-form input:focus,.control-create-form select:focus,.control-create-form textarea:focus,.control-dept-search input:focus{border-color:#79a8cc;box-shadow:0 0 0 3px rgba(31,111,169,.08)}.control-inline-limits{display:grid;grid-template-columns:1fr 1fr;gap:8px}.control-schedule-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(130px,.6fr);gap:10px}.control-times-compact{margin-top:10px}.control-times-compact-title{display:flex;align-items:center;gap:7px;margin-bottom:7px;color:#405a73;font-size:11px;font-weight:750}.control-time-grid{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}.control-time-field{width:170px;gap:4px!important}.control-time-field .field-label{font-size:9.5px!important;font-weight:700!important;color:#66778a!important}.control-time-field .time-field-control{position:relative;display:flex;align-items:center;height:36px;border:1px solid #d7dee7;border-radius:8px;background:#fff;overflow:hidden}.control-time-field .time-field-control input{width:100%;height:100%;padding:0 32px 0 9px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-size:11.5px!important;color:#33495f!important;appearance:none;-webkit-appearance:none}.control-time-field .time-field-control input::-webkit-calendar-picker-indicator{opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer}.control-time-field .time-field-control>svg{position:absolute;right:9px;pointer-events:none;color:#5d7891}.control-dept-search{display:flex;align-items:center;gap:8px;margin-bottom:9px;color:#738296}.control-dept-search input{height:36px;padding:0 10px;font-size:11.5px}.control-department-picker{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-height:145px;overflow:auto;padding-right:2px}.check-option{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;min-height:34px;padding:6px 9px;border:1px solid #e4e9ef;border-radius:8px;background:#fff;font-size:11px;color:#526376}.check-option input{width:auto!important;height:auto!important}.check-option.selected{background:#eef5fa;border-color:#c9ddea;color:#194a74}.control-guidance-block textarea{min-height:68px}@media(max-width:1100px){.control-form-split{grid-template-columns:1fr}.control-form-split>.control-form-block:first-child{border-right:0;border-bottom:1px solid #e6ebf0}.control-department-picker{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.control-editor-page{max-width:none!important;width:100%!important}.control-create-shell{min-height:0}.control-create-form{display:flex;flex-direction:column;gap:0;padding:0!important;overflow:auto}.control-form-block{padding:16px 18px;border-bottom:1px solid #e6ebf0;background:#fff}.control-form-block-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}.control-form-block-title strong{font-size:13px;color:#26394e}.control-form-block-title span{font-size:10.5px;color:#8794a3}.control-entry-grid{gap:10px 12px}.control-form-split{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #e6ebf0}.control-form-split>.control-form-block{border-bottom:0}.control-form-split>.control-form-block:first-child{border-right:1px solid #e6ebf0}.control-create-form label{display:flex;flex-direction:column;gap:5px}.control-create-form label>span{font-size:11px;font-weight:650;color:#34475c}.control-create-form input,.control-create-form select,.control-create-form textarea,.control-dept-search input{width:100%;border:1px solid #d7dee7;border-radius:9px;background:#fff;color:#33495f;outline:0}.control-create-form input,.control-create-form select{height:38px;padding:0 10px;font-size:12px}.control-create-form textarea{padding:9px 10px;resize:vertical;min-height:74px;font-size:12px;line-height:1.45}.control-create-form input:focus,.control-create-form select:focus,.control-create-form textarea:focus,.control-dept-search input:focus{border-color:#79a8cc;box-shadow:0 0 0 3px rgba(31,111,169,.08)}.control-inline-limits{display:grid;grid-template-columns:1fr 1fr;gap:8px}.control-schedule-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(130px,.6fr);gap:10px}.control-times-compact{margin-top:10px}.control-times-compact-title{display:flex;align-items:center;gap:7px;margin-bottom:7px;color:#405a73;font-size:11px;font-weight:750}.control-time-grid{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}.control-time-field{width:170px;gap:4px!important}.control-time-field .field-label{font-size:9.5px!important;font-weight:700!important;color:#66778a!important}.control-time-field .time-field-control{position:relative;display:flex;align-items:center;height:36px;border:1px solid #d7dee7;border-radius:8px;background:#fff;overflow:hidden}.control-time-field .time-field-control input{width:100%;height:100%;padding:0 32px 0 9px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-size:11.5px!important;color:#33495f!important;appearance:none;-webkit-appearance:none}.control-time-field .time-field-control input::-webkit-calendar-picker-indicator{opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer}.control-time-field .time-field-control>svg{position:absolute;right:9px;pointer-events:none;color:#5d7891}.check-option{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;min-height:34px;padding:6px 9px;border:1px solid #e4e9ef;border-radius:8px;background:#fff;font-size:11px;color:#526376}.check-option input{width:auto!important;height:auto!important}.check-option.selected{background:#eef5fa;border-color:#c9ddea;color:#194a74}.control-guidance-block textarea{min-height:68px}@media(max-width:1100px){.control-form-split{grid-template-columns:1fr}.control-form-split>.control-form-block:first-child{border-right:0;border-bottom:1px solid #e6ebf0}}
 
 /* WHO Hand Hygiene editor uses the application workspace instead of a centered modal.
    Sidebar and top header stay visible; only the main content area is replaced. */
@@ -990,11 +990,7 @@
 
 /* Execution history uses the same embedded-registry geometry as the rest of the app. */
 .control-record-shell.record-secondary-tab-active>.entity-record-body{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important}
-.control-record-shell.record-secondary-tab-active .control-history-section{display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;max-width:none!important;height:100%!important;min-height:0!important;overflow:hidden!important;padding:0!important;margin:0!important;box-sizing:border-box!important}
-.control-record-shell.record-secondary-tab-active .control-history-workspace{display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;max-width:none!important;height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:hidden!important}
-.control-record-shell.record-secondary-tab-active .control-history-workspace>.scroll-table{width:100%!important;max-width:none!important;flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:auto!important}
 .control-record-shell.record-secondary-tab-active .control-history-table{width:100%!important;min-width:100%!important;max-width:none!important}
-.control-record-shell.record-secondary-tab-active .control-history-workspace>.registry-pagination{flex:0 0 auto!important;margin-top:auto!important}
 .control-record-shell .control-history-menu-col{width:52px!important;min-width:52px!important;max-width:52px!important;text-align:center!important;padding-left:6px!important;padding-right:8px!important}
 .control-record-shell .control-history-menu-col .lo-overflow-menu{display:flex;justify-content:center;align-items:center}
 .control-record-shell .control-history-menu-col .lo-icon-button{width:30px!important;height:30px!important;min-width:30px!important;border:0!important;border-radius:8px!important;background:transparent!important;box-shadow:none!important}
@@ -1291,19 +1287,6 @@
 .bulk-screening-types > span,
 .bulk-surveillance-entry .field > span,
 .employee-surveillance-entry .field > span{color:var(--lo-color-muted)!important;font-size:11px!important;font-weight:700!important}
-.screening-choice-list{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
-.screening-choice-list .button{min-height:38px!important;padding:0 13px!important}
-.screening-choice-list .button.selected,
-.screening-choice-list .button[aria-pressed='true']{border-color:color-mix(in srgb,var(--lo-status-success-fg) 32%,var(--lo-color-border))!important;background:var(--lo-status-success-bg)!important;color:var(--lo-status-success-fg)!important}
-.bulk-employee-list{min-height:220px!important;max-height:360px!important;overflow:auto!important;border:1px solid var(--lo-color-border)!important;border-radius:12px!important;background:var(--lo-color-surface)!important}
-.bulk-list-head{position:sticky!important;top:0!important;z-index:2!important;min-height:56px!important;padding:8px 12px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;border-bottom:1px solid var(--lo-color-border)!important;background:var(--lo-shell-control-hover)!important}
-.bulk-employee-list > label{min-height:54px!important;padding:9px 12px!important;display:flex!important;align-items:center!important;gap:12px!important;border-bottom:1px solid var(--lo-color-border)!important;cursor:pointer!important}
-.bulk-employee-list > label:last-child{border-bottom:0!important}
-.bulk-employee-list > label:hover{background:color-mix(in srgb,var(--lo-color-primary) 3%,var(--lo-color-surface))!important}
-.bulk-employee-list > label.selected{background:var(--lo-status-info-bg)!important}
-.bulk-employee-list > label input{width:17px!important;height:17px!important;margin:0!important}
-.bulk-employee-list > label span{display:grid!important;gap:2px!important}
-.bulk-employee-list > label small{color:var(--lo-color-muted)!important}
 .bulk-notes{display:grid!important;gap:6px!important;margin-top:14px!important}
 .bulk-notes textarea{width:100%!important;min-height:92px!important}
 
@@ -1512,23 +1495,6 @@
   background:#fff4f4!important;
   box-shadow:inset 0 0 0 1px #c98b8b!important;
 }
-.prevention-record-shell .who-action-check{
-  flex:0 0 auto!important;
-  width:20px!important;
-  height:20px!important;
-  display:grid!important;
-  place-items:center!important;
-  border:1px solid #9db2c0!important;
-  border-radius:5px!important;
-  background:#fff!important;
-  color:#fff!important;
-  font-size:12px!important;
-  font-weight:900!important;
-}
-.prevention-record-shell .who-action-option.selected .who-action-check{
-  border-color:#2f8ca5!important;
-  background:#2f8ca5!important;
-}
 .prevention-record-shell .who-action-option>span:last-child{
   min-width:0!important;
   display:grid!important;
@@ -1546,47 +1512,6 @@
 }
 
 /* Plain, borderless glove control below the action cards. */
-.prevention-record-shell .who-gloves-toggle{
-  grid-row:3!important;
-  justify-self:start!important;
-  display:inline-flex!important;
-  align-items:center!important;
-  gap:8px!important;
-  min-height:28px!important;
-  margin:2px 0 0!important;
-  padding:0!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  cursor:pointer!important;
-  white-space:nowrap!important;
-}
-.prevention-record-shell .who-gloves-toggle:hover,
-.prevention-record-shell .who-gloves-toggle.selected{
-  border:0!important;
-  background:transparent!important;
-}
-.prevention-record-shell .who-gloves-toggle>input{
-  width:17px!important;
-  height:17px!important;
-  margin:0!important;
-  accent-color:var(--lo-color-primary,#237fa0)!important;
-}
-.prevention-record-shell .who-gloves-toggle>span{
-  display:flex!important;
-  align-items:baseline!important;
-  gap:6px!important;
-}
-.prevention-record-shell .who-gloves-toggle strong{
-  color:#35566d!important;
-  font-size:11px!important;
-  font-weight:800!important;
-}
-.prevention-record-shell .who-gloves-toggle small{
-  color:#607280!important;
-  font-size:10px!important;
-}
 
 /* Summary sits after data entry, not as a floating visual interruption. */
 .prevention-record-shell .who-live-summary{
@@ -1821,19 +1746,6 @@
 }
 
 /* Current selection is a compact command row, not another large card. */
-.prevention-record-shell .who-current-preview{
-  width:100%!important;
-  margin:12px 0 0!important;
-  padding:10px 0 0!important;
-  border:0!important;
-  border-top:1px solid #e7edf1!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-}
-.prevention-record-shell .who-current-preview .action-button{
-  min-width:170px!important;
-}
 
 /* Insight rail: wider, readable KPI geometry. */
 .prevention-record-shell .who-insight-rail{
@@ -1938,26 +1850,10 @@
 
 /* ===== SOURCE: prevention-who-record-refinement.css ===== */
 /* WHO saved-record dashboard — purpose-built read-only layout. */
-.prevention-record-shell .who-record-workspace{
-  width:100%!important;
-  min-width:0!important;
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr) 330px!important;
-  grid-template-areas:
-    "session summary"
-    "list summary"!important;
-  gap:16px!important;
-  align-items:start!important;
-}
 
 /* Observation context card */
 
 /* Main opportunity stream */
-.prevention-record-shell .who-record-saved-list{
-  grid-area:list!important;
-  gap:10px!important;
-}
-html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:"Opportunities"}
 
 /* Professional facts */
 
@@ -1966,65 +1862,6 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 /* Gloves + notes footer */
 
 /* Right dashboard rail */
-.prevention-record-shell .who-record-workspace>.who-live-summary{
-  grid-area:summary!important;
-  position:sticky!important;
-  top:10px!important;
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:0!important;
-  min-width:0!important;
-  margin:0!important;
-  padding:0!important;
-  overflow:hidden!important;
-  border:1px solid #dce5ec!important;
-  border-radius:14px!important;
-  background:#fff!important;
-  box-shadow:0 1px 3px rgba(22,50,74,.035)!important;
-}
-.prevention-record-shell .who-record-workspace>.who-live-summary>div{
-  min-height:72px!important;
-  display:grid!important;
-  align-content:center!important;
-  justify-items:center!important;
-  gap:4px!important;
-  padding:10px 12px!important;
-  border-right:1px solid #edf2f5!important;
-  border-bottom:1px solid #edf2f5!important;
-  background:#fff!important;
-  text-align:center!important;
-}
-.prevention-record-shell .who-record-workspace>.who-live-summary>div:nth-child(even){border-right:0!important}
-.prevention-record-shell .who-record-workspace>.who-live-summary span{
-  color:#7e91a1!important;
-  font-size:9.5px!important;
-  font-weight:780!important;
-}
-.prevention-record-shell .who-record-workspace>.who-live-summary strong{
-  color:#24445c!important;
-  font-size:22px!important;
-  line-height:1!important;
-  font-weight:900!important;
-}
-
-@media(max-width:1120px){
-  .prevention-record-shell .who-record-workspace{
-    grid-template-columns:1fr!important;
-    grid-template-areas:"session" "summary" "list"!important;
-  }
-  .prevention-record-shell .who-record-workspace>.who-live-summary{
-    position:static!important;
-    grid-template-columns:repeat(6,minmax(0,1fr))!important;
-  }
-  .prevention-record-shell .who-record-workspace>.who-live-summary>div,
-  .prevention-record-shell .who-record-workspace>.who-live-summary>div:nth-child(even){border-right:1px solid #edf2f5!important;border-bottom:0!important}
-  .prevention-record-shell .who-record-workspace>.who-live-summary>div:nth-child(6){border-right:0!important}
-}
-
-@media(max-width:820px){
-  .prevention-record-shell .who-record-workspace>.who-live-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-  .prevention-record-shell .who-record-workspace>.who-live-summary>div:nth-child(3n){border-right:0!important}
-}
 
 
 /* ===== SOURCE: prevention-waste-refinement.css ===== */
@@ -2062,25 +1899,14 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .prevention-record-shell .waste-library-source:hover{border-color:#aac4d2!important;background:#f3f8fa!important}
 .prevention-record-shell .waste-library-source.applied{border-color:#b9dcc8!important;background:#eef8f2!important;color:#2b6f4b!important}
 .prevention-record-shell .waste-source-note{margin-top:10px!important;padding-top:10px!important;border-top:1px solid #edf1f4!important;color:#7b8e9e!important;font-size:9.5px!important}
-.prevention-record-shell .waste-smart-actor{margin:0!important;padding:14px 16px!important;border:1px solid #e1e8ed!important;border-radius:11px!important;background:#fafbfd!important;display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;column-gap:14px!important;align-items:center!important}
-.prevention-record-shell .waste-smart-actor>span{grid-row:1 / span 2!important;align-self:center!important}
-.prevention-record-shell .waste-smart-actor strong,.prevention-record-shell .waste-smart-actor small{min-width:0!important;margin:0!important}
 .prevention-record-shell .waste-smart-editor>.prevention-editor-page-actions{margin-top:14px!important;padding-top:14px!important;background:transparent!important;border-top:1px solid #e5ebf0!important}
 
 /* Saved waste record — result dashboard, not a disabled form. */
 .prevention-record-shell .waste-record-view{display:grid!important;gap:16px!important;width:100%!important;min-width:0!important}
-.prevention-record-shell .waste-record-primary,.prevention-record-shell .waste-record-card,.prevention-record-shell .waste-record-audit{border:1px solid #dce5ec!important;border-radius:14px!important;background:#fff!important;box-sizing:border-box!important}
-.prevention-record-shell .waste-record-primary{overflow:hidden!important}
-.prevention-record-shell .waste-record-context{display:grid!important;grid-template-columns:1fr 1fr 1.5fr!important}.prevention-record-shell .waste-record-context>div{min-width:0!important;display:flex!important;align-items:center!important;gap:10px!important;border-right:1px solid #edf1f4!important}.prevention-record-shell .waste-record-context>div:last-child{border-right:0!important}.prevention-record-shell .waste-record-context svg,.prevention-record-shell .waste-record-context-icon{color:#47788f!important}.prevention-record-shell .waste-record-context>div>span:not(.waste-record-context-icon){min-width:0!important;display:grid!important;gap:3px!important}.prevention-record-shell .waste-record-context small{color:#8091a0!important;font-size:9.5px!important;font-weight:750!important;text-transform:uppercase!important}.prevention-record-shell .waste-record-context strong{color:#2a455a!important;font-size:11.5px!important;font-weight:800!important;white-space:normal!important}
-.prevention-record-shell .waste-record-kpis{display:grid!important}.prevention-record-shell .waste-record-kpis>div{display:grid!important;align-content:center!important;gap:6px!important;border-right:1px solid #edf1f4!important}.prevention-record-shell .waste-record-kpis>div:last-child{border-right:0!important}.prevention-record-shell .waste-record-kpis svg,.prevention-record-shell .waste-kpi-symbol{color:#5f8798!important}.prevention-record-shell .waste-record-kpis span{color:#7b8e9d!important;font-size:9.5px!important;font-weight:750!important}.prevention-record-shell .waste-record-kpis strong{color:#28475c!important;font-weight:850!important;line-height:1.05!important}.prevention-record-shell .waste-record-kpis strong small{font-size:10px!important;font-weight:750!important}.prevention-record-shell .waste-record-kpis .primary{background:#fbfdfe!important}.prevention-record-shell .waste-record-kpis .indicator{background:#f1f8fa!important}.prevention-record-shell .waste-record-kpis .indicator strong{color:#176f7e!important}
-.prevention-record-shell .waste-record-columns{display:grid!important;gap:16px!important}.prevention-record-shell .waste-record-card{padding:17px 18px!important}.prevention-record-shell .waste-record-card-title{display:flex!important;align-items:center!important;gap:9px!important;margin-bottom:15px!important;padding-bottom:11px!important;border-bottom:1px solid #edf1f4!important;color:#335f75!important}.prevention-record-shell .waste-record-card-title strong{color:#28445a!important;font-size:12px!important;font-weight:850!important}
-.prevention-record-shell .waste-record-detail-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:0!important;border:1px solid #edf1f4!important;border-radius:10px!important;overflow:hidden!important}.prevention-record-shell .waste-record-detail-grid>div{min-height:70px!important;display:flex!important;align-items:center!important;gap:9px!important;padding:12px 14px!important;border-right:1px solid #edf1f4!important;border-bottom:1px solid #edf1f4!important}.prevention-record-shell .waste-record-detail-grid>div:nth-child(even){border-right:0!important}.prevention-record-shell .waste-record-detail-grid>div:nth-last-child(-n+2){border-bottom:0!important}.prevention-record-shell .waste-record-detail-grid>div>span,.prevention-record-shell .waste-record-detail-grid>div:not(:has(>span)){display:grid!important;gap:4px!important}.prevention-record-shell .waste-record-detail-grid small{color:#8091a0!important;font-size:9.5px!important;font-weight:750!important}.prevention-record-shell .waste-record-detail-grid strong{color:#314b60!important;font-size:11.5px!important;font-weight:800!important;overflow-wrap:anywhere!important}.prevention-record-shell .waste-record-detail-grid svg{color:#63889a!important;flex:0 0 auto!important}
-.prevention-record-shell .waste-record-note-card p{min-height:94px!important;margin:0!important;padding:14px!important;border:1px solid #edf1f4!important;border-radius:10px!important;background:#fafcfd!important;color:#50687a!important;font-size:11.5px!important;line-height:1.55!important;white-space:pre-wrap!important}
-.prevention-record-shell .waste-record-audit{display:flex!important;flex-wrap:wrap!important;gap:0!important;overflow:hidden!important}.prevention-record-shell .waste-record-audit>div{min-width:220px!important;display:grid!important;gap:4px!important;padding:12px 16px!important;border-right:1px solid #edf1f4!important}.prevention-record-shell .waste-record-audit small{color:#8293a1!important;font-size:9px!important;font-weight:750!important;text-transform:uppercase!important}.prevention-record-shell .waste-record-audit strong{color:#435d71!important;font-size:10.5px!important;font-weight:750!important}
 
-@media(max-width:1280px){.prevention-record-shell .waste-smart-layout{grid-template-columns:minmax(0,1fr) 350px!important}.prevention-record-shell .waste-record-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}.prevention-record-shell .waste-record-kpis>div:nth-child(2){border-right:0!important}.prevention-record-shell .waste-record-kpis>div:nth-child(-n+2){border-bottom:1px solid #edf1f4!important}}
-@media(max-width:980px){.prevention-record-shell .waste-smart-layout{grid-template-columns:1fr!important}.prevention-record-shell .waste-smart-rail{position:static!important;order:-1!important}.prevention-record-shell .waste-record-context{grid-template-columns:1fr 1fr!important}.prevention-record-shell .waste-record-context .waste-record-category{grid-column:1 / -1!important;border-top:1px solid #edf1f4!important}.prevention-record-shell .waste-record-columns{grid-template-columns:1fr!important}}
-@media(max-width:640px){.prevention-record-shell .waste-smart-measurement-grid{grid-template-columns:1fr!important}.prevention-record-shell .waste-smart-measurement-grid>*{grid-column:1!important}.prevention-record-shell .waste-smart-section,.prevention-record-shell .waste-smart-indicator{padding:16px!important}.prevention-record-shell .waste-record-context,.prevention-record-shell .waste-record-kpis,.prevention-record-shell .waste-record-detail-grid{grid-template-columns:1fr!important}.prevention-record-shell .waste-record-context>div,.prevention-record-shell .waste-record-kpis>div,.prevention-record-shell .waste-record-detail-grid>div{border-right:0!important;border-bottom:1px solid #edf1f4!important}.prevention-record-shell .waste-record-detail-grid>div:last-child,.prevention-record-shell .waste-record-kpis>div:last-child{border-bottom:0!important}}
+@media(max-width:1280px){.prevention-record-shell .waste-smart-layout{grid-template-columns:minmax(0,1fr) 350px!important}}
+@media(max-width:980px){.prevention-record-shell .waste-smart-layout{grid-template-columns:1fr!important}.prevention-record-shell .waste-smart-rail{position:static!important;order:-1!important}}
+@media(max-width:640px){.prevention-record-shell .waste-smart-measurement-grid{grid-template-columns:1fr!important}.prevention-record-shell .waste-smart-measurement-grid>*{grid-column:1!important}.prevention-record-shell .waste-smart-section,.prevention-record-shell .waste-smart-indicator{padding:16px!important}}
 
 
 /* ===== SOURCE: prevention-antiseptic-refinement.css ===== */
@@ -2091,8 +1917,6 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .prevention-record-shell .antiseptic-trace-grid>div{display:grid;gap:6px;border-right:1px solid #edf1f4;min-width:0}
 .prevention-record-shell .antiseptic-trace-grid>div:last-child{border-right:0}
 .prevention-record-shell .antiseptic-trace-grid strong{color:#314b60;font-size:11.5px;font-weight:750;overflow-wrap:anywhere}
-.prevention-record-shell .record-note-card{border:1px solid var(--lo-color-border,#dce5ec);background:#fff;box-sizing:border-box}
-.prevention-record-shell .record-note-card p{margin:8px 0 0;color:#435d71;font-size:11.5px;line-height:1.55;white-space:pre-wrap}
 
 /* Antiseptic consumption editor — modal workspace only */
 .observer-dialog.antiseptic-entry-card .observer-dialog-body{padding:18px 20px!important}
@@ -2154,7 +1978,6 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 
 /* ===== SOURCE: prevention-antiseptic-v2.css ===== */
 .prevention-record-shell .antiseptic-trace-grid>div{padding:12px 18px!important}
-.prevention-record-shell .record-note-card{margin-top:12px!important;padding:13px 18px!important;border-radius:14px!important}
 
 .prevention-record-shell .antiseptic-page-editor{padding-bottom:0!important;gap:12px!important}
 .prevention-record-shell .antiseptic-page-editor>.prevention-entry-actor{min-height:48px!important;padding:8px 12px!important}
@@ -2523,9 +2346,6 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .prevention-record-shell .bundle-record-finding{border-bottom:1px solid #e7edf2!important}
 .prevention-record-shell .bundle-record-finding strong{font-size:11px!important;color:#6f403c!important}
 .prevention-record-shell .bundle-record-finding span{font-size:10px!important;color:#7d5a55!important;line-height:1.45!important}
-.prevention-record-shell .bundle-record-view>.record-note-card{padding-top:2px!important}
-.prevention-record-shell .bundle-record-view>.record-note-card>span{display:block!important;padding-bottom:7px!important;color:#5f7487!important;font-size:9.5px!important;font-weight:800!important;text-transform:uppercase!important}
-.prevention-record-shell .bundle-record-view>.record-note-card p{margin:0!important;padding:11px 0!important;border-top:1px solid #e7edf2!important;color:#435d71!important;font-size:11px!important;line-height:1.5!important}
 
 @media(max-width:1000px){.prevention-record-shell .bundle-page-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.prevention-record-shell .bundle-page-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.prevention-record-shell .bundle-page-summary>span:nth-child(3){border-right:0}.prevention-record-shell .bundle-page-summary>span:nth-child(n+4){border-top:1px solid #edf1f4}.prevention-record-shell .bundle-record-meta{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:760px){.prevention-record-shell .bundle-page-grid{grid-template-columns:1fr}.prevention-record-shell .bundle-page-checklist-head{align-items:flex-start;flex-direction:column}.prevention-record-shell .bundle-page-progress{text-align:left}.prevention-record-shell .bundle-page-row-main{grid-template-columns:30px minmax(0,1fr);gap:10px}.prevention-record-shell .bundle-page-answers{grid-column:1 / -1;margin-left:40px}.prevention-record-shell .bundle-page-deviation{padding-left:40px}.prevention-record-shell .bundle-page-summary{grid-template-columns:1fr 1fr}.prevention-record-shell .bundle-page-summary>span{border-top:1px solid #edf1f4}.prevention-record-shell .bundle-page-summary>span:nth-child(odd){border-right:1px solid #edf1f4}.prevention-record-shell .bundle-page-summary>span:nth-child(even){border-right:0}.prevention-record-shell .bundle-record-kpis,.prevention-record-shell .bundle-record-meta{grid-template-columns:1fr 1fr!important}.prevention-record-shell .bundle-detail-row{grid-template-columns:30px minmax(0,1fr)!important}.prevention-record-shell .bundle-detail-answer{grid-column:2!important;justify-self:start!important}.prevention-record-shell .bundle-detail-row>small{grid-column:2!important}}
@@ -2645,8 +2465,6 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .who-panel-heading>div{display:flex;flex-direction:column;gap:3px;min-width:0}
 .who-panel-heading strong{font-size:13px;color:#26394e}
 .who-panel-heading small{font-size:10.5px;line-height:1.45;color:var(--muted)}
-.who-session-ready,.who-step-badge{display:inline-flex;align-items:center;white-space:nowrap;border:1px solid #dce4eb;background:#f5f7fa;color:#62707d;border-radius:999px;padding:5px 8px;font-size:9.5px;font-weight:750}
-.who-session-ready.ready{background:#edf7f1;border-color:#d0e9da;color:#28704b}
 .who-session-strip{display:grid;grid-template-columns:1.05fr 1.3fr 1.35fr .72fr .72fr;gap:10px;margin-top:11px;align-items:end}
 .who-session-strip label{display:flex;flex-direction:column;gap:5px;min-width:0}
 .who-session-strip label>span,.who-smart-builder label>span{font-size:10.5px;font-weight:700;color:#5c7083}
@@ -2673,14 +2491,9 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .who-smart-actions .who-action-option:hover{border-color:#b8cad8;background:#fff}
 .who-smart-actions .who-action-option.selected{border-color:#6aa18a;background:#eef8f3;box-shadow:0 0 0 2px rgba(51,126,92,.07);color:#245f46}
 .who-smart-actions .who-action-option.selected.danger{border-color:#d69696;background:#fff2f2;color:#9c4248}
-.who-action-check{display:grid;place-items:center;width:21px;height:21px;border:1px solid #cfd9e2;border-radius:6px;background:#fff;font-size:11px;font-weight:850}
-.who-action-option.selected .who-action-check{border-color:currentColor;background:currentColor;color:#fff}
 .who-action-option>span:last-child{display:flex;flex-direction:column;gap:2px}.who-action-option strong{font-size:10.5px}.who-action-option small{font-size:9.3px;color:var(--muted)}
 .who-smart-gloves{width:100%;box-sizing:border-box;margin-top:8px;min-height:46px;border:1px solid #dfe6ec;border-radius:10px;background:#fbfcfd;padding:9px 11px;display:flex!important;flex-direction:row!important;align-items:center;gap:9px!important;cursor:pointer}
 .who-smart-gloves.checked{border-color:#8cacc2;background:#f1f7fb}.who-smart-gloves input{width:16px!important;height:16px!important;min-height:16px!important;padding:0!important}.who-smart-gloves>span{display:flex;flex-direction:row;align-items:baseline;gap:7px}.who-smart-gloves strong{font-size:10.5px;color:#3f5569}.who-smart-gloves small{font-size:9.3px;color:var(--muted)}
-.who-smart-note{display:flex;flex-direction:column;gap:5px;margin-top:11px}
-.who-current-preview{margin-top:12px;border-top:1px solid #e7edf2;padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:14px;background:transparent}
-.who-current-preview>div{display:flex;flex-direction:column;gap:3px;min-width:0}.who-current-preview small{font-size:9.2px;text-transform:uppercase;letter-spacing:.055em;color:#83909d;font-weight:800}.who-current-preview strong{font-size:11.5px;color:#314b63;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who-current-preview span{font-size:9.8px;color:#748494}
 .who-insight-rail{display:flex;flex-direction:column;gap:12px;position:sticky;top:78px;min-width:0}
 .who-smart-summary{padding:14px}
 .who-compliance-hero{margin-top:12px;padding:11px 12px;border-radius:11px;background:#f3f7fa;border:1px solid #e3eaf0}
@@ -2700,16 +2513,10 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .who-footer-buttons{display:flex;align-items:center;gap:8px}
 
 /* Read-only WHO record: summary-first presentation rather than a disabled editor. */
-.who-record-workspace{display:flex;flex-direction:column;gap:14px;min-height:0}
-.who-record-workspace>.who-live-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:0}
-.who-record-workspace>.who-live-summary>div{min-height:72px;border:1px solid #e2e9ef;border-radius:11px;background:#fff;padding:10px 12px;display:flex;flex-direction:column;justify-content:center;gap:5px}
-.who-record-workspace>.who-live-summary span{font-size:9.3px;font-weight:750;color:#7b8b99}
-.who-record-workspace>.who-live-summary strong{font-size:20px;line-height:1;color:#334d63;letter-spacing:-.02em}
-.who-record-saved-list{display:flex;flex-direction:column;gap:9px;min-height:0}
 
-@media(max-width:1280px){.who-smart-layout{grid-template-columns:minmax(0,1.45fr) minmax(320px,.74fr)}.who-moment-picker{grid-template-columns:repeat(3,minmax(0,1fr))}.who-session-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.who-session-strip>*:nth-child(4),.who-session-strip>*:nth-child(5){grid-column:auto}.who-record-workspace>.who-live-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1280px){.who-smart-layout{grid-template-columns:minmax(0,1.45fr) minmax(320px,.74fr)}.who-moment-picker{grid-template-columns:repeat(3,minmax(0,1fr))}.who-session-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.who-session-strip>*:nth-child(4),.who-session-strip>*:nth-child(5){grid-column:auto}}
 @media(max-width:980px){.who-smart-layout{grid-template-columns:1fr}.who-insight-rail{position:static}.who-moment-picker{grid-template-columns:repeat(5,minmax(0,1fr))}.who-opportunity-cards{max-height:260px}}
-@media(max-width:800px){.who-session-strip{grid-template-columns:1fr 1fr}.who-professional-row{grid-template-columns:1fr}.who-moment-picker{grid-template-columns:1fr 1fr}.who-smart-actions{grid-template-columns:1fr}.who-current-preview,.who-smart-footer{align-items:stretch;flex-direction:column}.who-footer-buttons{justify-content:flex-end}.who-smart-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.who-record-workspace>.who-live-summary{grid-template-columns:1fr 1fr}}
+@media(max-width:800px){.who-session-strip{grid-template-columns:1fr 1fr}.who-professional-row{grid-template-columns:1fr}.who-moment-picker{grid-template-columns:1fr 1fr}.who-smart-actions{grid-template-columns:1fr}.who-current-preview,.who-smart-footer{align-items:stretch;flex-direction:column}.who-footer-buttons{justify-content:flex-end}.who-smart-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 
 /* ===== FEATURE SOURCE: src/styles/management-users.css ===== */
@@ -2992,65 +2799,19 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 @media(max-width:900px){.platform-update-center-dialog{width:96vw!important;height:92vh!important}.platform-update-center-dialog .observer-dialog-body{grid-template-rows:auto minmax(0,1fr)!important;padding:14px!important}}
 
 /* WHO record detail — compact clinical review pattern */
-.who-record-compact{display:grid;gap:14px}
-.who-record-session-bar{display:grid;grid-template-columns:.75fr 1.6fr 1.15fr .8fr;border:1px solid var(--border-color,#dbe4ec);border-radius:14px;background:var(--surface,#fff);overflow:hidden}
-.who-record-session-bar>div{display:grid;gap:4px;padding:13px 16px;border-right:1px solid var(--border-color,#e5ebf0)}
-.who-record-session-bar>div:last-child{border-right:0}
-.who-record-session-bar span,.who-record-kpis span,.who-record-opportunity-row>div>span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.035em;color:var(--text-muted,#718399)}
-.who-record-kpis{display:grid;grid-template-columns:1.65fr repeat(5,1fr);border:1px solid var(--border-color,#dbe4ec);border-radius:14px;background:var(--surface,#fff);overflow:hidden}
-.who-record-kpis>div{display:grid;align-content:center;justify-items:center;gap:4px;min-height:88px;padding:12px;border-right:1px solid var(--border-color,#e5ebf0)}
-.who-record-kpis>div:last-child{border-right:0}.who-record-kpis strong{font-size:22px}.who-record-kpis small{color:var(--text-muted,#718399);font-size:11px}
-.who-record-kpis .who-record-compliance{justify-items:start;padding-left:18px;background:var(--surface-subtle,#f4f9fc)}
-.who-record-kpis .who-record-compliance strong{font-size:34px;line-height:1;color:var(--primary,#21739b)}
-.who-record-kpis .who-record-missed strong{color:#9d4b4b}
-.who-record-opportunities{border:1px solid var(--border-color,#dbe4ec);border-radius:14px;background:var(--surface,#fff);overflow:hidden}
-.who-record-list-heading{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border-color,#e5ebf0)}
-.who-record-list-heading h3{margin:3px 0 0}.who-record-list-heading>strong{display:grid;place-items:center;min-width:34px;height:30px;border-radius:9px;background:var(--surface-subtle,#f3f7fa)}
-.who-record-opportunity-row{display:grid;grid-template-columns:42px minmax(150px,.95fr) minmax(220px,1.5fr) minmax(175px,1fr) 80px minmax(120px,.8fr);align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border-color,#e5ebf0)}
-.who-record-opportunity-row:last-child{border-bottom:0}.who-record-opportunity-row>div:not(.who-record-opportunity-index){display:grid;gap:5px;min-width:0}
-.who-record-opportunity-index span{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--surface-subtle,#edf5f9);color:var(--primary,#21739b);font-weight:800}
-.who-record-moments>div{display:flex;flex-wrap:wrap;gap:5px}.who-record-moments b{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #cfe2ec;border-radius:8px;background:#f1f8fb;font-size:12px}
-.who-record-moments b i{display:grid;place-items:center;width:19px;height:19px;border-radius:6px;background:var(--primary,#21739b);color:#fff;font-style:normal;font-size:11px}
-.who-record-action strong{width:max-content;max-width:100%;padding:5px 8px;border-radius:8px;background:#edf8f2;color:#27734f}.who-record-action strong.missed{background:#fbefef;color:#9d4b4b}
-@media(max-width:1100px){.who-record-kpis{grid-template-columns:repeat(3,1fr)}.who-record-kpis>div{border-bottom:1px solid var(--border-color,#e5ebf0)}.who-record-opportunity-row{grid-template-columns:42px 1fr 1.5fr 1fr}.who-record-gloves,.who-record-note{grid-column:auto}}
-@media(max-width:760px){.who-record-session-bar{grid-template-columns:1fr 1fr}.who-record-session-bar>div{border-bottom:1px solid var(--border-color,#e5ebf0)}.who-record-kpis{grid-template-columns:1fr 1fr}.who-record-opportunity-row{grid-template-columns:36px 1fr}.who-record-moments,.who-record-action,.who-record-gloves,.who-record-note{grid-column:2}}
 
 /* WHO record detail — wide balanced layout refinement */
-.prevention-record-shell .who-record-compact{max-width:none!important}
-.prevention-record-shell .who-record-session-bar{grid-template-columns:.72fr 1.55fr 1.12fr .78fr}
-.prevention-record-shell .who-record-kpis{grid-template-columns:1.45fr repeat(5,minmax(92px,.72fr))}
-.prevention-record-shell .who-record-opportunities{max-width:none!important}
-.prevention-record-shell .who-record-opportunity-row{grid-template-columns:44px minmax(180px,1.05fr) minmax(270px,1.55fr) minmax(220px,1.2fr) minmax(80px,.48fr) minmax(150px,.8fr);gap:18px;padding:15px 20px;box-sizing:border-box!important}
-.prevention-record-shell .who-record-opportunity-row>div{align-self:center}
-.prevention-record-shell .who-record-profession strong,.prevention-record-shell .who-record-action strong,.prevention-record-shell .who-record-gloves strong,.prevention-record-shell .who-record-note strong{line-height:1.35}
-.prevention-record-shell .who-record-list-heading{padding:15px 20px}
 @media(min-width:1280px){
  .prevention-record-shell .prevention-record-card{padding-left:16px!important;padding-right:16px!important}
- .prevention-record-shell .who-record-workspace{display:grid!important;grid-template-columns:minmax(0,1fr)!important}
- .prevention-record-shell .who-record-session-bar,.prevention-record-shell .who-record-kpis,.prevention-record-shell .who-record-opportunities{grid-column:1/-1;width:100%!important}
 }
 
 /* Saved waste record — align with compact Prevention record pattern */
-.prevention-record-shell .waste-record-primary{display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(520px,1fr)!important;align-items:stretch!important}
-.prevention-record-shell .waste-record-context{grid-column:1!important;grid-row:1!important;border-bottom:0!important;border-right:1px solid #edf1f4!important}
-.prevention-record-shell .waste-record-kpis{grid-column:2!important;grid-row:1!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
-.prevention-record-shell .waste-record-kpis>div{min-height:102px!important;padding:13px 14px!important}
-.prevention-record-shell .waste-record-kpis strong{font-size:21px!important}
-.prevention-record-shell .waste-record-context>div{padding:14px 16px!important}
-.prevention-record-shell .waste-record-columns{grid-template-columns:minmax(0,1.65fr) minmax(300px,.72fr)!important}
-@media(max-width:1380px){
- .prevention-record-shell .waste-record-primary{grid-template-columns:1fr!important}
- .prevention-record-shell .waste-record-context{grid-column:1!important;grid-row:auto!important;border-right:0!important;border-bottom:1px solid #edf1f4!important}
- .prevention-record-shell .waste-record-kpis{grid-column:1!important;grid-row:auto!important}
-}
-@media(max-width:900px){.prevention-record-shell .waste-record-columns{grid-template-columns:1fr!important}}
 
 /* Prevention record viewport: keep shell/header fixed and scroll only the record content. */
 .prevention-record-shell.workspace-fill{height:100%!important;min-height:0!important;overflow:hidden!important}
 .prevention-record-shell.workspace-fill>.entity-record-body{min-height:0!important;overflow:hidden!important}
 
 /* Antiseptic detail — compact full-width summary, matching the WHO/Waste record rhythm. */
-.prevention-record-shell .record-note-card{grid-column:1!important;grid-row:auto!important}
 
 /* Antiseptic consumption detail — single canonical implementation. */
 .prevention-record-shell .antiseptic-detail{display:grid;gap:14px;width:100%;min-width:0}
@@ -3082,12 +2843,6 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 /* WHO saved record — fixed summary, full-width list, list rows are the only scroll area. */
 .prevention-record-shell.workspace-fill>.entity-record-body>.prevention-record-card{height:100%!important;min-height:0!important;overflow:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important}
 .prevention-record-shell .prevention-record-card:has(.who-record-compact){display:flex!important;flex-direction:column!important}
-.prevention-record-shell .who-record-compact{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;gap:14px!important;width:100%!important;min-width:0!important;min-height:0!important;overflow:hidden!important}
-.prevention-record-shell .who-record-session-bar,.prevention-record-shell .who-record-kpis{flex:0 0 auto!important;width:100%!important}
-.prevention-record-shell .who-record-opportunities{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;width:100%!important;min-width:0!important;min-height:0!important;overflow:hidden!important}
-.prevention-record-shell .who-record-list-heading{flex:0 0 auto!important;width:100%!important;background:var(--surface,#fff)!important}
-.prevention-record-shell .who-record-saved-list{display:block!important;flex:1 1 auto!important;width:100%!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important}
-.prevention-record-shell .who-record-opportunity-row{width:100%!important;margin:0!important}
 
 /* WHO is the only Prevention saved record with its own list scroller. */
 .prevention-record-shell.workspace-fill>.entity-record-body>.prevention-record-card:has(.who-record-compact){overflow:hidden!important}
@@ -3770,60 +3525,6 @@ button{letter-spacing:0}
 }
 
 /* Patient root: compact identity overview + admission registry. */
-.patient-home-layout{
-  display:flex!important;flex-direction:column!important;flex:1 1 auto!important;
-  gap:14px!important;
-}
-.patient-profile-card{
-  flex:0 0 auto!important;margin:0!important;padding:0!important;
-  border:1px solid #e1e8ee!important;border-radius:12px!important;background:#fff!important;
-  overflow:hidden!important;box-shadow:0 1px 2px rgba(27,58,84,.025)!important;
-}
-.patient-profile-card>.record-section-header{
-  align-items:center!important;margin:0!important;padding:11px 14px!important;
-  border-bottom:1px solid #e8edf2!important;background:#fff!important;
-}
-.patient-profile-card>.record-section-header h3{font-size:15px!important}
-.patient-profile-card>.record-section-header p{font-size:10px!important;margin-top:2px!important}
-.patient-profile-grid{
-  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  background:#fff!important;
-}
-.patient-profile-item{
-  min-width:0!important;min-height:58px!important;padding:10px 14px!important;
-  border-right:1px solid #edf1f4!important;border-bottom:1px solid #edf1f4!important;
-}
-.patient-profile-item:nth-child(4n){border-right:0!important}
-.patient-profile-item:nth-last-child(-n+4){border-bottom:0!important}
-.patient-profile-item span,.patient-profile-note>span{
-  display:block!important;margin-bottom:4px!important;color:#7b8b9b!important;
-  font-size:9px!important;font-weight:800!important;line-height:1.2!important;
-}
-.patient-profile-item strong{
-  display:block!important;color:#18364f!important;font-size:12px!important;font-weight:700!important;
-  line-height:1.3!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-}
-.patient-profile-note{padding:10px 14px!important;border-top:1px solid #edf1f4!important;background:#fbfcfd!important}
-.patient-profile-note p{margin:0!important;color:#40556a!important;font-size:11px!important;line-height:1.4!important}
-.patient-admissions-section{
-  display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;
-  overflow:hidden!important;padding:0!important;border:1px solid #e1e8ee!important;border-radius:12px!important;
-  background:#fff!important;box-shadow:0 1px 2px rgba(27,58,84,.025)!important;
-}
-.patient-admissions-section>.record-section-header{
-  flex:0 0 auto!important;align-items:center!important;margin:0!important;padding:11px 14px!important;
-  border-bottom:1px solid #e8edf2!important;background:#fff!important;
-}
-.patient-admissions-section>.record-section-header h3{font-size:15px!important}
-.patient-admissions-section>.record-section-header p{margin-top:2px!important;color:#8391a0!important;font-size:10px!important}
-.patient-admissions-table-wrap{display:block!important;flex:1 1 auto!important;height:100%!important;min-height:0!important;overflow:auto!important;border:0!important;border-radius:0!important;background:#fff!important}
-.patient-admissions-table{width:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
-.patient-admissions-table th{position:sticky!important;top:0!important;z-index:1!important;height:38px!important;padding:0 14px!important;background:#f7f9fb!important;color:#718397!important;font-size:9px!important;font-weight:800!important;text-transform:uppercase!important;border-bottom:1px solid #e1e8ee!important}
-.patient-admissions-table td{height:50px!important;padding:8px 14px!important;border-bottom:1px solid #edf1f4!important;color:#40556a!important;font-size:11px!important;vertical-align:middle!important}
-.patient-admissions-table tbody tr:last-child td{border-bottom:0!important}
-.patient-admissions-table .clickable-row{cursor:pointer!important;transition:background .15s ease!important}
-.patient-admissions-table .clickable-row:hover,.patient-admissions-table .clickable-row:focus{background:#f4f9fc!important;outline:none!important}
-.patient-admissions-table .clickable-row:focus-visible{box-shadow:inset 3px 0 0 #2f8fba!important}
 
 /* Summary: compact record overview; the shell header already owns identity and admission context. */
 .clean-patient-summary{display:grid!important;gap:12px!important;align-content:start!important}
@@ -3843,7 +3544,7 @@ button{letter-spacing:0}
   display:block!important;margin:0 0 5px!important;color:#7b8b9b!important;font-size:9.5px!important;font-weight:800!important;line-height:1.2!important;
 }
 .clean-patient-summary .detail-item>strong{font-size:13px!important;color:#18364f!important;font-weight:700!important}
-.clean-patient-summary .detail-item .summary-detail-note{display:block!important;margin-top:3px!important;color:#4a6274!important;font-size:11.5px!important;font-weight:500!important;line-height:1.4!important}
+.clean-patient-summary .detail-item .summary-detail-note{display:block!important;margin-top:3px!important;color:#4a6274!important;font-size:11.5px!important;font-weight:500!important;line-height:1.4!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 
 /* Surveillance tab: samples -> episodes -> selected surveillance journey. */
 .patient-surveillance-clean{
@@ -3961,16 +3662,11 @@ button{letter-spacing:0}
 
 @media(max-width:1050px){
   .patient-profile-grid,.clean-patient-summary .patient-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .patient-profile-item:nth-child(2n){border-right:0!important}
-  .patient-profile-item:nth-last-child(-n+2){border-bottom:0!important}
   .patient-surveillance-clean .journey-guidance-items{grid-template-columns:1fr!important}
 }
 @media(max-width:680px){
   .patient-record-shell{--pr-pad-x:12px;--pr-pad-y:12px}
   .patient-profile-grid,.clean-patient-summary .patient-detail-grid,.clinical-snapshot-strip{grid-template-columns:1fr!important}
-  .patient-profile-item{border-right:0!important;border-bottom:1px solid #e8edf2!important}
-  .patient-profile-item:last-child{border-bottom:0!important}
-  .patient-admissions-section>.record-section-header{align-items:flex-start!important;flex-wrap:wrap!important}
   .patient-surveillance-clean{padding:10px!important}
   .patient-surveillance-clean>.record-section>.record-section-header{align-items:flex-start!important;flex-wrap:wrap!important}
 }
@@ -4034,10 +3730,10 @@ button{letter-spacing:0}
 .new-surveillance-flow-card .entry-span-2{grid-column:1/-1!important}
 .new-surveillance-flow-card input,.new-surveillance-flow-card select{min-height:46px!important;padding:9px 12px!important}
 .new-surveillance-flow-card textarea{min-height:96px!important;padding:11px 12px!important}
-.new-surveillance-flow-card .flow-context-field{min-height:46px!important;padding:7px 12px!important;border:1px solid #dce6ed!important;border-radius:9px!important;background:#f5f8fa!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
-.new-surveillance-flow-card .flow-context-field>span{font-size:10.5px!important;font-weight:750!important;color:#526d82!important}
-.new-surveillance-flow-card .flow-context-field>strong{font-size:12px!important;color:#173a55!important;margin-top:2px!important}
-.new-surveillance-flow-card .flow-context-field>small{font-size:9.5px!important;color:#7b91a2!important;margin-top:2px!important}
+.flow-context-field{min-height:46px!important;padding:7px 12px!important;border:1px solid #dce6ed!important;border-radius:9px!important;background:#f5f8fa!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
+.flow-context-field>span{font-size:10.5px!important;font-weight:750!important;color:#526d82!important}
+.flow-context-field>strong{font-size:12px!important;color:#173a55!important;margin-top:2px!important}
+.flow-context-field>small{font-size:9.5px!important;color:#7b91a2!important;margin-top:2px!important}
 .new-surveillance-flow-card .clinical-check-grid{gap:18px!important;margin-top:16px!important}
 .new-surveillance-flow-card .custom-clinical-add{gap:18px!important;margin-top:14px!important}
 .new-surveillance-flow-card .episode-detail-actions{padding-left:12px!important;overflow:visible!important;white-space:nowrap!important}
@@ -4071,9 +3767,6 @@ button{letter-spacing:0}
 /* Column layout so the body scrolls once the form (e.g. with "New patient")
    is taller than the screen; the grid version let the body grow and the
    card clipped the bottom fields and buttons. */
-.episode-detail-card.new-surveillance-flow-card.new-surveillance-start-card{width:min(1100px,calc(100vw - 32px))!important;height:auto!important;max-height:calc(100vh - 32px)!important;display:flex!important;flex-direction:column!important}
-.episode-detail-card.new-surveillance-flow-card.new-surveillance-start-card>.episode-detail-header{flex:0 0 auto!important}
-.episode-detail-card.new-surveillance-flow-card.new-surveillance-start-card>.episode-detail-scroll{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;padding-bottom:16px!important}
 
 /* Patient record small dialogs (discharge, transfer, admission, edit
    surveillance): labels were inheriting right alignment in a 3-column grid. */
@@ -4106,7 +3799,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .patient-record-shell .documents-workspace>.record-section-header{padding:0 0 7px!important;margin:0 0 18px!important}
 .patient-record-shell .documents-workspace .attachment-field{padding:12px 13px!important;border:1px dashed #ced9e3!important;border-radius:11px!important;background:#fbfcfd!important}
 /* History and Surveillance & Samples tabs: the same inset card as Documents. */
-.patient-record-shell>.entity-record-body>.record-section.patient-history-section{width:calc(100% - 26px)!important;margin:13px!important;height:auto!important;align-self:start!important}
 .patient-record-shell>.entity-record-body>.patient-surveillance-clean{padding:13px!important}
 
 /* ==== surveillance-workflow-preview ==== */
@@ -4292,8 +3984,8 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .committee-linked-documents a:hover{background:var(--lo-color-surface-subtle,#f5f8fa)}
 
 /* Clinical assessments tab: same header as the other record tabs (title + one-line notes). */
-.clinical-assessment-registry>.section-toolbar{align-items:flex-start;padding:16px 20px 12px;margin:0;border-bottom:1px solid #edf1f4}
-.clinical-assessment-registry>.section-toolbar h3{margin:0;font-size:17px;font-weight:800;line-height:1.2}
+
+
 .clinical-assessment-registry>.section-toolbar .entry-detail-note{display:block;margin:4px 0 0;font-size:11px;line-height:1.4;color:#64748b}
 
 /* Indicator record: the period result first (value, evidence, target, status). */
@@ -4306,3 +3998,15 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .indicator-result-cards .indicator-result-value strong{font-size:26px;line-height:1.1;color:#0b6097}
 .indicator-result-cards small{font-size:11px;color:#64748b}
 @media(max-width:780px){.indicator-result-cards{grid-template-columns:1fr 1fr}.indicator-result-cards>div:nth-child(2){border-right:0}.indicator-result-cards>div:nth-child(-n+2){border-bottom:1px solid #edf1f4}}
+/* In-place edit of the patient details: four columns like the read-only sheet,
+   notes across the row, so the form fits without scrolling. */
+.patient-details-editor{padding:6px 2px 0}
+.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px 14px!important;padding:0!important}
+.patient-details-editor .patient-entry-grid-wide>.entry-span-2{grid-column:1/-1!important}
+.patient-details-editor .patient-entry-grid-wide textarea{min-height:64px!important;height:64px}
+@media(max-width:1100px){.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+/* Admission picker under the patient name: a compact text menu button. */
+.entity-record-context{margin-top:2px;line-height:0}
+.entity-record-shell>.entity-record-header:has(.entity-record-context):is(.surface,#lo-record-header){padding-top:6px!important;padding-bottom:6px!important}
+.entity-record-context .admission-picker .lo-overflow-text-trigger:is(.button,#lo-admission-picker){height:22px!important;min-height:22px!important;padding:0 7px!important;gap:5px!important;border-radius:6px!important;font-size:11px!important;font-weight:650!important;line-height:1!important;color:#31526c!important}
+.admission-picker-count{min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;border-radius:8px;background:#e6eef5;color:#24476a;font-size:10px;font-style:normal;font-weight:750}

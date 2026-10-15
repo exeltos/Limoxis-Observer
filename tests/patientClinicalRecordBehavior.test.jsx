@@ -48,12 +48,13 @@ const openSurveillance = async () => {
 }
 const openPatient = async (id = 'PT-260190') => {
   await openRecord(`/patients/${id}`)
-  await screen.findByRole('button', { name: /Νέα νοσηλεία/ })
+  await screen.findByText('Στοιχεία ασθενούς & νοσηλείας')
 }
-const openAdmission = async () => {
-  await openPatient()
-  fireEvent.click(document.querySelector('main tbody tr, tbody tr'))
-  await screen.findByRole('tab', { name: /Σύνοψη/ })
+// The patient record opens straight on the active (else the latest) admission.
+const openAdmission = openPatient
+const patientMenu = () => {
+  fireEvent.click(screen.getByRole('button', { name: /Ενέργειες ασθενούς/ }))
+  return screen.getAllByRole('menuitem').map(item => item.textContent.trim())
 }
 const openTab = async name => fireEvent.click(await screen.findByRole('tab', { name: new RegExp(name) }))
 const openEpisode = async (title = 'Λοίμωξη αιματικής ροής') => {
@@ -81,13 +82,13 @@ afterEach(async () => {
 describe('patient profile', () => {
   it('shows surname and first name as separate fields, with a neonate age in days and birth data', async () => {
     await openPatient()
-    const sheet = screen.getByText('Στοιχεία ασθενούς').closest('section, article, div.record-section') || document.body
+    const sheet = screen.getByText('Στοιχεία ασθενούς & νοσηλείας').closest('section, article, div.record-section') || document.body
     expect(within(sheet).getByText('Επώνυμο')).toBeInTheDocument()
     expect(within(sheet).getByText('Ιωαννίδη')).toBeInTheDocument()
     expect(within(sheet).getByText('Όνομα')).toBeInTheDocument()
     expect(within(sheet).getByText('Νεογέννητο')).toBeInTheDocument()
     expect(screen.queryByText('Ονοματεπώνυμο')).not.toBeInTheDocument()
-    expect(within(sheet).getByText(/ημέρες/)).toBeInTheDocument()
+    expect(within(sheet).getByText(/ · \d+ ημέρες/)).toBeInTheDocument()
     expect(within(sheet).getByText('980 g')).toBeInTheDocument()
     expect(within(sheet).getByText(/27 εβδ/)).toBeInTheDocument()
   })
@@ -106,29 +107,51 @@ describe('patient profile', () => {
 })
 
 describe('admissions', () => {
-  it('lists admissions with their surveillance count and transfer/discharge actions, without record tabs', async () => {
+  it('opens on the active admission, with transfer and discharge in the patient «…» menu', async () => {
     await openPatient()
-    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
-    const row = document.querySelector('tbody tr')
-    expect(row).toHaveTextContent('1 επιτήρηση')
-    expect(row).toHaveTextContent('1 ενεργή')
-    fireEvent.click(within(row).getByRole('button', { name: /Ενέργειες νοσηλείας/ }))
-    expect(screen.getByRole('menuitem', { name: /Μεταφορά σε άλλο τμήμα/ })).toBeInTheDocument()
-    expect(screen.getByRole('menuitem', { name: /Εξιτήριο/ })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Σύνοψη/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Εξιτήριο/ })).not.toBeInTheDocument()
+    const items = patientMenu()
+    expect(items).toEqual(expect.arrayContaining(['Επεξεργασία ασθενούς', 'Μεταφορά σε άλλο τμήμα', 'Εξιτήριο', 'Διαγραφή ασθενούς']))
+    expect(items).not.toContain('Νέα νοσηλεία')
   })
 
-  it('offers the demo departments in the active language when admitting', async () => {
-    await openPatient()
-    fireEvent.click(screen.getByRole('button', { name: /Νέα νοσηλεία/ }))
-    const department = within(screen.getByRole('dialog')).getAllByRole('combobox').find(select => optionsOf(select).includes('ΜΕΘ'))
-    expect(department).toBeDefined()
+  it('shows the admissions under the patient name and readmits a discharged patient', async () => {
+    await openPatient('PT-260082')
+    expect(patientMenu()).not.toContain('Νέα νοσηλεία')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.click(screen.getByRole('button', { name: /Νοσηλείες ασθενούς/ }))
+    expect(screen.getAllByRole('menuitem')[0]).toHaveAttribute('aria-current', 'true')
+    fireEvent.click(screen.getByRole('menuitem', { name: /Νέα νοσηλεία/ }))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).queryByText('Εξιτήριο τρέχουσας νοσηλείας')).not.toBeInTheDocument()
+    expect(within(dialog).getAllByRole('combobox').some(select => optionsOf(select).includes('ΜΕΘ'))).toBe(true)
     cleanup()
     await loadLanguage('en')
-    localStorage.setItem('limoxis.language', JSON.stringify('en'))
     localStorage.setItem('limoxis.language', 'en')
-    await openRecord('/patients/PT-260190')
-    fireEvent.click(await screen.findByRole('button', { name: /New admission/ }))
+    await openRecord('/patients/PT-260082')
+    fireEvent.click(await screen.findByRole('button', { name: /Patient admissions/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /New admission/ }))
     expect(within(screen.getByRole('dialog')).getAllByRole('combobox').some(select => optionsOf(select).includes('ICU'))).toBe(true)
+  })
+
+  it('discharges the active admission first when a new one is added', async () => {
+    await openPatient('PT-260184')
+    fireEvent.click(screen.getByRole('button', { name: /Νοσηλείες ασθενούς/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Νέα νοσηλεία/ }))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText(/θα πάρει πρώτα εξιτήριο από την τρέχουσα νοσηλεία \(ΜΕΘ\)/)).toBeInTheDocument()
+    const save = within(dialog).getByRole('button', { name: /Αποθήκευση/ })
+    expect(save).toBeDisabled()
+    const department = within(dialog).getAllByRole('combobox').find(select => optionsOf(select).includes('ΜΕΘ'))
+    fireEvent.change(department, { target: { value: department.querySelectorAll('option')[1].value } })
+    await waitFor(() => expect(save).toBeEnabled())
+    fireEvent.click(save)
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /Νοσηλείες ασθενούς/ }))
+    const rows = screen.getAllByRole('menuitem').map(item => item.textContent)
+    expect(rows.filter(text => /Ενεργός|Ενεργή/.test(text))).toHaveLength(1)
+    expect(rows.some(text => /Εξιτήριο/.test(text))).toBe(true)
   })
 
   it('opens one canonical tab structure for an admission, including clinical scales', async () => {
@@ -155,8 +178,8 @@ describe('admissions', () => {
     await openAdmission()
     await openTab('Επιτήρηση & Δείγματα')
     fireEvent.click(screen.getByRole('button', { name: /Έναρξη νέας επιτήρησης/ }))
-    const flow = await screen.findByRole('dialog', { name: '' }).catch(() => document.querySelector('.new-surveillance-flow-overlay'))
-    expect(flow).toHaveClass('new-surveillance-flow-overlay')
+    const flow = await screen.findByRole('dialog', { name: 'Επιτήρηση ασθενούς' })
+    expect(flow).toHaveClass('observer-dialog')
     expect(within(flow).getByText('Νεογέννητο Ιωαννίδη · PT-260190')).toBeInTheDocument()
     expect(within(flow).getByText('Από την ενεργή νοσηλεία')).toBeInTheDocument()
   })
@@ -183,7 +206,6 @@ describe('surveillance tree and samples', () => {
     const unlinked = { ...structuredClone(laboratorySamples.find(sample => sample.id === 'LAB-260827-001')), surveillanceCase: null, ast: [], critical: false, resistance: null, organism: null }
     laboratorySamples.unshift({ ...unlinked, id: 'LAB-NEG-1', result: 'negative' }, { ...unlinked, id: 'LAB-POS-1', result: 'positive', organism: 'Escherichia coli' })
     await openPatient('PT-260184')
-    fireEvent.click(document.querySelector('tbody tr'))
     await openTab('Επιτήρηση & Δείγματα')
     const negative = within(body()).getByText(/LAB-NEG-1/).closest('.sv-sample')
     expect(negative.querySelector('.sample-negative-note')).toHaveAttribute('title', 'Ένα αρνητικό αποτέλεσμα δεν μπορεί να ξεκινήσει επιτήρηση.')
@@ -304,6 +326,13 @@ describe('clinical data and documents', () => {
     expect(screen.getAllByText('Κλινική βελτίωση').length).toBeGreaterThan(0)
     expect(screen.queryByText('infection')).not.toBeInTheDocument()
     expect(screen.queryByText('clinicalImprovement')).not.toBeInTheDocument()
+  })
+
+  it('lets documents be added to an admission without a surveillance', async () => {
+    await openPatient('PT-260082')
+    await openTab('Έγγραφα')
+    expect(within(body()).getByText('Επισυνάψεις')).toBeInTheDocument()
+    expect(within(body()).getByRole('button', { name: /Προσθήκη επισύναψης/ })).toBeInTheDocument()
   })
 
   it('keeps documents added in demo with the surveillance', async () => {

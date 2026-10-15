@@ -1,3 +1,4 @@
+import { SectionHeader } from '../../design-system/SectionHeader'
 import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
@@ -8,7 +9,7 @@ import {
   FlaskConical,
   LockKeyhole,
   Microscope,
-  Paperclip,
+  FolderOpen,
   Pencil,
   PhoneCall,
   PlayCircle,
@@ -144,7 +145,7 @@ export function LaboratorySampleRecordFunctionalView() {
     () => [
       { id: 'sample', label: t('laboratoryRecords.sample'), icon: FlaskConical },
       { id: 'result', label: t('laboratoryRecords.microbiologyResult'), icon: Microscope },
-      { id: 'attachments', label: t('attachments'), icon: Paperclip },
+      { id: 'attachments', label: t('documents'), icon: FolderOpen },
       { id: 'history', label: t('history'), icon: FileClock },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -440,15 +441,7 @@ export function LaboratorySampleRecordFunctionalView() {
             />
             {astRequired && (
               <section className="lab-record-card lab-ast-card">
-                <div className="record-section-header">
-                  <div>
-                    <span className="eyebrow">{tx('organisms')}</span>
-                    <h3>
-                      <ShieldAlert size={15} />{' '}
-                      {language === 'el' ? 'Αντιβιόγραμμα και AMR' : 'AST and AMR'}
-                    </h3>
-                  </div>
-                </div>
+                <SectionHeader title={language === 'el' ? 'Αντιβιόγραμμα και AMR' : 'AST and AMR'} />
                 {organisms.map(name => {
                   const tagged = ast.filter(row => row.organism === name)
                   const current = amr.filter(row => row.organism === name).slice(-1)[0] || null
@@ -542,7 +535,9 @@ export function LaboratorySampleRecordFunctionalView() {
                             ) : (
                               <tr>
                                 <td colSpan="5" className="lab-table-empty">
-                                  {tx('noAst')}
+                                  <div className="inline-empty" role="status">
+                                    <strong>{tx('noAst')}</strong>
+                                  </div>
                                 </td>
                               </tr>
                             )}
@@ -556,18 +551,10 @@ export function LaboratorySampleRecordFunctionalView() {
             )}
             {communicationRequired && (
               <section className="lab-record-card lab-communication-card" data-demo-step="microbiology_mdro:communication">
-                <div className="record-section-header">
-                  <div>
-                    <span className="eyebrow">
-                      {communicationComplete
-                        ? tx('critical')
-                        : t('laboratoryRecords.criticalCommunicationRequired')}
-                    </span>
-                    <h3>
-                      <PhoneCall size={15} /> {tx('communicationTitle')}
-                    </h3>
-                  </div>
-                  {canCommunicate && !locked && (
+                <SectionHeader
+                  title={tx('communicationTitle')}
+                  subtitle={communicationComplete ? null : t('laboratoryRecords.criticalCommunicationRequired')}
+                  actions={canCommunicate && !locked && (
                     <OverflowMenu
                       items={[
                         {
@@ -579,7 +566,7 @@ export function LaboratorySampleRecordFunctionalView() {
                       ]}
                     />
                   )}
-                </div>
+                />
                 {communications.length ? (
                   <div className="lab-communication-list">
                     {communications.map(row => (
@@ -648,19 +635,7 @@ export function LaboratorySampleRecordFunctionalView() {
             </div>
           </div>
         )}
-        {tab === 'history' && (
-          <section className="lab-record-card">
-            <div className="record-section-header">
-              <div>
-                <span className="eyebrow">{t('laboratoryRecords.sample')}</span>
-                <h3>
-                  <FileClock size={15} /> {t('history')}
-                </h3>
-              </div>
-            </div>
-            <LabHistory sample={sample} t={t} tx={tx} fmt={fmt} />
-          </section>
-        )}
+        {tab === 'history' && <LabHistory sample={sample} t={t} tx={tx} fmt={fmt} />}
       </EntityRecordShell>
       {dialog === 'result' && (
         <ResultDialog
