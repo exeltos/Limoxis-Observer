@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ListChecks,Package,Plus,Trash2 } from 'lucide-react'
+import { ListChecks,Package,PackageX,Plus,Trash2,Undo2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
@@ -39,7 +39,7 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
       <label className="control-expiry-note"><span>{en?'Note':'Παρατήρηση'}</span><input value={rows[0]?.note||''} onChange={e=>setRow(0,'note',e.target.value)}/></label>
      </div>
    : <div className="control-structured-table-wrap"><table className="control-structured-table control-expiry-table"><thead><tr><th>{en?'Item / Medicine':'Υλικό / Φάρμακο'}</th><th>{en?'Form':'Είδος'}</th><th>{en?'Quantity':'Ποσότητα'}</th><th>{en?'Lot':'Παρτίδα'}</th><th>{en?'Expiry date':'Ημερομηνία λήξης'}</th><th>{en?'Status':'Κατάσταση'}</th><th>{en?'Finding':'Εύρημα'}</th><th>{en?'Note':'Παρατήρηση'}</th><th aria-label={en?'Actions':'Ενέργειες'}/></tr></thead>
-      <tbody>{rows.map((row,index)=><tr key={index}>
+      <tbody>{rows.map((row,index)=><tr key={index} className={row.removedAt?'is-removed':undefined}>
        <td>{row.fromCatalogue?<div className="control-catalogue-item"><strong>{row.item}</strong></div>:<input value={row.item||''} onChange={e=>setRow(index,'item',e.target.value)} placeholder={en?'Item / Medicine':'Υλικό / Φάρμακο'}/>}</td>
        <td>{row.fromCatalogue?<span className="control-catalogue-form">{formLabel(row.form,language)||'—'}</span>:<select aria-label={en?'Form':'Είδος'} value={row.form||''} onChange={e=>setRow(index,'form',e.target.value)}><option value="">—</option>{ITEM_FORMS.map(([key,el,enLabel])=><option key={key} value={key}>{en?enLabel:el}</option>)}</select>}</td>
        <td><input type="number" min="0" value={row.quantity||''} onChange={e=>setRow(index,'quantity',e.target.value)}/></td>
@@ -48,7 +48,7 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
        <td><ExpiryBadge row={row} window={window} language={language}/></td>
        <td>{findingSelect(row,index)}</td>
        <td><input aria-label={en?'Note':'Παρατήρηση'} value={row.note||''} onChange={e=>setRow(index,'note',e.target.value)}/></td>
-       <td>{!row.fromCatalogue&&<button type="button" className="control-row-delete" onClick={()=>removeRow(index)} title={en?'Remove row':'Αφαίρεση γραμμής'} aria-label={en?'Remove row':'Αφαίρεση γραμμής'}><Trash2 size={14}/></button>}</td>
+       <td>{row.fromCatalogue?<button type="button" className={`control-row-delete${row.removedAt?' is-active':''}`} aria-pressed={Boolean(row.removedAt)} onClick={()=>setRow(index,'removedAt',row.removedAt?'':new Date().toISOString())} title={row.removedAt?(en?'Keep on the list':'Επαναφορά στη λίστα'):(en?'Removed from the list (used, withdrawn)':'Αφαίρεση από τη λίστα (χρησιμοποιήθηκε, αποσύρθηκε)')} aria-label={row.removedAt?(en?'Keep on the list':'Επαναφορά στη λίστα'):(en?'Remove from the list':'Αφαίρεση από τη λίστα')}>{row.removedAt?<Undo2 size={14}/>:<PackageX size={14}/>}</button>:<button type="button" className="control-row-delete" onClick={()=>removeRow(index)} title={en?'Remove row':'Αφαίρεση γραμμής'} aria-label={en?'Remove row':'Αφαίρεση γραμμής'}><Trash2 size={14}/></button>}</td>
       </tr>)}</tbody>
      </table></div>}
  </section>

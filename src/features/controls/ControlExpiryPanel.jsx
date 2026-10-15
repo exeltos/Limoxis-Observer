@@ -1,5 +1,6 @@
 import { useMemo,useState } from 'react'
-import { PackageX } from 'lucide-react'
+import { PackageX,Printer } from 'lucide-react'
+import { Button } from '../../design-system/Button'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
@@ -7,6 +8,7 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { ExpiryBadge } from './ControlExpiryEntry'
 import { expiryCounts,expiryItems,expiryWindow,formLabel } from './controlExpiry'
+import { expiryReturnFormHtml,printHtml } from './controlExpiryPrint'
 
 const normalize=value=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
 
@@ -15,7 +17,7 @@ const normalize=value=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
 // record tab) or every expiry control at once (the Controls page, with a
 // «Control» column). «Removed / replaced» takes an item off the list.
 // sources: [{record,departments}]
-export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,showControl=false,query='',language,locale}){
+export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,showControl=false,query='',actorName='',language,locale}){
  const en=language==='en'
  const [filter,setFilterValue]=useState('alerting')
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
@@ -25,6 +27,9 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
  const searched=needle?items.filter(item=>normalize(`${item.row.item} ${item.department} ${item.record.title} ${item.row.lot||''}`).includes(needle)):items
  const counts=expiryCounts(searched)
  const shown=filter==='expiring'?searched.filter(item=>item.state==='expiring'):filter==='expired'?searched.filter(item=>item.state==='expired'):filter==='alerting'?searched.filter(item=>item.state==='expiring'||item.state==='expired'):searched
+ // The return form lists what has expired or expires soon in the current search.
+ const returnItems=searched.filter(item=>item.state==='expired'||item.state==='expiring').sort((a,b)=>a.department.localeCompare(b.department,'el')||(a.days??0)-(b.days??0))
+ const printReturnForm=()=>printHtml(expiryReturnFormHtml({title:sources.length===1?sources[0].record.title:(en?'All expiry checks':'Όλοι οι έλεγχοι λήξεων'),items:returnItems,actorName}))
  const totalPages=Math.max(1,Math.ceil(shown.length/pageSize)),safePage=Math.min(page,totalPages)
  const paged=shown.slice((safePage-1)*pageSize,safePage*pageSize)
  const day=value=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:(value||'—')}
@@ -50,12 +55,12 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
   className="control-expiry-panel workspace-fill"
   title={en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'}
   subtitle={single?(en?`Alert ${single.before} days before and up to ${single.after} days after expiry`:`Ειδοποίηση ${single.before} ημέρες πριν και έως ${single.after} ημέρες μετά τη λήξη`):(en?`${sources.length} expiry checks`:`${sources.length} ${sources.length===1?'έλεγχος':'έλεγχοι'} λήξεων`)}
-  actions={<ModeSwitch ariaLabel={en?'Show':'Προβολή'} value={filter} onChange={setFilter} options={[
+  actions={<><Button variant="secondary" disabled={!returnItems.length} onClick={printReturnForm}><Printer size={15}/>{en?` Return & replacement (${returnItems.length})`:` Έντυπο επιστροφής (${returnItems.length})`}</Button><ModeSwitch ariaLabel={en?'Show':'Προβολή'} value={filter} onChange={setFilter} options={[
    {value:'alerting',label:`${en?'Need attention':'Χρειάζονται ενέργεια'} (${counts.expired+counts.expiring})`},
    {value:'expiring',label:`${en?'Expiring':'Λήγουν'} (${counts.expiring})`},
    {value:'expired',label:`${en?'Expired':'Ληγμένα'} (${counts.expired})`},
    {value:'all',label:`${en?'All':'Όλα'} (${searched.length})`},
-  ]}/>}
+  ]}/></>}
   footer={shown.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>}
  >
   <RegistryTable

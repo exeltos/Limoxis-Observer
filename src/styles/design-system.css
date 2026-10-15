@@ -1235,3 +1235,8 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 .control-execution-page-editor:has(.control-expiry-entry)>.control-execution-main-section:is(section,#lo-control-form#lo-control-form){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;column-gap:16px;row-gap:10px}
 .control-execution-page-editor:has(.control-expiry-entry)>.control-execution-main-section>.control-expiry-entry:is(section,#lo-control-form){grid-column:1/-1}
 .control-execution-page-editor:has(.control-expiry-entry)>.control-execution-main-section>*:not(.control-expiry-entry):is(*,#lo-control-form){margin:0!important;align-self:stretch}
+.control-record-shell .control-record-catalogue:is(section,#lo-record-sheet){flex:1;min-height:0}
+.control-record-shell .control-record-catalogue>.scroll-table:is(div,#lo-record-sheet){flex:1;min-height:0;overflow:auto;border:1px solid #e2e9ef;border-radius:11px;background:#fff}
+/* Expiry checks: departments and the item list side by side under the sheet. */
+.control-record-shell .control-record-view:has(>.control-record-catalogue):is(div,#lo-record-sheet#lo-record-sheet){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);column-gap:16px}
+.control-record-shell .control-record-view:has(>.control-record-catalogue)>section:first-child:is(section,#lo-record-sheet){grid-column:1/-1}

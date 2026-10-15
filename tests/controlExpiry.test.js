@@ -105,4 +105,30 @@ describe('control expiry tracking', () => {
       { item: 'Σύριγγες 10ml', quantity: '120', form: 'piece', expiry: '', note: '' },
     ])
   })
+
+  it('carries the list forward: items an entry added stay, removed ones leave', () => {
+    const listed = { ...record, responseConfig: { ...record.responseConfig, expiryCatalogue: [{ id: 'c1', item: 'Adrenaline', departments: [] }] },
+      assignments: { 'ΜΕΘ': { history: [
+        { id: 'e2', at: '2026-10-10', status: 'completed', structuredData: { rows: [
+          { item: 'Adrenaline', lot: 'A2', expiry: '2027-01-01' },
+          { item: 'Laryngoscope blade', form: 'piece', lot: 'L1', expiry: '2028-01-01' },
+          { item: 'Old gauze', expiry: '2026-12-01', removedAt: '2026-10-10' },
+        ] } },
+        { id: 'e1', at: '2026-09-10', status: 'completed', structuredData: { rows: [{ item: 'Old gauze', expiry: '2026-12-01' }] } },
+      ] } } }
+    const rows = prefilledExpiryRows(listed, 'ΜΕΘ')
+    expect(rows.map(row => row.item)).toEqual(['Adrenaline', 'Laryngoscope blade'])
+    expect(rows[1]).toMatchObject({ form: 'piece', lot: 'L1', fromCatalogue: true, previous: { lot: 'L1', expiry: '2028-01-01', quantity: '' } })
+    expect(expiryItems(listed, ['ΜΕΘ'], now).map(item => item.row.item)).not.toContain('Old gauze')
+  })
+
+  it('marks replacements, quantity updates and new items on the change form', async () => {
+    const { expiryRowChange } = await import('../src/features/controls/controlExpiryPrint')
+    const previous = { quantity: '10', lot: 'A1', expiry: '2026-10-09' }
+    expect(expiryRowChange({ item: 'x', fromCatalogue: true, previous, quantity: '10', lot: 'A2', expiry: '2027-08-31' })).toBe('replaced')
+    expect(expiryRowChange({ item: 'x', fromCatalogue: true, previous, quantity: '9', lot: 'A1', expiry: '2026-10-09' })).toBe('updated')
+    expect(expiryRowChange({ item: 'x', fromCatalogue: true, previous, ...previous })).toBe('unchanged')
+    expect(expiryRowChange({ item: 'y', quantity: '1', expiry: '2028-01-01' })).toBe('new')
+    expect(expiryRowChange({ item: 'x', fromCatalogue: true, previous, ...previous, removedAt: '2026-10-15' })).toBe('removed')
+  })
 })

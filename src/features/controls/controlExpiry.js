@@ -106,8 +106,10 @@ export function parseCatalogueLines(text){
  return String(text||'').split(/\r?\n/).map(line=>line.split(/\t|;/).map(cell=>cell.trim())).filter(cells=>cells[0]).map(([item,quantity='',form='',expiry='',note=''])=>({item,quantity,form:toForm(form),expiry:toIso(expiry),note}))
 }
 
-// The rows a new entry starts with: every listed item for the department, with
-// what its latest entry recorded (or, before any entry, what the list gives).
+// The rows a new entry starts with: the department's current list, i.e. every
+// listed item plus the items earlier entries added and nobody removed, with what
+// their latest entry recorded (or, before any entry, what the list gives).
+// Each check therefore updates the list the next check opens with.
 export function prefilledExpiryRows(record,department){
  const latest=new Map()
  const history=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0))
@@ -115,11 +117,16 @@ export function prefilledExpiryRows(record,department){
   if(execution.status==='cancelled')continue
   for(const row of execution.structuredData?.rows||[]){const key=itemKey(row);if(key&&!latest.has(key))latest.set(key,row)}
  }
- return catalogueForDepartment(record,department).map(entry=>{
-  const last=latest.get(itemKey(entry))
-  const from=last?(last.removedAt?{}:last):entry
-  return {item:entry.item,form:entry.form||'',quantity:String(from.quantity||''),lot:String(from.lot||''),expiry:String(from.expiry||''),note:String(from.note||''),finding:'',findingOther:'',fromCatalogue:true}
- })
+ const listed=catalogueForDepartment(record,department)
+ const listedKeys=new Set(listed.map(itemKey))
+ const added=[...latest.values()].filter(row=>!row.removedAt&&!listedKeys.has(itemKey(row)))
+ const toRow=(base,last)=>{
+  const from=last?(last.removedAt?{}:last):base
+  const values={quantity:String(from.quantity||''),lot:String(from.lot||''),expiry:String(from.expiry||'')}
+  // previous: what the row held when the entry opened, for the change form.
+  return {item:base.item,form:base.form||last?.form||'',...values,note:String(from.note||''),finding:'',findingOther:'',fromCatalogue:true,previous:values}
+ }
+ return [...listed.map(entry=>toRow(entry,latest.get(itemKey(entry)))),...added.map(row=>toRow(row,row))]
 }
 
 export function expiryCounts(items){

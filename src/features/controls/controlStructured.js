@@ -1,3 +1,4 @@
+import { expiryChangeFormHtml } from './controlExpiryPrint'
 export function emptyStructuredRow(template='generic_findings'){
  if(template==='medication_expiry')return {item:'',quantity:'',lot:'',expiry:'',finding:'',findingOther:''}
  return {item:'',finding:'',action:''}
@@ -12,6 +13,7 @@ export function structuredSummary(execution){
  return `${rows.length} εγγραφές${findings?` · ${findings} ευρήματα`:''}`
 }
 function printableControlHtml({record,department,execution,actorName}){
+ if(record.responseConfig?.template==='medication_expiry')return expiryChangeFormHtml({record,department,execution,actorName})
  const rows=execution?.structuredData?.rows||[]
  const template=record.responseConfig?.template
  const headers=template==='medication_expiry'

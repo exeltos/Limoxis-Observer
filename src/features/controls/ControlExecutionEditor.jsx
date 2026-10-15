@@ -41,7 +41,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
  const outOfRange=response.mode==='numeric'&&String(value).trim()!==''&&Number.isFinite(numeric)&&((response.min!==''&&response.min!=null&&numeric<Number(response.min))||(response.max!==''&&response.max!=null&&numeric>Number(response.max)))
  const choiceFinding=response.mode==='choice'&&(response.reportOn||['Μη συμμόρφωση','Non-compliant']).includes(value)
  const expiryControl=isExpiryControl(record)
- const expiryRowAlerts=expiryControl&&rows.some(row=>expiryState(row.expiry,expiryWindow(record)).alert)
+ const expiryRowAlerts=expiryControl&&rows.some(row=>!row.removedAt&&expiryState(row.expiry,expiryWindow(record)).alert)
  const hasFinding=outOfRange||choiceFinding||(response.mode==='list'&&listHasFinding(rows))||expiryRowAlerts
  const expiryRowsValid=!expiryControl||rows.every(row=>row.fromCatalogue||!String(row.item||'').trim()||String(row.expiry||'').trim())
  const valid=(response.mode==='list'?true:String(value).trim().length>0)&&expiryRowsValid&&(!evidenceRequired||evidence.length>0)
@@ -113,7 +113,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
   <div className="control-execution-page-tools">
    <div className="control-execution-page-secondary-actions">
     <Button variant="quiet" disabled={draftSaving} onClick={persistDraft}><Save size={15}/>{draftSaving?(en?' Saving…':' Αποθήκευση…'):(en?' Save draft':' Αποθήκευση προσωρινά')}</Button>
-    {response.mode==='list'&&<ActionButton tone="neutral" label={en?'Print form':'Εκτύπωση φόρμας'} onClick={printDraft}><Printer size={15}/><span>{en?'Print form':'Εκτύπωση φόρμας'}</span></ActionButton>}
+    {response.mode==='list'&&<ActionButton tone="neutral" label={expiryControl?(en?'Print change form':'Έντυπο αλλαγών'):(en?'Print form':'Εκτύπωση φόρμας')} onClick={printDraft}><Printer size={15}/><span>{expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Print form':'Εκτύπωση φόρμας')}</span></ActionButton>}
     <Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>
     {draftSaved&&<span className="control-temp-save-state">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</span>}
    </div>
