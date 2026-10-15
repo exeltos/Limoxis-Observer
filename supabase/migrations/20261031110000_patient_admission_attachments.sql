@@ -4,8 +4,7 @@
 -- written and removed only by the roles that manage the clinical journey, and
 -- kept out of the generic organization-member attachment policies.
 
-drop policy if exists attachments_insert on public.attachments;
-create policy attachments_insert on public.attachments for insert to authenticated
+alter policy attachments_insert on public.attachments
   with check (
     (entity_type = 'clinical_case' and uploaded_by = (select auth.uid()) and entity_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' and exists (select 1 from surveillance_cases sc where sc.id = (attachments.entity_id)::uuid and sc.organization_id = attachments.organization_id) and (current_user_is_platform_owner() or current_user_has_org_role(organization_id, ARRAY['hospital_admin'::app_role, 'infection_control_lead'::app_role, 'infection_control_member'::app_role, 'doctor_reviewer'::app_role])))
     or (entity_type = 'patient_admission' and uploaded_by = (select auth.uid()) and entity_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' and exists (select 1 from patient_admissions pa where pa.id = (attachments.entity_id)::uuid and pa.organization_id = attachments.organization_id) and (current_user_is_platform_owner() or current_user_has_org_role(organization_id, ARRAY['hospital_admin'::app_role, 'infection_control_lead'::app_role, 'infection_control_member'::app_role, 'doctor_reviewer'::app_role])))
@@ -14,8 +13,7 @@ create policy attachments_insert on public.attachments for insert to authenticat
     or (entity_type <> ALL (ARRAY['committee_document'::text, 'laboratory_sample'::text, 'clinical_case'::text, 'patient_admission'::text]) and is_org_member(organization_id) and uploaded_by = (select auth.uid()))
   );
 
-drop policy if exists attachments_read on public.attachments;
-create policy attachments_read on public.attachments for select to authenticated
+alter policy attachments_read on public.attachments
   using (
     (entity_type = 'clinical_case' and entity_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' and exists (select 1 from surveillance_cases sc where sc.id = (attachments.entity_id)::uuid and sc.organization_id = attachments.organization_id))
     or (entity_type = 'patient_admission' and entity_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' and exists (select 1 from patient_admissions pa where pa.id = (attachments.entity_id)::uuid and pa.organization_id = attachments.organization_id))
@@ -24,8 +22,7 @@ create policy attachments_read on public.attachments for select to authenticated
     or (entity_type <> ALL (ARRAY['committee_document'::text, 'laboratory_sample'::text, 'clinical_case'::text, 'patient_admission'::text]) and is_org_member(organization_id))
   );
 
-drop policy if exists attachments_update on public.attachments;
-create policy attachments_update on public.attachments for update to authenticated
+alter policy attachments_update on public.attachments
   using (
     (entity_type = 'clinical_case' and (current_user_is_platform_owner() or current_user_has_org_role(organization_id, ARRAY['hospital_admin'::app_role, 'infection_control_lead'::app_role, 'infection_control_member'::app_role, 'doctor_reviewer'::app_role])))
     or (entity_type = 'patient_admission' and (current_user_is_platform_owner() or current_user_has_org_role(organization_id, ARRAY['hospital_admin'::app_role, 'infection_control_lead'::app_role, 'infection_control_member'::app_role, 'doctor_reviewer'::app_role])))
@@ -48,7 +45,6 @@ alter policy attachments_bucket_upload on storage.objects
 alter policy attachments_bucket_delete on storage.objects
   using (bucket_id = 'attachments' and coalesce((storage.foldername(name))[2],'') not in ('committee_document','laboratory_sample','clinical_case','patient_admission') and (owner = (select auth.uid()) or is_org_admin(((storage.foldername(name))[1])::uuid)));
 
-drop policy if exists attachments_storage_patient_admission_read on storage.objects;
 create policy attachments_storage_patient_admission_read on storage.objects
 for select to authenticated
 using (
@@ -61,7 +57,6 @@ using (
   )
 );
 
-drop policy if exists attachments_storage_patient_admission_insert on storage.objects;
 create policy attachments_storage_patient_admission_insert on storage.objects
 for insert to authenticated
 with check (
@@ -76,7 +71,6 @@ with check (
   and (current_user_is_platform_owner() or current_user_has_org_role(((storage.foldername(name))[1])::uuid, array['hospital_admin','infection_control_lead','infection_control_member','doctor_reviewer']::app_role[]))
 );
 
-drop policy if exists attachments_storage_patient_admission_delete on storage.objects;
 create policy attachments_storage_patient_admission_delete on storage.objects
 for delete to authenticated
 using (

@@ -1179,7 +1179,7 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 .control-create-shell .control-schedule-row .control-times-compact:is(div,#lo-control-form){display:flex;flex-direction:column;margin:0!important;padding:0!important;border:0!important;background:none!important}
 .control-create-shell .control-times-compact-title:is(div,#lo-control-form){display:flex!important;margin:0 0 6px!important;color:#607588!important;font-size:10px!important;font-weight:750!important}
 .control-create-shell .control-times-compact-title svg{width:13px;height:13px}
-.control-create-shell .control-schedule-row .control-time-grid:is(div,#lo-control-form){display:grid!important;grid-template-columns:repeat(auto-fill,minmax(96px,1fr))!important;gap:8px!important;margin:0!important}
+.control-create-shell .control-schedule-row .control-time-grid:is(div,#lo-control-form){display:grid!important;gap:8px!important;margin:0!important}
 .control-create-shell .control-time-grid .time-field>.lo-field-label:is(span,#lo-control-form){display:none!important}
 .control-create-shell .control-form-block-title:is(div,#lo-control-form){margin-bottom:6px!important;padding-bottom:0!important}
 .control-create-shell .control-entry-grid:is(.entry-grid,#lo-control-form){padding:4px 0 0!important;gap:10px 14px!important}
@@ -1215,3 +1215,11 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 .control-expiry-entry .control-structured-table-wrap:is(div,#lo-control-form){max-height:150px;overflow:auto}
 .control-execution-page-editor:has(.control-expiry-entry) .control-execution-notes textarea:is(textarea,#lo-control-form){min-height:56px!important;height:56px}
 .control-execution-page-editor:has(.control-expiry-entry):is(div,#lo-control-form){gap:12px;padding-top:14px}
+/* Execution times wrap inside their column instead of running past the block. */
+.control-create-shell .control-schedule-row .control-time-grid:is(div,#lo-control-form){grid-template-columns:repeat(auto-fill,minmax(86px,1fr))!important;min-width:0}
+.control-create-shell .control-time-grid>.time-field:is(div,label,#lo-control-form){min-width:0!important;width:auto!important}
+.control-create-shell .control-time-grid .time-field-control:is(div,#lo-control-form){min-width:0!important;width:100%!important}
+.control-create-shell .control-time-grid .time-field-control input:is(input,#lo-control-form){min-width:0!important;width:100%!important}
+.control-create-shell .control-schedule-row .control-times-compact:is(div,#lo-control-form){min-width:0;align-self:start}
+.control-create-shell .control-schedule-row:is(div,#lo-control-form#lo-control-form){align-items:start!important}
+.control-create-shell .control-schedule-row .control-times-compact-title:is(div,#lo-control-form#lo-control-form){height:13px;line-height:13px;margin:0 0 6px!important}

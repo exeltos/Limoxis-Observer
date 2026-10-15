@@ -79,13 +79,13 @@
   list-style: none;
   overflow: auto;
 }
-.multi-select .multi-select-option {
+.multi-select .searchable-select-option.multi-select-option {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
-.multi-select .multi-select-option > svg {
+.multi-select .searchable-select-option.multi-select-option > svg {
   flex: none;
   color: var(--lo-color-primary, #1f6f9f);
 }
