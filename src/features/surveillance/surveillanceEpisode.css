@@ -161,3 +161,6 @@ html body .clean-patient-summary .patient-detail-grid:is(.detail-grid,#lo-patien
 /* Tighter spacing between the summary sections (one screen, no scrolling). */
 html body .clean-patient-summary:is(.clean-patient-summary,#lo-patient-summary){gap:8px!important}
 html body .clean-patient-summary>.clinical-panel>.record-section-header:is(.record-section-header,#lo-patient-summary){margin-bottom:6px!important;padding-bottom:6px!important}
+/* Patient notes: one full-width row of the sheet (whole text on hover). */
+html body .clean-patient-summary .patient-detail-grid>.detail-item.patient-detail-notes{grid-column:1/-1!important;border-right:0!important;border-top:1px solid #e9eef2!important}
+html body .clean-patient-summary .patient-detail-notes>strong{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;font-weight:600!important}

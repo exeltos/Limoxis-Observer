@@ -5,7 +5,7 @@ import { IconButton } from './IconButton'
 import { useLanguage } from '../core/i18n/LanguageContext'
 
 // trigger: optional visible content (icon + text) instead of the "…" icon button.
-export function OverflowMenu({items=[],label,className='',align='end',size='sm',trigger=null}){
+export function OverflowMenu({items=[],label,className='',align='end',size='sm',trigger=null,width=260}){
   const {language}=useLanguage();const en=language==='en'
   const [open,setOpen]=useState(false)
   const [position,setPosition]=useState(null)
@@ -19,11 +19,11 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
     if(!trigger)return
     const rect=trigger.getBoundingClientRect()
     const viewportWidth=window.innerWidth||document.documentElement.clientWidth
-    const width=Math.min(260,Math.max(0,viewportWidth-16))
-    const preferredLeft=align==='start'?rect.left:rect.right-width
-    const left=Math.max(8,Math.min(preferredLeft,viewportWidth-width-8))
-    setPosition({top:rect.bottom+6,left,width})
-  },[align])
+    const menuWidth=Math.min(width,Math.max(0,viewportWidth-16))
+    const preferredLeft=align==='start'?rect.left:rect.right-menuWidth
+    const left=Math.max(8,Math.min(preferredLeft,viewportWidth-menuWidth-8))
+    setPosition({top:rect.bottom+6,left,width:menuWidth})
+  },[align,width])
 
   useLayoutEffect(()=>{if(open)updatePosition()},[open,updatePosition])
 
@@ -53,8 +53,8 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
     {visibleItems.map((item,index)=>{
       const Icon=item.icon
       return <div key={item.id||item.label||index} className={item.separatorBefore?'lo-overflow-separated':''}>
-        <button type="button" role="menuitem" className={`lo-overflow-item ${item.tone==='danger'?'lo-overflow-item-danger':''}`.trim()} disabled={item.disabled} onClick={()=>{if(item.disabled)return;setOpen(false);item.onClick?.()}}>
-          {Icon&&<Icon size={15}/>}<span>{item.label}</span>
+        <button type="button" role="menuitem" aria-current={item.current||undefined} className={`lo-overflow-item ${item.tone==='danger'?'lo-overflow-item-danger':''} ${item.current?'lo-overflow-item-current':''}`.trim()} disabled={item.disabled} onClick={()=>{if(item.disabled)return;setOpen(false);item.onClick?.()}}>
+          {Icon&&<Icon size={15}/>}<span>{item.label}{item.description&&<small>{item.description}</small>}</span>
         </button>
       </div>
     })}

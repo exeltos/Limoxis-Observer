@@ -3766,12 +3766,6 @@ button{letter-spacing:0}
 }
 
 /* Patient root: compact identity overview + admission registry. */
-.patient-profile-item span,.patient-profile-note>span{
-  display:block!important;margin-bottom:4px!important;color:#7b8b9b!important;
-  font-size:9px!important;font-weight:800!important;line-height:1.2!important;
-}
-.patient-profile-note{padding:10px 14px!important;border-top:1px solid #edf1f4!important;background:#fbfcfd!important}
-.patient-profile-note p{margin:0!important;color:#40556a!important;font-size:11px!important;line-height:1.4!important}
 
 /* Summary: compact record overview; the shell header already owns identity and admission context. */
 .clean-patient-summary{display:grid!important;gap:12px!important;align-content:start!important}
@@ -4253,7 +4247,8 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .patient-details-editor .patient-entry-grid-wide>.entry-span-2{grid-column:1/-1!important}
 .patient-details-editor .patient-entry-grid-wide textarea{min-height:64px!important;height:64px}
 @media(max-width:1100px){.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-/* Admission picker in the patient record header (only when there is more than one). */
-.admission-select{display:flex;align-items:center;gap:8px}
-.admission-select>.lo-field-label{margin:0!important}
-.admission-select select{min-height:34px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:#fff;font:inherit;font-size:12px}
+/* Admission picker under the patient name: a compact text menu button. */
+.entity-record-context{margin-top:2px;line-height:0}
+.entity-record-shell>.entity-record-header:has(.entity-record-context):is(.surface,#lo-record-header){padding-top:6px!important;padding-bottom:6px!important}
+.entity-record-context .admission-picker .lo-overflow-text-trigger:is(.button,#lo-admission-picker){height:22px!important;min-height:22px!important;padding:0 7px!important;gap:5px!important;border-radius:6px!important;font-size:11px!important;font-weight:650!important;line-height:1!important;color:#31526c!important}
+.admission-picker-count{min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;border-radius:8px;background:#e6eef5;color:#24476a;font-size:10px;font-style:normal;font-weight:750}

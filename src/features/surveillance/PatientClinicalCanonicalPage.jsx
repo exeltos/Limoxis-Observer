@@ -36,7 +36,12 @@ import { createClinicalRepository } from './clinicalRepository'
 import { PatientClinicalScalesPanel } from '../clinical-scales/PatientClinicalScalesPanel'
 import { ClinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
 import { loadLatestPatientRiskFlags } from '../clinical-scales/patientRiskFlagsService'
-import { PatientDetailsSection, CanonicalSummary } from './ClinicalAdmissions'
+import {
+  AdmissionPicker,
+  CanonicalSummary,
+  NewAdmissionDialog,
+  PatientDetailsSection,
+} from './ClinicalAdmissions'
 import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
 import { Timeline } from './ClinicalRecordViews'
 import './surveillanceEpisode.css'
@@ -78,6 +83,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     [createOpen, setCreateOpen] = useState(false)
   const [sampleToLink, setSampleToLink] = useState(null)
   const [clearTestOpen, setClearTestOpen] = useState(false)
+  const [newAdmissionOpen, setNewAdmissionOpen] = useState(false)
   const creatingAdmissionSampleRef = useMemo(() => ({ current: false }), [])
   const [tab, setTab] = useState(() => location.state?.openTab || restored?.tab || 'summary')
   // Stage the surveillance tab opens on, e.g. when the summary sends the user to an overdue reassessment.
@@ -451,7 +457,19 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           .join('')}
         eyebrow={code}
         title={name}
-        subtitle={shellSubtitle}
+        subtitle={patientMode && patient ? null : shellSubtitle}
+        context={
+          patientMode && patient ? (
+            <AdmissionPicker
+              admissions={orderedAdmissions}
+              selected={selectedAdmission}
+              onSelect={openAdmission}
+              onNew={has(CAPABILITIES.EDIT_PATIENT) ? () => setNewAdmissionOpen(true) : null}
+              t={t}
+              fmtDate={fmtDate}
+            />
+          ) : null
+        }
         status={
           <>
             <span className={`status-badge ${shellStatus === 'active' ? 'active' : ''}`}>
@@ -472,21 +490,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         headerActions={
           selectedAdmission || !patientMode ? (
             <>
-            {patientMode && admissions.length > 1 && (
-              <label className="admission-select">
-                <span className="lo-field-label">{t('clinicalRecords.admissionSelect')}</span>
-                <select
-                  value={selectedAdmission?.id || ''}
-                  onChange={event => openAdmission(event.target.value)}
-                >
-                  {orderedAdmissions.map(row => (
-                    <option key={row.id} value={row.id}>
-                      {fmtDate(row.admissionDate)} · {row.department || '—'} · {t(row.status)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
             <PrintExportActions
               onExport={() =>
                 downloadRecordJson(
@@ -544,15 +547,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             showPatientActions={patientMode}
             onDeleted={goBack}
             onChanged={() => load()}
-            onAdmitted={
-              patientMode && !admissions.some(row => row.status === 'active')
-                ? async row => {
-                    if (isDemo) setAdmissions(list => [row, ...list])
-                    else await load()
-                    openAdmission(row.id)
-                  }
-                : undefined
-            }
             onAdmissionDeleted={() => {
               setSelectedAdmissionId('')
               return load()
@@ -745,6 +739,27 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           />
         )}
       </EntityRecordShell>
+      {newAdmissionOpen && patient && (
+        <NewAdmissionDialog
+          patient={patient}
+          activeAdmission={admissions.find(row => row.status === 'active') || null}
+          tenantId={tenant?.id}
+          isDemo={isDemo}
+          departments={departments}
+          t={t}
+          onClose={() => setNewAdmissionOpen(false)}
+          onAdmitted={async (row, discharged) => {
+            setNewAdmissionOpen(false)
+            if (isDemo)
+              setAdmissions(list => [
+                row,
+                ...list.map(item => (discharged && item.id === discharged.id ? discharged : item)),
+              ])
+            else await load()
+            openAdmission(row.id)
+          }}
+        />
+      )}
     </Page>
   )
 }

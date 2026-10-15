@@ -1,7 +1,16 @@
 import { DueDate } from '../../design-system/DueDate'
 import { useState } from 'react'
 import { stayDays } from './patientRecordScope'
-import { AlertTriangle, ArrowRightLeft, LogOut, Plus, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  CalendarDays,
+  Check,
+  LogOut,
+  Plus,
+  Trash2,
+} from 'lucide-react'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { Button } from '../../design-system/Button'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { SectionHeader } from '../../design-system/SectionHeader'
@@ -185,18 +194,20 @@ export function PatientDetailsSection({
           {profile.map(([label, value]) => (
             <Detail key={label} label={label} value={value} />
           ))}
+          {patient?.notes && (
+            <div className="detail-item patient-detail-notes">
+              <span className="lo-field-label">
+                {translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en')}
+              </span>
+              <strong title={patient.notes}>{patient.notes}</strong>
+            </div>
+          )}
         </div>
       )}
       {infantWithoutBirthWeight && (
         <p className="field-hint neonatal-missing-weight" role="status">
           {translate('copy.neonatalCopy.missingBirthWeight', language === 'el' ? 'el' : 'en')}
         </p>
-      )}
-      {patient?.notes && (
-        <div className="patient-profile-note">
-          <span>{translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en')}</span>
-          <p>{patient.notes}</p>
-        </div>
       )}
     </section>
   )
@@ -226,7 +237,6 @@ export function CanonicalSummary({
   onDeleted,
   onChanged,
   onAdmissionDeleted,
-  onAdmitted,
   t,
   language,
   fmtDate,
@@ -303,7 +313,6 @@ export function CanonicalSummary({
     departments,
     canEdit,
     onChanged,
-    onAdmitted,
     t,
     language,
   })
@@ -592,7 +601,6 @@ function useAdmissionLifecycle({
   departments,
   canEdit,
   onChanged,
-  onAdmitted,
   t,
   language,
 }) {
@@ -612,24 +620,6 @@ function useAdmissionLifecycle({
     if (!draft.date) return
     try {
       setBusy(true)
-      if (kind === 'admit') {
-        const dept = departments.find(x => x.id === draft.departmentId)
-        const row = await createAdmission(
-          tenantId,
-          patient,
-          {
-            departmentId: draft.departmentId,
-            department: dept?.name || '',
-            admissionDate: draft.date,
-            status: 'active',
-          },
-          { isDemo },
-        )
-        setKind(null)
-        await onAdmitted?.(row)
-        notify(t('saved'), 'success')
-        return
-      }
       if (kind === 'discharge')
         await dischargeAdmission(tenantId, patient, admission, draft, { isDemo })
       else {
@@ -670,25 +660,13 @@ function useAdmissionLifecycle({
             onClick: () => open('discharge'),
           },
         ]
-      : // A discharged patient is readmitted from here: a new admission.
-        canEdit && onAdmitted && admission
-        ? [
-            {
-              id: 'new-admission',
-              label: t('clinicalRecords.newAdmission'),
-              icon: Plus,
-              onClick: () => open('admit'),
-            },
-          ]
-        : []
+      : []
   const dialog = kind ? (
     <SimpleDialog
       title={
-        kind === 'admit'
-          ? t('clinicalRecords.newAdmission')
-          : kind === 'transfer'
-            ? translate('copy.clinicalRecordCopy.transferPatient', language === 'el' ? 'el' : 'en')
-            : translate('copy.clinicalRecordCopy.dischargePatient', language === 'el' ? 'el' : 'en')
+        kind === 'transfer'
+          ? translate('copy.clinicalRecordCopy.transferPatient', language === 'el' ? 'el' : 'en')
+          : translate('copy.clinicalRecordCopy.dischargePatient', language === 'el' ? 'el' : 'en')
       }
       t={t}
       onClose={() => setKind(null)}
@@ -701,21 +679,17 @@ function useAdmissionLifecycle({
     >
       <ManualDateField
         label={
-          kind === 'admit'
-            ? t('admissionDate')
-            : kind === 'transfer'
-              ? translate('copy.clinicalRecordCopy.transferDate', language === 'el' ? 'el' : 'en')
-              : translate('copy.clinicalRecordCopy.dischargeDate', language === 'el' ? 'el' : 'en')
+          kind === 'transfer'
+            ? translate('copy.clinicalRecordCopy.transferDate', language === 'el' ? 'el' : 'en')
+            : translate('copy.clinicalRecordCopy.dischargeDate', language === 'el' ? 'el' : 'en')
         }
         value={draft.date}
         onChange={v => setDraft(d => ({ ...d, date: v }))}
       />
-      {kind !== 'discharge' && (
+      {kind === 'transfer' && (
         <label>
           <span>
-            {kind === 'admit'
-              ? t('department')
-              : translate('copy.clinicalRecordCopy.newDepartment', language === 'el' ? 'el' : 'en')}
+            {translate('copy.clinicalRecordCopy.newDepartment', language === 'el' ? 'el' : 'en')}
           </span>
           <select
             value={draft.departmentId}
@@ -723,7 +697,7 @@ function useAdmissionLifecycle({
           >
             <option value="">{t('select')}</option>
             {departments
-              .filter(x => kind === 'admit' || x.id !== admission.departmentId)
+              .filter(x => x.id !== admission.departmentId)
               .map(x => (
                 <option key={x.id} value={x.id}>
                   {x.name}
@@ -732,16 +706,14 @@ function useAdmissionLifecycle({
           </select>
         </label>
       )}
-      {kind !== 'admit' && (
-        <label className="entry-span-2">
-          <span>{t('reason')}</span>
-          <textarea
-            rows={3}
-            value={draft.reason}
-            onChange={e => setDraft(d => ({ ...d, reason: e.target.value }))}
-          />
-        </label>
-      )}
+      <label className="entry-span-2">
+        <span>{t('reason')}</span>
+        <textarea
+          rows={3}
+          value={draft.reason}
+          onChange={e => setDraft(d => ({ ...d, reason: e.target.value }))}
+        />
+      </label>
     </SimpleDialog>
   ) : null
   return { items: lifecycleItems, dialog }
@@ -794,5 +766,154 @@ export function Detail({ label, value }) {
       <span className="lo-field-label">{label}</span>
       <strong>{value || '—'}</strong>
     </div>
+  )
+}
+
+// A new admission for the patient. While another admission is still active the
+// patient is discharged from it first (one active admission at a time).
+export function NewAdmissionDialog({
+  patient,
+  activeAdmission,
+  tenantId,
+  isDemo,
+  departments,
+  t,
+  onClose,
+  onAdmitted,
+}) {
+  const { notify } = useFeedback()
+  const today = new Date().toISOString().slice(0, 10)
+  const [busy, setBusy] = useState(false)
+  const [draft, setDraft] = useState({
+    admissionDate: today,
+    departmentId: '',
+    dischargeDate: today,
+  })
+  async function save() {
+    try {
+      setBusy(true)
+      const discharged = activeAdmission
+        ? await dischargeAdmission(
+            tenantId,
+            patient,
+            activeAdmission,
+            { date: draft.dischargeDate, reason: '' },
+            { isDemo },
+          )
+        : null
+      const dept = departments.find(x => x.id === draft.departmentId)
+      const row = await createAdmission(
+        tenantId,
+        patient,
+        {
+          departmentId: draft.departmentId,
+          department: dept?.name || '',
+          admissionDate: draft.admissionDate,
+          status: 'active',
+        },
+        { isDemo },
+      )
+      await onAdmitted?.(row, discharged)
+      notify(t('saved'), 'success')
+    } catch (error) {
+      notify(error?.message || t('actionFailed'), 'danger')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const invalid =
+    !draft.admissionDate ||
+    (departments.length > 0 && !draft.departmentId) ||
+    (activeAdmission &&
+      (!draft.dischargeDate ||
+        draft.dischargeDate < String(activeAdmission.admissionDate || '').slice(0, 10) ||
+        draft.dischargeDate > draft.admissionDate))
+  return (
+    <SimpleDialog
+      title={t('clinicalRecords.newAdmission')}
+      t={t}
+      onClose={onClose}
+      onSave={save}
+      disabled={busy || invalid}
+    >
+      {activeAdmission && (
+        <p className="field-hint entry-span-2">
+          {t('clinicalRecords.newAdmissionDischargesCurrent').replace(
+            '{department}',
+            activeAdmission.department || '—',
+          )}
+        </p>
+      )}
+      {activeAdmission && (
+        <ManualDateField
+          label={t('clinicalRecords.currentAdmissionDischargeDate')}
+          value={draft.dischargeDate}
+          onChange={v => setDraft(d => ({ ...d, dischargeDate: v }))}
+        />
+      )}
+      <ManualDateField
+        label={t('admissionDate')}
+        value={draft.admissionDate}
+        onChange={v => setDraft(d => ({ ...d, admissionDate: v }))}
+      />
+      <label>
+        <span>{t('department')}</span>
+        <select
+          value={draft.departmentId}
+          onChange={e => setDraft(d => ({ ...d, departmentId: e.target.value }))}
+        >
+          <option value="">{t('select')}</option>
+          {departments.map(x => (
+            <option key={x.id} value={x.id}>
+              {x.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </SimpleDialog>
+  )
+}
+
+// The patient's admissions, always in view under the name: pick the one the
+// record shows, or start a new one.
+export function AdmissionPicker({ admissions, selected, onSelect, onNew, t, fmtDate }) {
+  const items = admissions.map(row => {
+    const days = stayDays(row.admissionDate, row.dischargeDate)
+    return {
+      id: row.id,
+      current: String(row.id) === String(selected?.id),
+      icon: String(row.id) === String(selected?.id) ? Check : CalendarDays,
+      label: `${fmtDate(row.admissionDate)} – ${row.dischargeDate ? fmtDate(row.dischargeDate) : t('clinicalRecords.admissionOngoing')}`,
+      description: `${row.department || '—'} · ${days == null ? '—' : `${days} ${t(days === 1 ? 'clinicalRecords.stayDayOne' : 'clinicalRecords.stayDayMany')}`} · ${t(row.status)}`,
+      onClick: () => onSelect(row.id),
+    }
+  })
+  if (onNew)
+    items.push({
+      id: 'new-admission',
+      label: t('clinicalRecords.newAdmission'),
+      icon: Plus,
+      separatorBefore: true,
+      onClick: onNew,
+    })
+  return (
+    <OverflowMenu
+      className="admission-picker"
+      align="start"
+      width={320}
+      label={t('clinicalRecords.admissionsOfPatient')}
+      items={items}
+      trigger={
+        <>
+          <CalendarDays size={13} aria-hidden="true" />
+          <span>
+            {selected
+              ? `${t('clinicalRecords.admissionSelect')} ${fmtDate(selected.admissionDate)} · ${selected.department || '—'}`
+              : t('clinicalRecords.admissionsOfPatient')}
+          </span>
+          {admissions.length > 1 && <em className="admission-picker-count">{admissions.length}</em>}
+        </>
+      }
+    />
   )
 }
