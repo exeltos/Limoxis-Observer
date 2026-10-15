@@ -6,6 +6,8 @@ import { cloudAttachmentsEnabled, loadAttachments, uploadAttachment, updateAttac
 import { ActionButton } from './ActionButton'
 import { OverflowMenu } from './OverflowMenu'
 import { ObserverDialog, DialogActions } from './ObserverDialog'
+import { RecordTabPanel } from './RecordTabPanel'
+import { RegistryTable } from './RegistryTable'
 import './AttachmentField.css'
 
 const defaultCategories=[
@@ -49,6 +51,9 @@ export function AttachmentField({
   organizationId=null,
   entityType=null,
   entityId=null,
+  variant='box',
+  title,
+  subtitle,
 }){
   const {t,language}=useLanguage()
   const {confirm,notify}=useFeedback()
@@ -161,6 +166,7 @@ export function AttachmentField({
         dataUrl:editor.dataUrl||'',
         category:editor.category,
         description:editor.description.trim(),
+        createdAt:new Date().toISOString(),
       }
       next=[...files,added]
     }else{
@@ -226,30 +232,13 @@ export function AttachmentField({
   const canView=file=>cloudMode?Boolean(file.storagePath):Boolean(file.dataUrl||file.objectUrl||file.url)
   const addReady=editor?.mode==='add'?(cloudMode?Boolean(editor.stagedAttachment):Boolean(editor.file)):true
 
-  return <div className="attachment-field attachment-field-v2">
-    <div className="attachment-heading"><Paperclip size={16}/><strong>{employeeDocumentMode?(translate('copy.attachmentCopy.documentsCertifications',language==='en'?'en':'el')):t('attachments')}</strong><span>{files.length}</span></div>
-
-    {cloudMode&&cloudLoading&&<div className="inline-empty">{t('loading')||'…'}</div>}
-    {cloudMode&&cloudError&&<div className="data-access-state error" role="alert">{t('loadFailed')||'Could not load attachments.'}</div>}
-
-    {!cloudLoading&&files.length>0&&<div className="attachment-list">
-      {files.map(file=><div key={file.id} className="attachment-row attachment-row-v2">
-        <div className="attachment-file-info">
-          <strong className={canView(file)?'attachment-open-target':''} title={file.name} role={canView(file)?'button':undefined} tabIndex={canView(file)?0:undefined} onClick={()=>canView(file)&&view(file)} onKeyDown={event=>{if(canView(file)&&(event.key==='Enter'||event.key===' ')){event.preventDefault();view(file)}}}>{file.name}</strong>
-          <div><span className="attachment-category">{categoryLabel(file.category)}</span>{file.description&&<small>{file.description}</small>}</div>
-        </div>
-        <div className="attachment-actions">
-          <OverflowMenu label={t('attachmentActionsLabel')} items={[
-            {id:'view',label:t('viewAttachment'),icon:Eye,disabled:busy||!canView(file),onClick:()=>view(file)},
-            !disabled&&{id:'edit',label:t('edit'),icon:Pencil,disabled:busy,onClick:()=>beginEdit(file)},
-            !disabled&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>remove(file.id)},
-          ]}/>
-        </div>
-      </div>)}
-    </div>}
-
-    {!disabled&&!cloudLoading&&<div className="attachment-add-row"><ActionButton tone="neutral" label={t('addAttachment')} disabled={busy} onClick={beginAdd}><FilePlus2 size={15}/><span>{employeeDocumentMode?(translate('copy.attachmentCopy.addDocument',language==='en'?'en':'el')):t('addAttachment')}</span></ActionButton></div>}
-
+  const fileActions=file=>[
+    {id:'view',label:t('viewAttachment'),icon:Eye,disabled:busy||!canView(file),onClick:()=>view(file)},
+    !disabled&&{id:'edit',label:t('edit'),icon:Pencil,disabled:busy,onClick:()=>beginEdit(file)},
+    !disabled&&{id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>remove(file.id)},
+  ]
+  const addLabel=employeeDocumentMode?(translate('copy.attachmentCopy.addDocument',language==='en'?'en':'el')):t('addAttachment')
+  const editorDialog=<>
     {editor&&<ObserverDialog
       eyebrow={employeeDocumentMode?(translate('copy.attachmentCopy.employeeDocuments',language==='en'?'en':'el')):t('attachments')}
       title={editor.mode==='add'?(employeeDocumentMode?(translate('copy.attachmentCopy.newDocument',language==='en'?'en':'el')):t('newAttachment')):t('editAttachment')}
@@ -269,5 +258,52 @@ export function AttachmentField({
         {busy&&<div className="attachment-upload-progress" role="status" aria-live="polite"><LoaderCircle size={22}/><span>{editor.mode==='add'?t('uploading'):t('saving')}</span></div>}
       </div>
     </ObserverDialog>}
+  </>
+  const fileName=file=><strong className={canView(file)?'attachment-open-target':''} title={file.name} role={canView(file)?'button':undefined} tabIndex={canView(file)?0:undefined} onClick={()=>canView(file)&&view(file)} onKeyDown={event=>{if(canView(file)&&(event.key==='Enter'||event.key===' ')){event.preventDefault();view(file)}}}>{file.name}</strong>
+  // A record's documents tab: the files as a registry table, «Add» in the header.
+  if(variant==='table'){
+    // Files kept before upload dates were recorded have none: no empty column then.
+    const hasDates=files.some(file=>file.createdAt||file.uploadedAt)
+    const fmt=value=>{if(!value)return '—';const date=new Date(value);return Number.isNaN(date.getTime())?'—':new Intl.DateTimeFormat(language==='en'?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(date)}
+    return <RecordTabPanel className="attachments-tab-panel" title={title||t('attachments')} subtitle={subtitle} actions={!disabled&&!cloudLoading&&<ActionButton tone="neutral" label={addLabel} disabled={busy} onClick={beginAdd}><FilePlus2 size={15}/><span>{addLabel}</span></ActionButton>}>
+      {cloudMode&&cloudError&&<div className="data-access-state error" role="alert">{t('loadFailed')||'Could not load attachments.'}</div>}
+      <RegistryTable
+        columns={[{key:'file',label:t('file')},{key:'category',label:employeeDocumentMode?employeeDocumentTypeLabel:t('documentCategory')},hasDates&&{key:'date',label:t('date')},{key:'actions',label:'',ariaLabel:t('attachmentActionsLabel')}].filter(Boolean)}
+        rows={cloudLoading?[]:files}
+        rowKey={file=>file.id}
+        emptyTitle={cloudLoading?(t('loading')||'…'):t('attachmentsEmpty')}
+        emptyText={cloudLoading||disabled?undefined:t('attachmentsEmptyHint').replace('{action}',addLabel)}
+        renderRow={file=><>
+          <td>{fileName(file)}{file.description&&<small>{file.description}</small>}</td>
+          <td><span className="attachment-category">{categoryLabel(file.category)}</span></td>
+          {hasDates&&<td>{fmt(file.createdAt||file.uploadedAt)}</td>}
+          <td className="open-record-cell"><OverflowMenu label={t('attachmentActionsLabel')} items={fileActions(file)}/></td>
+        </>}
+      />
+      {editorDialog}
+    </RecordTabPanel>
+  }
+
+  return <div className="attachment-field attachment-field-v2">
+    <div className="attachment-heading"><Paperclip size={16}/><strong>{employeeDocumentMode?(translate('copy.attachmentCopy.documentsCertifications',language==='en'?'en':'el')):t('attachments')}</strong><span>{files.length}</span></div>
+
+    {cloudMode&&cloudLoading&&<div className="inline-empty">{t('loading')||'…'}</div>}
+    {cloudMode&&cloudError&&<div className="data-access-state error" role="alert">{t('loadFailed')||'Could not load attachments.'}</div>}
+
+    {!cloudLoading&&files.length>0&&<div className="attachment-list">
+      {files.map(file=><div key={file.id} className="attachment-row attachment-row-v2">
+        <div className="attachment-file-info">
+          {fileName(file)}
+          <div><span className="attachment-category">{categoryLabel(file.category)}</span>{file.description&&<small>{file.description}</small>}</div>
+        </div>
+        <div className="attachment-actions">
+          <OverflowMenu label={t('attachmentActionsLabel')} items={fileActions(file)}/>
+        </div>
+      </div>)}
+    </div>}
+
+    {!disabled&&!cloudLoading&&<div className="attachment-add-row"><ActionButton tone="neutral" label={t('addAttachment')} disabled={busy} onClick={beginAdd}><FilePlus2 size={15}/><span>{addLabel}</span></ActionButton></div>}
+    {editorDialog}
+
   </div>
 }

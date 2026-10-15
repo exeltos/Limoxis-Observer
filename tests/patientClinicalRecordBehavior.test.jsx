@@ -331,7 +331,7 @@ describe('clinical data and documents', () => {
   it('lets documents be added to an admission without a surveillance', async () => {
     await openPatient('PT-260082')
     await openTab('Έγγραφα')
-    expect(within(body()).getByText('Επισυνάψεις')).toBeInTheDocument()
+    expect(within(body()).getByText('Δεν υπάρχουν έγγραφα')).toBeInTheDocument()
     expect(within(body()).getByRole('button', { name: /Προσθήκη επισύναψης/ })).toBeInTheDocument()
   })
 

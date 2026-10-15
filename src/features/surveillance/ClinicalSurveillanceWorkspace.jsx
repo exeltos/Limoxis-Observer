@@ -1,3 +1,4 @@
+import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { useState } from 'react'
 import { sampleParentCode, sampleTone } from './patientRecordScope'
 import {
@@ -353,212 +354,149 @@ export function SurveillanceWorkspace({
       </div>
     )
   return (
-    <div className="patient-surveillance-clean unified-surveillance-workspace">
-      <section className="record-section surveillance-tree-section">
-        <div className="record-section-header lo-section-header">
-          <div>
-            <h3>
+    <RecordTabPanel
+      className="patient-surveillance-clean unified-surveillance-workspace surveillance-tree-section"
+      title={translate(
+        'copy.clinicalRecordCopy.surveillanceSamples',
+        language === 'el' ? 'el' : 'en',
+      )}
+      subtitle={translate(
+        'copy.clinicalRecordCopy.unifiedClinicalFlowLinkedSamplesAppear',
+        language === 'el' ? 'el' : 'en',
+      )}
+      actions={
+        <>
+          {onClearTestData && (
+            <Button variant="ghost" onClick={onClearTestData}>
+              <Trash2 size={15} />
+              {translate('copy.clinicalRecordCopy.clearTestData', language === 'el' ? 'el' : 'en')}
+            </Button>
+          )}
+          {canCreateSample && onCreateSample && (
+            <Button
+              className="clinical-add-action"
+              variant="secondary"
+              onClick={() => {
+                setFollowUpParent(null)
+                setSampleOpen(true)
+              }}
+            >
+              <Microscope size={15} />
+              {translate('copy.clinicalRecordCopy.newSample', language === 'el' ? 'el' : 'en')}
+            </Button>
+          )}
+          {canCreate && (
+            <Button className="clinical-primary-action" onClick={onCreate}>
+              <PlayCircle size={15} />{' '}
               {translate(
-                'copy.clinicalRecordCopy.surveillanceSamples',
+                'copy.clinicalRecordCopy.startNewSurveillance',
                 language === 'el' ? 'el' : 'en',
               )}
-            </h3>
-            <p>
-              {translate(
-                'copy.clinicalRecordCopy.unifiedClinicalFlowLinkedSamplesAppear',
-                language === 'el' ? 'el' : 'en',
-              )}
-            </p>
-          </div>
-          <div className="row-actions">
-            {onClearTestData && (
-              <Button variant="ghost" onClick={onClearTestData}>
-                <Trash2 size={15} />
-                {translate(
-                  'copy.clinicalRecordCopy.clearTestData',
-                  language === 'el' ? 'el' : 'en',
-                )}
-              </Button>
-            )}
-            {canCreateSample && onCreateSample && (
-              <Button
-                className="clinical-add-action"
-                variant="secondary"
-                onClick={() => {
-                  setFollowUpParent(null)
-                  setSampleOpen(true)
-                }}
-              >
-                <Microscope size={15} />
-                {translate('copy.clinicalRecordCopy.newSample', language === 'el' ? 'el' : 'en')}
-              </Button>
-            )}
-            {canCreate && (
-              <Button className="clinical-primary-action" onClick={onCreate}>
-                <PlayCircle size={15} />{' '}
-                {translate(
-                  'copy.clinicalRecordCopy.startNewSurveillance',
-                  language === 'el' ? 'el' : 'en',
-                )}
-              </Button>
-            )}
-          </div>
-        </div>
-        <div className="sv-tree">
-          {episodes.map(ep => {
-            const listed = samples.filter(
-              sample =>
-                String(
-                  sample.surveillanceCase ||
-                    sample.surveillanceCaseId ||
-                    sample.surveillance_case_id ||
-                    '',
-                ) === String(ep.id) ||
-                (Boolean(sample.surveillanceCase) &&
-                  String(sample.surveillanceCase) === String(ep.recordId || '')),
-            )
-            const listedIds = new Set(listed.map(x => String(x.id || '')))
-            const linked = [
-              ...listed,
-              ...(ep.samples || []).filter(x => !listedIds.has(String(x.id || ''))),
-            ]
-            const organism =
-              ep.samples?.find(x => x.organism)?.organism ||
-              linked.find(x => x.organism)?.organism ||
-              ''
-            const resistance = ep.resistance || linked.find(x => x.resistance)?.resistance || ''
-            return (
-              <div
-                className={`sv-episode sv-status-${ep.status || 'active'} ${String(selectedId) === String(ep.id) ? 'is-selected' : ''}`}
-                key={ep.id}
-              >
-                <button
-                  type="button"
-                  className="sv-episode-head"
-                  onClick={() => openEpisode(ep.id)}
-                >
-                  <span className="sv-episode-icon" aria-hidden="true">
-                    <Activity size={17} />
-                  </span>
-                  <span className="sv-episode-main">
-                    <span className="sv-episode-title">
-                      <strong>
-                        {episodeTypeLabel(ep, t) ||
-                          translate(
-                            'copy.clinicalRecordCopy.surveillance',
-                            language === 'el' ? 'el' : 'en',
-                          )}
-                      </strong>
-                      <b className={`status-badge ${ep.status === 'active' ? 'active' : ''}`}>
-                        {t(ep.status)}
-                      </b>
-                    </span>
-                    <small>
-                      {translate(
-                        'copy.clinicalRecordCopy.surveillance',
-                        language === 'el' ? 'el' : 'en',
-                      )}{' '}
-                      ·{' '}
-                      {translate(
-                        'copy.clinicalRecordCopy.started',
-                        language === 'el' ? 'el' : 'en',
-                      )}{' '}
-                      {fmtDate(ep.startedAt)}
-                      {ep.reviewDue ? (
-                        <>
-                          {' '}
-                          · <CalendarClock size={12} />{' '}
-                          {translate(
-                            'copy.clinicalRecordCopy.review',
-                            language === 'el' ? 'el' : 'en',
-                          )}{' '}
-                          {ep.status === 'active' ? (
-                            <DueDate value={ep.reviewDue} format={fmtDate} />
-                          ) : (
-                            fmtDate(ep.reviewDue)
-                          )}
-                        </>
-                      ) : null}
-                    </small>
-                  </span>
-                  <span className="sv-episode-findings">
-                    {organism ? (
-                      <em className="sv-chip sv-chip-organism">{organism}</em>
-                    ) : (
-                      <em className="sv-chip sv-chip-muted">
-                        {translate(
-                          'copy.clinicalRecordCopy.noFinding',
+            </Button>
+          )}
+        </>
+      }
+    >
+      <div className="sv-tree">
+        {episodes.map(ep => {
+          const listed = samples.filter(
+            sample =>
+              String(
+                sample.surveillanceCase ||
+                  sample.surveillanceCaseId ||
+                  sample.surveillance_case_id ||
+                  '',
+              ) === String(ep.id) ||
+              (Boolean(sample.surveillanceCase) &&
+                String(sample.surveillanceCase) === String(ep.recordId || '')),
+          )
+          const listedIds = new Set(listed.map(x => String(x.id || '')))
+          const linked = [
+            ...listed,
+            ...(ep.samples || []).filter(x => !listedIds.has(String(x.id || ''))),
+          ]
+          const organism =
+            ep.samples?.find(x => x.organism)?.organism ||
+            linked.find(x => x.organism)?.organism ||
+            ''
+          const resistance = ep.resistance || linked.find(x => x.resistance)?.resistance || ''
+          return (
+            <div
+              className={`sv-episode sv-status-${ep.status || 'active'} ${String(selectedId) === String(ep.id) ? 'is-selected' : ''}`}
+              key={ep.id}
+            >
+              <button type="button" className="sv-episode-head" onClick={() => openEpisode(ep.id)}>
+                <span className="sv-episode-icon" aria-hidden="true">
+                  <Activity size={17} />
+                </span>
+                <span className="sv-episode-main">
+                  <span className="sv-episode-title">
+                    <strong>
+                      {episodeTypeLabel(ep, t) ||
+                        translate(
+                          'copy.clinicalRecordCopy.surveillance',
                           language === 'el' ? 'el' : 'en',
                         )}
-                      </em>
-                    )}
-                    {resistance && (
-                      <em
-                        className={`sv-chip ${RESISTANCE_ALERT.has(String(resistance).toUpperCase()) ? 'sv-chip-danger' : 'sv-chip-muted'}`}
-                      >
-                        {resistance}
-                      </em>
-                    )}
-                    <span className="sv-sample-count">
-                      <Microscope size={13} />
-                      {linked.length}
-                    </span>
+                    </strong>
+                    <b className={`status-badge ${ep.status === 'active' ? 'active' : ''}`}>
+                      {t(ep.status)}
+                    </b>
                   </span>
-                  <ChevronRight className="sv-episode-open" size={18} />
-                </button>
-                {linked.length > 0 && (
-                  <div className="sv-samples">
-                    <SampleTree
-                      samples={linked}
-                      linked
-                      onFollowUp={sample => {
-                        setFollowUpParent(sample)
-                        setSampleOpen(true)
-                      }}
-                      onCreateFromSample={onCreateFromSample}
-                      canCreate={canCreate}
-                      canCreateSample={canCreateSample}
-                      t={t}
-                      language={language}
-                      fmtDate={fmtDate}
-                    />
-                  </div>
-                )}
-              </div>
-            )
-          })}
-          {(() => {
-            const unlinked = samples.filter(
-              sample =>
-                !episodes.some(
-                  ep =>
-                    String(
-                      sample.surveillanceCase ||
-                        sample.surveillanceCaseId ||
-                        sample.surveillance_case_id ||
-                        '',
-                    ) === String(ep.id) ||
-                    (Boolean(sample.surveillanceCase) &&
-                      String(sample.surveillanceCase) === String(ep.recordId || '')) ||
-                    (ep.samples || []).some(x => x.id && String(x.id) === String(sample.id)),
-                ),
-            )
-            return unlinked.length ? (
-              <div className="sv-unlinked">
-                <div className="sv-unlinked-heading">
-                  <Microscope size={15} />
-                  <strong>
+                  <small>
                     {translate(
-                      'copy.clinicalRecordCopy.samplesWithoutSurveillance',
+                      'copy.clinicalRecordCopy.surveillance',
                       language === 'el' ? 'el' : 'en',
-                    )}
-                  </strong>
-                  <span>{unlinked.length}</span>
-                </div>
-                <div className="sv-samples sv-samples-flat">
+                    )}{' '}
+                    ·{' '}
+                    {translate('copy.clinicalRecordCopy.started', language === 'el' ? 'el' : 'en')}{' '}
+                    {fmtDate(ep.startedAt)}
+                    {ep.reviewDue ? (
+                      <>
+                        {' '}
+                        · <CalendarClock size={12} />{' '}
+                        {translate(
+                          'copy.clinicalRecordCopy.review',
+                          language === 'el' ? 'el' : 'en',
+                        )}{' '}
+                        {ep.status === 'active' ? (
+                          <DueDate value={ep.reviewDue} format={fmtDate} />
+                        ) : (
+                          fmtDate(ep.reviewDue)
+                        )}
+                      </>
+                    ) : null}
+                  </small>
+                </span>
+                <span className="sv-episode-findings">
+                  {organism ? (
+                    <em className="sv-chip sv-chip-organism">{organism}</em>
+                  ) : (
+                    <em className="sv-chip sv-chip-muted">
+                      {translate(
+                        'copy.clinicalRecordCopy.noFinding',
+                        language === 'el' ? 'el' : 'en',
+                      )}
+                    </em>
+                  )}
+                  {resistance && (
+                    <em
+                      className={`sv-chip ${RESISTANCE_ALERT.has(String(resistance).toUpperCase()) ? 'sv-chip-danger' : 'sv-chip-muted'}`}
+                    >
+                      {resistance}
+                    </em>
+                  )}
+                  <span className="sv-sample-count">
+                    <Microscope size={13} />
+                    {linked.length}
+                  </span>
+                </span>
+                <ChevronRight className="sv-episode-open" size={18} />
+              </button>
+              {linked.length > 0 && (
+                <div className="sv-samples">
                   <SampleTree
-                    samples={unlinked}
-                    linked={false}
+                    samples={linked}
+                    linked
                     onFollowUp={sample => {
                       setFollowUpParent(sample)
                       setSampleOpen(true)
@@ -571,19 +509,66 @@ export function SurveillanceWorkspace({
                     fmtDate={fmtDate}
                   />
                 </div>
-              </div>
-            ) : null
-          })()}
-          {!episodes.length && !samples.length && (
-            <div className="inline-empty">
-              {translate(
-                'copy.clinicalRecordCopy.noSurveillanceEpisodesOrSamplesFor',
-                language === 'el' ? 'el' : 'en',
               )}
             </div>
-          )}
-        </div>
-      </section>
+          )
+        })}
+        {(() => {
+          const unlinked = samples.filter(
+            sample =>
+              !episodes.some(
+                ep =>
+                  String(
+                    sample.surveillanceCase ||
+                      sample.surveillanceCaseId ||
+                      sample.surveillance_case_id ||
+                      '',
+                  ) === String(ep.id) ||
+                  (Boolean(sample.surveillanceCase) &&
+                    String(sample.surveillanceCase) === String(ep.recordId || '')) ||
+                  (ep.samples || []).some(x => x.id && String(x.id) === String(sample.id)),
+              ),
+          )
+          return unlinked.length ? (
+            <div className="sv-unlinked">
+              <div className="sv-unlinked-heading">
+                <Microscope size={15} />
+                <strong>
+                  {translate(
+                    'copy.clinicalRecordCopy.samplesWithoutSurveillance',
+                    language === 'el' ? 'el' : 'en',
+                  )}
+                </strong>
+                <span>{unlinked.length}</span>
+              </div>
+              <div className="sv-samples sv-samples-flat">
+                <SampleTree
+                  samples={unlinked}
+                  linked={false}
+                  onFollowUp={sample => {
+                    setFollowUpParent(sample)
+                    setSampleOpen(true)
+                  }}
+                  onCreateFromSample={onCreateFromSample}
+                  canCreate={canCreate}
+                  canCreateSample={canCreateSample}
+                  t={t}
+                  language={language}
+                  fmtDate={fmtDate}
+                />
+              </div>
+            </div>
+          ) : null
+        })()}
+        {!episodes.length && !samples.length && (
+          <div className="inline-empty">
+            {translate(
+              'copy.clinicalRecordCopy.noSurveillanceEpisodesOrSamplesFor',
+              language === 'el' ? 'el' : 'en',
+            )}
+          </div>
+        )}
+      </div>
       {sampleOpen && (
         <SampleDialog
           t={t}
@@ -633,7 +618,7 @@ export function SurveillanceWorkspace({
           </p>
         </ObserverDialog>
       )}
-    </div>
+    </RecordTabPanel>
   )
 }
 function SampleTree({

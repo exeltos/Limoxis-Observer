@@ -777,7 +777,8 @@
 .page>.platform-registry-shell .scroll-table,
 .laboratory-registry-page>.lab-registry-shell>.scroll-table,
 .controls-page>.controls-surface .scroll-table,
-.production-surveillance-workspace>.scroll-table{
+.production-surveillance-workspace>.scroll-table,
+.record-tab-panel-body>.scroll-table{
   flex:1 1 0!important;
   min-height:0!important;
   height:auto!important;
@@ -796,7 +797,8 @@
 .platform-registry-shell .data-table,
 .lab-registry-shell .data-table,
 .controls-surface .data-table,
-.production-surveillance-workspace .data-table{
+.production-surveillance-workspace .data-table,
+.record-tab-panel .data-table{
   width:100%!important;
   min-width:720px!important;
   margin:0!important;
@@ -812,7 +814,8 @@
 .platform-registry-shell .data-table thead th,
 .lab-registry-shell .data-table thead th,
 .controls-surface .data-table thead th,
-.production-surveillance-workspace .data-table thead th{
+.production-surveillance-workspace .data-table thead th,
+.record-tab-panel .data-table thead th{
   position:sticky!important;
   top:0!important;
   z-index:3!important;
@@ -838,7 +841,8 @@
 .platform-registry-shell .data-table tbody tr,
 .lab-registry-shell .data-table tbody tr,
 .controls-surface .data-table tbody tr,
-.production-surveillance-workspace .data-table tbody tr{
+.production-surveillance-workspace .data-table tbody tr,
+.record-tab-panel .data-table tbody tr{
   height:48px!important;
   min-height:48px!important;
   background:var(--lo-color-surface)!important;
@@ -850,7 +854,8 @@
 .platform-registry-shell .data-table tbody td,
 .lab-registry-shell .data-table tbody td,
 .controls-surface .data-table tbody td,
-.production-surveillance-workspace .data-table tbody td{
+.production-surveillance-workspace .data-table tbody td,
+.record-tab-panel .data-table tbody td{
   padding:9px 18px!important;
   vertical-align:middle!important;
   border:0!important;
@@ -866,7 +871,8 @@
 .platform-registry-shell .data-table tbody tr:last-child td,
 .lab-registry-shell .data-table tbody tr:last-child td,
 .controls-surface .data-table tbody tr:last-child td,
-.production-surveillance-workspace .data-table tbody tr:last-child td{
+.production-surveillance-workspace .data-table tbody tr:last-child td,
+.record-tab-panel .data-table tbody tr:last-child td{
   border-bottom:0!important;
 }
 
@@ -876,7 +882,8 @@
 .platform-registry-shell .data-table tbody tr:hover td,
 .lab-registry-shell .data-table tbody tr:hover td,
 .controls-surface .data-table tbody tr:hover td,
-.production-surveillance-workspace .data-table tbody tr:hover td{
+.production-surveillance-workspace .data-table tbody tr:hover td,
+.record-tab-panel .data-table tbody tr:hover td{
   background:#f8fafc!important;
 }
 
@@ -885,7 +892,8 @@
 .platform-registry-shell .data-table td strong,
 .lab-registry-shell .data-table td strong,
 .controls-surface .data-table td strong,
-.production-surveillance-workspace .data-table td strong{
+.production-surveillance-workspace .data-table td strong,
+.record-tab-panel .data-table td strong{
   color:#17395c!important;
   font-weight:750!important;
 }
@@ -895,7 +903,8 @@
 .platform-registry-shell .data-table td small,
 .lab-registry-shell .data-table td small,
 .controls-surface .data-table td small,
-.production-surveillance-workspace .data-table td small{
+.production-surveillance-workspace .data-table td small,
+.record-tab-panel .data-table td small{
   margin-top:2px!important;
   color:#606e7c!important;
   font-size:10px!important;
@@ -906,7 +915,8 @@
 .platform-registry-shell .registry-pagination,
 .lab-registry-shell>.registry-pagination,
 .controls-surface .registry-pagination,
-.production-surveillance-workspace>.registry-pagination{
+.production-surveillance-workspace>.registry-pagination,
+.record-tab-panel>.registry-pagination{
   flex:0 0 44px!important;
   min-height:44px!important;
   height:44px!important;
@@ -1070,3 +1080,15 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 :is(.lo-section-header,#lo-section-header-scope) h3{margin:0!important;padding:0!important;border:0!important;color:#173650!important;font-size:16px!important;font-weight:750!important;line-height:1.3!important}
 :is(.lo-section-header,#lo-section-header-scope) p{margin:3px 0 0!important;color:#4f6477!important;font-size:11.5px!important;line-height:1.4!important}
 :is(.lo-section-header,#lo-section-header-scope) .lo-section-header-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;flex:none}
+
+/* ==== record-tab-panel ==== */
+/* A record tab laid out like a registry list (see RecordTabPanel). The record
+   body is already the card: the panel fills it, the header is one row, the
+   content scrolls inside and the footer stays at the bottom. */
+.entity-record-body>:is(.record-tab-panel,#lo-record-tab-panel),:is(.record-tab-panel,#lo-record-tab-panel){flex:1 1 auto!important;min-height:0!important;min-width:0!important;display:flex!important;flex-direction:column!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
+.record-tab-panel>:is(.record-tab-panel-header,#lo-record-tab-panel){flex:0 0 auto;margin:0!important;padding:14px 20px 12px!important;min-height:64px;box-sizing:border-box}
+.record-tab-panel-body{flex:1 1 0;min-height:0;display:flex;flex-direction:column;overflow:auto}
+.record-tab-panel-body>.inline-empty,.record-tab-panel-body>.scroll-table>.inline-empty{margin:0;padding:28px 20px;border:0;border-radius:0;background:transparent;text-align:center}
+.record-tab-panel-body>.patient-history-list{max-height:none;flex:0 0 auto;padding:10px 20px 18px}
+.record-tab-panel-body>:is(.sv-tree,#lo-record-tab-panel){padding:14px 20px 18px!important}
+.entity-record-body:has(>.record-tab-panel){padding:0!important;gap:0!important}

@@ -57,8 +57,9 @@ describe('Management Center review', () => {
     expect(read('src/styles/responsive.css')).toContain('border-bottom-color:#2582bd')
   })
 
-  it('the documents card stays full width in record bodies', () => {
-    expect(withoutImportant(read('src/design-system/DocumentsWorkspace.css'))).toContain('width:100%')
+  it('the documents tab fills the record body like the other record tabs', () => {
+    expect(read('src/design-system/AttachmentField.jsx')).toContain('<RecordTabPanel className="attachments-tab-panel"')
+    expect(withoutImportant(read('src/styles/design-system.css'))).toMatch(/record-tab-panel,#lo-record-tab-panel\)\{flex:1 1 auto;[^}]*width:100%/)
   })
 })
 

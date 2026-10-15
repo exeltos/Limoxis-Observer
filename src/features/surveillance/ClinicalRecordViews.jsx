@@ -1,3 +1,4 @@
+import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { sampleTone } from './patientRecordScope'
 import {
   Activity,
@@ -59,25 +60,20 @@ export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) 
     (a, b) => new Date(b.at || 0) - new Date(a.at || 0),
   )
   return (
-    <section className="record-section patient-history-section">
-      <div className="record-section-header lo-section-header">
-        <div>
-          <h3>
-            {title ||
-              translate(
-                'copy.clinicalRecordCopy.surveillanceHistory',
-                language === 'el' ? 'el' : 'en',
-              )}
-          </h3>
-          <p>
-            {subtitle ||
-              translate(
-                'copy.clinicalRecordCopy.chronologicalAuditTrailOfClinicalActions',
-                language === 'el' ? 'el' : 'en',
-              )}
-          </p>
-        </div>
-      </div>
+    <RecordTabPanel
+      className="patient-history-section"
+      title={
+        title ||
+        translate('copy.clinicalRecordCopy.surveillanceHistory', language === 'el' ? 'el' : 'en')
+      }
+      subtitle={
+        subtitle ||
+        translate(
+          'copy.clinicalRecordCopy.chronologicalAuditTrailOfClinicalActions',
+          language === 'el' ? 'el' : 'en',
+        )
+      }
+    >
       {rows.length ? (
         <div className="patient-history-list">
           {rows.map((x, i) => (
@@ -117,7 +113,7 @@ export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) 
           )}
         </div>
       )}
-    </section>
+    </RecordTabPanel>
   )
 }
 export function CompletedReport({

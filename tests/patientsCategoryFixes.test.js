@@ -57,10 +57,10 @@ describe('surveillance review', () => {
     expect(chooser).toContain('<SubjectChoiceStep')
     expect(lab).toContain('<SubjectChoiceStep')
   })
-  it('documents tabs open the same way: record-section card + shared attachment box', () => {
+  it('documents tabs open the same way: the shared record tab panel with a files table', () => {
     const workspace = fs.readFileSync('src/design-system/DocumentsWorkspace.jsx', 'utf8')
     const panel = fs.readFileSync('src/design-system/EntityAttachmentsPanel.jsx', 'utf8')
-    expect(workspace).toContain('className="record-section documents-workspace"')
+    expect(workspace).toContain('variant="table"')
     expect(panel).not.toContain('LIMOXIS OBSERVER')
   })
 })
