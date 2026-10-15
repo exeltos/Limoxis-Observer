@@ -4,7 +4,7 @@ import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { expiryState,expiryWindow } from './controlExpiry'
+import { ITEM_FORMS,expiryState,expiryWindow,formLabel } from './controlExpiry'
 
 // The items of an expiry check: one item (a form row) or a list (a table).
 // Each row shows how far it is from its expiry date as soon as the date is set.
@@ -30,20 +30,24 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
   {mode==='single'
    ? <div className="entry-grid control-expiry-single">
       <label><span>{en?'Item / Medicine *':'Υλικό / Φάρμακο *'}</span><input autoFocus value={rows[0]?.item||''} onChange={e=>setRow(0,'item',e.target.value)} placeholder={en?'e.g. Adrenaline 1mg/ml':'π.χ. Adrenaline 1mg/ml'}/></label>
+      <label><span>{en?'Form':'Είδος'}</span><select value={rows[0]?.form||''} onChange={e=>setRow(0,'form',e.target.value)}><option value="">{en?'Select…':'Επιλέξτε…'}</option>{ITEM_FORMS.map(([key,el,enLabel])=><option key={key} value={key}>{en?enLabel:el}</option>)}</select></label>
       <label><span>{en?'Quantity':'Ποσότητα'}</span><input type="number" min="0" value={rows[0]?.quantity||''} onChange={e=>setRow(0,'quantity',e.target.value)}/></label>
       <label><span>{en?'Lot':'Παρτίδα'}</span><input value={rows[0]?.lot||''} onChange={e=>setRow(0,'lot',e.target.value)}/></label>
       <ManualDateField label={en?'Expiry date *':'Ημερομηνία λήξης *'} value={rows[0]?.expiry||''} onChange={v=>setRow(0,'expiry',v)}/>
       <div className="field control-expiry-status-field"><span className="lo-field-label">{en?'Status':'Κατάσταση'}</span><div className="control-expiry-status-box"><ExpiryBadge row={rows[0]} window={window} language={language}/></div></div>
       <label className="control-expiry-finding"><span>{en?'Finding':'Εύρημα'}</span>{findingSelect(rows[0]||{},0)}</label>
+      <label className="control-expiry-note"><span>{en?'Note':'Παρατήρηση'}</span><input value={rows[0]?.note||''} onChange={e=>setRow(0,'note',e.target.value)}/></label>
      </div>
-   : <div className="control-structured-table-wrap"><table className="control-structured-table control-expiry-table"><thead><tr><th>{en?'Item / Medicine':'Υλικό / Φάρμακο'}</th><th>{en?'Quantity':'Ποσότητα'}</th><th>{en?'Lot':'Παρτίδα'}</th><th>{en?'Expiry date':'Ημερομηνία λήξης'}</th><th>{en?'Status':'Κατάσταση'}</th><th>{en?'Finding':'Εύρημα'}</th><th aria-label={en?'Actions':'Ενέργειες'}/></tr></thead>
+   : <div className="control-structured-table-wrap"><table className="control-structured-table control-expiry-table"><thead><tr><th>{en?'Item / Medicine':'Υλικό / Φάρμακο'}</th><th>{en?'Form':'Είδος'}</th><th>{en?'Quantity':'Ποσότητα'}</th><th>{en?'Lot':'Παρτίδα'}</th><th>{en?'Expiry date':'Ημερομηνία λήξης'}</th><th>{en?'Status':'Κατάσταση'}</th><th>{en?'Finding':'Εύρημα'}</th><th>{en?'Note':'Παρατήρηση'}</th><th aria-label={en?'Actions':'Ενέργειες'}/></tr></thead>
       <tbody>{rows.map((row,index)=><tr key={index}>
-       <td>{row.fromCatalogue?<div className="control-catalogue-item"><strong>{row.item}</strong>{row.unit&&<small>{row.unit}</small>}</div>:<input value={row.item||''} onChange={e=>setRow(index,'item',e.target.value)} placeholder={en?'Item / Medicine':'Υλικό / Φάρμακο'}/>}</td>
+       <td>{row.fromCatalogue?<div className="control-catalogue-item"><strong>{row.item}</strong></div>:<input value={row.item||''} onChange={e=>setRow(index,'item',e.target.value)} placeholder={en?'Item / Medicine':'Υλικό / Φάρμακο'}/>}</td>
+       <td>{row.fromCatalogue?<span className="control-catalogue-form">{formLabel(row.form,language)||'—'}</span>:<select aria-label={en?'Form':'Είδος'} value={row.form||''} onChange={e=>setRow(index,'form',e.target.value)}><option value="">—</option>{ITEM_FORMS.map(([key,el,enLabel])=><option key={key} value={key}>{en?enLabel:el}</option>)}</select>}</td>
        <td><input type="number" min="0" value={row.quantity||''} onChange={e=>setRow(index,'quantity',e.target.value)}/></td>
        <td><input value={row.lot||''} onChange={e=>setRow(index,'lot',e.target.value)}/></td>
        <td><ManualDateField className="table-date-field" value={row.expiry||''} onChange={v=>setRow(index,'expiry',v)}/></td>
        <td><ExpiryBadge row={row} window={window} language={language}/></td>
        <td>{findingSelect(row,index)}</td>
+       <td><input aria-label={en?'Note':'Παρατήρηση'} value={row.note||''} onChange={e=>setRow(index,'note',e.target.value)}/></td>
        <td>{!row.fromCatalogue&&<button type="button" className="control-row-delete" onClick={()=>removeRow(index)} title={en?'Remove row':'Αφαίρεση γραμμής'} aria-label={en?'Remove row':'Αφαίρεση γραμμής'}><Trash2 size={14}/></button>}</td>
       </tr>)}</tbody>
      </table></div>}

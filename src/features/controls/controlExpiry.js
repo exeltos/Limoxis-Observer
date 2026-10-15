@@ -47,10 +47,20 @@ export function expiryState(expiry,{before,after},now=new Date()){
 const hasItem=row=>String(row?.item||'').trim()&&String(row?.expiry||'').trim()
 const itemKey=row=>String(row?.item||'').trim().toLocaleLowerCase('el')
 
+// What a listed item is: tablet, ampoule, vial, … (stored as the key).
+export const ITEM_FORMS=[
+ ['tablet','Ταμπλέτα','Tablet'],['capsule','Καψάκιο','Capsule'],['ampoule','Φύσιγγα','Ampoule'],['vial','Φιαλίδιο','Vial'],
+ ['flacon','Φλακόν','Flacon'],['bottle','Φιάλη','Bottle'],['bag','Ασκός','Bag'],['tube','Σωληνάριο','Tube'],['piece','Τεμάχιο','Piece'],['pack','Συσκευασία','Pack'],['other','Άλλο','Other'],
+]
+export function formLabel(form,language='el'){
+ const match=ITEM_FORMS.find(([key])=>key===form)
+ return match?(language==='en'?match[2]:match[1]):String(form||'')
+}
+
 // The items on each department's list, soonest expiry first. An item's latest
 // entry replaces the earlier ones (a check re-records every item it covers); an
-// item stays until someone marks it as removed or replaced. Each item carries
-// the entry it came from so it can be marked there.
+// item stays until someone marks it as removed or replaced. Listed items that no
+// entry has recorded yet show with the expiry the list gives them.
 export function expiryItems(record,departments,now=new Date()){
  const window=expiryWindow(record)
  const items=[]
@@ -62,29 +72,42 @@ export function expiryItems(record,departments,now=new Date()){
    const rows=execution.structuredData?.rows||[]
    rows.forEach((row,index)=>{
     if(!hasItem(row)||row.removedAt||recorded.has(itemKey(row)))return
-    items.push({key:`${department}|${execution.id}|${index}`,department,execution,index,row,...expiryState(row.expiry,window,now)})
+    items.push({key:`${department}|${execution.id}|${index}`,department,execution,index,row,source:'entry',...expiryState(row.expiry,window,now)})
    })
    for(const row of rows)if(itemKey(row))recorded.add(itemKey(row))
+  }
+  for(const entry of catalogueForDepartment(record,department)){
+   if(recorded.has(itemKey(entry))||!hasItem(entry))continue
+   items.push({key:`${department}|list|${entry.id}`,department,execution:null,index:-1,row:{item:entry.item,quantity:entry.quantity||'',form:entry.form||'',expiry:entry.expiry,note:entry.note||'',lot:''},source:'list',...expiryState(entry.expiry,window,now)})
   }
  }
  return items.sort((a,b)=>(a.days??Infinity)-(b.days??Infinity))
 }
 
-// The control's list of medicines and supplies: [{id,item,unit,departments}]
-// where an empty departments list means every department of the control.
-export function catalogueItem({item='',unit='',departments=[]}={}){
- return {id:`cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`,item:String(item).trim(),unit:String(unit||'').trim(),departments:[...departments]}
+// The control's list of medicines and supplies:
+// [{id,item,quantity,form,expiry,note,departments}], where an empty departments
+// list means every department of the control.
+export function catalogueItem({item='',quantity='',form='',expiry='',note='',departments=[]}={}){
+ return {id:`cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`,item:String(item).trim(),quantity:String(quantity??'').trim(),form:String(form||''),expiry:String(expiry||''),note:String(note||''),departments:[...departments]}
 }
 export function expiryCatalogue(record){
  const list=record?.responseConfig?.expiryCatalogue
- return Array.isArray(list)?list.filter(entry=>String(entry?.item||'').trim()):[]
+ return Array.isArray(list)?list.filter(entry=>String(entry?.item||'').trim()).map(entry=>({...entry,form:entry.form||entry.unit||''})):[]
 }
 export function catalogueForDepartment(record,department){
  return expiryCatalogue(record).filter(entry=>!entry.departments?.length||entry.departments.includes(department))
 }
 
+// Lines pasted from a spreadsheet: name, quantity, form, expiry (dd/mm/yyyy or
+// yyyy-mm-dd) and note, separated by tabs or semicolons; only the name is needed.
+export function parseCatalogueLines(text){
+ const toIso=value=>{const v=String(value||'').trim();const local=v.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);if(local)return `${local[3]}-${local[2].padStart(2,'0')}-${local[1].padStart(2,'0')}`;return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:''}
+ const toForm=value=>{const v=String(value||'').trim().toLocaleLowerCase('el');if(!v)return '';const match=ITEM_FORMS.find(([key,el,en])=>[key,el.toLocaleLowerCase('el'),en.toLowerCase()].includes(v));return match?match[0]:'other'}
+ return String(text||'').split(/\r?\n/).map(line=>line.split(/\t|;/).map(cell=>cell.trim())).filter(cells=>cells[0]).map(([item,quantity='',form='',expiry='',note=''])=>({item,quantity,form:toForm(form),expiry:toIso(expiry),note}))
+}
+
 // The rows a new entry starts with: every listed item for the department, with
-// the quantity, lot and expiry it had at its latest entry.
+// what its latest entry recorded (or, before any entry, what the list gives).
 export function prefilledExpiryRows(record,department){
  const latest=new Map()
  const history=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0))
@@ -94,8 +117,8 @@ export function prefilledExpiryRows(record,department){
  }
  return catalogueForDepartment(record,department).map(entry=>{
   const last=latest.get(itemKey(entry))
-  const keep=last&&!last.removedAt
-  return {item:entry.item,unit:entry.unit||'',quantity:keep?String(last.quantity||''):'',lot:keep?String(last.lot||''):'',expiry:keep?String(last.expiry||''):'',finding:'',findingOther:'',fromCatalogue:true}
+  const from=last?(last.removedAt?{}:last):entry
+  return {item:entry.item,form:entry.form||'',quantity:String(from.quantity||''),lot:String(from.lot||''),expiry:String(from.expiry||''),note:String(from.note||''),finding:'',findingOther:'',fromCatalogue:true}
  })
 }
 

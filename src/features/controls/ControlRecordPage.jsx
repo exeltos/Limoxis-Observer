@@ -23,7 +23,8 @@ import { ControlEvidenceLinks } from './ControlEvidence'
 import { controlCriticality,criticalityLabel,deviationActions,requiresEvidence } from './controlCriticality'
 import { ControlCancellationModal } from './ControlCancellationModal'
 import { ControlExpiryPanel } from './ControlExpiryPanel'
-import { expiryCounts,expiryItems,isExpiryControl,markRowRemoved } from './controlExpiry'
+import { expiryCounts,expiryItems,isExpiryControl } from './controlExpiry'
+import { removeExpiryItem } from './controlExpiryRemoval'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
 import { assignmentStatus,frequencyLabel,getAssignment } from './controlScheduling'
@@ -128,16 +129,6 @@ export function ControlRecordPage(){
   catch(error){notifyError(error,'save',{operation:'control_execution_delete'})}
  }
 
- async function removeExpiryItem(item){
-  const ok=await confirm({title:en?'Remove item from the list':'Αφαίρεση υλικού από τη λίστα',message:en?`${item.row.item} will leave the expiry list and stop alerting. Continue?`:`Το «${item.row.item}» θα φύγει από τη λίστα λήξεων και δεν θα ειδοποιεί πια. Θέλετε να συνεχίσετε;`,confirmLabel:en?'Removed / replaced':'Αφαιρέθηκε / Αντικαταστάθηκε'})
-  if(!ok)return
-  const execution=item.execution
-  try{
-   await updateControlExecution(tenant.id,record,item.department,execution,{value:execution.value,notes:execution.notes,hasFinding:execution.hasFinding,structuredData:markRowRemoved(execution,item.index,{actorName:actor.name}),actor,reason:`${en?'Item removed / replaced':'Αφαίρεση / αντικατάσταση υλικού'}: ${item.row.item}`})
-   await reload()
-   notify(en?'Item removed from the list.':'Το υλικό αφαιρέθηκε από τη λίστα.','success')
-  }catch(error){notifyError(error,'save',{operation:'control_expiry_item_remove'})}
- }
  function historyActions(h){
   return [
    h.structuredData?.rows?.length>0?{id:'print',label:en?'Print entry':'Εκτύπωση καταχώρησης',icon:Printer,onClick:()=>printControlForm({record,department:h.department,execution:h})}:null,
@@ -197,7 +188,7 @@ export function ControlRecordPage(){
     />
    </section>
   </div>}
-  {tab==='expiry'&&expiryControl&&<ControlExpiryPanel record={record} departments={visibleDepartments} canRemove={dep=>canExecuteDepartment(dep)} onRemove={removeExpiryItem} language={language} locale={locale}/>}
+  {tab==='expiry'&&expiryControl&&<ControlExpiryPanel sources={[{record,departments:visibleDepartments}]} canRemove={(_,dep)=>canExecuteDepartment(dep)} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} language={language} locale={locale}/>}
   {tab==='history'&&<RecordTabPanel className="control-history-panel workspace-fill" title={en?'Executions':'Εκτελέσεις'} subtitle={historyRows.length?`${historyRows.length.toLocaleString(locale)} ${en?(historyRows.length===1?'entry':'entries'):(historyRows.length===1?'καταχώρηση':'καταχωρήσεις')}`:''} footer={historyRows.length>0&&<RegistryPagination language={language} page={historySafePage} totalPages={historyTotalPages} totalItems={historyRows.length} pageSize={historyPageSize} onPageChange={setHistoryPage} onPageSizeChange={size=>{setHistoryPageSize(size);setHistoryPage(1)}}/>}><RegistryTable
     wrapperClassName="scroll-table"
     className="control-history-table"

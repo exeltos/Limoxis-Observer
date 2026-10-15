@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { catalogueForDepartment, daysToExpiry, prefilledExpiryRows, expiryAlerts, expiryCounts, expiryItems, expiryState, expiryWindow, impliedFinding, isExpiryControl, markRowRemoved } from '../src/features/controls/controlExpiry'
+import { catalogueForDepartment, parseCatalogueLines, daysToExpiry, prefilledExpiryRows, expiryAlerts, expiryCounts, expiryItems, expiryState, expiryWindow, impliedFinding, isExpiryControl, markRowRemoved } from '../src/features/controls/controlExpiry'
 
 const now = new Date(2026, 9, 15, 10, 0)
 const record = {
@@ -75,14 +75,34 @@ describe('control expiry tracking', () => {
 
   it('opens each entry with the listed items and their last lot and expiry', () => {
     const listed = { ...record, responseConfig: { ...record.responseConfig, expiryCatalogue: [
-      { id: 'c1', item: 'Adrenaline', unit: 'φύσιγγα', departments: [] },
+      { id: 'c1', item: 'Adrenaline', form: 'ampoule', expiry: '2027-05-01', departments: [] },
       { id: 'c2', item: 'Atropine', departments: ['ΜΕΘ'] },
       { id: 'c3', item: 'Naloxone', departments: ['ΤΕΠ'] },
     ] } }
     expect(catalogueForDepartment(listed, 'ΜΕΘ').map(entry => entry.item)).toEqual(['Adrenaline', 'Atropine'])
     const rows = prefilledExpiryRows(listed, 'ΜΕΘ')
-    expect(rows[0]).toMatchObject({ item: 'Adrenaline', unit: 'φύσιγγα', expiry: '2026-10-20', fromCatalogue: true })
+    expect(rows[0]).toMatchObject({ item: 'Adrenaline', form: 'ampoule', expiry: '2026-10-20', fromCatalogue: true })
     // Atropine was marked as removed last time: its row starts empty.
     expect(rows[1]).toMatchObject({ item: 'Atropine', expiry: '', lot: '' })
+  })
+
+  it('shows listed items with the list expiry until an entry records them', () => {
+    const listed = { ...record, responseConfig: { ...record.responseConfig, expiryCatalogue: [
+      { id: 'c1', item: 'Adrenaline', expiry: '2027-05-01', departments: [] },
+      { id: 'c9', item: 'Midazolam', form: 'ampoule', quantity: '5', expiry: '2026-10-13', departments: ['ΜΕΘ'] },
+    ] } }
+    const items = expiryItems(listed, ['ΜΕΘ'], now)
+    const midazolam = items.find(item => item.row.item === 'Midazolam')
+    expect(midazolam).toMatchObject({ source: 'list', execution: null, state: 'expired' })
+    // Adrenaline was recorded by an entry: the entry wins over the list.
+    expect(items.filter(item => item.row.item === 'Adrenaline')).toHaveLength(1)
+    expect(items.find(item => item.row.item === 'Adrenaline').source).toBe('entry')
+  })
+
+  it('reads rows pasted from a spreadsheet', () => {
+    expect(parseCatalogueLines('Adrenaline 1mg/ml\t10\tΦύσιγγα\t31/12/2026\tΣτο τροχήλατο\nΣύριγγες 10ml;120;τεμάχιο\n\n')).toEqual([
+      { item: 'Adrenaline 1mg/ml', quantity: '10', form: 'ampoule', expiry: '2026-12-31', note: 'Στο τροχήλατο' },
+      { item: 'Σύριγγες 10ml', quantity: '120', form: 'piece', expiry: '', note: '' },
+    ])
   })
 })

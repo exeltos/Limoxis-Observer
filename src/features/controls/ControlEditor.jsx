@@ -6,7 +6,7 @@ import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { MultiSelect } from '../../design-system/MultiSelect'
-import { DEFAULT_EXPIRY_AFTER_DAYS,DEFAULT_EXPIRY_BEFORE_DAYS,expiryCatalogue } from './controlExpiry'
+import { DEFAULT_EXPIRY_AFTER_DAYS,DEFAULT_EXPIRY_BEFORE_DAYS,expiryCatalogue,expiryWindow } from './controlExpiry'
 import { ControlExpiryCatalogueDialog } from './ControlExpiryCatalogueDialog'
 import { YesNoField } from '../../design-system/YesNoField'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -128,6 +128,6 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     <div className="inline-edit-footer"><SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
    </div>
   </EntityRecordShell>
-  {catalogueOpen&&<ControlExpiryCatalogueDialog items={expiryCatalogue(draft)} departments={draft.departments} language={language} onClose={()=>setCatalogueOpen(false)} onSave={list=>setR('expiryCatalogue',list)}/>}
+  {catalogueOpen&&<ControlExpiryCatalogueDialog items={expiryCatalogue(draft)} departments={departments} window={expiryWindow(draft)} language={language} onClose={()=>setCatalogueOpen(false)} onSave={list=>setR('expiryCatalogue',list)}/>}
  </Page>
 }

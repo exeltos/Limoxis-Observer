@@ -1207,7 +1207,7 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 .control-record-shell .control-record-view:is(div,#lo-record-sheet){padding-right:44px!important}
 .control-record-shell>.entity-record-body:is(section,#lo-record-sheet){display:flex;flex-direction:column}
 /* Expiry entry: one item on one row; the status sits in a box as tall as the inputs. */
-.control-expiry-entry .control-expiry-single:is(.entry-grid,#lo-control-form){display:grid!important;grid-template-columns:minmax(0,2fr) minmax(0,.6fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr)!important;gap:12px!important;align-items:end}
+.control-expiry-entry .control-expiry-single:is(.entry-grid,#lo-control-form){display:grid!important;grid-template-columns:minmax(0,1.8fr) minmax(0,.8fr) minmax(0,.6fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)!important;gap:12px!important;align-items:end}
 .control-expiry-entry .control-expiry-status-box{display:flex;align-items:center;min-height:40px;padding:0 10px;border:1px dashed #d6e0e8;border-radius:8px;background:#f8fafc}
 .control-expiry-entry .control-expiry-status-field:is(div,#lo-control-form){display:flex;flex-direction:column;gap:0}
 .control-expiry-entry .control-expiry-status-field>.lo-field-label{margin-bottom:6px}

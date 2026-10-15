@@ -42,7 +42,14 @@ const definition2={
  updated_at:iso(-24*6),
 }
 
-const definition3={...definition2,id:'ctrl-def-expiry',code:'CTRL-DEMO-0003',title:'Έλεγχος λήξεων φαρμάκων και υλικών',category:'Λήξεις',description:'Περιοδικός έλεγχος λήξεων φαρμάκων και αναλωσίμων.',response_config:{mode:'list',template:'medication_expiry',label:'Ευρήματα',expiryBeforeDays:30,expiryAfterDays:7,expiryCatalogue:[['Adrenaline 1mg/ml','φύσιγγα'],['Atropine 0.5mg/ml','φύσιγγα'],['Amiodarone 150mg/3ml','φύσιγγα'],['Φυσιολογικός ορός 0,9% 500ml','φιάλη'],['Ηπαρίνη 5.000 IU/ml','φιαλίδιο'],['Midazolam 5mg/ml','φύσιγγα'],['Σύριγγες 10ml','τεμάχιο'],['Ουροκαθετήρας Foley 14Fr','τεμάχιο'],['Χλωρεξιδίνη 2% διάλυμα','φιάλη'],['Naloxone 0.4mg/ml','φύσιγγα']].map(([item,unit],index)=>({id:`cat-demo-${index+1}`,item,unit,departments:[]})),__meta:{titleEn:'Medication and supply expiry check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control'}},frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
+// The ten items the demo expiry check goes through, with expiry dates around
+// today so the list shows items that expire soon and a couple already expired.
+function demoExpiryCatalogue(){
+ const on=days=>{const d=new Date();d.setDate(d.getDate()+days);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+ return [['Adrenaline 1mg/ml',10,'ampoule',-6,''],['Atropine 0.5mg/ml',6,'ampoule',12,''],['Amiodarone 150mg/3ml',4,'ampoule',75,''],['Φυσιολογικός ορός 0,9% 500ml',24,'bottle',160,''],['Ηπαρίνη 5.000 IU/ml',8,'vial',25,'Στο ψυγείο'],['Midazolam 5mg/ml',5,'ampoule',-2,'Ελεγχόμενο'],['Παρακεταμόλη 500mg',40,'tablet',210,''],['Σύριγγες 10ml',120,'piece',400,''],['Χλωρεξιδίνη 2% διάλυμα',12,'flacon',48,''],['Naloxone 0.4mg/ml',3,'ampoule',19,'Τροχήλατο ανάνηψης']]
+  .map(([item,quantity,form,days,note],index)=>({id:`cat-demo-${index+1}`,item,quantity:String(quantity),form,expiry:on(days),note,departments:[]}))
+}
+const definition3={...definition2,id:'ctrl-def-expiry',code:'CTRL-DEMO-0003',title:'Έλεγχος λήξεων φαρμάκων και υλικών',category:'Λήξεις',description:'Περιοδικός έλεγχος λήξεων φαρμάκων και αναλωσίμων.',response_config:{mode:'list',template:'medication_expiry',label:'Ευρήματα',expiryBeforeDays:30,expiryAfterDays:7,expiryCatalogue:demoExpiryCatalogue(),__meta:{titleEn:'Medication and supply expiry check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control'}},frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
 export const controlDefinitionRows=[definition1,definition2,definition3]
 
 const assignment1={
