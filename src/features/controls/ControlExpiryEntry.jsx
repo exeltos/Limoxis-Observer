@@ -11,7 +11,8 @@ import { expiryState,expiryWindow } from './controlExpiry'
 export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirstRow,language}){
  const en=language==='en'
  const window=expiryWindow(record)
- const [mode,setMode]=useState(rows.length>1?'list':'single')
+ const listed=rows.some(row=>row.fromCatalogue)
+ const [mode,setMode]=useState(listed||rows.length>1?'list':'single')
  function changeMode(next){
   if(next==='single'&&rows.length>1)keepFirstRow()
   setMode(next)
@@ -22,8 +23,8 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
    title={en?'Medicines and supplies':'Φάρμακα και υλικά'}
    subtitle={en?`Alerts start ${window.before} days before expiry and continue for ${window.after} days after it.`:`Η ειδοποίηση ξεκινά ${window.before} ημέρες πριν τη λήξη και συνεχίζει ${window.after} ημέρες μετά.`}
    actions={<>
-    <ModeSwitch ariaLabel={en?'Entry type':'Τρόπος καταχώρησης'} value={mode} onChange={changeMode} options={[{value:'single',label:en?'Single item':'Μεμονωμένο υλικό',icon:Package},{value:'list',label:en?'List':'Λίστα',icon:ListChecks}]}/>
-    {mode==='list'&&<Button variant="secondary" onClick={addRow}><Plus size={15}/>{en?' Add item':' Προσθήκη υλικού'}</Button>}
+    {!listed&&<ModeSwitch ariaLabel={en?'Entry type':'Τρόπος καταχώρησης'} value={mode} onChange={changeMode} options={[{value:'single',label:en?'Single item':'Μεμονωμένο υλικό',icon:Package},{value:'list',label:en?'List':'Λίστα',icon:ListChecks}]}/>}
+    {mode==='list'&&<Button variant="secondary" onClick={addRow}><Plus size={15}/>{listed?(en?' Item not on the list':' Έκτακτο υλικό'):(en?' Add item':' Προσθήκη υλικού')}</Button>}
    </>}
   />
   {mode==='single'
@@ -37,13 +38,13 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
      </div>
    : <div className="control-structured-table-wrap"><table className="control-structured-table control-expiry-table"><thead><tr><th>{en?'Item / Medicine':'Υλικό / Φάρμακο'}</th><th>{en?'Quantity':'Ποσότητα'}</th><th>{en?'Lot':'Παρτίδα'}</th><th>{en?'Expiry date':'Ημερομηνία λήξης'}</th><th>{en?'Status':'Κατάσταση'}</th><th>{en?'Finding':'Εύρημα'}</th><th aria-label={en?'Actions':'Ενέργειες'}/></tr></thead>
       <tbody>{rows.map((row,index)=><tr key={index}>
-       <td><input value={row.item||''} onChange={e=>setRow(index,'item',e.target.value)} placeholder={en?'Item / Medicine':'Υλικό / Φάρμακο'}/></td>
+       <td>{row.fromCatalogue?<div className="control-catalogue-item"><strong>{row.item}</strong>{row.unit&&<small>{row.unit}</small>}</div>:<input value={row.item||''} onChange={e=>setRow(index,'item',e.target.value)} placeholder={en?'Item / Medicine':'Υλικό / Φάρμακο'}/>}</td>
        <td><input type="number" min="0" value={row.quantity||''} onChange={e=>setRow(index,'quantity',e.target.value)}/></td>
        <td><input value={row.lot||''} onChange={e=>setRow(index,'lot',e.target.value)}/></td>
        <td><ManualDateField className="table-date-field" value={row.expiry||''} onChange={v=>setRow(index,'expiry',v)}/></td>
        <td><ExpiryBadge row={row} window={window} language={language}/></td>
        <td>{findingSelect(row,index)}</td>
-       <td><button type="button" className="control-row-delete" onClick={()=>removeRow(index)} title={en?'Remove row':'Αφαίρεση γραμμής'} aria-label={en?'Remove row':'Αφαίρεση γραμμής'}><Trash2 size={14}/></button></td>
+       <td>{!row.fromCatalogue&&<button type="button" className="control-row-delete" onClick={()=>removeRow(index)} title={en?'Remove row':'Αφαίρεση γραμμής'} aria-label={en?'Remove row':'Αφαίρεση γραμμής'}><Trash2 size={14}/></button>}</td>
       </tr>)}</tbody>
      </table></div>}
  </section>

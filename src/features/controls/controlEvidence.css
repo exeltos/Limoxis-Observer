@@ -24,3 +24,31 @@ button.control-evidence-link:hover{background:#eaf2f8}
 .control-criticality-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;font-size:9.5px;font-weight:800;vertical-align:1px}
 .control-criticality-badge.high{background:#fdeceb;color:#b42318}
 .control-criticality-badge.medium{background:#fff4e5;color:#a15c07}
+/* Expiry check: the list of medicines and supplies (ControlEditor field + dialog). */
+.control-catalogue-field{display:flex;flex-direction:column;min-width:0}
+.control-catalogue-field>.lo-field-label{margin-bottom:6px}
+.control-catalogue-button{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:0 12px;border:1px solid #cad6df;border-radius:8px;background:#fff;color:var(--lo-color-text,#22384c);font:inherit;font-size:13px;font-weight:650;cursor:pointer;text-align:left}
+.control-catalogue-button>span{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.control-catalogue-button>svg{flex:none;color:var(--lo-color-primary,#1f6f9f)}
+.control-catalogue-button:hover{border-color:#9fb6c8;background:#f7fafc}
+.control-expiry-catalogue-dialog .control-catalogue-add{display:flex;flex-direction:column;gap:12px;padding-bottom:14px;border-bottom:1px solid #e8edf2}
+.control-expiry-catalogue-dialog .control-catalogue-add>.lo-mode-switch{align-self:flex-start}
+.control-expiry-catalogue-dialog .control-catalogue-single{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1.4fr) auto;gap:12px;align-items:end}
+.control-expiry-catalogue-dialog .control-catalogue-paste{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr);gap:12px;align-items:start}
+.control-expiry-catalogue-dialog .control-catalogue-paste textarea{min-height:110px;height:110px}
+.control-expiry-catalogue-dialog .control-catalogue-paste-side{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.control-expiry-catalogue-dialog .control-catalogue-paste-side>.multi-select{align-self:stretch}
+.control-expiry-catalogue-dialog .control-catalogue-list{display:flex;flex-direction:column;gap:8px;min-height:0;flex:1;padding-top:12px}
+.control-expiry-catalogue-dialog .control-catalogue-list-head{display:flex;align-items:center;gap:8px}
+.control-expiry-catalogue-dialog .control-catalogue-list-head>span{padding:1px 8px;border-radius:999px;background:#eef3f7;font-size:11px;font-weight:700}
+.control-expiry-catalogue-dialog .control-structured-table-wrap{max-height:300px;overflow:auto}
+.control-expiry-catalogue-dialog .control-catalogue-table .multi-select>label{display:none}
+.control-catalogue-item{display:flex;flex-direction:column;gap:1px;min-width:0}
+.control-catalogue-item>small{font-size:11px;color:var(--lo-color-text-muted,#617386)}
+.control-expiry-catalogue-dialog .control-catalogue-table .multi-select>label:is(label,#lo-control-form){display:none!important}
+.control-expiry-catalogue-dialog .control-catalogue-table{table-layout:fixed;width:100%}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(1){width:44%}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(2){width:20%}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(3){width:30%}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(4){width:6%}
+.control-expiry-catalogue-dialog .control-catalogue-table th{white-space:nowrap}

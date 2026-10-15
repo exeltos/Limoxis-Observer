@@ -8,7 +8,7 @@ import { controlActorFromAuth } from './controlActor'
 import { emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
 import { saveControlDraft } from './controlCloudService'
 import { deviationActions,requiresEvidence } from './controlCriticality'
-import { expiryState,expiryWindow,impliedFinding,isExpiryControl } from './controlExpiry'
+import { expiryState,expiryWindow,impliedFinding,isExpiryControl,prefilledExpiryRows } from './controlExpiry'
 import { ControlExpiryEntry } from './ControlExpiryEntry'
 import { ControlDeviationActions,ControlEvidencePicker } from './ControlEvidence'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -30,7 +30,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
  const savedDraft=assignment?.draft||null
  const [value,setValue]=useState(savedDraft?.value||'')
  const [notes,setNotes]=useState(savedDraft?.notes||'')
- const [rows,setRows]=useState(savedDraft?.rows?.length?savedDraft.rows:[emptyStructuredRow(response.template)])
+ const [rows,setRows]=useState(()=>{if(savedDraft?.rows?.length)return savedDraft.rows;const listed=isExpiryControl(record)?prefilledExpiryRows(record,department):[];return listed.length?listed:[emptyStructuredRow(response.template)]})
  const [draftSaved,setDraftSaved]=useState(Boolean(savedDraft))
  const [draftSaving,setDraftSaving]=useState(false)
  const [saving,setSaving]=useState(false)
@@ -43,7 +43,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
  const expiryControl=isExpiryControl(record)
  const expiryRowAlerts=expiryControl&&rows.some(row=>expiryState(row.expiry,expiryWindow(record)).alert)
  const hasFinding=outOfRange||choiceFinding||(response.mode==='list'&&listHasFinding(rows))||expiryRowAlerts
- const expiryRowsValid=!expiryControl||rows.every(row=>!String(row.item||'').trim()||String(row.expiry||'').trim())
+ const expiryRowsValid=!expiryControl||rows.every(row=>row.fromCatalogue||!String(row.item||'').trim()||String(row.expiry||'').trim())
  const valid=(response.mode==='list'?true:String(value).trim().length>0)&&expiryRowsValid&&(!evidenceRequired||evidence.length>0)
 
  function setRow(index,key,next){setRows(current=>current.map((r,i)=>i===index?{...r,[key]:next}:r))}

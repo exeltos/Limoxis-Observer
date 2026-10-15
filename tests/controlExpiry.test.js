@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { daysToExpiry, expiryAlerts, expiryCounts, expiryItems, expiryState, expiryWindow, impliedFinding, isExpiryControl, markRowRemoved } from '../src/features/controls/controlExpiry'
+import { catalogueForDepartment, daysToExpiry, prefilledExpiryRows, expiryAlerts, expiryCounts, expiryItems, expiryState, expiryWindow, impliedFinding, isExpiryControl, markRowRemoved } from '../src/features/controls/controlExpiry'
 
 const now = new Date(2026, 9, 15, 10, 0)
 const record = {
@@ -61,5 +61,28 @@ describe('control expiry tracking', () => {
     expect(alerts).toHaveLength(1)
     expect(alerts[0]).toMatchObject({ type: 'expiry', to: '/controls/CTRL-1?tab=expiry', message: 'ΜΕΘ · 1 ληγμένο · 1 λήγει σύντομα' })
     expect(expiryAlerts([record], { now, canSee: (_, dep) => dep === 'ΤΕΠ' })).toHaveLength(0)
+  })
+
+  it('lets a newer entry of an item replace the earlier one', () => {
+    const later = { ...record, assignments: { ...record.assignments, 'ΤΕΠ': { history: [
+      { id: 'n2', at: '2026-10-10', status: 'completed', structuredData: { rows: [{ item: 'naloxone', expiry: '2027-01-01' }] } },
+      { id: 'n1', at: '2026-09-01', status: 'completed', structuredData: { rows: [{ item: 'Naloxone', expiry: '2026-09-01' }] } },
+    ] } } }
+    const items = expiryItems(later, ['ΤΕΠ'], now)
+    expect(items).toHaveLength(1)
+    expect(items[0].row.expiry).toBe('2027-01-01')
+  })
+
+  it('opens each entry with the listed items and their last lot and expiry', () => {
+    const listed = { ...record, responseConfig: { ...record.responseConfig, expiryCatalogue: [
+      { id: 'c1', item: 'Adrenaline', unit: 'φύσιγγα', departments: [] },
+      { id: 'c2', item: 'Atropine', departments: ['ΜΕΘ'] },
+      { id: 'c3', item: 'Naloxone', departments: ['ΤΕΠ'] },
+    ] } }
+    expect(catalogueForDepartment(listed, 'ΜΕΘ').map(entry => entry.item)).toEqual(['Adrenaline', 'Atropine'])
+    const rows = prefilledExpiryRows(listed, 'ΜΕΘ')
+    expect(rows[0]).toMatchObject({ item: 'Adrenaline', unit: 'φύσιγγα', expiry: '2026-10-20', fromCatalogue: true })
+    // Atropine was marked as removed last time: its row starts empty.
+    expect(rows[1]).toMatchObject({ item: 'Atropine', expiry: '', lot: '' })
   })
 })

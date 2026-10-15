@@ -1,12 +1,13 @@
 import { useEffect,useMemo,useState } from 'react'
-import { CalendarClock,ClipboardCheck } from 'lucide-react'
+import { CalendarClock,ClipboardCheck,ListChecks,Pencil } from 'lucide-react'
 import { TimeField } from '../../design-system/TimeField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { MultiSelect } from '../../design-system/MultiSelect'
-import { DEFAULT_EXPIRY_AFTER_DAYS,DEFAULT_EXPIRY_BEFORE_DAYS } from './controlExpiry'
+import { DEFAULT_EXPIRY_AFTER_DAYS,DEFAULT_EXPIRY_BEFORE_DAYS,expiryCatalogue } from './controlExpiry'
+import { ControlExpiryCatalogueDialog } from './ControlExpiryCatalogueDialog'
 import { YesNoField } from '../../design-system/YesNoField'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -56,6 +57,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  }
  useEffect(()=>{let active=true;if(departmentOnly&&fixedDepartment){setDepartmentRows([{name:fixedDepartment}]);setDepartmentsError('');setLegacyDepartments([]);setDepartmentsLoading(false);return()=>{active=false}};if(isDemo){setDepartmentRows(demoLibrarySeed.departments.map(([name,nameEn])=>({id:name,name,nameEn})));setDepartmentsError('');setLegacyDepartments([]);setDepartmentsLoading(false);return()=>{active=false}};if(!organizationId){setDepartmentRows([]);setDepartmentsError(en?'No active organization is selected.':'Δεν έχει επιλεγεί ενεργός οργανισμός.');return()=>{active=false}};(async()=>{setDepartmentsLoading(true);setDepartmentsError('');try{const rows=await loadDepartments(organizationId);if(active){const current=(rows||[]).filter(x=>x.is_active!==false);setDepartmentRows(current);setLegacyDepartments(current.length?[]:legacyDepartmentNames())}}catch(error){if(active){setDepartmentRows([]);setDepartmentsError(error?.message||(en?'Departments could not be loaded.':'Δεν ήταν δυνατή η φόρτωση των τμημάτων.'))}}finally{if(active)setDepartmentsLoading(false)}})();return()=>{active=false}},[organizationId,departmentOnly,fixedDepartment,en,isDemo])
  const departments=useMemo(()=>departmentRows.map(x=>x.name).filter(Boolean),[departmentRows])
+ const [catalogueOpen,setCatalogueOpen]=useState(false)
  const set=(k,v)=>setDraft(d=>({...d,[k]:v})),setF=(k,v)=>setDraft(d=>({...d,frequency:{...d.frequency,[k]:v}})),setR=(k,v)=>setDraft(d=>({...d,responseConfig:{...(d.responseConfig||{mode:'text',label:'Αποτέλεσμα'}),[k]:v}}))
  const count=Math.max(1,Number(draft.frequency.timesPerDay)||1)
  const times=Array.from({length:count},(_,i)=>draft.frequency.times?.[i]||`${String(Math.min(23,8+i*4)).padStart(2,'0')}:00`)
@@ -95,7 +97,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
        {draft.responseConfig?.mode==='numeric'&&<><label><span>{en?'Unit':'Μονάδα μέτρησης'}</span><input value={draft.responseConfig?.unit||''} onChange={e=>setR('unit',e.target.value)} placeholder="°C"/></label><div className="control-inline-limits"><label><span>{en?'Minimum acceptable':'Ελάχιστο αποδεκτό'}</span><input type="number" value={draft.responseConfig?.min??''} onChange={e=>setR('min',e.target.value===''?'':Number(e.target.value))}/></label><label><span>{en?'Maximum acceptable':'Μέγιστο αποδεκτό'}</span><input type="number" value={draft.responseConfig?.max??''} onChange={e=>setR('max',e.target.value===''?'':Number(e.target.value))}/></label></div></>}
        {draft.responseConfig?.mode==='choice'&&<label className="entry-span-2"><span>{en?'Available choices':'Διαθέσιμες επιλογές'}</span><textarea rows="3" value={(draft.responseConfig?.options||['Συμμορφώνεται','Μη συμμόρφωση']).join('\n')} onChange={e=>setR('options',e.target.value.split('\n').filter(Boolean))}/></label>}
        {draft.responseConfig?.mode==='list'&&<label><span>{en?'List template':'Πρότυπο λίστας'}</span><select value={draft.responseConfig?.template||'generic_findings'} onChange={e=>setR('template',e.target.value)}><option value="medication_expiry">{en?'Medicines / supplies — expiry findings':'Φάρμακα / υλικά — λήξεις και ευρήματα'}</option><option value="generic_findings">{en?'General findings list':'Γενική λίστα ευρημάτων'}</option></select></label>}
-       {draft.responseConfig?.mode==='list'&&draft.responseConfig?.template==='medication_expiry'&&<><label><span>{en?'Alert days before expiry':'Ειδοποίηση πριν τη λήξη (ημέρες)'}</span><input type="number" min="0" value={draft.responseConfig?.expiryBeforeDays??DEFAULT_EXPIRY_BEFORE_DAYS} onChange={e=>setR('expiryBeforeDays',e.target.value===''?'':Math.max(0,Number(e.target.value)))}/></label><label><span>{en?'Alert days after expiry':'Ειδοποίηση μετά τη λήξη (ημέρες)'}</span><input type="number" min="0" value={draft.responseConfig?.expiryAfterDays??DEFAULT_EXPIRY_AFTER_DAYS} onChange={e=>setR('expiryAfterDays',e.target.value===''?'':Math.max(0,Number(e.target.value)))}/></label></>}
+       {draft.responseConfig?.mode==='list'&&draft.responseConfig?.template==='medication_expiry'&&<><label><span>{en?'Alert days before expiry':'Ειδοποίηση πριν τη λήξη (ημέρες)'}</span><input type="number" min="0" value={draft.responseConfig?.expiryBeforeDays??DEFAULT_EXPIRY_BEFORE_DAYS} onChange={e=>setR('expiryBeforeDays',e.target.value===''?'':Math.max(0,Number(e.target.value)))}/></label><label><span>{en?'Alert days after expiry':'Ειδοποίηση μετά τη λήξη (ημέρες)'}</span><input type="number" min="0" value={draft.responseConfig?.expiryAfterDays??DEFAULT_EXPIRY_AFTER_DAYS} onChange={e=>setR('expiryAfterDays',e.target.value===''?'':Math.max(0,Number(e.target.value)))}/></label><div className="field control-catalogue-field"><span className="lo-field-label">{en?'Medicines and supplies':'Λίστα φαρμάκων / υλικών'}</span><button type="button" className="control-catalogue-button" onClick={()=>setCatalogueOpen(true)}><ListChecks size={15}/><span>{expiryCatalogue(draft).length?(en?`${expiryCatalogue(draft).length} items`:`${expiryCatalogue(draft).length} υλικά`):(en?'Create list':'Δημιουργία λίστας')}</span><Pencil size={14}/></button></div></>}
       </div>
      </div>
 
@@ -126,5 +128,6 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     <div className="inline-edit-footer"><SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
    </div>
   </EntityRecordShell>
+  {catalogueOpen&&<ControlExpiryCatalogueDialog items={expiryCatalogue(draft)} departments={draft.departments} language={language} onClose={()=>setCatalogueOpen(false)} onSave={list=>setR('expiryCatalogue',list)}/>}
  </Page>
 }

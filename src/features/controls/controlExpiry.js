@@ -45,24 +45,58 @@ export function expiryState(expiry,{before,after},now=new Date()){
 }
 
 const hasItem=row=>String(row?.item||'').trim()&&String(row?.expiry||'').trim()
+const itemKey=row=>String(row?.item||'').trim().toLocaleLowerCase('el')
 
-// The items still on each department's list, soonest expiry first. Each item
-// carries the entry it came from so it can be marked as removed there.
+// The items on each department's list, soonest expiry first. An item's latest
+// entry replaces the earlier ones (a check re-records every item it covers); an
+// item stays until someone marks it as removed or replaced. Each item carries
+// the entry it came from so it can be marked there.
 export function expiryItems(record,departments,now=new Date()){
  const window=expiryWindow(record)
  const items=[]
  for(const department of departments||[]){
-  const history=record?.assignments?.[department]?.history||[]
+  const history=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0))
+  const recorded=new Set()
   for(const execution of history){
    if(execution.status==='cancelled')continue
    const rows=execution.structuredData?.rows||[]
    rows.forEach((row,index)=>{
-    if(!hasItem(row)||row.removedAt)return
+    if(!hasItem(row)||row.removedAt||recorded.has(itemKey(row)))return
     items.push({key:`${department}|${execution.id}|${index}`,department,execution,index,row,...expiryState(row.expiry,window,now)})
    })
+   for(const row of rows)if(itemKey(row))recorded.add(itemKey(row))
   }
  }
  return items.sort((a,b)=>(a.days??Infinity)-(b.days??Infinity))
+}
+
+// The control's list of medicines and supplies: [{id,item,unit,departments}]
+// where an empty departments list means every department of the control.
+export function catalogueItem({item='',unit='',departments=[]}={}){
+ return {id:`cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`,item:String(item).trim(),unit:String(unit||'').trim(),departments:[...departments]}
+}
+export function expiryCatalogue(record){
+ const list=record?.responseConfig?.expiryCatalogue
+ return Array.isArray(list)?list.filter(entry=>String(entry?.item||'').trim()):[]
+}
+export function catalogueForDepartment(record,department){
+ return expiryCatalogue(record).filter(entry=>!entry.departments?.length||entry.departments.includes(department))
+}
+
+// The rows a new entry starts with: every listed item for the department, with
+// the quantity, lot and expiry it had at its latest entry.
+export function prefilledExpiryRows(record,department){
+ const latest=new Map()
+ const history=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0))
+ for(const execution of history){
+  if(execution.status==='cancelled')continue
+  for(const row of execution.structuredData?.rows||[]){const key=itemKey(row);if(key&&!latest.has(key))latest.set(key,row)}
+ }
+ return catalogueForDepartment(record,department).map(entry=>{
+  const last=latest.get(itemKey(entry))
+  const keep=last&&!last.removedAt
+  return {item:entry.item,unit:entry.unit||'',quantity:keep?String(last.quantity||''):'',lot:keep?String(last.lot||''):'',expiry:keep?String(last.expiry||''):'',finding:'',findingOther:'',fromCatalogue:true}
+ })
 }
 
 export function expiryCounts(items){
