@@ -89,3 +89,8 @@
   flex: none;
   color: var(--lo-color-primary, #1f6f9f);
 }
+.multi-select .multi-select-panel.opens-up {
+  top: auto;
+  bottom: 100%;
+  margin: 0 0 4px;
+}

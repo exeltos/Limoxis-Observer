@@ -32,14 +32,17 @@ export function MultiSelect({
   const buttonId = `${baseId}-button`,
     listId = `${baseId}-list`
   const [open, setOpen] = useState(false),
-    [query, setQuery] = useState('')
+    [query, setQuery] = useState(''),
+    [upward, setUpward] = useState(false)
   const rootRef = useRef(null)
   const chosen = useMemo(() => new Set(selected.map(String)), [selected])
   const matches = useMemo(() => {
     const needle = normalize(query)
     return needle ? options.filter(option => normalize(option.label).includes(needle)) : options
   }, [options, query])
-  const chosenLabels = options.filter(option => chosen.has(String(option.value))).map(option => option.label)
+  const chosenLabels = options
+    .filter(option => chosen.has(String(option.value)))
+    .map(option => option.label)
   const summary = chosenLabels.length
     ? chosenLabels.length <= 2
       ? chosenLabels.join(', ')
@@ -57,7 +60,9 @@ export function MultiSelect({
 
   function toggle(value) {
     const key = String(value)
-    onChange?.(chosen.has(key) ? selected.filter(item => String(item) !== key) : [...selected, value])
+    onChange?.(
+      chosen.has(key) ? selected.filter(item => String(item) !== key) : [...selected, value],
+    )
   }
   function selectShown() {
     const next = [...selected]
@@ -94,14 +99,20 @@ export function MultiSelect({
           aria-controls={listId}
           title={chosenLabels.join(', ')}
           disabled={disabled}
-          onClick={() => setOpen(value => !value)}
+          onClick={event => {
+            // Open upwards when the list would not fit below the field.
+            const rect = event.currentTarget.getBoundingClientRect()
+            const below = window.innerHeight - rect.bottom
+            setUpward(below < 330 && rect.top > below)
+            setOpen(value => !value)
+          }}
         >
           <span>{summary}</span>
         </button>
         <ChevronDown className="searchable-select-chevron" size={15} aria-hidden="true" />
       </div>
       {open && (
-        <div className="searchable-select-list multi-select-panel">
+        <div className={`searchable-select-list multi-select-panel${upward ? ' opens-up' : ''}`}>
           <div className="multi-select-search">
             <Search size={14} aria-hidden="true" />
             <input
