@@ -313,21 +313,41 @@ export function CanonicalSummary({
   )
   return (
     <div className="patient-summary-layout clean-patient-summary">
-      {attention.map(item => (
+      {attention.length > 0 && (
+        // One compact «Needs attention» strip, the same as inside an episode.
         <div
-          key={item.id}
-          className={`summary-overdue-banner${item.tone === 'warning' ? ' is-warning' : ''}`}
-          role={item.tone === 'danger' ? 'alert' : 'status'}
+          className="journey-guidance compact-guidance summary-attention"
+          role={attention.some(item => item.tone === 'danger') ? 'alert' : 'status'}
         >
-          <AlertTriangle size={18} aria-hidden="true" />
-          <span>{item.text}</span>
-          {onOpenStage && (
-            <Button variant="secondary" onClick={() => onOpenStage(item.stage)}>
-              {item.action}
-            </Button>
-          )}
+          <div className="journey-guidance-title">
+            <AlertTriangle size={15} aria-hidden="true" />
+            <strong>{t('clinicalRecords.attentionNeeded')}</strong>
+            <span>{attention.length}</span>
+          </div>
+          <div className="journey-guidance-items">
+            {attention.map(item =>
+              onOpenStage ? (
+                <button
+                  type="button"
+                  key={item.id}
+                  className={`guidance-cue ${item.tone === 'warning' ? 'warning' : 'due'}`}
+                  title={item.action}
+                  onClick={() => onOpenStage(item.stage)}
+                >
+                  <strong>{item.text}</strong>
+                </button>
+              ) : (
+                <span
+                  key={item.id}
+                  className={`guidance-cue ${item.tone === 'warning' ? 'warning' : 'due'}`}
+                >
+                  <strong>{item.text}</strong>
+                </span>
+              ),
+            )}
+          </div>
         </div>
-      ))}
+      )}
       <section className="clinical-panel patient-summary-card">
         <div className="record-section-header">
           <div>
@@ -366,7 +386,10 @@ export function CanonicalSummary({
               />
             ))}
             {!scaleRows.length && (
-              <Detail label={t('clinicalRecords.clinicalAssessmentLabel')} value={t('clinicalRecords.none')} />
+              <Detail
+                label={t('clinicalRecords.clinicalAssessmentLabel')}
+                value={t('clinicalRecords.none')}
+              />
             )}
             <Detail
               label={t('clinicalRecords.samplesLabel')}
@@ -589,7 +612,7 @@ function AdmissionLifecycleActions({
 export function Detail({ label, value }) {
   return (
     <div className="detail-item">
-      <span>{label}</span>
+      <span className="lo-field-label">{label}</span>
       <strong>{value || '—'}</strong>
     </div>
   )

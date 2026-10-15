@@ -85,3 +85,37 @@
 .patient-surveillance-entry .inline-patient-create {
   padding: 12px !important;
 }
+/* Clinical assessment: wide window, the questionnaire as compact rows in three
+   columns (no card inside the card), so the form fits without scrolling. */
+.assessment-dialog .screening-questionnaire {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+}
+.assessment-dialog .questionnaire-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 6px 10px !important;
+  margin-top: 0 !important;
+}
+.assessment-dialog .questionnaire-item {
+  grid-template-columns: minmax(0, 1fr) 104px !important;
+  min-height: 0 !important;
+  padding: 4px 4px 4px 10px !important;
+}
+.assessment-dialog .questionnaire-item > span {
+  font-size: 11.5px !important;
+  line-height: 1.3 !important;
+}
+.assessment-dialog .questionnaire-item select {
+  height: 34px !important;
+  min-height: 34px !important;
+}
+.assessment-dialog textarea {
+  min-height: 64px !important;
+}
+@media (max-width: 900px) {
+  .assessment-dialog .questionnaire-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

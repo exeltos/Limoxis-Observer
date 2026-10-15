@@ -180,7 +180,7 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
       <div className="employee-surveillance-body">
         <div className="bulk-surveillance-controls">
           <label className="field">
-            <span>{en ? 'Department' : 'Τμήμα'}</span>
+            <span className="lo-field-label">{en ? 'Department' : 'Τμήμα'}</span>
             <select value={department} onChange={event => setDepartment(event.target.value)}>
               <option value="all">{en ? 'All departments' : 'Όλα τα τμήματα'}</option>
               {departments.map(value => (
@@ -241,7 +241,7 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
           })}
         </div>
         <label className="field bulk-notes">
-          <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
+          <span className="lo-field-label">{en ? 'Notes' : 'Σημειώσεις'}</span>
           <textarea
             data-limoxis-no-expand="true"
             rows={3}
@@ -256,7 +256,7 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
 function ScreeningTypes({ types, toggle, en }) {
   return (
     <div className="bulk-screening-types">
-      <span>{en ? 'Screening type' : 'Τύπος ελέγχου'}</span>
+      <span className="lo-field-label">{en ? 'Screening type' : 'Τύπος ελέγχου'}</span>
       <div className="screening-choice-list">
         {screeningCatalog.map(item => (
           <Button

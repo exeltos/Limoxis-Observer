@@ -83,7 +83,7 @@ export function SearchableSelect({
   return (
     <div className={`searchable-select ${className}`.trim()}>
       <label htmlFor={inputId}>
-        <span>{label}</span>
+        <span className="lo-field-label">{label}</span>
       </label>
       <div className="searchable-select-control">
         <input

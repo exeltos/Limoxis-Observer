@@ -1306,7 +1306,7 @@
 /* v0.25.16 Observer canonical forms + committee stabilization */
 .observer-dialog{padding:0!important;display:flex;flex-direction:column;width:min(760px,calc(100vw - 32px))}
 .observer-dialog-wide{width:min(1080px,calc(100vw - 32px))}
-.observer-dialog>header{flex:0 0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.observer-dialog>header{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .observer-dialog>header h3{color:#1f3044}
 .observer-dialog>header p{max-width:760px;line-height:1.45}
 .observer-dialog-body{overflow:auto;min-height:0}
@@ -1355,7 +1355,7 @@
   border:1px solid #dce4eb;border-radius:15px;background:#fff;box-shadow:0 24px 60px rgba(17,42,63,.20)
 }
 .modal-backdrop>.entry-card>header,.modal-backdrop>.entry-editor>header,.modal-backdrop>.role-editor>header{
-  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid #edf1f4
+  display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #edf1f4
 }
 .modal-backdrop>.entry-card>footer,.modal-backdrop>.entry-editor>footer,.modal-backdrop>.role-editor>footer{
   display:flex;align-items:center;justify-content:flex-end;gap:8px;border-top:1px solid #edf1f4;background:#fff
@@ -3045,10 +3045,15 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
 .modal-backdrop>:is(.entry-card,.entry-editor,.role-editor,.control-execution-card,.control-editor-card,.committee-create-card){
   height:auto!important;
 }
+/* The ObserverDialog size token wins over the generic entry-card width above:
+   width="compact" | "wide" | "workspace" now gives the width it names. */
+.modal-backdrop>.observer-dialog.observer-dialog-compact{width:min(var(--lo-dialog-compact),calc(100vw - 32px))!important}
+.modal-backdrop>.observer-dialog.observer-dialog-wide{width:min(var(--lo-dialog-wide),calc(100vw - 32px))!important}
+.modal-backdrop>.observer-dialog.observer-dialog-workspace{width:min(var(--lo-dialog-workspace),calc(100vw - 32px))!important}
 /* …except a form whose content switches (existing/new, single/batch): it keeps
    one height so the window does not jump (ObserverDialog fixedHeight). */
 .modal-backdrop>.observer-dialog.observer-dialog-fixed-height{
-  height:min(var(--lo-dialog-max-height),760px)!important;
+  height:min(var(--lo-dialog-max-height),820px)!important;
 }
 @media(max-width:760px){
   .modal-backdrop>:is(.entry-card,.entry-editor,.role-editor,.control-execution-card,.control-editor-card,.committee-create-card,.patient-entry-card,.surveillance-entry-card,.waste-entry-card,.antiseptic-entry-card,.lab-entry-card,.ast-entry-card,.communication-entry-card,.prevention-entry-card,.certificate-entry-card,.correction-entry-card){

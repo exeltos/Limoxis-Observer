@@ -42,7 +42,7 @@ export function TagList({ title, items = [], rows = [], t, language }) {
   if (!items?.length) return null
   return (
     <>
-      <h4>{title}</h4>
+      <span className="lo-field-label tag-list-label">{title}</span>
       <div className="tag-row">
         {items.map(x => (
           <span className="clinical-tag" key={x}>

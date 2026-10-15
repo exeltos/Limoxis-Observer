@@ -1,6 +1,8 @@
+import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { advancedAntibioticNames, newTherapyRow, therapiesToSave } from './therapyEntries'
 import { Button } from '../../design-system/Button'
+import './surveillanceEntryCard.css'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
@@ -97,12 +99,21 @@ export function AdministrationDialog({ t, language, onClose, onSave }) {
     </SimpleDialog>
   )
 }
-export function SimpleDialog({ title, t, onClose, onSave, children, disabled = false }) {
+export function SimpleDialog({
+  title,
+  t,
+  onClose,
+  onSave,
+  children,
+  disabled = false,
+  width = 'standard',
+  className = '',
+}) {
   return (
     <ObserverDialog
       title={title}
-      width="wide"
-      className="patient-simple-dialog"
+      width={width}
+      className={`patient-simple-dialog ${className}`.trim()}
       onClose={onClose}
       footer={
         <SaveButton disabled={disabled} onClick={onSave}>
@@ -197,6 +208,8 @@ export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], o
         language === 'el' ? 'el' : 'en',
       )}
       t={t}
+      width="wide"
+      className="assessment-dialog"
       onClose={onClose}
       onSave={() => onSave(d)}
     >
@@ -253,12 +266,12 @@ export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], o
         />
       </div>
       <section className="entry-span-2 screening-questionnaire">
-        <h4>
+        <span className="lo-field-label">
           {translate(
             'copy.clinicalRecordCopy.initialSurveillanceQuestionnaire',
             language === 'el' ? 'el' : 'en',
           )}
-        </h4>
+        </span>
         <div className="questionnaire-grid">
           {questions.map(([id, label]) => (
             <div key={id} className="questionnaire-item">
@@ -311,7 +324,7 @@ function LibraryMultiSelect({ title, rows = [], selected = [], onToggle, languag
   )
   return (
     <section className="clinical-checklist library-checklist clinical-library-multiselect">
-      <h4>{title}</h4>
+      <span className="lo-field-label">{title}</span>
       <button
         type="button"
         className="clinical-library-trigger"
@@ -490,6 +503,7 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
       )}
       <div className="entry-span-2">
         <Button variant="secondary" onClick={() => setRows(list => [...list, blank()])}>
+          <Plus size={14} />
           {translate('copy.clinicalRecordCopy.addDevice', language === 'el' ? 'el' : 'en')}
         </Button>
       </div>
@@ -597,12 +611,12 @@ export function SampleDialog({ t, title, initialType = '', onClose, onSave }) {
           <option value="critical">{t('critical')}</option>
         </select>
       </label>
-      <div className="entry-span-2 inline-empty">
+      <p className="entry-span-2 field-hint">
         {translate(
           'copy.clinicalRecordCopy.onlyCollectionMetadataAreRecordedOn',
           language === 'el' ? 'el' : 'en',
         )}
-      </div>
+      </p>
     </SimpleDialog>
   )
 }
@@ -995,6 +1009,7 @@ export function TherapyDialog({ t, antibiotics = [], advancedAntibiotics = [], o
       ))}
       <div className="entry-span-2">
         <Button variant="secondary" onClick={() => setRows(list => [...list, newTherapyRow()])}>
+          <Plus size={14} />
           {translate('copy.clinicalRecordCopy.addAntimicrobial', language === 'el' ? 'el' : 'en')}
         </Button>
       </div>

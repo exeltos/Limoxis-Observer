@@ -149,15 +149,11 @@ describe('the record of a patient under surveillance', () => {
 
   it('leads with the overdue review and the awaited sample, each opening its stage', async () => {
     await openRecord('SUR-260041')
-    const banners = await screen.findAllByText(
-      /Η επανεκτίμηση έχει λήξει|Δείγματα χωρίς αποτέλεσμα/,
-    )
-    expect(banners.map(item => item.closest('[role]').getAttribute('role'))).toEqual([
-      'alert',
-      'status',
-    ])
-    expect(banners[1]).toHaveTextContent('Δείγματα χωρίς αποτέλεσμα: LAB-260779')
-    fireEvent.click(screen.getByRole('button', { name: 'Μετάβαση στα δείγματα' }))
+    // One «Needs attention» strip; an overdue review makes it an alert.
+    const strip = await screen.findByRole('alert')
+    expect(within(strip).getByText(/Η επανεκτίμηση έχει λήξει/)).toBeInTheDocument()
+    expect(within(strip).getByText('Δείγματα χωρίς αποτέλεσμα: LAB-260779')).toBeInTheDocument()
+    fireEvent.click(within(strip).getByRole('button', { name: /Δείγματα χωρίς αποτέλεσμα/ }))
     expect(screen.getByRole('tab', { name: /Επιτήρηση & Δείγματα/ })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -168,7 +164,7 @@ describe('the record of a patient under surveillance', () => {
     await openRecord('SUR-260039')
     expect(await screen.findByText('Αγωγή σε αναμονή έγκρισης: Meropenem')).toBeInTheDocument()
     expect(screen.getByText('σε αναμονή έγκρισης')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Μετάβαση στην αγωγή' }))
+    fireEvent.click(screen.getByRole('button', { name: /Αγωγή σε αναμονή έγκρισης/ }))
     expect(screen.getByRole('tab', { name: /Επιτήρηση & Δείγματα/ })).toHaveAttribute(
       'aria-selected',
       'true',

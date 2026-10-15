@@ -311,7 +311,7 @@ export function EnvironmentalSurveillanceFlow({
         </div>
       )}
       <label className="environmental-notes">
-        <span>{t('notes')}</span>
+        <span className="lo-field-label">{t('notes')}</span>
         <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} />
       </label>
       <div className="source-truth-note">

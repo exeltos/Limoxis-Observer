@@ -39,18 +39,11 @@
 .laboratory-record-shell .lab-workflow-next.is-closed{justify-content:flex-start;gap:9px;font-size:13px;font-weight:700;color:var(--lo-color-text)}
 .laboratory-record-shell .lab-workflow-next.is-closed span{display:inline;font-size:13px;letter-spacing:0;text-transform:none;color:inherit}
 
-/* Result */
-.laboratory-record-shell .lab-result-band{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr) repeat(2,minmax(0,1fr));border:1px solid var(--lo-color-border);border-radius:10px;overflow:hidden}
-.laboratory-record-shell .lab-result-band>div{min-width:0;padding:13px 16px;border-left:1px solid var(--lo-color-border)}
-.laboratory-record-shell .lab-result-band>div:first-child{border-left:0}
-.laboratory-record-shell .lab-result-band span{display:block;margin-bottom:5px;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
-.laboratory-record-shell .lab-result-band strong{display:block;font-size:14.5px;color:var(--lo-color-text);overflow-wrap:anywhere}
-.laboratory-record-shell .lab-result-band strong .status-badge{display:inline-flex}
-.laboratory-record-shell .lab-result-primary.is-positive{background:color-mix(in srgb,#dc2626 6%,white)}
-.laboratory-record-shell .lab-result-primary.is-positive strong{color:#b42318}
-.laboratory-record-shell .lab-result-primary.is-negative{background:color-mix(in srgb,#16a34a 6%,white)}
-.laboratory-record-shell .lab-result-primary.is-negative strong{color:#166534}
-.laboratory-record-shell .lab-result-primary small{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:2px 8px;border-radius:999px;background:#fee4e2;color:#b42318;font-size:11px;font-weight:800}
+/* Result: the same detail grid as the sample details, the outcome coloured. */
+.laboratory-record-shell .lab-result-value{font-size:inherit!important;font-weight:inherit!important}
+.laboratory-record-shell .lab-result-value.is-positive{color:#b42318}
+.laboratory-record-shell .lab-result-value.is-negative{color:#166534}
+.laboratory-record-shell .lab-result-critical{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:2px 8px;border-radius:999px;background:#fee4e2;color:#b42318;font-size:11px;font-weight:700}
 .laboratory-record-shell .lab-table-empty{color:var(--lo-color-muted);font-size:12.5px}
 .laboratory-record-shell .lab-result-empty{padding:18px;border:1px dashed var(--lo-color-border);border-radius:10px;text-align:center}
 .laboratory-record-shell .smart-protocol-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding:10px 12px;border-radius:10px;background:var(--lo-color-surface-subtle,#f8fafc);font-size:12.5px}
@@ -113,11 +106,18 @@
 .lab-sir-toggle button{min-width:56px;height:34px;border:1px solid var(--lo-color-border);background:var(--lo-color-surface,#fff);color:var(--lo-color-text);cursor:pointer}
 .lab-sir-toggle button.is-selected{border-color:transparent}
 
-@media(max-width:1250px){.laboratory-record-shell .lab-workflow-steps{grid-template-columns:repeat(3,minmax(0,1fr))}.laboratory-record-shell .laboratory-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.laboratory-record-shell .lab-result-band{grid-template-columns:repeat(2,minmax(0,1fr))}.laboratory-record-shell .lab-result-band>div:nth-child(odd){border-left:0}.laboratory-record-shell .lab-result-band>div:nth-child(n+3){border-top:1px solid var(--lo-color-border)}}
-@media(max-width:720px){.laboratory-record-shell.workspace-fill{height:auto;overflow:visible}.laboratory-record-shell.workspace-fill>.entity-record-body{overflow:visible;padding:12px}.laboratory-record-shell .lab-workflow-steps,.laboratory-record-shell .laboratory-summary-grid,.laboratory-record-shell .lab-result-band{grid-template-columns:1fr}.laboratory-record-shell .lab-result-band>div{border-left:0;border-top:1px solid var(--lo-color-border)}.laboratory-record-shell .lab-result-band>div:first-child{border-top:0}.laboratory-record-shell .lab-workflow-next,.laboratory-record-shell .lab-inline-action,.laboratory-record-shell .lab-communication-row{flex-direction:column;align-items:stretch}.lab-dialog-form{grid-template-columns:1fr}}
+@media(max-width:1250px){.laboratory-record-shell .lab-workflow-steps{grid-template-columns:repeat(3,minmax(0,1fr))}.laboratory-record-shell .laboratory-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.laboratory-record-shell.workspace-fill{height:auto;overflow:visible}.laboratory-record-shell.workspace-fill>.entity-record-body{overflow:visible;padding:12px}.laboratory-record-shell .lab-workflow-steps,.laboratory-record-shell .laboratory-summary-grid{grid-template-columns:1fr}.laboratory-record-shell .lab-workflow-next,.laboratory-record-shell .lab-inline-action,.laboratory-record-shell .lab-communication-row{flex-direction:column;align-items:stretch}.lab-dialog-form{grid-template-columns:1fr}}
 
 /* Fit the Sample tab on one laptop screen (~1500×815): the sample details use
    the shared read-only info sheet, made a little shorter here. The body keeps
    overflow:auto, so longer content still scrolls. */
 .canonical-detail-screen.record-general-tab-active.laboratory-record-shell .laboratory-summary-grid:not(.employee-inline-edit):not(.editable-grid){margin-top:0!important;padding:0!important}
 .canonical-detail-screen.record-general-tab-active.laboratory-record-shell .laboratory-summary-grid:not(.employee-inline-edit):not(.editable-grid)>.detail-item{min-height:52px!important;padding:8px 16px!important}
+/* The result uses the same read-only info sheet as the sample details tab. */
+.laboratory-record-shell .lab-result-grid.lab-result-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important;margin:0!important;padding:0!important;border:1px solid #e2e9ef!important;border-radius:11px!important;background:#fff!important;overflow:hidden!important}
+.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item{min-width:0!important;min-height:52px!important;padding:8px 16px!important;border:0!important;border-right:1px solid #e9eef2!important;border-bottom:1px solid #edf1f4!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
+.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item:nth-child(3n){border-right:0!important}
+.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item>strong{display:block!important;margin:0!important;color:#173650!important;font-size:13px!important;font-weight:750!important}
+.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item>strong .status-badge{display:inline-flex!important;width:auto!important}
+@media(max-width:720px){.laboratory-record-shell .lab-result-grid.lab-result-grid{grid-template-columns:1fr!important}.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item{border-right:0!important}}

@@ -291,7 +291,7 @@ export function EmployeeSurveillanceRecordDialog({
       eyebrow={en ? 'Employee screening record' : 'Καρτέλα ελέγχου εργαζομένου'}
       title={en ? selected.employeeNameEn : selected.employeeName}
       subtitle={`${compactCode(selected.id)} · ${en ? selected.departmentEn : selected.department}`}
-      width="workspace"
+      width="standard"
       className="employee-screening-record-card"
       onClose={onClose}
       footer={
@@ -318,15 +318,15 @@ export function EmployeeSurveillanceRecordDialog({
     >
       <div className="employee-record-status-strip">
         <div>
-          <small>{en ? 'Screening type' : 'Τύπος ελέγχου'}</small>
+          <small className="lo-field-label">{en ? 'Screening type' : 'Τύπος ελέγχου'}</small>
           <strong>{(selected.screeningTypes || []).map(type => t(type)).join(', ') || '—'}</strong>
         </div>
         <div>
-          <small>{en ? 'Result' : 'Αποτέλεσμα'}</small>
+          <small className="lo-field-label">{en ? 'Result' : 'Αποτέλεσμα'}</small>
           <strong>{t(selected.resultStatus || 'pending')}</strong>
         </div>
         <div>
-          <small>{en ? 'Status' : 'Κατάσταση'}</small>
+          <small className="lo-field-label">{en ? 'Status' : 'Κατάσταση'}</small>
           <strong>{t(selected.status || 'active')}</strong>
         </div>
       </div>
@@ -598,7 +598,7 @@ export function EmployeeSurveillanceRecordDialog({
       )}
       {requestEditor && (
         <ObserverDialog
-          width="wide"
+          width="standard"
           eyebrow={en ? 'Laboratory request' : 'Αίτημα εργαστηρίου'}
           title={compactCode(requestEditor.sample.id)}
           subtitle={
@@ -626,7 +626,7 @@ export function EmployeeSurveillanceRecordDialog({
         >
           <div className="employee-lab-request-editor">
             <fieldset className="field entry-span-2 lab-request-materials">
-              <legend>
+              <legend className="lo-field-label">
                 {en ? 'Requested examination / material' : 'Ζητούμενος έλεγχος / υλικό'}
               </legend>
               <div className="lab-request-material-options">
