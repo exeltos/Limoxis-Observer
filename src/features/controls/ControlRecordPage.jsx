@@ -23,7 +23,7 @@ import { ControlEvidenceLinks } from './ControlEvidence'
 import { controlCriticality,criticalityLabel,deviationActions,requiresEvidence } from './controlCriticality'
 import { ControlCancellationModal } from './ControlCancellationModal'
 import { ControlExpiryPanel } from './ControlExpiryPanel'
-import { expiryCatalogue,expiryCounts,expiryItems,formLabel,isExpiryControl } from './controlExpiry'
+import { expiryCounts,expiryItems,isExpiryControl } from './controlExpiry'
 import { removeExpiryItem } from './controlExpiryRemoval'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
@@ -85,9 +85,8 @@ export function ControlRecordPage(){
  const pagedHistory=historyRows.slice((historySafePage-1)*historyPageSize,historySafePage*historyPageSize)
  const expiryControl=isExpiryControl(record)
  const expiry=expiryControl?expiryCounts(expiryItems(record,visibleDepartments)):{expired:0,expiring:0,alerting:0}
- const catalogue=expiryControl?expiryCatalogue(record).filter(entry=>!entry.departments?.length||entry.departments.some(dep=>visibleDepartments.includes(dep))):[]
- // An expiry check opens on its items; any other control on its details.
- const currentTab=tab==='expiry'&&!expiryControl?'details':tab||(expiryControl?'expiry':'details')
+ // A control opens on its details; links from the expiry lists and alerts ask for ?tab=expiry.
+ const currentTab=tab==='expiry'&&!expiryControl?'details':tab||'details'
  const isDeletedExecution=h=>h.status==='cancelled'&&String(h.cancellationReason||'').startsWith('[DELETE]')
  const cancellationText=h=>String(h.cancellationReason||'').replace(/^\[DELETE\]\s*/,'')
 
@@ -156,7 +155,7 @@ export function ControlRecordPage(){
  </>
  const subtitle=visibleDepartments.length===1?visibleDepartments[0]:`${visibleDepartments.length} ${en?'departments':'τμήματα'}`
 
- return <Page fill><EntityRecordShell className="control-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={record.id} title={language==='el'?record.title:record.titleEn} subtitle={subtitle} status={<div className="control-status-stack">{expiry.expired>0&&<span className="status-badge danger">{expiry.expired} {en?'expired':(expiry.expired===1?'ληγμένο':'ληγμένα')}</span>}{expiry.expiring>0&&<span className="status-badge warning">{expiry.expiring} {en?'expiring':(expiry.expiring===1?'λήγει':'λήγουν')}</span>}{hasDraft&&<span className="status-badge temporary">{en?'Draft':'Προσωρινή'}</span>}<span className={`status-badge ${status==='overdue'?'danger':status==='dueSoon'?'warning':'active'}`}>{status==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):status==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</span></div>} headerActions={headerActions} recordNavigation={recordNavigation} tabs={[{id:'details',label:en?'Control details':'Στοιχεία ελέγχου',icon:LockKeyhole},expiryControl&&{id:'expiry',label:en?'Expiry':'Λήξεις',icon:CalendarX2},{id:'history',label:en?'Executions':'Εκτελέσεις',icon:FileClock}].filter(Boolean)} activeTab={currentTab} onTabChange={next=>{setTab(next);if(next==='history')setHistoryPage(1)}}>
+ return <Page fill><EntityRecordShell className="control-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={record.id} title={language==='el'?record.title:record.titleEn} subtitle={subtitle} status={<div className="control-status-stack">{expiry.expired>0&&<span className="status-badge danger">{expiry.expired} {en?'expired':(expiry.expired===1?'ληγμένο':'ληγμένα')}</span>}{expiry.expiring>0&&<span className="status-badge warning">{expiry.expiring} {en?'expiring':(expiry.expiring===1?'λήγει':'λήγουν')}</span>}{hasDraft&&<span className="status-badge temporary">{en?'Draft':'Προσωρινή'}</span>}<span className={`status-badge ${status==='overdue'?'danger':status==='dueSoon'?'warning':'active'}`}>{status==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):status==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</span></div>} headerActions={headerActions} recordNavigation={recordNavigation} tabs={[{id:'details',label:en?'Control details':'Στοιχεία ελέγχου',icon:LockKeyhole},expiryControl&&{id:'expiry',label:en?'Items & expiry':'Υλικά & λήξεις',icon:CalendarX2},{id:'history',label:en?'Executions':'Εκτελέσεις',icon:FileClock}].filter(Boolean)} activeTab={currentTab} onTabChange={next=>{setTab(next);if(next==='history')setHistoryPage(1)}}>
   {currentTab==='details'&&<div className="record-view-stack control-record-view workspace-fill">
    <section>
     <SectionHeader title={en?'Control details':'Στοιχεία ελέγχου'}/>
@@ -190,18 +189,6 @@ export function ControlRecordPage(){
      </tr>}}
     />
    </section>
-   {expiryControl&&<section className="control-record-catalogue">
-    <SectionHeader title={en?'Medicines and supplies list':'Λίστα φαρμάκων / υλικών'} subtitle={`${catalogue.length} ${en?(catalogue.length===1?'item':'items'):(catalogue.length===1?'υλικό':'υλικά')}${canModifyDefinition?(en?' · change it from «Edit»':' · αλλάζει από την «Επεξεργασία»'):''}`}/>
-    <RegistryTable
-     className="control-catalogue-registry"
-     columns={[{key:'item',label:en?'Name':'Ονομασία'},{key:'form',label:en?'Form':'Είδος'},{key:'quantity',label:en?'Quantity':'Ποσότητα'},{key:'departments',label:en?'Departments':'Τμήματα'},{key:'note',label:en?'Note':'Παρατήρηση'}]}
-     rows={catalogue}
-     rowKey={entry=>entry.id}
-     emptyTitle={en?'No items on the list':'Δεν υπάρχουν υλικά στη λίστα'}
-     emptyText={canModifyDefinition?(en?'Add them from «Edit» → «Medicines and supplies».':'Προσθέστε τα από «Επεξεργασία» → «Λίστα φαρμάκων / υλικών».'):undefined}
-     renderRow={entry=><><td><strong>{entry.item}</strong></td><td>{formLabel(entry.form,language)||'—'}</td><td>{entry.quantity||'—'}</td><td>{entry.departments?.length?entry.departments.filter(dep=>visibleDepartments.includes(dep)).join(' · '):(en?'All departments':'Όλα τα τμήματα')}</td><td>{entry.note||'—'}</td></>}
-    />
-   </section>}
   </div>}
   {currentTab==='expiry'&&expiryControl&&<ControlExpiryPanel actorName={actor.name} sources={[{record,departments:visibleDepartments}]} canRemove={(_,dep)=>canExecuteDepartment(dep)} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} language={language} locale={locale}/>}
   {currentTab==='history'&&<RecordTabPanel className="control-history-panel workspace-fill" title={en?'Executions':'Εκτελέσεις'} subtitle={historyRows.length?`${historyRows.length.toLocaleString(locale)} ${en?(historyRows.length===1?'entry':'entries'):(historyRows.length===1?'καταχώρηση':'καταχωρήσεις')}`:''} footer={historyRows.length>0&&<RegistryPagination language={language} page={historySafePage} totalPages={historyTotalPages} totalItems={historyRows.length} pageSize={historyPageSize} onPageChange={setHistoryPage} onPageSizeChange={size=>{setHistoryPageSize(size);setHistoryPage(1)}}/>}><RegistryTable

@@ -108,7 +108,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
   </section>
 
   {hasFinding&&<ControlDeviationActions text={deviationActions(record)} language={language}/>}
-  {hasFinding&&<div className="governance-banner warning control-finding-banner"><FileWarning size={17}/><span>{en?'This entry contains a finding or an out-of-range value. You can create a related incident report.':'Η καταχώρηση περιλαμβάνει εύρημα ή τιμή εκτός ορίων. Μπορείτε να δημιουργήσετε σχετική αναφορά.'}</span></div>}
+  {hasFinding&&!expiryControl&&<div className="governance-banner warning control-finding-banner"><FileWarning size={17}/><span>{en?'This entry contains a finding or an out-of-range value. You can create a related incident report.':'Η καταχώρηση περιλαμβάνει εύρημα ή τιμή εκτός ορίων. Μπορείτε να δημιουργήσετε σχετική αναφορά.'}</span></div>}
 
   <div className="control-execution-page-tools">
    <div className="control-execution-page-secondary-actions">

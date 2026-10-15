@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { downloadCsv } from '../../core/export/csvExport'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
@@ -83,7 +83,7 @@ function YearSummary({ summary, tx }) {
 
 export function ControlCalendarPanel({ report, language, onOpen }) {
   const en = language === 'en'
-  const { year, setYear, lines, months, reportRef, tx } = report
+  const { year, lines, months, reportRef, tx } = report
   const now = new Date()
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const groups = useMemo(() => groupCalendarLines(lines), [lines])
@@ -111,11 +111,7 @@ export function ControlCalendarPanel({ report, language, onOpen }) {
   }
   return <div className="control-calendar" ref={reportRef}>
     <div className="control-calendar-toolbar">
-      <div className="control-calendar-year" role="group" aria-label={tx.calendarYear}>
-        <button type="button" data-pdf-ignore="" onClick={() => setYear(year - 1)} aria-label={tx.previousYear}><ChevronLeft size={16} aria-hidden="true" /></button>
-        <strong>{year}</strong>
-        <button type="button" data-pdf-ignore="" onClick={() => setYear(year + 1)} aria-label={tx.nextYear}><ChevronRight size={16} aria-hidden="true" /></button>
-      </div>
+      <strong className="control-calendar-year-label">{en ? `Year ${year}` : `Έτος ${year}`}</strong>
       <ul className="control-calendar-legend">
         <li><span className="control-calendar-mark good">✓</span>{tx.legendDone}</li>
         <li><span className="control-calendar-mark fair">✓</span>{tx.legendLate}</li>

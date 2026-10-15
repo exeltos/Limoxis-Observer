@@ -23,8 +23,12 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
  const setFilter=value=>{setFilterValue(value);setPage(1)}
  const items=useMemo(()=>sources.flatMap(({record,departments})=>expiryItems(record,departments).map(item=>({...item,record,window:expiryWindow(record),key:`${record.id}|${item.key}`}))).sort((a,b)=>(a.days??Infinity)-(b.days??Infinity)),[sources])
+ const [department,setDepartmentValue]=useState('all')
+ const departmentOptions=[...new Set(items.map(item=>item.department))].sort((a,b)=>a.localeCompare(b,'el'))
+ const setDepartment=value=>{setDepartmentValue(value);setPage(1)}
  const needle=normalize(query)
- const searched=needle?items.filter(item=>normalize(`${item.row.item} ${item.department} ${item.record.title} ${item.row.lot||''}`).includes(needle)):items
+ const scoped=department==='all'?items:items.filter(item=>item.department===department)
+ const searched=needle?scoped.filter(item=>normalize(`${item.row.item} ${item.department} ${item.record.title} ${item.row.lot||''}`).includes(needle)):scoped
  const counts=expiryCounts(searched)
  const shown=filter==='expiring'?searched.filter(item=>item.state==='expiring'):filter==='expired'?searched.filter(item=>item.state==='expired'):filter==='alerting'?searched.filter(item=>item.state==='expiring'||item.state==='expired'):searched
  // The return form lists what has expired or expires soon in the current search.
@@ -53,9 +57,9 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
  ].filter(Boolean)
  return <RecordTabPanel
   className="control-expiry-panel workspace-fill"
-  title={en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'}
+  title={showControl?(en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'):(en?'Items & expiry':'Υλικά & λήξεις')}
   subtitle={single?(en?`Alert ${single.before} days before and up to ${single.after} days after expiry`:`Ειδοποίηση ${single.before} ημέρες πριν και έως ${single.after} ημέρες μετά τη λήξη`):(en?`${sources.length} expiry checks`:`${sources.length} ${sources.length===1?'έλεγχος':'έλεγχοι'} λήξεων`)}
-  actions={<><Button variant="secondary" disabled={!returnItems.length} onClick={printReturnForm}><Printer size={15}/>{en?` Return & replacement (${returnItems.length})`:` Έντυπο επιστροφής (${returnItems.length})`}</Button><ModeSwitch ariaLabel={en?'Show':'Προβολή'} value={filter} onChange={setFilter} options={[
+  actions={<>{!showControl&&departmentOptions.length>1&&<label className="control-expiry-department"><select aria-label={en?'Department':'Τμήμα'} value={department} onChange={e=>setDepartment(e.target.value)}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departmentOptions.map(dep=><option key={dep} value={dep}>{dep}</option>)}</select></label>}<Button variant="secondary" disabled={!returnItems.length} onClick={printReturnForm}><Printer size={15}/>{en?` Return & replacement (${returnItems.length})`:` Έντυπο επιστροφής (${returnItems.length})`}</Button><ModeSwitch ariaLabel={en?'Show':'Προβολή'} value={filter} onChange={setFilter} options={[
    {value:'alerting',label:`${en?'Need attention':'Χρειάζονται ενέργεια'} (${counts.expired+counts.expiring})`},
    {value:'expiring',label:`${en?'Expiring':'Λήγουν'} (${counts.expiring})`},
    {value:'expired',label:`${en?'Expired':'Ληγμένα'} (${counts.expired})`},

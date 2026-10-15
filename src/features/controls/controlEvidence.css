@@ -71,3 +71,4 @@ button.control-evidence-link:hover{background:#eaf2f8}
 .control-expiry-entry .control-expiry-table tr.is-removed .control-catalogue-item strong{text-decoration:line-through}
 .control-expiry-entry .control-expiry-table tr.is-removed td:last-child{opacity:1}
 .control-expiry-entry .control-row-delete.is-active{color:var(--lo-color-primary,#1f6f9f)}
+.control-expiry-department select{height:36px;min-width:180px;padding:0 10px;border:1px solid #cad6df;border-radius:8px;background:#fff;font:inherit;font-size:13px}

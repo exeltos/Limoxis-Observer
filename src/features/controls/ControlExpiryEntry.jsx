@@ -60,5 +60,5 @@ export function ExpiryBadge({row,window,language,now}){
  if(state==='unknown')return <span className="control-expiry-badge muted">—</span>
  if(state==='expired')return <span className="status-badge danger control-expiry-badge">{days===-1?(en?'Expired yesterday':'Έληξε χθες'):(en?`Expired ${-days} days ago`:`Έληξε πριν ${-days} ημ.`)}</span>
  if(state==='expiring')return <span className="status-badge warning control-expiry-badge">{days===0?(en?'Expires today':'Λήγει σήμερα'):(en?`Expires in ${days} days`:`Λήγει σε ${days} ημ.`)}</span>
- return <span className="status-badge active control-expiry-badge">{en?'In date':'Εντός ημερομηνίας'}</span>
+ return <span className="status-badge active control-expiry-badge">{en?'In date':'Εντός'}</span>
 }
