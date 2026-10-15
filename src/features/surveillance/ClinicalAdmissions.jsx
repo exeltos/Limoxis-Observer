@@ -9,8 +9,15 @@ import { SectionHeader } from '../../design-system/SectionHeader'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { createAdmission, dischargeAdmission, transferAdmission } from '../patients/patientsService'
+import {
+  createAdmission,
+  dischargeAdmission,
+  transferAdmission,
+  updatePatient,
+} from '../patients/patientsService'
 import { PatientSummaryActions } from '../patients/PatientSummaryActions'
+import { PatientFormFields, usePatientForm } from '../patients/PatientsPage'
+import { SaveButton } from '../../design-system/SaveButton'
 import { SimpleDialog } from './ClinicalRecordDialogs'
 import { clinicalTerm } from './clinicalRecordLabels'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
@@ -33,8 +40,19 @@ export function PatientAdmissionsHome({
   onAdded,
   onChanged,
   onSelect,
-  actions,
+  onDeleted,
 }) {
+  const { notify } = useFeedback()
+  // «Edit patient» turns the patient details into the form, in place.
+  const [editing, setEditing] = useState(false)
+  const [savingPatient, setSavingPatient] = useState(false)
+  const actions = editing ? null : (
+    <PatientSummaryActions
+      patient={patient}
+      onEdit={() => setEditing(true)}
+      onDeleted={onDeleted}
+    />
+  )
   // Ages under a year read as "N days" (matching NHSN's ≤1-year pediatric
   // population) rather than the years figure that would round every
   // neonate down to "0" and hide clinically relevant age.
@@ -121,14 +139,38 @@ export function PatientAdmissionsHome({
           )}
           actions={actions}
         />
-        <div className="patient-profile-grid">
-          {profile.map(([label, value]) => (
-            <div key={label} className="patient-profile-item">
-              <span className="lo-field-label">{label}</span>
-              <strong>{value || '—'}</strong>
-            </div>
-          ))}
-        </div>
+        {editing ? (
+          <PatientDetailsEditor
+            patient={patient}
+            departments={departments}
+            t={t}
+            language={language}
+            saving={savingPatient}
+            onCancel={() => setEditing(false)}
+            onSave={async draft => {
+              setSavingPatient(true)
+              try {
+                await updatePatient(tenantId, patient, draft, { isDemo })
+                setEditing(false)
+                await onChanged?.()
+                notify(t('saved'), 'success')
+              } catch (error) {
+                notify(error?.message || t('actionFailed'), 'danger')
+              } finally {
+                setSavingPatient(false)
+              }
+            }}
+          />
+        ) : (
+          <div className="patient-profile-grid">
+            {profile.map(([label, value]) => (
+              <div key={label} className="patient-profile-item">
+                <span className="lo-field-label">{label}</span>
+                <strong>{value || '—'}</strong>
+              </div>
+            ))}
+          </div>
+        )}
         {infantWithoutBirthWeight && (
           <p className="field-hint neonatal-missing-weight" role="status">
             {translate('copy.neonatalCopy.missingBirthWeight', language === 'el' ? 'el' : 'en')}
@@ -260,19 +302,15 @@ export function CanonicalSummary({
       isDemo={isDemo}
       departments={departments}
       canEdit={canEdit}
-      showPatientActions={showPatientActions}
+      showPatientActions={false}
+      buttons
       onDeleted={onDeleted}
       onChanged={onChanged}
       t={t}
       language={language}
     />
   ) : showPatientActions ? (
-    <PatientSummaryActions
-      patient={patient}
-      departments={departments}
-      onReload={onChanged}
-      onDeleted={onDeleted}
-    />
+    <PatientSummaryActions patient={patient} onDeleted={onDeleted} />
   ) : null
   // The samples shown under the surveillance, laboratory registry rows included.
   const recordSamples = samples || record?.samples || []
@@ -441,6 +479,26 @@ export function CanonicalSummary({
     </div>
   )
 }
+function PatientDetailsEditor({ patient, departments, t, language, saving, onCancel, onSave }) {
+  const form = usePatientForm({ patient, departments })
+  return (
+    <div className="patient-details-editor">
+      <PatientFormFields form={form} t={t} language={language} departments={departments} />
+      <div className="inline-edit-footer">
+        <Button variant="secondary" onClick={onCancel} disabled={saving}>
+          {t('cancelChanges')}
+        </Button>
+        <SaveButton
+          loading={saving}
+          disabled={form.invalid || saving}
+          onClick={() => onSave(form.payload())}
+        >
+          {t('save')}
+        </SaveButton>
+      </div>
+    </div>
+  )
+}
 function AdmissionLifecycleActions({
   patient,
   admission,
@@ -449,6 +507,7 @@ function AdmissionLifecycleActions({
   departments,
   canEdit,
   showPatientActions,
+  buttons = false,
   onDeleted,
   onChanged,
   t,
@@ -513,11 +572,21 @@ function AdmissionLifecycleActions({
       : []
   return (
     <>
-      {showPatientActions ? (
+      {buttons ? (
+        // On the admission summary transfer and discharge are plain buttons, not
+        // hidden in a «…» menu.
+        lifecycleItems.map(item => {
+          const Icon = item.icon
+          return (
+            <Button key={item.id} variant="secondary" onClick={item.onClick}>
+              <Icon size={15} />
+              {item.label}
+            </Button>
+          )
+        })
+      ) : showPatientActions ? (
         <PatientSummaryActions
           patient={patient}
-          departments={departments}
-          onReload={onChanged}
           onDeleted={onDeleted}
           extraItems={lifecycleItems}
         />

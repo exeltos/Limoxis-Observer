@@ -1190,18 +1190,6 @@
 .surveillance-domain-tabs.canonical-module-tabs{align-self:stretch!important}
 
 /* v0.24.1 — governed lifecycle + role audit */
-.governed-reason-dialog{
- width:min(520px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);
- border-radius:13px;box-shadow:0 24px 60px rgba(17,42,63,.2);padding:15px;
-}
-.governed-reason-dialog header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:11px;border-bottom:1px solid #edf1f4}
-.governed-reason-dialog h3{margin:3px 0 0;font-size:14px;color:#29445a}
-.governed-reason-dialog header p{margin:5px 0 0;font-size:9.5px;line-height:1.45;color:#758797;max-width:410px}
-.governed-reason-dialog>label{display:flex;flex-direction:column;gap:5px;margin-top:12px}
-.governed-reason-dialog>label>span{font-size:9px;font-weight:750;color:#617587}
-.governed-reason-dialog textarea{width:100%;border:1px solid #ccd9e2;border-radius:8px;padding:9px;font:inherit;resize:vertical;outline:none}
-.governed-reason-dialog textarea:focus{border-color:#8eb4c8;box-shadow:0 0 0 2px #e9f3f7}
-.governed-reason-dialog footer{display:flex;justify-content:flex-end;gap:7px;margin-top:13px;padding-top:10px;border-top:1px solid #edf1f4}
 
 /* v0.24.2 — compact sidebar information architecture */
 .sidebar nav{min-height:0}

@@ -23,7 +23,6 @@ import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequ
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { can, CAPABILITIES, isProfileDisabled } from '../../core/permissions/roles'
 import { loadAdmissions, loadPatients } from '../patients/patientsService'
-import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { loadDepartments } from '../management/departmentsService'
 import {
   loadManagementLibraries,
@@ -507,14 +506,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             onAdded={row => setAdmissions(current => [row, ...current])}
             onChanged={() => load()}
             onSelect={openAdmission}
-            actions={
-              <PatientSummaryActions
-                patient={patient}
-                departments={departments}
-                onReload={() => load()}
-                onDeleted={goBack}
-              />
-            }
+            onDeleted={goBack}
           />
         )}
         {(!patientMode || selectedAdmission) && activeTab === 'summary' && (
