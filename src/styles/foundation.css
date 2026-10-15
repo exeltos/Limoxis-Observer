@@ -4020,20 +4020,15 @@ button:disabled,
 .page:has(>.platform-registry-shell),
 .laboratory-registry-page,
 .controls-page{
-  height:calc(100dvh - 108px)!important;
+  /* The space left under the topbar and any banner (Demo line, role
+     preview), not a fixed viewport sum that a banner pushes into a page
+     scroll. */
+  height:100%!important;
   min-height:0!important;
   display:flex!important;
   flex-direction:column!important;
   overflow:hidden!important;
   padding-bottom:0!important;
-}
-
-.main-column:has(>.preview-banner) .page-fill:has(>.registry-workspace),
-.main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
-.main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
-.main-column:has(>.preview-banner) .laboratory-registry-page,
-.main-column:has(>.preview-banner) .controls-page{
-  height:calc(100dvh - 148px)!important;
 }
 
 .page-fill>.page-header,
@@ -4175,19 +4170,6 @@ button:disabled,
   min-height:30px!important;
   margin:0!important;
   padding:0 24px 0 8px!important;
-}
-
-@media(max-width:1200px){
-  .page-fill:has(>.registry-workspace),
-  .page-fill:has(>.patient-registry-shell),
-  .page:has(>.platform-registry-shell),
-  .laboratory-registry-page,
-  .controls-page{height:calc(100dvh - 102px)!important}
-  .main-column:has(>.preview-banner) .page-fill:has(>.registry-workspace),
-  .main-column:has(>.preview-banner) .page-fill:has(>.patient-registry-shell),
-  .main-column:has(>.preview-banner) .page:has(>.platform-registry-shell),
-  .main-column:has(>.preview-banner) .laboratory-registry-page,
-  .main-column:has(>.preview-banner) .controls-page{height:calc(100dvh - 142px)!important}
 }
 
 
