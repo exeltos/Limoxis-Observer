@@ -771,7 +771,6 @@
 .waste-form-section-title{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
 .waste-form-section-title strong{font-size:12px;color:#273d51}.waste-form-section-title small{font-size:9.5px;color:#81909d}
 .table-cell-unit{display:block;color:#8493a1;font-size:8.5px;margin-top:1px}
-.record-note-card{margin-top:12px;padding:12px;border:1px solid #e1e8ee;border-radius:10px;background:#f8fafb}.record-note-card span{font-size:9.5px;color:#7b8b99;font-weight:700}.record-note-card p{margin:5px 0 0}
 
 /* Waste patient-days source persistence v0.23.0 */
 
@@ -799,13 +798,6 @@
   flex-direction:column;
   gap:12px;
   max-width:1180px;
-}
-.waste-record-primary,
-.waste-record-trace{
-  border:1px solid #e0e7ed;
-  border-radius:12px;
-  background:#fff;
-  padding:15px 16px;
 }
 .registry-row-returned td{
   background:#eaf4f8!important;

@@ -1135,3 +1135,38 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 :is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) .manual-date-native:is(input,#lo-form-row){position:absolute!important;bottom:0;left:0}
 .manual-date-field{position:relative}
 :is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(.manual-date-field,.time-field):is(label,div,#lo-form-row){display:flex!important;flex-direction:column!important;grid-template-rows:none!important}
+/* ==== record view (RecordMetricStrip + RecordDetailsGrid sheet) ==== */
+.record-view-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.record-view-stack>section{display:flex;flex-direction:column;min-width:0}
+.record-metric-strip{display:grid;grid-template-columns:repeat(var(--metric-count,4),minmax(0,1fr));border:1px solid #e2e9ef;border-radius:11px;background:#fff;overflow:hidden}
+.record-metric{min-width:0;padding:12px 16px;border-right:1px solid #e8edf2}
+.record-metric:last-child{border-right:0}
+.record-metric>.lo-field-label:is(span,#lo-metric){margin-bottom:4px!important}
+.record-metric>strong{display:flex;align-items:baseline;gap:4px;color:#17395c;font-size:22px;font-weight:800;line-height:1.15}
+.record-metric>strong>small{font-size:11px;font-weight:700;color:#5b6e84}
+.record-metric>em{display:block;margin-top:3px;font-style:normal;font-size:11px;color:#4f6477}
+.record-metric.is-primary{background:#f1f7fb}
+.record-metric.is-primary>strong{color:#1f5f8b}
+.record-metric.is-danger>strong{color:#b42318}
+.record-view-stack .record-details-grid:is(.detail-grid,#lo-record-sheet){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;margin:0!important;padding:0!important;border:1px solid #e2e9ef!important;border-radius:11px!important;background:#fff!important;overflow:hidden}
+.record-view-stack .record-details-grid>.detail-item:is(div,#lo-record-sheet){min-width:0;padding:10px 16px!important;border:0!important;border-right:1px solid #e8edf2!important;border-bottom:1px solid #e8edf2!important;background:transparent!important}
+.record-view-stack .record-details-grid>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:0!important}
+.record-view-stack .record-details-grid>.detail-item>strong{display:block;color:#17395c;font-size:13px;font-weight:700;overflow-wrap:anywhere}
+.record-view-stack .record-details-grid>.detail-item.is-wide:is(div,#lo-record-sheet){grid-column:1/-1;border-right:0!important}
+.record-view-stack .record-details-grid>.detail-item.is-wide>strong{font-weight:500;white-space:pre-wrap}
+@media(max-width:1000px){.record-view-stack .record-details-grid:is(.detail-grid,#lo-record-sheet){grid-template-columns:repeat(2,minmax(0,1fr))!important}.record-metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Prevention record view: no card inside the record card; the record «…» menu
+   keeps a right gutter so the sections, sheet and figures share one width. */
+.prevention-record-shell .prevention-record-card:not(.prevention-page-editor-card):is(div,#lo-record-sheet){border:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important}
+.prevention-record-shell .prevention-record-card>.record-view-stack:is(div,#lo-record-sheet){padding:0 44px 0 0!important}
+.prevention-record-shell .record-view-stack>section:is(section,#lo-record-sheet){margin-right:0!important}
+.record-view-stack .record-details-grid>.detail-item:is(div,#lo-record-sheet){border-radius:0!important;box-shadow:none!important;margin:0!important}
+.record-view-stack .record-details-grid.record-details-cols-5:is(.detail-grid,#lo-record-sheet){grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.record-view-stack .record-details-cols-5>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:1px solid #e8edf2!important}
+.record-view-stack .record-details-cols-5>.detail-item:nth-child(5n):is(div,#lo-record-sheet){border-right:0!important}
+/* Bundle results as compact rows (the record fits one screen). */
+.prevention-record-shell .record-view-stack .bundle-detail-row:is(div,#lo-record-sheet){min-height:40px!important;padding:6px 0!important}
+.prevention-record-shell .record-view-stack .bundle-detail-index:is(span,#lo-record-sheet){width:24px!important;height:24px!important}
+.record-view-stack .record-details-grid.record-details-cols-6:is(.detail-grid,#lo-record-sheet){grid-template-columns:repeat(6,minmax(0,1fr))!important}
+.record-view-stack .record-details-cols-6>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:1px solid #e8edf2!important}
+.record-view-stack .record-details-cols-6>.detail-item:nth-child(6n):is(div,#lo-record-sheet){border-right:0!important}

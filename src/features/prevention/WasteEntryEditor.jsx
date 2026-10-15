@@ -1,17 +1,8 @@
+import { SectionHeader } from '../../design-system/SectionHeader'
+import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
 import { useEffect, useMemo, useState } from 'react'
-import {
-  Box,
-  Building2,
-  CalendarRange,
-  FileText,
-  Recycle,
-  Save,
-  Scale,
-  Truck,
-  UserRound,
-  BedDouble,
-  Gauge,
-} from 'lucide-react'
+import { Save } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -462,132 +453,94 @@ function WasteRecordDetails({ record, language, locale }) {
           ? 'Manual entry'
           : 'Χειροκίνητη καταχώριση'
         : '—'
+  const fmtDateTime = value =>
+    value
+      ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }).format(new Date(value))
+      : '—'
+  // Same layout as every prevention record: details sheet, key figures, notes.
   return (
-    <div className="waste-record-view">
-      <section className="waste-record-primary">
-        <div className="waste-record-context">
-          <div>
-            <CalendarRange size={16} />
-            <span>
-              <small>{en ? 'Reporting period' : 'Περίοδος αναφοράς'}</small>
-              <strong>{period}</strong>
-            </span>
-          </div>
-          <div>
-            <Building2 size={16} />
-            <span>
-              <small>{en ? 'Department' : 'Τμήμα'}</small>
-              <strong>{record.departmentEl || '—'}</strong>
-            </span>
-          </div>
-          <div className="waste-record-category">
-            <Recycle size={16} />
-            <span>
-              <small>{en ? 'Waste category' : 'Κατηγορία αποβλήτου'}</small>
-              <strong>
-                {en
-                  ? record.typeEn || record.wasteType || record.type
-                  : record.wasteType || record.type || '—'}
-              </strong>
-            </span>
-          </div>
-        </div>
-        <div className="waste-record-kpis">
-          <div className="primary">
-            <Scale size={18} />
-            <span>{en ? 'Total weight' : 'Συνολικό βάρος'}</span>
-            <strong>
-              {fmtNumber(weight)} <small>kg</small>
-            </strong>
-          </div>
-          <div>
-            <Box size={18} />
-            <span>{en ? 'Containers' : 'Περιέκτες'}</span>
-            <strong>{record.containers ?? '—'}</strong>
-          </div>
-          <div>
-            <BedDouble size={18} />
-            <span>{en ? 'Patient-days' : 'Νοσηλευτικές ημέρες'}</span>
-            <strong>{patientDays || '—'}</strong>
-          </div>
-          <div className="indicator">
-            <Gauge size={18} />
-            <span>{en ? 'Waste indicator' : 'Δείκτης αποβλήτων'}</span>
-            <strong>
-              {indicator == null ? '—' : fmtNumber(indicator, 2)}{' '}
-              <small>{en ? 'kg / 1,000 patient-days' : 'kg / 1.000 ημέρες νοσηλείας'}</small>
-            </strong>
-          </div>
-        </div>
+    <div className="record-view-stack waste-record-view">
+      <section>
+        <SectionHeader title={en ? 'Waste measurement' : 'Μέτρηση αποβλήτων'} />
+        <RecordDetailsGrid
+          fields={[
+            { id: 'period', label: en ? 'Reporting period' : 'Περίοδος αναφοράς', value: period },
+            { id: 'department', label: en ? 'Department' : 'Τμήμα', value: record.departmentEl },
+            {
+              id: 'category',
+              label: en ? 'Waste category' : 'Κατηγορία αποβλήτου',
+              value: en
+                ? record.typeEn || record.wasteType || record.type
+                : record.wasteType || record.type,
+            },
+            { id: 'source', label: en ? 'Denominator source' : 'Πηγή παρονομαστή', value: source },
+            {
+              id: 'document',
+              label: en ? 'Document number' : 'Αριθμός παραστατικού',
+              value: record.documentNumber,
+            },
+            {
+              id: 'company',
+              label: en ? 'Collection company' : 'Εταιρεία συλλογής',
+              value: record.collectionCompany,
+            },
+            {
+              id: 'responsible',
+              label: en ? 'Responsible' : 'Υπεύθυνος',
+              value: record.responsible,
+            },
+            {
+              id: 'recorded',
+              label: en ? 'Recorded by' : 'Καταχώρηση από',
+              value: record.createdBy || record.responsible,
+              meta: record.createdAt
+                ? `${fmtDateTime(record.createdAt)}${record.updatedAt && record.updatedAt !== record.createdAt ? ` · ${en ? 'updated' : 'ενημέρωση'} ${fmtDateTime(record.updatedAt)}` : ''}`
+                : null,
+            },
+            {
+              id: 'notes',
+              className: 'is-wide',
+              label: en ? 'Notes' : 'Σημειώσεις',
+              value: record.notes,
+              hidden: !record.notes,
+            },
+          ]}
+        />
       </section>
-
-      <div className="waste-record-columns">
-        <section className="waste-record-card">
-          <div className="waste-record-card-title">
-            <FileText size={17} />
-            <strong>{en ? 'Document & collection' : 'Παραστατικό & συλλογή'}</strong>
-          </div>
-          <div className="waste-record-detail-grid">
-            <div>
-              <small>{en ? 'Document number' : 'Αριθμός παραστατικού'}</small>
-              <strong>{record.documentNumber || '—'}</strong>
-            </div>
-            <div>
-              <Truck size={15} />
-              <span>
-                <small>{en ? 'Collection company' : 'Εταιρεία συλλογής'}</small>
-                <strong>{record.collectionCompany || '—'}</strong>
-              </span>
-            </div>
-            <div>
-              <UserRound size={15} />
-              <span>
-                <small>{en ? 'Responsible' : 'Υπεύθυνος'}</small>
-                <strong>{record.responsible || '—'}</strong>
-              </span>
-            </div>
-            <div>
-              <small>{en ? 'Denominator source' : 'Πηγή παρονομαστή'}</small>
-              <strong>{source}</strong>
-            </div>
-          </div>
-        </section>
-        <section className="waste-record-card waste-record-note-card">
-          <div className="waste-record-card-title">
-            <strong>{en ? 'Notes' : 'Σημειώσεις'}</strong>
-          </div>
-          <p>
-            {record.notes || (en ? 'No notes were recorded.' : 'Δεν καταχωρίστηκαν σημειώσεις.')}
-          </p>
-        </section>
-      </div>
-
-      <section className="waste-record-audit">
-        <div>
-          <small>{en ? 'Recorded by' : 'Καταχώρηση από'}</small>
-          <strong>{record.createdBy || record.responsible || '—'}</strong>
-        </div>
-        <div>
-          <small>{en ? 'Created' : 'Δημιουργήθηκε'}</small>
-          <strong>
-            {record.createdAt
-              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
-                  new Date(record.createdAt),
-                )
-              : '—'}
-          </strong>
-        </div>
-        {record.updatedAt && (
-          <div>
-            <small>{en ? 'Last update' : 'Τελευταία ενημέρωση'}</small>
-            <strong>
-              {new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
-                new Date(record.updatedAt),
-              )}
-            </strong>
-          </div>
-        )}
-      </section>
+      <RecordMetricStrip
+        items={[
+          {
+            id: 'weight',
+            label: en ? 'Total weight' : 'Συνολικό βάρος',
+            value: fmtNumber(weight),
+            unit: 'kg',
+          },
+          {
+            id: 'containers',
+            label: en ? 'Containers' : 'Περιέκτες',
+            value: record.containers ?? '—',
+          },
+          {
+            id: 'days',
+            label: en ? 'Patient-days' : 'Νοσηλευτικές ημέρες',
+            value: patientDays || '—',
+          },
+          {
+            id: 'indicator',
+            primary: true,
+            label: en ? 'Waste indicator' : 'Δείκτης αποβλήτων',
+            value: indicator == null ? '—' : fmtNumber(indicator, 2),
+            note: en ? 'kg / 1,000 patient-days' : 'kg / 1.000 ημέρες νοσηλείας',
+          },
+        ]}
+      />
     </div>
   )
 }

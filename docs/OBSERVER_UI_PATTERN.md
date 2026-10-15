@@ -30,6 +30,8 @@ This file is the product-wide interaction contract for new and existing features
 - Sections inside a record tab start with `SectionHeader` (title, optional subtitle, actions on the right).
 - A record tab with a list (assessments, surveillance & samples, history) is a `RecordTabPanel`: it fills the record body (no card inside the card), one header row, content that scrolls inside, pagination kept at the bottom — the same look as the registry lists.
 - Documents tabs, and attachments everywhere, use `DocumentsWorkspace` / `AttachmentField`: the titled section with the shared «Attachments» box and «Add attachment».
+- A record's read view is a `record-view-stack`: `SectionHeader`, the context as a `RecordDetailsGrid` sheet, the key figures as a `RecordMetricStrip`, then the record's own list. Dates read dd/mm/yyyy (and HH:MM).
+- In forms every control (text, select, date, time) is 40px high and fields in a row line up; yes/no answers use `YesNoField`, months `MonthField`.
 - Field titles, editable or read-only, use the `lo-field-label` style (Field, ManualDateField, TimeField, SearchableSelect, RecordDetailsGrid apply it).
 - Multi-choice fields use `ChoiceChips`, not checkboxes in pills.
 - An empty registry shows the RegistryTable empty state under the column headings and hides pagination.

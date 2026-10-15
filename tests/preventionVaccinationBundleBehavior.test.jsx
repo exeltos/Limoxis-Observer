@@ -191,7 +191,7 @@ describe('vaccination record of an inactive employee', () => {
     await openVaccinations()
     fireEvent.click(rowOf('Αντωνίου Γεώργιος'))
     const dialog = await screen.findByRole('dialog')
-    const person = dialog.querySelector('.vaccination-record-person')
+    const person = dialog.querySelector('.record-view-stack .lo-section-header')
     expect(within(person).getByText('Αντωνίου Γεώργιος')).toBeInTheDocument()
     expect(person).toHaveTextContent('EMP-004')
   })
@@ -205,8 +205,8 @@ describe('vaccination record actions follow the manage capability', () => {
     fireEvent.click(rowOf('Παπαδοπούλου Μαρία'))
     const dialog = await screen.findByRole('dialog')
     fireEvent.click(within(dialog).getByRole('button', { name: 'Περισσότερες ενέργειες' }))
-    expect(within(dialog).getByRole('button', { name: 'Επεξεργασία' })).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: 'Διαγραφή' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Επεξεργασία' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Διαγραφή' })).toBeInTheDocument()
   })
 
   it('hides the actions menu (and creation) from a user who may only view', async () => {

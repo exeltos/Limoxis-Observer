@@ -1,6 +1,9 @@
+import { SectionHeader } from '../../design-system/SectionHeader'
+import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { useState } from 'react'
-import { MoreHorizontal, UserRoundCheck, Users } from 'lucide-react'
+import { Pencil, Trash2, UserRoundCheck, Users } from 'lucide-react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { Button } from '../../design-system/Button'
@@ -41,7 +44,6 @@ export function StaffVaccinationEditor({
   const en = language === 'en'
   const { mode, draft, selectedEmployeeIds } = value
   const readOnly = Boolean(value.readOnly)
-  const [menuOpen, setMenuOpen] = useState(false)
   const selectedEmployee =
     value.selectedEmployee || employees.find(x => selectedEmployeeIds.includes(x.id))
   const employeeName = !selectedEmployee
@@ -106,95 +108,75 @@ export function StaffVaccinationEditor({
         }
         onClose={onClose}
       >
-        <div className="vaccination-record-toolbar">
-          {canManage && (
-            <div className="vaccination-record-actions">
-              <button
-                type="button"
-                className="lo-icon-button"
-                aria-label={en ? 'More actions' : 'Περισσότερες ενέργειες'}
-                onClick={() => setMenuOpen(x => !x)}
-              >
-                <MoreHorizontal size={18} />
-              </button>
-              {menuOpen && (
-                <div className="vaccination-record-menu">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onChange({ ...value, readOnly: false, mode: 'edit' })
-                    }}
-                  >
-                    {en ? 'Edit' : 'Επεξεργασία'}
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onDelete?.(value)
-                    }}
-                  >
-                    {en ? 'Delete' : 'Διαγραφή'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="vaccination-record-view">
-          <section className="vaccination-record-person">
-            <div>
-              <span>{en ? 'Employee' : 'Εργαζόμενος'}</span>
-              <strong>{employeeName}</strong>
-              <small>
-                {selectedEmployee?.id || '—'} ·{' '}
-                {en
+        <div className="record-view-stack">
+          <section>
+            <SectionHeader
+              title={employeeName}
+              subtitle={[
+                selectedEmployee?.id,
+                en
                   ? selectedEmployee?.departmentEn || selectedEmployee?.department
-                  : selectedEmployee?.department || '—'}{' '}
-                ·{' '}
-                {en
+                  : selectedEmployee?.department,
+                en
                   ? selectedEmployee?.professionEn || selectedEmployee?.profession
-                  : selectedEmployee?.profession || '—'}
-              </small>
-            </div>
-            <span className={`status-badge ${draft.status === 'complete' ? 'active' : ''}`}>
-              {draft.status === 'complete'
-                ? en
-                  ? 'Complete'
-                  : 'Ολοκληρωμένο'
-                : draft.status || '—'}
-            </span>
+                  : selectedEmployee?.profession,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+              actions={
+                <>
+                  <span className={`status-badge ${draft.status === 'complete' ? 'active' : ''}`}>
+                    {draft.status === 'complete'
+                      ? en
+                        ? 'Complete'
+                        : 'Ολοκληρωμένο'
+                      : draft.status || '—'}
+                  </span>
+                  {canManage && (
+                    <OverflowMenu
+                      items={[
+                        {
+                          id: 'edit',
+                          label: en ? 'Edit' : 'Επεξεργασία',
+                          icon: Pencil,
+                          onClick: () => onChange({ ...value, readOnly: false, mode: 'edit' }),
+                        },
+                        {
+                          id: 'delete',
+                          label: en ? 'Delete' : 'Διαγραφή',
+                          icon: Trash2,
+                          tone: 'danger',
+                          separatorBefore: true,
+                          onClick: () => onDelete?.(value),
+                        },
+                      ]}
+                    />
+                  )}
+                </>
+              }
+            />
+            <RecordDetailsGrid
+              className="record-details-cols-5"
+              fields={[
+                { id: 'vaccine', label: en ? 'Vaccine' : 'Εμβόλιο', value: draft.vaccine },
+                { id: 'dose', label: en ? 'Dose' : 'Δόση', value: draft.dose },
+                {
+                  id: 'date',
+                  label: en ? 'Vaccination date' : 'Ημερομηνία εμβολιασμού',
+                  value: fmtDate(draft.date),
+                },
+                { id: 'valid', label: en ? 'Valid until' : 'Ισχύει έως', value: fmtDate(draft.validUntil) },
+                { id: 'lot', label: en ? 'Lot number' : 'Παρτίδα', value: draft.lotNumber },
+                {
+                  id: 'notes',
+                  className: 'is-wide',
+                  label: en ? 'Notes' : 'Σημειώσεις',
+                  value: draft.clinicalNotes,
+                  hidden: !draft.clinicalNotes,
+                },
+              ]}
+            />
           </section>
-          <section className="vaccination-record-grid">
-            <div>
-              <span>{en ? 'Vaccine' : 'Εμβόλιο'}</span>
-              <strong>{draft.vaccine || '—'}</strong>
-            </div>
-            <div>
-              <span>{en ? 'Dose' : 'Δόση'}</span>
-              <strong>{draft.dose || '—'}</strong>
-            </div>
-            <div>
-              <span>{en ? 'Vaccination date' : 'Ημερομηνία εμβολιασμού'}</span>
-              <strong>{fmtDate(draft.date)}</strong>
-            </div>
-            <div>
-              <span>{en ? 'Lot number' : 'Παρτίδα'}</span>
-              <strong>{draft.lotNumber || '—'}</strong>
-            </div>
-            <div>
-              <span>{en ? 'Valid until' : 'Ισχύει έως'}</span>
-              <strong>{fmtDate(draft.validUntil)}</strong>
-            </div>
-          </section>
-          {draft.clinicalNotes && (
-            <section className="vaccination-record-notes">
-              <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
-              <p>{draft.clinicalNotes}</p>
-            </section>
-          )}
         </div>
       </ObserverDialog>
     )
