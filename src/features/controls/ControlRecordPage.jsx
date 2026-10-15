@@ -43,6 +43,9 @@ export function ControlRecordPage(){
  const {profile,user}=useAuth()
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
  const [tab,setTab]=useState(()=>searchParams.get('tab')||'')
+ // Moving to another control (‹ ›) opens it on its details again.
+ const [tabFor,setTabFor]=useState(controlId)
+ if(tabFor!==controlId){setTabFor(controlId);setTab(searchParams.get('tab')||'')}
  const [editOpen,setEditOpen]=useState(false)
  const [cancelExecution,setCancelExecution]=useState(null)
  const [deleteExecution,setDeleteExecution]=useState(null)
