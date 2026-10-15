@@ -56,3 +56,5 @@
 .data-table.control-calendar-table td.control-calendar-total{padding-left:4px!important;padding-right:4px!important}
 .data-table.control-calendar-table td.control-calendar-cell{padding:5px 3px!important}
 .data-table.control-calendar-table thead th:not(.control-calendar-name),.data-table.control-calendar-table td.control-calendar-cell,.data-table.control-calendar-table td.control-calendar-total{text-align:center!important}
+.control-calendar>.registry-pagination{border-top:1px solid var(--lo-color-border)}
+.control-calendar-toolbar>.control-info-tip{margin-left:-12px}

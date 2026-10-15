@@ -97,3 +97,30 @@ export function periodRange(key, now = new Date()) {
 }
 
 export const adherenceTone = (rate) => (rate == null ? 'neutral' : rate >= 90 ? 'good' : rate >= 75 ? 'fair' : 'low')
+
+// The adherence rows grouped by control (worst first): each group carries the
+// control's totals across its departments, counted like the programme totals.
+export function groupAdherenceLines(lines = []) {
+  const groups = new Map()
+  for (const line of lines) {
+    if (!groups.has(line.item.id)) groups.set(line.item.id, { item: line.item, lines: [] })
+    groups.get(line.item.id).lines.push(line)
+  }
+  return [...groups.values()].map((group) => {
+    const expected = group.lines.reduce((sum, line) => sum + line.expected, 0)
+    const counted = group.lines.reduce((sum, line) => sum + Math.min(line.performed, line.expected), 0)
+    const performed = group.lines.reduce((sum, line) => sum + line.performed, 0)
+    const onTime = group.lines.reduce((sum, line) => sum + line.onTime, 0)
+    return {
+      ...group,
+      totals: {
+        expected,
+        performed,
+        onTime,
+        late: performed - onTime,
+        missed: group.lines.reduce((sum, line) => sum + line.missed, 0),
+        rate: expected ? Math.round((counted / expected) * 100) : null,
+      },
+    }
+  }).sort((a, b) => (a.totals.rate ?? 101) - (b.totals.rate ?? 101) || String(a.item.title).localeCompare(String(b.item.title), 'el'))
+}
