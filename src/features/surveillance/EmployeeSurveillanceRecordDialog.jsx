@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Pencil, Trash2, XCircle } from 'lucide-react'
+import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -625,30 +626,18 @@ export function EmployeeSurveillanceRecordDialog({
           }
         >
           <div className="employee-lab-request-editor">
-            <fieldset className="field entry-span-2 lab-request-materials">
-              <legend className="lo-field-label">
-                {en ? 'Requested examination / material' : 'Ζητούμενος έλεγχος / υλικό'}
-              </legend>
-              <div className="lab-request-material-options">
-                {REQUEST_MATERIALS.map(item => {
-                  const selected = splitMaterials(requestEditor.source).includes(item.id)
-                  return (
-                    <label key={item.id} className={selected ? 'selected' : ''}>
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() =>
-                          setRequestEditor(v => ({
-                            ...v,
-                            source: toggleMaterial(v.source, item.id),
-                          }))
-                        }
-                      />
-                      <span>{en ? item.en : item.el}</span>
-                    </label>
-                  )
-                })}
-              </div>
+            <div className="entry-span-2 lab-request-materials">
+              <ChoiceChips
+                label={en ? 'Requested examination / material' : 'Ζητούμενος έλεγχος / υλικό'}
+                options={REQUEST_MATERIALS.map(item => ({
+                  value: item.id,
+                  label: en ? item.en : item.el,
+                }))}
+                selected={splitMaterials(requestEditor.source)}
+                onToggle={id =>
+                  setRequestEditor(v => ({ ...v, source: toggleMaterial(v.source, id) }))
+                }
+              />
               {splitMaterials(requestEditor.source)
                 .filter(code => !REQUEST_MATERIALS.some(item => item.id === code))
                 .map(code => (
@@ -656,9 +645,9 @@ export function EmployeeSurveillanceRecordDialog({
                     {en ? 'Other' : 'Άλλο'}: {code}
                   </small>
                 ))}
-            </fieldset>
+            </div>
             <label className="field">
-              <span>{en ? 'Request type' : 'Τύπος αιτήματος'}</span>
+              <span className="lo-field-label">{en ? 'Request type' : 'Τύπος αιτήματος'}</span>
               <select
                 value={requestEditor.sampleType}
                 onChange={e => setRequestEditor(v => ({ ...v, sampleType: e.target.value }))}
@@ -669,7 +658,7 @@ export function EmployeeSurveillanceRecordDialog({
               </select>
             </label>
             <label className="field">
-              <span>{en ? 'Priority' : 'Προτεραιότητα'}</span>
+              <span className="lo-field-label">{en ? 'Priority' : 'Προτεραιότητα'}</span>
               <select
                 value={requestEditor.priority}
                 onChange={e => setRequestEditor(v => ({ ...v, priority: e.target.value }))}

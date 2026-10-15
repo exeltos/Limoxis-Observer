@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Button } from '../../design-system/Button'
+import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -255,21 +256,12 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
 }
 function ScreeningTypes({ types, toggle, en }) {
   return (
-    <div className="bulk-screening-types">
-      <span className="lo-field-label">{en ? 'Screening type' : 'Τύπος ελέγχου'}</span>
-      <div className="screening-choice-list">
-        {screeningCatalog.map(item => (
-          <Button
-            variant="secondary"
-            key={item.id}
-            className={types.includes(item.id) ? 'selected' : ''}
-            aria-pressed={types.includes(item.id)}
-            onClick={() => toggle(item.id)}
-          >
-            {en ? item.en : item.el}
-          </Button>
-        ))}
-      </div>
-    </div>
+    <ChoiceChips
+      className="bulk-screening-types"
+      label={en ? 'Screening type' : 'Τύπος ελέγχου'}
+      options={screeningCatalog.map(item => ({ value: item.id, label: en ? item.en : item.el }))}
+      selected={types}
+      onToggle={toggle}
+    />
   )
 }
