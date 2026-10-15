@@ -33,8 +33,9 @@ export function MultiSelect({
     listId = `${baseId}-list`
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState(''),
-    [upward, setUpward] = useState(false)
-  const rootRef = useRef(null)
+    [place, setPlace] = useState(null)
+  const rootRef = useRef(null),
+    buttonRef = useRef(null)
   const chosen = useMemo(() => new Set(selected.map(String)), [selected])
   const matches = useMemo(() => {
     const needle = normalize(query)
@@ -49,13 +50,45 @@ export function MultiSelect({
       : countLabel(chosenLabels.length)
     : placeholder
 
+  // The list floats over the page (fixed), so a scrolling table or dialog never
+  // clips it. It is at least 300px wide, opens upwards when there is no room
+  // below, lines up with the field's right side near the screen edge, and
+  // follows the field when something scrolls.
+  function measure() {
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const width = Math.max(rect.width, 300)
+    const below = window.innerHeight - rect.bottom
+    const upward = below < 330 && rect.top > below
+    const alignEnd = rect.left + width > window.innerWidth - 16
+    setPlace({
+      width,
+      maxHeight: Math.min(320, (upward ? rect.top : below) - 12),
+      ...(upward
+        ? { top: 'auto', bottom: window.innerHeight - rect.top + 4 }
+        : { top: rect.bottom + 4, bottom: 'auto' }),
+      ...(alignEnd
+        ? { left: 'auto', right: window.innerWidth - rect.right }
+        : { left: rect.left, right: 'auto' }),
+    })
+  }
+
   useEffect(() => {
     if (!open) return undefined
     const onPointer = event => {
       if (!rootRef.current?.contains(event.target)) setOpen(false)
     }
+    const onMove = event => {
+      if (!rootRef.current?.contains(event.target)) measure()
+    }
     document.addEventListener('mousedown', onPointer)
-    return () => document.removeEventListener('mousedown', onPointer)
+    window.addEventListener('scroll', onMove, true)
+    window.addEventListener('resize', onMove)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      window.removeEventListener('scroll', onMove, true)
+      window.removeEventListener('resize', onMove)
+    }
   }, [open])
 
   function toggle(value) {
@@ -92,6 +125,7 @@ export function MultiSelect({
       <div className="searchable-select-control">
         <button
           id={buttonId}
+          ref={buttonRef}
           type="button"
           className={`multi-select-button${chosenLabels.length ? '' : ' is-placeholder'}`}
           aria-haspopup="listbox"
@@ -99,11 +133,8 @@ export function MultiSelect({
           aria-controls={listId}
           title={chosenLabels.join(', ')}
           disabled={disabled}
-          onClick={event => {
-            // Open upwards when the list would not fit below the field.
-            const rect = event.currentTarget.getBoundingClientRect()
-            const below = window.innerHeight - rect.bottom
-            setUpward(below < 330 && rect.top > below)
+          onClick={() => {
+            if (!open) measure()
             setOpen(value => !value)
           }}
         >
@@ -112,7 +143,10 @@ export function MultiSelect({
         <ChevronDown className="searchable-select-chevron" size={15} aria-hidden="true" />
       </div>
       {open && (
-        <div className={`searchable-select-list multi-select-panel${upward ? ' opens-up' : ''}`}>
+        <div
+          className="searchable-select-list multi-select-panel"
+          style={{ position: 'fixed', zIndex: 1200, margin: 0, ...place }}
+        >
           <div className="multi-select-search">
             <Search size={14} aria-hidden="true" />
             <input

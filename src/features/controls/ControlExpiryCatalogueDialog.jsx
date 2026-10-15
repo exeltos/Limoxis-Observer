@@ -10,14 +10,16 @@ import { ITEM_FORMS,catalogueItem,parseCatalogueLines } from './controlExpiry'
 // The medicines and supplies an expiry check goes through, one row each: name,
 // quantity, form (tablet, vial, …), expiry date, note and the departments that
 // keep it (none chosen = all). Rows can also be pasted from a spreadsheet.
-export function ControlExpiryCatalogueDialog({items,departments,window,onClose,onSave,language}){
+// defaultDepartments: what a new row starts with (a department's own control: that department).
+export function ControlExpiryCatalogueDialog({items,departments,defaultDepartments=[],window,onClose,onSave,language}){
  const en=language==='en'
- const [rows,setRows]=useState(()=>items.length?items.map(item=>({...item})):[catalogueItem()])
+ const fresh=(row={})=>catalogueItem({...row,departments:row.departments?.length?row.departments:defaultDepartments})
+ const [rows,setRows]=useState(()=>items.length?items.map(item=>({...item,departments:item.departments?.length?item.departments:[...defaultDepartments]})):[fresh()])
  const [pasteOpen,setPasteOpen]=useState(false),[pasted,setPasted]=useState('')
  const update=(id,patch)=>setRows(current=>current.map(row=>row.id===id?{...row,...patch}:row))
- const addRow=()=>setRows(current=>[...current,catalogueItem()])
+ const addRow=()=>setRows(current=>[...current,fresh()])
  const pastedRows=parseCatalogueLines(pasted)
- const addPasted=()=>{if(!pastedRows.length)return;setRows(current=>[...current.filter(row=>row.item.trim()),...pastedRows.map(row=>catalogueItem(row))]);setPasted('');setPasteOpen(false)}
+ const addPasted=()=>{if(!pastedRows.length)return;setRows(current=>[...current.filter(row=>row.item.trim()),...pastedRows.map(row=>fresh(row))]);setPasted('');setPasteOpen(false)}
  const departmentOptions=departments.map(dep=>({value:dep,label:dep}))
  const filled=rows.filter(row=>String(row.item||'').trim())
  return <ObserverDialog
@@ -49,7 +51,7 @@ export function ControlExpiryCatalogueDialog({items,departments,window,onClose,o
      <td><ExpiryBadge row={row} window={window} language={language}/></td>
      <td><input aria-label={en?'Note':'Παρατήρηση'} value={row.note||''} onChange={e=>update(row.id,{note:e.target.value})}/></td>
      <td><MultiSelect label={en?'Departments':'Τμήματα'} options={departmentOptions} selected={row.departments||[]} onChange={next=>update(row.id,{departments:next})} placeholder={en?'All departments':'Όλα τα τμήματα'} searchPlaceholder={en?'Search department…':'Αναζήτηση τμήματος…'} emptyLabel={en?'No department matches':'Κανένα τμήμα δεν ταιριάζει'} selectAllLabel={en?'Select all':'Επιλογή όλων'} clearAllLabel={en?'Clear all':'Αποεπιλογή όλων'} countLabel={n=>en?`${n} departments`:`${n} τμήματα`}/></td>
-     <td><button type="button" className="control-row-delete" title={en?'Remove row':'Αφαίρεση γραμμής'} aria-label={en?'Remove row':'Αφαίρεση γραμμής'} onClick={()=>setRows(current=>current.length===1?[catalogueItem()]:current.filter(x=>x.id!==row.id))}><Trash2 size={14}/></button></td>
+     <td><button type="button" className="control-row-delete" title={en?'Remove row':'Αφαίρεση γραμμής'} aria-label={en?'Remove row':'Αφαίρεση γραμμής'} onClick={()=>setRows(current=>current.length===1?[fresh()]:current.filter(x=>x.id!==row.id))}><Trash2 size={14}/></button></td>
     </tr>)}</tbody>
    </table>
   </div>
