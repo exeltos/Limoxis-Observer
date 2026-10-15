@@ -23,8 +23,7 @@ describe('controls definition-centric workflow',()=>{
  })
 
  it('supports select all and clear all for department assignment',()=>{
-  expect(editor).toContain('selectVisibleDepartments')
-  expect(editor).toContain('clearVisibleDepartments')
+  expect(editor).toContain('<MultiSelect className="control-departments-select"')
   expect(editor).toContain("en?'Select all':'Επιλογή όλων'")
   expect(editor).toContain("en?'Clear all':'Αποεπιλογή όλων'")
  })

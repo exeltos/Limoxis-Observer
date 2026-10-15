@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { CalendarClock,FileWarning,Plus,Printer,Save,Trash2,UserRound } from 'lucide-react'
+import { FileWarning,Plus,Printer,Save,Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -8,14 +8,18 @@ import { controlActorFromAuth } from './controlActor'
 import { emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
 import { saveControlDraft } from './controlCloudService'
 import { deviationActions,requiresEvidence } from './controlCriticality'
+import { expiryState,expiryWindow,impliedFinding,isExpiryControl } from './controlExpiry'
+import { ControlExpiryEntry } from './ControlExpiryEntry'
 import { ControlDeviationActions,ControlEvidencePicker } from './ControlEvidence'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
+import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { SectionHeader } from '../../design-system/SectionHeader'
 
-export function ControlExecutionEditor({organizationId,record,department,onCancel,onSave,onDraftSaved}){
+export function ControlExecutionEditor({organizationId,record,department,onSave,onDraftSaved}){
  const {profile,user}=useAuth()
  const {language,locale}=useLanguage(); const en=language==='en'
  const {confirm,notify}=useFeedback()
@@ -36,8 +40,11 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
  const numeric=Number(String(value).replace(',','.'))
  const outOfRange=response.mode==='numeric'&&String(value).trim()!==''&&Number.isFinite(numeric)&&((response.min!==''&&response.min!=null&&numeric<Number(response.min))||(response.max!==''&&response.max!=null&&numeric>Number(response.max)))
  const choiceFinding=response.mode==='choice'&&(response.reportOn||['Μη συμμόρφωση','Non-compliant']).includes(value)
- const hasFinding=outOfRange||choiceFinding||(response.mode==='list'&&listHasFinding(rows))
- const valid=(response.mode==='list'?true:String(value).trim().length>0)&&(!evidenceRequired||evidence.length>0)
+ const expiryControl=isExpiryControl(record)
+ const expiryRowAlerts=expiryControl&&rows.some(row=>expiryState(row.expiry,expiryWindow(record)).alert)
+ const hasFinding=outOfRange||choiceFinding||(response.mode==='list'&&listHasFinding(rows))||expiryRowAlerts
+ const expiryRowsValid=!expiryControl||rows.every(row=>!String(row.item||'').trim()||String(row.expiry||'').trim())
+ const valid=(response.mode==='list'?true:String(value).trim().length>0)&&expiryRowsValid&&(!evidenceRequired||evidence.length>0)
 
  function setRow(index,key,next){setRows(current=>current.map((r,i)=>i===index?{...r,[key]:next}:r))}
  function addRow(){setRows(current=>[...current,emptyStructuredRow(response.template)])}
@@ -60,9 +67,7 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
  }
  async function submit(){
   if(!valid||saving)return
-  const ok=await confirm({title:en?'Confirm control entry':'Επιβεβαίωση καταχώρησης',message:en?'Confirm that the control was performed and the information entered is accurate.':'Επιβεβαιώστε ότι ο έλεγχος πραγματοποιήθηκε και τα στοιχεία που καταχωρήθηκαν είναι σωστά.',confirmLabel:en?'Save entry':'Αποθήκευση'})
-  if(!ok)return
-  const cleanRows=response.mode==='list'?rows.filter(r=>Object.values(r||{}).some(v=>String(v??'').trim())):null
+  const cleanRows=response.mode==='list'?rows.filter(r=>Object.values(r||{}).some(v=>String(v??'').trim())).map(r=>expiryControl&&!r.finding?{...r,finding:impliedFinding(r,expiryWindow(record),language)}:r):null
   setSaving(true)
   try{await onSave?.({value,notes,structuredData:response.mode==='list'?{template:response.template,rows:cleanRows}:null,hasFinding,actor,evidenceFiles:evidence})}
   finally{setSaving(false)}
@@ -74,13 +79,20 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
  function printDraft(){printControlForm({record,department,execution:{at:new Date().toISOString(),value,notes,structuredData:response.mode==='list'?{template:response.template,rows}:null,by:actor.name},actorName:actor.name})}
 
  return <div className="control-execution-page-editor">
-  <div className="control-execution-summary">
-   <div><CalendarClock size={17}/><span>{en?'Scheduled':'Προγραμματισμένος'}</span><strong>{fmt(assignment?.nextDueAt)}</strong><small>{frequencyLabel(record.frequency,language)}</small></div>
-   <div><UserRound size={17}/><span>{en?'Recorded by':'Καταχώρηση από'}</span><strong>{actor.name}</strong><small>{actor.email}</small></div>
-  </div>
+  <div className="record-view-stack"><section className="control-execution-sheet">
+   <SectionHeader title={en?'Entry details':'Στοιχεία καταχώρησης'}/>
+   <RecordDetailsGrid fields={[
+    {id:'department',label:en?'Department':'Τμήμα',value:department},
+    {id:'scheduled',label:en?'Scheduled':'Προγραμματισμένος',value:fmt(assignment?.nextDueAt)},
+    {id:'frequency',label:en?'Frequency':'Συχνότητα',value:frequencyLabel(record.frequency,language)},
+    {id:'actor',label:en?'Recorded by':'Καταχώρηση από',value:actor.name,meta:actor.email},
+   ]}/>
+  </section></div>
 
   <section className="control-execution-main-section">
-   {response.mode==='list'
+   {expiryControl
+    ? <ControlExpiryEntry record={record} rows={rows} setRow={setRow} addRow={addRow} removeRow={removeRow} keepFirstRow={()=>setRows(current=>current.slice(0,1))} language={language}/>
+    : response.mode==='list'
     ? <StructuredList template={response.template} rows={rows} setRow={setRow} addRow={addRow} removeRow={removeRow} language={language}/>
     : <div className="form-grid control-execution-form">
        <label className="field field-span-2"><span>{en&&response.label==='Αποτέλεσμα'?'Result':response.label||(en?'Result / value':'Αποτέλεσμα / τιμή')}{response.unit?` (${response.unit})`:''}</span>
@@ -90,7 +102,7 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
        </label>
        {response.mode==='numeric'&&(response.min!==''||response.max!=='')&&<div className={`control-range-hint field-span-2 ${outOfRange?'danger':''}`}>{en?'Acceptable range: ':'Αποδεκτά όρια: '}{response.min??'—'} {en?'to':'έως'} {response.max??'—'} {response.unit||''}{outOfRange&&<strong> · {en?'Value is out of range':'Η τιμή είναι εκτός ορίων'}</strong>}</div>}
       </div>}
-   {response.mode==='list'&&<div className="control-list-optional-hint">{en?'Complete the list only when findings are present. You can finish the control with no rows.':'Η λίστα συμπληρώνεται μόνο αν προκύψουν ευρήματα. Μπορείτε να ολοκληρώσετε τον έλεγχο χωρίς γραμμές.'}</div>}
+   {response.mode==='list'&&!expiryControl&&<div className="control-list-optional-hint">{en?'Complete the list only when findings are present. You can finish the control with no rows.':'Η λίστα συμπληρώνεται μόνο αν προκύψουν ευρήματα. Μπορείτε να ολοκληρώσετε τον έλεγχο χωρίς γραμμές.'}</div>}
    <label className="field control-execution-notes"><span>{en?'Notes':'Σημειώσεις'}</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows="3" placeholder={en?'Optional notes...':'Προαιρετικές παρατηρήσεις...'}/></label>
    <ControlEvidencePicker files={evidence} onChange={setEvidence} required={evidenceRequired} language={language}/>
   </section>
@@ -105,7 +117,7 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
     <Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>
     {draftSaved&&<span className="control-temp-save-state">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</span>}
    </div>
-   <div className="control-execution-page-primary-actions"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton disabled={!valid||saving} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save entry':'Αποθήκευση')}</SaveButton></div>
+   <div className="control-execution-page-primary-actions"><SaveButton disabled={!valid||saving} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save entry':'Αποθήκευση')}</SaveButton></div>
   </div>
  </div>
 }

@@ -417,18 +417,15 @@
 .preview-banner{flex:0 0 36px;position:relative;top:auto}
 .main-column:has(.preview-banner) .content{padding-top:20px}
 @media(max-width:1250px){.topbar{padding:0 18px}.user-chip>div:last-child{display:none}.user-chip{padding-right:4px}.preview-trigger span{display:none}.preview-trigger{width:34px;padding:0;justify-content:center}.preview-trigger svg:last-child{display:none}}
-.control-department-picker{margin-top:7px}
 .check-option input{margin:0;accent-color:var(--primary,#247386)}
 .control-time-grid{margin-top:7px}
 @media(max-width:760px){.control-department-picker,.control-time-grid{grid-template-columns:1fr 1fr}}
 
 /* Controls editor refinement v0.21.2 */
-.control-dept-search{height:37px;border:1px solid var(--border-color,#d7e0e8);border-radius:9px;padding:0 10px}
-.control-dept-search input{height:auto!important;border:0!important;padding:0!important;box-shadow:none!important;background:transparent!important}
 .check-option{cursor:pointer}
 .check-option input{padding:0!important}
 .control-time-grid{grid-template-columns:repeat(4,minmax(120px,1fr))}.control-time-grid label{display:flex;flex-direction:column;gap:5px}.control-time-grid label>span{font-size:10px;color:var(--text-muted,#748394)}
-@media(max-width:760px){.control-department-picker{grid-template-columns:1fr 1fr}.control-time-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.control-time-grid{grid-template-columns:1fr 1fr}}
 
 /* Controls role + quick execution v0.21.3 */
 .controls-table .control-action-col{width:52px;text-align:center;padding-left:6px!important;padding-right:10px!important}
