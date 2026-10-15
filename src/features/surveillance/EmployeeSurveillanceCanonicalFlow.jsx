@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '../../design-system/Button'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -24,7 +25,7 @@ const screeningCatalog = [
   { id: 'throatSwab', el: 'Φαρυγγικό επίχρισμα', en: 'Throat swab' },
 ]
 
-// One list: tick one employee or as many as needed. A single tick creates an
+// One multi-select: pick one employee or as many as needed. A single pick creates an
 // individual record, more than one a batch.
 export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, onCreated }) {
   const actor = useAuditActor(),
@@ -62,17 +63,20 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
       setTypes(current =>
         current.includes(id) ? current.filter(item => item !== id) : [...current, id],
       ),
-    toggleEmployee = id =>
-      setSelectedIds(current =>
-        current.includes(id) ? current.filter(item => item !== id) : [...current, id],
-      )
-  const allVisible = visible.length > 0 && visible.every(row => selectedIds.includes(row.id)),
-    toggleAll = () =>
-      setSelectedIds(current =>
-        allVisible
-          ? current.filter(id => !visible.some(row => row.id === id))
-          : [...new Set([...current, ...visible.map(row => row.id)])],
-      )
+    employeeLabel = row =>
+      [
+        language === 'el' ? `${row.lastName} ${row.firstName}` : `${row.firstNameEn} ${row.lastNameEn}`,
+        language === 'el' ? row.department : row.departmentEn,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    // The department filter narrows the list; employees already picked in
+    // another department stay listed so the field still shows them.
+    employeeOptions = (
+      employee
+        ? [employee]
+        : activeEmployees.filter(row => visible.includes(row) || selectedIds.includes(row.id))
+    ).map(row => ({ value: row.id, label: employeeLabel(row) }))
   async function save() {
     if (saving || !date || !types.length) return
     setSaving(true)
@@ -198,49 +202,19 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
           />
         </div>
         <ScreeningTypes types={types} toggle={toggleType} en={en} />
-        <div className="bulk-employee-list">
-          <div className="bulk-list-head" aria-live="polite">
-            {!employee && (
-              <Button variant="secondary" onClick={toggleAll}>
-                {allVisible
-                  ? en
-                    ? 'Clear visible'
-                    : 'Καθαρισμός ορατών'
-                  : en
-                    ? 'Select all visible'
-                    : 'Επιλογή όλων'}
-              </Button>
-            )}
-            <strong>
-              {en ? 'Selected' : 'Επιλεγμένοι'}: {chosen.length}
-            </strong>
-          </div>
-          {(employee ? [employee] : visible).map(row => {
-            const checked = Boolean(employee) || selectedIds.includes(row.id)
-            return (
-              <div key={row.id} className={`bulk-employee-row ${checked ? 'selected' : ''}`}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={Boolean(employee)}
-                    onChange={() => toggleEmployee(row.id)}
-                  />
-                  <span>
-                    <strong>
-                      {language === 'el'
-                        ? `${row.lastName} ${row.firstName}`
-                        : `${row.firstNameEn} ${row.lastNameEn}`}
-                    </strong>
-                    <small>
-                      {row.id} · {language === 'el' ? row.department : row.departmentEn}
-                    </small>
-                  </span>
-                </label>
-              </div>
-            )
-          })}
-        </div>
+        <MultiSelect
+          label={en ? 'Employees' : 'Εργαζόμενοι'}
+          options={employeeOptions}
+          selected={employee ? [employee.id] : selectedIds}
+          onChange={setSelectedIds}
+          disabled={Boolean(employee)}
+          placeholder={en ? 'Select employees' : 'Επιλέξτε εργαζόμενους'}
+          searchPlaceholder={en ? 'Search name or department…' : 'Αναζήτηση ονόματος ή τμήματος…'}
+          emptyLabel={en ? 'No employee matches' : 'Κανένας εργαζόμενος δεν ταιριάζει'}
+          selectAllLabel={en ? 'Select all' : 'Επιλογή όλων'}
+          clearAllLabel={en ? 'Clear all' : 'Αποεπιλογή όλων'}
+          countLabel={n => (en ? `${n} employees selected` : `${n} επιλεγμένοι εργαζόμενοι`)}
+        />
         <label className="field bulk-notes">
           <span className="lo-field-label">{en ? 'Notes' : 'Σημειώσεις'}</span>
           <textarea

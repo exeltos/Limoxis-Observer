@@ -1287,15 +1287,6 @@
 .bulk-screening-types > span,
 .bulk-surveillance-entry .field > span,
 .employee-surveillance-entry .field > span{color:var(--lo-color-muted)!important;font-size:11px!important;font-weight:700!important}
-.bulk-employee-list{min-height:220px!important;max-height:360px!important;overflow:auto!important;border:1px solid var(--lo-color-border)!important;border-radius:12px!important;background:var(--lo-color-surface)!important}
-.bulk-list-head{position:sticky!important;top:0!important;z-index:2!important;min-height:56px!important;padding:8px 12px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;border-bottom:1px solid var(--lo-color-border)!important;background:var(--lo-shell-control-hover)!important}
-.bulk-employee-list > label{min-height:54px!important;padding:9px 12px!important;display:flex!important;align-items:center!important;gap:12px!important;border-bottom:1px solid var(--lo-color-border)!important;cursor:pointer!important}
-.bulk-employee-list > label:last-child{border-bottom:0!important}
-.bulk-employee-list > label:hover{background:color-mix(in srgb,var(--lo-color-primary) 3%,var(--lo-color-surface))!important}
-.bulk-employee-list > label.selected{background:var(--lo-status-info-bg)!important}
-.bulk-employee-list > label input{width:17px!important;height:17px!important;margin:0!important}
-.bulk-employee-list > label span{display:grid!important;gap:2px!important}
-.bulk-employee-list > label small{color:var(--lo-color-muted)!important}
 .bulk-notes{display:grid!important;gap:6px!important;margin-top:14px!important}
 .bulk-notes textarea{width:100%!important;min-height:92px!important}
 

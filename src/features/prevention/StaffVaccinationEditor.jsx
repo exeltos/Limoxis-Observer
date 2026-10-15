@@ -2,11 +2,10 @@ import { SectionHeader } from '../../design-system/SectionHeader'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
-import { useState } from 'react'
 import { Pencil, Trash2, UserRoundCheck, Users } from 'lucide-react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { Button } from '../../design-system/Button'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import '../occupational-health/OccupationalHealthPage.css'
 
 export const EMPTY_VACCINATION = {
@@ -56,44 +55,18 @@ export function StaffVaccinationEditor({
     const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/)
     return m ? `${m[3]}/${m[2]}/${m[1]}` : v
   }
-  const [search, setSearch] = useState('')
-  const [dept, setDept] = useState('all')
-  const departments = [
-    ...new Set(employees.map(x => (en ? x.departmentEn : x.department)).filter(Boolean)),
-  ]
-  const filtered = employees.filter(x => {
-    const label =
-      `${x.id} ${x.firstName} ${x.lastName} ${x.firstNameEn} ${x.lastNameEn}`.toLowerCase()
-    const d = en ? x.departmentEn : x.department
-    return label.includes(search.toLowerCase()) && (dept === 'all' || d === dept)
-  })
+  const personName = e =>
+    en ? `${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}` : `${e.lastName} ${e.firstName}`
+  const employeeOptions = employees.map(e => ({
+    value: e.id,
+    label: [personName(e), en ? e.departmentEn : e.department, en ? e.professionEn : e.profession]
+      .filter(Boolean)
+      .join(' · '),
+  }))
   const valid =
     (mode === 'edit' || selectedEmployeeIds.length > 0) && draft.vaccine.trim() && draft.date
   const patchDraft = patch => onChange({ ...value, draft: { ...draft, ...patch } })
   const setMode = next => onChange({ ...value, mode: next, selectedEmployeeIds: [] })
-  const toggle = id =>
-    onChange({
-      ...value,
-      selectedEmployeeIds: selectedEmployeeIds.includes(id)
-        ? selectedEmployeeIds.filter(x => x !== id)
-        : [...selectedEmployeeIds, id],
-    })
-  const selectVisible = () =>
-    onChange({
-      ...value,
-      selectedEmployeeIds: [...new Set([...selectedEmployeeIds, ...filtered.map(x => x.id)])],
-    })
-  const clearVisible = () =>
-    onChange({
-      ...value,
-      selectedEmployeeIds: selectedEmployeeIds.filter(id => !filtered.some(x => x.id === id)),
-    })
-  const toggleFromKeyboard = (event, id) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      toggle(id)
-    }
-  }
   if (readOnly)
     return (
       <ObserverDialog
@@ -297,16 +270,6 @@ export function StaffVaccinationEditor({
                     : `${selectedEmployeeIds.length} επιλεγμένοι`}
                 </small>
               </div>
-              {mode === 'bulk' && (
-                <div className="vaccination-picker-actions">
-                  <Button variant="secondary" onClick={selectVisible}>
-                    {en ? 'Select visible' : 'Επιλογή εμφανιζόμενων'}
-                  </Button>
-                  <Button variant="secondary" onClick={clearVisible}>
-                    {en ? 'Clear visible' : 'Καθαρισμός εμφανιζόμενων'}
-                  </Button>
-                </div>
-              )}
             </div>
             {mode === 'individual' ? (
               <label>
@@ -332,58 +295,18 @@ export function StaffVaccinationEditor({
                 </select>
               </label>
             ) : (
-              <>
-                <div className="vaccination-picker-filters">
-                  <input
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder={en ? 'Search employees…' : 'Αναζήτηση εργαζομένων…'}
-                  />
-                  <select value={dept} onChange={e => setDept(e.target.value)}>
-                    <option value="all">{en ? 'All departments' : 'Όλα τα τμήματα'}</option>
-                    {departments.map(d => (
-                      <option key={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="vaccination-employee-list">
-                  {filtered.map(e => {
-                    const selected = selectedEmployeeIds.includes(e.id)
-                    return (
-                      <div
-                        key={e.id}
-                        className={`vaccination-employee-row${selected ? ' selected' : ''}`}
-                        tabIndex={0}
-                        onClick={() => toggle(e.id)}
-                        onKeyDown={event => toggleFromKeyboard(event, e.id)}
-                      >
-                        <input
-                          type="checkbox"
-                          aria-label={
-                            en
-                              ? `Select ${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}`
-                              : `Επιλογή ${e.lastName} ${e.firstName}`
-                          }
-                          checked={selected}
-                          onClick={event => event.stopPropagation()}
-                          onChange={() => toggle(e.id)}
-                        />
-                        <div className="vaccination-employee-copy">
-                          <strong>
-                            {en
-                              ? `${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}`
-                              : `${e.lastName} ${e.firstName}`}
-                          </strong>
-                          <small>
-                            {e.id} · {en ? e.departmentEn : e.department} ·{' '}
-                            {en ? e.professionEn : e.profession}
-                          </small>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </>
+              <MultiSelect
+                label={en ? 'Employees' : 'Εργαζόμενοι'}
+                options={employeeOptions}
+                selected={selectedEmployeeIds}
+                onChange={next => onChange({ ...value, selectedEmployeeIds: next })}
+                placeholder={en ? 'Select employees' : 'Επιλέξτε εργαζόμενους'}
+                searchPlaceholder={en ? 'Search name or department…' : 'Αναζήτηση ονόματος ή τμήματος…'}
+                emptyLabel={en ? 'No employee matches' : 'Κανένας εργαζόμενος δεν ταιριάζει'}
+                selectAllLabel={en ? 'Select all' : 'Επιλογή όλων'}
+                clearAllLabel={en ? 'Clear all' : 'Αποεπιλογή όλων'}
+                countLabel={n => (en ? `${n} employees` : `${n} εργαζόμενοι`)}
+              />
             )}
           </section>
         )}

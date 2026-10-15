@@ -4,12 +4,14 @@ import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
 
 const css=fs.readFileSync('src/features/occupational-health/OccupationalHealthPage.css','utf8')
+const editor=fs.readFileSync('src/features/prevention/StaffVaccinationEditor.jsx','utf8')
 
 describe('vaccination employee picker layout',()=>{
- it('keeps each employee in one compact row with the checkbox first',()=>{
+ it('picks bulk employees through the shared MultiSelect instead of a checkbox list',()=>{
   expect(css).toContain('.vaccination-employee-picker{align-content:start}')
-  expect(css).toContain('.vaccination-employee-list{display:flex;flex-direction:column;align-self:start')
-  expect(css).toContain('.vaccination-employee-row{display:flex;align-items:center;gap:12px;flex:0 0 auto')
-  expect(css).toContain('.vaccination-employee-copy{display:flex;align-items:baseline')
+  expect(editor).toContain("import { MultiSelect } from '../../design-system/MultiSelect'")
+  expect(editor).toContain('selected={selectedEmployeeIds}')
+  expect(editor).not.toContain('type="checkbox"')
+  expect(css).not.toContain('.vaccination-employee-row')
  })
 })

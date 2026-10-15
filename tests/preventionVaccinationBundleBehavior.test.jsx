@@ -129,7 +129,7 @@ describe('staff vaccinations as a native Prevention tab', () => {
 })
 
 // Rule A2: a new vaccination supports individual and bulk entry; in bulk mode
-// each employee is one row with the checkbox first; saving calls the bulk
+// employees are picked in one MultiSelect (name · department); saving calls the bulk
 // create service with the selected employees and the Greek toast states the count.
 describe('new vaccination: individual and bulk entry', () => {
   async function openNewVaccination() {
@@ -144,32 +144,32 @@ describe('new vaccination: individual and bulk entry', () => {
     expect(within(modes).getByRole('radio', { name: /Μεμονωμένα/ })).toBeInTheDocument()
     expect(within(modes).getByRole('radio', { name: /Μαζικός εμβολιασμός/ })).toBeInTheDocument()
     expect(within(dialog).getByRole('option', { name: /Παπαδοπούλου Μαρία/ })).toBeInTheDocument()
-    expect(dialog.querySelector('.vaccination-employee-row')).toBeNull()
+    expect(dialog.querySelector('.multi-select')).toBeNull()
   })
 
-  it('lists each employee as one row with the checkbox first and marks selected rows', async () => {
+  it('picks bulk employees from one searchable multi-select with name and department', async () => {
     const dialog = await openNewVaccination()
     fireEvent.click(within(dialog).getByRole('radio', { name: /Μαζικός εμβολιασμός/ }))
-    const rows = [...dialog.querySelectorAll('.vaccination-employee-row')]
-    expect(rows.length).toBeGreaterThan(1)
-    for (const row of rows) {
-      expect(row.firstElementChild).toHaveAttribute('type', 'checkbox')
-      const copy = row.children[1]
-      expect(copy).toHaveClass('vaccination-employee-copy')
-      expect(copy.firstElementChild.tagName).toBe('STRONG')
-      expect(copy.querySelector('label')).toBeNull()
-    }
-    const maria = rows.find(row => within(row).queryByText('Παπαδοπούλου Μαρία'))
-    expect(maria).not.toHaveClass('selected')
-    fireEvent.click(within(maria).getByRole('checkbox'))
-    expect(dialog.querySelector('.vaccination-employee-row.selected')).toHaveTextContent('Παπαδοπούλου Μαρία')
+    expect(dialog.querySelector('input[type="checkbox"]')).toBeNull()
+    const field = within(dialog).getByRole('button', { name: 'Εργαζόμενοι' })
+    expect(field).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(field)
+    const options = within(dialog).getAllByRole('option')
+    expect(options.length).toBeGreaterThan(1)
+    const maria = options.find(option => option.textContent.includes('Παπαδοπούλου Μαρία'))
+    expect(maria.textContent).toContain(' · ')
+    expect(maria).toHaveAttribute('aria-selected', 'false')
+    fireEvent.click(maria)
+    expect(within(dialog).getByRole('option', { name: /Παπαδοπούλου Μαρία/ })).toHaveAttribute('aria-selected', 'true')
+    expect(field).toHaveTextContent('Παπαδοπούλου Μαρία')
   })
 
   it('saves the bulk entry for the selected employees and reports the count in Greek', async () => {
     const dialog = await openNewVaccination()
     fireEvent.click(within(dialog).getByRole('radio', { name: /Μαζικός εμβολιασμός/ }))
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Επιλογή Παπαδοπούλου Μαρία' }))
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Επιλογή Δημητρίου Νικόλαος' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Εργαζόμενοι' }))
+    fireEvent.click(within(dialog).getByRole('option', { name: /Παπαδοπούλου Μαρία/ }))
+    fireEvent.click(within(dialog).getByRole('option', { name: /Δημητρίου Νικόλαος/ }))
     fireEvent.change(dialog.querySelector('.vaccination-fields select'), { target: { value: 'Εποχική γρίπη' } })
     const date = within(dialog).getAllByPlaceholderText('ηη/μμ/εεεε')[0]
     fireEvent.change(date, { target: { value: '01/10/2026' } })
