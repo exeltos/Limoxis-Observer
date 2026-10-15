@@ -3766,60 +3766,12 @@ button{letter-spacing:0}
 }
 
 /* Patient root: compact identity overview + admission registry. */
-.patient-home-layout{
-  display:flex!important;flex-direction:column!important;flex:1 1 auto!important;
-  gap:14px!important;
-}
-.patient-profile-card{
-  flex:0 0 auto!important;margin:0!important;padding:0!important;
-  border:1px solid #e1e8ee!important;border-radius:12px!important;background:#fff!important;
-  overflow:hidden!important;box-shadow:0 1px 2px rgba(27,58,84,.025)!important;
-}
-.patient-profile-card>.record-section-header{
-  align-items:center!important;margin:0!important;padding:11px 14px!important;
-  border-bottom:1px solid #e8edf2!important;background:#fff!important;
-}
-.patient-profile-card>.record-section-header h3{font-size:15px!important}
-.patient-profile-card>.record-section-header p{font-size:10px!important;margin-top:2px!important}
-.patient-profile-grid{
-  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  background:#fff!important;
-}
-.patient-profile-item{
-  min-width:0!important;min-height:58px!important;padding:10px 14px!important;
-  border-right:1px solid #edf1f4!important;border-bottom:1px solid #edf1f4!important;
-}
-.patient-profile-item:nth-child(4n){border-right:0!important}
-.patient-profile-item:nth-last-child(-n+4){border-bottom:0!important}
 .patient-profile-item span,.patient-profile-note>span{
   display:block!important;margin-bottom:4px!important;color:#7b8b9b!important;
   font-size:9px!important;font-weight:800!important;line-height:1.2!important;
 }
-.patient-profile-item strong{
-  display:block!important;color:#18364f!important;font-size:12px!important;font-weight:700!important;
-  line-height:1.3!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-}
 .patient-profile-note{padding:10px 14px!important;border-top:1px solid #edf1f4!important;background:#fbfcfd!important}
 .patient-profile-note p{margin:0!important;color:#40556a!important;font-size:11px!important;line-height:1.4!important}
-.patient-admissions-section{
-  display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;
-  overflow:hidden!important;padding:0!important;border:1px solid #e1e8ee!important;border-radius:12px!important;
-  background:#fff!important;box-shadow:0 1px 2px rgba(27,58,84,.025)!important;
-}
-.patient-admissions-section>.record-section-header{
-  flex:0 0 auto!important;align-items:center!important;margin:0!important;padding:11px 14px!important;
-  border-bottom:1px solid #e8edf2!important;background:#fff!important;
-}
-.patient-admissions-section>.record-section-header h3{font-size:15px!important}
-.patient-admissions-section>.record-section-header p{margin-top:2px!important;color:#8391a0!important;font-size:10px!important}
-.patient-admissions-table-wrap{display:block!important;flex:1 1 auto!important;height:100%!important;min-height:0!important;overflow:auto!important;border:0!important;border-radius:0!important;background:#fff!important}
-.patient-admissions-table{width:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
-.patient-admissions-table th{position:sticky!important;top:0!important;z-index:1!important;height:38px!important;padding:0 14px!important;background:#f7f9fb!important;color:#718397!important;font-size:9px!important;font-weight:800!important;text-transform:uppercase!important;border-bottom:1px solid #e1e8ee!important}
-.patient-admissions-table td{height:50px!important;padding:8px 14px!important;border-bottom:1px solid #edf1f4!important;color:#40556a!important;font-size:11px!important;vertical-align:middle!important}
-.patient-admissions-table tbody tr:last-child td{border-bottom:0!important}
-.patient-admissions-table .clickable-row{cursor:pointer!important;transition:background .15s ease!important}
-.patient-admissions-table .clickable-row:hover,.patient-admissions-table .clickable-row:focus{background:#f4f9fc!important;outline:none!important}
-.patient-admissions-table .clickable-row:focus-visible{box-shadow:inset 3px 0 0 #2f8fba!important}
 
 /* Summary: compact record overview; the shell header already owns identity and admission context. */
 .clean-patient-summary{display:grid!important;gap:12px!important;align-content:start!important}
@@ -3839,7 +3791,7 @@ button{letter-spacing:0}
   display:block!important;margin:0 0 5px!important;color:#7b8b9b!important;font-size:9.5px!important;font-weight:800!important;line-height:1.2!important;
 }
 .clean-patient-summary .detail-item>strong{font-size:13px!important;color:#18364f!important;font-weight:700!important}
-.clean-patient-summary .detail-item .summary-detail-note{display:block!important;margin-top:3px!important;color:#4a6274!important;font-size:11.5px!important;font-weight:500!important;line-height:1.4!important}
+.clean-patient-summary .detail-item .summary-detail-note{display:block!important;margin-top:3px!important;color:#4a6274!important;font-size:11.5px!important;font-weight:500!important;line-height:1.4!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 
 /* Surveillance tab: samples -> episodes -> selected surveillance journey. */
 .patient-surveillance-clean{
@@ -3957,16 +3909,11 @@ button{letter-spacing:0}
 
 @media(max-width:1050px){
   .patient-profile-grid,.clean-patient-summary .patient-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .patient-profile-item:nth-child(2n){border-right:0!important}
-  .patient-profile-item:nth-last-child(-n+2){border-bottom:0!important}
   .patient-surveillance-clean .journey-guidance-items{grid-template-columns:1fr!important}
 }
 @media(max-width:680px){
   .patient-record-shell{--pr-pad-x:12px;--pr-pad-y:12px}
   .patient-profile-grid,.clean-patient-summary .patient-detail-grid,.clinical-snapshot-strip{grid-template-columns:1fr!important}
-  .patient-profile-item{border-right:0!important;border-bottom:1px solid #e8edf2!important}
-  .patient-profile-item:last-child{border-bottom:0!important}
-  .patient-admissions-section>.record-section-header{align-items:flex-start!important;flex-wrap:wrap!important}
   .patient-surveillance-clean{padding:10px!important}
   .patient-surveillance-clean>.record-section>.record-section-header{align-items:flex-start!important;flex-wrap:wrap!important}
 }
@@ -4299,6 +4246,14 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .indicator-result-cards .indicator-result-value strong{font-size:26px;line-height:1.1;color:#0b6097}
 .indicator-result-cards small{font-size:11px;color:#64748b}
 @media(max-width:780px){.indicator-result-cards{grid-template-columns:1fr 1fr}.indicator-result-cards>div:nth-child(2){border-right:0}.indicator-result-cards>div:nth-child(-n+2){border-bottom:1px solid #edf1f4}}
-/* In-place edit of the patient details: same inner spacing as the read-only sheet. */
-.patient-details-editor{padding:14px 14px 4px}
-.patient-details-editor .inline-edit-footer{margin-top:14px}
+/* In-place edit of the patient details: four columns like the read-only sheet,
+   notes across the row, so the form fits without scrolling. */
+.patient-details-editor{padding:6px 2px 0}
+.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px 14px!important;padding:0!important}
+.patient-details-editor .patient-entry-grid-wide>.entry-span-2{grid-column:1/-1!important}
+.patient-details-editor .patient-entry-grid-wide textarea{min-height:64px!important;height:64px}
+@media(max-width:1100px){.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+/* Admission picker in the patient record header (only when there is more than one). */
+.admission-select{display:flex;align-items:center;gap:8px}
+.admission-select>.lo-field-label{margin:0!important}
+.admission-select select{min-height:34px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:#fff;font:inherit;font-size:12px}

@@ -20,8 +20,8 @@ export function PatientSummaryActions({patient,onEdit,onDeleted,extraItems=[]}){
 
   const items=[
     onEdit&&has(CAPABILITIES.EDIT_PATIENT)?{id:'edit',label:language==='el'?'Επεξεργασία ασθενούς':'Edit patient',icon:Pencil,onClick:onEdit}:null,
-    has(CAPABILITIES.DELETE_PATIENT)?{id:'archive',label:language==='el'?'Αρχειοθέτηση ασθενούς':'Archive patient',icon:Archive,tone:'danger',separatorBefore:true,onClick:()=>setDeleting(true)}:null,
     ...extraItems,
+    has(CAPABILITIES.DELETE_PATIENT)?{id:'archive',label:language==='el'?'Διαγραφή ασθενούς':'Delete patient',icon:Archive,tone:'danger',separatorBefore:true,onClick:()=>setDeleting(true)}:null,
   ].filter(Boolean)
   if(!items.length)return null
 
@@ -36,6 +36,6 @@ export function PatientSummaryActions({patient,onEdit,onDeleted,extraItems=[]}){
 
   return <>
     <OverflowMenu label={language==='el'?'Ενέργειες ασθενούς':'Patient actions'} items={items}/>
-    <GovernedReasonDialog open={deleting} title={language==='el'?'Αρχειοθέτηση ασθενούς':'Archive patient'} description={language==='el'?'Ο ασθενής θα αφαιρεθεί από την ενεργή λίστα χωρίς διαγραφή του κλινικού ιστορικού. Απαιτείται αιτιολογία.':'The patient will be removed from the active registry without deleting clinical history. A reason is required.'} confirmLabel={language==='el'?'Αρχειοθέτηση':'Archive'} danger onCancel={()=>setDeleting(false)} onConfirm={remove}/>
+    <GovernedReasonDialog open={deleting} title={language==='el'?'Διαγραφή ασθενούς':'Delete patient'} description={language==='el'?'Ο ασθενής αφαιρείται από τη λίστα ασθενών· το κλινικό ιστορικό και η αιτιολογία κρατούνται για έλεγχο.':'The patient is removed from the patient list; the clinical history and the reason are kept for audit.'} confirmLabel={language==='el'?'Διαγραφή':'Delete'} danger onCancel={()=>setDeleting(false)} onConfirm={remove}/>
   </>
 }
