@@ -727,14 +727,6 @@
   border-color:#b85a5f;
   background:#fbf2f2;
 }
-.who-action-check{
-  flex:0 0 17px;
-  color:#fff;
-}
-.who-action-option.selected.danger .who-action-check{
-  border-color:#b85a5f;
-  background:#b85a5f;
-}
 .who-action-option>span:last-child{
   min-width:0;
 }

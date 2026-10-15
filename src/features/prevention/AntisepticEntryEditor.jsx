@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Save, X } from 'lucide-react'
+import { Save } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ActionButton } from '../../design-system/ActionButton'
+import { MonthField } from '../../design-system/MonthField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ANTISEPTIC_METHODS, isAbhrProduct } from './AntisepticEntryModal'
 
@@ -19,7 +20,6 @@ function monthRange(period) {
 }
 
 export function AntisepticEntryEditor({
-  onCancel,
   onSave,
   fixedDepartment = '',
   initialRecord = null,
@@ -174,19 +174,6 @@ export function AntisepticEntryEditor({
 
   return (
     <div className="antiseptic-page-editor antiseptic-entry-card">
-      <div className="prevention-entry-actor">
-        <span>
-          {initialRecord
-            ? en
-              ? 'Edited by'
-              : 'Επεξεργασία από'
-            : en
-              ? 'Recorded by'
-              : 'Καταχώρηση από'}
-        </span>
-        <strong>{actor.name}</strong>
-        <small>{actor.email}</small>
-      </div>
       <div className="antiseptic-entry-workspace">
         <main className="antiseptic-entry-main">
           <section className="antiseptic-form-section">
@@ -198,15 +185,13 @@ export function AntisepticEntryEditor({
                   : 'Το προϊόν επιλέγεται από την κεντρική Βιβλιοθήκη αντισηπτικών.'}
               </small>
             </div>
-            <div className="entry-grid">
-              <label>
-                <span>{en ? 'Reporting month *' : 'Μήνας αναφοράς *'}</span>
-                <input
-                  type="month"
-                  value={String(draft.period || '').slice(0, 7)}
-                  onChange={event => set('period', event.target.value)}
-                />
-              </label>
+            <div className="entry-grid antiseptic-consumption-grid">
+              <MonthField
+                label={en ? 'Reporting month' : 'Μήνας αναφοράς'}
+                required
+                value={draft.period}
+                onChange={value => set('period', value)}
+              />
               <DepartmentField
                 value={draft.departmentEl}
                 onChange={value =>
@@ -221,7 +206,7 @@ export function AntisepticEntryEditor({
                 fixed={Boolean(fixedDepartment)}
                 en={en}
               />
-              <label className="entry-span-2">
+              <label>
                 <span>{en ? 'Product *' : 'Προϊόν *'}</span>
                 <select
                   value={draft.antisepticItemId || productInfo?.id || ''}
@@ -290,7 +275,7 @@ export function AntisepticEntryEditor({
                   : 'Σύνδεση της τιμής με την πηγή και τον υπεύθυνο καταχώρησης.'}
               </small>
             </div>
-            <div className="entry-grid">
+            <div className="entry-grid antiseptic-trace-grid">
               <label>
                 <span>{en ? 'Responsible person' : 'Υπεύθυνος'}</span>
                 <input
@@ -310,7 +295,7 @@ export function AntisepticEntryEditor({
               <label className="entry-span-2">
                 <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
                 <textarea
-                  rows="4"
+                  rows="2"
                   value={draft.notes || ''}
                   onChange={event => set('notes', event.target.value)}
                   placeholder={
@@ -398,10 +383,6 @@ export function AntisepticEntryEditor({
         </aside>
       </div>
       <div className="prevention-editor-page-actions">
-        <ActionButton label={en ? 'Cancel' : 'Ακύρωση'} tone="neutral" onClick={onCancel}>
-          <X size={16} />
-          <span>{en ? 'Cancel' : 'Ακύρωση'}</span>
-        </ActionButton>
         <ActionButton
           label={
             initialRecord

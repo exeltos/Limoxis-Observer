@@ -9,7 +9,6 @@ import {
   Scale,
   Truck,
   UserRound,
-  X,
   BedDouble,
   Gauge,
 } from 'lucide-react'
@@ -20,7 +19,6 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 export function WasteEntryEditor({
-  onCancel,
   onSave,
   fixedDepartment = '',
   initialRecord = null,
@@ -294,7 +292,7 @@ export function WasteEntryEditor({
                   : 'Τα στοιχεία ιχνηλασιμότητας παραμένουν διακριτά από τη βασική μέτρηση.'}
               </small>
             </div>
-            <div className="entry-grid">
+            <div className="entry-grid waste-receipt-grid">
               <label>
                 <span>{en ? 'Responsible person' : 'Υπεύθυνος'}</span>
                 <input
@@ -311,7 +309,7 @@ export function WasteEntryEditor({
                   placeholder={en ? 'e.g. 112233' : 'π.χ. 112233'}
                 />
               </label>
-              <label className="entry-span-2">
+              <label>
                 <span>{en ? 'Collection company' : 'Εταιρεία συλλογής'}</span>
                 <input
                   value={draft.collectionCompany || ''}
@@ -322,7 +320,7 @@ export function WasteEntryEditor({
               <label className="entry-span-2">
                 <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
                 <textarea
-                  rows="3"
+                  rows="2"
                   value={draft.notes || ''}
                   onChange={event => set('notes', event.target.value)}
                   placeholder={en ? 'Optional notes' : 'Προαιρετικές παρατηρήσεις'}
@@ -393,27 +391,10 @@ export function WasteEntryEditor({
               <span>{sourceLabel}</span>
             </div>
           </section>
-          <div className="prevention-entry-actor waste-smart-actor">
-            <span>
-              {initialRecord
-                ? en
-                  ? 'Edited by'
-                  : 'Επεξεργασία από'
-                : en
-                  ? 'Recorded by'
-                  : 'Καταχώρηση από'}
-            </span>
-            <strong>{actor.name}</strong>
-            {actor.email && <small>{actor.email}</small>}
-          </div>
         </aside>
       </div>
 
       <div className="who-editor-page-actions prevention-editor-page-actions">
-        <ActionButton label={en ? 'Cancel' : 'Ακύρωση'} tone="neutral" onClick={onCancel}>
-          <X size={16} />
-          <span>{en ? 'Cancel' : 'Ακύρωση'}</span>
-        </ActionButton>
         <ActionButton
           label={
             initialRecord

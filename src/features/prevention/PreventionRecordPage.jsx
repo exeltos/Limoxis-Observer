@@ -245,7 +245,7 @@ export function PreventionRecordPage() {
         : recordType === 'bundles'
           ? en
             ? 'New Bundle assessment'
-            : 'Νέα αξιολόγηση Bundle'
+            : 'Νέα αξιολόγηση δέσμης μέτρων'
           : en
             ? 'New WHO hand hygiene observation'
             : 'Νέα παρατήρηση Υγιεινής Χεριών WHO'
@@ -408,7 +408,7 @@ export function PreventionRecordPage() {
         creating
           ? en
             ? 'Bundle assessment saved.'
-            : 'Η αξιολόγηση Bundle αποθηκεύτηκε.'
+            : 'Η αξιολόγηση δέσμης μέτρων αποθηκεύτηκε.'
           : en
             ? 'Changes saved.'
             : 'Οι αλλαγές αποθηκεύτηκαν.',
@@ -492,7 +492,6 @@ export function PreventionRecordPage() {
         departments={handDepartments}
         initialRecord={editing ? record : null}
         fixedDepartment={departmentScoped ? ownDepartment : ''}
-        onCancel={creating ? backToList : backToRecord}
         onSave={saveHandHygiene}
       />
     )
@@ -506,7 +505,6 @@ export function PreventionRecordPage() {
         findPatientDays={(departmentId, from, to) =>
           findWastePatientDays(tenant.id, departmentId, from, to)
         }
-        onCancel={creating ? backToList : backToRecord}
         onSave={saveWaste}
       />
     )
@@ -520,7 +518,6 @@ export function PreventionRecordPage() {
         findPatientDays={(departmentId, from, to) =>
           findPatientDaysForPeriod(tenant.id, departmentId, from, to)
         }
-        onCancel={creating ? backToList : backToRecord}
         onSave={saveAntiseptic}
       />
     )
@@ -531,7 +528,6 @@ export function PreventionRecordPage() {
         templates={bundleSupport.templates}
         initialRecord={editing ? record : null}
         fixedDepartment={departmentScoped ? ownDepartment : ''}
-        onCancel={creating ? backToList : backToRecord}
         onSave={saveBundle}
       />
     )

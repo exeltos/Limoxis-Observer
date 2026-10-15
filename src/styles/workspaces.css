@@ -131,28 +131,6 @@
 }
 
 /* ==== prevention-refinements ==== */
-.who-page-editor .who-current-preview .lo-action-button{
-  min-width:190px!important;
-  justify-content:center!important;
-  gap:8px!important;
-  font-weight:700!important;
-}
-.who-page-editor .who-current-preview .lo-action-button:disabled{
-  background:#8fb6cf!important;
-  border-color:#8fb6cf!important;
-  color:#fff!important;
-  box-shadow:none!important;
-  opacity:1!important;
-  cursor:not-allowed!important;
-}
-.who-page-editor .who-current-preview .lo-action-button:disabled svg,
-.who-page-editor .who-current-preview .lo-action-button:disabled span{
-  color:#fff!important;
-  opacity:1!important;
-}
-.who-page-editor .who-current-preview .lo-action-button:not(:disabled){
-  box-shadow:0 1px 2px rgba(20,49,73,.12)!important;
-}
 
 .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{display:grid!important;grid-template-columns:repeat(24,minmax(0,1fr))!important;gap:16px 14px!important}
 .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-date-field{grid-column:span 5!important;min-width:0!important}
@@ -400,3 +378,9 @@
 .registry-workspace>.environmental-registry{min-height:0!important;height:100%!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
 .registry-workspace>.environmental-registry .scroll-table{height:100%!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:auto!important}
 .registry-workspace>.environmental-registry .data-table{margin:0!important;border:0!important;border-radius:0!important}
+/* «Add opportunity» sits in the opportunity section header; disabled it keeps
+   readable white text. */
+.who-page-editor .who-section-title .lo-action-button{justify-content:center!important;gap:8px!important;font-weight:700!important}
+.who-page-editor .who-section-title .lo-action-button:disabled{background:#8fb6cf!important;border-color:#8fb6cf!important;color:#fff!important;box-shadow:none!important;opacity:1!important;cursor:not-allowed!important}
+.who-page-editor .who-section-title .lo-action-button:disabled svg,
+.who-page-editor .who-section-title .lo-action-button:disabled span{color:#fff!important;opacity:1!important}

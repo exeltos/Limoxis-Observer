@@ -4,7 +4,6 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadBundleClinicalOptions } from './bundleCloudService'
@@ -20,7 +19,6 @@ function allOrNoneFor(answers = {}) {
 }
 
 export function BundleExecutionEditor({
-  onCancel,
   onSave,
   fixedDepartment = '',
   initialRecord = null,
@@ -188,15 +186,10 @@ export function BundleExecutionEditor({
   }
   return (
     <div className="bundle-page-editor">
-      <div className="bundle-page-actor">
-        <span>{en ? 'Recorded by' : 'Καταχώρηση από'}</span>
-        <strong>{actor.name}</strong>
-        <small>{actor.email}</small>
-      </div>
       <section className="bundle-page-context">
         <div className="bundle-page-grid">
           <label>
-            <span>Bundle *</span>
+            <span>{en ? 'Bundle *' : 'Δέσμη μέτρων *'}</span>
             <select
               value={draft.templateId}
               onChange={e =>
@@ -208,7 +201,7 @@ export function BundleExecutionEditor({
                 }))
               }
             >
-              <option value="">{en ? 'Select Bundle' : 'Επιλέξτε Bundle'}</option>
+              <option value="">{en ? 'Select Bundle' : 'Επιλέξτε δέσμη μέτρων'}</option>
               {templates.map(item => (
                 <option key={item.id} value={item.id}>
                   {item.name} — {en ? item.titleEn || item.title : item.title}
@@ -381,7 +374,7 @@ export function BundleExecutionEditor({
         <div className="inline-empty">
           {en
             ? 'Select a Bundle to begin the assessment.'
-            : 'Επιλέξτε Bundle για να ξεκινήσει η αξιολόγηση.'}
+            : 'Επιλέξτε δέσμη μέτρων για να ξεκινήσει η αξιολόγηση.'}
         </div>
       )}
       <div className="bundle-page-summary">
@@ -425,9 +418,6 @@ export function BundleExecutionEditor({
         />
       </label>
       <div className="bundle-page-actions">
-        <Button variant="secondary" onClick={onCancel}>
-          {en ? 'Cancel' : 'Ακύρωση'}
-        </Button>
         <SaveButton disabled={!canSave || saving} onClick={submit}>
           {saving
             ? en

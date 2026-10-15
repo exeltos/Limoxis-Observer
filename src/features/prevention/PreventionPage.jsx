@@ -3,6 +3,7 @@ import { ClipboardCheck, Droplets, Recycle, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
+import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -35,6 +36,16 @@ const tabs = [
   ['bundles', 'preventionBundles'],
   ['vaccinations', 'vaccinations'],
 ]
+// Numbers in the user's language (79,1% in Greek) and the antiseptic month
+// as MM/YYYY instead of the stored YYYY-MM.
+const fmtNumber = (value, language) =>
+  new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(
+    Number(value),
+  )
+const fmtMonth = value => {
+  const match = /^(\d{4})-(\d{2})$/.exec(String(value || ''))
+  return match ? `${match[2]}/${match[1]}` : value || '—'
+}
 const tabIcons = {
   handHygiene: ClipboardCheck,
   waste: Recycle,
@@ -314,6 +325,9 @@ export function PreventionPage() {
       setVaccinationLoading(false)
     }
   }, [tenant?.id, tabAccess.vaccinations, notifyError])
+  const filtered =
+    Boolean(query.trim()) ||
+    [department, period, product, method, status].some(value => value !== 'all')
   useEffect(() => {
     setPage(1)
   }, [tab, query, department, period, product, method, status, pageSize])
@@ -544,29 +558,13 @@ export function PreventionPage() {
           )}
         </div>
       </div>
+      <CanonicalTabs
+        items={visibleTabs.map(([id, key]) => ({ value: id, label: t(key), icon: tabIcons[id] }))}
+        value={tab}
+        onChange={changeTab}
+        ariaLabel={t('preventionCenter')}
+      />
       <div className="surface registry-workspace prevention-workspace workspace-fill">
-        <nav
-          className="entity-record-tabs surface prevention-tabs"
-          role="tablist"
-          aria-label={t('preventionCenter')}
-        >
-          {visibleTabs.map(([id, key]) => {
-            const Icon = tabIcons[id]
-            return (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={tab === id}
-                className={tab === id ? 'active' : ''}
-                onClick={() => changeTab(id)}
-              >
-                {Icon && <Icon size={16} />}
-                <span>{t(key)}</span>
-              </button>
-            )
-          })}
-        </nav>
         <FilterBar
           query={query}
           onQueryChange={setQuery}
@@ -586,7 +584,7 @@ export function PreventionPage() {
                   <option value="all">{t('all')}</option>
                   {[...new Set(source.map(x => x.period).filter(Boolean))].map(x => (
                     <option key={x} value={x}>
-                      {x}
+                      {fmtMonth(x)}
                     </option>
                   ))}
                 </FilterSelect>
@@ -694,17 +692,26 @@ export function PreventionPage() {
               registry={registry}
             />
           )}{' '}
-          {!loading && !rows.length && <PreventionEmpty t={t} tab={tab} language={language} />}
+          {!loading && !rows.length && (
+            <PreventionEmpty
+              t={t}
+              tab={tab}
+              filtered={filtered}
+              createLabel={canCreateRecord ? createLabel : ''}
+            />
+          )}
         </div>
-        <RegistryPagination
-          language={language}
-          page={safePage}
-          totalPages={totalPages}
-          totalItems={rows.length}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-        />
+        {rows.length > 0 && (
+          <RegistryPagination
+            language={language}
+            page={safePage}
+            totalPages={totalPages}
+            totalItems={rows.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
       </div>
       {vaccinationEditor && (
         <StaffVaccinationEditor
@@ -732,13 +739,21 @@ const preventionEmptyTitleKeys = {
   antiseptics: 'preventionEmptyAntisepticsTitle',
   bundles: 'preventionEmptyBundlesTitle',
 }
-function PreventionEmpty({ t, tab }) {
+// The empty list says what to do next: the filters when they hide everything,
+// else the button that adds the first record.
+function PreventionEmpty({ t, tab, filtered, createLabel }) {
   return (
     <div className="registry-empty-state">
       <strong>
         {tab === 'vaccinations' ? t('noVaccinationRecords') : t(preventionEmptyTitleKeys[tab])}
       </strong>
-      <span>{t('preventionEmptyGenericText')}</span>
+      <span>
+        {filtered
+          ? t('preventionEmptyFilteredText')
+          : createLabel
+            ? t('preventionEmptyCreateText').replace('{action}', createLabel)
+            : t('preventionEmptyGenericText')}
+      </span>
     </div>
   )
 }
@@ -774,7 +789,7 @@ function HandTable({ rows, t, language, fmtDate, onOpen, registry }) {
               className={Number(x.rate) < 80 ? 'compliance-below-target' : 'compliance-on-target'}
               title={Number(x.rate) < 80 ? t('belowWhoHandHygieneTarget') : undefined}
             >
-              {x.rate}%
+              {fmtNumber(x.rate, language)}%
             </strong>
           </td>
           <td>{x.observer}</td>
@@ -849,7 +864,7 @@ function AntisepticTable({ rows, t, language, onOpen, registry }) {
       rowProps={x => rowPropsWithOpen(registry, x.id, onOpen)}
       renderRow={x => (
         <>
-          <td>{x.period}</td>
+          <td>{fmtMonth(x.period)}</td>
           <td>{language === 'el' ? x.departmentEl : x.departmentEn}</td>
           <td>
             <strong>{language === 'el' ? x.product : x.productEn || x.product}</strong>

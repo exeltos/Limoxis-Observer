@@ -31,7 +31,7 @@ describe('laboratory record follows the app-wide card + ⋯ menu pattern', () =>
 
   it('answers yes/no questions (critical result, read-back) with the shared switch, not checkboxes', () => {
     const dialogs = fs.readFileSync('src/features/laboratory/LaboratorySampleDialogs.jsx', 'utf8')
-    expect(dialogs).toContain('function YesNoField')
+    expect(dialogs).toContain('<YesNoField')
     expect(dialogs).not.toContain('type="checkbox"')
     expect(css).not.toContain('lab-dialog-check')
   })

@@ -26,7 +26,7 @@ export function BundleFollowUpDialog({ item, value, onClose, onSave }) {
   return (
     <ObserverDialog
       width="standard"
-      eyebrow={en ? 'Bundle follow-up' : 'Επανέλεγχος Bundle'}
+      eyebrow={en ? 'Bundle follow-up' : 'Επανέλεγχος δέσμης μέτρων'}
       title={item?.label || ''}
       subtitle={
         item?.note ||
@@ -37,8 +37,6 @@ export function BundleFollowUpDialog({ item, value, onClose, onSave }) {
       onClose={onClose}
       footer={
         <DialogActions
-          showCancel
-          onCancel={onClose}
           onSave={save}
           disabled={!valid}
           saveLabel={en ? 'Save follow-up' : 'Αποθήκευση επανελέγχου'}

@@ -1094,3 +1094,44 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 .record-tab-panel-body>.patient-history-list{max-height:none;flex:0 0 auto;padding:10px 20px 18px}
 .record-tab-panel-body>:is(.sv-tree,#lo-record-tab-panel){padding:14px 20px 18px!important}
 .entity-record-body:has(>.record-tab-panel){padding:0!important;gap:0!important}
+/* MonthField: month and year selects side by side. */
+.month-field-controls{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:8px}
+/* Prevention forms: every field title in the shared field-label style (no
+   uppercase or oversized variants per editor). */
+:is(.prevention-record-shell,.vaccination-editor) :is(label,.field)>span:first-child:is(span,#lo-prevention-label){display:block!important;margin:0 0 6px!important;padding:0!important;color:#607588!important;font-size:10px!important;font-weight:750!important;line-height:1.3!important;letter-spacing:0!important;text-transform:none!important}
+/* Prevention editors fit one screen: tighter section spacing, the receipt
+   fields of a waste measurement in one row. */
+.prevention-record-shell :is(.waste-form-section,.antiseptic-form-section,.who-smart-card):is(section,#lo-prevention-form){padding:14px 18px!important}
+.prevention-record-shell :is(.waste-form-section-title,.antiseptic-form-heading):is(div,#lo-prevention-form){margin-bottom:8px!important;padding-bottom:8px!important}
+.prevention-record-shell .entry-grid:is(.entry-grid,#lo-prevention-form){padding:4px 0 0!important;gap:10px 14px!important}
+.prevention-record-shell .waste-receipt-grid:is(.entry-grid,#lo-prevention-form){grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.prevention-record-shell .waste-receipt-grid>label:last-child{grid-column:1/-1}
+.prevention-record-shell :is(.waste-smart-main,.waste-smart-layout,.antiseptic-entry-main,.antiseptic-entry-workspace):is(main,div,#lo-prevention-form){gap:12px!important}
+.prevention-record-shell .prevention-editor-page-actions:is(div,#lo-prevention-form){margin-top:8px!important;padding-top:10px!important}
+.prevention-record-shell .antiseptic-trace-grid:is(.entry-grid,#lo-prevention-form){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.prevention-record-shell .antiseptic-eligibility:is(div,#lo-prevention-form){margin-top:8px!important;padding:8px 12px!important}
+.prevention-record-shell .antiseptic-consumption-grid:is(.entry-grid,#lo-prevention-form){grid-template-columns:repeat(3,minmax(0,1fr))!important}
+/* WHO observation: number, category and note in one row; one compact session strip. */
+.prevention-record-shell .who-professional-row:is(div,#lo-prevention-form){display:grid!important;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr) minmax(0,1.6fr)!important;gap:12px!important}
+.prevention-record-shell .who-session-strip:is(div,#lo-prevention-form){margin:0!important;padding:0!important;border:0!important;background:transparent!important}
+.prevention-record-shell .who-session-panel:is(section,#lo-prevention-form){padding:12px 14px!important}
+.prevention-record-shell .who-observation-body:is(div,#lo-prevention-form){padding:12px 20px 14px!important;gap:10px!important}
+.prevention-record-shell .who-choice-block:is(div,#lo-prevention-form){padding-top:8px!important}
+/* Aligned form rows: in every form grid, fields sit on one baseline and every
+   control (text, select, date, time) is the same height, so the boxes line up. */
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid):is(div,#lo-form-row){align-items:end!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not(.manual-date-native),select):is(input,select,#lo-form-row){height:40px!important;min-height:40px!important;box-sizing:border-box!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(.manual-date-field,.time-field,label,.field)>span:first-child:is(span,#lo-form-row){min-height:13px}
+:is(.entry-grid,.who-session-strip,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(.manual-date-control,.time-field-control):is(div,#lo-form-row){height:40px!important;min-height:40px!important;margin:0!important}
+/* Side panels start level with the form beside them. */
+.prevention-record-shell :is(.antiseptic-entry-rail,.waste-smart-rail,.who-insight-rail):is(aside,#lo-form-row){align-self:start!important;margin-top:0!important;padding-top:0!important;top:0!important}
+.prevention-record-shell :is(.antiseptic-entry-rail,.waste-smart-rail)>section:first-child:is(section,#lo-form-row){margin-top:0!important}
+.prevention-record-shell .waste-smart-measurement-grid:is(.entry-grid,#lo-form-row){align-items:end!important}
+.prevention-record-shell .waste-smart-measurement-grid>div:is(div,#lo-form-row){align-self:end!important}
+/* One label-to-box spacing (the title's own 6px margin) and the date field's
+   hidden native picker out of the flow, so every box starts at the same line. */
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(label,.field,.manual-date-field,.time-field):is(label,div,#lo-form-row){gap:0!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(label,.field,.manual-date-field,.time-field)>span:first-child:is(span,#lo-form-row){margin-bottom:6px!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) .manual-date-native:is(input,#lo-form-row){position:absolute!important;bottom:0;left:0}
+.manual-date-field{position:relative}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(.manual-date-field,.time-field):is(label,div,#lo-form-row){display:flex!important;flex-direction:column!important;grid-template-rows:none!important}

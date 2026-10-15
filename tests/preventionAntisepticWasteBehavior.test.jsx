@@ -126,7 +126,7 @@ describe('antiseptic editor: product hydration and save readiness', () => {
     fireEvent.change(fieldSelect('Εύρος / Τμήμα *'), { target: { value: 'Παθολογική' } })
     fireEvent.change(fieldSelect('Προϊόν *'), { target: { value: 'prod-2' } })
     expect(save.disabled).toBe(false)
-    fireEvent.change(fieldInput('Μήνας αναφοράς *'), { target: { value: '' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Μήνας' }), { target: { value: '' } })
     expect(save.disabled).toBe(true)
   })
 })

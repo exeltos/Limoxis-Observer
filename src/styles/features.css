@@ -1508,23 +1508,6 @@
   background:#fff4f4!important;
   box-shadow:inset 0 0 0 1px #c98b8b!important;
 }
-.prevention-record-shell .who-action-check{
-  flex:0 0 auto!important;
-  width:20px!important;
-  height:20px!important;
-  display:grid!important;
-  place-items:center!important;
-  border:1px solid #9db2c0!important;
-  border-radius:5px!important;
-  background:#fff!important;
-  color:#fff!important;
-  font-size:12px!important;
-  font-weight:900!important;
-}
-.prevention-record-shell .who-action-option.selected .who-action-check{
-  border-color:#2f8ca5!important;
-  background:#2f8ca5!important;
-}
 .prevention-record-shell .who-action-option>span:last-child{
   min-width:0!important;
   display:grid!important;
@@ -1542,47 +1525,6 @@
 }
 
 /* Plain, borderless glove control below the action cards. */
-.prevention-record-shell .who-gloves-toggle{
-  grid-row:3!important;
-  justify-self:start!important;
-  display:inline-flex!important;
-  align-items:center!important;
-  gap:8px!important;
-  min-height:28px!important;
-  margin:2px 0 0!important;
-  padding:0!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  cursor:pointer!important;
-  white-space:nowrap!important;
-}
-.prevention-record-shell .who-gloves-toggle:hover,
-.prevention-record-shell .who-gloves-toggle.selected{
-  border:0!important;
-  background:transparent!important;
-}
-.prevention-record-shell .who-gloves-toggle>input{
-  width:17px!important;
-  height:17px!important;
-  margin:0!important;
-  accent-color:var(--lo-color-primary,#237fa0)!important;
-}
-.prevention-record-shell .who-gloves-toggle>span{
-  display:flex!important;
-  align-items:baseline!important;
-  gap:6px!important;
-}
-.prevention-record-shell .who-gloves-toggle strong{
-  color:#35566d!important;
-  font-size:11px!important;
-  font-weight:800!important;
-}
-.prevention-record-shell .who-gloves-toggle small{
-  color:#607280!important;
-  font-size:10px!important;
-}
 
 /* Summary sits after data entry, not as a floating visual interruption. */
 .prevention-record-shell .who-live-summary{
@@ -1817,19 +1759,6 @@
 }
 
 /* Current selection is a compact command row, not another large card. */
-.prevention-record-shell .who-current-preview{
-  width:100%!important;
-  margin:12px 0 0!important;
-  padding:10px 0 0!important;
-  border:0!important;
-  border-top:1px solid #e7edf1!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-}
-.prevention-record-shell .who-current-preview .action-button{
-  min-width:170px!important;
-}
 
 /* Insight rail: wider, readable KPI geometry. */
 .prevention-record-shell .who-insight-rail{
@@ -2058,9 +1987,6 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .prevention-record-shell .waste-library-source:hover{border-color:#aac4d2!important;background:#f3f8fa!important}
 .prevention-record-shell .waste-library-source.applied{border-color:#b9dcc8!important;background:#eef8f2!important;color:#2b6f4b!important}
 .prevention-record-shell .waste-source-note{margin-top:10px!important;padding-top:10px!important;border-top:1px solid #edf1f4!important;color:#7b8e9e!important;font-size:9.5px!important}
-.prevention-record-shell .waste-smart-actor{margin:0!important;padding:14px 16px!important;border:1px solid #e1e8ed!important;border-radius:11px!important;background:#fafbfd!important;display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;column-gap:14px!important;align-items:center!important}
-.prevention-record-shell .waste-smart-actor>span{grid-row:1 / span 2!important;align-self:center!important}
-.prevention-record-shell .waste-smart-actor strong,.prevention-record-shell .waste-smart-actor small{min-width:0!important;margin:0!important}
 .prevention-record-shell .waste-smart-editor>.prevention-editor-page-actions{margin-top:14px!important;padding-top:14px!important;background:transparent!important;border-top:1px solid #e5ebf0!important}
 
 /* Saved waste record — result dashboard, not a disabled form. */
@@ -2641,8 +2567,6 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .who-panel-heading>div{display:flex;flex-direction:column;gap:3px;min-width:0}
 .who-panel-heading strong{font-size:13px;color:#26394e}
 .who-panel-heading small{font-size:10.5px;line-height:1.45;color:var(--muted)}
-.who-session-ready,.who-step-badge{display:inline-flex;align-items:center;white-space:nowrap;border:1px solid #dce4eb;background:#f5f7fa;color:#62707d;border-radius:999px;padding:5px 8px;font-size:9.5px;font-weight:750}
-.who-session-ready.ready{background:#edf7f1;border-color:#d0e9da;color:#28704b}
 .who-session-strip{display:grid;grid-template-columns:1.05fr 1.3fr 1.35fr .72fr .72fr;gap:10px;margin-top:11px;align-items:end}
 .who-session-strip label{display:flex;flex-direction:column;gap:5px;min-width:0}
 .who-session-strip label>span,.who-smart-builder label>span{font-size:10.5px;font-weight:700;color:#5c7083}
@@ -2669,14 +2593,9 @@ html[lang="en"] .prevention-record-shell .who-record-saved-list::before{content:
 .who-smart-actions .who-action-option:hover{border-color:#b8cad8;background:#fff}
 .who-smart-actions .who-action-option.selected{border-color:#6aa18a;background:#eef8f3;box-shadow:0 0 0 2px rgba(51,126,92,.07);color:#245f46}
 .who-smart-actions .who-action-option.selected.danger{border-color:#d69696;background:#fff2f2;color:#9c4248}
-.who-action-check{display:grid;place-items:center;width:21px;height:21px;border:1px solid #cfd9e2;border-radius:6px;background:#fff;font-size:11px;font-weight:850}
-.who-action-option.selected .who-action-check{border-color:currentColor;background:currentColor;color:#fff}
 .who-action-option>span:last-child{display:flex;flex-direction:column;gap:2px}.who-action-option strong{font-size:10.5px}.who-action-option small{font-size:9.3px;color:var(--muted)}
 .who-smart-gloves{width:100%;box-sizing:border-box;margin-top:8px;min-height:46px;border:1px solid #dfe6ec;border-radius:10px;background:#fbfcfd;padding:9px 11px;display:flex!important;flex-direction:row!important;align-items:center;gap:9px!important;cursor:pointer}
 .who-smart-gloves.checked{border-color:#8cacc2;background:#f1f7fb}.who-smart-gloves input{width:16px!important;height:16px!important;min-height:16px!important;padding:0!important}.who-smart-gloves>span{display:flex;flex-direction:row;align-items:baseline;gap:7px}.who-smart-gloves strong{font-size:10.5px;color:#3f5569}.who-smart-gloves small{font-size:9.3px;color:var(--muted)}
-.who-smart-note{display:flex;flex-direction:column;gap:5px;margin-top:11px}
-.who-current-preview{margin-top:12px;border-top:1px solid #e7edf2;padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:14px;background:transparent}
-.who-current-preview>div{display:flex;flex-direction:column;gap:3px;min-width:0}.who-current-preview small{font-size:9.2px;text-transform:uppercase;letter-spacing:.055em;color:#83909d;font-weight:800}.who-current-preview strong{font-size:11.5px;color:#314b63;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who-current-preview span{font-size:9.8px;color:#748494}
 .who-insight-rail{display:flex;flex-direction:column;gap:12px;position:sticky;top:78px;min-width:0}
 .who-smart-summary{padding:14px}
 .who-compliance-hero{margin-top:12px;padding:11px 12px;border-radius:11px;background:#f3f7fa;border:1px solid #e3eaf0}

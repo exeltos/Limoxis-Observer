@@ -140,16 +140,16 @@ describe('new vaccination: individual and bulk entry', () => {
 
   it('offers individual entry with a single employee picker', async () => {
     const dialog = await openNewVaccination()
-    const modes = within(dialog).getByRole('group', { name: 'Τρόπος καταχώρησης' })
-    expect(within(modes).getByRole('button', { name: /Μεμονωμένα/ })).toBeInTheDocument()
-    expect(within(modes).getByRole('button', { name: /Μαζικός εμβολιασμός/ })).toBeInTheDocument()
+    const modes = within(dialog).getByRole('radiogroup', { name: 'Τρόπος καταχώρησης' })
+    expect(within(modes).getByRole('radio', { name: /Μεμονωμένα/ })).toBeInTheDocument()
+    expect(within(modes).getByRole('radio', { name: /Μαζικός εμβολιασμός/ })).toBeInTheDocument()
     expect(within(dialog).getByRole('option', { name: /Παπαδοπούλου Μαρία/ })).toBeInTheDocument()
     expect(dialog.querySelector('.vaccination-employee-row')).toBeNull()
   })
 
   it('lists each employee as one row with the checkbox first and marks selected rows', async () => {
     const dialog = await openNewVaccination()
-    fireEvent.click(within(dialog).getByRole('button', { name: /Μαζικός εμβολιασμός/ }))
+    fireEvent.click(within(dialog).getByRole('radio', { name: /Μαζικός εμβολιασμός/ }))
     const rows = [...dialog.querySelectorAll('.vaccination-employee-row')]
     expect(rows.length).toBeGreaterThan(1)
     for (const row of rows) {
@@ -167,7 +167,7 @@ describe('new vaccination: individual and bulk entry', () => {
 
   it('saves the bulk entry for the selected employees and reports the count in Greek', async () => {
     const dialog = await openNewVaccination()
-    fireEvent.click(within(dialog).getByRole('button', { name: /Μαζικός εμβολιασμός/ }))
+    fireEvent.click(within(dialog).getByRole('radio', { name: /Μαζικός εμβολιασμός/ }))
     fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Επιλογή Παπαδοπούλου Μαρία' }))
     fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Επιλογή Δημητρίου Νικόλαος' }))
     fireEvent.change(dialog.querySelector('.vaccination-fields select'), { target: { value: 'Εποχική γρίπη' } })
@@ -251,7 +251,7 @@ describe('bundle deviation follow-up actions', () => {
     })
     fireEvent.click(within(findings[1]).getByRole('button', { name: 'Επανέλεγχος' }))
     const dialog = await screen.findByRole('dialog')
-    expect(dialog).toHaveTextContent('Επανέλεγχος Bundle')
+    expect(dialog).toHaveTextContent('Επανέλεγχος δέσμης μέτρων')
     expect(dialog).toHaveTextContent(labels[1])
     fireEvent.change(dialog.querySelector('select'), { target: { value: 'resolved' } })
     const date = within(dialog).getByPlaceholderText('ηη/μμ/εεεε')

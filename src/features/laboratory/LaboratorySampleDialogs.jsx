@@ -4,32 +4,13 @@ import { Button } from '../../design-system/Button'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { YesNoField } from '../../design-system/YesNoField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { organismsOf, resultDraftChecks, resultToSave } from './laboratorySampleProgress'
 import { METHODS, rows } from './laboratorySampleFormat'
 
 // Dialogs of the laboratory sample record: result, AST, AMR classification and
 // critical-result communication.
-
-// A yes/no answer: the shared mode switch instead of a checkbox in a box.
-function YesNoField({ label, value, onChange, language }) {
-  const en = language === 'en'
-  return (
-    <div className="field lab-dialog-span">
-      <span className="lo-field-label">{label}</span>
-      <ModeSwitch
-        ariaLabel={label}
-        value={value ? 'yes' : 'no'}
-        onChange={next => onChange(next === 'yes')}
-        options={[
-          { value: 'no', label: en ? 'No' : 'Όχι' },
-          { value: 'yes', label: en ? 'Yes' : 'Ναι' },
-        ]}
-      />
-    </div>
-  )
-}
 
 function makeDraft(result) {
   return {
@@ -168,7 +149,7 @@ export function ResultDialog({
           label={tx('critical')}
           value={draft.critical}
           onChange={value => set('critical', value)}
-          language={language}
+          className="lab-dialog-span"
         />
       </div>
     </ObserverDialog>
@@ -421,7 +402,7 @@ export function CommunicationDialog({ tx, onClose, onSave }) {
           label={tx('readBack')}
           value={draft.readBack}
           onChange={value => set('readBack', value)}
-          language={language}
+          className="lab-dialog-span"
         />
         <label className="lab-dialog-span">
           <span>{tx('notes')}</span>

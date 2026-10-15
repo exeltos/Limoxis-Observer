@@ -1,3 +1,4 @@
+import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { useState } from 'react'
 import { MoreHorizontal, UserRoundCheck, Users } from 'lucide-react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
@@ -200,6 +201,7 @@ export function StaffVaccinationEditor({
   return (
     <ObserverDialog
       width="workspace"
+      fixedHeight={mode !== 'edit'}
       eyebrow={en ? 'Staff vaccination' : 'Εμβολιασμός προσωπικού'}
       title={
         mode === 'edit'
@@ -218,8 +220,6 @@ export function StaffVaccinationEditor({
       onClose={onClose}
       footer={
         <DialogActions
-          showCancel
-          onCancel={onClose}
           onSave={() => onSave(value)}
           disabled={!valid}
           saveLabel={
@@ -236,26 +236,16 @@ export function StaffVaccinationEditor({
     >
       <div className="vaccination-editor">
         {mode !== 'edit' && (
-          <div
+          <ModeSwitch
             className="vaccination-entry-mode"
-            role="group"
-            aria-label={en ? 'Entry mode' : 'Τρόπος καταχώρησης'}
-          >
-            <Button
-              variant={mode === 'individual' ? 'primary' : 'secondary'}
-              onClick={() => setMode('individual')}
-            >
-              <UserRoundCheck size={17} />
-              {en ? 'Individual' : 'Μεμονωμένα'}
-            </Button>
-            <Button
-              variant={mode === 'bulk' ? 'primary' : 'secondary'}
-              onClick={() => setMode('bulk')}
-            >
-              <Users size={17} />
-              {en ? 'Bulk vaccination' : 'Μαζικός εμβολιασμός'}
-            </Button>
-          </div>
+            ariaLabel={en ? 'Entry mode' : 'Τρόπος καταχώρησης'}
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: 'individual', label: en ? 'Individual' : 'Μεμονωμένα', icon: UserRoundCheck },
+              { value: 'bulk', label: en ? 'Bulk vaccination' : 'Μαζικός εμβολιασμός', icon: Users },
+            ]}
+          />
         )}
         <section className="vaccination-editor-card">
           <h4>{en ? 'Vaccine details' : 'Στοιχεία εμβολίου'}</h4>
