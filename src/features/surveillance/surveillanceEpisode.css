@@ -166,4 +166,4 @@ html body .clean-patient-summary .patient-detail-grid>.detail-item.patient-detai
 html body .clean-patient-summary .patient-detail-notes>strong{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;font-weight:600!important}
 /* A tab's section sits straight on the record body (already a card): no card
    inside the card. */
-html body .patient-record-shell .entity-record-body>.record-section:is(.record-section,#lo-record-tab){border:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;margin:0!important}
+html body .patient-record-shell .entity-record-body>.record-section:not(.documents-workspace):is(.record-section,#lo-record-tab){border:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;margin:0!important}

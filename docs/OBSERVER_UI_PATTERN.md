@@ -28,7 +28,8 @@ This file is the product-wide interaction contract for new and existing features
 - Record pages use `EntityRecordShell`.
 - Lists inside a record use `RegistryTable` (same geometry as registries); statuses use `status-badge`, never plain text.
 - Sections inside a record tab start with `SectionHeader` (title, optional subtitle, actions on the right).
-- A record tab with a list (assessments, surveillance & samples, documents, history) is a `RecordTabPanel`: it fills the record body (no card inside the card), one header row, content that scrolls inside, pagination kept at the bottom — the same look as the registry lists. Documents tabs use `DocumentsWorkspace` (files as a table, «Add» in the header).
+- A record tab with a list (assessments, surveillance & samples, history) is a `RecordTabPanel`: it fills the record body (no card inside the card), one header row, content that scrolls inside, pagination kept at the bottom — the same look as the registry lists.
+- Documents tabs, and attachments everywhere, use `DocumentsWorkspace` / `AttachmentField`: the titled section with the shared «Attachments» box and «Add attachment».
 - Field titles, editable or read-only, use the `lo-field-label` style (Field, ManualDateField, TimeField, SearchableSelect, RecordDetailsGrid apply it).
 - Multi-choice fields use `ChoiceChips`, not checkboxes in pills.
 - An empty registry shows the RegistryTable empty state under the column headings and hides pagination.

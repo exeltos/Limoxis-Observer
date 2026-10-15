@@ -1,8 +1,8 @@
 import { AttachmentField } from './AttachmentField'
 import './DocumentsWorkspace.css'
 
-// Every record's documents tab opens the same way: the shared record tab panel
-// (title, «Add» on the right) with the files as a registry table.
+// Every record's documents tab opens the same way (as in Quality): a
+// record-section card with the title and the shared attachment box.
 export function DocumentsWorkspace({
   title,
   subtitle,
@@ -14,16 +14,16 @@ export function DocumentsWorkspace({
   value=[],
   onChange=()=>{},
 }){
-  return <AttachmentField
-    variant="table"
-    title={title}
-    subtitle={subtitle}
-    disabled={disabled}
-    value={value}
-    onChange={onChange}
-    categories={categories}
-    organizationId={organizationId}
-    entityType={entityType}
-    entityId={entityId}
-  />
+  return <div className="record-section documents-workspace">
+    {(title||subtitle)&&<div className="record-section-header lo-section-header"><div>{title&&<h3>{title}</h3>}{subtitle&&<p>{subtitle}</p>}</div></div>}
+    <AttachmentField
+      disabled={disabled}
+      value={value}
+      onChange={onChange}
+      categories={categories}
+      organizationId={organizationId}
+      entityType={entityType}
+      entityId={entityId}
+    />
+  </div>
 }
