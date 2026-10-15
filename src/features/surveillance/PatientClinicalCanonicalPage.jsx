@@ -445,6 +445,17 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     : patientMode
       ? patient?.hospitalRecordNumber || t('clinicalRecords.patientRecord')
       : `${department || '—'} · ${t('clinicalRecords.admission')}: ${fmtDate(record?.admissionDate || patient?.admissionDate)}`
+  const documentsScope = record
+    ? isDemo || record.recordId
+      ? { key: record.id, entityType: 'clinical_case', entityId: record.recordId }
+      : null
+    : patientMode && selectedAdmission && (isDemo || selectedAdmission.id)
+      ? {
+          key: `admission:${selectedAdmission.id}`,
+          entityType: 'patient_admission',
+          entityId: selectedAdmission.id,
+        }
+      : null
   const shellStatus = selectedAdmission?.status || record?.status || patient?.status || 'active'
   return (
     <Page fill title={name} subtitle={code}>
@@ -630,33 +641,26 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             canRecord={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
           />
         )}
-        {activeTab === 'documents' &&
-          record &&
-          (!isDemo && record.recordId ? (
-            <DocumentsWorkspace
-              title={translate(
-                'copy.clinicalRecordCopy.documents',
-                language === 'en' ? 'en' : 'el',
-              )}
-              disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
-              organizationId={tenant?.id}
-              entityType="clinical_case"
-              entityId={record.recordId}
-            />
-          ) : isDemo ? (
-            <DocumentsWorkspace
-              title={translate(
-                'copy.clinicalRecordCopy.documents',
-                language === 'en' ? 'en' : 'el',
-              )}
-              disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
-              value={demoDocuments[record.id] || []}
-              onChange={files => setDemoDocuments(current => ({ ...current, [record.id]: files }))}
-            />
-          ) : (
-            <div className="inline-empty">{t('clinicalRecords.noAttachments')}</div>
-          ))}
-        {activeTab === 'documents' && !record && (
+        {/* Documents belong to the surveillance when there is one, else to the
+            admission itself, so they can be added before any surveillance. */}
+        {activeTab === 'documents' && documentsScope && (
+          <DocumentsWorkspace
+            title={translate('copy.clinicalRecordCopy.documents', language === 'en' ? 'en' : 'el')}
+            disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
+            {...(isDemo
+              ? {
+                  value: demoDocuments[documentsScope.key] || [],
+                  onChange: files =>
+                    setDemoDocuments(current => ({ ...current, [documentsScope.key]: files })),
+                }
+              : {
+                  organizationId: tenant?.id,
+                  entityType: documentsScope.entityType,
+                  entityId: documentsScope.entityId,
+                })}
+          />
+        )}
+        {activeTab === 'documents' && !documentsScope && (
           <EmptyState
             title={translate(
               'copy.clinicalRecordCopy.noDocumentsYet',

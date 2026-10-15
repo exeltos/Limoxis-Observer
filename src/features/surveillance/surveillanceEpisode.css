@@ -164,3 +164,6 @@ html body .clean-patient-summary>.clinical-panel>.record-section-header:is(.reco
 /* Patient notes: one full-width row of the sheet (whole text on hover). */
 html body .clean-patient-summary .patient-detail-grid>.detail-item.patient-detail-notes{grid-column:1/-1!important;border-right:0!important;border-top:1px solid #e9eef2!important}
 html body .clean-patient-summary .patient-detail-notes>strong{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;font-weight:600!important}
+/* A tab's section sits straight on the record body (already a card): no card
+   inside the card. */
+html body .patient-record-shell .entity-record-body>.record-section:is(.record-section,#lo-record-tab){border:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;margin:0!important}

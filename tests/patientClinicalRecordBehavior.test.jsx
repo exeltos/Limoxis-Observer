@@ -328,6 +328,13 @@ describe('clinical data and documents', () => {
     expect(screen.queryByText('clinicalImprovement')).not.toBeInTheDocument()
   })
 
+  it('lets documents be added to an admission without a surveillance', async () => {
+    await openPatient('PT-260082')
+    await openTab('Έγγραφα')
+    expect(within(body()).getByText('Επισυνάψεις')).toBeInTheDocument()
+    expect(within(body()).getByRole('button', { name: /Προσθήκη επισύναψης/ })).toBeInTheDocument()
+  })
+
   it('keeps documents added in demo with the surveillance', async () => {
     await openSurveillance()
     await openTab('Έγγραφα')
