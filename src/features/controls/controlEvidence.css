@@ -1,7 +1,5 @@
 /* Control criticality, evidence and deviation actions. */
 /* A plain checkbox beside the criticality field, not a framed option tile. */
-.control-create-form .control-evidence-option{flex-direction:row!important;align-self:end;min-height:38px;padding:0;border:0;background:transparent}
-.control-create-form .control-evidence-option>span{font-weight:600}
 .control-create-form label>small{font-size:10.5px;color:var(--lo-color-muted)}
 .control-evidence-section{display:grid;gap:8px;margin-top:12px;padding:12px 14px;border:1px dashed var(--lo-color-border);border-radius:10px;background:#fafcfd}
 .control-evidence-section.missing{border-color:#e0b46a;background:#fffaf1}

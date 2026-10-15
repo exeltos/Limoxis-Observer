@@ -32,7 +32,7 @@ export function ControlExecutionEditor({organizationId,record,department,onCance
  const [saving,setSaving]=useState(false)
  const [evidence,setEvidence]=useState([])
  const evidenceRequired=requiresEvidence(record)
- const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short',hour12:false}).format(new Date(v)):'—'
+ const fmt=v=>v?new Intl.DateTimeFormat(locale,{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(v)):'—'
  const numeric=Number(String(value).replace(',','.'))
  const outOfRange=response.mode==='numeric'&&String(value).trim()!==''&&Number.isFinite(numeric)&&((response.min!==''&&response.min!=null&&numeric<Number(response.min))||(response.max!==''&&response.max!=null&&numeric>Number(response.max)))
  const choiceFinding=response.mode==='choice'&&(response.reportOn||['Μη συμμόρφωση','Non-compliant']).includes(value)

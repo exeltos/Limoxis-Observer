@@ -1119,10 +1119,10 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 .prevention-record-shell .who-choice-block:is(div,#lo-prevention-form){padding-top:8px!important}
 /* Aligned form rows: in every form grid, fields sit on one baseline and every
    control (text, select, date, time) is the same height, so the boxes line up. */
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid):is(div,#lo-form-row){align-items:end!important}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not(.manual-date-native),select):is(input,select,#lo-form-row){height:40px!important;min-height:40px!important;box-sizing:border-box!important}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(.manual-date-field,.time-field,label,.field)>span:first-child:is(span,#lo-form-row){min-height:13px}
-:is(.entry-grid,.who-session-strip,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(.manual-date-control,.time-field-control):is(div,#lo-form-row){height:40px!important;min-height:40px!important;margin:0!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):is(div,#lo-form-row){align-items:end!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not(.manual-date-native),select):is(input,select,#lo-form-row){height:40px!important;min-height:40px!important;box-sizing:border-box!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-field,.time-field,label,.field)>span:first-child:is(span,#lo-form-row){min-height:13px}
+:is(.entry-grid,.who-session-strip,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-control,.time-field-control):is(div,#lo-form-row){height:40px!important;min-height:40px!important;margin:0!important}
 /* Side panels start level with the form beside them. */
 .prevention-record-shell :is(.antiseptic-entry-rail,.waste-smart-rail,.who-insight-rail):is(aside,#lo-form-row){align-self:start!important;margin-top:0!important;padding-top:0!important;top:0!important}
 .prevention-record-shell :is(.antiseptic-entry-rail,.waste-smart-rail)>section:first-child:is(section,#lo-form-row){margin-top:0!important}
@@ -1130,11 +1130,11 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 .prevention-record-shell .waste-smart-measurement-grid>div:is(div,#lo-form-row){align-self:end!important}
 /* One label-to-box spacing (the title's own 6px margin) and the date field's
    hidden native picker out of the flow, so every box starts at the same line. */
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(label,.field,.manual-date-field,.time-field):is(label,div,#lo-form-row){gap:0!important}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(label,.field,.manual-date-field,.time-field)>span:first-child:is(span,#lo-form-row){margin-bottom:6px!important}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) .manual-date-native:is(input,#lo-form-row){position:absolute!important;bottom:0;left:0}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(label,.field,.manual-date-field,.time-field):is(label,div,#lo-form-row){gap:0!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(label,.field,.manual-date-field,.time-field)>span:first-child:is(span,#lo-form-row){margin-bottom:6px!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) .manual-date-native:is(input,#lo-form-row){position:absolute!important;bottom:0;left:0}
 .manual-date-field{position:relative}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid) :is(.manual-date-field,.time-field):is(label,div,#lo-form-row){display:flex!important;flex-direction:column!important;grid-template-rows:none!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-field,.time-field):is(label,div,#lo-form-row){display:flex!important;flex-direction:column!important;grid-template-rows:none!important}
 /* ==== record view (RecordMetricStrip + RecordDetailsGrid sheet) ==== */
 .record-view-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
 .record-view-stack>section{display:flex;flex-direction:column;min-width:0}
@@ -1170,3 +1170,34 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 .record-view-stack .record-details-grid.record-details-cols-6:is(.detail-grid,#lo-record-sheet){grid-template-columns:repeat(6,minmax(0,1fr))!important}
 .record-view-stack .record-details-cols-6>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:1px solid #e8edf2!important}
 .record-view-stack .record-details-cols-6>.detail-item:nth-child(6n):is(div,#lo-record-sheet){border-right:0!important}
+
+/* New control: one row of identity fields, the department chips scroll in a
+   short box, so the page fits one screen. */
+.control-create-shell .control-identity-grid:is(.entry-grid,#lo-control-form){grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr)!important}
+.control-create-shell .control-department-picker:is(div,#lo-control-form){display:block!important;max-height:118px;overflow:auto;margin-top:8px!important}
+.control-create-shell .control-department-picker .lo-choice-chips>.lo-field-label{display:none!important}
+.control-create-shell .control-form-block:is(div,#lo-control-form){padding-top:10px!important;padding-bottom:10px!important}
+.control-create-shell .control-schedule-row:is(div,#lo-control-form){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,.6fr) minmax(0,1.4fr)!important;gap:12px!important;align-items:end!important}
+.control-create-shell .control-schedule-row .control-times-compact:is(div,#lo-control-form){display:flex;flex-direction:column;margin:0!important;padding:0!important;border:0!important;background:none!important}
+.control-create-shell .control-times-compact-title:is(div,#lo-control-form){display:flex!important;margin:0 0 6px!important;color:#607588!important;font-size:10px!important;font-weight:750!important}
+.control-create-shell .control-times-compact-title svg{width:13px;height:13px}
+.control-create-shell .control-schedule-row .control-time-grid:is(div,#lo-control-form){display:grid!important;grid-template-columns:repeat(auto-fill,minmax(96px,1fr))!important;gap:8px!important;margin:0!important}
+.control-create-shell .control-time-grid .time-field>.lo-field-label:is(span,#lo-control-form){display:none!important}
+.control-create-shell .control-department-picker .lo-choice-chips>.lo-field-label:is(span,#lo-control-form){display:none!important}
+.control-create-shell .control-form-block-title:is(div,#lo-control-form){margin-bottom:6px!important;padding-bottom:0!important}
+.control-create-shell .control-entry-grid:is(.entry-grid,#lo-control-form){padding:4px 0 0!important;gap:10px 14px!important}
+.control-create-shell .control-dept-search:is(div,#lo-control-form){margin:0!important;height:34px}
+.control-create-shell :is(.control-policy-block,.control-guidance-block) textarea:is(textarea,#lo-control-form){min-height:64px!important;height:64px}
+.control-create-shell .control-guidance-block textarea:is(textarea,#lo-control-form){min-height:130px!important;height:130px}
+.control-create-shell .control-department-picker .lo-choice-chips-list>button:is(button,#lo-control-form){min-height:32px!important;height:32px;padding:0 12px!important}
+.control-create-shell .control-create-form>.inline-edit-footer:is(div,#lo-control-form){margin-top:6px!important;padding-top:8px!important}
+/* A yes/no switch in a form row is as tall as the other controls. */
+.yes-no-field .lo-mode-switch:is(div,#lo-form-row){min-height:40px}
+.yes-no-field .lo-mode-switch>button:is(button,#lo-form-row){min-height:40px!important;height:40px}
+.control-create-shell .control-dept-tools:is(div,#lo-control-form){display:flex;align-items:center;gap:8px;margin-left:auto}
+.control-create-shell .control-dept-tools .control-dept-search:is(div,#lo-control-form){margin:0!important;width:240px;min-height:36px;height:36px}
+/* Yes/no fields line up with the selects and inputs next to them. */
+.entry-grid>.yes-no-field:is(div,#lo-form-row){display:flex;flex-direction:column;gap:0;align-self:end}
+.entry-grid>.yes-no-field>.lo-field-label:is(span,#lo-form-row){margin-bottom:6px}
+.control-create-shell .control-times-compact-title:is(div,#lo-control-form){display:flex;align-items:center;gap:6px;margin-bottom:6px;line-height:16px}
+.control-create-shell .control-times-compact-title svg:is(svg,#lo-control-form){width:14px;height:14px}

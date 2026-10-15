@@ -5,6 +5,8 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
+import { ChoiceChips } from '../../design-system/ChoiceChips'
+import { YesNoField } from '../../design-system/YesNoField'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadSnapshot } from '../../core/data/repository'
@@ -79,8 +81,8 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
    <div className="record-section control-create-form">
     <div className="control-form-block">
      <div className="control-form-block-title"><strong>{en?'Control identity':'Στοιχεία ελέγχου'}</strong><span>{en?'Core definition and responsible role':'Βασικός ορισμός και υπεύθυνος'}</span></div>
-     <div className="entry-grid control-entry-grid">
-      <label className="entry-span-2"><span>{en?'Control name *':'Ονομασία ελέγχου *'}</span><input autoFocus value={draft.title} onChange={e=>set('title',e.target.value)} placeholder={en?'e.g. Medication refrigerator temperature':'π.χ. Θερμοκρασία ψυγείου φαρμάκων'}/></label>
+     <div className="entry-grid control-entry-grid control-identity-grid">
+      <label><span>{en?'Control name *':'Ονομασία ελέγχου *'}</span><input autoFocus value={draft.title} onChange={e=>set('title',e.target.value)} placeholder={en?'e.g. Medication refrigerator temperature':'π.χ. Θερμοκρασία ψυγείου φαρμάκων'}/></label>
       <label><span>{en?'Category *':'Κατηγορία *'}</span><input list="control-categories" value={draft.category} onChange={e=>changeCategory(e.target.value)} placeholder={en?'Select or type':'Επιλέξτε ή γράψτε'}/><datalist id="control-categories"><option value="Θερμοκρασίες"/><option value="Φάρμακα / Υλικά"/><option value="Καλλιέργειες"/><option value="Εξοπλισμός"/><option value="Καθαριότητα / Απολύμανση"/><option value="Άλλο"/></datalist></label>
       <label><span>{en?'Responsible *':'Υπεύθυνος *'}</span><input list="control-owners" value={draft.owner} onChange={e=>set('owner',e.target.value)} placeholder={en?'Select or type':'Επιλέξτε ή γράψτε'}/><datalist id="control-owners"><option value="Υπεύθυνος βάρδιας"/><option value="Προϊστάμενος τμήματος"/><option value="Νοσηλευτής βάρδιας"/><option value="Ομάδα Ελέγχου Λοιμώξεων"/></datalist></label>
      </div>
@@ -103,32 +105,32 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
       <div className="control-schedule-row">
        <label><span>{en?'Frequency *':'Συχνότητα *'}</span><select value={draft.frequency.kind} onChange={e=>setF('kind',e.target.value)}><option value="daily">{en?'Daily':'Ημερήσια'}</option><option value="weekly">{en?'Weekly':'Εβδομαδιαία'}</option><option value="monthly">{en?'Monthly / every N months':'Μηνιαία / ανά Χ μήνες'}</option><option value="yearly">{en?'Yearly':'Ετήσια'}</option><option value="custom">{en?'Every N days':'Κάθε Χ ημέρες'}</option></select></label>
        {draft.frequency.kind==='daily'?<label><span>{en?'Times per day *':'Φορές ανά ημέρα *'}</span><input type="number" min="1" max="12" value={count} onChange={e=>setF('timesPerDay',Math.max(1,Math.min(12,Number(e.target.value)||1)))}/></label>:<label><span>{en?'Interval *':'Διάστημα *'}</span><input type="number" min="1" value={draft.frequency.interval||1} onChange={e=>setF('interval',Math.max(1,Number(e.target.value)||1))}/></label>}
+       {draft.frequency.kind==='daily'&&<div className="control-times-compact"><div className="control-times-compact-title"><CalendarClock size={16}/><span>{en?'Execution times':'Ώρες εκτέλεσης'}</span></div><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} className="control-time-field" label={count>1?(en?`Execution ${i+1}`:`${i+1}η εκτέλεση`):''} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
       </div>
-      {draft.frequency.kind==='daily'&&<div className="control-times-compact"><div className="control-times-compact-title"><CalendarClock size={16}/><span>{en?'Execution times':'Ώρες εκτέλεσης'}</span></div><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} className="control-time-field" label={count>1?(en?`Execution ${i+1}`:`${i+1}η εκτέλεση`):''} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
      </div>
     </div>
 
     <div className="control-form-block">
-     <div className="control-form-block-title"><strong>{en?'Applicable departments':'Τμήματα εφαρμογής'}</strong><span>{draft.departments.length?`${draft.departments.length} ${en?'selected':'επιλεγμένα'}`:(en?'Select at least one department':'Επιλέξτε τουλάχιστον ένα τμήμα')}</span>{!departmentOnly&&<div><Button variant="secondary" disabled={!visibleDepartments.length} onClick={selectVisibleDepartments}>{en?'Select all':'Επιλογή όλων'}</Button>{' '}<Button variant="secondary" disabled={!visibleDepartments.length} onClick={clearVisibleDepartments}>{en?'Clear all':'Αποεπιλογή όλων'}</Button></div>}</div>
-     <div className="control-dept-search"><Search size={16}/><input value={deptQuery} onChange={e=>setDeptQuery(e.target.value)} placeholder={en?'Search department...':'Αναζήτηση τμήματος...'}/></div>
+     <div className="control-form-block-title"><strong>{en?'Applicable departments':'Τμήματα εφαρμογής'}</strong><span>{draft.departments.length?`${draft.departments.length} ${en?'selected':'επιλεγμένα'}`:(en?'Select at least one department':'Επιλέξτε τουλάχιστον ένα τμήμα')}</span>{!departmentOnly&&<div className="control-dept-tools"><div className="control-dept-search"><Search size={16}/><input value={deptQuery} onChange={e=>setDeptQuery(e.target.value)} placeholder={en?'Search department...':'Αναζήτηση τμήματος...'}/></div><Button variant="secondary" disabled={!visibleDepartments.length} onClick={selectVisibleDepartments}>{en?'Select all':'Επιλογή όλων'}</Button>{' '}<Button variant="secondary" disabled={!visibleDepartments.length} onClick={clearVisibleDepartments}>{en?'Clear all':'Αποεπιλογή όλων'}</Button></div>}</div>
      {legacyDepartments.length>0&&!departmentsLoading&&<div className="governance-banner warning"><span>{en?`Found ${legacyDepartments.length} departments stored locally from the previous version: ${legacyDepartments.join(', ')}.`:`Βρέθηκαν ${legacyDepartments.length} τμήματα αποθηκευμένα τοπικά από την προηγούμενη έκδοση: ${legacyDepartments.join(', ')}.`}</span><Button variant="secondary" disabled={migratingDepartments} onClick={migrateLegacyDepartments}>{migratingDepartments?(en?'Migrating…':'Μεταφορά…'):(en?'Move to Supabase':'Μεταφορά στη Supabase')}</Button></div>}
-     <div className="control-department-picker">{departmentsLoading?<div className="inline-empty">{en?'Loading departments…':'Φόρτωση τμημάτων…'}</div>:departmentsError?<div className="inline-empty">{departmentsError}</div>:visibleDepartments.map(d=><label key={d} className={`check-option ${draft.departments.includes(d)?'selected':''}`}><input type="checkbox" checked={draft.departments.includes(d)} disabled={departmentOnly&&draft.departments.includes(d)} onChange={()=>toggleDept(d)}/><span>{d}</span></label>)}{!departmentsLoading&&!departmentsError&&!visibleDepartments.length&&!legacyDepartments.length&&<div className="inline-empty">{en?'No active departments exist in Supabase for this organization.':'Δεν υπάρχουν ενεργά τμήματα στη Supabase για τον συγκεκριμένο οργανισμό.'}</div>}</div>
+     <div className="control-department-picker">{departmentsLoading?<div className="inline-empty">{en?'Loading departments…':'Φόρτωση τμημάτων…'}</div>:departmentsError?<div className="inline-empty">{departmentsError}</div>:visibleDepartments.length>0&&<ChoiceChips label={en?'Departments':'Τμήματα'} options={visibleDepartments.map(d=>({value:d,label:d}))} selected={draft.departments} onToggle={d=>{if(departmentOnly&&draft.departments.includes(d))return;toggleDept(d)}}/>}{!departmentsLoading&&!departmentsError&&!visibleDepartments.length&&!legacyDepartments.length&&<div className="inline-empty">{en?'No active departments exist in Supabase for this organization.':'Δεν υπάρχουν ενεργά τμήματα στη Supabase για τον συγκεκριμένο οργανισμό.'}</div>}</div>
     </div>
 
-    <div className="control-form-block control-policy-block">
-     <div className="control-form-block-title"><strong>{en?'Criticality & deviations':'Κρισιμότητα & αποκλίσεις'}</strong><span>{en?'Priority, proof and what to do when a result is out of range':'Προτεραιότητα, τεκμήριο και τι γίνεται όταν το αποτέλεσμα αποκλίνει'}</span></div>
-     <div className="entry-grid control-entry-grid">
-      <label><span>{en?'Criticality':'Κρισιμότητα'}</span><select value={controlCriticality(draft)} onChange={e=>setR('criticality',e.target.value)}>{CRITICALITY_LEVELS.map(level=><option key={level} value={level}>{criticalityLabel(level,language)}</option>)}</select></label>
-      <label className="check-option control-evidence-option"><input type="checkbox" checked={requiresEvidence(draft)} onChange={e=>setR('requiresEvidence',e.target.checked)}/><span>{en?'Evidence required (photo or file) on every entry':'Απαιτείται τεκμήριο (φωτογραφία ή αρχείο) σε κάθε καταχώρηση'}</span></label>
-      <label className="entry-span-2"><span>{en?'Actions on deviation':'Ενέργειες σε απόκλιση'}</span><textarea rows="3" value={draft.responseConfig?.deviationActions||''} onChange={e=>setR('deviationActions',e.target.value)} placeholder={en?'e.g. Move vaccines to the backup fridge, inform the pharmacy, record the incident.':'π.χ. Μεταφορά εμβολίων στο εφεδρικό ψυγείο, ενημέρωση φαρμακείου, καταγραφή συμβάντος.'}/><small>{en?'Shown to the person recording the control when the result is out of range or non-compliant.':'Εμφανίζεται σε όποιον καταχωρεί τον έλεγχο όταν το αποτέλεσμα είναι εκτός ορίων ή μη συμμόρφωση.'}</small></label>
+    <div className="control-form-split">
+     <div className="control-form-block control-policy-block">
+      <div className="control-form-block-title"><strong>{en?'Criticality & deviations':'Κρισιμότητα & αποκλίσεις'}</strong><span>{en?'Priority, proof and what to do when a result is out of range':'Προτεραιότητα, τεκμήριο και τι γίνεται όταν το αποτέλεσμα αποκλίνει'}</span></div>
+      <div className="entry-grid control-entry-grid">
+       <label><span>{en?'Criticality':'Κρισιμότητα'}</span><select value={controlCriticality(draft)} onChange={e=>setR('criticality',e.target.value)}>{CRITICALITY_LEVELS.map(level=><option key={level} value={level}>{criticalityLabel(level,language)}</option>)}</select></label>
+       <YesNoField label={en?'Evidence on every entry':'Τεκμήριο σε κάθε καταχώρηση'} value={requiresEvidence(draft)} onChange={value=>setR('requiresEvidence',value)}/>
+       <label className="entry-span-2"><span>{en?'Actions on deviation':'Ενέργειες σε απόκλιση'}</span><textarea rows="2" value={draft.responseConfig?.deviationActions||''} onChange={e=>setR('deviationActions',e.target.value)} placeholder={en?'Shown to the person recording when the result is out of range, e.g. move vaccines to the backup fridge, inform the pharmacy.':'Εμφανίζεται σε όποιον καταχωρεί όταν το αποτέλεσμα αποκλίνει, π.χ. μεταφορά εμβολίων στο εφεδρικό ψυγείο, ενημέρωση φαρμακείου.'}/></label>
+      </div>
+     </div>
+     <div className="control-form-block control-guidance-block">
+      <div className="control-form-block-title"><strong>{en?'Instructions':'Οδηγίες'}</strong><span>{en?'Optional guidance shown during execution':'Προαιρετικές οδηγίες που εμφανίζονται κατά την εκτέλεση'}</span></div>
+      <label className="field"><textarea rows="4" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'Optional instructions…':'Προαιρετικές οδηγίες…'}/></label>
      </div>
     </div>
-
-    <div className="control-form-block control-guidance-block">
-     <div className="control-form-block-title"><strong>{en?'Instructions':'Οδηγίες'}</strong><span>{en?'Optional guidance shown during execution':'Προαιρετικές οδηγίες που εμφανίζονται κατά την εκτέλεση'}</span></div>
-     <label className="field"><textarea rows="3" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'Optional instructions…':'Προαιρετικές οδηγίες…'}/></label>
-    </div>
-    <div className="inline-edit-footer"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Άκυρο'}</Button><SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
+    <div className="inline-edit-footer"><SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
    </div>
   </EntityRecordShell>
  </Page>
