@@ -68,9 +68,9 @@ describe('environmental sample opened from Surveillance', () => {
 })
 
 describe('laboratory record layout', () => {
-  it('uses four tabs: sample, result, attachments and history', async () => {
+  it('uses four tabs: sample, result, documents and history', async () => {
     await openSample()
-    expect(screen.getAllByRole('tab').map(tab => tab.textContent.trim())).toEqual(['Δείγμα', 'Μικροβιολογικό αποτέλεσμα', 'Επισυνάψεις', 'Ιστορικό'])
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent.trim())).toEqual(['Δείγμα', 'Μικροβιολογικό αποτέλεσμα', 'Έγγραφα', 'Ιστορικό'])
   })
 
   it('keeps sample actions, print and export in the sample card menu, not in the record header', async () => {
@@ -116,7 +116,7 @@ describe('laboratory record dialogs', () => {
     }
   })
 
-  it('lays out the organism, AMR classification and notes as full-width rows, with the read-back checkbox inline', async () => {
+  it('lays out the organism, AMR classification and notes as full-width rows, with read-back as a yes/no switch', async () => {
     await openSample()
     openTab('Μικροβιολογικό αποτέλεσμα')
     const [resultMenu, isolateMenu, communicationMenu] = within(body()).getAllByRole('button', { name: 'Περισσότερες ενέργειες' })
@@ -129,7 +129,9 @@ describe('laboratory record dialogs', () => {
     fireEvent.click(communicationMenu); fireEvent.click(screen.getByRole('menuitem', { name: 'Καταγραφή επικοινωνίας' }))
     const communication = screen.getByRole('dialog')
     expect(within(communication).getByText('Σημειώσεις', { selector: '.lab-dialog-span > span' })).toBeInTheDocument()
-    expect(communication.querySelector('label.lab-dialog-check input[type="checkbox"]')).not.toBeNull()
+    const readBack = within(communication).getByRole('radiogroup', { name: /read-back|επανάληψη/i })
+    expect(within(readBack).getAllByRole('radio').map(radio => radio.textContent)).toEqual(['Όχι', 'Ναι'])
+    expect(communication.querySelector('input[type="checkbox"]')).toBeNull()
   })
 
   it('requires an organism before a positive result can be saved', async () => {

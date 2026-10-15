@@ -1,4 +1,5 @@
-import { Check, FlaskConical, Minus, Route } from 'lucide-react'
+import { SectionHeader } from '../../design-system/SectionHeader'
+import { Check, Minus } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { ENVIRONMENTAL_CATEGORIES, environmentalMethodLabel, sampleTypeLabel } from './laboratoryCloudService'
@@ -37,7 +38,7 @@ export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banner
   ]
 
   return <section className="lab-record-card lab-summary-card">
-    <div className="record-section-header"><div><span className="eyebrow">{en ? 'Sample' : 'Δείγμα'}</span><h3><FlaskConical size={15}/> {en ? 'Sample details' : 'Στοιχεία δείγματος'}</h3></div>{menu}</div>
+    <SectionHeader title={en ? 'Sample details' : 'Στοιχεία δείγματος'} actions={menu}/>
     {banners}
     <RecordDetailsGrid fields={fields} className="laboratory-summary-grid"/>
   </section>
@@ -52,7 +53,7 @@ export function LaboratoryWorkflow({ steps, language, closedNote }) {
   const done = applicable.filter(step => step.state === 'done').length
   const next = steps.find(step => step.state === 'next')
   return <section className="lab-record-card lab-workflow-card">
-    <div className="record-section-header"><div><span className="eyebrow">{en ? 'Workflow' : 'Ροή εργασίας'}</span><h3><Route size={15}/> {en ? 'Sample progress' : 'Πρόοδος δείγματος'}</h3></div><span className="lab-workflow-count">{done}/{applicable.length}</span></div>
+    <SectionHeader title={en ? 'Sample progress' : 'Πρόοδος δείγματος'} actions={<span className="lab-workflow-count">{done}/{applicable.length}</span>}/>
     <ol className="lab-workflow-steps">
       {steps.map((step, index) => <li key={step.id} className={`lab-workflow-step is-${step.state}`}>
         <span className="lab-workflow-marker">{step.state === 'done' ? <Check size={14}/> : step.state === 'na' ? <Minus size={14}/> : index + 1}</span>

@@ -1,4 +1,6 @@
-import { AlertTriangle, Microscope } from 'lucide-react'
+import { SectionHeader } from '../../design-system/SectionHeader'
+import { HistoryTimeline } from '../../design-system/HistoryTimeline'
+import { AlertTriangle } from 'lucide-react'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { methodLabel } from './laboratorySampleFormat'
 
@@ -20,15 +22,7 @@ export function ResultCard({
     : t('laboratoryRecords.resultAndOrganism')
   return (
     <section className="lab-record-card lab-result-card">
-      <div className="record-section-header">
-        <div>
-          <span className="eyebrow">{t('laboratoryRecords.microbiologyResult')}</span>
-          <h3>
-            <Microscope size={15} /> {title}
-          </h3>
-        </div>
-        {menu}
-      </div>
+      <SectionHeader title={title} actions={menu} />
       {isEnvironmental && (
         <div className={`smart-protocol-strip ${hasLimit ? 'configured' : 'missing'}`}>
           <div>
@@ -101,6 +95,7 @@ export function ResultCard({
   )
 }
 
+// The sample's history in the shared timeline (same look as the patient record).
 export function LabHistory({ sample, t, tx, fmt }) {
   const events = [
     sample.requestedAt && { at: sample.requestedAt, title: t('requested') },
@@ -129,16 +124,12 @@ export function LabHistory({ sample, t, tx, fmt }) {
   ]
     .filter(Boolean)
     .sort((a, b) => new Date(b.at) - new Date(a.at))
-  if (!events.length) return <div className="inline-empty">{t('noData')}</div>
   return (
-    <div className="lab-history-list">
-      {events.map((event, index) => (
-        <div className="lab-history-row" key={`${event.at}-${index}`}>
-          <time>{fmt(event.at)}</time>
-          <strong>{event.title}</strong>
-          <span>{event.by || ''}</span>
-        </div>
-      ))}
-    </div>
+    <HistoryTimeline
+      title={t('history')}
+      events={events.map(event => ({ at: event.at, title: event.title, meta: [event.by] }))}
+      when={fmt}
+      emptyText={t('noData')}
+    />
   )
 }

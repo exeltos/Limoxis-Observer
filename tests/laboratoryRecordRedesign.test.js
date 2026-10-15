@@ -11,7 +11,7 @@ import { readLaboratorySampleRecordSource } from './helpers/laboratorySampleReco
 // card on the Sample tab walks the user through the next required step.
 // Earlier requirements that still hold are kept here: no duplicated result
 // fields in the sample card, modal editing, full-width organism / AMR
-// fields, the read-back checkbox beside its label, and cards that size to
+// fields, yes/no answers as the shared switch, and cards that size to
 // their content.
 const jsx = readLaboratorySampleRecordSource()
 const summary = fs.readFileSync('src/features/laboratory/LaboratorySampleSummary.jsx', 'utf8')
@@ -29,8 +29,11 @@ describe('laboratory record follows the app-wide card + ⋯ menu pattern', () =>
     expect(summary).not.toMatch(/id:\s*'resistance'/)
   })
 
-  it('lays out dialogs with full-width organism / AMR / notes rows and an inline read-back checkbox', () => {
-    expect(css).toMatch(/\.lab-dialog-form>label\.lab-dialog-check\{[^}]*flex-direction:row!important/)
+  it('answers yes/no questions (critical result, read-back) with the shared switch, not checkboxes', () => {
+    const dialogs = fs.readFileSync('src/features/laboratory/LaboratorySampleDialogs.jsx', 'utf8')
+    expect(dialogs).toContain('function YesNoField')
+    expect(dialogs).not.toContain('type="checkbox"')
+    expect(css).not.toContain('lab-dialog-check')
   })
 
   it('does not reintroduce the fixed-height clinical-panel/full-panel cards', () => {

@@ -4,12 +4,32 @@ import { Button } from '../../design-system/Button'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { organismsOf, resultDraftChecks, resultToSave } from './laboratorySampleProgress'
 import { METHODS, rows } from './laboratorySampleFormat'
 
 // Dialogs of the laboratory sample record: result, AST, AMR classification and
 // critical-result communication.
+
+// A yes/no answer: the shared mode switch instead of a checkbox in a box.
+function YesNoField({ label, value, onChange, language }) {
+  const en = language === 'en'
+  return (
+    <div className="field lab-dialog-span">
+      <span className="lo-field-label">{label}</span>
+      <ModeSwitch
+        ariaLabel={label}
+        value={value ? 'yes' : 'no'}
+        onChange={next => onChange(next === 'yes')}
+        options={[
+          { value: 'no', label: en ? 'No' : 'Όχι' },
+          { value: 'yes', label: en ? 'Yes' : 'Ναι' },
+        ]}
+      />
+    </div>
+  )
+}
 
 function makeDraft(result) {
   return {
@@ -59,6 +79,8 @@ export function ResultDialog({
   return (
     <ObserverDialog
       width="standard"
+      fixedHeight
+      className="lab-result-dialog"
       eyebrow={t('laboratoryRecords.microbiologyResult')}
       title={title}
       subtitle={tx('resultHelp')}
@@ -142,14 +164,12 @@ export function ResultDialog({
             />
           </label>
         )}
-        <label className="lab-dialog-check lab-dialog-span">
-          <input
-            type="checkbox"
-            checked={draft.critical}
-            onChange={e => set('critical', e.target.checked)}
-          />
-          <span>{tx('critical')}</span>
-        </label>
+        <YesNoField
+          label={tx('critical')}
+          value={draft.critical}
+          onChange={value => set('critical', value)}
+          language={language}
+        />
       </div>
     </ObserverDialog>
   )
@@ -397,14 +417,12 @@ export function CommunicationDialog({ tx, onClose, onSave }) {
           value={draft.communicatedTime}
           onChange={v => set('communicatedTime', v)}
         />
-        <label className="lab-dialog-check lab-dialog-span">
-          <input
-            type="checkbox"
-            checked={draft.readBack}
-            onChange={e => set('readBack', e.target.checked)}
-          />
-          <span>{tx('readBack')}</span>
-        </label>
+        <YesNoField
+          label={tx('readBack')}
+          value={draft.readBack}
+          onChange={value => set('readBack', value)}
+          language={language}
+        />
         <label className="lab-dialog-span">
           <span>{tx('notes')}</span>
           <textarea rows={3} value={draft.notes} onChange={e => set('notes', e.target.value)} />
