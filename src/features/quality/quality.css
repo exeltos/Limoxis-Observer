@@ -110,3 +110,6 @@ html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.
 .review-action-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) minmax(150px,1fr) auto auto;gap:10px;align-items:end;padding:10px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
 .review-action-tools{display:flex;gap:6px;align-items:center}
 @media (max-width:1100px){.review-action-row{grid-template-columns:1fr 1fr}}
+/* The review's first tab is a long form, not a details sheet: it fills the record and scrolls. */
+.review-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
+.review-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}

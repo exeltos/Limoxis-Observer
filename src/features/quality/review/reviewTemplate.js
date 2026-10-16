@@ -85,7 +85,7 @@ export function sectionFacts(source, data = {}, period, language = 'el') {
     for (const objective of objectives) {
       const value = objective.current?.value
       const state = objective.current?.status
-      lines.push(`• ${objective.title}: ${value == null ? (en ? 'no value yet' : 'χωρίς τιμή ακόμη') : `${value}${objective.unit === '%' ? '%' : objective.unit ? ` ${objective.unit}` : ''}`} (${en ? 'target' : 'στόχος'} ${objective.direction === 'lower' ? '≤' : '≥'} ${objective.target ?? '—'}${objective.unit === '%' ? '%' : ''}) — ${state === 'met' ? (en ? 'met' : 'επιτυγχάνεται') : state === 'missed' ? (en ? 'not met' : 'δεν επιτυγχάνεται') : en ? 'pending' : 'σε εξέλιξη'}.`)
+      lines.push(`${objective.title}: ${value == null ? (en ? 'no value yet' : 'χωρίς τιμή ακόμη') : `${value}${objective.unit === '%' ? '%' : objective.unit ? ` ${objective.unit}` : ''}`} (${en ? 'target' : 'στόχος'} ${objective.direction === 'lower' ? '≤' : '≥'} ${objective.target ?? '—'}${objective.unit === '%' ? '%' : ''}) — ${state === 'met' ? (en ? 'met' : 'επιτυγχάνεται') : state === 'missed' ? (en ? 'not met' : 'δεν επιτυγχάνεται') : en ? 'pending' : 'σε εξέλιξη'}.`)
     }
   }
   if (source === 'previousActions') {
