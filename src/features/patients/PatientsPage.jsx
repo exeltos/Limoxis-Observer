@@ -15,13 +15,18 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { formatDay } from '../../core/i18n/formatDay'
+import { ChoiceField } from '../surveillance/ChoiceField'
+import { departmentOptions,listTexts,statusTone } from '../surveillance/surveillanceOptions'
 import {ClinicalRiskFlags,ClinicalRiskLegendItems,clinicalRiskKinds} from '../clinical-scales/ClinicalRiskFlags'
 import {PatientInfectionFlags} from './PatientInfectionFlags'
 import {loadPatientInfectionFlags} from './patientInfectionFlagsService'
 import {loadLatestPatientRiskFlags} from '../clinical-scales/patientRiskFlagsService'
 
 export function PatientsPage(){
-  const {t,language,locale}=useLanguage()
+  const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const navigate=useNavigate()
   const {canAccessRecord,tenant,isDemo}=useTenant()
@@ -57,7 +62,7 @@ export function PatientsPage(){
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))
   const safePage=Math.min(page,totalPages)
   const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
-  const fmt=value=>value?new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)):'—'
+  const fmt=value=>formatDay(value,language)
   const pageCaps={[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_PATIENT}
   function pageAction(action){
     if(action===UI_ACTIONS.CREATE)navigate('/patients/new')
@@ -90,7 +95,7 @@ export function PatientsPage(){
         rows={pagedRows}
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
-        renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskFlags rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} compact/></span></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><span className={`status-badge ${patient.status==='active'?'active':''}`}>{t(patient.status)}</span></td></>}
+        renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskFlags rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} compact/></span></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><StatusBadge tone={statusTone(patient.status)}>{t(patient.status)}</StatusBadge></td></>}
         emptyTitle={scopedPatients.length?t('svEmptyFiltered'):t('patientRegistryEmptyTitle')}
         emptyText={scopedPatients.length?t('svEmptyFilteredHint'):t('patientRegistryEmptyDescription')}
       />
@@ -145,12 +150,12 @@ export function PatientFormFields({form,t,language,departments=[],className=''})
       <label><span className="lo-field-label">{t('fatherName')}</span><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
       <label><span className="lo-field-label">{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
       <div><ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>{birthInvalid&&<small className="field-error">{t('invalidDateOfBirth')}</small>}{ageYears!=null&&!birthInvalid&&<small className="entry-detail-note">{ageDays<28?t('calculatedAgeDays').replace('{age}',String(ageDays)):ageDays<730?t('calculatedAgeMonthsDays').replace('{months}',String(Math.floor(ageDays/30.4375))).replace('{days}',String(Math.floor(ageDays%30.4375))):t('calculatedAge').replace('{age}',String(ageYears))}</small>}</div>
-      <label><span className="lo-field-label">{t('sex')}</span><select value={draft.sex} onChange={e=>set('sex',e.target.value)}><option value="">{t('select')}</option><option value="female">{t('female')}</option><option value="male">{t('male')}</option><option value="other">{t('other')}</option></select></label>
+      <ChoiceField label={t('sex')} value={draft.sex} onChange={v=>set('sex',v)} options={['female','male','other'].map(value=>({value,label:t(value)}))}/>
       {showNeonatal&&<>
       <label><span className="lo-field-label">{translate('copy.patientsCopy.birthWeightG',language==='el'?'el':'en')}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{birthWeightInvalid&&<small className="field-error">{t('invalidBirthWeight')}</small>}</label>
       <label><span className="lo-field-label">{translate('copy.patientsCopy.gestationalAgeWeeks',language==='el'?'el':'en')}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{gestationInvalid&&<small className="field-error">{t('invalidGestationalAge')}</small>}</label>
       </>}
-      {!editing&&<><label><span className="lo-field-label">{t('department')}</span><select value={draft.departmentId} onChange={e=>setDepartment(e.target.value)}><option value="">{t('select')}</option>{departments.map(item=><option key={item.id} value={item.id}>{language==='el'?item.name:(item.nameEn||item.name)}</option>)}</select></label>
+      {!editing&&<><SearchableSelect label={t('department')} value={draft.departmentId} options={departmentOptions(departments,language)} placeholder={t('select')} emptyLabel={listTexts(language).emptyLabel} clearLabel={listTexts(language).clearLabel} onChange={setDepartment}/>
       <ManualDateField label={`${t('admissionDate')} *`} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/></>}
       <label className="entry-span-2"><span className="lo-field-label">{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
     </div>

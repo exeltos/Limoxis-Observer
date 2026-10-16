@@ -3,6 +3,7 @@ import { Button } from '../../design-system/Button'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MultiSelect } from '../../design-system/MultiSelect'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -17,13 +18,8 @@ import {
   createEmployeeSurveillanceBatch as createCloudBatch,
   createEmployeeSurveillanceRecord,
 } from './employeeSurveillanceCloudService'
+import { employeeScreeningOptions, listTexts } from './surveillanceOptions'
 import './surveillanceEntryCard.css'
-
-const screeningCatalog = [
-  { id: 'handSwab', el: 'Επίχρισμα χεριών', en: 'Hand swab' },
-  { id: 'nasalSwab', el: 'Ρινικό επίχρισμα', en: 'Nasal swab' },
-  { id: 'throatSwab', el: 'Φαρυγγικό επίχρισμα', en: 'Throat swab' },
-]
 
 // One multi-select: pick one employee or as many as needed. A single pick creates an
 // individual record, more than one a batch.
@@ -156,7 +152,8 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
     }
   }
   const en = language === 'en',
-    valid = chosen.length > 0
+    valid = chosen.length > 0,
+    texts = listTexts(language)
   return (
     <ObserverDialog
       width="standard"
@@ -184,17 +181,15 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
     >
       <div className="employee-surveillance-body">
         <div className="bulk-surveillance-controls">
-          <label className="field">
-            <span className="lo-field-label">{en ? 'Department' : 'Τμήμα'}</span>
-            <select value={department} onChange={event => setDepartment(event.target.value)}>
-              <option value="all">{en ? 'All departments' : 'Όλα τα τμήματα'}</option>
-              {departments.map(value => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SearchableSelect
+            label={en ? 'Department' : 'Τμήμα'}
+            value={department === 'all' ? '' : department}
+            options={departments.map(value => ({ value, label: value }))}
+            placeholder={en ? 'All departments' : 'Όλα τα τμήματα'}
+            emptyLabel={texts.emptyLabel}
+            clearLabel={texts.clearLabel}
+            onChange={value => setDepartment(value || 'all')}
+          />
           <ManualDateField
             label={en ? 'Screening date' : 'Ημερομηνία ελέγχου'}
             value={date}
@@ -211,8 +206,8 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
           placeholder={en ? 'Select employees' : 'Επιλέξτε εργαζόμενους'}
           searchPlaceholder={en ? 'Search name or department…' : 'Αναζήτηση ονόματος ή τμήματος…'}
           emptyLabel={en ? 'No employee matches' : 'Κανένας εργαζόμενος δεν ταιριάζει'}
-          selectAllLabel={en ? 'Select all' : 'Επιλογή όλων'}
-          clearAllLabel={en ? 'Clear all' : 'Αποεπιλογή όλων'}
+          selectAllLabel={texts.selectAllLabel}
+          clearAllLabel={texts.clearAllLabel}
           countLabel={n => (en ? `${n} employees selected` : `${n} επιλεγμένοι εργαζόμενοι`)}
         />
         <label className="field bulk-notes">
@@ -233,7 +228,7 @@ function ScreeningTypes({ types, toggle, en }) {
     <ChoiceChips
       className="bulk-screening-types"
       label={en ? 'Screening type' : 'Τύπος ελέγχου'}
-      options={screeningCatalog.map(item => ({ value: item.id, label: en ? item.en : item.el }))}
+      options={employeeScreeningOptions(en ? 'en' : 'el')}
       selected={types}
       onToggle={toggle}
     />

@@ -5,7 +5,7 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { demoLibrarySeed } from '../management/managementData'
+import { useDepartments } from '../management/useLibraries'
 import { createPatient } from '../patients/patientsService'
 import { PatientSelector, StartStep } from './NewSurveillanceSteps'
 import './surveillanceEntryCard.css'
@@ -13,7 +13,6 @@ import './surveillanceEntryCard.css'
 export function NewSurveillanceFlow({
   patient = null,
   patients = [],
-  departments = [],
   onClose,
   onCreate,
   onPatientsChange,
@@ -26,13 +25,9 @@ export function NewSurveillanceFlow({
   const [createdPatient, setCreatedPatient] = useState(null)
   const selectedPatient =
     patient || createdPatient || patients.find(x => x.id === selectedPatientId) || null
-  const departmentPairs = departments.length
-    ? departments.map(item => ({
-        id: item.id || item.value || '',
-        el: item.el || item.label || item.name || '',
-        en: item.en || item.labelEn || item.nameEn || item.name || '',
-      }))
-    : demoLibrarySeed.departments.map(([el, en]) => ({ id: '', el, en }))
+  // The organization's departments (Management > Libraries); the inline patient
+  // keeps the department's id and its Greek / English names, as before.
+  const { departments } = useDepartments()
   const firstDepartment = [selectedPatient?.department, selectedPatient?.departmentEn]
   const today = new Date().toISOString().slice(0, 10)
   const [patientDraft, setPatientDraft] = useState({
@@ -77,16 +72,12 @@ export function NewSurveillanceFlow({
       }))
   }
   function setPatientDepartment(value) {
-    const pair = departmentPairs.find(item => item.id === value || item.el === value) || {
-      id: '',
-      el: value,
-      en: value,
-    }
+    const department = departments.find(item => item.id === value)
     setPatientDraft(d => ({
       ...d,
-      departmentId: pair.id,
-      department: pair.el,
-      departmentEn: pair.en,
+      departmentId: department?.id || '',
+      department: department?.name || '',
+      departmentEn: department?.nameEn || department?.name || '',
     }))
   }
   async function buildInlinePatient() {
@@ -207,7 +198,7 @@ export function NewSurveillanceFlow({
         <PatientSelector
           chooseExistingPatient={chooseExistingPatient}
           createdPatient={createdPatient}
-          departmentPairs={departmentPairs}
+          departments={departments}
           isDemo={isDemo}
           language={language}
           patientDraft={patientDraft}

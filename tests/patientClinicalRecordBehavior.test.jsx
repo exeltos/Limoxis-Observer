@@ -66,7 +66,20 @@ const openStage = async name => {
   fireEvent.click(screen.getAllByRole('button').find(button => button.textContent.startsWith(name)))
   return document.querySelector('.clinical-panel.full-panel')
 }
-const optionsOf = select => within(select).getAllByRole('option').map(option => option.textContent)
+// Lists are SearchableSelect comboboxes: the options live in the listbox the
+// combobox controls (hidden until it opens), each with its label first.
+const listboxOf = combobox => document.getElementById(combobox.getAttribute('aria-controls'))
+const optionsOf = combobox =>
+  [...(listboxOf(combobox)?.querySelectorAll('[role="option"]') || [])].map(
+    option => option.querySelector('.searchable-select-option-label')?.textContent ?? option.textContent,
+  )
+const chooseOption = (combobox, label) => {
+  fireEvent.focus(combobox)
+  const option = [...listboxOf(combobox).querySelectorAll('[role="option"]')].find(
+    item => item.querySelector('.searchable-select-option-label')?.textContent === label,
+  )
+  fireEvent.click(option)
+}
 
 beforeEach(() => { localStorage.clear(); criteriaSets = null })
 afterEach(async () => {
@@ -144,7 +157,8 @@ describe('admissions', () => {
     const save = within(dialog).getByRole('button', { name: /Αποθήκευση/ })
     expect(save).toBeDisabled()
     const department = within(dialog).getAllByRole('combobox').find(select => optionsOf(select).includes('ΜΕΘ'))
-    fireEvent.change(department, { target: { value: department.querySelectorAll('option')[1].value } })
+    chooseOption(department, optionsOf(department)[1])
+    expect(department).toHaveValue(optionsOf(department)[1])
     await waitFor(() => expect(save).toBeEnabled())
     fireEvent.click(save)
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
@@ -254,7 +268,7 @@ describe('surveillance episode journey', () => {
     const panel = await openStage('HAI / AMR')
     fireEvent.click(within(panel).getByRole('button', { name: /Νέα αξιολόγηση HAI/ }))
     await waitFor(() => expect(loadHaiCriteriaSets).toHaveBeenCalledWith('demo-hospital'))
-    await waitFor(() => expect(within(screen.getByRole('dialog')).getAllByRole('option').some(option => /Τοπικός ορισμός BSI/.test(option.textContent))).toBe(true))
+    await waitFor(() => expect(within(screen.getByRole('dialog')).getAllByRole('combobox').some(select => optionsOf(select).some(text => /Τοπικός ορισμός BSI/.test(text)))).toBe(true))
   })
 
   it('offers the neonatal/infant CLABSI definition for an infant', async () => {

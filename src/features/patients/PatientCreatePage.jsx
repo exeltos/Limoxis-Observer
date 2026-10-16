@@ -7,8 +7,7 @@ import { SaveButton } from '../../design-system/SaveButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { demoLibrarySeed } from '../management/managementData'
-import { loadDepartments } from '../management/departmentsService'
+import { useDepartments } from '../management/useLibraries'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { createPatient,loadPatients } from './patientsService'
 import { PatientFormFields,usePatientForm } from './PatientsPage'
@@ -21,15 +20,14 @@ export function PatientCreatePage(){
   const navigate=useNavigate()
   const {tenant,isDemo}=useTenant()
   const [patients,setPatients]=useState([])
-  const [departments,setDepartments]=useState([])
+  const {departments,error:departmentsError}=useDepartments()
   const [saving,setSaving]=useState(false)
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(()=>{})
-    if(isDemo)setDepartments(demoLibrarySeed.departments.map(([el,en],index)=>({id:`demo-department-${index}`,name:el,nameEn:en})))
-    else loadDepartments(tenant?.id).then(list=>{if(alive)setDepartments((list||[]).filter(item=>item.is_active!==false).map(item=>({...item,nameEn:item.name})))}).catch(error=>{if(alive)notify(error?.message||t('actionFailed'),'danger')})
     return ()=>{alive=false}
-  },[tenant?.id,isDemo,notify,t])
+  },[tenant?.id,isDemo])
+  useEffect(()=>{if(departmentsError)notify(departmentsError==='load_failed'?t('actionFailed'):departmentsError,'danger')},[departmentsError,notify,t])
   const form=usePatientForm({departments,existingPatients:patients})
   async function save(){
     if(form.invalid||saving)return

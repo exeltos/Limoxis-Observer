@@ -1,4 +1,6 @@
 import { HistoryTimeline } from '../../design-system/HistoryTimeline'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { StatusBadge } from '../../design-system/StatusBadge'
 import { sampleTone } from './patientRecordScope'
 import {
   Activity,
@@ -24,6 +26,9 @@ import {
 
 // Read-only views of the clinical record: the timeline and the
 // final report of a completed episode.
+
+// A sample's result as a status-badge tone (sampleTone: positive / negative / pending).
+export const SAMPLE_TONES = { positive: 'danger', negative: 'success', pending: 'warning' }
 
 export function StagePanel({ icon: Icon, title, action, children }) {
   return (
@@ -238,34 +243,31 @@ export function CompletedReport({
         </Section>
         <Section icon={Microscope} title={t('microbiology')} wide>
           {samples.length ? (
-            <div className="record-table-wrap">
-              <table className="record-table">
-                <thead>
-                  <tr>
-                    <th>{t('date')}</th>
-                    <th>{t('sampleType')}</th>
-                    <th>{t('finalReport.result')}</th>
-                    <th>{t('organism')}</th>
-                    <th>{t('finalReport.resistance')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {samples.map(x => (
-                    <tr key={x.id}>
-                      <td>{fmtDate(x.collectedAt || x.requestedAt)}</td>
-                      <td>{termLabel(x.type, t, language)}</td>
-                      <td>
-                        <span className={`sv-result sv-result-${sampleTone(x)}`}>
-                          {termLabel(x.result || x.status || 'pending', t, language)}
-                        </span>
-                      </td>
-                      <td>{x.organism || '—'}</td>
-                      <td>{x.resistance || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RegistryTable
+              className="final-report-table"
+              wrapperClassName="scroll-table final-report-table-wrap"
+              columns={[
+                { key: 'date', label: t('date') },
+                { key: 'type', label: t('sampleType') },
+                { key: 'result', label: t('finalReport.result') },
+                { key: 'organism', label: t('organism') },
+                { key: 'resistance', label: t('finalReport.resistance') },
+              ]}
+              rows={samples}
+              renderRow={x => (
+                <>
+                  <td>{fmtDate(x.collectedAt || x.requestedAt)}</td>
+                  <td>{termLabel(x.type, t, language)}</td>
+                  <td>
+                    <StatusBadge tone={SAMPLE_TONES[sampleTone(x)]}>
+                      {termLabel(x.result || x.status || 'pending', t, language)}
+                    </StatusBadge>
+                  </td>
+                  <td>{x.organism || '—'}</td>
+                  <td>{x.resistance || '—'}</td>
+                </>
+              )}
+            />
           ) : (
             <Empty text={t('clinicalRecords.noPositiveFindings')} />
           )}

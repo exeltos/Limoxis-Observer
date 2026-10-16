@@ -5,11 +5,13 @@ import { UserPlus, UserSearch } from 'lucide-react'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { Field } from '../../design-system/Field'
+import { departmentOptions, listTexts, suspectedSourceOptions } from './surveillanceOptions'
 
 export function PatientSelector({
   chooseExistingPatient,
   createdPatient,
-  departmentPairs,
+  departments,
   isDemo,
   language,
   patientDraft,
@@ -59,46 +61,38 @@ export function PatientSelector({
       {patientMode === 'new' && !createdPatient && (
         <div className="entry-grid inline-patient-create">
           {!isDemo && (
-            <label>
-              <span>{t('patientId')}</span>
+            <Field label={t('patientId')}>
               <input
                 value={patientDraft.patientCode}
                 onChange={e => setPatientField('patientCode', e.target.value)}
               />
-            </label>
+            </Field>
           )}
-          <label>
-            <span>{t('firstName')}</span>
+          <Field label={t('firstName')}>
             <input
               value={language === 'el' ? patientDraft.firstName : patientDraft.firstNameEn}
               onChange={e =>
                 setPatientField(language === 'el' ? 'firstName' : 'firstNameEn', e.target.value)
               }
             />
-          </label>
-          <label>
-            <span>{t('lastName')}</span>
+          </Field>
+          <Field label={t('lastName')}>
             <input
               value={language === 'el' ? patientDraft.lastName : patientDraft.lastNameEn}
               onChange={e =>
                 setPatientField(language === 'el' ? 'lastName' : 'lastNameEn', e.target.value)
               }
             />
-          </label>
-          <label>
-            <span>{t('department')}</span>
-            <select
-              value={patientDraft.departmentId || patientDraft.department}
-              onChange={e => setPatientDepartment(e.target.value)}
-            >
-              <option value="">{t('select')}</option>
-              {departmentPairs.map(item => (
-                <option key={item.id || item.el} value={item.id || item.el}>
-                  {language === 'el' ? item.el : item.en}
-                </option>
-              ))}
-            </select>
-          </label>
+          </Field>
+          <SearchableSelect
+            label={t('department')}
+            value={patientDraft.departmentId || patientDraft.department}
+            options={departmentOptions(departments, language)}
+            placeholder={t('select')}
+            emptyLabel={listTexts(language).emptyLabel}
+            clearLabel={listTexts(language).clearLabel}
+            onChange={setPatientDepartment}
+          />
           <ManualDateField
             label={t('admissionDate')}
             value={patientDraft.admissionDate}
@@ -125,12 +119,12 @@ export function StartStep({ contextDepartment, language, setStart, startDraft, t
         onChange={v => setStart('reviewDue', v)}
       />
       <div className="flow-context-field">
-        <span>{t('department')}</span>
+        <span className="lo-field-label">{t('department')}</span>
         <strong>{contextDepartment || '—'}</strong>
         <small>{language === 'el' ? 'Από την ενεργή νοσηλεία' : 'From active admission'}</small>
       </div>
       <div className="flow-context-field">
-        <span>{t('room')}</span>
+        <span className="lo-field-label">{t('room')}</span>
         <strong>
           {language === 'el' ? 'Δεν έχει καταχωρηθεί στη νοσηλεία' : 'Not recorded on admission'}
         </strong>
@@ -140,22 +134,17 @@ export function StartStep({ contextDepartment, language, setStart, startDraft, t
             : 'Patient location is not edited from surveillance'}
         </small>
       </div>
-      <label>
-        <span>{t('clinicalRecords.suspectedSource')}</span>
-        <select
-          value={startDraft.suspectedSource}
-          onChange={e => setStart('suspectedSource', e.target.value)}
-        >
-          <option value="">{t('underAssessment')}</option>
-          <option value="bloodstream">{t('clinicalRecords.bloodstream')}</option>
-          <option value="urinary">{t('clinicalRecords.urinary')}</option>
-          <option value="respiratory">{t('clinicalRecords.respiratory')}</option>
-          <option value="surgicalSite">{t('clinicalRecords.surgicalSite')}</option>
-          <option value="other">{t('other')}</option>
-        </select>
-      </label>
-      <label className="entry-span-2">
-        <span>{t('surveillanceReason')}</span>
+      <SearchableSelect
+        label={t('clinicalRecords.suspectedSource')}
+        value={startDraft.suspectedSource}
+        options={suspectedSourceOptions(t)}
+        placeholder={t('underAssessment')}
+        emptyLabel={listTexts(language).emptyLabel}
+        clearLabel={listTexts(language).clearLabel}
+        onChange={v => setStart('suspectedSource', v)}
+      />
+      <label className="field entry-span-2">
+        <span className="lo-field-label">{t('surveillanceReason')}</span>
         <textarea
           rows={3}
           value={language === 'el' ? startDraft.reason : startDraft.reasonEn}
