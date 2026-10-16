@@ -18,7 +18,7 @@ import { formatDay } from '../../../core/i18n/formatDay'
 import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, periodOf, textOf } from '../../registers/registerEngine'
 import { loadObjectives, loadReviews, saveObjective } from './reviewService'
-import { objectiveState, reviewStatusLabel } from './reviewTemplate'
+import { formatObjectiveValue, objectiveState, reviewStatusLabel } from './reviewTemplate'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
@@ -75,7 +75,7 @@ export function ManagementPanel({ canManage }) {
         <td><strong>{objective.code}</strong><small>{objective.year}</small></td>
         <td>{objective.title}</td>
         <td>{objective.indicator ? <>{textOf(objective.indicator, language)}<small>{en ? objective.register.nameEn : objective.register.name}</small></> : (en ? 'Value reported by the owner' : 'Τιμή από τον υπεύθυνο')}</td>
-        <td><strong>{objective.current.value ?? '—'}{objective.unit === '%' && objective.current.value != null ? '%' : ''}</strong><small>{objective.direction === 'lower' ? '≤' : '≥'} {objective.target}{objective.unit === '%' ? '%' : objective.unit ? ` ${objective.unit}` : ''}</small></td>
+        <td><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong><small>{objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</small></td>
         <td>{objective.ownerLabel || '—'}<small>{formatDay(objective.dueDate, language)}</small></td>
         <td><StatusBadge tone={stateTone(objective.current.status)}>{stateLabel(objective.current.status)}</StatusBadge></td>
       </>}

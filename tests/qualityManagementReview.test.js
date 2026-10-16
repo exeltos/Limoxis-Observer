@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { REVIEW_SECTIONS, newReviewFrom, objectiveState, sectionFacts, nextCode } from '../src/features/quality/review/reviewTemplate'
+import { REVIEW_SECTIONS, formatObjectiveValue, newReviewFrom, objectiveState, sectionFacts, nextCode } from '../src/features/quality/review/reviewTemplate'
 
 describe('management review', () => {
   it('has the sixteen sections of the minutes form', () => {
@@ -24,6 +24,21 @@ describe('management review', () => {
     expect(sectionFacts('complaints', data, period)[0]).toMatch(/1 παράπονα/)
     expect(sectionFacts('capas', data, period)[0]).toMatch(/1 διορθωτικές.*1 ανοιχτές σήμερα, 1 εκπρόθεσμες/)
     expect(sectionFacts('audits', data, period)[0]).toMatch(/1 επιθεωρήσεις στην περίοδο, 1 ολοκληρωμένες/)
+  })
+
+  it('tells a first review apart from one whose predecessor decided nothing', () => {
+    const period = { from: '2026-01-01', to: '2026-08-26' }
+    expect(sectionFacts('previousActions', {}, period)[0]).toBe('Δεν υπάρχει προηγούμενη ανασκόπηση στο Limoxis.')
+    expect(sectionFacts('previousActions', { previous: { actions: [] } }, period)[0]).toMatch(/^Δεν είχαν αποφασιστεί/)
+  })
+
+  it('writes objective values in the language’s number format', () => {
+    expect(formatObjectiveValue(24.6, 'ημέρες')).toBe('24,6 ημέρες')
+    expect(formatObjectiveValue(46.4, '%')).toBe('46,4%')
+    expect(formatObjectiveValue(46.4, '%', 'en')).toBe('46.4%')
+    expect(formatObjectiveValue(null, '%')).toBe('—')
+    const line = sectionFacts('objectives', { objectives: [{ title: 'Μέση διάρκεια', current: { value: 24.6, status: 'missed' }, target: 12, direction: 'lower', unit: 'ημέρες' }] }, { from: '2026-01-01', to: '2026-12-31' })[0]
+    expect(line).toBe('Μέση διάρκεια: 24,6 ημέρες (στόχος ≤ 12 ημέρες) — δεν επιτυγχάνεται.')
   })
 
   it('judges an objective against its target in its direction', () => {

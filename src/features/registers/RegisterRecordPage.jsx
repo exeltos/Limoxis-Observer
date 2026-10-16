@@ -63,11 +63,12 @@ export function RegisterRecordPage() {
     { id: 'definition', label: en ? 'Definition' : 'Ορισμός', icon: Settings2 },
     { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: History },
   ]
+  const onExport = entries.length ? () => exportRegistry(registerExport(register, entries, { language, withIdentity })) : null
   const status = <StatusBadge tone={register.status === 'active' ? 'success' : 'neutral'}>{registerStatusLabel(register.status, language)}</StatusBadge>
   const context = <span className="register-context">{[en ? register.departmentEn : register.department, registerKindLabel(register.kind, language), `${en ? 'version' : 'έκδοση'} ${register.version}`].filter(Boolean).join(' · ')}{!withIdentity && !sheet && <span className="register-privacy"><Lock size={13} />{en ? 'Names visible only to the department' : 'Τα ονόματα τα βλέπει μόνο το τμήμα'}</span>}</span>
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={sheet ? <CalendarRange size={19} /> : <ClipboardList size={19} />} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}
-    headerActions={<PrintExportActions showPrint={false} onExport={() => exportRegistry(registerExport(register, entries, { language, withIdentity }))} />}>
-    {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
+>
+    {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} onExport={onExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} onExport={onExport} />)}
     {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} />}
     {tab === 'definition' && <RegisterBuilder register={register} canEdit={access.canDefine} entryCount={entries.length} onSaved={next => setRegister(next)} />}
     {tab === 'history' && <HistoryTimeline title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Changes to the register’s definition.' : 'Αλλαγές στον ορισμό του μητρώου.'} events={[...(register.history || [])].reverse().map(event => ({ at: event.at, title: historyTitle(event.action, language), meta: [event.actor] }))} when={value => formatDay(value, language)} emptyText={en ? 'No changes yet.' : 'Δεν υπάρχουν αλλαγές ακόμη.'} />}
@@ -84,7 +85,7 @@ export function listFields(register) {
   return [dateField, ...(marked.length ? marked : register.fields.filter(field => field !== dateField && field.type !== 'text').slice(0, 4))].filter(Boolean)
 }
 
-function RegisterCases({ register, entries, withIdentity, canRecord, loading }) {
+function RegisterCases({ register, entries, withIdentity, canRecord, loading, onExport }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -104,7 +105,7 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
   const paged = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
   const open = entry => navigate(`/registers/${register.id}/entries/${entry.id}`)
   return <RecordTabPanel className="register-cases" title={en ? 'Cases' : 'Περιστατικά'} subtitle={withIdentity ? (en ? 'Your department’s cases. The case number and name stay inside the department.' : 'Τα περιστατικά του τμήματος. Αριθμός περιστατικού και όνομα μένουν στο τμήμα.') : (en ? 'The values the indicators read, without names.' : 'Οι τιμές που διαβάζουν οι δείκτες, χωρίς ονόματα.')}
-    actions={canRecord && <div className="row-actions">{withIdentity && <ActionButton label={en ? 'Import from FileMaker' : 'Εισαγωγή από FileMaker'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>}<ActionButton tone="primary" label={en ? 'New case' : 'Νέο περιστατικό'} onClick={() => navigate(`/registers/${register.id}/entries/new`)}><Plus size={17} /><span>{en ? 'New case' : 'Νέο περιστατικό'}</span></ActionButton></div>}
+    actions={<div className="row-actions">{onExport && <PrintExportActions showPrint={false} onExport={onExport} />}{canRecord && withIdentity && <ActionButton label={en ? 'Import from FileMaker' : 'Εισαγωγή από FileMaker'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>}{canRecord && <ActionButton tone="primary" label={en ? 'New case' : 'Νέο περιστατικό'} onClick={() => navigate(`/registers/${register.id}/entries/new`)}><Plus size={17} /><span>{en ? 'New case' : 'Νέο περιστατικό'}</span></ActionButton>}</div>}
     footer={<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={withIdentity ? (en ? 'Case number or name' : 'Αριθμός περιστατικού ή όνομα') : (en ? 'Search is by case number, inside the department' : 'Η αναζήτηση γίνεται με αριθμό περιστατικού, μέσα στο τμήμα')} activeAdvancedCount={year !== 'all' ? 1 : 0} onClear={() => { setQuery(''); setYear('all') }}>
       <FilterSelect label={en ? 'Year' : 'Έτος'} value={year} onChange={setYear}><option value="all">{en ? 'All years' : 'Όλα τα έτη'}</option>{years.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>

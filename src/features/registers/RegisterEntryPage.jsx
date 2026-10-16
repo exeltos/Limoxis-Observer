@@ -96,7 +96,7 @@ export function RegisterEntryPage() {
   const errorCount = Object.keys(check.errors).length
   return <Page fill><EntityRecordShell className="register-record-shell register-entry-shell workspace-fill" avatar={<ClipboardList size={19} />} eyebrow={en ? register.nameEn : register.name} title={title} subtitle={showIdentity && identity.caseNumber ? `${en ? 'Case no.' : 'Αρ. περιστατικού'} ${identity.caseNumber}` : (en ? register.departmentEn : register.department)} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}
     headerActions={!isNew && canEdit && <IconButton label={en ? 'Delete case' : 'Διαγραφή περιστατικού'} tone="danger" onClick={remove}><Trash2 size={16} /></IconButton>}>
-    <div className="record-section register-entry-form"><div className="lo-form-cards">
+    <div className="register-form-page register-entry-form"><div className="lo-form-cards">
       {entry?.locked && <div className="governance-banner"><Lock size={16} /><span>{en ? 'This case belongs to a closed period and is read-only.' : 'Το περιστατικό ανήκει σε κλειστή περίοδο και δεν αλλάζει.'}</span></div>}
       {register.settings?.identity && (showIdentity ? <FormCard title={en ? 'Who' : 'Ταυτότητα'} icon={UserRound} hint={en ? 'Seen only inside the department; never in indicators or exports.' : 'Τη βλέπει μόνο το τμήμα· δεν εμφανίζεται σε δείκτες ή εξαγωγές.'}>
         <FormGrid columns={2}>

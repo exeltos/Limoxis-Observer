@@ -24,7 +24,7 @@ const NICU_FIELDS = [
   { key: 'delivery', list: true, section: 'birth', type: 'choice', required: true, label: 'Είδος τοκετού', labelEn: 'Mode of delivery', options: [o('vaginal', 'Φυσιολογικός τοκετός (Φ/Τ)', 'Vaginal delivery'), o('cs', 'Καισαρική τομή (Κ/Τ)', 'Caesarean section')] },
   { key: 'ivf', section: 'birth', type: 'yesNo', label: 'Εξωσωματική (IVF)', labelEn: 'IVF' },
   { key: 'prom_24h', section: 'birth', type: 'yesNo', label: 'Ρήξη θυλακίου > 24 ώρες', labelEn: 'Rupture of membranes > 24 h' },
-  { key: 'birth_weight', list: true, section: 'birth', type: 'number', aliases: ['ΒΑΡΟΣ ΕΙΣΟΔΟΥ'], unit: 'g', unitEn: 'g', min: 300, max: 6000, usualMin: 500, usualMax: 5000, label: 'Βάρος εισόδου', labelEn: 'Admission weight', required: true },
+  { key: 'birth_weight', list: true, section: 'birth', type: 'number', aliases: ['ΒΑΡΟΣ ΕΙΣΟΔΟΥ', 'ΒΑΡΟΣ ΓΕΝΝΗΣΗΣ'], unit: 'g', unitEn: 'g', min: 300, max: 6000, usualMin: 500, usualMax: 5000, label: 'Βάρος εισόδου', labelEn: 'Admission weight', required: true },
   { key: 'apgar_1', section: 'birth', type: 'number', aliases: ['APGAR ΣΤΟ 1ΜΙΝ'], min: 0, max: 10, label: 'APGAR 1′', labelEn: 'APGAR 1 min' },
   { key: 'apgar_5', section: 'birth', type: 'number', aliases: ['APGAR ΣΤΑ 5ΜΙΝ'], min: 0, max: 10, label: 'APGAR 5′', labelEn: 'APGAR 5 min' },
   { key: 'resuscitation', section: 'birth', type: 'choice', provisional: true, label: 'Ανάνηψη', labelEn: 'Resuscitation', options: [o('none', 'Καμία', 'None'), o('oxygen', 'Οξυγόνο', 'Oxygen'), o('bag_mask', 'Μάσκα - ασκός', 'Bag and mask'), o('intubation', 'Διασωλήνωση', 'Intubation'), o('cpr', 'ΚΑΡΠΑ', 'CPR')] },
