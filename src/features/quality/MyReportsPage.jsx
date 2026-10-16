@@ -6,7 +6,6 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
-import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -20,6 +19,13 @@ import './quality.css'
 // reports carry no name, so they never appear here.
 export function isOwnReport(record, userId) {
   return Boolean(userId && record && !record.anonymous && record.reportedById === userId)
+}
+
+// What each status means to the person who reported.
+function statusHint(status, en) {
+  if (status === 'closed') return en ? 'Quality has completed the review.' : 'Η Ποιότητα ολοκλήρωσε την αξιολόγηση.'
+  if (status === 'underReview') return en ? 'Quality is looking into it.' : 'Η Ποιότητα το διερευνά.'
+  return en ? 'Received; it will be reviewed by Quality.' : 'Παραλήφθηκε· θα αξιολογηθεί από την Ποιότητα.'
 }
 
 export function MyReportsPage() {
@@ -53,14 +59,13 @@ export function MyReportsPage() {
       </>} />
     </div>
     {open && <ObserverDialog eyebrow={open.displayId || open.id} title={title(open)} subtitle={en ? 'Your incident report' : 'Η αναφορά συμβάντος σας'} onClose={() => setOpen(null)}>
-      <RecordDetailsGrid fields={[
-        { label: t('status'), value: <StatusBadge tone={qualityStatusTone(open.status)}>{t(open.status)}</StatusBadge> },
-        { label: en ? 'Type' : 'Τύπος', value: vocabularyLabel(INCIDENT_CLASSES, open.incidentClass, language) },
-        { label: en ? 'Category' : 'Κατηγορία', value: incidentCategoryLabel(open.category, categories, language) },
-        { label: en ? 'Department' : 'Τμήμα', value: en ? open.departmentEn || open.department : open.department },
-        { label: t('date'), value: [formatDay(open.date, language), open.eventTime].filter(Boolean).join(' ') },
-      ]} />
-      {(open.description || open.descriptionEn) && <p className="quality-report-description">{en ? open.descriptionEn || open.description : open.description}</p>}
+      <div className="quality-report-summary">
+        <div className="quality-report-summary-status"><span>{t('status')}</span><StatusBadge tone={qualityStatusTone(open.status)}>{t(open.status)}</StatusBadge><small>{statusHint(open.status, en)}</small></div>
+        <dl>
+          {[[en ? 'Type' : 'Τύπος', vocabularyLabel(INCIDENT_CLASSES, open.incidentClass, language)], [en ? 'Category' : 'Κατηγορία', incidentCategoryLabel(open.category, categories, language)], [en ? 'Department' : 'Τμήμα', en ? open.departmentEn || open.department : open.department], [t('date'), [formatDay(open.date, language), open.eventTime].filter(Boolean).join(' ')]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}
+        </dl>
+        {[[en ? 'Description' : 'Περιγραφή', en ? open.descriptionEn || open.description : open.description], [en ? 'Immediate actions' : 'Άμεσες ενέργειες', en ? open.immediateActionsEn || open.immediateActions : open.immediateActions]].filter(([, text]) => text).map(([label, text]) => <section key={label}><h4>{label}</h4><p>{text}</p></section>)}
+      </div>
     </ObserverDialog>}
   </Page>
 }

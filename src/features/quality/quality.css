@@ -38,3 +38,15 @@ html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.
 .quality-owner-chips>span{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:2px 4px 2px 10px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface-muted);font-size:12px;font-weight:600;color:var(--lo-color-text)}
 .quality-owner-chips button{display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:50%;background:transparent;color:var(--lo-color-muted);font-size:15px;line-height:1;cursor:pointer}
 .quality-owner-chips button:hover{background:var(--lo-color-border);color:var(--lo-color-text)}
+/* «My incident reports» summary dialog: status line, plain list, titled texts. */
+.quality-report-summary{display:grid;gap:14px}
+.quality-report-summary-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:10px 12px;border-radius:10px;background:var(--lo-color-surface-muted)}
+.quality-report-summary-status>span{font-size:11px;font-weight:700;color:var(--lo-color-muted)}
+.quality-report-summary-status>small{flex-basis:100%;font-size:12px;color:var(--lo-color-text)}
+.quality-report-summary dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin:0}
+.quality-report-summary dt{font-size:11px;font-weight:650;color:var(--lo-color-muted)}
+.quality-report-summary dd{margin:2px 0 0;font-size:13.5px;font-weight:600;color:var(--lo-color-text);overflow-wrap:anywhere}
+.quality-report-summary section{display:grid;gap:4px;padding-top:12px;border-top:1px solid var(--lo-color-border)}
+.quality-report-summary h4{margin:0;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
+.quality-report-summary p{margin:0;font-size:13px;line-height:1.5;white-space:pre-line;color:var(--lo-color-text)}
+@media(max-width:600px){.quality-report-summary dl{grid-template-columns:minmax(0,1fr)}}
