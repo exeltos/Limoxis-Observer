@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Award, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ClipboardCheck, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
+import { Activity, AlertTriangle, Award, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ClipboardCheck, ClipboardList, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 
 const preventionAccessCapabilities=[
@@ -31,6 +31,8 @@ export const navigation=[
   {to:'/quality',key:'quality',icon:Award,capability:CAPABILITIES.VIEW_QUALITY},
   // Staff who may report but not open the Quality Center get their reports and the form.
   {to:'/quality/my-reports',key:'reportIncident',icon:AlertTriangle,capability:CAPABILITIES.REPORT_INCIDENT,unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  // Department staff record their registers (NICU cases, monthly sheets) here; Quality opens them from its Center.
+  {to:'/registers',key:'departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
   {to:'/analysis',key:'platformAnalyticsNav',icon:BarChart3,capability:CAPABILITIES.VIEW_ANALYSIS},
   {to:'/indicators',key:'indicators',icon:LineChart,capability:CAPABILITIES.VIEW_INDICATORS},

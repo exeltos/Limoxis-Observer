@@ -41,6 +41,9 @@ const TABLES=Object.freeze({
   quality_local_capas:{storageKey:'limoxis.qualityLocalCapas.v1',kind:'rows',cloud:false},
   quality_local_audits:{storageKey:'limoxis.qualityLocalAudits.v1',kind:'rows',cloud:false},
   quality_local_risk_assessments:{storageKey:'limoxis.qualityLocalRiskAssessments.v1',kind:'rows',cloud:false},
+  quality_department_registers:{storageKey:'limoxis.qualityDepartmentRegisters.v1',kind:'rows',cloud:false},
+  quality_department_register_entries:{storageKey:'limoxis.qualityDepartmentRegisterEntries.v1',kind:'rows',cloud:false},
+  quality_department_register_identities:{storageKey:'limoxis.qualityDepartmentRegisterIdentities.v1',kind:'document',cloud:false},
   recycle_bin_local:{storageKey:'limoxis.recycleBin.v1',kind:'rows',cloud:false},
 })
 
