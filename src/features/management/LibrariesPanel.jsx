@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Biohazard,BriefcaseMedical,Building2,Tablets,ClipboardCheck,Pencil,FileText,FlaskConical,LockKeyhole,PackageOpen,Plus,ShieldCheck,Syringe,Trash2,UsersRound,BriefcaseBusiness } from 'lucide-react'
+import { Biohazard,BriefcaseMedical,Building2,Tablets,ClipboardCheck,Pencil,FileText,FlaskConical,LockKeyhole,PackageOpen,Plus,ShieldCheck,Syringe,Trash2,UsersRound,BriefcaseBusiness,Ruler,ListChecks,Pill,Wrench,MapPin,Hand } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -12,6 +12,7 @@ import { demoLibrarySeed,newLocalLibraryItem } from './managementData'
 import { loadSnapshot,saveSnapshot } from '../../core/data/repository'
 import { DEPARTMENT_TYPES,createGlobalLibraryItem,createManagementLibraryItem,departmentTypeValue,loadGlobalLibraryItems,loadManagementLibraries,removeGlobalLibraryItem,removeManagementLibraryItem,saveJobDescription,updateGlobalLibraryItem,updateManagementLibraryItem } from './managementCloudService'
 import { isHospitalManagedLibraryKey } from './libraryGovernance'
+import { invalidateLibraries } from './useLibraries'
 import { JobDescriptionDialog } from '../employees/JobDescriptionViews'
 import { nextJobDescription } from '../employees/jobDescription'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -22,7 +23,9 @@ const categories=[
  ['sampleTypes','librarySampleTypes',FlaskConical,'teal'],['professionalCategories','libraryProfessionalCategories',UsersRound,'indigo'],['positions','libraryPositions',BriefcaseBusiness,'indigo'],
  ['vaccines','libraryVaccines',Syringe,'green'],['wasteTypes','libraryWasteTypes',PackageOpen,'amber'],
  ['antiseptics','libraryAntiseptics',BriefcaseMedical,'cyan'],['isolationTypes','libraryIsolationTypes',ShieldCheck,'rose'],
- ['controlTypes','libraryControlTypes',ClipboardCheck,'slate'],['documentCategories','libraryDocumentCategories',FileText,'violet'],
+ ['controlTypes','libraryControlTypes',ClipboardCheck,'slate'],['controlAnswers','libraryControlAnswers',ListChecks,'green'],['measurementUnits','libraryMeasurementUnits',Ruler,'sky'],
+ ['medicinesSupplies','libraryMedicinesSupplies',Pill,'purple'],['itemForms','libraryItemForms',PackageOpen,'indigo'],['equipment','libraryEquipment',Wrench,'orange'],
+ ['environmentalLocations','libraryEnvironmentalLocations',MapPin,'teal'],['surfacePoints','librarySurfacePoints',Hand,'cyan'],['documentCategories','libraryDocumentCategories',FileText,'violet'],
 ]
 const cloneSeed=()=>structuredClone(demoLibrarySeed)
 function normalizeGovernance(seed){const next={...seed};for(const key of Object.keys(next)){if(!isHospitalManagedLibraryKey(key)||!Array.isArray(next[key]))continue;next[key]=next[key].map(row=>[row[0],row[1],{...(row[2]||{}),system:false,locked:false,source:'Hospital',version:'local'}])}return next}
@@ -34,6 +37,8 @@ export function LibrariesPanel({global=false}={}){
  const [active,setActive]=useState(()=>global?visibleCategories[0][0]:'departments');const [query,setQuery]=useState('');const [rows,setRows]=useState(()=>isDemo?loadDemoState():{});const [loading,setLoading]=useState(!isDemo);const [editor,setEditor]=useState(null);const [draft,setDraft]=useState({el:'',en:'',type:'general'})
  useEffect(()=>{if(global){let mounted=true;setLoading(true);loadGlobalLibraryItems().then(data=>{if(mounted)setRows(data)}).catch(error=>{if(mounted)notify(error?.message||t('loadFailed'),'error')}).finally(()=>{if(mounted)setLoading(false)});return()=>{mounted=false}}if(isDemo){setRows(loadDemoState());setLoading(false);return}if(!tenant?.id){setRows({});setLoading(false);return}let mounted=true;setLoading(true);loadManagementLibraries(tenant.id).then(data=>{if(mounted)setRows(data)}).catch(error=>{if(mounted)notify(error?.message||t('loadFailed'),'error')}).finally(()=>{if(mounted)setLoading(false)});return()=>{mounted=false}},[global,isDemo,tenant?.id,notify,t])
  const filtered=useMemo(()=>(rows[active]||[]).filter(x=>`${x[0]} ${x[1]} ${x[2]?.source||''}`.toLowerCase().includes(query.toLowerCase())),[active,query,rows])
+ // Forms read the libraries through a short cache (useLibraries): any change here clears it.
+ useEffect(()=>{invalidateLibraries(global?undefined:tenant?.id)},[rows,global,tenant?.id])
  function persistDemo(next){setRows(next);saveSnapshot('management_libraries',next)}
  const [jobRow,setJobRow]=useState(null);const [jobSaving,setJobSaving]=useState(false)
  async function saveJob(draft){

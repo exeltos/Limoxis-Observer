@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Pencil, Trash2, XCircle } from 'lucide-react'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { YesNoField } from '../../design-system/YesNoField'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -16,6 +18,8 @@ import {
   updateLaboratoryRequest,
 } from '../laboratory/laboratoryRequestManagementService'
 import { updateEmployeeSurveillanceFollowup } from './employeeSurveillanceCloudService'
+import { ChoiceField } from '../../design-system/ChoiceField'
+import { EMPLOYEE_SCREENING_TYPES, priorityOptions } from './surveillanceOptions'
 import './employeeLabRequest.css'
 
 const isPositive = row => ['positive', 'positive_recheck'].includes(row.resultStatus)
@@ -44,11 +48,7 @@ const compactCode = value => {
 }
 
 // Requested materials are stored as comma-separated codes (e.g. "nasalSwab, handSwab").
-const REQUEST_MATERIALS = [
-  { id: 'nasalSwab', el: 'Ρινικό επίχρισμα', en: 'Nasal swab' },
-  { id: 'handSwab', el: 'Επίχρισμα χεριών', en: 'Hand swab' },
-  { id: 'throatSwab', el: 'Φαρυγγικό επίχρισμα', en: 'Throat swab' },
-]
+const REQUEST_MATERIALS = EMPLOYEE_SCREENING_TYPES
 function splitMaterials(value) {
   return String(value || '')
     .split(',')
@@ -416,11 +416,9 @@ export function EmployeeSurveillanceRecordDialog({
                     </span>
                   </div>
                   <div className="employee-lab-actions">
-                    <span
-                      className={`status-badge ${sample.result === 'negative' ? 'active' : ''}`}
-                    >
+                    <StatusBadge tone={sample.result === 'negative' ? 'success' : 'neutral'}>
                       {sample.result ? t(sample.result) : t(sample.status)}
-                    </span>
+                    </StatusBadge>
                     {sample.organism && <small>{sample.organism}</small>}
                     {actions.length > 0 && (
                       <OverflowMenu
@@ -494,28 +492,24 @@ export function EmployeeSurveillanceRecordDialog({
           )}
           {editMode && (
             <div className="employee-followup-edit-grid">
-              <div className="entry-span-2 followup-choice-row">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={noIntervention}
-                    onChange={e => {
-                      setNoIntervention(e.target.checked)
-                      if (e.target.checked) {
-                        setIntervention('')
-                        setInterventionType('')
-                        setInterventionStart('')
-                        setInterventionEnd('')
-                      }
-                    }}
-                  />
-                  <span>{en ? 'No intervention planned' : 'Δεν προγραμματίζεται παρέμβαση'}</span>
-                </label>
-              </div>
+              <YesNoField
+                className="entry-span-2 followup-choice-row"
+                label={en ? 'Intervention planned' : 'Προγραμματίζεται παρέμβαση'}
+                value={!noIntervention}
+                onChange={planned => {
+                  setNoIntervention(!planned)
+                  if (!planned) {
+                    setIntervention('')
+                    setInterventionType('')
+                    setInterventionStart('')
+                    setInterventionEnd('')
+                  }
+                }}
+              />
               {!noIntervention && (
                 <>
                   <label className="field">
-                    <span>{en ? 'Intervention type' : 'Τύπος παρέμβασης'}</span>
+                    <span className="lo-field-label">{en ? 'Intervention type' : 'Τύπος παρέμβασης'}</span>
                     <input
                       value={interventionType}
                       onChange={e => setInterventionType(e.target.value)}
@@ -523,7 +517,9 @@ export function EmployeeSurveillanceRecordDialog({
                     />
                   </label>
                   <label className="field">
-                    <span>{en ? 'Intervention details' : 'Λεπτομέρειες παρέμβασης'}</span>
+                    <span className="lo-field-label">
+                      {en ? 'Intervention details' : 'Λεπτομέρειες παρέμβασης'}
+                    </span>
                     <input
                       value={intervention}
                       onChange={e => setIntervention(e.target.value)}
@@ -544,19 +540,15 @@ export function EmployeeSurveillanceRecordDialog({
                   />
                 </>
               )}
-              <div className="entry-span-2 followup-choice-row">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={noRecheck}
-                    onChange={e => {
-                      setNoRecheck(e.target.checked)
-                      if (e.target.checked) setRecheckDate('')
-                    }}
-                  />
-                  <span>{en ? 'No recheck planned' : 'Δεν προγραμματίζεται επανέλεγχος'}</span>
-                </label>
-              </div>
+              <YesNoField
+                className="entry-span-2 followup-choice-row"
+                label={en ? 'Recheck planned' : 'Προγραμματίζεται επανέλεγχος'}
+                value={!noRecheck}
+                onChange={planned => {
+                  setNoRecheck(!planned)
+                  if (!planned) setRecheckDate('')
+                }}
+              />
               {!noRecheck && (
                 <div className="entry-span-2">
                   <ManualDateField
@@ -569,7 +561,7 @@ export function EmployeeSurveillanceRecordDialog({
               )}
               {hasFollowup(selected) && (
                 <label className="field entry-span-2">
-                  <span>{en ? 'Correction reason' : 'Αιτιολογία διόρθωσης'}</span>
+                  <span className="lo-field-label">{en ? 'Correction reason' : 'Αιτιολογία διόρθωσης'}</span>
                   <textarea
                     rows="2"
                     value={correctionReason}
@@ -646,28 +638,22 @@ export function EmployeeSurveillanceRecordDialog({
                   </small>
                 ))}
             </div>
-            <label className="field">
-              <span className="lo-field-label">{en ? 'Request type' : 'Τύπος αιτήματος'}</span>
-              <select
-                value={requestEditor.sampleType}
-                onChange={e => setRequestEditor(v => ({ ...v, sampleType: e.target.value }))}
-              >
-                <option value="surveillance">{en ? 'Surveillance' : 'Επιτήρηση'}</option>
-                <option value="screening">{en ? 'Screening' : 'Προληπτικός έλεγχος'}</option>
-                <option value="other">{en ? 'Other' : 'Άλλο'}</option>
-              </select>
-            </label>
-            <label className="field">
-              <span className="lo-field-label">{en ? 'Priority' : 'Προτεραιότητα'}</span>
-              <select
-                value={requestEditor.priority}
-                onChange={e => setRequestEditor(v => ({ ...v, priority: e.target.value }))}
-              >
-                <option value="routine">{en ? 'Routine' : 'Ρουτίνα'}</option>
-                <option value="urgent">{en ? 'Urgent' : 'Επείγον'}</option>
-                <option value="critical">{en ? 'Critical' : 'Κρίσιμο'}</option>
-              </select>
-            </label>
+            <ChoiceField
+              label={en ? 'Request type' : 'Τύπος αιτήματος'}
+              value={requestEditor.sampleType}
+              onChange={value => setRequestEditor(v => ({ ...v, sampleType: value }))}
+              options={[
+                { value: 'surveillance', label: en ? 'Surveillance' : 'Επιτήρηση' },
+                { value: 'screening', label: en ? 'Screening' : 'Προληπτικός έλεγχος' },
+                { value: 'other', label: en ? 'Other' : 'Άλλο' },
+              ]}
+            />
+            <ChoiceField
+              label={en ? 'Priority' : 'Προτεραιότητα'}
+              value={requestEditor.priority}
+              onChange={value => setRequestEditor(v => ({ ...v, priority: value }))}
+              options={priorityOptions(language)}
+            />
           </div>
         </ObserverDialog>
       )}

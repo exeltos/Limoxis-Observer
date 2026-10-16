@@ -1,15 +1,6 @@
 import { supabase } from '../../core/supabase/client'
+import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 
-const assertCloud=()=>{if(!supabase)throw new Error('Supabase is not configured.')}
-
-async function currentUserId(){
-  assertCloud()
-  const {data,error}=await supabase.auth.getUser()
-  if(error)throw error
-  const id=data?.user?.id
-  if(!id)throw new Error('Authenticated user is required.')
-  return id
-}
 
 function mapRecord(row,employee,department){
   return {

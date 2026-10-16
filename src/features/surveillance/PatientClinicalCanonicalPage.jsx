@@ -14,6 +14,8 @@ import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { EmptyState } from '../../design-system/EmptyState'
 import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
 import { useLanguage, translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -23,7 +25,7 @@ import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequ
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { can, CAPABILITIES, isProfileDisabled } from '../../core/permissions/roles'
 import { loadAdmissions, loadPatients } from '../patients/patientsService'
-import { loadDepartments } from '../management/departmentsService'
+import { useDepartments } from '../management/useLibraries'
 import {
   loadManagementLibraries,
   createManagementLibraryItem,
@@ -44,6 +46,7 @@ import {
 } from './ClinicalAdmissions'
 import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
 import { Timeline } from './ClinicalRecordViews'
+import { statusTone } from './surveillanceOptions'
 import './surveillanceEpisode.css'
 export {
   timelineLabel,
@@ -57,7 +60,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const actor = useAuditActor()
   const { caseId, patientId } = useParams()
   const location = useLocation()
-  const { t, language, locale } = useLanguage()
+  const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { tenant, isDemo, role, membership, canAccessRecord } = useTenant()
   const { goBack, restored } = useContextualNavigation(patientMode ? '/patients' : '/surveillance')
@@ -66,10 +69,11 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     [isDemo, tenant?.id, actor],
   )
   const laboratory = useLaboratoryRegistry()
+  // The organization's active departments, one shape for every dialog of the record.
+  const { departments } = useDepartments()
   const [patients, setPatients] = useState([]),
     [episodes, setEpisodes] = useState([]),
     [admissions, setAdmissions] = useState([]),
-    [departments, setDepartments] = useState([]),
     [clinicalLibraries, setClinicalLibraries] = useState(demoLibrarySeed)
   // Demo has no cloud attachment store; keep documents per episode in memory.
   const [demoDocuments, setDemoDocuments] = useState({})
@@ -210,21 +214,11 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       else setAdmissions([])
       if (!isDemo && tenant?.id)
         try {
-          setDepartments((await loadDepartments(tenant.id)).filter(row => row.is_active !== false))
           setClinicalLibraries(await loadManagementLibraries(tenant.id))
         } catch {
-          setDepartments([])
+          // The record still opens; the dialogs fall back to their built-in lists.
         }
-      else {
-        setClinicalLibraries(demoLibrarySeed)
-        setDepartments(
-          demoLibrarySeed.departments.map(([elName, enName]) => ({
-            id: elName,
-            name: language === 'el' ? elName : enName || elName,
-            nameEn: enName,
-          })),
-        )
-      }
+      else setClinicalLibraries(demoLibrarySeed)
     } catch (err) {
       setError(err?.message || t('actionFailed'))
     } finally {
@@ -293,16 +287,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     (language === 'el'
       ? record?.department || patient?.department
       : record?.departmentEn || patient?.departmentEn || record?.department || patient?.department)
-  const fmtDate = value =>
-    value
-      ? new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0, 10)}T12:00:00`))
-      : '—'
-  const fmtDateTime = value =>
-    value
-      ? new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(
-          new Date(value),
-        )
-      : '—'
+  const fmtDate = value => formatDay(value, language)
+  const fmtDateTime = value => formatDateTime(value, language)
   const canSurveillance = has(CAPABILITIES.VIEW_SURVEILLANCE)
   const canLab = has(CAPABILITIES.VIEW_LAB) || canSurveillance
   const canCreateLabSample = has(CAPABILITIES.MANAGE_LAB_SAMPLES)
@@ -483,10 +469,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         }
         status={
           <>
-            <span className={`status-badge ${shellStatus === 'active' ? 'active' : ''}`}>
-              {t(shellStatus)}
-            </span>
-            {record?.resistance && <span className="status-badge danger">{record.resistance}</span>}
+            <StatusBadge tone={statusTone(shellStatus)}>{t(shellStatus)}</StatusBadge>
+            {record?.resistance && <StatusBadge tone="danger">{record.resistance}</StatusBadge>}
             {patient && (
               <ClinicalRiskFlags
                 rows={riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || []}
@@ -732,7 +716,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           <NewSurveillanceFlow
             patient={patient}
             patients={patients}
-            departments={departments}
             onPatientsChange={setPatients}
             onClose={() => {
               setCreateOpen(false)

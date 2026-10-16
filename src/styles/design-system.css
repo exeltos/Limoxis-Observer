@@ -129,27 +129,6 @@
 }
 
 /* Control confirmation: one compact line, checkbox directly before the confirmation text. */
-.control-confirm-execution{
-  display:flex!important;
-  flex-direction:row!important;
-  align-items:center!important;
-  justify-content:flex-start!important;
-  gap:10px!important;
-  width:100%;
-  min-height:44px;
-  margin:0;
-  padding:10px 12px;
-  cursor:pointer;
-}
-.control-confirm-execution input[type="checkbox"]{
-  position:static!important;
-  flex:0 0 auto!important;
-  width:18px!important;
-  height:18px!important;
-  margin:0!important;
-}
-.control-confirm-execution svg{display:none!important}
-.control-confirm-execution span{min-width:0;text-align:left}
 
 /* Greek-first microcopy: technical abbreviations are allowed, interface jargon is not. */
 .table-cell-unit{opacity:.72}
@@ -1173,33 +1152,19 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 
 /* New control: one row of identity fields, the department chips scroll in a
    short box, so the page fits one screen. */
-.control-create-shell .control-identity-grid:is(.entry-grid,#lo-control-form){grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)!important}
-.control-create-shell .control-form-block:is(div,#lo-control-form){padding-top:10px!important;padding-bottom:10px!important}
-.control-create-shell .control-schedule-row:is(div,#lo-control-form){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,.6fr) minmax(0,1.4fr)!important;gap:12px!important;align-items:end!important}
-.control-create-shell .control-schedule-row .control-times-compact:is(div,#lo-control-form){display:flex;flex-direction:column;margin:0!important;padding:0!important;border:0!important;background:none!important}
-.control-create-shell .control-times-compact-title:is(div,#lo-control-form){display:flex!important;margin:0 0 6px!important;color:#607588!important;font-size:10px!important;font-weight:750!important}
-.control-create-shell .control-times-compact-title svg{width:13px;height:13px}
-.control-create-shell .control-schedule-row .control-time-grid:is(div,#lo-control-form){display:grid!important;gap:8px!important;margin:0!important}
 .control-create-shell .control-time-grid .time-field>.lo-field-label:is(span,#lo-control-form){display:none!important}
-.control-create-shell .control-form-block-title:is(div,#lo-control-form){margin-bottom:6px!important;padding-bottom:0!important}
-.control-create-shell .control-entry-grid:is(.entry-grid,#lo-control-form){padding:4px 0 0!important;gap:10px 14px!important}
 .control-create-shell :is(.control-policy-block,.control-guidance-block) textarea:is(textarea,#lo-control-form){min-height:64px!important;height:64px}
-.control-create-shell .control-create-form>.inline-edit-footer:is(div,#lo-control-form){margin-top:6px!important;padding-top:8px!important}
 /* A yes/no switch in a form row is as tall as the other controls. */
 .yes-no-field .lo-mode-switch:is(div,#lo-form-row){min-height:40px}
 .yes-no-field .lo-mode-switch>button:is(button,#lo-form-row){min-height:40px!important;height:40px}
 /* Yes/no fields line up with the selects and inputs next to them. */
 .entry-grid>.yes-no-field:is(div,#lo-form-row){display:flex;flex-direction:column;gap:0;align-self:end}
 .entry-grid>.yes-no-field>.lo-field-label:is(span,#lo-form-row){margin-bottom:6px}
-.control-create-shell .control-times-compact-title:is(div,#lo-control-form){display:flex;align-items:center;gap:6px;margin-bottom:6px;line-height:16px}
-.control-create-shell .control-times-compact-title svg:is(svg,#lo-control-form){width:14px;height:14px}
 /* A searchable or multi-value select inside a form row lines up with the inputs. */
 .entry-grid>.searchable-select:is(div,#lo-form-row){gap:0;align-self:end}
 .entry-grid>.searchable-select>label .lo-field-label:is(span,#lo-form-row){display:block;margin-bottom:6px}
 .entry-grid>.yes-no-field>.lo-mode-switch:is(div,#lo-form-row){margin:0!important}
 .multi-select .multi-select-search>input:is(input,#lo-form-row){border:0!important;box-shadow:none!important;outline:0!important;min-height:34px;height:34px;background:transparent!important}
-.control-create-shell .control-policy-block textarea:is(textarea,#lo-control-form){min-height:96px!important;height:96px}
-.control-create-shell .control-guidance-block textarea:is(textarea,#lo-control-form){min-height:186px!important;height:186px}
 /* Control record: details sheet on top, the departments table fills the rest and scrolls inside. */
 .control-record-shell .control-record-view:is(div,#lo-record-sheet){flex:1;min-height:0}
 .control-record-shell .control-record-departments:is(section,#lo-record-sheet){flex:1;min-height:0}
@@ -1209,44 +1174,26 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 /* Expiry entry: one item on one row; the status sits in a box as tall as the inputs. */
 .control-expiry-entry .control-expiry-single:is(.entry-grid,#lo-control-form){display:grid!important;grid-template-columns:minmax(0,1.8fr) minmax(0,.8fr) minmax(0,.6fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)!important;gap:12px!important;align-items:end}
 .control-expiry-entry .control-expiry-status-box{display:flex;align-items:center;min-height:40px;padding:0 10px;border:1px dashed #d6e0e8;border-radius:8px;background:#f8fafc}
-.control-expiry-entry .control-expiry-status-field:is(div,#lo-control-form){display:flex;flex-direction:column;gap:0}
-.control-expiry-entry .control-expiry-status-field>.lo-field-label{margin-bottom:6px}
 .control-expiry-entry .control-expiry-single>.manual-date-field:is(div,#lo-control-form),.control-expiry-entry .control-expiry-single>label:is(label,#lo-control-form){margin:0!important}
-.control-expiry-entry .control-structured-table-wrap:is(div,#lo-control-form){max-height:150px;overflow:auto}
-.control-execution-page-editor:has(.control-expiry-entry) .control-execution-notes textarea:is(textarea,#lo-control-form){min-height:56px!important;height:56px}
 .control-execution-page-editor:has(.control-expiry-entry):is(div,#lo-control-form){gap:12px;padding-top:14px}
 /* Execution times wrap inside their column instead of running past the block. */
-.control-create-shell .control-schedule-row .control-time-grid:is(div,#lo-control-form){grid-template-columns:repeat(auto-fill,minmax(86px,1fr))!important;min-width:0}
 .control-create-shell .control-time-grid>.time-field:is(div,label,#lo-control-form){min-width:0!important;width:auto!important}
 .control-create-shell .control-time-grid .time-field-control:is(div,#lo-control-form){min-width:0!important;width:100%!important}
 .control-create-shell .control-time-grid .time-field-control input:is(input,#lo-control-form){min-width:0!important;width:100%!important}
-.control-create-shell .control-schedule-row .control-times-compact:is(div,#lo-control-form){min-width:0;align-self:start}
-.control-create-shell .control-schedule-row:is(div,#lo-control-form#lo-control-form){align-items:start!important}
-.control-create-shell .control-schedule-row .control-times-compact-title:is(div,#lo-control-form#lo-control-form){height:13px;line-height:13px;margin:0 0 6px!important}
 /* Expiry entry page: the items table takes the free height and scrolls inside;
    details, notes, evidence and the actions stay on screen. */
 .control-execution-record-shell .control-execution-page-card:has(.control-expiry-entry):is(div,section,#lo-control-form){overflow:hidden!important;display:flex;flex-direction:column}
 .control-execution-page-editor:has(.control-expiry-entry):is(div,#lo-control-form#lo-control-form){display:flex!important;flex-direction:column;flex:1;min-height:0;height:100%}
-.control-execution-page-editor:has(.control-expiry-entry)>.control-execution-main-section:is(section,#lo-control-form){display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
 .control-execution-page-editor .control-expiry-entry:is(section,#lo-control-form){display:flex;flex-direction:column;flex:1;min-height:0}
-.control-execution-page-editor .control-expiry-entry .control-structured-table-wrap:is(div,#lo-control-form#lo-control-form){flex:1;min-height:90px;max-height:none!important;overflow:auto}
-.control-execution-page-editor:has(.control-expiry-entry) .control-execution-notes textarea:is(textarea,#lo-control-form#lo-control-form){min-height:40px!important;height:40px}
 .control-execution-page-editor:has(.control-expiry-entry)>*:not(.control-execution-main-section){flex:none}
-.control-execution-page-editor:has(.control-expiry-entry)>.control-execution-main-section:is(section,#lo-control-form#lo-control-form){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;column-gap:16px;row-gap:10px}
-.control-execution-page-editor:has(.control-expiry-entry)>.control-execution-main-section>.control-expiry-entry:is(section,#lo-control-form){grid-column:1/-1}
-.control-execution-page-editor:has(.control-expiry-entry)>.control-execution-main-section>*:not(.control-expiry-entry):is(*,#lo-control-form){margin:0!important;align-self:stretch}
 /* Laptop screens (up to ~900px tall): the controls forms and entry pages tighten
    so the items table and the actions stay on screen without page scroll. */
 @media (max-height:900px){
- .control-execution-page-editor:has(.control-expiry-entry) .control-execution-sheet>.lo-section-header:is(div,#lo-control-form#lo-control-form){display:none!important}
  .control-execution-page-editor:has(.control-expiry-entry) .record-details-grid>.detail-item:is(div,#lo-record-sheet#lo-record-sheet){padding:6px 14px!important}
  .control-execution-page-editor:has(.control-expiry-entry) .record-details-grid>.detail-item>small{display:none}
  .control-execution-page-editor .control-expiry-entry .lo-section-header p:is(p,#lo-control-form){display:none}
  .control-execution-page-editor:has(.control-expiry-entry) .control-evidence-section:is(section,#lo-control-form){padding:8px 12px!important}
  .control-execution-page-editor:has(.control-expiry-entry) .control-evidence-heading small:is(small,p,#lo-control-form){display:none}
- .control-create-shell .control-policy-block textarea:is(textarea,#lo-control-form#lo-control-form){min-height:56px!important;height:56px}
- .control-create-shell .control-guidance-block textarea:is(textarea,#lo-control-form#lo-control-form){min-height:120px!important;height:120px}
- .control-create-shell .control-form-block:is(div,#lo-control-form#lo-control-form){padding:8px 10px!important}
 }
 @media (max-width:1500px){
  .control-expiry-panel .record-tab-panel-header .lo-section-header-copy>p{display:none}

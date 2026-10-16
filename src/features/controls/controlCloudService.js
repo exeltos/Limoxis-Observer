@@ -4,22 +4,10 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { deleteAttachment,uploadAttachment } from '../../core/attachments/attachmentService'
 import { evidenceSummary } from './controlCriticality'
 import { loadControlDefinitionsLocal,saveControlDefinitionsLocal,loadControlAssignmentsLocal,saveControlAssignmentsLocal,loadControlExecutionsLocal,saveControlExecutionsLocal,loadControlDraftsLocal,saveControlDraftsLocal } from './controlStore'
+import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 
 const demoId=prefix=>`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`
 const demoResolveDepartments=(names=[])=>(names||[]).filter(Boolean).map(name=>({id:name,name}))
-
-const assertCloud=organizationId=>{
- if(!supabase)throw new Error('Supabase is not configured.')
- if(!organizationId)throw new Error('Organization is required.')
-}
-
-async function currentUserId(){
- const {data,error}=await supabase.auth.getUser()
- if(error)throw error
- const id=data?.user?.id
- if(!id)throw new Error('Authenticated user is required.')
- return id
-}
 
 const cleanResponseConfig=value=>{
  const next={...(value||{})}
@@ -87,6 +75,10 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[]){
   description:row.description||'',
   owner:meta.ownerLabel||'',
   ownerId:row.owner_id||null,
+  ownerPerson:meta.ownerPerson||null,
+  assignees:meta.assignees||{},
+  location:meta.location||'',
+  equipment:meta.equipment||'',
   responseConfig,
   frequency,
   status:row.status,
@@ -148,6 +140,10 @@ function responsePayload(draft,meta={}){
   __meta:{
    titleEn:draft.titleEn||draft.title,
    ownerLabel:draft.owner||'',
+   ownerPerson:draft.ownerPerson||null,
+   assignees:Object.fromEntries(Object.entries(draft.assignees||{}).filter(([department,person])=>person&&(draft.departments||[]).includes(department))),
+   location:draft.location||'',
+   equipment:draft.equipment||'',
    createdByScope:draft.createdByScope||meta.createdByScope||'infection_control',
    createdForDepartment:draft.createdForDepartment||meta.createdForDepartment||null,
    createdByName:draft.createdBy||meta.actorName||'',
@@ -220,7 +216,7 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
   title:draft.title.trim(),
   category:draft.category.trim(),
   description:draft.description||null,
-  owner_id:null,
+  owner_id:draft.ownerPerson?.userId||null,
   response_config:responsePayload(draft,{actorName,createdByScope,createdForDepartment}),
   frequency_config:{...(draft.frequency||{}),times:(draft.frequency?.times||[]).filter(Boolean)},
   status:draft.status||'active',
@@ -249,7 +245,7 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
  const nextDue=calculateNextDue(draft.frequency||{},new Date())
  for(const department of departments){
   const previous=(existing||[]).find(x=>x.department_id===department.id)
-  const row={control_id:definition.id,organization_id:organizationId,department_id:department.id,status:'scheduled',next_due_at:previous?.next_due_at||nextDue,last_completed_at:previous?.last_completed_at||null}
+  const row={control_id:definition.id,organization_id:organizationId,department_id:department.id,assignee_id:draft.assignees?.[department.name]?.userId||null,status:'scheduled',next_due_at:previous?.next_due_at||nextDue,last_completed_at:previous?.last_completed_at||null}
   const {error}=await supabase.from('control_assignments').upsert(row,{onConflict:'control_id,department_id'})
   if(error)throw error
  }

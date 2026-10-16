@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { RegistryTable } from '../../design-system/RegistryTable'
 import { downloadCsv } from '../../core/export/csvExport'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -120,22 +121,19 @@ export function ControlCalendarPanel({ report, language, onOpen }) {
       </ul>
       <span className="control-info-tip" tabIndex={0} title={`${tx.legendCount}: 9/10. ${tx.calendarNote}`} aria-label={tx.calendarNote} data-pdf-ignore=""><Info size={15} aria-hidden="true" /></span>
     </div>
-    <div className="scroll-table">
-      <table className="data-table sticky-table control-calendar-table">
-        <thead><tr>
-          <th className="control-calendar-name">{en ? 'Control' : 'Έλεγχος'}</th>
-          {months.map((label, month) => <th key={label} className={isCurrent(month) ? 'current' : ''}>{label}</th>)}
-          <th className="control-calendar-total">{year}</th>
-        </tr></thead>
-        <tbody>{shownGroups.map((group) => group.lines.length === 1 ? row(group.lines[0], false) : [
-          <tr key={`${group.item.id}-group`} className="control-calendar-group" onClick={() => onOpen?.(group.item)}>
-            <td colSpan={14} className="control-calendar-group-title"><strong>{title(group.item)}</strong><small>{frequencyLabel(group.item.frequency, language)} · {en ? `${group.lines.length} departments` : `${group.lines.length} τμήματα`}</small></td>
-          </tr>,
-          ...group.lines.map((line) => row(line, true)),
-        ])}</tbody>
-      </table>
-      {!lines.length && <div className="inline-empty" role="status"><strong>{tx.noCalendar}</strong><span>{en ? 'Change the year or the search.' : 'Αλλάξτε το έτος ή την αναζήτηση.'}</span></div>}
-    </div>
+    <RegistryTable
+      className="control-calendar-table"
+      columns={[{ key: 'name', label: en ? 'Control' : 'Έλεγχος', className: 'control-calendar-name' }, ...months.map((label, month) => ({ key: label, label, className: isCurrent(month) ? 'current' : undefined })), { key: 'total', label: year, className: 'control-calendar-total' }]}
+      rows={shownGroups.flatMap((group) => group.lines.length === 1 ? [{ key: group.item.id, line: group.lines[0], member: false }] : [{ key: `${group.item.id}-group`, group }, ...group.lines.map((line) => ({ key: `${line.item.id}-${line.department}`, line, member: true }))])}
+      rowKey={(entry) => entry.key}
+      emptyTitle={lines.length ? undefined : tx.noCalendar}
+      emptyText={en ? 'Change the year or the search.' : 'Αλλάξτε το έτος ή την αναζήτηση.'}
+      renderRow={(entry) => entry.group
+        ? <tr className="control-calendar-group" onClick={() => onOpen?.(entry.group.item)}>
+            <td colSpan={14} className="control-calendar-group-title"><strong>{title(entry.group.item)}</strong><small>{frequencyLabel(entry.group.item.frequency, language)} · {en ? `${entry.group.lines.length} departments` : `${entry.group.lines.length} τμήματα`}</small></td>
+          </tr>
+        : row(entry.line, entry.member)}
+    />
     {groups.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={groups.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1) }} />}
   </div>
 }

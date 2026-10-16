@@ -12,6 +12,7 @@ import {
 import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { StatusBadge } from '../../design-system/StatusBadge'
 import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { SurveillanceJourneyGuidance, SurveillanceJourneyMap } from './SurveillanceJourneyMap'
@@ -38,6 +39,7 @@ import {
 } from './ClinicalRecordDialogs'
 import { StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
+import { statusTone } from './surveillanceOptions'
 
 // Surveillance episode journey: stages, clinical entries and their detail view.
 
@@ -257,7 +259,7 @@ export function CanonicalJourney({
                     <td>{x.name || x.type || '—'}</td>
                     <td>{fmtDate(x.insertedAt || x.startedAt)}</td>
                     <td>
-                      <StatusBadge status={x.status || 'active'} label={t(x.status || 'active')} />
+                      <StateBadge status={x.status || 'active'} label={t(x.status || 'active')} />
                     </td>
                   </>
                 )}
@@ -308,7 +310,7 @@ export function CanonicalJourney({
                   <>
                     <td>{t(x.type) || x.type}</td>
                     <td>
-                      <StatusBadge
+                      <StateBadge
                         status={x.result || x.status || 'pending'}
                         label={t(x.result || x.status || 'pending')}
                       />
@@ -437,7 +439,7 @@ export function CanonicalJourney({
                     </td>
                     <td>{fmtDate(x.startedAt)}</td>
                     <td>
-                      <StatusBadge status={x.status || 'active'} label={t(x.status || 'active')} />
+                      <StateBadge status={x.status || 'active'} label={t(x.status || 'active')} />
                     </td>
                   </>
                 )}
@@ -915,7 +917,7 @@ function ClinicalEntryDetail({
                 <td>{a.dose || '—'}</td>
                 <td>{a.route || '—'}</td>
                 <td>
-                  <StatusBadge
+                  <StateBadge
                     status={a.status}
                     label={administrationStatusLabel(a.status, language)}
                   />
@@ -997,19 +999,6 @@ function StageTable({ columns, rows, renderRow, onOpen }) {
   )
 }
 // The same coloured status labels as the surveillance list.
-const STATUS_TONES = {
-  active: 'active',
-  negative: 'active',
-  administered: 'active',
-  positive: 'danger',
-  critical: 'danger',
-  rejected: 'danger',
-  withheld: 'warning',
-  pending: 'warning',
-  pending_lab: 'warning',
-  received: 'warning',
-  processing: 'warning',
-}
-function StatusBadge({ status, label }) {
-  return <span className={`status-badge ${STATUS_TONES[status] || ''}`.trim()}>{label}</span>
+function StateBadge({ status, label }) {
+  return <StatusBadge tone={statusTone(status)}>{label}</StatusBadge>
 }

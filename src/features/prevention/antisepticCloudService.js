@@ -1,21 +1,9 @@
-import { binCloudRows, binLocalRow, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { preventionDepartments, antisepticLibrary } from './preventionDemoData'
+import { antisepticLibrary } from './preventionDemoData'
 import { loadAntisepticLocal, saveAntisepticLocal } from './preventionStore'
-
-const assertCloud = organizationId => {
-  if (!supabase) throw new Error('Supabase is not configured.')
-  if (!organizationId) throw new Error('Organization is required.')
-}
-
-async function currentUserId() {
-  const { data, error } = await supabase.auth.getUser()
-  if (error) throw error
-  const id = data?.user?.id
-  if (!id) throw new Error('Authenticated user is required.')
-  return id
-}
+import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
+import { deletePreventionRecord, findApprovedPatientDayRows, loadPreventionDepartments } from './preventionCloud'
 
 const monthLabel = (from, to) => {
   if (!from) return ''
@@ -70,17 +58,12 @@ function mapRow(row) {
 export async function loadAntisepticSupportData(organizationId) {
   if (isDemoDataEnvironment())
     return {
-      departments: preventionDepartments.map(({ id, el, en }) => ({ id, el, en })),
+      departments: await loadPreventionDepartments(organizationId),
       products: antisepticLibrary.map(item => ({ ...item, indicatorEligible: isAbhrItem(item) })),
     }
   assertCloud(organizationId)
-  const [departmentsResult, productsResult] = await Promise.all([
-    supabase
-      .from('departments')
-      .select('id,name')
-      .eq('organization_id', organizationId)
-      .eq('is_active', true)
-      .order('name'),
+  const [departments, productsResult] = await Promise.all([
+    loadPreventionDepartments(organizationId),
     supabase
       .from('master_library_items')
       .select('id,name_el,name_en,code,metadata')
@@ -89,10 +72,9 @@ export async function loadAntisepticSupportData(organizationId) {
       .eq('is_active', true)
       .order('name_el'),
   ])
-  if (departmentsResult.error) throw departmentsResult.error
   if (productsResult.error) throw productsResult.error
   return {
-    departments: (departmentsResult.data || []).map(x => ({ id: x.id, el: x.name, en: x.name })),
+    departments,
     products: (productsResult.data || []).map(x => ({
       id: x.id,
       el: x.name_el,
@@ -104,21 +86,11 @@ export async function loadAntisepticSupportData(organizationId) {
   }
 }
 
+// One department's approved patient-days for the month; for the whole
+// hospital its total row, else the sum of the department rows.
 export async function findPatientDaysForPeriod(organizationId, departmentId, from, to) {
-  if (isDemoDataEnvironment()) return null
-  assertCloud(organizationId)
-  if (!from || !to) return null
-  let query = supabase
-    .from('patient_day_periods')
-    .select('department_id,patient_days,period_start,period_end,review_status')
-    .eq('organization_id', organizationId)
-    .eq('period_start', from)
-    .eq('period_end', to)
-    .eq('review_status', 'approved')
-  if (departmentId) query = query.eq('department_id', departmentId)
-  const { data, error } = await query
-  if (error) throw error
-  const rows = data || []
+  const rows = await findApprovedPatientDayRows(organizationId, { departmentId, from, to })
+  if (!rows) return null
   if (departmentId) return rows.length ? Number(rows[0].patient_days) || 0 : null
   const hospitalTotal = rows.find(row => row.department_id == null)
   if (hospitalTotal) return Number(hospitalTotal.patient_days) || 0
@@ -216,23 +188,6 @@ export async function saveAntisepticRecord(organizationId, record, { existingId 
   return rows.find(x => x.id === saved.id) || null
 }
 
-export async function deleteAntisepticRecord(organizationId, id) {
-  if (isDemoDataEnvironment()) {
-    if (!id) return
-    const rows = loadAntisepticLocal()
-    const row = rows.find(item => item.id === id)
-    await binLocalRow(organizationId, { module: 'clinical', kind: 'antiseptic_consumption_periods', ...describeDeleted('Αντισηπτικά', row), table: 'prevention_antiseptic', row })
-    saveAntisepticLocal(rows.filter(item => item.id !== id))
-    return
-  }
-  assertCloud(organizationId)
-  if (!id) return
-  const { data: deleted } = await supabase.from('antiseptic_consumption_periods').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle()
-  await binCloudRows(organizationId, { module: 'clinical', kind: 'antiseptic_consumption_periods', ...describeDeleted('Αντισηπτικά', deleted || {}), parts: [{ table: 'antiseptic_consumption_periods', match: { id } }] })
-  const { error } = await supabase
-    .from('antiseptic_consumption_periods')
-    .delete()
-    .eq('organization_id', organizationId)
-    .eq('id', id)
-  if (error) throw error
+export function deleteAntisepticRecord(organizationId, id) {
+  return deletePreventionRecord(organizationId, id, { table: 'antiseptic_consumption_periods', localTable: 'prevention_antiseptic', label: 'Αντισηπτικά', loadLocal: loadAntisepticLocal, saveLocal: saveAntisepticLocal })
 }

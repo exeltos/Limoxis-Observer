@@ -25,6 +25,9 @@ import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { EmptyState } from '../../design-system/EmptyState'
 import { EntityAttachmentsPanel } from '../../design-system/EntityAttachmentsPanel'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { formatDateTime } from '../../core/i18n/formatDay'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -40,8 +43,7 @@ import {
 import { LaboratoryStatus as Status } from './LaboratoryStatus'
 import { LaboratorySampleSummary, LaboratoryWorkflow } from './LaboratorySampleSummary'
 import { useLaboratoryRepository } from './hooks/useLaboratoryRepository'
-import { loadManagementLibraries } from '../management/managementCloudService'
-import { demoLibrarySeed } from '../management/managementData'
+import { useLibraries } from '../management/useLibraries'
 import { sampleProgress, workflowStates } from './laboratorySampleProgress'
 import { copy } from './laboratorySampleFormat'
 import { ResultCard, LabHistory } from './LaboratorySampleViews'
@@ -50,10 +52,11 @@ import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 export function LaboratorySampleRecordFunctionalView() {
   const { sampleId } = useParams()
-  const { t, locale, language } = useLanguage()
+  const { t, language } = useLanguage()
   const tx = key => copy[language]?.[key] || copy.en[key] || key
   const { notify } = useFeedback()
-  const { role, membership, tenant, isDemo, canAccessRecord } = useTenant()
+  const { role, membership, tenant, canAccessRecord } = useTenant()
+  const { libraries } = useLibraries()
   const repository = useLaboratoryRepository()
   // An environmental sample opened from the Surveillance Center stays there:
   // its own address, back and previous/next follow the surveillance list.
@@ -69,20 +72,14 @@ export function LaboratorySampleRecordFunctionalView() {
     [error, setError] = useState(''),
     [tab, setTab] = useState('sample'),
     [dialog, setDialog] = useState(null),
-    [standards, setStandards] = useState([]),
-    [libraries, setLibraries] = useState({})
+    [standards, setStandards] = useState([])
   const has = cap =>
     can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const canManage = has(CAPABILITIES.MANAGE_LAB_SAMPLES),
     canValidate = has(CAPABILITIES.VALIDATE_LAB_RESULTS),
     canCommunicate = has(CAPABILITIES.COMMUNICATE_CRITICAL_RESULTS),
     canReopen = has(CAPABILITIES.REOPEN_LAB_RECORD)
-  const fmt = value =>
-    value
-      ? new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(
-          new Date(value),
-        )
-      : '—'
+  const fmt = value => formatDateTime(value, language)
   async function reload() {
     setLoading(true)
     setError('')
@@ -97,16 +94,6 @@ export function LaboratorySampleRecordFunctionalView() {
   useEffect(() => {
     reload()
   }, [sampleId, repository]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (isDemo) {
-      setLibraries(demoLibrarySeed)
-      return
-    }
-    if (tenant?.id)
-      loadManagementLibraries(tenant.id)
-        .then(setLibraries)
-        .catch(() => setLibraries({}))
-  }, [isDemo, tenant?.id])
   const isEnvironmental =
     sample?.subjectType === 'environment' || ENVIRONMENTAL_CATEGORIES.includes(sample?.type)
   useEffect(() => {
@@ -458,9 +445,7 @@ export function LaboratorySampleRecordFunctionalView() {
                           </div>
                         </div>
                         <div className="record-section-actions">
-                          {current && (
-                            <span className="status-badge danger">{current.classification}</span>
-                          )}
+                          {current && <StatusBadge tone="danger">{current.classification}</StatusBadge>}
                           {canManageActive && (
                             <OverflowMenu
                               items={[
@@ -494,56 +479,41 @@ export function LaboratorySampleRecordFunctionalView() {
                           </div>
                         </div>
                       )}
-                      <div className="record-table-wrap">
-                        <table className="record-table lab-ast-table">
-                          <thead>
-                            <tr>
-                              <th>{tx('antibiotic')}</th>
-                              <th>MIC</th>
-                              <th>S/I/R</th>
-                              <th>{tx('method')}</th>
-                              <th>{tx('standard')}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {tagged.length ? (
-                              tagged.map(row => (
-                                <tr key={row.id}>
-                                  <td>
-                                    <strong>{row.drug}</strong>
-                                  </td>
-                                  <td>
-                                    {row.mic != null && row.mic !== ''
-                                      ? `${row.operator || ''}${row.mic}`
-                                      : row.zone != null
-                                        ? `${row.zone} mm`
-                                        : '—'}
-                                  </td>
-                                  <td>
-                                    <span
-                                      className={`lab-sir-badge sir-${String(row.sir || '').toLowerCase()}`}
-                                    >
-                                      {row.sir || '—'}
-                                    </span>
-                                  </td>
-                                  <td>{row.method || '—'}</td>
-                                  <td>
-                                    {[row.standard, row.version].filter(Boolean).join(' ') || '—'}
-                                  </td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td colSpan="5" className="lab-table-empty">
-                                  <div className="inline-empty" role="status">
-                                    <strong>{tx('noAst')}</strong>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
+                      <RegistryTable
+                        className="lab-ast-table"
+                        wrapperClassName="lab-ast-scroll"
+                        columns={[
+                          { key: 'drug', label: tx('antibiotic') },
+                          { key: 'mic', label: 'MIC' },
+                          { key: 'sir', label: 'S/I/R' },
+                          { key: 'method', label: tx('method') },
+                          { key: 'standard', label: tx('standard') },
+                        ]}
+                        rows={tagged}
+                        rowKey={(row, index) => row.id ?? index}
+                        emptyTitle={tx('noAst')}
+                        renderRow={row => (
+                          <>
+                            <td>
+                              <strong>{row.drug}</strong>
+                            </td>
+                            <td>
+                              {row.mic != null && row.mic !== ''
+                                ? `${row.operator || ''}${row.mic}`
+                                : row.zone != null
+                                  ? `${row.zone} mm`
+                                  : '—'}
+                            </td>
+                            <td>
+                              <span className={`lab-sir-badge sir-${String(row.sir || '').toLowerCase()}`}>
+                                {row.sir || '—'}
+                              </span>
+                            </td>
+                            <td>{row.method || '—'}</td>
+                            <td>{[row.standard, row.version].filter(Boolean).join(' ') || '—'}</td>
+                          </>
+                        )}
+                      />
                     </article>
                   )
                 })}
@@ -585,9 +555,7 @@ export function LaboratorySampleRecordFunctionalView() {
                           <span>{fmt(row.at)}</span>
                           <span>{t(row.method)}</span>
                           {row.readBack && (
-                            <span className="status-badge active">
-                              {t('laboratoryRecords.readBack')}
-                            </span>
+                            <StatusBadge tone="success">{t('laboratoryRecords.readBack')}</StatusBadge>
                           )}
                         </div>
                       </article>

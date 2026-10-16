@@ -1,4 +1,5 @@
 import { createDemoLabSample, laboratorySamples } from '../laboratory/laboratoryDemoData'
+import { EMPLOYEE_SCREENING_TYPES, OTHER_EMPLOYEE_SCREENING } from './surveillanceOptions'
 
 export const employeeSurveillanceRecords=[
   {
@@ -26,12 +27,8 @@ export const employeeSurveillanceRecords=[
 
 export const employeeSurveillanceBatches=[]
 
-export const employeeScreeningCatalog=[
-  {id:'handSwab',label:'handSwab',sampleType:'employeeScreening',sourceEl:'Επίχρισμα χεριών',sourceEn:'Hand swab'},
-  {id:'nasalSwab',label:'nasalSwab',sampleType:'employeeScreening',sourceEl:'Ρινικό επίχρισμα',sourceEn:'Nasal swab'},
-  {id:'throatSwab',label:'throatSwab',sampleType:'employeeScreening',sourceEl:'Φαρυγγικό επίχρισμα',sourceEn:'Throat swab'},
-  {id:'otherEmployeeScreening',label:'otherEmployeeScreening',sampleType:'employeeScreening',sourceEl:'Άλλος προληπτικός έλεγχος εργαζομένου',sourceEn:'Other employee screening'},
-]
+// The screening types (one list, surveillanceOptions.js) as laboratory requests.
+export const employeeScreeningCatalog=[...EMPLOYEE_SCREENING_TYPES,OTHER_EMPLOYEE_SCREENING].map(item=>({id:item.id,label:item.id,sampleType:'employeeScreening',sourceEl:item.el,sourceEn:item.en}))
 
 function nextSurveillanceId(){
   return `ESUR-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(employeeSurveillanceRecords.length+1).padStart(3,'0')}`

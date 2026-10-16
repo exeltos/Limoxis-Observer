@@ -1,0 +1,265 @@
+/* New / edit control (ControlEditor.jsx): cards in a grid that is two columns
+   on a laptop and one on a portrait tablet; the record body scrolls. */
+.control-editor-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-content: start;
+  padding: 14px !important;
+  overflow: auto;
+  min-height: 0;
+}
+.control-editor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--lo-color-border);
+  border-radius: 12px;
+  background: var(--lo-color-surface);
+}
+.control-editor-card.control-editor-wide {
+  grid-column: 1 / -1;
+}
+.control-editor-card > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.control-editor-card > header strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--lo-color-text);
+}
+.control-editor-card > header span {
+  font-size: 11px;
+  color: var(--lo-color-muted);
+}
+.control-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px 14px;
+  align-items: start;
+}
+.control-editor-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.control-editor-span {
+  grid-column: 1 / -1;
+}
+.control-editor-body .field {
+  gap: 5px;
+  min-width: 0;
+}
+.control-editor-body :is(.field, .searchable-select) :is(input:not([type='checkbox']), textarea) {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--lo-color-border-strong, #cad6df);
+  border-radius: 8px;
+  background: var(--lo-color-surface);
+  color: var(--lo-color-text);
+  font: inherit;
+  font-size: 13px;
+}
+.control-editor-body textarea {
+  padding: 9px 11px !important;
+  line-height: 1.45;
+  resize: vertical;
+}
+.control-editor-body .lo-mode-switch {
+  margin: 0;
+}
+.control-editor-modes > button {
+  min-height: 40px !important;
+}
+.control-editor-hint {
+  margin-top: -4px;
+  font-size: 11px;
+  color: var(--lo-status-warning-fg);
+}
+.control-editor-assignees {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--lo-color-border);
+}
+.control-editor-assignee {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.6fr) minmax(0, 1.4fr);
+  align-items: center;
+  gap: 10px;
+}
+.control-editor-assignee > strong {
+  font-size: 12.5px;
+  color: var(--lo-color-text);
+}
+.control-editor-times {
+  display: grid;
+  gap: 6px;
+}
+.control-editor-times > .lo-field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.control-editor-times .control-time-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+.control-editor-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+.control-editor-checklist {
+  display: grid;
+  gap: 10px;
+}
+.control-editor-checklist-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+.control-editor-checklist-items {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.control-editor-checklist-items > li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+.control-editor-checklist-items > li > input {
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--lo-color-border-strong, #cad6df);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+}
+.control-editor-checklist-number {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--lo-color-surface-muted);
+  color: var(--lo-color-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.control-editor-required .lo-choice-chips-list > button {
+  min-height: 34px !important;
+}
+.control-editor-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+/* Tablet portrait and narrow laptop windows: one column. */
+@media (max-width: 1100px) {
+  .control-editor-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .control-editor-grid.two,
+  .control-editor-choices,
+  .control-editor-checklist-tools,
+  .control-editor-assignee {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .control-editor-checklist-items > li {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+  }
+  .control-editor-required {
+    grid-column: 2;
+  }
+}
+.control-editor-body.record-section {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.control-editor-grid.identity {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.control-editor-grid.identity > .field:first-child {
+  grid-column: span 2;
+}
+.control-editor-body .searchable-select .searchable-select-control > input {
+  min-height: 40px;
+  height: 40px;
+}
+.control-editor-body .field > input:not([type='checkbox']) {
+  height: 40px;
+}
+@media (max-width: 700px) {
+  .control-editor-grid.identity {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .control-editor-grid.identity > .field:first-child {
+    grid-column: auto;
+  }
+}
+/* The expiry list is the heart of an expiry check: its button stands out. */
+.control-editor-list-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 5px 12px 5px 6px;
+  border: 1px dashed var(--lo-color-primary);
+  border-radius: 8px;
+  background: var(--lo-color-primary-soft);
+  color: var(--lo-color-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.control-editor-list-button.has-items {
+  border-style: solid;
+}
+.control-editor-list-button:hover {
+  background: color-mix(in srgb, var(--lo-color-primary) 14%, var(--lo-color-surface));
+}
+.control-editor-list-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--lo-color-primary);
+  color: var(--lo-color-surface);
+}
+.control-editor-list-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+.control-editor-list-text strong {
+  font-size: 12.5px;
+}
+.control-editor-list-text small {
+  font-size: 10.5px;
+  color: var(--lo-color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

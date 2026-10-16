@@ -51,9 +51,9 @@ describe('control expiry tracking', () => {
     expect(next.rows[1].removedAt).toBeUndefined()
   })
 
-  it('fills the finding an expiry date implies', () => {
-    expect(impliedFinding({ expiry: '2026-10-12' }, { before: 30, after: 7 }, 'el', now)).toBe('Ληγμένο')
-    expect(impliedFinding({ expiry: '2026-10-20' }, { before: 30, after: 7 }, 'en', now)).toBe('Near expiry')
+  it('fills the finding an expiry date implies, as a code whatever the screen language', () => {
+    expect(impliedFinding({ expiry: '2026-10-12' }, { before: 30, after: 7 }, now)).toBe('expired')
+    expect(impliedFinding({ expiry: '2026-10-20' }, { before: 30, after: 7 }, now)).toBe('expiring')
   })
 
   it('raises one bell item per department with alerting items', () => {

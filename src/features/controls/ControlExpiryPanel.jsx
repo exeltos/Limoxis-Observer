@@ -6,9 +6,11 @@ import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { FilterSelect } from '../../design-system/FilterBar'
 import { ExpiryBadge } from './ControlExpiryEntry'
 import { expiryCounts,expiryItems,expiryWindow,formLabel } from './controlExpiry'
 import { expiryReturnFormHtml,printHtml } from './controlExpiryPrint'
+import { rowFindingText } from './controlVocabulary'
 
 const normalize=value=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
 
@@ -59,12 +61,12 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
   className="control-expiry-panel workspace-fill"
   title={showControl?(en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'):(en?'Items & expiry':'Υλικά & λήξεις')}
   subtitle={single?(en?`Alert ${single.before} days before and up to ${single.after} days after expiry`:`Ειδοποίηση ${single.before} ημέρες πριν και έως ${single.after} ημέρες μετά τη λήξη`):(en?`${sources.length} expiry checks`:`${sources.length} ${sources.length===1?'έλεγχος':'έλεγχοι'} λήξεων`)}
-  actions={<>{!showControl&&departmentOptions.length>1&&<label className="control-expiry-department"><select aria-label={en?'Department':'Τμήμα'} value={department} onChange={e=>setDepartment(e.target.value)}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departmentOptions.map(dep=><option key={dep} value={dep}>{dep}</option>)}</select></label>}<Button variant="secondary" disabled={!returnItems.length} onClick={printReturnForm}><Printer size={15}/>{en?` Return & replacement (${returnItems.length})`:` Έντυπο επιστροφής (${returnItems.length})`}</Button><ModeSwitch ariaLabel={en?'Show':'Προβολή'} value={filter} onChange={setFilter} options={[
+  actions={<div className="control-expiry-tools"><ModeSwitch className="control-expiry-filter" ariaLabel={en?'Show':'Προβολή'} value={filter} onChange={setFilter} options={[
    {value:'alerting',label:`${en?'Need attention':'Χρειάζονται ενέργεια'} (${counts.expired+counts.expiring})`},
    {value:'expiring',label:`${en?'Expiring':'Λήγουν'} (${counts.expiring})`},
    {value:'expired',label:`${en?'Expired':'Ληγμένα'} (${counts.expired})`},
    {value:'all',label:`${en?'All':'Όλα'} (${searched.length})`},
-  ]}/></>}
+  ]}/>{!showControl&&departmentOptions.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departmentOptions.map(dep=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}<Button variant="secondary" disabled={!returnItems.length} onClick={printReturnForm}><Printer size={15}/>{en?` Return & replacement (${returnItems.length})`:` Έντυπο επιστροφής (${returnItems.length})`}</Button></div>}
   footer={shown.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>}
  >
   <RegistryTable
@@ -76,7 +78,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
    emptyTitle={empty.title}
    emptyText={empty.text}
    renderRow={item=><>
-    <td><strong>{item.row.item}</strong><small>{[formLabel(item.row.form,language),item.row.note,item.row.finding==='Άλλο'||item.row.finding==='Other'?item.row.findingOther:item.row.finding].filter(Boolean).join(' · ')}</small></td>
+    <td><strong>{item.row.item}</strong><small>{[formLabel(item.row.form,language),item.row.note,rowFindingText(item.row,language)].filter(Boolean).join(' · ')}</small></td>
     {showControl&&<td>{onOpenControl?<button type="button" className="control-expiry-control-link" onClick={()=>onOpenControl(item.record)}>{language==='el'?item.record.title:item.record.titleEn||item.record.title}</button>:item.record.title}</td>}
     <td>{item.department}</td>
     <td>{item.row.quantity||'—'}</td>

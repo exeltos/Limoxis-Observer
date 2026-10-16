@@ -1,0 +1,7 @@
+/* StatusBadge.jsx: the info tone (success, warning and danger come from the
+   shared .status-badge rules). */
+.status-badge.lo-tone-info {
+  background: var(--lo-status-info-bg) !important;
+  color: var(--lo-status-info-fg) !important;
+  border-color: var(--lo-status-info-border) !important;
+}

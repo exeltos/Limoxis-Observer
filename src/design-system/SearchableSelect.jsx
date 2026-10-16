@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 import './SearchableSelect.css'
 
@@ -22,26 +22,82 @@ export function SearchableSelect({
   emptyLabel = '',
   clearLabel = '',
   className = '',
+  recentValues = [],
+  recentLabel = '',
+  allowCustom = false,
+  customLabel = text => `«${text}»`,
+  hideLabel = false,
+  disabled = false,
 }) {
   const baseId = useId().replace(/:/g, '')
   const inputId = `${baseId}-input`,
     listId = `${baseId}-list`
-  const selected = options.find(option => String(option.value) === String(value)) || null
+  const selected =
+    options.find(option => String(option.value) === String(value)) ||
+    (allowCustom && String(value ?? '').trim() ? { value, label: String(value) } : null)
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState(null),
     [activeIndex, setActiveIndex] = useState(-1)
-  const listRef = useRef(null)
+  const listRef = useRef(null),
+    controlRef = useRef(null)
+  const [place, setPlace] = useState(null)
   const text = query ?? selected?.label ?? ''
   const matches = useMemo(() => {
     const needle = normalize(query)
-    if (!needle) return options
-    return options.filter(option =>
+    if (!needle) {
+      const recent = recentValues
+        .map(item => options.find(option => String(option.value) === String(item)))
+        .filter(Boolean)
+        .slice(0, 5)
+      if (!recent.length) return options
+      const recentSet = new Set(recent.map(option => String(option.value)))
+      return [
+        ...recent.map((option, index) => ({ ...option, group: index === 0 ? recentLabel : '' })),
+        ...options
+          .filter(option => !recentSet.has(String(option.value)))
+          .map((option, index) => ({ ...option, divider: index === 0 })),
+      ]
+    }
+    const found = options.filter(option =>
       normalize(
         `${option.label} ${option.description || ''} ${option.keywords || ''} ${option.value}`,
       ).includes(needle),
     )
-  }, [options, query])
+    const typed = String(query).trim()
+    if (allowCustom && typed && !options.some(option => normalize(option.label) === needle))
+      // Enter keeps the first library match; the typed text comes last.
+      return [...found, { value: typed, label: customLabel(typed), custom: true, divider: found.length > 0 }]
+    return found
+  }, [options, query, recentValues, recentLabel, allowCustom, customLabel])
   const optionId = index => `${baseId}-option-${index}`
+
+  // The list floats over the page (fixed) like MultiSelect's, so a scrolling
+  // table or dialog never clips it; it opens upwards when there is no room
+  // below and follows the field when something scrolls.
+  useEffect(() => {
+    if (!open) return undefined
+    function measure() {
+      const rect = controlRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const width = Math.max(rect.width, 240)
+      const below = window.innerHeight - rect.bottom
+      const upward = below < 280 && rect.top > below
+      const alignEnd = rect.left + width > window.innerWidth - 16
+      setPlace({
+        width,
+        maxHeight: Math.min(260, (upward ? rect.top : below) - 12),
+        ...(upward ? { top: 'auto', bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4, bottom: 'auto' }),
+        ...(alignEnd ? { left: 'auto', right: window.innerWidth - rect.right } : { left: rect.left, right: 'auto' }),
+      })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    window.addEventListener('scroll', measure, true)
+    return () => {
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', measure, true)
+    }
+  }, [open])
 
   function close() {
     setOpen(false)
@@ -82,14 +138,18 @@ export function SearchableSelect({
 
   return (
     <div className={`searchable-select ${className}`.trim()}>
-      <label htmlFor={inputId}>
-        <span className="lo-field-label">{label}</span>
-      </label>
-      <div className="searchable-select-control">
+      {!hideLabel && (
+        <label htmlFor={inputId}>
+          <span className="lo-field-label">{label}</span>
+        </label>
+      )}
+      <div className="searchable-select-control" ref={controlRef}>
         <input
           id={inputId}
           type="text"
           role="combobox"
+          aria-label={hideLabel ? label : undefined}
+          disabled={disabled}
           autoComplete="off"
           aria-autocomplete="list"
           aria-expanded={open}
@@ -104,7 +164,19 @@ export function SearchableSelect({
           }}
           onFocus={() => setOpen(true)}
           onClick={() => setOpen(true)}
-          onBlur={close}
+          onBlur={() => {
+            // A typed name is kept on leaving the field: the library entry it
+            // spells, or the text itself where custom values are allowed.
+            const typed = String(query ?? '').trim()
+            if (allowCustom && typed && typed !== String(value ?? '')) {
+              const exact = options.find(option => normalize(option.label) === normalize(typed))
+              onChange?.(exact ? exact.value : typed)
+            } else if (allowCustom && query !== null && !typed && String(value ?? '') !== '') {
+              // Text erased and the field left: the value is cleared.
+              onChange?.('')
+            }
+            close()
+          }}
           onKeyDown={onKeyDown}
         />
         {selected && clearLabel ? (
@@ -132,14 +204,20 @@ export function SearchableSelect({
         aria-label={label}
         className="searchable-select-list"
         hidden={!open}
+        style={place ? { position: 'fixed', zIndex: 1200, margin: 0, ...place } : undefined}
       >
-        {matches.map((option, index) => (
+        {matches.map((option, index) => [
+          option.group ? (
+            <li key={`group-${option.value}`} className="searchable-select-group" role="presentation">
+              {option.group}
+            </li>
+          ) : null,
           <li
-            key={option.value}
+            key={`${option.custom ? 'custom-' : ''}${option.value}`}
             id={optionId(index)}
             role="option"
             aria-selected={String(option.value) === String(value)}
-            className={`searchable-select-option${index === activeIndex ? ' active' : ''}`}
+            className={`searchable-select-option${index === activeIndex ? ' active' : ''}${option.divider ? ' divider' : ''}${option.custom ? ' custom' : ''}`}
             onMouseDown={event => event.preventDefault()}
             onMouseEnter={() => setActiveIndex(index)}
             onClick={() => choose(option)}
@@ -148,8 +226,8 @@ export function SearchableSelect({
             {option.description && (
               <small className="searchable-select-option-description">{option.description}</small>
             )}
-          </li>
-        ))}
+          </li>,
+        ])}
         {!matches.length && emptyLabel && (
           <li className="searchable-select-empty" role="presentation">
             {emptyLabel}

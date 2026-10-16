@@ -1,21 +1,9 @@
-import { binCloudRows, binLocalRow, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { preventionDepartments, wasteTypeLibrary } from './preventionDemoData'
+import { wasteTypeLibrary } from './preventionDemoData'
 import { loadWasteLocal, saveWasteLocal } from './preventionStore'
-
-const assertCloud = organizationId => {
-  if (!supabase) throw new Error('Supabase is not configured.')
-  if (!organizationId) throw new Error('Organization is required.')
-}
-
-async function currentUserId() {
-  const { data, error } = await supabase.auth.getUser()
-  if (error) throw error
-  const id = data?.user?.id
-  if (!id) throw new Error('Authenticated user is required.')
-  return id
-}
+import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
+import { deletePreventionRecord, findApprovedPatientDayRows, loadPreventionDepartments } from './preventionCloud'
 
 function mapRow(row) {
   const typeEl = row.waste_type?.name_el || ''
@@ -56,18 +44,10 @@ function mapRow(row) {
 
 export async function loadWasteSupportData(organizationId) {
   if (isDemoDataEnvironment())
-    return {
-      departments: preventionDepartments.map(({ id, el, en }) => ({ id, el, en })),
-      wasteTypes: wasteTypeLibrary,
-    }
+    return { departments: await loadPreventionDepartments(organizationId), wasteTypes: wasteTypeLibrary }
   assertCloud(organizationId)
-  const [departmentsResult, typesResult] = await Promise.all([
-    supabase
-      .from('departments')
-      .select('id,name')
-      .eq('organization_id', organizationId)
-      .eq('is_active', true)
-      .order('name'),
+  const [departments, typesResult] = await Promise.all([
+    loadPreventionDepartments(organizationId),
     supabase
       .from('master_library_items')
       .select('id,code,name_el,name_en')
@@ -76,10 +56,9 @@ export async function loadWasteSupportData(organizationId) {
       .eq('is_active', true)
       .order('name_el'),
   ])
-  if (departmentsResult.error) throw departmentsResult.error
   if (typesResult.error) throw typesResult.error
   return {
-    departments: (departmentsResult.data || []).map(x => ({ id: x.id, el: x.name, en: x.name })),
+    departments,
     wasteTypes: (typesResult.data || []).map(x => ({
       id: x.id,
       code: x.code,
@@ -95,31 +74,18 @@ export async function findWastePatientDays(
   periodStartOrRange,
   periodEndArg,
 ) {
-  if (isDemoDataEnvironment()) return null
-  assertCloud(organizationId)
   const periodStart =
     typeof periodStartOrRange === 'object' ? periodStartOrRange?.periodStart : periodStartOrRange
   const periodEnd =
     typeof periodStartOrRange === 'object' ? periodStartOrRange?.periodEnd : periodEndArg
-  if (!departmentId || !periodStart || !periodEnd) return null
-  const { data, error } = await supabase
-    .from('patient_day_periods')
-    .select('patient_days,period_start,period_end,source,review_status')
-    .eq('organization_id', organizationId)
-    .eq('department_id', departmentId)
-    .eq('period_start', periodStart)
-    .eq('period_end', periodEnd)
-    .eq('review_status', 'approved')
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error) throw error
-  return data
+  if (isDemoDataEnvironment() || !departmentId) return null
+  const [row] = (await findApprovedPatientDayRows(organizationId, { departmentId, from: periodStart, to: periodEnd })) || []
+  return row
     ? {
-        patientDays: Number(data.patient_days) || 0,
-        periodStart: data.period_start,
-        periodEnd: data.period_end,
-        source: data.source || 'library',
+        patientDays: Number(row.patient_days) || 0,
+        periodStart: row.period_start,
+        periodEnd: row.period_end,
+        source: row.source || 'library',
       }
     : null
 }
@@ -208,23 +174,6 @@ export async function saveWasteMeasurement(organizationId, record, { existingId 
   return rows.find(x => x.id === saved.id) || null
 }
 
-export async function deleteWasteMeasurement(organizationId, id) {
-  if (isDemoDataEnvironment()) {
-    if (!id) return
-    const rows = loadWasteLocal()
-    const row = rows.find(item => item.id === id)
-    await binLocalRow(organizationId, { module: 'clinical', kind: 'waste_measurements', ...describeDeleted('Απόβλητα', row), table: 'prevention_waste', row })
-    saveWasteLocal(rows.filter(item => item.id !== id))
-    return
-  }
-  assertCloud(organizationId)
-  if (!id) return
-  const { data: deleted } = await supabase.from('waste_measurements').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle()
-  await binCloudRows(organizationId, { module: 'clinical', kind: 'waste_measurements', ...describeDeleted('Απόβλητα', deleted || {}), parts: [{ table: 'waste_measurements', match: { id } }] })
-  const { error } = await supabase
-    .from('waste_measurements')
-    .delete()
-    .eq('organization_id', organizationId)
-    .eq('id', id)
-  if (error) throw error
+export function deleteWasteMeasurement(organizationId, id) {
+  return deletePreventionRecord(organizationId, id, { table: 'waste_measurements', localTable: 'prevention_waste', label: 'Απόβλητα', loadLocal: loadWasteLocal, saveLocal: saveWasteLocal })
 }

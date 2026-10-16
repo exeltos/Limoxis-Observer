@@ -6,6 +6,12 @@ import { Pencil, Trash2, UserRoundCheck, Users } from 'lucide-react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MultiSelect } from '../../design-system/MultiSelect'
+import { Field } from '../../design-system/Field'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { formatDay } from '../../core/i18n/formatDay'
+import { libraryOptions } from '../management/useLibraries'
+import { selectTexts, usePreventionLibrary } from './PreventionFields'
 import '../occupational-health/OccupationalHealthPage.css'
 
 export const EMPTY_VACCINATION = {
@@ -18,6 +24,7 @@ export const EMPTY_VACCINATION = {
   clinicalNotes: '',
 }
 
+// Used while the central vaccines library is empty.
 const VACCINES = [
   'Εποχική γρίπη',
   'Ηπατίτιδα Β',
@@ -28,7 +35,7 @@ const VACCINES = [
   'Ηπατίτιδα Α',
   'Μηνιγγιτιδόκοκκος',
   'Άλλο',
-]
+].map(name => ({ id: name, el: name, en: name }))
 
 export function StaffVaccinationEditor({
   language,
@@ -50,11 +57,8 @@ export function StaffVaccinationEditor({
     : en
       ? `${selectedEmployee.firstNameEn || selectedEmployee.firstName} ${selectedEmployee.lastNameEn || selectedEmployee.lastName}`
       : `${selectedEmployee.lastName} ${selectedEmployee.firstName}`
-  const fmtDate = v => {
-    if (!v) return '—'
-    const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/)
-    return m ? `${m[3]}/${m[2]}/${m[1]}` : v
-  }
+  const vaccines = usePreventionLibrary('vaccines', VACCINES)
+  const fmtDate = v => formatDay(v, language)
   const personName = e =>
     en ? `${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}` : `${e.lastName} ${e.firstName}`
   const employeeOptions = employees.map(e => ({
@@ -98,13 +102,13 @@ export function StaffVaccinationEditor({
                 .join(' · ')}
               actions={
                 <>
-                  <span className={`status-badge ${draft.status === 'complete' ? 'active' : ''}`}>
+                  <StatusBadge tone={draft.status === 'complete' ? 'success' : 'neutral'}>
                     {draft.status === 'complete'
                       ? en
                         ? 'Complete'
                         : 'Ολοκληρωμένο'
                       : draft.status || '—'}
-                  </span>
+                  </StatusBadge>
                   {canManage && (
                     <OverflowMenu
                       items={[
@@ -205,45 +209,42 @@ export function StaffVaccinationEditor({
         <section className="vaccination-editor-card">
           <h4>{en ? 'Vaccine details' : 'Στοιχεία εμβολίου'}</h4>
           <div className="vaccination-fields">
-            <label>
-              <span>{en ? 'Vaccine' : 'Εμβόλιο'} *</span>
-              <select value={draft.vaccine} onChange={e => patchDraft({ vaccine: e.target.value })}>
-                <option value="">{en ? 'Select vaccine' : 'Επιλέξτε εμβόλιο'}</option>
-                {VACCINES.map(v => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>{en ? 'Dose' : 'Δόση'}</span>
+            <SearchableSelect
+              className="vaccination-vaccine-field"
+              label={`${en ? 'Vaccine' : 'Εμβόλιο'} *`}
+              value={draft.vaccine}
+              options={libraryOptions(vaccines.map(item => ({ ...item, value: item.el })), language)}
+              onChange={vaccine => patchDraft({ vaccine })}
+              allowCustom
+              placeholder={en ? 'Select or type vaccine' : 'Επιλέξτε ή γράψτε εμβόλιο'}
+              {...selectTexts(en, { clear: true })}
+            />
+            <Field label={en ? 'Dose' : 'Δόση'}>
               <input
                 value={draft.dose}
                 onChange={e => patchDraft({ dose: e.target.value })}
                 placeholder={en ? 'e.g. 1, 2, booster' : 'π.χ. 1, 2, αναμνηστική'}
               />
-            </label>
+            </Field>
             <ManualDateField
               label={en ? 'Vaccination date *' : 'Ημερομηνία εμβολιασμού *'}
               value={draft.date}
               onChange={date => patchDraft({ date })}
             />
-            <label>
-              <span>{en ? 'Lot number' : 'Παρτίδα'}</span>
+            <Field label={en ? 'Lot number' : 'Παρτίδα'}>
               <input
                 value={draft.lotNumber}
                 onChange={e => patchDraft({ lotNumber: e.target.value })}
               />
-            </label>
+            </Field>
             <ManualDateField
               label={en ? 'Valid until' : 'Ισχύει έως'}
               value={draft.validUntil}
               onChange={validUntil => patchDraft({ validUntil })}
               optional
             />
-            <label className="vaccination-notes">
-              <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
+            <label className="field vaccination-notes">
+              <span className="lo-field-label">{en ? 'Notes' : 'Σημειώσεις'}</span>
               <input
                 value={draft.clinicalNotes}
                 onChange={e => patchDraft({ clinicalNotes: e.target.value })}
@@ -272,28 +273,14 @@ export function StaffVaccinationEditor({
               </div>
             </div>
             {mode === 'individual' ? (
-              <label>
-                <span>{en ? 'Select employee' : 'Επιλέξτε εργαζόμενο'}</span>
-                <select
-                  value={selectedEmployeeIds[0] || ''}
-                  onChange={e =>
-                    onChange({
-                      ...value,
-                      selectedEmployeeIds: e.target.value ? [e.target.value] : [],
-                    })
-                  }
-                >
-                  <option value="">{en ? 'Select employee' : 'Επιλέξτε εργαζόμενο'}</option>
-                  {employees.map(e => (
-                    <option key={e.id} value={e.id}>
-                      {en
-                        ? `${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}`
-                        : `${e.lastName} ${e.firstName}`}{' '}
-                      · {en ? e.departmentEn : e.department}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SearchableSelect
+                label={en ? 'Select employee' : 'Επιλέξτε εργαζόμενο'}
+                value={selectedEmployeeIds[0] || ''}
+                options={employeeOptions}
+                onChange={id => onChange({ ...value, selectedEmployeeIds: id ? [id] : [] })}
+                placeholder={en ? 'Search name or department…' : 'Αναζήτηση ονόματος ή τμήματος…'}
+                {...selectTexts(en, { clear: true })}
+              />
             ) : (
               <MultiSelect
                 label={en ? 'Employees' : 'Εργαζόμενοι'}

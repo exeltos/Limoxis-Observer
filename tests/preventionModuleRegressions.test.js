@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import { antisepticRows, handHygieneRows } from '../src/features/prevention/preventionDemoData'
 import { WHO_MOMENTS, WHO_PROFESSIONS } from '../src/features/prevention/WhoHandHygieneEditor'
-import * as antisepticModal from '../src/features/prevention/AntisepticEntryModal'
-import { ANTISEPTIC_METHODS } from '../src/features/prevention/AntisepticEntryModal'
+import * as antisepticMethods from '../src/features/prevention/antisepticMethods'
+import { ANTISEPTIC_METHODS } from '../src/features/prevention/antisepticMethods'
 
 // Prevention module review, following the pattern of past module reviews.
 describe('the bulk vaccination "saved" toast interpolates the count in Greek too', () => {
@@ -38,8 +38,25 @@ describe('demo antiseptic seed data uses a valid ANTISEPTIC_METHODS id', () => {
   })
 })
 
-describe('the dead, superseded AntisepticEntryModal component was removed', () => {
-  it('the module now only exports the still-used helpers, not the unused dialog component', () => {
-    expect(Object.keys(antisepticModal).sort()).toEqual(['ANTISEPTIC_METHODS', 'antisepticMethodLabel', 'isAbhrProduct'])
+describe('the antiseptic methods module (formerly the misnamed AntisepticEntryModal.jsx)', () => {
+  it('exports only the method list and its helpers, and the old file name is gone', () => {
+    expect(Object.keys(antisepticMethods).sort()).toEqual(['ANTISEPTIC_METHODS', 'antisepticMethodLabel', 'isAbhrProduct'])
+    expect(fs.existsSync('src/features/prevention/AntisepticEntryModal.jsx')).toBe(false)
+  })
+})
+
+// Prevention screens use the shared design-system fields: no raw <select>, field
+// titles through Field / lo-field-label, one department field for all editors.
+describe('prevention screens use the shared form controls', () => {
+  const dir = 'src/features/prevention'
+  const sources = fs.readdirSync(dir).filter(name => name.endsWith('.jsx')).map(name => [name, fs.readFileSync(`${dir}/${name}`, 'utf8')])
+  it('has no raw select and no local DepartmentField copy', () => {
+    for (const [name, text] of sources) {
+      expect(text, name).not.toMatch(/<select\b/)
+      expect(text, name).not.toMatch(/function DepartmentField\b/)
+    }
+  })
+  it('titles plain label fields with the shared lo-field-label', () => {
+    for (const [name, text] of sources) expect(text, name).not.toMatch(/<label[^>]*>\s*<span>/)
   })
 })

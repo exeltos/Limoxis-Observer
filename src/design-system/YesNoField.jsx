@@ -1,7 +1,7 @@
 import { ModeSwitch } from './ModeSwitch'
 import { useLanguage } from '../core/i18n/LanguageContext'
 
-// A yes/no answer: the shared mode switch, never a checkbox in a box.
+// A yes/no answer: the shared mode switch (as ChoiceField), never a checkbox in a box.
 export function YesNoField({label,value,onChange,hint,className=''}){
   const {language}=useLanguage();const en=language==='en'
   return <div className={`field yes-no-field ${className}`.trim()}>

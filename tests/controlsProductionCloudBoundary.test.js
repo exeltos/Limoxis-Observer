@@ -8,7 +8,7 @@ describe('controls production cloud boundary',()=>{
   const files=[
    'src/features/controls/ControlsPage.jsx',
    'src/features/controls/ControlRecordPage.jsx',
-   'src/features/controls/ControlExecutionModal.jsx',
+   'src/features/controls/ControlExecutionForm.jsx',
   ]
   for(const file of files){
    const source=read(file)

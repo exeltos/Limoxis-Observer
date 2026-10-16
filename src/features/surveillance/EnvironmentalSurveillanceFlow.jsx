@@ -13,12 +13,15 @@ import {
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { environmentalMethodLabel, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
+import { libraryOptions, useLibraries } from '../management/useLibraries'
 import { environmentalSubjectCatalog } from './environmentalSurveillanceData'
+import { listTexts } from './surveillanceOptions'
 import './surveillanceRegistry.css'
 import './surveillanceEntryCard.css'
 
@@ -90,6 +93,11 @@ export function EnvironmentalSurveillanceFlow({
     ),
     [batchRows, setBatchRows] = useState([{ id: 1, location: '', point: '' }]),
     [saving, setSaving] = useState(false)
+  // Locations and points come from the central libraries; a new one can be typed.
+  const { libraries } = useLibraries()
+  const texts = listTexts(language)
+  const locationOptions = libraryOptions(libraries.environmentalLocations || [], language),
+    pointOptions = libraryOptions(libraries.surfacePoints || [], language)
   function chooseType(type) {
     setSubjectType(type)
     setSourceCode(environmentalSubjectCatalog.find(x => x.id === type)?.defaultSource || 'other')
@@ -225,47 +233,51 @@ export function EnvironmentalSurveillanceFlow({
         ]}
       />
       <div className="entry-grid">
-        <label>
-          <span>{t('department')}</span>
-          <select value={departmentValue} onChange={e => setDepartmentValue(e.target.value)}>
-            <option value="">{t('select')}</option>
-            {departmentOptions.map(item => (
-              <option key={item.value} value={item.value}>
-                {language === 'el' ? item.label : item.labelEn || item.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SearchableSelect
+          label={t('department')}
+          value={departmentValue}
+          options={departmentOptions.map(item => ({
+            value: item.value,
+            label: language === 'el' ? item.label : item.labelEn || item.label,
+          }))}
+          placeholder={t('select')}
+          emptyLabel={texts.emptyLabel}
+          clearLabel={texts.clearLabel}
+          onChange={setDepartmentValue}
+        />
         <ManualDateField label={t('samplingDate')} value={date} onChange={setDate} />
-        <label>
-          <span>{t('samplingMethod')}</span>
-          <select value={sourceCode} onChange={e => setSourceCode(e.target.value)}>
-            {sources.map(code => (
-              <option key={code} value={code}>
-                {environmentalMethodLabel(code, t)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SearchableSelect
+          label={t('samplingMethod')}
+          value={sourceCode}
+          options={sources.map(code => ({ value: code, label: environmentalMethodLabel(code, t) }))}
+          emptyLabel={texts.emptyLabel}
+          onChange={v => v && setSourceCode(v)}
+        />
       </div>
       {mode === 'single' ? (
         <div className="entry-grid environmental-point-fields">
-          <label>
-            <span>{t('locationArea')}</span>
-            <input
-              value={location}
-              onChange={e => setLocation(e.target.value)}
-              placeholder={t('clinicalRecords.locationAreaPlaceholder')}
-            />
-          </label>
-          <label>
-            <span>{t('samplingPoint')}</span>
-            <input
-              value={point}
-              onChange={e => setPoint(e.target.value)}
-              placeholder={t('clinicalRecords.samplingPointPlaceholder')}
-            />
-          </label>
+          <SearchableSelect
+            label={t('locationArea')}
+            value={location}
+            options={locationOptions}
+            allowCustom
+            customLabel={texts.customLabel}
+            placeholder={t('clinicalRecords.locationAreaPlaceholder')}
+            emptyLabel=""
+            clearLabel={texts.clearLabel}
+            onChange={setLocation}
+          />
+          <SearchableSelect
+            label={t('samplingPoint')}
+            value={point}
+            options={pointOptions}
+            allowCustom
+            customLabel={texts.customLabel}
+            placeholder={t('clinicalRecords.samplingPointPlaceholder')}
+            emptyLabel=""
+            clearLabel={texts.clearLabel}
+            onChange={setPoint}
+          />
         </div>
       ) : (
         <div className="environmental-batch-points">
@@ -285,15 +297,27 @@ export function EnvironmentalSurveillanceFlow({
           {batchRows.map((row, index) => (
             <div className="batch-point-row" key={row.id}>
               <span>{String(index + 1).padStart(2, '0')}</span>
-              <input
+              <SearchableSelect
+                hideLabel
+                label={t('locationArea')}
                 value={row.location}
-                onChange={e => updateRow(row.id, 'location', e.target.value)}
+                options={locationOptions}
+                allowCustom
+                customLabel={texts.customLabel}
                 placeholder={t('locationArea')}
+                emptyLabel=""
+                onChange={v => updateRow(row.id, 'location', v)}
               />
-              <input
+              <SearchableSelect
+                hideLabel
+                label={t('samplingPoint')}
                 value={row.point}
-                onChange={e => updateRow(row.id, 'point', e.target.value)}
+                options={pointOptions}
+                allowCustom
+                customLabel={texts.customLabel}
                 placeholder={t('samplingPoint')}
+                emptyLabel=""
+                onChange={v => updateRow(row.id, 'point', v)}
               />
               {batchRows.length > 1 && (
                 <button

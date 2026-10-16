@@ -1,0 +1,407 @@
+/* Recording a control (ControlExecutionForm.jsx, ControlExpiryEntry.jsx):
+   large touch targets for tablets, tables that scroll inside themselves. */
+.control-execution-page-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+.control-exec-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.control-exec-main .field,
+.control-exec-main .searchable-select {
+  min-width: 0;
+}
+.control-exec-main :is(.field, .searchable-select, .control-exec-table) :is(input:not([type='checkbox']), textarea),
+.control-exec-checklist-text > input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--lo-color-border-strong, #cad6df);
+  border-radius: 8px;
+  background: var(--lo-color-surface);
+  color: var(--lo-color-text);
+  font: inherit;
+  font-size: 13px;
+}
+.control-exec-main textarea {
+  padding: 9px 11px !important;
+  line-height: 1.45;
+  resize: vertical;
+}
+.control-exec-main .lo-mode-switch {
+  margin: 0;
+}
+.control-exec-instructions {
+  padding: 10px 12px;
+  border-left: 3px solid var(--lo-color-primary);
+  border-radius: 0 8px 8px 0;
+  background: var(--lo-color-primary-soft);
+}
+.control-exec-instructions p {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--lo-color-text);
+  white-space: pre-line;
+}
+.control-exec-last {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--lo-color-border);
+  border-radius: 10px;
+  background: var(--lo-color-surface-muted);
+  font-size: 12px;
+  color: var(--lo-color-muted);
+}
+.control-exec-last > strong {
+  font-size: 13.5px;
+  color: var(--lo-color-text);
+}
+.control-exec-trend {
+  flex-basis: 100%;
+}
+.control-exec-result {
+  max-width: 720px;
+}
+.control-exec-numeric {
+  display: grid;
+  grid-template-columns: minmax(160px, 260px) minmax(0, 1fr);
+  align-items: end;
+  gap: 14px;
+}
+.control-exec-numeric input {
+  min-height: 48px !important;
+  font-size: 18px !important;
+  font-weight: 700;
+}
+.control-exec-numeric input.is-out-of-range {
+  border-color: var(--lo-status-danger-border) !important;
+  background: var(--lo-status-danger-bg) !important;
+}
+.control-exec-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-height: 48px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--lo-status-success-bg);
+  color: var(--lo-status-success-fg);
+  font-size: 12px;
+}
+.control-exec-range.danger {
+  background: var(--lo-status-danger-bg);
+  color: var(--lo-status-danger-fg);
+}
+.control-exec-choice > button,
+.control-exec-yesno > button {
+  min-height: 44px !important;
+  padding: 8px 18px !important;
+  font-size: 13px !important;
+}
+.control-exec-alert {
+  color: var(--lo-status-danger-fg);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+.control-exec-checklist,
+.control-exec-findings,
+.control-expiry-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.control-exec-checklist-items {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.control-exec-checklist-items > li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--lo-color-border);
+  border-radius: 10px;
+  background: var(--lo-color-surface);
+}
+.control-exec-checklist-items > li.is-yes {
+  border-color: var(--lo-status-success-border);
+}
+.control-exec-checklist-items > li.is-no {
+  border-color: var(--lo-status-danger-border);
+  background: var(--lo-status-danger-bg);
+}
+.control-exec-checklist-number {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--lo-color-surface-muted);
+  color: var(--lo-color-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.control-exec-checklist-text {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.control-exec-checklist-text > strong {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--lo-color-text);
+}
+.control-exec-checklist-text em {
+  color: var(--lo-status-danger-fg);
+  font-style: normal;
+}
+.control-exec-score {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--lo-color-muted);
+}
+.control-exec-score-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--lo-color-surface-muted);
+  overflow: hidden;
+}
+.control-exec-score-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--lo-color-success);
+}
+.control-exec-table-wrap {
+  overflow: auto;
+  max-height: min(52vh, 520px);
+  border: 1px solid var(--lo-color-border);
+  border-radius: 10px;
+}
+.control-exec-table td {
+  vertical-align: middle;
+}
+.control-exec-table .searchable-select-list {
+  min-width: 260px;
+}
+.control-expiry-table {
+  min-width: 980px;
+}
+.control-expiry-table td:first-child {
+  min-width: 200px;
+}
+.control-expiry-table tr.is-removed td {
+  opacity: 0.55;
+}
+.control-exec-action-col {
+  width: 44px;
+  text-align: right;
+}
+.control-exec-hint {
+  font-size: 11.5px;
+  color: var(--lo-color-muted);
+}
+.control-exec-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+}
+.control-expiry-single {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px 14px;
+}
+.control-execution-page-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--lo-color-border);
+}
+.control-execution-page-secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.control-execution-card footer .control-exec-confirm {
+  margin-right: auto;
+}
+@media (max-width: 1100px) {
+  .control-exec-bottom,
+  .control-exec-numeric {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .control-exec-checklist-items > li {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+  .control-exec-yesno {
+    grid-column: 2;
+  }
+}
+.control-exec-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0;
+  border: 1px solid var(--lo-color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.control-exec-meta > div {
+  flex: 1 1 150px;
+  min-width: 0;
+  padding: 8px 12px;
+  border-right: 1px solid var(--lo-color-border);
+}
+.control-exec-meta > div:last-child {
+  border-right: 0;
+}
+.control-exec-meta dt {
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--lo-color-muted);
+}
+.control-exec-meta dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lo-color-text);
+  overflow-wrap: anywhere;
+}
+/* The actions stay in reach while the form scrolls (laptop, tablet). */
+.control-execution-page-tools {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0 -2px;
+  padding: 10px 2px 2px;
+  background: var(--lo-color-surface);
+}
+.control-expiry-table {
+  min-width: 920px;
+  table-layout: fixed;
+}
+.control-expiry-table th:nth-child(1) { width: 21%; }
+.control-expiry-table th:nth-child(2) { width: 112px; }
+.control-expiry-table th:nth-child(3) { width: 72px; }
+.control-expiry-table th:nth-child(4) { width: 104px; }
+.control-expiry-table th:nth-child(5) { width: 148px; }
+.control-expiry-table th:nth-child(6) { width: 118px; }
+.control-expiry-table th:nth-child(7) { width: 150px; }
+.control-expiry-table th:nth-child(9) { width: 48px; }
+.control-expiry-table td {
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+.control-expiry-table td:first-child {
+  min-width: 0;
+}
+.control-expiry-table input {
+  padding: 0 8px !important;
+}
+.control-catalogue-table {
+  min-width: 1040px;
+  table-layout: fixed;
+}
+.control-catalogue-table th:nth-child(1) { width: 24%; }
+.control-catalogue-table th:nth-child(2) { width: 72px; }
+.control-catalogue-table th:nth-child(3) { width: 120px; }
+.control-catalogue-table th:nth-child(4) { width: 150px; }
+.control-catalogue-table th:nth-child(5) { width: 118px; }
+.control-catalogue-table th:nth-child(7) { width: 190px; }
+.control-catalogue-table th:nth-child(8) { width: 48px; }
+.control-catalogue-table :is(input:not([type='checkbox'])) {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 0 8px;
+  border: 1px solid var(--lo-color-border-strong, #cad6df);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12.5px;
+}
+.control-exec-yesno > button:nth-child(1).active {
+  background: var(--lo-status-success-bg) !important;
+  border-color: var(--lo-status-success-border) !important;
+  color: var(--lo-status-success-fg) !important;
+}
+.control-exec-yesno > button:nth-child(2).active {
+  background: var(--lo-status-danger-bg) !important;
+  border-color: var(--lo-status-danger-border) !important;
+  color: var(--lo-status-danger-fg) !important;
+}
+.control-exec-yesno > button:nth-child(3).active {
+  background: var(--lo-status-neutral-bg) !important;
+  border-color: var(--lo-status-neutral-border) !important;
+  color: var(--lo-status-neutral-fg) !important;
+}
+.control-execution-page-editor .control-execution-page-tools {
+  margin: 0;
+  padding: 10px 0 0;
+  justify-content: space-between;
+}
+.control-execution-page-editor .control-execution-page-secondary-actions {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+}
+@media (max-width: 1000px) {
+  .control-execution-page-editor .control-execution-page-tools {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+.control-execution-card footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+/* Notes and evidence sit side by side at the same height: the evidence box
+   starts where the notes field does, below the field title. */
+.control-exec-bottom {
+  align-items: stretch;
+}
+.control-exec-bottom > .field {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+.control-exec-bottom > .field > textarea {
+  height: 100%;
+  min-height: 76px;
+}
+.control-exec-bottom > .control-evidence-section {
+  margin: 0;
+  margin-top: 19px;
+  min-height: 76px;
+  box-sizing: border-box;
+}
+@media (max-width: 1100px) {
+  .control-exec-bottom > .control-evidence-section {
+    margin-top: 0;
+  }
+}

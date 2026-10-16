@@ -4,8 +4,12 @@ import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
-import { ExpiryBadge } from './ControlExpiryEntry'
-import { ITEM_FORMS,catalogueItem,parseCatalogueLines } from './controlExpiry'
+import { IconButton } from '../../design-system/IconButton'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { useLibraries } from '../management/useLibraries'
+import { ExpiryBadge,formOptions,useItemOptions } from './ControlExpiryEntry'
+import { catalogueItem,formKey,parseCatalogueLines } from './controlExpiry'
 
 // The medicines and supplies an expiry check goes through, one row each: name,
 // quantity, form (tablet, vial, …), expiry date, note and the departments that
@@ -13,6 +17,9 @@ import { ITEM_FORMS,catalogueItem,parseCatalogueLines } from './controlExpiry'
 // defaultDepartments: what a new row starts with (a department's own control: that department).
 export function ControlExpiryCatalogueDialog({items,departments,defaultDepartments=[],window,onClose,onSave,language}){
  const en=language==='en'
+ const {libraries}=useLibraries()
+ const itemOptions=useItemOptions(libraries,[],language)
+ const forms=formOptions(libraries,language)
  const fresh=(row={})=>catalogueItem({...row,departments:row.departments?.length?row.departments:defaultDepartments})
  const [rows,setRows]=useState(()=>items.length?items.map(item=>({...item,departments:item.departments?.length?item.departments:[...defaultDepartments]})):[fresh()])
  const [pasteOpen,setPasteOpen]=useState(false),[pasted,setPasted]=useState('')
@@ -40,20 +47,15 @@ export function ControlExpiryCatalogueDialog({items,departments,defaultDepartmen
    <label className="field"><span className="lo-field-label">{en?'One item per line: name, quantity, form, expiry, note (columns copied from Excel)':'Ένα υλικό ανά γραμμή: ονομασία, ποσότητα, είδος, λήξη, παρατήρηση (στήλες αντιγραμμένες από Excel)'}</span><textarea autoFocus value={pasted} onChange={e=>setPasted(e.target.value)} placeholder={'Adrenaline 1mg/ml\t10\tΦύσιγγα\t31/12/2026\nΦυσιολογικός ορός 0,9% 500ml\t24\tΦιάλη\t30/06/2027'}/></label>
    <Button variant="secondary" disabled={!pastedRows.length} onClick={addPasted}><Plus size={15}/>{en?` Add ${pastedRows.length||''} rows`:` Προσθήκη ${pastedRows.length||''} γραμμών`}</Button>
   </div>}
-  <div className="control-structured-table-wrap control-catalogue-wrap">
-   <table className="control-structured-table control-catalogue-table">
-    <thead><tr><th>{en?'Name':'Ονομασία'}</th><th>{en?'Quantity':'Ποσότητα'}</th><th>{en?'Form':'Είδος'}</th><th>{en?'Expiry date':'Ημερομηνία λήξης'}</th><th>{en?'Status':'Κατάσταση'}</th><th>{en?'Note':'Παρατήρηση'}</th><th>{en?'Departments':'Τμήματα'}</th><th aria-label={en?'Actions':'Ενέργειες'}/></tr></thead>
-    <tbody>{rows.map((row,index)=><tr key={row.id}>
-     <td><input autoFocus={!pasteOpen&&index===rows.length-1&&!row.item} aria-label={en?'Name':'Ονομασία'} value={row.item} onChange={e=>update(row.id,{item:e.target.value})} placeholder={en?'e.g. Adrenaline 1mg/ml':'π.χ. Adrenaline 1mg/ml'}/></td>
-     <td><input type="number" min="0" aria-label={en?'Quantity':'Ποσότητα'} value={row.quantity||''} onChange={e=>update(row.id,{quantity:e.target.value})}/></td>
-     <td><select aria-label={en?'Form':'Είδος'} value={row.form||''} onChange={e=>update(row.id,{form:e.target.value})}><option value="">{en?'Select…':'Επιλέξτε…'}</option>{ITEM_FORMS.map(([key,el,enLabel])=><option key={key} value={key}>{en?enLabel:el}</option>)}</select></td>
-     <td><ManualDateField className="table-date-field" value={row.expiry||''} onChange={value=>update(row.id,{expiry:value})}/></td>
-     <td><ExpiryBadge row={row} window={window} language={language}/></td>
-     <td><input aria-label={en?'Note':'Παρατήρηση'} value={row.note||''} onChange={e=>update(row.id,{note:e.target.value})}/></td>
-     <td><MultiSelect label={en?'Departments':'Τμήματα'} options={departmentOptions} selected={row.departments||[]} onChange={next=>update(row.id,{departments:next})} placeholder={en?'All departments':'Όλα τα τμήματα'} searchPlaceholder={en?'Search department…':'Αναζήτηση τμήματος…'} emptyLabel={en?'No department matches':'Κανένα τμήμα δεν ταιριάζει'} selectAllLabel={en?'Select all':'Επιλογή όλων'} clearAllLabel={en?'Clear all':'Αποεπιλογή όλων'} countLabel={n=>en?`${n} departments`:`${n} τμήματα`}/></td>
-     <td><button type="button" className="control-row-delete" title={en?'Remove row':'Αφαίρεση γραμμής'} aria-label={en?'Remove row':'Αφαίρεση γραμμής'} onClick={()=>setRows(current=>current.length===1?[fresh()]:current.filter(x=>x.id!==row.id))}><Trash2 size={14}/></button></td>
-    </tr>)}</tbody>
-   </table>
-  </div>
+  <RegistryTable className="control-exec-table control-catalogue-table" wrapperClassName="control-exec-table-wrap control-catalogue-wrap" columns={[{key:'item',label:en?'Name':'Ονομασία'},{key:'quantity',label:en?'Qty':'Ποσ.'},{key:'form',label:en?'Form':'Είδος'},{key:'expiry',label:en?'Expiry date':'Λήξη'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'note',label:en?'Note':'Παρατήρηση'},{key:'departments',label:en?'Departments':'Τμήματα'},{key:'actions',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-exec-action-col'}]} rows={rows} rowKey={row=>row.id} renderRow={row=><>
+   <td><SearchableSelect hideLabel label={en?'Name':'Ονομασία'} value={row.item} options={itemOptions.options} onChange={v=>update(row.id,{item:v})} allowCustom placeholder={en?'Search the library or type':'Αναζήτηση στη βιβλιοθήκη ή πληκτρολόγηση'} emptyLabel={en?'No match':'Καμία αντιστοιχία'} customLabel={text=>en?`Use «${text}»`:`Χρήση «${text}»`}/></td>
+   <td><input type="number" min="0" inputMode="numeric" aria-label={en?'Quantity':'Ποσότητα'} value={row.quantity||''} onChange={e=>update(row.id,{quantity:e.target.value})}/></td>
+   <td><SearchableSelect hideLabel label={en?'Form':'Είδος'} value={formKey(row.form)} options={forms} onChange={v=>update(row.id,{form:v})} placeholder="—" emptyLabel={en?'No match':'Καμία αντιστοιχία'} clearLabel={en?'Clear':'Καθαρισμός'}/></td>
+   <td><ManualDateField className="table-date-field" value={row.expiry||''} onChange={value=>update(row.id,{expiry:value})}/></td>
+   <td><ExpiryBadge row={row} window={window} language={language}/></td>
+   <td><input aria-label={en?'Note':'Παρατήρηση'} value={row.note||''} onChange={e=>update(row.id,{note:e.target.value})}/></td>
+   <td><MultiSelect label={en?'Departments':'Τμήματα'} options={departmentOptions} selected={row.departments||[]} onChange={next=>update(row.id,{departments:next})} placeholder={en?'All departments':'Όλα τα τμήματα'} searchPlaceholder={en?'Search department…':'Αναζήτηση τμήματος…'} emptyLabel={en?'No department matches':'Κανένα τμήμα δεν ταιριάζει'} selectAllLabel={en?'Select all':'Επιλογή όλων'} clearAllLabel={en?'Clear all':'Αποεπιλογή όλων'} countLabel={n=>en?`${n} departments`:`${n} τμήματα`}/></td>
+   <td className="control-exec-action-col"><IconButton size="sm" tone="danger" label={en?'Remove row':'Αφαίρεση γραμμής'} onClick={()=>setRows(current=>current.length===1?[fresh()]:current.filter(x=>x.id!==row.id))}><Trash2 size={14}/></IconButton></td>
+  </>}/>
  </ObserverDialog>
 }

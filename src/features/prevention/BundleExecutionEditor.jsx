@@ -5,6 +5,8 @@ import { controlActorFromAuth } from '../controls/controlActor'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { SaveButton } from '../../design-system/SaveButton'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { PreventionDepartmentField, selectTexts, usePreventionDepartments } from './PreventionFields'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadBundleClinicalOptions } from './bundleCloudService'
 
@@ -13,6 +15,12 @@ function scoreFor(answers = {}) {
   if (!applicable.length) return null
   return Math.round((applicable.filter(x => x === 'yes').length / applicable.length) * 100)
 }
+const SHIFTS = [
+  ['Πρωινή', 'Morning'],
+  ['Απογευματινή', 'Afternoon'],
+  ['Νυχτερινή', 'Night'],
+  ['Άλλο', 'Other'],
+]
 function allOrNoneFor(answers = {}) {
   const applicable = Object.values(answers).filter(x => x === 'yes' || x === 'no')
   return applicable.length > 0 && applicable.every(x => x === 'yes')
@@ -103,7 +111,11 @@ export function BundleExecutionEditor({
     () => new Map(departments.map(item => [item.id, item])),
     [departments],
   )
-  const selectedDepartment = departments.find(item => item.el === draft.departmentEl) || null
+  const departmentRows = usePreventionDepartments(departments)
+  const selectedDepartment =
+    departments.find(item => item.el === draft.departmentEl) ||
+    departmentRows.find(item => item.el === draft.departmentEl) ||
+    null
   const visiblePatients = patients.filter(
     item => !selectedDepartment?.id || item.departmentId === selectedDepartment.id,
   )
@@ -113,7 +125,10 @@ export function BundleExecutionEditor({
   )
   const selectedDevice = devices.find(item => item.id === draft.deviceId) || null
   const chooseDepartment = value => {
-    const department = departments.find(item => item.el === value) || null
+    const department =
+      departments.find(item => item.el === value) ||
+      departmentRows.find(item => item.el === value) ||
+      null
     setDraft(current => {
       const currentPatient = patients.find(item => item.id === current.patientId) || null
       const patientMatches =
@@ -188,109 +203,81 @@ export function BundleExecutionEditor({
     <div className="bundle-page-editor">
       <section className="bundle-page-context">
         <div className="bundle-page-grid">
-          <label>
-            <span>{en ? 'Bundle *' : 'Δέσμη μέτρων *'}</span>
-            <select
-              value={draft.templateId}
-              onChange={e =>
-                setDraft(current => ({
-                  ...current,
-                  templateId: e.target.value,
-                  answers: {},
-                  answerNotes: {},
-                }))
-              }
-            >
-              <option value="">{en ? 'Select Bundle' : 'Επιλέξτε δέσμη μέτρων'}</option>
-              {templates.map(item => (
-                <option key={item.id} value={item.id}>
-                  {item.name} — {en ? item.titleEn || item.title : item.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>{en ? 'Department *' : 'Τμήμα *'}</span>
-            <select
-              value={draft.departmentEl}
-              disabled={Boolean(fixedDepartment)}
-              onChange={e => chooseDepartment(e.target.value)}
-            >
-              <option value="">{en ? 'Select department' : 'Επιλέξτε τμήμα'}</option>
-              {departments.map(item => (
-                <option key={item.id || item.el} value={item.el}>
-                  {en ? item.en || item.el : item.el}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SearchableSelect
+            label={en ? 'Bundle *' : 'Δέσμη μέτρων *'}
+            value={draft.templateId}
+            options={templates.map(item => ({ value: item.id, label: `${item.name} — ${en ? item.titleEn || item.title : item.title}`, keywords: `${item.bundleKey || ''} ${item.titleEn || ''} ${item.source || ''}` }))}
+            onChange={value =>
+              value &&
+              setDraft(current =>
+                current.templateId === value
+                  ? current
+                  : { ...current, templateId: value, answers: {}, answerNotes: {} },
+              )
+            }
+            placeholder={en ? 'Select Bundle' : 'Επιλέξτε δέσμη μέτρων'}
+            {...selectTexts(en)}
+          />
+          <PreventionDepartmentField
+            value={draft.departmentEl}
+            onChange={chooseDepartment}
+            departments={departments}
+            fixed={Boolean(fixedDepartment)}
+          />
           <ManualDateField
             label={en ? 'Date *' : 'Ημερομηνία *'}
             value={draft.date}
             onChange={value => set('date', value)}
           />
-          <label>
-            <span>{en ? 'Shift / context' : 'Βάρδια / πλαίσιο'}</span>
-            <select value={draft.shift} onChange={e => set('shift', e.target.value)}>
-              <option value="">
-                {en ? 'Select shift / context' : 'Επιλέξτε βάρδια / πλαίσιο'}
-              </option>
-              <option value="Πρωινή">{en ? 'Morning' : 'Πρωινή'}</option>
-              <option value="Απογευματινή">{en ? 'Afternoon' : 'Απογευματινή'}</option>
-              <option value="Νυχτερινή">{en ? 'Night' : 'Νυχτερινή'}</option>
-              <option value="Άλλο">{en ? 'Other' : 'Άλλο'}</option>
-            </select>
-          </label>
-          <label>
-            <span>{en ? 'Patient' : 'Ασθενής'}</span>
-            <select
-              value={draft.patientId || ''}
-              onChange={e => choosePatient(e.target.value)}
-              disabled={clinicalLoading}
-            >
-              <option value="">
-                {clinicalLoading
+          <SearchableSelect
+            label={en ? 'Shift / context' : 'Βάρδια / πλαίσιο'}
+            value={draft.shift}
+            options={[
+              ...SHIFTS.map(([el, enLabel]) => ({ value: el, label: en ? enLabel : el })),
+              ...(draft.shift && !SHIFTS.some(([el]) => el === draft.shift) ? [{ value: draft.shift, label: draft.shift }] : []),
+            ]}
+            onChange={value => set('shift', value)}
+            placeholder={en ? 'Select shift / context' : 'Επιλέξτε βάρδια / πλαίσιο'}
+            {...selectTexts(en, { clear: true })}
+          />
+          <SearchableSelect
+            label={en ? 'Patient' : 'Ασθενής'}
+            value={draft.patientId || ''}
+            options={visiblePatients.map(item => ({ value: item.id, label: item.label }))}
+            onChange={choosePatient}
+            disabled={clinicalLoading}
+            placeholder={
+              clinicalLoading
+                ? en
+                  ? 'Loading patients…'
+                  : 'Φόρτωση ασθενών…'
+                : en
+                  ? 'Select patient (optional)'
+                  : 'Επιλέξτε ασθενή (προαιρετικό)'
+            }
+            {...selectTexts(en, { clear: true })}
+          />
+          <SearchableSelect
+            label={en ? 'Device' : 'Συσκευή'}
+            value={draft.deviceId || ''}
+            options={devices.map(item => ({ value: item.id, label: item.label }))}
+            onChange={chooseDevice}
+            disabled={clinicalLoading || !draft.patientId}
+            placeholder={
+              !draft.patientId
+                ? en
+                  ? 'Select patient first'
+                  : 'Επιλέξτε πρώτα ασθενή'
+                : clinicalLoading
                   ? en
-                    ? 'Loading patients…'
-                    : 'Φόρτωση ασθενών…'
+                    ? 'Loading devices…'
+                    : 'Φόρτωση συσκευών…'
                   : en
-                    ? 'Select patient (optional)'
-                    : 'Επιλέξτε ασθενή (προαιρετικό)'}
-              </option>
-              {visiblePatients.map(item => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>{en ? 'Device' : 'Συσκευή'}</span>
-            <select
-              value={draft.deviceId || ''}
-              onChange={e => chooseDevice(e.target.value)}
-              disabled={clinicalLoading || !draft.patientId}
-            >
-              <option value="">
-                {!draft.patientId
-                  ? en
-                    ? 'Select patient first'
-                    : 'Επιλέξτε πρώτα ασθενή'
-                  : clinicalLoading
-                    ? en
-                      ? 'Loading devices…'
-                      : 'Φόρτωση συσκευών…'
-                    : en
-                      ? 'Select device (optional)'
-                      : 'Επιλέξτε συσκευή (προαιρετικό)'}
-              </option>
-              {devices.map(item => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+                    ? 'Select device (optional)'
+                    : 'Επιλέξτε συσκευή (προαιρετικό)'
+            }
+            {...selectTexts(en, { clear: true })}
+          />
         </div>
         {template && (
           <div className="bundle-page-template-meta">
@@ -406,8 +393,8 @@ export function BundleExecutionEditor({
             : `Απομένουν ${elements.length - answered} στοιχείο/α. Η αποθήκευση τώρα θα κρατήσει την αξιολόγηση ως πρόχειρη.`}
         </div>
       )}
-      <label className="bundle-page-notes">
-        <span>{en ? 'General notes' : 'Γενικές σημειώσεις'}</span>
+      <label className="field bundle-page-notes">
+        <span className="lo-field-label">{en ? 'General notes' : 'Γενικές σημειώσεις'}</span>
         <textarea
           rows="3"
           value={draft.generalNotes || ''}

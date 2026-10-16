@@ -7,17 +7,23 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ActionButton } from '../../design-system/ActionButton'
+import { Field } from '../../design-system/Field'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
+import { PreventionDepartmentField, selectTexts, usePreventionDepartments, usePreventionLibrary } from './PreventionFields'
 
 export function WasteEntryEditor({
   onSave,
   fixedDepartment = '',
   initialRecord = null,
   departments = [],
-  wasteTypes = [],
+  wasteTypes: loadedWasteTypes = [],
   findPatientDays,
   readOnly = false,
 }) {
+  // Waste categories from the central library (the screen's list until it loads).
+  const wasteTypes = usePreventionLibrary('wasteTypes', loadedWasteTypes)
   const { profile, user } = useAuth()
   const { language, locale } = useLanguage()
   const en = language === 'en'
@@ -56,7 +62,10 @@ export function WasteEntryEditor({
   const set = (key, value) => {
     if (!readOnly) setDraft(state => ({ ...state, [key]: value }))
   }
-  const departmentInfo = departments.find(item => item.el === draft.departmentEl)
+  const departmentRows = usePreventionDepartments(departments)
+  const departmentInfo =
+    departments.find(item => item.el === draft.departmentEl) ||
+    departmentRows.find(item => item.el === draft.departmentEl)
   const typeInfo = wasteTypes.find(
     item => item.id === draft.wasteTypeId || item.el === draft.wasteType,
   )
@@ -131,6 +140,7 @@ export function WasteEntryEditor({
 
   function changeWasteType(value) {
     const selected = wasteTypes.find(item => item.id === value)
+    if (!selected) return
     setDraft(state => ({
       ...state,
       wasteTypeId: value,
@@ -219,31 +229,26 @@ export function WasteEntryEditor({
                 />
               </div>
               <div className="waste-department-field">
-                <DepartmentField
+                <PreventionDepartmentField
                   value={draft.departmentEl}
                   onChange={value => set('departmentEl', value)}
                   departments={departments}
                   fixed={Boolean(fixedDepartment)}
                 />
               </div>
-              <label>
-                <span>{en ? 'Waste category *' : 'Κατηγορία αποβλήτου *'}</span>
-                <select
-                  className="waste-category-select"
-                  value={draft.wasteTypeId || typeInfo?.id || ''}
-                  onChange={event => changeWasteType(event.target.value)}
-                >
-                  {wasteTypes.map(item => (
-                    <option key={item.id} value={item.id}>
-                      {en ? item.en || item.el : item.el}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>
-                  {en ? 'Total weight in period (kg) *' : 'Συνολικό βάρος περιόδου (kg) *'}
-                </span>
+              <SearchableSelect
+                className="waste-category-select"
+                label={en ? 'Waste category *' : 'Κατηγορία αποβλήτου *'}
+                value={draft.wasteTypeId || typeInfo?.id || ''}
+                options={[
+                  ...wasteTypes.map(item => ({ value: item.id, label: en ? item.en || item.el : item.el, keywords: `${item.el} ${item.en || ''} ${item.code || ''}` })),
+                  ...(draft.wasteType && !typeInfo ? [{ value: draft.wasteTypeId || draft.wasteType, label: en ? draft.typeEn || draft.wasteType : draft.wasteType }] : []),
+                ]}
+                onChange={value => value && changeWasteType(value)}
+                placeholder={en ? 'Select category' : 'Επιλέξτε κατηγορία'}
+                {...selectTexts(en)}
+              />
+              <Field label={en ? 'Total weight in period (kg) *' : 'Συνολικό βάρος περιόδου (kg) *'}>
                 <input
                   type="number"
                   min="0"
@@ -252,9 +257,8 @@ export function WasteEntryEditor({
                   onChange={event => set('weight', event.target.value)}
                   placeholder="0,0"
                 />
-              </label>
-              <label>
-                <span>{en ? 'Containers' : 'Περιέκτες'}</span>
+              </Field>
+              <Field label={en ? 'Containers' : 'Περιέκτες'}>
                 <input
                   type="number"
                   min="0"
@@ -263,7 +267,7 @@ export function WasteEntryEditor({
                   onChange={event => set('containers', event.target.value)}
                   placeholder="0"
                 />
-              </label>
+              </Field>
             </div>
             {!validPeriod && draft.periodStart && draft.periodEnd && (
               <div className="waste-period-warning">
@@ -284,32 +288,29 @@ export function WasteEntryEditor({
               </small>
             </div>
             <div className="entry-grid waste-receipt-grid">
-              <label>
-                <span>{en ? 'Responsible person' : 'Υπεύθυνος'}</span>
+              <Field label={en ? 'Responsible person' : 'Υπεύθυνος'}>
                 <input
                   value={draft.responsible || ''}
                   onChange={event => set('responsible', event.target.value)}
                   placeholder={actor.name}
                 />
-              </label>
-              <label>
-                <span>{en ? 'Document number' : 'Αριθμός παραστατικού'}</span>
+              </Field>
+              <Field label={en ? 'Document number' : 'Αριθμός παραστατικού'}>
                 <input
                   value={draft.documentNumber || ''}
                   onChange={event => set('documentNumber', event.target.value)}
                   placeholder={en ? 'e.g. 112233' : 'π.χ. 112233'}
                 />
-              </label>
-              <label>
-                <span>{en ? 'Collection company' : 'Εταιρεία συλλογής'}</span>
+              </Field>
+              <Field label={en ? 'Collection company' : 'Εταιρεία συλλογής'}>
                 <input
                   value={draft.collectionCompany || ''}
                   onChange={event => set('collectionCompany', event.target.value)}
                   placeholder={en ? 'Company name' : 'Επωνυμία εταιρείας'}
                 />
-              </label>
-              <label className="entry-span-2">
-                <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
+              </Field>
+              <label className="field entry-span-2">
+                <span className="lo-field-label">{en ? 'Notes' : 'Σημειώσεις'}</span>
                 <textarea
                   rows="2"
                   value={draft.notes || ''}
@@ -335,8 +336,10 @@ export function WasteEntryEditor({
               <strong>{indicator === null ? '—' : Number(indicator).toLocaleString(locale)}</strong>
               <span>{en ? 'kg / 1,000 patient-days' : 'kg / 1.000 νοσηλευτικές ημέρες'}</span>
             </div>
-            <label className="waste-patient-days-control">
-              <span>{en ? 'Patient-days for this period' : 'Νοσηλευτικές ημέρες περιόδου'}</span>
+            <label className="field waste-patient-days-control">
+              <span className="lo-field-label">
+                {en ? 'Patient-days for this period' : 'Νοσηλευτικές ημέρες περιόδου'}
+              </span>
               <input
                 type="number"
                 min="0"
@@ -422,11 +425,7 @@ export function WasteEntryEditor({
 
 function WasteRecordDetails({ record, language, locale }) {
   const en = language === 'en'
-  const fmtDate = value => {
-    if (!value) return '—'
-    const [year, month, day] = String(value).slice(0, 10).split('-')
-    return year && month && day ? `${day}/${month}/${year}` : value
-  }
+  const fmtDate = value => formatDay(value, language)
   const fmtNumber = (value, digits = 1) =>
     Number(value || 0).toLocaleString(locale, {
       maximumFractionDigits: digits,
@@ -453,17 +452,7 @@ function WasteRecordDetails({ record, language, locale }) {
           ? 'Manual entry'
           : 'Χειροκίνητη καταχώριση'
         : '—'
-  const fmtDateTime = value =>
-    value
-      ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        }).format(new Date(value))
-      : '—'
+  const fmtDateTime = value => formatDateTime(value, language)
   // Same layout as every prevention record: details sheet, key figures, notes.
   return (
     <div className="record-view-stack waste-record-view">
@@ -542,22 +531,5 @@ function WasteRecordDetails({ record, language, locale }) {
         ]}
       />
     </div>
-  )
-}
-
-function DepartmentField({ value, onChange, departments, fixed }) {
-  const { language } = useLanguage()
-  return (
-    <label>
-      <span>{language === 'en' ? 'Department *' : 'Τμήμα *'}</span>
-      <select value={value} disabled={fixed} onChange={event => onChange(event.target.value)}>
-        <option value="">{language === 'en' ? 'Select department' : 'Επιλέξτε τμήμα'}</option>
-        {departments.map(item => (
-          <option key={item.id || item.el} value={item.el}>
-            {language === 'en' ? item.en || item.el : item.el}
-          </option>
-        ))}
-      </select>
-    </label>
   )
 }

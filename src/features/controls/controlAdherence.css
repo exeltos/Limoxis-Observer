@@ -1,31 +1,36 @@
 /* Control programme adherence view. */
 .control-adherence{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
 .control-adherence-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 22px;padding:10px 14px;border-bottom:1px solid var(--lo-color-border)}
-.control-adherence-period{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--lo-color-muted)}
-.control-adherence-period select{height:32px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:#fff;font:inherit;color:var(--lo-color-text)}
 .control-adherence-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;margin-right:auto;font-size:12px;color:var(--lo-color-muted)}
 .control-adherence-summary span{display:inline-flex;align-items:baseline;gap:6px}
 .control-adherence-summary strong{font-size:15px;color:var(--lo-color-text)}
-.control-adherence-summary strong.missed{color:#b42318}
+.control-adherence-summary strong.missed{color:var(--lo-status-danger-fg)}
 .control-adherence .scroll-table{flex:1 1 0;min-height:0;overflow:auto}
-.data-table td.control-adherence-missed{color:#b42318!important;font-weight:700!important}
+.data-table td.control-adherence-missed{color:var(--lo-status-danger-fg)!important;font-weight:700!important}
 /* One rate look: a bar with the figure beside it. */
 .control-adherence-meter{display:inline-flex;align-items:center;gap:8px}
-.control-adherence-meter>i{display:block;width:90px;height:6px;border-radius:999px;background:#e8eef3;overflow:hidden}
-.control-adherence-meter>i>b{display:block;height:100%;border-radius:999px;background:#8a99a8}
-.control-adherence-meter>strong{min-width:38px;font-size:12.5px;font-weight:800;color:#566775}
-.control-adherence-meter.good>i>b{background:#2f8a57}.control-adherence-meter.good>strong{color:#1d6b3a}
-.control-adherence-meter.fair>i>b{background:#d98a1c}.control-adherence-meter.fair>strong{color:#8a4b00}
-.control-adherence-meter.low>i>b{background:#c9392f}.control-adherence-meter.low>strong{color:#b42318}
+.control-adherence-meter>i{display:block;width:90px;height:6px;border-radius:999px;background:var(--lo-color-border);overflow:hidden}
+.control-adherence-meter>i>b{display:block;height:100%;border-radius:999px;background:var(--lo-color-muted)}
+.control-adherence-meter>strong{min-width:38px;font-size:12.5px;font-weight:800;color:var(--lo-color-muted)}
+.control-adherence-meter.good>i>b{background:var(--lo-status-success-fg)}.control-adherence-meter.good>strong{color:var(--lo-status-success-fg)}
+.control-adherence-meter.fair>i>b{background:var(--lo-color-warning)}.control-adherence-meter.fair>strong{color:var(--lo-status-warning-fg)}
+.control-adherence-meter.low>i>b{background:var(--lo-status-danger-fg)}.control-adherence-meter.low>strong{color:var(--lo-status-danger-fg)}
 .control-adherence-total{font-size:15px}
-.control-adherence-total.good{color:#1d6b3a!important}.control-adherence-total.fair{color:#8a4b00!important}.control-adherence-total.low{color:#b42318!important}
+.control-adherence-total.good{color:var(--lo-status-success-fg)!important}.control-adherence-total.fair{color:var(--lo-status-warning-fg)!important}.control-adherence-total.low{color:var(--lo-status-danger-fg)!important}
 /* Rows grouped by control, like the calendar. */
 .control-adherence-table tbody tr{cursor:pointer}
-.control-adherence-table tr.control-adherence-group td{background:#f6f9fb!important;border-top:1px solid #e3eaf0}
+.control-adherence-table tr.control-adherence-group td{background:var(--lo-color-surface-muted)!important;border-top:1px solid var(--lo-color-border)}
 .control-adherence-table td.control-adherence-department{padding-left:26px!important;font-weight:600;font-size:12.5px;color:var(--lo-color-text)}
-.control-adherence-table tbody tr:not(.control-adherence-group):hover td{background-color:#f3f8fc}
+.control-adherence-table tbody tr:not(.control-adherence-group):hover td{background-color:var(--lo-color-surface-muted)}
 .control-adherence>.registry-pagination{border-top:1px solid var(--lo-color-border)}
 /* The explanation sits behind an info icon instead of a note under the table. */
-.control-info-tip{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:var(--lo-color-muted,#617386);cursor:help}
-.control-info-tip:hover,.control-info-tip:focus-visible{background:#eef3f7;color:var(--lo-color-primary,#1f6f9f);outline:0}
-.control-adherence .data-table.control-adherence-table tbody td.control-adherence-missed:is(td,#lo-adherence){color:#b42318!important;font-weight:800!important}
+.control-info-tip{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:var(--lo-color-muted,var(--lo-color-muted));cursor:help}
+.control-info-tip:hover,.control-info-tip:focus-visible{background:var(--lo-color-surface-muted);color:var(--lo-color-primary,var(--lo-color-primary));outline:0}
+.control-adherence .data-table.control-adherence-table tbody td.control-adherence-missed:is(td,#lo-adherence){color:var(--lo-status-danger-fg)!important;font-weight:800!important}
+/* The table is the panel's body: no second frame inside the panel. */
+.control-adherence>.scroll-table{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}
+/* A control with several departments: its departments sit indented under it. */
+.control-adherence-table td.control-adherence-department{padding-left:34px!important;font-weight:600;color:var(--lo-color-text)}
+.control-adherence-table td.control-adherence-department::before{content:'↳';margin-right:7px;color:var(--lo-color-muted)}
+.control-adherence-toolbar .filter-field{flex-direction:row;align-items:center;gap:8px}
+.control-adherence-toolbar .filter-field select{min-width:180px}
