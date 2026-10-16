@@ -2,7 +2,7 @@ import { supabase } from '../../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
-import { REVIEW_SECTIONS, addDays, nextCode } from './reviewTemplate'
+import { REVIEW_SECTIONS, addDays, nextCode, toNumber } from './reviewTemplate'
 
 // Quality objectives and management reviews
 // (20261106100000_quality_objectives_management_review.sql): one row per
@@ -12,7 +12,6 @@ const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
 const localId = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 const must = ({ data, error }) => { if (error) throw error; return data }
-const blank = value => value === undefined || value === null || value === ''
 
 // --- Demo -------------------------------------------------------------------------
 
@@ -46,7 +45,7 @@ function local(key, seed) {
 // --- Objectives -------------------------------------------------------------------
 
 const toObjective = row => ({ id: row.id, code: row.code, year: row.year, title: row.title, description: row.description || '', departmentId: row.department_id || '', registerId: row.register_id || '', indicatorKey: row.indicator_key || '', target: row.target == null ? '' : Number(row.target), direction: row.direction, unit: row.unit || '', reportedValue: row.reported_value == null ? '' : Number(row.reported_value), ownerLabel: row.owner_label || '', dueDate: row.due_date || '', status: row.status })
-const objectiveRow = (objective, organizationId) => ({ organization_id: organizationId, code: objective.code, year: Number(objective.year) || new Date().getFullYear(), title: objective.title.trim(), description: objective.description || null, department_id: isUuid(objective.departmentId) ? objective.departmentId : null, register_id: isUuid(objective.registerId) ? objective.registerId : null, indicator_key: objective.indicatorKey || null, target: blank(objective.target) ? null : Number(objective.target), direction: objective.direction || 'higher', unit: objective.unit || null, reported_value: blank(objective.reportedValue) ? null : Number(objective.reportedValue), owner_label: objective.ownerLabel || null, due_date: objective.dueDate || null, status: objective.status || 'active' })
+const objectiveRow = (objective, organizationId) => ({ organization_id: organizationId, code: objective.code, year: Number(objective.year) || new Date().getFullYear(), title: objective.title.trim(), description: objective.description || null, department_id: isUuid(objective.departmentId) ? objective.departmentId : null, register_id: isUuid(objective.registerId) ? objective.registerId : null, indicator_key: objective.indicatorKey || null, target: toNumber(objective.target), direction: objective.direction || 'higher', unit: objective.unit || null, reported_value: toNumber(objective.reportedValue), owner_label: objective.ownerLabel || null, due_date: objective.dueDate || null, status: objective.status || 'active' })
 
 export async function loadObjectives(organizationId) {
   if (isLocal()) return local('quality_local_objectives', demoObjectives)

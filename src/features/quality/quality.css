@@ -100,16 +100,20 @@ html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.
 
 /* Quality objectives and management review (Phase 4b) */
 .quality-management-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px}
-.review-minutes .lo-form-cards{padding-bottom:12px}
-.review-minutes textarea{width:100%}
+.review-minutes .record-tab-panel-body>.lo-form-cards{padding:14px 20px 16px}
+.review-minutes textarea{width:100%;min-height:76px;resize:vertical;overflow:hidden;line-height:1.5}
+.review-text{display:grid;gap:6px;padding:2px 2px 4px;font-size:14px;line-height:1.55;color:var(--lo-color-text)}
+.review-text p{margin:0}
+.review-text-empty{color:var(--lo-color-text-muted)}
 .review-facts{display:grid;gap:6px;padding:10px 12px;border:1px dashed var(--lo-color-border-strong);border-radius:8px;background:var(--lo-color-surface-muted)}
 .review-facts>span{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--lo-color-primary)}
 .review-facts ul{margin:0;padding-left:18px;font-size:13px;color:var(--lo-color-text)}
 .review-facts button{justify-self:start}
 .review-actions{display:grid;gap:10px;padding:12px 16px}
-.review-action-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) minmax(150px,1fr) auto auto;gap:10px;align-items:end;padding:10px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
-.review-action-tools{display:flex;gap:6px;align-items:center}
-@media (max-width:1100px){.review-action-row{grid-template-columns:1fr 1fr}}
+.review-action-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) minmax(150px,1fr) auto 200px;gap:10px;align-items:start;padding:10px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.review-action-tools{display:flex;gap:6px;align-items:center;justify-content:flex-end;align-self:end}
+.review-action-row .field input{min-height:42px!important}
+@media (max-width:1100px){.review-action-row{grid-template-columns:1fr 1fr}.review-action-tools{grid-column:1/-1;justify-content:flex-start}}
 /* The review's first tab is a long form, not a details sheet: it fills the record and scrolls. */
 .review-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
 .review-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}

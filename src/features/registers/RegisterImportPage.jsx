@@ -20,7 +20,8 @@ import { parseCsv, readWorkbookSheets } from '../../core/import/spreadsheetImpor
 import { loadEntries, loadRegister, saveEntries, saveRegister } from './registerService'
 import { useRegisterAccess } from './registerAccess'
 import { keyFrom, textOf } from './registerEngine'
-import { isAmka, planImport, suggestMapping, valueMappings } from './registerImport'
+import { isAmka, planImport, suggestMapping, toIsoDate, valueMappings } from './registerImport'
+import { formatDay } from '../../core/i18n/formatDay'
 import './registers.css'
 
 const NEW = '__new__'
@@ -147,7 +148,7 @@ export function RegisterImportPage() {
   const issueGroups = plan ? [...plan.issues.reduce((map, issue) => { const key = `${issue.field}|${issue.text.replace(/«[^»]*»/g, '«…»').replace(/^[\d.,]+ (στις|on) \S+/, 'N').replace(/^[^—]*— /, '')}`; const entry = map.get(key) || { field: issue.field, text: issue.text, rows: [] }; entry.rows.push(issue.row); map.set(key, entry); return map }, new Map()).values()] : []
 
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={<Upload size={19} />} eyebrow={en ? register.nameEn : register.name} title={en ? 'Import from FileMaker' : 'Εισαγωγή από FileMaker'} subtitle={file || (en ? 'An .xlsx or .csv export, column names in the first row.' : 'Εξαγωγή .xlsx ή .csv, με τα ονόματα των στηλών στην πρώτη γραμμή.')} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}>
-    <div className="record-section register-import">
+    <div className="register-form-page register-import">
       <StepList steps={steps} current={step} valid={valid} disabled={Boolean(progress)} onSelect={setStep} ariaLabel={en ? 'Steps' : 'Βήματα'} />
       <div className="lo-form-cards">
         {step === 0 && <FormCard wide title={en ? 'File' : 'Αρχείο'} icon={FileSpreadsheet} hint={en ? 'The file is read in your browser. AMKA columns are never imported.' : 'Το αρχείο διαβάζεται στον browser σας. Στήλες ΑΜΚΑ δεν εισάγονται ποτέ.'}>
@@ -159,7 +160,7 @@ export function RegisterImportPage() {
               const amka = isAmka(header)
               const samples = [...new Set(table.rows.map(row => row[column]).filter(cell => cell !== undefined && cell !== null && String(cell).trim() !== '').slice(0, 30))].slice(0, 3)
               const personal = amka || mapping[column]?.startsWith('identity.')
-              return <tr key={`${header}-${column}`}><td className="register-row-label">{header || '—'}</td><td className="register-samples">{personal ? <span className="register-privacy"><ShieldCheck size={13} />{amka ? (en ? 'AMKA: never imported' : 'ΑΜΚΑ: δεν εισάγεται') : (en ? 'personal data' : 'προσωπικά δεδομένα')}</span> : samples.map(String).join(' · ') || '—'}</td><td>{amka ? '—' : <SearchableSelect hideLabel label={header} value={mapping[column] || ''} options={targets} onChange={value => setMapping(current => current.map((item, index) => (index === column ? value || '' : item)))} placeholder={en ? 'Left out' : 'Εκτός'} {...selectText(en)} />}</td></tr>
+              return <tr key={`${header}-${column}`}><td className="register-row-label">{header || '—'}</td><td className="register-samples">{personal ? <span className="register-privacy"><ShieldCheck size={13} />{amka ? (en ? 'AMKA: never imported' : 'ΑΜΚΑ: δεν εισάγεται') : (en ? 'personal data' : 'προσωπικά δεδομένα')}</span> : samples.map(cell => sampleText(cell, header, mapping[column], register, language)).join(' · ') || '—'}</td><td>{amka ? '—' : <SearchableSelect hideLabel label={header} value={mapping[column] || ''} options={targets} onChange={value => setMapping(current => current.map((item, index) => (index === column ? value || '' : item)))} placeholder={en ? 'Left out' : 'Εκτός'} {...selectText(en)} />}</td></tr>
             })}
           </tbody></table>
           {!sheet && <div className="register-import-options">
@@ -209,3 +210,10 @@ export function RegisterImportPage() {
 const skipText = (reason, language) => (language === 'en'
   ? { noDate: 'rows without the date they count on: left out', test: 'test rows (ΤΕΣΤ): left out', duplicate: 'already in the register or twice in the file (same case number and date): left out', summary: 'summary rows among the days: left out', existing: 'months already recorded: kept as they are', noMeasure: 'rows with an unknown shift: left out' }
   : { noDate: 'γραμμές χωρίς την ημερομηνία που μετρούν: μένουν εκτός', test: 'δοκιμαστικές γραμμές (ΤΕΣΤ): μένουν εκτός', duplicate: 'υπάρχουν ήδη ή δύο φορές στο αρχείο (ίδιος αριθμός και ημερομηνία): μένουν εκτός', summary: 'γραμμές συνόλων ανάμεσα στις ημέρες: μένουν εκτός', existing: 'μήνες που έχουν ήδη καταχωριστεί: μένουν ως έχουν', noMeasure: 'γραμμές με άγνωστη βάρδια: μένουν εκτός' })[reason] || reason
+
+// A sample as the register will read it: Excel day numbers as dates.
+function sampleText(cell, header, target, register, language) {
+  const date = target === 'sheet.date' || register.fields.find(field => field.key === target)?.type === 'date' || /ημερομην|date/i.test(header)
+  const day = date ? toIsoDate(cell) : null
+  return day ? formatDay(day, language) : String(cell)
+}

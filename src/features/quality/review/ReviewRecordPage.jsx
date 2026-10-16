@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle2, ClipboardSignature, ListChecks, Plus, Sparkles, Trash2, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
@@ -48,6 +48,25 @@ ${sections}${actions}
   link.download = `${review.code || 'Anaskopisi'}_${review.reviewDate}.doc`
   link.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+// The text of a section: as tall as what is written (no scrolling inside the
+// card), and plain paragraphs once the review is approved.
+function MinutesText({ label, value, locked, onChange }) {
+  const ref = useRef(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+    const fit = () => { el.style.height = 'auto'; el.style.height = `${el.scrollHeight + 2}px` }
+    fit()
+    // A narrower record wraps the text onto more lines: fit again when the width changes.
+    let width = el.clientWidth
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => { if (el.clientWidth !== width) { width = el.clientWidth; fit() } })
+    observer?.observe(el)
+    return () => observer?.disconnect()
+  }, [value, locked])
+  if (locked) return <div className="review-text" aria-label={label}>{String(value || '').split(/\n+/).filter(line => line.trim()).map((line, index) => <p key={index}>{line}</p>)}{!String(value || '').trim() && <p className="review-text-empty">—</p>}</div>
+  return <textarea ref={ref} aria-label={label} rows={3} value={value || ''} onChange={event => onChange(event.target.value)} />
 }
 
 // One management review: the minutes section by section (each with the facts
@@ -117,8 +136,8 @@ export function ReviewRecordPage() {
   ]
   const footer = !locked && <div className="inline-edit-footer"><Button variant="secondary" onClick={back}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={() => save()}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>{!isNew && <Button disabled={saving || !allSigned} onClick={() => save('approved')}><CheckCircle2 size={15} />{en ? 'Approve' : 'Έγκριση'}</Button>}</div>
   return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<ClipboardSignature size={19} />} eyebrow={review.code || (en ? 'New' : 'Νέα')} title={review.title} subtitle={`${formatDay(review.reviewDate, language)} · ${en ? 'every' : 'κάθε'} ${review.frequencyDays} ${en ? 'days' : 'ημέρες'}`} status={<StatusBadge tone={review.status === 'approved' ? 'success' : 'info'}>{reviewStatusLabel(review.status, language)}</StatusBadge>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={back}
-    headerActions={<PrintExportActions showPrint={false} onExport={() => downloadMinutes(review, tenant?.name)} />}>
-    {tab === 'minutes' && <RecordTabPanel className="review-minutes" title={en ? 'Minutes' : 'Πρακτικό'} subtitle={en ? '«Insert data» adds what Limoxis holds for the period; edit it freely.' : 'Το «Στοιχεία του Limoxis» προσθέτει όσα υπάρχουν για την περίοδο· τα επεξεργάζεστε ελεύθερα.'} footer={footer}>
+>
+    {tab === 'minutes' && <RecordTabPanel className="review-minutes" title={en ? 'Minutes' : 'Πρακτικό'} subtitle={en ? '«Insert data» adds what Limoxis holds for the period; edit it freely.' : 'Το «Στοιχεία του Limoxis» προσθέτει όσα υπάρχουν για την περίοδο· τα επεξεργάζεστε ελεύθερα.'} actions={<PrintExportActions showPrint={false} onExport={() => downloadMinutes(review, tenant?.name)} />} footer={footer}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Review' : 'Ανασκόπηση'}>
           <FormGrid columns={4}>
@@ -127,14 +146,15 @@ export function ReviewRecordPage() {
             <ManualDateField label={en ? 'Period to' : 'Περίοδος έως'} value={review.periodTo} disabled={locked} onChange={value => set({ periodTo: value })} />
             <Field label={en ? 'Frequency (days)' : 'Συχνότητα (ημέρες)'}><input inputMode="numeric" value={review.frequencyDays} disabled={locked} onChange={event => set({ frequencyDays: Number(event.target.value) || '', nextReviewDate: review.reviewDate ? addDays(review.reviewDate, Number(event.target.value) || 90) : '' })} /></Field>
           </FormGrid>
-          <Field label={en ? 'Summary' : 'Σύνοψη'}><textarea rows={2} value={review.summary} disabled={locked} onChange={event => set({ summary: event.target.value })} /></Field>
+          <Field label={en ? 'Summary' : 'Σύνοψη'}><MinutesText label={en ? 'Summary' : 'Σύνοψη'} value={review.summary} locked={locked} onChange={value => set({ summary: value })} /></Field>
         </FormCard>
         {review.sections.map((section, index) => {
           const source = REVIEW_SECTIONS.find(item => item.key === section.key)?.source
-          const lines = source ? sectionFacts(source, data, period, language) : []
+          // The facts help write the minutes; an approved review shows its text only.
+          const lines = source && !locked ? sectionFacts(source, data, period, language) : []
           return <FormCard key={section.key} wide title={`${index + 1}. ${en ? REVIEW_SECTIONS.find(item => item.key === section.key)?.titleEn || section.title : section.title}`}>
-            {lines.length > 0 && <div className="review-facts"><span><Sparkles size={14} />{en ? 'From Limoxis' : 'Από το Limoxis'}</span><ul>{lines.map(line => <li key={line}>{line}</li>)}</ul>{!locked && <Button variant="secondary" onClick={() => setSection(section.key, [section.body, lines.join('\n')].filter(Boolean).join('\n'))}>{en ? 'Insert into the text' : 'Στοιχεία του Limoxis στο κείμενο'}</Button>}</div>}
-            <textarea aria-label={section.title} rows={Math.max(3, Math.min(12, String(section.body || '').split('\n').length + 1))} value={section.body} disabled={locked} onChange={event => setSection(section.key, event.target.value)} />
+            {lines.length > 0 && <div className="review-facts"><span><Sparkles size={14} />{en ? 'From Limoxis' : 'Από το Limoxis'}</span><ul>{lines.map(line => <li key={line}>{line}</li>)}</ul><Button variant="secondary" onClick={() => setSection(section.key, [section.body, lines.join('\n')].filter(Boolean).join('\n'))}>{en ? 'Insert into the text' : 'Στοιχεία του Limoxis στο κείμενο'}</Button></div>}
+            <MinutesText label={section.title} value={section.body} locked={locked} onChange={value => setSection(section.key, value)} />
           </FormCard>
         })}
       </div>
@@ -145,7 +165,7 @@ export function ReviewRecordPage() {
         <Field label={en ? 'Owner' : 'Υπεύθυνος'}><input value={action.ownerLabel} disabled={locked} onChange={event => setAction(index, { ownerLabel: event.target.value })} /></Field>
         <ManualDateField label={en ? 'Due' : 'Προθεσμία'} value={action.dueDate} disabled={locked} onChange={value => setAction(index, { dueDate: value })} />
         <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={action.status} options={[{ value: 'open', label: en ? 'Open' : 'Ανοιχτή' }, { value: 'done', label: en ? 'Done' : 'Ολοκληρώθηκε' }]} onChange={value => !locked && setAction(index, { status: value })} />
-        <span className="review-action-tools">{action.title && canManage && <Button variant="secondary" onClick={() => openCapa(action)}>{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}{!locked && <IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ actions: review.actions.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton>}</span>
+        <span className="review-action-tools">{action.title && action.status === 'open' && canManage && <Button variant="secondary" onClick={() => openCapa(action)}>{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}{!locked && <IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ actions: review.actions.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton>}</span>
       </div>)}{!review.actions.length && <div className="inline-empty">{en ? 'No decisions yet.' : 'Δεν υπάρχουν αποφάσεις ακόμη.'}</div>}</div>
     </RecordTabPanel>}
     {tab === 'people' && <RecordTabPanel title={en ? 'Participants and signatures' : 'Συμμετέχοντες και υπογραφές'} subtitle={allSigned ? (en ? 'Everyone present has signed: the review can be approved.' : 'Υπέγραψαν όλοι οι παρόντες: η ανασκόπηση μπορεί να εγκριθεί.') : (en ? 'The review is approved once everyone present has signed.' : 'Η ανασκόπηση εγκρίνεται όταν υπογράψουν όλοι οι παρόντες.')} actions={!locked && <Button variant="secondary" onClick={() => set({ participants: [...review.participants, { name: '', role: '', attended: true, signedAt: null }] })}><Plus size={15} />{en ? 'Participant' : 'Συμμετέχων'}</Button>} footer={footer}>

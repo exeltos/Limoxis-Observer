@@ -59,23 +59,24 @@ function Change({ now, before, indicator, language }) {
   const diff = Number((now - before).toFixed(2))
   const better = indicator.direction === 'higher' ? diff > 0 : indicator.direction === 'lower' ? diff < 0 : null
   const Icon = diff > 0 ? ArrowUpRight : diff < 0 ? ArrowDownRight : Minus
-  return <span className={`register-change ${better == null || diff === 0 ? '' : better ? 'is-better' : 'is-worse'}`} title={en ? 'Change' : 'Μεταβολή'}><Icon size={13} />{formatIndicatorValue(Math.abs(diff), indicator, language)}</span>
+  return <span className={`register-change ${better == null || diff === 0 ? '' : better ? 'is-better' : 'is-worse'}`} title={en ? 'Change' : 'Μεταβολή'}><Icon size={13} />{diff > 0 ? '+' : diff < 0 ? '−' : ''}{formatIndicatorValue(Math.abs(diff), indicator, language)}</span>
 }
 
 function IndicatorCard({ row, register, language, active, onOpen }) {
   const en = language === 'en'
   const { indicator, current, previous, lastYear } = row
   const target = indicator.target === '' || indicator.target == null ? null : Number(indicator.target)
+  const unit = en ? indicator.unitEn || indicator.unit : indicator.unit
   return <button type="button" className={`register-indicator-card ${active ? 'active' : ''} is-${current.status}`} onClick={onOpen} aria-expanded={active}>
     <span className="register-indicator-title">{textOf(indicator, language)}</span>
-    <strong className="register-indicator-value">{formatIndicatorValue(current.value, indicator, language)}</strong>
+    <strong className="register-indicator-value">{formatIndicatorValue(current.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}{current.value != null && unit && unit !== '%' && <small> {unit}</small>}</strong>
     <span className="register-indicator-meta">
       {current.status !== 'context' && <StatusBadge tone={indicatorStatusTone(current.status)}>{indicatorStatusLabel(current.status, language)}</StatusBadge>}
       {target != null && <small>{en ? 'Target' : 'Στόχος'} {indicator.direction === 'higher' ? '≥' : '≤'} {formatIndicatorValue(target, indicator, language)}</small>}
     </span>
     {(indicator.aggregation === 'percent' || indicator.aggregation === 'rate') && current.denominator != null && <small className="register-indicator-fraction">{current.numerator} / {current.denominator}{indicator.aggregation === 'rate' ? (en ? ' days' : ' ημέρες') : ''}</small>}
     {current.small && <small className="register-indicator-small"><AlertTriangle size={12} />{en ? 'Few cases: read with caution' : 'Λίγα περιστατικά: με επιφύλαξη'}</small>}
-    <span className="register-indicator-compare"><span>{en ? 'Previous' : 'Προηγ.'} <Change now={current.value} before={previous.value} indicator={indicator} language={language} /></span><span>{en ? 'Last year' : 'Πέρσι'} <Change now={current.value} before={lastYear.value} indicator={indicator} language={language} /></span></span>
+    <span className="register-indicator-compare"><span>{en ? 'vs previous' : 'έναντι προηγ.'} <Change now={current.value} before={previous.value} indicator={indicator} language={language} /></span><span>{en ? 'vs last year' : 'έναντι πέρσι'} <Change now={current.value} before={lastYear.value} indicator={indicator} language={language} /></span></span>
     {register.kind === 'case' && indicator.filters?.length > 0 && <small className="register-indicator-rule">{indicator.filters.map(filter => filterText(register, filter, language)).join(' · ')}</small>}
   </button>
 }

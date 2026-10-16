@@ -23,6 +23,15 @@ export const REVIEW_SECTIONS = [
 ]
 
 const pad = n => String(n).padStart(2, '0')
+// A typed number: «24,6» (Greek decimal comma) reads as 24.6.
+export const toNumber = value => (value == null || value === '' ? null : Number(String(value).trim().replace(',', '.')))
+// A value with its unit, in the language's number format (24,6 ημέρες · 46,4%).
+export function formatObjectiveValue(value, unit, language = 'el') {
+  const number = toNumber(value)
+  if (number == null || Number.isNaN(number)) return value == null || value === '' ? '—' : String(value)
+  const text = new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 2 }).format(number)
+  return unit === '%' ? `${text}%` : unit ? `${text} ${unit}` : text
+}
 export const addDays = (day, days) => { const date = new Date(`${day}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
 const inPeriod = (day, period) => { const value = String(day || '').slice(0, 10); return Boolean(value) && value >= period.from && value <= period.to }
 const dmy = day => { const [y, m, d] = String(day || '').slice(0, 10).split('-'); return y ? `${Number(d)}/${Number(m)}/${y}` : '' }
@@ -85,12 +94,13 @@ export function sectionFacts(source, data = {}, period, language = 'el') {
     for (const objective of objectives) {
       const value = objective.current?.value
       const state = objective.current?.status
-      lines.push(`${objective.title}: ${value == null ? (en ? 'no value yet' : 'χωρίς τιμή ακόμη') : `${value}${objective.unit === '%' ? '%' : objective.unit ? ` ${objective.unit}` : ''}`} (${en ? 'target' : 'στόχος'} ${objective.direction === 'lower' ? '≤' : '≥'} ${objective.target ?? '—'}${objective.unit === '%' ? '%' : ''}) — ${state === 'met' ? (en ? 'met' : 'επιτυγχάνεται') : state === 'missed' ? (en ? 'not met' : 'δεν επιτυγχάνεται') : en ? 'pending' : 'σε εξέλιξη'}.`)
+      lines.push(`${objective.title}: ${value == null ? (en ? 'no value yet' : 'χωρίς τιμή ακόμη') : formatObjectiveValue(value, objective.unit, language)} (${en ? 'target' : 'στόχος'} ${objective.direction === 'lower' ? '≤' : '≥'} ${formatObjectiveValue(objective.target, objective.unit, language)}) — ${state === 'met' ? (en ? 'met' : 'επιτυγχάνεται') : state === 'missed' ? (en ? 'not met' : 'δεν επιτυγχάνεται') : en ? 'pending' : 'σε εξέλιξη'}.`)
     }
   }
   if (source === 'previousActions') {
     const actions = data.previous?.actions || []
-    if (!actions.length) lines.push(en ? 'No actions were decided in the previous review.' : 'Δεν είχαν αποφασιστεί ενέργειες στην προηγούμενη ανασκόπηση.')
+    if (!data.previous) lines.push(en ? 'There is no earlier review in Limoxis.' : 'Δεν υπάρχει προηγούμενη ανασκόπηση στο Limoxis.')
+    else if (!actions.length) lines.push(en ? 'No actions were decided in the previous review.' : 'Δεν είχαν αποφασιστεί ενέργειες στην προηγούμενη ανασκόπηση.')
     else lines.push(en ? `${count(actions, row => row.status === 'done')} of ${actions.length} actions of the previous review are done; ${count(actions, row => row.status === 'open')} remain open.` : `Από τις ${actions.length} ενέργειες της προηγούμενης ανασκόπησης ολοκληρώθηκαν ${count(actions, row => row.status === 'done')}· ${count(actions, row => row.status === 'open')} παραμένουν ανοιχτές.`)
   }
   return lines
@@ -99,7 +109,9 @@ export function sectionFacts(source, data = {}, period, language = 'el') {
 // An objective against its indicator: met, missed or pending.
 export function objectiveState(objective, value) {
   if (value == null || objective.target == null || objective.target === '') return 'pending'
-  return (objective.direction === 'lower' ? value <= Number(objective.target) : value >= Number(objective.target)) ? 'met' : 'missed'
+  const target = toNumber(objective.target)
+  if (target == null || Number.isNaN(target)) return 'pending'
+  return (objective.direction === 'lower' ? value <= target : value >= target) ? 'met' : 'missed'
 }
 
 export const reviewStatusLabel = (status, language = 'el') => (language === 'en' ? { draft: 'Draft', in_review: 'For signature', approved: 'Approved' } : { draft: 'Πρόχειρο', in_review: 'Προς υπογραφή', approved: 'Εγκρίθηκε' })[status] || status

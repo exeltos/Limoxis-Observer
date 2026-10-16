@@ -54,7 +54,7 @@ export function RegisterCreatePage() {
     } finally { setSaving(false) }
   }
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={<LayoutTemplate size={19} />} eyebrow={en ? 'Department registers' : 'Μητρώα τμημάτων'} title={en ? 'New register' : 'Νέο μητρώο'} subtitle={en ? 'Start from a template and adjust it to the department.' : 'Ξεκινήστε από πρότυπο και προσαρμόστε το στο τμήμα.'} tabs={[]} activeTab="" onTabChange={() => {}} onBack={goBack}>
-    <div className="record-section register-create"><div className="lo-form-cards">
+    <div className="register-form-page register-create"><div className="lo-form-cards">
       <FormCard wide title={en ? 'Template' : 'Πρότυπο'} icon={LayoutTemplate} hint={en ? 'Every field, list and indicator can be changed afterwards.' : 'Κάθε πεδίο, λίστα και δείκτης αλλάζει και αργότερα.'}>
         <div className="register-templates" role="radiogroup" aria-label={en ? 'Template' : 'Πρότυπο'}>
           {REGISTER_TEMPLATES.map(item => <button key={item.key} type="button" role="radio" aria-checked={item.key === templateKey} className={item.key === templateKey ? 'active' : ''} onClick={() => setTemplateKey(item.key)}>

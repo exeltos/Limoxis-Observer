@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Lock, LockOpen, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
+import { PrintExportActions } from '../../design-system/PrintExportActions'
 import { MonthField } from '../../design-system/MonthField'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -19,7 +20,7 @@ const blank = value => value === undefined || value === null || value === ''
 // A sheet register: the grid of a month (rows × measures, whole numbers, an
 // empty cell is «not recorded», not zero), closing the month, and the year at
 // a glance underneath.
-export function RegisterSheet({ register, entries, onSaved }) {
+export function RegisterSheet({ register, entries, onSaved, onExport }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
@@ -74,6 +75,7 @@ export function RegisterSheet({ register, entries, onSaved }) {
     <RecordTabPanel className="register-sheet" title={periodLabel(periodOf('month', periodStart), language)} subtitle={en ? 'An empty cell means not recorded; write 0 when there were none.' : 'Κενό κελί σημαίνει «δεν καταγράφηκε»· γράψτε 0 όταν δεν έγινε καμία.'}
       actions={<div className="register-sheet-actions">
         <MonthField value={month} onChange={value => value && setMonth(value)} years={4} />
+        {onExport && <PrintExportActions showPrint={false} onExport={onExport} />}
         {access.canRecord(register) && <Button variant="secondary" onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={15} />{en ? 'Import' : 'Εισαγωγή'}</Button>}
         {entry && <StatusBadge tone={locked ? 'neutral' : 'info'}>{locked ? (en ? 'Closed' : 'Κλειστός') : (en ? 'Open' : 'Ανοιχτός')}</StatusBadge>}
         {entry && (locked ? access.canReopen(register) : access.canRecord(register)) && <Button variant="secondary" onClick={toggleLock}>{locked ? <LockOpen size={15} /> : <Lock size={15} />}{locked ? (en ? 'Reopen month' : 'Άνοιγμα μήνα') : (en ? 'Close month' : 'Κλείσιμο μήνα')}</Button>}
