@@ -1,7 +1,7 @@
-import { useMemo,useRef,useState } from 'react'
+import { useMemo,useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FileSpreadsheet,Plus } from 'lucide-react'
-import { ActionButton } from '../../../design-system/ActionButton'
+import { FileSpreadsheet } from 'lucide-react'
+import { FilterBar } from '../../../design-system/FilterBar'
 import { ObserverDialog,DialogActions } from '../../../design-system/ObserverDialog'
 import { ManualDateField } from '../../../design-system/ManualDateField'
 import { RegistryTable } from '../../../design-system/RegistryTable'
@@ -18,17 +18,18 @@ import './riskAssessment.css'
 
 const FIELD_LABELS={inherentScore:['Εγγενής βαθμός','Inherent score'],residualScore:['Υπολειπόμενος βαθμός','Residual score'],inherentLevel:['Εγγενής κατηγορία','Inherent level'],residualLevel:['Υπολειπόμενη κατηγορία','Residual level'],process:['Διεργασία','Process'],wording:['Λεκτικό','Wording']}
 
-// The assessments of the organization inside the Quality Center.
-export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
+// The assessments of the organization inside the Quality Center. The page's
+// «Create» menu opens a new assessment (creating) or the Excel file (fileRef).
+export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onCreatingChange,fileRef}){
  const navigate=useNavigate()
  const {profile,user}=useAuth()
  const {notify}=useFeedback()
  const actor=useMemo(()=>auditActorFromAuth({profile,user}),[profile,user])
- const [creating,setCreating]=useState(false)
+ const setCreating=onCreatingChange
  const [preview,setPreview]=useState(null)
- const fileRef=useRef(null)
+ const [query,setQuery]=useState('')
  const {items,loading}=list
- const rows=useMemo(()=>items.map(a=>({a,s:summarizeRisks(a.risks||[])})),[items])
+ const rows=useMemo(()=>{const q=query.trim().toLowerCase();return items.filter(a=>!q||`${a.periodLabel} ${a.title||''} ${a.titleEn||''} ${a.formCode||''} ${a.code}`.toLowerCase().includes(q)).map(a=>({a,s:summarizeRisks(a.risks||[])}))},[items,query])
  // Back from an assessment returns to this tab.
  const assessmentRow=useReturnedRow('limoxis.quality.risk.returnedAssessment')
  const {items:pageRows,pager}=usePaged(rows,{en})
@@ -52,16 +53,10 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
   }catch{notify(L(en,'Δεν ήταν δυνατή η εισαγωγή.','Could not import.'),'error')}
  }
 
- // The tab sits in the Quality Center card: toolbar, table and pager are its rows.
+ // The tab sits in the Quality Center card: filter row, table and pager are its rows.
  return <>
-  <div className="risk-toolbar risk-assessments-toolbar">
-   <span/>
-   {canManage&&<div className="row-actions">
-    <input ref={fileRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={pickFile}/>
-    <ActionButton label={L(en,'Εισαγωγή από Excel','Import from Excel')} onClick={()=>fileRef.current?.click()}><FileSpreadsheet size={16}/><span>{L(en,'Εισαγωγή από Excel','Import from Excel')}</span></ActionButton>
-    <ActionButton label={L(en,'Νέα εκτίμηση','New assessment')} tone="primary" onClick={()=>setCreating(true)}><Plus size={16}/><span>{L(en,'Νέα εκτίμηση','New assessment')}</span></ActionButton>
-   </div>}
-  </div>
+  <input ref={fileRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={pickFile}/>
+  <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση εκτίμησης ή περιόδου','Search assessment or period')} onClear={()=>setQuery('')}/>
   <RegistryTable wrapperClassName="scroll-table risk-assessments-table" className="risk-table" rows={pageRows} rowKey={({a})=>a.id}
    columns={[{key:'period',label:L(en,'Περίοδος','Period')},{key:'title',label:L(en,'Εκτίμηση','Assessment')},{key:'date',label:L(en,'Ημερομηνία','Date')},{key:'risks',label:L(en,'Κίνδυνοι','Risks')},{key:'veryHigh',label:L(en,'Πολύ υψηλοί','Very high')},{key:'high',label:L(en,'Υψηλοί','High')},{key:'residual',label:L(en,'Μέσος υπολειπόμενος','Avg. residual')},{key:'status',label:L(en,'Κατάσταση','Status')}]}
    rowProps={({a})=>({className:`risk-row-clickable${returnedClass(assessmentRow.returned,a.code)}`,onClick:()=>open(a.code)})}

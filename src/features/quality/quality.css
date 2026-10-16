@@ -1,5 +1,4 @@
 /* Deviations queue, CAPA steps and prefilled steps on CAPA creation. */
-.quality-tab-count{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:6px;padding:0 5px;border-radius:999px;background:#fdeceb;color:#b42318;font-size:10px;font-weight:800}
 .quality-capa-steps .record-section-header p{margin:2px 0 0;font-size:11.5px;color:var(--lo-color-muted)}
 .quality-steps-overdue{color:#b42318}
 .quality-steps-progress{display:block;width:160px;height:7px;border-radius:999px;background:#e8eef3;overflow:hidden}
@@ -13,8 +12,6 @@
 .quality-step-add{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) 170px auto;gap:8px;align-items:end;margin-top:12px;padding-top:12px;border-top:1px solid var(--lo-color-border)}
 .quality-step-add>input{height:38px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:9px;font:inherit;font-size:12px}
 @media(max-width:900px){.quality-step-add{grid-template-columns:1fr}}
-/* The tab's text colour must not reach the count badge (contrast on its red tint). */
-html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.quality-tab-count{color:#b42318!important}
 /* Steps a CAPA starts with (from a control's deviation actions or a training). */
 .quality-prefill-steps{display:grid;gap:4px;margin:0;padding-left:18px;font-size:12.5px;color:var(--lo-color-text)}
 /* New incident report (IncidentReportPage.jsx): three steps, the footer in reach. */
@@ -60,7 +57,9 @@ html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.
 .quality-sentinel-banner{margin-bottom:10px}
 @media(max-width:900px){.quality-flow{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.quality-flow{grid-template-columns:minmax(0,1fr)}}
-/* Reports & deviations register (QualityReportRegister.jsx). */
+/* Reports & deviations register (QualityReportRegister.jsx) and findings & actions (QualityLists.jsx). */
+.data-table td.quality-overdue,.data-table td.quality-overdue small{color:#b42318!important;font-weight:700}
+.quality-audits-table td:nth-child(2){min-width:260px}
 .quality-register-kind{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--lo-color-text)}
 .quality-register-table td>small{display:block}
 .quality-register-table td:first-child .status-badge{margin-top:3px}
@@ -78,8 +77,6 @@ html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.
 .quality-audit-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
 .quality-audit-score{margin-right:auto;font-size:12.5px;color:var(--lo-color-muted)}
 .quality-audit-score strong{color:var(--lo-color-text)}
-.quality-audit-view{display:flex;justify-content:flex-start;padding:10px 14px 0}
-.quality-audit-view .lo-mode-switch{margin:0}
 .quality-audit-programme{display:flex;flex-direction:column;gap:12px;min-height:0;padding:12px 14px;overflow:auto}
 .quality-audit-programme-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;color:var(--lo-color-text)}
 .quality-audit-programme-head>.field{margin-left:auto;flex-direction:row;align-items:center;gap:8px}
@@ -99,7 +96,6 @@ html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.
 @media(max-width:700px){.quality-audit-months{grid-template-columns:minmax(0,1fr)}.quality-audit-add{grid-template-columns:minmax(0,1fr)}}
 
 /* Quality objectives and management review (Phase 4b) */
-.quality-management-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px}
 .review-minutes .record-tab-panel-body>.lo-form-cards{padding:14px 20px 16px}
 .review-minutes textarea{width:100%;min-height:76px;resize:vertical;overflow:hidden;line-height:1.5}
 .review-text{display:grid;gap:6px;padding:2px 2px 4px;font-size:14px;line-height:1.55;color:var(--lo-color-text)}

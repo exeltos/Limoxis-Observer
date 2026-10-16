@@ -23,7 +23,7 @@ import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { loadQualityRecords } from '../qualityService'
 import { loadReviews, saveReview } from './reviewService'
 import { REVIEW_SECTIONS, addDays, newReviewFrom, reviewStatusLabel, sectionFacts } from './reviewTemplate'
-import { useObjectives } from './ManagementPanel'
+import { useObjectives } from './QualityObjectives'
 import '../quality.css'
 
 const escapeHtml = text => String(text ?? '').replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char])

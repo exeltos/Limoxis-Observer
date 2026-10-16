@@ -29,6 +29,9 @@
   min-height:48px;
 }
 .filter-search{flex:1 1 320px;max-width:520px}
+/* A view switch at the right end of the filter row (FilterBar end). */
+.filter-end{display:flex;align-items:center;gap:8px;margin-left:auto}
+.filter-end .lo-mode-switch{margin:0}
 .filter-trigger{
   min-height:var(--lo-control-height);
   border-radius:var(--lo-radius-sm);

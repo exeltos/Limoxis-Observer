@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ClipboardSignature, Plus, Target } from 'lucide-react'
-import { ModeSwitch } from '../../../design-system/ModeSwitch'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
-import { ActionButton } from '../../../design-system/ActionButton'
 import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
@@ -50,52 +46,76 @@ export function useObjectives(organizationId) {
   return { objectives, registers, loading, reload }
 }
 
-export function ManagementPanel({ canManage }) {
-  const { language } = useLanguage()
-  const en = language === 'en'
-  const navigate = useNavigate()
-  const { tenant } = useTenant()
-  const [view, setView] = useState('objectives')
-  const objectives = useObjectives(tenant?.id)
+export function useReviews(organizationId) {
   const [reviews, setReviews] = useState([])
-  const [editing, setEditing] = useState(null)
-  useEffect(() => { loadReviews(tenant?.id).then(setReviews).catch(() => setReviews([])) }, [tenant?.id])
-  const stateTone = state => ({ met: 'success', missed: 'danger' })[state] || 'info'
-  const stateLabel = state => (en ? { met: 'Met', missed: 'Not met', pending: 'In progress' } : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Σε εξέλιξη' })[state]
-  return <>
-    <div className="quality-management-head">
-      <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view} onChange={setView} options={[{ value: 'objectives', label: en ? 'Quality objectives' : 'Στόχοι ποιότητας', icon: Target }, { value: 'reviews', label: en ? 'Management reviews' : 'Ανασκοπήσεις Διοίκησης', icon: ClipboardSignature }]} />
-      {canManage && (view === 'objectives'
-        ? <ActionButton tone="primary" label={en ? 'New objective' : 'Νέος στόχος'} onClick={() => setEditing({ year: new Date().getFullYear(), title: '', direction: 'higher', target: '', status: 'active' })}><Plus size={17} /><span>{en ? 'New objective' : 'Νέος στόχος'}</span></ActionButton>
-        : <ActionButton tone="primary" label={en ? 'New review' : 'Νέα ανασκόπηση'} onClick={() => navigate('/quality/reviews/new')}><Plus size={17} /><span>{en ? 'New review' : 'Νέα ανασκόπηση'}</span></ActionButton>)}
-    </div>
-    {view === 'objectives' ? <RegistryTable className="quality-table" rows={objectives.objectives} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με' }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος' }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος' }, { key: 'state', label: en ? 'Status' : 'Κατάσταση' }]}
-      rowProps={objective => ({ onClick: () => canManage && setEditing(objective) })}
-      renderRow={objective => <>
-        <td><strong>{objective.code}</strong><small>{objective.year}</small></td>
-        <td>{objective.title}</td>
-        <td>{objective.indicator ? <>{textOf(objective.indicator, language)}<small>{en ? objective.register.nameEn : objective.register.name}</small></> : (en ? 'Value reported by the owner' : 'Τιμή από τον υπεύθυνο')}</td>
-        <td><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong><small>{objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</small></td>
-        <td>{objective.ownerLabel || '—'}<small>{formatDay(objective.dueDate, language)}</small></td>
-        <td><StatusBadge tone={stateTone(objective.current.status)}>{stateLabel(objective.current.status)}</StatusBadge></td>
-      </>}
-      emptyTitle={!objectives.loading && !objectives.objectives.length ? (en ? 'No quality objectives' : 'Δεν υπάρχουν στόχοι ποιότητας') : ''} emptyText={en ? 'Set the year’s objectives on the department indicators.' : 'Ορίστε τους στόχους του έτους πάνω στους δείκτες των τμημάτων.'} />
-      : <RegistryTable className="quality-table" rows={reviews} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'actions', label: en ? 'Decisions' : 'Αποφάσεις' }, { key: 'next', label: en ? 'Next review' : 'Επόμενη' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
-        rowProps={review => ({ onClick: () => navigate(`/quality/reviews/${review.id}`) })}
-        renderRow={review => <>
-          <td><strong>{review.code}</strong></td>
-          <td>{formatDay(review.reviewDate, language)}</td>
-          <td>{formatDay(review.periodFrom, language) || '—'} – {formatDay(review.periodTo, language) || '—'}</td>
-          <td>{review.actions.length}<small>{review.actions.filter(action => action.status === 'open').length} {en ? 'open' : 'ανοιχτές'}</small></td>
-          <td>{formatDay(review.nextReviewDate, language) || '—'}</td>
-          <td><StatusBadge tone={review.status === 'approved' ? 'success' : 'info'}>{reviewStatusLabel(review.status, language)}</StatusBadge></td>
-        </>}
-        emptyTitle={!reviews.length ? (en ? 'No management reviews' : 'Δεν υπάρχουν ανασκοπήσεις') : ''} emptyText={en ? 'A new review starts from the facts Limoxis holds for the period.' : 'Η νέα ανασκόπηση ξεκινά με τα στοιχεία της περιόδου από το Limoxis.'} />}
-    {editing && <ObjectiveDialog objective={editing} registers={objectives.registers} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void objectives.reload() }} />}
-  </>
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    loadReviews(organizationId).then(rows => { if (active) setReviews(rows) }).catch(() => { if (active) setReviews([]) }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [organizationId])
+  return { reviews, loading }
 }
 
-function ObjectiveDialog({ objective: initial, registers, onClose, onSaved }) {
+export const objectiveStateLabel = (state, en) => (en ? { met: 'Met', missed: 'Not met', pending: 'In progress' } : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Σε εξέλιξη' })[state]
+const objectiveStateTone = state => ({ met: 'success', missed: 'danger' })[state] || 'info'
+
+export function objectivesExport(rows, language) {
+  const en = language === 'en'
+  return {
+    name: en ? 'quality-objectives' : 'stoxoi-poiotitas',
+    headers: en ? ['Code', 'Year', 'Objective', 'Measured by', 'Value', 'Target', 'Owner', 'Due', 'Status'] : ['Κωδικός', 'Έτος', 'Στόχος', 'Μετριέται με', 'Τιμή', 'Στόχος (τιμή)', 'Υπεύθυνος', 'Προθεσμία', 'Κατάσταση'],
+    rows: rows.map(objective => [objective.code, objective.year, objective.title, objective.indicator ? textOf(objective.indicator, language) : '', formatObjectiveValue(objective.current.value, objective.unit, language), `${objective.direction === 'lower' ? '≤' : '≥'} ${formatObjectiveValue(objective.target, objective.unit, language)}`, objective.ownerLabel || '', formatDay(objective.dueDate, language), objectiveStateLabel(objective.current.status, en)]),
+  }
+}
+
+export function reviewsExport(rows, language) {
+  const en = language === 'en'
+  return {
+    name: en ? 'management-reviews' : 'anaskopiseis-dioikisis',
+    headers: en ? ['Code', 'Date', 'From', 'To', 'Decisions', 'Open decisions', 'Next review', 'Status'] : ['Κωδικός', 'Ημερομηνία', 'Από', 'Έως', 'Αποφάσεις', 'Ανοιχτές αποφάσεις', 'Επόμενη', 'Κατάσταση'],
+    rows: rows.map(review => [review.code, formatDay(review.reviewDate, language), formatDay(review.periodFrom, language), formatDay(review.periodTo, language), review.actions.length, review.actions.filter(action => action.status === 'open').length, formatDay(review.nextReviewDate, language), reviewStatusLabel(review.status, language)]),
+  }
+}
+
+// The year's quality objectives with their value today (Quality Center > Measurement & review).
+export function ObjectivesTable({ rows, loading, onOpen }) {
+  const { language } = useLanguage()
+  const en = language === 'en'
+  return <RegistryTable className="quality-table" rows={rows} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με' }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος' }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος' }, { key: 'state', label: en ? 'Status' : 'Κατάσταση' }]}
+    rowProps={objective => ({ onClick: () => onOpen?.(objective) })}
+    renderRow={objective => <>
+      <td><strong>{objective.code}</strong><small>{objective.year}</small></td>
+      <td>{objective.title}</td>
+      <td>{objective.indicator ? <>{textOf(objective.indicator, language)}<small>{en ? objective.register.nameEn : objective.register.name}</small></> : (en ? 'Value reported by the owner' : 'Τιμή από τον υπεύθυνο')}</td>
+      <td><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong><small>{objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</small></td>
+      <td>{objective.ownerLabel || '—'}<small>{formatDay(objective.dueDate, language)}</small></td>
+      <td><StatusBadge tone={objectiveStateTone(objective.current.status)}>{objectiveStateLabel(objective.current.status, en)}</StatusBadge></td>
+    </>}
+    emptyTitle={!loading && !rows.length ? (en ? 'No quality objectives' : 'Δεν υπάρχουν στόχοι ποιότητας') : ''} emptyText={en ? 'Set the year’s objectives on the department indicators.' : 'Ορίστε τους στόχους του έτους πάνω στους δείκτες των τμημάτων.'} />
+}
+
+// The management reviews (ISO 9001 §9.3).
+export function ReviewsTable({ rows, loading, onOpen }) {
+  const { language } = useLanguage()
+  const en = language === 'en'
+  return <RegistryTable className="quality-table" rows={rows} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'actions', label: en ? 'Decisions' : 'Αποφάσεις' }, { key: 'next', label: en ? 'Next review' : 'Επόμενη' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
+    rowProps={review => ({ onClick: () => onOpen?.(review) })}
+    renderRow={review => <>
+      <td><strong>{review.code}</strong></td>
+      <td>{formatDay(review.reviewDate, language)}</td>
+      <td>{formatDay(review.periodFrom, language) || '—'} – {formatDay(review.periodTo, language) || '—'}</td>
+      <td>{review.actions.length}<small>{review.actions.filter(action => action.status === 'open').length} {en ? 'open' : 'ανοιχτές'}</small></td>
+      <td>{formatDay(review.nextReviewDate, language) || '—'}</td>
+      <td><StatusBadge tone={review.status === 'approved' ? 'success' : 'info'}>{reviewStatusLabel(review.status, language)}</StatusBadge></td>
+    </>}
+    emptyTitle={!loading && !rows.length ? (en ? 'No management reviews' : 'Δεν υπάρχουν ανασκοπήσεις') : ''} emptyText={en ? 'A new review starts from the facts Limoxis holds for the period.' : 'Η νέα ανασκόπηση ξεκινά με τα στοιχεία της περιόδου από το Limoxis.'} />
+}
+
+export const newObjective = () => ({ year: new Date().getFullYear(), title: '', direction: 'higher', target: '', status: 'active' })
+
+export function ObjectiveDialog({ objective: initial, registers, onClose, onSaved }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()

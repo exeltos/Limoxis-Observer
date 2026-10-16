@@ -441,7 +441,7 @@
 .risk-workspace{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--lo-color-border);border-radius:14px;background:var(--lo-color-surface)}
 .risk-workspace>.risk-tabs{flex:0 0 auto;margin:0!important;border:0!important;border-bottom:1px solid var(--lo-color-border)!important;border-radius:0!important;box-shadow:none!important;overflow-x:auto;overflow-y:hidden}
 .risk-workspace.is-registry>.risk-notices{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px 0}
-.risk-workspace.is-registry>.risk-toolbar,.risk-assessments-toolbar{flex:0 0 auto;padding:10px 14px;border-bottom:1px solid var(--lo-color-border)}
+.risk-workspace.is-registry>.risk-toolbar{flex:0 0 auto;padding:10px 14px;border-bottom:1px solid var(--lo-color-border)}
 .risk-workspace.is-registry>.risk-cell-filter{flex:0 0 auto;margin:8px 14px 0}
 .risk-workspace.is-registry>.scroll-table{flex:1 1 0!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:auto!important;border:0!important;border-radius:0!important;scrollbar-gutter:stable}
 .risk-workspace.is-registry>.registry-pagination{flex:0 0 44px;min-height:44px!important;margin:0!important;padding:0 56px 0 14px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;border:0!important;border-top:1px solid var(--lo-color-border)!important;border-radius:0!important;background:var(--lo-color-surface)!important;color:#66788d!important;font-size:11.5px!important}

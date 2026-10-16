@@ -1,8 +1,7 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertOctagon,ClipboardCheck,Clock3,ExternalLink,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench } from 'lucide-react'
+import { AlertOctagon,ExternalLink,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
 import { IconButton } from '../../design-system/IconButton'
-import { MetricCard } from '../../design-system/MetricCard'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -40,8 +39,8 @@ export function useDeviationQueue(organizationId,enabled=true){
  return {sources,loading}
 }
 
-// The register's rows, filters and counts. The page holds them so the summary
-// cards above the tabs and the table stay in step.
+// The register's rows, filters and counts. The page holds them so the figures
+// above the tabs and the table stay in step.
 export function useReportRegister(incidents,sources,language){
  const [days,setDays]=useState(90)
  const [filters,setFilters]=useState({query:'',kind:'all',source:'all',status:'all',department:'all',category:'all',quick:null})
@@ -54,17 +53,6 @@ export function useReportRegister(incidents,sources,language){
  const categories=useMemo(()=>[...new Set(rows.map(row=>row.category).filter(Boolean))],[rows])
  const clear=()=>setFilters({query:'',kind:'all',source:'all',status:'all',department:'all',category:'all',quick:null})
  return {rows,filtered,counts,filters,set,clear,days,setDays,departments,categories}
-}
-
-export function ReportRegisterSummary({view,language}){
- const en=language==='en'
- const toggle=key=>()=>view.set('quick',view.filters.quick===key?null:key)
- return <div className="workspace-summary quality-summary"><div className="module-summary-strip">
-  <MetricCard icon={ClipboardCheck} value={view.counts.total} label={en?'Total':'Σύνολο'} onClick={()=>view.set('quick',null)} active={false}/>
-  <MetricCard icon={Clock3} value={view.counts.open} label={en?'Open reports':'Ανοιχτές αναφορές'} onClick={toggle('open')} active={view.filters.quick==='open'}/>
-  <MetricCard icon={AlertOctagon} value={view.counts.sentinel} label={en?'Open sentinel events':'Ανοιχτά sentinel'} onClick={toggle('sentinel')} active={view.filters.quick==='sentinel'}/>
-  <MetricCard icon={FileWarning} value={view.counts.deviations} label={en?'Deviations without CAPA':'Αποκλίσεις χωρίς ενέργεια'} onClick={toggle('deviations')} active={view.filters.quick==='deviations'}/>
- </div></div>
 }
 
 const kindText=(kind,language)=>kind==='deviation'?(language==='en'?'Deviation':'Απόκλιση'):vocabularyLabel(REPORT_KINDS,kind,language)
