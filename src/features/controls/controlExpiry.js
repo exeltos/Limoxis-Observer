@@ -52,8 +52,10 @@ export const ITEM_FORMS=[
  ['tablet','Ταμπλέτα','Tablet'],['capsule','Καψάκιο','Capsule'],['ampoule','Φύσιγγα','Ampoule'],['vial','Φιαλίδιο','Vial'],
  ['flacon','Φλακόν','Flacon'],['bottle','Φιάλη','Bottle'],['bag','Ασκός','Bag'],['tube','Σωληνάριο','Tube'],['piece','Τεμάχιο','Piece'],['pack','Συσκευασία','Pack'],['other','Άλλο','Other'],
 ]
+// A form stored as a key (tablet) or as an itemForms library code (FORM-TABLET).
+export const formKey=value=>String(value||'').replace(/^FORM-/,'').toLowerCase()
 export function formLabel(form,language='el'){
- const match=ITEM_FORMS.find(([key])=>key===form)
+ const match=ITEM_FORMS.find(([key])=>key===formKey(form))
  return match?(language==='en'?match[2]:match[1]):String(form||'')
 }
 
@@ -137,12 +139,11 @@ export function expiryCounts(items){
  }
 }
 
-// The finding an item's expiry date implies, for rows left without one.
-export function impliedFinding(row,window,language='el',now=new Date()){
+// The finding an item's expiry date implies, for rows left without one: a code
+// ('expired' | 'expiring'), shown in the screen's language (controlVocabulary).
+export function impliedFinding(row,window,now=new Date()){
  const {state}=expiryState(row?.expiry,window,now)
- const en=language==='en'
- if(state==='expired')return en?'Expired':'Ληγμένο'
- if(state==='expiring')return en?'Near expiry':'Κοντόληκτο'
+ if(state==='expired'||state==='expiring')return state
  return ''
 }
 

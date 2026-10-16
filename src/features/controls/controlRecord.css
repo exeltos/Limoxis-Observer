@@ -3,12 +3,27 @@
 /* The tab fills the record body; with many departments only their list
    scrolls, under a fixed header, and the details stay in view. On short
    screens the whole tab scrolls instead. */
-.control-ov-department-table thead th{position:sticky;top:0;z-index:1;background:#f6f8fa}
+.control-ov-department-table thead th{position:sticky;top:0;z-index:1;background:var(--lo-color-surface-muted)}
 .control-ov-department-table{width:100%}
-.control-ov-department-table tbody tr.control-ov-department td:first-child{border-left:4px solid #3d9a62}
-.control-ov-department-table tbody tr.control-ov-department.overdue td:first-child{border-left-color:#d64545}
-.control-ov-department-table tbody tr.control-ov-department.dueSoon td:first-child{border-left-color:#e0a12f}
-.control-ov-department-table td.control-ov-late{color:#b42318;font-weight:700}
+.control-ov-department-table tbody tr.control-ov-department td:first-child{border-left:4px solid var(--lo-color-success)}
+.control-ov-department-table tbody tr.control-ov-department.overdue td:first-child{border-left-color:var(--lo-color-danger)}
+.control-ov-department-table tbody tr.control-ov-department.dueSoon td:first-child{border-left-color:var(--lo-color-warning)}
+.control-ov-department-table td.control-ov-late{color:var(--lo-status-danger-fg);font-weight:700}
 .control-ov-department-table .control-ov-action-col{width:1%;white-space:nowrap;text-align:right}
 /* Title row of the tab; the record's ⋯ menu sits at its right. */
 /* Both columns end on the same line: details stretch, the last guidance box fills the rest. */
+/* Laptop and tablet screens: the details scroll as one page, so the departments
+   table keeps room for its rows instead of shrinking to its header. */
+@media (max-height: 860px), (max-width: 1100px) {
+  .control-record-shell .control-record-view:is(div,#lo-record-sheet#lo-record-sheet) {
+    overflow: auto !important;
+  }
+  .control-record-shell .control-record-departments>.scroll-table:is(div,#lo-record-sheet#lo-record-sheet) {
+    flex: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  .control-record-shell .control-record-departments:is(section,#lo-record-sheet#lo-record-sheet) {
+    flex: none !important;
+  }
+}

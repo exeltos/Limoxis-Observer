@@ -2,6 +2,7 @@
 // administration to sign: what was replaced or updated at this check (before →
 // after), what was checked with no change, and signature boxes.
 import { expiryState,expiryWindow,formLabel } from './controlExpiry'
+import { rowFindingText } from './controlVocabulary'
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 const day=value=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:(value||'')}
@@ -32,7 +33,7 @@ export function expiryChangeFormHtml({record,department,execution,actorName}){
  const changed=rows.filter(row=>expiryRowChange(row)!=='unchanged')
  const unchanged=rows.filter(row=>expiryRowChange(row)==='unchanged')
  const status=row=>{const {state,days}=expiryState(row.expiry,window,at);return state==='expired'?`Ληγμένο (${-days} ημ.)`:state==='expiring'?`Λήγει σε ${days} ημ.`:state==='ok'?'Εντός':'—'}
- const changeRows=changed.map(row=>{const before=row.previous||{};return `<tr class="${expiryRowChange(row)}"><td><strong>${esc(row.item)}</strong>${row.form?`<small>${esc(formLabel(row.form))}</small>`:''}</td><td>${beforeAfter(before.quantity,row.quantity)}</td><td>${beforeAfter(before.lot,row.lot)}</td><td>${beforeAfter(before.expiry,row.expiry,day)}</td><td>${esc(status(row))}</td><td><strong>${CHANGE_LABEL[expiryRowChange(row)]}</strong></td><td>${esc([row.finding==='Άλλο'||row.finding==='Other'?row.findingOther:row.finding,row.note].filter(Boolean).join(' · ')||'')}</td></tr>`}).join('')
+ const changeRows=changed.map(row=>{const before=row.previous||{};return `<tr class="${expiryRowChange(row)}"><td><strong>${esc(row.item)}</strong>${row.form?`<small>${esc(formLabel(row.form))}</small>`:''}</td><td>${beforeAfter(before.quantity,row.quantity)}</td><td>${beforeAfter(before.lot,row.lot)}</td><td>${beforeAfter(before.expiry,row.expiry,day)}</td><td>${esc(status(row))}</td><td><strong>${CHANGE_LABEL[expiryRowChange(row)]}</strong></td><td>${esc([rowFindingText(row),row.note].filter(Boolean).join(' · ')||'')}</td></tr>`}).join('')
  const sign=label=>`<div class="sign"><span>${label}</span><div class="line"></div><small>Ονοματεπώνυμο / Υπογραφή / Ημερομηνία</small></div>`
  return `<!doctype html><html lang="el"><head><meta charset="utf-8"><title>${esc(record.title)} · ${esc(department)}</title><style>
 body{font-family:Arial,sans-serif;padding:28px;color:#17233a;font-size:12px}h1{font-size:18px;margin:0 0 4px}h2{font-size:13px;margin:18px 0 8px}

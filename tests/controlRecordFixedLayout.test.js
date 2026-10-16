@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import {describe,expect,it} from 'vitest'
 
 const css=fs.readFileSync('src/styles/design-system.css','utf8')
-const modal=fs.readFileSync('src/features/controls/ControlExecutionModal.jsx','utf8')
+const form=fs.readFileSync('src/features/controls/ControlExecutionForm.jsx','utf8')
 const record=fs.readFileSync('src/features/controls/ControlRecordPage.jsx','utf8')
 
 describe('control record fixed workspace',()=>{
@@ -16,10 +16,9 @@ describe('control record fixed workspace',()=>{
     expect(record).not.toContain('control-details-overview')
   })
 
-  it('keeps the confirmation checkbox immediately before the text',()=>{
-    expect(modal).toContain('className="control-confirm-execution"')
-    expect(css).toContain('.control-confirm-execution input[type="checkbox"]')
-    expect(css).toContain('flex-direction:row!important')
-    expect(css).toContain('.control-confirm-execution svg{display:none!important}')
+  it('confirms a corrected entry with a toggle chip in the dialog footer, not a checkbox',()=>{
+    expect(form).toContain('<ChoiceChips className="control-exec-confirm"')
+    expect(form).not.toContain('type="checkbox"')
+    expect(form).toContain('disabled={!confirmed||!valid}')
   })
 })

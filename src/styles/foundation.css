@@ -433,15 +433,6 @@
 
 /* Controls execution identity + cancellation v0.21.5 */
 .control-execution-card{width:min(650px,calc(100vw - 36px))}
-.control-execution-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 16px}
-.control-execution-summary>div{display:grid;grid-template-columns:auto 1fr;column-gap:8px;row-gap:2px;padding:11px 12px;border:1px solid var(--border-color,#dfe6ed);border-radius:10px;background:var(--surface-subtle,#f7f9fb)}
-.control-execution-summary svg{grid-row:1/4;color:var(--primary,#247386);margin-top:2px}
-.control-execution-summary span,.control-execution-summary small{font-size:10px;color:var(--text-muted,#748394)}
-.control-execution-summary strong{font-size:12px}
-.control-execution-form{margin-bottom:12px}
-.control-confirm-execution{border:1px solid var(--border-color,#dfe6ed);border-radius:10px;background:var(--primary-soft,#edf6f7);font-size:12px;line-height:1.4}
-.control-confirm-execution input{margin-top:2px;accent-color:var(--primary,#247386)}
-.control-confirm-execution svg{flex:0 0 auto;color:var(--primary,#247386)}
 .control-history-cancelled{opacity:.72}
 .control-history-cancelled td{text-decoration:none!important}
 .control-cancel-card{width:min(560px,calc(100vw - 36px))}
@@ -450,28 +441,11 @@
 .control-cancel-meta span{color:var(--text-muted,#748394)}
 .control-cancel-meta strong{margin-left:auto}
 .button-danger{background:var(--danger,#b94b52)!important;color:#fff!important;border-color:var(--danger,#b94b52)!important}
-@media(max-width:620px){.control-execution-summary{grid-template-columns:1fr}}
 
 /* Controls structured execution forms v0.21.7 */
-.control-structured-form{margin:0 0 13px;border:1px solid var(--border-color,#dfe6ed);border-radius:11px;overflow:hidden}
-.control-structured-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;background:var(--surface-subtle,#f7f9fb);border-bottom:1px solid var(--border-color,#dfe6ed)}
-.control-structured-heading>div{display:flex;flex-direction:column;gap:2px}.control-structured-heading strong{font-size:13px}.control-structured-heading small{font-size:10px;color:var(--text-muted,#748394)}
-.control-structured-table-wrap{overflow:auto;max-height:280px}
-.control-structured-table{width:100%;border-collapse:collapse;min-width:760px}
-.control-structured-table th{position:sticky;top:0;z-index:1;background:var(--surface,#fff);font-size:10px;color:var(--text-muted,#748394);text-align:left;padding:7px;border-bottom:1px solid var(--border-color,#dfe6ed)}
-.control-structured-table td{padding:5px;border-bottom:1px solid var(--border-color,#edf0f3)}
-.control-structured-table input,.control-structured-table select{height:33px!important}
-.control-row-delete{width:29px;height:29px;border:0;border-radius:7px;background:transparent;color:var(--text-muted,#7b8b9d);display:grid;place-items:center;cursor:pointer}
-.control-row-delete:hover{background:rgba(185,75,82,.08);color:var(--danger,#b94b52)}
-.control-range-hint{padding:8px 10px;border-radius:8px;background:var(--surface-subtle,#f7f9fb);font-size:11px;color:var(--text-muted,#748394)}
-.control-range-hint.danger{background:rgba(185,75,82,.08);color:var(--danger,#b94b52)}
-.control-execution-notes{margin:0 0 12px;display:flex;flex-direction:column;gap:6px}
-.control-execution-notes>span{font-size:12px;font-weight:700}
 .control-finding-banner{margin:0 0 12px}
-.control-execution-tools{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:10px 0 2px}
 .button-quiet{background:var(--surface,#fff)!important;color:var(--text-secondary,#526276)!important;border:1px solid var(--border-color,#dce4eb)!important}
 .button-quiet:hover{background:var(--surface-subtle,#f7f9fb)!important}
-@media(max-width:760px){.control-execution-tools .button{flex:1 1 auto}}
 
 /* Controls field polish v0.21.8 */
 .control-execution-card input,
@@ -522,28 +496,8 @@
   font-weight:700;
   color:#44576b;
 }
-.control-structured-table input,
-.control-structured-table select{
-  min-height:36px!important;
-  border:1px solid #d2dbe5!important;
-  border-radius:8px!important;
-  background:#fff!important;
-  padding:0 9px!important;
-  font-size:11px!important;
-  box-shadow:none!important;
-}
-.control-structured-table input:focus,
-.control-structured-table select:focus{
-  border-color:#4e8fa0!important;
-  box-shadow:0 0 0 2px rgba(78,143,160,.10)!important;
-}
-.control-structured-table th:nth-child(1){min-width:260px}
-.control-structured-table th:nth-child(2){width:120px}
-.control-structured-table th:nth-child(3){width:170px}
-.control-structured-table th:nth-child(4){min-width:230px}
 .control-finding-cell{display:flex;flex-direction:column;gap:6px;min-width:220px}
 .control-finding-other{min-height:34px!important}
-.control-temp-save-state{font-size:10px;color:#557184;display:inline-flex;align-items:center;max-width:260px;line-height:1.3}
 
 /* Feedback environment + controls draft/search/checkbox polish v0.22.0 */
 .toast.success.local{
@@ -586,17 +540,11 @@
   flex:0 0 14px!important;
   accent-color:var(--primary,#247386);
 }
-.control-confirm-execution svg{width:15px;height:15px}
-.control-confirm-execution span{font-size:11.5px;line-height:1.4}
 
 /* Department choices become lighter/cleaner. */
 .check-option span{font-size:11.5px}
 
 /* Controls execution edit + optional list v0.22.1 */
-.control-list-optional-hint{
-  margin:-3px 0 12px;padding:8px 10px;border-radius:8px;background:#f7f9fb;color:#68798a;
-  font-size:10.5px;line-height:1.4;border:1px solid #e5ebf0
-}
 
 /* Prevention functional entry forms v0.22.3 */
 .prevention-entry-card{

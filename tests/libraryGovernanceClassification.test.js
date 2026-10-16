@@ -16,7 +16,7 @@ describe('canonical library governance classification',()=>{
  })
 
  it('defines protected clinical/reference baseline libraries explicitly',()=>{
-  for(const key of ['microorganisms','antibiotics','notifiableDiseases','sampleTypes','professionalCategories','vaccines','wasteTypes','antiseptics','isolationTypes','controlTypes','documentCategories']){
+  for(const key of ['microorganisms','antibiotics','notifiableDiseases','sampleTypes','professionalCategories','vaccines','wasteTypes','antiseptics','isolationTypes','controlTypes','measurementUnits','controlAnswers','itemForms','medicinesSupplies','equipment','environmentalLocations','surfacePoints','documentCategories']){
    expect(SYSTEM_BASELINE_LIBRARY_KEYS).toContain(key)
   }
  })

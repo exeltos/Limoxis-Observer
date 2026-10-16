@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { FilterSelect } from '../../design-system/FilterBar'
 import { downloadCsv } from '../../core/export/csvExport'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -69,7 +71,7 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   </>
   return <div className="control-adherence" ref={reportRef}>
     <div className="control-adherence-toolbar">
-      <label className="control-adherence-period"><span>{tx.period}</span><select value={period} onChange={(event) => { setPeriod(event.target.value); setPage(1) }}>{ADHERENCE_PERIODS.map((key) => <option key={key} value={key}>{tx[`p${key}`]}</option>)}</select></label>
+      <FilterSelect label={tx.period} value={period} onChange={(value) => { setPeriod(value); setPage(1) }}>{ADHERENCE_PERIODS.map((key) => <option key={key} value={key}>{tx[`p${key}`]}</option>)}</FilterSelect>
       <div className="control-adherence-summary">
         <span><strong className={`control-adherence-total ${adherenceTone(totals.rate)}`}>{pct(totals.rate)}</strong>{tx.adherence}</span>
         <span><strong>{totals.performed} / {totals.expected}</strong>{tx.performed.toLowerCase()}</span>
@@ -78,30 +80,31 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
       </div>
       <span className="control-info-tip" tabIndex={0} title={tx.adherenceNote} aria-label={tx.adherenceNote} data-pdf-ignore=""><Info size={15} aria-hidden="true" /></span>
     </div>
-    <div className="scroll-table">
-      <table className="data-table sticky-table control-adherence-table">
-        <thead><tr><th>{en ? 'Control / department' : 'Έλεγχος / τμήμα'}</th><th>{en ? 'Frequency' : 'Συχνότητα'}</th><th>{tx.expected}</th><th>{tx.performed}</th><th>{tx.onTime}</th><th>{tx.missed}</th><th>{tx.adherenceRate}</th></tr></thead>
-        <tbody>{shown.map((group) => group.lines.length === 1
-          ? <tr key={group.item.id} className="control-adherence-single" onClick={() => onOpen?.(group.item)}>
-              <td><strong>{title(group.item)}</strong><small>{group.lines[0].department} · {group.item.category}</small></td>
-              <td>{frequencyLabel(group.item.frequency, language)}</td>
-              {numbers(group.lines[0])}
-            </tr>
-          : [
-            <tr key={`${group.item.id}-group`} className="control-adherence-group" onClick={() => onOpen?.(group.item)}>
-              <td><strong>{title(group.item)}</strong><small>{group.item.category} · {en ? `${group.lines.length} departments` : `${group.lines.length} τμήματα`}</small></td>
-              <td>{frequencyLabel(group.item.frequency, language)}</td>
-              {numbers(group.totals)}
-            </tr>,
-            ...group.lines.map((line) => <tr key={`${line.item.id}-${line.department}`} className="control-adherence-member" onClick={() => onOpen?.(line.item)}>
-              <td className="control-adherence-department">{line.department}</td>
-              <td />
-              {numbers(line)}
-            </tr>),
-          ])}</tbody>
-      </table>
-      {!lines.length && <div className="inline-empty" role="status"><strong>{tx.noAdherence}</strong><span>{en ? 'Change the period or the search.' : 'Αλλάξτε την περίοδο ή την αναζήτηση.'}</span></div>}
-    </div>
+    <RegistryTable
+      className="control-adherence-table"
+      columns={[{ key: 'control', label: en ? 'Control / department' : 'Έλεγχος / τμήμα' }, { key: 'frequency', label: en ? 'Frequency' : 'Συχνότητα' }, { key: 'expected', label: tx.expected }, { key: 'performed', label: tx.performed }, { key: 'onTime', label: tx.onTime }, { key: 'missed', label: tx.missed }, { key: 'rate', label: tx.adherenceRate }]}
+      rows={shown.flatMap((group) => group.lines.length === 1 ? [{ key: group.item.id, kind: 'single', group }] : [{ key: `${group.item.id}-group`, kind: 'group', group }, ...group.lines.map((line) => ({ key: `${line.item.id}-${line.department}`, kind: 'member', line }))])}
+      rowKey={(entry) => entry.key}
+      emptyTitle={lines.length ? undefined : tx.noAdherence}
+      emptyText={en ? 'Change the period or the search.' : 'Αλλάξτε την περίοδο ή την αναζήτηση.'}
+      renderRow={(entry) => entry.kind === 'single'
+        ? <tr className="control-adherence-single" onClick={() => onOpen?.(entry.group.item)}>
+            <td><strong>{title(entry.group.item)}</strong><small>{entry.group.lines[0].department} · {entry.group.item.category}</small></td>
+            <td>{frequencyLabel(entry.group.item.frequency, language)}</td>
+            {numbers(entry.group.lines[0])}
+          </tr>
+        : entry.kind === 'group'
+        ? <tr className="control-adherence-group" onClick={() => onOpen?.(entry.group.item)}>
+            <td><strong>{title(entry.group.item)}</strong><small>{entry.group.item.category} · {en ? `${entry.group.lines.length} departments` : `${entry.group.lines.length} τμήματα`}</small></td>
+            <td>{frequencyLabel(entry.group.item.frequency, language)}</td>
+            {numbers(entry.group.totals)}
+          </tr>
+        : <tr className="control-adherence-member" onClick={() => onOpen?.(entry.line.item)}>
+            <td className="control-adherence-department">{entry.line.department}</td>
+            <td />
+            {numbers(entry.line)}
+          </tr>}
+    />
     {groups.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={groups.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1) }} />}
   </div>
 }

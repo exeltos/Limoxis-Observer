@@ -91,3 +91,24 @@
 .searchable-select .searchable-select-empty {
   padding: 8px 10px;
 }
+.searchable-select .searchable-select-group {
+  padding: 6px 10px 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lo-color-muted, #617386);
+}
+.searchable-select .searchable-select-option.divider {
+  margin-top: 4px;
+  border-top: 1px solid var(--lo-color-border, #dce4eb);
+  border-radius: 0 0 7px 7px;
+}
+.searchable-select .searchable-select-option.custom .searchable-select-option-label {
+  color: var(--lo-color-primary, #1f5f8b);
+  font-weight: 650;
+}
+.searchable-select .searchable-select-control > input:disabled {
+  background: var(--lo-color-surface-muted, #f4f7f9);
+  color: var(--lo-color-muted, #617386);
+}

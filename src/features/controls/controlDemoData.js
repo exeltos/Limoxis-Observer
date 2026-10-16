@@ -16,7 +16,7 @@ const definition1={
  category:'Θερμοκρασίες',
  description:'Καταγραφή θερμοκρασίας ψυγείου φαρμάκων στην αρχή κάθε βάρδιας.',
  owner_id:null,
- response_config:{mode:'numeric',unit:'°C',min:2,max:8,label:'Θερμοκρασία',criticality:'high',requiresEvidence:true,deviationActions:'1. Μεταφορά φαρμάκων και εμβολίων στο εφεδρικό ψυγείο.\n2. Ενημέρωση φαρμακείου και προϊσταμένου βάρδιας.\n3. Νέα μέτρηση σε 30 λεπτά και καταγραφή συμβάντος.',__meta:{titleEn:'Pharmacy fridge temperature check',ownerLabel:'Υπεύθυνος βάρδιας',createdByScope:'infection_control',createdForDepartment:null,createdByName:'',updatedByName:''}},
+ response_config:{mode:'numeric',unit:'°C',min:2,max:8,label:'Θερμοκρασία',criticality:'high',requiresEvidence:true,deviationActions:'1. Μεταφορά φαρμάκων και εμβολίων στο εφεδρικό ψυγείο.\n2. Ενημέρωση φαρμακείου και προϊσταμένου βάρδιας.\n3. Νέα μέτρηση σε 30 λεπτά και καταγραφή συμβάντος.',__meta:{titleEn:'Pharmacy fridge temperature check',ownerLabel:'Υπεύθυνος βάρδιας',equipment:'Ψυγείο φαρμάκων',location:'Σταθμός νοσηλευτών',createdByScope:'infection_control',createdForDepartment:null,createdByName:'',updatedByName:''}},
  frequency_config:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1},
  status:'active',
  created_by:'',
@@ -50,7 +50,20 @@ function demoExpiryCatalogue(){
   .map(([item,quantity,form,days,note],index)=>({id:`cat-demo-${index+1}`,item,quantity:String(quantity),form,expiry:on(days),note,departments:[]}))
 }
 const definition3={...definition2,id:'ctrl-def-expiry',code:'CTRL-DEMO-0003',title:'Έλεγχος λήξεων φαρμάκων και υλικών',category:'Λήξεις',description:'Περιοδικός έλεγχος λήξεων φαρμάκων και αναλωσίμων.',response_config:{mode:'list',template:'medication_expiry',label:'Ευρήματα',expiryBeforeDays:30,expiryAfterDays:7,expiryCatalogue:demoExpiryCatalogue(),__meta:{titleEn:'Medication and supply expiry check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control'}},frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
-export const controlDefinitionRows=[definition1,definition2,definition3]
+// A weekly checklist audit: every item is answered Yes / No / N/A and the
+// entry carries its compliance.
+const AUDIT_ITEMS=[
+ ['Διαθέσιμο αλκοολούχο αντισηπτικό στο σημείο φροντίδας','Alcohol-based hand rub at the point of care'],
+ ['Καθαρές επιφάνειες υψηλής επαφής (κομοδίνο, κλίνη, πόμολα)','High-touch surfaces clean (bedside table, bed rail, handles)'],
+ ['Σωστός διαχωρισμός αποβλήτων και αιχμηρών','Waste and sharps segregated correctly'],
+ ['Περιέκτες αιχμηρών κάτω από τα 3/4','Sharps containers below the 3/4 line'],
+ ['Σήμανση απομόνωσης όπου χρειάζεται','Isolation signage where needed'],
+ ['Διαθέσιμα ΜΑΠ (γάντια, ποδιές, μάσκες)','PPE available (gloves, aprons, masks)'],
+ ['Καθαρά και καλυμμένα αποθηκευμένα υλικά','Stored supplies clean and covered'],
+ ['Ενημερωμένο φύλλο καθαριότητας θαλάμου','Room cleaning log up to date'],
+]
+const definition4={...definition2,id:'ctrl-def-audit',code:'CTRL-DEMO-0004',title:'Εβδομαδιαία επιθεώρηση θαλάμων',category:'Επιθεώρηση με λίστα ελέγχου',description:'Επιθεώρηση θαλάμων με τη λίστα ελέγχου υγιεινής και καθαριότητας. Σε κάθε «Όχι» σημειώστε τι βρέθηκε.',response_config:{mode:'checklist',label:'Λίστα ελέγχου',criticality:'medium',checklist:AUDIT_ITEMS.map(([el,en],index)=>({id:`audit-${index+1}`,el,en,required:true})),deviationActions:'Άμεση διόρθωση όπου είναι δυνατό και ενημέρωση της Προϊσταμένης τμήματος.',__meta:{titleEn:'Weekly ward audit',ownerLabel:'Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων (ΝΕΛ)',ownerPerson:{employeeId:'demo-nel',name:'Παπαδοπούλου Ελένη',nameEn:'Eleni Papadopoulou',userId:null},location:'Θάλαμος',createdByScope:'infection_control'}},frequency_config:{kind:'weekly',interval:1,timesPerDay:1,times:['10:00']}}
+export const controlDefinitionRows=[definition1,definition2,definition3,definition4]
 
 const assignment1={
  id:'ctrl-asg-fridge-icu',
@@ -87,7 +100,9 @@ const assignment3={
 
 const assignment4={id:'ctrl-asg-expiry-internal',control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',department:departmentRow('Παθολογική'),status:'scheduled',last_completed_at:iso(-24*25),next_due_at:iso(24*5)}
 const assignment5={id:'ctrl-asg-disinfect-ed',control_id:definition2.id,organization_id:'demo-hospital',department_id:'ΤΕΠ',department:departmentRow('ΤΕΠ'),status:'scheduled',last_completed_at:iso(-24*9),next_due_at:iso(-24*2)}
-export const controlAssignmentRows=[assignment1,assignment2,assignment3,assignment4,assignment5]
+const assignment6={id:'ctrl-asg-audit-icu',control_id:definition4.id,organization_id:'demo-hospital',department_id:'ΜΕΘ',department:departmentRow('ΜΕΘ'),status:'scheduled',last_completed_at:iso(-24*6-2),next_due_at:iso(-2)}
+const assignment7={id:'ctrl-asg-audit-internal',control_id:definition4.id,organization_id:'demo-hospital',department_id:'Παθολογική',department:departmentRow('Παθολογική'),status:'scheduled',last_completed_at:iso(-24*3),next_due_at:iso(24*4)}
+export const controlAssignmentRows=[assignment1,assignment2,assignment3,assignment4,assignment5,assignment6,assignment7]
 
 export const controlExecutionRows=[
  {
@@ -217,6 +232,17 @@ for(const [assignment,definition,department,actorName,interval,firstDay] of prog
   const finding=rand()<(definition.id===definition3.id?0.16:0.09)
   const stock=definition.id===definition3.id&&day===(firstDay??lastDay)?{rows:expiryRows(assignment.id)}:null
   controlExecutionRows.push({id:`ctrl-exec-${assignment.id}-y${day}`,assignment_id:assignment.id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,status:'completed',value_text:finding?FINDING_VALUE[definition.id][0]:OK_VALUE[definition.id],response_data:{structuredData:stock,actorName,actorEmail:'',previousLastCompletedAt:iso(-24*(day+interval)-3),previousNextDueAt:iso(-24*day-3)},notes:finding?FINDING_VALUE[definition.id][1]:'',has_finding:finding,performed_at:iso(-24*day-3),performed_by:'',edited_at:null,edited_by:null,cancelled_at:null,cancelled_by:null,cancellation_reason:''})
+ }
+}
+
+// Eight weeks of ward audits: most items pass, now and then one does not.
+for(const [assignment,department,actorName,lastDay] of [[assignment6,'ΜΕΘ','Ελένη Παπαδοπούλου',6],[assignment7,'Παθολογική','Νίκος Δημητρίου',3]]){
+ const rand=seededRandom(`audit|${assignment.id}`)
+ for(let week=0;week<8;week++){
+  const day=lastDay+week*7
+  const rows=AUDIT_ITEMS.map(([item,itemEn],index)=>{const no=rand()<0.1;return {id:`audit-${index+1}`,item,itemEn,required:true,answer:index===4&&rand()<0.5?'na':no?'no':'yes',note:no?'Διορθώθηκε επί τόπου.':''}})
+  const answered=rows.filter(r=>r.answer!=='na'),yes=answered.filter(r=>r.answer==='yes').length
+  controlExecutionRows.push({id:`ctrl-exec-${assignment.id}-w${week}`,assignment_id:assignment.id,control_id:definition4.id,organization_id:'demo-hospital',department_id:department,status:'completed',value_text:`${yes}/${answered.length} συμμόρφωση (${Math.round(yes*100/answered.length)}%)`,response_data:{structuredData:{template:'checklist',rows},actorName,actorEmail:''},notes:'',has_finding:rows.some(r=>r.answer==='no'),performed_at:iso(-24*day-2),performed_by:'',edited_at:null,edited_by:null,cancelled_at:null,cancelled_by:null,cancellation_reason:''})
  }
 }
 
