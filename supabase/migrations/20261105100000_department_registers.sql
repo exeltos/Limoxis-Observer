@@ -273,8 +273,9 @@ set search_path = ''
 as $$
 declare e record;
 begin
+  -- EXECUTE does not set FOUND: the entry is missing when nothing was read.
   execute format('select organization_id, department_id from public.%I where id = $1', tg_argv[0]) into e using new.entry_id;
-  if not found then raise exception 'Unknown register entry'; end if;
+  if e.organization_id is null then raise exception 'Unknown register entry'; end if;
   new.organization_id := e.organization_id;
   new.department_id := e.department_id;
   new.updated_at := now();
