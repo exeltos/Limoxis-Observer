@@ -167,7 +167,7 @@
 /* Prevention lists are SearchableSelects: title, 6px, box, like every field beside them. */
 :is(.prevention-record-shell,.vaccination-editor) .searchable-select{gap:0;min-width:0}
 /* A read-only or locked field (observer, a fixed department) reads as such. */
-:is(.prevention-record-shell,.vaccination-editor) :is(input[readonly],input:disabled):not(.manual-date-native){background:#f6f8fa!important;color:#69798a!important}
+:is(.prevention-record-shell,.vaccination-editor) :is(input[readonly],input:disabled):not(.manual-date-native){background:#f6f8fa!important;color:#4a5a6b!important}
 .bundle-followup-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:13px 15px}
 .bundle-followup-form>label{display:flex;flex-direction:column;gap:6px;min-width:0}
 .bundle-followup-form textarea{width:100%;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit}
