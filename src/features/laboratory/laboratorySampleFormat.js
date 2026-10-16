@@ -168,20 +168,29 @@ export const copy = {
   },
 }
 export const METHODS = [
-  ['culture', 'Καλλιέργεια', 'Culture'],
-  ['automated_culture', 'Αυτοματοποιημένη καλλιέργεια', 'Automated culture'],
-  ['maldi_tof', 'MALDI-TOF', 'MALDI-TOF'],
-  ['pcr', 'PCR', 'PCR'],
-  ['microscopy', 'Μικροσκόπηση', 'Microscopy'],
-  ['other', 'Άλλη μέθοδος', 'Other method'],
+  { id: 'culture', el: 'Καλλιέργεια', en: 'Culture' },
+  { id: 'automated_culture', el: 'Αυτοματοποιημένη καλλιέργεια', en: 'Automated culture' },
+  { id: 'maldi_tof', el: 'MALDI-TOF', en: 'MALDI-TOF' },
+  { id: 'pcr', el: 'PCR', en: 'PCR' },
+  { id: 'microscopy', el: 'Μικροσκόπηση', en: 'Microscopy' },
+  { id: 'other', el: 'Άλλη μέθοδος', en: 'Other method' },
 ]
 export const methodLabel = (value, language) => {
-  const row = METHODS.find(x => x[0] === value)
-  return row ? row[language === 'el' ? 1 : 2] : value || '—'
+  const row = METHODS.find(x => x.id === value)
+  return row ? row[language === 'el' ? 'el' : 'en'] : value || '—'
 }
-export const rows = (libraries, key, language) =>
-  (libraries?.[key] || []).map(row => ({
-    value: row[0],
-    label: row[language === 'el' ? 0 : 1] || row[0],
-    code: row[2]?.code || '',
-  }))
+// Microbiology result (stored as result; label t(id)).
+export const RESULT_VALUES = ['negative', 'positive', 'inconclusive', 'contaminated']
+// AMR classification (stored as classification).
+export const AMR_CLASSES = [
+  { id: 'MDR', el: 'MDR – Πολυανθεκτικό', en: 'MDR – Multidrug-resistant' },
+  { id: 'XDR', el: 'XDR – Εκτεταμένα ανθεκτικό', en: 'XDR – Extensively drug-resistant' },
+  { id: 'PDR', el: 'PDR – Παν-ανθεκτικό', en: 'PDR – Pandrug-resistant' },
+]
+// How a critical result was communicated (stored as method).
+export const COMMUNICATION_CHANNELS = [
+  { id: 'phone', el: 'Τηλεφωνικά', en: 'Phone' },
+  { id: 'in_person', el: 'Προφορικά / διά ζώσης', en: 'In person' },
+  { id: 'secure_message', el: 'Ασφαλές ηλεκτρονικό μήνυμα', en: 'Secure message' },
+  { id: 'other', el: 'Άλλος', en: 'Other' },
+]
