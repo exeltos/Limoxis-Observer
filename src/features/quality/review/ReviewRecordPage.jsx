@@ -23,7 +23,7 @@ import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { loadQualityRecords } from '../qualityService'
 import { loadReviews, saveReview } from './reviewService'
 import { REVIEW_SECTIONS, addDays, newReviewFrom, reviewStatusLabel, sectionFacts } from './reviewTemplate'
-import { useObjectives } from './ManagementPanel'
+import { ObjectiveBars, useObjectives } from './QualityObjectives'
 import '../quality.css'
 
 const escapeHtml = text => String(text ?? '').replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char])
@@ -154,6 +154,7 @@ export function ReviewRecordPage() {
           const lines = source && !locked ? sectionFacts(source, data, period, language) : []
           return <FormCard key={section.key} wide title={`${index + 1}. ${en ? REVIEW_SECTIONS.find(item => item.key === section.key)?.titleEn || section.title : section.title}`}>
             {lines.length > 0 && <div className="review-facts"><span><Sparkles size={14} />{en ? 'From Limoxis' : 'Από το Limoxis'}</span><ul>{lines.map(line => <li key={line}>{line}</li>)}</ul><Button variant="secondary" onClick={() => setSection(section.key, [section.body, lines.join('\n')].filter(Boolean).join('\n'))}>{en ? 'Insert into the text' : 'Στοιχεία του Limoxis στο κείμενο'}</Button></div>}
+            {section.key === 'objectives' && !locked && <ObjectiveBars objectives={objectives.objectives} />}
             <MinutesText label={section.title} value={section.body} locked={locked} onChange={value => setSection(section.key, value)} />
           </FormCard>
         })}

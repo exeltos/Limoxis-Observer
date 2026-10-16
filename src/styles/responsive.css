@@ -289,6 +289,7 @@ html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab.active,
 html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,.entity-record-tabs>button):disabled{opacity:.5;cursor:not-allowed}
 html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.canonical-tabs>button.canonical-tab,.entity-record-tabs>button)::after,html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.canonical-tabs>button.canonical-tab,.entity-record-tabs>button)::before{display:none!important}
 html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.canonical-tabs>button.canonical-tab,.entity-record-tabs>button)>span{font-size:inherit!important;font-weight:inherit!important;color:inherit!important;line-height:1!important}
+html:not(#lo-unified-tabs) body nav.canonical-tabs>button.canonical-tab>b.canonical-tab-count{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:2px;padding:0 5px;border-radius:999px;background:#fdeceb;color:#b42318;font-size:10px;font-weight:800;line-height:1}
 
 /* ==== short-viewport ==== */
 /* Short screens (13" notebooks, tablets, zoomed browsers): full-height pages

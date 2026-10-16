@@ -29,6 +29,11 @@
   min-height:48px;
 }
 .filter-search{flex:1 1 320px;max-width:520px}
+/* A view switch at the right end of the filter row (FilterBar end). */
+.filter-end{display:flex;align-items:center;gap:8px;margin-left:auto}
+/* Search, «Filters» and the view switch share one height (36px). */
+.filter-primary-row>.filter-search,.filter-primary-row>.filter-trigger{box-sizing:border-box;height:36px!important;min-height:36px!important}
+.filter-end .lo-mode-switch{margin:0}
 .filter-trigger{
   min-height:var(--lo-control-height);
   border-radius:var(--lo-radius-sm);
@@ -1127,6 +1132,31 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 .record-metric.is-primary{background:#f1f7fb}
 .record-metric.is-primary>strong{color:#1f5f8b}
 .record-metric.is-danger>strong{color:#b42318}
+.record-metric.is-warning>strong{color:#9a5b00}
+.record-metric.is-success>strong{color:#1f7a4d}
+.record-metric>.lo-meter{margin-top:7px}
+/* PeriodStepper.jsx: «‹ September 2026 ›», as tall as the other controls. */
+.lo-period-stepper{display:inline-flex;align-items:center;height:36px;box-sizing:border-box;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-sm,9px);background:var(--lo-color-surface);overflow:hidden}
+.lo-period-stepper>strong{min-width:150px;padding:0 6px;text-align:center;font-size:13px;font-weight:700;color:var(--lo-color-text);white-space:nowrap;text-transform:capitalize}
+.lo-period-stepper>button{display:grid;place-items:center;width:34px;height:100%;border:0;background:transparent;color:var(--lo-color-muted);cursor:pointer}
+.lo-period-stepper>button:hover:not(:disabled){background:var(--lo-color-surface-muted);color:var(--lo-color-text)}
+.lo-period-stepper>button:disabled{opacity:.35;cursor:not-allowed}
+/* Toolbars of a report or a list (period switch, period, download, view switch):
+   every control 36px high, on one line, none with its own outer margin. */
+:is(.register-indicator-actions,.register-sheet-actions,.filter-end){display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+:is(.register-indicator-actions,.register-sheet-actions,.filter-end) .lo-mode-switch{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;margin:0!important;align-self:center}
+:is(.register-indicator-actions,.register-sheet-actions,.filter-end) .lo-mode-switch>button{justify-content:center;box-sizing:border-box;height:36px;min-height:36px!important;padding-top:0!important;padding-bottom:0!important}
+:is(.register-indicator-actions,.register-sheet-actions,.filter-end) :is(.lo-overflow-text-trigger,.button,.lo-icon-button){box-sizing:border-box;height:36px!important;min-height:36px!important}
+:is(.register-indicator-actions,.register-sheet-actions,.filter-end) .lo-icon-button{width:36px!important;min-width:36px!important}
+/* Mini charts (MiniCharts.jsx): a meter and a sparkline that sit inside cells and cards. */
+.lo-meter{display:block;width:100%;max-width:180px;height:6px;border-radius:999px;background:#e8eef3;overflow:hidden}
+.lo-meter>i{display:block;height:100%;border-radius:999px;background:#2a78d6}
+.lo-meter.is-success>i{background:#2f8a57}
+.lo-meter.is-warning>i{background:#d08a00}
+.lo-meter.is-danger>i{background:#c8372d}
+td>.lo-meter{margin-top:5px}
+.lo-sparkline{display:block;overflow:visible}
+.lo-sparkline-target{stroke:#8a96a3;stroke-width:1;stroke-dasharray:3 3}
 .record-view-stack .record-details-grid:is(.detail-grid,#lo-record-sheet){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;margin:0!important;padding:0!important;border:1px solid #e2e9ef!important;border-radius:11px!important;background:#fff!important;overflow:hidden}
 .record-view-stack .record-details-grid>.detail-item:is(div,#lo-record-sheet){min-width:0;padding:10px 16px!important;border:0!important;border-right:1px solid #e8edf2!important;border-bottom:1px solid #e8edf2!important;background:transparent!important}
 .record-view-stack .record-details-grid>.detail-item:nth-child(4n):is(div,#lo-record-sheet){border-right:0!important}

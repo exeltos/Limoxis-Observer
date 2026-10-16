@@ -31,7 +31,8 @@ export function useRegisterList() {
   return { registers: visible, loading }
 }
 
-export function RegistersPanel({ list, onBeforeOpen }) {
+// filterEnd: content at the right of the filter row (the Quality Center's view switch).
+export function RegistersPanel({ list, onBeforeOpen, filterEnd = null, onRowsChange }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -44,9 +45,11 @@ export function RegistersPanel({ list, onBeforeOpen }) {
     .filter(register => `${register.code} ${register.name} ${register.nameEn} ${register.department}`.toLowerCase().includes(query.trim().toLowerCase()))
     .filter(register => department === 'all' || (en ? register.departmentEn : register.department) === department)
     .filter(register => kind === 'all' || register.kind === kind), [list.registers, query, department, kind, en])
+  // The Quality Center's «Download» exports what the filters leave on screen.
+  useEffect(() => { onRowsChange?.(rows) }, [rows, onRowsChange])
   const open = register => { onBeforeOpen?.(); registry.openRecord(navigate, `/registers/${register.id}`, register.id, rows.map(row => row.id)) }
   return <>
-    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search register or department' : 'Αναζήτηση μητρώου ή τμήματος'} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (kind !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setDepartment('all'); setKind('all') }}>
+    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search register or department' : 'Αναζήτηση μητρώου ή τμήματος'} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (kind !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setDepartment('all'); setKind('all') }} end={filterEnd}>
       <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(name => <option key={name} value={name}>{name}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Kind' : 'Είδος'} value={kind} onChange={setKind}><option value="all">{t('all')}</option><option value="case">{registerKindLabel('case', language)}</option><option value="sheet">{registerKindLabel('sheet', language)}</option></FilterSelect>
     </FilterBar>

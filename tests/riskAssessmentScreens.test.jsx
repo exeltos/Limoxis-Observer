@@ -54,11 +54,13 @@ afterEach(() => { cleanup(); localStorage.clear() })
 describe('risk assessment screens', () => {
   it('lists the assessments in the Quality Center tab', async () => {
     await open('/quality')
-    fireEvent.click(await screen.findByRole('tab', { name: /Εκτίμηση κινδύνου/ }))
+    fireEvent.click(await screen.findByRole('tab', { name: /Κίνδυνοι/ }))
     const year = String(new Date(Date.now() - 7 * 86400000).getFullYear())
     expect(await screen.findByText(`Εκτίμηση επικινδυνότητας ${year}`)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Εισαγωγή από Excel/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Νέα εκτίμηση/ })).toBeInTheDocument()
+    // New assessment and Excel import live in the page's «Create» menu, as in every tab.
+    fireEvent.click(screen.getByRole('button', { name: 'Δημιουργία' }))
+    expect(screen.getByRole('menuitem', { name: /Εκτίμηση κινδύνου/ })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /Εισαγωγή από Excel/ })).toBeInTheDocument()
     // The platform templates are gone: no button for them, not even for the platform owner.
     expect(screen.queryByRole('button', { name: 'Πρότυπα πλατφόρμας' })).not.toBeInTheDocument()
   })

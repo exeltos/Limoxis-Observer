@@ -8,7 +8,8 @@ import { useLanguage } from '../core/i18n/LanguageContext'
 const POPOVER_GAP = 8
 const VIEWPORT_MARGIN = 12
 
-export function FilterBar({query='',onQueryChange,placeholder,children,advanced,activeAdvancedCount=0,onClear,compact=false}){
+// end: optional content at the right of the row (e.g. a view switch).
+export function FilterBar({query='',onQueryChange,placeholder,children,advanced,activeAdvancedCount=0,onClear,compact=false,end=null}){
   const {t}=useLanguage()
   const [open,setOpen]=useState(false)
   const [placement,setPlacement]=useState(null)
@@ -76,6 +77,7 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
       {onQueryChange&&<label className="filter-search"><Search size={16}/><input value={query} onChange={e=>onQueryChange(e.target.value)} placeholder={placeholder||`${t('search')}...`}/></label>}
       {filterContent&&<button ref={triggerRef} type="button" className={`filter-trigger ${open||activeAdvancedCount?'active':''}`} aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Filter size={16}/><span>{t('filters')}</span>{activeAdvancedCount>0&&<b>{activeAdvancedCount}</b>}</button>}
       {showClear&&<ActionButton label={clearLabel} tone="neutral" className="filter-clear-button" onClick={onClear}><X size={14}/><span>{clearLabel}</span></ActionButton>}
+      {end&&<div className="filter-end">{end}</div>}
     </div>
     {popover}
   </div>

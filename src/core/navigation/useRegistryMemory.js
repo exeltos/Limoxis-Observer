@@ -67,3 +67,7 @@ export function useRegistryMemory(registry){
 export function readRegistryViewState(registry){
   return readSessionJson(registryStorageKey(registry,'view'),null)
 }
+
+export function writeRegistryViewState(registry,state){
+  writeSessionJson(registryStorageKey(registry,'view'),state||{})
+}
