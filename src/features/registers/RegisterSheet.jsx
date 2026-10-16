@@ -84,7 +84,7 @@ export function RegisterSheet({ register, entries, onSaved }) {
         <tbody>{grouped.map(({ group, rows: groupRows }) => [
           group && <tr key={`g-${group.key}`} className="register-sheet-group"><th colSpan={measures.length + (measures.length > 1 ? 2 : 1)}>{textOf(group, language)}</th></tr>,
           ...groupRows.map(row => <tr key={row.key}>
-            <th scope="row">{textOf(row, language)}{row.help && <small>{en ? row.helpEn || row.help : row.help}</small>}</th>
+            <td className="register-row-label">{textOf(row, language)}{row.help && <small>{en ? row.helpEn || row.help : row.help}</small>}</td>
             {measures.map(measure => <td key={measure.key} className="register-num"><input aria-label={`${textOf(row, language)} · ${textOf(measure, language)}`} inputMode="numeric" disabled={!canEdit} value={values[row.key]?.[measure.key] ?? ''} onChange={event => set(row.key, measure.key, event.target.value)} /></td>)}
             {measures.length > 1 && <td className="register-num"><strong>{rowTotal(row.key) ?? '—'}</strong></td>}
           </tr>),
@@ -114,7 +114,7 @@ function SheetYear({ register, entries, year, selected, onSelect }) {
       <tbody>{(register.sheet?.rows || []).map(row => {
         const values = months.map(day => cell(byMonth.get(day), row.key))
         const total = values.filter(value => value != null)
-        return <tr key={row.key}><th scope="row">{textOf(row, language)}</th>{values.map((value, index) => <td key={months[index]} className={`register-num ${months[index] === selected ? 'is-selected' : ''}`}>{value ?? '·'}</td>)}<td className="register-num"><strong>{total.length ? total.reduce((sum, value) => sum + value, 0) : '—'}</strong></td></tr>
+        return <tr key={row.key}><td className="register-row-label">{textOf(row, language)}</td>{values.map((value, index) => <td key={months[index]} className={`register-num ${months[index] === selected ? 'is-selected' : ''}`}>{value ?? '·'}</td>)}<td className="register-num"><strong>{total.length ? total.reduce((sum, value) => sum + value, 0) : '—'}</strong></td></tr>
       })}</tbody>
     </table></div>
   </RecordTabPanel>

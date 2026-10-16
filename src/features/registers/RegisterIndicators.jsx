@@ -102,7 +102,7 @@ function IndicatorDetail({ register, entries, row, period, language }) {
     </div>
     {splits.map(split => <div key={split.field.key} className="register-split">
       <h5>{en ? 'Cases of the period by' : 'Περιστατικά της περιόδου ανά'} {textOf(split.field, language).toLowerCase()}</h5>
-      <table className="data-table"><tbody>{split.rows.map(item => <tr key={item.option.value || 'none'}><th scope="row">{textOf(item.option, language)}</th><td className="register-num">{item.count}</td><td className="register-num">{item.share == null ? '—' : `${new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(item.share)}%`}</td><td className="register-split-bar"><i style={{ width: `${item.share || 0}%` }} /></td></tr>)}</tbody></table>
+      <table className="data-table"><tbody>{split.rows.map(item => <tr key={item.option.value || 'none'}><td className="register-row-label">{textOf(item.option, language)}</td><td className="register-num">{item.count}</td><td className="register-num">{item.share == null ? '—' : `${new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(item.share)}%`}</td><td className="register-split-bar"><i style={{ width: `${item.share || 0}%` }} /></td></tr>)}</tbody></table>
     </div>)}
   </section>
 }
