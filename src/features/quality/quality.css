@@ -97,3 +97,16 @@ html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.
 .quality-audit-chip-foot code{font-size:10.5px;color:var(--lo-color-muted)}
 @media(max-width:1100px){.quality-audit-months{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.quality-audit-months{grid-template-columns:minmax(0,1fr)}.quality-audit-add{grid-template-columns:minmax(0,1fr)}}
+
+/* Quality objectives and management review (Phase 4b) */
+.quality-management-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px}
+.review-minutes .lo-form-cards{padding-bottom:12px}
+.review-minutes textarea{width:100%}
+.review-facts{display:grid;gap:6px;padding:10px 12px;border:1px dashed var(--lo-color-border-strong);border-radius:8px;background:var(--lo-color-surface-muted)}
+.review-facts>span{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--lo-color-primary)}
+.review-facts ul{margin:0;padding-left:18px;font-size:13px;color:var(--lo-color-text)}
+.review-facts button{justify-self:start}
+.review-actions{display:grid;gap:10px;padding:12px 16px}
+.review-action-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) minmax(150px,1fr) auto auto;gap:10px;align-items:end;padding:10px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.review-action-tools{display:flex;gap:6px;align-items:center}
+@media (max-width:1100px){.review-action-row{grid-template-columns:1fr 1fr}}

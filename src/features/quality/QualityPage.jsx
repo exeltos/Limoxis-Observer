@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,ClipboardList,UserRound,CalendarDays,ListChecks,CheckCircle2,ClipboardCheck,Clock3,Plus,ShieldCheck,CheckSquare2,ShieldAlert } from 'lucide-react'
+import { AlertTriangle,ClipboardList,Target,UserRound,CalendarDays,ListChecks,CheckCircle2,ClipboardCheck,Clock3,Plus,ShieldCheck,CheckSquare2,ShieldAlert } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -31,6 +31,7 @@ import { RiskAssessmentsPanel } from './risk/RiskAssessmentsPanel'
 import { RiskSummaryStrip } from './risk/RiskSummaryStrip'
 import { useRiskAssessmentList } from './risk/useRiskAssessmentList'
 import { RegistersPanel,useRegisterList } from '../registers/RegistersPanel'
+import { ManagementPanel } from './review/ManagementPanel'
 import './quality.css'
 
 const sections=[
@@ -40,6 +41,7 @@ const sections=[
   {id:'audits',label:'qualityAudits',icon:ClipboardCheck},
   {id:'risks',label:'qualityRisks',icon:ShieldAlert},
   {id:'registers',label:'departmentRegisters',icon:ClipboardList},
+  {id:'management',label:'qualityManagement',icon:Target},
 ]
 
 
@@ -85,15 +87,17 @@ export function QualityPage(){
   const riskList=useRiskAssessmentList(tenant?.id,isRisks)
   // Department registers and their indicators (Phase 4) live in their own module.
   const isRegisters=section==='registers'
+  // Quality objectives and the management review (Phase 4b).
+  const isManagement=section==='management'
   const registerList=useRegisterList()
-  const canCreate=!isRisks&&(canManage||(section==='incidents'&&canReportIncident))
+  const canCreate=!isRisks&&!isManagement&&(canManage||(section==='incidents'&&canReportIncident))
   const queue=useDeviationQueue(tenant?.id,canManage)
   const {libraries}=useLibraries()
   const categories=libraries.incidentCategories||[]
   const register=useReportRegister(isRegister?rows:[],queue.sources,language)
   const createLabel=createLabels[section]?.[language==='en'?'en':'el']||(language==='en'?'Create':'Δημιουργία')
 
-  useEffect(()=>{let active=true;if(section==='risks'||section==='registers'){setRows([]);setLoading(false);return()=>{active=false}};setLoading(true);loadQualityRecords(section,tenant?.id).then(data=>{if(active)setRows(data)}).catch(()=>{if(active)setRows([])}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[section,tenant?.id])
+  useEffect(()=>{let active=true;if(section==='risks'||section==='registers'||section==='management'){setRows([]);setLoading(false);return()=>{active=false}};setLoading(true);loadQualityRecords(section,tenant?.id).then(data=>{if(active)setRows(data)}).catch(()=>{if(active)setRows([])}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[section,tenant?.id])
   const departments=useMemo(()=>[...new Set(rows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[rows,language])
   const filtered=useMemo(()=>rows.filter(row=>`${row.id} ${row.displayId||''} ${qualityCode(row)} ${row.title} ${row.titleEn} ${row.owner||''}`.toLowerCase().includes(query.toLowerCase())).filter(row=>status==='all'||row.status===status).filter(row=>department==='all'||(language==='el'?row.department:row.departmentEn)===department).filter(row=>!quick||(quick==='open'?!['closed','completed'].includes(row.status):quick==='closed'?['closed','completed'].includes(row.status):['high','critical'].includes(row.severity||row.priority))),[rows,query,status,department,language,quick])
   useEffect(()=>setPage(1),[section,query,status,department,pageSize,quick])
@@ -108,7 +112,7 @@ export function QualityPage(){
   function createCapaFrom(prefill){writeSessionValue(RETURN_KEY,'incidents');goTo('/quality/capas/new',{registry:'quality.capas',state:{qualitySource:prefill}})}
   function changeSection(id){registry.saveViewState({query,status,department});setSection(id);setQuick(null);const next=readRegistryViewState(`quality.${id}`);setQuery(next?.query||'');setStatus(next?.status||'all');setDepartment(next?.department||'all')}
 
-  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA, audits, risks and deviations in one controlled, traceable flow.':'Συμβάντα, ευρήματα, διορθωτικές ενέργειες, επιθεωρήσεις, κίνδυνοι και αποκλίσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{isRisks||isRegisters?null:isRegister?<DownloadMenu disabled={!register.filtered.length} onExcel={()=>exportRegistry(reportRegisterExport(register.filtered,{language,t,categories}))}/>:<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{section==='incidents'&&<ActionButton label={language==='en'?'My incident reports':'Οι αναφορές συμβάντων μου'} tone="neutral" onClick={()=>goTo('/quality/my-reports')}><UserRound size={17}/><span>{language==='en'?'My reports':'Οι αναφορές μου'}</span></ActionButton>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
+  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA, audits, risks and deviations in one controlled, traceable flow.':'Συμβάντα, ευρήματα, διορθωτικές ενέργειες, επιθεωρήσεις, κίνδυνοι και αποκλίσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{isRisks||isRegisters||isManagement?null:isRegister?<DownloadMenu disabled={!register.filtered.length} onExcel={()=>exportRegistry(reportRegisterExport(register.filtered,{language,t,categories}))}/>:<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{section==='incidents'&&<ActionButton label={language==='en'?'My incident reports':'Οι αναφορές συμβάντων μου'} tone="neutral" onClick={()=>goTo('/quality/my-reports')}><UserRound size={17}/><span>{language==='en'?'My reports':'Οι αναφορές μου'}</span></ActionButton>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
     {isRegister&&<ReportRegisterSummary view={register} language={language}/>}
     {isRisks&&<RiskSummaryStrip items={riskList.items} en={language==='en'} locale={locale}/>}
     {section==='audits'&&<div className="workspace-summary quality-summary"><div className="module-summary-strip">
@@ -117,15 +121,15 @@ export function QualityPage(){
       <SummaryMetric icon={CheckCircle2} label={language==='en'?'Completed':'Ολοκληρωμένες'} value={closedCount} onClick={quickToggle('closed')} active={quick==='closed'}/>
       <SummaryMetric icon={ListChecks} label={language==='en'?'Average compliance':'Μέση συμμόρφωση'} value={averageCompliance==null?'—':`${averageCompliance}%`} onClick={()=>setQuick(null)} active={false}/>
     </div></div>}
-    {!isRegister&&!isRisks&&!isRegisters&&section!=='audits'&&<div className="workspace-summary quality-summary"><div className="module-summary-strip">
+    {!isRegister&&!isRisks&&!isRegisters&&!isManagement&&section!=='audits'&&<div className="workspace-summary quality-summary"><div className="module-summary-strip">
       <SummaryMetric icon={ClipboardCheck} label={language==='en'?'Total':'Σύνολο'} value={rows.length} onClick={()=>setQuick(null)} active={false}/>
       <SummaryMetric icon={Clock3} label={language==='en'?'Open / active':'Ανοικτά / ενεργά'} value={openCount} onClick={quickToggle('open')} active={quick==='open'}/>
       <SummaryMetric icon={CheckCircle2} label={language==='en'?'Completed':'Ολοκληρωμένα'} value={closedCount} onClick={quickToggle('closed')} active={quick==='closed'}/>
       <SummaryMetric icon={AlertTriangle} label={language==='en'?'High priority':'Υψηλής προτεραιότητας'} value={highCount} onClick={quickToggle('high')} active={quick==='high'}/>
     </div></div>}
     <div className="surface registry-workspace workspace-column workspace-fill quality-workspace">
-      <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{sections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{id==='registers'?(language==='en'?'Department registers':'Μητρώα τμημάτων'):id==='incidents'?(language==='en'?(canManage?'Reports & deviations':'Reports'):(canManage?'Αναφορές & αποκλίσεις':'Αναφορές')):t(label)}</span>{id==='incidents'&&register.counts.deviations>0&&<span className="quality-tab-count">{register.counts.deviations}</span>}</button>)}</nav>
-      {isRegisters?<RegistersPanel list={registerList} onBeforeOpen={()=>writeSessionValue(RETURN_KEY,section)}/>:isRisks?<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} canManage={canManage} en={language==='en'} locale={locale}/>:isRegister?<ReportRegister view={register} loading={loading||queue.loading} language={language} t={t} categories={categories} registry={registry} onCreateCapa={createCapaFrom} onOpenReport={(row,items)=>{writeSessionValue(RETURN_KEY,section);registry.openRecord(navigate,`/quality/incidents/${row.id}`,row.id,items.filter(item=>item.type==='report').map(item=>item.id))}}/>:<>
+      <nav className="entity-record-tabs surface quality-tabs" role="tablist" aria-label={t('quality')}>{sections.map(({id,label,icon:Icon})=><button key={id} type="button" role="tab" aria-selected={section===id} className={section===id?'active':''} onClick={()=>changeSection(id)}>{Icon&&<Icon size={16}/>}<span>{id==='management'?(language==='en'?'Objectives & review':'Στόχοι & Ανασκόπηση'):id==='registers'?(language==='en'?'Department registers':'Μητρώα τμημάτων'):id==='incidents'?(language==='en'?(canManage?'Reports & deviations':'Reports'):(canManage?'Αναφορές & αποκλίσεις':'Αναφορές')):t(label)}</span>{id==='incidents'&&register.counts.deviations>0&&<span className="quality-tab-count">{register.counts.deviations}</span>}</button>)}</nav>
+      {isManagement?<ManagementPanel canManage={canManage}/>:isRegisters?<RegistersPanel list={registerList} onBeforeOpen={()=>writeSessionValue(RETURN_KEY,section)}/>:isRisks?<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} canManage={canManage} en={language==='en'} locale={locale}/>:isRegister?<ReportRegister view={register} loading={loading||queue.loading} language={language} t={t} categories={categories} registry={registry} onCreateCapa={createCapaFrom} onOpenReport={(row,items)=>{writeSessionValue(RETURN_KEY,section);registry.openRecord(navigate,`/quality/incidents/${row.id}`,row.id,items.filter(item=>item.type==='report').map(item=>item.id))}}/>:<>
       {section==='audits'&&<div className="quality-audit-view"><ModeSwitch ariaLabel={language==='en'?'View':'Προβολή'} value={auditView} onChange={setAuditView} options={[{value:'list',label:language==='en'?'List':'Λίστα',icon:ListChecks},{value:'programme',label:language==='en'?'Year programme':'Πρόγραμμα έτους',icon:CalendarDays}]}/></div>}
       {section==='audits'&&auditView==='programme'?<AuditProgramme audits={rows} language={language} t={t} onOpen={audit=>{writeSessionValue(RETURN_KEY,section);registry.openRecord(navigate,`/quality/audits/${audit.id}`,audit.id,rows.map(x=>x.id))}}/>:<>
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('qualityRecords.searchQuality')} activeAdvancedCount={(status!=='all'?1:0)+(department!=='all'?1:0)} onClear={()=>{setQuery('');setStatus('all');setDepartment('all')}}>
