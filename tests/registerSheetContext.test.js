@@ -6,12 +6,10 @@ const months = { '2026-06': { r: { n: 20 } }, '2026-07': { r: { n: 22 } }, '2026
 const valuesOf = month => months[month]
 
 describe('monthly sheet: what a row looked like before', () => {
-  it('reads the previous month, last year and twelve months ending this month', () => {
+  it('reads the previous month and the usual of the three months before', () => {
     const context = rowContext('r', measures, valuesOf, '2026-09', 23)
     expect(context.previous).toBe(21)
-    expect(context.lastYear).toBe(18)
-    expect(context.trend).toHaveLength(12)
-    expect(context.trend.at(-1)).toBe(23)
+    expect(context.average).toBe(21)
     expect(context.unusual).toBe(false)
   })
 
