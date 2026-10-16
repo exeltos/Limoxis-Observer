@@ -18,7 +18,7 @@ import { formatDay } from '../../../core/i18n/formatDay'
 import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, periodOf, textOf } from '../../registers/registerEngine'
 import { loadObjectives, loadReviews, saveObjective } from './reviewService'
-import { formatObjectiveValue, objectiveState, reviewStatusLabel } from './reviewTemplate'
+import { formatObjectiveValue, objectiveState, reviewStatusLabel, toNumber } from './reviewTemplate'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
@@ -41,7 +41,7 @@ export function useObjectives(organizationId) {
       setObjectives(rows.map(objective => {
         const register = allRegisters.find(item => item.id === objective.registerId)
         const indicator = register?.indicators.find(item => item.id === objective.indicatorKey)
-        const value = indicator ? computeIndicator(register, indicator, entriesBy.get(register.id) || [], periodOf('year', `${objective.year}-06-01`)).value : objective.reportedValue === '' ? null : Number(objective.reportedValue)
+        const value = indicator ? computeIndicator(register, indicator, entriesBy.get(register.id) || [], periodOf('year', `${objective.year}-06-01`)).value : toNumber(objective.reportedValue)
         return { ...objective, register, indicator, current: { value, status: objectiveState(objective, value) } }
       }))
     } catch (error) { console.error(error); setObjectives([]) } finally { setLoading(false) }

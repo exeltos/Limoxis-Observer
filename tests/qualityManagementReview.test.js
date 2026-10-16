@@ -37,6 +37,8 @@ describe('management review', () => {
     expect(formatObjectiveValue(46.4, '%')).toBe('46,4%')
     expect(formatObjectiveValue(46.4, '%', 'en')).toBe('46.4%')
     expect(formatObjectiveValue(null, '%')).toBe('—')
+    expect(formatObjectiveValue('24,6', 'ημέρες')).toBe('24,6 ημέρες')
+    expect(objectiveState({ target: '12,5', direction: 'lower' }, 12)).toBe('met')
     const line = sectionFacts('objectives', { objectives: [{ title: 'Μέση διάρκεια', current: { value: 24.6, status: 'missed' }, target: 12, direction: 'lower', unit: 'ημέρες' }] }, { from: '2026-01-01', to: '2026-12-31' })[0]
     expect(line).toBe('Μέση διάρκεια: 24,6 ημέρες (στόχος ≤ 12 ημέρες) — δεν επιτυγχάνεται.')
   })

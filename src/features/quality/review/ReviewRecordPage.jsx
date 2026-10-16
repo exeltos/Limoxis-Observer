@@ -54,7 +54,17 @@ ${sections}${actions}
 // card), and plain paragraphs once the review is approved.
 function MinutesText({ label, value, locked, onChange }) {
   const ref = useRef(null)
-  useLayoutEffect(() => { const el = ref.current; if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight + 2}px` } }, [value, locked])
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+    const fit = () => { el.style.height = 'auto'; el.style.height = `${el.scrollHeight + 2}px` }
+    fit()
+    // A narrower record wraps the text onto more lines: fit again when the width changes.
+    let width = el.clientWidth
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => { if (el.clientWidth !== width) { width = el.clientWidth; fit() } })
+    observer?.observe(el)
+    return () => observer?.disconnect()
+  }, [value, locked])
   if (locked) return <div className="review-text" aria-label={label}>{String(value || '').split(/\n+/).filter(line => line.trim()).map((line, index) => <p key={index}>{line}</p>)}{!String(value || '').trim() && <p className="review-text-empty">—</p>}</div>
   return <textarea ref={ref} aria-label={label} rows={3} value={value || ''} onChange={event => onChange(event.target.value)} />
 }

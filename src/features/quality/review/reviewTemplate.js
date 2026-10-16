@@ -23,10 +23,13 @@ export const REVIEW_SECTIONS = [
 ]
 
 const pad = n => String(n).padStart(2, '0')
+// A typed number: «24,6» (Greek decimal comma) reads as 24.6.
+export const toNumber = value => (value == null || value === '' ? null : Number(String(value).trim().replace(',', '.')))
 // A value with its unit, in the language's number format (24,6 ημέρες · 46,4%).
 export function formatObjectiveValue(value, unit, language = 'el') {
-  if (value == null || value === '') return '—'
-  const text = new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 2 }).format(Number(value))
+  const number = toNumber(value)
+  if (number == null || Number.isNaN(number)) return value == null || value === '' ? '—' : String(value)
+  const text = new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 2 }).format(number)
   return unit === '%' ? `${text}%` : unit ? `${text} ${unit}` : text
 }
 export const addDays = (day, days) => { const date = new Date(`${day}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
@@ -106,7 +109,9 @@ export function sectionFacts(source, data = {}, period, language = 'el') {
 // An objective against its indicator: met, missed or pending.
 export function objectiveState(objective, value) {
   if (value == null || objective.target == null || objective.target === '') return 'pending'
-  return (objective.direction === 'lower' ? value <= Number(objective.target) : value >= Number(objective.target)) ? 'met' : 'missed'
+  const target = toNumber(objective.target)
+  if (target == null || Number.isNaN(target)) return 'pending'
+  return (objective.direction === 'lower' ? value <= target : value >= target) ? 'met' : 'missed'
 }
 
 export const reviewStatusLabel = (status, language = 'el') => (language === 'en' ? { draft: 'Draft', in_review: 'For signature', approved: 'Approved' } : { draft: 'Πρόχειρο', in_review: 'Προς υπογραφή', approved: 'Εγκρίθηκε' })[status] || status
