@@ -1,17 +1,5 @@
 import { supabase } from '../../core/supabase/client'
-
-const assertCloud = () => {
-  if (!supabase) throw new Error('Supabase is not configured.')
-}
-
-async function currentUserId() {
-  assertCloud()
-  const { data, error } = await supabase.auth.getUser()
-  if (error) throw error
-  const id = data?.user?.id
-  if (!id) throw new Error('Authenticated user is required.')
-  return id
-}
+import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 
 const iso = value => (value ? new Date(value).toISOString() : null)
 const dateOnly = value => (value ? String(value).slice(0, 10) : null)

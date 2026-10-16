@@ -4,22 +4,10 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { deleteAttachment,uploadAttachment } from '../../core/attachments/attachmentService'
 import { evidenceSummary } from './controlCriticality'
 import { loadControlDefinitionsLocal,saveControlDefinitionsLocal,loadControlAssignmentsLocal,saveControlAssignmentsLocal,loadControlExecutionsLocal,saveControlExecutionsLocal,loadControlDraftsLocal,saveControlDraftsLocal } from './controlStore'
+import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 
 const demoId=prefix=>`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`
 const demoResolveDepartments=(names=[])=>(names||[]).filter(Boolean).map(name=>({id:name,name}))
-
-const assertCloud=organizationId=>{
- if(!supabase)throw new Error('Supabase is not configured.')
- if(!organizationId)throw new Error('Organization is required.')
-}
-
-async function currentUserId(){
- const {data,error}=await supabase.auth.getUser()
- if(error)throw error
- const id=data?.user?.id
- if(!id)throw new Error('Authenticated user is required.')
- return id
-}
 
 const cleanResponseConfig=value=>{
  const next={...(value||{})}

@@ -8,19 +8,7 @@ import {
   whoStatsFromObservations,
 } from './whoHandHygieneStats'
 import { loadHandHygieneLocal, saveHandHygieneLocal } from './preventionStore'
-
-const assertCloud = organizationId => {
-  if (!supabase) throw new Error('Supabase is not configured.')
-  if (!organizationId) throw new Error('Organization is required.')
-}
-
-async function currentUserId() {
-  const { data, error } = await supabase.auth.getUser()
-  if (error) throw error
-  const id = data?.user?.id
-  if (!id) throw new Error('Authenticated user is required.')
-  return id
-}
+import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 
 function mapSession(row) {
   const items = (row.observations_detail || [])

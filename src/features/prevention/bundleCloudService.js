@@ -3,18 +3,8 @@ import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { preventionDepartments, bundleTemplateLibrary } from './preventionDemoData'
 import { loadBundlesLocal, saveBundlesLocal } from './preventionStore'
+import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 
-const assertCloud = organizationId => {
-  if (!supabase) throw new Error('Supabase is not configured.')
-  if (!organizationId) throw new Error('Organization is required.')
-}
-async function currentUserId() {
-  const { data, error } = await supabase.auth.getUser()
-  if (error) throw error
-  const id = data?.user?.id
-  if (!id) throw new Error('Authenticated user is required.')
-  return id
-}
 function mapTemplate(row) {
   const elements = Array.isArray(row.elements) ? row.elements : []
   return {

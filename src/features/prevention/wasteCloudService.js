@@ -3,19 +3,7 @@ import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { preventionDepartments, wasteTypeLibrary } from './preventionDemoData'
 import { loadWasteLocal, saveWasteLocal } from './preventionStore'
-
-const assertCloud = organizationId => {
-  if (!supabase) throw new Error('Supabase is not configured.')
-  if (!organizationId) throw new Error('Organization is required.')
-}
-
-async function currentUserId() {
-  const { data, error } = await supabase.auth.getUser()
-  if (error) throw error
-  const id = data?.user?.id
-  if (!id) throw new Error('Authenticated user is required.')
-  return id
-}
+import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 
 function mapRow(row) {
   const typeEl = row.waste_type?.name_el || ''
