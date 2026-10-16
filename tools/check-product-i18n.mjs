@@ -16,7 +16,7 @@ const baseline={
   'src/features/management/BedDaysPanel.jsx':0,
   'src/features/indicators/IndicatorsPage.jsx':0,
   'src/features/patients/PatientsPage.jsx':0,
-  'src/features/surveillance/SurveillanceCanonicalPage.jsx':22,
+  'src/features/surveillance/SurveillanceCanonicalPage.jsx':0,
   'src/design-system/RecordActions.jsx':0,
   'src/design-system/AttachmentField.jsx':138,
   'src/core/feedback/FeedbackContext.jsx':0,

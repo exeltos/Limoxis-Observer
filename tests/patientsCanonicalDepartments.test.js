@@ -8,8 +8,9 @@ const migration=fs.readFileSync('supabase/migrations/20260902115625_clinical_cor
 
 describe('patient registry governance',()=>{
   it('loads production department options from the hospital library',()=>{
-    expect(page).toContain("import { loadDepartments } from '../management/departmentsService'")
-    expect(page).toContain('loadDepartments(tenant?.id)')
+    expect(page).toContain("import { useDepartments } from '../management/useLibraries'")
+    expect(page).toContain('useDepartments()')
+    expect(page).not.toContain('demo-department-')
     expect(page).toContain('departments={departments}')
   })
 

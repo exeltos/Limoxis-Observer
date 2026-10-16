@@ -15,8 +15,9 @@ vi.mock('../src/core/auth/AuthContext', () => ({
 }))
 const createPatient = vi.fn()
 vi.mock('../src/features/patients/patientsService', () => ({ createPatient: (...args) => createPatient(...args) }))
+// The organization's departments reach the new-surveillance flow through useDepartments().
 vi.mock('../src/features/management/managementCloudService', () => ({
-  loadManagementLibraries: vi.fn(async () => ({})),
+  loadManagementLibraries: vi.fn(async () => ({ departments: [['Παθολογική', 'Internal medicine', { id: 'dep-1' }]] })),
   createManagementLibraryItem: vi.fn(),
 }))
 
@@ -87,15 +88,18 @@ describe('employee screening record: laboratory request actions', () => {
 // Rule 2: inline patient creation requires a patient code outside demo (and trims
 // it); in demo the code may be left empty.
 describe('new surveillance: inline patient creation', () => {
-  const departments = [{ id: 'dep-1', el: 'Παθολογική', en: 'Internal medicine' }]
-  function fillNewPatient({ code } = {}) {
+  async function fillNewPatient({ code } = {}) {
     const onCreate = vi.fn(async () => ({ id: 'SURV-1' }))
-    render(<LanguageProvider><NewSurveillanceFlow departments={departments} onClose={() => {}} onCreate={onCreate}/></LanguageProvider>)
+    render(<LanguageProvider><NewSurveillanceFlow onClose={() => {}} onCreate={onCreate}/></LanguageProvider>)
     fireEvent.click(screen.getByRole('radio', { name: t('newPatient') }))
     if (code !== undefined) fireEvent.change(screen.getByLabelText(t('patientId')), { target: { value: code } })
     fireEvent.change(screen.getByLabelText(t('firstName')), { target: { value: 'Γιώργος' } })
     fireEvent.change(screen.getByLabelText(t('lastName')), { target: { value: 'Νικολάου' } })
-    fireEvent.change(screen.getByLabelText(t('department')), { target: { value: 'dep-1' } })
+    // The department is a searchable list of the organization's departments.
+    const department = screen.getByRole('combobox', { name: t('department') })
+    fireEvent.change(department, { target: { value: 'Παθολ' } })
+    fireEvent.click(await screen.findByRole('option', { name: /Παθολογική/ }))
+    expect(department).toHaveValue('Παθολογική')
     fireEvent.change(screen.getByLabelText(t('surveillanceReason')), { target: { value: 'Πυρετός' } })
     fireEvent.click(screen.getByRole('button', { name: 'Έναρξη επιτήρησης' }))
     return onCreate
@@ -103,7 +107,7 @@ describe('new surveillance: inline patient creation', () => {
   const createdPatientResult = { record: { id: 'PT-9', name: 'Γιώργος Νικολάου', department: 'Παθολογική', departmentEn: 'Internal medicine' }, list: [] }
 
   it('does not create the patient without a code outside demo', async () => {
-    const onCreate = fillNewPatient()
+    const onCreate = await fillNewPatient()
     await waitFor(() => expect(feedback.notify).toHaveBeenCalledWith(expect.any(String), 'warning'))
     expect(createPatient).not.toHaveBeenCalled()
     expect(onCreate).not.toHaveBeenCalled()
@@ -111,16 +115,16 @@ describe('new surveillance: inline patient creation', () => {
 
   it('creates the patient with the trimmed code outside demo', async () => {
     createPatient.mockResolvedValue(createdPatientResult)
-    const onCreate = fillNewPatient({ code: '  PT-9  ' })
+    const onCreate = await fillNewPatient({ code: '  PT-9  ' })
     await waitFor(() => expect(onCreate).toHaveBeenCalled())
     expect(createPatient).toHaveBeenCalledTimes(1)
-    expect(createPatient.mock.calls[0][2]).toMatchObject({ patientCode: 'PT-9', firstName: 'Γιώργος', lastName: 'Νικολάου', department: 'Παθολογική' })
+    expect(createPatient.mock.calls[0][2]).toMatchObject({ patientCode: 'PT-9', firstName: 'Γιώργος', lastName: 'Νικολάου', departmentId: 'dep-1', department: 'Παθολογική', departmentEn: 'Internal medicine' })
   })
 
   it('allows a missing code in demo', async () => {
     tenantState = { ...tenantState, isDemo: true }
     createPatient.mockResolvedValue(createdPatientResult)
-    const onCreate = fillNewPatient()
+    const onCreate = await fillNewPatient()
     await waitFor(() => expect(onCreate).toHaveBeenCalled())
     expect(screen.queryByLabelText(t('patientId'))).toBeNull()
     expect(createPatient.mock.calls[0][2].patientCode).toBeUndefined()

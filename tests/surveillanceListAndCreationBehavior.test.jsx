@@ -133,9 +133,10 @@ describe('Environment tab: results outside limits', () => {
     fireEvent.click(within(row).getByRole('button', { name: /Επαναδειγματοληψία/ }))
     expect(screen.queryByText('Καρτέλα δείγματος')).toBeNull()
     expect(await screen.findByText('Επαναδειγματοληψία σημείου')).toBeInTheDocument()
-    expect(screen.getByLabelText('Χώρος / περιοχή')).toHaveValue('Παθολογική')
-    expect(screen.getByLabelText('Σημείο δειγματοληψίας')).toHaveValue('Ντους θαλάμου 12')
-    expect(screen.getByLabelText('Μέθοδος δειγματοληψίας')).toHaveValue('showerWater')
+    // Location, point and method are searchable lists that keep the earlier sample's values.
+    expect(screen.getByRole('combobox', { name: 'Χώρος / περιοχή' })).toHaveValue('Παθολογική')
+    expect(screen.getByRole('combobox', { name: 'Σημείο δειγματοληψίας' })).toHaveValue('Ντους θαλάμου 12')
+    expect(screen.getByRole('combobox', { name: 'Μέθοδος δειγματοληψίας' })).toHaveValue('Νερό ντους')
     expect(screen.getByLabelText('Σημειώσεις')).toHaveValue('Επαναδειγματοληψία για ENV-260824-003')
   })
 

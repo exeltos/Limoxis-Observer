@@ -18,11 +18,16 @@ import { Breadcrumbs } from '../../design-system/Breadcrumbs'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { Field } from '../../design-system/Field'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { StatusBadge } from '../../design-system/StatusBadge'
 import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { RESISTANCE_ALERT, printSurveillanceReport, episodeTypeLabel } from './clinicalRecordLabels'
 import { CanonicalJourney } from './ClinicalJourney'
 import { SimpleDialog, SampleDialog, ReasonDialog } from './ClinicalRecordDialogs'
+import { SAMPLE_TONES } from './ClinicalRecordViews'
+import { listTexts, statusTone, suspectedSourceOptions } from './surveillanceOptions'
 
 // Surveillance workspace of the clinical record: the episode tree and its samples.
 export function SurveillanceWorkspace({
@@ -187,9 +192,7 @@ export function SurveillanceWorkspace({
               </div>
             </div>
             <div className="episode-detail-actions">
-              <span className={`status-badge ${detailRecord.status === 'active' ? 'active' : ''}`}>
-                {t(detailRecord.status)}
-              </span>
+              <StatusBadge tone={statusTone(detailRecord.status)}>{t(detailRecord.status)}</StatusBadge>
               <OverflowMenu
                 label={translate(
                   'copy.clinicalRecordCopy.surveillanceActions',
@@ -304,29 +307,23 @@ export function SurveillanceWorkspace({
               value={editDraft.reviewDue}
               onChange={v => setEditDraft(d => ({ ...d, reviewDue: v }))}
             />
-            <label>
-              <span>{t('room')}</span>
+            <Field label={t('room')}>
               <input
                 value={editDraft.room}
                 onChange={e => setEditDraft(d => ({ ...d, room: e.target.value }))}
               />
-            </label>
-            <label>
-              <span>{t('clinicalRecords.suspectedSource')}</span>
-              <select
-                value={editDraft.suspectedSource}
-                onChange={e => setEditDraft(d => ({ ...d, suspectedSource: e.target.value }))}
-              >
-                <option value="">{t('underAssessment')}</option>
-                <option value="bloodstream">{t('clinicalRecords.bloodstream')}</option>
-                <option value="urinary">{t('clinicalRecords.urinary')}</option>
-                <option value="respiratory">{t('clinicalRecords.respiratory')}</option>
-                <option value="surgicalSite">{t('clinicalRecords.surgicalSite')}</option>
-                <option value="other">{t('other')}</option>
-              </select>
-            </label>
-            <label className="entry-span-2">
-              <span>{t('surveillanceReason')}</span>
+            </Field>
+            <SearchableSelect
+              label={t('clinicalRecords.suspectedSource')}
+              value={editDraft.suspectedSource}
+              options={suspectedSourceOptions(t)}
+              placeholder={t('underAssessment')}
+              emptyLabel={listTexts(language).emptyLabel}
+              clearLabel={listTexts(language).clearLabel}
+              onChange={v => setEditDraft(d => ({ ...d, suspectedSource: v }))}
+            />
+            <label className="field entry-span-2">
+              <span className="lo-field-label">{t('surveillanceReason')}</span>
               <textarea
                 rows={3}
                 value={editDraft.reason}
@@ -438,9 +435,7 @@ export function SurveillanceWorkspace({
                           language === 'el' ? 'el' : 'en',
                         )}
                     </strong>
-                    <b className={`status-badge ${ep.status === 'active' ? 'active' : ''}`}>
-                      {t(ep.status)}
-                    </b>
+                    <StatusBadge tone={statusTone(ep.status)}>{t(ep.status)}</StatusBadge>
                   </span>
                   <small>
                     {translate(
@@ -718,7 +713,7 @@ function SampleTreeRow({
         </small>
       </span>
       <span className="sv-sample-result">
-        <b className={`sv-result sv-result-${tone}`}>{status}</b>
+        <StatusBadge tone={SAMPLE_TONES[tone]}>{status}</StatusBadge>
         {organism && <em className="sv-chip sv-chip-organism">{organism}</em>}
         {amr && (
           <em

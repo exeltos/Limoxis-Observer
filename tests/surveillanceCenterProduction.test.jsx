@@ -19,7 +19,8 @@ vi.mock('../src/core/tenant/TenantContext', () => ({ useTenant: () => tenantStat
 const feedback = { notify: vi.fn(), notifyError, confirm: vi.fn(async () => true) }
 vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => feedback, useOptionalFeedback: () => null }))
 vi.mock('../src/features/patients/patientsService', () => ({ loadPatients: vi.fn(async () => []) }))
-vi.mock('../src/features/management/departmentsService', () => ({ loadDepartments: (...args) => service.departments(...args) }))
+// Departments come with the central libraries (useDepartments), one more domain loaded for the organization.
+vi.mock('../src/features/management/managementCloudService', () => ({ loadManagementLibraries: (...args) => service.departments(...args) }))
 vi.mock('../src/features/surveillance/clinicalCloudService', async (importOriginal) => ({ ...(await importOriginal()), loadClinicalCases: (...args) => service.cases(...args) }))
 vi.mock('../src/features/surveillance/employeeSurveillanceCloudService', async (importOriginal) => ({ ...(await importOriginal()), loadEmployeeSurveillanceRecords: (...args) => service.employees(...args) }))
 vi.mock('../src/features/laboratory/laboratoryCloudService', async (importOriginal) => ({ ...(await importOriginal()), loadLaboratorySamples: (...args) => service.samples(...args) }))
@@ -29,6 +30,7 @@ vi.mock('../src/features/laboratory/hooks/useLaboratoryRegistry', () => ({ useLa
 
 const { LanguageProvider } = await import('../src/core/i18n/LanguageContext')
 const { SurveillanceCanonicalPage } = await import('../src/features/surveillance/SurveillanceCanonicalPage')
+const { invalidateLibraries } = await import('../src/features/management/useLibraries')
 
 const episode = (id, patient, status, over = {}) => ({ id, patient, patientEn: patient, patientId: `PT-${id}`, patientRecordId: `rec-${patient}`, department: 'ΜΕΘ', departmentEn: 'ICU', status, startedAt: '2026-10-01', reviewDue: '2026-12-01', samples: [], ...over })
 
@@ -46,7 +48,8 @@ beforeEach(() => {
   service.cases.mockResolvedValue([episode('1', 'Άννα Αλεξίου', 'active'), episode('2', 'Βασίλης Βλάχος', 'cancelled')])
   service.employees.mockResolvedValue([])
   service.samples.mockResolvedValue([])
-  service.departments.mockResolvedValue([])
+  service.departments.mockResolvedValue({ departments: [] })
+  invalidateLibraries()
   setTenant('infection_control_lead')
 })
 afterEach(() => { cleanup(); sessionStorage.clear() })

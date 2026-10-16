@@ -9,6 +9,8 @@ import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { formatDay } from '../../core/i18n/formatDay'
 import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
@@ -17,7 +19,7 @@ import { useLanguage, translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { loadPatients } from '../patients/patientsService'
-import { loadDepartments } from '../management/departmentsService'
+import { useDepartments } from '../management/useLibraries'
 import { useLaboratoryRegistry } from '../laboratory/hooks/useLaboratoryRegistry'
 import {
   createLaboratorySample,
@@ -30,7 +32,6 @@ import { createClinicalRepository } from './clinicalRepository'
 import { loadClinicalCases } from './clinicalCloudService'
 import { demoSurveillanceList } from './clinicalDemoData'
 import {
-  employeeScreeningCatalog,
   employeeSurveillanceRecords,
   getEmployeeSurveillanceKpis as getDemoEmployeeSurveillanceKpis,
   updateEmployeeSurveillanceRecord,
@@ -47,6 +48,8 @@ import {
   environmentalNeedsAction,
   environmentalResampleInitial,
 } from './EnvironmentalSurveillanceFlow'
+import { isEnvironmentalSample } from './environmentalSurveillanceData'
+import { employeeScreeningLabel, statusTone } from './surveillanceOptions'
 
 const latestOrganism = row => row.samples?.find(x => x.organism)?.organism || row.organism || null
 const latestResistance = row =>
@@ -57,24 +60,7 @@ const reviewState = row =>
     : row.reviewDue && new Date(`${String(row.reviewDue).slice(0, 10)}T23:59:59`) < new Date()
       ? 'overdue'
       : 'inProgress'
-const environmentalTypes = [
-  'water',
-  'surface',
-  'environment',
-  'environmental',
-  'room',
-  'air',
-  'νερό',
-  'επιφάνεια',
-  'επιφανεια',
-]
-const isEnvironmental = row =>
-  row.subjectType === 'environment' ||
-  environmentalTypes.some(x =>
-    String(row.type || '')
-      .toLowerCase()
-      .includes(x),
-  )
+const isEnvironmental = isEnvironmentalSample
 const unique = values => [...new Set(values.filter(Boolean))]
 
 export function SurveillanceCanonicalPage() {
@@ -92,7 +78,7 @@ export function SurveillanceCanonicalPage() {
     canAccessRecord,
     canSeeSensitiveEmployeeHealth,
   } = useTenant()
-  const { t, language, locale } = useLanguage(),
+  const { t, language } = useLanguage(),
     { notify, notifyError } = useFeedback()
   const restored = location.state?.surveillanceView || {}
   const restoredMode = restored.mode === 'batches' ? 'employees' : restored.mode
@@ -100,8 +86,8 @@ export function SurveillanceCanonicalPage() {
     [cases, setCases] = useState([]),
     [employeeRows, setEmployeeRows] = useState([]),
     [environmentRows, setEnvironmentRows] = useState([]),
-    [departments, setDepartments] = useState([]),
     [loading, setLoading] = useState(true)
+  const { departments } = useDepartments()
   // Clicking a summary card narrows the patient list to it; clicking it again clears it.
   const [quick, setQuick] = useState(null)
   const [mode, setMode] = useState(restoredMode || 'patients'),
@@ -156,27 +142,16 @@ export function SurveillanceCanonicalPage() {
         setCases(demoSurveillanceList())
         setEmployeeRows(employeeSurveillanceRecords.map(x => ({ ...x })))
         setEnvironmentRows(laboratoryRegistry.rows.filter(isEnvironmental))
-        setDepartments(
-          unique(
-            demoSurveillanceList().map(x => (language === 'el' ? x.department : x.departmentEn)),
-          ).map(name => ({ id: name, name, nameEn: name })),
-        )
       } else if (tenant?.id) {
         const results = await Promise.allSettled([
           loadClinicalCases(tenant.id),
           loadEmployeeSurveillanceRecords(tenant.id),
           loadLaboratorySamples(tenant.id),
-          loadDepartments(tenant.id),
         ])
         setCases(results[0].status === 'fulfilled' ? results[0].value : [])
         setEmployeeRows(results[1].status === 'fulfilled' ? results[1].value : [])
         setEnvironmentRows(
           results[2].status === 'fulfilled' ? results[2].value.filter(isEnvironmental) : [],
-        )
-        setDepartments(
-          results[3].status === 'fulfilled'
-            ? results[3].value.filter(x => x.is_active !== false)
-            : [],
         )
         results
           .filter(x => x.status === 'rejected')
@@ -185,12 +160,11 @@ export function SurveillanceCanonicalPage() {
         setCases([])
         setEmployeeRows([])
         setEnvironmentRows([])
-        setDepartments([])
       }
     } finally {
       setLoading(false)
     }
-  }, [tenant?.id, isDemo, language, laboratoryRegistry.rows, notifyError])
+  }, [tenant?.id, isDemo, laboratoryRegistry.rows, notifyError])
   useEffect(() => {
     void load()
   }, [load, canEmployees])
@@ -201,10 +175,7 @@ export function SurveillanceCanonicalPage() {
     setQuick(null)
   }, [mode])
 
-  const fmt = value =>
-    value
-      ? new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0, 10)}T12:00:00`))
-      : '—'
+  const fmt = value => formatDay(value, language)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (mode === 'patients')
@@ -644,7 +615,6 @@ export function SurveillanceCanonicalPage() {
       {creation === 'patient' && (
         <NewSurveillanceFlow
           patients={patients}
-          departments={departments}
           onPatientsChange={setPatients}
           onClose={() => setCreation(null)}
           onCreate={createPatient}
@@ -772,9 +742,7 @@ function PatientRows({ rows, empty, registry, t, language, fmt, onOpen }) {
               <small>{(x.episodes || [x]).map(latestResistance).find(Boolean) || ''}</small>
             </td>
             <td>
-              <span className={`status-badge ${x.status === 'active' ? 'active' : ''}`}>
-                {t(x.status)}
-              </span>
+              <StatusBadge tone={statusTone(x.status)}>{t(x.status)}</StatusBadge>
             </td>
             <td>
               {x.status === 'active' ? (
@@ -788,11 +756,6 @@ function PatientRows({ rows, empty, registry, t, language, fmt, onOpen }) {
       />
     </div>
   )
-}
-// Screening types and results were shown as raw keys (nasalSwab, pending).
-const screeningLabel = (id, language) => {
-  const item = employeeScreeningCatalog.find(x => x.id === id)
-  return item ? (language === 'en' ? item.sourceEn : item.sourceEl) : id
 }
 function EmployeeRows({ rows, empty, registry, language, fmt, t, onOpen }) {
   const rowId = x => String(x.recordId || x.id)
@@ -840,14 +803,12 @@ function EmployeeRows({ rows, empty, registry, language, fmt, t, onOpen }) {
             <td>{language === 'en' ? x.departmentEn : x.department}</td>
             <td>{fmt(x.startedAt)}</td>
             <td>
-              {(x.screeningTypes || []).map(id => screeningLabel(id, language)).join(', ') || '—'}
+              {(x.screeningTypes || []).map(id => employeeScreeningLabel(id, language)).join(', ') || '—'}
             </td>
             <td>
-              <span
-                className={`status-badge ${x.resultStatus === 'positive' ? 'danger' : x.resultStatus === 'negative' ? 'active' : ''}`}
-              >
+              <StatusBadge tone={statusTone(x.resultStatus || 'pending')}>
                 {t(x.resultStatus || 'pending')}
-              </span>
+              </StatusBadge>
             </td>
             <td>
               <EmployeeStatusBadge row={x} t={t} />
@@ -879,13 +840,12 @@ function employeeFollowupState(row) {
     return 'needsFollowup'
   return row.status === 'active' ? 'active' : 'completed'
 }
-const EMPLOYEE_STATE_TONES = { needsFollowup: 'warning', active: 'active' }
 function EmployeeStatusBadge({ row, t }) {
   const state = employeeFollowupState(row)
   return (
-    <span className={`status-badge ${EMPLOYEE_STATE_TONES[state] || ''}`.trim()}>
+    <StatusBadge tone={statusTone(state)}>
       {state === 'needsFollowup' ? t('surveillanceList.needsFollowup') : t(state)}
-    </span>
+    </StatusBadge>
   )
 }
 function SummaryMetric({ icon: Icon, label, value, quickKey, quick, onQuick }) {

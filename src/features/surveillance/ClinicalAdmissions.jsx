@@ -15,7 +15,9 @@ import { Button } from '../../design-system/Button'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { translate } from '../../core/i18n/LanguageContext'
+import { translate, useLanguage } from '../../core/i18n/LanguageContext'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { StatusBadge } from '../../design-system/StatusBadge'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import {
   createAdmission,
@@ -29,6 +31,7 @@ import { PatientFormFields, usePatientForm } from '../patients/PatientsPage'
 import { SaveButton } from '../../design-system/SaveButton'
 import { SimpleDialog } from './ClinicalRecordDialogs'
 import { clinicalTerm } from './clinicalRecordLabels'
+import { departmentOptions, listTexts } from './surveillanceOptions'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
 import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
 
@@ -279,7 +282,7 @@ export function CanonicalSummary({
         [t('admissionDate'), fmtDate(admittedAt)],
       ]
   const badge = (text, tone) =>
-    text ? <span className={`status-badge ${tone || ''}`}>{text}</span> : '—'
+    text ? <StatusBadge tone={tone}>{text}</StatusBadge> : '—'
   const hai = record?.haiClassification
   const haiValue = hai ? (
     <>
@@ -687,27 +690,21 @@ function useAdmissionLifecycle({
         onChange={v => setDraft(d => ({ ...d, date: v }))}
       />
       {kind === 'transfer' && (
-        <label>
-          <span>
-            {translate('copy.clinicalRecordCopy.newDepartment', language === 'el' ? 'el' : 'en')}
-          </span>
-          <select
-            value={draft.departmentId}
-            onChange={e => setDraft(d => ({ ...d, departmentId: e.target.value }))}
-          >
-            <option value="">{t('select')}</option>
-            {departments
-              .filter(x => x.id !== admission.departmentId)
-              .map(x => (
-                <option key={x.id} value={x.id}>
-                  {x.name}
-                </option>
-              ))}
-          </select>
-        </label>
+        <SearchableSelect
+          label={translate('copy.clinicalRecordCopy.newDepartment', language === 'el' ? 'el' : 'en')}
+          value={draft.departmentId}
+          options={departmentOptions(
+            departments.filter(x => x.id !== admission.departmentId),
+            language,
+          )}
+          placeholder={t('select')}
+          emptyLabel={listTexts(language).emptyLabel}
+          clearLabel={listTexts(language).clearLabel}
+          onChange={v => setDraft(d => ({ ...d, departmentId: v }))}
+        />
       )}
-      <label className="entry-span-2">
-        <span>{t('reason')}</span>
+      <label className="field entry-span-2">
+        <span className="lo-field-label">{t('reason')}</span>
         <textarea
           rows={3}
           value={draft.reason}
@@ -782,6 +779,7 @@ export function NewAdmissionDialog({
   onAdmitted,
 }) {
   const { notify } = useFeedback()
+  const { language } = useLanguage()
   const today = new Date().toISOString().slice(0, 10)
   const [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState({
@@ -856,20 +854,15 @@ export function NewAdmissionDialog({
         value={draft.admissionDate}
         onChange={v => setDraft(d => ({ ...d, admissionDate: v }))}
       />
-      <label>
-        <span>{t('department')}</span>
-        <select
-          value={draft.departmentId}
-          onChange={e => setDraft(d => ({ ...d, departmentId: e.target.value }))}
-        >
-          <option value="">{t('select')}</option>
-          {departments.map(x => (
-            <option key={x.id} value={x.id}>
-              {x.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SearchableSelect
+        label={t('department')}
+        value={draft.departmentId}
+        options={departmentOptions(departments, language)}
+        placeholder={t('select')}
+        emptyLabel={listTexts(language).emptyLabel}
+        clearLabel={listTexts(language).clearLabel}
+        onChange={v => setDraft(d => ({ ...d, departmentId: v }))}
+      />
     </SimpleDialog>
   )
 }
