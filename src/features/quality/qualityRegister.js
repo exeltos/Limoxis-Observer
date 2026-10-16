@@ -2,13 +2,14 @@ import { reportKindOf } from './qualityVocabulary'
 
 // One register for everything that went wrong or could go better (ISO 9001
 // §10.2): the reports people send and the deviations other modules record
-// (control entries with a finding, failed bundle criteria) that no CAPA
-// handles yet. Each row says where it came from.
+// (control entries with a finding, failed bundle criteria, trainings that did
+// not change practice) that no corrective action handles yet. Each row says where it came from.
 
 export const REGISTER_SOURCES = [
   { value: 'report', label: ['Αναφορά', 'Report'] },
   { value: 'control', label: ['Έλεγχος', 'Control'] },
   { value: 'bundle', label: ['Bundle', 'Bundle'] },
+  { value: 'training', label: ['Εκπαίδευση', 'Training'] },
 ]
 
 export function registerRows(incidents = [], deviations = []) {
@@ -36,7 +37,7 @@ export function registerRows(incidents = [], deviations = []) {
     type: 'deviation',
     source: item.kind,
     id: item.sourceId,
-    code: item.kind === 'control' ? item.sourceId.split('#')[0] : item.sourceId,
+    code: item.kind === 'control' ? item.sourceId.split('#')[0] : item.kind === 'training' ? item.sourceId.slice(9) : item.sourceId,
     title: item.title,
     titleEn: item.titleEn || item.title,
     kind: 'deviation',

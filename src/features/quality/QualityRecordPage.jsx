@@ -20,7 +20,7 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { useLibraries } from '../management/useLibraries'
-import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
+import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { YesNoField } from '../../design-system/YesNoField'
 import { QualityDepartmentField, QualityOwnerField, QualityPersonField, departmentRef } from './QualityFields'
 import { loadQualityRecord, loadQualityRecords, saveQualityRecord } from './qualityService'
@@ -33,6 +33,8 @@ import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { QualityCapaSteps } from './QualityCapaSteps'
 import { IncidentFlowBar } from './IncidentFlowBar'
+import { AuditChecklistTab } from './QualityAuditParts'
+import { auditCompliance } from './qualityAudit'
 import { QualityCapaRootCause } from './QualityCapaRootCause'
 import { analysisProgress } from './rootCauseAnalysis'
 import { sourcePath,subActionProgress } from './qualityDeviations'
@@ -75,11 +77,13 @@ export function QualityRecordPage(){
   const title=language==='el'?record.title:record.titleEn
   const steps=subActionProgress(record.subActions||[])
   const incident=recordType==='incidents'
-  const tabs=[{id:'details',label:t('details'),icon:Icon},...(incident?[{id:'assessment',label:language==='en'?`Assessment${record.sentinel?' ⚠':''}`:`Αξιολόγηση${record.sentinel?' ⚠':''}`,icon:Scale,sheet:true}]:[]),...(recordType==='capas'?[{id:'steps',label:language==='en'?`Steps${steps.total?` ${steps.done}/${steps.total}`:''}`:`Βήματα${steps.total?` ${steps.done}/${steps.total}`:''}`,icon:ListChecks},{id:'rootCause',label:language==='en'?`Root causes${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`:`Αιτίες${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`,icon:GitBranch}]:[]),{id:'links',label:incident?(language==='en'?`Corrective actions${linkedCapas.length?` ${linkedCapas.length}`:''}`:`Διορθωτικές ενέργειες${linkedCapas.length?` ${linkedCapas.length}`:''}`):t('qualityRecords.linkedRecords'),icon:incident?CheckSquare2:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
+  const audit=recordType==='audits'
+  const auditScore=audit?auditCompliance(record):null
+  const tabs=[{id:'details',label:t('details'),icon:Icon},...(audit?[{id:'checklist',label:`${language==='en'?'Checklist':'Λίστα ελέγχου'}${record.checklist?.length?` ${auditScore.rate!=null?`${auditScore.rate}%`:`0/${record.checklist.length}`}`:''}`,icon:ListChecks}]:[]),...(incident?[{id:'assessment',label:language==='en'?`Assessment${record.sentinel?' ⚠':''}`:`Αξιολόγηση${record.sentinel?' ⚠':''}`,icon:Scale,sheet:true}]:[]),...(recordType==='capas'?[{id:'steps',label:language==='en'?`Steps${steps.total?` ${steps.done}/${steps.total}`:''}`:`Βήματα${steps.total?` ${steps.done}/${steps.total}`:''}`,icon:ListChecks},{id:'rootCause',label:language==='en'?`Root causes${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`:`Αιτίες${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`,icon:GitBranch}]:[]),{id:'links',label:incident?(language==='en'?`Corrective actions${linkedCapas.length?` ${linkedCapas.length}`:''}`:`Διορθωτικές ενέργειες${linkedCapas.length?` ${linkedCapas.length}`:''}`):t('qualityRecords.linkedRecords'),icon:incident?CheckSquare2:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
   return <Page fill><EntityRecordShell
     className="quality-record-shell workspace-fill"
     avatar={<Icon size={19}/>}
-    eyebrow={record.displayId||record.code||record.id}
+    eyebrow={qualityCode(record,language)}
     title={title}
     subtitle={[RECORD_KIND[recordType]?.[language==='en'?1:0],language==='en'?record.departmentEn||record.department:record.department].filter(Boolean).join(' · ')||undefined}
     status={<StatusBadge tone={qualityStatusTone(record.status)}>{t(record.status)}</StatusBadge>}
@@ -90,6 +94,7 @@ export function QualityRecordPage(){
       {(tab==='details'||tab==='assessment')&&<QualityDetails key={tab} view={tab} recordType={recordType} record={record} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>}
       {tab==='rootCause'&&recordType==='capas'&&<QualityCapaRootCause record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>}
       {tab==='steps'&&recordType==='capas'&&<QualityCapaSteps record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>}
+      {tab==='checklist'&&audit&&<AuditChecklistTab record={record} setRecord={setRecord} organizationId={organizationId} canManage={canManage} finalized={finalized} language={language} actor={actor} notify={notify} userId={profile?.id||user?.id}/>}
       {tab==='links'&&<QualityLinks recordType={recordType} record={record} t={t} language={language} organizationId={organizationId} canManage={canManage} finalized={finalized}/>}
       {tab==='documents'&&<QualityDocuments recordType={recordType} record={record} setRecord={setRecord} t={t} finalized={finalized} canAttach={canAttach} canManage={canManage} organizationId={organizationId}/>}
       {tab==='history'&&<QualityHistory record={record} t={t} language={language}/>}
@@ -171,7 +176,7 @@ function QualityDetails({view='details',recordType,record,setRecord,t,language,c
         {editing?<div className="detail-item editable"><YesNoField label={en?'Sentinel event':'Σοβαρό ανεπιθύμητο (sentinel)'} value={draft.sentinel?'yes':'no'} onChange={v=>setDraft(x=>({...x,sentinel:v==='yes',rcaDueDate:v==='yes'?(x.rcaDueDate||rcaDueDate(x.date)):''}))}/></div>:<Detail label={en?'Sentinel event':'Σοβαρό ανεπιθύμητο (sentinel)'} value={draft.sentinel?(en?'Yes':'Ναι'):(en?'No':'Όχι')}/>}
         {draft.sentinel&&<EditDate editing={editing} label={en?'Root cause analysis due':'Προθεσμία ανάλυσης ριζικής αιτίας'} value={draft.rcaDueDate} onChange={v=>set('rcaDueDate',v)} language={language}/>}
       </>:<>
-      <Detail label={t('code')} value={draft.displayId||draft.id}/>
+      <Detail label={t('code')} value={qualityCode(draft,language)}/>
       <EditText editing={editing} label={t('title')} value={language==='el'?draft.title:draft.titleEn} onChange={v=>set(language==='el'?'title':'titleEn',v)}/>
       {editing?<div className="detail-item editable"><QualityDepartmentField value={departmentRef(draft)} onChange={patch}/></div>:<Detail label={t('department')} value={en?draft.departmentEn||draft.department:draft.department}/>}
       {recordType!=='incidents'&&<EditChoice editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(value=>({value,label:t(value)}))}/>}
@@ -250,7 +255,7 @@ function QualityLinks({recordType,record,t,language,organizationId,canManage=fal
   const createCapa=()=>goTo('/quality/capas/new',{...navigationOptions,state:{qualitySource:{source:recordType==='incidents'?'incident':'finding',sourceId:record.id,departmentId:record.departmentId,department:record.department,departmentEn:record.departmentEn,priority:record.sentinel?'critical':record.severity,dueDate:record.sentinel?record.rcaDueDate:undefined,title:record.sentinel?(en?`Root cause analysis: ${record.displayId||record.id}`:`Ανάλυση ριζικής αιτίας: ${record.displayId||record.id}`):(en?'CAPA for ':'Διορθωτική ενέργεια για ')+(record.displayId||record.id)}}})
   return <div className="record-section"><div className="record-section-header"><h3>{recordType==='incidents'?(en?'Corrective actions & links':'Διορθωτικές ενέργειες & συνδέσεις'):t('qualityRecords.linkedRecords')}</h3>{canCreateCapa&&<Button variant="primary" onClick={createCapa}><CheckSquare2 size={15}/>{record.sentinel?(en?' Open root cause analysis':' Άνοιγμα ανάλυσης ριζικής αιτίας'):(en?' New CAPA':' Νέα διορθωτική ενέργεια')}</Button>}</div><div className="quality-link-list">
     {links.map(link=><button type="button" key={`${link.label}-${link.id}`} onClick={()=>link.source?openSource(link.id):openLinked(link.path)}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong>{link.title&&<small>{link.title}</small>}</span><ChevronRight size={16}/></button>)}
-    {related.map(x=><button type="button" key={x.id} onClick={()=>goTo(`/quality/${x.kind}/${x.id}`,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span className="quality-link-kind">{t(x.kind==='findings'?'qualityRecords.finding':'qualityRecords.capa')}</span><span className="quality-link-main"><strong>{x.displayId||x.id}</strong><small>{language==='el'?x.title:x.titleEn}</small></span><ChevronRight size={16}/></button>)}
+    {related.map(x=><button type="button" key={x.id} onClick={()=>goTo(`/quality/${x.kind}/${x.id}`,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span className="quality-link-kind">{t(x.kind==='findings'?'qualityRecords.finding':'qualityRecords.capa')}</span><span className="quality-link-main"><strong>{qualityCode(x,language)}</strong><small>{language==='el'?x.title:x.titleEn}</small></span><ChevronRight size={16}/></button>)}
     {!links.length&&!related.length&&<div className="inline-empty">{t('qualityRecords.noLinkedRecords')}</div>}
   </div></div>
 }

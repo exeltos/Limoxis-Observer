@@ -21,6 +21,7 @@ import { createQualityRecord } from './qualityService'
 import { AUDIT_TYPES,CAPA_TYPES,FINDING_SOURCES,severityOptions,vocabularyOptions } from './qualityVocabulary'
 import { QualityDepartmentField,QualityOwnerField,QualityPersonField,departmentRef } from './QualityFields'
 import { IncidentReportPage } from './IncidentReportPage'
+import { AuditChecklistSource } from './QualityAuditParts'
 import './quality.css'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
@@ -46,7 +47,7 @@ function prefillFrom(source){
 function QualityRecordCreate({recordType}){
   const location=useLocation();const {goBack}=useContextualNavigation('/quality');const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const {user,profile}=useAuth();const {role,membership,tenant,actualRole,isRolePreview}=useTenant();const c=config[recordType];const Icon=c.icon
   const [saving,setSaving]=useState(false)
-  const [draft,setDraft]=useState(()=>({title:'',titleEn:'',departmentId:'',department:'',departmentEn:'',status:initialStatus[recordType],severity:'medium',owners:[],owner:'',ownerId:null,description:'',descriptionEn:'',date:new Date().toISOString().slice(0,10),source:recordType==='capas'?'other':'manual',sourceId:'',actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',auditType:'internal',plannedDate:'',scope:'',scopeEn:'',leadAuditor:'',leadAuditorId:null,...prefillFrom(location.state?.qualitySource)}))
+  const [draft,setDraft]=useState(()=>({title:'',titleEn:'',departmentId:'',department:'',departmentEn:'',status:initialStatus[recordType],severity:'medium',owners:[],owner:'',ownerId:null,description:'',descriptionEn:'',date:new Date().toISOString().slice(0,10),source:recordType==='capas'?'other':'manual',sourceId:'',actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',auditType:'internal',plannedDate:'',scope:'',scopeEn:'',leadAuditor:'',leadAuditorId:null,checklist:[],checklistSource:'',...prefillFrom(location.state?.qualitySource)}))
   const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[];const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER;const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}));const patch=next=>setDraft(x=>({...x,...next}))
   const titleKey=en?'titleEn':'title';const textKey=recordType==='audits'?(en?'scopeEn':'scope'):(en?'descriptionEn':'description')
@@ -74,6 +75,7 @@ function QualityRecordCreate({recordType}){
         <Field label={t(recordType==='audits'?'qualityRecords.auditScope':'description')}><textarea rows={3} value={draft[textKey]} onChange={e=>set(textKey,e.target.value)}/></Field>
       </FormCard>
       {steps}
+      {recordType==='audits'&&<AuditChecklistSource draft={draft} setDraft={setDraft} organizationId={tenant?.id} language={language}/>}
     </div><div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{t('cancel')}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{t('save')}</SaveButton></div></div>
   </EntityRecordShell></Page>
 }

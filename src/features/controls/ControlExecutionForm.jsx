@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { CheckCheck,FileWarning,History,Plus,Printer,Save,Trash2 } from 'lucide-react'
+import { FileWarning,History,Plus,Printer,Save,Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -7,6 +7,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { formatDateTime } from '../../core/i18n/formatDay'
 import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
+import { ChecklistAnswers } from '../../design-system/ChecklistAnswers'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { Field } from '../../design-system/Field'
 import { IconButton } from '../../design-system/IconButton'
@@ -24,7 +25,7 @@ import { checklistRows,emptyStructuredRow,listHasFinding,printControlForm } from
 import { saveControlDraft } from './controlCloudService'
 import { deviationActions,requiresEvidence } from './controlCriticality'
 import { expiryState,expiryWindow,impliedFinding,isExpiryControl,prefilledExpiryRows } from './controlExpiry'
-import { answerLabel,canonicalAnswer,checklistScore,checklistSummary,choiceOptions,isFindingAnswer } from './controlVocabulary'
+import { answerLabel,canonicalAnswer,checklistSummary,choiceOptions,isFindingAnswer } from './controlVocabulary'
 import { ControlExpiryEntry } from './ControlExpiryEntry'
 import { ControlDeviationActions,ControlEvidenceLinks,ControlEvidencePicker } from './ControlEvidence'
 import { ownerText,personLabel } from '../employees/peopleOptions'
@@ -121,17 +122,8 @@ function ResultField({state}){
 }
 
 function ChecklistEntry({state}){
- const {en,language,rows,setRow,setRows}=state
- const score=checklistScore(rows)
- return <section className="control-exec-checklist">
-  <SectionHeader title={en?'Checklist':'Λίστα ελέγχου'} subtitle={score.applicable?checklistSummary(rows,language):(en?'Answer every required item.':'Απαντήστε σε κάθε υποχρεωτικό σημείο.')} actions={<Button variant="secondary" onClick={()=>setRows(current=>current.map(row=>row.answer?row:{...row,answer:'yes'}))}><CheckCheck size={15}/> {en?'Rest: Yes':'Υπόλοιπα: Ναι'}</Button>}/>
-  <ol className="control-exec-checklist-items">{rows.map((row,index)=><li key={row.id||index} className={row.answer==='no'?'is-no':row.answer==='yes'?'is-yes':''}>
-   <span className="control-exec-checklist-number">{index+1}</span>
-   <div className="control-exec-checklist-text"><strong>{en?row.itemEn||row.item:row.item}{row.required!==false&&<em aria-label={en?'required':'υποχρεωτικό'}> *</em>}</strong>{row.answer==='no'&&<input aria-label={en?'What was found':'Τι βρέθηκε'} value={row.note||''} onChange={e=>setRow(index,'note',e.target.value)} placeholder={en?'What was found / action taken':'Τι βρέθηκε / ενέργεια'}/>}</div>
-   <ModeSwitch className="control-exec-yesno" ariaLabel={row.item} value={row.answer} onChange={v=>setRow(index,'answer',v)} options={[{value:'yes',label:en?'Yes':'Ναι'},{value:'no',label:en?'No':'Όχι'},{value:'na',label:en?'N/A':'Δ/Ε'}]}/>
-  </li>)}</ol>
-  {score.rate!=null&&<div className="control-exec-score"><span>{en?'Compliance':'Συμμόρφωση'}</span><div className="control-exec-score-bar"><i style={{width:`${score.rate}%`}}/></div><strong>{score.rate}%</strong></div>}
- </section>
+ const {language,rows,setRow,setRows}=state
+ return <ChecklistAnswers rows={rows} language={language} onRowChange={setRow} onRowsChange={next=>setRows(()=>next)}/>
 }
 
 function FindingsList({state}){

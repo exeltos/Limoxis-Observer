@@ -67,3 +67,33 @@ html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.
 .quality-register-actions{flex-wrap:nowrap;justify-content:flex-start;gap:6px}
 .quality-register-deviation{background:var(--lo-status-warning-bg)}
 .quality-register-deviation td{cursor:default}
+/* Audits (QualityAuditParts.jsx): checklist preview, the checklist tab and the year programme. */
+.quality-audit-preview{display:grid;gap:3px;margin:0;padding-left:18px;font-size:12.5px;color:var(--lo-color-text)}
+.quality-audit-preview .is-more{list-style:none;margin-left:-18px;color:var(--lo-color-muted)}
+.quality-audit-checklist{display:flex;flex-direction:column;gap:12px}
+.quality-audit-add{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px}
+.quality-audit-add textarea{width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--lo-color-border-strong,#cad6df);border-radius:8px;font:inherit;font-size:13px;resize:vertical}
+.quality-audit-findings{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.quality-audit-findings>span{flex:1 1 260px}
+.quality-audit-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
+.quality-audit-score{margin-right:auto;font-size:12.5px;color:var(--lo-color-muted)}
+.quality-audit-score strong{color:var(--lo-color-text)}
+.quality-audit-view{display:flex;justify-content:flex-start;padding:10px 14px 0}
+.quality-audit-view .lo-mode-switch{margin:0}
+.quality-audit-programme{display:flex;flex-direction:column;gap:12px;min-height:0;padding:12px 14px;overflow:auto}
+.quality-audit-programme-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;color:var(--lo-color-text)}
+.quality-audit-programme-head>.field{margin-left:auto;flex-direction:row;align-items:center;gap:8px}
+.quality-audit-programme-head .lo-mode-switch{margin:0}
+.quality-audit-months{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.quality-audit-months>li{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:92px;padding:10px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.quality-audit-months>li.is-empty{background:var(--lo-color-surface-muted)}
+.quality-audit-months>li>small{font-size:11.5px;color:var(--lo-color-muted)}
+.quality-audit-month{font-size:12px;font-weight:800;text-transform:capitalize;color:var(--lo-color-text)}
+.quality-audit-months button{display:grid;gap:3px;width:100%;padding:7px 9px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.quality-audit-months button:hover{border-color:var(--lo-color-primary)}
+.quality-audit-months button>strong{font-size:12.5px;line-height:1.3}
+.quality-audit-months button>small{font-size:11px;color:var(--lo-color-muted)}
+.quality-audit-chip-foot{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.quality-audit-chip-foot code{font-size:10.5px;color:var(--lo-color-muted)}
+@media(max-width:1100px){.quality-audit-months{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.quality-audit-months{grid-template-columns:minmax(0,1fr)}.quality-audit-add{grid-template-columns:minmax(0,1fr)}}

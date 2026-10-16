@@ -130,3 +130,11 @@ export function qualityStatusTone(status) {
   return 'info'
 }
 export const severityTone = value => (value === 'critical' ? 'danger' : value === 'high' ? 'warning' : 'neutral')
+
+// A record's code as the screen shows it. A corrective action is stored as
+// CAPA-…; in Greek it reads ΔΕ-… (Διορθωτική Ενέργεια). The stored code, the
+// links and the search stay the same.
+export function qualityCode(record, language = 'el') {
+  const code = String(record?.displayId || record?.id || record?.code || '')
+  return language === 'en' ? code : code.replace(/^CAPA-/, 'ΔΕ-')
+}

@@ -124,6 +124,8 @@ function mapRow(section,row){
     scopeEn:row.scope||'',
     leadAuditor:row.lead_auditor_label||'',
     leadAuditorId:row.lead_auditor_id||null,
+    checklist:Array.isArray(row.checklist)?row.checklist:[],
+    checklistSource:row.checklist_source||'',
   }
 }
 
@@ -173,7 +175,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
     if(section==='incidents')record={...common,severity:draft.severity||'medium',incidentClass:draft.incidentClass||'nearMiss',reachedPatient:Boolean(draft.reachedPatient),harmOccurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',eventTime:draft.eventTime||'',impact:draft.impact||'none',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',immediateActions:draft.immediateActions||draft.immediateActionsEn||'',rootCause:draft.rootCause||'',contributingFactors:draft.contributingFactors||'',reportedBy:draft.anonymous?'':draft.reportedByLabel||'',reportedById:draft.anonymous?null:userId||null,anonymous:Boolean(draft.anonymous),reportKind:draft.reportKind||'clinical',sentinel:Boolean(draft.sentinel),rcaDueDate:draft.rcaDueDate||'',linkedPatient:'',linkedSurveillance:''}
     if(section==='findings')record={...common,severity:draft.severity||'medium',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'manual',sourceId:draft.sourceId||''}
     if(section==='capas')record={...common,severity:draft.priority||'medium',priority:draft.priority||'medium',actionType:draft.actionType||'corrective',dueDate:draft.dueDate||'',effectivenessDue:draft.effectivenessDue||'',effectivenessStatus:draft.effectivenessStatus||'pending',status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'other',sourceId:draft.sourceId||'',subActions:draft.subActions||[]}
-    if(section==='audits')record={...common,auditType:draft.auditType||'internal',plannedDate:draft.plannedDate||'',completedDate:'',status:draft.status||'planned',leadAuditor:draft.leadAuditor||'',leadAuditorId:draft.leadAuditorId||null,scope:draft.scope||'',scopeEn:draft.scopeEn||draft.scope||'',findingIds:[]}
+    if(section==='audits')record={...common,auditType:draft.auditType||'internal',plannedDate:draft.plannedDate||'',completedDate:'',status:draft.status||'planned',leadAuditor:draft.leadAuditor||'',leadAuditorId:draft.leadAuditorId||null,checklist:draft.checklist||[],checklistSource:draft.checklistSource||'',scope:draft.scope||'',scopeEn:draft.scopeEn||draft.scope||'',findingIds:[]}
     const rows=loadQualityLocal(section)
     rows.unshift(record)
     saveQualityLocal(section,rows)
@@ -186,7 +188,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
   if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,incident_class:draft.incidentClass||'nearMiss',reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',impact:draft.impact||'none',severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:draft.anonymous?null:userId||null,reported_by_label:draft.anonymous?null:draft.reportedByLabel||null,is_anonymous:Boolean(draft.anonymous),report_kind:draft.reportKind||'clinical',is_sentinel:Boolean(draft.sentinel),rca_due_date:draft.rcaDueDate||null}
   if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null}
   if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending',sub_actions:draft.subActions||[]}
-  if(section==='audits') payload={...payload,audit_type:draft.auditType||'internal',scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:isUuid(draft.leadAuditorId)?draft.leadAuditorId:null,lead_auditor_label:draft.leadAuditor||null}
+  if(section==='audits') payload={...payload,audit_type:draft.auditType||'internal',scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:isUuid(draft.leadAuditorId)?draft.leadAuditorId:null,lead_auditor_label:draft.leadAuditor||null,checklist:draft.checklist||[],checklist_source:draft.checklistSource||null}
 
   // An anonymous report carries no reporter, so the reporter may not read it
   // back: it is inserted without returning the row.
@@ -263,6 +265,8 @@ function buildPersistPayload(section,record){
     completed_date:record.completedDate||null,
     lead_auditor_label:record.leadAuditor||null,
     lead_auditor_id:isUuid(record.leadAuditorId)?record.leadAuditorId:null,
+    checklist:Array.isArray(record.checklist)?record.checklist:[],
+    checklist_source:record.checklistSource||null,
   })
   return payload
 }

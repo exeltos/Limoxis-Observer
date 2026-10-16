@@ -1,9 +1,12 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { employeeName, employeeOptions } from '../employees/peopleOptions'
 import { useDepartments } from '../management/useLibraries'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { loadAcknowledgementMembers } from '../documents/acknowledgementLog'
 import { recordOwners } from './qualityRecordRules'
 
 // The fields every Quality form shares: the department (from the central
@@ -31,7 +34,14 @@ export function QualityDepartmentField({ value, onChange, label, required = fals
 // employee (positions written in earlier records), so nothing disappears.
 function usePeople(extraNames = [], departments = []) {
   const { language } = useLanguage()
-  const { data: employees = [] } = useEmployeesData()
+  const { data: staff = [] } = useEmployeesData()
+  const members = useMemberDirectory()
+  // A role that reads only its own staff row (the quality manager) still picks
+  // anyone with an account, from the organization's member directory.
+  const employees = useMemo(() => {
+    const linked = new Set(staff.map(employee => employee.userId).filter(Boolean))
+    return [...staff, ...members.filter(member => member.userId && !linked.has(member.userId)).map(member => ({ id: `user:${member.userId}`, dbId: `user:${member.userId}`, userId: member.userId, firstName: member.name, lastName: '', firstNameEn: member.name, lastNameEn: '', position: member.profession, positionEn: member.professionEn, department: member.department, employmentStatus: 'active' }))]
+  }, [staff, members])
   return useMemo(() => {
     const { options, near } = employeeOptions(employees, language, departments)
     const byName = new Map()
@@ -43,6 +53,21 @@ function usePeople(extraNames = [], departments = []) {
 }
 
 const idOf = employee => String(employee.dbId || employee.id)
+
+// The organization's active members with an account (cloud only; the demo has
+// its full staff list). Empty when the directory function is not available.
+function useMemberDirectory() {
+  const { tenant, isDemo } = useTenant()
+  const organizationId = tenant?.id || ''
+  const [members, setMembers] = useState([])
+  useEffect(() => {
+    let active = true
+    if (isDemo || isDemoDataEnvironment() || !organizationId) { setMembers([]); return () => { active = false } }
+    loadAcknowledgementMembers(organizationId).then(rows => { if (active) setMembers(rows) }).catch(() => { if (active) setMembers([]) })
+    return () => { active = false }
+  }, [organizationId, isDemo])
+  return members
+}
 
 // Several people: pick an employee or type a name (the staff list a role may
 // read can be short, e.g. only its own row), shown as removable chips.
