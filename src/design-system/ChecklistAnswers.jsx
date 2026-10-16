@@ -8,7 +8,8 @@ import './ChecklistAnswers.css'
 // A checklist being answered: one row per item with Yes / No / N/A as large
 // touch targets, a note on a No, «Rest: Yes» and the compliance bar. Used by a
 // control entry and by an audit. rows: [{id,item,itemEn,required,answer,note}].
-export function ChecklistAnswers({ rows = [], onRowChange, onRowsChange, language = 'el', title, disabled = false, noteLabel }) {
+// rowExtra(row): optional content under an item (e.g. the audit finding a «No» became).
+export function ChecklistAnswers({ rows = [], onRowChange, onRowsChange, language = 'el', title, disabled = false, noteLabel, rowExtra }) {
   const en = language === 'en'
   const score = checklistScore(rows)
   return (
@@ -21,6 +22,7 @@ export function ChecklistAnswers({ rows = [], onRowChange, onRowsChange, languag
             <div className="lo-checklist-text">
               <strong>{en ? row.itemEn || row.item : row.item}{row.required !== false && <em aria-label={en ? 'required' : 'υποχρεωτικό'}> *</em>}</strong>
               {row.answer === 'no' && (disabled ? row.note && <span className="lo-checklist-note">{row.note}</span> : <input aria-label={noteLabel || (en ? 'What was found' : 'Τι βρέθηκε')} value={row.note || ''} onChange={event => onRowChange?.(index, 'note', event.target.value)} placeholder={en ? 'What was found / action taken' : 'Τι βρέθηκε / ενέργεια'} />)}
+              {rowExtra?.(row)}
             </div>
             <fieldset className="lo-checklist-answer" disabled={disabled}>
               <ModeSwitch className="lo-checklist-yesno" ariaLabel={row.item} value={row.answer} onChange={value => onRowChange?.(index, 'answer', value)} options={[{ value: 'yes', label: en ? 'Yes' : 'Ναι' }, { value: 'no', label: en ? 'No' : 'Όχι' }, { value: 'na', label: en ? 'N/A' : 'Δ/Ε' }]} />
