@@ -216,3 +216,50 @@
     grid-column: auto;
   }
 }
+/* The expiry list is the heart of an expiry check: its button stands out. */
+.control-editor-list-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 5px 12px 5px 6px;
+  border: 1px dashed var(--lo-color-primary);
+  border-radius: 8px;
+  background: var(--lo-color-primary-soft);
+  color: var(--lo-color-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.control-editor-list-button.has-items {
+  border-style: solid;
+}
+.control-editor-list-button:hover {
+  background: color-mix(in srgb, var(--lo-color-primary) 14%, var(--lo-color-surface));
+}
+.control-editor-list-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--lo-color-primary);
+  color: var(--lo-color-surface);
+}
+.control-editor-list-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+.control-editor-list-text strong {
+  font-size: 12.5px;
+}
+.control-editor-list-text small {
+  font-size: 10.5px;
+  color: var(--lo-color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

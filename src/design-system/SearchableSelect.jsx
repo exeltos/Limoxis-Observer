@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 import './SearchableSelect.css'
 
@@ -38,7 +38,9 @@ export function SearchableSelect({
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState(null),
     [activeIndex, setActiveIndex] = useState(-1)
-  const listRef = useRef(null)
+  const listRef = useRef(null),
+    controlRef = useRef(null)
+  const [place, setPlace] = useState(null)
   const text = query ?? selected?.label ?? ''
   const matches = useMemo(() => {
     const needle = normalize(query)
@@ -68,6 +70,34 @@ export function SearchableSelect({
     return found
   }, [options, query, recentValues, recentLabel, allowCustom, customLabel])
   const optionId = index => `${baseId}-option-${index}`
+
+  // The list floats over the page (fixed) like MultiSelect's, so a scrolling
+  // table or dialog never clips it; it opens upwards when there is no room
+  // below and follows the field when something scrolls.
+  useEffect(() => {
+    if (!open) return undefined
+    function measure() {
+      const rect = controlRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const width = Math.max(rect.width, 240)
+      const below = window.innerHeight - rect.bottom
+      const upward = below < 280 && rect.top > below
+      const alignEnd = rect.left + width > window.innerWidth - 16
+      setPlace({
+        width,
+        maxHeight: Math.min(260, (upward ? rect.top : below) - 12),
+        ...(upward ? { top: 'auto', bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4, bottom: 'auto' }),
+        ...(alignEnd ? { left: 'auto', right: window.innerWidth - rect.right } : { left: rect.left, right: 'auto' }),
+      })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    window.addEventListener('scroll', measure, true)
+    return () => {
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', measure, true)
+    }
+  }, [open])
 
   function close() {
     setOpen(false)
@@ -113,7 +143,7 @@ export function SearchableSelect({
           <span className="lo-field-label">{label}</span>
         </label>
       )}
-      <div className="searchable-select-control">
+      <div className="searchable-select-control" ref={controlRef}>
         <input
           id={inputId}
           type="text"
@@ -171,6 +201,7 @@ export function SearchableSelect({
         aria-label={label}
         className="searchable-select-list"
         hidden={!open}
+        style={place ? { position: 'fixed', zIndex: 1200, margin: 0, ...place } : undefined}
       >
         {matches.map((option, index) => [
           option.group ? (
