@@ -16,13 +16,37 @@ export const INCIDENT_CLASSES = [
 
 export const SEVERITIES = ['low', 'medium', 'high', 'critical']
 
-export const IMPACTS = [
-  { value: 'none', label: ['Χωρίς βλάβη / επίπτωση', 'No harm / impact'] },
-  { value: 'minor', label: ['Μικρή', 'Minor'] },
-  { value: 'moderate', label: ['Μέτρια', 'Moderate'] },
-  { value: 'major', label: ['Σημαντική', 'Major'] },
-  { value: 'severe', label: ['Σοβαρή', 'Severe'] },
+// What is being reported: a patient-safety (clinical) incident, a non-clinical
+// one (equipment, facility, staff safety…), a complaint, or a suggestion for
+// improvement. One form, one register (ISO 9001 §10.2, JCI QPS).
+export const REPORT_KINDS = [
+  { value: 'clinical', label: ['Κλινικό συμβάν', 'Clinical incident'], hint: ['Ασφάλεια ασθενούς: φάρμακο, πτώση, λοίμωξη, ταυτοποίηση…', 'Patient safety: medication, fall, infection, identification…'] },
+  { value: 'nonClinical', label: ['Μη κλινικό', 'Non-clinical'], hint: ['Εξοπλισμός, εγκαταστάσεις, ασφάλεια προσωπικού, προμηθευτής…', 'Equipment, facility, staff safety, supplier…'] },
+  { value: 'complaint', label: ['Παράπονο', 'Complaint'], hint: ['Ασθενούς ή συνοδού: φροντίδα, επικοινωνία, αναμονή, καθαριότητα', 'From a patient or relative: care, communication, waiting, cleanliness'] },
+  { value: 'suggestion', label: ['Πρόταση βελτίωσης', 'Improvement idea'], hint: ['Μια ιδέα για να γίνει κάτι καλύτερα ή πιο ασφαλές', 'An idea to make something better or safer'] },
 ]
+
+// The harm to the patient, WHO patient-safety classification. Records written
+// before used minor / major, read here as mild / severe.
+export const IMPACTS = [
+  { value: 'none', label: ['Χωρίς βλάβη', 'No harm'] },
+  { value: 'mild', label: ['Ήπια', 'Mild'] },
+  { value: 'moderate', label: ['Μέτρια', 'Moderate'] },
+  { value: 'severe', label: ['Σοβαρή', 'Severe'] },
+  { value: 'death', label: ['Θάνατος', 'Death'] },
+]
+const LEGACY_IMPACT = { minor: 'mild', major: 'severe' }
+export const harmLevel = value => LEGACY_IMPACT[value] || value || 'none'
+
+// A sentinel event (JCI): death or severe harm. It needs a root cause analysis
+// within 45 days of being known.
+export const SENTINEL_RCA_DAYS = 45
+export const isSentinelHarm = impact => ['severe', 'death'].includes(harmLevel(impact))
+export function rcaDueDate(date) {
+  const day = new Date(`${String(date || '').slice(0, 10) || new Date().toISOString().slice(0, 10)}T12:00:00Z`)
+  day.setUTCDate(day.getUTCDate() + SENTINEL_RCA_DAYS)
+  return day.toISOString().slice(0, 10)
+}
 
 export const FINDING_SOURCES = [
   { value: 'manual', label: ['Χειροκίνητη καταχώρηση', 'Manual entry'] },
@@ -52,6 +76,17 @@ export const EFFECTIVENESS = [
 // the library row carries it as code INC-<KEY>.
 export const DEFAULT_INCIDENT_CATEGORIES = (demoLibrarySeed.incidentCategories || []).map(([el, en, meta]) => [String(meta.code).slice(4).toLowerCase(), el, en])
 
+// Which kind of report each baseline category belongs to. A category a
+// hospital adds itself is offered under every kind.
+const CATEGORY_KIND = {
+  clinical: 'clinical', medication: 'clinical', fall: 'clinical', pressureinjury: 'clinical', infection: 'clinical', identification: 'clinical', surgery: 'clinical', transfusion: 'clinical', diagnosis: 'clinical',
+  equipment: 'nonClinical', process: 'nonClinical', staff: 'nonClinical', facility: 'nonClinical', security: 'nonClinical', supplier: 'nonClinical', it: 'nonClinical', other: 'nonClinical',
+  complaint: 'complaint', complaintcare: 'complaint', complaintcommunication: 'complaint', complaintwaiting: 'complaint', complainthygiene: 'complaint',
+}
+export const categoryKind = key => CATEGORY_KIND[String(key || '').toLowerCase()] || null
+// The kind an older record has, from its category (records before kinds existed).
+export const reportKindOf = record => record?.reportKind || categoryKind(record?.category) || 'clinical'
+
 export const incidentCategoryCode = key => `INC-${String(key || '').toUpperCase()}`
 
 // What a record stores for a chosen library item: the short key of a baseline
@@ -63,9 +98,11 @@ export function incidentCategoryValue(item) {
 
 // The library's categories as SearchableSelect options; the built-in list
 // stands in until the library has loaded (or when it is empty).
-export function incidentCategoryOptions(items = [], language = 'el') {
+export function incidentCategoryOptions(items = [], language = 'el', kind = null) {
   const source = items.length ? items : DEFAULT_INCIDENT_CATEGORIES.map(([key, el, en]) => ({ value: el, code: incidentCategoryCode(key), el, en }))
-  return source.map(item => ({ value: incidentCategoryValue(item), label: libraryLabel(item, language), keywords: `${item.el} ${item.en}` }))
+  return source
+    .map(item => ({ value: incidentCategoryValue(item), label: libraryLabel(item, language), keywords: `${item.el} ${item.en}` }))
+    .filter(option => !kind || !categoryKind(option.value) || categoryKind(option.value) === kind)
 }
 
 export function incidentCategoryLabel(value, items = [], language = 'el') {
@@ -79,7 +116,7 @@ export function incidentCategoryLabel(value, items = [], language = 'el') {
 // [{value,label}] for ModeSwitch / SearchableSelect from one of the lists above.
 export const vocabularyOptions = (list, language = 'el') => list.map(item => ({ value: item.value, label: pick(item.label, language) }))
 export const vocabularyLabel = (list, value, language = 'el') => {
-  const item = list.find(entry => entry.value === value)
+  const item = list.find(entry => entry.value === value) || (list === IMPACTS ? list.find(entry => entry.value === harmLevel(value)) : null)
   return item ? pick(item.label, language) : value || ''
 }
 export const severityOptions = t => SEVERITIES.map(value => ({ value, label: t(value) }))

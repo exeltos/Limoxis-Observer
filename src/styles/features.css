@@ -2811,7 +2811,6 @@
 .quality-subsection-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:11px;border-bottom:1px solid var(--lo-color-border)}
 .quality-subsection-heading>div{display:grid;gap:3px}.quality-subsection-heading strong{font-size:12px;color:var(--lo-color-text)}.quality-subsection-heading span{font-size:10px;color:var(--lo-color-muted)}
 .quality-investigation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.quality-investigation-grid .quality-description{margin:0}
-.quality-workflow-actions{display:flex;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--lo-color-border)}
 @media (max-width:900px){.quality-investigation-grid{grid-template-columns:1fr}.quality-subsection-heading{align-items:flex-start;flex-direction:column}}
 
 /* Quality Center — compact canonical create card */
@@ -3023,7 +3022,6 @@
 .quality-record-shell .quality-investigation-card{padding:7px 10px}
 .quality-record-shell .quality-subsection-heading{padding-bottom:6px}
 .quality-record-shell .quality-investigation-grid{margin-top:7px}
-.quality-record-shell .quality-workflow-actions{margin-top:6px;padding-top:6px}
 @media (max-height:759px),(max-width:980px){
   .quality-record-shell.workspace-fill>.entity-record-body{overflow:auto}
 }

@@ -26,7 +26,7 @@ describe('Quality foundations', () => {
 
   it('reads incident categories from the library and keeps the short key on records', () => {
     expect(SYSTEM_BASELINE_LIBRARY_KEYS).toContain('incidentCategories')
-    expect(DEFAULT_INCIDENT_CATEGORIES.map(([key]) => key)).toEqual(['clinical', 'medication', 'equipment', 'process', 'complaint', 'staff', 'facility', 'security', 'other'])
+    expect(DEFAULT_INCIDENT_CATEGORIES.map(([key]) => key)).toEqual(expect.arrayContaining(['clinical', 'medication', 'equipment', 'process', 'complaint', 'staff', 'facility', 'security', 'other', 'fall', 'infection', 'identification']))
     const items = [{ value: 'Φάρμακο', code: 'INC-MEDICATION', el: 'Φάρμακο', en: 'Medication' }, { value: 'Πτώση', code: null, el: 'Πτώση', en: 'Fall' }]
     expect(incidentCategoryOptions(items, 'en').map(option => option.value)).toEqual(['medication', 'Πτώση'])
     expect(incidentCategoryValue(items[0])).toBe('medication')
@@ -105,5 +105,54 @@ describe('review follow-ups', () => {
     const report = fs.readFileSync('src/features/quality/IncidentReportPage.jsx', 'utf8')
     expect(fields).toContain('allowCustom')
     expect(report).toContain("useContextualNavigation(canViewQuality ? '/quality' : '/quality/my-reports')")
+  })
+})
+
+describe('phase 2: one register, kinds, WHO harm and sentinel', async () => {
+  const { harmLevel, isSentinelHarm, rcaDueDate, incidentCategoryOptions: options, reportKindOf } = await import('../src/features/quality/qualityVocabulary')
+  const { withHarm, incidentFlow } = await import('../src/features/quality/qualityRecordRules')
+  const { registerRows, filterRegister, registerCounts } = await import('../src/features/quality/qualityRegister')
+
+  it('reads older harm values on the WHO scale and flags death or severe harm as sentinel', () => {
+    expect(harmLevel('minor')).toBe('mild')
+    expect(harmLevel('major')).toBe('severe')
+    expect(isSentinelHarm('death')).toBe(true)
+    expect(isSentinelHarm('moderate')).toBe(false)
+    expect(rcaDueDate('2026-10-01')).toBe('2026-11-15')
+    expect(withHarm({ impact: 'mild' }, 'severe')).toMatchObject({ impact: 'severe', sentinel: true })
+    expect(withHarm({ impact: 'severe', sentinel: true }, 'moderate').sentinel).toBe(false)
+    expect(withHarm({ impact: 'mild', sentinel: true }, 'moderate').sentinel).toBe(true)
+  })
+
+  it('offers each kind its own categories and gives older records a kind from their category', () => {
+    const complaint = options([], 'el', 'complaint').map(option => option.value)
+    expect(complaint).toContain('complaintwaiting')
+    expect(complaint).not.toContain('fall')
+    expect(options([], 'el', 'clinical').map(option => option.value)).toContain('fall')
+    expect(reportKindOf({ category: 'equipment' })).toBe('nonClinical')
+    expect(reportKindOf({ reportKind: 'suggestion', category: 'other' })).toBe('suggestion')
+  })
+
+  it('puts reports and deviations without CAPA in one register with their source', () => {
+    const rows = registerRows([{ id: 'INC-1', title: 'A', date: '2026-10-02', status: 'reported', category: 'fall', sentinel: true }], [{ key: 'control:e1', kind: 'control', sourceId: 'CTRL-1#e1', title: 'Fridge', at: '2026-10-05T08:00:00Z', priority: 'high', path: '/controls/CTRL-1' }])
+    expect(rows.map(row => row.source)).toEqual(['control', 'report'])
+    expect(rows[0]).toMatchObject({ type: 'deviation', status: 'withoutCapa', code: 'CTRL-1' })
+    expect(filterRegister(rows, { quick: 'sentinel' }).map(row => row.id)).toEqual(['INC-1'])
+    expect(filterRegister(rows, { kind: 'deviation' })).toHaveLength(1)
+    expect(registerCounts(rows)).toMatchObject({ total: 2, open: 1, sentinel: 1, deviations: 1 })
+  })
+
+  it('shows where an incident stands: reported, assessed, CAPA, effective, closed', () => {
+    const status = (record, capas) => incidentFlow(record, capas).map(step => step.status)
+    expect(status({ status: 'reported' })).toEqual(['done', 'current', 'todo', 'todo', 'todo'])
+    expect(status({ status: 'underReview' }, [{ effectivenessStatus: 'pending' }])).toEqual(['done', 'done', 'done', 'current', 'todo'])
+    expect(status({ status: 'closed' }, [{ effectivenessStatus: 'effective' }])).toEqual(['done', 'done', 'done', 'done', 'done'])
+    expect(status({ status: 'closed' })).toEqual(['done', 'done', 'skipped', 'skipped', 'done'])
+  })
+
+  it('stores the kind, the sentinel flag and the root cause analysis due date', () => {
+    expect(migration).toContain("check (report_kind in ('clinical','nonClinical','complaint','suggestion'))")
+    expect(migration).toContain('add column if not exists is_sentinel boolean not null default false')
+    expect(service).toContain('is_sentinel:Boolean(record.sentinel)')
   })
 })

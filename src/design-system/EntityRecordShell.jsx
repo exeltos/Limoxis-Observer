@@ -82,7 +82,8 @@ export function EntityRecordShell({
   const handleBack=onBack||goBack
   const hasTabs=Array.isArray(tabs)&&tabs.length>0
   const primaryTabId=hasTabs?tabs[0]?.id:null
-  const primaryTabActive=!primaryTabId||!activeTab||activeTab===primaryTabId
+  // A tab marked `sheet` (e.g. a record's Assessment) reads as a details sheet, like the first tab.
+  const primaryTabActive=!primaryTabId||!activeTab||activeTab===primaryTabId||Boolean(tabs.find(tab=>tab.id===activeTab)?.sheet)
   const recordTabClass=primaryTabActive?'record-general-tab-active':'record-secondary-tab-active'
   const paneClass=hasTabs?'record-tabbed-screen':'record-single-pane-screen'
   const isPlatformOwnerRecord=String(className||'').includes('platform-owner-record-shell')

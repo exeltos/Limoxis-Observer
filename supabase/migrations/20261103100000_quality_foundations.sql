@@ -12,7 +12,12 @@
 --    manage_quality to change, report_incident to report. Link nurses, the
 --    committee secretariat and the default staff_user role, who report in the
 --    application, may now report here too.
--- 3. An incident can be reported anonymously (is_anonymous): no reporter id or
+-- 3. One register for every report (phase 2): report_kind (clinical,
+--    nonClinical, complaint, suggestion), is_sentinel (death or severe harm,
+--    or marked by Quality) and rca_due_date (JCI: root cause analysis within
+--    45 days). Older records keep their meaning: their kind follows from the
+--    category, and impact minor / major is read as mild / severe.
+-- 4. An incident can be reported anonymously (is_anonymous): no reporter id or
 --    name is stored, so it never appears in anyone's «My reports».
 
 create or replace function private.system_master_library_baseline()
@@ -189,6 +194,19 @@ as $$
     ('incidentCategories','INC-STAFF','Προσωπικό / επαγγελματική ασφάλεια','Staff / occupational safety','Limoxis quality core','current'),
     ('incidentCategories','INC-FACILITY','Εγκαταστάσεις / υποδομές','Facility / infrastructure','Limoxis quality core','current'),
     ('incidentCategories','INC-SECURITY','Ασφάλεια','Security','Limoxis quality core','current'),
+    ('incidentCategories','INC-FALL','Πτώση ασθενούς','Patient fall','Limoxis quality core','current'),
+    ('incidentCategories','INC-PRESSUREINJURY','Κατάκλιση / έλκος πίεσης','Pressure injury','Limoxis quality core','current'),
+    ('incidentCategories','INC-INFECTION','Λοίμωξη / μέτρα πρόληψης (IPC)','Infection / IPC measures','Limoxis quality core','current'),
+    ('incidentCategories','INC-IDENTIFICATION','Ταυτοποίηση ασθενούς','Patient identification','Limoxis quality core','current'),
+    ('incidentCategories','INC-SURGERY','Χειρουργική ασφάλεια','Surgical safety','Limoxis quality core','current'),
+    ('incidentCategories','INC-TRANSFUSION','Μετάγγιση αίματος','Blood transfusion','Limoxis quality core','current'),
+    ('incidentCategories','INC-DIAGNOSIS','Διάγνωση / εργαστηριακό αποτέλεσμα','Diagnosis / test result','Limoxis quality core','current'),
+    ('incidentCategories','INC-SUPPLIER','Προμηθευτής / υλικό','Supplier / product','Limoxis quality core','current'),
+    ('incidentCategories','INC-IT','Πληροφοριακό σύστημα','IT system','Limoxis quality core','current'),
+    ('incidentCategories','INC-COMPLAINTCARE','Παράπονο: φροντίδα','Complaint: care','Limoxis quality core','current'),
+    ('incidentCategories','INC-COMPLAINTCOMMUNICATION','Παράπονο: επικοινωνία / συμπεριφορά','Complaint: communication / attitude','Limoxis quality core','current'),
+    ('incidentCategories','INC-COMPLAINTWAITING','Παράπονο: χρόνος αναμονής','Complaint: waiting time','Limoxis quality core','current'),
+    ('incidentCategories','INC-COMPLAINTHYGIENE','Παράπονο: καθαριότητα / χώρος','Complaint: cleanliness / premises','Limoxis quality core','current'),
     ('incidentCategories','INC-OTHER','Άλλο','Other','Limoxis quality core','current')
   ) as v(library_key,code,name_el,name_en,source_authority,source_version)
 $$;
@@ -259,6 +277,26 @@ where g.organization_id is null
 
 alter table public.master_library_items enable trigger trg_audit_master_library_items;
 
+
+alter table public.quality_incidents
+  add column if not exists report_kind text not null default 'clinical',
+  add column if not exists is_sentinel boolean not null default false,
+  add column if not exists rca_due_date date;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'quality_incidents_report_kind_check') then
+    alter table public.quality_incidents add constraint quality_incidents_report_kind_check
+      check (report_kind in ('clinical','nonClinical','complaint','suggestion'));
+  end if;
+end
+$$;
+update public.quality_incidents set report_kind = case
+    when category in ('complaint') then 'complaint'
+    when category in ('equipment','process','staff','facility','security','other') then 'nonClinical'
+    else 'clinical' end
+  where report_kind = 'clinical' and category <> 'clinical';
+comment on column public.quality_incidents.report_kind is 'What is reported: clinical (patient safety), nonClinical, complaint or suggestion.';
+comment on column public.quality_incidents.is_sentinel is 'Sentinel event: death or severe harm, or marked by Quality. Needs a root cause analysis by rca_due_date.';
 
 alter table public.quality_incidents add column if not exists is_anonymous boolean not null default false;
 comment on column public.quality_incidents.is_anonymous is 'Reported anonymously: reported_by and reported_by_label stay empty.';
