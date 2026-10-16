@@ -32,3 +32,4 @@ html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.
 .quality-report-title{font-size:15px;color:var(--lo-color-text)}
 
 .quality-table td:first-child>strong{white-space:nowrap}
+.quality-record-shell .record-section:is(.quality-report-form,.quality-create-form){border:0;background:transparent;box-shadow:none;padding:14px}

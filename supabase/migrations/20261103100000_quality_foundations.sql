@@ -11,6 +11,8 @@
 --    policies now also accept the capability: view_quality to read,
 --    manage_quality to change, report_incident to report. Link nurses and the
 --    committee secretariat, who report in the application, may now report here too.
+-- 3. An incident can be reported anonymously (is_anonymous): no reporter id or
+--    name is stored, so it never appears in anyone's «My reports».
 
 create or replace function private.system_master_library_baseline()
 returns table(library_key text,code text,name_el text,name_en text,source_authority text,source_version text)
@@ -256,6 +258,17 @@ where g.organization_id is null
 
 alter table public.master_library_items enable trigger trg_audit_master_library_items;
 
+
+alter table public.quality_incidents add column if not exists is_anonymous boolean not null default false;
+comment on column public.quality_incidents.is_anonymous is 'Reported anonymously: reported_by and reported_by_label stay empty.';
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'quality_incidents_anonymous_without_reporter') then
+    alter table public.quality_incidents add constraint quality_incidents_anonymous_without_reporter
+      check (not is_anonymous or (reported_by is null and reported_by_label is null));
+  end if;
+end
+$$;
 
 -- Access by capability on the older Quality tables, next to the existing roles.
 alter policy quality_incident_org_read on public.quality_incidents

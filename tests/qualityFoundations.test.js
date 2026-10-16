@@ -68,3 +68,20 @@ describe('Quality foundations', () => {
     expect(qualityStatusTone('reported')).toBe('info')
   })
 })
+
+describe('anonymous and own incident reports', () => {
+  it('lists only the reporter’s own named reports', async () => {
+    const { isOwnReport } = await import('../src/features/quality/MyReportsPage')
+    expect(isOwnReport({ reportedById: 'u1' }, 'u1')).toBe(true)
+    expect(isOwnReport({ reportedById: 'u2' }, 'u1')).toBe(false)
+    expect(isOwnReport({ reportedById: 'u1', anonymous: true }, 'u1')).toBe(false)
+    expect(isOwnReport({ reportedById: null }, null)).toBe(false)
+  })
+
+  it('stores no reporter on an anonymous report, in the app and in the database', () => {
+    expect(service).toContain('reported_by:draft.anonymous?null:userId||null')
+    expect(service).toContain('is_anonymous:Boolean(draft.anonymous)')
+    expect(migration).toContain('add column if not exists is_anonymous boolean not null default false')
+    expect(migration).toContain('check (not is_anonymous or (reported_by is null and reported_by_label is null))')
+  })
+})

@@ -29,8 +29,8 @@ export const navigation=[
   {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION,anyCapabilities:preventionAccessCapabilities},
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
   {to:'/quality',key:'quality',icon:Award,capability:CAPABILITIES.VIEW_QUALITY},
-  // Staff who may report but not open the Quality Center get the report form itself.
-  {to:'/quality/report',key:'reportIncident',icon:AlertTriangle,capability:CAPABILITIES.REPORT_INCIDENT,unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  // Staff who may report but not open the Quality Center get their reports and the form.
+  {to:'/quality/my-reports',key:'reportIncident',icon:AlertTriangle,capability:CAPABILITIES.REPORT_INCIDENT,unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
   {to:'/analysis',key:'platformAnalyticsNav',icon:BarChart3,capability:CAPABILITIES.VIEW_ANALYSIS},
   {to:'/indicators',key:'indicators',icon:LineChart,capability:CAPABILITIES.VIEW_INDICATORS},

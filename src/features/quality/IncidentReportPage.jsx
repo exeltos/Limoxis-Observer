@@ -33,7 +33,7 @@ import './quality.css'
 const today = () => new Date().toISOString().slice(0, 10)
 
 export function emptyIncidentReport() {
-  return { title: '', titleEn: '', departmentId: '', department: '', departmentEn: '', status: 'reported', severity: 'medium', incidentClass: 'nearMiss', reachedPatient: false, harmOccurred: false, category: '', impact: 'none', date: today(), eventTime: '', description: '', descriptionEn: '', immediateActions: '', immediateActionsEn: '', owners: [], owner: '', ownerId: null }
+  return { title: '', titleEn: '', departmentId: '', department: '', departmentEn: '', status: 'reported', severity: 'medium', incidentClass: 'nearMiss', reachedPatient: false, harmOccurred: false, category: '', impact: 'none', date: today(), eventTime: '', description: '', descriptionEn: '', immediateActions: '', immediateActionsEn: '', owners: [], owner: '', ownerId: null, anonymous: false }
 }
 
 // What a control entry with a finding, or another module, hands to the form.
@@ -93,12 +93,13 @@ export function IncidentReportPage() {
     if (!valid.every(Boolean) || saving) return
     setSaving(true)
     try {
-      const actor = auditActorFromAuth({ profile, user })
-      const created = await createQualityRecord('incidents', tenant?.id, { ...draft, title: draft.title || draft.titleEn, titleEn: draft.titleEn || draft.title, description: draft.description || draft.descriptionEn, descriptionEn: draft.descriptionEn || draft.description, immediateActions: draft.immediateActions || draft.immediateActionsEn, reportedByLabel: actor.name, history: [auditEvent('recordCreated', { actor })] }, user?.id)
+      // An anonymous report keeps no trace of the reporter, not even in its history.
+      const actor = draft.anonymous ? { id: null, name: en ? 'Anonymous report' : 'Ανώνυμη αναφορά' } : auditActorFromAuth({ profile, user })
+      const created = await createQualityRecord('incidents', tenant?.id, { ...draft, title: draft.title || draft.titleEn, titleEn: draft.titleEn || draft.title, description: draft.description || draft.descriptionEn, descriptionEn: draft.descriptionEn || draft.description, immediateActions: draft.immediateActions || draft.immediateActionsEn, reportedByLabel: draft.anonymous ? '' : actor.name, history: [auditEvent('recordCreated', { actor })] }, profile?.id || user?.id)
       notify(en ? 'The report was sent.' : 'Η αναφορά στάλθηκε.', 'success')
       const code = created?.id || created?.code
       // Quality staff go on to the record; everyone else gets a receipt.
-      if (canViewQuality && code) navigate(`/quality/incidents/${code}`, { replace: true, state: { limoxisFrom: { pathname: '/quality', search: '', hash: '', state: null, tab: 'incidents', registry: null } } })
+      if (canViewQuality && code && !draft.anonymous) navigate(`/quality/incidents/${code}`, { replace: true, state: { limoxisFrom: { pathname: '/quality', search: '', hash: '', state: null, tab: 'incidents', registry: null } } })
       else setSent(created)
     } catch (error) {
       console.error(error)
@@ -113,9 +114,9 @@ export function IncidentReportPage() {
   if (sent) return shell(<div className="record-section quality-report-done">
     <CheckCircle2 size={34} aria-hidden="true" />
     <strong>{en ? 'Thank you, your report was sent.' : 'Ευχαριστούμε, η αναφορά σας στάλθηκε.'}</strong>
-    <span>{en ? 'Code' : 'Κωδικός'}: <b>{sent.displayId || sent.id}</b></span>
+    <span>{en ? 'Code' : 'Κωδικός'}: <b>{sent.displayId || sent.id}</b>{sent.anonymous ? ` · ${en ? 'anonymous' : 'ανώνυμη'}` : ''}</span>
     <p>{en ? 'The Quality team will review it. Reporting helps the hospital learn; it is not about blame.' : 'Η ομάδα Ποιότητας θα την αξιολογήσει. Η αναφορά βοηθά το νοσοκομείο να μαθαίνει· δεν αναζητά υπαίτιους.'}</p>
-    <div className="row-actions"><Button variant="secondary" onClick={goBack}>{en ? 'Back' : 'Επιστροφή'}</Button><Button onClick={() => { setSent(null); setStep(0); setDraft({ ...emptyIncidentReport(), departmentId: draft.departmentId, department: draft.department, departmentEn: draft.departmentEn }) }}><Plus size={15} />{en ? 'New report' : 'Νέα αναφορά'}</Button></div>
+    <div className="row-actions"><Button variant="secondary" onClick={() => navigate('/quality/my-reports')}>{en ? 'My incident reports' : 'Οι αναφορές συμβάντων μου'}</Button><Button onClick={() => { setSent(null); setStep(0); setDraft({ ...emptyIncidentReport(), anonymous: draft.anonymous, departmentId: draft.departmentId, department: draft.department, departmentEn: draft.departmentEn }) }}><Plus size={15} />{en ? 'New incident report' : 'Νέα αναφορά συμβάντος'}</Button></div>
   </div>)
 
   const goTo = index => setStep(Math.max(0, Math.min(steps.length - 1, index)))
@@ -123,6 +124,9 @@ export function IncidentReportPage() {
     <StepList steps={steps} current={step} valid={valid} disabled={saving} onSelect={goTo} ariaLabel={en ? 'Steps' : 'Βήματα'} />
     <div className="lo-form-cards quality-report-body">
       {step === 0 && <>
+        <FormCard wide title={en ? 'Who reports' : 'Ποιος αναφέρει'} icon={UserCheck} hint={draft.anonymous ? (en ? 'Your name is not stored anywhere. The report will not appear in «My incident reports» and Quality cannot ask you for details.' : 'Το όνομά σας δεν καταγράφεται πουθενά. Η αναφορά δεν θα εμφανίζεται στις «Αναφορές συμβάντων μου» και η Ποιότητα δεν θα μπορεί να σας ζητήσει διευκρινίσεις.') : (en ? 'You can follow it in «My incident reports».' : 'Θα την παρακολουθείτε στις «Αναφορές συμβάντων μου».')}>
+          <ChoiceField label={en ? 'Report' : 'Αναφορά'} value={draft.anonymous ? 'anonymous' : 'named'} options={[{ value: 'named', label: en ? 'With my name' : 'Με το όνομά μου' }, { value: 'anonymous', label: en ? 'Anonymously' : 'Ανώνυμα' }]} onChange={value => set('anonymous', value === 'anonymous')} />
+        </FormCard>
         <FormCard title={en ? 'Type' : 'Είδος'} hint={en ? 'Did it reach the patient?' : 'Έφτασε στον ασθενή;'} icon={AlertTriangle}>
           <ChoiceField label={en ? 'Incident type *' : 'Τύπος συμβάντος *'} value={draft.incidentClass} options={vocabularyOptions(INCIDENT_CLASSES, language)} onChange={value => setDraft(current => withIncidentClass(current, value))} />
           <small className="quality-report-hint">{INCIDENT_CLASSES.find(item => item.value === draft.incidentClass)?.hint[en ? 1 : 0]}</small>
@@ -153,6 +157,7 @@ export function IncidentReportPage() {
             { label: en ? 'Department' : 'Τμήμα', value: en ? draft.departmentEn || draft.department : draft.department },
             { label: en ? 'Date' : 'Ημερομηνία', value: [formatDay(draft.date, language), draft.eventTime].filter(Boolean).join(' ') },
             harmful && { label: en ? 'Harm' : 'Βλάβη', value: vocabularyLabel(IMPACTS, draft.impact, language) },
+            { label: en ? 'Reported' : 'Αναφορά', value: draft.anonymous ? (en ? 'Anonymously' : 'Ανώνυμα') : (en ? 'With my name' : 'Με το όνομά μου') },
           ]} />
           <p className="quality-report-description">{draft[descriptionKey]}</p>
         </FormCard>

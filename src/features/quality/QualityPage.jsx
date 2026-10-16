@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CheckCircle2,ClipboardCheck,Clock3,Plus,ShieldCheck,CheckSquare2,FileWarning,ShieldAlert } from 'lucide-react'
+import { AlertTriangle,UserRound,CheckCircle2,ClipboardCheck,Clock3,Plus,ShieldCheck,CheckSquare2,FileWarning,ShieldAlert } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -95,7 +95,7 @@ export function QualityPage(){
   function createCapaFrom(prefill){writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.capas',state:{qualitySource:prefill}})}
   function changeSection(id){registry.saveViewState({query,status,department});setSection(id);setQuick(null);const next=readRegistryViewState(`quality.${id}`);setQuery(next?.query||'');setStatus(next?.status||'all');setDepartment(next?.department||'all')}
 
-  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA, audits, risks and deviations in one controlled, traceable flow.':'Συμβάντα, ευρήματα, διορθωτικές ενέργειες, επιθεωρήσεις, κίνδυνοι και αποκλίσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{isRisks?null:isQueue?<DownloadMenu disabled={!deviationView.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviationView.filtered,{en:language==='en',t}))}/>:<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
+  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA, audits, risks and deviations in one controlled, traceable flow.':'Συμβάντα, ευρήματα, διορθωτικές ενέργειες, επιθεωρήσεις, κίνδυνοι και αποκλίσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{isRisks?null:isQueue?<DownloadMenu disabled={!deviationView.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviationView.filtered,{en:language==='en',t}))}/>:<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{section==='incidents'&&<ActionButton label={language==='en'?'My incident reports':'Οι αναφορές συμβάντων μου'} tone="neutral" onClick={()=>goTo('/quality/my-reports')}><UserRound size={17}/><span>{language==='en'?'My reports':'Οι αναφορές μου'}</span></ActionButton>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
     {isQueue&&<DeviationSummary view={deviationView} language={language}/>}
     {isRisks&&<RiskSummaryStrip items={riskList.items} en={language==='en'} locale={locale}/>}
     {!isQueue&&!isRisks&&<div className="workspace-summary quality-summary"><div className="module-summary-strip">
