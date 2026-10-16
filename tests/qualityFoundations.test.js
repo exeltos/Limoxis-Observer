@@ -85,3 +85,25 @@ describe('anonymous and own incident reports', () => {
     expect(migration).toContain('check (not is_anonymous or (reported_by is null and reported_by_label is null))')
   })
 })
+
+describe('review follow-ups', () => {
+  it('prefills both language fields so an English screen sees the control text', () => {
+    const draft = incidentPrefill({ controlSource: { controlTitle: 'Fridge', value: 9 } }, 'en')
+    expect(draft.titleEn).toBe(draft.title)
+    expect(draft.descriptionEn).toBe(draft.description)
+    expect(incidentPrefill({ qualitySource: { title: 'X', description: 'Y' } })).toMatchObject({ titleEn: 'X', descriptionEn: 'Y' })
+  })
+
+  it('lets the default staff_user account report and sees its reports in the menu', () => {
+    expect(can('staff_user', CAPABILITIES.REPORT_INCIDENT)).toBe(true)
+    expect(navigationFor({ role: 'staff_user' }).map(item => item.key)).toContain('reportIncident')
+    expect(migration).toContain("'staff_user'::app_role")
+  })
+
+  it('keeps typed names as responsible people and sends report-only users back to their list', () => {
+    const fields = fs.readFileSync('src/features/quality/QualityFields.jsx', 'utf8')
+    const report = fs.readFileSync('src/features/quality/IncidentReportPage.jsx', 'utf8')
+    expect(fields).toContain('allowCustom')
+    expect(report).toContain("useContextualNavigation(canViewQuality ? '/quality' : '/quality/my-reports')")
+  })
+})

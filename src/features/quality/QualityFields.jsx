@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { MultiSelect } from '../../design-system/MultiSelect'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useEmployeesData } from '../employees/useEmployeesData'
@@ -45,17 +44,30 @@ function usePeople(extraNames = [], departments = []) {
 
 const idOf = employee => String(employee.dbId || employee.id)
 
+// Several people: pick an employee or type a name (the staff list a role may
+// read can be short, e.g. only its own row), shown as removable chips.
 export function QualityOwnerField({ record, onChange, label }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const names = recordOwners(record)
   const people = usePeople(names, [record?.department].filter(Boolean))
-  const selected = names.map(name => (people.byName.has(name) ? idOf(people.byName.get(name)) : `name:${name}`))
-  function change(ids) {
-    const chosen = ids.map(id => (id.startsWith('name:') ? { name: id.slice(5), userId: null } : (employee => employee && { name: employeeName(employee), userId: employee.userId || null })(people.employees.find(employee => idOf(employee) === id)))).filter(Boolean)
-    onChange?.({ owners: chosen.map(item => item.name), owner: '', ownerId: chosen.find(item => item.userId)?.userId || null })
+  const text = label || (en ? 'Responsible person(s)' : 'Υπεύθυνος / Υπεύθυνοι')
+  function commit(next) {
+    const userId = next.map(name => people.byName.get(name)?.userId).find(Boolean)
+    // Keep the account already on the record when its person is not in the readable staff list.
+    const kept = names[0] && next.includes(names[0]) ? record?.ownerId || null : null
+    onChange?.({ owners: next, owner: '', ownerId: userId || kept })
   }
-  return <MultiSelect label={label || (en ? 'Responsible person(s)' : 'Υπεύθυνος / Υπεύθυνοι')} options={people.options} selected={selected} onChange={change} placeholder={en ? 'Choose staff' : 'Επιλέξτε προσωπικό'} searchPlaceholder={en ? 'Search staff…' : 'Αναζήτηση προσωπικού…'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} selectAllLabel={en ? 'Select all' : 'Επιλογή όλων'} clearAllLabel={en ? 'Clear' : 'Καθαρισμός'} countLabel={n => (en ? `${n} people` : `${n} άτομα`)} />
+  function add(id) {
+    if (!id) return
+    const employee = people.employees.find(item => idOf(item) === id)
+    const name = employee ? employeeName(employee) : id.startsWith('name:') ? id.slice(5) : String(id).trim()
+    if (name && !names.includes(name)) commit([...names, name])
+  }
+  return <div className="field quality-owner-field">
+    <SearchableSelect label={text} value="" options={people.options.filter(option => !names.includes(option.label))} recentValues={people.near} recentLabel={record?.department || ''} onChange={add} allowCustom customLabel={value => (en ? `Add «${value}»` : `Προσθήκη «${value}»`)} placeholder={en ? 'Search staff or type a name' : 'Αναζήτηση προσωπικού ή όνομα'} {...selectText(en)} />
+    {names.length > 0 && <div className="quality-owner-chips">{names.map(name => <span key={name}>{name}<button type="button" onClick={() => commit(names.filter(item => item !== name))} aria-label={`${en ? 'Remove' : 'Αφαίρεση'} ${name}`}>×</button></span>)}</div>}
+  </div>
 }
 
 // One person (the lead auditor): an employee or a typed name.

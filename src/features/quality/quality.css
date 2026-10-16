@@ -33,3 +33,8 @@ html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.
 
 .quality-table td:first-child>strong{white-space:nowrap}
 .quality-record-shell .record-section:is(.quality-report-form,.quality-create-form){border:0;background:transparent;box-shadow:none;padding:14px}
+.quality-owner-field{display:grid;gap:6px;min-width:0}
+.quality-owner-chips{display:flex;flex-wrap:wrap;gap:6px}
+.quality-owner-chips>span{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:2px 4px 2px 10px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface-muted);font-size:12px;font-weight:600;color:var(--lo-color-text)}
+.quality-owner-chips button{display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:50%;background:transparent;color:var(--lo-color-muted);font-size:15px;line-height:1;cursor:pointer}
+.quality-owner-chips button:hover{background:var(--lo-color-border);color:var(--lo-color-text)}

@@ -9,8 +9,9 @@
 --    role-based only, so a custom role or the quality-access add-on saw empty
 --    lists while the risk tables (20261013074528) already loaded. Their
 --    policies now also accept the capability: view_quality to read,
---    manage_quality to change, report_incident to report. Link nurses and the
---    committee secretariat, who report in the application, may now report here too.
+--    manage_quality to change, report_incident to report. Link nurses, the
+--    committee secretariat and the default staff_user role, who report in the
+--    application, may now report here too.
 -- 3. An incident can be reported anonymously (is_anonymous): no reporter id or
 --    name is stored, so it never appears in anyone's «My reports».
 
@@ -279,7 +280,7 @@ alter policy quality_incident_org_read on public.quality_incidents
 
 alter policy quality_incident_report on public.quality_incidents
   with check (current_user_is_platform_owner()
-    or current_user_has_org_role(organization_id, array['hospital_admin'::app_role,'quality_manager'::app_role,'infection_control_lead'::app_role,'infection_control_member'::app_role,'department_manager'::app_role,'department_user'::app_role,'link_nurse'::app_role,'laboratory'::app_role,'pharmacy'::app_role,'hr_office'::app_role,'occupational_physician'::app_role,'doctor_reviewer'::app_role,'committee_secretariat'::app_role])
+    or current_user_has_org_role(organization_id, array['hospital_admin'::app_role,'quality_manager'::app_role,'infection_control_lead'::app_role,'infection_control_member'::app_role,'department_manager'::app_role,'department_user'::app_role,'link_nurse'::app_role,'laboratory'::app_role,'pharmacy'::app_role,'hr_office'::app_role,'occupational_physician'::app_role,'doctor_reviewer'::app_role,'committee_secretariat'::app_role,'staff_user'::app_role])
     or current_user_has_capability(organization_id, 'report_incident')
     or current_user_has_capability(organization_id, 'manage_quality'));
 

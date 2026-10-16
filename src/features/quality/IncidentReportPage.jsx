@@ -42,17 +42,18 @@ export function incidentPrefill(state, language = 'el') {
   const control = state?.controlSource
   if (control) {
     const lines = [control.controlTitle && `${en ? 'Control' : 'Έλεγχος'}: ${control.controlTitle}`, control.value !== undefined && control.value !== '' && control.value !== null && `${en ? 'Recorded value' : 'Καταγεγραμμένη τιμή'}: ${typeof control.value === 'object' ? JSON.stringify(control.value) : control.value}`, control.notes && `${en ? 'Notes' : 'Σημειώσεις'}: ${control.notes}`].filter(Boolean)
-    return { title: `${en ? 'Deviation in control' : 'Απόκλιση στον έλεγχο'}: ${control.controlTitle || ''}`.trim(), department: control.department || '', departmentId: control.departmentId || '', category: 'process', description: lines.join('\n'), date: String(control.scheduledAt || '').slice(0, 10) || today() }
+    const title = `${en ? 'Deviation in control' : 'Απόκλιση στον έλεγχο'}: ${control.controlTitle || ''}`.trim(), description = lines.join('\n')
+    // Both language fields: the form edits the one of the screen's language.
+    return { title, titleEn: title, department: control.department || '', departmentId: control.departmentId || '', category: 'process', description, descriptionEn: description, date: String(control.scheduledAt || '').slice(0, 10) || today() }
   }
   const source = state?.qualitySource
   if (!source) return null
-  return { title: source.title || '', departmentId: source.departmentId || '', department: source.department || '', description: source.description || '', date: source.date || today() }
+  return { title: source.title || '', titleEn: source.title || '', departmentId: source.departmentId || '', department: source.department || '', description: source.description || '', descriptionEn: source.description || '', date: source.date || today() }
 }
 
 export function IncidentReportPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { goBack } = useContextualNavigation('/quality')
   const { t, language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
@@ -65,6 +66,8 @@ export function IncidentReportPage() {
   const ownerFullAccess = !isRolePreview && actualRole === ROLES.PLATFORM_OWNER
   const canManage = ownerFullAccess || can(role, CAPABILITIES.MANAGE_QUALITY, addOns, custom)
   const canViewQuality = ownerFullAccess || can(role, CAPABILITIES.VIEW_QUALITY, addOns, custom)
+  // Back without history: the Quality Center, or the reporter's own list.
+  const { goBack } = useContextualNavigation(canViewQuality ? '/quality' : '/quality/my-reports')
   const [step, setStep] = useState(0)
   const [draft, setDraft] = useState(() => ({ ...emptyIncidentReport(), ...(incidentPrefill(location.state, language) || {}) }))
   const [saving, setSaving] = useState(false)
