@@ -49,8 +49,21 @@
 .register-sheet-layout .record-tab-panel-body,.register-sheet-layout .scroll-table{overflow:visible;flex:none}
 /* The shared record-panel rule (flex:1 1 0 !important) would fold the sheet's table to 0 px: the layout scrolls, not the table. */
 .register-sheet-layout .record-tab-panel-body>.scroll-table{flex:none!important;overflow:visible!important}
-.register-sheet-table td input{width:90px;text-align:right}
-.register-sheet-table tfoot td,.register-sheet-table tfoot th{font-weight:700;border-top:2px solid var(--lo-color-border-strong)}
+/* A compact sheet: label, the month's numbers, then what the row looked like before.
+   The shared table and control rules are stronger, hence the :is(…, #lo-sheet) weight. */
+.register-sheet-table:is(table,#lo-sheet){width:auto!important;min-width:min(100%,820px)}
+.register-sheet-table:is(table,#lo-sheet) .register-row-label{min-width:240px}
+.register-sheet-table:is(table,#lo-sheet) :is(th,td).register-num{text-align:right!important}
+.register-sheet-table:is(table,#lo-sheet)>tbody>tr>td{height:auto!important;min-height:0!important;padding-top:5px!important;padding-bottom:5px!important;vertical-align:middle}
+.register-sheet-table:is(table,#lo-sheet) td input{box-sizing:border-box;width:96px;height:32px!important;min-height:32px!important;padding:0 10px!important;text-align:right;font:inherit;font-weight:600}
+.register-sheet-table:is(table,#lo-sheet) :is(th,td).register-sheet-context{padding-left:22px!important}
+.register-sheet-value{display:inline-block;min-width:60px;font-weight:700;color:var(--lo-color-text)}
+.register-sheet-table .register-sheet-context{color:var(--lo-color-muted);font-size:12.5px;white-space:nowrap}
+.register-sheet-table td.register-sheet-context small{display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#9a5b00;font-weight:700}
+.register-sheet-table tr.is-unusual input{border-color:#d08a00;background:#fff8eb}
+.register-sheet-unusual-note{display:inline-flex;align-items:center;gap:4px;margin-left:10px;color:#9a5b00;font-weight:700}
+.register-sheet-hint{margin:8px 18px 4px;font-size:12px;color:var(--lo-color-muted)}
+.register-sheet-table tfoot td,.register-sheet-table tfoot th{font-weight:700;border-top:2px solid var(--lo-color-border-strong);background:transparent!important}
 .register-sheet-group th{background:var(--lo-color-surface-muted);font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--lo-color-muted)}
 .register-year-table th button{display:inline-flex;align-items:center;gap:3px;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
 .register-year-table .is-selected{background:var(--lo-color-primary-soft)}
