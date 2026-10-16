@@ -49,7 +49,9 @@ import {
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { wasteCategoryTone } from './wasteVisuals'
-import { antisepticMethodLabel, isAbhrProduct } from './AntisepticEntryModal'
+import { antisepticMethodLabel, isAbhrProduct } from './antisepticMethods'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { formatDay } from '../../core/i18n/formatDay'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { normalizeWhoMoments, sessionHandHygieneStats } from './whoHandHygieneStats'
 
@@ -234,8 +236,7 @@ export function PreventionRecordPage() {
     )
 
   const Icon = icons[recordType] || ShieldCheck
-  const fmtDate = value =>
-    value ? new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)) : '—'
+  const fmtDate = value => formatDay(value, language)
   const wasteCategory = record?.wasteType || record?.type
   const recordTitle = creating
     ? recordType === 'waste'
@@ -291,8 +292,8 @@ export function PreventionRecordPage() {
       {en ? record.typeEn || wasteCategory : wasteCategory}
     </span>
   ) : recordType === 'antiseptics' ? (
-    <span
-      className={`antiseptic-abhr-badge ${record.indicatorEligible !== false && isAbhrProduct(record) ? 'active' : 'informative'}`}
+    <StatusBadge
+      tone={record.indicatorEligible !== false && isAbhrProduct(record) ? 'success' : 'info'}
     >
       {record.indicatorEligible !== false && isAbhrProduct(record)
         ? en
@@ -301,9 +302,9 @@ export function PreventionRecordPage() {
         : en
           ? 'Outside ABHR indicator'
           : 'Εκτός δείκτη ABHR'}
-    </span>
+    </StatusBadge>
   ) : recordType === 'bundles' ? (
-    <span className={`bundle-all-badge ${record.allOrNone ? 'passed' : 'failed'}`}>
+    <StatusBadge tone={record.allOrNone ? 'success' : 'danger'}>
       {record.allOrNone
         ? en
           ? 'All-or-none ✓'
@@ -311,7 +312,7 @@ export function PreventionRecordPage() {
         : en
           ? 'All-or-none ✕'
           : 'Ελλιπής συμμόρφωση ✕'}
-    </span>
+    </StatusBadge>
   ) : null
 
   async function saveHandHygiene(updated) {
@@ -593,14 +594,6 @@ const formatMonth = value =>
   /^\d{4}-\d{2}$/.test(String(value || ''))
     ? `${value.slice(5, 7)}/${value.slice(0, 4)}`
     : value || ''
-const formatDay = (value, en) =>
-  value
-    ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      }).format(new Date(`${String(value).slice(0, 10)}T12:00:00`))
-    : '—'
 
 // Prevention records share one layout: the context as a details sheet, the key
 // figures as a metric strip, then the record's own list under a section header.
@@ -634,7 +627,7 @@ function HandHygieneDetails({ record, language }) {
             {
               id: 'date',
               label: en ? 'Date' : 'Ημερομηνία',
-              value: formatDay(record.date || session.date, en),
+              value: formatDay(record.date || session.date, language),
             },
             {
               id: 'department',
@@ -687,7 +680,7 @@ function HandHygieneDetails({ record, language }) {
         <SectionHeader
           title={en ? 'Recorded opportunities' : 'Καταγεγραμμένες ευκαιρίες'}
           subtitle={en ? 'WHO 5 Moments' : 'WHO 5 Στιγμές'}
-          actions={<span className="status-badge">{items.length}</span>}
+          actions={<StatusBadge>{items.length}</StatusBadge>}
         />
         <RegistryTable
           className="who-record-table"
@@ -715,22 +708,22 @@ function HandHygieneDetails({ record, language }) {
                   {normalizeWhoMoments(item).map(id => {
                     const m = WHO_MOMENTS.find(x => x.id === id)
                     return (
-                      <span className="status-badge" key={id}>
+                      <StatusBadge key={id}>
                         {id.replace('moment', '')} ·{' '}
                         {m
                           ? en
                             ? m.labelEn.replace(/^\d+\.\s*/, '')
                             : m.label.replace(/^\d+\.\s*/, '')
                           : id}
-                      </span>
+                      </StatusBadge>
                     )
                   })}
                 </div>
               </td>
               <td>
-                <span className={`status-badge ${item.action === 'MISSED' ? 'danger' : 'active'}`}>
+                <StatusBadge tone={item.action === 'MISSED' ? 'danger' : 'success'}>
                   {actionLabel(item)}
-                </span>
+                </StatusBadge>
               </td>
               <td>{item.gloves ? (en ? 'Yes' : 'Ναι') : en ? 'No' : 'Όχι'}</td>
               <td>{item.notes || '—'}</td>
@@ -751,7 +744,7 @@ function AntisepticDetails({ record, language, locale }) {
         <SectionHeader
           title={en ? 'Monthly consumption' : 'Μηνιαία κατανάλωση'}
           actions={
-            <span className={`status-badge ${eligible ? 'active' : ''}`}>
+            <StatusBadge tone={eligible ? 'success' : 'neutral'}>
               {eligible
                 ? en
                   ? 'ABHR · Indicator active'
@@ -759,7 +752,7 @@ function AntisepticDetails({ record, language, locale }) {
                 : en
                   ? 'Outside ABHR indicator'
                   : 'Εκτός δείκτη ABHR'}
-            </span>
+            </StatusBadge>
           }
         />
         <RecordDetailsGrid
@@ -832,6 +825,9 @@ function shiftLabel(value, en) {
   const pair = SHIFT_LABELS[value]
   return pair ? (en ? pair[1] : pair[0]) : value || '—'
 }
+// Corrected, still open, no longer applicable, or not reviewed yet.
+const FOLLOW_UP_TONES = { resolved: 'success', open: 'danger', not_applicable: 'neutral' }
+export const bundleFollowUpTone = status => FOLLOW_UP_TONES[status] || 'warning'
 function BundleDetails({ record, language, canEdit, onFollowUp }) {
   const en = language === 'en'
   const template = record.templateSnapshot || {}
@@ -870,7 +866,7 @@ function BundleDetails({ record, language, canEdit, onFollowUp }) {
             {
               id: 'date',
               label: en ? 'Date' : 'Ημερομηνία',
-              value: formatDay(record.date || record.period, en),
+              value: formatDay(record.date || record.period, language),
             },
             { id: 'department', label: en ? 'Department' : 'Τμήμα', value: record.departmentEl },
             { id: 'shift', label: en ? 'Shift' : 'Βάρδια', value: shiftLabel(record.shift, en) },
@@ -971,12 +967,12 @@ function BundleDetails({ record, language, canEdit, onFollowUp }) {
                   {followUp?.comment && <small>{followUp.comment}</small>}
                 </div>
                 <div className="bundle-followup-meta">
-                  <span className={`bundle-followup-status ${followUp?.status || 'pending'}`}>
+                  <StatusBadge tone={bundleFollowUpTone(followUp?.status)}>
                     {followUpLabel(followUp?.status)}
-                  </span>
+                  </StatusBadge>
                   {followUp?.date && (
                     <small>
-                      {en ? 'Review date' : 'Ημ. επανελέγχου'}: {formatDay(followUp.date, en)}
+                      {en ? 'Review date' : 'Ημ. επανελέγχου'}: {formatDay(followUp.date, language)}
                     </small>
                   )}
                   {followUp?.reviewedBy && (

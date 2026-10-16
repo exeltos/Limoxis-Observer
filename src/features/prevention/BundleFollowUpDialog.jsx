@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
@@ -44,27 +45,26 @@ export function BundleFollowUpDialog({ item, value, onClose, onSave }) {
       }
     >
       <div className="bundle-followup-form">
-        <label>
-          <span>{en ? 'Status *' : 'Κατάσταση *'}</span>
-          <select
+        <div className="field bundle-followup-status-field">
+          <span className="lo-field-label">{en ? 'Status *' : 'Κατάσταση *'}</span>
+          <ModeSwitch
+            ariaLabel={en ? 'Status' : 'Κατάσταση'}
             value={draft.status}
-            onChange={e => setDraft(current => ({ ...current, status: e.target.value }))}
-          >
-            <option value="">{en ? 'Select status' : 'Επιλέξτε κατάσταση'}</option>
-            <option value="resolved">{en ? 'Corrected' : 'Διορθώθηκε'}</option>
-            <option value="open">{en ? 'Still pending' : 'Παραμένει'}</option>
-            <option value="not_applicable">
-              {en ? 'No longer applicable' : 'Δεν εφαρμόζεται πλέον'}
-            </option>
-          </select>
-        </label>
+            onChange={status => setDraft(current => ({ ...current, status }))}
+            options={[
+              { value: 'resolved', label: en ? 'Corrected' : 'Διορθώθηκε' },
+              { value: 'open', label: en ? 'Still pending' : 'Παραμένει' },
+              { value: 'not_applicable', label: en ? 'No longer applicable' : 'Δεν εφαρμόζεται πλέον' },
+            ]}
+          />
+        </div>
         <ManualDateField
           label={en ? 'Follow-up date *' : 'Ημερομηνία επανελέγχου *'}
           value={draft.date}
           onChange={date => setDraft(current => ({ ...current, date }))}
         />
-        <label className="bundle-followup-comment">
-          <span>{en ? 'Comment / action' : 'Σχόλιο / ενέργεια'}</span>
+        <label className="field bundle-followup-comment">
+          <span className="lo-field-label">{en ? 'Comment / action' : 'Σχόλιο / ενέργεια'}</span>
           <textarea
             rows="4"
             value={draft.comment}
