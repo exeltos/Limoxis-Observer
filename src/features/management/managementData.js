@@ -179,6 +179,17 @@ export const demoLibrarySeed = {
     ['ώρες','hours',{...SYS('Limoxis measurement units core'),code:'UNIT-HOUR'}],
     ['τεμάχια','pieces',{...SYS('Limoxis measurement units core'),code:'UNIT-PIECE'}],
   ],
+  incidentCategories:[
+    ['Κλινικό / ασφάλεια ασθενούς','Clinical / patient safety',{...SYS('Limoxis quality core'),code:'INC-CLINICAL'}],
+    ['Φάρμακο','Medication',{...SYS('Limoxis quality core'),code:'INC-MEDICATION'}],
+    ['Εξοπλισμός / ιατροτεχνολογικό','Equipment / device',{...SYS('Limoxis quality core'),code:'INC-EQUIPMENT'}],
+    ['Διαδικασία / λειτουργικό','Process / operational',{...SYS('Limoxis quality core'),code:'INC-PROCESS'}],
+    ['Παράπονο (ασθενούς / συνοδού)','Complaint (patient / relative)',{...SYS('Limoxis quality core'),code:'INC-COMPLAINT'}],
+    ['Προσωπικό / επαγγελματική ασφάλεια','Staff / occupational safety',{...SYS('Limoxis quality core'),code:'INC-STAFF'}],
+    ['Εγκαταστάσεις / υποδομές','Facility / infrastructure',{...SYS('Limoxis quality core'),code:'INC-FACILITY'}],
+    ['Ασφάλεια','Security',{...SYS('Limoxis quality core'),code:'INC-SECURITY'}],
+    ['Άλλο','Other',{...SYS('Limoxis quality core'),code:'INC-OTHER'}],
+  ],
   controlAnswers:[
     ['Συμμορφώνεται','Compliant',{...SYS('Limoxis controls core'),code:'ANS-COMPLIANT'}],
     ['Μη συμμόρφωση','Non-compliant',{...SYS('Limoxis controls core'),code:'ANS-NONCOMPLIANT'}],

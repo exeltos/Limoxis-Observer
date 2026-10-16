@@ -134,7 +134,10 @@ describe('risk assessment screens', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ακύρωση' }))
     expect(measure().value).toBe(before)
     await startEditing()
-    fireEvent.change(screen.getAllByRole('combobox', { name: /Πιθανότητα \(L\)/ })[1], { target: { value: '4' } })
+    // L is a searchable pick: typing 4 and Enter chooses «4 · …».
+    const likelihood = screen.getAllByRole('combobox', { name: /Πιθανότητα \(L\)/ })[1]
+    fireEvent.change(likelihood, { target: { value: '4' } })
+    fireEvent.keyDown(likelihood, { key: 'Enter' })
     // 4 × 3 = 12: the residual risk becomes High and needs an action plan.
     expect(screen.getByText('Υψηλός υπολειπόμενος χωρίς πρόσθετα μέτρα')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση κινδύνου/ }))

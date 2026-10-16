@@ -23,7 +23,7 @@ import { DEFAULT_EXPIRY_AFTER_DAYS,DEFAULT_EXPIRY_BEFORE_DAYS,expiryCatalogue,ex
 import { ControlExpiryCatalogueDialog } from './ControlExpiryCatalogueDialog'
 import { CRITICALITY_LEVELS,controlCriticality,criticalityLabel,requiresEvidence } from './controlCriticality'
 import { answerLabel,categoryPreset,choiceOptions } from './controlVocabulary'
-import { employeeOptions,personFromEmployee } from './controlPeople'
+import { employeeOptions,personFromEmployee } from '../employees/peopleOptions'
 import './controlEditor.css'
 
 const pickPolicy=config=>Object.fromEntries(['criticality','requiresEvidence','deviationActions'].filter(key=>config?.[key]!==undefined).map(key=>[key,config[key]]))

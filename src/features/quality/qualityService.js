@@ -33,6 +33,11 @@ function isUuid(value=''){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''))
 }
 
+// The responsible people's names: the owners list, or the single legacy owner.
+function ownerLabels(record){
+  return record.owners?.length?record.owners:(record.owner?[record.owner]:[])
+}
+
 function mapRow(section,row){
   const department=row.department?.name||''
   const common={
@@ -157,13 +162,14 @@ function codeFor(section){
 export async function createQualityRecord(section,organizationId,draft,userId){
   const code=codeFor(section)
   if(isDemoDataEnvironment()){
-    const department=draft.departmentId||''
-    const common={id:code,displayId:compactCode(code),title:draft.title||draft.titleEn||'',titleEn:draft.titleEn||draft.title||'',department,departmentEn:department,owner:'',lifecycleStatus:'active',attachments:[],history:draft.history||[]}
+    // The demo keeps the department by name (its id is the name).
+    const department=draft.department||draft.departmentId||''
+    const common={id:code,displayId:compactCode(code),title:draft.title||draft.titleEn||'',titleEn:draft.titleEn||draft.title||'',department,departmentEn:draft.departmentEn||department,departmentId:draft.departmentId||'',owner:ownerLabels(draft)[0]||'',owners:ownerLabels(draft),ownerId:draft.ownerId||null,lifecycleStatus:'active',attachments:[],history:draft.history||[]}
     let record=common
-    if(section==='incidents')record={...common,owner:(draft.owners?.[0]||draft.owner||''),owners:draft.owners?.length?draft.owners:(draft.owner?[draft.owner]:[]),severity:draft.severity||'medium',incidentClass:draft.incidentClass||'nearMiss',reachedPatient:Boolean(draft.reachedPatient),harmOccurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',eventTime:draft.eventTime||'',impact:draft.impact||'none',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',immediateActions:draft.immediateActions||draft.immediateActionsEn||'',rootCause:draft.rootCause||'',contributingFactors:draft.contributingFactors||'',reportedBy:draft.reportedByLabel||'',linkedPatient:'',linkedSurveillance:''}
+    if(section==='incidents')record={...common,severity:draft.severity||'medium',incidentClass:draft.incidentClass||'nearMiss',reachedPatient:Boolean(draft.reachedPatient),harmOccurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',eventTime:draft.eventTime||'',impact:draft.impact||'none',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',immediateActions:draft.immediateActions||draft.immediateActionsEn||'',rootCause:draft.rootCause||'',contributingFactors:draft.contributingFactors||'',reportedBy:draft.reportedByLabel||'',reportedById:userId||null,linkedPatient:'',linkedSurveillance:''}
     if(section==='findings')record={...common,severity:draft.severity||'medium',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'manual',sourceId:draft.sourceId||''}
     if(section==='capas')record={...common,severity:draft.priority||'medium',priority:draft.priority||'medium',actionType:draft.actionType||'corrective',dueDate:draft.dueDate||'',effectivenessDue:draft.effectivenessDue||'',effectivenessStatus:draft.effectivenessStatus||'pending',status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'other',sourceId:draft.sourceId||'',subActions:draft.subActions||[]}
-    if(section==='audits')record={...common,auditType:draft.auditType||'internal',plannedDate:draft.plannedDate||'',completedDate:'',status:draft.status||'planned',leadAuditor:'',scope:draft.scope||'',scopeEn:draft.scopeEn||draft.scope||'',findingIds:[]}
+    if(section==='audits')record={...common,auditType:draft.auditType||'internal',plannedDate:draft.plannedDate||'',completedDate:'',status:draft.status||'planned',leadAuditor:draft.leadAuditor||'',leadAuditorId:draft.leadAuditorId||null,scope:draft.scope||'',scopeEn:draft.scopeEn||draft.scope||'',findingIds:[]}
     const rows=loadQualityLocal(section)
     rows.unshift(record)
     saveQualityLocal(section,rows)
@@ -172,11 +178,11 @@ export async function createQualityRecord(section,organizationId,draft,userId){
   assertReady(organizationId)
   const config=sectionConfig[section]
   if(!config) throw new Error('Unsupported quality record type.')
-  let payload={organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),department_id:draft.departmentId||null,history:draft.history||[]}
-  if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,incident_class:draft.incidentClass||'nearMiss',reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',impact:draft.impact||'none',severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:userId||null,reported_by_label:draft.reportedByLabel||null,owner_id:null,owner_label:(draft.owners?.[0]||draft.owner||null),owner_labels:draft.owners?.length?draft.owners:(draft.owner?[draft.owner]:[])}
-  if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null,owner_id:null}
-  if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,owner_id:null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending',sub_actions:draft.subActions||[]}
-  if(section==='audits') payload={...payload,audit_type:draft.auditType||'internal',scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:null}
+  let payload={organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),department_id:isUuid(draft.departmentId)?draft.departmentId:null,history:draft.history||[],...(section==='audits'?{}:{owner_id:isUuid(draft.ownerId)?draft.ownerId:null}),owner_label:ownerLabels(draft)[0]||null,owner_labels:ownerLabels(draft)}
+  if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,incident_class:draft.incidentClass||'nearMiss',reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',impact:draft.impact||'none',severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:userId||null,reported_by_label:draft.reportedByLabel||null}
+  if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null}
+  if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending',sub_actions:draft.subActions||[]}
+  if(section==='audits') payload={...payload,audit_type:draft.auditType||'internal',scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:isUuid(draft.leadAuditorId)?draft.leadAuditorId:null,lead_auditor_label:draft.leadAuditor||null}
 
   const {data,error}=await supabase.from(config.table).insert(payload).select('*,department:departments(name)').single()
   if(error) throw error
@@ -186,10 +192,12 @@ export async function createQualityRecord(section,organizationId,draft,userId){
 function buildPersistPayload(section,record){
   const payload={
     title:(record.title||record.titleEn||'').trim(),
-    department_id:record.departmentId||null,
+    department_id:isUuid(record.departmentId)?record.departmentId:null,
     status:dbStatus(record.status),
-    owner_label:(record.owners?.[0]||record.owner||null),
-    owner_labels:record.owners?.length?record.owners:(record.owner?[record.owner]:[]),
+    // quality_audits has no owner_id: its person is the lead auditor.
+    ...(section==='audits'?{}:{owner_id:isUuid(record.ownerId)?record.ownerId:null}),
+    owner_label:ownerLabels(record)[0]||null,
+    owner_labels:ownerLabels(record),
     lifecycle_status:record.lifecycleStatus||'active',
     void_reason:record.voidReason||null,
     voided_at:record.voidedAt||null,
@@ -240,6 +248,7 @@ function buildPersistPayload(section,record){
     planned_date:record.plannedDate||null,
     completed_date:record.completedDate||null,
     lead_auditor_label:record.leadAuditor||null,
+    lead_auditor_id:isUuid(record.leadAuditorId)?record.leadAuditorId:null,
   })
   return payload
 }

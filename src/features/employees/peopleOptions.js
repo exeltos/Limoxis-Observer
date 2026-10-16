@@ -1,8 +1,8 @@
-// Who answers for a control: a job position (library positions) and/or a named
-// person (an employee, linked to a user account when there is one), and
-// optionally a person per department. Kept in the definition's metadata; the
-// person's account goes to control_definitions.owner_id and the department's
-// person to control_assignments.assignee_id.
+// People picked as responsible on a record (a control, a quality record): an
+// employee, linked to a user account when there is one, as {employeeId,name,
+// nameEn,userId}. Controls keep the person in the definition's metadata and its
+// account in control_definitions.owner_id; Quality keeps the names in
+// owner_labels and the first account in owner_id.
 
 export const employeeName=(employee,language='el')=>language==='en'
  ?[employee?.firstNameEn||employee?.firstName,employee?.lastNameEn||employee?.lastName].filter(Boolean).join(' ')

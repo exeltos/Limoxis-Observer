@@ -3,6 +3,9 @@ import { AlertTriangle,ArrowDown,ArrowUp,CheckSquare2,Info,Plus,Save,ShieldAlert
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { Button } from '../../../design-system/Button'
 import { ManualDateField } from '../../../design-system/ManualDateField'
+import { ChoiceField } from '../../../design-system/ChoiceField'
+import { SearchableSelect } from '../../../design-system/SearchableSelect'
+import { YesNoField } from '../../../design-system/YesNoField'
 import { CONSEQUENCE,JCI_CHAPTERS,LIKELIHOOD,SECTIONS,joinMeasures,levelInfo,parseMeasures,riskWarnings,scored,warningLabel } from './riskModel'
 import { AxisSelect,L,LevelChip,recordActions,txt } from './riskUi'
 import { IndicatorPicker } from './RiskIndicatorsUi'
@@ -40,11 +43,10 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
   <div className="risk-editor" key={version}>
    <Step n={1} title={L(en,'Περιγραφή','Description')}>
     <div className="risk-editor-grid risk-editor-grid-description">
-     <label className="risk-field risk-span-2"><span>{L(en,'Ενότητα','Section')}</span><select value={draft.section} disabled={locked} onChange={e=>set('section',e.target.value)}>{SECTIONS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</select></label>
-     <div className="risk-span-2">{field('process',L(en,'Διεργασία','Process'),{list:'risk-process-options'})}</div>
-     <datalist id="risk-process-options">{processes.map(p=><option key={p} value={p}/>)}</datalist>
+     <fieldset className="risk-fieldset risk-span-2" disabled={locked}><ChoiceField label={L(en,'Ενότητα','Section')} value={draft.section} onChange={v=>set('section',v)} options={SECTIONS.map(x=>({value:x.id,label:en?x.en:x.el}))}/></fieldset>
+     <SearchableSelect className="risk-field risk-span-2" label={L(en,'Διεργασία','Process')} value={draft.process??''} disabled={locked} allowCustom onChange={v=>set('process',v)} options={processes.map(p=>({value:p,label:p}))}/>
      <div className="risk-span-2">{field('scope',L(en,'Τμήμα / αφορά','Department / applies to'))}</div>
-     <label className="risk-field risk-span-4"><span>JCI</span><select value={draft.jci||''} disabled={locked} onChange={e=>set('jci',e.target.value)}><option value="">—</option>{JCI_CHAPTERS.map(x=><option key={x.id} value={x.id}>{x.id} · {en?x.en:x.el}</option>)}</select></label>
+     <SearchableSelect className="risk-field risk-span-4" label="JCI" value={draft.jci||''} disabled={locked} placeholder="—" clearLabel={locked?'':L(en,'Καθαρισμός','Clear')} emptyLabel={L(en,'Κανένα κεφάλαιο','No chapter')} onChange={v=>set('jci',v||'')} options={JCI_CHAPTERS.map(x=>({value:x.id,label:`${x.id} · ${en?x.en:x.el}`}))}/>
      <div className="risk-span-2">{field('jciReference',L(en,'Πρότυπο / ME','Standard / ME'),{placeholder:L(en,'π.χ. IPSG.5 ME 2','e.g. IPSG.5 ME 2')})}</div>
     </div>
     {area('hazard',L(en,'Πιθανό ρίσκο / κίνδυνος','Potential risk / hazard'),2)}
@@ -70,7 +72,7 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
      {field('indicator',L(en,'Κωδικός συμβάντος / άλλος δείκτης','Incident code / other indicator'))}
      <ManualDateField label={L(en,'Προθεσμία','Due date')} value={draft.dueDate||''} onChange={v=>set('dueDate',v||null)} optional disabled={locked}/>
     </div>
-    <label className="risk-fmea"><input type="checkbox" checked={Boolean(draft.prioritized)} disabled={locked} onChange={e=>set('prioritized',e.target.checked)}/><span><strong>{L(en,'Προληπτική ανάλυση (FMEA)','Proactive analysis (FMEA)')}</strong><small>{L(en,'Ο κίνδυνος επιλέγεται για την FMEA της περιόδου.','The risk is selected for the period’s FMEA.')}</small></span></label>
+    <fieldset className="risk-fieldset risk-fmea" disabled={locked}><YesNoField label={L(en,'Προληπτική ανάλυση (FMEA)','Proactive analysis (FMEA)')} hint={L(en,'Ο κίνδυνος επιλέγεται για την FMEA της περιόδου.','The risk is selected for the period’s FMEA.')} value={Boolean(draft.prioritized)} onChange={v=>set('prioritized',v)}/></fieldset>
     {area('notes',L(en,'Σημειώσεις','Notes'),2)}
     {notes.length>0&&<ul className="risk-warnings">{notes.map(w=><li key={w.id} className={`risk-warning-${w.tone}`}><Info size={14}/>{warningLabel(w.id,en)}</li>)}</ul>}
    </Step>

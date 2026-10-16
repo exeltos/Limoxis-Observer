@@ -1,6 +1,9 @@
 import { useMemo,useState } from 'react'
 import { ArrowDownRight,ArrowRight,ArrowUpRight,Gauge,Plus,X } from 'lucide-react'
 import { ObserverDialog,DialogActions } from '../../../design-system/ObserverDialog'
+import { ChoiceChips } from '../../../design-system/ChoiceChips'
+import { RegistryTable } from '../../../design-system/RegistryTable'
+import { SearchableSelect } from '../../../design-system/SearchableSelect'
 import { suggestIndicators } from './riskIndicators'
 import { L,usePaged } from './riskUi'
 
@@ -48,10 +51,7 @@ export function IndicatorPicker({risk,values,en,disabled,onChange}){
   </div>
   {!disabled&&<div className="risk-indicator-add">
    {suggested.length>0&&<span className="risk-indicator-suggested">{L(en,'Προτείνονται:','Suggested:')}{suggested.map(key=><button type="button" key={key} onClick={()=>set([...keys,key])}><Plus size={12}/>{title(values.get(key),en)}</button>)}</span>}
-   {groups.length>0&&<select value="" aria-label={L(en,'Προσθήκη δείκτη','Add an indicator')} onChange={e=>{if(e.target.value)set([...keys,e.target.value])}}>
-    <option value="">{L(en,'Προσθήκη δείκτη…','Add an indicator…')}</option>
-    {groups.map(([category,items])=><optgroup key={category} label={CATEGORIES[category]?.[en?1:0]||category}>{items.map(item=><option key={item.key} value={item.key}>{title(item,en)}</option>)}</optgroup>)}
-   </select>}
+   {groups.length>0&&<SearchableSelect className="risk-indicator-select" label={L(en,'Προσθήκη δείκτη','Add an indicator')} hideLabel value="" placeholder={L(en,'Προσθήκη δείκτη…','Add an indicator…')} emptyLabel={L(en,'Κανένας δείκτης','No indicator')} onChange={v=>{if(v)set([...keys,v])}} options={groups.flatMap(([category,items])=>items.map(item=>({value:item.key,label:title(item,en),description:CATEGORIES[category]?.[en?1:0]||category})))}/>}
   </div>}
  </div>
 }
@@ -63,9 +63,9 @@ export function RiskIndicatorTable({risks,values,en,onOpen}){
  const {items:pageRows,pager}=usePaged(rows,{en})
  return <section className="risk-panel">
   <header><h3>{L(en,'Δείκτες παρακολούθησης','Monitoring indicators')}</h3><span className="risk-hint">{L(en,`${unlinked} από ${risks.length} κινδύνους χωρίς δείκτη`,`${unlinked} of ${risks.length} risks without an indicator`)}</span></header>
-  {rows.length?<div className="scroll-table"><table className="data-table risk-indicator-table"><thead><tr><th>{L(en,'Δείκτης','Indicator')}</th><th>{L(en,'Τιμή (90 ημ.)','Value (90 d)')}</th><th>{L(en,'Στόχος','Target')}</th><th>{L(en,'Τάση','Trend')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th></tr></thead><tbody>
-   {pageRows.map(({key,item,risks:list})=><tr key={key}><td><IndicatorChip indicatorKey={key} values={values} en={en}/></td><td><strong>{number(item?.value)}</strong>{item?.unit&&<small> {en?item.unitEn||item.unit:item.unit}</small>}</td><td>{number(item?.target)}</td><td>{item?<span className={`risk-trend-label trend-${item.trend}`}>{item.trend==='better'?L(en,'Βελτίωση','Improving'):item.trend==='worse'?L(en,'Επιδείνωση','Worsening'):L(en,'Σταθερός','Steady')}</span>:'—'}</td><td className="risk-indicator-risks">{list.map(r=><button type="button" key={r.id||r.lineageKey} onClick={()=>onOpen(r)}>{r.lineageKey}</button>)}</td></tr>)}
-  </tbody></table>{rows.length>15&&pager}</div>:<p className="risk-hint">{L(en,'Δεν έχουν συνδεθεί δείκτες. Από το «…» → «Αντιστοίχιση δεικτών» ή μέσα σε κάθε κίνδυνο.','No indicators linked yet. Use “…” → “Link indicators”, or open a risk.')}</p>}
+  {rows.length?<><RegistryTable className="risk-indicator-table" rows={pageRows} rowKey={({key})=>key}
+   columns={[{key:'indicator',label:L(en,'Δείκτης','Indicator')},{key:'value',label:L(en,'Τιμή (90 ημ.)','Value (90 d)')},{key:'target',label:L(en,'Στόχος','Target')},{key:'trend',label:L(en,'Τάση','Trend')},{key:'risks',label:L(en,'Κίνδυνοι','Risks')}]}
+   renderRow={({key,item,risks:list})=><><td><IndicatorChip indicatorKey={key} values={values} en={en}/></td><td><strong>{number(item?.value)}</strong>{item?.unit&&<small> {en?item.unitEn||item.unit:item.unit}</small>}</td><td>{number(item?.target)}</td><td>{item?<span className={`risk-trend-label trend-${item.trend}`}>{item.trend==='better'?L(en,'Βελτίωση','Improving'):item.trend==='worse'?L(en,'Επιδείνωση','Worsening'):L(en,'Σταθερός','Steady')}</span>:'—'}</td><td className="risk-indicator-risks">{list.map(r=><button type="button" key={r.id||r.lineageKey} onClick={()=>onOpen(r)}>{r.lineageKey}</button>)}</td></>}/>{rows.length>15&&pager}</>:<p className="risk-hint">{L(en,'Δεν έχουν συνδεθεί δείκτες. Από το «…» → «Αντιστοίχιση δεικτών» ή μέσα σε κάθε κίνδυνο.','No indicators linked yet. Use “…” → “Link indicators”, or open a risk.')}</p>}
  </section>
 }
 
@@ -79,8 +79,8 @@ export function LinkIndicatorsDialog({risks,values,en,saving,onClose,onSave}){
  return <ObserverDialog width="wide" title={L(en,'Αντιστοίχιση δεικτών','Link indicators')} onClose={onClose}
   footer={<DialogActions onCancel={onClose} showCancel disabled={!count||saving} onSave={()=>onSave(proposals.map(p=>({risk:p.risk,keys:p.keys.filter(k=>picked.has(`${p.risk.lineageKey}|${k}`))})).filter(p=>p.keys.length))} saveLabel={L(en,`Σύνδεση ${count} δεικτών`,`Link ${count} indicators`)}/>}>
   <p className="risk-hint">{L(en,'Προτάσεις από τη διατύπωση κάθε κινδύνου και το πεδίο «δείκτης» του αρχείου. Ξετσεκάρετε ό,τι δεν ταιριάζει· οι υπάρχοντες δείκτες μένουν.','Proposals from each risk’s wording and the file’s “indicator” field. Untick what does not fit; indicators already linked stay.')}</p>
-  {proposals.length?<div className="scroll-table risk-link-table"><table className="data-table"><thead><tr><th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Κίνδυνος','Risk')}</th><th>{L(en,'Προτεινόμενοι δείκτες','Proposed indicators')}</th></tr></thead><tbody>
-   {proposals.map(({risk,keys})=><tr key={risk.lineageKey}><td><strong>{risk.lineageKey}</strong></td><td><span className="risk-link-hazard">{risk.hazard}</span>{risk.indicator&&<small>{L(en,'Στο αρχείο','In the file')}: {risk.indicator}</small>}</td><td className="risk-link-options">{keys.map(key=>{const id=`${risk.lineageKey}|${key}`;return <label key={key} className="observer-check risk-check"><input type="checkbox" checked={picked.has(id)} onChange={()=>toggle(id)}/><span>{title(values.get(key),en)}</span></label>})}</td></tr>)}
-  </tbody></table></div>:<p className="risk-hint">{L(en,'Δεν βρέθηκαν προτάσεις.','No proposals found.')}</p>}
+  {proposals.length?<RegistryTable wrapperClassName="scroll-table risk-link-table" rows={proposals} rowKey={({risk})=>risk.lineageKey}
+   columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'risk',label:L(en,'Κίνδυνος','Risk')},{key:'proposed',label:L(en,'Προτεινόμενοι δείκτες','Proposed indicators')}]}
+   renderRow={({risk,keys})=><><td><strong>{risk.lineageKey}</strong></td><td><span className="risk-link-hazard">{risk.hazard}</span>{risk.indicator&&<small>{L(en,'Στο αρχείο','In the file')}: {risk.indicator}</small>}</td><td className="risk-link-options"><ChoiceChips options={keys.map(key=>({value:key,label:title(values.get(key),en)}))} selected={keys.filter(key=>picked.has(`${risk.lineageKey}|${key}`))} onToggle={key=>toggle(`${risk.lineageKey}|${key}`)}/></td></>}/>:<p className="risk-hint">{L(en,'Δεν βρέθηκαν προτάσεις.','No proposals found.')}</p>}
  </ObserverDialog>
 }

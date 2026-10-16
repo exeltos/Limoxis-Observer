@@ -17,9 +17,10 @@ describe('route authorization alignment',()=>{
   expect(app).not.toContain('gate(CAPABILITIES.VIEW_STAFF,<EmployeeRecordPage selfMode/>)')
  })
  it('prevents incident reporters from creating non-incident quality records by direct URL',()=>{
-  expect(qualityCreate).toContain("const canCreate=canManage||(recordType==='incidents'&&canReportIncident)")
-  expect(qualityCreate).toContain('if(!canCreate)return <Navigate to="/quality" replace/>')
-  expect(qualityCreate).toContain('if(!canCreate)return')
+  // An incident is the staff report form; every other record needs Quality management.
+  expect(qualityCreate).toContain("if(recordType==='incidents')return <IncidentReportPage/>")
+  expect(qualityCreate).toContain('if(!canManage)return <Navigate to="/quality" replace/>')
+  expect(qualityCreate).toContain('if(!canManage||!valid||saving)return')
  })
  it('keeps committee approval deep links usable without granting general committee access',()=>{
   expect(app).toContain('<CommitteeRecordPageRoute/>')

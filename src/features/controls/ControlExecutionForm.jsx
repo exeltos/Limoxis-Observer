@@ -27,7 +27,7 @@ import { expiryState,expiryWindow,impliedFinding,isExpiryControl,prefilledExpiry
 import { answerLabel,canonicalAnswer,checklistScore,checklistSummary,choiceOptions,isFindingAnswer } from './controlVocabulary'
 import { ControlExpiryEntry } from './ControlExpiryEntry'
 import { ControlDeviationActions,ControlEvidenceLinks,ControlEvidencePicker } from './ControlEvidence'
-import { ownerText,personLabel } from './controlPeople'
+import { ownerText,personLabel } from '../employees/peopleOptions'
 import './controlExecution.css'
 
 // One way to record a control, as a page (a new entry) or a dialog (correcting
@@ -176,7 +176,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
  async function submit(){if(!valid||saving)return;setSaving(true);try{await onSave?.(payload())}finally{setSaving(false)}}
  async function report(){
   const draft=await persistDraft();if(!draft)return
-  navigate('/quality/incidents/new',{state:{controlSource:{controlId:record.id,controlTitle:record.title,department,scheduledAt:assignment?.nextDueAt,value,notes,hasFinding,rows},limoxisFrom:{path:`/controls/${record.id}?department=${encodeURIComponent(department)}&execute=1`,label:record.title}}})
+  navigate('/quality/report',{state:{controlSource:{controlId:record.id,controlTitle:record.title,department,scheduledAt:assignment?.nextDueAt,value,notes,hasFinding,rows},limoxisFrom:{path:`/controls/${record.id}?department=${encodeURIComponent(department)}&execute=1`,label:record.title}}})
  }
  const responsible=personLabel(record.assignees?.[department],language)||ownerText(record,language)
  return <div className="control-execution-page-editor">

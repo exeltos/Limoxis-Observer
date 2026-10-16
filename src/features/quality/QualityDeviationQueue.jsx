@@ -5,6 +5,9 @@ import { IconButton } from '../../design-system/IconButton'
 import { MetricCard } from '../../design-system/MetricCard'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { formatDateTime,formatDay } from '../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { loadBundleAssessments } from '../prevention/bundleCloudService'
@@ -65,7 +68,7 @@ export function deviationsExport(items,{en,t}){
  }
 }
 
-export function QualityDeviationQueue({view,loading,language,locale,t,onCreateCapa}){
+export function QualityDeviationQueue({view,loading,language,t,onCreateCapa}){
  const en=language==='en'
  const {goTo}=useContextualNavigation('/quality')
  const [page,setPage]=useState(1)
@@ -73,31 +76,28 @@ export function QualityDeviationQueue({view,loading,language,locale,t,onCreateCa
  const items=view.filtered
  useEffect(()=>setPage(1),[view.query,view.kind,view.quick,view.days,pageSize])
  const totalPages=Math.max(1,Math.ceil(items.length/pageSize)),safePage=Math.min(page,totalPages),pagedItems=items.slice((safePage-1)*pageSize,safePage*pageSize)
- const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:String(v).length>10?'short':undefined,hour12:false}).format(new Date(v)):'—'
+ // A control entry has a time; a bundle assessment only its day.
+ const fmt=v=>String(v||'').length>10?formatDateTime(v,language):formatDay(v,language)
  return <>
   <FilterBar query={view.query} onQueryChange={view.setQuery} placeholder={en?'Search deviations...':'Αναζήτηση αποκλίσεων...'} activeAdvancedCount={(view.kind!=='all'?1:0)+(view.days!==90?1:0)} onClear={()=>{view.setQuery('');view.setKind('all');view.setDays(90)}}>
    <FilterSelect label={en?'Period':'Περίοδος'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map(value=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>
    <FilterSelect label={en?'Source':'Πηγή'} value={view.kind} onChange={view.setKind}><option value="all">{en?'All':'Όλες'}</option><option value="control">{en?'Controls':'Έλεγχοι'}</option><option value="bundle">Bundles</option></FilterSelect>
   </FilterBar>
-  <div className="scroll-table">
-   <table className="data-table sticky-table quality-deviation-table">
-    <thead><tr><th>{en?'Date':'Ημερομηνία'}</th><th>{en?'Source':'Πηγή'}</th><th>{en?'Deviation':'Απόκλιση'}</th><th>{t('department')}</th><th>{en?'Result':'Αποτέλεσμα'}</th><th>{t('priority')}</th><th className="quality-deviation-actions-col" aria-label={en?'Actions':'Ενέργειες'}/></tr></thead>
-    <tbody>{pagedItems.map(item=>{const Icon=item.kind==='control'?ClipboardCheck:ShieldCheck;return <tr key={item.key}>
+  <RegistryTable className="quality-deviation-table" rows={pagedItems} rowKey={item=>item.key}
+   columns={[{key:'date',label:en?'Date':'Ημερομηνία'},{key:'source',label:en?'Source':'Πηγή'},{key:'deviation',label:en?'Deviation':'Απόκλιση'},{key:'department',label:t('department')},{key:'result',label:en?'Result':'Αποτέλεσμα'},{key:'priority',label:t('priority')},{key:'actions',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'quality-deviation-actions-col'}]}
+   emptyTitle={loading?(en?'Loading deviations…':'Φόρτωση αποκλίσεων…'):(en?'No deviations without a CAPA':'Δεν υπάρχουν αποκλίσεις χωρίς διορθωτική ενέργεια')} emptyText={loading?'':(en?'Control entries with a finding and failed bundle criteria appear here until a CAPA is created from them.':'Εδώ εμφανίζονται καταχωρήσεις ελέγχων με εύρημα και bundles με κριτήρια που δεν τηρήθηκαν, μέχρι να δημιουργηθεί διορθωτική ενέργεια από αυτά.')}
+   renderRow={item=>{const Icon=item.kind==='control'?ClipboardCheck:ShieldCheck;return <>
      <td className="nowrap-cell">{fmt(item.at)}</td>
      <td><span className="quality-deviation-kind"><Icon size={14} aria-hidden="true"/>{item.kind==='control'?(en?'Control':'Έλεγχος'):'Bundle'}</span></td>
      <td><strong>{en?item.titleEn:item.title}</strong>{item.notes&&<small>{item.notes}</small>}</td>
      <td>{item.department||'—'}</td>
      <td>{item.kind==='bundle'?(en?`${item.detail} criteria not met`:`${item.detail} κριτήρια δεν τηρήθηκαν`):(item.detail||(en?'Non-compliant':'Μη συμμόρφωση'))}</td>
-     <td><span className={`status-badge ${item.priority==='high'?'danger':''}`}>{t(item.priority)}</span></td>
+     <td><StatusBadge tone={item.priority==='high'?'danger':'neutral'}>{t(item.priority)}</StatusBadge></td>
      <td className="quality-deviation-actions-col"><div className="row-actions">
       <IconButton size="sm" label={en?'Open source record':'Άνοιγμα εγγραφής προέλευσης'} onClick={()=>goTo(item.path,{returnTo:'/quality'})}><ExternalLink size={15}/></IconButton>
       <ActionButton tone="primary" label={en?'Create CAPA':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateCapa(capaPrefill(item,language))}><Plus size={15}/><span>{en?'Create CAPA':'Δημιουργία διορθωτικής ενέργειας'}</span></ActionButton>
      </div></td>
-    </tr>})}</tbody>
-   </table>
-   {loading&&<div className="registry-empty-state"><strong>{en?'Loading deviations…':'Φόρτωση αποκλίσεων…'}</strong></div>}
-   {!loading&&!items.length&&<div className="registry-empty-state"><strong>{en?'No deviations without a CAPA':'Δεν υπάρχουν αποκλίσεις χωρίς διορθωτική ενέργεια'}</strong><span>{en?'Control entries with a finding and failed bundle criteria appear here until a CAPA is created from them.':'Εδώ εμφανίζονται καταχωρήσεις ελέγχων με εύρημα και bundles με κριτήρια που δεν τηρήθηκαν, μέχρι να δημιουργηθεί διορθωτική ενέργεια από αυτά.'}</span></div>}
-  </div>
+    </>}}/>
   <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={items.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
  </>
 }

@@ -3,12 +3,14 @@ import { ChevronRight,ClipboardX,Hourglass,Lightbulb,Plus,TrendingUp } from 'luc
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
 import { ActionButton } from '../../../design-system/ActionButton'
 import { MetricCard } from '../../../design-system/MetricCard'
+import { RegistryTable } from '../../../design-system/RegistryTable'
+import { StatusBadge } from '../../../design-system/StatusBadge'
 import { EFFECTIVENESS,OPPORTUNITY_RATINGS,normalizeOpportunity,opportunityCode,parseMeasures } from './riskModel'
 import { L,defaultFrame,returnedClass,usePaged } from './riskUi'
 
 const pick=(list,id,en)=>{const x=list.find(item=>item.id===id);return x?(en?x.en:x.el):''}
-export function RatingBadge({id,en}){return id?<span className={`status-badge ${id==='high'?'active':''}`}>{pick(OPPORTUNITY_RATINGS,id,en)}</span>:<span className="risk-axis-none">—</span>}
-export function EffectivenessBadge({id,en}){const x=EFFECTIVENESS.find(item=>item.id===id);return x?<span className={`status-badge ${x.tone}`}>{en?x.en:x.el}</span>:<span className="risk-axis-none">{L(en,'Δεν αξιολογήθηκε','Not assessed')}</span>}
+export function RatingBadge({id,en}){return id?<StatusBadge tone={id==='high'?'success':'neutral'}>{pick(OPPORTUNITY_RATINGS,id,en)}</StatusBadge>:<span className="risk-axis-none">—</span>}
+export function EffectivenessBadge({id,en}){const x=EFFECTIVENESS.find(item=>item.id===id);return x?<StatusBadge tone={x.tone||'neutral'}>{en?x.en:x.el}</StatusBadge>:<span className="risk-axis-none">{L(en,'Δεν αξιολογήθηκε','Not assessed')}</span>}
 
 // What each KPI card keeps.
 const QUICK={high:x=>x.o.ratingId==='high',noPlan:x=>!x.plan.length,unassessed:x=>!x.o.effectivenessStatus||x.o.effectivenessStatus==='pending'}
@@ -52,19 +54,18 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,actions=null
     {actions}
    </div>
   </div>
-  <div className="scroll-table risk-table-wrap"><table className="data-table risk-table risk-opportunity-table"><thead><tr>
-   <th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Ευκαιρία','Opportunity')}</th><th>{L(en,'Απόδοση','Yield')}</th><th>{L(en,'Σχέδιο δράσης','Action plan')}</th><th>{L(en,'Αποτελεσματικότητα','Effectiveness')}</th><th aria-hidden="true"/>
-  </tr></thead><tbody>
-   {pageRows.map(({item,o,code,plan})=><tr key={item.id} className={`risk-row-clickable${returnedClass(returned,item.id)}`} onClick={()=>onOpen(item)}>
+  <RegistryTable wrapperClassName="scroll-table risk-table-wrap" className="risk-table risk-opportunity-table" rows={pageRows} rowKey={({item})=>item.id}
+   columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'opportunity',label:L(en,'Ευκαιρία','Opportunity')},{key:'rating',label:L(en,'Απόδοση','Yield')},{key:'plan',label:L(en,'Σχέδιο δράσης','Action plan')},{key:'effect',label:L(en,'Αποτελεσματικότητα','Effectiveness')},{key:'open',label:''}]}
+   rowProps={({item})=>({className:`risk-row-clickable${returnedClass(returned,item.id)}`,onClick:()=>onOpen(item)})}
+   emptyTitle={all.length?L(en,'Καμία ευκαιρία με αυτά τα φίλτρα.','No opportunity matches these filters.'):L(en,'Δεν έχουν καταγραφεί ευκαιρίες','No opportunities recorded')} emptyText={all.length?'':L(en,'Καταγράψτε τις ευκαιρίες που μπορεί να αξιοποιήσει ο οργανισμός, με το σχέδιο δράσης και την αποτελεσματικότητά του.','Record the opportunities the organization can seize, with their action plan and its effectiveness.')}
+   renderRow={({item,o,code,plan})=><>
     <td><strong>{code}</strong></td>
     <td className="risk-hazard"><span>{o.activity||'—'}</span>{o.opportunity&&<small className="risk-opportunity-text">{o.opportunity}</small>}</td>
     <td><RatingBadge id={o.ratingId} en={en}/></td>
     <td className="risk-opportunity-plan">{plan.length?<ol>{plan.map((step,i)=><li key={i}>{step}</li>)}</ol>:<span className="risk-axis-none">{L(en,'Χωρίς σχέδιο δράσης','No action plan')}</span>}{(o.owner||o.timeframe)&&<small>{[o.owner,o.timeframe].filter(Boolean).join(' · ')}</small>}</td>
     <td className="risk-opportunity-effect"><EffectivenessBadge id={o.effectivenessStatus} en={en}/>{o.effectiveness&&<small>{o.effectiveness}</small>}</td>
     <td className="risk-open-cell"><button type="button" className="risk-open-button" aria-label={L(en,'Άνοιγμα ευκαιρίας','Open the opportunity')} onClick={e=>{e.stopPropagation();onOpen(item)}}><ChevronRight size={15}/></button></td>
-   </tr>)}
-   {all.length>0&&!rows.length&&<tr><td colSpan={6} className="risk-empty-note">{L(en,'Καμία ευκαιρία με αυτά τα φίλτρα.','No opportunity matches these filters.')}</td></tr>}
-  </tbody></table>{!all.length&&<div className="registry-empty-state"><strong>{L(en,'Δεν έχουν καταγραφεί ευκαιρίες','No opportunities recorded')}</strong><span>{L(en,'Καταγράψτε τις ευκαιρίες που μπορεί να αξιοποιήσει ο οργανισμός, με το σχέδιο δράσης και την αποτελεσματικότητά του.','Record the opportunities the organization can seize, with their action plan and its effectiveness.')}</span></div>}</div>
+   </>}/>
   {rows.length>0&&pager}
  </>,{registry:true,name:'risk-opportunities'})
 }

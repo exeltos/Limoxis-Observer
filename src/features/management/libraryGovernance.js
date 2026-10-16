@@ -24,6 +24,7 @@ export const SYSTEM_BASELINE_LIBRARY_KEYS=Object.freeze([
   'documentCategories',
   'deviceTypes',
   'surveillanceDefinitions',
+  'incidentCategories',
 ])
 
 export function isHospitalManagedLibraryKey(key){

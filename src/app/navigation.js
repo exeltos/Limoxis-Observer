@@ -1,4 +1,4 @@
-import { Activity, Award, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ClipboardCheck, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
+import { Activity, AlertTriangle, Award, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ClipboardCheck, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 
 const preventionAccessCapabilities=[
@@ -29,6 +29,8 @@ export const navigation=[
   {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION,anyCapabilities:preventionAccessCapabilities},
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
   {to:'/quality',key:'quality',icon:Award,capability:CAPABILITIES.VIEW_QUALITY},
+  // Staff who may report but not open the Quality Center get the report form itself.
+  {to:'/quality/report',key:'reportIncident',icon:AlertTriangle,capability:CAPABILITIES.REPORT_INCIDENT,unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
   {to:'/analysis',key:'platformAnalyticsNav',icon:BarChart3,capability:CAPABILITIES.VIEW_ANALYSIS},
   {to:'/indicators',key:'indicators',icon:LineChart,capability:CAPABILITIES.VIEW_INDICATORS},
@@ -78,17 +80,17 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_MANAGER]:policy(
-    ['myDepartment','employees','controls','surveillance','patients','calendar'],
+    ['myDepartment','employees','controls','surveillance','patients','reportIncident','calendar'],
     ['indicators','training','documents'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.LINK_NURSE]:policy(
-    ['myDepartment','surveillance','patients','prevention','controls','calendar'],
+    ['myDepartment','surveillance','patients','prevention','controls','reportIncident','calendar'],
     ['employees','indicators','training','documents','laboratory','quality','committees'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_USER]:policy(
-    ['myDepartment','controls','calendar'],
+    ['myDepartment','controls','reportIncident','calendar'],
     ['training','documents','laboratory','quality','committees'],
     ['management','pharmacy','occupationalHealth'],
   ),
@@ -142,6 +144,8 @@ function applyRoleMenuPolicy(role,items){
     visible.filter(item=>item.key!=='management'&&!currentPolicy.more.has(item.key)).map(item=>({...item,group:undefined})),
     currentPolicy.primaryOrder,
   )
+  // The calendar closes the main list, also after items a policy does not name.
+  primary.sort((a,b)=>(a.key==='calendar')-(b.key==='calendar'))
   const more=orderByKeys(
     visible.filter(item=>currentPolicy.more.has(item.key)).map(item=>({...item,group:'more'})),
     currentPolicy.moreOrder,
@@ -155,6 +159,7 @@ export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignmen
     item.excludeRoles&&item.excludeRoles.includes(role)?false:
     item.roles&&!item.roles.includes(role)?false:
     isProfileDisabled(item.capability)?false:
+    item.unlessCapability&&can(role,item.unlessCapability,addOns,customCapabilities)?false:
     item.key==='controls'&&hasAssignments?true:
     item.anyCapabilities?canAny(role,item.anyCapabilities,addOns,customCapabilities):
     can(role,item.capability,addOns,customCapabilities)

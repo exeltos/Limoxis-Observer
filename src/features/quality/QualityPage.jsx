@@ -11,6 +11,11 @@ import { can,CAPABILITIES,ROLES } from '../../core/permissions/roles'
 import { readRegistryViewState,useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { MetricCard } from '../../design-system/MetricCard'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { formatDay } from '../../core/i18n/formatDay'
+import { AUDIT_TYPES,qualityStatusTone,vocabularyLabel } from './qualityVocabulary'
+import { recordOwners } from './qualityRecordRules'
 import { readSessionValue,writeSessionValue } from '../../core/storage/browserStorage'
 import { QUALITY_RETURN_KEY as RETURN_KEY } from './qualityReturnSection'
 import { loadQualityRecords } from './qualityService'
@@ -90,7 +95,7 @@ export function QualityPage(){
   function createCapaFrom(prefill){writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.capas',state:{qualitySource:prefill}})}
   function changeSection(id){registry.saveViewState({query,status,department});setSection(id);setQuick(null);const next=readRegistryViewState(`quality.${id}`);setQuery(next?.query||'');setStatus(next?.status||'all');setDepartment(next?.department||'all')}
 
-  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA and audits in one controlled, traceable flow.':'Συμβάντα, ευρήματα, διορθωτικές ενέργειες και επιθεωρήσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{isRisks?null:isQueue?<DownloadMenu disabled={!deviationView.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviationView.filtered,{en:language==='en',t}))}/>:<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
+  return <Page fill className="quality-registry-page" title={t('quality')} subtitle={language==='en'?'Incidents, findings, CAPA, audits, risks and deviations in one controlled, traceable flow.':'Συμβάντα, ευρήματα, διορθωτικές ενέργειες, επιθεωρήσεις, κίνδυνοι και αποκλίσεις σε ενιαία ελεγχόμενη ροή με ιχνηλασιμότητα.'} actions={<div className="row-actions">{isRisks?null:isQueue?<DownloadMenu disabled={!deviationView.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviationView.filtered,{en:language==='en',t}))}/>:<DownloadMenu disabled={!filtered.length} onExcel={()=>exportRegistry(qualityExport(section,filtered,{en:language==='en',t}))}/>}{canCreate&&<ActionButton label={createLabel} tone="primary" onClick={createRecord}><Plus size={18}/><span>{createLabel}</span></ActionButton>}</div>}>
     {isQueue&&<DeviationSummary view={deviationView} language={language}/>}
     {isRisks&&<RiskSummaryStrip items={riskList.items} en={language==='en'} locale={locale}/>}
     {!isQueue&&!isRisks&&<div className="workspace-summary quality-summary"><div className="module-summary-strip">
@@ -107,7 +112,14 @@ export function QualityPage(){
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
-        <table className="data-table sticky-table quality-table"><thead><tr><th>{t('code')}</th><th>{t('title')}</th><th>{section==='audits'?t('auditType'):t('department')}</th><th>{section==='audits'?(language==='en'?'Planned date':'Προγραμματισμένη ημερομηνία'):t(section==='capas'?'dueDate':'date')}</th><th>{section==='audits'?t('leadAuditor'):t('owner')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(row=><tr key={row.id} {...registry.rowProps(row.id)} onClick={()=>{writeSessionValue(RETURN_KEY,section);registry.openRecord(navigate,`/quality/${section}/${row.id}`,row.id,filtered.map(x=>x.id))}}><td><strong>{row.displayId||row.id}</strong>{row.severity&&<small>{t(row.severity)}</small>}</td><td>{language==='el'?row.title:row.titleEn}{section==='capas'&&row.subActions?.length>0&&<small>{(({done,total})=>language==='en'?`${done}/${total} steps done`:`${done}/${total} βήματα ολοκληρώθηκαν`)(subActionProgress(row.subActions))}</small>}</td><td>{section==='audits'?t(row.auditType||'internal'):(language==='el'?row.department:row.departmentEn)||'—'}</td><td>{fmtDate(row.dueDate||row.date||row.plannedDate,locale)}</td><td>{row.owner||row.leadAuditor||'—'}</td><td><span className={`status-badge ${['closed','completed'].includes(row.status)?'active':''}`}>{t(row.status)}</span></td></tr>)}</tbody></table>
+        <RegistryTable bare className="quality-table" rows={pagedRows} columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'dep',label:section==='audits'?t('auditType'):t('department')},{key:'date',label:section==='audits'?(language==='en'?'Planned date':'Προγραμματισμένη ημερομηνία'):t(section==='capas'?'dueDate':'date')},{key:'owner',label:section==='audits'?t('leadAuditor'):t('owner')},{key:'status',label:t('status')}]} rowProps={row=>({...registry.rowProps(row.id),onClick:()=>{writeSessionValue(RETURN_KEY,section);registry.openRecord(navigate,`/quality/${section}/${row.id}`,row.id,filtered.map(x=>x.id))}})} renderRow={row=><>
+          <td><strong>{row.displayId||row.id}</strong>{row.severity&&<small>{t(row.severity)}</small>}</td>
+          <td>{language==='el'?row.title:row.titleEn}{section==='capas'&&row.subActions?.length>0&&<small>{(({done,total})=>language==='en'?`${done}/${total} steps done`:`${done}/${total} βήματα ολοκληρώθηκαν`)(subActionProgress(row.subActions))}</small>}</td>
+          <td>{section==='audits'?vocabularyLabel(AUDIT_TYPES,row.auditType||'internal',language):(language==='el'?row.department:row.departmentEn)||'—'}</td>
+          <td>{formatDay(row.dueDate||row.date||row.plannedDate,language)||'—'}</td>
+          <td>{section==='audits'?row.leadAuditor||'—':recordOwners(row).join(', ')||'—'}</td>
+          <td><StatusBadge tone={qualityStatusTone(row.status)}>{t(row.status)}</StatusBadge></td>
+        </>}/>
         {!loading&&!filtered.length&&<div className="registry-empty-state"><strong>{emptyTitle}</strong><span>{language==='en'?'No records have been created for this organization yet.':'Δεν έχουν δημιουργηθεί ακόμη εγγραφές για τον συγκεκριμένο οργανισμό.'}</span></div>}
       </div>
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
@@ -115,5 +127,4 @@ export function QualityPage(){
     </div>
   </Page>
 }
-function fmtDate(value,locale){return value?new Intl.DateTimeFormat(locale).format(new Date(`${value}T12:00:00`)):'—'}
 function SummaryMetric({icon:Icon,label,value,onClick,active}){return <MetricCard icon={Icon} value={value} label={label} onClick={onClick} active={active}/>}

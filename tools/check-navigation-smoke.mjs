@@ -25,7 +25,7 @@ const checks=[
   ['employee contextual back',compact(employeeRecord).includes(compact('const {goBack,restored}=useContextualNavigation'))],
   ['surveillance row navigation',surveillanceList.includes('registry.openRecord')],
   ['controls row navigation',controls.includes('registry.openRecord')],
-  ['quality linked contextual navigation',read('src/features/quality/QualityRecordPage.jsx').includes('goTo(linkPath')],
+  ['quality linked contextual navigation',read('src/features/quality/QualityRecordPage.jsx').includes('goTo(sourceRecordPath(')],
 ]
 const failed=checks.filter(([,ok])=>!ok)
 for(const [name,ok] of checks) console.log(`${ok?'✓':'✗'} ${name}`)

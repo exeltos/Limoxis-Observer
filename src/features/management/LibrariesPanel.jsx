@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Biohazard,BriefcaseMedical,Building2,Tablets,ClipboardCheck,Pencil,FileText,FlaskConical,LockKeyhole,PackageOpen,Plus,ShieldCheck,Syringe,Trash2,UsersRound,BriefcaseBusiness,Ruler,ListChecks,Pill,Wrench,MapPin,Hand } from 'lucide-react'
+import { AlertTriangle,Biohazard,BriefcaseMedical,Building2,Tablets,ClipboardCheck,Pencil,FileText,FlaskConical,LockKeyhole,PackageOpen,Plus,ShieldCheck,Syringe,Trash2,UsersRound,BriefcaseBusiness,Ruler,ListChecks,Pill,Wrench,MapPin,Hand } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -26,6 +26,7 @@ const categories=[
  ['controlTypes','libraryControlTypes',ClipboardCheck,'slate'],['controlAnswers','libraryControlAnswers',ListChecks,'green'],['measurementUnits','libraryMeasurementUnits',Ruler,'sky'],
  ['medicinesSupplies','libraryMedicinesSupplies',Pill,'purple'],['itemForms','libraryItemForms',PackageOpen,'indigo'],['equipment','libraryEquipment',Wrench,'orange'],
  ['environmentalLocations','libraryEnvironmentalLocations',MapPin,'teal'],['surfacePoints','librarySurfacePoints',Hand,'cyan'],['documentCategories','libraryDocumentCategories',FileText,'violet'],
+ ['incidentCategories','libraryIncidentCategories',AlertTriangle,'rose'],
 ]
 const cloneSeed=()=>structuredClone(demoLibrarySeed)
 function normalizeGovernance(seed){const next={...seed};for(const key of Object.keys(next)){if(!isHospitalManagedLibraryKey(key)||!Array.isArray(next[key]))continue;next[key]=next[key].map(row=>[row[0],row[1],{...(row[2]||{}),system:false,locked:false,source:'Hospital',version:'local'}])}return next}

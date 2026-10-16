@@ -3,13 +3,14 @@ import { Pencil,Plus,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { auditEvent } from '../../core/audit/actor'
+import { formatDateTime } from '../../core/i18n/formatDay'
 import { saveQualityRecord } from './qualityService'
 import { ISHIKAWA_CATEGORIES,WHY_COUNT,analysisProgress,cleanAnalysis,normalizeAnalysis } from './rootCauseAnalysis'
 import './rootCause.css'
 
 // CAPA tab "Root causes": the problem, 5 Whys, and an Ishikawa diagram whose
 // head is the problem and whose bones are the healthcare cause categories.
-export function QualityCapaRootCause({record,setRecord,canManage,finalized,organizationId,actor,notify,language,locale}){
+export function QualityCapaRootCause({record,setRecord,canManage,finalized,organizationId,actor,notify,language}){
  const en=language==='en'
  const saved=useMemo(()=>normalizeAnalysis(record.rootCauseAnalysis),[record.rootCauseAnalysis])
  const [draft,setDraft]=useState(saved)
@@ -46,7 +47,6 @@ export function QualityCapaRootCause({record,setRecord,canManage,finalized,organ
   }finally{setSaving(false)}
  }
 
- const fmt=v=>v?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(v)):''
  const bone=row=>{
   const [key]=row
   const causes=view.causes[key]
@@ -90,7 +90,7 @@ export function QualityCapaRootCause({record,setRecord,canManage,finalized,organ
    <div className="rca-bones bottom">{ISHIKAWA_CATEGORIES.slice(3).map(bone)}</div>
   </div>
 
-  {saved.updatedAt&&!editing&&<p className="rca-meta">{en?'Last updated':'Τελευταία ενημέρωση'} {fmt(saved.updatedAt)}{saved.updatedBy?` · ${saved.updatedBy}`:''}</p>}
+  {saved.updatedAt&&!editing&&<p className="rca-meta">{en?'Last updated':'Τελευταία ενημέρωση'} {formatDateTime(saved.updatedAt,language)}{saved.updatedBy?` · ${saved.updatedBy}`:''}</p>}
   {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft(saved);setEditing(false)}} disabled={saving}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton loading={saving} disabled={saving} onClick={()=>void save()}>{en?'Save':'Αποθήκευση'}</SaveButton></div>}
  </section>
 }
