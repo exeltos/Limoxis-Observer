@@ -3,6 +3,7 @@ import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { AlertTriangle } from 'lucide-react'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
 import { methodLabel } from './laboratorySampleFormat'
+import { LaboratoryStatus } from './LaboratoryStatus'
 
 // Read-only views of the laboratory sample record: the result card and the history.
 
@@ -63,11 +64,10 @@ export function ResultCard({
               id: 'status',
               label: tx('status'),
               value: (
-                <span
-                  className={`status-badge ${(result.resultStatus || 'draft') === 'draft' ? 'temporary' : 'active'}`}
-                >
-                  {tx(result.resultStatus || 'draft')}
-                </span>
+                <LaboratoryStatus
+                  text={tx(result.resultStatus || 'draft')}
+                  tone={(result.resultStatus || 'draft') === 'draft' ? 'info' : 'success'}
+                />
               ),
             },
             isEnvironmental && {

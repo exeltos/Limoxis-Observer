@@ -13,11 +13,11 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
-import { sampleSourceCatalog, sampleSourceLabel } from './laboratoryReferenceData'
+import { formatDateTime } from '../../core/i18n/formatDay'
+import { ENVIRONMENTAL_SAMPLE_TYPES, EMPLOYEE_SCREENING_TYPES, LAB_PRIORITIES, patientSampleSources, patientSampleTypeOptions, referenceOptions, sampleSourceCatalog, sampleSourceLabel } from './laboratoryReferenceData'
 import { createPatient, loadPatients } from '../patients/patientsService'
 import { useEmployeesData } from '../employees/useEmployeesData'
-import { demoLibrarySeed } from '../management/managementData'
-import { loadDepartments } from '../management/departmentsService'
+import { libraryOptions, useLibraries } from '../management/useLibraries'
 import { MetricCard } from '../../design-system/MetricCard'
 import { SubjectChoiceStep } from '../../design-system/SubjectChoiceStep'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -25,21 +25,16 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
+import { Field } from '../../design-system/Field'
 import { getLaboratoryKpis, sampleTypeLabel } from './laboratoryCloudService'
 import { computeTurnaroundHours, formatTurnaround } from './model/laboratoryModel'
 import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
+import { LaboratoryStatus } from './LaboratoryStatus'
+import { ChoiceField } from './LaboratorySampleDialogs'
 import './LaboratoryWorkspace.css'
 
-const sourceOptions = {
-  bloodCulture: [['peripheral', 'peripheralBlood'], ['centralLine', 'centralLine'], ['arterialLine', 'arterialLine'], ['other', 'other']],
-  urineCulture: [['midstream', 'midstreamUrine'], ['urinaryCatheter', 'urinaryCatheter'], ['nephrostomy', 'nephrostomy'], ['suprapubicCatheter', 'suprapubicCatheter'], ['other', 'other']],
-  respiratorySample: [['sputum', 'sputum'], ['trachealAspirate', 'trachealAspirate'], ['bal', 'bal'], ['other', 'other']],
-  woundCulture: [['woundSwab', 'woundSwab'], ['deepTissue', 'deepTissue'], ['drainage', 'drainage'], ['other', 'other']],
-}
-const environmentalTypes = [['surface', 'Επιφάνεια', 'Surface'], ['equipment', 'Εξοπλισμός', 'Equipment'], ['water', 'Νερό', 'Water'], ['air', 'Αέρας', 'Air'], ['other', 'Άλλο', 'Other']]
-
 export function LaboratoryWorkspace() {
-  const { t, language, locale } = useLanguage()
+  const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { canAccessRecord, tenant, isDemo } = useTenant()
   const { rows: repositoryRows, createSample: createRepositorySample } = useLaboratoryRegistry()
@@ -53,23 +48,17 @@ export function LaboratoryWorkspace() {
   const [department, setDepartment] = useState(saved.department)
   const [newOpen, setNewOpen] = useState(false)
   const [patients, setPatients] = useState([])
-  const [departmentOptions, setDepartmentOptions] = useState([])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
 
   useEffect(() => {
     let alive = true
-    Promise.all([
-      loadPatients(tenant?.id, { isDemo }),
-      isDemo ? Promise.resolve(demoLibrarySeed.departments.map(([name, nameEn]) => ({ id: name, name, nameEn }))) : loadDepartments(tenant?.id),
-    ]).then(([patientRows, departmentRows]) => {
-      if (alive) { setPatients(patientRows); setDepartmentOptions(departmentRows) }
-    }).catch(() => {})
+    loadPatients(tenant?.id, { isDemo }).then(patientRows => { if (alive) setPatients(patientRows) }).catch(() => {})
     return () => { alive = false }
   }, [tenant?.id, isDemo])
 
   const k = getLaboratoryKpis(repositoryRows)
-  const fmt = value => value ? new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—'
+  const fmt = value => formatDateTime(value, language)
   const departments = [...new Set(repositoryRows.map(sample => language === 'el' ? sample.department : sample.departmentEn).filter(Boolean))]
   const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
   const surveillanceLabel = sample => {
@@ -147,22 +136,22 @@ export function LaboratoryWorkspace() {
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample.type,t)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}</td>
         <td>{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
-        <td>{sample.result ? <ResultBadge text={t(sample.result)} result={sample.result}/> : <span>—</span>}{sample.critical && <small className="lab-critical-note">{language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}</small>}</td>
-        <td><Status text={t(sample.status)} kind={sample.status}/></td>
+        <td>{sample.result ? <LaboratoryStatus text={t(sample.result)} kind={sample.result}/> : <span>—</span>}{sample.critical && <small className="lab-critical-note">{language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}</small>}</td>
+        <td><LaboratoryStatus text={t(sample.status)} kind={sample.status}/></td>
       </>}/>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
     </section>
-    {newOpen && <NewSampleCard t={t} language={language} patients={patients} employees={employees} departments={departmentOptions} onClose={() => setNewOpen(false)} onSave={createSample}/>} 
+    {newOpen && <NewSampleCard t={t} language={language} patients={patients} employees={employees} recentSamples={repositoryRows} onClose={() => setNewOpen(false)} onSave={createSample}/>}
   </Page>
 }
 
 // A card with a result filter narrows the registry to it; clicking it again clears it.
 function LabKpi({ icon: Icon, label, value, danger, filter, current, onFilter }) { const active = Boolean(filter) && current === filter; return <MetricCard icon={Icon} value={value} label={label} tone={danger ? 'danger' : 'neutral'} active={active} onClick={filter && onFilter ? () => onFilter(active ? 'all' : filter) : undefined}/> }
-function ResultBadge({ text, result }) { return <span className={`status-badge ${result === 'positive' ? 'danger' : result === 'negative' ? 'active' : ''}`}>{text}</span> }
-export function Status({ text, kind }) { const active=['completed','negative'].includes(kind); const warning=['processing','requested','received','positive'].includes(kind); return <span className={`status-badge ${active ? 'active' : warning ? 'temporary' : ''} ${kind === 'critical' || kind === 'rejected' ? 'danger' : ''}`}>{text}</span> }
 
-function NewSampleCard({ t, language, patients, employees, departments, onClose, onSave }) {
+function NewSampleCard({ t, language, patients, employees, recentSamples, onClose, onSave }) {
   const en = language === 'en'
+  const { libraries, departments } = useLibraries()
+  const [typeChoice, setTypeChoice] = useState('')
   const [subjectType, setSubjectType] = useState('')
   const [patientMode, setPatientMode] = useState('')
   const emptyDraft = type => ({ subjectType: type, subjectName: '', subjectNameEn: '', subjectCode: '', newPatient: false, departmentId: '', department: '', departmentEn: '', type: '', source: '', sourceEn: '', sourceCode: '', environmentType: '', anatomicalSite: '', collectedAt: '', priority: '' })
@@ -172,10 +161,12 @@ function NewSampleCard({ t, language, patients, employees, departments, onClose,
   function setDepartment(id) { const item = departments.find(value => value.id === id); setDraft(current => ({ ...current, departmentId: id, department: item?.name || '', departmentEn: item?.nameEn || item?.name || '' })) }
   function choosePatient(id) { const patient = patients.find(item => item.id === id); if (patient) setDraft(current => ({ ...current, subjectName: patient.name, subjectNameEn: patient.nameEn, subjectCode: patient.id, departmentId: patient.departmentId || '', department: patient.department || '', departmentEn: patient.departmentEn || '', newPatient: false })) }
   function chooseEmployee(id) { const employee = employees.find(item => item.id === id); if (employee) setDraft(current => ({ ...current, subjectName: `${employee.lastName} ${employee.firstName}`, subjectNameEn: `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`, subjectCode: employee.id, departmentId: employee.departmentId || '', department: employee.department || '', departmentEn: employee.departmentEn || '' })) }
-  function setType(type) { setDraft(current => ({ ...current, type, source: '', sourceEn: '', sourceCode: '', anatomicalSite: '' })) }
-  function setSource(code) { const source = sampleSourceCatalog[code] || { el: code, en: code }; setDraft(current => ({ ...current, sourceCode: code, source: source.el, sourceEn: source.en })) }
-  function setEnvType(code) { const item = environmentalTypes.find(value => value[0] === code); setDraft(current => ({ ...current, environmentType: code, type: code ? 'environmental' : '', source: item?.[1] || '', sourceEn: item?.[2] || '' })) }
-  function setEmployeeSource(code) { const labels = { nasalSwab: ['Ρινικό επίχρισμα', 'Nasal swab'], handSwab: ['Επίχρισμα χεριών', 'Hand swab'], throatSwab: ['Φαρυγγικό επίχρισμα', 'Throat swab'] }; const item = labels[code]; setDraft(current => ({ ...current, type: code ? 'surveillance' : '', sourceCode: code, source: item?.[0] || '', sourceEn: item?.[1] || '' })) }
+  const sourceFields = code => { const source = code ? sampleSourceCatalog[code] || { el: code, en: code } : null; return { sourceCode: code || '', source: source?.el || '', sourceEn: source?.en || '' } }
+  // A library sample type maps onto the stored type (and may already say the source).
+  function setType(value) { const option = typeOptions.find(item => item.value === value); setTypeChoice(option ? value : ''); setDraft(current => ({ ...current, type: option?.type || '', ...sourceFields(option?.source), anatomicalSite: option?.type === current.type ? current.anatomicalSite : '' })) }
+  function setSource(code) { setDraft(current => ({ ...current, ...sourceFields(code) })) }
+  function setEnvType(code) { const item = ENVIRONMENTAL_SAMPLE_TYPES.find(value => value.id === code); setDraft(current => ({ ...current, environmentType: code || '', type: code ? 'environmental' : '', source: item?.el || '', sourceEn: item?.en || '' })) }
+  function setEmployeeSource(code) { const item = EMPLOYEE_SCREENING_TYPES.find(value => value.id === code); setDraft(current => ({ ...current, type: code ? 'surveillance' : '', sourceCode: code || '', source: item?.el || '', sourceEn: item?.en || '' })) }
   const subjectReady = subjectType === 'patient' ? Boolean(patientMode) : Boolean(subjectType)
   const valid = Boolean(subjectType && draft.departmentId && draft.collectedAt && draft.priority) && (subjectType === 'patient' ? Boolean(patientMode && draft.subjectCode && draft.subjectName && draft.type && draft.sourceCode) : subjectType === 'employee' ? Boolean(draft.subjectCode && draft.subjectName && draft.sourceCode) : Boolean(draft.environmentType && draft.subjectName))
   const subjectChoices = [
@@ -190,7 +181,13 @@ function NewSampleCard({ t, language, patients, employees, departments, onClose,
   const setCollected = (date, time) => set('collectedAt', date ? `${date}T${time || '00:00'}` : '')
   const patientOptions = patients.filter(item => item.status === 'active').map(patient => ({ value: patient.id, label: language === 'el' ? patient.name : patient.nameEn || patient.name, description: [patient.id, language === 'el' ? patient.department : patient.departmentEn || patient.department].filter(Boolean).join(' · ') }))
   const employeeOptions = employees.filter(item => item.employmentStatus === 'active').map(employee => ({ value: employee.id, label: language === 'el' ? `${employee.lastName} ${employee.firstName}` : `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`, description: [employee.id, language === 'el' ? employee.department : employee.departmentEn || employee.department].filter(Boolean).join(' · ') }))
-  function choosePatientMode(mode) { setPatientMode(mode); setDraft(current => ({ ...emptyDraft('patient'), newPatient: mode === 'new', collectedAt: current.collectedAt, priority: current.priority })) }
+  function choosePatientMode(mode) { setPatientMode(mode); setTypeChoice(''); setDraft(current => ({ ...emptyDraft('patient'), newPatient: mode === 'new', collectedAt: current.collectedAt, priority: current.priority })) }
+  // Lists from the central libraries; the departments of recent samples first.
+  const typeOptions = useMemo(() => patientSampleTypeOptions(libraries.sampleTypes, language, t), [libraries.sampleTypes, language, t])
+  const departmentChoices = departments.map(item => ({ value: item.id, label: en ? item.nameEn || item.name : item.name, description: item.nameEn && item.nameEn !== item.name ? (en ? item.name : item.nameEn) : undefined, keywords: `${item.name} ${item.nameEn || ''}` }))
+  const recentDepartments = [...new Set([...recentSamples].sort((a, b) => String(b.collectedAt || '').localeCompare(String(a.collectedAt || ''))).map(sample => sample.department).filter(Boolean))].map(name => departments.find(item => item.name === name)?.id).filter(Boolean)
+  const pointOptions = useMemo(() => libraryOptions([...(libraries.environmentalLocations || []), ...(libraries.surfacePoints || [])], language), [libraries.environmentalLocations, libraries.surfacePoints, language])
+  const selectText = { emptyLabel: en ? 'No match' : 'Καμία αντιστοιχία', clearLabel: t('surveillanceList.clearSelection') }
 
   return <ObserverDialog width="standard" fixedHeight className="lab-create-flow" eyebrow={en ? 'NEW LABORATORY SAMPLE' : 'ΝΕΟ ΕΡΓΑΣΤΗΡΙΑΚΟ ΔΕΙΓΜΑ'} title={en ? 'Sample registration' : 'Καταχώρηση δείγματος'} onClose={onClose} footer={<SaveButton disabled={!valid} onClick={() => onSave(draft)}>{t('save')}</SaveButton>}>
     <div className="lab-flow-body">
@@ -200,13 +197,13 @@ function NewSampleCard({ t, language, patients, employees, departments, onClose,
 
       {subjectReady && <section className="lab-flow-section lab-flow-reveal"><div className="lab-flow-heading"><span>{subjectType === 'patient' ? '3' : '2'}</span><div><strong>{en ? 'Sample details' : 'Στοιχεία δείγματος'}</strong><small>{en ? 'Complete the required information.' : 'Συμπληρώστε τα απαραίτητα στοιχεία.'}</small></div></div><div className="entry-grid lab-flow-grid">
         {subjectType === 'patient' && patientMode === 'existing' && <div className="lab-flow-full"><SearchableSelect label={t('patient')} value={draft.subjectCode} onChange={choosePatient} options={patientOptions} placeholder={t('surveillanceList.patientSearchPlaceholder')} emptyLabel={t('surveillanceList.noPatientsFound')} clearLabel={t('surveillanceList.clearSelection')}/></div>}
-        {subjectType === 'patient' && patientMode === 'new' && <><label><span className="lo-field-label">{t('patient')}</span><input value={draft.subjectName} onChange={event => { set('subjectName', event.target.value); set('subjectNameEn', event.target.value) }}/></label><label><span className="lo-field-label">{t('patientId')}</span><input value={draft.subjectCode} onChange={event => set('subjectCode', event.target.value)}/></label></>}
+        {subjectType === 'patient' && patientMode === 'new' && <><Field label={t('patient')}><input value={draft.subjectName} onChange={event => { set('subjectName', event.target.value); set('subjectNameEn', event.target.value) }}/></Field><Field label={t('patientId')}><input value={draft.subjectCode} onChange={event => set('subjectCode', event.target.value)}/></Field></>}
         {subjectType === 'employee' && <div className="lab-flow-full"><SearchableSelect label={en ? 'Employee' : 'Εργαζόμενος'} value={draft.subjectCode} onChange={chooseEmployee} options={employeeOptions} placeholder={en ? 'Search by name or code…' : 'Αναζήτηση με όνομα ή κωδικό…'} emptyLabel={en ? 'No employees found' : 'Δεν βρέθηκαν εργαζόμενοι'} clearLabel={t('surveillanceList.clearSelection')}/></div>}
-        {subjectType === 'environment' && <><label><span className="lo-field-label">{en ? 'Environmental sample type' : 'Τύπος περιβαλλοντικού δείγματος'}</span><select value={draft.environmentType} onChange={event => setEnvType(event.target.value)}><option value="">{en ? 'Select type' : 'Επιλέξτε τύπο'}</option>{environmentalTypes.map(([id, el, enLabel]) => <option key={id} value={id}>{en ? enLabel : el}</option>)}</select></label><label><span className="lo-field-label">{draft.environmentType === 'water' ? (en ? 'Sampling point' : 'Σημείο υδροληψίας') : (en ? 'Sampling point / location' : 'Σημείο / χώρος δειγματοληψίας')}</span><input value={draft.subjectName} onChange={event => { set('subjectName', event.target.value); set('subjectNameEn', event.target.value) }}/></label></>}
-        <label><span className="lo-field-label">{t('department')}</span><select value={draft.departmentId} onChange={event => setDepartment(event.target.value)}><option value="">{en ? 'Select department' : 'Επιλέξτε τμήμα'}</option>{departments.map(item => <option key={item.id} value={item.id}>{language === 'el' ? item.name : (item.nameEn || item.name)}</option>)}</select></label>
-        {subjectType === 'patient' && <><label><span className="lo-field-label">{t('sampleType')}</span><select value={draft.type} onChange={event => setType(event.target.value)}><option value="">{en ? 'Select sample type' : 'Επιλέξτε τύπο δείγματος'}</option><option value="bloodCulture">{t('bloodCulture')}</option><option value="urineCulture">{t('urineCulture')}</option><option value="respiratorySample">{t('respiratorySample')}</option><option value="woundCulture">{t('woundCulture')}</option></select></label><label><span className="lo-field-label">{t('collectionSource')}</span><select value={draft.sourceCode} disabled={!draft.type} onChange={event => setSource(event.target.value)}><option value="">{en ? 'Select source' : 'Επιλέξτε πηγή'}</option>{(sourceOptions[draft.type] || []).map(([code]) => <option key={code} value={code}>{t(sampleSourceCatalog[code]?.label || code)}</option>)}</select></label><label><span className="lo-field-label">{t('anatomicalSite')}</span><input value={draft.anatomicalSite} onChange={event => set('anatomicalSite', event.target.value)}/></label></>}
-        {subjectType === 'employee' && <label><span className="lo-field-label">{en ? 'Screening type' : 'Τύπος ελέγχου'}</span><select value={draft.sourceCode} onChange={event => setEmployeeSource(event.target.value)}><option value="">{en ? 'Select screening type' : 'Επιλέξτε τύπο ελέγχου'}</option><option value="nasalSwab">{en ? 'Nasal swab' : 'Ρινικό επίχρισμα'}</option><option value="handSwab">{en ? 'Hand swab' : 'Επίχρισμα χεριών'}</option><option value="throatSwab">{en ? 'Throat swab' : 'Φαρυγγικό επίχρισμα'}</option></select></label>}
-        <label><span className="lo-field-label">{t('priority')}</span><select value={draft.priority} onChange={event => set('priority', event.target.value)}><option value="">{en ? 'Select priority' : 'Επιλέξτε προτεραιότητα'}</option><option value="routine">{t('routine')}</option><option value="urgent">{t('urgent')}</option><option value="critical">{t('critical')}</option></select></label>
+        {subjectType === 'environment' && <><SearchableSelect label={en ? 'Environmental sample type' : 'Τύπος περιβαλλοντικού δείγματος'} value={draft.environmentType} onChange={setEnvType} options={referenceOptions(ENVIRONMENTAL_SAMPLE_TYPES, language)} placeholder={en ? 'Select type' : 'Επιλέξτε τύπο'} {...selectText}/><SearchableSelect label={draft.environmentType === 'water' ? (en ? 'Sampling point' : 'Σημείο υδροληψίας') : (en ? 'Sampling point / location' : 'Σημείο / χώρος δειγματοληψίας')} value={draft.subjectName} onChange={value => setDraft(current => ({ ...current, subjectName: value || '', subjectNameEn: value || '' }))} options={pointOptions} allowCustom customLabel={text => en ? `Use «${text}»` : `Χρήση «${text}»`} placeholder={en ? 'Search or type a point' : 'Αναζήτηση ή νέο σημείο'} {...selectText}/></>}
+        <SearchableSelect label={t('department')} value={draft.departmentId} onChange={setDepartment} options={departmentChoices} recentValues={recentDepartments} recentLabel={en ? 'Recent samples' : 'Πρόσφατα δείγματα'} placeholder={en ? 'Select department' : 'Επιλέξτε τμήμα'} {...selectText}/>
+        {subjectType === 'patient' && <><SearchableSelect label={t('sampleType')} value={draft.type ? typeChoice : ''} onChange={setType} options={typeOptions} placeholder={en ? 'Select sample type' : 'Επιλέξτε τύπο δείγματος'} {...selectText}/><SearchableSelect label={t('collectionSource')} value={draft.sourceCode} disabled={!draft.type} onChange={setSource} options={patientSampleSources(draft.type).map(code => ({ value: code, label: t(sampleSourceCatalog[code]?.label || code) }))} placeholder={en ? 'Select source' : 'Επιλέξτε πηγή'} {...selectText}/><Field label={t('anatomicalSite')}><input value={draft.anatomicalSite} onChange={event => set('anatomicalSite', event.target.value)}/></Field></>}
+        {subjectType === 'employee' && <SearchableSelect label={en ? 'Screening type' : 'Τύπος ελέγχου'} value={draft.sourceCode} onChange={setEmployeeSource} options={referenceOptions(EMPLOYEE_SCREENING_TYPES, language)} placeholder={en ? 'Select screening type' : 'Επιλέξτε τύπο ελέγχου'} {...selectText}/>}
+        <ChoiceField className="lab-flow-priority" label={t('priority')} value={draft.priority} onChange={value => set('priority', value)} options={LAB_PRIORITIES.map(id => ({ value: id, label: t(id) }))}/>
         <div className="lab-collected-pair"><ManualDateField label={t('clinicalRecords.collectionDate')} value={collectedDate} onChange={value => setCollected(value, collectedTime)}/><TimeField label={t('copy.clinicalRecordCopy.collectionTime')} value={collectedTime} onChange={value => setCollected(collectedDate, value)} disabled={!collectedDate}/></div>
       </div></section>}
     </div>

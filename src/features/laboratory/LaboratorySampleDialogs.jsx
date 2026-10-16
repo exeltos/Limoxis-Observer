@@ -1,16 +1,34 @@
 import { useState } from 'react'
 import { CheckCircle2, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import { Field } from '../../design-system/Field'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { YesNoField } from '../../design-system/YesNoField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { findLibraryItem, libraryOptions } from '../management/useLibraries'
 import { organismsOf, resultDraftChecks, resultToSave } from './laboratorySampleProgress'
-import { METHODS, rows } from './laboratorySampleFormat'
+import { AMR_CLASSES, COMMUNICATION_CHANNELS, METHODS, RESULT_VALUES } from './laboratorySampleFormat'
+import { referenceOptions } from './laboratoryReferenceData'
 
 // Dialogs of the laboratory sample record: result, AST, AMR classification and
 // critical-result communication.
+
+// A titled choice of two to four exclusive answers (result, S/I/R, AMR class,
+// priority): the shared mode switch with the field title, as tall as the
+// other controls of the row (the yes/no field's geometry).
+export function ChoiceField({ label, value, onChange, options, className = '' }) {
+  return (
+    <div className={`field yes-no-field lab-choice-field ${className}`.trim()}>
+      <span className="lo-field-label">{label}</span>
+      <ModeSwitch ariaLabel={label} value={value} onChange={onChange} options={options} />
+    </div>
+  )
+}
 
 function makeDraft(result) {
   return {
@@ -37,16 +55,16 @@ export function ResultDialog({
   onClose,
   onSave,
 }) {
-  const [draft, setDraft] = useState(() => makeDraft(result)),
-    [choice, setChoice] = useState('')
-  const options = rows(libraries, 'microorganisms', language)
+  const [draft, setDraft] = useState(() => makeDraft(result))
+  const library = libraryOptions(libraries?.microorganisms, language)
+  // Organisms recorded earlier that the library no longer lists stay choosable.
+  const options = [
+    ...library,
+    ...draft.organisms
+      .filter(name => !library.some(x => x.value === name))
+      .map(name => ({ value: name, label: name })),
+  ]
   const set = (key, value) => setDraft(d => ({ ...d, [key]: value }))
-  const add = () => {
-    if (choice && !draft.organisms.includes(choice)) {
-      set('organisms', [...draft.organisms, choice])
-      setChoice('')
-    }
-  }
   const remove = name =>
     set(
       'organisms',
@@ -81,45 +99,38 @@ export function ResultDialog({
       }
     >
       <div className="lab-dialog-form">
-        <label>
-          <span>{t('result')} *</span>
-          <select value={draft.result} onChange={e => set('result', e.target.value)}>
-            <option value="">{t('select')}</option>
-            <option value="negative">{t('negative')}</option>
-            <option value="positive">{t('positive')}</option>
-            <option value="inconclusive">{t('inconclusive')}</option>
-            <option value="contaminated">{t('contaminated')}</option>
-          </select>
-        </label>
-        <label>
-          <span>{tx('method')}</span>
-          <select value={draft.method} onChange={e => set('method', e.target.value)}>
-            <option value="">{t('select')}</option>
-            {METHODS.map(([value, el, en]) => (
-              <option key={value} value={value}>
-                {language === 'el' ? el : en}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ChoiceField
+          className="lab-dialog-span"
+          label={`${t('result')} *`}
+          value={draft.result}
+          onChange={value => set('result', value)}
+          options={RESULT_VALUES.map(value => ({ value, label: t(value) }))}
+        />
+        <SearchableSelect
+          label={tx('method')}
+          value={draft.method}
+          onChange={value => set('method', value)}
+          options={referenceOptions(METHODS, language)}
+          placeholder={t('select')}
+          clearLabel={t('surveillanceList.clearSelection')}
+        />
+        <YesNoField
+          label={tx('critical')}
+          value={draft.critical}
+          onChange={value => set('critical', value)}
+        />
         {draft.result === 'positive' && (
           <div className="lab-dialog-span">
-            <span className="lab-dialog-label">{tx('organisms')} *</span>
-            <div className="lab-organism-picker">
-              <select value={choice} onChange={e => setChoice(e.target.value)}>
-                <option value="">{tx('chooseOrganism')}</option>
-                {options
-                  .filter(x => !draft.organisms.includes(x.value))
-                  .map(x => (
-                    <option key={x.value} value={x.value}>
-                      {x.label}
-                    </option>
-                  ))}
-              </select>
-              <Button type="button" variant="secondary" disabled={!choice} onClick={add}>
-                + {t('clinicalRecords.add')}
-              </Button>
-            </div>
+            <MultiSelect
+              label={`${tx('organisms')} *`}
+              options={options}
+              selected={draft.organisms}
+              onChange={next => set('organisms', next)}
+              placeholder={tx('chooseOrganism')}
+              searchPlaceholder={language === 'el' ? 'Αναζήτηση μικροοργανισμού…' : 'Search organism…'}
+              emptyLabel={language === 'el' ? 'Καμία αντιστοιχία' : 'No match'}
+              countLabel={n => `${n} ${tx('organisms').toLocaleLowerCase(language)}`}
+            />
             {draft.organisms.length > 0 && (
               <div className="lab-organism-chips">
                 {draft.organisms.map(name => (
@@ -136,21 +147,14 @@ export function ResultDialog({
           </div>
         )}
         {isEnvironmental && draft.result === 'positive' && (
-          <label>
-            <span>{tx('cfu')}</span>
+          <Field label={tx('cfu')}>
             <input
               inputMode="decimal"
               value={draft.cfuCount}
               onChange={e => set('cfuCount', e.target.value)}
             />
-          </label>
+          </Field>
         )}
-        <YesNoField
-          label={tx('critical')}
-          value={draft.critical}
-          onChange={value => set('critical', value)}
-          className="lab-dialog-span"
-        />
       </div>
     </ObserverDialog>
   )
@@ -165,7 +169,7 @@ export function AstDialog({
   onClose,
   onSave,
 }) {
-  const options = rows(libraries, 'antibiotics', language),
+  const antibiotics = libraries?.antibiotics || [],
     [draft, setDraft] = useState({
       organism: initialOrganism || organisms[0] || '',
       drug: '',
@@ -179,9 +183,10 @@ export function AstDialog({
     })
   const set = (key, value) => setDraft(d => ({ ...d, [key]: value }))
   const choose = value => {
-    const item = options.find(x => x.value === value)
-    setDraft(d => ({ ...d, drug: value, code: item?.code || '' }))
+    const item = findLibraryItem(antibiotics, value)
+    setDraft(d => ({ ...d, drug: value, code: (value && item?.code) || '' }))
   }
+  const noMatch = language === 'el' ? 'Καμία αντιστοιχία' : 'No match'
   return (
     <ObserverDialog
       width="standard"
@@ -197,62 +202,46 @@ export function AstDialog({
       }
     >
       <div className="lab-dialog-form">
-        <label>
-          <span>{tx('organism')} *</span>
-          <select value={draft.organism} onChange={e => set('organism', e.target.value)}>
-            {organisms.map(x => (
-              <option key={x}>{x}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>{tx('antibiotic')} *</span>
-          <select value={draft.drug} onChange={e => choose(e.target.value)}>
-            <option value="">{tx('chooseAntibiotic')}</option>
-            {options.map(x => (
-              <option key={x.value} value={x.value}>
-                {x.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="lab-dialog-span">
-          <span className="lab-dialog-label">S/I/R *</span>
-          <div className="lab-sir-toggle" role="radiogroup">
-            {['S', 'I', 'R'].map(value => (
-              <button
-                type="button"
-                key={value}
-                role="radio"
-                aria-checked={draft.sir === value}
-                className={`sir-${value.toLowerCase()} ${draft.sir === value ? 'is-selected' : ''}`}
-                onClick={() => set('sir', value)}
-              >
-                {value}
-              </button>
-            ))}
-          </div>
-        </div>
-        <label>
-          <span>MIC</span>
+        <SearchableSelect
+          label={`${tx('organism')} *`}
+          value={draft.organism}
+          onChange={value => value && set('organism', value)}
+          options={organisms.map(x => ({ value: x, label: x }))}
+          emptyLabel={noMatch}
+        />
+        <SearchableSelect
+          label={`${tx('antibiotic')} *`}
+          value={draft.drug}
+          onChange={choose}
+          options={libraryOptions(antibiotics, language)}
+          placeholder={tx('chooseAntibiotic')}
+          emptyLabel={noMatch}
+          clearLabel={language === 'el' ? 'Καθαρισμός' : 'Clear'}
+        />
+        <ChoiceField
+          className="lab-dialog-span lab-sir-choice"
+          label="S/I/R *"
+          value={draft.sir}
+          onChange={value => set('sir', value)}
+          options={['S', 'I', 'R'].map(value => ({ value, label: value }))}
+        />
+        <Field label="MIC">
           <input value={draft.mic} onChange={e => set('mic', e.target.value)} />
-        </label>
-        <label>
-          <span>{tx('method')}</span>
+        </Field>
+        <Field label={tx('method')}>
           <input value={draft.method} onChange={e => set('method', e.target.value)} />
-        </label>
-        <label>
-          <span>{tx('standard')}</span>
+        </Field>
+        <Field label={tx('standard')}>
           <input value={draft.standard} onChange={e => set('standard', e.target.value)} />
-        </label>
-        <label>
-          <span>{tx('version')} *</span>
+        </Field>
+        <Field label={`${tx('version')} *`}>
           <input value={draft.version} onChange={e => set('version', e.target.value)} />
-        </label>
-        <label className="lab-dialog-span">
-          <span>{tx('notes')}</span>
-          <input value={draft.notes} onChange={e => set('notes', e.target.value)} />
-        </label>
+        </Field>
+        <div className="lab-dialog-span">
+          <Field label={tx('notes')}>
+            <input value={draft.notes} onChange={e => set('notes', e.target.value)} />
+          </Field>
+        </div>
       </div>
     </ObserverDialog>
   )
@@ -281,46 +270,37 @@ export function AmrDialog({ tx, language, organism, initialClassification = '', 
       }
     >
       <div className="lab-dialog-form">
-        <label className="lab-dialog-span">
-          <span>{tx('classification')} *</span>
-          <select
-            value={draft.classification}
-            onChange={e => set('classification', e.target.value)}
-          >
-            <option value="">{language === 'el' ? 'Επιλέξτε' : 'Select'}</option>
-            <option value="MDR">
-              MDR – {language === 'el' ? 'Πολυανθεκτικό' : 'Multidrug-resistant'}
-            </option>
-            <option value="XDR">
-              XDR – {language === 'el' ? 'Εκτεταμένα ανθεκτικό' : 'Extensively drug-resistant'}
-            </option>
-            <option value="PDR">
-              PDR – {language === 'el' ? 'Παν-ανθεκτικό' : 'Pandrug-resistant'}
-            </option>
-          </select>
-        </label>
-        <label>
-          <span>{tx('definitionSource')} *</span>
+        <ChoiceField
+          className="lab-dialog-span"
+          label={`${tx('classification')} *`}
+          value={draft.classification}
+          onChange={value => set('classification', value)}
+          options={AMR_CLASSES.map(item => ({
+            value: item.id,
+            label: language === 'el' ? item.el : item.en,
+          }))}
+        />
+        <Field label={`${tx('definitionSource')} *`}>
           <input
             value={draft.definitionSource}
             onChange={e => set('definitionSource', e.target.value)}
           />
-        </label>
-        <label>
-          <span>{tx('definitionVersion')} *</span>
+        </Field>
+        <Field label={`${tx('definitionVersion')} *`}>
           <input
             value={draft.definitionVersion}
             onChange={e => set('definitionVersion', e.target.value)}
           />
-        </label>
-        <label className="lab-dialog-span">
-          <span>{tx('rationale')}</span>
-          <textarea
-            rows={3}
-            value={draft.rationale}
-            onChange={e => set('rationale', e.target.value)}
-          />
-        </label>
+        </Field>
+        <div className="lab-dialog-span">
+          <Field label={tx('rationale')}>
+            <textarea
+              rows={3}
+              value={draft.rationale}
+              onChange={e => set('rationale', e.target.value)}
+            />
+          </Field>
+        </div>
       </div>
     </ObserverDialog>
   )
@@ -360,34 +340,25 @@ export function CommunicationDialog({ tx, onClose, onSave }) {
       }
     >
       <div className="lab-dialog-form">
-        <label>
-          <span>{tx('recipient')} *</span>
+        <Field label={`${tx('recipient')} *`}>
           <input value={draft.recipientName} onChange={e => set('recipientName', e.target.value)} />
-        </label>
-        <label>
-          <span>{tx('role')} *</span>
+        </Field>
+        <Field label={`${tx('role')} *`}>
           <input value={draft.recipientRole} onChange={e => set('recipientRole', e.target.value)} />
-        </label>
-        <label>
-          <span>{tx('department')}</span>
+        </Field>
+        <Field label={tx('department')}>
           <input
             value={draft.recipientDepartment}
             onChange={e => set('recipientDepartment', e.target.value)}
           />
-        </label>
-        <label>
-          <span>{tx('channel')}</span>
-          <select value={draft.method} onChange={e => set('method', e.target.value)}>
-            <option value="phone">{language === 'el' ? 'Τηλεφωνικά' : 'Phone'}</option>
-            <option value="in_person">
-              {language === 'el' ? 'Προφορικά / διά ζώσης' : 'In person'}
-            </option>
-            <option value="secure_message">
-              {language === 'el' ? 'Ασφαλές ηλεκτρονικό μήνυμα' : 'Secure message'}
-            </option>
-            <option value="other">{language === 'el' ? 'Άλλος' : 'Other'}</option>
-          </select>
-        </label>
+        </Field>
+        <SearchableSelect
+          label={tx('channel')}
+          value={draft.method}
+          onChange={value => value && set('method', value)}
+          options={referenceOptions(COMMUNICATION_CHANNELS, language)}
+          emptyLabel={language === 'el' ? 'Καμία αντιστοιχία' : 'No match'}
+        />
         <ManualDateField
           label={`${tx('date')} *`}
           value={draft.communicatedDate}
@@ -404,10 +375,11 @@ export function CommunicationDialog({ tx, onClose, onSave }) {
           onChange={value => set('readBack', value)}
           className="lab-dialog-span"
         />
-        <label className="lab-dialog-span">
-          <span>{tx('notes')}</span>
-          <textarea rows={3} value={draft.notes} onChange={e => set('notes', e.target.value)} />
-        </label>
+        <div className="lab-dialog-span">
+          <Field label={tx('notes')}>
+            <textarea rows={3} value={draft.notes} onChange={e => set('notes', e.target.value)} />
+          </Field>
+        </div>
       </div>
     </ObserverDialog>
   )
