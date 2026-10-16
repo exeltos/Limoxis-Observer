@@ -27,3 +27,10 @@
 .control-info-tip{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:var(--lo-color-muted,var(--lo-color-muted));cursor:help}
 .control-info-tip:hover,.control-info-tip:focus-visible{background:var(--lo-color-surface-muted);color:var(--lo-color-primary,var(--lo-color-primary));outline:0}
 .control-adherence .data-table.control-adherence-table tbody td.control-adherence-missed:is(td,#lo-adherence){color:var(--lo-status-danger-fg)!important;font-weight:800!important}
+/* The table is the panel's body: no second frame inside the panel. */
+.control-adherence>.scroll-table{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}
+/* A control with several departments: its departments sit indented under it. */
+.control-adherence-table td.control-adherence-department{padding-left:34px!important;font-weight:600;color:var(--lo-color-text)}
+.control-adherence-table td.control-adherence-department::before{content:'↳';margin-right:7px;color:var(--lo-color-muted)}
+.control-adherence-toolbar .filter-field{flex-direction:row;align-items:center;gap:8px}
+.control-adherence-toolbar .filter-field select{min-width:180px}

@@ -55,3 +55,7 @@
 .control-calendar>.registry-pagination{border-top:1px solid var(--lo-color-border)}
 .control-calendar-toolbar>.control-info-tip{margin-left:-12px}
 .control-calendar-year-label{font-size:14px;color:var(--lo-color-text)}
+/* The table is the panel's body: no second frame inside the panel. */
+.control-calendar>.scroll-table{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}
+.control-calendar-table tr.control-calendar-member td:first-child{padding-left:34px!important}
+.control-calendar-table tr.control-calendar-member td:first-child .control-calendar-department::before{content:'↳';margin-right:7px;color:var(--lo-color-muted);font-weight:400}
