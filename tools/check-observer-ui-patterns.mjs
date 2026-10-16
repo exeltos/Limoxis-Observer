@@ -17,9 +17,9 @@ for(const file of files){
 }
 // Shared form controls: a feature's lists use SearchableSelect / MultiSelect /
 // FilterSelect, its yes-no and multi-choice fields YesNoField / ModeSwitch /
-// ChoiceChips. Ceilings per module only go down: Controls has none left; the
+// ChoiceChips. Ceilings per module only go down: Controls and Prevention have none left; the
 // other modules may not add more while they move over.
-const RAW_CONTROL_CEILINGS={controls:{select:0,checkbox:0,datalist:0},surveillance:{select:24,checkbox:4,datalist:0},patients:{select:2,checkbox:0,datalist:0},laboratory:{select:13,checkbox:0,datalist:0},prevention:{select:15,checkbox:0,datalist:0}}
+const RAW_CONTROL_CEILINGS={controls:{select:0,checkbox:0,datalist:0},surveillance:{select:24,checkbox:4,datalist:0},patients:{select:2,checkbox:0,datalist:0},laboratory:{select:13,checkbox:0,datalist:0},prevention:{select:0,checkbox:0,datalist:0}}
 for(const [module,ceiling] of Object.entries(RAW_CONTROL_CEILINGS)){
   const sources=files.filter(file=>file.includes(`${path.sep}features${path.sep}${module}${path.sep}`)&&file.endsWith('.jsx')).map(file=>fs.readFileSync(file,'utf8'))
   const count=pattern=>sources.reduce((n,text)=>n+(text.match(pattern)||[]).length,0)

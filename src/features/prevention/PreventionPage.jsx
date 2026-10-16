@@ -7,6 +7,8 @@ import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { formatDay } from '../../core/i18n/formatDay'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -21,7 +23,7 @@ import {
   updateVaccinationAsync,
 } from '../occupational-health/vaccinationService'
 import { StaffVaccinationEditor, EMPTY_VACCINATION } from './StaffVaccinationEditor'
-import { antisepticMethodLabel } from './AntisepticEntryModal'
+import { antisepticMethodLabel } from './antisepticMethods'
 import { loadHandHygieneDepartments, loadHandHygieneSessions } from './handHygieneCloudService'
 import { loadAntisepticRecords, loadAntisepticSupportData } from './antisepticCloudService'
 import { loadBundleAssessments, loadBundleSupportData } from './bundleCloudService'
@@ -74,14 +76,12 @@ const createLabelKeys = {
   bundles: 'preventionNewBundlesLabel',
 }
 
-function fmtBundleDate(value) {
-  const [y, m, d] = String(value || '')
-    .slice(0, 10)
-    .split('-')
-  return y && m && d ? `${Number(d)}/${Number(m)}/${y}` : value || '—'
-}
+// The department filter keeps the Greek name (what records store); a view saved
+// with the English name still matches.
+const departmentOption = (el, en, language) => ({ value: el, label: language === 'el' ? el : en || el })
+const inDepartment = (department, el, en) => department === 'all' || department === el || department === en
 export function PreventionPage() {
-  const { t, language, locale } = useLanguage()
+  const { t, language } = useLanguage()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { notify, notifyError, confirm } = useFeedback()
@@ -160,19 +160,22 @@ export function PreventionPage() {
             ? bundleRows
             : vaccinationRows
   const departments = useMemo(() => {
-    if (tab === 'handHygiene')
-      return handDepartments.map(x => (language === 'el' ? x.el : x.en || x.el))
-    if (tab === 'waste')
-      return wasteSupport.departments.map(x => (language === 'el' ? x.el : x.en || x.el))
-    if (tab === 'antiseptics')
-      return antisepticSupport.departments.map(x => (language === 'el' ? x.el : x.en || x.el))
-    if (tab === 'bundles')
-      return bundleSupport.departments.map(x => (language === 'el' ? x.el : x.en || x.el))
-    return [
-      ...new Set(
-        employeeRows.map(x => (language === 'el' ? x.department : x.departmentEn)).filter(Boolean),
-      ),
-    ]
+    const support =
+      tab === 'handHygiene'
+        ? handDepartments
+        : tab === 'waste'
+          ? wasteSupport.departments
+          : tab === 'antiseptics'
+            ? antisepticSupport.departments
+            : tab === 'bundles'
+              ? bundleSupport.departments
+              : null
+    if (support) return support.map(x => departmentOption(x.el, x.en, language))
+    const seen = new Map()
+    for (const x of employeeRows)
+      if (x.department && !seen.has(x.department))
+        seen.set(x.department, departmentOption(x.department, x.departmentEn, language))
+    return [...seen.values()]
   }, [
     tab,
     handDepartments,
@@ -193,12 +196,12 @@ export function PreventionPage() {
             `${e?.id ?? ''} ${e?.firstName ?? ''} ${e?.firstNameEn ?? ''} ${e?.lastName ?? ''} ${e?.lastNameEn ?? ''} ${x.vaccine ?? ''}`.toLowerCase()
           return hay.includes(query.toLowerCase())
         })
-        .filter(
-          x =>
-            department === 'all' ||
-            (language === 'el'
-              ? employeeMap[x.employeeId]?.department
-              : employeeMap[x.employeeId]?.departmentEn) === department,
+        .filter(x =>
+          inDepartment(
+            department,
+            employeeMap[x.employeeId]?.department,
+            employeeMap[x.employeeId]?.departmentEn,
+          ),
         )
         .filter(x => status === 'all' || x.status === status)
     return (
@@ -206,11 +209,7 @@ export function PreventionPage() {
         .filter(x => x.lifecycleStatus !== 'voided')
         .filter(x => canAccessRecord({ ...x, department: x.departmentEl }))
         .filter(x => JSON.stringify(x).toLowerCase().includes(query.toLowerCase()))
-        .filter(
-          x =>
-            department === 'all' ||
-            (language === 'el' ? x.departmentEl : x.departmentEn) === department,
-        )
+        .filter(x => inDepartment(department, x.departmentEl, x.departmentEn))
         .filter(x => period === 'all' || x.period === period)
         .filter(x => product === 'all' || x.product === product)
         .filter(x => method === 'all' || x.method === method)
@@ -227,7 +226,6 @@ export function PreventionPage() {
     product,
     method,
     status,
-    language,
     canAccessRecord,
   ])
 
@@ -390,8 +388,7 @@ export function PreventionPage() {
     new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', {
       maximumFractionDigits: 1,
     }).format(value)
-  const fmtDate = v =>
-    v ? new Intl.DateTimeFormat(locale).format(new Date(`${String(v).slice(0, 10)}T12:00:00`)) : '—'
+  const fmtDate = v => formatDay(v, language)
   const createLabel =
     tab === 'vaccinations'
       ? t('newVaccinationRecord')
@@ -633,7 +630,9 @@ export function PreventionPage() {
           <FilterSelect label={t('department')} value={department} onChange={setDepartment}>
             <option value="all">{t('allDepartments')}</option>
             {departments.map(x => (
-              <option key={x}>{x}</option>
+              <option key={x.value} value={x.value}>
+                {x.label}
+              </option>
             ))}
           </FilterSelect>
         </FilterBar>
@@ -914,7 +913,7 @@ function BundleTable({ rows, t, language, onOpen, registry }) {
       rowProps={x => rowPropsWithOpen(registry, x.id, onOpen)}
       renderRow={x => (
         <>
-          <td>{fmtBundleDate(x.date || x.period)}</td>
+          <td>{formatDay(x.date || x.period, language)}</td>
           <td>
             <strong>
               {language === 'el'
@@ -931,9 +930,9 @@ function BundleTable({ rows, t, language, onOpen, registry }) {
             <strong>{x.score == null ? '—' : `${x.score}%`}</strong>
           </td>
           <td>
-            <span className={`bundle-all-badge ${x.allOrNone ? 'passed' : 'failed'}`}>
+            <StatusBadge tone={x.allOrNone ? 'success' : 'danger'}>
               {x.allOrNone ? t('yes') : t('no')}
-            </span>
+            </StatusBadge>
           </td>
           <td>
             {(x.failedCount ?? x.findings?.length ?? 0) > 0 ? (
@@ -984,9 +983,9 @@ function VaccinationTable({ rows, t, language, fmtDate, employeeMap, onOpen, reg
             <td>{fmtDate(x.date)}</td>
             <td>{fmtDate(x.validUntil)}</td>
             <td>
-              <span className={`status-badge ${x.status === 'complete' ? 'active' : ''}`}>
+              <StatusBadge tone={x.status === 'complete' ? 'success' : 'neutral'}>
                 {t(x.status)}
-              </span>
+              </StatusBadge>
             </td>
           </>
         )

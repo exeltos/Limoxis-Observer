@@ -1,7 +1,6 @@
-import { binCloudRows, binLocalRow, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { preventionDepartments } from './preventionDemoData'
+import { deletePreventionRecord, findPreventionDepartment, loadPreventionDepartments } from './preventionCloud'
 import {
   normalizeWhoMoments,
   observationWeight,
@@ -61,18 +60,8 @@ function mapSession(row) {
   }
 }
 
-export async function loadHandHygieneDepartments(organizationId) {
-  if (isDemoDataEnvironment())
-    return preventionDepartments.map(({ id, el, en }) => ({ id, el, en }))
-  assertCloud(organizationId)
-  const { data, error } = await supabase
-    .from('departments')
-    .select('id,name')
-    .eq('organization_id', organizationId)
-    .eq('is_active', true)
-    .order('name')
-  if (error) throw error
-  return (data || []).map(row => ({ id: row.id, el: row.name, en: row.name }))
+export function loadHandHygieneDepartments(organizationId) {
+  return loadPreventionDepartments(organizationId)
 }
 
 export async function loadHandHygieneSessions(organizationId) {
@@ -88,19 +77,6 @@ export async function loadHandHygieneSessions(organizationId) {
   return (data || []).map(mapSession)
 }
 
-async function resolveDepartment(organizationId, name) {
-  const { data, error } = await supabase
-    .from('departments')
-    .select('id,name')
-    .eq('organization_id', organizationId)
-    .eq('name', name)
-    .eq('is_active', true)
-    .maybeSingle()
-  if (error) throw error
-  if (!data) throw new Error('Selected department is not available for this organization.')
-  return data
-}
-
 export async function saveHandHygieneSession(organizationId, record, { existingId = null } = {}) {
   if (isDemoDataEnvironment()) {
     const rows = loadHandHygieneLocal()
@@ -114,7 +90,7 @@ export async function saveHandHygieneSession(organizationId, record, { existingI
   }
   assertCloud(organizationId)
   const userId = await currentUserId()
-  const department = await resolveDepartment(
+  const department = await findPreventionDepartment(
     organizationId,
     record.departmentEl || record.session?.department || '',
   )
@@ -189,29 +165,6 @@ export async function saveHandHygieneSession(organizationId, record, { existingI
   return rows.find(x => x.id === session.id) || null
 }
 
-export async function deleteHandHygieneSession(organizationId, id) {
-  if (isDemoDataEnvironment()) {
-    if (!id) return
-    const rows = loadHandHygieneLocal()
-    const row = rows.find(item => item.id === id)
-    await binLocalRow(organizationId, { module: 'clinical', kind: 'hand_hygiene_sessions', ...describeDeleted('Υγιεινή χεριών', row), table: 'prevention_hand_hygiene', row })
-    saveHandHygieneLocal(rows.filter(item => item.id !== id))
-    return
-  }
-  assertCloud(organizationId)
-  if (!id) return
-  const { data: deleted } = await supabase.from('hand_hygiene_sessions').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle()
-  await binCloudRows(organizationId, { module: 'clinical', kind: 'hand_hygiene_sessions', ...describeDeleted('Υγιεινή χεριών', deleted || {}), parts: [{ table: 'hand_hygiene_observations', match: { session_id: id } }, { table: 'hand_hygiene_sessions', match: { id } }] })
-  const { error: childError } = await supabase
-    .from('hand_hygiene_observations')
-    .delete()
-    .eq('organization_id', organizationId)
-    .eq('session_id', id)
-  if (childError) throw childError
-  const { error } = await supabase
-    .from('hand_hygiene_sessions')
-    .delete()
-    .eq('organization_id', organizationId)
-    .eq('id', id)
-  if (error) throw error
+export function deleteHandHygieneSession(organizationId, id) {
+  return deletePreventionRecord(organizationId, id, { table: 'hand_hygiene_sessions', localTable: 'prevention_hand_hygiene', label: 'Υγιεινή χεριών', loadLocal: loadHandHygieneLocal, saveLocal: saveHandHygieneLocal, children: [{ table: 'hand_hygiene_observations', column: 'session_id' }] })
 }

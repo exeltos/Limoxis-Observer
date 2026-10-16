@@ -8,6 +8,9 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { ActionButton } from '../../design-system/ActionButton'
+import { Field } from '../../design-system/Field'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { PreventionDepartmentField, selectTexts } from './PreventionFields'
 import { normalizeWhoMoments, whoStatsFromObservations } from './whoHandHygieneStats'
 export const WHO_MOMENTS = [
   {
@@ -244,24 +247,16 @@ export function WhoHandHygieneEditor({
             value={session.date}
             onChange={value => setS('date', value)}
           />
-          <label>
-            <span>{en ? 'Department *' : 'Τμήμα *'}</span>
-            <select
-              value={session.department}
-              disabled={Boolean(fixedDepartment)}
-              onChange={event => setS('department', event.target.value)}
-            >
-              {departments.map(department => (
-                <option key={department.id || department.el} value={department.el}>
-                  {en ? department.en || department.el : department.el}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>{en ? 'Observer' : 'Παρατηρητής'}</span>
+          <PreventionDepartmentField
+            value={session.department}
+            onChange={value => value && setS('department', value)}
+            departments={departments}
+            fixed={Boolean(fixedDepartment)}
+            clearable={false}
+          />
+          <Field label={en ? 'Observer' : 'Παρατηρητής'}>
             <input value={session.observer} readOnly />
-          </label>
+          </Field>
           <TimeField
             label={en ? 'Start' : 'Έναρξη'}
             value={session.startTime}
@@ -299,8 +294,7 @@ export function WhoHandHygieneEditor({
             </div>
 
             <div className="who-professional-row">
-              <label>
-                <span>{en ? 'Number of professionals' : 'Αριθμός επαγγελματιών'}</span>
+              <Field label={en ? 'Number of professionals' : 'Αριθμός επαγγελματιών'}>
                 <input
                   type="number"
                   min="1"
@@ -310,22 +304,16 @@ export function WhoHandHygieneEditor({
                     setO('professionalsCount', Math.max(1, Number(event.target.value) || 1))
                   }
                 />
-              </label>
-              <label>
-                <span>{en ? 'Professional category' : 'Επαγγελματική κατηγορία'}</span>
-                <select
-                  value={current.professionalCategory}
-                  onChange={event => setO('professionalCategory', event.target.value)}
-                >
-                  {WHO_PROFESSIONS.map(([el, enLabel]) => (
-                    <option key={el} value={el}>
-                      {en ? enLabel : el}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="who-note-field">
-                <span>{en ? 'Optional note' : 'Προαιρετική σημείωση'}</span>
+              </Field>
+              <SearchableSelect
+                label={en ? 'Professional category' : 'Επαγγελματική κατηγορία'}
+                value={current.professionalCategory}
+                options={WHO_PROFESSIONS.map(([el, enLabel]) => ({ value: el, label: en ? enLabel : el, keywords: `${el} ${enLabel}` }))}
+                onChange={value => value && setO('professionalCategory', value)}
+                {...selectTexts(en)}
+              />
+              <label className="field who-note-field">
+                <span className="lo-field-label">{en ? 'Optional note' : 'Προαιρετική σημείωση'}</span>
                 <input
                   value={current.notes}
                   onChange={event => setO('notes', event.target.value)}

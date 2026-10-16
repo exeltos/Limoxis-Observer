@@ -1,9 +1,9 @@
-import { binCloudRows, binLocalRow, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { preventionDepartments, bundleTemplateLibrary } from './preventionDemoData'
+import { bundleTemplateLibrary } from './preventionDemoData'
 import { loadBundlesLocal, saveBundlesLocal } from './preventionStore'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
+import { deletePreventionRecord, loadPreventionDepartments } from './preventionCloud'
 
 function mapTemplate(row) {
   const elements = Array.isArray(row.elements) ? row.elements : []
@@ -82,17 +82,12 @@ function mapAssessment(row, templates = []) {
 export async function loadBundleSupportData(organizationId) {
   if (isDemoDataEnvironment())
     return {
-      departments: preventionDepartments.map(({ id, el, en }) => ({ id, el, en })),
+      departments: await loadPreventionDepartments(organizationId),
       templates: bundleTemplateLibrary,
     }
   assertCloud(organizationId)
-  const [departmentsResult, templatesResult] = await Promise.all([
-    supabase
-      .from('departments')
-      .select('id,name')
-      .eq('organization_id', organizationId)
-      .eq('is_active', true)
-      .order('name'),
+  const [departments, templatesResult] = await Promise.all([
+    loadPreventionDepartments(organizationId),
     supabase
       .from('prevention_bundle_templates')
       .select('*')
@@ -102,10 +97,9 @@ export async function loadBundleSupportData(organizationId) {
       .order('is_system', { ascending: false })
       .order('name'),
   ])
-  if (departmentsResult.error) throw departmentsResult.error
   if (templatesResult.error) throw templatesResult.error
   return {
-    departments: (departmentsResult.data || []).map(x => ({ id: x.id, el: x.name, en: x.name })),
+    departments,
     templates: (templatesResult.data || []).map(mapTemplate),
   }
 }
@@ -302,23 +296,6 @@ export async function saveBundleFollowUp(organizationId, assessmentId, itemId, f
   const rows = await loadBundleAssessments(organizationId)
   return rows.find(item => item.id === assessmentId) || null
 }
-export async function deleteBundleAssessment(organizationId, id) {
-  if (isDemoDataEnvironment()) {
-    if (!id) return
-    const rows = loadBundlesLocal()
-    const row = rows.find(item => item.id === id)
-    await binLocalRow(organizationId, { module: 'clinical', kind: 'prevention_bundle_assessments', ...describeDeleted('Δέσμη μέτρων', row), table: 'prevention_bundles', row })
-    saveBundlesLocal(rows.filter(item => item.id !== id))
-    return
-  }
-  assertCloud(organizationId)
-  if (!id) return
-  const { data: deleted } = await supabase.from('prevention_bundle_assessments').select('*').eq('organization_id', organizationId).eq('id', id).maybeSingle()
-  await binCloudRows(organizationId, { module: 'clinical', kind: 'prevention_bundle_assessments', ...describeDeleted('Δέσμη μέτρων', deleted || {}), parts: [{ table: 'prevention_bundle_assessments', match: { id } }] })
-  const { error } = await supabase
-    .from('prevention_bundle_assessments')
-    .delete()
-    .eq('organization_id', organizationId)
-    .eq('id', id)
-  if (error) throw error
+export function deleteBundleAssessment(organizationId, id) {
+  return deletePreventionRecord(organizationId, id, { table: 'prevention_bundle_assessments', localTable: 'prevention_bundles', label: 'Δέσμη μέτρων', loadLocal: loadBundlesLocal, saveLocal: saveBundlesLocal })
 }

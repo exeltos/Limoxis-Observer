@@ -135,7 +135,7 @@
 .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{display:grid!important;grid-template-columns:repeat(24,minmax(0,1fr))!important;gap:16px 14px!important}
 .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-date-field{grid-column:span 5!important;min-width:0!important}
 .prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-department-field{grid-column:span 14!important;min-width:0!important}
-.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>label{grid-column:span 8!important;min-width:0!important}
+.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>:is(label,.searchable-select){grid-column:span 8!important;min-width:0!important}
 .prevention-record-shell .waste-page-editor .waste-date-field>label,.prevention-record-shell .waste-page-editor .waste-department-field>label{width:100%!important;min-width:0!important}
 .prevention-record-shell .waste-page-editor .waste-date-field input,.prevention-record-shell .waste-page-editor .waste-department-field select{width:100%!important}
 
@@ -145,6 +145,8 @@
 .prevention-record-shell .antiseptic-entry-workspace,.prevention-record-shell .antiseptic-entry-main,.prevention-record-shell .antiseptic-entry-rail{min-height:0!important;overflow:visible!important}
 .prevention-record-shell .antiseptic-entry-rail{align-self:start!important}
 .prevention-record-shell .prevention-editor-page-actions{position:sticky!important;bottom:0!important;z-index:8!important;margin-top:14px!important;padding:12px 0 4px!important;background:linear-gradient(180deg,rgba(255,255,255,0),var(--lo-color-surface) 24%)!important}
+/* Every Prevention editor keeps its save bar in view at the bottom of the record body. */
+.prevention-record-shell :is(.antiseptic-page-editor>.prevention-editor-page-actions,.who-page-editor>.who-smart-footer,.bundle-page-editor>.bundle-page-actions):is(div,#lo-prevention-save){position:sticky!important;bottom:0!important;z-index:8!important;margin-top:0!important;padding:11px 0 6px!important;background:var(--lo-color-surface)!important;border-top:1px solid #e5ebf0!important}
 
 .prevention-record-shell .bundle-record-findings{display:grid!important;gap:9px!important}
 .prevention-record-shell .bundle-record-findings>.bundle-record-heading{margin-bottom:0!important}
@@ -162,22 +164,19 @@
 .bundle-followup-meta>.button{min-width:150px;justify-content:center}
 .bundle-followup-meta>.button:not(:disabled){background:var(--lo-color-primary)!important;border-color:var(--lo-color-primary)!important;color:#fff!important;box-shadow:0 1px 2px rgba(20,49,73,.14)!important}
 .bundle-followup-meta>.button:not(:disabled):hover{background:var(--lo-color-primary-hover)!important;border-color:var(--lo-color-primary-hover)!important;color:#fff!important}
-.bundle-followup-status{display:inline-flex;align-items:center;justify-content:center;min-height:25px;padding:4px 9px;border:1px solid var(--lo-color-border);border-radius:999px;background:#f4f6f8;color:#5a6b7b;font-size:9.5px;font-weight:750;white-space:nowrap}
-.bundle-followup-status.resolved{background:#edf7f1;border-color:#cde6d7;color:#28704b}
-.bundle-followup-status.open{background:#fff1ef;border-color:#efcfca;color:#a44a42}
-.bundle-followup-status.not_applicable{background:#f3f5f7;border-color:#dce2e7;color:#637383}
-.bundle-followup-status.pending{background:#fff8e8;border-color:#eadbb7;color:#8a6a22}
+/* Prevention lists are SearchableSelects: title, 6px, box, like every field beside them. */
+:is(.prevention-record-shell,.vaccination-editor) .searchable-select{gap:0;min-width:0}
+/* A read-only or locked field (observer, a fixed department) reads as such. */
+:is(.prevention-record-shell,.vaccination-editor) :is(input[readonly],input:disabled):not(.manual-date-native){background:#f6f8fa!important;color:#69798a!important}
 .bundle-followup-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:13px 15px}
 .bundle-followup-form>label{display:flex;flex-direction:column;gap:6px;min-width:0}
-.bundle-followup-form>label>span{font-size:10.5px;font-weight:700;color:var(--lo-color-muted)}
-.bundle-followup-form select,.bundle-followup-form textarea{width:100%;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit}
-.bundle-followup-form select{min-height:40px;padding:0 10px}
+.bundle-followup-form textarea{width:100%;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit}
 .bundle-followup-form textarea{min-height:90px;padding:10px 11px;resize:vertical}
-.bundle-followup-comment{grid-column:1/-1}
+.bundle-followup-comment,.bundle-followup-status-field{grid-column:1/-1}
 
 /* Prevention tabs intentionally use the shared ModuleTabs/canonical-module-tabs design-system rules. */
 
-@media(max-width:900px){.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-date-field,.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-department-field,.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>label{grid-column:span 1!important}.prevention-record-shell .bundle-record-finding{grid-template-columns:1fr!important}.bundle-followup-meta{align-items:flex-start;min-width:0;padding-left:0;padding-top:10px;border-left:0;border-top:1px solid var(--lo-color-border)}}
+@media(max-width:900px){.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-date-field,.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>.waste-department-field,.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid>:is(label,.searchable-select){grid-column:span 1!important}.prevention-record-shell .bundle-record-finding{grid-template-columns:1fr!important}.bundle-followup-meta{align-items:flex-start;min-width:0;padding-left:0;padding-top:10px;border-left:0;border-top:1px solid var(--lo-color-border)}}
 @media(max-width:650px){.prevention-record-shell .waste-page-editor .waste-smart-measurement-grid{grid-template-columns:1fr!important}.bundle-followup-form{grid-template-columns:1fr}.bundle-followup-comment{grid-column:auto}}
 
 /* ==== surveillance-library-dropdown-fix ==== */

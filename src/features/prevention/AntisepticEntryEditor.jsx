@@ -4,8 +4,11 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ActionButton } from '../../design-system/ActionButton'
 import { MonthField } from '../../design-system/MonthField'
+import { Field } from '../../design-system/Field'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { ANTISEPTIC_METHODS, isAbhrProduct } from './AntisepticEntryModal'
+import { ANTISEPTIC_METHODS, isAbhrProduct } from './antisepticMethods'
+import { PreventionDepartmentField, selectTexts, usePreventionDepartments, usePreventionLibrary } from './PreventionFields'
 
 export const HOSPITAL_SCOPE = '__hospital__'
 
@@ -24,9 +27,11 @@ export function AntisepticEntryEditor({
   fixedDepartment = '',
   initialRecord = null,
   departments = [],
-  products = [],
+  products: loadedProducts = [],
   findPatientDays,
 }) {
+  // Products from the central antiseptics library (the screen's list until it loads).
+  const products = usePreventionLibrary('antiseptics', loadedProducts)
   const { profile, user } = useAuth()
   const { language, locale } = useLanguage()
   const en = language === 'en'
@@ -60,9 +65,11 @@ export function AntisepticEntryEditor({
   const [saving, setSaving] = useState(false)
   const set = (key, value) => setDraft(state => ({ ...state, [key]: value }))
   const hospitalScope = draft.departmentEl === HOSPITAL_SCOPE
+  const departmentRows = usePreventionDepartments(departments)
   const departmentInfo = hospitalScope
     ? null
-    : departments.find(item => item.el === draft.departmentEl)
+    : departments.find(item => item.el === draft.departmentEl) ||
+      departmentRows.find(item => item.el === draft.departmentEl)
   const productInfo = products.find(
     item => item.id === draft.antisepticItemId || item.el === draft.product,
   )
@@ -127,6 +134,7 @@ export function AntisepticEntryEditor({
 
   function changeProduct(value) {
     const selected = products.find(item => item.id === value)
+    if (!selected) return
     setDraft(state => ({
       ...state,
       antisepticItemId: value,
@@ -192,7 +200,10 @@ export function AntisepticEntryEditor({
                 value={draft.period}
                 onChange={value => set('period', value)}
               />
-              <DepartmentField
+              <PreventionDepartmentField
+                label={en ? 'Scope / department *' : 'Εύρος / Τμήμα *'}
+                placeholder={en ? 'Select scope' : 'Επιλέξτε εύρος'}
+                extraOptions={[{ value: HOSPITAL_SCOPE, label: en ? 'Whole hospital' : 'Όλο το νοσοκομείο' }]}
                 value={draft.departmentEl}
                 onChange={value =>
                   setDraft(state => ({
@@ -204,24 +215,19 @@ export function AntisepticEntryEditor({
                 }
                 departments={departments}
                 fixed={Boolean(fixedDepartment)}
-                en={en}
               />
-              <label>
-                <span>{en ? 'Product *' : 'Προϊόν *'}</span>
-                <select
-                  value={draft.antisepticItemId || productInfo?.id || ''}
-                  onChange={event => changeProduct(event.target.value)}
-                >
-                  <option value="">{en ? 'Select product' : 'Επιλέξτε προϊόν'}</option>
-                  {products.map(item => (
-                    <option key={item.id} value={item.id}>
-                      {en ? item.en || item.el : item.el}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>{en ? 'Consumption *' : 'Κατανάλωση *'}</span>
+              <SearchableSelect
+                label={en ? 'Product *' : 'Προϊόν *'}
+                value={draft.antisepticItemId || productInfo?.id || ''}
+                options={[
+                  ...products.map(item => ({ value: item.id, label: en ? item.en || item.el : item.el, description: isAbhrProduct(item) ? 'ABHR' : undefined, keywords: `${item.el} ${item.en || ''} ${item.code || ''}` })),
+                  ...(draft.product && !productInfo ? [{ value: draft.antisepticItemId || draft.product, label: en ? draft.productEn || draft.product : draft.product }] : []),
+                ]}
+                onChange={changeProduct}
+                placeholder={en ? 'Select product' : 'Επιλέξτε προϊόν'}
+                {...selectTexts(en)}
+              />
+              <Field label={en ? 'Consumption *' : 'Κατανάλωση *'}>
                 <div className="field-with-unit">
                   <input
                     type="number"
@@ -233,17 +239,14 @@ export function AntisepticEntryEditor({
                   />
                   <span>L</span>
                 </div>
-              </label>
-              <label>
-                <span>{en ? 'Data source / method *' : 'Πηγή / μέθοδος δεδομένων *'}</span>
-                <select value={draft.method} onChange={event => set('method', event.target.value)}>
-                  {ANTISEPTIC_METHODS.map(item => (
-                    <option key={item.id} value={item.id}>
-                      {en ? item.labelEn : item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              </Field>
+              <SearchableSelect
+                label={en ? 'Data source / method *' : 'Πηγή / μέθοδος δεδομένων *'}
+                value={draft.method}
+                options={ANTISEPTIC_METHODS.map(item => ({ value: item.id, label: en ? item.labelEn : item.label, description: en ? undefined : item.labelEn }))}
+                onChange={value => value && set('method', value)}
+                {...selectTexts(en)}
+              />
             </div>
             <div className={`antiseptic-eligibility ${abhr ? 'eligible' : 'informative'}`}>
               <strong>
@@ -276,24 +279,22 @@ export function AntisepticEntryEditor({
               </small>
             </div>
             <div className="entry-grid antiseptic-trace-grid">
-              <label>
-                <span>{en ? 'Responsible person' : 'Υπεύθυνος'}</span>
+              <Field label={en ? 'Responsible person' : 'Υπεύθυνος'}>
                 <input
                   value={draft.responsible || ''}
                   onChange={event => set('responsible', event.target.value)}
                   placeholder={actor.name}
                 />
-              </label>
-              <label>
-                <span>{en ? 'Reference / document' : 'Αναφορά / παραστατικό'}</span>
+              </Field>
+              <Field label={en ? 'Reference / document' : 'Αναφορά / παραστατικό'}>
                 <input
                   value={draft.referenceNumber || ''}
                   onChange={event => set('referenceNumber', event.target.value)}
                   placeholder={en ? 'e.g. PHARM-2026-08' : 'π.χ. ΦΑΡΜ-2026-08'}
                 />
-              </label>
-              <label className="entry-span-2">
-                <span>{en ? 'Notes' : 'Σημειώσεις'}</span>
+              </Field>
+              <label className="field entry-span-2">
+                <span className="lo-field-label">{en ? 'Notes' : 'Σημειώσεις'}</span>
                 <textarea
                   rows="2"
                   value={draft.notes || ''}
@@ -322,8 +323,8 @@ export function AntisepticEntryEditor({
                     : 'Οι νοσηλευτικές ημέρες προτείνονται μόνο για τον ίδιο ακριβώς εγκεκριμένο μήνα.'}
               </small>
             </div>
-            <label>
-              <span>
+            <label className="field">
+              <span className="lo-field-label">
                 {en ? 'Patient-days for reporting month' : 'Νοσηλευτικές ημέρες μήνα αναφοράς'}
               </span>
               <div className="antiseptic-patient-days-field">
@@ -414,22 +415,5 @@ export function AntisepticEntryEditor({
         </ActionButton>
       </div>
     </div>
-  )
-}
-
-function DepartmentField({ value, onChange, departments, fixed, en }) {
-  return (
-    <label>
-      <span>{en ? 'Scope / department *' : 'Εύρος / Τμήμα *'}</span>
-      <select value={value} disabled={fixed} onChange={event => onChange(event.target.value)}>
-        <option value="">{en ? 'Select scope' : 'Επιλέξτε εύρος'}</option>
-        <option value={HOSPITAL_SCOPE}>{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>
-        {departments.map(item => (
-          <option key={item.id || item.el} value={item.el}>
-            {en ? item.en || item.el : item.el}
-          </option>
-        ))}
-      </select>
-    </label>
   )
 }
