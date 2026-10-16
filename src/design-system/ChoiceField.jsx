@@ -1,7 +1,7 @@
-import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { ModeSwitch } from './ModeSwitch'
 
-// Two or three exclusive answers in a form row: the field title and the shared
-// mode switch, as tall as the inputs beside it (the yes-no-field row geometry).
+// Two or three exclusive answers under a field title (priority, sex, yes /
+// no / unknown, S / I / R): the shared mode switch, never a select or radios.
 export function ChoiceField({ label, value, options = [], onChange, className = '' }) {
   return (
     <div className={`field yes-no-field ${className}`.trim()}>

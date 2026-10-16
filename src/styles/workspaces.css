@@ -146,7 +146,7 @@
 .prevention-record-shell .antiseptic-entry-rail{align-self:start!important}
 .prevention-record-shell .prevention-editor-page-actions{position:sticky!important;bottom:0!important;z-index:8!important;margin-top:14px!important;padding:12px 0 4px!important;background:linear-gradient(180deg,rgba(255,255,255,0),var(--lo-color-surface) 24%)!important}
 /* Every Prevention editor keeps its save bar in view at the bottom of the record body. */
-.prevention-record-shell :is(.antiseptic-page-editor>.prevention-editor-page-actions,.who-page-editor>.who-smart-footer,.bundle-page-editor>.bundle-page-actions):is(div,#lo-prevention-save){position:sticky!important;bottom:0!important;z-index:8!important;margin-top:0!important;padding:11px 0 6px!important;background:var(--lo-color-surface)!important;border-top:1px solid #e5ebf0!important}
+.prevention-record-shell :is(.antiseptic-page-editor>.prevention-editor-page-actions,.who-page-editor>.who-smart-footer,.bundle-page-editor>.bundle-page-actions,.waste-page-editor>.prevention-editor-page-actions):is(div,#lo-prevention-save){position:sticky!important;bottom:0!important;z-index:8!important;margin-top:0!important;padding:11px 0 6px!important;background:var(--lo-color-surface)!important;border-top:1px solid #e5ebf0!important}
 
 .prevention-record-shell .bundle-record-findings{display:grid!important;gap:9px!important}
 .prevention-record-shell .bundle-record-findings>.bundle-record-heading{margin-bottom:0!important}

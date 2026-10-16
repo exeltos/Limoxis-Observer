@@ -1,3 +1,4 @@
+import { EMPLOYEE_SCREENING_TYPES as SURVEILLANCE_SCREENING_TYPES,OTHER_EMPLOYEE_SCREENING,SAMPLE_PRIORITIES } from '../surveillance/surveillanceOptions'
 // Laboratory reference lists, one item shape everywhere: {id, el, en} (plus
 // what a list needs, e.g. the i18n label key or the sources of a sample type).
 export const sampleSourceCatalog={
@@ -39,12 +40,8 @@ export function patientSampleTypeOptions(items=[],language='el',t=key=>key){
 
 // Employee screening swabs (stored as sourceCode with type 'surveillance').
 // Surveillance keeps the same ids in employeeScreeningCatalog.
-export const EMPLOYEE_SCREENING_TYPES=[
-  {id:'nasalSwab',el:'Ρινικό επίχρισμα',en:'Nasal swab'},
-  {id:'handSwab',el:'Επίχρισμα χεριών',en:'Hand swab'},
-  {id:'throatSwab',el:'Φαρυγγικό επίχρισμα',en:'Throat swab'},
-  {id:'otherEmployeeScreening',el:'Άλλος προληπτικός έλεγχος εργαζομένου',en:'Other employee screening'},
-]
+// Employee screening types: the surveillance list (one source) plus «other».
+export const EMPLOYEE_SCREENING_TYPES=[...SURVEILLANCE_SCREENING_TYPES,OTHER_EMPLOYEE_SCREENING]
 
 // Environmental sample types of a new laboratory sample (stored as
 // environmentType; the label is stored as the source).
@@ -57,7 +54,7 @@ export const ENVIRONMENTAL_SAMPLE_TYPES=[
 ]
 
 // Sample priority (stored as priority; label t(id)).
-export const LAB_PRIORITIES=['routine','urgent','critical']
+export const LAB_PRIORITIES=SAMPLE_PRIORITIES.map(item=>item.value)
 
 // Screening / environmental source codes stored as raw keys (e.g. "nasalSwab, handSwab").
 const sampleSourceAliases=Object.fromEntries([...EMPLOYEE_SCREENING_TYPES,...ENVIRONMENTAL_SAMPLE_TYPES].filter(item=>!(item.id in sampleSourceCatalog)).map(item=>[item.id,item]))

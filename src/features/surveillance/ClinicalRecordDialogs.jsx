@@ -17,7 +17,7 @@ import { demoLibrarySeed } from '../management/managementData'
 import { useLibraries } from '../management/useLibraries'
 import { evaluateHaiCriteria, haiCriteriaSetForType } from './haiCriteriaDefinitions'
 import { loadHaiCriteriaSets } from './haiCriteriaLibraryService'
-import { ChoiceField } from './ChoiceField'
+import { ChoiceField } from '../../design-system/ChoiceField'
 import { listTexts, patientSampleTypeOptions, priorityOptions } from './surveillanceOptions'
 import {
   criteriaKeyOf,

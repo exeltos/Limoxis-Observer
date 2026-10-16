@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CheckCircle2, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { Field } from '../../design-system/Field'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { ChoiceField } from '../../design-system/ChoiceField'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -21,15 +21,6 @@ import { referenceOptions } from './laboratoryReferenceData'
 // A titled choice of two to four exclusive answers (result, S/I/R, AMR class,
 // priority): the shared mode switch with the field title, as tall as the
 // other controls of the row (the yes/no field's geometry).
-export function ChoiceField({ label, value, onChange, options, className = '' }) {
-  return (
-    <div className={`field yes-no-field lab-choice-field ${className}`.trim()}>
-      <span className="lo-field-label">{label}</span>
-      <ModeSwitch ariaLabel={label} value={value} onChange={onChange} options={options} />
-    </div>
-  )
-}
-
 function makeDraft(result) {
   return {
     id: result?.id || null,

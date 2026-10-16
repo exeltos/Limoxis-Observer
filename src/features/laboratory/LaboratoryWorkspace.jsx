@@ -30,7 +30,7 @@ import { getLaboratoryKpis, sampleTypeLabel } from './laboratoryCloudService'
 import { computeTurnaroundHours, formatTurnaround } from './model/laboratoryModel'
 import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
 import { LaboratoryStatus } from './LaboratoryStatus'
-import { ChoiceField } from './LaboratorySampleDialogs'
+import { ChoiceField } from '../../design-system/ChoiceField'
 import './LaboratoryWorkspace.css'
 
 export function LaboratoryWorkspace() {

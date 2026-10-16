@@ -18,7 +18,7 @@ import {
   updateLaboratoryRequest,
 } from '../laboratory/laboratoryRequestManagementService'
 import { updateEmployeeSurveillanceFollowup } from './employeeSurveillanceCloudService'
-import { ChoiceField } from './ChoiceField'
+import { ChoiceField } from '../../design-system/ChoiceField'
 import { EMPLOYEE_SCREENING_TYPES, priorityOptions } from './surveillanceOptions'
 import './employeeLabRequest.css'
 
