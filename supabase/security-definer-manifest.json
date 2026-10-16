@@ -26,11 +26,6 @@
       "authenticated": true,
       "reason": "Archives a patient; requires delete_patient capability in the patient's department."
     },
-    "delete_patient_admission": {
-      "category": "rpc",
-      "authenticated": true,
-      "reason": "Deletes one admission with a written reason (audit log); requires delete_patient capability; refuses the patient's last admission and admissions with surveillance episodes."
-    },
     "can_view_surveillance_record": {
       "category": "rls-helper",
       "authenticated": true,
@@ -193,6 +188,11 @@
       "authenticated": true,
       "reason": "Answers only whether the caller is a department manager and the given control is a department control assigned only to the caller's departments; used by control RLS policies, which run with the caller's privileges and so need EXECUTE."
     },
+    "delete_patient_admission": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Deletes one admission with a written reason (audit log); requires delete_patient capability; refuses the patient's last admission and admissions with surveillance episodes."
+    },
     "demo_rate_evaluation_step": {
       "category": "rpc",
       "authenticated": true,
@@ -203,20 +203,25 @@
       "authenticated": true,
       "reason": "Stores an evaluator's \"I want the application\" request, writes it to the audit log and queues an e-mail to every Platform Owner; members of a Demo only, at most three a day."
     },
-    "demo_submit_scenario_feedback": {
-      "category": "rpc",
-      "authenticated": true,
-      "reason": "Stores the signed-in Demo member's own questionnaire (usefulness, ease and clarity 1-5, time taken, comment) for an evaluation-guide scenario or the whole guide; refuses anyone who is not an active member of that Demo."
-    },
     "demo_set_evaluation_step": {
       "category": "rpc",
       "authenticated": true,
       "reason": "Marks an evaluation-guide step done or not done for the signed-in member of a Demo organization only; refuses anyone who is not an active member of that Demo."
     },
+    "demo_submit_scenario_feedback": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Stores the signed-in Demo member's own questionnaire (usefulness, ease and clarity 1-5, time taken, comment) for an evaluation-guide scenario or the whole guide; refuses anyone who is not an active member of that Demo."
+    },
     "demo_switch_my_role": {
       "category": "rpc",
       "authenticated": true,
       "reason": "Lets a member of a Demo organization switch their own role (and department scope) so the database shows exactly what that role sees; refuses any organization that is not a Demo and any role outside the previewable system roles."
+    },
+    "department_register_sync": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Creates or extends the data table of a department register (one column per field) from its definition; Platform Owner, Hospital Admin, Quality Manager or manage_quality of the register's organisation."
     },
     "document_acknowledgement_members": {
       "category": "rpc",

@@ -1,0 +1,9 @@
+/* StepList.jsx: wizard steps in one row, one column on narrow screens. */
+.lo-step-list{display:grid;grid-template-columns:repeat(var(--lo-step-count,3),minmax(0,1fr));gap:8px;margin:0 0 14px;padding:0;list-style:none}
+.lo-step-list button{display:flex;align-items:center;gap:9px;width:100%;min-height:42px;padding:8px 12px;border:1px solid var(--lo-color-border,#dfe6ec);border-radius:10px;background:var(--lo-color-surface,#fff);color:#5a6d80;font:inherit;font-size:12px;font-weight:700;text-align:left;cursor:pointer}
+.lo-step-list button:disabled{cursor:not-allowed;opacity:.65}
+.lo-step-number{display:inline-flex;align-items:center;justify-content:center;flex:0 0 24px;width:24px;height:24px;border-radius:999px;background:#eef2f6;color:#4b5e71;font-size:11.5px;font-weight:800}
+.lo-step-list .is-current button{border-color:var(--lo-color-primary,#256b9b);background:#f0f7fb;color:#174b70;box-shadow:0 0 0 1px var(--lo-color-primary,#256b9b) inset}
+.lo-step-list .is-current .lo-step-number{background:var(--lo-color-primary,#256b9b);color:#fff}
+.lo-step-list .is-done .lo-step-number{background:#e3f3ea;color:#2f7b57}
+@media(max-width:700px){.lo-step-list{grid-template-columns:minmax(0,1fr)}}

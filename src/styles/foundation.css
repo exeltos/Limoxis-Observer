@@ -186,6 +186,8 @@
 
 /* v0.10.3 — shared compact records, registry return memory, patient journey */
 .entity-record-shell.workspace-fill{display:grid!important;grid-template-rows:auto auto minmax(0,1fr)!important}
+/* A form page without tabs (New report, New CAPA…): the body fills to the bottom. */
+.entity-record-shell.workspace-fill:not(:has(>.entity-record-tabs)){grid-template-rows:auto minmax(0,1fr)!important}
 .entity-record-header{height:auto!important;align-self:start}
 .entity-record-avatar{min-width:42px!important}
 .entity-record-identity h2{margin:1px 0 2px!important}

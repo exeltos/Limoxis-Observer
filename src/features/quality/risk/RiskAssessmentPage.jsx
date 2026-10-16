@@ -28,7 +28,7 @@ import { RiskAssessmentDetails } from './RiskAssessmentDetails'
 import { rememberQualitySection } from '../qualityReturnSection'
 import { LinkIndicatorsDialog } from './RiskIndicatorsUi'
 import { loadIndicatorValues } from './riskIndicators'
-import { L,fmtDate,rememberRow,statusLabel,statusTone,txt,useReturnedRow } from './riskUi'
+import { AssessmentStatusBadge,L,fmtDate,rememberRow,statusLabel,txt,useReturnedRow } from './riskUi'
 import './riskAssessment.css'
 
 const EDITABLE=['draft','under_review']
@@ -176,7 +176,7 @@ export function RiskAssessmentPage(){
   eyebrow={assessment.code}
   title={txt(assessment,'title',en)}
   subtitle={[assessment.formCode,assessment.periodLabel,fmtDate(assessment.assessedOn,locale)].filter(Boolean).join(' · ')}
-  status={<span className={`status-badge ${statusTone(assessment.status)}`}>{statusLabel(assessment.status,en)}</span>}
+  status={<AssessmentStatusBadge status={assessment.status} en={en}/>}
   onBack={goBack} backLabel={origin?L(en,`Πίσω σε «${tabs.find(t=>t.id===origin.tab)?.label||''}»`,`Back to “${tabs.find(t=>t.id===origin.tab)?.label||''}”`):L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
    {tab==='register'&&<RiskRegister frame={frame} key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} actions={menu} indicatorValues={indicatorValues} returned={riskRow.returned}/>}
    {tab==='analysis'&&<RiskAnalysis frame={frame} mark={view.riskMark||''} returned={riskRow.returned} actions={menu} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>jump('register',{cell:c},`${c.kind}:${c.l}:${c.c}`)}/>}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, ClipboardCopy, FlaskConical, KeyRound, Link2, Mail, Users } from 'lucide-react'
+import { StepList } from '../../design-system/StepList'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -75,14 +76,7 @@ export function DemoCreateWizard({language,defaultDurationDays=30,maxUsers=5,sav
   </div>
 
   return <ObserverDialog width="workspace" className="platform-demo-create-dialog demo-wizard" eyebrow="Platform Owner" title={tx('Νέο Demo','New Demo')} subtitle={tx('Απομονωμένος οργανισμός με πλήρη συνθετικά δεδομένα, για αξιολόγηση και εκμάθηση από τον υποψήφιο πελάτη.','An isolated organization with full synthetic data, for the prospect to evaluate and learn.')} onClose={()=>!saving&&onClose?.()} footer={footer}>
-    <ol className="demo-wizard-steps" aria-label={tx('Βήματα','Steps')}>
-      {steps.map((label,index)=><li key={label} className={index===step?'is-current':index<step?'is-done':''}>
-        <button type="button" disabled={saving||index>step&&!stepValid.slice(0,index).every(Boolean)} onClick={()=>goTo(index)}>
-          <span className="demo-wizard-step-number">{index<step?<Check size={13}/>:index+1}</span>
-          <span>{label}</span>
-        </button>
-      </li>)}
-    </ol>
+    <StepList steps={steps} current={step} valid={stepValid} disabled={saving} onSelect={goTo} ariaLabel={tx('Βήματα','Steps')}/>
 
     {step===0&&<div className="platform-form-shell">
       <section className="platform-form-section"><header><strong>{tx('Υποψήφιος πελάτης','Prospect')}</strong></header><div className="platform-form-grid">

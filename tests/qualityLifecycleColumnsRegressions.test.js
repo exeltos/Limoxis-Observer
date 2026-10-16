@@ -32,8 +32,9 @@ describe('quality record create/save writes columns that actually exist, and rep
 
   it('the create flow captures the reporting actor\'s display name instead of leaving reported_by_label unset (also fixes demo showing the raw "demo-user" id)', () => {
     expect(createPage).toContain('reportedByLabel:actor.name')
-    expect(service).toContain('reported_by_label:draft.reportedByLabel||null')
-    expect(service).toContain("reportedBy:draft.reportedByLabel||''")
+    // An anonymous report is the one case that keeps no name.
+    expect(service).toContain('reported_by_label:draft.anonymous?null:draft.reportedByLabel||null')
+    expect(service).toContain("reportedBy:draft.anonymous?'':draft.reportedByLabel||''")
   })
 
   it('saving an audit persists the edited lead auditor instead of silently discarding it', () => {

@@ -4,6 +4,8 @@ import { FileSpreadsheet,Plus } from 'lucide-react'
 import { ActionButton } from '../../../design-system/ActionButton'
 import { ObserverDialog,DialogActions } from '../../../design-system/ObserverDialog'
 import { ManualDateField } from '../../../design-system/ManualDateField'
+import { RegistryTable } from '../../../design-system/RegistryTable'
+import { SearchableSelect } from '../../../design-system/SearchableSelect'
 import { useAuth } from '../../../core/auth/AuthContext'
 import { rememberQualitySection } from '../qualityReturnSection'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
@@ -11,7 +13,7 @@ import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
 import { createAssessmentSeries,createRiskAssessment } from './riskService'
 import { importPlan,importRiskWorkbook } from './riskImport'
 import { summarizeRisks,levelLabel,suggestPeriodLabel } from './riskModel'
-import { L,LevelChip,PERIOD_KINDS,fmtDate,returnedClass,statusLabel,statusTone,txt,usePaged,useReturnedRow } from './riskUi'
+import { AssessmentStatusBadge,L,LevelChip,PERIOD_KINDS,fmtDate,returnedClass,txt,usePaged,useReturnedRow } from './riskUi'
 import './riskAssessment.css'
 
 const FIELD_LABELS={inherentScore:['Εγγενής βαθμός','Inherent score'],residualScore:['Υπολειπόμενος βαθμός','Residual score'],inherentLevel:['Εγγενής κατηγορία','Inherent level'],residualLevel:['Υπολειπόμενη κατηγορία','Residual level'],process:['Διεργασία','Process'],wording:['Λεκτικό','Wording']}
@@ -60,12 +62,11 @@ export function RiskAssessmentsPanel({list,organizationId,canManage,en,locale}){
     <ActionButton label={L(en,'Νέα εκτίμηση','New assessment')} tone="primary" onClick={()=>setCreating(true)}><Plus size={16}/><span>{L(en,'Νέα εκτίμηση','New assessment')}</span></ActionButton>
    </div>}
   </div>
-  <div className="scroll-table risk-assessments-table">
-   <table className="data-table sticky-table risk-table"><thead><tr><th>{L(en,'Περίοδος','Period')}</th><th>{L(en,'Εκτίμηση','Assessment')}</th><th>{L(en,'Ημερομηνία','Date')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Πολύ υψηλοί','Very high')}</th><th>{L(en,'Υψηλοί','High')}</th><th>{L(en,'Μέσος υπολειπόμενος','Avg. residual')}</th><th>{L(en,'Κατάσταση','Status')}</th></tr></thead><tbody>
-    {pageRows.map(({a,s})=><tr key={a.id} className={`risk-row-clickable${returnedClass(assessmentRow.returned,a.code)}`} onClick={()=>open(a.code)}><td><strong>{a.periodLabel}</strong><small>{PERIOD_KINDS[a.periodKind]?.[en?1:0]}</small></td><td>{txt(a,'title',en)}<small>{a.formCode}</small></td><td>{fmtDate(a.assessedOn,locale)}<small>{L(en,'Επόμενη','Next')}: {fmtDate(a.nextReviewOn,locale)}</small></td><td>{s.total}</td><td><span className="risk-level risk-level-very_high" title={levelLabel('very_high',en)}><strong>{s.levels.residual.very_high}</strong></span></td><td><span className="risk-level risk-level-high" title={levelLabel('high',en)}><strong>{s.levels.residual.high}</strong></span></td><td>{s.averages.residual!=null?<LevelChip score={Math.round(s.averages.residual)} en={en} title={String(s.averages.residual)}/>:'—'}</td><td><span className={`status-badge ${statusTone(a.status)}`}>{statusLabel(a.status,en)}</span></td></tr>)}
-   </tbody></table>
-   {!loading&&!rows.length&&<div className="registry-empty-state"><strong>{L(en,'Δεν υπάρχουν εκτιμήσεις κινδύνου','No risk assessments yet')}</strong><span>{L(en,'Δημιουργήστε την πρώτη εκτίμηση ή εισαγάγετε το υπάρχον μητρώο σας από Excel.','Create the first assessment or import your existing register from Excel.')}</span></div>}
-  </div>
+  <RegistryTable wrapperClassName="scroll-table risk-assessments-table" className="risk-table" rows={pageRows} rowKey={({a})=>a.id}
+   columns={[{key:'period',label:L(en,'Περίοδος','Period')},{key:'title',label:L(en,'Εκτίμηση','Assessment')},{key:'date',label:L(en,'Ημερομηνία','Date')},{key:'risks',label:L(en,'Κίνδυνοι','Risks')},{key:'veryHigh',label:L(en,'Πολύ υψηλοί','Very high')},{key:'high',label:L(en,'Υψηλοί','High')},{key:'residual',label:L(en,'Μέσος υπολειπόμενος','Avg. residual')},{key:'status',label:L(en,'Κατάσταση','Status')}]}
+   rowProps={({a})=>({className:`risk-row-clickable${returnedClass(assessmentRow.returned,a.code)}`,onClick:()=>open(a.code)})}
+   emptyTitle={loading?undefined:L(en,'Δεν υπάρχουν εκτιμήσεις κινδύνου','No risk assessments yet')} emptyText={L(en,'Δημιουργήστε την πρώτη εκτίμηση ή εισαγάγετε το υπάρχον μητρώο σας από Excel.','Create the first assessment or import your existing register from Excel.')}
+   renderRow={({a,s})=><><td><strong>{a.periodLabel}</strong><small>{PERIOD_KINDS[a.periodKind]?.[en?1:0]}</small></td><td>{txt(a,'title',en)}<small>{a.formCode}</small></td><td>{fmtDate(a.assessedOn,locale)}<small>{L(en,'Επόμενη','Next')}: {fmtDate(a.nextReviewOn,locale)}</small></td><td>{s.total}</td><td><span className="risk-level risk-level-very_high" title={levelLabel('very_high',en)}><strong>{s.levels.residual.very_high}</strong></span></td><td><span className="risk-level risk-level-high" title={levelLabel('high',en)}><strong>{s.levels.residual.high}</strong></span></td><td>{s.averages.residual!=null?<LevelChip score={Math.round(s.averages.residual)} en={en} title={String(s.averages.residual)}/>:'—'}</td><td><AssessmentStatusBadge status={a.status} en={en}/></td></>}/>
   {rows.length>0&&pager}
   {creating&&<AssessmentDetailsDialog en={en} assessments={items} onClose={()=>setCreating(false)} onSave={create}/>}
   {preview&&<ImportPreviewDialog preview={preview} en={en} onClose={()=>setPreview(null)} onConfirm={confirmImport}/>}
@@ -92,13 +93,13 @@ export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSav
    {/* Three even rows, one-line labels: title and form; type, period and date; next review and assessor. */}
    {field('title',L(en,'Τίτλος','Title'),{},'risk-field-span2')}
    {field('formCode',L(en,'Κωδικός εντύπου','Form code'))}
-   <label className="risk-field"><span>{L(en,'Είδος περιόδου','Period type')}</span><select value={draft.periodKind} onChange={e=>set('periodKind',e.target.value)}>{Object.entries(PERIOD_KINDS).map(([id,[el,enLabel]])=><option key={id} value={id}>{en?enLabel:el}</option>)}</select></label>
+   <SearchableSelect className="risk-field" label={L(en,'Είδος περιόδου','Period type')} value={draft.periodKind} onChange={v=>{if(v)set('periodKind',v)}} options={Object.entries(PERIOD_KINDS).map(([id,[el,enLabel]])=>({value:id,label:en?enLabel:el}))}/>
    {field('periodLabel',L(en,'Περίοδος','Period'),{placeholder:L(en,'π.χ. 2026, Α\' εξάμηνο 2026','e.g. 2026, H1 2026'),title:L(en,'π.χ. 2026, Α\' εξάμηνο 2026, Γ\' τρίμηνο 2026','e.g. 2026, H1 2026, Q3 2026')})}
    <ManualDateField label={L(en,'Ημερομηνία αξιολόγησης','Assessment date')} value={draft.assessedOn||''} onChange={v=>set('assessedOn',v)}/>
    <ManualDateField label={L(en,'Επόμενη αξιολόγηση','Next assessment')} value={draft.nextReviewOn||''} onChange={v=>set('nextReviewOn',v)} optional/>
    {field('assessorLabel',L(en,'Υπεύθυνος αξιολόγησης','Assessed by'),{},'risk-field-span2')}
    <label className="risk-field risk-field-wide"><span>{L(en,'Πεδίο εφαρμογής / σημειώσεις','Scope / notes')}</span><textarea rows={2} value={draft.scopeNote||''} onChange={e=>set('scopeNote',e.target.value)}/></label>
-   {isNew&&!children&&assessments.length>0&&<label className="risk-field risk-field-wide"><span>{L(en,'Μεταφορά κινδύνων από','Carry risks forward from')}</span><select value={carryId} onChange={e=>setCarryId(e.target.value)}><option value="">{L(en,'Κενή εκτίμηση','Empty assessment')}</option>{assessments.map(a=><option key={a.id} value={a.id}>{a.periodLabel} · {txt(a,'title',en)} ({(a.risks||[]).length})</option>)}</select><small>{L(en,'Οι κίνδυνοι μεταφέρονται με τους ίδιους κωδικούς, ώστε να συγκρίνονται οι περίοδοι.','Risks keep their codes, so the periods can be compared.')}</small></label>}
+   {isNew&&!children&&assessments.length>0&&<div className="risk-field risk-field-wide"><SearchableSelect label={L(en,'Μεταφορά κινδύνων από','Carry risks forward from')} value={carryId} onChange={v=>setCarryId(v||'')} options={[{value:'',label:L(en,'Κενή εκτίμηση','Empty assessment')},...assessments.map(a=>({value:a.id,label:`${a.periodLabel} · ${txt(a,'title',en)} (${(a.risks||[]).length})`,keywords:a.code}))]}/><small>{L(en,'Οι κίνδυνοι μεταφέρονται με τους ίδιους κωδικούς, ώστε να συγκρίνονται οι περίοδοι.','Risks keep their codes, so the periods can be compared.')}</small></div>}
   </div>
   {children}
  </ObserverDialog>

@@ -1,0 +1,110 @@
+/* Department registers: list, case form, monthly sheet, indicators, builder, import. */
+
+/* A register's first tab is a list, not a details sheet: it fills the record like the other tabs. */
+.register-record-shell .entity-record-body:has(>.record-tab-panel,>.register-sheet-layout){display:flex;flex-direction:column;min-height:0}
+.register-record-shell .entity-record-body>.record-tab-panel,.register-record-shell .entity-record-body>.register-sheet-layout{flex:1 1 auto;min-height:0}
+
+.register-table td small,.register-table td strong{display:block}
+.register-table td small{color:var(--lo-color-muted);font-size:12px}
+.register-kind{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.register-context{display:inline-flex;flex-wrap:wrap;align-items:center;gap:10px}
+.register-privacy{display:inline-flex;align-items:center;gap:5px;color:var(--lo-color-muted);font-size:12px}
+.register-num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* New register: template cards */
+.register-templates{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.register-templates button{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);color:var(--lo-color-text);text-align:left;cursor:pointer}
+.register-templates button.active{border-color:var(--lo-color-primary);box-shadow:0 0 0 2px var(--lo-color-primary-soft)}
+.register-templates small{color:var(--lo-color-muted);line-height:1.35}
+.register-templates em{font-style:normal;font-size:12px;color:var(--lo-color-muted)}
+.register-template-kind{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--lo-color-primary)}
+
+/* Case form */
+.register-entry-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 16px;align-items:start}
+.register-field-wide{grid-column:1/-1}
+.register-field.has-error input,.register-field.has-error .manual-date-field input{border-color:var(--lo-status-danger-border)}
+.register-field.has-warning .field-hint{color:var(--lo-status-warning-fg)}
+.register-number{display:flex;align-items:center;gap:6px}
+.register-number input{flex:1;min-width:0}
+.register-number em{font-style:normal;color:var(--lo-color-muted);font-size:13px;white-space:nowrap}
+.register-computed output{display:flex;align-items:center;gap:6px;min-height:38px;padding:0 10px;border-radius:8px;background:var(--lo-color-surface-muted);color:var(--lo-color-text);font-weight:600}
+.register-form-errors{margin-right:auto;color:var(--lo-status-danger-fg);font-size:13px}
+
+/* Monthly sheet */
+.register-sheet-layout{display:grid;gap:12px;min-height:0;overflow:auto}
+.register-sheet-actions,.register-indicator-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.register-row-label{font-weight:600;color:var(--lo-color-text)}
+.register-row-label small{display:block;font-weight:400;color:var(--lo-color-muted)}
+/* The month and the year scroll together, not each in its own box. */
+.register-sheet-layout>.record-tab-panel{flex:none}
+.register-sheet-layout .record-tab-panel-body,.register-sheet-layout .scroll-table{overflow:visible;flex:none}
+.register-sheet-table td input{width:90px;text-align:right}
+.register-sheet-table tfoot td,.register-sheet-table tfoot th{font-weight:700;border-top:2px solid var(--lo-color-border-strong)}
+.register-sheet-group th{background:var(--lo-color-surface-muted);font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--lo-color-muted)}
+.register-year-table th button{display:inline-flex;align-items:center;gap:3px;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
+.register-year-table .is-selected{background:var(--lo-color-primary-soft)}
+
+/* Indicators */
+.register-indicator-report{display:grid;gap:14px}
+.register-report-title{margin:0;font-size:15px}
+.register-indicator-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.register-indicator-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px 14px;border:1px solid var(--lo-color-border);border-left:4px solid var(--lo-status-neutral-border);border-radius:10px;background:var(--lo-color-surface);color:var(--lo-color-text);text-align:left;cursor:pointer}
+.register-indicator-card.is-onTarget{border-left-color:var(--lo-status-success-border)}
+.register-indicator-card.is-attention{border-left-color:var(--lo-status-warning-border)}
+.register-indicator-card.is-breach{border-left-color:var(--lo-status-danger-border)}
+.register-indicator-card.active{box-shadow:0 0 0 2px var(--lo-color-primary-soft);border-color:var(--lo-color-primary)}
+.register-indicator-title{font-size:13px;color:var(--lo-color-muted);line-height:1.3}
+.register-indicator-value{font-size:24px;line-height:1.1}
+.register-indicator-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.register-indicator-meta small,.register-indicator-fraction,.register-indicator-rule{font-size:12px;color:var(--lo-color-muted)}
+.register-indicator-small{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--lo-status-warning-fg)}
+.register-indicator-compare{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--lo-color-muted)}
+.register-change{display:inline-flex;align-items:center;gap:2px;font-weight:600;color:var(--lo-color-text)}
+.register-change.is-better{color:var(--lo-status-success-fg)}
+.register-change.is-worse{color:var(--lo-status-danger-fg)}
+.register-indicator-detail{display:grid;gap:12px;padding:14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.register-indicator-detail header h4{margin:0}
+.register-indicator-detail header p{margin:4px 0 0;color:var(--lo-color-muted);font-size:13px}
+.register-trend{position:relative;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;align-items:end;height:170px;padding:18px 0 34px}
+.register-trend-bar{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
+.register-trend-bar i{display:block;width:70%;border-radius:4px 4px 0 0;background:var(--lo-color-primary)}
+.register-trend-bar.is-attention i{background:var(--lo-status-warning-border)}
+.register-trend-bar.is-breach i{background:var(--lo-status-danger-border)}
+.register-trend-bar b{position:absolute;top:-18px;font-size:11px;font-weight:600}
+.register-trend-bar small{position:absolute;bottom:-22px;font-size:11px;color:var(--lo-color-muted)}
+.register-trend-target{position:absolute;left:0;right:0;border-top:2px dashed var(--lo-status-success-border);margin-bottom:34px;pointer-events:none}
+.register-trend-target em{position:absolute;right:0;top:-16px;font-size:11px;font-style:normal;color:var(--lo-status-success-fg)}
+.register-split h5{margin:0 0 6px;font-size:13px}
+.register-split-bar{width:40%}
+.register-split-bar i{display:block;height:8px;border-radius:4px;background:var(--lo-color-primary)}
+
+/* Builder */
+.register-builder-section{display:grid;gap:8px}
+.register-builder-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.register-builder-section-head input{flex:1;font-weight:600}
+.register-builder-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.register-builder-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface)}
+.register-builder-list li>span:first-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+.register-builder-list small{color:var(--lo-color-muted);font-size:12px}
+.register-builder-list code{font-size:11px;color:var(--lo-color-muted)}
+.register-builder-tools{display:flex;gap:4px;flex-shrink:0}
+.register-builder-subtitle{margin:6px 0 0;font-size:13px}
+.register-axis-fields{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;align-items:center;flex:1}
+.register-filter-rows{display:grid;gap:8px}
+.register-filter-row{display:grid;grid-template-columns:minmax(150px,2fr) minmax(130px,1.4fr) minmax(110px,1.4fr) auto;gap:6px;align-items:center}
+
+/* Import */
+.register-import{display:grid;gap:12px;align-content:start;overflow:auto}
+.register-file-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px;border:2px dashed var(--lo-color-border-strong);border-radius:12px;color:var(--lo-color-text);cursor:pointer;text-align:center}
+.register-file-drop input{position:absolute;opacity:0;width:1px;height:1px}
+.register-file-drop small{color:var(--lo-color-muted)}
+.register-mapping td{vertical-align:middle}
+.register-samples{color:var(--lo-color-muted);font-size:12px;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+.register-import-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:10px}
+.register-import-skips{margin:0;padding-left:18px;display:grid;gap:4px}
+
+@media (max-width:760px){
+  .register-filter-row{grid-template-columns:1fr 1fr}
+  .register-trend{gap:3px}
+  .register-trend-bar b{display:none}
+}

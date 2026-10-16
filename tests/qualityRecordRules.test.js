@@ -55,8 +55,8 @@ describe('withIncidentClass', () => {
     expect(withIncidentClass({ impact: 'major' }, 'nearMiss')).toMatchObject({ incidentClass: 'nearMiss', reachedPatient: false, harmOccurred: false, impact: 'none' })
   })
 
-  it('a harmful incident reached the patient and keeps an impact, at least minor', () => {
-    expect(withIncidentClass({ impact: 'none' }, 'harmful')).toMatchObject({ reachedPatient: true, harmOccurred: true, impact: 'minor' })
+  it('a harmful incident reached the patient and keeps an impact, at least mild (WHO)', () => {
+    expect(withIncidentClass({ impact: 'none' }, 'harmful')).toMatchObject({ reachedPatient: true, harmOccurred: true, impact: 'mild' })
     expect(withIncidentClass({ impact: 'major' }, 'harmful').impact).toBe('major')
   })
 

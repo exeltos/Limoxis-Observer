@@ -1,0 +1,21 @@
+/* FormCard.jsx: the cards and field grids of a form page. Every control in
+   them is 40px high so fields in a row line up. */
+.lo-form-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-content:start;min-height:0}
+.lo-form-card{display:flex;flex-direction:column;gap:12px;min-width:0;padding:14px 16px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
+.lo-form-card.is-wide{grid-column:1/-1}
+.lo-form-card>header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+.lo-form-card>header strong{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--lo-color-text)}
+.lo-form-card>header span{font-size:11px;color:var(--lo-color-muted)}
+.lo-form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 14px;align-items:start}
+.lo-form-grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.lo-form-grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.lo-form-grid>.is-span{grid-column:1/-1}
+.lo-form-card .field{gap:5px;min-width:0}
+.lo-form-card :is(.field,.searchable-select) :is(input:not([type='checkbox']),textarea){width:100%;box-sizing:border-box;min-height:40px;padding:0 11px;border:1px solid var(--lo-color-border-strong,#cad6df);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px}
+.lo-form-card .field>input:not([type='checkbox']),.lo-form-card .searchable-select .searchable-select-control>input{height:40px}
+.lo-form-card textarea{padding:9px 11px!important;line-height:1.45;resize:vertical}
+.lo-form-card .lo-mode-switch{margin:0}
+.lo-form-card .lo-mode-switch>button{min-height:40px!important}
+@media(max-width:1100px){.lo-form-cards{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:700px){.lo-form-grid.cols-2,.lo-form-grid.cols-3{grid-template-columns:minmax(0,1fr)}}
+.lo-form-card .time-field-control>input{height:40px!important;min-height:40px!important}

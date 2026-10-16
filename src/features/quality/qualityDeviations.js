@@ -1,5 +1,6 @@
 // Deviations recorded elsewhere (control executions with a finding, bundle
-// assessments with a failed criterion) that no CAPA points to yet. Recording
+// assessments with a failed criterion, trainings evaluated as not or partly
+// effective) that no CAPA points to yet. Recording
 // staff cannot create CAPAs (quality RLS), so the quality manager turns each
 // one into a CAPA from this queue, prefilled.
 
@@ -19,7 +20,9 @@ export function sourcePath(sourceId=''){
  return null
 }
 
-export function deviationQueue({controls=[],bundles=[],capas=[],now=new Date(),days=90}={}){
+export function trainingSourceId(program){return `TRAINING:${program.id}`}
+
+export function deviationQueue({controls=[],bundles=[],trainings=[],capas=[],now=new Date(),days=90}={}){
  const since=now.getTime()-days*DAY
  const linked=new Set(capas.filter(capa=>capa.lifecycleStatus!=='voided').map(capa=>capa.sourceId).filter(Boolean))
  const items=[]
@@ -59,6 +62,21 @@ export function deviationQueue({controls=[],bundles=[],capas=[],now=new Date(),d
    deviationActions:'',
   })
  }
+ for(const program of trainings){
+  const value=program?.effectiveness||{}
+  if(!['partial','not_effective'].includes(value.result))continue
+  const at=new Date(value.evaluatedAt||program.dueDate||'').getTime()
+  if(!Number.isFinite(at)||at<since)continue
+  const sourceId=trainingSourceId(program)
+  if(linked.has(sourceId))continue
+  items.push({
+   key:`training:${program.id}`,kind:'training',source:'training',sourceId,path:`/training/${program.id}`,
+   title:program.title,titleEn:program.titleEn||program.title,department:program.audience||'',departmentEn:program.audienceEn||program.audience||'',departmentId:'',at:value.evaluatedAt||program.dueDate,
+   detail:value.result,notes:[value.criterion,value.notes].filter(Boolean).join(' · '),
+   priority:value.result==='not_effective'?'high':'medium',
+   deviationActions:'',
+  })
+ }
  return items.sort((a,b)=>new Date(b.at)-new Date(a.at))
 }
 
@@ -69,13 +87,17 @@ export function capaPrefill(item,language='el'){
  const lines=[
   item.kind==='control'
    ?(en?`Control deviation in ${item.department}: ${item.detail||'non-compliant'}.`:`Απόκλιση ελέγχου στο τμήμα ${item.department}: ${item.detail||'μη συμμόρφωση'}.`)
+   :item.kind==='training'
+   ?(en?`Training evaluated as ${item.detail==='partial'?'partly effective':'not effective'}.`:`Η εκπαίδευση αξιολογήθηκε ως ${item.detail==='partial'?'μερικώς αποτελεσματική':'μη αποτελεσματική'}.`)
    :(en?`Bundle assessment in ${item.department}: ${item.detail} criteria not met.`:`Αξιολόγηση bundle στο τμήμα ${item.department}: ${item.detail} κριτήρια δεν τηρήθηκαν.`),
   item.notes&&(en?`Notes: ${item.notes}`:`Σημειώσεις: ${item.notes}`),
  ].filter(Boolean)
- const subActions=item.deviationActions
+ // A training that did not change practice starts from the same three steps as in Training.
+ const trainingSteps=en?['Find why practice did not change','Targeted retraining or change of method','Re-evaluate effectiveness']:['Διερεύνηση γιατί δεν άλλαξε η πρακτική','Στοχευμένη επανεκπαίδευση ή αλλαγή μεθόδου','Επαναξιολόγηση αποτελεσματικότητας']
+ const subActions=item.kind==='training'?trainingSteps.map((text,index)=>newSubAction(text,index)):item.deviationActions
   ?item.deviationActions.split('\n').map(line=>line.replace(/^\s*(\d+[.)]|[-•])\s*/,'').trim()).filter(Boolean).map((text,index)=>newSubAction(text,index))
   :[]
- return {source:item.source,sourceId:item.sourceId,departmentId:item.departmentId,title:en?`Corrective action: ${title}`:`Διορθωτική ενέργεια: ${title}`,description:lines.join('\n'),priority:item.priority,subActions}
+ return {source:item.kind==='training'?'other':item.source,sourceId:item.sourceId,departmentId:item.departmentId,title:en?`Corrective action: ${title}`:`Διορθωτική ενέργεια: ${title}`,description:lines.join('\n'),priority:item.priority,subActions}
 }
 
 export function newSubAction(title='',index=0){

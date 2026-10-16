@@ -5,6 +5,9 @@ import { Pencil,Trash2 } from 'lucide-react'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
 import { ActionButton } from '../../../design-system/ActionButton'
 import { ObserverDialog,DialogActions } from '../../../design-system/ObserverDialog'
+import { SearchableSelect } from '../../../design-system/SearchableSelect'
+import { StatusBadge } from '../../../design-system/StatusBadge'
+import { formatDay } from '../../../core/i18n/formatDay'
 import { readSessionValue,writeSessionValue } from '../../../core/storage/browserStorage'
 import { CONSEQUENCE,LEVELS,LIKELIHOOD,levelForScore,levelLabel } from './riskModel'
 
@@ -66,15 +69,17 @@ export function LevelLegend({en,showResponse=false}){
  return <ul className={`risk-legend${showResponse?' risk-legend-full':''}`}>{LEVELS.map(x=><li key={x.id}><span className={`risk-swatch risk-cell-${x.id}`}/><strong>{en?x.en:x.el}</strong><small>{x.range}</small>{showResponse&&<em>{en?x.responseEn:x.responseEl}</em>}</li>)}</ul>
 }
 
+// L or C of a stage: one value of the 1–5 scale, typed or picked; «×» clears it.
 export function AxisSelect({label,value,onChange,scale,en,disabled=false}){
- return <label className="risk-axis-select"><span>{label}</span><select value={value??''} disabled={disabled} onChange={e=>onChange(e.target.value?Number(e.target.value):null)}><option value="">—</option>{scale.map(x=><option key={x.value} value={x.value}>{x.value} · {en?x.en:x.el}</option>)}</select></label>
+ return <SearchableSelect className="risk-axis-select" label={label} value={value??''} disabled={disabled} placeholder="—" clearLabel={disabled?'':L(en,'Καθαρισμός','Clear')} emptyLabel={L(en,'Καμία τιμή','No value')} onChange={v=>onChange(v===''||v==null?null:Number(v))} options={scale.map(x=>({value:x.value,label:`${x.value} · ${en?x.en:x.el}`}))}/>
 }
 
 export const STATUS_LABELS={draft:['Πρόχειρο','Draft'],under_review:['Σε έλεγχο','Under review'],approved:['Εγκεκριμένη','Approved'],archived:['Αρχειοθετημένη','Archived']}
 export const statusLabel=(id,en)=>STATUS_LABELS[id]?.[en?1:0]||id
-export const statusTone=id=>id==='approved'?'active':id==='under_review'?'warning':''
+export const statusTone=id=>id==='approved'?'success':id==='under_review'?'warning':'neutral'
+export function AssessmentStatusBadge({status,en}){return <StatusBadge tone={statusTone(status)}>{statusLabel(status,en)}</StatusBadge>}
 export const PERIOD_KINDS={annual:['Ετήσια','Annual'],semester:['Εξαμηνιαία','Six-monthly'],quarter:['Τριμηνιαία','Quarterly'],other:['Άλλη','Other']}
-export const fmtDate=(value,locale)=>value?new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
+export const fmtDate=(value,locale)=>formatDay(value,String(locale||'').startsWith('en')?'en':'el')
 
 // Edit and delete of a risk or an opportunity: the record shell lists them in
 // its "…" menu. The page opens read-only; «Επεξεργασία» unlocks the fields.

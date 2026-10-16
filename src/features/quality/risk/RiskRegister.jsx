@@ -3,6 +3,7 @@ import { AlertOctagon,AlertTriangle,ChevronRight,ClipboardList,Gauge,Plus,Star,T
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
 import { ActionButton } from '../../../design-system/ActionButton'
 import { MetricCard } from '../../../design-system/MetricCard'
+import { RegistryTable } from '../../../design-system/RegistryTable'
 import { JCI_CHAPTERS,LEVELS,SECTIONS,riskWarnings,scored,warningLabel } from './riskModel'
 import { L,LevelChip,defaultFrame,returnedClass,txt,usePaged } from './riskUi'
 import { IndicatorBadge } from './RiskIndicatorsUi'
@@ -41,6 +42,8 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,cell,onClearCell,
  const {items:pageRows,pager}=usePaged(ordered,{en,resetOn:JSON.stringify([query,section,process,level,jci,flag,quick,cell]),startIndex:ordered.findIndex(r=>r.risk.lineageKey===returned)})
  const sectionTotals=useMemo(()=>Object.fromEntries(SECTIONS.map(x=>[x.id,ordered.filter(r=>(r.risk.section||'clinical')===x.id).length])),[ordered])
  const groups=SECTIONS.map(x=>({section:x,rows:pageRows.filter(r=>(r.risk.section||'clinical')===x.id)})).filter(g=>g.rows.length)
+ // The table's rows: each section's heading, then its risks.
+ const tableRows=groups.flatMap(({section:g,rows:list})=>[{heading:g},...list])
  const active=(section!=='all')+(process!=='all')+(level!=='all')+(jci!=='all')+(flag!=='all')
  const kpis=<div className="module-summary-strip risk-kpi-strip risk-register-kpis">
    <MetricCard icon={ClipboardList} value={all.length} label={L(en,'Κίνδυνοι','Risks')} onClick={()=>setQuick(null)} active={!quick}/>
@@ -65,30 +68,22 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,cell,onClearCell,
    </div>
   </div>
   {cell&&<div className="risk-cell-filter"><span>{L(en,'Φίλτρο από τον χάρτη','Filter from the heat map')}: L{cell.l} × C{cell.c}</span><button type="button" onClick={onClearCell}>{L(en,'Καθαρισμός','Clear')}</button></div>}
-  <div className="scroll-table risk-table-wrap">
-   <table className="data-table sticky-table risk-table"><thead><tr>
-    <th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Διεργασία / τμήμα','Process / department')}</th><th>{L(en,'Κίνδυνος','Risk')}</th>
-    <th>{L(en,'Εγγενής','Inherent')}</th><th className="risk-step">{L(en,'Υπολειπόμενος','Residual')}</th><th className="risk-step">{L(en,'Στόχος','Target')}</th>
-    <th>{L(en,'Δείκτες','Indicators')}</th><th>JCI</th><th>{L(en,'Υπεύθυνος','Owner')}</th><th aria-hidden="true"/>
-   </tr></thead><tbody>
-    {groups.map(({section:g,rows:list})=>[
-     <tr key={`section-${g.id}`} className="risk-section-row"><td colSpan={10}><strong>{en?g.en:g.el}</strong><span>{sectionTotals[g.id]}</span></td></tr>,
-     ...list.map(({risk,s,warnings})=><tr key={risk.id||risk.lineageKey} className={`risk-row-clickable${returnedClass(returned,risk.lineageKey)}`} onClick={()=>onOpen(risk)}>
-     <td><strong>{risk.lineageKey}</strong>{risk.prioritized&&<Star size={13} className="risk-star" aria-label="FMEA"/>}</td>
-     <td><span className="risk-process">{txt(risk,'process',en)||'—'}</span><small>{txt(risk,'scope',en)}</small></td>
-     <td className="risk-hazard"><span>{txt(risk,'hazard',en)}</span>{warnings.filter(w=>w.tone!=='info').slice(0,2).map(w=><small key={w.id} className="risk-row-warning"><AlertTriangle size={12}/>{warningLabel(w.id,en)}</small>)}</td>
-     <td><LevelChip score={s.inherent.score} level={s.inherent.level} en={en} compact/></td>
-     <td className="risk-step"><LevelChip score={s.residual.score} level={s.residual.level} en={en}/></td>
-     <td className="risk-step"><LevelChip score={s.target.score} level={s.target.level} en={en} compact/></td>
-     <td><IndicatorBadge keys={risk.indicatorKeys||[]} values={indicatorValues} en={en}/></td>
-     <td>{risk.jci||'—'}</td>
-     <td>{txt(risk,'owner',en)||'—'}</td>
-     <td className="risk-open-cell"><button type="button" className="risk-open-button" aria-label={L(en,'Άνοιγμα κινδύνου','Open the risk')} onClick={e=>{e.stopPropagation();onOpen(risk)}}><ChevronRight size={15}/></button></td>
-    </tr>)
-    ])}
-   </tbody></table>
-   {!rows.length&&<div className="registry-empty-state"><strong>{risks.length?L(en,'Κανένας κίνδυνος με αυτά τα φίλτρα','No risk matches these filters'):L(en,'Δεν υπάρχουν κίνδυνοι','No risks yet')}</strong><span>{risks.length?L(en,'Αλλάξτε ή καθαρίστε τα φίλτρα.','Change or clear the filters.'):L(en,'Προσθέστε κινδύνους ή εισαγάγετε το μητρώο από Excel.','Add risks or import the register from Excel.')}</span></div>}
-  </div>
+  <RegistryTable wrapperClassName="scroll-table risk-table-wrap" className="risk-table" rows={tableRows} rowKey={row=>row.heading?`section-${row.heading.id}`:row.risk.id||row.risk.lineageKey}
+   columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'process',label:L(en,'Διεργασία / τμήμα','Process / department')},{key:'risk',label:L(en,'Κίνδυνος','Risk')},{key:'inherent',label:L(en,'Εγγενής','Inherent')},{key:'residual',label:L(en,'Υπολειπόμενος','Residual'),className:'risk-step'},{key:'target',label:L(en,'Στόχος','Target'),className:'risk-step'},{key:'indicators',label:L(en,'Δείκτες','Indicators')},{key:'jci',label:'JCI'},{key:'owner',label:L(en,'Υπεύθυνος','Owner')},{key:'open',label:''}]}
+   rowProps={row=>row.heading?{}:{className:`risk-row-clickable${returnedClass(returned,row.risk.lineageKey)}`,onClick:()=>onOpen(row.risk)}}
+   emptyTitle={risks.length?L(en,'Κανένας κίνδυνος με αυτά τα φίλτρα','No risk matches these filters'):L(en,'Δεν υπάρχουν κίνδυνοι','No risks yet')} emptyText={risks.length?L(en,'Αλλάξτε ή καθαρίστε τα φίλτρα.','Change or clear the filters.'):L(en,'Προσθέστε κινδύνους ή εισαγάγετε το μητρώο από Excel.','Add risks or import the register from Excel.')}
+   renderRow={row=>row.heading?<tr className="risk-section-row"><td colSpan={10}><strong>{en?row.heading.en:row.heading.el}</strong><span>{sectionTotals[row.heading.id]}</span></td></tr>:<>
+     <td><strong>{row.risk.lineageKey}</strong>{row.risk.prioritized&&<Star size={13} className="risk-star" aria-label="FMEA"/>}</td>
+     <td><span className="risk-process">{txt(row.risk,'process',en)||'—'}</span><small>{txt(row.risk,'scope',en)}</small></td>
+     <td className="risk-hazard"><span>{txt(row.risk,'hazard',en)}</span>{row.warnings.filter(w=>w.tone!=='info').slice(0,2).map(w=><small key={w.id} className="risk-row-warning"><AlertTriangle size={12}/>{warningLabel(w.id,en)}</small>)}</td>
+     <td><LevelChip score={row.s.inherent.score} level={row.s.inherent.level} en={en} compact/></td>
+     <td className="risk-step"><LevelChip score={row.s.residual.score} level={row.s.residual.level} en={en}/></td>
+     <td className="risk-step"><LevelChip score={row.s.target.score} level={row.s.target.level} en={en} compact/></td>
+     <td><IndicatorBadge keys={row.risk.indicatorKeys||[]} values={indicatorValues} en={en}/></td>
+     <td>{row.risk.jci||'—'}</td>
+     <td>{txt(row.risk,'owner',en)||'—'}</td>
+     <td className="risk-open-cell"><button type="button" className="risk-open-button" aria-label={L(en,'Άνοιγμα κινδύνου','Open the risk')} onClick={e=>{e.stopPropagation();onOpen(row.risk)}}><ChevronRight size={15}/></button></td>
+    </>}/>
   {rows.length>0&&pager}
  </>,{registry:true,name:'risk-register'})
 }

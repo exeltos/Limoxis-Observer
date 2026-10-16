@@ -1,11 +1,14 @@
 import { useMemo,useState } from 'react'
-import { AlertOctagon,AlertTriangle,ArrowDownRight,ArrowRight,ArrowUpRight,ChevronRight,ClipboardList,Gauge } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,ArrowDownRight,ArrowRight,ArrowUpRight,Check,ChevronRight,ClipboardList,Gauge } from 'lucide-react'
 import { MetricCard } from '../../../design-system/MetricCard'
+import { ChoiceChips } from '../../../design-system/ChoiceChips'
+import { RegistryTable } from '../../../design-system/RegistryTable'
+import { StatusBadge } from '../../../design-system/StatusBadge'
 import { compareAssessments,levelForScore,periodName,periodOf,riskTrend,scored } from './riskModel'
 import { L,LevelChip,LevelLegend,RiskHeatMap,defaultFrame,fmtDate,returnedClass,txt,usePaged } from './riskUi'
 import { LevelCounts,num } from './RiskAnalysis'
 
-const STATUS={improved:['Βελτιώθηκε','Improved','active'],worsened:['Χειροτέρεψε','Worsened','danger'],unchanged:['Αμετάβλητος','Unchanged',''],new:['Νέος','New','warning'],removed:['Αφαιρέθηκε','Removed','']}
+const STATUS={improved:['Βελτιώθηκε','Improved','success'],worsened:['Χειροτέρεψε','Worsened','danger'],unchanged:['Αμετάβλητος','Unchanged','neutral'],new:['Νέος','New','warning'],removed:['Αφαιρέθηκε','Removed','neutral']}
 const label=(id,en)=>STATUS[id][en?1:0]
 const round=value=>Math.round(value*10)/10
 
@@ -95,10 +98,11 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   <div className="risk-compare-row">
   <section className="risk-panel risk-trend-panel"><header><h3>{L(en,'Πορεία σε όλες τις περιόδους','Course over all periods')}</h3><small>{L(en,'Επιλέξτε δύο περιόδους για σύγκριση','Tick two periods to compare')}</small></header>
    {trend.length>=3&&<TrendChart trend={trend} en={en} currentId={current.id}/>}
-   <div className="scroll-table"><table className="data-table risk-trend"><thead><tr><th aria-label={L(en,'Επιλογή','Pick')}/><th>{L(en,'Περίοδος','Period')}</th><th>{L(en,'Κίνδυνοι','Risks')}</th><th>{L(en,'Μέσος υπολ.','Avg. residual')}</th><th>{L(en,'Πολύ υψ.','Very high')}</th><th>{L(en,'Υψηλοί','High')}</th><th>{L(en,'Μέτριοι','Moderate')}</th><th>{L(en,'Χαμηλοί','Low')}</th></tr></thead><tbody>
-    {trend.map(p=>{const on=p.id===current.id||p.id===other.id
-     return <tr key={p.id} className={`is-openable${on?' is-current':''}`} onClick={()=>pick(p.id)}><td><input type="checkbox" checked={on} onChange={()=>pick(p.id)} onClick={e=>e.stopPropagation()} aria-label={L(en,`Επιλογή ${p.label}`,`Pick ${p.label}`)}/></td><td><strong>{p.label}</strong><small>{fmtDate(p.assessedOn,locale)}</small></td><td>{p.total}</td><td><LevelChip score={Math.round(p.residualAverage||0)||null} level={levelForScore(Math.round(p.residualAverage||0))} en={en} compact title={num(p.residualAverage,en)}/> {num(p.residualAverage,en)}</td><td>{p.levels.very_high}</td><td>{p.levels.high}</td><td>{p.levels.moderate}</td><td>{p.levels.low}</td></tr>})}
-   </tbody></table></div>
+   <ChoiceChips className="risk-period-picks" label={L(en,'Περίοδοι σύγκρισης','Periods compared')} options={trend.map(p=>({value:p.id,label:p.label}))} selected={[current.id,other.id]} onToggle={pick}/>
+   <RegistryTable className="risk-trend" rows={trend} rowKey={p=>p.id}
+    columns={[{key:'pick',label:'',ariaLabel:L(en,'Επιλογή','Pick'),className:'risk-pick-col'},{key:'period',label:L(en,'Περίοδος','Period')},{key:'risks',label:L(en,'Κίνδυνοι','Risks')},{key:'avg',label:L(en,'Μέσος υπολ.','Avg. residual')},{key:'veryHigh',label:L(en,'Πολύ υψ.','Very high')},{key:'high',label:L(en,'Υψηλοί','High')},{key:'moderate',label:L(en,'Μέτριοι','Moderate')},{key:'low',label:L(en,'Χαμηλοί','Low')}]}
+    rowProps={p=>({className:`is-openable${p.id===current.id||p.id===other.id?' is-current':''}`,onClick:()=>pick(p.id)})}
+    renderRow={p=><><td className="risk-pick-col">{(p.id===current.id||p.id===other.id)&&<Check size={15} aria-hidden="true"/>}</td><td><strong>{p.label}</strong><small>{fmtDate(p.assessedOn,locale)}</small></td><td>{p.total}</td><td><LevelChip score={Math.round(p.residualAverage||0)||null} level={levelForScore(Math.round(p.residualAverage||0))} en={en} compact title={num(p.residualAverage,en)}/> {num(p.residualAverage,en)}</td><td>{p.levels.very_high}</td><td>{p.levels.high}</td><td>{p.levels.moderate}</td><td>{p.levels.low}</td></>}/>
   </section>
   <section className="risk-panel"><header><h3>{L(en,'Υπολειπόμενος κίνδυνος ανά περίοδο','Residual risk by period')}</h3><LevelLegend en={en}/></header>
    <div className="risk-heatmaps risk-heatmaps-two risk-heatmaps-compact">{map(other,prev)}{map(current,cur)}</div>
@@ -107,18 +111,18 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   <section className="risk-panel"><header><h3>{L(en,'Μεταβολή ανά κίνδυνο','Change per risk')}</h3>
    <div className="risk-status-chips">{['all','improved','worsened','unchanged','new','removed'].map(id=><button key={id} type="button" className={show===id?'active':''} onClick={()=>setShow(id)}>{id==='all'?L(en,'Όλοι','All'):label(id,en)} <b>{id==='all'?result.rows.length:result.counts[id]}</b></button>)}</div></header>
    <div className="risk-registry-frame">
-   <div className="scroll-table"><table className="data-table risk-table risk-compare-table"><thead><tr><th>{L(en,'Κωδ.','Code')}</th><th>{L(en,'Κίνδυνος','Risk')}</th><th>{nameOf(other)}</th><th>{nameOf(current)}</th><th>{L(en,'Μεταβολή','Change')}</th><th>{L(en,'Τι άλλαξε','What changed')}</th><th>{L(en,'Κατάσταση','Status')}</th><th aria-hidden="true"/></tr></thead><tbody>
-    {pageRows.map(r=>{const openable=r.status!=='removed'&&onOpen
-     return <tr key={r.key} className={`${openable?'is-openable':''}${current.id===assessment.id?returnedClass(returned,r.risk.lineageKey):''}`} onClick={()=>openable&&onOpen(r.risk,current)} title={openable?L(en,'Άνοιγμα του κινδύνου','Open the risk'):undefined}>
-      <td><strong>{r.risk.lineageKey}</strong></td>
-      <td className="risk-hazard"><span>{txt(r.risk,'hazard',en)}</span><small>{[txt(r.risk,'process',en),txt(r.risk,'scope',en)].filter(Boolean).join(' · ')}</small></td>
-      <td><LevelChip score={r.before} en={en} compact/></td><td><LevelChip score={r.current} en={en} compact/></td>
-      <td><Delta value={r.delta} en={en}/></td><td><AxisChange row={r} en={en}/></td>
-      <td><span className={`status-badge ${STATUS[r.status][2]}`}>{label(r.status,en)}</span></td>
-      <td className="risk-open-cell">{openable&&<ChevronRight size={15}/>}</td>
-     </tr>})}
-    {!rows.length&&<tr><td colSpan={8} className="risk-empty-note">{L(en,'Κανένας κίνδυνος σε αυτή την κατάσταση.','No risk in this state.')}</td></tr>}
-   </tbody></table></div>
+   <RegistryTable className="risk-table risk-compare-table" rows={pageRows} rowKey={r=>r.key}
+    columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'risk',label:L(en,'Κίνδυνος','Risk')},{key:'before',label:nameOf(other)},{key:'current',label:nameOf(current)},{key:'delta',label:L(en,'Μεταβολή','Change')},{key:'axis',label:L(en,'Τι άλλαξε','What changed')},{key:'status',label:L(en,'Κατάσταση','Status')},{key:'open',label:''}]}
+    rowProps={r=>{const openable=r.status!=='removed'&&onOpen;return {className:`${openable?'is-openable':''}${current.id===assessment.id?returnedClass(returned,r.risk.lineageKey):''}`||undefined,onClick:()=>openable&&onOpen(r.risk,current),title:openable?L(en,'Άνοιγμα του κινδύνου','Open the risk'):undefined}}}
+    renderRow={r=><>
+     <td><strong>{r.risk.lineageKey}</strong></td>
+     <td className="risk-hazard"><span>{txt(r.risk,'hazard',en)}</span><small>{[txt(r.risk,'process',en),txt(r.risk,'scope',en)].filter(Boolean).join(' · ')}</small></td>
+     <td><LevelChip score={r.before} en={en} compact/></td><td><LevelChip score={r.current} en={en} compact/></td>
+     <td><Delta value={r.delta} en={en}/></td><td><AxisChange row={r} en={en}/></td>
+     <td><StatusBadge tone={STATUS[r.status][2]}>{label(r.status,en)}</StatusBadge></td>
+     <td className="risk-open-cell">{r.status!=='removed'&&onOpen&&<ChevronRight size={15}/>}</td>
+    </>}
+    emptyTitle={L(en,'Κανένας κίνδυνος σε αυτή την κατάσταση.','No risk in this state.')}/>
    {rows.length>0&&pager}
    </div>
   </section>

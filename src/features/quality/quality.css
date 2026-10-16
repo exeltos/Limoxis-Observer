@@ -1,7 +1,5 @@
 /* Deviations queue, CAPA steps and prefilled steps on CAPA creation. */
 .quality-tab-count{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:6px;padding:0 5px;border-radius:999px;background:#fdeceb;color:#b42318;font-size:10px;font-weight:800}
-.quality-deviation-kind{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--lo-color-text)}
-.quality-deviation-actions-col{width:1%;white-space:nowrap}
 .quality-capa-steps .record-section-header p{margin:2px 0 0;font-size:11.5px;color:var(--lo-color-muted)}
 .quality-steps-overdue{color:#b42318}
 .quality-steps-progress{display:block;width:160px;height:7px;border-radius:999px;background:#e8eef3;overflow:hidden}
@@ -14,10 +12,104 @@
 .data-table td.quality-step-overdue{color:#b42318;font-weight:700}
 .quality-step-add{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) 170px auto;gap:8px;align-items:end;margin-top:12px;padding-top:12px;border-top:1px solid var(--lo-color-border)}
 .quality-step-add>input{height:38px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:9px;font:inherit;font-size:12px}
-.quality-prefill-steps{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:#f7fafc}
-.quality-prefill-steps>span{font-size:11px;font-weight:700;color:var(--lo-color-text)}
-.quality-prefill-steps ol{margin:0;padding-left:18px;font-size:12px;color:var(--lo-color-text)}
-.quality-prefill-steps small{font-size:11px;color:var(--lo-color-muted)}
 @media(max-width:900px){.quality-step-add{grid-template-columns:1fr}}
 /* The tab's text colour must not reach the count badge (contrast on its red tint). */
 html:not(#lo-unified-tabs) body nav.entity-record-tabs.quality-tabs>button>span.quality-tab-count{color:#b42318!important}
+/* Steps a CAPA starts with (from a control's deviation actions or a training). */
+.quality-prefill-steps{display:grid;gap:4px;margin:0;padding-left:18px;font-size:12.5px;color:var(--lo-color-text)}
+/* New incident report (IncidentReportPage.jsx): three steps, the footer in reach. */
+.quality-report-form{display:flex;flex-direction:column;gap:12px;max-width:1100px;width:100%;margin:0 auto}
+.quality-report-hint{margin-top:-6px;font-size:11.5px;color:var(--lo-color-muted)}
+.quality-report-description{margin:0;padding:10px 12px;border-radius:8px;background:var(--lo-color-surface-muted);font-size:13px;line-height:1.5;white-space:pre-line;color:var(--lo-color-text)}
+.quality-report-footer{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
+.quality-report-step{margin-right:auto;font-size:12px;color:var(--lo-color-muted)}
+.quality-report-done{display:grid;justify-items:center;gap:8px;max-width:560px;margin:40px auto;padding:28px 24px;text-align:center;border:1px solid var(--lo-status-success-border);border-radius:14px;background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
+.quality-report-done>strong{font-size:16px;color:var(--lo-color-text)}
+.quality-report-done>span,.quality-report-done>p{margin:0;font-size:13px;color:var(--lo-color-text)}
+.quality-report-done .row-actions{margin-top:8px}
+.quality-report-title{font-size:15px;color:var(--lo-color-text)}
+
+.quality-table td:first-child>strong{white-space:nowrap}
+.quality-record-shell .record-section:is(.quality-report-form,.quality-create-form){border:0;background:transparent;box-shadow:none;padding:14px}
+.quality-owner-field{display:grid;gap:6px;min-width:0}
+.quality-owner-chips{display:flex;flex-wrap:wrap;gap:6px}
+.quality-owner-chips>span{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:2px 4px 2px 10px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface-muted);font-size:12px;font-weight:600;color:var(--lo-color-text)}
+.quality-owner-chips button{display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:50%;background:transparent;color:var(--lo-color-muted);font-size:15px;line-height:1;cursor:pointer}
+.quality-owner-chips button:hover{background:var(--lo-color-border);color:var(--lo-color-text)}
+/* «My incident reports» summary dialog: status line, plain list, titled texts. */
+.quality-report-summary{display:grid;gap:14px}
+.quality-report-summary-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:10px 12px;border-radius:10px;background:var(--lo-color-surface-muted)}
+.quality-report-summary-status>span{font-size:11px;font-weight:700;color:var(--lo-color-muted)}
+.quality-report-summary-status>small{flex-basis:100%;font-size:12px;color:var(--lo-color-text)}
+.quality-report-summary dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin:0}
+.quality-report-summary dt{font-size:11px;font-weight:650;color:var(--lo-color-muted)}
+.quality-report-summary dd{margin:2px 0 0;font-size:13.5px;font-weight:600;color:var(--lo-color-text);overflow-wrap:anywhere}
+.quality-report-summary section{display:grid;gap:4px;padding-top:12px;border-top:1px solid var(--lo-color-border)}
+.quality-report-summary h4{margin:0;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
+.quality-report-summary p{margin:0;font-size:13px;line-height:1.5;white-space:pre-line;color:var(--lo-color-text)}
+@media(max-width:600px){.quality-report-summary dl{grid-template-columns:minmax(0,1fr)}}
+/* Incident flow (IncidentFlowBar.jsx), above the record tabs' content. */
+.quality-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 10px;padding:0;list-style:none}
+.quality-flow button{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;width:100%;min-height:38px;padding:6px 10px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);color:var(--lo-color-muted);font:inherit;font-size:12px;font-weight:650;text-align:left;cursor:pointer}
+.quality-flow button>small{flex-basis:100%;margin-left:30px;margin-top:-4px;font-size:10.5px;font-weight:500}
+.quality-flow-mark{display:inline-grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:var(--lo-color-surface-muted);font-size:11px;font-weight:800}
+.quality-flow .is-done button{color:var(--lo-color-text)}
+.quality-flow .is-done .quality-flow-mark{background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
+.quality-flow .is-current button{border-color:var(--lo-color-primary);background:var(--lo-color-primary-soft);color:var(--lo-color-text);box-shadow:0 0 0 1px var(--lo-color-primary) inset}
+.quality-flow .is-current .quality-flow-mark{background:var(--lo-color-primary);color:var(--lo-color-surface)}
+.quality-sentinel-banner{margin-bottom:10px}
+@media(max-width:900px){.quality-flow{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.quality-flow{grid-template-columns:minmax(0,1fr)}}
+/* Reports & deviations register (QualityReportRegister.jsx). */
+.quality-register-kind{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--lo-color-text)}
+.quality-register-table td>small{display:block}
+.quality-register-table td:first-child .status-badge{margin-top:3px}
+.quality-register-actions{flex-wrap:nowrap;justify-content:flex-start;gap:6px}
+.quality-register-deviation{background:var(--lo-status-warning-bg)}
+.quality-register-deviation td{cursor:default}
+/* Audits (QualityAuditParts.jsx): checklist preview, the checklist tab and the year programme. */
+.quality-audit-preview{display:grid;gap:3px;margin:0;padding-left:18px;font-size:12.5px;color:var(--lo-color-text)}
+.quality-audit-preview .is-more{list-style:none;margin-left:-18px;color:var(--lo-color-muted)}
+.quality-audit-checklist{display:flex;flex-direction:column;gap:12px}
+.quality-audit-add{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px}
+.quality-audit-add textarea{width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--lo-color-border-strong,#cad6df);border-radius:8px;font:inherit;font-size:13px;resize:vertical}
+.quality-audit-findings{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.quality-audit-findings>span{flex:1 1 260px}
+.quality-audit-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
+.quality-audit-score{margin-right:auto;font-size:12.5px;color:var(--lo-color-muted)}
+.quality-audit-score strong{color:var(--lo-color-text)}
+.quality-audit-view{display:flex;justify-content:flex-start;padding:10px 14px 0}
+.quality-audit-view .lo-mode-switch{margin:0}
+.quality-audit-programme{display:flex;flex-direction:column;gap:12px;min-height:0;padding:12px 14px;overflow:auto}
+.quality-audit-programme-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;color:var(--lo-color-text)}
+.quality-audit-programme-head>.field{margin-left:auto;flex-direction:row;align-items:center;gap:8px}
+.quality-audit-programme-head .lo-mode-switch{margin:0}
+.quality-audit-months{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.quality-audit-months>li{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:92px;padding:10px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.quality-audit-months>li.is-empty{background:var(--lo-color-surface-muted)}
+.quality-audit-months>li>small{font-size:11.5px;color:var(--lo-color-muted)}
+.quality-audit-month{font-size:12px;font-weight:800;text-transform:capitalize;color:var(--lo-color-text)}
+.quality-audit-months button{display:grid;gap:3px;width:100%;padding:7px 9px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.quality-audit-months button:hover{border-color:var(--lo-color-primary)}
+.quality-audit-months button>strong{font-size:12.5px;line-height:1.3}
+.quality-audit-months button>small{font-size:11px;color:var(--lo-color-muted)}
+.quality-audit-chip-foot{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.quality-audit-chip-foot code{font-size:10.5px;color:var(--lo-color-muted)}
+@media(max-width:1100px){.quality-audit-months{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.quality-audit-months{grid-template-columns:minmax(0,1fr)}.quality-audit-add{grid-template-columns:minmax(0,1fr)}}
+
+/* Quality objectives and management review (Phase 4b) */
+.quality-management-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px}
+.review-minutes .lo-form-cards{padding-bottom:12px}
+.review-minutes textarea{width:100%}
+.review-facts{display:grid;gap:6px;padding:10px 12px;border:1px dashed var(--lo-color-border-strong);border-radius:8px;background:var(--lo-color-surface-muted)}
+.review-facts>span{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--lo-color-primary)}
+.review-facts ul{margin:0;padding-left:18px;font-size:13px;color:var(--lo-color-text)}
+.review-facts button{justify-self:start}
+.review-actions{display:grid;gap:10px;padding:12px 16px}
+.review-action-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) minmax(150px,1fr) auto auto;gap:10px;align-items:end;padding:10px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.review-action-tools{display:flex;gap:6px;align-items:center}
+@media (max-width:1100px){.review-action-row{grid-template-columns:1fr 1fr}}
+/* The review's first tab is a long form, not a details sheet: it fills the record and scrolls. */
+.review-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
+.review-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
