@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import { qualityTabOf } from '../src/features/quality/qualityReturnSection'
-import { actionRows, filterActions, isOverdueAction } from '../src/features/quality/QualityLists'
+import { actionRows, filterActions, isOpenRecord, isOverdueAction } from '../src/features/quality/QualityLists'
 
 const page = fs.readFileSync('src/features/quality/QualityPage.jsx', 'utf8')
 
@@ -43,5 +43,13 @@ describe('Quality center entry and tabs', () => {
     const base = { query: '', kind: 'all', status: 'all', department: 'all', quick: null }
     expect(filterActions(rows, { ...base, quick: 'overdue' }, false).map(row => row.id)).toEqual(['CAPA-1'])
     expect(filterActions(rows, { ...base, kind: 'finding' }, false).map(row => row.id)).toEqual(['FND-1'])
+  })
+
+  it('does not count voided or cancelled records as needing attention', () => {
+    const past = '2020-01-01'
+    const rows = actionRows([], [{ id: 'V', status: 'open', lifecycleStatus: 'voided', dueDate: past }, { id: 'C', status: 'cancelled', dueDate: past }])
+    expect(rows.filter(isOverdueAction)).toEqual([])
+    expect(isOpenRecord({ status: 'open' })).toBe(true)
+    expect(isOpenRecord({ status: 'cancelled' })).toBe(false)
   })
 })

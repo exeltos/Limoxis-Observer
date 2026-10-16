@@ -1,4 +1,4 @@
-import { useMemo,useState } from 'react'
+import { useEffect,useMemo,useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FileSpreadsheet } from 'lucide-react'
 import { FilterBar } from '../../../design-system/FilterBar'
@@ -20,7 +20,7 @@ const FIELD_LABELS={inherentScore:['Εγγενής βαθμός','Inherent score
 
 // The assessments of the organization inside the Quality Center. The page's
 // «Create» menu opens a new assessment (creating) or the Excel file (fileRef).
-export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onCreatingChange,fileRef}){
+export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onCreatingChange,fileRef,onRowsChange}){
  const navigate=useNavigate()
  const {profile,user}=useAuth()
  const {notify}=useFeedback()
@@ -32,7 +32,9 @@ export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onC
  const rows=useMemo(()=>{const q=query.trim().toLowerCase();return items.filter(a=>!q||`${a.periodLabel} ${a.title||''} ${a.titleEn||''} ${a.formCode||''} ${a.code}`.toLowerCase().includes(q)).map(a=>({a,s:summarizeRisks(a.risks||[])}))},[items,query])
  // Back from an assessment returns to this tab.
  const assessmentRow=useReturnedRow('limoxis.quality.risk.returnedAssessment')
- const {items:pageRows,pager}=usePaged(rows,{en})
+ const {items:pageRows,pager}=usePaged(rows,{en,resetOn:query})
+ // The page's «Download» exports what the search leaves on screen.
+ useEffect(()=>{onRowsChange?.(rows.map(({a})=>a))},[rows,onRowsChange])
  const open=code=>{rememberQualitySection('risks');assessmentRow.remember(code);navigate(`/quality/risks/${code}`)}
 
  async function create(draft,carryFrom){

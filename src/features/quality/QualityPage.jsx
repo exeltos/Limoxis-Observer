@@ -12,9 +12,9 @@ import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can,CAPABILITIES,ROLES } from '../../core/permissions/roles'
-import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
+import { registryStorageKey,useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
-import { readSessionValue,writeSessionValue } from '../../core/storage/browserStorage'
+import { readSessionValue,writeSessionJson,writeSessionValue } from '../../core/storage/browserStorage'
 import { formatDay } from '../../core/i18n/formatDay'
 import { exportRegistry,qualityExport } from '../../core/export/registryExports'
 import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'
@@ -96,6 +96,9 @@ export function QualityPage(){
  const riskList=useRiskAssessmentList(tenant?.id,tab==='risks')
  const [riskCreating,setRiskCreating]=useState(false)
  const riskFile=useRef(null)
+ // What the risk and register lists show after their own filters: «Download» exports exactly that.
+ const [riskRows,setRiskRows]=useState([])
+ const [registerRows,setRegisterRows]=useState([])
  const registerList=useRegisterList()
  const objectives=useObjectives(tenant?.id)
  const reviews=useReviews(tenant?.id)
@@ -103,12 +106,14 @@ export function QualityPage(){
  const [reviewQuery,setReviewQuery]=useState('')
  const [editingObjective,setEditingObjective]=useState(null)
 
- const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return objectives.objectives.filter(item=>!q||`${item.code} ${item.title} ${item.ownerLabel||''}`.toLowerCase().includes(q)).filter(item=>objectiveFilters.state==='all'||item.current.status===objectiveFilters.state)},[objectives.objectives,objectiveFilters])
+ // Only active objectives need attention (achieved, not achieved and cancelled ones are settled).
+ const isMissed=item=>(item.status||'active')==='active'&&item.current.status==='missed'
+ const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return objectives.objectives.filter(item=>!q||`${item.code} ${item.title} ${item.ownerLabel||''}`.toLowerCase().includes(q)).filter(item=>objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,objectiveFilters])
  const visibleReviews=useMemo(()=>{const q=reviewQuery.trim().toLowerCase();return reviews.reviews.filter(item=>!q||`${item.code} ${item.reviewDate||''}`.toLowerCase().includes(q))},[reviews.reviews,reviewQuery])
 
  // What needs attention now, across the whole Center. Each figure opens its list, filtered.
  const overdueActions=actions.filter(isOverdueAction).length
- const missedObjectives=objectives.objectives.filter(item=>item.current.status==='missed').length
+ const missedObjectives=objectives.objectives.filter(isMissed).length
  const figures=[
   {key:'open',icon:Clock3,value:register.counts.open,label:L('Ανοιχτές αναφορές','Open reports'),active:tab==='reports'&&register.filters.quick==='open',go:()=>{setTab('reports');register.set('quick',register.filters.quick==='open'&&tab==='reports'?null:'open')}},
   {key:'deviations',icon:FileWarning,value:register.counts.deviations,label:L('Αποκλίσεις χωρίς ενέργεια','Deviations without action'),active:tab==='reports'&&register.filters.quick==='deviations',go:()=>{setTab('reports');register.set('quick',register.filters.quick==='deviations'&&tab==='reports'?null:'deviations')}},
@@ -120,7 +125,8 @@ export function QualityPage(){
  const returnValue=tab==='measure'?`measure:${measureView}`:tab
  const remember=()=>writeSessionValue(RETURN_KEY,returnValue)
  const create=path=>()=>{remember();goTo(path,{registry:`quality.${tab}`})}
- const openRecord=(path,id,ids)=>{remember();registry.openRecord(navigate,path,id,ids)}
+ // The record page reads its previous / next sequence under its own type (quality.incidents, quality.capas…).
+ const openRecord=(type,id,ids)=>{remember();writeSessionJson(registryStorageKey(`quality.${type}`,'sequence'),ids);registry.openRecord(navigate,`/quality/${type}/${id}`,id,ids)}
 
  const createOptions=({
   reports:canManage||canReportIncident?[{id:'report',label:L('Αναφορά συμβάντος','Incident report'),icon:AlertTriangle,onClick:create('/quality/incidents/new')}]:[],
@@ -134,8 +140,8 @@ export function QualityPage(){
   reports:<DownloadMenu disabled={!register.filtered.length} onExcel={()=>exportRegistry(reportRegisterExport(register.filtered,{language,t,categories}))}/>,
   actions:(()=>{const rows=filterActions(actions,actionView.filters,en);const findings=rows.filter(row=>row.kind==='finding'),capas=rows.filter(row=>row.kind==='capa');return <DownloadMenu items={[{id:'findings',label:L('Ευρήματα (.csv)','Findings (.csv)'),disabled:!findings.length,onClick:()=>exportRegistry(qualityExport('findings',findings,{en,t}))},{id:'capas',label:L('Διορθωτικές ενέργειες (.csv)','Corrective actions (.csv)'),disabled:!capas.length,onClick:()=>exportRegistry(qualityExport('capas',capas,{en,t}))}]}/>})(),
   audits:(()=>{const rows=filterAudits(records.data.audits,auditView.filters,en);return <DownloadMenu disabled={!rows.length} onExcel={()=>exportRegistry(qualityExport('audits',rows,{en,t}))}/>})(),
-  risks:<DownloadMenu disabled={!riskList.items.length} onExcel={()=>exportRegistry(riskAssessmentsExport(riskList.items,language))}/>,
-  measure:measureView==='registers'?<DownloadMenu disabled={!registerList.registers.length} onExcel={()=>exportRegistry(registersExport(registerList.registers,language))}/>:measureView==='objectives'?<DownloadMenu disabled={!visibleObjectives.length} onExcel={()=>exportRegistry(objectivesExport(visibleObjectives,language))}/>:<DownloadMenu disabled={!visibleReviews.length} onExcel={()=>exportRegistry(reviewsExport(visibleReviews,language))}/>,
+  risks:<DownloadMenu disabled={!riskRows.length} onExcel={()=>exportRegistry(riskAssessmentsExport(riskRows,language))}/>,
+  measure:measureView==='registers'?<DownloadMenu disabled={!registerRows.length} onExcel={()=>exportRegistry(registersExport(registerRows,language))}/>:measureView==='objectives'?<DownloadMenu disabled={!visibleObjectives.length} onExcel={()=>exportRegistry(objectivesExport(visibleObjectives,language))}/>:<DownloadMenu disabled={!visibleReviews.length} onExcel={()=>exportRegistry(reviewsExport(visibleReviews,language))}/>,
  })[tab]
 
  const measureSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={measureView} onChange={setMeasureView} options={MEASURE_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
@@ -153,13 +159,13 @@ export function QualityPage(){
   <section className="surface registry-workspace workspace-column workspace-fill">
    {tab==='reports'&&<ReportRegister view={register} loading={records.loading||queue.loading} language={language} t={t} categories={categories} registry={registry}
     onCreateCapa={prefill=>{writeSessionValue(RETURN_KEY,'reports');goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:prefill}})}}
-    onOpenReport={(row,items)=>openRecord(`/quality/incidents/${row.id}`,row.id,items.filter(item=>item.type==='report').map(item=>item.id))}/>}
+    onOpenReport={(row,items)=>openRecord('incidents',row.id,items.filter(item=>item.type==='report').map(item=>item.id))}/>}
    {tab==='actions'&&<ActionsList rows={actions} view={actionView} loading={records.loading} language={language} t={t} registry={registry}
-    onOpen={(row,same)=>openRecord(`/quality/${row.kind==='capa'?'capas':'findings'}/${row.id}`,row.id,same.map(item=>item.id))}/>}
+    onOpen={(row,same)=>openRecord(row.kind==='capa'?'capas':'findings',row.id,same.map(item=>item.id))}/>}
    {tab==='audits'&&<AuditsList rows={records.data.audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
-    onOpen={(row,same)=>openRecord(`/quality/audits/${row.id}`,row.id,same.map(item=>item.id))}/>}
-   {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile}/>}
-   {tab==='measure'&&measureView==='registers'&&<RegistersPanel list={registerList} onBeforeOpen={remember} filterEnd={measureSwitch}/>}
+    onOpen={(row,same)=>openRecord('audits',row.id,same.map(item=>item.id))}/>}
+   {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
+   {tab==='measure'&&measureView==='registers'&&<RegistersPanel list={registerList} onBeforeOpen={remember} filterEnd={measureSwitch} onRowsChange={setRegisterRows}/>}
    {tab==='measure'&&measureView==='objectives'&&<>
     <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={objectiveFilters.state!=='all'?1:0} onClear={()=>setObjectiveFilters({query:'',state:'all'})} end={measureSwitch}>
      <FilterSelect label={t('status')} value={objectiveFilters.state} onChange={state=>setObjectiveFilters(current=>({...current,state}))}><option value="all">{t('all')}</option><option value="missed">{L('Δεν επιτυγχάνεται','Not met')}</option><option value="met">{L('Επιτυγχάνεται','Met')}</option><option value="pending">{L('Σε εξέλιξη','In progress')}</option></FilterSelect>

@@ -17,7 +17,8 @@ import { auditCompliance } from './qualityAudit'
 // The two record lists of the Quality Center that are not the reports register:
 // findings with their corrective actions, and the audits.
 
-export const isOpenRecord=row=>!['closed','completed'].includes(row.status)
+// Closed, completed, cancelled and voided records need nothing more.
+export const isOpenRecord=row=>!['closed','completed','cancelled'].includes(row.status)&&row.lifecycleStatus!=='voided'
 const today=()=>new Date().toISOString().slice(0,10)
 export const isOverdueAction=row=>row.kind==='capa'&&isOpenRecord(row)&&Boolean(row.dueDate)&&row.dueDate<today()
 

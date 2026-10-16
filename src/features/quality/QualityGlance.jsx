@@ -9,7 +9,7 @@ import { subActionProgress } from './qualityDeviations'
 // A record «at a glance»: the three or four figures that say where it stands,
 // above its details. What is late or harmful is coloured; progress is a bar.
 
-const isClosed=record=>['closed','completed'].includes(record?.status)
+const isClosed=record=>['closed','completed','cancelled'].includes(record?.status)||record?.lifecycleStatus==='voided'
 const dayMs=86400000
 const today=()=>new Date().toISOString().slice(0,10)
 // Whole days from today to a date (negative: in the past).
