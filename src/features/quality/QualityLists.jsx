@@ -5,6 +5,7 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
+import { Meter,meterTone } from '../../design-system/MiniCharts'
 import { formatDay } from '../../core/i18n/formatDay'
 import { readRegistryViewState,writeRegistryViewState } from '../../core/navigation/useRegistryMemory'
 import { AUDIT_TYPES,CAPA_TYPES,FINDING_SOURCES,qualityCode,qualityStatusTone,vocabularyLabel } from './qualityVocabulary'
@@ -83,7 +84,7 @@ export function ActionsList({rows,view,loading,language,t,registry,onOpen}){
     rowProps={row=>({...registry.rowProps(row.id),onClick:()=>onOpen(row,filtered.filter(item=>item.kind===row.kind))})}
     renderRow={row=>{const Icon=KIND_ICON[row.kind];const overdue=isOverdueAction(row);return <>
      <td><strong>{qualityCode(row,language)}</strong>{row.severity&&<small>{t(row.severity)}</small>}</td>
-     <td>{titleOf(row,en)}{row.kind==='capa'&&row.subActions?.length>0&&<small>{(({done,total})=>en?`${done}/${total} steps done`:`${done}/${total} βήματα ολοκληρώθηκαν`)(subActionProgress(row.subActions))}</small>}</td>
+     <td>{titleOf(row,en)}{row.kind==='capa'&&row.subActions?.length>0&&(({done,total})=><><small>{en?`${done}/${total} steps done`:`${done}/${total} βήματα ολοκληρώθηκαν`}</small><Meter value={done*100/total} tone={done===total?'success':'neutral'} label={en?`${done}/${total} steps done`:`${done}/${total} βήματα`}/></>)(subActionProgress(row.subActions))}</td>
      <td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{KIND_LABEL[row.kind][en?1:0]}</span><small>{kindDetail(row,language)}</small></td>
      <td>{departmentOf(row,en)||'—'}</td>
      <td className={`nowrap-cell${overdue?' quality-overdue':''}`}>{formatDay(row.kind==='capa'?row.dueDate:row.date,language)||'—'}{overdue&&<small>{en?'Overdue':'Εκπρόθεσμη'}</small>}</td>
@@ -129,7 +130,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen}){
       <td>{titleOf(row,en)}{departmentOf(row,en)&&<small>{departmentOf(row,en)}</small>}</td>
       <td>{vocabularyLabel(AUDIT_TYPES,row.auditType||'internal',language)}</td>
       <td className="nowrap-cell">{formatDay(row.plannedDate,language)||'—'}</td>
-      <td>{score.rate==null?'—':`${score.rate}%`}</td>
+      <td className="quality-compliance-cell">{score.rate==null?'—':<><strong>{score.rate}%</strong><Meter value={score.rate} tone={meterTone(score.rate)} label={`${en?'Compliance':'Συμμόρφωση'} ${score.rate}%`}/></>}</td>
       <td>{row.leadAuditor||'—'}</td>
       <td><StatusBadge tone={qualityStatusTone(row.status)}>{t(row.status)}</StatusBadge></td>
      </>}}/>

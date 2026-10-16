@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
+import { Meter } from '../../../design-system/MiniCharts'
 import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
@@ -59,6 +60,14 @@ export function useReviews(organizationId) {
 }
 
 export const objectiveStateLabel = (state, en) => (en ? { met: 'Met', missed: 'Not met', pending: 'In progress' } : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Σε εξέλιξη' })[state]
+// How close the value is to the target (100 = met): value / target when more is
+// better, target / value when less is better.
+export function targetReach(objective) {
+  const value = objective.current?.value, target = toNumber(objective.target)
+  if (value == null || target == null || Number.isNaN(target)) return null
+  if (objective.direction === 'lower') return value <= target ? 100 : target <= 0 ? 0 : (target / value) * 100
+  return target <= 0 ? 100 : Math.min(100, (value / target) * 100)
+}
 const objectiveStateTone = state => ({ met: 'success', missed: 'danger' })[state] || 'info'
 
 export function objectivesExport(rows, language) {
@@ -89,7 +98,7 @@ export function ObjectivesTable({ rows, loading, onOpen }) {
       <td><strong>{objective.code}</strong><small>{objective.year}</small></td>
       <td>{objective.title}</td>
       <td>{objective.indicator ? <>{textOf(objective.indicator, language)}<small>{en ? objective.register.nameEn : objective.register.name}</small></> : (en ? 'Value reported by the owner' : 'Τιμή από τον υπεύθυνο')}</td>
-      <td><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong><small>{objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</small></td>
+      <td><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong><small>{objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</small><Meter value={targetReach(objective)} tone={objectiveStateTone(objective.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
       <td>{objective.ownerLabel || '—'}<small>{formatDay(objective.dueDate, language)}</small></td>
       <td><StatusBadge tone={objectiveStateTone(objective.current.status)}>{objectiveStateLabel(objective.current.status, en)}</StatusBadge></td>
     </>}
@@ -111,6 +120,20 @@ export function ReviewsTable({ rows, loading, onOpen }) {
       <td><StatusBadge tone={review.status === 'approved' ? 'success' : 'info'}>{reviewStatusLabel(review.status, language)}</StatusBadge></td>
     </>}
     emptyTitle={!loading && !rows.length ? (en ? 'No management reviews' : 'Δεν υπάρχουν ανασκοπήσεις') : ''} emptyText={en ? 'A new review starts from the facts Limoxis holds for the period.' : 'Η νέα ανασκόπηση ξεκινά με τα στοιχεία της περιόδου από το Limoxis.'} />
+}
+
+// The objectives as bars, for the review's «Achievement of objectives»: each
+// one's value against its target, read in a line.
+export function ObjectiveBars({ objectives }) {
+  const { language } = useLanguage()
+  const en = language === 'en'
+  if (!objectives.length) return null
+  return <ul className="objective-bars">{objectives.map(objective => <li key={objective.id || objective.code}>
+    <span className="objective-bars-title">{objective.title}</span>
+    <Meter value={targetReach(objective)} tone={objectiveStateTone(objective.current.status)} label={`${objective.title}: ${formatObjectiveValue(objective.current.value, objective.unit, language)}`} />
+    <span className="objective-bars-value"><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong> {objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</span>
+    <StatusBadge tone={objectiveStateTone(objective.current.status)}>{objectiveStateLabel(objective.current.status, en)}</StatusBadge>
+  </li>)}</ul>
 }
 
 export const newObjective = () => ({ year: new Date().getFullYear(), title: '', direction: 'higher', target: '', status: 'active' })

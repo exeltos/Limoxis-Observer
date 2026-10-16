@@ -3,7 +3,7 @@ import { Lock, LockOpen, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
-import { MonthField } from '../../design-system/MonthField'
+import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -12,7 +12,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { saveEntry, setEntryLocked } from './registerService'
 import { useRegisterAccess } from './registerAccess'
-import { periodLabel, periodOf, textOf } from './registerEngine'
+import { periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
 
 const thisMonth = () => new Date().toISOString().slice(0, 7)
 const blank = value => value === undefined || value === null || value === ''
@@ -74,7 +74,7 @@ export function RegisterSheet({ register, entries, onSaved, onExport }) {
   return <div className="register-sheet-layout">
     <RecordTabPanel className="register-sheet" title={periodLabel(periodOf('month', periodStart), language)} subtitle={en ? 'An empty cell means not recorded; write 0 when there were none.' : 'Κενό κελί σημαίνει «δεν καταγράφηκε»· γράψτε 0 όταν δεν έγινε καμία.'}
       actions={<div className="register-sheet-actions">
-        <MonthField value={month} onChange={value => value && setMonth(value)} years={4} />
+        <PeriodStepper label={periodLabel(periodOf('month', `${month}-01`), language)} onPrevious={() => setMonth(shiftPeriod(periodOf('month', `${month}-01`), -1).from.slice(0, 7))} onNext={() => setMonth(shiftPeriod(periodOf('month', `${month}-01`), 1).from.slice(0, 7))} nextDisabled={month >= new Date().toISOString().slice(0, 7)} />
         {onExport && <PrintExportActions showPrint={false} onExport={onExport} />}
         {access.canRecord(register) && <Button variant="secondary" onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={15} />{en ? 'Import' : 'Εισαγωγή'}</Button>}
         {entry && <StatusBadge tone={locked ? 'neutral' : 'info'}>{locked ? (en ? 'Closed' : 'Κλειστός') : (en ? 'Open' : 'Ανοιχτός')}</StatusBadge>}

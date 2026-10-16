@@ -113,3 +113,10 @@
 /* The review's first tab is a long form, not a details sheet: it fills the record and scrolls. */
 .review-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
 .review-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+.quality-compliance-cell{min-width:110px}
+.objective-bars{display:grid;gap:8px;margin:0 0 4px;padding:0;list-style:none}
+.objective-bars>li{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(120px,1fr) 190px 140px;align-items:center;gap:12px;font-size:13px;color:var(--lo-color-text)}
+.objective-bars .lo-meter{max-width:none}
+.objective-bars-value{white-space:nowrap;text-align:right;color:var(--lo-color-muted)}
+.objective-bars-value strong{color:var(--lo-color-text)}
+@media(max-width:700px){.objective-bars>li{grid-template-columns:minmax(0,1fr) auto}.objective-bars .lo-meter{grid-column:1/-1;grid-row:2}}
