@@ -2,10 +2,12 @@ import { binCloudRows,describeDeleted } from '../../core/recycleBin/recycleBinSe
 import { supabase } from '../../core/supabase/client'
 import { computeTurnaroundHours } from './model/laboratoryModel'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
+import { ENVIRONMENTAL_TYPES } from '../surveillance/environmentalSurveillanceData'
 
 const iso=value=>value?new Date(value).toISOString():null
 const environmentalTypes=['water','surface','environment','environmental','room','air','νερό','επιφάνεια','επιφανεια']
-export const ENVIRONMENTAL_CATEGORIES=['surface','room','air','water']
+// The environmental types with a sampling standard (shared with Surveillance).
+export const ENVIRONMENTAL_CATEGORIES=ENVIRONMENTAL_TYPES
 const environmentalCategories=new Set(ENVIRONMENTAL_CATEGORIES)
 export function sampleTypeLabel(type,t){return environmentalCategories.has(type)?t(`environmentalStandards.${type==='room'?'roomCategory':type}`):t(type)}
 export function environmentalMethodLabel(method,t){return method?t(`environmentalStandards.${method}`):''}

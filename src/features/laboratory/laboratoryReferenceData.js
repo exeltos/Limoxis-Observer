@@ -1,3 +1,4 @@
+import { ENVIRONMENTAL_SAMPLE_TYPES } from '../surveillance/environmentalSurveillanceData'
 import { EMPLOYEE_SCREENING_TYPES as SURVEILLANCE_SCREENING_TYPES,OTHER_EMPLOYEE_SCREENING,SAMPLE_PRIORITIES } from '../surveillance/surveillanceOptions'
 // Laboratory reference lists, one item shape everywhere: {id, el, en} (plus
 // what a list needs, e.g. the i18n label key or the sources of a sample type).
@@ -45,13 +46,7 @@ export const EMPLOYEE_SCREENING_TYPES=[...SURVEILLANCE_SCREENING_TYPES,OTHER_EMP
 
 // Environmental sample types of a new laboratory sample (stored as
 // environmentType; the label is stored as the source).
-export const ENVIRONMENTAL_SAMPLE_TYPES=[
-  {id:'surface',el:'Επιφάνεια',en:'Surface'},
-  {id:'equipment',el:'Εξοπλισμός',en:'Equipment'},
-  {id:'water',el:'Νερό',en:'Water'},
-  {id:'air',el:'Αέρας',en:'Air'},
-  {id:'other',el:'Άλλο',en:'Other'},
-]
+export { ENVIRONMENTAL_SAMPLE_TYPES }
 
 // Sample priority (stored as priority; label t(id)).
 export const LAB_PRIORITIES=SAMPLE_PRIORITIES.map(item=>item.value)

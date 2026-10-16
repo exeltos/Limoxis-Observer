@@ -36,7 +36,7 @@ describe('laboratory reference lists', () => {
 
   it('keeps every employee screening type, including other employee screening, and labels stored codes', () => {
     expect(EMPLOYEE_SCREENING_TYPES.map(item => item.id)).toEqual(['handSwab', 'nasalSwab', 'throatSwab', 'otherEmployeeScreening'])
-    expect(ENVIRONMENTAL_SAMPLE_TYPES.map(item => item.id)).toEqual(['surface', 'equipment', 'water', 'air', 'other'])
+    expect(ENVIRONMENTAL_SAMPLE_TYPES.map(item => item.id)).toEqual(['surface', 'room', 'equipment', 'water', 'air', 'other'])
     expect(sampleSourceLabel('nasalSwab, otherEmployeeScreening', 'en')).toBe('Nasal swab, Other employee screening')
     expect(sampleSourceLabel('equipment', 'el')).toBe('Εξοπλισμός')
     expect(sampleSourceLabel('other', 'el')).toBe('Άλλο')

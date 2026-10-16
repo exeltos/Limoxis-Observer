@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { EMPLOYEE_SCREENING_TYPES, PATIENT_SAMPLE_TYPES, SAMPLE_PRIORITIES, employeeScreeningLabel, patientSampleTypeOptions, specimenCode, statusTone } from '../src/features/surveillance/surveillanceOptions'
 import { employeeScreeningCatalog } from '../src/features/surveillance/employeeSurveillanceData'
-import { ENVIRONMENTAL_TYPES, isEnvironmentalSample } from '../src/features/surveillance/environmentalSurveillanceData'
+import { ENVIRONMENTAL_SAMPLE_TYPES, ENVIRONMENTAL_TYPES, isEnvironmentalSample } from '../src/features/surveillance/environmentalSurveillanceData'
 import { demoLibrarySeed } from '../src/features/management/managementData'
 
 const read = file => fs.readFileSync(file, 'utf8')
@@ -46,6 +46,9 @@ describe('shared surveillance option lists', () => {
 
   it('keeps surface / room / air / water as the canonical environmental types', () => {
     expect(ENVIRONMENTAL_TYPES).toEqual(['surface', 'room', 'air', 'water'])
+    // One list of environmental sample types for surveillance and the laboratory.
+    expect(ENVIRONMENTAL_SAMPLE_TYPES.map(item => item.id)).toEqual(['surface', 'room', 'equipment', 'water', 'air', 'other'])
+    for (const type of ENVIRONMENTAL_TYPES) expect(ENVIRONMENTAL_SAMPLE_TYPES.some(item => item.id === type)).toBe(true)
     expect(isEnvironmentalSample({ type: 'water' })).toBe(true)
     expect(isEnvironmentalSample({ type: 'Νερό δικτύου' })).toBe(true)
     expect(isEnvironmentalSample({ subjectType: 'environment', type: 'other' })).toBe(true)
