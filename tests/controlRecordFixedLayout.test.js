@@ -21,4 +21,7 @@ describe('control record fixed workspace',()=>{
     expect(form).not.toContain('type="checkbox"')
     expect(form).toContain('disabled={!confirmed||!valid}')
   })
+  it('opens a correction with the rows of the entry itself, even when it recorded none',()=>{
+    expect(form).toContain('if(Array.isArray(initialExecution?.structuredData?.rows))return initialExecution.structuredData.rows')
+  })
 })

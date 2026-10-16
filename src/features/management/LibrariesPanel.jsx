@@ -12,6 +12,7 @@ import { demoLibrarySeed,newLocalLibraryItem } from './managementData'
 import { loadSnapshot,saveSnapshot } from '../../core/data/repository'
 import { DEPARTMENT_TYPES,createGlobalLibraryItem,createManagementLibraryItem,departmentTypeValue,loadGlobalLibraryItems,loadManagementLibraries,removeGlobalLibraryItem,removeManagementLibraryItem,saveJobDescription,updateGlobalLibraryItem,updateManagementLibraryItem } from './managementCloudService'
 import { isHospitalManagedLibraryKey } from './libraryGovernance'
+import { invalidateLibraries } from './useLibraries'
 import { JobDescriptionDialog } from '../employees/JobDescriptionViews'
 import { nextJobDescription } from '../employees/jobDescription'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -36,6 +37,8 @@ export function LibrariesPanel({global=false}={}){
  const [active,setActive]=useState(()=>global?visibleCategories[0][0]:'departments');const [query,setQuery]=useState('');const [rows,setRows]=useState(()=>isDemo?loadDemoState():{});const [loading,setLoading]=useState(!isDemo);const [editor,setEditor]=useState(null);const [draft,setDraft]=useState({el:'',en:'',type:'general'})
  useEffect(()=>{if(global){let mounted=true;setLoading(true);loadGlobalLibraryItems().then(data=>{if(mounted)setRows(data)}).catch(error=>{if(mounted)notify(error?.message||t('loadFailed'),'error')}).finally(()=>{if(mounted)setLoading(false)});return()=>{mounted=false}}if(isDemo){setRows(loadDemoState());setLoading(false);return}if(!tenant?.id){setRows({});setLoading(false);return}let mounted=true;setLoading(true);loadManagementLibraries(tenant.id).then(data=>{if(mounted)setRows(data)}).catch(error=>{if(mounted)notify(error?.message||t('loadFailed'),'error')}).finally(()=>{if(mounted)setLoading(false)});return()=>{mounted=false}},[global,isDemo,tenant?.id,notify,t])
  const filtered=useMemo(()=>(rows[active]||[]).filter(x=>`${x[0]} ${x[1]} ${x[2]?.source||''}`.toLowerCase().includes(query.toLowerCase())),[active,query,rows])
+ // Forms read the libraries through a short cache (useLibraries): any change here clears it.
+ useEffect(()=>{invalidateLibraries(global?undefined:tenant?.id)},[rows,global,tenant?.id])
  function persistDemo(next){setRows(next);saveSnapshot('management_libraries',next)}
  const [jobRow,setJobRow]=useState(null);const [jobSaving,setJobSaving]=useState(false)
  async function saveJob(draft){

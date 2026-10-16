@@ -171,6 +171,9 @@ export function SearchableSelect({
             if (allowCustom && typed && typed !== String(value ?? '')) {
               const exact = options.find(option => normalize(option.label) === normalize(typed))
               onChange?.(exact ? exact.value : typed)
+            } else if (allowCustom && query !== null && !typed && String(value ?? '') !== '') {
+              // Text erased and the field left: the value is cleared.
+              onChange?.('')
             }
             close()
           }}

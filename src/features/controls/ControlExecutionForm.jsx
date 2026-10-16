@@ -48,7 +48,9 @@ function useControlExecution({organizationId,record,department,initialExecution,
  const [value,setValue]=useState(()=>{const v=initialExecution?.value??savedDraft?.value??'';return mode==='choice'?canonicalAnswer(v):v})
  const [notes,setNotes]=useState(initialExecution?.notes||savedDraft?.notes||'')
  const [rows,setRows]=useState(()=>{
-  const stored=initialExecution?.structuredData?.rows||savedDraft?.rows
+  // A saved entry keeps its own rows, even none: only a new entry starts from the list.
+  if(Array.isArray(initialExecution?.structuredData?.rows))return initialExecution.structuredData.rows
+  const stored=savedDraft?.rows
   if(stored?.length)return stored
   if(mode==='checklist')return checklistRows(record)
   const listed=expiryControl?prefilledExpiryRows(record,department):[]
