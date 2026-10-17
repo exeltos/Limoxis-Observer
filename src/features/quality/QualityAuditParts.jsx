@@ -55,7 +55,8 @@ export function AuditChecklistTab({ record, setRecord, organizationId, canManage
   const [rows, setRows] = useState(record.checklist || [])
   const { goTo } = useContextualNavigation('/quality')
   // A «No» shows the finding it became; one click opens it (and «Back» returns here).
-  const findingLink = row => row.findingId && <button type="button" className="quality-audit-finding-link" onClick={() => goTo(`/quality/findings/${row.findingId}`, { tab: 'checklist' })}>{en ? 'Finding' : 'Εύρημα'} {row.findingId}<ChevronRight size={13} /></button>
+  // Unsaved answers would be lost on the way: the link waits for «Save».
+  const findingLink = row => row.findingId && <button type="button" className="quality-audit-finding-link" disabled={dirty} title={dirty ? (en ? 'Save the checklist first' : 'Αποθηκεύστε πρώτα τη λίστα ελέγχου') : undefined} onClick={() => goTo(`/quality/findings/${row.findingId}`, { tab: 'checklist' })}>{en ? 'Finding' : 'Εύρημα'} {row.findingId}<ChevronRight size={13} /></button>
   const [saving, setSaving] = useState(false)
   const [text, setText] = useState('')
   useEffect(() => { setRows(record.checklist || []) }, [record.checklist])

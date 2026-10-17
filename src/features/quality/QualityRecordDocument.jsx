@@ -1,5 +1,6 @@
 import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
-import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, qualityCode, reportKindOf, vocabularyLabel } from './qualityVocabulary'
+import { useLibraries } from '../management/useLibraries'
+import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, reportKindOf, vocabularyLabel } from './qualityVocabulary'
 import { recordOwners } from './qualityRecordRules'
 import { ISHIKAWA_CATEGORIES, normalizeAnalysis } from './rootCauseAnalysis'
 import { glanceItems } from './QualityGlance'
@@ -17,13 +18,18 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
   const L = (el, enText) => (en ? enText : el)
   const text = (el, enText) => (en ? enText || el : el) || ''
   const day = value => formatDay(value, language) || '—'
+  const { libraries } = useLibraries()
   const figures = glanceItems(recordType, record, { language, t, linked })
+  // Complaints and suggestions have no patient outcome: those rows are left out.
+  const reachesPatient = ['clinical', 'nonClinical'].includes(reportKindOf(record))
+  const voided = record.lifecycleStatus === 'voided'
   const owners = recordOwners(record).join(', ')
   const details = {
     incidents: [
       [L('Είδος', 'Kind'), vocabularyLabel(REPORT_KINDS, reportKindOf(record), language)],
-      [L('Έφτασε στον ασθενή', 'Reached the patient'), vocabularyLabel(INCIDENT_CLASSES, record.incidentClass || 'nearMiss', language)],
-      [L('Βλάβη (WHO)', 'Harm (WHO)'), vocabularyLabel(IMPACTS, harmLevel(record.impact), language)],
+      [L('Κατηγορία', 'Category'), incidentCategoryLabel(record.category || 'clinical', libraries.incidentCategories || [], language)],
+      reachesPatient && [L('Έφτασε στον ασθενή', 'Reached the patient'), vocabularyLabel(INCIDENT_CLASSES, record.incidentClass || 'nearMiss', language)],
+      reachesPatient && [L('Βλάβη (WHO)', 'Harm (WHO)'), vocabularyLabel(IMPACTS, harmLevel(record.impact), language)],
       [t('severity'), t(record.severity)],
       [L('Ημερομηνία και ώρα', 'Date and time'), [day(record.date), record.eventTime].filter(Boolean).join(' · ')],
       [L('Αναφέρθηκε από', 'Reported by'), record.anonymous ? L('Ανώνυμη αναφορά', 'Anonymous report') : record.reportedBy],
@@ -61,13 +67,15 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
   const steps = recordType === 'capas' ? record.subActions || [] : []
   const analysis = recordType === 'capas' && record.rootCauseAnalysis ? normalizeAnalysis(record.rootCauseAnalysis) : null
   const checklist = recordType === 'audits' ? record.checklist || [] : []
-  const history = [...(record.history || [])].sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 15)
+  // The whole audit trail, as in the History tab.
+  const history = [...(record.history || [])].sort((a, b) => new Date(b.at) - new Date(a.at))
   const linkedTitle = recordType === 'audits' ? L('Ευρήματα', 'Findings') : L('Διορθωτικές ενέργειες', 'Corrective actions')
 
   return <div className="quality-record-document" ref={documentRef} aria-hidden="true">
     <p className="quality-document-eyebrow">{KIND[recordType]?.[en ? 1 : 0]} · {qualityCode(record, language)}</p>
     <h1>{text(record.title, record.titleEn)}</h1>
-    <p className="quality-document-sub">{[en ? record.departmentEn || record.department : record.department, t(record.status)].filter(Boolean).join(' · ')}</p>
+    <p className="quality-document-sub">{[en ? record.departmentEn || record.department : record.department, voided ? L('Ακυρωμένη εγγραφή', 'Voided record') : t(record.status)].filter(Boolean).join(' · ')}</p>
+    {voided && <p className="quality-document-voided">{L('Ακυρώθηκε', 'Voided')} {formatDateTime(record.voidedAt, language)}{record.voidedBy ? ` · ${record.voidedBy}` : ''}{record.voidReason ? ` · ${L('Λόγος', 'Reason')}: ${record.voidReason}` : ''}</p>}
     {figures.length > 0 && <dl className="quality-document-figures">{figures.map(item => <div key={item.id}><dt>{item.label}</dt><dd>{item.value}{item.unit ? ` ${item.unit}` : ''}{item.note && <small>{item.note}</small>}</dd></div>)}</dl>}
     <h3>{L('Στοιχεία', 'Details')}</h3>
     <dl className="quality-document-details">{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}</dl>
@@ -82,7 +90,7 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
       <table><thead><tr><th>{L('Βήμα', 'Step')}</th><th>{L('Υπεύθυνος', 'Owner')}</th><th>{L('Προθεσμία', 'Due')}</th><th>{L('Ολοκλήρωση', 'Done')}</th></tr></thead>
         <tbody>{steps.map((step, index) => <tr key={step.id || index}><td>{step.title}</td><td>{step.owner || '—'}</td><td>{day(step.dueDate)}</td><td>{step.done ? `✓ ${formatDay(step.doneAt, language) || ''}` : '—'}</td></tr>)}</tbody></table>
     </>}
-    {analysis && (analysis.problem || analysis.rootCause) && <>
+    {analysis && (analysis.problem || analysis.rootCause || analysis.whys.some(Boolean) || ISHIKAWA_CATEGORIES.some(([key]) => analysis.causes[key].length)) && <>
       <h3>{L('Ανάλυση αιτιών', 'Root cause analysis')}</h3>
       {analysis.problem && <p><strong>{L('Πρόβλημα', 'Problem')}:</strong> {analysis.problem}</p>}
       {analysis.whys.some(Boolean) && <ol>{analysis.whys.filter(Boolean).map((why, index) => <li key={index}>{why}</li>)}</ol>}

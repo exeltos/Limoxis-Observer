@@ -81,7 +81,8 @@ export function QualityRecordPage(){
   // findings. The incident flow and the «at a glance» figures read them.
   const [linked,setLinked]=useState([])
   const linkedSection=recordType==='audits'?'findings':['incidents','findings'].includes(recordType)?'capas':null
-  useEffect(()=>{let active=true;if(!linkedSection||!record?.id){setLinked([]);return()=>{active=false}};loadQualityRecords(linkedSection,organizationId).then(rows=>{if(active)setLinked(rows.filter(x=>x.sourceId===record.id))}).catch(()=>{if(active)setLinked([])});return()=>{active=false}},[linkedSection,record?.id,organizationId])
+  // Reloads when the record changes too: an audit that just created its findings lists them.
+  useEffect(()=>{let active=true;if(!linkedSection||!record?.id){setLinked([]);return()=>{active=false}};loadQualityRecords(linkedSection,organizationId).then(rows=>{if(active)setLinked(rows.filter(x=>x.sourceId===record.id))}).catch(()=>{if(active)setLinked([])});return()=>{active=false}},[linkedSection,record?.id,record?.updatedAt,record?.history?.length,organizationId])
   const linkedCapas=recordType==='incidents'?linked:[]
   const finalized=isFinalizedQualityRecord(record)
   const recordInScope=!record||canAccessRecord({...record,department:record.department})
