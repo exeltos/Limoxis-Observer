@@ -4,8 +4,8 @@ import { writeSessionValue } from '../../core/storage/browserStorage'
 export const QUALITY_RETURN_KEY = 'limoxis.quality.returnSection'
 export const rememberQualitySection = (section) => writeSessionValue(QUALITY_RETURN_KEY, section)
 
-// The Center's five tabs; «measure» holds registers, objectives and reviews.
-export const QUALITY_TABS = ['reports', 'actions', 'audits', 'risks', 'measure']
+// The Center's tabs; «measure» holds registers, objectives and reviews.
+export const QUALITY_TABS = ['overview', 'reports', 'deviations', 'actions', 'audits', 'risks', 'measure']
 export const MEASURE_VIEWS = ['registers', 'objectives', 'reviews']
 
 // A remembered section as { tab, view }. Records opened before the five tabs

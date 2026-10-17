@@ -45,23 +45,38 @@
 .quality-report-summary h4{margin:0;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
 .quality-report-summary p{margin:0;font-size:13px;line-height:1.5;white-space:pre-line;color:var(--lo-color-text)}
 @media(max-width:600px){.quality-report-summary dl{grid-template-columns:minmax(0,1fr)}}
-/* Incident flow (IncidentFlowBar.jsx), above the record tabs' content. */
-.quality-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 10px;padding:0;list-style:none}
-.quality-flow button{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;width:100%;min-height:38px;padding:6px 10px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);color:var(--lo-color-muted);font:inherit;font-size:12px;font-weight:650;text-align:left;cursor:pointer}
-.quality-flow button>small{flex-basis:100%;margin-left:30px;margin-top:-4px;font-size:10.5px;font-weight:500}
+/* Incident record: details on the left, the flow and its CAPAs beside them (IncidentFlowBar.jsx). */
+.quality-record-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px;align-items:start;min-height:0}
+.quality-record-layout>.record-section{min-width:0}
+.quality-record-aside{display:flex;flex-direction:column;gap:12px;min-width:0}
+.quality-flow{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;list-style:none}
+.quality-flow button{display:flex;align-items:flex-start;gap:10px;width:100%;padding:7px 8px;border:0;border-radius:8px;background:transparent;color:var(--lo-color-muted);font:inherit;text-align:left;cursor:pointer}
+.quality-flow button:hover{background:#f4f7fa}
+.quality-flow-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+.quality-flow-text>strong{font-size:12.5px}
+.quality-flow-text>small{font-size:11px;font-weight:500;color:var(--lo-color-muted)}
 .quality-flow-mark{display:inline-grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:var(--lo-color-surface-muted);font-size:11px;font-weight:800}
 .quality-flow .is-done button{color:var(--lo-color-text)}
 .quality-flow .is-done .quality-flow-mark{background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
-.quality-flow .is-current button{border-color:var(--lo-color-primary);background:var(--lo-color-primary-soft);color:var(--lo-color-text);box-shadow:0 0 0 1px var(--lo-color-primary) inset}
+.quality-flow .is-current button{background:var(--lo-color-primary-soft);color:var(--lo-color-text);box-shadow:inset 3px 0 0 var(--lo-color-primary)}
 .quality-flow .is-current .quality-flow-mark{background:var(--lo-color-primary);color:var(--lo-color-surface)}
+.quality-next-step{display:grid;gap:6px;padding-top:10px;border-top:1px solid var(--lo-color-border)}
+.quality-next-step>button{justify-content:center;width:100%}
+.quality-next-step>small{font-size:11px;color:var(--lo-color-muted)}
+.quality-capa-cards{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.quality-capa-cards button{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:8px;width:100%;padding:8px 9px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.quality-capa-cards button:hover{border-color:var(--lo-color-primary)}
+.quality-capa-cards button>span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.quality-capa-cards strong{font-size:12px}
+.quality-capa-cards small{font-size:11px;color:var(--lo-color-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .quality-sentinel-banner{margin-bottom:10px}
-@media(max-width:900px){.quality-flow{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:600px){.quality-flow{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1100px){.quality-record-layout{grid-template-columns:minmax(0,1fr)}}
 /* Reports & deviations register (QualityReportRegister.jsx) and findings & actions (QualityLists.jsx). */
 .data-table td.quality-overdue,.data-table td.quality-overdue small{color:#b42318!important;font-weight:700}
 .quality-audits-table td:nth-child(2){min-width:260px}
 .quality-register-kind{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--lo-color-text)}
 .quality-register-table td>small{display:block}
+.quality-deviation-table td:first-child>small{white-space:nowrap}
 .quality-register-table td:first-child .status-badge{margin-top:3px}
 .quality-register-actions{flex-wrap:nowrap;justify-content:flex-start;gap:6px}
 .quality-register-deviation{background:var(--lo-status-warning-bg)}
@@ -120,3 +135,45 @@
 .objective-bars-value{white-space:nowrap;text-align:right;color:var(--lo-color-muted)}
 .objective-bars-value strong{color:var(--lo-color-text)}
 @media(max-width:700px){.objective-bars>li{grid-template-columns:minmax(0,1fr) auto}.objective-bars .lo-meter{grid-column:1/-1;grid-row:2}}
+
+/* Quality Center (QualityPage.jsx): each tab's figures in one row, as many columns as figures. */
+.module-summary-strip.quality-kpis{grid-template-columns:repeat(var(--quality-kpis,4),minmax(0,1fr))!important}
+.quality-kpis>*{min-height:64px}
+@media(max-width:1100px){.module-summary-strip.quality-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:600px){.module-summary-strip.quality-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+/* A report's stage: five marks of the flow and the stage's label. */
+.quality-stage{display:inline-flex;flex-direction:column;align-items:flex-start;gap:5px}
+.quality-stage-track{display:inline-flex;gap:3px}
+.quality-stage-track>i{width:14px;height:5px;border-radius:999px;background:var(--lo-color-border)}
+.quality-stage-track>i.is-done{background:var(--lo-status-success-fg)}
+.quality-stage-track>i.is-current{background:var(--lo-color-primary)}
+.quality-register-table tr.quality-row-sentinel>td:first-child{box-shadow:inset 3px 0 0 #b42318}
+/* Overview (QualityOverview.jsx): the risk analysis' panels and lists, with a figure in front of each line. */
+.quality-overview-scroll{overflow:auto;min-height:0}
+.quality-overview{padding-bottom:12px}
+.quality-panel h3{display:inline-flex;align-items:center;gap:8px}
+.quality-panel-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--lo-color-surface-muted);font-size:11px;font-weight:800;color:var(--lo-color-text)}
+.quality-panel-all{align-self:flex-start;padding:0;border:0;background:none;color:var(--lo-color-primary);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.quality-panel-all:hover{text-decoration:underline}
+.quality-attention-list button{align-items:center}
+.quality-chip{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:0 0 58px;min-height:34px;padding:2px 4px;border-radius:8px;background:var(--lo-color-surface-muted);color:var(--lo-color-text);line-height:1.1}
+.quality-chip>strong{font-size:13px}
+.quality-chip>small{font-size:9.5px;font-weight:600;white-space:nowrap}
+.quality-chip.is-danger{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
+.quality-chip.is-warning{background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
+.quality-breakdowns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(max-width:1100px){.quality-breakdowns{grid-template-columns:minmax(0,1fr)}}
+.quality-bars{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.quality-bars>li{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(80px,2fr) 32px 36px;align-items:center;gap:10px;font-size:12px;color:var(--lo-color-text)}
+.quality-bars>li>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quality-bars>li>strong{text-align:right}
+.quality-bars>li>small{color:var(--lo-color-muted);font-size:10.5px}
+.quality-bar{display:block;height:10px;border-radius:0 4px 4px 0;background:var(--lo-color-surface-muted)}
+.quality-bar>i{display:block;height:100%;border-radius:0 4px 4px 0;background:#2a78d6}
+.quality-columns{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px;align-items:end;height:150px}
+.quality-column{display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;min-width:0}
+.quality-column>small{font-size:11px;font-weight:700;color:var(--lo-color-text);min-height:14px}
+.quality-column>span{flex:1 1 auto;display:flex;align-items:flex-end;width:100%;max-width:34px}
+.quality-column>span>i{display:block;width:100%;min-height:2px;border-radius:4px 4px 0 0;background:#2a78d6}
+.quality-column>em{font-size:10.5px;font-style:normal;color:var(--lo-color-muted);text-transform:capitalize}
+.quality-column:hover>span>i{background:#1f5fae}
