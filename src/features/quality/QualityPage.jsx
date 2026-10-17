@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
-import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,ClipboardSignature,Clock3,FileSpreadsheet,FileWarning,Gauge,GraduationCap,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Target,TrendingDown,UserRound,Wrench } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,ClipboardSignature,Clock3,FileSpreadsheet,FileWarning,Gauge,GraduationCap,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Target,TrendingDown,UserRound,Users,Wrench } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -30,6 +30,8 @@ import { summarizeRisks } from './risk/riskModel'
 import { RegistersPanel,useRegisterList } from '../registers/RegistersPanel'
 import { registerKindLabel,registerStatusLabel } from '../registers/registerText'
 import { ObjectiveDialog,ObjectivesTable,ReviewsTable,newObjective,objectivesExport,reviewsExport,useObjectives,useReviews } from './review/QualityObjectives'
+import { MeetingsList,filterMeetings,meetingsExport,useMeetings } from './meetings/MeetingsPanel'
+import { departmentMeetingStatus,latestMeetings,lateDecisions as meetingLateDecisions,openDecisions as meetingOpenDecisions } from './meetings/meetingModel'
 import './quality.css'
 
 // The Quality Center follows the frame of the risk assessment: each tab's
@@ -43,9 +45,13 @@ const TABS=[
  {value:'audits',icon:ClipboardCheck,label:['Επιθεωρήσεις','Audits']},
  {value:'risks',icon:ShieldAlert,label:['Κίνδυνοι','Risks']},
  {value:'indicators',icon:Target,label:['Δείκτες & Στόχοι','Indicators & objectives']},
- {value:'review',icon:ClipboardSignature,label:['Ανασκόπηση','Review']},
+ {value:'review',icon:Users,label:['Συναντήσεις','Meetings']},
 ]
 const STAGE_ICON={toAssess:Clock3,investigating:SearchCheck,action:Wrench,effectiveness:Scale,toClose:CheckCircle2}
+const MEETING_OPTIONS=[
+ {value:'meetings',icon:Users,label:['Τμημάτων','Departments']},
+ {value:'reviews',icon:ClipboardSignature,label:['Ανασκόπηση Διοίκησης','Management review']},
+]
 const INDICATOR_OPTIONS=[
  {value:'registers',icon:ClipboardList,label:['Μητρώα','Registers']},
  {value:'objectives',icon:Target,label:['Στόχοι','Objectives']},
@@ -86,7 +92,9 @@ export function QualityPage(){
  const [initial]=useState(()=>qualityTabOf(readSessionValue(RETURN_KEY,''))||{tab:'overview',view:null})
  useEffect(()=>{writeSessionValue(RETURN_KEY,'')},[])
  const [tab,setTab]=useState(initial.tab)
- const [measureView,setMeasureView]=useState(initial.view||'registers')
+ const [measureView,setMeasureView]=useState(initial.tab==='indicators'&&initial.view||'registers')
+ const [meetingView,setMeetingView]=useState(initial.tab==='review'&&initial.view||'meetings')
+ const [meetingFilters,setMeetingFilters]=useState({query:'',department:'all',status:'all',quick:null})
  const [reviewQuick,setReviewQuick]=useState(null)
  const registry=useRegistryMemory(`quality.${tab}`)
 
@@ -114,6 +122,8 @@ export function QualityPage(){
  const registerList=useRegisterList()
  const objectives=useObjectives(tenant?.id)
  const reviews=useReviews(tenant?.id)
+ const meetings=useMeetings()
+ const visibleMeetings=useMemo(()=>filterMeetings(meetings.meetings,meetingFilters,en),[meetings.meetings,meetingFilters,en])
  const [objectiveFilters,setObjectiveFilters]=useState({query:'',state:'all'})
  const [reviewQuery,setReviewQuery]=useState('')
  const [editingObjective,setEditingObjective]=useState(null)
@@ -173,6 +183,14 @@ export function QualityPage(){
    {key:'met',icon:CheckCircle2,value:activeObjectives.filter(item=>item.current.status==='met').length,label:L('Επιτυγχάνονται','Met'),active:measureView==='objectives'&&objectiveFilters.state==='met',go:()=>objectiveState('met')},
    {key:'missed',icon:TrendingDown,value:missedObjectives,label:L('Δεν επιτυγχάνονται','Not met'),tone:missedObjectives?'danger':'neutral',active:measureView==='objectives'&&objectiveFilters.state==='missed',go:()=>objectiveState('missed')},
    {key:'pending',icon:Clock3,value:activeObjectives.filter(item=>item.current.status==='pending').length,label:L('Σε εξέλιξη','In progress'),active:measureView==='objectives'&&objectiveFilters.state==='pending',go:()=>objectiveState('pending')}],
+  meetings:(()=>{const yearMeetings=meetings.meetings.filter(item=>String(item.meetingDate).startsWith(todayIso.slice(0,4)));const status=departmentMeetingStatus(meetings.meetings,todayIso);const late=status.filter(item=>item.overdue).length;const toggleMeeting=key=>setMeetingFilters(current=>({...current,quick:current.quick===key?null:key}));return [
+   {key:'year',icon:Users,value:meetings.loading?'—':yearMeetings.length,label:L('Συναντήσεις φέτος','Meetings this year'),active:!meetingFilters.quick,go:()=>setMeetingFilters(current=>({...current,quick:null}))},
+   {key:'departments',icon:ClipboardList,value:status.length,label:L('Τμήματα με συναντήσεις','Departments meeting')},
+   {key:'nextLate',icon:CalendarClock,value:late,label:L('Εκπρόθεσμη επόμενη συνάντηση','Next meeting overdue'),tone:late?'warning':'neutral'},
+   {key:'open',icon:ListChecks,value:latestMeetings(meetings.meetings).reduce((sum,item)=>sum+meetingOpenDecisions(item).length,0),label:L('Ανοιχτές αποφάσεις','Open decisions'),active:meetingFilters.quick==='open',go:()=>toggleMeeting('open')},
+   {key:'late',icon:AlertTriangle,value:latestMeetings(meetings.meetings).reduce((sum,item)=>sum+meetingLateDecisions(item).length,0),label:L('Εκπρόθεσμες αποφάσεις','Overdue decisions'),tone:latestMeetings(meetings.meetings).some(item=>meetingLateDecisions(item).length)?'danger':'neutral',active:meetingFilters.quick==='late',go:()=>toggleMeeting('late')},
+   {key:'draft',icon:Clock3,value:meetings.meetings.filter(item=>item.status==='draft').length,label:L('Πρακτικά σε πρόχειρο','Draft minutes'),active:meetingFilters.quick==='draft',go:()=>toggleMeeting('draft')},
+  ]})(),
   review:[{key:'reviews',icon:ClipboardSignature,value:reviews.loading?'—':reviews.reviews.length,label:L('Ανασκοπήσεις','Reviews'),active:!reviewQuick,go:()=>setReviewQuick(null)},
    {key:'last',icon:CalendarDays,value:formatDay(latestReview?.reviewDate,language)||'—',label:L('Τελευταία ανασκόπηση','Last review')},
    {key:'next',icon:CalendarClock,value:formatDay(latestReview?.nextReviewDate,language)||'—',label:nextReviewLate?L('Επόμενη · εκπρόθεσμη','Next · overdue'):L('Επόμενη ανασκόπηση','Next review'),tone:nextReviewLate?'danger':'neutral'},
@@ -187,10 +205,10 @@ export function QualityPage(){
   deviations:[{key:'all',icon:FileWarning,value:deviations.counts.total,label:L('Χωρίς διορθωτική ενέργεια','Without a corrective action'),active:deviations.filters.source==='all'&&deviations.filters.priority==='all',go:()=>{deviations.set('source','all');deviations.set('priority','all')}},
    ...[['control',ClipboardCheck,L('Από ελέγχους','From controls')],['bundle',ShieldCheck,L('Από bundles','From bundles')],['training',GraduationCap,L('Από εκπαιδεύσεις','From trainings')]].map(([source,icon,label])=>({key:source,icon,value:deviations.counts[source],label,active:deviations.filters.source===source,go:()=>deviations.set('source',deviations.filters.source===source?'all':source)})),
    {key:'high',icon:AlertTriangle,value:deviations.counts.high,label:L('Υψηλής προτεραιότητας','High priority'),tone:deviations.counts.high?'danger':'neutral',active:deviations.filters.priority==='high',go:()=>deviations.set('priority',deviations.filters.priority==='high'?'all':'high')}],
- })[tab]||tabFigures[tab]||[]
+ })[tab]||(tab==='review'&&meetingView==='meetings'?tabFigures.meetings:tabFigures[tab])||[]
 
  // Where «Back» from a record or a new record returns.
- const returnValue=tab==='indicators'?`indicators:${measureView}`:tab
+ const returnValue=tab==='indicators'?`indicators:${measureView}`:tab==='review'?`review:${meetingView}`:tab
  const remember=()=>writeSessionValue(RETURN_KEY,returnValue)
  const create=path=>()=>{remember();goTo(path,{registry:`quality.${tab}`})}
  // The record page reads its previous / next sequence under its own type (quality.incidents, quality.capas…).
@@ -205,7 +223,7 @@ export function QualityPage(){
   audits:canManage?[{id:'audit',label:L('Επιθεώρηση','Audit'),icon:ClipboardCheck,onClick:create('/quality/audits/new')}]:[],
   risks:canManage?[{id:'assessment',label:L('Εκτίμηση κινδύνου','Risk assessment'),icon:ShieldAlert,onClick:()=>setRiskCreating(true)},{id:'import',label:L('Εισαγωγή από Excel','Import from Excel'),icon:FileSpreadsheet,onClick:()=>riskFile.current?.click()}]:[],
   indicators:canManage?[{id:'register',label:L('Μητρώο τμήματος','Department register'),icon:ClipboardList,onClick:()=>{remember();goTo('/registers/new')}},{id:'objective',label:L('Στόχος ποιότητας','Quality objective'),icon:Target,onClick:()=>{setMeasureView('objectives');setEditingObjective(newObjective())}}]:[],
-  review:canManage?[{id:'review',label:L('Ανασκόπηση Διοίκησης','Management review'),icon:ClipboardSignature,onClick:()=>{writeSessionValue(RETURN_KEY,'review');navigate('/quality/reviews/new')}}]:[],
+  review:[{id:'meeting',label:L('Συνάντηση τμήματος','Department meeting'),icon:Users,onClick:()=>{setMeetingView('meetings');writeSessionValue(RETURN_KEY,'review:meetings');goTo('/meetings/new')}},...(canManage?[{id:'review',label:L('Ανασκόπηση Διοίκησης','Management review'),icon:ClipboardSignature,onClick:()=>{setMeetingView('reviews');writeSessionValue(RETURN_KEY,'review:reviews');navigate('/quality/reviews/new')}}]:[])],
  })[tab]
 
  const download=({
@@ -216,9 +234,10 @@ export function QualityPage(){
   audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);return <DownloadMenu disabled={!rows.length} onExcel={()=>exportRegistry(qualityExport('audits',rows,{en,t}))}/>})(),
   risks:<DownloadMenu disabled={!riskRows.length} onExcel={()=>exportRegistry(riskAssessmentsExport(riskRows,language))}/>,
   indicators:measureView==='registers'?<DownloadMenu disabled={!registerRows.length} onExcel={()=>exportRegistry(registersExport(registerRows,language))}/>:<DownloadMenu disabled={!visibleObjectives.length} onExcel={()=>exportRegistry(objectivesExport(visibleObjectives,language))}/>,
-  review:<DownloadMenu disabled={!visibleReviews.length} onExcel={()=>exportRegistry(reviewsExport(visibleReviews,language))}/>,
+  review:meetingView==='meetings'?<DownloadMenu disabled={!visibleMeetings.length} onExcel={()=>exportRegistry(meetingsExport(visibleMeetings,language))}/>:<DownloadMenu disabled={!visibleReviews.length} onExcel={()=>exportRegistry(reviewsExport(visibleReviews,language))}/>,
  })[tab]
 
+ const meetingSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={meetingView} onChange={setMeetingView} options={MEETING_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
  const measureSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={measureView} onChange={setMeasureView} options={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
 
  return <Page fill className="registry-fill-page" title={t('quality')} subtitle={L('Από την αναφορά και το εύρημα ως τη διορθωτική ενέργεια, τους στόχους και την Ανασκόπηση Διοίκησης.','From the report and the finding to the corrective action, the objectives and the management review.')}
@@ -253,9 +272,10 @@ export function QualityPage(){
     </FilterBar>
     <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} onOpen={objective=>canManage&&setEditingObjective(objective)}/>
    </>}
-   {tab==='review'&&<>
-    <FilterBar query={reviewQuery} onQueryChange={setReviewQuery} placeholder={L('Αναζήτηση ανασκόπησης','Search review')} onClear={()=>{setReviewQuery('');setReviewQuick(null)}}/>
-    <ReviewsTable rows={visibleReviews} loading={reviews.loading} onOpen={review=>{writeSessionValue(RETURN_KEY,'review');navigate(`/quality/reviews/${review.id}`)}}/>
+   {tab==='review'&&meetingView==='meetings'&&<MeetingsList list={meetings} filters={meetingFilters} setFilters={setMeetingFilters} filterEnd={meetingSwitch} onOpen={meeting=>{writeSessionValue(RETURN_KEY,'review:meetings');goTo(`/meetings/${meeting.id}`)}}/>}
+   {tab==='review'&&meetingView==='reviews'&&<>
+    <FilterBar query={reviewQuery} onQueryChange={setReviewQuery} placeholder={L('Αναζήτηση ανασκόπησης','Search review')} onClear={()=>{setReviewQuery('');setReviewQuick(null)}} end={meetingSwitch}/>
+    <ReviewsTable rows={visibleReviews} loading={reviews.loading} onOpen={review=>{writeSessionValue(RETURN_KEY,'review:reviews');navigate(`/quality/reviews/${review.id}`)}}/>
    </>}
   </section>}
   {editingObjective&&<ObjectiveDialog objective={editingObjective} registers={objectives.registers} onClose={()=>setEditingObjective(null)} onSaved={()=>{setEditingObjective(null);void objectives.reload()}}/>}

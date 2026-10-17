@@ -24,7 +24,8 @@ describe('Quality center entry and tabs', () => {
     expect(qualityTabOf('indicators:objectives')).toEqual({ tab: 'indicators', view: 'objectives' })
     expect(qualityTabOf('review')).toEqual({ tab: 'review', view: null })
     expect(qualityTabOf('management')).toEqual({ tab: 'indicators', view: 'objectives' })
-    expect(qualityTabOf('measure:reviews')).toEqual({ tab: 'review', view: null })
+    expect(qualityTabOf('measure:reviews')).toEqual({ tab: 'review', view: 'reviews' })
+    expect(qualityTabOf('review:meetings')).toEqual({ tab: 'review', view: 'meetings' })
     expect(qualityTabOf('measure:registers')).toEqual({ tab: 'indicators', view: 'registers' })
   })
 
