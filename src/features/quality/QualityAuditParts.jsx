@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, CheckCircle2, ClipboardCheck, FilePlus2, ListChecks } from 'lucide-react'
+import { CalendarDays, CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, ListChecks } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ChecklistAnswers } from '../../design-system/ChecklistAnswers'
@@ -10,6 +10,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
+import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { auditChecklistFromControl, auditChecklistFromText, auditCompliance, auditProgramme, checklistTemplates, findingDraftFromRow, pendingFindings } from './qualityAudit'
 import { createQualityRecord, saveQualityRecord } from './qualityService'
@@ -52,6 +53,10 @@ export function AuditChecklistSource({ draft, setDraft, organizationId, language
 export function AuditChecklistTab({ record, setRecord, organizationId, canManage, finalized, language, actor, notify, userId }) {
   const en = language === 'en'
   const [rows, setRows] = useState(record.checklist || [])
+  const { goTo } = useContextualNavigation('/quality')
+  // A «No» shows the finding it became; one click opens it (and «Back» returns here).
+  // Unsaved answers would be lost on the way: the link waits for «Save».
+  const findingLink = row => row.findingId && <button type="button" className="quality-audit-finding-link" disabled={dirty} title={dirty ? (en ? 'Save the checklist first' : 'Αποθηκεύστε πρώτα τη λίστα ελέγχου') : undefined} onClick={() => goTo(`/quality/findings/${row.findingId}`, { tab: 'checklist' })}>{en ? 'Finding' : 'Εύρημα'} {row.findingId}<ChevronRight size={13} /></button>
   const [saving, setSaving] = useState(false)
   const [text, setText] = useState('')
   useEffect(() => { setRows(record.checklist || []) }, [record.checklist])
@@ -103,7 +108,7 @@ export function AuditChecklistTab({ record, setRecord, organizationId, canManage
 
   if (!rows.length && !editable) return <div className="record-section"><SectionHeader title={en ? 'Checklist' : 'Λίστα ελέγχου'} /><div className="inline-empty">{en ? 'This audit has no checklist.' : 'Η επιθεώρηση δεν έχει λίστα ελέγχου.'}</div></div>
   return <div className="record-section quality-audit-checklist">
-    {rows.length > 0 && <ChecklistAnswers rows={rows} language={language} disabled={!editable} onRowChange={setRow} onRowsChange={setRows} title={en ? 'Audit checklist' : 'Λίστα ελέγχου επιθεώρησης'} />}
+    {rows.length > 0 && <ChecklistAnswers rows={rows} rowExtra={findingLink} language={language} disabled={!editable} onRowChange={setRow} onRowsChange={setRows} title={en ? 'Audit checklist' : 'Λίστα ελέγχου επιθεώρησης'} />}
     {editable && <div className="quality-audit-add"><Field label={rows.length ? (en ? 'Add items, one per line' : 'Προσθήκη σημείων, ένα ανά γραμμή') : (en ? 'Items, one per line' : 'Σημεία, ένα ανά γραμμή')}><textarea rows={2} value={text} onChange={event => setText(event.target.value)} /></Field><Button variant="secondary" disabled={!text.trim()} onClick={addItems}><FilePlus2 size={15} /> {en ? 'Add' : 'Προσθήκη'}</Button></div>}
     {(pending.length > 0 || rows.some(row => row.findingId)) && <div className={`governance-banner ${pending.length ? 'warning' : 'success'} quality-audit-findings`}><ClipboardCheck size={17} /><span>{pending.length ? (en ? `«No» answers without a finding: ${pending.length}. Each becomes a finding with its own corrective action.` : `Απαντήσεις «Όχι» χωρίς εύρημα: ${pending.length}. Καθεμία γίνεται εύρημα με τη δική του διορθωτική ενέργεια.`) : (en ? 'Every «No» has its finding.' : 'Κάθε «Όχι» έχει το εύρημά του.')}</span>{canManage && pending.length > 0 && !dirty && <Button disabled={saving} onClick={createFindings}>{en ? 'Create findings' : 'Δημιουργία ευρημάτων'}</Button>}</div>}
     {editable && <div className="inline-edit-footer quality-audit-footer">

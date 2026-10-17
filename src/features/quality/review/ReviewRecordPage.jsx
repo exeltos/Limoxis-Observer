@@ -13,6 +13,7 @@ import { Button } from '../../../design-system/Button'
 import { SaveButton } from '../../../design-system/SaveButton'
 import { IconButton } from '../../../design-system/IconButton'
 import { StatusBadge } from '../../../design-system/StatusBadge'
+import { RegistryTable } from '../../../design-system/RegistryTable'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
@@ -52,7 +53,7 @@ ${sections}${actions}
 
 // The text of a section: as tall as what is written (no scrolling inside the
 // card), and plain paragraphs once the review is approved.
-function MinutesText({ label, value, locked, onChange }) {
+function MinutesText({ label, value, locked, onChange, rows = 3 }) {
   const ref = useRef(null)
   useLayoutEffect(() => {
     const el = ref.current
@@ -66,7 +67,7 @@ function MinutesText({ label, value, locked, onChange }) {
     return () => observer?.disconnect()
   }, [value, locked])
   if (locked) return <div className="review-text" aria-label={label}>{String(value || '').split(/\n+/).filter(line => line.trim()).map((line, index) => <p key={index}>{line}</p>)}{!String(value || '').trim() && <p className="review-text-empty">—</p>}</div>
-  return <textarea ref={ref} aria-label={label} rows={3} value={value || ''} onChange={event => onChange(event.target.value)} />
+  return <textarea ref={ref} aria-label={label} rows={rows} value={value || ''} onChange={event => onChange(event.target.value)} />
 }
 
 // One management review: the minutes section by section (each with the facts
@@ -161,21 +162,44 @@ export function ReviewRecordPage() {
       </div>
     </RecordTabPanel>}
     {tab === 'actions' && <RecordTabPanel title={en ? 'Decisions and actions' : 'Αποφάσεις και ενέργειες'} subtitle={en ? 'Open actions of the previous review are carried over.' : 'Οι ανοιχτές ενέργειες της προηγούμενης ανασκόπησης μεταφέρονται εδώ.'} actions={!locked && <Button variant="secondary" onClick={() => set({ actions: [...review.actions, { title: '', ownerLabel: '', dueDate: '', status: 'open', sectionKey: '' }] })}><Plus size={15} />{en ? 'Decision' : 'Απόφαση'}</Button>} footer={footer}>
-      <div className="review-actions">{review.actions.map((action, index) => <div key={action.id || index} className="review-action-row">
-        <Field label={`${index + 1}. ${en ? 'Action' : 'Ενέργεια'}`}><input value={action.title} disabled={locked} onChange={event => setAction(index, { title: event.target.value })} /></Field>
-        <Field label={en ? 'Owner' : 'Υπεύθυνος'}><input value={action.ownerLabel} disabled={locked} onChange={event => setAction(index, { ownerLabel: event.target.value })} /></Field>
-        <ManualDateField label={en ? 'Due' : 'Προθεσμία'} value={action.dueDate} disabled={locked} onChange={value => setAction(index, { dueDate: value })} />
-        <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={action.status} options={[{ value: 'open', label: en ? 'Open' : 'Ανοιχτή' }, { value: 'done', label: en ? 'Done' : 'Ολοκληρώθηκε' }]} onChange={value => !locked && setAction(index, { status: value })} />
-        <span className="review-action-tools">{action.title && action.status === 'open' && canManage && <Button variant="secondary" onClick={() => openCapa(action)}>{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}{!locked && <IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ actions: review.actions.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton>}</span>
-      </div>)}{!review.actions.length && <div className="inline-empty">{en ? 'No decisions yet.' : 'Δεν υπάρχουν αποφάσεις ακόμη.'}</div>}</div>
+      {locked
+        // An approved review reads as a table; what was decided does not change here.
+        ? <RegistryTable className="review-decisions-table" rows={review.actions} rowKey={(action, index) => action.id || index}
+          columns={[{ key: 'n', label: '#' }, { key: 'title', label: en ? 'Decision / action' : 'Απόφαση / ενέργεια' }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος' }, { key: 'due', label: en ? 'Due' : 'Προθεσμία' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }, { key: 'capa', label: '', ariaLabel: en ? 'Corrective action' : 'Διορθωτική ενέργεια' }]}
+          renderRow={(action, index) => <>
+            <td>{index + 1}</td>
+            <td className="review-decision-title">{action.title || '—'}</td>
+            <td>{action.ownerLabel || '—'}</td>
+            <td className="nowrap-cell">{formatDay(action.dueDate, language) || '—'}</td>
+            <td><StatusBadge tone={action.status === 'done' ? 'success' : 'info'}>{action.status === 'done' ? (en ? 'Done' : 'Ολοκληρώθηκε') : (en ? 'Open' : 'Ανοιχτή')}</StatusBadge></td>
+            <td>{action.title && action.status === 'open' && canManage && <Button variant="secondary" onClick={() => openCapa(action)}>{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}</td>
+          </>}
+          emptyTitle={en ? 'No decisions' : 'Δεν υπάρχουν αποφάσεις'} />
+        : <div className="review-actions">{review.actions.map((action, index) => <div key={action.id || index} className="review-action-row">
+          <Field label={`${index + 1}. ${en ? 'Decision / action' : 'Απόφαση / ενέργεια'}`}><MinutesText label={en ? 'Decision / action' : 'Απόφαση / ενέργεια'} value={action.title} rows={1} onChange={value => setAction(index, { title: value })} /></Field>
+          <Field label={en ? 'Owner' : 'Υπεύθυνος'}><input value={action.ownerLabel} onChange={event => setAction(index, { ownerLabel: event.target.value })} /></Field>
+          <ManualDateField label={en ? 'Due' : 'Προθεσμία'} value={action.dueDate} onChange={value => setAction(index, { dueDate: value })} />
+          <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={action.status} options={[{ value: 'open', label: en ? 'Open' : 'Ανοιχτή' }, { value: 'done', label: en ? 'Done' : 'Ολοκληρώθηκε' }]} onChange={value => setAction(index, { status: value })} />
+          <span className="review-action-tools">{action.title && action.status === 'open' && canManage && <Button variant="secondary" onClick={() => openCapa(action)}>{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}<IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ actions: review.actions.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton></span>
+        </div>)}{!review.actions.length && <div className="inline-empty">{en ? 'No decisions yet.' : 'Δεν υπάρχουν αποφάσεις ακόμη.'}</div>}</div>}
     </RecordTabPanel>}
     {tab === 'people' && <RecordTabPanel title={en ? 'Participants and signatures' : 'Συμμετέχοντες και υπογραφές'} subtitle={allSigned ? (en ? 'Everyone present has signed: the review can be approved.' : 'Υπέγραψαν όλοι οι παρόντες: η ανασκόπηση μπορεί να εγκριθεί.') : (en ? 'The review is approved once everyone present has signed.' : 'Η ανασκόπηση εγκρίνεται όταν υπογράψουν όλοι οι παρόντες.')} actions={!locked && <Button variant="secondary" onClick={() => set({ participants: [...review.participants, { name: '', role: '', attended: true, signedAt: null }] })}><Plus size={15} />{en ? 'Participant' : 'Συμμετέχων'}</Button>} footer={footer}>
-      <div className="review-actions">{review.participants.map((person, index) => <div key={person.id || index} className="review-action-row">
-        <Field label={`${index + 1}. ${en ? 'Name' : 'Ονοματεπώνυμο'}`}><input value={person.name} disabled={locked} onChange={event => setPerson(index, { name: event.target.value })} /></Field>
-        <Field label={en ? 'Role' : 'Ιδιότητα'}><input value={person.role} disabled={locked} onChange={event => setPerson(index, { role: event.target.value })} /></Field>
-        <ChoiceField label={en ? 'Present' : 'Παρών'} value={person.attended === false ? 'no' : 'yes'} options={[{ value: 'yes', label: en ? 'Present' : 'Παρών' }, { value: 'no', label: en ? 'Absent' : 'Απών' }]} onChange={value => !locked && setPerson(index, { attended: value === 'yes', signedAt: value === 'yes' ? person.signedAt : null })} />
-        <span className="review-action-tools">{person.attended !== false && (person.signedAt ? <StatusBadge tone="success">{en ? 'Signed' : 'Υπέγραψε'} {formatDay(person.signedAt, language)}</StatusBadge> : !locked && <Button variant="secondary" disabled={!person.name} onClick={() => setPerson(index, { signedAt: new Date().toISOString() })}>{en ? 'Mark signed' : 'Υπογραφή'}</Button>)}{!locked && <IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ participants: review.participants.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton>}</span>
-      </div>)}</div>
+      {locked
+        ? <RegistryTable className="review-decisions-table" rows={review.participants} rowKey={(person, index) => person.id || index}
+          columns={[{ key: 'n', label: '#' }, { key: 'name', label: en ? 'Name' : 'Ονοματεπώνυμο' }, { key: 'role', label: en ? 'Role' : 'Ιδιότητα' }, { key: 'present', label: en ? 'Present' : 'Παρουσία' }, { key: 'signed', label: en ? 'Signature' : 'Υπογραφή' }]}
+          renderRow={(person, index) => <>
+            <td>{index + 1}</td>
+            <td><strong>{person.name || '—'}</strong></td>
+            <td>{person.role || '—'}</td>
+            <td>{person.attended === false ? (en ? 'Absent' : 'Απών') : (en ? 'Present' : 'Παρών')}</td>
+            <td>{person.attended !== false && (person.signedAt ? <StatusBadge tone="success">{en ? 'Signed' : 'Υπέγραψε'} {formatDay(person.signedAt, language)}</StatusBadge> : '—')}</td>
+          </>} />
+        : <div className="review-actions">{review.participants.map((person, index) => <div key={person.id || index} className="review-action-row">
+          <Field label={`${index + 1}. ${en ? 'Name' : 'Ονοματεπώνυμο'}`}><input value={person.name} onChange={event => setPerson(index, { name: event.target.value })} /></Field>
+          <Field label={en ? 'Role' : 'Ιδιότητα'}><input value={person.role} onChange={event => setPerson(index, { role: event.target.value })} /></Field>
+          <ChoiceField label={en ? 'Present' : 'Παρών'} value={person.attended === false ? 'no' : 'yes'} options={[{ value: 'yes', label: en ? 'Present' : 'Παρών' }, { value: 'no', label: en ? 'Absent' : 'Απών' }]} onChange={value => setPerson(index, { attended: value === 'yes', signedAt: value === 'yes' ? person.signedAt : null })} />
+          <span className="review-action-tools">{person.attended !== false && (person.signedAt ? <StatusBadge tone="success">{en ? 'Signed' : 'Υπέγραψε'} {formatDay(person.signedAt, language)}</StatusBadge> : <Button variant="secondary" disabled={!person.name} onClick={() => setPerson(index, { signedAt: new Date().toISOString() })}>{en ? 'Mark signed' : 'Υπογραφή'}</Button>)}<IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ participants: review.participants.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton></span>
+        </div>)}</div>}
     </RecordTabPanel>}
   </EntityRecordShell></Page>
 }
