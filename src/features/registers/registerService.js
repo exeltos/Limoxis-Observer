@@ -38,10 +38,11 @@ function saveLocal(state) {
   saveSnapshot('quality_department_register_identities', state.identities)
 }
 
-// The date an entry counts on: the register's date field, else today.
-export function entryDateOf(register, values = {}) {
+// The date an entry counts on: the register's date field, else the day it was
+// recorded (an active patient imported without dates), else today.
+export function entryDateOf(register, values = {}, recorded = '') {
   const day = register.kind === 'sheet' ? null : values[register.settings?.entryDateField]
-  return String(day || new Date().toISOString().slice(0, 10)).slice(0, 10)
+  return String(day || recorded || new Date().toISOString().slice(0, 10)).slice(0, 10)
 }
 
 // --- Registers -----------------------------------------------------------------
@@ -198,7 +199,7 @@ export async function loadEntry(organizationId, entryId, { withIdentity = false,
 export async function saveEntry(organizationId, register, entry, { identity = null, actorLabel = '' } = {}) {
   const values = register.kind === 'sheet' ? entry.values || {} : computeValues(register.fields, entry.values || {})
   const periodStart = register.kind === 'sheet' ? entry.periodStart : null
-  const entryDate = register.kind === 'sheet' ? periodStart : entryDateOf(register, values)
+  const entryDate = register.kind === 'sheet' ? periodStart : entryDateOf(register, values, entry.entryDate)
   if (isLocal()) {
     const state = localState()
     if (register.kind === 'sheet' && state.entries.some(item => item.registerId === register.id && item.periodStart === periodStart && item.id !== entry.id)) throw new Error('period-exists')
@@ -238,7 +239,7 @@ export async function saveEntries(organizationId, register, items, { onProgress 
   let done = 0
   for (let index = 0; index < items.length; index += 500) {
     const chunk = items.slice(index, index + 500)
-    const rows = chunk.map(item => rowFromEntry(register, { ...item.entry, entryDate: register.kind === 'sheet' ? item.entry.periodStart : entryDateOf(register, item.entry.values) }, organizationId))
+    const rows = chunk.map(item => rowFromEntry(register, { ...item.entry, entryDate: register.kind === 'sheet' ? item.entry.periodStart : entryDateOf(register, item.entry.values, item.entry.entryDate) }, organizationId))
     const saved = must(await supabase.from(register.tableName).insert(rows).select('id'))
     const identities = chunk.map((item, position) => (item.identity && (item.identity.caseNumber || item.identity.patientName) ? { entry_id: saved[position].id, organization_id: organizationId, case_number: item.identity.caseNumber || null, patient_name: item.identity.patientName || null } : null)).filter(Boolean)
     if (identities.length && register.kind === 'case') must(await supabase.from(`${register.tableName}_identity`).insert(identities))

@@ -69,7 +69,9 @@ export function RegisterImportPage() {
         const next = await loadRegister(tenant?.id, registerId)
         if (!active || !next) return
         // The template's FileMaker names and newer options come along (withTemplateHints).
-        setRegister(withTemplateHints(next))
+        const hinted = withTemplateHints(next)
+        setRegister(hinted)
+        if (hinted.undatedImport) setFallbackDate(new Date().toISOString().slice(0, 10))
         setExisting(await loadEntries(tenant?.id, next.id, { withIdentity: access.canSeeIdentity(next), register: next }))
       } catch (error) { console.error(error) } finally { if (active) setLoading(false) }
     })()
@@ -181,7 +183,8 @@ export function RegisterImportPage() {
           {missing.length > 0 && <div className="register-import-missing"><strong>{en ? `Fields of the register not in the file (${missing.length})` : `Πεδία του μητρώου που δεν υπάρχουν στο αρχείο (${missing.length})`}</strong><span>{missing.map(item => textOf(item, language)).join(' · ')}</span><small>{en ? 'They stay empty. For the full history, export these fields from FileMaker too, or pick a column for them above.' : 'Μένουν κενά. Για πλήρες ιστορικό, εξάγετε και αυτά τα πεδία από το FileMaker ή επιλέξτε στήλη γι’ αυτά παραπάνω.'}</small></div>}
           {!sheet && <div className="register-import-options">
             <YesNoField label={en ? 'An empty yes/no cell means No' : 'Κενό σε ναι/όχι σημαίνει Όχι'} value={emptyIsNo} onChange={setEmptyIsNo} hint={en ? 'FileMaker checkboxes leave the cell empty when not ticked.' : 'Τα κουτάκια του FileMaker αφήνουν κενό όταν δεν είναι τσεκαρισμένα.'} />
-            {!mapping.includes(register.settings?.entryDateField) && <ManualDateField label={en ? `Date for every case (no «${textOf(dateField, 'en')}» column)` : `Ημερομηνία για όλα (λείπει η στήλη «${textOf(dateField)}»)`} value={fallbackDate} onChange={setFallbackDate} />}
+            {register.undatedImport && <ManualDateField label={en ? `Recorded on, for patients without «${textOf(dateField, 'en')}»` : `Ημερομηνία καταγραφής, για όσους δεν έχουν «${textOf(dateField)}»`} value={fallbackDate} onChange={setFallbackDate} />}
+            {!register.undatedImport && !mapping.includes(register.settings?.entryDateField) && <ManualDateField label={en ? `Date for every case (no «${textOf(dateField, 'en')}» column)` : `Ημερομηνία για όλα (λείπει η στήλη «${textOf(dateField)}»)`} value={fallbackDate} onChange={setFallbackDate} />}
           </div>}
           {existing.length > 0 && access.canDefine && <div className="register-import-options">
             <YesNoField label={en ? `Replace what is in the register (${existing.length})` : `Αντικατάσταση όσων υπάρχουν (${existing.length})`} value={replace} onChange={setReplace} hint={en ? 'The entries already in the register are deleted and the file takes their place. Closed periods stay.' : 'Οι καταχωρίσεις που υπάρχουν σβήνονται και τη θέση τους παίρνει το αρχείο. Οι κλεισμένες περίοδοι μένουν.'} />

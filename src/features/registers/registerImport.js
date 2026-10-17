@@ -28,18 +28,22 @@ export function withTemplateHints(register) {
   const template = templateByKey(register?.templateKey)
   if (!template) return register
   const union = (a = [], b = []) => [...new Set([...(a || []), ...(b || [])])]
+  // A FileMaker name the template moved to another field (or retired) leaves the register's copy.
+  const owner = new Map((template.fields || []).flatMap(item => (item.aliases || []).map(alias => [normalize(alias), item.key])))
+  const retired = new Set((template.retiredAliases || []).map(normalize))
+  const own = field => (field.aliases || []).filter(alias => !retired.has(normalize(alias)) && (owner.get(normalize(alias)) ?? field.key) === field.key)
   const fields = (register.fields || []).map(field => {
     const hint = (template.fields || []).find(item => item.key === field.key)
-    if (!hint) return field
+    if (!hint) return { ...field, aliases: own(field) }
     const options = (field.options || []).map(option => { const known = (hint.options || []).find(item => item.value === option.value); return known?.match ? { ...option, match: union(option.match, known.match) } : option })
     // Options the template gained after this register was made come along, marked so the import can add them to the register.
     if (['choice', 'multiChoice'].includes(field.type)) for (const option of hint.options || []) if (!options.some(item => item.value === option.value)) options.push({ ...option, fromTemplate: true })
-    return { ...field, aliases: union(field.aliases, hint.aliases), options, repair: field.repair || template.importRepairs?.[field.key] }
+    return { ...field, aliases: union(own(field), hint.aliases), options, repair: field.repair || template.importRepairs?.[field.key] }
   })
   const sheet = register.sheet?.rows ? { ...register.sheet, rows: register.sheet.rows.map(row => { const hint = (template.sheet?.rows || []).find(item => item.key === row.key); return hint ? { ...row, aliases: union(row.aliases, hint.aliases) } : row }), measures: (register.sheet.measures || []).map(measure => { const hint = (template.sheet?.measures || []).find(item => item.key === measure.key); return hint ? { ...measure, aliases: union(measure.aliases, hint.aliases) } : measure }) } : register.sheet
   // Fields the template gained since (a physician column) are offered too, marked, and join the register only when a column goes to them.
   if (register.kind === 'case') for (const hint of template.fields || []) if (!fields.some(field => field.key === hint.key)) fields.push({ ...structuredClone(hint), fromTemplate: true })
-  return { ...register, fields, sheet, entryDateFallbacks: register.entryDateFallbacks || template.entryDateFallbacks || [] }
+  return { ...register, fields, sheet, entryDateFallbacks: register.entryDateFallbacks || template.entryDateFallbacks || [], undatedImport: register.undatedImport ?? Boolean(template.undatedImport) }
 }
 
 // The value a list column shows for its empty cells, when they matter (a line without its shift).
@@ -233,6 +237,8 @@ export function toYesNo(cell, emptyIsNo) {
   // A count where a yes/no is asked (FileMaker kept «days of oxygen after 36w»): above 0 is Yes.
   const number = typeof cell === 'number' ? cell : /^\d+([.,]\d+)?$/.test(String(cell).trim()) ? Number(String(cell).trim().replace(',', '.')) : null
   if (number != null) return number > 0
+  // A date where a yes/no is asked (FileMaker kept the day it started): Yes.
+  if (cell instanceof Date || /^\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4}/.test(String(cell).trim())) return true
   return undefined
 }
 
@@ -331,8 +337,9 @@ function planCases(register, headers, rows, mapping, { valueMap = {}, emptyIsNo 
       // A case without its date takes the first other date it has (a neonate's discharge), noted.
       const stand = (register.entryDateFallbacks || []).find(key => values[key])
       if (stand) { values[dateField] = values[stand]; note(register.fields.find(item => item.key === dateField), en ? `No date: ${textOf(register.fields.find(item => item.key === stand), 'en')} used` : `Χωρίς ημερομηνία: χρησιμοποιήθηκε η «${textOf(register.fields.find(item => item.key === stand), 'el')}»`) }
-      else if (fallbackDate) values[dateField] = fallbackDate
-      else { skipped.noDate += 1; return }
+      // Registers kept without dates (active patients) count on the day recorded and leave their own date empty.
+      else if (fallbackDate && !register.undatedImport) values[dateField] = fallbackDate
+      else if (!fallbackDate) { skipped.noDate += 1; return }
     }
     // Limits: an impossible value is not imported (the rest of the case is).
     const check = validateEntry(register.fields, values, language)
@@ -346,7 +353,7 @@ function planCases(register, headers, rows, mapping, { valueMap = {}, emptyIsNo 
     const key = caseNumber ? `${caseNumber}|${entryDate}` : ''
     if (key && seen.has(key)) { skipped.duplicate += 1; return }
     if (key) seen.add(key)
-    items.push({ entry: { values: computeValues(register.fields, values), status: 'complete' }, identity: caseNumber || patientName ? { caseNumber, patientName } : null, line })
+    items.push({ entry: { values: computeValues(register.fields, values), status: 'complete', ...(values[dateField] ? {} : { entryDate }) }, identity: caseNumber || patientName ? { caseNumber, patientName } : null, line })
   })
   return { items, issues, skipped, counts: { rows: rows.length, ready: items.length } }
 }

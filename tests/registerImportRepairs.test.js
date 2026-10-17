@@ -86,4 +86,19 @@ describe('Register import: what FileMaker exports really look like', () => {
     const register = registerFromTemplate('deliveryRoom')
     expect(suggestMapping(register, ['Πολυδ κύηση με φτ', 'Περίδεση', 'Τεκετοί εν τη πόλη'])).toEqual(['row.multiple_vaginal', 'row.cerclage', 'row.born_before_arrival'])
   })
+  it('takes a FileMaker name off a field the template moved it from, and drops a retired one', () => {
+    const fresh = registerFromTemplate('nicu')
+    const older = { ...fresh, fields: [...fresh.fields.filter(field => !['bottle_feeding', 'picc_days'].includes(field.key)), { key: 'bottle_start', section: 'stay', type: 'date', label: 'Έναρξη', aliases: ['ΑΠΟΚΛΕΙΣΤΙΚΗ ΣΙΤΙΣΗ ΜΕ BIBERON'] }].map(field => (field.key === 'hfov' ? { ...field, aliases: ['ΤΥΠΟΣ ΜΗΧΑΝΙΚΟΥ ΑΕΡΙΣΜΟΥ'] } : field)) }
+    expect(suggestMapping(withTemplateHints(older), ['ΑΠΟΚΛΕΙΣΤΙΚΗ  ΣΙΤΙΣΗ ΜΕ BIBERON', 'ΦΕΡΕΙ PICC _ LINE', 'ΤΥΠΟΣ ΜΗΧΑΝΙΚΟΥ ΑΕΡΙΣΜΟΥ'])).toEqual(['bottle_feeding', 'picc_days', ''])
+    expect(toYesNo('23/8/2026', true)).toBe(true)
+  })
+
+  it('records active chemotherapy patients without dates on the day of the import, start left empty', () => {
+    const register = withTemplateHints(registerFromTemplate('chemotherapy'))
+    const headers = ['STATUS', 'ΑΙΤΙΑ ΕΙΣΑΓΩΓΗΣ', 'ΗΜΕΡΟΜΗΝΙΑ ΕΙΣΑΓΩΓΗΣ', 'ΦΥΛΟ']
+    const plan = planImport(register, headers, [['ΕΝΕΡΓΟΣ', 'C50', '', 'Θήλυ']], suggestMapping(register, headers), { fallbackDate: '2026-10-17' })
+    expect(plan.counts.ready).toBe(1)
+    expect(plan.items[0].entry).toMatchObject({ entryDate: '2026-10-17', values: { diagnosis: 'C50', sex: 'female' } })
+    expect(plan.items[0].entry.values.start_date).toBeUndefined()
+  })
 })

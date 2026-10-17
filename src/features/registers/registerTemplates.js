@@ -31,7 +31,7 @@ const NICU_FIELDS = [
   { key: 'congenital_anomalies', section: 'birth', type: 'yesNo', aliases: ['ΣΥΓΓΕΝΕΙΣ ΑΝΩΜΑΛΙΕΣ'], label: 'Συγγενείς ανωμαλίες', labelEn: 'Congenital anomalies' },
   // Stay
   { key: 'ventilator_days', section: 'stay', type: 'number', aliases: ['ΗΜΕΡΕΣ ΠΑΡΑΜΟΝΗΣ ΣΤΟΝ ΑΝΑΠΝΕΥΣΤΗΡΑ'], unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label: 'Ημέρες στον αναπνευστήρα', labelEn: 'Ventilator days' },
-  { key: 'hfov', section: 'stay', type: 'yesNo', aliases: ['ΤΥΠΟΣ ΜΗΧΑΝΙΚΟΥ ΑΕΡΙΣΜΟΥ'], label: 'HFOV', labelEn: 'HFOV', showWhen: { field: 'ventilator_days' } },
+  { key: 'hfov', section: 'stay', type: 'yesNo', label: 'HFOV', labelEn: 'HFOV', showWhen: { field: 'ventilator_days' } },
   { key: 'cpap_days', section: 'stay', type: 'number', aliases: ['ΔΙΑΡΚΕΙΑ ΣΤΟ CPAP'], unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label: 'Ημέρες σε CPAP', labelEn: 'CPAP days' },
   { key: 'oxygen_days', section: 'stay', type: 'number', aliases: ['ΗΜΕΡΕΣ ΣΥΝΟΛΙΚΗΣ ΧΟΡΗΓΗΣΗ ΟΞΥΓΟΝΟΥ', 'ΗΜΕΡΕΣ ΣΥΝΟΛΙΚΗΣ ΧΟΡΗΓΗΣΗΣ ΟΞΥΓΟΝΟΥ'], unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label: 'Ημέρες χορήγησης οξυγόνου', labelEn: 'Oxygen days' },
   { key: 'oxygen_after_36w', section: 'stay', type: 'yesNo', aliases: ['ΗΜΕΡΕΣ ΣΥΝΟΛΙΚΗΣ ΧΟΡΗΓΗΣΗ ΟΞΥΓΟΝΟΥ ΜΕΤΑ ΤΙΣ 36W', 'ΧΟΡΗΓΗΣΗΣ Ο2 ΜΕΤΑ ΤΙΣ 36W'], help: 'Από το FileMaker: ημέρες πάνω από 0 σημαίνουν Ναι.', helpEn: 'From FileMaker: days above 0 mean Yes.', label: 'Οξυγόνο μετά τις 36 εβδ.', labelEn: 'Oxygen after 36 weeks' },
@@ -39,8 +39,9 @@ const NICU_FIELDS = [
   { key: 'central_line_days', section: 'stay', type: 'number', aliases: ['ΔΙΑΡΚΕΙΑ ΦΛΕΒΙΚΟΥ ΚΑΘΕΤΗΡΑ'], unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label: 'Ημέρες φλεβικού καθετήρα', labelEn: 'Central line days' },
   { key: 'arterial_line_days', section: 'stay', type: 'number', aliases: ['ΔΙΑΡΚΕΙΑ ΑΡΤΗΡΙΑΚΟΥ ΚΑΘΕΤΗΡΑ'], unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label: 'Ημέρες αρτηριακού καθετήρα', labelEn: 'Arterial line days' },
   { key: 'tpn_days', section: 'stay', type: 'number', aliases: ['ΔΙΑΡΚΕΙΑ TPN'], unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label: 'Ημέρες TPN', labelEn: 'TPN days' },
+  { key: 'picc_days', section: 'stay', type: 'number', aliases: ['ΦΕΡΕΙ PICC _ LINE', 'ΦΕΡΕΙ PICC LINE', 'PICC LINE', 'PICC'], unit: 'ημέρες', unitEn: 'days', min: 0, max: 365, label: 'Ημέρες PICC line', labelEn: 'PICC line days' },
   { key: 'nasogastric', section: 'stay', type: 'yesNo', aliases: ['ΣΙΤΙΣΗ ΜΕ ΡΙΝΟΓΑΣΤΡΙΚΟ'], label: 'Σίτιση με ρινογαστρικό', labelEn: 'Nasogastric feeding' },
-  { key: 'bottle_start', section: 'stay', type: 'date', aliases: ['ΑΠΟΚΛΕΙΣΤΙΚΗ ΣΙΤΙΣΗ ΜΕ BIBERON', 'ΣΙΤΙΣΗ ΜΕ BIBERON'], notBefore: 'admission_date', label: 'Έναρξη σίτισης με μπιμπερό', labelEn: 'Bottle feeding from' },
+  { key: 'bottle_feeding', section: 'stay', type: 'yesNo', aliases: ['ΑΠΟΚΛΕΙΣΤΙΚΗ ΣΙΤΙΣΗ ΜΕ BIBERON', 'ΣΙΤΙΣΗ ΜΕ BIBERON'], label: 'Αποκλειστική σίτιση με μπιμπερό', labelEn: 'Exclusive bottle feeding', help: 'Από το FileMaker: μια ημερομηνία σημαίνει Ναι.', helpEn: 'From FileMaker: a date means Yes.' },
   { key: 'breast_milk', section: 'stay', type: 'choice', provisional: true, label: 'Διατήρηση μητρικού γάλακτος', labelEn: 'Breast milk', aliases: ['ΔΙΑΤΗΡΗΣΗ ΜΗΤΡΙΚΟΥ ΓΑΛΑΚΤΟΣ'], options: [o('exclusive', 'Αποκλειστικά μητρικό', 'Exclusive', ['ΑΠΟΚΛΕΙΣΤ']), o('mixed', 'Μικτή σίτιση', 'Mixed', ['ΜΙΚΤ', 'ΜΕΙΚΤ']), o('none', 'Όχι', 'None', ['ΟΧΙ']), o('unspecified', 'Ναι, χωρίς είδος', 'Yes, type not recorded', ['ΝΑΙ'])] },
   { key: 'early_infection', section: 'stay', type: 'yesNo', aliases: ['ΕΠΙΒΕΒΑΙΩΜ. ΠΕΡΙΓ. ΛΟΙΜΩΞΗ', 'ΕΠΙΒΕΒΑΙΩΜΕΝΗ ΠΕΡΙΓΕΝΝΗΤΙΚΗ ΛΟΙΜΩΞΗ'], label: 'Επιβεβαιωμένη πρώιμη λοίμωξη', labelEn: 'Confirmed early-onset infection', help: 'Θα συνδεθεί με το επεισόδιο στην Επιτήρηση.', helpEn: 'To be linked with the Surveillance episode.' },
   { key: 'late_infection', section: 'stay', type: 'yesNo', aliases: ['ΕΠΙΒΕΒΑΙΩΜ. ΕΝΔΟΝΟΣ. ΛΟΙΜΩΞΗ', 'ΕΠΙΒΕΒΑΙΩΜΕΝΗ ΕΝΔΟΝΟΣΟΚΟΜΕΙΑΚΗ ΛΟΙΜΩΞΗ'], label: 'Επιβεβαιωμένη όψιμη λοίμωξη', labelEn: 'Confirmed late-onset infection', help: 'Θα συνδεθεί με το επεισόδιο στην Επιτήρηση.', helpEn: 'To be linked with the Surveillance episode.' },
@@ -90,6 +91,8 @@ export const REGISTER_TEMPLATES = [
     entryDateField: 'admission_date',
     // FileMaker cases without an admission date are counted on their birth or discharge date.
     entryDateFallbacks: ['birth_date', 'discharge_date'],
+    // A FileMaker column no field reads (it stays out of the import).
+    retiredAliases: ['ΤΥΠΟΣ ΜΗΧΑΝΙΚΟΥ ΑΕΡΙΣΜΟΥ'],
     sections: NICU_SECTIONS,
     fields: NICU_FIELDS,
     breakdowns: ['admission_reason', 'admission_origin', 'outcome'],
