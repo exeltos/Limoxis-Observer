@@ -46,8 +46,8 @@ export function SurveyRespondPage() {
   if (state.error || !survey) return <Frame><Status icon={ShieldCheck} title={en ? 'This survey is not available' : 'Η έρευνα δεν είναι διαθέσιμη'} text={en ? 'It may not have opened yet. Check the link, or ask the staff of the department.' : 'Ίσως δεν έχει ανοίξει ακόμη. Ελέγξτε τον σύνδεσμο ή ρωτήστε το προσωπικό του τμήματος.'} /></Frame>
   const title = en ? survey.titleEn || survey.title : survey.title
   const intro = en ? survey.descriptionEn || survey.description : survey.description
-  if (!survey.open) return <Frame><Status icon={Clock3} title={en ? 'This survey is closed' : 'Η έρευνα έχει ολοκληρωθεί'} text={en ? `Thank you for your interest. ${survey.organizationName || ''}` : `Ευχαριστούμε για το ενδιαφέρον σας. ${survey.organizationName || ''}`} /></Frame>
-  if (done) return <Frame><Status icon={CheckCircle2} title={en ? 'Thank you!' : 'Ευχαριστούμε!'} text={kiosk ? (en ? 'Your answers were recorded. The form starts again for the next person.' : 'Οι απαντήσεις σας καταγράφηκαν. Η φόρμα ξεκινά ξανά για τον επόμενο.') : (en ? 'Your answers were recorded. They help us improve.' : 'Οι απαντήσεις σας καταγράφηκαν. Μας βοηθούν να γινόμαστε καλύτεροι.')} /></Frame>
+  if (!survey.open) return <Frame organization={survey.organizationName}><Status icon={Clock3} title={en ? 'This survey is closed' : 'Η έρευνα έχει ολοκληρωθεί'} text={en ? `Thank you for your interest. ${survey.organizationName || ''}` : `Ευχαριστούμε για το ενδιαφέρον σας. ${survey.organizationName || ''}`} /></Frame>
+  if (done) return <Frame organization={survey.organizationName}><Status icon={CheckCircle2} title={en ? 'Thank you!' : 'Ευχαριστούμε!'} text={kiosk ? (en ? 'Your answers were recorded. The form starts again for the next person.' : 'Οι απαντήσεις σας καταγράφηκαν. Η φόρμα ξεκινά ξανά για τον επόμενο.') : (en ? 'Your answers were recorded. They help us improve.' : 'Οι απαντήσεις σας καταγράφηκαν. Μας βοηθούν να γινόμαστε καλύτεροι.')} /></Frame>
 
   const departments = survey.departments || []
   const askDepartment = !fixedDepartment && departments.length > 1
@@ -74,30 +74,42 @@ export function SurveyRespondPage() {
     } finally { setBusy(false) }
   }
   const progress = sections.length ? Math.round(((Math.min(step, last) + 1) / sections.length) * 100) : 100
-  return <Frame>
-    <div className="public-flow-card survey-public-card" ref={top}>
-      <header className="survey-public-head">
-        <div><span className="eyebrow">{[survey.organizationName, fixed && (en ? fixed.nameEn || fixed.name : fixed.name)].filter(Boolean).join(' · ')}</span><h1>{title}</h1></div>
-        <button type="button" className="survey-language" onClick={() => setLanguage(en ? 'el' : 'en')}>{en ? 'Ελληνικά' : 'English'}</button>
+  // The department the form is about: fixed by the poster, the survey's only one, or the one chosen.
+  const department = fixed || (departments.length === 1 ? departments[0] : departments.find(item => item.id === departmentId))
+  return <Frame organization={survey.organizationName} language={language} onLanguage={() => setLanguage(en ? 'el' : 'en')} footer={en ? 'Anonymous: we do not ask for your name or any details.' : 'Ανώνυμα: δεν ζητάμε όνομα ούτε στοιχεία σας.'}>
+    <article className="survey-sheet" ref={top}>
+      <header className="survey-sheet-head">
+        {department && <span className="survey-department">{en ? department.nameEn || department.name : department.name}</span>}
+        <h1>{title}</h1>
+        {step === 0 && intro && <p>{intro}</p>}
       </header>
-      {step === 0 && <>
-        {intro && <p className="survey-public-intro">{intro}</p>}
-        <p className="survey-anonymous"><ShieldCheck size={15} />{en ? 'Anonymous: we do not ask for your name or any details.' : 'Ανώνυμα: δεν ζητάμε όνομα ούτε στοιχεία σας.'}</p>
-      </>}
       {sections.length > 1 && <div className="survey-progress" aria-label={en ? `Section ${Math.min(step, last) + 1} of ${sections.length}` : `Ενότητα ${Math.min(step, last) + 1} από ${sections.length}`}>
-        <div><strong>{current?.key ? sectionLabel(current.key, language, survey.sections || []) : ''}</strong><small>{Math.min(step, last) + 1} / {sections.length}</small></div>
+        <div><strong>{current?.key ? sectionLabel(current.key, language, survey.sections || []) : ''}</strong><small>{en ? `Section ${Math.min(step, last) + 1} of ${sections.length}` : `Ενότητα ${Math.min(step, last) + 1} από ${sections.length}`}</small></div>
         <span><i style={{ width: `${progress}%` }} /></span>
       </div>}
       <SurveyForm survey={survey} only={sections.length > 1 ? current?.key ?? '' : null} answers={answers} onChange={next => { setAnswers(next); if (missing.length) setMissing([]) }} language={language} missing={missing} departments={departments} departmentId={departmentId} onDepartment={value => { setDepartmentId(value); if (missing.length) setMissing([]) }} askDepartment={askDepartment && step === 0} />
       {missing.length > 0 && <p className="survey-missing">{en ? 'Some required questions are not answered yet.' : 'Κάποιες υποχρεωτικές ερωτήσεις δεν έχουν απαντηθεί.'}</p>}
       {failed && <p className="survey-missing">{failed}</p>}
-      <div className="survey-public-actions">
-        {step > 0 && <Button variant="secondary" disabled={busy} onClick={() => { setStep(step - 1); setMissing([]); scrollTop() }}><ArrowLeft size={16} />{en ? 'Back' : 'Πίσω'}</Button>}
+      <footer className="survey-sheet-actions">
+        {step > 0 ? <Button variant="secondary" disabled={busy} onClick={() => { setStep(step - 1); setMissing([]); scrollTop() }}><ArrowLeft size={16} />{en ? 'Back' : 'Πίσω'}</Button> : <span />}
         {step < last ? <Button onClick={next}>{en ? 'Next' : 'Επόμενο'}<ArrowRight size={16} /></Button> : <Button disabled={busy} onClick={submit}><Send size={16} />{busy ? (en ? 'Sending…' : 'Αποστολή…') : (en ? 'Send my answers' : 'Αποστολή απαντήσεων')}</Button>}
-      </div>
-    </div>
+      </footer>
+    </article>
   </Frame>
 }
 
-function Frame({ children }) { return <main className="public-flow-page survey-public-page"><div className="public-flow-shell">{children}</div></main> }
-function Status({ title, text, icon: Icon }) { return <div className="public-flow-card public-flow-status"><Icon size={34} /><h1>{title}</h1>{text && <p>{text}</p>}</div> }
+// The page around the questionnaire: the hospital's name on a coloured band,
+// the sheet in the middle, the promise of anonymity under it.
+function Frame({ children, organization = '', language = 'el', onLanguage, footer = '' }) {
+  return <main className="survey-page">
+    <div className="survey-page-shell">
+      <div className="survey-page-top">
+        <span className="survey-page-brand">{organization}</span>
+        {onLanguage && <button type="button" className="survey-language" onClick={onLanguage}>{language === 'en' ? 'Ελληνικά' : 'English'}</button>}
+      </div>
+      {children}
+      {footer && <p className="survey-page-foot"><ShieldCheck size={14} />{footer}</p>}
+    </div>
+  </main>
+}
+function Status({ title, text, icon: Icon }) { return <article className="survey-sheet survey-sheet-status"><Icon size={40} /><h1>{title}</h1>{text && <p>{text}</p>}</article> }

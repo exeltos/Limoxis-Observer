@@ -57,7 +57,7 @@ function demoState() {
   const today = new Date().toISOString().slice(0, 10)
   const year = today.slice(0, 4)
   const inpatient = { ...surveyFromTemplate('wards', { hospital: 'Demo Hospital' }), id: 'srv-demo-inpatient', code: `SRV-${year}-01`, status: 'open', opensOn: addDays(today, -180), closesOn: addDays(today, 30), targetResponses: 300, departmentIds: DEMO_DEPARTMENTS.map(item => item.id), publicToken: 'demo-inpatient-survey' }
-  const staff = { ...surveyFromTemplate('staff'), id: 'srv-demo-staff', code: `SRV-${year}-02`, status: 'closed', opensOn: addDays(today, -120), closesOn: addDays(today, -90), targetResponses: 80, publicToken: 'demo-staff-survey' }
+  const staff = { ...surveyFromTemplate('staff'), id: 'srv-demo-staff', code: `SRV-${year}-02`, status: 'closed', opensOn: addDays(today, -120), closesOn: addDays(today, -90), targetResponses: 80, departmentIds: DEMO_DEPARTMENTS.map(item => item.id), publicToken: 'demo-staff-survey' }
   const random = seeded(20261108)
   const responses = []
   for (let index = 0; index < 214; index += 1) {
@@ -204,7 +204,7 @@ export async function loadPublicSurvey(token) {
     const survey = local().surveys.find(item => item.publicToken === token && item.status !== 'draft')
     if (!survey) throw new Error('SURVEY_NOT_AVAILABLE')
     const open = isSurveyOpen(survey)
-    return { open, title: survey.title, titleEn: survey.titleEn, description: survey.description, descriptionEn: survey.descriptionEn, audience: survey.audience, organizationName: 'Demo Hospital', sections: survey.sections || [], questions: open ? survey.questions : [], departments: open ? DEMO_DEPARTMENTS.filter(item => !survey.departmentIds?.length || survey.departmentIds.includes(item.id)) : [] }
+    return { open, title: survey.title, titleEn: survey.titleEn, description: survey.description, descriptionEn: survey.descriptionEn, audience: survey.audience, organizationName: 'Demo Hospital', sections: survey.sections || [], questions: open ? survey.questions : [], departments: open ? DEMO_DEPARTMENTS.filter(item => survey.departmentIds?.includes(item.id)) : [] }
   }
   if (!supabase) throw new Error('SURVEY_NOT_AVAILABLE')
   return must(await supabase.rpc('survey_public', { p_token: token }))

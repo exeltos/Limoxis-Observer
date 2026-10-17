@@ -1,52 +1,82 @@
 /* Satisfaction surveys: the questionnaire to answer (phone, tablet, paper entry),
    the results, the QR posters and the questionnaire editor. */
 
-/* The questionnaire to answer: one question per card, large targets for a finger. */
-.survey-form{display:grid;gap:20px}
-.survey-section{display:grid;gap:12px}
-.survey-section>h2{margin:4px 0 0;font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-primary)}
-.survey-question{display:grid;gap:12px;margin:0;padding:16px 18px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);min-width:0}
-.survey-question>legend{float:left;width:100%;padding:0;font-size:15px;font-weight:700;line-height:1.45;color:var(--lo-color-text)}
+/* The questionnaire to answer: questions one under the other, answers as
+   rows with a mark, large enough for a finger. */
+.survey-form{display:grid;gap:0}
+.survey-section{display:grid;gap:0}
+.survey-section>h2{margin:18px 0 2px;font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-primary)}
+.survey-section:first-child>h2{margin-top:0}
+.survey-question{display:grid;gap:12px;margin:0;padding:20px 0;border:0;border-top:1px solid var(--lo-color-border);min-width:0}
+.survey-section:first-child>.survey-question:first-of-type,.survey-form>.survey-question:first-child{border-top:0;padding-top:4px}
+.survey-question>legend{float:left;width:100%;padding:0;font-size:16px;font-weight:700;line-height:1.45;color:var(--lo-color-text)}
 .survey-required{margin-left:4px;color:var(--lo-status-danger-fg)}
-.survey-question.is-missing{border-color:var(--lo-status-danger-fg);box-shadow:0 0 0 3px var(--lo-status-danger-bg)}
-.survey-question textarea{width:100%;min-height:84px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;font:inherit;font-size:14px;line-height:1.5;background:var(--lo-color-surface);color:var(--lo-color-text);resize:vertical}
+.survey-question.is-missing{padding-left:14px;box-shadow:inset 3px 0 0 var(--lo-status-danger-fg)}
+.survey-question textarea{width:100%;min-height:96px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:12px;font:inherit;font-size:15px;line-height:1.5;background:var(--lo-color-surface);color:var(--lo-color-text);resize:vertical}
+.survey-question textarea:focus{outline:none;border-color:var(--lo-color-primary);box-shadow:0 0 0 3px var(--lo-color-primary-soft)}
+.survey-choices{display:grid;gap:8px}
+.survey-choices-pair{grid-template-columns:repeat(2,minmax(0,1fr))}
 .survey-scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .survey-scale-nps{grid-template-columns:repeat(11,minmax(0,1fr));gap:6px}
-.survey-scale>button,.survey-choices>button{display:flex;align-items:center;justify-content:center;min-height:52px;padding:8px 10px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13.5px;font-weight:600;line-height:1.25;text-align:center;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.survey-scale>button,.survey-choices>button{display:flex;align-items:center;gap:12px;min-height:50px;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:15px;font-weight:500;line-height:1.3;text-align:left;cursor:pointer;transition:background .12s,border-color .12s,box-shadow .12s}
 .survey-scale>button:hover,.survey-choices>button:hover{border-color:var(--lo-color-primary)}
-.survey-scale>button.active,.survey-choices>button.active{border-color:var(--lo-color-primary);background:var(--lo-color-primary);color:#fff}
+.survey-scale>button.active,.survey-choices>button.active{border-color:var(--lo-color-primary);background:var(--lo-color-primary-soft);box-shadow:inset 0 0 0 1px var(--lo-color-primary);font-weight:650}
 .survey-scale>button:focus-visible,.survey-choices>button:focus-visible{outline:3px solid var(--lo-color-primary-soft);outline-offset:1px}
-.survey-scale-ends{display:flex;justify-content:space-between;margin:0;font-size:11.5px;color:var(--lo-color-muted)}
-.survey-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
-.survey-choices-pair{grid-template-columns:repeat(2,minmax(0,160px))}
-.survey-missing{margin:0;color:var(--lo-status-danger-fg);font-size:12.5px;font-weight:600}
-/* On a phone a five-word scale reads top to bottom, best first. */
+.survey-mark{flex:0 0 auto;width:20px;height:20px;border:2px solid var(--lo-color-border-strong,#a9b7c4);border-radius:50%;background:var(--lo-color-surface);transition:border-color .12s,box-shadow .12s}
+.survey-choices.is-multiple .survey-mark{border-radius:6px}
+button.active>.survey-mark{border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 4px var(--lo-color-surface);background:var(--lo-color-primary)}
+.survey-choices.is-multiple button.active>.survey-mark{box-shadow:none}
+/* On a wide screen a five-word scale reads left to right, worst to best. */
+.survey-scale:not(.survey-scale-nps)>button{flex-direction:column;justify-content:flex-start;gap:8px;min-height:84px;padding:14px 6px 12px;text-align:center;font-size:13.5px}
+.survey-scale-nps>button{justify-content:center;min-height:46px;padding:6px;font-weight:650}
+.survey-scale-nps .survey-mark{display:none}
+.survey-scale-ends{display:flex;justify-content:space-between;margin:0;font-size:12px;color:var(--lo-color-muted)}
+.survey-missing{margin:0;color:var(--lo-status-danger-fg);font-size:13px;font-weight:600}
+/* On a phone it reads top to bottom, best first. */
 @media(max-width:640px){
-  .survey-scale:not(.survey-scale-nps){grid-template-columns:1fr;gap:6px}
-  .survey-scale:not(.survey-scale-nps)>button{min-height:46px;justify-content:flex-start;padding:8px 14px;text-align:left}
+  .survey-scale:not(.survey-scale-nps){grid-template-columns:1fr;gap:8px}
+  .survey-scale:not(.survey-scale-nps)>button{flex-direction:row;justify-content:flex-start;gap:12px;min-height:50px;padding:10px 14px;text-align:left;font-size:15px}
   .survey-scale:not(.survey-scale-nps)>button.is-5{order:1}.survey-scale:not(.survey-scale-nps)>button.is-4{order:2}.survey-scale:not(.survey-scale-nps)>button.is-3{order:3}.survey-scale:not(.survey-scale-nps)>button.is-2{order:4}.survey-scale:not(.survey-scale-nps)>button.is-1{order:5}
   .survey-scale-nps{grid-template-columns:repeat(6,minmax(0,1fr))}
-  .survey-choices{grid-template-columns:1fr}
-  .survey-choices-pair{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
-/* The public page of the link: one section at a time. */
-.survey-public-page{background:var(--lo-color-surface-muted)}
-.survey-public-card{display:grid;gap:18px;max-width:760px;width:100%}
-.survey-public-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
-.survey-public-head h1{margin:4px 0 0;font-size:22px;line-height:1.3}
-.survey-public-intro{margin:0;color:var(--lo-color-text);font-size:14px;line-height:1.55}
-.survey-language{flex:0 0 auto;padding:6px 12px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);font:inherit;font-size:12px;font-weight:700;color:var(--lo-color-text);cursor:pointer}
-.survey-anonymous{display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border-radius:10px;background:var(--lo-status-success-bg);color:var(--lo-status-success-fg);font-size:13px;font-weight:600}
-.survey-progress{display:grid;gap:6px}
+/* The public page of the link: the hospital on a coloured band, the sheet
+   in the middle, one section at a time. */
+body:has(.survey-page){min-width:0;height:auto;background:var(--lo-color-surface-muted,#f3f6f9)}
+.survey-page{min-height:100vh;background:linear-gradient(var(--lo-color-primary) 0 168px,transparent 168px)}
+.survey-page-shell{display:grid;gap:14px;width:min(680px,100%);margin:0 auto;padding:18px 16px 40px}
+.survey-page-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px;color:#fff}
+.survey-page-brand{font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;opacity:.92}
+.survey-language{flex:0 0 auto;padding:7px 14px;border:1px solid rgba(255,255,255,.45);border-radius:999px;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:#fff;cursor:pointer}
+.survey-language:hover{background:rgba(255,255,255,.12)}
+.survey-sheet{display:grid;gap:22px;padding:28px 28px 24px;border-radius:18px;background:var(--lo-color-surface);box-shadow:0 10px 30px rgba(15,34,51,.10),0 1px 3px rgba(15,34,51,.06)}
+.survey-sheet-head{display:grid;gap:8px}
+.survey-sheet-head h1{margin:0;font-size:24px;line-height:1.25;color:var(--lo-color-text)}
+.survey-sheet-head p{margin:4px 0 0;font-size:15px;line-height:1.55;color:var(--lo-color-muted)}
+.survey-department{justify-self:start;padding:6px 14px;border-radius:999px;background:var(--lo-color-primary-soft);color:var(--lo-color-primary);font-size:14px;font-weight:800}
+.survey-progress{display:grid;gap:8px;padding-bottom:4px}
 .survey-progress>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-.survey-progress strong{font-size:15px;color:var(--lo-color-text)}
-.survey-progress small{font-size:12px;font-weight:700;color:var(--lo-color-muted)}
-.survey-progress>span{display:block;height:6px;border-radius:999px;background:var(--lo-color-border);overflow:hidden}
+.survey-progress strong{font-size:17px;color:var(--lo-color-text)}
+.survey-progress small{flex:0 0 auto;font-size:12.5px;font-weight:600;color:var(--lo-color-muted)}
+.survey-progress>span{display:block;height:6px;border-radius:999px;background:var(--lo-color-surface-muted,#e8edf2);overflow:hidden}
 .survey-progress>span>i{display:block;height:100%;border-radius:inherit;background:var(--lo-color-primary);transition:width .25s}
-.survey-public-actions{display:flex;justify-content:flex-end;gap:10px}
-.survey-public-actions .button{min-height:50px;padding:0 24px;font-size:15px}
-@media(max-width:640px){.survey-public-actions .button{flex:1;justify-content:center}}
+.survey-sheet-actions{display:flex;justify-content:space-between;gap:10px;padding-top:18px;border-top:1px solid var(--lo-color-border)}
+/* The app squeezes every button to 34px; on the public form they are for a finger. */
+.survey-sheet .survey-sheet-actions .button{height:50px!important;min-height:50px!important;padding:0 26px!important;font-size:15px!important;border-radius:12px!important}
+.survey-sheet-status{justify-items:center;padding:48px 28px;text-align:center}
+.survey-sheet-status>svg{color:var(--lo-color-primary)}
+.survey-sheet-status h1{margin:0;font-size:22px;color:var(--lo-color-text)}
+.survey-sheet-status p{margin:0;max-width:420px;font-size:15px;line-height:1.55;color:var(--lo-color-muted)}
+.survey-page-foot{display:flex;align-items:center;justify-content:center;gap:6px;margin:0;font-size:12.5px;color:var(--lo-color-muted)}
+@media(max-width:640px){
+  .survey-page{background:linear-gradient(var(--lo-color-primary) 0 132px,transparent 132px)}
+  .survey-page-shell{padding:12px 10px 28px}
+  .survey-sheet{gap:18px;padding:22px 18px 18px;border-radius:16px}
+  .survey-sheet-head h1{font-size:21px}
+  .survey-sheet-actions{position:sticky;bottom:0;margin:0 -18px -18px;padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-radius:0 0 16px 16px;background:var(--lo-color-surface)}
+  .survey-sheet .survey-sheet-actions .button{flex:1;justify-content:center}
+  .survey-sheet-actions>span:empty{display:none}
+}
 
 /* Results */
 .survey-results{display:grid;gap:14px}
@@ -99,15 +129,16 @@
 .survey-collect-how{display:grid;gap:12px;min-width:0}
 .survey-collect-how h3,.survey-collect-departments h3{margin:0;font-size:15px;color:var(--lo-color-text)}
 .survey-collect-how ol{display:grid;gap:6px;margin:0;padding-left:20px;font-size:13px;color:var(--lo-color-text)}
+.survey-collect-empty{padding:14px 16px;border:1px dashed var(--lo-color-border-strong);border-radius:12px}
 .survey-collect-how>small,.survey-collect-note{margin:0;font-size:12px;color:var(--lo-color-muted)}
 .survey-collect-buttons{display:flex;flex-wrap:wrap;gap:8px}
 .survey-collect-departments{display:grid;gap:12px;padding:18px 20px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
 .survey-collect-departments>header{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px}
 .survey-collect-departments>header p{margin:4px 0 0;font-size:12.5px;color:var(--lo-color-muted)}
-.survey-collect-departments ul{display:grid;margin:0;padding:0;list-style:none;border-top:1px solid var(--lo-color-border)}
-.survey-collect-departments li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid var(--lo-color-border)}
-.survey-collect-departments li strong{font-size:13.5px;color:var(--lo-color-text)}
-.survey-collect-departments li button{display:inline-flex;align-items:center;gap:4px}
+.survey-collect-departments>ul{display:grid;margin:0;padding:0;list-style:none;border-top:1px solid var(--lo-color-border)}
+.survey-collect-departments>ul>li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid var(--lo-color-border)}
+.survey-collect-departments>ul>li strong{font-size:13.5px;color:var(--lo-color-text)}
+.survey-collect-departments>ul>li button{display:inline-flex;align-items:center;gap:4px}
 .survey-print-stage{position:fixed;left:-10000px;top:0;width:900px}
 .survey-posters{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .survey-poster{display:grid;justify-items:center;gap:14px;padding:28px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:#fff;text-align:center;break-inside:avoid;page-break-inside:avoid}

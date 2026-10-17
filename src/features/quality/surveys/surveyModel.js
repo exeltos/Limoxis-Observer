@@ -248,6 +248,7 @@ export function isSurveyOpen(survey, today = new Date().toISOString().slice(0, 1
 export function surveyProblems(survey, language = 'el') {
   const en = language === 'en', problems = []
   if (!String(survey.title || '').trim()) problems.push(en ? 'A title' : 'Τίτλος')
+  if (!survey.departmentIds?.length) problems.push(en ? 'The department it is about' : 'Το τμήμα που αφορά')
   if (!survey.questions?.length) problems.push(en ? 'At least one question' : 'Τουλάχιστον μία ερώτηση')
   for (const question of survey.questions || []) {
     if (!String(question.label || '').trim()) { problems.push(en ? 'Every question needs its text' : 'Κάθε ερώτηση θέλει κείμενο'); break }

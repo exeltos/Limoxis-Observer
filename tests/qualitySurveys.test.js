@@ -18,9 +18,11 @@ describe('Satisfaction surveys: the answers kept', () => {
   })
 
   it('says what a survey needs before it opens, and numbers surveys within the year', () => {
-    expect(surveyProblems({ title: '', questions: [] })).toHaveLength(2)
-    expect(surveyProblems({ title: 'x', questions: [{ id: 'q', type: 'single', label: 'q', options: [{ value: 'a', label: 'A' }] }] })).toHaveLength(1)
-    expect(surveyProblems(surveyFromTemplate('inpatient'))).toEqual([])
+    expect(surveyProblems({ title: '', questions: [] })).toHaveLength(3)
+    expect(surveyProblems({ title: 'x', departmentIds: ['d1'], questions: [{ id: 'q', type: 'single', label: 'q', options: [{ value: 'a', label: 'A' }] }] })).toHaveLength(1)
+    // A survey is always about a department: without one it cannot open.
+    expect(surveyProblems(surveyFromTemplate('inpatient'))).toEqual(['Το τμήμα που αφορά'])
+    expect(surveyProblems({ ...surveyFromTemplate('inpatient'), departmentIds: ['d1'] })).toEqual([])
     expect(nextSurveyCode(['SRV-2026-01', 'SRV-2026-03', 'SRV-2025-09'], 2026)).toBe('SRV-2026-04')
     expect(isSurveyOpen({ status: 'open', opensOn: '2026-01-01', closesOn: '2026-12-31' }, '2026-06-01')).toBe(true)
     expect(isSurveyOpen({ status: 'open', closesOn: '2026-05-31' }, '2026-06-01')).toBe(false)

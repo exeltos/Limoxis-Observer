@@ -178,7 +178,7 @@ begin
       select jsonb_agg(jsonb_build_object('id', d.id, 'name', d.name) order by d.name)
       from public.departments d
       where d.organization_id = v_survey.organization_id and d.is_active
-        and (cardinality(v_survey.department_ids) = 0 or d.id = any(v_survey.department_ids))), '[]'::jsonb) else '[]'::jsonb end);
+        and d.id = any(v_survey.department_ids)), '[]'::jsonb) else '[]'::jsonb end);
 end;
 $function$;
 revoke all on function public.survey_public(text) from public;
@@ -198,10 +198,11 @@ begin
   if v_survey.id is null or not private.quality_survey_is_open(v_survey) then raise exception 'SURVEY_NOT_AVAILABLE'; end if;
   if p_department_id is not null and not exists (
     select 1 from public.departments d where d.id = p_department_id and d.organization_id = v_survey.organization_id
-      and (cardinality(v_survey.department_ids) = 0 or d.id = any(v_survey.department_ids))) then
+      and d.id = any(v_survey.department_ids)) then
     raise exception 'SURVEY_DEPARTMENT_INVALID';
   end if;
   if p_department_id is null and cardinality(v_survey.department_ids) = 1 then p_department_id := v_survey.department_ids[1]; end if;
+  if p_department_id is null and cardinality(v_survey.department_ids) > 1 then raise exception 'SURVEY_DEPARTMENT_INVALID'; end if;
   v_answers := private.quality_survey_clean_answers(v_survey.questions, p_answers);
   if v_answers is null or v_answers = '{}'::jsonb then raise exception 'SURVEY_ANSWERS_INVALID'; end if;
   if (select count(*) from public.quality_survey_responses r where r.survey_id = v_survey.id and r.submitted_at > now() - interval '1 minute') >= 60 then
