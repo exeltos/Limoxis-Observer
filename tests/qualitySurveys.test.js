@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { cleanAnswers, departmentBreakdown, filterResponses, isSurveyOpen, monthlyTrend, nextSurveyCode, questionResult, responsesExport, surveyFromTemplate, surveyProblems, surveySummary } from '../src/features/quality/surveys/surveyModel'
+import { SCALES, cleanAnswers, isQuestionShown, scaleOf, sectionLabel, departmentBreakdown, filterResponses, isSurveyOpen, monthlyTrend, nextSurveyCode, questionResult, responsesExport, surveyFromTemplate, surveyProblems, surveySummary } from '../src/features/quality/surveys/surveyModel'
 import { filterSurveys, surveyCounts } from '../src/features/quality/surveys/SurveysPanel'
-import { missingAnswers } from '../src/features/quality/surveys/SurveyForm'
+import { formSections, missingAnswers } from '../src/features/quality/surveys/SurveyForm'
 import { qualityTabOf } from '../src/features/quality/qualityReturnSection'
 
 const rating = (id, extra = {}) => ({ id, type: 'rating', label: id, required: true, options: [], ...extra })
@@ -71,5 +71,39 @@ describe('Satisfaction surveys in the Quality Center', () => {
     expect(filterSurveys(surveys, base).map(item => item.id)[0]).toBe('1')
     expect(filterSurveys(surveys, { ...base, quick: 'draft' }).map(item => item.id)).toEqual(['2'])
     expect(qualityTabOf('indicators:surveys')).toEqual({ tab: 'indicators', view: 'surveys' })
+  })
+})
+
+describe('Satisfaction surveys: sections, scales and follow-up questions', () => {
+  it('builds the ΙΑΣΩ questionnaires with the hospital’s name and their sections', () => {
+    const wards = surveyFromTemplate('wards', { hospital: 'ΙΑΣΩ Θεσσαλίας' })
+    expect(wards.questions.some(question => question.label.includes('ΙΑΣΩ Θεσσαλίας'))).toBe(true)
+    expect(JSON.stringify(wards)).not.toContain('{hospital}')
+    expect(wards.questions.every(question => wards.sections.some(section => section.key === question.section))).toBe(true)
+    const kitchen = surveyFromTemplate('kitchen')
+    expect(kitchen.questions.find(question => question.id === 'overall').label).toContain('νοσοκομείο')
+    // No questionnaire asks who answered.
+    for (const key of ['wards', 'maternity', 'kitchen']) expect(surveyFromTemplate(key).questions.map(question => question.id)).not.toEqual(expect.arrayContaining(['name', 'room', 'email', 'phone']))
+  })
+
+  it('shows a follow-up question only after the answer it depends on, and keeps nothing from it otherwise', () => {
+    const questions = surveyFromTemplate('kitchen').questions
+    const kept = questions.find(question => question.id === 'diet_kept')
+    expect(isQuestionShown(kept, { diet: false })).toBe(false)
+    expect(isQuestionShown(kept, { diet: true })).toBe(true)
+    const full = Object.fromEntries(questions.filter(question => question.required).map(question => [question.id, 4]))
+    expect(cleanAnswers(questions, { ...full, diet: false, diet_kept: 2 })).not.toHaveProperty('diet_kept')
+    expect(cleanAnswers(questions, { ...full, diet: true, diet_kept: 2 })).toHaveProperty('diet_kept', 2)
+    expect(missingAnswers(questions, { diet: true })).not.toContain('diet_kept')
+  })
+
+  it('words a rating by its scale, and names a section by the survey’s own title first', () => {
+    expect(scaleOf({ scale: 'speed' })[0][0]).toBe('Αργή')
+    expect(scaleOf({})).toBe(SCALES[0].steps)
+    expect(sectionLabel('meals', 'el', [{ key: 'meals', label: 'Πρωινό', labelEn: 'Breakfast' }])).toBe('Πρωινό')
+    expect(sectionLabel('meals', 'en', [{ key: 'meals', label: 'Πρωινό', labelEn: 'Breakfast' }])).toBe('Breakfast')
+    const sections = formSections(surveyFromTemplate('kitchen'), { diet: false })
+    expect(sections.map(section => section.key)).toEqual(['meals', 'service', 'overall', 'comments'])
+    expect(sections[0].questions.map(question => question.id)).not.toContain('diet_kept')
   })
 })

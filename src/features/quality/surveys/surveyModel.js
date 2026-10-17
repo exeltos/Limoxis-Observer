@@ -38,14 +38,27 @@ export const questionTypeLabel = (value, language) => pick(QUESTION_TYPES, value
 export const channelLabel = (value, language) => pick(RESPONSE_CHANNELS, value, language)
 export const textOf = (item, language) => (language === 'en' ? item?.labelEn || item?.titleEn || item?.label || item?.title : item?.label || item?.title) || ''
 
-// The labels a 1–5 scale shows.
-export const RATING_LABELS = [
-  ['Πολύ κακή', 'Very poor'], ['Κακή', 'Poor'], ['Μέτρια', 'Fair'], ['Καλή', 'Good'], ['Πολύ καλή', 'Very good'],
+// The words of a 1–5 scale, lowest first. 4 and 5 count as satisfied.
+export const SCALES = [
+  { value: 'quality', label: ['Πολύ κακή → Πολύ καλή', 'Very poor → Very good'], steps: [['Πολύ κακή', 'Very poor'], ['Κακή', 'Poor'], ['Μέτρια', 'Fair'], ['Καλή', 'Good'], ['Πολύ καλή', 'Very good']] },
+  { value: 'rating', label: ['Μη ικανοποιητική → Άριστη', 'Unsatisfactory → Excellent'], steps: [['Μη ικανοποιητική', 'Unsatisfactory'], ['Μέτρια', 'Fair'], ['Ικανοποιητική', 'Satisfactory'], ['Πολύ καλή', 'Very good'], ['Άριστη', 'Excellent']] },
+  { value: 'agree', label: ['Διαφωνώ απόλυτα → Συμφωνώ απόλυτα', 'Strongly disagree → Strongly agree'], steps: [['Διαφωνώ απόλυτα', 'Strongly disagree'], ['Διαφωνώ', 'Disagree'], ['Ούτε συμφωνώ ούτε διαφωνώ', 'Neither'], ['Συμφωνώ', 'Agree'], ['Συμφωνώ απόλυτα', 'Strongly agree']] },
+  { value: 'speed', label: ['Αργή → Άμεση', 'Slow → Immediate'], steps: [['Αργή', 'Slow'], ['Μέτρια', 'Fair'], ['Ικανοποιητική', 'Satisfactory'], ['Αρκετά καλή', 'Quite good'], ['Άμεση', 'Immediate']] },
 ]
+export const scaleOf = question => (SCALES.find(item => item.value === question?.scale) || SCALES[0]).steps
+export const RATING_LABELS = SCALES[0].steps
+
+// A question shown only after another's answer («If yes, the repair was…»).
+export function isQuestionShown(question, answers = {}) {
+  const rule = question?.showWhen
+  if (!rule?.question) return true
+  const value = answers[rule.question]
+  return Array.isArray(value) ? value.includes(rule.value) : value === rule.value
+}
 
 // --- Templates ----------------------------------------------------------------------
 
-const q = (id, section, type, label, labelEn, extra = {}) => ({ id, section, type, label, labelEn, required: type !== 'text', options: [], ...extra })
+const q = (id, section, type, label, labelEn, extra = {}) => ({ id, section, type, label, labelEn, required: type !== 'text', options: [], ...(type === 'rating' ? { scale: 'quality' } : {}), ...extra })
 const opt = (value, label, labelEn) => ({ value, label, labelEn })
 
 const INPATIENT = [
@@ -99,21 +112,123 @@ const SECTIONS = {
   admission: ['Εισαγωγή', 'Admission'], nursing: ['Νοσηλευτική φροντίδα', 'Nursing care'], medical: ['Ιατρική φροντίδα', 'Medical care'],
   environment: ['Περιβάλλον', 'Environment'], discharge: ['Έξοδος', 'Discharge'], safety: ['Ασφάλεια', 'Safety'], overall: ['Συνολικά', 'Overall'],
   comments: ['Σχόλια', 'Comments'], access: ['Πρόσβαση και αναμονή', 'Access and waiting'], care: ['Εξυπηρέτηση', 'Care'], work: ['Εργασία', 'Work'], team: ['Ομάδα', 'Team'],
+  about: ['Λίγα λόγια για εσάς', 'About you'], choice: ['Η επιλογή του νοσοκομείου', 'Choosing the hospital'], classes: ['Μαθήματα προετοιμασίας', 'Antenatal classes'],
+  reception: ['Υποδοχή', 'Reception'], food: ['Διατροφή', 'Food'], meals: ['Τα γεύματα', 'The meals'], floor: ['Φροντίδα στον όροφο', 'Care on the floor'], service: ['Σερβίρισμα', 'Service'], room: ['Δωμάτιο και επισκεπτήριο', 'Room and visits'], services: ['Υπηρεσίες', 'Services'], information: ['Ενημέρωση', 'Information'],
 }
-export const sectionLabel = (key, language) => SECTIONS[key]?.[language === 'en' ? 1 : 0] || key || ''
+// A survey's sections: its own, then any its questions name (with their usual titles).
+export function sectionsOf(survey) {
+  const own = (survey?.sections || []).filter(item => item?.key)
+  const named = own.map(item => item.key)
+  const keys = [...new Set((survey?.questions || []).map(question => question.section || '').filter(key => key && !named.includes(key)))]
+  return [...own, ...keys.map(key => ({ key, label: SECTIONS[key]?.[0] || key, labelEn: SECTIONS[key]?.[1] || key }))]
+}
+export const sectionLabel = (key, language, sections = []) => { const own = sections.find(item => item.key === key); return own ? textOf(own, language) : SECTIONS[key]?.[language === 'en' ? 1 : 0] || key || '' }
+const sectionList = keys => keys.map(key => ({ key, label: SECTIONS[key][0], labelEn: SECTIONS[key][1] }))
 
-export const SURVEY_TEMPLATES = [
-  { key: 'inpatient', audience: 'patients', title: 'Ικανοποίηση νοσηλευόμενων ασθενών', titleEn: 'Inpatient satisfaction', description: 'Πείτε μας πώς ήταν η νοσηλεία σας. Συμπληρώνεται κατά την έξοδο.', descriptionEn: 'Tell us how your stay was. Filled in on discharge.', questions: INPATIENT },
-  { key: 'outpatient', audience: 'patients', title: 'Ικανοποίηση εξωτερικών ασθενών και ΤΕΠ', titleEn: 'Outpatient and emergency satisfaction', description: 'Πείτε μας πώς ήταν η επίσκεψή σας στα εξωτερικά ιατρεία ή στο ΤΕΠ.', descriptionEn: 'Tell us how your visit to the outpatient clinics or the emergency department was.', questions: OUTPATIENT },
-  { key: 'staff', audience: 'staff', title: 'Ικανοποίηση προσωπικού', titleEn: 'Staff satisfaction', description: 'Ετήσια έρευνα για το εργασιακό περιβάλλον και την κουλτούρα ασφάλειας.', descriptionEn: 'Yearly survey of the work environment and safety culture.', questions: STAFF },
-  { key: 'blank', audience: 'patients', title: 'Νέα έρευνα', titleEn: 'New survey', description: '', descriptionEn: '', questions: [] },
+// The questionnaires hospitals already hand out on discharge: one for the
+// maternity floor and one for the medical and surgical floors. «{hospital}»
+// becomes the hospital's name when a survey is made from them.
+const RATE = { scale: 'rating' }
+const AGE = [opt('to25', 'Έως 25', 'Up to 25'), opt('26_35', '26–35', '26–35'), opt('36_45', '36–45', '36–45'), opt('46plus', '46+', '46+')]
+const AGE_WARD = [opt('to25', 'Έως 25', 'Up to 25'), opt('26_45', '26–45', '26–45'), opt('46_65', '46–65', '46–65'), opt('66plus', '66+', '66+')]
+const OCCUPATION = [opt('public', 'Δημόσιος υπάλληλος', 'Civil servant'), opt('private', 'Ιδιωτικός υπάλληλος', 'Private employee'), opt('self', 'Ελεύθερος επαγγελματίας', 'Self-employed'), opt('home', 'Οικιακά', 'Homemaker'), opt('retired', 'Συνταξιούχος', 'Retired'), opt('student', 'Φοιτητής/τρια', 'Student'), opt('unemployed', 'Άνεργος/η', 'Unemployed'), opt('other', 'Άλλο', 'Other')]
+const ABOUT = [
+  q('nationality', 'about', 'single', 'Υπηκοότητα', 'Nationality', { required: false, options: [opt('greek', 'Ελληνική', 'Greek'), opt('other', 'Άλλη', 'Other')] }),
+  q('reason', 'choice', 'single', 'Ο λόγος που επιλέξατε το {hospital}', 'Why you chose {hospital}', { required: false, options: [opt('reputation', 'Η φήμη του', 'Its reputation'), opt('others', 'Σύσταση τρίτων', 'Recommended by others'), opt('doctor', 'Σύσταση ιατρού', 'Recommended by a doctor'), opt('care', 'Υψηλή φροντίδα νοσηλείας', 'High standard of care')] }),
+  q('heard', 'choice', 'single', 'Πώς ενημερωθήκατε για το {hospital};', 'How did you hear about {hospital}?', { required: false, options: [opt('doctor', 'Από τον ιατρό μου', 'From my doctor'), opt('friends', 'Από φιλικό ή συγγενικό πρόσωπο', 'From a friend or relative'), opt('ads', 'Από διαφήμιση, προωθητικές ενέργειες, ΜΜΕ', 'From advertising or the media'), opt('insurer', 'Από την ασφαλιστική μου', 'From my insurer')] }),
+]
+const STAY = [
+  q('admission_process', 'reception', 'rating', 'Η διαδικασία εισαγωγής στο τμήμα Υποδοχής', 'The admission process at Reception', RATE),
+  q('reception_staff', 'reception', 'rating', 'Η συμπεριφορά του προσωπικού της Υποδοχής', 'The behaviour of the Reception staff', RATE),
+]
+const AFTER = [
+  q('food_quality', 'food', 'rating', 'Η ποιότητα του φαγητού (αν δεν ακολουθήσατε ειδική δίαιτα)', 'The quality of the food (if you were not on a special diet)', { ...RATE, required: false }),
+  q('food_service', 'food', 'rating', 'Η εξυπηρέτηση των τραπεζοκόμων', 'The service of the catering staff', { ...RATE, required: false }),
+  q('cleanliness', 'room', 'rating', 'Η καθαριότητα του δωματίου', 'The cleanliness of the room', RATE),
+  q('visitors', 'room', 'rating', 'Το επισκεπτήριο: ο αριθμός επισκεπτών στο δωμάτιο', 'Visiting: the number of visitors in the room', RATE),
+  q('visiting_hours', 'room', 'rating', 'Το επισκεπτήριο: η τήρηση του ωραρίου', 'Visiting: keeping to the visiting hours', RATE),
+  q('technical', 'room', 'yesno', 'Αντιμετωπίσατε τεχνικά προβλήματα (κλιματισμός, φώτα κ.λπ.) κατά την παραμονή σας;', 'Did you have technical problems (air conditioning, lights, etc.) during your stay?'),
+  q('technical_fix', 'room', 'rating', 'Εάν ναι, η επίλυσή τους ήταν:', 'If so, they were solved:', { scale: 'speed', required: false, showWhen: { question: 'technical', value: true } }),
+  q('accounting', 'services', 'rating', 'Η εξυπηρέτηση από το Λογιστήριο Ασθενών', 'The service of the Patient Accounts office', RATE),
+]
+const CLOSING = [
+  q('overall', 'overall', 'rating', 'Συνολικά, η διαμονή σας στο {hospital} ήταν:', 'Overall, your stay at {hospital} was:', RATE),
+  q('previous', 'overall', 'single', 'Σε σχέση με προηγούμενη νοσηλεία είστε:', 'Compared with a previous stay you are:', { required: false, options: [opt('more', 'Περισσότερο ικανοποιημένοι', 'More satisfied'), opt('same', 'Το ίδιο ικανοποιημένοι', 'As satisfied'), opt('less', 'Λιγότερο ικανοποιημένοι', 'Less satisfied'), opt('first', 'Νοσηλεύομαι πρώτη φορά', 'This is my first stay')] }),
+  q('info_staff', 'information', 'rating', 'Η ενημέρωση για τις διαδικασίες της Κλινικής από το προσωπικό', 'Information on the clinic’s procedures from the staff', RATE),
+  q('info_leaflets', 'information', 'rating', 'Η ενημέρωση από τα ενημερωτικά έντυπα', 'Information from the leaflets', { ...RATE, required: false }),
+  q('info_website', 'information', 'rating', 'Η ενημέρωση από τον ιστότοπο', 'Information from the website', { ...RATE, required: false }),
+  q('recommend_yes', 'overall', 'yesno', 'Θα συστήνατε το {hospital};', 'Would you recommend {hospital}?'),
+  q('choose_again', 'overall', 'yesno', 'Θα επιλέγατε ξανά το {hospital} στο μέλλον;', 'Would you choose {hospital} again?'),
+  q('missing', 'comments', 'text', 'Ελλείψεις υπηρεσιών που εντοπίσατε', 'Services you found missing'),
+  q('comments', 'comments', 'text', 'Σχόλια', 'Comments'),
+]
+const MATERNITY = [
+  ABOUT[0],
+  q('age', 'about', 'single', 'Ηλικία', 'Age', { required: false, options: AGE }),
+  q('occupation', 'about', 'single', 'Επάγγελμα', 'Occupation', { required: false, options: OCCUPATION.filter(item => !['retired', 'student'].includes(item.value)) }),
+  ...ABOUT.slice(1),
+  q('class_care', 'classes', 'yesno', 'Παρακολουθήσατε τα δωρεάν μαθήματα Μαιευτικής Φροντίδας και Μητρικής Τέχνης;', 'Did you attend the free classes in maternity care and mothercraft?', { required: false }),
+  q('class_nutrition', 'classes', 'yesno', 'Παρακολουθήσατε τα μαθήματα Διατροφής στην Κύηση;', 'Did you attend the classes on nutrition in pregnancy?', { required: false }),
+  q('class_psychology', 'classes', 'yesno', 'Παρακολουθήσατε τα μαθήματα Ψυχολογίας στην Κύηση;', 'Did you attend the classes on psychology in pregnancy?', { required: false }),
+  ...STAY,
+  q('delivery_room', 'floor', 'rating', 'Η φροντίδα και η εξυπηρέτηση του προσωπικού της Αίθουσας Τοκετών', 'The care and service of the Delivery Room staff', RATE),
+  q('nursing', 'floor', 'rating', 'Οι υπηρεσίες του νοσηλευτικού προσωπικού στον όροφο, συνολικά', 'The nursing staff’s services on the floor, overall', RATE),
+  q('breastfeeding', 'floor', 'rating', 'Η ενημέρωση σε θέματα θηλασμού και φροντίδας νεογνού', 'Information on breastfeeding and newborn care', RATE),
+  q('paediatricians', 'floor', 'rating', 'Οι επισκέψεις των παιδιάτρων και η πληροφόρηση που σας παρείχαν', 'The paediatricians’ visits and the information they gave', RATE),
+  q('doctors', 'floor', 'rating', 'Οι επισκέψεις των ιατρών και η πληροφόρηση που σας παρείχαν', 'The doctors’ visits and the information they gave', RATE),
+  ...AFTER,
+  ...CLOSING,
+]
+const WARDS = [
+  ABOUT[0],
+  q('sex', 'about', 'single', 'Φύλο', 'Sex', { required: false, options: [opt('male', 'Άνδρας', 'Man'), opt('female', 'Γυναίκα', 'Woman')] }),
+  q('age', 'about', 'single', 'Ηλικία', 'Age', { required: false, options: AGE_WARD }),
+  q('occupation', 'about', 'single', 'Επάγγελμα', 'Occupation', { required: false, options: OCCUPATION }),
+  ...ABOUT.slice(1),
+  ...STAY,
+  q('nursing', 'floor', 'rating', 'Οι υπηρεσίες του νοσηλευτικού προσωπικού στον όροφο, συνολικά', 'The nursing staff’s services on the floor, overall', RATE),
+  q('doctors', 'floor', 'rating', 'Οι επισκέψεις των ιατρών και η πληροφόρηση που σας παρείχαν', 'The doctors’ visits and the information they gave', RATE),
+  q('physiotherapy', 'floor', 'rating', 'Η ομάδα των Φυσικοθεραπευτών (αν σας παρασχέθηκε φυσικοθεραπεία)', 'The physiotherapy team (if you had physiotherapy)', { ...RATE, required: false }),
+  ...AFTER,
+  ...CLOSING,
+]
+const STAY_SECTIONS = ['about', 'choice', 'reception', 'floor', 'food', 'room', 'services', 'overall', 'information', 'comments']
+// The kitchen's questionnaire: the meals as patients receive them on the floor.
+const KITCHEN = [
+  q('diet', 'meals', 'yesno', 'Ακολουθήσατε ειδική δίαιτα κατά τη νοσηλεία σας;', 'Were you on a special diet during your stay?', { required: false }),
+  q('diet_kept', 'meals', 'rating', 'Η δίαιτα που σας ορίστηκε τηρήθηκε στα γεύματα', 'The diet you were given was kept in the meals', { scale: 'agree', required: false, showWhen: { question: 'diet', value: true } }),
+  q('taste', 'meals', 'rating', 'Η γεύση του φαγητού', 'The taste of the food', RATE),
+  q('temperature', 'meals', 'rating', 'Η θερμοκρασία του φαγητού όταν σας σερβιρίστηκε', 'The temperature of the food when served', RATE),
+  q('variety', 'meals', 'rating', 'Η ποικιλία του μενού', 'The variety of the menu', RATE),
+  q('portion', 'meals', 'rating', 'Η ποσότητα των μερίδων', 'The size of the portions', RATE),
+  q('presentation', 'meals', 'rating', 'Η εμφάνιση και η παρουσίαση του δίσκου', 'How the tray looked', RATE),
+  q('choice_menu', 'meals', 'yesno', 'Σας δόθηκε η δυνατότητα να επιλέξετε από το μενού;', 'Could you choose from the menu?', { required: false }),
+  q('times', 'service', 'rating', 'Η τήρηση των ωρών των γευμάτων', 'Meals served on time', RATE),
+  q('waiters', 'service', 'rating', 'Η εξυπηρέτηση και η ευγένεια των τραπεζοκόμων', 'The service and courtesy of the catering staff', RATE),
+  q('cleanliness', 'service', 'rating', 'Η καθαριότητα των σκευών και του δίσκου', 'The cleanliness of the dishes and the tray', RATE),
+  q('overall', 'overall', 'rating', 'Συνολικά, το φαγητό στο {hospital} ήταν:', 'Overall, the food at {hospital} was:', RATE),
+  q('improve', 'comments', 'text', 'Τι θα βελτιώνατε στο φαγητό;', 'What would you improve in the food?'),
 ]
 
-export function surveyFromTemplate(key) {
+export const SURVEY_TEMPLATES = [
+  { key: 'maternity', audience: 'patients', title: 'Ερωτηματολόγιο Μαιευτικού ορόφου', titleEn: 'Maternity floor questionnaire', description: 'Η γνώμη σας μάς βοηθά να βελτιώνουμε τις υπηρεσίες μας. Λίγα λεπτά, ανώνυμα.', descriptionEn: 'Your opinion helps us improve our services. A few minutes, anonymous.', sections: sectionList(['about', 'choice', 'classes', 'reception', 'floor', 'food', 'room', 'services', 'overall', 'information', 'comments']), questions: MATERNITY },
+  { key: 'wards', audience: 'patients', title: 'Ερωτηματολόγιο Νοσηλευτικού ορόφου', titleEn: 'Ward questionnaire', description: 'Η γνώμη σας μάς βοηθά να βελτιώνουμε τις υπηρεσίες μας. Λίγα λεπτά, ανώνυμα.', descriptionEn: 'Your opinion helps us improve our services. A few minutes, anonymous.', sections: sectionList(STAY_SECTIONS), questions: WARDS },
+  { key: 'kitchen', audience: 'patients', title: 'Ερωτηματολόγιο Κουζίνας', titleEn: 'Kitchen questionnaire', description: 'Πείτε μας πώς ήταν τα γεύματά σας. Λίγα λεπτά, ανώνυμα.', descriptionEn: 'Tell us how your meals were. A few minutes, anonymous.', sections: sectionList(['meals', 'service', 'overall', 'comments']), questions: KITCHEN },
+  { key: 'inpatient', audience: 'patients', title: 'Ικανοποίηση νοσηλευόμενων ασθενών', titleEn: 'Inpatient satisfaction', description: 'Πείτε μας πώς ήταν η νοσηλεία σας. Συμπληρώνεται κατά την έξοδο.', descriptionEn: 'Tell us how your stay was. Filled in on discharge.', sections: sectionList(['admission', 'nursing', 'medical', 'environment', 'discharge', 'safety', 'overall', 'comments']), questions: INPATIENT },
+  { key: 'outpatient', audience: 'patients', title: 'Ικανοποίηση εξωτερικών ασθενών και ΤΕΠ', titleEn: 'Outpatient and emergency satisfaction', description: 'Πείτε μας πώς ήταν η επίσκεψή σας στα εξωτερικά ιατρεία ή στο ΤΕΠ.', descriptionEn: 'Tell us how your visit to the outpatient clinics or the emergency department was.', sections: sectionList(['access', 'care', 'overall', 'comments']), questions: OUTPATIENT },
+  { key: 'staff', audience: 'staff', title: 'Ικανοποίηση προσωπικού', titleEn: 'Staff satisfaction', description: 'Ετήσια έρευνα για το εργασιακό περιβάλλον και την κουλτούρα ασφάλειας.', descriptionEn: 'Yearly survey of the work environment and safety culture.', sections: sectionList(['work', 'team', 'safety', 'overall', 'comments']), questions: STAFF },
+  { key: 'blank', audience: 'patients', title: 'Νέα έρευνα', titleEn: 'New survey', description: '', descriptionEn: '', sections: [], questions: [] },
+]
+
+// hospital: the name that takes the place of «{hospital}» in the questions.
+export function surveyFromTemplate(key, { hospital = '' } = {}) {
   const template = SURVEY_TEMPLATES.find(item => item.key === key) || SURVEY_TEMPLATES[0]
+  const named = text => String(text || '').replaceAll('{hospital}', hospital || 'νοσοκομείο')
+  const namedEn = text => String(text || '').replaceAll('{hospital}', hospital || 'the hospital')
   return {
     id: '', code: '', templateKey: template.key, audience: template.audience, title: template.title, titleEn: template.titleEn,
-    description: template.description, descriptionEn: template.descriptionEn, departmentIds: [], questions: structuredClone(template.questions),
+    description: template.description, descriptionEn: template.descriptionEn, departmentIds: [], sections: structuredClone(template.sections || []),
+    questions: structuredClone(template.questions).map(question => ({ ...question, label: named(question.label), labelEn: namedEn(question.labelEn) })),
     status: 'draft', opensOn: '', closesOn: '', targetResponses: '', satisfiedTarget: 80, publicToken: '',
   }
 }
@@ -149,6 +264,8 @@ export function surveyProblems(survey, language = 'el') {
 export function cleanAnswers(questions = [], answers = {}) {
   const kept = {}
   for (const question of questions) {
+    // An answer to a question the respondent no longer sees is not kept.
+    if (!isQuestionShown(question, answers)) continue
     const value = answers[question.id]
     const empty = value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)
     if (empty) { if (question.required) return null; continue }

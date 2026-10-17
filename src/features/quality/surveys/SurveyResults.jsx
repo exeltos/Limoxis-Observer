@@ -2,7 +2,7 @@ import { CheckSquare2, MessageSquareText, Smile, ThumbsUp, TrendingDown, Users }
 import { MetricCard } from '../../../design-system/MetricCard'
 import { Meter, Sparkline, meterTone } from '../../../design-system/MiniCharts'
 import { formatDay } from '../../../core/i18n/formatDay'
-import { RATING_LABELS, departmentBreakdown, monthlyTrend, sectionLabel, surveySummary, textOf } from './surveyModel'
+import { departmentBreakdown, monthlyTrend, scaleOf, sectionLabel, surveySummary, textOf } from './surveyModel'
 
 const pct = value => (value == null ? '—' : `${value}%`)
 const npsText = value => (value == null ? '—' : value > 0 ? `+${value}` : String(value))
@@ -30,7 +30,7 @@ export function SurveyResults({ survey, responses, language = 'el', canAct = fal
         <header><h3>{en ? 'Below target' : 'Κάτω από τον στόχο'}{summary.below.length > 0 && <span className="quality-panel-count">{summary.below.length}</span>}</h3><small>{en ? 'Share answering 4 or 5, with at least 10 answers' : 'Ποσοστό με 4 ή 5, από 10 απαντήσεις και πάνω'}</small></header>
         {!summary.below.length ? <p className="risk-empty-note">{en ? 'Every question reaches the target.' : 'Όλες οι ερωτήσεις πιάνουν τον στόχο.'}</p> : <ul className="survey-below">
           {summary.below.map(result => <li key={result.question.id}>
-            <span><strong>{textOf(result.question, language)}</strong><small>{sectionLabel(result.question.section, language)} · {result.count} {en ? 'answers' : 'απαντήσεις'} · {en ? 'mean' : 'μέσος όρος'} {result.mean}</small></span>
+            <span><strong>{textOf(result.question, language)}</strong><small>{sectionLabel(result.question.section, language, survey.sections || [])} · {result.count} {en ? 'answers' : 'απαντήσεις'} · {en ? 'mean' : 'μέσος όρος'} {result.mean}</small></span>
             <Meter value={result.satisfied} tone={toneFor(result.satisfied, summary.target)} label={pct(result.satisfied)} /><strong>{pct(result.satisfied)}</strong>
             {canAct && <button type="button" className="quality-panel-all" onClick={() => onAction(result)}><CheckSquare2 size={13} /> {en ? 'Action' : 'Ενέργεια'}</button>}
           </li>)}
@@ -51,7 +51,7 @@ export function SurveyResults({ survey, responses, language = 'el', canAct = fal
       </section>}
     </div>
     {sections.map(section => <section key={section || 'main'} className="risk-panel quality-panel survey-section-results">
-      <header><h3>{sectionLabel(section, language) || (en ? 'Questions' : 'Ερωτήσεις')}</h3></header>
+      <header><h3>{sectionLabel(section, language, survey.sections || []) || (en ? 'Questions' : 'Ερωτήσεις')}</h3></header>
       <ul className="survey-question-results">
         {summary.results.filter(result => (result.question.section || '') === section).map(result => <QuestionResult key={result.question.id} result={result} language={language} target={summary.target} />)}
       </ul>
@@ -71,7 +71,7 @@ function QuestionResult({ result, language, target }) {
     <span className="survey-result-label"><strong>{label}</strong><small>{result.count} {en ? 'answers' : 'απαντήσεις'}{question.type === 'rating' && result.mean != null ? ` · ${en ? 'mean' : 'μέσος όρος'} ${result.mean}` : ''}</small></span>
     {question.type === 'rating' && <>
       <span className="survey-meter-cell"><Meter value={result.satisfied} tone={toneFor(result.satisfied, target)} label={pct(result.satisfied)} />{pct(result.satisfied)}</span>
-      <span className="survey-distribution" aria-label={en ? 'Answers 1 to 5' : 'Απαντήσεις 1 έως 5'}>{result.distribution.map((count, index) => <i key={index} title={`${index + 1} · ${RATING_LABELS[index][en ? 1 : 0]}: ${count}`} style={{ height: `${(count * 100) / max}%` }} className={`is-${index + 1}`} />)}</span>
+      <span className="survey-distribution" aria-label={en ? 'Answers 1 to 5' : 'Απαντήσεις 1 έως 5'}>{result.distribution.map((count, index) => <i key={index} title={`${index + 1} · ${scaleOf(question)[index][en ? 1 : 0]}: ${count}`} style={{ height: `${(count * 100) / max}%` }} className={`is-${index + 1}`} />)}</span>
     </>}
     {question.type === 'nps' && <><span className="survey-nps"><strong>{npsText(result.nps)}</strong><small>{en ? `${pct(result.promoters)} promoters · ${pct(result.detractors)} detractors` : `${pct(result.promoters)} υποστηρικτές · ${pct(result.detractors)} επικριτές`}</small></span><span /></>}
     {question.type === 'yesno' && <><span className="survey-meter-cell"><Meter value={result.yes} tone={meterTone(result.yes)} label={pct(result.yes)} />{en ? `${pct(result.yes)} yes` : `${pct(result.yes)} ναι`}</span><span /></>}

@@ -1,7 +1,7 @@
 -- Quality Center, phase 6: satisfaction surveys (ISO 9001 §9.1.2).
 --
 -- quality_surveys            one survey: who it asks (patients, staff, visitors),
---                            its questions (jsonb), the departments it covers
+--                            its sections and questions (jsonb), the departments it covers
 --                            (empty = the whole hospital), when it is open, the
 --                            share of satisfied answers it aims at, and the
 --                            random token of its public link (QR poster).
@@ -26,6 +26,7 @@ create table if not exists public.quality_surveys (
   audience text not null default 'patients' check (audience in ('patients','staff','visitors','other')),
   template_key text,
   department_ids uuid[] not null default '{}',
+  sections jsonb not null default '[]'::jsonb check (jsonb_typeof(sections) = 'array'),
   questions jsonb not null default '[]'::jsonb check (jsonb_typeof(questions) = 'array'),
   status text not null default 'draft' check (status in ('draft','open','closed')),
   opens_on date,
@@ -103,6 +104,8 @@ revoke all on public.quality_surveys from anon;
 revoke all on public.quality_survey_responses from anon;
 grant select, insert, update, delete on public.quality_surveys to authenticated;
 grant select, insert, delete on public.quality_survey_responses to authenticated;
+-- A response is never edited: removed and entered again.
+revoke update on public.quality_survey_responses from authenticated;
 
 create or replace trigger trg_quality_surveys_touch before update on public.quality_surveys
   for each row execute function private.department_register_touch();
@@ -169,6 +172,7 @@ begin
     'description', v_survey.description, 'descriptionEn', v_survey.description_en,
     'audience', v_survey.audience,
     'organizationName', (select o.name from public.organizations o where o.id = v_survey.organization_id),
+    'sections', v_survey.sections,
     'questions', case when private.quality_survey_is_open(v_survey) then v_survey.questions else '[]'::jsonb end,
     'departments', case when private.quality_survey_is_open(v_survey) then coalesce((
       select jsonb_agg(jsonb_build_object('id', d.id, 'name', d.name) order by d.name)

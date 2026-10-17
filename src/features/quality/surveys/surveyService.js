@@ -27,9 +27,10 @@ const DEMO_DEPARTMENTS = [
   { id: 'ΜΕΘ', name: 'ΜΕΘ', nameEn: 'ICU' },
 ]
 const DEMO_COMMENTS = {
+  missing: ['Θέσεις στάθμευσης για συνοδούς', 'Ασύρματο δίκτυο στους θαλάμους', 'Περισσότερες τηλεοράσεις'],
   best: ['Η ευγένεια των νοσηλευτριών', 'Η ενημέρωση από τον γιατρό κάθε πρωί', 'Η καθαριότητα', 'Ένιωσα ασφάλεια', 'Η γρήγορη ανταπόκριση τη νύχτα'],
   improve: ['Το φαγητό ήταν κρύο', 'Θόρυβος στον διάδρομο τη νύχτα', 'Μεγάλη αναμονή στην εισαγωγή', 'Περισσότερη ενημέρωση για τα φάρμακα στο σπίτι', 'Θέσεις στάθμευσης για συνοδούς', 'Το μπάνιο του θαλάμου χρειάζεται επισκευή'],
-  comments: ['Χρειαζόμαστε περισσότερο προσωπικό στις νυχτερινές βάρδιες', 'Καλή συνεργασία στο τμήμα', 'Περισσότερη εκπαίδευση στον νέο εξοπλισμό'],
+  comments: ['Ευχαριστώ όλο το νοσηλευτικό προσωπικό για τη φροντίδα', 'Άριστη συνεργασία με τους ιατρούς', 'Το φαγητό θα μπορούσε να είναι πιο ζεστό', 'Πολύ καθαρό δωμάτιο'],
 }
 
 // A small seeded generator: the demo shows the same figures every time.
@@ -40,20 +41,22 @@ function demoAnswers(questions, random, mood) {
   const answers = {}
   for (const question of questions) {
     // Food and quiet score lower in the demo, so a question falls below target.
-    const bias = ['food', 'quiet', 'admission_wait', 'wait', 'workload'].includes(question.id) ? -0.8 : 0
+    const bias = ['food', 'quiet', 'admission_wait', 'wait', 'workload', 'food_quality', 'visiting_hours'].includes(question.id) ? -0.8 : 0
     if (question.type === 'rating') answers[question.id] = Math.max(1, Math.min(5, Math.round(4.35 + mood + bias + (random() - 0.5) * 2)))
     else if (question.type === 'nps') answers[question.id] = Math.max(0, Math.min(10, Math.round(8 + mood * 2 + (random() - 0.5) * 4)))
-    else if (question.type === 'yesno') answers[question.id] = random() < (question.id === 'hand_hygiene' ? 0.78 : 0.9)
+    else if (question.type === 'yesno') answers[question.id] = random() < (question.id === 'hand_hygiene' ? 0.78 : question.id === 'technical' ? 0.18 : 0.9)
+    else if (question.type === 'single' && random() < 0.85) answers[question.id] = question.options[Math.floor(random() * question.options.length)].value
     else if (question.type === 'multiple') { const picked = (question.options || []).filter(() => random() < 0.3).map(item => item.value); if (picked.length) answers[question.id] = picked }
     else if (question.type === 'text' && random() < 0.22) { const list = DEMO_COMMENTS[question.id] || DEMO_COMMENTS.improve; answers[question.id] = list[Math.floor(random() * list.length)] }
   }
+  if (answers.technical === false) delete answers.technical_fix
   return answers
 }
 
 function demoState() {
   const today = new Date().toISOString().slice(0, 10)
   const year = today.slice(0, 4)
-  const inpatient = { ...surveyFromTemplate('inpatient'), id: 'srv-demo-inpatient', code: `SRV-${year}-01`, status: 'open', opensOn: addDays(today, -180), closesOn: addDays(today, 30), targetResponses: 300, departmentIds: DEMO_DEPARTMENTS.map(item => item.id), publicToken: 'demo-inpatient-survey' }
+  const inpatient = { ...surveyFromTemplate('wards', { hospital: 'Demo Hospital' }), id: 'srv-demo-inpatient', code: `SRV-${year}-01`, status: 'open', opensOn: addDays(today, -180), closesOn: addDays(today, 30), targetResponses: 300, departmentIds: DEMO_DEPARTMENTS.map(item => item.id), publicToken: 'demo-inpatient-survey' }
   const staff = { ...surveyFromTemplate('staff'), id: 'srv-demo-staff', code: `SRV-${year}-02`, status: 'closed', opensOn: addDays(today, -120), closesOn: addDays(today, -90), targetResponses: 80, publicToken: 'demo-staff-survey' }
   const random = seeded(20261108)
   const responses = []
@@ -86,13 +89,13 @@ const named = response => { const department = DEMO_DEPARTMENTS.find(item => ite
 
 const toSurvey = row => ({
   id: row.id, code: row.code, title: row.title, titleEn: row.title_en || '', description: row.description || '', descriptionEn: row.description_en || '',
-  audience: row.audience, templateKey: row.template_key || '', departmentIds: row.department_ids || [], questions: Array.isArray(row.questions) ? row.questions : [],
+  audience: row.audience, templateKey: row.template_key || '', departmentIds: row.department_ids || [], sections: Array.isArray(row.sections) ? row.sections : [], questions: Array.isArray(row.questions) ? row.questions : [],
   status: row.status, opensOn: row.opens_on || '', closesOn: row.closes_on || '', targetResponses: row.target_responses || '', satisfiedTarget: Number(row.satisfied_target ?? 80),
   publicToken: row.public_token || '', createdAt: row.created_at, updatedAt: row.updated_at,
 })
 const toRow = (organizationId, survey) => ({
   organization_id: organizationId, title: survey.title.trim(), title_en: survey.titleEn || null, description: survey.description || null, description_en: survey.descriptionEn || null,
-  audience: survey.audience, template_key: survey.templateKey || null, department_ids: (survey.departmentIds || []).filter(isUuid), questions: survey.questions || [],
+  audience: survey.audience, template_key: survey.templateKey || null, department_ids: (survey.departmentIds || []).filter(isUuid), sections: survey.sections || [], questions: survey.questions || [],
   status: survey.status || 'draft', opens_on: survey.opensOn || null, closes_on: survey.closesOn || null, target_responses: Number(survey.targetResponses) || null, satisfied_target: Number(survey.satisfiedTarget) || 80,
 })
 
@@ -201,7 +204,7 @@ export async function loadPublicSurvey(token) {
     const survey = local().surveys.find(item => item.publicToken === token && item.status !== 'draft')
     if (!survey) throw new Error('SURVEY_NOT_AVAILABLE')
     const open = isSurveyOpen(survey)
-    return { open, title: survey.title, titleEn: survey.titleEn, description: survey.description, descriptionEn: survey.descriptionEn, audience: survey.audience, organizationName: 'Demo Hospital', questions: open ? survey.questions : [], departments: open ? DEMO_DEPARTMENTS.filter(item => !survey.departmentIds?.length || survey.departmentIds.includes(item.id)) : [] }
+    return { open, title: survey.title, titleEn: survey.titleEn, description: survey.description, descriptionEn: survey.descriptionEn, audience: survey.audience, organizationName: 'Demo Hospital', sections: survey.sections || [], questions: open ? survey.questions : [], departments: open ? DEMO_DEPARTMENTS.filter(item => !survey.departmentIds?.length || survey.departmentIds.includes(item.id)) : [] }
   }
   if (!supabase) throw new Error('SURVEY_NOT_AVAILABLE')
   return must(await supabase.rpc('survey_public', { p_token: token }))

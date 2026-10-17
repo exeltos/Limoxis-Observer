@@ -54,13 +54,13 @@ export function SurveyRecordPage() {
   const [page, setPage] = useState(1)
 
   const reload = useCallback(async () => {
-    if (isNew) { setSurvey(surveyFromTemplate(location.state?.template || 'inpatient')); return }
+    if (isNew) { setSurvey(surveyFromTemplate(location.state?.template || 'wards', { hospital: tenant?.name || '' })); return }
     try {
       const found = await loadSurvey(tenant?.id, surveyId)
       setSurvey(found ? structuredClone(found) : false)
       if (found) setResponses(await loadResponses(tenant?.id, found.id))
     } catch (error) { console.error(error); setSurvey(false) }
-  }, [isNew, surveyId, tenant?.id, location.state])
+  }, [isNew, surveyId, tenant?.id, tenant?.name, location.state])
   useEffect(() => { void reload() }, [reload])
 
   // The departments a response may be about: the survey's, and for a department only its own.
@@ -161,7 +161,7 @@ export function SurveyRecordPage() {
     </RecordTabPanel>}
     {tab === 'questionnaire' && <RecordTabPanel title={en ? 'Questionnaire' : 'Ερωτηματολόγιο'} subtitle={problems.length && !locked ? `${en ? 'To open it needs:' : 'Για να ανοίξει χρειάζεται:'} ${problems.join(' · ')}` : ''}
       footer={!locked && <div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Create survey' : 'Δημιουργία έρευνας') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
-      <SurveyEditor survey={survey} onChange={setSurvey} onTemplate={key => setSurvey(current => ({ ...surveyFromTemplate(key), departmentIds: current.departmentIds, opensOn: current.opensOn, closesOn: current.closesOn }))} isNew={isNew} locked={locked} hasResponses={responses.length > 0} departments={departments} language={language} />
+      <SurveyEditor survey={survey} onChange={setSurvey} onTemplate={key => setSurvey(current => ({ ...surveyFromTemplate(key, { hospital: tenant?.name || '' }), departmentIds: current.departmentIds, opensOn: current.opensOn, closesOn: current.closesOn }))} isNew={isNew} locked={locked} hasResponses={responses.length > 0} departments={departments} language={language} />
     </RecordTabPanel>}
     {tab === 'collect' && <RecordTabPanel title={en ? 'Collection' : 'Συλλογή'} subtitle={en ? 'One QR poster for the whole hospital and one per department: the department is then filled in by itself.' : 'Μία αφίσα QR για όλο το νοσοκομείο και μία ανά τμήμα: τότε το τμήμα συμπληρώνεται μόνο του.'}>
       <SurveyCollect survey={survey} departments={departments} language={language} />
@@ -193,6 +193,6 @@ function ResponseEntry({ survey, entry, setEntry, departments, language, onSaved
     <div className="survey-entry-head">
       <ChoiceField label={en ? 'How it came in' : 'Πώς ήρθε'} value={entry.channel} options={RESPONSE_CHANNELS.filter(item => item.value !== 'link').map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={value => set({ channel: value })} />
     </div>
-    <SurveyForm questions={survey.questions} answers={entry.answers} onChange={answers => set({ answers })} language={language} missing={entry.missing} departments={departments.map(item => ({ id: item.id || item.name, name: item.name, nameEn: item.nameEn }))} departmentId={entry.departmentId} onDepartment={departmentId => set({ departmentId })} askDepartment={departments.length > 0} />
+    <SurveyForm survey={survey} answers={entry.answers} onChange={answers => set({ answers })} language={language} missing={entry.missing} departments={departments.map(item => ({ id: item.id || item.name, name: item.name, nameEn: item.nameEn }))} departmentId={entry.departmentId} onDepartment={departmentId => set({ departmentId })} askDepartment={departments.length > 0} />
   </ObserverDialog>
 }
