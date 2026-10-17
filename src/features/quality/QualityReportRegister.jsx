@@ -34,9 +34,10 @@ export const STAGE_LABELS={
  effectiveness:['Έλεγχος αποτελεσματικότητας','Effectiveness check'],
  toClose:['Προς κλείσιμο','Ready to close'],
  closed:['Κλειστή','Closed'],
+ voided:['Ακυρωμένη','Voided'],
 }
 export const stageLabel=(stage,language)=>STAGE_LABELS[stage]?.[language==='en'?1:0]||stage
-const STAGE_TONE={toAssess:'warning',investigating:'info',action:'info',effectiveness:'info',toClose:'success',closed:'neutral'}
+const STAGE_TONE={toAssess:'warning',investigating:'info',action:'info',effectiveness:'info',toClose:'success',closed:'neutral',voided:'neutral'}
 
 // Five marks, one per step of the flow; the report's stage is the last lit one.
 export function StageTrack({stage,language}){

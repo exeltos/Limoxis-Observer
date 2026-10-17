@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useRef,useState } from 'react'
+import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
 import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,ClipboardSignature,Clock3,FileSpreadsheet,FileWarning,Gauge,GraduationCap,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Target,TrendingDown,UserRound,Users,Wrench } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -119,6 +119,7 @@ export function QualityPage(){
  // What the risk and register lists show after their own filters: «Download» exports exactly that.
  const [riskRows,setRiskRows]=useState([])
  const [registerRows,setRegisterRows]=useState([])
+ const [staleOnly,setStaleOnly]=useState(false)
  const registerList=useRegisterList()
  const objectives=useObjectives(tenant?.id)
  const reviews=useReviews(tenant?.id)
@@ -153,7 +154,9 @@ export function QualityPage(){
  const auditCount=auditCounts(audits)
  const objectiveState=state=>{setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:current.state===state&&measureView==='objectives'?'all':state}))}
  const activeObjectives=objectives.objectives.filter(item=>(item.status||'active')==='active')
- const staleRegisters=registerList.registers.filter(item=>item.status!=='archived'&&(!item.lastEntry||(Date.parse(todayIso)-Date.parse(item.lastEntry))/86400000>STALE_DAYS)).length
+ // Stable across renders: the register list reports its rows back on every change.
+ const isStaleRegister=useCallback(item=>item.status!=='archived'&&(!item.lastEntry||(Date.parse(todayIso)-Date.parse(item.lastEntry))/86400000>STALE_DAYS),[todayIso])
+ const staleRegisters=registerList.registers.filter(isStaleRegister).length
  const latestReview=[...reviews.reviews].sort((a,b)=>String(b.reviewDate).localeCompare(String(a.reviewDate)))[0]
  const nextReviewLate=Boolean(latestReview?.nextReviewDate&&latestReview.nextReviewDate<todayIso)
  const latestAssessment=[...riskList.items].sort((a,b)=>String(b.assessedOn||'').localeCompare(String(a.assessedOn||'')))[0]
@@ -177,8 +180,8 @@ export function QualityPage(){
    {key:'high',icon:AlertTriangle,value:latestRisks.levels.residual.high,label:L('Υψηλοί (υπολ.)','High (residual)')},
    {key:'next',icon:CalendarClock,value:formatDay(latestAssessment.nextReviewOn,language)||'—',label:L('Επόμενη αξιολόγηση','Next assessment')},
   ]:[],
-  indicators:[{key:'registers',icon:ClipboardList,value:registerList.loading?'—':registerList.registers.length,label:L('Μητρώα τμημάτων','Department registers'),active:measureView==='registers',go:()=>setMeasureView('registers')},
-   {key:'stale',icon:Clock3,value:registerList.loading?'—':staleRegisters,label:L(`Χωρίς καταχώριση ${STALE_DAYS}+ ημέρες`,`No entry for ${STALE_DAYS}+ days`),tone:staleRegisters?'warning':'neutral',go:()=>setMeasureView('registers')},
+  indicators:[{key:'registers',icon:ClipboardList,value:registerList.loading?'—':registerList.registers.length,label:L('Μητρώα τμημάτων','Department registers'),active:measureView==='registers'&&!staleOnly,go:()=>{setMeasureView('registers');setStaleOnly(false)}},
+   {key:'stale',icon:Clock3,value:registerList.loading?'—':staleRegisters,label:L(`Χωρίς καταχώριση ${STALE_DAYS}+ ημέρες`,`No entry for ${STALE_DAYS}+ days`),tone:staleRegisters?'warning':'neutral',active:measureView==='registers'&&staleOnly,go:()=>{setMeasureView('registers');setStaleOnly(value=>measureView!=='registers'||!value)}},
    {key:'objectives',icon:Target,value:objectives.loading?'—':activeObjectives.length,label:L('Ενεργοί στόχοι','Active objectives'),active:measureView==='objectives'&&objectiveFilters.state==='all',go:()=>objectiveState('all')},
    {key:'met',icon:CheckCircle2,value:activeObjectives.filter(item=>item.current.status==='met').length,label:L('Επιτυγχάνονται','Met'),active:measureView==='objectives'&&objectiveFilters.state==='met',go:()=>objectiveState('met')},
    {key:'missed',icon:TrendingDown,value:missedObjectives,label:L('Δεν επιτυγχάνονται','Not met'),tone:missedObjectives?'danger':'neutral',active:measureView==='objectives'&&objectiveFilters.state==='missed',go:()=>objectiveState('missed')},
@@ -265,7 +268,7 @@ export function QualityPage(){
     onOpen={(row,same)=>openRecord('audits',row.id,same.map(item=>item.id))}
     onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null}/>}
    {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
-   {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} onBeforeOpen={remember} filterEnd={measureSwitch} onRowsChange={setRegisterRows}/>}
+   {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} filterEnd={measureSwitch} onRowsChange={setRegisterRows}/>}
    {tab==='indicators'&&measureView==='objectives'&&<>
     <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={objectiveFilters.state!=='all'?1:0} onClear={()=>setObjectiveFilters({query:'',state:'all'})} end={measureSwitch}>
      <FilterSelect label={t('status')} value={objectiveFilters.state} onChange={state=>setObjectiveFilters(current=>({...current,state}))}><option value="all">{t('all')}</option><option value="missed">{L('Δεν επιτυγχάνεται','Not met')}</option><option value="met">{L('Επιτυγχάνεται','Met')}</option><option value="pending">{L('Σε εξέλιξη','In progress')}</option></FilterSelect>

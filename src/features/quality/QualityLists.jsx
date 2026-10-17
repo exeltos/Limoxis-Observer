@@ -63,7 +63,7 @@ function sourceKindOf(capa){
  if(id.startsWith('TRAINING:'))return 'training'
  if(id.startsWith('RISK:'))return 'risk'
  if(id.startsWith('AUD-'))return 'audit'
- if(capa.source==='review'||capa.sourceType==='review')return 'review'
+ if(id.startsWith('MR:')||capa.source==='review'||capa.sourceType==='review')return 'review'
  return id?(SOURCE_KINDS[capa.source]?capa.source:'manual'):'manual'
 }
 const sourceCode=(id='')=>{const value=String(id);return value.startsWith('TRAINING:')?value.slice(9):value.startsWith('RISK:')?value.split(':').slice(1).join(' · '):value.split('#')[0]}
@@ -83,7 +83,7 @@ export function filterActions(rows,filters,en){
   .filter(row=>filters.kind==='all'||row.kind===filters.kind)
   .filter(row=>filters.status==='all'||row.status===filters.status)
   .filter(row=>filters.department==='all'||departmentOf(row,en)===filters.department)
-  .filter(row=>!filters.quick||(filters.quick==='overdue'?isOverdueAction(row):filters.quick==='open'?isOpenRecord(row):filters.quick==='dueSoon'?isDueSoonAction(row):filters.quick==='verification'?isVerificationAction(row):filters.quick==='orphans'?isOrphanFinding(row):true))
+  .filter(row=>!filters.quick||(filters.quick==='overdue'?isOverdueAction(row):filters.quick==='open'?row.kind==='capa'&&isOpenRecord(row):filters.quick==='dueSoon'?isDueSoonAction(row):filters.quick==='verification'?isVerificationAction(row):filters.quick==='orphans'?isOrphanFinding(row):true))
 }
 
 export function actionCounts(rows){

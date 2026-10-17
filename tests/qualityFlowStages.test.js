@@ -26,6 +26,15 @@ describe('Quality: the stage of a report in its flow', () => {
     expect(filterRegister(rows, { stage: 'closed' }).map(row => row.id)).toEqual(['INC-3'])
   })
 
+  it('keeps an incident open until every CAPA is effective, and a voided one out of the flow', () => {
+    const capas = [{ status: 'closed', effectivenessStatus: 'effective' }, { status: 'inProgress' }]
+    expect(incidentStage({ status: 'underReview' }, capas)).toBe('action')
+    expect(incidentFlow({ status: 'underReview' }, capas).find(step => step.id === 'closed').status).toBe('todo')
+    const rows = registerRows([{ id: 'INC-1', status: 'reported', lifecycleStatus: 'voided' }], [], [])
+    expect(rows[0].stage).toBe('voided')
+    expect(registerCounts(rows)).toMatchObject({ open: 0, stages: { toAssess: 0 } })
+  })
+
   it('offers the next step of the flow, and none once closed', () => {
     const next = (record, capas = []) => nextIncidentStep(incidentFlow(record, capas), { record, capas, en: true })?.id
     expect(next({ status: 'reported' })).toBe('assess')
@@ -51,6 +60,13 @@ describe('Quality: actions with their source, audits with their figures', async 
     expect(actionCounts(rows)).toMatchObject({ open: 2, orphans: 1 })
     // Searching the source's code finds the action.
     expect(filterActions(rows, { ...base, query: 'ctrl-9' }, false).map(row => row.id)).toEqual(['CAPA-2'])
+    // «Open actions» lists the actions it counts, not the findings waiting for one.
+    expect(filterActions(rows, { ...base, quick: 'open' }, false).map(row => row.id).sort()).toEqual(['CAPA-1', 'CAPA-2'])
+  })
+
+  it('names a management-review decision as the source of its action', () => {
+    const rows = actionRows([], [{ id: 'CAPA-3', title: 'Decision', status: 'open', source: 'other', sourceId: 'MR:MR-2026-01' }])
+    expect(rows[0].sourceKind).toBe('review')
   })
 
   it('counts this month’s, late and finding-bearing audits', () => {

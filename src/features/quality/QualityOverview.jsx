@@ -74,7 +74,7 @@ export function QualityOverview({reports,capas,audits,objectives,language,catego
  const locale=en?'en-GB':'el-GR'
  const data=useMemo(()=>{
   const plural=(n,one,many,oneEn,manyEn)=>en?(n===1?oneEn:manyEn):(n===1?one:many)
-  const openReports=reports.filter(row=>row.stage!=='closed')
+  const openReports=reports.filter(row=>!['closed','voided'].includes(row.stage))
   const openCapas=capas.filter(isOpenRecord)
   const sentinel=openReports.filter(row=>row.sentinel).map(row=>{const days=daysUntil(row.record.rcaDueDate);return {key:`s:${row.id}`,type:'incidents',id:row.id,rank:-1000+(days??0),code:row.code,title:titleOf(row,en),
    chip:days==null?{value:'RCA',tone:'danger'}:days<0?{value:-days,unit:L(en,'ημ. καθυστ.','d late'),tone:'danger',title:L(en,'Ανάλυση ριζικής αιτίας εκπρόθεσμη','Root cause analysis overdue')}:{value:days,unit:L(en,'ημ. για RCA','d to RCA'),tone:'danger'},
@@ -91,7 +91,8 @@ export function QualityOverview({reports,capas,audits,objectives,language,catego
   // The last twelve months of reports.
   const months=lastMonths(12,locale)
   const since=months[0].key
-  const recent=reports.filter(row=>monthKey(row.date)>=since)
+  // Within the twelve months shown: a report dated ahead stays out until its month comes.
+  const recent=reports.filter(row=>row.stage!=='voided'&&monthKey(row.date)>=since&&monthKey(row.date)<=months[months.length-1].key)
   const byMonth=months.map(month=>({...month,value:recent.filter(row=>monthKey(row.date)===month.key).length}))
   const byCategory=grouped(recent,row=>row.category,key=>incidentCategoryLabel(key,categories,language))
   const byDepartment=grouped(recent,row=>departmentOf(row,en),key=>key)

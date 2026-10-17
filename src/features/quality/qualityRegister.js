@@ -75,8 +75,8 @@ export function filterRegister(rows, { query = '', kind = 'all', source = 'all',
 export function registerCounts(rows) {
   return {
     total: rows.length,
-    open: rows.filter(row => row.type === 'report' && row.status !== 'closed').length,
-    sentinel: rows.filter(row => row.sentinel && row.status !== 'closed').length,
+    open: rows.filter(row => row.type === 'report' && !['closed', 'voided'].includes(row.stage)).length,
+    sentinel: rows.filter(row => row.sentinel && !['closed', 'voided'].includes(row.stage)).length,
     deviations: rows.filter(row => row.type === 'deviation').length,
     stages: Object.fromEntries(INCIDENT_STAGES.map(id => [id, rows.filter(row => row.type === 'report' && row.stage === id).length])),
   }
