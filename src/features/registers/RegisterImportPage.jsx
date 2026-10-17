@@ -17,10 +17,10 @@ import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { auditActorFromAuth } from '../../core/audit/actor'
 import { parseCsv, readWorkbookSheets } from '../../core/import/spreadsheetImport'
-import { loadEntries, loadRegister, saveEntries, saveRegister } from './registerService'
+import { deleteEntries, loadEntries, loadRegister, saveEntries, saveRegister } from './registerService'
 import { useRegisterAccess } from './registerAccess'
 import { keyFrom, textOf } from './registerEngine'
-import { isAmka, planImport, suggestMapping, toIsoDate, valueMappings, withTemplateHints } from './registerImport'
+import { IGNORED_COLUMN, isAmka, planImport, suggestMapping, toIsoDate, valueMappings, withTemplateHints } from './registerImport'
 import { formatDay } from '../../core/i18n/formatDay'
 import './registers.css'
 
@@ -30,7 +30,7 @@ const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε
 async function readFile(file) {
   const name = String(file?.name || '').toLowerCase()
   if (name.endsWith('.csv') || name.endsWith('.txt')) return parseCsv(await file.text())
-  if (name.endsWith('.xlsx')) return (await readWorkbookSheets(await file.arrayBuffer()))[0]?.rows || []
+  if (name.endsWith('.xlsx')) return (await readWorkbookSheets(await file.arrayBuffer(), { skipEmpty: true }))[0]?.rows || []
   throw new Error('SPREADSHEET_UNSUPPORTED_TYPE')
 }
 
@@ -57,6 +57,7 @@ export function RegisterImportPage() {
   const [valueMap, setValueMap] = useState({})
   const [emptyIsNo, setEmptyIsNo] = useState(true)
   const [fallbackDate, setFallbackDate] = useState('')
+  const [replace, setReplace] = useState(false)
   const [progress, setProgress] = useState(null)
   const [reading, setReading] = useState(false)
   const back = () => navigate(`/registers/${registerId}`, { replace: true })
@@ -89,7 +90,10 @@ export function RegisterImportPage() {
     return result
   }, [chosenValues, register])
   const effectiveMap = useMemo(() => Object.fromEntries(Object.entries(chosenValues).map(([key, values]) => [key, Object.fromEntries(Object.entries(values).map(([value, option]) => [value, option === NEW ? newOptions[key]?.[value] || '' : option]))])), [chosenValues, newOptions])
-  const plan = useMemo(() => (register && step >= 3 ? planImport(register, table.headers, table.rows, mapping, { valueMap: effectiveMap, emptyIsNo, fallbackDate, existing, language }) : null), [register, step, table, mapping, effectiveMap, emptyIsNo, fallbackDate, existing, language])
+  // Replacing: what is there goes, except closed (locked) periods, which stay and still count.
+  const replaced = useMemo(() => (replace ? existing.filter(entry => !entry.locked) : []), [replace, existing])
+  const keptEntries = useMemo(() => (replace ? existing.filter(entry => entry.locked) : existing), [replace, existing])
+  const plan = useMemo(() => (register && step >= 3 ? planImport(register, table.headers, table.rows, mapping, { valueMap: effectiveMap, emptyIsNo, fallbackDate, existing: keptEntries, language }) : null), [register, step, table, mapping, effectiveMap, emptyIsNo, fallbackDate, keptEntries, language])
 
   if (loading) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
   if (!register) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Register not found' : 'Το μητρώο δεν βρέθηκε'}</strong></div></Page>
@@ -101,12 +105,13 @@ export function RegisterImportPage() {
     ...(sheet ? [{ value: 'sheet.date', label: en ? 'Date' : 'Ημερομηνία' }, ...(register.sheet.measures.length > 1 ? [{ value: 'sheet.measure', label: en ? 'Column (shift)' : 'Στήλη (βάρδια)' }] : []), ...register.sheet.rows.map(row => ({ value: `row.${row.key}`, label: textOf(row, language) }))] : [
       ...(register.settings?.identity?.caseNumber ? [{ value: 'identity.caseNumber', label: en ? 'Case number (department only)' : 'Αριθμός περιστατικού (μόνο τμήμα)' }] : []),
       ...(register.settings?.identity?.patientName ? [{ value: 'identity.patientName', label: en ? 'Name (department only)' : 'Όνομα (μόνο τμήμα)' }] : []),
-      ...register.fields.filter(field => field.type !== 'computed').map(field => ({ value: field.key, label: textOf(field, language) })),
+      // A field the template gained can be filled only by who may change the register.
+      ...register.fields.filter(field => field.type !== 'computed' && (!field.fromTemplate || access.canDefine)).map(field => ({ value: field.key, label: textOf(field, language) })),
     ]),
   ]
   const dateField = register.fields.find(field => field.key === register.settings?.entryDateField)
   // What the file does not bring: fields (or sheet rows) no column goes to.
-  const missing = sheet ? register.sheet.rows.filter(row => !mapping.includes(`row.${row.key}`)) : register.fields.filter(field => field.type !== 'computed' && !mapping.includes(field.key))
+  const missing = sheet ? register.sheet.rows.filter(row => !mapping.includes(`row.${row.key}`)) : register.fields.filter(field => field.type !== 'computed' && !field.fromTemplate && !mapping.includes(field.key))
   const hasDate = sheet ? mapping.includes('sheet.date') : mapping.includes(register.settings?.entryDateField)
   const valid = [Boolean(table.headers.length), hasDate || (!sheet && Boolean(fallbackDate)), true, Boolean(plan?.items.length)]
   const steps = en ? ['File', 'Columns', 'Values', 'Check and import'] : ['Αρχείο', 'Στήλες', 'Τιμές', 'Έλεγχος και εισαγωγή']
@@ -118,7 +123,10 @@ export function RegisterImportPage() {
     try {
       const rows = await readFile(chosen)
       const [headers = [], ...data] = rows
-      const clean = data.filter(row => row && row.some(cell => cell !== undefined && cell !== null && String(cell).trim() !== ''))
+      // A line counts when it has a value outside the columns never imported (REPORTING::, related tables, AMKA):
+      // FileMaker can join another table's names onto a sheet, a million lines that are nothing else.
+      const kept = headers.map((header, column) => (IGNORED_COLUMN.test(String(header ?? '')) ? -1 : column)).filter(column => column >= 0)
+      const clean = data.filter(row => row && kept.some(column => row[column] !== undefined && row[column] !== null && String(row[column]).trim() !== ''))
       setFile(chosen.name)
       setTable({ headers: headers.map(value => String(value ?? '').trim()), rows: clean })
       setMapping(suggestMapping(register, headers.map(value => String(value ?? '').trim())))
@@ -134,12 +142,14 @@ export function RegisterImportPage() {
     setProgress({ done: 0, total: plan.items.length })
     try {
       let target = register
-      // Options the template gained since the register was made, and values FileMaker knew, join the register.
-      const gained = register.fields.some(field => (field.options || []).some(option => option.fromTemplate))
+      // Options and fields the template gained since the register was made, and values FileMaker knew, join the register;
+      // a gained field only when a column goes to it.
+      const gained = register.fields.some(field => (field.fromTemplate && mapping.includes(field.key)) || (field.options || []).some(option => option.fromTemplate))
       if ((Object.keys(newOptions).length || gained) && access.canDefine) {
-        const fields = register.fields.map(field => ({ ...field, options: [...(field.options || []).map(({ fromTemplate: _fromTemplate, ...option }) => option), ...Object.entries(newOptions[field.key] || {}).map(([label, value]) => ({ value, label, labelEn: label }))] }))
+        const fields = register.fields.filter(field => !field.fromTemplate || mapping.includes(field.key)).map(({ fromTemplate: _gained, ...field }) => ({ ...field, options: [...(field.options || []).map(({ fromTemplate: _fromTemplate, ...option }) => option), ...Object.entries(newOptions[field.key] || {}).map(([label, value]) => ({ value, label, labelEn: label }))] }))
         target = await saveRegister(tenant?.id, { ...register, fields }, { actor: auditActorFromAuth({ profile, user }).name, action: 'updated', definitionChanged: true })
       }
+      if (replaced.length) await deleteEntries(tenant?.id, target, replaced.map(entry => entry.id))
       const done = await saveEntries(tenant?.id, target, plan.items, { onProgress: (count, total) => setProgress({ done: count, total }) })
       notify(en ? `${done} entries imported.` : `Εισήχθησαν ${done} καταχωρίσεις.`, 'success')
       back()
@@ -173,6 +183,9 @@ export function RegisterImportPage() {
             <YesNoField label={en ? 'An empty yes/no cell means No' : 'Κενό σε ναι/όχι σημαίνει Όχι'} value={emptyIsNo} onChange={setEmptyIsNo} hint={en ? 'FileMaker checkboxes leave the cell empty when not ticked.' : 'Τα κουτάκια του FileMaker αφήνουν κενό όταν δεν είναι τσεκαρισμένα.'} />
             {!mapping.includes(register.settings?.entryDateField) && <ManualDateField label={en ? `Date for every case (no «${textOf(dateField, 'en')}» column)` : `Ημερομηνία για όλα (λείπει η στήλη «${textOf(dateField)}»)`} value={fallbackDate} onChange={setFallbackDate} />}
           </div>}
+          {existing.length > 0 && access.canDefine && <div className="register-import-options">
+            <YesNoField label={en ? `Replace what is in the register (${existing.length})` : `Αντικατάσταση όσων υπάρχουν (${existing.length})`} value={replace} onChange={setReplace} hint={en ? 'The entries already in the register are deleted and the file takes their place. Closed periods stay.' : 'Οι καταχωρίσεις που υπάρχουν σβήνονται και τη θέση τους παίρνει το αρχείο. Οι κλεισμένες περίοδοι μένουν.'} />
+          </div>}
           {!hasDate && sheet && <div className="governance-banner"><AlertTriangle size={16} /><span>{en ? 'Choose the date column.' : 'Επιλέξτε τη στήλη της ημερομηνίας.'}</span></div>}
         </FormCard>}
         {step === 2 && <>
@@ -191,9 +204,10 @@ export function RegisterImportPage() {
           </div>
           <FormCard wide title={en ? 'What happens' : 'Τι θα γίνει'}>
             <ul className="register-import-skips">
+              {replaced.length > 0 && <li><strong>{replaced.length}</strong> {en ? 'entries already in the register are deleted first' : 'καταχωρίσεις που υπάρχουν σβήνονται πρώτα'}</li>}
               {Object.entries(plan.skipped).filter(([, count]) => count).map(([reason, count]) => <li key={reason}><strong>{count}</strong> {skipText(reason, language)}</li>)}
               {Object.keys(newOptions).map(key => <li key={key}><strong>{Object.keys(newOptions[key]).length}</strong> {en ? `new values added to «${textOf(register.fields.find(field => field.key === key), 'en')}»` : `νέες τιμές προστίθενται στο «${textOf(register.fields.find(field => field.key === key))}»`}</li>)}
-              {!Object.values(plan.skipped).some(Boolean) && !Object.keys(newOptions).length && <li>{en ? 'Every row goes in.' : 'Όλες οι γραμμές περνούν.'}</li>}
+              {!Object.values(plan.skipped).some(Boolean) && !Object.keys(newOptions).length && !replaced.length && <li>{en ? 'Every row goes in.' : 'Όλες οι γραμμές περνούν.'}</li>}
             </ul>
           </FormCard>
           {issueGroups.length > 0 && <FormCard wide title={en ? 'Values to check' : 'Τιμές προς έλεγχο'} hint={en ? 'These values are left empty; the rest of the row goes in. Row numbers are those of the file.' : 'Αυτές οι τιμές μένουν κενές· η υπόλοιπη γραμμή περνά. Οι αριθμοί γραμμών είναι του αρχείου.'}>

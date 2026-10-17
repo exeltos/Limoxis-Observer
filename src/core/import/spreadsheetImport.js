@@ -101,7 +101,9 @@ const decodeXml=text=>String(text).replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,(m,e)
 const xmlAttr=(tag,name)=>{const m=tag.match(new RegExp(`\\s${name}="([^"]*)"`));return m?decodeXml(m[1]):null}
 const xmlTexts=part=>[...String(part).matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>decodeXml(m[1])).join('')
 
-export async function readWorkbookSheets(buffer){
+// skipEmpty: leave out formatted but empty rows (an export can carry a million);
+// otherwise rows are kept in place (row n is rows[n-1]).
+export async function readWorkbookSheets(buffer,{skipEmpty=false}={}){
  const read=await unzip(buffer)
  const workbook=await read('xl/workbook.xml')
  if(!workbook)throw new Error('SPREADSHEET_NOT_XLSX')
@@ -121,7 +123,8 @@ export async function readWorkbookSheets(buffer){
     const value=type==='s'?shared[Number(v)]??'':type==='inlineStr'?xmlTexts(inner||''):type==='str'||type==='e'?decodeXml(v??''):type==='b'?v==='1':v==null?null:Number(v)
     if(value!==null&&value!=='')cells[columnIndex(xmlAttr(cellAttrs,'r'))]=value
    }
-   rows[Number(xmlAttr(rowAttrs,'r'))-1]=cells
+   if(skipEmpty){if(cells.length)rows.push(cells)}
+   else rows[Number(xmlAttr(rowAttrs,'r'))-1]=cells
   }
   sheets.push({name:xmlAttr(tag,'name')||'',rows:Array.from(rows,row=>row||[])})
  }

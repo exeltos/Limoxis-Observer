@@ -260,6 +260,21 @@ export async function deleteEntry(organizationId, register, entryId) {
   must(await supabase.from(register.tableName).delete().eq('id', entryId))
 }
 
+// Replacing an import: the given entries go, identities with them (cascade).
+export async function deleteEntries(organizationId, register, entryIds) {
+  if (!entryIds.length) return 0
+  if (isLocal()) {
+    const state = localState(), ids = new Set(entryIds)
+    state.entries = state.entries.filter(entry => !ids.has(entry.id))
+    for (const id of ids) delete state.identities[id]
+    saveLocal(state)
+    return ids.size
+  }
+  assertCloud(organizationId)
+  for (let index = 0; index < entryIds.length; index += 200) must(await supabase.from(register.tableName).delete().in('id', entryIds.slice(index, index + 200)))
+  return entryIds.length
+}
+
 // Closing a period locks its sheet; reopening it allows corrections again.
 export async function setEntryLocked(organizationId, register, entryId, locked) {
   if (isLocal()) {

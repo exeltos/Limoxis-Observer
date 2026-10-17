@@ -37,6 +37,8 @@ export function withTemplateHints(register) {
     return { ...field, aliases: union(field.aliases, hint.aliases), options, repair: field.repair || template.importRepairs?.[field.key] }
   })
   const sheet = register.sheet?.rows ? { ...register.sheet, rows: register.sheet.rows.map(row => { const hint = (template.sheet?.rows || []).find(item => item.key === row.key); return hint ? { ...row, aliases: union(row.aliases, hint.aliases) } : row }), measures: (register.sheet.measures || []).map(measure => { const hint = (template.sheet?.measures || []).find(item => item.key === measure.key); return hint ? { ...measure, aliases: union(measure.aliases, hint.aliases) } : measure }) } : register.sheet
+  // Fields the template gained since (a physician column) are offered too, marked, and join the register only when a column goes to them.
+  if (register.kind === 'case') for (const hint of template.fields || []) if (!fields.some(field => field.key === hint.key)) fields.push({ ...structuredClone(hint), fromTemplate: true })
   return { ...register, fields, sheet, entryDateFallbacks: register.entryDateFallbacks || template.entryDateFallbacks || [] }
 }
 
@@ -50,11 +52,15 @@ export const isAmka = header => /ΑΜΚΑ|AMKA/i.test(String(header))
 // (ΧΟΡΗΓΗΣΗ / ΧΟΡΗΓΗΣΗΣ), without the small words, and with the words
 // FileMaker uses for the same thing read as one (ΔΙΑΡΚΕΙΑ = ΗΜΕΡΕΣ).
 const SMALL_WORDS = new Set(['ΣΤΟ', 'ΣΤΗ', 'ΣΤΗΝ', 'ΣΤΑ', 'ΣΤΟΝ', 'ΣΤΙΣ', 'ΣΕ', 'ΜΕ', 'ΤΟ', 'ΤΗ', 'ΤΗΝ', 'ΤΗΣ', 'ΤΟΥ', 'ΤΩΝ', 'ΤΑ', 'ΟΙ', 'Ο', 'Η', 'ΚΑΙ', 'ΑΠΟ', 'ΓΙΑ', 'ΑΝΑ', 'ΤΙΣ'])
-const SAME_WORD = { ΔΙΑΡΚ: 'ΗΜΕΡΕ', ΑΡΙΘΜ: 'ΑΡ', ΗΜΝΙΑ: 'ΗΜΕΡΟ' }
+const SAME_WORD = { ΔΙΑΡΚ: 'ΗΜΕΡΕ', ΑΡΙΘΜ: 'ΑΡ', ΗΜΝΙΑ: 'ΗΜΕΡΟ', ΗΜΕΡΟ: 'ΗΜΕΡΟ', ΤΟΚΕΤ: 'ΤΟΚΕΤ', ΤΕΚΕΤ: 'ΤΟΚΕΤ' }
 export function wordsOf(text) {
-  const plain = String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+  // «Κ.Τ» and «Φ.Τ» are one word (ΚΤ, ΦΤ), as FileMaker also writes them.
+  const plain = String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\b([Α-ΩA-Z])\.(?=[Α-ΩA-Z]\b)/g, '$1').replace(/\b([Α-ΩA-Z])\/([Α-ΩA-Z])\b/g, '$1$2')
   return [...new Set(plain.split(/[^0-9A-ZΑ-Ω]+/).filter(word => word && !SMALL_WORDS.has(word)).map(word => { const stem = word.slice(0, 5); return SAME_WORD[stem] || stem }))]
 }
+// Two words are the same when they are, or share their first four letters
+// (ΚΥΗΣΗ / ΚΥΗΣΕΙΣ, ΠΟΛΥΔ / ΠΟΛΥΔΥΜΕΣ); dates and days are kept apart above.
+const sameWord = (a, b) => a === b || (a.length >= 4 && b.length >= 4 && a.slice(0, 4) === b.slice(0, 4) && !['ΗΜΕΡΟ', 'ΗΜΕΡΕ'].includes(a) && !['ΗΜΕΡΟ', 'ΗΜΕΡΕ'].includes(b))
 // The candidate whose words the column shares best: at least two thirds of
 // both, and better than any other.
 function bestByWords(header, candidates) {
@@ -64,7 +70,7 @@ function bestByWords(header, candidates) {
   for (const candidate of candidates) {
     for (const other of candidate.words || []) {
       if (!other.length) continue
-      const shared = words.filter(word => other.includes(word)).length
+      const shared = words.filter(word => other.some(item => sameWord(word, item))).length
       const value = Math.min(shared / words.length, shared / other.length)
       if (value > score) { best = candidate; score = value; tie = false } else if (value === score && best && best.target !== candidate.target) tie = true
     }

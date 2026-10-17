@@ -74,4 +74,16 @@ describe('Register import: what FileMaker exports really look like', () => {
     expect(reasons.options.find(option => option.value === 'low_weight')).toMatchObject({ fromTemplate: true })
     expect(suggestOption(reasons, 'Χαμηλό Β.Γ - IUGR')).toBe('low_weight')
   })
+  it('gives an older register the fields its template gained, marked so they are saved only when used', () => {
+    const register = stale('obstetrics')
+    const older = { ...register, fields: register.fields.filter(field => field.key !== 'physician') }
+    const hinted = withTemplateHints(older)
+    expect(hinted.fields.find(field => field.key === 'physician')).toMatchObject({ fromTemplate: true })
+    expect(suggestMapping(hinted, ['ΘΕΡΑΠΩΝ'])).toEqual(['physician'])
+  })
+
+  it('reads the delivery room’s shortened and mistyped row names', () => {
+    const register = registerFromTemplate('deliveryRoom')
+    expect(suggestMapping(register, ['Πολυδ κύηση με φτ', 'Περίδεση', 'Τεκετοί εν τη πόλη'])).toEqual(['row.multiple_vaginal', 'row.cerclage', 'row.born_before_arrival'])
+  })
 })
