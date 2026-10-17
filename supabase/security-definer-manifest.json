@@ -351,6 +351,18 @@
       "authenticated": true,
       "reason": "Submits minutes for approval; requires finalize_committee_minutes on the committee; members without an account get an e-mail link or a paper signature."
     },
+    "survey_public": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Shows a satisfaction survey's questions and departments to a respondent without an account, from the survey's public link (QR poster); nothing about other responses."
+    },
+    "survey_submit": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Records one anonymous response through the survey's public link: open surveys only, answers checked against the questions, departments the survey covers, at most 60 a minute."
+    },
     "training_email_access": {
       "category": "public-token",
       "anon": true,

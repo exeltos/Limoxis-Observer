@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,Plus,SearchCheck,ShieldAlert,ShieldCheck } from 'lucide-react'
+import { AlertTriangle,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,Plus,SearchCheck,ShieldAlert,ShieldCheck,Smile } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
@@ -53,7 +53,7 @@ export const isDueSoonAction=row=>row.kind==='capa'&&isOpenRecord(row)&&(d=>d!=n
 export const isVerificationAction=row=>row.kind==='capa'&&row.lifecycleStatus!=='voided'&&(row.status==='verification'||(['closed','completed'].includes(row.status)&&(row.effectivenessStatus||'pending')==='pending'&&Boolean(row.effectivenessDue)&&row.effectivenessDue<=today()))
 export const isOrphanFinding=row=>row.kind==='finding'&&isOpenRecord(row)
 
-const SOURCE_KINDS={finding:['Εύρημα','Finding'],incident:['Αναφορά','Report'],control:['Έλεγχος','Control'],bundle:['Bundle','Bundle'],training:['Εκπαίδευση','Training'],risk:['Κίνδυνος','Risk'],review:['Ανασκόπηση','Review'],audit:['Επιθεώρηση','Audit'],manual:['Χωρίς πηγή','No source']}
+const SOURCE_KINDS={finding:['Εύρημα','Finding'],incident:['Αναφορά','Report'],control:['Έλεγχος','Control'],bundle:['Bundle','Bundle'],training:['Εκπαίδευση','Training'],risk:['Κίνδυνος','Risk'],review:['Ανασκόπηση','Review'],survey:['Έρευνα ικανοποίησης','Satisfaction survey'],audit:['Επιθεώρηση','Audit'],manual:['Χωρίς πηγή','No source']}
 function sourceKindOf(capa){
  const id=String(capa.sourceId||'')
  if(id.startsWith('FND-'))return 'finding'
@@ -63,10 +63,11 @@ function sourceKindOf(capa){
  if(id.startsWith('TRAINING:'))return 'training'
  if(id.startsWith('RISK:'))return 'risk'
  if(id.startsWith('AUD-'))return 'audit'
+ if(id.startsWith('SRV:'))return 'survey'
  if(id.startsWith('MR:')||capa.source==='review'||capa.sourceType==='review')return 'review'
  return id?(SOURCE_KINDS[capa.source]?capa.source:'manual'):'manual'
 }
-const sourceCode=(id='')=>{const value=String(id);return value.startsWith('TRAINING:')?value.slice(9):value.startsWith('RISK:')?value.split(':').slice(1).join(' · '):value.split('#')[0]}
+const sourceCode=(id='')=>{const value=String(id);return value.startsWith('TRAINING:')?value.slice(9):value.startsWith('RISK:')?value.split(':').slice(1).join(' · '):value.startsWith('SRV:')?value.slice(4):value.split('#')[0]}
 
 export function actionRows(findings,capas,incidents=[]){
  const live=capas.filter(capa=>capa.lifecycleStatus!=='voided')
@@ -90,7 +91,7 @@ export function actionCounts(rows){
  return {open:rows.filter(row=>row.kind==='capa'&&isOpenRecord(row)).length,overdue:rows.filter(isOverdueAction).length,dueSoon:rows.filter(isDueSoonAction).length,verification:rows.filter(isVerificationAction).length,orphans:rows.filter(isOrphanFinding).length}
 }
 
-const SOURCE_ICON={finding:SearchCheck,audit:ClipboardCheck,incident:AlertTriangle,control:ClipboardCheck,bundle:ShieldCheck,training:GraduationCap,risk:ShieldAlert,review:ClipboardSignature,manual:CheckSquare2}
+const SOURCE_ICON={finding:SearchCheck,audit:ClipboardCheck,incident:AlertTriangle,control:ClipboardCheck,bundle:ShieldCheck,training:GraduationCap,risk:ShieldAlert,review:ClipboardSignature,survey:Smile,manual:CheckSquare2}
 
 // The due date in days: left, today, or late.
 function dueText(row,en){
