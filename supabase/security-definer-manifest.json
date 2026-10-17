@@ -326,6 +326,16 @@
       "authenticated": true,
       "reason": "Writes a runtime event for an organisation the caller is an active member of."
     },
+    "regulation_approve": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Approves a regulation's draft as its next edition; checks private.can_manage_regulations for the regulation's organisation and requires both signatures (administrator, infection control lead) for the draft's current revision."
+    },
+    "regulation_sign": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Signs a regulation's draft in a role; checks private.can_sign_regulation (Hospital Admin as administrator, IPC Lead as infection_lead, or Platform Owner). The signatures table has no write grant."
+    },
     "set_member_screen_guides": {
       "category": "rpc",
       "authenticated": true,
