@@ -167,7 +167,7 @@ export function auditCounts(rows){
 }
 
 // The audits as a list or as the year's programme; the switch sits in the filter row.
-export function AuditsList({rows,view,loading,language,t,registry,onOpen}){
+export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null}){
  const en=language==='en'
  const {filters,set,clear}=view
  const filtered=useMemo(()=>filterAudits(rows,filters,en),[rows,filters,en])
@@ -182,7 +182,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen}){
    <FilterSelect label={t('auditType')} value={filters.type} onChange={value=>set('type',value)}><option value="all">{t('all')}</option>{AUDIT_TYPES.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
   </FilterBar>
-  {filters.mode==='programme'?<AuditProgramme audits={filtered} language={language} t={t} onOpen={audit=>onOpen(audit,filtered)}/>:<>
+  {filters.mode==='programme'?<AuditProgramme audits={filtered} language={language} onOpen={audit=>onOpen(audit,filtered)} onPlan={onPlan}/>:<>
    <div className="scroll-table" ref={registry.scrollRef}>
     <RegistryTable bare className="quality-table quality-audits-table" rows={paging.rows} empty={!loading&&!filtered.length}
      columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'type',label:t('auditType')},{key:'date',label:en?'Planned':'Ημερομηνία'},{key:'compliance',label:en?'Compliance':'Συμμόρφωση'},{key:'owner',label:en?'Lead auditor':'Επικεφαλής'},{key:'status',label:t('status')}]}

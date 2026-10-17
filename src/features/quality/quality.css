@@ -93,23 +93,6 @@
 .quality-audit-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
 .quality-audit-score{margin-right:auto;font-size:12.5px;color:var(--lo-color-muted)}
 .quality-audit-score strong{color:var(--lo-color-text)}
-.quality-audit-programme{display:flex;flex-direction:column;gap:12px;min-height:0;padding:12px 14px;overflow:auto}
-.quality-audit-programme-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;color:var(--lo-color-text)}
-.quality-audit-programme-head>.field{margin-left:auto;flex-direction:row;align-items:center;gap:8px}
-.quality-audit-programme-head .lo-mode-switch{margin:0}
-.quality-audit-months{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}
-.quality-audit-months>li{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:92px;padding:10px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
-.quality-audit-months>li.is-empty{background:var(--lo-color-surface-muted)}
-.quality-audit-months>li>small{font-size:11.5px;color:var(--lo-color-muted)}
-.quality-audit-month{font-size:12px;font-weight:800;text-transform:capitalize;color:var(--lo-color-text)}
-.quality-audit-months button{display:grid;gap:3px;width:100%;padding:7px 9px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
-.quality-audit-months button:hover{border-color:var(--lo-color-primary)}
-.quality-audit-months button>strong{font-size:12.5px;line-height:1.3}
-.quality-audit-months button>small{font-size:11px;color:var(--lo-color-muted)}
-.quality-audit-chip-foot{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.quality-audit-chip-foot code{font-size:10.5px;color:var(--lo-color-muted)}
-@media(max-width:1100px){.quality-audit-months{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:700px){.quality-audit-months{grid-template-columns:minmax(0,1fr)}.quality-audit-add{grid-template-columns:minmax(0,1fr)}}
 
 /* Quality objectives and management review (Phase 4b) */
 .review-minutes .record-tab-panel-body>.lo-form-cards{padding:14px 20px 16px}
@@ -205,3 +188,48 @@
 .review-decisions-table td.review-decision-title{min-width:280px;white-space:normal;font-weight:600;color:var(--lo-color-text)}
 .review-action-row textarea{box-sizing:border-box;width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--lo-color-border-strong,#cad6df);border-radius:9px;font:inherit;line-height:1.4;resize:none;overflow:hidden}
 .quality-audit-finding-link:disabled{opacity:.55;cursor:not-allowed}
+
+/* Audit programme (QualityAuditParts.jsx): departments down, months across. */
+.quality-programme{display:flex;flex-direction:column;gap:12px;min-height:0;padding:12px 14px;overflow:auto}
+.quality-programme-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px}
+.quality-programme-title{display:inline-flex;align-items:center;gap:8px;color:var(--lo-color-text)}
+.quality-programme-summary{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface-muted)}
+.quality-programme-progress{display:grid;gap:5px;min-width:180px;font-size:12.5px;color:var(--lo-color-text)}
+.quality-programme-progress strong{font-size:15px}
+.quality-programme-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0;padding:0;list-style:none;font-size:12px;color:var(--lo-color-muted)}
+.quality-programme-legend li{display:inline-flex;align-items:center;gap:6px}
+.quality-programme-legend strong{color:var(--lo-color-text)}
+.quality-programme-dot{display:inline-block;width:10px;height:10px;border-radius:3px}
+.quality-programme-coverage{display:grid;gap:1px;margin-left:auto;padding:6px 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-status-success-fg);font:inherit;font-size:12px;font-weight:700;text-align:left;cursor:pointer}
+.quality-programme-coverage.is-gap{border-color:var(--lo-status-warning-border,#f0c27b);color:var(--lo-status-warning-fg)}
+.quality-programme-coverage small{font-size:11px;font-weight:600;color:var(--lo-color-primary)}
+.quality-programme-scroll{overflow-x:auto;border:1px solid var(--lo-color-border);border-radius:10px}
+.quality-programme-grid{width:100%;min-width:980px;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:12px}
+.quality-programme-grid th,.quality-programme-grid td{border-bottom:1px solid var(--lo-color-border);border-right:1px solid var(--lo-color-border);vertical-align:top}
+.quality-programme-grid tr:last-child>*{border-bottom:0}
+.quality-programme-grid tr>*:last-child{border-right:0}
+.quality-programme-grid thead th{position:sticky;top:0;z-index:1;padding:7px 4px;background:var(--lo-color-surface-muted);color:var(--lo-color-muted);font-size:11px;font-weight:800;text-transform:capitalize;text-align:center}
+.quality-programme-grid thead th:first-child{width:190px;text-align:left;padding-left:10px}
+.quality-programme-grid thead th.is-now{background:var(--lo-color-primary);color:var(--lo-color-surface)}
+.quality-programme-grid tbody th{position:sticky;left:0;z-index:1;padding:7px 10px;background:var(--lo-color-surface);text-align:left;font-weight:700;color:var(--lo-color-text)}
+.quality-programme-grid tbody th>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quality-programme-grid tbody th>small{display:block;font-size:10.5px;font-weight:500;color:var(--lo-color-muted)}
+.quality-programme-grid tr.is-gap>th{box-shadow:inset 3px 0 0 var(--lo-status-warning-fg)}
+.quality-programme-grid tr.is-gap>th>small{color:var(--lo-status-warning-fg);font-weight:700}
+.quality-programme-grid td{position:relative;height:46px;padding:4px;background:var(--lo-color-surface)}
+.quality-programme-grid td.is-now{background:var(--lo-color-primary-soft)}
+.quality-programme-chip{display:grid;gap:1px;width:100%;margin-bottom:3px;padding:3px 5px;border:1px solid transparent;border-radius:6px;font:inherit;font-size:10.5px;text-align:left;cursor:pointer;overflow:hidden}
+.quality-programme-chip>strong{flex:0 0 auto;font-size:11px}
+.quality-programme-chip>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25;hyphens:auto;overflow-wrap:break-word}
+.quality-programme-chip:hover{border-color:currentColor}
+.quality-programme-chip.is-done,.quality-programme-dot.is-done{background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
+.quality-programme-chip.is-late,.quality-programme-dot.is-late{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
+.quality-programme-chip.is-running,.quality-programme-dot.is-running{background:var(--lo-status-info-bg,#e6f0fb);color:var(--lo-status-info-fg,#1f5fae)}
+.quality-programme-chip.is-planned,.quality-programme-dot.is-planned{background:var(--lo-color-surface);border-color:var(--lo-color-primary);color:var(--lo-color-primary)}
+.quality-programme-chip.is-cancelled,.quality-programme-dot.is-cancelled{background:var(--lo-color-surface-muted);color:var(--lo-color-muted);text-decoration:line-through}
+.quality-programme-dot.is-done,.quality-programme-dot.is-late,.quality-programme-dot.is-running,.quality-programme-dot.is-cancelled{border:1px solid currentColor}
+.quality-programme-dot.is-planned{border:1px solid var(--lo-color-primary)}
+.quality-programme-add{position:absolute;inset:4px;display:grid;place-items:center;border:1px dashed transparent;border-radius:6px;background:transparent;color:transparent;cursor:pointer}
+.quality-programme-add:hover,.quality-programme-add:focus-visible{border-color:var(--lo-color-primary);color:var(--lo-color-primary)}
+.quality-programme-empty{padding:18px!important;text-align:center;color:var(--lo-color-muted)}
+.quality-programme-hint{margin:0;font-size:11.5px;color:var(--lo-color-muted)}

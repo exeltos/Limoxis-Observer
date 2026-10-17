@@ -60,3 +60,23 @@ describe('Quality audits (phase 3)', () => {
     expect(deviationQueue({ trainings: [{ id: 'TRN-1', effectiveness: { result: 'partial', evaluatedAt: new Date().toISOString().slice(0, 10) } }], capas: [{ sourceId: 'TRAINING:TRN-1' }] })).toHaveLength(0)
   })
 })
+
+describe('audit programme grid', async () => {
+  const { auditMatrix, auditState } = await import('../src/features/quality/qualityAudit')
+  it('places audits by department and month, flags uncovered departments and counts states', () => {
+    const today = '2026-10-17'
+    const matrix = auditMatrix([
+      { id: 'a', department: 'ΜΕΘ', plannedDate: '2026-03-04', status: 'completed' },
+      { id: 'b', department: 'ΜΕΘ', plannedDate: '2026-09-01', status: 'planned' },
+      { id: 'c', department: '', plannedDate: '2026-12-03', status: 'planned' },
+      { id: 'd', department: 'ΤΕΠ', plannedDate: '2025-05-01', status: 'completed' },
+    ], 2026, [{ id: 'd1', name: 'ΜΕΘ' }, { id: 'd2', name: 'Χειρουργική' }], today)
+    const icu = matrix.rows.find(row => row.key === 'ΜΕΘ')
+    expect(icu.months[2].map(cell => cell.audit.id)).toEqual(['a'])
+    expect(icu.months[8][0].state).toBe('late')
+    expect(matrix.rows.find(row => row.key === 'Χειρουργική').covered).toBe(false)
+    expect(matrix.rows.at(-1).key).toBe('')
+    expect(matrix.totals).toMatchObject({ done: 1, late: 1, planned: 1 })
+    expect(auditState({ status: 'cancelled' }, today)).toBe('cancelled')
+  })
+})
