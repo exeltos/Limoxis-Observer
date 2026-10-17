@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { CalendarRange, ClipboardList, LayoutTemplate } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -37,11 +37,20 @@ export function RegisterCreatePage() {
   const template = REGISTER_TEMPLATES.find(item => item.key === templateKey)
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
+  const [tried, setTried] = useState(false)
+  const detailsRef = useRef(null)
   if (!access.canDefine) return <Navigate to="/registers" replace />
   const shownName = name || (en ? template.nameEn : template.name)
   const valid = Boolean(department.departmentId && shownName.trim())
   async function save() {
-    if (!valid || saving) return
+    if (saving) return
+    // The department sits below the templates: a click without it goes there instead of doing nothing.
+    if (!valid) {
+      setTried(true)
+      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      detailsRef.current?.querySelector('input,button')?.focus({ preventScroll: true })
+      return
+    }
     setSaving(true)
     try {
       const draft = registerFromTemplate(templateKey, department)
@@ -65,10 +74,10 @@ export function RegisterCreatePage() {
           </button>)}
         </div>
       </FormCard>
-      <FormCard wide title={en ? 'Register' : 'Μητρώο'} icon={ClipboardList}>
+      <div ref={detailsRef}><FormCard wide title={en ? 'Register' : 'Μητρώο'} icon={ClipboardList}>
         <QualityDepartmentField required value={departmentRef(department)} onChange={setDepartment} />
         <Field label={`${en ? 'Name' : 'Όνομα'} *`}><input value={name} placeholder={en ? template.nameEn : template.name} onChange={event => setName(event.target.value)} /></Field>
-      </FormCard>
-    </div><div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{en ? 'Cancel' : 'Ακύρωση'}</Button><SaveButton loading={saving} disabled={!valid || saving} onClick={save}>{en ? 'Create register' : 'Δημιουργία μητρώου'}</SaveButton></div></div>
+      </FormCard></div>
+    </div><div className="inline-edit-footer">{tried && !valid && <span className="register-form-errors">{department.departmentId ? (en ? 'Give the register a name.' : 'Δώστε όνομα στο μητρώο.') : (en ? 'Choose the department the register belongs to.' : 'Επιλέξτε το τμήμα του μητρώου.')}</span>}<Button variant="secondary" onClick={goBack}>{en ? 'Cancel' : 'Ακύρωση'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{en ? 'Create register' : 'Δημιουργία μητρώου'}</SaveButton></div></div>
   </EntityRecordShell></Page>
 }

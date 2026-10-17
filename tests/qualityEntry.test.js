@@ -20,9 +20,13 @@ describe('Quality center entry and tabs', () => {
     expect(qualityTabOf('capas')).toEqual({ tab: 'actions', view: null })
     expect(qualityTabOf('findings')).toEqual({ tab: 'actions', view: null })
     expect(qualityTabOf('risks')).toEqual({ tab: 'risks', view: null })
-    expect(qualityTabOf('registers')).toEqual({ tab: 'measure', view: 'registers' })
-    expect(qualityTabOf('management')).toEqual({ tab: 'measure', view: 'objectives' })
-    expect(qualityTabOf('measure:reviews')).toEqual({ tab: 'measure', view: 'reviews' })
+    expect(qualityTabOf('registers')).toEqual({ tab: 'indicators', view: 'registers' })
+    expect(qualityTabOf('indicators:objectives')).toEqual({ tab: 'indicators', view: 'objectives' })
+    expect(qualityTabOf('review')).toEqual({ tab: 'review', view: null })
+    expect(qualityTabOf('management')).toEqual({ tab: 'indicators', view: 'objectives' })
+    expect(qualityTabOf('measure:reviews')).toEqual({ tab: 'review', view: 'reviews' })
+    expect(qualityTabOf('review:meetings')).toEqual({ tab: 'review', view: 'meetings' })
+    expect(qualityTabOf('measure:registers')).toEqual({ tab: 'indicators', view: 'registers' })
   })
 
   it('uses the shared module frame: canonical tabs, one figures row, create top right', () => {

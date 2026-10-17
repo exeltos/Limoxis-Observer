@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, ListChecks } from 'lucide-react'
+import { CalendarDays, CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, ListChecks, Plus } from 'lucide-react'
+import { Meter } from '../../design-system/MiniCharts'
+import { PeriodStepper } from '../../design-system/PeriodStepper'
+import { useDepartments } from '../management/useLibraries'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ChecklistAnswers } from '../../design-system/ChecklistAnswers'
@@ -8,13 +11,11 @@ import { Field } from '../../design-system/Field'
 import { FormCard } from '../../design-system/FormCard'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { loadControlProgramme } from '../controls/controlCloudService'
-import { auditChecklistFromControl, auditChecklistFromText, auditCompliance, auditProgramme, checklistTemplates, findingDraftFromRow, pendingFindings } from './qualityAudit'
+import { auditChecklistFromControl, auditChecklistFromText, auditCompliance, auditMatrix, checklistTemplates, findingDraftFromRow, pendingFindings } from './qualityAudit'
 import { createQualityRecord, saveQualityRecord } from './qualityService'
-import { qualityCode, qualityStatusTone } from './qualityVocabulary'
 
 // The controls that are checklists, offered as audit checklists.
 function useChecklistTemplates(organizationId) {
@@ -119,19 +120,64 @@ export function AuditChecklistTab({ record, setRecord, organizationId, canManage
   </div>
 }
 
-// The year's audits month by month (Quality > Audits > Programme).
-export function AuditProgramme({ audits = [], language, t, onOpen }) {
+const STATE_LABELS = { done: ['Ολοκληρώθηκε', 'Completed'], running: ['Σε εξέλιξη', 'In progress'], late: ['Εκπρόθεσμη', 'Overdue'], planned: ['Προγραμματισμένη', 'Planned'], cancelled: ['Ακυρώθηκε', 'Cancelled'] }
+const STATE_ORDER = ['done', 'running', 'late', 'planned', 'cancelled']
+// On the programme's chip, the subject: «Επιθεώρηση δέσμης SSI» reads «δέσμης SSI».
+const chipText = title => String(title || '').replace(/^(εξωτερική\s+|εσωτερική\s+)?(επιθεώρηση|audit)\s+/i, '').replace(/^\p{Ll}/u, letter => letter.toLocaleUpperCase('el')) || title
+
+// The year's programme (ISO 9001 §9.2): departments down, months across. Each
+// audit is a chip coloured by where it stands (done with its compliance, late,
+// planned); a department without an audit this year is flagged; an empty cell
+// plans a new audit for that department and month.
+export function AuditProgramme({ audits = [], language, onOpen, onPlan = null }) {
   const en = language === 'en'
-  const years = useMemo(() => [...new Set(audits.map(audit => String(audit.plannedDate || audit.completedDate || '').slice(0, 4)).filter(Boolean))].sort(), [audits])
-  const [year, setYear] = useState(() => String(new Date().getFullYear()))
-  const months = auditProgramme(audits, Number(year))
-  const monthName = month => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long' }).format(new Date(Date.UTC(2026, month, 15)))
-  const choices = [...new Set([...years, String(new Date().getFullYear())])].sort()
-  return <div className="quality-audit-programme">
-    <div className="quality-audit-programme-head"><CalendarDays size={16} /><strong>{en ? 'Audit programme' : 'Πρόγραμμα επιθεωρήσεων'}</strong><ChoiceField label={en ? 'Year' : 'Έτος'} value={year} options={choices.slice(-3).map(value => ({ value, label: value }))} onChange={setYear} /></div>
-    <ol className="quality-audit-months">{months.map(({ month, audits: items }) => <li key={month} className={items.length ? '' : 'is-empty'}>
-      <span className="quality-audit-month">{monthName(month)}</span>
-      {items.length ? items.map(audit => { const score = auditCompliance(audit); return <button type="button" key={audit.id} onClick={() => onOpen?.(audit)}><strong>{en ? audit.titleEn || audit.title : audit.title}</strong><small>{formatDay(audit.plannedDate, language)}{audit.department ? ` · ${en ? audit.departmentEn || audit.department : audit.department}` : ''}{score.rate != null ? ` · ${score.rate}%` : ''}</small><span className="quality-audit-chip-foot"><code>{qualityCode(audit, language)}</code><StatusBadge tone={qualityStatusTone(audit.status)}>{t(audit.status)}</StatusBadge></span></button> }) : <small>{en ? 'No audit' : 'Καμία επιθεώρηση'}</small>}
-    </li>)}</ol>
+  const { departments } = useDepartments()
+  const now = new Date()
+  const todayIso = now.toISOString().slice(0, 10)
+  const [year, setYear] = useState(() => String(now.getFullYear()))
+  const [scope, setScope] = useState('audited')
+  const matrix = useMemo(() => auditMatrix(audits, Number(year), departments, todayIso), [audits, year, departments, todayIso])
+  const monthName = (month, style) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: style }).format(new Date(Date.UTC(2026, month, 15)))
+  const currentMonth = String(now.getFullYear()) === year ? now.getMonth() : -1
+  const uncovered = matrix.rows.filter(row => row.key && !row.covered)
+  const rows = scope === 'all' ? matrix.rows : matrix.rows.filter(row => row.covered)
+  const done = matrix.totals.done, active = matrix.total - matrix.totals.cancelled
+  const plan = (row, month) => onPlan?.({ department: row.name, departmentEn: row.nameEn, departmentId: row.id, plannedDate: `${year}-${String(month + 1).padStart(2, '0')}-15` })
+  return <div className="quality-programme">
+    <div className="quality-programme-head">
+     <div className="quality-programme-title"><CalendarDays size={16} aria-hidden="true" /><strong>{en ? 'Audit programme' : 'Πρόγραμμα επιθεωρήσεων'}</strong></div>
+     {/* Back to any earlier year; forward up to next year, to plan it. */}
+     <PeriodStepper label={year} onPrevious={() => setYear(String(Number(year) - 1))} onNext={() => setYear(String(Number(year) + 1))} nextDisabled={Number(year) >= now.getFullYear() + 1} />
+    </div>
+    <div className="quality-programme-summary">
+     <div className="quality-programme-progress">
+      <span><strong>{done}</strong> {en ? `of ${active} completed` : `από ${active} ολοκληρώθηκαν`}</span>
+      <Meter value={active ? done * 100 / active : 0} tone={done === active && active ? 'success' : 'neutral'} label={en ? `${done} of ${active} audits completed` : `${done} από ${active} επιθεωρήσεις ολοκληρώθηκαν`} />
+     </div>
+     <ul className="quality-programme-legend">{STATE_ORDER.map(state => <li key={state}><span className={`quality-programme-dot is-${state}`} aria-hidden="true" />{STATE_LABELS[state][en ? 1 : 0]}<strong>{matrix.totals[state]}</strong></li>)}</ul>
+     {departments.length > 0 && <button type="button" className={`quality-programme-coverage${uncovered.length ? ' is-gap' : ''}`} onClick={() => setScope(scope === 'all' ? 'audited' : 'all')} aria-pressed={scope === 'all'}>
+      {uncovered.length ? (en ? `${uncovered.length} departments without an audit in ${year}` : `${uncovered.length} τμήματα χωρίς επιθεώρηση το ${year}`) : (en ? `Every department has an audit in ${year}` : `Όλα τα τμήματα έχουν επιθεώρηση το ${year}`)}
+      <small>{scope === 'all' ? (en ? 'Show audited only' : 'Μόνο με επιθεώρηση') : (en ? 'Show all departments' : 'Όλα τα τμήματα')}</small>
+     </button>}
+    </div>
+    <div className="quality-programme-scroll">
+     <table className="quality-programme-grid">
+      <thead><tr><th scope="col">{en ? 'Department' : 'Τμήμα'}</th>{Array.from({ length: 12 }, (_, month) => <th key={month} scope="col" className={month === currentMonth ? 'is-now' : ''} title={monthName(month, 'long')}>{monthName(month, 'short').replace('.', '')}</th>)}</tr></thead>
+      <tbody>
+       {rows.map(row => <tr key={row.key || 'org'} className={row.key && !row.covered ? 'is-gap' : ''}>
+        <th scope="row"><span>{row.key ? (en ? row.nameEn : row.name) : (en ? 'Whole organization' : 'Όλος ο οργανισμός')}</span><small>{row.covered ? (en ? `${row.count} ${row.count === 1 ? 'audit' : 'audits'}` : `${row.count} ${row.count === 1 ? 'επιθεώρηση' : 'επιθεωρήσεις'}`) : (en ? 'No audit this year' : 'Καμία φέτος')}</small></th>
+        {row.months.map((cell, month) => <td key={month} className={month === currentMonth ? 'is-now' : ''}>
+         {cell.map(({ audit, state }) => { const score = auditCompliance(audit); const title = en ? audit.titleEn || audit.title : audit.title
+          return <button type="button" key={audit.id} className={`quality-programme-chip is-${state}`} onClick={() => onOpen?.(audit)} title={`${title} · ${formatDay(audit.plannedDate, language)} · ${STATE_LABELS[state][en ? 1 : 0]}${score.rate != null ? ` · ${score.rate}%` : ''}`}>
+           <strong>{state === 'done' && score.rate != null ? `${score.rate}%` : String(audit.plannedDate || '').slice(8, 10).replace(/^0/, '')}</strong><span>{chipText(title)}</span>
+          </button> })}
+         {!cell.length && onPlan && row.key && <button type="button" className="quality-programme-add" onClick={() => plan(row, month)} aria-label={en ? `Plan an audit: ${row.nameEn}, ${monthName(month, 'long')}` : `Προγραμματισμός επιθεώρησης: ${row.name}, ${monthName(month, 'long')}`}><Plus size={13} aria-hidden="true" /></button>}
+        </td>)}
+       </tr>)}
+       {!rows.length && <tr><td colSpan={13} className="quality-programme-empty">{en ? `No audit in ${year} yet.` : `Καμία επιθεώρηση το ${year} ακόμη.`}{onPlan && (en ? ' Show all departments to plan one.' : ' Δείτε όλα τα τμήματα για να προγραμματίσετε.')}</td></tr>}
+      </tbody>
+     </table>
+    </div>
+    <p className="quality-programme-hint">{en ? 'The number on a chip is the planned day; on a completed audit, its compliance. Select an empty cell to plan an audit for that department and month.' : 'Ο αριθμός είναι η ημέρα της επιθεώρησης· σε ολοκληρωμένη, η συμμόρφωσή της. Επιλέξτε κενό κελί για να προγραμματίσετε επιθεώρηση στο τμήμα και τον μήνα.'}</p>
   </div>
 }

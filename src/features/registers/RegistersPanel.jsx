@@ -32,7 +32,8 @@ export function useRegisterList() {
 }
 
 // filterEnd: content at the right of the filter row (the Quality Center's view switch).
-export function RegistersPanel({ list, onBeforeOpen, filterEnd = null, onRowsChange }) {
+// only: a predicate the caller narrows the list with (registers without recent entries).
+export function RegistersPanel({ list, only = null, onBeforeOpen, filterEnd = null, onRowsChange }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -42,9 +43,10 @@ export function RegistersPanel({ list, onBeforeOpen, filterEnd = null, onRowsCha
   const [kind, setKind] = useState('all')
   const departments = useMemo(() => [...new Set(list.registers.map(register => (en ? register.departmentEn : register.department)).filter(Boolean))], [list.registers, en])
   const rows = useMemo(() => list.registers
+    .filter(register => !only || only(register))
     .filter(register => `${register.code} ${register.name} ${register.nameEn} ${register.department}`.toLowerCase().includes(query.trim().toLowerCase()))
     .filter(register => department === 'all' || (en ? register.departmentEn : register.department) === department)
-    .filter(register => kind === 'all' || register.kind === kind), [list.registers, query, department, kind, en])
+    .filter(register => kind === 'all' || register.kind === kind), [list.registers, only, query, department, kind, en])
   // The Quality Center's «Download» exports what the filters leave on screen.
   useEffect(() => { onRowsChange?.(rows) }, [rows, onRowsChange])
   const open = register => { onBeforeOpen?.(); registry.openRecord(navigate, `/registers/${register.id}`, register.id, rows.map(row => row.id)) }
