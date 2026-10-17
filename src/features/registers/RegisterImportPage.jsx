@@ -20,7 +20,7 @@ import { parseCsv, readWorkbookSheets } from '../../core/import/spreadsheetImpor
 import { loadEntries, loadRegister, saveEntries, saveRegister } from './registerService'
 import { useRegisterAccess } from './registerAccess'
 import { keyFrom, textOf } from './registerEngine'
-import { isAmka, planImport, suggestMapping, toIsoDate, valueMappings } from './registerImport'
+import { isAmka, planImport, suggestMapping, toIsoDate, valueMappings, withTemplateHints } from './registerImport'
 import { formatDay } from '../../core/i18n/formatDay'
 import './registers.css'
 
@@ -67,7 +67,8 @@ export function RegisterImportPage() {
       try {
         const next = await loadRegister(tenant?.id, registerId)
         if (!active || !next) return
-        setRegister(next)
+        // The template's FileMaker names and newer options come along (withTemplateHints).
+        setRegister(withTemplateHints(next))
         setExisting(await loadEntries(tenant?.id, next.id, { withIdentity: access.canSeeIdentity(next), register: next }))
       } catch (error) { console.error(error) } finally { if (active) setLoading(false) }
     })()
@@ -104,6 +105,8 @@ export function RegisterImportPage() {
     ]),
   ]
   const dateField = register.fields.find(field => field.key === register.settings?.entryDateField)
+  // What the file does not bring: fields (or sheet rows) no column goes to.
+  const missing = sheet ? register.sheet.rows.filter(row => !mapping.includes(`row.${row.key}`)) : register.fields.filter(field => field.type !== 'computed' && !mapping.includes(field.key))
   const hasDate = sheet ? mapping.includes('sheet.date') : mapping.includes(register.settings?.entryDateField)
   const valid = [Boolean(table.headers.length), hasDate || (!sheet && Boolean(fallbackDate)), true, Boolean(plan?.items.length)]
   const steps = en ? ['File', 'Columns', 'Values', 'Check and import'] : ['Αρχείο', 'Στήλες', 'Τιμές', 'Έλεγχος και εισαγωγή']
@@ -131,8 +134,10 @@ export function RegisterImportPage() {
     setProgress({ done: 0, total: plan.items.length })
     try {
       let target = register
-      if (Object.keys(newOptions).length && access.canDefine) {
-        const fields = register.fields.map(field => (newOptions[field.key] ? { ...field, options: [...(field.options || []), ...Object.entries(newOptions[field.key]).map(([label, value]) => ({ value, label, labelEn: label }))] } : field))
+      // Options the template gained since the register was made, and values FileMaker knew, join the register.
+      const gained = register.fields.some(field => (field.options || []).some(option => option.fromTemplate))
+      if ((Object.keys(newOptions).length || gained) && access.canDefine) {
+        const fields = register.fields.map(field => ({ ...field, options: [...(field.options || []).map(({ fromTemplate: _fromTemplate, ...option }) => option), ...Object.entries(newOptions[field.key] || {}).map(([label, value]) => ({ value, label, labelEn: label }))] }))
         target = await saveRegister(tenant?.id, { ...register, fields }, { actor: auditActorFromAuth({ profile, user }).name, action: 'updated', definitionChanged: true })
       }
       const done = await saveEntries(tenant?.id, target, plan.items, { onProgress: (count, total) => setProgress({ done: count, total }) })
@@ -163,6 +168,7 @@ export function RegisterImportPage() {
               return <tr key={`${header}-${column}`}><td className="register-row-label">{header || '—'}</td><td className="register-samples">{personal ? <span className="register-privacy"><ShieldCheck size={13} />{amka ? (en ? 'AMKA: never imported' : 'ΑΜΚΑ: δεν εισάγεται') : (en ? 'personal data' : 'προσωπικά δεδομένα')}</span> : samples.map(cell => sampleText(cell, header, mapping[column], register, language)).join(' · ') || '—'}</td><td>{amka ? '—' : <SearchableSelect hideLabel label={header} value={mapping[column] || ''} options={targets} onChange={value => setMapping(current => current.map((item, index) => (index === column ? value || '' : item)))} placeholder={en ? 'Left out' : 'Εκτός'} {...selectText(en)} />}</td></tr>
             })}
           </tbody></table>
+          {missing.length > 0 && <div className="register-import-missing"><strong>{en ? `Fields of the register not in the file (${missing.length})` : `Πεδία του μητρώου που δεν υπάρχουν στο αρχείο (${missing.length})`}</strong><span>{missing.map(item => textOf(item, language)).join(' · ')}</span><small>{en ? 'They stay empty. For the full history, export these fields from FileMaker too, or pick a column for them above.' : 'Μένουν κενά. Για πλήρες ιστορικό, εξάγετε και αυτά τα πεδία από το FileMaker ή επιλέξτε στήλη γι’ αυτά παραπάνω.'}</small></div>}
           {!sheet && <div className="register-import-options">
             <YesNoField label={en ? 'An empty yes/no cell means No' : 'Κενό σε ναι/όχι σημαίνει Όχι'} value={emptyIsNo} onChange={setEmptyIsNo} hint={en ? 'FileMaker checkboxes leave the cell empty when not ticked.' : 'Τα κουτάκια του FileMaker αφήνουν κενό όταν δεν είναι τσεκαρισμένα.'} />
             {!mapping.includes(register.settings?.entryDateField) && <ManualDateField label={en ? `Date for every case (no «${textOf(dateField, 'en')}» column)` : `Ημερομηνία για όλα (λείπει η στήλη «${textOf(dateField)}»)`} value={fallbackDate} onChange={setFallbackDate} />}

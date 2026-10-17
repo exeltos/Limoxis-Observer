@@ -20,16 +20,66 @@ export function normalize(value) {
   return (greekish ? text.replace(/[ABEZHIKMNOPTYX]/g, char => LATIN_TO_GREEK[char]) : text).replace(/[\s.\-/_:&,()'"]+/g, '')
 }
 
+// A register made from a template keeps a copy of its fields; FileMaker names
+// and value beginnings learned later live in the template. The import reads
+// both: the template's aliases, option beginnings, repairs and date fallbacks
+// are added to the register's own (matched by field key, option value, row key).
+export function withTemplateHints(register) {
+  const template = templateByKey(register?.templateKey)
+  if (!template) return register
+  const union = (a = [], b = []) => [...new Set([...(a || []), ...(b || [])])]
+  const fields = (register.fields || []).map(field => {
+    const hint = (template.fields || []).find(item => item.key === field.key)
+    if (!hint) return field
+    const options = (field.options || []).map(option => { const known = (hint.options || []).find(item => item.value === option.value); return known?.match ? { ...option, match: union(option.match, known.match) } : option })
+    // Options the template gained after this register was made come along, marked so the import can add them to the register.
+    if (['choice', 'multiChoice'].includes(field.type)) for (const option of hint.options || []) if (!options.some(item => item.value === option.value)) options.push({ ...option, fromTemplate: true })
+    return { ...field, aliases: union(field.aliases, hint.aliases), options, repair: field.repair || template.importRepairs?.[field.key] }
+  })
+  const sheet = register.sheet?.rows ? { ...register.sheet, rows: register.sheet.rows.map(row => { const hint = (template.sheet?.rows || []).find(item => item.key === row.key); return hint ? { ...row, aliases: union(row.aliases, hint.aliases) } : row }), measures: (register.sheet.measures || []).map(measure => { const hint = (template.sheet?.measures || []).find(item => item.key === measure.key); return hint ? { ...measure, aliases: union(measure.aliases, hint.aliases) } : measure }) } : register.sheet
+  return { ...register, fields, sheet, entryDateFallbacks: register.entryDateFallbacks || template.entryDateFallbacks || [] }
+}
+
+// The value a list column shows for its empty cells, when they matter (a line without its shift).
+export const EMPTY_VALUE = '(κενό)'
+
 export const IGNORED_COLUMN = /^REPORTING::|::|ΑΜΚΑ|AMKA|^STATUS$/i
 export const isAmka = header => /ΑΜΚΑ|AMKA/i.test(String(header))
 
+// The words of a column name or a label, each cut to its first five letters
+// (ΧΟΡΗΓΗΣΗ / ΧΟΡΗΓΗΣΗΣ), without the small words, and with the words
+// FileMaker uses for the same thing read as one (ΔΙΑΡΚΕΙΑ = ΗΜΕΡΕΣ).
+const SMALL_WORDS = new Set(['ΣΤΟ', 'ΣΤΗ', 'ΣΤΗΝ', 'ΣΤΑ', 'ΣΤΟΝ', 'ΣΤΙΣ', 'ΣΕ', 'ΜΕ', 'ΤΟ', 'ΤΗ', 'ΤΗΝ', 'ΤΗΣ', 'ΤΟΥ', 'ΤΩΝ', 'ΤΑ', 'ΟΙ', 'Ο', 'Η', 'ΚΑΙ', 'ΑΠΟ', 'ΓΙΑ', 'ΑΝΑ', 'ΤΙΣ'])
+const SAME_WORD = { ΔΙΑΡΚ: 'ΗΜΕΡΕ', ΑΡΙΘΜ: 'ΑΡ', ΗΜΝΙΑ: 'ΗΜΕΡΟ' }
+export function wordsOf(text) {
+  const plain = String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+  return [...new Set(plain.split(/[^0-9A-ZΑ-Ω]+/).filter(word => word && !SMALL_WORDS.has(word)).map(word => { const stem = word.slice(0, 5); return SAME_WORD[stem] || stem }))]
+}
+// The candidate whose words the column shares best: at least two thirds of
+// both, and better than any other.
+function bestByWords(header, candidates) {
+  const words = wordsOf(header)
+  if (!words.length) return null
+  let best = null, score = 0, tie = false
+  for (const candidate of candidates) {
+    for (const other of candidate.words || []) {
+      if (!other.length) continue
+      const shared = words.filter(word => other.includes(word)).length
+      const value = Math.min(shared / words.length, shared / other.length)
+      if (value > score) { best = candidate; score = value; tie = false } else if (value === score && best && best.target !== candidate.target) tie = true
+    }
+  }
+  return score >= 2 / 3 && !tie ? best : null
+}
+
 // Which target each column of the file goes to: identity.caseNumber,
 // identity.patientName, a field key, or (sheet) date / measure / a row key.
-export function suggestMapping(register, headers = []) {
+export function suggestMapping(source, headers = []) {
+  const register = withTemplateHints(source)
   const template = templateByKey(register.templateKey) || {}
   const identity = { ...(template.identity || {}), ...(register.settings?.identity || {}) }
   const candidates = []
-  const push = (target, names) => candidates.push({ target, names: names.filter(Boolean).map(normalize) })
+  const push = (target, names) => candidates.push({ target, names: names.filter(Boolean).map(normalize), words: names.filter(Boolean).map(wordsOf) })
   if (register.kind === 'case') {
     if (identity.caseNumber) push('identity.caseNumber', [...(identity.caseNumberAliases || []), 'ΑΡΙΘΜΟΣ ΠΕΡΙΣΤΑΤΙΚΟΥ', 'ΑΡ. ΠΕΡΙΣΤΑΤΙΚΟΥ'])
     if (identity.patientName) push('identity.patientName', [...(identity.patientNameAliases || []), 'ΟΝΟΜΑΤΕΠΩΝΥΜΟ'])
@@ -46,6 +96,8 @@ export function suggestMapping(register, headers = []) {
     // Exact names first, then a field label the column begins with.
     let match = candidates.find(candidate => !used.has(candidate.target) && candidate.names.includes(name))
     if (!match) match = candidates.find(candidate => !used.has(candidate.target) && candidate.names.some(other => other.length > 3 && name.startsWith(other)))
+    // Then the same words, in any order and form: «ΔΙΑΡΚΕΙΑ ΣΤΟ CPAP» is «Ημέρες σε CPAP».
+    if (!match) match = bestByWords(header, candidates.filter(candidate => !used.has(candidate.target)))
     if (!match && register.kind === 'case' && identity.patientName && /ΟΝΟΜΑ|ΕΠΩΝΥΜΟ/.test(name)) return 'identity.patientName'
     if (!match) return ''
     if (match.target !== 'identity.patientName') used.add(match.target)
@@ -55,13 +107,43 @@ export function suggestMapping(register, headers = []) {
 
 // The option a FileMaker value takes: the longest beginning (match) or label
 // it starts with.
+// Latin letters typed with the keyboard left on English (DEN TO GNVRIZE),
+// read as the Greek letters on the same keys.
+const GREEK_KEYBOARD = { A: 'Α', B: 'Β', C: 'Ψ', D: 'Δ', E: 'Ε', F: 'Φ', G: 'Γ', H: 'Η', I: 'Ι', J: 'Ξ', K: 'Κ', L: 'Λ', M: 'Μ', N: 'Ν', O: 'Ο', P: 'Π', R: 'Ρ', S: 'Σ', T: 'Τ', U: 'Θ', V: 'Ω', W: 'Σ', X: 'Χ', Y: 'Υ', Z: 'Ζ' }
+const asGreekKeyboard = text => (/^[A-Z0-9]+$/.test(text) && /[A-Z]/.test(text) ? text.replace(/[A-Z]/g, char => GREEK_KEYBOARD[char] || char) : null)
+// Latin capitals that look Greek (OXI, NAI, K.T), read as the Greek ones.
+const asLookalike = text => (/^[A-Z0-9]+$/.test(text) && /^[ABEZHIKMNOPTYX0-9]+$/.test(text) ? text.replace(/[A-Z]/g, char => LATIN_TO_GREEK[char] || char) : null)
+const collapse = text => text.replace(/(.)\1+/g, '$1')
+// Edits between two short texts (insert, delete, change one letter).
+function distance(a, b) {
+  const row = Array.from({ length: b.length + 1 }, (_, index) => index)
+  for (let i = 1; i <= a.length; i++) {
+    let previous = row[0]; row[0] = i
+    for (let j = 1; j <= b.length; j++) { const kept = row[j]; row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1)); previous = kept }
+  }
+  return row[b.length]
+}
+
+// The option a FileMaker value takes: the longest beginning (match) or label
+// it starts with; failing that, the same with the keyboard left on English,
+// doubled letters collapsed (ΓΝΩΡΙΙΖΕ) or one letter wrong or missing (ΝΩΡΙΖΕ).
 export function suggestOption(field, value) {
   const text = normalize(value)
   if (!text) return ''
-  let best = '', length = 0
-  for (const option of field.options || []) {
-    for (const start of [...(option.match || []), option.label, option.labelEn].filter(Boolean).map(normalize)) {
-      if (start && text.startsWith(start) && start.length > length) { best = option.value; length = start.length }
+  const starts = (field.options || []).flatMap(option => [...(option.match || []), option.label, option.labelEn].filter(Boolean).map(normalize).filter(Boolean).map(start => ({ value: option.value, start })))
+  const longest = candidate => { let best = '', length = 0; for (const { value: option, start } of starts) if (candidate.startsWith(start) && start.length > length) { best = option; length = start.length } return best }
+  const exact = longest(text) || (asLookalike(text) && longest(asLookalike(text))) || (asGreekKeyboard(text) && longest(asGreekKeyboard(text))) || longest(collapse(text))
+  if (exact) return exact
+  // One edit per five letters of the beginning, never on a beginning shorter than five.
+  let best = '', score = Infinity
+  for (const candidate of [text, asLookalike(text), asGreekKeyboard(text)].filter(Boolean)) {
+    for (const { value: option, start } of starts) {
+      if (start.length < 5) continue
+      const allowed = Math.floor(start.length / 5)
+      for (const size of [start.length - 1, start.length, start.length + 1]) {
+        const edits = distance(collapse(candidate.slice(0, size)), collapse(start))
+        if (edits <= allowed && edits < score) { best = option; score = edits }
+      }
     }
   }
   return best
@@ -71,7 +153,8 @@ export function suggestOption(field, value) {
 export const splitMulti = value => String(value ?? '').split(/\s*(?:&|,|\+|\/|\sΚΑΙ\s)\s*/i).map(part => part.trim()).filter(Boolean)
 
 // The distinct values of every list column, with the suggested option.
-export function valueMappings(register, headers, rows, mapping) {
+export function valueMappings(source, headers, rows, mapping) {
+  const register = withTemplateHints(source)
   const result = {}
   mapping.forEach((target, column) => {
     const field = register.fields?.find(item => item.key === target)
@@ -88,7 +171,9 @@ export function valueMappings(register, headers, rows, mapping) {
     const column = mapping.indexOf('sheet.measure')
     if (column >= 0) {
       const counts = new Map()
-      for (const row of rows) { const cell = String(row[column] ?? '').trim(); if (cell) counts.set(cell, (counts.get(cell) || 0) + 1) }
+      // Lines with numbers but no shift appear as «(empty)», to be given a shift or left out.
+      const filled = row => (register.sheet?.rows || []).some(item => { const index = mapping.indexOf(`row.${item.key}`); return index >= 0 && toNumber(row[index]) != null })
+      for (const row of rows) { const cell = String(row[column] ?? '').trim() || (filled(row) ? EMPTY_VALUE : ''); if (cell) counts.set(cell, (counts.get(cell) || 0) + 1) }
       const measures = { options: (register.sheet?.measures || []).map(measure => ({ value: measure.key, label: measure.label, labelEn: measure.labelEn, match: measure.aliases || [] })) }
       result['sheet.measure'] = { field: { key: 'sheet.measure', label: 'Στήλη', labelEn: 'Measure', ...measures }, values: [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([value, count]) => ({ value, count, option: suggestOption(measures, value) })) }
     }
@@ -137,15 +222,40 @@ export function toYesNo(cell, emptyIsNo) {
   if (!text) return emptyIsNo ? false : null
   if (YES.has(text) || YES.has(String(cell).trim().toUpperCase())) return true
   if (NO.has(text) || NO.has(String(cell).trim().toUpperCase())) return false
+  // «ΝΑΙ (ΔΩΡΕΑ ΩΑΡΙΩΝ)»: a yes with a note.
+  if (/^(ΝΑΙ|NAI|YES)\b/.test(String(cell).trim().toUpperCase()) || text.startsWith('ΝΑΙ')) return true
+  // A count where a yes/no is asked (FileMaker kept «days of oxygen after 36w»): above 0 is Yes.
+  const number = typeof cell === 'number' ? cell : /^\d+([.,]\d+)?$/.test(String(cell).trim()) ? Number(String(cell).trim().replace(',', '.')) : null
+  if (number != null) return number > 0
   return undefined
 }
 
 // «37,4 w» (FileMaker wrote weeks,days) or «37+4» → days.
 export function toGestation(cell) {
   if (cell === undefined || cell === null || cell === '') return null
+  // «375»: FileMaker lost the point of 37.5 (weeks 22–44, days 0–6).
+  if (/^\s*(2[2-9]|3\d|4[0-4])[0-6]\s*$/.test(String(cell))) return toGestation(`${String(cell).trim().slice(0, 2)}+${String(cell).trim().slice(2)}`)
   const text = String(cell).replace(/[^\d.,+]/g, '')
   const parsed = parseGestation(text.replace(/[.,]/, '+'))
   return parsed
+}
+
+// A value past the field's limits that FileMaker wrote twice (850850 → 850),
+// or, on a field marked repair: 'decimal', that lost its decimal point
+// (EuroSCORE 242 → 2.42). Anything else is returned as it is.
+export function repairNumber(field, value) {
+  const fits = number => (field.min == null || number >= field.min) && (field.max == null || number <= field.max)
+  if (fits(value)) return value
+  const digits = String(Math.abs(value))
+  if (Number.isInteger(value) && digits.length % 2 === 0 && digits.slice(0, digits.length / 2) === digits.slice(digits.length / 2)) {
+    const half = Number(digits.slice(0, digits.length / 2)) * Math.sign(value)
+    if (fits(half)) return half
+  }
+  if (field.repair === 'decimal' && Number.isInteger(value) && field.max != null) {
+    // FileMaker kept «2,42» as 242: two decimals first, then one or three.
+    for (const divisor of [100, 10, 1000]) { const scaled = value / divisor; if (fits(scaled)) return Number(scaled.toFixed(2)) }
+  }
+  return value
 }
 
 const isTestName = name => /\b(ΤΕΣΤ|TEST|ΔΟΚΙΜΗ)\b/i.test(String(name || ''))
@@ -154,7 +264,8 @@ const isTestName = name => /\b(ΤΕΣΤ|TEST|ΔΟΚΙΜΗ)\b/i.test(String(name 
 
 // What the file becomes: { items: [{ entry, identity }], issues: [{ row, field, text }], skipped, counts }.
 // options: { valueMap: { fieldKey: { sourceValue: optionValue|'' } }, emptyIsNo, fallbackDate, existing: entries }
-export function planImport(register, headers, rows, mapping, options = {}) {
+export function planImport(source, headers, rows, mapping, options = {}) {
+  const register = withTemplateHints(source)
   return register.kind === 'sheet' ? planSheet(register, headers, rows, mapping, options) : planCases(register, headers, rows, mapping, options)
 }
 
@@ -181,7 +292,9 @@ function planCases(register, headers, rows, mapping, { valueMap = {}, emptyIsNo 
       } else if (field.type === 'number') {
         const number = toNumber(cell)
         if (cell != null && cell !== '' && number == null) note(field, en ? `«${cell}» is not a number: left empty` : `«${cell}» δεν είναι αριθμός: μένει κενό`)
-        if (number != null) values[field.key] = number
+        const repaired = number == null ? null : repairNumber(field, number)
+        if (repaired != null && repaired !== number) note(field, en ? `${number} read as ${repaired}: check it` : `${number} διαβάστηκε ως ${String(repaired).replace('.', ',')}: ελέγξτε το`)
+        if (repaired != null) values[field.key] = repaired
       } else if (field.type === 'gestation') {
         const days = toGestation(cell)
         if (cell != null && cell !== '' && days == null) note(field, en ? `«${cell}» is not weeks+days: left empty` : `«${cell}» δεν είναι εβδομάδες+ημέρες: μένει κενό`)
@@ -209,7 +322,10 @@ function planCases(register, headers, rows, mapping, { valueMap = {}, emptyIsNo 
     const caseNumber = caseColumn === undefined ? '' : String(row[caseColumn] ?? '').trim()
     if (isTestName(patientName)) { skipped.test += 1; return }
     if (dateField && !values[dateField]) {
-      if (fallbackDate) values[dateField] = fallbackDate
+      // A case without its date takes the first other date it has (a neonate's discharge), noted.
+      const stand = (register.entryDateFallbacks || []).find(key => values[key])
+      if (stand) { values[dateField] = values[stand]; note(register.fields.find(item => item.key === dateField), en ? `No date: ${textOf(register.fields.find(item => item.key === stand), 'en')} used` : `Χωρίς ημερομηνία: χρησιμοποιήθηκε η «${textOf(register.fields.find(item => item.key === stand), 'el')}»`) }
+      else if (fallbackDate) values[dateField] = fallbackDate
       else { skipped.noDate += 1; return }
     }
     // Limits: an impossible value is not imported (the rest of the case is).
@@ -252,9 +368,10 @@ function planSheet(register, headers, rows, mapping, { valueMap = {}, existing =
     if (!day) { skipped.noDate += 1; issues.push({ row: line, field: '', text: en ? 'No date: not counted' : 'Χωρίς ημερομηνία: δεν μετράει' }); return }
     let measure = measures[0]?.key
     if (measureColumn >= 0) {
-      const text = String(cells[measureColumn] ?? '').trim()
+      // A line without its shift goes where the user put «(empty)» in «Values».
+      const text = String(cells[measureColumn] ?? '').trim() || EMPTY_VALUE
       measure = valueMap['sheet.measure']?.[text] ?? suggestOption({ options: measures.map(item => ({ value: item.key, label: item.label, labelEn: item.labelEn, match: item.aliases || [] })) }, text)
-      if (!measure) { skipped.noMeasure += 1; issues.push({ row: line, field: '', text: en ? `Shift «${text}» unknown: not counted` : `Βάρδια «${text}» άγνωστη: δεν μετράει` }); return }
+      if (!measure) { skipped.noMeasure += 1; issues.push({ row: line, field: '', text: text === EMPTY_VALUE ? (en ? 'No shift: not counted (choose one for «(empty)» in Values)' : 'Χωρίς βάρδια: δεν μετράει (επιλέξτε βάρδια για το «(κενό)» στις Τιμές)') : (en ? `Shift «${text}» unknown: not counted` : `Βάρδια «${text}» άγνωστη: δεν μετράει`) }); return }
     }
     const outliers = numbers.filter(item => item.value > limits.get(item.row))
     if (outliers.length) {

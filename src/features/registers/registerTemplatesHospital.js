@@ -24,6 +24,9 @@ const ICU = {
   descriptionEn: 'One card per stay, General and Cardiac surgery ICU. Indicators: mortality, observed vs APACHE II predicted, ICU days, pressure ulcers, 48-hour readmissions.',
   identity: { caseNumber: true, patientName: true, caseNumberAliases: ['ΑΡΙΘΜΟΣ ΠΕΡΙΣΤΑΤΙΚΟΥ', 'ΑΡ. ΠΕΡΙΣΤΑΤΙΚΟΥ'], patientNameAliases: ['ΟΝΟΜΑΤΕΠΩΝΥΜΟ ΑΣΘΕΝΟΥΣ'] },
   entryDateField: 'admission_date',
+  entryDateFallbacks: ['discharge_date'],
+  // FileMaker kept these percentages without their decimal point (2,42 → 242).
+  importRepairs: { euroscore: 'decimal', apache_mortality: 'decimal' },
   sections: [{ key: 'admission', label: 'Εισαγωγή', labelEn: 'Admission' }, { key: 'severity', label: 'Βαρύτητα', labelEn: 'Severity' }, { key: 'stay', label: 'Νοσηλεία', labelEn: 'Stay' }, { key: 'discharge', label: 'Έξοδος', labelEn: 'Discharge' }],
   breakdowns: ['category', 'admission_reason', 'outcome'],
   fields: [
@@ -76,7 +79,7 @@ const OBSTETRICS = {
     { key: 'date', section: 'main', type: 'date', required: true, label: 'Ημερομηνία τοκετού', labelEn: 'Delivery date', aliases: ['Date', 'Ημερομηνία'] },
     { key: 'delivery', section: 'main', type: 'choice', required: true, list: true, label: 'Τοκετός', labelEn: 'Delivery', aliases: ['ΤΟΚΕΤΟΣ'], options: [o('vaginal', 'Φυσιολογικός (Φ/Τ)', 'Vaginal', ['Φ/Τ', 'ΦΤ', 'Φ.Τ']), o('cs', 'Καισαρική τομή (Κ/Τ)', 'Caesarean section', ['Κ/Τ', 'ΚΤ', 'Κ.Τ'])] },
     { key: 'breastfeeding', section: 'main', type: 'choice', list: true, label: 'Μητρικός θηλασμός κατά την έξοδο', labelEn: 'Breastfeeding at discharge', aliases: ['Μ_Θ', 'ΜΗΤΡΙΚΟΣ ΘΗΛΑΣΜΟΣ'], options: [o('exclusive', 'Αποκλειστικός μητρικός θηλασμός', 'Exclusive breastfeeding', ['ΝΑΙ']), o('mixed', 'Μεικτή διατροφή', 'Mixed feeding', ['ΜΕΙΚΤΗ', 'ΜΙΚΤΗ']), o('weaning', 'Απογαλακτισμός', 'Weaning', ['ΑΠΟΓΑΛΑΚΤ'])] },
-    { key: 'antenatal', section: 'main', type: 'choice', list: true, label: 'Προγεννητικά μαθήματα', labelEn: 'Antenatal classes', aliases: ['ΠΡΟΓΕΝΝΗΤΙΚΑ ΜΑΘΗΜΑΤΑ'], options: [o('attended', 'Παρακολούθησε', 'Attended', ['ΝΑΙ', 'ΕΚΑΝΕ', 'ΜΕ ΤΗΝ ΜΑΙΑ', 'ΜΕ ΤΙΣ ΜΑΙΕΣ', 'ΤΑ ΕΚΑΝΕ', 'Η ΜΗΤΕΡΑ ΕΙΝΑΙ ΜΑΙΑ', 'ΕΙΝΑΙ ΜΑΙΑ']), o('aware_not_attended', 'Το γνώριζε, δεν παρακολούθησε', 'Aware, did not attend', ['ΤΟ ΓΝΩΡΙΖΕ', 'ΓΝΩΡΙΖΕ']), o('not_aware', 'Δεν το γνώριζε', 'Not aware', ['ΔΕΝ ΤΟ ΓΝΩΡΙΖ', 'ΔΕΝ ΓΝΩΡΙΖ', 'ΔΕΝ ΤΟΓΝΩΡΙΖ', 'ΟΧΙ ΔΕΝ']), o('no', 'Όχι', 'No', ['ΟΧΙ', 'ΔΕΝ ΗΘΕΛΕ'])] },
+    { key: 'antenatal', section: 'main', type: 'choice', list: true, label: 'Προγεννητικά μαθήματα', labelEn: 'Antenatal classes', aliases: ['ΠΡΟΓΕΝΝΗΤΙΚΑ ΜΑΘΗΜΑΤΑ'], options: [o('attended', 'Παρακολούθησε', 'Attended', ['ΝΑΙ', 'ΕΚΑΝΕ', 'ΜΕ ΤΗΝ ΜΑΙΑ', 'ΜΕ ΤΙΣ ΜΑΙΕΣ', 'ΤΑ ΕΚΑΝΕ', 'Η ΜΗΤΕΡΑ ΕΙΝΑΙ ΜΑΙΑ', 'ΕΙΝΑΙ ΜΑΙΑ', 'ΠΑΡΑΚΟΛΟΥΘ', 'ΤΑ ΠΑΡΑΚΟΛΟΥΘ', 'ΤΟ ΠΑΡΑΚΟΛΟΥΘ', 'ΤΑ ΕΙΧΕ ΠΑΡΑΚΟΛΟΥΘ', 'ΤΟ ΕΙΧΕ ΠΑΡΑΚΟΛΟΥΘ']), o('aware_not_attended', 'Το γνώριζε, δεν παρακολούθησε', 'Aware, did not attend', ['ΤΟ ΓΝΩΡΙΖΕ', 'ΓΝΩΡΙΖΕ']), o('not_aware', 'Δεν το γνώριζε', 'Not aware', ['ΔΕΝ ΤΟ ΓΝΩΡΙΖ', 'ΔΕΝ ΓΝΩΡΙΖ', 'ΔΕΝ ΤΟΓΝΩΡΙΖ', 'ΟΧΙ ΔΕΝ']), o('no', 'Όχι', 'No', ['ΟΧΙ', 'ΔΕΝ ΗΘΕΛΕ'])] },
     yes('breast_pump', 'Θήλαστρο', 'Breast pump', { section: 'main', aliases: ['ΘΗΛΑΣΤΡΟ'] }),
     { key: 'notes', section: 'main', type: 'text', label: 'Παρατηρήσεις', labelEn: 'Notes', aliases: ['ΠΑΡΑΤΗΡΗΣΕΙΣ'] },
   ],
