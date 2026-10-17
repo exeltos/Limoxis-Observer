@@ -163,8 +163,8 @@ export function SurveyRecordPage() {
       footer={!locked && <div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Create survey' : 'Δημιουργία έρευνας') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
       <SurveyEditor survey={survey} onChange={setSurvey} onTemplate={key => setSurvey(current => ({ ...surveyFromTemplate(key, { hospital: tenant?.name || '' }), departmentIds: current.departmentIds, opensOn: current.opensOn, closesOn: current.closesOn }))} isNew={isNew} locked={locked} hasResponses={responses.length > 0} departments={departments} language={language} />
     </RecordTabPanel>}
-    {tab === 'collect' && <RecordTabPanel title={en ? 'Collection' : 'Συλλογή'} subtitle={en ? 'One QR poster for the whole hospital and one per department: the department is then filled in by itself.' : 'Μία αφίσα QR για όλο το νοσοκομείο και μία ανά τμήμα: τότε το τμήμα συμπληρώνεται μόνο του.'}>
-      <SurveyCollect survey={survey} departments={departments} language={language} />
+    {tab === 'collect' && <RecordTabPanel title={en ? 'Collection' : 'Συλλογή'} subtitle={en ? 'How patients reach the questionnaire from their phone.' : 'Πώς φτάνουν οι ασθενείς στο ερωτηματολόγιο από το κινητό τους.'}>
+      <SurveyCollect survey={survey} departments={departments} language={language} canOpen={canManage && !saving} onOpen={openSurvey} />
     </RecordTabPanel>}
     {entry && <ResponseEntry survey={survey} entry={entry} setEntry={setEntry} departments={entryDepartments} language={language} onSaved={response => { setResponses(current => (response ? [response, ...current] : current)); if (!response) void reload() }} tenantId={tenant?.id} />}
   </EntityRecordShell></Page>

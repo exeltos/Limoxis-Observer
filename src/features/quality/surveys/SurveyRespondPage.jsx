@@ -43,7 +43,7 @@ export function SurveyRespondPage() {
   const sections = useMemo(() => formSections(survey, answers), [survey, answers])
 
   if (state.loading) return <Frame><RouteLoading /></Frame>
-  if (state.error || !survey) return <Frame><Status icon={ShieldCheck} title={en ? 'This survey is not available' : 'Η έρευνα δεν είναι διαθέσιμη'} text={en ? 'Check the link, or ask the staff of the department.' : 'Ελέγξτε τον σύνδεσμο ή ρωτήστε το προσωπικό του τμήματος.'} /></Frame>
+  if (state.error || !survey) return <Frame><Status icon={ShieldCheck} title={en ? 'This survey is not available' : 'Η έρευνα δεν είναι διαθέσιμη'} text={en ? 'It may not have opened yet. Check the link, or ask the staff of the department.' : 'Ίσως δεν έχει ανοίξει ακόμη. Ελέγξτε τον σύνδεσμο ή ρωτήστε το προσωπικό του τμήματος.'} /></Frame>
   const title = en ? survey.titleEn || survey.title : survey.title
   const intro = en ? survey.descriptionEn || survey.description : survey.description
   if (!survey.open) return <Frame><Status icon={Clock3} title={en ? 'This survey is closed' : 'Η έρευνα έχει ολοκληρωθεί'} text={en ? `Thank you for your interest. ${survey.organizationName || ''}` : `Ευχαριστούμε για το ενδιαφέρον σας. ${survey.organizationName || ''}`} /></Frame>
