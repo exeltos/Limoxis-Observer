@@ -8,7 +8,7 @@ function walk(dir){
     const full=path.join(dir,name)
     const st=fs.statSync(full)
     if(st.isDirectory())walk(full)
-    else if(/\.(jsx|js)$/.test(name))files.push(full)
+    else if(/\.[jt]sx?$/.test(name))files.push(full)
   }
 }
 walk(path.join(root,'src'))

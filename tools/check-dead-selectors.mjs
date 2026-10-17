@@ -16,7 +16,7 @@ const write = process.argv.includes('--write')
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(d => d.isDirectory() ? walk(path.join(dir, d.name)) : [path.join(dir, d.name)])
 const code = walk(dist).filter(f => /\.(js|html)$/.test(f)).map(f => fs.readFileSync(f, 'utf8')).join('\n')
 // also the source (dynamic names are clearer there) and markdown/help content rendered as HTML
-const src = walk('src').concat(fs.existsSync('public') ? walk('public') : []).filter(f => /\.(jsx?|mjs|html|md|json)$/.test(f)).map(f => fs.readFileSync(f, 'utf8')).join('\n') + fs.readFileSync('index.html', 'utf8')
+const src = walk('src').concat(fs.existsSync('public') ? walk('public') : []).filter(f => /\.([jt]sx?|mjs|html|md|json)$/.test(f)).map(f => fs.readFileSync(f, 'utf8')).join('\n') + fs.readFileSync('index.html', 'utf8')
 const corpus = code + '\n' + src
 const words = new Set(corpus.match(/[\w-]+/g))
 const cache = new Map()

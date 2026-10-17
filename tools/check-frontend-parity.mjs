@@ -14,7 +14,7 @@ function walk(directory) {
     const file = path.join(directory, name)
     const stat = fs.statSync(file)
     if (stat.isDirectory()) walk(file)
-    else if (name.endsWith('.jsx')) candidates.push(file)
+    else if (/\.[jt]sx$/.test(name)) candidates.push(file)
   }
 }
 
