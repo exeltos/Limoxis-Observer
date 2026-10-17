@@ -67,11 +67,8 @@ function useDepartmentIndicators(organizationId, meeting) {
     ;(async () => {
       const registers = (await loadRegisters(organizationId).catch(() => [])).filter(register => register.status === 'active' && (register.departmentId === key || register.department === dept))
       const period = periodOf('month', `${String(month).slice(0, 7)}-01`)
-      const result = []
-      for (const register of registers) {
-        const entries = await loadEntries(organizationId, register.id, { register }).catch(() => [])
-        for (const row of indicatorReport(register, entries, period)) result.push({ register, ...row })
-      }
+      const entries = await Promise.all(registers.map(register => loadEntries(organizationId, register.id, { register }).catch(() => [])))
+      const result = registers.flatMap((register, index) => indicatorReport(register, entries[index], period).map(row => ({ register, ...row })))
       if (active) setRows(result)
     })()
     return () => { active = false }
