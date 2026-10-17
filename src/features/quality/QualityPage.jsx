@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
-import { AlertOctagon,AlertTriangle,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,ClipboardSignature,Clock3,FileSpreadsheet,FileWarning,GraduationCap,LayoutDashboard,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Target,TrendingDown,UserRound,Wrench } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,ClipboardSignature,Clock3,FileSpreadsheet,FileWarning,Gauge,GraduationCap,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Target,TrendingDown,UserRound,Wrench } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -21,7 +21,8 @@ import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSe
 import { loadQualityRecords } from './qualityService'
 import { DeviationQueue,ReportRegister,deviationsExport,reportRegisterExport,stageLabel,useDeviationQueue,useDeviations,useReportRegister } from './QualityReportRegister'
 import { QualityOverview } from './QualityOverview'
-import { ActionsList,AuditsList,actionRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
+import { ActionsList,AuditsList,actionCounts,actionRows,auditCounts,auditRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
+import { capaSourceFor } from './qualityDeviations'
 import { useLibraries } from '../management/useLibraries'
 import { RiskAssessmentsPanel } from './risk/RiskAssessmentsPanel'
 import { useRiskAssessmentList } from './risk/useRiskAssessmentList'
@@ -38,19 +39,23 @@ const TABS=[
  {value:'overview',icon:LayoutDashboard,label:['Επισκόπηση','Overview']},
  {value:'reports',icon:AlertTriangle,label:['Αναφορές','Reports']},
  {value:'deviations',icon:FileWarning,label:['Αποκλίσεις','Deviations'],manage:true},
- {value:'actions',icon:CheckSquare2,label:['Ευρήματα & ενέργειες','Findings & actions']},
+ {value:'actions',icon:CheckSquare2,label:['Ενέργειες','Actions']},
  {value:'audits',icon:ClipboardCheck,label:['Επιθεωρήσεις','Audits']},
  {value:'risks',icon:ShieldAlert,label:['Κίνδυνοι','Risks']},
- {value:'measure',icon:Target,label:['Μέτρηση & Ανασκόπηση','Measurement & review']},
+ {value:'indicators',icon:Target,label:['Δείκτες & Στόχοι','Indicators & objectives']},
+ {value:'review',icon:ClipboardSignature,label:['Ανασκόπηση','Review']},
 ]
 const STAGE_ICON={toAssess:Clock3,investigating:SearchCheck,action:Wrench,effectiveness:Scale,toClose:CheckCircle2}
-const MEASURE_OPTIONS=[
+const INDICATOR_OPTIONS=[
  {value:'registers',icon:ClipboardList,label:['Μητρώα','Registers']},
  {value:'objectives',icon:Target,label:['Στόχοι','Objectives']},
- {value:'reviews',icon:ClipboardSignature,label:['Ανασκοπήσεις','Reviews']},
 ]
 const ACTION_DEFAULTS={query:'',kind:'all',status:'all',department:'all',quick:null}
-const AUDIT_DEFAULTS={query:'',status:'all',type:'all',department:'all',mode:'list'}
+const AUDIT_DEFAULTS={query:'',status:'all',type:'all',department:'all',mode:'programme',quick:null}
+const STALE_DAYS=45
+// A review's decisions still open, and those past their due date.
+const openDecisions=review=>(review.actions||[]).filter(action=>action.status==='open')
+const lateDecisions=review=>openDecisions(review).filter(action=>action.dueDate&&action.dueDate<new Date().toISOString().slice(0,10))
 
 // The incidents, findings, corrective actions and audits, loaded once: the
 // figures above the tabs read all of them.
@@ -82,6 +87,7 @@ export function QualityPage(){
  useEffect(()=>{writeSessionValue(RETURN_KEY,'')},[])
  const [tab,setTab]=useState(initial.tab)
  const [measureView,setMeasureView]=useState(initial.view||'registers')
+ const [reviewQuick,setReviewQuick]=useState(null)
  const registry=useRegistryMemory(`quality.${tab}`)
 
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
@@ -95,7 +101,8 @@ export function QualityPage(){
  const categories=libraries.incidentCategories||[]
  const register=useReportRegister(records.data.incidents,records.data.capas,language)
  const deviations=useDeviations(queue.sources,language)
- const actions=useMemo(()=>actionRows(records.data.findings,records.data.capas),[records.data.findings,records.data.capas])
+ const actions=useMemo(()=>actionRows(records.data.findings,records.data.capas,records.data.incidents),[records.data.findings,records.data.capas,records.data.incidents])
+ const audits=useMemo(()=>auditRows(records.data.audits,records.data.findings),[records.data.audits,records.data.findings])
  const actionView=useListFilters('quality.actions',ACTION_DEFAULTS)
  const auditView=useListFilters('quality.audits',AUDIT_DEFAULTS)
  const riskList=useRiskAssessmentList(tenant?.id,tab==='risks')
@@ -114,7 +121,8 @@ export function QualityPage(){
  // Only active objectives need attention (achieved, not achieved and cancelled ones are settled).
  const isMissed=item=>(item.status||'active')==='active'&&item.current.status==='missed'
  const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return objectives.objectives.filter(item=>!q||`${item.code} ${item.title} ${item.ownerLabel||''}`.toLowerCase().includes(q)).filter(item=>objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,objectiveFilters])
- const visibleReviews=useMemo(()=>{const q=reviewQuery.trim().toLowerCase();return reviews.reviews.filter(item=>!q||`${item.code} ${item.reviewDate||''}`.toLowerCase().includes(q))},[reviews.reviews,reviewQuery])
+ const todayIso=new Date().toISOString().slice(0,10)
+ const visibleReviews=useMemo(()=>{const q=reviewQuery.trim().toLowerCase();return reviews.reviews.filter(item=>!q||`${item.code} ${item.reviewDate||''}`.toLowerCase().includes(q)).filter(item=>reviewQuick==='open'?openDecisions(item).length>0:reviewQuick==='late'?lateDecisions(item).length>0:true)},[reviews.reviews,reviewQuery,reviewQuick])
 
  // What needs attention, across the whole Center: the overview's figures,
  // and those of the tabs that have no figures of their own yet.
@@ -123,7 +131,7 @@ export function QualityPage(){
  const toggle=(view,key,value)=>view.set(key,view.filters[key]===value?null:value)
  const goReports=quick=>{setTab('reports');register.clear();register.set('quick',quick)}
  const goActions=quick=>{setTab('actions');actionView.set('quick',quick)}
- const goObjectives=()=>{setTab('measure');setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:'missed'}))}
+ const goObjectives=()=>{setTab('indicators');setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:'missed'}))}
  const centerFigures=[
   {key:'open',icon:Clock3,value:register.counts.open,label:L('Ανοιχτές αναφορές','Open reports'),go:()=>goReports('open')},
   {key:'sentinel',icon:AlertOctagon,value:register.counts.sentinel,label:L('Ανοιχτά συμβάντα-φρουροί','Open sentinel events'),tone:register.counts.sentinel?'danger':'neutral',go:()=>goReports('sentinel')},
@@ -131,6 +139,46 @@ export function QualityPage(){
   {key:'overdue',icon:AlertTriangle,value:overdueActions,label:L('Εκπρόθεσμες ενέργειες','Overdue actions'),tone:overdueActions?'danger':'neutral',go:()=>goActions('overdue')},
   {key:'objectives',icon:TrendingDown,value:objectives.loading?'—':missedObjectives,label:L('Στόχοι που δεν επιτυγχάνονται','Objectives not met'),go:goObjectives},
  ]
+ const actionCount=actionCounts(actions)
+ const auditCount=auditCounts(audits)
+ const objectiveState=state=>{setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:current.state===state&&measureView==='objectives'?'all':state}))}
+ const activeObjectives=objectives.objectives.filter(item=>(item.status||'active')==='active')
+ const staleRegisters=registerList.registers.filter(item=>item.status!=='archived'&&(!item.lastEntry||(Date.parse(todayIso)-Date.parse(item.lastEntry))/86400000>STALE_DAYS)).length
+ const latestReview=[...reviews.reviews].sort((a,b)=>String(b.reviewDate).localeCompare(String(a.reviewDate)))[0]
+ const nextReviewLate=Boolean(latestReview?.nextReviewDate&&latestReview.nextReviewDate<todayIso)
+ const latestAssessment=[...riskList.items].sort((a,b)=>String(b.assessedOn||'').localeCompare(String(a.assessedOn||'')))[0]
+ const latestRisks=latestAssessment?summarizeRisks(latestAssessment.risks||[]):null
+ const quickFigure=(view,key,icon,value,label,tone)=>({key,icon,value,label,tone,active:view.filters.quick===key,go:()=>toggle(view,'quick',key)})
+ const tabFigures={
+  actions:[quickFigure(actionView,'open',CheckSquare2,actionCount.open,L('Ανοιχτές ενέργειες','Open actions')),
+   quickFigure(actionView,'overdue',AlertTriangle,actionCount.overdue,L('Εκπρόθεσμες','Overdue'),actionCount.overdue?'danger':'neutral'),
+   quickFigure(actionView,'dueSoon',CalendarClock,actionCount.dueSoon,L('Λήγουν σε 14 ημέρες','Due in 14 days')),
+   quickFigure(actionView,'verification',Scale,actionCount.verification,L('Έλεγχος αποτελεσματικότητας','Effectiveness check')),
+   quickFigure(actionView,'orphans',SearchCheck,actionCount.orphans,L('Ευρήματα χωρίς ενέργεια','Findings without an action'),actionCount.orphans?'warning':'neutral')],
+  audits:[quickFigure(auditView,'planned',CalendarDays,auditCount.planned,L('Μένουν φέτος','Left this year')),
+   quickFigure(auditView,'month',CalendarClock,auditCount.month,L('Αυτόν τον μήνα','This month')),
+   quickFigure(auditView,'overdue',AlertTriangle,auditCount.overdue,L('Εκπρόθεσμες','Overdue'),auditCount.overdue?'danger':'neutral'),
+   quickFigure(auditView,'withFindings',SearchCheck,auditCount.withFindings,L('Με ανοιχτά ευρήματα','With open findings'),auditCount.withFindings?'warning':'neutral'),
+   {...quickFigure(auditView,'completed',Gauge,auditCount.compliance==null?'—':`${auditCount.compliance}%`,L('Μέση συμμόρφωση φέτος','Average compliance this year'))}],
+  risks:latestRisks?[
+   {key:'assessments',icon:ShieldAlert,value:riskList.items.length,label:L('Εκτιμήσεις κινδύνου','Risk assessments')},
+   {key:'risks',icon:ClipboardList,value:latestRisks.total,label:L(`Κίνδυνοι · ${latestAssessment.periodLabel}`,`Risks · ${latestAssessment.periodLabel}`)},
+   {key:'veryHigh',icon:AlertOctagon,value:latestRisks.levels.residual.very_high,label:L('Πολύ υψηλοί (υπολ.)','Very high (residual)'),tone:latestRisks.levels.residual.very_high?'danger':'neutral'},
+   {key:'high',icon:AlertTriangle,value:latestRisks.levels.residual.high,label:L('Υψηλοί (υπολ.)','High (residual)')},
+   {key:'next',icon:CalendarClock,value:formatDay(latestAssessment.nextReviewOn,language)||'—',label:L('Επόμενη αξιολόγηση','Next assessment')},
+  ]:[],
+  indicators:[{key:'registers',icon:ClipboardList,value:registerList.loading?'—':registerList.registers.length,label:L('Μητρώα τμημάτων','Department registers'),active:measureView==='registers',go:()=>setMeasureView('registers')},
+   {key:'stale',icon:Clock3,value:registerList.loading?'—':staleRegisters,label:L(`Χωρίς καταχώριση ${STALE_DAYS}+ ημέρες`,`No entry for ${STALE_DAYS}+ days`),tone:staleRegisters?'warning':'neutral',go:()=>setMeasureView('registers')},
+   {key:'objectives',icon:Target,value:objectives.loading?'—':activeObjectives.length,label:L('Ενεργοί στόχοι','Active objectives'),active:measureView==='objectives'&&objectiveFilters.state==='all',go:()=>objectiveState('all')},
+   {key:'met',icon:CheckCircle2,value:activeObjectives.filter(item=>item.current.status==='met').length,label:L('Επιτυγχάνονται','Met'),active:measureView==='objectives'&&objectiveFilters.state==='met',go:()=>objectiveState('met')},
+   {key:'missed',icon:TrendingDown,value:missedObjectives,label:L('Δεν επιτυγχάνονται','Not met'),tone:missedObjectives?'danger':'neutral',active:measureView==='objectives'&&objectiveFilters.state==='missed',go:()=>objectiveState('missed')},
+   {key:'pending',icon:Clock3,value:activeObjectives.filter(item=>item.current.status==='pending').length,label:L('Σε εξέλιξη','In progress'),active:measureView==='objectives'&&objectiveFilters.state==='pending',go:()=>objectiveState('pending')}],
+  review:[{key:'reviews',icon:ClipboardSignature,value:reviews.loading?'—':reviews.reviews.length,label:L('Ανασκοπήσεις','Reviews'),active:!reviewQuick,go:()=>setReviewQuick(null)},
+   {key:'last',icon:CalendarDays,value:formatDay(latestReview?.reviewDate,language)||'—',label:L('Τελευταία ανασκόπηση','Last review')},
+   {key:'next',icon:CalendarClock,value:formatDay(latestReview?.nextReviewDate,language)||'—',label:nextReviewLate?L('Επόμενη · εκπρόθεσμη','Next · overdue'):L('Επόμενη ανασκόπηση','Next review'),tone:nextReviewLate?'danger':'neutral'},
+   {key:'open',icon:ListChecks,value:reviews.reviews.reduce((sum,item)=>sum+openDecisions(item).length,0),label:L('Ανοιχτές αποφάσεις','Open decisions'),active:reviewQuick==='open',go:()=>setReviewQuick(current=>current==='open'?null:'open')},
+   {key:'late',icon:AlertTriangle,value:reviews.reviews.reduce((sum,item)=>sum+lateDecisions(item).length,0),label:L('Εκπρόθεσμες αποφάσεις','Overdue decisions'),tone:reviews.reviews.some(item=>lateDecisions(item).length)?'danger':'neutral',active:reviewQuick==='late',go:()=>setReviewQuick(current=>current==='late'?null:'late')}],
+ }
  const figures=({
   overview:centerFigures,
   // The open reports at each stage of their flow, and the sentinel events among them.
@@ -139,10 +187,10 @@ export function QualityPage(){
   deviations:[{key:'all',icon:FileWarning,value:deviations.counts.total,label:L('Χωρίς διορθωτική ενέργεια','Without a corrective action'),active:deviations.filters.source==='all'&&deviations.filters.priority==='all',go:()=>{deviations.set('source','all');deviations.set('priority','all')}},
    ...[['control',ClipboardCheck,L('Από ελέγχους','From controls')],['bundle',ShieldCheck,L('Από bundles','From bundles')],['training',GraduationCap,L('Από εκπαιδεύσεις','From trainings')]].map(([source,icon,label])=>({key:source,icon,value:deviations.counts[source],label,active:deviations.filters.source===source,go:()=>deviations.set('source',deviations.filters.source===source?'all':source)})),
    {key:'high',icon:AlertTriangle,value:deviations.counts.high,label:L('Υψηλής προτεραιότητας','High priority'),tone:deviations.counts.high?'danger':'neutral',active:deviations.filters.priority==='high',go:()=>deviations.set('priority',deviations.filters.priority==='high'?'all':'high')}],
- })[tab]||centerFigures.filter(figure=>figure.key!=='sentinel').map(figure=>({...figure,active:(figure.key==='overdue'&&tab==='actions'&&actionView.filters.quick==='overdue')||(figure.key==='objectives'&&tab==='measure'&&measureView==='objectives'&&objectiveFilters.state==='missed')}))
+ })[tab]||tabFigures[tab]||[]
 
  // Where «Back» from a record or a new record returns.
- const returnValue=tab==='measure'?`measure:${measureView}`:tab
+ const returnValue=tab==='indicators'?`indicators:${measureView}`:tab
  const remember=()=>writeSessionValue(RETURN_KEY,returnValue)
  const create=path=>()=>{remember();goTo(path,{registry:`quality.${tab}`})}
  // The record page reads its previous / next sequence under its own type (quality.incidents, quality.capas…).
@@ -156,7 +204,8 @@ export function QualityPage(){
   actions:canManage?[{id:'capa',label:L('Διορθωτική ενέργεια','Corrective action'),icon:CheckSquare2,onClick:create('/quality/capas/new')},{id:'finding',label:L('Εύρημα','Finding'),icon:SearchCheck,onClick:create('/quality/findings/new')}]:[],
   audits:canManage?[{id:'audit',label:L('Επιθεώρηση','Audit'),icon:ClipboardCheck,onClick:create('/quality/audits/new')}]:[],
   risks:canManage?[{id:'assessment',label:L('Εκτίμηση κινδύνου','Risk assessment'),icon:ShieldAlert,onClick:()=>setRiskCreating(true)},{id:'import',label:L('Εισαγωγή από Excel','Import from Excel'),icon:FileSpreadsheet,onClick:()=>riskFile.current?.click()}]:[],
-  measure:canManage?[{id:'register',label:L('Μητρώο τμήματος','Department register'),icon:ClipboardList,onClick:()=>{remember();goTo('/registers/new')}},{id:'objective',label:L('Στόχος ποιότητας','Quality objective'),icon:Target,onClick:()=>{setMeasureView('objectives');setEditingObjective(newObjective())}},{id:'review',label:L('Ανασκόπηση Διοίκησης','Management review'),icon:ClipboardSignature,onClick:()=>{setMeasureView('reviews');writeSessionValue(RETURN_KEY,'measure:reviews');navigate('/quality/reviews/new')}}]:[],
+  indicators:canManage?[{id:'register',label:L('Μητρώο τμήματος','Department register'),icon:ClipboardList,onClick:()=>{remember();goTo('/registers/new')}},{id:'objective',label:L('Στόχος ποιότητας','Quality objective'),icon:Target,onClick:()=>{setMeasureView('objectives');setEditingObjective(newObjective())}}]:[],
+  review:canManage?[{id:'review',label:L('Ανασκόπηση Διοίκησης','Management review'),icon:ClipboardSignature,onClick:()=>{writeSessionValue(RETURN_KEY,'review');navigate('/quality/reviews/new')}}]:[],
  })[tab]
 
  const download=({
@@ -164,12 +213,13 @@ export function QualityPage(){
   deviations:<DownloadMenu disabled={!deviations.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviations.filtered,{language}))}/>,
   reports:<DownloadMenu disabled={!register.filtered.length} onExcel={()=>exportRegistry(reportRegisterExport(register.filtered,{language,t,categories}))}/>,
   actions:(()=>{const rows=filterActions(actions,actionView.filters,en);const findings=rows.filter(row=>row.kind==='finding'),capas=rows.filter(row=>row.kind==='capa');return <DownloadMenu items={[{id:'findings',label:L('Ευρήματα (.csv)','Findings (.csv)'),disabled:!findings.length,onClick:()=>exportRegistry(qualityExport('findings',findings,{en,t}))},{id:'capas',label:L('Διορθωτικές ενέργειες (.csv)','Corrective actions (.csv)'),disabled:!capas.length,onClick:()=>exportRegistry(qualityExport('capas',capas,{en,t}))}]}/>})(),
-  audits:(()=>{const rows=filterAudits(records.data.audits,auditView.filters,en);return <DownloadMenu disabled={!rows.length} onExcel={()=>exportRegistry(qualityExport('audits',rows,{en,t}))}/>})(),
+  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);return <DownloadMenu disabled={!rows.length} onExcel={()=>exportRegistry(qualityExport('audits',rows,{en,t}))}/>})(),
   risks:<DownloadMenu disabled={!riskRows.length} onExcel={()=>exportRegistry(riskAssessmentsExport(riskRows,language))}/>,
-  measure:measureView==='registers'?<DownloadMenu disabled={!registerRows.length} onExcel={()=>exportRegistry(registersExport(registerRows,language))}/>:measureView==='objectives'?<DownloadMenu disabled={!visibleObjectives.length} onExcel={()=>exportRegistry(objectivesExport(visibleObjectives,language))}/>:<DownloadMenu disabled={!visibleReviews.length} onExcel={()=>exportRegistry(reviewsExport(visibleReviews,language))}/>,
+  indicators:measureView==='registers'?<DownloadMenu disabled={!registerRows.length} onExcel={()=>exportRegistry(registersExport(registerRows,language))}/>:<DownloadMenu disabled={!visibleObjectives.length} onExcel={()=>exportRegistry(objectivesExport(visibleObjectives,language))}/>,
+  review:<DownloadMenu disabled={!visibleReviews.length} onExcel={()=>exportRegistry(reviewsExport(visibleReviews,language))}/>,
  })[tab]
 
- const measureSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={measureView} onChange={setMeasureView} options={MEASURE_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
+ const measureSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={measureView} onChange={setMeasureView} options={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
 
  return <Page fill className="registry-fill-page" title={t('quality')} subtitle={L('Από την αναφορά και το εύρημα ως τη διορθωτική ενέργεια, τους στόχους και την Ανασκόπηση Διοίκησης.','From the report and the finding to the corrective action, the objectives and the management review.')}
   actions={<div className="row-actions">
@@ -177,33 +227,34 @@ export function QualityPage(){
    {tab==='reports'&&canReportIncident&&<ActionButton label={L('Οι αναφορές συμβάντων μου','My incident reports')} tone="neutral" onClick={()=>goTo('/quality/my-reports')}><UserRound size={17}/><span>{L('Οι αναφορές μου','My reports')}</span></ActionButton>}
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
-  <div className="workspace-summary"><div className="module-summary-strip quality-kpis" style={{'--quality-kpis':figures.length}}>
+  {figures.length>0&&<div className="workspace-summary"><div className="module-summary-strip quality-kpis" style={{'--quality-kpis':figures.length}}>
    {figures.map(figure=><MetricCard key={figure.key} icon={figure.icon} value={figure.value} label={figure.label} tone={figure.tone} onClick={figure.go} active={figure.active}/>)}
-  </div></div>
+  </div></div>}
   <CanonicalTabs items={TABS.filter(item=>!item.manage||canManage).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:item.value==='reports'?register.counts.stages?.toAssess||0:item.value==='deviations'?deviations.counts.total:item.value==='actions'?overdueActions:0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>
   {tab==='overview'?<div className="workspace-fill quality-overview-scroll">
    <QualityOverview reports={register.rows} capas={records.data.capas} audits={records.data.audits} objectives={objectives.objectives} language={language} categories={categories}
-    onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='objectives'?goObjectives():target==='actions'?goActions('open'):setTab(target)}/>
+    onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):setTab(target)}/>
   </div>:<section className="surface registry-workspace workspace-column workspace-fill">
    {tab==='reports'&&<ReportRegister view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
    {tab==='deviations'&&canManage&&<DeviationQueue view={deviations} loading={queue.loading} language={language} t={t}
     onCreateCapa={prefill=>{writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:prefill}})}}/>}
    {tab==='actions'&&<ActionsList rows={actions} view={actionView} loading={records.loading} language={language} t={t} registry={registry}
-    onOpen={(row,same)=>openRecord(row.kind==='capa'?'capas':'findings',row.id,same.map(item=>item.id))}/>}
-   {tab==='audits'&&<AuditsList rows={records.data.audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
+    onOpen={(row,same)=>openRecord(row.kind==='capa'?'capas':'findings',row.id,same.map(item=>item.id))}
+    onCreateCapa={canManage?finding=>{remember();goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:capaSourceFor('findings',finding,language)}})}:null}/>}
+   {tab==='audits'&&<AuditsList rows={audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord('audits',row.id,same.map(item=>item.id))}/>}
    {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
-   {tab==='measure'&&measureView==='registers'&&<RegistersPanel list={registerList} onBeforeOpen={remember} filterEnd={measureSwitch} onRowsChange={setRegisterRows}/>}
-   {tab==='measure'&&measureView==='objectives'&&<>
+   {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} onBeforeOpen={remember} filterEnd={measureSwitch} onRowsChange={setRegisterRows}/>}
+   {tab==='indicators'&&measureView==='objectives'&&<>
     <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={objectiveFilters.state!=='all'?1:0} onClear={()=>setObjectiveFilters({query:'',state:'all'})} end={measureSwitch}>
      <FilterSelect label={t('status')} value={objectiveFilters.state} onChange={state=>setObjectiveFilters(current=>({...current,state}))}><option value="all">{t('all')}</option><option value="missed">{L('Δεν επιτυγχάνεται','Not met')}</option><option value="met">{L('Επιτυγχάνεται','Met')}</option><option value="pending">{L('Σε εξέλιξη','In progress')}</option></FilterSelect>
     </FilterBar>
     <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} onOpen={objective=>canManage&&setEditingObjective(objective)}/>
    </>}
-   {tab==='measure'&&measureView==='reviews'&&<>
-    <FilterBar query={reviewQuery} onQueryChange={setReviewQuery} placeholder={L('Αναζήτηση ανασκόπησης','Search review')} onClear={()=>setReviewQuery('')} end={measureSwitch}/>
-    <ReviewsTable rows={visibleReviews} loading={reviews.loading} onOpen={review=>{writeSessionValue(RETURN_KEY,'measure:reviews');navigate(`/quality/reviews/${review.id}`)}}/>
+   {tab==='review'&&<>
+    <FilterBar query={reviewQuery} onQueryChange={setReviewQuery} placeholder={L('Αναζήτηση ανασκόπησης','Search review')} onClear={()=>{setReviewQuery('');setReviewQuick(null)}}/>
+    <ReviewsTable rows={visibleReviews} loading={reviews.loading} onOpen={review=>{writeSessionValue(RETURN_KEY,'review');navigate(`/quality/reviews/${review.id}`)}}/>
    </>}
   </section>}
   {editingObjective&&<ObjectiveDialog objective={editingObjective} registers={objectives.registers} onClose={()=>setEditingObjective(null)} onSaved={()=>{setEditingObjective(null);void objectives.reload()}}/>}

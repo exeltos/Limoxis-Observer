@@ -35,3 +35,30 @@ describe('Quality: the stage of a report in its flow', () => {
     expect(next({ status: 'closed' })).toBe(undefined)
   })
 })
+
+describe('Quality: actions with their source, audits with their figures', async () => {
+  const { actionCounts, actionRows, auditCounts, auditRows, filterActions } = await import('../src/features/quality/QualityLists')
+  const base = { query: '', kind: 'all', status: 'all', department: 'all', quick: null }
+
+  it('shows a finding only while no action handles it, and names each action’s source', () => {
+    const rows = actionRows(
+      [{ id: 'FND-1', title: 'Handled', status: 'open' }, { id: 'FND-2', title: 'Waiting', status: 'open' }],
+      [{ id: 'CAPA-1', title: 'Fix', status: 'open', sourceId: 'FND-1' }, { id: 'CAPA-2', title: 'From control', status: 'open', sourceId: 'CTRL-9#e1' }],
+    )
+    expect(rows.filter(row => row.kind === 'finding').map(row => row.id)).toEqual(['FND-2'])
+    expect(rows.find(row => row.id === 'CAPA-1')).toMatchObject({ sourceKind: 'finding', sourceTitle: 'Handled' })
+    expect(rows.find(row => row.id === 'CAPA-2')).toMatchObject({ sourceKind: 'control', sourceCode: 'CTRL-9' })
+    expect(actionCounts(rows)).toMatchObject({ open: 2, orphans: 1 })
+    // Searching the source's code finds the action.
+    expect(filterActions(rows, { ...base, query: 'ctrl-9' }, false).map(row => row.id)).toEqual(['CAPA-2'])
+  })
+
+  it('counts this month’s, late and finding-bearing audits', () => {
+    const now = new Date().toISOString().slice(0, 10)
+    const rows = auditRows(
+      [{ id: 'AUD-1', status: 'planned', plannedDate: now }, { id: 'AUD-2', status: 'planned', plannedDate: '2020-01-01' }, { id: 'AUD-3', status: 'completed', plannedDate: now, completedDate: now, checklist: [{ answer: 'yes' }] }],
+      [{ id: 'FND-1', sourceId: 'AUD-3', status: 'open' }],
+    )
+    expect(auditCounts(rows)).toMatchObject({ month: 1, overdue: 1, withFindings: 1 })
+  })
+})

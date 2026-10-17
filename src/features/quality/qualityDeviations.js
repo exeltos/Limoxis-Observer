@@ -113,3 +113,10 @@ export function subActionProgress(subActions=[]){
 export function overdueSubActions(subActions=[],today=new Date().toISOString().slice(0,10)){
  return subActions.filter(item=>!item.done&&item.dueDate&&item.dueDate<today)
 }
+
+// What a new CAPA opened from an incident or a finding starts with; a sentinel
+// event's is its root cause analysis, due by the RCA deadline.
+export function capaSourceFor(recordType,record,language='el'){
+ const en=language==='en',code=record.displayId||record.id
+ return {source:recordType==='incidents'?'incident':'finding',sourceId:record.id,departmentId:record.departmentId,department:record.department,departmentEn:record.departmentEn,priority:record.sentinel?'critical':record.severity,dueDate:record.sentinel?record.rcaDueDate:undefined,title:record.sentinel?(en?`Root cause analysis: ${code}`:`Ανάλυση ριζικής αιτίας: ${code}`):(en?'CAPA for ':'Διορθωτική ενέργεια για ')+code}
+}

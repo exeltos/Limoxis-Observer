@@ -38,7 +38,7 @@ import { AuditChecklistTab } from './QualityAuditParts'
 import { auditCompliance } from './qualityAudit'
 import { QualityCapaRootCause } from './QualityCapaRootCause'
 import { analysisProgress } from './rootCauseAnalysis'
-import { sourcePath,subActionProgress } from './qualityDeviations'
+import { capaSourceFor,sourcePath,subActionProgress } from './qualityDeviations'
 import { incidentFlow,isFinalizedQualityRecord,openStepsBlockingCapa,recordOwners,statusOptions,withHarm,withIncidentClass } from './qualityRecordRules'
 import './quality.css'
 
@@ -273,13 +273,6 @@ function QualityLinks({recordType,record,t,language,organizationId,canManage=fal
 
 function QualityDocuments({record,recordType,setRecord,t,finalized,canAttach,canManage,organizationId}){
   return <div className="record-section"><div className="record-section-header"><h3>{t('documents')}</h3></div><AttachmentField disabled={finalized||(!canAttach&&!canManage)} value={record.attachments||[]} onChange={attachments=>setRecord(r=>({...r,attachments}))} organizationId={organizationId} entityType={`quality_${recordType}`} entityId={record.dbId||record.id}/></div>
-}
-
-// What a new CAPA opened from an incident or a finding starts with; a sentinel
-// event's is its root cause analysis, due by the RCA deadline.
-function capaSourceFor(recordType,record,language){
-  const en=language==='en',code=record.displayId||record.id
-  return {source:recordType==='incidents'?'incident':'finding',sourceId:record.id,departmentId:record.departmentId,department:record.department,departmentEn:record.departmentEn,priority:record.sentinel?'critical':record.severity,dueDate:record.sentinel?record.rcaDueDate:undefined,title:record.sentinel?(en?`Root cause analysis: ${code}`:`Ανάλυση ριζικής αιτίας: ${code}`):(en?'CAPA for ':'Διορθωτική ενέργεια για ')+code}
 }
 
 // Where a source code (AUD-, FND-, INC-) opens.
