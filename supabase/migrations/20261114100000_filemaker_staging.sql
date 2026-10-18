@@ -16,6 +16,7 @@ create table if not exists public.fm_stage_tables (
   next_skip integer not null default 0,
   status text not null default 'pending' check (status in ('pending', 'running', 'done', 'error', 'skipped')),
   field_names text[],
+  use_rowid boolean,
   last_error text,
   started_at timestamptz,
   finished_at timestamptz,
@@ -37,6 +38,7 @@ create table if not exists public.fm_stage_settings (
   id boolean primary key default true check (id),
   enabled boolean not null default false,
   page_size integer not null default 500 check (page_size between 10 and 5000),
+  rowid boolean not null default false,
   running_until timestamptz,
   last_run_at timestamptz,
   last_result jsonb

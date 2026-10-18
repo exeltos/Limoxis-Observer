@@ -41,13 +41,20 @@ function clean(row:Record<string,unknown>){
   for(const [key,value] of Object.entries(row)){
     if(key.startsWith('@'))continue
     if(SECRET_FIELD.test(key)){out[key]={omitted:true,reason:'password'};continue}
-    out[key]=typeof value==='string'&&value.length>MAX_TEXT?{omitted:true,length:value.length}:value
+    // The database refuses a NUL character inside a text: FileMaker files sometimes carry one.
+    const text=typeof value==='string'?value.replace(/\u0000/g,''):value
+    out[key]=typeof text==='string'&&text.length>MAX_TEXT?{omitted:true,length:text.length}:text
   }
   return out
 }
 // FileMaker's own record id when OData gives it, else the record's place in the table
 // (an ID field of the table itself is not trusted to be unique).
 const idOf=(row:Record<string,unknown>,fallback:number)=>String(row.ROWID??fallback)
+
+// FileMaker's record id (ROWID) is only returned when asked for by name, with the fields;
+// a field name with spaces or other characters goes in double quotes.
+const quoted=(name:string)=>(/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)?name:`"${name.replace(/"/g,'""')}"`)
+const selectOf=(names:string[]|null)=>names?.length?`&$select=${['ROWID','ROWMODID',...names.filter(name=>name!=='ROWID'&&name!=='ROWMODID')].map(name=>encodeURIComponent(quoted(name))).join(',')}`:''
 
 async function probe(admin:Admin){
   await odata('')
@@ -66,11 +73,30 @@ async function probe(admin:Admin){
       failed++
     }
   }
-  return {tables:ok,failed}
+  // Whether this server returns ROWID: tried on the smallest table that answered.
+  const {data:small}=await admin.from('fm_stage_tables').select('occurrence,field_names').not('field_names','is',null).order('expected').limit(1).maybeSingle()
+  let rowid=false
+  if(small){
+    try{rowid=JSON.parse(await odata(`${entity(small.occurrence)}?$top=1${selectOf(small.field_names)}`)).value?.[0]?.ROWID!=null}catch{rowid=false}
+  }
+  await admin.from('fm_stage_settings').update({rowid}).eq('id',true)
+  return {tables:ok,failed,rowid}
+}
+
+// Which ways of asking for ROWID this server accepts: key names and errors only, no values.
+async function rowidCheck(admin:Admin){
+  const {data:small}=await admin.from('fm_stage_tables').select('occurrence,field_names').not('field_names','is',null).order('expected').limit(1).maybeSingle()
+  if(!small)return {rowidCheck:'no table'}
+  const tries:Record<string,string>={only:'&$select=ROWID',both:'&$select=ROWID,ROWMODID',quoted:"&$select=%22ROWID%22",fields:selectOf(small.field_names),first:`&$select=ROWID,${encodeURIComponent(small.field_names?.[0]||'')}`}
+  const out:Record<string,unknown>={table:small.occurrence}
+  for(const [name,query] of Object.entries(tries)){
+    try{out[name]=Object.keys(JSON.parse(await odata(`${entity(small.occurrence)}?$top=1${query}`)).value?.[0]||{}).slice(0,5)}catch(error){out[name]=String((error as Error)?.message||error).slice(0,200)}
+  }
+  return {rowidCheck:out}
 }
 
 async function pull(admin:Admin,started:number){
-  const {data:settings}=await admin.from('fm_stage_settings').select('page_size').eq('id',true).single()
+  const {data:settings}=await admin.from('fm_stage_settings').select('page_size,rowid').eq('id',true).single()
   const size=Number(settings?.page_size||500)
   let read=0,finished=0
   while(Date.now()-started<BUDGET_MS){
@@ -78,7 +104,17 @@ async function pull(admin:Admin,started:number){
     if(!table)break
     const now=new Date().toISOString()
     try{
-      const page=JSON.parse(await odata(`${entity(table.occurrence)}?$top=${size}&$skip=${table.next_skip}`))
+      const plain=`${entity(table.occurrence)}?$top=${size}&$skip=${table.next_skip}`
+      const useRowid=Boolean(settings?.rowid)&&table.use_rowid!==false
+      let page
+      try{page=JSON.parse(await odata(useRowid?plain+selectOf(table.field_names):plain))}
+      catch(error){
+        // A table with very many fields can make the request too long: it is read
+        // without ROWID from its first page on, its records numbered by place.
+        if(!useRowid||table.next_skip>0)throw error
+        await admin.from('fm_stage_tables').update({use_rowid:false}).eq('base_table',table.base_table)
+        page=JSON.parse(await odata(plain))
+      }
       const rows=(page.value||[]) as Record<string,unknown>[]
       if(rows.length){
         const records=rows.map((row,index)=>({base_table:table.base_table,record_id:idOf(row,table.next_skip+index+1),mod_id:row.ROWMODID==null?null:String(row.ROWMODID),data:clean(row),fetched_at:now}))
@@ -112,7 +148,7 @@ Deno.serve(async(req)=>{
   if(!claimed?.length)return reply({ok:true,task,skipped:'busy'})
   let result:Record<string,unknown>={task}
   try{
-    result={...result,...(task==='probe'?await probe(admin):await pull(admin,started))}
+    result={...result,...(task==='probe'?await probe(admin):task==='rowid'?await rowidCheck(admin):await pull(admin,started))}
   }catch(error){
     result={...result,error:String((error as Error)?.message||error).slice(0,300)}
   }
