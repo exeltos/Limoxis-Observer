@@ -37,7 +37,12 @@ async function selectAll(query) {
 // (Quality Center, objectives, a meeting); any write here reads them again.
 const registersCache = new Map()
 const REGISTERS_FRESH_MS = 30000
-function forgetRegisters() { registersCache.clear() }
+// The entries of a register, kept as briefly: going back from a case, or from
+// the Quality Center to the register, does not read thousands of rows again.
+const entriesCache = new Map()
+function forgetRegisters() { registersCache.clear(); entriesCache.clear() }
+// A write forgets what was read before it and what was read while it ran.
+const afterWrite = async promise => { try { return await promise } finally { forgetRegisters() } }
 
 // --- Demo storage --------------------------------------------------------------
 
@@ -124,7 +129,7 @@ function nextCode(existing = []) {
 // Writes the definition row by row and lets the database add the columns of
 // new fields. A field, option, sheet row or indicator taken out is archived,
 // never deleted, so its column and data stay. A change raises the version.
-export async function saveRegister(organizationId, register, { actor = '', action = 'updated', definitionChanged = false } = {}) {
+async function saveRegisterNow(organizationId, register, { actor = '', action = 'updated', definitionChanged = false } = {}) {
   const event = { at: new Date().toISOString(), action, actor }
   const next = { ...register, version: definitionChanged && register.id ? (Number(register.version) || 1) + 1 : Number(register.version) || 1, history: [...(register.history || []), event] }
   if (isLocal()) {
@@ -147,6 +152,8 @@ export async function saveRegister(organizationId, register, { actor = '', actio
   } else must(await supabase.from('department_registers').update(registerRow(next, organizationId)).eq('id', id).eq('organization_id', organizationId))
   await saveDefinition(organizationId, id, next)
   must(await supabase.rpc('department_register_sync', { p_register_id: id }))
+  // Reading the register then checks access once per query, not once per row.
+  must(await supabase.rpc('department_register_fast_reads', { p_register_id: id }))
   return loadRegister(organizationId, id)
 }
 
@@ -180,16 +187,13 @@ async function saveDefinition(organizationId, registerId, register) {
 
 // --- Entries -------------------------------------------------------------------
 
-async function loadIdentities(register, ids) {
-  const identities = new Map()
-  const chunks = []
-  for (let index = 0; index < ids.length; index += 200) chunks.push(ids.slice(index, index + 200))
-  // A few requests at a time: a register of thousands of cases is read in seconds, not one chunk after another.
-  for (let index = 0; index < chunks.length; index += 6) {
-    const pages = await Promise.all(chunks.slice(index, index + 6).map(chunk => supabase.from(`${register.tableName}_identity`).select('entry_id,case_number,patient_name').in('entry_id', chunk).then(must)))
-    for (const row of pages.flat().filter(Boolean)) identities.set(row.entry_id, { caseNumber: row.case_number || '', patientName: row.patient_name || '' })
-  }
-  return identities
+// Case numbers and names: the whole identity table the user may read, page by
+// page like the entries; ids picks only some (one case).
+async function loadIdentities(register, ids = null) {
+  const rows = ids
+    ? must(await supabase.from(`${register.tableName}_identity`).select('entry_id,case_number,patient_name').in('entry_id', ids))
+    : await selectAll(() => supabase.from(`${register.tableName}_identity`).select('entry_id,case_number,patient_name', { count: 'exact' }).order('entry_id'))
+  return new Map((rows || []).map(row => [row.entry_id, { caseNumber: row.case_number || '', patientName: row.patient_name || '' }]))
 }
 
 // The entries of a register; withIdentity adds case number and name where the
@@ -202,9 +206,17 @@ export async function loadEntries(organizationId, registerId, { withIdentity = f
   assertCloud(organizationId)
   const register = known || await loadRegister(organizationId, registerId)
   if (!register?.tableName) return []
-  const rows = await selectAll(() => supabase.from(register.tableName).select('*', { count: 'exact' }).order('entry_date', { ascending: false }).order('id'))
-  const identities = withIdentity && register.kind === 'case' && rows.length ? await loadIdentities(register, rows.map(row => row.id)) : new Map()
-  return rows.map(row => entryFromRow(register, row, identities.get(row.id) || null))
+  const key = `${organizationId}:${register.id}:${register.version}:${withIdentity ? 'named' : 'plain'}`
+  const cached = entriesCache.get(key)
+  if (cached && Date.now() - cached.at < REGISTERS_FRESH_MS) return (await cached.promise).slice()
+  // The entries and their identities are read together, not one after the other.
+  const promise = Promise.all([
+    selectAll(() => supabase.from(register.tableName).select('*', { count: 'exact' }).order('entry_date', { ascending: false }).order('id')),
+    withIdentity && register.kind === 'case' ? loadIdentities(register) : Promise.resolve(new Map()),
+  ]).then(([rows, identities]) => rows.map(row => entryFromRow(register, row, identities.get(row.id) || null)))
+  entriesCache.set(key, { at: Date.now(), promise })
+  promise.catch(() => entriesCache.delete(key))
+  return (await promise).slice()
 }
 
 export async function loadEntry(organizationId, entryId, { withIdentity = false, register = null } = {}) {
@@ -223,7 +235,7 @@ export async function loadEntry(organizationId, entryId, { withIdentity = false,
 
 // One case or one sheet period. Length of stay and age are computed by the
 // database (generated columns); the demo computes them here.
-export async function saveEntry(organizationId, register, entry, { identity = null, actorLabel = '' } = {}) {
+async function saveEntryNow(organizationId, register, entry, { identity = null, actorLabel = '' } = {}) {
   const values = register.kind === 'sheet' ? entry.values || {} : computeValues(register.fields, entry.values || {})
   const periodStart = register.kind === 'sheet' ? entry.periodStart : null
   const entryDate = register.kind === 'sheet' ? periodStart : entryDateOf(register, values, entry.entryDate)
@@ -256,7 +268,7 @@ export async function saveEntry(organizationId, register, entry, { identity = nu
 
 // Many entries at once (an import): 500 rows per request, identities after.
 // Returns how many were written.
-export async function saveEntries(organizationId, register, items, { onProgress } = {}) {
+async function saveEntriesNow(organizationId, register, items, { onProgress } = {}) {
   if (isLocal() && register.kind === 'case') {
     // One read and one write of the browser's copy for the whole file.
     const state = localState(), now = new Date().toISOString()
@@ -291,7 +303,7 @@ export async function saveEntries(organizationId, register, items, { onProgress 
   return done
 }
 
-export async function deleteEntry(organizationId, register, entryId) {
+async function deleteEntryNow(organizationId, register, entryId) {
   if (isLocal()) {
     const state = localState()
     state.entries = state.entries.filter(entry => entry.id !== entryId)
@@ -305,7 +317,7 @@ export async function deleteEntry(organizationId, register, entryId) {
 }
 
 // Replacing an import: the given entries go, identities with them (cascade).
-export async function deleteEntries(organizationId, register, entryIds) {
+async function deleteEntriesNow(organizationId, register, entryIds) {
   if (!entryIds.length) return 0
   if (isLocal()) {
     const state = localState(), ids = new Set(entryIds)
@@ -321,7 +333,7 @@ export async function deleteEntries(organizationId, register, entryIds) {
 }
 
 // Closing a period locks its sheet; reopening it allows corrections again.
-export async function setEntryLocked(organizationId, register, entryId, locked) {
+async function setEntryLockedNow(organizationId, register, entryId, locked) {
   if (isLocal()) {
     const state = localState()
     state.entries = state.entries.map(entry => (entry.id === entryId ? { ...entry, locked } : entry))
@@ -332,3 +344,11 @@ export async function setEntryLocked(organizationId, register, entryId, locked) 
   forgetRegisters()
   must(await supabase.from(register.tableName).update({ locked }).eq('id', entryId))
 }
+
+// Every write leaves the cached registers and entries to be read again.
+export const saveRegister = (...args) => afterWrite(saveRegisterNow(...args))
+export const saveEntry = (...args) => afterWrite(saveEntryNow(...args))
+export const saveEntries = (...args) => afterWrite(saveEntriesNow(...args))
+export const deleteEntry = (...args) => afterWrite(deleteEntryNow(...args))
+export const deleteEntries = (...args) => afterWrite(deleteEntriesNow(...args))
+export const setEntryLocked = (...args) => afterWrite(setEntryLockedNow(...args))

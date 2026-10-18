@@ -218,6 +218,11 @@
       "authenticated": true,
       "reason": "Lets a member of a Demo organization switch their own role (and department scope) so the database shows exactly what that role sees; refuses any organization that is not a Demo and any role outside the previewable system roles."
     },
+    "department_register_fast_reads": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Points a department register's read policies at the once-per-query checks (private.register_can_read / register_can_read_identity); same caller check as department_register_sync: Platform Owner, Hospital Admin, Quality Manager or manage_quality."
+    },
     "department_register_sync": {
       "category": "rpc",
       "authenticated": true,
