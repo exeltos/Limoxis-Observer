@@ -33,6 +33,13 @@ describe('department register fields', () => {
     expect(validateEntry(nicu.fields, { ...base }).errors.birth_weight).toBe('Υποχρεωτικό')
   })
 
+  it('asks for a field required from a date only on cases from that date on', () => {
+    const fields = nicu.fields.map(f => (f.key === 'birth_weight' ? { ...f, requiredFrom: '2024-01-01' } : f))
+    const base = { birth_date: '2019-05-02', delivery: 'cs' }
+    expect(validateEntry(fields, { ...base, admission_date: '2019-05-02' }, 'el', '2019-05-02').errors.birth_weight).toBeUndefined()
+    expect(validateEntry(fields, { ...base, admission_date: '2024-01-01' }, 'el', '2024-01-01').errors.birth_weight).toBe('Υποχρεωτικό')
+  })
+
   it('keeps discharge after admission and shows the outcome only after discharge', () => {
     const result = validateEntry(nicu.fields, { admission_date: '2026-03-10', birth_date: '2026-03-10', delivery: 'cs', birth_weight: 3000, discharge_date: '2026-03-01' })
     expect(result.errors.discharge_date).toMatch(/Όχι πριν/)

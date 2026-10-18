@@ -342,7 +342,7 @@ function planCases(register, headers, rows, mapping, { valueMap = {}, emptyIsNo 
       else if (!fallbackDate) { skipped.noDate += 1; return }
     }
     // Limits: an impossible value is not imported (the rest of the case is).
-    const check = validateEntry(register.fields, values, language)
+    const check = validateEntry(register.fields, values, language, values[dateField] || fallbackDate)
     for (const [key, text] of Object.entries(check.errors)) {
       const field = register.fields.find(item => item.key === key)
       if (text === (en ? 'Required' : 'Υποχρεωτικό')) continue

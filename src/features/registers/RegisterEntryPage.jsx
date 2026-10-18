@@ -8,9 +8,9 @@ import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { FormCard, FormGrid } from '../../design-system/FormCard'
 import { Field } from '../../design-system/Field'
 import { ChoiceField } from '../../design-system/ChoiceField'
-import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import { IconButton } from '../../design-system/IconButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -19,7 +19,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { auditActorFromAuth } from '../../core/audit/actor'
 import { deleteEntry, loadEntry, loadRegister, saveEntry } from './registerService'
 import { useRegisterAccess } from './registerAccess'
-import { computeValues, fieldVisible, formatValue, gestationText, parseGestation, textOf, validateEntry } from './registerEngine'
+import { computeValues, fieldVisible, formatValue, gestationText, isRequired, parseGestation, textOf, validateEntry } from './registerEngine'
 import './registers.css'
 
 // One case of a register (a neonate in the NICU): the identity the department
@@ -64,7 +64,8 @@ export function RegisterEntryPage() {
   }, [tenant?.id, registerId, entryId, isNew]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const full = useMemo(() => (register ? computeValues(register.fields, values) : {}), [register, values])
-  const check = useMemo(() => (register ? validateEntry(register.fields, values, language) : { errors: {}, warnings: {}, valid: false }), [register, values, language])
+  const entryDate = (register && full[register.settings?.entryDateField]) || entry?.entryDate || ''
+  const check = useMemo(() => (register ? validateEntry(register.fields, values, language, entryDate) : { errors: {}, warnings: {}, valid: false }), [register, values, language, entryDate])
   if (loading) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
   if (!register || (!isNew && !entry) || !access.canSee(register)) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Case not found' : 'Το περιστατικό δεν βρέθηκε'}</strong></div></Page>
 
@@ -108,7 +109,7 @@ export function RegisterEntryPage() {
         const fields = fieldsOf(section).filter(field => fieldVisible(field, full))
         if (!fields.length) return null
         return <FormCard key={section.key || 'main'} wide title={textOf(section, language)} icon={ClipboardList}>
-          <div className="register-entry-grid">{fields.map(field => <RegisterField key={field.key} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!canEdit} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} language={language} />)}</div>
+          <div className="register-entry-grid">{fields.map(field => <RegisterField key={field.key} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!canEdit} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} />)}</div>
         </FormCard>
       })}
     </div><div className="inline-edit-footer">{tried && errorCount > 0 && <span className="register-form-errors">{en ? `${errorCount} field(s) need attention` : `${errorCount} πεδί${errorCount === 1 ? 'ο θέλει' : 'α θέλουν'} διόρθωση`}</span>}<Button variant="secondary" onClick={back}>{en ? 'Cancel' : 'Ακύρωση'}</Button>{canEdit && <SaveButton loading={saving} disabled={saving} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>}</div></div>
@@ -118,9 +119,9 @@ export function RegisterEntryPage() {
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
 // One field of a register, drawn with the shared controls.
-export function RegisterField({ field, value, onChange, disabled, error, warning, language }) {
+export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language }) {
   const en = language === 'en'
-  const label = `${textOf(field, language)}${field.required ? ' *' : ''}`
+  const label = `${textOf(field, language)}${required ? ' *' : ''}`
   const help = en ? field.helpEn || field.help : field.help
   const hint = warning || help || ''
   const unit = en ? field.unitEn || field.unit : field.unit
@@ -132,7 +133,7 @@ export function RegisterField({ field, value, onChange, disabled, error, warning
   if (field.type === 'choice') return <div className={`register-field ${error ? 'has-error' : ''}`}><SearchableSelect label={label} value={value || ''} options={options} disabled={disabled} onChange={next => onChange(next || '')} placeholder={en ? 'Choose…' : 'Επιλογή…'} {...selectText(en)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   if (field.type === 'multiChoice') {
     const selected = Array.isArray(value) ? value : []
-    return <div className={`register-field register-field-wide ${error ? 'has-error' : ''}`}><ChoiceChips label={label} options={options} selected={selected} onToggle={item => !disabled && onChange(selected.includes(item) ? selected.filter(other => other !== item) : [...selected, item])} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
+    return <div className={`register-field ${error ? 'has-error' : ''}`}><MultiSelect label={label} options={options} selected={selected} disabled={disabled} onChange={next => onChange(next)} placeholder={en ? 'Choose…' : 'Επιλογή…'} searchPlaceholder={en ? 'Search…' : 'Αναζήτηση…'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} selectAllLabel={en ? 'All' : 'Όλα'} clearAllLabel={en ? 'None' : 'Κανένα'} countLabel={count => (en ? `${count} selected` : `${count} επιλεγμένα`)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   }
   if (field.type === 'gestation') return <GestationField label={label} value={value} onChange={onChange} disabled={disabled} error={error} hint={hint} />
   if (field.type === 'text') return <div className="register-field register-field-wide"><Field label={label} error={error} hint={hint}><textarea rows={2} value={value || ''} disabled={disabled} onChange={event => onChange(event.target.value)} /></Field></div>
