@@ -41,8 +41,9 @@ function clean(row:Record<string,unknown>){
   for(const [key,value] of Object.entries(row)){
     if(key.startsWith('@'))continue
     if(SECRET_FIELD.test(key)){out[key]={omitted:true,reason:'password'};continue}
-    // The database refuses a NUL character inside a text: FileMaker files sometimes carry one.
-    const text=typeof value==='string'?value.replace(/\u0000/g,''):value
+    // The database refuses a NUL character or half of a broken character pair inside a
+    // text: FileMaker containers sometimes carry them.
+    const text=typeof value==='string'?value.replace(/\u0000/g,'').replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,'\uFFFD'):value
     out[key]=typeof text==='string'&&text.length>MAX_TEXT?{omitted:true,length:text.length}:text
   }
   return out
