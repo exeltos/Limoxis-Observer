@@ -38,7 +38,7 @@
 .reg-pager span{min-width:110px;text-align:center;font-size:12.5px;font-weight:650;color:var(--lo-color-muted);font-variant-numeric:tabular-nums}
 .reg-book-frame{display:flex;justify-content:center;touch-action:pan-y}
 .reg-book-sizer{position:relative}
-.reg-book{position:absolute;top:0;left:0;transform-origin:0 0;perspective:2600px;filter:drop-shadow(0 18px 28px rgba(15,34,51,.16)) drop-shadow(0 2px 4px rgba(15,34,51,.08))}
+.reg-book{position:absolute;top:0;left:0;transform-origin:0 0;perspective:9000px;filter:drop-shadow(0 18px 28px rgba(15,34,51,.16)) drop-shadow(0 2px 4px rgba(15,34,51,.08))}
 .reg-slot{position:absolute;top:0;width:50%;height:100%;cursor:pointer}
 .reg-slot-left{left:0}
 .reg-slot-right{left:50%}
@@ -355,7 +355,7 @@
 .reg-print-ink{height:64px;border-bottom:1px solid #9aa9b5;margin-bottom:4pt}
 
 /* The book in front of the whole screen */
-.reg-reader.is-expanded{position:fixed;inset:0;z-index:1200;min-height:0;background:#0e1a26;overflow:auto;animation:reg-expand .18s ease-out}
+.reg-reader.is-expanded{position:fixed;inset:0;z-index:1200;min-height:0;background:#0e1a26;overflow:hidden;animation:reg-expand .18s ease-out}
 .reg-reader.is-expanded .reg-stage-bar{justify-content:space-between}
 .reg-reader.is-expanded .reg-toc-toggle,.reg-reader.is-expanded .reg-close{position:static}
 .reg-reader.is-expanded .reg-stage{padding:10px 18px 16px}

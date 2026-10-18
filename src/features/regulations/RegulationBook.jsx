@@ -271,7 +271,7 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
       </div>
       <div className="reg-book-frame" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
         <div className="reg-book-sizer" style={{ width: (narrow ? geo.pageW : geo.pageW * 2) * scale, height: geo.pageH * scale }}>
-        <div className={`reg-book ${narrow ? 'is-single' : ''} ${turn ? 'is-turning' : ''}`} style={{ width: (narrow ? geo.pageW : geo.pageW * 2), height: geo.pageH, transform: scale === 1 ? undefined : `scale(${scale})` }}>
+        <div className={`reg-book ${narrow ? 'is-single' : ''} ${turn ? 'is-turning' : ''}`} style={{ width: (narrow ? geo.pageW : geo.pageW * 2), height: geo.pageH, zoom: scale === 1 ? undefined : scale }}>
           {!narrow && <div className="reg-slot reg-slot-left" onClick={previous}>{leftIndex >= 0 ? pageNode(leftIndex, 'left') : <div className="reg-page reg-page-empty" />}</div>}
           <div className="reg-slot reg-slot-right" onClick={next}>{pageNode(rightIndex, narrow ? 'single' : 'right')}</div>
           {leaf && <div className={`reg-leaf ${leaf.side}`} style={{ animationDuration: `${TURN_MS}ms` }}>
