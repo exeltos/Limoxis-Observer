@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
-import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,ClipboardSignature,Clock3,FileSpreadsheet,FileWarning,Gauge,GraduationCap,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Smile,Target,TrendingDown,UserRound,Users,Wrench } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,ClipboardSignature,Clock3,FileSpreadsheet,FileWarning,Gauge,GraduationCap,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,UserRound,Users,Wrench } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -32,6 +32,8 @@ import { registerKindLabel,registerStatusLabel } from '../registers/registerText
 import { ObjectiveDialog,ObjectivesTable,ReviewsTable,newObjective,objectivesExport,reviewsExport,useObjectives,useReviews } from './review/QualityObjectives'
 import { MeetingsList,filterMeetings,meetingsExport,useMeetings } from './meetings/MeetingsPanel'
 import { SurveysList,filterSurveys,surveyCounts,surveysExport,useSurveys } from './surveys/SurveysPanel'
+import { EquipmentList,SuppliersList,useResources } from './resources/ResourcesPanel'
+import { NO_EQUIPMENT_FILTERS,NO_SUPPLIER_FILTERS,equipmentCounts,equipmentExport,filterEquipment,filterSuppliers,supplierCounts,suppliersExport } from './resources/resourceModel'
 import { departmentMeetingStatus,latestMeetings,lateDecisions as meetingLateDecisions,openDecisions as meetingOpenDecisions } from './meetings/meetingModel'
 import './quality.css'
 
@@ -46,6 +48,7 @@ const TABS=[
  {value:'audits',icon:ClipboardCheck,label:['Επιθεωρήσεις','Audits']},
  {value:'risks',icon:ShieldAlert,label:['Κίνδυνοι','Risks']},
  {value:'indicators',icon:Target,label:['Δείκτες & Στόχοι','Indicators & objectives']},
+ {value:'resources',icon:Stethoscope,label:['Πόροι','Resources']},
  {value:'review',icon:Users,label:['Συναντήσεις','Meetings']},
 ]
 const STAGE_ICON={toAssess:Clock3,investigating:SearchCheck,action:Wrench,effectiveness:Scale,toClose:CheckCircle2}
@@ -57,6 +60,10 @@ const INDICATOR_OPTIONS=[
  {value:'registers',icon:ClipboardList,label:['Μητρώα','Registers']},
  {value:'objectives',icon:Target,label:['Στόχοι','Objectives']},
  {value:'surveys',icon:Smile,label:['Έρευνες','Surveys']},
+]
+const RESOURCE_OPTIONS=[
+ {value:'equipment',icon:Stethoscope,label:['Εξοπλισμός','Equipment']},
+ {value:'suppliers',icon:Truck,label:['Προμηθευτές','Suppliers']},
 ]
 const ACTION_DEFAULTS={query:'',kind:'all',status:'all',department:'all',quick:null}
 const AUDIT_DEFAULTS={query:'',status:'all',type:'all',department:'all',mode:'programme',quick:null}
@@ -96,6 +103,9 @@ export function QualityPage(){
  const [tab,setTab]=useState(initial.tab)
  const [measureView,setMeasureView]=useState(initial.tab==='indicators'&&initial.view||'registers')
  const [meetingView,setMeetingView]=useState(initial.tab==='review'&&initial.view||'meetings')
+ const [resourceView,setResourceView]=useState(initial.tab==='resources'&&initial.view||'equipment')
+ const [equipmentFilters,setEquipmentFilters]=useState(NO_EQUIPMENT_FILTERS)
+ const [supplierFilters,setSupplierFilters]=useState(NO_SUPPLIER_FILTERS)
  const [meetingFilters,setMeetingFilters]=useState({query:'',department:'all',status:'all',quick:null})
  const [surveyFilters,setSurveyFilters]=useState({query:'',audience:'all',status:'all',quick:null})
  const [reviewQuick,setReviewQuick]=useState(null)
@@ -130,6 +140,9 @@ export function QualityPage(){
  const visibleMeetings=useMemo(()=>filterMeetings(meetings.meetings,meetingFilters,en),[meetings.meetings,meetingFilters,en])
  const surveys=useSurveys()
  const visibleSurveys=useMemo(()=>filterSurveys(surveys.surveys,surveyFilters),[surveys.surveys,surveyFilters])
+ const resources=useResources(tab==='resources')
+ const visibleEquipment=useMemo(()=>filterEquipment(resources.equipment,equipmentFilters),[resources.equipment,equipmentFilters])
+ const visibleSuppliers=useMemo(()=>filterSuppliers(resources.suppliers,supplierFilters),[resources.suppliers,supplierFilters])
  const [objectiveFilters,setObjectiveFilters]=useState({query:'',state:'all'})
  const [reviewQuery,setReviewQuery]=useState('')
  const [editingObjective,setEditingObjective]=useState(null)
@@ -191,6 +204,19 @@ export function QualityPage(){
    {key:'met',icon:CheckCircle2,value:activeObjectives.filter(item=>item.current.status==='met').length,label:L('Επιτυγχάνονται','Met'),active:measureView==='objectives'&&objectiveFilters.state==='met',go:()=>objectiveState('met')},
    {key:'missed',icon:TrendingDown,value:missedObjectives,label:L('Δεν επιτυγχάνονται','Not met'),tone:missedObjectives?'danger':'neutral',active:measureView==='objectives'&&objectiveFilters.state==='missed',go:()=>objectiveState('missed')},
    {key:'pending',icon:Clock3,value:activeObjectives.filter(item=>item.current.status==='pending').length,label:L('Σε εξέλιξη','In progress'),active:measureView==='objectives'&&objectiveFilters.state==='pending',go:()=>objectiveState('pending')}],
+  equipment:(()=>{const count=equipmentCounts(resources.equipment);const dash=value=>resources.loading?'—':value;const quick=key=>setEquipmentFilters(current=>({...current,quick:current.quick===key?null:key}));return [
+   {key:'all',icon:Stethoscope,value:dash(count.total),label:L('Εξοπλισμός σε χρήση','Equipment in use'),active:!equipmentFilters.quick,go:()=>setEquipmentFilters(current=>({...current,quick:null}))},
+   {key:'overdue',icon:AlertTriangle,value:dash(count.overdue),label:L('Εκπρόθεσμη συντήρηση / διακρίβωση','Overdue maintenance / calibration'),tone:count.overdue?'danger':'neutral',active:equipmentFilters.quick==='overdue',go:()=>quick('overdue')},
+   {key:'dueSoon',icon:CalendarClock,value:dash(count.dueSoon),label:L('Οφείλονται σε 30 ημέρες','Due within 30 days'),tone:count.dueSoon?'warning':'neutral',active:equipmentFilters.quick==='dueSoon',go:()=>quick('dueSoon')},
+   {key:'down',icon:AlertOctagon,value:dash(count.down),label:L('Εκτός λειτουργίας','Out of service'),tone:count.down?'danger':'neutral',active:equipmentFilters.quick==='down',go:()=>quick('down')},
+   {key:'critical',icon:ShieldAlert,value:dash(count.critical),label:L('Υψηλής κρισιμότητας','High criticality'),active:equipmentFilters.quick==='critical',go:()=>quick('critical')}]})(),
+  suppliers:(()=>{const count=supplierCounts(resources.suppliers);const dash=value=>resources.loading?'—':value;const quick=key=>setSupplierFilters(current=>({...current,quick:current.quick===key?null:key}));return [
+   {key:'all',icon:Truck,value:dash(count.total),label:L('Ενεργοί προμηθευτές','Active suppliers'),active:!supplierFilters.quick,go:()=>setSupplierFilters(current=>({...current,quick:null}))},
+   {key:'approved',icon:CheckCircle2,value:dash(count.approved),label:L('Εγκεκριμένοι','Approved'),active:supplierFilters.quick==='approved',go:()=>quick('approved')},
+   {key:'attention',icon:AlertTriangle,value:dash(count.attention),label:L('Υπό παρακολούθηση / μη αποδεκτοί','Under monitoring / not accepted'),tone:count.attention?'warning':'neutral',active:supplierFilters.quick==='attention',go:()=>quick('attention')},
+   {key:'evaluationDue',icon:Star,value:dash(count.evaluationDue),label:L('Οφείλεται αξιολόγηση','Evaluation due'),tone:count.evaluationDue?'warning':'neutral',active:supplierFilters.quick==='evaluationDue',go:()=>quick('evaluationDue')},
+   {key:'certificates',icon:ShieldCheck,value:dash(count.certificates),label:L('Πιστοποιητικά που λήγουν','Certificates expiring'),tone:count.certificates?'warning':'neutral',active:supplierFilters.quick==='certificates',go:()=>quick('certificates')},
+   {key:'nonconformities',icon:FileWarning,value:dash(count.nonconformities),label:L('Ανοιχτές μη συμμορφώσεις','Open nonconformities'),tone:count.nonconformities?'danger':'neutral',active:supplierFilters.quick==='nonconformities',go:()=>quick('nonconformities')}]})(),
   surveys:(()=>{const count=surveyCounts(surveys.surveys);const toggleSurvey=key=>setSurveyFilters(current=>({...current,quick:current.quick===key?null:key}));return [
    {key:'all',icon:Smile,value:surveys.loading?'—':surveys.surveys.length,label:L('Έρευνες','Surveys'),active:!surveyFilters.quick,go:()=>setSurveyFilters(current=>({...current,quick:null}))},
    {key:'open',icon:CheckCircle2,value:count.open,label:L('Σε εξέλιξη','Open'),active:surveyFilters.quick==='open',go:()=>toggleSurvey('open')},
@@ -220,10 +246,10 @@ export function QualityPage(){
   deviations:[{key:'all',icon:FileWarning,value:deviations.counts.total,label:L('Χωρίς διορθωτική ενέργεια','Without a corrective action'),active:deviations.filters.source==='all'&&deviations.filters.priority==='all',go:()=>{deviations.set('source','all');deviations.set('priority','all')}},
    ...[['control',ClipboardCheck,L('Από ελέγχους','From controls')],['bundle',ShieldCheck,L('Από bundles','From bundles')],['training',GraduationCap,L('Από εκπαιδεύσεις','From trainings')]].map(([source,icon,label])=>({key:source,icon,value:deviations.counts[source],label,active:deviations.filters.source===source,go:()=>deviations.set('source',deviations.filters.source===source?'all':source)})),
    {key:'high',icon:AlertTriangle,value:deviations.counts.high,label:L('Υψηλής προτεραιότητας','High priority'),tone:deviations.counts.high?'danger':'neutral',active:deviations.filters.priority==='high',go:()=>deviations.set('priority',deviations.filters.priority==='high'?'all':'high')}],
- })[tab]||(tab==='review'&&meetingView==='meetings'?tabFigures.meetings:tab==='indicators'&&measureView==='surveys'?tabFigures.surveys:tabFigures[tab])||[]
+ })[tab]||(tab==='review'&&meetingView==='meetings'?tabFigures.meetings:tab==='indicators'&&measureView==='surveys'?tabFigures.surveys:tab==='resources'?tabFigures[resourceView]:tabFigures[tab])||[]
 
  // Where «Back» from a record or a new record returns.
- const returnValue=tab==='indicators'?`indicators:${measureView}`:tab==='review'?`review:${meetingView}`:tab
+ const returnValue=tab==='indicators'?`indicators:${measureView}`:tab==='review'?`review:${meetingView}`:tab==='resources'?`resources:${resourceView}`:tab
  const remember=()=>writeSessionValue(RETURN_KEY,returnValue)
  const create=path=>()=>{remember();goTo(path,{registry:`quality.${tab}`})}
  // The record page reads its previous / next sequence under its own type (quality.incidents, quality.capas…).
@@ -238,6 +264,7 @@ export function QualityPage(){
   audits:canManage?[{id:'audit',label:L('Επιθεώρηση','Audit'),icon:ClipboardCheck,onClick:create('/quality/audits/new')}]:[],
   risks:canManage?[{id:'assessment',label:L('Εκτίμηση κινδύνου','Risk assessment'),icon:ShieldAlert,onClick:()=>setRiskCreating(true)},{id:'import',label:L('Εισαγωγή από Excel','Import from Excel'),icon:FileSpreadsheet,onClick:()=>riskFile.current?.click()}]:[],
   indicators:canManage?[{id:'register',label:L('Μητρώο τμήματος','Department register'),icon:ClipboardList,onClick:()=>{remember();goTo('/registers/new')}},{id:'objective',label:L('Στόχος ποιότητας','Quality objective'),icon:Target,onClick:()=>{setMeasureView('objectives');setEditingObjective(newObjective())}},{id:'survey',label:L('Έρευνα ικανοποίησης','Satisfaction survey'),icon:Smile,onClick:()=>{setMeasureView('surveys');writeSessionValue(RETURN_KEY,'indicators:surveys');goTo('/quality/surveys/new')}}]:[],
+  resources:canManage?[{id:'equipment',label:L('Εξοπλισμός','Equipment'),icon:Stethoscope,onClick:()=>{setResourceView('equipment');writeSessionValue(RETURN_KEY,'resources:equipment');goTo('/quality/equipment/new')}},{id:'supplier',label:L('Προμηθευτής','Supplier'),icon:Truck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/new')}}]:[],
   review:[{id:'meeting',label:L('Συνάντηση τμήματος','Department meeting'),icon:Users,onClick:()=>{setMeetingView('meetings');writeSessionValue(RETURN_KEY,'review:meetings');goTo('/meetings/new')}},...(canManage?[{id:'review',label:L('Ανασκόπηση Διοίκησης','Management review'),icon:ClipboardSignature,onClick:()=>{setMeetingView('reviews');writeSessionValue(RETURN_KEY,'review:reviews');navigate('/quality/reviews/new')}}]:[])],
  })[tab]
 
@@ -249,10 +276,12 @@ export function QualityPage(){
   audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);return <DownloadMenu disabled={!rows.length} onExcel={()=>exportRegistry(qualityExport('audits',rows,{en,t}))}/>})(),
   risks:<DownloadMenu disabled={!riskRows.length} onExcel={()=>exportRegistry(riskAssessmentsExport(riskRows,language))}/>,
   indicators:measureView==='surveys'?<DownloadMenu disabled={!visibleSurveys.length} onExcel={()=>exportRegistry(surveysExport(visibleSurveys,language))}/>:measureView==='registers'?<DownloadMenu disabled={!registerRows.length} onExcel={()=>exportRegistry(registersExport(registerRows,language))}/>:<DownloadMenu disabled={!visibleObjectives.length} onExcel={()=>exportRegistry(objectivesExport(visibleObjectives,language))}/>,
+  resources:resourceView==='equipment'?<DownloadMenu disabled={!visibleEquipment.length} onExcel={()=>exportRegistry(equipmentExport(visibleEquipment,language))}/>:<DownloadMenu disabled={!visibleSuppliers.length} onExcel={()=>exportRegistry(suppliersExport(visibleSuppliers,language))}/>,
   review:meetingView==='meetings'?<DownloadMenu disabled={!visibleMeetings.length} onExcel={()=>exportRegistry(meetingsExport(visibleMeetings,language))}/>:<DownloadMenu disabled={!visibleReviews.length} onExcel={()=>exportRegistry(reviewsExport(visibleReviews,language))}/>,
  })[tab]
 
  const meetingSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={meetingView} onChange={setMeetingView} options={MEETING_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
+ const resourceSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={resourceView} onChange={setResourceView} options={RESOURCE_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
  const measureSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={measureView} onChange={setMeasureView} options={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
 
  return <Page fill className="registry-fill-page" title={t('quality')} subtitle={L('Από την αναφορά και το εύρημα ως τη διορθωτική ενέργεια, τους στόχους και την Ανασκόπηση Διοίκησης.','From the report and the finding to the corrective action, the objectives and the management review.')}
@@ -288,6 +317,8 @@ export function QualityPage(){
     <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} onOpen={objective=>canManage&&setEditingObjective(objective)}/>
    </>}
    {tab==='indicators'&&measureView==='surveys'&&<SurveysList list={surveys} filters={surveyFilters} setFilters={setSurveyFilters} filterEnd={measureSwitch} onOpen={survey=>{writeSessionValue(RETURN_KEY,'indicators:surveys');goTo(`/quality/surveys/${survey.id}`)}}/>}
+   {tab==='resources'&&resourceView==='equipment'&&<EquipmentList list={resources} filters={equipmentFilters} setFilters={setEquipmentFilters} filterEnd={resourceSwitch} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:equipment');goTo(`/quality/equipment/${row.id}`)}}/>}
+   {tab==='resources'&&resourceView==='suppliers'&&<SuppliersList list={resources} filters={supplierFilters} setFilters={setSupplierFilters} filterEnd={resourceSwitch} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo(`/quality/suppliers/${row.id}`)}}/>}
    {tab==='review'&&meetingView==='meetings'&&<MeetingsList list={meetings} filters={meetingFilters} setFilters={setMeetingFilters} filterEnd={meetingSwitch} onOpen={meeting=>{writeSessionValue(RETURN_KEY,'review:meetings');goTo(`/meetings/${meeting.id}`)}}/>}
    {tab==='review'&&meetingView==='reviews'&&<>
     <FilterBar query={reviewQuery} onQueryChange={setReviewQuery} placeholder={L('Αναζήτηση ανασκόπησης','Search review')} onClear={()=>{setReviewQuery('');setReviewQuick(null)}} end={meetingSwitch}/>
