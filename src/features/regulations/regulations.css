@@ -353,3 +353,17 @@
 .reg-print-signatures td{width:50%;height:120px;vertical-align:bottom}
 .reg-print-signatures small{display:block;font-family:Arial,sans-serif;font-size:8pt;letter-spacing:1pt;text-transform:uppercase;color:#1f5a80}
 .reg-print-ink{height:64px;border-bottom:1px solid #9aa9b5;margin-bottom:4pt}
+
+/* The book in front of the whole screen */
+.reg-reader.is-expanded{position:fixed;inset:0;z-index:1200;min-height:0;background:#0e1a26;overflow:auto;animation:reg-expand .18s ease-out}
+.reg-reader.is-expanded .reg-stage-bar{justify-content:space-between}
+.reg-reader.is-expanded .reg-toc-toggle,.reg-reader.is-expanded .reg-close{position:static}
+.reg-reader.is-expanded .reg-stage{padding:10px 18px 16px}
+.reg-reader.is-expanded .reg-toc{max-height:100vh}
+.reg-reader.is-expanded .reg-pager span{color:#d5dee6}
+.reg-reader.is-expanded .reg-book-frame{flex:1;align-items:center}
+.reg-close{display:grid;place-items:center;position:absolute;right:0;width:40px;height:40px;border:1px solid rgba(255,255,255,.28);border-radius:50%;background:rgba(255,255,255,.12);color:#fff;cursor:pointer}
+.reg-close:hover{background:rgba(255,255,255,.24)}
+.reg-reader-placeholder{min-height:420px}
+@keyframes reg-expand{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.reg-reader.is-expanded{animation:none}}

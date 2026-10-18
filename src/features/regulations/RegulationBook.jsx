@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, Search, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, Maximize2, Search, X } from 'lucide-react'
 import { chaptersOf, searchContent } from './regulationModel'
 import { sanitizeHtml } from './regulationHtml'
 
@@ -101,7 +102,7 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
   const [narrow, setNarrow] = useState(false)
   const [scale, setScale] = useState(1)
   const [docked, setDocked] = useState(true)
-  const [zoom, setZoom] = useState('fit')
+  const [expanded, setExpanded] = useState(false)
   const [at, setAt] = useState(0)
   const [turn, setTurn] = useState(null)
   const [query, setQuery] = useState('')
@@ -133,10 +134,10 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
     if (!stage.current) return undefined
     const fit = () => {
       const readerWidth = root.current?.clientWidth || 0
-      setDocked(readerWidth >= 1380)
+      setDocked(!expanded && readerWidth >= 1380)
       const width = stage.current?.clientWidth || 0
       const top = stage.current?.getBoundingClientRect().top || 0
-      const height = Math.max(420, (window.innerHeight || 900) - top - 78)
+      const height = expanded ? Math.max(360, (window.innerHeight || 900) - 92) : Math.max(420, (window.innerHeight || 900) - top - 78)
       if (width < 700) {
         const pageW = Math.round(Math.max(300, width - 8) / 10) * 10
         const pageH = Math.round(Math.min(Math.max(480, height), pageW * 1.75) / 10) * 10
@@ -149,7 +150,7 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
       const single = width < 1000
       setNarrow(single)
       const byWidth = (width - 24) / (single ? BOOK.pageW : BOOK.pageW * 2)
-      setScale(zoom === 'width' ? Math.min(1.25, byWidth) : Math.min(1.15, byWidth, height / BOOK.pageH))
+      setScale(Math.min(expanded ? 1.7 : 1.15, byWidth, height / BOOK.pageH))
     }
     fit()
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
@@ -157,7 +158,7 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
     if (root.current) observer?.observe(root.current)
     window.addEventListener('resize', fit)
     return () => { observer?.disconnect(); window.removeEventListener('resize', fit) }
-  }, [zoom])
+  }, [expanded])
 
   // In a spread the cover stands alone on the right; then pages go in pairs.
   const spreadOf = page => (page <= 0 ? 0 : Math.ceil(page / 2) * 2 - 1)
@@ -186,10 +187,19 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable) return
       if (event.key === 'ArrowRight' || event.key === 'PageDown') { event.preventDefault(); next() }
       if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); previous() }
+      if (event.key === 'Escape' && expanded) { event.preventDefault(); setExpanded(false) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [next, previous])
+  }, [next, previous, expanded])
+
+  // In front of the whole screen the page behind does not scroll.
+  useEffect(() => {
+    if (!expanded) return undefined
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [expanded])
 
   // Opens at a section when asked (a link from elsewhere, a search result).
   useEffect(() => {
@@ -229,7 +239,7 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
 
   const label = narrow ? (current === 0 ? (en ? 'Cover' : 'Εξώφυλλο') : `${current + 1} / ${total}`) : (view.right === 0 ? (en ? 'Cover' : 'Εξώφυλλο') : `${view.left + 1}–${Math.min(total, view.right + 1)} / ${total}`)
 
-  return <div ref={root} className={`reg-reader ${docked ? 'is-docked' : 'is-drawer'} ${tocOpen ? 'toc-open' : ''} ${geo.phone ? 'is-phone' : ''}`} style={{ '--reg-pad-x': `${geo.padX}px`, '--reg-pad-top': `${geo.top}px`, '--reg-pad-bottom': `${geo.bottom}px` }}>
+  const reader = <div ref={root} className={`reg-reader ${docked ? 'is-docked' : 'is-drawer'} ${tocOpen ? 'toc-open' : ''} ${geo.phone ? 'is-phone' : ''} ${expanded ? 'is-expanded' : ''}`} role={expanded ? 'dialog' : undefined} aria-modal={expanded || undefined} aria-label={expanded ? meta.title : undefined} style={{ '--reg-pad-x': `${geo.padX}px`, '--reg-pad-top': `${geo.top}px`, '--reg-pad-bottom': `${geo.bottom}px` }}>
     {!docked && tocOpen && <button type="button" className="reg-toc-backdrop" aria-label={en ? 'Close the contents' : 'Κλείσιμο περιεχομένων'} onClick={() => setTocOpen(false)} />}
     <aside className="reg-toc" aria-label={en ? 'Contents' : 'Περιεχόμενα'}>
       <div className="reg-toc-search"><Search size={15} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={en ? 'Search the regulation…' : 'Αναζήτηση στον κανονισμό…'} aria-label={en ? 'Search' : 'Αναζήτηση'} />{query && <button type="button" onClick={() => setQuery('')} aria-label={en ? 'Clear' : 'Καθαρισμός'}><X size={14} /></button>}</div>
@@ -256,7 +266,8 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
           <span>{label}</span>
           <button type="button" onClick={next} disabled={(narrow ? current : view.right) >= total - 1 || Boolean(turn)} aria-label={en ? 'Next page' : 'Επόμενη σελίδα'}><ChevronRight size={18} /></button>
         </div>
-        {!geo.phone && <button type="button" className="reg-zoom" onClick={() => setZoom(value => (value === 'fit' ? 'width' : 'fit'))} title={zoom === 'fit' ? (en ? 'Larger text' : 'Μεγαλύτερα γράμματα') : (en ? 'Whole page' : 'Ολόκληρη η σελίδα')}>{zoom === 'fit' ? <ZoomIn size={15} /> : <ZoomOut size={15} />}{zoom === 'fit' ? (en ? 'Zoom' : 'Μεγέθυνση') : (en ? 'Fit' : 'Ολόκληρη')}</button>}
+        {expanded ? <button type="button" className="reg-close" onClick={() => setExpanded(false)} aria-label={en ? 'Close (Esc)' : 'Κλείσιμο (Esc)'} title={en ? 'Close (Esc)' : 'Κλείσιμο (Esc)'}><X size={20} /></button>
+          : <button type="button" className="reg-zoom" onClick={() => setExpanded(true)} title={en ? 'Open the book in front of the whole screen' : 'Άνοιγμα του βιβλίου σε όλη την οθόνη'}><Maximize2 size={15} />{!geo.phone && (en ? 'Zoom' : 'Μεγέθυνση')}</button>}
       </div>
       <div className="reg-book-frame" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
         <div className="reg-book-sizer" style={{ width: (narrow ? geo.pageW : geo.pageW * 2) * scale, height: geo.pageH * scale }}>
@@ -274,6 +285,8 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
       <div className="reg-measure-host" aria-hidden="true"><div className="reg-page-body" ref={measure} style={{ width: geo.pageW - geo.padX * 2 }} /></div>
     </div>
   </div>
+  // «Zoom» opens the book in front of the whole screen; X or Esc puts it back.
+  return expanded ? <>{createPortal(reader, document.body)}<div className="reg-reader-placeholder" /></> : reader
 }
 
 function Page({ index, side, front, total, meta, en, tocEntries, tocPerPage, pageOfSection, layout, chapters, onJump }) {
