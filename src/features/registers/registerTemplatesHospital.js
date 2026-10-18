@@ -26,7 +26,7 @@ const ICU = {
   entryDateField: 'admission_date',
   entryDateFallbacks: ['discharge_date'],
   // FileMaker kept these percentages without their decimal point (2,42 → 242).
-  importRepairs: { euroscore: 'decimal', apache_mortality: 'decimal' },
+  importRepairs: { euroscore: 'decimal' },
   sections: [{ key: 'admission', label: 'Εισαγωγή', labelEn: 'Admission' }, { key: 'severity', label: 'Βαρύτητα', labelEn: 'Severity' }, { key: 'stay', label: 'Νοσηλεία', labelEn: 'Stay' }, { key: 'discharge', label: 'Έξοδος', labelEn: 'Discharge' }],
   breakdowns: ['category', 'admission_reason', 'outcome'],
   fields: [
@@ -38,7 +38,8 @@ const ICU = {
     yes('requisition', 'Επίταξη', 'Requisitioned bed', { section: 'admission', aliases: ['ΕΠΙΤΑΞΗ'] }),
     yes('readmission_48h', 'Επανεισαγωγή εντός 48 ωρών', 'Readmission within 48 h', { section: 'admission', aliases: ['ΕΠΑΝΕΙΣΑΓΩΓΗ 48ΩΡΟΥ'] }),
     { key: 'apache_score', section: 'severity', type: 'number', min: 0, max: 71, label: 'APACHE II score', labelEn: 'APACHE II score', aliases: ['APACHE II SCORE'] },
-    { key: 'apache_mortality', section: 'severity', type: 'number', unit: '%', unitEn: '%', min: 0, max: 100, label: 'Προβλεπόμενη θνητότητα APACHE II', labelEn: 'APACHE II predicted mortality', aliases: ['APACHE II _ΘΝΗΤΟΤΗΤΑ_', 'APACHE II ΘΝΗΤΟΤΗΤΑ'] },
+    yes('apache_postop', 'Μετεγχειρητικός ασθενής', 'Post-operative admission', { section: 'severity', help: 'Για τον πίνακα θνητότητας APACHE II.', helpEn: 'Selects the APACHE II mortality table.' }),
+    { key: 'apache_mortality', section: 'severity', type: 'computed', computed: 'apacheII', from: 'apache_score', to: 'apache_postop', unit: '%', unitEn: '%', label: 'Προβλεπόμενη θνητότητα APACHE II', labelEn: 'APACHE II predicted mortality', help: 'Υπολογίζεται από το APACHE II score και το αν ο ασθενής είναι μετεγχειρητικός.', helpEn: 'Computed from the APACHE II score and whether the admission is post-operative.' },
     { key: 'euroscore', section: 'severity', type: 'number', unit: '%', unitEn: '%', min: 0, max: 100, label: 'EuroSCORE II', labelEn: 'EuroSCORE II', aliases: ['EUROSCORE'], showWhen: { field: 'category', value: 'cardiac' }, help: 'Μόνο για την Καρδιοχειρουργική ΜΕΘ, ως %.', helpEn: 'Cardiac surgery ICU only, as %.' },
     { key: 'ventilator_hours', section: 'stay', type: 'number', unit: 'ώρες', unitEn: 'hours', min: 0, max: 8760, label: 'Ώρες στον αναπνευστήρα', labelEn: 'Ventilator hours', aliases: ['ΧΡΟΝΟΣ ΠΑΡΑΜΟΝΗΣ ΣΤΟΝ ΑΝΑΠΝΕΥΣΤΗΡΑ'] },
     yes('pressure_ulcer', 'Εμφάνιση κατάκλισης', 'Pressure ulcer developed', { section: 'stay', aliases: ['ΕΜΦΑΝΙΣΗ ΚΑΤΑΚΛΙΣΕΩΝ', 'ΚΑΤΑΚΛΙΣΕΙΣ'] }),
@@ -57,11 +58,12 @@ const ICU = {
     average('mean_age', 'Μέση ηλικία', 'Mean age', 'age', { unit: 'έτη', unitEn: 'years' }),
     average('mean_icu_days', 'Μέσες ημέρες ΜΕΘ', 'Mean ICU days', 'length_of_stay', { filters: [{ field: 'discharge_date', op: 'filled' }], dateField: 'discharge_date', unit: 'ημέρες', unitEn: 'days', direction: 'lower' }),
     share('mortality', 'Θνησιμότητα ΜΕΘ', 'ICU mortality', [{ field: 'outcome', op: 'eq', value: 'death' }], { denominatorFilters: [{ field: 'outcome', op: 'filled' }], dateField: 'discharge_date', direction: 'lower' }),
-    average('predicted_mortality', 'Μέση προβλεπόμενη θνητότητα (APACHE II)', 'Mean predicted mortality (APACHE II)', 'apache_mortality', { filters: [{ field: 'outcome', op: 'filled' }], dateField: 'discharge_date', unit: '%', note: 'Συγκρίνεται με τη θνησιμότητα: ο λόγος τους είναι το SMR.', noteEn: 'Compare with mortality: their ratio is the SMR.' }),
+    average('predicted_mortality', 'Μέση προβλεπόμενη θνητότητα (APACHE II)', 'Mean predicted mortality (APACHE II)', 'apache_mortality', { filters: [{ field: 'outcome', op: 'filled' }], dateField: 'discharge_date', unit: '%' }),
+    share('mortality_scored', 'Θνησιμότητα ασθενών με APACHE II', 'Mortality of APACHE II-scored patients', [{ field: 'outcome', op: 'eq', value: 'death' }], { denominatorFilters: [{ field: 'outcome', op: 'filled' }, { field: 'apache_mortality', op: 'filled' }], dateField: 'discharge_date', direction: 'lower', note: 'Συγκρίνεται με τη μέση προβλεπόμενη θνητότητα: ίδιοι ασθενείς.', noteEn: 'Compare with the mean predicted mortality: same patients.' }),
     average('mean_apache', 'Μέσο APACHE II', 'Mean APACHE II', 'apache_score'),
     average('mean_ventilator_hours', 'Μέσες ώρες αναπνευστήρα (διασωληνωμένοι)', 'Mean ventilator hours (ventilated)', 'ventilator_hours', { filters: [{ field: 'ventilator_hours', op: 'gt', value: 0 }], dateField: 'discharge_date', unit: 'ώρες', unitEn: 'hours', direction: 'lower' }),
     share('pressure_ulcers', '% με κατάκλιση', '% pressure ulcers', [{ field: 'pressure_ulcer', op: 'yes' }], { direction: 'lower' }),
-    share('readmissions_48h', '% επανεισαγωγών 48ώρου', '% readmissions within 48 h', [{ field: 'readmission_48h', op: 'yes' }], { direction: 'lower' }),
+    share('readmissions_48h', '% επανεισαγωγών 48ώρου', '% readmissions within 48 h', [{ field: 'readmission_48h', op: 'yes' }], { denominatorFilters: [{ field: 'readmission_48h', op: 'filled' }], direction: 'lower' }),
     count('requisitions', 'Επιτάξεις', 'Requisitioned beds', { filters: [{ field: 'requisition', op: 'yes' }] }),
   ],
 }

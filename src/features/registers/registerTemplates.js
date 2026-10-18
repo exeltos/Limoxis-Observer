@@ -75,6 +75,7 @@ const NICU_INDICATORS = [
   { id: 'apgar_5', title: 'Μέσο APGAR 5′', titleEn: 'Mean APGAR 5 min', aggregation: 'mean', field: 'apgar_5', filters: [], direction: 'context' },
   { id: 'late_infection_rate', title: 'Όψιμες λοιμώξεις ανά 1.000 ημέρες καθετήρα', titleEn: 'Late-onset infections per 1,000 line days', aggregation: 'rate', filters: [{ field: 'late_infection', op: 'yes' }], denominatorFilters: [], denominatorField: 'central_line_days', multiplier: 1000, dateField: 'discharge_date', unit: '/1.000 ημέρες καθετήρα', unitEn: '/1,000 line days', direction: 'lower' },
   { id: 'breast_milk', title: '% με αποκλειστικά μητρικό γάλα', titleEn: '% exclusive breast milk', aggregation: 'percent', filters: [{ field: 'breast_milk', op: 'eq', value: 'exclusive' }], denominatorFilters: [{ field: 'breast_milk', op: 'filled' }], dateField: 'discharge_date', unit: '%', direction: 'higher' },
+  { id: 'no_breast_milk', title: '% χωρίς μητρικό γάλα', titleEn: '% without breast milk', aggregation: 'percent', filters: [{ field: 'breast_milk', op: 'eq', value: 'none' }], denominatorFilters: [{ field: 'breast_milk', op: 'filled' }], dateField: 'discharge_date', unit: '%', direction: 'lower' },
 ]
 
 const row = (key, label, labelEn, help = '', helpEn = '', aliases) => ({ key, label, labelEn, ...(help ? { help, helpEn } : {}), ...(aliases ? { aliases } : {}) })
