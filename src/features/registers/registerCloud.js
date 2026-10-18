@@ -7,8 +7,8 @@
 
 const TYPE_TO_DB = { yesNo: 'yes_no', multiChoice: 'multi_choice' }
 const TYPE_FROM_DB = { yes_no: 'yesNo', multi_choice: 'multiChoice' }
-const COMPUTED_TO_DB = { ageDays: 'age_days', ageYears: 'age_years' }
-const COMPUTED_FROM_DB = { age_days: 'ageDays', age_years: 'ageYears' }
+const COMPUTED_TO_DB = { ageDays: 'age_days', ageYears: 'age_years', apacheII: 'apache_ii' }
+const COMPUTED_FROM_DB = { age_days: 'ageDays', age_years: 'ageYears', apache_ii: 'apacheII' }
 const blank = value => value === undefined || value === null || value === ''
 const num = value => (blank(value) ? null : Number(value))
 const orNull = value => (blank(value) ? null : value)

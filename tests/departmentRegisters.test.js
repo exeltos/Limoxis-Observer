@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { breakdown, computeIndicator, computeValues, daysBetween, fieldVisible, formatValue, gestationText, indicatorReport, keyFrom, monthlySeries, parseGestation, periodLabel, periodOf, shiftPeriod, validateEntry } from '../src/features/registers/registerEngine'
+import { apacheMortality, breakdown, computeIndicator, computeValues, daysBetween, fieldVisible, formatValue, gestationText, indicatorReport, keyFrom, monthlySeries, parseGestation, periodLabel, periodOf, shiftPeriod, validateEntry } from '../src/features/registers/registerEngine'
 import { REGISTER_TEMPLATES, registerFromTemplate } from '../src/features/registers/registerTemplates'
 import { demoRegisterEntries, demoRegisters } from '../src/features/registers/registerDemoData'
 
@@ -31,6 +31,15 @@ describe('department register fields', () => {
     expect(validateEntry(nicu.fields, { ...base, birth_weight: 450 }).warnings.birth_weight).toBeTruthy()
     expect(validateEntry(nicu.fields, { ...base, birth_weight: 3320 }).valid).toBe(true)
     expect(validateEntry(nicu.fields, { ...base }).errors.birth_weight).toBe('Υποχρεωτικό')
+  })
+
+  it('reads APACHE II mortality from the score band and the operative status', () => {
+    expect(apacheMortality(5, true)).toBe(3)
+    expect(apacheMortality(35, false)).toBe(85)
+    expect(apacheMortality(50, true)).toBe(88)
+    expect(apacheMortality(12, null)).toBeNull()
+    const fields = [{ key: 'score', type: 'number' }, { key: 'postop', type: 'yesNo' }, { key: 'mortality', type: 'computed', computed: 'apacheII', from: 'score', to: 'postop' }]
+    expect(computeValues(fields, { score: 22, postop: false }).mortality).toBe(40)
   })
 
   it('asks for a field required from a date only on cases from that date on', () => {

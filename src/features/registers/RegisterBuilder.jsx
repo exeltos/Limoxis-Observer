@@ -142,6 +142,8 @@ function FieldDialog({ field: initial, register, sections, locked, onCancel, onS
   const set = next => setField(current => ({ ...current, ...next }))
   const others = register.fields.filter(item => item.key !== initial.key)
   const dates = others.filter(item => item.type === 'date')
+  const numbers = others.filter(item => item.type === 'number')
+  const yesNos = others.filter(item => item.type === 'yesNo')
   const isList = ['choice', 'multiChoice'].includes(field.type)
   const valid = Boolean(field.label.trim()) && (field.type !== 'computed' || (field.computed && field.from && field.to)) && (!isList || (field.options || []).length > 0 || field.provisional)
   function finish() {
@@ -175,8 +177,13 @@ function FieldDialog({ field: initial, register, sections, locked, onCancel, onS
       {field.type === 'computed' && <FormCard wide title={en ? 'Computed by the database' : 'Υπολογίζεται από τη βάση'}>
         <SearchableSelect label={en ? 'What' : 'Τι'} value={field.computed || ''} options={optionsOf(COMPUTED_KINDS, language)} onChange={value => set({ computed: value })} {...selectText(en)} />
         <FormGrid columns={2}>
+          {field.computed === 'apacheII' ? <>
+            <SearchableSelect label={en ? 'APACHE II score' : 'APACHE II score'} value={field.from || ''} options={numbers.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ from: value })} {...selectText(en)} />
+            <SearchableSelect label={en ? 'Post-operative (yes/no)' : 'Μετεγχειρητικός (ναι/όχι)'} value={field.to || ''} options={yesNos.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ to: value })} {...selectText(en)} />
+          </> : <>
           <SearchableSelect label={en ? 'From date' : 'Από ημερομηνία'} value={field.from || ''} options={dates.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ from: value })} {...selectText(en)} />
           <SearchableSelect label={en ? 'To date' : 'Έως ημερομηνία'} value={field.to || ''} options={dates.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ to: value })} {...selectText(en)} />
+          </>}
         </FormGrid>
       </FormCard>}
       {field.type === 'date' && <FormCard wide title={en ? 'Rule' : 'Κανόνας'}><SearchableSelect label={en ? 'Not before' : 'Όχι πριν από'} value={field.notBefore || ''} options={dates.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ notBefore: value || '' })} {...selectText(en)} /></FormCard>}
