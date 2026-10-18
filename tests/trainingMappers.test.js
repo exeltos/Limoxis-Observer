@@ -108,3 +108,18 @@ describe('training mappers: the RPC input',()=>{
   expect(requirementFromRow(row)).toEqual(requirement)
  })
 })
+
+describe('training mappers: programme details (delivery kind, time, hours, location, cost)',()=>{
+ const row={id:'p-1',program_key:'TRN-FM-1',title:'T',status:'completed',delivery_kind:'intra_department',start_time:'14:00:00',duration_hours:'1.5',location:'Αίθουσα',cost:'300'}
+ it('reads each detail from its own column',()=>{
+  const program=programFromRow(row)
+  expect(program).toMatchObject({deliveryKind:'intra_department',startTime:'14:00',durationHours:1.5,location:'Αίθουσα',cost:300})
+ })
+ it('leaves missing details empty',()=>{
+  const program=programFromRow({id:'p-2',program_key:'TRN-2',title:'T'})
+  expect(program).toMatchObject({deliveryKind:'',startTime:'',durationHours:null,location:'',cost:null})
+ })
+ it('sends the details to the RPC',()=>{
+  expect(programToRpc(programFromRow(row))).toMatchObject({deliveryKind:'intra_department',startTime:'14:00',durationHours:1.5,location:'Αίθουσα',cost:300})
+ })
+})

@@ -70,7 +70,7 @@ async function saveRecords(organizationId,{programs=[],assignments=[]}){
 export async function createTrainingProgramAsync(organizationId,draft){
   const now=new Date().toISOString()
   const trainerFeedbackTemplate=isDemoDataEnvironment()?normalizeTrainerFeedbackTemplate(DEFAULT_TRAINER_FEEDBACK_TEMPLATE):await loadTrainerFeedbackTemplateAsync(organizationId)
-  const program={...draft,id:`TRN-${Date.now()}`,validMonths:Number(draft.validMonths)||null,passScore:draft.requiresAssessment?Number(draft.passScore)||0:null,materials:[],assessmentQuestions:[],trainerFeedbackTemplate,feedbackResponses:[],createdAt:now,updatedAt:now}
+  const program={...draft,id:`TRN-${Date.now()}`,validMonths:Number(draft.validMonths)||null,durationHours:Number(draft.durationHours)>0?Number(draft.durationHours):null,cost:draft.cost===''||draft.cost==null||!(Number(draft.cost)>=0)?null:Number(draft.cost),passScore:draft.requiresAssessment?Number(draft.passScore)||0:null,materials:[],assessmentQuestions:[],trainerFeedbackTemplate,feedbackResponses:[],createdAt:now,updatedAt:now}
   if(isDemoDataEnvironment()){
     const state=loadTrainingState();saveTrainingState({...state,programs:[program,...state.programs]});return program
   }

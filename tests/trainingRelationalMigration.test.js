@@ -142,3 +142,24 @@ describe('training relational migration: readers, Demo and the old table',()=>{
   expect(migration).toContain("if tg_op = 'DELETE' and coalesce(current_setting('limoxis.test_reset', true), '') = 'on' then return old; end if;")
  })
 })
+
+describe('training programme details migration',()=>{
+ const details=read('supabase/migrations/20261117100000_training_program_details.sql')
+ const detailFn=name=>{const start=details.indexOf(`create or replace function ${name}(`);expect(start,name).toBeGreaterThan(-1);return details.slice(start,details.indexOf('$function$;',start))}
+ it('adds each detail as its own nullable column, additively',()=>{
+  for(const part of ["add column if not exists delivery_kind text check (delivery_kind is null or delivery_kind in ('internal','external','intra_department'))",'add column if not exists start_time time','add column if not exists duration_hours numeric check (duration_hours is null or duration_hours > 0)','add column if not exists location text','add column if not exists cost numeric check (cost is null or cost >= 0)'])expect(details).toContain(part)
+  expect(details).not.toMatch(/\b(drop|truncate)\b/i)
+  expect(details.slice(0,details.indexOf('create or replace function'))).not.toMatch(/\bdelete\b/i)
+  expect(details).not.toMatch(/\bjsonb?\s+(not null|default|check|,)/i)
+ })
+ it('saves and reads the details through the same RPC signatures',()=>{
+  const save=detailFn('public.training_save_program')
+  expect(save).toContain('public.training_save_program(p_organization_id uuid, p_program jsonb)')
+  expect(save).toContain('security invoker')
+  expect(save).toContain("public.current_user_has_capability(p_organization_id, 'manage_training')")
+  for(const part of ['delivery_kind, start_time, duration_hours, location, cost)',"case when p_program->>'deliveryKind' in ('internal','external','intra_department')","delivery_kind = case when p_program ? 'deliveryKind' then excluded.delivery_kind else t.delivery_kind end","cost = case when p_program ? 'cost' then excluded.cost else t.cost end"])expect(save).toContain(part)
+  const json=detailFn('private.training_program_json')
+  expect(json).toContain('private.training_program_json(p_program_id uuid, p_public boolean default false)')
+  for(const part of ["'deliveryKind', coalesce(p.delivery_kind, '')","'startTime', coalesce(to_char(p.start_time, 'HH24:MI'), '')","'durationHours', p.duration_hours","'location', coalesce(p.location, '')","'cost', p.cost"])expect(json).toContain(part)
+ })
+})
