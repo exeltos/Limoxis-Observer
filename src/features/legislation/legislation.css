@@ -1,0 +1,55 @@
+/* Legislation: the platform's library and each hospital's compliance register. */
+.leg-note{margin:0;color:var(--lo-color-muted);font-size:13px;line-height:1.5}
+.leg-sources-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:12px 20px 4px}
+.leg-sources-head>.leg-note{flex:1 1 320px}
+.leg-keywords-cell{max-width:360px;white-space:normal;color:var(--lo-color-muted);font-size:13px}
+.leg-candidate-cell{max-width:520px;white-space:normal}
+.leg-candidate-cell a{color:var(--lo-color-primary);font-weight:600;text-decoration:none}
+.leg-candidate-cell a svg{vertical-align:-1px}
+.leg-bar{display:inline-flex;align-items:center;gap:8px;min-width:140px}
+.leg-bar-track{display:flex;flex:1 1 auto;height:8px;min-width:90px;overflow:hidden;border-radius:999px;background:var(--lo-color-surface-muted)}
+.leg-bar-track i{display:block;height:100%}
+.leg-bar-track .is-ok{background:var(--lo-status-success-fg)}
+.leg-bar-track .is-partial{background:var(--lo-status-warning-fg)}
+.leg-bar-track .is-non{background:var(--lo-status-danger-fg)}
+.leg-bar-track .is-na{background:var(--lo-color-border-strong)}
+.leg-bar b{min-width:38px;text-align:right;font-size:13px}
+.leg-status{display:inline-flex;flex-wrap:wrap;gap:6px}
+.leg-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
+.leg-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+.leg-record-shell .record-tab-panel-body{flex:1 1 auto}
+.leg-pad{display:grid;gap:14px;align-content:start;padding:14px 20px 20px}
+.leg-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;font-size:13px;color:var(--lo-color-muted)}
+.leg-summary .leg-bar{min-width:240px}
+.leg-update{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--lo-status-warning-border);border-radius:10px;background:var(--lo-status-warning-bg);color:var(--lo-color-text);font-size:13px}
+.leg-update a{color:var(--lo-color-primary)}
+.leg-requirements{display:grid;gap:10px;margin:0;padding:0;list-style:none;counter-reset:leg}
+.leg-requirements>li{display:grid;gap:10px;padding:12px 14px 12px 44px;position:relative;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);counter-increment:leg}
+.leg-requirements>li::before{content:counter(leg);position:absolute;left:14px;top:12px;width:20px;font-weight:800;color:var(--lo-color-muted)}
+.leg-requirements>li.is-changed{border-color:var(--lo-status-warning-border);box-shadow:inset 3px 0 0 var(--lo-status-warning-fg)}
+.leg-requirement-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.leg-requirement-head p{margin:0;font-weight:600;line-height:1.5}
+.leg-requirement-badges{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;flex:none}
+.leg-before{margin:0;padding:6px 10px;border-radius:8px;background:var(--lo-color-surface-muted);color:var(--lo-color-muted);font-size:13px;text-decoration:line-through;text-decoration-color:var(--lo-color-border-strong)}
+.leg-before small{text-decoration:none;font-weight:700}
+.leg-guidance{margin:0;color:var(--lo-color-muted);font-size:13px}
+.leg-requirement-edit{display:grid;gap:10px}
+.leg-requirement-edit>button{justify-self:start}
+.leg-requirement-read{display:grid;gap:4px;font-size:13px;color:var(--lo-color-muted)}
+.leg-requirement-row{display:flex;align-items:flex-start;gap:8px}
+.leg-requirement-row textarea{flex:1 1 auto;min-width:0}
+.leg-guidance-input{width:100%}
+.leg-requirements-edit>li{padding-right:14px}
+.leg-text-summary{margin:0;line-height:1.6}
+.leg-link{display:inline-flex;align-items:center;gap:6px;color:var(--lo-color-primary);font-weight:700;text-decoration:none}
+.leg-versions{display:grid;gap:0;margin:0;padding:6px 20px 20px;list-style:none}
+.leg-versions li{display:grid;gap:3px;padding:12px 0;border-bottom:1px solid var(--lo-color-border)}
+.leg-versions li.is-new strong::after{content:'';display:inline-block;width:8px;height:8px;margin-left:8px;border-radius:50%;background:var(--lo-status-warning-fg);vertical-align:1px}
+.leg-versions small{color:var(--lo-color-muted)}
+.leg-form{display:grid;gap:14px}
+@media (max-width:640px){.leg-requirements>li{padding-left:36px}.leg-requirement-head{flex-direction:column}.leg-requirement-badges{justify-content:flex-start}.leg-summary .leg-bar{min-width:0;width:100%}}
+.leg-candidate-actions button{white-space:nowrap}
+.leg-decision{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface-muted)}
+.leg-decision>div:first-child{display:grid;gap:3px;flex:1 1 280px;font-size:13px}
+.leg-decision>div:first-child strong{font-size:14px}
+.leg-update.leg-decision{background:var(--lo-status-warning-bg);border-color:var(--lo-status-warning-border)}

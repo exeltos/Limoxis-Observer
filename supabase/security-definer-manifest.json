@@ -336,6 +336,16 @@
       "authenticated": true,
       "reason": "Approves a regulation's draft as its next edition; checks private.can_manage_regulations for the regulation's organisation and requires both signatures (administrator, infection control lead) for the draft's current revision."
     },
+    "legislation_check_now": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Starts the automatic check of the legislation sources now; Platform Owner only (auth.uid() and current_user_is_platform_owner). Calls the scheduled-tasks Edge Function with the Vault secret."
+    },
+    "legislation_publish": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Publishes a legislation text as a new version for every hospital and queues the e-mails to their administrators and quality managers; Platform Owner only (auth.uid() and current_user_is_platform_owner)."
+    },
     "regulation_sign": {
       "category": "rpc",
       "authenticated": true,

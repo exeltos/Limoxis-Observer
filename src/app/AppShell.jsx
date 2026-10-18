@@ -6,7 +6,7 @@ import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { watchWheelChaining } from './wheelChaining'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, LogOut, Menu, Settings, ShieldCheck, UserRound, Users, X } from 'lucide-react'
+import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, LogOut, Menu, Scale, Settings, ShieldCheck, UserRound, Users, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
 import { navigationFor } from './navigation'
 import { useLanguage } from '../core/i18n/LanguageContext'
@@ -61,6 +61,7 @@ export function AppShell(){
     {key:'platformNav.demos',label:'platformNav.menuDemos',path:'/platform',hash:'demo',icon:FlaskConical},
     {key:'platformNav.users',label:'platformNav.menuUsers',path:'/platform',hash:'users',icon:Users},
     {key:'platformNav.analysis',label:'platformNav.menuAnalysis',path:'/platform',hash:'reports',icon:BarChart3},
+    {key:'platformNav.legislation',label:'platformNav.menuLegislation',path:'/platform/legislation',hash:'',icon:Scale},
     {key:'platformNav.management',label:'platformNav.menuManagement',path:'/platform',hash:'management',icon:Database,children:[
       {key:'managementGroupLibraries',label:'managementGroupLibraries',path:'/platform',hash:'management?group=libraries'},
       {key:'managementGroupData',label:'managementGroupData',path:'/platform',hash:'management?group=data'},
@@ -70,7 +71,7 @@ export function AppShell(){
     {key:'platformNav.settings',label:'platformNav.menuSettings',path:'/platform/settings',hash:'',icon:Settings,governance:true},
   ]
   const platformHashFull=location.hash.replace(/^#/,'')
-  const platformActive=item=>location.pathname===item.path&&(item.path!=='/platform'||(item.hash.includes('?')?platformHashFull===item.hash||(item.hash.endsWith('=libraries')&&platformHashFull==='management'):platformHashKey===item.hash))
+  const platformActive=item=>(item.path==='/platform/legislation'&&location.pathname.startsWith('/platform/legislation'))||location.pathname===item.path&&(item.path!=='/platform'||(item.hash.includes('?')?platformHashFull===item.hash||(item.hash.endsWith('=libraries')&&platformHashFull==='management'):platformHashKey===item.hash))
   const selectedMembership=membership||memberships.find(item=>item?.organization?.id===tenant?.id)||null
   const currentOrganization=selectedMembership?.organization||tenant||null
   const idleLockMinutes=useIdleLockMinutes(tenant,isDemo)
@@ -78,7 +79,8 @@ export function AppShell(){
   // Every PDF prints the open hospital's name, logo and report header.
   useEffect(()=>{setReportBranding(tenant?{name:currentOrganization?.name||tenant.name||'',...branding,demo:Boolean(isDemo||tenant?.is_demo)}:null)},[tenant,currentOrganization?.name,branding,isDemo])
   const productionMemberships=(memberships||[]).filter(item=>item?.organization?.id&&!item?.organization?.is_demo)
-  useEffect(()=>{if(platformMode&&!tenantLoading&&!location.pathname.startsWith('/platform')&&location.pathname!=='/about'&&location.pathname!=='/account')navigate('/platform',{replace:true})},[platformMode,tenantLoading,location.pathname,navigate])
+  // A legislation link (from an e-mail or the bell) opens the platform's own legislation screen.
+  useEffect(()=>{if(platformMode&&!tenantLoading&&!location.pathname.startsWith('/platform')&&location.pathname!=='/about'&&location.pathname!=='/account')navigate(location.pathname.startsWith('/legislation')?`/platform${location.pathname}${location.search}`:'/platform',{replace:true})},[platformMode,tenantLoading,location.pathname,location.search,navigate])
   const isDepartmentHomeRole=role===ROLES.DEPARTMENT_MANAGER||role===ROLES.DEPARTMENT_USER||role===ROLES.LINK_NURSE
   useEffect(()=>{if(isDepartmentHomeRole&&location.pathname==='/')navigate('/my-department',{replace:true})},[isDepartmentHomeRole,location.pathname,navigate])
   const previewRoleLabels={hospital_admin:'hospitalAdminRole',infection_control_lead:'infectionControlLeadRole',infection_control_member:'infectionControlMemberRole',department_manager:'departmentManagerRole',link_nurse:'linkNurseRole',department_user:'departmentUserRole',laboratory:'laboratoryRole',committee_secretariat:'committeeSecretariatRole',hr_office:'hrOfficeRole',pharmacy:'pharmacyRole',occupational_physician:'occupationalPhysicianRole',doctor_reviewer:'doctorReviewerRole',quality_manager:'qualityManagerRole'}
