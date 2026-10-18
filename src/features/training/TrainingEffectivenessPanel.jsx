@@ -10,7 +10,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { formatDay } from '../../core/i18n/formatDay'
 import { loadQualityRecords } from '../quality/qualityService'
-import { EFFECTIVENESS_METHODS,EFFECTIVENESS_RESULTS,capasForProgram,defaultEffectiveness,effectivenessCapaSource,effectivenessLevels,effectivenessState,optionLabel } from './trainingEffectiveness'
+import { EFFECTIVENESS_METHODS,EFFECTIVENESS_RESULTS,capasForProgram,defaultEffectiveness,effectivenessCapaSource,effectivenessLevels,effectivenessResultValue,effectivenessState,optionLabel } from './trainingEffectiveness'
 import './trainingEffectiveness.css'
 
 const effectivenessStateText=(state,en)=>({not_planned:en?'Not planned':'Δεν έχει προγραμματιστεί',planned:en?'Planned':'Προγραμματισμένη',overdue:en?'Overdue':'Εκπρόθεσμη',effective:en?'Effective':'Αποτελεσματική',partial:en?'Partly effective':'Μερικώς αποτελεσματική',not_effective:en?'Not effective':'Μη αποτελεσματική'})[state]||state
@@ -35,10 +35,10 @@ export function TrainingEffectivenessPanel({program,assignments=[],state,onPersi
  const evaluator=profile?.fullName||profile?.name||user?.email||''
 
  async function save(){
-  const next={...draft}
+  const next={...draft,result:effectivenessResultValue(draft.result)}
   if(next.result&&!next.evaluatedAt)next.evaluatedAt=new Date().toISOString().slice(0,10)
   if(next.result&&!next.evaluatedBy)next.evaluatedBy=evaluator
-  if(!next.result){next.evaluatedAt='';next.evaluatedBy=''}
+  if(!next.result){next.evaluatedAt='';next.evaluatedBy='';next.comment=''}
   await onPersist({...state,programs:state.programs.map(p=>p.id===program.id?{...p,effectiveness:next,updatedAt:new Date().toISOString()}:p)},en?'Effectiveness evaluation saved.':'Η αξιολόγηση αποτελεσματικότητας αποθηκεύτηκε.')
  }
 
@@ -59,9 +59,11 @@ export function TrainingEffectivenessPanel({program,assignments=[],state,onPersi
    <label className="entry-span-2"><span>{en?'What counts as effective':'Τι θεωρείται αποτελεσματικό'}</span><input disabled={!canManage} value={draft.criterion} onChange={e=>set('criterion',e.target.value)} placeholder={en?'e.g. hand hygiene compliance ≥ 80% in the ward audit':'π.χ. συμμόρφωση υγιεινής χεριών ≥ 80% στην επιθεώρηση του τμήματος'}/></label>
    <label><span>{en?'Result':'Αποτέλεσμα'}</span><select disabled={!canManage} value={draft.result} onChange={e=>set('result',e.target.value)}><option value="">{en?'Not evaluated yet':'Δεν έχει αξιολογηθεί'}</option>{EFFECTIVENESS_RESULTS.map(([key,el,enLabel])=><option key={key} value={key}>{en?enLabel:el}</option>)}</select></label>
    <ManualDateField label={en?'Evaluated on':'Ημερομηνία αξιολόγησης'} value={draft.evaluatedAt} onChange={value=>set('evaluatedAt',value)} optional disabled={!canManage||!draft.result}/>
+   <label><span>{en?'Evaluated by':'Αξιολογητής'}</span><input disabled={!canManage||!draft.result} value={draft.evaluatedBy} onChange={e=>set('evaluatedBy',e.target.value)} placeholder={evaluator}/></label>
    <label className="entry-span-2"><span>{en?'Findings':'Ευρήματα'}</span><textarea rows={3} disabled={!canManage} value={draft.notes} onChange={e=>set('notes',e.target.value)} placeholder={en?'What was observed or measured':'Τι παρατηρήθηκε ή μετρήθηκε'}/></label>
+   <label className="entry-span-2"><span>{en?'Evaluation comment':'Σχόλιο αξιολόγησης'}</span><textarea rows={2} disabled={!canManage||!draft.result} value={draft.comment} onChange={e=>set('comment',e.target.value)} placeholder={en?'The evaluation as written by the evaluator':'Η αξιολόγηση όπως τη διατύπωσε ο αξιολογητής'}/></label>
   </div>
-  {saved.evaluatedBy&&<p className="training-effectiveness-meta">{en?'Evaluated by':'Αξιολόγηση από'} {saved.evaluatedBy}{saved.evaluatedAt?` · ${formatDay(saved.evaluatedAt)}`:''} · {optionLabel(EFFECTIVENESS_METHODS,saved.method,en)}</p>}
+  {saved.evaluatedBy&&<p className="training-effectiveness-meta">{en?'Evaluated by':'Αξιολόγηση από'} {saved.evaluatedBy}{saved.evaluatedAt?` · ${formatDay(saved.evaluatedAt)}`:''} · {optionLabel(EFFECTIVENESS_METHODS,saved.method,en)}{saved.comment?` — ${saved.comment}`:''}</p>}
   {canManage&&<div className="inline-edit-footer">{dirty&&<Button variant="secondary" onClick={()=>setDraft(saved)} disabled={busy}>{en?'Cancel':'Ακύρωση'}</Button>}<SaveButton loading={busy} disabled={!dirty||busy} onClick={()=>void save()}>{en?'Save':'Αποθήκευση'}</SaveButton></div>}
 
   {(notMet||capas.length>0)&&<div className="training-effectiveness-capa">

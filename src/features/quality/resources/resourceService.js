@@ -4,11 +4,14 @@ import { isOwnerPreview } from '../../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../../core/data/repository'
 import { nextEquipmentCode, nextSupplierCode } from './resourceModel'
 import { demoResources } from './resourceDemoData'
+import { diffChildRows, rowId } from '../qualityRelations'
+import { CERTIFICATION_FIELDS, EVALUATION_FIELDS, NONCONFORMITY_FIELDS, SCORE_FIELDS, SUPPLIER_SELECT, certificationRows, evaluationRows, nonconformityRows, scoreRows, supplierListsFromRow } from './supplierRelations'
 
 // Suppliers and equipment (20261111100000_quality_suppliers_equipment.sql):
-// a supplier keeps its certifications, evaluations and nonconformities with it;
-// a device's events are rows of their own, so a department can add one on its
-// own device. The demo keeps everything in the browser.
+// a supplier's certifications, evaluations (with a score row per criterion)
+// and nonconformities are rows of their own (20261116100000_quality_relational.sql),
+// shown as lists on the supplier; a device's events are rows of their own, so a
+// department can add one on its own device. The demo keeps everything in the browser.
 
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
@@ -35,14 +38,13 @@ const toSupplier = row => ({
   id: row.id, code: row.code, name: row.name, category: row.category, criticality: row.criticality, status: row.status,
   taxId: row.tax_id || '', contactName: row.contact_name || '', phone: row.phone || '', email: row.email || '', address: row.address || '', website: row.website || '', products: row.products || '',
   contractEndsOn: row.contract_ends_on || '', notes: row.notes || '',
-  certifications: Array.isArray(row.certifications) ? row.certifications : [], evaluations: Array.isArray(row.evaluations) ? row.evaluations : [], nonconformities: Array.isArray(row.nonconformities) ? row.nonconformities : [],
+  ...supplierListsFromRow(row),
   createdAt: row.created_at, updatedAt: row.updated_at,
 })
 const supplierRow = (organizationId, supplier) => ({
   organization_id: organizationId, name: supplier.name.trim(), category: supplier.category || 'consumables', criticality: supplier.criticality || 'medium', status: supplier.status || 'active',
   tax_id: text(supplier.taxId), contact_name: text(supplier.contactName), phone: text(supplier.phone), email: text(supplier.email), address: text(supplier.address), website: text(supplier.website), products: text(supplier.products),
   contract_ends_on: supplier.contractEndsOn || null, notes: text(supplier.notes),
-  certifications: supplier.certifications || [], evaluations: supplier.evaluations || [], nonconformities: supplier.nonconformities || [],
 })
 const toEquipment = row => ({
   id: row.id, code: row.code, name: row.name, equipmentType: row.equipment_type || '', departmentId: row.department_id || '', location: row.location || '',
@@ -76,7 +78,7 @@ export async function loadResources(organizationId) {
   if (isLocal()) { const state = local(); return { suppliers: state.suppliers, equipment: state.equipment, events: state.events } }
   if (!organizationId) return { suppliers: [], equipment: [], events: [] }
   const [suppliers, equipment, events] = await Promise.all([
-    selectAll(() => supabase.from('quality_suppliers').select('*').eq('organization_id', organizationId).order('name').order('id')),
+    selectAll(() => supabase.from('quality_suppliers').select(SUPPLIER_SELECT).eq('organization_id', organizationId).order('name').order('id')),
     selectAll(() => supabase.from('quality_equipment').select('*').eq('organization_id', organizationId).order('code').order('id')),
     selectAll(() => supabase.from('quality_equipment_events').select('*').eq('organization_id', organizationId).order('happened_on', { ascending: false }).order('id')),
   ])
@@ -91,9 +93,38 @@ export async function saveSupplier(organizationId, supplier) {
     saveLocal(state)
     return next
   }
-  if (isUuid(supplier.id)) return toSupplier(must(await supabase.from('quality_suppliers').update(supplierRow(organizationId, supplier)).eq('id', supplier.id).eq('organization_id', organizationId).select('*').single()))
-  const codes = must(await supabase.from('quality_suppliers').select('code').eq('organization_id', organizationId)) || []
-  return toSupplier(must(await supabase.from('quality_suppliers').insert({ ...supplierRow(organizationId, supplier), code: nextSupplierCode(codes.map(item => item.code)) }).select('*').single()))
+  let id = supplier.id
+  if (isUuid(id)) must(await supabase.from('quality_suppliers').update(supplierRow(organizationId, supplier)).eq('id', id).eq('organization_id', organizationId).select('id').single())
+  else {
+    const codes = must(await supabase.from('quality_suppliers').select('code').eq('organization_id', organizationId)) || []
+    id = must(await supabase.from('quality_suppliers').insert({ ...supplierRow(organizationId, supplier), code: nextSupplierCode(codes.map(item => item.code)) }).select('id').single()).id
+  }
+  await saveSupplierLists(organizationId, id, supplier)
+  return toSupplier(must(await supabase.from('quality_suppliers').select(SUPPLIER_SELECT).eq('id', id).eq('organization_id', organizationId).single()))
+}
+
+// Writes the stored rows of a parent the way `rows` says: removes the ones no
+// longer there, writes the new and the changed ones.
+async function syncRows(organizationId, table, parentColumn, parentIds, rows, fields) {
+  if (!parentIds.length && !rows.length) return
+  const existing = parentIds.length ? must(await supabase.from(table).select(['id', parentColumn, ...fields].join(',')).eq('organization_id', organizationId).in(parentColumn, parentIds)) || [] : []
+  const { upsert, remove } = diffChildRows(existing, rows, [parentColumn, ...fields])
+  if (remove.length) must(await supabase.from(table).delete().eq('organization_id', organizationId).in('id', remove))
+  if (upsert.length) must(await supabase.from(table).upsert(upsert.map(row => ({ ...row, organization_id: organizationId }))))
+}
+
+// A supplier's certifications, evaluations with their scores, and nonconformities.
+async function saveSupplierLists(organizationId, supplierId, supplier) {
+  const withParent = rows => rows.map(row => ({ ...row, supplier_id: supplierId }))
+  await syncRows(organizationId, 'quality_supplier_certifications', 'supplier_id', [supplierId], withParent(certificationRows(supplier.certifications)), CERTIFICATION_FIELDS)
+  await syncRows(organizationId, 'quality_supplier_nonconformities', 'supplier_id', [supplierId], withParent(nonconformityRows(supplier.nonconformities)), NONCONFORMITY_FIELDS)
+  const evaluations = (supplier.evaluations || []).map(item => ({ ...item, id: rowId(item.id) }))
+  const rows = withParent(evaluationRows(evaluations))
+  await syncRows(organizationId, 'quality_supplier_evaluations', 'supplier_id', [supplierId], rows, EVALUATION_FIELDS)
+  const ids = rows.map(row => row.id)
+  const stored = ids.length ? must(await supabase.from('quality_supplier_evaluation_scores').select('id,evaluation_id,criterion').eq('organization_id', organizationId).in('evaluation_id', ids)) || [] : []
+  const scores = evaluations.filter(item => ids.includes(item.id)).flatMap(item => scoreRows(item, stored.filter(row => row.evaluation_id === item.id)).map(row => ({ ...row, evaluation_id: item.id })))
+  await syncRows(organizationId, 'quality_supplier_evaluation_scores', 'evaluation_id', ids, scores, SCORE_FIELDS)
 }
 
 export async function removeSupplier(organizationId, id) {

@@ -225,12 +225,14 @@ export const APPROVALS = [
 export const approvalLabel = (value, language) => pick(APPROVALS, value, language)
 export const approvalTone = value => toneOf(APPROVALS, value)
 
-// The evaluation's score: the points given over the points possible, as a %.
+// The evaluation's score: the points given over the points possible, as a %,
+// each criterion counted by its weight (1 unless the evaluation says otherwise).
 // A criterion left blank does not count.
-export function evaluationScore(scores = {}) {
-  const given = CRITERIA.map(item => Number(scores?.[item.key])).filter(value => value >= 1 && value <= 5)
+export function evaluationScore(scores = {}, weights = {}) {
+  const given = CRITERIA.map(item => ({ value: Number(scores?.[item.key]), weight: Number(weights?.[item.key]) > 0 ? Number(weights[item.key]) : 1 })).filter(item => item.value >= 1 && item.value <= 5)
   if (!given.length) return null
-  return Math.round((given.reduce((sum, value) => sum + value, 0) / (given.length * 5)) * 100)
+  const total = given.reduce((sum, item) => sum + item.weight, 0)
+  return Math.round((given.reduce((sum, item) => sum + item.value * item.weight, 0) / (total * 5)) * 100)
 }
 export const approvalFor = score => (score == null ? 'unevaluated' : score >= APPROVED_AT ? 'approved' : score >= CONDITIONAL_AT ? 'conditional' : 'rejected')
 
@@ -263,7 +265,7 @@ const latestOf = (items = [], field) => [...items].sort((a, b) => String(b[field
 // whether the yearly evaluation is due, its certificates and open nonconformities.
 export function supplierStatus(supplier, today = todayIso()) {
   const latest = latestOf(supplier.evaluations, 'evaluatedOn')
-  const score = latest ? evaluationScore(latest.scores) : null
+  const score = latest ? evaluationScore(latest.scores, latest.weights) : null
   const approval = approvalFor(score)
   const evaluationDue = supplier.status !== 'inactive' && (!latest || addMonths(latest.evaluatedOn, 12) < today)
   const certificates = (supplier.certifications || []).map(item => ({ ...item, state: certificationState(item, today) }))

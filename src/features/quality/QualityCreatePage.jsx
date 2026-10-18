@@ -63,7 +63,7 @@ function QualityRecordCreate({recordType}){
         <Field label={`${t('title')} *`}><input value={draft[titleKey]} onChange={e=>set(titleKey,e.target.value)}/></Field>
         <QualityDepartmentField value={departmentRef(draft)} onChange={patch}/>
         {recordType==='findings'&&<ChoiceField label={t('severity')} value={draft.severity} options={severityOptions(t)} onChange={v=>set('severity',v)}/>}
-        {recordType==='capas'&&<><ChoiceField label={t('actionType')} value={draft.actionType} options={vocabularyOptions(CAPA_TYPES,language)} onChange={v=>set('actionType',v)}/><ChoiceField label={t('priority')} value={draft.priority} options={severityOptions(t)} onChange={v=>set('priority',v)}/></>}
+        {recordType==='capas'&&<><SearchableSelect label={t('actionType')} value={draft.actionType} options={vocabularyOptions(CAPA_TYPES,language)} onChange={v=>set('actionType',v||'corrective')} clearLabel=""/><ChoiceField label={t('priority')} value={draft.priority} options={severityOptions(t)} onChange={v=>set('priority',v)}/></>}
         {recordType==='audits'&&<ChoiceField label={t('auditType')} value={draft.auditType} options={vocabularyOptions(AUDIT_TYPES,language)} onChange={v=>set('auditType',v)}/>}
       </FormCard>
       <FormCard title={recordType==='audits'?(en?'Planning':'Προγραμματισμός'):(en?'Responsibility':'Ευθύνη')} icon={UserCheck}>

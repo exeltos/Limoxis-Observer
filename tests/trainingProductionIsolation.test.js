@@ -6,7 +6,10 @@ const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8')
 describe('training production isolation',()=>{
   it('loads production training from the governed service instead of local demo storage',()=>{
     const service=read('src/features/training/trainingService.js')
-    expect(service).toContain("from('training_records')")
+    expect(service).toContain("selectAll('training_programs',PROGRAM_SELECT")
+    expect(service).toContain("selectAll('training_assignments',ASSIGNMENT_SELECT")
+    expect(service).toContain("supabase.rpc('training_save_state'")
+    expect(service).not.toContain('training_records')
     expect(service).toContain('loadTrainingStateAsync')
     expect(service).toContain('isDemoDataEnvironment()')
   })

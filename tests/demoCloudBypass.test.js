@@ -38,7 +38,7 @@ describe('demo sessions never reach cloud-enabled tables', () => {
 
   it('repository.load() stays local for a cloud-enabled table in demo mode', async () => {
     const seed = [{ id: 'demo-training' }]
-    const result = await load('training_records', { fallback: seed, organizationId: 'demo-hospital' })
+    const result = await load('environmental_standards', { fallback: seed, organizationId: 'demo-hospital' })
     expect(result).toEqual(seed)
     expect(queries).toEqual([])
   })

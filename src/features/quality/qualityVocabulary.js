@@ -58,6 +58,10 @@ export const FINDING_SOURCES = [
 export const CAPA_TYPES = [
   { value: 'corrective', label: ['Διορθωτική', 'Corrective'] },
   { value: 'preventive', label: ['Προληπτική', 'Preventive'] },
+  { value: 'continuous_improvement', label: ['Συνεχής βελτίωση', 'Continuous improvement'] },
+  { value: 'innovation', label: ['Καινοτομία', 'Innovation'] },
+  { value: 'risk_management', label: ['Διαχείριση κινδύνου', 'Risk management'] },
+  { value: 'objective_achievement', label: ['Επίτευξη στόχου', 'Objective achievement'] },
 ]
 
 export const AUDIT_TYPES = [

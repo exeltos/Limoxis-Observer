@@ -100,7 +100,7 @@ export function SupplierRecordPage() {
   const exportFile = () => exportRegistry({
     name: `${row.code}-${en ? 'supplier-file' : 'fakelos-promithefti'}`,
     headers: en ? ['Kind', 'Date', 'Details', 'Score % / severity', 'Result / status'] : ['Είδος', 'Ημερομηνία', 'Στοιχεία', 'Βαθμολογία % / σοβαρότητα', 'Αποτέλεσμα / κατάσταση'],
-    rows: [...evaluations.map(item => { const score = evaluationScore(item.scores); return [en ? 'Evaluation' : 'Αξιολόγηση', item.evaluatedOn, CRITERIA.map(criterion => `${criterion.label[en ? 1 : 0]}: ${item.scores?.[criterion.key] || '—'}`).join('; '), score ?? '', approvalLabel(approvalFor(score), language)] }),
+    rows: [...evaluations.map(item => { const score = evaluationScore(item.scores, item.weights); return [en ? 'Evaluation' : 'Αξιολόγηση', item.evaluatedOn, CRITERIA.map(criterion => `${criterion.label[en ? 1 : 0]}: ${item.scores?.[criterion.key] || '—'}`).join('; '), score ?? '', approvalLabel(approvalFor(score), language)] }),
       ...nonconformities.map(item => [en ? 'Nonconformity' : 'Μη συμμόρφωση', item.date, item.description, severityLabel(item.severity, language), item.status === 'closed' ? (en ? 'Closed' : 'Έκλεισε') : (en ? 'Open' : 'Ανοιχτή')]),
       ...certifications.map(item => [en ? 'Certificate' : 'Πιστοποιητικό', item.expiresOn, [item.type, item.number, item.issuer].filter(Boolean).join(' · '), '', certificationStateLabel(certificationState(item), language)])],
   })
@@ -121,7 +121,7 @@ export function SupplierRecordPage() {
       <RegistryTable className="quality-table" rows={evaluations} rowKey={item => item.id}
         columns={[{ key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, ...CRITERIA.map(item => ({ key: item.key, label: item.label[en ? 1 : 0] })), { key: 'score', label: en ? 'Score' : 'Βαθμολογία' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'Not evaluated yet' : 'Δεν έχει αξιολογηθεί'} emptyText={en ? 'Evaluate the supplier once a year, and after a serious nonconformity.' : 'Αξιολογήστε τον προμηθευτή μία φορά τον χρόνο και μετά από σοβαρή μη συμμόρφωση.'}
-        renderRow={item => { const score = evaluationScore(item.scores); return <>
+        renderRow={item => { const score = evaluationScore(item.scores, item.weights); return <>
           <td className="nowrap-cell">{formatDay(item.evaluatedOn, language)}{item.evaluator && <small>{item.evaluator}</small>}</td>
           {CRITERIA.map(criterion => <td key={criterion.key} className="resource-score-cell">{item.scores?.[criterion.key] || '—'}</td>)}
           <td><StatusBadge tone={approvalTone(approvalFor(score))}>{score != null ? `${score}%` : '—'}</StatusBadge>{item.notes && <small>{item.notes}</small>}</td>
@@ -206,7 +206,7 @@ function ItemDialog({ editing, setEditing, language, saving, onSave }) {
   const en = language === 'en'
   const { field, item } = editing
   const set = next => setEditing(current => ({ ...current, item: { ...current.item, ...next } }))
-  const score = field === 'evaluations' ? evaluationScore(item.scores) : null
+  const score = field === 'evaluations' ? evaluationScore(item.scores, item.weights) : null
   const ready = field === 'evaluations' ? Boolean(item.evaluatedOn) && CRITERIA.every(criterion => Number(item.scores?.[criterion.key]) >= 1)
     : field === 'certifications' ? Boolean(String(item.type || '').trim())
     : Boolean(item.date) && String(item.description || '').trim().length > 2

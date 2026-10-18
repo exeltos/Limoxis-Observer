@@ -394,6 +394,11 @@
       "authenticated": true,
       "reason": "Opens a training from the e-mailed link; the one-time random access token identifies the assignment; answers are stripped."
     },
+    "training_finalize_review": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "A manager with manage_training finishes a pending manual assessment review: awards the free-text points, recomputes the score, completes the assignment and issues the certificate (columns the learner-owned trigger keeps from API writes)."
+    },
     "training_submit_evaluation": {
       "category": "public-token",
       "anon": true,

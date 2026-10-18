@@ -208,3 +208,23 @@
     padding:9px 0 0;
   }
 }
+.training-review-points{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:4px;
+  font-size:11px;
+}
+.training-review-points input{
+  width:72px;
+}
+.training-review-awarded,.training-review-note{
+  display:block;
+  margin:2px 0 0;
+  font-size:11px;
+  color:var(--lo-color-text-muted,#5d7891);
+}
+.training-review-finalize p{
+  margin:0 0 8px;
+  font-size:12px;
+}

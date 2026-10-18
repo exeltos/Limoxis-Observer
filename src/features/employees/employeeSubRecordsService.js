@@ -2,6 +2,7 @@ import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadTrainingState } from '../training/trainingData'
+import { ASSIGNMENT_SELECT,CERTIFICATE_SELECT,PROGRAM_SELECT,trainingStateFromRows } from '../training/trainingMappers'
 import { loadOccupationalVisits as loadVisitsLocal, saveOccupationalVisits as saveVisitsLocal, loadVaccinations as loadVaccinationsLocal, loadEmployeeTraining as loadTrainingLocal, loadEvaluations as loadEvaluationsLocal, saveEvaluations as saveEvaluationsLocal, loadCertificates as loadCertificatesLocal, loadExposureIncidents as loadExposureIncidentsLocal } from './employeeRecordsService'
 
 function ensureProductionContext(organizationId,employeeDbId,operation){
@@ -16,8 +17,11 @@ function cloudEnabled() {
   return hasSupabaseConfig && Boolean(supabase) && !isDemoDataEnvironment()
 }
 
+// Production training: the employee's assignments (training_assignments,
+// matched by employee row, account or employee code) with their answers,
+// trainer evaluation and certificate, and the programmes they belong to.
 async function loadCanonicalTrainingContext(organizationId,employeeDbId,employeeId){
-  ensureProductionContext(organizationId,employeeDbId,'training_records.employee_context')
+  ensureProductionContext(organizationId,employeeDbId,'training_assignments.employee_context')
   const {data:employee,error:employeeError}=await supabase
     .from('employees')
     .select('id,employee_code,user_id')
@@ -26,42 +30,34 @@ async function loadCanonicalTrainingContext(organizationId,employeeDbId,employee
     .maybeSingle()
   if(employeeError)throw employeeError
 
+  const employeeCode=String(employee?.employee_code||employeeId||'').trim()
+  const userId=employee?.user_id||null
+  const quoted=value=>`"${String(value).replace(/["\\]/g,'')}"`
+  const matches=[`employee_id.eq.${employeeDbId}`,userId&&`employee_user_id.eq.${userId}`,employeeCode&&`employee_code.eq.${quoted(employeeCode)}`,employeeId&&String(employeeId)!==employeeCode&&`employee_code.eq.${quoted(employeeId)}`].filter(Boolean)
   const {data:assignmentRows,error:assignmentError}=await supabase
-    .from('training_records')
-    .select('id,record_key,record_type,employee_user_id,payload,created_at,updated_at')
+    .from('training_assignments')
+    .select(ASSIGNMENT_SELECT)
     .eq('organization_id',organizationId)
-    .eq('record_type','assignment')
+    .or(matches.join(','))
     .order('updated_at',{ascending:false})
   if(assignmentError)throw assignmentError
 
-  const employeeCode=String(employee?.employee_code||employeeId||'').trim()
-  const userId=employee?.user_id||null
-  const assignments=(assignmentRows||[]).filter(row=>{
-    const payload=row.payload||{}
-    const payloadEmployeeId=String(payload.employeeId||'').trim()
-    return Boolean(
-      (userId&&row.employee_user_id===userId)||
-      (employeeCode&&payloadEmployeeId===employeeCode)||
-      (employeeId&&payloadEmployeeId===String(employeeId))
-    )
-  })
-
-  const programIds=[...new Set(assignments.map(row=>row.payload?.programId).filter(Boolean))]
-  let programMap=new Map()
+  const programIds=[...new Set((assignmentRows||[]).map(row=>row.program_id).filter(Boolean))]
+  let programRows=[]
   if(programIds.length){
-    const {data:programRows,error:programError}=await supabase
-      .from('training_records')
-      .select('record_key,payload')
-      .eq('organization_id',organizationId)
-      .eq('record_type','program')
-      .in('record_key',programIds)
+    const {data,error:programError}=await supabase.from('training_programs').select(PROGRAM_SELECT).eq('organization_id',organizationId).in('id',programIds)
     if(programError)throw programError
-    programMap=new Map((programRows||[]).map(row=>[row.record_key,row.payload||{}]))
+    programRows=data||[]
   }
-  let certificateMap=new Map()
-  const certificateIds=[...new Set(assignments.map(row=>row.payload?.certificateId).filter(Boolean))]
-  if(certificateIds.length){const {data:certificateRows,error:certificateError}=await supabase.from('training_records').select('record_key,payload').eq('organization_id',organizationId).eq('record_type','certificate').in('record_key',certificateIds);if(certificateError)throw certificateError;certificateMap=new Map((certificateRows||[]).map(row=>[row.record_key,row.payload||{}]))}
-  return {assignments,programMap,certificateMap}
+  let certificateRows=[]
+  const assignmentIds=(assignmentRows||[]).map(row=>row.id)
+  if(assignmentIds.length){
+    const {data,error:certificateError}=await supabase.from('training_certificates').select(CERTIFICATE_SELECT).eq('organization_id',organizationId).in('assignment_id',assignmentIds)
+    if(certificateError)throw certificateError
+    certificateRows=data||[]
+  }
+  const state=trainingStateFromRows({programs:programRows,assignments:assignmentRows||[],certificates:certificateRows})
+  return {assignments:state.assignments,programMap:new Map(state.programs.map(p=>[p.id,p])),certificateMap:new Map(state.certificates.map(c=>[c.id,c]))}
 }
 
 
@@ -176,21 +172,21 @@ export async function loadVaccinationsAsync(organizationId, employeeDbId, employ
 }
 
 // --- Training summary ---
-// Production training has one source of truth: training_records. The employee tab derives
-// its rows from assignment records and joins the corresponding programme payload.
+// Production training has one source of truth: the training_* tables (the
+// former training_records). The employee tab derives its rows from the
+// employee's assignments and joins the programme.
 export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return demoTrainingRows(employeeId)
   const {assignments,programMap}=await loadCanonicalTrainingContext(organizationId,employeeDbId,employeeId)
-  return assignments.map(row=>{
-    const assignment=row.payload||{}
+  return assignments.map(assignment=>{
     const program=programMap.get(assignment.programId)||{}
     const title=program.title||assignment.programTitle||assignment.title||assignment.programId||'Training'
     return {
-      id:row.record_key,
+      id:assignment.id,
       employeeId:employeeDbId,
       titleEl:title,
       titleEn:program.titleEn||title,
-      date:assignment.completedDate||program.startDate||assignment.assignedDate||program.dueDate||String(row.updated_at||row.created_at||'').slice(0,10),
+      date:assignment.completedDate||program.startDate||assignment.assignedDate||program.dueDate||String(assignment.updatedAt||assignment.createdAt||'').slice(0,10),
       assignedDate:assignment.assignedDate||'',
       completedDate:assignment.completedDate||'',
       dueDate:program.dueDate||assignment.dueDate||'',
@@ -283,12 +279,8 @@ export async function loadEvaluationsAsync(organizationId, employeeDbId, employe
   const formalWithEvaluator=(formalRows||[]).map(row=>({...row,evaluator_name:evaluatorNames.get(row.evaluator_user_id)||''}))
 
   const trainingEvaluations=trainingContext.assignments
-    .filter(row=>{
-      const a=row.payload||{}
-      return a.score!=null||Boolean(a.assessmentSubmittedAt)||Boolean(a.assessmentReviewStatus)
-    })
-    .map(row=>{
-      const a=row.payload||{}
+    .filter(a=>a.score!=null||Boolean(a.assessmentSubmittedAt)||Boolean(a.assessmentReviewStatus))
+    .map(a=>{
       const program=trainingContext.programMap.get(a.programId)||{}
       const title=program.title||a.programTitle||a.programId||'Training'
       const score=a.score!=null?Number(a.score):null
@@ -296,11 +288,11 @@ export async function loadEvaluationsAsync(organizationId, employeeDbId, employe
       const resultEl=score!=null?`Βαθμολογία ${score}%${a.competent!=null?` · ${competent?'Επιτυχής':'Μη επιτυχής'}`:''}`:(a.assessmentReviewStatus||'Υποβλήθηκε')
       const resultEn=score!=null?`Score ${score}%${a.competent!=null?` · ${competent?'Passed':'Not passed'}`:''}`:(a.assessmentReviewStatus||'Submitted')
       return {
-        id:`training-${row.record_key}`,
+        id:`training-${a.id}`,
         employeeId:employeeDbId,
         titleEl:`Αξιολόγηση γνώσεων · ${title}`,
         titleEn:`Knowledge assessment · ${program.titleEn||title}`,
-        date:a.completedDate||String(a.assessmentSubmittedAt||row.updated_at||row.created_at||'').slice(0,10),
+        date:a.completedDate||String(a.assessmentSubmittedAt||a.updatedAt||a.createdAt||'').slice(0,10),
         resultEl,
         resultEn,
         score,
