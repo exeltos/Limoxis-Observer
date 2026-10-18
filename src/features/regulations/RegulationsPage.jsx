@@ -13,7 +13,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { formatDay } from '../../core/i18n/formatDay'
 import { REGULATION_CATEGORIES, categoryLabel, regulationStatus, statusLabel, statusTone } from './regulationModel'
-import { createRegulation, loadRegulations, loadTemplates } from './regulationService'
+import { createRegulation, loadRegulations, loadTemplate, loadTemplates } from './regulationService'
 import { useRegulationAccess } from './regulationAccess'
 import './regulations.css'
 
@@ -33,7 +33,7 @@ export function RegulationsPage() {
 
   const reload = useCallback(async () => {
     try {
-      const [regulations, templates] = await Promise.all([loadRegulations(tenant?.id), loadTemplates()])
+      const [regulations, templates] = await Promise.all([loadRegulations(tenant?.id), loadTemplates({ withContent: false })])
       setState({ loading: false, regulations, templates, error: null })
     } catch (error) { setState(current => ({ ...current, loading: false, error })) }
   }, [tenant?.id])
@@ -44,9 +44,9 @@ export function RegulationsPage() {
   const archived = state.regulations.filter(item => item.archived)
 
   async function create() {
-    const template = templates.get(creating.templateKey) || null
     if (!String(creating.title || '').trim()) return
     try {
+      const template = creating.templateKey ? await loadTemplate(creating.templateKey) : null
       const id = await createRegulation(tenant?.id, { title: creating.title.trim(), category: creating.category, template, hospital: tenant?.name || '', codes: state.regulations.map(item => item.code) })
       setCreating(null)
       notify(en ? 'The regulation was created as a draft.' : 'Ο κανονισμός δημιουργήθηκε ως προσχέδιο.', 'success')
@@ -55,7 +55,7 @@ export function RegulationsPage() {
   }
 
   if (state.loading) return <RouteLoading />
-  return <Page fill title={en ? 'Regulations' : 'Κανονισμοί'} subtitle={en ? 'The hospital’s regulations, read as books. Every edition approved and kept.' : 'Οι κανονισμοί του νοσοκομείου, σαν βιβλία. Κάθε έκδοση εγκρίνεται και φυλάσσεται.'}
+  return <Page title={en ? 'Regulations' : 'Κανονισμοί'} subtitle={en ? 'The hospital’s regulations, read as books. Every edition approved and kept.' : 'Οι κανονισμοί του νοσοκομείου, σαν βιβλία. Κάθε έκδοση εγκρίνεται και φυλάσσεται.'}
     actions={canManage && <Button onClick={() => setCreating({ templateKey: state.templates[0]?.key || '', title: state.templates[0]?.title || '', category: state.templates[0]?.category || 'infection' })}><Plus size={15} />{en ? 'New regulation' : 'Νέος κανονισμός'}</Button>}>
     {state.error && <div className="data-access-state error" role="alert"><span>{en ? 'Could not load the regulations.' : 'Δεν ήταν δυνατή η φόρτωση των κανονισμών.'}</span><Button variant="secondary" onClick={reload}>{en ? 'Retry' : 'Επανάληψη'}</Button></div>}
     <section className="surface reg-library">
@@ -101,7 +101,7 @@ export function RegulationsPage() {
             {item.key ? <BookOpen size={16} /> : <FilePlus2 size={16} />}
             <strong>{item.title}</strong>
             <small>{item.description}</small>
-            {item.key && <em>{item.content?.chapters?.length || 0} {en ? 'chapters' : 'κεφάλαια'} · v{item.version}</em>}
+            {item.key && <em>v{item.version}{item.sources ? ` · ${item.sources}` : ''}</em>}
           </button>)}
         </div>
         <div className="reg-create-fields">

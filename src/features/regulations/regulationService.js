@@ -59,9 +59,19 @@ const saveLocal = state => saveSnapshot(KEY, state)
 
 // --- Templates ----------------------------------------------------------------------
 
-export async function loadTemplates() {
-  if (isLocal()) return local().templates.map(item => ({ ...item, content: structuredClone(item.content) }))
-  return (must(await supabase.from('regulation_templates').select('*').order('title')) || []).map(toTemplate)
+// The templates; without their text unless asked (a shelf needs only titles and versions).
+export async function loadTemplates({ withContent = true } = {}) {
+  if (isLocal()) return local().templates.map(item => ({ ...item, content: withContent ? structuredClone(item.content) : null }))
+  const columns = withContent ? '*' : 'key,title,title_en,category,description,sources,version,change_note,published_at'
+  return (must(await supabase.from('regulation_templates').select(columns).order('title')) || []).map(row => ({ ...toTemplate(row), content: withContent ? row.content || { chapters: [] } : null }))
+}
+
+// One template with its text.
+export async function loadTemplate(key) {
+  if (!key) return null
+  if (isLocal()) { const found = local().templates.find(item => item.key === key); return found ? { ...found, content: structuredClone(found.content) } : null }
+  const row = must(await supabase.from('regulation_templates').select('*').eq('key', key).maybeSingle())
+  return row ? toTemplate(row) : null
 }
 
 // The content of an earlier version of a template (to see what a new one changed).

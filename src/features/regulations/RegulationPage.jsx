@@ -24,7 +24,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { SIGNING_ROLES, categoryLabel, contentFromTemplate, contentStats, fillItems, regulationProblems, regulationStatus, statusLabel, statusTone, takeTemplateSection, templateChanges, validSignatures } from './regulationModel'
 import { sanitizeHtml } from './regulationHtml'
-import { approveDraft, discardDraft, loadEdition, loadRegulation, loadTemplateVersion, loadTemplates, saveDraft, signDraft, updateRegulation } from './regulationService'
+import { approveDraft, discardDraft, loadEdition, loadRegulation, loadTemplate, loadTemplateVersion, saveDraft, signDraft, updateRegulation } from './regulationService'
 import { useRegulationAccess } from './regulationAccess'
 import { regulationDocumentHtml, downloadRegulationWord } from './regulationDocument'
 import { RegulationBook } from './RegulationBook'
@@ -64,8 +64,7 @@ export function RegulationPage() {
       setDraft(found.draft ? structuredClone(found.draft) : null)
       setDirty(false)
       if (found.regulation.templateKey) {
-        const templates = await loadTemplates()
-        const latest = templates.find(item => item.key === found.regulation.templateKey) || null
+        const latest = await loadTemplate(found.regulation.templateKey)
         setTemplate(latest)
         setBaseTemplate(latest && found.regulation.templateVersion && latest.version > found.regulation.templateVersion ? await loadTemplateVersion(latest.key, found.regulation.templateVersion) : null)
       }
@@ -87,7 +86,8 @@ export function RegulationPage() {
   const reading = edition ? 'edition' : (!hasApproved || (readMode === 'draft' && draft)) ? 'draft' : 'current'
   const readContent = edition?.content || (reading === 'draft' ? draft?.content : regulation?.content) || { chapters: [] }
   const newerTemplate = Boolean(template && regulation?.templateVersion && template.version > regulation.templateVersion)
-  const changes = useMemo(() => (template && regulation ? templateChanges({ base: baseTemplate, latest: template.content, current: draft?.content || regulation.content }) : []), [template, baseTemplate, regulation, draft])
+  // Comparing with the template reads the whole text: only on the template tab.
+  const changes = useMemo(() => (tab === 'updates' && template && regulation ? templateChanges({ base: baseTemplate, latest: template.content, current: draft?.content || regulation.content }) : []), [tab, template, baseTemplate, regulation, draft])
   const problems = useMemo(() => (regulation ? regulationProblems(regulation, draft?.content, language) : []), [regulation, draft, language])
   const toFill = useMemo(() => fillItems(draft?.content).length, [draft])
   const templateFills = useMemo(() => (template ? fillItems(contentFromTemplate(template)).length : 0), [template])

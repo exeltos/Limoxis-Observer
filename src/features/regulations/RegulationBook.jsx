@@ -14,73 +14,81 @@ import { sanitizeHtml } from './regulationHtml'
 // phone the page takes the screen's width and the text keeps a reading size.
 const BOOK = { pageW: 560, pageH: 792, padX: 52, top: 64, bottom: 58, phone: false }
 const TURN_MS = 720
+const PAGE_CACHE = new WeakMap()
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
 const keyOf = (chapterIndex, sectionIndex) => `${chapterIndex}:${sectionIndex}`
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-// Splits the chapters into pages by measuring them in a page-sized box. Each
-// chapter starts a page; a heading never ends one; a list or a table that does
-// not fit goes on item by item; a single block taller than a page keeps its own.
+// Splits the chapters into pages. Each chapter is laid out once in a column as
+// wide as a page and every block's position is read from that one layout; the
+// blocks are then packed into pages by those positions. Each chapter starts a
+// page; a heading never ends one; a list or a table that does not fit goes on
+// item by item; a single block taller than a page keeps its own.
 function paginate(measure, chapters, labels, geo) {
-  const BODY_H = geo.pageH - geo.top - geo.bottom
+  const BODY_H = geo.pageH - geo.top - geo.bottom - 2
   const pages = []
-  let nodes = []
-  let chapterIndex = 0
-  const fits = () => measure.scrollHeight <= BODY_H + 1
   const isHeading = node => /^H[1-4]$/.test(node.tagName) || node.classList?.contains('reg-chapter-kicker')
-  const flush = () => { if (nodes.length) pages.push({ chapterIndex, html: nodes.map(node => node.outerHTML).join('') }); nodes = []; measure.innerHTML = '' }
-  const place = node => { measure.append(node); nodes.push(node) }
-  const tryPlace = node => { measure.append(node); if (fits()) { nodes.push(node); return true } node.remove(); return false }
-  // A new page, taking along the headings the old one ended with.
-  const newPage = () => {
-    const carried = []
-    while (nodes.length && isHeading(nodes.at(-1))) carried.unshift(nodes.pop())
-    if (!nodes.length) { nodes = carried; return }
-    flush()
-    carried.forEach(place)
-  }
-  const split = (node, rowsOf, shellOf) => {
-    let count = 0
-    let part = shellOf(count)
-    place(part)
-    for (const row of rowsOf(node)) {
-      const holder = part.tagName === 'TABLE' ? part.querySelector('tbody') : part
-      holder.append(row)
-      if (fits()) { count += 1; continue }
-      row.remove()
-      if (!holder.children.length) { part.remove(); nodes.pop() }
-      newPage()
-      part = shellOf(count)
-      place(part)
-      ;(part.tagName === 'TABLE' ? part.querySelector('tbody') : part).append(row)
-      count += 1
-    }
-  }
-  const add = node => {
-    if (tryPlace(node)) return
-    if (/^(UL|OL)$/.test(node.tagName) && node.children.length > 1) {
-      return split(node, list => [...list.children], count => { const shell = node.cloneNode(false); if (node.tagName === 'OL' && count) shell.setAttribute('start', String(Number(node.getAttribute('start') || 1) + count)); return shell })
-    }
-    if (node.tagName === 'TABLE' && node.querySelectorAll('tr').length > 2) {
-      const head = node.querySelector('thead')
-      return split(node, table => [...table.querySelectorAll('tbody > tr, :scope > tr')], () => { const shell = node.cloneNode(false); if (head) shell.append(head.cloneNode(true)); shell.append(document.createElement('tbody')); return shell })
-    }
-    if (nodes.length && !nodes.every(isHeading)) { newPage(); if (tryPlace(node)) return }
-    place(node)
-  }
-  chapters.forEach((chapter, index) => {
-    chapterIndex = index
-    const kicker = document.createElement('div'); kicker.className = 'reg-chapter-kicker'; kicker.textContent = `${labels.chapter} ${index + 1}`
+  chapters.forEach((chapter, chapterIndex) => {
+    measure.innerHTML = ''
+    const kicker = document.createElement('div'); kicker.className = 'reg-chapter-kicker'; kicker.textContent = `${labels.chapter} ${chapterIndex + 1}`
     const title = document.createElement('h1'); title.textContent = chapter.title || ''
-    add(kicker); add(title)
+    measure.append(kicker, title)
     ;(chapter.sections || []).forEach((section, sectionIndex) => {
-      const heading = document.createElement('h2'); heading.textContent = section.title || ''; heading.dataset.sec = keyOf(index, sectionIndex)
-      add(heading)
+      const heading = document.createElement('h2'); heading.textContent = section.title || ''; heading.dataset.sec = keyOf(chapterIndex, sectionIndex)
       const holder = document.createElement('div')
       holder.innerHTML = sanitizeHtml(section.html)
-      for (const child of [...holder.children]) add(child)
+      measure.append(heading, ...holder.childNodes)
     })
+    // One layout: where every block (and every list item or table row) starts and ends.
+    const origin = measure.getBoundingClientRect().top
+    const box = node => { const rect = node.getBoundingClientRect(); const style = getComputedStyle(node); return { start: rect.top - origin - (parseFloat(style.marginTop) || 0), top: rect.top - origin, bottom: rect.bottom - origin } }
+    const blocks = [...measure.children].map(node => ({ node, ...box(node) }))
+
+    let html = [], items = [], startY = null
+    const flush = () => { if (html.length) pages.push({ chapterIndex, html: html.join('') }); html = []; items = []; startY = null }
+    const put = (block, markup = block.node.outerHTML) => { if (startY === null) startY = block.start; html.push(markup); items.push(block) }
+    // A new page, taking along the headings the old one ended with.
+    const newPage = () => {
+      const carried = []
+      while (items.length && isHeading(items.at(-1).node)) { carried.unshift(items.pop()); html.pop() }
+      flush()
+      carried.forEach(block => put(block))
+    }
+    // A list or table split item by item; each part keeps the list's spacing (and the table's head).
+    const split = (block, rows, shellOf) => {
+      const lead = rows[0].top - block.start
+      let part = [], offset = 0
+      const emit = () => { if (part.length) { html.push(shellOf(offset, part)); items.push(block); offset += part.length; part = [] } }
+      for (const row of rows) {
+        if (startY === null) startY = row.top - lead
+        if (row.bottom - startY <= BODY_H || (!part.length && items.every(item => isHeading(item.node)))) { part.push(row); continue }
+        emit()
+        newPage()
+        if (startY === null) startY = row.top - lead
+        part.push(row)
+      }
+      emit()
+    }
+    for (const block of blocks) {
+      if (startY === null || block.bottom - startY <= BODY_H) { put(block); continue }
+      const { node } = block
+      if (/^(UL|OL)$/.test(node.tagName) && node.children.length > 1) {
+        const rows = [...node.children].map(child => ({ node: child, ...box(child) }))
+        split(block, rows, (offset, part) => { const shell = node.cloneNode(false); if (node.tagName === 'OL' && offset) shell.setAttribute('start', String(Number(node.getAttribute('start') || 1) + offset)); shell.innerHTML = part.map(row => row.node.outerHTML).join(''); return shell.outerHTML })
+        continue
+      }
+      if (node.tagName === 'TABLE' && node.querySelectorAll('tr').length > 2) {
+        const head = node.querySelector('thead')
+        const headHeight = head ? head.getBoundingClientRect().height : 0
+        const rows = [...node.querySelectorAll(':scope > tbody > tr, :scope > tr')].map(row => ({ node: row, ...box(row) }))
+        rows.forEach(row => { row.top -= headHeight })
+        split(block, rows, (_offset, part) => { const shell = node.cloneNode(false); shell.innerHTML = `${head ? head.outerHTML : ''}<tbody>${part.map(row => row.node.outerHTML).join('')}</tbody>`; return shell.outerHTML })
+        continue
+      }
+      if (items.length && !items.every(item => isHeading(item.node))) newPage()
+      put(block)
+    }
     flush()
   })
   measure.innerHTML = ''
@@ -110,12 +118,23 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
   const [tocOpen, setTocOpen] = useState(false)
 
   // Measures the chapters into pages (again once the fonts have loaded, and when the page size changes).
+  // The pages are kept per text and page size, so opening the book again (another
+  // tab, the whole screen) does not measure it again.
   useLayoutEffect(() => {
     if (!measure.current) return undefined
     let alive = true
-    const run = () => { if (alive && measure.current) setLayout(paginate(measure.current, chapters, labels, geo)) }
+    const key = `${geo.pageW}x${geo.pageH}:${geo.padX}:${labels.chapter}`
+    const run = () => {
+      if (!alive || !measure.current) return
+      const cached = PAGE_CACHE.get(chapters)?.get(key)
+      if (cached) { setLayout(cached); return }
+      const result = paginate(measure.current, chapters, labels, geo)
+      if (!PAGE_CACHE.has(chapters)) PAGE_CACHE.set(chapters, new Map())
+      PAGE_CACHE.get(chapters).set(key, result)
+      setLayout(result)
+    }
+    if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { PAGE_CACHE.get(chapters)?.delete(key); run() })
     run()
-    document.fonts?.ready?.then(run)
     return () => { alive = false }
   }, [chapters, labels, geo])
 
@@ -165,9 +184,10 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
   const view = narrow ? { left: null, right: at } : (() => { const start = spreadOf(at); return start === 0 ? { left: -1, right: 0 } : { left: start, right: start + 1 } })()
   const step = narrow ? 1 : 2
 
+  // A click while a page is still turning finishes that turn at once and goes on from there.
   const go = useCallback((target, animate = true) => {
-    if (turn) return
     const clamp = Math.max(0, Math.min(total - 1, target))
+    if (turn) { setTurn(null); setAt(clamp); return }
     const from = narrow ? at : spreadOf(at)
     const to = narrow ? clamp : spreadOf(clamp)
     if (to === from) { setAt(clamp); return }
@@ -179,8 +199,9 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
     const timer = setTimeout(() => { setAt(turn.target); setTurn(null) }, TURN_MS)
     return () => clearTimeout(timer)
   }, [turn])
-  const next = useCallback(() => go((narrow ? at : spreadOf(at)) + (narrow ? 1 : (spreadOf(at) === 0 ? 1 : 2))), [go, narrow, at])
-  const previous = useCallback(() => go(narrow ? at - 1 : spreadOf(at) - (spreadOf(at) <= 1 ? 1 : 2)), [go, narrow, at])
+  const base = turn ? turn.target : at
+  const next = useCallback(() => go((narrow ? base : spreadOf(base)) + (narrow ? 1 : (spreadOf(base) === 0 ? 1 : 2))), [go, narrow, base])
+  const previous = useCallback(() => go(narrow ? base - 1 : spreadOf(base) - (spreadOf(base) <= 1 ? 1 : 2)), [go, narrow, base])
 
   useEffect(() => {
     const onKey = event => {
@@ -262,9 +283,9 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
       <div className="reg-stage-bar">
         <button type="button" className="reg-toc-toggle" onClick={() => setTocOpen(value => !value)}><BookOpen size={15} />{en ? 'Contents' : 'Περιεχόμενα'}</button>
         <div className="reg-pager">
-          <button type="button" onClick={previous} disabled={current <= 0 || Boolean(turn)} aria-label={en ? 'Previous page' : 'Προηγούμενη σελίδα'}><ChevronLeft size={18} /></button>
+          <button type="button" onClick={previous} disabled={base <= 0} aria-label={en ? 'Previous page' : 'Προηγούμενη σελίδα'}><ChevronLeft size={18} /></button>
           <span>{label}</span>
-          <button type="button" onClick={next} disabled={(narrow ? current : view.right) >= total - 1 || Boolean(turn)} aria-label={en ? 'Next page' : 'Επόμενη σελίδα'}><ChevronRight size={18} /></button>
+          <button type="button" onClick={next} disabled={(narrow ? base : (spreadOf(base) === 0 ? 0 : spreadOf(base) + 1)) >= total - 1} aria-label={en ? 'Next page' : 'Επόμενη σελίδα'}><ChevronRight size={18} /></button>
         </div>
         {expanded ? <button type="button" className="reg-close" onClick={() => setExpanded(false)} aria-label={en ? 'Close (Esc)' : 'Κλείσιμο (Esc)'} title={en ? 'Close (Esc)' : 'Κλείσιμο (Esc)'}><X size={20} /></button>
           : <button type="button" className="reg-zoom" onClick={() => setExpanded(true)} title={en ? 'Open the book in front of the whole screen' : 'Άνοιγμα του βιβλίου σε όλη την οθόνη'}><Maximize2 size={15} />{!geo.phone && (en ? 'Zoom' : 'Μεγέθυνση')}</button>}

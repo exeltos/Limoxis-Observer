@@ -17,7 +17,7 @@ import { useContextualNavigation } from '../../core/navigation/useContextualNavi
 import { formatDay } from '../../core/i18n/formatDay'
 import { categoryLabel, contentFromTemplate } from './regulationModel'
 import { sanitizeHtml } from './regulationHtml'
-import { loadTemplates, publishTemplate } from './regulationService'
+import { loadTemplate, publishTemplate } from './regulationService'
 import { useRegulationAccess } from './regulationAccess'
 import { downloadRegulationWord } from './regulationDocument'
 import { RegulationBook } from './RegulationBook'
@@ -41,7 +41,7 @@ export function RegulationTemplatePage() {
   const [saving, setSaving] = useState(false)
 
   const reload = useCallback(async () => {
-    try { const found = (await loadTemplates()).find(item => item.key === templateKey); setTemplate(found ? structuredClone(found) : false); setDirty(false) } catch { setTemplate(false) }
+    try { const found = await loadTemplate(templateKey); setTemplate(found ? structuredClone(found) : false); setDirty(false) } catch { setTemplate(false) }
   }, [templateKey])
   useEffect(() => { void reload() }, [reload])
 

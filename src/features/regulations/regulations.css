@@ -43,7 +43,6 @@
 .reg-slot-left{left:0}
 .reg-slot-right{left:50%}
 .reg-book.is-single .reg-slot-right{left:0;width:100%}
-.reg-book.is-turning .reg-slot{cursor:default}
 .reg-spine{position:absolute;top:0;bottom:0;left:50%;width:2px;margin-left:-1px;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.14),rgba(0,0,0,.05));z-index:3;pointer-events:none}
 
 /* ---- Pages ------------------------------------------------------------------ */
@@ -78,7 +77,8 @@
 .reg-chapter-kicker{margin:0 0 7px;font-family:var(--lo-font-sans,Inter,system-ui,sans-serif);font-size:9px;font-weight:800;letter-spacing:.16em;color:#7a93a6}
 .reg-fill{padding:7px 11px;border-left:3px solid #d9a404;border-radius:0 6px 6px 0;background:#fff7dc;color:#6f5300;font-family:var(--lo-font-sans,Inter,system-ui,sans-serif);font-size:11.4px;font-style:italic;text-align:left!important}
 .reg-note{padding:7px 11px;border-left:3px solid #2a6f97;border-radius:0 6px 6px 0;background:#eef5fa;color:#1f4a66;font-family:var(--lo-font-sans,Inter,system-ui,sans-serif);font-size:11.4px;text-align:left!important}
-.reg-measure-host{position:absolute;left:-20000px;top:0;visibility:hidden;pointer-events:none}
+/* Measuring is kept apart from the page's layout, so each check costs only the page being filled. */
+.reg-measure-host{position:absolute;left:-20000px;top:0;width:1200px;height:2400px;overflow:hidden;contain:strict;visibility:hidden;pointer-events:none}
 
 /* Cover and the document page */
 .reg-cover{display:block;padding:56px var(--reg-pad-x,52px);background:radial-gradient(circle at 115% 18%,rgba(255,255,255,.07) 0 160px,transparent 161px),radial-gradient(circle at 115% 18%,rgba(255,255,255,.04) 0 260px,transparent 261px),linear-gradient(160deg,#173d5a 0%,#10283c 100%);color:#fff}
@@ -148,23 +148,23 @@
 
 /* ---- Library ------------------------------------------------------------------ */
 .reg-library{padding:22px}
-.reg-shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:26px 22px}
+.reg-shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,240px));gap:28px 26px}
 .reg-shelf-item{display:grid;gap:12px;padding:0;border:0;background:transparent;font:inherit;text-align:left;color:var(--lo-color-text);cursor:pointer}
-.reg-mini-cover{position:relative;display:flex;flex-direction:column;aspect-ratio:3/4;padding:18px 16px 16px;overflow:hidden;border-radius:4px 10px 10px 4px;background:linear-gradient(160deg,#173d5a,#10283c);color:#fff;box-shadow:inset 7px 0 0 rgba(0,0,0,.18),inset 9px 0 0 rgba(255,255,255,.06),0 10px 22px rgba(15,34,51,.18);transition:transform .18s,box-shadow .18s}
+.reg-mini-cover{position:relative;display:flex;flex-direction:column;aspect-ratio:3/4;padding:18px 18px 18px;-webkit-font-smoothing:antialiased;overflow:hidden;border-radius:4px 10px 10px 4px;background:linear-gradient(160deg,#173d5a,#10283c);color:#fff;box-shadow:inset 7px 0 0 rgba(0,0,0,.18),inset 9px 0 0 rgba(255,255,255,.06),0 10px 22px rgba(15,34,51,.18);transition:transform .18s,box-shadow .18s}
 .reg-mini-cover.is-waste{background:linear-gradient(160deg,#245446,#163a30)}
 .reg-mini-cover.is-safety{background:linear-gradient(160deg,#5a3d17,#3c2810)}
 .reg-mini-cover.is-food{background:linear-gradient(160deg,#4c2a5a,#30193c)}
 .reg-mini-cover.is-other{background:linear-gradient(160deg,#3b4652,#262e37)}
 .reg-mini-cover::after{content:"";position:absolute;right:-60px;top:22%;width:150px;height:150px;border:1px solid rgba(255,255,255,.14);border-radius:50%;box-shadow:0 0 0 26px rgba(255,255,255,.04)}
 .reg-mini-cover>i{display:block;width:34px;height:3px;border-radius:2px;background:#c9a864}
-.reg-mini-cover small{margin-top:auto;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#a9c4d6}
-.reg-mini-cover strong{margin-top:6px;font-family:Georgia,'Noto Serif',serif;font-size:15px;font-weight:400;line-height:1.3}
-.reg-mini-cover em{margin-top:10px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.reg-mini-cover small{position:relative;z-index:1;margin-top:auto;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#d3e3ee}
+.reg-mini-cover strong{position:relative;z-index:1;margin-top:8px;font-family:Georgia,'Noto Serif',serif;font-size:17px;font-weight:600;line-height:1.28;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.reg-mini-cover em{position:relative;z-index:1;margin-top:12px;font-style:normal;font-size:11.5px;font-weight:600;letter-spacing:.03em;color:rgba(255,255,255,.86)}
 .reg-shelf-item:hover .reg-mini-cover,.reg-shelf-item:focus-visible .reg-mini-cover{transform:translateY(-4px);box-shadow:inset 7px 0 0 rgba(0,0,0,.18),inset 9px 0 0 rgba(255,255,255,.06),0 16px 30px rgba(15,34,51,.24)}
 .reg-shelf-item:focus-visible{outline:none}
-.reg-shelf-meta{display:grid;gap:4px;font-size:12px;color:var(--lo-color-muted)}
+.reg-shelf-meta{display:grid;gap:5px;font-size:13px;color:var(--lo-color-muted)}
 .reg-shelf-line{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.reg-shelf-line b{font-size:12px;color:var(--lo-color-text)}
+.reg-shelf-line b{font-size:13px;color:var(--lo-color-text)}
 .reg-shelf-update{justify-self:start;padding:2px 8px;border-radius:999px;background:#fff4d6;color:#7a5600;font-size:11px;font-weight:700}
 .reg-empty{display:grid;justify-items:center;gap:8px;padding:44px 20px;text-align:center;color:var(--lo-color-muted)}
 .reg-empty strong{font-size:15px;color:var(--lo-color-text)}
@@ -367,3 +367,4 @@
 .reg-reader-placeholder{min-height:420px}
 @keyframes reg-expand{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.reg-reader.is-expanded{animation:none}}
+@media (max-width:520px){.reg-shelf{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px}.reg-mini-cover{padding:14px 14px 14px}.reg-mini-cover strong{font-size:15px}.reg-mini-cover small,.reg-mini-cover em{font-size:10.5px}}
