@@ -75,7 +75,7 @@ export function EquipmentList({ list, filters, setFilters, onOpen, filterEnd = n
       <FilterSelect label={en ? 'Criticality' : 'Κρισιμότητα'} value={filters.criticality} onChange={value => set('criticality', value)}><option value="all">{t('all')}</option>{CRITICALITY.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
     </FilterBar>
     <div className="scroll-table">
-      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id} empty={!list.loading && !rows.length}
+      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.equipment.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }))}
         columns={[{ key: 'code', label: t('code') }, { key: 'device', label: en ? 'Device' : 'Εξοπλισμός' }, ...(showDepartment ? [{ key: 'department', label: en ? 'Department' : 'Τμήμα' }] : []), { key: 'next', label: en ? 'Next check' : 'Επόμενος έλεγχος' }, { key: 'programme', label: en ? 'Programme' : 'Πρόγραμμα' }, { key: 'status', label: t('status') }]}
         emptyTitle={en ? 'No equipment' : 'Δεν υπάρχει εξοπλισμός'} emptyText={en ? 'Register the devices whose maintenance and calibration you follow.' : 'Καταχωρίστε τον εξοπλισμό του οποίου παρακολουθείτε τη συντήρηση και τη διακρίβωση.'}
         rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpen(row, rows) })}
@@ -110,7 +110,7 @@ export function SuppliersList({ list, filters, setFilters, onOpen, filterEnd = n
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="active">{en ? 'Active' : 'Ενεργοί'}</option><option value="inactive">{en ? 'Inactive' : 'Ανενεργοί'}</option><option value="all">{t('all')}</option></FilterSelect>
     </FilterBar>
     <div className="scroll-table">
-      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id} empty={!list.loading && !rows.length}
+      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.suppliers.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))}
         columns={[{ key: 'code', label: t('code') }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'evaluation', label: en ? 'Latest evaluation' : 'Τελευταία αξιολόγηση' }, { key: 'attention', label: en ? 'Needs attention' : 'Χρειάζεται προσοχή' }, { key: 'approval', label: en ? 'Approval' : 'Έγκριση' }]}
         emptyTitle={en ? 'No suppliers' : 'Δεν υπάρχουν προμηθευτές'} emptyText={en ? 'Register the external providers whose products and services affect care.' : 'Καταχωρίστε τους εξωτερικούς παρόχους των οποίων τα προϊόντα και οι υπηρεσίες επηρεάζουν τη φροντίδα.'}
         rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpen(row, rows) })}

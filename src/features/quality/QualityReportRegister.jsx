@@ -145,7 +145,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
   </FilterBar>
   <div className="scroll-table" ref={registry?.scrollRef}>
-   <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length}
+   <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
     columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Kind':'Είδος'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Stage':'Στάδιο'},{key:'owner',label:t('owner')}]}
     emptyTitle={en?'No reports':'Δεν υπάρχουν αναφορές'} emptyText={en?'Incidents, complaints and suggestions that staff report appear here, at their stage of the flow.':'Εδώ εμφανίζονται τα συμβάντα, τα παράπονα και οι προτάσεις που αναφέρει το προσωπικό, στο στάδιο όπου βρίσκονται.'}
     rowProps={row=>({...(registry?.rowProps(row.id)||{}),className:`${registry?.rowProps(row.id)?.className||''}${row.sentinel&&row.stage!=='closed'?' quality-row-sentinel':''}`.trim(),onClick:()=>onOpenReport(row,items)})}
@@ -179,7 +179,7 @@ export function DeviationQueue({view,loading,language,t,onCreateCapa}){
    <FilterSelect label={en?'Period':'Περίοδος'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map(value=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>
   </FilterBar>
   <div className="scroll-table">
-   <RegistryTable bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length}
+   <RegistryTable bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
     columns={[{key:'source',label:en?'Source':'Πηγή'},{key:'title',label:en?'What was recorded':'Τι καταγράφηκε'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'priority',label:t('priority')},{key:'actions',label:''}]}
     emptyTitle={en?'No deviations waiting':'Καμία απόκλιση σε αναμονή'} emptyText={en?'Control entries with a finding, failed bundle criteria and trainings that did not change practice appear here until a corrective action handles them.':'Εδώ εμφανίζονται οι καταχωρίσεις ελέγχων με εύρημα, τα κριτήρια bundle που δεν τηρήθηκαν και οι εκπαιδεύσεις που δεν άλλαξαν την πρακτική, μέχρι να τις αναλάβει μια διορθωτική ενέργεια.'}
     rowProps={()=>({className:'quality-register-deviation'})}

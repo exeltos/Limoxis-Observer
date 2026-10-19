@@ -41,7 +41,7 @@ export function RegistryTable({
   // would end up with an extra, textless box whenever rows is empty.
   const richEmpty=emptyFiltered||Boolean(emptyAction)||Boolean(emptyIcon)
   const emptyState=(Boolean(emptyTitle)||richEmpty)&&(!hasRows||empty)&&(richEmpty
-    ?<RegistryEmptyState filtered={emptyFiltered} onClearFilters={onClearFilters} title={emptyTitle} text={emptyText} icon={emptyIcon} action={emptyAction}/>
+    ?<RegistryEmptyState filtered={emptyFiltered} onClearFilters={onClearFilters} title={emptyFiltered?undefined:emptyTitle} text={emptyFiltered?undefined:emptyText} icon={emptyIcon} action={emptyAction}/>
     :<div className="inline-empty" role="status"><strong>{emptyTitle}</strong>{emptyText&&<span>{emptyText}</span>}</div>)
   // bare: caller already owns the scroll wrapper (e.g. one shared wrapper
   // around several conditionally-rendered tables) - render just the table.

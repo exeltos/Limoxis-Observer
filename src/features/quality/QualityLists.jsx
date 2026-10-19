@@ -120,7 +120,7 @@ export function ActionsList({rows,view,loading,language,t,registry,onOpen,onCrea
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
   </FilterBar>
   <div className="scroll-table" ref={registry.scrollRef}>
-   <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>`${row.kind}:${row.id}`} empty={!loading&&!filtered.length}
+   <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>`${row.kind}:${row.id}`} empty={!loading&&!filtered.length} emptyFiltered={rows.length>0} onClearFilters={clear}
     columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Came from':'Προέλευση'},{key:'department',label:t('department')},{key:'date',label:en?'Due':'Προθεσμία'},{key:'owner',label:t('owner')},{key:'status',label:t('status')}]}
     emptyTitle={en?'No actions':'Δεν υπάρχουν ενέργειες'} emptyText={en?'Corrective actions from reports, findings, deviations, risks and reviews appear here, with the findings still waiting for one.':'Εδώ εμφανίζονται οι διορθωτικές ενέργειες από αναφορές, ευρήματα, αποκλίσεις, κινδύνους και ανασκοπήσεις, μαζί με τα ευρήματα που ακόμη περιμένουν ενέργεια.'}
     rowProps={row=>({...registry.rowProps(row.id),className:`${registry.rowProps(row.id).className}${row.kind==='finding'&&isOpenRecord(row)?' quality-register-deviation':''}`,onClick:()=>onOpen(row,filtered.filter(item=>item.kind===row.kind))})}
@@ -188,7 +188,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
   </FilterBar>
   {filters.mode==='programme'?<AuditProgramme audits={filtered} language={language} onOpen={audit=>onOpen(audit,filtered)} onPlan={onPlan}/>:<>
    <div className="scroll-table" ref={registry.scrollRef}>
-    <RegistryTable bare className="quality-table quality-audits-table" rows={paging.rows} empty={!loading&&!filtered.length}
+    <RegistryTable bare className="quality-table quality-audits-table" rows={paging.rows} empty={!loading&&!filtered.length} emptyFiltered={rows.length>0} onClearFilters={()=>clear()}
      columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'type',label:t('auditType')},{key:'date',label:en?'Planned':'Ημερομηνία'},{key:'compliance',label:en?'Compliance':'Συμμόρφωση'},{key:'owner',label:en?'Lead auditor':'Επικεφαλής'},{key:'status',label:t('status')}]}
      emptyTitle={en?'No audits':'Δεν υπάρχουν επιθεωρήσεις'} emptyText={en?'Plan the year’s audits; each «No» on the checklist becomes a finding.':'Προγραμματίστε τις επιθεωρήσεις του έτους· κάθε «Όχι» στη λίστα ελέγχου γίνεται εύρημα.'}
      rowProps={row=>({...registry.rowProps(row.id),onClick:()=>onOpen(row,filtered)})}
