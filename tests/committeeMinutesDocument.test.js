@@ -1,9 +1,6 @@
-// @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, render } from '@testing-library/react'
-import { CommitteeMinutesDocument } from '../src/features/committees/CommitteeMinutesDocument'
-
-afterEach(() => cleanup())
+import { describe, expect, it } from 'vitest'
+import { committeeMinutesReport } from '../src/features/committees/CommitteeMinutesDocument'
+import { buildReportHtml } from '../src/core/export/reportDocument'
 
 describe('Committee minutes as a document (PDF export)', () => {
   it('lists the meeting, attendance, topics with decisions, notes and approvals', () => {
@@ -14,11 +11,13 @@ describe('Committee minutes as a document (PDF export)', () => {
       generalNotes: 'Επόμενη συνεδρίαση τον Σεπτέμβριο.',
       approvals: [{ id: 'a1', approverName: 'Σπύρος Βασιλείου', status: 'approved', decidedAt: '2026-08-14T10:00:00Z' }],
     }
-    const { container } = render(<CommitteeMinutesDocument committeeName="Επιτροπή Νοσοκομειακών Λοιμώξεων" minutes={minutes} en={false} />)
-    const text = container.textContent
+    const doc = committeeMinutesReport({ committeeName: 'Επιτροπή Νοσοκομειακών Λοιμώξεων', minutes, en: false })
+    const text = buildReportHtml(doc, { branding: { name: 'Demo Hospital' } })
     for (const part of ['Επιτροπή Νοσοκομειακών Λοιμώξεων', 'Μηνιαία συνεδρίαση ΕΝΛ', '8/2026', 'Αίθουσα Διοίκησης', 'Κώστας Σταθόπουλος', 'Παρών/ούσα', 'Δικαιολογημένη απουσία', 'Δείκτες HAI', 'Συνεχίζεται η επιτήρηση στη ΜΕΘ.', 'Επόμενη συνεδρίαση τον Σεπτέμβριο.', 'Σπύρος Βασιλείου', 'Εγκρίθηκε'])
       expect(text).toContain(part)
     // An empty topic is left out.
-    expect(container.querySelectorAll('.committee-minutes-topics li')).toHaveLength(1)
+    expect(doc.sections.find(section => section.title === 'Θέματα & συμπεράσματα').table.rows).toHaveLength(1)
+    // Signature lines for the chair and the secretary close the minutes.
+    expect(text).toContain('Ο/Η Πρόεδρος')
   })
 })

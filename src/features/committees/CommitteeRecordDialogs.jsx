@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { attendanceFor } from './committeeMeetingRules'
 import { Download, Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
@@ -13,8 +13,8 @@ import { membersWithoutAccount } from './committeeExternalApprovalService'
 import { ExternalApproversDialog } from './ExternalApproversDialog'
 import { fmtDate, statusLabel, createTopic, COMMITTEE_ROLE_OPTIONS } from './committeeRecordFormat'
 import { Head } from './CommitteeRecordSections'
-import { CommitteeMinutesDocument } from './CommitteeMinutesDocument'
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { committeeMinutesReport } from './CommitteeMinutesDocument'
+import { printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLibraries } from '../management/useLibraries'
 
@@ -406,8 +406,6 @@ export function MeetingDialog({
   en,
 }) {
   const [externalApprovers, setExternalApprovers] = useState(null)
-  const [exporting, setExporting] = useState(false)
-  const documentRef = useRef(null)
   const { notifyError } = useFeedback()
   // Topic suggestions from the hospital's library (Management > Libraries).
   const { libraries } = useLibraries()
@@ -439,20 +437,10 @@ export function MeetingDialog({
     if (missing.length) setExternalApprovers(missing)
     else onSave(v, true)
   }
-  // The minutes as shown (unsaved edits included), as a PDF document.
-  async function exportPdf() {
-    setExporting(true)
-    try {
-      await exportElementAsPdf({
-        element: documentRef.current,
-        filename: [en ? 'Minutes' : 'Πρακτικά', committeeName, v.minutesNo, String(v.date || '').slice(0, 10)].filter(Boolean).join('_'),
-        orientation: 'portrait',
-      })
-    } catch (error) {
-      notifyError(error, 'export', { operation: 'committee_minutes_pdf' })
-    } finally {
-      setExporting(false)
-    }
+  // The minutes as shown (unsaved edits included), printed on the shared document layout (PDF with real text).
+  function exportPdf() {
+    if (!printReport(committeeMinutesReport({ committeeName, minutes: { ...v, approvals: meeting.approvals || [] }, en })))
+      notifyError(new Error(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'), 'export', { operation: 'committee_minutes_pdf' })
   }
   return (
     <ObserverDialog
@@ -464,7 +452,7 @@ export function MeetingDialog({
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" disabled={exporting} loading={exporting} onClick={() => void exportPdf()}>
+          <Button variant="secondary" onClick={exportPdf}>
             <Download size={14} />
             {en ? 'Export PDF' : 'Εξαγωγή PDF'}
           </Button>
@@ -481,7 +469,6 @@ export function MeetingDialog({
         </>
       }
     >
-      <CommitteeMinutesDocument committeeName={committeeName} minutes={{ ...v, approvals: meeting.approvals || [] }} en={en} documentRef={documentRef} />
       <div className="observer-form-section committee-meeting-meta">
         <div className="entry-grid compact">
           <label>
