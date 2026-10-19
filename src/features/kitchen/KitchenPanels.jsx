@@ -22,6 +22,7 @@ import { limitText } from './kitchenLimits'
 import { RECEIPT_CHECK_FIELDS, RECEIPT_RESULTS, STORAGES, PRODUCT_CATEGORIES, categoryLabel, dayOf, defrostMethodLabel, fmtQty, fmtTemp, haccpReviewDue, pureeMethodLabel, receiptResultLabel, receiptResultTone, storageLabel, todayKey, traceBatch, unitLabel, verificationQueue, weekdayLabel, weekdayOf, dayRecords, addDays, newProduct, newMenu, newProduction, newThermal, newDefrost, newPureeing } from './kitchenModel'
 import { kitchenErrorMessage, removeEntry, reopen, saveSettings, signOff } from './kitchenService'
 import { traceabilityDocument } from './kitchenReports'
+import { RecallOverviewCard } from './KitchenRecall'
 
 export const fmtDay = value => { if (!value) return '—'; const [y, m, d] = String(value).slice(0, 10).split('-'); return `${d}/${m}/${y}` }
 export const fmtStamp = (value, language) => { if (!value) return ''; const d = new Date(value); return Number.isNaN(d.getTime()) ? '' : new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(d) }
@@ -39,7 +40,7 @@ export function useDeviationReport() {
 
 // --- Overview ------------------------------------------------------------------------------
 
-export function OverviewPanel({ summary, access, onOpenDay, onDialog, onTab }) {
+export function OverviewPanel({ state, summary, access, onOpenDay, onDialog, onTab, onRecall }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -81,6 +82,7 @@ export function OverviewPanel({ summary, access, onOpenDay, onDialog, onTab }) {
     <section className="kitchen-card">
       <SectionHeader title={en ? 'HACCP verification' : 'Επαλήθευση HACCP'} subtitle={en ? 'Days waiting for the sign-off of the kitchen manager or quality office (30 days).' : 'Ημέρες που περιμένουν την επαλήθευση του υπεύθυνου κουζίνας ή του γραφείου ποιότητας (30 ημέρες).'} actions={<Button variant="secondary" onClick={() => onTab('verification')}><ShieldCheck size={15} />{summary.toVerify}</Button>} />
     </section>
+    {state && <RecallOverviewCard state={state} access={access} onTab={onTab} onRecall={onRecall} />}
   </div>
 }
 
@@ -381,7 +383,7 @@ export function HaccpPanel({ state, access, onDialog }) {
   return <div className="kitchen-haccp">
     <section className="kitchen-card">
       <SectionHeader title={en ? 'Review of the HACCP plan' : 'Ανασκόπηση σχεδίου HACCP'} subtitle={en ? 'The HACCP team reviews hazards, CCPs and limits at least yearly and after every change.' : 'Η ομάδα HACCP ανασκοπεί κινδύνους, CCP και όρια τουλάχιστον ετησίως και μετά από κάθε αλλαγή.'} actions={access.canManage && <IconButton label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => onDialog({ type: 'settings' })}><Pencil size={15} /></IconButton>} />
-      <RecordDetailsGrid fields={[{ label: en ? 'Last review' : 'Τελευταία ανασκόπηση', value: fmtDay(state.settings?.haccpLastReviewOn) }, { label: en ? 'Next review' : 'Επόμενη ανασκόπηση', value: review ? fmtDay(review) : '—', meta: review && review < todayKey() ? (en ? 'Overdue' : 'Εκπρόθεσμη') : '' }, { label: en ? 'Every (months)' : 'Κάθε (μήνες)', value: String(state.settings?.haccpReviewMonths || 12) }, { label: en ? 'Expiry warning (days)' : 'Ειδοποίηση λήξης (ημέρες)', value: String(state.settings?.expiryWarningDays ?? 2) }, { label: en ? 'HACCP team' : 'Ομάδα HACCP', value: state.settings?.haccpTeam || '—', className: 'kitchen-span-2' }]} />
+      <RecordDetailsGrid fields={[{ label: en ? 'Last review' : 'Τελευταία ανασκόπηση', value: fmtDay(state.settings?.haccpLastReviewOn) }, { label: en ? 'Next review' : 'Επόμενη ανασκόπηση', value: review ? fmtDay(review) : '—', meta: review && review < todayKey() ? (en ? 'Overdue' : 'Εκπρόθεσμη') : '' }, { label: en ? 'Every (months)' : 'Κάθε (μήνες)', value: String(state.settings?.haccpReviewMonths || 12) }, { label: en ? 'Expiry warning (days)' : 'Ειδοποίηση λήξης (ημέρες)', value: String(state.settings?.expiryWarningDays ?? 2) }, { label: en ? 'Recall drill every (months)' : 'Άσκηση ανάκλησης κάθε (μήνες)', value: String(state.settings?.recallDrillMonths || 12) }, { label: en ? 'HACCP team' : 'Ομάδα HACCP', value: state.settings?.haccpTeam || '—', className: 'kitchen-span-2' }]} />
     </section>
     <section className="kitchen-card">
       <SectionHeader title={en ? 'Critical limits' : 'Κρίσιμα όρια'} subtitle={en ? 'Each measurement is marked within / out of limits automatically; out of limits needs a corrective action.' : 'Κάθε μέτρηση χαρακτηρίζεται αυτόματα εντός / εκτός ορίων· εκτός ορίων χρειάζεται διορθωτική ενέργεια.'} actions={access.canManage && <Button variant="secondary" onClick={() => onDialog({ type: 'limits' })}><Pencil size={15} />{en ? 'Limits' : 'Όρια'}</Button>} />
@@ -423,6 +425,7 @@ export function SettingsDialog({ state, organizationId, onClose, onSaved }) {
       <ManualDateField label={en ? 'Last review' : 'Τελευταία ανασκόπηση'} value={draft.haccpLastReviewOn || ''} onChange={value => set({ haccpLastReviewOn: value })} optional />
       <Field label={en ? 'Review every (months)' : 'Ανασκόπηση κάθε (μήνες)'}><input inputMode="numeric" value={draft.haccpReviewMonths ?? 12} onChange={e => set({ haccpReviewMonths: e.target.value.replace(/\D/g, '') })} /></Field>
       <Field label={en ? 'Expiry warning (days)' : 'Ειδοποίηση λήξης (ημέρες)'}><input inputMode="numeric" value={draft.expiryWarningDays ?? 2} onChange={e => set({ expiryWarningDays: e.target.value.replace(/\D/g, '') })} /></Field>
+      <Field label={en ? 'Recall drill every (months)' : 'Άσκηση ανάκλησης κάθε (μήνες)'}><input inputMode="numeric" value={draft.recallDrillMonths ?? 12} onChange={e => set({ recallDrillMonths: e.target.value.replace(/\D/g, '') })} /></Field>
     </FormGrid>
     <Field label={en ? 'HACCP team' : 'Ομάδα HACCP'}><textarea rows={2} value={draft.haccpTeam || ''} onChange={e => set({ haccpTeam: e.target.value })} /></Field>
     <Field label={en ? 'Notes' : 'Σημειώσεις'}><textarea rows={2} value={draft.notes || ''} onChange={e => set({ notes: e.target.value })} /></Field>

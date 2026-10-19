@@ -5,6 +5,7 @@
 // (20261123110200_kitchen_demo.sql). Names are made up.
 import { demoResources } from '../quality/resources/resourceDemoData'
 import { DEFAULT_LIMITS } from './kitchenLimits'
+import { drillFindings, recallTrace } from './kitchenRecallModel'
 
 const day = offset => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const at = (offset, time) => new Date(`${day(offset)}T${time}:00`).toISOString()
@@ -129,10 +130,22 @@ export function kitchenDemoState() {
     { id: 'kf-5', productId: 'kp-2', productName: product('kp-2').name, receiptItemId: 'kri-5', quantity: '8', unit: 'kg', method: 'refrigerator', startedAt: at(0, '20:00'), startTemp: '-18', endedAt: '', endTemp: '', verifiedAt: null, verifiedByName: null },
   ].map(row => ({ correctiveAction: '', notes: '', productionId: '', recordedByName: COOK, source: 'demo', ...row }))
   const writeoffs = [{ id: 'kw-1', receiptItemId: 'kri-2', writtenOffOn: day(-2), quantity: '1', reason: 'expired', notes: 'Το υπόλοιπο έληξε· απορρίφθηκε.', recordedByName: CHEF }]
-  return {
-    settings: { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: day(-340), haccpDocumentId: '', haccpTeam: `${MANAGER} (υπεύθυνη κουζίνας), Υπεύθυνος Ποιότητας, Νοσηλεύτρια Επιτήρησης Λοιμώξεων`, notes: '' },
+  const state = {
+    settings: { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: day(-340), haccpDocumentId: '', haccpTeam: `${MANAGER} (υπεύθυνη κουζίνας), Υπεύθυνος Ποιότητας, Νοσηλεύτρια Επιτήρησης Λοιμώξεων`, recallDrillMonths: 12, notes: '' },
     limits: DEFAULT_LIMITS.map(item => ({ limitKey: item.limitKey, minValue: item.minValue, maxValue: item.maxValue, withinMinutes: item.withinMinutes, active: true })),
     steps: DEFAULT_HACCP_STEPS.map(step => ({ ...step })),
     products, menus, receipts, writeoffs, productions, usage, thermal, pureeing, defrosting, suppliers,
   }
+  return { ...state, recallDrills: recallDemoDrills(state) }
+}
+
+// Two recall drills: a passed one this week (a supplier's chicken lot, traced in 95′) and
+// an older failed one (a dish, traced in 290′ against the 4-hour target).
+function recallDemoDrills(state) {
+  return [
+    { id: 'krd-1', code: 'ANK-0001', drillDate: day(-220), startedAt: at(-220, '09:00'), finishedAt: at(-220, '13:50'), scenario: 'dish', triggerText: 'Κρούσμα γαστρεντερίτιδας σε δύο ασθενείς μετά το βραδινό· έλεγχος του ρυζόγαλου.', receiptItemId: '', productId: '', productName: '', dishName: 'Ρυζόγαλο', targetMinutes: '240', stockCounts: {},
+      notified: 'Υπεύθυνος Ποιότητας, Επιτροπή Λοιμώξεων, προμηθευτής γάλακτος.', actions: 'Ιχνηλατήθηκαν οι παρτίδες γάλακτος· δεν βρέθηκαν οι μερίδες της πολτώδους δίαιτας στο πλάνο.', result: 'fail', lessons: 'Το πλάνο γευμάτων να γράφει πάντα τις μερίδες ανά δίαιτα· οι καταναλώσεις να καταχωρίζονται με την παρτίδα την ίδια ώρα.', conductedByName: MANAGER, status: 'completed', notes: '' },
+    { id: 'krd-2', code: 'ANK-0002', drillDate: day(-2), startedAt: at(-2, '10:00'), finishedAt: at(-2, '11:35'), scenario: 'supplier_lot', triggerText: 'Ειδοποίηση προμηθευτή για μολυσμένη παρτίδα (Salmonella) στο στήθος κοτόπουλο L2410-118.', receiptItemId: 'kri-1', productId: 'kp-1', productName: 'Στήθος κοτόπουλο φιλέτο', dishName: '', targetMinutes: '240', stockCounts: { 'kri-1': '2' },
+      notified: 'Υπεύθυνος Ποιότητας, Διοίκηση, Ομάδα Πρόληψης Λοιμώξεων, προμηθευτής (Κρεατεμπορική Θεσσαλίας).', actions: 'Το υπόλοιπο (2 kg) απομονώθηκε στον θάλαμο ψύξης με σήμανση «ΔΕΣΜΕΥΜΕΝΟ»· βρέθηκαν οι ημέρες και τα γεύματα που σερβιρίστηκε.', result: 'pass', lessons: 'Η ιχνηλάτηση ολοκληρώθηκε εντός στόχου· να προστεθεί στη διαδικασία το τηλέφωνο του προμηθευτή εκτός ωραρίου.', conductedByName: MANAGER, status: 'completed', notes: '' },
+  ].map(drill => ({ ...drill, conductedByEmployeeId: '', ...drillFindings(drill, recallTrace(state, drill)) }))
 }
