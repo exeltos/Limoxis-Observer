@@ -63,6 +63,8 @@ const TABLES=Object.freeze({
   quality_department_register_entries:{storageKey:'limoxis.qualityDepartmentRegisterEntries.v1',kind:'rows',cloud:false},
   quality_department_register_identities:{storageKey:'limoxis.qualityDepartmentRegisterIdentities.v1',kind:'document',cloud:false},
   recycle_bin_local:{storageKey:'limoxis.recycleBin.v1',kind:'rows',cloud:false},
+  // Demo kitchen (HACCP). Production kitchen lives in the kitchen_* tables (src/features/kitchen/kitchenService.js).
+  kitchen_local_state:{storageKey:'limoxis.kitchen.v1',kind:'document',cloud:false},
 })
 
 export class DataAccessError extends Error{

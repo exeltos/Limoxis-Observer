@@ -74,6 +74,13 @@ export const helpManualEn={
   ['Department & position','Central libraries are used so values remain consistent across the application.'],
   ['Clinical separation','HR access to administrative staff data does not automatically grant access to occupational-health visits or clinical notes.']
  ],steps:['Search for the employee.','Open the record or create a new one if permitted.','Update only the fields that belong to your role.'],preview:'employees'},
+ '/kitchen':{title:'Kitchen (HACCP)',summary:'HACCP food safety: receipts and stock per batch, the production day, critical limits, verification and traceability.',audience:'Kitchen manager, cooks (custom role), Quality Manager, Hospital Admin; the Infection Control Lead reads',chapters:[
+  ['Receipt and stock','Each receipt records the supplier, the time, five checks (temperature, packaging, expiry, vehicle, coding) and the products; each product is a batch in stock. A rejected receipt or product adds no stock.'],
+  ['Production day','The day opens from the standard menu of its weekday. In it you record the raw materials taken from stock (FIFO, an expired batch cannot be used), the heat parameters of each dish, pureeing, disinfection and the meal plan.'],
+  ['Critical limits','Each measurement is marked within or out of limits automatically with the hospital limits (e.g. chilled receipt at most 5 °C, cooking at least 75 °C, chilling to 10 °C within 2 hours). Out of limits needs a corrective action and can be reported to Quality as a deviation.'],
+  ['Verification','The kitchen manager or the quality office signs off each day and each defrosting; the record is locked until reopened with a reason. The Verification tab shows the days waiting.'],
+  ['Traceability and records','From a batch you see where it was used (day, dish) and back. Export: the daily HACCP sheet, the receipts log, batch traceability and the lists in Excel.']
+ ],steps:['Record the receipt with its checks and products.','Open today\'s production and record raw materials and temperatures.','Review what is out of limits and its corrective action.','Sign off the day (kitchen or quality manager).']},
  '/pharmacy':{title:'Pharmacy',summary:'Antimicrobial stewardship, approvals and consumption monitoring.',audience:'Pharmacy, clinical reviewers and Infection Control where authorized',chapters:[
   ['Restricted antimicrobials','Requests and approvals follow a controlled workflow.'],
   ['Consumption','DDD and other measures support stewardship monitoring and indicators.'],

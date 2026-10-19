@@ -10,7 +10,7 @@ describe('sidebar order per role', () => {
   it('opens the Platform Owner workspace with clinical work and keeps the calendar last in the main list', () => {
     expect(order(ROLES.PLATFORM_OWNER)).toEqual([
       'dashboard', 'surveillance', 'patients', 'laboratory', 'prevention', 'controls', 'quality', 'employees', 'calendar',
-      'more:platformAnalyticsNav', 'more:indicators', 'more:training', 'more:committees', 'more:documents', 'more:regulations', 'management',
+      'more:platformAnalyticsNav', 'more:indicators', 'more:training', 'more:committees', 'more:documents', 'more:regulations', 'more:kitchen', 'management',
     ])
   })
 

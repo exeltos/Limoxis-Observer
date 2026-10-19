@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Award, BarChart3, Beaker, BookMarked, BookOpenCheck, Building2, CalendarDays, ClipboardCheck, ClipboardList, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
+import { Activity, AlertTriangle, Award, BarChart3, Beaker, BookMarked, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 
 const preventionAccessCapabilities=[
@@ -15,7 +15,10 @@ const calendarCapabilities=[
   CAPABILITIES.VIEW_TRAINING,
   CAPABILITIES.VIEW_DOCUMENTS,
   CAPABILITIES.VIEW_COMMITTEES,
+  CAPABILITIES.VIEW_KITCHEN,
 ]
+
+const kitchenCapabilities=[CAPABILITIES.VIEW_KITCHEN,CAPABILITIES.RECORD_KITCHEN,CAPABILITIES.MANAGE_KITCHEN]
 
 // Canonical destinations. Visibility comes from capabilities; sidebar placement
 // and ordering are resolved separately per role so each workspace reflects the
@@ -40,6 +43,7 @@ export const navigation=[
   {to:'/committees',key:'committees',icon:BookOpenCheck,capability:CAPABILITIES.VIEW_COMMITTEES},
   {to:'/documents',key:'documents',icon:FileText,capability:CAPABILITIES.VIEW_DOCUMENTS},
   {to:'/regulations',key:'regulations',icon:BookMarked,capability:CAPABILITIES.VIEW_DOCUMENTS,anyCapabilities:[CAPABILITIES.VIEW_DOCUMENTS,CAPABILITIES.VIEW_QUALITY]},
+  {to:'/kitchen',key:'kitchen',icon:ChefHat,capability:CAPABILITIES.VIEW_KITCHEN,anyCapabilities:kitchenCapabilities},
   {to:'/pharmacy',key:'pharmacy',icon:Pill,capability:CAPABILITIES.VIEW_PHARMACY},
   {to:'/occupational-health',key:'occupationalHealth',icon:Stethoscope,capability:CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH},
   {to:'/calendar',key:'calendar',icon:CalendarDays,capability:CAPABILITIES.VIEW_DOCUMENTS,anyCapabilities:calendarCapabilities},
@@ -59,17 +63,17 @@ const policy=(primaryOrder=[],moreOrder=[],hidden=[])=>Object.freeze({
 const roleMenuPolicy=Object.freeze({
   [ROLES.PLATFORM_OWNER]:policy(
     ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','calendar'],
-    ['platformAnalyticsNav','indicators','training','committees','documents','regulations'],
+    ['platformAnalyticsNav','indicators','training','committees','documents','regulations','kitchen'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.HOSPITAL_ADMIN]:policy(
     ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','platformAnalyticsNav','calendar'],
-    ['indicators','training','committees','documents','regulations','pharmacy','occupationalHealth'],
+    ['indicators','training','committees','documents','regulations','kitchen','pharmacy','occupationalHealth'],
     [],
   ),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
     ['dashboard','surveillance','patients','laboratory','prevention','controls','indicators','committees','calendar'],
-    ['platformAnalyticsNav','quality','employees','training','documents','regulations'],
+    ['platformAnalyticsNav','quality','employees','training','documents','regulations','kitchen'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.INFECTION_CONTROL_MEMBER]:policy(
@@ -108,7 +112,7 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy'],
   ),
   [ROLES.QUALITY_MANAGER]:policy(
-    ['dashboard','quality','controls','indicators','documents','regulations','calendar'],
+    ['dashboard','quality','controls','kitchen','indicators','documents','regulations','calendar'],
     ['committees'],
     ['pharmacy','occupationalHealth'],
   ),
