@@ -54,6 +54,7 @@ const TABLES=Object.freeze({
   quality_local_supplier_templates:{storageKey:'limoxis.qualityLocalSupplierTemplates.v1',kind:'rows',cloud:false},
   quality_local_equipment:{storageKey:'limoxis.qualityLocalEquipment.v1',kind:'rows',cloud:false},
   quality_local_equipment_events:{storageKey:'limoxis.qualityLocalEquipmentEvents.v1',kind:'rows',cloud:false},
+  quality_local_supplier_certificate_requests:{storageKey:'limoxis.qualityLocalSupplierCertificateRequests.v1',kind:'rows',cloud:false},
   legislation_local_library:{storageKey:'limoxis.legislationLocalLibrary.v1',kind:'rows',cloud:false},
   legislation_local_versions:{storageKey:'limoxis.legislationLocalVersions.v1',kind:'rows',cloud:false},
   legislation_local_rows:{storageKey:'limoxis.legislationLocalRows.v1',kind:'rows',cloud:false},

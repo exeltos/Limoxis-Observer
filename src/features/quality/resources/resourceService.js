@@ -32,6 +32,12 @@ function local() {
 }
 // The demo suppliers and equipment as they are in this browser (the Analysis demo reads them).
 export const loadResourcesLocal = () => local()
+// The demo's acceptance of a renewed certificate: the certificate takes the new values.
+export function replaceCertificationLocal(supplierId, certificationId, values) {
+  const state = local()
+  state.suppliers = state.suppliers.map(item => (item.id !== supplierId ? item : { ...item, certifications: (item.certifications || []).map(cert => (cert.id === certificationId ? { ...cert, ...values } : cert)) }))
+  saveLocal(state)
+}
 function saveLocal(state) {
   for (const [field, key] of Object.entries(KEYS)) saveSnapshot(key, state[field])
 }

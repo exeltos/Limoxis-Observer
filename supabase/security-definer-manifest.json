@@ -439,6 +439,22 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Edits the organisation profile; Platform Owner or organisation admin."
+    },
+    "quality_supplier_certificate_access": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Shows the expired certificate to a supplier from the e-mailed renewal link; only the SHA-256 of the random single-use token is stored (14 days)."
+    },
+    "quality_supplier_certificate_request_action": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Approve, resend, cancel, accept (replaces the certificate, keeps the previous values) or reject a supplier certificate renewal request; Platform Owner or Quality managers of the organisation (Hospital Admin, Quality Manager, manage_quality)."
+    },
+    "quality_supplier_certificate_requests_create": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Creates renewal requests for expired supplier certificates: approved and e-mailed by Quality managers (Platform Owner, Hospital Admin, Quality Manager, manage_quality), or only proposed by a Quality reader."
     }
   }
 }

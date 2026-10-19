@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, Award, CheckSquare2, ClipboardList, FolderOpen, Pencil, Plus, Stethoscope, Star, Trash2, Truck, Users } from 'lucide-react'
+import { AlertTriangle, Award, CheckSquare2, ClipboardList, FolderOpen, Pencil, Plus, Send, Stethoscope, Star, Trash2, Truck, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
@@ -31,6 +31,8 @@ import { APPROVALS, CERTIFICATION_TYPES, CRITERIA, CRITICALITY, DOCUMENT_KINDS, 
 import { applyTemplate, everyCriterionScored, evaluationFromTemplate, formatPercent, isTemplateEvaluation, resultFor, templateFor, templatesFor, weightedScore } from './supplierTemplates'
 import { supplierEvaluationDocument } from './supplierEvaluationReport'
 import { SupplierTemplatesPage } from './SupplierTemplatesPage'
+import { RenewalSendDialog, SupplierRenewalsPage, canRequestRenewal, useCertificateRequests } from './SupplierRenewalsPage'
+import { renewalQueue, requestStatusLabel, requestStatusTone } from './supplierRenewalModel'
 import '../quality.css'
 import './resources.css'
 
@@ -42,10 +44,15 @@ const HeaderAction = ({ children }) => children
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 const byNewest = field => (a, b) => String(b[field] || '').localeCompare(String(a[field] || ''))
 
-// /quality/suppliers/templates is the templates page; any other id is a supplier.
+// /quality/suppliers/templates is the templates page, /quality/suppliers/renewals the
+// certificates to renew; any other id is a supplier. Nothing here when the hospital
+// has no «Suppliers & certificates» module.
 export function SupplierRecordPage() {
   const { supplierId } = useParams()
-  return supplierId === 'templates' ? <SupplierTemplatesPage /> : <SupplierRecord supplierId={supplierId} />
+  const { moduleEnabled } = useTenant()
+  const { language } = useLanguage()
+  if (!moduleEnabled('suppliers')) return <Page fill><div className="registry-empty-state"><strong>{language === 'en' ? 'The «Suppliers & certificates» module is not enabled for this hospital.' : 'Η ενότητα «Προμηθευτές & πιστοποιητικά» δεν είναι ενεργή για το νοσοκομείο.'}</strong></div></Page>
+  return supplierId === 'templates' ? <SupplierTemplatesPage /> : supplierId === 'renewals' ? <SupplierRenewalsPage /> : <SupplierRecord supplierId={supplierId} />
 }
 
 function SupplierRecord({ supplierId }) {
@@ -62,11 +69,15 @@ function SupplierRecord({ supplierId }) {
   const [tab, setTab] = useState(isNew ? 'details' : 'evaluations')
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [renewing, setRenewing] = useState(null)
+  const renewals = useCertificateRequests(!isNew && access.canViewAll)
 
   const row = useMemo(() => (isNew ? null : list.suppliers.find(item => item.id === supplierId) || null), [isNew, list.suppliers, supplierId])
   useEffect(() => { if (isNew) setDraft(current => current || newSupplier()); else if (row) setDraft(current => (current?.id === row.id ? current : structuredClone(row))) }, [isNew, row])
   const devices = useMemo(() => list.equipment.filter(item => item.supplierId === supplierId), [list.equipment, supplierId])
   const templates = list.templates || []
+  // Each certificate with its latest renewal request (the e-mailed link to the supplier).
+  const renewalRows = useMemo(() => new Map((row ? renewalQueue([{ ...row, status: 'active' }], renewals.requests, { expiring: true }) : []).map(item => [item.key, item])), [row, renewals.requests])
 
   if (list.loading && !draft) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
   if (!isNew && !row) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Supplier not found' : 'Ο προμηθευτής δεν βρέθηκε'}</strong></div></Page>
@@ -183,8 +194,8 @@ function SupplierRecord({ supplierId }) {
           <td>{documentKindLabel(item.kind, language)}</td>
           <td>{item.number || '—'}</td>
           <td>{item.issuer || '—'}</td>
-          <td className="nowrap-cell">{formatDay(item.expiresOn, language) || '—'} <StatusBadge tone={certificationStateTone(state)}>{certificationStateLabel(state, language)}</StatusBadge></td>
-          <td><div className="row-actions">{!locked && <IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ field: 'certifications', item: structuredClone(item) })}><Pencil size={14} /></IconButton>}{!locked && <IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => dropItem('certifications', item)}><Trash2 size={14} /></IconButton>}</div></td>
+          <td className="nowrap-cell">{formatDay(item.expiresOn, language) || '—'} <StatusBadge tone={certificationStateTone(state)}>{certificationStateLabel(state, language)}</StatusBadge>{renewalRows.get(item.id)?.request && <small><StatusBadge tone={requestStatusTone(renewalRows.get(item.id).request.status)}>{en ? 'Renewal' : 'Ανανέωση'}: {requestStatusLabel(renewalRows.get(item.id).request.status, language)}</StatusBadge></small>}</td>
+          <td><div className="row-actions">{!locked && canRequestRenewal(renewalRows.get(item.id)) && <IconButton size="sm" label={en ? 'Ask the supplier for the renewal' : 'Αίτημα ανανέωσης στον προμηθευτή'} onClick={() => setRenewing([renewalRows.get(item.id)])}><Send size={14} /></IconButton>}{!locked && <IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ field: 'certifications', item: structuredClone(item) })}><Pencil size={14} /></IconButton>}{!locked && <IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => dropItem('certifications', item)}><Trash2 size={14} /></IconButton>}</div></td>
         </> }} />
     </RecordTabPanel>}
     {tab === 'contacts' && row && <RecordTabPanel title={en ? 'Contact persons' : 'Πρόσωπα επικοινωνίας'} subtitle={en ? 'Who to call for orders, quality and technical support.' : 'Με ποιον επικοινωνείτε για παραγγελίες, ποιότητα και τεχνική υποστήριξη.'} actions={add('contacts', newContact)}>
@@ -247,6 +258,7 @@ function SupplierRecord({ supplierId }) {
         </FormCard>
       </div>
     </RecordTabPanel>}
+    {renewing && <RenewalSendDialog rows={renewing} canManage={access.canManage} onClose={() => setRenewing(null)} onDone={async () => { setRenewing(null); await renewals.reload() }} />}
     {editing && <ItemDialog editing={editing} setEditing={setEditing} language={language} saving={saving} templates={templates} category={supplierCategoryOf(draft.category)} onSave={async () => { if (await saveItem(editing.field, editing.item)) setEditing(null) }} />}
   </EntityRecordShell></Page>
 }
