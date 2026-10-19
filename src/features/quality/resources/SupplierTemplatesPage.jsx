@@ -85,7 +85,7 @@ export function SupplierTemplatesPage() {
         renderRow={row => <>
           <td><strong>{row.name}</strong><small>{en ? 'version' : 'έκδοση'} {row.version}{row.description ? ` · ${row.description}` : ''}</small></td>
           <td>{(row.categories || []).length ? <span className="resource-notes">{row.categories.map(value => <StatusBadge key={value} tone="neutral">{supplierCategoryLabel(value, language)}</StatusBadge>)}</span> : (en ? 'Every supplier' : 'Όλοι οι προμηθευτές')}</td>
-          <td>{(row.criteria || []).length}<small>{en ? 'weights' : 'βάρη'} {comma(weightTotal(row.criteria), en)} · {row.scoreScale === 10 ? '0–10' : '1–5'}</small></td>
+          <td className="nowrap-cell">{(row.criteria || []).length}<small>{en ? 'weights' : 'βάρη'} {comma(weightTotal(row.criteria), en)} · {row.scoreScale === 10 ? '0–10' : '1–5'}</small></td>
           <td className="nowrap-cell">{comma(row.passThreshold, en)}% / {comma(row.conditionalThreshold, en)}%</td>
           <td className="nowrap-cell">{en ? `every ${row.frequencyMonths} months` : `κάθε ${row.frequencyMonths} μήνες`}</td>
           <td><StatusBadge tone={row.active !== false ? 'success' : 'neutral'}>{row.active !== false ? (en ? 'Active' : 'Ενεργό') : (en ? 'Inactive' : 'Ανενεργό')}</StatusBadge></td>
